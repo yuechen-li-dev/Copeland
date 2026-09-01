@@ -31,13 +31,13 @@
   },
   {
     "id": "CTS-BURN-004",
-    "category": "COMPOSITION_GAP",
-    "severity": "MATERIAL",
+    "category": "RESOLVED_COMPOSITION_GAP",
+    "severity": "RESOLVED",
     "program": "Flow",
     "sourceLocation": "Flow.ts transition update blocks",
-    "summary": "FLOW-M1 rejects calls to an ordinary pure helper from transition updates.",
-    "evidence": "nextSequence(board.sequence) produced COPE-FLOW-0024 and had to be written as board.sequence + 1.",
-    "recommendedAction": "Qualify effect-classified pure Copeland calls in FLOW updates as a bounded follow-up; do not broaden host effects."
+    "summary": "CTS-FLOW-M2 permits ordinary helper calls in transition updates only when the existing function-effect summary proves them pure.",
+    "evidence": "Flow.ts now uses nextSequence(board.sequence) in both authored update sites; the maintained Node and C# paths pass while LocalMutation, HostInterop, and UnknownCall cases retain COPE-FLOW-0024.",
+    "recommendedAction": "Closed by CTS-FLOW-M2; keep guards and non-pure effects outside this permission."
   },
   {
     "id": "CTS-BURN-005",

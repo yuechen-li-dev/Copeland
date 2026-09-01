@@ -49,9 +49,6 @@ public sealed class LanguageBurnInTests
         "record table Values { tags: string[] = [[\"a\"]]; }",
         "COPE-TABLE-0009")]
     [InlineData(
-        "function next(value: int): int { return value + 1; } flow F { board { value: int = 0; } event Go(); state A initial { on Go() -> B { board.value = next(board.value); }; } state B { } }",
-        "COPE-FLOW-0024")]
-    [InlineData(
         "class Person { name: string; constructor(name: string): Person { return { name }; } } function bad(): Person { return new Person(\"Ada\"); }",
         "COPE-CLASS-0013")]
     public void Composition_and_familiarity_probes_retain_focused_diagnostics(
@@ -62,6 +59,15 @@ public sealed class LanguageBurnInTests
 
         Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == expectedDiagnostic);
         Assert.InRange(compilation.Diagnostics.Count, 1, 3);
+    }
+
+    [Fact]
+    public void Flow_pure_helper_composition_gap_is_closed()
+    {
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(
+            "function next(value: int): int { return value + 1; } flow F { board { value: int = 0; } event Go(); state A initial { on Go() -> B { board.value = next(board.value); }; } state B { } }");
+
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
     }
 
     [Fact]

@@ -397,6 +397,8 @@ public static class JavaScriptBackend
             MirVariableExpression variable => JavaScriptIdentifierEncoder.Encode(variable.Name),
             MirUnaryExpression unary => "(" + unary.Operator + EmitFlowExpression(unary.Operand, fieldsById) + ")",
             MirBinaryExpression binary => "(" + EmitFlowExpression(binary.Left, fieldsById) + " " + binary.Operator + " " + EmitFlowExpression(binary.Right, fieldsById) + ")",
+            MirCallExpression call => JavaScriptIdentifierEncoder.Encode(call.FunctionName)
+                + "(" + string.Join(", ", call.Arguments.Select(argument => EmitFlowExpression(argument, fieldsById))) + ")",
             MirRecordFieldAccessExpression access when access.Receiver is MirVariableExpression { Name: "board" }
                 => "board[" + JavaScriptLiteralWriter.WriteString(JavaScriptIdentifierEncoder.Encode(fieldsById[access.FieldId])) + "]",
             _ => throw new InvalidOperationException($"FLOW-M1 JavaScript emission received unsupported pure expression '{expression.GetType().Name}'.")

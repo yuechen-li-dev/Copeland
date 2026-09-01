@@ -11,11 +11,12 @@ public sealed class FlowM1RuntimeTests
     public void Flow_session_executes_a_typed_event_transition_and_exposes_a_read_only_board_snapshot()
     {
         var lowered = MirLowerer.Lower(SyntaxTree.Parse("""
+            function nextAttempt(value: number): number { return value + 1; }
             flow Door {
                 board { attempts: number = 0; }
                 event Open();
                 event Reset();
-                state Closed initial { on Open() -> Opened { board.attempts = board.attempts + 1; }; }
+                state Closed initial { on Open() -> Opened { board.attempts = nextAttempt(board.attempts); }; }
                 state Opened { on Reset() -> Closed; }
             }
             """));
@@ -24,6 +25,8 @@ public sealed class FlowM1RuntimeTests
         CSharpCompilation emitted = CSharpBackend.Emit(lowered.Program!);
         Assert.Empty(emitted.Diagnostics);
         Assert.Contains("public static class Door", emitted.SourceText, StringComparison.Ordinal);
+        Assert.Contains("CopelandModule.nextAttempt(", emitted.SourceText, StringComparison.Ordinal);
+        Assert.Equal(1, emitted.SourceText.Split("CopelandModule.nextAttempt(", StringSplitOptions.None).Length - 1);
         Assert.DoesNotContain("Dictionary", emitted.SourceText, StringComparison.Ordinal);
 
         var generated = RoslynCompileHelper.CompileGeneratedSource(emitted.SourceText);

@@ -10,52 +10,52 @@ function __cope_m3_make_1(type, tag, payload) {
     return value;
 }
 
-const __cope_m3_record_type_r2_2 = Symbol("r2");
-const __cope_m3_record_instances_r2_3 = new WeakSet();
-const __cope_m3_record_field___cope_00720032002e00660030_6 = Symbol("r2.f0");
-const __cope_m3_record_field___cope_00720032002e00660031_7 = Symbol("r2.f1");
-const __cope_m3_record_field___cope_00720032002e00660032_8 = Symbol("r2.f2");
-const __cope_m3_record_field___cope_00720032002e00660033_9 = Symbol("r2.f3");
+const __cope_m3_record_type_r1_2 = Symbol("r1");
+const __cope_m3_record_instances_r1_3 = new WeakSet();
+const __cope_m3_record_field___cope_00720031002e00660030_6 = Symbol("r1.f0");
+const __cope_m3_record_field___cope_00720031002e00660031_7 = Symbol("r1.f1");
 
-function __cope_m3_record_make_r2_4(field0, field1, field2, field3) {
+function __cope_m3_record_make_r1_4(field0, field1) {
     const value = Object.create(null);
     Object.defineProperties(value, {
-        [__cope_m3_record_type_r2_2]: { value: __cope_m3_record_type_r2_2, writable: false, enumerable: false, configurable: false },
-        [__cope_m3_record_field___cope_00720032002e00660030_6]: { value: field0, writable: false, enumerable: false, configurable: false },
-        [__cope_m3_record_field___cope_00720032002e00660031_7]: { value: field1, writable: false, enumerable: false, configurable: false },
-        [__cope_m3_record_field___cope_00720032002e00660032_8]: { value: field2, writable: false, enumerable: false, configurable: false },
-        [__cope_m3_record_field___cope_00720032002e00660033_9]: { value: field3, writable: false, enumerable: false, configurable: false },
+        [__cope_m3_record_type_r1_2]: { value: __cope_m3_record_type_r1_2, writable: false, enumerable: false, configurable: false },
+        [__cope_m3_record_field___cope_00720031002e00660030_6]: { value: field0, writable: false, enumerable: false, configurable: false },
+        [__cope_m3_record_field___cope_00720031002e00660031_7]: { value: field1, writable: false, enumerable: false, configurable: false },
     });
     Object.freeze(value);
-    __cope_m3_record_instances_r2_3.add(value);
+    __cope_m3_record_instances_r1_3.add(value);
     return value;
 }
 
-function __cope_m3_record_require_r2_5(value) {
-    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_record_instances_r2_3.has(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_type_r2_2) || value[__cope_m3_record_type_r2_2] !== __cope_m3_record_type_r2_2 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720032002e00660030_6) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720032002e00660031_7) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720032002e00660032_8) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720032002e00660033_9)) {
+function __cope_m3_record_require_r1_5(value) {
+    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_record_instances_r1_3.has(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_type_r1_2) || value[__cope_m3_record_type_r1_2] !== __cope_m3_record_type_r1_2 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720031002e00660030_6) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720031002e00660031_7)) {
         __cope_m3_panic_0();
     }
 }
 
-const __cope_m3_record_type_r1_10 = Symbol("r1");
-const __cope_m3_record_instances_r1_11 = new WeakSet();
-const __cope_m3_record_field___cope_00720031002e00660030_14 = Symbol("r1.f0");
-const __cope_m3_record_field___cope_00720031002e00660031_15 = Symbol("r1.f1");
+const __cope_m3_record_type_r2_8 = Symbol("r2");
+const __cope_m3_record_instances_r2_9 = new WeakSet();
+const __cope_m3_record_field___cope_00720032002e00660030_12 = Symbol("r2.f0");
+const __cope_m3_record_field___cope_00720032002e00660031_13 = Symbol("r2.f1");
+const __cope_m3_record_field___cope_00720032002e00660032_14 = Symbol("r2.f2");
+const __cope_m3_record_field___cope_00720032002e00660033_15 = Symbol("r2.f3");
 
-function __cope_m3_record_make_r1_12(field0, field1) {
+function __cope_m3_record_make_r2_10(field0, field1, field2, field3) {
     const value = Object.create(null);
     Object.defineProperties(value, {
-        [__cope_m3_record_type_r1_10]: { value: __cope_m3_record_type_r1_10, writable: false, enumerable: false, configurable: false },
-        [__cope_m3_record_field___cope_00720031002e00660030_14]: { value: field0, writable: false, enumerable: false, configurable: false },
-        [__cope_m3_record_field___cope_00720031002e00660031_15]: { value: field1, writable: false, enumerable: false, configurable: false },
+        [__cope_m3_record_type_r2_8]: { value: __cope_m3_record_type_r2_8, writable: false, enumerable: false, configurable: false },
+        [__cope_m3_record_field___cope_00720032002e00660030_12]: { value: field0, writable: false, enumerable: false, configurable: false },
+        [__cope_m3_record_field___cope_00720032002e00660031_13]: { value: field1, writable: false, enumerable: false, configurable: false },
+        [__cope_m3_record_field___cope_00720032002e00660032_14]: { value: field2, writable: false, enumerable: false, configurable: false },
+        [__cope_m3_record_field___cope_00720032002e00660033_15]: { value: field3, writable: false, enumerable: false, configurable: false },
     });
     Object.freeze(value);
-    __cope_m3_record_instances_r1_11.add(value);
+    __cope_m3_record_instances_r2_9.add(value);
     return value;
 }
 
-function __cope_m3_record_require_r1_13(value) {
-    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_record_instances_r1_11.has(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_type_r1_10) || value[__cope_m3_record_type_r1_10] !== __cope_m3_record_type_r1_10 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720031002e00660030_14) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720031002e00660031_15)) {
+function __cope_m3_record_require_r2_11(value) {
+    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_record_instances_r2_9.has(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_type_r2_8) || value[__cope_m3_record_type_r2_8] !== __cope_m3_record_type_r2_8 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720032002e00660030_12) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720032002e00660031_13) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720032002e00660032_14) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720032002e00660033_15)) {
         __cope_m3_panic_0();
     }
 }
@@ -108,40 +108,40 @@ function nextSequence(value) {
 
 function auditScore(entry) {
     const __cope_m3_record_receiver_19 = entry;
-    __cope_m3_record_require_r1_13(__cope_m3_record_receiver_19);
-    const __cope_m3_match_20 = __cope_m3_record_receiver_19[__cope_m3_record_field___cope_00720031002e00660030_14];
+    __cope_m3_record_require_r1_5(__cope_m3_record_receiver_19);
+    const __cope_m3_match_20 = __cope_m3_record_receiver_19[__cope_m3_record_field___cope_00720031002e00660030_6];
     __cope_m3_validate_18(__cope_m3_match_20);
     let __cope_m3_match_value_21;
     switch (__cope_m3_match_20.$tag) {
         case "Started":
         {
             const __cope_m3_record_receiver_22 = entry;
-            __cope_m3_record_require_r1_13(__cope_m3_record_receiver_22);
-            __cope_m3_match_value_21 = __cope_m3_record_receiver_22[__cope_m3_record_field___cope_00720031002e00660031_15];
+            __cope_m3_record_require_r1_5(__cope_m3_record_receiver_22);
+            __cope_m3_match_value_21 = __cope_m3_record_receiver_22[__cope_m3_record_field___cope_00720031002e00660031_7];
             break;
         }
         case "Retried":
         {
             const count = __cope_m3_match_20.$payload[0];
             const __cope_m3_record_receiver_23 = entry;
-            __cope_m3_record_require_r1_13(__cope_m3_record_receiver_23);
-            __cope_m3_match_value_21 = (__cope_m3_record_receiver_23[__cope_m3_record_field___cope_00720031002e00660031_15] + count);
+            __cope_m3_record_require_r1_5(__cope_m3_record_receiver_23);
+            __cope_m3_match_value_21 = (__cope_m3_record_receiver_23[__cope_m3_record_field___cope_00720031002e00660031_7] + count);
             break;
         }
         case "Completed":
         {
             const total = __cope_m3_match_20.$payload[0];
             const __cope_m3_record_receiver_24 = entry;
-            __cope_m3_record_require_r1_13(__cope_m3_record_receiver_24);
-            __cope_m3_match_value_21 = (__cope_m3_record_receiver_24[__cope_m3_record_field___cope_00720031002e00660031_15] + total);
+            __cope_m3_record_require_r1_5(__cope_m3_record_receiver_24);
+            __cope_m3_match_value_21 = (__cope_m3_record_receiver_24[__cope_m3_record_field___cope_00720031002e00660031_7] + total);
             break;
         }
         case "Failed":
         {
             const reason = __cope_m3_match_20.$payload[0];
             const __cope_m3_record_receiver_25 = entry;
-            __cope_m3_record_require_r1_13(__cope_m3_record_receiver_25);
-            __cope_m3_match_value_21 = (__cope_m3_record_receiver_25[__cope_m3_record_field___cope_00720031002e00660031_15] + reason.length);
+            __cope_m3_record_require_r1_5(__cope_m3_record_receiver_25);
+            __cope_m3_match_value_21 = (__cope_m3_record_receiver_25[__cope_m3_record_field___cope_00720031002e00660031_7] + reason.length);
             break;
         }
         default:
@@ -153,7 +153,7 @@ function auditScore(entry) {
 function main() {
     const __cope_m3_record_init_26 = __cope_m3_make_1(__cope_m3_type_16, "Completed", [42]);
     const __cope_m3_record_init_27 = 3;
-    const entry = __cope_m3_record_make_r1_12(__cope_m3_record_init_26, __cope_m3_record_init_27);
+    const entry = __cope_m3_record_make_r1_4(__cope_m3_record_init_26, __cope_m3_record_init_27);
     return auditScore(entry);
 }
 
@@ -183,7 +183,7 @@ const Delivery = Object.freeze({
                             board = nextBoard;
                             nextBoard = { ...nextBoard, attempts: (board["attempts"] + 1) };
                             board = nextBoard;
-                            nextBoard = { ...nextBoard, sequence: (board["sequence"] + 1) };
+                            nextBoard = { ...nextBoard, sequence: nextSequence(board["sequence"]) };
                             board = nextBoard;
                             const fromState = state;
                             board = nextBoard;
@@ -377,7 +377,7 @@ const Delivery = Object.freeze({
                             let nextBoard = board;
                             nextBoard = { ...nextBoard, total: (board["total"] + amount) };
                             board = nextBoard;
-                            nextBoard = { ...nextBoard, sequence: (board["sequence"] + 1) };
+                            nextBoard = { ...nextBoard, sequence: nextSequence(board["sequence"]) };
                             board = nextBoard;
                             const fromState = state;
                             board = nextBoard;

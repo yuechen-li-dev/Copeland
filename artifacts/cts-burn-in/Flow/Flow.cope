@@ -6,15 +6,15 @@ enum AuditKind
   case Completed(total: int)
   case Failed(reason: string)
 
+record AuditEntry [r1]
+  field kind [r1.f0]: AuditKind
+  field sequence [r1.f1]: int
+
 class-record DeliveryBoard [r2]
   public field attempts [r2.f0]: int
   public field total [r2.f1]: int
   public field sequence [r2.f2]: int
   public field accepted [r2.f3]: boolean
-
-record AuditEntry [r1]
-  field kind [r1.f0]: AuditKind
-  field sequence [r1.f1]: int
 
 func nextSequence(value: int) -> int
 entry:

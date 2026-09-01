@@ -8,8 +8,8 @@ real paths. Four emitted deterministic MIR, JavaScript, C#, and stable Node
 output; the template/reflection program evaluated deterministically to 15
 compile-time artifacts. The pass found and fixed two async record backend
 correctness bugs and one class diagnostic bug. The remaining material pressure
-is bounded: pure function calls inside FLOW updates, constrained template type
-parameter forwarding, and table runtime size.
+is bounded: constrained template type parameter forwarding and table runtime
+size. The pure-function/FLOW composition finding was resolved by CTS-FLOW-M2.
 
 This verdict is based on `SyntaxNodes.cs`, `Parser.cs`, `Binder.cs`, bound nodes,
 static/template evaluation, `MirLowerer.cs`, MIR validation, and both backends.
@@ -143,11 +143,13 @@ size ratio.
 
 ### Flow
 
-The 8-state, 7-event flow emitted a direct state-switch session with explicit
+The 8-state, 7-event flow emits a direct state-switch session with explicit
 guard branches, immutable board replacement, terminal state, revision, and
 reentrancy checks. It is verbose but traceable, not spaghetti. The material
-friction is authoring: even `nextSequence(board.sequence)` is rejected by the
-FLOW-M1 update effect rule, forcing repeated inline arithmetic.
+The original authoring friction is closed: both sequence updates now use
+`nextSequence(board.sequence)`. CTS-FLOW-M2 admits that call because its existing
+function-effect summary is `StaticSafe` with no safe effects; effectful and
+unproven calls still fail closed.
 
 ### Metaprogramming
 

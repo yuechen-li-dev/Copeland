@@ -1,0 +1,19 @@
+scenarioId=m15b-wide-shell-mode
+scenarioName=M15b wide shell mode baseline
+outputDirectory=C:\Users\yuech\source\repos\Copeland\artifacts\cts-flow-m2\playback\m15b-wide-shell-mode
+captureFinalPng=true
+captureTraceJson=true
+captureManifest=true
+finalPngPath=C:\Users\yuech\source\repos\Copeland\artifacts\cts-flow-m2\playback\m15b-wide-shell-mode\final.png
+normalizedScenarioPath=C:\Users\yuech\source\repos\Copeland\artifacts\cts-flow-m2\playback\m15b-wide-shell-mode\scenario.normalized.toml
+traceJsonPath=C:\Users\yuech\source\repos\Copeland\artifacts\cts-flow-m2\playback\m15b-wide-shell-mode\playback-trace.json
+passed=true
+assertionCount=3
+failedAssertionCount=0
+semanticTargetsSupported=card-header,expanded-body,expanded-body-scrollbar-thumb,inspector-pane,inspector-scrollbar-thumb,main-stack,main-stack-scrollbar-thumb,raw-source,raw-source-scrollbar-thumb
+stepsSupported=click,drag,key,wait,wheel
+assertionsSupported=card-expanded,region-exists,scroll-offset-changed,scroll-offset-equals,scroll-offset-greater-than,selected-card,shell-mode,step-scroll-delta-equals,step-scroll-delta-greater-than
+assertions:
+  [0] shell-mode passed=true reason=This split M15b scenario preserves the wide half of the resize regression because playback assertions are final-state only and wide Oblivion must stay in wide shell at 1280x720. expected=Wide actual=Wide
+  [1] region-exists passed=true reason=The wide M15b shell must keep the main stack viewport available as the primary browsing surface. expected=exists actual=596x524
+  [2] region-exists passed=true reason=The wide M15b shell must expose the inspector pane alongside the main stack. expected=exists actual=332x524

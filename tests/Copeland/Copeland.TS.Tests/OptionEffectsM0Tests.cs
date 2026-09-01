@@ -134,6 +134,7 @@ public sealed class OptionEffectsM0Tests
                 }
                 return buffer.freeze();
             }
+            function kernelOuter(size: int): int[] { return kernel(size); }
             function recursive(value: int): int {
                 if (value == 0) { return 0; }
                 return recursive(value - 1);
@@ -159,6 +160,7 @@ public sealed class OptionEffectsM0Tests
         FunctionEffectSummary kernel = Summary("kernel");
         Assert.True(kernel.IsStaticSafe);
         Assert.Contains(FunctionEffect.LocalMutation, kernel.SafeEffects);
+        Assert.Contains(FunctionEffect.LocalMutation, Summary("kernelOuter").SafeEffects);
 
         FunctionEffectSummary host = Summary("readHost");
         Assert.Equal(FunctionEffect.HostInterop, host.RuntimeEffect);

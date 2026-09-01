@@ -91,15 +91,36 @@ public static class FunctionEffectClassifier
         }
         while (changed);
 
+        var transitiveSafeEffects = functions
+            .Where(declaration => !summaries.ContainsKey(declaration.Symbol))
+            .ToDictionary(
+                declaration => declaration.Symbol,
+                declaration => new HashSet<FunctionEffect>(direct[declaration.Symbol].SafeEffects));
+        do
+        {
+            changed = false;
+            foreach ((FunctionSymbol function, HashSet<FunctionEffect> effects) in transitiveSafeEffects)
+            {
+                foreach (FunctionSymbol callee in direct[function].Calls)
+                {
+                    if (transitiveSafeEffects.TryGetValue(callee, out HashSet<FunctionEffect>? calleeEffects)
+                        && UnionWithChanged(effects, calleeEffects))
+                    {
+                        changed = true;
+                    }
+                }
+            }
+        }
+        while (changed);
+
         foreach (BoundFunctionDeclaration declaration in functions)
         {
             if (!summaries.ContainsKey(declaration.Symbol))
             {
-                DirectEffectInfo info = direct[declaration.Symbol];
                 summaries[declaration.Symbol] = new FunctionEffectSummary(
                     declaration.Symbol,
                     FunctionStaticSafety.StaticSafe,
-                    info.SafeEffects.OrderBy(effect => effect).ToArray(),
+                    transitiveSafeEffects[declaration.Symbol].OrderBy(effect => effect).ToArray(),
                     null,
                     null,
                     [declaration.Symbol.Name]);
@@ -107,6 +128,13 @@ public static class FunctionEffectClassifier
         }
 
         return summaries;
+    }
+
+    private static bool UnionWithChanged<T>(HashSet<T> target, IEnumerable<T> values)
+    {
+        int previousCount = target.Count;
+        target.UnionWith(values);
+        return target.Count != previousCount;
     }
 
     private static FunctionEffectSummary CreateRuntimeSummary(

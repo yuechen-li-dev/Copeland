@@ -1747,7 +1747,7 @@ public static class CSharpBackend
             MirUnaryExpression unary => unary.Operator + ParenthesizeAssignmentOperand(unary.Operand, EmitExpression(writer, unary.Operand, function, enumNames, ref tempIndex, diagnostics)),
             MirBinaryExpression binary => EmitBinary(writer, binary, function, enumNames, ref tempIndex, diagnostics),
             MirNumericConversionExpression conversion => EmitNumericConversion(writer, conversion, function, enumNames, ref tempIndex, diagnostics),
-            MirCallExpression call => $"{CSharpNameMangler.Mangle(call.FunctionName)}({string.Join(", ", EmitArguments(call.Arguments, writer, function, enumNames, ref tempIndex, diagnostics))})",
+            MirCallExpression call => EmitCall(writer, call, function, enumNames, ref tempIndex, diagnostics),
             MirClrInvocationExpression invocation => EmitClrInvocation(writer, invocation, function, enumNames, ref tempIndex, diagnostics),
             MirClrPropertyAccessExpression property => EmitClrProperty(writer, property, function, enumNames, ref tempIndex, diagnostics),
             MirFunctionReferenceExpression reference => $"({MapType(reference.CallableType)}){CSharpNameMangler.Mangle(reference.FunctionName)}",
@@ -1789,6 +1789,26 @@ public static class CSharpBackend
             MirTryExpression tryExpression => EmitTryExcept(writer, tryExpression, function, enumNames, ref tempIndex, diagnostics),
             _ => UnsupportedExpression(expression, diagnostics)
         };
+
+    private static string EmitCall(
+        CSharpTextWriter writer,
+        MirCallExpression call,
+        MirFunction function,
+        IReadOnlySet<string> enumNames,
+        ref int tempIndex,
+        List<CSharpDiagnostic> diagnostics)
+    {
+        string owner = function.Name == "<flow>" ? "CopelandModule." : string.Empty;
+        string functionName = CSharpNameMangler.Mangle(call.FunctionName);
+        string arguments = string.Join(", ", EmitArguments(
+            call.Arguments,
+            writer,
+            function,
+            enumNames,
+            ref tempIndex,
+            diagnostics));
+        return owner + functionName + "(" + arguments + ")";
+    }
 
     private static string EmitInvokeExpression(
         CSharpTextWriter writer,

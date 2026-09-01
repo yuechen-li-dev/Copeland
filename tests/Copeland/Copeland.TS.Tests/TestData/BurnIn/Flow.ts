@@ -34,7 +34,7 @@ flow Delivery -> int ! string {
         on Start(amount) when amount > 0 -> Staging {
             board.total = amount;
             board.attempts = board.attempts + 1;
-            board.sequence = board.sequence + 1;
+            board.sequence = nextSequence(board.sequence);
         };
         on Cancel() -> Cancelled;
     }
@@ -42,7 +42,7 @@ flow Delivery -> int ! string {
     state Staging {
         on Tick(amount) when amount > 0 -> Staging {
             board.total = board.total + amount;
-            board.sequence = board.sequence + 1;
+            board.sequence = nextSequence(board.sequence);
         };
         on Retry(amount) when amount > 0 -> Retrying {
             board.attempts = board.attempts + 1;

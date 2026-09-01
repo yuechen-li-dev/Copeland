@@ -3,6 +3,19 @@
 
 namespace Copeland.Generated;
 
+public sealed class __CopeRecord_r1
+{
+    internal __CopeRecord_r1(AuditKind value0, int value1)
+    {
+        __field_r1_002Ef0 = value0;
+        __field_r1_002Ef1 = value1;
+    }
+
+    internal AuditKind __field_r1_002Ef0 { get; }
+
+    internal int __field_r1_002Ef1 { get; }
+}
+
 public sealed class __CopeRecord_r2
 {
     internal __CopeRecord_r2(int value0, int value1, int value2, bool value3)
@@ -20,19 +33,6 @@ public sealed class __CopeRecord_r2
     public int __field_r2_002Ef2 { get; }
 
     public bool __field_r2_002Ef3 { get; }
-}
-
-public sealed class __CopeRecord_r1
-{
-    internal __CopeRecord_r1(AuditKind value0, int value1)
-    {
-        __field_r1_002Ef0 = value0;
-        __field_r1_002Ef1 = value1;
-    }
-
-    internal AuditKind __field_r1_002Ef0 { get; }
-
-    internal int __field_r1_002Ef1 { get; }
 }
 
 
@@ -85,7 +85,7 @@ public static class Delivery
                         board = nextBoard;
                         nextBoard = new __CopeRecord_r2(((board).__field_r2_002Ef0 + 1), nextBoard.__field_r2_002Ef1, nextBoard.__field_r2_002Ef2, nextBoard.__field_r2_002Ef3);
                         board = nextBoard;
-                        nextBoard = new __CopeRecord_r2(nextBoard.__field_r2_002Ef0, nextBoard.__field_r2_002Ef1, ((board).__field_r2_002Ef2 + 1), nextBoard.__field_r2_002Ef3);
+                        nextBoard = new __CopeRecord_r2(nextBoard.__field_r2_002Ef0, nextBoard.__field_r2_002Ef1, CopelandModule.nextSequence((board).__field_r2_002Ef2), nextBoard.__field_r2_002Ef3);
                         board = nextBoard;
                         string fromState = state;
                         this.board = nextBoard;
@@ -309,7 +309,7 @@ public static class Delivery
                         __CopeRecord_r2 board = nextBoard;
                         nextBoard = new __CopeRecord_r2(nextBoard.__field_r2_002Ef0, ((board).__field_r2_002Ef1 + amount), nextBoard.__field_r2_002Ef2, nextBoard.__field_r2_002Ef3);
                         board = nextBoard;
-                        nextBoard = new __CopeRecord_r2(nextBoard.__field_r2_002Ef0, nextBoard.__field_r2_002Ef1, ((board).__field_r2_002Ef2 + 1), nextBoard.__field_r2_002Ef3);
+                        nextBoard = new __CopeRecord_r2(nextBoard.__field_r2_002Ef0, nextBoard.__field_r2_002Ef1, CopelandModule.nextSequence((board).__field_r2_002Ef2), nextBoard.__field_r2_002Ef3);
                         board = nextBoard;
                         string fromState = state;
                         this.board = nextBoard;

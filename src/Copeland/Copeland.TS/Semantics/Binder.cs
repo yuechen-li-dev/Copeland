@@ -135,6 +135,7 @@ public static class Binder
         private readonly List<BoundRecordDeclaration> _records = [];
         private readonly List<BoundTableDefinition> _tables = [];
         private readonly List<BoundFlowDefinition> _flows = [];
+        private readonly List<PendingFlowUpdateValidation> _pendingFlowUpdateValidations = [];
         private readonly List<BoundTemplateDeclaration> _templates = [];
         private readonly List<BoundLayoutDeclaration> _layouts = [];
         private readonly List<BoundLayoutBinding> _layoutBindings = [];
@@ -194,6 +195,8 @@ public static class Binder
         private VariableSymbol? _activeComponentState;
         private HashSet<string>? _activeComponentEventNames;
 
+        private sealed record PendingFlowUpdateValidation(BoundExpression Expression, SyntaxToken Anchor);
+
         private sealed class PropagationTargetContext(BoundHandlerId handlerId)
         {
             public BoundHandlerId HandlerId { get; } = handlerId;
@@ -243,7 +246,6 @@ public static class Binder
             BindLayouts();
             BindLayoutBindings(_tree.Root);
             BindStreamBindings(_tree.Root);
-            BindFlows(_tree.Root);
             ValidateRecordCycles();
             foreach (var generic in _tree.Root.Members.OfType<FunctionDeclarationSyntax>().Where(function => function.TypeParameters.Count > 0))
             {
@@ -268,7 +270,13 @@ public static class Binder
                 else if (m is NominalUnionDeclarationSyntax union && _enumTypes.TryGetValue(union.Identifier.Text, out var unionType)) _enums.Add(new BoundEnumDeclaration(unionType));
                 else if (m is RecordDeclarationSyntax r && _recordTypes.TryGetValue(r.Identifier.Text, out var recordType)) _records.Add(new BoundRecordDeclaration(recordType));
                 else if (m is ClassDeclarationSyntax c && _classTypes.TryGetValue(c.Identifier.Text, out var classType)) _records.Add(new BoundRecordDeclaration(classType));
-                else if (m is GlobalStatementMemberSyntax g && !IsSchemaDeclaration(g.Statement)) _globals.Add(BindStatement(g.Statement));
+            }
+            BindFlows(_tree.Root);
+            foreach (GlobalStatementMemberSyntax global in _tree.Root.Members
+                .OfType<GlobalStatementMemberSyntax>()
+                .Where(global => !IsSchemaDeclaration(global.Statement)))
+            {
+                _globals.Add(BindStatement(global.Statement));
             }
             if (_tables.Count > 0 && _tableBoundsErrorType is not null)
             {
@@ -283,9 +291,7 @@ public static class Binder
             {
                 _enums.Insert(0, new BoundEnumDeclaration(optionType));
             }
-            return new BoundCompilation(
-                _tree,
-                new BoundProgram(
+            var program = new BoundProgram(
                     _functions,
                     _enums,
                     _records,
@@ -305,7 +311,11 @@ public static class Binder
                     _componentDefinitions,
                     _componentInstances,
                     _hostAttachments,
-                    _semanticCallSites),
+                    _semanticCallSites);
+            ValidateFlowUpdateEffects(program.FunctionEffects);
+            return new BoundCompilation(
+                _tree,
+                program,
                 _tree.Diagnostics.Concat(_diagnostics.Diagnostics).Concat(_textDocumentCompilation.Diagnostics).ToArray(),
                 CreateModuleScope(),
                 _textDocumentCompilation.Documents);
@@ -4761,10 +4771,7 @@ public static class Binder
                 {
                     Report("COPE-FLOW-0023", $"Board update for '{field.Name}' must have type '{field.Type.Name}', got '{expression.Type.Name}'.", member.NameToken);
                 }
-                if (!IsFlowPure(expression))
-                {
-                    Report("COPE-FLOW-0024", "FLOW-M1 transition updates may not call async, npm, CLR, batch, or inline-C# operations.", member.NameToken);
-                }
+                _pendingFlowUpdateValidations.Add(new PendingFlowUpdateValidation(expression, AnchorToken(value)));
                 updates.Add(new BoundFlowBoardUpdate(field, expression));
             }
             return updates;
@@ -4822,6 +4829,88 @@ public static class Binder
                 BoundRecordFieldAccessExpression access => IsFlowPure(access.Receiver),
                 _ => false,
             };
+
+        private void ValidateFlowUpdateEffects(
+            IReadOnlyDictionary<FunctionSymbol, FunctionEffectSummary> functionEffects)
+        {
+            foreach (PendingFlowUpdateValidation pending in _pendingFlowUpdateValidations)
+            {
+                FlowEffectRejection? rejection = FindFlowUpdateRejection(pending.Expression, functionEffects);
+                if (rejection is null)
+                {
+                    continue;
+                }
+
+                string message = rejection.IsUnknown
+                    ? $"FLOW transition update cannot prove call '{rejection.CallName}' is pure. Only effect-qualified pure Copeland calls are allowed here."
+                    : $"FLOW transition update cannot call '{rejection.CallName}' because its effect is '{rejection.Effect}'. Only effect-qualified pure Copeland calls are allowed here.";
+                Report("COPE-FLOW-0024", message, pending.Anchor);
+            }
+        }
+
+        private static FlowEffectRejection? FindFlowUpdateRejection(
+            BoundExpression expression,
+            IReadOnlyDictionary<FunctionSymbol, FunctionEffectSummary> functionEffects)
+        {
+            switch (expression)
+            {
+                case BoundLiteralExpression or BoundVariableExpression or BoundUnitExpression:
+                    return null;
+                case BoundUnaryExpression unary:
+                    return FindFlowUpdateRejection(unary.Operand, functionEffects);
+                case BoundBinaryExpression binary:
+                    return FindFlowUpdateRejection(binary.Left, functionEffects)
+                        ?? FindFlowUpdateRejection(binary.Right, functionEffects);
+                case BoundRecordFieldAccessExpression access:
+                    return FindFlowUpdateRejection(access.Receiver, functionEffects);
+                case BoundCallExpression call:
+                    if (!functionEffects.TryGetValue(call.Function, out FunctionEffectSummary? summary))
+                    {
+                        return new FlowEffectRejection(call.Function.Name, "UnknownCall", true);
+                    }
+                    if (!summary.IsStaticSafe)
+                    {
+                        return new FlowEffectRejection(
+                            call.Function.Name,
+                            summary.RuntimeEffect?.ToString() ?? "UnknownCall",
+                            summary.RuntimeEffect is null or FunctionEffect.UnknownCall);
+                    }
+                    if (summary.SafeEffects.Count > 0)
+                    {
+                        return new FlowEffectRejection(call.Function.Name, summary.SafeEffects[0].ToString(), false);
+                    }
+                    foreach (BoundExpression argument in call.Arguments)
+                    {
+                        FlowEffectRejection? argumentRejection = FindFlowUpdateRejection(argument, functionEffects);
+                        if (argumentRejection is not null)
+                        {
+                            return argumentRejection;
+                        }
+                    }
+                    return null;
+                case BoundNpmCallExpression npm:
+                    return new FlowEffectRejection(npm.Function.Name, FunctionEffect.IO.ToString(), false);
+                case BoundNpmDirectCallExpression npm:
+                    return new FlowEffectRejection(npm.Function.Name, FunctionEffect.IO.ToString(), false);
+                case BoundJavaScriptHostCallExpression host:
+                    return new FlowEffectRejection(host.Function.Name, FunctionEffect.HostInterop.ToString(), false);
+                case BoundClrInvocationExpression:
+                    return new FlowEffectRejection("<CLR invocation>", FunctionEffect.HostInterop.ToString(), false);
+                case BoundClrPropertyAccessExpression:
+                    return new FlowEffectRejection("<CLR property>", FunctionEffect.HostInterop.ToString(), false);
+                case BoundAwaitExpression:
+                    return new FlowEffectRejection("<await>", FunctionEffect.Suspension.ToString(), false);
+                case BoundInvokeExpression:
+                    return new FlowEffectRejection("<indirect callable>", FunctionEffect.UnknownCall.ToString(), true);
+                default:
+                    return new FlowEffectRejection(
+                        "<" + expression.GetType().Name + ">",
+                        FunctionEffect.UnknownCall.ToString(),
+                        true);
+            }
+        }
+
+        private sealed record FlowEffectRejection(string CallName, string Effect, bool IsUnknown);
 
         private BoundFunctionDeclaration BindClassConstructor(FunctionSymbol function, ClassConstructorDeclarationSyntax syntax)
             => BindClassFunctionBody(function, syntax.Body, syntax.ConstructorKeyword);
@@ -12462,6 +12551,8 @@ public static class Binder
         private static SyntaxToken AnchorToken(ExpressionSyntax s) => s switch
         {
             CallExpressionSyntax c => c.OpenParenToken,
+            GenericCallExpressionSyntax c => c.OpenParenToken,
+            AwaitExpressionSyntax a => a.AwaitKeyword,
             BinaryExpressionSyntax b => b.OperatorToken,
             UnaryExpressionSyntax u => u.OperatorToken,
             AssignmentExpressionSyntax a => a.EqualsToken,

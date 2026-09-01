@@ -1,0 +1,8 @@
+CTS-FLOW-M2 | Outcome A
+Existing FunctionEffectSummary reused; no new effect system, parser, type, or MIR node.
+Allowed: resolved StaticSafe calls with zero transitive SafeEffects and safe arguments.
+Rejected: LocalMutation, runtime state, IO, HostInterop, Suspension, and UnknownCall.
+Backends: minimal JS FLOW call emission and C# CopelandModule qualification required.
+Dogfood: nextSequence(board.sequence) restored; Node and C# parity passed.
+Burn-in output hash unchanged; warmed compile signal 15.9091 ms -> 16.9009 ms.
+Validation: full requested solutions passed; canonical playback 14/14, 0 failed, 0 skipped.
