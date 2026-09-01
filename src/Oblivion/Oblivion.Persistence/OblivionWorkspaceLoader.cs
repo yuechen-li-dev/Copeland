@@ -186,7 +186,8 @@ public static partial class OblivionWorkspaceLoader
             BuildProvenance(document, workspaceRoot, sourcePath),
             pageId,
             workspaceId,
-            BuildDiagram(document.Diagram));
+            BuildDiagram(document.Diagram),
+            BuildTable(document.Table));
     }
 
     private static OblivionDiagramSource? BuildDiagram(OblivionDiagramSourceDocument? document)
@@ -205,6 +206,13 @@ public static partial class OblivionWorkspaceLoader
             document.Projection == "diagram"
                 ? OblivionDiagramProjectionKind.Diagram
                 : OblivionDiagramProjectionKind.State);
+    }
+
+    private static OblivionTableSource? BuildTable(OblivionTableSourceDocument? document)
+    {
+        return document is null
+            ? null
+            : new OblivionTableSource(OblivionTableSourceKind.TsonTable, document.Reference);
     }
 
     private static OblivionProvenance BuildProvenance(

@@ -6,6 +6,7 @@
   <ItemGroup>
     <ProjectReference Include="../Oblivion.Model/Oblivion.Model.csproj" />
     <ProjectReference Include="../../Copeland/Copeland.Markdown/Copeland.Markdown.csproj" />
+    <ProjectReference Include="../../Copeland/Copeland.TS/Copeland.TS.csproj" />
     <ProjectReference Include="../../Machina.UI/Machina.Core/Machina.Core.csproj" />
     <ProjectReference Include="../../Machina.UI/Machina.Standard/Machina.Standard.csproj" />
     <ProjectReference Include="../../Machina.UI/Machina.Layout/Machina.Layout.csproj" />

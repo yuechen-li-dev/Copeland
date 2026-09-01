@@ -103,6 +103,7 @@ public static class OblivionCardTomlReader
             sourcePath,
             diagnostics);
         OblivionDiagramSourceDocument? diagram = ReadDiagram(parsedTable, sourcePath, diagnostics);
+        OblivionTableSourceDocument? tableSource = ReadTable(parsedTable, sourcePath, diagnostics);
 
         if (format != OblivionWorkspaceValidator.SupportedFormat)
         {
@@ -134,7 +135,9 @@ public static class OblivionCardTomlReader
 
         if (isPlainBody)
         {
-            if (string.IsNullOrWhiteSpace(bodyText) && !string.Equals(cardKind, "diagram", StringComparison.Ordinal))
+            if (string.IsNullOrWhiteSpace(bodyText) &&
+                !string.Equals(cardKind, "diagram", StringComparison.Ordinal) &&
+                !string.Equals(cardKind, "table", StringComparison.Ordinal))
             {
                 diagnostics.Add(OblivionWorkspaceValidator.Error("missing-required-field", "Field 'body.text' is required for plain card bodies.", sourcePath));
             }
@@ -142,6 +145,41 @@ public static class OblivionCardTomlReader
             if (!string.IsNullOrWhiteSpace(bodyPath))
             {
                 diagnostics.Add(OblivionWorkspaceValidator.Error("plain-body-path-not-supported", "Field 'body.path' is not supported for plain card bodies.", sourcePath));
+            }
+        }
+
+        bool isTableCard = string.Equals(cardKind, "table", StringComparison.Ordinal);
+        if (isTableCard && tableSource is null)
+        {
+            diagnostics.Add(OblivionWorkspaceValidator.Error(
+                "missing-table-source",
+                "Table cards require a semantic [table] source.",
+                sourcePath));
+        }
+        else if (!isTableCard && tableSource is not null)
+        {
+            diagnostics.Add(OblivionWorkspaceValidator.Error(
+                "table-source-on-non-table-card",
+                "Only table cards may declare a [table] source.",
+                sourcePath));
+        }
+
+        if (tableSource is not null)
+        {
+            if (!string.Equals(tableSource.Kind, "tson-table", StringComparison.Ordinal))
+            {
+                diagnostics.Add(OblivionWorkspaceValidator.Error(
+                    "unsupported-table-source",
+                    $"Table source kind '{tableSource.Kind}' is not supported.",
+                    sourcePath));
+            }
+
+            if (Path.IsPathRooted(tableSource.Reference) || LooksLikePathTraversal(tableSource.Reference))
+            {
+                diagnostics.Add(OblivionWorkspaceValidator.Error(
+                    "unsafe-table-source-reference",
+                    $"Table source reference '{tableSource.Reference}' must remain inside the workspace.",
+                    sourcePath));
             }
         }
 
@@ -235,7 +273,8 @@ public static class OblivionCardTomlReader
                 actions,
                 artifacts,
                 provenance,
-                diagram);
+                diagram,
+                tableSource);
 
         return new OblivionCardTomlReadResult(document, OblivionWorkspaceValidator.OrderDiagnostics(diagnostics));
     }
@@ -270,6 +309,14 @@ public static class OblivionCardTomlWriter
             builder.AppendLine($"reference = \"{Escape(document.Diagram.Reference)}\"");
             builder.AppendLine($"symbol = \"{Escape(document.Diagram.Symbol)}\"");
             builder.AppendLine($"projection = \"{Escape(document.Diagram.Projection)}\"");
+        }
+
+        if (document.Table is not null)
+        {
+            builder.AppendLine();
+            builder.AppendLine("[table]");
+            builder.AppendLine($"kind = \"{Escape(document.Table.Kind)}\"");
+            builder.AppendLine($"reference = \"{Escape(document.Table.Reference)}\"");
         }
 
         if (document.Provenance is not null)
@@ -580,6 +627,30 @@ internal static class OblivionTomlHelpers
 
 internal static class OblivionCardTomlReaderInternal
 {
+    public static OblivionTableSourceDocument? ReadTable(
+        TomlTable table,
+        string? sourcePath,
+        List<OblivionWorkspaceDiagnostic> diagnostics)
+    {
+        if (!table.TryGetValue("table", out object? value) || value is null)
+        {
+            return null;
+        }
+
+        if (value is not TomlTable tableSource)
+        {
+            diagnostics.Add(OblivionWorkspaceValidator.Error(
+                "invalid-field-type",
+                "Field 'table' must be a table.",
+                sourcePath));
+            return null;
+        }
+
+        return new OblivionTableSourceDocument(
+            OblivionTomlHelpers.ReadRequiredString(tableSource, "kind", sourcePath, diagnostics),
+            OblivionTomlHelpers.ReadRequiredString(tableSource, "reference", sourcePath, diagnostics));
+    }
+
     public static OblivionDiagramSourceDocument? ReadDiagram(
         TomlTable table,
         string? sourcePath,

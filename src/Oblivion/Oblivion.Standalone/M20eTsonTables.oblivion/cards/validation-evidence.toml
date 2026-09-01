@@ -1,0 +1,21 @@
+format = 1
+kind = "card"
+id = "validation-evidence"
+card_kind = "table"
+status = "passing"
+title = "M20e validation evidence"
+subtitle = "Sixteen required checks grouped by subsystem and risk"
+tags = ["m20e", "table", "validation"]
+
+[table]
+kind = "tson-table"
+reference = "content/validation-evidence.obj.ts"
+
+[provenance]
+source_kind = "workspace-asset"
+source_reference = "content/validation-evidence.obj.ts"
+producer_action = "m20e-dogfood"
+
+[body]
+format = "plain"
+text = ""

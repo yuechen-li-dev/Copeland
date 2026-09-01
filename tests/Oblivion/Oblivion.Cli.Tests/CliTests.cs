@@ -98,6 +98,27 @@ public sealed class CliTests
     }
 
     [Fact]
+    public async Task Table_card_list_show_and_content_follow_structured_contracts()
+    {
+        string root = Path.Combine(AppContext.BaseDirectory, "Fixtures", "M20eTsonTables.oblivion");
+        CliResult list = await Run("card", "list", "-w", root);
+        CliResult show = await Run("card", "show", "validation-evidence", "-w", root, "--json");
+        CliResult content = await Run("card", "content", "validation-evidence", "-w", root, "--json");
+
+        Assert.Equal(0, list.ExitCode);
+        Assert.Contains("validation-evidence\tvalidation-review\ttable", list.Output, StringComparison.Ordinal);
+        Assert.Equal(0, show.ExitCode);
+        using JsonDocument json = JsonDocument.Parse(show.Output);
+        Assert.Equal("table", json.RootElement.GetProperty("kind").GetString());
+        Assert.Equal("obj.ts", json.RootElement.GetProperty("tableProfile").GetString());
+        Assert.Equal(16, json.RootElement.GetProperty("tableRowCount").GetInt32());
+        Assert.Equal(7, json.RootElement.GetProperty("tableColumnCount").GetInt32());
+        Assert.Equal("order", json.RootElement.GetProperty("tableColumnNames")[0].GetString());
+        Assert.Equal(OblivionCliExitCode.ProductFailure, content.ExitCode);
+        Assert.Contains("OBLIVION-CARD-CONTENT-NOT-TEXT", content.Output, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Unknown_card_is_a_structured_product_failure()
     {
         CliResult result = await Run(

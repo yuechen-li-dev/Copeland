@@ -66,6 +66,10 @@ public sealed record OblivionDiagramSourceDocument(
     string Symbol,
     string Projection);
 
+public sealed record OblivionTableSourceDocument(
+    string Kind,
+    string Reference);
+
 public sealed record OblivionCardAssetDocument(
     int Format,
     string Kind,
@@ -79,7 +83,8 @@ public sealed record OblivionCardAssetDocument(
     IReadOnlyList<OblivionCardActionDocument> Actions,
     IReadOnlyList<OblivionCardArtifactDocument> Artifacts,
     OblivionCardProvenanceDocument? Provenance = null,
-    OblivionDiagramSourceDocument? Diagram = null);
+    OblivionDiagramSourceDocument? Diagram = null,
+    OblivionTableSourceDocument? Table = null);
 
 public sealed record OblivionArtifactAssetDocument(
     int Format,

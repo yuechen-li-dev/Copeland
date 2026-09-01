@@ -278,7 +278,9 @@ public static partial class OblivionWorkspaceLoader
         }
 
         bool isDiagramCard = string.Equals(cardDocument.CardKind, "diagram", StringComparison.Ordinal);
+        bool isTableCard = string.Equals(cardDocument.CardKind, "table", StringComparison.Ordinal);
         if (!isDiagramCard &&
+            !isTableCard &&
             (!string.Equals(cardDocument.Body.Format, "copeland-markdown", StringComparison.Ordinal) ||
              string.IsNullOrWhiteSpace(cardDocument.Body.Path)))
         {

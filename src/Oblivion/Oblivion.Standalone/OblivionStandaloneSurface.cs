@@ -104,7 +104,8 @@ public sealed class OblivionStandaloneSurface
             OblivionContentPresentationPlan contentPlan = OblivionContentPresenterSelector.Select(
                 card,
                 state,
-                diagram: CreateDiagramPresentationSource(card));
+                diagram: CreateDiagramPresentationSource(card),
+                table: CreateTablePresentationSource(card));
             bool isSelected = string.Equals(
                 SelectedCardId,
                 card.Id.Value,
@@ -293,18 +294,51 @@ public sealed class OblivionStandaloneSurface
                 Diagnostics: projection.Diagnostics);
     }
 
+    private OblivionTablePresentationSource? CreateTablePresentationSource(OblivionCard card)
+    {
+        if (card.Kind != OblivionCardKind.Table)
+        {
+            return null;
+        }
+
+        OblivionTableCardRealization realization = new OblivionTableCardRealizer().Realize(
+            card,
+            _workspaceRoot);
+        if (!realization.Succeeded ||
+            realization.Table is null ||
+            realization.Profile is null ||
+            realization.SourceHash is null)
+        {
+            return null;
+        }
+
+        return new OblivionTablePresentationSource(
+            realization.Table,
+            realization.Source.Reference,
+            realization.Profile,
+            realization.SourceHash,
+            realization.LoadMilliseconds,
+            realization.Diagnostics);
+    }
+
     private static string CardTypeLabel(OblivionCard card)
     {
-        return card.Kind == OblivionCardKind.Diagram ? "Diagram · State" : "Markdown";
+        return card.Kind switch
+        {
+            OblivionCardKind.Diagram => "Diagram · State",
+            OblivionCardKind.Table => "Table · TSON",
+            _ => "Markdown",
+        };
     }
 
     private static IReadOnlyList<OblivionCard> ValidateCards(OblivionWorkspacePage page)
     {
         if (page.Cards.Any(card =>
                 card.Kind != OblivionCardKind.Diagram &&
+                card.Kind != OblivionCardKind.Table &&
                 card.Body.Format != OblivionCardBodyFormat.CopelandMarkdown))
         {
-            throw new InvalidOperationException("The standalone Page stack must contain only Markdown or Diagram Cards.");
+            throw new InvalidOperationException("The standalone Page stack must contain only Markdown, Diagram, or Table Cards.");
         }
 
         return page.Cards;

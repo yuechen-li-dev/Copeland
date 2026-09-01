@@ -1,0 +1,7 @@
+format = 1
+kind = "page"
+id = "validation-review"
+title = "M20e validation evidence review"
+description = "Columnar TSON evidence projected as read-only human rows."
+tags = ["oblivion", "m20e", "table", "tson"]
+cards = ["validation-evidence", "review-question", "validation-evidence-canonical"]

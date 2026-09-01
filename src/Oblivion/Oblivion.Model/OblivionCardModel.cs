@@ -9,6 +9,7 @@ public enum OblivionCardKind
     CodeFact,
     CodeTheory,
     Diagram,
+    Table,
 }
 
 public enum OblivionCardStatus
@@ -49,6 +50,15 @@ public sealed record OblivionDiagramSource(
     string Reference,
     string Symbol,
     OblivionDiagramProjectionKind Projection);
+
+public enum OblivionTableSourceKind
+{
+    TsonTable,
+}
+
+public sealed record OblivionTableSource(
+    OblivionTableSourceKind Kind,
+    string Reference);
 
 public enum OblivionDiagnosticSeverity
 {
@@ -173,7 +183,8 @@ public sealed record OblivionCard(
     OblivionProvenance Provenance,
     OblivionPageId? PageId = null,
     OblivionWorkspaceId? WorkspaceId = null,
-    OblivionDiagramSource? Diagram = null);
+    OblivionDiagramSource? Diagram = null,
+    OblivionTableSource? Table = null);
 
 public sealed record OblivionWorkspacePage(
     OblivionPageId Id,

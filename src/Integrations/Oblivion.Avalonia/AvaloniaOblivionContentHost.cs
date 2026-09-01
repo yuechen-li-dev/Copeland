@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
+using Avalonia.Controls.Templates;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
@@ -57,6 +58,12 @@ public static class AvaloniaOblivionContentHost
         ArgumentNullException.ThrowIfNull(diagramRenderer);
 
         AvaloniaOblivionContentStyle effectiveStyle = style ?? AvaloniaOblivionContentStyle.Dark;
+        if (plan.Table is not null &&
+            plan.Items.Count == 1 &&
+            plan.Items[0].PresenterKind == OblivionContentPresenterKind.AvaloniaReadOnlyTable)
+        {
+            return BuildTable(plan.Table, effectiveStyle);
+        }
         if (fillDiagramViewport &&
             plan.Items.Count == 1 &&
             plan.Items[0].PresenterKind == OblivionContentPresenterKind.ExternalMermaidRenderer)
@@ -137,6 +144,162 @@ public static class AvaloniaOblivionContentHost
             Child = scrollViewer,
         };
     }
+
+    private static Control BuildTable(
+        OblivionTablePresentationSource source,
+        AvaloniaOblivionContentStyle style)
+    {
+        int columnCount = source.Table.Columns.Count;
+        double[] widths = Enumerable.Range(0, columnCount)
+            .Select(columnIndex => OblivionTableLayoutPolicy.PreferredColumnWidth(source.Table, columnIndex))
+            .ToArray();
+        ColumnDefinitions columns = new();
+        columns.Add(new ColumnDefinition(56, GridUnitType.Pixel));
+        foreach (double width in widths)
+        {
+            columns.Add(new ColumnDefinition(width, GridUnitType.Pixel));
+        }
+
+        Grid header = new()
+        {
+            ColumnDefinitions = columns,
+            Background = ToBrush(style.CodeSurface),
+        };
+        header.Children.Add(BuildTableHeaderCell("#", "row index", 0, style));
+        for (int columnIndex = 0; columnIndex < columnCount; columnIndex++)
+        {
+            var schema = source.Table.Columns[columnIndex].Schema;
+            string text = schema.Name + Environment.NewLine +
+                OblivionTableCellDisplayFormatter.FormatType(schema.ElementType);
+            header.Children.Add(BuildTableHeaderCell(text, schema.Identity.Value, columnIndex + 1, style));
+        }
+
+        ListBox rows = new()
+        {
+            ItemsSource = Enumerable.Range(0, source.Table.RowCount),
+            SelectionMode = SelectionMode.Single,
+            ItemTemplate = new FuncDataTemplate<int>((rowIndex, _) =>
+                BuildTableRow(source.Table, rowIndex, widths, style)),
+        };
+        Grid body = new()
+        {
+            RowDefinitions = new RowDefinitions("Auto,*"),
+            MinWidth = 56 + widths.Sum(),
+        };
+        body.Children.Add(header);
+        Grid.SetRow(rows, 1);
+        body.Children.Add(rows);
+
+        if (source.Table.RowCount == 0)
+        {
+            TextBlock empty = new()
+            {
+                Text = "No rows",
+                Foreground = ToBrush(style.Muted),
+                Margin = new Thickness(16),
+            };
+            Grid.SetRow(empty, 1);
+            body.Children.Add(empty);
+        }
+
+        ScrollViewer horizontal = new()
+        {
+            Content = body,
+            HorizontalScrollBarVisibility = global::Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
+            VerticalScrollBarVisibility = global::Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+        };
+        return new Border
+        {
+            Background = ToBrush(style.Surface),
+            BorderBrush = ToBrush(style.Border),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(4),
+            ClipToBounds = true,
+            Child = horizontal,
+        };
+    }
+
+    private static Control BuildTableHeaderCell(
+        string text,
+        string accessibleName,
+        int columnIndex,
+        AvaloniaOblivionContentStyle style)
+    {
+        Border cell = new()
+        {
+            BorderBrush = ToBrush(style.Border),
+            BorderThickness = new Thickness(0, 0, 1, 1),
+            Padding = new Thickness(10, 7),
+            Child = new TextBlock
+            {
+                Text = text,
+                Foreground = ToBrush(style.Heading),
+                FontWeight = FontWeight.SemiBold,
+                FontSize = 13,
+                LineHeight = 18,
+            },
+        };
+        global::Avalonia.Automation.AutomationProperties.SetName(cell, accessibleName);
+        Grid.SetColumn(cell, columnIndex);
+        return cell;
+    }
+
+    private static Control BuildTableRow(
+        Copeland.TS.Tson.TsonTable table,
+        int rowIndex,
+        IReadOnlyList<double> widths,
+        AvaloniaOblivionContentStyle style)
+    {
+        ColumnDefinitions columns = new();
+        columns.Add(new ColumnDefinition(56, GridUnitType.Pixel));
+        foreach (double width in widths)
+        {
+            columns.Add(new ColumnDefinition(width, GridUnitType.Pixel));
+        }
+
+        Grid row = new()
+        {
+            ColumnDefinitions = columns,
+            MinHeight = 34,
+        };
+        row.Children.Add(BuildTableCell(rowIndex.ToString(System.Globalization.CultureInfo.InvariantCulture), 0, style, true));
+        for (int columnIndex = 0; columnIndex < table.Columns.Count; columnIndex++)
+        {
+            string display = OblivionTableCellDisplayFormatter.Format(
+                OblivionTableProjection.Cell(table, rowIndex, columnIndex));
+            row.Children.Add(BuildTableCell(display, columnIndex + 1, style, false));
+        }
+
+        global::Avalonia.Automation.AutomationProperties.SetName(
+            row,
+            $"Row {rowIndex} of {table.RowCount}");
+        return row;
+    }
+
+    private static Control BuildTableCell(
+        string text,
+        int columnIndex,
+        AvaloniaOblivionContentStyle style,
+        bool muted)
+    {
+        Border cell = new()
+        {
+            BorderBrush = ToBrush(style.Border),
+            BorderThickness = new Thickness(0, 0, 1, 1),
+            Padding = new Thickness(10, 7),
+            Child = new SelectableTextBlock
+            {
+                Text = text,
+                Foreground = ToBrush(muted ? style.Muted : style.Foreground),
+                FontSize = 13,
+                TextWrapping = TextWrapping.NoWrap,
+            },
+        };
+        global::Avalonia.Automation.AutomationProperties.SetName(cell, text);
+        Grid.SetColumn(cell, columnIndex);
+        return cell;
+    }
+
 
     public static Control BuildInspectorRawSource(
         OblivionCard card,

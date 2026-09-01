@@ -12,6 +12,65 @@ public sealed class StandaloneSurfaceTests
 {
     private static readonly OblivionStandaloneStyle Style = OblivionStandaloneStyles.M19h;
 
+    [Theory]
+    [InlineData(OblivionViewportLayoutMode.Single, 1)]
+    [InlineData(OblivionViewportLayoutMode.VerticalSplit, 2)]
+    [InlineData(OblivionViewportLayoutMode.HorizontalSplit, 2)]
+    public void M20e_table_card_fills_single_and_split_slots(
+        OblivionViewportLayoutMode mode,
+        int expectedCards)
+    {
+        string root = Path.Combine(AppContext.BaseDirectory, "M20eTsonTables.oblivion");
+        OblivionStandaloneSurface surface = new(root);
+        foreach (OblivionCard card in surface.Cards)
+        {
+            surface.ToggleExpansion(card.Id.Value);
+        }
+        surface.SetLayout(mode);
+
+        OblivionStandaloneSurfaceSnapshot snapshot = surface.CreateSnapshot(2560, 1440);
+
+        Assert.Equal(expectedCards, snapshot.Cards.Count);
+        Assert.All(snapshot.Cards, card => Assert.Equal(card.SlotBounds, card.CardBounds));
+        OblivionStandaloneCardSnapshot table = snapshot.Cards.Single(card =>
+            card.Card.Kind == OblivionCardKind.Table);
+        Assert.True(table.MatureContentMounted);
+        Assert.Equal("Table", table.ContentPlan.ContentTypeLabel);
+        Assert.Equal(OblivionContentPresenterKind.AvaloniaReadOnlyTable,
+            Assert.Single(table.ContentPlan.Items).PresenterKind);
+        Assert.Equal(16, table.ContentPlan.Table!.Table.RowCount);
+        Assert.Equal(7, table.ContentPlan.Table.Table.Columns.Count);
+        if (mode == OblivionViewportLayoutMode.HorizontalSplit)
+        {
+            Assert.True(
+                OblivionTableLayoutPolicy.PreferredTableWidth(table.ContentPlan.Table.Table) >
+                table.MatureContentBounds!.Value.Width);
+        }
+        if (mode == OblivionViewportLayoutMode.VerticalSplit)
+        {
+            Assert.True(table.MatureContentBounds!.Value.Height > 400);
+        }
+    }
+
+    [Theory]
+    [InlineData(OblivionResolvedAppearance.Light)]
+    [InlineData(OblivionResolvedAppearance.Dark)]
+    public void M20e_table_geometry_is_appearance_independent(OblivionResolvedAppearance appearance)
+    {
+        string root = Path.Combine(AppContext.BaseDirectory, "M20eTsonTables.oblivion");
+        OblivionStandaloneStyle style = OblivionStandaloneStyles.For(appearance);
+        OblivionStandaloneSurface surface = new(root, style);
+        surface.ToggleExpansion("validation-evidence");
+
+        OblivionStandaloneSurfaceSnapshot snapshot = surface.CreateSnapshot(2560, 1440);
+        OblivionStandaloneCardSnapshot table = Assert.Single(snapshot.Cards);
+
+        Assert.Equal(appearance, style.Appearance);
+        Assert.True(table.MatureContentMounted);
+        Assert.Equal(2384, table.CardBounds.Width);
+        Assert.Equal(1296, table.CardBounds.Height);
+    }
+
     [Fact]
     public void M20b_native_recon_uses_the_exact_m20a_diagram_ir_with_stable_geometry_and_svg()
     {

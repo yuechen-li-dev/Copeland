@@ -681,9 +681,28 @@ public sealed class OblivionCli
             _output.WriteLine($"Diagram layout policy: {card.DiagramLayoutPolicyIdentity ?? "<none>"}");
             _output.WriteLine($"Diagram renderer provenance: {card.DiagramRendererProvenance ?? "<none>"}");
         }
+        if (card.TableSourceKind is not null)
+        {
+            _output.WriteLine($"Table source: {card.TableSourceKind} {card.TableSourceReference}");
+            _output.WriteLine($"Table profile: {card.TableProfile ?? "<unavailable>"}");
+            _output.WriteLine($"Table identity: {card.TableIdentity ?? "<unavailable>"}");
+            _output.WriteLine($"Table schema identity: {card.TableSchemaIdentity ?? "<unavailable>"}");
+            _output.WriteLine($"Table rows: {card.TableRowCount?.ToString() ?? "<unavailable>"}");
+            _output.WriteLine($"Table columns: {card.TableColumnCount?.ToString() ?? "<unavailable>"}");
+            _output.WriteLine($"Table column names: {FormatList(card.TableColumnNames)}");
+            _output.WriteLine($"Table column types: {FormatList(card.TableColumnTypes)}");
+            _output.WriteLine($"Table column identities: {FormatList(card.TableColumnIdentities)}");
+            _output.WriteLine($"Table source hash: {card.TableSourceHash ?? "<unavailable>"}");
+            _output.WriteLine($"Table load ms: {card.TableLoadMilliseconds?.ToString() ?? "<unavailable>"}");
+        }
         _output.WriteLine($"Actions: {(card.Actions.Count == 0 ? "<none>" : string.Join(", ", card.Actions))}");
         _output.WriteLine("Preview:");
         _output.WriteLine(card.ContentPreview);
+    }
+
+    private static string FormatList(IReadOnlyList<string>? values)
+    {
+        return values is null || values.Count == 0 ? "<none>" : string.Join(", ", values);
     }
 
     private void WriteDiagnostics(IReadOnlyList<OblivionControlDiagnostic> diagnostics)

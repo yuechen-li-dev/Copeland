@@ -1,0 +1,12 @@
+format = 1
+kind = "card"
+id = "review-question"
+card_kind = "note"
+status = "passing"
+title = "Validation pressure question"
+subtitle = "Which subsystem owns the most required checks, and which checks carry UI risk?"
+tags = ["m20e", "dogfood", "review"]
+
+[body]
+format = "copeland-markdown"
+path = "content/review-question.md"

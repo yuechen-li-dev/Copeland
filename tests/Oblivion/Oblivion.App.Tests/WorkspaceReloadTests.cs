@@ -1,10 +1,41 @@
 using Oblivion.Product;
+using Copeland.TS.Tson;
+using Oblivion.Model;
 using Xunit;
 
 namespace Oblivion.App.Tests;
 
 public sealed class WorkspaceReloadTests
 {
+    [Fact]
+    public void Table_source_reload_updates_values_and_invalid_edit_preserves_previous_session()
+    {
+        using TemporaryTableVault vault = TemporaryTableVault.CopyFixture();
+        OblivionApplication application = new();
+        OblivionWorkspaceSession current = application.OpenWorkspace(vault.Root).Session!;
+        OblivionCard beforeCard = current.ActivePage.Cards.Single(card =>
+            card.Id.Value == "validation-evidence");
+        TsonTable before = new OblivionTableCardRealizer().Realize(beforeCard, vault.Root).Table!;
+        Assert.Equal("obj-ts-load", Assert.IsType<Copeland.TS.Tson.TsonString>(before.Columns[1].Cells[0]).Value);
+
+        vault.ReplaceInSource("obj-ts-load", "obj-ts-load-reloaded");
+        OblivionWorkspaceSessionReloadResult reloaded = application.ReloadWorkspace(current);
+
+        Assert.True(reloaded.Succeeded, string.Join(Environment.NewLine, reloaded.Diagnostics));
+        OblivionCard afterCard = reloaded.Session.ActivePage.Cards.Single(card =>
+            card.Id.Value == "validation-evidence");
+        TsonTable after = new OblivionTableCardRealizer().Realize(afterCard, vault.Root).Table!;
+        Assert.Equal("obj-ts-load-reloaded", Assert.IsType<Copeland.TS.Tson.TsonString>(after.Columns[1].Cells[0]).Value);
+        Assert.Equal(beforeCard.Id, afterCard.Id);
+
+        vault.ReplaceInSource("const $value = ValidationEvidence;", "const $value = Missing;");
+        OblivionWorkspaceSessionReloadResult rejected = application.ReloadWorkspace(reloaded.Session);
+
+        Assert.False(rejected.Succeeded);
+        Assert.Same(reloaded.Session, rejected.Session);
+        Assert.Contains(rejected.Diagnostics, diagnostic => diagnostic.Severity == Oblivion.Model.OblivionDiagnosticSeverity.Error);
+    }
+
     [Fact]
     public void Invalid_reload_preserves_workspace_selection_and_expansion_then_repair_swaps_atomically()
     {
@@ -179,6 +210,50 @@ public sealed class WorkspaceReloadTests
             string source = File.ReadAllText(path);
             Assert.Contains(oldValue, source, StringComparison.Ordinal);
             File.WriteAllText(path, source.Replace(oldValue, newValue, StringComparison.Ordinal));
+        }
+    }
+
+    private sealed class TemporaryTableVault : IDisposable
+    {
+        private TemporaryTableVault(string root)
+        {
+            Root = root;
+        }
+
+        public string Root { get; }
+
+        public static TemporaryTableVault CopyFixture()
+        {
+            string fixture = Path.Combine(
+                AppContext.BaseDirectory,
+                "Fixtures",
+                "M20eTsonTables.oblivion");
+            string root = Path.Combine(
+                Path.GetTempPath(),
+                "oblivion-m20e-reload-tests",
+                Guid.NewGuid().ToString("N"));
+            foreach (string sourcePath in Directory.GetFiles(fixture, "*", SearchOption.AllDirectories))
+            {
+                string relativePath = Path.GetRelativePath(fixture, sourcePath);
+                string destinationPath = Path.Combine(root, relativePath);
+                Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+                File.Copy(sourcePath, destinationPath);
+            }
+
+            return new TemporaryTableVault(root);
+        }
+
+        public void ReplaceInSource(string oldValue, string newValue)
+        {
+            string path = Path.Combine(Root, "content", "validation-evidence.obj.ts");
+            string source = File.ReadAllText(path);
+            Assert.Contains(oldValue, source, StringComparison.Ordinal);
+            File.WriteAllText(path, source.Replace(oldValue, newValue, StringComparison.Ordinal));
+        }
+
+        public void Dispose()
+        {
+            Directory.Delete(Root, recursive: true);
         }
     }
 }

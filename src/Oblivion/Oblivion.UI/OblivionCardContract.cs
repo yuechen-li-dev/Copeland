@@ -506,6 +506,8 @@ public static class OblivionCardLabels
             OblivionCardKind.Artifact => "Artifact",
             OblivionCardKind.CodeFact => "Code Fact",
             OblivionCardKind.CodeTheory => "Code Theory",
+            OblivionCardKind.Diagram => "Diagram",
+            OblivionCardKind.Table => "Table",
             _ => kind.ToString(),
         };
     }

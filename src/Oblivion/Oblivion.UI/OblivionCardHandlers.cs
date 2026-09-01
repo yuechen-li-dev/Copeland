@@ -33,6 +33,7 @@ public sealed class OblivionCardHandlerRegistry
             new OblivionCodeFactCardHandler(),
             new OblivionCodeTheoryCardHandler(),
             new OblivionDiagramCardHandler(),
+            new OblivionTableCardHandler(),
         ]);
     }
 
@@ -915,6 +916,46 @@ public sealed class OblivionDiagramCardHandler : OblivionCardHandlerBase
             model.LocalState.BodyScrollOffset,
             176,
             920);
+    }
+}
+
+public sealed class OblivionTableCardHandler : OblivionCardHandlerBase
+{
+    public override OblivionCardKind Kind => OblivionCardKind.Table;
+
+    protected override IReadOnlyList<OblivionCardDiagnostic> BuildDiagnostics(
+        OblivionCard card,
+        OblivionCardContext context)
+    {
+        return card.Table is null
+            ? [new OblivionCardDiagnostic(
+                "OBLIVION-TABLE-SOURCE-MISSING",
+                OblivionDiagnosticSeverity.Error,
+                "Table Card has no TSON table source.",
+                card.Provenance.SourceReference)]
+            : [];
+    }
+
+    public override OblivionCompactCardView BuildCompactView(
+        OblivionCardRuntimeModel model,
+        OblivionCardViewContext context)
+    {
+        OblivionCard card = model.SourceCard;
+        return new OblivionCompactCardView(
+            card.Id.Value,
+            card.Title,
+            card.Subtitle,
+            card.Table?.Reference,
+            card.Subtitle,
+            ["Table", "TSON", OblivionCardLabels.StatusLabel(card.Status)],
+            card.Tags,
+            new OblivionCompactPlainBodyContent([]),
+            [],
+            [],
+            model.LocalState.IsExpanded,
+            model.LocalState.BodyScrollOffset,
+            176,
+            1200);
     }
 }
 

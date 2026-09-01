@@ -1,0 +1,21 @@
+format = 1
+kind = "card"
+id = "validation-evidence-canonical"
+card_kind = "table"
+status = "passing"
+title = "Canonical validation evidence"
+subtitle = "The exact canonical TSON projection of the maintained authored table"
+tags = ["m20e", "table", "canonical"]
+
+[table]
+kind = "tson-table"
+reference = "content/validation-evidence.tson"
+
+[provenance]
+source_kind = "workspace-asset"
+source_reference = "content/validation-evidence.tson"
+producer_action = "tson-canonical-printer"
+
+[body]
+format = "plain"
+text = ""

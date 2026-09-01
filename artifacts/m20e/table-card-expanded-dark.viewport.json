@@ -1,0 +1,82 @@
+{
+  "window": {
+    "width": 2560,
+    "height": 1440
+  },
+  "usableViewport": {
+    "x": 88,
+    "y": 72,
+    "width": 2384,
+    "height": 1296
+  },
+  "layoutMode": "Single",
+  "focusedSlot": "A",
+  "slots": [
+    {
+      "slotId": "A",
+      "cardId": "validation-evidence",
+      "focused": true,
+      "bounds": {
+        "x": 88,
+        "y": 72,
+        "width": 2384,
+        "height": 1296
+      }
+    }
+  ],
+  "diagram": null,
+  "tables": [
+    {
+      "cardId": "validation-evidence",
+      "source": "content/validation-evidence.obj.ts",
+      "profile": "obj.ts",
+      "sourceHash": "cfe427596a9cbe2386cab1cd0621bda4377cb30f41e81d62e30d9ef71bf13ba9",
+      "tableIdentity": "copeland://oblivion/m20e/validation-evidence#ValidationEvidence",
+      "schemaIdentity": "copeland://oblivion/m20e/validation-evidence",
+      "rowCount": 16,
+      "columnCount": 7,
+      "columnNames": [
+        "order",
+        "lane",
+        "subsystem",
+        "required",
+        "risk",
+        "proofs",
+        "evidence"
+      ],
+      "columnTypes": [
+        "number",
+        "string",
+        "string",
+        "boolean",
+        "Risk",
+        "string[]",
+        "Evidence"
+      ],
+      "columnIdentities": [
+        "copeland://oblivion/m20e/validation-evidence#ValidationEvidence.order",
+        "copeland://oblivion/m20e/validation-evidence#ValidationEvidence.lane",
+        "copeland://oblivion/m20e/validation-evidence#ValidationEvidence.subsystem",
+        "copeland://oblivion/m20e/validation-evidence#ValidationEvidence.required",
+        "copeland://oblivion/m20e/validation-evidence#ValidationEvidence.risk",
+        "copeland://oblivion/m20e/validation-evidence#ValidationEvidence.proofs",
+        "copeland://oblivion/m20e/validation-evidence#ValidationEvidence.evidence"
+      ],
+      "slot": {
+        "x": 88,
+        "y": 72,
+        "width": 2384,
+        "height": 1296
+      },
+      "visibleRowRange": [
+        0,
+        15
+      ],
+      "preferredWidth": 1456,
+      "horizontalScrollRequired": false,
+      "loadMs": 0,
+      "columnWidthSampleSize": 32,
+      "virtualizedRows": true
+    }
+  ]
+}

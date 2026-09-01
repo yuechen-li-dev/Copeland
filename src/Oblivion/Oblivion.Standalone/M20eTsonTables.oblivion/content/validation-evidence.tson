@@ -1,0 +1,227 @@
+const $schema: string = "copeland://oblivion/m20e/validation-evidence";
+
+record Evidence {
+    owner: string;
+    expected: string;
+}
+
+enum Risk {
+    Semantic,
+    Ui,
+    Integration,
+}
+
+record table ValidationEvidence {
+    order: number = [
+        $number("3FF0000000000000"),
+        $number("4000000000000000"),
+        $number("4008000000000000"),
+        $number("4010000000000000"),
+        $number("4014000000000000"),
+        $number("4018000000000000"),
+        $number("401C000000000000"),
+        $number("4020000000000000"),
+        $number("4022000000000000"),
+        $number("4024000000000000"),
+        $number("4026000000000000"),
+        $number("4028000000000000"),
+        $number("402A000000000000"),
+        $number("402C000000000000"),
+        $number("402E000000000000"),
+        $number("4030000000000000"),
+    ];
+    lane: string = [
+        "obj-ts-load",
+        "canonical-load",
+        "root-contract",
+        "projection",
+        "formatter",
+        "empty-shape",
+        "cli",
+        "reload",
+        "single",
+        "vertical-split",
+        "horizontal-split",
+        "dark",
+        "light",
+        "playback",
+        "boundaries",
+        "diff-check",
+    ];
+    subsystem: string = [
+        "App",
+        "App",
+        "App",
+        "UI",
+        "UI",
+        "UI",
+        "CLI",
+        "App",
+        "Standalone",
+        "Standalone",
+        "Standalone",
+        "Standalone",
+        "Standalone",
+        "Integration",
+        "Architecture",
+        "Repository",
+    ];
+    required: boolean = [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+    ];
+    risk: Risk = [
+        Risk.Semantic,
+        Risk.Semantic,
+        Risk.Semantic,
+        Risk.Semantic,
+        Risk.Semantic,
+        Risk.Semantic,
+        Risk.Integration,
+        Risk.Integration,
+        Risk.Ui,
+        Risk.Ui,
+        Risk.Ui,
+        Risk.Ui,
+        Risk.Ui,
+        Risk.Integration,
+        Risk.Semantic,
+        Risk.Integration,
+    ];
+    proofs: string[] = [
+        [
+            "unit",
+        ],
+        [
+            "unit",
+            "equivalence",
+        ],
+        [
+            "diagnostic",
+        ],
+        [
+            "unit",
+            "structure",
+        ],
+        [
+            "unit",
+        ],
+        [
+            "unit",
+        ],
+        [
+            "cli",
+            "json",
+        ],
+        [
+            "transaction",
+        ],
+        [
+            "geometry",
+        ],
+        [
+            "geometry",
+            "capture",
+        ],
+        [
+            "geometry",
+        ],
+        [
+            "capture",
+        ],
+        [
+            "capture",
+        ],
+        [
+            "playback",
+        ],
+        [
+            "rg",
+        ],
+        [
+            "git",
+        ],
+    ];
+    evidence: Evidence = [
+        $record.Evidence({
+            "owner": "Oblivion.App",
+            "expected": "authoring profile loads",
+        }),
+        $record.Evidence({
+            "owner": "Oblivion.App",
+            "expected": "canonical bytes load",
+        }),
+        $record.Evidence({
+            "owner": "Oblivion.App",
+            "expected": "non-table rejected",
+        }),
+        $record.Evidence({
+            "owner": "Oblivion.UI",
+            "expected": "column order retained",
+        }),
+        $record.Evidence({
+            "owner": "Oblivion.UI",
+            "expected": "all cell kinds readable",
+        }),
+        $record.Evidence({
+            "owner": "Oblivion.UI",
+            "expected": "zero one shapes render",
+        }),
+        $record.Evidence({
+            "owner": "Oblivion.Cli",
+            "expected": "metadata only",
+        }),
+        $record.Evidence({
+            "owner": "Oblivion.App",
+            "expected": "failure atomic",
+        }),
+        $record.Evidence({
+            "owner": "Standalone",
+            "expected": "slot filled",
+        }),
+        $record.Evidence({
+            "owner": "Standalone",
+            "expected": "half height usable",
+        }),
+        $record.Evidence({
+            "owner": "Standalone",
+            "expected": "wide slot scrolls",
+        }),
+        $record.Evidence({
+            "owner": "Standalone",
+            "expected": "contrast passes",
+        }),
+        $record.Evidence({
+            "owner": "Standalone",
+            "expected": "contrast passes",
+        }),
+        $record.Evidence({
+            "owner": "Presenter",
+            "expected": "14 of 14",
+        }),
+        $record.Evidence({
+            "owner": "Architecture",
+            "expected": "no row copy",
+        }),
+        $record.Evidence({
+            "owner": "Repository",
+            "expected": "clean whitespace",
+        }),
+    ];
+}
+
+const $value = ValidationEvidence;

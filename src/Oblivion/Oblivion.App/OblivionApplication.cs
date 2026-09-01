@@ -307,7 +307,36 @@ public sealed class OblivionApplication
     {
         try
         {
-            return OblivionWorkspaceLoader.OpenVault(vaultRoot);
+            OblivionWorkspaceLoadResult load = OblivionWorkspaceLoader.OpenVault(vaultRoot);
+            if (!load.Succeeded || load.Workspace is null || load.Location is null)
+            {
+                return load;
+            }
+
+            List<OblivionWorkspaceDiagnostic> diagnostics = load.Diagnostics.ToList();
+            OblivionTableCardRealizer realizer = new();
+            foreach (OblivionCard card in load.Workspace.Pages.SelectMany(page => page.Cards))
+            {
+                if (card.Kind != OblivionCardKind.Table)
+                {
+                    continue;
+                }
+
+                OblivionTableCardRealization realization = realizer.Realize(
+                    card,
+                    load.Location.RootDirectory);
+                diagnostics.AddRange(realization.Diagnostics.Select(diagnostic =>
+                    new OblivionWorkspaceDiagnostic(
+                        diagnostic.Severity,
+                        diagnostic.Code,
+                        diagnostic.Message,
+                        diagnostic.SourcePath)));
+            }
+
+            return load with
+            {
+                Diagnostics = OblivionWorkspaceValidator.OrderDiagnostics(diagnostics),
+            };
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

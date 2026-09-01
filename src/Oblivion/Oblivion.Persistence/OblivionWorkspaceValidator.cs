@@ -125,6 +125,7 @@ public static class OblivionWorkspaceValidator
             OblivionCardKind.CodeFact => "code-fact",
             OblivionCardKind.CodeTheory => "code-theory",
             OblivionCardKind.Diagram => "diagram",
+            OblivionCardKind.Table => "table",
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown Oblivion card kind."),
         };
     }
@@ -172,6 +173,7 @@ public static class OblivionWorkspaceValidator
             ["code-fact"] = OblivionCardKind.CodeFact,
             ["code-theory"] = OblivionCardKind.CodeTheory,
             ["diagram"] = OblivionCardKind.Diagram,
+            ["table"] = OblivionCardKind.Table,
         };
 
     private static readonly IReadOnlyDictionary<string, OblivionCardStatus> StatusByValue =

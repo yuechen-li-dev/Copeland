@@ -261,6 +261,11 @@ internal sealed class OblivionStandaloneWindow : Window
         Point point = args.GetPosition(_host);
         OblivionStandaloneCardSnapshot? card = _snapshot.Cards.FirstOrDefault(
             candidate => Contains(candidate.CardBounds, point));
+        if (card?.Card.Kind == Oblivion.Model.OblivionCardKind.Table)
+        {
+            return;
+        }
+
         if (card is not null &&
             _documentScrollers.TryGetValue(card.Card.Id.Value, out ScrollViewer? documentScroll) &&
             CanConsumeWheel(documentScroll, args.Delta.Y))
@@ -495,6 +500,49 @@ internal sealed class OblivionStandaloneWindow : Window
                 viewportWidth = canvas.Camera.ViewportWidth,
                 viewportHeight = canvas.Camera.ViewportHeight,
             },
+            tables = _snapshot.Cards
+                .Where(card => card.ContentPlan.Table is not null)
+                .Select(card =>
+                {
+                    OblivionTablePresentationSource source = card.ContentPlan.Table!;
+                    double bodyHeight = card.MatureContentBounds?.Height ?? 0;
+                    int visibleCount = Math.Max(
+                        0,
+                        (int)Math.Floor(
+                            Math.Max(0, bodyHeight - OblivionTableLayoutPolicy.HeaderHeight) /
+                            OblivionTableLayoutPolicy.RowHeight));
+                    return new
+                    {
+                        cardId = card.Card.Id.Value,
+                        source = source.SourceReference,
+                        profile = source.Profile,
+                        sourceHash = source.SourceHash,
+                        tableIdentity = source.Table.Schema.IdentityValue.Value,
+                        schemaIdentity = source.Table.Schema.IdentityValue.Value.Split('#')[0],
+                        rowCount = source.Table.RowCount,
+                        columnCount = source.Table.Columns.Count,
+                        columnNames = source.Table.Columns.Select(column => column.Schema.Name),
+                        columnTypes = source.Table.Columns.Select(column =>
+                            OblivionTableCellDisplayFormatter.FormatType(column.Schema.ElementType)),
+                        columnIdentities = source.Table.Columns.Select(column => column.Schema.Identity.Value),
+                        slot = new
+                        {
+                            x = card.SlotBounds.X,
+                            y = card.SlotBounds.Y,
+                            width = card.SlotBounds.Width,
+                            height = card.SlotBounds.Height,
+                        },
+                        visibleRowRange = source.Table.RowCount == 0 || visibleCount == 0
+                            ? Array.Empty<int>()
+                            : new[] { 0, Math.Min(source.Table.RowCount - 1, visibleCount - 1) },
+                        preferredWidth = OblivionTableLayoutPolicy.PreferredTableWidth(source.Table),
+                        horizontalScrollRequired = OblivionTableLayoutPolicy.PreferredTableWidth(source.Table) >
+                            (card.MatureContentBounds?.Width ?? 0),
+                        loadMs = source.LoadMilliseconds,
+                        columnWidthSampleSize = OblivionTableLayoutPolicy.ColumnWidthSampleSize,
+                        virtualizedRows = true,
+                    };
+                }),
         };
         string path = Path.ChangeExtension(capturePath, ".viewport.json");
         File.WriteAllText(

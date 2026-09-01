@@ -74,7 +74,19 @@ public sealed record OblivionCardDetail(
     IReadOnlyList<string>? DiagramAvailableCachedBackends = null,
     string? DiagramActiveArtifactBackend = null,
     string? DiagramLayoutPolicyIdentity = null,
-    string? DiagramRendererProvenance = null);
+    string? DiagramRendererProvenance = null,
+    string? TableSourceKind = null,
+    string? TableSourceReference = null,
+    string? TableProfile = null,
+    string? TableIdentity = null,
+    string? TableSchemaIdentity = null,
+    int? TableRowCount = null,
+    int? TableColumnCount = null,
+    IReadOnlyList<string>? TableColumnNames = null,
+    IReadOnlyList<string>? TableColumnTypes = null,
+    IReadOnlyList<string>? TableColumnIdentities = null,
+    string? TableSourceHash = null,
+    long? TableLoadMilliseconds = null);
 
 public sealed record OblivionCardContentResult(
     string WorkspaceId,
@@ -236,8 +248,10 @@ public sealed class OblivionWorkspaceControl
                 card.Title,
                 OblivionWorkspaceValidator.GetCardKindValue(card.Kind),
                 OblivionWorkspaceValidator.GetCardStatusValue(card.Status),
-                card.Body.SourceReference,
-                Summarize(card.Body.RawText))))
+                card.Table?.Reference ?? card.Body.SourceReference,
+                card.Kind == OblivionCardKind.Table
+                    ? "structured TSON table"
+                    : Summarize(card.Body.RawText))))
             .ToArray();
         return new(cards, ConvertDiagnostics(open.Diagnostics, workspace));
     }
@@ -321,6 +335,23 @@ public sealed class OblivionWorkspaceControl
                         : null;
             }
         }
+        OblivionTableCardRealization? tableRealization = null;
+        if (card.Kind == OblivionCardKind.Table)
+        {
+            tableRealization = new OblivionTableCardRealizer().Realize(
+                card,
+                open.Session.Location.RootDirectory);
+            diagnostics.AddRange(tableRealization.Diagnostics.Select(diagnostic => new OblivionControlDiagnostic(
+                diagnostic.Code,
+                diagnostic.Severity.ToString().ToLowerInvariant(),
+                diagnostic.Message,
+                workspace.Id.Value,
+                page.Id.Value,
+                card.Id.Value,
+                diagnostic.SourcePath,
+                null,
+                null)));
+        }
         OblivionConfigResult config = new OblivionConfigStore().Load();
         string? requestedAppearance = card.Kind == OblivionCardKind.Diagram && config.Config is not null
             ? config.Config.Appearance.ToString().ToLowerInvariant()
@@ -366,7 +397,22 @@ public sealed class OblivionWorkspaceControl
             card.Kind == OblivionCardKind.Diagram
                 ? $"native={OblivionNativeSvgRenderer.RendererId}@{OblivionNativeSvgRenderer.RendererVersion};" +
                   $"fallback={OblivionMermaidRendererOptions.RendererId}@{OblivionMermaidRendererOptions.PinnedVersion}"
-                : null);
+                : null,
+            card.Table?.Kind.ToString(),
+            card.Table?.Reference,
+            tableRealization?.Profile,
+            tableRealization?.Table?.Schema.IdentityValue.Value,
+            tableRealization?.Table is null
+                ? null
+                : tableRealization.Table.Schema.IdentityValue.Value.Split('#')[0],
+            tableRealization?.Table?.RowCount,
+            tableRealization?.Table?.Columns.Count,
+            tableRealization?.Table?.Columns.Select(column => column.Schema.Name).ToArray(),
+            tableRealization?.Table?.Columns.Select(column =>
+                OblivionTableCellDisplayFormatter.FormatType(column.Schema.ElementType)).ToArray(),
+            tableRealization?.Table?.Columns.Select(column => column.Schema.Identity.Value).ToArray(),
+            tableRealization?.SourceHash,
+            tableRealization?.LoadMilliseconds);
         return new(detail, diagnostics);
     }
 
