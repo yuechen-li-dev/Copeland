@@ -571,6 +571,7 @@ public sealed class OblivionCli
             {
                 _output.WriteLine($"Test: {value.TestIdentity}");
                 _output.WriteLine($"Outcome: {value.Outcome}");
+                _output.WriteLine($"Setup: {value.Realization}");
                 _output.WriteLine($"Duration: {value.DurationMilliseconds?.ToString("0.###") ?? "<unavailable>"} ms");
                 if (value.CaseCount > 1)
                 {

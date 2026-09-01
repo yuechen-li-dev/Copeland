@@ -16,6 +16,12 @@ public enum OblivionFunctionTestKind
     Theory,
 }
 
+public enum OblivionFunctionRealizationKind
+{
+    Cold,
+    Warm,
+}
+
 public sealed record OblivionFunctionTestDescriptor(
     string TestIdentity,
     string DisplayName,
@@ -27,7 +33,9 @@ public sealed record OblivionFunctionTestDescriptor(
     string ProjectPath,
     string TestProjectPath,
     string RunnerIdentity,
-    IReadOnlyList<OblivionCardDiagnostic> Diagnostics)
+    IReadOnlyList<OblivionCardDiagnostic> Diagnostics,
+    string RealizationFingerprint = "",
+    string TestAssemblyPath = "")
 {
     public bool Discovered => Diagnostics.All(diagnostic =>
         diagnostic.Severity != Oblivion.Model.OblivionDiagnosticSeverity.Error);
@@ -55,7 +63,13 @@ public sealed record OblivionFunctionExecutionResult(
     int FailedCases,
     int SkippedCases,
     DateTimeOffset? CompletedAt,
-    IReadOnlyList<OblivionCardDiagnostic> Diagnostics)
+    IReadOnlyList<OblivionCardDiagnostic> Diagnostics,
+    OblivionFunctionRealizationKind Realization = OblivionFunctionRealizationKind.Cold,
+    string RealizationFingerprint = "",
+    string? ResultIdentity = null,
+    bool MaterializationInvoked = false,
+    bool DiscoveryInvoked = false,
+    bool ExecutionInvoked = false)
 {
     public static OblivionFunctionExecutionResult Running(
         string cardId,
@@ -76,6 +90,7 @@ public sealed record OblivionFunctionExecutionResult(
             0,
             0,
             null,
-            descriptor.Diagnostics);
+            descriptor.Diagnostics,
+            RealizationFingerprint: descriptor.RealizationFingerprint);
     }
 }

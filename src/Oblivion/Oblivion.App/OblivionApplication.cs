@@ -113,17 +113,19 @@ public sealed class OblivionApplication
             return new OblivionFunctionDiscoveryResult(null, TimeSpan.Zero, TimeSpan.Zero, [diagnostic]);
         }
 
-        return _functionRunner.Discover(card, session.Location.RootDirectory);
+        return _functionRunner.Inspect(card, session.Location.RootDirectory);
     }
 
     public OblivionFunctionRunPreparation BeginFunctionCardRun(
         OblivionWorkspaceSession session,
         string cardId)
     {
-        OblivionFunctionDiscoveryResult discovery = InspectFunctionCard(session, cardId);
         OblivionCard? card = session.Workspace.Pages
             .SelectMany(page => page.Cards)
             .FirstOrDefault(candidate => candidate.Id.Value == cardId);
+        OblivionFunctionDiscoveryResult discovery = card is null
+            ? InspectFunctionCard(session, cardId)
+            : _functionRunner.Discover(card, session.Location.RootDirectory);
         if (!discovery.Succeeded || discovery.Descriptor is null || card is null)
         {
             return new OblivionFunctionRunPreparation(session, card, discovery);
@@ -171,7 +173,14 @@ public sealed class OblivionApplication
                 error,
                 preparation.Discovery.BuildDuration,
                 preparation.Discovery.DiscoveryDuration,
-                TimeSpan.Zero);
+                TimeSpan.Zero,
+                preparation.Discovery.Realization,
+                preparation.Discovery.RealizationFingerprint,
+                preparation.Discovery.ResolutionDuration,
+                preparation.Discovery.FingerprintingDuration,
+                preparation.Discovery.MaterializationInvoked,
+                preparation.Discovery.DiscoveryInvoked,
+                ExecutionInvoked: false);
         }
 
         Stopwatch runnerClock = Stopwatch.StartNew();
@@ -180,6 +189,13 @@ public sealed class OblivionApplication
             preparation.Session.Location.RootDirectory,
             preparation.Discovery.Descriptor);
         runnerClock.Stop();
+        result = result with
+        {
+            Realization = preparation.Discovery.Realization,
+            RealizationFingerprint = preparation.Discovery.RealizationFingerprint,
+            MaterializationInvoked = preparation.Discovery.MaterializationInvoked,
+            DiscoveryInvoked = preparation.Discovery.DiscoveryInvoked,
+        };
         OblivionWorkspaceSession session = preparation.Session with
         {
             State = preparation.Session.State.WithFunctionExecution(preparation.Card.Id.Value, result),
@@ -190,7 +206,14 @@ public sealed class OblivionApplication
             result,
             preparation.Discovery.BuildDuration,
             preparation.Discovery.DiscoveryDuration,
-            runnerClock.Elapsed);
+            runnerClock.Elapsed,
+            preparation.Discovery.Realization,
+            preparation.Discovery.RealizationFingerprint,
+            preparation.Discovery.ResolutionDuration,
+            preparation.Discovery.FingerprintingDuration,
+            preparation.Discovery.MaterializationInvoked,
+            preparation.Discovery.DiscoveryInvoked,
+            result.ExecutionInvoked);
     }
 
     public OblivionFunctionRunResult RunFunctionCard(

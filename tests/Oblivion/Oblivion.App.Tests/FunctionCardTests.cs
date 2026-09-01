@@ -1,5 +1,6 @@
 using Oblivion.Model;
 using Oblivion.Product;
+using System.Text.Json;
 using Xunit;
 
 namespace Oblivion.App.Tests;
@@ -13,25 +14,39 @@ public sealed class FunctionCardTests
         OblivionWorkspaceSession session = Assert.IsType<OblivionWorkspaceSession>(
             application.OpenWorkspace(SourceFixtureRoot).Session);
 
-        OblivionFunctionDiscoveryResult theory = application.InspectFunctionCard(
-            session,
-            "theory-function");
         OblivionFunctionRunResult first = application.RunFunctionCard(session, "passing-function");
         OblivionFunctionRunResult second = application.RunFunctionCard(first.Session, "passing-function");
-        OblivionFunctionRunResult failed = application.RunFunctionCard(second.Session, "failing-function");
+        OblivionFunctionRunResult theory = application.RunFunctionCard(second.Session, "theory-function");
+        OblivionFunctionRunResult failed = application.RunFunctionCard(theory.Session, "failing-function");
+        OblivionFunctionRunResult failedAgain = application.RunFunctionCard(failed.Session, "failing-function");
 
-        Assert.True(theory.Succeeded, string.Join(Environment.NewLine, theory.Diagnostics));
         Assert.Equal(OblivionFunctionTestKind.Theory, theory.Descriptor!.TestKind);
         Assert.Equal(2, theory.Descriptor.CaseCount);
+        Assert.Equal(2, theory.Result.PassedCases);
         Assert.Equal(OblivionFunctionExecutionOutcome.Passed, first.Result.Outcome);
         Assert.Equal(OblivionFunctionExecutionOutcome.Passed, second.Result.Outcome);
         Assert.Equal(first.Result.TestIdentity, second.Result.TestIdentity);
+        Assert.Equal(OblivionFunctionRealizationKind.Cold, first.Realization);
+        Assert.Equal(OblivionFunctionRealizationKind.Warm, second.Realization);
+        Assert.Equal(OblivionFunctionRealizationKind.Warm, theory.Realization);
+        Assert.True(first.MaterializationInvoked);
+        Assert.True(first.DiscoveryInvoked);
+        Assert.False(second.MaterializationInvoked);
+        Assert.False(second.DiscoveryInvoked);
+        Assert.True(first.ExecutionInvoked);
+        Assert.True(second.ExecutionInvoked);
+        Assert.NotEqual(first.Result.ResultIdentity, second.Result.ResultIdentity);
         Assert.True(first.Result.Duration > TimeSpan.Zero);
         Assert.Equal(OblivionFunctionExecutionOutcome.Failed, failed.Result.Outcome);
+        Assert.Equal(OblivionFunctionRealizationKind.Warm, failed.Realization);
+        Assert.Equal(OblivionFunctionRealizationKind.Warm, failedAgain.Realization);
         Assert.Contains("Assert.True", failed.Result.Failure!.Message, StringComparison.Ordinal);
         Assert.EndsWith("ControlledFailure.tsxtest", failed.Result.Failure.SourcePath, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(8, failed.Result.Failure.SourceLine);
         Assert.DoesNotContain(".g.cs", failed.Result.Failure.SourcePath, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(failed.Result.Failure.SourcePath, failedAgain.Result.Failure!.SourcePath);
+        Assert.Equal(failed.Result.Failure.SourceLine, failedAgain.Result.Failure.SourceLine);
+        Assert.NotEqual(failed.Result.ResultIdentity, failedAgain.Result.ResultIdentity);
     }
 
     [Fact]
@@ -175,6 +190,268 @@ public sealed class FunctionCardTests
             diagnostic.Code == "OBLIVION-FUNCTION-BUILD-FAILED" &&
             diagnostic.Message.Contains("controlled compile failure", StringComparison.Ordinal));
         Assert.Single(processes.Requests);
+    }
+
+    [Fact]
+    public void Warm_realization_reuses_project_materialization_and_exact_discovery()
+    {
+        using FunctionRunnerFixture fixture = new();
+        QueueProcessRunner processes = new(
+            Success(),
+            Success(),
+            Success(DiscoveryOutput("Fixture.Tests.test")));
+        OblivionXunitFunctionRunner runner = new(processRunner: processes);
+        OblivionCard card = CreateFunctionCard("source/function.tsxtest", "test");
+
+        OblivionFunctionDiscoveryResult cold = runner.Discover(card, fixture.Root);
+        OblivionFunctionDiscoveryResult warm = runner.Discover(card, fixture.Root);
+
+        Assert.True(cold.Succeeded);
+        Assert.True(warm.Succeeded);
+        Assert.Equal(OblivionFunctionRealizationKind.Cold, cold.Realization);
+        Assert.Equal(OblivionFunctionRealizationKind.Warm, warm.Realization);
+        Assert.Equal(cold.RealizationFingerprint, warm.RealizationFingerprint);
+        Assert.Equal(cold.Descriptor!.TestIdentity, warm.Descriptor!.TestIdentity);
+        Assert.True(cold.MaterializationInvoked);
+        Assert.True(cold.DiscoveryInvoked);
+        Assert.False(warm.MaterializationInvoked);
+        Assert.False(warm.DiscoveryInvoked);
+        Assert.Equal(3, processes.Requests.Count);
+    }
+
+    [Theory]
+    [InlineData("source/function.tsxtest", "changed test source")]
+    [InlineData("source/production.tsx", "changed production source")]
+    [InlineData("fixture.csproj", "<Project><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>")]
+    public void Relevant_source_and_project_changes_invalidate_realization(string relativePath, string replacement)
+    {
+        using FunctionRunnerFixture fixture = new();
+        File.WriteAllText(Path.Combine(fixture.Root, "source", "production.tsx"), "export function value(): int { return 1; }");
+        QueueProcessRunner processes = new(
+            Success(),
+            Success(),
+            Success(DiscoveryOutput("Fixture.Tests.test")),
+            Success(),
+            Success(),
+            Success(DiscoveryOutput("Fixture.Tests.test")));
+        OblivionXunitFunctionRunner runner = new(processRunner: processes);
+        OblivionCard card = CreateFunctionCard("source/function.tsxtest", "test");
+        OblivionFunctionDiscoveryResult first = runner.Discover(card, fixture.Root);
+
+        File.WriteAllText(Path.Combine(fixture.Root, relativePath), replacement);
+        OblivionFunctionDiscoveryResult invalidated = runner.Discover(card, fixture.Root);
+
+        Assert.True(first.Succeeded);
+        Assert.True(invalidated.Succeeded);
+        Assert.Equal(OblivionFunctionRealizationKind.Cold, invalidated.Realization);
+        Assert.NotEqual(first.RealizationFingerprint, invalidated.RealizationFingerprint);
+        Assert.True(invalidated.MaterializationInvoked);
+        Assert.True(invalidated.DiscoveryInvoked);
+        Assert.Equal(6, processes.Requests.Count);
+    }
+
+    [Fact]
+    public void Missing_realization_output_invalidates_and_never_reuses_stale_descriptor()
+    {
+        using FunctionRunnerFixture fixture = new();
+        QueueProcessRunner processes = new(
+            Success(),
+            Success(),
+            Success(DiscoveryOutput("Fixture.Tests.test")),
+            Success(),
+            Success());
+        OblivionXunitFunctionRunner runner = new(processRunner: processes);
+        OblivionCard card = CreateFunctionCard("source/function.tsxtest", "test");
+        OblivionFunctionDiscoveryResult first = runner.Discover(card, fixture.Root);
+        File.Delete(fixture.TestAssemblyPath);
+
+        OblivionFunctionDiscoveryResult invalidated = runner.Discover(card, fixture.Root);
+
+        Assert.True(first.Succeeded);
+        Assert.False(invalidated.Succeeded);
+        Assert.Equal(OblivionFunctionRealizationKind.Cold, invalidated.Realization);
+        Assert.True(invalidated.MaterializationInvoked);
+        Assert.Contains(invalidated.Diagnostics, diagnostic =>
+            diagnostic.Code == "OBLIVION-FUNCTION-TEST-ASSEMBLY-MISSING");
+        Assert.Equal(5, processes.Requests.Count);
+    }
+
+    [Fact]
+    public void Failed_rebuild_after_invalidation_does_not_publish_or_fall_back_to_stale_realization()
+    {
+        using FunctionRunnerFixture fixture = new();
+        QueueProcessRunner processes = new(
+            Success(),
+            Success(),
+            Success(DiscoveryOutput("Fixture.Tests.test")),
+            new OblivionProcessResult(true, false, 1, string.Empty, "rebuild failed"));
+        OblivionXunitFunctionRunner runner = new(processRunner: processes);
+        OblivionCard card = CreateFunctionCard("source/function.tsxtest", "test");
+        Assert.True(runner.Discover(card, fixture.Root).Succeeded);
+        File.WriteAllText(Path.Combine(fixture.Root, "source", "function.tsxtest"), "changed");
+
+        OblivionFunctionDiscoveryResult failed = runner.Discover(card, fixture.Root);
+
+        Assert.False(failed.Succeeded);
+        Assert.Null(failed.Descriptor);
+        Assert.Equal(OblivionFunctionRealizationKind.Cold, failed.Realization);
+        Assert.Contains(failed.Diagnostics, diagnostic =>
+            diagnostic.Code == "OBLIVION-FUNCTION-BUILD-FAILED" &&
+            diagnostic.Message.Contains("rebuild failed", StringComparison.Ordinal));
+        Assert.Equal(4, processes.Requests.Count);
+    }
+
+    [Fact]
+    public void Corrupt_realization_output_hash_invalidates_before_reuse()
+    {
+        using FunctionRunnerFixture fixture = new();
+        QueueProcessRunner processes = new(
+            Success(),
+            Success(),
+            Success(DiscoveryOutput("Fixture.Tests.test")),
+            Success(),
+            Success(),
+            Success(DiscoveryOutput("Fixture.Tests.test")));
+        OblivionXunitFunctionRunner runner = new(processRunner: processes);
+        OblivionCard card = CreateFunctionCard("source/function.tsxtest", "test");
+        Assert.True(runner.Discover(card, fixture.Root).Succeeded);
+        File.WriteAllText(fixture.TestAssemblyPath, "corrupt replacement");
+
+        OblivionFunctionDiscoveryResult invalidated = runner.Discover(card, fixture.Root);
+
+        Assert.True(invalidated.Succeeded);
+        Assert.Equal(OblivionFunctionRealizationKind.Cold, invalidated.Realization);
+        Assert.True(invalidated.MaterializationInvoked);
+        Assert.True(invalidated.DiscoveryInvoked);
+        Assert.Equal(6, processes.Requests.Count);
+    }
+
+    [Fact]
+    public void Passive_inspection_does_not_materialize_or_discover()
+    {
+        using FunctionRunnerFixture fixture = new();
+        QueueProcessRunner processes = new();
+        OblivionXunitFunctionRunner runner = new(processRunner: processes);
+
+        OblivionFunctionDiscoveryResult inspection = runner.Inspect(
+            CreateFunctionCard("source/function.tsxtest", "test"),
+            fixture.Root);
+
+        Assert.False(inspection.Succeeded);
+        Assert.Empty(inspection.Diagnostics);
+        Assert.Empty(processes.Requests);
+    }
+
+    [Fact]
+    public void Distinct_owning_projects_do_not_share_realization_state()
+    {
+        using FunctionRunnerFixture firstFixture = new();
+        using FunctionRunnerFixture secondFixture = new();
+        QueueProcessRunner processes = new(
+            Success(),
+            Success(),
+            Success(DiscoveryOutput("Fixture.Tests.test")),
+            Success(),
+            Success(),
+            Success(DiscoveryOutput("Fixture.Tests.test")));
+        OblivionXunitFunctionRunner runner = new(processRunner: processes);
+        OblivionCard card = CreateFunctionCard("source/function.tsxtest", "test");
+
+        OblivionFunctionDiscoveryResult first = runner.Discover(card, firstFixture.Root);
+        OblivionFunctionDiscoveryResult second = runner.Discover(card, secondFixture.Root);
+
+        Assert.True(first.Succeeded);
+        Assert.True(second.Succeeded);
+        Assert.Equal(OblivionFunctionRealizationKind.Cold, first.Realization);
+        Assert.Equal(OblivionFunctionRealizationKind.Cold, second.Realization);
+        Assert.NotEqual(first.RealizationFingerprint, second.RealizationFingerprint);
+        Assert.Equal(6, processes.Requests.Count);
+    }
+
+    [Fact]
+    public void M20g_real_dogfood_evidence_can_be_captured_on_demand()
+    {
+        string? evidenceDirectory = Environment.GetEnvironmentVariable("OBLIVION_M20G_EVIDENCE_DIR");
+        if (string.IsNullOrWhiteSpace(evidenceDirectory))
+        {
+            return;
+        }
+
+        Directory.CreateDirectory(evidenceDirectory);
+        string sourcePath = Path.Combine(SourceFixtureRoot, "source", "FunctionCardExecution.tsxtest");
+        byte[] originalSource = File.ReadAllBytes(sourcePath);
+        try
+        {
+            OblivionApplication application = new();
+            OblivionWorkspaceSession session = application.OpenWorkspace(SourceFixtureRoot).Session!;
+            OblivionFunctionRunResult cold = application.RunFunctionCard(session, "passing-function");
+            WriteEvidence(evidenceDirectory, "cold-run.json", cold);
+            OblivionFunctionRunResult warmOne = application.RunFunctionCard(cold.Session, "passing-function");
+            WriteEvidence(evidenceDirectory, "warm-run-1.json", warmOne);
+            OblivionFunctionRunResult warmTwo = application.RunFunctionCard(warmOne.Session, "passing-function");
+            WriteEvidence(evidenceDirectory, "warm-run-2.json", warmTwo);
+
+            File.AppendAllText(sourcePath, Environment.NewLine + "// M20g invalidation dogfood probe" + Environment.NewLine);
+            OblivionFunctionRunResult invalidated = application.RunFunctionCard(
+                warmTwo.Session,
+                "passing-function");
+            WriteEvidence(evidenceDirectory, "invalidation-run.json", invalidated);
+            OblivionFunctionRunResult warmAfterInvalidation = application.RunFunctionCard(
+                invalidated.Session,
+                "passing-function");
+            WriteEvidence(evidenceDirectory, "warm-after-invalidation-run.json", warmAfterInvalidation);
+
+            Assert.Equal(OblivionFunctionRealizationKind.Cold, cold.Realization);
+            Assert.Equal(OblivionFunctionRealizationKind.Warm, warmOne.Realization);
+            Assert.Equal(OblivionFunctionRealizationKind.Warm, warmTwo.Realization);
+            Assert.Equal(OblivionFunctionRealizationKind.Cold, invalidated.Realization);
+            Assert.Equal(OblivionFunctionRealizationKind.Warm, warmAfterInvalidation.Realization);
+            Assert.All(
+                new[] { cold, warmOne, warmTwo, invalidated, warmAfterInvalidation },
+                run => Assert.True(run.ExecutionInvoked));
+        }
+        finally
+        {
+            File.WriteAllBytes(sourcePath, originalSource);
+        }
+    }
+
+    private static void WriteEvidence(
+        string evidenceDirectory,
+        string fileName,
+        OblivionFunctionRunResult run)
+    {
+        object evidence = new
+        {
+            milestone = "M20g",
+            realizationFingerprint = run.RealizationFingerprint,
+            realization = run.Realization.ToString().ToLowerInvariant(),
+            materializationInvoked = run.MaterializationInvoked,
+            discoveryInvoked = run.DiscoveryInvoked,
+            executionInvoked = run.ExecutionInvoked,
+            stages = new
+            {
+                resolutionMs = run.ResolutionDuration.TotalMilliseconds,
+                fingerprintingMs = run.FingerprintingDuration.TotalMilliseconds,
+                materializationMs = run.BuildDuration.TotalMilliseconds,
+                discoveryMs = run.DiscoveryDuration.TotalMilliseconds,
+                executionMs = run.RunnerDuration.TotalMilliseconds,
+                totalMs = run.ResolutionDuration.TotalMilliseconds +
+                    run.FingerprintingDuration.TotalMilliseconds +
+                    run.BuildDuration.TotalMilliseconds +
+                    run.DiscoveryDuration.TotalMilliseconds +
+                    run.RunnerDuration.TotalMilliseconds,
+            },
+            testOutcome = run.Result.Outcome.ToString(),
+            sourceHash = run.Result.SourceHash,
+            trxResultIdentity = run.Result.ResultIdentity,
+            testIdentity = run.Result.TestIdentity,
+            runner = run.Result.RunnerIdentity,
+            completedAt = run.Result.CompletedAt,
+        };
+        File.WriteAllText(
+            Path.Combine(evidenceDirectory, fileName),
+            JsonSerializer.Serialize(evidence, new JsonSerializerOptions { WriteIndented = true }));
     }
 
     private static OblivionProcessResult Success(string standardOutput = "")
@@ -329,9 +606,23 @@ public sealed class FunctionCardTests
             File.WriteAllText(
                 Path.Combine(Root, "obj", "CopelandTests", "fixture.CopelandTests.csproj"),
                 "<Project />");
+            string outputDirectory = Path.Combine(Root, "obj", "CopelandTests", "bin", "Debug", "net10.0");
+            Directory.CreateDirectory(outputDirectory);
+            File.WriteAllText(
+                Path.Combine(outputDirectory, "fixture.CopelandTests.dll"),
+                "test assembly placeholder");
         }
 
         public string Root { get; }
+
+        public string TestAssemblyPath => Path.Combine(
+            Root,
+            "obj",
+            "CopelandTests",
+            "bin",
+            "Debug",
+            "net10.0",
+            "fixture.CopelandTests.dll");
 
         public void Dispose()
         {

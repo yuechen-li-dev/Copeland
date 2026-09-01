@@ -181,6 +181,15 @@ public sealed record OblivionFunctionRunInfo(
     double BuildMilliseconds,
     double DiscoveryMilliseconds,
     double RunnerMilliseconds,
+    string Realization,
+    string RealizationFingerprint,
+    string? ResultIdentity,
+    bool MaterializationInvoked,
+    bool DiscoveryInvoked,
+    bool ExecutionInvoked,
+    double ResolutionMilliseconds,
+    double FingerprintingMilliseconds,
+    double TotalMilliseconds,
     IReadOnlyList<OblivionControlDiagnostic> Diagnostics);
 
 public sealed record OblivionControlResult<T>(
@@ -535,6 +544,19 @@ public sealed class OblivionWorkspaceControl
             run.BuildDuration.TotalMilliseconds,
             run.DiscoveryDuration.TotalMilliseconds,
             run.RunnerDuration.TotalMilliseconds,
+            run.Realization.ToString().ToLowerInvariant(),
+            run.RealizationFingerprint,
+            result.ResultIdentity,
+            run.MaterializationInvoked,
+            run.DiscoveryInvoked,
+            run.ExecutionInvoked,
+            run.ResolutionDuration.TotalMilliseconds,
+            run.FingerprintingDuration.TotalMilliseconds,
+            run.ResolutionDuration.TotalMilliseconds +
+                run.FingerprintingDuration.TotalMilliseconds +
+                run.BuildDuration.TotalMilliseconds +
+                run.DiscoveryDuration.TotalMilliseconds +
+                run.RunnerDuration.TotalMilliseconds,
             diagnostics);
         return new(value, diagnostics);
     }

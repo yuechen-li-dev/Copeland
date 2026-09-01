@@ -1,0 +1,22 @@
+{
+  "milestone": "M20g",
+  "realizationFingerprint": "0749A93B679EBDBB44BD410A2DCC620BED6EAA023A3C69BB9F72ACCD9174698C",
+  "realization": "cold",
+  "materializationInvoked": true,
+  "discoveryInvoked": true,
+  "executionInvoked": true,
+  "stages": {
+    "resolutionMs": 0.1605,
+    "fingerprintingMs": 35.467,
+    "materializationMs": 2743.1374,
+    "discoveryMs": 914.5879,
+    "executionMs": 1003.0173,
+    "totalMs": 4696.3701
+  },
+  "testOutcome": "Passed",
+  "sourceHash": "A921C4EA579C6F0E1C3B76E662B0A8A04C8A1CFC026B4EF55A1C1FA7300350C4",
+  "trxResultIdentity": "05110f8628194a458fd70afaa9634276",
+  "testIdentity": "Oblivion.M20f.CopelandTests.Generated.FunctionCardExecution_6628A5E2_Tests.passed_result_preserves_xunit_authority",
+  "runner": "dotnet-test-trx-v1",
+  "completedAt": "2026-09-01T20:53:30.6922512+00:00"
+}

@@ -129,16 +129,39 @@ public sealed class CliTests
             "Oblivion.Standalone",
             "M20fFunctionCards.oblivion");
 
-        CliResult run = await Run("function", "run", "passing-function", "-w", root, "--json");
+        OblivionWorkspaceControl control = new(new OblivionApplication());
+        StringWriter coldOutput = new();
+        StringWriter coldError = new();
+        OblivionCli coldCli = new(coldOutput, coldError, control);
+        int coldExitCode = await coldCli.InvokeAsync(
+            ["function", "run", "passing-function", "-w", root, "--json"]);
+        StringWriter warmOutput = new();
+        StringWriter warmError = new();
+        OblivionCli warmCli = new(warmOutput, warmError, control);
+        int warmExitCode = await warmCli.InvokeAsync(
+            ["function", "run", "passing-function", "-w", root, "--json"]);
         CliResult nonFunction = await Run("function", "run", "execution-context", "-w", root, "--json");
         CliResult content = await Run("card", "content", "passing-function", "-w", root, "--json");
 
-        Assert.Equal(OblivionCliExitCode.Success, run.ExitCode);
-        using JsonDocument json = JsonDocument.Parse(run.Output);
+        Assert.Equal(OblivionCliExitCode.Success, coldExitCode);
+        Assert.Equal(OblivionCliExitCode.Success, warmExitCode);
+        using JsonDocument json = JsonDocument.Parse(coldOutput.ToString());
+        using JsonDocument warmJson = JsonDocument.Parse(warmOutput.ToString());
         Assert.Equal("passing-function", json.RootElement.GetProperty("cardId").GetString());
         Assert.Equal("Passed", json.RootElement.GetProperty("outcome").GetString());
         Assert.Equal("dotnet-test-trx-v1", json.RootElement.GetProperty("runner").GetString());
         Assert.True(json.RootElement.GetProperty("durationMilliseconds").GetDouble() > 0);
+        Assert.Equal("cold", json.RootElement.GetProperty("realization").GetString());
+        Assert.True(json.RootElement.GetProperty("materializationInvoked").GetBoolean());
+        Assert.True(json.RootElement.GetProperty("discoveryInvoked").GetBoolean());
+        Assert.True(json.RootElement.GetProperty("executionInvoked").GetBoolean());
+        Assert.Equal("warm", warmJson.RootElement.GetProperty("realization").GetString());
+        Assert.False(warmJson.RootElement.GetProperty("materializationInvoked").GetBoolean());
+        Assert.False(warmJson.RootElement.GetProperty("discoveryInvoked").GetBoolean());
+        Assert.True(warmJson.RootElement.GetProperty("executionInvoked").GetBoolean());
+        Assert.NotEqual(
+            json.RootElement.GetProperty("resultIdentity").GetString(),
+            warmJson.RootElement.GetProperty("resultIdentity").GetString());
         Assert.Equal(OblivionCliExitCode.ProductFailure, nonFunction.ExitCode);
         Assert.Contains("OBLIVION-FUNCTION-CARD-REQUIRED", nonFunction.Output, StringComparison.Ordinal);
         Assert.Equal(OblivionCliExitCode.ProductFailure, content.ExitCode);
