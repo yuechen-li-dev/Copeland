@@ -166,6 +166,7 @@ public static class Binder
         private readonly Dictionary<FunctionSymbol, BoundFunctionDeclaration> _genericBodies = [];
         private readonly Dictionary<string, BoundFunctionDeclaration> _closedInstantiations = new(StringComparer.Ordinal);
         private readonly Dictionary<string, RecordTypeSymbol> _npmTransportRecords = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, RecordTypeSymbol> _inferredRecordShapes = new(StringComparer.Ordinal);
         private readonly Dictionary<FunctionSymbol, int> _closedInstantiationCounts = [];
         private readonly Dictionary<string, string> _closedInstantiationNames = new(StringComparer.Ordinal);
         private Dictionary<string, TypeParameterSymbol>? _activeTypeParameters;
@@ -5276,7 +5277,10 @@ public static class Binder
                 && v.Initializer is NameExpressionSyntax or GenericFunctionReferenceExpressionSyntax or CallExpressionSyntax or ArrowExpressionSyntax or CaptureExpressionSyntax;
             bool inferArrowLocal = v.Type is null && _arrowBodyDepth > 0;
             bool inferNumericLiteral = v.Type is null && v.Initializer is LiteralExpressionSyntax;
-            bool inferInitializer = inferCallableReference || inferArrowLocal || inferNumericLiteral;
+            bool inferObjectLiteral = v.Type is null && v.Initializer is ObjectLiteralExpressionSyntax;
+            bool inferWithValue = v.Type is null && v.Initializer is WithExpressionSyntax;
+            bool inferRecordValue = inferObjectLiteral || inferWithValue;
+            bool inferInitializer = inferCallableReference || inferArrowLocal || inferNumericLiteral || inferRecordValue;
             var type = inferInitializer
                 ? PrimitiveTypeSymbol.Error
                 : BindType(v.Type, v.Identifier, "COPE-TYPE-0002", "variable");
@@ -5294,7 +5298,15 @@ public static class Binder
             }
             if (inferInitializer)
             {
-                type = init.Type;
+                if (inferWithValue && init.Type is not RecordTypeSymbol)
+                {
+                    Report("COPE-TYPE-0002", $"Missing type annotation for variable '{v.Identifier.Text}'.", v.Identifier);
+                    type = PrimitiveTypeSymbol.Error;
+                }
+                else
+                {
+                    type = init.Type;
+                }
             }
             ValidateRuntimeValueType(type, v.Identifier, "variable");
             string? authoredAliasName = GetAuthoredAliasName(v.Type);
@@ -8987,6 +8999,27 @@ public static class Binder
             var unresolved = slots.Where(slot => slot.Candidate is null).ToArray();
             if (unresolved.Length > 0)
             {
+                foreach (int index in deferred.ToArray())
+                {
+                    if (call.Arguments[index] is not ObjectLiteralExpressionSyntax
+                        || !ContainsUnresolvedInferenceParameter(function.Parameters[index].Type, slots))
+                    {
+                        continue;
+                    }
+
+                    BoundExpression bound = BindExpression(call.Arguments[index]);
+                    arguments[index] = bound;
+                    failed |= !CollectInferenceEvidence(
+                        function.Parameters[index].Type,
+                        bound.Type,
+                        slots,
+                        InferenceAnchor(call.Arguments[index]));
+                    deferred.Remove(index);
+                }
+                unresolved = slots.Where(slot => slot.Candidate is null).ToArray();
+            }
+            if (unresolved.Length > 0)
+            {
                 string names = string.Join(", ", unresolved.Select(slot => slot.Parameter.Name));
                 string explicitArguments = string.Join(", ", function.TypeParameters.Select(parameter => parameter.Name));
                 SyntaxToken anchor = deferred.Count > 0 ? InferenceAnchor(call.Arguments[deferred[0]]) : call.OpenParenToken;
@@ -9040,6 +9073,41 @@ public static class Binder
             }
 
             return failed ? new BoundErrorExpression() : CreateDirectCall(specialization.Symbol, arguments, call.OpenParenToken);
+        }
+
+        private static bool ContainsUnresolvedInferenceParameter(
+            TypeSymbol root,
+            IReadOnlyList<InferenceSlot> slots)
+        {
+            var pending = new Stack<TypeSymbol>();
+            pending.Push(root);
+            while (pending.Count > 0)
+            {
+                TypeSymbol type = pending.Pop();
+                if (type is TypeParameterTypeSymbol parameter)
+                {
+                    InferenceSlot? slot = slots.FirstOrDefault(candidate => ReferenceEquals(candidate.Parameter.Type, parameter));
+                    if (slot?.Candidate is null)
+                    {
+                        return true;
+                    }
+                    continue;
+                }
+                switch (type)
+                {
+                    case ArrayTypeSymbol array:
+                        pending.Push(array.ElementType);
+                        break;
+                    case ResultTypeSymbol result:
+                        pending.Push(result.SuccessType);
+                        pending.Push(result.ErrorType);
+                        break;
+                    case ColumnTypeSymbol column:
+                        pending.Push(column.ElementType);
+                        break;
+                }
+            }
+            return false;
         }
 
         private bool CollectInferenceEvidence(TypeSymbol pattern, TypeSymbol actual, IReadOnlyList<InferenceSlot> slots, SyntaxToken anchor)
@@ -9112,7 +9180,7 @@ public static class Binder
             => expression switch
             {
                 ArrayLiteralExpressionSyntax => "An empty array provides no element-type evidence.",
-                ObjectLiteralExpressionSyntax => "A record literal provides no nominal-type evidence.",
+                ObjectLiteralExpressionSyntax => "A contextual record literal could not provide independent type evidence.",
                 CallExpressionSyntax => "A bare Result constructor provides incomplete Result evidence.",
                 _ => "This argument requires a contextual parameter type."
             };
@@ -10850,6 +10918,10 @@ public static class Binder
                 Report("COPE-TABLE-0016", "Table-owned rows cannot be constructed from object literals.", literal.OpenBraceToken);
                 return new BoundErrorExpression();
             }
+            if (contextualType is null)
+            {
+                return BindInferredRecordObject(literal);
+            }
             if (contextualType is not RecordTypeSymbol recordType)
             {
                 Report("COPE-REC-0005", "A record literal requires one expected nominal record type.", literal.OpenBraceToken);
@@ -10903,6 +10975,116 @@ public static class Binder
                 Report(recordType is ClassTypeSymbol ? "COPE-CLASS-0007" : "COPE-REC-0006", $"{subject} '{recordType.Name}' is missing fields: {string.Join(", ", missing)}.", literal.OpenBraceToken);
             }
             return new BoundRecordConstructionExpression(recordType, initializers);
+        }
+
+        private BoundExpression BindInferredRecordObject(ObjectLiteralExpressionSyntax literal)
+        {
+            var authoredFields = new List<(ObjectPropertySyntax Property, BoundExpression Value)>();
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            foreach (ObjectPropertySyntax property in literal.Properties)
+            {
+                BoundExpression value = BindExpression(property.ValueExpression);
+                if (property.NameToken.Kind != SyntaxKind.IdentifierToken)
+                {
+                    Report("COPE-REC-0007", $"Inferred record fields require identifier names, got '{property.NameToken.Text}'.", property.NameToken);
+                    continue;
+                }
+                if (!names.Add(property.NameToken.Text))
+                {
+                    Report("COPE-REC-0008", $"Field '{property.NameToken.Text}' is initialized more than once.", property.NameToken);
+                    continue;
+                }
+                authoredFields.Add((property, value));
+            }
+
+            if (authoredFields.Any(field => ContainsOpenTypeParameter(field.Value.Type)))
+            {
+                Report(
+                    "COPE-REC-0005",
+                    "An inferred record literal in a generic body cannot contain open type parameters. Use a named closed record at the generic boundary.",
+                    literal.OpenBraceToken);
+                return new BoundErrorExpression();
+            }
+
+            string shapeIdentity = CreateInferredRecordShapeIdentity(authoredFields);
+            if (!_inferredRecordShapes.TryGetValue(shapeIdentity, out RecordTypeSymbol? recordType))
+            {
+                string displayName = "{ " + string.Join("; ", authoredFields.Select(field => field.Property.NameToken.Text + ": " + field.Value.Type.Name)) + " }";
+                string hash = ComputeStableHashHex(shapeIdentity);
+                recordType = new RecordTypeSymbol(
+                    displayName,
+                    new RecordTypeId(_nextRecordTypeId++),
+                    "copeland:inferred-record:" + shapeIdentity)
+                {
+                    EmissionName = "__CopeInferredRecord_" + hash
+                };
+                for (int index = 0; index < authoredFields.Count; index++)
+                {
+                    var authoredField = authoredFields[index];
+                    recordType.AddField(new RecordFieldSymbol(
+                        authoredField.Property.NameToken.Text,
+                        new RecordFieldId(recordType.Id, index),
+                        authoredField.Value.Type));
+                }
+                _inferredRecordShapes.Add(shapeIdentity, recordType);
+                _records.Add(new BoundRecordDeclaration(recordType));
+            }
+
+            var initializers = authoredFields.Select(authoredField =>
+            {
+                RecordFieldSymbol field = recordType.Fields.Single(candidate => candidate.Name == authoredField.Property.NameToken.Text);
+                return new BoundRecordFieldInitializer(field, authoredField.Value);
+            }).ToArray();
+            return new BoundRecordConstructionExpression(recordType, initializers);
+        }
+
+        private static bool ContainsOpenTypeParameter(TypeSymbol root)
+        {
+            var pending = new Stack<TypeSymbol>();
+            pending.Push(root);
+            while (pending.Count > 0)
+            {
+                TypeSymbol type = pending.Pop();
+                switch (type)
+                {
+                    case TypeParameterTypeSymbol:
+                        return true;
+                    case ArrayTypeSymbol array:
+                        pending.Push(array.ElementType);
+                        break;
+                    case MutableArrayTypeSymbol array:
+                        pending.Push(array.ElementType);
+                        break;
+                    case ResultTypeSymbol result:
+                        pending.Push(result.SuccessType);
+                        pending.Push(result.ErrorType);
+                        break;
+                    case CallableTypeSymbol callable:
+                        foreach (CallableParameterTypeSymbol parameter in callable.Parameters)
+                        {
+                            pending.Push(parameter.Type);
+                        }
+                        pending.Push(callable.ReturnType);
+                        break;
+                }
+            }
+            return false;
+        }
+
+        private static string CreateInferredRecordShapeIdentity(
+            IReadOnlyList<(ObjectPropertySyntax Property, BoundExpression Value)> fields)
+        {
+            var identity = new StringBuilder("ordered{");
+            foreach (var field in fields)
+            {
+                string name = field.Property.NameToken.Text;
+                string typeIdentity = TypeFacts.IsFloat(field.Value.Type)
+                    ? "primitive:float"
+                    : ClosedTypeIdentity(field.Value.Type, MaxClosedTypeDepth);
+                identity.Append(name.Length).Append(':').Append(name);
+                identity.Append('=').Append(typeIdentity.Length).Append(':').Append(typeIdentity).Append(';');
+            }
+            return identity.Append('}').ToString();
         }
         private BoundExpression BindMatch(MatchExpressionSyntax match, TypeSymbol? contextualType)
         {

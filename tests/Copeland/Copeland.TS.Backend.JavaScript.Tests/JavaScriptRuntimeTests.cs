@@ -922,6 +922,26 @@ public sealed class JavaScriptRuntimeTests
     }
 
     [Fact]
+    public async Task Node_executes_frozen_inferred_record_shapes_with_generic_reuse_and_with_updates()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            function identity<T>(value: T): T { return value; }
+            function main(): int {
+                const original = { x: 1, y: 2 };
+                const peer = identity({ x: 3, y: 4 });
+                const moved = original with { x: peer.x + 37 };
+                const nested = { point: moved };
+                return nested.point.x + nested.point.y;
+            }
+            """);
+
+        ProcessResult result = await RunNodeAsync(emitted.SourceText + "\nconsole.log(main());\n");
+
+        Assert.Equal("42\n", result.StdOut);
+        Assert.Equal(string.Empty, result.StdErr);
+    }
+
+    [Fact]
     public async Task Node_Proves_Record_Nominality_Immutability_And_Representation_Isolation()
     {
         JavaScriptCompilation emitted = Emit("""

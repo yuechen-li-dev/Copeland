@@ -75,7 +75,6 @@ public sealed class RecordFeatureTests
     [InlineData("record Point { x(): number; }", "COPE-REC-0001")]
     [InlineData("record Point { x: Point; }", "COPE-REC-0004")]
     [InlineData("record Node { wrapper: Wrapper; } enum Wrapper { One(node: Node), }", "COPE-REC-0004")]
-    [InlineData("function bad(): void { const value = { x: 0 }; }", "COPE-REC-0005")]
     [InlineData("record Point { x: number; } function bad(point: Point): void { point.x = 1; }", "COPE-REC-0011")]
     [InlineData("function bad(value: number): number { return value with { x: 1 }; }", "COPE-REC-0012")]
     [InlineData("record Point { x: number; } function bad(point: Point): Point { return point with {}; }", "COPE-REC-0013")]

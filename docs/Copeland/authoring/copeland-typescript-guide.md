@@ -203,9 +203,11 @@ deferred.
 ### Records and object shape
 
 Traditional TypeScript instinct: an object literal is structural, and code can
-add, delete, or replace properties. Copeland records are named immutable product
-types. A brace literal needs an expected record type and supplies every declared
-field exactly once.
+add, delete, or replace properties. In Copeland, an uncontextualized object
+literal infers an immutable, closed record shape. The compiler interns equal
+ordered shapes within the compilation and realizes them through the same private
+record carrier path as named records. An expected named record still constructs
+that nominal type directly.
 
 ```ts
 export record Person {
@@ -220,6 +222,12 @@ function Birthday(person: Person): Person {
 function Create(): Person {
     return { name: "Ada", age: 37 };
 }
+
+function Move(): int {
+    const point = { x: 1, y: 2 };
+    const moved = point with { x: 40 };
+    return moved.x + moved.y;
+}
 ```
 
 Rejected:
@@ -228,12 +236,15 @@ Rejected:
 person.age = 38;
 person.extra = 3;
 delete person.name;
-const anonymous = { name: "Ada" };
+const expanded = person with { extra: 3 };
 ```
 
-Use `with` only to update an existing field. To make a new shape, declare a
-second record and construct it explicitly. Flat records cross current CLR/npm
-boundaries; dynamic shapes and nested npm arrays do not.
+Use `with` only to replace existing fields; it preserves the receiver's exact
+type and shape. Inferred shapes are exact and source-ordered: `{ x, y }` and
+`{ y, x }` are distinct uncontextualized shapes. Use a named `record` for public
+APIs, durable schemas, TSON, explicit nominal identity, or a stable reflection
+name. Flat named records cross current CLR/npm boundaries; anonymous carriers,
+dynamic shapes, and nested npm arrays do not.
 
 ### Exhaustive `match` and `switch`
 

@@ -8,6 +8,24 @@ namespace Copeland.TS.Backend.CSharp.Tests.Runtime;
 public sealed class RecordRuntimeTests
 {
     [Fact]
+    public void Inferred_record_shapes_are_nested_updated_and_generic_at_runtime()
+    {
+        Assembly assembly = Compile("""
+            function identity<T>(value: T): T { return value; }
+
+            function main(): int {
+                const original = { x: 1, y: 2 };
+                const peer = identity({ x: 3, y: 4 });
+                const moved = original with { x: peer.x + 37 };
+                const nested = { point: moved };
+                return nested.point.x + nested.point.y;
+            }
+            """);
+
+        Assert.Equal(42, Assert.IsType<int>(GeneratedModuleInvoker.Invoke(assembly, "main")));
+    }
+
+    [Fact]
     public void Constructs_accesses_and_rebinds_an_immutable_record_to_42()
     {
         Assembly assembly = Compile("""

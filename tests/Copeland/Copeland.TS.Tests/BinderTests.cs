@@ -139,7 +139,7 @@ const contextual: Point = combinePoint(point, { x: 1, y: 2 });
     [InlineData("function make<T>(): T { return 1; } const value: number = make();", "COPE-INFER-0001")]
     [InlineData("function same<T>(left: T, right: T): T { return left; } const value: number = same(1, \"two\");", "COPE-INFER-0002")]
     [InlineData("function take<T>(values: T[]): T { return values[0]; } const value: number = take([]);", "COPE-INFER-0001")]
-    [InlineData("record Point { x: number; } function take<T>(value: T): T { return value; } const value: Point = take({ x: 1 });", "COPE-INFER-0001")]
+    [InlineData("record Point { x: number; } function take<T>(value: T): T { return value; } const value: Point = take({ x: 1 });", "COPE-REC-0015")]
     [InlineData("function inner<T>(value: T): T { return value; } function outer<U>(value: U): U { return inner(value); }", "COPE-GENERIC-0006")]
     [InlineData("function loop<T>(value: T): T { return loop(value); }", "COPE-GENERIC-0014")]
     public void Reports_Bounded_Inference_Failures(string source, string diagnosticId)
