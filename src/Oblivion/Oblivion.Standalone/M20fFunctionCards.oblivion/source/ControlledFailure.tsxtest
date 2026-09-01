@@ -1,0 +1,10 @@
+using Xunit;
+
+function actualRunnerOutcome(): string {
+    return "Failed";
+}
+
+[Fact]
+export function controlled_failure_reports_authored_tsxtest_line(): void {
+    Assert.True(actualRunnerOutcome() == "Passed");
+}

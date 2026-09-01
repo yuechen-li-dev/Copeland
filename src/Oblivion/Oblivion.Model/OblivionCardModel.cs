@@ -10,6 +10,7 @@ public enum OblivionCardKind
     CodeTheory,
     Diagram,
     Table,
+    Function,
 }
 
 public enum OblivionCardStatus
@@ -59,6 +60,16 @@ public enum OblivionTableSourceKind
 public sealed record OblivionTableSource(
     OblivionTableSourceKind Kind,
     string Reference);
+
+public enum OblivionFunctionSourceKind
+{
+    CopelandXunit,
+}
+
+public sealed record OblivionFunctionSource(
+    OblivionFunctionSourceKind Kind,
+    string Reference,
+    string Test);
 
 public enum OblivionDiagnosticSeverity
 {
@@ -184,7 +195,8 @@ public sealed record OblivionCard(
     OblivionPageId? PageId = null,
     OblivionWorkspaceId? WorkspaceId = null,
     OblivionDiagramSource? Diagram = null,
-    OblivionTableSource? Table = null);
+    OblivionTableSource? Table = null,
+    OblivionFunctionSource? Function = null);
 
 public sealed record OblivionWorkspacePage(
     OblivionPageId Id,

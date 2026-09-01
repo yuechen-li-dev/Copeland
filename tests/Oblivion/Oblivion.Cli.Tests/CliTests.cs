@@ -16,6 +16,7 @@ public sealed class CliTests
     [InlineData("card pop --help", "safely delete owned files")]
     [InlineData("config --help", "persistent Oblivion application configuration")]
     [InlineData("command run --help", "command-id")]
+    [InlineData("function run --help", "Function Card id")]
     public async Task Generated_help_is_discoverable(string commandLine, string expected)
     {
         CliResult result = await Run(commandLine.Split(' ', StringSplitOptions.RemoveEmptyEntries));
@@ -114,6 +115,32 @@ public sealed class CliTests
         Assert.Equal(16, json.RootElement.GetProperty("tableRowCount").GetInt32());
         Assert.Equal(7, json.RootElement.GetProperty("tableColumnCount").GetInt32());
         Assert.Equal("order", json.RootElement.GetProperty("tableColumnNames")[0].GetString());
+        Assert.Equal(OblivionCliExitCode.ProductFailure, content.ExitCode);
+        Assert.Contains("OBLIVION-CARD-CONTENT-NOT-TEXT", content.Output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Function_run_uses_exact_card_and_returns_structured_runner_result()
+    {
+        string root = Path.Combine(
+            FindRepositoryRoot(),
+            "src",
+            "Oblivion",
+            "Oblivion.Standalone",
+            "M20fFunctionCards.oblivion");
+
+        CliResult run = await Run("function", "run", "passing-function", "-w", root, "--json");
+        CliResult nonFunction = await Run("function", "run", "execution-context", "-w", root, "--json");
+        CliResult content = await Run("card", "content", "passing-function", "-w", root, "--json");
+
+        Assert.Equal(OblivionCliExitCode.Success, run.ExitCode);
+        using JsonDocument json = JsonDocument.Parse(run.Output);
+        Assert.Equal("passing-function", json.RootElement.GetProperty("cardId").GetString());
+        Assert.Equal("Passed", json.RootElement.GetProperty("outcome").GetString());
+        Assert.Equal("dotnet-test-trx-v1", json.RootElement.GetProperty("runner").GetString());
+        Assert.True(json.RootElement.GetProperty("durationMilliseconds").GetDouble() > 0);
+        Assert.Equal(OblivionCliExitCode.ProductFailure, nonFunction.ExitCode);
+        Assert.Contains("OBLIVION-FUNCTION-CARD-REQUIRED", nonFunction.Output, StringComparison.Ordinal);
         Assert.Equal(OblivionCliExitCode.ProductFailure, content.ExitCode);
         Assert.Contains("OBLIVION-CARD-CONTENT-NOT-TEXT", content.Output, StringComparison.Ordinal);
     }
@@ -286,7 +313,7 @@ public sealed class CliTests
         CliResult unknown = await Run("command", "run", "view.reset", "-w", FixtureRoot, "--json");
 
         using JsonDocument listJson = JsonDocument.Parse(list.Output);
-        Assert.Equal(11, listJson.RootElement.GetArrayLength());
+        Assert.Equal(12, listJson.RootElement.GetArrayLength());
         Assert.Equal("workspace.reload", listJson.RootElement[0].GetProperty("id").GetString());
         Assert.Equal("active-page", listJson.RootElement[1].GetProperty("scope").GetString());
         Assert.True(listJson.RootElement[2].GetProperty("available").GetBoolean());

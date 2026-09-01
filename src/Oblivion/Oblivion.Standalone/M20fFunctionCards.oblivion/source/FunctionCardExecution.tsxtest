@@ -1,0 +1,35 @@
+using Xunit;
+
+enum ProjectedOutcome {
+    Passed,
+    Failed,
+    Error,
+}
+
+function statusLabel(outcome: ProjectedOutcome): string {
+    return match outcome {
+        Passed => "Passed",
+        Failed => "Failed",
+        Error => "Error",
+    };
+}
+
+function outcomeFor(expectPassing: boolean): ProjectedOutcome {
+    if (expectPassing) {
+        return ProjectedOutcome.Passed;
+    }
+    return ProjectedOutcome.Failed;
+}
+
+[Fact]
+export function passed_result_preserves_xunit_authority(): void {
+    Assert.True(statusLabel(ProjectedOutcome.Passed) == "Passed");
+}
+
+[Theory]
+[InlineData(true)]
+[InlineData(false)]
+export function result_labels_are_projected_without_reinterpretation(expectPassing: boolean): void {
+    const label: string = statusLabel(outcomeFor(expectPassing));
+    Assert.True((label == "Passed") == expectPassing);
+}

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Oblivion.Model;
 using Oblivion.Persistence;
 using Oblivion.Product;
@@ -67,20 +68,187 @@ public sealed record OblivionStackOperationResult(
         Diagnostics.All(diagnostic => diagnostic.Severity != OblivionDiagnosticSeverity.Error);
 }
 
+public sealed record OblivionFunctionRunPreparation(
+    OblivionWorkspaceSession Session,
+    OblivionCard? Card,
+    OblivionFunctionDiscoveryResult Discovery)
+{
+    public bool Succeeded => Card is not null && Discovery.Succeeded;
+}
+
 public sealed class OblivionApplication
 {
     private readonly OblivionCardHandlerRegistry _handlers;
     private readonly OblivionCardEffectRouter _effects;
     private readonly OblivionConfigStore _configStore;
+    private readonly IOblivionFunctionRunner _functionRunner;
 
     public OblivionApplication(
         OblivionCardHandlerRegistry? handlers = null,
         OblivionCardEffectRouter? effects = null,
-        OblivionConfigStore? configStore = null)
+        OblivionConfigStore? configStore = null,
+        IOblivionFunctionRunner? functionRunner = null)
     {
         _handlers = handlers ?? OblivionCardHandlerRegistry.CreateDefault();
         _effects = effects ?? new OblivionCardEffectRouter();
         _configStore = configStore ?? new OblivionConfigStore();
+        _functionRunner = functionRunner ?? new OblivionXunitFunctionRunner();
+    }
+
+    public OblivionFunctionDiscoveryResult InspectFunctionCard(
+        OblivionWorkspaceSession session,
+        string cardId)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        OblivionCard? card = session.Workspace.Pages
+            .SelectMany(page => page.Cards)
+            .FirstOrDefault(candidate => candidate.Id.Value == cardId);
+        if (card is null)
+        {
+            OblivionCardDiagnostic diagnostic = new(
+                "OBLIVION-FUNCTION-CARD-NOT-FOUND",
+                OblivionDiagnosticSeverity.Error,
+                $"Function Card '{cardId}' was not found.",
+                session.Location.ManifestPath);
+            return new OblivionFunctionDiscoveryResult(null, TimeSpan.Zero, TimeSpan.Zero, [diagnostic]);
+        }
+
+        return _functionRunner.Discover(card, session.Location.RootDirectory);
+    }
+
+    public OblivionFunctionRunPreparation BeginFunctionCardRun(
+        OblivionWorkspaceSession session,
+        string cardId)
+    {
+        OblivionFunctionDiscoveryResult discovery = InspectFunctionCard(session, cardId);
+        OblivionCard? card = session.Workspace.Pages
+            .SelectMany(page => page.Cards)
+            .FirstOrDefault(candidate => candidate.Id.Value == cardId);
+        if (!discovery.Succeeded || discovery.Descriptor is null || card is null)
+        {
+            return new OblivionFunctionRunPreparation(session, card, discovery);
+        }
+
+        OblivionFunctionExecutionResult running = OblivionFunctionExecutionResult.Running(
+            cardId,
+            discovery.Descriptor);
+        OblivionWorkspaceSession next = session with
+        {
+            State = session.State.WithFunctionExecution(cardId, running),
+        };
+        return new OblivionFunctionRunPreparation(next, card, discovery);
+    }
+
+    public OblivionFunctionRunResult CompleteFunctionCardRun(OblivionFunctionRunPreparation preparation)
+    {
+        ArgumentNullException.ThrowIfNull(preparation);
+        if (!preparation.Succeeded || preparation.Card is null || preparation.Discovery.Descriptor is null)
+        {
+            string cardId = preparation.Card?.Id.Value ?? "<unknown>";
+            OblivionFunctionExecutionResult error = new(
+                cardId,
+                preparation.Card?.Function?.Test ?? "<unknown>",
+                preparation.Card?.Function?.Test ?? "<unknown>",
+                OblivionFunctionExecutionOutcome.Error,
+                null,
+                null,
+                preparation.Card?.Function?.Reference ?? string.Empty,
+                string.Empty,
+                OblivionXunitFunctionRunner.RunnerIdentity,
+                0,
+                0,
+                0,
+                0,
+                DateTimeOffset.UtcNow,
+                preparation.Discovery.Diagnostics);
+            OblivionWorkspaceSession failedSession = preparation.Session with
+            {
+                State = preparation.Session.State.WithFunctionExecution(cardId, error),
+            };
+            return new OblivionFunctionRunResult(
+                failedSession,
+                null,
+                error,
+                preparation.Discovery.BuildDuration,
+                preparation.Discovery.DiscoveryDuration,
+                TimeSpan.Zero);
+        }
+
+        Stopwatch runnerClock = Stopwatch.StartNew();
+        OblivionFunctionExecutionResult result = _functionRunner.Run(
+            preparation.Card,
+            preparation.Session.Location.RootDirectory,
+            preparation.Discovery.Descriptor);
+        runnerClock.Stop();
+        OblivionWorkspaceSession session = preparation.Session with
+        {
+            State = preparation.Session.State.WithFunctionExecution(preparation.Card.Id.Value, result),
+        };
+        return new OblivionFunctionRunResult(
+            session,
+            preparation.Discovery.Descriptor,
+            result,
+            preparation.Discovery.BuildDuration,
+            preparation.Discovery.DiscoveryDuration,
+            runnerClock.Elapsed);
+    }
+
+    public OblivionFunctionRunResult RunFunctionCard(
+        OblivionWorkspaceSession session,
+        string cardId)
+    {
+        return CompleteFunctionCardRun(BeginFunctionCardRun(session, cardId));
+    }
+
+    public OblivionHostCapabilityResult OpenFunctionSource(
+        OblivionWorkspaceSession session,
+        string cardId,
+        OblivionLocalHostCapabilities host)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(host);
+        OblivionCard? card = session.Workspace.Pages
+            .SelectMany(page => page.Cards)
+            .FirstOrDefault(candidate => candidate.Id.Value == cardId);
+        if (card?.Kind != OblivionCardKind.Function || card.Function is null)
+        {
+            return new OblivionHostCapabilityResult(
+                false,
+                $"Card '{cardId}' is not a Function Card.",
+                "OBLIVION-FUNCTION-CARD-REQUIRED");
+        }
+        if (host.OpenPath is null)
+        {
+            return new OblivionHostCapabilityResult(
+                false,
+                "The local host cannot open source paths.",
+                "OBLIVION-HOST-CAPABILITY-UNAVAILABLE");
+        }
+
+        string root = Path.GetFullPath(session.Location.RootDirectory);
+        string sourcePath = Path.GetFullPath(Path.Combine(root, card.Function.Reference));
+        string relative = Path.GetRelativePath(root, sourcePath);
+        if (Path.IsPathRooted(relative) || relative == ".." ||
+            relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
+            !File.Exists(sourcePath))
+        {
+            return new OblivionHostCapabilityResult(
+                false,
+                $"Function source '{card.Function.Reference}' is unavailable or unsafe.",
+                "OBLIVION-FUNCTION-SOURCE-UNAVAILABLE");
+        }
+
+        string pageId = card.PageId?.Value ?? session.ActivePage.Id.Value;
+        return host.OpenPath(new OblivionOpenPathCapabilityRequest(
+            Guid.NewGuid().ToString("N"),
+            session.Workspace.Id.Value,
+            pageId,
+            card.Id.Value,
+            "open-source",
+            OblivionCardEffectKind.OpenSource,
+            OblivionHostPathTargetKind.Source,
+            card.Function.Reference,
+            sourcePath));
     }
 
     public OblivionActionOutcome? Invoke(
@@ -428,6 +596,7 @@ public sealed class OblivionApplication
             cardStates,
             viewportStates,
             diagramViewportStates,
+            new Dictionary<string, OblivionFunctionExecutionResult>(StringComparer.Ordinal),
             current.InspectorPaneSelected);
     }
 }

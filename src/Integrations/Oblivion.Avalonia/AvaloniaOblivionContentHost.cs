@@ -51,13 +51,19 @@ public static class AvaloniaOblivionContentHost
         AvaloniaOblivionContentStyle? style = null,
         OblivionDiagramViewportState? diagramViewportState = null,
         Action<OblivionDiagramViewportState>? diagramViewportStateChanged = null,
-        bool fillDiagramViewport = false)
+        bool fillDiagramViewport = false,
+        Action? functionRun = null,
+        Action? functionOpenSource = null)
     {
         ArgumentNullException.ThrowIfNull(card);
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(diagramRenderer);
 
         AvaloniaOblivionContentStyle effectiveStyle = style ?? AvaloniaOblivionContentStyle.Dark;
+        if (plan.Function is not null)
+        {
+            return BuildFunction(card, plan.Function, effectiveStyle, functionRun, functionOpenSource);
+        }
         if (plan.Table is not null &&
             plan.Items.Count == 1 &&
             plan.Items[0].PresenterKind == OblivionContentPresenterKind.AvaloniaReadOnlyTable)
@@ -142,6 +148,111 @@ public static class AvaloniaOblivionContentHost
             CornerRadius = new CornerRadius(4),
             ClipToBounds = true,
             Child = scrollViewer,
+        };
+    }
+
+    private static Control BuildFunction(
+        OblivionCard card,
+        OblivionFunctionPresentationSource source,
+        AvaloniaOblivionContentStyle style,
+        Action? run,
+        Action? openSource)
+    {
+        OblivionFunctionExecutionResult? result = source.Result;
+        bool running = result?.Outcome == OblivionFunctionExecutionOutcome.Running;
+        Button runButton = new()
+        {
+            Content = running ? "Running…" : "Run",
+            IsEnabled = !running && run is not null && source.Descriptor is not null,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Padding = new Thickness(18, 8),
+        };
+        if (run is not null)
+        {
+            runButton.Click += (_, _) => run();
+        }
+
+        StackPanel panel = new()
+        {
+            Spacing = 12,
+            MaxWidth = OblivionReadingTypographyBaseline.MatureReadOnly.MaximumReadableWidth,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
+        panel.Children.Add(new SelectableTextBlock
+        {
+            Text = card.Function?.Test ?? "Unknown test",
+            FontSize = 18,
+            FontWeight = FontWeight.SemiBold,
+            Foreground = ToBrush(style.Heading),
+        });
+        panel.Children.Add(new SelectableTextBlock
+        {
+            Text = source.Descriptor is null
+                ? card.Function?.Reference ?? "Source unavailable"
+                : $"{source.Descriptor.TestKind} · {source.Descriptor.SourceReference}\n{source.Descriptor.TestIdentity}",
+            FontFamily = Monospace,
+            FontSize = 13,
+            Foreground = ToBrush(style.Muted),
+            TextWrapping = TextWrapping.Wrap,
+        });
+        panel.Children.Add(runButton);
+        Button openSourceButton = new()
+        {
+            Content = "Open source",
+            IsEnabled = openSource is not null,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Padding = new Thickness(18, 8),
+        };
+        if (openSource is not null)
+        {
+            openSourceButton.Click += (_, _) => openSource();
+        }
+        panel.Children.Add(openSourceButton);
+
+        if (result is null)
+        {
+            panel.Children.Add(BuildText("Not run", style));
+        }
+        else
+        {
+            string duration = result.Duration is null
+                ? string.Empty
+                : $" · {result.Duration.Value.TotalMilliseconds:0.###} ms";
+            string cases = result.CaseCount > 1
+                ? $" · {result.PassedCases} passed, {result.FailedCases} failed, {result.SkippedCases} skipped"
+                : string.Empty;
+            panel.Children.Add(new SelectableTextBlock
+            {
+                Text = result.Outcome + duration + cases,
+                FontSize = 16,
+                FontWeight = FontWeight.SemiBold,
+                Foreground = ToBrush(result.Outcome == OblivionFunctionExecutionOutcome.Failed
+                    ? style.Diagnostic
+                    : style.Foreground),
+            });
+            if (result.Failure is not null)
+            {
+                string location = result.Failure.SourcePath is null
+                    ? string.Empty
+                    : $"\n{result.Failure.SourcePath}:{result.Failure.SourceLine}";
+                panel.Children.Add(BuildDiagnostic(result.Failure.Message + location, style));
+            }
+        }
+
+        foreach (OblivionCardDiagnostic diagnostic in source.Diagnostics)
+        {
+            panel.Children.Add(BuildDiagnostic(diagnostic.Message, style));
+        }
+
+        return new Border
+        {
+            Background = ToBrush(style.Surface),
+            BorderBrush = ToBrush(style.Border),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(4),
+            ClipToBounds = true,
+            Padding = new Thickness(OblivionReadingTypographyBaseline.MatureReadOnly.ContentPadding),
+            Child = panel,
         };
     }
 

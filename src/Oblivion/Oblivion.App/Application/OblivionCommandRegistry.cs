@@ -17,6 +17,7 @@ public enum OblivionCommandId
     DiagramZoomIn,
     DiagramZoomOut,
     DiagramResetView,
+    FunctionRun,
 }
 
 public enum OblivionCommandScope
@@ -127,6 +128,13 @@ public sealed class OblivionCommandRegistry
             "Reset the focused Diagram Card camera to Fit.",
             OblivionCommandScope.FocusedCard,
             Available: true),
+        new(
+            OblivionCommandId.FunctionRun,
+            "function.run",
+            "Run Function",
+            "Run the exact xUnit test owned by the focused Function Card.",
+            OblivionCommandScope.FocusedCard,
+            Available: true),
     ];
 
     public IReadOnlyList<OblivionCommandDescriptor> Descriptors => Registered;
@@ -183,6 +191,7 @@ public sealed class OblivionCommandRegistry
                 session,
                 descriptor,
                 view => view.Reset()),
+            OblivionCommandId.FunctionRun => RunFunction(application, session, descriptor),
             _ => throw new ArgumentOutOfRangeException(nameof(commandId)),
         };
     }
@@ -295,5 +304,52 @@ public sealed class OblivionCommandRegistry
             Executed: true,
             affectedCards,
             []);
+    }
+
+    private static OblivionCommandExecutionResult RunFunction(
+        OblivionApplication application,
+        OblivionWorkspaceSession session,
+        OblivionCommandDescriptor descriptor)
+    {
+        string pageId = session.ActivePage.Id.Value;
+        string? selectedCardId = session.State.GetSelectedCardId(pageId, session.ActivePage.Cards);
+        string? cardId = OblivionViewportAssignments.ResolveFocusedCardId(
+            session.State.GetViewportState(pageId),
+            session.ActivePage.Cards,
+            selectedCardId);
+        OblivionCard? card = session.ActivePage.Cards.FirstOrDefault(candidate =>
+            candidate.Id.Value == cardId);
+        if (card?.Kind != OblivionCardKind.Function)
+        {
+            return new OblivionCommandExecutionResult(
+                descriptor,
+                session,
+                Executed: false,
+                AffectedCards: 0,
+                [OblivionWorkspaceValidator.Error(
+                    "OBLIVION-FUNCTION-FOCUS-REQUIRED",
+                    "The focused viewport slot does not contain a Function Card.",
+                    session.Location.ManifestPath)]);
+        }
+
+        OblivionFunctionRunResult run = application.RunFunctionCard(session, card.Id.Value);
+        IReadOnlyList<OblivionWorkspaceDiagnostic> diagnostics = run.Result.Diagnostics
+            .Select(diagnostic => new OblivionWorkspaceDiagnostic(
+                diagnostic.Severity,
+                diagnostic.Code,
+                diagnostic.Message,
+                diagnostic.SourcePath,
+                diagnostic.DisplaySeverity,
+                diagnostic.Line,
+                diagnostic.Column,
+                diagnostic.SpanStart,
+                diagnostic.SpanLength))
+            .ToArray();
+        return new OblivionCommandExecutionResult(
+            descriptor,
+            run.Session,
+            Executed: run.Result.Outcome != OblivionFunctionExecutionOutcome.Error,
+            AffectedCards: 1,
+            diagnostics);
     }
 }

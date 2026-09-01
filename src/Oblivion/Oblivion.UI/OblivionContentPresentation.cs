@@ -63,6 +63,11 @@ public sealed record OblivionDiagramPresentationSource(
     OblivionResolvedContentArtifact? Artifact = null,
     IReadOnlyList<OblivionCardDiagnostic>? Diagnostics = null);
 
+public sealed record OblivionFunctionPresentationSource(
+    OblivionFunctionTestDescriptor? Descriptor,
+    OblivionFunctionExecutionResult? Result,
+    IReadOnlyList<OblivionCardDiagnostic> Diagnostics);
+
 public sealed record OblivionContentPresentationItem(
     string ContentId,
     OblivionContentPresentationKind ContentKind,
@@ -83,7 +88,8 @@ public sealed record OblivionContentPresentationPlan(
     IReadOnlyList<OblivionContentPresentationItem> Items,
     bool AllowsInternalScroll,
     IReadOnlyList<OblivionCardDiagnostic> Diagnostics,
-    OblivionTablePresentationSource? Table = null);
+    OblivionTablePresentationSource? Table = null,
+    OblivionFunctionPresentationSource? Function = null);
 
 public sealed record OblivionReadingTypographyBaseline(
     double BodyFontSize,
@@ -127,7 +133,8 @@ public static class OblivionContentPresenterSelector
         OblivionCardViewState viewState,
         IReadOnlyList<OblivionResolvedContentArtifact>? resolvedArtifacts = null,
         OblivionDiagramPresentationSource? diagram = null,
-        OblivionTablePresentationSource? table = null)
+        OblivionTablePresentationSource? table = null,
+        OblivionFunctionPresentationSource? function = null)
     {
         ArgumentNullException.ThrowIfNull(card);
         ArgumentNullException.ThrowIfNull(viewState);
@@ -154,6 +161,13 @@ public static class OblivionContentPresenterSelector
                 AddTableItem(card, table, items, diagnostics);
             }
         }
+        else if (card.Kind == OblivionCardKind.Function)
+        {
+            if (readingState == OblivionReadingState.Expanded)
+            {
+                AddFunctionItem(card, function, items, diagnostics);
+            }
+        }
         else if (card.Kind == OblivionCardKind.Artifact && png is not null)
         {
             items.Add(CreatePngItem(card, png, diagnostics));
@@ -177,7 +191,8 @@ public static class OblivionContentPresenterSelector
 
         if (items.Count == 0 &&
             card.Kind != OblivionCardKind.Diagram &&
-            card.Kind != OblivionCardKind.Table)
+            card.Kind != OblivionCardKind.Table &&
+            card.Kind != OblivionCardKind.Function)
         {
             OblivionCardDiagnostic diagnostic = new(
                 "OBLIVION-CONTENT-PRESENTER-NOT-FOUND",
@@ -205,6 +220,7 @@ public static class OblivionContentPresenterSelector
             {
                 OblivionCardKind.Diagram => "Diagram",
                 OblivionCardKind.Table => "Table",
+                OblivionCardKind.Function => "Function",
                 _ => BuildContentTypeLabel(items),
             },
             CollapsedSummary: BuildCollapsedSummary(card),
@@ -212,7 +228,32 @@ public static class OblivionContentPresenterSelector
             AllowsInternalScroll: readingState == OblivionReadingState.Expanded &&
                 items.Any(item => item.ScrollContract != OblivionContentScrollContract.None),
             Diagnostics: diagnostics,
-            Table: table);
+            Table: table,
+            Function: function);
+    }
+
+    private static void AddFunctionItem(
+        OblivionCard card,
+        OblivionFunctionPresentationSource? function,
+        List<OblivionContentPresentationItem> items,
+        List<OblivionCardDiagnostic> diagnostics)
+    {
+        if (function is not null)
+        {
+            diagnostics.AddRange(function.Diagnostics);
+        }
+
+        items.Add(new OblivionContentPresentationItem(
+            card.Id.Value + ".function",
+            OblivionContentPresentationKind.ArtifactMetadata,
+            OblivionContentPresenterKind.NativeMetadata,
+            card.Function?.Test ?? "Function source unavailable.",
+            "copeland-xunit",
+            card.Function?.Reference,
+            null,
+            OblivionContentScrollContract.HostVerticalWhenBounded,
+            OblivionContentFocusContract.HostRetainsFocus,
+            function?.Diagnostics ?? []));
     }
 
     private static void AddTableItem(
@@ -454,7 +495,7 @@ public static class OblivionContentPresenterSelector
 
     private static string BuildCollapsedSummary(OblivionCard card)
     {
-        if (card.Kind is OblivionCardKind.Diagram or OblivionCardKind.Table)
+        if (card.Kind is OblivionCardKind.Diagram or OblivionCardKind.Table or OblivionCardKind.Function)
         {
             return card.Subtitle ?? card.Title;
         }

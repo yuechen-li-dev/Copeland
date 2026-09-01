@@ -1,0 +1,21 @@
+format = 1
+kind = "card"
+id = "failing-function"
+card_kind = "function"
+status = "idle"
+title = "Controlled authored-source failure"
+subtitle = "Failure must point to .tsxtest, never generated C#"
+tags = ["fact", "source-map"]
+
+[function]
+kind = "copeland-xunit"
+reference = "source/ControlledFailure.tsxtest"
+test = "controlled_failure_reports_authored_tsxtest_line"
+
+[body]
+format = "plain"
+text = ""
+
+[provenance]
+source_kind = "workspace-asset"
+source_reference = "source/ControlledFailure.tsxtest"

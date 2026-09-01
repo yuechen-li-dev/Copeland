@@ -95,11 +95,15 @@ public sealed class OblivionCli
         command.Subcommands.Add(CreateCommandListCommand());
         command.Subcommands.Add(CreateCommandRunCommand());
 
+        Command function = new("function", "Inspect or run xUnit-backed Function Cards.");
+        function.Subcommands.Add(CreateFunctionRunCommand());
+
         root.Subcommands.Add(workspace);
         root.Subcommands.Add(page);
         root.Subcommands.Add(card);
         root.Subcommands.Add(config);
         root.Subcommands.Add(command);
+        root.Subcommands.Add(function);
         return root;
     }
 
@@ -540,6 +544,54 @@ public sealed class OblivionCli
         return command;
     }
 
+    private Command CreateFunctionRunCommand()
+    {
+        Argument<string> cardIdArgument = new("card-id")
+        {
+            Description = "Exact Function Card id.",
+        };
+        Command command = new("run", "Run the exact xUnit test selected by one Function Card.");
+        command.Arguments.Add(cardIdArgument);
+        command.SetAction(parseResult =>
+        {
+            OblivionControlResult<OblivionFunctionRunInfo> result = _control.RunFunction(
+                Workspace(parseResult),
+                parseResult.GetValue(cardIdArgument)!);
+            if (result.Value is null)
+            {
+                return WriteResult(result, Json(parseResult), _ => { });
+            }
+
+            OblivionFunctionRunInfo value = result.Value;
+            if (Json(parseResult))
+            {
+                WriteJson(value);
+            }
+            else
+            {
+                _output.WriteLine($"Test: {value.TestIdentity}");
+                _output.WriteLine($"Outcome: {value.Outcome}");
+                _output.WriteLine($"Duration: {value.DurationMilliseconds?.ToString("0.###") ?? "<unavailable>"} ms");
+                if (value.CaseCount > 1)
+                {
+                    _output.WriteLine(
+                        $"Cases: {value.PassedCases} passed, {value.FailedCases} failed, {value.SkippedCases} skipped");
+                }
+                if (!string.IsNullOrWhiteSpace(value.FailureMessage))
+                {
+                    _output.WriteLine($"Failure: {value.FailureMessage}");
+                    _output.WriteLine($"Source: {value.FailureSource ?? value.Source}:{value.FailureLine?.ToString() ?? "?"}");
+                }
+                WriteDiagnostics(value.Diagnostics);
+            }
+
+            return value.Outcome is "Passed" or "Skipped"
+                ? OblivionCliExitCode.Success
+                : OblivionCliExitCode.ProductFailure;
+        });
+        return command;
+    }
+
     private int WriteConfigShow(OblivionConfigResult result, bool json)
     {
         if (result.Config is null)
@@ -694,6 +746,17 @@ public sealed class OblivionCli
             _output.WriteLine($"Table column identities: {FormatList(card.TableColumnIdentities)}");
             _output.WriteLine($"Table source hash: {card.TableSourceHash ?? "<unavailable>"}");
             _output.WriteLine($"Table load ms: {card.TableLoadMilliseconds?.ToString() ?? "<unavailable>"}");
+        }
+        if (card.FunctionSourceKind is not null)
+        {
+            _output.WriteLine($"Function source: {card.FunctionSourceKind} {card.FunctionSourceReference}");
+            _output.WriteLine($"Function test: {card.FunctionTest}");
+            _output.WriteLine($"Function discovered: {card.FunctionDiscovered}");
+            _output.WriteLine($"Function identity: {card.FunctionTestIdentity ?? "<unavailable>"}");
+            _output.WriteLine($"Function kind: {card.FunctionTestKind ?? "<unavailable>"}");
+            _output.WriteLine($"Function cases: {card.FunctionCaseCount?.ToString() ?? "<unavailable>"}");
+            _output.WriteLine($"Function source hash: {card.FunctionSourceHash ?? "<unavailable>"}");
+            _output.WriteLine($"Function runner: {card.FunctionRunner ?? "<unavailable>"}");
         }
         _output.WriteLine($"Actions: {(card.Actions.Count == 0 ? "<none>" : string.Join(", ", card.Actions))}");
         _output.WriteLine("Preview:");

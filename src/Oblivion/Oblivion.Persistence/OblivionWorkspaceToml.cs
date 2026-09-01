@@ -104,6 +104,7 @@ public static class OblivionCardTomlReader
             diagnostics);
         OblivionDiagramSourceDocument? diagram = ReadDiagram(parsedTable, sourcePath, diagnostics);
         OblivionTableSourceDocument? tableSource = ReadTable(parsedTable, sourcePath, diagnostics);
+        OblivionFunctionSourceDocument? functionSource = ReadFunction(parsedTable, sourcePath, diagnostics);
 
         if (format != OblivionWorkspaceValidator.SupportedFormat)
         {
@@ -137,7 +138,8 @@ public static class OblivionCardTomlReader
         {
             if (string.IsNullOrWhiteSpace(bodyText) &&
                 !string.Equals(cardKind, "diagram", StringComparison.Ordinal) &&
-                !string.Equals(cardKind, "table", StringComparison.Ordinal))
+                !string.Equals(cardKind, "table", StringComparison.Ordinal) &&
+                !string.Equals(cardKind, "function", StringComparison.Ordinal))
             {
                 diagnostics.Add(OblivionWorkspaceValidator.Error("missing-required-field", "Field 'body.text' is required for plain card bodies.", sourcePath));
             }
@@ -179,6 +181,49 @@ public static class OblivionCardTomlReader
                 diagnostics.Add(OblivionWorkspaceValidator.Error(
                     "unsafe-table-source-reference",
                     $"Table source reference '{tableSource.Reference}' must remain inside the workspace.",
+                    sourcePath));
+            }
+        }
+
+        bool isFunctionCard = string.Equals(cardKind, "function", StringComparison.Ordinal);
+        if (isFunctionCard && functionSource is null)
+        {
+            diagnostics.Add(OblivionWorkspaceValidator.Error(
+                "missing-function-source",
+                "Function cards require a semantic [function] source.",
+                sourcePath));
+        }
+        else if (!isFunctionCard && functionSource is not null)
+        {
+            diagnostics.Add(OblivionWorkspaceValidator.Error(
+                "function-source-on-non-function-card",
+                "Only Function cards may declare a [function] source.",
+                sourcePath));
+        }
+
+        if (functionSource is not null)
+        {
+            if (!string.Equals(functionSource.Kind, "copeland-xunit", StringComparison.Ordinal))
+            {
+                diagnostics.Add(OblivionWorkspaceValidator.Error(
+                    "unsupported-function-source",
+                    $"Function source kind '{functionSource.Kind}' is not supported.",
+                    sourcePath));
+            }
+
+            if (!functionSource.Reference.EndsWith(".tsxtest", StringComparison.OrdinalIgnoreCase))
+            {
+                diagnostics.Add(OblivionWorkspaceValidator.Error(
+                    "unsupported-function-source-reference",
+                    "Function source references must name a .tsxtest file.",
+                    sourcePath));
+            }
+
+            if (Path.IsPathRooted(functionSource.Reference) || LooksLikePathTraversal(functionSource.Reference))
+            {
+                diagnostics.Add(OblivionWorkspaceValidator.Error(
+                    "unsafe-function-source-reference",
+                    $"Function source reference '{functionSource.Reference}' must remain inside the workspace.",
                     sourcePath));
             }
         }
@@ -274,7 +319,8 @@ public static class OblivionCardTomlReader
                 artifacts,
                 provenance,
                 diagram,
-                tableSource);
+                tableSource,
+                functionSource);
 
         return new OblivionCardTomlReadResult(document, OblivionWorkspaceValidator.OrderDiagnostics(diagnostics));
     }
@@ -317,6 +363,15 @@ public static class OblivionCardTomlWriter
             builder.AppendLine("[table]");
             builder.AppendLine($"kind = \"{Escape(document.Table.Kind)}\"");
             builder.AppendLine($"reference = \"{Escape(document.Table.Reference)}\"");
+        }
+
+        if (document.Function is not null)
+        {
+            builder.AppendLine();
+            builder.AppendLine("[function]");
+            builder.AppendLine($"kind = \"{Escape(document.Function.Kind)}\"");
+            builder.AppendLine($"reference = \"{Escape(document.Function.Reference)}\"");
+            builder.AppendLine($"test = \"{Escape(document.Function.Test)}\"");
         }
 
         if (document.Provenance is not null)
@@ -627,6 +682,31 @@ internal static class OblivionTomlHelpers
 
 internal static class OblivionCardTomlReaderInternal
 {
+    public static OblivionFunctionSourceDocument? ReadFunction(
+        TomlTable table,
+        string? sourcePath,
+        List<OblivionWorkspaceDiagnostic> diagnostics)
+    {
+        if (!table.TryGetValue("function", out object? value) || value is null)
+        {
+            return null;
+        }
+
+        if (value is not TomlTable function)
+        {
+            diagnostics.Add(OblivionWorkspaceValidator.Error(
+                "invalid-field-type",
+                "Field 'function' must be a table.",
+                sourcePath));
+            return null;
+        }
+
+        return new OblivionFunctionSourceDocument(
+            OblivionTomlHelpers.ReadRequiredString(function, "kind", sourcePath, diagnostics),
+            OblivionTomlHelpers.ReadRequiredString(function, "reference", sourcePath, diagnostics),
+            OblivionTomlHelpers.ReadRequiredString(function, "test", sourcePath, diagnostics));
+    }
+
     public static OblivionTableSourceDocument? ReadTable(
         TomlTable table,
         string? sourcePath,

@@ -269,7 +269,8 @@ public sealed class CopelandTestCompile : Microsoft.Build.Utilities.Task
                 builder.AppendLine("    [global::Xunit." + ToAttributeType(attribute.Text) + "]");
             }
 
-            builder.AppendLine("#line " + test.Line.ToString(System.Globalization.CultureInfo.InvariantCulture) + " \"" + EscapeLinePath(sourcePath) + "\"");
+            int wrapperLineBase = Math.Max(1, test.Line - 2);
+            builder.AppendLine("#line " + wrapperLineBase.ToString(System.Globalization.CultureInfo.InvariantCulture) + " \"" + EscapeLinePath(sourcePath) + "\"");
             builder.Append("    public void ").Append(test.Name).Append('(');
             builder.Append(string.Join(", ", test.Parameters.Select(parameter => parameter.CSharpType + " " + parameter.Name)));
             builder.AppendLine(")");

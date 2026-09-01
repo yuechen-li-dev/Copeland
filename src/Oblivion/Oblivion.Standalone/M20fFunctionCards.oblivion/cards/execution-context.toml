@@ -1,0 +1,16 @@
+format = 1
+kind = "card"
+id = "execution-context"
+card_kind = "note"
+status = "idle"
+title = "Why run this here?"
+subtitle = "Notebook context remains separate from xUnit semantics"
+tags = ["context"]
+
+[body]
+format = "copeland-markdown"
+path = "content/execution-context.md"
+
+[provenance]
+source_kind = "workspace-asset"
+source_reference = "content/execution-context.md"

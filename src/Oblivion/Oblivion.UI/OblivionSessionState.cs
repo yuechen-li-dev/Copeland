@@ -14,6 +14,7 @@ public sealed record OblivionSessionState(
     IReadOnlyDictionary<string, IReadOnlyDictionary<string, OblivionCardViewState>> CardViewStateByPageId,
     IReadOnlyDictionary<string, OblivionViewportState> ViewportStateByPageId,
     IReadOnlyDictionary<string, OblivionDiagramViewportState> DiagramViewportStateByCardId,
+    IReadOnlyDictionary<string, OblivionFunctionExecutionResult> FunctionExecutionByCardId,
     bool InspectorPaneSelected)
 {
     public static OblivionSessionState Empty { get; } = new(
@@ -24,6 +25,7 @@ public sealed record OblivionSessionState(
         new Dictionary<string, IReadOnlyDictionary<string, OblivionCardViewState>>(StringComparer.Ordinal),
         new Dictionary<string, OblivionViewportState>(StringComparer.Ordinal),
         new Dictionary<string, OblivionDiagramViewportState>(StringComparer.Ordinal),
+        new Dictionary<string, OblivionFunctionExecutionResult>(StringComparer.Ordinal),
         InspectorPaneSelected: false);
 
     public double GetMainScrollOffset(string pageId) => GetOffset(MainScrollOffsetByPageId, pageId);
@@ -102,10 +104,16 @@ public sealed record OblivionSessionState(
                 .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
         }
 
+        Dictionary<string, OblivionFunctionExecutionResult> functionExecutions =
+            FunctionExecutionByCardId
+                .Where(pair => cardIds.Contains(pair.Key))
+                .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+
         return this with
         {
             SelectedCardByPageId = selections,
             CardViewStateByPageId = pageStates,
+            FunctionExecutionByCardId = functionExecutions,
         };
     }
 
@@ -197,6 +205,33 @@ public sealed record OblivionSessionState(
                 [cardId] = state,
             };
         return this with { DiagramViewportStateByCardId = states };
+    }
+
+    public OblivionFunctionExecutionResult? GetFunctionExecution(string cardId)
+    {
+        return FunctionExecutionByCardId.TryGetValue(cardId, out OblivionFunctionExecutionResult? result)
+            ? result
+            : null;
+    }
+
+    public OblivionSessionState WithFunctionExecution(
+        string cardId,
+        OblivionFunctionExecutionResult result)
+    {
+        Dictionary<string, OblivionFunctionExecutionResult> results =
+            new(FunctionExecutionByCardId, StringComparer.Ordinal)
+            {
+                [cardId] = result,
+            };
+        return this with { FunctionExecutionByCardId = results };
+    }
+
+    public OblivionSessionState ClearFunctionExecution(string cardId)
+    {
+        Dictionary<string, OblivionFunctionExecutionResult> results =
+            new(FunctionExecutionByCardId, StringComparer.Ordinal);
+        results.Remove(cardId);
+        return this with { FunctionExecutionByCardId = results };
     }
 
     private static double GetOffset(IReadOnlyDictionary<string, double> offsets, string id)

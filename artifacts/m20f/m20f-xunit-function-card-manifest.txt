@@ -1,0 +1,16 @@
+M20f xUnit-backed Function Card MVP
+Outcome: A
+Execution authority: Copeland .tsxtest -> generated wrapper -> xUnit/Test Platform -> TRX
+Durable state: Card id + copeland-xunit source reference + exact authored test selector
+Session state: NotRun/Running/Passed/Failed/Skipped/Error, duration, failure, source hash, diagnostics
+Passing Fact: passing-function -> Passed
+Controlled failure: failing-function -> Failed -> ControlledFailure.tsxtest:8 -> repaired -> Passed
+Theory: theory-function -> 2 cases -> 2 passed
+CLI: oblivion function run <card-id> -w <vault> --json
+UI: explicit Run button; duplicate invocation disabled while Running
+Rerun: stable discovered identity; no cached result and no shared kernel state
+Security: ordinary executable project code; external runner isolation; not sandboxed
+Visuals: NotRun, Passed, Failed, VerticalSplit at 2560x1440
+Tests added: 11 across App runner, CLI, persistence, and session state
+Playback: authoritative report 14 passed, 0 failed, 0 skipped; known wrapper post-success nested-path mismatch observed
+M20g: reuse materialization/discovery within a session, invalidate on source/project inputs, always execute fresh xUnit/TRX

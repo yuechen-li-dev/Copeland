@@ -23,6 +23,7 @@ public sealed class CommandRegistryTests
                 "diagram.zoom-in",
                 "diagram.zoom-out",
                 "diagram.reset-view",
+                "function.run",
             ],
             registry.Descriptors.Select(descriptor => descriptor.Id));
         Assert.All(registry.Descriptors, descriptor =>

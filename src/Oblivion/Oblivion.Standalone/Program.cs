@@ -132,7 +132,16 @@ internal sealed class OblivionStandaloneWindow : Window
             }
         }
 
+        if (!string.IsNullOrWhiteSpace(options.SelectedCardId))
+        {
+            _surface.Select(options.SelectedCardId);
+        }
+
         _surface.SetLayout(options.LayoutMode);
+        if (!string.IsNullOrWhiteSpace(options.FunctionRunCardId))
+        {
+            _surface.RunFunction(options.FunctionRunCardId);
+        }
         if (Math.Abs(options.DiagramZoom - 1) > 0.0001)
         {
             _surface.ZoomDiagram(options.DiagramZoom);
@@ -397,7 +406,13 @@ internal sealed class OblivionStandaloneWindow : Window
             diagramViewportState: cardSnapshot.DiagramViewportState,
             diagramViewportStateChanged: state =>
                 _surface.SetDiagramViewportState(cardSnapshot.Card.Id.Value, state),
-            fillDiagramViewport: cardSnapshot.Card.Kind == Oblivion.Model.OblivionCardKind.Diagram);
+            fillDiagramViewport: cardSnapshot.Card.Kind == Oblivion.Model.OblivionCardKind.Diagram,
+            functionRun: cardSnapshot.Card.Kind == Oblivion.Model.OblivionCardKind.Function
+                ? () => RunFunctionCard(cardSnapshot.Card.Id.Value)
+                : null,
+            functionOpenSource: cardSnapshot.Card.Kind == Oblivion.Model.OblivionCardKind.Function
+                ? () => _surface.OpenFunctionSource(cardSnapshot.Card.Id.Value)
+                : null);
         document.Width = bodyBounds.Width;
         document.Height = bodyBounds.Height;
         document.Margin = new Thickness(bodyBounds.X, bodyBounds.Y, 0, 0);
@@ -408,6 +423,14 @@ internal sealed class OblivionStandaloneWindow : Window
         {
             _documentScrollers[cardSnapshot.Card.Id.Value] = documentScroll;
         }
+    }
+
+    private async void RunFunctionCard(string cardId)
+    {
+        OblivionFunctionRunPreparation preparation = _surface.BeginFunctionRun(cardId);
+        RefreshSurface();
+        await Task.Run(() => _surface.CompleteFunctionRun(preparation));
+        RefreshSurface();
     }
 
     private static bool CanConsumeWheel(ScrollViewer scrollViewer, double deltaY)
@@ -621,7 +644,9 @@ internal sealed record OblivionStandaloneOptions(
     double DiagramPanX,
     double DiagramPanY,
     bool UseNativeDiagramExperiment,
-    OblivionAppearance? AppearanceOverride)
+    OblivionAppearance? AppearanceOverride,
+    string? SelectedCardId,
+    string? FunctionRunCardId)
 {
     public static OblivionStandaloneOptions Parse(IReadOnlyList<string> args)
     {
@@ -635,6 +660,8 @@ internal sealed record OblivionStandaloneOptions(
         double diagramPanY = 0;
         bool useNativeDiagramExperiment = false;
         OblivionAppearance? appearanceOverride = null;
+        string? selectedCardId = null;
+        string? functionRunCardId = null;
         for (int index = 0; index < args.Count; index++)
         {
             string argument = args[index];
@@ -668,6 +695,18 @@ internal sealed record OblivionStandaloneOptions(
             if (string.Equals(argument, "--vault", StringComparison.Ordinal) && index + 1 < args.Count)
             {
                 vaultRoot = Path.GetFullPath(args[++index]);
+                continue;
+            }
+
+            if (string.Equals(argument, "--select-card", StringComparison.Ordinal) && index + 1 < args.Count)
+            {
+                selectedCardId = args[++index];
+                continue;
+            }
+
+            if (string.Equals(argument, "--run-function-card", StringComparison.Ordinal) && index + 1 < args.Count)
+            {
+                functionRunCardId = args[++index];
                 continue;
             }
 
@@ -754,6 +793,8 @@ internal sealed record OblivionStandaloneOptions(
             diagramPanX,
             diagramPanY,
             useNativeDiagramExperiment,
-            appearanceOverride);
+            appearanceOverride,
+            selectedCardId,
+            functionRunCardId);
     }
 }

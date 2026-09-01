@@ -107,6 +107,44 @@ public sealed class UiTests
     }
 
     [Fact]
+    public void Function_execution_state_is_session_local_and_replaces_on_rerun()
+    {
+        OblivionFunctionExecutionResult running = FunctionResult(OblivionFunctionExecutionOutcome.Running);
+        OblivionFunctionExecutionResult passed = FunctionResult(OblivionFunctionExecutionOutcome.Passed);
+        OblivionFunctionExecutionResult failed = FunctionResult(OblivionFunctionExecutionOutcome.Failed);
+
+        OblivionSessionState first = OblivionSessionState.Empty.WithFunctionExecution("function", running);
+        OblivionSessionState second = first.WithFunctionExecution("function", passed);
+        OblivionSessionState third = second.WithFunctionExecution("function", failed);
+
+        Assert.Null(OblivionSessionState.Empty.GetFunctionExecution("function"));
+        Assert.Equal(OblivionFunctionExecutionOutcome.Running, first.GetFunctionExecution("function")!.Outcome);
+        Assert.Equal(OblivionFunctionExecutionOutcome.Passed, second.GetFunctionExecution("function")!.Outcome);
+        Assert.Equal(OblivionFunctionExecutionOutcome.Failed, third.GetFunctionExecution("function")!.Outcome);
+        Assert.Single(third.FunctionExecutionByCardId);
+    }
+
+    private static OblivionFunctionExecutionResult FunctionResult(OblivionFunctionExecutionOutcome outcome)
+    {
+        return new OblivionFunctionExecutionResult(
+            "function",
+            "Fixture.Tests.test",
+            "test",
+            outcome,
+            outcome == OblivionFunctionExecutionOutcome.Running ? null : TimeSpan.FromMilliseconds(1),
+            null,
+            "source/Test.tsxtest",
+            "HASH",
+            "dotnet-test-trx-v1",
+            1,
+            outcome == OblivionFunctionExecutionOutcome.Passed ? 1 : 0,
+            outcome == OblivionFunctionExecutionOutcome.Failed ? 1 : 0,
+            0,
+            outcome == OblivionFunctionExecutionOutcome.Running ? null : DateTimeOffset.UtcNow,
+            []);
+    }
+
+    [Fact]
     public void Selection_and_exclusive_expansion_are_product_state()
     {
         OblivionCard first = CreateCard("first");

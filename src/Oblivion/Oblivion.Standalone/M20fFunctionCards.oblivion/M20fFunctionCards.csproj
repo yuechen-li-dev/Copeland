@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../../../Copeland/Copeland.TS.MSBuild/build/Copeland.TS.Sdk.props" />
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Oblivion.M20f</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <CopelandTaskAssembly>../../../Copeland/Copeland.TS.MSBuild/bin/$(Configuration)/net10.0/Copeland.TS.MSBuild.dll</CopelandTaskAssembly>
+    <CopelandSameProjectTestHost>true</CopelandSameProjectTestHost>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Update="Copeland.TS.Backend.CSharp"
+               HintPath="../../../Copeland/Copeland.TS.Backend.CSharp/bin/$(Configuration)/net10.0/Copeland.TS.Backend.CSharp.dll" />
+    <ProjectReference Include="../../../Copeland/Copeland.TS.MSBuild/Copeland.TS.MSBuild.csproj"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <Import Project="../../../Copeland/Copeland.TS.MSBuild/build/Copeland.TS.Sdk.targets" />
+</Project>

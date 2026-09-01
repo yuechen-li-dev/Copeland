@@ -34,6 +34,7 @@ public sealed class OblivionCardHandlerRegistry
             new OblivionCodeTheoryCardHandler(),
             new OblivionDiagramCardHandler(),
             new OblivionTableCardHandler(),
+            new OblivionFunctionCardHandler(),
         ]);
     }
 
@@ -956,6 +957,71 @@ public sealed class OblivionTableCardHandler : OblivionCardHandlerBase
             model.LocalState.BodyScrollOffset,
             176,
             1200);
+    }
+}
+
+public sealed class OblivionFunctionCardHandler : OblivionCardHandlerBase
+{
+    public override OblivionCardKind Kind => OblivionCardKind.Function;
+
+    protected override IReadOnlyList<OblivionCardDiagnostic> BuildDiagnostics(
+        OblivionCard card,
+        OblivionCardContext context)
+    {
+        return card.Function is null
+            ? [new OblivionCardDiagnostic(
+                "OBLIVION-FUNCTION-SOURCE-MISSING",
+                OblivionDiagnosticSeverity.Error,
+                "Function Card has no semantic xUnit source.",
+                card.Provenance.SourceReference)]
+            : [];
+    }
+
+    public override IReadOnlyList<OblivionCardActionDescriptor> GetActions(
+        OblivionCardRuntimeModel model,
+        OblivionCardActionContext context)
+    {
+        return
+        [
+            new OblivionCardActionDescriptor(
+                "run",
+                "Run",
+                Enabled: true,
+                Intent: "Function:run",
+                RequiresEffect: false,
+                Availability: OblivionCardActionAvailability.Enabled,
+                EffectKind: OblivionCardEffectKind.None),
+            new OblivionCardActionDescriptor(
+                "open-source",
+                "Open source",
+                Enabled: true,
+                Intent: "Function:open-source",
+                RequiresEffect: true,
+                Availability: OblivionCardActionAvailability.Enabled,
+                EffectKind: OblivionCardEffectKind.OpenSource),
+        ];
+    }
+
+    public override OblivionCompactCardView BuildCompactView(
+        OblivionCardRuntimeModel model,
+        OblivionCardViewContext context)
+    {
+        OblivionCard card = model.SourceCard;
+        return new OblivionCompactCardView(
+            card.Id.Value,
+            card.Title,
+            card.Subtitle,
+            card.Function?.Reference,
+            card.Function?.Test,
+            ["Function", "xUnit", OblivionCardLabels.StatusLabel(card.Status)],
+            card.Tags,
+            new OblivionCompactPlainBodyContent([]),
+            [],
+            [],
+            model.LocalState.IsExpanded,
+            model.LocalState.BodyScrollOffset,
+            176,
+            620);
     }
 }
 

@@ -14,6 +14,9 @@ public sealed class OblivionStandaloneSurface
     private readonly OblivionDiagramCardRealizer _diagramRealizer = new();
     private readonly OblivionApplication _application;
     private readonly OblivionCommandRegistry _commands = new();
+    private readonly OblivionLocalHostCapabilities _localHost = OblivionSystemHostCapabilities.Create();
+    private readonly Dictionary<string, OblivionFunctionDiscoveryResult> _functionDiscovery =
+        new(StringComparer.Ordinal);
     private OblivionWorkspaceSession _workspaceSession;
 
     public OblivionStandaloneSurface(
@@ -105,7 +108,8 @@ public sealed class OblivionStandaloneSurface
                 card,
                 state,
                 diagram: CreateDiagramPresentationSource(card),
-                table: CreateTablePresentationSource(card));
+                table: CreateTablePresentationSource(card),
+                function: CreateFunctionPresentationSource(card, state));
             bool isSelected = string.Equals(
                 SelectedCardId,
                 card.Id.Value,
@@ -216,6 +220,32 @@ public sealed class OblivionStandaloneSurface
         SetSessionState(Session.WithDiagramViewportState(cardId, state));
     }
 
+    public OblivionFunctionRunPreparation BeginFunctionRun(string cardId)
+    {
+        OblivionFunctionRunPreparation preparation = _application.BeginFunctionCardRun(
+            _workspaceSession,
+            cardId);
+        _workspaceSession = preparation.Session;
+        _functionDiscovery[cardId] = preparation.Discovery;
+        return preparation;
+    }
+
+    public void CompleteFunctionRun(OblivionFunctionRunPreparation preparation)
+    {
+        OblivionFunctionRunResult run = _application.CompleteFunctionCardRun(preparation);
+        _workspaceSession = run.Session;
+    }
+
+    public void RunFunction(string cardId)
+    {
+        CompleteFunctionRun(BeginFunctionRun(cardId));
+    }
+
+    public OblivionHostCapabilityResult OpenFunctionSource(string cardId)
+    {
+        return _application.OpenFunctionSource(_workspaceSession, cardId, _localHost);
+    }
+
     public void Dispatch(UiActionId actionId)
     {
         if (!OblivionUiActions.TryDecode(actionId, out OblivionInteraction? interaction) || interaction is null)
@@ -321,12 +351,42 @@ public sealed class OblivionStandaloneSurface
             realization.Diagnostics);
     }
 
+    private OblivionFunctionPresentationSource? CreateFunctionPresentationSource(
+        OblivionCard card,
+        OblivionCardViewState state)
+    {
+        if (card.Kind != OblivionCardKind.Function)
+        {
+            return null;
+        }
+
+        if (!state.IsExpanded)
+        {
+            return new OblivionFunctionPresentationSource(
+                null,
+                Session.GetFunctionExecution(card.Id.Value),
+                []);
+        }
+
+        if (!_functionDiscovery.TryGetValue(card.Id.Value, out OblivionFunctionDiscoveryResult? discovery))
+        {
+            discovery = _application.InspectFunctionCard(_workspaceSession, card.Id.Value);
+            _functionDiscovery[card.Id.Value] = discovery;
+        }
+
+        return new OblivionFunctionPresentationSource(
+            discovery.Descriptor,
+            Session.GetFunctionExecution(card.Id.Value),
+            discovery.Diagnostics);
+    }
+
     private static string CardTypeLabel(OblivionCard card)
     {
         return card.Kind switch
         {
             OblivionCardKind.Diagram => "Diagram · State",
             OblivionCardKind.Table => "Table · TSON",
+            OblivionCardKind.Function => "Function · xUnit",
             _ => "Markdown",
         };
     }
@@ -336,9 +396,10 @@ public sealed class OblivionStandaloneSurface
         if (page.Cards.Any(card =>
                 card.Kind != OblivionCardKind.Diagram &&
                 card.Kind != OblivionCardKind.Table &&
+                card.Kind != OblivionCardKind.Function &&
                 card.Body.Format != OblivionCardBodyFormat.CopelandMarkdown))
         {
-            throw new InvalidOperationException("The standalone Page stack must contain only Markdown, Diagram, or Table Cards.");
+            throw new InvalidOperationException("The standalone Page stack must contain only Markdown, Diagram, Table, or Function Cards.");
         }
 
         return page.Cards;

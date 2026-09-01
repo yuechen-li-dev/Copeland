@@ -86,7 +86,17 @@ public sealed record OblivionCardDetail(
     IReadOnlyList<string>? TableColumnTypes = null,
     IReadOnlyList<string>? TableColumnIdentities = null,
     string? TableSourceHash = null,
-    long? TableLoadMilliseconds = null);
+    long? TableLoadMilliseconds = null,
+    string? FunctionSourceKind = null,
+    string? FunctionSourceReference = null,
+    string? FunctionTest = null,
+    bool? FunctionDiscovered = null,
+    string? FunctionTestIdentity = null,
+    string? FunctionTestKind = null,
+    int? FunctionCaseCount = null,
+    IReadOnlyDictionary<string, IReadOnlyList<string>>? FunctionTraits = null,
+    string? FunctionSourceHash = null,
+    string? FunctionRunner = null);
 
 public sealed record OblivionCardContentResult(
     string WorkspaceId,
@@ -146,6 +156,31 @@ public sealed record OblivionCommandRunInfo(
     bool Executed,
     int AffectedCards,
     OblivionReloadSessionInfo Session,
+    IReadOnlyList<OblivionControlDiagnostic> Diagnostics);
+
+public sealed record OblivionFunctionRunInfo(
+    string WorkspaceId,
+    string PageId,
+    string CardId,
+    string Source,
+    string SourceHash,
+    string TestIdentity,
+    string DisplayName,
+    string TestKind,
+    string Outcome,
+    double? DurationMilliseconds,
+    int CaseCount,
+    int PassedCases,
+    int FailedCases,
+    int SkippedCases,
+    string? FailureMessage,
+    string? FailureExceptionType,
+    string? FailureSource,
+    int? FailureLine,
+    string Runner,
+    double BuildMilliseconds,
+    double DiscoveryMilliseconds,
+    double RunnerMilliseconds,
     IReadOnlyList<OblivionControlDiagnostic> Diagnostics);
 
 public sealed record OblivionControlResult<T>(
@@ -352,6 +387,16 @@ public sealed class OblivionWorkspaceControl
                 null,
                 null)));
         }
+        OblivionFunctionDiscoveryResult? functionDiscovery = null;
+        if (card.Kind == OblivionCardKind.Function)
+        {
+            functionDiscovery = _application.InspectFunctionCard(open.Session, card.Id.Value);
+            diagnostics.AddRange(ConvertDiagnostics(
+                functionDiscovery.Diagnostics,
+                workspace,
+                page.Id.Value,
+                card.Id.Value));
+        }
         OblivionConfigResult config = new OblivionConfigStore().Load();
         string? requestedAppearance = card.Kind == OblivionCardKind.Diagram && config.Config is not null
             ? config.Config.Appearance.ToString().ToLowerInvariant()
@@ -373,7 +418,9 @@ public sealed class OblivionWorkspaceControl
             card.Body.SourceReference,
             card.Provenance.SourceKind.ToString(),
             card.Provenance.SourceReference,
-            card.Actions.Where(action => action.Enabled).Select(action => action.Id).ToArray(),
+            card.Kind == OblivionCardKind.Function
+                ? ["function.run", "open-source"]
+                : card.Actions.Where(action => action.Enabled).Select(action => action.Id).ToArray(),
             Preview(card.Body.RawText),
             diagnostics,
             card.Diagram?.Kind.ToString(),
@@ -412,8 +459,84 @@ public sealed class OblivionWorkspaceControl
                 OblivionTableCellDisplayFormatter.FormatType(column.Schema.ElementType)).ToArray(),
             tableRealization?.Table?.Columns.Select(column => column.Schema.Identity.Value).ToArray(),
             tableRealization?.SourceHash,
-            tableRealization?.LoadMilliseconds);
+            tableRealization?.LoadMilliseconds,
+            card.Function?.Kind.ToString(),
+            card.Function?.Reference,
+            card.Function?.Test,
+            functionDiscovery?.Succeeded,
+            functionDiscovery?.Descriptor?.TestIdentity,
+            functionDiscovery?.Descriptor?.TestKind.ToString(),
+            functionDiscovery?.Descriptor?.CaseCount,
+            functionDiscovery?.Descriptor?.Traits,
+            functionDiscovery?.Descriptor?.SourceHash,
+            functionDiscovery?.Descriptor?.RunnerIdentity);
         return new(detail, diagnostics);
+    }
+
+    public OblivionControlResult<OblivionFunctionRunInfo> RunFunction(
+        string workspaceRoot,
+        string cardId)
+    {
+        OblivionWorkspaceSessionOpenResult open = _application.OpenWorkspace(workspaceRoot);
+        if (!open.Succeeded || open.Session is null)
+        {
+            return new(null, ConvertDiagnostics(open.Diagnostics, null));
+        }
+
+        OblivionWorkspaceSession session = open.Session;
+        OblivionCard? card = session.Workspace.Pages
+            .SelectMany(page => page.Cards)
+            .FirstOrDefault(candidate => candidate.Id.Value == cardId);
+        string? pageId = session.Workspace.Pages
+            .FirstOrDefault(page => page.Cards.Any(candidate => candidate.Id.Value == cardId))
+            ?.Id.Value;
+        if (card?.Kind != OblivionCardKind.Function || pageId is null)
+        {
+            OblivionControlDiagnostic diagnostic = new(
+                "OBLIVION-FUNCTION-CARD-REQUIRED",
+                "error",
+                $"Card '{cardId}' is not a Function Card.",
+                session.Workspace.Id.Value,
+                pageId,
+                cardId,
+                session.Location.ManifestPath,
+                null,
+                null);
+            return new(null, [diagnostic]);
+        }
+
+        OblivionFunctionRunResult run = _application.RunFunctionCard(session, cardId);
+        IReadOnlyList<OblivionControlDiagnostic> diagnostics = ConvertDiagnostics(
+            run.Result.Diagnostics,
+            session.Workspace,
+            pageId,
+            cardId);
+        OblivionFunctionExecutionResult result = run.Result;
+        OblivionFunctionRunInfo value = new(
+            session.Workspace.Id.Value,
+            pageId,
+            cardId,
+            result.SourceReference,
+            result.SourceHash,
+            result.TestIdentity,
+            result.DisplayName,
+            run.Descriptor?.TestKind.ToString() ?? "Unknown",
+            result.Outcome.ToString(),
+            result.Duration?.TotalMilliseconds,
+            result.CaseCount,
+            result.PassedCases,
+            result.FailedCases,
+            result.SkippedCases,
+            result.Failure?.Message,
+            result.Failure?.ExceptionType,
+            result.Failure?.SourcePath,
+            result.Failure?.SourceLine,
+            result.RunnerIdentity,
+            run.BuildDuration.TotalMilliseconds,
+            run.DiscoveryDuration.TotalMilliseconds,
+            run.RunnerDuration.TotalMilliseconds,
+            diagnostics);
+        return new(value, diagnostics);
     }
 
     private static IReadOnlyList<string> ResolveCachedBackends(
@@ -842,6 +965,24 @@ public sealed class OblivionWorkspaceControl
             workspace?.Id.Value,
             null,
             null,
+            diagnostic.SourcePath,
+            diagnostic.Line,
+            diagnostic.Column)).ToArray();
+    }
+
+    private static IReadOnlyList<OblivionControlDiagnostic> ConvertDiagnostics(
+        IReadOnlyList<OblivionCardDiagnostic> diagnostics,
+        OblivionWorkspace workspace,
+        string pageId,
+        string cardId)
+    {
+        return diagnostics.Select(diagnostic => new OblivionControlDiagnostic(
+            diagnostic.Code,
+            diagnostic.Severity.ToString().ToLowerInvariant(),
+            diagnostic.Message,
+            workspace.Id.Value,
+            pageId,
+            cardId,
             diagnostic.SourcePath,
             diagnostic.Line,
             diagnostic.Column)).ToArray();

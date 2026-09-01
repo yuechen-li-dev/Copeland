@@ -1,0 +1,7 @@
+format = 1
+kind = "page"
+id = "function-review"
+title = "Focused xUnit execution"
+description = "Copeland test execution beside notebook context."
+tags = ["m20f", "xunit", "function"]
+cards = ["execution-context", "passing-function", "failing-function", "theory-function"]

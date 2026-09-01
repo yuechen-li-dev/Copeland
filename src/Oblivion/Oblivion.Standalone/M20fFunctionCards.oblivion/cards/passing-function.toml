@@ -1,0 +1,21 @@
+format = 1
+kind = "card"
+id = "passing-function"
+card_kind = "function"
+status = "idle"
+title = "Passed result preserves xUnit authority"
+subtitle = "Explicit, isolated Fact execution"
+tags = ["fact", "xunit"]
+
+[function]
+kind = "copeland-xunit"
+reference = "source/FunctionCardExecution.tsxtest"
+test = "passed_result_preserves_xunit_authority"
+
+[body]
+format = "plain"
+text = ""
+
+[provenance]
+source_kind = "workspace-asset"
+source_reference = "source/FunctionCardExecution.tsxtest"

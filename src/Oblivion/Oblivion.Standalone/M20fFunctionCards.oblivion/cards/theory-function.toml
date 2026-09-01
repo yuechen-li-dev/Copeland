@@ -1,0 +1,21 @@
+format = 1
+kind = "card"
+id = "theory-function"
+card_kind = "function"
+status = "idle"
+title = "Outcome labels remain projections"
+subtitle = "One Theory Card, runner-expanded cases"
+tags = ["theory", "xunit"]
+
+[function]
+kind = "copeland-xunit"
+reference = "source/FunctionCardExecution.tsxtest"
+test = "result_labels_are_projected_without_reinterpretation"
+
+[body]
+format = "plain"
+text = ""
+
+[provenance]
+source_kind = "workspace-asset"
+source_reference = "source/FunctionCardExecution.tsxtest"
