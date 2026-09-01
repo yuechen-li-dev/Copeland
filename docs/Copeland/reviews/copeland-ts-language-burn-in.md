@@ -156,10 +156,10 @@ unproven calls still fail closed.
 All four reflection queries are deterministic and compile-time-only. The source
 produces 15 artifacts and no runtime JavaScript. `fieldsOf` and `enumCasesOf`
 preserve declaration semantics; `callsOf` reports only the three direct call
-sites of `CompileService`, including the duplicate. Static control and direct
-template instantiation compose. Forwarding `T extends Named` into another
-template with the same constraint does not, which is the clearest template
-composition gap.
+sites of `CompileService`, including the duplicate. Static control, direct
+template instantiation, and constrained type-parameter forwarding compose.
+`LabeledInventory<T extends Named>` now forwards `T` into `TypeInventory<T>`
+naturally; the same 15 artifacts are produced.
 
 Two identical `Label<value: "same">` instantiations feed distinct artifact paths;
 their bytes agree and exercise the evaluator's existing memoization path.
@@ -214,8 +214,8 @@ work.
   propagation boundary is easy and correctly diagnosed.
 - Pure class syntax resembles TS more than its semantics do. The construct is a
   nominal value/invariant boundary, not an object model.
-- Template constraints carry evidence into a body but currently lose it when a
-  type parameter is forwarded to another constrained template.
+- Template constraints retain normalized field evidence across nested template
+  forwarding. Weaker evidence still fails at the forwarding site.
 
 ## LLM and developer legibility
 
@@ -238,8 +238,9 @@ templates, and columnar tables remain intentionally Copeland-specific.
   intentionally parses/recover-routes some TS-looking constructs that later
   reject; the `new` route needed one diagnostic repair.
 - **Binder/type system:** `BINDER_HAS_LOCAL_GAPS`. Ordinary records, pure classes,
-  interfaces, Results, enums, arrays, and generics compose well. FLOW pure-call
-  qualification and template constraint forwarding are local repeated gaps.
+  interfaces, Results, enums, arrays, and generics compose well. The repeated
+  FLOW pure-call and template constraint-forwarding gaps are resolved; the
+  inferred runtime-record boundary remains deliberately named.
 - **MIR:** `MIR_SUFFICIENT_WITH_LOCAL_PRESSURE`. No MIR redesign was needed. The
   async bugs were backend catalog/profile omissions over valid existing MIR.
 - **JavaScript backend:** `JS_BACKEND_VERBOSE_BUT_SOUND` after the async fix.
@@ -249,16 +250,15 @@ templates, and columnar tables remain intentionally Copeland-specific.
 
 ## Top evidence-backed next actions
 
-1. Qualify effect-classified pure Copeland calls inside FLOW transition updates.
-2. Preserve normalized interface evidence through constrained template type
-   parameter forwarding.
-3. Measure shared table/runtime helper factoring against the 17.847 size ratio
+1. Measure shared table/runtime helper factoring against the 17.847 size ratio
    before proposing optimization passes.
+2. Address parser record-property separator recovery in a dedicated diagnostic
+   milestone.
 
 ## Validation
 
-All requested gates passed: Copeland.TS (1,541 tests), Copeland (1,724),
-JointTaskForce, Oblivion (237), Machina.UI (674), Machina.UI.Slow (308), the
+All requested gates passed: Copeland (1,740 tests), JointTaskForce, Oblivion
+(237), Machina.UI (674), Machina.UI.Slow (308), the
 no-restore Machina build with zero warnings/errors, and Aurelian no-build (657).
 Canonical Presenter playback passed 14/14 with zero failures and skips.
 `git diff --check` passed. Boundary searches found 35 existing reflection uses

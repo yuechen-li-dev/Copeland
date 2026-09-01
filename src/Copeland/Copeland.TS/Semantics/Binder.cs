@@ -3394,12 +3394,6 @@ public static class Binder
                     TypeSymbol? defaultType = parameterSyntax.DefaultType is null
                         ? null
                         : BindType(parameterSyntax.DefaultType, parameterSyntax.Identifier, "COPE-TEMPLATE-0008", "template type parameter default");
-                    if (defaultType is not null
-                        && defaultType != PrimitiveTypeSymbol.Error
-                        && !Satisfies(typeParameters[index].Requirements, defaultType, parameterSyntax.Identifier))
-                    {
-                        Report("COPE-TEMPLATE-0008", $"Default type '{defaultType.Name}' does not satisfy constraints for template type parameter '{parameterSyntax.Identifier.Text}'.", parameterSyntax.Identifier);
-                    }
                     typeParameterDefaults.Add(defaultType);
                 }
                 var parameters = new List<ParameterSymbol>();
@@ -3457,6 +3451,20 @@ public static class Binder
                 _scope = new Scope(_global);
                 _activeTypeParameters = CreateTypeParameterScope(declaration.Symbol.TypeParameters);
                 var parameters = new List<VariableSymbol>();
+                for (int index = 0; index < declaration.Syntax.TypeParameters.Count; index++)
+                {
+                    TypeParameterSyntax parameterSyntax = declaration.Syntax.TypeParameters[index];
+                    TypeSymbol? defaultType = declaration.Symbol.TypeParameterDefaults[index];
+                    if (defaultType is not null
+                        && defaultType != PrimitiveTypeSymbol.Error
+                        && !Satisfies(declaration.Symbol.TypeParameters[index].Requirements, defaultType, parameterSyntax.Identifier))
+                    {
+                        Report(
+                            "COPE-TEMPLATE-0008",
+                            $"Default type '{defaultType.Name}' does not satisfy constraints for template type parameter '{parameterSyntax.Identifier.Text}'.",
+                            parameterSyntax.Identifier);
+                    }
+                }
                 foreach (ParameterSymbol parameter in declaration.Symbol.Parameters)
                 {
                     var boundParameter = new VariableSymbol(parameter.Name, parameter.Type, true, parameter.AuthoredAliasName);
@@ -3935,7 +3943,11 @@ public static class Binder
                 }
                 else if (argument != PrimitiveTypeSymbol.Error)
                 {
-                    _ = Satisfies(template.TypeParameters[index].Requirements, argument, syntax.LessToken);
+                    _ = Satisfies(
+                        template.TypeParameters[index].Requirements,
+                        argument,
+                        syntax.LessToken,
+                        template.Name);
                 }
                 typeArguments.Add(argument);
             }
@@ -5671,7 +5683,7 @@ public static class Binder
                         continue;
                     }
                     interfaces.Add(@interface);
-                    fields.AddRange(@interface.Fields);
+                    AddTemplateRequirementFields(fields, @interface.Fields, operand);
                     continue;
                 }
                 if (_recordTypes.TryGetValue(operand.Text, out RecordTypeSymbol? record))
@@ -5681,10 +5693,10 @@ public static class Binder
                         Report("COPE-REQUIREMENT-0002", $"Requirement '{record.Name}' is repeated.", operand);
                         continue;
                     }
-                    foreach (RecordFieldSymbol field in record.Fields)
-                    {
-                        fields.Add(new RequirementFieldSymbol(field.Name, field.Type, fields.Count));
-                    }
+                    AddTemplateRequirementFields(
+                        fields,
+                        record.Fields.Select(field => new RequirementFieldSymbol(field.Name, field.Type, field.Id.Ordinal)),
+                        operand);
                     continue;
                 }
                 if (_aliases.TryGetValue(operand.Text, out TypeAliasSymbol? alias)
@@ -5695,15 +5707,42 @@ public static class Binder
                         Report("COPE-REQUIREMENT-0002", $"Requirement '{alias.Name}' is repeated.", operand);
                         continue;
                     }
-                    foreach (StructuralFieldSymbol field in structural.Fields)
-                    {
-                        fields.Add(new RequirementFieldSymbol(field.Name, field.Type, fields.Count));
-                    }
+                    AddTemplateRequirementFields(
+                        fields,
+                        structural.Fields.Select(field => new RequirementFieldSymbol(field.Name, field.Type, field.Ordinal)),
+                        operand);
                     continue;
                 }
                 Report("COPE-REQUIREMENT-0001", $"Unknown template constraint '{operand.Text}'.", operand);
             }
+            if (fields.Count > MaxNormalizedRequirementFields)
+            {
+                Report("COPE-REQUIREMENT-0010", $"Type parameter '{syntax.Identifier.Text}' exceeds the {MaxNormalizedRequirementFields} normalized requirement-field limit.", syntax.Identifier);
+            }
             return new RequirementSet(interfaces, fields);
+        }
+
+        private void AddTemplateRequirementFields(
+            List<RequirementFieldSymbol> normalizedFields,
+            IEnumerable<RequirementFieldSymbol> additionalFields,
+            SyntaxToken operand)
+        {
+            foreach (RequirementFieldSymbol field in additionalFields)
+            {
+                RequirementFieldSymbol? existing = normalizedFields.FirstOrDefault(candidate => candidate.Name == field.Name);
+                if (existing is null)
+                {
+                    normalizedFields.Add(new RequirementFieldSymbol(field.Name, field.Type, normalizedFields.Count));
+                    continue;
+                }
+                if (!TypeFacts.AreEquivalent(existing.Type, field.Type))
+                {
+                    Report(
+                        "COPE-REQUIREMENT-0003",
+                        $"Requirements conflict on field '{field.Name}': '{existing.Type.Name}' versus '{field.Type.Name}'.",
+                        operand);
+                }
+            }
         }
 
         private BoundStatement BindWhile(WhileStatementSyntax statement)
@@ -9619,10 +9658,19 @@ public static class Binder
                 : new BoundFunctionReferenceExpression(specialization.Symbol);
         }
 
-        private bool Satisfies(RequirementSet requirements, TypeSymbol candidate, SyntaxToken anchor)
+        private bool Satisfies(
+            RequirementSet requirements,
+            TypeSymbol candidate,
+            SyntaxToken anchor,
+            string? destinationTemplateName = null)
         {
             if (requirements.Fields.Count == 0) return true;
-            IReadOnlyList<(string Name, TypeSymbol Type)> fields = candidate switch
+            TypeParameterSymbol? sourceParameter = candidate is TypeParameterTypeSymbol typeParameter
+                ? _activeTypeParameters?.Values.FirstOrDefault(parameter => ReferenceEquals(parameter.Type, typeParameter))
+                : null;
+            IReadOnlyList<(string Name, TypeSymbol Type)> fields = sourceParameter is not null
+                ? sourceParameter.Requirements.Fields.Select(field => (field.Name, field.Type)).ToArray()
+                : candidate switch
             {
                 ClassTypeSymbol @class => @class.Fields.Where(field => field.IsPublic).Select(field => (field.Name, field.Type)).ToArray(),
                 RecordTypeSymbol record => record.Fields.Select(field => (field.Name, field.Type)).ToArray(),
@@ -9632,6 +9680,17 @@ public static class Binder
             };
             if (fields.Count == 0)
             {
+                if (sourceParameter is not null && destinationTemplateName is not null)
+                {
+                    ReportForwardedConstraintFailure(
+                        sourceParameter,
+                        destinationTemplateName,
+                        requirements,
+                        requirements.Fields,
+                        [],
+                        anchor);
+                    return false;
+                }
                 Report("COPE-REQUIREMENT-0005", $"Type '{candidate.Name}' cannot satisfy field requirements.", anchor);
                 return false;
             }
@@ -9649,6 +9708,19 @@ public static class Binder
                 {
                     mismatchedFields.Add((requirement, actual.Type));
                 }
+            }
+            if (sourceParameter is not null
+                && destinationTemplateName is not null
+                && (missingFields.Count > 0 || mismatchedFields.Count > 0))
+            {
+                ReportForwardedConstraintFailure(
+                    sourceParameter,
+                    destinationTemplateName,
+                    requirements,
+                    missingFields,
+                    mismatchedFields,
+                    anchor);
+                return false;
             }
             if (missingFields.Count > 0)
             {
@@ -9674,6 +9746,42 @@ public static class Binder
             }
 
             return missingFields.Count == 0 && mismatchedFields.Count == 0;
+        }
+
+        private void ReportForwardedConstraintFailure(
+            TypeParameterSymbol sourceParameter,
+            string destinationTemplateName,
+            RequirementSet destinationRequirements,
+            IReadOnlyList<RequirementFieldSymbol> missingFields,
+            IReadOnlyList<(RequirementFieldSymbol Requirement, TypeSymbol ActualType)> mismatchedFields,
+            SyntaxToken anchor)
+        {
+            string required = FormatRequirementEvidence(destinationRequirements);
+            string known = FormatRequirementEvidence(sourceParameter.Requirements);
+            var failures = new List<string>();
+            failures.AddRange(missingFields.Select(field => $"missing {field.Name}: {field.Type.Name}"));
+            failures.AddRange(mismatchedFields.Select(item =>
+                $"{item.Requirement.Name}: required {item.Requirement.Type.Name}, known {item.ActualType.Name}"));
+            string detail = string.Join(", ", failures);
+            Report(
+                "COPE-REQUIREMENT-0011",
+                $"Template argument '{sourceParameter.Name}' does not satisfy constraint '{required}' required by '{destinationTemplateName}': {detail}. Known constraints for '{sourceParameter.Name}': {known}.",
+                anchor);
+        }
+
+        private static string FormatRequirementEvidence(RequirementSet requirements)
+        {
+            if (requirements.Interfaces.Count > 0)
+            {
+                return string.Join(" & ", requirements.Interfaces.Select(@interface => @interface.Name));
+            }
+            if (requirements.Fields.Count > 0)
+            {
+                return "{ "
+                    + string.Join("; ", requirements.Fields.Select(field => $"{field.Name}: {field.Type.Name}"))
+                    + "; }";
+            }
+            return "none";
         }
 
         private static bool IsOpenOrIllegalTypeArgument(TypeSymbol type)

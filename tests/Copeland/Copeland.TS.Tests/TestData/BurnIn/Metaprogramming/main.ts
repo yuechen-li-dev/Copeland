@@ -71,9 +71,9 @@ template<static value: string> Label: string {
     return value;
 }
 
-template<static label: string, static includeWorker: boolean> LabeledInventory: ProjectTree {
+template<type T extends Named = Worker, static label: string, static includeWorker: boolean> LabeledInventory: ProjectTree {
     static if (includeWorker) {
-        emit(instantiate TypeInventory<Worker>);
+        emit(instantiate TypeInventory<T>);
     } else {
         emit(textFile("label.txt", label));
     }
@@ -81,7 +81,7 @@ template<static label: string, static includeWorker: boolean> LabeledInventory: 
 
 template<> BurnInMetadata: ProjectTree {
     emit(instantiate TypeInventory<Service>);
-    emit(instantiate LabeledInventory<label: "worker", includeWorker: true>);
+    emit(instantiate LabeledInventory<Worker, label: "worker", includeWorker: true>);
     emit(instantiate EnumInventory<Mode>);
     emit(instantiate CallInventory<>);
     emit(textFile("public-service.txt", reflect nameOf<PublicService>()));

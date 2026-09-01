@@ -41,13 +41,13 @@
   },
   {
     "id": "CTS-BURN-005",
-    "category": "COMPOSITION_GAP",
-    "severity": "REPEATED",
+    "category": "RESOLVED_COMPOSITION_GAP",
+    "severity": "RESOLVED",
     "program": "Metaprogramming",
     "sourceLocation": "generic template forwarding probe",
-    "summary": "A constrained template type parameter cannot be forwarded to another template requiring the same interface.",
-    "evidence": "instantiate TypeInventory<T> from T extends Named produced COPE-REQUIREMENT-0005; direct Worker and Service instantiations succeed.",
-    "recommendedAction": "Preserve normalized interface evidence when binding template-to-template type arguments."
+    "summary": "CTS-TEMPLATE-M2 preserves normalized compile-time constraint evidence through template-to-template type argument forwarding.",
+    "evidence": "Metaprogramming now forwards LabeledInventory<T extends Named> into TypeInventory<T>; repeated evaluation retains the same deterministic 15 artifacts, and adversarial tests cover equivalent, stronger, weaker, nested, record, class, alias, and table-row cases.",
+    "recommendedAction": "Closed by CTS-TEMPLATE-M2; keep evidence compiler-only and continue resolving cache identity from substituted concrete types."
   },
   {
     "id": "CTS-BURN-006",

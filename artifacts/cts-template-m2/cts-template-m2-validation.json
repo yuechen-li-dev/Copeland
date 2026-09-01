@@ -1,0 +1,69 @@
+{
+  "status": "passed",
+  "focusedForwardingTests": 12,
+  "commands": [
+    {
+      "command": "dotnet test Copeland.slnx -m:1",
+      "passed": true,
+      "tests": 1740
+    },
+    {
+      "command": "dotnet test JointTaskForce.slnx -m:1",
+      "passed": true
+    },
+    {
+      "command": "dotnet test Oblivion.slnx -m:1",
+      "passed": true,
+      "tests": 237
+    },
+    {
+      "command": "dotnet test Machina.UI.slnx -m:1",
+      "passed": true,
+      "tests": 674
+    },
+    {
+      "command": "dotnet test Machina.UI.Slow.slnx -m:1",
+      "passed": true,
+      "tests": 308
+    },
+    {
+      "command": "dotnet build Machina.UI.slnx --no-restore -m:1",
+      "passed": true,
+      "warnings": 0,
+      "errors": 0
+    },
+    {
+      "command": "dotnet test Aurelian.slnx --no-build -m:1",
+      "passed": true,
+      "tests": 657
+    },
+    {
+      "command": "tools/Export-MachinaPresenter.ps1 -PlaybackSuite samples/Integrations/Machina.Presenter.Sample/PlaybackScenarios/m16c-oblivion-playback-suite.machina-playback-suite.toml -OutputDirectory artifacts/cts-template-m2/playback",
+      "playbackPassed": true,
+      "scenarios": 14,
+      "failed": 0,
+      "skipped": 0,
+      "wrapperPostRunLocationCheckPassed": false,
+      "authoritativeReport": "artifacts/cts-template-m2/playback-suite-report.json"
+    },
+    {
+      "command": "git diff --check",
+      "passed": true
+    }
+  ],
+  "boundarySearches": {
+    "templateAndConstraintMatches": 343,
+    "structuralAndAssignabilityMatches": 213,
+    "reflectionQueryMatches": 26,
+    "templateMirMatches": 0,
+    "systemReflectionBaselineMatches": 35,
+    "systemReflectionAdditions": 0
+  },
+  "burnIn": {
+    "artifactCount": 15,
+    "instantiationChainCount": 7,
+    "reflectionQuerySiteCount": 5,
+    "deterministicRepeatedOutput": true,
+    "templateMilliseconds": 18.9942
+  }
+}

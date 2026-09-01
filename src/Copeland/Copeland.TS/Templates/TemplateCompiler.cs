@@ -831,19 +831,41 @@ public static class TemplateCompiler
                 return null;
             }
             object?[] values = invocation.Arguments.Select(argument => EvaluateValue(argument, context)).ToArray();
+            TypeSymbol[] typeArguments = invocation.TypeArguments
+                .Select(type => ResolveTypeArgument(type, context.TypeArguments))
+                .ToArray();
             string cacheIdentity = invocation.Template.StableIdentity
-                + "<" + string.Join(",", invocation.TypeArguments.Select(TypeIdentity)) + ">"
+                + "<" + string.Join(",", typeArguments.Select(TypeIdentity)) + ">"
                 + "(" + string.Join(",", values.Select(ValueIdentity)) + ")";
             if (_completedInvocations.TryGetValue(cacheIdentity, out object? completed))
             {
                 return completed;
             }
-            object? result = EvaluateTemplate(target, values, invocation.TypeArguments);
+            object? result = EvaluateTemplate(target, values, typeArguments);
             if (result is not null && !_diagnostics.Any(diagnostic => diagnostic.Id == "COPE-TEMPLATE-0016"))
             {
                 _completedInvocations[cacheIdentity] = result;
             }
             return result;
+        }
+
+        private static TypeSymbol ResolveTypeArgument(
+            TypeSymbol type,
+            IReadOnlyList<TypeSymbol> activeTypeArguments)
+        {
+            return type switch
+            {
+                TypeParameterTypeSymbol parameter => activeTypeArguments.ElementAtOrDefault(parameter.Ordinal)
+                    ?? PrimitiveTypeSymbol.Error,
+                ArrayTypeSymbol array => new ArrayTypeSymbol(
+                    ResolveTypeArgument(array.ElementType, activeTypeArguments)),
+                MutableArrayTypeSymbol array => new MutableArrayTypeSymbol(
+                    ResolveTypeArgument(array.ElementType, activeTypeArguments)),
+                ResultTypeSymbol result => new ResultTypeSymbol(
+                    ResolveTypeArgument(result.SuccessType, activeTypeArguments),
+                    ResolveTypeArgument(result.ErrorType, activeTypeArguments)),
+                _ => type,
+            };
         }
 
         private static string TypeIdentity(TypeSymbol type)

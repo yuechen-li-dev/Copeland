@@ -1,6 +1,7 @@
 using Copeland.TS.Compiler;
 using Copeland.TS.Syntax;
 using Copeland.TS.Templates;
+using System.Text;
 using Xunit;
 
 namespace Copeland.TS.Tests;
@@ -71,7 +72,7 @@ public sealed class LanguageBurnInTests
     }
 
     [Fact]
-    public void Constrained_template_type_parameter_forwarding_isolated_as_a_single_composition_gap()
+    public void Constrained_template_type_parameter_forwarding_is_supported()
     {
         const string source = """
             interface Named { name: string; }
@@ -84,10 +85,11 @@ public sealed class LanguageBurnInTests
             }
             """;
 
-        CopelandCompilation compilation = CopelandCompiler.CompileTemplates(source);
+        TemplateEvaluationResult result = TemplateCompiler.Evaluate(source, "Outer");
 
-        Assert.Single(compilation.Diagnostics);
-        Assert.Equal("COPE-REQUIREMENT-0005", compilation.Diagnostics[0].Id);
+        Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Equal(["inner.txt"], result.Project!.Files.Select(file => file.Path));
+        Assert.Equal("Worker", Encoding.UTF8.GetString(result.Project.Files[0].Bytes));
     }
 
     [Fact]
