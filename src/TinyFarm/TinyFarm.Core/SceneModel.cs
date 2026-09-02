@@ -206,30 +206,47 @@ public static class TinyFarmAnchorIds
     public static readonly SceneAnchorId RiversideMeetingPoint = new("riverside.meeting-point");
 }
 
-public static class TinyFarmScenes
+public sealed class TinyFarmSceneCatalog
 {
-    public static IReadOnlyList<SceneDefinition> All { get; } = CreateAndValidate();
-    private static readonly IReadOnlyDictionary<SceneAnchorId, SceneAnchorDefinition> AnchorIndex =
-        All.SelectMany(scene => scene.Anchors).ToDictionary(anchor => anchor.Id);
+    private readonly IReadOnlyDictionary<SceneId, SceneDefinition> sceneIndex;
+    private readonly IReadOnlyDictionary<SceneAnchorId, SceneAnchorDefinition> anchorIndex;
 
-    public static SceneDefinition Get(SceneId id)
+    public TinyFarmSceneCatalog(IEnumerable<SceneDefinition> scenes)
     {
-        return All.Single(scene => scene.Id == id);
+        ArgumentNullException.ThrowIfNull(scenes);
+        SceneDefinition[] materialized = scenes
+            .OrderBy(scene => scene.Id.Value, StringComparer.Ordinal)
+            .ToArray();
+        TinyFarmScenes.Validate(materialized);
+        All = materialized;
+        sceneIndex = materialized.ToDictionary(scene => scene.Id);
+        anchorIndex = materialized
+            .SelectMany(scene => scene.Anchors)
+            .ToDictionary(anchor => anchor.Id);
     }
 
-    public static bool TryGetAnchor(SceneAnchorId id, out SceneAnchorDefinition anchor)
+    public IReadOnlyList<SceneDefinition> All { get; }
+
+    public SceneDefinition Get(SceneId id)
     {
-        return AnchorIndex.TryGetValue(id, out anchor!);
+        return sceneIndex.TryGetValue(id, out SceneDefinition? scene)
+            ? scene
+            : throw new KeyNotFoundException($"Unknown scene '{id}'.");
     }
 
-    public static SceneAnchorDefinition GetAnchor(SceneAnchorId id)
+    public bool TryGetAnchor(SceneAnchorId id, out SceneAnchorDefinition anchor)
     {
-        return AnchorIndex.TryGetValue(id, out SceneAnchorDefinition? anchor)
+        return anchorIndex.TryGetValue(id, out anchor!);
+    }
+
+    public SceneAnchorDefinition GetAnchor(SceneAnchorId id)
+    {
+        return anchorIndex.TryGetValue(id, out SceneAnchorDefinition? anchor)
             ? anchor
             : throw new KeyNotFoundException($"Unknown scene anchor '{id}'.");
     }
 
-    public static SceneAnchorDefinition AnchorForLocation(LocationId location)
+    public SceneAnchorDefinition AnchorForLocation(LocationId location)
     {
         SceneAnchorId anchor = location == TinyFarmIds.Farmhouse
             ? TinyFarmAnchorIds.FarmHome
@@ -241,7 +258,7 @@ public static class TinyFarmScenes
         return GetAnchor(anchor);
     }
 
-    public static SceneAnchorDefinition CoarseEntryAnchor(SceneId scene)
+    public SceneAnchorDefinition CoarseEntryAnchor(SceneId scene)
     {
         return Get(scene).Anchors
             .Where(anchor => anchor.Kind == SceneAnchorKind.Spawn)
@@ -249,6 +266,10 @@ public static class TinyFarmScenes
             .First();
     }
 
+}
+
+public static class TinyFarmScenes
+{
     public static SceneId SceneForLocation(LocationId location)
     {
         if (location == TinyFarmIds.Farmhouse)
@@ -307,6 +328,12 @@ public static class TinyFarmScenes
         if (allAnchors.Select(anchor => anchor.Id).Distinct().Count() != allAnchors.Length)
         {
             throw new InvalidDataException("Scene anchor identities must be globally unique.");
+        }
+
+        SceneRoute[] allRoutes = scenes.SelectMany(scene => scene.Routes).ToArray();
+        if (allRoutes.Select(route => route.Id).Distinct().Count() != allRoutes.Length)
+        {
+            throw new InvalidDataException("Scene route identities must be globally unique.");
         }
 
         foreach (SceneDefinition scene in scenes)
@@ -400,218 +427,4 @@ public static class TinyFarmScenes
         return IsBlocked(scene, position.Tile);
     }
 
-    private static IReadOnlyList<SceneDefinition> CreateAndValidate()
-    {
-        SceneDefinition[] scenes =
-        [
-            CreateOverworld(),
-            CreateFarm(),
-            CreateTown(),
-            CreateStore(),
-            CreateRiverside()
-        ];
-        Validate(scenes);
-        return scenes.OrderBy(scene => scene.Id.Value, StringComparer.Ordinal).ToArray();
-    }
-
-    private static SceneDefinition CreateOverworld()
-    {
-        return new SceneDefinition(
-            TinyFarmSceneIds.Overworld,
-            "Overworld",
-            22,
-            14,
-            [
-                Object("farm-entrance", SceneObjectKind.Portal, "Farm", false),
-                Object("town-entrance", SceneObjectKind.Portal, "Town", false),
-                Object("riverside-entrance", SceneObjectKind.Portal, "Riverside", false),
-                Object("hill", SceneObjectKind.Prop, "Hill", true)
-            ],
-            [
-                Layout("farm-entrance", 2, 7),
-                Layout("town-entrance", 11, 5),
-                Layout("riverside-entrance", 19, 9),
-                Layout("hill", 7, 2, 3, 2)
-            ],
-            [
-                Anchor("overworld.from-farm", TinyFarmSceneIds.Overworld, 3, 7, SceneAnchorKind.Spawn),
-                Anchor("overworld.from-town", TinyFarmSceneIds.Overworld, 10, 5, SceneAnchorKind.Spawn),
-                Anchor("overworld.from-riverside", TinyFarmSceneIds.Overworld, 18, 9, SceneAnchorKind.Spawn)
-            ],
-            [
-                Route("overworld-farm", "farm-entrance", TinyFarmSceneIds.Farm, "farm.from-overworld", "ENTER FARM"),
-                Route("overworld-town", "town-entrance", TinyFarmSceneIds.Town, "town.south-gate", "ENTER TOWN"),
-                Route("overworld-riverside", "riverside-entrance", TinyFarmSceneIds.Riverside, "riverside.from-overworld", "ENTER RIVERSIDE")
-            ]);
-    }
-
-    private static SceneDefinition CreateFarm()
-    {
-        return new SceneDefinition(
-            TinyFarmSceneIds.Farm,
-            "Farm",
-            18,
-            12,
-            [
-                Object("farm-exit", SceneObjectKind.Portal, "Overworld", false),
-                Object("farmhouse", SceneObjectKind.Landmark, "Farmhouse", true),
-                Object("plot-1", SceneObjectKind.Plot, "Plot 1", false, TinyFarmIds.PlotOne.Value),
-                Object("plot-2", SceneObjectKind.Plot, "Plot 2", false, TinyFarmIds.PlotTwo.Value),
-                Object("fence", SceneObjectKind.Prop, "Fence", true)
-            ],
-            [
-                Layout("farm-exit", 17, 6),
-                Layout("farmhouse", 1, 1, 4, 3),
-                Layout("plot-1", 7, 5),
-                Layout("plot-2", 9, 5),
-                Layout("fence", 12, 2, 1, 5)
-            ],
-            [
-                Anchor("farm.from-overworld", TinyFarmSceneIds.Farm, 16, 6, SceneAnchorKind.Spawn),
-                Anchor("farm.start", TinyFarmSceneIds.Farm, 6, 5, SceneAnchorKind.Spawn),
-                Anchor(TinyFarmAnchorIds.FarmHome.Value, TinyFarmSceneIds.Farm, 4, 7, SceneAnchorKind.Home, TinyFarmIds.Farmhouse),
-                Anchor(TinyFarmAnchorIds.FarmWorkArea.Value, TinyFarmSceneIds.Farm, 6, 5, SceneAnchorKind.Work, TinyFarmIds.Farmhouse)
-            ],
-            [Route("farm-overworld", "farm-exit", TinyFarmSceneIds.Overworld, "overworld.from-farm", "RETURN TO OVERWORLD")]);
-    }
-
-    private static SceneDefinition CreateTown()
-    {
-        return new SceneDefinition(
-            TinyFarmSceneIds.Town,
-            "Town",
-            20,
-            14,
-            [
-                Object("town-exit", SceneObjectKind.Portal, "Overworld", false),
-                Object("store-entrance", SceneObjectKind.Portal, "General Store", false),
-                Object("well", SceneObjectKind.Landmark, "Well", true),
-                Object("market-stall", SceneObjectKind.Prop, "Market Stall", true)
-            ],
-            [
-                Layout("town-exit", 10, 13),
-                Layout("store-entrance", 17, 4),
-                Layout("well", 9, 6, 2, 2),
-                Layout("market-stall", 3, 3, 3, 2)
-            ],
-            [
-                Anchor("town.south-gate", TinyFarmSceneIds.Town, 10, 12, SceneAnchorKind.Spawn),
-                Anchor("town.from-store", TinyFarmSceneIds.Town, 16, 4, SceneAnchorKind.Spawn),
-                Anchor(TinyFarmAnchorIds.TownSquare.Value, TinyFarmSceneIds.Town, 12, 7, SceneAnchorKind.Social, TinyFarmIds.TownSquare)
-            ],
-            [
-                Route("town-overworld", "town-exit", TinyFarmSceneIds.Overworld, "overworld.from-town", "RETURN TO OVERWORLD"),
-                Route("town-store", "store-entrance", TinyFarmSceneIds.GeneralStore, "general-store.door", "ENTER STORE")
-            ]);
-    }
-
-    private static SceneDefinition CreateStore()
-    {
-        return new SceneDefinition(
-            TinyFarmSceneIds.GeneralStore,
-            "General Store",
-            10,
-            8,
-            [
-                Object("store-exit", SceneObjectKind.Portal, "Town", false),
-                Object("shop-counter", SceneObjectKind.Shop, "Seed Counter", true, "general-store"),
-                Object("shelves", SceneObjectKind.Prop, "Shelves", true)
-            ],
-            [
-                Layout("store-exit", 5, 7),
-                Layout("shop-counter", 4, 2, 3, 1),
-                Layout("shelves", 1, 1, 1, 4)
-            ],
-            [
-                Anchor("general-store.door", TinyFarmSceneIds.GeneralStore, 5, 6, SceneAnchorKind.Spawn),
-                Anchor(
-                    TinyFarmAnchorIds.StoreCounter.Value,
-                    TinyFarmSceneIds.GeneralStore,
-                    5,
-                    3,
-                    SceneAnchorKind.ShopCounter,
-                    TinyFarmIds.GeneralStore,
-                    new SceneObjectId("shop-counter"))
-            ],
-            [Route("store-town", "store-exit", TinyFarmSceneIds.Town, "town.from-store", "LEAVE STORE")]);
-    }
-
-    private static SceneDefinition CreateRiverside()
-    {
-        return new SceneDefinition(
-            TinyFarmSceneIds.Riverside,
-            "Riverside",
-            16,
-            10,
-            [
-                Object("riverside-exit", SceneObjectKind.Portal, "Overworld", false),
-                Object("river", SceneObjectKind.Decoration, "River", true),
-                Object("reeds", SceneObjectKind.Prop, "Reeds", true)
-            ],
-            [
-                Layout("riverside-exit", 1, 5),
-                Layout("river", 10, 0, 6, 10),
-                Layout("reeds", 8, 3, 1, 3)
-            ],
-            [
-                Anchor("riverside.from-overworld", TinyFarmSceneIds.Riverside, 2, 5, SceneAnchorKind.Spawn),
-                Anchor(TinyFarmAnchorIds.RiversideMeetingPoint.Value, TinyFarmSceneIds.Riverside, 5, 5, SceneAnchorKind.Social, TinyFarmIds.Riverside)
-            ],
-            [Route("riverside-overworld", "riverside-exit", TinyFarmSceneIds.Overworld, "overworld.from-riverside", "RETURN TO OVERWORLD")]);
-    }
-
-    private static SceneObjectDefinition Object(
-        string id,
-        SceneObjectKind kind,
-        string label,
-        bool blocked,
-        string? semanticReference = null)
-    {
-        return new SceneObjectDefinition(new SceneObjectId(id), kind, label, blocked, semanticReference);
-    }
-
-    private static SceneLayoutRow Layout(string id, int x, int y, int width = 1, int height = 1, int layer = 0)
-    {
-        return new SceneLayoutRow(new SceneObjectId(id), x, y, width, height, layer);
-    }
-
-    private static SceneAnchorDefinition Anchor(
-        string id,
-        SceneId scene,
-        int x,
-        int y,
-        SceneAnchorKind kind,
-        LocationId? semanticLocation = null,
-        SceneObjectId? semanticObject = null,
-        ActorFacing? facing = null)
-    {
-        return new SceneAnchorDefinition(
-            new SceneAnchorId(id),
-            scene,
-            ScenePosition.FromGrid(new GridPosition(x, y)),
-            kind,
-            semanticLocation,
-            semanticObject,
-            facing);
-    }
-
-    private static SceneRoute Route(string id, string trigger, SceneId target, string anchor, string label)
-    {
-        SceneId source = id.StartsWith("overworld-", StringComparison.Ordinal)
-            ? TinyFarmSceneIds.Overworld
-            : id.StartsWith("farm-", StringComparison.Ordinal)
-                ? TinyFarmSceneIds.Farm
-                : id.StartsWith("town-", StringComparison.Ordinal)
-                    ? TinyFarmSceneIds.Town
-                    : id.StartsWith("store-", StringComparison.Ordinal)
-                        ? TinyFarmSceneIds.GeneralStore
-                        : TinyFarmSceneIds.Riverside;
-        return new SceneRoute(
-            new SceneRouteId(id),
-            source,
-            new SceneObjectId(trigger),
-            target,
-            new SceneAnchorId(anchor),
-            label);
-    }
 }

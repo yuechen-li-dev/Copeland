@@ -10,13 +10,13 @@ public sealed class TinyFarmM6Tests
     [Fact]
     public void Anchors_AreStableUniqueWalkableAuthoredSemanticAddresses()
     {
-        TinyFarmScenes.Validate(TinyFarmScenes.All);
-        SceneAnchorDefinition[] anchors = TinyFarmScenes.All.SelectMany(scene => scene.Anchors).ToArray();
+        TinyFarmScenes.Validate(definitions.Scenes.All);
+        SceneAnchorDefinition[] anchors = definitions.Scenes.All.SelectMany(scene => scene.Anchors).ToArray();
         Assert.NotEmpty(anchors);
         Assert.Equal(anchors.Length, anchors.Select(anchor => anchor.Id).Distinct().Count());
         Assert.All(anchors, anchor =>
         {
-            SceneDefinition scene = TinyFarmScenes.Get(anchor.Scene);
+            SceneDefinition scene = definitions.Scenes.Get(anchor.Scene);
             Assert.True(TinyFarmScenes.IsInBounds(scene, anchor.Position));
             Assert.False(TinyFarmScenes.IsBlocked(scene, anchor.Position));
             Assert.DoesNotContain(anchor.Id.Value, "#", StringComparison.Ordinal);
@@ -49,9 +49,9 @@ public sealed class TinyFarmM6Tests
     [Fact]
     public void Routes_TargetSpawnKindAnchorsWithoutSeparateCoordinateTruth()
     {
-        Assert.All(TinyFarmScenes.All.SelectMany(scene => scene.Routes), route =>
+        Assert.All(definitions.Scenes.All.SelectMany(scene => scene.Routes), route =>
         {
-            SceneAnchorDefinition target = TinyFarmScenes.GetAnchor(route.TargetAnchor);
+            SceneAnchorDefinition target = definitions.Scenes.GetAnchor(route.TargetAnchor);
             Assert.Equal(route.TargetScene, target.Scene);
             Assert.Equal(SceneAnchorKind.Spawn, target.Kind);
         });
@@ -63,7 +63,7 @@ public sealed class TinyFarmM6Tests
         Assert.Equal(TinyFarmAnchorIds.FarmWorkArea, TinyFarmNpcController.ScheduledAnchor(TinyFarmIds.Elias, 8 * 60));
         Assert.Equal(TinyFarmAnchorIds.RiversideMeetingPoint, TinyFarmNpcController.ScheduledAnchor(TinyFarmIds.Elias, 13 * 60));
         Assert.Equal(TinyFarmAnchorIds.StoreCounter, TinyFarmNpcController.ScheduledAnchor(TinyFarmIds.Sela, 10 * 60));
-        Assert.Equal(TinyFarmIds.GeneralStore, TinyFarmNpcController.ScheduledDestination(TinyFarmIds.Sela, 10 * 60));
+        Assert.Equal(TinyFarmIds.GeneralStore, TinyFarmNpcController.ScheduledDestination(TinyFarmIds.Sela, 10 * 60, definitions.Scenes));
     }
 
     [Fact]

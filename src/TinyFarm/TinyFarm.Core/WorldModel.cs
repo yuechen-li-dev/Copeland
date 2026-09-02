@@ -40,14 +40,31 @@ public sealed record CropDefinition(CropId Id, ProductId SeedItemId, ProductId H
 public sealed record InventoryStack(ActorId Actor, ProductId Product, int Count);
 public sealed record ShopStock(ProductId Product, int Count, int DailyRestockCount);
 public sealed record FarmPlotState(FarmPlotId Id, LocationId Location, CropId? Crop, int? PlantedDay, int GrowthStage, bool WateredToday);
+public sealed record SceneContentSource(string Path, string Sha256, long ByteLength);
+public sealed record SceneContentProvenance(
+    string Format,
+    string AggregateSha256,
+    IReadOnlyList<SceneContentSource> Sources,
+    double ReadMilliseconds,
+    double ParseMilliseconds,
+    double MaterializeAndValidateMilliseconds);
 
 public sealed class TinyFarmDefinitions
 {
-    public TinyFarmDefinitions(string identity, IEnumerable<ItemDefinition> items, IEnumerable<CropDefinition> crops)
+    public TinyFarmDefinitions(
+        string identity,
+        IEnumerable<ItemDefinition> items,
+        IEnumerable<CropDefinition> crops,
+        TinyFarmSceneCatalog scenes,
+        SceneContentProvenance sceneContent)
     {
+        ArgumentNullException.ThrowIfNull(scenes);
+        ArgumentNullException.ThrowIfNull(sceneContent);
         Identity = identity;
         Items = items.OrderBy(item => item.Id.Value, StringComparer.Ordinal).ToArray();
         Crops = crops.OrderBy(crop => crop.Id.Value, StringComparer.Ordinal).ToArray();
+        Scenes = scenes;
+        SceneContent = sceneContent;
         if (Items.Select(item => item.Id).Distinct().Count() != Items.Count || Crops.Select(crop => crop.Id).Distinct().Count() != Crops.Count)
         {
             throw new InvalidDataException("TinyFarm definition identities must be unique.");
@@ -65,6 +82,8 @@ public sealed class TinyFarmDefinitions
     public string Identity { get; }
     public IReadOnlyList<ItemDefinition> Items { get; }
     public IReadOnlyList<CropDefinition> Crops { get; }
+    public TinyFarmSceneCatalog Scenes { get; }
+    public SceneContentProvenance SceneContent { get; }
     public ItemDefinition Item(ProductId id) => Items.Single(item => item.Id == id);
     public CropDefinition Crop(CropId id) => Crops.Single(crop => crop.Id == id);
 }
@@ -280,15 +299,15 @@ public static class TinyFarmContent
                 new(
                     TinyFarmIds.Mara,
                     TinyFarmSceneIds.Town,
-                    TinyFarmScenes.GetAnchor(TinyFarmAnchorIds.TownSquare).Position),
+                    definitions.Scenes.GetAnchor(TinyFarmAnchorIds.TownSquare).Position),
                 new(
                     TinyFarmIds.Elias,
                     TinyFarmSceneIds.Farm,
-                    TinyFarmScenes.GetAnchor(TinyFarmAnchorIds.FarmHome).Position),
+                    definitions.Scenes.GetAnchor(TinyFarmAnchorIds.FarmHome).Position),
                 new(
                     TinyFarmIds.Sela,
                     TinyFarmSceneIds.GeneralStore,
-                    TinyFarmScenes.GetAnchor(TinyFarmAnchorIds.StoreCounter).Position)
+                    definitions.Scenes.GetAnchor(TinyFarmAnchorIds.StoreCounter).Position)
             ]);
     }
 

@@ -56,28 +56,28 @@ public sealed class TinyFarmM3Tests
     public void HumanController_MapsToExistingClosedIntentFamily()
     {
         TinyFarmState state = TinyFarmContent.CreateWeekState(definitions);
-        Assert.IsType<MoveIntent>(TinyFarmHumanController.Map(TinyFarmControl.MoveRight, state));
-        Assert.IsType<LookIntent>(TinyFarmHumanController.Map(TinyFarmControl.Look, state));
-        Assert.IsType<TalkIntent>(TinyFarmHumanController.Map(TinyFarmControl.Talk, state));
-        Assert.IsType<WaitIntent>(TinyFarmHumanController.Map(TinyFarmControl.Wait, state));
+        Assert.IsType<MoveIntent>(TinyFarmHumanController.Map(TinyFarmControl.MoveRight, state, definitions));
+        Assert.IsType<LookIntent>(TinyFarmHumanController.Map(TinyFarmControl.Look, state, definitions));
+        Assert.IsType<TalkIntent>(TinyFarmHumanController.Map(TinyFarmControl.Talk, state, definitions));
+        Assert.IsType<WaitIntent>(TinyFarmHumanController.Map(TinyFarmControl.Wait, state, definitions));
 
         var session = new TinyFarmSession(state, definitions);
         session.Step(new TalkIntent(TinyFarmIds.Mara));
-        Assert.IsType<GiveIntent>(TinyFarmHumanController.Map(TinyFarmControl.Give, session.State));
+        Assert.IsType<GiveIntent>(TinyFarmHumanController.Map(TinyFarmControl.Give, session.State, definitions));
         session.Step(new MoveIntent(TinyFarmIds.GeneralStore));
-        Assert.IsType<BuyProductIntent>(TinyFarmHumanController.Map(TinyFarmControl.Buy, session.State));
+        Assert.IsType<BuyProductIntent>(TinyFarmHumanController.Map(TinyFarmControl.Buy, session.State, definitions));
         session.State.MutableInventoryStacks.Add(new InventoryStack(TinyFarmIds.Player, TinyFarmIds.Turnip, 1));
-        Assert.IsType<SellProductIntent>(TinyFarmHumanController.Map(TinyFarmControl.Sell, session.State));
+        Assert.IsType<SellProductIntent>(TinyFarmHumanController.Map(TinyFarmControl.Sell, session.State, definitions));
         session.Step(new MoveIntent(TinyFarmIds.TownSquare));
         session.Step(new MoveIntent(TinyFarmIds.Riverside));
-        Assert.IsType<TakeIntent>(TinyFarmHumanController.Map(TinyFarmControl.Take, session.State));
+        Assert.IsType<TakeIntent>(TinyFarmHumanController.Map(TinyFarmControl.Take, session.State, definitions));
         session.Step(new MoveIntent(TinyFarmIds.TownSquare));
         session.Step(new MoveIntent(TinyFarmIds.Farmhouse));
         session.State.MutableInventoryStacks.Add(new InventoryStack(TinyFarmIds.Player, TinyFarmIds.TurnipSeed, 1));
-        PlantIntent plant = Assert.IsType<PlantIntent>(TinyFarmHumanController.Map(TinyFarmControl.Plant, session.State));
+        PlantIntent plant = Assert.IsType<PlantIntent>(TinyFarmHumanController.Map(TinyFarmControl.Plant, session.State, definitions));
         session.Step(plant);
-        Assert.IsType<WaterIntent>(TinyFarmHumanController.Map(TinyFarmControl.Water, session.State));
-        Assert.IsType<HarvestIntent>(TinyFarmHumanController.Map(TinyFarmControl.Harvest, session.State));
+        Assert.IsType<WaterIntent>(TinyFarmHumanController.Map(TinyFarmControl.Water, session.State, definitions));
+        Assert.IsType<HarvestIntent>(TinyFarmHumanController.Map(TinyFarmControl.Harvest, session.State, definitions));
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public sealed class TinyFarmM3Tests
     {
         TinyFarmState state = TinyFarmContent.CreateWeekState(definitions);
         string before = TinyFarmSemanticHash.Compute(state);
-        GameIntent intent = Assert.IsType<MoveIntent>(TinyFarmHumanController.Map(TinyFarmControl.MoveRight, state));
+        GameIntent intent = Assert.IsType<MoveIntent>(TinyFarmHumanController.Map(TinyFarmControl.MoveRight, state, definitions));
         Assert.Equal(before, TinyFarmSemanticHash.Compute(state));
 
         var session = new TinyFarmSession(state, definitions);

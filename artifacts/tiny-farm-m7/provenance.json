@@ -1,0 +1,34 @@
+{
+  "format": "object-typescript-record-table-v1",
+  "aggregateSha256": "fe79f373643e1e3aa5df8f505e775cce7388206332831497fe12f8bed7e54afa",
+  "sources": [
+    {
+      "path": "tiny-farm-scene-anchors.obj.ts",
+      "sha256": "14cb7bd2601a0bb0d35dccd669cc2067b2ab0b6a732cef09df83a14e144d3d04",
+      "byteLength": 2398
+    },
+    {
+      "path": "tiny-farm-scene-layout.obj.ts",
+      "sha256": "d5d1b0c750bff09e111d688ca474d707a4d0ddc4313320b74b5f73c69c103114",
+      "byteLength": 1235
+    },
+    {
+      "path": "tiny-farm-scene-objects.obj.ts",
+      "sha256": "2d05534de92d4a8e9554a24ada6c151f254c96feddfbedb19174e7771b7db221",
+      "byteLength": 2104
+    },
+    {
+      "path": "tiny-farm-scene-routes.obj.ts",
+      "sha256": "9a1b5c443b5cf9d3d028b955ceeab416f51191780bb77db95e8e3229c2e26a4d",
+      "byteLength": 1299
+    },
+    {
+      "path": "tiny-farm-scenes.obj.ts",
+      "sha256": "d852ad4c8ee7796e4319be136a6510743d8407954ae655db48d9edadd6228755",
+      "byteLength": 448
+    }
+  ],
+  "readMilliseconds": 0.6362,
+  "parseMilliseconds": 10.3051,
+  "materializeAndValidateMilliseconds": 22.4014
+}

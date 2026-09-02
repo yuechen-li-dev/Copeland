@@ -41,7 +41,7 @@ public sealed class TinyFarmM5Tests
         SetPlacement(state, TinyFarmIds.Elias, TinyFarmSceneIds.Town, At(11, 7), ActorFacing.Left);
 
         InteractionTarget target = Assert.IsType<InteractionTarget>(
-            TinyFarmSpatialQueries.SelectInteractionTarget(state, TinyFarmIds.Player));
+            TinyFarmSpatialQueries.SelectInteractionTarget(state, TinyFarmIds.Player, definitions.Scenes));
         Assert.Equal(TinyFarmIds.Elias, target.Actor);
 
         SetPlacement(state, TinyFarmIds.Elias, TinyFarmSceneIds.Farm, At(4, 7), ActorFacing.Down);
@@ -63,7 +63,7 @@ public sealed class TinyFarmM5Tests
         SetPlacement(state, TinyFarmIds.Player, TinyFarmSceneIds.Farm, At(6, 5), ActorFacing.Right);
 
         InteractionTarget target = Assert.IsType<InteractionTarget>(
-            TinyFarmSpatialQueries.SelectInteractionTarget(state, TinyFarmIds.Player));
+            TinyFarmSpatialQueries.SelectInteractionTarget(state, TinyFarmIds.Player, definitions.Scenes));
         Assert.Equal(TinyFarmIds.PlotOne, target.Plot);
         ResolutionBatchResult result = Resolve(state, new InteractIntent());
         Assert.Equal(IntentResultStatus.Accepted, result.Results.Single().Status);
@@ -73,7 +73,7 @@ public sealed class TinyFarmM5Tests
     [Fact]
     public void DotRecast_PathGoesAroundObstacleAndIsCanonical()
     {
-        SceneDefinition farm = TinyFarmScenes.Get(TinyFarmSceneIds.Farm);
+        SceneDefinition farm = definitions.Scenes.Get(TinyFarmSceneIds.Farm);
         var planner = new DotRecastNavigationPlanner();
         ScenePosition start = At(11, 4);
         ScenePosition goal = At(13, 4);

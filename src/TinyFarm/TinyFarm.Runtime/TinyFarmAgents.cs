@@ -123,7 +123,8 @@ public static class TinyFarmNpcController
         TinyFarmState state,
         IReadOnlyList<GameEvent> recentEvents,
         long firstSequence,
-        int observationMinute)
+        int observationMinute,
+        TinyFarmSceneCatalog scenes)
     {
         var envelopes = new List<IntentEnvelope>();
         long sequence = firstSequence;
@@ -133,7 +134,7 @@ public static class TinyFarmNpcController
                      .OrderBy(candidate => candidate.Id.Value, StringComparer.Ordinal))
         {
             SceneAnchorId scheduledAnchor = ScheduledAnchor(actor.Id, observationMinute);
-            SceneAnchorDefinition anchor = TinyFarmScenes.GetAnchor(scheduledAnchor);
+            SceneAnchorDefinition anchor = scenes.GetAnchor(scheduledAnchor);
             LocationId destination = anchor.SemanticLocation
                 ?? throw new InvalidDataException($"NPC schedule anchor '{scheduledAnchor}' has no semantic location.");
             bool hasReachedAnchor = HasReachedAnchor(state, actor.Id, anchor);
@@ -169,9 +170,13 @@ public static class TinyFarmNpcController
         return envelopes;
     }
 
-    public static LocationId ScheduledDestination(ActorId actor, int minute)
+    public static LocationId ScheduledDestination(
+        ActorId actor,
+        int minute,
+        TinyFarmSceneCatalog scenes)
     {
-        return TinyFarmScenes.GetAnchor(ScheduledAnchor(actor, minute)).SemanticLocation
+        SceneAnchorId anchor = ScheduledAnchor(actor, minute);
+        return scenes.GetAnchor(anchor).SemanticLocation
             ?? throw new InvalidDataException($"NPC schedule anchor for '{actor}' has no semantic location.");
     }
 

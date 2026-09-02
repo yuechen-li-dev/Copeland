@@ -58,7 +58,7 @@ public static class TinyFarmContinuousScenario
         bool subTile = session.State.ActorScene(TinyFarmIds.Player).WorldPosition.YUnits == initial.YUnits + 128;
         WalkTo(session, planner, At(5, 7), results, events);
         Face(session, -1, 0, results, events);
-        targets.Add(TargetSignature(session.State));
+        targets.Add(TargetSignature(session));
         Apply(session, new InteractIntent(), results, events);
         bool talkedToElias = events.Any(item => item.Contains("Conversation:player:elias", StringComparison.Ordinal));
         Apply(session, new WaitIntent(60), results, events);
@@ -69,7 +69,7 @@ public static class TinyFarmContinuousScenario
         Apply(session, new InteractIntent(), results, events);
         WalkTo(session, planner, At(11, 7), results, events);
         Face(session, 1, 0, results, events);
-        targets.Add(TargetSignature(session.State));
+        targets.Add(TargetSignature(session));
         Apply(session, new InteractIntent(), results, events);
         bool talkedToMara = events.Any(item => item.Contains("Conversation:player:mara", StringComparison.Ordinal));
 
@@ -87,7 +87,7 @@ public static class TinyFarmContinuousScenario
 
         WalkTo(session, planner, At(6, 5), results, events);
         Face(session, 1, 0, results, events);
-        targets.Add(TargetSignature(session.State));
+        targets.Add(TargetSignature(session));
         Apply(session, new InteractIntent(), results, events);
         Apply(session, new InteractIntent(), results, events);
         bool farmTargeted = session.State.FarmPlots.Single(item => item.Id == TinyFarmIds.PlotOne) is
@@ -114,7 +114,7 @@ public static class TinyFarmContinuousScenario
             && Math.Abs(npcAfter.XUnits - npcBefore.XUnits) <= ScenePosition.UnitsPerTile / 8
             && Math.Abs(npcAfter.YUnits - npcBefore.YUnits) <= ScenePosition.UnitsPerTile / 8;
 
-        SceneDefinition farm = TinyFarmScenes.Get(TinyFarmSceneIds.Farm);
+        SceneDefinition farm = definitions.Scenes.Get(TinyFarmSceneIds.Farm);
         NavigationPath navigation = planner.FindPath(farm, At(11, 4), At(13, 4));
         TinyFarmFrame projection = TinyFarmFrameProjector.Project(session.State, definitions);
         string navigationSignature = string.Join(';', navigation.Waypoints.Select(item => $"{item.XUnits},{item.YUnits}"));
@@ -183,7 +183,7 @@ public static class TinyFarmContinuousScenario
         ICollection<string> events)
     {
         ActorSceneState actor = session.State.ActorScene(TinyFarmIds.Player);
-        NavigationPath path = planner.FindPath(TinyFarmScenes.Get(actor.Scene), actor.WorldPosition, goal);
+        NavigationPath path = planner.FindPath(session.SceneCatalog.Get(actor.Scene), actor.WorldPosition, goal);
         if (!path.Succeeded)
         {
             throw new InvalidOperationException($"M5 path failed in '{actor.Scene}': {path.Failure}/{path.FailureDetail}");
@@ -245,9 +245,12 @@ public static class TinyFarmContinuousScenario
         }
     }
 
-    private static string TargetSignature(TinyFarmState state)
+    private static string TargetSignature(TinyFarmSession session)
     {
-        return TinyFarmSpatialQueries.SelectInteractionTarget(state, TinyFarmIds.Player)?.StableId ?? "none";
+        return TinyFarmSpatialQueries.SelectInteractionTarget(
+            session.State,
+            TinyFarmIds.Player,
+            session.SceneCatalog)?.StableId ?? "none";
     }
 
     private static ScenePosition At(int x, int y)

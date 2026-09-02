@@ -45,7 +45,11 @@ public static class TinyFarmSaveCodec
         TinyFarmSave save = JsonSerializer.Deserialize<TinyFarmSave>(json, Options)
             ?? throw new InvalidDataException("The TinyFarm save document was empty.");
         Validate(save);
-        return new TinyFarmSession(save.Game, null, save.Runtime.NextSequence, save.Runtime.RecentEvents);
+        return new TinyFarmSession(
+            save.Game,
+            TinyFarmDefinitionLoader.Load(),
+            save.Runtime.NextSequence,
+            save.Runtime.RecentEvents);
     }
 
     private static void Validate(TinyFarmSave save)
@@ -253,9 +257,9 @@ public static class TinyFarmChunkedSaveCodec
                 SceneDefinition scene;
                 try
                 {
-                    scene = TinyFarmScenes.Get(placement.Scene);
+                    scene = definitions.Scenes.Get(placement.Scene);
                 }
-                catch (InvalidOperationException exception)
+                catch (KeyNotFoundException exception)
                 {
                     throw new InvalidDataException(
                         $"Actor '{placement.Actor}' references unknown scene '{placement.Scene}'.",

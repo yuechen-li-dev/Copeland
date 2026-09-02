@@ -10,14 +10,14 @@ public sealed class TinyFarmM4Tests
     [Fact]
     public void SceneDefinitions_AreFlatValidatedTablesWithStableReferences()
     {
-        TinyFarmScenes.Validate(TinyFarmScenes.All);
-        Assert.Equal(5, TinyFarmScenes.All.Count);
-        Assert.All(TinyFarmScenes.All, scene => Assert.Equal(scene.Objects.Count, scene.Layout.Count));
-        Assert.All(TinyFarmScenes.All.SelectMany(scene => scene.Routes), route =>
+        TinyFarmScenes.Validate(definitions.Scenes.All);
+        Assert.Equal(5, definitions.Scenes.All.Count);
+        Assert.All(definitions.Scenes.All, scene => Assert.Equal(scene.Objects.Count, scene.Layout.Count));
+        Assert.All(definitions.Scenes.All.SelectMany(scene => scene.Routes), route =>
         {
-            Assert.Contains(TinyFarmScenes.All, scene => scene.Id == route.TargetScene);
+            Assert.Contains(definitions.Scenes.All, scene => scene.Id == route.TargetScene);
             Assert.Contains(
-                TinyFarmScenes.Get(route.TargetScene).Anchors,
+                definitions.Scenes.Get(route.TargetScene).Anchors,
                 anchor => anchor.Id == route.TargetAnchor);
         });
     }

@@ -21,7 +21,10 @@ public static class TinyFarmSpatialQueries
     public const int InteractionRangeUnits = 1280;
     private const int InteractionHalfWidthUnits = 640;
 
-    public static InteractionTarget? SelectInteractionTarget(TinyFarmState state, ActorId actorId)
+    public static InteractionTarget? SelectInteractionTarget(
+        TinyFarmState state,
+        ActorId actorId,
+        TinyFarmSceneCatalog scenes)
     {
         if (state.Version < TinyFarmState.ContinuousSceneSaveVersion)
         {
@@ -29,7 +32,7 @@ public static class TinyFarmSpatialQueries
         }
 
         ActorSceneState actor = state.ActorScene(actorId);
-        SceneDefinition scene = TinyFarmScenes.Get(actor.Scene);
+        SceneDefinition scene = scenes.Get(actor.Scene);
         var candidates = new List<InteractionTarget>();
 
         foreach (ActorSceneState other in state.ActorScenes.Where(candidate =>
@@ -87,7 +90,8 @@ public static class TinyFarmSpatialQueries
     public static InteractionTarget? SelectObjectTarget(
         TinyFarmState state,
         ActorId actorId,
-        SceneObjectId objectId)
+        SceneObjectId objectId,
+        TinyFarmSceneCatalog scenes)
     {
         if (state.Version < TinyFarmState.ContinuousSceneSaveVersion)
         {
@@ -95,7 +99,7 @@ public static class TinyFarmSpatialQueries
         }
 
         ActorSceneState actor = state.ActorScene(actorId);
-        SceneDefinition scene = TinyFarmScenes.Get(actor.Scene);
+        SceneDefinition scene = scenes.Get(actor.Scene);
         SceneLayoutRow? row = scene.Layout.SingleOrDefault(candidate => candidate.ObjectId == objectId);
         if (row is null)
         {

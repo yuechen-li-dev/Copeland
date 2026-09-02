@@ -9,6 +9,8 @@ public sealed class TinyFarmSession
 {
     private readonly TinyFarmResolver resolver;
     private readonly TinyFarmDefinitions? definitions;
+    private TinyFarmSceneCatalog Scenes => definitions?.Scenes
+        ?? throw new InvalidOperationException("Scene execution requires loaded TinyFarm definitions.");
     private long nextSequence;
     private IReadOnlyList<GameEvent> recentEvents;
     private readonly INavigationPlanner navigationPlanner;
@@ -18,7 +20,7 @@ public sealed class TinyFarmSession
     private int deactivationCount;
 
     public TinyFarmSession(TinyFarmState state)
-        : this(state, null, 0, [])
+        : this(state, TinyFarmDefinitionLoader.Load(), 0, [])
     {
     }
 
@@ -56,6 +58,7 @@ public sealed class TinyFarmSession
 
     public IReadOnlyList<GameEvent> RecentEvents => recentEvents;
     public SceneId? ActiveScene => State.CurrentScene;
+    public TinyFarmSceneCatalog SceneCatalog => Scenes;
     public int NavigationPlanCount => navigationPlanCount;
     public int ActivationCount => activationCount;
     public int DeactivationCount => deactivationCount;
@@ -84,7 +87,8 @@ public sealed class TinyFarmSession
             State,
             recentEvents,
             nextSequence,
-            observationMinute);
+            observationMinute,
+            Scenes);
         envelopes.AddRange(npcIntents);
         nextSequence += npcIntents.Count;
 
@@ -118,7 +122,7 @@ public sealed class TinyFarmSession
         return new TinyFarmStepResult(State.DeepCopy(), batch.Results, narrative);
     }
 
-    private static ResolutionBatchResult AppendAnchorArrivalEvents(
+    private ResolutionBatchResult AppendAnchorArrivalEvents(
         TinyFarmState before,
         ResolutionBatchResult batch,
         IReadOnlyDictionary<ActorId, SceneAnchorId> semanticTargets)
@@ -128,7 +132,7 @@ public sealed class TinyFarmSession
             if (result.Status != IntentResultStatus.Accepted
                 || result.Envelope.Intent is not SpatialMoveIntent
                 || !semanticTargets.TryGetValue(result.Envelope.Actor, out SceneAnchorId anchorId)
-                || !TinyFarmScenes.TryGetAnchor(anchorId, out SceneAnchorDefinition anchor))
+                || !Scenes.TryGetAnchor(anchorId, out SceneAnchorDefinition anchor))
             {
                 return result;
             }
@@ -165,7 +169,7 @@ public sealed class TinyFarmSession
             return envelope;
         }
 
-        if (!TinyFarmScenes.TryGetAnchor(move.Anchor, out SceneAnchorDefinition anchor))
+        if (!Scenes.TryGetAnchor(move.Anchor, out SceneAnchorDefinition anchor))
         {
             return envelope;
         }
@@ -177,7 +181,7 @@ public sealed class TinyFarmSession
             return envelope;
         }
 
-        SceneDefinition scene = TinyFarmScenes.Get(actor.Scene);
+        SceneDefinition scene = Scenes.Get(actor.Scene);
         SceneId destinationScene = anchor.Scene;
         SceneObjectId? portal = null;
         ScenePosition goal;
@@ -203,7 +207,7 @@ public sealed class TinyFarmSession
             portal = route.TriggerObject;
             goal = Center(scene.Placement(route.TriggerObject));
             goalIdentity = $"route:{route.Id.Value}";
-            InteractionTarget? target = TinyFarmSpatialQueries.SelectInteractionTarget(State, actor.Actor);
+            InteractionTarget? target = TinyFarmSpatialQueries.SelectInteractionTarget(State, actor.Actor, Scenes);
             if (target?.SceneObject == portal)
             {
                 npcPaths.Remove(actor.Actor);
@@ -276,7 +280,7 @@ public sealed class TinyFarmSession
         return created;
     }
 
-    private static SceneRoute? FirstRouteToward(SceneId source, SceneId destination)
+    private SceneRoute? FirstRouteToward(SceneId source, SceneId destination)
     {
         var queue = new Queue<(SceneId Scene, SceneRoute? First)>();
         var visited = new HashSet<SceneId> { source };
@@ -284,7 +288,7 @@ public sealed class TinyFarmSession
         while (queue.Count > 0)
         {
             (SceneId sceneId, SceneRoute? first) = queue.Dequeue();
-            foreach (SceneRoute route in TinyFarmScenes.Get(sceneId).Routes.OrderBy(item => item.Id.Value, StringComparer.Ordinal))
+            foreach (SceneRoute route in Scenes.Get(sceneId).Routes.OrderBy(item => item.Id.Value, StringComparer.Ordinal))
             {
                 SceneRoute firstRoute = first ?? route;
                 if (route.TargetScene == destination)

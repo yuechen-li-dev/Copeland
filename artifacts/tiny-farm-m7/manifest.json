@@ -1,0 +1,16 @@
+{
+  "milestone": "TINY-FARM-M7",
+  "kind": "tson-authored-scene-tables",
+  "sceneContentAuthoredInTson": true,
+  "productionSceneCatalogHardcodedInCSharp": false,
+  "sceneSemanticsChanged": false,
+  "stableIdentitiesPreserved": true,
+  "routingSemanticsChanged": false,
+  "anchorSemanticsChanged": false,
+  "navigationSemanticsChanged": false,
+  "rawTsonLeaksIntoGameplay": false,
+  "sceneDslAdded": false,
+  "editorAdded": false,
+  "hotReloadAdded": false,
+  "aurelianExtractionPerformed": false
+}

@@ -6,7 +6,7 @@ namespace TinyFarm.Core;
 
 public static class TinyFarmTextProjection
 {
-    public static string Describe(TinyFarmState state)
+    public static string Describe(TinyFarmState state, TinyFarmDefinitions definitions)
     {
         ActorState player = state.Actor(TinyFarmIds.Player);
         LocationDefinition location = TinyFarmContent.Location(player.Location);
@@ -17,7 +17,7 @@ public static class TinyFarmTextProjection
             .Append(minuteOfDay / 60).Append(':')
             .Append((minuteOfDay % 60).ToString("00"))
             .Append(" — ").AppendLine(state.CurrentScene is SceneId scene
-                ? TinyFarmScenes.Get(scene).Name
+                ? definitions.Scenes.Get(scene).Name
                 : location.Name)
             .AppendLine(location.Description);
         if (state.Version >= TinyFarmState.SceneSaveVersion)
@@ -139,14 +139,6 @@ public static class TinyFarmSemanticNavigation
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(semanticReference);
         string normalized = semanticReference.Trim().ToLowerInvariant().Replace(' ', '-');
-        SceneAnchorDefinition? exact = TinyFarmScenes.All
-            .SelectMany(scene => scene.Anchors)
-            .SingleOrDefault(anchor => anchor.Id.Value.Equals(normalized, StringComparison.Ordinal));
-        if (exact is not null)
-        {
-            return exact.Id;
-        }
-
         return normalized switch
         {
             "store" or "store-counter" or "shop-counter" => TinyFarmAnchorIds.StoreCounter,

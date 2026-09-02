@@ -120,7 +120,7 @@ public static class TinyFarmAnchorHandoffScenario
                 == inactiveLoaded.State.Actor(TinyFarmIds.Mara).Location;
 
         TinyFarmFrame projection = TinyFarmFrameProjector.Project(session.State, definitions);
-        SceneAnchorId[] anchorIds = TinyFarmScenes.All
+        SceneAnchorId[] anchorIds = definitions.Scenes.All
             .SelectMany(scene => scene.Anchors)
             .Select(anchor => anchor.Id)
             .ToArray();
@@ -129,11 +129,11 @@ public static class TinyFarmAnchorHandoffScenario
         {
             foreach (SceneAnchorId anchorId in anchorIds)
             {
-                _ = TinyFarmScenes.GetAnchor(anchorId);
+                _ = definitions.Scenes.GetAnchor(anchorId);
             }
         }
         anchorLookupWatch.Stop();
-        string anchorsHash = Hash(AnchorSignatures());
+        string anchorsHash = Hash(AnchorSignatures(definitions.Scenes));
         string handoffHash = Hash(handoffLines);
         string navigationHash = Hash([
             $"plans:{session.NavigationPlanCount}",
@@ -179,7 +179,7 @@ public static class TinyFarmAnchorHandoffScenario
             deactivationWatch.Elapsed.TotalMilliseconds,
             pathRebuildWatch.Elapsed.TotalMilliseconds);
 
-        object anchorsEvidence = TinyFarmScenes.All
+        object anchorsEvidence = definitions.Scenes.All
             .SelectMany(scene => scene.Anchors)
             .OrderBy(anchor => anchor.Id.Value, StringComparer.Ordinal)
             .Select(anchor => new
@@ -242,9 +242,9 @@ public static class TinyFarmAnchorHandoffScenario
         }
     }
 
-    private static IEnumerable<string> AnchorSignatures()
+    private static IEnumerable<string> AnchorSignatures(TinyFarmSceneCatalog catalog)
     {
-        return TinyFarmScenes.All
+        return catalog.All
             .SelectMany(scene => scene.Anchors)
             .OrderBy(anchor => anchor.Id.Value, StringComparer.Ordinal)
             .Select(anchor => $"{anchor.Id}|{anchor.Scene}|{anchor.Position.XUnits}|{anchor.Position.YUnits}|{anchor.Kind}|{anchor.SemanticLocation}|{anchor.SemanticObject}|{anchor.Facing}|{anchor.ArrivalRadiusUnits}");

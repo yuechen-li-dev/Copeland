@@ -350,7 +350,7 @@ internal sealed class TinyFarmGame : Game
 
     private void ApplyControl(TinyFarmControl control)
     {
-        GameIntent? intent = TinyFarmHumanController.Map(control, session.State);
+        GameIntent? intent = TinyFarmHumanController.Map(control, session.State, definitions);
         if (intent is null)
         {
             status = "Nothing to do here";

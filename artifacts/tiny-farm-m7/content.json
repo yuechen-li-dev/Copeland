@@ -1,0 +1,90 @@
+{
+  "authority": "five Object TypeScript record-table roots -\u003E TinyFarmDefinitionLoader -\u003E TinyFarmSceneCatalog -\u003E SceneDefinition",
+  "tables": [
+    {
+      "name": "Scenes",
+      "columns": [
+        "id:string",
+        "label:string",
+        "width:number",
+        "height:number"
+      ],
+      "rows": 5
+    },
+    {
+      "name": "SceneObjects",
+      "columns": [
+        "sceneId:string",
+        "objectId:string",
+        "kind:string",
+        "label:string",
+        "blocksMovement:boolean",
+        "semanticReference:OptionalText"
+      ],
+      "rows": 19
+    },
+    {
+      "name": "SceneLayout",
+      "columns": [
+        "sceneId:string",
+        "objectId:string",
+        "x:number",
+        "y:number",
+        "width:number",
+        "height:number",
+        "layer:number"
+      ],
+      "rows": 19
+    },
+    {
+      "name": "SceneAnchors",
+      "columns": [
+        "anchorId:string",
+        "sceneId:string",
+        "x:number",
+        "y:number",
+        "kind:string",
+        "semanticLocation:OptionalText",
+        "semanticObject:OptionalText",
+        "facing:OptionalText",
+        "arrivalRadiusUnits:number"
+      ],
+      "rows": 14
+    },
+    {
+      "name": "SceneRoutes",
+      "columns": [
+        "routeId:string",
+        "sourceScene:string",
+        "triggerObject:string",
+        "targetScene:string",
+        "targetAnchor:string",
+        "interactionLabel:string"
+      ],
+      "rows": 8
+    }
+  ],
+  "orderingLaw": "row order is authoring/display order only; constructors sort by stable semantic ID and layer where applicable",
+  "optionalLaw": "OptionalText.None or OptionalText.Some(value); no null, undefined, or empty-string sentinel",
+  "agentQueries": {
+    "generalStoreCounter": {
+      "x": 5,
+      "y": 3
+    },
+    "routesEnteringTown": [
+      "overworld-town",
+      "store-town"
+    ],
+    "blockingFarmObjects": [
+      "farmhouse",
+      "fence"
+    ],
+    "generalStoreObjects": [
+      "shelves",
+      "shop-counter",
+      "store-exit"
+    ]
+  },
+  "aggregateSha256": "fe79f373643e1e3aa5df8f505e775cce7388206332831497fe12f8bed7e54afa",
+  "authoredBytes": 7484
+}

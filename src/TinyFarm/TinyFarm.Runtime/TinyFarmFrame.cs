@@ -179,8 +179,11 @@ public static class TinyFarmFrameProjector
         ActorState player)
     {
         ActorSceneState playerPlacement = state.ActorScene(player.Id);
-        SceneDefinition scene = TinyFarmScenes.Get(playerPlacement.Scene);
-        InteractionTarget? interactionTarget = TinyFarmSpatialQueries.SelectInteractionTarget(state, player.Id);
+        SceneDefinition scene = definitions.Scenes.Get(playerPlacement.Scene);
+        InteractionTarget? interactionTarget = TinyFarmSpatialQueries.SelectInteractionTarget(
+            state,
+            player.Id,
+            definitions.Scenes);
         TinyFarmActorView[] actors = state.ActorScenes
             .Where(placement => placement.Scene == scene.Id)
             .OrderBy(placement => placement.Actor.Value, StringComparer.Ordinal)
@@ -334,7 +337,10 @@ public static class TinyFarmFrameProjector
         var hints = new List<string> { "Move", "Wait", "Save", "Load" };
         if (state.Version >= TinyFarmState.ContinuousSceneSaveVersion)
         {
-            InteractionTarget? target = TinyFarmSpatialQueries.SelectInteractionTarget(state, player.Actor);
+            InteractionTarget? target = TinyFarmSpatialQueries.SelectInteractionTarget(
+                state,
+                player.Actor,
+                definitions.Scenes);
             if (target is not null)
             {
                 string label = target.Actor is ActorId actorId

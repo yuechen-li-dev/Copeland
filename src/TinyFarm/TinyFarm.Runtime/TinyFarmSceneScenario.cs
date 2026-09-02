@@ -121,7 +121,7 @@ public static class TinyFarmSceneScenario
             && reductions.Select(item => item.Route.Value).Contains("store-town", StringComparer.Ordinal)
             && reductions.Select(item => item.Route.Value).Contains("town-overworld", StringComparer.Ordinal);
 
-        SceneRoute[] routes = TinyFarmScenes.All.SelectMany(scene => scene.Routes).ToArray();
+        SceneRoute[] routes = definitions.Scenes.All.SelectMany(scene => scene.Routes).ToArray();
         var proof = new TinyFarmM4Proof(
             "TINY-FARM-M4",
             success ? "A" : "B",
@@ -139,9 +139,9 @@ public static class TinyFarmSceneScenario
             seedPlanted,
             npcCrossedScene,
             false,
-            TinyFarmScenes.All.Count,
-            TinyFarmScenes.All.Sum(scene => scene.Objects.Count),
-            TinyFarmScenes.All.Sum(scene => scene.Layout.Count),
+            definitions.Scenes.All.Count,
+            definitions.Scenes.All.Sum(scene => scene.Objects.Count),
+            definitions.Scenes.All.Sum(scene => scene.Layout.Count),
             routes.Length,
             reductions);
         return new TinyFarmM4Evidence(proof, projection);
@@ -154,7 +154,8 @@ public static class TinyFarmSceneScenario
 
     public static string WriteScenesJson()
     {
-        object[] scenes = TinyFarmScenes.All.Select(scene => new
+        TinyFarmSceneCatalog catalog = TinyFarmDefinitionLoader.Load().Scenes;
+        object[] scenes = catalog.All.Select(scene => new
         {
             id = scene.Id.Value,
             scene.Name,
@@ -195,7 +196,8 @@ public static class TinyFarmSceneScenario
 
     public static string WriteRoutesJson()
     {
-        object[] routes = TinyFarmScenes.All
+        TinyFarmSceneCatalog catalog = TinyFarmDefinitionLoader.Load().Scenes;
+        object[] routes = catalog.All
             .SelectMany(scene => scene.Routes)
             .OrderBy(route => route.Id.Value, StringComparer.Ordinal)
             .Select(route => new

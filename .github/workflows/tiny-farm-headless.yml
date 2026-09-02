@@ -1,4 +1,4 @@
-name: TinyFarm M3 projection and headless proofs
+name: TinyFarm headless semantic and TSON content proofs
 
 on:
   pull_request:
@@ -79,6 +79,30 @@ jobs:
               $responses[1].status -ne "inspect" -or
               $responses[2].status -ne "quit") {
             throw "TinyFarm LLM control protocol smoke test failed."
+          }
+
+      - name: Validate TSON scene content and canonical M7 parity
+        shell: pwsh
+        run: |
+          $artifactDirectory = Join-Path $env:RUNNER_TEMP "tiny-farm-m7"
+          dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --m7 --artifact-dir $artifactDirectory
+          if ($LASTEXITCODE -ne 0) {
+            throw "TinyFarm M7 TSON scene proof failed."
+          }
+
+          $proof = Get-Content -Raw -LiteralPath (Join-Path $artifactDirectory "proof.json") | ConvertFrom-Json
+          if ($proof.outcome -ne "A" -or
+              -not $proof.tsonOnlySceneAuthority -or
+              -not $proof.legacyParity -or
+              -not $proof.navigationParity -or
+              -not $proof.anchorParity -or
+              -not $proof.routeParity -or
+              -not $proof.npcScheduleParity -or
+              -not $proof.handoffParity -or
+              -not $proof.saveLoadCompatible -or
+              $proof.m1Hash -ne "dcc35869aba0eba979725b1871d0babfe127383123a1a5f665b666bc3488d333" -or
+              $proof.m2Hash -ne "4a49e221d6ffe90304143cece5b1a20fe96eecc4d10d30cf1bde11922a18ced3") {
+            throw "TinyFarm M7 proof did not preserve the scene semantic contract."
           }
 
       - name: Enforce repository artifact budget

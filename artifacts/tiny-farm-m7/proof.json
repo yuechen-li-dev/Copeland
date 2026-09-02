@@ -1,0 +1,23 @@
+{
+  "milestone": "TINY-FARM-M7",
+  "outcome": "A",
+  "sceneContentHash": "fe79f373643e1e3aa5df8f505e775cce7388206332831497fe12f8bed7e54afa",
+  "stateHash": "d46e70e37c8775e503c3a7693fc14d952a6932a22be0c13172771e020ae65544",
+  "resultsHash": "ecb4181792717a393125e85416b148ca2242934d761b025498a45aa24af21a24",
+  "eventsHash": "4f8e8383683a38da695284fb6fd561d5fc32c12fd7feedeee1841e7a3b7364d7",
+  "anchorsHash": "f6dc1f5c8a9116122744e860fcd23267d7784f4c9452fd273ca934b55e79f535",
+  "routesHash": "affb1c95d1745eaab9e9108b282ba5516ea16b1a1282f1a894c741149e8ccf72",
+  "navigationHash": "07dde9ac2f6c957017abe151320ee0a7d5c900f51ecd7901331c9d21a480d8fa",
+  "projectionHash": "4c93db713e4da1a8ee47cec7f6a309adc23f19b7acee1d91b80e0c9c3d6b8434",
+  "m1Hash": "dcc35869aba0eba979725b1871d0babfe127383123a1a5f665b666bc3488d333",
+  "m2Hash": "4a49e221d6ffe90304143cece5b1a20fe96eecc4d10d30cf1bde11922a18ced3",
+  "tsonOnlySceneAuthority": true,
+  "legacyParity": true,
+  "navigationParity": true,
+  "anchorParity": true,
+  "routeParity": true,
+  "npcScheduleParity": true,
+  "handoffParity": true,
+  "saveLoadCompatible": true,
+  "headless": true
+}

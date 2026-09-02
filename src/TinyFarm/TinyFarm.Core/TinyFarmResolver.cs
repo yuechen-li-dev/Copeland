@@ -3,6 +3,8 @@ namespace TinyFarm.Core;
 public sealed class TinyFarmResolver
 {
     private readonly TinyFarmDefinitions? definitions;
+    private TinyFarmSceneCatalog Scenes => definitions?.Scenes
+        ?? throw new InvalidOperationException("Scene intents require loaded TinyFarm definitions.");
 
     public TinyFarmResolver(TinyFarmDefinitions? definitions = null)
     {
@@ -64,7 +66,7 @@ public sealed class TinyFarmResolver
         };
     }
 
-    private static IntentResult ResolveMove(
+    private IntentResult ResolveMove(
         TinyFarmState state,
         ActorState actor,
         IntentEnvelope envelope,
@@ -96,26 +98,27 @@ public sealed class TinyFarmResolver
             new GameEvent(GameEventKind.ActorMoved, actor.Id, Location: intent.Destination));
     }
 
-    private static IntentResult ResolveAnchorTravel(
+    private IntentResult ResolveAnchorTravel(
         TinyFarmState state,
         ActorState actor,
         IntentEnvelope envelope,
         NavigateToAnchorIntent intent)
     {
-        if (!TinyFarmScenes.TryGetAnchor(intent.Anchor, out SceneAnchorDefinition anchor))
+        if (definitions is null
+            || !Scenes.TryGetAnchor(intent.Anchor, out SceneAnchorDefinition anchor))
         {
             return Rejected(envelope, IntentReason.MissingAnchor);
         }
-        if (anchor.SemanticLocation is not LocationId destination)
+        if (anchor.SemanticLocation is not LocationId resolvedDestination)
         {
             return Rejected(envelope, IntentReason.InvalidAnchorRealization);
         }
-        if (actor.Location == destination)
+        if (actor.Location == resolvedDestination)
         {
             return NoOp(envelope, IntentReason.AlreadyThere);
         }
 
-        LocationId next = NextCoarseLocation(actor.Location, destination);
+        LocationId next = NextCoarseLocation(actor.Location, resolvedDestination);
         if (next == actor.Location)
         {
             return Rejected(envelope, IntentReason.NotAdjacent);
@@ -124,7 +127,7 @@ public sealed class TinyFarmResolver
         ReplaceActor(state, actor with { Location = next });
         if (state.Version >= TinyFarmState.SceneSaveVersion)
         {
-            SceneAnchorDefinition realization = TinyFarmScenes.CoarseEntryAnchor(
+            SceneAnchorDefinition realization = Scenes.CoarseEntryAnchor(
                 TinyFarmScenes.SceneForLocation(next));
             ActorSceneState placement = state.ActorScene(actor.Id);
             ReplaceActorScene(state, placement with
@@ -139,13 +142,13 @@ public sealed class TinyFarmResolver
             new GameEvent(GameEventKind.ActorMoved, actor.Id, Location: next, Anchor: intent.Anchor));
     }
 
-    private static IntentResult ResolveAnchorReached(
+    private IntentResult ResolveAnchorReached(
         TinyFarmState state,
         ActorState actor,
         IntentEnvelope envelope,
         AnchorReachedIntent intent)
     {
-        if (!TinyFarmScenes.TryGetAnchor(intent.Anchor, out SceneAnchorDefinition anchor))
+        if (!Scenes.TryGetAnchor(intent.Anchor, out SceneAnchorDefinition anchor))
         {
             return Rejected(envelope, IntentReason.MissingAnchor);
         }
@@ -187,7 +190,7 @@ public sealed class TinyFarmResolver
         return TinyFarmIds.TownSquare;
     }
 
-    private static IntentResult ResolveSpatialMove(
+    private IntentResult ResolveSpatialMove(
         TinyFarmState state,
         ActorState actor,
         IntentEnvelope envelope,
@@ -202,7 +205,7 @@ public sealed class TinyFarmResolver
         }
 
         ActorSceneState placement = state.ActorScene(actor.Id);
-        SceneDefinition scene = TinyFarmScenes.Get(placement.Scene);
+        SceneDefinition scene = Scenes.Get(placement.Scene);
         ActorFacing facing = FacingFor(intent.DeltaX, intent.DeltaY);
         if (state.Version < TinyFarmState.ContinuousSceneSaveVersion)
         {
@@ -259,12 +262,12 @@ public sealed class TinyFarmResolver
         }
 
         ActorSceneState placement = state.ActorScene(actor.Id);
-        SceneDefinition scene = TinyFarmScenes.Get(placement.Scene);
+        SceneDefinition scene = Scenes.Get(placement.Scene);
         if (state.Version >= TinyFarmState.ContinuousSceneSaveVersion)
         {
             InteractionTarget? selected = intent.Target is SceneObjectId explicitTarget
                 ? SelectExplicitObjectTarget(state, actor.Id, explicitTarget)
-                : TinyFarmSpatialQueries.SelectInteractionTarget(state, actor.Id);
+                : TinyFarmSpatialQueries.SelectInteractionTarget(state, actor.Id, Scenes);
             if (selected is null)
             {
                 return Rejected(envelope, IntentReason.NoInteractionTarget);
@@ -322,15 +325,15 @@ public sealed class TinyFarmResolver
         return ApplyRoute(state, actor, envelope, placement, scene, route);
     }
 
-    private static InteractionTarget? SelectExplicitObjectTarget(
+    private InteractionTarget? SelectExplicitObjectTarget(
         TinyFarmState state,
         ActorId actor,
         SceneObjectId objectId)
     {
-        return TinyFarmSpatialQueries.SelectObjectTarget(state, actor, objectId);
+        return TinyFarmSpatialQueries.SelectObjectTarget(state, actor, objectId, Scenes);
     }
 
-    private static IntentResult ResolvePortalInteraction(
+    private IntentResult ResolvePortalInteraction(
         TinyFarmState state,
         ActorState actor,
         IntentEnvelope envelope,
@@ -347,7 +350,7 @@ public sealed class TinyFarmResolver
             : ApplyRoute(state, actor, envelope, placement, scene, route);
     }
 
-    private static IntentResult ApplyRoute(
+    private IntentResult ApplyRoute(
         TinyFarmState state,
         ActorState actor,
         IntentEnvelope envelope,
@@ -355,7 +358,7 @@ public sealed class TinyFarmResolver
         SceneDefinition scene,
         SceneRoute route)
     {
-        SceneDefinition target = TinyFarmScenes.Get(route.TargetScene);
+        SceneDefinition target = Scenes.Get(route.TargetScene);
         SceneAnchorDefinition targetAnchor = target.Anchor(route.TargetAnchor);
         ReplaceActorScene(state, placement with
         {
@@ -741,7 +744,7 @@ public sealed class TinyFarmResolver
         return Accepted(envelope, new GameEvent(GameEventKind.CropPlanted, actor.Id, Crop: crop.Id, Plot: plot.Id));
     }
 
-    private static IntentResult ResolveWater(TinyFarmState state, ActorState actor, IntentEnvelope envelope, WaterIntent intent)
+    private IntentResult ResolveWater(TinyFarmState state, ActorState actor, IntentEnvelope envelope, WaterIntent intent)
     {
         FarmPlotState? plot = state.FarmPlots.SingleOrDefault(candidate => candidate.Id == intent.Plot);
         if (plot is null)
@@ -896,7 +899,7 @@ public sealed class TinyFarmResolver
                     <= (long)TinyFarmSpatialQueries.InteractionRangeUnits * TinyFarmSpatialQueries.InteractionRangeUnits);
     }
 
-    private static bool ActorIsAdjacentToPlotWhenSpatial(TinyFarmState state, ActorId actor, FarmPlotId plot)
+    private bool ActorIsAdjacentToPlotWhenSpatial(TinyFarmState state, ActorId actor, FarmPlotId plot)
     {
         if (state.Version < TinyFarmState.SceneSaveVersion)
         {
@@ -909,7 +912,7 @@ public sealed class TinyFarmResolver
             return false;
         }
 
-        SceneDefinition scene = TinyFarmScenes.Get(TinyFarmSceneIds.Farm);
+        SceneDefinition scene = Scenes.Get(TinyFarmSceneIds.Farm);
         SceneLayoutRow row = scene.Layout.Single(item =>
             scene.Object(item.ObjectId).Kind == SceneObjectKind.Plot
             && scene.Object(item.ObjectId).SemanticReference == plot.Value);
@@ -918,11 +921,11 @@ public sealed class TinyFarmResolver
             return placement.Position.ManhattanDistance(new GridPosition(row.X, row.Y)) == 1;
         }
 
-        InteractionTarget? target = TinyFarmSpatialQueries.SelectInteractionTarget(state, actor);
+        InteractionTarget? target = TinyFarmSpatialQueries.SelectInteractionTarget(state, actor, Scenes);
         return target?.Plot == plot;
     }
 
-    private static void MoveActorToScheduledScene(TinyFarmState state, ActorId actor, LocationId destination)
+    private void MoveActorToScheduledScene(TinyFarmState state, ActorId actor, LocationId destination)
     {
         ActorSceneState placement = state.ActorScene(actor);
         SceneId targetScene = TinyFarmScenes.SceneForLocation(destination);
@@ -931,7 +934,7 @@ public sealed class TinyFarmResolver
             return;
         }
 
-        SceneAnchorDefinition anchor = TinyFarmScenes.AnchorForLocation(destination);
+        SceneAnchorDefinition anchor = Scenes.AnchorForLocation(destination);
         ReplaceActorScene(state, placement with
         {
             Scene = targetScene,

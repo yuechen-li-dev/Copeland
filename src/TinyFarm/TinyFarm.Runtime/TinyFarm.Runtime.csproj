@@ -13,6 +13,6 @@
     <PackageReference Include="DotRecast.Recast" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Content/tiny-farm-definitions.obj.ts" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Content/*.obj.ts" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
