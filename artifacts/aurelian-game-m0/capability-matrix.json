@@ -1,0 +1,31 @@
+{
+  "milestone": "AURELIAN-GAME-M0",
+  "capabilities": [
+    { "capability": "game loop", "owner": "Dominatus.Core + host", "status": ["FOUND", "PARTIAL"], "evidence": "reference/dominatus/src/Dominatus.Core/Runtime/AiWorld.cs:AiWorld.Tick; samples are host-specific" },
+    { "capability": "world state", "owner": "new game domain", "status": ["MISSING", "WRONG_OWNER"], "evidence": "src/Aurelian/Aurelian.World/Stores/WorldDataDocument.cs is render-facing; reference/dominatus/samples/Dominatus.FishTank/FishtankGame.cs puts physical state in private agent blackboards" },
+    { "capability": "entity identity", "owner": "new game domain", "status": ["PARTIAL"], "evidence": "Dominatus AgentId, Aurelian UnitId/EntityId, and Marionette GUIDs have different owners" },
+    { "capability": "agent AI", "owner": "Dominatus.Core", "status": ["FOUND", "PRODUCTION_READY"], "evidence": "reference/dominatus/src/Dominatus.Core/Runtime/AiWorld.cs:AiWorld; AiAgent.cs:AiAgent; Hfsm/*" },
+    { "capability": "utility decisions", "owner": "Dominatus.OptFlow", "status": ["FOUND", "PRODUCTION_READY"], "evidence": "reference/dominatus/src/Dominatus.OptFlow/Ai.cs:Ai.Decide; src/Dominatus.UtilityLite" },
+    { "capability": "events/messages", "owner": "Dominatus.Core", "status": ["FOUND", "PRODUCTION_READY"], "evidence": "reference/dominatus/src/Dominatus.Core/Runtime/AiEventBus.cs:AiEventBus; AiWorld.Send" },
+    { "capability": "intent/action resolution", "owner": "new game runtime", "status": ["PARTIAL", "DEMO_ONLY"], "evidence": "reference/dominatus/samples/Dominatus.RTSBenchmark/Simulation/BattleSimulation.cs and ShipAction.cs" },
+    { "capability": "time", "owner": "Dominatus clock + game state", "status": ["PARTIAL"], "evidence": "reference/dominatus/src/Dominatus.Core/Runtime/AiClock.cs and src/Aurelian/Aurelian.World/WorldClock.cs have ticks, not calendar days" },
+    { "capability": "schedules", "owner": "new game domain", "status": ["PARTIAL", "DEMO_ONLY"], "evidence": "reference/dominatus/samples/Dominatus.TinyTown/TinyTownDemo.cs:WorkSchedule" },
+    { "capability": "pathfinding", "owner": "new game domain", "status": ["MISSING"], "evidence": "Godot sample delegates to NavigationAgent2D; no backend-neutral grid/A* exists" },
+    { "capability": "persistence", "owner": "Dominatus container + game chunk", "status": ["FOUND", "PARTIAL"], "evidence": "reference/dominatus/src/Dominatus.Core/Persistence/DominatusSave.cs; ISaveChunkContributor.cs; DominatusCheckpointBuilder.cs" },
+    { "capability": "replay", "owner": "Dominatus.Core", "status": ["FOUND", "PRODUCTION_READY"], "evidence": "reference/dominatus/src/Dominatus.Core/Persistence/ReplayDriver.cs and ReplayEvent.cs" },
+    { "capability": "RNG", "owner": "new game domain", "status": ["PARTIAL"], "evidence": "ReplayEvent.RngSeed exists; no serializable deterministic RNG service/state" },
+    { "capability": "inventory", "owner": "new game domain", "status": ["MISSING"], "evidence": "No reusable inventory model found" },
+    { "capability": "economy", "owner": "new game domain", "status": ["MISSING"], "evidence": "No reusable economy model found" },
+    { "capability": "farming", "owner": "new game domain", "status": ["MISSING"], "evidence": "No soil/crop/tool implementation found" },
+    { "capability": "relationships", "owner": "new game domain", "status": ["FOUND", "DEMO_ONLY"], "evidence": "reference/dominatus/samples/Dominatus.TinyTown/TinyTownDemo.cs:Relationship and Memory" },
+    { "capability": "dialogue", "owner": "new game domain + Dominatus LLM", "status": ["FOUND", "PARTIAL", "DEMO_ONLY"], "evidence": "reference/dominatus/samples/Dominatus.TinyTown/TinyTownDemo.cs dialogue parsing, fallback, clamping, and cassette LLM" },
+    { "capability": "rendering", "owner": "temporary MonoGame; eventual Aurelian", "status": ["PARTIAL"], "evidence": "Aurelian Raster only supports FillRectangle/StrokeRectangle/PositionedText; FishTank and MonoGameRtsDemo render today" },
+    { "capability": "camera", "owner": "render adapter", "status": ["PARTIAL"], "evidence": "src/Aurelian/Aurelian.Rendering.Contracts/Snapshots/RenderCamera2D.cs lacks follow/bounds realization" },
+    { "capability": "input", "owner": "render host + controller adapter", "status": ["PARTIAL"], "evidence": "FishTank reads MonoGame keyboard/mouse; Machina.Runtime has backend-neutral UI input" },
+    { "capability": "UI", "owner": "Machina.*", "status": ["FOUND", "PARTIAL"], "evidence": "Machina controls/layout/text/input support HUD and menus; icon slots and host composition are missing" },
+    { "capability": "inspection", "owner": "Oblivion.*", "status": ["FOUND", "PARTIAL"], "evidence": "OblivionCardKind Table/Markdown/Function/Diagram exist; no live runtime transport" },
+    { "capability": "data authoring", "owner": "Copeland/TSON", "status": ["FOUND", "PRODUCTION_READY"], "evidence": "Copeland nominal records, arrays, enums, record tables, and TSON" },
+    { "capability": "testing", "owner": "xUnit + sample harnesses", "status": ["FOUND", "PRODUCTION_READY"], "evidence": "Dominatus.TinyTown.Tests and RTS determinism/checkpoint tests" },
+    { "capability": "headless runtime", "owner": "game core + Dominatus.Core", "status": ["FOUND", "PARTIAL"], "evidence": "TinyTown and RTSBenchmark run without graphics; game composition is not yet present" }
+  ]
+}

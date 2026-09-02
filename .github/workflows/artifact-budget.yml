@@ -1,0 +1,27 @@
+name: Artifact budget
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  added-artifacts:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Enforce compact tracked artifacts
+        shell: pwsh
+        env:
+          ARTIFACT_BUDGET_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          $baseRef = $env:ARTIFACT_BUDGET_BASE
+          if (-not $baseRef -or $baseRef -match '^0+$') {
+            $baseRef = 'HEAD^'
+          }
+
+          ./tools/Test-ArtifactBudget.ps1 -BaseRef $baseRef

@@ -1,0 +1,13 @@
+{
+  "milestone": "AURELIAN-GAME-M0",
+  "risks": [
+    { "rank": 1, "risk": "Agent blackboards become authoritative world storage", "impact": "high", "likelihood": "high", "mvpBlocking": true, "control": "GameState owns physical/domain truth; blackboards receive observations only." },
+    { "rank": 2, "risk": "MonoGame lifecycle and types leak into simulation", "impact": "high", "likelihood": "medium", "mvpBlocking": true, "control": "Headless Core tests and immutable presentation snapshots; MonoGame stays an adapter." },
+    { "rank": 3, "risk": "Dominatus save is mistaken for a complete game save", "impact": "high", "likelihood": "medium", "mvpBlocking": true, "control": "Use ISaveChunkContributor for one versioned game-domain chunk; never rely on BbJsonCodec for domain records." },
+    { "rank": 4, "risk": "Aurelian sprite work expands the first playable milestone", "impact": "high", "likelihood": "high", "mvpBlocking": false, "control": "Use MonoGame temporarily; qualify Aurelian separately." },
+    { "rank": 5, "risk": "Machina cannot yet composite with a game surface or arbitrate input", "impact": "medium", "likelihood": "high", "mvpBlocking": false, "control": "Keep M1 headless; add one host adapter later." },
+    { "rank": 6, "risk": "Godot navigation/node ownership contaminates game truth", "impact": "medium", "likelihood": "medium", "mvpBlocking": false, "control": "Use deterministic game-local grid/A* and avoid Godot as the chosen host." },
+    { "rank": 7, "risk": "Runtime inspection makes Oblivion product truth", "impact": "medium", "likelihood": "medium", "mvpBlocking": false, "control": "Export compact read-only snapshots into existing cards." },
+    { "rank": 8, "risk": "Unseeded or framework RNG breaks replay", "impact": "medium", "likelihood": "medium", "mvpBlocking": true, "control": "Game-local explicit PRNG state is saved and hashed." }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "milestone": "AURELIAN-GAME-M0",
+  "outcome": "B",
+  "foundation": {
+    "name": "authoritative game state plus deterministic intent-resolution/save composition",
+    "why": "The law is proven in RTSBenchmark but remains sample-specific; no reusable life-sim world authority exists.",
+    "owner": "game-local Core/Runtime first"
+  },
+  "boundedGlue": [
+    "typed stable game IDs with explicit Dominatus AgentId mapping",
+    "authoritative GameState for grid, entities, inventory, crops, economy, relationships, time, and RNG state",
+    "typed GameIntent emitted by human and AI controllers",
+    "deterministic phase loop and resolver copied as a pattern from RTSBenchmark",
+    "game save chunk composed with Dominatus checkpoint/replay at a stable tick boundary",
+    "immutable presentation snapshot consumed by a temporary MonoGame adapter",
+    "later Machina world/HUD composition and input arbitration adapter",
+    "optional compact snapshot-file adapter for Oblivion"
+  ],
+  "gameSpecific": ["grid/A*", "farming", "inventory", "economy", "calendar", "relationships", "dialogue policy", "objectives"],
+  "deferred": ["Aurelian textured-sprite realization", "Machina render-host composition", "SDSL-V textured shader", "live Oblivion transport", "audio"]
+}

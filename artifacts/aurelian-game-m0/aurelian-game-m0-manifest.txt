@@ -1,0 +1,14 @@
+AURELIAN-GAME-M0
+Date: 2026-09-01
+Outcome: B
+Language: C# GAME LOGIC
+Renderer: USE_MONOGAME_TEMPORARILY
+Ownership: independent TinyFarm product/domain; Aurelian is a later renderer dependency
+Missing foundation: authoritative GameState plus deterministic typed intent resolution and save composition
+M1: TINY-FARM-M1 - Headless deterministic week
+JointTaskForce validation: PASS, 30 assemblies / 3167 tests / 0 failed
+Dominatus audit suites: PASS, 392 tests / 0 failed
+Full nested Dominatus solution: existing SpriteForge Windows CR parsing failures; audit-target suites pass
+JSON validation: PASS, 6 files
+Artifact budget positive/negative checks: PASS, compact bundle accepted and milestone bundle rejected
+Git diff --stat: 12 files changed, 848 insertions(+)

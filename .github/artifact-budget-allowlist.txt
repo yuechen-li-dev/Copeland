@@ -1,0 +1,3 @@
+# One repository-relative PowerShell wildcard per line.
+# Exceptions must be narrow, reviewed, and justified in the change that adds them.
+# Example: artifacts/example/goldens/reference-frame.png

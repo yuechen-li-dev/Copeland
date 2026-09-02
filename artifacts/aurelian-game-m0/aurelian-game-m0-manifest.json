@@ -1,0 +1,39 @@
+{
+  "milestone": "AURELIAN-GAME-M0",
+  "date": "2026-09-01",
+  "outcome": "B",
+  "finding": "Dominatus, sample patterns, Machina, Oblivion, Copeland/TSON, and renderer contracts are sufficient supporting infrastructure; authoritative game state plus deterministic intent-resolution/save composition remains game-local foundation work.",
+  "recommendations": {
+    "language": "C# GAME LOGIC",
+    "renderer": "USE_MONOGAME_TEMPORARILY",
+    "ownership": "independent TinyFarm product/domain with Aurelian as a later renderer dependency",
+    "m1": "TINY-FARM-M1 - Headless deterministic week"
+  },
+  "files": [
+    "artifacts/aurelian-game-m0/repository-topology.json",
+    "artifacts/aurelian-game-m0/capability-matrix.json",
+    "artifacts/aurelian-game-m0/sample-reuse-audit.json",
+    "artifacts/aurelian-game-m0/missing-pieces.json",
+    "artifacts/aurelian-game-m0/integration-risks.json",
+    "artifacts/aurelian-game-m0/aurelian-game-m0-manifest.json",
+    "artifacts/aurelian-game-m0/aurelian-game-m0-manifest.txt",
+    "docs/Aurelian/games/aurelian-game-m0-integration-audit.md",
+    "docs/Aurelian/games/aurelian-game-architecture-ground-report.md",
+    "tools/Test-ArtifactBudget.ps1",
+    ".github/artifact-budget-allowlist.txt",
+    ".github/workflows/artifact-budget.yml"
+  ],
+  "validation": [
+    { "command": "dotnet test JointTaskForce.slnx -c Release --nologo", "result": "PASS: 30 assemblies, 3167 tests, 0 failed" },
+    { "command": "targeted Dominatus Core, TinyTown, RTSBenchmark, MonoGameRtsDemo, and FishTank tests", "result": "PASS: 392 tests, 0 failed; nested reference builds isolated from parent Directory.Build.props/central package management" },
+    { "command": "full nested Dominatus.slnx validation", "result": "NON-BLOCKING EXISTING FAILURE: SpriteForge TOML tests reject Windows CR line endings (6 failures on each of net8.0 and net10.0); audit-target suites pass" },
+    { "command": "ConvertFrom-Json for every JSON artifact", "result": "PASS: 6 files" },
+    { "command": "Test-ArtifactBudget.ps1 positive and negative cases", "result": "PASS: 7 compact files accepted; milestone-bundle probe rejected with exit code 1" }
+  ],
+  "artifactPolicy": {
+    "maximumFileBytes": 262144,
+    "maximumFilesPerArtifactRoot": 16,
+    "scope": "newly tracked artifacts relative to the PR/push base",
+    "exceptions": ".github/artifact-budget-allowlist.txt"
+  }
+}

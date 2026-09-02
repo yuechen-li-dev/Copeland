@@ -1,0 +1,46 @@
+{
+  "milestone": "AURELIAN-GAME-M0",
+  "samples": [
+    {
+      "sample": "Dominatus.TinyTown",
+      "classification": "DEMO_ONLY",
+      "reuse": ["utility-need scoring", "typed mail", "bounded LLM adjudication", "schedule and deterministic-test patterns"],
+      "leaveLocal": ["TownieProfile", "WorkSchedule", "Relationship", "Memory", "abstract string locations", "ExecuteAction"],
+      "evidence": "reference/dominatus/samples/Dominatus.TinyTown/TinyTownDemo.cs"
+    },
+    {
+      "sample": "Dominatus.GodotTinyTown",
+      "classification": "DEMO_ONLY",
+      "reuse": ["sprite/navigation/audio adapter patterns", "utility-driven activity repertoire"],
+      "leaveLocal": ["Godot Node ownership", "NavigationAgent2D authority", "Godot Vector2/Color presentation"],
+      "evidence": "reference/dominatus/samples/Dominatus.GodotTinyTown/TinyTownVillagerBrain.cs; TinyTownWorld.cs; TinyTownPresentation.cs"
+    },
+    {
+      "sample": "Dominatus.FishTank",
+      "classification": "DEMO_ONLY",
+      "reuse": ["MonoGame lifecycle", "perceive-tick-integrate-render sequence", "actuator host composition"],
+      "leaveLocal": ["fish rules", "CircleRenderer", "input bindings", "unseeded spawning"],
+      "warning": "position and velocity in private agent blackboards are not an authoritative-world pattern",
+      "evidence": "reference/dominatus/samples/Dominatus.FishTank/FishtankGame.cs"
+    },
+    {
+      "sample": "Dominatus.RTSBenchmark",
+      "classification": "DEMO_ONLY",
+      "reuse": ["Observe-Decide-Emit-Resolve-Commit law", "typed action buffer", "deterministic ordering", "state hashing", "stable checkpoint boundary"],
+      "leaveLocal": ["ShipAction", "ShipState", "battle rules", "benchmark topology"],
+      "evidence": "reference/dominatus/samples/Dominatus.RTSBenchmark/Simulation/BattleSimulation.cs; Simulation/ShipAction.cs; Simulation/ShipState.cs; DeterminismHasher.cs"
+    },
+    {
+      "sample": "Dominatus.MonoGameRtsDemo",
+      "classification": "DEMO_ONLY",
+      "reuse": ["MonoGame render adapter over authoritative ship state", "sample-local spatial indexing"],
+      "leaveLocal": ["ship renderer", "battle input", "spatial grid"],
+      "evidence": "reference/dominatus/samples/Dominatus.MonoGameRtsDemo"
+    }
+  ],
+  "migration": {
+    "EXTRACT_NOW": [],
+    "COPY_PATTERN_ONLY": ["RTS phase loop and action ordering", "TinyTown bounded dialogue effects", "FishTank/RTS MonoGame host boundary"],
+    "LEAVE_SAMPLE_LOCAL": ["all sample domain types", "renderers", "Godot node types", "relationship/economy/farm rules"]
+  }
+}
