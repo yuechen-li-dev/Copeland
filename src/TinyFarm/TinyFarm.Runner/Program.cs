@@ -8,6 +8,7 @@ if (args.Contains("--repl", StringComparer.Ordinal))
 
 bool runM1 = args.Contains("--m1", StringComparer.Ordinal);
 bool runM3 = args.Contains("--m3", StringComparer.Ordinal);
+bool runM4 = args.Contains("--m4", StringComparer.Ordinal);
 if (args.Contains("--single-week", StringComparer.Ordinal))
 {
     TinyFarmDefinitions singleDefinitions = TinyFarmDefinitionLoader.Load();
@@ -17,12 +18,16 @@ if (args.Contains("--single-week", StringComparer.Ordinal))
 }
 object proof = runM1
     ? TinyFarmCanonicalScenario.Prove()
-    : runM3
+    : runM4
+        ? TinyFarmSceneScenario.Prove().Proof
+        : runM3
         ? TinyFarmGraphicalScenario.Prove().Proof
         : TinyFarmWeekScenario.Prove();
 string json = runM1
     ? TinyFarmCanonicalScenario.WriteProofJson((TinyFarmM1Proof)proof)
-    : runM3
+    : runM4
+        ? TinyFarmSceneScenario.WriteProofJson((TinyFarmM4Proof)proof)
+        : runM3
         ? TinyFarmGraphicalScenario.WriteProofJson((TinyFarmM3Proof)proof)
         : TinyFarmWeekScenario.WriteProofJson((TinyFarmM2Proof)proof);
 
@@ -39,19 +44,40 @@ if (outputIndex >= 0)
     File.WriteAllText(path, json + Environment.NewLine);
 }
 
-if (runM3)
+if (runM3 || runM4)
 {
     int projectionIndex = Array.IndexOf(args, "--projection-json");
     if (projectionIndex >= 0)
     {
         string path = RequiredOutputPath(args, projectionIndex, "--projection-json");
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        TinyFarmFrame projection = TinyFarmGraphicalScenario.Prove().FinalProjection;
+        TinyFarmFrame projection = runM4
+            ? TinyFarmSceneScenario.Prove().FinalProjection
+            : TinyFarmGraphicalScenario.Prove().FinalProjection;
         File.WriteAllText(path, TinyFarmFrameProjector.WriteJson(projection) + Environment.NewLine);
     }
 }
 
-if (!runM1 && !runM3)
+if (runM4)
+{
+    int scenesIndex = Array.IndexOf(args, "--scenes-json");
+    if (scenesIndex >= 0)
+    {
+        string path = RequiredOutputPath(args, scenesIndex, "--scenes-json");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, TinyFarmSceneScenario.WriteScenesJson() + Environment.NewLine);
+    }
+
+    int routesIndex = Array.IndexOf(args, "--routes-json");
+    if (routesIndex >= 0)
+    {
+        string path = RequiredOutputPath(args, routesIndex, "--routes-json");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, TinyFarmSceneScenario.WriteRoutesJson() + Environment.NewLine);
+    }
+}
+
+if (!runM1 && !runM3 && !runM4)
 {
     TinyFarmDefinitions artifactDefinitions = TinyFarmDefinitionLoader.Load();
     TinyFarmWeekRun artifactRun = TinyFarmWeekScenario.Run(artifactDefinitions, null);
@@ -98,7 +124,9 @@ if (!runM1 && !runM3)
 Console.WriteLine(json);
 string outcome = runM1
     ? ((TinyFarmM1Proof)proof).Outcome
-    : runM3
+    : runM4
+        ? ((TinyFarmM4Proof)proof).Outcome
+        : runM3
         ? ((TinyFarmM3Proof)proof).Outcome
         : ((TinyFarmM2Proof)proof).Outcome;
 Environment.ExitCode = outcome == "A" ? 0 : 1;

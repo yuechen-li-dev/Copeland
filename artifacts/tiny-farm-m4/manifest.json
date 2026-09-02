@@ -1,0 +1,18 @@
+{
+  "milestone": "TINY-FARM-M4",
+  "kind": "scene-composition-reducer-routing",
+  "sceneGraphAdded": false,
+  "sceneCompositionGraphLike": true,
+  "sceneContentsTabular": true,
+  "routingReducerOwned": true,
+  "rendererOwnsGameplayState": false,
+  "sceneDefinitionsOwnGameplayState": false,
+  "ecsAdded": false,
+  "existingResolverReused": true,
+  "headlessSceneExecution": true,
+  "m1HashPreserved": true,
+  "m2HashPreserved": true,
+  "monoGameLeakageAboveLeaf": false,
+  "retainedScreenshots": 0,
+  "artifactFiles": 5
+}

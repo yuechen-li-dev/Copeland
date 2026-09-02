@@ -94,9 +94,11 @@ public sealed class TinyFarmState
     private readonly List<InventoryStack> inventoryStacks;
     private readonly List<ShopStock> shopStock;
     private readonly List<FarmPlotState> farmPlots;
+    private readonly List<ActorSceneState> actorScenes;
 
     public const int M1SaveVersion = 1;
     public const int SaveVersion = 2;
+    public const int SceneSaveVersion = 3;
 
     [JsonConstructor]
     public TinyFarmState(
@@ -109,7 +111,8 @@ public sealed class TinyFarmState
         string? definitionSetId = null,
         IReadOnlyList<InventoryStack>? inventoryStacks = null,
         IReadOnlyList<ShopStock>? shopStock = null,
-        IReadOnlyList<FarmPlotState>? farmPlots = null)
+        IReadOnlyList<FarmPlotState>? farmPlots = null,
+        IReadOnlyList<ActorSceneState>? actorScenes = null)
     {
         Version = version;
         Minute = minute;
@@ -121,6 +124,7 @@ public sealed class TinyFarmState
         this.inventoryStacks = inventoryStacks?.ToList() ?? [];
         this.shopStock = shopStock?.ToList() ?? [];
         this.farmPlots = farmPlots?.ToList() ?? [];
+        this.actorScenes = actorScenes?.ToList() ?? [];
     }
 
     public int Version { get; }
@@ -134,14 +138,18 @@ public sealed class TinyFarmState
     public IReadOnlyList<InventoryStack> InventoryStacks => inventoryStacks;
     public IReadOnlyList<ShopStock> ShopStock => shopStock;
     public IReadOnlyList<FarmPlotState> FarmPlots => farmPlots;
+    public IReadOnlyList<ActorSceneState> ActorScenes => actorScenes;
+    public SceneId? CurrentScene => actorScenes.SingleOrDefault(item => item.Actor == TinyFarmIds.Player)?.Scene;
     internal List<ActorState> MutableActors => actors;
     internal List<ItemState> MutableItems => items;
     internal List<WorldFact> MutableFacts => facts;
     internal List<InventoryStack> MutableInventoryStacks => inventoryStacks;
     internal List<ShopStock> MutableShopStock => shopStock;
     internal List<FarmPlotState> MutableFarmPlots => farmPlots;
+    internal List<ActorSceneState> MutableActorScenes => actorScenes;
     public ActorState Actor(ActorId id) => Actors.Single(actor => actor.Id == id);
     public ItemState Item(ItemId id) => Items.Single(item => item.Id == id);
+    public ActorSceneState ActorScene(ActorId id) => ActorScenes.Single(item => item.Actor == id);
     public int ProductCount(ActorId actor, ProductId product)
     {
         return InventoryStacks
@@ -161,7 +169,8 @@ public sealed class TinyFarmState
             DefinitionSetId,
             InventoryStacks.ToList(),
             ShopStock.ToList(),
-            FarmPlots.ToList());
+            FarmPlots.ToList(),
+            ActorScenes.ToList());
     }
 }
 
@@ -248,6 +257,28 @@ public static class TinyFarmContent
             [
                 new(TinyFarmIds.PlotOne, TinyFarmIds.Farmhouse, null, null, 0, false),
                 new(TinyFarmIds.PlotTwo, TinyFarmIds.Farmhouse, null, null, 0, false)
+            ]);
+    }
+
+    public static TinyFarmState CreateSceneState(TinyFarmDefinitions definitions)
+    {
+        TinyFarmState week = CreateWeekState(definitions);
+        return new TinyFarmState(
+            TinyFarmState.SceneSaveVersion,
+            week.Minute,
+            week.Actors.Select(actor => actor with { Inventory = actor.Inventory.ToList() }).ToList(),
+            week.Items.ToList(),
+            week.Facts.ToList(),
+            week.Favor,
+            week.DefinitionSetId,
+            week.InventoryStacks.ToList(),
+            week.ShopStock.ToList(),
+            week.FarmPlots.ToList(),
+            [
+                new(TinyFarmIds.Player, TinyFarmSceneIds.Farm, new GridPosition(6, 6)),
+                new(TinyFarmIds.Mara, TinyFarmSceneIds.Town, new GridPosition(12, 7)),
+                new(TinyFarmIds.Elias, TinyFarmSceneIds.Farm, new GridPosition(4, 7)),
+                new(TinyFarmIds.Sela, TinyFarmSceneIds.GeneralStore, new GridPosition(5, 3))
             ]);
     }
 }

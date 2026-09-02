@@ -39,6 +39,24 @@ public sealed record TinyFarmPlotView(
 
 public sealed record TinyFarmInventoryView(string Id, string Name, int Count);
 
+public sealed record TinyFarmSceneObjectView(
+    SceneObjectId Id,
+    SceneObjectKind Kind,
+    string Label,
+    TinyFarmPoint Position,
+    int Width,
+    int Height,
+    int Layer,
+    bool BlocksMovement,
+    string? SemanticReference);
+
+public sealed record TinyFarmRouteView(
+    SceneRouteId Id,
+    SceneObjectId TriggerObject,
+    SceneId TargetScene,
+    SceneSpawnId TargetSpawn,
+    string InteractionLabel);
+
 public sealed record TinyFarmFrame(
     int Day,
     int Minute,
@@ -52,7 +70,12 @@ public sealed record TinyFarmFrame(
     IReadOnlyList<TinyFarmPlotView> Plots,
     IReadOnlyList<TinyFarmInventoryView> Inventory,
     IReadOnlyList<string> InteractionHints,
-    IReadOnlyList<string> Narrative);
+    IReadOnlyList<string> Narrative,
+    SceneId? ActiveScene = null,
+    int SceneWidth = 0,
+    int SceneHeight = 0,
+    IReadOnlyList<TinyFarmSceneObjectView>? SceneObjects = null,
+    IReadOnlyList<TinyFarmRouteView>? SceneRoutes = null);
 
 public static class TinyFarmFrameProjector
 {
@@ -74,6 +97,11 @@ public static class TinyFarmFrameProjector
         ArgumentNullException.ThrowIfNull(definitions);
 
         ActorState player = state.Actor(TinyFarmIds.Player);
+        if (state.Version >= TinyFarmState.SceneSaveVersion)
+        {
+            return ProjectScene(state, definitions, narrative, player);
+        }
+
         LocationDefinition current = TinyFarmContent.Location(player.Location);
         TinyFarmLocationView[] locations = TinyFarmContent.Locations
             .OrderBy(location => location.Id.Value, StringComparer.Ordinal)
@@ -139,6 +167,80 @@ public static class TinyFarmFrameProjector
             narrative?.Select(line => $"{line.Speaker}: {line.Text}").ToArray() ?? []);
     }
 
+    private static TinyFarmFrame ProjectScene(
+        TinyFarmState state,
+        TinyFarmDefinitions definitions,
+        IReadOnlyList<NarrativeLine>? narrative,
+        ActorState player)
+    {
+        ActorSceneState playerPlacement = state.ActorScene(player.Id);
+        SceneDefinition scene = TinyFarmScenes.Get(playerPlacement.Scene);
+        TinyFarmActorView[] actors = state.ActorScenes
+            .Where(placement => placement.Scene == scene.Id)
+            .OrderBy(placement => placement.Actor.Value, StringComparer.Ordinal)
+            .Select(placement =>
+            {
+                ActorState actor = state.Actor(placement.Actor);
+                return new TinyFarmActorView(
+                    actor.Id,
+                    actor.Name,
+                    actor.Location,
+                    new TinyFarmPoint(placement.Position.X, placement.Position.Y),
+                    actor.IsPlayer);
+            })
+            .ToArray();
+        TinyFarmSceneObjectView[] objects = scene.Layout
+            .Select(row =>
+            {
+                SceneObjectDefinition definition = scene.Object(row.ObjectId);
+                return new TinyFarmSceneObjectView(
+                    definition.Id,
+                    definition.Kind,
+                    definition.Label,
+                    new TinyFarmPoint(row.X, row.Y),
+                    row.Width,
+                    row.Height,
+                    row.Layer,
+                    definition.BlocksMovement,
+                    definition.SemanticReference);
+            })
+            .ToArray();
+        TinyFarmPlotView[] plots = state.FarmPlots
+            .Where(_ => scene.Id == TinyFarmSceneIds.Farm)
+            .OrderBy(plot => plot.Id.Value, StringComparer.Ordinal)
+            .Select(plot => ProjectScenePlot(plot, definitions, scene))
+            .ToArray();
+        TinyFarmRouteView[] routes = scene.Routes
+            .Select(route => new TinyFarmRouteView(
+                route.Id,
+                route.TriggerObject,
+                route.TargetScene,
+                route.TargetSpawn,
+                route.InteractionLabel))
+            .ToArray();
+        TinyFarmInventoryView[] inventory = ProjectInventory(state, definitions, player);
+
+        return new TinyFarmFrame(
+            state.Day,
+            state.Minute,
+            FormatTime(state.Minute),
+            player.Money,
+            player.Location,
+            scene.Name,
+            [],
+            actors,
+            [],
+            plots,
+            inventory,
+            BuildSceneHints(state, definitions, playerPlacement, scene),
+            narrative?.Select(line => $"{line.Speaker}: {line.Text}").ToArray() ?? [],
+            scene.Id,
+            scene.Width,
+            scene.Height,
+            objects,
+            routes);
+    }
+
     public static string ComputeHash(TinyFarmFrame frame)
     {
         string json = JsonSerializer.Serialize(frame, JsonOptions);
@@ -170,6 +272,99 @@ public static class TinyFarmFrameProjector
             growthDays,
             plot.WateredToday,
             plot.Crop is not null && plot.GrowthStage >= growthDays);
+    }
+
+    private static TinyFarmPlotView ProjectScenePlot(
+        FarmPlotState plot,
+        TinyFarmDefinitions definitions,
+        SceneDefinition scene)
+    {
+        SceneLayoutRow layout = scene.Layout.Single(row =>
+            scene.Object(row.ObjectId).SemanticReference == plot.Id.Value);
+        int growthDays = plot.Crop is CropId crop ? definitions.Crop(crop).GrowthDays : 0;
+        return new TinyFarmPlotView(
+            plot.Id,
+            plot.Location,
+            new TinyFarmPoint(layout.X, layout.Y),
+            plot.Crop,
+            plot.GrowthStage,
+            growthDays,
+            plot.WateredToday,
+            plot.Crop is not null && plot.GrowthStage >= growthDays);
+    }
+
+    private static TinyFarmInventoryView[] ProjectInventory(
+        TinyFarmState state,
+        TinyFarmDefinitions definitions,
+        ActorState player)
+    {
+        return state.InventoryStacks
+            .Where(stack => stack.Actor == player.Id)
+            .Select(stack => new TinyFarmInventoryView(
+                stack.Product.Value,
+                definitions.Item(stack.Product).Name,
+                stack.Count))
+            .Concat(player.Inventory.Select(item => new TinyFarmInventoryView(
+                item.Value,
+                state.Item(item).Name,
+                1)))
+            .OrderBy(item => item.Id, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private static IReadOnlyList<string> BuildSceneHints(
+        TinyFarmState state,
+        TinyFarmDefinitions definitions,
+        ActorSceneState player,
+        SceneDefinition scene)
+    {
+        var hints = new List<string> { "Move", "Wait", "Save", "Load" };
+        SceneRoute? route = scene.Routes
+            .Where(candidate => scene.Placement(candidate.TriggerObject).Contains(player.Position))
+            .OrderBy(candidate => candidate.Id.Value, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (route is not null)
+        {
+            hints.Add(route.InteractionLabel);
+        }
+
+        ActorState? nearby = state.ActorScenes
+            .Where(placement => placement.Actor != player.Actor
+                && placement.Scene == player.Scene
+                && placement.Position.ManhattanDistance(player.Position) <= 1)
+            .OrderBy(placement => placement.Actor.Value, StringComparer.Ordinal)
+            .Select(placement => state.Actor(placement.Actor))
+            .FirstOrDefault();
+        if (nearby is not null)
+        {
+            hints.Add($"Talk to {nearby.Name}");
+        }
+
+        if (scene.Id == TinyFarmSceneIds.GeneralStore
+            && state.ActorScene(TinyFarmIds.Sela).Position.ManhattanDistance(player.Position) <= 1)
+        {
+            ItemDefinition seed = definitions.Item(TinyFarmIds.TurnipSeed);
+            hints.Add($"Buy {seed.Name} ({seed.BuyPrice})");
+        }
+
+        if (scene.Id == TinyFarmSceneIds.Farm)
+        {
+            SceneObjectDefinition? plot = scene.Objects
+                .Where(item => item.Kind == SceneObjectKind.Plot)
+                .FirstOrDefault(item =>
+                    player.Position.ManhattanDistance(ToGrid(scene.Placement(item.Id))) == 1);
+            if (plot is not null)
+            {
+                hints.Add("Plant / Water / Harvest");
+            }
+        }
+
+        return hints;
+    }
+
+    private static GridPosition ToGrid(SceneLayoutRow row)
+    {
+        return new GridPosition(row.X, row.Y);
     }
 
     private static IReadOnlyList<string> BuildHints(TinyFarmState state, TinyFarmDefinitions definitions, ActorState player)

@@ -16,8 +16,15 @@ public static class TinyFarmTextProjection
         text.Append("Day ").Append(day).Append(' ')
             .Append(minuteOfDay / 60).Append(':')
             .Append((minuteOfDay % 60).ToString("00"))
-            .Append(" — ").AppendLine(location.Name)
+            .Append(" — ").AppendLine(state.CurrentScene is SceneId scene
+                ? TinyFarmScenes.Get(scene).Name
+                : location.Name)
             .AppendLine(location.Description);
+        if (state.Version >= TinyFarmState.SceneSaveVersion)
+        {
+            ActorSceneState placement = state.ActorScene(player.Id);
+            text.Append("Tile: ").Append(placement.Position.X).Append(',').Append(placement.Position.Y).AppendLine();
+        }
 
         string actors = string.Join(
             ", ",
@@ -69,10 +76,21 @@ public static class TinyFarmCommandParser
         string[] parts = command.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
         string verb = parts[0].ToLowerInvariant();
 
+        if (verb == "move"
+            && (parts.Length == 3 || parts.Length == 4)
+            && ParseDirection(parts[1]) is SpatialMoveIntent direction
+            && int.TryParse(parts[2], out int distance)
+            && (parts.Length == 3 || parts[3].Equals("units", StringComparison.OrdinalIgnoreCase)))
+        {
+            return direction with { Distance = distance };
+        }
+
         return verb switch
         {
             "look" when parts.Length == 1 => new LookIntent(),
+            "move" when parts.Length == 2 && ParseDirection(parts[1]) is SpatialMoveIntent spatial => spatial,
             "move" when parts.Length == 2 => new MoveIntent(new LocationId(parts[1])),
+            "interact" when parts.Length == 1 => new InteractIntent(),
             "talk" when parts.Length == 2 => new TalkIntent(new ActorId(parts[1])),
             "take" when parts.Length == 2 => new TakeIntent(new ItemId(parts[1])),
             "give" when parts.Length == 3 => new GiveIntent(new ItemId(parts[1]), new ActorId(parts[2])),
@@ -85,7 +103,19 @@ public static class TinyFarmCommandParser
             "harvest" when parts.Length == 2 => new HarvestIntent(new FarmPlotId(parts[1])),
             "wait" when parts.Length == 2 && int.TryParse(parts[1], out int minutes) => new WaitIntent(minutes),
             _ => throw new FormatException(
-                "Use: look, move/talk/take/buy/sell, buy-product/sell-product <product>, plant <plot> <crop>, water/harvest <plot>, or wait <minutes>.")
+                "Use: look, move <left/right/up/down> [distance] [units], move <location>, interact, talk/take/buy/sell, buy-product/sell-product <product>, plant <plot> <crop>, water/harvest <plot>, or wait <minutes>.")
+        };
+    }
+
+    private static SpatialMoveIntent? ParseDirection(string value)
+    {
+        return value.ToLowerInvariant() switch
+        {
+            "left" or "west" => new SpatialMoveIntent(-1, 0),
+            "right" or "east" => new SpatialMoveIntent(1, 0),
+            "up" or "north" => new SpatialMoveIntent(0, -1),
+            "down" or "south" => new SpatialMoveIntent(0, 1),
+            _ => null
         };
     }
 }
@@ -100,7 +130,9 @@ public sealed record TinyFarmInspectionSnapshot(
     IReadOnlyList<IntentResult> LastResults,
     IReadOnlyList<FarmPlotState> Plots,
     IReadOnlyList<ShopStock> ShopStock,
-    IReadOnlyList<InventoryStack> Inventory);
+    IReadOnlyList<InventoryStack> Inventory,
+    SceneId? CurrentScene,
+    IReadOnlyList<ActorSceneState> ActorScenes);
 
 public static class TinyFarmInspector
 {
@@ -149,7 +181,9 @@ public static class TinyFarmInspector
             lastResults,
             state.FarmPlots,
             state.ShopStock,
-            state.InventoryStacks);
+            state.InventoryStacks,
+            state.CurrentScene,
+            state.ActorScenes);
         return JsonSerializer.Serialize(snapshot, Options);
     }
 }

@@ -92,6 +92,7 @@ public static class TinyFarmSaveCodec
 public static class TinyFarmChunkedSaveCodec
 {
     public const string RuntimeVersion = "tiny-farm-m2@2";
+    public const string SceneRuntimeVersion = "tiny-farm-m4@3";
     public static readonly ChunkId WorldChunk = new("tinyfarm.world");
     public static readonly ChunkId RuntimeChunk = new("tinyfarm.runtime");
     public static readonly ChunkId AgentChunk = new("tinyfarm.agents");
@@ -108,7 +109,10 @@ public static class TinyFarmChunkedSaveCodec
     {
         ValidateWorld(session.State, definitions);
         var context = new SaveWriteContext();
-        var world = new WorldChunkModel(RuntimeVersion, definitions.Identity, session.State);
+        string runtimeVersion = session.State.Version >= TinyFarmState.SceneSaveVersion
+            ? SceneRuntimeVersion
+            : RuntimeVersion;
+        var world = new WorldChunkModel(runtimeVersion, definitions.Identity, session.State);
         var runtime = new TinyFarmRuntimeSave(session.NextSequence, session.RecentEvents.ToList());
         var agents = new TinyFarmAgentSave(
             "dominatus-1.0.0",
@@ -132,9 +136,13 @@ public static class TinyFarmChunkedSaveCodec
         TinyFarmRuntimeSave runtime = ReadRequired<TinyFarmRuntimeSave>(context, RuntimeChunk);
         _ = ReadRequired<TinyFarmAgentSave>(context, AgentChunk);
         _ = ReadRequired<TinyFarmNarrativeSave>(context, NarrativeChunk);
-        if (world.RuntimeVersion != RuntimeVersion)
+        string expectedRuntimeVersion = world.Game.Version >= TinyFarmState.SceneSaveVersion
+            ? SceneRuntimeVersion
+            : RuntimeVersion;
+        if (world.RuntimeVersion != expectedRuntimeVersion)
         {
-            throw new InvalidDataException($"Unsupported TinyFarm runtime version '{world.RuntimeVersion}'. Expected '{RuntimeVersion}'.");
+            throw new InvalidDataException(
+                $"Unsupported TinyFarm runtime version '{world.RuntimeVersion}'. Expected '{expectedRuntimeVersion}'.");
         }
 
         if (world.DefinitionSetId != definitions.Identity)
@@ -167,7 +175,7 @@ public static class TinyFarmChunkedSaveCodec
 
     private static void ValidateWorld(TinyFarmState state, TinyFarmDefinitions definitions)
     {
-        if (state.Version != TinyFarmState.SaveVersion)
+        if (state.Version != TinyFarmState.SaveVersion && state.Version != TinyFarmState.SceneSaveVersion)
         {
             throw new InvalidDataException($"Unsupported TinyFarm game save version {state.Version}.");
         }
@@ -229,6 +237,38 @@ public static class TinyFarmChunkedSaveCodec
             if (!definitions.Items.Any(item => item.Id == stock.Product) || stock.Count < 0 || stock.DailyRestockCount < 0)
             {
                 throw new InvalidDataException($"Invalid shop stock '{stock.Product}'.");
+            }
+        }
+
+
+        if (state.Version >= TinyFarmState.SceneSaveVersion)
+        {
+            if (state.ActorScenes.Select(item => item.Actor).Distinct().Count() != state.Actors.Count
+                || state.ActorScenes.Count != state.Actors.Count)
+            {
+                throw new InvalidDataException("TinyFarm scene state requires one placement per actor.");
+            }
+
+            foreach (ActorSceneState placement in state.ActorScenes)
+            {
+                SceneDefinition scene;
+                try
+                {
+                    scene = TinyFarmScenes.Get(placement.Scene);
+                }
+                catch (InvalidOperationException exception)
+                {
+                    throw new InvalidDataException(
+                        $"Actor '{placement.Actor}' references unknown scene '{placement.Scene}'.",
+                        exception);
+                }
+
+                if (!state.Actors.Any(actor => actor.Id == placement.Actor)
+                    || !TinyFarmScenes.IsInBounds(scene, placement.Position)
+                    || TinyFarmScenes.IsBlocked(scene, placement.Position))
+                {
+                    throw new InvalidDataException($"Actor '{placement.Actor}' has invalid scene placement.");
+                }
             }
         }
     }

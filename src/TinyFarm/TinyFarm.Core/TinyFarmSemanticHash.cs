@@ -66,6 +66,18 @@ public static class TinyFarmSemanticHash
             }
         }
 
+        if (state.Version >= TinyFarmState.SceneSaveVersion)
+        {
+            foreach (ActorSceneState placement in state.ActorScenes.OrderBy(item => item.Actor.Value, StringComparer.Ordinal))
+            {
+                canonical.Append("scene-actor|").Append(placement.Actor.Value)
+                    .Append('|').Append(placement.Scene.Value)
+                    .Append('|').Append(placement.Position.X)
+                    .Append('|').Append(placement.Position.Y)
+                    .AppendLine();
+            }
+        }
+
         canonical.Append("facts|").AppendJoin(',', state.Facts.OrderBy(fact => fact));
         byte[] bytes = Encoding.UTF8.GetBytes(canonical.ToString());
         return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();

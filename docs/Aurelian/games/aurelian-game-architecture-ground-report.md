@@ -147,3 +147,13 @@ TINY-FARM-M3 added `TinyFarm.MonoGame` as a temporary graphical leaf over the im
 The real window now shows the four-location world, player, stable NPCs, farm plots and crop stages, ground items, HUD, interactions, Ariadne prose, economy controls, and save/load. The retained semantic proof covers the full M2 farm loop, visible autonomous NPC movement, save/mutate/load reprojection, exact M1/M2 hashes, and deterministic frame hashing. Replacing MonoGame requires changing only the graphical leaf; state, resolver, persistence, NPC logic, replay, REPL, LLM command semantics, and frame projection remain reusable.
 
 Observed integration pressure is now the leaf-local bitmap overlay, so the exact M4 recommendation is **Machina.UI game UI integration**. Native Aurelian 2D remains a later adapter replacement and should not be coupled to that UI milestone.
+
+## M4 evidence update — 2026-09-02
+
+TINY-FARM-M4 followed newer play pressure and added scene composition before UI integration. The authoritative model is now explicit: scene definitions are validated object/layout/spawn/route tables; actor scene placements are versioned world records; route interaction is an ordinary resolver reduction; and `TinyFarmFrame` projects only the active scene. The M3 world map became the Overworld scene without adding a mutable scene graph or second world.
+
+Scene definition law is `static validated tables + persistent game state -> immutable active-scene projection`. Layout never depends on object trees or renderer allocation. Routes derive the graph between Farm, Overworld, Town, General Store, and Riverside and store target spawn IDs. Save/load uses the existing four Dominatus chunks and restores exact player scene and integer tile.
+
+Dominatus continues to choose high-level schedule destinations. TinyFarm performs deterministic coarse movement for inactive NPCs and exposes authoritative scene placement to the active projection; the renderer never spawns actors independently. MonoGame now uses the live viewport with a shallow HUD at 2560x1440 and 1280x720. TSON and Copeland record tables fit future authored definitions, while M4 deliberately keeps readable C# definitions and adds no language feature or shared UI/game runtime.
+
+The detailed proof and next recommendation are in `docs/Aurelian/games/tiny-farm-m4-scene-composition-report.md` and `artifacts/tiny-farm-m4/proof.json`.

@@ -1,0 +1,392 @@
+[
+  {
+    "id": "farm",
+    "name": "Farm",
+    "width": 18,
+    "height": 12,
+    "objects": [
+      {
+        "id": "farm-exit",
+        "kind": "Portal",
+        "label": "Overworld",
+        "blocksMovement": false,
+        "semanticReference": null
+      },
+      {
+        "id": "farmhouse",
+        "kind": "Landmark",
+        "label": "Farmhouse",
+        "blocksMovement": true,
+        "semanticReference": null
+      },
+      {
+        "id": "fence",
+        "kind": "Prop",
+        "label": "Fence",
+        "blocksMovement": true,
+        "semanticReference": null
+      },
+      {
+        "id": "plot-1",
+        "kind": "Plot",
+        "label": "Plot 1",
+        "blocksMovement": false,
+        "semanticReference": "plot-1"
+      },
+      {
+        "id": "plot-2",
+        "kind": "Plot",
+        "label": "Plot 2",
+        "blocksMovement": false,
+        "semanticReference": "plot-2"
+      }
+    ],
+    "layout": [
+      {
+        "objectId": "farm-exit",
+        "x": 17,
+        "y": 6,
+        "width": 1,
+        "height": 1,
+        "layer": 0
+      },
+      {
+        "objectId": "farmhouse",
+        "x": 1,
+        "y": 1,
+        "width": 4,
+        "height": 3,
+        "layer": 0
+      },
+      {
+        "objectId": "fence",
+        "x": 12,
+        "y": 2,
+        "width": 1,
+        "height": 5,
+        "layer": 0
+      },
+      {
+        "objectId": "plot-1",
+        "x": 7,
+        "y": 5,
+        "width": 1,
+        "height": 1,
+        "layer": 0
+      },
+      {
+        "objectId": "plot-2",
+        "x": 9,
+        "y": 5,
+        "width": 1,
+        "height": 1,
+        "layer": 0
+      }
+    ],
+    "spawns": [
+      {
+        "id": "farm-start",
+        "x": 6,
+        "y": 5
+      },
+      {
+        "id": "from-overworld",
+        "x": 16,
+        "y": 6
+      }
+    ]
+  },
+  {
+    "id": "general-store",
+    "name": "General Store",
+    "width": 10,
+    "height": 8,
+    "objects": [
+      {
+        "id": "shelves",
+        "kind": "Prop",
+        "label": "Shelves",
+        "blocksMovement": true,
+        "semanticReference": null
+      },
+      {
+        "id": "shop-counter",
+        "kind": "Shop",
+        "label": "Seed Counter",
+        "blocksMovement": true,
+        "semanticReference": "general-store"
+      },
+      {
+        "id": "store-exit",
+        "kind": "Portal",
+        "label": "Town",
+        "blocksMovement": false,
+        "semanticReference": null
+      }
+    ],
+    "layout": [
+      {
+        "objectId": "shelves",
+        "x": 1,
+        "y": 1,
+        "width": 1,
+        "height": 4,
+        "layer": 0
+      },
+      {
+        "objectId": "shop-counter",
+        "x": 4,
+        "y": 2,
+        "width": 3,
+        "height": 1,
+        "layer": 0
+      },
+      {
+        "objectId": "store-exit",
+        "x": 5,
+        "y": 7,
+        "width": 1,
+        "height": 1,
+        "layer": 0
+      }
+    ],
+    "spawns": [
+      {
+        "id": "door",
+        "x": 5,
+        "y": 6
+      }
+    ]
+  },
+  {
+    "id": "overworld",
+    "name": "Overworld",
+    "width": 22,
+    "height": 14,
+    "objects": [
+      {
+        "id": "farm-entrance",
+        "kind": "Portal",
+        "label": "Farm",
+        "blocksMovement": false,
+        "semanticReference": null
+      },
+      {
+        "id": "hill",
+        "kind": "Prop",
+        "label": "Hill",
+        "blocksMovement": true,
+        "semanticReference": null
+      },
+      {
+        "id": "riverside-entrance",
+        "kind": "Portal",
+        "label": "Riverside",
+        "blocksMovement": false,
+        "semanticReference": null
+      },
+      {
+        "id": "town-entrance",
+        "kind": "Portal",
+        "label": "Town",
+        "blocksMovement": false,
+        "semanticReference": null
+      }
+    ],
+    "layout": [
+      {
+        "objectId": "farm-entrance",
+        "x": 2,
+        "y": 7,
+        "width": 1,
+        "height": 1,
+        "layer": 0
+      },
+      {
+        "objectId": "hill",
+        "x": 7,
+        "y": 2,
+        "width": 3,
+        "height": 2,
+        "layer": 0
+      },
+      {
+        "objectId": "riverside-entrance",
+        "x": 19,
+        "y": 9,
+        "width": 1,
+        "height": 1,
+        "layer": 0
+      },
+      {
+        "objectId": "town-entrance",
+        "x": 11,
+        "y": 5,
+        "width": 1,
+        "height": 1,
+        "layer": 0
+      }
+    ],
+    "spawns": [
+      {
+        "id": "from-farm",
+        "x": 3,
+        "y": 7
+      },
+      {
+        "id": "from-riverside",
+        "x": 18,
+        "y": 9
+      },
+      {
+        "id": "from-town",
+        "x": 10,
+        "y": 5
+      }
+    ]
+  },
+  {
+    "id": "riverside",
+    "name": "Riverside",
+    "width": 16,
+    "height": 10,
+    "objects": [
+      {
+        "id": "reeds",
+        "kind": "Prop",
+        "label": "Reeds",
+        "blocksMovement": true,
+        "semanticReference": null
+      },
+      {
+        "id": "river",
+        "kind": "Decoration",
+        "label": "River",
+        "blocksMovement": true,
+        "semanticReference": null
+      },
+      {
+        "id": "riverside-exit",
+        "kind": "Portal",
+        "label": "Overworld",
+        "blocksMovement": false,
+        "semanticReference": null
+      }
+    ],
+    "layout": [
+      {
+        "objectId": "reeds",
+        "x": 8,
+        "y": 3,
+        "width": 1,
+        "height": 3,
+        "layer": 0
+      },
+      {
+        "objectId": "river",
+        "x": 10,
+        "y": 0,
+        "width": 6,
+        "height": 10,
+        "layer": 0
+      },
+      {
+        "objectId": "riverside-exit",
+        "x": 1,
+        "y": 5,
+        "width": 1,
+        "height": 1,
+        "layer": 0
+      }
+    ],
+    "spawns": [
+      {
+        "id": "from-overworld",
+        "x": 2,
+        "y": 5
+      }
+    ]
+  },
+  {
+    "id": "town",
+    "name": "Town",
+    "width": 20,
+    "height": 14,
+    "objects": [
+      {
+        "id": "market-stall",
+        "kind": "Prop",
+        "label": "Market Stall",
+        "blocksMovement": true,
+        "semanticReference": null
+      },
+      {
+        "id": "store-entrance",
+        "kind": "Portal",
+        "label": "General Store",
+        "blocksMovement": false,
+        "semanticReference": null
+      },
+      {
+        "id": "town-exit",
+        "kind": "Portal",
+        "label": "Overworld",
+        "blocksMovement": false,
+        "semanticReference": null
+      },
+      {
+        "id": "well",
+        "kind": "Landmark",
+        "label": "Well",
+        "blocksMovement": true,
+        "semanticReference": null
+      }
+    ],
+    "layout": [
+      {
+        "objectId": "market-stall",
+        "x": 3,
+        "y": 3,
+        "width": 3,
+        "height": 2,
+        "layer": 0
+      },
+      {
+        "objectId": "store-entrance",
+        "x": 17,
+        "y": 4,
+        "width": 1,
+        "height": 1,
+        "layer": 0
+      },
+      {
+        "objectId": "town-exit",
+        "x": 10,
+        "y": 13,
+        "width": 1,
+        "height": 1,
+        "layer": 0
+      },
+      {
+        "objectId": "well",
+        "x": 9,
+        "y": 6,
+        "width": 2,
+        "height": 2,
+        "layer": 0
+      }
+    ],
+    "spawns": [
+      {
+        "id": "from-store",
+        "x": 16,
+        "y": 4
+      },
+      {
+        "id": "south-gate",
+        "x": 10,
+        "y": 12
+      }
+    ]
+  }
+]

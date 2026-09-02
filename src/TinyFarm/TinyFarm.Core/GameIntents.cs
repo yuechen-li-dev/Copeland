@@ -4,6 +4,10 @@ public abstract record GameIntent;
 
 public sealed record MoveIntent(LocationId Destination) : GameIntent;
 
+public sealed record SpatialMoveIntent(int DeltaX, int DeltaY, int Distance = 1) : GameIntent;
+
+public sealed record InteractIntent : GameIntent;
+
 public sealed record LookIntent : GameIntent;
 
 public sealed record TalkIntent(ActorId Target) : GameIntent;
@@ -66,7 +70,10 @@ public enum IntentReason
     WrongLocation,
     CropImmature,
     AlreadyWatered,
-    StockUnavailable
+    StockUnavailable,
+    InvalidMovement,
+    MovementBlocked,
+    NoInteraction
 }
 
 public enum GameEventKind
@@ -85,7 +92,9 @@ public enum GameEventKind
     CropAdvanced,
     CropHarvested,
     DayStarted,
-    ShopRestocked
+    ShopRestocked,
+    SceneExited,
+    SceneEntered
 }
 
 public enum DialogueTopic
@@ -111,7 +120,9 @@ public sealed record GameEvent(
     ProductId? Product = null,
     CropId? Crop = null,
     FarmPlotId? Plot = null,
-    int? Day = null);
+    int? Day = null,
+    SceneId? Scene = null,
+    SceneRouteId? Route = null);
 
 public sealed record IntentResult(IntentEnvelope Envelope, IntentResultStatus Status, IntentReason Reason, IReadOnlyList<GameEvent> Events);
 

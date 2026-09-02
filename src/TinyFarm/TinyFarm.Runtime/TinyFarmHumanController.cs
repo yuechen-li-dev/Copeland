@@ -15,6 +15,7 @@ public enum TinyFarmControl
     Plant,
     Water,
     Harvest,
+    Interact,
     Wait
 }
 
@@ -24,6 +25,11 @@ public static class TinyFarmHumanController
     {
         ArgumentNullException.ThrowIfNull(state);
         ActorState player = state.Actor(TinyFarmIds.Player);
+
+        if (state.Version >= TinyFarmState.SceneSaveVersion)
+        {
+            return MapSceneControl(control, state, player);
+        }
 
         return control switch
         {
@@ -40,6 +46,35 @@ public static class TinyFarmHumanController
             TinyFarmControl.Plant => FirstEmptyPlot(state, player) is FarmPlotState empty ? new PlantIntent(empty.Id, TinyFarmIds.TurnipCrop) : null,
             TinyFarmControl.Water => FirstPlantedPlot(state, player) is FarmPlotState planted ? new WaterIntent(planted.Id) : null,
             TinyFarmControl.Harvest => FirstPlantedPlot(state, player) is FarmPlotState crop ? new HarvestIntent(crop.Id) : null,
+            TinyFarmControl.Wait => new WaitIntent(240),
+            _ => null
+        };
+    }
+
+    private static GameIntent? MapSceneControl(TinyFarmControl control, TinyFarmState state, ActorState player)
+    {
+        return control switch
+        {
+            TinyFarmControl.MoveLeft => new SpatialMoveIntent(-1, 0),
+            TinyFarmControl.MoveRight => new SpatialMoveIntent(1, 0),
+            TinyFarmControl.MoveUp => new SpatialMoveIntent(0, -1),
+            TinyFarmControl.MoveDown => new SpatialMoveIntent(0, 1),
+            TinyFarmControl.Interact => new InteractIntent(),
+            TinyFarmControl.Look => new LookIntent(),
+            TinyFarmControl.Talk => FirstNearbyActor(state, player) is ActorState actor ? new TalkIntent(actor.Id) : null,
+            TinyFarmControl.Take => FirstGroundItem(state, player) is ItemState item ? new TakeIntent(item.Id) : null,
+            TinyFarmControl.Give => GiveFirstItem(state, player),
+            TinyFarmControl.Buy => BuyAtStore(state, player),
+            TinyFarmControl.Sell => SellAtStore(state, player),
+            TinyFarmControl.Plant => FirstEmptyPlot(state, player) is FarmPlotState empty
+                ? new PlantIntent(empty.Id, TinyFarmIds.TurnipCrop)
+                : null,
+            TinyFarmControl.Water => FirstPlantedPlot(state, player) is FarmPlotState planted
+                ? new WaterIntent(planted.Id)
+                : null,
+            TinyFarmControl.Harvest => FirstPlantedPlot(state, player) is FarmPlotState crop
+                ? new HarvestIntent(crop.Id)
+                : null,
             TinyFarmControl.Wait => new WaitIntent(240),
             _ => null
         };
@@ -74,6 +109,7 @@ public static class TinyFarmHumanController
 
     private static ActorState? FirstNearbyActor(TinyFarmState state, ActorState player) => state.Actors
         .Where(actor => !actor.IsPlayer && actor.Location == player.Location)
+        .Where(actor => AreNearWhenSpatial(state, player.Id, actor.Id))
         .OrderBy(actor => actor.Id.Value, StringComparer.Ordinal)
         .FirstOrDefault();
 
@@ -91,7 +127,7 @@ public static class TinyFarmHumanController
 
     private static GameIntent? BuyAtStore(TinyFarmState state, ActorState player)
     {
-        if (player.Location != TinyFarmIds.GeneralStore)
+        if (player.Location != TinyFarmIds.GeneralStore || !IsNearShopkeeperWhenSpatial(state, player.Id))
         {
             return null;
         }
@@ -106,7 +142,7 @@ public static class TinyFarmHumanController
 
     private static GameIntent? SellAtStore(TinyFarmState state, ActorState player)
     {
-        if (player.Location != TinyFarmIds.GeneralStore)
+        if (player.Location != TinyFarmIds.GeneralStore || !IsNearShopkeeperWhenSpatial(state, player.Id))
         {
             return null;
         }
@@ -122,11 +158,46 @@ public static class TinyFarmHumanController
 
     private static FarmPlotState? FirstEmptyPlot(TinyFarmState state, ActorState player) => state.FarmPlots
         .Where(plot => plot.Location == player.Location && plot.Crop is null)
+        .Where(plot => IsAdjacentToPlotWhenSpatial(state, player.Id, plot.Id))
         .OrderBy(plot => plot.Id.Value, StringComparer.Ordinal)
         .FirstOrDefault();
 
     private static FarmPlotState? FirstPlantedPlot(TinyFarmState state, ActorState player) => state.FarmPlots
         .Where(plot => plot.Location == player.Location && plot.Crop is not null)
+        .Where(plot => IsAdjacentToPlotWhenSpatial(state, player.Id, plot.Id))
         .OrderBy(plot => plot.Id.Value, StringComparer.Ordinal)
         .FirstOrDefault();
+
+    private static bool AreNearWhenSpatial(TinyFarmState state, ActorId first, ActorId second)
+    {
+        if (state.Version < TinyFarmState.SceneSaveVersion)
+        {
+            return true;
+        }
+
+        ActorSceneState left = state.ActorScene(first);
+        ActorSceneState right = state.ActorScene(second);
+        return left.Scene == right.Scene && left.Position.ManhattanDistance(right.Position) <= 1;
+    }
+
+    private static bool IsNearShopkeeperWhenSpatial(TinyFarmState state, ActorId actor)
+    {
+        return state.Version < TinyFarmState.SceneSaveVersion
+            || AreNearWhenSpatial(state, actor, TinyFarmIds.Sela);
+    }
+
+    private static bool IsAdjacentToPlotWhenSpatial(TinyFarmState state, ActorId actor, FarmPlotId plot)
+    {
+        if (state.Version < TinyFarmState.SceneSaveVersion)
+        {
+            return true;
+        }
+
+        ActorSceneState placement = state.ActorScene(actor);
+        SceneDefinition farm = TinyFarmScenes.Get(TinyFarmSceneIds.Farm);
+        SceneLayoutRow row = farm.Layout.Single(layout =>
+            farm.Object(layout.ObjectId).SemanticReference == plot.Value);
+        return placement.Scene == TinyFarmSceneIds.Farm
+            && placement.Position.ManhattanDistance(new GridPosition(row.X, row.Y)) == 1;
+    }
 }

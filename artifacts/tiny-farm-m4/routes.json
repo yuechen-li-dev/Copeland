@@ -1,0 +1,66 @@
+[
+  {
+    "id": "farm-overworld",
+    "sourceScene": "farm",
+    "triggerObject": "farm-exit",
+    "targetScene": "overworld",
+    "targetSpawn": "from-farm",
+    "interactionLabel": "RETURN TO OVERWORLD"
+  },
+  {
+    "id": "overworld-farm",
+    "sourceScene": "overworld",
+    "triggerObject": "farm-entrance",
+    "targetScene": "farm",
+    "targetSpawn": "from-overworld",
+    "interactionLabel": "ENTER FARM"
+  },
+  {
+    "id": "overworld-riverside",
+    "sourceScene": "overworld",
+    "triggerObject": "riverside-entrance",
+    "targetScene": "riverside",
+    "targetSpawn": "from-overworld",
+    "interactionLabel": "ENTER RIVERSIDE"
+  },
+  {
+    "id": "overworld-town",
+    "sourceScene": "overworld",
+    "triggerObject": "town-entrance",
+    "targetScene": "town",
+    "targetSpawn": "south-gate",
+    "interactionLabel": "ENTER TOWN"
+  },
+  {
+    "id": "riverside-overworld",
+    "sourceScene": "riverside",
+    "triggerObject": "riverside-exit",
+    "targetScene": "overworld",
+    "targetSpawn": "from-riverside",
+    "interactionLabel": "RETURN TO OVERWORLD"
+  },
+  {
+    "id": "store-town",
+    "sourceScene": "general-store",
+    "triggerObject": "store-exit",
+    "targetScene": "town",
+    "targetSpawn": "from-store",
+    "interactionLabel": "LEAVE STORE"
+  },
+  {
+    "id": "town-overworld",
+    "sourceScene": "town",
+    "triggerObject": "town-exit",
+    "targetScene": "overworld",
+    "targetSpawn": "from-town",
+    "interactionLabel": "RETURN TO OVERWORLD"
+  },
+  {
+    "id": "town-store",
+    "sourceScene": "town",
+    "triggerObject": "store-entrance",
+    "targetScene": "general-store",
+    "targetSpawn": "door",
+    "interactionLabel": "ENTER STORE"
+  }
+]

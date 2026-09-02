@@ -1,0 +1,157 @@
+{
+  "milestone": "TINY-FARM-M4",
+  "outcome": "A",
+  "finalStateHash": "161b4b37d988ed594a6237490f2fe1b935e356af1adf6ca98499a27868bb6c53",
+  "intentResultHash": "eddb9a3cadad7f50519549a2f0d3b5e8220de7db50fa1544d4ebe318aef8dfad",
+  "eventHash": "8b82cc12735108b22bcc58789905aa45a78d96d2973c7ab16c320a7f2978895a",
+  "sceneRouteHash": "536ec6457b490cfa2eeb3e31bbfd91fb4b963abb3f65bcf71fa9b27459f25638",
+  "projectionHash": "ce80e5f9ea335166841f12ff190d5af4041824eeb4dae38d268e412322f46ecb",
+  "m1Hash": "dcc35869aba0eba979725b1871d0babfe127383123a1a5f665b666bc3488d333",
+  "m2Hash": "4a49e221d6ffe90304143cece5b1a20fe96eecc4d10d30cf1bde11922a18ced3",
+  "m1HashPreserved": true,
+  "m2HashPreserved": true,
+  "saveLoadRestoredExactSceneAndPosition": true,
+  "seedPurchased": true,
+  "seedPlanted": true,
+  "npcCrossedScene": true,
+  "rendererOwnsGameplayState": false,
+  "sceneCount": 5,
+  "objectRows": 19,
+  "layoutRows": 19,
+  "routeRows": 8,
+  "routeReductions": [
+    {
+      "route": {
+        "value": "farm-overworld"
+      },
+      "beforeScene": {
+        "value": "farm"
+      },
+      "beforePosition": {
+        "x": 17,
+        "y": 6
+      },
+      "afterScene": {
+        "value": "overworld"
+      },
+      "afterPosition": {
+        "x": 3,
+        "y": 7
+      }
+    },
+    {
+      "route": {
+        "value": "overworld-town"
+      },
+      "beforeScene": {
+        "value": "overworld"
+      },
+      "beforePosition": {
+        "x": 11,
+        "y": 5
+      },
+      "afterScene": {
+        "value": "town"
+      },
+      "afterPosition": {
+        "x": 10,
+        "y": 12
+      }
+    },
+    {
+      "route": {
+        "value": "town-store"
+      },
+      "beforeScene": {
+        "value": "town"
+      },
+      "beforePosition": {
+        "x": 17,
+        "y": 4
+      },
+      "afterScene": {
+        "value": "general-store"
+      },
+      "afterPosition": {
+        "x": 5,
+        "y": 6
+      }
+    },
+    {
+      "route": {
+        "value": "town-store"
+      },
+      "beforeScene": {
+        "value": "town"
+      },
+      "beforePosition": {
+        "x": 17,
+        "y": 4
+      },
+      "afterScene": {
+        "value": "general-store"
+      },
+      "afterPosition": {
+        "x": 5,
+        "y": 6
+      }
+    },
+    {
+      "route": {
+        "value": "store-town"
+      },
+      "beforeScene": {
+        "value": "general-store"
+      },
+      "beforePosition": {
+        "x": 5,
+        "y": 7
+      },
+      "afterScene": {
+        "value": "town"
+      },
+      "afterPosition": {
+        "x": 16,
+        "y": 4
+      }
+    },
+    {
+      "route": {
+        "value": "town-overworld"
+      },
+      "beforeScene": {
+        "value": "town"
+      },
+      "beforePosition": {
+        "x": 10,
+        "y": 13
+      },
+      "afterScene": {
+        "value": "overworld"
+      },
+      "afterPosition": {
+        "x": 10,
+        "y": 5
+      }
+    },
+    {
+      "route": {
+        "value": "overworld-farm"
+      },
+      "beforeScene": {
+        "value": "overworld"
+      },
+      "beforePosition": {
+        "x": 2,
+        "y": 7
+      },
+      "afterScene": {
+        "value": "farm"
+      },
+      "afterPosition": {
+        "x": 16,
+        "y": 6
+      }
+    }
+  ]
+}
