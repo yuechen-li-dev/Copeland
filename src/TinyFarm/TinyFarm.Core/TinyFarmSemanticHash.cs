@@ -87,6 +87,17 @@ public static class TinyFarmSemanticHash
             }
         }
 
+        if (state.Version >= TinyFarmState.EnergySaveVersion)
+        {
+            foreach (ActorEnergyState energy in state.ActorEnergy.OrderBy(item => item.Actor.Value, StringComparer.Ordinal))
+            {
+                canonical.Append("energy|").Append(energy.Actor.Value)
+                    .Append('|').Append(energy.Energy)
+                    .Append('|').Append(energy.IsResting ? '1' : '0')
+                    .AppendLine();
+            }
+        }
+
         canonical.Append("facts|").AppendJoin(',', state.Facts.OrderBy(fact => fact));
         byte[] bytes = Encoding.UTF8.GetBytes(canonical.ToString());
         return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();

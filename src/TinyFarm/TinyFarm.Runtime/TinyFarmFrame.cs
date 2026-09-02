@@ -22,7 +22,10 @@ public sealed record TinyFarmActorView(
     bool IsPlayer,
     ActorFacing Facing = ActorFacing.Down,
     bool IsInteractionTarget = false,
-    SceneAnchorId? SemanticTarget = null);
+    SceneAnchorId? SemanticTarget = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? Energy = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool IsResting = false,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TinyFarmScheduleRegime? Regime = null);
 
 public sealed record TinyFarmItemView(
     ItemId Id,
@@ -190,6 +193,17 @@ public static class TinyFarmFrameProjector
             .Select(placement =>
             {
                 ActorState actor = state.Actor(placement.Actor);
+                int? energy = actor.IsPlayer || state.Version < TinyFarmState.EnergySaveVersion
+                    ? null
+                    : state.EnergyFor(actor.Id).Energy;
+                TinyFarmScheduleDecision? schedule = actor.IsPlayer
+                    ? null
+                    : TinyFarmNpcSchedule.Decide(
+                        definitions.Schedules,
+                        actor.Id,
+                        state.Minute,
+                        TinyFarmNpcController.CurrentAnchor(state, actor, definitions.Scenes, definitions.Schedules),
+                        energy: energy ?? TinyFarmEnergy.MaximumUnits);
                 return new TinyFarmActorView(
                     actor.Id,
                     actor.Name,
@@ -200,9 +214,10 @@ public static class TinyFarmFrameProjector
                     actor.IsPlayer,
                     placement.Facing,
                     interactionTarget?.Actor == actor.Id,
-                    actor.IsPlayer
-                        ? null
-                        : TinyFarmNpcController.ScheduledAnchor(actor.Id, state.Minute, definitions.Schedules));
+                    schedule?.SelectedAnchor,
+                    energy,
+                    energy is not null && state.EnergyFor(actor.Id).IsResting,
+                    state.Version >= TinyFarmState.EnergySaveVersion ? schedule?.Regime : null);
             })
             .ToArray();
         TinyFarmSceneObjectView[] objects = scene.Layout

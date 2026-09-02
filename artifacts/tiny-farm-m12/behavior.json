@@ -1,0 +1,167 @@
+{
+  "high": {
+    "actor": {
+      "value": "mara"
+    },
+    "minute": 1200,
+    "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+    "selectedAnchor": {
+      "value": "town.square"
+    },
+    "reason": "daily-evening-open",
+    "windowStart": 1020,
+    "windowEnd": 1320,
+    "priority": 0,
+    "windowId": "mara.free-evening",
+    "regime": "Open",
+    "utilityScores": [
+      {
+        "candidate": {
+          "value": "mara.home-bed"
+        },
+        "baseScore": 0.1,
+        "stickinessContribution": 0,
+        "energyContribution": 0.08000000000000002,
+        "score": 0.18000000000000002,
+        "selected": false,
+        "considerationKind": "energy-rest"
+      },
+      {
+        "candidate": {
+          "value": "town.square"
+        },
+        "baseScore": 0.5,
+        "stickinessContribution": 0.2,
+        "energyContribution": 0,
+        "score": 0.7,
+        "selected": true,
+        "considerationKind": "current-location-stickiness"
+      }
+    ]
+  },
+  "low": {
+    "actor": {
+      "value": "mara"
+    },
+    "minute": 1200,
+    "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+    "selectedAnchor": {
+      "value": "mara.home-bed"
+    },
+    "reason": "daily-evening-open",
+    "windowStart": 1020,
+    "windowEnd": 1320,
+    "priority": 0,
+    "windowId": "mara.free-evening",
+    "regime": "Open",
+    "utilityScores": [
+      {
+        "candidate": {
+          "value": "mara.home-bed"
+        },
+        "baseScore": 0.1,
+        "stickinessContribution": 0,
+        "energyContribution": 0.7200000000000001,
+        "score": 0.8200000000000001,
+        "selected": true,
+        "considerationKind": "energy-rest"
+      },
+      {
+        "candidate": {
+          "value": "town.square"
+        },
+        "baseScore": 0.5,
+        "stickinessContribution": 0.2,
+        "energyContribution": 0,
+        "score": 0.7,
+        "selected": false,
+        "considerationKind": "current-location-stickiness"
+      }
+    ]
+  },
+  "bedtime": {
+    "actor": {
+      "value": "mara"
+    },
+    "minute": 1320,
+    "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+    "selectedAnchor": {
+      "value": "mara.home-bed"
+    },
+    "reason": "daily-bedtime",
+    "windowStart": 1320,
+    "windowEnd": 1440,
+    "priority": 0,
+    "windowId": "mara.required-home",
+    "regime": "Required",
+    "utilityScores": []
+  },
+  "restTransitions": [
+    {
+      "minute": 1257,
+      "isResting": true
+    }
+  ],
+  "anchors": [
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "en-route",
+    "mara.home-bed",
+    "mara.home-bed"
+  ],
+  "activeNavigationPlans": 1,
+  "inactivePathQueries": 0,
+  "saveLoadValid": true
+}

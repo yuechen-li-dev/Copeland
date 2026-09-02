@@ -171,13 +171,15 @@ public sealed record TinyFarmInspectionSnapshot(
     IReadOnlyList<ShopStock> ShopStock,
     IReadOnlyList<InventoryStack> Inventory,
     SceneId? CurrentScene,
-    IReadOnlyList<ActorSceneState> ActorScenes);
+    IReadOnlyList<ActorSceneState> ActorScenes,
+    IReadOnlyList<ActorEnergyState> ActorEnergy);
 
 public static class TinyFarmInspector
 {
     private static readonly JsonSerializerOptions Options = new()
     {
         WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         Converters = { new JsonStringEnumConverter() }
     };
 
@@ -199,19 +201,21 @@ public static class TinyFarmInspector
             .OrderBy(actor => actor.Id.Value, StringComparer.Ordinal)
             .Select(actor =>
             {
-                SceneAnchorId? currentCandidate = session.ScheduleCatalog.Candidates
-                    .Select(candidate => candidate.Anchor)
-                    .Distinct()
-                    .Where(candidate => session.SceneCatalog.GetAnchor(candidate).SemanticLocation == actor.Location)
-                    .OrderBy(candidate => candidate.Value, StringComparer.Ordinal)
-                    .Cast<SceneAnchorId?>()
-                    .FirstOrDefault();
+                SceneAnchorId? currentCandidate = TinyFarmNpcController.CurrentAnchor(
+                    state,
+                    actor,
+                    session.SceneCatalog,
+                    session.ScheduleCatalog);
+                ActorEnergyState? energy = state.Version >= TinyFarmState.EnergySaveVersion
+                    ? state.EnergyFor(actor.Id)
+                    : null;
                 TinyFarmScheduleDecision schedule = TinyFarmNpcSchedule.Decide(
                     session.ScheduleCatalog,
                     actor.Id,
                     state.Minute,
                     currentCandidate,
-                    includeTrace: true);
+                    includeTrace: true,
+                    energy: energy?.Energy ?? TinyFarmEnergy.MaximumUnits);
                 return (object)new
                 {
                     self = actor.Id.Value,
@@ -222,6 +226,8 @@ public static class TinyFarmInspector
                         .OrderBy(id => id, StringComparer.Ordinal)
                         .ToArray(),
                     state.Minute,
+                    energy = energy?.Energy,
+                    isResting = energy?.IsResting ?? false,
                     schedule = new
                     {
                         regimeId = schedule.WindowId,
@@ -245,7 +251,8 @@ public static class TinyFarmInspector
             state.ShopStock,
             state.InventoryStacks,
             state.CurrentScene,
-            state.ActorScenes);
+            state.ActorScenes,
+            state.ActorEnergy);
         return JsonSerializer.Serialize(snapshot, Options);
     }
 }

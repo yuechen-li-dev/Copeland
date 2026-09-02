@@ -27,8 +27,8 @@ internal sealed class TinyFarmGame : Game
         Window.Title = "TinyFarm M5 - Continuous Navigation";
         Window.AllowUserResizing = true;
         IsMouseVisible = true;
-        definitions = TinyFarmDefinitionLoader.Load();
-        session = new TinyFarmSession(TinyFarmContent.CreateContinuousSceneState(definitions), definitions);
+        definitions = TinyFarmDefinitionLoader.LoadM12();
+        session = new TinyFarmSession(TinyFarmContent.CreateEnergySceneState(definitions), definitions);
         savePath = ReadOption(args, "--save-file")
             ?? Path.Combine(Environment.CurrentDirectory, "tiny-farm.save");
     }
@@ -209,7 +209,7 @@ internal sealed class TinyFarmGame : Game
                 item.Height * tileSize);
             Fill(rectangle, SceneObjectColor(item.Kind));
             Border(rectangle, item.BlocksMovement ? new Color(45, 39, 31) : new Color(224, 192, 96), Math.Max(1, tileSize / 24));
-            if (item.Kind is SceneObjectKind.Portal or SceneObjectKind.Landmark or SceneObjectKind.Shop)
+            if (item.Kind is SceneObjectKind.Portal or SceneObjectKind.Landmark or SceneObjectKind.Shop or SceneObjectKind.Bed)
             {
                 int textScale = tileSize >= 72 ? 2 : 1;
                 BitmapText.Draw(
@@ -266,6 +266,17 @@ internal sealed class TinyFarmGame : Game
                 new Vector2(centerX - (actorWidth / 2), rectangle.Bottom + 2),
                 Color.White,
                 tileSize >= 72 ? 2 : 1);
+            if (actor.Energy is int energy)
+            {
+                string activity = actor.IsResting ? "RESTING" : actor.Regime?.ToString().ToUpperInvariant() ?? "ACTIVE";
+                BitmapText.Draw(
+                    spriteBatch!,
+                    pixel!,
+                    $"ENERGY {energy / 100d:0.00}  {activity}",
+                    new Vector2(centerX - (actorWidth / 2), rectangle.Bottom + (tileSize >= 72 ? 24 : 12)),
+                    actor.IsResting ? new Color(135, 220, 255) : new Color(204, 221, 190),
+                    1);
+            }
         }
     }
 
@@ -421,6 +432,7 @@ internal sealed class TinyFarmGame : Game
             SceneObjectKind.Shop => new Color(178, 115, 65),
             SceneObjectKind.Landmark => new Color(190, 164, 105),
             SceneObjectKind.Decoration => new Color(52, 126, 174),
+            SceneObjectKind.Bed => new Color(74, 111, 153),
             _ => new Color(91, 103, 70)
         };
     }

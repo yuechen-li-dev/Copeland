@@ -89,6 +89,12 @@ if (args.Contains("--repl", StringComparer.Ordinal))
     return;
 }
 
+if (args.Contains("--m12-control", StringComparer.Ordinal))
+{
+    RunM12Control();
+    return;
+}
+
 bool runM1 = args.Contains("--m1", StringComparer.Ordinal);
 bool runM3 = args.Contains("--m3", StringComparer.Ordinal);
 bool runM4 = args.Contains("--m4", StringComparer.Ordinal);
@@ -99,6 +105,7 @@ bool runM8 = args.Contains("--m8", StringComparer.Ordinal);
 bool runM9 = args.Contains("--m9", StringComparer.Ordinal);
 bool runM10 = args.Contains("--m10", StringComparer.Ordinal);
 bool runM11 = args.Contains("--m11", StringComparer.Ordinal);
+bool runM12 = args.Contains("--m12", StringComparer.Ordinal);
 if (args.Contains("--single-week", StringComparer.Ordinal))
 {
     TinyFarmDefinitions singleDefinitions = TinyFarmDefinitionLoader.Load();
@@ -111,8 +118,11 @@ TinyFarmM8Evidence? m8Evidence = runM8 ? TinyFarmScheduleScenario.Prove() : null
 TinyFarmM9Evidence? m9Evidence = runM9 ? TinyFarmTsonScheduleScenario.Prove() : null;
 TinyFarmM10Evidence? m10Evidence = runM10 ? TinyFarmHybridScheduleScenario.Prove() : null;
 TinyFarmM11Evidence? m11Evidence = runM11 ? TinyFarmPersistentActionScenario.Prove() : null;
+TinyFarmM12Evidence? m12Evidence = runM12 ? TinyFarmEnergyScenario.Prove() : null;
 object proof = runM1
     ? TinyFarmCanonicalScenario.Prove()
+    : runM12
+        ? m12Evidence!.Proof
     : runM11
         ? m11Evidence!.Proof
     : runM10
@@ -134,6 +144,8 @@ object proof = runM1
         : TinyFarmWeekScenario.Prove();
 string json = runM1
     ? TinyFarmCanonicalScenario.WriteProofJson((TinyFarmM1Proof)proof)
+    : runM12
+        ? TinyFarmEnergyScenario.WriteJson(proof)
     : runM11
         ? TinyFarmPersistentActionScenario.WriteJson(proof)
     : runM10
@@ -178,6 +190,21 @@ if (runM3 || runM4)
             ? TinyFarmSceneScenario.Prove().FinalProjection
             : TinyFarmGraphicalScenario.Prove().FinalProjection;
         File.WriteAllText(path, TinyFarmFrameProjector.WriteJson(projection) + Environment.NewLine);
+    }
+}
+
+if (runM12)
+{
+    int artifactIndex = Array.IndexOf(args, "--artifact-dir");
+    if (artifactIndex >= 0)
+    {
+        string directory = RequiredOutputPath(args, artifactIndex, "--artifact-dir");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, "proof.json"), TinyFarmEnergyScenario.WriteJson(m12Evidence!.Proof) + Environment.NewLine);
+        File.WriteAllText(Path.Combine(directory, "energy.json"), TinyFarmEnergyScenario.WriteJson(m12Evidence.Energy) + Environment.NewLine);
+        File.WriteAllText(Path.Combine(directory, "behavior.json"), TinyFarmEnergyScenario.WriteJson(m12Evidence.Behavior) + Environment.NewLine);
+        File.WriteAllText(Path.Combine(directory, "homes.json"), TinyFarmEnergyScenario.WriteJson(m12Evidence.Homes) + Environment.NewLine);
+        File.WriteAllText(Path.Combine(directory, "manifest.json"), TinyFarmEnergyScenario.WriteJson(m12Evidence.Manifest) + Environment.NewLine);
     }
 }
 
@@ -385,6 +412,8 @@ if (!runM1 && !runM3 && !runM4 && !runM5 && !runM6 && !runM7 && !runM8 && !runM9
 Console.WriteLine(json);
 string outcome = runM1
     ? ((TinyFarmM1Proof)proof).Outcome
+    : runM12
+        ? ((TinyFarmM12Proof)proof).Outcome
     : runM11
         ? ((TinyFarmM11Proof)proof).Outcome
     : runM10
@@ -457,6 +486,58 @@ static void RunRepl()
         catch (FormatException exception)
         {
             Console.WriteLine(exception.Message);
+        }
+    }
+}
+
+static void RunM12Control()
+{
+    TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.LoadM12();
+    var session = new TinyFarmSession(TinyFarmM12ControlStates.Create(definitions, "high-open"), definitions);
+    IReadOnlyList<IntentResult> lastResults = [];
+    Console.WriteLine("TinyFarm M12 control ready. Commands: scenario <phase>, inspect, frame, wait <minutes>, quit.");
+
+    while (Console.ReadLine() is string line)
+    {
+        string command = line.Trim();
+        if (command.Length == 0)
+        {
+            continue;
+        }
+        if (command.Equals("quit", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        try
+        {
+            if (command.StartsWith("scenario ", StringComparison.OrdinalIgnoreCase))
+            {
+                string phase = command["scenario ".Length..].Trim();
+                session = new TinyFarmSession(TinyFarmM12ControlStates.Create(definitions, phase), definitions);
+                lastResults = [];
+                Console.WriteLine(TinyFarmInspector.WriteJson(session, lastResults));
+                continue;
+            }
+            if (command.Equals("inspect", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine(TinyFarmInspector.WriteJson(session, lastResults));
+                continue;
+            }
+            if (command.Equals("frame", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine(TinyFarmFrameProjector.WriteJson(
+                    TinyFarmFrameProjector.Project(session.State, definitions)));
+                continue;
+            }
+
+            TinyFarmStepResult step = session.Step(TinyFarmCommandParser.Parse(command));
+            lastResults = step.Results;
+            Console.WriteLine(TinyFarmInspector.WriteJson(session, lastResults));
+        }
+        catch (Exception exception) when (exception is FormatException or IOException or InvalidDataException)
+        {
+            Console.WriteLine($"ERROR: {exception.Message}");
         }
     }
 }

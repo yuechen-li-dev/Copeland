@@ -135,18 +135,16 @@ public static class TinyFarmNpcController
                      .Where(candidate => !candidate.IsPlayer)
                      .OrderBy(candidate => candidate.Id.Value, StringComparer.Ordinal))
         {
-            SceneAnchorId? currentAnchor = schedules.Candidates
-                .Select(candidate => candidate.Anchor)
-                .Distinct()
-                .Where(candidate => scenes.GetAnchor(candidate).SemanticLocation == actor.Location)
-                .OrderBy(candidate => candidate.Value, StringComparer.Ordinal)
-                .Cast<SceneAnchorId?>()
-                .FirstOrDefault();
+            SceneAnchorId? currentAnchor = CurrentAnchor(state, actor, scenes, schedules);
+            int energy = state.Version >= TinyFarmState.EnergySaveVersion
+                ? state.EnergyFor(actor.Id).Energy
+                : TinyFarmEnergy.MaximumUnits;
             SceneAnchorId scheduledAnchor = TinyFarmNpcSchedule.Decide(
                 scheduleRuntime,
                 actor.Id,
                 observationMinute,
-                currentAnchor).SelectedAnchor;
+                currentAnchor,
+                energy: energy).SelectedAnchor;
             SceneAnchorDefinition anchor = scenes.GetAnchor(scheduledAnchor);
             LocationId destination = anchor.SemanticLocation
                 ?? throw new InvalidDataException($"NPC schedule anchor '{scheduledAnchor}' has no semantic location.");
@@ -171,7 +169,12 @@ public static class TinyFarmNpcController
                     && state.ShopStock.Any(stock => stock.Product == TinyFarmIds.TurnipSeed && stock.Count > 0)
                     && actor.Money >= 2);
 
-            GameIntent intent = TinyFarmNpcFlow.Decide(observation);
+            GameIntent intent = state.Version >= TinyFarmState.EnergySaveVersion
+                && hasReachedAnchor
+                && TinyFarmAnchorIds.IsHomeBed(scheduledAnchor)
+                && !state.EnergyFor(actor.Id).IsResting
+                    ? new AnchorReachedIntent(scheduledAnchor)
+                    : TinyFarmNpcFlow.Decide(observation);
             envelopes.Add(new IntentEnvelope(
                 actor.Id,
                 intent,
@@ -181,6 +184,35 @@ public static class TinyFarmNpcController
         }
 
         return envelopes;
+    }
+
+    public static SceneAnchorId? CurrentAnchor(
+        TinyFarmState state,
+        ActorState actor,
+        TinyFarmSceneCatalog scenes,
+        TinyFarmScheduleCatalog schedules)
+    {
+        IEnumerable<SceneAnchorId> candidateAnchors = schedules.Candidates
+            .Select(candidate => candidate.Anchor)
+            .Distinct();
+        if (state.Version >= TinyFarmState.EnergySaveVersion)
+        {
+            ActorSceneState placement = state.ActorScene(actor.Id);
+            return candidateAnchors
+                .Select(scenes.GetAnchor)
+                .Where(anchor => anchor.Scene == placement.Scene
+                    && placement.WorldPosition.SquaredDistance(anchor.Position)
+                        <= (long)anchor.ArrivalRadiusUnits * anchor.ArrivalRadiusUnits)
+                .OrderBy(anchor => anchor.Id.Value, StringComparer.Ordinal)
+                .Select(anchor => (SceneAnchorId?)anchor.Id)
+                .FirstOrDefault();
+        }
+
+        return candidateAnchors
+            .Where(candidate => scenes.GetAnchor(candidate).SemanticLocation == actor.Location)
+            .OrderBy(candidate => candidate.Value, StringComparer.Ordinal)
+            .Select(candidate => (SceneAnchorId?)candidate)
+            .FirstOrDefault();
     }
 
     public static LocationId ScheduledDestination(

@@ -25,6 +25,9 @@ public readonly record struct TinyFarmScheduleDecision(
 
 public readonly record struct TinyFarmUtilityScore(
     SceneAnchorId Candidate,
+    double BaseScore,
+    double StickinessContribution,
+    double EnergyContribution,
     double Score,
     bool Selected,
     string ConsiderationKind);
@@ -43,6 +46,7 @@ public static partial class TinyFarmNpcSchedule
     private static readonly BbKey<TinyFarmScheduleCatalog> ScheduleCatalog = new("TinyFarm.Schedule.Catalog");
     private static readonly BbKey<TinyFarmScheduleWindow> ActiveWindow = new("TinyFarm.Schedule.Window");
     private static readonly BbKey<string> CurrentAnchor = new("TinyFarm.Schedule.CurrentAnchor");
+    private static readonly BbKey<EnergyObservation> Energy = new("TinyFarm.Schedule.Energy");
 
     private static readonly UtilityOption[] ScheduleOptions = CreateScheduleOptions();
     private static readonly Decide ScheduleDecisionStep = Ai.Decide(
@@ -72,6 +76,18 @@ public static partial class TinyFarmNpcSchedule
     [DominatusState("SelectFarmHome")]
     private static IEnumerator<AiStep> SelectFarmHome(AiCtx context)
     {
+        TinyFarmScheduleCatalog catalog = context.Bb.GetOrDefault(ScheduleCatalog, null!);
+        TinyFarmScheduleWindow window = context.Bb.GetOrDefault(ActiveWindow, null!);
+        if (catalog is not null && window is not null)
+        {
+            foreach (TinyFarmUtilityCandidate candidate in catalog.CandidatesFor(window))
+            {
+                if (candidate.ConsiderationKind == "energy-rest")
+                {
+                    return Select(context, candidate.Anchor);
+                }
+            }
+        }
         return Select(context, TinyFarmAnchorIds.FarmHome);
     }
 
@@ -110,10 +126,11 @@ public static partial class TinyFarmNpcSchedule
         ActorId actor,
         int minute,
         SceneAnchorId? currentAnchor = null,
-        bool includeTrace = false)
+        bool includeTrace = false,
+        int energy = TinyFarmEnergy.MaximumUnits)
     {
         ArgumentNullException.ThrowIfNull(runtime);
-        return DecideCore(runtime.Catalog, actor, minute, currentAnchor, includeTrace, runtime);
+        return DecideCore(runtime.Catalog, actor, minute, currentAnchor, includeTrace, energy, runtime);
     }
 
     public static TinyFarmScheduleDecision Decide(
@@ -121,9 +138,10 @@ public static partial class TinyFarmNpcSchedule
         ActorId actor,
         int minute,
         SceneAnchorId? currentAnchor = null,
-        bool includeTrace = false)
+        bool includeTrace = false,
+        int energy = TinyFarmEnergy.MaximumUnits)
     {
-        return DecideCore(catalog, actor, minute, currentAnchor, includeTrace, null);
+        return DecideCore(catalog, actor, minute, currentAnchor, includeTrace, energy, null);
     }
 
     private static TinyFarmScheduleDecision DecideCore(
@@ -132,6 +150,7 @@ public static partial class TinyFarmNpcSchedule
         int minute,
         SceneAnchorId? currentAnchor,
         bool includeTrace,
+        int energy,
         Runtime? suppliedRuntime)
     {
         ArgumentNullException.ThrowIfNull(catalog);
@@ -153,17 +172,17 @@ public static partial class TinyFarmNpcSchedule
 
         Interlocked.Increment(ref openUtilityDecisions);
         ArraySegment<TinyFarmUtilityCandidate> candidates = catalog.CandidatesFor(window);
-        SceneAnchorId expectedAnchor = SelectExpectedAnchor(candidates, currentAnchor);
+        SceneAnchorId expectedAnchor = SelectExpectedAnchor(candidates, currentAnchor, energy);
         Runtime runtime = suppliedRuntime
             ?? Runtimes.GetValue(catalog, static value => new Runtime(value));
-        SceneAnchorId anchor = runtime.Decide(actor, window, currentAnchor, expectedAnchor);
+        SceneAnchorId anchor = runtime.Decide(actor, window, currentAnchor, energy, expectedAnchor);
         if (expectedAnchor != anchor)
         {
             throw new InvalidOperationException(
                 $"Dominatus selected schedule anchor '{anchor}', but Open window '{window.Id}' expected '{expectedAnchor}'.");
         }
         IReadOnlyList<TinyFarmUtilityScore> scores = includeTrace
-            ? MaterializeScores(candidates, currentAnchor, anchor)
+            ? MaterializeScores(candidates, currentAnchor, energy, anchor)
             : Array.Empty<TinyFarmUtilityScore>();
         return CreateDecision(window, actor, minute, anchor, scores);
     }
@@ -187,7 +206,9 @@ public static partial class TinyFarmNpcSchedule
             TinyFarmScheduleWindow window = agent.Bb.GetOrDefault(ActiveWindow, null!)
                 ?? throw new InvalidOperationException("TinyFarm active schedule window was not observed.");
             string currentAnchor = agent.Bb.GetOrDefault(CurrentAnchor, string.Empty);
-            return Score(catalog, window, currentAnchor, anchor);
+            int energy = agent.Bb.GetOrDefault(Energy, null!)?.Value
+                ?? TinyFarmEnergy.MaximumUnits;
+            return Score(catalog, window, currentAnchor, energy, anchor);
         });
     }
 
@@ -222,6 +243,7 @@ public static partial class TinyFarmNpcSchedule
         TinyFarmScheduleCatalog catalog,
         TinyFarmScheduleWindow window,
         string currentAnchor,
+        int energy,
         SceneAnchorId anchor)
     {
         if (window.Regime != TinyFarmScheduleRegime.Open)
@@ -233,11 +255,14 @@ public static partial class TinyFarmNpcSchedule
         for (int index = 0; index < candidates.Count; index++)
         {
             TinyFarmUtilityCandidate candidate = candidates[index];
-            if (candidate.Anchor == anchor)
+            bool personalBedOption = anchor == TinyFarmAnchorIds.FarmHome
+                && candidate.ConsiderationKind == "energy-rest";
+            if (candidate.Anchor == anchor || personalBedOption)
             {
                 return (float)CandidateScore(
                     candidate,
-                    currentAnchor.Length == 0 ? null : new SceneAnchorId(currentAnchor));
+                    currentAnchor.Length == 0 ? null : new SceneAnchorId(currentAnchor),
+                    energy);
             }
         }
 
@@ -304,7 +329,8 @@ public static partial class TinyFarmNpcSchedule
 
     private static SceneAnchorId SelectExpectedAnchor(
         ArraySegment<TinyFarmUtilityCandidate> candidates,
-        SceneAnchorId? currentAnchor)
+        SceneAnchorId? currentAnchor,
+        int energy)
     {
         if (candidates.Count == 0)
         {
@@ -312,11 +338,11 @@ public static partial class TinyFarmNpcSchedule
         }
 
         TinyFarmUtilityCandidate winner = candidates[0];
-        double winningScore = CandidateScore(winner, currentAnchor);
+        double winningScore = CandidateScore(winner, currentAnchor, energy);
         for (int index = 1; index < candidates.Count; index++)
         {
             TinyFarmUtilityCandidate candidate = candidates[index];
-            double candidateScore = CandidateScore(candidate, currentAnchor);
+            double candidateScore = CandidateScore(candidate, currentAnchor, energy);
             if (candidateScore > winningScore
                 || (candidateScore == winningScore
                     && AnchorOptionOrder(candidate.Anchor) < AnchorOptionOrder(winner.Anchor)))
@@ -332,15 +358,23 @@ public static partial class TinyFarmNpcSchedule
     private static TinyFarmUtilityScore[] MaterializeScores(
         ArraySegment<TinyFarmUtilityCandidate> candidates,
         SceneAnchorId? currentAnchor,
+        int energy,
         SceneAnchorId selectedAnchor)
     {
         var scores = new TinyFarmUtilityScore[candidates.Count];
         for (int index = 0; index < candidates.Count; index++)
         {
             TinyFarmUtilityCandidate candidate = candidates[index];
+            double stickiness = candidate.Anchor == currentAnchor ? candidate.CurrentLocationBonus : 0d;
+            double energyContribution = candidate.ConsiderationKind == "energy-rest"
+                ? TinyFarmEnergy.RestContribution(energy)
+                : 0d;
             scores[index] = new TinyFarmUtilityScore(
                 candidate.Anchor,
-                CandidateScore(candidate, currentAnchor),
+                candidate.BaseScore,
+                stickiness,
+                energyContribution,
+                candidate.BaseScore + stickiness + energyContribution,
                 candidate.Anchor == selectedAnchor,
                 candidate.ConsiderationKind);
         }
@@ -350,10 +384,15 @@ public static partial class TinyFarmNpcSchedule
 
     private static double CandidateScore(
         TinyFarmUtilityCandidate candidate,
-        SceneAnchorId? currentAnchor)
+        SceneAnchorId? currentAnchor,
+        int energy)
     {
+        double energyContribution = candidate.ConsiderationKind == "energy-rest"
+            ? TinyFarmEnergy.RestContribution(energy)
+            : 0d;
         return candidate.BaseScore
-            + (candidate.Anchor == currentAnchor ? candidate.CurrentLocationBonus : 0d);
+            + (candidate.Anchor == currentAnchor ? candidate.CurrentLocationBonus : 0d)
+            + energyContribution;
     }
 
     private static int AnchorOptionOrder(SceneAnchorId anchor)
@@ -378,6 +417,9 @@ public static partial class TinyFarmNpcSchedule
         {
             return 4;
         }
+        if (anchor == TinyFarmAnchorIds.EliasHomeBed) return 5;
+        if (anchor == TinyFarmAnchorIds.MaraHomeBed) return 6;
+        if (anchor == TinyFarmAnchorIds.SelaHomeBed) return 7;
         throw new InvalidOperationException($"No Dominatus schedule option exists for anchor '{anchor}'.");
     }
 
@@ -415,13 +457,14 @@ public static partial class TinyFarmNpcSchedule
             ActorId actor,
             TinyFarmScheduleWindow window,
             SceneAnchorId? currentAnchor,
+            int energy,
             SceneAnchorId expectedAnchor)
         {
             ActorScheduleRuntime runtime = _actors.GetOrAdd(
                 actor,
                 static (actorId, catalog) => new ActorScheduleRuntime(actorId, catalog),
                 _catalog);
-            return runtime.Decide(window, currentAnchor, expectedAnchor);
+            return runtime.Decide(window, currentAnchor, energy, expectedAnchor);
         }
     }
 
@@ -431,24 +474,28 @@ public static partial class TinyFarmNpcSchedule
         private readonly AiWorld _world = new();
         private readonly AiAgent _agent;
         private readonly object _gate = new();
+        private readonly EnergyObservation _energy = new();
 
         public ActorScheduleRuntime(ActorId actor, TinyFarmScheduleCatalog catalog)
         {
             _actor = actor;
             _agent = new AiAgent(Definition.CreateBrain());
             _agent.Bb.Set(ScheduleCatalog, catalog);
+            _agent.Bb.Set(Energy, _energy);
             _world.Add(_agent);
         }
 
         public SceneAnchorId Decide(
             TinyFarmScheduleWindow window,
             SceneAnchorId? currentAnchor,
+            int energy,
             SceneAnchorId expectedAnchor)
         {
             lock (_gate)
             {
                 _agent.Bb.Set(ActiveWindow, window);
                 _agent.Bb.Set(CurrentAnchor, currentAnchor?.Value ?? string.Empty);
+                _energy.Value = energy;
                 for (int tick = 0; tick < 8; tick++)
                 {
                     _agent.Tick(_world);
@@ -463,5 +510,10 @@ public static partial class TinyFarmNpcSchedule
                     $"Dominatus did not produce a bounded schedule decision for actor '{_actor}'.");
             }
         }
+    }
+
+    private sealed class EnergyObservation
+    {
+        public int Value { get; set; } = TinyFarmEnergy.MaximumUnits;
     }
 }

@@ -274,12 +274,14 @@ public sealed class TinyFarmScheduleCatalog
                 && candidate.Anchor != TinyFarmAnchorIds.FarmWorkArea
                 && candidate.Anchor != TinyFarmAnchorIds.TownSquare
                 && candidate.Anchor != TinyFarmAnchorIds.StoreCounter
-                && candidate.Anchor != TinyFarmAnchorIds.RiversideMeetingPoint)
+                && candidate.Anchor != TinyFarmAnchorIds.RiversideMeetingPoint
+                && !TinyFarmAnchorIds.IsHomeBed(candidate.Anchor))
             {
                 throw new InvalidDataException(
                     $"Utility candidate anchor '{candidate.Anchor}' has no Dominatus schedule option.");
             }
-            if (candidate.ConsiderationKind != "current-location-stickiness")
+            if (candidate.ConsiderationKind != "current-location-stickiness"
+                && candidate.ConsiderationKind != "energy-rest")
             {
                 throw new InvalidDataException($"Utility candidate for '{candidate.WindowId}' has unknown consideration kind '{candidate.ConsiderationKind}'.");
             }
@@ -287,7 +289,9 @@ public sealed class TinyFarmScheduleCatalog
                 || !double.IsFinite(candidate.CurrentLocationBonus)
                 || candidate.BaseScore <= 0d
                 || candidate.CurrentLocationBonus < 0d
-                || candidate.BaseScore + candidate.CurrentLocationBonus > 1d)
+                || candidate.BaseScore + candidate.CurrentLocationBonus > 1d
+                || (candidate.ConsiderationKind == "energy-rest"
+                    && !TinyFarmAnchorIds.IsHomeBed(candidate.Anchor)))
             {
                 throw new InvalidDataException(
                     $"Utility candidate for '{candidate.WindowId}' requires a positive base score and a total score in (0, 1].");

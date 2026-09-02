@@ -1,0 +1,78 @@
+{
+  "scene": {
+    "value": "residence"
+  },
+  "homes": [
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "bedAnchor": {
+        "value": "elias.home-bed"
+      },
+      "bedObject": {
+        "value": "elias-bed"
+      }
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "bedAnchor": {
+        "value": "mara.home-bed"
+      },
+      "bedObject": {
+        "value": "mara-bed"
+      }
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "bedAnchor": {
+        "value": "sela.home-bed"
+      },
+      "bedObject": {
+        "value": "sela-bed"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "id": {
+        "value": "farm-residence"
+      },
+      "sourceScene": {
+        "value": "farm"
+      },
+      "triggerObject": {
+        "value": "residence-entrance"
+      },
+      "targetScene": {
+        "value": "residence"
+      },
+      "targetAnchor": {
+        "value": "residence.from-farm"
+      },
+      "interactionLabel": "ENTER HEARTH HOUSE"
+    },
+    {
+      "id": {
+        "value": "residence-farm"
+      },
+      "sourceScene": {
+        "value": "residence"
+      },
+      "triggerObject": {
+        "value": "residence-exit"
+      },
+      "targetScene": {
+        "value": "farm"
+      },
+      "targetAnchor": {
+        "value": "farm.from-overworld"
+      },
+      "interactionLabel": "LEAVE HEARTH HOUSE"
+    }
+  ]
+}

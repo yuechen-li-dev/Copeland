@@ -12,8 +12,8 @@ internal static class TinyFarmLlmControl
 
     public static void Run(string[] args)
     {
-        TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.Load();
-        var session = new TinyFarmSession(TinyFarmContent.CreateContinuousSceneState(definitions), definitions);
+        TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.LoadM12();
+        var session = new TinyFarmSession(TinyFarmContent.CreateEnergySceneState(definitions), definitions);
         string savePath = ReadOption(args, "--save-file")
             ?? Path.Combine(Environment.CurrentDirectory, "tiny-farm.save");
         WriteResponse("ready", null, session, definitions, []);
@@ -37,6 +37,14 @@ internal static class TinyFarmLlmControl
                 if (command.Equals("inspect", StringComparison.OrdinalIgnoreCase))
                 {
                     WriteResponse("inspect", null, session, definitions, []);
+                    continue;
+                }
+
+                if (command.StartsWith("scenario ", StringComparison.OrdinalIgnoreCase))
+                {
+                    string phase = command["scenario ".Length..].Trim();
+                    session = new TinyFarmSession(TinyFarmM12ControlStates.Create(definitions, phase), definitions);
+                    WriteResponse("scenario", phase, session, definitions, []);
                     continue;
                 }
 

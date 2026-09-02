@@ -40,6 +40,7 @@ public sealed record CropDefinition(CropId Id, ProductId SeedItemId, ProductId H
 public sealed record InventoryStack(ActorId Actor, ProductId Product, int Count);
 public sealed record ShopStock(ProductId Product, int Count, int DailyRestockCount);
 public sealed record FarmPlotState(FarmPlotId Id, LocationId Location, CropId? Crop, int? PlantedDay, int GrowthStage, bool WateredToday);
+public sealed record ActorEnergyState(ActorId Actor, int Energy, bool IsResting);
 public sealed record SceneContentSource(string Path, string Sha256, long ByteLength);
 public sealed record SceneContentProvenance(
     string Format,
@@ -83,6 +84,10 @@ public sealed class TinyFarmDefinitions
                 throw new InvalidDataException($"Crop definition '{crop.Id}' is invalid for TinyFarm M2 semantics.");
             }
         }
+        if (Scenes.All.Any(scene => scene.Id == TinyFarmSceneIds.Residence))
+        {
+            ValidatePersonalHomes();
+        }
     }
 
     public string Identity { get; }
@@ -94,6 +99,48 @@ public sealed class TinyFarmDefinitions
     public ScheduleContentProvenance ScheduleContent { get; }
     public ItemDefinition Item(ProductId id) => Items.Single(item => item.Id == id);
     public CropDefinition Crop(CropId id) => Crops.Single(crop => crop.Id == id);
+
+    private void ValidatePersonalHomes()
+    {
+        ActorId[] npcs = [TinyFarmIds.Elias, TinyFarmIds.Mara, TinyFarmIds.Sela];
+        var ownedObjects = new HashSet<SceneObjectId>();
+        foreach (ActorId actor in npcs)
+        {
+            SceneAnchorId bedId = TinyFarmAnchorIds.HomeBedFor(actor);
+            SceneAnchorDefinition bed = Scenes.GetAnchor(bedId);
+            if (bed.Scene != TinyFarmSceneIds.Residence
+                || bed.Kind != SceneAnchorKind.Rest
+                || bed.SemanticObject is not SceneObjectId objectId)
+            {
+                throw new InvalidDataException($"NPC '{actor}' requires one reachable personal Rest anchor in the residence scene.");
+            }
+
+            SceneObjectDefinition bedObject = Scenes.Get(bed.Scene).Object(objectId);
+            if (bedObject.Kind != SceneObjectKind.Bed
+                || bedObject.SemanticReference != actor.Value
+                || !ownedObjects.Add(objectId))
+            {
+                throw new InvalidDataException($"NPC '{actor}' requires one uniquely owned Bed object.");
+            }
+
+            if (!Schedules.Windows.Any(window => window.Actor == actor
+                && window.Regime == TinyFarmScheduleRegime.Required
+                && window.RequiredAnchor == bedId))
+            {
+                throw new InvalidDataException($"NPC '{actor}' requires a structural bedtime window targeting their own bed.");
+            }
+
+            foreach (TinyFarmUtilityCandidate rest in Schedules.Candidates.Where(candidate =>
+                         candidate.ConsiderationKind == "energy-rest"
+                         && Schedules.Windows.Single(window => window.Id == candidate.WindowId).Actor == actor))
+            {
+                if (rest.Anchor != bedId)
+                {
+                    throw new InvalidDataException($"NPC '{actor}' has an Open Rest candidate targeting another NPC's bed.");
+                }
+            }
+        }
+    }
 }
 
 public enum FavorStage
@@ -122,11 +169,13 @@ public sealed class TinyFarmState
     private readonly List<ShopStock> shopStock;
     private readonly List<FarmPlotState> farmPlots;
     private readonly List<ActorSceneState> actorScenes;
+    private readonly List<ActorEnergyState> actorEnergy;
 
     public const int M1SaveVersion = 1;
     public const int SaveVersion = 2;
     public const int SceneSaveVersion = 3;
     public const int ContinuousSceneSaveVersion = 4;
+    public const int EnergySaveVersion = 5;
 
     [JsonConstructor]
     public TinyFarmState(
@@ -140,7 +189,8 @@ public sealed class TinyFarmState
         IReadOnlyList<InventoryStack>? inventoryStacks = null,
         IReadOnlyList<ShopStock>? shopStock = null,
         IReadOnlyList<FarmPlotState>? farmPlots = null,
-        IReadOnlyList<ActorSceneState>? actorScenes = null)
+        IReadOnlyList<ActorSceneState>? actorScenes = null,
+        IReadOnlyList<ActorEnergyState>? actorEnergy = null)
     {
         Version = version;
         Minute = minute;
@@ -153,6 +203,7 @@ public sealed class TinyFarmState
         this.shopStock = shopStock?.ToList() ?? [];
         this.farmPlots = farmPlots?.ToList() ?? [];
         this.actorScenes = actorScenes?.ToList() ?? [];
+        this.actorEnergy = actorEnergy?.ToList() ?? [];
     }
 
     public int Version { get; }
@@ -167,6 +218,7 @@ public sealed class TinyFarmState
     public IReadOnlyList<ShopStock> ShopStock => shopStock;
     public IReadOnlyList<FarmPlotState> FarmPlots => farmPlots;
     public IReadOnlyList<ActorSceneState> ActorScenes => actorScenes;
+    public IReadOnlyList<ActorEnergyState> ActorEnergy => actorEnergy;
     public SceneId? CurrentScene => actorScenes.SingleOrDefault(item => item.Actor == TinyFarmIds.Player)?.Scene;
     internal List<ActorState> MutableActors => actors;
     internal List<ItemState> MutableItems => items;
@@ -175,9 +227,11 @@ public sealed class TinyFarmState
     internal List<ShopStock> MutableShopStock => shopStock;
     internal List<FarmPlotState> MutableFarmPlots => farmPlots;
     internal List<ActorSceneState> MutableActorScenes => actorScenes;
+    internal List<ActorEnergyState> MutableActorEnergy => actorEnergy;
     public ActorState Actor(ActorId id) => Actors.Single(actor => actor.Id == id);
     public ItemState Item(ItemId id) => Items.Single(item => item.Id == id);
     public ActorSceneState ActorScene(ActorId id) => ActorScenes.Single(item => item.Actor == id);
+    public ActorEnergyState EnergyFor(ActorId id) => ActorEnergy.Single(item => item.Actor == id);
     public int ProductCount(ActorId actor, ProductId product)
     {
         return InventoryStacks
@@ -198,7 +252,8 @@ public sealed class TinyFarmState
             InventoryStacks.ToList(),
             ShopStock.ToList(),
             FarmPlots.ToList(),
-            ActorScenes.ToList());
+            ActorScenes.ToList(),
+            ActorEnergy.ToList());
     }
 }
 
@@ -341,5 +396,64 @@ public static class TinyFarmContent
             scene.ShopStock.ToList(),
             scene.FarmPlots.ToList(),
             scene.ActorScenes.ToList());
+    }
+
+    public static TinyFarmState CreateEnergySceneState(TinyFarmDefinitions definitions)
+    {
+        TinyFarmState scene = CreateContinuousSceneState(definitions);
+        var energyState = new TinyFarmState(
+            TinyFarmState.EnergySaveVersion,
+            scene.Minute,
+            scene.Actors.Select(actor => actor with { Inventory = actor.Inventory.ToList() }).ToList(),
+            scene.Items.ToList(),
+            scene.Facts.ToList(),
+            scene.Favor,
+            scene.DefinitionSetId,
+            scene.InventoryStacks.ToList(),
+            scene.ShopStock.ToList(),
+            scene.FarmPlots.ToList(),
+            scene.ActorScenes.ToList(),
+            [
+                new(TinyFarmIds.Elias, TinyFarmEnergy.InitialUnits, false),
+                new(TinyFarmIds.Mara, TinyFarmEnergy.InitialUnits, false),
+                new(TinyFarmIds.Sela, TinyFarmEnergy.InitialUnits, false)
+            ]);
+        SceneAnchorDefinition residenceEntry = definitions.Scenes.GetAnchor(new SceneAnchorId("residence.from-farm"));
+        int playerPlacement = energyState.MutableActorScenes.FindIndex(item => item.Actor == TinyFarmIds.Player);
+        energyState.MutableActorScenes[playerPlacement] = new ActorSceneState(
+            TinyFarmIds.Player,
+            residenceEntry.Scene,
+            residenceEntry.Position);
+        return energyState;
+    }
+}
+
+public static class TinyFarmEnergy
+{
+    public const int MinimumUnits = 0;
+    public const int MaximumUnits = 10_000;
+    public const int InitialUnits = 9_000;
+    public const int ActiveDecayUnitsPerMinute = 8;
+    public const int RestRecoveryUnitsPerMinute = 40;
+
+    public static int Advance(int energy, bool isResting, int minutes)
+    {
+        if (energy is < MinimumUnits or > MaximumUnits || minutes < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(energy), "Energy and elapsed minutes must be within their finite bounds.");
+        }
+
+        int rate = isResting ? RestRecoveryUnitsPerMinute : -ActiveDecayUnitsPerMinute;
+        return Math.Clamp(checked(energy + (rate * minutes)), MinimumUnits, MaximumUnits);
+    }
+
+    public static double RestContribution(int energy)
+    {
+        if (energy is < MinimumUnits or > MaximumUnits)
+        {
+            throw new ArgumentOutOfRangeException(nameof(energy));
+        }
+
+        return (MaximumUnits - energy) / (double)MaximumUnits * 0.8d;
     }
 }

@@ -98,6 +98,7 @@ public static class TinyFarmChunkedSaveCodec
     public const string RuntimeVersion = "tiny-farm-m2@2";
     public const string SceneRuntimeVersion = "tiny-farm-m4@3";
     public const string ContinuousSceneRuntimeVersion = "tiny-farm-m5@4";
+    public const string EnergyRuntimeVersion = "tiny-farm-m12@5";
     public static readonly ChunkId WorldChunk = new("tinyfarm.world");
     public static readonly ChunkId RuntimeChunk = new("tinyfarm.runtime");
     public static readonly ChunkId AgentChunk = new("tinyfarm.agents");
@@ -178,7 +179,8 @@ public static class TinyFarmChunkedSaveCodec
     {
         if (state.Version != TinyFarmState.SaveVersion
             && state.Version != TinyFarmState.SceneSaveVersion
-            && state.Version != TinyFarmState.ContinuousSceneSaveVersion)
+            && state.Version != TinyFarmState.ContinuousSceneSaveVersion
+            && state.Version != TinyFarmState.EnergySaveVersion)
         {
             throw new InvalidDataException($"Unsupported TinyFarm game save version {state.Version}.");
         }
@@ -281,10 +283,26 @@ public static class TinyFarmChunkedSaveCodec
                 }
             }
         }
+
+        if (state.Version >= TinyFarmState.EnergySaveVersion)
+        {
+            ActorId[] npcActors = state.Actors.Where(actor => !actor.IsPlayer).Select(actor => actor.Id).ToArray();
+            if (state.ActorEnergy.Count != npcActors.Length
+                || state.ActorEnergy.Select(item => item.Actor).Distinct().Count() != npcActors.Length
+                || state.ActorEnergy.Any(item => !npcActors.Contains(item.Actor)
+                    || item.Energy is < TinyFarmEnergy.MinimumUnits or > TinyFarmEnergy.MaximumUnits))
+            {
+                throw new InvalidDataException("TinyFarm Energy state requires one finite, bounded row per NPC.");
+            }
+        }
     }
 
     private static string RuntimeVersionFor(int gameVersion)
     {
+        if (gameVersion >= TinyFarmState.EnergySaveVersion)
+        {
+            return EnergyRuntimeVersion;
+        }
         if (gameVersion >= TinyFarmState.ContinuousSceneSaveVersion)
         {
             return ContinuousSceneRuntimeVersion;

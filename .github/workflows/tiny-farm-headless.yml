@@ -224,6 +224,54 @@ jobs:
             throw "TinyFarm M11 evidence exceeded the compact five-file artifact budget."
           }
 
+      - name: Validate Energy and Rest M12 behavior
+        shell: pwsh
+        run: |
+          $artifactDirectory = Join-Path $env:RUNNER_TEMP "tiny-farm-m12"
+          dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --m12 --artifact-dir $artifactDirectory
+          if ($LASTEXITCODE -ne 0) {
+            throw "TinyFarm M12 Energy and Rest proof failed."
+          }
+
+          $proof = Get-Content -Raw -LiteralPath (Join-Path $artifactDirectory "proof.json") | ConvertFrom-Json
+          if ($proof.outcome -ne "A" -or
+              -not $proof.personalHomesValid -or
+              -not $proof.highEnergyNonRest -or
+              -not $proof.lowEnergyRest -or
+              -not $proof.requiredOverridesUtility -or
+              -not $proof.requiredSkipsUtility -or
+              -not $proof.activeRestValid -or
+              -not $proof.inactiveRestValid -or
+              -not $proof.saveLoadValid -or
+              -not $proof.repeatDeterministic -or
+              -not $proof.headless -or
+              $proof.candidateLookupBytes -ne 0 -or
+              $proof.energyScorerBytes -ne 0 -or
+              $proof.openBytes -gt 640 -or
+              $proof.m1Hash -ne "dcc35869aba0eba979725b1871d0babfe127383123a1a5f665b666bc3488d333" -or
+              $proof.m2Hash -ne "4a49e221d6ffe90304143cece5b1a20fe96eecc4d10d30cf1bde11922a18ced3" -or
+              $proof.sceneContentHash -ne "7c40c8070ce4a944fd7fbd655d6d9eda607397d19215ca873fd4b039353be600" -or
+              $proof.scheduleContentHash -ne "d5f62e2fab9e22d1cb717f6d8e26a9423f657065682a37937c32e5a3260e2564") {
+            throw "TinyFarm M12 proof did not satisfy the Energy and Rest contract."
+          }
+
+          $expectedFiles = @("behavior.json", "energy.json", "homes.json", "manifest.json", "proof.json")
+          $artifactFiles = @(Get-ChildItem -LiteralPath $artifactDirectory -File | Sort-Object Name)
+          if ($artifactFiles.Count -ne 5 -or
+              (Compare-Object $expectedFiles $artifactFiles.Name) -or
+              ($artifactFiles | Where-Object Length -gt 262144)) {
+            throw "TinyFarm M12 evidence exceeded the compact five-file artifact budget."
+          }
+
+          $controlOutput = @("scenario low-open", "inspect", "quit") |
+            dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --m12-control |
+            Out-String
+          if ($LASTEXITCODE -ne 0 -or
+              $controlOutput -notmatch '"energy": 1000' -or
+              $controlOutput -notmatch '"value": "mara.home-bed"') {
+            throw "TinyFarm M12 CLI control smoke test failed."
+          }
+
       - name: Enforce repository artifact budget
         shell: pwsh
         run: ./tools/Test-ArtifactBudget.ps1 -Paths @()

@@ -1,0 +1,15 @@
+{
+  "milestone": "TINY-FARM-M12",
+  "kind": "first-protosim-energy-rest-behavior",
+  "energyNeedAdded": true,
+  "additionalNeedsAdded": false,
+  "personalLivingSpacesAdded": true,
+  "personalBedAnchorsAdded": true,
+  "openUtilityUsesEnergy": true,
+  "requiredBedtimeStillStructural": true,
+  "utilityCanOverrideRequired": false,
+  "persistentDominatusRuntimeRetained": true,
+  "candidateLookupAllocates": false,
+  "genericNeedsFrameworkAdded": false,
+  "newPlannerAdded": false
+}

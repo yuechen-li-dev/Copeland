@@ -71,6 +71,7 @@ public enum SceneAnchorKind
     ShopCounter,
     Home,
     Social,
+    Rest,
     Exit
 }
 
@@ -81,7 +82,8 @@ public enum SceneObjectKind
     Prop,
     Shop,
     Landmark,
-    Decoration
+    Decoration,
+    Bed
 }
 
 public sealed record SceneObjectDefinition(
@@ -195,6 +197,7 @@ public static class TinyFarmSceneIds
     public static readonly SceneId Town = new("town");
     public static readonly SceneId GeneralStore = new("general-store");
     public static readonly SceneId Riverside = new("riverside");
+    public static readonly SceneId Residence = new("residence");
 }
 
 public static class TinyFarmAnchorIds
@@ -204,6 +207,22 @@ public static class TinyFarmAnchorIds
     public static readonly SceneAnchorId TownSquare = new("town.square");
     public static readonly SceneAnchorId StoreCounter = new("general-store.counter");
     public static readonly SceneAnchorId RiversideMeetingPoint = new("riverside.meeting-point");
+    public static readonly SceneAnchorId EliasHomeBed = new("elias.home-bed");
+    public static readonly SceneAnchorId MaraHomeBed = new("mara.home-bed");
+    public static readonly SceneAnchorId SelaHomeBed = new("sela.home-bed");
+
+    public static SceneAnchorId HomeBedFor(ActorId actor)
+    {
+        if (actor == TinyFarmIds.Elias) return EliasHomeBed;
+        if (actor == TinyFarmIds.Mara) return MaraHomeBed;
+        if (actor == TinyFarmIds.Sela) return SelaHomeBed;
+        throw new KeyNotFoundException($"Actor '{actor}' has no personal bed.");
+    }
+
+    public static bool IsHomeBed(SceneAnchorId anchor)
+    {
+        return anchor == EliasHomeBed || anchor == MaraHomeBed || anchor == SelaHomeBed;
+    }
 }
 
 public sealed class TinyFarmSceneCatalog
@@ -292,7 +311,7 @@ public static class TinyFarmScenes
 
     public static LocationId LocationForScene(SceneId scene)
     {
-        if (scene == TinyFarmSceneIds.Farm)
+        if (scene == TinyFarmSceneIds.Farm || scene == TinyFarmSceneIds.Residence)
         {
             return TinyFarmIds.Farmhouse;
         }
@@ -313,6 +332,7 @@ public static class TinyFarmScenes
     public static bool SceneAgreesWithLocation(SceneId scene, LocationId location)
     {
         return SceneForLocation(location) == scene
+            || scene == TinyFarmSceneIds.Residence && location == TinyFarmIds.Farmhouse
             || scene == TinyFarmSceneIds.Overworld && location == TinyFarmIds.TownSquare;
     }
 

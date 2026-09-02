@@ -1,0 +1,357 @@
+{
+  "representation": "fixed integer units",
+  "range": {
+    "minimum": 0,
+    "maximum": 10000
+  },
+  "initial": 9000,
+  "activeDecayUnitsPerMinute": 8,
+  "restRecoveryUnitsPerMinute": 40,
+  "restContribution": "(10000 - Energy) / 10000 * 0.8",
+  "timeline": [
+    {
+      "minute": 1201,
+      "energy": 992,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1202,
+      "energy": 984,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1203,
+      "energy": 976,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1204,
+      "energy": 968,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1205,
+      "energy": 960,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1206,
+      "energy": 952,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1207,
+      "energy": 944,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1208,
+      "energy": 936,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1209,
+      "energy": 928,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1210,
+      "energy": 920,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1211,
+      "energy": 912,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1212,
+      "energy": 904,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1213,
+      "energy": 896,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1214,
+      "energy": 888,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1215,
+      "energy": 880,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1216,
+      "energy": 872,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1217,
+      "energy": 864,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1218,
+      "energy": 856,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1219,
+      "energy": 848,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1220,
+      "energy": 840,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1221,
+      "energy": 832,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1222,
+      "energy": 824,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1223,
+      "energy": 816,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1224,
+      "energy": 808,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1225,
+      "energy": 800,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1226,
+      "energy": 792,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1227,
+      "energy": 784,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1228,
+      "energy": 776,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1229,
+      "energy": 768,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1230,
+      "energy": 760,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1231,
+      "energy": 752,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1232,
+      "energy": 744,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1233,
+      "energy": 736,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1234,
+      "energy": 728,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1235,
+      "energy": 720,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1236,
+      "energy": 712,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1237,
+      "energy": 704,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1238,
+      "energy": 696,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1239,
+      "energy": 688,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1240,
+      "energy": 680,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1241,
+      "energy": 672,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1242,
+      "energy": 664,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1243,
+      "energy": 656,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1244,
+      "energy": 648,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1245,
+      "energy": 640,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1246,
+      "energy": 632,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1247,
+      "energy": 624,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1248,
+      "energy": 616,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1249,
+      "energy": 608,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1250,
+      "energy": 600,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1251,
+      "energy": 592,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1252,
+      "energy": 584,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1253,
+      "energy": 576,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1254,
+      "energy": 568,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1255,
+      "energy": 560,
+      "isResting": false,
+      "anchor": null
+    },
+    {
+      "minute": 1256,
+      "energy": 552,
+      "isResting": false,
+      "anchor": "mara.home-bed"
+    },
+    {
+      "minute": 1257,
+      "energy": 544,
+      "isResting": true,
+      "anchor": "mara.home-bed"
+    }
+  ],
+  "oneDayHash": "c90a20aadb8b821f5dd669294768d9a3c126bf74df61b843c26352c792544bd5",
+  "sevenDayHash": "fc5aceb1e49165c94f4c716e191ecf25da9f1c05b0c79474d7ca486aa6d45b29"
+}

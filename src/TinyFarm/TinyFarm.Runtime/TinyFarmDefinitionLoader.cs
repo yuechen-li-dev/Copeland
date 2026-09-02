@@ -29,8 +29,20 @@ public static class TinyFarmDefinitionLoader
 
     public static TinyFarmDefinitions Load(string? path = null)
     {
+        return LoadCore(path, null, isM12: false);
+    }
+
+    public static TinyFarmDefinitions LoadM12(string? path = null)
+    {
         string productPath = Path.GetFullPath(path ?? DefaultPath);
-        string contentDirectory = Path.GetDirectoryName(productPath)!;
+        string contentDirectory = Path.Combine(Path.GetDirectoryName(productPath)!, "M12");
+        return LoadCore(productPath, contentDirectory, isM12: true);
+    }
+
+    private static TinyFarmDefinitions LoadCore(string? path, string? contentOverride, bool isM12)
+    {
+        string productPath = Path.GetFullPath(path ?? DefaultPath);
+        string contentDirectory = contentOverride ?? Path.GetDirectoryName(productPath)!;
         string source = File.ReadAllText(productPath);
         TsonTable products = ReadTable(
             source,
@@ -77,6 +89,10 @@ public static class TinyFarmDefinitionLoader
         (TinyFarmSceneCatalog scenes, SceneContentProvenance sceneProvenance) = LoadSceneCatalog(contentDirectory);
         (TinyFarmScheduleCatalog schedules, ScheduleContentProvenance scheduleProvenance) =
             LoadScheduleCatalog(Path.Combine(contentDirectory, ScheduleFileName), scenes);
+        if (isM12)
+        {
+            identity = $"{identity};m12-scenes:{sceneProvenance.AggregateSha256};m12-schedules:{scheduleProvenance.AggregateSha256}";
+        }
         return new TinyFarmDefinitions(
             identity,
             items,
@@ -541,6 +557,9 @@ public static class TinyFarmDefinitionLoader
         {
             SceneObjectKind.Plot => reference == TinyFarmIds.PlotOne.Value || reference == TinyFarmIds.PlotTwo.Value,
             SceneObjectKind.Shop => reference == TinyFarmIds.GeneralStore.Value,
+            SceneObjectKind.Bed => reference == TinyFarmIds.Elias.Value
+                || reference == TinyFarmIds.Mara.Value
+                || reference == TinyFarmIds.Sela.Value,
             _ => reference is null
         };
         if (!valid)

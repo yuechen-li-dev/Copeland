@@ -113,8 +113,35 @@ public sealed class TinyFarmResolver
         {
             return Rejected(envelope, IntentReason.InvalidAnchorRealization);
         }
+        if (state.Version >= TinyFarmState.EnergySaveVersion
+            && !TinyFarmAnchorIds.IsHomeBed(intent.Anchor))
+        {
+            SetResting(state, actor.Id, false);
+        }
         if (actor.Location == resolvedDestination)
         {
+            if (state.Version >= TinyFarmState.EnergySaveVersion)
+            {
+                ActorSceneState currentPlacement = state.ActorScene(actor.Id);
+                if (currentPlacement.Scene != anchor.Scene
+                    || currentPlacement.WorldPosition.SquaredDistance(anchor.Position) > (long)anchor.ArrivalRadiusUnits * anchor.ArrivalRadiusUnits)
+                {
+                    ReplaceActorScene(state, currentPlacement with
+                    {
+                        Scene = anchor.Scene,
+                        WorldPosition = anchor.Position,
+                        Facing = anchor.Facing ?? currentPlacement.Facing
+                    });
+                    SetResting(state, actor.Id, TinyFarmAnchorIds.IsHomeBed(intent.Anchor));
+                    return Accepted(envelope, new GameEvent(
+                        GameEventKind.AnchorReached,
+                        actor.Id,
+                        Location: resolvedDestination,
+                        Scene: anchor.Scene,
+                        SceneObject: anchor.SemanticObject,
+                        Anchor: anchor.Id));
+                }
+            }
             return NoOp(envelope, IntentReason.AlreadyThere);
         }
 
@@ -165,6 +192,10 @@ public sealed class TinyFarmResolver
         if (anchor.Facing is ActorFacing facing && placement.Facing != facing)
         {
             ReplaceActorScene(state, placement with { Facing = facing });
+        }
+        if (state.Version >= TinyFarmState.EnergySaveVersion)
+        {
+            SetResting(state, actor.Id, TinyFarmAnchorIds.IsHomeBed(intent.Anchor));
         }
         return Accepted(
             envelope,
@@ -224,6 +255,10 @@ public sealed class TinyFarmResolver
                 WorldPosition = ScenePosition.FromGrid(targetTile),
                 Facing = facing
             });
+            if (state.Version >= TinyFarmState.EnergySaveVersion)
+            {
+                SetResting(state, actor.Id, false);
+            }
             return Accepted(
                 envelope,
                 new GameEvent(GameEventKind.ActorMoved, actor.Id, Location: actor.Location, Scene: placement.Scene));
@@ -245,6 +280,10 @@ public sealed class TinyFarmResolver
         }
 
         ReplaceActorScene(state, placement with { WorldPosition = target, Facing = facing });
+        if (state.Version >= TinyFarmState.EnergySaveVersion)
+        {
+            SetResting(state, actor.Id, false);
+        }
         return Accepted(
             envelope,
             new GameEvent(GameEventKind.ActorMoved, actor.Id, Location: actor.Location, Scene: placement.Scene));
@@ -627,6 +666,17 @@ public sealed class TinyFarmResolver
             new(GameEventKind.TimeAdvanced, actor.Id, Amount: intent.Minutes)
         };
         int previousDay = state.Day;
+        if (state.Version >= TinyFarmState.EnergySaveVersion)
+        {
+            for (int index = 0; index < state.MutableActorEnergy.Count; index++)
+            {
+                ActorEnergyState current = state.MutableActorEnergy[index];
+                state.MutableActorEnergy[index] = current with
+                {
+                    Energy = TinyFarmEnergy.Advance(current.Energy, current.IsResting, intent.Minutes)
+                };
+            }
+        }
         state.Minute += intent.Minutes;
         for (int day = previousDay + 1; day <= state.Day; day++)
         {
@@ -881,6 +931,16 @@ public sealed class TinyFarmResolver
     {
         int index = state.MutableActorScenes.FindIndex(item => item.Actor == replacement.Actor);
         state.MutableActorScenes[index] = replacement;
+    }
+
+    private static void SetResting(TinyFarmState state, ActorId actor, bool isResting)
+    {
+        int index = state.MutableActorEnergy.FindIndex(item => item.Actor == actor);
+        if (index >= 0)
+        {
+            ActorEnergyState current = state.MutableActorEnergy[index];
+            state.MutableActorEnergy[index] = current with { IsResting = isResting };
+        }
     }
 
     private static bool ActorsAreNearWhenSpatial(TinyFarmState state, ActorId first, ActorId second)
