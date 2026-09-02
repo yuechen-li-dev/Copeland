@@ -1701,6 +1701,42 @@ public sealed class JavaScriptRuntimeTests
         Assert.Equal(string.Empty, adversarialResult.StdErr);
     }
 
+    [Fact]
+    public async Task Production_profile_constructs_payload_enums_in_table_constants()
+    {
+        const string source = """
+            enum ReadingState { Missing, Present(value: number), }
+            record table Readings { state: ReadingState = [ReadingState.Present(3)]; }
+            function main(): number {
+                const row: Readings.Row = Readings[0]!;
+                const value: number = match row.state {
+                    Missing => 0,
+                    Present(value) => value,
+                };
+                const bounds: number = match Readings.state[9] {
+                    ok(state) => 0,
+                    err(error) => match error {
+                        InvalidIndex(index) => 100,
+                        OutOfBounds(index, rowCount) => rowCount,
+                    },
+                };
+                return value + bounds;
+            }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptCompilation production = JavaScriptBackend.Emit(
+            compilation.MirCompilation!.Program!,
+            new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Production });
+
+        Assert.True(production.Success, string.Join(Environment.NewLine, production.Diagnostics));
+        ProcessResult result = await RunNodeAsync(production.SourceText + "console.log(main());\n");
+
+        Assert.Equal("4\n", result.StdOut);
+        Assert.Equal(string.Empty, result.StdErr);
+    }
+
     private static JavaScriptCompilation Emit(string source)
     {
         CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);

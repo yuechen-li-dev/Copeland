@@ -1,0 +1,86 @@
+{
+  "milestone": "CTS-OPT-M0",
+  "taxonomyMethod": "Byte-exact contiguous generated-source regions plus lexical definition and call-site counts; no post-emission transformation was performed.",
+  "programs": [
+    {
+      "name": "Application",
+      "totalBytes": 40683,
+      "categories": [
+        { "category": "RUNTIME_HELPER", "bytes": 560, "classification": "MANDATORY_RUNTIME_SEMANTICS" },
+        { "category": "TYPE_CARRIER", "bytes": 17291, "classification": "MANDATORY_RUNTIME_SEMANTICS_WITH_POTENTIALLY_DEAD_MEMBERS" },
+        { "category": "ENUM_RUNTIME", "bytes": 2015, "classification": "MANDATORY_RUNTIME_SEMANTICS" },
+        { "category": "RESULT_RUNTIME", "bytes": 4128, "classification": "MANDATORY_RUNTIME_SEMANTICS" },
+        { "category": "USER_LOGIC_AND_TEMPORARY_STAGING", "bytes": 16689, "classification": "REQUIRED_ORDERING_WITH_LOCAL_SIMPLIFICATION_PRESSURE" }
+      ],
+      "generatedValidatorCallSites": 38,
+      "generatedLocals": 150,
+      "singleUseGeneratedLocals": 55,
+      "constantConditionBranches": 0
+    },
+    {
+      "name": "Tables",
+      "totalBytes": 45849,
+      "categories": [
+        { "category": "RUNTIME_HELPER", "bytes": 630, "classification": "MANDATORY_RUNTIME_SEMANTICS" },
+        { "category": "TYPE_CARRIER", "bytes": 1512, "classification": "MANDATORY_RUNTIME_SEMANTICS" },
+        { "category": "ENUM_RUNTIME", "bytes": 3060, "classification": "MANDATORY_RUNTIME_SEMANTICS" },
+        { "category": "RESULT_RUNTIME", "bytes": 8284, "classification": "MANDATORY_RUNTIME_SEMANTICS_WITH_ONE_DEAD_VALIDATOR" },
+        { "category": "TABLE_RUNTIME", "bytes": 13640, "classification": "MANDATORY_RUNTIME_SEMANTICS_WITH_DUPLICATED_COLUMN_SHAPES" },
+        { "category": "USER_LOGIC_AND_TEMPORARY_STAGING", "bytes": 18723, "classification": "REQUIRED_ORDERING_WITH_REDUNDANT_INTERNAL_VALIDATION" }
+      ],
+      "generatedValidatorCallSites": 79,
+      "generatedLocals": 149,
+      "singleUseGeneratedLocals": 41,
+      "constantConditionBranches": 0
+    },
+    {
+      "name": "Flow",
+      "totalBytes": 21321,
+      "categories": [
+        { "category": "RUNTIME_HELPER", "bytes": 391, "classification": "MANDATORY_RUNTIME_SEMANTICS" },
+        { "category": "TYPE_CARRIER", "bytes": 3694, "classification": "MANDATORY_RUNTIME_SEMANTICS_WITH_ONE_DEAD_CARRIER_FAMILY" },
+        { "category": "ENUM_RUNTIME", "bytes": 1826, "classification": "MANDATORY_RUNTIME_SEMANTICS" },
+        { "category": "USER_LOGIC", "bytes": 2287, "classification": "MANDATORY_RUNTIME_SEMANTICS" },
+        { "category": "FLOW_RUNTIME", "bytes": 13123, "classification": "MANDATORY_RUNTIME_SEMANTICS" }
+      ],
+      "generatedValidatorCallSites": 6,
+      "generatedLocals": 21,
+      "singleUseGeneratedLocals": 2,
+      "constantConditionBranches": 0
+    },
+    {
+      "name": "AsyncBatchGenerator",
+      "totalBytes": 14213,
+      "categories": [
+        { "category": "ASYNC_RUNTIME", "bytes": 5491, "classification": "MANDATORY_RUNTIME_SEMANTICS_WITH_ONE_UNUSED_SEAM_IN_THIS_PROGRAM" },
+        { "category": "RUNTIME_HELPER", "bytes": 305, "classification": "MANDATORY_RUNTIME_SEMANTICS" },
+        { "category": "TYPE_CARRIER", "bytes": 4561, "classification": "MANDATORY_RUNTIME_SEMANTICS_WITH_DEAD_RECORD_MEMBERS" },
+        { "category": "RESULT_RUNTIME", "bytes": 1017, "classification": "MANDATORY_RUNTIME_SEMANTICS" },
+        { "category": "USER_LOGIC_BATCH_GENERATOR", "bytes": 2839, "classification": "MANDATORY_RUNTIME_SEMANTICS" }
+      ],
+      "generatedValidatorCallSites": 3,
+      "generatedLocals": 27,
+      "singleUseGeneratedLocals": 3,
+      "constantConditionBranches": 0
+    }
+  ],
+  "compileTimeOnlyResidue": {
+    "template": 0,
+    "static": 0,
+    "reflect": 0,
+    "typeAliases": 0,
+    "interfaces": 0
+  },
+  "sourceMaps": "No JavaScript source-map artifact is emitted by this corpus. Generated names and readable staging are the current correlation surface.",
+  "productionProfile": {
+    "existingPolicy": "Compiler-created record and enum values use a more compact representation, and validation is retained for explicitly named boundary functions.",
+    "diagnosticCorpusBytes": 122066,
+    "productionCorpusBytes": 101737,
+    "byteReduction": 20329,
+    "byteReductionPercent": 16.65,
+    "tablesProductionBytes": 43535,
+    "tablesProductionRatio": 16.946,
+    "tablesProductionValidatorCallSites": 70,
+    "finding": "Production is already a trusted-internal profile for record and enum access, but table and Result lowering still carries most checked-profile validation."
+  }
+}

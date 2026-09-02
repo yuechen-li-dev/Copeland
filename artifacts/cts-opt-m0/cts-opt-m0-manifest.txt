@@ -1,0 +1,17 @@
+CTS-OPT-M0 compiler optimization reconnaissance
+outcome: B
+JavaScript primary target: true
+C# spot checked: true
+dead code audited: true
+helper duplication audited: true
+runtime validators classified: true
+table runtime deep dive: true
+MIR optimization boundary: MIR_NEEDS_SMALL_ANALYSIS_METADATA
+experimental fix applied: true (production table enum representation)
+optimizer framework added: false
+SSA added: false
+semantic guarantees weakened: false
+Oblivion changed: false
+validation passed: true
+canonical playback: 14/14
+exact next recommendations: 3

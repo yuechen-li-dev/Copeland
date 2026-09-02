@@ -1,0 +1,19 @@
+{
+  "milestone": "CTS-OPT-M0",
+  "experimentalFixApplied": true,
+  "scope": "Production-profile table enum construction only",
+  "before": {
+    "result": "FAIL",
+    "firstFailure": "ReferenceError: __cope_m3_instances_13 is not defined during table singleton initialization",
+    "secondFailureAfterRegistrationRepair": "Copeland JavaScript backend invariant failure while matching a production TableBoundsError built with the Diagnostic payload shape"
+  },
+  "after": {
+    "result": "PASS",
+    "diagnosticRuntimeOutputSha256": "09cce4a6ef6781ba44aead7eaae84f580ba21bf794f0c6880b619288003c6915",
+    "productionRuntimeOutputSha256": "09cce4a6ef6781ba44aead7eaae84f580ba21bf794f0c6880b619288003c6915",
+    "productionJsBytes": 43535,
+    "productionJsSha256": "d5e90b979f6127b192a1a070ff8979fec19ff584783efe902a32832e3a9768ea",
+    "focusedTests": "2/2 Production_profile tests passed"
+  },
+  "semanticEffect": "No language-law change. Table constants and bounds errors now use the already-selected Production enum representation."
+}

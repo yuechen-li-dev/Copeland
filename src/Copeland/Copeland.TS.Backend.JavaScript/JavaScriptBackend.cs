@@ -1463,9 +1463,12 @@ public static class JavaScriptBackend
             writer.WriteLine($"function {names.MakeValue}(type, tag, payload) {{");
             writer.Indent();
             writer.WriteLine("const value = Object.freeze(Object.assign(Object.create(null), { $type: type, $tag: tag, $payload: Object.freeze(payload) }));");
-            foreach (EnumInfo enumInfo in catalog.Enums)
+            if (!IsProduction(names))
             {
-                writer.WriteLine($"if (type === {names.TypeToken(enumInfo)}) {names.EnumInstances(enumInfo)}.add(value);");
+                foreach (EnumInfo enumInfo in catalog.Enums)
+                {
+                    writer.WriteLine($"if (type === {names.TypeToken(enumInfo)}) {names.EnumInstances(enumInfo)}.add(value);");
+                }
             }
             writer.WriteLine("return value;");
             writer.Unindent();
@@ -1971,7 +1974,8 @@ public static class JavaScriptBackend
         GeneratedNames names,
         bool usesTableWith)
     {
-        var boundsErrorToken = names.TypeToken(catalog.GetEnum("TableBoundsError"));
+        EnumInfo boundsError = catalog.GetEnum("TableBoundsError");
+        var boundsErrorToken = names.TypeToken(boundsError);
         writer.WriteLine($"const {names.TableTypeToken(table)} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.TableTypeToken(table), table.Id.Value))});");
         if (names.UsesTsonTableEncoding)
         {
@@ -2033,7 +2037,7 @@ public static class JavaScriptBackend
             }
             writer.WriteLine($"[{names.ColumnReadSlot}]: {{ value: (index) => {{");
             writer.Indent();
-            EmitBoundsCheckedResult(writer, "index", table.RowCount, column.ElementType, results, names, boundsErrorToken, $"{names.TableStorage(column)}[index]");
+            EmitBoundsCheckedResult(writer, "index", table.RowCount, column.ElementType, results, names, boundsError, boundsErrorToken, $"{names.TableStorage(column)}[index]");
             writer.Unindent();
             writer.WriteLine("}, writable: false, enumerable: false, configurable: false },");
             writer.Unindent();
@@ -2052,7 +2056,7 @@ public static class JavaScriptBackend
         writer.WriteLine($"[{names.TableRowReadSlot(table)}]: {{ value: (index) => {{");
         writer.Indent();
         MirResultType rowResult = new(new MirTableRowType(table.RowTypeId, table.Name + ".Row"), new MirNamedType("TableBoundsError"));
-        EmitBoundsCheckedResult(writer, "index", table.RowCount, rowResult.SuccessType, results, names, boundsErrorToken, $"{names.TableCreateRow(table)}(value, index)");
+        EmitBoundsCheckedResult(writer, "index", table.RowCount, rowResult.SuccessType, results, names, boundsError, boundsErrorToken, $"{names.TableCreateRow(table)}(value, index)");
         writer.Unindent();
         writer.WriteLine("}, writable: false, enumerable: false, configurable: false },");
         foreach (MirTableColumnDefinition column in table.Columns)
@@ -2119,19 +2123,34 @@ public static class JavaScriptBackend
         MirType successType,
         ResultCatalog results,
         GeneratedNames names,
+        EnumInfo boundsError,
         string boundsErrorToken,
         string successValue)
     {
         MirResultType resultType = new(successType, new MirNamedType("TableBoundsError"));
         var resultToken = names.TypeToken(results.Get(resultType));
+        string invalidIndex = IsProduction(names)
+            ? EmitProductionEnumConstruction(
+                boundsError,
+                boundsError.Definition.Cases.Single(candidate => string.Equals(candidate.Name, "InvalidIndex", StringComparison.Ordinal)),
+                names,
+                [index])
+            : $"{names.MakeValue}({boundsErrorToken}, \"InvalidIndex\", [{index}])";
+        string outOfBounds = IsProduction(names)
+            ? EmitProductionEnumConstruction(
+                boundsError,
+                boundsError.Definition.Cases.Single(candidate => string.Equals(candidate.Name, "OutOfBounds", StringComparison.Ordinal)),
+                names,
+                [index, rowCount.ToString(System.Globalization.CultureInfo.InvariantCulture)])
+            : $"{names.MakeValue}({boundsErrorToken}, \"OutOfBounds\", [{index}, {rowCount}])";
         writer.WriteLine($"if (!Number.isFinite({index}) || !Number.isInteger({index})) {{");
         writer.Indent();
-        writer.WriteLine($"return {names.MakeValue}({resultToken}, \"err\", [{names.MakeValue}({boundsErrorToken}, \"InvalidIndex\", [{index}])]);");
+        writer.WriteLine($"return {names.MakeValue}({resultToken}, \"err\", [{invalidIndex}]);");
         writer.Unindent();
         writer.WriteLine("}");
         writer.WriteLine($"if ({index} < 0 || {index} >= {rowCount}) {{");
         writer.Indent();
-        writer.WriteLine($"return {names.MakeValue}({resultToken}, \"err\", [{names.MakeValue}({boundsErrorToken}, \"OutOfBounds\", [{index}, {rowCount}])]);");
+        writer.WriteLine($"return {names.MakeValue}({resultToken}, \"err\", [{outOfBounds}]);");
         writer.Unindent();
         writer.WriteLine("}");
         writer.WriteLine($"return {names.MakeValue}({resultToken}, \"ok\", [{successValue}]);");
@@ -2146,10 +2165,30 @@ public static class JavaScriptBackend
             MirTableLiteralConstant literal => JavaScriptLiteralWriter.WriteNumber(literal.Value),
             MirTableArrayConstant array => $"Object.freeze([{string.Join(", ", array.Elements.Select(element => EmitTableConstant(element, catalog, results, names))) }])",
             MirTableRecordConstant record => EmitTableRecordConstant(record, catalog, results, names),
-            MirTableEnumConstant value => $"{names.MakeValue}({names.TypeToken(catalog.GetEnum(value.EnumName))}, {JavaScriptLiteralWriter.WriteString(value.CaseName)}, [{string.Join(", ", value.Payloads.Select(payload => EmitTableConstant(payload, catalog, results, names)))}])",
+            MirTableEnumConstant value => EmitTableEnumConstant(value, catalog, results, names),
             MirTableResultConstant result => $"{names.MakeValue}({names.TypeToken(results.Get(result.Type))}, \"{(result.IsOk ? "ok" : "err")}\", [{EmitTableConstant(result.Payload, catalog, results, names)}])",
             _ => throw new InvalidOperationException($"Unsupported validated table constant {constant.GetType().Name}."),
         };
+    }
+
+    private static string EmitTableEnumConstant(
+        MirTableEnumConstant value,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names)
+    {
+        EnumInfo enumInfo = catalog.GetEnum(value.EnumName);
+        string[] payloads = value.Payloads
+            .Select(payload => EmitTableConstant(payload, catalog, results, names))
+            .ToArray();
+        if (IsProduction(names))
+        {
+            MirEnumCase enumCase = enumInfo.Definition.Cases.Single(
+                candidate => string.Equals(candidate.Name, value.CaseName, StringComparison.Ordinal));
+            return EmitProductionEnumConstruction(enumInfo, enumCase, names, payloads);
+        }
+
+        return $"{names.MakeValue}({names.TypeToken(enumInfo)}, {JavaScriptLiteralWriter.WriteString(value.CaseName)}, [{string.Join(", ", payloads)}])";
     }
 
     private static string EmitTableRecordConstant(MirTableRecordConstant constant, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)

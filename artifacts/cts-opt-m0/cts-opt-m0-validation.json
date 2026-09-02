@@ -1,0 +1,30 @@
+{
+  "milestone": "CTS-OPT-M0",
+  "status": "passed",
+  "commands": [
+    { "command": "dotnet test Copeland.slnx -m:1", "passed": true, "tests": 1741 },
+    { "command": "dotnet test JointTaskForce.slnx -m:1", "passed": true },
+    { "command": "dotnet test Oblivion.slnx -m:1", "passed": true, "tests": 237 },
+    { "command": "dotnet test Machina.UI.slnx -m:1", "passed": true, "tests": 674 },
+    { "command": "dotnet test Machina.UI.Slow.slnx -m:1", "passed": true, "tests": 308 },
+    { "command": "dotnet build Machina.UI.slnx --no-restore -m:1", "passed": true, "warnings": 0, "errors": 0 },
+    { "command": "dotnet test Aurelian.slnx --no-build -m:1", "passed": true, "tests": 657 },
+    { "command": "dotnet test Copeland.TS.Backend.JavaScript.Tests --filter Production_profile", "passed": true, "tests": 2 },
+    { "command": "dotnet run --project tools/Copeland.TS.BurnIn -c Release", "passed": true, "diagnosticAndProductionRuntimeOutputsEqual": true },
+    { "command": "dotnet run Machina.Presenter.Sample --playback-suite ... --output-directory artifacts/cts-opt-m0/playback-final/scenarios", "passed": true, "passedScenarios": 14, "failedScenarios": 0, "skippedScenarios": 0 },
+    { "command": "git diff --check", "passed": true }
+  ],
+  "boundarySearchCounts": {
+    "runtimeHelperCarrierTerms": 315,
+    "mirDefinitionTerms": 119,
+    "emitFeatureFamilies": 138,
+    "compileTimeTerms": 255,
+    "exportHostInteropTerms": 86
+  },
+  "boundarySearchInterpretation": "Compile-time-only control emitted zero runtime JS; runtime safety owners and interop/export roots are explicit; no reflection or text-level optimizer was added.",
+  "jsonArtifactsParsed": true,
+  "exactRecommendationCount": 3,
+  "deterministicOutputPreserved": true,
+  "languageSemanticsChanged": false,
+  "oblivionChanged": false
+}

@@ -1,0 +1,34 @@
+{
+  "milestone": "CTS-OPT-M0",
+  "program": "Tables",
+  "generatedJsBytes": 45849,
+  "regions": [
+    { "name": "core value and unwrap helpers", "lines": "1-19", "bytes": 630, "loadBearing": true },
+    { "name": "record cell carrier", "lines": "20-42", "bytes": 1512, "loadBearing": true },
+    { "name": "bounds and cell enum runtime", "lines": "43-108", "bytes": 3060, "loadBearing": true },
+    { "name": "eight concrete Result identities and validators", "lines": "109-252", "bytes": 8284, "loadBearing": true, "deadBytes": 958 },
+    { "name": "shared column protocol", "lines": "253-263", "bytes": 784, "loadBearing": true },
+    { "name": "table row and column nominal identity", "lines": "264-277", "bytes": 981, "loadBearing": true },
+    { "name": "table validator", "lines": "278-288", "bytes": 1210, "loadBearing": true },
+    { "name": "row validator", "lines": "289-295", "bytes": 707, "loadBearing": true },
+    { "name": "row construction", "lines": "296-305", "bytes": 554, "loadBearing": true },
+    { "name": "column data wrappers and singleton construction", "lines": "306-409", "bytes": 9404, "loadBearing": true, "duplicatedShape": true },
+    { "name": "authored logic and access staging", "lines": "410-690", "bytes": 18723, "loadBearing": true, "redundantInternalValidation": true }
+  ],
+  "validatorDefinitionBytes": 13616,
+  "validatorCallSites": 79,
+  "columnDecomposition": {
+    "columnCount": 5,
+    "literalStorageBytes": 1062,
+    "columnWrapperBytes": 6340,
+    "finding": "The table pressure is primarily executable wrapper and validation code, not literal data. Five column blocks are structurally identical modulo tokens, storage, and result types."
+  },
+  "semanticGuards": [
+    "finite integral bounds checking",
+    "table, row, and column nominal identity",
+    "WeakSet or private-symbol counterfeit rejection",
+    "frozen null-prototype carriers",
+    "distinct concrete Result identity",
+    "immutable column storage"
+  ]
+}

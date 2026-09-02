@@ -105,7 +105,7 @@ object RunRuntimeProgram(BurnInProgram program)
     string source = File.ReadAllText(sourcePath);
     StageMeasurement measurement = CompileRuntimeProgram(source, sourcePath);
 
-    if (measurement.Diagnostics.Count > 0 || measurement.Program is null || measurement.JavaScript is null)
+    if (measurement.Diagnostics.Count > 0 || measurement.Program is null || measurement.JavaScript is null || measurement.ProductionJavaScript is null)
     {
         throw new InvalidOperationException(
             $"{program.Name} failed compilation:{Environment.NewLine}" +
@@ -114,7 +114,9 @@ object RunRuntimeProgram(BurnInProgram program)
 
     StageMeasurement repeated = CompileRuntimeProgram(source, sourcePath);
     string javascript = measurement.JavaScript;
+    string productionJavaScript = measurement.ProductionJavaScript;
     if (!string.Equals(javascript, repeated.JavaScript, StringComparison.Ordinal)
+        || !string.Equals(productionJavaScript, repeated.ProductionJavaScript, StringComparison.Ordinal)
         || !string.Equals(measurement.Mir, repeated.Mir, StringComparison.Ordinal))
     {
         throw new InvalidOperationException($"{program.Name} did not compile deterministically.");
@@ -124,9 +126,11 @@ object RunRuntimeProgram(BurnInProgram program)
     Directory.CreateDirectory(programArtifactRoot);
     WriteArtifact(programArtifactRoot, program.Name + ".cope", measurement.Mir!);
     WriteArtifact(programArtifactRoot, program.Name + ".g.js", javascript);
+    WriteArtifact(programArtifactRoot, program.Name + ".production.g.js", productionJavaScript);
     WriteArtifact(programArtifactRoot, program.Name + ".g.cs", measurement.CSharp!);
 
     List<double> nodeTimings = [];
+    List<double> productionNodeTimings = [];
     string? runtimeOutput = null;
     for (int repetition = 0; repetition < 5; repetition += 1)
     {
@@ -141,11 +145,23 @@ object RunRuntimeProgram(BurnInProgram program)
         }
         runtimeOutput = node.StandardOutput;
         nodeTimings.Add(node.ElapsedMilliseconds);
+
+        NodeResult productionNode = RunNode(productionJavaScript + Environment.NewLine + program.NodeSuffix);
+        if (productionNode.ExitCode != 0)
+        {
+            throw new InvalidOperationException($"{program.Name} production profile failed under Node: {productionNode.StandardError}");
+        }
+        if (!string.Equals(runtimeOutput, productionNode.StandardOutput, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException($"{program.Name} production profile changed runtime output.");
+        }
+        productionNodeTimings.Add(productionNode.ElapsedMilliseconds);
     }
     WriteArtifact(programArtifactRoot, program.Name + ".runtime.txt", runtimeOutput!);
 
     int sourceBytes = Encoding.UTF8.GetByteCount(source);
     int javascriptBytes = Encoding.UTF8.GetByteCount(javascript);
+    int productionJavaScriptBytes = Encoding.UTF8.GetByteCount(productionJavaScript);
     int anonymousCarriers = measurement.Program.Records.Count(
         record => record.Name.StartsWith("__CopeInferredRecord_", StringComparison.Ordinal));
     var report = new
@@ -163,15 +179,31 @@ object RunRuntimeProgram(BurnInProgram program)
         generatedJsLoc = CountLines(javascript),
         generatedJsBytes = javascriptBytes,
         jsToSourceSizeRatio = Math.Round((double)javascriptBytes / sourceBytes, 3),
+        generatedProductionJsLoc = CountLines(productionJavaScript),
+        generatedProductionJsBytes = productionJavaScriptBytes,
+        productionJsToSourceSizeRatio = Math.Round((double)productionJavaScriptBytes / sourceBytes, 3),
+        mirNodeCount = CountMirNodes(measurement.Program),
         generatedCarrierCount = measurement.Program.Records.Count,
         anonymousCarrierCount = anonymousCarriers,
         namedCarrierCount = measurement.Program.Records.Count - anonymousCarriers,
         helperCount = Regex.Matches(javascript, @"\bfunction __cope_").Count,
+        validatorCount = Regex.Matches(
+            javascript,
+            @"(?m)^function\s+__cope_[A-Za-z0-9_]*(?:validate|require)[A-Za-z0-9_]*\s*\(").Count,
+        closureCount = Regex.Matches(javascript, @"=>").Count,
+        functionCount = Regex.Matches(
+            javascript,
+            @"(?m)^\s*(?:async\s+)?function\*?\s+").Count + Regex.Matches(javascript, @"=>").Count,
+        topLevelStatementCount = Regex.Matches(
+            javascript,
+            @"(?m)^(?:const|let|var|function|async\s+function)\s+").Count,
         enumCount = measurement.Program.Enums.Count,
         tableCount = measurement.Program.Tables.Count,
         flowCount = measurement.Program.Flows.Count,
         nodeExecutionMs = Math.Round(Median(nodeTimings), 3),
+        productionNodeExecutionMs = Math.Round(Median(productionNodeTimings), 3),
         artifactSha256 = Sha256(javascript),
+        productionArtifactSha256 = Sha256(productionJavaScript),
         runtimeOutputSha256 = Sha256(runtimeOutput!),
         deterministicMir = true,
         deterministicJavaScript = true,
@@ -282,6 +314,7 @@ StageMeasurement CompileRuntimeProgram(string source, string sourcePath)
 
     string? mirText = mir.Program is null ? null : MirTextWriter.Write(mir.Program);
     string? javascript = null;
+    string? productionJavaScript = null;
     string? csharp = null;
     IReadOnlyList<string> csharpDiagnostics = [];
     double emitJavaScriptMilliseconds = 0;
@@ -294,6 +327,12 @@ StageMeasurement CompileRuntimeProgram(string source, string sourcePath)
         diagnostics.AddRange(emittedJavaScript.Diagnostics.Select(diagnostic => diagnostic.Id + ": " + diagnostic.Message));
         javascript = emittedJavaScript.SourceText;
 
+        JavaScriptCompilation emittedProductionJavaScript = JavaScriptBackend.Emit(
+            mir.Program,
+            new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Production });
+        diagnostics.AddRange(emittedProductionJavaScript.Diagnostics.Select(diagnostic => diagnostic.Id + ": " + diagnostic.Message));
+        productionJavaScript = emittedProductionJavaScript.SourceText;
+
         CSharpCompilation emittedCSharp = CSharpBackend.Emit(mir.Program);
         csharp = emittedCSharp.SourceText;
         csharpDiagnostics = emittedCSharp.Diagnostics.Select(diagnostic => diagnostic.Id + ": " + diagnostic.Message).ToArray();
@@ -305,6 +344,7 @@ StageMeasurement CompileRuntimeProgram(string source, string sourcePath)
         mir.Program,
         mirText,
         javascript,
+        productionJavaScript,
         csharp,
         csharpDiagnostics,
         parse.Elapsed.TotalMilliseconds,
@@ -369,6 +409,49 @@ static int CountLines(string text)
     return text.Count(character => character == '\n') + (text.EndsWith('\n') ? 0 : 1);
 }
 
+static int CountMirNodes(object root)
+{
+    var visited = new HashSet<object>(ReferenceEqualityComparer.Instance);
+    return Visit(root);
+
+    int Visit(object? value)
+    {
+        if (value is null || value is string || value.GetType().IsPrimitive || value.GetType().IsEnum)
+        {
+            return 0;
+        }
+
+        if (value is System.Collections.IEnumerable sequence)
+        {
+            int sequenceCount = 0;
+            foreach (object? item in sequence)
+            {
+                sequenceCount += Visit(item);
+            }
+            return sequenceCount;
+        }
+
+        if (!visited.Add(value))
+        {
+            return 0;
+        }
+
+        Type type = value.GetType();
+        bool isMirNode = string.Equals(type.Namespace, "Copeland.TS.Mir", StringComparison.Ordinal)
+            && !type.Name.EndsWith("Id", StringComparison.Ordinal);
+        int count = isMirNode ? 1 : 0;
+        foreach (System.Reflection.PropertyInfo property in type.GetProperties(
+                     System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public))
+        {
+            if (property.GetIndexParameters().Length == 0)
+            {
+                count += Visit(property.GetValue(value));
+            }
+        }
+        return count;
+    }
+}
+
 static double Median(List<double> values)
 {
     values.Sort();
@@ -407,6 +490,7 @@ internal sealed record StageMeasurement(
     MirProgram? Program,
     string? Mir,
     string? JavaScript,
+    string? ProductionJavaScript,
     string? CSharp,
     IReadOnlyList<string> CSharpDiagnostics,
     double ParseMilliseconds,

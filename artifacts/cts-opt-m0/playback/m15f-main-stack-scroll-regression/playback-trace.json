@@ -1,0 +1,154 @@
+{
+  "ScenarioId": "m15f-main-stack-scroll-regression",
+  "ScenarioName": "M15f main-stack wheel regression stays fixed",
+  "Steps": [
+    {
+      "Index": 0,
+      "Type": "wheel",
+      "Target": "main-stack",
+      "CardId": null,
+      "TargetResolution": {
+        "SemanticTargetKind": "main-stack",
+        "RequestedCardId": null,
+        "ResolvedCardId": null,
+        "ResolvedRegionKind": "oblivion-main-card-stack",
+        "ResolvedRegionId": "oblivion.docs.main-stack",
+        "ResolvedPoint": {
+          "X": 554,
+          "Y": 410
+        },
+        "ResolvedRect": {
+          "X": 256,
+          "Y": 148,
+          "Width": 596,
+          "Height": 524
+        }
+      },
+      "ResolvedPoint": {
+        "X": 554,
+        "Y": 410
+      },
+      "ResolvedRect": {
+        "X": 256,
+        "Y": 148,
+        "Width": 596,
+        "Height": 524
+      },
+      "HitTestResult": {
+        "RegionKind": "oblivion-main-card-stack",
+        "RegionId": "oblivion.docs.main-stack",
+        "CardId": null,
+        "ScrollRegionId": "oblivion.docs.main-stack",
+        "LocalPoint": {
+          "X": 298,
+          "Y": 262
+        }
+      },
+      "EmittedInput": {
+        "Kind": "UiPointerWheel",
+        "Key": null,
+        "WheelDeltaY": -1,
+        "ActionId": "oblivion.ui|set-scroll|MainCardStack|oblivion.docs||48",
+        "PointerCaptureRequest": "None",
+        "InputConsumed": true
+      },
+      "DispatchedAction": {
+        "ActionId": "oblivion.ui|set-scroll|MainCardStack|oblivion.docs||48",
+        "ActionType": "set-oblivion-main-card-stack-scroll-offset",
+        "ActionHandled": true,
+        "WheelConsumed": true
+      },
+      "StateDelta": {
+        "MainStackScrollDelta": 48,
+        "InspectorScrollDelta": 0,
+        "RawSourceScrollDelta": 0,
+        "ExpandedBodyScrollDelta": 0
+      },
+      "Before": {
+        "SelectedSection": "oblivion",
+        "SelectedTab": "docs",
+        "PageId": "oblivion.docs",
+        "SelectedCard": "doc-aurelian-build-topology-m13b",
+        "ExpandedCards": [],
+        "MainStackScrollOffset": 0,
+        "ExpandedBodyScrollOffset": 0,
+        "InspectorScrollOffset": 0,
+        "RawSourceScrollOffset": 0,
+        "CapturedScrollRegion": "main-stack",
+        "ShellMode": 0,
+        "PageRenderCount": 1,
+        "ShellRenderCount": 1,
+        "CompositionCount": 2
+      },
+      "After": {
+        "SelectedSection": "oblivion",
+        "SelectedTab": "docs",
+        "PageId": "oblivion.docs",
+        "SelectedCard": "doc-aurelian-build-topology-m13b",
+        "ExpandedCards": [],
+        "MainStackScrollOffset": 48,
+        "ExpandedBodyScrollOffset": 0,
+        "InspectorScrollOffset": 0,
+        "RawSourceScrollOffset": 0,
+        "CapturedScrollRegion": "main-stack",
+        "ShellMode": 0,
+        "PageRenderCount": 2,
+        "ShellRenderCount": 1,
+        "CompositionCount": 4
+      },
+      "Result": "ok"
+    }
+  ],
+  "Assertions": [
+    {
+      "Index": 0,
+      "Type": "scroll-offset-greater-than",
+      "Reason": "This guards the M15f regression where generic page-scroll clamp forced the wide Oblivion main-stack offset back to zero after wheel dispatch.",
+      "Expected": "\u003E 0",
+      "Actual": "48",
+      "Passed": true,
+      "FailureMessage": null
+    },
+    {
+      "Index": 1,
+      "Type": "scroll-offset-equals",
+      "Reason": "This guards the M15f regression fix by proving main-stack wheel input does not leak into inspector scroll state.",
+      "Expected": "0",
+      "Actual": "0",
+      "Passed": true,
+      "FailureMessage": null
+    }
+  ],
+  "InitialState": {
+    "SelectedSection": "oblivion",
+    "SelectedTab": "docs",
+    "PageId": "oblivion.docs",
+    "SelectedCard": "doc-aurelian-build-topology-m13b",
+    "ExpandedCards": [],
+    "MainStackScrollOffset": 0,
+    "ExpandedBodyScrollOffset": 0,
+    "InspectorScrollOffset": 0,
+    "RawSourceScrollOffset": 0,
+    "CapturedScrollRegion": null,
+    "ShellMode": 0,
+    "PageRenderCount": 1,
+    "ShellRenderCount": 1,
+    "CompositionCount": 1
+  },
+  "FinalState": {
+    "SelectedSection": "oblivion",
+    "SelectedTab": "docs",
+    "PageId": "oblivion.docs",
+    "SelectedCard": "doc-aurelian-build-topology-m13b",
+    "ExpandedCards": [],
+    "MainStackScrollOffset": 48,
+    "ExpandedBodyScrollOffset": 0,
+    "InspectorScrollOffset": 0,
+    "RawSourceScrollOffset": 0,
+    "CapturedScrollRegion": null,
+    "ShellMode": 0,
+    "PageRenderCount": 2,
+    "ShellRenderCount": 1,
+    "CompositionCount": 5
+  }
+}
