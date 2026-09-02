@@ -1,0 +1,247 @@
+{
+  "law": "highest-priority authored window; Required returns directly; Open invokes bounded Dominatus utility",
+  "windows": [
+    {
+      "id": "elias.morning-work",
+      "actor": {
+        "value": "elias"
+      },
+      "day": {
+        "specificDay": null,
+        "isEveryDay": true
+      },
+      "startMinute": 0,
+      "endMinuteExclusive": 720,
+      "regime": "Required",
+      "requiredAnchor": {
+        "value": "farm.work-area"
+      },
+      "priority": 0,
+      "reason": "daily-morning-work"
+    },
+    {
+      "id": "elias.afternoon-riverside",
+      "actor": {
+        "value": "elias"
+      },
+      "day": {
+        "specificDay": null,
+        "isEveryDay": true
+      },
+      "startMinute": 720,
+      "endMinuteExclusive": 1080,
+      "regime": "Required",
+      "requiredAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "priority": 0,
+      "reason": "daily-afternoon-riverside"
+    },
+    {
+      "id": "elias.evening-work",
+      "actor": {
+        "value": "elias"
+      },
+      "day": {
+        "specificDay": null,
+        "isEveryDay": true
+      },
+      "startMinute": 1080,
+      "endMinuteExclusive": 1440,
+      "regime": "Required",
+      "requiredAnchor": {
+        "value": "farm.work-area"
+      },
+      "priority": 0,
+      "reason": "daily-evening-work"
+    },
+    {
+      "id": "mara.morning-town",
+      "actor": {
+        "value": "mara"
+      },
+      "day": {
+        "specificDay": null,
+        "isEveryDay": true
+      },
+      "startMinute": 0,
+      "endMinuteExclusive": 720,
+      "regime": "Required",
+      "requiredAnchor": {
+        "value": "town.square"
+      },
+      "priority": 0,
+      "reason": "daily-morning-town"
+    },
+    {
+      "id": "mara.afternoon-riverside",
+      "actor": {
+        "value": "mara"
+      },
+      "day": {
+        "specificDay": null,
+        "isEveryDay": true
+      },
+      "startMinute": 720,
+      "endMinuteExclusive": 1020,
+      "regime": "Required",
+      "requiredAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "priority": 0,
+      "reason": "daily-afternoon-riverside"
+    },
+    {
+      "id": "mara.free-evening",
+      "actor": {
+        "value": "mara"
+      },
+      "day": {
+        "specificDay": null,
+        "isEveryDay": true
+      },
+      "startMinute": 1020,
+      "endMinuteExclusive": 1320,
+      "regime": "Open",
+      "requiredAnchor": null,
+      "priority": 0,
+      "reason": "daily-evening-home"
+    },
+    {
+      "id": "mara.required-home",
+      "actor": {
+        "value": "mara"
+      },
+      "day": {
+        "specificDay": null,
+        "isEveryDay": true
+      },
+      "startMinute": 1320,
+      "endMinuteExclusive": 1440,
+      "regime": "Required",
+      "requiredAnchor": {
+        "value": "farm.home"
+      },
+      "priority": 0,
+      "reason": "daily-evening-home"
+    },
+    {
+      "id": "mara.day6-store",
+      "actor": {
+        "value": "mara"
+      },
+      "day": {
+        "specificDay": 6,
+        "isEveryDay": false
+      },
+      "startMinute": 540,
+      "endMinuteExclusive": 1020,
+      "regime": "Required",
+      "requiredAnchor": {
+        "value": "general-store.counter"
+      },
+      "priority": 1,
+      "reason": "day-6-store"
+    },
+    {
+      "id": "mara.day7-riverside",
+      "actor": {
+        "value": "mara"
+      },
+      "day": {
+        "specificDay": 7,
+        "isEveryDay": false
+      },
+      "startMinute": 600,
+      "endMinuteExclusive": 1020,
+      "regime": "Required",
+      "requiredAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "priority": 1,
+      "reason": "day-7-riverside"
+    },
+    {
+      "id": "sela.morning-home",
+      "actor": {
+        "value": "sela"
+      },
+      "day": {
+        "specificDay": null,
+        "isEveryDay": true
+      },
+      "startMinute": 0,
+      "endMinuteExclusive": 480,
+      "regime": "Required",
+      "requiredAnchor": {
+        "value": "farm.home"
+      },
+      "priority": 0,
+      "reason": "daily-morning-home"
+    },
+    {
+      "id": "sela.store",
+      "actor": {
+        "value": "sela"
+      },
+      "day": {
+        "specificDay": null,
+        "isEveryDay": true
+      },
+      "startMinute": 480,
+      "endMinuteExclusive": 1080,
+      "regime": "Required",
+      "requiredAnchor": {
+        "value": "general-store.counter"
+      },
+      "priority": 0,
+      "reason": "daily-store"
+    },
+    {
+      "id": "sela.evening-home",
+      "actor": {
+        "value": "sela"
+      },
+      "day": {
+        "specificDay": null,
+        "isEveryDay": true
+      },
+      "startMinute": 1080,
+      "endMinuteExclusive": 1440,
+      "regime": "Required",
+      "requiredAnchor": {
+        "value": "farm.home"
+      },
+      "priority": 0,
+      "reason": "daily-evening-home"
+    }
+  ],
+  "candidates": [
+    {
+      "windowId": "mara.free-evening",
+      "anchor": {
+        "value": "farm.home"
+      },
+      "considerationKind": "current-location-stickiness",
+      "baseScore": 0.6,
+      "currentLocationBonus": 0.2
+    },
+    {
+      "windowId": "mara.free-evening",
+      "anchor": {
+        "value": "town.square"
+      },
+      "considerationKind": "current-location-stickiness",
+      "baseScore": 0.5,
+      "currentLocationBonus": 0.4
+    }
+  ],
+  "requiredExecution": {
+    "utilityEvaluated": false,
+    "requiredDecisions": 1
+  },
+  "openExecution": {
+    "utilityEvaluated": true,
+    "openUtilityDecisions": 2
+  }
+}

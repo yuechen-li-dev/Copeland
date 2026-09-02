@@ -197,16 +197,38 @@ public static class TinyFarmInspector
         object[] observations = state.Actors
             .Where(actor => !actor.IsPlayer)
             .OrderBy(actor => actor.Id.Value, StringComparer.Ordinal)
-            .Select(actor => (object)new
+            .Select(actor =>
             {
-                self = actor.Id.Value,
-                location = actor.Location.Value,
-                nearby = state.Actors
-                    .Where(other => other.Id != actor.Id && other.Location == actor.Location)
-                    .Select(other => other.Id.Value)
-                    .OrderBy(id => id, StringComparer.Ordinal)
-                    .ToArray(),
-                state.Minute
+                SceneAnchorId? currentCandidate = session.ScheduleCatalog.Candidates
+                    .Select(candidate => candidate.Anchor)
+                    .Distinct()
+                    .Where(candidate => session.SceneCatalog.GetAnchor(candidate).SemanticLocation == actor.Location)
+                    .OrderBy(candidate => candidate.Value, StringComparer.Ordinal)
+                    .Cast<SceneAnchorId?>()
+                    .FirstOrDefault();
+                TinyFarmScheduleDecision schedule = TinyFarmNpcSchedule.Decide(
+                    session.ScheduleCatalog,
+                    actor.Id,
+                    state.Minute,
+                    currentCandidate);
+                return (object)new
+                {
+                    self = actor.Id.Value,
+                    location = actor.Location.Value,
+                    nearby = state.Actors
+                        .Where(other => other.Id != actor.Id && other.Location == actor.Location)
+                        .Select(other => other.Id.Value)
+                        .OrderBy(id => id, StringComparer.Ordinal)
+                        .ToArray(),
+                    state.Minute,
+                    schedule = new
+                    {
+                        regimeId = schedule.WindowId,
+                        regime = schedule.Regime,
+                        selectedAnchor = schedule.SelectedAnchor,
+                        utilityScores = schedule.UtilityScores
+                    }
+                };
             })
             .ToArray();
 

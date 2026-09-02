@@ -1,0 +1,16 @@
+{
+  "milestone": "TINY-FARM-M10",
+  "kind": "payload-enum-hybrid-required-open-scheduling",
+  "payloadEnumScheduleDay": true,
+  "day1ThroughDay7ProductionWorkaroundRemoved": true,
+  "requiredScheduleRegime": true,
+  "openUtilityRegime": true,
+  "hardRulesImplementedAsUtilityScores": false,
+  "boundedUtilityCandidates": true,
+  "dominatusOwnsUtilitySelection": true,
+  "dominatusPersistentExecutionRetained": true,
+  "sceneNavigationSemanticsChanged": false,
+  "newPlannerAdded": false,
+  "schedulerFrameworkAdded": false,
+  "gameplayExpansionBounded": true
+}

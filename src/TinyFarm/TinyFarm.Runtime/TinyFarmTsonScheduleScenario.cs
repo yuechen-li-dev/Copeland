@@ -72,7 +72,7 @@ public static class TinyFarmTsonScheduleScenario
         bool costMateriallyWorse = m8.DecisionsPerThousandMilliseconds
             > M8ReferenceMillisecondsPerThousand * 2;
         bool success = m8.Outcome == "A"
-            && definitions.Schedules.Windows.Count == 11
+            && definitions.Schedules.Windows.Count == 12
             && reorderPreserved
             && m8.ScheduleDecisionHash == ExpectedM8DecisionHash
             && m8.AnchorSequenceHash == ExpectedM8AnchorSequenceHash
@@ -126,7 +126,7 @@ public static class TinyFarmTsonScheduleScenario
                 "priority:number",
                 "reason:string"
             },
-            daySelector = "validated authored tokens Every | Day1 .. Day7 -> TinyFarmScheduleDay",
+            daySelector = "ScheduleDay.Every | ScheduleDay.Day(1..7) -> TinyFarmScheduleDay",
             interval = "[startMinute, endMinuteExclusive)",
             canonicalOrder = "actor ID, every-before-specific, day, start, end, priority, anchor ID, reason",
             rows = definitions.Schedules.Windows,
@@ -183,7 +183,7 @@ public static class TinyFarmTsonScheduleScenario
 
     private static bool ProveCanonicalRowOrder(TinyFarmScheduleCatalog schedules)
     {
-        var reordered = new TinyFarmScheduleCatalog(schedules.Windows.Reverse());
+        var reordered = new TinyFarmScheduleCatalog(schedules.Windows.Reverse(), schedules.Candidates.Reverse());
         if (!schedules.Windows.SequenceEqual(reordered.Windows))
         {
             return false;

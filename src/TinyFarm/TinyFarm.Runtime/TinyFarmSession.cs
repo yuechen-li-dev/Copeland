@@ -59,6 +59,8 @@ public sealed class TinyFarmSession
     public IReadOnlyList<GameEvent> RecentEvents => recentEvents;
     public SceneId? ActiveScene => State.CurrentScene;
     public TinyFarmSceneCatalog SceneCatalog => Scenes;
+    public TinyFarmScheduleCatalog ScheduleCatalog => definitions?.Schedules
+        ?? throw new InvalidOperationException("Schedule inspection requires loaded TinyFarm definitions.");
     public int NavigationPlanCount => navigationPlanCount;
     public int ActivationCount => activationCount;
     public int DeactivationCount => deactivationCount;

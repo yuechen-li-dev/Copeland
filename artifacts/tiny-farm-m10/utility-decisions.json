@@ -1,0 +1,96 @@
+{
+  "openHome": {
+    "actor": {
+      "value": "mara"
+    },
+    "minute": 1200,
+    "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+    "selectedAnchor": {
+      "value": "farm.home"
+    },
+    "reason": "daily-evening-home",
+    "windowStart": 1020,
+    "windowEnd": 1320,
+    "priority": 0,
+    "windowId": "mara.free-evening",
+    "regime": "Open",
+    "utilityScores": [
+      {
+        "candidate": {
+          "value": "farm.home"
+        },
+        "score": 0.8,
+        "selected": true,
+        "considerationKind": "current-location-stickiness"
+      },
+      {
+        "candidate": {
+          "value": "town.square"
+        },
+        "score": 0.5,
+        "selected": false,
+        "considerationKind": "current-location-stickiness"
+      }
+    ]
+  },
+  "openTown": {
+    "actor": {
+      "value": "mara"
+    },
+    "minute": 1200,
+    "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+    "selectedAnchor": {
+      "value": "town.square"
+    },
+    "reason": "daily-evening-home",
+    "windowStart": 1020,
+    "windowEnd": 1320,
+    "priority": 0,
+    "windowId": "mara.free-evening",
+    "regime": "Open",
+    "utilityScores": [
+      {
+        "candidate": {
+          "value": "farm.home"
+        },
+        "score": 0.6,
+        "selected": false,
+        "considerationKind": "current-location-stickiness"
+      },
+      {
+        "candidate": {
+          "value": "town.square"
+        },
+        "score": 0.9,
+        "selected": true,
+        "considerationKind": "current-location-stickiness"
+      }
+    ]
+  },
+  "requiredBoundary": {
+    "actor": {
+      "value": "mara"
+    },
+    "minute": 1320,
+    "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+    "selectedAnchor": {
+      "value": "farm.home"
+    },
+    "reason": "daily-evening-home",
+    "windowStart": 1320,
+    "windowEnd": 1440,
+    "priority": 0,
+    "windowId": "mara.required-home",
+    "regime": "Required",
+    "utilityScores": []
+  },
+  "deterministicTieBreak": "score descending, then stable static Dominatus option order",
+  "requiredPerformance": {
+    "nanosecondsPerDecision": 496.356,
+    "bytesPerDecision": 160.0004
+  },
+  "openPerformance": {
+    "nanosecondsPerDecision": 3092.457,
+    "bytesPerDecision": 3065.74752
+  }
+}

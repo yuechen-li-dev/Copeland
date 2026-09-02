@@ -9,6 +9,7 @@ public static class TinyFarmDefinitionLoader
 {
     private const string ProductFileName = "tiny-farm-definitions.obj.ts";
     private const string ScheduleFileName = "tiny-farm-npc-schedules.obj.ts";
+    private const string ScheduleCandidateFileName = "tiny-farm-npc-schedule-candidates.obj.ts";
     private static readonly IReadOnlySet<ActorId> ScheduledActors = new HashSet<ActorId>
     {
         TinyFarmIds.Elias,
@@ -105,14 +106,32 @@ public static class TinyFarmDefinitionLoader
             fileName,
             "NpcSchedules",
             [
+                ("windowId", TsonTypeKind.String),
                 ("actorId", TsonTypeKind.String),
-                ("day", TsonTypeKind.String),
+                ("day", TsonTypeKind.Enum),
                 ("startMinute", TsonTypeKind.Number),
                 ("endMinuteExclusive", TsonTypeKind.Number),
-                ("anchorId", TsonTypeKind.String),
+                ("regime", TsonTypeKind.Enum),
+                ("requiredAnchorId", TsonTypeKind.String),
                 ("priority", TsonTypeKind.Number),
                 ("reason", TsonTypeKind.String)
             ]);
+        string candidatePath = Path.Combine(Path.GetDirectoryName(fullPath)!, ScheduleCandidateFileName);
+        TsonTable? candidateTable = null;
+        if (File.Exists(candidatePath))
+        {
+            candidateTable = ReadTable(
+                File.ReadAllText(candidatePath),
+                ScheduleCandidateFileName,
+                "UtilityCandidates",
+                [
+                    ("windowId", TsonTypeKind.String),
+                    ("anchorId", TsonTypeKind.String),
+                    ("considerationKind", TsonTypeKind.String),
+                    ("baseScore", TsonTypeKind.Number),
+                    ("currentLocationBonus", TsonTypeKind.Number)
+                ]);
+        }
         parseWatch.Stop();
 
         var materializeWatch = Stopwatch.StartNew();
@@ -120,22 +139,37 @@ public static class TinyFarmDefinitionLoader
         for (int row = 0; row < table.RowCount; row++)
         {
             windows.Add(new TinyFarmScheduleWindow(
+                Text(table, "windowId", row),
                 new ActorId(Text(table, "actorId", row)),
-                ScheduleDay(Text(table, "day", row), table.Schema.Name, "day", row),
+                ScheduleDay(table, "day", row),
                 Integer(table, "startMinute", row),
                 Integer(table, "endMinuteExclusive", row),
-                new SceneAnchorId(Text(table, "anchorId", row)),
+                ScheduleRegime(table, "regime", row),
+                OptionalAnchor(Text(table, "requiredAnchorId", row)),
                 Integer(table, "priority", row),
                 Text(table, "reason", row)));
+        }
+        var candidates = new List<TinyFarmUtilityCandidate>(candidateTable?.RowCount ?? 0);
+        if (candidateTable is not null)
+        {
+            for (int row = 0; row < candidateTable.RowCount; row++)
+            {
+                candidates.Add(new TinyFarmUtilityCandidate(
+                    Text(candidateTable, "windowId", row),
+                    new SceneAnchorId(Text(candidateTable, "anchorId", row)),
+                    Text(candidateTable, "considerationKind", row),
+                    Number(candidateTable, "baseScore", row) / 100d,
+                    Number(candidateTable, "currentLocationBonus", row) / 100d));
+            }
         }
         materializeWatch.Stop();
 
         var validationWatch = Stopwatch.StartNew();
-        TinyFarmScheduleCatalog.Validate(windows, ScheduledActors, scenes);
+        TinyFarmScheduleCatalog.Validate(windows, candidates, ScheduledActors, scenes);
         validationWatch.Stop();
 
         var indexWatch = Stopwatch.StartNew();
-        var catalog = new TinyFarmScheduleCatalog(windows);
+        var catalog = new TinyFarmScheduleCatalog(windows, candidates);
         indexWatch.Stop();
 
         var provenance = new ScheduleContentProvenance(
@@ -143,7 +177,7 @@ public static class TinyFarmDefinitionLoader
             fileName,
             Hash(Encoding.UTF8.GetBytes(source)),
             Encoding.UTF8.GetByteCount(source),
-            ScheduleSemanticHash(catalog.Windows),
+            ScheduleSemanticHash(catalog.Windows, catalog.Candidates),
             readWatch.Elapsed.TotalMilliseconds,
             parseWatch.Elapsed.TotalMilliseconds,
             materializeWatch.Elapsed.TotalMilliseconds,
@@ -386,47 +420,85 @@ public static class TinyFarmDefinitionLoader
         return (int)value;
     }
 
-    private static TinyFarmScheduleDay ScheduleDay(
-        string value,
-        string table,
-        string column,
-        int row)
+    private static double Number(TsonTable table, string column, int row)
     {
-        if (value == "Every")
+        return ((TsonNumber)Cell(table, column, row)).Value;
+    }
+
+    private static TinyFarmScheduleDay ScheduleDay(TsonTable table, string column, int row)
+    {
+        TsonEnum value = (TsonEnum)Cell(table, column, row);
+        if (!value.EnumIdentity.EndsWith("#ScheduleDay", StringComparison.Ordinal))
+        {
+            throw new InvalidDataException($"TinyFarm TSON table '{table.Schema.Name}' column '{column}' row {row} requires ScheduleDay.");
+        }
+        if (value.CaseName == "Every" && value.Payloads.Count == 0)
         {
             return TinyFarmScheduleDay.EveryDay;
         }
-
-        if (value.StartsWith("Day", StringComparison.Ordinal)
-            && int.TryParse(value.AsSpan(3), out int day))
+        if (value.CaseName == "Day"
+            && value.Payloads.Count == 1
+            && value.Payloads[0].Value is TsonNumber dayValue)
         {
             try
             {
-                return TinyFarmScheduleDay.Day(day);
+                double number = dayValue.Value;
+                if (number != Math.Truncate(number))
+                {
+                    throw new ArgumentOutOfRangeException(nameof(row));
+                }
+                return TinyFarmScheduleDay.Day((int)number);
             }
             catch (ArgumentOutOfRangeException exception)
             {
                 throw new InvalidDataException(
-                    $"TinyFarm TSON table '{table}' column '{column}' row {row} has invalid day '{value}'.",
+                    $"TinyFarm TSON table '{table.Schema.Name}' column '{column}' row {row} has invalid day payload.",
                     exception);
             }
         }
-
         throw new InvalidDataException(
-            $"TinyFarm TSON table '{table}' column '{column}' row {row} requires 'Every' or 'Day1' through 'Day7'.");
+            $"TinyFarm TSON table '{table.Schema.Name}' column '{column}' row {row} requires ScheduleDay.Every or ScheduleDay.Day(1..7).");
     }
 
-    private static string ScheduleSemanticHash(IEnumerable<TinyFarmScheduleWindow> windows)
+    private static TinyFarmScheduleRegime ScheduleRegime(TsonTable table, string column, int row)
+    {
+        TsonEnum value = (TsonEnum)Cell(table, column, row);
+        if (!value.EnumIdentity.EndsWith("#ScheduleRegime", StringComparison.Ordinal)
+            || value.Payloads.Count != 0
+            || !Enum.TryParse(value.CaseName, out TinyFarmScheduleRegime regime))
+        {
+            throw new InvalidDataException($"TinyFarm TSON table '{table.Schema.Name}' column '{column}' row {row} requires ScheduleRegime.Required or ScheduleRegime.Open.");
+        }
+        return regime;
+    }
+
+    private static SceneAnchorId? OptionalAnchor(string value)
+    {
+        return value.Length == 0 ? null : new SceneAnchorId(value);
+    }
+
+    private static string ScheduleSemanticHash(
+        IEnumerable<TinyFarmScheduleWindow> windows,
+        IEnumerable<TinyFarmUtilityCandidate> candidates)
     {
         IEnumerable<string> signatures = windows.Select(window => string.Join(
             '|',
+            window.Id,
             window.Actor.Value,
             window.Day.ToString(),
             window.StartMinute,
             window.EndMinuteExclusive,
-            window.Anchor.Value,
+            window.Regime,
+            window.RequiredAnchor?.Value ?? string.Empty,
             window.Priority,
-            window.Reason));
+            window.Reason))
+            .Concat(candidates.Select(candidate => string.Join(
+                '|',
+                candidate.WindowId,
+                candidate.Anchor.Value,
+                candidate.ConsiderationKind,
+                candidate.BaseScore.ToString("R", System.Globalization.CultureInfo.InvariantCulture),
+                candidate.CurrentLocationBonus.ToString("R", System.Globalization.CultureInfo.InvariantCulture))));
         return Hash(Encoding.UTF8.GetBytes(string.Join('\n', signatures)));
     }
 

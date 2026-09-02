@@ -10,7 +10,7 @@ public sealed class TinyFarmM9Tests
     [Fact]
     public void ProductionScheduleTson_LoadsElevenTypedRowsWithProvenance()
     {
-        Assert.Equal(11, definitions.Schedules.Windows.Count);
+        Assert.Equal(12, definitions.Schedules.Windows.Count);
         Assert.Equal("tiny-farm-npc-schedules.obj.ts", definitions.ScheduleContent.FileName);
         Assert.Equal(64, definitions.ScheduleContent.SourceSha256.Length);
         Assert.Equal(64, definitions.ScheduleContent.AggregateSha256.Length);
@@ -22,7 +22,9 @@ public sealed class TinyFarmM9Tests
     public void AuthoredRowReorder_PreservesCanonicalCatalogAndAllM8Decisions()
     {
         TinyFarmScheduleWindow[] reversed = definitions.Schedules.Windows.Reverse().ToArray();
-        using TemporaryScheduleFile fixture = WriteFixture(ScheduleSource(reversed));
+        using TemporaryScheduleFile fixture = WriteFixture(
+            ScheduleSource(reversed),
+            CandidateSource(definitions.Schedules.Candidates));
 
         TinyFarmScheduleCatalog reordered = TinyFarmDefinitionLoader
             .LoadScheduleCatalog(fixture.Path, definitions.Scenes)
@@ -82,13 +84,13 @@ public sealed class TinyFarmM9Tests
 
         TinyFarmScheduleWindow selaStore = Assert.Single(definitions.Schedules.Windows, window =>
             window.Actor == TinyFarmIds.Sela
-            && window.Anchor == TinyFarmAnchorIds.StoreCounter);
+            && window.RequiredAnchor == TinyFarmAnchorIds.StoreCounter);
         Assert.Equal(480, selaStore.StartMinute);
         Assert.Equal(1080, selaStore.EndMinuteExclusive);
 
         TinyFarmScheduleWindow eliasRiverside = Assert.Single(definitions.Schedules.Windows, window =>
             window.Actor == TinyFarmIds.Elias
-            && window.Anchor == TinyFarmAnchorIds.RiversideMeetingPoint);
+            && window.RequiredAnchor == TinyFarmAnchorIds.RiversideMeetingPoint);
         Assert.Equal(1080, eliasRiverside.EndMinuteExclusive);
     }
 
@@ -146,7 +148,7 @@ public sealed class TinyFarmM9Tests
         yield return new object[]
         {
             "invalid day value",
-            ScheduleSource(rows).Replace("\"Every\", \"Every\", \"Every\"", "\"Day8\", \"Every\", \"Every\"", StringComparison.Ordinal)
+            ScheduleSource(rows).Replace("ScheduleDay.Every, ScheduleDay.Every, ScheduleDay.Every", "ScheduleDay.Day(8), ScheduleDay.Every, ScheduleDay.Every", StringComparison.Ordinal)
         };
         yield return new object[]
         {
@@ -213,12 +215,16 @@ public sealed class TinyFarmM9Tests
 
         return $$"""
             const $schema: string = "copeland://tiny-farm/tests/m9/schedule-fixture";
+            enum ScheduleDay { Every, Day(value: number), }
+            enum ScheduleRegime { Required, Open, }
             record table NpcSchedules {
+                windowId: string = [{{Values(row => Quote(row.Id))}}];
                 actorId: string = [{{Values(row => Quote(row.Actor.Value))}}];
-                day: string = [{{Values(row => Quote(row.Day.IsEveryDay ? "Every" : $"Day{row.Day.SpecificDay}"))}}];
+                day: ScheduleDay = [{{Values(row => row.Day.IsEveryDay ? "ScheduleDay.Every" : $"ScheduleDay.Day({row.Day.SpecificDay})")}}];
                 startMinute: number = [{{Values(row => row.StartMinute.ToString(System.Globalization.CultureInfo.InvariantCulture))}}];
                 endMinuteExclusive: number = [{{Values(row => row.EndMinuteExclusive.ToString(System.Globalization.CultureInfo.InvariantCulture))}}];
-                anchorId: string = [{{Values(row => Quote(row.Anchor.Value))}}];
+                regime: ScheduleRegime = [{{Values(row => $"ScheduleRegime.{row.Regime}")}}];
+                requiredAnchorId: string = [{{Values(row => Quote(row.RequiredAnchor?.Value ?? string.Empty))}}];
                 priority: number = [{{Values(row => row.Priority.ToString(System.Globalization.CultureInfo.InvariantCulture))}}];
                 reason: string = [{{Values(row => Quote(row.Reason))}}];
             }
@@ -234,11 +240,43 @@ public sealed class TinyFarmM9Tests
 
     private static TemporaryScheduleFile WriteFixture(string source)
     {
+        return WriteFixture(source, null);
+    }
+
+    private static TemporaryScheduleFile WriteFixture(string source, string? candidateSource)
+    {
         string directory = Path.Combine(Path.GetTempPath(), "tiny-farm-m9", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         string path = Path.Combine(directory, "schedule.obj.ts");
         File.WriteAllText(path, source, Encoding.UTF8);
+        if (candidateSource is not null)
+        {
+            File.WriteAllText(
+                Path.Combine(directory, "tiny-farm-npc-schedule-candidates.obj.ts"),
+                candidateSource,
+                Encoding.UTF8);
+        }
         return new TemporaryScheduleFile(directory, path);
+    }
+
+    private static string CandidateSource(IReadOnlyList<TinyFarmUtilityCandidate> candidates)
+    {
+        string Values(Func<TinyFarmUtilityCandidate, string> selector)
+        {
+            return string.Join(", ", candidates.Select(selector));
+        }
+
+        return $$"""
+            const $schema: string = "copeland://tiny-farm/tests/m10/candidates";
+            record table UtilityCandidates {
+                windowId: string = [{{Values(row => Quote(row.WindowId))}}];
+                anchorId: string = [{{Values(row => Quote(row.Anchor.Value))}}];
+                considerationKind: string = [{{Values(row => Quote(row.ConsiderationKind))}}];
+                baseScore: number = [{{Values(row => ((int)(row.BaseScore * 100)).ToString())}}];
+                currentLocationBonus: number = [{{Values(row => ((int)(row.CurrentLocationBonus * 100)).ToString())}}];
+            }
+            const $value = UtilityCandidates;
+            """ + "\n";
     }
 
     private sealed class TemporaryScheduleFile(string directory, string path) : IDisposable

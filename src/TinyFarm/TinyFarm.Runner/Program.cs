@@ -54,6 +54,7 @@ bool runM6 = args.Contains("--m6", StringComparer.Ordinal);
 bool runM7 = args.Contains("--m7", StringComparer.Ordinal);
 bool runM8 = args.Contains("--m8", StringComparer.Ordinal);
 bool runM9 = args.Contains("--m9", StringComparer.Ordinal);
+bool runM10 = args.Contains("--m10", StringComparer.Ordinal);
 if (args.Contains("--single-week", StringComparer.Ordinal))
 {
     TinyFarmDefinitions singleDefinitions = TinyFarmDefinitionLoader.Load();
@@ -64,8 +65,11 @@ if (args.Contains("--single-week", StringComparer.Ordinal))
 TinyFarmM7Evidence? m7Evidence = runM7 ? TinyFarmTsonSceneScenario.Prove() : null;
 TinyFarmM8Evidence? m8Evidence = runM8 ? TinyFarmScheduleScenario.Prove() : null;
 TinyFarmM9Evidence? m9Evidence = runM9 ? TinyFarmTsonScheduleScenario.Prove() : null;
+TinyFarmM10Evidence? m10Evidence = runM10 ? TinyFarmHybridScheduleScenario.Prove() : null;
 object proof = runM1
     ? TinyFarmCanonicalScenario.Prove()
+    : runM10
+        ? m10Evidence!.Proof
     : runM9
         ? m9Evidence!.Proof
     : runM8
@@ -83,6 +87,8 @@ object proof = runM1
         : TinyFarmWeekScenario.Prove();
 string json = runM1
     ? TinyFarmCanonicalScenario.WriteProofJson((TinyFarmM1Proof)proof)
+    : runM10
+        ? TinyFarmHybridScheduleScenario.WriteJson(proof)
     : runM9
         ? TinyFarmTsonScheduleScenario.WriteJson(proof)
     : runM8
@@ -168,6 +174,21 @@ if (runM9)
         File.WriteAllText(Path.Combine(directory, "parity.json"), TinyFarmTsonScheduleScenario.WriteJson(m9Evidence.Parity) + Environment.NewLine);
         File.WriteAllText(Path.Combine(directory, "provenance.json"), TinyFarmTsonScheduleScenario.WriteJson(m9Evidence.Provenance) + Environment.NewLine);
         File.WriteAllText(Path.Combine(directory, "manifest.json"), TinyFarmTsonScheduleScenario.WriteJson(m9Evidence.Manifest) + Environment.NewLine);
+    }
+}
+
+if (runM10)
+{
+    int artifactIndex = Array.IndexOf(args, "--artifact-dir");
+    if (artifactIndex >= 0)
+    {
+        string directory = RequiredOutputPath(args, artifactIndex, "--artifact-dir");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, "proof.json"), TinyFarmHybridScheduleScenario.WriteJson(m10Evidence!.Proof) + Environment.NewLine);
+        File.WriteAllText(Path.Combine(directory, "migration-parity.json"), TinyFarmHybridScheduleScenario.WriteJson(m10Evidence.MigrationParity) + Environment.NewLine);
+        File.WriteAllText(Path.Combine(directory, "regimes.json"), TinyFarmHybridScheduleScenario.WriteJson(m10Evidence.Regimes) + Environment.NewLine);
+        File.WriteAllText(Path.Combine(directory, "utility-decisions.json"), TinyFarmHybridScheduleScenario.WriteJson(m10Evidence.UtilityDecisions) + Environment.NewLine);
+        File.WriteAllText(Path.Combine(directory, "manifest.json"), TinyFarmHybridScheduleScenario.WriteJson(m10Evidence.Manifest) + Environment.NewLine);
     }
 }
 
@@ -300,6 +321,8 @@ if (!runM1 && !runM3 && !runM4 && !runM5 && !runM6 && !runM7 && !runM8 && !runM9
 Console.WriteLine(json);
 string outcome = runM1
     ? ((TinyFarmM1Proof)proof).Outcome
+    : runM10
+        ? ((TinyFarmM10Proof)proof).Outcome
     : runM9
         ? ((TinyFarmM9Proof)proof).Outcome
     : runM8

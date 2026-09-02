@@ -18,19 +18,16 @@ public sealed class TinyFarmM8Tests
     [Fact]
     public void ScheduleTable_CapturesTheCompleteLegacyLaw()
     {
-        Assert.Collection(
+        Assert.Equal(12, definitions.Schedules.Windows.Count);
+        Assert.Equal(11, definitions.Schedules.Windows.Count(window => window.Regime == TinyFarmScheduleRegime.Required));
+        TinyFarmScheduleWindow open = Assert.Single(
             definitions.Schedules.Windows,
-            window => AssertWindow(window, TinyFarmIds.Elias, null, 0, 720, TinyFarmAnchorIds.FarmWorkArea, 0),
-            window => AssertWindow(window, TinyFarmIds.Elias, null, 720, 1080, TinyFarmAnchorIds.RiversideMeetingPoint, 0),
-            window => AssertWindow(window, TinyFarmIds.Elias, null, 1080, 1440, TinyFarmAnchorIds.FarmWorkArea, 0),
-            window => AssertWindow(window, TinyFarmIds.Mara, null, 0, 720, TinyFarmAnchorIds.TownSquare, 0),
-            window => AssertWindow(window, TinyFarmIds.Mara, null, 720, 1020, TinyFarmAnchorIds.RiversideMeetingPoint, 0),
-            window => AssertWindow(window, TinyFarmIds.Mara, null, 1020, 1440, TinyFarmAnchorIds.FarmHome, 0),
-            window => AssertWindow(window, TinyFarmIds.Mara, 6, 540, 1020, TinyFarmAnchorIds.StoreCounter, 1),
-            window => AssertWindow(window, TinyFarmIds.Mara, 7, 600, 1020, TinyFarmAnchorIds.RiversideMeetingPoint, 1),
-            window => AssertWindow(window, TinyFarmIds.Sela, null, 0, 480, TinyFarmAnchorIds.FarmHome, 0),
-            window => AssertWindow(window, TinyFarmIds.Sela, null, 480, 1080, TinyFarmAnchorIds.StoreCounter, 0),
-            window => AssertWindow(window, TinyFarmIds.Sela, null, 1080, 1440, TinyFarmAnchorIds.FarmHome, 0));
+            window => window.Regime == TinyFarmScheduleRegime.Open);
+        Assert.Equal(TinyFarmIds.Mara, open.Actor);
+        Assert.Equal(1020, open.StartMinute);
+        Assert.Equal(1320, open.EndMinuteExclusive);
+        Assert.Null(open.RequiredAnchor);
+        Assert.Equal(2, definitions.Schedules.CandidatesFor(open).Count);
     }
 
     [Fact]

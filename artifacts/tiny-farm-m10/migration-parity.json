@@ -1,0 +1,21 @@
+{
+  "comparedDecisions": 30240,
+  "payloadEnumMigrationParity": true,
+  "allRequiredParity": true,
+  "scheduleDecisionHash": "10cdca5bf32bb96bf26d42abbc8ec8feb85983286fab35361c1c979a906796f6",
+  "anchorSequenceHash": "d763164039f2841ff6694f597df0610875ada968d0ad28a0fb9f76469fe59711",
+  "boundaryMinutes": [
+    479,
+    480,
+    719,
+    720,
+    1019,
+    1020,
+    1079,
+    1080
+  ],
+  "dayOverrides": [
+    "ScheduleDay.Day(6)",
+    "ScheduleDay.Day(7)"
+  ]
+}

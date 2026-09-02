@@ -134,7 +134,18 @@ public static class TinyFarmNpcController
                      .Where(candidate => !candidate.IsPlayer)
                      .OrderBy(candidate => candidate.Id.Value, StringComparer.Ordinal))
         {
-            SceneAnchorId scheduledAnchor = TinyFarmNpcSchedule.Decide(schedules, actor.Id, observationMinute).SelectedAnchor;
+            SceneAnchorId? currentAnchor = schedules.Candidates
+                .Select(candidate => candidate.Anchor)
+                .Distinct()
+                .Where(candidate => scenes.GetAnchor(candidate).SemanticLocation == actor.Location)
+                .OrderBy(candidate => candidate.Value, StringComparer.Ordinal)
+                .Cast<SceneAnchorId?>()
+                .FirstOrDefault();
+            SceneAnchorId scheduledAnchor = TinyFarmNpcSchedule.Decide(
+                schedules,
+                actor.Id,
+                observationMinute,
+                currentAnchor).SelectedAnchor;
             SceneAnchorDefinition anchor = scenes.GetAnchor(scheduledAnchor);
             LocationId destination = anchor.SemanticLocation
                 ?? throw new InvalidDataException($"NPC schedule anchor '{scheduledAnchor}' has no semantic location.");

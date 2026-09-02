@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Text.Json.Serialization;
 
 namespace TinyFarm.Core;
 
@@ -37,13 +38,58 @@ public readonly record struct TinyFarmScheduleDay
 }
 
 public sealed record TinyFarmScheduleWindow(
+    string Id,
     ActorId Actor,
     TinyFarmScheduleDay Day,
     int StartMinute,
     int EndMinuteExclusive,
-    SceneAnchorId Anchor,
+    TinyFarmScheduleRegime Regime,
+    SceneAnchorId? RequiredAnchor,
     int Priority,
-    string Reason);
+    string Reason)
+{
+    public TinyFarmScheduleWindow(
+        ActorId actor,
+        TinyFarmScheduleDay day,
+        int startMinute,
+        int endMinuteExclusive,
+        SceneAnchorId anchor,
+        int priority,
+        string reason)
+        : this(
+            $"{actor.Value}.{day}.{startMinute}.{endMinuteExclusive}.{reason}",
+            actor,
+            day,
+            startMinute,
+            endMinuteExclusive,
+            TinyFarmScheduleRegime.Required,
+            anchor,
+            priority,
+            reason)
+    {
+    }
+
+    [JsonIgnore]
+    public SceneAnchorId Anchor
+    {
+        get => RequiredAnchor
+            ?? throw new InvalidOperationException($"Open schedule window '{Id}' has no required anchor.");
+        init => RequiredAnchor = value;
+    }
+}
+
+public enum TinyFarmScheduleRegime
+{
+    Required,
+    Open
+}
+
+public sealed record TinyFarmUtilityCandidate(
+    string WindowId,
+    SceneAnchorId Anchor,
+    string ConsiderationKind,
+    double BaseScore,
+    double CurrentLocationBonus);
 
 public sealed record ScheduleContentProvenance(
     string Format,
@@ -62,7 +108,9 @@ public sealed class TinyFarmScheduleCatalog
     private const int MinutesPerDay = 1440;
     private readonly IReadOnlyDictionary<ActorId, IReadOnlyList<TinyFarmScheduleWindow>> byActor;
 
-    internal TinyFarmScheduleCatalog(IEnumerable<TinyFarmScheduleWindow> windows)
+    internal TinyFarmScheduleCatalog(
+        IEnumerable<TinyFarmScheduleWindow> windows,
+        IEnumerable<TinyFarmUtilityCandidate>? candidates = null)
     {
         Windows = windows
             .OrderBy(window => window.Actor.Value, StringComparer.Ordinal)
@@ -71,8 +119,15 @@ public sealed class TinyFarmScheduleCatalog
             .ThenBy(window => window.StartMinute)
             .ThenBy(window => window.EndMinuteExclusive)
             .ThenBy(window => window.Priority)
-            .ThenBy(window => window.Anchor.Value, StringComparer.Ordinal)
+            .ThenBy(window => window.Regime)
+            .ThenBy(window => window.RequiredAnchor?.Value, StringComparer.Ordinal)
+            .ThenBy(window => window.Id, StringComparer.Ordinal)
             .ThenBy(window => window.Reason, StringComparer.Ordinal)
+            .ToArray();
+
+        Candidates = (candidates ?? [])
+            .OrderBy(candidate => candidate.WindowId, StringComparer.Ordinal)
+            .ThenBy(candidate => candidate.Anchor.Value, StringComparer.Ordinal)
             .ToArray();
 
         byActor = new ReadOnlyDictionary<ActorId, IReadOnlyList<TinyFarmScheduleWindow>>(
@@ -85,6 +140,8 @@ public sealed class TinyFarmScheduleCatalog
 
     public IReadOnlyList<TinyFarmScheduleWindow> Windows { get; }
 
+    public IReadOnlyList<TinyFarmUtilityCandidate> Candidates { get; }
+
     public IReadOnlyList<TinyFarmScheduleWindow> ForActor(ActorId actor)
     {
         if (!byActor.TryGetValue(actor, out IReadOnlyList<TinyFarmScheduleWindow>? windows))
@@ -95,8 +152,14 @@ public sealed class TinyFarmScheduleCatalog
         return windows;
     }
 
+    public IReadOnlyList<TinyFarmUtilityCandidate> CandidatesFor(TinyFarmScheduleWindow window)
+    {
+        return Candidates.Where(candidate => candidate.WindowId == window.Id).ToArray();
+    }
+
     internal static void Validate(
         IReadOnlyList<TinyFarmScheduleWindow> windows,
+        IReadOnlyList<TinyFarmUtilityCandidate> candidates,
         IReadOnlySet<ActorId> knownActors,
         TinyFarmSceneCatalog scenes)
     {
@@ -107,18 +170,27 @@ public sealed class TinyFarmScheduleCatalog
 
         foreach (TinyFarmScheduleWindow window in windows)
         {
+            if (string.IsNullOrWhiteSpace(window.Id))
+            {
+                throw new InvalidDataException("Schedule rows require a stable window ID.");
+            }
+
             if (!knownActors.Contains(window.Actor))
             {
                 throw new InvalidDataException($"Schedule row references unknown actor '{window.Actor}'.");
             }
 
-            try
+            if (window.Regime == TinyFarmScheduleRegime.Required && window.RequiredAnchor is null)
             {
-                _ = scenes.GetAnchor(window.Anchor);
+                throw new InvalidDataException($"Required schedule window '{window.Id}' requires an anchor.");
             }
-            catch (KeyNotFoundException exception)
+            if (window.Regime == TinyFarmScheduleRegime.Open && window.RequiredAnchor is not null)
             {
-                throw new InvalidDataException($"Schedule row references unknown anchor '{window.Anchor}'.", exception);
+                throw new InvalidDataException($"Open schedule window '{window.Id}' cannot specify a required anchor.");
+            }
+            if (window.RequiredAnchor is SceneAnchorId requiredAnchor)
+            {
+                RequireKnownAnchor(scenes, requiredAnchor, $"Schedule window '{window.Id}'");
             }
 
             if (window.StartMinute is < 0 or >= MinutesPerDay)
@@ -143,6 +215,56 @@ public sealed class TinyFarmScheduleCatalog
             if (string.IsNullOrWhiteSpace(window.Reason))
             {
                 throw new InvalidDataException($"Schedule row for '{window.Actor}' requires a reason.");
+            }
+        }
+
+        if (windows.Select(window => window.Id).Distinct(StringComparer.Ordinal).Count() != windows.Count)
+        {
+            throw new InvalidDataException("Schedule window IDs must be unique.");
+        }
+
+        foreach (TinyFarmUtilityCandidate candidate in candidates)
+        {
+            TinyFarmScheduleWindow? window = windows.SingleOrDefault(item => item.Id == candidate.WindowId);
+            if (window is null || window.Regime != TinyFarmScheduleRegime.Open)
+            {
+                throw new InvalidDataException($"Utility candidate references unknown or non-Open window '{candidate.WindowId}'.");
+            }
+            RequireKnownAnchor(scenes, candidate.Anchor, $"Utility candidate for '{candidate.WindowId}'");
+            if (candidate.Anchor != TinyFarmAnchorIds.FarmHome
+                && candidate.Anchor != TinyFarmAnchorIds.FarmWorkArea
+                && candidate.Anchor != TinyFarmAnchorIds.TownSquare
+                && candidate.Anchor != TinyFarmAnchorIds.StoreCounter
+                && candidate.Anchor != TinyFarmAnchorIds.RiversideMeetingPoint)
+            {
+                throw new InvalidDataException(
+                    $"Utility candidate anchor '{candidate.Anchor}' has no Dominatus schedule option.");
+            }
+            if (candidate.ConsiderationKind != "current-location-stickiness")
+            {
+                throw new InvalidDataException($"Utility candidate for '{candidate.WindowId}' has unknown consideration kind '{candidate.ConsiderationKind}'.");
+            }
+            if (!double.IsFinite(candidate.BaseScore)
+                || !double.IsFinite(candidate.CurrentLocationBonus)
+                || candidate.BaseScore <= 0d
+                || candidate.CurrentLocationBonus < 0d
+                || candidate.BaseScore + candidate.CurrentLocationBonus > 1d)
+            {
+                throw new InvalidDataException(
+                    $"Utility candidate for '{candidate.WindowId}' requires a positive base score and a total score in (0, 1].");
+            }
+        }
+
+        foreach (TinyFarmScheduleWindow open in windows.Where(window => window.Regime == TinyFarmScheduleRegime.Open))
+        {
+            TinyFarmUtilityCandidate[] openCandidates = candidates.Where(candidate => candidate.WindowId == open.Id).ToArray();
+            if (openCandidates.Length == 0)
+            {
+                throw new InvalidDataException($"Open schedule window '{open.Id}' requires at least one utility candidate.");
+            }
+            if (openCandidates.Select(candidate => candidate.Anchor).Distinct().Count() != openCandidates.Length)
+            {
+                throw new InvalidDataException($"Open schedule window '{open.Id}' contains a duplicate semantic candidate.");
             }
         }
 
@@ -180,18 +302,32 @@ public sealed class TinyFarmScheduleCatalog
                     }
 
                     int highestPriority = active.Max(window => window.Priority);
-                    SceneAnchorId[] highestAnchors = active
+                    TinyFarmScheduleWindow[] highest = active
                         .Where(window => window.Priority == highestPriority)
-                        .Select(window => window.Anchor)
-                        .Distinct()
                         .ToArray();
-                    if (highestAnchors.Length != 1)
+                    if (highest.Select(window => window.Regime).Distinct().Count() != 1
+                        || highest.Select(window => window.Id).Distinct(StringComparer.Ordinal).Count() != 1)
                     {
                         throw new InvalidDataException(
                             $"Schedule has a conflicting priority tie for actor '{actor}' on day {day} at minute {minute} and priority {highestPriority}.");
                     }
                 }
             }
+        }
+    }
+
+    private static void RequireKnownAnchor(
+        TinyFarmSceneCatalog scenes,
+        SceneAnchorId anchor,
+        string owner)
+    {
+        try
+        {
+            _ = scenes.GetAnchor(anchor);
+        }
+        catch (KeyNotFoundException exception)
+        {
+            throw new InvalidDataException($"{owner} references unknown anchor '{anchor}'.", exception);
         }
     }
 }
