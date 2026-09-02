@@ -65,12 +65,14 @@ public static class TinyFarmHybridScheduleScenario
             definitions.Schedules,
             TinyFarmIds.Mara,
             1200,
-            TinyFarmAnchorIds.FarmHome);
+            TinyFarmAnchorIds.FarmHome,
+            includeTrace: true);
         TinyFarmScheduleDecision openTown = TinyFarmNpcSchedule.Decide(
             definitions.Schedules,
             TinyFarmIds.Mara,
             1200,
-            TinyFarmAnchorIds.TownSquare);
+            TinyFarmAnchorIds.TownSquare,
+            includeTrace: true);
         TinyFarmScheduleDecision required = TinyFarmNpcSchedule.Decide(
             definitions.Schedules,
             TinyFarmIds.Mara,

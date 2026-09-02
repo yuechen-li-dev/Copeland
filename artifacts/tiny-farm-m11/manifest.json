@@ -1,0 +1,13 @@
+{
+  "milestone": "TINY-FARM-M11",
+  "kind": "persistent-open-action-flow-zero-allocation-candidate-lookup",
+  "gameplayBehaviorChanged": false,
+  "openDecisionRuntimePersistent": true,
+  "candidateLookupAllocates": false,
+  "requiredPathChanged": false,
+  "scheduleContentChanged": false,
+  "dominatusDecisionSemanticsChanged": false,
+  "newNeedsAdded": false,
+  "plannerAdded": false,
+  "rendererChanged": false
+}

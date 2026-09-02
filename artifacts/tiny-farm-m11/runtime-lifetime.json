@@ -1,0 +1,11 @@
+{
+  "creation": "Each TinyFarmSession creates one schedule runtime; that runtime lazily creates one actor runtime on the actor\u0027s first Open decision. Direct compatibility calls use a weak catalog runtime.",
+  "reuse": "Each actor runtime retains its own AiWorld, AiAgent, HFSM root, decision memory, result slot, and lock.",
+  "destruction": "Dropping a session releases its explicit runtime and actor runtimes. Dropping a directly used catalog releases its ConditionalWeakTable runtime. No static runtime references a TinyFarmSession.",
+  "saveLoad": "Only semantic state is saved. Load reconstructs state and observations; derived catalog/actor execution state is not serialized.",
+  "sessionReplacement": "Every loaded replacement session creates a fresh schedule runtime. The discarded runtime holds no external session, state, navigation, or renderer reference.",
+  "locking": "Catalog lookup uses ConcurrentDictionary only for lazy actor creation. Each actor decision has a separate defensive lock; there is no catalog-wide decision lock.",
+  "blackboard": "Catalog is written once per actor. Unchanged active-window and current-anchor references are equality no-ops. Minute is no longer boxed into the Dominatus blackboard.",
+  "ordering": "Candidate backing storage is canonical by window ID then anchor ID; winner ties explicitly use the unchanged static Dominatus option order.",
+  "scoreStorage": "Normal execution uses scalar locals only. Inspection allocates one exact-size array of readonly score structs on request."
+}

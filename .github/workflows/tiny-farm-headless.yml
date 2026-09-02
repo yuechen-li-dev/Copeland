@@ -188,6 +188,42 @@ jobs:
             throw "TinyFarm M10 proof did not preserve the hybrid scheduling contract."
           }
 
+      - name: Validate persistent Open M11 runtime
+        shell: pwsh
+        run: |
+          $artifactDirectory = Join-Path $env:RUNNER_TEMP "tiny-farm-m11"
+          dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --m11 --artifact-dir $artifactDirectory
+          if ($LASTEXITCODE -ne 0) {
+            throw "TinyFarm M11 persistent Open runtime proof failed."
+          }
+
+          $proof = Get-Content -Raw -LiteralPath (Join-Path $artifactDirectory "proof.json") | ConvertFrom-Json
+          if ($proof.outcome -ne "A" -or
+              $proof.gameplayBehaviorChanged -or
+              -not $proof.openDecisionRuntimePersistent -or
+              $proof.candidateLookupAllocates -or
+              -not $proof.traceMaterializationOptIn -or
+              -not $proof.perActorMutableStateIsolated -or
+              $proof.requiredPathChanged -or
+              $proof.scheduleContentChanged -or
+              $proof.dominatusDecisionSemanticsChanged -or
+              $proof.candidateLookupBytesPerDecision -ne 0 -or
+              $proof.openBytesPerDecision -gt 640 -or
+              $proof.m1Hash -ne "dcc35869aba0eba979725b1871d0babfe127383123a1a5f665b666bc3488d333" -or
+              $proof.m2Hash -ne "4a49e221d6ffe90304143cece5b1a20fe96eecc4d10d30cf1bde11922a18ced3" -or
+              $proof.sceneContentHash -ne "fe79f373643e1e3aa5df8f505e775cce7388206332831497fe12f8bed7e54afa" -or
+              $proof.m9DecisionHash -ne "10cdca5bf32bb96bf26d42abbc8ec8feb85983286fab35361c1c979a906796f6" -or
+              $proof.m9AnchorSequenceHash -ne "d763164039f2841ff6694f597df0610875ada968d0ad28a0fb9f76469fe59711" -or
+              $proof.m11SemanticParityHash -ne "43bf45523928223698a477ed64349ce73241a7df7fb23a04f33255a0f3124bd6") {
+            throw "TinyFarm M11 proof did not preserve the persistent runtime contract."
+          }
+
+          $artifactFiles = @(Get-ChildItem -LiteralPath $artifactDirectory -File)
+          if ($artifactFiles.Count -ne 5 -or
+              ($artifactFiles | Where-Object Length -gt 262144)) {
+            throw "TinyFarm M11 evidence exceeded the compact five-file artifact budget."
+          }
+
       - name: Enforce repository artifact budget
         shell: pwsh
         run: ./tools/Test-ArtifactBudget.ps1 -Paths @()

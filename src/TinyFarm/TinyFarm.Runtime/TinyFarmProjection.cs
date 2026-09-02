@@ -210,7 +210,8 @@ public static class TinyFarmInspector
                     session.ScheduleCatalog,
                     actor.Id,
                     state.Minute,
-                    currentCandidate);
+                    currentCandidate,
+                    includeTrace: true);
                 return (object)new
                 {
                     self = actor.Id.Value,

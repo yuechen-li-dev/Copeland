@@ -74,17 +74,20 @@ public sealed class TinyFarmM10Tests
             definitions.Schedules,
             TinyFarmIds.Mara,
             1200,
-            TinyFarmAnchorIds.FarmHome);
+            TinyFarmAnchorIds.FarmHome,
+            includeTrace: true);
         TinyFarmScheduleDecision openAtTown = TinyFarmNpcSchedule.Decide(
             definitions.Schedules,
             TinyFarmIds.Mara,
             1200,
-            TinyFarmAnchorIds.TownSquare);
+            TinyFarmAnchorIds.TownSquare,
+            includeTrace: true);
         TinyFarmScheduleDecision repeated = TinyFarmNpcSchedule.Decide(
             definitions.Schedules,
             TinyFarmIds.Mara,
             1200,
-            TinyFarmAnchorIds.TownSquare);
+            TinyFarmAnchorIds.TownSquare,
+            includeTrace: true);
 
         Assert.Equal(TinyFarmScheduleRegime.Required, required.Regime);
         Assert.Equal(TinyFarmAnchorIds.FarmHome, required.SelectedAnchor);

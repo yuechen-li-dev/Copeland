@@ -106,13 +106,16 @@ public sealed record ScheduleContentProvenance(
 public sealed class TinyFarmScheduleCatalog
 {
     private const int MinutesPerDay = 1440;
-    private readonly IReadOnlyDictionary<ActorId, IReadOnlyList<TinyFarmScheduleWindow>> byActor;
+    private readonly TinyFarmScheduleWindow[] windows;
+    private readonly TinyFarmUtilityCandidate[] candidates;
+    private readonly IReadOnlyDictionary<ActorId, ArraySegment<TinyFarmScheduleWindow>> byActor;
+    private readonly IReadOnlyDictionary<string, ArraySegment<TinyFarmUtilityCandidate>> candidatesByWindow;
 
     internal TinyFarmScheduleCatalog(
         IEnumerable<TinyFarmScheduleWindow> windows,
         IEnumerable<TinyFarmUtilityCandidate>? candidates = null)
     {
-        Windows = windows
+        this.windows = windows
             .OrderBy(window => window.Actor.Value, StringComparer.Ordinal)
             .ThenBy(window => window.Day.IsEveryDay ? 0 : 1)
             .ThenBy(window => window.Day.SpecificDay ?? 0)
@@ -125,36 +128,72 @@ public sealed class TinyFarmScheduleCatalog
             .ThenBy(window => window.Reason, StringComparer.Ordinal)
             .ToArray();
 
-        Candidates = (candidates ?? [])
+        this.candidates = (candidates ?? [])
             .OrderBy(candidate => candidate.WindowId, StringComparer.Ordinal)
             .ThenBy(candidate => candidate.Anchor.Value, StringComparer.Ordinal)
             .ToArray();
 
-        byActor = new ReadOnlyDictionary<ActorId, IReadOnlyList<TinyFarmScheduleWindow>>(
-            Windows
-                .GroupBy(window => window.Actor)
-                .ToDictionary(
-                    group => group.Key,
-                    group => (IReadOnlyList<TinyFarmScheduleWindow>)group.ToArray()));
+        byActor = new ReadOnlyDictionary<ActorId, ArraySegment<TinyFarmScheduleWindow>>(
+            BuildRanges(this.windows, static window => window.Actor));
+        candidatesByWindow = new ReadOnlyDictionary<string, ArraySegment<TinyFarmUtilityCandidate>>(
+            BuildRanges(this.candidates, static candidate => candidate.WindowId, StringComparer.Ordinal));
     }
 
-    public IReadOnlyList<TinyFarmScheduleWindow> Windows { get; }
+    public IReadOnlyList<TinyFarmScheduleWindow> Windows => windows;
 
-    public IReadOnlyList<TinyFarmUtilityCandidate> Candidates { get; }
+    public IReadOnlyList<TinyFarmUtilityCandidate> Candidates => candidates;
 
-    public IReadOnlyList<TinyFarmScheduleWindow> ForActor(ActorId actor)
+    public ArraySegment<TinyFarmScheduleWindow> ForActor(ActorId actor)
     {
-        if (!byActor.TryGetValue(actor, out IReadOnlyList<TinyFarmScheduleWindow>? windows))
+        if (!byActor.TryGetValue(actor, out ArraySegment<TinyFarmScheduleWindow> actorWindows))
         {
             throw new KeyNotFoundException($"No TinyFarm NPC schedule is registered for actor '{actor}'.");
         }
 
-        return windows;
+        return actorWindows;
     }
 
-    public IReadOnlyList<TinyFarmUtilityCandidate> CandidatesFor(TinyFarmScheduleWindow window)
+    public ArraySegment<TinyFarmUtilityCandidate> CandidatesFor(TinyFarmScheduleWindow window)
     {
-        return Candidates.Where(candidate => candidate.WindowId == window.Id).ToArray();
+        if (candidatesByWindow.TryGetValue(
+            window.Id,
+            out ArraySegment<TinyFarmUtilityCandidate> windowCandidates))
+        {
+            return windowCandidates;
+        }
+
+        if (window.Regime == TinyFarmScheduleRegime.Open)
+        {
+            throw new InvalidOperationException(
+                $"Open schedule window '{window.Id}' has no indexed utility candidates.");
+        }
+
+        return default;
+    }
+
+    private static Dictionary<TKey, ArraySegment<TValue>> BuildRanges<TKey, TValue>(
+        TValue[] values,
+        Func<TValue, TKey> keySelector,
+        IEqualityComparer<TKey>? comparer = null)
+        where TKey : notnull
+    {
+        var ranges = new Dictionary<TKey, ArraySegment<TValue>>(comparer);
+        int start = 0;
+        while (start < values.Length)
+        {
+            TKey key = keySelector(values[start]);
+            int end = start + 1;
+            while (end < values.Length
+                && ranges.Comparer.Equals(key, keySelector(values[end])))
+            {
+                end++;
+            }
+
+            ranges.Add(key, new ArraySegment<TValue>(values, start, end - start));
+            start = end;
+        }
+
+        return ranges;
     }
 
     internal static void Validate(

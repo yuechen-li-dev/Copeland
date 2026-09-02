@@ -1,0 +1,49 @@
+{
+  "paths": [
+    {
+      "path": "Required",
+      "m10Nanoseconds": 496.356,
+      "m11Nanoseconds": 60.478,
+      "m10Bytes": 160.0004,
+      "m11Bytes": 0
+    },
+    {
+      "path": "Open",
+      "m10Nanoseconds": 3092.457,
+      "m11Nanoseconds": 785.356,
+      "m10Bytes": 3065.74752,
+      "m11Bytes": 432
+    }
+  ],
+  "candidateLookup": {
+    "representation": "ArraySegment\u003CTinyFarmUtilityCandidate\u003E over one canonical backing array",
+    "beforeBytesPerLookup": 88.00064,
+    "afterBytesPerLookup": 0
+  },
+  "rtsBench": {
+    "mode": "Release net10.0 Smoke sequential; 50 initial ships; 250 ticks; no checkpoints",
+    "agentTicksPerSecond": 57696.28,
+    "decisionsPerSecond": 519266.49,
+    "bytesPerDecision": 186.17,
+    "determinismHash": "2ec6db6dd10db075",
+    "comparison": "Both retain persistent agents. RTSBenchmark evaluates nine utility options per agent tick inside a full simulation; TinyFarm measures one five-option schedule decision in isolation."
+  },
+  "isolatedDecisionCapacity": [
+    {
+      "npcCount": 10,
+      "isolatedDecisionsPerSecond": 1273307.901130188,
+      "completeDecisionRoundsPerSecond": 127330.7901130188
+    },
+    {
+      "npcCount": 100,
+      "isolatedDecisionsPerSecond": 1273307.901130188,
+      "completeDecisionRoundsPerSecond": 12733.079011301881
+    },
+    {
+      "npcCount": 1000,
+      "isolatedDecisionsPerSecond": 1273307.901130188,
+      "completeDecisionRoundsPerSecond": 1273.307901130188
+    }
+  ],
+  "caveat": "Capacity is utility-decision throughput only, not full simulation throughput."
+}

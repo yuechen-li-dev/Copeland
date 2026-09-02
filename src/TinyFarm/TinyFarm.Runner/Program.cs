@@ -1,6 +1,49 @@
 using TinyFarm.Core;
 using System.Diagnostics;
 
+if (args.Contains("--m11-open-profile", StringComparer.Ordinal))
+{
+    TinyFarmDefinitions profileDefinitions = TinyFarmDefinitionLoader.Load();
+    for (int index = 0; index < 10_000; index++)
+    {
+        _ = TinyFarmNpcSchedule.Decide(
+            profileDefinitions.Schedules,
+            TinyFarmIds.Mara,
+            1200,
+            TinyFarmAnchorIds.TownSquare);
+    }
+
+    if (args.Contains("--profile-wait", StringComparer.Ordinal))
+    {
+        Console.WriteLine("M11_PROFILE_READY");
+        Thread.Sleep(TimeSpan.FromSeconds(5));
+    }
+
+    const int profileDecisionCount = 100_000;
+    long profileAllocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+    var profileStopwatch = Stopwatch.StartNew();
+    for (int index = 0; index < profileDecisionCount; index++)
+    {
+        _ = TinyFarmNpcSchedule.Decide(
+            profileDefinitions.Schedules,
+            TinyFarmIds.Mara,
+            1200,
+            TinyFarmAnchorIds.TownSquare);
+    }
+    profileStopwatch.Stop();
+    long profileAllocated = GC.GetAllocatedBytesForCurrentThread() - profileAllocatedBefore;
+    Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new
+    {
+        workload = "TinyFarm warmed Open schedule decision",
+        decisionCount = profileDecisionCount,
+        elapsedMilliseconds = profileStopwatch.Elapsed.TotalMilliseconds,
+        nanosecondsPerDecision = profileStopwatch.Elapsed.TotalNanoseconds / profileDecisionCount,
+        allocatedBytes = profileAllocated,
+        bytesPerDecision = profileAllocated / (double)profileDecisionCount
+    }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+    return;
+}
+
 if (args.Contains("--infra-m10a-benchmark", StringComparer.Ordinal))
 {
     TinyFarmDefinitions benchmarkDefinitions = TinyFarmDefinitionLoader.Load();
@@ -55,6 +98,7 @@ bool runM7 = args.Contains("--m7", StringComparer.Ordinal);
 bool runM8 = args.Contains("--m8", StringComparer.Ordinal);
 bool runM9 = args.Contains("--m9", StringComparer.Ordinal);
 bool runM10 = args.Contains("--m10", StringComparer.Ordinal);
+bool runM11 = args.Contains("--m11", StringComparer.Ordinal);
 if (args.Contains("--single-week", StringComparer.Ordinal))
 {
     TinyFarmDefinitions singleDefinitions = TinyFarmDefinitionLoader.Load();
@@ -66,8 +110,11 @@ TinyFarmM7Evidence? m7Evidence = runM7 ? TinyFarmTsonSceneScenario.Prove() : nul
 TinyFarmM8Evidence? m8Evidence = runM8 ? TinyFarmScheduleScenario.Prove() : null;
 TinyFarmM9Evidence? m9Evidence = runM9 ? TinyFarmTsonScheduleScenario.Prove() : null;
 TinyFarmM10Evidence? m10Evidence = runM10 ? TinyFarmHybridScheduleScenario.Prove() : null;
+TinyFarmM11Evidence? m11Evidence = runM11 ? TinyFarmPersistentActionScenario.Prove() : null;
 object proof = runM1
     ? TinyFarmCanonicalScenario.Prove()
+    : runM11
+        ? m11Evidence!.Proof
     : runM10
         ? m10Evidence!.Proof
     : runM9
@@ -87,6 +134,8 @@ object proof = runM1
         : TinyFarmWeekScenario.Prove();
 string json = runM1
     ? TinyFarmCanonicalScenario.WriteProofJson((TinyFarmM1Proof)proof)
+    : runM11
+        ? TinyFarmPersistentActionScenario.WriteJson(proof)
     : runM10
         ? TinyFarmHybridScheduleScenario.WriteJson(proof)
     : runM9
@@ -192,6 +241,21 @@ if (runM10)
     }
 }
 
+if (runM11)
+{
+    int artifactIndex = Array.IndexOf(args, "--artifact-dir");
+    if (artifactIndex >= 0)
+    {
+        string directory = RequiredOutputPath(args, artifactIndex, "--artifact-dir");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, "proof.json"), TinyFarmPersistentActionScenario.WriteJson(m11Evidence!.Proof) + Environment.NewLine);
+        File.WriteAllText(Path.Combine(directory, "allocations.json"), TinyFarmPersistentActionScenario.WriteJson(m11Evidence.Allocations) + Environment.NewLine);
+        File.WriteAllText(Path.Combine(directory, "performance.json"), TinyFarmPersistentActionScenario.WriteJson(m11Evidence.Performance) + Environment.NewLine);
+        File.WriteAllText(Path.Combine(directory, "runtime-lifetime.json"), TinyFarmPersistentActionScenario.WriteJson(m11Evidence.RuntimeLifetime) + Environment.NewLine);
+        File.WriteAllText(Path.Combine(directory, "manifest.json"), TinyFarmPersistentActionScenario.WriteJson(m11Evidence.Manifest) + Environment.NewLine);
+    }
+}
+
 if (runM6)
 {
     TinyFarmM6Evidence evidence = TinyFarmAnchorHandoffScenario.Prove();
@@ -274,7 +338,7 @@ if (runM4)
     }
 }
 
-if (!runM1 && !runM3 && !runM4 && !runM5 && !runM6 && !runM7 && !runM8 && !runM9)
+if (!runM1 && !runM3 && !runM4 && !runM5 && !runM6 && !runM7 && !runM8 && !runM9 && !runM10 && !runM11)
 {
     TinyFarmDefinitions artifactDefinitions = TinyFarmDefinitionLoader.Load();
     TinyFarmWeekRun artifactRun = TinyFarmWeekScenario.Run(artifactDefinitions, null);
@@ -321,6 +385,8 @@ if (!runM1 && !runM3 && !runM4 && !runM5 && !runM6 && !runM7 && !runM8 && !runM9
 Console.WriteLine(json);
 string outcome = runM1
     ? ((TinyFarmM1Proof)proof).Outcome
+    : runM11
+        ? ((TinyFarmM11Proof)proof).Outcome
     : runM10
         ? ((TinyFarmM10Proof)proof).Outcome
     : runM9

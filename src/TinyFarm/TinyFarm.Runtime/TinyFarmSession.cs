@@ -14,6 +14,7 @@ public sealed class TinyFarmSession
     private long nextSequence;
     private IReadOnlyList<GameEvent> recentEvents;
     private readonly INavigationPlanner navigationPlanner;
+    private readonly TinyFarmNpcSchedule.Runtime scheduleRuntime;
     private readonly Dictionary<ActorId, NpcPathState> npcPaths = [];
     private int navigationPlanCount;
     private int activationCount;
@@ -50,6 +51,7 @@ public sealed class TinyFarmSession
         this.recentEvents = recentEvents.ToArray();
         resolver = new TinyFarmResolver(definitions);
         this.navigationPlanner = navigationPlanner ?? new DotRecastNavigationPlanner();
+        scheduleRuntime = TinyFarmNpcSchedule.CreateRuntime(definitions!.Schedules);
     }
 
     public TinyFarmState State { get; private set; }
@@ -91,7 +93,8 @@ public sealed class TinyFarmSession
             nextSequence,
             observationMinute,
             Scenes,
-            definitions!.Schedules);
+            definitions!.Schedules,
+            scheduleRuntime);
         envelopes.AddRange(npcIntents);
         nextSequence += npcIntents.Count;
 

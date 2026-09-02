@@ -1,0 +1,109 @@
+{
+  "workload": "100000 warmed Open decisions; EventPipe GC allocation ticks; loop isolated after warmup",
+  "m10": {
+    "measuredBytesPerDecision": 3079.10264,
+    "sampledAttributedBytes": 308623104,
+    "sampledAllocationTicks": 2895,
+    "topTypes": [
+      {
+        "type": "System.Func\u003CTinyFarmUtilityCandidate, Boolean\u003E",
+        "sampledBytes": 47438168,
+        "classification": "CANDIDATE_LOOKUP"
+      },
+      {
+        "type": "ArrayWhereIterator\u003CTinyFarmUtilityCandidate\u003E",
+        "sampledBytes": 28141816,
+        "classification": "CANDIDATE_LOOKUP"
+      },
+      {
+        "type": "TinyFarmUtilityCandidate[]",
+        "sampledBytes": 24413048,
+        "classification": "CANDIDATE_LOOKUP"
+      },
+      {
+        "type": "SZGenericArrayEnumerator\u003CTinyFarmScheduleWindow\u003E",
+        "sampledBytes": 18973680,
+        "classification": "TINYFARM_INTEGRATION"
+      },
+      {
+        "type": "TinyFarmUtilityScore",
+        "sampledBytes": 18547280,
+        "classification": "TRACE/EVIDENCE"
+      },
+      {
+        "type": "TinyFarmNpcSchedule closure",
+        "sampledBytes": 14286048,
+        "classification": "TINYFARM_INTEGRATION"
+      },
+      {
+        "type": "ValueTuple\u003CString, Single, StateId\u003E[]",
+        "sampledBytes": 14178048,
+        "classification": "DOMINATUS_CURRENT_IMPLEMENTATION"
+      },
+      {
+        "type": "Dominatus.Core.Nodes.NodeRunner",
+        "sampledBytes": 9914632,
+        "classification": "DOMINATUS_CORE_REQUIRED"
+      },
+      {
+        "type": "TinyFarmScheduleDecision",
+        "sampledBytes": 9381880,
+        "classification": "TINYFARM_INTEGRATION"
+      },
+      {
+        "type": "TinyFarmUtilityScore[]",
+        "sampledBytes": 9167600,
+        "classification": "TRACE/EVIDENCE"
+      },
+      {
+        "type": "Dominatus.Core.Runtime.LiveWorldBb",
+        "sampledBytes": 8315656,
+        "classification": "DOMINATUS_CURRENT_IMPLEMENTATION"
+      },
+      {
+        "type": "Dominatus.Core.Nodes.Steps.Decide",
+        "sampledBytes": 4584592,
+        "classification": "DOMINATUS_CURRENT_IMPLEMENTATION"
+      }
+    ]
+  },
+  "m11": {
+    "measuredBytesPerDecision": 432,
+    "sampledAttributedBytes": 43946792,
+    "sampledAllocationTicks": 412,
+    "topTypes": [
+      {
+        "type": "ValueTuple\u003CString, Single, StateId\u003E[]",
+        "sampledBytes": 28886936,
+        "classification": "DOMINATUS_CURRENT_IMPLEMENTATION"
+      },
+      {
+        "type": "Action\u003CString, Object, Object\u003E",
+        "sampledBytes": 6608640,
+        "classification": "DOMINATUS_CURRENT_IMPLEMENTATION"
+      },
+      {
+        "type": "Dominatus.Core.Runtime.LiveWorldBb",
+        "sampledBytes": 5010200,
+        "classification": "DOMINATUS_CURRENT_IMPLEMENTATION"
+      },
+      {
+        "type": "Dominatus AiAgent.Tick closure",
+        "sampledBytes": 2665000,
+        "classification": "DOMINATUS_CURRENT_IMPLEMENTATION"
+      }
+    ],
+    "tinyFarmFixed": [
+      "candidate lookup uses a prebuilt ArraySegment index",
+      "schedule windows enumerate an indexed ArraySegment without interface enumerator allocation",
+      "winner selection uses a bounded loop without LINQ",
+      "ordinary decisions do not materialize score traces",
+      "TinyFarmScheduleDecision and TinyFarmUtilityScore are readonly record structs",
+      "root Decide step and root iterator persist per actor"
+    ],
+    "traceOnly": {
+      "enabledBy": "includeTrace: true",
+      "tracedBytesPerDecision": 520
+    }
+  }
+}

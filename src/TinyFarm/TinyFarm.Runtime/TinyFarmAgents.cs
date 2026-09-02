@@ -119,13 +119,14 @@ public static partial class TinyFarmNpcFlow
 
 public static class TinyFarmNpcController
 {
-    public static IReadOnlyList<IntentEnvelope> ObserveDecideAndSubmit(
+    internal static IReadOnlyList<IntentEnvelope> ObserveDecideAndSubmit(
         TinyFarmState state,
         IReadOnlyList<GameEvent> recentEvents,
         long firstSequence,
         int observationMinute,
         TinyFarmSceneCatalog scenes,
-        TinyFarmScheduleCatalog schedules)
+        TinyFarmScheduleCatalog schedules,
+        TinyFarmNpcSchedule.Runtime scheduleRuntime)
     {
         var envelopes = new List<IntentEnvelope>();
         long sequence = firstSequence;
@@ -142,7 +143,7 @@ public static class TinyFarmNpcController
                 .Cast<SceneAnchorId?>()
                 .FirstOrDefault();
             SceneAnchorId scheduledAnchor = TinyFarmNpcSchedule.Decide(
-                schedules,
+                scheduleRuntime,
                 actor.Id,
                 observationMinute,
                 currentAnchor).SelectedAnchor;
