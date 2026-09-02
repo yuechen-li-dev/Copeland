@@ -1,0 +1,158 @@
+{
+  "contract": "PURE_TIME_SCHEDULE",
+  "checkedActors": [
+    "elias",
+    "mara",
+    "sela"
+  ],
+  "minutesPerDay": 1440,
+  "checkedDays": 7,
+  "comparedDecisions": 30240,
+  "exhaustiveLegacyParity": true,
+  "scheduleHash": "98bf872963c6f053dcbb0aadebc53f1e98829c380fc3a5438b7dbbd20b203ed1",
+  "windows": [
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "day": null,
+      "fromMinute": 0,
+      "toMinute": 720,
+      "anchor": {
+        "value": "town.square"
+      },
+      "priority": 0,
+      "reason": "daily-morning-town"
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "day": null,
+      "fromMinute": 720,
+      "toMinute": 1020,
+      "anchor": {
+        "value": "riverside.meeting-point"
+      },
+      "priority": 0,
+      "reason": "daily-afternoon-riverside"
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "day": null,
+      "fromMinute": 1020,
+      "toMinute": 1440,
+      "anchor": {
+        "value": "farm.home"
+      },
+      "priority": 0,
+      "reason": "daily-evening-home"
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "day": 6,
+      "fromMinute": 540,
+      "toMinute": 1020,
+      "anchor": {
+        "value": "general-store.counter"
+      },
+      "priority": 1,
+      "reason": "day-6-store"
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "day": 7,
+      "fromMinute": 600,
+      "toMinute": 1020,
+      "anchor": {
+        "value": "riverside.meeting-point"
+      },
+      "priority": 1,
+      "reason": "day-7-riverside"
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "day": null,
+      "fromMinute": 0,
+      "toMinute": 720,
+      "anchor": {
+        "value": "farm.work-area"
+      },
+      "priority": 0,
+      "reason": "daily-morning-work"
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "day": null,
+      "fromMinute": 720,
+      "toMinute": 1080,
+      "anchor": {
+        "value": "riverside.meeting-point"
+      },
+      "priority": 0,
+      "reason": "daily-afternoon-riverside"
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "day": null,
+      "fromMinute": 1080,
+      "toMinute": 1440,
+      "anchor": {
+        "value": "farm.work-area"
+      },
+      "priority": 0,
+      "reason": "daily-evening-work"
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "day": null,
+      "fromMinute": 0,
+      "toMinute": 480,
+      "anchor": {
+        "value": "farm.home"
+      },
+      "priority": 0,
+      "reason": "daily-morning-home"
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "day": null,
+      "fromMinute": 480,
+      "toMinute": 1080,
+      "anchor": {
+        "value": "general-store.counter"
+      },
+      "priority": 0,
+      "reason": "daily-store"
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "day": null,
+      "fromMinute": 1080,
+      "toMinute": 1440,
+      "anchor": {
+        "value": "farm.home"
+      },
+      "priority": 0,
+      "reason": "daily-evening-home"
+    }
+  ]
+}

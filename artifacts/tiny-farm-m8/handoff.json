@@ -1,0 +1,13 @@
+{
+  "handoffHash": "0b16f533785927bbe1f780e804b0ac9717a3c588095a337ac5bffeaa9177616a",
+  "navigationHash": "07dde9ac2f6c957017abe151320ee0a7d5c900f51ecd7901331c9d21a480d8fa",
+  "activeNpcWalked": true,
+  "inactiveNpcUsedNoNavigation": true,
+  "inactiveToActiveDeterministic": true,
+  "activeToInactiveDeterministic": true,
+  "activeSaveLoadExact": true,
+  "inactiveSaveLoadExact": true,
+  "saveLoadBeforeTransition": true,
+  "saveLoadAfterTransition": true,
+  "enRouteGoalChange": "the next observation selects the new anchor; the goal identity invalidates and replans the derived path"
+}

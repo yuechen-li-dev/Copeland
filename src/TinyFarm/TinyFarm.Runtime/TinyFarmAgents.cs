@@ -133,7 +133,7 @@ public static class TinyFarmNpcController
                      .Where(candidate => !candidate.IsPlayer)
                      .OrderBy(candidate => candidate.Id.Value, StringComparer.Ordinal))
         {
-            SceneAnchorId scheduledAnchor = ScheduledAnchor(actor.Id, observationMinute);
+            SceneAnchorId scheduledAnchor = TinyFarmNpcSchedule.Decide(actor.Id, observationMinute).SelectedAnchor;
             SceneAnchorDefinition anchor = scenes.GetAnchor(scheduledAnchor);
             LocationId destination = anchor.SemanticLocation
                 ?? throw new InvalidDataException($"NPC schedule anchor '{scheduledAnchor}' has no semantic location.");
@@ -182,40 +182,7 @@ public static class TinyFarmNpcController
 
     public static SceneAnchorId ScheduledAnchor(ActorId actor, int minute)
     {
-        int minuteOfDay = minute % (24 * 60);
-        int day = minute / (24 * 60) + 1;
-
-        if (actor == TinyFarmIds.Mara)
-        {
-            if (day == 6 && minuteOfDay >= 9 * 60 && minuteOfDay < 17 * 60)
-            {
-                return TinyFarmAnchorIds.StoreCounter;
-            }
-
-            if (day == 7 && minuteOfDay >= 10 * 60 && minuteOfDay < 17 * 60)
-            {
-                return TinyFarmAnchorIds.RiversideMeetingPoint;
-            }
-            if (minuteOfDay < 12 * 60)
-            {
-                return TinyFarmAnchorIds.TownSquare;
-            }
-
-            return minuteOfDay < 17 * 60
-                ? TinyFarmAnchorIds.RiversideMeetingPoint
-                : TinyFarmAnchorIds.FarmHome;
-        }
-
-        if (actor == TinyFarmIds.Elias)
-        {
-            return minuteOfDay >= 12 * 60 && minuteOfDay < 18 * 60
-                ? TinyFarmAnchorIds.RiversideMeetingPoint
-                : TinyFarmAnchorIds.FarmWorkArea;
-        }
-
-        return minuteOfDay >= 8 * 60 && minuteOfDay < 18 * 60
-            ? TinyFarmAnchorIds.StoreCounter
-            : TinyFarmAnchorIds.FarmHome;
+        return TinyFarmNpcSchedule.Decide(actor, minute).SelectedAnchor;
     }
 
     private static bool HasReachedAnchor(

@@ -1,0 +1,14 @@
+{
+  "milestone": "TINY-FARM-M8",
+  "kind": "dominatus-schedule-transition-selection",
+  "hardcodedScheduleBranchingRemoved": true,
+  "dominatusOwnsScheduleSelection": true,
+  "scheduleBehaviorChanged": false,
+  "npcGoalsRemainSemanticAnchors": true,
+  "navigationSemanticsChanged": false,
+  "sceneContentChanged": false,
+  "newSchedulerFrameworkAdded": false,
+  "plannerAdded": false,
+  "llmSchedulingAdded": false,
+  "rendererOwnsNpcBehavior": false
+}

@@ -105,6 +105,31 @@ jobs:
             throw "TinyFarm M7 proof did not preserve the scene semantic contract."
           }
 
+      - name: Validate Dominatus schedule selection and canonical M8 parity
+        shell: pwsh
+        run: |
+          $artifactDirectory = Join-Path $env:RUNNER_TEMP "tiny-farm-m8"
+          dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --m8 --artifact-dir $artifactDirectory
+          if ($LASTEXITCODE -ne 0) {
+            throw "TinyFarm M8 Dominatus schedule proof failed."
+          }
+
+          $proof = Get-Content -Raw -LiteralPath (Join-Path $artifactDirectory "proof.json") | ConvertFrom-Json
+          if ($proof.outcome -ne "A" -or
+              -not $proof.exhaustiveMinuteParity -or
+              -not $proof.sevenDayParity -or
+              -not $proof.transitionBoundaryParity -or
+              -not $proof.activeInactiveParity -or
+              -not $proof.saveLoadBeforeTransition -or
+              -not $proof.saveLoadAfterTransition -or
+              -not $proof.saveLoadWhileMoving -or
+              -not $proof.m6M7HashesPreserved -or
+              $proof.sceneContentHash -ne "fe79f373643e1e3aa5df8f505e775cce7388206332831497fe12f8bed7e54afa" -or
+              $proof.m1Hash -ne "dcc35869aba0eba979725b1871d0babfe127383123a1a5f665b666bc3488d333" -or
+              $proof.m2Hash -ne "4a49e221d6ffe90304143cece5b1a20fe96eecc4d10d30cf1bde11922a18ced3") {
+            throw "TinyFarm M8 proof did not preserve the schedule semantic contract."
+          }
+
       - name: Enforce repository artifact budget
         shell: pwsh
         run: ./tools/Test-ArtifactBudget.ps1 -Paths @()

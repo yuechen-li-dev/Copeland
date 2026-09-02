@@ -1,0 +1,2068 @@
+{
+  "slot": "TinyFarm.NpcSchedule.Anchor",
+  "scoreLaw": "highest-priority active window scores 1; every other anchor scores 0",
+  "tieLaw": "one anchor must own the highest active priority; conflicting ties fail deterministically",
+  "hysteresis": 0,
+  "minimumCommitSeconds": 0,
+  "persistence": "observation-pure; goal recomputed from actor and absolute minute",
+  "transitions": [
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 0,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.work-area"
+      },
+      "reason": "daily-morning-work",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 719,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.work-area"
+      },
+      "reason": "daily-morning-work",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 720,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 721,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 1079,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 1080,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.work-area"
+      },
+      "reason": "daily-evening-work",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 1081,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.work-area"
+      },
+      "reason": "daily-evening-work",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 2159,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.work-area"
+      },
+      "reason": "daily-morning-work",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 2160,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 2161,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 2519,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 2520,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.work-area"
+      },
+      "reason": "daily-evening-work",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 2521,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.work-area"
+      },
+      "reason": "daily-evening-work",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 3599,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.work-area"
+      },
+      "reason": "daily-morning-work",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 3600,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 3601,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 3959,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 3960,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.work-area"
+      },
+      "reason": "daily-evening-work",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 3961,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.work-area"
+      },
+      "reason": "daily-evening-work",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 5039,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.work-area"
+      },
+      "reason": "daily-morning-work",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 5040,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 5041,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 5399,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 5400,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.work-area"
+      },
+      "reason": "daily-evening-work",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 5401,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.work-area"
+      },
+      "reason": "daily-evening-work",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 6479,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.work-area"
+      },
+      "reason": "daily-morning-work",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 6480,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 6481,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 6839,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 6840,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.work-area"
+      },
+      "reason": "daily-evening-work",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 6841,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.work-area"
+      },
+      "reason": "daily-evening-work",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 7919,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.work-area"
+      },
+      "reason": "daily-morning-work",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 7920,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 7921,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 8279,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 8280,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.work-area"
+      },
+      "reason": "daily-evening-work",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 8281,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.work-area"
+      },
+      "reason": "daily-evening-work",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 9359,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.work-area"
+      },
+      "reason": "daily-morning-work",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 9360,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 9361,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 9719,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 9720,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.work-area"
+      },
+      "reason": "daily-evening-work",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "minute": 9721,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.work-area"
+      },
+      "reason": "daily-evening-work",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 0,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "town.square"
+      },
+      "reason": "daily-morning-town",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 719,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "town.square"
+      },
+      "reason": "daily-morning-town",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 720,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1020,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 721,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1020,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 1019,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1020,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 1020,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1020,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 1021,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1020,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 1439,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1020,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 1440,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "town.square"
+      },
+      "reason": "daily-morning-town",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 1441,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "town.square"
+      },
+      "reason": "daily-morning-town",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 2159,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "town.square"
+      },
+      "reason": "daily-morning-town",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 2160,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1020,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 2161,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1020,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 2459,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1020,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 2460,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1020,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 2461,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1020,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 2879,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1020,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 2880,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "town.square"
+      },
+      "reason": "daily-morning-town",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 2881,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "town.square"
+      },
+      "reason": "daily-morning-town",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 3599,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "town.square"
+      },
+      "reason": "daily-morning-town",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 3600,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1020,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 3601,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1020,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 3899,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1020,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 3900,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1020,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 3901,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1020,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 4319,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1020,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 4320,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "town.square"
+      },
+      "reason": "daily-morning-town",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 4321,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "town.square"
+      },
+      "reason": "daily-morning-town",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 5039,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "town.square"
+      },
+      "reason": "daily-morning-town",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 5040,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1020,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 5041,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1020,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 5339,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1020,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 5340,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1020,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 5341,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1020,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 5759,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1020,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 5760,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "town.square"
+      },
+      "reason": "daily-morning-town",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 5761,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "town.square"
+      },
+      "reason": "daily-morning-town",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 6479,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "town.square"
+      },
+      "reason": "daily-morning-town",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 6480,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1020,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 6481,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1020,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 6779,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "daily-afternoon-riverside",
+      "windowStart": 720,
+      "windowEnd": 1020,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 6780,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1020,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 6781,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1020,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 7199,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1020,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 7200,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "town.square"
+      },
+      "reason": "daily-morning-town",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 7201,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "town.square"
+      },
+      "reason": "daily-morning-town",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 7739,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "town.square"
+      },
+      "reason": "daily-morning-town",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 7740,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "general-store.counter"
+      },
+      "reason": "day-6-store",
+      "windowStart": 540,
+      "windowEnd": 1020,
+      "priority": 1
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 7741,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "general-store.counter"
+      },
+      "reason": "day-6-store",
+      "windowStart": 540,
+      "windowEnd": 1020,
+      "priority": 1
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 8219,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "general-store.counter"
+      },
+      "reason": "day-6-store",
+      "windowStart": 540,
+      "windowEnd": 1020,
+      "priority": 1
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 8220,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1020,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 8221,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1020,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 8639,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1020,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 8640,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "town.square"
+      },
+      "reason": "daily-morning-town",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 8641,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "town.square"
+      },
+      "reason": "daily-morning-town",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 9239,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "town.square"
+      },
+      "reason": "daily-morning-town",
+      "windowStart": 0,
+      "windowEnd": 720,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 9240,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "day-7-riverside",
+      "windowStart": 600,
+      "windowEnd": 1020,
+      "priority": 1
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 9241,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "day-7-riverside",
+      "windowStart": 600,
+      "windowEnd": 1020,
+      "priority": 1
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 9659,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "riverside.meeting-point"
+      },
+      "reason": "day-7-riverside",
+      "windowStart": 600,
+      "windowEnd": 1020,
+      "priority": 1
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 9660,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1020,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "minute": 9661,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1020,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 0,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-morning-home",
+      "windowStart": 0,
+      "windowEnd": 480,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 479,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-morning-home",
+      "windowStart": 0,
+      "windowEnd": 480,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 480,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "general-store.counter"
+      },
+      "reason": "daily-store",
+      "windowStart": 480,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 481,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "general-store.counter"
+      },
+      "reason": "daily-store",
+      "windowStart": 480,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 1079,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "general-store.counter"
+      },
+      "reason": "daily-store",
+      "windowStart": 480,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 1080,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 1081,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 1919,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-morning-home",
+      "windowStart": 0,
+      "windowEnd": 480,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 1920,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "general-store.counter"
+      },
+      "reason": "daily-store",
+      "windowStart": 480,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 1921,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "general-store.counter"
+      },
+      "reason": "daily-store",
+      "windowStart": 480,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 2519,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "general-store.counter"
+      },
+      "reason": "daily-store",
+      "windowStart": 480,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 2520,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 2521,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 3359,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-morning-home",
+      "windowStart": 0,
+      "windowEnd": 480,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 3360,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "general-store.counter"
+      },
+      "reason": "daily-store",
+      "windowStart": 480,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 3361,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "general-store.counter"
+      },
+      "reason": "daily-store",
+      "windowStart": 480,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 3959,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "general-store.counter"
+      },
+      "reason": "daily-store",
+      "windowStart": 480,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 3960,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 3961,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 4799,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-morning-home",
+      "windowStart": 0,
+      "windowEnd": 480,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 4800,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "general-store.counter"
+      },
+      "reason": "daily-store",
+      "windowStart": 480,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 4801,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "general-store.counter"
+      },
+      "reason": "daily-store",
+      "windowStart": 480,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 5399,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "general-store.counter"
+      },
+      "reason": "daily-store",
+      "windowStart": 480,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 5400,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 5401,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 6239,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-morning-home",
+      "windowStart": 0,
+      "windowEnd": 480,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 6240,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "general-store.counter"
+      },
+      "reason": "daily-store",
+      "windowStart": 480,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 6241,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "general-store.counter"
+      },
+      "reason": "daily-store",
+      "windowStart": 480,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 6839,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "general-store.counter"
+      },
+      "reason": "daily-store",
+      "windowStart": 480,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 6840,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 6841,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 7679,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-morning-home",
+      "windowStart": 0,
+      "windowEnd": 480,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 7680,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "general-store.counter"
+      },
+      "reason": "daily-store",
+      "windowStart": 480,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 7681,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "general-store.counter"
+      },
+      "reason": "daily-store",
+      "windowStart": 480,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 8279,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "general-store.counter"
+      },
+      "reason": "daily-store",
+      "windowStart": 480,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 8280,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 8281,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 9119,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-morning-home",
+      "windowStart": 0,
+      "windowEnd": 480,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 9120,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "general-store.counter"
+      },
+      "reason": "daily-store",
+      "windowStart": 480,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 9121,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "general-store.counter"
+      },
+      "reason": "daily-store",
+      "windowStart": 480,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 9719,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "general-store.counter"
+      },
+      "reason": "daily-store",
+      "windowStart": 480,
+      "windowEnd": 1080,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 9720,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "minute": 9721,
+      "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+      "selectedAnchor": {
+        "value": "farm.home"
+      },
+      "reason": "daily-evening-home",
+      "windowStart": 1080,
+      "windowEnd": 1440,
+      "priority": 0
+    }
+  ]
+}
