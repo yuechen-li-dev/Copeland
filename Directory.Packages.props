@@ -5,6 +5,7 @@
   <ItemGroup>
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="MonoGame.Framework.DesktopGL" Version="3.8.4" />
     <PackageVersion Include="MSDF-Sharp.Core" Version="1.0.2" />
     <PackageVersion Include="Tomlyn" Version="2.9.0" />
     <PackageVersion Include="System.CommandLine" Version="2.0.9" />

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../TinyFarm.Core/TinyFarm.Core.csproj" />
+    <ProjectReference Include="../TinyFarm.Runtime/TinyFarm.Runtime.csproj" />
+    <PackageReference Include="MonoGame.Framework.DesktopGL" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="../TinyFarm.Runtime/Content/tiny-farm-definitions.obj.ts"
+             Link="Content/tiny-farm-definitions.obj.ts"
+             CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

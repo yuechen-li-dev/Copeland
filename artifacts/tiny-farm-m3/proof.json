@@ -1,0 +1,23 @@
+{
+  "Milestone": "TINY-FARM-M3",
+  "Outcome": "A",
+  "Renderer": "MONOGAME_TEMPORARY_PROJECTION",
+  "FinalStateHash": "4a49e221d6ffe90304143cece5b1a20fe96eecc4d10d30cf1bde11922a18ced3",
+  "IntentResultHash": "bdd11630a99983706abaacf5f4f5a24a6b981d780f5001b81496ef63a71e74ca",
+  "EventSequenceHash": "c7bb0c793d58e375d09a8636239def942b3d2afc2d0b641cdcf73bbc4a3ca6aa",
+  "PresentationProjectionHash": "74d98f63ec0e57eb508065038b5d58592fbdd5abefc19d66f8a4ede7553ff4a4",
+  "M1Hash": "dcc35869aba0eba979725b1871d0babfe127383123a1a5f665b666bc3488d333",
+  "M2Hash": "4a49e221d6ffe90304143cece5b1a20fe96eecc4d10d30cf1bde11922a18ced3",
+  "M1HashPreserved": true,
+  "M2HashPreserved": true,
+  "SameSnapshotProjectionMatches": true,
+  "NpcMovementProjected": true,
+  "SaveLoadProjectionRestored": true,
+  "FarmingLoopCompleted": true,
+  "HumanUsesExistingIntentPath": true,
+  "RendererOwnsGameplayState": false,
+  "ProjectedActors": 4,
+  "ProjectedPlots": 2,
+  "CanonicalIntents": 62,
+  "SaveBytes": 2806
+}

@@ -1,0 +1,16 @@
+{
+  "milestone": "TINY-FARM-M3",
+  "kind": "first-graphical-projection",
+  "renderer": "MONOGAME_TEMPORARY_PROJECTION",
+  "gameAuthorityMoved": false,
+  "rendererOwnsGameplayState": false,
+  "humanUsesExistingIntentPath": true,
+  "llmUsesExistingIntentPath": true,
+  "npcUsesExistingResolver": true,
+  "headlessModeRetained": true,
+  "m1HashPreserved": true,
+  "m2HashPreserved": true,
+  "ecsAdded": false,
+  "newPersistenceFrameworkAdded": false,
+  "liveLlmRequired": false
+}

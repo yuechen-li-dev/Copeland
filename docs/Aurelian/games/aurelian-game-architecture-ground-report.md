@@ -139,3 +139,11 @@ TINY-FARM-M2 completed the seven-day pressure test with two farming/economy cycl
 Dominatus `SaveFile`, `SaveChunk`, `SaveWriteContext`, and `SaveReadContext` now provide the sole chunk container. TinyFarm owns four versioned semantic payloads and validates a complete candidate before session construction. No generic persistence extension or Aurelian abstraction was justified. The detailed evidence is in `docs/Aurelian/games/tiny-farm-m2-headless-week-report.md` and `artifacts/tiny-farm-m2/proof.json`.
 
 M2 recommends **M3 A: the first graphical projection**, using immutable state projection and preserving TinyFarm Core as the only farming/economy authority.
+
+## M3 evidence update — 2026-09-02
+
+TINY-FARM-M3 added `TinyFarm.MonoGame` as a temporary graphical leaf over the immutable, deterministic `TinyFarmFrame` projection. Keyboard and line-oriented LLM controls both produce the existing intent family and enter `TinyFarmSession.Step`; Dominatus NPC envelopes and human envelopes still commit through the one resolver. MonoGame/XNA types do not appear in Core or Runtime, and render cadence does not advance authoritative time.
+
+The real window now shows the four-location world, player, stable NPCs, farm plots and crop stages, ground items, HUD, interactions, Ariadne prose, economy controls, and save/load. The retained semantic proof covers the full M2 farm loop, visible autonomous NPC movement, save/mutate/load reprojection, exact M1/M2 hashes, and deterministic frame hashing. Replacing MonoGame requires changing only the graphical leaf; state, resolver, persistence, NPC logic, replay, REPL, LLM command semantics, and frame projection remain reusable.
+
+Observed integration pressure is now the leaf-local bitmap overlay, so the exact M4 recommendation is **Machina.UI game UI integration**. Native Aurelian 2D remains a later adapter replacement and should not be coupled to that UI milestone.

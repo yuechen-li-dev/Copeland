@@ -7,6 +7,7 @@ if (args.Contains("--repl", StringComparer.Ordinal))
 }
 
 bool runM1 = args.Contains("--m1", StringComparer.Ordinal);
+bool runM3 = args.Contains("--m3", StringComparer.Ordinal);
 if (args.Contains("--single-week", StringComparer.Ordinal))
 {
     TinyFarmDefinitions singleDefinitions = TinyFarmDefinitionLoader.Load();
@@ -14,10 +15,16 @@ if (args.Contains("--single-week", StringComparer.Ordinal))
     Console.WriteLine($"{single.FinalHash} {single.FinalState.Day} {single.ElapsedMicroseconds}");
     return;
 }
-object proof = runM1 ? TinyFarmCanonicalScenario.Prove() : TinyFarmWeekScenario.Prove();
+object proof = runM1
+    ? TinyFarmCanonicalScenario.Prove()
+    : runM3
+        ? TinyFarmGraphicalScenario.Prove().Proof
+        : TinyFarmWeekScenario.Prove();
 string json = runM1
     ? TinyFarmCanonicalScenario.WriteProofJson((TinyFarmM1Proof)proof)
-    : TinyFarmWeekScenario.WriteProofJson((TinyFarmM2Proof)proof);
+    : runM3
+        ? TinyFarmGraphicalScenario.WriteProofJson((TinyFarmM3Proof)proof)
+        : TinyFarmWeekScenario.WriteProofJson((TinyFarmM2Proof)proof);
 
 int outputIndex = Array.IndexOf(args, "--proof-json");
 if (outputIndex >= 0)
@@ -32,7 +39,19 @@ if (outputIndex >= 0)
     File.WriteAllText(path, json + Environment.NewLine);
 }
 
-if (!runM1)
+if (runM3)
+{
+    int projectionIndex = Array.IndexOf(args, "--projection-json");
+    if (projectionIndex >= 0)
+    {
+        string path = RequiredOutputPath(args, projectionIndex, "--projection-json");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        TinyFarmFrame projection = TinyFarmGraphicalScenario.Prove().FinalProjection;
+        File.WriteAllText(path, TinyFarmFrameProjector.WriteJson(projection) + Environment.NewLine);
+    }
+}
+
+if (!runM1 && !runM3)
 {
     TinyFarmDefinitions artifactDefinitions = TinyFarmDefinitionLoader.Load();
     TinyFarmWeekRun artifactRun = TinyFarmWeekScenario.Run(artifactDefinitions, null);
@@ -77,7 +96,11 @@ if (!runM1)
 }
 
 Console.WriteLine(json);
-string outcome = runM1 ? ((TinyFarmM1Proof)proof).Outcome : ((TinyFarmM2Proof)proof).Outcome;
+string outcome = runM1
+    ? ((TinyFarmM1Proof)proof).Outcome
+    : runM3
+        ? ((TinyFarmM3Proof)proof).Outcome
+        : ((TinyFarmM2Proof)proof).Outcome;
 Environment.ExitCode = outcome == "A" ? 0 : 1;
 
 static string RequiredOutputPath(string[] arguments, int optionIndex, string option)

@@ -1,0 +1,201 @@
+{
+  "day": 7,
+  "minute": 9180,
+  "time": "09:00",
+  "money": 28,
+  "currentLocation": {
+    "value": "general-store"
+  },
+  "currentLocationName": "General Store",
+  "locations": [
+    {
+      "id": {
+        "value": "farmhouse"
+      },
+      "name": "Farmhouse",
+      "position": {
+        "x": 160,
+        "y": 350
+      },
+      "exits": [
+        {
+          "value": "town-square"
+        }
+      ],
+      "isCurrent": false
+    },
+    {
+      "id": {
+        "value": "general-store"
+      },
+      "name": "General Store",
+      "position": {
+        "x": 710,
+        "y": 140
+      },
+      "exits": [
+        {
+          "value": "town-square"
+        }
+      ],
+      "isCurrent": true
+    },
+    {
+      "id": {
+        "value": "riverside"
+      },
+      "name": "Riverside",
+      "position": {
+        "x": 710,
+        "y": 400
+      },
+      "exits": [
+        {
+          "value": "town-square"
+        }
+      ],
+      "isCurrent": false
+    },
+    {
+      "id": {
+        "value": "town-square"
+      },
+      "name": "Town Square",
+      "position": {
+        "x": 430,
+        "y": 260
+      },
+      "exits": [
+        {
+          "value": "farmhouse"
+        },
+        {
+          "value": "general-store"
+        },
+        {
+          "value": "riverside"
+        }
+      ],
+      "isCurrent": false
+    }
+  ],
+  "actors": [
+    {
+      "id": {
+        "value": "elias"
+      },
+      "name": "Elias",
+      "location": {
+        "value": "farmhouse"
+      },
+      "position": {
+        "x": 188,
+        "y": 368
+      },
+      "isPlayer": false
+    },
+    {
+      "id": {
+        "value": "mara"
+      },
+      "name": "Mara",
+      "location": {
+        "value": "town-square"
+      },
+      "position": {
+        "x": 476,
+        "y": 278
+      },
+      "isPlayer": false
+    },
+    {
+      "id": {
+        "value": "player"
+      },
+      "name": "You",
+      "location": {
+        "value": "general-store"
+      },
+      "position": {
+        "x": 710,
+        "y": 128
+      },
+      "isPlayer": true
+    },
+    {
+      "id": {
+        "value": "sela"
+      },
+      "name": "Sela",
+      "location": {
+        "value": "general-store"
+      },
+      "position": {
+        "x": 792,
+        "y": 158
+      },
+      "isPlayer": false
+    }
+  ],
+  "groundItems": [
+    {
+      "id": {
+        "value": "wild-mint"
+      },
+      "name": "wild mint",
+      "location": {
+        "value": "riverside"
+      },
+      "position": {
+        "x": 675,
+        "y": 430
+      }
+    }
+  ],
+  "plots": [
+    {
+      "id": {
+        "value": "plot-1"
+      },
+      "location": {
+        "value": "farmhouse"
+      },
+      "position": {
+        "x": 102,
+        "y": 412
+      },
+      "crop": null,
+      "growthStage": 0,
+      "growthDays": 0,
+      "wateredToday": false,
+      "harvestable": false
+    },
+    {
+      "id": {
+        "value": "plot-2"
+      },
+      "location": {
+        "value": "farmhouse"
+      },
+      "position": {
+        "x": 160,
+        "y": 412
+      },
+      "crop": null,
+      "growthStage": 0,
+      "growthDays": 0,
+      "wateredToday": false,
+      "harvestable": false
+    }
+  ],
+  "inventory": [],
+  "interactionHints": [
+    "Move",
+    "Wait",
+    "Save",
+    "Load",
+    "Talk to Sela",
+    "Buy turnip seed (2)"
+  ],
+  "narrative": []
+}

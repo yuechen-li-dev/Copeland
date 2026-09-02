@@ -3,6 +3,7 @@
     <Project Path="src/TinyFarm/TinyFarm.Core/TinyFarm.Core.csproj" />
     <Project Path="src/TinyFarm/TinyFarm.Runtime/TinyFarm.Runtime.csproj" />
     <Project Path="src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj" />
+    <Project Path="src/TinyFarm/TinyFarm.MonoGame/TinyFarm.MonoGame.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/TinyFarm/TinyFarm.Core.Tests/TinyFarm.Core.Tests.csproj" />

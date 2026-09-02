@@ -1,4 +1,4 @@
-name: TinyFarm headless M2
+name: TinyFarm M3 projection and headless proofs
 
 on:
   pull_request:
@@ -16,7 +16,7 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Build headless game
+      - name: Build headless and graphical game
         shell: pwsh
         run: dotnet build TinyFarm.slnx -c Release --nologo
 
@@ -47,6 +47,38 @@ jobs:
 
           if ((Get-Item -LiteralPath $proofPath).Length -gt 262144) {
             throw "TinyFarm proof exceeded the compact artifact budget."
+          }
+
+      - name: Run graphical semantic projection proof without a window
+        shell: pwsh
+        run: |
+          $proofPath = Join-Path $env:RUNNER_TEMP "tiny-farm-m3-proof.json"
+          $projectionPath = Join-Path $env:RUNNER_TEMP "tiny-farm-m3-projection.json"
+          dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --m3 --proof-json $proofPath --projection-json $projectionPath
+          if ($LASTEXITCODE -ne 0) {
+            throw "TinyFarm M3 projection proof failed."
+          }
+
+          $proof = Get-Content -Raw -LiteralPath $proofPath | ConvertFrom-Json
+          if ($proof.Outcome -ne "A" -or
+              -not $proof.M1HashPreserved -or
+              -not $proof.M2HashPreserved -or
+              -not $proof.SameSnapshotProjectionMatches -or
+              -not $proof.NpcMovementProjected -or
+              -not $proof.SaveLoadProjectionRestored -or
+              -not $proof.FarmingLoopCompleted -or
+              $proof.RendererOwnsGameplayState) {
+            throw "TinyFarm M3 proof did not satisfy the projection boundary."
+          }
+
+          $responses = @("inspect", "quit") |
+            dotnet run --project src/TinyFarm/TinyFarm.MonoGame/TinyFarm.MonoGame.csproj -c Release --no-build -- --llm-control |
+            ForEach-Object { $_ | ConvertFrom-Json }
+          if ($responses.Count -ne 3 -or
+              $responses[0].status -ne "ready" -or
+              $responses[1].status -ne "inspect" -or
+              $responses[2].status -ne "quit") {
+            throw "TinyFarm LLM control protocol smoke test failed."
           }
 
       - name: Enforce repository artifact budget
