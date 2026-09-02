@@ -200,7 +200,9 @@ public static class TinyFarmFrameProjector
                     actor.IsPlayer,
                     placement.Facing,
                     interactionTarget?.Actor == actor.Id,
-                    actor.IsPlayer ? null : TinyFarmNpcController.ScheduledAnchor(actor.Id, state.Minute));
+                    actor.IsPlayer
+                        ? null
+                        : TinyFarmNpcController.ScheduledAnchor(actor.Id, state.Minute, definitions.Schedules));
             })
             .ToArray();
         TinyFarmSceneObjectView[] objects = scene.Layout

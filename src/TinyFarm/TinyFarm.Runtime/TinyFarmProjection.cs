@@ -150,9 +150,12 @@ public static class TinyFarmSemanticNavigation
         };
     }
 
-    public static SceneAnchorId ResolveActor(ActorId actor, int minute)
+    public static SceneAnchorId ResolveActor(
+        ActorId actor,
+        int minute,
+        TinyFarmScheduleCatalog schedules)
     {
-        return TinyFarmNpcController.ScheduledAnchor(actor, minute);
+        return TinyFarmNpcController.ScheduledAnchor(actor, minute, schedules);
     }
 }
 

@@ -10,15 +10,6 @@ using Dominatus.OptFlow;
 
 namespace TinyFarm.Core;
 
-public sealed record TinyFarmScheduleWindow(
-    ActorId Actor,
-    int? Day,
-    int FromMinute,
-    int ToMinute,
-    SceneAnchorId Anchor,
-    int Priority,
-    string Reason);
-
 public sealed record TinyFarmScheduleDecision(
     ActorId Actor,
     int Minute,
@@ -38,27 +29,11 @@ public static partial class TinyFarmNpcSchedule
     private static readonly BbKey<string> Actor = new("TinyFarm.Schedule.Actor");
     private static readonly BbKey<int> AbsoluteMinute = new("TinyFarm.Schedule.Minute");
     private static readonly BbKey<string> SelectedAnchor = new("TinyFarm.Schedule.SelectedAnchor");
-
-    private static readonly TinyFarmScheduleWindow[] ScheduleWindows =
-    [
-        new(TinyFarmIds.Mara, null, 0, 720, TinyFarmAnchorIds.TownSquare, 0, "daily-morning-town"),
-        new(TinyFarmIds.Mara, null, 720, 1020, TinyFarmAnchorIds.RiversideMeetingPoint, 0, "daily-afternoon-riverside"),
-        new(TinyFarmIds.Mara, null, 1020, 1440, TinyFarmAnchorIds.FarmHome, 0, "daily-evening-home"),
-        new(TinyFarmIds.Mara, 6, 540, 1020, TinyFarmAnchorIds.StoreCounter, 1, "day-6-store"),
-        new(TinyFarmIds.Mara, 7, 600, 1020, TinyFarmAnchorIds.RiversideMeetingPoint, 1, "day-7-riverside"),
-        new(TinyFarmIds.Elias, null, 0, 720, TinyFarmAnchorIds.FarmWorkArea, 0, "daily-morning-work"),
-        new(TinyFarmIds.Elias, null, 720, 1080, TinyFarmAnchorIds.RiversideMeetingPoint, 0, "daily-afternoon-riverside"),
-        new(TinyFarmIds.Elias, null, 1080, 1440, TinyFarmAnchorIds.FarmWorkArea, 0, "daily-evening-work"),
-        new(TinyFarmIds.Sela, null, 0, 480, TinyFarmAnchorIds.FarmHome, 0, "daily-morning-home"),
-        new(TinyFarmIds.Sela, null, 480, 1080, TinyFarmAnchorIds.StoreCounter, 0, "daily-store"),
-        new(TinyFarmIds.Sela, null, 1080, 1440, TinyFarmAnchorIds.FarmHome, 0, "daily-evening-home")
-    ];
+    private static readonly BbKey<TinyFarmScheduleCatalog> ScheduleCatalog = new("TinyFarm.Schedule.Catalog");
 
     private static readonly UtilityOption[] ScheduleOptions = CreateScheduleOptions();
 
     public static FlowDefinition Definition { get; } = Define();
-
-    public static IReadOnlyList<TinyFarmScheduleWindow> Windows => ScheduleWindows;
 
     [DominatusFlow("tiny-farm.npc-schedule-goal")]
     public static partial FlowDefinition Define();
@@ -104,18 +79,23 @@ public static partial class TinyFarmNpcSchedule
         return Select(context, TinyFarmAnchorIds.RiversideMeetingPoint);
     }
 
-    public static TinyFarmScheduleDecision Decide(ActorId actor, int minute)
+    public static TinyFarmScheduleDecision Decide(
+        TinyFarmScheduleCatalog catalog,
+        ActorId actor,
+        int minute)
     {
+        ArgumentNullException.ThrowIfNull(catalog);
         if (minute < 0)
         {
             throw new ArgumentOutOfRangeException(nameof(minute), minute, "Schedule time cannot be negative.");
         }
 
-        EnsureSupportedActor(actor);
+        _ = catalog.ForActor(actor);
 
         var agent = new AiAgent(Definition.CreateBrain());
         agent.Bb.Set(Actor, actor.Value);
         agent.Bb.Set(AbsoluteMinute, minute);
+        agent.Bb.Set(ScheduleCatalog, catalog);
 
         var world = new AiWorld();
         world.Add(agent);
@@ -136,7 +116,7 @@ public static partial class TinyFarmNpcSchedule
             }
 
             var anchor = new SceneAnchorId(selected);
-            TinyFarmScheduleWindow window = SelectWindow(actor, minute);
+            TinyFarmScheduleWindow window = SelectWindow(catalog, actor, minute);
             if (window.Anchor != anchor)
             {
                 throw new InvalidOperationException(
@@ -149,8 +129,8 @@ public static partial class TinyFarmNpcSchedule
                 ScheduleDecisionSlot,
                 anchor,
                 window.Reason,
-                window.FromMinute,
-                window.ToMinute,
+                window.StartMinute,
+                window.EndMinuteExclusive,
                 window.Priority);
         }
 
@@ -164,7 +144,9 @@ public static partial class TinyFarmNpcSchedule
         {
             var actor = new ActorId(agent.Bb.GetOrDefault(Actor, string.Empty));
             int minute = agent.Bb.GetOrDefault(AbsoluteMinute, -1);
-            return Score(actor, minute, anchor);
+            TinyFarmScheduleCatalog catalog = agent.Bb.GetOrDefault(ScheduleCatalog, null!)
+                ?? throw new InvalidOperationException("TinyFarm schedule catalog was not observed.");
+            return Score(catalog, actor, minute, anchor);
         });
     }
 
@@ -195,13 +177,17 @@ public static partial class TinyFarmNpcSchedule
         ];
     }
 
-    private static float Score(ActorId actor, int minute, SceneAnchorId anchor)
+    private static float Score(
+        TinyFarmScheduleCatalog catalog,
+        ActorId actor,
+        int minute,
+        SceneAnchorId anchor)
     {
         int day = minute / MinutesPerDay + 1;
         int minuteOfDay = minute % MinutesPerDay;
         int activePriority = int.MinValue;
         bool anchorMatches = false;
-        foreach (TinyFarmScheduleWindow window in ScheduleWindows)
+        foreach (TinyFarmScheduleWindow window in catalog.ForActor(actor))
         {
             if (!Matches(window, actor, day, minuteOfDay))
             {
@@ -222,12 +208,15 @@ public static partial class TinyFarmNpcSchedule
         return activePriority != int.MinValue && anchorMatches ? 1f : 0f;
     }
 
-    private static TinyFarmScheduleWindow SelectWindow(ActorId actor, int minute)
+    private static TinyFarmScheduleWindow SelectWindow(
+        TinyFarmScheduleCatalog catalog,
+        ActorId actor,
+        int minute)
     {
         int day = minute / MinutesPerDay + 1;
         int minuteOfDay = minute % MinutesPerDay;
         TinyFarmScheduleWindow? winner = null;
-        foreach (TinyFarmScheduleWindow window in ScheduleWindows)
+        foreach (TinyFarmScheduleWindow window in catalog.ForActor(actor))
         {
             if (!Matches(window, actor, day, minuteOfDay))
             {
@@ -256,14 +245,6 @@ public static partial class TinyFarmNpcSchedule
         return winner;
     }
 
-    private static void EnsureSupportedActor(ActorId actor)
-    {
-        if (!ScheduleWindows.Any(window => window.Actor == actor))
-        {
-            throw new KeyNotFoundException($"No TinyFarm NPC schedule is registered for actor '{actor}'.");
-        }
-    }
-
     private static bool Matches(
         TinyFarmScheduleWindow window,
         ActorId actor,
@@ -271,9 +252,9 @@ public static partial class TinyFarmNpcSchedule
         int minuteOfDay)
     {
         return window.Actor == actor
-            && (window.Day is null || window.Day == day)
-            && minuteOfDay >= window.FromMinute
-            && minuteOfDay < window.ToMinute;
+            && window.Day.Matches(day)
+            && minuteOfDay >= window.StartMinute
+            && minuteOfDay < window.EndMinuteExclusive;
     }
 
     private static IEnumerator<AiStep> Select(AiCtx context, SceneAnchorId anchor)

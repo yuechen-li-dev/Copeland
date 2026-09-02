@@ -124,7 +124,8 @@ public static class TinyFarmNpcController
         IReadOnlyList<GameEvent> recentEvents,
         long firstSequence,
         int observationMinute,
-        TinyFarmSceneCatalog scenes)
+        TinyFarmSceneCatalog scenes,
+        TinyFarmScheduleCatalog schedules)
     {
         var envelopes = new List<IntentEnvelope>();
         long sequence = firstSequence;
@@ -133,7 +134,7 @@ public static class TinyFarmNpcController
                      .Where(candidate => !candidate.IsPlayer)
                      .OrderBy(candidate => candidate.Id.Value, StringComparer.Ordinal))
         {
-            SceneAnchorId scheduledAnchor = TinyFarmNpcSchedule.Decide(actor.Id, observationMinute).SelectedAnchor;
+            SceneAnchorId scheduledAnchor = TinyFarmNpcSchedule.Decide(schedules, actor.Id, observationMinute).SelectedAnchor;
             SceneAnchorDefinition anchor = scenes.GetAnchor(scheduledAnchor);
             LocationId destination = anchor.SemanticLocation
                 ?? throw new InvalidDataException($"NPC schedule anchor '{scheduledAnchor}' has no semantic location.");
@@ -173,16 +174,20 @@ public static class TinyFarmNpcController
     public static LocationId ScheduledDestination(
         ActorId actor,
         int minute,
-        TinyFarmSceneCatalog scenes)
+        TinyFarmSceneCatalog scenes,
+        TinyFarmScheduleCatalog schedules)
     {
-        SceneAnchorId anchor = ScheduledAnchor(actor, minute);
+        SceneAnchorId anchor = ScheduledAnchor(actor, minute, schedules);
         return scenes.GetAnchor(anchor).SemanticLocation
             ?? throw new InvalidDataException($"NPC schedule anchor for '{actor}' has no semantic location.");
     }
 
-    public static SceneAnchorId ScheduledAnchor(ActorId actor, int minute)
+    public static SceneAnchorId ScheduledAnchor(
+        ActorId actor,
+        int minute,
+        TinyFarmScheduleCatalog schedules)
     {
-        return TinyFarmNpcSchedule.Decide(actor, minute).SelectedAnchor;
+        return TinyFarmNpcSchedule.Decide(schedules, actor, minute).SelectedAnchor;
     }
 
     private static bool HasReachedAnchor(

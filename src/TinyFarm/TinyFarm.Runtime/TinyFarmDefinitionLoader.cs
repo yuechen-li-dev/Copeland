@@ -8,6 +8,13 @@ namespace TinyFarm.Core;
 public static class TinyFarmDefinitionLoader
 {
     private const string ProductFileName = "tiny-farm-definitions.obj.ts";
+    private const string ScheduleFileName = "tiny-farm-npc-schedules.obj.ts";
+    private static readonly IReadOnlySet<ActorId> ScheduledActors = new HashSet<ActorId>
+    {
+        TinyFarmIds.Elias,
+        TinyFarmIds.Mara,
+        TinyFarmIds.Sela
+    };
     private static readonly string[] SceneFileNames =
     [
         "tiny-farm-scene-anchors.obj.ts",
@@ -66,8 +73,83 @@ public static class TinyFarmDefinitionLoader
             }
         }
 
-        (TinyFarmSceneCatalog scenes, SceneContentProvenance provenance) = LoadSceneCatalog(contentDirectory);
-        return new TinyFarmDefinitions(identity, items, crops, scenes, provenance);
+        (TinyFarmSceneCatalog scenes, SceneContentProvenance sceneProvenance) = LoadSceneCatalog(contentDirectory);
+        (TinyFarmScheduleCatalog schedules, ScheduleContentProvenance scheduleProvenance) =
+            LoadScheduleCatalog(Path.Combine(contentDirectory, ScheduleFileName), scenes);
+        return new TinyFarmDefinitions(
+            identity,
+            items,
+            crops,
+            scenes,
+            sceneProvenance,
+            schedules,
+            scheduleProvenance);
+    }
+
+    public static (TinyFarmScheduleCatalog Catalog, ScheduleContentProvenance Provenance) LoadScheduleCatalog(
+        string path,
+        TinyFarmSceneCatalog scenes)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(scenes);
+        string fullPath = Path.GetFullPath(path);
+        string fileName = Path.GetFileName(fullPath);
+
+        var readWatch = Stopwatch.StartNew();
+        string source = File.ReadAllText(fullPath);
+        readWatch.Stop();
+
+        var parseWatch = Stopwatch.StartNew();
+        TsonTable table = ReadTable(
+            source,
+            fileName,
+            "NpcSchedules",
+            [
+                ("actorId", TsonTypeKind.String),
+                ("day", TsonTypeKind.String),
+                ("startMinute", TsonTypeKind.Number),
+                ("endMinuteExclusive", TsonTypeKind.Number),
+                ("anchorId", TsonTypeKind.String),
+                ("priority", TsonTypeKind.Number),
+                ("reason", TsonTypeKind.String)
+            ]);
+        parseWatch.Stop();
+
+        var materializeWatch = Stopwatch.StartNew();
+        var windows = new List<TinyFarmScheduleWindow>(table.RowCount);
+        for (int row = 0; row < table.RowCount; row++)
+        {
+            windows.Add(new TinyFarmScheduleWindow(
+                new ActorId(Text(table, "actorId", row)),
+                ScheduleDay(Text(table, "day", row), table.Schema.Name, "day", row),
+                Integer(table, "startMinute", row),
+                Integer(table, "endMinuteExclusive", row),
+                new SceneAnchorId(Text(table, "anchorId", row)),
+                Integer(table, "priority", row),
+                Text(table, "reason", row)));
+        }
+        materializeWatch.Stop();
+
+        var validationWatch = Stopwatch.StartNew();
+        TinyFarmScheduleCatalog.Validate(windows, ScheduledActors, scenes);
+        validationWatch.Stop();
+
+        var indexWatch = Stopwatch.StartNew();
+        var catalog = new TinyFarmScheduleCatalog(windows);
+        indexWatch.Stop();
+
+        var provenance = new ScheduleContentProvenance(
+            "object-typescript-record-table-v1",
+            fileName,
+            Hash(Encoding.UTF8.GetBytes(source)),
+            Encoding.UTF8.GetByteCount(source),
+            ScheduleSemanticHash(catalog.Windows),
+            readWatch.Elapsed.TotalMilliseconds,
+            parseWatch.Elapsed.TotalMilliseconds,
+            materializeWatch.Elapsed.TotalMilliseconds,
+            validationWatch.Elapsed.TotalMilliseconds,
+            indexWatch.Elapsed.TotalMilliseconds);
+        return (catalog, provenance);
     }
 
     public static (TinyFarmSceneCatalog Catalog, SceneContentProvenance Provenance) LoadSceneCatalog(
@@ -302,6 +384,50 @@ public static class TinyFarmDefinitionLoader
                 $"TinyFarm TSON table '{table.Schema.Name}' column '{column}' row {row} requires an exact 32-bit integer.");
         }
         return (int)value;
+    }
+
+    private static TinyFarmScheduleDay ScheduleDay(
+        string value,
+        string table,
+        string column,
+        int row)
+    {
+        if (value == "Every")
+        {
+            return TinyFarmScheduleDay.EveryDay;
+        }
+
+        if (value.StartsWith("Day", StringComparison.Ordinal)
+            && int.TryParse(value.AsSpan(3), out int day))
+        {
+            try
+            {
+                return TinyFarmScheduleDay.Day(day);
+            }
+            catch (ArgumentOutOfRangeException exception)
+            {
+                throw new InvalidDataException(
+                    $"TinyFarm TSON table '{table}' column '{column}' row {row} has invalid day '{value}'.",
+                    exception);
+            }
+        }
+
+        throw new InvalidDataException(
+            $"TinyFarm TSON table '{table}' column '{column}' row {row} requires 'Every' or 'Day1' through 'Day7'.");
+    }
+
+    private static string ScheduleSemanticHash(IEnumerable<TinyFarmScheduleWindow> windows)
+    {
+        IEnumerable<string> signatures = windows.Select(window => string.Join(
+            '|',
+            window.Actor.Value,
+            window.Day.ToString(),
+            window.StartMinute,
+            window.EndMinuteExclusive,
+            window.Anchor.Value,
+            window.Priority,
+            window.Reason));
+        return Hash(Encoding.UTF8.GetBytes(string.Join('\n', signatures)));
     }
 
     private static string? OptionalText(TsonTable table, string column, int row)

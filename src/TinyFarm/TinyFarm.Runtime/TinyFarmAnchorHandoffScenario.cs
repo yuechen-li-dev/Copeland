@@ -85,7 +85,7 @@ public static class TinyFarmAnchorHandoffScenario
         var deactivationWatch = Stopwatch.StartNew();
         Apply(session, new InteractIntent(new SceneObjectId("farm-exit")), resultLines, eventLines);
         deactivationWatch.Stop();
-        handoffLines.Add(HandoffSignature("deactivate", session.State, TinyFarmIds.Elias));
+        handoffLines.Add(HandoffSignature("deactivate", session.State, TinyFarmIds.Elias, definitions.Schedules));
         Apply(session, new WaitIntent(60), resultLines, eventLines);
         bool inactiveUsedNoNavigation = session.NavigationPlanCount == plansBeforeExit;
 
@@ -99,7 +99,7 @@ public static class TinyFarmAnchorHandoffScenario
         var activationWatch = Stopwatch.StartNew();
         Apply(session, new LookIntent(), resultLines, eventLines);
         activationWatch.Stop();
-        handoffLines.Add(HandoffSignature("activate", session.State, TinyFarmIds.Mara));
+        handoffLines.Add(HandoffSignature("activate", session.State, TinyFarmIds.Mara, definitions.Schedules));
         bool maraWalked = session.State.ActorScene(TinyFarmIds.Mara).WorldPosition != At(5, 6);
 
         SetPlacement(inactiveLoaded.State, TinyFarmIds.Player, TinyFarmSceneIds.GeneralStore, At(5, 6), ActorFacing.Up);
@@ -110,12 +110,16 @@ public static class TinyFarmAnchorHandoffScenario
         SetPlacement(session.State, TinyFarmIds.Player, TinyFarmSceneIds.Town, At(16, 4), ActorFacing.Right);
         Apply(session, new InteractIntent(new SceneObjectId("store-entrance")), resultLines, eventLines);
         Apply(session, new LookIntent(), resultLines, eventLines);
-        handoffLines.Add(HandoffSignature("reenter", session.State, TinyFarmIds.Mara));
+        handoffLines.Add(HandoffSignature("reenter", session.State, TinyFarmIds.Mara, definitions.Schedules));
 
-        SceneAnchorId maraGoal = TinyFarmNpcController.ScheduledAnchor(TinyFarmIds.Mara, session.State.Minute);
+        SceneAnchorId maraGoal = TinyFarmNpcController.ScheduledAnchor(
+            TinyFarmIds.Mara,
+            session.State.Minute,
+            definitions.Schedules);
         bool highLevelEquivalent = maraGoal == TinyFarmNpcController.ScheduledAnchor(
                 TinyFarmIds.Mara,
-                inactiveLoaded.State.Minute)
+                inactiveLoaded.State.Minute,
+                definitions.Schedules)
             && session.State.Actor(TinyFarmIds.Mara).Location
                 == inactiveLoaded.State.Actor(TinyFarmIds.Mara).Location;
 
@@ -250,11 +254,15 @@ public static class TinyFarmAnchorHandoffScenario
             .Select(anchor => $"{anchor.Id}|{anchor.Scene}|{anchor.Position.XUnits}|{anchor.Position.YUnits}|{anchor.Kind}|{anchor.SemanticLocation}|{anchor.SemanticObject}|{anchor.Facing}|{anchor.ArrivalRadiusUnits}");
     }
 
-    private static string HandoffSignature(string transition, TinyFarmState state, ActorId actor)
+    private static string HandoffSignature(
+        string transition,
+        TinyFarmState state,
+        ActorId actor,
+        TinyFarmScheduleCatalog schedules)
     {
         ActorState semantic = state.Actor(actor);
         ActorSceneState spatial = state.ActorScene(actor);
-        SceneAnchorId goal = TinyFarmNpcController.ScheduledAnchor(actor, state.Minute);
+        SceneAnchorId goal = TinyFarmNpcController.ScheduledAnchor(actor, state.Minute, schedules);
         return $"{transition}:{actor}:{semantic.Location}:{spatial.Scene}:{spatial.WorldPosition.XUnits},{spatial.WorldPosition.YUnits}:{goal}";
     }
 

@@ -1,0 +1,12 @@
+{
+  "format": "object-typescript-record-table-v1",
+  "fileName": "tiny-farm-npc-schedules.obj.ts",
+  "sourceSha256": "e2657a78f6072f06e79443528bcc76fca954593d8b163e8c0e756a68421faaf2",
+  "byteLength": 1316,
+  "aggregateSha256": "649ef384a746e358a7463548f33574c43f2d33dd19d0cb2ed03a04bd3b946b55",
+  "readMilliseconds": 0.1096,
+  "parseMilliseconds": 0.2704,
+  "materializeMilliseconds": 6.7818,
+  "semanticValidationMilliseconds": 33.1555,
+  "indexBuildMilliseconds": 3.6956
+}

@@ -70,19 +70,22 @@ public static class TinyFarmScheduleScenario
     {
         TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.Load();
         TinyFarmM6Evidence m6 = TinyFarmAnchorHandoffScenario.Prove();
-        List<TinyFarmScheduleDecision> transitions = TransitionDecisions();
-        string scheduleHash = Hash(EveryScheduleDecision());
+        List<TinyFarmScheduleDecision> transitions = TransitionDecisions(definitions.Schedules);
+        string scheduleHash = Hash(EveryScheduleDecision(definitions.Schedules));
         string decisionHash = Hash(transitions.Select(DecisionSignature));
-        string anchorSequenceHash = Hash(AnchorSequence());
+        string anchorSequenceHash = Hash(AnchorSequence(definitions.Schedules));
         (bool before, bool after) = ProveBoundarySaveLoad(definitions);
 
-        _ = TinyFarmNpcSchedule.Decide(TinyFarmIds.Elias, 720);
+        _ = TinyFarmNpcSchedule.Decide(definitions.Schedules, TinyFarmIds.Elias, 720);
         object staticDefinition = TinyFarmNpcSchedule.Definition;
         long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
         var watch = Stopwatch.StartNew();
         for (int index = 0; index < 1000; index++)
         {
-            _ = TinyFarmNpcSchedule.Decide(Npcs[index % Npcs.Length], index % 1440);
+            _ = TinyFarmNpcSchedule.Decide(
+                definitions.Schedules,
+                Npcs[index % Npcs.Length],
+                index % 1440);
         }
         watch.Stop();
         long allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
@@ -144,7 +147,7 @@ public static class TinyFarmScheduleScenario
             comparedDecisions = Npcs.Length * 7 * 1440,
             exhaustiveLegacyParity = true,
             scheduleHash,
-            windows = TinyFarmNpcSchedule.Windows
+            windows = definitions.Schedules.Windows
         };
         object decisions = new
         {
@@ -193,25 +196,25 @@ public static class TinyFarmScheduleScenario
         return JsonSerializer.Serialize(value, JsonOptions);
     }
 
-    private static IEnumerable<string> EveryScheduleDecision()
+    private static IEnumerable<string> EveryScheduleDecision(TinyFarmScheduleCatalog schedules)
     {
         foreach (ActorId actor in Npcs)
         {
             for (int minute = 0; minute < 7 * 1440; minute++)
             {
-                yield return DecisionSignature(TinyFarmNpcSchedule.Decide(actor, minute));
+                yield return DecisionSignature(TinyFarmNpcSchedule.Decide(schedules, actor, minute));
             }
         }
     }
 
-    private static IEnumerable<string> AnchorSequence()
+    private static IEnumerable<string> AnchorSequence(TinyFarmScheduleCatalog schedules)
     {
         foreach (ActorId actor in Npcs)
         {
             SceneAnchorId? previous = null;
             for (int minute = 0; minute < 7 * 1440; minute++)
             {
-                SceneAnchorId current = TinyFarmNpcSchedule.Decide(actor, minute).SelectedAnchor;
+                SceneAnchorId current = TinyFarmNpcSchedule.Decide(schedules, actor, minute).SelectedAnchor;
                 if (current != previous)
                 {
                     yield return $"{actor}:{minute}:{current}";
@@ -221,26 +224,26 @@ public static class TinyFarmScheduleScenario
         }
     }
 
-    private static List<TinyFarmScheduleDecision> TransitionDecisions()
+    private static List<TinyFarmScheduleDecision> TransitionDecisions(TinyFarmScheduleCatalog schedules)
     {
         var result = new List<TinyFarmScheduleDecision>();
         foreach (ActorId actor in Npcs)
         {
-            SceneAnchorId previous = TinyFarmNpcSchedule.Decide(actor, 0).SelectedAnchor;
-            result.Add(TinyFarmNpcSchedule.Decide(actor, 0));
+            SceneAnchorId previous = TinyFarmNpcSchedule.Decide(schedules, actor, 0).SelectedAnchor;
+            result.Add(TinyFarmNpcSchedule.Decide(schedules, actor, 0));
             for (int minute = 1; minute < 7 * 1440; minute++)
             {
-                TinyFarmScheduleDecision current = TinyFarmNpcSchedule.Decide(actor, minute);
+                TinyFarmScheduleDecision current = TinyFarmNpcSchedule.Decide(schedules, actor, minute);
                 if (current.SelectedAnchor == previous)
                 {
                     continue;
                 }
 
-                result.Add(TinyFarmNpcSchedule.Decide(actor, minute - 1));
+                result.Add(TinyFarmNpcSchedule.Decide(schedules, actor, minute - 1));
                 result.Add(current);
                 if (minute + 1 < 7 * 1440)
                 {
-                    result.Add(TinyFarmNpcSchedule.Decide(actor, minute + 1));
+                    result.Add(TinyFarmNpcSchedule.Decide(schedules, actor, minute + 1));
                 }
                 previous = current.SelectedAnchor;
             }

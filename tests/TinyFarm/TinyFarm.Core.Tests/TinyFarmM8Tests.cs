@@ -19,15 +19,15 @@ public sealed class TinyFarmM8Tests
     public void ScheduleTable_CapturesTheCompleteLegacyLaw()
     {
         Assert.Collection(
-            TinyFarmNpcSchedule.Windows,
+            definitions.Schedules.Windows,
+            window => AssertWindow(window, TinyFarmIds.Elias, null, 0, 720, TinyFarmAnchorIds.FarmWorkArea, 0),
+            window => AssertWindow(window, TinyFarmIds.Elias, null, 720, 1080, TinyFarmAnchorIds.RiversideMeetingPoint, 0),
+            window => AssertWindow(window, TinyFarmIds.Elias, null, 1080, 1440, TinyFarmAnchorIds.FarmWorkArea, 0),
             window => AssertWindow(window, TinyFarmIds.Mara, null, 0, 720, TinyFarmAnchorIds.TownSquare, 0),
             window => AssertWindow(window, TinyFarmIds.Mara, null, 720, 1020, TinyFarmAnchorIds.RiversideMeetingPoint, 0),
             window => AssertWindow(window, TinyFarmIds.Mara, null, 1020, 1440, TinyFarmAnchorIds.FarmHome, 0),
             window => AssertWindow(window, TinyFarmIds.Mara, 6, 540, 1020, TinyFarmAnchorIds.StoreCounter, 1),
             window => AssertWindow(window, TinyFarmIds.Mara, 7, 600, 1020, TinyFarmAnchorIds.RiversideMeetingPoint, 1),
-            window => AssertWindow(window, TinyFarmIds.Elias, null, 0, 720, TinyFarmAnchorIds.FarmWorkArea, 0),
-            window => AssertWindow(window, TinyFarmIds.Elias, null, 720, 1080, TinyFarmAnchorIds.RiversideMeetingPoint, 0),
-            window => AssertWindow(window, TinyFarmIds.Elias, null, 1080, 1440, TinyFarmAnchorIds.FarmWorkArea, 0),
             window => AssertWindow(window, TinyFarmIds.Sela, null, 0, 480, TinyFarmAnchorIds.FarmHome, 0),
             window => AssertWindow(window, TinyFarmIds.Sela, null, 480, 1080, TinyFarmAnchorIds.StoreCounter, 0),
             window => AssertWindow(window, TinyFarmIds.Sela, null, 1080, 1440, TinyFarmAnchorIds.FarmHome, 0));
@@ -71,7 +71,10 @@ public sealed class TinyFarmM8Tests
     [Fact]
     public void ScheduleDecision_IsSemanticInspectableAndRejectsUnknownActors()
     {
-        TinyFarmScheduleDecision decision = TinyFarmNpcSchedule.Decide(TinyFarmIds.Mara, 5 * 1440 + 540);
+        TinyFarmScheduleDecision decision = TinyFarmNpcSchedule.Decide(
+            definitions.Schedules,
+            TinyFarmIds.Mara,
+            5 * 1440 + 540);
 
         Assert.Equal(TinyFarmNpcSchedule.ScheduleDecisionSlot, decision.DecisionSlot);
         Assert.Equal(TinyFarmAnchorIds.StoreCounter, decision.SelectedAnchor);
@@ -79,7 +82,10 @@ public sealed class TinyFarmM8Tests
         Assert.Equal(540, decision.WindowStart);
         Assert.Equal(1020, decision.WindowEnd);
         Assert.Equal(1, decision.Priority);
-        Assert.Throws<KeyNotFoundException>(() => TinyFarmNpcSchedule.Decide(new ActorId("unknown"), 600));
+        Assert.Throws<KeyNotFoundException>(() => TinyFarmNpcSchedule.Decide(
+            definitions.Schedules,
+            new ActorId("unknown"),
+            600));
     }
 
     [Fact]
@@ -195,9 +201,9 @@ public sealed class TinyFarmM8Tests
         Assert.True(proof.StaticDefinitionReused);
     }
 
-    private static SceneAnchorId Decide(ActorId actor, int minute)
+    private SceneAnchorId Decide(ActorId actor, int minute)
     {
-        return TinyFarmNpcSchedule.Decide(actor, minute).SelectedAnchor;
+        return TinyFarmNpcSchedule.Decide(definitions.Schedules, actor, minute).SelectedAnchor;
     }
 
     private static SceneAnchorId LegacyScheduledAnchor(ActorId actor, int minute)
@@ -249,9 +255,9 @@ public sealed class TinyFarmM8Tests
         int priority)
     {
         Assert.Equal(actor, actual.Actor);
-        Assert.Equal(day, actual.Day);
-        Assert.Equal(fromMinute, actual.FromMinute);
-        Assert.Equal(toMinute, actual.ToMinute);
+        Assert.Equal(day, actual.Day.SpecificDay);
+        Assert.Equal(fromMinute, actual.StartMinute);
+        Assert.Equal(toMinute, actual.EndMinuteExclusive);
         Assert.Equal(anchor, actual.Anchor);
         Assert.Equal(priority, actual.Priority);
     }

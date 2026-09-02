@@ -1,0 +1,200 @@
+{
+  "source": "tiny-farm-npc-schedules.obj.ts",
+  "root": "NpcSchedules",
+  "schema": [
+    "actorId:string",
+    "day:string",
+    "startMinute:number",
+    "endMinuteExclusive:number",
+    "anchorId:string",
+    "priority:number",
+    "reason:string"
+  ],
+  "daySelector": "validated authored tokens Every | Day1 .. Day7 -\u003E TinyFarmScheduleDay",
+  "interval": "[startMinute, endMinuteExclusive)",
+  "canonicalOrder": "actor ID, every-before-specific, day, start, end, priority, anchor ID, reason",
+  "rows": [
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "day": {
+        "specificDay": null,
+        "isEveryDay": true
+      },
+      "startMinute": 0,
+      "endMinuteExclusive": 720,
+      "anchor": {
+        "value": "farm.work-area"
+      },
+      "priority": 0,
+      "reason": "daily-morning-work"
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "day": {
+        "specificDay": null,
+        "isEveryDay": true
+      },
+      "startMinute": 720,
+      "endMinuteExclusive": 1080,
+      "anchor": {
+        "value": "riverside.meeting-point"
+      },
+      "priority": 0,
+      "reason": "daily-afternoon-riverside"
+    },
+    {
+      "actor": {
+        "value": "elias"
+      },
+      "day": {
+        "specificDay": null,
+        "isEveryDay": true
+      },
+      "startMinute": 1080,
+      "endMinuteExclusive": 1440,
+      "anchor": {
+        "value": "farm.work-area"
+      },
+      "priority": 0,
+      "reason": "daily-evening-work"
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "day": {
+        "specificDay": null,
+        "isEveryDay": true
+      },
+      "startMinute": 0,
+      "endMinuteExclusive": 720,
+      "anchor": {
+        "value": "town.square"
+      },
+      "priority": 0,
+      "reason": "daily-morning-town"
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "day": {
+        "specificDay": null,
+        "isEveryDay": true
+      },
+      "startMinute": 720,
+      "endMinuteExclusive": 1020,
+      "anchor": {
+        "value": "riverside.meeting-point"
+      },
+      "priority": 0,
+      "reason": "daily-afternoon-riverside"
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "day": {
+        "specificDay": null,
+        "isEveryDay": true
+      },
+      "startMinute": 1020,
+      "endMinuteExclusive": 1440,
+      "anchor": {
+        "value": "farm.home"
+      },
+      "priority": 0,
+      "reason": "daily-evening-home"
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "day": {
+        "specificDay": 6,
+        "isEveryDay": false
+      },
+      "startMinute": 540,
+      "endMinuteExclusive": 1020,
+      "anchor": {
+        "value": "general-store.counter"
+      },
+      "priority": 1,
+      "reason": "day-6-store"
+    },
+    {
+      "actor": {
+        "value": "mara"
+      },
+      "day": {
+        "specificDay": 7,
+        "isEveryDay": false
+      },
+      "startMinute": 600,
+      "endMinuteExclusive": 1020,
+      "anchor": {
+        "value": "riverside.meeting-point"
+      },
+      "priority": 1,
+      "reason": "day-7-riverside"
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "day": {
+        "specificDay": null,
+        "isEveryDay": true
+      },
+      "startMinute": 0,
+      "endMinuteExclusive": 480,
+      "anchor": {
+        "value": "farm.home"
+      },
+      "priority": 0,
+      "reason": "daily-morning-home"
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "day": {
+        "specificDay": null,
+        "isEveryDay": true
+      },
+      "startMinute": 480,
+      "endMinuteExclusive": 1080,
+      "anchor": {
+        "value": "general-store.counter"
+      },
+      "priority": 0,
+      "reason": "daily-store"
+    },
+    {
+      "actor": {
+        "value": "sela"
+      },
+      "day": {
+        "specificDay": null,
+        "isEveryDay": true
+      },
+      "startMinute": 1080,
+      "endMinuteExclusive": 1440,
+      "anchor": {
+        "value": "farm.home"
+      },
+      "priority": 0,
+      "reason": "daily-evening-home"
+    }
+  ],
+  "authoredAnswers": {
+    "maraNormalDay1300": "riverside.meeting-point",
+    "maraDay6At1000": "general-store.counter",
+    "selaGeneralStore": "08:00-18:00 every day",
+    "eliasLeavesRiverside": "18:00 every day"
+  }
+}

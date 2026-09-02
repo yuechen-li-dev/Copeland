@@ -88,7 +88,8 @@ public sealed class TinyFarmSession
             recentEvents,
             nextSequence,
             observationMinute,
-            Scenes);
+            Scenes,
+            definitions!.Schedules);
         envelopes.AddRange(npcIntents);
         nextSequence += npcIntents.Count;
 

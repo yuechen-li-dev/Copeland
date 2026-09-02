@@ -1,0 +1,14 @@
+{
+  "milestone": "TINY-FARM-M9",
+  "kind": "tson-authored-npc-schedule-windows",
+  "scheduleContentAuthoredInTson": true,
+  "hardcodedProductionScheduleRowsRemoved": true,
+  "dominatusOwnsScheduleSelection": true,
+  "scheduleBehaviorChanged": false,
+  "hybridUtilitySchedulingAdded": false,
+  "stableAnchorIdentitiesPreserved": true,
+  "rawTsonLeaksIntoDecisionRuntime": false,
+  "newSchedulerFrameworkAdded": false,
+  "scheduleDslAdded": false,
+  "dominatusCoreChanged": false
+}

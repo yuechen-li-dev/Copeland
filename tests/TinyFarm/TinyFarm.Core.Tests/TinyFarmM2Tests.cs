@@ -81,8 +81,16 @@ public sealed class TinyFarmM2Tests
     {
         int saturdayTen = 5 * 1440 + 10 * 60;
         int sundayTen = 6 * 1440 + 10 * 60;
-        Assert.Equal(TinyFarmIds.GeneralStore, TinyFarmNpcController.ScheduledDestination(TinyFarmIds.Mara, saturdayTen, definitions.Scenes));
-        Assert.Equal(TinyFarmIds.Riverside, TinyFarmNpcController.ScheduledDestination(TinyFarmIds.Mara, sundayTen, definitions.Scenes));
+        Assert.Equal(TinyFarmIds.GeneralStore, TinyFarmNpcController.ScheduledDestination(
+            TinyFarmIds.Mara,
+            saturdayTen,
+            definitions.Scenes,
+            definitions.Schedules));
+        Assert.Equal(TinyFarmIds.Riverside, TinyFarmNpcController.ScheduledDestination(
+            TinyFarmIds.Mara,
+            sundayTen,
+            definitions.Scenes,
+            definitions.Schedules));
     }
 
     [Fact]
@@ -151,7 +159,9 @@ public sealed class TinyFarmM2Tests
             definitions.Items,
             definitions.Crops,
             definitions.Scenes,
-            definitions.SceneContent);
+            definitions.SceneContent,
+            definitions.Schedules,
+            definitions.ScheduleContent);
         Assert.Throws<InvalidDataException>(() => TinyFarmChunkedSaveCodec.Read(WriteChunks(chunks), otherDefinitions));
 
         List<SaveChunk> unknownCrop = ReplaceWorldText(chunks, "\"crop\":{\"value\":\"turnip\"}", "\"crop\":{\"value\":\"unknown\"}");

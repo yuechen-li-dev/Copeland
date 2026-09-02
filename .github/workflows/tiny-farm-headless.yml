@@ -130,6 +130,35 @@ jobs:
             throw "TinyFarm M8 proof did not preserve the schedule semantic contract."
           }
 
+      - name: Validate TSON schedule content and canonical M9 parity
+        shell: pwsh
+        run: |
+          $artifactDirectory = Join-Path $env:RUNNER_TEMP "tiny-farm-m9"
+          dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --m9 --artifact-dir $artifactDirectory
+          if ($LASTEXITCODE -ne 0) {
+            throw "TinyFarm M9 TSON schedule proof failed."
+          }
+
+          $proof = Get-Content -Raw -LiteralPath (Join-Path $artifactDirectory "proof.json") | ConvertFrom-Json
+          if ($proof.outcome -ne "A" -or
+              -not $proof.productionTsonLoaded -or
+              -not $proof.rowReorderPreserved -or
+              -not $proof.exhaustiveM8Parity -or
+              -not $proof.sevenDayParity -or
+              -not $proof.activeInactiveParity -or
+              -not $proof.handoffParity -or
+              -not $proof.saveLoadParity -or
+              -not $proof.hardcodedProductionRowsRemoved -or
+              $proof.rawTsonLeaksIntoDecisionRuntime -or
+              $proof.scheduleDecisionHash -ne "10cdca5bf32bb96bf26d42abbc8ec8feb85983286fab35361c1c979a906796f6" -or
+              $proof.anchorSequenceHash -ne "d763164039f2841ff6694f597df0610875ada968d0ad28a0fb9f76469fe59711" -or
+              $proof.navigationHash -ne "07dde9ac2f6c957017abe151320ee0a7d5c900f51ecd7901331c9d21a480d8fa" -or
+              $proof.sceneContentHash -ne "fe79f373643e1e3aa5df8f505e775cce7388206332831497fe12f8bed7e54afa" -or
+              $proof.m1Hash -ne "dcc35869aba0eba979725b1871d0babfe127383123a1a5f665b666bc3488d333" -or
+              $proof.m2Hash -ne "4a49e221d6ffe90304143cece5b1a20fe96eecc4d10d30cf1bde11922a18ced3") {
+            throw "TinyFarm M9 proof did not preserve the authored schedule contract."
+          }
+
       - name: Enforce repository artifact budget
         shell: pwsh
         run: ./tools/Test-ArtifactBudget.ps1 -Paths @()

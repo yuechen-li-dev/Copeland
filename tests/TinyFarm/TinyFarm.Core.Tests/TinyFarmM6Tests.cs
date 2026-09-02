@@ -60,10 +60,23 @@ public sealed class TinyFarmM6Tests
     [Fact]
     public void DominatusSchedule_ResolvesToSemanticAnchor()
     {
-        Assert.Equal(TinyFarmAnchorIds.FarmWorkArea, TinyFarmNpcController.ScheduledAnchor(TinyFarmIds.Elias, 8 * 60));
-        Assert.Equal(TinyFarmAnchorIds.RiversideMeetingPoint, TinyFarmNpcController.ScheduledAnchor(TinyFarmIds.Elias, 13 * 60));
-        Assert.Equal(TinyFarmAnchorIds.StoreCounter, TinyFarmNpcController.ScheduledAnchor(TinyFarmIds.Sela, 10 * 60));
-        Assert.Equal(TinyFarmIds.GeneralStore, TinyFarmNpcController.ScheduledDestination(TinyFarmIds.Sela, 10 * 60, definitions.Scenes));
+        Assert.Equal(TinyFarmAnchorIds.FarmWorkArea, TinyFarmNpcController.ScheduledAnchor(
+            TinyFarmIds.Elias,
+            8 * 60,
+            definitions.Schedules));
+        Assert.Equal(TinyFarmAnchorIds.RiversideMeetingPoint, TinyFarmNpcController.ScheduledAnchor(
+            TinyFarmIds.Elias,
+            13 * 60,
+            definitions.Schedules));
+        Assert.Equal(TinyFarmAnchorIds.StoreCounter, TinyFarmNpcController.ScheduledAnchor(
+            TinyFarmIds.Sela,
+            10 * 60,
+            definitions.Schedules));
+        Assert.Equal(TinyFarmIds.GeneralStore, TinyFarmNpcController.ScheduledDestination(
+            TinyFarmIds.Sela,
+            10 * 60,
+            definitions.Scenes,
+            definitions.Schedules));
     }
 
     [Fact]

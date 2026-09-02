@@ -56,15 +56,21 @@ public sealed class TinyFarmDefinitions
         IEnumerable<ItemDefinition> items,
         IEnumerable<CropDefinition> crops,
         TinyFarmSceneCatalog scenes,
-        SceneContentProvenance sceneContent)
+        SceneContentProvenance sceneContent,
+        TinyFarmScheduleCatalog schedules,
+        ScheduleContentProvenance scheduleContent)
     {
         ArgumentNullException.ThrowIfNull(scenes);
         ArgumentNullException.ThrowIfNull(sceneContent);
+        ArgumentNullException.ThrowIfNull(schedules);
+        ArgumentNullException.ThrowIfNull(scheduleContent);
         Identity = identity;
         Items = items.OrderBy(item => item.Id.Value, StringComparer.Ordinal).ToArray();
         Crops = crops.OrderBy(crop => crop.Id.Value, StringComparer.Ordinal).ToArray();
         Scenes = scenes;
         SceneContent = sceneContent;
+        Schedules = schedules;
+        ScheduleContent = scheduleContent;
         if (Items.Select(item => item.Id).Distinct().Count() != Items.Count || Crops.Select(crop => crop.Id).Distinct().Count() != Crops.Count)
         {
             throw new InvalidDataException("TinyFarm definition identities must be unique.");
@@ -84,6 +90,8 @@ public sealed class TinyFarmDefinitions
     public IReadOnlyList<CropDefinition> Crops { get; }
     public TinyFarmSceneCatalog Scenes { get; }
     public SceneContentProvenance SceneContent { get; }
+    public TinyFarmScheduleCatalog Schedules { get; }
+    public ScheduleContentProvenance ScheduleContent { get; }
     public ItemDefinition Item(ProductId id) => Items.Single(item => item.Id == id);
     public CropDefinition Crop(CropId id) => Crops.Single(crop => crop.Id == id);
 }
