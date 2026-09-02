@@ -6,12 +6,12 @@ namespace Oblivion.App.Tests;
 public sealed class PresentationAppTests
 {
     [Fact]
-    public void DogfoodUsesOnlySemanticAuthoringAndMaterializesSevenCards()
+    public void DogfoodUsesOnlySemanticAuthoringAndMaterializesSixCards()
     {
         MaterializedPresentation result = M19PresentationDogfood.Materialize(FindRepositoryRoot());
 
-        Assert.Equal(7, result.Source.Content.Count);
-        Assert.Equal(7, result.Page.Cards.Count);
+        Assert.Equal(6, result.Source.Content.Count);
+        Assert.Equal(6, result.Page.Cards.Count);
         Assert.All(result.Page.Cards, card =>
             Assert.StartsWith("presentation.m19-architecture.", card.Id.Value, StringComparison.Ordinal));
         Assert.Contains(result.Bands, band => band.Kind == PresentationMaterializedBandKind.Compare);
@@ -33,8 +33,6 @@ public sealed class PresentationAppTests
             item.Kind == "Code" && item.Presenter == "AvaloniaReadOnlyCode");
         Assert.Contains(snapshot.Content, item =>
             item.Kind == "Diagram" && item.Presenter.Contains("ExternalMermaidRenderer", StringComparison.Ordinal));
-        Assert.Contains(snapshot.Content, item =>
-            item.Kind == "Artifact" && item.Presenter == "AvaloniaImage");
         Assert.All(snapshot.Content, item => Assert.Contains("content=", item.Producer));
         Assert.Empty(snapshot.Diagnostics);
     }

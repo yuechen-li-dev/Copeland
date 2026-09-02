@@ -16,15 +16,6 @@ public static class M19PresentationDogfood
 
     public static Oblivion.Presentation.Presentation Create(string? repositoryRoot = null)
     {
-        string root = repositoryRoot ?? FindRepositoryRoot();
-        string proofPath = Path.Combine(
-            root,
-            "artifacts",
-            "m19c",
-            "trial-workspace",
-            "artifacts",
-            "m19c-human-briefing.png");
-
         return Oblivion.Presentation.Presentation.Create(
             id: Id,
             title: "M19 semantic presentation architecture",
@@ -66,13 +57,6 @@ public static class M19PresentationDogfood
                         "src/Oblivion/Oblivion.App/Presentation/M19PresentationDogfood.cs"),
                     language: "csharp",
                     title: "The C# Codex writes"),
-                Artifact(
-                    "human-proof",
-                    proofPath,
-                    "png",
-                    label: "M19 human briefing",
-                    generated: true,
-                    title: "Existing PNG proof"),
                 Decision(
                     "direction",
                     "Use a semantic content stream with optional Compare, Columns, and Focus groups that reference stable content IDs.",
@@ -88,7 +72,7 @@ public static class M19PresentationDogfood
             ],
             layout:
             [
-                Compare("source-and-proof", "authoring-source", "human-proof"),
+                Compare("source-and-explanation", "authoring-source", "architecture-notes"),
                 Focus("architecture-focus", "architecture-flow"),
             ]);
     }

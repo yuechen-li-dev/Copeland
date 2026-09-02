@@ -6,6 +6,15 @@ namespace Copeland.TS.Tests;
 
 public sealed class LanguageFixtureTests
 {
+    private static readonly string[] CrossBackendFixturePaths =
+    [
+        "Valid/absence/option-chaining-and-coalescing.cl-valid.ts",
+        "Valid/classes/person.cl-valid.ts",
+        "Valid/generics/table-row-conjoined-requirements.cl-valid.ts",
+        "Valid/records/with-and-bindings.cl-valid.ts",
+        "Valid/tagged-data/payload-enum-match.cl-valid.ts",
+    ];
+
     [Fact]
     public void Language_fixture_topology_is_valid()
     {
@@ -57,6 +66,22 @@ public sealed class LanguageFixtureTests
         Assert.Null(compilation.MirText);
         AssertExpectedDiagnostics(fixture, compilation.Diagnostics.Select(diagnostic => diagnostic.Id));
     }
+
+    [Theory]
+    [MemberData(nameof(CrossBackendFixtures))]
+    public void Representative_current_law_fixtures_emit_for_both_backends(string relativePath)
+    {
+        string source = LanguageFixtures.ReadSourceText(relativePath);
+        var compilation = CopelandCompiler.CompileToMir(source);
+
+        Assert.True(compilation.Success, DescribeDiagnostics(relativePath, compilation.Diagnostics));
+        Assert.NotNull(compilation.MirCompilation?.Program);
+        Assert.Empty(Copeland.TS.Backend.CSharp.CSharpBackend.Emit(compilation.MirCompilation!.Program!).Diagnostics);
+        Assert.True(Copeland.TS.Backend.JavaScript.JavaScriptBackend.Emit(compilation.MirCompilation.Program).Success);
+    }
+
+    public static IEnumerable<object[]> CrossBackendFixtures =>
+        CrossBackendFixturePaths.Select(path => new object[] { path });
 
     private static void AssertExpectedDiagnostics(LanguageFixture fixture, IEnumerable<string> actualIds)
     {

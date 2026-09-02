@@ -1,7 +1,0 @@
-format = 1
-kind = "artifact"
-id = "trial-workspace"
-label = "Trial workspace manifest"
-artifact_kind = "json"
-path = "workspace.oblivion.json"
-generated = false

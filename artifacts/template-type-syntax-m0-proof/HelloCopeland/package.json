@@ -1,9 +1,0 @@
-{
-  "name": "hellocopeland",
-  "version": "0.1.0-preview.1-tsxml.1",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "lodash-es": "4.18.1"
-  }
-}

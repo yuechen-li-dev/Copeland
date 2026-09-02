@@ -1,0 +1,855 @@
+{
+  "schema": "copeland.historical-artifact-index.v1",
+  "capturedBeforeCleanup": "2026-09-01T20:54:42.7227055-07:00",
+  "doctrine": "Generated milestone bundles are represented by this compact index and their source/history documents; they are not recurring repository contracts.",
+  "totalBytesBefore": 5572268376,
+  "totalFilesBefore": 21339,
+  "entries": [
+    {
+      "directory": "artifacts/copeland-msbuild-package",
+      "fileCount": 1,
+      "bytes": 436273,
+      "trackedFileCount": 0
+    },
+    {
+      "directory": "artifacts/cts-burn-in",
+      "fileCount": 30,
+      "bytes": 332208,
+      "trackedFileCount": 30
+    },
+    {
+      "directory": "artifacts/cts-class-m1",
+      "fileCount": 0,
+      "bytes": 0,
+      "trackedFileCount": 0
+    },
+    {
+      "directory": "artifacts/cts-distribution-m0",
+      "fileCount": 2957,
+      "bytes": 3511857760,
+      "trackedFileCount": 0
+    },
+    {
+      "directory": "artifacts/cts-flow-m2",
+      "fileCount": 76,
+      "bytes": 391541,
+      "trackedFileCount": 76
+    },
+    {
+      "directory": "artifacts/cts-jit-m0",
+      "fileCount": 142,
+      "bytes": 2189778,
+      "trackedFileCount": 0
+    },
+    {
+      "directory": "artifacts/cts-jit-m0-smoke",
+      "fileCount": 142,
+      "bytes": 2183005,
+      "trackedFileCount": 0
+    },
+    {
+      "directory": "artifacts/cts-js-perf-m1",
+      "fileCount": 284,
+      "bytes": 4388879,
+      "trackedFileCount": 0
+    },
+    {
+      "directory": "artifacts/cts-js-perf-m1-production-smoke",
+      "fileCount": 142,
+      "bytes": 2190883,
+      "trackedFileCount": 0
+    },
+    {
+      "directory": "artifacts/cts-layout-table-surface-m0",
+      "fileCount": 3,
+      "bytes": 4175,
+      "trackedFileCount": 3
+    },
+    {
+      "directory": "artifacts/cts-layout-z-m0",
+      "fileCount": 3,
+      "bytes": 21450,
+      "trackedFileCount": 0
+    },
+    {
+      "directory": "artifacts/cts-opt-m0",
+      "fileCount": 156,
+      "bytes": 804612,
+      "trackedFileCount": 156
+    },
+    {
+      "directory": "artifacts/cts-opt-m1",
+      "fileCount": 86,
+      "bytes": 518779,
+      "trackedFileCount": 86
+    },
+    {
+      "directory": "artifacts/cts-opt-m2",
+      "fileCount": 81,
+      "bytes": 428037,
+      "trackedFileCount": 81
+    },
+    {
+      "directory": "artifacts/cts-rec-m4-validation",
+      "fileCount": 74,
+      "bytes": 390081,
+      "trackedFileCount": 74
+    },
+    {
+      "directory": "artifacts/cts-stream-composition-m0",
+      "fileCount": 1,
+      "bytes": 8376,
+      "trackedFileCount": 1
+    },
+    {
+      "directory": "artifacts/cts-template-m2",
+      "fileCount": 77,
+      "bytes": 394467,
+      "trackedFileCount": 77
+    },
+    {
+      "directory": "artifacts/derived",
+      "fileCount": 36,
+      "bytes": 513988,
+      "trackedFileCount": 36
+    },
+    {
+      "directory": "artifacts/font-current",
+      "fileCount": 51,
+      "bytes": 10240760,
+      "trackedFileCount": 51
+    },
+    {
+      "directory": "artifacts/human-workflow-m0",
+      "fileCount": 7320,
+      "bytes": 1414100806,
+      "trackedFileCount": 3
+    },
+    {
+      "directory": "artifacts/m10a",
+      "fileCount": 6,
+      "bytes": 74414,
+      "trackedFileCount": 6
+    },
+    {
+      "directory": "artifacts/m10b",
+      "fileCount": 6,
+      "bytes": 63510,
+      "trackedFileCount": 6
+    },
+    {
+      "directory": "artifacts/m10c",
+      "fileCount": 8,
+      "bytes": 101912,
+      "trackedFileCount": 8
+    },
+    {
+      "directory": "artifacts/m10d",
+      "fileCount": 11,
+      "bytes": 114432,
+      "trackedFileCount": 11
+    },
+    {
+      "directory": "artifacts/m11a",
+      "fileCount": 8,
+      "bytes": 66101,
+      "trackedFileCount": 8
+    },
+    {
+      "directory": "artifacts/m11c",
+      "fileCount": 6,
+      "bytes": 38743,
+      "trackedFileCount": 6
+    },
+    {
+      "directory": "artifacts/m11d",
+      "fileCount": 7,
+      "bytes": 50328,
+      "trackedFileCount": 7
+    },
+    {
+      "directory": "artifacts/m11e",
+      "fileCount": 11,
+      "bytes": 81293,
+      "trackedFileCount": 11
+    },
+    {
+      "directory": "artifacts/m11f",
+      "fileCount": 10,
+      "bytes": 64313,
+      "trackedFileCount": 10
+    },
+    {
+      "directory": "artifacts/m11g",
+      "fileCount": 12,
+      "bytes": 89643,
+      "trackedFileCount": 12
+    },
+    {
+      "directory": "artifacts/m12a",
+      "fileCount": 4,
+      "bytes": 574904,
+      "trackedFileCount": 0
+    },
+    {
+      "directory": "artifacts/m12b",
+      "fileCount": 14,
+      "bytes": 95274,
+      "trackedFileCount": 14
+    },
+    {
+      "directory": "artifacts/m12c",
+      "fileCount": 14,
+      "bytes": 99091,
+      "trackedFileCount": 14
+    },
+    {
+      "directory": "artifacts/m12d",
+      "fileCount": 16,
+      "bytes": 104747,
+      "trackedFileCount": 16
+    },
+    {
+      "directory": "artifacts/m12e",
+      "fileCount": 18,
+      "bytes": 108617,
+      "trackedFileCount": 18
+    },
+    {
+      "directory": "artifacts/m12f",
+      "fileCount": 20,
+      "bytes": 109434,
+      "trackedFileCount": 20
+    },
+    {
+      "directory": "artifacts/m12g",
+      "fileCount": 22,
+      "bytes": 109297,
+      "trackedFileCount": 22
+    },
+    {
+      "directory": "artifacts/m12h",
+      "fileCount": 26,
+      "bytes": 116299,
+      "trackedFileCount": 26
+    },
+    {
+      "directory": "artifacts/m13a",
+      "fileCount": 2,
+      "bytes": 2465,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/m13b",
+      "fileCount": 2,
+      "bytes": 1523,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/m13c",
+      "fileCount": 26,
+      "bytes": 123258,
+      "trackedFileCount": 26
+    },
+    {
+      "directory": "artifacts/m13d",
+      "fileCount": 2,
+      "bytes": 1780,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/m13e",
+      "fileCount": 2,
+      "bytes": 2348,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/m13f",
+      "fileCount": 2,
+      "bytes": 2125,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/m13g",
+      "fileCount": 2,
+      "bytes": 2313,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/m14a",
+      "fileCount": 6,
+      "bytes": 6389,
+      "trackedFileCount": 6
+    },
+    {
+      "directory": "artifacts/m14b",
+      "fileCount": 2,
+      "bytes": 3141,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/m14c",
+      "fileCount": 3,
+      "bytes": 1611,
+      "trackedFileCount": 3
+    },
+    {
+      "directory": "artifacts/m14d",
+      "fileCount": 2,
+      "bytes": 1652,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/m14e",
+      "fileCount": 2,
+      "bytes": 3300,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/m15a",
+      "fileCount": 5,
+      "bytes": 56538,
+      "trackedFileCount": 5
+    },
+    {
+      "directory": "artifacts/m15b",
+      "fileCount": 28,
+      "bytes": 150956,
+      "trackedFileCount": 28
+    },
+    {
+      "directory": "artifacts/m15c",
+      "fileCount": 28,
+      "bytes": 150373,
+      "trackedFileCount": 28
+    },
+    {
+      "directory": "artifacts/m15d",
+      "fileCount": 30,
+      "bytes": 153819,
+      "trackedFileCount": 30
+    },
+    {
+      "directory": "artifacts/m15e",
+      "fileCount": 32,
+      "bytes": 160083,
+      "trackedFileCount": 32
+    },
+    {
+      "directory": "artifacts/m15f",
+      "fileCount": 32,
+      "bytes": 133215,
+      "trackedFileCount": 32
+    },
+    {
+      "directory": "artifacts/m15g",
+      "fileCount": 2,
+      "bytes": 2697,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/m16a",
+      "fileCount": 27,
+      "bytes": 129702,
+      "trackedFileCount": 27
+    },
+    {
+      "directory": "artifacts/m16b",
+      "fileCount": 27,
+      "bytes": 135387,
+      "trackedFileCount": 27
+    },
+    {
+      "directory": "artifacts/m16c",
+      "fileCount": 74,
+      "bytes": 386814,
+      "trackedFileCount": 74
+    },
+    {
+      "directory": "artifacts/m16d",
+      "fileCount": 78,
+      "bytes": 405602,
+      "trackedFileCount": 78
+    },
+    {
+      "directory": "artifacts/m17a",
+      "fileCount": 2,
+      "bytes": 2088,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/m17b",
+      "fileCount": 2,
+      "bytes": 2062,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/m17c",
+      "fileCount": 6,
+      "bytes": 84074,
+      "trackedFileCount": 6
+    },
+    {
+      "directory": "artifacts/m17d",
+      "fileCount": 2,
+      "bytes": 2319,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/m17e",
+      "fileCount": 6,
+      "bytes": 73377,
+      "trackedFileCount": 6
+    },
+    {
+      "directory": "artifacts/m17f",
+      "fileCount": 2,
+      "bytes": 2620,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/m18a",
+      "fileCount": 2,
+      "bytes": 2656,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/m18b",
+      "fileCount": 1,
+      "bytes": 2768,
+      "trackedFileCount": 1
+    },
+    {
+      "directory": "artifacts/m18c",
+      "fileCount": 2,
+      "bytes": 2449,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/m18d",
+      "fileCount": 150,
+      "bytes": 781213,
+      "trackedFileCount": 150
+    },
+    {
+      "directory": "artifacts/m19a",
+      "fileCount": 2,
+      "bytes": 2209,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/m19b",
+      "fileCount": 2,
+      "bytes": 2511,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/m19c",
+      "fileCount": 88,
+      "bytes": 427658,
+      "trackedFileCount": 88
+    },
+    {
+      "directory": "artifacts/m19d",
+      "fileCount": 76,
+      "bytes": 394417,
+      "trackedFileCount": 76
+    },
+    {
+      "directory": "artifacts/m19e",
+      "fileCount": 76,
+      "bytes": 394071,
+      "trackedFileCount": 76
+    },
+    {
+      "directory": "artifacts/m19f",
+      "fileCount": 106,
+      "bytes": 494340,
+      "trackedFileCount": 106
+    },
+    {
+      "directory": "artifacts/m19g",
+      "fileCount": 78,
+      "bytes": 528772,
+      "trackedFileCount": 78
+    },
+    {
+      "directory": "artifacts/m19h",
+      "fileCount": 5,
+      "bytes": 225981,
+      "trackedFileCount": 5
+    },
+    {
+      "directory": "artifacts/m19i",
+      "fileCount": 78,
+      "bytes": 516869,
+      "trackedFileCount": 78
+    },
+    {
+      "directory": "artifacts/m19j",
+      "fileCount": 2,
+      "bytes": 1907,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/m19k",
+      "fileCount": 79,
+      "bytes": 434855,
+      "trackedFileCount": 79
+    },
+    {
+      "directory": "artifacts/m19l",
+      "fileCount": 78,
+      "bytes": 412982,
+      "trackedFileCount": 78
+    },
+    {
+      "directory": "artifacts/m19m",
+      "fileCount": 2,
+      "bytes": 1801,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/m19n",
+      "fileCount": 78,
+      "bytes": 593876,
+      "trackedFileCount": 78
+    },
+    {
+      "directory": "artifacts/m19o",
+      "fileCount": 4,
+      "bytes": 133001,
+      "trackedFileCount": 4
+    },
+    {
+      "directory": "artifacts/m19p",
+      "fileCount": 78,
+      "bytes": 602778,
+      "trackedFileCount": 78
+    },
+    {
+      "directory": "artifacts/m20a",
+      "fileCount": 84,
+      "bytes": 711331,
+      "trackedFileCount": 84
+    },
+    {
+      "directory": "artifacts/m20b",
+      "fileCount": 94,
+      "bytes": 1550263,
+      "trackedFileCount": 94
+    },
+    {
+      "directory": "artifacts/m20c",
+      "fileCount": 94,
+      "bytes": 1070994,
+      "trackedFileCount": 94
+    },
+    {
+      "directory": "artifacts/m20d",
+      "fileCount": 158,
+      "bytes": 1123747,
+      "trackedFileCount": 158
+    },
+    {
+      "directory": "artifacts/m20e",
+      "fileCount": 84,
+      "bytes": 682856,
+      "trackedFileCount": 84
+    },
+    {
+      "directory": "artifacts/m20f",
+      "fileCount": 158,
+      "bytes": 985813,
+      "trackedFileCount": 158
+    },
+    {
+      "directory": "artifacts/m20g",
+      "fileCount": 83,
+      "bytes": 437329,
+      "trackedFileCount": 83
+    },
+    {
+      "directory": "artifacts/m5h",
+      "fileCount": 2,
+      "bytes": 23930,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/m6e",
+      "fileCount": 3,
+      "bytes": 32852,
+      "trackedFileCount": 3
+    },
+    {
+      "directory": "artifacts/m6e1",
+      "fileCount": 3,
+      "bytes": 12792,
+      "trackedFileCount": 3
+    },
+    {
+      "directory": "artifacts/m71d-aot-smoke",
+      "fileCount": 97,
+      "bytes": 4569724,
+      "trackedFileCount": 0
+    },
+    {
+      "directory": "artifacts/m71d-qualification",
+      "fileCount": 137,
+      "bytes": 18226250,
+      "trackedFileCount": 0
+    },
+    {
+      "directory": "artifacts/m7a",
+      "fileCount": 4,
+      "bytes": 5792284,
+      "trackedFileCount": 4
+    },
+    {
+      "directory": "artifacts/m7b",
+      "fileCount": 2,
+      "bytes": 7683306,
+      "trackedFileCount": 0
+    },
+    {
+      "directory": "artifacts/m7c",
+      "fileCount": 2,
+      "bytes": 7683306,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/m7d",
+      "fileCount": 2,
+      "bytes": 7683306,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/m7e",
+      "fileCount": 2,
+      "bytes": 7683306,
+      "trackedFileCount": 0
+    },
+    {
+      "directory": "artifacts/m8l",
+      "fileCount": 13,
+      "bytes": 719143,
+      "trackedFileCount": 0
+    },
+    {
+      "directory": "artifacts/m8m",
+      "fileCount": 3,
+      "bytes": 11524959,
+      "trackedFileCount": 3
+    },
+    {
+      "directory": "artifacts/m8n",
+      "fileCount": 22,
+      "bytes": 12577064,
+      "trackedFileCount": 22
+    },
+    {
+      "directory": "artifacts/m8o",
+      "fileCount": 25,
+      "bytes": 1282672,
+      "trackedFileCount": 0
+    },
+    {
+      "directory": "artifacts/m8p",
+      "fileCount": 28,
+      "bytes": 12812522,
+      "trackedFileCount": 28
+    },
+    {
+      "directory": "artifacts/m8q",
+      "fileCount": 29,
+      "bytes": 12833008,
+      "trackedFileCount": 29
+    },
+    {
+      "directory": "artifacts/m8q1",
+      "fileCount": 29,
+      "bytes": 12833037,
+      "trackedFileCount": 29
+    },
+    {
+      "directory": "artifacts/m8q2",
+      "fileCount": 29,
+      "bytes": 12835910,
+      "trackedFileCount": 29
+    },
+    {
+      "directory": "artifacts/m8r",
+      "fileCount": 48,
+      "bytes": 5553100,
+      "trackedFileCount": 48
+    },
+    {
+      "directory": "artifacts/m8s",
+      "fileCount": 144,
+      "bytes": 32483955,
+      "trackedFileCount": 144
+    },
+    {
+      "directory": "artifacts/m9a",
+      "fileCount": 36,
+      "bytes": 7457514,
+      "trackedFileCount": 36
+    },
+    {
+      "directory": "artifacts/m9b",
+      "fileCount": 62,
+      "bytes": 12480686,
+      "trackedFileCount": 62
+    },
+    {
+      "directory": "artifacts/m9c",
+      "fileCount": 40,
+      "bytes": 7485191,
+      "trackedFileCount": 40
+    },
+    {
+      "directory": "artifacts/m9c-partial",
+      "fileCount": 40,
+      "bytes": 7489438,
+      "trackedFileCount": 40
+    },
+    {
+      "directory": "artifacts/m9d",
+      "fileCount": 58,
+      "bytes": 11128209,
+      "trackedFileCount": 58
+    },
+    {
+      "directory": "artifacts/m9d-msdf",
+      "fileCount": 50,
+      "bytes": 9450922,
+      "trackedFileCount": 50
+    },
+    {
+      "directory": "artifacts/m9e",
+      "fileCount": 55,
+      "bytes": 28289890,
+      "trackedFileCount": 55
+    },
+    {
+      "directory": "artifacts/m9e-font-diagnostics",
+      "fileCount": 50,
+      "bytes": 9454868,
+      "trackedFileCount": 50
+    },
+    {
+      "directory": "artifacts/m9f",
+      "fileCount": 431,
+      "bytes": 143451944,
+      "trackedFileCount": 431
+    },
+    {
+      "directory": "artifacts/m9g",
+      "fileCount": 59,
+      "bytes": 45762128,
+      "trackedFileCount": 59
+    },
+    {
+      "directory": "artifacts/m9h",
+      "fileCount": 56,
+      "bytes": 29749952,
+      "trackedFileCount": 56
+    },
+    {
+      "directory": "artifacts/m9i",
+      "fileCount": 8,
+      "bytes": 19541380,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/m9i-font-diagnostics",
+      "fileCount": 51,
+      "bytes": 10241693,
+      "trackedFileCount": 0
+    },
+    {
+      "directory": "artifacts/preview-checkpoint-pack",
+      "fileCount": 0,
+      "bytes": 0,
+      "trackedFileCount": 0
+    },
+    {
+      "directory": "artifacts/query-m0-temp",
+      "fileCount": 0,
+      "bytes": 0,
+      "trackedFileCount": 0
+    },
+    {
+      "directory": "artifacts/releases",
+      "fileCount": 10,
+      "bytes": 21706167,
+      "trackedFileCount": 10
+    },
+    {
+      "directory": "artifacts/standalone-web-probe",
+      "fileCount": 9,
+      "bytes": 79349,
+      "trackedFileCount": 0
+    },
+    {
+      "directory": "artifacts/template-static-m0-bound-proof",
+      "fileCount": 27,
+      "bytes": 425191,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/template-static-m0-proof",
+      "fileCount": 27,
+      "bytes": 425033,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/template-static-m1-proof",
+      "fileCount": 28,
+      "bytes": 425208,
+      "trackedFileCount": 3
+    },
+    {
+      "directory": "artifacts/template-static-m1-proof-r2",
+      "fileCount": 28,
+      "bytes": 425291,
+      "trackedFileCount": 3
+    },
+    {
+      "directory": "artifacts/template-static-m1-proof-r3",
+      "fileCount": 28,
+      "bytes": 425291,
+      "trackedFileCount": 3
+    },
+    {
+      "directory": "artifacts/template-type-syntax-m0-proof",
+      "fileCount": 805,
+      "bytes": 9164609,
+      "trackedFileCount": 13
+    },
+    {
+      "directory": "artifacts/tsxml-text-value-m0c",
+      "fileCount": 4690,
+      "bytes": 54161126,
+      "trackedFileCount": 3
+    },
+    {
+      "directory": "artifacts/viz-m0",
+      "fileCount": 2,
+      "bytes": 1821,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/viz-m1",
+      "fileCount": 2,
+      "bytes": 2100,
+      "trackedFileCount": 2
+    },
+    {
+      "directory": "artifacts/viz-m2",
+      "fileCount": 4,
+      "bytes": 35661,
+      "trackedFileCount": 4
+    }
+  ]
+}

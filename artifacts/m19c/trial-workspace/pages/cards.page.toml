@@ -1,6 +1,0 @@
-format = 1
-kind = "page"
-id = "cards"
-title = "M18/M19 Architecture"
-description = "A human-facing technical briefing authored by Codex through the current Oblivion surface."
-tags = ["m19c", "presentation", "architecture", "trial"]

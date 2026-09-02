@@ -1,0 +1,42 @@
+REPOSITORY HYGIENE OUTCOME A
+
+PLAYBACK
+  canonical before: 14/14 historical Presenter scenarios
+  canonical after:  5/5 current Oblivion Standalone scenarios
+  report path:       exact requested output directory; fixed and verified
+
+ARTIFACT STORAGE
+  tracked generated files removed: 3,748
+  local bytes before:               5,573,124,973
+  local bytes after:                   35,434,542
+  local bytes reclaimed:            5,537,690,431
+  historical representation:        historical-artifact-index.json plus source/history docs
+
+COPELAND LANGUAGE CORPUS
+  Valid:              67 -> 68
+  Invalid:           153 -> 154
+  reclassified:        1
+  added:               2
+  actual regressions:  0
+  compiler suite:      1127/1127 passed
+  JS/C# spot check:    passed
+
+MARIONETTE OWNERSHIP
+  domain:              src/Marionette/Marionette.Core
+  app root:            src/Skyrim/Aurelian.Marionette
+  dependency:          Aurelian.Actuation <- Marionette.Core <- app
+  Aurelian Skyrim hits: 0
+  tests:               58/58 passed
+  Godot proof:         not justified; replaceable renderer boundary documented
+
+VALIDATION
+  Copeland.slnx:       passed
+  JointTaskForce.slnx: passed
+  Oblivion.slnx:       passed
+  Machina.UI.slnx:     passed
+  Machina.UI.Slow:     passed
+  Machina.UI build:    passed, 0 warnings
+  Aurelian no-build:   passed
+  Marionette.slnx:     passed
+  canonical playback:  5/5 passed
+  git diff --check:    passed

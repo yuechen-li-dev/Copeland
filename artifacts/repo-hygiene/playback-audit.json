@@ -1,0 +1,234 @@
+{
+  "schema": "copeland.playback-audit.v1",
+  "doctrine": "Canonical playback protects a small stable current behavioral contract; milestone visuals remain historical and are not regenerated.",
+  "canonicalBefore": {
+    "count": 14,
+    "failedAtAudit": 0,
+    "passedAtAudit": 14,
+    "suite": "m16c-oblivion-playback-suite"
+  },
+  "canonicalAfter": {
+    "count": 5,
+    "reportPath": "<output>/playback-suite-report.json",
+    "suite": "oblivion-current-contract"
+  },
+  "reportPathFix": {
+    "status": "FIXED",
+    "currentLaw": "Report is written to the exact requested output directory.",
+    "removedBehavior": "Reports were moved to the parent when the output leaf was named playback."
+  },
+  "storageCleanup": {
+    "trackedGeneratedFilesRemoved": 3748,
+    "bytesBefore": 5573124973,
+    "bytesAfter": 35434542,
+    "bytesReclaimed": 5537690431,
+    "retainedRepresentation": "artifacts/repo-hygiene/historical-artifact-index.json"
+  },
+  "knownBrokenLegacy": {
+    "note": "The historical 14-case Presenter suite passed during audit. It was retired because it is superseded, not because it failed.",
+    "recurringCasesRemoved": 0
+  },
+  "artifacts": [
+    {
+      "artifact": "samples/Integrations/Machina.Presenter.Sample/PlaybackScenarios/regressions/m15b-compact-shell-mode.machina-playback.toml",
+      "originMilestone": "M15B",
+      "currentOwner": "Machina Presenter historical playback",
+      "stillProductRelevant": false,
+      "stillRegressionRelevant": false,
+      "regeneratedEveryMilestoneBefore": true,
+      "classification": "HISTORICAL_EVIDENCE",
+      "disposition": "Retain source beside history; remove from canonical regeneration."
+    },
+    {
+      "artifact": "samples/Integrations/Machina.Presenter.Sample/PlaybackScenarios/regressions/m15b-wide-shell-mode.machina-playback.toml",
+      "originMilestone": "M15B",
+      "currentOwner": "Machina Presenter historical playback",
+      "stillProductRelevant": false,
+      "stillRegressionRelevant": false,
+      "regeneratedEveryMilestoneBefore": true,
+      "classification": "HISTORICAL_EVIDENCE",
+      "disposition": "Retain source beside history; remove from canonical regeneration."
+    },
+    {
+      "artifact": "samples/Integrations/Machina.Presenter.Sample/PlaybackScenarios/regressions/m15c-expand-collapse-selection.machina-playback.toml",
+      "originMilestone": "M15C",
+      "currentOwner": "Machina Presenter historical playback",
+      "stillProductRelevant": false,
+      "stillRegressionRelevant": false,
+      "regeneratedEveryMilestoneBefore": true,
+      "classification": "HISTORICAL_EVIDENCE",
+      "disposition": "Retain source beside history; remove from canonical regeneration."
+    },
+    {
+      "artifact": "samples/Integrations/Machina.Presenter.Sample/PlaybackScenarios/regressions/m15d-expanded-reading-surface.machina-playback.toml",
+      "originMilestone": "M15D",
+      "currentOwner": "Machina Presenter historical playback",
+      "stillProductRelevant": false,
+      "stillRegressionRelevant": false,
+      "regeneratedEveryMilestoneBefore": true,
+      "classification": "HISTORICAL_EVIDENCE",
+      "disposition": "Retain source beside history; remove from canonical regeneration."
+    },
+    {
+      "artifact": "samples/Integrations/Machina.Presenter.Sample/PlaybackScenarios/regressions/m15e-independent-scroll-panes.machina-playback.toml",
+      "originMilestone": "M15E",
+      "currentOwner": "Machina Presenter historical playback",
+      "stillProductRelevant": false,
+      "stillRegressionRelevant": false,
+      "regeneratedEveryMilestoneBefore": true,
+      "classification": "HISTORICAL_EVIDENCE",
+      "disposition": "Retain source beside history; remove from canonical regeneration."
+    },
+    {
+      "artifact": "samples/Integrations/Machina.Presenter.Sample/PlaybackScenarios/regressions/m15e-partial-viewport-culling.machina-playback.toml",
+      "originMilestone": "M15E",
+      "currentOwner": "Machina Presenter historical playback",
+      "stillProductRelevant": false,
+      "stillRegressionRelevant": false,
+      "regeneratedEveryMilestoneBefore": true,
+      "classification": "HISTORICAL_EVIDENCE",
+      "disposition": "Retain source beside history; remove from canonical regeneration."
+    },
+    {
+      "artifact": "samples/Integrations/Machina.Presenter.Sample/PlaybackScenarios/regressions/m15f-inspector-raw-source-lag-guard.machina-playback.toml",
+      "originMilestone": "M15F",
+      "currentOwner": "Machina Presenter historical playback",
+      "stillProductRelevant": false,
+      "stillRegressionRelevant": false,
+      "regeneratedEveryMilestoneBefore": true,
+      "classification": "HISTORICAL_EVIDENCE",
+      "disposition": "Retain source beside history; remove from canonical regeneration."
+    },
+    {
+      "artifact": "samples/Integrations/Machina.Presenter.Sample/PlaybackScenarios/regressions/m15f-main-stack-scroll-regression.machina-playback.toml",
+      "originMilestone": "M15F",
+      "currentOwner": "Machina Presenter historical playback",
+      "stillProductRelevant": false,
+      "stillRegressionRelevant": false,
+      "regeneratedEveryMilestoneBefore": true,
+      "classification": "HISTORICAL_EVIDENCE",
+      "disposition": "Retain source beside history; remove from canonical regeneration."
+    },
+    {
+      "artifact": "samples/Integrations/Machina.Presenter.Sample/PlaybackScenarios/regressions/m16b-raw-source-routing-regression.machina-playback.toml",
+      "originMilestone": "M16B",
+      "currentOwner": "Machina Presenter historical playback",
+      "stillProductRelevant": false,
+      "stillRegressionRelevant": false,
+      "regeneratedEveryMilestoneBefore": true,
+      "classification": "HISTORICAL_EVIDENCE",
+      "disposition": "Retain source beside history; remove from canonical regeneration."
+    },
+    {
+      "artifact": "samples/Integrations/Machina.Presenter.Sample/PlaybackScenarios/starter/oblivion-expand-collapse.machina-playback.toml",
+      "originMilestone": "M16C",
+      "currentOwner": "Machina Presenter historical playback",
+      "stillProductRelevant": false,
+      "stillRegressionRelevant": false,
+      "regeneratedEveryMilestoneBefore": true,
+      "classification": "HISTORICAL_EVIDENCE",
+      "disposition": "Retain source beside history; remove from canonical regeneration."
+    },
+    {
+      "artifact": "samples/Integrations/Machina.Presenter.Sample/PlaybackScenarios/starter/oblivion-expanded-body-scroll.machina-playback.toml",
+      "originMilestone": "M16C",
+      "currentOwner": "Machina Presenter historical playback",
+      "stillProductRelevant": false,
+      "stillRegressionRelevant": false,
+      "regeneratedEveryMilestoneBefore": true,
+      "classification": "HISTORICAL_EVIDENCE",
+      "disposition": "Retain source beside history; remove from canonical regeneration."
+    },
+    {
+      "artifact": "samples/Integrations/Machina.Presenter.Sample/PlaybackScenarios/starter/oblivion-inspector-scroll.machina-playback.toml",
+      "originMilestone": "M16C",
+      "currentOwner": "Machina Presenter historical playback",
+      "stillProductRelevant": false,
+      "stillRegressionRelevant": false,
+      "regeneratedEveryMilestoneBefore": true,
+      "classification": "HISTORICAL_EVIDENCE",
+      "disposition": "Retain source beside history; remove from canonical regeneration."
+    },
+    {
+      "artifact": "samples/Integrations/Machina.Presenter.Sample/PlaybackScenarios/starter/oblivion-main-stack-scroll.machina-playback.toml",
+      "originMilestone": "M16C",
+      "currentOwner": "Machina Presenter historical playback",
+      "stillProductRelevant": false,
+      "stillRegressionRelevant": false,
+      "regeneratedEveryMilestoneBefore": true,
+      "classification": "HISTORICAL_EVIDENCE",
+      "disposition": "Retain source beside history; remove from canonical regeneration."
+    },
+    {
+      "artifact": "samples/Integrations/Machina.Presenter.Sample/PlaybackScenarios/starter/oblivion-raw-source-scroll.machina-playback.toml",
+      "originMilestone": "M16C",
+      "currentOwner": "Machina Presenter historical playback",
+      "stillProductRelevant": false,
+      "stillRegressionRelevant": false,
+      "regeneratedEveryMilestoneBefore": true,
+      "classification": "HISTORICAL_EVIDENCE",
+      "disposition": "Retain source beside history; remove from canonical regeneration."
+    },
+    {
+      "artifact": "markdown-card-current",
+      "originMilestone": "REPO_HYGIENE",
+      "currentOwner": "Oblivion.Standalone",
+      "supportedContract": "Markdown Card",
+      "stillProductRelevant": true,
+      "stillRegressionRelevant": true,
+      "regeneratedEveryMilestoneBefore": false,
+      "classification": "CURRENT_CONTRACT",
+      "disposition": "Canonical playback."
+    },
+    {
+      "artifact": "diagram-card-current",
+      "originMilestone": "REPO_HYGIENE",
+      "currentOwner": "Oblivion.Standalone",
+      "supportedContract": "Diagram Card with Mermaid default/fallback",
+      "stillProductRelevant": true,
+      "stillRegressionRelevant": true,
+      "regeneratedEveryMilestoneBefore": false,
+      "classification": "CURRENT_CONTRACT",
+      "disposition": "Canonical playback."
+    },
+    {
+      "artifact": "table-card-current",
+      "originMilestone": "REPO_HYGIENE",
+      "currentOwner": "Oblivion.Standalone",
+      "supportedContract": "Table Card",
+      "stillProductRelevant": true,
+      "stillRegressionRelevant": true,
+      "regeneratedEveryMilestoneBefore": false,
+      "classification": "CURRENT_CONTRACT",
+      "disposition": "Canonical playback."
+    },
+    {
+      "artifact": "function-card-current",
+      "originMilestone": "REPO_HYGIENE",
+      "currentOwner": "Oblivion.Standalone",
+      "supportedContract": "Function Card",
+      "stillProductRelevant": true,
+      "stillRegressionRelevant": true,
+      "regeneratedEveryMilestoneBefore": false,
+      "classification": "CURRENT_CONTRACT",
+      "disposition": "Canonical playback."
+    },
+    {
+      "artifact": "viewport-appearance-current",
+      "originMilestone": "REPO_HYGIENE",
+      "currentOwner": "Oblivion.Standalone",
+      "supportedContract": "viewport layout, light appearance, native qualified path",
+      "stillProductRelevant": true,
+      "stillRegressionRelevant": true,
+      "regeneratedEveryMilestoneBefore": false,
+      "classification": "CURRENT_CONTRACT",
+      "disposition": "Canonical playback."
+    }
+  ],
+  "historicalFixturesRetained": [
+    "samples/Integrations/Machina.Presenter.Sample/PlaybackScenarios/m16c-oblivion-playback-suite.machina-playback-suite.toml",
+    "samples/Integrations/Machina.Presenter.Sample/PlaybackScenarios/starter",
+    "samples/Integrations/Machina.Presenter.Sample/PlaybackScenarios/regressions",
+    "docs/Machina.UI/history/machina-playback-regression-suite-m16c.md"
+  ]
+}

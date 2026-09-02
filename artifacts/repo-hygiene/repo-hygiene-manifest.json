@@ -1,0 +1,62 @@
+{
+  "schema": "copeland.repo-hygiene-manifest.v1",
+  "outcome": "A",
+  "completedOn": "2026-09-01",
+  "playback": {
+    "canonicalBefore": "14/14 historical Presenter scenarios",
+    "canonicalAfter": "5/5 current Oblivion Standalone scenarios",
+    "currentContracts": [
+      "Markdown Card",
+      "Diagram Card",
+      "Table Card",
+      "Function Card",
+      "viewport layout and appearance"
+    ],
+    "reportPathFix": "passed; reports are written to the exact requested output directory",
+    "historicalRegeneration": "removed from canonical execution"
+  },
+  "artifactCleanup": {
+    "trackedGeneratedFilesRemoved": 3748,
+    "bytesBefore": 5573124973,
+    "bytesAfter": 35434542,
+    "bytesReclaimed": 5537690431,
+    "historicalIndex": "artifacts/repo-hygiene/historical-artifact-index.json"
+  },
+  "languageCorpus": {
+    "validBefore": 67,
+    "validAfter": 68,
+    "invalidBefore": 153,
+    "invalidAfter": 154,
+    "reclassified": 1,
+    "removed": 0,
+    "added": 2,
+    "actualRegressions": 0,
+    "compilerSuite": "1127/1127 passed",
+    "crossBackendSpotCheck": "passed for JavaScript and C#"
+  },
+  "marionette": {
+    "domain": "src/Marionette/Marionette.Core",
+    "application": "src/Skyrim/Aurelian.Marionette",
+    "dependencyDirection": "Aurelian.Actuation <- Marionette.Core <- Skyrim/Aurelian.Marionette",
+    "aurelianSkyrimOwnershipHits": 0,
+    "tests": "58/58 passed",
+    "godotRecon": "not justified as implementation work; replaceable renderer projection boundary documented"
+  },
+  "validation": [
+    "dotnet test Copeland.slnx -m:1: passed",
+    "dotnet test JointTaskForce.slnx -m:1: passed",
+    "dotnet test Oblivion.slnx -m:1: passed",
+    "dotnet test Machina.UI.slnx -m:1: passed",
+    "dotnet test Machina.UI.Slow.slnx -m:1: passed",
+    "dotnet build Machina.UI.slnx --no-restore -m:1: passed with 0 warnings",
+    "dotnet test Aurelian.slnx --no-build -m:1: passed",
+    "dotnet test Marionette.slnx -m:1: passed",
+    "canonical playback: 5/5 passed",
+    "git diff --check: passed"
+  ],
+  "audits": [
+    "artifacts/repo-hygiene/playback-audit.json",
+    "artifacts/repo-hygiene/language-corpus-audit.json",
+    "artifacts/repo-hygiene/marionette-ownership-audit.json"
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "schema": "copeland.marionette-ownership-audit.v1",
+  "before": [
+    {
+      "path": "src/Aurelian/Aurelian.Actuation/Host/LegacyAgentImportContracts.cs",
+      "classification": "MARIONETTE_DOMAIN"
+    },
+    {
+      "path": "src/Aurelian/Aurelian.Actuation/Host/SkyrimWorldContracts.cs",
+      "classification": "MARIONETTE_DOMAIN"
+    },
+    {
+      "path": "src/Aurelian/Aurelian.Marionette.Transport",
+      "classification": "MARIONETTE_APP"
+    },
+    {
+      "path": "tests/Aurelian/Aurelian.Actuation.Tests/LegacyAgentImportTests.cs",
+      "classification": "MARIONETTE_DOMAIN"
+    },
+    {
+      "path": "tests/Aurelian/Aurelian.Marionette.Transport.Tests",
+      "classification": "MARIONETTE_APP"
+    }
+  ],
+  "after": {
+    "applicationTests": "tests/Skyrim/Aurelian.Marionette.Tests",
+    "skyrimApplication": "src/Skyrim/Aurelian.Marionette",
+    "marionetteDomain": "src/Marionette/Marionette.Core",
+    "genericAurelian": "src/Aurelian",
+    "domainTests": "tests/Marionette/Marionette.Core.Tests"
+  },
+  "namespaceChanges": [
+    {
+      "to": "Marionette.Skyrim",
+      "from": "Aurelian.Actuation.Host",
+      "scope": "Skyrim domain contracts"
+    },
+    {
+      "to": "Marionette.Skyrim.App",
+      "from": "Aurelian.Marionette.Transport",
+      "scope": "Skyrim application"
+    }
+  ],
+  "dependencyDirection": "Aurelian.Actuation <- Marionette.Core <- Skyrim/Aurelian.Marionette",
+  "topologyGuard": "AurelianSource_HasNoSkyrimOrMarionetteOwnership",
+  "rendererRecon": {
+    "reason": "No current renderer projection consumer or reusable Godot project/dependency exists; adding one would be new product work.",
+    "futureBoundary": "Marionette immutable view projection -> renderer adapter -> Godot now or Aurelian/SDSL-V later",
+    "godotProof": "NOT_JUSTIFIED"
+  },
+  "remainingAurelianSkyrimHits": 0
+}

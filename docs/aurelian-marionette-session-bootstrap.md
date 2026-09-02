@@ -4,7 +4,7 @@ The local Marionette transport executable exposes a developer scenario for the
 symbolic `ed-m2b2d` session fixture:
 
 ```powershell
-dotnet run --project src/Aurelian/Aurelian.Marionette.Transport/Aurelian.Marionette.Transport.csproj -- \
+dotnet run --project src/Skyrim/Aurelian.Marionette/Aurelian.Marionette.csproj -- \
   session-bootstrap --config <ignored-local-config.json>
 ```
 

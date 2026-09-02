@@ -1,6 +1,0 @@
-Machina Presenter Stabilization M10d
-purpose: presenter shell stabilization
-defaultShell: true
-fixes: text direct-outline bounded, text proofs no-throw, scrollbar track paging, scrollbar thumb dragging, presenter card containment
-artifacts: presenter-stabilized-components-controls.png, presenter-stabilized-components-controls-scrolled.png, presenter-stabilized-text-current.png, presenter-stabilized-text-direct-outline.png, presenter-stabilized-text-proofs.png, presenter-stabilized-diagnostics-layout.png, presenter-stabilized-legacy-m1e-card.png
-policy: sample-only stabilization, no new component families, no resumed font work

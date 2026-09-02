@@ -467,37 +467,6 @@ public sealed class AppTests
         Assert.Contains("Source --> Derived", Assert.Single(renderer.Requests).Source);
     }
 
-    [Fact]
-    public void Headless_card_inspection_exposes_mermaid_source_hash_renderer_and_cache_status()
-    {
-        string manifestPath = Path.GetFullPath(
-            Path.Combine(
-                FindRepositoryRoot(),
-                "artifacts",
-                "m19c",
-                "trial-workspace",
-                "workspace.oblivion.json"));
-
-        OblivionProductSurfaceResult<OblivionProductCardSnapshot> result =
-            new OblivionProductSurface().ShowCard(manifestPath, "m19c-architecture");
-
-        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
-        OblivionProductDiagramSnapshot diagram = Assert.Single(result.Value!.Diagrams);
-        Assert.Contains("Agent-authored semantic content", diagram.Source);
-        Assert.Equal(64, diagram.SourceHash.Length);
-        Assert.Equal("mermaid-cli", diagram.RendererId);
-        Assert.Equal("11.16.0", diagram.RendererVersion);
-        Assert.NotEmpty(diagram.RendererStatus);
-        Assert.Equal(64, diagram.CacheKey.Length);
-        Assert.Collection(
-            diagram.RenderAppearances!,
-            light => Assert.Equal("light", light.ResolvedAppearance),
-            dark => Assert.Equal("dark", dark.ResolvedAppearance));
-        Assert.NotEqual(
-            diagram.RenderAppearances![0].CacheKey,
-            diagram.RenderAppearances[1].CacheKey);
-    }
-
     private static string FindRepositoryRoot()
     {
         DirectoryInfo? directory = new(AppContext.BaseDirectory);

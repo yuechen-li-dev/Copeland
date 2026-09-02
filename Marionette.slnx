@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Marionette/Marionette.Core/Marionette.Core.csproj" />
+    <Project Path="src/Skyrim/Aurelian.Marionette/Aurelian.Marionette.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Marionette/Marionette.Core.Tests/Marionette.Core.Tests.csproj" />
+    <Project Path="tests/Skyrim/Aurelian.Marionette.Tests/Aurelian.Marionette.Tests.csproj" />
+  </Folder>
+</Solution>

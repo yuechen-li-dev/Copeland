@@ -14,6 +14,10 @@ artifacts/m8o/
 artifacts/m9i/*.png
 artifacts/m9i-font-diagnostics/
 artifacts/m12a/
+artifacts/m*/
+artifacts/derived/
+artifacts/canonical-playback/
+artifacts/repo-hygiene/playback-validation/
 artifacts/copeland-msbuild-package/
 artifacts/cts-jit-m0/
 artifacts/cts-jit-m0-smoke/

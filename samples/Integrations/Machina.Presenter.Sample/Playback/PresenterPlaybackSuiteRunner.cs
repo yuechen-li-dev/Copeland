@@ -41,9 +41,8 @@ public sealed class PresenterPlaybackSuiteRunner
             ? "passed"
             : "failed";
 
-        string reportDirectory = ResolveSuiteSummaryDirectory(fullOutputDirectory);
         (string reportJsonPath, string reportTextPath) = PresenterPlaybackOutputWriter.WriteSuiteReport(
-            reportDirectory,
+            fullOutputDirectory,
             suite,
             fullOutputDirectory,
             scenarioResults,
@@ -51,7 +50,7 @@ public sealed class PresenterPlaybackSuiteRunner
             regressionIncluded,
             validationStatus);
         (string manifestJsonPath, string manifestTextPath) = PresenterPlaybackOutputWriter.WriteRegressionSuiteManifest(
-            reportDirectory,
+            fullOutputDirectory,
             suite,
             starterPass,
             regressionPass,
@@ -145,17 +144,6 @@ public sealed class PresenterPlaybackSuiteRunner
         }
 
         throw new FileNotFoundException($"Playback suite path '{suitePath}' does not exist.", fullPath);
-    }
-
-    private static string ResolveSuiteSummaryDirectory(string outputDirectory)
-    {
-        string leaf = Path.GetFileName(outputDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-        if (string.Equals(leaf, "playback", StringComparison.OrdinalIgnoreCase))
-        {
-            return Directory.GetParent(outputDirectory)?.FullName ?? outputDirectory;
-        }
-
-        return outputDirectory;
     }
 
     private static bool IsStarterScenarioPath(string path)
