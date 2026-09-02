@@ -7302,6 +7302,40 @@ public static class Binder
 
         private BoundExpression BindCall(CallExpressionSyntax c, TypeSymbol? contextualType)
         {
+            if (c.Target is NameExpressionSyntax { IdentifierToken.Text: "$number" } canonicalNumber)
+            {
+                if (c.Arguments.Count != 1
+                    || c.Arguments[0] is not LiteralExpressionSyntax
+                    {
+                        LiteralToken.Kind: SyntaxKind.StringToken,
+                        LiteralToken.Value: string bitsText
+                    }
+                    || bitsText.Length != 16
+                    || !ulong.TryParse(
+                        bitsText,
+                        NumberStyles.AllowHexSpecifier,
+                        CultureInfo.InvariantCulture,
+                        out ulong bits))
+                {
+                    Report(
+                        "COPE-TSON-0004",
+                        "'$number' requires one 16-digit hexadecimal string argument.",
+                        canonicalNumber.IdentifierToken);
+                    return new BoundErrorExpression();
+                }
+
+                double value = BitConverter.UInt64BitsToDouble(bits);
+                if (!double.IsFinite(value))
+                {
+                    Report(
+                        "COPE-NUM-0001",
+                        "Canonical non-finite TSON numbers cannot be executed as Copeland float values.",
+                        canonicalNumber.IdentifierToken);
+                    return new BoundErrorExpression();
+                }
+                return new BoundLiteralExpression(value, PrimitiveTypeSymbol.Float);
+            }
+
             if (c.Target is NameExpressionSyntax { IdentifierToken.Text: "Some" } someName)
             {
                 if (contextualType is not OptionTypeSymbol option)

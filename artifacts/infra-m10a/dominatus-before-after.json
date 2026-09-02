@@ -1,0 +1,31 @@
+{
+  "milestone": "INFRA-M10A",
+  "classification": "MIXED",
+  "causes": [
+    "TINYFARM_INTEGRATION_MISUSE",
+    "MEASUREMENT_MISMATCH",
+    "DOMINATUS_GENERAL_EXECUTION_OVERHEAD"
+  ],
+  "tinyFarm": {
+    "before": {
+      "debug": { "nanosecondsPerDecision": 7391.4, "decisionsPerSecond": 135292.4, "bytesPerDecision": 5939.2, "source": "M8 supplied allocation baseline plus current-checkout 1000-decision timing" },
+      "release": { "nanosecondsPerDecision": 7605.7, "decisionsPerSecond": 131480.4, "bytesPerDecision": 6553.6, "source": "M9 supplied allocation baseline plus current-checkout 1000-decision timing" }
+    },
+    "after": {
+      "debug": { "nanosecondsPerDecision": 4429.709, "decisionsPerSecond": 225748.46, "bytesPerDecision": 1254.4716, "gen0Per100000": 7 },
+      "release": { "nanosecondsPerDecision": 5325.743, "decisionsPerSecond": 187767.23, "bytesPerDecision": 1149.74608, "gen0Per100000": 7 }
+    },
+    "steadyStateDefinitionReused": true,
+    "steadyStateWorldReused": true,
+    "steadyStateAgentPerActorReused": true
+  },
+  "rtsBench": {
+    "debug": { "agentTicks": 1000, "utilityOptionsEvaluated": 9000, "agentTicksPerSecond": 13841.48, "utilityEvaluationsPerSecond": 124573.34, "bytesPerAgentTick": 1987.56, "bytesPerUtilityEvaluation": 220.84, "gen0": 0, "determinismHash": "5a60fc4dc42a38b8" },
+    "release": { "agentTicks": 1000, "utilityOptionsEvaluated": 9000, "agentTicksPerSecond": 13660.55, "utilityEvaluationsPerSecond": 122944.94, "bytesPerAgentTick": 1993.752, "bytesPerUtilityEvaluation": 221.528, "gen0": 0, "determinismHash": "5a60fc4dc42a38b8" },
+    "implementationChanged": false
+  },
+  "nativeAot": {
+    "supported": false,
+    "evidence": "NETSDK1207: AOT compilation is not supported for the Dominatus.OptFlow.Generators target framework when publishing the sample graph."
+  }
+}

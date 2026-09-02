@@ -170,16 +170,25 @@ public sealed class TinyFarmM8Tests
         legacyWatch.Stop();
 
         var dominatusWatch = Stopwatch.StartNew();
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        int gen0Before = GC.CollectionCount(0);
         for (int index = 0; index < 1000; index++)
         {
             _ = Decide(Npcs[index % Npcs.Length], index % 1440);
         }
         dominatusWatch.Stop();
+        long allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+        int gen0Collections = GC.CollectionCount(0) - gen0Before;
 
         Assert.Same(definition, TinyFarmNpcSchedule.Definition);
         Assert.True(dominatusWatch.Elapsed < TimeSpan.FromSeconds(5));
         Console.WriteLine(
-            $"legacy-1000-ms={legacyWatch.Elapsed.TotalMilliseconds:F4}; dominatus-1000-ms={dominatusWatch.Elapsed.TotalMilliseconds:F4}");
+            $"legacy-1000-ms={legacyWatch.Elapsed.TotalMilliseconds:F4}; "
+            + $"dominatus-1000-ms={dominatusWatch.Elapsed.TotalMilliseconds:F4}; "
+            + $"dominatus-ns-per-decision={dominatusWatch.Elapsed.TotalNanoseconds / 1000:F2}; "
+            + $"dominatus-decisions-per-second={1000 / dominatusWatch.Elapsed.TotalSeconds:F2}; "
+            + $"dominatus-bytes-per-decision={allocatedBytes / 1000.0:F2}; "
+            + $"dominatus-gen0={gen0Collections}");
     }
 
     [Fact]

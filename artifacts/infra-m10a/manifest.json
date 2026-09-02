@@ -1,0 +1,14 @@
+{
+  "milestone": "INFRA-M10A",
+  "kind": "dominatus-decision-path-and-payload-enum-query-parity",
+  "outcome": "A",
+  "tinyFarmBehaviorChanged": false,
+  "dominatusDecisionSemanticsChanged": false,
+  "dominatusAllocationCauseIdentified": true,
+  "scheduleSpecificFastPathAdded": false,
+  "payloadEnumQuerySupported": true,
+  "payloadEnumsFlattenedToStrings": false,
+  "querySpecificEnumHackAdded": false,
+  "copelandEnumLawChanged": false,
+  "rawProfilerDumpsCheckedIn": false
+}

@@ -1949,7 +1949,11 @@ internal static class TableToolCommand
         };
 
     private static IReadOnlyList<string>? EnumCases(TypeSymbol type)
-        => type is EnumTypeSymbol @enum ? @enum.Cases.Where(@case => !@case.HasPayload).Select(@case => @case.Name).ToArray() : null;
+        => type is EnumTypeSymbol @enum
+            ? @enum.Cases.Select(@case => @case.HasPayload
+                ? @case.Name + "(" + string.Join(", ", @case.PayloadFields.Select(payload => payload.Type.Name)) + ")"
+                : @case.Name).ToArray()
+            : null;
 
     private static TextEdit AppendEdit(string source, ArrayLiteralExpressionSyntax array, string value)
     {

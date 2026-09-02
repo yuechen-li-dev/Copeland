@@ -3,6 +3,7 @@ using System.Text;
 using Copeland.TS.Mir;
 using Copeland.TS.Semantics;
 using Copeland.TS.Semantics.Bound;
+using Copeland.TS.Syntax;
 
 namespace Copeland.TS.Compiler;
 
@@ -103,7 +104,11 @@ public static class TableQueryBinder
                 DiagnosticFailure(parsed.Diagnostics[0]);
             }
 
-            predicate = NormalizePredicate(request.PredicateText!, sourceColumns);
+            string withSemanticEnumValues = RewriteSemanticEnumValues(
+                parsed.Expression,
+                request.PredicateText!,
+                sourceColumns);
+            predicate = NormalizePredicate(withSemanticEnumValues, sourceColumns);
         }
 
         if (request.GroupKeys.Count > 0 && request.Aggregates.Count == 0)
@@ -277,6 +282,237 @@ public static class TableQueryBinder
     private static bool IsOrderable(TypeSymbol type) => type == PrimitiveTypeSymbol.Int || type == PrimitiveTypeSymbol.Float || type == PrimitiveTypeSymbol.Number || type == PrimitiveTypeSymbol.String;
     private static bool IsGroupable(TypeSymbol type) => IsOrderable(type) || type is EnumTypeSymbol || type == PrimitiveTypeSymbol.Boolean;
 
+    private static string RewriteSemanticEnumValues(
+        ExpressionSyntax expression,
+        string source,
+        IReadOnlyList<BoundTableQuerySourceColumn> columns)
+    {
+        var replacements = new List<EnumValueReplacement>();
+
+        void Visit(ExpressionSyntax current, EnumTypeSymbol? contextualEnum = null)
+        {
+            if (current is BinaryExpressionSyntax binary
+                && binary.OperatorToken.Kind is SyntaxKind.EqualsEqualsToken or SyntaxKind.BangEqualsToken)
+            {
+                EnumTypeSymbol? leftEnum = ColumnEnum(binary.Left, columns);
+                EnumTypeSymbol? rightEnum = ColumnEnum(binary.Right, columns);
+                Visit(binary.Left, rightEnum);
+                Visit(binary.Right, leftEnum);
+                return;
+            }
+
+            if (current is CallExpressionSyntax call
+                && TryResolveEnumCase(call.Target, contextualEnum, columns, out EnumCaseSymbol? calledCase, out int start))
+            {
+                ValidateEnumCase(calledCase, call.Arguments);
+                string arguments = string.Join(", ", call.Arguments.Select(argument => Slice(source, argument)));
+                replacements.Add(new EnumValueReplacement(
+                    start,
+                    call.CloseParenToken.Position + call.CloseParenToken.Text.Length,
+                    $"new {calledCase.EnumType.EmissionName}.{calledCase.Name}({arguments})"));
+                foreach (ExpressionSyntax argument in call.Arguments)
+                {
+                    Visit(argument);
+                }
+                return;
+            }
+
+            if (TryResolveEnumCase(current, contextualEnum, columns, out EnumCaseSymbol? valueCase, out int valueStart))
+            {
+                if (valueCase.HasPayload)
+                {
+                    throw new TableQueryBindingException(
+                        "COPE-TABLE-QUERY-0032",
+                        $"Enum case '{valueCase.EnumType.Name}.{valueCase.Name}' requires {valueCase.PayloadFields.Count} payload value(s).",
+                        valueStart);
+                }
+
+                replacements.Add(new EnumValueReplacement(
+                    valueStart,
+                    End(current),
+                    $"new {valueCase.EnumType.EmissionName}.{valueCase.Name}()"));
+                return;
+            }
+
+            switch (current)
+            {
+                case ParenthesizedExpressionSyntax parenthesized:
+                    Visit(parenthesized.Expression, contextualEnum);
+                    break;
+                case UnaryExpressionSyntax unary:
+                    Visit(unary.Operand);
+                    break;
+                case BinaryExpressionSyntax nestedBinary:
+                    Visit(nestedBinary.Left);
+                    Visit(nestedBinary.Right);
+                    break;
+            }
+        }
+
+        Visit(expression);
+        var builder = new StringBuilder(source);
+        foreach (EnumValueReplacement replacement in replacements
+                     .OrderByDescending(replacement => replacement.Start))
+        {
+            builder.Remove(replacement.Start, replacement.End - replacement.Start);
+            builder.Insert(replacement.Start, replacement.Text);
+        }
+        return builder.ToString();
+    }
+
+    private static EnumTypeSymbol? ColumnEnum(
+        ExpressionSyntax expression,
+        IReadOnlyList<BoundTableQuerySourceColumn> columns)
+    {
+        expression = expression is ParenthesizedExpressionSyntax parenthesized
+            ? parenthesized.Expression
+            : expression;
+        return expression is NameExpressionSyntax name
+            ? columns.SingleOrDefault(column => column.Name == name.IdentifierToken.Text)?.Symbol.Type as EnumTypeSymbol
+            : null;
+    }
+
+    private static bool TryResolveEnumCase(
+        ExpressionSyntax expression,
+        EnumTypeSymbol? contextualEnum,
+        IReadOnlyList<BoundTableQuerySourceColumn> columns,
+        out EnumCaseSymbol @case,
+        out int start)
+    {
+        IReadOnlyList<EnumTypeSymbol> enumTypes = columns
+            .Select(column => column.Symbol.Type)
+            .OfType<EnumTypeSymbol>()
+            .Distinct()
+            .ToArray();
+
+        if (expression is MemberAccessExpressionSyntax
+            {
+                Target: NameExpressionSyntax enumName,
+                NameToken: var caseName
+            })
+        {
+            EnumTypeSymbol? qualifiedEnum = enumTypes.SingleOrDefault(
+                candidate => candidate.Name == enumName.IdentifierToken.Text
+                    || candidate.EmissionName == enumName.IdentifierToken.Text);
+            if (qualifiedEnum is null)
+            {
+                throw new TableQueryBindingException(
+                    "COPE-TABLE-QUERY-0030",
+                    $"Enum type '{enumName.IdentifierToken.Text}' is not a query column enum type.",
+                    enumName.IdentifierToken.Position);
+            }
+            if (contextualEnum is not null && !ReferenceEquals(contextualEnum, qualifiedEnum))
+            {
+                throw new TableQueryBindingException(
+                    "COPE-TABLE-QUERY-0030",
+                    $"Enum '{qualifiedEnum.Name}' does not match column enum '{contextualEnum.Name}'.",
+                    enumName.IdentifierToken.Position);
+            }
+
+            @case = qualifiedEnum.Cases.SingleOrDefault(candidate => candidate.Name == caseName.Text)
+                ?? throw new TableQueryBindingException(
+                    "COPE-TABLE-QUERY-0031",
+                    $"Unknown enum case '{qualifiedEnum.Name}.{caseName.Text}'.",
+                    caseName.Position);
+            start = enumName.IdentifierToken.Position;
+            return true;
+        }
+
+        if (expression is NameExpressionSyntax name && contextualEnum is not null)
+        {
+            @case = contextualEnum.Cases.SingleOrDefault(candidate => candidate.Name == name.IdentifierToken.Text)
+                ?? throw new TableQueryBindingException(
+                    "COPE-TABLE-QUERY-0031",
+                    $"Unknown enum case '{contextualEnum.Name}.{name.IdentifierToken.Text}'.",
+                    name.IdentifierToken.Position);
+            start = name.IdentifierToken.Position;
+            return true;
+        }
+
+        @case = null!;
+        start = 0;
+        return false;
+    }
+
+    private static void ValidateEnumCase(
+        EnumCaseSymbol @case,
+        IReadOnlyList<ExpressionSyntax> arguments)
+    {
+        if (@case.PayloadFields.Count != arguments.Count)
+        {
+            throw new TableQueryBindingException(
+                "COPE-TABLE-QUERY-0032",
+                $"Enum case '{@case.EnumType.Name}.{@case.Name}' requires {@case.PayloadFields.Count} payload value(s), but {arguments.Count} were supplied.");
+        }
+
+        for (int index = 0; index < arguments.Count; index++)
+        {
+            TypeSymbol expected = @case.PayloadFields[index].Type;
+            TypeSymbol? actual = QueryLiteralType(arguments[index]);
+            bool compatibleNumericLiteral = actual == PrimitiveTypeSymbol.Int
+                && expected is PrimitiveTypeSymbol { Name: "number" or "float" };
+            if (actual is not null
+                && !compatibleNumericLiteral
+                && !TypeFacts.AreEquivalent(expected, actual))
+            {
+                throw new TableQueryBindingException(
+                    "COPE-TABLE-QUERY-0033",
+                    $"Payload {index + 1} for '{@case.EnumType.Name}.{@case.Name}' requires '{expected.Name}', got '{actual.Name}'.");
+            }
+        }
+    }
+
+    private static TypeSymbol? QueryLiteralType(ExpressionSyntax expression)
+    {
+        if (expression is LiteralExpressionSyntax literal)
+        {
+            return literal.LiteralToken.Value switch
+            {
+                int => PrimitiveTypeSymbol.Int,
+                double => PrimitiveTypeSymbol.Number,
+                string => PrimitiveTypeSymbol.String,
+                bool => PrimitiveTypeSymbol.Boolean,
+                _ => null
+            };
+        }
+        if (expression is NameExpressionSyntax name && name.IdentifierToken.Text is "true" or "false")
+        {
+            return PrimitiveTypeSymbol.Boolean;
+        }
+        return null;
+    }
+
+    private static string Slice(string source, ExpressionSyntax expression)
+        => source[Start(expression)..End(expression)];
+
+    private static int Start(ExpressionSyntax expression)
+        => expression switch
+        {
+            NameExpressionSyntax name => name.IdentifierToken.Position,
+            LiteralExpressionSyntax literal => literal.LiteralToken.Position,
+            ParenthesizedExpressionSyntax parenthesized => parenthesized.OpenParenToken.Position,
+            UnaryExpressionSyntax unary => unary.OperatorToken.Position,
+            BinaryExpressionSyntax binary => Start(binary.Left),
+            CallExpressionSyntax call => Start(call.Target),
+            MemberAccessExpressionSyntax member => Start(member.Target),
+            _ => throw new TableQueryBindingException("COPE-TABLE-QUERY-0003", "Unsupported expression in enum payload query.")
+        };
+
+    private static int End(ExpressionSyntax expression)
+        => expression switch
+        {
+            NameExpressionSyntax name => name.IdentifierToken.Position + name.IdentifierToken.Text.Length,
+            LiteralExpressionSyntax literal => literal.LiteralToken.Position + literal.LiteralToken.Text.Length,
+            ParenthesizedExpressionSyntax parenthesized => parenthesized.CloseParenToken.Position + parenthesized.CloseParenToken.Text.Length,
+            UnaryExpressionSyntax unary => End(unary.Operand),
+            BinaryExpressionSyntax binary => End(binary.Right),
+            CallExpressionSyntax call => call.CloseParenToken.Position + call.CloseParenToken.Text.Length,
+            MemberAccessExpressionSyntax member => member.NameToken.Position + member.NameToken.Text.Length,
+            _ => throw new TableQueryBindingException("COPE-TABLE-QUERY-0003", "Unsupported expression in enum payload query.")
+        };
+
+    private sealed record EnumValueReplacement(int Start, int End, string Text);
+
     private static string NormalizePredicate(string expression, IReadOnlyList<BoundTableQuerySourceColumn> columns)
     {
         var output = new StringBuilder(expression.Length + 16);
@@ -308,11 +544,16 @@ public static class TableQueryBinder
             {
                 output.Append("__q").Append(column.SourceIndex);
             }
-            else if (enumCases.TryGetValue(identifier, out string[]? enumNames) && enumNames.Length == 1)
+            else if (PreviousNonWhitespace(expression, start - 1) != '.'
+                && enumCases.TryGetValue(identifier, out string[]? enumNames)
+                && enumNames.Length == 1)
             {
                 output.Append(enumNames[0]).Append('.').Append(identifier);
             }
-            else if (identifier is "true" or "false" || PreviousNonWhitespace(expression, start - 1) == '.')
+            else if (identifier is "true" or "false" or "new"
+                || columns.Any(column => column.Symbol.Type is EnumTypeSymbol @enum
+                    && (@enum.Name == identifier || @enum.EmissionName == identifier))
+                || PreviousNonWhitespace(expression, start - 1) == '.')
             {
                 output.Append(identifier);
             }

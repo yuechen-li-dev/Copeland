@@ -1,0 +1,31 @@
+{
+  "milestone": "INFRA-M10A",
+  "fixture": "ScheduleDay { Every, Day(value: int) }",
+  "failureBefore": {
+    "layer": "query binder normalization",
+    "contextual": "COPE-TABLE-QUERY-0003: Name 'Day' does not exist.",
+    "qualified": "COPE-TABLE-QUERY-0003: Name 'ScheduleDay' does not exist."
+  },
+  "workingQueries": [
+    "tscl table query Schedule.obj.ts Schedules --where \"day == Day(6)\" --format json",
+    "tscl table query Schedule.obj.ts Schedules --where \"day == ScheduleDay.Day(6)\" --format json"
+  ],
+  "rowCount": 2,
+  "nominalIdentityEnforced": true,
+  "payloadComparedSemantically": true,
+  "flattenedToString": false,
+  "diagnostics": {
+    "wrongEnum": "COPE-TABLE-QUERY-0030",
+    "unknownCase": "COPE-TABLE-QUERY-0031",
+    "wrongArity": "COPE-TABLE-QUERY-0032",
+    "wrongPayloadType": "COPE-TABLE-QUERY-0033"
+  },
+  "simpleEnumRegression": true,
+  "primitiveRegression": true,
+  "rowReorder": true,
+  "canonicalTsonRoundtrip": true,
+  "schemaShows": ["ScheduleDay", "Every", "Day(int)"],
+  "matchQuerySupported": false,
+  "matchNote": "Ordinary match remains the language law; the bounded ad-hoc query emitter does not yet lower match expressions. Equality is complete for this milestone.",
+  "migrationRecommendation": "MIGRATE_TINYFARM_TO_PAYLOAD_ENUM_NEXT"
+}

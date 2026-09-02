@@ -2107,6 +2107,38 @@ function value(flag: boolean): number {
     }
 
     [Fact]
+    public async Task Table_query_supports_payload_enum_values_with_contextual_and_qualified_syntax()
+    {
+        using var temp = new TempDir();
+        string sourcePath = temp.WriteFile("Schedule.obj.ts", """
+            const $schema: string = "copeland://tests/table-query/payload-enum-cli";
+            enum ScheduleDay { Every, Day(value: int), }
+            record table Schedules {
+                actor: string = ["Mara", "Mara", "Elias"];
+                day: ScheduleDay = [ScheduleDay.Every, ScheduleDay.Day(6), ScheduleDay.Day(6)];
+            }
+            const $value = Schedules;
+            """);
+
+        CliResult validate = await RunCliAsync(temp.Path, "table", "validate", sourcePath, "--format", "json");
+        CliResult schema = await RunCliAsync(temp.Path, "table", "schema", sourcePath, "Schedules", "--format", "json");
+        CliResult contextual = await RunCliAsync(temp.Path, "table", "query", sourcePath, "Schedules", "--where", "day == Day(6)", "--select", "actor", "--format", "json");
+        CliResult qualified = await RunCliAsync(temp.Path, "table", "query", sourcePath, "Schedules", "--where", "day == ScheduleDay.Day(6)", "--select", "actor", "--format", "json");
+        CliResult wrongArity = await RunCliAsync(temp.Path, "table", "query", sourcePath, "Schedules", "--where", "day == Day()", "--format", "json");
+
+        Assert.Equal(0, validate.ExitCode);
+        Assert.Equal(0, schema.ExitCode);
+        Assert.Contains("\"type\": \"ScheduleDay\"", schema.StdOut, StringComparison.Ordinal);
+        Assert.Contains("Day(int)", schema.StdOut, StringComparison.Ordinal);
+        Assert.Equal(0, contextual.ExitCode);
+        Assert.Equal(0, qualified.ExitCode);
+        Assert.Contains("\"rowCount\": 2", contextual.StdOut, StringComparison.Ordinal);
+        Assert.Contains("\"rowCount\": 2", qualified.StdOut, StringComparison.Ordinal);
+        Assert.Equal(1, wrongArity.ExitCode);
+        Assert.Contains("COPE-TABLE-QUERY-0032", wrongArity.StdOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Table_query_aggregates_and_groups_typed_derived_relations_without_post_processing_rows()
     {
         using var temp = new TempDir();

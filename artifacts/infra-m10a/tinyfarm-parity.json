@@ -1,0 +1,15 @@
+{
+  "milestone": "INFRA-M10A",
+  "tinyFarmBehaviorChanged": false,
+  "scheduleDecisionHash": "10cdca5bf32bb96bf26d42abbc8ec8feb85983286fab35361c1c979a906796f6",
+  "anchorSequenceHash": "d763164039f2841ff6694f597df0610875ada968d0ad28a0fb9f76469fe59711",
+  "stateHash": "d46e70e37c8775e503c3a7693fc14d952a6932a22be0c13172771e020ae65544",
+  "resultsHash": "ecb4181792717a393125e85416b148ca2242934d761b025498a45aa24af21a24",
+  "eventsHash": "4f8e8383683a38da695284fb6fd561d5fc32c12fd7feedeee1841e7a3b7364d7",
+  "handoffHash": "0b16f533785927bbe1f780e804b0ac9717a3c588095a337ac5bffeaa9177616a",
+  "navigationHash": "07dde9ac2f6c957017abe151320ee0a7d5c900f51ecd7901331c9d21a480d8fa",
+  "projectionHash": "4c93db713e4da1a8ee47cec7f6a309adc23f19b7acee1d91b80e0c9c3d6b8434",
+  "m9Outcome": "A",
+  "m9ComparedDecisions": 30240,
+  "m9AllocatedBytesPerDecision": 1018
+}

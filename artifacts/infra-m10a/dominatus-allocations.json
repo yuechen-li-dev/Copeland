@@ -1,0 +1,36 @@
+{
+  "milestone": "INFRA-M10A",
+  "method": "EventPipe Microsoft-Windows-DotNETRuntime GCAllocationTick sampled allocation histogram; exact aggregate bytes come from GC.GetAllocatedBytesForCurrentThread",
+  "tinyFarm": {
+    "measuredSelections": 100000,
+    "exactBytesPerSelection": 1149.74608,
+    "topSampledTypes": [
+      { "type": "System.SZGenericArrayEnumerator<TinyFarmScheduleWindow>", "sampledBytes": 17477104 },
+      { "type": "Dominatus.Core.Persistence.BbDeltaEntry[]", "sampledBytes": 15532536 },
+      { "type": "System.ValueTuple<string,float,StateId>[]", "sampledBytes": 13109256 },
+      { "type": "Dominatus.Core.Nodes.NodeRunner", "sampledBytes": 11722080 },
+      { "type": "System.Action<string,object,object>", "sampledBytes": 7145056 },
+      { "type": "Dominatus.Core.Runtime.LiveWorldBb", "sampledBytes": 7035600 },
+      { "type": "TinyFarm.Core.TinyFarmScheduleDecision", "sampledBytes": 6607920 },
+      { "type": "Dominatus.Core.Hfsm.StateReturnSlot", "sampledBytes": 5223408 },
+      { "type": "System.Threading.CancellationTokenSource", "sampledBytes": 5116800 },
+      { "type": "Dominatus.Core.Nodes.Steps.Decide", "sampledBytes": 4797416 }
+    ]
+  },
+  "rtsBench": {
+    "traceAgentTicks": 100000,
+    "exactBytesPerAgentTickFromComparable1000TickRun": 1993.752,
+    "exactBytesPerUtilityEvaluationFromComparable1000TickRun": 221.528,
+    "topSampledTypes": [
+      { "type": "Dominatus.Core.Decision.UtilityOption[]", "sampledBytes": 12568016 },
+      { "type": "System.ValueTuple<string,float,StateId>[]", "sampledBytes": 11594024 },
+      { "type": "Dominatus.Core.Persistence.BbDeltaEntry[]", "sampledBytes": 5383776 },
+      { "type": "System.String", "sampledBytes": 3831400 },
+      { "type": "System.Action<string,object,object>", "sampledBytes": 3194672 },
+      { "type": "Dominatus.RTSBenchmark.Simulation.ShipAction", "sampledBytes": 2551488 },
+      { "type": "Dominatus.Core.Nodes.Steps.Decide", "sampledBytes": 2131624 },
+      { "type": "Dominatus.Core.Runtime.LiveWorldBb", "sampledBytes": 2023656 }
+    ]
+  },
+  "rawProfilerDumpsCheckedIn": false
+}

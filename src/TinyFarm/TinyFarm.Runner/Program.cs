@@ -1,4 +1,44 @@
 using TinyFarm.Core;
+using System.Diagnostics;
+
+if (args.Contains("--infra-m10a-benchmark", StringComparer.Ordinal))
+{
+    TinyFarmDefinitions benchmarkDefinitions = TinyFarmDefinitionLoader.Load();
+    ActorId[] actors = [TinyFarmIds.Elias, TinyFarmIds.Mara, TinyFarmIds.Sela];
+    for (int index = 0; index < 1_000; index++)
+    {
+        _ = TinyFarmNpcSchedule.Decide(
+            benchmarkDefinitions.Schedules,
+            actors[index % actors.Length],
+            index % 1440);
+    }
+
+    const int decisionCount = 100_000;
+    long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+    int gen0Before = GC.CollectionCount(0);
+    var stopwatch = Stopwatch.StartNew();
+    for (int index = 0; index < decisionCount; index++)
+    {
+        _ = TinyFarmNpcSchedule.Decide(
+            benchmarkDefinitions.Schedules,
+            actors[index % actors.Length],
+            index % 1440);
+    }
+    stopwatch.Stop();
+    long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+    Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new
+    {
+        workload = "TinyFarm repeated five-option schedule decision",
+        decisionCount,
+        elapsedMilliseconds = stopwatch.Elapsed.TotalMilliseconds,
+        nanosecondsPerDecision = stopwatch.Elapsed.TotalNanoseconds / decisionCount,
+        decisionsPerSecond = decisionCount / stopwatch.Elapsed.TotalSeconds,
+        allocatedBytes = allocated,
+        bytesPerDecision = allocated / (double)decisionCount,
+        gen0Collections = GC.CollectionCount(0) - gen0Before
+    }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+    return;
+}
 
 if (args.Contains("--repl", StringComparer.Ordinal))
 {

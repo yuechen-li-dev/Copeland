@@ -1,5 +1,4 @@
-using Aurelian.Runtime.Dominatus;
-using Aurelian.Runtime.Sessions;
+using System.Runtime.CompilerServices;
 using Dominatus.Core;
 using Dominatus.Core.Blackboard;
 using Dominatus.Core.Decision;
@@ -32,10 +31,11 @@ public static partial class TinyFarmNpcSchedule
     private static readonly BbKey<TinyFarmScheduleCatalog> ScheduleCatalog = new("TinyFarm.Schedule.Catalog");
 
     private static readonly UtilityOption[] ScheduleOptions = CreateScheduleOptions();
+    private static readonly ConditionalWeakTable<TinyFarmScheduleCatalog, ScheduleRuntime> Runtimes = new();
 
     public static FlowDefinition Definition { get; } = Define();
 
-    [DominatusFlow("tiny-farm.npc-schedule-goal")]
+    [DominatusFlow("tiny-farm.npc-schedule-goal", KeepRootFrame = true)]
     public static partial FlowDefinition Define();
 
     [DominatusState("ChooseScheduleGoal", Root = true)]
@@ -92,50 +92,24 @@ public static partial class TinyFarmNpcSchedule
 
         _ = catalog.ForActor(actor);
 
-        var agent = new AiAgent(Definition.CreateBrain());
-        agent.Bb.Set(Actor, actor.Value);
-        agent.Bb.Set(AbsoluteMinute, minute);
-        agent.Bb.Set(ScheduleCatalog, catalog);
-
-        var world = new AiWorld();
-        world.Add(agent);
-        var runner = new SequentialAurelianDominatusWorldRunner();
-
-        for (ulong tick = 0; tick < 8; tick++)
+        TinyFarmScheduleWindow window = SelectWindow(catalog, actor, minute);
+        ScheduleRuntime runtime = Runtimes.GetValue(catalog, static value => new ScheduleRuntime(value));
+        SceneAnchorId anchor = runtime.Decide(actor, minute, window.Anchor);
+        if (window.Anchor != anchor)
         {
-            runner.RunTickAsync(
-                    world,
-                    new AurelianRuntimeTickInput(tick, TimeSpan.FromMilliseconds(10)))
-                .GetAwaiter()
-                .GetResult();
-
-            string selected = agent.Bb.GetOrDefault(SelectedAnchor, string.Empty);
-            if (selected.Length == 0)
-            {
-                continue;
-            }
-
-            var anchor = new SceneAnchorId(selected);
-            TinyFarmScheduleWindow window = SelectWindow(catalog, actor, minute);
-            if (window.Anchor != anchor)
-            {
-                throw new InvalidOperationException(
-                    $"Dominatus selected schedule anchor '{anchor}', but the active authored window is '{window.Anchor}'.");
-            }
-
-            return new TinyFarmScheduleDecision(
-                actor,
-                minute,
-                ScheduleDecisionSlot,
-                anchor,
-                window.Reason,
-                window.StartMinute,
-                window.EndMinuteExclusive,
-                window.Priority);
+            throw new InvalidOperationException(
+                $"Dominatus selected schedule anchor '{anchor}', but the active authored window is '{window.Anchor}'.");
         }
 
-        throw new InvalidOperationException(
-            $"Dominatus did not produce a bounded schedule decision for actor '{actor}' at minute {minute}.");
+        return new TinyFarmScheduleDecision(
+            actor,
+            minute,
+            ScheduleDecisionSlot,
+            anchor,
+            window.Reason,
+            window.StartMinute,
+            window.EndMinuteExclusive,
+            window.Priority);
     }
 
     private static Consideration ScoreFor(SceneAnchorId anchor)
@@ -261,5 +235,54 @@ public static partial class TinyFarmNpcSchedule
     {
         context.Bb.Set(SelectedAnchor, anchor.Value);
         yield return Ai.Succeed();
+    }
+
+    private sealed class ScheduleRuntime
+    {
+        private readonly TinyFarmScheduleCatalog _catalog;
+        private readonly AiWorld _world = new();
+        private readonly Dictionary<ActorId, AiAgent> _agents = [];
+        private readonly object _gate = new();
+
+        public ScheduleRuntime(TinyFarmScheduleCatalog catalog)
+        {
+            _catalog = catalog;
+        }
+
+        public SceneAnchorId Decide(ActorId actor, int minute, SceneAnchorId expectedAnchor)
+        {
+            lock (_gate)
+            {
+                AiAgent agent = GetOrCreateAgent(actor);
+                agent.Bb.Set(Actor, actor.Value);
+                agent.Bb.Set(AbsoluteMinute, minute);
+                agent.Bb.Set(ScheduleCatalog, _catalog);
+                for (int tick = 0; tick < 8; tick++)
+                {
+                    agent.Tick(_world);
+                    string selected = agent.Bb.GetOrDefault(SelectedAnchor, string.Empty);
+                    if (selected == expectedAnchor.Value)
+                    {
+                        return new SceneAnchorId(selected);
+                    }
+                }
+
+                throw new InvalidOperationException(
+                    $"Dominatus did not produce a bounded schedule decision for actor '{actor}' at minute {minute}.");
+            }
+        }
+
+        private AiAgent GetOrCreateAgent(ActorId actor)
+        {
+            if (_agents.TryGetValue(actor, out AiAgent? existing))
+            {
+                return existing;
+            }
+
+            var agent = new AiAgent(Definition.CreateBrain());
+            _world.Add(agent);
+            _agents.Add(actor, agent);
+            return agent;
+        }
     }
 }
