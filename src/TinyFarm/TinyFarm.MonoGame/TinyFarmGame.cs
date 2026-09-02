@@ -14,6 +14,7 @@ internal sealed class TinyFarmGame : Game
     private KeyboardState previousKeyboard;
     private IReadOnlyList<NarrativeLine> narrative = [];
     private string status = "Welcome to TinyFarm";
+    private readonly FixedMovementStepper movementStepper = new();
 
     public TinyFarmGame(string[] args)
     {
@@ -23,11 +24,11 @@ internal sealed class TinyFarmGame : Game
             PreferredBackBufferHeight = ReadIntOption(args, "--height", 1440),
             SynchronizeWithVerticalRetrace = true
         };
-        Window.Title = "TinyFarm M4 - Scenes";
+        Window.Title = "TinyFarm M5 - Continuous Navigation";
         Window.AllowUserResizing = true;
         IsMouseVisible = true;
         definitions = TinyFarmDefinitionLoader.Load();
-        session = new TinyFarmSession(TinyFarmContent.CreateSceneState(definitions), definitions);
+        session = new TinyFarmSession(TinyFarmContent.CreateContinuousSceneState(definitions), definitions);
         savePath = ReadOption(args, "--save-file")
             ?? Path.Combine(Environment.CurrentDirectory, "tiny-farm.save");
     }
@@ -70,6 +71,31 @@ internal sealed class TinyFarmGame : Game
             ApplyControl(control);
         }
 
+
+        TinyFarmControl? heldMovement = ReadHeldMovement(keyboard);
+        if (heldMovement is null)
+        {
+            movementStepper.Reset();
+        }
+        else
+        {
+            (int deltaX, int deltaY) = heldMovement.Value switch
+            {
+                TinyFarmControl.MoveLeft => (-1, 0),
+                TinyFarmControl.MoveRight => (1, 0),
+                TinyFarmControl.MoveUp => (0, -1),
+                _ => (0, 1)
+            };
+            foreach (SpatialMoveIntent intent in movementStepper.Advance(gameTime.ElapsedGameTime, deltaX, deltaY))
+            {
+                TinyFarmStepResult step = session.Step(intent);
+                narrative = step.Narrative;
+                IntentResult human = step.Results.Single(result => result.Envelope.Source == IntentSourceKind.Human);
+                status = human.Status == IntentResultStatus.Accepted
+                    ? "Move"
+                    : $"{human.Status}: {human.Reason}";
+            }
+        }
         previousKeyboard = keyboard;
         base.Update(gameTime);
     }
@@ -215,13 +241,24 @@ internal sealed class TinyFarmGame : Game
 
         foreach (TinyFarmActorView actor in frame.Actors)
         {
-            int centerX = offsetX + (actor.Position.X * tileSize) + (tileSize / 2);
-            int centerY = offsetY + (actor.Position.Y * tileSize) + (tileSize / 2);
+            float sceneX = (float)actor.Position.X / frame.SceneUnitsPerTile;
+            float sceneY = (float)actor.Position.Y / frame.SceneUnitsPerTile;
+            int centerX = offsetX + (int)MathF.Round(sceneX * tileSize);
+            int centerY = offsetY + (int)MathF.Round(sceneY * tileSize);
+            if (frame.SceneUnitsPerTile == 1)
+            {
+                centerX += tileSize / 2;
+                centerY += tileSize / 2;
+            }
             int actorWidth = Math.Max(10, tileSize / 3);
             int actorHeight = Math.Max(16, tileSize / 2);
             var rectangle = new Rectangle(centerX - (actorWidth / 2), centerY - (actorHeight / 2), actorWidth, actorHeight);
             Fill(rectangle, actor.IsPlayer ? new Color(245, 218, 95) : ActorColor(actor.Id));
             Border(rectangle, new Color(30, 30, 30), Math.Max(1, tileSize / 24));
+            if (actor.IsInteractionTarget)
+            {
+                Border(rectangle, Color.Gold, Math.Max(2, tileSize / 16));
+            }
             BitmapText.Draw(
                 spriteBatch!,
                 pixel!,
@@ -267,14 +304,6 @@ internal sealed class TinyFarmGame : Game
     {
         (Keys Key, TinyFarmControl Control)[] bindings =
         [
-            (Keys.Left, TinyFarmControl.MoveLeft),
-            (Keys.Right, TinyFarmControl.MoveRight),
-            (Keys.Up, TinyFarmControl.MoveUp),
-            (Keys.Down, TinyFarmControl.MoveDown),
-            (Keys.A, TinyFarmControl.MoveLeft),
-            (Keys.D, TinyFarmControl.MoveRight),
-            (Keys.W, TinyFarmControl.MoveUp),
-            (Keys.S, TinyFarmControl.MoveDown),
             (Keys.L, TinyFarmControl.Look),
             (Keys.E, TinyFarmControl.Talk),
             (Keys.T, TinyFarmControl.Take),
@@ -292,6 +321,27 @@ internal sealed class TinyFarmGame : Game
             {
                 return control;
             }
+        }
+        return null;
+    }
+
+    private static TinyFarmControl? ReadHeldMovement(KeyboardState keyboard)
+    {
+        if (keyboard.IsKeyDown(Keys.Left) || keyboard.IsKeyDown(Keys.A))
+        {
+            return TinyFarmControl.MoveLeft;
+        }
+        if (keyboard.IsKeyDown(Keys.Right) || keyboard.IsKeyDown(Keys.D))
+        {
+            return TinyFarmControl.MoveRight;
+        }
+        if (keyboard.IsKeyDown(Keys.Up) || keyboard.IsKeyDown(Keys.W))
+        {
+            return TinyFarmControl.MoveUp;
+        }
+        if (keyboard.IsKeyDown(Keys.Down) || keyboard.IsKeyDown(Keys.S))
+        {
+            return TinyFarmControl.MoveDown;
         }
         return null;
     }

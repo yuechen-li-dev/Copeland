@@ -53,12 +53,15 @@ public static class TinyFarmHumanController
 
     private static GameIntent? MapSceneControl(TinyFarmControl control, TinyFarmState state, ActorState player)
     {
+        int movementDistance = state.Version >= TinyFarmState.ContinuousSceneSaveVersion
+            ? ScenePosition.UnitsPerTile / 8
+            : 1;
         return control switch
         {
-            TinyFarmControl.MoveLeft => new SpatialMoveIntent(-1, 0),
-            TinyFarmControl.MoveRight => new SpatialMoveIntent(1, 0),
-            TinyFarmControl.MoveUp => new SpatialMoveIntent(0, -1),
-            TinyFarmControl.MoveDown => new SpatialMoveIntent(0, 1),
+            TinyFarmControl.MoveLeft => new SpatialMoveIntent(-1, 0, movementDistance),
+            TinyFarmControl.MoveRight => new SpatialMoveIntent(1, 0, movementDistance),
+            TinyFarmControl.MoveUp => new SpatialMoveIntent(0, -1, movementDistance),
+            TinyFarmControl.MoveDown => new SpatialMoveIntent(0, 1, movementDistance),
             TinyFarmControl.Interact => new InteractIntent(),
             TinyFarmControl.Look => new LookIntent(),
             TinyFarmControl.Talk => FirstNearbyActor(state, player) is ActorState actor ? new TalkIntent(actor.Id) : null,
@@ -111,7 +114,8 @@ public static class TinyFarmHumanController
         .Where(actor => !actor.IsPlayer && actor.Location == player.Location)
         .Where(actor => AreNearWhenSpatial(state, player.Id, actor.Id))
         .OrderBy(actor => actor.Id.Value, StringComparer.Ordinal)
-        .FirstOrDefault();
+        .FirstOrDefault(actor => state.Version < TinyFarmState.ContinuousSceneSaveVersion
+            || TinyFarmSpatialQueries.SelectInteractionTarget(state, player.Id)?.Actor == actor.Id);
 
     private static ItemState? FirstGroundItem(TinyFarmState state, ActorState player) => state.Items
         .Where(item => item.GroundLocation == player.Location)
@@ -182,6 +186,10 @@ public static class TinyFarmHumanController
 
     private static bool IsNearShopkeeperWhenSpatial(TinyFarmState state, ActorId actor)
     {
+        if (state.Version >= TinyFarmState.ContinuousSceneSaveVersion)
+        {
+            return TinyFarmSpatialQueries.SelectInteractionTarget(state, actor)?.Actor == TinyFarmIds.Sela;
+        }
         return state.Version < TinyFarmState.SceneSaveVersion
             || AreNearWhenSpatial(state, actor, TinyFarmIds.Sela);
     }
@@ -197,6 +205,10 @@ public static class TinyFarmHumanController
         SceneDefinition farm = TinyFarmScenes.Get(TinyFarmSceneIds.Farm);
         SceneLayoutRow row = farm.Layout.Single(layout =>
             farm.Object(layout.ObjectId).SemanticReference == plot.Value);
+        if (state.Version >= TinyFarmState.ContinuousSceneSaveVersion)
+        {
+            return TinyFarmSpatialQueries.SelectInteractionTarget(state, actor)?.Plot == plot;
+        }
         return placement.Scene == TinyFarmSceneIds.Farm
             && placement.Position.ManhattanDistance(new GridPosition(row.X, row.Y)) == 1;
     }

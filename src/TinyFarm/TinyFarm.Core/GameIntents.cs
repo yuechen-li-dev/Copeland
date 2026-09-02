@@ -6,7 +6,7 @@ public sealed record MoveIntent(LocationId Destination) : GameIntent;
 
 public sealed record SpatialMoveIntent(int DeltaX, int DeltaY, int Distance = 1) : GameIntent;
 
-public sealed record InteractIntent : GameIntent;
+public sealed record InteractIntent(SceneObjectId? Target = null) : GameIntent;
 
 public sealed record LookIntent : GameIntent;
 
@@ -73,7 +73,9 @@ public enum IntentReason
     StockUnavailable,
     InvalidMovement,
     MovementBlocked,
-    NoInteraction
+    NoInteraction,
+    NoInteractionTarget,
+    NavigationFailed
 }
 
 public enum GameEventKind
@@ -94,7 +96,8 @@ public enum GameEventKind
     DayStarted,
     ShopRestocked,
     SceneExited,
-    SceneEntered
+    SceneEntered,
+    InteractionTargeted
 }
 
 public enum DialogueTopic
@@ -122,7 +125,8 @@ public sealed record GameEvent(
     FarmPlotId? Plot = null,
     int? Day = null,
     SceneId? Scene = null,
-    SceneRouteId? Route = null);
+    SceneRouteId? Route = null,
+    SceneObjectId? SceneObject = null);
 
 public sealed record IntentResult(IntentEnvelope Envelope, IntentResultStatus Status, IntentReason Reason, IReadOnlyList<GameEvent> Events);
 

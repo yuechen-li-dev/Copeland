@@ -71,10 +71,19 @@ public static class TinyFarmSemanticHash
             foreach (ActorSceneState placement in state.ActorScenes.OrderBy(item => item.Actor.Value, StringComparer.Ordinal))
             {
                 canonical.Append("scene-actor|").Append(placement.Actor.Value)
-                    .Append('|').Append(placement.Scene.Value)
-                    .Append('|').Append(placement.Position.X)
-                    .Append('|').Append(placement.Position.Y)
-                    .AppendLine();
+                    .Append('|').Append(placement.Scene.Value);
+                if (state.Version >= TinyFarmState.ContinuousSceneSaveVersion)
+                {
+                    canonical.Append('|').Append(placement.WorldPosition.XUnits)
+                        .Append('|').Append(placement.WorldPosition.YUnits)
+                        .Append('|').Append(placement.Facing);
+                }
+                else
+                {
+                    canonical.Append('|').Append(placement.Position.X)
+                        .Append('|').Append(placement.Position.Y);
+                }
+                canonical.AppendLine();
             }
         }
 

@@ -99,6 +99,7 @@ public sealed class TinyFarmState
     public const int M1SaveVersion = 1;
     public const int SaveVersion = 2;
     public const int SceneSaveVersion = 3;
+    public const int ContinuousSceneSaveVersion = 4;
 
     [JsonConstructor]
     public TinyFarmState(
@@ -280,5 +281,29 @@ public static class TinyFarmContent
                 new(TinyFarmIds.Elias, TinyFarmSceneIds.Farm, new GridPosition(4, 7)),
                 new(TinyFarmIds.Sela, TinyFarmSceneIds.GeneralStore, new GridPosition(5, 3))
             ]);
+    }
+
+    public static TinyFarmState CreateContinuousSceneState(TinyFarmDefinitions definitions)
+    {
+        TinyFarmState scene = CreateSceneState(definitions);
+        Dictionary<ActorId, LocationId> locations = scene.ActorScenes.ToDictionary(
+            placement => placement.Actor,
+            placement => TinyFarmScenes.LocationForScene(placement.Scene));
+        return new TinyFarmState(
+            TinyFarmState.ContinuousSceneSaveVersion,
+            scene.Minute,
+            scene.Actors.Select(actor => actor with
+            {
+                Location = locations[actor.Id],
+                Inventory = actor.Inventory.ToList()
+            }).ToList(),
+            scene.Items.ToList(),
+            scene.Facts.ToList(),
+            scene.Favor,
+            scene.DefinitionSetId,
+            scene.InventoryStacks.ToList(),
+            scene.ShopStock.ToList(),
+            scene.FarmPlots.ToList(),
+            scene.ActorScenes.ToList());
     }
 }

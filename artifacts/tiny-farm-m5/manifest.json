@@ -1,0 +1,17 @@
+{
+  "milestone": "TINY-FARM-M5",
+  "kind": "continuous-locomotion-interaction-navigation",
+  "continuousAuthoritativePosition": true,
+  "gridLockedActorMovement": false,
+  "rendererOwnsMovement": false,
+  "facingSemantic": true,
+  "interactionTargetSemantic": true,
+  "dotRecastUsed": true,
+  "dotRecastOwnsWorldState": false,
+  "dotRecastTypesLeakIntoCore": false,
+  "npcVisibleLocomotion": true,
+  "sceneGraphNavigationSeparatedFromSpatialNavigation": true,
+  "ecsAdded": false,
+  "physicsEngineAdded": false,
+  "headlessNavigation": true
+}

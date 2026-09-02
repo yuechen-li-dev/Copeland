@@ -1,0 +1,51 @@
+{
+  "backend": "DotRecast Recast \u002B Detour 2026.3.1",
+  "sourceScene": "farm",
+  "geometry": "scene bounds plus blocking layout rows",
+  "failure": "None",
+  "waypoints": [
+    {
+      "xUnits": 11776,
+      "yUnits": 4608,
+      "tile": {
+        "x": 11,
+        "y": 4
+      }
+    },
+    {
+      "xUnits": 12032,
+      "yUnits": 2048,
+      "tile": {
+        "x": 11,
+        "y": 2
+      }
+    },
+    {
+      "xUnits": 12800,
+      "yUnits": 1792,
+      "tile": {
+        "x": 12,
+        "y": 1
+      }
+    },
+    {
+      "xUnits": 13824,
+      "yUnits": 2048,
+      "tile": {
+        "x": 13,
+        "y": 2
+      }
+    },
+    {
+      "xUnits": 13824,
+      "yUnits": 4608,
+      "tile": {
+        "x": 13,
+        "y": 4
+      }
+    }
+  ],
+  "buildMilliseconds": 3.3614,
+  "queryMilliseconds": 0.0113,
+  "staticCache": "per SceneId; not persisted"
+}

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TinyFarm.Core;
 
 public readonly record struct SceneId(string Value)
@@ -26,6 +28,40 @@ public readonly record struct GridPosition(int X, int Y)
     {
         return Math.Abs(X - other.X) + Math.Abs(Y - other.Y);
     }
+}
+
+public readonly record struct ScenePosition(int XUnits, int YUnits)
+{
+    public const int UnitsPerTile = 1024;
+
+    public static ScenePosition FromGrid(GridPosition position)
+    {
+        return new ScenePosition(
+            checked((position.X * UnitsPerTile) + (UnitsPerTile / 2)),
+            checked((position.Y * UnitsPerTile) + (UnitsPerTile / 2)));
+    }
+
+    public GridPosition Tile => new(ToTile(XUnits), ToTile(YUnits));
+
+    public long SquaredDistance(ScenePosition other)
+    {
+        long deltaX = (long)XUnits - other.XUnits;
+        long deltaY = (long)YUnits - other.YUnits;
+        return (deltaX * deltaX) + (deltaY * deltaY);
+    }
+
+    private static int ToTile(int units)
+    {
+        return units >= 0 ? units / UnitsPerTile : -1;
+    }
+}
+
+public enum ActorFacing
+{
+    Down,
+    Left,
+    Right,
+    Up
 }
 
 public enum SceneObjectKind
@@ -119,7 +155,20 @@ public sealed class SceneDefinition
     }
 }
 
-public sealed record ActorSceneState(ActorId Actor, SceneId Scene, GridPosition Position);
+[method: JsonConstructor]
+public sealed record ActorSceneState(
+    ActorId Actor,
+    SceneId Scene,
+    ScenePosition WorldPosition,
+    ActorFacing Facing = ActorFacing.Down)
+{
+    public ActorSceneState(ActorId actor, SceneId scene, GridPosition position)
+        : this(actor, scene, ScenePosition.FromGrid(position))
+    {
+    }
+
+    public GridPosition Position => WorldPosition.Tile;
+}
 
 public static class TinyFarmSceneIds
 {
@@ -226,9 +275,9 @@ public static class TinyFarmScenes
 
             foreach (SceneSpawnDefinition spawn in scene.Spawns)
             {
-                if (!IsInBounds(scene, spawn.Position))
+                if (!IsInBounds(scene, spawn.Position) || IsBlocked(scene, spawn.Position))
                 {
-                    throw new InvalidDataException($"Scene '{scene.Id}' spawn '{spawn.Id}' is outside scene bounds.");
+                    throw new InvalidDataException($"Scene '{scene.Id}' spawn '{spawn.Id}' is outside walkable scene bounds.");
                 }
             }
 
@@ -254,6 +303,19 @@ public static class TinyFarmScenes
     public static bool IsBlocked(SceneDefinition scene, GridPosition position)
     {
         return scene.Layout.Any(row => row.Contains(position) && scene.Object(row.ObjectId).BlocksMovement);
+    }
+
+    public static bool IsInBounds(SceneDefinition scene, ScenePosition position)
+    {
+        return position.XUnits >= 0
+            && position.XUnits < scene.Width * ScenePosition.UnitsPerTile
+            && position.YUnits >= 0
+            && position.YUnits < scene.Height * ScenePosition.UnitsPerTile;
+    }
+
+    public static bool IsBlocked(SceneDefinition scene, ScenePosition position)
+    {
+        return IsBlocked(scene, position.Tile);
     }
 
     private static IReadOnlyList<SceneDefinition> CreateAndValidate()

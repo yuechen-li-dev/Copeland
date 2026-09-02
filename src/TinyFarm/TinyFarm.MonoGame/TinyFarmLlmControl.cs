@@ -13,7 +13,7 @@ internal static class TinyFarmLlmControl
     public static void Run(string[] args)
     {
         TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.Load();
-        var session = new TinyFarmSession(TinyFarmContent.CreateSceneState(definitions), definitions);
+        var session = new TinyFarmSession(TinyFarmContent.CreateContinuousSceneState(definitions), definitions);
         string savePath = ReadOption(args, "--save-file")
             ?? Path.Combine(Environment.CurrentDirectory, "tiny-farm.save");
         WriteResponse("ready", null, session, definitions, []);

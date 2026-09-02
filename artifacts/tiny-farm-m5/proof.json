@@ -1,0 +1,21 @@
+{
+  "milestone": "TINY-FARM-M5",
+  "outcome": "A",
+  "finalStateHash": "b7a109f3936328b45510415bd80f082e90cfabafcb1b49a7e5cfd0e85390195d",
+  "resultHash": "4d5dd1c0b48259a9a882d98e747f837843d4b5ee730e79aa42e1ec0aa23492b9",
+  "eventHash": "9d8169b6035a351d031e495bfcf9f216d8abc77423183973e5cd2d942b2fa119",
+  "navigationHash": "3100c8f80a480fb7740b0236174d8ef608bd9b7e023c2c685b401e11b32596a1",
+  "interactionTargetHash": "f7036e1f754813382a020c7552c8f0c59169f2e33e74f42c0745e17a9bb334ea",
+  "projectionHash": "02bf7e4c5e82da76344dbc9ce46735c95c1149a21f95ba4d1a1d8cfca26e993e",
+  "m1Hash": "dcc35869aba0eba979725b1871d0babfe127383123a1a5f665b666bc3488d333",
+  "m2Hash": "4a49e221d6ffe90304143cece5b1a20fe96eecc4d10d30cf1bde11922a18ced3",
+  "midTileSaveLoadExact": true,
+  "npcMovedContinuously": true,
+  "playerSubTileMovement": true,
+  "dialogueTargeted": true,
+  "farmTargeted": true,
+  "headless": true,
+  "navigationBuildMilliseconds": 3.3614,
+  "navigationQueryMilliseconds": 0.0113,
+  "npcMovementUpdateMilliseconds": 1.7064
+}

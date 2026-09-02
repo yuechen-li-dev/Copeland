@@ -1,0 +1,9 @@
+{
+  "selectionLaw": "kind priority, squared distance, ordinal stable semantic identity",
+  "rangeUnits": 1280,
+  "targets": [
+    "actor:elias",
+    "actor:mara",
+    "object:plot-1"
+  ]
+}

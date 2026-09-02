@@ -9,6 +9,8 @@
     <PackageReference Include="Dominatus.Core" />
     <PackageReference Include="Dominatus.OptFlow" />
     <PackageReference Include="Ariadne.OptFlow" />
+    <PackageReference Include="DotRecast.Detour" />
+    <PackageReference Include="DotRecast.Recast" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Content/tiny-farm-definitions.obj.ts" CopyToOutputDirectory="PreserveNewest" />

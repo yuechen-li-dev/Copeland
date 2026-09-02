@@ -93,6 +93,7 @@ public static class TinyFarmChunkedSaveCodec
 {
     public const string RuntimeVersion = "tiny-farm-m2@2";
     public const string SceneRuntimeVersion = "tiny-farm-m4@3";
+    public const string ContinuousSceneRuntimeVersion = "tiny-farm-m5@4";
     public static readonly ChunkId WorldChunk = new("tinyfarm.world");
     public static readonly ChunkId RuntimeChunk = new("tinyfarm.runtime");
     public static readonly ChunkId AgentChunk = new("tinyfarm.agents");
@@ -109,9 +110,7 @@ public static class TinyFarmChunkedSaveCodec
     {
         ValidateWorld(session.State, definitions);
         var context = new SaveWriteContext();
-        string runtimeVersion = session.State.Version >= TinyFarmState.SceneSaveVersion
-            ? SceneRuntimeVersion
-            : RuntimeVersion;
+        string runtimeVersion = RuntimeVersionFor(session.State.Version);
         var world = new WorldChunkModel(runtimeVersion, definitions.Identity, session.State);
         var runtime = new TinyFarmRuntimeSave(session.NextSequence, session.RecentEvents.ToList());
         var agents = new TinyFarmAgentSave(
@@ -136,9 +135,7 @@ public static class TinyFarmChunkedSaveCodec
         TinyFarmRuntimeSave runtime = ReadRequired<TinyFarmRuntimeSave>(context, RuntimeChunk);
         _ = ReadRequired<TinyFarmAgentSave>(context, AgentChunk);
         _ = ReadRequired<TinyFarmNarrativeSave>(context, NarrativeChunk);
-        string expectedRuntimeVersion = world.Game.Version >= TinyFarmState.SceneSaveVersion
-            ? SceneRuntimeVersion
-            : RuntimeVersion;
+        string expectedRuntimeVersion = RuntimeVersionFor(world.Game.Version);
         if (world.RuntimeVersion != expectedRuntimeVersion)
         {
             throw new InvalidDataException(
@@ -175,7 +172,9 @@ public static class TinyFarmChunkedSaveCodec
 
     private static void ValidateWorld(TinyFarmState state, TinyFarmDefinitions definitions)
     {
-        if (state.Version != TinyFarmState.SaveVersion && state.Version != TinyFarmState.SceneSaveVersion)
+        if (state.Version != TinyFarmState.SaveVersion
+            && state.Version != TinyFarmState.SceneSaveVersion
+            && state.Version != TinyFarmState.ContinuousSceneSaveVersion)
         {
             throw new InvalidDataException($"Unsupported TinyFarm game save version {state.Version}.");
         }
@@ -263,14 +262,26 @@ public static class TinyFarmChunkedSaveCodec
                         exception);
                 }
 
-                if (!state.Actors.Any(actor => actor.Id == placement.Actor)
-                    || !TinyFarmScenes.IsInBounds(scene, placement.Position)
-                    || TinyFarmScenes.IsBlocked(scene, placement.Position))
+                bool validPosition = state.Version >= TinyFarmState.ContinuousSceneSaveVersion
+                    ? TinyFarmScenes.IsInBounds(scene, placement.WorldPosition)
+                        && !TinyFarmScenes.IsBlocked(scene, placement.WorldPosition)
+                    : TinyFarmScenes.IsInBounds(scene, placement.Position)
+                        && !TinyFarmScenes.IsBlocked(scene, placement.Position);
+                if (!state.Actors.Any(actor => actor.Id == placement.Actor) || !validPosition)
                 {
                     throw new InvalidDataException($"Actor '{placement.Actor}' has invalid scene placement.");
                 }
             }
         }
+    }
+
+    private static string RuntimeVersionFor(int gameVersion)
+    {
+        if (gameVersion >= TinyFarmState.ContinuousSceneSaveVersion)
+        {
+            return ContinuousSceneRuntimeVersion;
+        }
+        return gameVersion >= TinyFarmState.SceneSaveVersion ? SceneRuntimeVersion : RuntimeVersion;
     }
 
     private static byte[] WriteContainer(IReadOnlyList<SaveChunk> chunks)

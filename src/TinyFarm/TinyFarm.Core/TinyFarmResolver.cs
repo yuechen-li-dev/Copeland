@@ -44,7 +44,7 @@ public sealed class TinyFarmResolver
         {
             MoveIntent move => ResolveMove(state, actor, envelope, move),
             SpatialMoveIntent move => ResolveSpatialMove(state, actor, envelope, move),
-            InteractIntent => ResolveInteract(state, actor, envelope),
+            InteractIntent interact => ResolveInteract(state, actor, envelope, interact),
             LookIntent => Accepted(envelope, new GameEvent(GameEventKind.Looked, actor.Id, Location: actor.Location)),
             TalkIntent talk => ResolveTalk(state, actor, envelope, talk),
             TakeIntent take => ResolveTake(state, actor, envelope, take),
@@ -109,26 +109,55 @@ public sealed class TinyFarmResolver
 
         ActorSceneState placement = state.ActorScene(actor.Id);
         SceneDefinition scene = TinyFarmScenes.Get(placement.Scene);
-        GridPosition target = placement.Position;
-        for (int step = 0; step < intent.Distance; step++)
+        ActorFacing facing = FacingFor(intent.DeltaX, intent.DeltaY);
+        if (state.Version < TinyFarmState.ContinuousSceneSaveVersion)
         {
-            target = new GridPosition(target.X + intent.DeltaX, target.Y + intent.DeltaY);
+            GridPosition targetTile = placement.Position;
+            for (int step = 0; step < intent.Distance; step++)
+            {
+                targetTile = new GridPosition(targetTile.X + intent.DeltaX, targetTile.Y + intent.DeltaY);
+                if (!TinyFarmScenes.IsInBounds(scene, targetTile) || TinyFarmScenes.IsBlocked(scene, targetTile))
+                {
+                    return Rejected(envelope, IntentReason.MovementBlocked);
+                }
+            }
+
+            ReplaceActorScene(state, placement with
+            {
+                WorldPosition = ScenePosition.FromGrid(targetTile),
+                Facing = facing
+            });
+            return Accepted(
+                envelope,
+                new GameEvent(GameEventKind.ActorMoved, actor.Id, Location: actor.Location, Scene: placement.Scene));
+        }
+
+        ScenePosition target = placement.WorldPosition;
+        int remaining = intent.Distance;
+        while (remaining > 0)
+        {
+            int distance = Math.Min(remaining, ScenePosition.UnitsPerTile / 4);
+            target = new ScenePosition(
+                target.XUnits + (intent.DeltaX * distance),
+                target.YUnits + (intent.DeltaY * distance));
             if (!TinyFarmScenes.IsInBounds(scene, target) || TinyFarmScenes.IsBlocked(scene, target))
             {
                 return Rejected(envelope, IntentReason.MovementBlocked);
             }
+            remaining -= distance;
         }
 
-        ReplaceActorScene(state, placement with { Position = target });
+        ReplaceActorScene(state, placement with { WorldPosition = target, Facing = facing });
         return Accepted(
             envelope,
             new GameEvent(GameEventKind.ActorMoved, actor.Id, Location: actor.Location, Scene: placement.Scene));
     }
 
-    private static IntentResult ResolveInteract(
+    private IntentResult ResolveInteract(
         TinyFarmState state,
         ActorState actor,
-        IntentEnvelope envelope)
+        IntentEnvelope envelope,
+        InteractIntent intent)
     {
         if (state.Version < TinyFarmState.SceneSaveVersion)
         {
@@ -137,6 +166,56 @@ public sealed class TinyFarmResolver
 
         ActorSceneState placement = state.ActorScene(actor.Id);
         SceneDefinition scene = TinyFarmScenes.Get(placement.Scene);
+        if (state.Version >= TinyFarmState.ContinuousSceneSaveVersion)
+        {
+            InteractionTarget? selected = intent.Target is SceneObjectId explicitTarget
+                ? SelectExplicitObjectTarget(state, actor.Id, explicitTarget)
+                : TinyFarmSpatialQueries.SelectInteractionTarget(state, actor.Id);
+            if (selected is null)
+            {
+                return Rejected(envelope, IntentReason.NoInteractionTarget);
+            }
+
+            if (selected.Actor is ActorId targetActor)
+            {
+                return ResolveTalk(state, actor, envelope, new TalkIntent(targetActor));
+            }
+
+            if (selected.Plot is FarmPlotId plot)
+            {
+                FarmPlotState plotState = state.FarmPlots.Single(candidate => candidate.Id == plot);
+                if (plotState.Crop is null)
+                {
+                    return ResolvePlant(
+                        state,
+                        actor,
+                        envelope,
+                        new PlantIntent(plot, TinyFarmIds.TurnipCrop));
+                }
+                CropDefinition crop = definitions!.Crop(plotState.Crop.Value);
+                if (plotState.GrowthStage >= crop.GrowthDays)
+                {
+                    return ResolveHarvest(state, actor, envelope, new HarvestIntent(plot));
+                }
+                if (!plotState.WateredToday)
+                {
+                    return ResolveWater(state, actor, envelope, new WaterIntent(plot));
+                }
+                return Rejected(envelope, IntentReason.NoInteraction);
+            }
+
+            if (selected.Kind == InteractionTargetKind.Shop)
+            {
+                if (state.ProductCount(actor.Id, TinyFarmIds.Turnip) > 0)
+                {
+                    return ResolveSellProduct(state, actor, envelope, new SellProductIntent(TinyFarmIds.Turnip));
+                }
+                return ResolveBuyProduct(state, actor, envelope, new BuyProductIntent(TinyFarmIds.TurnipSeed));
+            }
+
+            return ResolvePortalInteraction(state, actor, envelope, placement, scene, selected.SceneObject);
+        }
+
         SceneRoute? route = scene.Routes
             .Where(candidate => scene.Placement(candidate.TriggerObject).Contains(placement.Position))
             .OrderBy(candidate => candidate.Id.Value, StringComparer.Ordinal)
@@ -146,9 +225,45 @@ public sealed class TinyFarmResolver
             return Rejected(envelope, IntentReason.NoInteraction);
         }
 
+        return ApplyRoute(state, actor, envelope, placement, scene, route);
+    }
+
+    private static InteractionTarget? SelectExplicitObjectTarget(
+        TinyFarmState state,
+        ActorId actor,
+        SceneObjectId objectId)
+    {
+        return TinyFarmSpatialQueries.SelectObjectTarget(state, actor, objectId);
+    }
+
+    private static IntentResult ResolvePortalInteraction(
+        TinyFarmState state,
+        ActorState actor,
+        IntentEnvelope envelope,
+        ActorSceneState placement,
+        SceneDefinition scene,
+        SceneObjectId? targetObject)
+    {
+        SceneRoute? route = scene.Routes
+            .Where(candidate => candidate.TriggerObject == targetObject)
+            .OrderBy(candidate => candidate.Id.Value, StringComparer.Ordinal)
+            .FirstOrDefault();
+        return route is null
+            ? Rejected(envelope, IntentReason.NoInteraction)
+            : ApplyRoute(state, actor, envelope, placement, scene, route);
+    }
+
+    private static IntentResult ApplyRoute(
+        TinyFarmState state,
+        ActorState actor,
+        IntentEnvelope envelope,
+        ActorSceneState placement,
+        SceneDefinition scene,
+        SceneRoute route)
+    {
         SceneDefinition target = TinyFarmScenes.Get(route.TargetScene);
         GridPosition spawn = target.Spawn(route.TargetSpawn).Position;
-        ReplaceActorScene(state, placement with { Scene = target.Id, Position = spawn });
+        ReplaceActorScene(state, placement with { Scene = target.Id, WorldPosition = ScenePosition.FromGrid(spawn) });
         ReplaceActor(state, actor with { Location = TinyFarmScenes.LocationForScene(target.Id) });
         return Accepted(
             envelope,
@@ -161,6 +276,19 @@ public sealed class TinyFarmResolver
                     Scene: target.Id,
                     Route: route.Id)
             ]);
+    }
+
+    private static ActorFacing FacingFor(int deltaX, int deltaY)
+    {
+        if (deltaX < 0)
+        {
+            return ActorFacing.Left;
+        }
+        if (deltaX > 0)
+        {
+            return ActorFacing.Right;
+        }
+        return deltaY < 0 ? ActorFacing.Up : ActorFacing.Down;
     }
 
     private static IntentResult ResolveTalk(
@@ -662,7 +790,11 @@ public sealed class TinyFarmResolver
 
         ActorSceneState left = state.ActorScene(first);
         ActorSceneState right = state.ActorScene(second);
-        return left.Scene == right.Scene && left.Position.ManhattanDistance(right.Position) <= 1;
+        return left.Scene == right.Scene
+            && (state.Version < TinyFarmState.ContinuousSceneSaveVersion
+                ? left.Position.ManhattanDistance(right.Position) <= 1
+                : left.WorldPosition.SquaredDistance(right.WorldPosition)
+                    <= (long)TinyFarmSpatialQueries.InteractionRangeUnits * TinyFarmSpatialQueries.InteractionRangeUnits);
     }
 
     private static bool ActorIsAdjacentToPlotWhenSpatial(TinyFarmState state, ActorId actor, FarmPlotId plot)
@@ -682,7 +814,13 @@ public sealed class TinyFarmResolver
         SceneLayoutRow row = scene.Layout.Single(item =>
             scene.Object(item.ObjectId).Kind == SceneObjectKind.Plot
             && scene.Object(item.ObjectId).SemanticReference == plot.Value);
-        return placement.Position.ManhattanDistance(new GridPosition(row.X, row.Y)) == 1;
+        if (state.Version < TinyFarmState.ContinuousSceneSaveVersion)
+        {
+            return placement.Position.ManhattanDistance(new GridPosition(row.X, row.Y)) == 1;
+        }
+
+        InteractionTarget? target = TinyFarmSpatialQueries.SelectInteractionTarget(state, actor);
+        return target?.Plot == plot;
     }
 
     private static void MoveActorToScheduledScene(TinyFarmState state, ActorId actor, LocationId destination)
@@ -696,7 +834,7 @@ public sealed class TinyFarmResolver
 
         SceneDefinition target = TinyFarmScenes.Get(targetScene);
         GridPosition spawn = target.Spawns.First().Position;
-        ReplaceActorScene(state, placement with { Scene = targetScene, Position = spawn });
+        ReplaceActorScene(state, placement with { Scene = targetScene, WorldPosition = ScenePosition.FromGrid(spawn) });
     }
 
     private static void ReplaceItem(TinyFarmState state, ItemState replacement)

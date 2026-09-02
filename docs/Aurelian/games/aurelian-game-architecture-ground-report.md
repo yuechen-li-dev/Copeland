@@ -157,3 +157,11 @@ Scene definition law is `static validated tables + persistent game state -> immu
 Dominatus continues to choose high-level schedule destinations. TinyFarm performs deterministic coarse movement for inactive NPCs and exposes authoritative scene placement to the active projection; the renderer never spawns actors independently. MonoGame now uses the live viewport with a shallow HUD at 2560x1440 and 1280x720. TSON and Copeland record tables fit future authored definitions, while M4 deliberately keeps readable C# definitions and adds no language feature or shared UI/game runtime.
 
 The detailed proof and next recommendation are in `docs/Aurelian/games/tiny-farm-m4-scene-composition-report.md` and `artifacts/tiny-farm-m4/proof.json`.
+
+## M5 evidence update — 2026-09-02
+
+TINY-FARM-M5 replaced authoritative tile-centered actors with deterministic `ScenePosition` values at 1,024 integer units per tile while retaining `GridPosition` for scene authoring, collision cells, portals, plots, and navmesh input. Four-way facing and forward semantic target selection now drive talk, farm, shop, and portal interaction through the existing resolver. MonoGame owns only held-key sampling and a rational fixed-step accumulator; the frame exposes integer scene coordinates and the current semantic target.
+
+Runtime derives and caches scene-local DotRecast 2026.3.1 Recast/Detour data from the validated layout tables. DotRecast types remain in one adapter file, paths are not persisted, semantic collision remains final authority, and typed failures never teleport actors. Dominatus continues to choose coarse `LocationId` goals; visible NPCs use cached waypoints and the same `SpatialMoveIntent` reducer as the player, while inactive NPCs retain coarse progression. Scene graph routing and spatial navigation remain separate layers.
+
+The extraction result is `KEEP_TINYFARM_LOCAL`: the contracts look genre-neutral but lack a second concrete consumer. M5 instead exposes one bounded next pressure: high-level schedule destinations currently map to game-local hard-coded scene points. The recommended M6 is authored semantic scene anchors plus active/inactive NPC handoff, without new content or a navigation framework. Detailed evidence is in `docs/Aurelian/games/tiny-farm-m5-continuous-navigation-report.md` and `artifacts/tiny-farm-m5/proof.json`.

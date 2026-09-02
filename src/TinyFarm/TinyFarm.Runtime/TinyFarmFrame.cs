@@ -19,7 +19,9 @@ public sealed record TinyFarmActorView(
     string Name,
     LocationId Location,
     TinyFarmPoint Position,
-    bool IsPlayer);
+    bool IsPlayer,
+    ActorFacing Facing = ActorFacing.Down,
+    bool IsInteractionTarget = false);
 
 public sealed record TinyFarmItemView(
     ItemId Id,
@@ -75,7 +77,9 @@ public sealed record TinyFarmFrame(
     int SceneWidth = 0,
     int SceneHeight = 0,
     IReadOnlyList<TinyFarmSceneObjectView>? SceneObjects = null,
-    IReadOnlyList<TinyFarmRouteView>? SceneRoutes = null);
+    IReadOnlyList<TinyFarmRouteView>? SceneRoutes = null,
+    int SceneUnitsPerTile = 1,
+    string? InteractionTarget = null);
 
 public static class TinyFarmFrameProjector
 {
@@ -175,6 +179,7 @@ public static class TinyFarmFrameProjector
     {
         ActorSceneState playerPlacement = state.ActorScene(player.Id);
         SceneDefinition scene = TinyFarmScenes.Get(playerPlacement.Scene);
+        InteractionTarget? interactionTarget = TinyFarmSpatialQueries.SelectInteractionTarget(state, player.Id);
         TinyFarmActorView[] actors = state.ActorScenes
             .Where(placement => placement.Scene == scene.Id)
             .OrderBy(placement => placement.Actor.Value, StringComparer.Ordinal)
@@ -185,8 +190,12 @@ public static class TinyFarmFrameProjector
                     actor.Id,
                     actor.Name,
                     actor.Location,
-                    new TinyFarmPoint(placement.Position.X, placement.Position.Y),
-                    actor.IsPlayer);
+                    state.Version >= TinyFarmState.ContinuousSceneSaveVersion
+                        ? new TinyFarmPoint(placement.WorldPosition.XUnits, placement.WorldPosition.YUnits)
+                        : new TinyFarmPoint(placement.Position.X, placement.Position.Y),
+                    actor.IsPlayer,
+                    placement.Facing,
+                    interactionTarget?.Actor == actor.Id);
             })
             .ToArray();
         TinyFarmSceneObjectView[] objects = scene.Layout
@@ -238,7 +247,9 @@ public static class TinyFarmFrameProjector
             scene.Width,
             scene.Height,
             objects,
-            routes);
+            routes,
+            state.Version >= TinyFarmState.ContinuousSceneSaveVersion ? ScenePosition.UnitsPerTile : 1,
+            interactionTarget?.StableId);
     }
 
     public static string ComputeHash(TinyFarmFrame frame)
@@ -319,6 +330,18 @@ public static class TinyFarmFrameProjector
         SceneDefinition scene)
     {
         var hints = new List<string> { "Move", "Wait", "Save", "Load" };
+        if (state.Version >= TinyFarmState.ContinuousSceneSaveVersion)
+        {
+            InteractionTarget? target = TinyFarmSpatialQueries.SelectInteractionTarget(state, player.Actor);
+            if (target is not null)
+            {
+                string label = target.Actor is ActorId actorId
+                    ? state.Actor(actorId).Name
+                    : scene.Object(target.SceneObject!.Value).Label;
+                hints.Add($"{label} [Interact]");
+            }
+            return hints;
+        }
         SceneRoute? route = scene.Routes
             .Where(candidate => scene.Placement(candidate.TriggerObject).Contains(player.Position))
             .OrderBy(candidate => candidate.Id.Value, StringComparer.Ordinal)
