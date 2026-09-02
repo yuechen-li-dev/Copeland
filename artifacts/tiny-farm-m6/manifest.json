@@ -1,0 +1,14 @@
+{
+  "milestone": "TINY-FARM-M6",
+  "kind": "semantic-scene-anchors-active-inactive-handoff",
+  "npcGoalsUseSemanticAnchors": true,
+  "hardcodedScheduleCoordinatesRemoved": true,
+  "activeNpcUsesSpatialNavigation": true,
+  "inactiveNpcUsesCoarseSimulation": true,
+  "handoffDeterministic": true,
+  "dotRecastStatePersisted": false,
+  "rendererOwnsNpcState": false,
+  "ecsAdded": false,
+  "streamingSystemAdded": false,
+  "sceneDslAdded": false
+}

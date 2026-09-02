@@ -105,7 +105,11 @@ public sealed class TinyFarmM5Tests
             4,
             [wall],
             [new SceneLayoutRow(wall.Id, 3, 0, 1, 4, 0)],
-            [new SceneSpawnDefinition(new SceneSpawnId("left"), new GridPosition(1, 1))],
+            [new SceneAnchorDefinition(
+                new SceneAnchorId("split.left"),
+                new SceneId("split"),
+                At(1, 1),
+                SceneAnchorKind.Spawn)],
             []);
 
         NavigationPath path = new DotRecastNavigationPlanner().FindPath(scene, At(1, 1), At(4, 1));
@@ -131,7 +135,7 @@ public sealed class TinyFarmM5Tests
     {
         TinyFarmState state = TinyFarmContent.CreateContinuousSceneState(definitions);
         SetPlacement(state, TinyFarmIds.Elias, TinyFarmSceneIds.Farm, At(9, 7), ActorFacing.Left);
-        SetActorLocation(state, TinyFarmIds.Elias, TinyFarmIds.Riverside);
+        SetActorLocation(state, TinyFarmIds.Elias, TinyFarmIds.Farmhouse);
         var session = new TinyFarmSession(state, definitions);
 
         ScenePosition before = session.State.ActorScene(TinyFarmIds.Elias).WorldPosition;
@@ -183,7 +187,7 @@ public sealed class TinyFarmM5Tests
     {
         TinyFarmState state = TinyFarmContent.CreateContinuousSceneState(definitions);
         SetPlacement(state, TinyFarmIds.Elias, TinyFarmSceneIds.Farm, At(9, 7), ActorFacing.Left);
-        SetActorLocation(state, TinyFarmIds.Elias, TinyFarmIds.Riverside);
+        SetActorLocation(state, TinyFarmIds.Elias, TinyFarmIds.Farmhouse);
         var session = new TinyFarmSession(state, definitions);
         byte[] save = session.CaptureWeekSave();
         Assert.DoesNotContain("DotRecast", System.Text.Encoding.UTF8.GetString(save), StringComparison.Ordinal);

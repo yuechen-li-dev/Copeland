@@ -177,11 +177,17 @@ public static class TinyFarmSceneScenario
                 item.Height,
                 item.Layer
             }),
-            spawns = scene.Spawns.Select(item => new
+            anchors = scene.Anchors.Select(item => new
             {
                 id = item.Id.Value,
-                item.Position.X,
-                item.Position.Y
+                scene = item.Scene.Value,
+                xUnits = item.Position.XUnits,
+                yUnits = item.Position.YUnits,
+                kind = item.Kind.ToString(),
+                semanticLocation = item.SemanticLocation?.Value,
+                semanticObject = item.SemanticObject?.Value,
+                facing = item.Facing?.ToString(),
+                item.ArrivalRadiusUnits
             })
         }).ToArray();
         return JsonSerializer.Serialize(scenes, JsonOptions);
@@ -198,7 +204,7 @@ public static class TinyFarmSceneScenario
                 sourceScene = route.SourceScene.Value,
                 triggerObject = route.TriggerObject.Value,
                 targetScene = route.TargetScene.Value,
-                targetSpawn = route.TargetSpawn.Value,
+                targetAnchor = route.TargetAnchor.Value,
                 route.InteractionLabel
             })
             .ToArray();
@@ -258,7 +264,7 @@ public static class TinyFarmSceneScenario
 
     private static string RouteSignature(SceneRoute route)
     {
-        return $"{route.Id}|{route.SourceScene}|{route.TriggerObject}|{route.TargetScene}|{route.TargetSpawn}";
+        return $"{route.Id}|{route.SourceScene}|{route.TriggerObject}|{route.TargetScene}|{route.TargetAnchor}";
     }
 
     private static string ResultSignature(IntentResult result)

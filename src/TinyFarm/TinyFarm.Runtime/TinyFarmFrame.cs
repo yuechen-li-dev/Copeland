@@ -21,7 +21,8 @@ public sealed record TinyFarmActorView(
     TinyFarmPoint Position,
     bool IsPlayer,
     ActorFacing Facing = ActorFacing.Down,
-    bool IsInteractionTarget = false);
+    bool IsInteractionTarget = false,
+    SceneAnchorId? SemanticTarget = null);
 
 public sealed record TinyFarmItemView(
     ItemId Id,
@@ -56,7 +57,7 @@ public sealed record TinyFarmRouteView(
     SceneRouteId Id,
     SceneObjectId TriggerObject,
     SceneId TargetScene,
-    SceneSpawnId TargetSpawn,
+    SceneAnchorId TargetAnchor,
     string InteractionLabel);
 
 public sealed record TinyFarmFrame(
@@ -195,7 +196,8 @@ public static class TinyFarmFrameProjector
                         : new TinyFarmPoint(placement.Position.X, placement.Position.Y),
                     actor.IsPlayer,
                     placement.Facing,
-                    interactionTarget?.Actor == actor.Id);
+                    interactionTarget?.Actor == actor.Id,
+                    actor.IsPlayer ? null : TinyFarmNpcController.ScheduledAnchor(actor.Id, state.Minute));
             })
             .ToArray();
         TinyFarmSceneObjectView[] objects = scene.Layout
@@ -224,7 +226,7 @@ public static class TinyFarmFrameProjector
                 route.Id,
                 route.TriggerObject,
                 route.TargetScene,
-                route.TargetSpawn,
+                route.TargetAnchor,
                 route.InteractionLabel))
             .ToArray();
         TinyFarmInventoryView[] inventory = ProjectInventory(state, definitions, player);

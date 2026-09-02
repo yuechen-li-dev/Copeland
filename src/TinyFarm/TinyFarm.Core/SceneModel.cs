@@ -17,7 +17,7 @@ public readonly record struct SceneRouteId(string Value)
     public override string ToString() => Value;
 }
 
-public readonly record struct SceneSpawnId(string Value)
+public readonly record struct SceneAnchorId(string Value)
 {
     public override string ToString() => Value;
 }
@@ -64,6 +64,16 @@ public enum ActorFacing
     Up
 }
 
+public enum SceneAnchorKind
+{
+    Spawn,
+    Work,
+    ShopCounter,
+    Home,
+    Social,
+    Exit
+}
+
 public enum SceneObjectKind
 {
     Portal,
@@ -98,14 +108,22 @@ public sealed record SceneLayoutRow(
     }
 }
 
-public sealed record SceneSpawnDefinition(SceneSpawnId Id, GridPosition Position);
+public sealed record SceneAnchorDefinition(
+    SceneAnchorId Id,
+    SceneId Scene,
+    ScenePosition Position,
+    SceneAnchorKind Kind,
+    LocationId? SemanticLocation = null,
+    SceneObjectId? SemanticObject = null,
+    ActorFacing? Facing = null,
+    int ArrivalRadiusUnits = ScenePosition.UnitsPerTile / 8);
 
 public sealed record SceneRoute(
     SceneRouteId Id,
     SceneId SourceScene,
     SceneObjectId TriggerObject,
     SceneId TargetScene,
-    SceneSpawnId TargetSpawn,
+    SceneAnchorId TargetAnchor,
     string InteractionLabel);
 
 public sealed class SceneDefinition
@@ -117,7 +135,7 @@ public sealed class SceneDefinition
         int height,
         IEnumerable<SceneObjectDefinition> objects,
         IEnumerable<SceneLayoutRow> layout,
-        IEnumerable<SceneSpawnDefinition> spawns,
+        IEnumerable<SceneAnchorDefinition> anchors,
         IEnumerable<SceneRoute> routes)
     {
         Id = id;
@@ -126,7 +144,7 @@ public sealed class SceneDefinition
         Height = height;
         Objects = objects.OrderBy(item => item.Id.Value, StringComparer.Ordinal).ToArray();
         Layout = layout.OrderBy(item => item.Layer).ThenBy(item => item.ObjectId.Value, StringComparer.Ordinal).ToArray();
-        Spawns = spawns.OrderBy(item => item.Id.Value, StringComparer.Ordinal).ToArray();
+        Anchors = anchors.OrderBy(item => item.Id.Value, StringComparer.Ordinal).ToArray();
         Routes = routes.OrderBy(item => item.Id.Value, StringComparer.Ordinal).ToArray();
     }
 
@@ -136,7 +154,7 @@ public sealed class SceneDefinition
     public int Height { get; }
     public IReadOnlyList<SceneObjectDefinition> Objects { get; }
     public IReadOnlyList<SceneLayoutRow> Layout { get; }
-    public IReadOnlyList<SceneSpawnDefinition> Spawns { get; }
+    public IReadOnlyList<SceneAnchorDefinition> Anchors { get; }
     public IReadOnlyList<SceneRoute> Routes { get; }
 
     public SceneObjectDefinition Object(SceneObjectId id)
@@ -149,9 +167,9 @@ public sealed class SceneDefinition
         return Layout.Single(item => item.ObjectId == id);
     }
 
-    public SceneSpawnDefinition Spawn(SceneSpawnId id)
+    public SceneAnchorDefinition Anchor(SceneAnchorId id)
     {
-        return Spawns.Single(item => item.Id == id);
+        return Anchors.Single(item => item.Id == id);
     }
 }
 
@@ -179,13 +197,56 @@ public static class TinyFarmSceneIds
     public static readonly SceneId Riverside = new("riverside");
 }
 
+public static class TinyFarmAnchorIds
+{
+    public static readonly SceneAnchorId FarmHome = new("farm.home");
+    public static readonly SceneAnchorId FarmWorkArea = new("farm.work-area");
+    public static readonly SceneAnchorId TownSquare = new("town.square");
+    public static readonly SceneAnchorId StoreCounter = new("general-store.counter");
+    public static readonly SceneAnchorId RiversideMeetingPoint = new("riverside.meeting-point");
+}
+
 public static class TinyFarmScenes
 {
     public static IReadOnlyList<SceneDefinition> All { get; } = CreateAndValidate();
+    private static readonly IReadOnlyDictionary<SceneAnchorId, SceneAnchorDefinition> AnchorIndex =
+        All.SelectMany(scene => scene.Anchors).ToDictionary(anchor => anchor.Id);
 
     public static SceneDefinition Get(SceneId id)
     {
         return All.Single(scene => scene.Id == id);
+    }
+
+    public static bool TryGetAnchor(SceneAnchorId id, out SceneAnchorDefinition anchor)
+    {
+        return AnchorIndex.TryGetValue(id, out anchor!);
+    }
+
+    public static SceneAnchorDefinition GetAnchor(SceneAnchorId id)
+    {
+        return AnchorIndex.TryGetValue(id, out SceneAnchorDefinition? anchor)
+            ? anchor
+            : throw new KeyNotFoundException($"Unknown scene anchor '{id}'.");
+    }
+
+    public static SceneAnchorDefinition AnchorForLocation(LocationId location)
+    {
+        SceneAnchorId anchor = location == TinyFarmIds.Farmhouse
+            ? TinyFarmAnchorIds.FarmHome
+            : location == TinyFarmIds.GeneralStore
+                ? TinyFarmAnchorIds.StoreCounter
+                : location == TinyFarmIds.Riverside
+                    ? TinyFarmAnchorIds.RiversideMeetingPoint
+                    : TinyFarmAnchorIds.TownSquare;
+        return GetAnchor(anchor);
+    }
+
+    public static SceneAnchorDefinition CoarseEntryAnchor(SceneId scene)
+    {
+        return Get(scene).Anchors
+            .Where(anchor => anchor.Kind == SceneAnchorKind.Spawn)
+            .OrderBy(anchor => anchor.Id.Value, StringComparer.Ordinal)
+            .First();
     }
 
     public static SceneId SceneForLocation(LocationId location)
@@ -228,12 +289,24 @@ public static class TinyFarmScenes
         return TinyFarmIds.TownSquare;
     }
 
+    public static bool SceneAgreesWithLocation(SceneId scene, LocationId location)
+    {
+        return SceneForLocation(location) == scene
+            || scene == TinyFarmSceneIds.Overworld && location == TinyFarmIds.TownSquare;
+    }
+
     public static void Validate(IEnumerable<SceneDefinition> definitions)
     {
         SceneDefinition[] scenes = definitions.ToArray();
         if (scenes.Select(scene => scene.Id).Distinct().Count() != scenes.Length)
         {
             throw new InvalidDataException("Scene identities must be unique.");
+        }
+
+        SceneAnchorDefinition[] allAnchors = scenes.SelectMany(scene => scene.Anchors).ToArray();
+        if (allAnchors.Select(anchor => anchor.Id).Distinct().Count() != allAnchors.Length)
+        {
+            throw new InvalidDataException("Scene anchor identities must be globally unique.");
         }
 
         foreach (SceneDefinition scene in scenes)
@@ -248,9 +321,9 @@ public static class TinyFarmScenes
                 throw new InvalidDataException($"Scene '{scene.Id}' has duplicate object identities.");
             }
 
-            if (scene.Spawns.Select(item => item.Id).Distinct().Count() != scene.Spawns.Count)
+            if (scene.Anchors.Select(item => item.Id).Distinct().Count() != scene.Anchors.Count)
             {
-                throw new InvalidDataException($"Scene '{scene.Id}' has duplicate spawn identities.");
+                throw new InvalidDataException($"Scene '{scene.Id}' has duplicate anchor identities.");
             }
 
             foreach (SceneLayoutRow row in scene.Layout)
@@ -273,11 +346,20 @@ public static class TinyFarmScenes
                 throw new InvalidDataException($"Scene '{scene.Id}' requires exactly one layout row per object.");
             }
 
-            foreach (SceneSpawnDefinition spawn in scene.Spawns)
+            foreach (SceneAnchorDefinition anchor in scene.Anchors)
             {
-                if (!IsInBounds(scene, spawn.Position) || IsBlocked(scene, spawn.Position))
+                bool validSemanticLocation = anchor.SemanticLocation is null
+                    || TinyFarmContent.Locations.Any(location => location.Id == anchor.SemanticLocation);
+                bool validSemanticObject = anchor.SemanticObject is null
+                    || scene.Objects.Any(item => item.Id == anchor.SemanticObject);
+                if (anchor.Scene != scene.Id
+                    || !IsInBounds(scene, anchor.Position)
+                    || IsBlocked(scene, anchor.Position)
+                    || anchor.ArrivalRadiusUnits < 0
+                    || !validSemanticLocation
+                    || !validSemanticObject)
                 {
-                    throw new InvalidDataException($"Scene '{scene.Id}' spawn '{spawn.Id}' is outside walkable scene bounds.");
+                    throw new InvalidDataException($"Scene '{scene.Id}' anchor '{anchor.Id}' is invalid or not walkable.");
                 }
             }
 
@@ -287,7 +369,7 @@ public static class TinyFarmScenes
                 if (route.SourceScene != scene.Id
                     || !scene.Objects.Any(item => item.Id == route.TriggerObject && item.Kind == SceneObjectKind.Portal)
                     || target is null
-                    || !target.Spawns.Any(spawn => spawn.Id == route.TargetSpawn))
+                    || !target.Anchors.Any(anchor => anchor.Id == route.TargetAnchor))
                 {
                     throw new InvalidDataException($"Scene route '{route.Id}' has an invalid trigger, target, or spawn.");
                 }
@@ -351,11 +433,15 @@ public static class TinyFarmScenes
                 Layout("riverside-entrance", 19, 9),
                 Layout("hill", 7, 2, 3, 2)
             ],
-            [Spawn("from-farm", 3, 7), Spawn("from-town", 10, 5), Spawn("from-riverside", 18, 9)],
             [
-                Route("overworld-farm", "farm-entrance", TinyFarmSceneIds.Farm, "from-overworld", "ENTER FARM"),
-                Route("overworld-town", "town-entrance", TinyFarmSceneIds.Town, "south-gate", "ENTER TOWN"),
-                Route("overworld-riverside", "riverside-entrance", TinyFarmSceneIds.Riverside, "from-overworld", "ENTER RIVERSIDE")
+                Anchor("overworld.from-farm", TinyFarmSceneIds.Overworld, 3, 7, SceneAnchorKind.Spawn),
+                Anchor("overworld.from-town", TinyFarmSceneIds.Overworld, 10, 5, SceneAnchorKind.Spawn),
+                Anchor("overworld.from-riverside", TinyFarmSceneIds.Overworld, 18, 9, SceneAnchorKind.Spawn)
+            ],
+            [
+                Route("overworld-farm", "farm-entrance", TinyFarmSceneIds.Farm, "farm.from-overworld", "ENTER FARM"),
+                Route("overworld-town", "town-entrance", TinyFarmSceneIds.Town, "town.south-gate", "ENTER TOWN"),
+                Route("overworld-riverside", "riverside-entrance", TinyFarmSceneIds.Riverside, "riverside.from-overworld", "ENTER RIVERSIDE")
             ]);
     }
 
@@ -380,8 +466,13 @@ public static class TinyFarmScenes
                 Layout("plot-2", 9, 5),
                 Layout("fence", 12, 2, 1, 5)
             ],
-            [Spawn("from-overworld", 16, 6), Spawn("farm-start", 6, 5)],
-            [Route("farm-overworld", "farm-exit", TinyFarmSceneIds.Overworld, "from-farm", "RETURN TO OVERWORLD")]);
+            [
+                Anchor("farm.from-overworld", TinyFarmSceneIds.Farm, 16, 6, SceneAnchorKind.Spawn),
+                Anchor("farm.start", TinyFarmSceneIds.Farm, 6, 5, SceneAnchorKind.Spawn),
+                Anchor(TinyFarmAnchorIds.FarmHome.Value, TinyFarmSceneIds.Farm, 4, 7, SceneAnchorKind.Home, TinyFarmIds.Farmhouse),
+                Anchor(TinyFarmAnchorIds.FarmWorkArea.Value, TinyFarmSceneIds.Farm, 6, 5, SceneAnchorKind.Work, TinyFarmIds.Farmhouse)
+            ],
+            [Route("farm-overworld", "farm-exit", TinyFarmSceneIds.Overworld, "overworld.from-farm", "RETURN TO OVERWORLD")]);
     }
 
     private static SceneDefinition CreateTown()
@@ -403,10 +494,14 @@ public static class TinyFarmScenes
                 Layout("well", 9, 6, 2, 2),
                 Layout("market-stall", 3, 3, 3, 2)
             ],
-            [Spawn("south-gate", 10, 12), Spawn("from-store", 16, 4)],
             [
-                Route("town-overworld", "town-exit", TinyFarmSceneIds.Overworld, "from-town", "RETURN TO OVERWORLD"),
-                Route("town-store", "store-entrance", TinyFarmSceneIds.GeneralStore, "door", "ENTER STORE")
+                Anchor("town.south-gate", TinyFarmSceneIds.Town, 10, 12, SceneAnchorKind.Spawn),
+                Anchor("town.from-store", TinyFarmSceneIds.Town, 16, 4, SceneAnchorKind.Spawn),
+                Anchor(TinyFarmAnchorIds.TownSquare.Value, TinyFarmSceneIds.Town, 12, 7, SceneAnchorKind.Social, TinyFarmIds.TownSquare)
+            ],
+            [
+                Route("town-overworld", "town-exit", TinyFarmSceneIds.Overworld, "overworld.from-town", "RETURN TO OVERWORLD"),
+                Route("town-store", "store-entrance", TinyFarmSceneIds.GeneralStore, "general-store.door", "ENTER STORE")
             ]);
     }
 
@@ -427,8 +522,18 @@ public static class TinyFarmScenes
                 Layout("shop-counter", 4, 2, 3, 1),
                 Layout("shelves", 1, 1, 1, 4)
             ],
-            [Spawn("door", 5, 6)],
-            [Route("store-town", "store-exit", TinyFarmSceneIds.Town, "from-store", "LEAVE STORE")]);
+            [
+                Anchor("general-store.door", TinyFarmSceneIds.GeneralStore, 5, 6, SceneAnchorKind.Spawn),
+                Anchor(
+                    TinyFarmAnchorIds.StoreCounter.Value,
+                    TinyFarmSceneIds.GeneralStore,
+                    5,
+                    3,
+                    SceneAnchorKind.ShopCounter,
+                    TinyFarmIds.GeneralStore,
+                    new SceneObjectId("shop-counter"))
+            ],
+            [Route("store-town", "store-exit", TinyFarmSceneIds.Town, "town.from-store", "LEAVE STORE")]);
     }
 
     private static SceneDefinition CreateRiverside()
@@ -448,8 +553,11 @@ public static class TinyFarmScenes
                 Layout("river", 10, 0, 6, 10),
                 Layout("reeds", 8, 3, 1, 3)
             ],
-            [Spawn("from-overworld", 2, 5)],
-            [Route("riverside-overworld", "riverside-exit", TinyFarmSceneIds.Overworld, "from-riverside", "RETURN TO OVERWORLD")]);
+            [
+                Anchor("riverside.from-overworld", TinyFarmSceneIds.Riverside, 2, 5, SceneAnchorKind.Spawn),
+                Anchor(TinyFarmAnchorIds.RiversideMeetingPoint.Value, TinyFarmSceneIds.Riverside, 5, 5, SceneAnchorKind.Social, TinyFarmIds.Riverside)
+            ],
+            [Route("riverside-overworld", "riverside-exit", TinyFarmSceneIds.Overworld, "overworld.from-riverside", "RETURN TO OVERWORLD")]);
     }
 
     private static SceneObjectDefinition Object(
@@ -467,12 +575,27 @@ public static class TinyFarmScenes
         return new SceneLayoutRow(new SceneObjectId(id), x, y, width, height, layer);
     }
 
-    private static SceneSpawnDefinition Spawn(string id, int x, int y)
+    private static SceneAnchorDefinition Anchor(
+        string id,
+        SceneId scene,
+        int x,
+        int y,
+        SceneAnchorKind kind,
+        LocationId? semanticLocation = null,
+        SceneObjectId? semanticObject = null,
+        ActorFacing? facing = null)
     {
-        return new SceneSpawnDefinition(new SceneSpawnId(id), new GridPosition(x, y));
+        return new SceneAnchorDefinition(
+            new SceneAnchorId(id),
+            scene,
+            ScenePosition.FromGrid(new GridPosition(x, y)),
+            kind,
+            semanticLocation,
+            semanticObject,
+            facing);
     }
 
-    private static SceneRoute Route(string id, string trigger, SceneId target, string spawn, string label)
+    private static SceneRoute Route(string id, string trigger, SceneId target, string anchor, string label)
     {
         SceneId source = id.StartsWith("overworld-", StringComparison.Ordinal)
             ? TinyFarmSceneIds.Overworld
@@ -488,7 +611,7 @@ public static class TinyFarmScenes
             source,
             new SceneObjectId(trigger),
             target,
-            new SceneSpawnId(spawn),
+            new SceneAnchorId(anchor),
             label);
     }
 }

@@ -267,7 +267,11 @@ public static class TinyFarmChunkedSaveCodec
                         && !TinyFarmScenes.IsBlocked(scene, placement.WorldPosition)
                     : TinyFarmScenes.IsInBounds(scene, placement.Position)
                         && !TinyFarmScenes.IsBlocked(scene, placement.Position);
-                if (!state.Actors.Any(actor => actor.Id == placement.Actor) || !validPosition)
+                ActorState? actor = state.Actors.SingleOrDefault(candidate => candidate.Id == placement.Actor);
+                bool sceneAgreesWithLocation = state.Version < TinyFarmState.ContinuousSceneSaveVersion
+                    || actor is not null
+                    && TinyFarmScenes.SceneAgreesWithLocation(placement.Scene, actor.Location);
+                if (actor is null || !validPosition || !sceneAgreesWithLocation)
                 {
                     throw new InvalidDataException($"Actor '{placement.Actor}' has invalid scene placement.");
                 }

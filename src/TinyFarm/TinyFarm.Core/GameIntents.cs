@@ -4,6 +4,12 @@ public abstract record GameIntent;
 
 public sealed record MoveIntent(LocationId Destination) : GameIntent;
 
+public sealed record NavigateToAnchorIntent(SceneAnchorId Anchor) : GameIntent;
+
+public sealed record AnchorReachedIntent(SceneAnchorId Anchor) : GameIntent;
+
+public sealed record AnchorNavigationFailedIntent(SceneAnchorId Anchor, string Detail) : GameIntent;
+
 public sealed record SpatialMoveIntent(int DeltaX, int DeltaY, int Distance = 1) : GameIntent;
 
 public sealed record InteractIntent(SceneObjectId? Target = null) : GameIntent;
@@ -75,7 +81,10 @@ public enum IntentReason
     MovementBlocked,
     NoInteraction,
     NoInteractionTarget,
-    NavigationFailed
+    NavigationFailed,
+    MissingAnchor,
+    AnchorUnreachable,
+    InvalidAnchorRealization
 }
 
 public enum GameEventKind
@@ -97,7 +106,8 @@ public enum GameEventKind
     ShopRestocked,
     SceneExited,
     SceneEntered,
-    InteractionTargeted
+    InteractionTargeted,
+    AnchorReached
 }
 
 public enum DialogueTopic
@@ -126,7 +136,8 @@ public sealed record GameEvent(
     int? Day = null,
     SceneId? Scene = null,
     SceneRouteId? Route = null,
-    SceneObjectId? SceneObject = null);
+    SceneObjectId? SceneObject = null,
+    SceneAnchorId? Anchor = null);
 
 public sealed record IntentResult(IntentEnvelope Envelope, IntentResultStatus Status, IntentReason Reason, IReadOnlyList<GameEvent> Events);
 

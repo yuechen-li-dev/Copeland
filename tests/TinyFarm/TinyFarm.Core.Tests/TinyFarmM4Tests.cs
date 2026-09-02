@@ -17,8 +17,8 @@ public sealed class TinyFarmM4Tests
         {
             Assert.Contains(TinyFarmScenes.All, scene => scene.Id == route.TargetScene);
             Assert.Contains(
-                TinyFarmScenes.Get(route.TargetScene).Spawns,
-                spawn => spawn.Id == route.TargetSpawn);
+                TinyFarmScenes.Get(route.TargetScene).Anchors,
+                anchor => anchor.Id == route.TargetAnchor);
         });
     }
 
@@ -29,7 +29,7 @@ public sealed class TinyFarmM4Tests
             TinyFarmSceneIds.Farm,
             [Object("same"), Object("same")],
             [Layout("same", 1, 1), Layout("same", 2, 1)],
-            [new SceneSpawnDefinition(new SceneSpawnId("start"), new GridPosition(0, 0))],
+            [Anchor(TinyFarmSceneIds.Farm, "farm.start", 0, 0)],
             []);
         Assert.Throws<InvalidDataException>(() => TinyFarmScenes.Validate([duplicateObjects]));
 
@@ -37,13 +37,13 @@ public sealed class TinyFarmM4Tests
             TinyFarmSceneIds.Farm,
             [new SceneObjectDefinition(new SceneObjectId("door"), SceneObjectKind.Portal, "Door", false)],
             [Layout("door", 1, 1)],
-            [new SceneSpawnDefinition(new SceneSpawnId("start"), new GridPosition(0, 0))],
+            [Anchor(TinyFarmSceneIds.Farm, "farm.start", 0, 0)],
             [new SceneRoute(
                 new SceneRouteId("missing"),
                 TinyFarmSceneIds.Farm,
                 new SceneObjectId("door"),
                 new SceneId("missing"),
-                new SceneSpawnId("missing"),
+                new SceneAnchorId("missing.anchor"),
                 "ENTER")]);
         Assert.Throws<InvalidDataException>(() => TinyFarmScenes.Validate([invalidRoute]));
     }
@@ -211,10 +211,10 @@ public sealed class TinyFarmM4Tests
         SceneId id,
         IReadOnlyList<SceneObjectDefinition> objects,
         IReadOnlyList<SceneLayoutRow> layout,
-        IReadOnlyList<SceneSpawnDefinition> spawns,
+        IReadOnlyList<SceneAnchorDefinition> anchors,
         IReadOnlyList<SceneRoute> routes)
     {
-        return new SceneDefinition(id, id.Value, 4, 4, objects, layout, spawns, routes);
+        return new SceneDefinition(id, id.Value, 4, 4, objects, layout, anchors, routes);
     }
 
     private static SceneObjectDefinition Object(string id)
@@ -225,5 +225,14 @@ public sealed class TinyFarmM4Tests
     private static SceneLayoutRow Layout(string id, int x, int y)
     {
         return new SceneLayoutRow(new SceneObjectId(id), x, y, 1, 1, 0);
+    }
+
+    private static SceneAnchorDefinition Anchor(SceneId scene, string id, int x, int y)
+    {
+        return new SceneAnchorDefinition(
+            new SceneAnchorId(id),
+            scene,
+            ScenePosition.FromGrid(new GridPosition(x, y)),
+            SceneAnchorKind.Spawn);
     }
 }

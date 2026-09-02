@@ -10,6 +10,7 @@ bool runM1 = args.Contains("--m1", StringComparer.Ordinal);
 bool runM3 = args.Contains("--m3", StringComparer.Ordinal);
 bool runM4 = args.Contains("--m4", StringComparer.Ordinal);
 bool runM5 = args.Contains("--m5", StringComparer.Ordinal);
+bool runM6 = args.Contains("--m6", StringComparer.Ordinal);
 if (args.Contains("--single-week", StringComparer.Ordinal))
 {
     TinyFarmDefinitions singleDefinitions = TinyFarmDefinitionLoader.Load();
@@ -19,6 +20,8 @@ if (args.Contains("--single-week", StringComparer.Ordinal))
 }
 object proof = runM1
     ? TinyFarmCanonicalScenario.Prove()
+    : runM6
+        ? TinyFarmAnchorHandoffScenario.Prove().Proof
     : runM5
         ? TinyFarmContinuousScenario.Prove().Proof
     : runM4
@@ -28,6 +31,8 @@ object proof = runM1
         : TinyFarmWeekScenario.Prove();
 string json = runM1
     ? TinyFarmCanonicalScenario.WriteProofJson((TinyFarmM1Proof)proof)
+    : runM6
+        ? TinyFarmAnchorHandoffScenario.WriteJson((TinyFarmM6Proof)proof)
     : runM5
         ? TinyFarmContinuousScenario.WriteJson((TinyFarmM5Proof)proof)
     : runM4
@@ -60,6 +65,36 @@ if (runM3 || runM4)
             ? TinyFarmSceneScenario.Prove().FinalProjection
             : TinyFarmGraphicalScenario.Prove().FinalProjection;
         File.WriteAllText(path, TinyFarmFrameProjector.WriteJson(projection) + Environment.NewLine);
+    }
+}
+
+if (runM6)
+{
+    TinyFarmM6Evidence evidence = TinyFarmAnchorHandoffScenario.Prove();
+    int artifactIndex = Array.IndexOf(args, "--artifact-dir");
+    if (artifactIndex >= 0)
+    {
+        string directory = RequiredOutputPath(args, artifactIndex, "--artifact-dir");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, "proof.json"), TinyFarmAnchorHandoffScenario.WriteJson(evidence.Proof) + Environment.NewLine);
+        File.WriteAllText(Path.Combine(directory, "anchors.json"), TinyFarmAnchorHandoffScenario.WriteJson(evidence.Anchors) + Environment.NewLine);
+        File.WriteAllText(Path.Combine(directory, "handoff.json"), TinyFarmAnchorHandoffScenario.WriteJson(evidence.Handoff) + Environment.NewLine);
+        File.WriteAllText(Path.Combine(directory, "navigation.json"), TinyFarmAnchorHandoffScenario.WriteJson(evidence.Navigation) + Environment.NewLine);
+        File.WriteAllText(Path.Combine(directory, "manifest.json"), TinyFarmAnchorHandoffScenario.WriteJson(new
+        {
+            milestone = "TINY-FARM-M6",
+            kind = "semantic-scene-anchors-active-inactive-handoff",
+            npcGoalsUseSemanticAnchors = true,
+            hardcodedScheduleCoordinatesRemoved = true,
+            activeNpcUsesSpatialNavigation = true,
+            inactiveNpcUsesCoarseSimulation = true,
+            handoffDeterministic = true,
+            dotRecastStatePersisted = false,
+            rendererOwnsNpcState = false,
+            ecsAdded = false,
+            streamingSystemAdded = false,
+            sceneDslAdded = false
+        }) + Environment.NewLine);
     }
 }
 
@@ -115,7 +150,7 @@ if (runM4)
     }
 }
 
-if (!runM1 && !runM3 && !runM4)
+if (!runM1 && !runM3 && !runM4 && !runM5 && !runM6)
 {
     TinyFarmDefinitions artifactDefinitions = TinyFarmDefinitionLoader.Load();
     TinyFarmWeekRun artifactRun = TinyFarmWeekScenario.Run(artifactDefinitions, null);
@@ -162,6 +197,8 @@ if (!runM1 && !runM3 && !runM4)
 Console.WriteLine(json);
 string outcome = runM1
     ? ((TinyFarmM1Proof)proof).Outcome
+    : runM6
+        ? ((TinyFarmM6Proof)proof).Outcome
     : runM5
         ? ((TinyFarmM5Proof)proof).Outcome
     : runM4

@@ -277,9 +277,18 @@ public static class TinyFarmContent
             week.FarmPlots.ToList(),
             [
                 new(TinyFarmIds.Player, TinyFarmSceneIds.Farm, new GridPosition(6, 6)),
-                new(TinyFarmIds.Mara, TinyFarmSceneIds.Town, new GridPosition(12, 7)),
-                new(TinyFarmIds.Elias, TinyFarmSceneIds.Farm, new GridPosition(4, 7)),
-                new(TinyFarmIds.Sela, TinyFarmSceneIds.GeneralStore, new GridPosition(5, 3))
+                new(
+                    TinyFarmIds.Mara,
+                    TinyFarmSceneIds.Town,
+                    TinyFarmScenes.GetAnchor(TinyFarmAnchorIds.TownSquare).Position),
+                new(
+                    TinyFarmIds.Elias,
+                    TinyFarmSceneIds.Farm,
+                    TinyFarmScenes.GetAnchor(TinyFarmAnchorIds.FarmHome).Position),
+                new(
+                    TinyFarmIds.Sela,
+                    TinyFarmSceneIds.GeneralStore,
+                    TinyFarmScenes.GetAnchor(TinyFarmAnchorIds.StoreCounter).Position)
             ]);
     }
 

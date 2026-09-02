@@ -1,0 +1,240 @@
+[
+  {
+    "id": "farm.from-overworld",
+    "scene": "farm",
+    "position": {
+      "xUnits": 16896,
+      "yUnits": 6656,
+      "tile": {
+        "x": 16,
+        "y": 6
+      }
+    },
+    "kind": "Spawn",
+    "semanticLocation": null,
+    "semanticObject": null,
+    "facing": null,
+    "arrivalRadiusUnits": 128
+  },
+  {
+    "id": "farm.home",
+    "scene": "farm",
+    "position": {
+      "xUnits": 4608,
+      "yUnits": 7680,
+      "tile": {
+        "x": 4,
+        "y": 7
+      }
+    },
+    "kind": "Home",
+    "semanticLocation": "farmhouse",
+    "semanticObject": null,
+    "facing": null,
+    "arrivalRadiusUnits": 128
+  },
+  {
+    "id": "farm.start",
+    "scene": "farm",
+    "position": {
+      "xUnits": 6656,
+      "yUnits": 5632,
+      "tile": {
+        "x": 6,
+        "y": 5
+      }
+    },
+    "kind": "Spawn",
+    "semanticLocation": null,
+    "semanticObject": null,
+    "facing": null,
+    "arrivalRadiusUnits": 128
+  },
+  {
+    "id": "farm.work-area",
+    "scene": "farm",
+    "position": {
+      "xUnits": 6656,
+      "yUnits": 5632,
+      "tile": {
+        "x": 6,
+        "y": 5
+      }
+    },
+    "kind": "Work",
+    "semanticLocation": "farmhouse",
+    "semanticObject": null,
+    "facing": null,
+    "arrivalRadiusUnits": 128
+  },
+  {
+    "id": "general-store.counter",
+    "scene": "general-store",
+    "position": {
+      "xUnits": 5632,
+      "yUnits": 3584,
+      "tile": {
+        "x": 5,
+        "y": 3
+      }
+    },
+    "kind": "ShopCounter",
+    "semanticLocation": "general-store",
+    "semanticObject": "shop-counter",
+    "facing": null,
+    "arrivalRadiusUnits": 128
+  },
+  {
+    "id": "general-store.door",
+    "scene": "general-store",
+    "position": {
+      "xUnits": 5632,
+      "yUnits": 6656,
+      "tile": {
+        "x": 5,
+        "y": 6
+      }
+    },
+    "kind": "Spawn",
+    "semanticLocation": null,
+    "semanticObject": null,
+    "facing": null,
+    "arrivalRadiusUnits": 128
+  },
+  {
+    "id": "overworld.from-farm",
+    "scene": "overworld",
+    "position": {
+      "xUnits": 3584,
+      "yUnits": 7680,
+      "tile": {
+        "x": 3,
+        "y": 7
+      }
+    },
+    "kind": "Spawn",
+    "semanticLocation": null,
+    "semanticObject": null,
+    "facing": null,
+    "arrivalRadiusUnits": 128
+  },
+  {
+    "id": "overworld.from-riverside",
+    "scene": "overworld",
+    "position": {
+      "xUnits": 18944,
+      "yUnits": 9728,
+      "tile": {
+        "x": 18,
+        "y": 9
+      }
+    },
+    "kind": "Spawn",
+    "semanticLocation": null,
+    "semanticObject": null,
+    "facing": null,
+    "arrivalRadiusUnits": 128
+  },
+  {
+    "id": "overworld.from-town",
+    "scene": "overworld",
+    "position": {
+      "xUnits": 10752,
+      "yUnits": 5632,
+      "tile": {
+        "x": 10,
+        "y": 5
+      }
+    },
+    "kind": "Spawn",
+    "semanticLocation": null,
+    "semanticObject": null,
+    "facing": null,
+    "arrivalRadiusUnits": 128
+  },
+  {
+    "id": "riverside.from-overworld",
+    "scene": "riverside",
+    "position": {
+      "xUnits": 2560,
+      "yUnits": 5632,
+      "tile": {
+        "x": 2,
+        "y": 5
+      }
+    },
+    "kind": "Spawn",
+    "semanticLocation": null,
+    "semanticObject": null,
+    "facing": null,
+    "arrivalRadiusUnits": 128
+  },
+  {
+    "id": "riverside.meeting-point",
+    "scene": "riverside",
+    "position": {
+      "xUnits": 5632,
+      "yUnits": 5632,
+      "tile": {
+        "x": 5,
+        "y": 5
+      }
+    },
+    "kind": "Social",
+    "semanticLocation": "riverside",
+    "semanticObject": null,
+    "facing": null,
+    "arrivalRadiusUnits": 128
+  },
+  {
+    "id": "town.from-store",
+    "scene": "town",
+    "position": {
+      "xUnits": 16896,
+      "yUnits": 4608,
+      "tile": {
+        "x": 16,
+        "y": 4
+      }
+    },
+    "kind": "Spawn",
+    "semanticLocation": null,
+    "semanticObject": null,
+    "facing": null,
+    "arrivalRadiusUnits": 128
+  },
+  {
+    "id": "town.south-gate",
+    "scene": "town",
+    "position": {
+      "xUnits": 10752,
+      "yUnits": 12800,
+      "tile": {
+        "x": 10,
+        "y": 12
+      }
+    },
+    "kind": "Spawn",
+    "semanticLocation": null,
+    "semanticObject": null,
+    "facing": null,
+    "arrivalRadiusUnits": 128
+  },
+  {
+    "id": "town.square",
+    "scene": "town",
+    "position": {
+      "xUnits": 12800,
+      "yUnits": 7680,
+      "tile": {
+        "x": 12,
+        "y": 7
+      }
+    },
+    "kind": "Social",
+    "semanticLocation": "town-square",
+    "semanticObject": null,
+    "facing": null,
+    "arrivalRadiusUnits": 128
+  }
+]

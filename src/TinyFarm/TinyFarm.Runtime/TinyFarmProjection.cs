@@ -76,6 +76,19 @@ public static class TinyFarmCommandParser
         string[] parts = command.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
         string verb = parts[0].ToLowerInvariant();
 
+        if (verb == "go")
+        {
+            int targetStart = parts.Length > 1 && parts[1].Equals("to", StringComparison.OrdinalIgnoreCase)
+                ? 2
+                : 1;
+            if (targetStart >= parts.Length)
+            {
+                throw new FormatException("Use: go [to] <semantic anchor>.");
+            }
+            string target = string.Join('-', parts[targetStart..]).ToLowerInvariant();
+            return new NavigateToAnchorIntent(TinyFarmSemanticNavigation.ResolveAnchor(target));
+        }
+
         if (verb == "move"
             && (parts.Length == 3 || parts.Length == 4)
             && ParseDirection(parts[1]) is SpatialMoveIntent direction
@@ -103,7 +116,7 @@ public static class TinyFarmCommandParser
             "harvest" when parts.Length == 2 => new HarvestIntent(new FarmPlotId(parts[1])),
             "wait" when parts.Length == 2 && int.TryParse(parts[1], out int minutes) => new WaitIntent(minutes),
             _ => throw new FormatException(
-                "Use: look, move <left/right/up/down> [distance] [units], move <location>, interact, talk/take/buy/sell, buy-product/sell-product <product>, plant <plot> <crop>, water/harvest <plot>, or wait <minutes>.")
+                "Use: look, go [to] <semantic anchor>, move <left/right/up/down> [distance] [units], move <location>, interact, talk/take/buy/sell, buy-product/sell-product <product>, plant <plot> <crop>, water/harvest <plot>, or wait <minutes>.")
         };
     }
 
@@ -117,6 +130,37 @@ public static class TinyFarmCommandParser
             "down" or "south" => new SpatialMoveIntent(0, 1),
             _ => null
         };
+    }
+}
+
+public static class TinyFarmSemanticNavigation
+{
+    public static SceneAnchorId ResolveAnchor(string semanticReference)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(semanticReference);
+        string normalized = semanticReference.Trim().ToLowerInvariant().Replace(' ', '-');
+        SceneAnchorDefinition? exact = TinyFarmScenes.All
+            .SelectMany(scene => scene.Anchors)
+            .SingleOrDefault(anchor => anchor.Id.Value.Equals(normalized, StringComparison.Ordinal));
+        if (exact is not null)
+        {
+            return exact.Id;
+        }
+
+        return normalized switch
+        {
+            "store" or "store-counter" or "shop-counter" => TinyFarmAnchorIds.StoreCounter,
+            "farm" or "farm-work-area" => TinyFarmAnchorIds.FarmWorkArea,
+            "home" or "farm-home" or "farmhouse" => TinyFarmAnchorIds.FarmHome,
+            "town" or "town-square" => TinyFarmAnchorIds.TownSquare,
+            "river" or "riverside" or "riverside-meeting-point" => TinyFarmAnchorIds.RiversideMeetingPoint,
+            _ => new SceneAnchorId(normalized)
+        };
+    }
+
+    public static SceneAnchorId ResolveActor(ActorId actor, int minute)
+    {
+        return TinyFarmNpcController.ScheduledAnchor(actor, minute);
     }
 }
 

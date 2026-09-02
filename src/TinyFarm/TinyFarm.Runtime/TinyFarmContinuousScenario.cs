@@ -269,6 +269,6 @@ public static class TinyFarmContinuousScenario
             At(9, 7),
             ActorFacing.Left);
         int actorIndex = state.MutableActors.FindIndex(item => item.Id == TinyFarmIds.Elias);
-        state.MutableActors[actorIndex] = state.MutableActors[actorIndex] with { Location = TinyFarmIds.Riverside };
+        state.MutableActors[actorIndex] = state.MutableActors[actorIndex] with { Location = TinyFarmIds.Farmhouse };
     }
 }

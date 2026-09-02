@@ -1,0 +1,12 @@
+{
+  "activeSceneLaw": "the player\u0027s current scene selects detailed spatial fidelity",
+  "persistenceLaw": "exact ScenePosition always persists; navigation paths never persist",
+  "reconciliationLaw": "ActorState.Location identifies the coarse scene-scale place; ActorSceneState is its sole exact placement and must resolve to a compatible scene, including the authored Overworld transit exception",
+  "handoffLines": [
+    "deactivate:elias:farmhouse:farm:9472,7680:farm.work-area",
+    "activate:mara:general-store:general-store:5632,6528:general-store.counter",
+    "reenter:mara:general-store:general-store:5632,6400:general-store.counter"
+  ],
+  "activationDeterministic": true,
+  "highLevelEquivalent": true
+}

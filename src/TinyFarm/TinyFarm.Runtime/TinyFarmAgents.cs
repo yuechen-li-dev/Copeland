@@ -18,12 +18,15 @@ public sealed record AgentObservation(
     int Minute,
     IReadOnlyList<GameEventKind> RecentEvents,
     LocationId ScheduledDestination,
+    SceneAnchorId ScheduledAnchor,
+    bool HasReachedAnchor,
     bool ShouldBuySeed = false);
 
 public static partial class TinyFarmNpcFlow
 {
     private static readonly BbKey<string> CurrentLocation = new("TinyFarm.Observation.Location");
     private static readonly BbKey<string> Destination = new("TinyFarm.Observation.Destination");
+    private static readonly BbKey<bool> HasReachedAnchor = new("TinyFarm.Observation.HasReachedAnchor");
     private static readonly BbKey<string> SelectedAction = new("TinyFarm.Decision.Action");
     private static readonly BbKey<bool> ShouldBuySeed = new("TinyFarm.Observation.ShouldBuySeed");
 
@@ -70,6 +73,7 @@ public static partial class TinyFarmNpcFlow
         var agent = new AiAgent(Definition.CreateBrain());
         agent.Bb.Set(CurrentLocation, observation.Location.Value);
         agent.Bb.Set(Destination, observation.ScheduledDestination.Value);
+        agent.Bb.Set(HasReachedAnchor, observation.HasReachedAnchor);
         agent.Bb.Set(ShouldBuySeed, observation.ShouldBuySeed);
 
         var world = new AiWorld();
@@ -87,7 +91,7 @@ public static partial class TinyFarmNpcFlow
             string selected = agent.Bb.GetOrDefault(SelectedAction, string.Empty);
             if (selected == "move")
             {
-                return new MoveIntent(NextStep(observation.Location, observation.ScheduledDestination));
+                return new NavigateToAnchorIntent(observation.ScheduledAnchor);
             }
 
             if (selected == "idle")
@@ -108,22 +112,8 @@ public static partial class TinyFarmNpcFlow
     private static bool NeedsMove(AiAgent agent)
     {
         return agent.Bb.GetOrDefault(CurrentLocation, string.Empty) !=
-               agent.Bb.GetOrDefault(Destination, string.Empty);
-    }
-
-    private static LocationId NextStep(LocationId current, LocationId destination)
-    {
-        if (current == destination)
-        {
-            return current;
-        }
-
-        if (TinyFarmContent.Location(current).Exits.Contains(destination))
-        {
-            return destination;
-        }
-
-        return TinyFarmIds.TownSquare;
+               agent.Bb.GetOrDefault(Destination, string.Empty)
+            || !agent.Bb.GetOrDefault(HasReachedAnchor, false);
     }
 }
 
@@ -142,7 +132,11 @@ public static class TinyFarmNpcController
                      .Where(candidate => !candidate.IsPlayer)
                      .OrderBy(candidate => candidate.Id.Value, StringComparer.Ordinal))
         {
-            LocationId destination = ScheduledDestination(actor.Id, observationMinute);
+            SceneAnchorId scheduledAnchor = ScheduledAnchor(actor.Id, observationMinute);
+            SceneAnchorDefinition anchor = TinyFarmScenes.GetAnchor(scheduledAnchor);
+            LocationId destination = anchor.SemanticLocation
+                ?? throw new InvalidDataException($"NPC schedule anchor '{scheduledAnchor}' has no semantic location.");
+            bool hasReachedAnchor = HasReachedAnchor(state, actor.Id, anchor);
             var observation = new AgentObservation(
                 actor.Id,
                 actor.Location,
@@ -155,6 +149,8 @@ public static class TinyFarmNpcController
                 observationMinute,
                 recentEvents.Select(gameEvent => gameEvent.Kind).ToArray(),
                 destination,
+                scheduledAnchor,
+                hasReachedAnchor,
                 actor.Id == TinyFarmIds.Mara
                     && observationMinute / 1440 + 1 == 6
                     && actor.Location == TinyFarmIds.GeneralStore
@@ -175,6 +171,12 @@ public static class TinyFarmNpcController
 
     public static LocationId ScheduledDestination(ActorId actor, int minute)
     {
+        return TinyFarmScenes.GetAnchor(ScheduledAnchor(actor, minute)).SemanticLocation
+            ?? throw new InvalidDataException($"NPC schedule anchor for '{actor}' has no semantic location.");
+    }
+
+    public static SceneAnchorId ScheduledAnchor(ActorId actor, int minute)
+    {
         int minuteOfDay = minute % (24 * 60);
         int day = minute / (24 * 60) + 1;
 
@@ -182,32 +184,48 @@ public static class TinyFarmNpcController
         {
             if (day == 6 && minuteOfDay >= 9 * 60 && minuteOfDay < 17 * 60)
             {
-                return TinyFarmIds.GeneralStore;
+                return TinyFarmAnchorIds.StoreCounter;
             }
 
             if (day == 7 && minuteOfDay >= 10 * 60 && minuteOfDay < 17 * 60)
             {
-                return TinyFarmIds.Riverside;
+                return TinyFarmAnchorIds.RiversideMeetingPoint;
             }
             if (minuteOfDay < 12 * 60)
             {
-                return TinyFarmIds.TownSquare;
+                return TinyFarmAnchorIds.TownSquare;
             }
 
             return minuteOfDay < 17 * 60
-                ? TinyFarmIds.Riverside
-                : TinyFarmIds.Farmhouse;
+                ? TinyFarmAnchorIds.RiversideMeetingPoint
+                : TinyFarmAnchorIds.FarmHome;
         }
 
         if (actor == TinyFarmIds.Elias)
         {
             return minuteOfDay >= 12 * 60 && minuteOfDay < 18 * 60
-                ? TinyFarmIds.Riverside
-                : TinyFarmIds.Farmhouse;
+                ? TinyFarmAnchorIds.RiversideMeetingPoint
+                : TinyFarmAnchorIds.FarmWorkArea;
         }
 
         return minuteOfDay >= 8 * 60 && minuteOfDay < 18 * 60
-            ? TinyFarmIds.GeneralStore
-            : TinyFarmIds.Farmhouse;
+            ? TinyFarmAnchorIds.StoreCounter
+            : TinyFarmAnchorIds.FarmHome;
+    }
+
+    private static bool HasReachedAnchor(
+        TinyFarmState state,
+        ActorId actor,
+        SceneAnchorDefinition anchor)
+    {
+        if (state.Version < TinyFarmState.SceneSaveVersion)
+        {
+            return state.Actor(actor).Location == anchor.SemanticLocation;
+        }
+
+        ActorSceneState placement = state.ActorScene(actor);
+        long radiusSquared = (long)anchor.ArrivalRadiusUnits * anchor.ArrivalRadiusUnits;
+        return placement.Scene == anchor.Scene
+            && placement.WorldPosition.SquaredDistance(anchor.Position) <= radiusSquared;
     }
 }

@@ -1,0 +1,11 @@
+{
+  "lowering": "Dominatus goal -\u003E SceneAnchorId -\u003E authored anchor -\u003E ScenePosition -\u003E INavigationPlanner -\u003E DotRecast -\u003E SpatialMoveIntent",
+  "plansBeforeExit": 1,
+  "finalPlanCount": 3,
+  "inactiveUsedNoNavigation": true,
+  "pathStatePersisted": false,
+  "failures": [
+    "MissingAnchor",
+    "AnchorUnreachable"
+  ]
+}
