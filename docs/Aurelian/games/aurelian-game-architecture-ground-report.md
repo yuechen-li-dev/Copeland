@@ -116,3 +116,18 @@ M1 explicitly excludes a window, art, audio, Machina, Oblivion transport, LLM ca
 ## Stop conditions for M1
 
 Stop honestly if the game-domain save chunk cannot round-trip alongside a Dominatus checkpoint, if restoring agent identity cannot be mapped deterministically, or if the same resolver cannot accept both player and agent intents without changing Dominatus Core. Those are the only findings that would invalidate the composition thesis; renderer/UI incompleteness does not.
+
+## M1 evidence update — 2026-09-01
+
+TINY-FARM-M1 replaced the earlier seven-day farming proposal with the smaller headless Ariadne adventure requested by the milestone. The implementation is in `src/TinyFarm` and its proof is in `artifacts/tiny-farm-m1/proof.json`.
+
+The central M0 thesis survived: one game-owned state plus closed typed intents, stable ordering, a single resolver, semantic results, and save composition is enough to make a complete small game. The player and three scheduled NPCs live through a ten-hour day; the player moves, talks, trades, takes and gives items, completes a favor, saves, reloads, and replays to the same canonical hash. Two NPCs move autonomously during a wait, and a player/NPC collision over the same item has one stable winner.
+
+Two M0 details changed:
+
+- Dominatus 1.0.0 source generation removed the need to hand-author flow-definition graphs. TinyFarm authors three attributed NPC states and one attributed Ariadne state; generated factories construct both definitions.
+- A persistent Dominatus checkpoint is unnecessary for this slice. NPC decisions are observation-pure and use fresh bounded flow instances; physical/economic truth never enters a blackboard. The save therefore records the game, deterministic sequence cursor, recent semantic events, and explicit agent/narrative composition metadata. A future persistent-memory agent is the threshold for adding a Dominatus checkpoint.
+
+No new shared Aurelian abstraction was justified. TinyFarm.Runtime reuses Aurelian's existing sequential Dominatus world runner. Intent envelopes, ordering, saves, clocks, and hashing remain game-local until a second non-TinyFarm game demonstrates the same contract. TinyFarm.Core has no package or project dependencies.
+
+The evidence recommends **M2 A: a headless deterministic week with farming/economy**. The next bounded work is crop definitions and plant/water/harvest/day-transition rules on this resolver and save model. Graphics, ECS, generalized persistence, and UI remain outside that milestone.

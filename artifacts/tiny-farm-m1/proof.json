@@ -1,0 +1,17 @@
+{
+  "Milestone": "TINY-FARM-M1",
+  "Outcome": "A",
+  "FinalHash": "dcc35869aba0eba979725b1871d0babfe127383123a1a5f665b666bc3488d333",
+  "RepeatedRunMatches": true,
+  "SaveReloadMatches": true,
+  "ResultSequenceMatches": true,
+  "ConflictWinner": "mara",
+  "ConflictRejected": 1,
+  "AutonomousNpcMoves": 2,
+  "InvalidIntentReason": "ItemNotOwned",
+  "AriadneLines": 4,
+  "CanonicalIntents": 16,
+  "SaveBytes": 3888,
+  "ReplayBytes": 5831,
+  "CanonicalDayMicroseconds": 109232
+}

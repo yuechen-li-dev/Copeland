@@ -1,0 +1,48 @@
+name: TinyFarm headless M1
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  semantic-proof:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build and test headless game
+        shell: pwsh
+        run: dotnet test TinyFarm.slnx -c Release --nologo
+
+      - name: Run canonical day, replay, and save proof
+        shell: pwsh
+        run: |
+          $proofPath = Join-Path $env:RUNNER_TEMP "tiny-farm-m1-proof.json"
+          dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --proof-json $proofPath
+          if ($LASTEXITCODE -ne 0) {
+            throw "TinyFarm canonical proof failed."
+          }
+
+          $proof = Get-Content -Raw -LiteralPath $proofPath | ConvertFrom-Json
+          if ($proof.Outcome -ne "A" -or
+              -not $proof.RepeatedRunMatches -or
+              -not $proof.SaveReloadMatches -or
+              -not $proof.ResultSequenceMatches -or
+              $proof.AutonomousNpcMoves -lt 2 -or
+              $proof.ConflictRejected -ne 1) {
+            throw "TinyFarm proof did not satisfy the M1 semantic contract."
+          }
+
+          if ((Get-Item -LiteralPath $proofPath).Length -gt 262144) {
+            throw "TinyFarm proof exceeded the compact artifact budget."
+          }
+
+      - name: Enforce repository artifact budget
+        shell: pwsh
+        run: ./tools/Test-ArtifactBudget.ps1 -Paths @()
