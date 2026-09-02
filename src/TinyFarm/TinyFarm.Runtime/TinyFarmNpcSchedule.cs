@@ -345,7 +345,7 @@ public static partial class TinyFarmNpcSchedule
             double candidateScore = CandidateScore(candidate, currentAnchor, energy);
             if (candidateScore > winningScore
                 || (candidateScore == winningScore
-                    && AnchorOptionOrder(candidate.Anchor) < AnchorOptionOrder(winner.Anchor)))
+                    && CandidateOptionOrder(candidate) < CandidateOptionOrder(winner)))
             {
                 winner = candidate;
                 winningScore = candidateScore;
@@ -353,6 +353,13 @@ public static partial class TinyFarmNpcSchedule
         }
 
         return winner.Anchor;
+    }
+
+    private static int CandidateOptionOrder(TinyFarmUtilityCandidate candidate)
+    {
+        return candidate.ConsiderationKind == "energy-rest"
+            ? AnchorOptionOrder(TinyFarmAnchorIds.FarmHome)
+            : AnchorOptionOrder(candidate.Anchor);
     }
 
     private static TinyFarmUtilityScore[] MaterializeScores(
@@ -471,18 +478,18 @@ public static partial class TinyFarmNpcSchedule
     private sealed class ActorScheduleRuntime
     {
         private readonly ActorId _actor;
-        private readonly AiWorld _world = new();
-        private readonly AiAgent _agent;
+        private readonly TinyFarmScheduleCatalog _catalog;
+        private AiWorld _world = null!;
+        private AiAgent _agent = null!;
         private readonly object _gate = new();
         private readonly EnergyObservation _energy = new();
+        private SceneAnchorId? _lastExpectedAnchor;
 
         public ActorScheduleRuntime(ActorId actor, TinyFarmScheduleCatalog catalog)
         {
             _actor = actor;
-            _agent = new AiAgent(Definition.CreateBrain());
-            _agent.Bb.Set(ScheduleCatalog, catalog);
-            _agent.Bb.Set(Energy, _energy);
-            _world.Add(_agent);
+            _catalog = catalog;
+            ResetAgent();
         }
 
         public SceneAnchorId Decide(
@@ -493,9 +500,20 @@ public static partial class TinyFarmNpcSchedule
         {
             lock (_gate)
             {
+                string currentAnchorValue = currentAnchor?.Value ?? string.Empty;
+                bool decisionInvalidated = _lastExpectedAnchor != expectedAnchor;
+                if (decisionInvalidated && _lastExpectedAnchor is not null)
+                {
+                    ResetAgent();
+                }
                 _agent.Bb.Set(ActiveWindow, window);
-                _agent.Bb.Set(CurrentAnchor, currentAnchor?.Value ?? string.Empty);
+                _agent.Bb.Set(CurrentAnchor, currentAnchorValue);
                 _energy.Value = energy;
+                if (decisionInvalidated)
+                {
+                    _agent.Bb.Set(SelectedAnchor, string.Empty);
+                    _lastExpectedAnchor = expectedAnchor;
+                }
                 for (int tick = 0; tick < 8; tick++)
                 {
                     _agent.Tick(_world);
@@ -507,8 +525,19 @@ public static partial class TinyFarmNpcSchedule
                 }
 
                 throw new InvalidOperationException(
-                    $"Dominatus did not produce a bounded schedule decision for actor '{_actor}'.");
+                    $"Dominatus did not produce expected anchor '{expectedAnchor}' for actor '{_actor}' "
+                    + $"in window '{window.Id}' from current anchor '{currentAnchorValue}' at Energy {energy}; "
+                    + $"last selected '{_agent.Bb.GetOrDefault(SelectedAnchor, string.Empty)}'.");
             }
+        }
+
+        private void ResetAgent()
+        {
+            _world = new AiWorld();
+            _agent = new AiAgent(Definition.CreateBrain());
+            _agent.Bb.Set(ScheduleCatalog, _catalog);
+            _agent.Bb.Set(Energy, _energy);
+            _world.Add(_agent);
         }
     }
 

@@ -95,6 +95,31 @@ if (args.Contains("--m12-control", StringComparer.Ordinal))
     return;
 }
 
+if (args.Contains("--m13-control", StringComparer.Ordinal))
+{
+    RunM13Control();
+    return;
+}
+
+if (args.Contains("--m13", StringComparer.Ordinal))
+{
+    TinyFarmM13Evidence evidence = TinyFarmSimulationScenario.Prove();
+    int artifactIndex = Array.IndexOf(args, "--artifact-dir");
+    if (artifactIndex >= 0)
+    {
+        string directory = RequiredOutputPath(args, artifactIndex, "--artifact-dir");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, "proof.json"), TinyFarmSimulationScenario.WriteJson(evidence.Proof) + Environment.NewLine);
+        File.WriteAllText(Path.Combine(directory, "timing.json"), TinyFarmSimulationScenario.WriteJson(evidence.Timing) + Environment.NewLine);
+        File.WriteAllText(Path.Combine(directory, "rates.json"), TinyFarmSimulationScenario.WriteJson(evidence.Rates) + Environment.NewLine);
+        File.WriteAllText(Path.Combine(directory, "simulation-dto.tson"), evidence.SimulationDtoTson);
+        File.WriteAllText(Path.Combine(directory, "manifest.json"), TinyFarmSimulationScenario.WriteJson(evidence.Manifest) + Environment.NewLine);
+    }
+    Console.WriteLine(TinyFarmSimulationScenario.WriteJson(evidence.Proof));
+    Environment.ExitCode = evidence.Proof.Outcome == "A" ? 0 : 1;
+    return;
+}
+
 bool runM1 = args.Contains("--m1", StringComparer.Ordinal);
 bool runM3 = args.Contains("--m3", StringComparer.Ordinal);
 bool runM4 = args.Contains("--m4", StringComparer.Ordinal);
@@ -536,6 +561,71 @@ static void RunM12Control()
             Console.WriteLine(TinyFarmInspector.WriteJson(session, lastResults));
         }
         catch (Exception exception) when (exception is FormatException or IOException or InvalidDataException)
+        {
+            Console.WriteLine($"ERROR: {exception.Message}");
+        }
+    }
+}
+
+static void RunM13Control()
+{
+    TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.LoadM12();
+    var host = new TinyFarmSimulationHost(
+        new TinyFarmSession(TinyFarmContent.CreateEnergySceneState(definitions), definitions),
+        definitions);
+    IReadOnlyList<IntentResult> lastResults = [];
+    Console.WriteLine("TinyFarm M13 control ready. Commands: pause, play, fast-forward, advance <minutes>, host-ms <milliseconds>, inspect, snapshot-tson, quit.");
+
+    while (Console.ReadLine() is string line)
+    {
+        string command = line.Trim();
+        if (command.Length == 0)
+        {
+            continue;
+        }
+        if (command.Equals("quit", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        try
+        {
+            if (command.Equals("inspect", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine(TinyFarmInspector.WriteJson(host.Session, lastResults));
+                continue;
+            }
+            if (command.Equals("snapshot-tson", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.Write(TinyFarmSimulationSnapshotProjector.WriteCanonicalTson(host.Snapshot()));
+                continue;
+            }
+            if (command.StartsWith("host-ms ", StringComparison.OrdinalIgnoreCase)
+                && long.TryParse(command["host-ms ".Length..], out long milliseconds)
+                && milliseconds >= 0)
+            {
+                TinyFarmHostAdvanceResult result = host.AdvanceHostTime(TimeSpan.FromMilliseconds(milliseconds));
+                lastResults = result.Results;
+                Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    mode = host.Mode,
+                    result.WorldMinutesAdvanced,
+                    result.LocomotionStepsAdvanced,
+                    stateHash = TinyFarmSemanticHash.Compute(host.Session.State)
+                }));
+                continue;
+            }
+
+            host.Execute(TinyFarmSimulationCommandParser.Parse(command));
+            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new
+            {
+                mode = host.Mode,
+                day = host.Session.State.Day,
+                minute = host.Session.State.Minute,
+                stateHash = TinyFarmSemanticHash.Compute(host.Session.State)
+            }));
+        }
+        catch (Exception exception) when (exception is FormatException or IOException or InvalidDataException or ArgumentOutOfRangeException)
         {
             Console.WriteLine($"ERROR: {exception.Message}");
         }

@@ -13,10 +13,12 @@ internal static class TinyFarmLlmControl
     public static void Run(string[] args)
     {
         TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.LoadM12();
-        var session = new TinyFarmSession(TinyFarmContent.CreateEnergySceneState(definitions), definitions);
+        var host = new TinyFarmSimulationHost(
+            new TinyFarmSession(TinyFarmContent.CreateEnergySceneState(definitions), definitions),
+            definitions);
         string savePath = ReadOption(args, "--save-file")
             ?? Path.Combine(Environment.CurrentDirectory, "tiny-farm.save");
-        WriteResponse("ready", null, session, definitions, []);
+        WriteResponse("ready", null, host, definitions, []);
 
         while (Console.ReadLine() is string line)
         {
@@ -30,21 +32,21 @@ internal static class TinyFarmLlmControl
             {
                 if (command.Equals("quit", StringComparison.OrdinalIgnoreCase))
                 {
-                    WriteResponse("quit", null, session, definitions, []);
+                    WriteResponse("quit", null, host, definitions, []);
                     return;
                 }
 
                 if (command.Equals("inspect", StringComparison.OrdinalIgnoreCase))
                 {
-                    WriteResponse("inspect", null, session, definitions, []);
+                    WriteResponse("inspect", null, host, definitions, []);
                     continue;
                 }
 
                 if (command.StartsWith("scenario ", StringComparison.OrdinalIgnoreCase))
                 {
                     string phase = command["scenario ".Length..].Trim();
-                    session = new TinyFarmSession(TinyFarmM12ControlStates.Create(definitions, phase), definitions);
-                    WriteResponse("scenario", phase, session, definitions, []);
+                    host.ReplaceSession(new TinyFarmSession(TinyFarmM12ControlStates.Create(definitions, phase), definitions));
+                    WriteResponse("scenario", phase, host, definitions, []);
                     continue;
                 }
 
@@ -52,21 +54,31 @@ internal static class TinyFarmLlmControl
                 {
                     string fullPath = Path.GetFullPath(savePath);
                     Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
-                    File.WriteAllBytes(fullPath, session.CaptureWeekSave());
-                    WriteResponse("saved", fullPath, session, definitions, []);
+                    File.WriteAllBytes(fullPath, host.Session.CaptureWeekSave());
+                    WriteResponse("saved", fullPath, host, definitions, []);
                     continue;
                 }
 
                 if (command.Equals("load", StringComparison.OrdinalIgnoreCase))
                 {
                     string fullPath = Path.GetFullPath(savePath);
-                    session = TinyFarmChunkedSaveCodec.Read(File.ReadAllBytes(fullPath), definitions);
-                    WriteResponse("loaded", fullPath, session, definitions, []);
+                    host.ReplaceSession(TinyFarmChunkedSaveCodec.Read(File.ReadAllBytes(fullPath), definitions));
+                    WriteResponse("loaded", fullPath, host, definitions, []);
                     continue;
                 }
 
-                TinyFarmStepResult step = session.Step(TinyFarmCommandParser.Parse(command));
-                WriteResponse("stepped", command, session, definitions, step.Narrative, step.Results);
+                if (command.Equals("pause", StringComparison.OrdinalIgnoreCase)
+                    || command.Equals("play", StringComparison.OrdinalIgnoreCase)
+                    || command.Equals("fast-forward", StringComparison.OrdinalIgnoreCase)
+                    || command.StartsWith("advance ", StringComparison.OrdinalIgnoreCase))
+                {
+                    host.Execute(TinyFarmSimulationCommandParser.Parse(command));
+                    WriteResponse("controlled", command, host, definitions, []);
+                    continue;
+                }
+
+                TinyFarmStepResult step = host.ExecuteIntent(TinyFarmCommandParser.Parse(command));
+                WriteResponse("stepped", command, host, definitions, step.Narrative, step.Results);
             }
             catch (Exception exception) when (exception is FormatException or IOException or InvalidDataException)
             {
@@ -83,11 +95,12 @@ internal static class TinyFarmLlmControl
     private static void WriteResponse(
         string status,
         string? command,
-        TinyFarmSession session,
+        TinyFarmSimulationHost host,
         TinyFarmDefinitions definitions,
         IReadOnlyList<NarrativeLine> narrative,
         IReadOnlyList<IntentResult>? results = null)
     {
+        TinyFarmSession session = host.Session;
         TinyFarmFrame frame = TinyFarmFrameProjector.Project(session.State, definitions, narrative);
         Console.WriteLine(JsonSerializer.Serialize(new
         {
@@ -95,6 +108,8 @@ internal static class TinyFarmLlmControl
             command,
             stateHash = TinyFarmSemanticHash.Compute(session.State),
             projectionHash = TinyFarmFrameProjector.ComputeHash(frame),
+            simulationMode = host.Mode,
+            simulationSnapshot = host.Snapshot(),
             results = results?.Select(result => new
             {
                 actor = result.Envelope.Actor.Value,

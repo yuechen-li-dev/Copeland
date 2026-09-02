@@ -1,0 +1,14 @@
+{
+  "milestone": "TINY-FARM-M13",
+  "kind": "simulation-host-multirate-clock-tson-control",
+  "existingInfrastructureAuditedFirst": true,
+  "duplicateClockInfrastructureAdded": false,
+  "rendererAdvancesGameTimeDirectly": false,
+  "simulationHostSharedByHeadlessAndGraphical": true,
+  "pausePlayFastForwardSemantic": true,
+  "renderRateIndependent": true,
+  "locomotionFixedStepIndependent": true,
+  "worldMinuteRateIndependent": true,
+  "agentDecisionRateIndependent": true,
+  "tsonSimulationDtoAddedOrFormalized": true
+}

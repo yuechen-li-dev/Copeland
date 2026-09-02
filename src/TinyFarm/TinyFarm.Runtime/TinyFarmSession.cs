@@ -19,6 +19,7 @@ public sealed class TinyFarmSession
     private int navigationPlanCount;
     private int activationCount;
     private int deactivationCount;
+    private long decisionEvaluationCount;
 
     public TinyFarmSession(TinyFarmState state)
         : this(state, TinyFarmDefinitionLoader.Load(), 0, [])
@@ -66,8 +67,14 @@ public sealed class TinyFarmSession
     public int NavigationPlanCount => navigationPlanCount;
     public int ActivationCount => activationCount;
     public int DeactivationCount => deactivationCount;
+    public long DecisionEvaluationCount => decisionEvaluationCount;
 
     public TinyFarmStepResult Step(GameIntent humanIntent)
+    {
+        return Step(humanIntent, evaluateNpcDecisions: true);
+    }
+
+    public TinyFarmStepResult Step(GameIntent humanIntent, bool evaluateNpcDecisions)
     {
         ArgumentNullException.ThrowIfNull(humanIntent);
 
@@ -87,14 +94,20 @@ public sealed class TinyFarmSession
                 IntentSourceKind.Human)
         };
 
-        IReadOnlyList<IntentEnvelope> npcIntents = TinyFarmNpcController.ObserveDecideAndSubmit(
-            State,
-            recentEvents,
-            nextSequence,
-            observationMinute,
-            Scenes,
-            definitions!.Schedules,
-            scheduleRuntime);
+        IReadOnlyList<IntentEnvelope> npcIntents = evaluateNpcDecisions
+            ? TinyFarmNpcController.ObserveDecideAndSubmit(
+                State,
+                recentEvents,
+                nextSequence,
+                observationMinute,
+                Scenes,
+                definitions!.Schedules,
+                scheduleRuntime)
+            : [];
+        if (evaluateNpcDecisions)
+        {
+            decisionEvaluationCount += State.Actors.Count(actor => !actor.IsPlayer);
+        }
         envelopes.AddRange(npcIntents);
         nextSequence += npcIntents.Count;
 

@@ -1,0 +1,13 @@
+{
+  "hostTime": "TimeSpan ticks supplied by the caller",
+  "renderFrames": 3600,
+  "locomotionSteps": 3600,
+  "worldMinutes": 12,
+  "npcDecisions": 36,
+  "dotRecastQueries": 0,
+  "liveFatigueDotRecastQueries": 4,
+  "sixtyHzHash": "17668749192d69a8bd6b4d28961df9c5710b96bed7e702bda64aa213a95cc650",
+  "oneFortyFourHzHash": "17668749192d69a8bd6b4d28961df9c5710b96bed7e702bda64aa213a95cc650",
+  "irregularHash": "05f3ea580663de344a0e5dfbd63a338ee794ae6da6356373fbb514064bcc4551",
+  "evenHash": "05f3ea580663de344a0e5dfbd63a338ee794ae6da6356373fbb514064bcc4551"
+}

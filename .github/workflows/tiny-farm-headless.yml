@@ -272,6 +272,47 @@ jobs:
             throw "TinyFarm M12 CLI control smoke test failed."
           }
 
+      - name: Validate M13 simulation host and controls
+        shell: pwsh
+        run: |
+          $artifactDirectory = Join-Path $env:RUNNER_TEMP "tiny-farm-m13"
+          dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --m13 --artifact-dir $artifactDirectory
+          if ($LASTEXITCODE -ne 0) {
+            throw "TinyFarm M13 simulation-host proof failed."
+          }
+
+          $proof = Get-Content -Raw -LiteralPath (Join-Path $artifactDirectory "proof.json") | ConvertFrom-Json
+          if ($proof.outcome -ne "A" -or
+              $proof.reuseDecision -ne "TINYFARM_LOCAL_HOST_ONLY" -or
+              -not $proof.pausedFreezes -or
+              -not $proof.playRateExact -or
+              -not $proof.fastForwardRateExact -or
+              -not $proof.sixtyVsOneFortyFourEquivalent -or
+              -not $proof.irregularEquivalent -or
+              -not $proof.saveLoadResetsAccumulator -or
+              -not $proof.fatigueRestRecoveryDeparture -or
+              -not $proof.m12Regression) {
+            throw "TinyFarm M13 proof did not satisfy the simulation-host contract."
+          }
+
+          $expectedFiles = @("manifest.json", "proof.json", "rates.json", "simulation-dto.tson", "timing.json")
+          $artifactFiles = @(Get-ChildItem -LiteralPath $artifactDirectory -File | Sort-Object Name)
+          if ($artifactFiles.Count -ne 5 -or
+              (Compare-Object $expectedFiles $artifactFiles.Name) -or
+              ($artifactFiles | Where-Object Length -gt 262144)) {
+            throw "TinyFarm M13 evidence exceeded the compact five-file artifact budget."
+          }
+
+          $controlOutput = @("play", "host-ms 5000", "fast-forward", "advance 2", "pause", "quit") |
+            dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --m13-control |
+            Out-String
+          if ($LASTEXITCODE -ne 0 -or
+              $controlOutput -notmatch '"WorldMinutesAdvanced":1' -or
+              $controlOutput -notmatch '"mode":2' -or
+              $controlOutput -notmatch '"mode":0') {
+            throw "TinyFarm M13 CLI control smoke test failed."
+          }
+
       - name: Enforce repository artifact budget
         shell: pwsh
         run: ./tools/Test-ArtifactBudget.ps1 -Paths @()

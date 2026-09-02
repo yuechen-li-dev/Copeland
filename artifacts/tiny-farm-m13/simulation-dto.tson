@@ -1,0 +1,104 @@
+const $schema: string = "copeland://tiny-farm/simulation-snapshot/v1";
+
+record ActorId {
+    value: string;
+}
+
+record ActorSnapshot {
+    id: ActorId;
+    scene: SceneId;
+    xUnits: number;
+    yUnits: number;
+    energy: number;
+    isResting: boolean;
+    regime: ScheduleRegime;
+    goal: SceneAnchorId;
+}
+
+record SceneAnchorId {
+    value: string;
+}
+
+record SceneId {
+    value: string;
+}
+
+enum ScheduleRegime {
+    Required,
+    Open,
+}
+
+enum SimulationMode {
+    Paused,
+    Playing,
+    FastForward,
+}
+
+record SimulationSnapshot {
+    version: string;
+    simulationMode: SimulationMode;
+    day: number;
+    minute: number;
+    activeScene: string;
+    actors: ActorSnapshot[];
+    stateHash: string;
+}
+
+const $value = $record.SimulationSnapshot({
+    "version": "tiny-farm-simulation@1",
+    "simulationMode": SimulationMode.Paused,
+    "day": $number("3FF0000000000000"),
+    "minute": $number("407EB00000000000"),
+    "activeScene": "residence",
+    "actors": [
+        $record.ActorSnapshot({
+            "id": $record.ActorId({
+                "value": "elias",
+            }),
+            "scene": $record.SceneId({
+                "value": "farm",
+            }),
+            "xUnits": $number("40BA000000000000"),
+            "yUnits": $number("40B6000000000000"),
+            "energy": $number("40C1680000000000"),
+            "isResting": false,
+            "regime": ScheduleRegime.Required,
+            "goal": $record.SceneAnchorId({
+                "value": "farm.work-area",
+            }),
+        }),
+        $record.ActorSnapshot({
+            "id": $record.ActorId({
+                "value": "mara",
+            }),
+            "scene": $record.SceneId({
+                "value": "town",
+            }),
+            "xUnits": $number("40C9000000000000"),
+            "yUnits": $number("40BE000000000000"),
+            "energy": $number("40C1680000000000"),
+            "isResting": false,
+            "regime": ScheduleRegime.Required,
+            "goal": $record.SceneAnchorId({
+                "value": "town.square",
+            }),
+        }),
+        $record.ActorSnapshot({
+            "id": $record.ActorId({
+                "value": "sela",
+            }),
+            "scene": $record.SceneId({
+                "value": "general-store",
+            }),
+            "xUnits": $number("40B6000000000000"),
+            "yUnits": $number("40AC000000000000"),
+            "energy": $number("40C1680000000000"),
+            "isResting": false,
+            "regime": ScheduleRegime.Required,
+            "goal": $record.SceneAnchorId({
+                "value": "general-store.counter",
+            }),
+        }),
+    ],
+    "stateHash": "0bc078d0906d78a71c55efef8500e09a79cd12ebe20512fa6cf170ae5c6bdae4",
+});

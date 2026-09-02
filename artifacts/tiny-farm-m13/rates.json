@@ -1,0 +1,7 @@
+{
+  "normalRealSecondsPerGameMinute": 5,
+  "fastForwardMultiplier": 10,
+  "locomotionHz": 60,
+  "maximumHostDeltaSeconds": 5,
+  "backlogPolicy": "discard host delta beyond the clamp; never retain catch-up debt"
+}

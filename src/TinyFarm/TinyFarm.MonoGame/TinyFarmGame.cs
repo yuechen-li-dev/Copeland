@@ -8,13 +8,13 @@ internal sealed class TinyFarmGame : Game
     private readonly GraphicsDeviceManager graphics;
     private readonly TinyFarmDefinitions definitions;
     private readonly string savePath;
-    private TinyFarmSession session;
+    private readonly TinyFarmSimulationHost simulationHost;
+    private TinyFarmSession session => simulationHost.Session;
     private SpriteBatch? spriteBatch;
     private Texture2D? pixel;
     private KeyboardState previousKeyboard;
     private IReadOnlyList<NarrativeLine> narrative = [];
     private string status = "Welcome to TinyFarm";
-    private readonly FixedMovementStepper movementStepper = new();
 
     public TinyFarmGame(string[] args)
     {
@@ -24,11 +24,13 @@ internal sealed class TinyFarmGame : Game
             PreferredBackBufferHeight = ReadIntOption(args, "--height", 1440),
             SynchronizeWithVerticalRetrace = true
         };
-        Window.Title = "TinyFarm M5 - Continuous Navigation";
+        Window.Title = "TinyFarm M13 - Hosted Simulation";
         Window.AllowUserResizing = true;
         IsMouseVisible = true;
         definitions = TinyFarmDefinitionLoader.LoadM12();
-        session = new TinyFarmSession(TinyFarmContent.CreateEnergySceneState(definitions), definitions);
+        simulationHost = new TinyFarmSimulationHost(
+            new TinyFarmSession(TinyFarmContent.CreateEnergySceneState(definitions), definitions),
+            definitions);
         savePath = ReadOption(args, "--save-file")
             ?? Path.Combine(Environment.CurrentDirectory, "tiny-farm.save");
     }
@@ -49,6 +51,22 @@ internal sealed class TinyFarmGame : Game
             return;
         }
 
+        if (Pressed(keyboard, Keys.D1))
+        {
+            simulationHost.Execute(new SetSimulationModeCommand(TinyFarmSimulationMode.Paused));
+            status = "Simulation paused";
+        }
+        else if (Pressed(keyboard, Keys.D2))
+        {
+            simulationHost.Execute(new SetSimulationModeCommand(TinyFarmSimulationMode.Playing));
+            status = "Simulation playing";
+        }
+        else if (Pressed(keyboard, Keys.D3))
+        {
+            simulationHost.Execute(new SetSimulationModeCommand(TinyFarmSimulationMode.FastForward));
+            status = "Simulation fast forward x10";
+        }
+
         if (Pressed(keyboard, Keys.F5))
         {
             Save();
@@ -57,25 +75,31 @@ internal sealed class TinyFarmGame : Game
         {
             Load();
         }
-        else if (Pressed(keyboard, Keys.Enter) && narrative.Count > 0)
+        else if (simulationHost.Mode != TinyFarmSimulationMode.Paused
+            && Pressed(keyboard, Keys.Enter)
+            && narrative.Count > 0)
         {
             narrative = [];
             status = "Conversation closed";
         }
-        else if (Pressed(keyboard, Keys.Enter) || Pressed(keyboard, Keys.E))
+        else if (simulationHost.Mode != TinyFarmSimulationMode.Paused
+            && (Pressed(keyboard, Keys.Enter) || Pressed(keyboard, Keys.E)))
         {
             ApplyControl(TinyFarmControl.Interact);
         }
-        else if (ReadControl(keyboard) is TinyFarmControl control)
+        else if (simulationHost.Mode != TinyFarmSimulationMode.Paused
+            && ReadControl(keyboard) is TinyFarmControl control)
         {
             ApplyControl(control);
         }
 
 
-        TinyFarmControl? heldMovement = ReadHeldMovement(keyboard);
+        TinyFarmControl? heldMovement = simulationHost.Mode == TinyFarmSimulationMode.Paused
+            ? null
+            : ReadHeldMovement(keyboard);
         if (heldMovement is null)
         {
-            movementStepper.Reset();
+            simulationHost.SetPlayerMovement(0, 0);
         }
         else
         {
@@ -86,15 +110,21 @@ internal sealed class TinyFarmGame : Game
                 TinyFarmControl.MoveUp => (0, -1),
                 _ => (0, 1)
             };
-            foreach (SpatialMoveIntent intent in movementStepper.Advance(gameTime.ElapsedGameTime, deltaX, deltaY))
-            {
-                TinyFarmStepResult step = session.Step(intent);
-                narrative = step.Narrative;
-                IntentResult human = step.Results.Single(result => result.Envelope.Source == IntentSourceKind.Human);
-                status = human.Status == IntentResultStatus.Accepted
-                    ? "Move"
-                    : $"{human.Status}: {human.Reason}";
-            }
+            simulationHost.SetPlayerMovement(deltaX, deltaY);
+        }
+        TinyFarmHostAdvanceResult hostAdvance = simulationHost.AdvanceHostTime(gameTime.ElapsedGameTime);
+        if (hostAdvance.Narrative.Count > 0)
+        {
+            narrative = hostAdvance.Narrative;
+        }
+        IntentResult? movement = hostAdvance.Results.LastOrDefault(result =>
+            result.Envelope.Source == IntentSourceKind.Human
+            && result.Envelope.Intent is SpatialMoveIntent);
+        if (movement is not null)
+        {
+            status = movement.Status == IntentResultStatus.Accepted
+                ? "Move"
+                : $"{movement.Status}: {movement.Reason}";
         }
         previousKeyboard = keyboard;
         base.Update(gameTime);
@@ -104,6 +134,7 @@ internal sealed class TinyFarmGame : Game
     {
         GraphicsDevice.Clear(new Color(34, 52, 43));
         TinyFarmFrame frame = TinyFarmFrameProjector.Project(session.State, definitions, narrative);
+        simulationHost.ObserveRenderFrame();
         spriteBatch!.Begin(samplerState: SamplerState.PointClamp);
         DrawWorld(frame);
         DrawHud(frame);
@@ -288,12 +319,18 @@ internal sealed class TinyFarmGame : Game
         int top = height - hudHeight;
         int headingScale = height >= 900 ? 2 : 1;
         Fill(new Rectangle(0, top, width, hudHeight), new Color(19, 27, 25));
-        BitmapText.Draw(spriteBatch!, pixel!, $"DAY {frame.Day}  {frame.Time}  {frame.CurrentLocationName.ToUpperInvariant()}  {frame.Money}G", new Vector2(18, top + 10), Color.White, headingScale);
+        string mode = simulationHost.Mode switch
+        {
+            TinyFarmSimulationMode.Paused => "PAUSED",
+            TinyFarmSimulationMode.Playing => "PLAY",
+            _ => "FAST X10"
+        };
+        BitmapText.Draw(spriteBatch!, pixel!, $"{mode}  DAY {frame.Day}  {frame.Time}  {frame.CurrentLocationName.ToUpperInvariant()}  {frame.Money}G", new Vector2(18, top + 10), Color.White, headingScale);
         string inventory = frame.Inventory.Count == 0
             ? "INVENTORY EMPTY"
             : "INVENTORY " + string.Join("  ", frame.Inventory.Select(item => $"{item.Name.ToUpperInvariant()} X{item.Count}"));
         BitmapText.Draw(spriteBatch!, pixel!, inventory, new Vector2(18, top + 34), new Color(204, 221, 190), 1);
-        string controls = "ARROWS/WASD MOVE  |  ENTER/E INTERACT  |  SPACE WAIT  |  F5 SAVE  |  F9 LOAD";
+        string controls = "1 PAUSE  |  2 PLAY  |  3 FAST X10  |  ARROWS/WASD MOVE  |  ENTER/E INTERACT  |  SPACE WAIT  |  F5 SAVE  |  F9 LOAD";
         string context = string.Join("  |  ", frame.InteractionHints.Skip(4));
         if (frame.Narrative.Count > 0)
         {
@@ -369,7 +406,7 @@ internal sealed class TinyFarmGame : Game
             return;
         }
 
-        TinyFarmStepResult step = session.Step(intent);
+        TinyFarmStepResult step = simulationHost.ExecuteIntent(intent);
         narrative = step.Narrative;
         IntentResult human = step.Results.Single(result => result.Envelope.Source == IntentSourceKind.Human);
         status = human.Status == IntentResultStatus.Accepted
@@ -389,7 +426,8 @@ internal sealed class TinyFarmGame : Game
     {
         try
         {
-            session = TinyFarmChunkedSaveCodec.Read(File.ReadAllBytes(Path.GetFullPath(savePath)), definitions);
+            simulationHost.ReplaceSession(
+                TinyFarmChunkedSaveCodec.Read(File.ReadAllBytes(Path.GetFullPath(savePath)), definitions));
             narrative = [];
             status = "Loaded authoritative state";
         }
