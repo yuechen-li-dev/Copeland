@@ -5,7 +5,12 @@
   <ItemGroup>
     <ProjectReference Include="../TinyFarm.Core/TinyFarm.Core.csproj" />
     <ProjectReference Include="../../Aurelian/Aurelian.Runtime/Aurelian.Runtime.csproj" />
+    <ProjectReference Include="../../Copeland/Copeland.TS/Copeland.TS.csproj" />
+    <PackageReference Include="Dominatus.Core" />
     <PackageReference Include="Dominatus.OptFlow" />
     <PackageReference Include="Ariadne.OptFlow" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Content/tiny-farm-definitions.obj.ts" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

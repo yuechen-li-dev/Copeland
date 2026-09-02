@@ -36,6 +36,36 @@ public static class TinyFarmSemanticHash
                 .AppendLine();
         }
 
+        if (state.Version >= TinyFarmState.SaveVersion)
+        {
+            canonical.Append("definitions|").Append(state.DefinitionSetId).AppendLine();
+            IEnumerable<InventoryStack> orderedStacks = state.InventoryStacks
+                .OrderBy(stack => stack.Actor.Value, StringComparer.Ordinal)
+                .ThenBy(stack => stack.Product.Value, StringComparer.Ordinal);
+            foreach (InventoryStack stack in orderedStacks)
+            {
+                canonical.Append("stack|").Append(stack.Actor.Value)
+                    .Append('|').Append(stack.Product.Value)
+                    .Append('|').Append(stack.Count)
+                    .AppendLine();
+            }
+
+            foreach (ShopStock stock in state.ShopStock.OrderBy(stock => stock.Product.Value, StringComparer.Ordinal))
+            {
+                canonical.Append("stock|").Append(stock.Product.Value)
+                    .Append('|').Append(stock.Count)
+                    .Append('|').Append(stock.DailyRestockCount)
+                    .AppendLine();
+            }
+
+            foreach (FarmPlotState plot in state.FarmPlots.OrderBy(plot => plot.Id.Value, StringComparer.Ordinal))
+            {
+                canonical.Append("plot|").Append(plot.Id.Value).Append('|').Append(plot.Location.Value).Append('|')
+                    .Append(plot.Crop?.Value ?? "-").Append('|').Append(plot.PlantedDay?.ToString() ?? "-").Append('|')
+                    .Append(plot.GrowthStage).Append('|').Append(plot.WateredToday ? '1' : '0').AppendLine();
+            }
+        }
+
         canonical.Append("facts|").AppendJoin(',', state.Facts.OrderBy(fact => fact));
         byte[] bytes = Encoding.UTF8.GetBytes(canonical.ToString());
         return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();

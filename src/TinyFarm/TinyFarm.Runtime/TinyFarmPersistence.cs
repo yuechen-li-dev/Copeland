@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Dominatus.Core.Persistence;
 
 namespace TinyFarm.Core;
 
@@ -44,7 +45,7 @@ public static class TinyFarmSaveCodec
         TinyFarmSave save = JsonSerializer.Deserialize<TinyFarmSave>(json, Options)
             ?? throw new InvalidDataException("The TinyFarm save document was empty.");
         Validate(save);
-        return new TinyFarmSession(save.Game, save.Runtime.NextSequence, save.Runtime.RecentEvents);
+        return new TinyFarmSession(save.Game, null, save.Runtime.NextSequence, save.Runtime.RecentEvents);
     }
 
     private static void Validate(TinyFarmSave save)
@@ -54,7 +55,7 @@ public static class TinyFarmSaveCodec
             throw new InvalidDataException($"Unsupported runtime version '{save.RuntimeVersion}'.");
         }
 
-        if (save.Game.Version != TinyFarmState.SaveVersion)
+        if (save.Game.Version != TinyFarmState.M1SaveVersion)
         {
             throw new InvalidDataException($"Unsupported game save version {save.Game.Version}.");
         }
@@ -86,4 +87,179 @@ public static class TinyFarmSaveCodec
             }
         }
     }
+}
+
+public static class TinyFarmChunkedSaveCodec
+{
+    public const string RuntimeVersion = "tiny-farm-m2@2";
+    public static readonly ChunkId WorldChunk = new("tinyfarm.world");
+    public static readonly ChunkId RuntimeChunk = new("tinyfarm.runtime");
+    public static readonly ChunkId AgentChunk = new("tinyfarm.agents");
+    public static readonly ChunkId NarrativeChunk = new("tinyfarm.narrative");
+
+    private static readonly JsonSerializerOptions ChunkOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = false,
+        Converters = { new JsonStringEnumConverter() }
+    };
+
+    public static byte[] Write(TinyFarmSession session, TinyFarmDefinitions definitions)
+    {
+        ValidateWorld(session.State, definitions);
+        var context = new SaveWriteContext();
+        var world = new WorldChunkModel(RuntimeVersion, definitions.Identity, session.State);
+        var runtime = new TinyFarmRuntimeSave(session.NextSequence, session.RecentEvents.ToList());
+        var agents = new TinyFarmAgentSave(
+            "dominatus-1.0.0",
+            "observation-pure schedule; no duplicated world truth");
+        var narrative = new TinyFarmNarrativeSave(
+            "ariadne-1.0.0",
+            "semantic topics in world events; prose derived");
+        context.AddUtf8Json(WorldChunk, JsonSerializer.Serialize(world, ChunkOptions));
+        context.AddUtf8Json(RuntimeChunk, JsonSerializer.Serialize(runtime, ChunkOptions));
+        context.AddUtf8Json(AgentChunk, JsonSerializer.Serialize(agents, ChunkOptions));
+        context.AddUtf8Json(NarrativeChunk, JsonSerializer.Serialize(narrative, ChunkOptions));
+        return WriteContainer(context.Chunks);
+    }
+
+    public static TinyFarmSession Read(byte[] bytes, TinyFarmDefinitions definitions)
+    {
+        ArgumentNullException.ThrowIfNull(bytes);
+        IReadOnlyList<SaveChunk> chunks = ReadContainer(bytes);
+        var context = new SaveReadContext(chunks);
+        WorldChunkModel world = ReadRequired<WorldChunkModel>(context, WorldChunk);
+        TinyFarmRuntimeSave runtime = ReadRequired<TinyFarmRuntimeSave>(context, RuntimeChunk);
+        _ = ReadRequired<TinyFarmAgentSave>(context, AgentChunk);
+        _ = ReadRequired<TinyFarmNarrativeSave>(context, NarrativeChunk);
+        if (world.RuntimeVersion != RuntimeVersion)
+        {
+            throw new InvalidDataException($"Unsupported TinyFarm runtime version '{world.RuntimeVersion}'. Expected '{RuntimeVersion}'.");
+        }
+
+        if (world.DefinitionSetId != definitions.Identity)
+        {
+            throw new InvalidDataException(
+                $"TinyFarm definition set mismatch. Save uses '{world.DefinitionSetId}', runtime uses '{definitions.Identity}'.");
+        }
+
+        ValidateWorld(world.Game, definitions);
+        return new TinyFarmSession(world.Game, definitions, runtime.NextSequence, runtime.RecentEvents);
+    }
+
+    private static T ReadRequired<T>(SaveReadContext context, ChunkId id)
+    {
+        if (!context.TryGetUtf8Json(id, out string json))
+        {
+            throw new InvalidDataException($"Required TinyFarm save chunk '{id}' is missing.");
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<T>(json, ChunkOptions)
+                ?? throw new InvalidDataException($"TinyFarm save chunk '{id}' was empty.");
+        }
+        catch (JsonException exception)
+        {
+            throw new InvalidDataException($"TinyFarm save chunk '{id}' contains malformed JSON.", exception);
+        }
+    }
+
+    private static void ValidateWorld(TinyFarmState state, TinyFarmDefinitions definitions)
+    {
+        if (state.Version != TinyFarmState.SaveVersion)
+        {
+            throw new InvalidDataException($"Unsupported TinyFarm game save version {state.Version}.");
+        }
+
+        if (state.DefinitionSetId != definitions.Identity)
+        {
+            throw new InvalidDataException("TinyFarm world definition provenance is incompatible with the loaded content.");
+        }
+
+        if (state.Actors.Select(actor => actor.Id).Distinct().Count() != state.Actors.Count
+            || state.Items.Select(item => item.Id).Distinct().Count() != state.Items.Count
+            || state.FarmPlots.Select(plot => plot.Id).Distinct().Count() != state.FarmPlots.Count
+            || state.ShopStock.Select(stock => stock.Product).Distinct().Count() != state.ShopStock.Count
+            || state.InventoryStacks.Select(stack => (stack.Actor, stack.Product)).Distinct().Count() != state.InventoryStacks.Count)
+        {
+            throw new InvalidDataException("TinyFarm save contains duplicate semantic identities.");
+        }
+
+        foreach (ActorState actor in state.Actors)
+        {
+            if (!TinyFarmContent.Locations.Any(location => location.Id == actor.Location))
+            {
+                throw new InvalidDataException($"Actor '{actor.Id}' references unknown location '{actor.Location}'.");
+            }
+        }
+
+        foreach (ItemState item in state.Items)
+        {
+            bool hasOwner = item.Owner is not null;
+            bool isGrounded = item.GroundLocation is not null;
+            if (hasOwner == isGrounded)
+            {
+                throw new InvalidDataException($"Item '{item.Id}' must have exactly one container.");
+            }
+        }
+
+        foreach (InventoryStack stack in state.InventoryStacks)
+        {
+            if (!state.Actors.Any(actor => actor.Id == stack.Actor) || !definitions.Items.Any(item => item.Id == stack.Product) || stack.Count <= 0)
+            {
+                throw new InvalidDataException($"Invalid inventory stack '{stack.Actor}/{stack.Product}'.");
+            }
+        }
+
+        foreach (FarmPlotState plot in state.FarmPlots)
+        {
+            if (plot.Crop is CropId crop && !definitions.Crops.Any(item => item.Id == crop))
+            {
+                throw new InvalidDataException($"Farm plot '{plot.Id}' references unknown crop '{crop}'.");
+            }
+            if (!TinyFarmContent.Locations.Any(location => location.Id == plot.Location) || plot.GrowthStage < 0)
+            {
+                throw new InvalidDataException($"Farm plot '{plot.Id}' has invalid runtime state.");
+            }
+        }
+
+        foreach (ShopStock stock in state.ShopStock)
+        {
+            if (!definitions.Items.Any(item => item.Id == stock.Product) || stock.Count < 0 || stock.DailyRestockCount < 0)
+            {
+                throw new InvalidDataException($"Invalid shop stock '{stock.Product}'.");
+            }
+        }
+    }
+
+    private static byte[] WriteContainer(IReadOnlyList<SaveChunk> chunks)
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"tinyfarm-{Guid.NewGuid():N}.save");
+        try
+        {
+            SaveFile.Write(path, chunks);
+            return File.ReadAllBytes(path);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    private static IReadOnlyList<SaveChunk> ReadContainer(byte[] bytes)
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"tinyfarm-{Guid.NewGuid():N}.save");
+        try
+        {
+            File.WriteAllBytes(path, bytes);
+            return SaveFile.Read(path);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    private sealed record WorldChunkModel(string RuntimeVersion, string DefinitionSetId, TinyFarmState Game);
 }

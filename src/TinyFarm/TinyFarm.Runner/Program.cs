@@ -6,8 +6,18 @@ if (args.Contains("--repl", StringComparer.Ordinal))
     return;
 }
 
-TinyFarmM1Proof proof = TinyFarmCanonicalScenario.Prove();
-string json = TinyFarmCanonicalScenario.WriteProofJson(proof);
+bool runM1 = args.Contains("--m1", StringComparer.Ordinal);
+if (args.Contains("--single-week", StringComparer.Ordinal))
+{
+    TinyFarmDefinitions singleDefinitions = TinyFarmDefinitionLoader.Load();
+    TinyFarmWeekRun single = TinyFarmWeekScenario.Run(singleDefinitions, null);
+    Console.WriteLine($"{single.FinalHash} {single.FinalState.Day} {single.ElapsedMicroseconds}");
+    return;
+}
+object proof = runM1 ? TinyFarmCanonicalScenario.Prove() : TinyFarmWeekScenario.Prove();
+string json = runM1
+    ? TinyFarmCanonicalScenario.WriteProofJson((TinyFarmM1Proof)proof)
+    : TinyFarmWeekScenario.WriteProofJson((TinyFarmM2Proof)proof);
 
 int outputIndex = Array.IndexOf(args, "--proof-json");
 if (outputIndex >= 0)
@@ -22,14 +32,70 @@ if (outputIndex >= 0)
     File.WriteAllText(path, json + Environment.NewLine);
 }
 
+if (!runM1)
+{
+    TinyFarmDefinitions artifactDefinitions = TinyFarmDefinitionLoader.Load();
+    TinyFarmWeekRun artifactRun = TinyFarmWeekScenario.Run(artifactDefinitions, null);
+    int saveIndex = Array.IndexOf(args, "--save-file");
+    if (saveIndex >= 0)
+    {
+        string path = RequiredOutputPath(args, saveIndex, "--save-file");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllBytes(path, TinyFarmWeekScenario.CaptureFinalSave(artifactDefinitions));
+    }
+
+    int saveBase64Index = Array.IndexOf(args, "--save-base64");
+    if (saveBase64Index >= 0)
+    {
+        string path = RequiredOutputPath(args, saveBase64Index, "--save-base64");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, Convert.ToBase64String(TinyFarmWeekScenario.CaptureFinalSave(artifactDefinitions)) + Environment.NewLine);
+    }
+
+    int replayIndex = Array.IndexOf(args, "--replay-json");
+    if (replayIndex >= 0)
+    {
+        string path = RequiredOutputPath(args, replayIndex, "--replay-json");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, System.Text.Json.JsonSerializer.Serialize(new
+        {
+            milestone = "TINY-FARM-M2",
+            artifactRun.FinalHash,
+            artifactRun.ResultSequence,
+            artifactRun.EventSequence
+        }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }) + Environment.NewLine);
+    }
+
+    int inspectionIndex = Array.IndexOf(args, "--inspection-json");
+    if (inspectionIndex >= 0)
+    {
+        string path = RequiredOutputPath(args, inspectionIndex, "--inspection-json");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var finalSession = new TinyFarmSession(artifactRun.FinalState, artifactDefinitions);
+        File.WriteAllText(path, TinyFarmInspector.WriteJson(finalSession, []) + Environment.NewLine);
+    }
+}
+
 Console.WriteLine(json);
-Environment.ExitCode = proof.Outcome == "A" ? 0 : 1;
+string outcome = runM1 ? ((TinyFarmM1Proof)proof).Outcome : ((TinyFarmM2Proof)proof).Outcome;
+Environment.ExitCode = outcome == "A" ? 0 : 1;
+
+static string RequiredOutputPath(string[] arguments, int optionIndex, string option)
+{
+    if (optionIndex + 1 >= arguments.Length)
+    {
+        throw new ArgumentException($"{option} requires an output path.");
+    }
+
+    return Path.GetFullPath(arguments[optionIndex + 1]);
+}
 
 static void RunRepl()
 {
-    var session = new TinyFarmSession(TinyFarmContent.CreateInitialState());
+    TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.Load();
+    var session = new TinyFarmSession(TinyFarmContent.CreateWeekState(definitions), definitions);
     IReadOnlyList<IntentResult> lastResults = [];
-    Console.WriteLine("TinyFarm M1 — Headless Ariadne Adventure");
+    Console.WriteLine("TinyFarm M2 — Headless Deterministic Week");
 
     while (true)
     {

@@ -2,6 +2,13 @@ namespace TinyFarm.Core;
 
 public sealed class TinyFarmResolver
 {
+    private readonly TinyFarmDefinitions? definitions;
+
+    public TinyFarmResolver(TinyFarmDefinitions? definitions = null)
+    {
+        this.definitions = definitions;
+    }
+
     public ResolutionBatchResult Resolve(
         TinyFarmState initialState,
         IEnumerable<IntentEnvelope> submittedIntents)
@@ -25,7 +32,7 @@ public sealed class TinyFarmResolver
         return new ResolutionBatchResult(state, results);
     }
 
-    private static IntentResult ResolveOne(TinyFarmState state, IntentEnvelope envelope)
+    private IntentResult ResolveOne(TinyFarmState state, IntentEnvelope envelope)
     {
         ActorState? actor = FindActor(state, envelope.Actor);
         if (actor is null)
@@ -42,6 +49,11 @@ public sealed class TinyFarmResolver
             GiveIntent give => ResolveGive(state, actor, envelope, give),
             BuyIntent buy => ResolveBuy(state, actor, envelope, buy),
             SellIntent sell => ResolveSell(state, actor, envelope, sell),
+            BuyProductIntent buy => ResolveBuyProduct(state, actor, envelope, buy),
+            SellProductIntent sell => ResolveSellProduct(state, actor, envelope, sell),
+            PlantIntent plant => ResolvePlant(state, actor, envelope, plant),
+            WaterIntent water => ResolveWater(state, actor, envelope, water),
+            HarvestIntent harvest => ResolveHarvest(state, actor, envelope, harvest),
             WaitIntent wait => ResolveWait(state, actor, envelope, wait),
             _ => throw new InvalidOperationException($"Unsupported intent type {envelope.Intent.GetType().Name}.")
         };
@@ -293,7 +305,7 @@ public sealed class TinyFarmResolver
             Amount: value));
     }
 
-    private static IntentResult ResolveWait(
+    private IntentResult ResolveWait(
         TinyFarmState state,
         ActorState actor,
         IntentEnvelope envelope,
@@ -304,11 +316,222 @@ public sealed class TinyFarmResolver
             return Rejected(envelope, IntentReason.InvalidWait);
         }
 
+        var events = new List<GameEvent>
+        {
+            new(GameEventKind.TimeAdvanced, actor.Id, Amount: intent.Minutes)
+        };
+        int previousDay = state.Day;
         state.Minute += intent.Minutes;
-        return Accepted(envelope, new GameEvent(
-            GameEventKind.TimeAdvanced,
-            actor.Id,
-            Amount: intent.Minutes));
+        for (int day = previousDay + 1; day <= state.Day; day++)
+        {
+            AdvanceDay(state, actor.Id, day, events);
+        }
+
+        return Accepted(envelope, events);
+    }
+
+    private IntentResult ResolveBuyProduct(TinyFarmState state, ActorState actor, IntentEnvelope envelope, BuyProductIntent intent)
+    {
+        if (!StoreIsOpen(state.Minute))
+        {
+            return Rejected(envelope, IntentReason.StoreClosed);
+        }
+
+        ActorState shopkeeper = state.Actor(TinyFarmIds.Sela);
+        if (actor.Location != shopkeeper.Location)
+        {
+            return Rejected(envelope, IntentReason.TargetAbsent);
+        }
+
+        ItemDefinition? item = definitions?.Items.SingleOrDefault(candidate => candidate.Id == intent.Product);
+        if (item is null)
+        {
+            return Rejected(envelope, IntentReason.UnknownItem);
+        }
+
+        ShopStock? stock = state.ShopStock.SingleOrDefault(candidate => candidate.Product == intent.Product);
+        if (stock is null || stock.Count <= 0)
+        {
+            return Rejected(envelope, IntentReason.StockUnavailable);
+        }
+
+        if (actor.Money < item.BuyPrice)
+        {
+            return Rejected(envelope, IntentReason.InsufficientFunds);
+        }
+
+        ReplaceActor(state, actor with { Money = actor.Money - item.BuyPrice });
+        ReplaceActor(state, shopkeeper with { Money = shopkeeper.Money + item.BuyPrice });
+        SetProductCount(state, actor.Id, item.Id, state.ProductCount(actor.Id, item.Id) + 1);
+        ReplaceStock(state, stock with { Count = stock.Count - 1 });
+        return Accepted(envelope, new GameEvent(GameEventKind.ItemBought, actor.Id, shopkeeper.Id, Amount: item.BuyPrice, Product: item.Id));
+    }
+
+    private IntentResult ResolveSellProduct(TinyFarmState state, ActorState actor, IntentEnvelope envelope, SellProductIntent intent)
+    {
+        if (!StoreIsOpen(state.Minute))
+        {
+            return Rejected(envelope, IntentReason.StoreClosed);
+        }
+
+        ActorState shopkeeper = state.Actor(TinyFarmIds.Sela);
+        if (actor.Location != shopkeeper.Location)
+        {
+            return Rejected(envelope, IntentReason.TargetAbsent);
+        }
+
+        ItemDefinition? item = definitions?.Items.SingleOrDefault(candidate => candidate.Id == intent.Product);
+        if (item is null)
+        {
+            return Rejected(envelope, IntentReason.UnknownItem);
+        }
+
+        if (state.ProductCount(actor.Id, item.Id) <= 0)
+        {
+            return Rejected(envelope, IntentReason.ItemNotOwned);
+        }
+
+        ReplaceActor(state, actor with { Money = actor.Money + item.SellPrice });
+        ReplaceActor(state, shopkeeper with { Money = shopkeeper.Money - item.SellPrice });
+        SetProductCount(state, actor.Id, item.Id, state.ProductCount(actor.Id, item.Id) - 1);
+        AddFact(state, WorldFact.FirstCropSold);
+        return Accepted(envelope, new GameEvent(GameEventKind.ItemSold, actor.Id, shopkeeper.Id, Amount: item.SellPrice, Product: item.Id));
+    }
+
+    private IntentResult ResolvePlant(TinyFarmState state, ActorState actor, IntentEnvelope envelope, PlantIntent intent)
+    {
+        FarmPlotState? plot = state.FarmPlots.SingleOrDefault(candidate => candidate.Id == intent.Plot);
+        if (plot is null)
+        {
+            return Rejected(envelope, IntentReason.UnknownPlot);
+        }
+
+        CropDefinition? crop = definitions?.Crops.SingleOrDefault(candidate => candidate.Id == intent.Crop);
+        if (crop is null)
+        {
+            return Rejected(envelope, IntentReason.UnknownCrop);
+        }
+
+        if (actor.Location != plot.Location)
+        {
+            return Rejected(envelope, IntentReason.WrongLocation);
+        }
+
+        if (plot.Crop is not null)
+        {
+            return Rejected(envelope, IntentReason.PlotOccupied);
+        }
+
+        int seedCount = state.ProductCount(actor.Id, crop.SeedItemId);
+        if (seedCount <= 0)
+        {
+            return Rejected(envelope, IntentReason.ItemNotOwned);
+        }
+
+        SetProductCount(state, actor.Id, crop.SeedItemId, seedCount - 1);
+        ReplacePlot(state, plot with { Crop = crop.Id, PlantedDay = state.Day, GrowthStage = 0, WateredToday = false });
+        return Accepted(envelope, new GameEvent(GameEventKind.CropPlanted, actor.Id, Crop: crop.Id, Plot: plot.Id));
+    }
+
+    private static IntentResult ResolveWater(TinyFarmState state, ActorState actor, IntentEnvelope envelope, WaterIntent intent)
+    {
+        FarmPlotState? plot = state.FarmPlots.SingleOrDefault(candidate => candidate.Id == intent.Plot);
+        if (plot is null)
+        {
+            return Rejected(envelope, IntentReason.UnknownPlot);
+        }
+
+        if (actor.Location != plot.Location)
+        {
+            return Rejected(envelope, IntentReason.WrongLocation);
+        }
+
+        if (plot.Crop is null)
+        {
+            return Rejected(envelope, IntentReason.PlotEmpty);
+        }
+
+        if (plot.WateredToday)
+        {
+            return NoOp(envelope, IntentReason.AlreadyWatered);
+        }
+
+        ReplacePlot(state, plot with { WateredToday = true });
+        return Accepted(envelope, new GameEvent(GameEventKind.PlotWatered, actor.Id, Crop: plot.Crop, Plot: plot.Id));
+    }
+
+    private IntentResult ResolveHarvest(TinyFarmState state, ActorState actor, IntentEnvelope envelope, HarvestIntent intent)
+    {
+        FarmPlotState? plot = state.FarmPlots.SingleOrDefault(candidate => candidate.Id == intent.Plot);
+        if (plot is null)
+        {
+            return Rejected(envelope, IntentReason.UnknownPlot);
+        }
+
+        if (actor.Location != plot.Location)
+        {
+            return Rejected(envelope, IntentReason.WrongLocation);
+        }
+
+        if (plot.Crop is not CropId cropId)
+        {
+            return Rejected(envelope, IntentReason.PlotEmpty);
+        }
+
+        CropDefinition crop = definitions!.Crop(cropId);
+        if (plot.GrowthStage < crop.GrowthDays)
+        {
+            return Rejected(envelope, IntentReason.CropImmature);
+        }
+
+        SetProductCount(state, actor.Id, crop.HarvestItemId, state.ProductCount(actor.Id, crop.HarvestItemId) + crop.Yield);
+        ReplacePlot(state, plot with { Crop = null, PlantedDay = null, GrowthStage = 0, WateredToday = false });
+        AddFact(state, WorldFact.FirstCropHarvested);
+        return Accepted(
+            envelope,
+            new GameEvent(
+                GameEventKind.CropHarvested,
+                actor.Id,
+                Amount: crop.Yield,
+                Dialogue: DialogueTopic.HarvestComment,
+                Product: crop.HarvestItemId,
+                Crop: crop.Id,
+                Plot: plot.Id));
+    }
+
+    private void AdvanceDay(TinyFarmState state, ActorId actor, int day, List<GameEvent> events)
+    {
+        events.Add(new GameEvent(GameEventKind.DayStarted, actor, Day: day));
+        if (day == 7)
+        {
+            events.Add(new GameEvent(GameEventKind.Conversation, TinyFarmIds.Mara, Dialogue: DialogueTopic.WeekComment, Day: day));
+        }
+        foreach (FarmPlotState plot in state.FarmPlots.OrderBy(candidate => candidate.Id.Value, StringComparer.Ordinal).ToArray())
+        {
+            if (plot.Crop is null)
+            {
+                continue;
+            }
+
+            CropDefinition crop = definitions!.Crop(plot.Crop.Value);
+            int stage = plot.WateredToday ? Math.Min(crop.GrowthDays, plot.GrowthStage + 1) : plot.GrowthStage;
+            ReplacePlot(state, plot with { GrowthStage = stage, WateredToday = false });
+            if (stage != plot.GrowthStage)
+            {
+                events.Add(new GameEvent(GameEventKind.CropAdvanced, actor, Crop: crop.Id, Plot: plot.Id, Amount: stage, Day: day));
+            }
+        }
+
+        foreach (ShopStock stock in state.ShopStock.ToArray())
+        {
+            ReplaceStock(state, stock with { Count = stock.DailyRestockCount });
+            events.Add(new GameEvent(
+                GameEventKind.ShopRestocked,
+                TinyFarmIds.Sela,
+                Amount: stock.DailyRestockCount,
+                Product: stock.Product,
+                Day: day));
+        }
     }
 
     private static bool StoreIsOpen(int minute)
@@ -373,6 +596,41 @@ public sealed class TinyFarmResolver
             state.MutableFacts.Add(fact);
             state.MutableFacts.Sort();
         }
+    }
+
+    private static void SetProductCount(TinyFarmState state, ActorId actor, ProductId product, int count)
+    {
+        int index = state.MutableInventoryStacks.FindIndex(stack => stack.Actor == actor && stack.Product == product);
+        if (count == 0)
+        {
+            if (index >= 0)
+            {
+                state.MutableInventoryStacks.RemoveAt(index);
+            }
+            return;
+        }
+
+        var replacement = new InventoryStack(actor, product, count);
+        if (index >= 0)
+        {
+            state.MutableInventoryStacks[index] = replacement;
+        }
+        else
+        {
+            state.MutableInventoryStacks.Add(replacement);
+        }
+    }
+
+    private static void ReplaceStock(TinyFarmState state, ShopStock replacement)
+    {
+        int index = state.MutableShopStock.FindIndex(stock => stock.Product == replacement.Product);
+        state.MutableShopStock[index] = replacement;
+    }
+
+    private static void ReplacePlot(TinyFarmState state, FarmPlotState replacement)
+    {
+        int index = state.MutableFarmPlots.FindIndex(plot => plot.Id == replacement.Id);
+        state.MutableFarmPlots[index] = replacement;
     }
 
     private static IntentResult Accepted(IntentEnvelope envelope, params GameEvent[] events)

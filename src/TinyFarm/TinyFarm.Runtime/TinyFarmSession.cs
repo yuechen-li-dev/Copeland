@@ -8,23 +8,31 @@ public sealed record TinyFarmStepResult(
 public sealed class TinyFarmSession
 {
     private readonly TinyFarmResolver resolver;
+    private readonly TinyFarmDefinitions? definitions;
     private long nextSequence;
     private IReadOnlyList<GameEvent> recentEvents;
 
     public TinyFarmSession(TinyFarmState state)
-        : this(state, 0, [])
+        : this(state, null, 0, [])
+    {
+    }
+
+    public TinyFarmSession(TinyFarmState state, TinyFarmDefinitions definitions)
+        : this(state, definitions, 0, [])
     {
     }
 
     internal TinyFarmSession(
         TinyFarmState state,
+        TinyFarmDefinitions? definitions,
         long nextSequence,
         IReadOnlyList<GameEvent> recentEvents)
     {
         State = state.DeepCopy();
+        this.definitions = definitions;
         this.nextSequence = nextSequence;
         this.recentEvents = recentEvents.ToArray();
-        resolver = new TinyFarmResolver();
+        resolver = new TinyFarmResolver(definitions);
     }
 
     public TinyFarmState State { get; private set; }
@@ -76,5 +84,15 @@ public sealed class TinyFarmSession
             new TinyFarmRuntimeSave(nextSequence, recentEvents.ToList()),
             new TinyFarmAgentSave("dominatus-1.0.0", "schedule decisions are observation-pure"),
             new TinyFarmNarrativeSave("ariadne-1.0.0", "surface prose is derived from semantic dialogue topics"));
+    }
+
+    public byte[] CaptureWeekSave()
+    {
+        if (definitions is null)
+        {
+            throw new InvalidOperationException("M2 chunked saves require the loaded definition set.");
+        }
+
+        return TinyFarmChunkedSaveCodec.Write(this, definitions);
     }
 }

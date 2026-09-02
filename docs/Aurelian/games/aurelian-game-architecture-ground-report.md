@@ -131,3 +131,11 @@ Two M0 details changed:
 No new shared Aurelian abstraction was justified. TinyFarm.Runtime reuses Aurelian's existing sequential Dominatus world runner. Intent envelopes, ordering, saves, clocks, and hashing remain game-local until a second non-TinyFarm game demonstrates the same contract. TinyFarm.Core has no package or project dependencies.
 
 The evidence recommends **M2 A: a headless deterministic week with farming/economy**. The next bounded work is crop definitions and plant/water/harvest/day-transition rules on this resolver and save model. Graphics, ECS, generalized persistence, and UI remain outside that milestone.
+
+## M2 evidence update — 2026-09-02
+
+TINY-FARM-M2 completed the seven-day pressure test with two farming/economy cycles, recurring weekday/market/weekend schedules, Dominatus-origin movement and commerce, TSON-authored immutable content, six exact save/reload continuations, and canonical state/result/event replay. The authoritative-state plus typed-intent model remained coherent. Duration added explicit plot, product-stack, finite-stock, day-boundary, and definition-provenance records; it did not create pressure for ECS or hidden update systems.
+
+Dominatus `SaveFile`, `SaveChunk`, `SaveWriteContext`, and `SaveReadContext` now provide the sole chunk container. TinyFarm owns four versioned semantic payloads and validates a complete candidate before session construction. No generic persistence extension or Aurelian abstraction was justified. The detailed evidence is in `docs/Aurelian/games/tiny-farm-m2-headless-week-report.md` and `artifacts/tiny-farm-m2/proof.json`.
+
+M2 recommends **M3 A: the first graphical projection**, using immutable state projection and preserving TinyFarm Core as the only farming/economy authority.

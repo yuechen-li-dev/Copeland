@@ -1,0 +1,106 @@
+{
+  "Day": 7,
+  "Minute": 9180,
+  "StateHash": "4a49e221d6ffe90304143cece5b1a20fe96eecc4d10d30cf1bde11922a18ced3",
+  "Actors": [
+    {
+      "id": "elias",
+      "location": "farmhouse",
+      "Money": 7,
+      "inventory": []
+    },
+    {
+      "id": "mara",
+      "location": "town-square",
+      "Money": 6,
+      "inventory": [
+        "mara-letter"
+      ]
+    },
+    {
+      "id": "player",
+      "location": "general-store",
+      "Money": 28,
+      "inventory": []
+    },
+    {
+      "id": "sela",
+      "location": "general-store",
+      "Money": 16,
+      "inventory": [
+        "store-apple",
+        "fishing-rod"
+      ]
+    }
+  ],
+  "AgentObservations": [
+    {
+      "self": "elias",
+      "location": "farmhouse",
+      "nearby": [],
+      "Minute": 9180
+    },
+    {
+      "self": "mara",
+      "location": "town-square",
+      "nearby": [],
+      "Minute": 9180
+    },
+    {
+      "self": "sela",
+      "location": "general-store",
+      "nearby": [
+        "player"
+      ],
+      "Minute": 9180
+    }
+  ],
+  "IntentQueue": [],
+  "LastResults": [],
+  "Plots": [
+    {
+      "Id": {
+        "Value": "plot-1"
+      },
+      "Location": {
+        "Value": "farmhouse"
+      },
+      "Crop": null,
+      "PlantedDay": null,
+      "GrowthStage": 0,
+      "WateredToday": false
+    },
+    {
+      "Id": {
+        "Value": "plot-2"
+      },
+      "Location": {
+        "Value": "farmhouse"
+      },
+      "Crop": null,
+      "PlantedDay": null,
+      "GrowthStage": 0,
+      "WateredToday": false
+    }
+  ],
+  "ShopStock": [
+    {
+      "Product": {
+        "Value": "turnip-seed"
+      },
+      "Count": 3,
+      "DailyRestockCount": 3
+    }
+  ],
+  "Inventory": [
+    {
+      "Actor": {
+        "Value": "mara"
+      },
+      "Product": {
+        "Value": "turnip-seed"
+      },
+      "Count": 1
+    }
+  ]
+}

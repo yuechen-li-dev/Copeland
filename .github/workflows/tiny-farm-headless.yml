@@ -1,4 +1,4 @@
-name: TinyFarm headless M1
+name: TinyFarm headless M2
 
 on:
   pull_request:
@@ -16,14 +16,18 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Build and test headless game
+      - name: Build headless game
         shell: pwsh
-        run: dotnet test TinyFarm.slnx -c Release --nologo
+        run: dotnet build TinyFarm.slnx -c Release --nologo
 
-      - name: Run canonical day, replay, and save proof
+      - name: Test headless game
+        shell: pwsh
+        run: dotnet test TinyFarm.slnx -c Release --no-build --nologo
+
+      - name: Run canonical week, replay, and multi-save proof
         shell: pwsh
         run: |
-          $proofPath = Join-Path $env:RUNNER_TEMP "tiny-farm-m1-proof.json"
+          $proofPath = Join-Path $env:RUNNER_TEMP "tiny-farm-m2-proof.json"
           dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --proof-json $proofPath
           if ($LASTEXITCODE -ne 0) {
             throw "TinyFarm canonical proof failed."
@@ -32,11 +36,13 @@ jobs:
           $proof = Get-Content -Raw -LiteralPath $proofPath | ConvertFrom-Json
           if ($proof.Outcome -ne "A" -or
               -not $proof.RepeatedRunMatches -or
-              -not $proof.SaveReloadMatches -or
               -not $proof.ResultSequenceMatches -or
-              $proof.AutonomousNpcMoves -lt 2 -or
-              $proof.ConflictRejected -ne 1) {
-            throw "TinyFarm proof did not satisfy the M1 semantic contract."
+              -not $proof.EventSequenceMatches -or
+              $proof.FinalDay -ne 7 -or
+              $proof.PlayerTurnips -ne 0 -or
+              $proof.NpcPurchases -lt 1 -or
+              ($proof.SaveReloadPoints.PSObject.Properties.Value -contains $false)) {
+            throw "TinyFarm proof did not satisfy the M2 semantic contract."
           }
 
           if ((Get-Item -LiteralPath $proofPath).Length -gt 262144) {

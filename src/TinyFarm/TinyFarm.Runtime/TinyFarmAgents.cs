@@ -17,13 +17,15 @@ public sealed record AgentObservation(
     IReadOnlyList<ItemId> Inventory,
     int Minute,
     IReadOnlyList<GameEventKind> RecentEvents,
-    LocationId ScheduledDestination);
+    LocationId ScheduledDestination,
+    bool ShouldBuySeed = false);
 
 public static partial class TinyFarmNpcFlow
 {
     private static readonly BbKey<string> CurrentLocation = new("TinyFarm.Observation.Location");
     private static readonly BbKey<string> Destination = new("TinyFarm.Observation.Destination");
     private static readonly BbKey<string> SelectedAction = new("TinyFarm.Decision.Action");
+    private static readonly BbKey<bool> ShouldBuySeed = new("TinyFarm.Observation.ShouldBuySeed");
 
     public static FlowDefinition Definition { get; } = Define();
 
@@ -57,7 +59,9 @@ public static partial class TinyFarmNpcFlow
     [DominatusState("Idle")]
     private static IEnumerator<AiStep> Idle(AiCtx context)
     {
-        context.Bb.Set(SelectedAction, "idle");
+        context.Bb.Set(
+            SelectedAction,
+            context.Bb.GetOrDefault(ShouldBuySeed, false) ? "buy-seed" : "idle");
         yield return Ai.Succeed();
     }
 
@@ -66,6 +70,7 @@ public static partial class TinyFarmNpcFlow
         var agent = new AiAgent(Definition.CreateBrain());
         agent.Bb.Set(CurrentLocation, observation.Location.Value);
         agent.Bb.Set(Destination, observation.ScheduledDestination.Value);
+        agent.Bb.Set(ShouldBuySeed, observation.ShouldBuySeed);
 
         var world = new AiWorld();
         world.Add(agent);
@@ -88,6 +93,12 @@ public static partial class TinyFarmNpcFlow
             if (selected == "idle")
             {
                 return new LookIntent();
+            }
+
+
+            if (selected == "buy-seed")
+            {
+                return new BuyProductIntent(TinyFarmIds.TurnipSeed);
             }
         }
 
@@ -143,7 +154,12 @@ public static class TinyFarmNpcController
                 actor.Inventory.OrderBy(id => id.Value, StringComparer.Ordinal).ToArray(),
                 observationMinute,
                 recentEvents.Select(gameEvent => gameEvent.Kind).ToArray(),
-                destination);
+                destination,
+                actor.Id == TinyFarmIds.Mara
+                    && observationMinute / 1440 + 1 == 6
+                    && actor.Location == TinyFarmIds.GeneralStore
+                    && state.ShopStock.Any(stock => stock.Product == TinyFarmIds.TurnipSeed && stock.Count > 0)
+                    && actor.Money >= 2);
 
             GameIntent intent = TinyFarmNpcFlow.Decide(observation);
             envelopes.Add(new IntentEnvelope(
@@ -157,12 +173,22 @@ public static class TinyFarmNpcController
         return envelopes;
     }
 
-    private static LocationId ScheduledDestination(ActorId actor, int minute)
+    public static LocationId ScheduledDestination(ActorId actor, int minute)
     {
         int minuteOfDay = minute % (24 * 60);
+        int day = minute / (24 * 60) + 1;
 
         if (actor == TinyFarmIds.Mara)
         {
+            if (day == 6 && minuteOfDay >= 9 * 60 && minuteOfDay < 17 * 60)
+            {
+                return TinyFarmIds.GeneralStore;
+            }
+
+            if (day == 7 && minuteOfDay >= 10 * 60 && minuteOfDay < 17 * 60)
+            {
+                return TinyFarmIds.Riverside;
+            }
             if (minuteOfDay < 12 * 60)
             {
                 return TinyFarmIds.TownSquare;

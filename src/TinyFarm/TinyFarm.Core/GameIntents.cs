@@ -16,6 +16,16 @@ public sealed record BuyIntent(ItemId Item) : GameIntent;
 
 public sealed record SellIntent(ItemId Item) : GameIntent;
 
+public sealed record BuyProductIntent(ProductId Product) : GameIntent;
+
+public sealed record SellProductIntent(ProductId Product) : GameIntent;
+
+public sealed record PlantIntent(FarmPlotId Plot, CropId Crop) : GameIntent;
+
+public sealed record WaterIntent(FarmPlotId Plot) : GameIntent;
+
+public sealed record HarvestIntent(FarmPlotId Plot) : GameIntent;
+
 public sealed record WaitIntent(int Minutes) : GameIntent;
 
 public enum IntentSourceKind
@@ -25,12 +35,7 @@ public enum IntentSourceKind
     Replay
 }
 
-public sealed record IntentEnvelope(
-    ActorId Actor,
-    GameIntent Intent,
-    int SubmittedAt,
-    long Sequence,
-    IntentSourceKind Source);
+public sealed record IntentEnvelope(ActorId Actor, GameIntent Intent, int SubmittedAt, long Sequence, IntentSourceKind Source);
 
 public enum IntentResultStatus
 {
@@ -45,6 +50,8 @@ public enum IntentReason
     UnknownActor,
     UnknownTarget,
     UnknownItem,
+    UnknownCrop,
+    UnknownPlot,
     NotAdjacent,
     TargetAbsent,
     ItemAbsent,
@@ -53,7 +60,13 @@ public enum IntentReason
     InsufficientFunds,
     StoreClosed,
     InvalidWait,
-    AlreadyThere
+    AlreadyThere,
+    PlotOccupied,
+    PlotEmpty,
+    WrongLocation,
+    CropImmature,
+    AlreadyWatered,
+    StockUnavailable
 }
 
 public enum GameEventKind
@@ -66,7 +79,13 @@ public enum GameEventKind
     ItemBought,
     ItemSold,
     TimeAdvanced,
-    FavorAdvanced
+    FavorAdvanced,
+    CropPlanted,
+    PlotWatered,
+    CropAdvanced,
+    CropHarvested,
+    DayStarted,
+    ShopRestocked
 }
 
 public enum DialogueTopic
@@ -75,7 +94,9 @@ public enum DialogueTopic
     RequestLetterDelivery,
     EliasReceivesLetter,
     FavorThanks,
-    ShopGreeting
+    ShopGreeting,
+    HarvestComment,
+    WeekComment
 }
 
 public sealed record GameEvent(
@@ -86,14 +107,12 @@ public sealed record GameEvent(
     LocationId? Location = null,
     int Amount = 0,
     DialogueTopic? Dialogue = null,
-    FavorStage? Favor = null);
+    FavorStage? Favor = null,
+    ProductId? Product = null,
+    CropId? Crop = null,
+    FarmPlotId? Plot = null,
+    int? Day = null);
 
-public sealed record IntentResult(
-    IntentEnvelope Envelope,
-    IntentResultStatus Status,
-    IntentReason Reason,
-    IReadOnlyList<GameEvent> Events);
+public sealed record IntentResult(IntentEnvelope Envelope, IntentResultStatus Status, IntentReason Reason, IReadOnlyList<GameEvent> Events);
 
-public sealed record ResolutionBatchResult(
-    TinyFarmState State,
-    IReadOnlyList<IntentResult> Results);
+public sealed record ResolutionBatchResult(TinyFarmState State, IReadOnlyList<IntentResult> Results);

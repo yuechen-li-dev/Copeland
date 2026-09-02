@@ -76,6 +76,12 @@ public static partial class TinyFarmNarrative
             DialogueTopic.ShopGreeting => (
                 "Sela",
                 "Everything on the counter has a price; the stories are free."),
+            DialogueTopic.HarvestComment => (
+                "Sela",
+                "That harvest has the bright weight of careful mornings."),
+            DialogueTopic.WeekComment => (
+                "Mara",
+                "A week turns quickly when every day leaves something growing."),
             _ => (
                 "Neighbor",
                 "Good day. The town is small, but no day in it is quite empty.")

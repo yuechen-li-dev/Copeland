@@ -1,0 +1,14 @@
+{
+  "milestone": "TINY-FARM-M2",
+  "outcome": "A",
+  "canonicalHash": "4a49e221d6ffe90304143cece5b1a20fe96eecc4d10d30cf1bde11922a18ced3",
+  "definitionSetId": "tiny-farm-content-m2-sha256:029d267951d40ab9065a379c5499a9ba6aedd8cf727c6042e937e101821bdfbd",
+  "files": {
+    "proof.json": 1251,
+    "canonical-week.save.b64.txt": 3906,
+    "canonical-week-replay.json": 28600,
+    "inspection.json": 1928
+  },
+  "totalBytes": 35685,
+  "artifactBudgetBytes": 262144
+}
