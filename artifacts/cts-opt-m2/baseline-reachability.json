@@ -1,0 +1,534 @@
+{
+  "milestone": "CTS-OPT-M2",
+  "profile": "Production",
+  "reachabilityEnabled": false,
+  "programs": [
+    {
+      "name": "Application",
+      "baselineBytes": 28097,
+      "report": {
+        "enabled": false,
+        "definitionCount": 24,
+        "retainedCount": 18,
+        "removedCount": 0,
+        "removedBytes": 0,
+        "definitions": [
+          {
+            "stableId": "record:r10:carrier",
+            "kind": "record-carrier",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 215,
+            "references": [
+              "record:r10:carrier"
+            ]
+          },
+          {
+            "stableId": "record:r10:validator",
+            "kind": "record-validator",
+            "isRoot": false,
+            "isReachable": false,
+            "emittedBytes": 546,
+            "references": [
+              "record:r10:carrier",
+              "record:r10:validator"
+            ]
+          },
+          {
+            "stableId": "record:r1:carrier",
+            "kind": "record-carrier",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 206,
+            "references": [
+              "record:r1:carrier"
+            ]
+          },
+          {
+            "stableId": "record:r1:validator",
+            "kind": "record-validator",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 540,
+            "references": [
+              "record:r1:carrier",
+              "record:r1:validator"
+            ]
+          },
+          {
+            "stableId": "record:r2:carrier",
+            "kind": "record-carrier",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 207,
+            "references": [
+              "record:r2:carrier"
+            ]
+          },
+          {
+            "stableId": "record:r2:validator",
+            "kind": "record-validator",
+            "isRoot": false,
+            "isReachable": true,
+            "emittedBytes": 541,
+            "references": [
+              "record:r2:carrier",
+              "record:r2:validator"
+            ]
+          },
+          {
+            "stableId": "record:r3:carrier",
+            "kind": "record-carrier",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 231,
+            "references": [
+              "record:r3:carrier"
+            ]
+          },
+          {
+            "stableId": "record:r3:validator",
+            "kind": "record-validator",
+            "isRoot": false,
+            "isReachable": true,
+            "emittedBytes": 665,
+            "references": [
+              "record:r3:carrier",
+              "record:r3:validator"
+            ]
+          },
+          {
+            "stableId": "record:r4:carrier",
+            "kind": "record-carrier",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 231,
+            "references": [
+              "record:r4:carrier"
+            ]
+          },
+          {
+            "stableId": "record:r4:validator",
+            "kind": "record-validator",
+            "isRoot": false,
+            "isReachable": false,
+            "emittedBytes": 684,
+            "references": [
+              "record:r1:validator",
+              "record:r4:carrier",
+              "record:r4:validator"
+            ]
+          },
+          {
+            "stableId": "record:r5:carrier",
+            "kind": "record-carrier",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 273,
+            "references": [
+              "record:r5:carrier"
+            ]
+          },
+          {
+            "stableId": "record:r5:validator",
+            "kind": "record-validator",
+            "isRoot": false,
+            "isReachable": false,
+            "emittedBytes": 955,
+            "references": [
+              "record:r4:validator",
+              "record:r5:carrier",
+              "record:r5:validator",
+              "record:r6:validator"
+            ]
+          },
+          {
+            "stableId": "record:r6:carrier",
+            "kind": "record-carrier",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 231,
+            "references": [
+              "record:r6:carrier"
+            ]
+          },
+          {
+            "stableId": "record:r6:validator",
+            "kind": "record-validator",
+            "isRoot": false,
+            "isReachable": true,
+            "emittedBytes": 665,
+            "references": [
+              "record:r6:carrier",
+              "record:r6:validator"
+            ]
+          },
+          {
+            "stableId": "record:r7:carrier",
+            "kind": "record-carrier",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 210,
+            "references": [
+              "record:r7:carrier"
+            ]
+          },
+          {
+            "stableId": "record:r7:validator",
+            "kind": "record-validator",
+            "isRoot": false,
+            "isReachable": false,
+            "emittedBytes": 543,
+            "references": [
+              "record:r7:carrier",
+              "record:r7:validator"
+            ]
+          },
+          {
+            "stableId": "record:r8:carrier",
+            "kind": "record-carrier",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 210,
+            "references": [
+              "record:r8:carrier"
+            ]
+          },
+          {
+            "stableId": "record:r8:validator",
+            "kind": "record-validator",
+            "isRoot": false,
+            "isReachable": false,
+            "emittedBytes": 563,
+            "references": [
+              "record:r7:validator",
+              "record:r8:carrier",
+              "record:r8:validator"
+            ]
+          },
+          {
+            "stableId": "record:r9:carrier",
+            "kind": "record-carrier",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 210,
+            "references": [
+              "record:r9:carrier"
+            ]
+          },
+          {
+            "stableId": "record:r9:validator",
+            "kind": "record-validator",
+            "isRoot": false,
+            "isReachable": false,
+            "emittedBytes": 543,
+            "references": [
+              "record:r9:carrier",
+              "record:r9:validator"
+            ]
+          },
+          {
+            "stableId": "result:int!string:validator",
+            "kind": "result-validator",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 947,
+            "references": [
+              "result:int!string:validator"
+            ]
+          },
+          {
+            "stableId": "result:record(r2)!string:validator",
+            "kind": "result-validator",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 967,
+            "references": [
+              "record:r2:validator",
+              "result:record(r2)!string:validator"
+            ]
+          },
+          {
+            "stableId": "result:record(r3)!string:validator",
+            "kind": "result-validator",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 967,
+            "references": [
+              "record:r3:validator",
+              "result:record(r3)!string:validator"
+            ]
+          },
+          {
+            "stableId": "result:record(r6)!string:validator",
+            "kind": "result-validator",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 967,
+            "references": [
+              "record:r6:validator",
+              "result:record(r6)!string:validator"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "Tables",
+      "baselineBytes": 36450,
+      "report": {
+        "enabled": false,
+        "definitionCount": 10,
+        "retainedCount": 7,
+        "removedCount": 0,
+        "removedBytes": 0,
+        "definitions": [
+          {
+            "stableId": "record:r1:carrier",
+            "kind": "record-carrier",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 206,
+            "references": [
+              "record:r1:carrier"
+            ]
+          },
+          {
+            "stableId": "record:r1:validator",
+            "kind": "record-validator",
+            "isRoot": false,
+            "isReachable": true,
+            "emittedBytes": 540,
+            "references": [
+              "record:r1:carrier",
+              "record:r1:validator"
+            ]
+          },
+          {
+            "stableId": "result:ReadingState!TableBoundsError:validator",
+            "kind": "result-validator",
+            "isRoot": false,
+            "isReachable": false,
+            "emittedBytes": 969,
+            "references": [
+              "result:ReadingState!TableBoundsError:validator"
+            ]
+          },
+          {
+            "stableId": "result:int!TableBoundsError:validator",
+            "kind": "result-validator",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 958,
+            "references": [
+              "result:int!TableBoundsError:validator"
+            ]
+          },
+          {
+            "stableId": "result:number!TableBoundsError:validator",
+            "kind": "result-validator",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 958,
+            "references": [
+              "result:number!TableBoundsError:validator"
+            ]
+          },
+          {
+            "stableId": "result:number!string:validator",
+            "kind": "result-validator",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 947,
+            "references": [
+              "result:number!string:validator"
+            ]
+          },
+          {
+            "stableId": "result:record(r1)!TableBoundsError:validator",
+            "kind": "result-validator",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 977,
+            "references": [
+              "record:r1:validator",
+              "result:record(r1)!TableBoundsError:validator"
+            ]
+          },
+          {
+            "stableId": "result:result(number!string)!TableBoundsError:validator",
+            "kind": "result-validator",
+            "isRoot": false,
+            "isReachable": false,
+            "emittedBytes": 976,
+            "references": [
+              "result:number!string:validator",
+              "result:result(number!string)!TableBoundsError:validator"
+            ]
+          },
+          {
+            "stableId": "result:row(t1.row)!TableBoundsError:validator",
+            "kind": "result-validator",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 981,
+            "references": [
+              "result:row(t1.row)!TableBoundsError:validator"
+            ]
+          },
+          {
+            "stableId": "result:string!TableBoundsError:validator",
+            "kind": "result-validator",
+            "isRoot": false,
+            "isReachable": false,
+            "emittedBytes": 958,
+            "references": [
+              "result:string!TableBoundsError:validator"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "Flow",
+      "baselineBytes": 18542,
+      "report": {
+        "enabled": false,
+        "definitionCount": 4,
+        "retainedCount": 1,
+        "removedCount": 0,
+        "removedBytes": 0,
+        "definitions": [
+          {
+            "stableId": "record:r1:carrier",
+            "kind": "record-carrier",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 206,
+            "references": [
+              "record:r1:carrier"
+            ]
+          },
+          {
+            "stableId": "record:r1:validator",
+            "kind": "record-validator",
+            "isRoot": false,
+            "isReachable": false,
+            "emittedBytes": 551,
+            "references": [
+              "record:r1:carrier",
+              "record:r1:validator"
+            ]
+          },
+          {
+            "stableId": "record:r2:carrier",
+            "kind": "record-carrier",
+            "isRoot": false,
+            "isReachable": false,
+            "emittedBytes": 249,
+            "references": [
+              "record:r2:carrier"
+            ]
+          },
+          {
+            "stableId": "record:r2:validator",
+            "kind": "record-validator",
+            "isRoot": false,
+            "isReachable": false,
+            "emittedBytes": 786,
+            "references": [
+              "record:r2:carrier",
+              "record:r2:validator"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "AsyncBatchGenerator",
+      "baselineBytes": 11563,
+      "report": {
+        "enabled": false,
+        "definitionCount": 7,
+        "retainedCount": 3,
+        "removedCount": 0,
+        "removedBytes": 0,
+        "definitions": [
+          {
+            "stableId": "record:r1:carrier",
+            "kind": "record-carrier",
+            "isRoot": false,
+            "isReachable": false,
+            "emittedBytes": 206,
+            "references": [
+              "record:r1:carrier"
+            ]
+          },
+          {
+            "stableId": "record:r1:validator",
+            "kind": "record-validator",
+            "isRoot": false,
+            "isReachable": false,
+            "emittedBytes": 540,
+            "references": [
+              "record:r1:carrier",
+              "record:r1:validator"
+            ]
+          },
+          {
+            "stableId": "record:r2:carrier",
+            "kind": "record-carrier",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 207,
+            "references": [
+              "record:r2:carrier"
+            ]
+          },
+          {
+            "stableId": "record:r2:validator",
+            "kind": "record-validator",
+            "isRoot": false,
+            "isReachable": false,
+            "emittedBytes": 541,
+            "references": [
+              "record:r2:carrier",
+              "record:r2:validator"
+            ]
+          },
+          {
+            "stableId": "record:r3:carrier",
+            "kind": "record-carrier",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 210,
+            "references": [
+              "record:r3:carrier"
+            ]
+          },
+          {
+            "stableId": "record:r3:validator",
+            "kind": "record-validator",
+            "isRoot": false,
+            "isReachable": false,
+            "emittedBytes": 543,
+            "references": [
+              "record:r3:carrier",
+              "record:r3:validator"
+            ]
+          },
+          {
+            "stableId": "result:number!string:validator",
+            "kind": "result-validator",
+            "isRoot": true,
+            "isReachable": true,
+            "emittedBytes": 947,
+            "references": [
+              "result:number!string:validator"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

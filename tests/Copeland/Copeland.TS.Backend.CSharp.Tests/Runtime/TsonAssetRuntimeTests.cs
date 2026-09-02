@@ -461,7 +461,7 @@ public sealed class TsonAssetRuntimeTests
         {
             ["main.cope"] = "9e6bd14910ebbc0862138cd15a000f836b047fedf5e86ab24102e117d09c8d95",
             ["main.g.cs"] = "bbb11645f4f3c00ef6e5c82023d0831b268fe4df791ea063924d32a472f8185d",
-            ["main.g.js"] = "647c473707eab2665fc931732b33357ab0c7779f9d55d88958e76ffe5aa7dc7b",
+            ["main.g.js"] = "626f5e2049b5e34b7532bb99c2bc7e9f089c947accab932b72a4f278d9e2d082",
             ["main.ts"] = "662e4abf48cb939fae86ab9a28ce2377f84e917c3440be2bc9d45140f1d3e63f",
             ["settings.obj.ts"] = "d2565ff75f6199ee14444ee607eacabd6d2f0e35c0dc2b3df60436ba05655310",
         };
@@ -516,7 +516,7 @@ public sealed class TsonAssetRuntimeTests
             ["batch.obj.ts"] = "32c551b037fa503a646b4fcc30c983aea8b94f3235bde0b67bae64f963871ede",
             ["main.cope"] = "9163875f927d9e7ce95c4d59143724cbbc0eef8b9480b08d86b62341e973f07c",
             ["main.g.cs"] = "a3b97b999c7bc529fd40ac7b38bc860a89a664d6cf5639952f8123f562777015",
-            ["main.g.js"] = "de884da8fdaacd96ba8ac92e75076df0df268298f29da65df0c74b7af56f5873",
+            ["main.g.js"] = "46d87744861bb580e66718770f64c16dbb7bf4b5dc6744c727186c3e0fc20f21",
             ["main.ts"] = "d95366df1041d079075628c8132c44b1325835b4bfbd9ada8a71a0dc033f5e03",
         };
         foreach ((string fileName, string expectedHash) in expectedHashes)

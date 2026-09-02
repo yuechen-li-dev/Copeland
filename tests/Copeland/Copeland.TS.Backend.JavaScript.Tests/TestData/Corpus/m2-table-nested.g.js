@@ -122,22 +122,6 @@ function __cope_m3_result_validate_15(value) {
     }
 }
 
-function __cope_m3_result_validate_17(value) {
-    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, "$type") || !Object.prototype.hasOwnProperty.call(value, "$tag") || !Object.prototype.hasOwnProperty.call(value, "$payload") || value.$type !== __cope_m3_result_type_16 || typeof value.$tag !== "string" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload) || value.$payload.length !== 1 || !Object.prototype.hasOwnProperty.call(value.$payload, 0)) {
-        __cope_m3_panic_0();
-    }
-    switch (value.$tag) {
-        case "ok":
-            if (!((__cope_m3_validate_13(value.$payload[0]), true))) { __cope_m3_panic_0(); }
-            return;
-        case "err":
-            if (!((__cope_m3_validate_10(value.$payload[0]), true))) { __cope_m3_panic_0(); }
-            return;
-        default:
-            __cope_m3_panic_0();
-    }
-}
-
 function __cope_m3_result_validate_19(value) {
     if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, "$type") || !Object.prototype.hasOwnProperty.call(value, "$tag") || !Object.prototype.hasOwnProperty.call(value, "$payload") || value.$type !== __cope_m3_result_type_18 || typeof value.$tag !== "string" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload) || value.$payload.length !== 1 || !Object.prototype.hasOwnProperty.call(value.$payload, 0)) {
         __cope_m3_panic_0();

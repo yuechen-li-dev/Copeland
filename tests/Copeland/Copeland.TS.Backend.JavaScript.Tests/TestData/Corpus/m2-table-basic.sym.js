@@ -61,36 +61,6 @@ function $果验甲(value) {
       $终甲();
   }
 }
-function $果验乙(value) {
-  if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, "$type") || !Object.prototype.hasOwnProperty.call(value, "$tag") || !Object.prototype.hasOwnProperty.call(value, "$payload") || value.$type !== $果型乙 || typeof value.$tag !== "string" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload) || value.$payload.length !== 1 || !Object.prototype.hasOwnProperty.call(value.$payload, 0)) {
-    $终甲();
-  }
-  switch (value.$tag) {
-    case "ok":
-      if (!(($表行验甲(value.$payload[0]), true))) { $终甲(); }
-      return;
-    case "err":
-      if (!(($枚验甲(value.$payload[0]), true))) { $终甲(); }
-      return;
-    default:
-      $终甲();
-  }
-}
-function $果验丙(value) {
-  if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, "$type") || !Object.prototype.hasOwnProperty.call(value, "$tag") || !Object.prototype.hasOwnProperty.call(value, "$payload") || value.$type !== $果型丙 || typeof value.$tag !== "string" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload) || value.$payload.length !== 1 || !Object.prototype.hasOwnProperty.call(value.$payload, 0)) {
-    $终甲();
-  }
-  switch (value.$tag) {
-    case "ok":
-      if (!(typeof value.$payload[0] === "string")) { $终甲(); }
-      return;
-    case "err":
-      if (!(($枚验甲(value.$payload[0]), true))) { $终甲(); }
-      return;
-    default:
-      $终甲();
-  }
-}
 function $果验丁(value) {
   if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, "$type") || !Object.prototype.hasOwnProperty.call(value, "$tag") || !Object.prototype.hasOwnProperty.call(value, "$payload") || value.$type !== $果型丁 || typeof value.$tag !== "string" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload) || value.$payload.length !== 1 || !Object.prototype.hasOwnProperty.call(value.$payload, 0)) {
     $终甲();

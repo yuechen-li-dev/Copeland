@@ -164,7 +164,11 @@ public static class JavaScriptBackend
         try
         {
         GeneratedNames names = GeneratedNames.Create(program, catalog, results, usesUnwrap, usesTryExcept, effectiveOptions.Profile);
-        var writer = new JavaScriptTextWriter(names.Document, effectiveOptions.Profile);
+        var writer = new JavaScriptTextWriter(
+            names.Document,
+            names.GeneratedDefinitions,
+            effectiveOptions.EnableGeneratedDefinitionReachability,
+            effectiveOptions.Profile);
         foreach (MirNpmImport npm in program.NpmImports.OrderBy(import => import.PackageName, StringComparer.Ordinal).ThenBy(import => import.ExportName, StringComparer.Ordinal).ThenBy(import => import.LocalBinding, StringComparer.Ordinal))
         {
             string exportName = JavaScriptIdentifierEncoder.Encode(npm.ExportName);
@@ -244,7 +248,7 @@ public static class JavaScriptBackend
             SymbolicJavaScriptVocabulary.ValidateIdentifierFile(sourceText);
         }
 
-        return new JavaScriptCompilation(sourceText, []);
+        return new JavaScriptCompilation(sourceText, [], writer.ReachabilityReport);
         }
         finally
         {
@@ -1489,7 +1493,6 @@ public static class JavaScriptBackend
 
         foreach (MirRecordDefinition record in catalog.Records)
         {
-            writer.WriteLine();
             EmitRecordRuntime(writer, record, catalog, results, names, usesSharedBrowserInteropRuntime);
             if (ModuleFactoryEmission.Value)
             {
@@ -1551,7 +1554,6 @@ public static class JavaScriptBackend
 
         foreach (ResultInfo result in results.Types)
         {
-            writer.WriteLine();
             EmitResultValidator(writer, result, catalog, results, names);
         }
 
@@ -2300,6 +2302,10 @@ public static class JavaScriptBackend
 
     private static void EmitRecordRuntime(JavaScriptTextWriter writer, MirRecordDefinition record, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool shareAcrossModules)
     {
+        string carrierDefinitionId = GeneratedNames.RecordCarrierDefinitionId(record);
+        string validatorDefinitionId = GeneratedNames.RecordValidatorDefinitionId(record);
+        writer.BeginGeneratedDefinition(carrierDefinitionId);
+        writer.WriteLine();
         var typeToken = names.RecordTypeToken(record);
         string registration = "__cope_m3_record_registration_" + record.Id.Value;
         if (shareAcrossModules)
@@ -2356,6 +2362,9 @@ public static class JavaScriptBackend
         writer.Unindent();
         writer.WriteLine("}");
 
+        writer.EndGeneratedDefinition(carrierDefinitionId);
+        writer.BeginGeneratedDefinition(validatorDefinitionId);
+        typeToken = names.RecordTypeToken(record);
         writer.WriteLine();
         writer.WriteLine($"function {names.RecordValidator(record)}(value) {{");
         writer.Indent();
@@ -2382,6 +2391,7 @@ public static class JavaScriptBackend
             }
             writer.Unindent();
             writer.WriteLine("}");
+            writer.EndGeneratedDefinition(validatorDefinitionId);
             return;
         }
 
@@ -2403,6 +2413,7 @@ public static class JavaScriptBackend
         writer.WriteLine("}");
         writer.Unindent();
         writer.WriteLine("}");
+        writer.EndGeneratedDefinition(validatorDefinitionId);
     }
 
     /// <summary>
@@ -2510,6 +2521,9 @@ public static class JavaScriptBackend
 
     private static void EmitResultValidator(JavaScriptTextWriter writer, ResultInfo result, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
     {
+        string definitionId = GeneratedNames.ResultValidatorDefinitionId(result);
+        writer.BeginGeneratedDefinition(definitionId);
+        writer.WriteLine();
         writer.WriteLine($"function {names.Validator(result)}(value) {{");
         writer.Indent();
         writer.WriteLine($"if (typeof value !== \"object\" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, \"$type\") || !Object.prototype.hasOwnProperty.call(value, \"$tag\") || !Object.prototype.hasOwnProperty.call(value, \"$payload\") || value.$type !== {names.TypeToken(result)} || typeof value.$tag !== \"string\" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload) || value.$payload.length !== 1 || !Object.prototype.hasOwnProperty.call(value.$payload, 0)) {{");
@@ -2537,6 +2551,7 @@ public static class JavaScriptBackend
         writer.WriteLine("}");
         writer.Unindent();
         writer.WriteLine("}");
+        writer.EndGeneratedDefinition(definitionId);
     }
 
     private static void EmitPayloadValidation(JavaScriptTextWriter writer, MirEnumCase enumCase, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
@@ -5992,6 +6007,7 @@ public static class JavaScriptBackend
         private readonly Dictionary<MirRecordDefinition, JavaScriptBindingReference> recordConstructors;
         private readonly Dictionary<MirRecordDefinition, JavaScriptBindingReference> recordValidators;
         private readonly Dictionary<MirRecordFieldDefinition, JavaScriptBindingReference> recordFieldSlots;
+        private readonly Dictionary<MirRecordFieldDefinition, MirRecordDefinition> recordFieldOwners;
         private readonly Dictionary<MirTableDefinition, JavaScriptBindingReference> tableTypeTokens;
         private readonly Dictionary<MirTableDefinition, JavaScriptBindingReference> tableInstances;
         private readonly Dictionary<MirTableDefinition, JavaScriptBindingReference> tableRowTypeTokens;
@@ -6007,6 +6023,7 @@ public static class JavaScriptBackend
         private readonly Dictionary<MirTableColumnDefinition, JavaScriptBindingReference> tableColumnValues;
         private readonly Dictionary<MirFunction, JavaScriptScopeId> functionScopes;
         private readonly NameAllocator allocator;
+        private readonly JavaScriptGeneratedDefinitionGraph generatedDefinitions;
 
         private GeneratedNames(
             NameAllocator allocator,
@@ -6030,6 +6047,7 @@ public static class JavaScriptBackend
             Dictionary<MirRecordDefinition, JavaScriptBindingReference> recordConstructors,
             Dictionary<MirRecordDefinition, JavaScriptBindingReference> recordValidators,
             Dictionary<MirRecordFieldDefinition, JavaScriptBindingReference> recordFieldSlots,
+            Dictionary<MirRecordFieldDefinition, MirRecordDefinition> recordFieldOwners,
             JavaScriptBindingReference columnCarrierToken,
             JavaScriptBindingReference columnInstances,
             JavaScriptBindingReference columnReadSlot,
@@ -6051,6 +6069,7 @@ public static class JavaScriptBackend
             Dictionary<MirTableColumnDefinition, JavaScriptBindingReference> tableStorages,
             Dictionary<MirTableColumnDefinition, JavaScriptBindingReference> tableColumnValues,
             Dictionary<MirFunction, JavaScriptScopeId> functionScopes,
+            JavaScriptGeneratedDefinitionGraph generatedDefinitions,
             JavaScriptEmissionProfile profile)
         {
             this.allocator = allocator;
@@ -6074,6 +6093,7 @@ public static class JavaScriptBackend
             this.recordConstructors = recordConstructors;
             this.recordValidators = recordValidators;
             this.recordFieldSlots = recordFieldSlots;
+            this.recordFieldOwners = recordFieldOwners;
             ColumnCarrierToken = columnCarrierToken;
             ColumnInstances = columnInstances;
             ColumnReadSlot = columnReadSlot;
@@ -6095,6 +6115,7 @@ public static class JavaScriptBackend
             this.tableStorages = tableStorages;
             this.tableColumnValues = tableColumnValues;
             this.functionScopes = functionScopes;
+            this.generatedDefinitions = generatedDefinitions;
             Profile = profile;
         }
 
@@ -6122,6 +6143,8 @@ public static class JavaScriptBackend
 
         public JavaScriptEmissionDocument Document => allocator.Document;
 
+        public JavaScriptGeneratedDefinitionGraph GeneratedDefinitions => generatedDefinitions;
+
         public JavaScriptBindingReference ColumnCarrierToken { get; }
 
         public JavaScriptBindingReference ColumnInstances { get; }
@@ -6144,17 +6167,63 @@ public static class JavaScriptBackend
 
         public JavaScriptBindingReference TypeToken(ResultInfo result) => resultTypeTokens[result];
 
-        public JavaScriptBindingReference Validator(ResultInfo result) => resultValidators[result];
+        public JavaScriptBindingReference Validator(ResultInfo result)
+        {
+            generatedDefinitions.Reference(ResultValidatorDefinitionId(result));
+            return resultValidators[result];
+        }
 
-        public JavaScriptBindingReference RecordTypeToken(MirRecordDefinition record) => recordTypeTokens[record];
+        public JavaScriptBindingReference RecordTypeToken(MirRecordDefinition record)
+        {
+            generatedDefinitions.Reference(RecordCarrierDefinitionId(record));
+            return recordTypeTokens[record];
+        }
 
-        public JavaScriptBindingReference RecordInstances(MirRecordDefinition record) => recordInstances[record];
+        public JavaScriptBindingReference RecordInstances(MirRecordDefinition record)
+        {
+            generatedDefinitions.Reference(RecordCarrierDefinitionId(record));
+            return recordInstances[record];
+        }
 
-        public JavaScriptBindingReference RecordConstructor(MirRecordDefinition record) => recordConstructors[record];
+        public JavaScriptBindingReference RecordConstructor(MirRecordDefinition record)
+        {
+            generatedDefinitions.Reference(RecordCarrierDefinitionId(record));
+            return recordConstructors[record];
+        }
 
-        public JavaScriptBindingReference RecordValidator(MirRecordDefinition record) => recordValidators[record];
+        public JavaScriptBindingReference RecordValidator(MirRecordDefinition record)
+        {
+            generatedDefinitions.Reference(RecordValidatorDefinitionId(record));
+            return recordValidators[record];
+        }
 
-        public JavaScriptBindingReference RecordFieldSlot(MirRecordFieldDefinition field) => recordFieldSlots[field];
+        public JavaScriptBindingReference RecordFieldSlot(MirRecordFieldDefinition field)
+        {
+            generatedDefinitions.Reference(RecordCarrierDefinitionId(recordFieldOwners[field]));
+            return recordFieldSlots[field];
+        }
+
+        public static string RecordCarrierDefinitionId(MirRecordDefinition record)
+            => "record:" + record.Id.Value + ":carrier";
+
+        public static string RecordValidatorDefinitionId(MirRecordDefinition record)
+            => "record:" + record.Id.Value + ":validator";
+
+        public static string ResultValidatorDefinitionId(ResultInfo result)
+            => "result:" + StableTypeIdentity(result.Type.SuccessType) + "!" + StableTypeIdentity(result.Type.ErrorType) + ":validator";
+
+        private static string StableTypeIdentity(MirType type)
+            => type switch
+            {
+                MirRecordType record => "record(" + record.RecordTypeId.Value + ")",
+                MirTableType table => "table(" + table.TableId.Value + ")",
+                MirTableRowType row => "row(" + row.RowTypeId + ")",
+                MirColumnType column => "column(" + StableTypeIdentity(column.ElementType) + ")",
+                MirArrayType array => "array(" + StableTypeIdentity(array.ElementType) + ")",
+                MirMutableArrayType array => "mutable-array(" + StableTypeIdentity(array.ElementType) + ")",
+                MirResultType nested => "result(" + StableTypeIdentity(nested.SuccessType) + "!" + StableTypeIdentity(nested.ErrorType) + ")",
+                _ => type.Identifier,
+            };
 
         public JavaScriptBindingReference TableTypeToken(MirTableDefinition table) => tableTypeTokens[table];
 
@@ -6256,6 +6325,7 @@ public static class JavaScriptBackend
             var recordConstructors = new Dictionary<MirRecordDefinition, JavaScriptBindingReference>();
             var recordValidators = new Dictionary<MirRecordDefinition, JavaScriptBindingReference>();
             var recordFieldSlots = new Dictionary<MirRecordFieldDefinition, JavaScriptBindingReference>();
+            var recordFieldOwners = new Dictionary<MirRecordFieldDefinition, MirRecordDefinition>();
             foreach (MirRecordDefinition record in catalog.Records)
             {
                 string recordIdentity = JavaScriptIdentifierEncoder.Encode(record.Id.Value);
@@ -6265,6 +6335,7 @@ public static class JavaScriptBackend
                 recordValidators.Add(record, allocator.Allocate(JavaScriptBindingRole.Validator, JavaScriptSymbolicBindingRole.RecordValidator, $"record_require_{recordIdentity}"));
                 foreach (MirRecordFieldDefinition field in record.Fields)
                 {
+                    recordFieldOwners.Add(field, record);
                     string fieldIdentity = JavaScriptIdentifierEncoder.Encode(field.Id.Value);
                     recordFieldSlots.Add(field, allocator.Allocate(JavaScriptBindingRole.SymbolSlot, JavaScriptSymbolicBindingRole.RecordField, $"record_field_{fieldIdentity}"));
                 }
@@ -6331,6 +6402,17 @@ public static class JavaScriptBackend
                 }
             }
 
+            var generatedDefinitions = new JavaScriptGeneratedDefinitionGraph();
+            foreach (MirRecordDefinition record in catalog.Records)
+            {
+                generatedDefinitions.Register(RecordCarrierDefinitionId(record), "record-carrier");
+                generatedDefinitions.Register(RecordValidatorDefinitionId(record), "record-validator");
+            }
+            foreach (ResultInfo result in results.Types)
+            {
+                generatedDefinitions.Register(ResultValidatorDefinitionId(result), "result-validator");
+            }
+
             var names = new GeneratedNames(
                 allocator,
                 panic,
@@ -6353,6 +6435,7 @@ public static class JavaScriptBackend
                 recordConstructors,
                 recordValidators,
                 recordFieldSlots,
+                recordFieldOwners,
                 columnCarrierToken,
                 columnInstances,
                 columnReadSlot,
@@ -6374,6 +6457,7 @@ public static class JavaScriptBackend
                 tableStorages,
                 tableColumnValues,
                 functionScopes,
+                generatedDefinitions,
                 profile);
             allocator.Validate();
             return names;

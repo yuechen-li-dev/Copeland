@@ -1,0 +1,9 @@
+CTS-OPT-M2
+Outcome A
+module-local generated-definition reachability DCE
+Production bytes: 94652 -> 84499
+Removed bytes: 10153
+Removed definitions: 16
+Runtime parity: PASS
+Whole-program linker: NO
+SSA/expression DCE: NO

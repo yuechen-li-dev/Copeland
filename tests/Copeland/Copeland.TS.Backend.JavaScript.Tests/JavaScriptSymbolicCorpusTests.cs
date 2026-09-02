@@ -16,13 +16,13 @@ public sealed class JavaScriptSymbolicCorpusTests
     [InlineData("tests/Copeland/Copeland.TS.Backend.JavaScript.Tests/TestData/Corpus/record-basic.ts", 2439, "08A8660EDFA7EA4DBD1B4C311F003B6851E83ED6E9B3DE0CA46AF5159E684B3A")]
     [InlineData("tests/Copeland/Copeland.TS.Backend.JavaScript.Tests/TestData/Corpus/record-order-with.ts", 1654, "302B57990326174B71C70BA29A9F740DE50241C12A1E31A0EF9991E0A7D6DBFA")]
     [InlineData("tests/Copeland/Copeland.TS.Backend.JavaScript.Tests/TestData/Corpus/inferred-reuse.ts", 1819, "75116BFD2227A9F84C271F1D18D3849109EB3C2B13A1BB29E71EC69874FE737B")]
-    [InlineData("tests/Copeland/Copeland.TS.Backend.JavaScript.Tests/TestData/Corpus/m2-table-basic.ts", 15461, "80AF3FD5ED71D4B9CFCCCDE62877027480255C3E9F841A94C3B77FD9FE46AE5A")]
+    [InlineData("tests/Copeland/Copeland.TS.Backend.JavaScript.Tests/TestData/Corpus/m2-table-basic.ts", 13818, "50778FF8E83FB5C818F52783906AC4EC8A6BB99E39050080B4E7DAE8C2EA5E8B")]
     [InlineData("tests/Copeland/Copeland.TS.Backend.JavaScript.Tests/TestData/Corpus/nominal-union.ts", 4219, "15284C1CA6911F2BA63F797A7EB3B6D8A557325EDB42C08199FA1F7BF8A73313")]
-    [InlineData("tests/Copeland/Copeland.TS.Tests/TestData/Corpus/cts-class-m1/main.ts", 9426, "8016CCAE933FA7F1CD3AFDE06DC3A2EFBF462625A10E52759598BE7F2D265814")]
-    [InlineData("tests/Copeland/Copeland.TS.Tests/TsonEncoding/Corpus/record/main.ts", 12156, "C227F69DF91785B71786C7CA5AEB406EA031323AD8ACF22E3F5ABAEA1507B79B")]
-    [InlineData("tests/Copeland/Copeland.TS.Tests/TsonEncoding/Corpus/arrays/main.ts", 20419, "0C0740A327B4A80B81118A9B7884902B1EC78277A90F641B9CA0EF439BF0D591")]
-    [InlineData("tests/Copeland/Copeland.TS.Tests/TsonEncoding/Corpus/tables-m2/main.ts", 47122, "ACEC71ADB5E76FA85939EEA5789B5EA65543EEBB97D9A9AC55C5ABC8063A89A9")]
-    [InlineData("tests/Copeland/Copeland.TS.Tests/TsonTableAssets/Corpus/representative/main.ts", 27074, "2B853C15B5628F1DF81E6130EE28F2A2B3E86A443C537568E3AB9FF16DE62C66")]
+    [InlineData("tests/Copeland/Copeland.TS.Tests/TestData/Corpus/cts-class-m1/main.ts", 9073, "6472D5067817EC9C762159DE4723942DDD0AD22787A477634CD86361488731DA")]
+    [InlineData("tests/Copeland/Copeland.TS.Tests/TsonEncoding/Corpus/record/main.ts", 11336, "9748133949F9E308A3D3610E395A120EB5A08ECDFDC14960901C5803799C694C")]
+    [InlineData("tests/Copeland/Copeland.TS.Tests/TsonEncoding/Corpus/arrays/main.ts", 19599, "E85863C5900795FFFCC4EFF00C11B462C16936743F16F0681E84DB5741D4418D")]
+    [InlineData("tests/Copeland/Copeland.TS.Tests/TsonEncoding/Corpus/tables-m2/main.ts", 39740, "37348398C5A87640FADD1FCD4BF70C2AD4CD88D2CCAF2D2C93466072148B73B9")]
+    [InlineData("tests/Copeland/Copeland.TS.Tests/TsonTableAssets/Corpus/representative/main.ts", 23377, "E8AFB9DFE2A2B9957DEC83B697A7FC9081B1E6FCCA1265D5A614CEC86255CB90")]
     public void Symbolic_corpus_has_stable_bytes_and_hashes(string relativeSourcePath, int expectedByteLength, string expectedSha256)
     {
         string repoRoot = GetRepoRoot();

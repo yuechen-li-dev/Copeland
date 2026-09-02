@@ -14,16 +14,45 @@ internal sealed class JavaScriptTextWriter
 {
     private readonly List<LineEvent> events = [];
     private readonly JavaScriptEmissionDocument document;
+    private readonly JavaScriptGeneratedDefinitionGraph generatedDefinitions;
+    private readonly bool enableGeneratedDefinitionReachability;
     private readonly JavaScriptEmissionProfile profile;
     private JavaScriptScopeId currentScope;
     private int indent;
     private bool completed;
 
-    public JavaScriptTextWriter(JavaScriptEmissionDocument document, JavaScriptEmissionProfile profile = JavaScriptEmissionProfile.Diagnostic)
+    public JavaScriptTextWriter(
+        JavaScriptEmissionDocument document,
+        JavaScriptEmissionProfile profile = JavaScriptEmissionProfile.Diagnostic)
+        : this(document, new JavaScriptGeneratedDefinitionGraph(), false, profile)
+    {
+    }
+
+    public JavaScriptTextWriter(
+        JavaScriptEmissionDocument document,
+        JavaScriptGeneratedDefinitionGraph generatedDefinitions,
+        bool enableGeneratedDefinitionReachability,
+        JavaScriptEmissionProfile profile = JavaScriptEmissionProfile.Diagnostic)
     {
         this.document = document;
+        this.generatedDefinitions = generatedDefinitions;
+        this.enableGeneratedDefinitionReachability = enableGeneratedDefinitionReachability;
         this.profile = profile;
         currentScope = document.ProgramScope;
+    }
+
+    public JavaScriptReachabilityReport? ReachabilityReport { get; private set; }
+
+    public void BeginGeneratedDefinition(string stableId)
+    {
+        EnsureWritable();
+        generatedDefinitions.Begin(stableId);
+    }
+
+    public void EndGeneratedDefinition(string stableId)
+    {
+        EnsureWritable();
+        generatedDefinitions.End(stableId);
     }
 
     public void EnterScope(JavaScriptScopeId scope)
@@ -36,13 +65,13 @@ internal sealed class JavaScriptTextWriter
     {
         EnsureWritable();
         ArgumentNullException.ThrowIfNull(text);
-        events.Add(new LineEvent([new TextPart(text)], indent, currentScope));
+        events.Add(new LineEvent([new TextPart(text)], indent, currentScope, generatedDefinitions.CurrentDefinition));
     }
 
     public void WriteLine(ref JavaScriptLineInterpolatedStringHandler line)
     {
         EnsureWritable();
-        events.Add(new LineEvent(line.Parts, indent, currentScope));
+        events.Add(new LineEvent(line.Parts, indent, currentScope, generatedDefinitions.CurrentDefinition));
     }
 
     public void Indent()
@@ -71,6 +100,8 @@ internal sealed class JavaScriptTextWriter
         }
 
         var builder = new System.Text.StringBuilder();
+        IReadOnlySet<string> reachable = generatedDefinitions.MarkReachable();
+        var bytesByDefinition = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (LineEvent line in events)
         {
             bool hasContent = line.Parts.Any(part => part is BindingPart
@@ -78,6 +109,16 @@ internal sealed class JavaScriptTextWriter
             if (profile == JavaScriptEmissionProfile.Symbolic && !hasContent)
             {
                 continue;
+            }
+
+            int renderedBytes = RenderedByteCount(line, hasContent);
+            if (line.GeneratedDefinition is not null)
+            {
+                bytesByDefinition[line.GeneratedDefinition] = bytesByDefinition.GetValueOrDefault(line.GeneratedDefinition) + renderedBytes;
+                if (enableGeneratedDefinitionReachability && !reachable.Contains(line.GeneratedDefinition))
+                {
+                    continue;
+                }
             }
 
             if (hasContent)
@@ -105,8 +146,45 @@ internal sealed class JavaScriptTextWriter
         }
 
         document.Validate();
+        ReachabilityReport = generatedDefinitions.CreateReport(
+            enableGeneratedDefinitionReachability,
+            reachable,
+            bytesByDefinition);
         completed = true;
         return builder.ToString();
+    }
+
+    private int RenderedByteCount(LineEvent line, bool hasContent)
+    {
+        int characterCount = hasContent
+            ? line.Indent * (profile == JavaScriptEmissionProfile.Symbolic ? 2 : 4)
+            : 0;
+        foreach (LinePart part in line.Parts)
+        {
+            characterCount += part switch
+            {
+                TextPart text => text.Value.Length,
+                BindingPart binding => binding.Reference.Name.Length,
+                _ => 0,
+            };
+        }
+        // Generated identifiers and syntax are ASCII. String literals can be
+        // non-ASCII, so count the rendered content exactly when necessary.
+        if (line.Parts.Any(part => part is TextPart text && text.Value.Any(character => character > 127)))
+        {
+            var rendered = new System.Text.StringBuilder();
+            if (hasContent)
+            {
+                rendered.Append(' ', line.Indent * (profile == JavaScriptEmissionProfile.Symbolic ? 2 : 4));
+            }
+            foreach (LinePart part in line.Parts)
+            {
+                rendered.Append(part is TextPart text ? text.Value : ((BindingPart)part).Reference.Name);
+            }
+            rendered.Append('\n');
+            return System.Text.Encoding.UTF8.GetByteCount(rendered.ToString());
+        }
+        return characterCount + 1;
     }
 
     private void EnsureWritable()
@@ -169,7 +247,11 @@ internal sealed class JavaScriptTextWriter
         }
     }
 
-    private sealed record LineEvent(IReadOnlyList<LinePart> Parts, int Indent, JavaScriptScopeId Scope);
+    private sealed record LineEvent(
+        IReadOnlyList<LinePart> Parts,
+        int Indent,
+        JavaScriptScopeId Scope,
+        string? GeneratedDefinition);
 
     internal abstract record LinePart;
 

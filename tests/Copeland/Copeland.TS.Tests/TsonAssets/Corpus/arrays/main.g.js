@@ -25,12 +25,6 @@ function __cope_m3_record_make_r1_4(field0) {
     return value;
 }
 
-function __cope_m3_record_require_r1_5(value) {
-    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_record_instances_r1_3.has(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_type_r1_2) || value[__cope_m3_record_type_r1_2] !== __cope_m3_record_type_r1_2 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720031002e00660030_6)) {
-        __cope_m3_panic_0();
-    }
-}
-
 const __cope_m3_record_type_r2_7 = Symbol("r2");
 const __cope_m3_record_instances_r2_8 = new WeakSet();
 const __cope_m3_record_field___cope_00720032002e00660030_11 = Symbol("r2.f0");
@@ -52,12 +46,6 @@ function __cope_m3_record_make_r2_9(field0, field1, field2, field3, field4) {
     Object.freeze(value);
     __cope_m3_record_instances_r2_8.add(value);
     return value;
-}
-
-function __cope_m3_record_require_r2_10(value) {
-    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_record_instances_r2_8.has(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_type_r2_7) || value[__cope_m3_record_type_r2_7] !== __cope_m3_record_type_r2_7 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720032002e00660030_11) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720032002e00660031_12) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720032002e00660032_13) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720032002e00660033_14) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720032002e00660034_15)) {
-        __cope_m3_panic_0();
-    }
 }
 
 const __cope_m3_type_16 = Object.freeze(Object.create(null));

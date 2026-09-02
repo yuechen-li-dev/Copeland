@@ -32,4 +32,10 @@ public sealed record JavaScriptEmissionOptions
     public IReadOnlySet<string> BoundaryFunctionNames { get; init; } = new HashSet<string>(StringComparer.Ordinal);
     public IReadOnlyDictionary<string, string> RemoteOperationRoutes { get; init; } = new Dictionary<string, string>(StringComparer.Ordinal);
     public string BridgeBaseUrlBinding { get; init; } = "__copelandBridgeBaseUrl";
+
+    /// <summary>
+    /// Omits only backend-registered compiler-generated definitions that are
+    /// unreachable from semantic emission roots. MIR validation always runs first.
+    /// </summary>
+    public bool EnableGeneratedDefinitionReachability { get; init; } = true;
 }

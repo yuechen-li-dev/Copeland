@@ -93,12 +93,6 @@ function __cope_m3_record_make_r1_9(field0) {
     return value;
 }
 
-function __cope_m3_record_require_r1_10(value) {
-    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_record_instances_r1_8.has(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_type_r1_7) || value[__cope_m3_record_type_r1_7] !== __cope_m3_record_type_r1_7 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720031002e00660030_11)) {
-        __cope_m3_panic_0();
-    }
-}
-
 const __cope_m3_record_type_r2_12 = Symbol("r2");
 const __cope_m3_record_instances_r2_13 = new WeakSet();
 const __cope_m3_record_field___cope_00720032002e00660030_16 = Symbol("r2.f0");

@@ -1,0 +1,101 @@
+{
+  "milestone": "CTS-OPT-M2",
+  "definitions": [
+    {
+      "program": "Application",
+      "stableId": "record:r10:validator",
+      "kind": "record-validator",
+      "emittedBytes": 546
+    },
+    {
+      "program": "Application",
+      "stableId": "record:r4:validator",
+      "kind": "record-validator",
+      "emittedBytes": 684
+    },
+    {
+      "program": "Application",
+      "stableId": "record:r5:validator",
+      "kind": "record-validator",
+      "emittedBytes": 955
+    },
+    {
+      "program": "Application",
+      "stableId": "record:r7:validator",
+      "kind": "record-validator",
+      "emittedBytes": 543
+    },
+    {
+      "program": "Application",
+      "stableId": "record:r8:validator",
+      "kind": "record-validator",
+      "emittedBytes": 563
+    },
+    {
+      "program": "Application",
+      "stableId": "record:r9:validator",
+      "kind": "record-validator",
+      "emittedBytes": 543
+    },
+    {
+      "program": "Tables",
+      "stableId": "result:ReadingState!TableBoundsError:validator",
+      "kind": "result-validator",
+      "emittedBytes": 969
+    },
+    {
+      "program": "Tables",
+      "stableId": "result:result(number!string)!TableBoundsError:validator",
+      "kind": "result-validator",
+      "emittedBytes": 976
+    },
+    {
+      "program": "Tables",
+      "stableId": "result:string!TableBoundsError:validator",
+      "kind": "result-validator",
+      "emittedBytes": 958
+    },
+    {
+      "program": "Flow",
+      "stableId": "record:r1:validator",
+      "kind": "record-validator",
+      "emittedBytes": 551
+    },
+    {
+      "program": "Flow",
+      "stableId": "record:r2:carrier",
+      "kind": "record-carrier",
+      "emittedBytes": 249
+    },
+    {
+      "program": "Flow",
+      "stableId": "record:r2:validator",
+      "kind": "record-validator",
+      "emittedBytes": 786
+    },
+    {
+      "program": "AsyncBatchGenerator",
+      "stableId": "record:r1:carrier",
+      "kind": "record-carrier",
+      "emittedBytes": 206
+    },
+    {
+      "program": "AsyncBatchGenerator",
+      "stableId": "record:r1:validator",
+      "kind": "record-validator",
+      "emittedBytes": 540
+    },
+    {
+      "program": "AsyncBatchGenerator",
+      "stableId": "record:r2:validator",
+      "kind": "record-validator",
+      "emittedBytes": 541
+    },
+    {
+      "program": "AsyncBatchGenerator",
+      "stableId": "record:r3:validator",
+      "kind": "record-validator",
+      "emittedBytes": 543
+    }
+  ]
+}

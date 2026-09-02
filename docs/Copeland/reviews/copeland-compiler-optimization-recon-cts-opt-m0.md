@@ -1,5 +1,11 @@
 # CTS-OPT-M0 compiler optimization reconnaissance
 
+> **CTS-OPT-M2 resolution (2026-09-01):** the JavaScript emitter now owns a
+> deterministic generated-definition graph and removes unreachable record/class
+> carrier families and record/Result validators after MIR validation. The
+> post-M1 Production burn-in falls from 94,652 to 84,499 bytes while preserving
+> Node output. See the CTS-OPT-M2 architecture and dogfood reports.
+
 > **CTS-OPT-M1 resolution (2026-09-01):** Production table realization now
 > uses one module-local trusted scaffold over compiler-known column payloads.
 > Tables fell from 43,535 to 36,450 bytes; repeated column wrappers fell from

@@ -1,0 +1,55 @@
+{
+  "milestone": "CTS-OPT-M2",
+  "m0OldDeadByteEstimate": 6037,
+  "m1TablesProductionBaselineBytes": 36450,
+  "programs": [
+    {
+      "name": "Application",
+      "baselineBytes": 28097,
+      "optimizedBytes": 24263,
+      "removedBytes": 3834,
+      "definitionsBefore": 24,
+      "definitionsRetained": 18,
+      "definitionsRemoved": 6,
+      "csharpBytes": 15752,
+      "runtimeOutputSha256": "0CD297E03D30C7E1ACE0E0215CEA1496EC3CD132958F16652EC3E66E0CC864D0"
+    },
+    {
+      "name": "Tables",
+      "baselineBytes": 36450,
+      "optimizedBytes": 33547,
+      "removedBytes": 2903,
+      "definitionsBefore": 10,
+      "definitionsRetained": 7,
+      "definitionsRemoved": 3,
+      "csharpBytes": 16131,
+      "runtimeOutputSha256": "09CCE4A6EF6781BA44AEAD7EAAE84F580BA21BF794F0C6880B619288003C6915"
+    },
+    {
+      "name": "Flow",
+      "baselineBytes": 18542,
+      "optimizedBytes": 16956,
+      "removedBytes": 1586,
+      "definitionsBefore": 4,
+      "definitionsRetained": 1,
+      "definitionsRemoved": 3,
+      "csharpBytes": 18529,
+      "runtimeOutputSha256": "420002158111BFF8ADB3347D84029E480F45E60E1869B454B6ADAC3345F9F7D4"
+    },
+    {
+      "name": "AsyncBatchGenerator",
+      "baselineBytes": 11563,
+      "optimizedBytes": 9733,
+      "removedBytes": 1830,
+      "definitionsBefore": 7,
+      "definitionsRetained": 3,
+      "definitionsRemoved": 4,
+      "csharpBytes": 15335,
+      "runtimeOutputSha256": "F4CCD05B3271C386EE55D9876C7450012A3B361E5065C09DC22075E38B3CC35C"
+    }
+  ],
+  "totalBaselineBytes": 94652,
+  "totalOptimizedBytes": 84499,
+  "totalRemovedBytes": 10153,
+  "metaprogrammingRuntimeBytes": 0
+}

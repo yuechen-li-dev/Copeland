@@ -22,12 +22,6 @@ function __cope_m3_record_make_r1_3(field0, field1) {
     return value;
 }
 
-function __cope_m3_record_require_r1_4(value) {
-    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_record_instances_r1_2.has(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_type_r1_1) || value[__cope_m3_record_type_r1_1] !== __cope_m3_record_type_r1_1 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720031002e00660030_5) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720031002e00660031_6)) {
-        __cope_m3_panic_0();
-    }
-}
-
 function load() {
     const __cope_m3_record_init_7 = "fixture";
     const __cope_m3_record_init_8 = true;

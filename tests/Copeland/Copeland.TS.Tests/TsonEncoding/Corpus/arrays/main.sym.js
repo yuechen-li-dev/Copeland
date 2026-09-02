@@ -112,21 +112,6 @@ function $枚验乙(value) {
   }
 }
 const $果型甲 = Object.freeze(Object.create(null));
-function $果验甲(value) {
-  if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, "$type") || !Object.prototype.hasOwnProperty.call(value, "$tag") || !Object.prototype.hasOwnProperty.call(value, "$payload") || value.$type !== $果型甲 || typeof value.$tag !== "string" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload) || value.$payload.length !== 1 || !Object.prototype.hasOwnProperty.call(value.$payload, 0)) {
-    $终甲();
-  }
-  switch (value.$tag) {
-    case "ok":
-      if (!(typeof value.$payload[0] === "string")) { $终甲(); }
-      return;
-    case "err":
-      if (!(($枚验甲(value.$payload[0]), true))) { $终甲(); }
-      return;
-    default:
-      $终甲();
-  }
-}
 const $运编甲 = (() => {
   function $写造甲(maximumBytes, maximumStringCodeUnits) {
     const parts = [];

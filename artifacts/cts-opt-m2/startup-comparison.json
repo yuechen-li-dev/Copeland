@@ -1,0 +1,42 @@
+{
+  "milestone": "CTS-OPT-M2",
+  "samplesPerProgram": 9,
+  "programs": [
+    {
+      "name": "Application",
+      "baselineMedianMs": 43.652,
+      "optimizedMedianMs": 44.3655,
+      "changeMs": 0.7134999999999962,
+      "baselineEmissionMedianMs": 1.3588,
+      "optimizedEmissionMedianMs": 1.182,
+      "emissionOverheadMs": -0.17680000000000007
+    },
+    {
+      "name": "Tables",
+      "baselineMedianMs": 46.1413,
+      "optimizedMedianMs": 45.1332,
+      "changeMs": -1.0080999999999989,
+      "baselineEmissionMedianMs": 1.0249,
+      "optimizedEmissionMedianMs": 1.0214,
+      "emissionOverheadMs": -0.0034999999999998366
+    },
+    {
+      "name": "Flow",
+      "baselineMedianMs": 45.6163,
+      "optimizedMedianMs": 44.8165,
+      "changeMs": -0.7998000000000047,
+      "baselineEmissionMedianMs": 0.7271,
+      "optimizedEmissionMedianMs": 0.7366,
+      "emissionOverheadMs": 0.009500000000000064
+    },
+    {
+      "name": "AsyncBatchGenerator",
+      "baselineMedianMs": 44.9008,
+      "optimizedMedianMs": 45.2231,
+      "changeMs": 0.3223000000000056,
+      "baselineEmissionMedianMs": 0.3785,
+      "optimizedEmissionMedianMs": 0.3785,
+      "emissionOverheadMs": 0
+    }
+  ]
+}

@@ -28,11 +28,6 @@ function $录造甲(field0, field1) {
   $录印甲.add(value);
   return value;
 }
-function $录验甲(value) {
-  if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !$录印甲.has(value) || !Object.prototype.hasOwnProperty.call(value, $录型甲) || value[$录型甲] !== $录型甲 || !Object.prototype.hasOwnProperty.call(value, $录域甲) || !Object.prototype.hasOwnProperty.call(value, $录域乙)) {
-    $终甲();
-  }
-}
 const $枚型甲 = Object.freeze(Object.create(null));
 const $枚印甲 = new WeakSet();
 const $枚型乙 = Object.freeze(Object.create(null));
@@ -95,21 +90,6 @@ const $果型戊 = Object.freeze(Object.create(null));
 const $果型己 = Object.freeze(Object.create(null));
 const $果型庚 = Object.freeze(Object.create(null));
 const $果型辛 = Object.freeze(Object.create(null));
-function $果验甲(value) {
-  if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, "$type") || !Object.prototype.hasOwnProperty.call(value, "$tag") || !Object.prototype.hasOwnProperty.call(value, "$payload") || value.$type !== $果型甲 || typeof value.$tag !== "string" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload) || value.$payload.length !== 1 || !Object.prototype.hasOwnProperty.call(value.$payload, 0)) {
-    $终甲();
-  }
-  switch (value.$tag) {
-    case "ok":
-      if (!(typeof value.$payload[0] === "boolean")) { $终甲(); }
-      return;
-    case "err":
-      if (!(($枚验甲(value.$payload[0]), true))) { $终甲(); }
-      return;
-    default:
-      $终甲();
-  }
-}
 function $果验乙(value) {
   if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, "$type") || !Object.prototype.hasOwnProperty.call(value, "$tag") || !Object.prototype.hasOwnProperty.call(value, "$payload") || value.$type !== $果型乙 || typeof value.$tag !== "string" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload) || value.$payload.length !== 1 || !Object.prototype.hasOwnProperty.call(value.$payload, 0)) {
     $终甲();
@@ -117,36 +97,6 @@ function $果验乙(value) {
   switch (value.$tag) {
     case "ok":
       if (!(typeof value.$payload[0] === "number")) { $终甲(); }
-      return;
-    case "err":
-      if (!(($枚验甲(value.$payload[0]), true))) { $终甲(); }
-      return;
-    default:
-      $终甲();
-  }
-}
-function $果验丙(value) {
-  if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, "$type") || !Object.prototype.hasOwnProperty.call(value, "$tag") || !Object.prototype.hasOwnProperty.call(value, "$payload") || value.$type !== $果型丙 || typeof value.$tag !== "string" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload) || value.$payload.length !== 1 || !Object.prototype.hasOwnProperty.call(value.$payload, 0)) {
-    $终甲();
-  }
-  switch (value.$tag) {
-    case "ok":
-      if (!(typeof value.$payload[0] === "string")) { $终甲(); }
-      return;
-    case "err":
-      if (!(($枚验甲(value.$payload[0]), true))) { $终甲(); }
-      return;
-    default:
-      $终甲();
-  }
-}
-function $果验丁(value) {
-  if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, "$type") || !Object.prototype.hasOwnProperty.call(value, "$tag") || !Object.prototype.hasOwnProperty.call(value, "$payload") || value.$type !== $果型丁 || typeof value.$tag !== "string" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload) || value.$payload.length !== 1 || !Object.prototype.hasOwnProperty.call(value.$payload, 0)) {
-    $终甲();
-  }
-  switch (value.$tag) {
-    case "ok":
-      if (!(($录验甲(value.$payload[0]), true))) { $终甲(); }
       return;
     case "err":
       if (!(($枚验甲(value.$payload[0]), true))) { $终甲(); }
@@ -192,21 +142,6 @@ function $果验庚(value) {
   switch (value.$tag) {
     case "ok":
       if (!(($表行验甲(value.$payload[0]), true))) { $终甲(); }
-      return;
-    case "err":
-      if (!(($枚验甲(value.$payload[0]), true))) { $终甲(); }
-      return;
-    default:
-      $终甲();
-  }
-}
-function $果验辛(value) {
-  if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, "$type") || !Object.prototype.hasOwnProperty.call(value, "$tag") || !Object.prototype.hasOwnProperty.call(value, "$payload") || value.$type !== $果型辛 || typeof value.$tag !== "string" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload) || value.$payload.length !== 1 || !Object.prototype.hasOwnProperty.call(value.$payload, 0)) {
-    $终甲();
-  }
-  switch (value.$tag) {
-    case "ok":
-      if (!(($表行验乙(value.$payload[0]), true))) { $终甲(); }
       return;
     case "err":
       if (!(($枚验甲(value.$payload[0]), true))) { $终甲(); }

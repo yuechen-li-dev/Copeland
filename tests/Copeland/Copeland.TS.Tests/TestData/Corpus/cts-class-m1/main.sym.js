@@ -82,11 +82,6 @@ function $录造甲(field0) {
   $录印甲.add(value);
   return value;
 }
-function $录验甲(value) {
-  if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !$录印甲.has(value) || !Object.prototype.hasOwnProperty.call(value, $录型甲) || value[$录型甲] !== $录型甲 || !Object.prototype.hasOwnProperty.call(value, $录域甲)) {
-    $终甲();
-  }
-}
 const $录型乙 = Symbol("$录型乙");
 const $录印乙 = new WeakSet();
 const $录域乙 = Symbol("$录域乙");

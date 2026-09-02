@@ -58,7 +58,7 @@ public sealed class JavaScriptCorpusTests
         JavaScriptCompilation emitted = JavaScriptBackend.Emit(mir.Program!);
         Assert.True(emitted.Success);
         Assert.Equal(File.ReadAllText(expectedPath).Replace("\r\n", "\n", StringComparison.Ordinal), emitted.SourceText);
-        Assert.Equal("9620114CDEA686AFDF1F5D7F6BE5C6F7150B1C4348E08B7A4CD39D4BE60CE135", Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(expectedPath))));
+        Assert.Equal("4D55FC998E2681332783811FCD70CCA09DE18BB90A392AE44A9B2080C7EE1B2A", Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(expectedPath))));
     }
 
     [Fact]
@@ -96,8 +96,8 @@ public sealed class JavaScriptCorpusTests
     }
 
     [Theory]
-    [InlineData("m2-table-basic.g.js", "29FB270F855AC7A704C9A4ABD00105EFB152EAA210DEBED850402E31DBBA9C81")]
-    [InlineData("m2-table-nested.g.js", "215EC9852AA6F18E6651897DEE375182B5F6F64675AD0A25617AF8C90CBBAA54")]
+    [InlineData("m2-table-basic.g.js", "7C030C63FE26A48E442DF2C5D0DA5FF9D1BE1D38A83BDD6DC2BC36E99A00DF31")]
+    [InlineData("m2-table-nested.g.js", "41CC563928AE6118E3801041A180A43693FEEBD2F4532B16F9708E5A6B90F97C")]
     public void Table_Artifacts_Have_Stable_Hashes(string fileName, string expectedHash)
     {
         string artifactPath = Path.Combine(GetCorpusRoot(), fileName);

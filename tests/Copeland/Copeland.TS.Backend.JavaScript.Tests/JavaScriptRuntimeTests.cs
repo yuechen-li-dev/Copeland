@@ -1648,6 +1648,7 @@ public sealed class JavaScriptRuntimeTests
             record OtherPoint { count: int; enabled: boolean; }
             enum Event { Tick, Add(value: int), }
             enum OtherEvent { Tick, }
+            function boundary(value: Point): int { return value.count; }
             function main(): int {
                 let point: Point = { count: 1, enabled: true };
                 point = point with { count: point.count + 1 };
@@ -1664,7 +1665,11 @@ public sealed class JavaScriptRuntimeTests
         JavaScriptCompilation validated = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
         JavaScriptCompilation production = JavaScriptBackend.Emit(
             compilation.MirCompilation.Program!,
-            new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Production });
+            new JavaScriptEmissionOptions
+            {
+                Profile = JavaScriptEmissionProfile.Production,
+                BoundaryFunctionNames = new HashSet<string>(["boundary"], StringComparer.Ordinal),
+            });
 
         Assert.True(validated.Success, string.Join(Environment.NewLine, validated.Diagnostics));
         Assert.True(production.Success, string.Join(Environment.NewLine, production.Diagnostics));
