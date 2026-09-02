@@ -1737,6 +1737,69 @@ public sealed class JavaScriptRuntimeTests
         Assert.Equal(string.Empty, result.StdErr);
     }
 
+    [Fact]
+    public async Task Production_tables_use_one_trusted_scaffold_and_preserve_bounds_parity_and_nominality()
+    {
+        const string source = """
+            record Cell { value: int; }
+            enum State { Ready, Value(value: int), }
+            record table First {
+                amount: int = [1, 2];
+                cell: Cell = [{ value: 3 }, { value: 4 }];
+                state: State = [State.Ready, State.Value(5)];
+                result: int ! string = [ok(6), err("bad")];
+            }
+            record table Second { amount: int = [1, 2]; }
+            function read(index: number): int ! TableBoundsError { return First.amount[index]; }
+            function row(index: number): First.Row ! TableBoundsError { return First[index]; }
+            function other(): Second.Row { return Second[0]!; }
+            function readFirst(value: First.Row): int { return value.amount; }
+            function payload(): int {
+                const value: First.Row = First[1]!;
+                const state: int = match value.state { Ready => 0, Value(payload) => payload, };
+                const result: int = match value.result { ok(payload) => payload, err(error) => 7, };
+                return value.cell.value + state + result;
+            }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptCompilation diagnostic = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+        JavaScriptCompilation production = JavaScriptBackend.Emit(
+            compilation.MirCompilation.Program!,
+            new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Production });
+        JavaScriptCompilation repeated = JavaScriptBackend.Emit(
+            compilation.MirCompilation.Program!,
+            new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Production });
+
+        Assert.True(diagnostic.Success, string.Join(Environment.NewLine, diagnostic.Diagnostics));
+        Assert.True(production.Success, string.Join(Environment.NewLine, production.Diagnostics));
+        Assert.Equal(production.SourceText, repeated.SourceText);
+        Assert.Single(Regex.Matches(production.SourceText!, @"function __cope_table_trusted_column\("));
+        Assert.Equal(5, Regex.Matches(production.SourceText!, @"= __cope_table_trusted_column\(").Count);
+        Assert.DoesNotContain("__cope_table_trusted_column", JavaScriptBackend.Emit(
+            CopelandCompiler.CompileToMir("function main(): int { return 0; }").MirCompilation!.Program!,
+            new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Production }).SourceText, StringComparison.Ordinal);
+
+        const string suffix = """
+            for (const index of [-0, NaN, Infinity, -Infinity, 0.5, -1, 2, 9007199254740991]) {
+                const value = read(index);
+                console.log(value.$tag === "ok" ? Object.is(value.$payload[0], -0) : value.$payload[0].$tag);
+            }
+            console.log(payload());
+            try { readFirst(other()); console.log("counterfeit-accepted"); }
+            catch (error) { console.log("counterfeit-rejected"); }
+            """;
+        ProcessResult diagnosticResult = await RunNodeAsync(diagnostic.SourceText + suffix);
+        ProcessResult productionResult = await RunNodeAsync(production.SourceText + suffix);
+
+        Assert.Equal(diagnosticResult, productionResult);
+        Assert.Equal(
+            "false\nInvalidIndex\nInvalidIndex\nInvalidIndex\nInvalidIndex\nOutOfBounds\nOutOfBounds\nOutOfBounds\n16\ncounterfeit-rejected\n",
+            productionResult.StdOut);
+        Assert.Equal(string.Empty, productionResult.StdErr);
+    }
+
     private static JavaScriptCompilation Emit(string source)
     {
         CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);

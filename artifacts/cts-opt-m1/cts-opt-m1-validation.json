@@ -1,0 +1,37 @@
+{
+  "milestone": "CTS-OPT-M1",
+  "status": "passed",
+  "focused": {
+    "productionTrustedScaffoldTest": "passed",
+    "diagnosticProductionParity": "passed",
+    "deterministicEmission": "passed",
+    "counterfeitRejection": "passed",
+    "boundsCategories": "passed",
+    "recordEnumResultCells": "passed",
+    "noTableRuntimeRooting": "passed"
+  },
+  "crossBackend": {
+    "source": "tests/Copeland/Copeland.TS.Tests/TestData/BurnIn/Tables.ts",
+    "csharpMain": 194,
+    "productionJavaScriptMain": 194,
+    "status": "passed"
+  },
+  "commands": [
+    { "command": "dotnet test Copeland.slnx -m:1", "status": "passed" },
+    { "command": "dotnet test JointTaskForce.slnx -m:1", "status": "passed" },
+    { "command": "dotnet test Oblivion.slnx -m:1", "status": "passed" },
+    { "command": "dotnet test Machina.UI.slnx -m:1", "status": "passed" },
+    { "command": "dotnet test Machina.UI.Slow.slnx -m:1", "status": "passed" },
+    { "command": "dotnet build Machina.UI.slnx --no-restore -m:1", "status": "passed", "warnings": 0, "errors": 0 },
+    { "command": "dotnet test Aurelian.slnx --no-build -m:1", "status": "passed" },
+    { "command": "tools/Export-MachinaPresenter.ps1 -PlaybackSuite ... -OutputDirectory artifacts/cts-opt-m1/playback", "status": "report-passed-wrapper-reported-known-path-mismatch" },
+    { "command": "git diff --check", "status": "passed" }
+  ],
+  "playback": {
+    "report": "artifacts/cts-opt-m1/playback-suite-report.json",
+    "passed": 14,
+    "failed": 0,
+    "skipped": 0,
+    "status": "passed"
+  }
+}

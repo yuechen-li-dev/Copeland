@@ -1,0 +1,16 @@
+CTS-OPT-M1
+Outcome: A
+Implementation: PRODUCTION_REPLACEMENT
+Production Tables: 43,535 -> 36,450 bytes (-7,085; -16.274%)
+Repeated column wrapper: 6,340 -> 1,105 bytes (-5,235; -82.571%)
+Validator call sites: 70 -> 25
+Schema inference: none
+Trusted compiler construction: module-local
+Foreign/public validation: retained
+Columnar storage: retained
+Rows: table plus checked row index
+Columns: frozen branded semantic views
+Identity/counterfeit/bounds/Result semantics: retained
+External runtime dependency: none
+MIR metadata: none required; MirTableDefinition itself is compiler-validated provenance
+Canonical playback: 14/14

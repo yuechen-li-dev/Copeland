@@ -1,0 +1,32 @@
+{
+  "milestone": "CTS-OPT-M1",
+  "source": "CTS-OPT-M0 Production Tables artifact",
+  "profile": "Production",
+  "generatedJavaScriptBytes": 43535,
+  "sourceBytes": 2569,
+  "javaScriptToSourceRatio": 16.946,
+  "validatorDefinitions": 14,
+  "validatorCallSites": 70,
+  "topLevelFunctions": 27,
+  "closures": 8,
+  "symbols": 20,
+  "weakSets": 0,
+  "freezeCalls": 23,
+  "definePropertiesCalls": 7,
+  "columnCount": 5,
+  "literalPayloadBytes": 1062,
+  "repeatedColumnWrapperBytes": 6340,
+  "sha256": "D5E90B979F6127B192A1A070FF8979FEC19FF584783EFE902A32832E3A9768EA",
+  "wrapperAttribution": {
+    "sharedColumnProtocolBytes": 784,
+    "tableAndColumnIdentityBytes": 981,
+    "tableValidatorBytes": 1210,
+    "rowValidatorBytes": 707,
+    "rowConstructionBytes": 554,
+    "columnDataWrappersAndSingletonBytes": 9404,
+    "columnLiteralPayloadBytes": 1062,
+    "repeatedColumnWrapperBytes": 6340,
+    "otherColumnRegionBytes": 2002
+  },
+  "architecture": "Five bespoke column carriers each repeat property descriptors, a bounds branch, Result construction, freeze, and publication."
+}

@@ -1,0 +1,156 @@
+{
+  "milestone": "CTS-OPT-M1",
+  "nodeVersion": "v26.2.0",
+  "startup": {
+    "before": {
+      "medianMs": 39.454,
+      "minimumMs": 37.835,
+      "samplesMs": [
+        46.468,
+        39.825,
+        43.868,
+        37.835,
+        38.685,
+        39.49,
+        38.678,
+        39.454,
+        42.294,
+        38.887,
+        38.648,
+        44.439,
+        38.468,
+        40.948,
+        38.018
+      ]
+    },
+    "after": {
+      "medianMs": 39.11,
+      "minimumMs": 38.004,
+      "samplesMs": [
+        41.812,
+        38.604,
+        38.548,
+        38.244,
+        39.803,
+        38.004,
+        44.873,
+        40.953,
+        39.11,
+        40.916,
+        38.202,
+        38.16,
+        38.322,
+        39.719,
+        41.087
+      ]
+    },
+    "medianChangeMs": -0.344
+  },
+  "steadyState": {
+    "before": {
+      "rowAccess": {
+        "medianNanosecondsPerIteration": 3563.029,
+        "samplesNanosecondsPerIteration": [
+          3809.186,
+          3563.029,
+          3528.314,
+          3688.791,
+          3514.227,
+          3590.181,
+          3517.372
+        ]
+      },
+      "columnAccess": {
+        "medianNanosecondsPerIteration": 1072.222,
+        "samplesNanosecondsPerIteration": [
+          1249.271,
+          1050.415,
+          1072.222,
+          1075.409,
+          1046.776,
+          1168.526,
+          1050.318
+        ]
+      },
+      "cellAccess": {
+        "medianNanosecondsPerIteration": 1095.61,
+        "samplesNanosecondsPerIteration": [
+          1105.89,
+          1095.61,
+          1068.324,
+          1096.323,
+          1070.575,
+          1117.536,
+          1062.311
+        ]
+      },
+      "queryAccess": {
+        "medianNanosecondsPerIteration": 2327.98,
+        "samplesNanosecondsPerIteration": [
+          2314.925,
+          2309.21,
+          2363.635,
+          2341.445,
+          2327.98,
+          2351.695,
+          2313.195
+        ]
+      }
+    },
+    "after": {
+      "rowAccess": {
+        "medianNanosecondsPerIteration": 2200.18,
+        "samplesNanosecondsPerIteration": [
+          2201.509,
+          2199.345,
+          2234.883,
+          2167.641,
+          2270.032,
+          2151.637,
+          2200.18
+        ]
+      },
+      "columnAccess": {
+        "medianNanosecondsPerIteration": 429.327,
+        "samplesNanosecondsPerIteration": [
+          424.123,
+          453.99,
+          427.508,
+          429.327,
+          422.608,
+          435.754,
+          438.437
+        ]
+      },
+      "cellAccess": {
+        "medianNanosecondsPerIteration": 431.685,
+        "samplesNanosecondsPerIteration": [
+          420.744,
+          458.04,
+          431.685,
+          430.821,
+          437.662,
+          438.353,
+          428.887
+        ]
+      },
+      "queryAccess": {
+        "medianNanosecondsPerIteration": 2030.975,
+        "samplesNanosecondsPerIteration": [
+          1917.71,
+          2262.375,
+          2132.47,
+          1994.945,
+          2030.975,
+          2045.23,
+          1944.89
+        ]
+      }
+    }
+  },
+  "notes": [
+    "Startup is 15 fresh Node processes per artifact measured from PowerShell.",
+    "Steady-state medians use seven fresh Node processes after in-process warmup.",
+    "Row, column, and cell units are one checked access; query is one ten-cell sum."
+  ]
+}

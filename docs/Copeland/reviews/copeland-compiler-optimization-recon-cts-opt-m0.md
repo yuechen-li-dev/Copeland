@@ -1,5 +1,12 @@
 # CTS-OPT-M0 compiler optimization reconnaissance
 
+> **CTS-OPT-M1 resolution (2026-09-01):** Production table realization now
+> uses one module-local trusted scaffold over compiler-known column payloads.
+> Tables fell from 43,535 to 36,450 bytes; repeated column wrappers fell from
+> 6,340 to 1,105 bytes; validator call sites fell from 70 to 25. The remaining
+> recommended optimization is module-local generated-definition reachability
+> DCE. See the CTS-OPT-M1 architecture and dogfood reports.
+
 ## Outcome
 
 **Outcome B — repeated removable scaffolding materially affects size and some

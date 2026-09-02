@@ -1559,6 +1559,11 @@ public static class JavaScriptBackend
         {
             writer.WriteLine();
             EmitColumnRuntime(writer, names);
+            if (IsProduction(names))
+            {
+                writer.WriteLine();
+                EmitTrustedTableRuntime(writer, catalog, names);
+            }
         }
 
         foreach (MirTableDefinition table in catalog.Tables)
@@ -1966,6 +1971,77 @@ public static class JavaScriptBackend
         writer.WriteLine("}");
     }
 
+    private static void EmitTrustedTableRuntime(
+        JavaScriptTextWriter writer,
+        EnumCatalog catalog,
+        GeneratedNames names)
+    {
+        EnumInfo boundsError = catalog.GetEnum("TableBoundsError");
+        string invalidIndex = EmitProductionEnumConstruction(
+            boundsError,
+            boundsError.Definition.Cases.Single(candidate => string.Equals(candidate.Name, "InvalidIndex", StringComparison.Ordinal)),
+            names,
+            ["index"]);
+        string outOfBounds = EmitProductionEnumConstruction(
+            boundsError,
+            boundsError.Definition.Cases.Single(candidate => string.Equals(candidate.Name, "OutOfBounds", StringComparison.Ordinal)),
+            names,
+            ["index", "rowCount"]);
+
+        writer.WriteLine("function __cope_table_row_view(rowToken, table, index) {");
+        writer.Indent();
+        writer.WriteLine("const row = Object.create(null);");
+        writer.WriteLine("Object.defineProperties(row, {");
+        writer.Indent();
+        writer.WriteLine("[rowToken]: { value: rowToken, writable: false, enumerable: false, configurable: false },");
+        writer.WriteLine($"[{names.TableRowTableSlot}]: {{ value: table, writable: false, enumerable: false, configurable: false }},");
+        writer.WriteLine($"[{names.TableRowIndexSlot}]: {{ value: index, writable: false, enumerable: false, configurable: false }},");
+        writer.Unindent();
+        writer.WriteLine("});");
+        writer.WriteLine("return Object.freeze(row);");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("function __cope_table_trusted_read(index, rowCount, resultToken, storage, rowToken, table) {");
+        writer.Indent();
+        writer.WriteLine("if (!Number.isFinite(index) || !Number.isInteger(index)) {");
+        writer.Indent();
+        writer.WriteLine($"return {names.MakeValue}(resultToken, \"err\", [{invalidIndex}]);");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("if (index < 0 || index >= rowCount) {");
+        writer.Indent();
+        writer.WriteLine($"return {names.MakeValue}(resultToken, \"err\", [{outOfBounds}]);");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("const value = storage === null ? __cope_table_row_view(rowToken, table, index) : storage[index];");
+        writer.WriteLine($"return {names.MakeValue}(resultToken, \"ok\", [value]);");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("function __cope_table_trusted_column(columnToken, values, rowCount, resultToken) {");
+        writer.Indent();
+        writer.WriteLine("const storage = Object.freeze(values);");
+        writer.WriteLine("const column = Object.create(null);");
+        writer.WriteLine("Object.defineProperties(column, {");
+        writer.Indent();
+        writer.WriteLine($"[{names.ColumnCarrierToken}]: {{ value: {names.ColumnCarrierToken}, writable: false, enumerable: false, configurable: false }},");
+        writer.WriteLine("[columnToken]: { value: columnToken, writable: false, enumerable: false, configurable: false },");
+        if (names.UsesTsonTableEncoding)
+        {
+            writer.WriteLine($"[{names.ColumnValuesSlot}]: {{ value: storage, writable: false, enumerable: false, configurable: false }},");
+        }
+        writer.WriteLine($"[{names.ColumnReadSlot}]: {{ value: (index) => __cope_table_trusted_read(index, rowCount, resultToken, storage, null, null), writable: false, enumerable: false, configurable: false }},");
+        writer.Unindent();
+        writer.WriteLine("});");
+        writer.WriteLine("Object.freeze(column);");
+        if (names.UsesTsonTableEncoding)
+        {
+            writer.WriteLine($"{names.ColumnInstances}.add(column);");
+        }
+        writer.WriteLine("return column;");
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
     private static void EmitTableRuntime(
         JavaScriptTextWriter writer,
         MirTableDefinition table,
@@ -1994,19 +2070,26 @@ public static class JavaScriptBackend
         writer.WriteLine();
         EmitTableRowValidator(writer, table, names);
         writer.WriteLine();
-        writer.WriteLine($"function {names.TableCreateRow(table)}(tableValue, index) {{");
-        writer.Indent();
-        writer.WriteLine("const row = Object.create(null);");
-        writer.WriteLine("Object.defineProperties(row, {");
-        writer.Indent();
-        writer.WriteLine($"[{names.TableRowTypeToken(table)}]: {{ value: {names.TableRowTypeToken(table)}, writable: false, enumerable: false, configurable: false }},");
-        writer.WriteLine($"[{names.TableRowTableSlot}]: {{ value: tableValue, writable: false, enumerable: false, configurable: false }},");
-        writer.WriteLine($"[{names.TableRowIndexSlot}]: {{ value: index, writable: false, enumerable: false, configurable: false }},");
-        writer.Unindent();
-        writer.WriteLine("});");
-        writer.WriteLine("return Object.freeze(row);");
-        writer.Unindent();
-        writer.WriteLine("}");
+        if (IsProduction(names))
+        {
+            writer.WriteLine($"function {names.TableCreateRow(table)}(tableValue, index) {{ return __cope_table_row_view({names.TableRowTypeToken(table)}, tableValue, index); }}");
+        }
+        else
+        {
+            writer.WriteLine($"function {names.TableCreateRow(table)}(tableValue, index) {{");
+            writer.Indent();
+            writer.WriteLine("const row = Object.create(null);");
+            writer.WriteLine("Object.defineProperties(row, {");
+            writer.Indent();
+            writer.WriteLine($"[{names.TableRowTypeToken(table)}]: {{ value: {names.TableRowTypeToken(table)}, writable: false, enumerable: false, configurable: false }},");
+            writer.WriteLine($"[{names.TableRowTableSlot}]: {{ value: tableValue, writable: false, enumerable: false, configurable: false }},");
+            writer.WriteLine($"[{names.TableRowIndexSlot}]: {{ value: index, writable: false, enumerable: false, configurable: false }},");
+            writer.Unindent();
+            writer.WriteLine("});");
+            writer.WriteLine("return Object.freeze(row);");
+            writer.Unindent();
+            writer.WriteLine("}");
+        }
 
         writer.WriteLine();
         writer.WriteLine(usesTableWith
@@ -2020,11 +2103,21 @@ public static class JavaScriptBackend
             if (usesTableWith)
             {
                 string sourceValues = $"Array.from({{ length: {table.RowCount} }}, (_, index) => source[{names.TableColumnSlot(column)}][{names.ColumnReadSlot}](index).$payload[0])";
-                writer.WriteLine($"const {names.TableStorage(column)} = Object.freeze(replacements[{columnIndex}] ?? (source === null ? [{values}] : {sourceValues}));");
+                writer.WriteLine(IsProduction(names)
+                    ? $"const {names.TableStorage(column)} = replacements[{columnIndex}] ?? (source === null ? [{values}] : {sourceValues});"
+                    : $"const {names.TableStorage(column)} = Object.freeze(replacements[{columnIndex}] ?? (source === null ? [{values}] : {sourceValues}));");
             }
             else
             {
-                writer.WriteLine($"const {names.TableStorage(column)} = Object.freeze([{values}]);");
+                writer.WriteLine(IsProduction(names)
+                    ? $"const {names.TableStorage(column)} = [{values}];"
+                    : $"const {names.TableStorage(column)} = Object.freeze([{values}]);");
+            }
+            if (IsProduction(names))
+            {
+                MirResultType columnResult = new(column.ElementType, new MirNamedType("TableBoundsError"));
+                writer.WriteLine($"const {names.TableColumnValue(column)} = __cope_table_trusted_column({names.TableColumnToken(column)}, {names.TableStorage(column)}, {table.RowCount}, {names.TypeToken(results.Get(columnResult))});");
+                continue;
             }
             writer.WriteLine($"const {names.TableColumnValue(column)} = Object.create(null);");
             writer.WriteLine($"Object.defineProperties({names.TableColumnValue(column)}, {{");
@@ -2056,7 +2149,14 @@ public static class JavaScriptBackend
         writer.WriteLine($"[{names.TableRowReadSlot(table)}]: {{ value: (index) => {{");
         writer.Indent();
         MirResultType rowResult = new(new MirTableRowType(table.RowTypeId, table.Name + ".Row"), new MirNamedType("TableBoundsError"));
-        EmitBoundsCheckedResult(writer, "index", table.RowCount, rowResult.SuccessType, results, names, boundsError, boundsErrorToken, $"{names.TableCreateRow(table)}(value, index)");
+        if (IsProduction(names))
+        {
+            writer.WriteLine($"return __cope_table_trusted_read(index, {table.RowCount}, {names.TypeToken(results.Get(rowResult))}, null, {names.TableRowTypeToken(table)}, value);");
+        }
+        else
+        {
+            EmitBoundsCheckedResult(writer, "index", table.RowCount, rowResult.SuccessType, results, names, boundsError, boundsErrorToken, $"{names.TableCreateRow(table)}(value, index)");
+        }
         writer.Unindent();
         writer.WriteLine("}, writable: false, enumerable: false, configurable: false },");
         foreach (MirTableColumnDefinition column in table.Columns)
@@ -4514,8 +4614,11 @@ public static class JavaScriptBackend
         var prelude = new List<EmittedLine>(receiver.Prelude)
         {
             new($"const {temporary} = {receiver.Value};", 0),
-            new($"{names.TableValidator(table)}({temporary});", 0),
         };
+        if (!IsProduction(names))
+        {
+            prelude.Add(new EmittedLine($"{names.TableValidator(table)}({temporary});", 0));
+        }
         return new EmittedExpression(prelude, $"{temporary}[{names.TableColumnSlot(column)}]");
     }
 
@@ -4581,9 +4684,15 @@ public static class JavaScriptBackend
         };
         prelude.AddRange(index.Prelude);
         prelude.Add(new EmittedLine($"const {indexTemporary} = {index.Value};", 0));
-        prelude.Add(new EmittedLine($"{names.TableValidator(table)}({receiverTemporary});", 0));
+        if (!IsProduction(names))
+        {
+            prelude.Add(new EmittedLine($"{names.TableValidator(table)}({receiverTemporary});", 0));
+        }
         prelude.Add(new EmittedLine($"const {resultTemporary} = {receiverTemporary}[{names.TableRowReadSlot(table)}]({indexTemporary});", 0));
-        prelude.Add(new EmittedLine($"{names.Validator(results.Get(resultType))}({resultTemporary});", 0));
+        if (!IsProduction(names))
+        {
+            prelude.Add(new EmittedLine($"{names.Validator(results.Get(resultType))}({resultTemporary});", 0));
+        }
         return new EmittedExpression(prelude, resultTemporary);
     }
 
@@ -4607,9 +4716,15 @@ public static class JavaScriptBackend
         };
         prelude.AddRange(index.Prelude);
         prelude.Add(new EmittedLine($"const {indexTemporary} = {index.Value};", 0));
-        prelude.Add(new EmittedLine($"{names.ColumnValidator}({receiverTemporary});", 0));
+        if (!IsProduction(names))
+        {
+            prelude.Add(new EmittedLine($"{names.ColumnValidator}({receiverTemporary});", 0));
+        }
         prelude.Add(new EmittedLine($"const {resultTemporary} = {receiverTemporary}[{names.ColumnReadSlot}]({indexTemporary});", 0));
-        prelude.Add(new EmittedLine($"{names.Validator(results.Get(resultType))}({resultTemporary});", 0));
+        if (!IsProduction(names))
+        {
+            prelude.Add(new EmittedLine($"{names.Validator(results.Get(resultType))}({resultTemporary});", 0));
+        }
         return new EmittedExpression(prelude, resultTemporary);
     }
 
@@ -4631,12 +4746,18 @@ public static class JavaScriptBackend
         var prelude = new List<EmittedLine>(receiver.Prelude)
         {
             new($"const {rowTemporary} = {receiver.Value};", 0),
-            new($"{names.TableRowValidator(table)}({rowTemporary});", 0),
-            new($"const {tableTemporary} = {rowTemporary}[{names.TableRowTableSlot}];", 0),
-            new($"const {resultTemporary} = {tableTemporary}[{names.TableColumnSlot(column)}][{names.ColumnReadSlot}]({rowTemporary}[{names.TableRowIndexSlot}]);", 0),
-            new($"{names.Validator(results.Get(resultType))}({resultTemporary});", 0),
-            new($"if ({resultTemporary}.$tag !== \"ok\") {{ {names.Panic}(); }}", 0),
         };
+        if (!IsProduction(names))
+        {
+            prelude.Add(new EmittedLine($"{names.TableRowValidator(table)}({rowTemporary});", 0));
+        }
+        prelude.Add(new EmittedLine($"const {tableTemporary} = {rowTemporary}[{names.TableRowTableSlot}];", 0));
+        prelude.Add(new EmittedLine($"const {resultTemporary} = {tableTemporary}[{names.TableColumnSlot(column)}][{names.ColumnReadSlot}]({rowTemporary}[{names.TableRowIndexSlot}]);", 0));
+        if (!IsProduction(names))
+        {
+            prelude.Add(new EmittedLine($"{names.Validator(results.Get(resultType))}({resultTemporary});", 0));
+        }
+        prelude.Add(new EmittedLine($"if ({resultTemporary}.$tag !== \"ok\") {{ {names.Panic}(); }}", 0));
         return new EmittedExpression(prelude, $"{resultTemporary}.$payload[0]");
     }
 

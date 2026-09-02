@@ -1,0 +1,20 @@
+scenarioId=m15d-expanded-reading-surface
+scenarioName=M15d keeps expanded Markdown in the stack and raw source in the inspector
+outputDirectory=C:\Users\yuech\source\repos\Copeland\artifacts\cts-opt-m1\playback\m15d-expanded-reading-surface
+captureFinalPng=true
+captureTraceJson=true
+captureManifest=true
+finalPngPath=C:\Users\yuech\source\repos\Copeland\artifacts\cts-opt-m1\playback\m15d-expanded-reading-surface\final.png
+normalizedScenarioPath=C:\Users\yuech\source\repos\Copeland\artifacts\cts-opt-m1\playback\m15d-expanded-reading-surface\scenario.normalized.toml
+traceJsonPath=C:\Users\yuech\source\repos\Copeland\artifacts\cts-opt-m1\playback\m15d-expanded-reading-surface\playback-trace.json
+passed=true
+assertionCount=4
+failedAssertionCount=0
+semanticTargetsSupported=card-header,expanded-body,expanded-body-scrollbar-thumb,inspector-pane,inspector-scrollbar-thumb,main-stack,main-stack-scrollbar-thumb,raw-source,raw-source-scrollbar-thumb
+stepsSupported=click,drag,key,wait,wheel
+assertionsSupported=card-expanded,region-exists,scroll-offset-changed,scroll-offset-equals,scroll-offset-greater-than,selected-card,shell-mode,step-scroll-delta-equals,step-scroll-delta-greater-than
+assertions:
+  [0] card-expanded passed=true reason=This guards the M15d reading-surface move where the formatted Markdown body lives inline in the stack rather than inside the inspector. expected=True actual=True
+  [1] region-exists passed=true reason=This guards the M15d document-scale expanded body region in the main stack. expected=exists actual=544x180
+  [2] region-exists passed=true reason=This guards the M15d inspector contract where raw Markdown source remains available in the inspector while the formatted body stays in the stack. expected=exists actual=280x190
+  [3] scroll-offset-changed passed=true reason=Wheel input over the M15d expanded reading surface must move the card-local body scroll offset. expected=!= 0 actual=48

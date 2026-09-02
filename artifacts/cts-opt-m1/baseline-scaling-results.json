@@ -1,0 +1,172 @@
+{
+  "milestone": "CTS-OPT-M1",
+  "profile": "Production",
+  "measurement": "UTF-8 emitted bytes; payload is the exact repeated numeric literal text",
+  "cases": [
+    {
+      "axis": "tables",
+      "value": 1,
+      "tables": 1,
+      "columnsPerTable": 2,
+      "rows": 2,
+      "payloadBytes": 8,
+      "scaffoldBytes": 11122,
+      "totalBytes": 11130,
+      "scaffoldToPayloadRatio": 1390.25
+    },
+    {
+      "axis": "tables",
+      "value": 2,
+      "tables": 2,
+      "columnsPerTable": 2,
+      "rows": 2,
+      "payloadBytes": 16,
+      "scaffoldBytes": 18882,
+      "totalBytes": 18898,
+      "scaffoldToPayloadRatio": 1180.125
+    },
+    {
+      "axis": "tables",
+      "value": 5,
+      "tables": 5,
+      "columnsPerTable": 2,
+      "rows": 2,
+      "payloadBytes": 40,
+      "scaffoldBytes": 42159,
+      "totalBytes": 42199,
+      "scaffoldToPayloadRatio": 1053.975
+    },
+    {
+      "axis": "tables",
+      "value": 10,
+      "tables": 10,
+      "columnsPerTable": 2,
+      "rows": 2,
+      "payloadBytes": 80,
+      "scaffoldBytes": 81344,
+      "totalBytes": 81424,
+      "scaffoldToPayloadRatio": 1016.8
+    },
+    {
+      "axis": "columns",
+      "value": 1,
+      "tables": 1,
+      "columnsPerTable": 1,
+      "rows": 2,
+      "payloadBytes": 4,
+      "scaffoldBytes": 9272,
+      "totalBytes": 9276,
+      "scaffoldToPayloadRatio": 2318.0
+    },
+    {
+      "axis": "columns",
+      "value": 2,
+      "tables": 1,
+      "columnsPerTable": 2,
+      "rows": 2,
+      "payloadBytes": 8,
+      "scaffoldBytes": 11122,
+      "totalBytes": 11130,
+      "scaffoldToPayloadRatio": 1390.25
+    },
+    {
+      "axis": "columns",
+      "value": 5,
+      "tables": 1,
+      "columnsPerTable": 5,
+      "rows": 2,
+      "payloadBytes": 20,
+      "scaffoldBytes": 16672,
+      "totalBytes": 16692,
+      "scaffoldToPayloadRatio": 833.6
+    },
+    {
+      "axis": "columns",
+      "value": 10,
+      "tables": 1,
+      "columnsPerTable": 10,
+      "rows": 2,
+      "payloadBytes": 40,
+      "scaffoldBytes": 25923,
+      "totalBytes": 25963,
+      "scaffoldToPayloadRatio": 648.075
+    },
+    {
+      "axis": "columns",
+      "value": 20,
+      "tables": 1,
+      "columnsPerTable": 20,
+      "rows": 2,
+      "payloadBytes": 80,
+      "scaffoldBytes": 44929,
+      "totalBytes": 45009,
+      "scaffoldToPayloadRatio": 561.6125
+    },
+    {
+      "axis": "rows",
+      "value": 0,
+      "tables": 1,
+      "columnsPerTable": 2,
+      "rows": 0,
+      "payloadBytes": 0,
+      "scaffoldBytes": 11122,
+      "totalBytes": 11122,
+      "scaffoldToPayloadRatio": null
+    },
+    {
+      "axis": "rows",
+      "value": 1,
+      "tables": 1,
+      "columnsPerTable": 2,
+      "rows": 1,
+      "payloadBytes": 2,
+      "scaffoldBytes": 11122,
+      "totalBytes": 11124,
+      "scaffoldToPayloadRatio": 5561.0
+    },
+    {
+      "axis": "rows",
+      "value": 10,
+      "tables": 1,
+      "columnsPerTable": 2,
+      "rows": 10,
+      "payloadBytes": 56,
+      "scaffoldBytes": 11128,
+      "totalBytes": 11184,
+      "scaffoldToPayloadRatio": 198.714286
+    },
+    {
+      "axis": "rows",
+      "value": 100,
+      "tables": 1,
+      "columnsPerTable": 2,
+      "rows": 100,
+      "payloadBytes": 776,
+      "scaffoldBytes": 11134,
+      "totalBytes": 11910,
+      "scaffoldToPayloadRatio": 14.347938
+    },
+    {
+      "axis": "rows",
+      "value": 1000,
+      "tables": 1,
+      "columnsPerTable": 2,
+      "rows": 1000,
+      "payloadBytes": 9776,
+      "scaffoldBytes": 11140,
+      "totalBytes": 20916,
+      "scaffoldToPayloadRatio": 1.139525
+    },
+    {
+      "axis": "rows",
+      "value": 10000,
+      "tables": 1,
+      "columnsPerTable": 2,
+      "rows": 10000,
+      "payloadBytes": 117776,
+      "scaffoldBytes": 11146,
+      "totalBytes": 128922,
+      "scaffoldToPayloadRatio": 0.094637
+    }
+  ]
+}
