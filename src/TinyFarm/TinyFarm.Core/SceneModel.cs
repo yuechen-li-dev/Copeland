@@ -85,7 +85,8 @@ public enum SceneObjectKind
     Landmark,
     Decoration,
     Bed,
-    Forage
+    Forage,
+    CookingStation
 }
 
 public sealed record SceneObjectDefinition(

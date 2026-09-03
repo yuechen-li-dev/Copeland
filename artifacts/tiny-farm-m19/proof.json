@@ -1,0 +1,22 @@
+{
+  "milestone": "TINY-FARM-M19",
+  "outcome": "A",
+  "recipeAuthoredInTson": true,
+  "cookUsesResolver": true,
+  "atomicIngredientTransformation": true,
+  "saveLoadExact": true,
+  "replayExact": true,
+  "repeatExact": true,
+  "hashes": {
+    "state": "4dba151ed5a72e41de05bd5ecf53a3758dc153daf7521ac6a4ce480b31228d51",
+    "results": "830e771c995887193660984cfd0e124b6702d4605c08bcf5ddbdb7efc2b093bd",
+    "events": "50c460c05d36afd0d44cf40ffc17147dae943528da9bf09d74c75119a829880e",
+    "recipes": "fa99f757237eb315741f8562c10c60f5623076f35f51ae82dc5171d5524b6607",
+    "products": "e7e9c095624912227452c32d07b061d8705607f125d9671e59c48af2fd9f049b",
+    "inventory": "dbac6859f50f8f1b5f74babb40015b82d2c0b386bda62e419b98f16c6d67d3be",
+    "projection": "60391b34cbdcf9117118ca984819612231363d94642a503ac52970559974eaba",
+    "dto": "dfd05e740442300dfc5bf79355338a77a2be342fb1c95e6f402d27f1e054640e",
+    "replay": "4dba151ed5a72e41de05bd5ecf53a3758dc153daf7521ac6a4ce480b31228d51",
+    "m18ToM19ComposedLoop": "1c82a070d8eb647cc816a34f10df86466485f0b21f9ac2a09d34dcf6cdc50ae6"
+  }
+}

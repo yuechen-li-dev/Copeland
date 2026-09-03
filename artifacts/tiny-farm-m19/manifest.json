@@ -1,0 +1,14 @@
+{
+  "milestone": "TINY-FARM-M19",
+  "kind": "hen-of-the-woods-cooking",
+  "recipeCount": 1,
+  "recipeAuthoredInTson": true,
+  "cookUsesResolver": true,
+  "atomicIngredientTransformation": true,
+  "inventoryAuthorityMoved": false,
+  "genericCraftingGraphAdded": false,
+  "recipeEditorAdded": false,
+  "qualitySystemAdded": false,
+  "skillSystemAdded": false,
+  "foodEffectsAdded": false
+}

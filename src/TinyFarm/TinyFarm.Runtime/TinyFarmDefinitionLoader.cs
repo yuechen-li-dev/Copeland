@@ -95,6 +95,180 @@ public static class TinyFarmDefinitionLoader
             forageNodes);
     }
 
+    public static TinyFarmDefinitions LoadM19(string? path = null)
+    {
+        string contentRoot = Path.GetDirectoryName(DefaultPath)!;
+        string m19Directory = Path.Combine(contentRoot, "M19");
+        string productPath = Path.GetFullPath(path ?? Path.Combine(m19Directory, ProductFileName));
+        string sceneDirectory = Path.Combine(contentRoot, "M14");
+        TinyFarmDefinitions baseline = LoadCore(productPath, sceneDirectory, contentMilestone: "m19-base");
+
+        string foragePath = Path.Combine(contentRoot, "M18", "tiny-farm-forage-nodes.obj.ts");
+        string forageSource = File.ReadAllText(foragePath);
+        TsonTable forageTable = ReadTable(
+            forageSource,
+            foragePath,
+            "ForageNodes",
+            [
+                ("id", TsonTypeKind.String),
+                ("sceneId", TsonTypeKind.String),
+                ("x", TsonTypeKind.Number),
+                ("y", TsonTypeKind.Number),
+                ("productId", TsonTypeKind.String),
+                ("yieldCount", TsonTypeKind.Number)
+            ]);
+        var forageNodes = new List<ForageNodeDefinition>();
+        for (int row = 0; row < forageTable.RowCount; row++)
+        {
+            forageNodes.Add(new ForageNodeDefinition(
+                new ForageNodeId(Text(forageTable, "id", row)),
+                new SceneId(Text(forageTable, "sceneId", row)),
+                ScenePosition.FromGrid(new GridPosition(
+                    Integer(forageTable, "x", row),
+                    Integer(forageTable, "y", row))),
+                new ProductId(Text(forageTable, "productId", row)),
+                Integer(forageTable, "yieldCount", row)));
+        }
+
+        TinyFarmSceneCatalog scenesWithForage = AddForageSceneObjects(baseline.Scenes, forageNodes, baseline.Items);
+        string stationPath = Path.Combine(m19Directory, "tiny-farm-cooking-stations.obj.ts");
+        string stationSource = File.ReadAllText(stationPath);
+        TsonTable stations = ReadTable(
+            stationSource,
+            stationPath,
+            "CookingStations",
+            [
+                ("id", TsonTypeKind.String),
+                ("sceneId", TsonTypeKind.String),
+                ("x", TsonTypeKind.Number),
+                ("y", TsonTypeKind.Number),
+                ("label", TsonTypeKind.String)
+            ]);
+        var stationRows = new List<(SceneObjectId Id, SceneId Scene, int X, int Y, string Label)>();
+        for (int row = 0; row < stations.RowCount; row++)
+        {
+            stationRows.Add((
+                new SceneObjectId(Text(stations, "id", row)),
+                new SceneId(Text(stations, "sceneId", row)),
+                Integer(stations, "x", row),
+                Integer(stations, "y", row),
+                Text(stations, "label", row)));
+        }
+        TinyFarmSceneCatalog scenes = AddCookingStations(scenesWithForage, stationRows);
+
+        string recipesPath = Path.Combine(m19Directory, "tiny-farm-cooking-recipes.obj.ts");
+        string recipesSource = File.ReadAllText(recipesPath);
+        TsonTable recipes = ReadTable(
+            recipesSource,
+            recipesPath,
+            "CookingRecipes",
+            [
+                ("recipeId", TsonTypeKind.String),
+                ("stationKind", TsonTypeKind.String),
+                ("outputProductId", TsonTypeKind.String),
+                ("outputCount", TsonTypeKind.Number)
+            ]);
+        string inputsPath = Path.Combine(m19Directory, "tiny-farm-cooking-recipe-inputs.obj.ts");
+        string inputsSource = File.ReadAllText(inputsPath);
+        TsonTable inputs = ReadTable(
+            inputsSource,
+            inputsPath,
+            "CookingRecipeInputs",
+            [
+                ("recipeId", TsonTypeKind.String),
+                ("productId", TsonTypeKind.String),
+                ("count", TsonTypeKind.Number)
+            ]);
+        var inputRows = new List<(CookingRecipeId Recipe, CookingRecipeInput Input)>();
+        for (int row = 0; row < inputs.RowCount; row++)
+        {
+            inputRows.Add((
+                new CookingRecipeId(Text(inputs, "recipeId", row)),
+                new CookingRecipeInput(
+                    new ProductId(Text(inputs, "productId", row)),
+                    Integer(inputs, "count", row))));
+        }
+        var cookingRecipes = new List<CookingRecipeDefinition>();
+        for (int row = 0; row < recipes.RowCount; row++)
+        {
+            var recipeId = new CookingRecipeId(Text(recipes, "recipeId", row));
+            if (!Enum.TryParse(Text(recipes, "stationKind", row), out CookingStationKind stationKind))
+            {
+                throw new InvalidDataException($"Cooking recipe '{recipeId}' has an unknown station kind.");
+            }
+            cookingRecipes.Add(new CookingRecipeDefinition(
+                recipeId,
+                stationKind,
+                inputRows.Where(input => input.Recipe == recipeId).Select(input => input.Input).ToArray(),
+                new ProductId(Text(recipes, "outputProductId", row)),
+                Integer(recipes, "outputCount", row)));
+        }
+        if (inputRows.Any(input => !cookingRecipes.Any(recipe => recipe.Id == input.Recipe)))
+        {
+            throw new InvalidDataException("Cooking recipe inputs reference an unknown recipe.");
+        }
+        if (stationRows.Count == 0 && cookingRecipes.Count > 0)
+        {
+            throw new InvalidDataException("Cooking recipes require one compatible authored cooking station.");
+        }
+
+        string identity = string.Join(
+            ';',
+            baseline.Identity,
+            "m18-forage:" + Hash(Encoding.UTF8.GetBytes(forageSource)),
+            "m19-stations:" + Hash(Encoding.UTF8.GetBytes(stationSource)),
+            "m19-recipes:" + Hash(Encoding.UTF8.GetBytes(recipesSource + inputsSource)));
+        return new TinyFarmDefinitions(
+            identity,
+            baseline.Items,
+            baseline.Crops,
+            scenes,
+            baseline.SceneContent,
+            baseline.Schedules,
+            baseline.ScheduleContent,
+            forageNodes,
+            cookingRecipes);
+    }
+
+    private static TinyFarmSceneCatalog AddCookingStations(
+        TinyFarmSceneCatalog baseline,
+        IReadOnlyList<(SceneObjectId Id, SceneId Scene, int X, int Y, string Label)> stations)
+    {
+        if (stations.Select(station => station.Id).Distinct().Count() != stations.Count)
+        {
+            throw new InvalidDataException("TinyFarm cooking station identities must be unique.");
+        }
+        SceneDefinition[] scenes = baseline.All.Select(scene =>
+        {
+            var additions = stations.Where(station => station.Scene == scene.Id).ToArray();
+            return new SceneDefinition(
+                scene.Id,
+                scene.Name,
+                scene.Width,
+                scene.Height,
+                scene.Objects.Concat(additions.Select(station => new SceneObjectDefinition(
+                    station.Id,
+                    SceneObjectKind.CookingStation,
+                    station.Label,
+                    BlocksMovement: true,
+                    SemanticReference: CookingStationKind.Cooking.ToString()))),
+                scene.Layout.Concat(additions.Select(station => new SceneLayoutRow(
+                    station.Id,
+                    station.X,
+                    station.Y,
+                    1,
+                    1,
+                    0))),
+                scene.Anchors,
+                scene.Routes);
+        }).ToArray();
+        if (stations.Any(station => !scenes.Any(scene => scene.Id == station.Scene)))
+        {
+            throw new InvalidDataException("TinyFarm cooking station references an unknown scene.");
+        }
+        return new TinyFarmSceneCatalog(scenes);
+    }
+
     private static TinyFarmSceneCatalog AddForageSceneObjects(
         TinyFarmSceneCatalog baseline,
         IReadOnlyList<ForageNodeDefinition> forageNodes,

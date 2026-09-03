@@ -1,0 +1,26 @@
+{
+  "count": 1,
+  "cookingRecipes": [
+    {
+      "id": {
+        "value": "sauteed-hen-of-the-woods"
+      },
+      "stationKind": "Cooking",
+      "inputs": [
+        {
+          "product": {
+            "value": "hen-of-the-woods"
+          },
+          "count": 1
+        }
+      ],
+      "outputProduct": {
+        "value": "sauteed-hen-of-the-woods"
+      },
+      "outputCount": 1
+    }
+  ],
+  "definitionHash": "fa99f757237eb315741f8562c10c60f5623076f35f51ae82dc5171d5524b6607",
+  "futureMultiRecipeUiSeam": "When a station has more than one available recipe, present explicit recipe selection.",
+  "futureCraftingSeam": "Station \u002B flat RecipeDefinition \u002B inputs resolves as a station-specific transformation verb."
+}

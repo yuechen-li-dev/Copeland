@@ -1,0 +1,23 @@
+{
+  "rawCount": 0,
+  "cookedCount": 1,
+  "selectedHotbarSlotBefore": 1,
+  "selectedHotbarSlotAfter": 1,
+  "inventory": [
+    {
+      "semanticId": "sauteed-hen-of-the-woods",
+      "name": "Saut\u00E9ed Hen-of-the-Woods",
+      "count": 1
+    },
+    {
+      "semanticId": "turnip",
+      "name": "turnip",
+      "count": 2
+    },
+    {
+      "semanticId": "turnip-seed",
+      "name": "turnip seed",
+      "count": 3
+    }
+  ]
+}

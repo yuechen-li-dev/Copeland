@@ -99,6 +99,7 @@ public sealed class TinyFarmResolver
             WaterIntent water => ResolveWater(state, actor, envelope, water),
             HarvestIntent harvest => ResolveHarvest(state, actor, envelope, harvest),
             GatherIntent gather => ResolveGather(state, actor, envelope, gather),
+            CookIntent cook => ResolveCook(state, actor, envelope, cook),
             SelectHotbarSlotIntent select => ResolveSelectHotbarSlot(state, actor, envelope, select),
             UseSelectedIntent => ResolveUseSelected(state, actor, envelope),
             WaitIntent wait => ResolveWait(state, actor, envelope, wait),
@@ -495,6 +496,15 @@ public sealed class TinyFarmResolver
                 return ResolveGather(state, actor, envelope, new GatherIntent(forageNode));
             }
 
+            if (selected.Kind == InteractionTargetKind.CookingStation
+                && selected.SceneObject is SceneObjectId station)
+            {
+                CookingRecipeDefinition? recipe = definitions?.CookingRecipes.SingleOrDefault();
+                return recipe is null
+                    ? Rejected(envelope, IntentReason.UnknownRecipe)
+                    : ResolveCook(state, actor, envelope, new CookIntent(station, recipe.Id));
+            }
+
             if (selected.Actor is ActorId targetActor)
             {
                 return ResolveTalk(state, actor, envelope, new TalkIntent(targetActor));
@@ -834,6 +844,76 @@ public sealed class TinyFarmResolver
                 Scene: definition.Scene,
                 SceneObject: objectId,
                 ForageNode: definition.Id));
+    }
+
+    private IntentResult ResolveCook(
+        TinyFarmState state,
+        ActorState actor,
+        IntentEnvelope envelope,
+        CookIntent intent)
+    {
+        CookingRecipeDefinition? recipe = definitions?.CookingRecipes
+            .SingleOrDefault(candidate => candidate.Id == intent.Recipe);
+        if (recipe is null)
+        {
+            return Rejected(envelope, IntentReason.UnknownRecipe);
+        }
+        if (!actor.IsPlayer)
+        {
+            return Rejected(envelope, IntentReason.WrongTargetKind);
+        }
+
+        SceneDefinition? stationScene = Scenes.All.SingleOrDefault(scene =>
+            scene.Objects.Any(candidate => candidate.Id == intent.Station));
+        if (stationScene is null
+            || stationScene.Object(intent.Station).Kind != SceneObjectKind.CookingStation
+            || recipe.StationKind != CookingStationKind.Cooking)
+        {
+            return Rejected(envelope, IntentReason.WrongStation);
+        }
+
+        ActorSceneState placement = state.ActorScene(actor.Id);
+        if (placement.Scene != stationScene.Id)
+        {
+            return Rejected(envelope, IntentReason.StationWrongScene);
+        }
+
+        InteractionTarget? target = TinyFarmSpatialQueries.SelectObjectTarget(
+            state,
+            actor.Id,
+            intent.Station,
+            Scenes);
+        if (target?.Kind != InteractionTargetKind.CookingStation)
+        {
+            return Rejected(envelope, IntentReason.StationOutOfRange);
+        }
+
+        foreach (CookingRecipeInput input in recipe.Inputs)
+        {
+            if (state.ProductCount(actor.Id, input.Product) < input.Count)
+            {
+                return Rejected(envelope, IntentReason.MissingIngredient);
+            }
+        }
+
+        int outputCount = checked(state.ProductCount(actor.Id, recipe.OutputProduct) + recipe.OutputCount);
+
+        foreach (CookingRecipeInput input in recipe.Inputs)
+        {
+            int remaining = state.ProductCount(actor.Id, input.Product) - input.Count;
+            SetProductCount(state, actor.Id, input.Product, remaining);
+        }
+        SetProductCount(state, actor.Id, recipe.OutputProduct, outputCount);
+        return Accepted(
+            envelope,
+            new GameEvent(
+                GameEventKind.RecipeCooked,
+                actor.Id,
+                Amount: recipe.OutputCount,
+                Product: recipe.OutputProduct,
+                Scene: stationScene.Id,
+                SceneObject: intent.Station,
+                Recipe: recipe.Id));
     }
 
     private static IntentResult ResolveBuy(

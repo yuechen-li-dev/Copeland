@@ -38,6 +38,8 @@ public sealed record HarvestIntent(FarmPlotId Plot) : GameIntent;
 
 public sealed record GatherIntent(ForageNodeId Node) : GameIntent;
 
+public sealed record CookIntent(SceneObjectId Station, CookingRecipeId Recipe) : GameIntent;
+
 public sealed record SelectHotbarSlotIntent(HotbarSlotId Slot) : GameIntent;
 
 public sealed record UseSelectedIntent : GameIntent;
@@ -101,7 +103,12 @@ public enum IntentReason
     UnknownForageNode,
     ForageWrongScene,
     ForageOutOfRange,
-    AlreadyDepleted
+    AlreadyDepleted,
+    UnknownRecipe,
+    WrongStation,
+    StationWrongScene,
+    StationOutOfRange,
+    MissingIngredient
 }
 
 public enum GameEventKind
@@ -126,7 +133,8 @@ public enum GameEventKind
     InteractionTargeted,
     AnchorReached,
     HotbarSlotSelected,
-    ForageGathered
+    ForageGathered,
+    RecipeCooked
 }
 
 public enum DialogueTopic
@@ -157,7 +165,8 @@ public sealed record GameEvent(
     SceneRouteId? Route = null,
     SceneObjectId? SceneObject = null,
     SceneAnchorId? Anchor = null,
-    ForageNodeId? ForageNode = null);
+    ForageNodeId? ForageNode = null,
+    CookingRecipeId? Recipe = null);
 
 public sealed record IntentResult(IntentEnvelope Envelope, IntentResultStatus Status, IntentReason Reason, IReadOnlyList<GameEvent> Events);
 

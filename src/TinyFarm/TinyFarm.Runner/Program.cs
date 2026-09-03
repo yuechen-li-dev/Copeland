@@ -1,6 +1,52 @@
 using TinyFarm.Core;
 using System.Diagnostics;
 
+if (args.Contains("--m19", StringComparer.Ordinal))
+{
+    string directory = Path.Combine(Environment.CurrentDirectory, "artifacts", "tiny-farm-m19");
+    int artifactIndex = Array.IndexOf(args, "--artifact-dir");
+    if (artifactIndex >= 0)
+    {
+        directory = RequiredOutputPath(args, artifactIndex, "--artifact-dir");
+    }
+    TinyFarmM19Scenario.WriteArtifacts(directory);
+    TinyFarmM19Evidence evidence = TinyFarmM19Scenario.Prove();
+    Console.WriteLine(TinyFarmM19Scenario.WriteJson(evidence.Proof));
+    return;
+}
+
+if (args.Contains("--m19-control", StringComparer.Ordinal))
+{
+    TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.LoadM19();
+    var host = new TinyFarmSimulationHost(
+        new TinyFarmSession(TinyFarmM19ControlStates.Create(definitions), definitions),
+        definitions,
+        TinyFarmSimulationMode.Playing);
+    Console.WriteLine("TinyFarm M19 control ready. Commands: inspect, interact, cook [recipe], quit.");
+    while (Console.ReadLine() is string command)
+    {
+        if (command.Equals("quit", StringComparison.OrdinalIgnoreCase))
+        {
+            break;
+        }
+
+        IReadOnlyList<IntentResult> results = [];
+        if (!command.Equals("inspect", StringComparison.OrdinalIgnoreCase))
+        {
+            results = host.ExecuteIntent(TinyFarmCommandParser.Parse(command)).Results;
+        }
+        Console.WriteLine(TinyFarmM19Scenario.WriteJson(new
+        {
+            simulation = host.Snapshot(),
+            playerUi = TinyFarmPlayerUiProjector.Project(host.Session.State, definitions),
+            frame = TinyFarmFrameProjector.Project(host.Session.State, definitions),
+            recipes = definitions.CookingRecipes,
+            results
+        }));
+    }
+    return;
+}
+
 if (args.Contains("--m18", StringComparer.Ordinal))
 {
     string directory = Path.Combine(Environment.CurrentDirectory, "artifacts", "tiny-farm-m18");

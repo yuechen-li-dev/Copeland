@@ -109,6 +109,12 @@ public static class TinyFarmCommandParser
             "talk" when parts.Length == 2 => new TalkIntent(new ActorId(parts[1])),
             "take" when parts.Length == 2 => new TakeIntent(new ItemId(parts[1])),
             "gather" when parts.Length == 2 => new GatherIntent(new ForageNodeId(parts[1])),
+            "cook" when parts.Length == 1 => new CookIntent(
+                TinyFarmIds.HearthHouseKitchen,
+                TinyFarmIds.SauteedHenOfTheWoodsRecipe),
+            "cook" when parts.Length == 2 => new CookIntent(
+                TinyFarmIds.HearthHouseKitchen,
+                new CookingRecipeId(parts[1])),
             "give" when parts.Length == 3 => new GiveIntent(new ItemId(parts[1]), new ActorId(parts[2])),
             "buy" when parts.Length == 2 => new BuyIntent(new ItemId(parts[1])),
             "sell" when parts.Length == 2 => new SellIntent(new ItemId(parts[1])),
@@ -120,7 +126,7 @@ public static class TinyFarmCommandParser
             "use-selected" when parts.Length == 1 => new UseSelectedIntent(),
             "wait" when parts.Length == 2 && int.TryParse(parts[1], out int minutes) => new WaitIntent(minutes),
             _ => throw new FormatException(
-                "Use: look, go [to] <semantic anchor>, move <left/right/up/down> [distance] [units], move <location>, interact/pickup/take, take <item>, use-selected, talk/buy/sell, buy-product/sell-product <product>, plant <plot> <crop>, water/harvest <plot>, or wait <minutes>.")
+                "Use: look, go [to] <semantic anchor>, move <left/right/up/down> [distance] [units], move <location>, interact/pickup/take, take <item>, gather <node>, cook [recipe], use-selected, talk/buy/sell, buy-product/sell-product <product>, plant <plot> <crop>, water/harvest <plot>, or wait <minutes>.")
         };
     }
 

@@ -37,6 +37,25 @@ public readonly record struct ForageNodeId(string Value)
     public override string ToString() => Value;
 }
 
+public readonly record struct CookingRecipeId(string Value)
+{
+    public override string ToString() => Value;
+}
+
+public enum CookingStationKind
+{
+    Cooking
+}
+
+public sealed record CookingRecipeInput(ProductId Product, int Count);
+
+public sealed record CookingRecipeDefinition(
+    CookingRecipeId Id,
+    CookingStationKind StationKind,
+    IReadOnlyList<CookingRecipeInput> Inputs,
+    ProductId OutputProduct,
+    int OutputCount);
+
 public sealed record LocationDefinition(LocationId Id, string Name, string Description, IReadOnlyList<LocationId> Exits);
 public sealed record ActorState(ActorId Id, string Name, LocationId Location, int Money, List<ItemId> Inventory, bool IsPlayer);
 public sealed record ItemState(
@@ -84,7 +103,8 @@ public sealed class TinyFarmDefinitions
         SceneContentProvenance sceneContent,
         TinyFarmScheduleCatalog schedules,
         ScheduleContentProvenance scheduleContent,
-        IEnumerable<ForageNodeDefinition>? forageNodes = null)
+        IEnumerable<ForageNodeDefinition>? forageNodes = null,
+        IEnumerable<CookingRecipeDefinition>? cookingRecipes = null)
     {
         ArgumentNullException.ThrowIfNull(scenes);
         ArgumentNullException.ThrowIfNull(sceneContent);
@@ -98,6 +118,15 @@ public sealed class TinyFarmDefinitions
         Schedules = schedules;
         ScheduleContent = scheduleContent;
         ForageNodes = (forageNodes ?? []).OrderBy(node => node.Id.Value, StringComparer.Ordinal).ToArray();
+        CookingRecipes = (cookingRecipes ?? [])
+            .Select(recipe => recipe with
+            {
+                Inputs = recipe.Inputs
+                    .OrderBy(input => input.Product.Value, StringComparer.Ordinal)
+                    .ToArray()
+            })
+            .OrderBy(recipe => recipe.Id.Value, StringComparer.Ordinal)
+            .ToArray();
         if (Items.Select(item => item.Id).Distinct().Count() != Items.Count || Crops.Select(crop => crop.Id).Distinct().Count() != Crops.Count)
         {
             throw new InvalidDataException("TinyFarm definition identities must be unique.");
@@ -124,6 +153,21 @@ public sealed class TinyFarmDefinitions
                 throw new InvalidDataException($"Forage node definition '{node.Id}' is invalid.");
             }
         }
+        if (CookingRecipes.Select(recipe => recipe.Id).Distinct().Count() != CookingRecipes.Count)
+        {
+            throw new InvalidDataException("TinyFarm cooking recipe identities must be unique.");
+        }
+        foreach (CookingRecipeDefinition recipe in CookingRecipes)
+        {
+            if (recipe.Inputs.Count == 0
+                || recipe.OutputCount <= 0
+                || !Items.Any(item => item.Id == recipe.OutputProduct)
+                || recipe.Inputs.Any(input => input.Count <= 0 || !Items.Any(item => item.Id == input.Product))
+                || recipe.Inputs.Select(input => input.Product).Distinct().Count() != recipe.Inputs.Count)
+            {
+                throw new InvalidDataException($"Cooking recipe definition '{recipe.Id}' is invalid.");
+            }
+        }
         if (Scenes.All.Any(scene => scene.Id == TinyFarmSceneIds.Residence))
         {
             ValidatePersonalHomes();
@@ -138,9 +182,11 @@ public sealed class TinyFarmDefinitions
     public TinyFarmScheduleCatalog Schedules { get; }
     public ScheduleContentProvenance ScheduleContent { get; }
     public IReadOnlyList<ForageNodeDefinition> ForageNodes { get; }
+    public IReadOnlyList<CookingRecipeDefinition> CookingRecipes { get; }
     public ItemDefinition Item(ProductId id) => Items.Single(item => item.Id == id);
     public CropDefinition Crop(CropId id) => Crops.Single(crop => crop.Id == id);
     public ForageNodeDefinition ForageNode(ForageNodeId id) => ForageNodes.Single(node => node.Id == id);
+    public CookingRecipeDefinition CookingRecipe(CookingRecipeId id) => CookingRecipes.Single(recipe => recipe.Id == id);
 
     private void ValidatePersonalHomes()
     {
@@ -391,6 +437,9 @@ public static class TinyFarmIds
     public static readonly ProductId TurnipSeed = new("turnip-seed");
     public static readonly ProductId Turnip = new("turnip");
     public static readonly ProductId HenOfTheWoods = new("hen-of-the-woods");
+    public static readonly ProductId SauteedHenOfTheWoods = new("sauteed-hen-of-the-woods");
+    public static readonly CookingRecipeId SauteedHenOfTheWoodsRecipe = new("sauteed-hen-of-the-woods");
+    public static readonly SceneObjectId HearthHouseKitchen = new("hearth-house-kitchen");
     public static readonly CropId TurnipCrop = new("turnip");
     public static readonly FarmPlotId PlotOne = new("plot-1");
     public static readonly FarmPlotId PlotTwo = new("plot-2");

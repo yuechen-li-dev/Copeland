@@ -132,6 +132,21 @@ public static class TinyFarmPlayerUiProjector
             ForageNodeDefinition definition = definitions.ForageNode(forageNode);
             return $"Gather {definitions.Item(definition.Product).Name} [Interact]";
         }
+        if (target?.Kind == InteractionTargetKind.CookingStation)
+        {
+            CookingRecipeDefinition? recipe = definitions.CookingRecipes.SingleOrDefault();
+            if (recipe is null)
+            {
+                return "No recipe available";
+            }
+            CookingRecipeInput? missing = recipe.Inputs.FirstOrDefault(input =>
+                state.ProductCount(TinyFarmIds.Player, input.Product) < input.Count);
+            if (missing is not null)
+            {
+                return $"Need {definitions.Item(missing.Product).Name} x{missing.Count}";
+            }
+            return $"Cook {definitions.Item(recipe.OutputProduct).Name} [Interact]";
+        }
         if (target?.Plot is FarmPlotId plot
             && state.FarmPlots.Single(candidate => candidate.Id == plot).Crop is null
             && selected.SemanticId == TinyFarmIds.TurnipSeed.Value

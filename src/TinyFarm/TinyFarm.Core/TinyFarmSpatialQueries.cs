@@ -7,7 +7,8 @@ public enum InteractionTargetKind
     Shop,
     Portal,
     GroundItem,
-    ForageNode
+    ForageNode,
+    CookingStation
 }
 
 public sealed record InteractionTarget(
@@ -61,6 +62,7 @@ public static class TinyFarmSpatialQueries
                 SceneObjectKind.Shop => InteractionTargetKind.Shop,
                 SceneObjectKind.Portal => InteractionTargetKind.Portal,
                 SceneObjectKind.Forage when IsAvailable(state, definition.Id) => InteractionTargetKind.ForageNode,
+                SceneObjectKind.CookingStation => InteractionTargetKind.CookingStation,
                 _ => null
             };
             if (kind is null)
@@ -166,6 +168,7 @@ public static class TinyFarmSpatialQueries
             SceneObjectKind.Shop => InteractionTargetKind.Shop,
             SceneObjectKind.Portal => InteractionTargetKind.Portal,
             SceneObjectKind.Forage when IsAvailable(state, definition.Id) => InteractionTargetKind.ForageNode,
+            SceneObjectKind.CookingStation => InteractionTargetKind.CookingStation,
             _ => null
         };
         if (kind is null)
@@ -232,8 +235,9 @@ public static class TinyFarmSpatialQueries
             InteractionTargetKind.GroundItem => 2,
             InteractionTargetKind.ForageNode => 3,
             InteractionTargetKind.Plot => 4,
-            InteractionTargetKind.Shop => 5,
-            _ => 5
+            InteractionTargetKind.CookingStation => 5,
+            InteractionTargetKind.Shop => 6,
+            _ => 6
         };
     }
 

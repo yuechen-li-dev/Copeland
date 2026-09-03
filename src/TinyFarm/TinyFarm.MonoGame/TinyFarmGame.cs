@@ -26,12 +26,12 @@ internal sealed class TinyFarmGame : Game
             PreferredBackBufferHeight = ReadIntOption(args, "--height", 1440),
             SynchronizeWithVerticalRetrace = true
         };
-        Window.Title = "TinyFarm M18 - Hen-of-the-Woods Foraging";
+        Window.Title = "TinyFarm M19 - Hen-of-the-Woods Cooking";
         Window.AllowUserResizing = true;
         IsMouseVisible = true;
-        definitions = TinyFarmDefinitionLoader.LoadM18();
+        definitions = TinyFarmDefinitionLoader.LoadM19();
         simulationHost = new TinyFarmSimulationHost(
-            new TinyFarmSession(TinyFarmM18ControlStates.Create(definitions), definitions),
+            new TinyFarmSession(TinyFarmM19ControlStates.Create(definitions), definitions),
             definitions,
             TinyFarmSimulationMode.Playing);
         playerUiController = new TinyFarmPlayerUiController(simulationHost);
@@ -284,7 +284,8 @@ internal sealed class TinyFarmGame : Game
                 or SceneObjectKind.Landmark
                 or SceneObjectKind.Shop
                 or SceneObjectKind.Bed
-                or SceneObjectKind.Forage)
+                or SceneObjectKind.Forage
+                or SceneObjectKind.CookingStation)
             {
                 int textScale = tileSize >= 72 ? 2 : 1;
                 BitmapText.Draw(
@@ -646,6 +647,7 @@ internal sealed class TinyFarmGame : Game
             SceneObjectKind.Decoration => new Color(52, 126, 174),
             SceneObjectKind.Bed => new Color(74, 111, 153),
             SceneObjectKind.Forage => new Color(179, 153, 112),
+            SceneObjectKind.CookingStation => new Color(166, 92, 72),
             _ => new Color(91, 103, 70)
         };
     }

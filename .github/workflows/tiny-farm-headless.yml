@@ -481,6 +481,49 @@ jobs:
             throw "TinyFarm M18 evidence exceeded the compact five-file artifact budget."
           }
 
+          $m19Directory = Join-Path $env:RUNNER_TEMP "tiny-farm-m19"
+          dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --m19 --artifact-dir $m19Directory
+          if ($LASTEXITCODE -ne 0) {
+            throw "TinyFarm M19 cooking proof failed."
+          }
+
+          $m19Proof = Get-Content -Raw -LiteralPath (Join-Path $m19Directory "proof.json") | ConvertFrom-Json
+          $m19Manifest = Get-Content -Raw -LiteralPath (Join-Path $m19Directory "manifest.json") | ConvertFrom-Json
+          if ($m19Proof.outcome -ne "A" -or
+              -not $m19Proof.recipeAuthoredInTson -or
+              -not $m19Proof.cookUsesResolver -or
+              -not $m19Proof.atomicIngredientTransformation -or
+              -not $m19Proof.saveLoadExact -or
+              -not $m19Proof.replayExact -or
+              -not $m19Proof.repeatExact -or
+              $m19Manifest.inventoryAuthorityMoved -or
+              $m19Manifest.genericCraftingGraphAdded -or
+              $m19Manifest.recipeEditorAdded -or
+              $m19Manifest.qualitySystemAdded -or
+              $m19Manifest.skillSystemAdded -or
+              $m19Manifest.foodEffectsAdded) {
+            throw "TinyFarm M19 resolver and scope laws changed."
+          }
+
+          $controlOutput = @("inspect", "interact", "cook", "inspect", "quit") |
+            dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --m19-control |
+            Out-String
+          if ($LASTEXITCODE -ne 0 -or
+              $controlOutput -notmatch 'RecipeCooked' -or
+              $controlOutput -notmatch 'MissingIngredient' -or
+              $controlOutput -notmatch 'sauteed-hen-of-the-woods' -or
+              $controlOutput -notmatch 'Need Hen-of-the-Woods x1') {
+            throw "TinyFarm M19 CLI cooking/conflict smoke test failed."
+          }
+
+          $expectedFiles = @("cooking.json", "inventory.json", "manifest.json", "proof.json", "recipes.json")
+          $artifactFiles = @(Get-ChildItem -LiteralPath $m19Directory -File | Sort-Object Name)
+          if ($artifactFiles.Count -ne 5 -or
+              (Compare-Object $expectedFiles $artifactFiles.Name) -or
+              ($artifactFiles | Where-Object Length -gt 262144)) {
+            throw "TinyFarm M19 evidence exceeded the compact five-file artifact budget."
+          }
+
       - name: Enforce repository artifact budget
         shell: pwsh
         run: ./tools/Test-ArtifactBudget.ps1 -Paths @()

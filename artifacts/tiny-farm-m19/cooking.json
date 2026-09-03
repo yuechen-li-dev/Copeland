@@ -1,0 +1,9 @@
+{
+  "station": "hearth-house-kitchen",
+  "scene": "residence",
+  "lowering": "InteractIntent -\u003E CookIntent",
+  "priority": "actor, portal, ground item, forage node, plot, cooking station, shop; then squared distance; then ordinal stable ID",
+  "first": "Accepted",
+  "second": "MissingIngredient",
+  "eventKind": "RecipeCooked"
+}
