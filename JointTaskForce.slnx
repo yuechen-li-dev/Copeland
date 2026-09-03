@@ -21,6 +21,7 @@
     <Project Path="src/Machina.UI/Machina.Runtime/Machina.Runtime.csproj" />
     <Project Path="src/Machina.UI/Machina.Standard/Machina.Standard.csproj" />
     <Project Path="src/Aurelian/Aurelian.Actuation/Aurelian.Actuation.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Composition/Aurelian.Composition.csproj" />
     <Project Path="src/Aurelian/Aurelian.Assets/Aurelian.Assets.csproj" />
     <Project Path="src/Aurelian/Aurelian.AssetTool/Aurelian.AssetTool.csproj" />
     <Project Path="src/Aurelian/Aurelian.Core/Aurelian.Core.csproj" />
@@ -60,6 +61,7 @@
     <Project Path="tests/Machina.UI/Machina.Standard.Tests/Machina.Standard.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Testing/Machina.Testing.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Actuation.Tests/Aurelian.Actuation.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.Composition.Tests/Aurelian.Composition.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Assets.Tests/Aurelian.Assets.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.AssetTool.Tests/Aurelian.AssetTool.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Core.Tests/Aurelian.Core.Tests.csproj" />

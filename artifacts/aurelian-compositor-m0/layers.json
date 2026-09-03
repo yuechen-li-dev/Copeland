@@ -1,0 +1,9 @@
+{
+  "orderingLaw": ["zOrder", "layerIdOrdinal", "registrationSequence"],
+  "qualifiedMode": "DirectHostPass",
+  "layers": [
+    { "id": "tiny-farm-world", "zOrder": 0, "backend": "MonoGame", "inputPolicy": "HitTest" },
+    { "id": "tiny-farm-ui", "zOrder": 100, "backend": "Machina.UI-to-MonoGame", "inputPolicy": "HitTestOrOpaqueWhenInventoryOpen" }
+  ],
+  "offscreenSeam": true
+}

@@ -319,3 +319,7 @@ Validation on 2026-09-03 used .NET SDK 10.0.400:
 | JSON parse and `git diff --check` | passed |
 
 The TinyFarm suite contains the named M13 timing, M14 locomotion, M15 allocation, M16 UI, M17 pickup/use, M18 forage, M19 cooking, M20 chop, M21 dungeon/combat, and canonical persistence/replay gates; the full 252-test pass is the combined required gate. No remote GitHub run is claimed because this checkpoint was not pushed.
+
+## AURELIAN-COMPOSITOR-M0 migration note
+
+The M16 temporary MonoGame HUD/hotbar/inventory drawing and pointer rectangle hit testing are retired. The MonoGame window now hosts an `AurelianLayerCompositor`: the existing world renderer is a direct bottom pass and `TinyFarmMachinaUiLayer` is a transparent top pass. `TinyFarmPresentationSnapshot` transports application-owned view data into Machina, while `TinyFarmUiCommandDto` returns selection, inventory, simulation, wait, use, and interact requests to the existing controller/intent path. The hand-rolled toolbar remains the appearance and interaction compatibility oracle during this conservative Machina migration. M13-M21 semantic state and simulation ownership are unchanged. See `docs/Aurelian/aurelian-renderer-neutral-layer-compositor.md` for the audit and contract.

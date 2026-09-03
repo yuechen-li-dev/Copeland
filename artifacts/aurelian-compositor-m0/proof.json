@@ -1,0 +1,27 @@
+{
+  "milestone": "AURELIAN-COMPOSITOR-M0",
+  "outcome": "A",
+  "fakeLayerTests": 10,
+  "tinyFarmCompositorTests": 11,
+  "tinyFarmSuitePassed": 263,
+  "uiAdapterBytesPerRecomposition1280x720": 194387,
+  "uiAdapterMicrosecondsPerRecomposition1280x720": 289.50,
+  "native120Frame1280x720": {
+    "worldCpuMicrosecondsPerFrame": 49.2925,
+    "machinaRecompositionMicrosecondsPerFrame": 297.8133,
+    "adapterRealizationCpuMicrosecondsPerFrame": 153.9125
+  },
+  "native120Frame2560x1440": {
+    "worldCpuMicrosecondsPerFrame": 57.5558,
+    "machinaRecompositionMicrosecondsPerFrame": 322.2458,
+    "adapterRealizationCpuMicrosecondsPerFrame": 168.7467
+  },
+  "m15AllocationGatesPassed": true,
+  "m13ThroughM21SemanticRegressionPassed": true,
+  "saveReplayPassed": true,
+  "nativeWindowBuildPassed": true,
+  "nativeWindowStartup1280x720Passed": true,
+  "nativeWindowStartup2560x1440Passed": true,
+  "handRolledToolbarCompatibilityOraclePassed": true,
+  "remoteCiClaimed": false
+}

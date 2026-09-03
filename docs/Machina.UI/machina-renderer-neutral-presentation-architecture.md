@@ -194,4 +194,4 @@ Primary feasibility references consulted on 2026-09-03:
 
 ## Decision
 
-Implement the MonoGame adapter seam first because it replaces demonstrated TinyFarm duplication on a qualified real window. Keep Stride and Aurelian-native as subsequent adapters when their end-to-end hosts demand them. Keep Avalonia as a focused proof candidate for desktop controls/accessibility/offscreen feasibility. Do not make Avalonia, MonoGame, Stride, or Vulkan types visible to semantic application UI.
+The MonoGame adapter seam is now qualified by AURELIAN-COMPOSITOR-M0. TinyFarm semantic DTOs lower through the unchanged Machina pipeline; Machina owns layout and hit testing; a TinyFarm MonoGame leaf realizes the resulting presentation operations after the world pass. `Aurelian.Composition` owns layer-level focus, capture, ordering, resize, and fallthrough. Keep Stride and Aurelian-native as subsequent adapters when their end-to-end hosts demand them. Keep Avalonia as a focused proof candidate for desktop controls/accessibility/offscreen feasibility. Do not make Avalonia, MonoGame, Stride, or Vulkan types visible to semantic application UI.

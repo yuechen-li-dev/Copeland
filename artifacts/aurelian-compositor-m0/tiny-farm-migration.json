@@ -1,0 +1,20 @@
+{
+  "worldRenderer": "MonoGame",
+  "uiProjection": "TinyFarmPlayerUiView",
+  "uiRuntime": "Machina.UI",
+  "temporaryMonoGameUiRetired": true,
+  "migrationStrategy": "conservative compatibility bootstrap",
+  "handRolledMonoGameToolbarIsCompatibilityOracle": true,
+  "appearanceCompatibility": ["geometry", "colors", "borders", "text-origins", "text-scale", "labels", "responsive-breakpoints"],
+  "hudMigrated": true,
+  "hotbarMigrated": true,
+  "inventoryMigrated": true,
+  "interactionHintsMigrated": true,
+  "simulationControlsMigrated": true,
+  "worldFillsViewport": true,
+  "headlessCoreReferencesCompositor": false,
+  "headlessRuntimeReferencesCompositor": false,
+  "layoutQualification": ["2560x1440", "1280x720"],
+  "dpiScale": 1.0,
+  "dpiLimitation": "MonoGame DesktopGL host does not expose a meaningful per-monitor scale in this path"
+}

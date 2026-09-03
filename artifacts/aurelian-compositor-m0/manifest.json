@@ -1,0 +1,17 @@
+{
+  "milestone": "AURELIAN-COMPOSITOR-M0",
+  "kind": "renderer-neutral-layer-composition-dto-boundary",
+  "compositorIsGameSpecific": false,
+  "layerOrderingGeneral": true,
+  "inputRoutingGeneral": true,
+  "crossLayerCommunicationUsesDtos": true,
+  "sharedContractsContainMonoGameTypes": false,
+  "sharedContractsContainTinyFarmTypes": false,
+  "tinyFarmWorldUsesMonoGameLayer": true,
+  "tinyFarmUiUsesMachinaLayer": true,
+  "temporaryMonoGameUiRetired": true,
+  "avaloniaBackendImplemented": false,
+  "strideBackendImplemented": false,
+  "unityBackendImplemented": false,
+  "unrealBackendImplemented": false
+}

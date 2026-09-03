@@ -61,7 +61,8 @@ internal static class BitmapText
         string text,
         Vector2 position,
         Color color,
-        int scale)
+        int scale,
+        Rectangle? clip = null)
     {
         int x = (int)position.X;
         int y = (int)position.Y;
@@ -85,10 +86,18 @@ internal static class BitmapText
                     {
                         if (rows[row][column] == '1')
                         {
-                            spriteBatch.Draw(
-                                pixel,
-                                new Rectangle(x + (column * scale), y + (row * scale), scale, scale),
-                                color);
+                            var pixelRectangle = new Rectangle(
+                                x + (column * scale),
+                                y + (row * scale),
+                                scale,
+                                scale);
+                            Rectangle visibleRectangle = clip is Rectangle clipRectangle
+                                ? Rectangle.Intersect(pixelRectangle, clipRectangle)
+                                : pixelRectangle;
+                            if (!visibleRectangle.IsEmpty)
+                            {
+                                spriteBatch.Draw(pixel, visibleRectangle, color);
+                            }
                         }
                     }
                 }

@@ -1,7 +1,9 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Aurelian.Composition;
 using TinyFarm.Core;
+using TinyFarm.Presentation;
 
 internal sealed class TinyFarmGame : Game
 {
@@ -17,6 +19,12 @@ internal sealed class TinyFarmGame : Game
     private MouseState previousMouse;
     private IReadOnlyList<NarrativeLine> narrative = [];
     private string status = "Welcome to TinyFarm";
+    private readonly TinyFarmApplicationMessageSink applicationMessageSink = new();
+    private AurelianLayerCompositor? compositor;
+    private TinyFarmFrame? compositionFrame;
+    private ulong compositionFrameId;
+    private readonly TinyFarmCompositionMetrics compositionMetrics = new();
+    private readonly int compositionProofFrames;
 
     public TinyFarmGame(string[] args)
     {
@@ -37,6 +45,7 @@ internal sealed class TinyFarmGame : Game
         playerUiController = new TinyFarmPlayerUiController(simulationHost);
         savePath = ReadOption(args, "--save-file")
             ?? Path.Combine(Environment.CurrentDirectory, "tiny-farm.save");
+        compositionProofFrames = ReadPositiveIntOption(args, "--composition-proof-frames");
     }
 
     protected override void LoadContent()
@@ -44,6 +53,18 @@ internal sealed class TinyFarmGame : Game
         spriteBatch = new SpriteBatch(GraphicsDevice);
         pixel = new Texture2D(GraphicsDevice, 1, 1);
         pixel.SetData([Color.White]);
+        LayerSurfaceDescriptor surface = CurrentSurface();
+        compositor = new AurelianLayerCompositor(surface);
+        compositor.Add(new TinyFarmMonoGameWorldLayer(
+            () => DrawWorld(compositionFrame ?? throw new InvalidOperationException("World frame is unavailable.")),
+            surface,
+            compositionMetrics));
+        var machinaLayer = new TinyFarmMachinaUiLayer(applicationMessageSink, surface);
+        compositor.Add(new TinyFarmMachinaMonoGameLayer(
+            machinaLayer,
+            new TinyFarmMonoGamePresentationRenderer(spriteBatch, pixel),
+            compositionMetrics));
+        compositor.Attach();
     }
 
     protected override void Update(GameTime gameTime)
@@ -56,44 +77,10 @@ internal sealed class TinyFarmGame : Game
             return;
         }
 
-        if (TryReadHotbarKey(keyboard, out TinyFarmUiKey hotbarKey))
-        {
-            playerUiController.HandleKey(hotbarKey);
-            status = $"Selected hotbar slot {simulationHost.Session.State.SelectedHotbarSlot}";
-        }
-        else if (Pressed(keyboard, Keys.I))
-        {
-            playerUiController.HandleKey(TinyFarmUiKey.Inventory);
-            status = playerUiController.InventoryOpen ? "Inventory opened" : "Inventory closed";
-        }
-        else if (Pressed(keyboard, Keys.Space))
-        {
-            playerUiController.HandleKey(TinyFarmUiKey.PausePlay);
-            status = simulationHost.Mode == TinyFarmSimulationMode.Paused
-                ? "Simulation paused"
-                : "Simulation playing";
-        }
-        else if (Pressed(keyboard, Keys.F))
-        {
-            playerUiController.HandleKey(TinyFarmUiKey.FastForward);
-            status = simulationHost.Mode == TinyFarmSimulationMode.FastForward
-                ? "Simulation fast forward x10"
-                : "Simulation playing";
-        }
-        else if (Pressed(mouse))
-        {
-            HotbarSlotId? clicked = HitTestHotbar(mouse.Position);
-            if (clicked is HotbarSlotId slot)
-            {
-                playerUiController.ClickSlot(slot);
-                status = $"Selected hotbar slot {slot.Value}";
-            }
-            else if (InventoryToggleRectangle().Contains(mouse.Position))
-            {
-                playerUiController.HandleKey(TinyFarmUiKey.Inventory);
-                status = playerUiController.InventoryOpen ? "Inventory opened" : "Inventory closed";
-            }
-        }
+        EnsureCompositionSurface();
+        PublishUiSnapshot();
+        RouteUiInput(keyboard, mouse);
+        ApplyUiCommands();
 
         if (Pressed(keyboard, Keys.F5))
         {
@@ -105,23 +92,9 @@ internal sealed class TinyFarmGame : Game
         }
         else if (!playerUiController.InventoryOpen
             && simulationHost.Mode != TinyFarmSimulationMode.Paused
-            && Pressed(keyboard, Keys.Enter)
-            && narrative.Count > 0)
-        {
-            narrative = [];
-            status = "Conversation closed";
-        }
-        else if (!playerUiController.InventoryOpen
-            && simulationHost.Mode != TinyFarmSimulationMode.Paused
-            && (Pressed(keyboard, Keys.Enter) || Pressed(keyboard, Keys.E)))
+            && Pressed(keyboard, Keys.E))
         {
             ApplyControl(TinyFarmControl.Interact);
-        }
-        else if (!playerUiController.InventoryOpen
-            && simulationHost.Mode != TinyFarmSimulationMode.Paused
-            && Pressed(keyboard, Keys.Q))
-        {
-            ApplyControl(TinyFarmControl.UseSelected);
         }
         else if (!playerUiController.InventoryOpen
             && simulationHost.Mode != TinyFarmSimulationMode.Paused
@@ -173,13 +146,178 @@ internal sealed class TinyFarmGame : Game
     {
         GraphicsDevice.Clear(new Color(34, 52, 43));
         TinyFarmFrame frame = TinyFarmFrameProjector.Project(session.State, definitions, narrative);
+        compositionFrame = frame;
+        PublishUiSnapshot(frame);
         simulationHost.ObserveRenderFrame();
         spriteBatch!.Begin(samplerState: SamplerState.PointClamp);
-        DrawWorld(frame);
-        DrawPlayerUi(TinyFarmPlayerUiProjector.Project(session.State, definitions));
-        DrawHud(frame);
+        compositor!.RunFrame(compositionFrameId++, gameTime.ElapsedGameTime);
         spriteBatch.End();
+        if (compositionProofFrames > 0 && compositionMetrics.Frames >= compositionProofFrames)
+        {
+            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(
+                compositionMetrics.Snapshot(),
+                new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+            Exit();
+        }
         base.Draw(gameTime);
+    }
+
+    protected override void UnloadContent()
+    {
+        compositor?.Dispose();
+        compositor = null;
+        base.UnloadContent();
+    }
+
+    private LayerSurfaceDescriptor CurrentSurface()
+    {
+        return new LayerSurfaceDescriptor(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
+    }
+
+    private void EnsureCompositionSurface()
+    {
+        LayerSurfaceDescriptor current = CurrentSurface();
+        if (compositor!.Surface.Width != current.Width || compositor.Surface.Height != current.Height)
+        {
+            compositor.Resize(current);
+        }
+    }
+
+    private void PublishUiSnapshot(TinyFarmFrame? projectedFrame = null)
+    {
+        TinyFarmFrame frame = projectedFrame ?? TinyFarmFrameProjector.Project(session.State, definitions, narrative);
+        var snapshot = new TinyFarmPresentationSnapshot(
+            TinyFarmPlayerUiProjector.Project(session.State, definitions),
+            frame.Day,
+            frame.Time,
+            frame.CurrentLocationName,
+            simulationHost.Mode,
+            playerUiController.InventoryOpen,
+            status,
+            frame.InteractionHints,
+            frame.Narrative.ToArray());
+        compositor!.SendToLayer(new LayerMessage<TinyFarmPresentationSnapshot>(
+            TinyFarmMachinaUiLayer.ApplicationId,
+            TinyFarmMachinaUiLayer.Id,
+            snapshot));
+    }
+
+    private void RouteUiInput(KeyboardState keyboard, MouseState mouse)
+    {
+        foreach ((Keys nativeKey, LayerKey layerKey) in UiKeyBindings())
+        {
+            if (Pressed(keyboard, nativeKey))
+            {
+                compositor!.RouteInput(new LayerKeyChanged(layerKey, true));
+            }
+            else if (Released(keyboard, nativeKey))
+            {
+                compositor!.RouteInput(new LayerKeyChanged(layerKey, false));
+            }
+        }
+
+        if (mouse.Position != previousMouse.Position)
+        {
+            compositor!.RouteInput(new LayerPointerMoved(
+                new LayerPoint(mouse.X, mouse.Y),
+                new LayerPoint(previousMouse.X, previousMouse.Y)));
+        }
+
+        if (mouse.ScrollWheelValue != previousMouse.ScrollWheelValue)
+        {
+            compositor!.RouteInput(new LayerPointerWheel(
+                new LayerPoint(mouse.X, mouse.Y),
+                0,
+                (mouse.ScrollWheelValue - previousMouse.ScrollWheelValue) / 120d));
+        }
+
+        if (mouse.LeftButton != previousMouse.LeftButton)
+        {
+            compositor!.RouteInput(new LayerPointerButtonChanged(
+                new LayerPoint(mouse.X, mouse.Y),
+                LayerPointerButton.Primary,
+                mouse.LeftButton == ButtonState.Pressed));
+        }
+    }
+
+    private void ApplyUiCommands()
+    {
+        while (applicationMessageSink.TryDequeue(out TinyFarmUiCommandDto? command))
+        {
+            switch (command!.Kind)
+            {
+                case TinyFarmUiCommandKind.SelectHotbarSlot:
+                    var slot = new HotbarSlotId(command.HotbarSlot!.Value);
+                    playerUiController.ClickSlot(slot);
+                    status = $"Selected hotbar slot {slot.Value}";
+                    break;
+                case TinyFarmUiCommandKind.ToggleInventory:
+                    playerUiController.HandleKey(TinyFarmUiKey.Inventory);
+                    status = playerUiController.InventoryOpen ? "Inventory opened" : "Inventory closed";
+                    break;
+                case TinyFarmUiCommandKind.TogglePausePlay:
+                    playerUiController.HandleKey(TinyFarmUiKey.PausePlay);
+                    status = simulationHost.Mode == TinyFarmSimulationMode.Paused
+                        ? "Simulation paused"
+                        : "Simulation playing";
+                    break;
+                case TinyFarmUiCommandKind.ToggleFastForward:
+                    playerUiController.HandleKey(TinyFarmUiKey.FastForward);
+                    status = simulationHost.Mode == TinyFarmSimulationMode.FastForward
+                        ? "Simulation fast forward x10"
+                        : "Simulation playing";
+                    break;
+                case TinyFarmUiCommandKind.Wait:
+                    playerUiController.HandleKey(TinyFarmUiKey.Wait);
+                    break;
+                case TinyFarmUiCommandKind.UseSelected:
+                    if (!playerUiController.InventoryOpen && simulationHost.Mode != TinyFarmSimulationMode.Paused)
+                    {
+                        ApplyControl(TinyFarmControl.UseSelected);
+                    }
+                    break;
+                case TinyFarmUiCommandKind.Interact:
+                    if (!playerUiController.InventoryOpen
+                        && simulationHost.Mode != TinyFarmSimulationMode.Paused
+                        && narrative.Count > 0)
+                    {
+                        narrative = [];
+                        status = "Conversation closed";
+                    }
+                    else if (!playerUiController.InventoryOpen && simulationHost.Mode != TinyFarmSimulationMode.Paused)
+                    {
+                        ApplyControl(TinyFarmControl.Interact);
+                    }
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(command), command.Kind, "Unknown UI command.");
+            }
+        }
+    }
+
+    private static IReadOnlyList<(Keys NativeKey, LayerKey LayerKey)> UiKeyBindings()
+    {
+        return
+        [
+            (Keys.D1, LayerKey.Number1),
+            (Keys.D2, LayerKey.Number2),
+            (Keys.D3, LayerKey.Number3),
+            (Keys.D4, LayerKey.Number4),
+            (Keys.D5, LayerKey.Number5),
+            (Keys.D6, LayerKey.Number6),
+            (Keys.D7, LayerKey.Number7),
+            (Keys.D8, LayerKey.Number8),
+            (Keys.I, LayerKey.I),
+            (Keys.Space, LayerKey.Space),
+            (Keys.F, LayerKey.F),
+            (Keys.N, LayerKey.N),
+            (Keys.Q, LayerKey.Q),
+            (Keys.Enter, LayerKey.Enter),
+            (Keys.Left, LayerKey.ArrowLeft),
+            (Keys.Right, LayerKey.ArrowRight),
+            (Keys.Up, LayerKey.ArrowUp),
+            (Keys.Down, LayerKey.ArrowDown)
+        ];
     }
 
     private void DrawWorld(TinyFarmFrame frame)
@@ -251,8 +389,7 @@ internal sealed class TinyFarmGame : Game
     {
         int viewportWidth = GraphicsDevice.Viewport.Width;
         int viewportHeight = GraphicsDevice.Viewport.Height;
-        int hudHeight = Math.Clamp(viewportHeight / 12, 76, 112);
-        int worldHeight = viewportHeight - hudHeight;
+        int worldHeight = viewportHeight;
         int tileSize = Math.Max(
             12,
             Math.Min((viewportWidth - 48) / frame.SceneWidth, (worldHeight - 48) / frame.SceneHeight));
@@ -384,96 +521,6 @@ internal sealed class TinyFarmGame : Game
         }
     }
 
-    private void DrawHud(TinyFarmFrame frame)
-    {
-        int width = GraphicsDevice.Viewport.Width;
-        int height = GraphicsDevice.Viewport.Height;
-        int hudHeight = Math.Clamp(height / 12, 76, 112);
-        int top = height - hudHeight;
-        int headingScale = height >= 900 ? 2 : 1;
-        Fill(new Rectangle(0, top, width, hudHeight), new Color(19, 27, 25));
-        string mode = simulationHost.Mode switch
-        {
-            TinyFarmSimulationMode.Paused => "PAUSED",
-            TinyFarmSimulationMode.Playing => "PLAY",
-            _ => "FAST X10"
-        };
-        BitmapText.Draw(spriteBatch!, pixel!, $"{mode}  DAY {frame.Day}  {frame.Time}  {frame.CurrentLocationName.ToUpperInvariant()}  {frame.Money}G", new Vector2(18, top + 10), Color.White, headingScale);
-        Rectangle inventoryToggle = InventoryToggleRectangle();
-        Fill(inventoryToggle, playerUiController.InventoryOpen ? new Color(91, 73, 38) : new Color(38, 53, 49));
-        Border(inventoryToggle, playerUiController.InventoryOpen ? Color.Gold : new Color(126, 145, 133), 2);
-        BitmapText.Draw(spriteBatch!, pixel!, "I INVENTORY", new Vector2(inventoryToggle.X + 10, inventoryToggle.Y + 10), Color.White, 1);
-        string controls = "1-8 HOTBAR  |  I INVENTORY  |  SPACE PAUSE/PLAY  |  F FAST X10  |  ARROWS/WASD MOVE  |  ENTER/E INTERACT  |  Q USE  |  N WAIT  |  F5 SAVE  |  F9 LOAD";
-        string context = string.Join("  |  ", frame.InteractionHints.Skip(4));
-        if (frame.Narrative.Count > 0)
-        {
-            context = context.Length == 0 ? "ENTER CLOSE" : context + "  |  ENTER CLOSE";
-        }
-        if (context.Length > 0)
-        {
-            controls += "  |  " + context;
-        }
-        BitmapText.Draw(spriteBatch!, pixel!, controls.ToUpperInvariant(), new Vector2(18, top + 38), new Color(242, 205, 111), 1);
-        string message = frame.Narrative.LastOrDefault() ?? status;
-        if (hudHeight >= 96)
-        {
-            BitmapText.Draw(spriteBatch!, pixel!, message.ToUpperInvariant(), new Vector2(18, top + 62), Color.White, 1);
-        }
-    }
-
-    private void DrawPlayerUi(TinyFarmPlayerUiView view)
-    {
-        Rectangle[] slots = HotbarRectangles();
-        for (int index = 0; index < slots.Length; index++)
-        {
-            TinyFarmHotbarSlotView slot = view.Hotbar[index];
-            Color fill = slot.VisualState switch
-            {
-                TinyFarmHotbarSlotVisualState.Available => new Color(49, 72, 63),
-                TinyFarmHotbarSlotVisualState.Unavailable => new Color(48, 48, 48),
-                _ => new Color(30, 37, 35)
-            };
-            Fill(slots[index], fill);
-            Border(slots[index], slot.IsSelected ? Color.Gold : new Color(126, 145, 133), slot.IsSelected ? 4 : 2);
-            BitmapText.Draw(spriteBatch!, pixel!, slot.Slot.Value.ToString(), new Vector2(slots[index].X + 7, slots[index].Y + 6), Color.White, 1);
-            string label = slot.BindingKind is null
-                ? "EMPTY"
-                : $"{slot.Label.ToUpperInvariant()} X{slot.Count}";
-            BitmapText.Draw(spriteBatch!, pixel!, label, new Vector2(slots[index].X + 7, slots[index].Y + 24), Color.White, 1);
-        }
-
-        if (!playerUiController.InventoryOpen)
-        {
-            return;
-        }
-
-        TinyFarmUiRectangle layoutPanel = TinyFarmPlayerUiLayoutEngine.Compute(
-            GraphicsDevice.Viewport.Width,
-            GraphicsDevice.Viewport.Height,
-            view.Inventory.Count).InventoryPanel;
-        var panel = ToRectangle(layoutPanel);
-        Fill(panel, new Color(18, 27, 25, 242));
-        Border(panel, new Color(181, 154, 83), 3);
-        BitmapText.Draw(spriteBatch!, pixel!, "INVENTORY", new Vector2(panel.X + 18, panel.Y + 16), Color.Gold, 2);
-        if (view.Inventory.Count == 0)
-        {
-            BitmapText.Draw(spriteBatch!, pixel!, "EMPTY", new Vector2(panel.X + 18, panel.Y + 50), Color.White, 1);
-            return;
-        }
-
-        for (int index = 0; index < view.Inventory.Count; index++)
-        {
-            TinyFarmPlayerInventoryView item = view.Inventory[index];
-            BitmapText.Draw(
-                spriteBatch!,
-                pixel!,
-                $"{item.Name.ToUpperInvariant()}  X{item.Count}",
-                new Vector2(panel.X + 18, panel.Y + 52 + (index * 30)),
-                Color.White,
-                1);
-        }
-    }
-
     private TinyFarmControl? ReadControl(KeyboardState keyboard)
     {
         (Keys Key, TinyFarmControl Control)[] bindings =
@@ -486,8 +533,7 @@ internal sealed class TinyFarmGame : Game
             (Keys.V, TinyFarmControl.Sell),
             (Keys.P, TinyFarmControl.Plant),
             (Keys.R, TinyFarmControl.Water),
-            (Keys.H, TinyFarmControl.Harvest),
-            (Keys.N, TinyFarmControl.Wait)
+            (Keys.H, TinyFarmControl.Harvest)
         ];
         foreach ((Keys key, TinyFarmControl control) in bindings)
         {
@@ -522,62 +568,12 @@ internal sealed class TinyFarmGame : Game
 
     private bool Pressed(KeyboardState keyboard, Keys key) => keyboard.IsKeyDown(key) && previousKeyboard.IsKeyUp(key);
 
+    private bool Released(KeyboardState keyboard, Keys key) => keyboard.IsKeyUp(key) && previousKeyboard.IsKeyDown(key);
+
     private bool Pressed(MouseState mouse)
     {
         return mouse.LeftButton == ButtonState.Pressed
             && previousMouse.LeftButton == ButtonState.Released;
-    }
-
-    private bool TryReadHotbarKey(KeyboardState keyboard, out TinyFarmUiKey key)
-    {
-        Keys[] keys = [Keys.D1, Keys.D2, Keys.D3, Keys.D4, Keys.D5, Keys.D6, Keys.D7, Keys.D8];
-        for (int index = 0; index < keys.Length; index++)
-        {
-            if (Pressed(keyboard, keys[index]))
-            {
-                key = (TinyFarmUiKey)((int)TinyFarmUiKey.Number1 + index);
-                return true;
-            }
-        }
-        key = default;
-        return false;
-    }
-
-    private HotbarSlotId? HitTestHotbar(Point point)
-    {
-        Rectangle[] rectangles = HotbarRectangles();
-        for (int index = 0; index < rectangles.Length; index++)
-        {
-            if (rectangles[index].Contains(point))
-            {
-                return new HotbarSlotId(index + 1);
-            }
-        }
-        return null;
-    }
-
-    private Rectangle[] HotbarRectangles()
-    {
-        return TinyFarmPlayerUiLayoutEngine.Compute(
-                GraphicsDevice.Viewport.Width,
-                GraphicsDevice.Viewport.Height,
-                0)
-            .HotbarSlots
-            .Select(ToRectangle)
-            .ToArray();
-    }
-
-    private Rectangle InventoryToggleRectangle()
-    {
-        int width = GraphicsDevice.Viewport.Width;
-        int height = GraphicsDevice.Viewport.Height;
-        int hudHeight = Math.Clamp(height / 12, 76, 112);
-        return new Rectangle(width - 158, height - hudHeight + 8, 140, 32);
-    }
-
-    private static Rectangle ToRectangle(TinyFarmUiRectangle rectangle)
-    {
-        return new Rectangle(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height);
     }
 
     private void ApplyControl(TinyFarmControl control)
@@ -694,5 +690,11 @@ internal sealed class TinyFarmGame : Game
     {
         string? value = ReadOption(args, option);
         return int.TryParse(value, out int parsed) && parsed >= 640 ? parsed : fallback;
+    }
+
+    private static int ReadPositiveIntOption(string[] args, string option)
+    {
+        string? value = ReadOption(args, option);
+        return int.TryParse(value, out int parsed) && parsed > 0 ? parsed : 0;
     }
 }

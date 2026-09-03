@@ -1,0 +1,10 @@
+{
+  "pointerOrder": "capture-owner-then-top-down",
+  "keyboardOrder": "focused-layer-then-top-down",
+  "transparentFallthrough": true,
+  "inventoryOpaque": true,
+  "widgetHitTestOwner": "Machina.UI",
+  "layerFocusOwner": "Aurelian.Composition",
+  "captureScope": "layer",
+  "coordinateTransform": "(hostPoint - viewportOrigin) / surfaceScale"
+}

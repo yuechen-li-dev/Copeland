@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Aurelian.Composition</AssemblyName>
+    <RootNamespace>Aurelian.Composition</RootNamespace>
+  </PropertyGroup>
+</Project>

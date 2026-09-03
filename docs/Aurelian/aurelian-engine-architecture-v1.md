@@ -301,3 +301,7 @@ The current architecture is coherent (Outcome A), but formal role exceeds extrac
 It should prove surface/viewport translation, fill/stroke/text/clip rendering, ordered input normalization, focus suppression, world/UI z-order, and semantic action return. It must not introduce gameplay, MVVM state, a generic game framework, or new assemblies beyond a demonstrated dependency need.
 
 Other limitations remain deferred: cross-application scene/host/persistence extraction, Aurelian-native TinyFarm rendering, Stride bridge, Avalonia compositor proof, and generalized hostile behavior.
+
+## 23. AURELIAN-COMPOSITOR-M0 update
+
+The former next step is now qualified. `Aurelian.Composition` owns renderer-neutral runtime layers, explicit ordering, surface/viewport/scale, lifecycle, focus/capture, top-down input routing, and typed DTO transport. It is dependency-free and distinct from the existing GPU plant-output compositor. TinyFarm qualifies the direct-host path with MonoGame world at z 0 and a Machina UI overlay at z 100. Application simulation remains independent of presentation update, and Core/Runtime remain compositor-free. See `docs/Aurelian/aurelian-renderer-neutral-layer-compositor.md`.
