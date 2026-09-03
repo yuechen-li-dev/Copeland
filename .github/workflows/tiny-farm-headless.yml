@@ -571,6 +571,56 @@ jobs:
             throw "TinyFarm M20 evidence exceeded the compact five-file artifact budget."
           }
 
+          $m21Directory = Join-Path $env:RUNNER_TEMP "tiny-farm-m21"
+          dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --m21 --artifact-dir $m21Directory
+          if ($LASTEXITCODE -ne 0) {
+            throw "TinyFarm M21 dungeon combat proof failed."
+          }
+
+          $m21Proof = Get-Content -Raw -LiteralPath (Join-Path $m21Directory "proof.json") | ConvertFrom-Json
+          $m21Manifest = Get-Content -Raw -LiteralPath (Join-Path $m21Directory "manifest.json") | ConvertFrom-Json
+          if ($m21Proof.outcome -ne "A" -or
+              -not $m21Proof.saveLoadExact -or
+              -not $m21Proof.replayExact -or
+              -not $m21Proof.repeatExact -or
+              -not $m21Proof.useSelectedParity -or
+              -not $m21Manifest.dungeonSceneAdded -or
+              $m21Manifest.enemyCount -ne 1 -or
+              -not $m21Manifest.attackUsesResolver -or
+              -not $m21Manifest.useSelectedLowersToAttack -or
+              -not $m21Manifest.enemyHealthAdded -or
+              -not $m21Manifest.enemyDefeatAdded -or
+              $m21Manifest.friendlyAttackAllowed -or
+              $m21Manifest.playerHealthAdded -or
+              $m21Manifest.enemyAiAdded -or
+              $m21Manifest.enemyAttackAdded -or
+              $m21Manifest.cooldownAdded -or
+              $m21Manifest.lootAdded -or
+              $m21Manifest.xpAdded -or
+              $m21Manifest.genericCombatFrameworkAdded) {
+            throw "TinyFarm M21 resolver and scope laws changed."
+          }
+
+          $controlOutput = @("inspect", "use-selected", "select sword", "use-selected", "attack", "inspect", "quit") |
+            dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --m21-control |
+            Out-String
+          if ($LASTEXITCODE -ne 0 -or
+              $controlOutput -notmatch 'WrongWeapon' -or
+              $controlOutput -notmatch 'EnemyDefeated' -or
+              $controlOutput -notmatch 'AlreadyDefeated' -or
+              $controlOutput -notmatch 'dungeon.slime-1' -or
+              $controlOutput -notmatch 'Defeated') {
+            throw "TinyFarm M21 CLI selected-Sword/attack/defeat smoke test failed."
+          }
+
+          $expectedFiles = @("combat.json", "dungeon.json", "manifest.json", "parity.json", "proof.json")
+          $artifactFiles = @(Get-ChildItem -LiteralPath $m21Directory -File | Sort-Object Name)
+          if ($artifactFiles.Count -ne 5 -or
+              (Compare-Object $expectedFiles $artifactFiles.Name) -or
+              ($artifactFiles | Where-Object Length -gt 262144)) {
+            throw "TinyFarm M21 evidence exceeded the compact five-file artifact budget."
+          }
+
       - name: Enforce repository artifact budget
         shell: pwsh
         run: ./tools/Test-ArtifactBudget.ps1 -Paths @()

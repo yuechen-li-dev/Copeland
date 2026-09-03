@@ -101,6 +101,7 @@ public sealed class TinyFarmResolver
             GatherIntent gather => ResolveGather(state, actor, envelope, gather),
             CookIntent cook => ResolveCook(state, actor, envelope, cook),
             ChopIntent chop => ResolveChop(state, actor, envelope, chop),
+            AttackIntent attack => ResolveAttack(state, actor, envelope, attack),
             SelectHotbarSlotIntent select => ResolveSelectHotbarSlot(state, actor, envelope, select),
             UseSelectedIntent => ResolveUseSelected(state, actor, envelope),
             WaitIntent wait => ResolveWait(state, actor, envelope, wait),
@@ -151,11 +152,6 @@ public sealed class TinyFarmResolver
             {
                 return Rejected(envelope, IntentReason.SelectedBindingUnavailable);
             }
-            if (itemBinding.Item != TinyFarmIds.Axe)
-            {
-                return Rejected(envelope, IntentReason.UnsupportedSelectedUse);
-            }
-
             InteractionTarget? itemTarget = TinyFarmSpatialQueries.SelectInteractionTarget(
                 state,
                 actor.Id,
@@ -164,11 +160,25 @@ public sealed class TinyFarmResolver
             {
                 return Rejected(envelope, IntentReason.NoInteractionTarget);
             }
-            if (itemTarget.Tree is not TreeId tree)
+            if (itemBinding.Item == TinyFarmIds.Axe)
             {
-                return Rejected(envelope, IntentReason.WrongTargetKind);
+                if (itemTarget.Tree is not TreeId tree)
+                {
+                    return Rejected(
+                        envelope,
+                        itemTarget.Enemy is not null ? IntentReason.WrongWeapon : IntentReason.WrongTargetKind);
+                }
+                return ResolveChop(state, actor, envelope, new ChopIntent(tree));
             }
-            return ResolveChop(state, actor, envelope, new ChopIntent(tree));
+            if (itemBinding.Item == TinyFarmIds.Sword)
+            {
+                if (itemTarget.Enemy is not EnemyId enemy)
+                {
+                    return Rejected(envelope, IntentReason.WrongTargetKind);
+                }
+                return ResolveAttack(state, actor, envelope, new AttackIntent(enemy));
+            }
+            return Rejected(envelope, IntentReason.UnsupportedSelectedUse);
         }
 
         if (slot.Binding is not ProductHotbarBinding product)
@@ -197,7 +207,7 @@ public sealed class TinyFarmResolver
 
         if (target.Plot is not FarmPlotId plot)
         {
-            if (target.Tree is not null)
+            if (target.Tree is not null || target.Enemy is not null)
             {
                 return Rejected(envelope, IntentReason.WrongTool);
             }
@@ -1009,6 +1019,68 @@ public sealed class TinyFarmResolver
                 Scene: definition.Scene,
                 SceneObject: objectId,
                 Tree: definition.Id));
+    }
+
+    private IntentResult ResolveAttack(
+        TinyFarmState state,
+        ActorState actor,
+        IntentEnvelope envelope,
+        AttackIntent intent)
+    {
+        EnemyDefinition? definition = definitions?.Enemies.SingleOrDefault(enemy => enemy.Id == intent.Enemy);
+        EnemyState? enemy = state.Enemies.SingleOrDefault(candidate => candidate.Id == intent.Enemy);
+        if (definition is null || enemy is null)
+        {
+            return Rejected(envelope, IntentReason.UnknownEnemy);
+        }
+        if (!actor.IsPlayer)
+        {
+            return Rejected(envelope, IntentReason.WrongTargetKind);
+        }
+        if (!OwnsItem(state, actor, TinyFarmIds.Sword))
+        {
+            return Rejected(envelope, IntentReason.MissingSword);
+        }
+
+        ActorSceneState placement = state.ActorScene(actor.Id);
+        if (placement.Scene != definition.Scene)
+        {
+            return Rejected(envelope, IntentReason.EnemyWrongScene);
+        }
+        if (enemy.Lifecycle == EnemyLifecycle.Defeated)
+        {
+            return Rejected(envelope, IntentReason.AlreadyDefeated);
+        }
+
+        SceneObjectId objectId = new(definition.Id.Value);
+        InteractionTarget? target = TinyFarmSpatialQueries.SelectObjectTarget(
+            state,
+            actor.Id,
+            objectId,
+            Scenes);
+        if (target?.Enemy != definition.Id)
+        {
+            return Rejected(envelope, IntentReason.EnemyOutOfRange);
+        }
+
+        const int swordDamage = 1;
+        int remainingHealth = Math.Max(0, enemy.CurrentHealth - swordDamage);
+        int enemyIndex = state.MutableEnemies.FindIndex(candidate => candidate.Id == enemy.Id);
+        state.MutableEnemies[enemyIndex] = enemy with { CurrentHealth = remainingHealth };
+        if (remainingHealth > 0)
+        {
+            return Accepted(envelope);
+        }
+        return Accepted(
+            envelope,
+            new GameEvent(
+                GameEventKind.EnemyDefeated,
+                actor.Id,
+                Amount: swordDamage,
+                Scene: definition.Scene,
+                SceneObject: objectId,
+                Enemy: definition.Id,
+                EnemyKind: definition.Kind));
     }
 
     private static IntentResult ResolveBuy(

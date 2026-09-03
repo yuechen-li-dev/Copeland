@@ -1,0 +1,10 @@
+{
+  "useSelectedParity": true,
+  "replayExact": true,
+  "repeatExact": true,
+  "peacefulIsolationHash": "b66cb8ee8e93ce7ca3d120cf767a6a8f0deabf052ed1d95ed597c05556202b9c",
+  "composedGameplayHash": "70403f3659fbe3d14b2c0ccc22a01eefecffd0d9cb6e4bee4b2909f44ae7bdfc",
+  "human": "2f01fd1a756c1e5dd4e787bd92c61fa48d27e277199dac60451160474aae053d",
+  "direct": "2f01fd1a756c1e5dd4e787bd92c61fa48d27e277199dac60451160474aae053d",
+  "replay": "2f01fd1a756c1e5dd4e787bd92c61fa48d27e277199dac60451160474aae053d"
+}

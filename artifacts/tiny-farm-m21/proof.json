@@ -1,0 +1,23 @@
+{
+  "milestone": "TINY-FARM-M21",
+  "outcome": "A",
+  "saveLoadExact": true,
+  "replayExact": true,
+  "repeatExact": true,
+  "useSelectedParity": true,
+  "hashes": {
+    "state": "2f01fd1a756c1e5dd4e787bd92c61fa48d27e277199dac60451160474aae053d",
+    "results": "a7dd2c173e930130195ec89756d7891cf94fd846b9d6adc8682d5e32f8e502ce",
+    "events": "131cba9b36b9f19bf84e1a7bad4419ea4f8c36d5d62f603fbbe13cdcbe659910",
+    "enemy": "e01d4786d39bb6487c7bb6d250c1b2b798c3031ca49ec44d8e9c151d4772ef03",
+    "combat": "78d9473e5f95aa01450af36a6de25e94a5720d8fca4c3c1528995caeff6e45bc",
+    "hotbar": "2aeadfb12ec01c8af93c12aeb44cb7adcf634a201c6c82814fe78220e4ad5416",
+    "attackParity": "4f1b1bf3e8dc5078e35379c5cf5e7602655c5a8f94a60e83e70801b62a5e4dd8",
+    "sceneDefinitions": "0ff7a5bc6382a6a5f1e97c8f18f431529ccd48f3875c52fc18a793d2f4dbef7f",
+    "routes": "e442f615dbcdbc0a8a2e9de1518b3f9bb885da6b15037fbcb38eeb7fcc57f236",
+    "projection": "b48a48149f3be7eeedd0d9640f230e4df9d9ec2593b6560a3ddc2d4556285c44",
+    "dto": "2ed468dc1f5eaab39923dc1fd40473a23c2f65424b9314d455d12614d291134c",
+    "replay": "2f01fd1a756c1e5dd4e787bd92c61fa48d27e277199dac60451160474aae053d",
+    "peacefulIsolation": "b66cb8ee8e93ce7ca3d120cf767a6a8f0deabf052ed1d95ed597c05556202b9c"
+  }
+}

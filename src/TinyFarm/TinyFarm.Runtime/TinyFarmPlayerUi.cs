@@ -139,6 +139,14 @@ public static class TinyFarmPlayerUiProjector
                 ? "Chop Tree [Use]"
                 : "Requires Axe";
         }
+        if (target?.Enemy is EnemyId enemy)
+        {
+            EnemyDefinition definition = definitions.Enemy(enemy);
+            return selected.SemanticId == TinyFarmIds.Sword.Value
+                && selected.VisualState == TinyFarmHotbarSlotVisualState.Available
+                ? $"Attack {definition.Kind} [Use]"
+                : "Requires Sword";
+        }
         if (target?.Kind == InteractionTargetKind.CookingStation)
         {
             CookingRecipeDefinition? recipe = definitions.CookingRecipes.SingleOrDefault();
@@ -178,7 +186,9 @@ public static class TinyFarmPlayerUiProjector
         HotbarSlotId selectedSlot)
     {
         if (slot.Binding is null
-            || slot.Binding is ItemHotbarBinding && state.Version < TinyFarmState.WoodcuttingSaveVersion)
+            || slot.Binding is ItemHotbarBinding versionedItem
+                && (versionedItem.Item == TinyFarmIds.Axe && state.Version < TinyFarmState.WoodcuttingSaveVersion
+                    || versionedItem.Item == TinyFarmIds.Sword && state.Version < TinyFarmState.DungeonCombatSaveVersion))
         {
             return new TinyFarmHotbarSlotView(
                 slot.Id,

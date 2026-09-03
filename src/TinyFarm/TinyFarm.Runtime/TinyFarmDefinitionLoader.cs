@@ -278,6 +278,258 @@ public static class TinyFarmDefinitionLoader
             trees);
     }
 
+    public static TinyFarmDefinitions LoadM21(string? path = null)
+    {
+        string contentRoot = Path.GetDirectoryName(DefaultPath)!;
+        string m21Directory = Path.Combine(contentRoot, "M21");
+        TinyFarmDefinitions baseline = LoadM20(path);
+        (TinyFarmSceneCatalog dungeonScenes, string sceneIdentity) = AddM21SceneContent(
+            baseline.Scenes,
+            m21Directory);
+
+        string enemyPath = Path.Combine(m21Directory, "tiny-farm-enemies.obj.ts");
+        string enemySource = File.ReadAllText(enemyPath);
+        TsonTable table = ReadTable(
+            enemySource,
+            enemyPath,
+            "Enemies",
+            [
+                ("id", TsonTypeKind.String),
+                ("kind", TsonTypeKind.String),
+                ("sceneId", TsonTypeKind.String),
+                ("x", TsonTypeKind.Number),
+                ("y", TsonTypeKind.Number),
+                ("maxHealth", TsonTypeKind.Number)
+            ]);
+        var enemies = new List<EnemyDefinition>();
+        for (int row = 0; row < table.RowCount; row++)
+        {
+            var enemyId = new EnemyId(Text(table, "id", row));
+            if (!Enum.TryParse(Text(table, "kind", row), out EnemyKind kind))
+            {
+                throw new InvalidDataException($"Enemy '{enemyId}' has an unknown kind.");
+            }
+            enemies.Add(new EnemyDefinition(
+                enemyId,
+                kind,
+                new SceneId(Text(table, "sceneId", row)),
+                ScenePosition.FromGrid(new GridPosition(
+                    Integer(table, "x", row),
+                    Integer(table, "y", row))),
+                Integer(table, "maxHealth", row)));
+        }
+
+        TinyFarmSceneCatalog scenes = AddEnemies(dungeonScenes, enemies);
+        string identity = string.Join(
+            ';',
+            baseline.Identity,
+            sceneIdentity,
+            "m21-enemies:" + Hash(Encoding.UTF8.GetBytes(enemySource)));
+        return new TinyFarmDefinitions(
+            identity,
+            baseline.Items,
+            baseline.Crops,
+            scenes,
+            baseline.SceneContent,
+            baseline.Schedules,
+            baseline.ScheduleContent,
+            baseline.ForageNodes,
+            baseline.CookingRecipes,
+            baseline.Trees,
+            enemies);
+    }
+
+    private static (TinyFarmSceneCatalog Scenes, string Identity) AddM21SceneContent(
+        TinyFarmSceneCatalog baseline,
+        string directory)
+    {
+        string scenesPath = Path.Combine(directory, "tiny-farm-scenes.obj.ts");
+        string objectsPath = Path.Combine(directory, "tiny-farm-scene-objects.obj.ts");
+        string layoutPath = Path.Combine(directory, "tiny-farm-scene-layout.obj.ts");
+        string anchorsPath = Path.Combine(directory, "tiny-farm-scene-anchors.obj.ts");
+        string routesPath = Path.Combine(directory, "tiny-farm-scene-routes.obj.ts");
+        string scenesSource = File.ReadAllText(scenesPath);
+        string objectsSource = File.ReadAllText(objectsPath);
+        string layoutSource = File.ReadAllText(layoutPath);
+        string anchorsSource = File.ReadAllText(anchorsPath);
+        string routesSource = File.ReadAllText(routesPath);
+
+        TsonTable scenesTable = ReadTable(scenesSource, scenesPath, "Scenes",
+        [
+            ("id", TsonTypeKind.String),
+            ("label", TsonTypeKind.String),
+            ("width", TsonTypeKind.Number),
+            ("height", TsonTypeKind.Number)
+        ]);
+        TsonTable objectsTable = ReadTable(objectsSource, objectsPath, "SceneObjects",
+        [
+            ("sceneId", TsonTypeKind.String),
+            ("objectId", TsonTypeKind.String),
+            ("kind", TsonTypeKind.String),
+            ("label", TsonTypeKind.String),
+            ("blocksMovement", TsonTypeKind.Boolean),
+            ("semanticReference", TsonTypeKind.Enum)
+        ]);
+        TsonTable layoutTable = ReadTable(layoutSource, layoutPath, "SceneLayout",
+        [
+            ("sceneId", TsonTypeKind.String),
+            ("objectId", TsonTypeKind.String),
+            ("x", TsonTypeKind.Number),
+            ("y", TsonTypeKind.Number),
+            ("width", TsonTypeKind.Number),
+            ("height", TsonTypeKind.Number),
+            ("layer", TsonTypeKind.Number)
+        ]);
+        TsonTable anchorsTable = ReadTable(anchorsSource, anchorsPath, "SceneAnchors",
+        [
+            ("anchorId", TsonTypeKind.String),
+            ("sceneId", TsonTypeKind.String),
+            ("x", TsonTypeKind.Number),
+            ("y", TsonTypeKind.Number),
+            ("kind", TsonTypeKind.String),
+            ("semanticLocation", TsonTypeKind.Enum),
+            ("semanticObject", TsonTypeKind.Enum),
+            ("facing", TsonTypeKind.Enum),
+            ("arrivalRadiusUnits", TsonTypeKind.Number)
+        ]);
+        TsonTable routesTable = ReadTable(routesSource, routesPath, "SceneRoutes",
+        [
+            ("routeId", TsonTypeKind.String),
+            ("sourceScene", TsonTypeKind.String),
+            ("triggerObject", TsonTypeKind.String),
+            ("targetScene", TsonTypeKind.String),
+            ("targetAnchor", TsonTypeKind.String),
+            ("interactionLabel", TsonTypeKind.String)
+        ]);
+
+        var objects = new List<(SceneId Scene, SceneObjectDefinition Object)>();
+        for (int row = 0; row < objectsTable.RowCount; row++)
+        {
+            if (!Enum.TryParse(Text(objectsTable, "kind", row), out SceneObjectKind kind))
+            {
+                throw new InvalidDataException("M21 scene object has an unknown kind.");
+            }
+            objects.Add((
+                new SceneId(Text(objectsTable, "sceneId", row)),
+                new SceneObjectDefinition(
+                    new SceneObjectId(Text(objectsTable, "objectId", row)),
+                    kind,
+                    Text(objectsTable, "label", row),
+                    Boolean(objectsTable, "blocksMovement", row),
+                    OptionalText(objectsTable, "semanticReference", row))));
+        }
+        var layouts = new List<(SceneId Scene, SceneLayoutRow Layout)>();
+        for (int row = 0; row < layoutTable.RowCount; row++)
+        {
+            layouts.Add((
+                new SceneId(Text(layoutTable, "sceneId", row)),
+                new SceneLayoutRow(
+                    new SceneObjectId(Text(layoutTable, "objectId", row)),
+                    Integer(layoutTable, "x", row),
+                    Integer(layoutTable, "y", row),
+                    Integer(layoutTable, "width", row),
+                    Integer(layoutTable, "height", row),
+                    Integer(layoutTable, "layer", row))));
+        }
+        var anchors = new List<SceneAnchorDefinition>();
+        for (int row = 0; row < anchorsTable.RowCount; row++)
+        {
+            string? facingText = OptionalText(anchorsTable, "facing", row);
+            anchors.Add(new SceneAnchorDefinition(
+                new SceneAnchorId(Text(anchorsTable, "anchorId", row)),
+                new SceneId(Text(anchorsTable, "sceneId", row)),
+                ScenePosition.FromGrid(new GridPosition(
+                    Integer(anchorsTable, "x", row),
+                    Integer(anchorsTable, "y", row))),
+                Enum.Parse<SceneAnchorKind>(Text(anchorsTable, "kind", row)),
+                OptionalText(anchorsTable, "semanticLocation", row) is string location
+                    ? new LocationId(location)
+                    : null,
+                OptionalText(anchorsTable, "semanticObject", row) is string sceneObject
+                    ? new SceneObjectId(sceneObject)
+                    : null,
+                facingText is null ? null : Enum.Parse<ActorFacing>(facingText),
+                Integer(anchorsTable, "arrivalRadiusUnits", row)));
+        }
+        var routes = new List<SceneRoute>();
+        for (int row = 0; row < routesTable.RowCount; row++)
+        {
+            routes.Add(new SceneRoute(
+                new SceneRouteId(Text(routesTable, "routeId", row)),
+                new SceneId(Text(routesTable, "sourceScene", row)),
+                new SceneObjectId(Text(routesTable, "triggerObject", row)),
+                new SceneId(Text(routesTable, "targetScene", row)),
+                new SceneAnchorId(Text(routesTable, "targetAnchor", row)),
+                Text(routesTable, "interactionLabel", row)));
+        }
+
+        var addedScenes = new List<SceneDefinition>();
+        for (int row = 0; row < scenesTable.RowCount; row++)
+        {
+            SceneId id = new(Text(scenesTable, "id", row));
+            addedScenes.Add(new SceneDefinition(
+                id,
+                Text(scenesTable, "label", row),
+                Integer(scenesTable, "width", row),
+                Integer(scenesTable, "height", row),
+                objects.Where(item => item.Scene == id).Select(item => item.Object),
+                layouts.Where(item => item.Scene == id).Select(item => item.Layout),
+                anchors.Where(item => item.Scene == id),
+                routes.Where(item => item.SourceScene == id)));
+        }
+
+        SceneDefinition[] combined = baseline.All.Select(scene => new SceneDefinition(
+                scene.Id,
+                scene.Name,
+                scene.Width,
+                scene.Height,
+                scene.Objects.Concat(objects.Where(item => item.Scene == scene.Id).Select(item => item.Object)),
+                scene.Layout.Concat(layouts.Where(item => item.Scene == scene.Id).Select(item => item.Layout)),
+                scene.Anchors.Concat(anchors.Where(item => item.Scene == scene.Id)),
+                scene.Routes.Concat(routes.Where(item => item.SourceScene == scene.Id))))
+            .Concat(addedScenes.Where(scene => !baseline.All.Any(existing => existing.Id == scene.Id)))
+            .ToArray();
+        string combinedSource = scenesSource + objectsSource + layoutSource + anchorsSource + routesSource;
+        return (
+            new TinyFarmSceneCatalog(combined),
+            "m21-scenes:" + Hash(Encoding.UTF8.GetBytes(combinedSource)));
+    }
+
+    private static TinyFarmSceneCatalog AddEnemies(
+        TinyFarmSceneCatalog baseline,
+        IReadOnlyList<EnemyDefinition> enemies)
+    {
+        SceneDefinition[] scenes = baseline.All.Select(scene =>
+        {
+            EnemyDefinition[] additions = enemies.Where(enemy => enemy.Scene == scene.Id).ToArray();
+            return new SceneDefinition(
+                scene.Id,
+                scene.Name,
+                scene.Width,
+                scene.Height,
+                scene.Objects.Concat(additions.Select(enemy => new SceneObjectDefinition(
+                    new SceneObjectId(enemy.Id.Value),
+                    SceneObjectKind.Enemy,
+                    enemy.Kind.ToString(),
+                    BlocksMovement: false,
+                    SemanticReference: enemy.Kind.ToString()))),
+                scene.Layout.Concat(additions.Select(enemy => new SceneLayoutRow(
+                    new SceneObjectId(enemy.Id.Value),
+                    enemy.SpawnPosition.Tile.X,
+                    enemy.SpawnPosition.Tile.Y,
+                    1,
+                    1,
+                    1))),
+                scene.Anchors,
+                scene.Routes);
+        }).ToArray();
+        if (enemies.Any(enemy => !scenes.Any(scene => scene.Id == enemy.Scene)))
+        {
+            throw new InvalidDataException("TinyFarm enemy references an unknown scene.");
+        }
+        return new TinyFarmSceneCatalog(scenes);
+    }
+
     private static TinyFarmSceneCatalog AddTrees(
         TinyFarmSceneCatalog baseline,
         IReadOnlyList<TreeDefinition> trees,

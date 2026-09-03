@@ -98,6 +98,13 @@ public static class TinyFarmCommandParser
             return direction with { Distance = distance };
         }
 
+        if (verb == "approach"
+            && parts.Length == 2
+            && parts[1].Equals("slime", StringComparison.OrdinalIgnoreCase))
+        {
+            return new NavigateToAnchorIntent(TinyFarmAnchorIds.DungeonSlimeApproach);
+        }
+
         return verb switch
         {
             "look" when parts.Length == 1 => new LookIntent(),
@@ -117,6 +124,10 @@ public static class TinyFarmCommandParser
                 new CookingRecipeId(parts[1])),
             "chop" when parts.Length == 1 => new ChopIntent(TinyFarmIds.FarmTree),
             "chop" when parts.Length == 2 => new ChopIntent(new TreeId(parts[1])),
+            "attack" when parts.Length == 1 => new AttackIntent(TinyFarmIds.DungeonSlime),
+            "attack" when parts.Length == 2 => new AttackIntent(new EnemyId(parts[1])),
+            "select" when parts.Length == 2 && parts[1].Equals("sword", StringComparison.OrdinalIgnoreCase)
+                => new SelectHotbarSlotIntent(new HotbarSlotId(4)),
             "give" when parts.Length == 3 => new GiveIntent(new ItemId(parts[1]), new ActorId(parts[2])),
             "buy" when parts.Length == 2 => new BuyIntent(new ItemId(parts[1])),
             "sell" when parts.Length == 2 => new SellIntent(new ItemId(parts[1])),
@@ -128,7 +139,7 @@ public static class TinyFarmCommandParser
             "use-selected" when parts.Length == 1 => new UseSelectedIntent(),
             "wait" when parts.Length == 2 && int.TryParse(parts[1], out int minutes) => new WaitIntent(minutes),
             _ => throw new FormatException(
-                "Use: look, go [to] <semantic anchor>, move <left/right/up/down> [distance] [units], move <location>, interact/pickup/take, take <item>, gather <node>, cook [recipe], chop [tree], use-selected, talk/buy/sell, buy-product/sell-product <product>, plant <plot> <crop>, water/harvest <plot>, or wait <minutes>.")
+                "Use: look, go [to] <semantic anchor>, move <left/right/up/down> [distance] [units], move <location>, interact/pickup/take, take <item>, gather <node>, cook [recipe], chop [tree], attack [enemy], select sword, use-selected, talk/buy/sell, buy-product/sell-product <product>, plant <plot> <crop>, water/harvest <plot>, or wait <minutes>.")
         };
     }
 
@@ -158,6 +169,8 @@ public static class TinyFarmSemanticNavigation
             "home" or "farm-home" or "farmhouse" => TinyFarmAnchorIds.FarmHome,
             "town" or "town-square" => TinyFarmAnchorIds.TownSquare,
             "river" or "riverside" or "riverside-meeting-point" => TinyFarmAnchorIds.RiversideMeetingPoint,
+            "dungeon" or "old-burrow" => TinyFarmAnchorIds.DungeonEntrance,
+            "slime" => TinyFarmAnchorIds.DungeonSlimeApproach,
             _ => new SceneAnchorId(normalized)
         };
     }

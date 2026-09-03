@@ -9,7 +9,8 @@ public enum InteractionTargetKind
     GroundItem,
     ForageNode,
     CookingStation,
-    Tree
+    Tree,
+    Enemy
 }
 
 public sealed record InteractionTarget(
@@ -21,6 +22,7 @@ public sealed record InteractionTarget(
     ItemId? Item = null,
     ForageNodeId? ForageNode = null,
     TreeId? Tree = null,
+    EnemyId? Enemy = null,
     long SquaredDistance = 0);
 
 public static class TinyFarmSpatialQueries
@@ -65,6 +67,7 @@ public static class TinyFarmSpatialQueries
                 SceneObjectKind.Portal => InteractionTargetKind.Portal,
                 SceneObjectKind.Forage when IsAvailable(state, definition.Id) => InteractionTargetKind.ForageNode,
                 SceneObjectKind.Tree when IsTreeStanding(state, definition.Id) => InteractionTargetKind.Tree,
+                SceneObjectKind.Enemy when IsEnemyAlive(state, definition.Id) => InteractionTargetKind.Enemy,
                 SceneObjectKind.CookingStation => InteractionTargetKind.CookingStation,
                 _ => null
             };
@@ -93,6 +96,9 @@ public static class TinyFarmSpatialQueries
                         : null,
                     Tree: kind == InteractionTargetKind.Tree
                         ? new TreeId(definition.Id.Value)
+                        : null,
+                    Enemy: kind == InteractionTargetKind.Enemy
+                        ? new EnemyId(definition.Id.Value)
                         : null));
         }
 
@@ -175,6 +181,7 @@ public static class TinyFarmSpatialQueries
             SceneObjectKind.Portal => InteractionTargetKind.Portal,
             SceneObjectKind.Forage when IsAvailable(state, definition.Id) => InteractionTargetKind.ForageNode,
             SceneObjectKind.Tree when IsTreeStanding(state, definition.Id) => InteractionTargetKind.Tree,
+            SceneObjectKind.Enemy when IsEnemyAlive(state, definition.Id) => InteractionTargetKind.Enemy,
             SceneObjectKind.CookingStation => InteractionTargetKind.CookingStation,
             _ => null
         };
@@ -203,6 +210,9 @@ public static class TinyFarmSpatialQueries
                     : null,
                 Tree: kind == InteractionTargetKind.Tree
                     ? new TreeId(objectId.Value)
+                    : null,
+                Enemy: kind == InteractionTargetKind.Enemy
+                    ? new EnemyId(objectId.Value)
                     : null));
         return candidates.SingleOrDefault();
     }
@@ -241,14 +251,15 @@ public static class TinyFarmSpatialQueries
         return kind switch
         {
             InteractionTargetKind.Actor => 0,
-            InteractionTargetKind.Portal => 1,
-            InteractionTargetKind.GroundItem => 2,
-            InteractionTargetKind.ForageNode => 3,
-            InteractionTargetKind.Tree => 4,
-            InteractionTargetKind.Plot => 5,
-            InteractionTargetKind.CookingStation => 6,
-            InteractionTargetKind.Shop => 7,
-            _ => 7
+            InteractionTargetKind.Enemy => 1,
+            InteractionTargetKind.Portal => 2,
+            InteractionTargetKind.GroundItem => 3,
+            InteractionTargetKind.ForageNode => 4,
+            InteractionTargetKind.Tree => 5,
+            InteractionTargetKind.Plot => 6,
+            InteractionTargetKind.CookingStation => 7,
+            InteractionTargetKind.Shop => 8,
+            _ => 8
         };
     }
 
@@ -274,5 +285,17 @@ public static class TinyFarmSpatialQueries
         TreeId treeId = new(objectId.Value);
         return state.Trees.SingleOrDefault(tree => tree.Id == treeId)?.Availability
             == TreeAvailability.Standing;
+    }
+
+    private static bool IsEnemyAlive(TinyFarmState state, SceneObjectId objectId)
+    {
+        if (state.Version < TinyFarmState.DungeonCombatSaveVersion)
+        {
+            return false;
+        }
+
+        EnemyId enemyId = new(objectId.Value);
+        return state.Enemies.SingleOrDefault(enemy => enemy.Id == enemyId)?.Lifecycle
+            == EnemyLifecycle.Alive;
     }
 }

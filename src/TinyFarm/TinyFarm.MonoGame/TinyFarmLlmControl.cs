@@ -12,9 +12,9 @@ internal static class TinyFarmLlmControl
 
     public static void Run(string[] args)
     {
-        TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.LoadM20();
+        TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.LoadM21();
         var host = new TinyFarmSimulationHost(
-            new TinyFarmSession(TinyFarmM20ControlStates.Create(definitions), definitions),
+            new TinyFarmSession(TinyFarmM21ControlStates.Create(definitions), definitions),
             definitions);
         string savePath = ReadOption(args, "--save-file")
             ?? Path.Combine(Environment.CurrentDirectory, "tiny-farm.save");

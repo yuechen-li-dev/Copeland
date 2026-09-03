@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TinyFarm.Core;
 
 public abstract record GameIntent;
@@ -41,6 +43,8 @@ public sealed record GatherIntent(ForageNodeId Node) : GameIntent;
 public sealed record CookIntent(SceneObjectId Station, CookingRecipeId Recipe) : GameIntent;
 
 public sealed record ChopIntent(TreeId Tree) : GameIntent;
+
+public sealed record AttackIntent(EnemyId Enemy) : GameIntent;
 
 public sealed record SelectHotbarSlotIntent(HotbarSlotId Slot) : GameIntent;
 
@@ -115,7 +119,13 @@ public enum IntentReason
     TreeWrongScene,
     TreeOutOfRange,
     MissingAxe,
-    WrongTool
+    WrongTool,
+    UnknownEnemy,
+    EnemyWrongScene,
+    EnemyOutOfRange,
+    MissingSword,
+    WrongWeapon,
+    AlreadyDefeated
 }
 
 public enum GameEventKind
@@ -142,7 +152,8 @@ public enum GameEventKind
     HotbarSlotSelected,
     ForageGathered,
     RecipeCooked,
-    TreeChopped
+    TreeChopped,
+    EnemyDefeated
 }
 
 public enum DialogueTopic
@@ -177,7 +188,11 @@ public sealed record GameEvent(
     CookingRecipeId? Recipe = null,
     [property: System.Text.Json.Serialization.JsonIgnore(
         Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-    TreeId? Tree = null);
+    TreeId? Tree = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    EnemyId? Enemy = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    EnemyKind? EnemyKind = null);
 
 public sealed record IntentResult(IntentEnvelope Envelope, IntentResultStatus Status, IntentReason Reason, IReadOnlyList<GameEvent> Events);
 

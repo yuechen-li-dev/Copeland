@@ -103,6 +103,7 @@ public static class TinyFarmChunkedSaveCodec
     public const string ItemActionRuntimeVersion = "tiny-farm-m17@7";
     public const string ForageRuntimeVersion = "tiny-farm-m18@8";
     public const string WoodcuttingRuntimeVersion = "tiny-farm-m20@9";
+    public const string DungeonCombatRuntimeVersion = "tiny-farm-m21@10";
     public static readonly ChunkId WorldChunk = new("tinyfarm.world");
     public static readonly ChunkId RuntimeChunk = new("tinyfarm.runtime");
     public static readonly ChunkId AgentChunk = new("tinyfarm.agents");
@@ -188,7 +189,8 @@ public static class TinyFarmChunkedSaveCodec
             && state.Version != TinyFarmState.PlayerUiSaveVersion
             && state.Version != TinyFarmState.ItemActionSaveVersion
             && state.Version != TinyFarmState.ForageSaveVersion
-            && state.Version != TinyFarmState.WoodcuttingSaveVersion)
+            && state.Version != TinyFarmState.WoodcuttingSaveVersion
+            && state.Version != TinyFarmState.DungeonCombatSaveVersion)
         {
             throw new InvalidDataException($"Unsupported TinyFarm game save version {state.Version}.");
         }
@@ -203,6 +205,7 @@ public static class TinyFarmChunkedSaveCodec
             || state.FarmPlots.Select(plot => plot.Id).Distinct().Count() != state.FarmPlots.Count
             || state.ForageNodes.Select(node => node.Id).Distinct().Count() != state.ForageNodes.Count
             || state.Trees.Select(tree => tree.Id).Distinct().Count() != state.Trees.Count
+            || state.Enemies.Select(enemy => enemy.Id).Distinct().Count() != state.Enemies.Count
             || state.ShopStock.Select(stock => stock.Product).Distinct().Count() != state.ShopStock.Count
             || state.InventoryStacks.Select(stack => (stack.Actor, stack.Product)).Distinct().Count() != state.InventoryStacks.Count)
         {
@@ -325,6 +328,30 @@ public static class TinyFarmChunkedSaveCodec
             }
         }
 
+        if (state.Version >= TinyFarmState.DungeonCombatSaveVersion)
+        {
+            EnemyId[] savedEnemyIds = state.Enemies
+                .Select(enemy => enemy.Id)
+                .OrderBy(id => id.Value, StringComparer.Ordinal)
+                .ToArray();
+            EnemyId[] definitionEnemyIds = definitions.Enemies
+                .Select(enemy => enemy.Id)
+                .OrderBy(id => id.Value, StringComparer.Ordinal)
+                .ToArray();
+            if (!savedEnemyIds.SequenceEqual(definitionEnemyIds))
+            {
+                throw new InvalidDataException("TinyFarm enemy state must match authored enemy definitions exactly.");
+            }
+            foreach (EnemyState enemy in state.Enemies)
+            {
+                EnemyDefinition definition = definitions.Enemy(enemy.Id);
+                if (enemy.CurrentHealth < 0 || enemy.CurrentHealth > definition.MaxHealth)
+                {
+                    throw new InvalidDataException($"Enemy '{enemy.Id}' has invalid health.");
+                }
+            }
+        }
+
 
         if (state.Version >= TinyFarmState.SceneSaveVersion)
         {
@@ -385,6 +412,10 @@ public static class TinyFarmChunkedSaveCodec
 
     private static string RuntimeVersionFor(int gameVersion)
     {
+        if (gameVersion >= TinyFarmState.DungeonCombatSaveVersion)
+        {
+            return DungeonCombatRuntimeVersion;
+        }
         if (gameVersion >= TinyFarmState.WoodcuttingSaveVersion)
         {
             return WoodcuttingRuntimeVersion;

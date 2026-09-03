@@ -287,7 +287,8 @@ public sealed record TinyFarmSimulationSnapshot(
     string? InteractionTarget = null,
     IReadOnlyList<string>? Plots = null,
     IReadOnlyList<string>? ForageNodes = null,
-    IReadOnlyList<string>? Trees = null);
+    IReadOnlyList<string>? Trees = null,
+    IReadOnlyList<string>? Enemies = null);
 
 public static class TinyFarmSimulationSnapshotProjector
 {
@@ -363,8 +364,20 @@ public static class TinyFarmSimulationSnapshotProjector
                 })
                 .ToArray()
             : null;
+        IReadOnlyList<string>? enemies = state.Version >= TinyFarmState.DungeonCombatSaveVersion
+            ? definitions.Enemies
+                .OrderBy(enemy => enemy.Id.Value, StringComparer.Ordinal)
+                .Select(enemy =>
+                {
+                    EnemyState enemyState = state.Enemy(enemy.Id);
+                    return $"{enemy.Id.Value}:{enemy.Kind}:{enemy.Scene.Value}:{enemy.SpawnPosition.XUnits}:{enemy.SpawnPosition.YUnits}:{enemyState.CurrentHealth}:{enemy.MaxHealth}:{enemyState.Lifecycle}";
+                })
+                .ToArray()
+            : null;
         return new TinyFarmSimulationSnapshot(
-            trees is not null
+            enemies is not null
+                ? "tiny-farm-simulation@6"
+                : trees is not null
                 ? "tiny-farm-simulation@5"
                 : forageNodes is not null
                 ? "tiny-farm-simulation@4"
@@ -382,13 +395,16 @@ public static class TinyFarmSimulationSnapshotProjector
             target?.StableId,
             plots,
             forageNodes,
-            trees);
+            trees,
+            enemies);
     }
 
     public static string WriteCanonicalTson(TinyFarmSimulationSnapshot snapshot)
     {
         var text = new StringBuilder();
-        string schemaVersion = snapshot.Trees is not null
+        string schemaVersion = snapshot.Enemies is not null
+            ? "v6"
+            : snapshot.Trees is not null
             ? "v5"
             : snapshot.ForageNodes is not null
             ? "v4"
@@ -440,6 +456,10 @@ public static class TinyFarmSimulationSnapshotProjector
                     if (snapshot.Trees is not null)
                     {
                         text.AppendLine("    treeSummary: string[];");
+                        if (snapshot.Enemies is not null)
+                        {
+                            text.AppendLine("    enemySummary: string[];");
+                        }
                     }
                 }
             }
@@ -494,6 +514,10 @@ public static class TinyFarmSimulationSnapshotProjector
                     if (snapshot.Trees is not null)
                     {
                         AppendStringArray(text, "treeSummary", snapshot.Trees, 1);
+                        if (snapshot.Enemies is not null)
+                        {
+                            AppendStringArray(text, "enemySummary", snapshot.Enemies, 1);
+                        }
                     }
                 }
             }

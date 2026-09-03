@@ -73,7 +73,8 @@ public enum SceneAnchorKind
     Social,
     Rest,
     Wander,
-    Exit
+    Exit,
+    Encounter
 }
 
 public enum SceneObjectKind
@@ -87,7 +88,8 @@ public enum SceneObjectKind
     Bed,
     Forage,
     CookingStation,
-    Tree
+    Tree,
+    Enemy
 }
 
 public sealed record SceneObjectDefinition(
@@ -242,6 +244,7 @@ public static class TinyFarmSceneIds
     public static readonly SceneId GeneralStore = new("general-store");
     public static readonly SceneId Riverside = new("riverside");
     public static readonly SceneId Residence = new("residence");
+    public static readonly SceneId DungeonEntrance = new("dungeon-entrance");
 }
 
 public static class TinyFarmAnchorIds
@@ -256,6 +259,8 @@ public static class TinyFarmAnchorIds
     public static readonly SceneAnchorId SelaHomeBed = new("sela.home-bed");
     public static readonly SceneAnchorId FarmWanderA = new("farm.wander-a");
     public static readonly SceneAnchorId FarmWanderB = new("farm.wander-b");
+    public static readonly SceneAnchorId DungeonEntrance = new("dungeon-entrance.entry");
+    public static readonly SceneAnchorId DungeonSlimeApproach = new("dungeon-entrance.slime-approach");
 
     public static SceneAnchorId HomeBedFor(ActorId actor)
     {
@@ -388,7 +393,8 @@ public static class TinyFarmScenes
     {
         return SceneForLocation(location) == scene
             || scene == TinyFarmSceneIds.Residence && location == TinyFarmIds.Farmhouse
-            || scene == TinyFarmSceneIds.Overworld && location == TinyFarmIds.TownSquare;
+            || scene == TinyFarmSceneIds.Overworld && location == TinyFarmIds.TownSquare
+            || scene == TinyFarmSceneIds.DungeonEntrance && location == TinyFarmIds.TownSquare;
     }
 
     public static void Validate(IEnumerable<SceneDefinition> definitions)

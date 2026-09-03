@@ -1,0 +1,39 @@
+{
+  "weapon": "sword",
+  "target": "dungeon.slime-1",
+  "wrongWeapon": "WrongWeapon",
+  "firstAttack": "Accepted",
+  "secondAttack": "AlreadyDefeated",
+  "remainingHealth": 0,
+  "lifecycle": "Defeated",
+  "eventValue": {
+    "kind": "EnemyDefeated",
+    "actor": {
+      "value": "player"
+    },
+    "target": null,
+    "item": null,
+    "location": null,
+    "amount": 1,
+    "dialogue": null,
+    "favor": null,
+    "product": null,
+    "crop": null,
+    "plot": null,
+    "day": null,
+    "scene": {
+      "value": "dungeon-entrance"
+    },
+    "route": null,
+    "sceneObject": {
+      "value": "dungeon.slime-1"
+    },
+    "anchor": null,
+    "forageNode": null,
+    "recipe": null,
+    "enemy": {
+      "value": "dungeon.slime-1"
+    },
+    "enemyKind": "Slime"
+  }
+}

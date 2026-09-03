@@ -45,6 +45,16 @@ public sealed record TinyFarmPlotView(
 
 public sealed record TinyFarmInventoryView(string Id, string Name, int Count);
 
+public sealed record TinyFarmEnemyView(
+    EnemyId Id,
+    EnemyKind Kind,
+    SceneId Scene,
+    TinyFarmPoint Position,
+    int CurrentHealth,
+    int MaxHealth,
+    EnemyLifecycle Lifecycle,
+    bool IsInteractionTarget);
+
 public sealed record TinyFarmSceneObjectView(
     SceneObjectId Id,
     SceneObjectKind Kind,
@@ -84,7 +94,9 @@ public sealed record TinyFarmFrame(
     IReadOnlyList<TinyFarmSceneObjectView>? SceneObjects = null,
     IReadOnlyList<TinyFarmRouteView>? SceneRoutes = null,
     int SceneUnitsPerTile = 1,
-    string? InteractionTarget = null);
+    string? InteractionTarget = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<TinyFarmEnemyView>? Enemies = null);
 
 public static class TinyFarmFrameProjector
 {
@@ -225,6 +237,12 @@ public static class TinyFarmFrameProjector
             .Where(row =>
             {
                 SceneObjectDefinition sceneObject = scene.Object(row.ObjectId);
+                if (sceneObject.Kind == SceneObjectKind.Enemy)
+                {
+                    EnemyId enemyId = new(sceneObject.Id.Value);
+                    return state.Enemies.SingleOrDefault(enemy => enemy.Id == enemyId)?.Lifecycle
+                        == EnemyLifecycle.Alive;
+                }
                 if (sceneObject.Kind != SceneObjectKind.Forage)
                 {
                     return true;
@@ -280,6 +298,25 @@ public static class TinyFarmFrameProjector
                 route.InteractionLabel))
             .ToArray();
         TinyFarmInventoryView[] inventory = ProjectInventory(state, definitions, player);
+        TinyFarmEnemyView[]? enemies = state.Version >= TinyFarmState.DungeonCombatSaveVersion
+            ? definitions.Enemies
+                .Where(enemy => enemy.Scene == scene.Id)
+                .OrderBy(enemy => enemy.Id.Value, StringComparer.Ordinal)
+                .Select(enemy =>
+                {
+                    EnemyState enemyState = state.Enemy(enemy.Id);
+                    return new TinyFarmEnemyView(
+                        enemy.Id,
+                        enemy.Kind,
+                        enemy.Scene,
+                        new TinyFarmPoint(enemy.SpawnPosition.XUnits, enemy.SpawnPosition.YUnits),
+                        enemyState.CurrentHealth,
+                        enemy.MaxHealth,
+                        enemyState.Lifecycle,
+                        interactionTarget?.Enemy == enemy.Id);
+                })
+                .ToArray()
+            : null;
 
         return new TinyFarmFrame(
             state.Day,
@@ -301,7 +338,8 @@ public static class TinyFarmFrameProjector
             objects,
             routes,
             state.Version >= TinyFarmState.ContinuousSceneSaveVersion ? ScenePosition.UnitsPerTile : 1,
-            interactionTarget?.StableId);
+            interactionTarget?.StableId,
+            enemies);
     }
 
     public static string ComputeHash(TinyFarmFrame frame)
@@ -405,6 +443,15 @@ public static class TinyFarmFrameProjector
                         && state.Items.SingleOrDefault(item => item.Id == TinyFarmIds.Axe)?.Owner == player.Actor
                         && state.Actor(player.Actor).Inventory.Contains(TinyFarmIds.Axe);
                     hints.Add(axeSelected ? "Chop Tree [Use]" : "Requires Axe");
+                }
+                else if (target.Enemy is EnemyId enemy)
+                {
+                    bool swordSelected = state.SelectedHotbarSlot == 4
+                        && state.Items.SingleOrDefault(item => item.Id == TinyFarmIds.Sword)?.Owner == player.Actor
+                        && state.Actor(player.Actor).Inventory.Contains(TinyFarmIds.Sword);
+                    hints.Add(swordSelected
+                        ? $"Attack {definitions.Enemy(enemy).Kind} [Use]"
+                        : "Requires Sword");
                 }
                 else if (state.Version >= TinyFarmState.ItemActionSaveVersion
                     && target.Plot is FarmPlotId plotId

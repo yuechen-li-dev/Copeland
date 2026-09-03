@@ -1,0 +1,20 @@
+{
+  "milestone": "TINY-FARM-M21",
+  "kind": "first-dungeon-sword-slime-combat",
+  "dungeonSceneAdded": true,
+  "enemyCount": 1,
+  "weapon": "sword",
+  "enemy": "slime",
+  "attackUsesResolver": true,
+  "useSelectedLowersToAttack": true,
+  "enemyHealthAdded": true,
+  "enemyDefeatAdded": true,
+  "friendlyAttackAllowed": false,
+  "playerHealthAdded": false,
+  "enemyAiAdded": false,
+  "enemyAttackAdded": false,
+  "cooldownAdded": false,
+  "lootAdded": false,
+  "xpAdded": false,
+  "genericCombatFrameworkAdded": false
+}

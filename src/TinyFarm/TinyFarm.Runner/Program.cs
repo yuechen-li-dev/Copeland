@@ -1,6 +1,57 @@
 using TinyFarm.Core;
 using System.Diagnostics;
 
+if (args.Contains("--m21", StringComparer.Ordinal))
+{
+    string directory = Path.Combine(Environment.CurrentDirectory, "artifacts", "tiny-farm-m21");
+    int artifactIndex = Array.IndexOf(args, "--artifact-dir");
+    if (artifactIndex >= 0)
+    {
+        directory = RequiredOutputPath(args, artifactIndex, "--artifact-dir");
+    }
+    TinyFarmM21Scenario.WriteArtifacts(directory);
+    TinyFarmM21Evidence evidence = TinyFarmM21Scenario.Prove();
+    Console.WriteLine(TinyFarmM21Scenario.WriteJson(evidence.Proof));
+    return;
+}
+
+if (args.Contains("--m21-control", StringComparer.Ordinal))
+{
+    TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.LoadM21();
+    var host = new TinyFarmSimulationHost(
+        new TinyFarmSession(TinyFarmM21ControlStates.Create(definitions), definitions),
+        definitions,
+        TinyFarmSimulationMode.Playing);
+    Console.WriteLine("TinyFarm M21 control ready. Commands: inspect, select-slot <1-8>, select sword, use-selected, attack [enemy], quit.");
+    while (Console.ReadLine() is string command)
+    {
+        if (command.Equals("quit", StringComparison.OrdinalIgnoreCase))
+        {
+            break;
+        }
+
+        IReadOnlyList<IntentResult> results = [];
+        if (command.StartsWith("select-slot ", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(command["select-slot ".Length..], out int slot))
+        {
+            results = host.ExecuteIntent(new SelectHotbarSlotIntent(new HotbarSlotId(slot))).Results;
+        }
+        else if (!command.Equals("inspect", StringComparison.OrdinalIgnoreCase))
+        {
+            results = host.ExecuteIntent(TinyFarmCommandParser.Parse(command)).Results;
+        }
+        Console.WriteLine(TinyFarmM21Scenario.WriteJson(new
+        {
+            simulation = host.Snapshot(),
+            playerUi = TinyFarmPlayerUiProjector.Project(host.Session.State, definitions),
+            frame = TinyFarmFrameProjector.Project(host.Session.State, definitions),
+            enemies = host.Session.State.Enemies,
+            results
+        }));
+    }
+    return;
+}
+
 if (args.Contains("--m20", StringComparer.Ordinal))
 {
     string directory = Path.Combine(Environment.CurrentDirectory, "artifacts", "tiny-farm-m20");

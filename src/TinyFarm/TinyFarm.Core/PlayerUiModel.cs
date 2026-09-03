@@ -37,7 +37,7 @@ public static class TinyFarmHotbar
         new(new HotbarSlotId(1), new ProductHotbarBinding(TinyFarmIds.TurnipSeed)),
         new(new HotbarSlotId(2), new ProductHotbarBinding(TinyFarmIds.Turnip)),
         new(new HotbarSlotId(3), new ItemHotbarBinding(TinyFarmIds.Axe)),
-        new(new HotbarSlotId(4), null),
+        new(new HotbarSlotId(4), new ItemHotbarBinding(TinyFarmIds.Sword)),
         new(new HotbarSlotId(5), null),
         new(new HotbarSlotId(6), null),
         new(new HotbarSlotId(7), null),

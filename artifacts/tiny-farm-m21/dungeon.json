@@ -1,0 +1,130 @@
+{
+  "scene": "dungeon-entrance",
+  "displayName": "Old Burrow",
+  "dimensions": "16x12",
+  "enemyCount": 1,
+  "route": {
+    "enter": [
+      {
+        "kind": "SceneExited",
+        "actor": {
+          "value": "player"
+        },
+        "target": null,
+        "item": null,
+        "location": {
+          "value": "town-square"
+        },
+        "amount": 0,
+        "dialogue": null,
+        "favor": null,
+        "product": null,
+        "crop": null,
+        "plot": null,
+        "day": null,
+        "scene": {
+          "value": "overworld"
+        },
+        "route": {
+          "value": "overworld-dungeon"
+        },
+        "sceneObject": null,
+        "anchor": null,
+        "forageNode": null,
+        "recipe": null
+      },
+      {
+        "kind": "SceneEntered",
+        "actor": {
+          "value": "player"
+        },
+        "target": null,
+        "item": null,
+        "location": {
+          "value": "town-square"
+        },
+        "amount": 0,
+        "dialogue": null,
+        "favor": null,
+        "product": null,
+        "crop": null,
+        "plot": null,
+        "day": null,
+        "scene": {
+          "value": "dungeon-entrance"
+        },
+        "route": {
+          "value": "overworld-dungeon"
+        },
+        "sceneObject": null,
+        "anchor": null,
+        "forageNode": null,
+        "recipe": null
+      }
+    ],
+    "enteredScene": {
+      "value": "dungeon-entrance"
+    },
+    "leave": [
+      {
+        "kind": "SceneExited",
+        "actor": {
+          "value": "player"
+        },
+        "target": null,
+        "item": null,
+        "location": {
+          "value": "town-square"
+        },
+        "amount": 0,
+        "dialogue": null,
+        "favor": null,
+        "product": null,
+        "crop": null,
+        "plot": null,
+        "day": null,
+        "scene": {
+          "value": "dungeon-entrance"
+        },
+        "route": {
+          "value": "dungeon-overworld"
+        },
+        "sceneObject": null,
+        "anchor": null,
+        "forageNode": null,
+        "recipe": null
+      },
+      {
+        "kind": "SceneEntered",
+        "actor": {
+          "value": "player"
+        },
+        "target": null,
+        "item": null,
+        "location": {
+          "value": "town-square"
+        },
+        "amount": 0,
+        "dialogue": null,
+        "favor": null,
+        "product": null,
+        "crop": null,
+        "plot": null,
+        "day": null,
+        "scene": {
+          "value": "overworld"
+        },
+        "route": {
+          "value": "dungeon-overworld"
+        },
+        "sceneObject": null,
+        "anchor": null,
+        "forageNode": null,
+        "recipe": null
+      }
+    ],
+    "finalScene": {
+      "value": "overworld"
+    }
+  }
+}
