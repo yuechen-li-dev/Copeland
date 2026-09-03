@@ -1,0 +1,46 @@
+{
+  "schema": "aurelian.sdslv.audit.copeland-gap-map.v1",
+  "repository": "C:/Users/yuech/source/repos/Copeland",
+  "commit": "3c4df459aa8b9dde775bb5a9d802445b11ab6d17",
+  "parserReuse": "viable-with-small-metadata-extension",
+  "astCoverage": [
+    {"shape":"functions","coverage":"existing","action":"reuse"},
+    {"shape":"records/structural types","coverage":"existing","action":"reuse with GPU layout certification"},
+    {"shape":"interfaces/concepts","coverage":"existing","action":"reuse as erased capability constraints"},
+    {"shape":"generic types/functions","coverage":"existing","action":"reuse closed specialization"},
+    {"shape":"templates/static evaluation","coverage":"existing","action":"reuse one compile-time engine"},
+    {"shape":"reflect","coverage":"existing","action":"extend typed queries only when required"},
+    {"shape":"payload enums/match","coverage":"existing","action":"port tagged layout before runtime enablement"},
+    {"shape":"arrays/indexing/operators","coverage":"existing","action":"reuse syntax; add GPU typing"},
+    {"shape":"if/loops/break/continue/return","coverage":"existing","action":"reuse syntax; add GPU legality"},
+    {"shape":"imports/modules","coverage":"existing","action":"reuse graph; add transitive GPU certification"},
+    {"shape":"namespace declaration","coverage":"not-needed","action":"use module logical path"},
+    {"shape":"stage/resource/layout metadata","coverage":"missing","action":"add one small annotation syntax and AST shape"},
+    {"shape":"GPU primitives/resources","coverage":"semantic-gap","action":"compiler-known profile types/intrinsics; no parser fork"},
+    {"shape":"SDSL semantic IR","coverage":"missing","action":"port frontend-neutral structure/spec"},
+    {"shape":"GPU binder/profile","coverage":"missing","action":"new profile pass over ordinary AST"}
+  ],
+  "existingAurelianLane": {
+    "status":"independent-noncanonical-frontend-with-reusable-downstream-seams",
+    "doNotExtendAsLanguageAuthority":["Language/Lexing","Language/Parsing","Language/Ast","Language/Validation","heuristic SdslvStageExtraction"],
+    "reuseOrRetarget":["DXC subprocess wrapper","SPIR-V artifact validation/storage","compiled shader export","renderer-neutral graphics consumption"],
+    "knownDivergence":["deprecated interfaces/fallibility accepted as parse shapes","structural-only validation","heuristic VSMain/PSMain semantics","smoke-only VD-MIR","noncanonical diagnostics"]
+  },
+  "gpuLegality": [
+    {"construct":"value scalar/vector/fixed array","decision":"allow-when-canonical-type-ported"},
+    {"construct":"certified value record","decision":"allow"},
+    {"construct":"interface","decision":"compile-time-erased-only"},
+    {"construct":"generic","decision":"closed-specialized-only"},
+    {"construct":"template/static/reflect","decision":"compile-time-only"},
+    {"construct":"payload enum/Option","decision":"defer-until-tagged-layout"},
+    {"construct":"Result/fallibility/exceptions","decision":"reject"},
+    {"construct":"GC/class/heap/boxing/dynamic/virtual","decision":"reject"},
+    {"construct":"async/tasks/threads","decision":"reject"},
+    {"construct":"explicit immutable capture","decision":"static-specialization-only"},
+    {"construct":"heap closure/mutable capture","decision":"reject"},
+    {"construct":"recursion","decision":"reject-until-language-law-added"},
+    {"construct":"dynamic indexing","decision":"allow-only-per-canonical-type-resource-law"},
+    {"construct":"descriptor/texture arrays","decision":"reject-current-profile"},
+    {"construct":"runtime reflection/IO","decision":"reject"}
+  ]
+}

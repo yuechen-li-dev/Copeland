@@ -1,5 +1,12 @@
 # SDSL-V Compatibility Matrix
 
+> **Current authority update (2026-09-03):**
+> [AURELIAN-SDSLV-AUDIT-M0](../sdsl-v-cross-repo-audit.md) supersedes the
+> semantic-authority and independent-dialect assumptions in this historical
+> implementation inventory. Oct's SDSL-V specification and conformance corpus
+> define the shared language. The existing Aurelian frontend remains useful as
+> implementation evidence, but it is not the future language authority.
+
 ## 1. Purpose
 
 WyrmCoil SDSL-V remains the reference and semantic inspiration for Aurelian SDSL-V, especially for the Oct-shaped module/declaration/statement/expression/validation direction established during A2 through A10.

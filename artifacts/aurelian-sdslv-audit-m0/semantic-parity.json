@@ -1,0 +1,28 @@
+{
+  "schema": "aurelian.sdslv.audit.semantic-parity.v1",
+  "canonicalCorpus": "C:/Users/yuech/source/repos/oct/examples/SDSL-V/conformance/manifest.json",
+  "comparisonTiers": ["acceptance-rejection","semantic-manifest","diagnostic-code-span","structural-spirv","runtime-behavior","explicit-golden-bytes-only"],
+  "compatibilityLaw": ["types-and-spaces","stage-legality","resource-kind-access-binding","storage-and-mutation","layout","closed-specialization","intrinsic-meaning","entry-linkage","generated-target-meaning"],
+  "cases": [
+    {"id":"compute.no-regression","kind":"valid-compute","coverage":["compute","storage-buffer","binding","dispatch-thread-id","arithmetic"]},
+    {"id":"graphics.minimal-vertex","kind":"valid-vertex","coverage":["vertex","location","clip-position"]},
+    {"id":"graphics.minimal-pixel","kind":"valid-pixel","coverage":["pixel","target0"]},
+    {"id":"graphics.canonical-forward-textured","kind":"valid-pair","coverage":["linkage","texture","sampler","uniform-material","layout","builtins"]},
+    {"id":"invalid.duplicate-binding","kind":"invalid","canonicalCode":"SDSL-V4112","coverage":["resource","related-span"]},
+    {"id":"invalid-stage-builtin","kind":"invalid","canonicalCode":"SDSL-V4109","coverage":["stage"]},
+    {"id":"invalid-varying-mismatch","kind":"invalid","canonicalCode":"SDSL-V4111","coverage":["linkage","semantic-space"]},
+    {"id":"invalid-immutable-mutation","kind":"invalid","canonicalCode":"SDSL-V3701","coverage":["mutability","related-span"]},
+    {"id":"invalid-host-managed-semantics","kind":"copeland-profile-invalid","canonicalCategory":"gpu-host-boundary","coverage":["heap-or-exception-or-runtime-reflection"]}
+  ],
+  "layoutLaw": {
+    "material":"canonical HLSL-compatible 16-byte register packing",
+    "fixedShape":"compiler-owned extents with canonical row-major linearization where specified",
+    "notClaimed":["universal-std140","universal-std430","CLR-layout-equivalence"]
+  },
+  "hlslParity":"semantic-equivalence-required-byte-equivalence-not-required",
+  "prototype": {
+    "test":"tests/Copeland/Copeland.TS.Tests/GpuProfileParserReuseAuditTests.cs",
+    "proves":[".v.ts module classification","unchanged parser","imports","function","record","interface","generic constraint","payload enum","index assignment","control flow"],
+    "doesNotClaim":["GPU binder implemented","host constructs rejected","stage/resource semantics attached","backend parity"]
+  }
+}

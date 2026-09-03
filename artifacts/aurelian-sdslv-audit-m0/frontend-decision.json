@@ -1,0 +1,27 @@
+{
+  "schema": "aurelian.sdslv.audit.frontend-decision.v1",
+  "outcome": "B",
+  "oneLanguageDoctrine": "SDSL-V is defined by semantic behavior and target contracts, not by one frontend parser.",
+  "strategies": {
+    "dedicatedParser": {"decision":"reject","reason":"ordinary declaration/expression shapes are representable and a second parser would fork semantics"},
+    "vtsGpuProfile": {"decision":"select-as-convention","extensionDecision":"USEFUL BUT NOT REQUIRED","reason":"improves discovery/tooling/closure diagnostics while existing parser already treats .v.ts as a TS module"},
+    "ordinaryTsExplicitTarget": {"decision":"semantically-sufficient","reason":"resolved compiler profile is authoritative and can be selected before binding"}
+  },
+  "parser": {
+    "reuse":"yes",
+    "grammarFork":"no",
+    "requiredExtension": {
+      "kind":"structured annotation metadata",
+      "scope":["declaration","field","type-alias"],
+      "gpuClosedSet":["stage","numthreads","binding","builtin","location","target","interpolation","space"]
+    }
+  },
+  "semanticIr": {"octAssessment":"PORT STRUCTURE","transport":"deterministic JSON v1","directGoSourceReuse":false},
+  "ownership": {
+    "Oct":"spec, canonical conformance corpus, reference frontend/implementation",
+    "Copeland":"TypeScript-shaped parser, GPU profile binder, static closure, semantic IR projection",
+    "Aurelian.Shaders":"IR-to-HLSL, DXC, SPIR-V validation/reflection, artifact metadata",
+    "Aurelian.Graphics":"Vulkan shader-module and pipeline realization"
+  },
+  "nextMilestone":"AURELIAN-SDSLV-PORT-M1 canonical semantic-contract and Copeland GPU-binder compute slice"
+}

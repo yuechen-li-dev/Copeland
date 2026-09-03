@@ -4,6 +4,8 @@ Aurelian owns the engine lifecycle, world and game-object models, actuation, fra
 
 - [Current architecture](architecture/)
 - [Aurelian engine architecture v1](aurelian-engine-architecture-v1.md)
+- [Cross-repository SDSL-V semantic port audit](sdsl-v-cross-repo-audit.md)
+- [Copeland SDSL-V GPU profile](../Copeland/sdsl-v-gpu-profile.md)
 - [TinyFarm M1-M21 consolidation](games/tiny-farm-m1-m21-consolidation-report.md)
 - [Agent/body binding architecture](../architecture/AURELIAN_AGENT_BODY_BINDING.md)
 - [Legacy Skyrim agent import](../architecture/AURELIAN_LEGACY_AGENT_IMPORT.md)

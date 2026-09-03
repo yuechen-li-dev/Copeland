@@ -1,0 +1,60 @@
+{
+  "schema": "aurelian.sdslv.audit.oct-feature-map.v1",
+  "repository": "C:/Users/yuech/source/repos/oct",
+  "commit": "584bd176fd50664edadcb2bc3ae78431ac0f1e51",
+  "languageAuthority": [
+    "docs/SDSL_V_LANGUAGE_SPEC.md",
+    "examples/SDSL-V/conformance/manifest.json"
+  ],
+  "referenceImplementation": {
+    "pipeline": ["lex", "parse", "validate", "lower-to-vdmir", "emit-hlsl", "dxc-spirv", "spirv-val", "structural-facts"],
+    "paths": {
+      "lexer": "internal/sdslv/lex",
+      "parserAst": ["internal/sdslv/parse", "internal/sdslv/ast"],
+      "semantics": "internal/sdslv/validate",
+      "ir": ["internal/sdslv/lower", "internal/sdslv/vdmir"],
+      "backend": ["internal/sdslv/emit/hlsl", "internal/sdslv/toolchain"],
+      "tests": ["internal/sdslv/test", "examples/SDSL-V/conformance"]
+    }
+  },
+  "features": [
+    {"id":"types.scalars","status":"canonical","law":"bool/i32/u32/f16/f32 plus accepted aliases; strings are host/static only"},
+    {"id":"types.vector-matrix","status":"canonical","law":"closed vector/matrix families with typed constructors, components and operators"},
+    {"id":"types.fixed-shape","status":"canonical","law":"fixed arrays, ndarray, tensor, tile/reg-tile and matrix views have static shape/layout"},
+    {"id":"types.records","status":"canonical","law":"nominal immutable aggregate values; with returns an updated value"},
+    {"id":"types.payload-enums","status":"canonical","law":"tagged values and exhaustive match"},
+    {"id":"types.semantic-space","status":"canonical","law":"nominal dotted identity on float vectors, physically erased, no implicit conversion"},
+    {"id":"binding.mutability","status":"canonical","law":"initialized immutable let and initialized mutable var; access-checked mutation"},
+    {"id":"functions","status":"canonical","law":"statically resolved typed helpers and entries"},
+    {"id":"control","status":"canonical","law":"if, switch, exhaustive match, bounded loops, return and bounded flow state"},
+    {"id":"recursion","status":"unspecified","law":"no explicit canonical function-recursion rule or conformance case found"},
+    {"id":"static.concepts","status":"canonical","law":"closed required facts; no runtime interface dispatch"},
+    {"id":"static.templates","status":"canonical","law":"config/template/compile materialization emits only concrete entries"},
+    {"id":"static.comptime","status":"canonical","law":"bounded immutable planning; no arbitrary IO, mutable global state or runtime reflection"},
+    {"id":"entries.stages","status":"canonical","law":"exactly compute, vertex and pixel"},
+    {"id":"entries.compute","status":"canonical","law":"numthreads and typed dispatch/group builtins"},
+    {"id":"entries.vertex","status":"canonical","law":"explicit inputs/builtins and exactly one clip-position float4 output"},
+    {"id":"entries.pixel","status":"canonical","law":"typed inputs/builtins and unique target outputs; depth output unsupported"},
+    {"id":"streams","status":"canonical","law":"each typed boundary has exactly one stage-value/resource/builtin role"},
+    {"id":"resources.storage-buffer","status":"canonical","law":"readonly/readwrite typed runtime arrays with explicit binding"},
+    {"id":"resources.uniform","status":"canonical","law":"immutable uniform value with explicit binding"},
+    {"id":"resources.texture-sampler","status":"canonical","law":"texture2d and sampler; Sample(texture,sampler,float2); arrays/comparison/storage textures unsupported"},
+    {"id":"resources.acceleration-structure","status":"capability-island","law":"typed acceleration structure and ray-query requirement in current implementation"},
+    {"id":"storage.workgroup","status":"canonical","law":"workgroup memory and closed barrier intrinsics"},
+    {"id":"bindings","status":"canonical","law":"explicit binding index, current bounded graphics descriptor set zero, source order preserved"},
+    {"id":"layout.material","status":"canonical","law":"HLSL-compatible 16-byte register packing with explicit offsets/sizes/alignments"},
+    {"id":"layout.ndarray","status":"canonical","law":"compiler-owned fixed extents and row-major linearization where specified"},
+    {"id":"intrinsics","status":"canonical-closed","law":"typed compiler-known intrinsic enum; includes math, sampling, barriers and bounded capability operations"},
+    {"id":"diagnostics","status":"canonical","law":"stable SDSL-V codes with exact primary and optional related spans"},
+    {"id":"artifacts","status":"canonical","law":"semantic manifests and normalized structural SPIR-V facts are portable; universal byte identity is not"},
+    {"id":"target","status":"canonical-current","law":"HLSL to DXC profiles cs/vs/ps, Vulkan target contract, SPIR-V validation"},
+    {"id":"host-device-boundary","status":"canonical","law":"typed layout/binding metadata crosses boundary; host execution mode does not alter shader meaning"},
+    {"id":"unsupported.managed-runtime","status":"canonical","law":"no allocation, open object graphs, runtime reflection, exceptions/fallibility or dynamic dispatch"}
+  ],
+  "syntaxClassification": {
+    "essentialSemanticFeature": ["typed metadata", "static shapes", "resource access/bindings", "stage law", "semantic spaces", "closed static specialization", "typed control/intrinsics"],
+    "octSyntaxAccident": ["fn spelling", "namespace/use spelling", "Go AST organization", "shader-block punctuation", "concept/config/template surface spelling"],
+    "backendConstraint": ["HLSL spelling", "SV semantics", "DXC flags/profiles", "SPIR-V target encoding"],
+    "convenienceOnly": ["shader grouping syntax", "material sugar", "space-group sugar"]
+  }
+}

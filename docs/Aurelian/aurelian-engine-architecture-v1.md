@@ -311,3 +311,20 @@ The former next step is now qualified. `Aurelian.Composition` owns renderer-neut
 The compositor architecture remains unchanged. Stable TinyFarm/Machina topology is now cached in the UI adapter, not in `Aurelian.Composition`: identical projections reuse the full prepared frame, value changes patch existing renderer-neutral slots, surface changes rebuild layout/hit geometry, and ordered inventory identity changes rebuild topology. Diagnostics count topology, layout, presentation, hit-test, and dynamic-update work without becoming gameplay state.
 
 The result is Outcome A: the exact M0 repeated-snapshot workload falls from 194,387 B and 294.57 microseconds to 0 B and 0.06 microseconds after the cold frame; a real value-changing workload measures 14,712 B and 18.13 microseconds. TinyFarm Core/Runtime dependencies and the generic compositor contract remain unchanged. The next qualified infrastructure question is a separate `AURELIAN-NATIVE-VULKAN-BACKEND-M0` audit/vertical slice covering native sprite/quad, glyph, surface, viewport, resource, batching, composition adapter, SDSL-V upload, and synchronization ownership.
+
+## 25. SDSL-V cross-repository ownership update
+
+The AURELIAN-SDSLV-AUDIT-M0 decision supersedes the assumption that the
+independent parser under `Aurelian.Shaders.Language` may evolve as Aurelian's
+own SDSL-V dialect. SDSL-V is one semantic language defined by the canonical Oct
+specification and conformance corpus. Copeland should reuse its TypeScript-shaped
+parser and add a GPU semantic profile plus a small first-class metadata syntax;
+`.v.ts` is a useful convention, not semantic authority.
+
+Ownership is explicit: Copeland owns parsing, GPU closure/type checking and
+frontend-neutral SDSL semantic IR production; `Aurelian.Shaders` owns HLSL,
+DXC, SPIR-V validation/reflection and artifact metadata; `Aurelian.Graphics`
+owns Vulkan module and pipeline realization. Shader semantic metadata generates
+host binding/layout inputs, so handwritten shader/C# binding descriptions do
+not become parallel authority. See `docs/Aurelian/sdsl-v-cross-repo-audit.md`
+and `docs/Copeland/sdsl-v-gpu-profile.md`.

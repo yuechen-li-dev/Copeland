@@ -1,0 +1,36 @@
+{
+  "schema": "aurelian.sdslv.audit.manifest.v1",
+  "milestone": "AURELIAN-SDSLV-AUDIT-M0",
+  "outcome": "B",
+  "generatedAt": "2026-09-03",
+  "repositories": [
+    {"name":"Oct","path":"C:/Users/yuech/source/repos/oct","commit":"584bd176fd50664edadcb2bc3ae78431ac0f1e51","modified":false},
+    {"name":"Copeland/Aurelian","path":"C:/Users/yuech/source/repos/Copeland","commit":"3c4df459aa8b9dde775bb5a9d802445b11ab6d17","modified":true}
+  ],
+  "artifacts": [
+    {"path":"oct-feature-map.json","sha256":"07b52474b546ec9cf2fe97181afb3ad6d91fcaec32df0deab136346467451bab","bytes":5664},
+    {"path":"copeland-gap-map.json","sha256":"ddda55e6dbd2bc7b5dd86e426a8100a0adb14e47e66031c3723bfd6066610254","bytes":3624},
+    {"path":"frontend-decision.json","sha256":"e7d44bc4c86c70dbcbcb3f95101a2988e6454513b664a1dd78519860012e771a","bytes":1652},
+    {"path":"semantic-parity.json","sha256":"68b0f3dbd3e5c13aaa8d8e07725e5da43bba38207b6119111bc9f5ea88313818","bytes":2445}
+  ],
+  "documents": [
+    {"path":"docs/Aurelian/sdsl-v-cross-repo-audit.md","sha256":"201b96145c4fa050c4e3fd68f5feb0db5a620d7dee5c25b35e5e1c142e2f1a20"},
+    {"path":"docs/Copeland/sdsl-v-gpu-profile.md","sha256":"8ece1dbec7a3bf28351da474d18860289bf8bf639cd31e3d6f8e9a645f2145ec"},
+    {"path":"docs/Aurelian/aurelian-engine-architecture-v1.md","sha256":"bd7248d66d890e2a27e2376a4b6cfc7c5b93e0431128d928eeb6c60554269c10"},
+    {"path":"docs/Aurelian/architecture/sdslv-compatibility-matrix.md","sha256":"dad97798260a427d3b8ef57e1f0c0f64d8b5cefbb06f8c339c60bc1757d54d2f"},
+    {"path":"docs/Aurelian/README.md","sha256":"b4a767f5abf0cbaa7ecd63ba2bac46f8e2dd5c2ec7f934657d6115e8ff39f447"}
+  ],
+  "proof": {
+    "path":"tests/Copeland/Copeland.TS.Tests/GpuProfileParserReuseAuditTests.cs",
+    "sha256":"e26983c87722676ab9b69b03aca7cec0c6f153ed047135e1228a82eabf27816b",
+    "result":"passed"
+  },
+  "validation": [
+    {"command":"go test ./internal/sdslv/...","repository":"Oct","status":"passed"},
+    {"command":"go run ./cmd/oct sdslv compile-graphics Examples/SDSL-V/conformance/graphics/CanonicalGraphicsProgram.sdslvvalid --program ForwardTextured --out out/aurelian-sdslv-audit-m0/graphics","repository":"Oct","status":"passed","replayIdentity":"270415a98a26d4e7a449054b9174f0d20377b8151401805d39caea263ab4eac3","vertexSpirvSha256":"cbd22a4e5555af032032d5bafbe6d5148754044bdf26e1a118819a2d556a0d84","pixelSpirvSha256":"890f4f6703da0042af550f0d3d965fca1d3f0651b7ec6f4899b59ece9f133b1b"},
+    {"command":"go run ./tools/sdslv_workspace_check","repository":"Oct","status":"failed-pre-existing-ownership-mismatch","evidence":"registry does not own manifest source internal/prometheus/shaders/sdslv/production/sgemm/sgemm_scalar_baseline_plus.sdslv"},
+    {"command":"dotnet test Copeland.TS.slnx --no-restore --verbosity minimal","repository":"Copeland","status":"passed","tests":1581},
+    {"command":"dotnet test Aurelian.slnx --no-restore --verbosity minimal","repository":"Copeland","status":"passed","tests":616},
+    {"command":"dotnet test JointTaskForce.slnx --no-restore --verbosity minimal","repository":"Copeland","status":"passed","tests":3192}
+  ]
+}
