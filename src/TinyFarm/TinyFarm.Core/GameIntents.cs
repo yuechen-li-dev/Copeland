@@ -40,6 +40,8 @@ public sealed record GatherIntent(ForageNodeId Node) : GameIntent;
 
 public sealed record CookIntent(SceneObjectId Station, CookingRecipeId Recipe) : GameIntent;
 
+public sealed record ChopIntent(TreeId Tree) : GameIntent;
+
 public sealed record SelectHotbarSlotIntent(HotbarSlotId Slot) : GameIntent;
 
 public sealed record UseSelectedIntent : GameIntent;
@@ -108,7 +110,12 @@ public enum IntentReason
     WrongStation,
     StationWrongScene,
     StationOutOfRange,
-    MissingIngredient
+    MissingIngredient,
+    UnknownTree,
+    TreeWrongScene,
+    TreeOutOfRange,
+    MissingAxe,
+    WrongTool
 }
 
 public enum GameEventKind
@@ -134,7 +141,8 @@ public enum GameEventKind
     AnchorReached,
     HotbarSlotSelected,
     ForageGathered,
-    RecipeCooked
+    RecipeCooked,
+    TreeChopped
 }
 
 public enum DialogueTopic
@@ -166,7 +174,10 @@ public sealed record GameEvent(
     SceneObjectId? SceneObject = null,
     SceneAnchorId? Anchor = null,
     ForageNodeId? ForageNode = null,
-    CookingRecipeId? Recipe = null);
+    CookingRecipeId? Recipe = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(
+        Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    TreeId? Tree = null);
 
 public sealed record IntentResult(IntentEnvelope Envelope, IntentResultStatus Status, IntentReason Reason, IReadOnlyList<GameEvent> Events);
 

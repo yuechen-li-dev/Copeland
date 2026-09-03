@@ -1,0 +1,22 @@
+{
+  "milestone": "TINY-FARM-M20",
+  "outcome": "A",
+  "saveLoadExact": true,
+  "replayExact": true,
+  "repeatExact": true,
+  "useSelectedParity": true,
+  "hashes": {
+    "state": "50538582cef7cc9740c1e0ca8255d1694d8fc88c491804ac013f40d8d7b29b17",
+    "results": "efea4b4c5edc22bf56e56d84c123df114386f853e7e68f7d702159e8b50035d2",
+    "events": "86b518f6a24223149dd1a670249b72d1da875f78555e74caa66e81ae7fd4aeae",
+    "tree": "bdd0538c13d24c7901c017917d72f118890c358a17e9bcfdfe6676a8a31b207a",
+    "wood": "c34ba0ceb25ed2e7cc9105b0815ed286044e1e6dd19e89f99af574c49029da7f",
+    "hotbar": "2b0de67c2d94da82e872999ff2d75b3608770080b81173ab6ca88e1fc4832f9d",
+    "useSelectedParity": "9fb76b61ae980942fa2607a6596e1de1cb0310f97bfe9b3612e3983fa26d1ae2",
+    "chopParity": "53ec6879d364870f38a4783a8d1dbdf9cec77c377ad4c9bd1c3c5305601238e6",
+    "projection": "3a29810805d3973fa7440a705b100efdb5a36dddcafd02bb996c19f901cd9b2c",
+    "dto": "72bfabe1edd6399c1e4742a7166742eacdf71eef6cf94da3702c81101a0690bb",
+    "replay": "50538582cef7cc9740c1e0ca8255d1694d8fc88c491804ac013f40d8d7b29b17",
+    "definitions": "371ff2612832b0dd8a56bc3205cfaca25da84c7659ebb331ccfb656d946e06de"
+  }
+}

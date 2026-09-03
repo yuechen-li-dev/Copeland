@@ -86,7 +86,8 @@ public enum SceneObjectKind
     Decoration,
     Bed,
     Forage,
-    CookingStation
+    CookingStation,
+    Tree
 }
 
 public sealed record SceneObjectDefinition(

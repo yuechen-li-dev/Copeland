@@ -1,0 +1,17 @@
+{
+  "milestone": "TINY-FARM-M20",
+  "kind": "axe-gated-woodcutting",
+  "tool": "axe",
+  "resource": "wood",
+  "toolUsesIdentityItem": true,
+  "hotbarSupportsItemBinding": true,
+  "useSelectedLowersToChop": true,
+  "chopUsesResolver": true,
+  "treeDepletionAuthoritative": true,
+  "axeDurabilityAdded": false,
+  "toolStatsAdded": false,
+  "skillSystemAdded": false,
+  "genericToolFrameworkAdded": false,
+  "genericResourceFrameworkAdded": false,
+  "combatAdded": false
+}

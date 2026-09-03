@@ -230,6 +230,102 @@ public static class TinyFarmDefinitionLoader
             cookingRecipes);
     }
 
+    public static TinyFarmDefinitions LoadM20(string? path = null)
+    {
+        string contentRoot = Path.GetDirectoryName(DefaultPath)!;
+        string m20Directory = Path.Combine(contentRoot, "M20");
+        string productPath = Path.GetFullPath(path ?? Path.Combine(m20Directory, ProductFileName));
+        TinyFarmDefinitions baseline = LoadM19(productPath);
+        string treePath = Path.Combine(m20Directory, "tiny-farm-trees.obj.ts");
+        string treeSource = File.ReadAllText(treePath);
+        TsonTable table = ReadTable(
+            treeSource,
+            treePath,
+            "Trees",
+            [
+                ("id", TsonTypeKind.String),
+                ("sceneId", TsonTypeKind.String),
+                ("x", TsonTypeKind.Number),
+                ("y", TsonTypeKind.Number),
+                ("yieldProductId", TsonTypeKind.String),
+                ("yieldCount", TsonTypeKind.Number)
+            ]);
+        var trees = new List<TreeDefinition>();
+        for (int row = 0; row < table.RowCount; row++)
+        {
+            trees.Add(new TreeDefinition(
+                new TreeId(Text(table, "id", row)),
+                new SceneId(Text(table, "sceneId", row)),
+                ScenePosition.FromGrid(new GridPosition(
+                    Integer(table, "x", row),
+                    Integer(table, "y", row))),
+                new ProductId(Text(table, "yieldProductId", row)),
+                Integer(table, "yieldCount", row)));
+        }
+
+        TinyFarmSceneCatalog scenes = AddTrees(baseline.Scenes, trees, baseline.Items);
+        string identity = baseline.Identity + ";m20-trees:" + Hash(Encoding.UTF8.GetBytes(treeSource));
+        return new TinyFarmDefinitions(
+            identity,
+            baseline.Items,
+            baseline.Crops,
+            scenes,
+            baseline.SceneContent,
+            baseline.Schedules,
+            baseline.ScheduleContent,
+            baseline.ForageNodes,
+            baseline.CookingRecipes,
+            trees);
+    }
+
+    private static TinyFarmSceneCatalog AddTrees(
+        TinyFarmSceneCatalog baseline,
+        IReadOnlyList<TreeDefinition> trees,
+        IReadOnlyList<ItemDefinition> products)
+    {
+        if (trees.Select(tree => tree.Id).Distinct().Count() != trees.Count)
+        {
+            throw new InvalidDataException("TinyFarm tree identities must be unique.");
+        }
+        foreach (TreeDefinition tree in trees)
+        {
+            if (!products.Any(product => product.Id == tree.YieldProduct))
+            {
+                throw new InvalidDataException($"Tree '{tree.Id}' references unknown product '{tree.YieldProduct}'.");
+            }
+        }
+
+        SceneDefinition[] scenes = baseline.All.Select(scene =>
+        {
+            TreeDefinition[] additions = trees.Where(tree => tree.Scene == scene.Id).ToArray();
+            return new SceneDefinition(
+                scene.Id,
+                scene.Name,
+                scene.Width,
+                scene.Height,
+                scene.Objects.Concat(additions.Select(tree => new SceneObjectDefinition(
+                    new SceneObjectId(tree.Id.Value),
+                    SceneObjectKind.Tree,
+                    "Tree",
+                    BlocksMovement: true,
+                    SemanticReference: tree.YieldProduct.Value))),
+                scene.Layout.Concat(additions.Select(tree => new SceneLayoutRow(
+                    new SceneObjectId(tree.Id.Value),
+                    tree.Position.Tile.X,
+                    tree.Position.Tile.Y,
+                    1,
+                    1,
+                    0))),
+                scene.Anchors,
+                scene.Routes);
+        }).ToArray();
+        if (trees.Any(tree => !scenes.Any(scene => scene.Id == tree.Scene)))
+        {
+            throw new InvalidDataException("TinyFarm tree references an unknown scene.");
+        }
+        return new TinyFarmSceneCatalog(scenes);
+    }
+
     private static TinyFarmSceneCatalog AddCookingStations(
         TinyFarmSceneCatalog baseline,
         IReadOnlyList<(SceneObjectId Id, SceneId Scene, int X, int Y, string Label)> stations)

@@ -121,6 +121,16 @@ public static class TinyFarmSemanticHash
             }
         }
 
+        if (state.Version >= TinyFarmState.WoodcuttingSaveVersion)
+        {
+            foreach (TreeState tree in state.Trees.OrderBy(tree => tree.Id.Value, StringComparer.Ordinal))
+            {
+                canonical.Append("tree|").Append(tree.Id.Value)
+                    .Append('|').Append(tree.Availability)
+                    .AppendLine();
+            }
+        }
+
         canonical.Append("facts|").AppendJoin(',', state.Facts.OrderBy(fact => fact));
         byte[] bytes = Encoding.UTF8.GetBytes(canonical.ToString());
         return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();

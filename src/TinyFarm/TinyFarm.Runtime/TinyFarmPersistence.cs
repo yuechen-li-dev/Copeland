@@ -102,6 +102,7 @@ public static class TinyFarmChunkedSaveCodec
     public const string PlayerUiRuntimeVersion = "tiny-farm-m16@6";
     public const string ItemActionRuntimeVersion = "tiny-farm-m17@7";
     public const string ForageRuntimeVersion = "tiny-farm-m18@8";
+    public const string WoodcuttingRuntimeVersion = "tiny-farm-m20@9";
     public static readonly ChunkId WorldChunk = new("tinyfarm.world");
     public static readonly ChunkId RuntimeChunk = new("tinyfarm.runtime");
     public static readonly ChunkId AgentChunk = new("tinyfarm.agents");
@@ -186,7 +187,8 @@ public static class TinyFarmChunkedSaveCodec
             && state.Version != TinyFarmState.EnergySaveVersion
             && state.Version != TinyFarmState.PlayerUiSaveVersion
             && state.Version != TinyFarmState.ItemActionSaveVersion
-            && state.Version != TinyFarmState.ForageSaveVersion)
+            && state.Version != TinyFarmState.ForageSaveVersion
+            && state.Version != TinyFarmState.WoodcuttingSaveVersion)
         {
             throw new InvalidDataException($"Unsupported TinyFarm game save version {state.Version}.");
         }
@@ -200,6 +202,7 @@ public static class TinyFarmChunkedSaveCodec
             || state.Items.Select(item => item.Id).Distinct().Count() != state.Items.Count
             || state.FarmPlots.Select(plot => plot.Id).Distinct().Count() != state.FarmPlots.Count
             || state.ForageNodes.Select(node => node.Id).Distinct().Count() != state.ForageNodes.Count
+            || state.Trees.Select(tree => tree.Id).Distinct().Count() != state.Trees.Count
             || state.ShopStock.Select(stock => stock.Product).Distinct().Count() != state.ShopStock.Count
             || state.InventoryStacks.Select(stack => (stack.Actor, stack.Product)).Distinct().Count() != state.InventoryStacks.Count)
         {
@@ -212,6 +215,11 @@ public static class TinyFarmChunkedSaveCodec
             {
                 throw new InvalidDataException($"Actor '{actor.Id}' references unknown location '{actor.Location}'.");
             }
+            if (actor.Inventory.Distinct().Count() != actor.Inventory.Count
+                || actor.Inventory.Any(itemId => state.Items.SingleOrDefault(item => item.Id == itemId)?.Owner != actor.Id))
+            {
+                throw new InvalidDataException($"Actor '{actor.Id}' inventory disagrees with identity-item ownership.");
+            }
         }
 
         foreach (ItemState item in state.Items)
@@ -221,6 +229,11 @@ public static class TinyFarmChunkedSaveCodec
             if (hasOwner == isGrounded)
             {
                 throw new InvalidDataException($"Item '{item.Id}' must have exactly one container.");
+            }
+            if (item.Owner is ActorId owner
+                && state.Actors.SingleOrDefault(actor => actor.Id == owner)?.Inventory.Contains(item.Id) != true)
+            {
+                throw new InvalidDataException($"Item '{item.Id}' disagrees with owner '{owner}'.");
             }
             if (state.Version >= TinyFarmState.ItemActionSaveVersion)
             {
@@ -296,6 +309,22 @@ public static class TinyFarmChunkedSaveCodec
             }
         }
 
+        if (state.Version >= TinyFarmState.WoodcuttingSaveVersion)
+        {
+            TreeId[] savedTreeIds = state.Trees
+                .Select(tree => tree.Id)
+                .OrderBy(id => id.Value, StringComparer.Ordinal)
+                .ToArray();
+            TreeId[] definitionTreeIds = definitions.Trees
+                .Select(tree => tree.Id)
+                .OrderBy(id => id.Value, StringComparer.Ordinal)
+                .ToArray();
+            if (!savedTreeIds.SequenceEqual(definitionTreeIds))
+            {
+                throw new InvalidDataException("TinyFarm tree state must match the authored tree definitions exactly.");
+            }
+        }
+
 
         if (state.Version >= TinyFarmState.SceneSaveVersion)
         {
@@ -356,6 +385,10 @@ public static class TinyFarmChunkedSaveCodec
 
     private static string RuntimeVersionFor(int gameVersion)
     {
+        if (gameVersion >= TinyFarmState.WoodcuttingSaveVersion)
+        {
+            return WoodcuttingRuntimeVersion;
+        }
         if (gameVersion >= TinyFarmState.ForageSaveVersion)
         {
             return ForageRuntimeVersion;

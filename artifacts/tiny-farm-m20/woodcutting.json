@@ -1,0 +1,42 @@
+{
+  "tool": "axe",
+  "tree": "farm-tree",
+  "product": "wood",
+  "yieldCount": 1,
+  "wrongTool": "WrongTool",
+  "firstChop": "Accepted",
+  "secondChop": "AlreadyDepleted",
+  "finalTree": "Depleted",
+  "woodCount": 1,
+  "eventValue": {
+    "kind": "TreeChopped",
+    "actor": {
+      "value": "player"
+    },
+    "target": null,
+    "item": null,
+    "location": null,
+    "amount": 1,
+    "dialogue": null,
+    "favor": null,
+    "product": {
+      "value": "wood"
+    },
+    "crop": null,
+    "plot": null,
+    "day": null,
+    "scene": {
+      "value": "farm"
+    },
+    "route": null,
+    "sceneObject": {
+      "value": "farm-tree"
+    },
+    "anchor": null,
+    "forageNode": null,
+    "recipe": null,
+    "tree": {
+      "value": "farm-tree"
+    }
+  }
+}

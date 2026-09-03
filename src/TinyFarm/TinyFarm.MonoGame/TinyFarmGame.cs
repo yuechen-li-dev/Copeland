@@ -26,12 +26,12 @@ internal sealed class TinyFarmGame : Game
             PreferredBackBufferHeight = ReadIntOption(args, "--height", 1440),
             SynchronizeWithVerticalRetrace = true
         };
-        Window.Title = "TinyFarm M19 - Hen-of-the-Woods Cooking";
+        Window.Title = "TinyFarm M20 - Axe Woodcutting";
         Window.AllowUserResizing = true;
         IsMouseVisible = true;
-        definitions = TinyFarmDefinitionLoader.LoadM19();
+        definitions = TinyFarmDefinitionLoader.LoadM20();
         simulationHost = new TinyFarmSimulationHost(
-            new TinyFarmSession(TinyFarmM19ControlStates.Create(definitions), definitions),
+            new TinyFarmSession(TinyFarmM20ControlStates.Create(definitions), definitions),
             definitions,
             TinyFarmSimulationMode.Playing);
         playerUiController = new TinyFarmPlayerUiController(simulationHost);
@@ -278,14 +278,22 @@ internal sealed class TinyFarmGame : Game
                 offsetY + (item.Position.Y * tileSize),
                 item.Width * tileSize,
                 item.Height * tileSize);
-            Fill(rectangle, SceneObjectColor(item.Kind));
+            if (item.Kind == SceneObjectKind.Tree)
+            {
+                DrawTree(rectangle, item.Depleted);
+            }
+            else
+            {
+                Fill(rectangle, SceneObjectColor(item.Kind));
+            }
             Border(rectangle, item.BlocksMovement ? new Color(45, 39, 31) : new Color(224, 192, 96), Math.Max(1, tileSize / 24));
             if (item.Kind is SceneObjectKind.Portal
                 or SceneObjectKind.Landmark
                 or SceneObjectKind.Shop
                 or SceneObjectKind.Bed
                 or SceneObjectKind.Forage
-                or SceneObjectKind.CookingStation)
+                or SceneObjectKind.CookingStation
+                or SceneObjectKind.Tree)
             {
                 int textScale = tileSize >= 72 ? 2 : 1;
                 BitmapText.Draw(
@@ -648,8 +656,30 @@ internal sealed class TinyFarmGame : Game
             SceneObjectKind.Bed => new Color(74, 111, 153),
             SceneObjectKind.Forage => new Color(179, 153, 112),
             SceneObjectKind.CookingStation => new Color(166, 92, 72),
+            SceneObjectKind.Tree => new Color(45, 122, 62),
             _ => new Color(91, 103, 70)
         };
+    }
+
+    private void DrawTree(Rectangle rectangle, bool depleted)
+    {
+        int trunkWidth = Math.Max(4, rectangle.Width / 4);
+        int trunkHeight = depleted ? Math.Max(6, rectangle.Height / 3) : Math.Max(8, rectangle.Height / 2);
+        var trunk = new Rectangle(
+            rectangle.Center.X - (trunkWidth / 2),
+            rectangle.Bottom - trunkHeight,
+            trunkWidth,
+            trunkHeight);
+        Fill(trunk, new Color(102, 67, 39));
+        if (!depleted)
+        {
+            var canopy = new Rectangle(
+                rectangle.X + (rectangle.Width / 8),
+                rectangle.Y,
+                rectangle.Width * 3 / 4,
+                rectangle.Height * 2 / 3);
+            Fill(canopy, new Color(45, 122, 62));
+        }
     }
 
     private static string? ReadOption(string[] args, string option)

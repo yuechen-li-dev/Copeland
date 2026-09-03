@@ -132,6 +132,13 @@ public static class TinyFarmPlayerUiProjector
             ForageNodeDefinition definition = definitions.ForageNode(forageNode);
             return $"Gather {definitions.Item(definition.Product).Name} [Interact]";
         }
+        if (target?.Tree is TreeId)
+        {
+            return selected.SemanticId == TinyFarmIds.Axe.Value
+                && selected.VisualState == TinyFarmHotbarSlotVisualState.Available
+                ? "Chop Tree [Use]"
+                : "Requires Axe";
+        }
         if (target?.Kind == InteractionTargetKind.CookingStation)
         {
             CookingRecipeDefinition? recipe = definitions.CookingRecipes.SingleOrDefault();
@@ -170,7 +177,8 @@ public static class TinyFarmPlayerUiProjector
         HotbarSlot slot,
         HotbarSlotId selectedSlot)
     {
-        if (slot.Binding is not ProductHotbarBinding product)
+        if (slot.Binding is null
+            || slot.Binding is ItemHotbarBinding && state.Version < TinyFarmState.WoodcuttingSaveVersion)
         {
             return new TinyFarmHotbarSlotView(
                 slot.Id,
@@ -181,6 +189,24 @@ public static class TinyFarmPlayerUiProjector
                 slot.Id == selectedSlot,
                 TinyFarmHotbarSlotVisualState.Empty);
         }
+
+        if (slot.Binding is ItemHotbarBinding itemBinding)
+        {
+            ItemState? item = state.Items.SingleOrDefault(candidate => candidate.Id == itemBinding.Item);
+            bool owned = item?.Owner == player.Id && player.Inventory.Contains(itemBinding.Item);
+            return new TinyFarmHotbarSlotView(
+                slot.Id,
+                "Item",
+                itemBinding.Item.Value,
+                item?.Name ?? itemBinding.Item.Value,
+                owned ? 1 : 0,
+                slot.Id == selectedSlot,
+                owned
+                    ? TinyFarmHotbarSlotVisualState.Available
+                    : TinyFarmHotbarSlotVisualState.Unavailable);
+        }
+
+        ProductHotbarBinding product = (ProductHotbarBinding)slot.Binding;
 
         int count = state.ProductCount(player.Id, product.Product);
         return new TinyFarmHotbarSlotView(

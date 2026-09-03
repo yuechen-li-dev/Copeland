@@ -54,7 +54,8 @@ public sealed record TinyFarmSceneObjectView(
     int Height,
     int Layer,
     bool BlocksMovement,
-    string? SemanticReference);
+    string? SemanticReference,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool Depleted = false);
 
 public sealed record TinyFarmRouteView(
     SceneRouteId Id,
@@ -245,7 +246,10 @@ public static class TinyFarmFrameProjector
                     row.Height,
                     row.Layer,
                     definition.BlocksMovement,
-                    definition.SemanticReference);
+                    definition.SemanticReference,
+                    definition.Kind == SceneObjectKind.Tree
+                        && state.Trees.Single(tree => tree.Id.Value == definition.Id.Value).Availability
+                            == TreeAvailability.Depleted);
             })
             .ToArray();
         TinyFarmPlotView[] plots = state.FarmPlots
@@ -394,6 +398,13 @@ public static class TinyFarmFrameProjector
                 {
                     ForageNodeDefinition definition = definitions.ForageNode(forageNode);
                     hints.Add($"Gather {definitions.Item(definition.Product).Name} [Interact]");
+                }
+                else if (target.Tree is TreeId)
+                {
+                    bool axeSelected = state.SelectedHotbarSlot == 3
+                        && state.Items.SingleOrDefault(item => item.Id == TinyFarmIds.Axe)?.Owner == player.Actor
+                        && state.Actor(player.Actor).Inventory.Contains(TinyFarmIds.Axe);
+                    hints.Add(axeSelected ? "Chop Tree [Use]" : "Requires Axe");
                 }
                 else if (state.Version >= TinyFarmState.ItemActionSaveVersion
                     && target.Plot is FarmPlotId plotId

@@ -524,6 +524,53 @@ jobs:
             throw "TinyFarm M19 evidence exceeded the compact five-file artifact budget."
           }
 
+          $m20Directory = Join-Path $env:RUNNER_TEMP "tiny-farm-m20"
+          dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --m20 --artifact-dir $m20Directory
+          if ($LASTEXITCODE -ne 0) {
+            throw "TinyFarm M20 woodcutting proof failed."
+          }
+
+          $m20Proof = Get-Content -Raw -LiteralPath (Join-Path $m20Directory "proof.json") | ConvertFrom-Json
+          $m20Manifest = Get-Content -Raw -LiteralPath (Join-Path $m20Directory "manifest.json") | ConvertFrom-Json
+          if ($m20Proof.outcome -ne "A" -or
+              -not $m20Proof.saveLoadExact -or
+              -not $m20Proof.replayExact -or
+              -not $m20Proof.repeatExact -or
+              -not $m20Proof.useSelectedParity -or
+              -not $m20Manifest.toolUsesIdentityItem -or
+              -not $m20Manifest.hotbarSupportsItemBinding -or
+              -not $m20Manifest.useSelectedLowersToChop -or
+              -not $m20Manifest.chopUsesResolver -or
+              -not $m20Manifest.treeDepletionAuthoritative -or
+              $m20Manifest.axeDurabilityAdded -or
+              $m20Manifest.toolStatsAdded -or
+              $m20Manifest.skillSystemAdded -or
+              $m20Manifest.genericToolFrameworkAdded -or
+              $m20Manifest.genericResourceFrameworkAdded -or
+              $m20Manifest.combatAdded) {
+            throw "TinyFarm M20 resolver and scope laws changed."
+          }
+
+          $controlOutput = @("inspect", "use-selected", "select-slot 3", "use-selected", "chop", "inspect", "quit") |
+            dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --m20-control |
+            Out-String
+          if ($LASTEXITCODE -ne 0 -or
+              $controlOutput -notmatch 'WrongTool' -or
+              $controlOutput -notmatch 'TreeChopped' -or
+              $controlOutput -notmatch 'AlreadyDepleted' -or
+              $controlOutput -notmatch '"semanticId": "wood"' -or
+              $controlOutput -notmatch '"count": 1') {
+            throw "TinyFarm M20 CLI selected-Axe/chop/depletion smoke test failed."
+          }
+
+          $expectedFiles = @("hotbar.json", "manifest.json", "parity.json", "proof.json", "woodcutting.json")
+          $artifactFiles = @(Get-ChildItem -LiteralPath $m20Directory -File | Sort-Object Name)
+          if ($artifactFiles.Count -ne 5 -or
+              (Compare-Object $expectedFiles $artifactFiles.Name) -or
+              ($artifactFiles | Where-Object Length -gt 262144)) {
+            throw "TinyFarm M20 evidence exceeded the compact five-file artifact budget."
+          }
+
       - name: Enforce repository artifact budget
         shell: pwsh
         run: ./tools/Test-ArtifactBudget.ps1 -Paths @()

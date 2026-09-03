@@ -115,6 +115,8 @@ public static class TinyFarmCommandParser
             "cook" when parts.Length == 2 => new CookIntent(
                 TinyFarmIds.HearthHouseKitchen,
                 new CookingRecipeId(parts[1])),
+            "chop" when parts.Length == 1 => new ChopIntent(TinyFarmIds.FarmTree),
+            "chop" when parts.Length == 2 => new ChopIntent(new TreeId(parts[1])),
             "give" when parts.Length == 3 => new GiveIntent(new ItemId(parts[1]), new ActorId(parts[2])),
             "buy" when parts.Length == 2 => new BuyIntent(new ItemId(parts[1])),
             "sell" when parts.Length == 2 => new SellIntent(new ItemId(parts[1])),
@@ -126,7 +128,7 @@ public static class TinyFarmCommandParser
             "use-selected" when parts.Length == 1 => new UseSelectedIntent(),
             "wait" when parts.Length == 2 && int.TryParse(parts[1], out int minutes) => new WaitIntent(minutes),
             _ => throw new FormatException(
-                "Use: look, go [to] <semantic anchor>, move <left/right/up/down> [distance] [units], move <location>, interact/pickup/take, take <item>, gather <node>, cook [recipe], use-selected, talk/buy/sell, buy-product/sell-product <product>, plant <plot> <crop>, water/harvest <plot>, or wait <minutes>.")
+                "Use: look, go [to] <semantic anchor>, move <left/right/up/down> [distance] [units], move <location>, interact/pickup/take, take <item>, gather <node>, cook [recipe], chop [tree], use-selected, talk/buy/sell, buy-product/sell-product <product>, plant <plot> <crop>, water/harvest <plot>, or wait <minutes>.")
         };
     }
 
@@ -182,7 +184,9 @@ public sealed record TinyFarmInspectionSnapshot(
     IReadOnlyList<InventoryStack> Inventory,
     SceneId? CurrentScene,
     IReadOnlyList<ActorSceneState> ActorScenes,
-    IReadOnlyList<ActorEnergyState> ActorEnergy);
+    IReadOnlyList<ActorEnergyState> ActorEnergy,
+    IReadOnlyList<ForageNodeState> ForageNodes,
+    IReadOnlyList<TreeState> Trees);
 
 public static class TinyFarmInspector
 {
@@ -262,7 +266,9 @@ public static class TinyFarmInspector
             state.InventoryStacks,
             state.CurrentScene,
             state.ActorScenes,
-            state.ActorEnergy);
+            state.ActorEnergy,
+            state.ForageNodes,
+            state.Trees);
         return JsonSerializer.Serialize(snapshot, Options);
     }
 }

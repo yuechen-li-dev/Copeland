@@ -26,6 +26,8 @@ public abstract record HotbarBinding;
 
 public sealed record ProductHotbarBinding(ProductId Product) : HotbarBinding;
 
+public sealed record ItemHotbarBinding(ItemId Item) : HotbarBinding;
+
 public sealed record HotbarSlot(HotbarSlotId Id, HotbarBinding? Binding);
 
 public static class TinyFarmHotbar
@@ -34,7 +36,7 @@ public static class TinyFarmHotbar
     [
         new(new HotbarSlotId(1), new ProductHotbarBinding(TinyFarmIds.TurnipSeed)),
         new(new HotbarSlotId(2), new ProductHotbarBinding(TinyFarmIds.Turnip)),
-        new(new HotbarSlotId(3), null),
+        new(new HotbarSlotId(3), new ItemHotbarBinding(TinyFarmIds.Axe)),
         new(new HotbarSlotId(4), null),
         new(new HotbarSlotId(5), null),
         new(new HotbarSlotId(6), null),

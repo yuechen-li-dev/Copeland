@@ -100,6 +100,7 @@ public sealed class TinyFarmResolver
             HarvestIntent harvest => ResolveHarvest(state, actor, envelope, harvest),
             GatherIntent gather => ResolveGather(state, actor, envelope, gather),
             CookIntent cook => ResolveCook(state, actor, envelope, cook),
+            ChopIntent chop => ResolveChop(state, actor, envelope, chop),
             SelectHotbarSlotIntent select => ResolveSelectHotbarSlot(state, actor, envelope, select),
             UseSelectedIntent => ResolveUseSelected(state, actor, envelope),
             WaitIntent wait => ResolveWait(state, actor, envelope, wait),
@@ -144,6 +145,32 @@ public sealed class TinyFarmResolver
             return Rejected(envelope, IntentReason.NoSelectedBinding);
         }
 
+        if (slot.Binding is ItemHotbarBinding itemBinding)
+        {
+            if (!OwnsItem(state, actor, itemBinding.Item))
+            {
+                return Rejected(envelope, IntentReason.SelectedBindingUnavailable);
+            }
+            if (itemBinding.Item != TinyFarmIds.Axe)
+            {
+                return Rejected(envelope, IntentReason.UnsupportedSelectedUse);
+            }
+
+            InteractionTarget? itemTarget = TinyFarmSpatialQueries.SelectInteractionTarget(
+                state,
+                actor.Id,
+                Scenes);
+            if (itemTarget is null)
+            {
+                return Rejected(envelope, IntentReason.NoInteractionTarget);
+            }
+            if (itemTarget.Tree is not TreeId tree)
+            {
+                return Rejected(envelope, IntentReason.WrongTargetKind);
+            }
+            return ResolveChop(state, actor, envelope, new ChopIntent(tree));
+        }
+
         if (slot.Binding is not ProductHotbarBinding product)
         {
             return Rejected(envelope, IntentReason.UnsupportedSelectedUse);
@@ -170,6 +197,10 @@ public sealed class TinyFarmResolver
 
         if (target.Plot is not FarmPlotId plot)
         {
+            if (target.Tree is not null)
+            {
+                return Rejected(envelope, IntentReason.WrongTool);
+            }
             return Rejected(envelope, IntentReason.WrongTargetKind);
         }
 
@@ -916,6 +947,70 @@ public sealed class TinyFarmResolver
                 Recipe: recipe.Id));
     }
 
+    private IntentResult ResolveChop(
+        TinyFarmState state,
+        ActorState actor,
+        IntentEnvelope envelope,
+        ChopIntent intent)
+    {
+        TreeDefinition? definition = definitions?.Trees.SingleOrDefault(tree => tree.Id == intent.Tree);
+        TreeState? tree = state.Trees.SingleOrDefault(candidate => candidate.Id == intent.Tree);
+        if (definition is null || tree is null)
+        {
+            return Rejected(envelope, IntentReason.UnknownTree);
+        }
+        if (!actor.IsPlayer)
+        {
+            return Rejected(envelope, IntentReason.WrongTargetKind);
+        }
+        if (!OwnsItem(state, actor, TinyFarmIds.Axe))
+        {
+            return Rejected(envelope, IntentReason.MissingAxe);
+        }
+
+        ActorSceneState placement = state.ActorScene(actor.Id);
+        if (placement.Scene != definition.Scene)
+        {
+            return Rejected(envelope, IntentReason.TreeWrongScene);
+        }
+        if (tree.Availability == TreeAvailability.Depleted)
+        {
+            return Rejected(envelope, IntentReason.AlreadyDepleted);
+        }
+        if (definition.YieldCount <= 0
+            || definitions is null
+            || !definitions.Items.Any(product => product.Id == definition.YieldProduct))
+        {
+            return Rejected(envelope, IntentReason.UnknownTree);
+        }
+
+        SceneObjectId objectId = new(definition.Id.Value);
+        InteractionTarget? target = TinyFarmSpatialQueries.SelectObjectTarget(
+            state,
+            actor.Id,
+            objectId,
+            Scenes);
+        if (target?.Tree != definition.Id)
+        {
+            return Rejected(envelope, IntentReason.TreeOutOfRange);
+        }
+
+        int treeIndex = state.MutableTrees.FindIndex(candidate => candidate.Id == tree.Id);
+        int newCount = checked(state.ProductCount(actor.Id, definition.YieldProduct) + definition.YieldCount);
+        SetProductCount(state, actor.Id, definition.YieldProduct, newCount);
+        state.MutableTrees[treeIndex] = tree with { Availability = TreeAvailability.Depleted };
+        return Accepted(
+            envelope,
+            new GameEvent(
+                GameEventKind.TreeChopped,
+                actor.Id,
+                Amount: definition.YieldCount,
+                Product: definition.YieldProduct,
+                Scene: definition.Scene,
+                SceneObject: objectId,
+                Tree: definition.Id));
+    }
+
     private static IntentResult ResolveBuy(
         TinyFarmState state,
         ActorState actor,
@@ -1271,6 +1366,12 @@ public sealed class TinyFarmResolver
     private static ItemState? FindItem(TinyFarmState state, ItemId id)
     {
         return state.Items.SingleOrDefault(item => item.Id == id);
+    }
+
+    private static bool OwnsItem(TinyFarmState state, ActorState actor, ItemId itemId)
+    {
+        return actor.Inventory.Contains(itemId)
+            && state.Items.SingleOrDefault(item => item.Id == itemId)?.Owner == actor.Id;
     }
 
     private static void ReplaceActor(TinyFarmState state, ActorState replacement)

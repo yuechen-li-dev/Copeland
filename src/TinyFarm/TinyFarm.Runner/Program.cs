@@ -1,6 +1,57 @@
 using TinyFarm.Core;
 using System.Diagnostics;
 
+if (args.Contains("--m20", StringComparer.Ordinal))
+{
+    string directory = Path.Combine(Environment.CurrentDirectory, "artifacts", "tiny-farm-m20");
+    int artifactIndex = Array.IndexOf(args, "--artifact-dir");
+    if (artifactIndex >= 0)
+    {
+        directory = RequiredOutputPath(args, artifactIndex, "--artifact-dir");
+    }
+    TinyFarmM20Scenario.WriteArtifacts(directory);
+    TinyFarmM20Evidence evidence = TinyFarmM20Scenario.Prove();
+    Console.WriteLine(TinyFarmM20Scenario.WriteJson(evidence.Proof));
+    return;
+}
+
+if (args.Contains("--m20-control", StringComparer.Ordinal))
+{
+    TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.LoadM20();
+    var host = new TinyFarmSimulationHost(
+        new TinyFarmSession(TinyFarmM20ControlStates.Create(definitions), definitions),
+        definitions,
+        TinyFarmSimulationMode.Playing);
+    Console.WriteLine("TinyFarm M20 control ready. Commands: inspect, select-slot <1-8>, use-selected, chop [tree], quit.");
+    while (Console.ReadLine() is string command)
+    {
+        if (command.Equals("quit", StringComparison.OrdinalIgnoreCase))
+        {
+            break;
+        }
+
+        IReadOnlyList<IntentResult> results = [];
+        if (command.StartsWith("select-slot ", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(command["select-slot ".Length..], out int slot))
+        {
+            results = host.ExecuteIntent(new SelectHotbarSlotIntent(new HotbarSlotId(slot))).Results;
+        }
+        else if (!command.Equals("inspect", StringComparison.OrdinalIgnoreCase))
+        {
+            results = host.ExecuteIntent(TinyFarmCommandParser.Parse(command)).Results;
+        }
+        Console.WriteLine(TinyFarmM20Scenario.WriteJson(new
+        {
+            simulation = host.Snapshot(),
+            playerUi = TinyFarmPlayerUiProjector.Project(host.Session.State, definitions),
+            frame = TinyFarmFrameProjector.Project(host.Session.State, definitions),
+            trees = host.Session.State.Trees,
+            results
+        }));
+    }
+    return;
+}
+
 if (args.Contains("--m19", StringComparer.Ordinal))
 {
     string directory = Path.Combine(Environment.CurrentDirectory, "artifacts", "tiny-farm-m19");

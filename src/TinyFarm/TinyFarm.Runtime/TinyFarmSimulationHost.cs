@@ -286,7 +286,8 @@ public sealed record TinyFarmSimulationSnapshot(
     IReadOnlyList<string>? GroundItems = null,
     string? InteractionTarget = null,
     IReadOnlyList<string>? Plots = null,
-    IReadOnlyList<string>? ForageNodes = null);
+    IReadOnlyList<string>? ForageNodes = null,
+    IReadOnlyList<string>? Trees = null);
 
 public static class TinyFarmSimulationSnapshotProjector
 {
@@ -352,8 +353,20 @@ public static class TinyFarmSimulationSnapshotProjector
                 })
                 .ToArray()
             : null;
+        IReadOnlyList<string>? trees = state.Version >= TinyFarmState.WoodcuttingSaveVersion
+            ? definitions.Trees
+                .OrderBy(tree => tree.Id.Value, StringComparer.Ordinal)
+                .Select(tree =>
+                {
+                    TreeAvailability availability = state.Tree(tree.Id).Availability;
+                    return $"{tree.Id.Value}:{tree.Scene.Value}:{tree.YieldProduct.Value}:{availability}:{tree.Position.XUnits}:{tree.Position.YUnits}";
+                })
+                .ToArray()
+            : null;
         return new TinyFarmSimulationSnapshot(
-            forageNodes is not null
+            trees is not null
+                ? "tiny-farm-simulation@5"
+                : forageNodes is not null
                 ? "tiny-farm-simulation@4"
                 : hasItemActions
                 ? "tiny-farm-simulation@3"
@@ -368,13 +381,16 @@ public static class TinyFarmSimulationSnapshotProjector
             groundItems,
             target?.StableId,
             plots,
-            forageNodes);
+            forageNodes,
+            trees);
     }
 
     public static string WriteCanonicalTson(TinyFarmSimulationSnapshot snapshot)
     {
         var text = new StringBuilder();
-        string schemaVersion = snapshot.ForageNodes is not null
+        string schemaVersion = snapshot.Trees is not null
+            ? "v5"
+            : snapshot.ForageNodes is not null
             ? "v4"
             : snapshot.GroundItems is not null
             ? "v3"
@@ -421,6 +437,10 @@ public static class TinyFarmSimulationSnapshotProjector
                 if (snapshot.ForageNodes is not null)
                 {
                     text.AppendLine("    forageSummary: string[];");
+                    if (snapshot.Trees is not null)
+                    {
+                        text.AppendLine("    treeSummary: string[];");
+                    }
                 }
             }
         }
@@ -471,6 +491,10 @@ public static class TinyFarmSimulationSnapshotProjector
                 if (snapshot.ForageNodes is not null)
                 {
                     AppendStringArray(text, "forageSummary", snapshot.ForageNodes, 1);
+                    if (snapshot.Trees is not null)
+                    {
+                        AppendStringArray(text, "treeSummary", snapshot.Trees, 1);
+                    }
                 }
             }
         }
