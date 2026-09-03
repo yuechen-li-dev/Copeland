@@ -89,6 +89,28 @@ public sealed unsafe class AurelianVulkanBuffer : IDisposable
         return VulkanBufferWriteResult.Written;
     }
 
+    public byte[] ReadBytes(int byteCount, ulong sourceOffset = 0)
+    {
+        if (disposed || allocation is null || !allocation.IsMapped)
+        {
+            throw new InvalidOperationException("Cannot read from a disposed or unmapped Vulkan buffer.");
+        }
+
+        if (byteCount < 0 || sourceOffset > SizeBytes || (ulong)byteCount > SizeBytes - sourceOffset)
+        {
+            throw new ArgumentOutOfRangeException(nameof(byteCount), "Buffer read range exceeds the logical buffer size.");
+        }
+
+        byte[] bytes = new byte[byteCount];
+        fixed (byte* destination = bytes)
+        {
+            byte* source = (byte*)allocation.MappedPointer + sourceOffset;
+            System.Buffer.MemoryCopy(source, destination, byteCount, byteCount);
+        }
+
+        return bytes;
+    }
+
     public void Dispose()
     {
         if (disposed)

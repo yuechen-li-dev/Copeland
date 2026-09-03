@@ -1,0 +1,146 @@
+{
+  "schema": "aurelian.native-forward-textured.renderer-metadata.v1",
+  "formatVersion": "aurelian.compiled-graphics-program/0",
+  "name": "GraphicsProgram",
+  "featureLevel": "graphics.m3",
+  "compilerProfile": "dxc-vulkan1.3",
+  "vertexInputs": [
+    {
+      "order": 0,
+      "name": "position",
+      "type": "ObjectPosition3",
+      "physicalType": "float3",
+      "location": 0,
+      "semanticSpace": "object.position"
+    },
+    {
+      "order": 1,
+      "name": "uv",
+      "type": "float2",
+      "physicalType": "float2",
+      "location": 1,
+      "semanticSpace": null
+    }
+  ],
+  "pixelTargets": [
+    {
+      "order": 0,
+      "name": "color",
+      "physicalType": "float4",
+      "target": 0
+    }
+  ],
+  "resources": [
+    {
+      "order": 0,
+      "name": "albedo",
+      "kind": "Texture2D",
+      "type": "Texture2D\u003Cfloat4\u003E",
+      "set": 0,
+      "binding": 0,
+      "visibility": [
+        "Fragment"
+      ]
+    },
+    {
+      "order": 1,
+      "name": "linearSampler",
+      "kind": "Sampler",
+      "type": "Sampler",
+      "set": 0,
+      "binding": 1,
+      "visibility": [
+        "Fragment"
+      ]
+    },
+    {
+      "order": 2,
+      "name": "material",
+      "kind": "UniformBuffer",
+      "type": "SurfaceMaterial",
+      "set": 0,
+      "binding": 2,
+      "visibility": [
+        "Fragment"
+      ]
+    }
+  ],
+  "material": {
+    "name": "SurfaceMaterial",
+    "size": 32,
+    "set": 0,
+    "binding": 2,
+    "visibility": [
+      "Fragment"
+    ],
+    "fields": [
+      {
+        "order": 0,
+        "name": "tint",
+        "physicalType": "float4",
+        "offset": 0,
+        "size": 16,
+        "alignment": 16
+      },
+      {
+        "order": 1,
+        "name": "roughness",
+        "physicalType": "f32",
+        "offset": 16,
+        "size": 4,
+        "alignment": 4
+      }
+    ]
+  },
+  "reflectedResources": [
+    {
+      "set": 0,
+      "binding": 0,
+      "kind": "Texture2D",
+      "visibility": [
+        "Fragment"
+      ]
+    },
+    {
+      "set": 0,
+      "binding": 1,
+      "kind": "Sampler",
+      "visibility": [
+        "Fragment"
+      ]
+    },
+    {
+      "set": 0,
+      "binding": 2,
+      "kind": "UniformBuffer",
+      "visibility": [
+        "Fragment"
+      ]
+    }
+  ],
+  "reflectedMaterialOffsets": [
+    0,
+    16
+  ],
+  "rasterState": {
+    "topology": "triangle-list",
+    "cull": "none",
+    "fill": true,
+    "blend": false,
+    "depth": false,
+    "samples": 1
+  },
+  "sampler": {
+    "min": "nearest",
+    "mag": "nearest",
+    "address": "clamp-to-edge"
+  },
+  "draw": {
+    "vertexCount": 6,
+    "instanceCount": 1,
+    "extent": {
+      "width": 64,
+      "height": 64
+    }
+  }
+}

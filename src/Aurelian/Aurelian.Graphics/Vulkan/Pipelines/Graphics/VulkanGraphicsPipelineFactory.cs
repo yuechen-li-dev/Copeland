@@ -12,6 +12,13 @@ public static unsafe class VulkanGraphicsPipelineFactory
         AurelianVulkanPlant plant,
         AurelianVulkanRenderPass renderPass,
         VulkanGraphicsPipelineDescriptor descriptor)
+        => Create(plant, renderPass, descriptor, []);
+
+    internal static VulkanGraphicsPipelineCreateResult Create(
+        AurelianVulkanPlant plant,
+        AurelianVulkanRenderPass renderPass,
+        VulkanGraphicsPipelineDescriptor descriptor,
+        IReadOnlyList<DescriptorSetLayout> descriptorSetLayouts)
     {
         ArgumentNullException.ThrowIfNull(plant);
         ArgumentNullException.ThrowIfNull(descriptor);
@@ -67,16 +74,21 @@ public static unsafe class VulkanGraphicsPipelineFactory
                 };
             }
 
-            PipelineLayoutCreateInfo layoutCreateInfo = new()
+            DescriptorSetLayout[] nativeSetLayouts = descriptorSetLayouts.ToArray();
+            Result layoutResult;
+            fixed (DescriptorSetLayout* setLayoutsPointer = nativeSetLayouts)
             {
-                SType = StructureType.PipelineLayoutCreateInfo,
-                SetLayoutCount = 0,
-                PSetLayouts = null,
-                PushConstantRangeCount = 0,
-                PPushConstantRanges = null,
-            };
+                PipelineLayoutCreateInfo layoutCreateInfo = new()
+                {
+                    SType = StructureType.PipelineLayoutCreateInfo,
+                    SetLayoutCount = (uint)nativeSetLayouts.Length,
+                    PSetLayouts = nativeSetLayouts.Length == 0 ? null : setLayoutsPointer,
+                    PushConstantRangeCount = 0,
+                    PPushConstantRanges = null,
+                };
 
-            Result layoutResult = vk.CreatePipelineLayout(device, &layoutCreateInfo, (AllocationCallbacks*)null, out pipelineLayout);
+                layoutResult = vk.CreatePipelineLayout(device, &layoutCreateInfo, (AllocationCallbacks*)null, out pipelineLayout);
+            }
             if (layoutResult != Result.Success)
             {
                 diagnostics.Add(Diagnostic(

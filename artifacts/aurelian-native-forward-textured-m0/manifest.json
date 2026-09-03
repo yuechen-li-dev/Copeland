@@ -1,0 +1,27 @@
+{
+  "milestone": "AURELIAN-NATIVE-FORWARD-TEXTURED-M0",
+  "kind": "compiler-driven-vulkan-offscreen-textured-draw",
+  "compiledGraphicsProgramIsAuthority": true,
+  "spirvLoadedByAurelianGraphics": true,
+  "descriptorLayoutDerivedFromCompilerMetadata": true,
+  "vertexLayoutDerivedFromCompilerMetadata": true,
+  "materialLayoutDerivedFromCompilerMetadata": true,
+  "textureUploaded": true,
+  "samplerBound": true,
+  "materialUploaded": true,
+  "offscreenDrawPassed": true,
+  "readbackPassed": true,
+  "pixelHashRecorded": true,
+  "swapchainAdded": false,
+  "spriteSystemAdded": false,
+  "cameraAdded": false,
+  "tinyFarmIntegrated": false,
+  "compositorIntegrated": false,
+  "files": [
+    "proof.json",
+    "renderer-metadata.json",
+    "pixels.json",
+    "validation.json",
+    "manifest.json"
+  ]
+}

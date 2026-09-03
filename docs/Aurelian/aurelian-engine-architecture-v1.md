@@ -374,3 +374,26 @@ metadata as one `CompiledGraphicsProgram`; it must not reparse shader source or
 HLSL or treat SPIR-V reflection as semantic authority. Host upload code may be
 generated from material metadata, but no parallel handwritten material layout
 may become authoritative.
+
+## 29. AURELIAN-NATIVE-FORWARD-TEXTURED-M0 update
+
+The compiler/renderer boundary is now qualified. `Aurelian.Rendering.Contracts`
+owns `CompiledGraphicsProgram`, combining compiled SPIR-V stages with
+renderer-neutral vertex, target, resource, visibility, and material-layout
+metadata. `Aurelian.Shaders` alone projects graphics.m3 VD-MIR and DXC output
+into that contract. `Aurelian.Graphics` consumes the typed contract and does
+not reference Copeland, VD-MIR, HLSL, or DXC.
+
+The existing Vulkan plant, allocator, texture/view, staging uploader, barriers,
+render pass, framebuffer, shader-module/pipeline, command pool, timeline fence,
+submit, and draw owners remain authoritative. A bounded descriptor/sampler and
+readback seam now realizes one set-zero texture/sampler/uniform interface and a
+64x64 offscreen target. Compiler metadata constructs the interface; SPIR-V
+decorations only verify binding and field-offset agreement. The canonical quad
+produces deterministic textured/tinted RGBA bytes with validation enabled.
+
+This proves renderer plumbing, not a new application-facing renderer. The next
+bounded step is a minimal reusable native 2D quad submission primitive; it does
+not authorize TinyFarm integration, text, material/asset frameworks, generalized
+batching, cameras, transforms, or render graphs. See
+`docs/Aurelian/aurelian-native-forward-textured-m0-report.md`.

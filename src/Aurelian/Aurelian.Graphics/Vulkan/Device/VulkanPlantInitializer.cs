@@ -288,9 +288,9 @@ public static unsafe class VulkanPlantInitializer
         try
         {
             uint supportedVersion = Vk.Version10;
-            return vk.EnumerateInstanceVersion(ref supportedVersion) == Result.Success && supportedVersion < Vk.Version12
+            return vk.EnumerateInstanceVersion(ref supportedVersion) == Result.Success && supportedVersion < Vk.Version13
                 ? supportedVersion
-                : Vk.Version12;
+                : Vk.Version13;
         }
         catch (EntryPointNotFoundException)
         {

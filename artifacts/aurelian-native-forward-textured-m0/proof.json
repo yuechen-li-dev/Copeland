@@ -1,0 +1,72 @@
+{
+  "milestone": "AURELIAN-NATIVE-FORWARD-TEXTURED-M0",
+  "outcome": "A",
+  "hashes": {
+    "vdMir": "e6fb665eae51dbce33a5212a4f3c08480b1feb93333a1fd2f60468ef1b2f9cc0",
+    "hlsl": "305a7b4e2e8c8a306bddc861b87a73a1b48067b522266a9dc3b988572cde6ee7",
+    "vertexSpirv": "13d86b3a988fe809af02171951cef31183d44d3a02ed470f3294276fa2a8eb39",
+    "pixelSpirv": "e9d019d2eb2019be56507367fa735dfb35ec82cbe256cccb0fcfe00a7ab3a417",
+    "vertexFixture": "e88188198b3cf6616f8ccfcd6ee5b58cc5b97e7d19c7cae27c5c977f4b0ac846",
+    "textureFixture": "c21b35e3f28e676cedf24c13575a7346682e101a2d26aad9598d0cdbcee9ee3b",
+    "pixels": "521e2788a769bb98bd3cc8f966fba3940e2d5a7ad0cd0ff06ac52ceea16c60f7"
+  },
+  "compiler": {
+    "profile": "dxc-vulkan1.3",
+    "dxcPath": "C:\\Users\\yuech\\.nuget\\packages\\microsoft.direct3d.dxc\\1.9.2602.24\\build\\native\\bin\\x64\\dxc.exe",
+    "dxcVersion": "1.9.2602.24",
+    "featureLevel": "graphics.m3"
+  },
+  "gpu": {
+    "plantId": {
+      "value": 0
+    },
+    "physicalDeviceName": "NVIDIA GeForce RTX 3070",
+    "deviceType": "DiscreteGpu",
+    "apiVersion": 4211017,
+    "driverVersion": 2500395008,
+    "vendorId": 4318,
+    "deviceId": 9352,
+    "queueFamilyIndex": 0,
+    "timelineSemaphores": true,
+    "enabledInstanceExtensions": [
+      "VK_EXT_debug_utils"
+    ],
+    "enabledDeviceExtensions": [],
+    "enabledValidationLayers": [
+      "VK_LAYER_KHRONOS_validation"
+    ]
+  },
+  "validation": {
+    "available": true,
+    "errors": 0,
+    "warningCount": 0
+  },
+  "pixelFacts": {
+    "clearPixelCount": 1792,
+    "drawnPixelCount": 2304,
+    "distinctDrawnColors": 4,
+    "textureContributed": true,
+    "tintContributed": true
+  },
+  "repeat": {
+    "reuseRuns": 10,
+    "stable": true,
+    "freshDevicePassed": true
+  },
+  "timingsMilliseconds": {
+    "compiler": 251.902,
+    "deviceInit": 399.868,
+    "timings": {
+      "resourceUploadMilliseconds": 19.342,
+      "pipelineMilliseconds": 23.976,
+      "recordSubmitMilliseconds": 8.215,
+      "readbackMilliseconds": 0.918,
+      "totalMilliseconds": 54.576
+    }
+  },
+  "negativeContracts": {
+    "missingBinding": "covered by tests",
+    "wrongMaterialSize": "covered by tests",
+    "wrongVertexStride": "covered by tests"
+  }
+}

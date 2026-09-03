@@ -177,3 +177,16 @@ system, shader recompilation, or broader language features.
   `13d86b3a...`, pixel SPIR-V `e9d019d2...`; repeat hashes matched.
 - The five JSON artifacts parse, total 71,810 bytes, and `git diff --check`
   passes. Oct has no diff.
+
+## Native renderer qualification update
+
+AURELIAN-NATIVE-FORWARD-TEXTURED-M0 is complete with Outcome A. The production
+exporter creates one renderer-neutral `CompiledGraphicsProgram` from graphics.m3
+VD-MIR and validated DXC stages. The existing Aurelian Vulkan path derives
+vertex and descriptor layouts, uploads the compiler-described 32-byte material
+and a 2x2 texture, draws a 64x64 offscreen quad, and reads back canonical RGBA
+bytes. Ten reused-device runs and one fresh-device run produced SHA-256
+`521e2788a769bb98bd3cc8f966fba3940e2d5a7ad0cd0ff06ac52ceea16c60f7`
+with semantic texture/tint assertions and Khronos validation clean. See
+`docs/Aurelian/aurelian-native-forward-textured-m0-report.md` and
+`artifacts/aurelian-native-forward-textured-m0/`.

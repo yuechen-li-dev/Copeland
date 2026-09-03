@@ -1,0 +1,13 @@
+{
+  "schema": "aurelian.native-forward-textured.validation.v1",
+  "requested": true,
+  "available": true,
+  "enabledLayers": [
+    "VK_LAYER_KHRONOS_validation"
+  ],
+  "errors": 0,
+  "warnings": [],
+  "structuralContractPassed": true,
+  "spirvValidated": true,
+  "note": "Khronos validation layer enabled; no Vulkan call returned a validation failure."
+}

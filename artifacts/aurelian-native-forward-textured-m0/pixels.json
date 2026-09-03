@@ -1,0 +1,82 @@
+{
+  "schema": "aurelian.native-forward-textured.pixels.v1",
+  "format": "R8G8B8A8_UNORM",
+  "width": 64,
+  "height": 64,
+  "rowOrder": "top-to-bottom Vulkan copy order",
+  "channelOrder": "RGBA",
+  "rowPaddingBytes": 0,
+  "sha256": "521e2788a769bb98bd3cc8f966fba3940e2d5a7ad0cd0ff06ac52ceea16c60f7",
+  "semanticAssertions": {
+    "clearPixelCount": 1792,
+    "drawnPixelCount": 2304,
+    "distinctDrawnColors": 4,
+    "textureContributed": true,
+    "tintContributed": true
+  },
+  "sampledPixels": [
+    {
+      "x": 0,
+      "y": 0,
+      "rgba": [
+        16,
+        32,
+        64,
+        255
+      ]
+    },
+    {
+      "x": 16,
+      "y": 16,
+      "rgba": [
+        0,
+        0,
+        191,
+        255
+      ]
+    },
+    {
+      "x": 32,
+      "y": 32,
+      "rgba": [
+        0,
+        255,
+        0,
+        255
+      ]
+    },
+    {
+      "x": 47,
+      "y": 47,
+      "rgba": [
+        0,
+        255,
+        0,
+        255
+      ]
+    },
+    {
+      "x": 63,
+      "y": 63,
+      "rgba": [
+        16,
+        32,
+        64,
+        255
+      ]
+    }
+  ],
+  "repeatedHashes": [
+    "521e2788a769bb98bd3cc8f966fba3940e2d5a7ad0cd0ff06ac52ceea16c60f7",
+    "521e2788a769bb98bd3cc8f966fba3940e2d5a7ad0cd0ff06ac52ceea16c60f7",
+    "521e2788a769bb98bd3cc8f966fba3940e2d5a7ad0cd0ff06ac52ceea16c60f7",
+    "521e2788a769bb98bd3cc8f966fba3940e2d5a7ad0cd0ff06ac52ceea16c60f7",
+    "521e2788a769bb98bd3cc8f966fba3940e2d5a7ad0cd0ff06ac52ceea16c60f7",
+    "521e2788a769bb98bd3cc8f966fba3940e2d5a7ad0cd0ff06ac52ceea16c60f7",
+    "521e2788a769bb98bd3cc8f966fba3940e2d5a7ad0cd0ff06ac52ceea16c60f7",
+    "521e2788a769bb98bd3cc8f966fba3940e2d5a7ad0cd0ff06ac52ceea16c60f7",
+    "521e2788a769bb98bd3cc8f966fba3940e2d5a7ad0cd0ff06ac52ceea16c60f7",
+    "521e2788a769bb98bd3cc8f966fba3940e2d5a7ad0cd0ff06ac52ceea16c60f7"
+  ],
+  "freshDeviceHash": "521e2788a769bb98bd3cc8f966fba3940e2d5a7ad0cd0ff06ac52ceea16c60f7"
+}
