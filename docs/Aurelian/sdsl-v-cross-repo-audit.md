@@ -523,3 +523,20 @@ Bound it to:
 Do not add vertex/pixel, material, payload-enum runtime layout, templates,
 reflection extensions, shader cache, renderer API or editor work in M1. This is
 the smallest vertical slice that proves one language and one Copeland frontend.
+
+## M1 closure update (2026-09-03)
+
+`AURELIAN-SDSLV-PORT-M1` completed the bounded compute route described above.
+The Oct authority revision remained `584bd176fd50664edadcb2bc3ae78431ac0f1e51`;
+the pre-port audit found no implementation bug in the selected
+`compute.no-regression` and `DuplicateResourceBinding` laws, so Oct required no
+change. The canonical conformance manifest SHA-256 is
+`a107f9d4291458f9d7c2a06e73578ec8e11a223a6acc9bed7c417cbe322b4406`.
+
+Copeland now parses first-class annotations and binds a compute-only
+`vdmir.semantic.v1` module. Aurelian consumes the module without invoking its
+historical SDSL-V frontend. The checked-in five-file proof bundle records exact
+resource/builtin facts, canonical diagnostics, HLSL, SPIR-V, validation,
+structural disassembly evidence, tool provenance, timings, and repeat hashes.
+The detailed audit and result are in
+`docs/Aurelian/sdsl-v-port-m1-compute-report.md`.

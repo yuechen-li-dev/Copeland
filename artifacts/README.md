@@ -49,6 +49,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m13f/` is the current VD-MIR architecture doctrine manifest directory.
 - `artifacts/m13g/` is the current Aurelian.VisibleTriangle topology and proof-boundary audit manifest directory.
 - `artifacts/m14a/` is the historical exploratory VD-MIR smoke-triangle compiler-slice proof directory.
+- `artifacts/aurelian-sdslv-port-m1/` is the production Copeland GPU binder and canonical compute VD-MIR/HLSL/DXC/SPIR-V proof bundle.
 - `artifacts/m14b/` is the historical Presenter/Silk.NET golden-triangle runtime proof directory.
 - `artifacts/m14d/` is the current Aurelian world-screen proof manifest directory.
 - `artifacts/m14e/` is the current Aurelian migration closeout and handoff manifest directory.

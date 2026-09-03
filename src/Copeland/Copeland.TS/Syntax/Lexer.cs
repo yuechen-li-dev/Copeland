@@ -97,6 +97,8 @@ public sealed class Lexer
                     return SingleCharToken(SyntaxKind.SemicolonToken);
                 case '?':
                     return SingleCharToken(SyntaxKind.QuestionToken);
+                case '@':
+                    return SingleCharToken(SyntaxKind.AtToken);
                 case '+':
                     return SingleCharToken(SyntaxKind.PlusToken);
                 case '-':

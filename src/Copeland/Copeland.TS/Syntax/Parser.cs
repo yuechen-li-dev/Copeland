@@ -120,6 +120,7 @@ public sealed class Parser
 
     private MemberSyntax ParseMember()
     {
+        IReadOnlyList<AnnotationSyntax> annotations = ParseAnnotations();
         bool isExported = false;
         if (IsWord(Current, "using") && IsClrUsingDirectiveAhead())
         {
@@ -151,7 +152,7 @@ public sealed class Parser
                 remoteKeyword = NextToken();
             }
 
-            return ParseFunctionDeclaration(remoteKeyword);
+            return ParseFunctionDeclaration(remoteKeyword, annotations);
         }
 
         // Module exports do not change the shape of a declaration. The project
@@ -179,13 +180,13 @@ public sealed class Parser
         if (Current.Kind == SyntaxKind.IdentifierToken
             && Current.Text == "interface")
         {
-            return ParseInterfaceDeclaration();
+            return ParseInterfaceDeclaration(annotations);
         }
 
         if (Current.Kind == SyntaxKind.ConstKeyword && Peek(1).Kind == SyntaxKind.RecordKeyword)
         {
             var constKeyword = Match(SyntaxKind.ConstKeyword);
-            return ParseRecordDeclaration(constKeyword);
+            return ParseRecordDeclaration(constKeyword, annotations);
         }
         if (Current.Kind == SyntaxKind.LayoutKeyword)
         {
@@ -219,7 +220,7 @@ public sealed class Parser
                 remoteKeyword = NextToken();
             }
 
-            return ParseFunctionDeclaration(remoteKeyword);
+            return ParseFunctionDeclaration(remoteKeyword, annotations);
         }
         if (Current.Kind == SyntaxKind.EnumKeyword)
         {
@@ -231,14 +232,52 @@ public sealed class Parser
             {
                 return ParseTableDeclaration(isExported);
             }
-            return ParseRecordDeclaration(null);
+            return ParseRecordDeclaration(null, annotations);
         }
         if (IsClassWord(Current, "class"))
         {
             return ParseClassDeclaration();
         }
 
+        if (annotations.Count > 0)
+        {
+            _diagnostics.Report(
+                "COPE-PARSE-ANNOTATION-0001",
+                "Annotations are currently supported on function, record, interface, field, and parameter declarations.",
+                annotations[0].AtToken.Position,
+                1);
+        }
+
         return new GlobalStatementMemberSyntax(ParseStatement());
+    }
+
+    private IReadOnlyList<AnnotationSyntax> ParseAnnotations()
+    {
+        var annotations = new List<AnnotationSyntax>();
+        while (Current.Kind == SyntaxKind.AtToken)
+        {
+            SyntaxToken atToken = NextToken();
+            SyntaxToken nameToken = Match(SyntaxKind.IdentifierToken);
+            SyntaxToken? openParenToken = null;
+            SyntaxToken? closeParenToken = null;
+            var arguments = new List<ExpressionSyntax>();
+            var commas = new List<SyntaxToken>();
+            if (Current.Kind == SyntaxKind.OpenParenToken)
+            {
+                openParenToken = NextToken();
+                while (Current.Kind is not SyntaxKind.CloseParenToken and not SyntaxKind.EndOfFileToken)
+                {
+                    arguments.Add(ParseExpression());
+                    if (Current.Kind != SyntaxKind.CommaToken) break;
+                    commas.Add(NextToken());
+                }
+                closeParenToken = Match(SyntaxKind.CloseParenToken);
+            }
+
+            annotations.Add(new AnnotationSyntax(atToken, nameToken, openParenToken, arguments, commas, closeParenToken));
+        }
+
+        return annotations;
     }
 
     private bool IsExportableDeclarationAhead()
@@ -654,7 +693,9 @@ public sealed class Parser
         }
     }
 
-    private FunctionDeclarationSyntax ParseFunctionDeclaration(SyntaxToken? remoteKeyword = null)
+    private FunctionDeclarationSyntax ParseFunctionDeclaration(
+        SyntaxToken? remoteKeyword = null,
+        IReadOnlyList<AnnotationSyntax>? annotations = null)
     {
         SyntaxToken? asyncKeyword = Current.Kind == SyntaxKind.AsyncKeyword ? NextToken() : null;
         var functionKeyword = Match(SyntaxKind.FunctionKeyword);
@@ -695,6 +736,12 @@ public sealed class Parser
         var commas = new List<SyntaxToken>();
         while (Current.Kind != SyntaxKind.CloseParenToken && Current.Kind != SyntaxKind.EndOfFileToken)
         {
+            IReadOnlyList<AnnotationSyntax> parameterAnnotations = ParseAnnotations();
+            SyntaxToken? accessToken = null;
+            if (IsWord(Current, "readonly") || IsWord(Current, "readwrite"))
+            {
+                accessToken = NextToken();
+            }
             var parameterIdentifier = Match(SyntaxKind.IdentifierToken);
             SyntaxToken? parameterColon = null;
             TypeSyntax? parameterType = null;
@@ -706,7 +753,7 @@ public sealed class Parser
 
             ReportAndSkipDefaultParameterValue();
 
-            parameters.Add(new ParameterSyntax(parameterIdentifier, parameterColon, parameterType));
+            parameters.Add(new ParameterSyntax(parameterIdentifier, parameterColon, parameterType, parameterAnnotations, accessToken));
 
             if (Current.Kind != SyntaxKind.CommaToken)
             {
@@ -725,7 +772,7 @@ public sealed class Parser
             returnType = ParseTypeSyntax();
         }
         var body = ParseBlockStatement();
-        return new FunctionDeclarationSyntax(remoteKeyword, asyncKeyword, functionKeyword, generatorStarToken, identifier, lessToken, typeParameters, typeParameterCommas, greaterToken, openParenToken, parameters, commas, closeParenToken, returnTypeColonToken, returnType, body);
+        return new FunctionDeclarationSyntax(remoteKeyword, asyncKeyword, functionKeyword, generatorStarToken, identifier, lessToken, typeParameters, typeParameterCommas, greaterToken, openParenToken, parameters, commas, closeParenToken, returnTypeColonToken, returnType, body, annotations);
     }
 
     private TemplateDeclarationSyntax ParseTemplateDeclaration()
@@ -1295,7 +1342,7 @@ public sealed class Parser
                     && Peek(offset + 2).Kind == SyntaxKind.FunctionKeyword);
     }
 
-    private InterfaceDeclarationSyntax ParseInterfaceDeclaration()
+    private InterfaceDeclarationSyntax ParseInterfaceDeclaration(IReadOnlyList<AnnotationSyntax>? annotations = null)
     {
         var interfaceKeyword = NextToken();
         var identifier = Match(SyntaxKind.IdentifierToken);
@@ -1303,6 +1350,7 @@ public sealed class Parser
         var fields = new List<InterfaceFieldSyntax>();
         while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
         {
+            IReadOnlyList<AnnotationSyntax> fieldAnnotations = ParseAnnotations();
             var fieldIdentifier = Match(SyntaxKind.IdentifierToken);
             SyntaxToken? questionToken = Current.Kind == SyntaxKind.QuestionToken && Peek(1).Kind == SyntaxKind.ColonToken
                 ? NextToken()
@@ -1328,9 +1376,9 @@ public sealed class Parser
             }
             var hasTerminator = Current.Kind == SyntaxKind.SemicolonToken;
             var semicolon = hasTerminator ? NextToken() : MissingToken(SyntaxKind.SemicolonToken, Current.Position);
-            fields.Add(new InterfaceFieldSyntax(fieldIdentifier, colon, type, unsupported, semicolon, hasType, hasTerminator));
+            fields.Add(new InterfaceFieldSyntax(fieldIdentifier, colon, type, unsupported, semicolon, hasType, hasTerminator, fieldAnnotations));
         }
-        return new InterfaceDeclarationSyntax(interfaceKeyword, identifier, openBrace, fields, Match(SyntaxKind.CloseBraceToken));
+        return new InterfaceDeclarationSyntax(interfaceKeyword, identifier, openBrace, fields, Match(SyntaxKind.CloseBraceToken), annotations);
     }
 
     private EnumDeclarationSyntax ParseEnumDeclaration()
@@ -1789,7 +1837,9 @@ public sealed class Parser
         }
     }
 
-    private RecordDeclarationSyntax ParseRecordDeclaration(SyntaxToken? constKeyword)
+    private RecordDeclarationSyntax ParseRecordDeclaration(
+        SyntaxToken? constKeyword,
+        IReadOnlyList<AnnotationSyntax>? annotations = null)
     {
         var recordKeyword = Match(SyntaxKind.RecordKeyword);
         var identifier = Match(SyntaxKind.IdentifierToken);
@@ -1798,6 +1848,7 @@ public sealed class Parser
 
         while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
         {
+            IReadOnlyList<AnnotationSyntax> fieldAnnotations = ParseAnnotations();
             var fieldIdentifier = Match(SyntaxKind.IdentifierToken);
             SyntaxToken? questionToken = Current.Kind == SyntaxKind.QuestionToken && Peek(1).Kind == SyntaxKind.ColonToken
                 ? NextToken()
@@ -1826,11 +1877,11 @@ public sealed class Parser
             var semicolonToken = hasTerminator
                 ? NextToken()
                 : MissingToken(SyntaxKind.SemicolonToken, Current.Position);
-            fields.Add(new RecordFieldSyntax(fieldIdentifier, questionToken, colonToken, type, unsupportedTokens, semicolonToken, hasExplicitType, hasTerminator));
+            fields.Add(new RecordFieldSyntax(fieldIdentifier, questionToken, colonToken, type, unsupportedTokens, semicolonToken, hasExplicitType, hasTerminator, fieldAnnotations));
         }
 
         var closeBraceToken = Match(SyntaxKind.CloseBraceToken);
-        return new RecordDeclarationSyntax(constKeyword, recordKeyword, identifier, openBraceToken, fields, closeBraceToken);
+        return new RecordDeclarationSyntax(constKeyword, recordKeyword, identifier, openBraceToken, fields, closeBraceToken, annotations);
     }
 
     private ClassDeclarationSyntax ParseClassDeclaration()

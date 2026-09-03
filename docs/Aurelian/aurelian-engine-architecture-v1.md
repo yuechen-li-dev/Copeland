@@ -328,3 +328,19 @@ owns Vulkan module and pipeline realization. Shader semantic metadata generates
 host binding/layout inputs, so handwritten shader/C# binding descriptions do
 not become parallel authority. See `docs/Aurelian/sdsl-v-cross-repo-audit.md`
 and `docs/Copeland/sdsl-v-gpu-profile.md`.
+
+## 26. AURELIAN-SDSLV-PORT-M1 compute update
+
+The first production compute slice now follows the ownership above. Copeland's
+ordinary parser owns `@compute`, `@numthreads`, `@binding`, and `@builtin`
+syntax nodes and exact spans. Its explicit `Gpu` profile binds the closed M1
+types, resources, access law, builtin, functions, locals, indexing, arithmetic,
+comparison, `if`, return, and reachable helper closure into
+`vdmir.semantic.v1`. The `.v.ts` suffix remains only a convention.
+
+`Aurelian.Shaders.Compute` consumes that VD-MIR directly and is the sole M1
+route to deterministic HLSL, DXC `cs_6_0`/Vulkan 1.3 SPIR-V, `spirv-val`, and
+structural metadata. The historical `Aurelian.Shaders.Language` parser,
+validator, stage extraction, legacy emitter, and graphics smoke VD-MIR remain
+retained for historical tests but are not callable semantic authorities for the
+Copeland compute route. Aurelian.Graphics is unchanged.

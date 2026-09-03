@@ -111,7 +111,7 @@ public sealed class LexerTests
     [Fact]
     public void Reports_Invalid_Character()
     {
-        var tree = SyntaxTree.ParseTokens("@");
+        var tree = SyntaxTree.ParseTokens("^");
 
         Assert.Single(tree.Diagnostics);
         Assert.Equal("COPE-LEX-0003", tree.Diagnostics[0].Id);

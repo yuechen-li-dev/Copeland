@@ -85,6 +85,7 @@ public static class SyntaxFacts
             SyntaxKind.ColonToken => ":",
             SyntaxKind.SemicolonToken => ";",
             SyntaxKind.QuestionToken => "?",
+            SyntaxKind.AtToken => "@",
             SyntaxKind.PlusToken => "+",
             SyntaxKind.MinusToken => "-",
             SyntaxKind.StarToken => "*",

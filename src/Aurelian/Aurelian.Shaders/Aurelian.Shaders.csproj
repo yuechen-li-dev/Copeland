@@ -11,5 +11,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />
+    <ProjectReference Include="../../Copeland/Copeland.TS/Copeland.TS.csproj" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,52 @@
+{
+  "schema": "aurelian.sdslv-port-m1.diagnostics.v1",
+  "duplicateBinding": [
+    {
+      "code": "COPE-GPU-BINDING-0001",
+      "canonicalCode": "SDSL-V4112",
+      "category": "resource-binding",
+      "message": "Binding set 0, binding 0 is already claimed by \u0027Input\u0027.",
+      "primarySpan": {
+        "file": "DuplicateResourceBinding.v.ts",
+        "start": 166,
+        "length": 7
+      },
+      "relatedSpans": [
+        {
+          "message": "First binding annotation.",
+          "span": {
+            "file": "DuplicateResourceBinding.v.ts",
+            "start": 114,
+            "length": 7
+          }
+        }
+      ]
+    }
+  ],
+  "reachableHostOnly": [
+    {
+      "code": "COPE-GPU-TYPE-0002",
+      "canonicalCode": "SDSL-V1503",
+      "category": "type",
+      "message": "Expected \u0027f32\u0027, got \u0027error\u0027.",
+      "primarySpan": {
+        "file": "HostOnly.ts",
+        "start": 37,
+        "length": 22
+      },
+      "relatedSpans": []
+    },
+    {
+      "code": "COPE-GPU-CLOSURE-0001",
+      "canonicalCode": "SDSL-V4200",
+      "category": "host-only",
+      "message": "Reachable managed allocation has no closed GPU semantics.",
+      "primarySpan": {
+        "file": "HostOnly.ts",
+        "start": 44,
+        "length": 3
+      },
+      "relatedSpans": []
+    }
+  ]
+}

@@ -1,2 +1,2 @@
-BadToken|@|null
+BadToken|^|null
 EndOfFileToken||null

@@ -1,0 +1,245 @@
+{
+  "schema": "vdmir.semantic.v1",
+  "conformanceSchema": "sdslv.conformance.v1",
+  "featureLevel": "compute.m1",
+  "sourceFiles": [
+    "samples/Aurelian/SdslvPortM1/ComputeNoRegression.v.ts"
+  ],
+  "types": [
+    "bool",
+    "f32",
+    "u32",
+    "uint3",
+    "void"
+  ],
+  "resources": [
+    {
+      "name": "Input",
+      "elementType": "f32",
+      "access": 0,
+      "set": 0,
+      "binding": 0,
+      "source": {
+        "file": "samples/Aurelian/SdslvPortM1/ComputeNoRegression.v.ts",
+        "start": 113,
+        "length": 46
+      },
+      "bindingSource": {
+        "file": "samples/Aurelian/SdslvPortM1/ComputeNoRegression.v.ts",
+        "start": 114,
+        "length": 7
+      }
+    },
+    {
+      "name": "Output",
+      "elementType": "f32",
+      "access": 1,
+      "set": 0,
+      "binding": 1,
+      "source": {
+        "file": "samples/Aurelian/SdslvPortM1/ComputeNoRegression.v.ts",
+        "start": 165,
+        "length": 48
+      },
+      "bindingSource": {
+        "file": "samples/Aurelian/SdslvPortM1/ComputeNoRegression.v.ts",
+        "start": 166,
+        "length": 7
+      }
+    }
+  ],
+  "functions": [
+    {
+      "name": "ComputeNoRegression_CS",
+      "parameters": [
+        {
+          "name": "thread",
+          "type": "uint3",
+          "builtin": "dispatch_thread_id",
+          "source": {
+            "file": "samples/Aurelian/SdslvPortM1/ComputeNoRegression.v.ts",
+            "start": 67,
+            "length": 40
+          }
+        }
+      ],
+      "returnType": "void",
+      "statements": [
+        {
+          "kind": "local",
+          "source": {
+            "file": "samples/Aurelian/SdslvPortM1/ComputeNoRegression.v.ts",
+            "start": 228,
+            "length": 28
+          },
+          "name": "index",
+          "type": "u32",
+          "mutable": false,
+          "expression": {
+            "kind": "field",
+            "type": "u32",
+            "source": {
+              "file": "samples/Aurelian/SdslvPortM1/ComputeNoRegression.v.ts",
+              "start": 247,
+              "length": 8
+            },
+            "value": "x",
+            "operands": [
+              {
+                "kind": "name",
+                "type": "uint3",
+                "source": {
+                  "file": "samples/Aurelian/SdslvPortM1/ComputeNoRegression.v.ts",
+                  "start": 247,
+                  "length": 6
+                },
+                "value": "thread",
+                "operands": null
+              }
+            ]
+          },
+          "body": null,
+          "elseBody": null
+        },
+        {
+          "kind": "assign",
+          "source": {
+            "file": "samples/Aurelian/SdslvPortM1/ComputeNoRegression.v.ts",
+            "start": 261,
+            "length": 29
+          },
+          "name": null,
+          "type": null,
+          "mutable": false,
+          "expression": {
+            "kind": "assignment",
+            "type": "f32",
+            "source": {
+              "file": "samples/Aurelian/SdslvPortM1/ComputeNoRegression.v.ts",
+              "start": 261,
+              "length": 28
+            },
+            "value": null,
+            "operands": [
+              {
+                "kind": "index",
+                "type": "f32",
+                "source": {
+                  "file": "samples/Aurelian/SdslvPortM1/ComputeNoRegression.v.ts",
+                  "start": 261,
+                  "length": 13
+                },
+                "value": null,
+                "operands": [
+                  {
+                    "kind": "name",
+                    "type": "storage-buffer\u003Cf32\u003E",
+                    "source": {
+                      "file": "samples/Aurelian/SdslvPortM1/ComputeNoRegression.v.ts",
+                      "start": 261,
+                      "length": 6
+                    },
+                    "value": "Output",
+                    "operands": null
+                  },
+                  {
+                    "kind": "name",
+                    "type": "u32",
+                    "source": {
+                      "file": "samples/Aurelian/SdslvPortM1/ComputeNoRegression.v.ts",
+                      "start": 268,
+                      "length": 5
+                    },
+                    "value": "index",
+                    "operands": null
+                  }
+                ]
+              },
+              {
+                "kind": "index",
+                "type": "f32",
+                "source": {
+                  "file": "samples/Aurelian/SdslvPortM1/ComputeNoRegression.v.ts",
+                  "start": 277,
+                  "length": 12
+                },
+                "value": null,
+                "operands": [
+                  {
+                    "kind": "name",
+                    "type": "storage-buffer\u003Cf32\u003E",
+                    "source": {
+                      "file": "samples/Aurelian/SdslvPortM1/ComputeNoRegression.v.ts",
+                      "start": 277,
+                      "length": 5
+                    },
+                    "value": "Input",
+                    "operands": null
+                  },
+                  {
+                    "kind": "name",
+                    "type": "u32",
+                    "source": {
+                      "file": "samples/Aurelian/SdslvPortM1/ComputeNoRegression.v.ts",
+                      "start": 283,
+                      "length": 5
+                    },
+                    "value": "index",
+                    "operands": null
+                  }
+                ]
+              }
+            ]
+          },
+          "body": null,
+          "elseBody": null
+        },
+        {
+          "kind": "return",
+          "source": {
+            "file": "samples/Aurelian/SdslvPortM1/ComputeNoRegression.v.ts",
+            "start": 295,
+            "length": 7
+          },
+          "name": null,
+          "type": null,
+          "mutable": false,
+          "expression": null,
+          "body": null,
+          "elseBody": null
+        }
+      ],
+      "source": {
+        "file": "samples/Aurelian/SdslvPortM1/ComputeNoRegression.v.ts",
+        "start": 0,
+        "length": 304
+      }
+    }
+  ],
+  "entryPoint": {
+    "name": "ComputeNoRegression_CS",
+    "emittedName": "ComputeNoRegression_CS",
+    "numThreadsX": 8,
+    "numThreadsY": 1,
+    "numThreadsZ": 1,
+    "builtins": [
+      {
+        "name": "thread",
+        "type": "uint3",
+        "builtin": "dispatch_thread_id",
+        "source": {
+          "file": "samples/Aurelian/SdslvPortM1/ComputeNoRegression.v.ts",
+          "start": 67,
+          "length": 40
+        }
+      }
+    ],
+    "source": {
+      "file": "samples/Aurelian/SdslvPortM1/ComputeNoRegression.v.ts",
+      "start": 0,
+      "length": 304
+    }
+  },
+  "diagnostics": [],
+  "success": true
+}

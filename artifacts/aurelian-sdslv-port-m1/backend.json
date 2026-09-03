@@ -1,0 +1,48 @@
+{
+  "schema": "aurelian.sdslv-port-m1.backend.v1",
+  "hlsl": "// Generated from canonical VD-MIR compute.m1. Do not edit.\r\n\r\n[[vk::binding(0, 0)]] StructuredBuffer\u003Cfloat\u003E Input;\r\n[[vk::binding(1, 0)]] RWStructuredBuffer\u003Cfloat\u003E Output;\r\n\r\n[numthreads(8, 1, 1)]\r\nvoid ComputeNoRegression_CS(uint3 thread : SV_DispatchThreadID)\r\n{\r\n    uint index = thread.x;\r\n    Output[index] = Input[index];\r\n    return;\r\n}\r\n",
+  "hlslSha256": "d7f3dfa66d245629cd4e86f4d6e932ae4cf3d62fb03196e805c09c2c34b7822c",
+  "spirvBase64": "AwIjBwAGAQAAAA4AGQAAAAAAAAARAAIAAQAAAA4AAwAAAAAAAQAAAA8ADAAFAAAAAQAAAENvbXB1dGVOb1JlZ3Jlc3Npb25fQ1MAAAIAAAADAAAABAAAABAABgABAAAAEQAAAAgAAAABAAAAAQAAAAMAAwAFAAAAWAIAAAUACQAFAAAAdHlwZS5TdHJ1Y3R1cmVkQnVmZmVyLmZsb2F0AAUABAADAAAASW5wdXQAAAAFAAoABgAAAHR5cGUuUldTdHJ1Y3R1cmVkQnVmZmVyLmZsb2F0AAAABQAEAAQAAABPdXRwdXQAAAUACAABAAAAQ29tcHV0ZU5vUmVncmVzc2lvbl9DUwAARwAEAAIAAAALAAAAHAAAAEcABAADAAAAIgAAAAAAAABHAAQAAwAAACEAAAAAAAAARwAEAAQAAAAiAAAAAAAAAEcABAAEAAAAIQAAAAEAAABHAAQABwAAAAYAAAAEAAAASAAFAAUAAAAAAAAAIwAAAAAAAABIAAQABQAAAAAAAAAYAAAARwADAAUAAAACAAAASAAFAAYAAAAAAAAAIwAAAAAAAABHAAMABgAAAAIAAAAVAAQACAAAACAAAAABAAAAKwAEAAgAAAAJAAAAAAAAABYAAwAKAAAAIAAAAB0AAwAHAAAACgAAAB4AAwAFAAAABwAAACAABAALAAAADAAAAAUAAAAeAAMABgAAAAcAAAAgAAQADAAAAAwAAAAGAAAAFQAEAA0AAAAgAAAAAAAAABcABAAOAAAADQAAAAMAAAAgAAQADwAAAAEAAAAOAAAAEwACABAAAAAhAAMAEQAAABAAAAAgAAQAEgAAAAwAAAAKAAAAOwAEAAsAAAADAAAADAAAADsABAAMAAAABAAAAAwAAAA7AAQADwAAAAIAAAABAAAANgAFABAAAAABAAAAAAAAABEAAAD4AAIAEwAAAD0ABAAOAAAAFAAAAAIAAABRAAUADQAAABUAAAAUAAAAAAAAAEEABgASAAAAFgAAAAMAAAAJAAAAFQAAAD0ABAAKAAAAFwAAABYAAABBAAYAEgAAABgAAAAEAAAACQAAABUAAAA\u002BAAMAGAAAABcAAAD9AAEAOAABAA==",
+  "spirvSha256": "059b327cf98d2bd9028eecb0d2d7fbf958ea62731c5578836cf9c23ade20687c",
+  "dxcStatus": "Compiled",
+  "dxcPath": "C:\\Users\\yuech\\.nuget\\packages\\microsoft.direct3d.dxc\\1.9.2602.24\\build\\native\\bin\\x64\\dxc.exe",
+  "dxcVersion": "1.9.2602.24",
+  "dxcProfile": "cs_6_0",
+  "dxcArguments": [
+    "-spirv",
+    "-fspv-target-env=vulkan1.3",
+    "-HV",
+    "2021",
+    "-E",
+    "ComputeNoRegression_CS",
+    "-T",
+    "cs_6_0"
+  ],
+  "spirvValidated": true,
+  "spirvValidationOutput": "",
+  "structure": [
+    "OpEntryPoint GLCompute %ComputeNoRegression_CS \u0022ComputeNoRegression_CS\u0022 %gl_GlobalInvocationID %Input %Output",
+    "OpExecutionMode %ComputeNoRegression_CS LocalSize 8 1 1",
+    "OpDecorate %Input DescriptorSet 0",
+    "OpDecorate %Input Binding 0",
+    "OpDecorate %Output DescriptorSet 0",
+    "OpDecorate %Output Binding 1",
+    "OpMemberDecorate %type_StructuredBuffer_float 0 NonWritable"
+  ],
+  "hostBindings": [
+    {
+      "set": 0,
+      "binding": 0,
+      "name": "Input",
+      "access": "readonly",
+      "elementType": "f32"
+    },
+    {
+      "set": 0,
+      "binding": 1,
+      "name": "Output",
+      "access": "readwrite",
+      "elementType": "f32"
+    }
+  ]
+}

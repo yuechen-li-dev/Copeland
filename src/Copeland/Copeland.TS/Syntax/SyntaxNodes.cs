@@ -387,11 +387,13 @@ public sealed record InterfaceFieldSyntax(
     IReadOnlyList<SyntaxToken> UnsupportedTokens,
     SyntaxToken SemicolonToken,
     bool HasExplicitType,
-    bool HasTerminator) : SyntaxNode
+    bool HasTerminator,
+    IReadOnlyList<AnnotationSyntax>? Annotations = null) : SyntaxNode
 {
     public override SyntaxKind Kind => SyntaxKind.InterfaceField;
     public override IEnumerable<object> GetChildren()
     {
+        foreach (AnnotationSyntax annotation in Annotations ?? []) yield return annotation;
         yield return Identifier;
         yield return ColonToken;
         yield return Type;
@@ -405,11 +407,13 @@ public sealed record InterfaceDeclarationSyntax(
     SyntaxToken Identifier,
     SyntaxToken OpenBraceToken,
     IReadOnlyList<InterfaceFieldSyntax> Fields,
-    SyntaxToken CloseBraceToken) : MemberSyntax
+    SyntaxToken CloseBraceToken,
+    IReadOnlyList<AnnotationSyntax>? Annotations = null) : MemberSyntax
 {
     public override SyntaxKind Kind => SyntaxKind.InterfaceDeclaration;
     public override IEnumerable<object> GetChildren()
     {
+        foreach (AnnotationSyntax annotation in Annotations ?? []) yield return annotation;
         yield return InterfaceKeyword;
         yield return Identifier;
         yield return OpenBraceToken;
@@ -512,12 +516,43 @@ public sealed record ColumnTypeSyntax(SyntaxToken ColumnKeyword, TypeSyntax Elem
     public override IEnumerable<object> GetChildren() { yield return ColumnKeyword; yield return ElementType; }
 }
 
-public sealed record ParameterSyntax(SyntaxToken Identifier, SyntaxToken? ColonToken, TypeSyntax? Type) : SyntaxNode
+public sealed record AnnotationSyntax(
+    SyntaxToken AtToken,
+    SyntaxToken NameToken,
+    SyntaxToken? OpenParenToken,
+    IReadOnlyList<ExpressionSyntax> Arguments,
+    IReadOnlyList<SyntaxToken> CommaTokens,
+    SyntaxToken? CloseParenToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.Annotation;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return AtToken;
+        yield return NameToken;
+        if (OpenParenToken is not null) yield return OpenParenToken;
+        for (int index = 0; index < Arguments.Count; index++)
+        {
+            if (index > 0) yield return CommaTokens[index - 1];
+            yield return Arguments[index];
+        }
+        if (CloseParenToken is not null) yield return CloseParenToken;
+    }
+}
+
+public sealed record ParameterSyntax(
+    SyntaxToken Identifier,
+    SyntaxToken? ColonToken,
+    TypeSyntax? Type,
+    IReadOnlyList<AnnotationSyntax>? Annotations = null,
+    SyntaxToken? AccessToken = null) : SyntaxNode
 {
     public override SyntaxKind Kind => SyntaxKind.Parameter;
 
     public override IEnumerable<object> GetChildren()
     {
+        foreach (AnnotationSyntax annotation in Annotations ?? []) yield return annotation;
+        if (AccessToken is not null) yield return AccessToken;
         yield return Identifier;
         if (ColonToken is not null)
         {
@@ -547,12 +582,14 @@ public sealed record FunctionDeclarationSyntax(
     SyntaxToken CloseParenToken,
     SyntaxToken? ReturnTypeColonToken,
     TypeSyntax? ReturnType,
-    BlockStatementSyntax Body) : MemberSyntax
+    BlockStatementSyntax Body,
+    IReadOnlyList<AnnotationSyntax>? Annotations = null) : MemberSyntax
 {
     public override SyntaxKind Kind => SyntaxKind.FunctionDeclaration;
 
     public override IEnumerable<object> GetChildren()
     {
+        foreach (AnnotationSyntax annotation in Annotations ?? []) yield return annotation;
         if (RemoteKeyword is not null) yield return RemoteKeyword;
         if (AsyncKeyword is not null) yield return AsyncKeyword;
         yield return FunctionKeyword;
@@ -2007,12 +2044,14 @@ public sealed record RecordDeclarationSyntax(
     SyntaxToken Identifier,
     SyntaxToken OpenBraceToken,
     IReadOnlyList<RecordFieldSyntax> Fields,
-    SyntaxToken CloseBraceToken) : MemberSyntax
+    SyntaxToken CloseBraceToken,
+    IReadOnlyList<AnnotationSyntax>? Annotations = null) : MemberSyntax
 {
     public override SyntaxKind Kind => SyntaxKind.RecordDeclaration;
 
     public override IEnumerable<object> GetChildren()
     {
+        foreach (AnnotationSyntax annotation in Annotations ?? []) yield return annotation;
         if (ConstKeyword is not null)
         {
             yield return ConstKeyword;
@@ -2036,12 +2075,14 @@ public sealed record RecordFieldSyntax(
     IReadOnlyList<SyntaxToken> UnsupportedTokens,
     SyntaxToken SemicolonToken,
     bool HasExplicitType,
-    bool HasTerminator) : SyntaxNode
+    bool HasTerminator,
+    IReadOnlyList<AnnotationSyntax>? Annotations = null) : SyntaxNode
 {
     public override SyntaxKind Kind => SyntaxKind.RecordField;
 
     public override IEnumerable<object> GetChildren()
     {
+        foreach (AnnotationSyntax annotation in Annotations ?? []) yield return annotation;
         yield return Identifier;
         if (QuestionToken is not null)
         {

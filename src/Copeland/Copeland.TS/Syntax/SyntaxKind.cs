@@ -31,6 +31,7 @@ public enum SyntaxKind
     ColonToken,
     SemicolonToken,
     QuestionToken,
+    AtToken,
 
     // Operators
     PlusToken,
@@ -151,6 +152,7 @@ public enum SyntaxKind
     TableAssetClause,
     TableColumn,
     Parameter,
+    Annotation,
     PredefinedType,
     IdentifierType,
     ArrayType,

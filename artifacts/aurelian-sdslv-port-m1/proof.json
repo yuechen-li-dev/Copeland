@@ -1,0 +1,49 @@
+{
+  "schema": "aurelian.sdslv-port-m1.proof.v1",
+  "outcome": "A",
+  "canonicalCase": "compute.no-regression",
+  "semanticParity": {
+    "entry": true,
+    "stage": "compute",
+    "numthreads": [
+      8,
+      1,
+      1
+    ],
+    "resources": [
+      "Input:set0/binding0:storage-buffer:readonly",
+      "Output:set0/binding1:storage-buffer:readwrite"
+    ],
+    "builtin": "dispatch_thread_id",
+    "control": [
+      "local",
+      "index",
+      "buffer-read",
+      "buffer-write",
+      "return"
+    ],
+    "pushConstants": "deferred-not-required",
+    "bufferLength": "deferred-not-required"
+  },
+  "negativeParity": {
+    "duplicateBinding": true,
+    "reachableHostOnly": true
+  },
+  "determinism": {
+    "vdMirSha256": "78e778b4a4e348511c42c2e9c2a042eb52a448f38674346301706155ef627797",
+    "hlslSha256": "d7f3dfa66d245629cd4e86f4d6e932ae4cf3d62fb03196e805c09c2c34b7822c",
+    "spirvSha256": "059b327cf98d2bd9028eecb0d2d7fbf958ea62731c5578836cf9c23ade20687c",
+    "repeatedHlslSha256": "d7f3dfa66d245629cd4e86f4d6e932ae4cf3d62fb03196e805c09c2c34b7822c",
+    "repeatedSpirvSha256": "059b327cf98d2bd9028eecb0d2d7fbf958ea62731c5578836cf9c23ade20687c",
+    "equal": true
+  },
+  "timingsMilliseconds": {
+    "parse": 26.1865,
+    "gpuBindProductionPassIncludingParse": 19.4623,
+    "vdMirProjection": 0,
+    "jsonProjection": 39.5407,
+    "hlslEmit": 1.8763,
+    "dxcAndSpirvValidation": 61.3425
+  },
+  "artifactCount": 5
+}

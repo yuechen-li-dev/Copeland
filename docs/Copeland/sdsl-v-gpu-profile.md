@@ -2,9 +2,10 @@
 
 ## Status
 
-This is the AURELIAN-SDSLV-AUDIT-M0 profile decision, not an implemented
-compiler feature. SDSL-V semantics remain owned by Oct's canonical language
-specification and conformance corpus. Copeland supplies a second frontend.
+The compute M1 subset is implemented. SDSL-V semantics remain owned by Oct's
+canonical language specification and conformance corpus. Copeland supplies a
+second frontend through `GpuComputeBinder`; graphics stages and the deferred
+features below remain profile decisions only.
 
 ## Selection and source files
 
