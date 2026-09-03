@@ -114,3 +114,11 @@ texture plus sampler only if the canonical minimal program requires them. Extend
 the same AST, binder, VD-MIR, and backend. Keep materials, interpolation
 variants, multiple targets, broad semantic spaces, renderer APIs, payload enums,
 templates, reflection, and caching out until directly required.
+
+## M2 continuation
+
+`AURELIAN-SDSLV-PORT-M2` completed that bounded untextured graphics slice while
+preserving compute. Vertex/pixel streams, linkage, generated HLSL, DXC, and
+validated SPIR-V use the same schema with feature level `graphics.m2`.
+Texture, sampler, material, and renderer runtime remain deferred. See
+`sdsl-v-port-m2-graphics-stream-report.md`.

@@ -540,3 +540,15 @@ resource/builtin facts, canonical diagnostics, HLSL, SPIR-V, validation,
 structural disassembly evidence, tool provenance, timings, and repeat hashes.
 The detailed audit and result are in
 `docs/Aurelian/sdsl-v-port-m1-compute-report.md`.
+
+## M2 graphics stream closure update (2026-09-03)
+
+The Oct authority remained clean at
+`584bd176fd50664edadcb2bc3ae78431ac0f1e51`. Its role, location, position,
+target, and linkage laws were consistent for the untextured port. Copeland now
+gives shader and layout streams separate syntax nodes, emits
+`vdmir.semantic.v1` / `graphics.m2`, and Aurelian generates and validates both
+graphics stages. Parity uses `graphics.minimal-vertex`,
+`graphics.minimal-pixel`, and the linkage law of
+`graphics.canonical-forward-textured`. See
+`sdsl-v-port-m2-graphics-stream-report.md`.

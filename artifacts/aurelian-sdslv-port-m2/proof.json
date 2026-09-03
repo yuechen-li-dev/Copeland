@@ -1,0 +1,96 @@
+{
+  "milestone": "AURELIAN-SDSLV-PORT-M2",
+  "outcome": "A",
+  "octRevision": "584bd176fd50664edadcb2bc3ae78431ac0f1e51",
+  "copelandRevision": "3d5d9f47688b329c16d25389aacda65801e8c528\u002Bworking-tree",
+  "canonicalCases": [
+    "graphics.minimal-vertex",
+    "graphics.minimal-pixel",
+    "graphics.canonical-forward-textured linkage law"
+  ],
+  "normalizedSemanticParity": {
+    "stages": [
+      "vertex",
+      "pixel"
+    ],
+    "streamRoles": {
+      "PixelInput": "StageValue",
+      "PixelOutput": "StageValue",
+      "VertexInput": "StageValue",
+      "VertexOutput": "StageValue"
+    },
+    "locations": [
+      {
+        "stream": "PixelInput",
+        "member": "uv",
+        "type": "float2",
+        "location": 0,
+        "interpolation": "linear"
+      },
+      {
+        "stream": "VertexInput",
+        "member": "position",
+        "type": "float3",
+        "location": 0,
+        "interpolation": "linear"
+      },
+      {
+        "stream": "VertexInput",
+        "member": "uv",
+        "type": "float2",
+        "location": 1,
+        "interpolation": "linear"
+      },
+      {
+        "stream": "VertexOutput",
+        "member": "uv",
+        "type": "float2",
+        "location": 0,
+        "interpolation": "linear"
+      }
+    ],
+    "builtins": [
+      {
+        "stream": "VertexOutput",
+        "member": "position",
+        "type": "float4",
+        "builtin": "position"
+      }
+    ],
+    "targets": [
+      {
+        "stream": "PixelOutput",
+        "member": "color",
+        "type": "float4",
+        "target": 0
+      }
+    ],
+    "linkage": [
+      {
+        "location": 0,
+        "type": "float2",
+        "interpolation": "linear",
+        "vertexStream": "VertexOutput",
+        "vertexMember": "uv",
+        "pixelStream": "PixelInput",
+        "pixelMember": "uv"
+      }
+    ]
+  },
+  "deterministic": true,
+  "hashes": {
+    "hlslSha256": "f61818386ca0dede6de1a6b10574e1bf31572d81aab7a966964d62c25136e576",
+    "vertex": "1086b3861326e94fec035d69297e6e020534fd799f4cf5a82bcde7e15407332f",
+    "pixel": "b606ee3f5da93a7868f4f5e4ae962b44da6db65168bf081aa22cb96c157a9439"
+  },
+  "timingsMilliseconds": {
+    "parseBindLinkSerialize": 50.628,
+    "vdMirSerialization": 55.266,
+    "hlslDxcSpirvValidation": 105.439,
+    "determinismRepeat": 86.92
+  },
+  "sourceBoilerplate": {
+    "visualTypeScript": "4 typed streams, 3 semantic annotations kinds, no backend structs or HLSL semantic names",
+    "generatedHlsl": "4 generated structs and synthesized TEXCOORD, SV_Position, and SV_Target spellings"
+  }
+}

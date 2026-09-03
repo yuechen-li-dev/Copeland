@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Copeland.TS.Gpu.VdMir;
 
 public sealed record VdMirSourceSpan(string File, int Start, int Length);
@@ -38,7 +40,8 @@ public sealed record VdMirExpression(
     string Type,
     VdMirSourceSpan Source,
     string? Value = null,
-    IReadOnlyList<VdMirExpression>? Operands = null);
+    IReadOnlyList<VdMirExpression>? Operands = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<string>? MemberNames = null);
 
 public sealed record VdMirStatement(
     string Kind,

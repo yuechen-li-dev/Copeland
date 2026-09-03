@@ -206,6 +206,10 @@ public sealed class Parser
         }
         if (IsWord(Current, "stream"))
         {
+            if (IsShaderStreamDeclarationAhead())
+            {
+                return ParseShaderStreamDeclaration();
+            }
             return ParseStreamDeclaration();
         }
         if (Current.Kind == SyntaxKind.TemplateKeyword)
@@ -1042,6 +1046,68 @@ public sealed class Parser
         }
 
         return new StreamDeclarationSyntax(streamKeyword, identifier, origin, satisfiesKeyword, contractIdentifier, openBrace, properties, nodes, tables, Match(SyntaxKind.CloseBraceToken));
+    }
+
+    private ShaderStreamDeclarationSyntax ParseShaderStreamDeclaration()
+    {
+        SyntaxToken streamKeyword = NextToken();
+        SyntaxToken identifier = Match(SyntaxKind.IdentifierToken);
+        SyntaxToken openBraceToken = Match(SyntaxKind.OpenBraceToken);
+        var fields = new List<RecordFieldSyntax>();
+
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            IReadOnlyList<AnnotationSyntax> annotations = ParseAnnotations();
+            SyntaxToken fieldIdentifier = Match(SyntaxKind.IdentifierToken);
+            SyntaxToken colonToken = Match(SyntaxKind.ColonToken);
+            TypeSyntax type = ParseTypeSyntax();
+            var unsupportedTokens = new List<SyntaxToken>();
+            while (Current.Kind is not SyntaxKind.SemicolonToken and not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+            {
+                unsupportedTokens.Add(NextToken());
+            }
+            bool hasTerminator = Current.Kind == SyntaxKind.SemicolonToken;
+            SyntaxToken semicolonToken = hasTerminator
+                ? NextToken()
+                : MissingToken(SyntaxKind.SemicolonToken, Current.Position);
+            fields.Add(new RecordFieldSyntax(
+                fieldIdentifier,
+                null,
+                colonToken,
+                type,
+                unsupportedTokens,
+                semicolonToken,
+                true,
+                hasTerminator,
+                annotations));
+        }
+
+        return new ShaderStreamDeclarationSyntax(
+            streamKeyword,
+            identifier,
+            openBraceToken,
+            fields,
+            Match(SyntaxKind.CloseBraceToken));
+    }
+
+    private bool IsShaderStreamDeclarationAhead()
+    {
+        if (Peek(1).Kind != SyntaxKind.IdentifierToken || Peek(2).Kind != SyntaxKind.OpenBraceToken)
+        {
+            return false;
+        }
+
+        // Layout streams may also omit an origin in older source. Shader
+        // streams are selected only by first-class metadata or a GPU vector
+        // field, never by the braces alone.
+        if (Peek(3).Kind == SyntaxKind.AtToken)
+        {
+            return true;
+        }
+        return Peek(3).Kind == SyntaxKind.IdentifierToken
+            && Peek(4).Kind == SyntaxKind.ColonToken
+            && Peek(5).Kind == SyntaxKind.IdentifierToken
+            && Peek(5).Text is "f32" or "u32" or "float2" or "float3" or "float4";
     }
 
     private LayoutOriginSyntax? ParseStreamOrigin(SyntaxToken identifier)

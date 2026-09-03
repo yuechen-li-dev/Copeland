@@ -1,0 +1,25 @@
+{
+  "milestone": "AURELIAN-SDSLV-PORT-M2",
+  "kind": "visual-typescript-graphics-stream-linkage",
+  "octSpecIsAuthority": true,
+  "octConformanceIsAuthority": true,
+  "visualTypeScriptFrontendUsesCopelandParser": true,
+  "vdMirIsSharedSemanticContract": true,
+  "streamBindingPorted": true,
+  "vertexAdded": true,
+  "pixelAdded": true,
+  "computePreserved": true,
+  "manualHlslSemanticsRequired": false,
+  "textureSamplerAdded": false,
+  "materialAdded": false,
+  "payloadEnumRuntimeAdded": false,
+  "advancedTileMemoryFeaturesAdded": false,
+  "rendererRuntimeAdded": false,
+  "files": [
+    "proof.json",
+    "vd-mir-graphics.json",
+    "diagnostics.json",
+    "backend.json",
+    "manifest.json"
+  ]
+}

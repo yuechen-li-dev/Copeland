@@ -1,0 +1,118 @@
+{
+  "schema": "aurelian.sdslv-port-m2.diagnostics.v1",
+  "positive": [],
+  "canonicalNegativeCoverage": [
+    {
+      "name": "mixed-stream-role",
+      "canonicalCode": "SDSL-V4102",
+      "observed": true,
+      "diagnostic": {
+        "code": "COPE-GPU-STREAM-0002",
+        "canonicalCode": "SDSL-V4102",
+        "category": "stream-role",
+        "message": "Stream \u0027VertexInput\u0027 mixes stage-value, resource, or builtin roles.",
+        "primarySpan": {
+          "file": "mixed-stream-role.v.ts",
+          "start": 0,
+          "length": 93
+        },
+        "relatedSpans": []
+      }
+    },
+    {
+      "name": "duplicate-location",
+      "canonicalCode": "SDSL-V4105",
+      "observed": true,
+      "diagnostic": {
+        "code": "COPE-GPU-LOCATION-0002",
+        "canonicalCode": "SDSL-V4105",
+        "category": "graphics-interface",
+        "message": "Stream location 0 collides.",
+        "primarySpan": {
+          "file": "duplicate-location.v.ts",
+          "start": 64,
+          "length": 28
+        },
+        "relatedSpans": [
+          {
+            "message": "First location is here.",
+            "span": {
+              "file": "duplicate-location.v.ts",
+              "start": 25,
+              "length": 34
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "missing-clip-position",
+      "canonicalCode": "SDSL-V4106",
+      "observed": true,
+      "diagnostic": {
+        "code": "COPE-GPU-CLIP-0001",
+        "canonicalCode": "SDSL-V4106",
+        "category": "graphics-interface",
+        "message": "Vertex output stream \u0027VertexOutput\u0027 requires exactly one clip-position builtin.",
+        "primarySpan": {
+          "file": "missing-clip-position.v.ts",
+          "start": 96,
+          "length": 95
+        },
+        "relatedSpans": []
+      }
+    },
+    {
+      "name": "varying-mismatch",
+      "canonicalCode": "SDSL-V4111",
+      "observed": true,
+      "diagnostic": {
+        "code": "COPE-GPU-LINK-0002",
+        "canonicalCode": "SDSL-V4111",
+        "category": "stage-linkage",
+        "message": "Varying location 0 disagrees in type or interpolation.",
+        "primarySpan": {
+          "file": "varying-mismatch.v.ts",
+          "start": 223,
+          "length": 28
+        },
+        "relatedSpans": [
+          {
+            "message": "Vertex output is here.",
+            "span": {
+              "file": "varying-mismatch.v.ts",
+              "start": 167,
+              "length": 28
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "duplicate-target",
+      "canonicalCode": "SDSL-V4108",
+      "observed": true,
+      "diagnostic": {
+        "code": "COPE-GPU-TARGET-0002",
+        "canonicalCode": "SDSL-V4108",
+        "category": "graphics-interface",
+        "message": "Stream target 0 collides.",
+        "primarySpan": {
+          "file": "duplicate-target.v.ts",
+          "start": 314,
+          "length": 25
+        },
+        "relatedSpans": [
+          {
+            "message": "First target is here.",
+            "span": {
+              "file": "duplicate-target.v.ts",
+              "start": 280,
+              "length": 29
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

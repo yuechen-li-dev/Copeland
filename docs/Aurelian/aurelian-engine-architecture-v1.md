@@ -344,3 +344,18 @@ structural metadata. The historical `Aurelian.Shaders.Language` parser,
 validator, stage extraction, legacy emitter, and graphics smoke VD-MIR remain
 retained for historical tests but are not callable semantic authorities for the
 Copeland compute route. Aurelian.Graphics is unchanged.
+
+## 27. AURELIAN-SDSLV-PORT-M2 graphics stream update
+
+The same ownership now covers an untextured linked graphics program. Copeland's
+ordinary parser distinguishes GPU shader streams from layout streams with
+separate nodes. Its graphics binder owns role inference, locations, position,
+targets, interpolation, helper closure, and linkage. `vdmir.semantic.v1`
+remains the contract with feature level `graphics.m2` and an explicit linked
+`GraphicsProgram`.
+
+`Aurelian.Shaders.Graphics` generates HLSL structs and semantics, compiles
+`vs_6_0` and `ps_6_0`, validates both Vulkan 1.3 SPIR-V modules, and records
+host-facing interface facts. Aurelian.Graphics remains unchanged: no runtime
+pipeline or renderer API was added. Texture, sampler, Sample, semantic spaces,
+and the canonical material uniform are the exact next language slice.

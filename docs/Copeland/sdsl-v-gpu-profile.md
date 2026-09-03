@@ -119,3 +119,17 @@ edges and are checked by transitive GPU certification.
 Compiler output is deterministic semantic IR plus shader artifacts and binding
 metadata. It is never runtime-compiled by `Aurelian.Graphics` and does not depend
 on whether the host compiler runs under RyuJIT or NativeAOT.
+
+## Implemented graphics.m2 boundary
+
+The GPU profile recognizes `stream Name { typed fields }` as a dedicated shader
+boundary while `stream Name<x, y> { ... }` remains the layout language.
+`@vertex`, `@pixel`, `@location`, `@builtin(position)`, `@target`, and
+`@interpolation` bind into streams and a linked program. Position, varying
+agreement, and targets are certified before emission. The bounded type surface
+is `f32`, `float2`, `float3`, and `float4` plus required constructors and
+component access. `.ts` and `.v.ts` remain equivalent under explicit GPU
+profile selection.
+
+Graphics resources, semantic spaces, texture/sampler/Sample, and material
+uniforms are the next feature level. M2 adds no renderer or Vulkan pipeline API.

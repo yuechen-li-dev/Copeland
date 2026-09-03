@@ -1,0 +1,64 @@
+{
+  "schema": "aurelian.vdmir.graphics-backend.v1",
+  "hlsl": "// Generated from canonical VD-MIR graphics.m2. Do not edit.\r\n\r\nstruct PixelInput\r\n{\r\n    float2 uv : TEXCOORD0;\r\n};\r\n\r\nstruct PixelOutput\r\n{\r\n    float4 color : SV_Target0;\r\n};\r\n\r\nstruct VertexInput\r\n{\r\n    float3 position : TEXCOORD0;\r\n    float2 uv : TEXCOORD1;\r\n};\r\n\r\nstruct VertexOutput\r\n{\r\n    float4 position : SV_Position;\r\n    float2 uv : TEXCOORD0;\r\n};\r\n\r\nfloat2 PassUv(float2 value)\r\n{\r\n    return value;\r\n}\r\n\r\nVertexOutput VertexMain(VertexInput input)\r\n{\r\n    VertexOutput result;\r\n    result.position = float4(input.position, 1.0);\r\n    result.uv = PassUv(input.uv);\r\n    return result;\r\n}\r\n\r\nPixelOutput PixelMain(PixelInput input)\r\n{\r\n    PixelOutput result;\r\n    result.color = float4(PassUv(input.uv), 0.0, 1.0);\r\n    return result;\r\n}\r\n",
+  "hlslSha256": "f61818386ca0dede6de1a6b10574e1bf31572d81aab7a966964d62c25136e576",
+  "dxcPath": "C:\\Users\\yuech\\.nuget\\packages\\microsoft.direct3d.dxc\\1.9.2602.24\\build\\native\\bin\\x64\\dxc.exe",
+  "vertex": {
+    "stage": "Vertex",
+    "entryPoint": "VertexMain",
+    "profile": "vs_6_0",
+    "spirvSha256": "1086b3861326e94fec035d69297e6e020534fd799f4cf5a82bcde7e15407332f",
+    "dxcStatus": "Compiled",
+    "dxcOutput": "",
+    "dxcArguments": [
+      "-spirv",
+      "-fspv-target-env=vulkan1.3",
+      "-HV",
+      "2021",
+      "-E",
+      "VertexMain",
+      "-T",
+      "vs_6_0",
+      "C:\\Users\\yuech\\AppData\\Local\\Temp\\aurelian-dxc-0b29f69a262b47edb6485bdea49124f8\\VertexMain.hlsl",
+      "-Fo",
+      "C:\\Users\\yuech\\AppData\\Local\\Temp\\aurelian-dxc-0b29f69a262b47edb6485bdea49124f8\\VertexMain.spv"
+    ],
+    "spirvValidated": true,
+    "spirvValidationOutput": "",
+    "structuralFacts": {
+      "executionModel": true,
+      "entryName": true,
+      "location0": true,
+      "position": true
+    }
+  },
+  "pixel": {
+    "stage": "Pixel",
+    "entryPoint": "PixelMain",
+    "profile": "ps_6_0",
+    "spirvSha256": "b606ee3f5da93a7868f4f5e4ae962b44da6db65168bf081aa22cb96c157a9439",
+    "dxcStatus": "Compiled",
+    "dxcOutput": "",
+    "dxcArguments": [
+      "-spirv",
+      "-fspv-target-env=vulkan1.3",
+      "-HV",
+      "2021",
+      "-E",
+      "PixelMain",
+      "-T",
+      "ps_6_0",
+      "C:\\Users\\yuech\\AppData\\Local\\Temp\\aurelian-dxc-0e23456e94224106b0bb0de1e347c147\\PixelMain.hlsl",
+      "-Fo",
+      "C:\\Users\\yuech\\AppData\\Local\\Temp\\aurelian-dxc-0e23456e94224106b0bb0de1e347c147\\PixelMain.spv"
+    ],
+    "spirvValidated": true,
+    "spirvValidationOutput": "",
+    "structuralFacts": {
+      "executionModel": true,
+      "entryName": true,
+      "location0": true,
+      "position": false
+    }
+  }
+}

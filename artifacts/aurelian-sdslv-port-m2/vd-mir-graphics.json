@@ -1,0 +1,595 @@
+{
+  "schema": "vdmir.semantic.v1",
+  "conformanceSchema": "sdslv.conformance.v1",
+  "featureLevel": "graphics.m2",
+  "sourceFiles": [
+    "samples/Aurelian/GraphicsStreamM2.v.ts"
+  ],
+  "types": [
+    "f32",
+    "float2",
+    "float3",
+    "float4"
+  ],
+  "streams": [
+    {
+      "id": "stream:PixelInput",
+      "name": "PixelInput",
+      "role": 0,
+      "members": [
+        {
+          "order": 0,
+          "name": "uv",
+          "type": "float2",
+          "role": 0,
+          "location": 0,
+          "builtin": null,
+          "target": null,
+          "interpolation": "linear",
+          "source": {
+            "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+            "start": 223,
+            "length": 28
+          },
+          "metadataSource": {
+            "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+            "start": 223,
+            "length": 12
+          }
+        }
+      ],
+      "source": {
+        "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+        "start": 199,
+        "length": 54
+      }
+    },
+    {
+      "id": "stream:PixelOutput",
+      "name": "PixelOutput",
+      "role": 0,
+      "members": [
+        {
+          "order": 0,
+          "name": "color",
+          "type": "float4",
+          "role": 0,
+          "location": null,
+          "builtin": null,
+          "target": 0,
+          "interpolation": "linear",
+          "source": {
+            "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+            "start": 280,
+            "length": 29
+          },
+          "metadataSource": {
+            "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+            "start": 280,
+            "length": 10
+          }
+        }
+      ],
+      "source": {
+        "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+        "start": 255,
+        "length": 56
+      }
+    },
+    {
+      "id": "stream:VertexInput",
+      "name": "VertexInput",
+      "role": 0,
+      "members": [
+        {
+          "order": 0,
+          "name": "position",
+          "type": "float3",
+          "role": 0,
+          "location": 0,
+          "builtin": null,
+          "target": null,
+          "interpolation": "linear",
+          "source": {
+            "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+            "start": 25,
+            "length": 34
+          },
+          "metadataSource": {
+            "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+            "start": 25,
+            "length": 12
+          }
+        },
+        {
+          "order": 1,
+          "name": "uv",
+          "type": "float2",
+          "role": 0,
+          "location": 1,
+          "builtin": null,
+          "target": null,
+          "interpolation": "linear",
+          "source": {
+            "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+            "start": 64,
+            "length": 28
+          },
+          "metadataSource": {
+            "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+            "start": 64,
+            "length": 12
+          }
+        }
+      ],
+      "source": {
+        "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+        "start": 0,
+        "length": 94
+      }
+    },
+    {
+      "id": "stream:VertexOutput",
+      "name": "VertexOutput",
+      "role": 0,
+      "members": [
+        {
+          "order": 0,
+          "name": "position",
+          "type": "float4",
+          "role": 0,
+          "location": null,
+          "builtin": "position",
+          "target": null,
+          "interpolation": "linear",
+          "source": {
+            "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+            "start": 122,
+            "length": 40
+          },
+          "metadataSource": {
+            "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+            "start": 122,
+            "length": 18
+          }
+        },
+        {
+          "order": 1,
+          "name": "uv",
+          "type": "float2",
+          "role": 0,
+          "location": 0,
+          "builtin": null,
+          "target": null,
+          "interpolation": "linear",
+          "source": {
+            "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+            "start": 167,
+            "length": 28
+          },
+          "metadataSource": {
+            "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+            "start": 167,
+            "length": 12
+          }
+        }
+      ],
+      "source": {
+        "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+        "start": 96,
+        "length": 101
+      }
+    }
+  ],
+  "functions": [
+    {
+      "name": "PassUv",
+      "parameters": [
+        {
+          "name": "value",
+          "type": "float2",
+          "builtin": null,
+          "source": {
+            "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+            "start": 329,
+            "length": 13
+          }
+        }
+      ],
+      "returnType": "float2",
+      "statements": [
+        {
+          "kind": "return",
+          "source": {
+            "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+            "start": 358,
+            "length": 13
+          },
+          "name": null,
+          "type": null,
+          "mutable": false,
+          "expression": {
+            "kind": "name",
+            "type": "float2",
+            "source": {
+              "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+              "start": 365,
+              "length": 5
+            },
+            "value": "value",
+            "operands": null
+          },
+          "body": null,
+          "elseBody": null
+        }
+      ],
+      "source": {
+        "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+        "start": 313,
+        "length": 60
+      }
+    },
+    {
+      "name": "PixelMain",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "PixelInput",
+          "builtin": null,
+          "source": {
+            "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+            "start": 565,
+            "length": 17
+          }
+        }
+      ],
+      "returnType": "PixelOutput",
+      "statements": [
+        {
+          "kind": "return",
+          "source": {
+            "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+            "start": 603,
+            "length": 66
+          },
+          "name": null,
+          "type": null,
+          "mutable": false,
+          "expression": {
+            "kind": "object",
+            "type": "PixelOutput",
+            "source": {
+              "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+              "start": 610,
+              "length": 58
+            },
+            "value": "PixelOutput",
+            "operands": [
+              {
+                "kind": "call",
+                "type": "float4",
+                "source": {
+                  "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+                  "start": 627,
+                  "length": 34
+                },
+                "value": "float4",
+                "operands": [
+                  {
+                    "kind": "call",
+                    "type": "float2",
+                    "source": {
+                      "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+                      "start": 634,
+                      "length": 16
+                    },
+                    "value": "PassUv",
+                    "operands": [
+                      {
+                        "kind": "field",
+                        "type": "float2",
+                        "source": {
+                          "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+                          "start": 641,
+                          "length": 8
+                        },
+                        "value": "uv",
+                        "operands": [
+                          {
+                            "kind": "name",
+                            "type": "PixelInput",
+                            "source": {
+                              "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+                              "start": 641,
+                              "length": 5
+                            },
+                            "value": "input",
+                            "operands": null
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "literal",
+                    "type": "f32",
+                    "source": {
+                      "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+                      "start": 652,
+                      "length": 3
+                    },
+                    "value": "0.0",
+                    "operands": null
+                  },
+                  {
+                    "kind": "literal",
+                    "type": "f32",
+                    "source": {
+                      "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+                      "start": 657,
+                      "length": 3
+                    },
+                    "value": "1.0",
+                    "operands": null
+                  }
+                ]
+              }
+            ],
+            "memberNames": [
+              "color"
+            ]
+          },
+          "body": null,
+          "elseBody": null
+        }
+      ],
+      "source": {
+        "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+        "start": 539,
+        "length": 132
+      }
+    },
+    {
+      "name": "VertexMain",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "VertexInput",
+          "builtin": null,
+          "source": {
+            "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+            "start": 403,
+            "length": 18
+          }
+        }
+      ],
+      "returnType": "VertexOutput",
+      "statements": [
+        {
+          "kind": "return",
+          "source": {
+            "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+            "start": 443,
+            "length": 92
+          },
+          "name": null,
+          "type": null,
+          "mutable": false,
+          "expression": {
+            "kind": "object",
+            "type": "VertexOutput",
+            "source": {
+              "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+              "start": 450,
+              "length": 84
+            },
+            "value": "VertexOutput",
+            "operands": [
+              {
+                "kind": "call",
+                "type": "float4",
+                "source": {
+                  "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+                  "start": 470,
+                  "length": 27
+                },
+                "value": "float4",
+                "operands": [
+                  {
+                    "kind": "field",
+                    "type": "float3",
+                    "source": {
+                      "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+                      "start": 477,
+                      "length": 14
+                    },
+                    "value": "position",
+                    "operands": [
+                      {
+                        "kind": "name",
+                        "type": "VertexInput",
+                        "source": {
+                          "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+                          "start": 477,
+                          "length": 5
+                        },
+                        "value": "input",
+                        "operands": null
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "literal",
+                    "type": "f32",
+                    "source": {
+                      "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+                      "start": 493,
+                      "length": 3
+                    },
+                    "value": "1.0",
+                    "operands": null
+                  }
+                ]
+              },
+              {
+                "kind": "call",
+                "type": "float2",
+                "source": {
+                  "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+                  "start": 511,
+                  "length": 16
+                },
+                "value": "PassUv",
+                "operands": [
+                  {
+                    "kind": "field",
+                    "type": "float2",
+                    "source": {
+                      "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+                      "start": 518,
+                      "length": 8
+                    },
+                    "value": "uv",
+                    "operands": [
+                      {
+                        "kind": "name",
+                        "type": "VertexInput",
+                        "source": {
+                          "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+                          "start": 518,
+                          "length": 5
+                        },
+                        "value": "input",
+                        "operands": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "memberNames": [
+              "position",
+              "uv"
+            ]
+          },
+          "body": null,
+          "elseBody": null
+        }
+      ],
+      "source": {
+        "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+        "start": 375,
+        "length": 162
+      }
+    }
+  ],
+  "entryPoints": [
+    {
+      "name": "VertexMain",
+      "emittedName": "VertexMain",
+      "stage": 0,
+      "inputStream": "VertexInput",
+      "outputStream": "VertexOutput",
+      "source": {
+        "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+        "start": 375,
+        "length": 162
+      }
+    },
+    {
+      "name": "PixelMain",
+      "emittedName": "PixelMain",
+      "stage": 1,
+      "inputStream": "PixelInput",
+      "outputStream": "PixelOutput",
+      "source": {
+        "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+        "start": 539,
+        "length": 132
+      }
+    }
+  ],
+  "graphicsProgram": {
+    "name": "GraphicsProgram",
+    "vertexEntry": "VertexMain",
+    "pixelEntry": "PixelMain",
+    "varyings": [
+      {
+        "location": 0,
+        "type": "float2",
+        "interpolation": "linear",
+        "vertexStream": "VertexOutput",
+        "vertexMember": "uv",
+        "pixelStream": "PixelInput",
+        "pixelMember": "uv"
+      }
+    ],
+    "vertexInputs": [
+      {
+        "order": 0,
+        "name": "position",
+        "type": "float3",
+        "role": 0,
+        "location": 0,
+        "builtin": null,
+        "target": null,
+        "interpolation": "linear",
+        "source": {
+          "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+          "start": 25,
+          "length": 34
+        },
+        "metadataSource": {
+          "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+          "start": 25,
+          "length": 12
+        }
+      },
+      {
+        "order": 1,
+        "name": "uv",
+        "type": "float2",
+        "role": 0,
+        "location": 1,
+        "builtin": null,
+        "target": null,
+        "interpolation": "linear",
+        "source": {
+          "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+          "start": 64,
+          "length": 28
+        },
+        "metadataSource": {
+          "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+          "start": 64,
+          "length": 12
+        }
+      }
+    ],
+    "pixelTargets": [
+      {
+        "order": 0,
+        "name": "color",
+        "type": "float4",
+        "role": 0,
+        "location": null,
+        "builtin": null,
+        "target": 0,
+        "interpolation": "linear",
+        "source": {
+          "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+          "start": 280,
+          "length": 29
+        },
+        "metadataSource": {
+          "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
+          "start": 280,
+          "length": 10
+        }
+      }
+    ],
+    "resources": []
+  },
+  "diagnostics": [],
+  "success": true
+}

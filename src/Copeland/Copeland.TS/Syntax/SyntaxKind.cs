@@ -120,6 +120,7 @@ public enum SyntaxKind
     LayoutBindingDeclaration,
     LayoutBindingEntry,
     StreamDeclaration,
+    ShaderStreamDeclaration,
     StreamNode,
     InterfaceField,
     FunctionDeclaration,

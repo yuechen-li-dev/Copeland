@@ -893,6 +893,33 @@ public sealed record StreamDeclarationSyntax(
 }
 
 /// <summary>
+/// A GPU-profile stream is a typed shader boundary. It deliberately has a
+/// separate syntax node from Copeland's layout stream even though both retain
+/// the compact <c>stream Name { ... }</c> surface.
+/// </summary>
+public sealed record ShaderStreamDeclarationSyntax(
+    SyntaxToken StreamKeyword,
+    SyntaxToken Identifier,
+    SyntaxToken OpenBraceToken,
+    IReadOnlyList<RecordFieldSyntax> Fields,
+    SyntaxToken CloseBraceToken) : MemberSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.ShaderStreamDeclaration;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return StreamKeyword;
+        yield return Identifier;
+        yield return OpenBraceToken;
+        foreach (RecordFieldSyntax field in Fields)
+        {
+            yield return field;
+        }
+        yield return CloseBraceToken;
+    }
+}
+
+/// <summary>
 /// A structural container has an explicit kind; an unkinded node is a singular
 /// content region and therefore synthesizes an exact slot.
 /// </summary>

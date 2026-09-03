@@ -67,7 +67,7 @@ public static class VdMirComputeBackend
             using var process = new Process();
             process.StartInfo = new ProcessStartInfo
             {
-                FileName = executable,
+                FileName = ResolveSpirvExecutable(executable),
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -99,4 +99,11 @@ public static class VdMirComputeBackend
 
     private static string Hash(byte[] bytes)
         => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+
+    private static string ResolveSpirvExecutable(string executable)
+    {
+        string? sdk = Environment.GetEnvironmentVariable("VULKAN_SDK");
+        string candidate = Path.Combine(sdk ?? string.Empty, "Bin", executable + ".exe");
+        return sdk is not null && File.Exists(candidate) ? candidate : executable;
+    }
 }
