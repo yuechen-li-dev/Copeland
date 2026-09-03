@@ -1,6 +1,61 @@
 using TinyFarm.Core;
 using System.Diagnostics;
 
+if (args.Contains("--m18", StringComparer.Ordinal))
+{
+    string directory = Path.Combine(Environment.CurrentDirectory, "artifacts", "tiny-farm-m18");
+    int artifactIndex = Array.IndexOf(args, "--artifact-dir");
+    if (artifactIndex >= 0)
+    {
+        directory = RequiredOutputPath(args, artifactIndex, "--artifact-dir");
+    }
+    TinyFarmM18Scenario.WriteArtifacts(directory);
+    TinyFarmM18Evidence evidence = TinyFarmM18Scenario.Prove();
+    Console.WriteLine(TinyFarmM18Scenario.WriteJson(evidence.Proof));
+    return;
+}
+
+if (args.Contains("--m18-control", StringComparer.Ordinal))
+{
+    TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.LoadM18();
+    var host = new TinyFarmSimulationHost(
+        new TinyFarmSession(TinyFarmM18ControlStates.Create(definitions), definitions),
+        definitions,
+        TinyFarmSimulationMode.Playing);
+    Console.WriteLine("TinyFarm M18 control ready. Commands: inspect, interact, gather, quit.");
+    while (Console.ReadLine() is string command)
+    {
+        if (command.Equals("quit", StringComparison.OrdinalIgnoreCase))
+        {
+            break;
+        }
+
+        IReadOnlyList<IntentResult> results = [];
+        if (command.Equals("interact", StringComparison.OrdinalIgnoreCase))
+        {
+            results = host.ExecuteIntent(new InteractIntent()).Results;
+        }
+        else if (command.Equals("gather", StringComparison.OrdinalIgnoreCase))
+        {
+            results = host.ExecuteIntent(new GatherIntent(TinyFarmIds.RiversideHenOfTheWoods)).Results;
+        }
+        else if (!command.Equals("inspect", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new FormatException("Expected inspect, interact, gather, or quit.");
+        }
+
+        Console.WriteLine(TinyFarmM18Scenario.WriteJson(new
+        {
+            simulation = host.Snapshot(),
+            playerUi = TinyFarmPlayerUiProjector.Project(host.Session.State, definitions),
+            frame = TinyFarmFrameProjector.Project(host.Session.State, definitions),
+            forageNodes = host.Session.State.ForageNodes,
+            results
+        }));
+    }
+    return;
+}
+
 if (args.Contains("--m17", StringComparer.Ordinal))
 {
     string directory = Path.Combine(Environment.CurrentDirectory, "artifacts", "tiny-farm-m17");

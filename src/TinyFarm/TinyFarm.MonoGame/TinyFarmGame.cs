@@ -26,12 +26,12 @@ internal sealed class TinyFarmGame : Game
             PreferredBackBufferHeight = ReadIntOption(args, "--height", 1440),
             SynchronizeWithVerticalRetrace = true
         };
-        Window.Title = "TinyFarm M17 - Pickup and Use Selected";
+        Window.Title = "TinyFarm M18 - Hen-of-the-Woods Foraging";
         Window.AllowUserResizing = true;
         IsMouseVisible = true;
-        definitions = TinyFarmDefinitionLoader.LoadM14();
+        definitions = TinyFarmDefinitionLoader.LoadM18();
         simulationHost = new TinyFarmSimulationHost(
-            new TinyFarmSession(TinyFarmM17ControlStates.Create(definitions), definitions),
+            new TinyFarmSession(TinyFarmM18ControlStates.Create(definitions), definitions),
             definitions,
             TinyFarmSimulationMode.Playing);
         playerUiController = new TinyFarmPlayerUiController(simulationHost);
@@ -280,7 +280,11 @@ internal sealed class TinyFarmGame : Game
                 item.Height * tileSize);
             Fill(rectangle, SceneObjectColor(item.Kind));
             Border(rectangle, item.BlocksMovement ? new Color(45, 39, 31) : new Color(224, 192, 96), Math.Max(1, tileSize / 24));
-            if (item.Kind is SceneObjectKind.Portal or SceneObjectKind.Landmark or SceneObjectKind.Shop or SceneObjectKind.Bed)
+            if (item.Kind is SceneObjectKind.Portal
+                or SceneObjectKind.Landmark
+                or SceneObjectKind.Shop
+                or SceneObjectKind.Bed
+                or SceneObjectKind.Forage)
             {
                 int textScale = tileSize >= 72 ? 2 : 1;
                 BitmapText.Draw(
@@ -641,6 +645,7 @@ internal sealed class TinyFarmGame : Game
             SceneObjectKind.Landmark => new Color(190, 164, 105),
             SceneObjectKind.Decoration => new Color(52, 126, 174),
             SceneObjectKind.Bed => new Color(74, 111, 153),
+            SceneObjectKind.Forage => new Color(179, 153, 112),
             _ => new Color(91, 103, 70)
         };
     }

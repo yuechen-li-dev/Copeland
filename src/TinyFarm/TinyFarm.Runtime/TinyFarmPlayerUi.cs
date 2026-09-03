@@ -106,7 +106,7 @@ public static class TinyFarmPlayerUiProjector
             state,
             player.Id,
             definitions.Scenes);
-        string hint = ProjectInteractionHint(state, selected, target);
+        string hint = ProjectInteractionHint(state, definitions, selected, target);
 
         return new TinyFarmPlayerUiView(
             player.Money,
@@ -119,12 +119,18 @@ public static class TinyFarmPlayerUiProjector
 
     private static string ProjectInteractionHint(
         TinyFarmState state,
+        TinyFarmDefinitions definitions,
         TinyFarmHotbarSlotView selected,
         InteractionTarget? target)
     {
         if (target?.Item is ItemId item)
         {
             return $"Take {state.Item(item).Name} [Interact]";
+        }
+        if (target?.ForageNode is ForageNodeId forageNode)
+        {
+            ForageNodeDefinition definition = definitions.ForageNode(forageNode);
+            return $"Gather {definitions.Item(definition.Product).Name} [Interact]";
         }
         if (target?.Plot is FarmPlotId plot
             && state.FarmPlots.Single(candidate => candidate.Id == plot).Crop is null

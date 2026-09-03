@@ -108,6 +108,7 @@ public static class TinyFarmCommandParser
             "take" when parts.Length == 1 => new InteractIntent(),
             "talk" when parts.Length == 2 => new TalkIntent(new ActorId(parts[1])),
             "take" when parts.Length == 2 => new TakeIntent(new ItemId(parts[1])),
+            "gather" when parts.Length == 2 => new GatherIntent(new ForageNodeId(parts[1])),
             "give" when parts.Length == 3 => new GiveIntent(new ItemId(parts[1]), new ActorId(parts[2])),
             "buy" when parts.Length == 2 => new BuyIntent(new ItemId(parts[1])),
             "sell" when parts.Length == 2 => new SellIntent(new ItemId(parts[1])),

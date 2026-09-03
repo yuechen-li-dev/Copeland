@@ -101,6 +101,7 @@ public static class TinyFarmChunkedSaveCodec
     public const string EnergyRuntimeVersion = "tiny-farm-m12@5";
     public const string PlayerUiRuntimeVersion = "tiny-farm-m16@6";
     public const string ItemActionRuntimeVersion = "tiny-farm-m17@7";
+    public const string ForageRuntimeVersion = "tiny-farm-m18@8";
     public static readonly ChunkId WorldChunk = new("tinyfarm.world");
     public static readonly ChunkId RuntimeChunk = new("tinyfarm.runtime");
     public static readonly ChunkId AgentChunk = new("tinyfarm.agents");
@@ -184,7 +185,8 @@ public static class TinyFarmChunkedSaveCodec
             && state.Version != TinyFarmState.ContinuousSceneSaveVersion
             && state.Version != TinyFarmState.EnergySaveVersion
             && state.Version != TinyFarmState.PlayerUiSaveVersion
-            && state.Version != TinyFarmState.ItemActionSaveVersion)
+            && state.Version != TinyFarmState.ItemActionSaveVersion
+            && state.Version != TinyFarmState.ForageSaveVersion)
         {
             throw new InvalidDataException($"Unsupported TinyFarm game save version {state.Version}.");
         }
@@ -197,6 +199,7 @@ public static class TinyFarmChunkedSaveCodec
         if (state.Actors.Select(actor => actor.Id).Distinct().Count() != state.Actors.Count
             || state.Items.Select(item => item.Id).Distinct().Count() != state.Items.Count
             || state.FarmPlots.Select(plot => plot.Id).Distinct().Count() != state.FarmPlots.Count
+            || state.ForageNodes.Select(node => node.Id).Distinct().Count() != state.ForageNodes.Count
             || state.ShopStock.Select(stock => stock.Product).Distinct().Count() != state.ShopStock.Count
             || state.InventoryStacks.Select(stack => (stack.Actor, stack.Product)).Distinct().Count() != state.InventoryStacks.Count)
         {
@@ -277,6 +280,22 @@ public static class TinyFarmChunkedSaveCodec
             }
         }
 
+        if (state.Version >= TinyFarmState.ForageSaveVersion)
+        {
+            ForageNodeId[] savedNodeIds = state.ForageNodes
+                .Select(node => node.Id)
+                .OrderBy(id => id.Value, StringComparer.Ordinal)
+                .ToArray();
+            ForageNodeId[] definitionNodeIds = definitions.ForageNodes
+                .Select(node => node.Id)
+                .OrderBy(id => id.Value, StringComparer.Ordinal)
+                .ToArray();
+            if (!savedNodeIds.SequenceEqual(definitionNodeIds))
+            {
+                throw new InvalidDataException("TinyFarm forage state must match the authored forage definitions exactly.");
+            }
+        }
+
 
         if (state.Version >= TinyFarmState.SceneSaveVersion)
         {
@@ -337,6 +356,10 @@ public static class TinyFarmChunkedSaveCodec
 
     private static string RuntimeVersionFor(int gameVersion)
     {
+        if (gameVersion >= TinyFarmState.ForageSaveVersion)
+        {
+            return ForageRuntimeVersion;
+        }
         if (gameVersion >= TinyFarmState.ItemActionSaveVersion)
         {
             return ItemActionRuntimeVersion;

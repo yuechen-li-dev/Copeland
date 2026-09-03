@@ -6,7 +6,8 @@ public enum InteractionTargetKind
     Plot,
     Shop,
     Portal,
-    GroundItem
+    GroundItem,
+    ForageNode
 }
 
 public sealed record InteractionTarget(
@@ -16,6 +17,7 @@ public sealed record InteractionTarget(
     SceneObjectId? SceneObject = null,
     FarmPlotId? Plot = null,
     ItemId? Item = null,
+    ForageNodeId? ForageNode = null,
     long SquaredDistance = 0);
 
 public static class TinyFarmSpatialQueries
@@ -58,6 +60,7 @@ public static class TinyFarmSpatialQueries
                 SceneObjectKind.Plot => InteractionTargetKind.Plot,
                 SceneObjectKind.Shop => InteractionTargetKind.Shop,
                 SceneObjectKind.Portal => InteractionTargetKind.Portal,
+                SceneObjectKind.Forage when IsAvailable(state, definition.Id) => InteractionTargetKind.ForageNode,
                 _ => null
             };
             if (kind is null)
@@ -79,7 +82,10 @@ public static class TinyFarmSpatialQueries
                     kind.Value,
                     $"object:{definition.Id.Value}",
                     SceneObject: definition.Id,
-                    Plot: plot));
+                    Plot: plot,
+                    ForageNode: kind == InteractionTargetKind.ForageNode
+                        ? new ForageNodeId(definition.Id.Value)
+                        : null));
         }
 
         foreach (ItemState item in state.Items.Where(candidate =>
@@ -159,6 +165,7 @@ public static class TinyFarmSpatialQueries
             SceneObjectKind.Plot => InteractionTargetKind.Plot,
             SceneObjectKind.Shop => InteractionTargetKind.Shop,
             SceneObjectKind.Portal => InteractionTargetKind.Portal,
+            SceneObjectKind.Forage when IsAvailable(state, definition.Id) => InteractionTargetKind.ForageNode,
             _ => null
         };
         if (kind is null)
@@ -180,6 +187,9 @@ public static class TinyFarmSpatialQueries
                 SceneObject: objectId,
                 Plot: kind == InteractionTargetKind.Plot && definition.SemanticReference is string reference
                     ? new FarmPlotId(reference)
+                    : null,
+                ForageNode: kind == InteractionTargetKind.ForageNode
+                    ? new ForageNodeId(objectId.Value)
                     : null));
         return candidates.SingleOrDefault();
     }
@@ -220,9 +230,22 @@ public static class TinyFarmSpatialQueries
             InteractionTargetKind.Actor => 0,
             InteractionTargetKind.Portal => 1,
             InteractionTargetKind.GroundItem => 2,
-            InteractionTargetKind.Plot => 3,
-            InteractionTargetKind.Shop => 4,
-            _ => 4
+            InteractionTargetKind.ForageNode => 3,
+            InteractionTargetKind.Plot => 4,
+            InteractionTargetKind.Shop => 5,
+            _ => 5
         };
+    }
+
+    private static bool IsAvailable(TinyFarmState state, SceneObjectId objectId)
+    {
+        if (state.Version < TinyFarmState.ForageSaveVersion)
+        {
+            return false;
+        }
+
+        ForageNodeId nodeId = new(objectId.Value);
+        return state.ForageNodes.SingleOrDefault(node => node.Id == nodeId)?.Availability
+            == ForageNodeAvailability.Available;
     }
 }

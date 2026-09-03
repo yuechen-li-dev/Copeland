@@ -221,6 +221,18 @@ public static class TinyFarmFrameProjector
             })
             .ToArray();
         TinyFarmSceneObjectView[] objects = scene.Layout
+            .Where(row =>
+            {
+                SceneObjectDefinition sceneObject = scene.Object(row.ObjectId);
+                if (sceneObject.Kind != SceneObjectKind.Forage)
+                {
+                    return true;
+                }
+
+                ForageNodeId nodeId = new(sceneObject.Id.Value);
+                return state.ForageNodes.SingleOrDefault(node => node.Id == nodeId)?.Availability
+                    == ForageNodeAvailability.Available;
+            })
             .Select(row =>
             {
                 SceneObjectDefinition definition = scene.Object(row.ObjectId);
@@ -377,6 +389,11 @@ public static class TinyFarmFrameProjector
                 if (target.Item is ItemId item)
                 {
                     hints.Add($"Take {state.Item(item).Name} [Interact]");
+                }
+                else if (target.ForageNode is ForageNodeId forageNode)
+                {
+                    ForageNodeDefinition definition = definitions.ForageNode(forageNode);
+                    hints.Add($"Gather {definitions.Item(definition.Product).Name} [Interact]");
                 }
                 else if (state.Version >= TinyFarmState.ItemActionSaveVersion
                     && target.Plot is FarmPlotId plotId

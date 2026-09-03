@@ -36,6 +36,8 @@ public sealed record WaterIntent(FarmPlotId Plot) : GameIntent;
 
 public sealed record HarvestIntent(FarmPlotId Plot) : GameIntent;
 
+public sealed record GatherIntent(ForageNodeId Node) : GameIntent;
+
 public sealed record SelectHotbarSlotIntent(HotbarSlotId Slot) : GameIntent;
 
 public sealed record UseSelectedIntent : GameIntent;
@@ -95,7 +97,11 @@ public enum IntentReason
     NoSelectedBinding,
     SelectedBindingUnavailable,
     UnsupportedSelectedUse,
-    WrongTargetKind
+    WrongTargetKind,
+    UnknownForageNode,
+    ForageWrongScene,
+    ForageOutOfRange,
+    AlreadyDepleted
 }
 
 public enum GameEventKind
@@ -119,7 +125,8 @@ public enum GameEventKind
     SceneEntered,
     InteractionTargeted,
     AnchorReached,
-    HotbarSlotSelected
+    HotbarSlotSelected,
+    ForageGathered
 }
 
 public enum DialogueTopic
@@ -149,7 +156,8 @@ public sealed record GameEvent(
     SceneId? Scene = null,
     SceneRouteId? Route = null,
     SceneObjectId? SceneObject = null,
-    SceneAnchorId? Anchor = null);
+    SceneAnchorId? Anchor = null,
+    ForageNodeId? ForageNode = null);
 
 public sealed record IntentResult(IntentEnvelope Envelope, IntentResultStatus Status, IntentReason Reason, IReadOnlyList<GameEvent> Events);
 

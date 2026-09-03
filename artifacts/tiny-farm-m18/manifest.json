@@ -1,0 +1,15 @@
+{
+  "milestone": "TINY-FARM-M18",
+  "kind": "hen-of-the-woods-foraging-stackable-product",
+  "forageProduct": "hen-of-the-woods",
+  "forageUsesResolver": true,
+  "stackableProductProducedFromWorld": true,
+  "nodeDepletionAuthoritative": true,
+  "inventoryAuthorityMoved": false,
+  "rendererMutatesForage": false,
+  "randomSpawningAdded": false,
+  "resourceFrameworkAdded": false,
+  "craftingAdded": false,
+  "toolSystemAdded": false,
+  "skillSystemAdded": false
+}

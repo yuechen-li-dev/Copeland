@@ -285,7 +285,8 @@ public sealed record TinyFarmSimulationSnapshot(
     TinyFarmPlayerUiView? PlayerUi = null,
     IReadOnlyList<string>? GroundItems = null,
     string? InteractionTarget = null,
-    IReadOnlyList<string>? Plots = null);
+    IReadOnlyList<string>? Plots = null,
+    IReadOnlyList<string>? ForageNodes = null);
 
 public static class TinyFarmSimulationSnapshotProjector
 {
@@ -341,8 +342,20 @@ public static class TinyFarmSimulationSnapshotProjector
                 .Select(plot => $"{plot.Id.Value}:{plot.Crop?.Value ?? string.Empty}:{plot.GrowthStage}")
                 .ToArray()
             : null;
+        IReadOnlyList<string>? forageNodes = state.Version >= TinyFarmState.ForageSaveVersion
+            ? definitions.ForageNodes
+                .OrderBy(node => node.Id.Value, StringComparer.Ordinal)
+                .Select(node =>
+                {
+                    ForageNodeAvailability availability = state.ForageNode(node.Id).Availability;
+                    return $"{node.Id.Value}:{node.Scene.Value}:{node.Product.Value}:{availability}:{node.Position.XUnits}:{node.Position.YUnits}";
+                })
+                .ToArray()
+            : null;
         return new TinyFarmSimulationSnapshot(
-            hasItemActions
+            forageNodes is not null
+                ? "tiny-farm-simulation@4"
+                : hasItemActions
                 ? "tiny-farm-simulation@3"
                 : playerUi is null ? "tiny-farm-simulation@1" : "tiny-farm-simulation@2",
             mode,
@@ -354,13 +367,16 @@ public static class TinyFarmSimulationSnapshotProjector
             playerUi,
             groundItems,
             target?.StableId,
-            plots);
+            plots,
+            forageNodes);
     }
 
     public static string WriteCanonicalTson(TinyFarmSimulationSnapshot snapshot)
     {
         var text = new StringBuilder();
-        string schemaVersion = snapshot.GroundItems is not null
+        string schemaVersion = snapshot.ForageNodes is not null
+            ? "v4"
+            : snapshot.GroundItems is not null
             ? "v3"
             : snapshot.PlayerUi is null ? "v1" : "v2";
         text.AppendLine($"const $schema: string = \"copeland://tiny-farm/simulation-snapshot/{schemaVersion}\";");
@@ -402,6 +418,10 @@ public static class TinyFarmSimulationSnapshotProjector
                 text.AppendLine("    groundItemSummary: string[];");
                 text.AppendLine("    interactionTarget: string;");
                 text.AppendLine("    plotSummary: string[];");
+                if (snapshot.ForageNodes is not null)
+                {
+                    text.AppendLine("    forageSummary: string[];");
+                }
             }
         }
         text.AppendLine("}");
@@ -448,6 +468,10 @@ public static class TinyFarmSimulationSnapshotProjector
                 AppendStringArray(text, "groundItemSummary", snapshot.GroundItems, 1);
                 AppendString(text, "interactionTarget", snapshot.InteractionTarget ?? string.Empty, 1);
                 AppendStringArray(text, "plotSummary", snapshot.Plots ?? [], 1);
+                if (snapshot.ForageNodes is not null)
+                {
+                    AppendStringArray(text, "forageSummary", snapshot.ForageNodes, 1);
+                }
             }
         }
         text.AppendLine("});");

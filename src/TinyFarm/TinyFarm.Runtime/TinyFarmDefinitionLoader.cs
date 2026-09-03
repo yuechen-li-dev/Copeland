@@ -46,6 +46,105 @@ public static class TinyFarmDefinitionLoader
         return LoadCore(productPath, contentDirectory, contentMilestone: "m14");
     }
 
+    public static TinyFarmDefinitions LoadM18(string? path = null)
+    {
+        string defaultProductPath = Path.Combine(
+            Path.GetDirectoryName(DefaultPath)!,
+            "M18",
+            ProductFileName);
+        string productPath = Path.GetFullPath(path ?? defaultProductPath);
+        string contentDirectory = Path.Combine(Path.GetDirectoryName(DefaultPath)!, "M14");
+        TinyFarmDefinitions baseline = LoadCore(productPath, contentDirectory, contentMilestone: "m18-base");
+        string foragePath = Path.Combine(Path.GetDirectoryName(productPath)!, "tiny-farm-forage-nodes.obj.ts");
+        string forageSource = File.ReadAllText(foragePath);
+        TsonTable forageTable = ReadTable(
+            forageSource,
+            foragePath,
+            "ForageNodes",
+            [
+                ("id", TsonTypeKind.String),
+                ("sceneId", TsonTypeKind.String),
+                ("x", TsonTypeKind.Number),
+                ("y", TsonTypeKind.Number),
+                ("productId", TsonTypeKind.String),
+                ("yieldCount", TsonTypeKind.Number)
+            ]);
+        var forageNodes = new List<ForageNodeDefinition>();
+        for (int row = 0; row < forageTable.RowCount; row++)
+        {
+            forageNodes.Add(new ForageNodeDefinition(
+                new ForageNodeId(Text(forageTable, "id", row)),
+                new SceneId(Text(forageTable, "sceneId", row)),
+                ScenePosition.FromGrid(new GridPosition(
+                    Integer(forageTable, "x", row),
+                    Integer(forageTable, "y", row))),
+                new ProductId(Text(forageTable, "productId", row)),
+                Integer(forageTable, "yieldCount", row)));
+        }
+
+        TinyFarmSceneCatalog scenes = AddForageSceneObjects(baseline.Scenes, forageNodes, baseline.Items);
+        string identity = baseline.Identity + ";m18-forage:" + Hash(Encoding.UTF8.GetBytes(forageSource));
+        return new TinyFarmDefinitions(
+            identity,
+            baseline.Items,
+            baseline.Crops,
+            scenes,
+            baseline.SceneContent,
+            baseline.Schedules,
+            baseline.ScheduleContent,
+            forageNodes);
+    }
+
+    private static TinyFarmSceneCatalog AddForageSceneObjects(
+        TinyFarmSceneCatalog baseline,
+        IReadOnlyList<ForageNodeDefinition> forageNodes,
+        IReadOnlyList<ItemDefinition> products)
+    {
+        foreach (ForageNodeDefinition node in forageNodes)
+        {
+            if (!products.Any(product => product.Id == node.Product))
+            {
+                throw new InvalidDataException($"Forage node '{node.Id}' references unknown product '{node.Product}'.");
+            }
+        }
+
+        SceneDefinition[] scenes = baseline.All
+            .Select(scene =>
+            {
+                ForageNodeDefinition[] additions = forageNodes
+                    .Where(node => node.Scene == scene.Id)
+                    .ToArray();
+                SceneObjectDefinition[] objects = scene.Objects
+                    .Concat(additions.Select(node => new SceneObjectDefinition(
+                        new SceneObjectId(node.Id.Value),
+                        SceneObjectKind.Forage,
+                        products.Single(product => product.Id == node.Product).Name,
+                        BlocksMovement: false,
+                        SemanticReference: node.Product.Value)))
+                    .ToArray();
+                SceneLayoutRow[] layout = scene.Layout
+                    .Concat(additions.Select(node => new SceneLayoutRow(
+                        new SceneObjectId(node.Id.Value),
+                        node.Position.Tile.X,
+                        node.Position.Tile.Y,
+                        1,
+                        1,
+                        0)))
+                    .ToArray();
+                return new SceneDefinition(
+                    scene.Id,
+                    scene.Name,
+                    scene.Width,
+                    scene.Height,
+                    objects,
+                    layout,
+                    scene.Anchors,
+                    scene.Routes);
+            })
+            .ToArray();
+        return new TinyFarmSceneCatalog(scenes);
+    }
+
     private static TinyFarmDefinitions LoadCore(
         string? path,
         string? contentOverride,
@@ -97,6 +196,24 @@ public static class TinyFarmDefinitionLoader
         }
 
         (TinyFarmSceneCatalog scenes, SceneContentProvenance sceneProvenance) = LoadSceneCatalog(contentDirectory);
+        ForageNodeDefinition[] forageNodes = scenes.All
+            .SelectMany(scene => scene.Objects
+                .Where(sceneObject => sceneObject.Kind == SceneObjectKind.Forage
+                    && items.Any(item => item.Id.Value == sceneObject.SemanticReference))
+                .Select(sceneObject =>
+                {
+                    SceneLayoutRow placement = scene.Placement(sceneObject.Id);
+                    var position = new ScenePosition(
+                        (placement.X * ScenePosition.UnitsPerTile) + (placement.Width * ScenePosition.UnitsPerTile / 2),
+                        (placement.Y * ScenePosition.UnitsPerTile) + (placement.Height * ScenePosition.UnitsPerTile / 2));
+                    return new ForageNodeDefinition(
+                        new ForageNodeId(sceneObject.Id.Value),
+                        scene.Id,
+                        position,
+                        new ProductId(sceneObject.SemanticReference!),
+                        1);
+                }))
+            .ToArray();
         (TinyFarmScheduleCatalog schedules, ScheduleContentProvenance scheduleProvenance) =
             LoadScheduleCatalog(Path.Combine(contentDirectory, ScheduleFileName), scenes);
         if (contentMilestone is not null)
@@ -110,7 +227,8 @@ public static class TinyFarmDefinitionLoader
             scenes,
             sceneProvenance,
             schedules,
-            scheduleProvenance);
+            scheduleProvenance,
+            forageNodes);
     }
 
     public static (TinyFarmScheduleCatalog Catalog, ScheduleContentProvenance Provenance) LoadScheduleCatalog(
@@ -570,6 +688,7 @@ public static class TinyFarmDefinitionLoader
             SceneObjectKind.Bed => reference == TinyFarmIds.Elias.Value
                 || reference == TinyFarmIds.Mara.Value
                 || reference == TinyFarmIds.Sela.Value,
+            SceneObjectKind.Forage => reference == TinyFarmIds.HenOfTheWoods.Value,
             _ => reference is null
         };
         if (!valid)

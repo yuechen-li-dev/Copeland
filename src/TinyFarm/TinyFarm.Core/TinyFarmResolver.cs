@@ -98,6 +98,7 @@ public sealed class TinyFarmResolver
             PlantIntent plant => ResolvePlant(state, actor, envelope, plant),
             WaterIntent water => ResolveWater(state, actor, envelope, water),
             HarvestIntent harvest => ResolveHarvest(state, actor, envelope, harvest),
+            GatherIntent gather => ResolveGather(state, actor, envelope, gather),
             SelectHotbarSlotIntent select => ResolveSelectHotbarSlot(state, actor, envelope, select),
             UseSelectedIntent => ResolveUseSelected(state, actor, envelope),
             WaitIntent wait => ResolveWait(state, actor, envelope, wait),
@@ -489,6 +490,11 @@ public sealed class TinyFarmResolver
                 return ResolveTake(state, actor, envelope, new TakeIntent(item));
             }
 
+            if (selected.ForageNode is ForageNodeId forageNode)
+            {
+                return ResolveGather(state, actor, envelope, new GatherIntent(forageNode));
+            }
+
             if (selected.Actor is ActorId targetActor)
             {
                 return ResolveTalk(state, actor, envelope, new TalkIntent(targetActor));
@@ -767,6 +773,67 @@ public sealed class TinyFarmResolver
         }
 
         return Accepted(envelope, events);
+    }
+
+    private IntentResult ResolveGather(
+        TinyFarmState state,
+        ActorState actor,
+        IntentEnvelope envelope,
+        GatherIntent intent)
+    {
+        ForageNodeDefinition? definition = definitions?.ForageNodes
+            .SingleOrDefault(node => node.Id == intent.Node);
+        ForageNodeState? node = state.ForageNodes.SingleOrDefault(candidate => candidate.Id == intent.Node);
+        if (definition is null || node is null)
+        {
+            return Rejected(envelope, IntentReason.UnknownForageNode);
+        }
+        if (!actor.IsPlayer)
+        {
+            return Rejected(envelope, IntentReason.WrongTargetKind);
+        }
+
+        ActorSceneState placement = state.ActorScene(actor.Id);
+        if (placement.Scene != definition.Scene)
+        {
+            return Rejected(envelope, IntentReason.ForageWrongScene);
+        }
+        if (node.Availability == ForageNodeAvailability.Depleted)
+        {
+            return Rejected(envelope, IntentReason.AlreadyDepleted);
+        }
+        if (definition.YieldCount <= 0
+            || definitions is null
+            || !definitions.Items.Any(item => item.Id == definition.Product))
+        {
+            return Rejected(envelope, IntentReason.UnknownForageNode);
+        }
+
+        SceneObjectId objectId = new(definition.Id.Value);
+        InteractionTarget? target = TinyFarmSpatialQueries.SelectObjectTarget(
+            state,
+            actor.Id,
+            objectId,
+            Scenes);
+        if (target?.ForageNode != definition.Id)
+        {
+            return Rejected(envelope, IntentReason.ForageOutOfRange);
+        }
+
+        int nodeIndex = state.MutableForageNodes.FindIndex(candidate => candidate.Id == node.Id);
+        int newCount = checked(state.ProductCount(actor.Id, definition.Product) + definition.YieldCount);
+        SetProductCount(state, actor.Id, definition.Product, newCount);
+        state.MutableForageNodes[nodeIndex] = node with { Availability = ForageNodeAvailability.Depleted };
+        return Accepted(
+            envelope,
+            new GameEvent(
+                GameEventKind.ForageGathered,
+                actor.Id,
+                Amount: definition.YieldCount,
+                Product: definition.Product,
+                Scene: definition.Scene,
+                SceneObject: objectId,
+                ForageNode: definition.Id));
     }
 
     private static IntentResult ResolveBuy(

@@ -1,0 +1,21 @@
+{
+  "milestone": "TINY-FARM-M18",
+  "outcome": "A",
+  "forageUsesResolver": true,
+  "stackableProductProducedFromWorld": true,
+  "nodeDepletionAuthoritative": true,
+  "saveLoadExact": true,
+  "headlessRepeatExact": true,
+  "replayExact": true,
+  "hashes": {
+    "state": "354823a55369dbe241d4516d6f2f60d9b7e49f152bc28bf0ba057a4b7799fbd8",
+    "results": "1785d456077fba6ba045a985b1335e3772dbbc15798845a1e848d5abd8851c44",
+    "events": "f4d58d408cdcf8ce6d5f8a92cc0bc42946221268702322fde80d860879ec8341",
+    "forage": "b8924abfe45c295e6c5826178a92aec94a2f9e045e1d5d24757a31331301b3c2",
+    "inventory": "1be2c88afd8f683b6e2498a467524872fd3e2df0ef7c93b668502808889ab30c",
+    "definitions": "d88f765810529ac298498889ec252a313722c6b9045a5291b2d0c9ffde2373e9",
+    "projection": "3ce677c61c4c39faadb2994e24c017b5723b07126dd514797bea45bd119a6953",
+    "dto": "1f5729c50a1d1cafb7769df24724581365def0ac6384088f4eb211f13d8b0fd5",
+    "replay": "354823a55369dbe241d4516d6f2f60d9b7e49f152bc28bf0ba057a4b7799fbd8"
+  }
+}

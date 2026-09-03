@@ -111,6 +111,16 @@ public static class TinyFarmSemanticHash
                 .AppendLine();
         }
 
+        if (state.Version >= TinyFarmState.ForageSaveVersion)
+        {
+            foreach (ForageNodeState node in state.ForageNodes.OrderBy(node => node.Id.Value, StringComparer.Ordinal))
+            {
+                canonical.Append("forage|").Append(node.Id.Value)
+                    .Append('|').Append(node.Availability)
+                    .AppendLine();
+            }
+        }
+
         canonical.Append("facts|").AppendJoin(',', state.Facts.OrderBy(fact => fact));
         byte[] bytes = Encoding.UTF8.GetBytes(canonical.ToString());
         return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();

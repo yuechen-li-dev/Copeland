@@ -1,0 +1,11 @@
+{
+  "node": "riverside-hen-of-the-woods",
+  "scene": "riverside",
+  "product": "hen-of-the-woods",
+  "yieldCount": 1,
+  "lowering": "InteractIntent -\u003E GatherIntent",
+  "priority": "actor, portal, ground item, forage node, plot, shop; then squared distance; then ordinal stable ID",
+  "first": "Accepted",
+  "second": "AlreadyDepleted",
+  "finalState": "Depleted"
+}

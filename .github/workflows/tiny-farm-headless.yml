@@ -437,6 +437,50 @@ jobs:
             throw "TinyFarm M17 evidence exceeded the compact five-file artifact budget."
           }
 
+          $m18Directory = Join-Path $env:RUNNER_TEMP "tiny-farm-m18"
+          dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --m18 --artifact-dir $m18Directory
+          if ($LASTEXITCODE -ne 0) {
+            throw "TinyFarm M18 foraging proof failed."
+          }
+
+          $m18Proof = Get-Content -Raw -LiteralPath (Join-Path $m18Directory "proof.json") | ConvertFrom-Json
+          $m18Manifest = Get-Content -Raw -LiteralPath (Join-Path $m18Directory "manifest.json") | ConvertFrom-Json
+          if ($m18Proof.outcome -ne "A" -or
+              -not $m18Proof.forageUsesResolver -or
+              -not $m18Proof.stackableProductProducedFromWorld -or
+              -not $m18Proof.nodeDepletionAuthoritative -or
+              -not $m18Proof.saveLoadExact -or
+              -not $m18Proof.headlessRepeatExact -or
+              -not $m18Proof.replayExact -or
+              $m18Manifest.inventoryAuthorityMoved -or
+              $m18Manifest.rendererMutatesForage -or
+              $m18Manifest.randomSpawningAdded -or
+              $m18Manifest.resourceFrameworkAdded -or
+              $m18Manifest.craftingAdded -or
+              $m18Manifest.toolSystemAdded -or
+              $m18Manifest.skillSystemAdded) {
+            throw "TinyFarm M18 resolver and scope laws changed."
+          }
+
+          $controlOutput = @("inspect", "interact", "gather", "inspect", "quit") |
+            dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --m18-control |
+            Out-String
+          if ($LASTEXITCODE -ne 0 -or
+              $controlOutput -notmatch 'ForageGathered' -or
+              $controlOutput -notmatch 'AlreadyDepleted' -or
+              $controlOutput -notmatch '"semanticId": "hen-of-the-woods"' -or
+              $controlOutput -notmatch '"count": 1') {
+            throw "TinyFarm M18 CLI gather/depletion smoke test failed."
+          }
+
+          $expectedFiles = @("forage.json", "inventory.json", "manifest.json", "proof.json", "replay.json")
+          $artifactFiles = @(Get-ChildItem -LiteralPath $m18Directory -File | Sort-Object Name)
+          if ($artifactFiles.Count -ne 5 -or
+              (Compare-Object $expectedFiles $artifactFiles.Name) -or
+              ($artifactFiles | Where-Object Length -gt 262144)) {
+            throw "TinyFarm M18 evidence exceeded the compact five-file artifact budget."
+          }
+
       - name: Enforce repository artifact budget
         shell: pwsh
         run: ./tools/Test-ArtifactBudget.ps1 -Paths @()

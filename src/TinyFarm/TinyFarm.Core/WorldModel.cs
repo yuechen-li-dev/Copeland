@@ -32,6 +32,11 @@ public readonly record struct FarmPlotId(string Value)
     public override string ToString() => Value;
 }
 
+public readonly record struct ForageNodeId(string Value)
+{
+    public override string ToString() => Value;
+}
+
 public sealed record LocationDefinition(LocationId Id, string Name, string Description, IReadOnlyList<LocationId> Exits);
 public sealed record ActorState(ActorId Id, string Name, LocationId Location, int Money, List<ItemId> Inventory, bool IsPlayer);
 public sealed record ItemState(
@@ -47,6 +52,18 @@ public sealed record CropDefinition(CropId Id, ProductId SeedItemId, ProductId H
 public sealed record InventoryStack(ActorId Actor, ProductId Product, int Count);
 public sealed record ShopStock(ProductId Product, int Count, int DailyRestockCount);
 public sealed record FarmPlotState(FarmPlotId Id, LocationId Location, CropId? Crop, int? PlantedDay, int GrowthStage, bool WateredToday);
+public sealed record ForageNodeDefinition(
+    ForageNodeId Id,
+    SceneId Scene,
+    ScenePosition Position,
+    ProductId Product,
+    int YieldCount);
+public enum ForageNodeAvailability
+{
+    Available,
+    Depleted
+}
+public sealed record ForageNodeState(ForageNodeId Id, ForageNodeAvailability Availability);
 public sealed record ActorEnergyState(ActorId Actor, int Energy, bool IsResting);
 public sealed record SceneContentSource(string Path, string Sha256, long ByteLength);
 public sealed record SceneContentProvenance(
@@ -66,7 +83,8 @@ public sealed class TinyFarmDefinitions
         TinyFarmSceneCatalog scenes,
         SceneContentProvenance sceneContent,
         TinyFarmScheduleCatalog schedules,
-        ScheduleContentProvenance scheduleContent)
+        ScheduleContentProvenance scheduleContent,
+        IEnumerable<ForageNodeDefinition>? forageNodes = null)
     {
         ArgumentNullException.ThrowIfNull(scenes);
         ArgumentNullException.ThrowIfNull(sceneContent);
@@ -79,6 +97,7 @@ public sealed class TinyFarmDefinitions
         SceneContent = sceneContent;
         Schedules = schedules;
         ScheduleContent = scheduleContent;
+        ForageNodes = (forageNodes ?? []).OrderBy(node => node.Id.Value, StringComparer.Ordinal).ToArray();
         if (Items.Select(item => item.Id).Distinct().Count() != Items.Count || Crops.Select(crop => crop.Id).Distinct().Count() != Crops.Count)
         {
             throw new InvalidDataException("TinyFarm definition identities must be unique.");
@@ -89,6 +108,20 @@ public sealed class TinyFarmDefinitions
                 || crop.GrowthDays <= 0 || crop.WaterRequirement != 1 || crop.Yield <= 0)
             {
                 throw new InvalidDataException($"Crop definition '{crop.Id}' is invalid for TinyFarm M2 semantics.");
+            }
+        }
+        if (ForageNodes.Select(node => node.Id).Distinct().Count() != ForageNodes.Count)
+        {
+            throw new InvalidDataException("TinyFarm forage node identities must be unique.");
+        }
+        foreach (ForageNodeDefinition node in ForageNodes)
+        {
+            if (!Items.Any(item => item.Id == node.Product)
+                || node.YieldCount <= 0
+                || !Scenes.All.Any(scene => scene.Id == node.Scene)
+                || !TinyFarmScenes.IsInBounds(Scenes.Get(node.Scene), node.Position))
+            {
+                throw new InvalidDataException($"Forage node definition '{node.Id}' is invalid.");
             }
         }
         if (Scenes.All.Any(scene => scene.Id == TinyFarmSceneIds.Residence))
@@ -104,8 +137,10 @@ public sealed class TinyFarmDefinitions
     public SceneContentProvenance SceneContent { get; }
     public TinyFarmScheduleCatalog Schedules { get; }
     public ScheduleContentProvenance ScheduleContent { get; }
+    public IReadOnlyList<ForageNodeDefinition> ForageNodes { get; }
     public ItemDefinition Item(ProductId id) => Items.Single(item => item.Id == id);
     public CropDefinition Crop(CropId id) => Crops.Single(crop => crop.Id == id);
+    public ForageNodeDefinition ForageNode(ForageNodeId id) => ForageNodes.Single(node => node.Id == id);
 
     private void ValidatePersonalHomes()
     {
@@ -177,6 +212,7 @@ public sealed class TinyFarmState
     private readonly List<FarmPlotState> farmPlots;
     private readonly List<ActorSceneState> actorScenes;
     private readonly List<ActorEnergyState> actorEnergy;
+    private readonly List<ForageNodeState> forageNodes;
     private readonly Dictionary<ActorId, int> actorIndex;
     private readonly Dictionary<ActorId, int> actorSceneIndex;
     private readonly Dictionary<ActorId, int> actorEnergyIndex;
@@ -188,6 +224,7 @@ public sealed class TinyFarmState
     public const int EnergySaveVersion = 5;
     public const int PlayerUiSaveVersion = 6;
     public const int ItemActionSaveVersion = 7;
+    public const int ForageSaveVersion = 8;
 
     [JsonConstructor]
     public TinyFarmState(
@@ -203,7 +240,8 @@ public sealed class TinyFarmState
         IReadOnlyList<FarmPlotState>? farmPlots = null,
         IReadOnlyList<ActorSceneState>? actorScenes = null,
         IReadOnlyList<ActorEnergyState>? actorEnergy = null,
-        int selectedHotbarSlot = 0)
+        int selectedHotbarSlot = 0,
+        IReadOnlyList<ForageNodeState>? forageNodes = null)
     {
         Version = version;
         Minute = minute;
@@ -218,6 +256,7 @@ public sealed class TinyFarmState
         this.actorScenes = actorScenes?.ToList() ?? [];
         this.actorEnergy = actorEnergy?.ToList() ?? [];
         SelectedHotbarSlot = selectedHotbarSlot;
+        this.forageNodes = forageNodes?.ToList() ?? [];
         actorIndex = BuildActorIndex(this.actors);
         actorSceneIndex = BuildActorSceneIndex(this.actorScenes);
         actorEnergyIndex = BuildActorEnergyIndex(this.actorEnergy);
@@ -237,6 +276,7 @@ public sealed class TinyFarmState
     public IReadOnlyList<ActorSceneState> ActorScenes => actorScenes;
     public IReadOnlyList<ActorEnergyState> ActorEnergy => actorEnergy;
     public int SelectedHotbarSlot { get; internal set; }
+    public IReadOnlyList<ForageNodeState> ForageNodes => forageNodes;
     public SceneId? CurrentScene => actorScenes.SingleOrDefault(item => item.Actor == TinyFarmIds.Player)?.Scene;
     internal List<ActorState> MutableActors => actors;
     internal List<ItemState> MutableItems => items;
@@ -246,10 +286,12 @@ public sealed class TinyFarmState
     internal List<FarmPlotState> MutableFarmPlots => farmPlots;
     internal List<ActorSceneState> MutableActorScenes => actorScenes;
     internal List<ActorEnergyState> MutableActorEnergy => actorEnergy;
+    internal List<ForageNodeState> MutableForageNodes => forageNodes;
     public ActorState Actor(ActorId id) => actors[RequiredIndex(actorIndex, id, "actor")];
     public ItemState Item(ItemId id) => Items.Single(item => item.Id == id);
     public ActorSceneState ActorScene(ActorId id) => actorScenes[RequiredIndex(actorSceneIndex, id, "actor scene")];
     public ActorEnergyState EnergyFor(ActorId id) => actorEnergy[RequiredIndex(actorEnergyIndex, id, "actor energy")];
+    public ForageNodeState ForageNode(ForageNodeId id) => forageNodes.Single(node => node.Id == id);
 
     internal bool TryGetActorIndex(ActorId id, out int index)
     {
@@ -287,7 +329,8 @@ public sealed class TinyFarmState
             FarmPlots.ToList(),
             ActorScenes.ToList(),
             ActorEnergy.ToList(),
-            SelectedHotbarSlot);
+            SelectedHotbarSlot,
+            ForageNodes.ToList());
     }
 
     private static Dictionary<ActorId, int> BuildActorIndex(IReadOnlyList<ActorState> values)
@@ -347,9 +390,11 @@ public static class TinyFarmIds
     public static readonly ItemId WildMint = new("wild-mint");
     public static readonly ProductId TurnipSeed = new("turnip-seed");
     public static readonly ProductId Turnip = new("turnip");
+    public static readonly ProductId HenOfTheWoods = new("hen-of-the-woods");
     public static readonly CropId TurnipCrop = new("turnip");
     public static readonly FarmPlotId PlotOne = new("plot-1");
     public static readonly FarmPlotId PlotTwo = new("plot-2");
+    public static readonly ForageNodeId RiversideHenOfTheWoods = new("riverside-hen-of-the-woods");
 }
 
 public static class TinyFarmContent
