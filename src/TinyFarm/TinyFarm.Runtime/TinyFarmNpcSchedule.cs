@@ -115,6 +115,18 @@ public static partial class TinyFarmNpcSchedule
         return Select(context, TinyFarmAnchorIds.RiversideMeetingPoint);
     }
 
+    [DominatusState("SelectFarmWanderA")]
+    private static IEnumerator<AiStep> SelectFarmWanderA(AiCtx context)
+    {
+        return Select(context, TinyFarmAnchorIds.FarmWanderA);
+    }
+
+    [DominatusState("SelectFarmWanderB")]
+    private static IEnumerator<AiStep> SelectFarmWanderB(AiCtx context)
+    {
+        return Select(context, TinyFarmAnchorIds.FarmWanderB);
+    }
+
     internal static Runtime CreateRuntime(TinyFarmScheduleCatalog catalog)
     {
         ArgumentNullException.ThrowIfNull(catalog);
@@ -235,7 +247,15 @@ public static partial class TinyFarmNpcSchedule
             Ai.Option(
                 TinyFarmAnchorIds.RiversideMeetingPoint.Value,
                 ScoreFor(TinyFarmAnchorIds.RiversideMeetingPoint),
-                States.SelectRiversideMeetingPoint)
+                States.SelectRiversideMeetingPoint),
+            Ai.Option(
+                TinyFarmAnchorIds.FarmWanderA.Value,
+                ScoreFor(TinyFarmAnchorIds.FarmWanderA),
+                States.SelectFarmWanderA),
+            Ai.Option(
+                TinyFarmAnchorIds.FarmWanderB.Value,
+                ScoreFor(TinyFarmAnchorIds.FarmWanderB),
+                States.SelectFarmWanderB)
         ];
     }
 
@@ -397,9 +417,22 @@ public static partial class TinyFarmNpcSchedule
         double energyContribution = candidate.ConsiderationKind == "energy-rest"
             ? TinyFarmEnergy.RestContribution(energy)
             : 0d;
-        return candidate.BaseScore
-            + (candidate.Anchor == currentAnchor ? candidate.CurrentLocationBonus : 0d)
-            + energyContribution;
+        double locationContribution;
+        if (candidate.ConsiderationKind == "local-wander")
+        {
+            locationContribution = currentAnchor is SceneAnchorId current
+                && TinyFarmAnchorIds.IsWander(current)
+                && candidate.Anchor != current
+                    ? candidate.CurrentLocationBonus
+                    : 0d;
+        }
+        else
+        {
+            locationContribution = candidate.Anchor == currentAnchor
+                ? candidate.CurrentLocationBonus
+                : 0d;
+        }
+        return candidate.BaseScore + locationContribution + energyContribution;
     }
 
     private static int AnchorOptionOrder(SceneAnchorId anchor)
@@ -427,6 +460,8 @@ public static partial class TinyFarmNpcSchedule
         if (anchor == TinyFarmAnchorIds.EliasHomeBed) return 5;
         if (anchor == TinyFarmAnchorIds.MaraHomeBed) return 6;
         if (anchor == TinyFarmAnchorIds.SelaHomeBed) return 7;
+        if (anchor == TinyFarmAnchorIds.FarmWanderA) return 8;
+        if (anchor == TinyFarmAnchorIds.FarmWanderB) return 9;
         throw new InvalidOperationException($"No Dominatus schedule option exists for anchor '{anchor}'.");
     }
 

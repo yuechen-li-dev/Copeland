@@ -1,0 +1,131 @@
+{
+  "representation": "authored local SceneAnchorKind.Wander anchors",
+  "anchors": [
+    {
+      "value": "farm.wander-a"
+    },
+    {
+      "value": "farm.wander-b"
+    }
+  ],
+  "high": {
+    "actor": {
+      "value": "elias"
+    },
+    "minute": 480,
+    "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+    "selectedAnchor": {
+      "value": "farm.wander-a"
+    },
+    "reason": "daily-morning-wander",
+    "windowStart": 0,
+    "windowEnd": 720,
+    "priority": 0,
+    "windowId": "elias.morning-work",
+    "regime": "Open",
+    "utilityScores": [
+      {
+        "candidate": {
+          "value": "elias.home-bed"
+        },
+        "baseScore": 0.1,
+        "stickinessContribution": 0,
+        "energyContribution": 0.08000000000000002,
+        "score": 0.18000000000000002,
+        "selected": false,
+        "considerationKind": "energy-rest"
+      },
+      {
+        "candidate": {
+          "value": "farm.wander-a"
+        },
+        "baseScore": 0.5,
+        "stickinessContribution": 0,
+        "energyContribution": 0,
+        "score": 0.5,
+        "selected": true,
+        "considerationKind": "local-wander"
+      },
+      {
+        "candidate": {
+          "value": "farm.wander-b"
+        },
+        "baseScore": 0.5,
+        "stickinessContribution": 0,
+        "energyContribution": 0,
+        "score": 0.5,
+        "selected": false,
+        "considerationKind": "local-wander"
+      }
+    ]
+  },
+  "low": {
+    "actor": {
+      "value": "elias"
+    },
+    "minute": 480,
+    "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+    "selectedAnchor": {
+      "value": "elias.home-bed"
+    },
+    "reason": "daily-morning-wander",
+    "windowStart": 0,
+    "windowEnd": 720,
+    "priority": 0,
+    "windowId": "elias.morning-work",
+    "regime": "Open",
+    "utilityScores": [
+      {
+        "candidate": {
+          "value": "elias.home-bed"
+        },
+        "baseScore": 0.1,
+        "stickinessContribution": 0,
+        "energyContribution": 0.7200000000000001,
+        "score": 0.8200000000000001,
+        "selected": true,
+        "considerationKind": "energy-rest"
+      },
+      {
+        "candidate": {
+          "value": "farm.wander-a"
+        },
+        "baseScore": 0.5,
+        "stickinessContribution": 0.1,
+        "energyContribution": 0,
+        "score": 0.6,
+        "selected": false,
+        "considerationKind": "local-wander"
+      },
+      {
+        "candidate": {
+          "value": "farm.wander-b"
+        },
+        "baseScore": 0.5,
+        "stickinessContribution": 0,
+        "energyContribution": 0,
+        "score": 0.5,
+        "selected": false,
+        "considerationKind": "local-wander"
+      }
+    ]
+  },
+  "bedtime": {
+    "actor": {
+      "value": "elias"
+    },
+    "minute": 1320,
+    "decisionSlot": "TinyFarm.NpcSchedule.Anchor",
+    "selectedAnchor": {
+      "value": "elias.home-bed"
+    },
+    "reason": "daily-bedtime",
+    "windowStart": 1320,
+    "windowEnd": 1440,
+    "priority": 0,
+    "windowId": "elias.required-home",
+    "regime": "Required",
+    "utilityScores": []
+  },
+  "commitment": "retain current local Wander goal until AnchorReached or a non-Wander policy override"
+}

@@ -1,0 +1,31 @@
+{
+  "speedLaw": "16 integer world units per 60 Hz locomotion opportunity",
+  "initial": {
+    "xUnits": 4608,
+    "yUnits": 7680,
+    "tile": {
+      "x": 4,
+      "y": 7
+    }
+  },
+  "beforeMinute": {
+    "xUnits": 5088,
+    "yUnits": 8160,
+    "tile": {
+      "x": 4,
+      "y": 7
+    }
+  },
+  "sixtyHzPosition": {
+    "xUnits": 6208,
+    "yUnits": 9296,
+    "tile": {
+      "x": 6,
+      "y": 9
+    }
+  },
+  "sixtyHzFacing": "Left",
+  "waypointIndex": 1,
+  "npcMovementBytesPerStep": 6720,
+  "allocationBoundary": "full authoritative resolver reduction including result/event projection; path collections are reused"
+}

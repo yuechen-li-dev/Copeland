@@ -72,6 +72,7 @@ public enum SceneAnchorKind
     Home,
     Social,
     Rest,
+    Wander,
     Exit
 }
 
@@ -210,6 +211,8 @@ public static class TinyFarmAnchorIds
     public static readonly SceneAnchorId EliasHomeBed = new("elias.home-bed");
     public static readonly SceneAnchorId MaraHomeBed = new("mara.home-bed");
     public static readonly SceneAnchorId SelaHomeBed = new("sela.home-bed");
+    public static readonly SceneAnchorId FarmWanderA = new("farm.wander-a");
+    public static readonly SceneAnchorId FarmWanderB = new("farm.wander-b");
 
     public static SceneAnchorId HomeBedFor(ActorId actor)
     {
@@ -222,6 +225,11 @@ public static class TinyFarmAnchorIds
     public static bool IsHomeBed(SceneAnchorId anchor)
     {
         return anchor == EliasHomeBed || anchor == MaraHomeBed || anchor == SelaHomeBed;
+    }
+
+    public static bool IsWander(SceneAnchorId anchor)
+    {
+        return anchor == FarmWanderA || anchor == FarmWanderB;
     }
 }
 

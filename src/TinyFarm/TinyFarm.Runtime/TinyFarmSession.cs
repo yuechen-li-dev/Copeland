@@ -7,6 +7,7 @@ public sealed record TinyFarmStepResult(
 
 public sealed class TinyFarmSession
 {
+    public const int NpcDistancePerLocomotionStep = ScenePosition.UnitsPerTile / 64;
     private readonly TinyFarmResolver resolver;
     private readonly TinyFarmDefinitions? definitions;
     private TinyFarmSceneCatalog Scenes => definitions?.Scenes
@@ -16,10 +17,14 @@ public sealed class TinyFarmSession
     private readonly INavigationPlanner navigationPlanner;
     private readonly TinyFarmNpcSchedule.Runtime scheduleRuntime;
     private readonly Dictionary<ActorId, NpcPathState> npcPaths = [];
+    private readonly Dictionary<ActorId, SceneAnchorId> npcNavigationTargets = [];
     private int navigationPlanCount;
     private int activationCount;
     private int deactivationCount;
     private long decisionEvaluationCount;
+    private long npcLocomotionReductionCount;
+    private long anchorArrivalCount;
+    private bool fixedNpcLocomotionEnabled;
 
     public TinyFarmSession(TinyFarmState state)
         : this(state, TinyFarmDefinitionLoader.Load(), 0, [])
@@ -68,6 +73,26 @@ public sealed class TinyFarmSession
     public int ActivationCount => activationCount;
     public int DeactivationCount => deactivationCount;
     public long DecisionEvaluationCount => decisionEvaluationCount;
+    public long NpcLocomotionReductionCount => npcLocomotionReductionCount;
+    public long AnchorArrivalCount => anchorArrivalCount;
+    public bool HasActiveNpcNavigation => npcNavigationTargets.Count > 0;
+
+    public SceneAnchorId? NavigationTargetFor(ActorId actor)
+    {
+        return npcNavigationTargets.TryGetValue(actor, out SceneAnchorId target)
+            ? target
+            : null;
+    }
+
+    public int WaypointIndexFor(ActorId actor)
+    {
+        return npcPaths.TryGetValue(actor, out NpcPathState? path) ? path.Index : 0;
+    }
+
+    internal void EnableFixedNpcLocomotion()
+    {
+        fixedNpcLocomotionEnabled = true;
+    }
 
     public TinyFarmStepResult Step(GameIntent humanIntent)
     {
@@ -111,12 +136,24 @@ public sealed class TinyFarmSession
         envelopes.AddRange(npcIntents);
         nextSequence += npcIntents.Count;
 
+        ForgetCompletedNavigationTargets(envelopes);
         IReadOnlyDictionary<ActorId, SceneAnchorId> semanticTargets = envelopes
             .Where(envelope => envelope.Intent is NavigateToAnchorIntent)
             .ToDictionary(
                 envelope => envelope.Actor,
                 envelope => ((NavigateToAnchorIntent)envelope.Intent).Anchor);
-        envelopes = envelopes.Select(TranslateSemanticNavigationIntent).ToList();
+        envelopes = PreserveCommittedWanderGoals(envelopes);
+        semanticTargets = envelopes
+            .Where(envelope => envelope.Intent is NavigateToAnchorIntent)
+            .ToDictionary(
+                envelope => envelope.Actor,
+                envelope => ((NavigateToAnchorIntent)envelope.Intent).Anchor);
+        RememberActiveNavigationTargets(semanticTargets);
+        envelopes = envelopes
+            .Select(envelope => TranslateSemanticNavigationIntent(
+                envelope,
+                advancePath: !fixedNpcLocomotionEnabled))
+            .ToList();
 
         SceneId? activeSceneBefore = State.CurrentScene;
         ResolutionBatchResult batch = resolver.Resolve(State, envelopes);
@@ -139,6 +176,144 @@ public sealed class TinyFarmSession
         recentEvents = batch.Results.SelectMany(result => result.Events).ToArray();
         IReadOnlyList<NarrativeLine> narrative = TinyFarmNarrative.Project(recentEvents);
         return new TinyFarmStepResult(State.DeepCopy(), batch.Results, narrative);
+    }
+
+    private List<IntentEnvelope> PreserveCommittedWanderGoals(List<IntentEnvelope> envelopes)
+    {
+        return envelopes.Select(envelope =>
+        {
+            if (envelope.Intent is NavigateToAnchorIntent requested
+                && TinyFarmAnchorIds.IsWander(requested.Anchor)
+                && npcNavigationTargets.TryGetValue(envelope.Actor, out SceneAnchorId committed)
+                && TinyFarmAnchorIds.IsWander(committed))
+            {
+                return envelope with { Intent = new NavigateToAnchorIntent(committed) };
+            }
+            return envelope;
+        }).ToList();
+    }
+
+    private void ForgetCompletedNavigationTargets(IEnumerable<IntentEnvelope> envelopes)
+    {
+        foreach (IntentEnvelope envelope in envelopes)
+        {
+            if (envelope.Source == IntentSourceKind.Dominatus
+                && envelope.Intent is not NavigateToAnchorIntent)
+            {
+                npcNavigationTargets.Remove(envelope.Actor);
+                npcPaths.Remove(envelope.Actor);
+            }
+        }
+    }
+
+    public TinyFarmStepResult AdvanceActiveNpcLocomotion()
+    {
+        if (State.CurrentScene is not SceneId activeScene || npcNavigationTargets.Count == 0)
+        {
+            return new TinyFarmStepResult(State.DeepCopy(), [], []);
+        }
+
+        var results = new List<IntentResult>();
+        var events = new List<GameEvent>();
+        foreach ((ActorId actorId, SceneAnchorId target) in npcNavigationTargets
+                     .OrderBy(item => item.Key.Value, StringComparer.Ordinal)
+                     .ToArray())
+        {
+            ActorSceneState placement = State.ActorScene(actorId);
+            if (placement.Scene != activeScene)
+            {
+                npcNavigationTargets.Remove(actorId);
+                npcPaths.Remove(actorId);
+                continue;
+            }
+
+            IntentEnvelope semantic = new(
+                actorId,
+                new NavigateToAnchorIntent(target),
+                State.Minute,
+                nextSequence++,
+                IntentSourceKind.Dominatus);
+            IntentEnvelope movement = TranslateSemanticNavigationIntent(semantic, advancePath: true);
+            if (movement.Intent is LookIntent)
+            {
+                continue;
+            }
+
+            TinyFarmState before = State;
+            ResolutionBatchResult batch = resolver.Resolve(State, [movement]);
+            batch = AppendAnchorArrivalEvents(
+                before,
+                batch,
+                new Dictionary<ActorId, SceneAnchorId> { [actorId] = target });
+            State = batch.State;
+            IntentResult movementResult = batch.Results[0];
+            results.Add(movementResult);
+            events.AddRange(movementResult.Events);
+
+            if (movementResult.Status == IntentResultStatus.Accepted
+                && movementResult.Envelope.Intent is SpatialMoveIntent)
+            {
+                npcLocomotionReductionCount++;
+            }
+            if (movementResult.Reason == IntentReason.MovementBlocked)
+            {
+                npcPaths.Remove(actorId);
+            }
+
+            GameEvent? arrival = movementResult.Events.FirstOrDefault(item =>
+                item.Kind == GameEventKind.AnchorReached && item.Anchor == target);
+            if (arrival is not null)
+            {
+                anchorArrivalCount++;
+                npcNavigationTargets.Remove(actorId);
+                npcPaths.Remove(actorId);
+                IntentEnvelope reached = new(
+                    actorId,
+                    new AnchorReachedIntent(target),
+                    State.Minute,
+                    nextSequence++,
+                    IntentSourceKind.Dominatus);
+                ResolutionBatchResult reachedBatch = resolver.Resolve(State, [reached]);
+                State = reachedBatch.State;
+                results.AddRange(reachedBatch.Results);
+                events.AddRange(reachedBatch.Results.SelectMany(item => item.Events));
+            }
+        }
+
+        recentEvents = events.ToArray();
+        return new TinyFarmStepResult(
+            State.DeepCopy(),
+            results,
+            TinyFarmNarrative.Project(recentEvents));
+    }
+
+    private void RememberActiveNavigationTargets(
+        IReadOnlyDictionary<ActorId, SceneAnchorId> semanticTargets)
+    {
+        if (State.CurrentScene is not SceneId activeScene)
+        {
+            return;
+        }
+
+        foreach ((ActorId actor, SceneAnchorId target) in semanticTargets)
+        {
+            if (actor == TinyFarmIds.Player)
+            {
+                continue;
+            }
+            if (State.ActorScene(actor).Scene != activeScene)
+            {
+                npcNavigationTargets.Remove(actor);
+                npcPaths.Remove(actor);
+                continue;
+            }
+            if (npcNavigationTargets.TryGetValue(actor, out SceneAnchorId existing)
+                && existing != target)
+            {
+                npcPaths.Remove(actor);
+            }
+            npcNavigationTargets[actor] = target;
+        }
     }
 
     private ResolutionBatchResult AppendAnchorArrivalEvents(
@@ -180,7 +355,7 @@ public sealed class TinyFarmSession
         return new ResolutionBatchResult(batch.State, results);
     }
 
-    private IntentEnvelope TranslateSemanticNavigationIntent(IntentEnvelope envelope)
+    private IntentEnvelope TranslateSemanticNavigationIntent(IntentEnvelope envelope, bool advancePath)
     {
         if (State.Version < TinyFarmState.ContinuousSceneSaveVersion
             || envelope.Intent is not NavigateToAnchorIntent move)
@@ -249,6 +424,11 @@ public sealed class TinyFarmSession
             return envelope with { Intent = new AnchorReachedIntent(move.Anchor) };
         }
 
+        if (!advancePath)
+        {
+            return envelope with { Intent = new LookIntent() };
+        }
+
         ScenePosition waypoint = pathState.Path.Waypoints[pathState.Index];
         if (actor.WorldPosition.SquaredDistance(waypoint) <= 64L * 64L)
         {
@@ -273,7 +453,10 @@ public sealed class TinyFarmSession
         {
             stepY = Math.Sign(deltaY);
         }
-        int distance = Math.Min(ScenePosition.UnitsPerTile / 8, Math.Max(Math.Abs(deltaX), Math.Abs(deltaY)));
+        int maximumDistance = fixedNpcLocomotionEnabled
+            ? NpcDistancePerLocomotionStep
+            : ScenePosition.UnitsPerTile / 8;
+        int distance = Math.Min(maximumDistance, Math.Max(Math.Abs(deltaX), Math.Abs(deltaY)));
         return distance == 0
             ? envelope with { Intent = new LookIntent() }
             : envelope with { Intent = new SpatialMoveIntent(stepX, stepY, distance) };

@@ -120,6 +120,20 @@ if (args.Contains("--m13", StringComparer.Ordinal))
     return;
 }
 
+if (args.Contains("--m14", StringComparer.Ordinal))
+{
+    string directory = Path.Combine(Environment.CurrentDirectory, "artifacts", "tiny-farm-m14");
+    int artifactIndex = Array.IndexOf(args, "--artifact-dir");
+    if (artifactIndex >= 0)
+    {
+        directory = RequiredOutputPath(args, artifactIndex, "--artifact-dir");
+    }
+    TinyFarmM14Scenario.WriteArtifacts(directory);
+    TinyFarmM14Evidence evidence = TinyFarmM14Scenario.Prove();
+    Console.WriteLine(TinyFarmM14Scenario.WriteJson(evidence.Proof));
+    return;
+}
+
 bool runM1 = args.Contains("--m1", StringComparer.Ordinal);
 bool runM3 = args.Contains("--m3", StringComparer.Ordinal);
 bool runM4 = args.Contains("--m4", StringComparer.Ordinal);

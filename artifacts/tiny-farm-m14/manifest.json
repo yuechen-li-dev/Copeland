@@ -1,0 +1,14 @@
+{
+  "milestone": "TINY-FARM-M14",
+  "kind": "active-npc-fixed-step-locomotion-local-wander",
+  "npcLocomotionUsesFixedDomain": true,
+  "npcPolicyUsesRenderCadence": false,
+  "npcPolicyUsesLocomotionCadence": false,
+  "pathPlanningUsesLocomotionCadence": false,
+  "rendererOwnsNpcMovement": false,
+  "localWanderAdded": true,
+  "wanderCrossesScenes": false,
+  "newNeedAdded": false,
+  "physicsEngineAdded": false,
+  "genericSchedulerAdded": false
+}

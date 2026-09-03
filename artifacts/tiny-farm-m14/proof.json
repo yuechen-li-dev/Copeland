@@ -1,0 +1,12 @@
+{
+  "milestone": "TINY-FARM-M14",
+  "outcome": "A",
+  "movedWithoutWorldMinute": true,
+  "sixtyVsOneFortyFourEquivalent": true,
+  "irregularEquivalent": true,
+  "pauseFreezes": true,
+  "resumeContinues": true,
+  "stateHash": "a0d79da0f0590d1c77d1a27bd19494e1ae68dd16ae8c46caccb20dfcbcb8fd84",
+  "sceneContentHash": "6f0ab02083cc03e92bb612f37bb8ee4b5ffafa52586e366aa523baf0c9784b6d",
+  "scheduleContentHash": "5fe6d12a07f6278d4b374160d270022248d47d7ee0733ca5b57a9ea440180cfe"
+}

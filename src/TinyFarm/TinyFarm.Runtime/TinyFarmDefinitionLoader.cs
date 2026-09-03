@@ -29,17 +29,27 @@ public static class TinyFarmDefinitionLoader
 
     public static TinyFarmDefinitions Load(string? path = null)
     {
-        return LoadCore(path, null, isM12: false);
+        return LoadCore(path, null, contentMilestone: null);
     }
 
     public static TinyFarmDefinitions LoadM12(string? path = null)
     {
         string productPath = Path.GetFullPath(path ?? DefaultPath);
         string contentDirectory = Path.Combine(Path.GetDirectoryName(productPath)!, "M12");
-        return LoadCore(productPath, contentDirectory, isM12: true);
+        return LoadCore(productPath, contentDirectory, contentMilestone: "m12");
     }
 
-    private static TinyFarmDefinitions LoadCore(string? path, string? contentOverride, bool isM12)
+    public static TinyFarmDefinitions LoadM14(string? path = null)
+    {
+        string productPath = Path.GetFullPath(path ?? DefaultPath);
+        string contentDirectory = Path.Combine(Path.GetDirectoryName(productPath)!, "M14");
+        return LoadCore(productPath, contentDirectory, contentMilestone: "m14");
+    }
+
+    private static TinyFarmDefinitions LoadCore(
+        string? path,
+        string? contentOverride,
+        string? contentMilestone)
     {
         string productPath = Path.GetFullPath(path ?? DefaultPath);
         string contentDirectory = contentOverride ?? Path.GetDirectoryName(productPath)!;
@@ -89,9 +99,9 @@ public static class TinyFarmDefinitionLoader
         (TinyFarmSceneCatalog scenes, SceneContentProvenance sceneProvenance) = LoadSceneCatalog(contentDirectory);
         (TinyFarmScheduleCatalog schedules, ScheduleContentProvenance scheduleProvenance) =
             LoadScheduleCatalog(Path.Combine(contentDirectory, ScheduleFileName), scenes);
-        if (isM12)
+        if (contentMilestone is not null)
         {
-            identity = $"{identity};m12-scenes:{sceneProvenance.AggregateSha256};m12-schedules:{scheduleProvenance.AggregateSha256}";
+            identity = $"{identity};{contentMilestone}-scenes:{sceneProvenance.AggregateSha256};{contentMilestone}-schedules:{scheduleProvenance.AggregateSha256}";
         }
         return new TinyFarmDefinitions(
             identity,

@@ -275,15 +275,23 @@ public sealed class TinyFarmScheduleCatalog
                 && candidate.Anchor != TinyFarmAnchorIds.TownSquare
                 && candidate.Anchor != TinyFarmAnchorIds.StoreCounter
                 && candidate.Anchor != TinyFarmAnchorIds.RiversideMeetingPoint
+                && !TinyFarmAnchorIds.IsWander(candidate.Anchor)
                 && !TinyFarmAnchorIds.IsHomeBed(candidate.Anchor))
             {
                 throw new InvalidDataException(
                     $"Utility candidate anchor '{candidate.Anchor}' has no Dominatus schedule option.");
             }
             if (candidate.ConsiderationKind != "current-location-stickiness"
-                && candidate.ConsiderationKind != "energy-rest")
+                && candidate.ConsiderationKind != "energy-rest"
+                && candidate.ConsiderationKind != "local-wander")
             {
                 throw new InvalidDataException($"Utility candidate for '{candidate.WindowId}' has unknown consideration kind '{candidate.ConsiderationKind}'.");
+            }
+            if (candidate.ConsiderationKind == "local-wander"
+                && scenes.GetAnchor(candidate.Anchor).Kind != SceneAnchorKind.Wander)
+            {
+                throw new InvalidDataException(
+                    $"Local Wander candidate '{candidate.Anchor}' must target an authored Wander anchor.");
             }
             if (!double.IsFinite(candidate.BaseScore)
                 || !double.IsFinite(candidate.CurrentLocationBonus)
@@ -308,6 +316,16 @@ public sealed class TinyFarmScheduleCatalog
             if (openCandidates.Select(candidate => candidate.Anchor).Distinct().Count() != openCandidates.Length)
             {
                 throw new InvalidDataException($"Open schedule window '{open.Id}' contains a duplicate semantic candidate.");
+            }
+            SceneId[] wanderScenes = openCandidates
+                .Where(candidate => candidate.ConsiderationKind == "local-wander")
+                .Select(candidate => scenes.GetAnchor(candidate.Anchor).Scene)
+                .Distinct()
+                .ToArray();
+            if (wanderScenes.Length > 1)
+            {
+                throw new InvalidDataException(
+                    $"Open Wander candidates for '{open.Id}' must remain in one local scene.");
             }
         }
 

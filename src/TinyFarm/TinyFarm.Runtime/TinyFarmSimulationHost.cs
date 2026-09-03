@@ -39,7 +39,6 @@ public sealed class TinyFarmSimulationHost
 {
     private readonly TinyFarmDefinitions definitions;
     private readonly TinyFarmSimulationRates rates;
-    private readonly FixedMovementStepper playerMovementStepper = new();
     private long worldTickAccumulator;
     private long locomotionTickNumerator;
     private int playerMovementX;
@@ -55,6 +54,7 @@ public sealed class TinyFarmSimulationHost
         this.definitions = definitions ?? throw new ArgumentNullException(nameof(definitions));
         this.rates = rates ?? TinyFarmSimulationRates.Default;
         ValidateRates(this.rates);
+        Session.EnableFixedNpcLocomotion();
         Mode = initialMode;
     }
 
@@ -71,6 +71,9 @@ public sealed class TinyFarmSimulationHost
     public long WorldMinutesAdvanced { get; private set; }
 
     public long LocomotionStepsAdvanced { get; private set; }
+    public long PlayerLocomotionReductions { get; private set; }
+    public long NpcLocomotionReductions => Session.NpcLocomotionReductionCount;
+    public long AnchorArrivals => Session.AnchorArrivalCount;
 
     public void ObserveRenderFrame()
     {
@@ -83,7 +86,6 @@ public sealed class TinyFarmSimulationHost
         {
             playerMovementX = 0;
             playerMovementY = 0;
-            playerMovementStepper.Reset();
             return;
         }
         if (Math.Abs(deltaX) + Math.Abs(deltaY) != 1)
@@ -92,7 +94,6 @@ public sealed class TinyFarmSimulationHost
         }
         if (deltaX != playerMovementX || deltaY != playerMovementY)
         {
-            playerMovementStepper.Reset();
         }
         playerMovementX = deltaX;
         playerMovementY = deltaY;
@@ -140,50 +141,45 @@ public sealed class TinyFarmSimulationHost
             ? rates.FastForwardMultiplier
             : 1;
 
-        worldTickAccumulator = checked(worldTickAccumulator + (acceptedTicks * multiplier));
-        locomotionTickNumerator = checked(
-            locomotionTickNumerator + (acceptedTicks * multiplier * rates.LocomotionHz));
+        long semanticTicks = checked(acceptedTicks * multiplier);
+        long ticksPerGameMinute = checked((long)rates.NormalRealSecondsPerGameMinute * TimeSpan.TicksPerSecond);
+        long locomotionBefore = LocomotionStepsAdvanced;
+        int minutesBefore = checked((int)WorldMinutesAdvanced);
+        var results = new List<IntentResult>();
+        var narrative = new List<NarrativeLine>();
 
-        long locomotionSteps = locomotionTickNumerator / TimeSpan.TicksPerSecond;
-        locomotionTickNumerator %= TimeSpan.TicksPerSecond;
-        LocomotionStepsAdvanced += locomotionSteps;
-
-        List<IntentResult>? movementResults = null;
-        List<NarrativeLine>? movementNarrative = null;
-        if (playerMovementX != 0 || playerMovementY != 0)
+        while (semanticTicks > 0)
         {
-            TimeSpan scaledElapsed = TimeSpan.FromTicks(checked(acceptedTicks * multiplier));
-            foreach (SpatialMoveIntent intent in playerMovementStepper.Advance(
-                         scaledElapsed,
-                         playerMovementX,
-                         playerMovementY))
+            long ticksToLocomotion = DivideRoundUp(
+                TimeSpan.TicksPerSecond - locomotionTickNumerator,
+                rates.LocomotionHz);
+            long ticksToMinute = ticksPerGameMinute - worldTickAccumulator;
+            long advance = Math.Min(semanticTicks, Math.Min(ticksToLocomotion, ticksToMinute));
+            semanticTicks -= advance;
+            worldTickAccumulator += advance;
+            locomotionTickNumerator += checked(advance * rates.LocomotionHz);
+
+            if (locomotionTickNumerator >= TimeSpan.TicksPerSecond)
             {
-                TinyFarmStepResult step = Session.Step(intent, evaluateNpcDecisions: false);
-                movementResults ??= [];
-                movementNarrative ??= [];
-                movementResults.AddRange(step.Results);
-                movementNarrative.AddRange(step.Narrative);
+                locomotionTickNumerator -= TimeSpan.TicksPerSecond;
+                AdvanceLocomotion(results, narrative);
+            }
+            if (worldTickAccumulator >= ticksPerGameMinute)
+            {
+                worldTickAccumulator -= ticksPerGameMinute;
+                TinyFarmHostAdvanceResult minute = AdvanceMinutes(1);
+                results.AddRange(minute.Results);
+                narrative.AddRange(minute.Narrative);
             }
         }
 
-        long ticksPerGameMinute = checked((long)rates.NormalRealSecondsPerGameMinute * TimeSpan.TicksPerSecond);
-        int minutes = checked((int)(worldTickAccumulator / ticksPerGameMinute));
-        worldTickAccumulator %= ticksPerGameMinute;
-        TinyFarmHostAdvanceResult worldResult = AdvanceMinutes(minutes);
-        IReadOnlyList<IntentResult> combinedResults = movementResults is null
-            ? worldResult.Results
-            : movementResults.Concat(worldResult.Results).ToArray();
-        IReadOnlyList<NarrativeLine> combinedNarrative = movementNarrative is null
-            ? worldResult.Narrative
-            : movementNarrative.Concat(worldResult.Narrative).ToArray();
-        return worldResult with
-        {
-            HostTicksAccepted = acceptedTicks,
-            HostTicksDiscarded = discardedTicks,
-            LocomotionStepsAdvanced = locomotionSteps,
-            Results = combinedResults,
-            Narrative = combinedNarrative
-        };
+        return new TinyFarmHostAdvanceResult(
+            acceptedTicks,
+            discardedTicks,
+            checked((int)WorldMinutesAdvanced - minutesBefore),
+            LocomotionStepsAdvanced - locomotionBefore,
+            results,
+            narrative);
     }
 
     public TinyFarmHostAdvanceResult AdvanceMinutes(int minutes)
@@ -219,9 +215,38 @@ public sealed class TinyFarmSimulationHost
     public void ReplaceSession(TinyFarmSession session)
     {
         Session = session ?? throw new ArgumentNullException(nameof(session));
+        Session.EnableFixedNpcLocomotion();
         worldTickAccumulator = 0;
         locomotionTickNumerator = 0;
-        playerMovementStepper.Reset();
+    }
+
+    private void AdvanceLocomotion(List<IntentResult> results, List<NarrativeLine> narrative)
+    {
+        LocomotionStepsAdvanced++;
+        if (playerMovementX != 0 || playerMovementY != 0)
+        {
+            TinyFarmStepResult player = Session.Step(
+                new SpatialMoveIntent(
+                    playerMovementX,
+                    playerMovementY,
+                    ScenePosition.UnitsPerTile / 8),
+                evaluateNpcDecisions: false);
+            PlayerLocomotionReductions++;
+            results.AddRange(player.Results);
+            narrative.AddRange(player.Narrative);
+        }
+
+        if (Session.HasActiveNpcNavigation)
+        {
+            TinyFarmStepResult npc = Session.AdvanceActiveNpcLocomotion();
+            results.AddRange(npc.Results);
+            narrative.AddRange(npc.Narrative);
+        }
+    }
+
+    private static long DivideRoundUp(long numerator, int denominator)
+    {
+        return (numerator + denominator - 1) / denominator;
     }
 
     public TinyFarmSimulationSnapshot Snapshot()
@@ -280,6 +305,9 @@ public static class TinyFarmSimulationSnapshotProjector
                     TinyFarmNpcController.CurrentAnchor(state, actor, definitions.Scenes, definitions.Schedules),
                     energy: energy.Energy);
                 ActorSceneState placement = state.ActorScene(actor.Id);
+                SceneAnchorId goal = placement.Scene == state.CurrentScene
+                    ? session.NavigationTargetFor(actor.Id) ?? decision.SelectedAnchor
+                    : decision.SelectedAnchor;
                 return new TinyFarmSimulationActorSnapshot(
                     actor.Id,
                     placement.Scene,
@@ -287,7 +315,7 @@ public static class TinyFarmSimulationSnapshotProjector
                     energy.Energy,
                     energy.IsResting,
                     decision.Regime,
-                    decision.SelectedAnchor);
+                    goal);
             })
             .ToArray();
         return new TinyFarmSimulationSnapshot(

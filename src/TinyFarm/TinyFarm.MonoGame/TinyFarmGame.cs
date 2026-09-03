@@ -24,13 +24,14 @@ internal sealed class TinyFarmGame : Game
             PreferredBackBufferHeight = ReadIntOption(args, "--height", 1440),
             SynchronizeWithVerticalRetrace = true
         };
-        Window.Title = "TinyFarm M13 - Hosted Simulation";
+        Window.Title = "TinyFarm M14 - Fixed-Step NPC Locomotion";
         Window.AllowUserResizing = true;
         IsMouseVisible = true;
-        definitions = TinyFarmDefinitionLoader.LoadM12();
+        definitions = TinyFarmDefinitionLoader.LoadM14();
         simulationHost = new TinyFarmSimulationHost(
-            new TinyFarmSession(TinyFarmContent.CreateEnergySceneState(definitions), definitions),
-            definitions);
+            new TinyFarmSession(TinyFarmM14ControlStates.Create(definitions, "wander"), definitions),
+            definitions,
+            TinyFarmSimulationMode.Playing);
         savePath = ReadOption(args, "--save-file")
             ?? Path.Combine(Environment.CurrentDirectory, "tiny-farm.save");
     }

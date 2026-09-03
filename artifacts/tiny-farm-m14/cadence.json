@@ -1,0 +1,10 @@
+{
+  "renderObservations": 3600,
+  "locomotionOpportunities": 3600,
+  "playerLocomotionReductions": 0,
+  "npcLocomotionReductions": 2249,
+  "worldMinutes": 12,
+  "npcPolicyEvaluations": 39,
+  "dotRecastQueries": 7,
+  "anchorArrivals": 6
+}

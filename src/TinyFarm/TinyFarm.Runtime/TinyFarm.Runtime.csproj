@@ -15,5 +15,6 @@
   <ItemGroup>
     <Content Include="Content/*.obj.ts" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Content/M12/*.obj.ts" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Content/M14/*.obj.ts" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
