@@ -1,0 +1,42 @@
+{
+  "milestone": "AURELIAN-COMPOSITOR-M1",
+  "topology": {
+    "includes": [
+      "control hierarchy and types",
+      "existing Machina NodeId and UiActionId identities",
+      "layout relationships and control order",
+      "fixed hotbar slot identity and order",
+      "inventory-open panel shape",
+      "visible inventory product semantic identity and order"
+    ],
+    "excludes": [
+      "money",
+      "day and time",
+      "inventory counts",
+      "hotbar selection and availability",
+      "labels, status, hints, and simulation mode"
+    ]
+  },
+  "law": {
+    "sameValues": "reuse complete MachinaPreparedPresentation",
+    "valueChange": "patch existing text, style, and semantic slots",
+    "layoutChange": "rebuild measure, resolved layout, presentation, and hit-test geometry",
+    "topologyChange": "rebuild and lower the full Machina projection"
+  },
+  "cases": {
+    "moneyChange": "value",
+    "clockChange": "value",
+    "selectedSlotChange": "value",
+    "inventoryCountChange": "value",
+    "inventoryProductInsert": "topology",
+    "inventoryProductRemoval": "topology",
+    "inventoryOpenClose": "topology",
+    "resize": "layout",
+    "surfaceScaleChange": "layout",
+    "fixedTheme": "no runtime invalidation source",
+    "layerVisibility": "retain cache while disabled"
+  },
+  "failClosed": true,
+  "missingOrShapeChangingPatchRequiresRebuild": true,
+  "applicationMaintainedVersionRequired": false
+}

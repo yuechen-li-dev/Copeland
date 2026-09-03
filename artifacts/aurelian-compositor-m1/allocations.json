@@ -1,0 +1,81 @@
+{
+  "milestone": "AURELIAN-COMPOSITOR-M1",
+  "machineLocalMeasurements": true,
+  "m0": {
+    "nanosecondsPerRecomposition": 294570,
+    "bytesPerRecomposition": 194387,
+    "stages": [
+      {
+        "stage": "TinyFarm compatibility and Machina authoring construction",
+        "nanoseconds": 9412.8,
+        "bytes": 24168
+      },
+      {
+        "stage": "Machina lowering including semantic and action metadata",
+        "nanoseconds": 25764.0,
+        "bytes": 30280
+      },
+      {
+        "stage": "layout tree construction",
+        "nanoseconds": 99456.2,
+        "bytes": 69579
+      },
+      {
+        "stage": "layout resolution",
+        "nanoseconds": 61927.4,
+        "bytes": 31768
+      },
+      {
+        "stage": "presentation IR lowering",
+        "nanoseconds": 76323.4,
+        "bytes": 37088
+      },
+      {
+        "stage": "hit-test generation",
+        "nanoseconds": 9522.8,
+        "bytes": 1344
+      },
+      {
+        "stage": "deterministic text and glyph measurement sample",
+        "nanoseconds": 547.4,
+        "bytes": 0,
+        "includedIn": "Machina lowering"
+      },
+      {
+        "stage": "normalized input hit routing",
+        "nanoseconds": 157.0,
+        "bytes": 72
+      },
+      {
+        "stage": "backend-neutral adapter dispatch",
+        "nanoseconds": 338.2,
+        "bytes": 32
+      }
+    ],
+    "temporaryCollections": "included in their owning measured stages; not estimated separately"
+  },
+  "m1": {
+    "unchangedValues": {
+      "nanosecondsPerRecomposition": 60,
+      "bytesPerRecomposition": 0,
+      "allocationReductionPercent": 100.0
+    },
+    "alternatingMoneyValue": {
+      "nanosecondsPerUpdate": 18130,
+      "bytesPerUpdate": 14712,
+      "allocationReductionPercent": 92.43,
+      "cpuReductionPercent": 93.84
+    },
+    "coldStructuralRebuild": {
+      "isolatedStageNanoseconds": 282406.6,
+      "isolatedStageBytes": 194227,
+      "substantiallyRegressed": false
+    }
+  },
+  "m15": {
+    "reductionCount": 100000,
+    "bytesPerReduction": 934.06264,
+    "nanosecondsPerReduction": 2136.985,
+    "gate": "pass"
+  }
+}

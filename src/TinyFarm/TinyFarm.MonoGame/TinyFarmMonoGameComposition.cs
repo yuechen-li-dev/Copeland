@@ -110,7 +110,8 @@ internal sealed class TinyFarmMachinaMonoGameLayer : IAurelianLayer, IAurelianLa
         renderer.Render(uiLayer.Prepared.PresentationFrame);
         metrics.RecordUi(
             uiLayer.LastRecompositionMicroseconds,
-            Stopwatch.GetElapsedTime(started).TotalMicroseconds);
+            Stopwatch.GetElapsedTime(started).TotalMicroseconds,
+            uiLayer.CacheMetrics);
         return result;
     }
 
@@ -126,6 +127,7 @@ internal sealed class TinyFarmCompositionMetrics
     private double worldMicroseconds;
     private double uiRecompositionMicroseconds;
     private double uiRealizationMicroseconds;
+    private TinyFarmMachinaCacheMetrics? cacheMetrics;
 
     public int Frames { get; private set; }
 
@@ -134,10 +136,14 @@ internal sealed class TinyFarmCompositionMetrics
         worldMicroseconds += microseconds;
     }
 
-    public void RecordUi(double recompositionMicroseconds, double realizationMicroseconds)
+    public void RecordUi(
+        double recompositionMicroseconds,
+        double realizationMicroseconds,
+        TinyFarmMachinaCacheMetrics currentCacheMetrics)
     {
         uiRecompositionMicroseconds += recompositionMicroseconds;
         uiRealizationMicroseconds += realizationMicroseconds;
+        cacheMetrics = currentCacheMetrics;
         Frames++;
     }
 
@@ -149,7 +155,12 @@ internal sealed class TinyFarmCompositionMetrics
             frames = Frames,
             worldCpuMicrosecondsPerFrame = worldMicroseconds / denominator,
             machinaRecompositionMicrosecondsPerFrame = uiRecompositionMicroseconds / denominator,
-            adapterRealizationCpuMicrosecondsPerFrame = uiRealizationMicroseconds / denominator
+            adapterRealizationCpuMicrosecondsPerFrame = uiRealizationMicroseconds / denominator,
+            topologyBuilds = cacheMetrics?.TopologyBuildCount ?? 0,
+            layoutBuilds = cacheMetrics?.LayoutBuildCount ?? 0,
+            presentationLowers = cacheMetrics?.PresentationLowerCount ?? 0,
+            hitTestBuilds = cacheMetrics?.HitTestBuildCount ?? 0,
+            dynamicUpdates = cacheMetrics?.DynamicUpdateCount ?? 0
         };
     }
 }

@@ -195,3 +195,11 @@ Primary feasibility references consulted on 2026-09-03:
 ## Decision
 
 The MonoGame adapter seam is now qualified by AURELIAN-COMPOSITOR-M0. TinyFarm semantic DTOs lower through the unchanged Machina pipeline; Machina owns layout and hit testing; a TinyFarm MonoGame leaf realizes the resulting presentation operations after the world pass. `Aurelian.Composition` owns layer-level focus, capture, ordering, resize, and fallthrough. Keep Stride and Aurelian-native as subsequent adapters when their end-to-end hosts demand them. Keep Avalonia as a focused proof candidate for desktop controls/accessibility/offscreen feasibility. Do not make Avalonia, MonoGame, Stride, or Vulkan types visible to semantic application UI.
+
+## M1 prepared-value reuse law
+
+AURELIAN-COMPOSITOR-M1 adds one bounded Machina primitive: `MachinaPreparedPresentationUpdater.ApplyValues`. It accepts stable existing `NodeId` slots for text, style, and semantics and produces an updated backend-neutral prepared presentation while sharing the layout document and resolved geometry. The hit-test index shares its immutable geometry/action candidates and reads the updated semantic dictionary. Missing IDs or operation-shape changes fail deterministically and instruct the caller to perform a normal layout/topology rebuild.
+
+This is not reconciliation. It cannot insert, remove, reorder, or infer controls; it has no component lifecycle or state graph. The application adapter derives topology from its semantic DTO and chooses among complete reuse, value patch, layout rebuild, and topology rebuild. Existing Machina IDs remain the only identity scheme.
+
+TinyFarm proves the law with a fixed eight-slot toolbar, changing HUD text and selection, an inserted/removed inventory row, resize, and scale invalidation. Stable repeated frames measure 0 B/update after the cold frame; alternating dynamic values measure 14,712 B and 18.13 microseconds versus M0's 194,387 B and 294.57 microseconds. Text measurement itself measured 0 B in the bounded deterministic sample, so no font engine or rendered-string cache was added.

@@ -111,4 +111,108 @@ public sealed class MachinaPresentationPipelineTests
         Assert.NotNull(hit);
         Assert.Equal("go", hit!.Action.Name);
     }
+
+    [Fact]
+    public void ValuePatch_ReusesStableToolbarGeometryAndHitTestCandidates()
+    {
+        UiNode toolbar = UI.Surface(
+            id: "toolbar",
+            width: 320,
+            height: 80,
+            children:
+            [
+                UI.At(
+                    UI.Rect(
+                        UI.Text("COUNT 1", id: "count", color: ColorToken.White),
+                        id: "button",
+                        color: ColorToken.Hex(0x202020FF),
+                        borderColor: ColorToken.White,
+                        borderThickness: 2) with
+                    {
+                        DeclaredAction = UiAction.Named("select"),
+                        Semantics = new Machina.Core.Semantics.UiSemantics(
+                            Machina.Core.Semantics.UiRole.Button,
+                            "COUNT 1",
+                            Focusable: true)
+                    },
+                    id: "button-anchor",
+                    x: 10,
+                    y: 10,
+                    width: 120,
+                    height: 40)
+            ]);
+        MachinaPreparedPresentation first = new MachinaPresentationPipeline().Prepare(toolbar, 320, 80);
+        var patch = new MachinaPresentationValuePatch();
+        patch.SetText("count", "COUNT 2");
+        patch.SetStyle(
+            "button",
+            first.Lowering.Styles[new NodeId("button")] with
+            {
+                BorderColor = ColorToken.Hex(0xFFD700FF),
+                BorderThickness = 4
+            });
+        patch.SetSemantics(
+            "button",
+            new Machina.Core.Semantics.UiSemantics(
+                Machina.Core.Semantics.UiRole.Button,
+                "COUNT 2",
+                Focusable: true));
+
+        MachinaPreparedPresentation updated = MachinaPreparedPresentationUpdater.ApplyValues(first, patch);
+
+        Assert.Same(first.Document, updated.Document);
+        Assert.Same(first.Resolved, updated.Resolved);
+        Assert.Equal(first.Resolved.Nodes[new NodeId("button-anchor")].Rect, updated.Resolved.Nodes[new NodeId("button-anchor")].Rect);
+        Assert.Contains(updated.PresentationFrame.Operations, operation =>
+            operation is PositionedTextOperation text && text.SourceId == "count" && text.Text == "COUNT 2");
+        UiHitTestResult? hit = updated.HitTest.HitTest(new PointerPoint(20, 20));
+        Assert.Equal("COUNT 2", hit!.Semantics!.Label);
+    }
+
+    [Fact]
+    public void ValuePatch_RejectsStructuralInsertionInsteadOfReconciling()
+    {
+        MachinaPreparedPresentation prepared = new MachinaPresentationPipeline().Prepare(
+            UI.Text("A", id: "stable"),
+            100,
+            40);
+        var patch = new MachinaPresentationValuePatch();
+        patch.SetText("inserted", "B");
+
+        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
+            MachinaPreparedPresentationUpdater.ApplyValues(prepared, patch));
+
+        Assert.Contains("requires a layout or topology rebuild", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FakeToolbar_StructuralRowInsertionAndResizeUseNormalPreparation()
+    {
+        var pipeline = new MachinaPresentationPipeline();
+        UiNode firstDocument = UI.Surface(
+            id: "fixture",
+            width: 320,
+            height: 80,
+            children:
+            [
+                UI.At(UI.Text("FIRST", id: "row.first"), id: "row.first.anchor", x: 10, y: 10, width: 100, height: 20)
+            ]);
+        MachinaPreparedPresentation first = pipeline.Prepare(firstDocument, 320, 80);
+        UiNode insertedDocument = UI.Surface(
+            id: "fixture",
+            width: 640,
+            height: 120,
+            children:
+            [
+                UI.At(UI.Text("FIRST", id: "row.first"), id: "row.first.anchor", x: 10, y: 10, width: 100, height: 20),
+                UI.At(UI.Text("SECOND", id: "row.second"), id: "row.second.anchor", x: 10, y: 40, width: 100, height: 20)
+            ]);
+
+        MachinaPreparedPresentation rebuilt = pipeline.Prepare(insertedDocument, 640, 120);
+
+        Assert.DoesNotContain(new NodeId("row.second"), first.Resolved.Nodes.Keys);
+        Assert.Contains(new NodeId("row.second"), rebuilt.Resolved.Nodes.Keys);
+        Assert.Equal(640, rebuilt.PresentationFrame.Viewport.Width);
+        Assert.Equal(120, rebuilt.PresentationFrame.Viewport.Height);
+    }
 }

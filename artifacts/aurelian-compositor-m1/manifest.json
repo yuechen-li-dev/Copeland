@@ -1,0 +1,16 @@
+{
+  "milestone": "AURELIAN-COMPOSITOR-M1",
+  "kind": "machina-lowering-cache-composition-hardening",
+  "newGameplayAdded": false,
+  "compositorContractChangedMaterially": false,
+  "machinaTopologyCacheAdded": true,
+  "applicationTruthCached": false,
+  "genericVirtualDomAdded": false,
+  "mvvmAdded": false,
+  "monoGameUiAuthorityRestored": false,
+  "headlessDependencyAdded": false,
+  "nativeRendererWorkStarted": false,
+  "artifactFileCount": 5,
+  "screenshotsAdded": false,
+  "nextRecommendedMilestone": "AURELIAN-NATIVE-VULKAN-BACKEND-M0"
+}

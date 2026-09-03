@@ -76,3 +76,57 @@ Fake-layer tests cover stable identity, deterministic order and z mutation, visi
 The compatibility projection is deliberately more explicit than the first generic Machina layout and now measures 194,387 bytes and 289.50 microseconds per recomposition at 1280x720. This is recorded, not gated. A native 120-frame sample measured world/recomposition/adapter CPU averages of 49.29/297.81/153.91 microseconds at 1280x720 and 57.56/322.25/168.75 microseconds at 2560x1440. M15 authoritative movement gates remain independent and continue to pass. DPI is explicit in the compositor surface, while the current MonoGame DesktopGL host reports no meaningful per-monitor scale and therefore supplies `1.0`.
 
 The next observed pressure is to cache/reuse Machina lowering for unchanged UI topology and update only values/layout when possible. That is a bounded presentation optimization, not authorization for a new retained UI state graph.
+
+## AURELIAN-COMPOSITOR-M1 hardening
+
+M1 keeps the M0 compositor contract unchanged. Cache ownership is inside the Machina/TinyFarm UI adapter; `Aurelian.Composition` has no Machina or TinyFarm cache vocabulary. The cached objects are derived lowering, resolved layout, hit-test candidates, and backend-neutral presentation operations. They never contain `TinyFarmState`, inventory authority, clocks, resolver state, native handles, or SpriteBatch commands.
+
+Topology is the ordered control hierarchy, control kinds, existing Machina `NodeId`/`UiActionId` identities, parent/order/layout relationships, hotbar slot order, inventory-open panel shape, and—while the panel is visible—ordered inventory product semantic IDs. Money, time, counts, selection, binding availability, labels, status, hints, and simulation mode are values. The fixed eight-slot hotbar is consequently a strong reuse case. Inventory count changes patch a stable row; insertion, removal, reorder, and open/close rebuild deterministically. Inventory row node IDs now derive from the existing product semantic ID instead of row position.
+
+The invalidation law is intentionally small:
+
+```text
+same values and topology -> reuse the complete prepared presentation
+VALUE_CHANGE            -> patch existing text/style/semantics slots
+LAYOUT_CHANGE           -> rebuild measure/layout, presentation, and hit testing
+TOPOLOGY_CHANGE         -> rebuild the full Machina projection
+```
+
+Surface width, height, scale/DPI, or kind changes are layout changes. The current DesktopGL adapter continues to report scale 1.0. The fixed TinyFarm style/theme has no runtime switch; a future metric-affecting style change must request layout invalidation, while a shape-compatible color/border change can use the value patch. Disabling a compositor layer retains reusable UI state, while the compositor still clears layer focus/capture when the layer itself is disabled. Closing the inventory removes its topology and hit-test entries; pointer release retains the existing capture-release law.
+
+The generic Machina addition is only a fail-closed prepared-value patch. It replaces values for already-existing text, style, and semantic IDs while retaining geometry and hit-test candidates. A missing node or any fill/stroke operation-shape change throws and requires normal preparation. There is no diff engine, scheduler, component lifecycle, reactive graph, or application-maintained version counter.
+
+### Measured M0 attribution and M1 result
+
+The pre-change 1280x720 closed-inventory workload was reproduced at 194,387 B and 294,570 ns per recomposition. Independently isolated stages (500 warmed iterations) measured as follows; temporary collections and input metadata remain included in the stages that own them rather than being estimated separately.
+
+| Stage | ns/recomposition | B/recomposition | Rebuild required every frame? |
+|---|---:|---:|---|
+| TinyFarm compatibility + Machina authoring construction | 9,413 | 24,168 | no |
+| Machina lowering, including semantic/action metadata | 25,764 | 30,280 | no |
+| layout tree construction | 99,456 | 69,579 | no |
+| layout resolution/measure placement | 61,927 | 31,768 | no |
+| presentation IR lowering | 76,323 | 37,088 | no |
+| hit-test index generation | 9,523 | 1,344 | no |
+| deterministic text/glyph measurement sample | 547 | 0 | only when layout requires it |
+| normalized input hit routing | 157 | 72 | input events only |
+| backend-neutral adapter dispatch sample | 338 | 32 | realization frames only |
+
+Text measurement is not the material allocator. TinyFarm text is explicitly placed and the current bitmap realization does not wrap or clip from measured string width, so value patches safely retain its qualified rectangle. Layout/scale/topology changes still run normal measurement. Adapter-native resources were already backend-local (`Texture2D` pixel and SpriteBatch/font realization); M1 adds no string texture cache.
+
+| Metric | M0 | M1 unchanged values | M1 value update |
+|---|---:|---:|---:|
+| ns/recomposition | 294,570 | 60 | 18,130 |
+| B/recomposition | 194,387 | 0 | 14,712 |
+| topology builds / 120 stable frames | 120 | 1 | 1 |
+| layout builds / 120 stable frames | 120 | 1 | 1 |
+| presentation lowers / 120 stable frames | 120 | 1 | 1 |
+| hit-test builds / 120 stable frames | 120 | 1 | 1 |
+
+The exact M0 repeated-snapshot workload therefore removes all steady-state allocation after the cold frame. Alternating money values still reduce allocation by 92.4% and CPU by 93.8%, while preserving the same prepared layout and hit geometry. Cold structural rebuilding remains the ordinary M0 path and its isolated stage total is approximately 282 microseconds and 194 KiB on this machine.
+
+The hand-rolled MonoGame toolbar remains **KEEP TEST-ONLY** because it still uniquely fixes geometry, colors, borders, labels, uppercase hint behavior, and click-target compatibility. It is not a runtime authority.
+
+### Next renderer-system pressure
+
+M1 does not begin renderer work. The recommended next bounded milestone is `AURELIAN-NATIVE-VULKAN-BACKEND-M0`: audit and qualify a selectable end-to-end native backend using one existing world/presentation workload. Before implementation it must answer ownership and capability questions for 2D sprite/quad realization, text/glyph rendering, render target and surface lifecycle, camera/viewport mapping, texture/resource upload and lifetime, batching, the composition-layer adapter, the SDSL-V shader path, and frame synchronization. It must preserve Machina presentation IR and `Aurelian.Composition` as upstream-neutral contracts.

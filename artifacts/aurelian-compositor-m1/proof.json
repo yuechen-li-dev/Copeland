@@ -1,0 +1,58 @@
+{
+  "milestone": "AURELIAN-COMPOSITOR-M1",
+  "outcome": "A",
+  "workload": "TinyFarm renderer-neutral Machina UI composition",
+  "steadyState": {
+    "width": 1280,
+    "height": 720,
+    "frames": 120,
+    "topologyBuilds": 1,
+    "layoutBuilds": 1,
+    "presentationLowers": 1,
+    "hitTestBuilds": 1,
+    "dynamicUpdates": 0
+  },
+  "nativeProofs": [
+    {
+      "width": 1280,
+      "height": 720,
+      "frames": 120,
+      "worldCpuMicrosecondsPerFrame": 53.4825,
+      "machinaRecompositionMicrosecondsPerFrame": 1.5542,
+      "adapterRealizationCpuMicrosecondsPerFrame": 155.0683,
+      "topologyBuilds": 1,
+      "layoutBuilds": 1,
+      "presentationLowers": 1,
+      "hitTestBuilds": 1
+    },
+    {
+      "width": 2560,
+      "height": 1440,
+      "frames": 120,
+      "worldCpuMicrosecondsPerFrame": 50.6767,
+      "machinaRecompositionMicrosecondsPerFrame": 1.4925,
+      "adapterRealizationCpuMicrosecondsPerFrame": 159.5958,
+      "topologyBuilds": 1,
+      "layoutBuilds": 1,
+      "presentationLowers": 1,
+      "hitTestBuilds": 1
+    }
+  ],
+  "structuralInventoryChange": {
+    "rowInsertionRebuiltTopology": true,
+    "rowRemovalRebuiltTopology": true,
+    "staleRowsObserved": false,
+    "stableIdentitySource": "TinyFarmPlayerInventoryView.SemanticId"
+  },
+  "validation": {
+    "tinyFarmTests": 272,
+    "aurelianTests": 616,
+    "machinaRegularTests": 676,
+    "machinaSlowTests": 308,
+    "jointTaskForceExitCode": 0,
+    "monoGameBuild": "pass",
+    "m13ThroughM21ProofRunners": "pass",
+    "saveReplay": "pass",
+    "ci": "not run; local required validation matrix passed"
+  }
+}

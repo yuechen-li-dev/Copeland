@@ -3,7 +3,14 @@ using System.Diagnostics;
 using Machina.Layout.Geometry;
 using Machina.Layout.Rows;
 using Machina.Core.Styling;
+using Machina.Core.Nodes;
 using Machina.Presentation;
+using Machina.Core.Lowering;
+using Machina.Core.Measurement;
+using Machina.Layout.Compilation;
+using Machina.Layout.Documents;
+using Machina.Layout.Resolving;
+using Machina.Runtime.Input;
 using TinyFarm.Presentation;
 using Xunit;
 
@@ -298,7 +305,7 @@ public sealed class TinyFarmCompositorM0Tests
 public sealed class TinyFarmCompositorAllocationTests
 {
     [Fact]
-    public void MachinaUiAdapter_RecordsSteadyStateRecompositionAllocationBaseline()
+    public void MachinaUiAdapter_SteadyStateCacheMeetsAllocationTarget()
     {
         var sink = new AllocationSink();
         var surface = new LayerSurfaceDescriptor(1280, 720);
@@ -323,9 +330,31 @@ public sealed class TinyFarmCompositorAllocationTests
         long bytesPerRecomposition = (GC.GetAllocatedBytesForCurrentThread() - before) / 100;
         double microsecondsPerRecomposition = stopwatch.Elapsed.TotalMicroseconds / 100;
 
-        Console.WriteLine($"AURELIAN-COMPOSITOR-M0 ui adapter allocation baseline: {bytesPerRecomposition} B/recomposition");
-        Console.WriteLine($"AURELIAN-COMPOSITOR-M0 ui adapter time baseline: {microsecondsPerRecomposition:0.00} us/recomposition");
-        Assert.True(bytesPerRecomposition > 0);
+        Console.WriteLine($"AURELIAN-COMPOSITOR-M1 ui adapter allocation: {bytesPerRecomposition} B/recomposition");
+        Console.WriteLine($"AURELIAN-COMPOSITOR-M1 ui adapter time: {microsecondsPerRecomposition:0.00} us/recomposition");
+        Assert.True(bytesPerRecomposition < 32 * 1024);
+        Assert.Equal(1, layer.CacheMetrics.TopologyBuildCount);
+
+        TinyFarmPresentationSnapshot changed = snapshot with
+        {
+            PlayerUi = snapshot.PlayerUi with { Money = snapshot.PlayerUi.Money + 1 }
+        };
+        for (int index = 0; index < 10; index++)
+        {
+            layer.Receive(index % 2 == 0 ? message : message with { Payload = changed });
+        }
+        before = GC.GetAllocatedBytesForCurrentThread();
+        stopwatch.Restart();
+        for (int index = 0; index < 100; index++)
+        {
+            layer.Receive(index % 2 == 0 ? message : message with { Payload = changed });
+        }
+        stopwatch.Stop();
+        long bytesPerValueUpdate = (GC.GetAllocatedBytesForCurrentThread() - before) / 100;
+        double microsecondsPerValueUpdate = stopwatch.Elapsed.TotalMicroseconds / 100;
+        Console.WriteLine($"AURELIAN-COMPOSITOR-M1 dynamic value allocation: {bytesPerValueUpdate} B/update");
+        Console.WriteLine($"AURELIAN-COMPOSITOR-M1 dynamic value time: {microsecondsPerValueUpdate:0.00} us/update");
+        Assert.True(bytesPerValueUpdate < 58_316);
     }
 
     private static TinyFarmPresentationSnapshot CreateAllocationSnapshot()
@@ -351,4 +380,129 @@ public sealed class TinyFarmCompositorAllocationTests
         {
         }
     }
+}
+
+public sealed class TinyFarmCompositorM0AttributionTests
+{
+    [Fact]
+    public void ColdPath_ReportsIndependentlyMeasuredStageCosts()
+    {
+        TinyFarmPresentationSnapshot snapshot = CreateSnapshot();
+        UiNode? document = null;
+        UiLoweringResult? lowering = null;
+        LayoutDocument? layout = null;
+        ResolvedLayoutDocument? resolved = null;
+        UiHitTestIndex? hitTest = null;
+        MachinaPresentationFrame? frame = null;
+        var rootRect = new Rect(0, 0, 1280, 720);
+
+        StageMeasurement construction = Measure(() =>
+            document = TinyFarmMachinaView.Build(snapshot, 1280, 720));
+        document = TinyFarmMachinaView.Build(snapshot, 1280, 720);
+        StageMeasurement loweringStage = Measure(() => lowering = UiLowerer.Lower(document));
+        lowering = UiLowerer.Lower(document);
+        StageMeasurement layoutConstruction = Measure(() =>
+            layout = LayoutCompiler.CompileLayoutRows(lowering.Rows));
+        layout = LayoutCompiler.CompileLayoutRows(lowering.Rows);
+        StageMeasurement layoutResolution = Measure(() =>
+            resolved = LayoutDocumentResolver.ResolveLayoutDocument(layout, rootRect));
+        resolved = LayoutDocumentResolver.ResolveLayoutDocument(layout, rootRect);
+        StageMeasurement hitTestBuild = Measure(() =>
+            hitTest = UiHitTestIndex.Build(resolved, lowering.Actions, lowering.Semantics));
+        StageMeasurement presentation = Measure(() =>
+            frame = MachinaPresentationFrameBuilder.Build(
+                lowering,
+                resolved,
+                new MachinaPresentationViewport(1280, 720)));
+        hitTest = UiHitTestIndex.Build(resolved, lowering.Actions, lowering.Semantics);
+        frame = MachinaPresentationFrameBuilder.Build(
+            lowering,
+            resolved,
+            new MachinaPresentationViewport(1280, 720));
+        Rect firstSlot = resolved.Nodes[new NodeId("tiny-farm.hotbar.anchor.1")].Rect;
+        StageMeasurement inputRouting = Measure(() =>
+            _ = hitTest.HitTest(new PointerPoint(firstSlot.X + 1, firstSlot.Y + 1)));
+        long adapterChecksum = 0;
+        StageMeasurement adapterDispatch = Measure(() =>
+        {
+            foreach (MachinaPresentationOperation operation in frame.Operations)
+            {
+                adapterChecksum += operation switch
+                {
+                    FillRectangleOperation fill => (long)fill.Rect.Width,
+                    StrokeRectangleOperation stroke => (long)stroke.Thickness,
+                    PositionedTextOperation text => text.Text.Length,
+                    PushRectangularClipOperation => 1,
+                    PopClipOperation => -1,
+                    _ => 0
+                };
+            }
+        });
+
+        PositionedTextOperation[] textOperations = frame.Operations.OfType<PositionedTextOperation>().ToArray();
+        StageMeasurement textMeasurement = Measure(() =>
+        {
+            foreach (PositionedTextOperation text in textOperations)
+            {
+                _ = DeterministicTextMeasurer.Instance.MeasureText(text.Text, text.Style);
+            }
+        });
+
+        Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new
+        {
+            workload = "AURELIAN-COMPOSITOR-M0 cold 1280x720 closed-inventory projection",
+            construction,
+            lowering = loweringStage,
+            layoutTreeConstruction = layoutConstruction,
+            layoutResolution,
+            presentationLowering = presentation,
+            hitTestGeneration = hitTestBuild,
+            textGlyphMeasurement = textMeasurement,
+            normalizedInputRouting = inputRouting,
+            backendNeutralAdapterDispatch = adapterDispatch,
+            adapterChecksum
+        }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+
+        Assert.NotNull(document);
+        Assert.NotNull(frame);
+        Assert.True(adapterChecksum > 0);
+    }
+
+    private static StageMeasurement Measure(Action action)
+    {
+        const int iterations = 500;
+        for (int index = 0; index < 20; index++)
+        {
+            action();
+        }
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        for (int index = 0; index < iterations; index++)
+        {
+            action();
+        }
+        stopwatch.Stop();
+        return new StageMeasurement(
+            stopwatch.Elapsed.TotalNanoseconds / iterations,
+            (GC.GetAllocatedBytesForCurrentThread() - allocatedBefore) / iterations);
+    }
+
+    private static TinyFarmPresentationSnapshot CreateSnapshot()
+    {
+        TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.LoadM21();
+        TinyFarmState state = TinyFarmM21ControlStates.Create(definitions);
+        TinyFarmFrame frame = TinyFarmFrameProjector.Project(state, definitions);
+        return new TinyFarmPresentationSnapshot(
+            TinyFarmPlayerUiProjector.Project(state, definitions),
+            frame.Day,
+            frame.Time,
+            frame.CurrentLocationName,
+            TinyFarmSimulationMode.Playing,
+            false,
+            "Ready",
+            frame.InteractionHints,
+            frame.Narrative);
+    }
+
+    public sealed record StageMeasurement(double NanosecondsPerRecomposition, long BytesPerRecomposition);
 }

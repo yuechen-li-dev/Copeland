@@ -9,10 +9,14 @@ namespace Machina.Runtime.Input;
 public sealed class UiHitTestIndex
 {
     private readonly IReadOnlyList<Candidate> candidates;
+    private readonly IReadOnlyDictionary<NodeId, UiSemantics>? semantics;
 
-    private UiHitTestIndex(IReadOnlyList<Candidate> candidates)
+    private UiHitTestIndex(
+        IReadOnlyList<Candidate> candidates,
+        IReadOnlyDictionary<NodeId, UiSemantics>? semantics)
     {
         this.candidates = candidates;
+        this.semantics = semantics;
     }
 
     public static UiHitTestIndex Build(
@@ -38,14 +42,16 @@ public sealed class UiHitTestIndex
                 continue;
             }
 
-            var semantic = semantics is not null && semantics.TryGetValue(nodeId, out var value)
-                ? value
-                : null;
-
-            candidates.Add(new Candidate(nodeId, node.Rect, action, semantic));
+            candidates.Add(new Candidate(nodeId, node.Rect, action));
         }
 
-        return new UiHitTestIndex(candidates);
+        return new UiHitTestIndex(candidates, semantics);
+    }
+
+    public UiHitTestIndex WithSemantics(IReadOnlyDictionary<NodeId, UiSemantics> updatedSemantics)
+    {
+        ArgumentNullException.ThrowIfNull(updatedSemantics);
+        return new UiHitTestIndex(candidates, updatedSemantics);
     }
 
     public UiHitTestResult? HitTest(PointerPoint point)
@@ -55,7 +61,11 @@ public sealed class UiHitTestIndex
             var candidate = this.candidates[i];
             if (Contains(candidate.Rect, point))
             {
-                return new UiHitTestResult(candidate.NodeId, candidate.Rect, candidate.Action, candidate.Semantics);
+                UiSemantics? semantic = semantics is not null
+                    && semantics.TryGetValue(candidate.NodeId, out UiSemantics? value)
+                    ? value
+                    : null;
+                return new UiHitTestResult(candidate.NodeId, candidate.Rect, candidate.Action, semantic);
             }
         }
 
@@ -95,6 +105,5 @@ public sealed class UiHitTestIndex
     private sealed record Candidate(
         NodeId NodeId,
         Rect Rect,
-        UiAction Action,
-        UiSemantics? Semantics);
+        UiAction Action);
 }

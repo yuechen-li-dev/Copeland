@@ -305,3 +305,9 @@ Other limitations remain deferred: cross-application scene/host/persistence extr
 ## 23. AURELIAN-COMPOSITOR-M0 update
 
 The former next step is now qualified. `Aurelian.Composition` owns renderer-neutral runtime layers, explicit ordering, surface/viewport/scale, lifecycle, focus/capture, top-down input routing, and typed DTO transport. It is dependency-free and distinct from the existing GPU plant-output compositor. TinyFarm qualifies the direct-host path with MonoGame world at z 0 and a Machina UI overlay at z 100. Application simulation remains independent of presentation update, and Core/Runtime remain compositor-free. See `docs/Aurelian/aurelian-renderer-neutral-layer-compositor.md`.
+
+## 24. AURELIAN-COMPOSITOR-M1 update
+
+The compositor architecture remains unchanged. Stable TinyFarm/Machina topology is now cached in the UI adapter, not in `Aurelian.Composition`: identical projections reuse the full prepared frame, value changes patch existing renderer-neutral slots, surface changes rebuild layout/hit geometry, and ordered inventory identity changes rebuild topology. Diagnostics count topology, layout, presentation, hit-test, and dynamic-update work without becoming gameplay state.
+
+The result is Outcome A: the exact M0 repeated-snapshot workload falls from 194,387 B and 294.57 microseconds to 0 B and 0.06 microseconds after the cold frame; a real value-changing workload measures 14,712 B and 18.13 microseconds. TinyFarm Core/Runtime dependencies and the generic compositor contract remain unchanged. The next qualified infrastructure question is a separate `AURELIAN-NATIVE-VULKAN-BACKEND-M0` audit/vertical slice covering native sprite/quad, glyph, surface, viewport, resource, batching, composition adapter, SDSL-V upload, and synchronization ownership.

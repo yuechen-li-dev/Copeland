@@ -1,0 +1,44 @@
+{
+  "milestone": "AURELIAN-COMPOSITOR-M1",
+  "authority": {
+    "runtimeUi": "Machina",
+    "world": "TinyFarm application and MonoGame world leaf",
+    "compatibilityOracle": "KEEP TEST-ONLY"
+  },
+  "verified": {
+    "hudTextAndDynamicClock": true,
+    "hotbarGeometry": true,
+    "hotbarSelectionWithoutTopologyBuild": true,
+    "inventoryCountWithoutTopologyBuild": true,
+    "inventoryInsertionAndRemoval": true,
+    "uppercaseInteractionHints": true,
+    "combatHintRemoval": true,
+    "simulationControls": true,
+    "hitTargets": true,
+    "pointerFallthrough": true,
+    "captureRelease": true,
+    "staleInventoryControls": false,
+    "resizeGeometry": true,
+    "scaleInvalidation": true,
+    "headlessIndependence": true,
+    "generalCompositor": true,
+    "saveReplay": true,
+    "m13ThroughM21": true
+  },
+  "backendLocalCache": {
+    "newCacheAdded": false,
+    "existingStaticResourcesRetained": [
+      "SpriteBatch",
+      "one-pixel Texture2D",
+      "bitmap font realization"
+    ],
+    "dynamicStringTexturesCached": false
+  },
+  "applicationTruthCached": false,
+  "cacheContents": [
+    "Machina lowering metadata",
+    "resolved layout geometry",
+    "hit-test candidates",
+    "renderer-neutral presentation operations"
+  ]
+}

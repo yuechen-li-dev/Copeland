@@ -6,6 +6,7 @@ using Machina.Core.Semantics;
 using Machina.Core.Styling;
 using Machina.Pipeline;
 using Machina.Runtime.Input;
+using Machina.Layout.Rows;
 using System.Diagnostics;
 using TinyFarm.Core;
 
@@ -21,6 +22,7 @@ public sealed class TinyFarmMachinaUiLayer : IAurelianLayer, IAurelianLayerMessa
     private LayerSurfaceDescriptor surface;
     private TinyFarmPresentationSnapshot? snapshot;
     private MachinaPreparedPresentation? prepared;
+    private TinyFarmPresentationSnapshot? preparedSnapshot;
 
     public TinyFarmMachinaUiLayer(ILayerApplicationMessageSink messageSink, LayerSurfaceDescriptor surface)
     {
@@ -32,6 +34,8 @@ public sealed class TinyFarmMachinaUiLayer : IAurelianLayer, IAurelianLayerMessa
         ?? throw new InvalidOperationException("The TinyFarm UI layer has not prepared a presentation.");
 
     public double LastRecompositionMicroseconds { get; private set; }
+
+    public TinyFarmMachinaCacheMetrics CacheMetrics { get; } = new();
 
     public LayerDescriptor Describe()
     {
@@ -46,14 +50,16 @@ public sealed class TinyFarmMachinaUiLayer : IAurelianLayer, IAurelianLayerMessa
 
     public void Attach(LayerSurfaceDescriptor attachedSurface)
     {
+        bool surfaceChanged = !SurfaceEquals(surface, attachedSurface);
         surface = attachedSurface;
-        Recompose();
+        Recompose(surfaceChanged ? TinyFarmUiInvalidation.Layout : TinyFarmUiInvalidation.None);
     }
 
     public void Resize(LayerSurfaceDescriptor resizedSurface)
     {
+        bool surfaceChanged = !SurfaceEquals(surface, resizedSurface);
         surface = resizedSurface;
-        Recompose();
+        Recompose(surfaceChanged ? TinyFarmUiInvalidation.Layout : TinyFarmUiInvalidation.None);
     }
 
     public void Update(LayerUpdateContext context)
@@ -64,7 +70,7 @@ public sealed class TinyFarmMachinaUiLayer : IAurelianLayer, IAurelianLayerMessa
     {
         if (prepared is null)
         {
-            Recompose();
+            Recompose(TinyFarmUiInvalidation.Topology);
         }
         return new LayerPresentationDto(Id, surface.FullViewport, true, surface.Kind, "machina-presentation-frame");
     }
@@ -114,24 +120,85 @@ public sealed class TinyFarmMachinaUiLayer : IAurelianLayer, IAurelianLayerMessa
     public void Detach()
     {
         prepared = null;
+        preparedSnapshot = null;
     }
 
     public void Receive(LayerMessage<TinyFarmPresentationSnapshot> message)
     {
         snapshot = message.Payload ?? throw new ArgumentNullException(nameof(message));
-        Recompose();
+        Recompose(TinyFarmUiInvalidation.None);
     }
 
-    private void Recompose()
+    private void Recompose(TinyFarmUiInvalidation requestedInvalidation)
     {
         if (snapshot is null)
         {
             return;
         }
+
         long started = Stopwatch.GetTimestamp();
-        UiNode document = TinyFarmMachinaView.Build(snapshot, surface.Width, surface.Height);
-        prepared = pipeline.Prepare(document, surface.Width, surface.Height);
+        TinyFarmUiInvalidation invalidation = ResolveInvalidation(requestedInvalidation);
+        switch (invalidation)
+        {
+            case TinyFarmUiInvalidation.None:
+                break;
+            case TinyFarmUiInvalidation.Value:
+                prepared = MachinaPreparedPresentationUpdater.ApplyValues(
+                    Prepared,
+                    TinyFarmMachinaView.BuildValuePatch(snapshot, surface.Width, surface.Height));
+                CacheMetrics.RecordDynamicUpdate();
+                break;
+            case TinyFarmUiInvalidation.Layout:
+                prepared = PrepareFull(snapshot);
+                CacheMetrics.RecordLayoutBuild();
+                CacheMetrics.RecordPresentationLower();
+                CacheMetrics.RecordHitTestBuild();
+                break;
+            case TinyFarmUiInvalidation.Topology:
+                prepared = PrepareFull(snapshot);
+                CacheMetrics.RecordTopologyBuild();
+                CacheMetrics.RecordLayoutBuild();
+                CacheMetrics.RecordPresentationLower();
+                CacheMetrics.RecordHitTestBuild();
+                break;
+            default:
+                throw new InvalidOperationException($"Unknown TinyFarm UI invalidation '{invalidation}'.");
+        }
+        preparedSnapshot = snapshot;
         LastRecompositionMicroseconds = Stopwatch.GetElapsedTime(started).TotalMicroseconds;
+    }
+
+    private MachinaPreparedPresentation PrepareFull(TinyFarmPresentationSnapshot current)
+    {
+        UiNode document = TinyFarmMachinaView.Build(current, surface.Width, surface.Height);
+        return pipeline.Prepare(document, surface.Width, surface.Height);
+    }
+
+    private TinyFarmUiInvalidation ResolveInvalidation(TinyFarmUiInvalidation requested)
+    {
+        if (prepared is null || preparedSnapshot is null)
+        {
+            return TinyFarmUiInvalidation.Topology;
+        }
+        if (requested == TinyFarmUiInvalidation.Layout)
+        {
+            return TinyFarmUiInvalidation.Layout;
+        }
+        if (!TinyFarmMachinaView.HasSameTopology(preparedSnapshot, snapshot!))
+        {
+            return TinyFarmUiInvalidation.Topology;
+        }
+        return TinyFarmMachinaView.HasSameValues(preparedSnapshot, snapshot!)
+            ? TinyFarmUiInvalidation.None
+            : TinyFarmUiInvalidation.Value;
+    }
+
+    private static bool SurfaceEquals(LayerSurfaceDescriptor left, LayerSurfaceDescriptor right)
+    {
+        return left.Width == right.Width
+            && left.Height == right.Height
+            && left.Scale.Equals(right.Scale)
+            && left.Kind == right.Kind;
     }
 
     private void Publish(TinyFarmUiCommandDto command)
@@ -183,6 +250,37 @@ public sealed class TinyFarmMachinaUiLayer : IAurelianLayer, IAurelianLayerMessa
     }
 }
 
+internal enum TinyFarmUiInvalidation
+{
+    None,
+    Value,
+    Layout,
+    Topology
+}
+
+public sealed class TinyFarmMachinaCacheMetrics
+{
+    public int TopologyBuildCount { get; private set; }
+
+    public int LayoutBuildCount { get; private set; }
+
+    public int PresentationLowerCount { get; private set; }
+
+    public int HitTestBuildCount { get; private set; }
+
+    public int DynamicUpdateCount { get; private set; }
+
+    internal void RecordTopologyBuild() => TopologyBuildCount++;
+
+    internal void RecordLayoutBuild() => LayoutBuildCount++;
+
+    internal void RecordPresentationLower() => PresentationLowerCount++;
+
+    internal void RecordHitTestBuild() => HitTestBuildCount++;
+
+    internal void RecordDynamicUpdate() => DynamicUpdateCount++;
+}
+
 public static class TinyFarmMachinaView
 {
     private static readonly ColorToken HudBackground = ColorToken.Hex(0x131B19FF);
@@ -209,15 +307,7 @@ public static class TinyFarmMachinaView
         {
             TinyFarmHotbarSlotView slot = snapshot.PlayerUi.Hotbar[index];
             TinyFarmUiRectangle rectangle = layout.HotbarSlots[index];
-            ColorToken background = slot.VisualState switch
-            {
-                TinyFarmHotbarSlotVisualState.Available => Available,
-                TinyFarmHotbarSlotVisualState.Unavailable => Unavailable,
-                _ => Empty
-            };
-            string label = slot.BindingKind is null
-                ? "EMPTY"
-                : $"{slot.Label.ToUpperInvariant()} X{slot.Count}";
+            string label = HotbarLabel(slot);
             UiNode hotbar = UI.Rect(
                 UI.Layer(
                     id: $"tiny-farm.hotbar.content.{slot.Slot.Value}",
@@ -227,11 +317,7 @@ public static class TinyFarmMachinaView
                         PlaceText($"tiny-farm.hotbar.label.{slot.Slot.Value}", label, 7, 24, rectangle.Width - 14, 12, ColorToken.White)
                     ]),
                 id: $"tiny-farm.hotbar.button.{slot.Slot.Value}",
-                style: new UiStyle(
-                    Background: background,
-                    Foreground: ColorToken.White,
-                    BorderColor: slot.IsSelected ? OldGold : Border,
-                    BorderThickness: slot.IsSelected ? 4 : 2)) with
+                style: HotbarStyle(slot)) with
             {
                 DeclaredAction = UiAction.Named($"tiny-farm.hotbar.{slot.Slot.Value}"),
                 Semantics = new UiSemantics(UiRole.Button, label, Focusable: true)
@@ -263,7 +349,7 @@ public static class TinyFarmMachinaView
                 {
                     TinyFarmPlayerInventoryView item = snapshot.PlayerUi.Inventory[index];
                     inventoryChildren.Add(PlaceText(
-                        $"tiny-farm.inventory.row.{index}",
+                        InventoryRowId(item.SemanticId),
                         $"{item.Name.ToUpperInvariant()}  X{item.Count}",
                         18,
                         52 + (index * 30),
@@ -336,11 +422,7 @@ public static class TinyFarmMachinaView
                     PlaceText("tiny-farm.inventory.button.text", "I INVENTORY", 10, 10, 120, 12, ColorToken.White)
                 ]),
             id: "tiny-farm.inventory.button",
-            style: new UiStyle(
-                Background: snapshot.InventoryOpen ? InventoryOpen : InventoryClosed,
-                Foreground: ColorToken.White,
-                BorderColor: snapshot.InventoryOpen ? OldGold : Border,
-                BorderThickness: 2)) with
+            style: InventoryButtonStyle(snapshot.InventoryOpen)) with
         {
             DeclaredAction = UiAction.Named("tiny-farm.inventory.toggle"),
             Semantics = new UiSemantics(UiRole.Button, "Inventory", Focusable: true)
@@ -354,6 +436,187 @@ public static class TinyFarmMachinaView
             height: 32));
 
         return UI.Surface(id: "tiny-farm.ui.surface", width: width, height: height, children: children);
+    }
+
+    public static MachinaPresentationValuePatch BuildValuePatch(
+        TinyFarmPresentationSnapshot snapshot,
+        int width,
+        int height)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        var patch = new MachinaPresentationValuePatch();
+
+        foreach (TinyFarmHotbarSlotView slot in snapshot.PlayerUi.Hotbar)
+        {
+            string label = HotbarLabel(slot);
+            patch.SetText(new NodeId($"tiny-farm.hotbar.label.{slot.Slot.Value}.text"), label);
+            patch.SetStyle(
+                new NodeId($"tiny-farm.hotbar.button.{slot.Slot.Value}"),
+                HotbarStyle(slot));
+            patch.SetSemantics(
+                new NodeId($"tiny-farm.hotbar.button.{slot.Slot.Value}"),
+                new UiSemantics(UiRole.Button, label, Focusable: true));
+        }
+
+        if (snapshot.InventoryOpen)
+        {
+            if (snapshot.PlayerUi.Inventory.Count == 0)
+            {
+                patch.SetText(new NodeId("tiny-farm.inventory.empty.text"), "EMPTY");
+            }
+            else
+            {
+                foreach (TinyFarmPlayerInventoryView item in snapshot.PlayerUi.Inventory)
+                {
+                    patch.SetText(
+                        new NodeId($"{InventoryRowId(item.SemanticId)}.text"),
+                        $"{item.Name.ToUpperInvariant()}  X{item.Count}");
+                }
+            }
+        }
+
+        patch.SetText(new NodeId("tiny-farm.hud.heading.text"), BuildHeading(snapshot));
+        patch.SetText(new NodeId("tiny-farm.hud.controls.text"), BuildControls(snapshot));
+        if (Math.Clamp(height / 12, 76, 112) >= 96)
+        {
+            patch.SetText(
+                new NodeId("tiny-farm.hud.message.text"),
+                (snapshot.Narrative.LastOrDefault() ?? snapshot.Status).ToUpperInvariant());
+        }
+        patch.SetStyle(new NodeId("tiny-farm.inventory.button"), InventoryButtonStyle(snapshot.InventoryOpen));
+        return patch;
+    }
+
+    public static bool HasSameTopology(
+        TinyFarmPresentationSnapshot previous,
+        TinyFarmPresentationSnapshot current)
+    {
+        if (previous.InventoryOpen != current.InventoryOpen)
+        {
+            return false;
+        }
+        if (previous.PlayerUi.Hotbar.Count != current.PlayerUi.Hotbar.Count)
+        {
+            return false;
+        }
+        for (int index = 0; index < current.PlayerUi.Hotbar.Count; index++)
+        {
+            if (previous.PlayerUi.Hotbar[index].Slot != current.PlayerUi.Hotbar[index].Slot)
+            {
+                return false;
+            }
+        }
+        if (!current.InventoryOpen)
+        {
+            return true;
+        }
+        if (previous.PlayerUi.Inventory.Count != current.PlayerUi.Inventory.Count)
+        {
+            return false;
+        }
+        for (int index = 0; index < current.PlayerUi.Inventory.Count; index++)
+        {
+            if (!string.Equals(
+                previous.PlayerUi.Inventory[index].SemanticId,
+                current.PlayerUi.Inventory[index].SemanticId,
+                StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static bool HasSameValues(
+        TinyFarmPresentationSnapshot previous,
+        TinyFarmPresentationSnapshot current)
+    {
+        if (ReferenceEquals(previous, current))
+        {
+            return true;
+        }
+        if (previous.Day != current.Day
+            || previous.SimulationMode != current.SimulationMode
+            || previous.InventoryOpen != current.InventoryOpen
+            || previous.PlayerUi.Money != current.PlayerUi.Money
+            || !string.Equals(previous.Time, current.Time, StringComparison.Ordinal)
+            || !string.Equals(previous.LocationName, current.LocationName, StringComparison.Ordinal)
+            || !string.Equals(previous.Status, current.Status, StringComparison.Ordinal)
+            || !SequenceEqual(previous.InteractionHints, current.InteractionHints)
+            || !SequenceEqual(previous.Narrative, current.Narrative)
+            || previous.PlayerUi.Inventory.Count != current.PlayerUi.Inventory.Count
+            || previous.PlayerUi.Hotbar.Count != current.PlayerUi.Hotbar.Count)
+        {
+            return false;
+        }
+
+        for (int index = 0; index < current.PlayerUi.Inventory.Count; index++)
+        {
+            if (previous.PlayerUi.Inventory[index] != current.PlayerUi.Inventory[index])
+            {
+                return false;
+            }
+        }
+        for (int index = 0; index < current.PlayerUi.Hotbar.Count; index++)
+        {
+            if (previous.PlayerUi.Hotbar[index] != current.PlayerUi.Hotbar[index])
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static bool SequenceEqual(IReadOnlyList<string> left, IReadOnlyList<string> right)
+    {
+        if (left.Count != right.Count)
+        {
+            return false;
+        }
+        for (int index = 0; index < left.Count; index++)
+        {
+            if (!string.Equals(left[index], right[index], StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static string InventoryRowId(string semanticId)
+    {
+        return $"tiny-farm.inventory.row.{semanticId}";
+    }
+
+    private static string HotbarLabel(TinyFarmHotbarSlotView slot)
+    {
+        return slot.BindingKind is null
+            ? "EMPTY"
+            : $"{slot.Label.ToUpperInvariant()} X{slot.Count}";
+    }
+
+    private static UiStyle HotbarStyle(TinyFarmHotbarSlotView slot)
+    {
+        ColorToken background = slot.VisualState switch
+        {
+            TinyFarmHotbarSlotVisualState.Available => Available,
+            TinyFarmHotbarSlotVisualState.Unavailable => Unavailable,
+            _ => Empty
+        };
+        return new UiStyle(
+            Background: background,
+            Foreground: ColorToken.White,
+            BorderColor: slot.IsSelected ? OldGold : Border,
+            BorderThickness: slot.IsSelected ? 4 : 2);
+    }
+
+    private static UiStyle InventoryButtonStyle(bool inventoryOpen)
+    {
+        return new UiStyle(
+            Background: inventoryOpen ? InventoryOpen : InventoryClosed,
+            Foreground: ColorToken.White,
+            BorderColor: inventoryOpen ? OldGold : Border,
+            BorderThickness: 2);
     }
 
     private static UiNode PlaceText(
