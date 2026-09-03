@@ -32,8 +32,14 @@ public static class TinyFarmSemanticHash
                 .Append('|').Append(item.Name)
                 .Append('|').Append(item.Price)
                 .Append('|').Append(item.Owner?.Value ?? "-")
-                .Append('|').Append(item.GroundLocation?.Value ?? "-")
-                .AppendLine();
+                .Append('|').Append(item.GroundLocation?.Value ?? "-");
+            if (state.Version >= TinyFarmState.ItemActionSaveVersion)
+            {
+                canonical.Append('|').Append(item.GroundScene?.Value ?? "-")
+                    .Append('|').Append(item.GroundPosition?.XUnits.ToString() ?? "-")
+                    .Append('|').Append(item.GroundPosition?.YUnits.ToString() ?? "-");
+            }
+            canonical.AppendLine();
         }
 
         if (state.Version >= TinyFarmState.SaveVersion)

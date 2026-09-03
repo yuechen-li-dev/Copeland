@@ -241,6 +241,20 @@ public static class TinyFarmFrameProjector
             .OrderBy(plot => plot.Id.Value, StringComparer.Ordinal)
             .Select(plot => ProjectScenePlot(plot, definitions, scene))
             .ToArray();
+        TinyFarmItemView[] groundItems = state.Items
+            .Where(item => item.Owner is null
+                && item.GroundScene == scene.Id
+                && item.GroundLocation is not null
+                && item.GroundPosition is not null)
+            .OrderBy(item => item.Id.Value, StringComparer.Ordinal)
+            .Select(item => new TinyFarmItemView(
+                item.Id,
+                item.Name,
+                item.GroundLocation!.Value,
+                new TinyFarmPoint(
+                    item.GroundPosition!.Value.XUnits,
+                    item.GroundPosition.Value.YUnits)))
+            .ToArray();
         TinyFarmRouteView[] routes = scene.Routes
             .Select(route => new TinyFarmRouteView(
                 route.Id,
@@ -260,7 +274,7 @@ public static class TinyFarmFrameProjector
             scene.Name,
             [],
             actors,
-            [],
+            groundItems,
             plots,
             inventory,
             BuildSceneHints(state, definitions, playerPlacement, scene),
@@ -360,10 +374,25 @@ public static class TinyFarmFrameProjector
                 definitions.Scenes);
             if (target is not null)
             {
-                string label = target.Actor is ActorId actorId
-                    ? state.Actor(actorId).Name
-                    : scene.Object(target.SceneObject!.Value).Label;
-                hints.Add($"{label} [Interact]");
+                if (target.Item is ItemId item)
+                {
+                    hints.Add($"Take {state.Item(item).Name} [Interact]");
+                }
+                else if (state.Version >= TinyFarmState.ItemActionSaveVersion
+                    && target.Plot is FarmPlotId plotId
+                    && state.FarmPlots.Single(plot => plot.Id == plotId).Crop is null
+                    && state.SelectedHotbarSlot == 1
+                    && state.ProductCount(player.Actor, TinyFarmIds.TurnipSeed) > 0)
+                {
+                    hints.Add("Plant Turnip Seed [Use]");
+                }
+                else
+                {
+                    string label = target.Actor is ActorId actorId
+                        ? state.Actor(actorId).Name
+                        : scene.Object(target.SceneObject!.Value).Label;
+                    hints.Add($"{label} [Interact]");
+                }
             }
             return hints;
         }

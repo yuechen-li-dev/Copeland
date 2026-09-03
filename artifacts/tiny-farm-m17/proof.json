@@ -1,0 +1,21 @@
+{
+  "milestone": "TINY-FARM-M17",
+  "outcome": "A",
+  "pickupUsesResolver": true,
+  "useSelectedLowersToExistingIntent": true,
+  "plantParity": true,
+  "saveLoadExact": true,
+  "headlessRepeatExact": true,
+  "hashes": {
+    "state": "de25b5a82a4c2c668da70d5292e7fafbd223cd8de6916226076d6681a45ff854",
+    "results": "10e62762edb9fbcbae8b0cad96206fcdd584fff06e9a5e42114b549cd7144b9f",
+    "events": "e24b99a1b0696150ef1c3675a5a049ef689a64add851263d6f8db015f6ef6d8f",
+    "pickup": "2814316a0a3d1da6866b72656455fef1205ef6b5e17d29eb078ac3ac6358a33f",
+    "inventory": "6e9957d8051ea489a8ddb54cfece9de5d1bec29da9a46954108243bf2088839f",
+    "hotbar": "2461712703b31d37fc3056e91160aa99bf1c11c547aa01085894cc74a7ec31c5",
+    "useSelected": "de25b5a82a4c2c668da70d5292e7fafbd223cd8de6916226076d6681a45ff854",
+    "plantParity": "9e77fad2b1e47a4083471048f6ef6af2153a35bfdb55b536df243f371311be28",
+    "projection": "e55ffc1ce6457444d7f01a156b3c4aa5bf2d4d0b1e6b942cf8264a3256711c59",
+    "simulationDto": "fcc77b6a71892ccfade8d255131b5a7962b5a7c1b72a062742bbc541f62261cf"
+  }
+}

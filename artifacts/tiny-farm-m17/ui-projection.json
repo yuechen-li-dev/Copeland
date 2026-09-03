@@ -1,0 +1,125 @@
+{
+  "groundBefore": 1,
+  "groundAfterPickup": 0,
+  "inventoryBefore": [
+    {
+      "semanticId": "turnip",
+      "name": "turnip",
+      "count": 2
+    },
+    {
+      "semanticId": "turnip-seed",
+      "name": "turnip seed",
+      "count": 3
+    }
+  ],
+  "inventoryAfterPickup": [
+    {
+      "semanticId": "turnip",
+      "name": "turnip",
+      "count": 2
+    },
+    {
+      "semanticId": "turnip-seed",
+      "name": "turnip seed",
+      "count": 3
+    },
+    {
+      "semanticId": "wild-mint",
+      "name": "wild mint",
+      "count": 1
+    }
+  ],
+  "hotbarAfterPlant": [
+    {
+      "slot": {
+        "value": 1
+      },
+      "bindingKind": "Product",
+      "semanticId": "turnip-seed",
+      "label": "turnip seed",
+      "count": 2,
+      "isSelected": true,
+      "visualState": "Available"
+    },
+    {
+      "slot": {
+        "value": 2
+      },
+      "bindingKind": "Product",
+      "semanticId": "turnip",
+      "label": "turnip",
+      "count": 2,
+      "isSelected": false,
+      "visualState": "Available"
+    },
+    {
+      "slot": {
+        "value": 3
+      },
+      "bindingKind": null,
+      "semanticId": null,
+      "label": "Empty",
+      "count": 0,
+      "isSelected": false,
+      "visualState": "Empty"
+    },
+    {
+      "slot": {
+        "value": 4
+      },
+      "bindingKind": null,
+      "semanticId": null,
+      "label": "Empty",
+      "count": 0,
+      "isSelected": false,
+      "visualState": "Empty"
+    },
+    {
+      "slot": {
+        "value": 5
+      },
+      "bindingKind": null,
+      "semanticId": null,
+      "label": "Empty",
+      "count": 0,
+      "isSelected": false,
+      "visualState": "Empty"
+    },
+    {
+      "slot": {
+        "value": 6
+      },
+      "bindingKind": null,
+      "semanticId": null,
+      "label": "Empty",
+      "count": 0,
+      "isSelected": false,
+      "visualState": "Empty"
+    },
+    {
+      "slot": {
+        "value": 7
+      },
+      "bindingKind": null,
+      "semanticId": null,
+      "label": "Empty",
+      "count": 0,
+      "isSelected": false,
+      "visualState": "Empty"
+    },
+    {
+      "slot": {
+        "value": 8
+      },
+      "bindingKind": null,
+      "semanticId": null,
+      "label": "Empty",
+      "count": 0,
+      "isSelected": false,
+      "visualState": "Empty"
+    }
+  ],
+  "interactionHintBefore": "Take wild mint [Interact]",
+  "interactionHintAtPlot": "Plant turnip seed [Use]"
+}

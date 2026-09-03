@@ -398,6 +398,45 @@ jobs:
             throw "TinyFarm M16 evidence exceeded the compact five-file artifact budget."
           }
 
+          $m17Directory = Join-Path $env:RUNNER_TEMP "tiny-farm-m17"
+          dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --m17 --artifact-dir $m17Directory
+          if ($LASTEXITCODE -ne 0) {
+            throw "TinyFarm M17 pickup/use-selected proof failed."
+          }
+
+          $m17Proof = Get-Content -Raw -LiteralPath (Join-Path $m17Directory "proof.json") | ConvertFrom-Json
+          $m17Manifest = Get-Content -Raw -LiteralPath (Join-Path $m17Directory "manifest.json") | ConvertFrom-Json
+          if ($m17Proof.outcome -ne "A" -or
+              -not $m17Proof.pickupUsesResolver -or
+              -not $m17Proof.useSelectedLowersToExistingIntent -or
+              -not $m17Proof.plantParity -or
+              -not $m17Proof.saveLoadExact -or
+              -not $m17Proof.headlessRepeatExact -or
+              $m17Manifest.worldItemAuthorityMoved -or
+              $m17Manifest.inventoryAuthorityMoved -or
+              $m17Manifest.uiMutatesInventoryDirectly -or
+              $m17Manifest.genericItemFrameworkAdded) {
+            throw "TinyFarm M17 resolver authority law changed."
+          }
+
+          $controlOutput = @("inspect", "pickup", "select-slot 1", "use-selected", "inspect", "quit") |
+            dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --m17-control |
+            Out-String
+          if ($LASTEXITCODE -ne 0 -or
+              $controlOutput -notmatch 'ItemTaken' -or
+              $controlOutput -notmatch 'CropPlanted' -or
+              $controlOutput -notmatch '"crop": "turnip"') {
+            throw "TinyFarm M17 CLI pickup/use-selected smoke test failed."
+          }
+
+          $expectedFiles = @("manifest.json", "pickup.json", "proof.json", "ui-projection.json", "use-selected.json")
+          $artifactFiles = @(Get-ChildItem -LiteralPath $m17Directory -File | Sort-Object Name)
+          if ($artifactFiles.Count -ne 5 -or
+              (Compare-Object $expectedFiles $artifactFiles.Name) -or
+              ($artifactFiles | Where-Object Length -gt 262144)) {
+            throw "TinyFarm M17 evidence exceeded the compact five-file artifact budget."
+          }
+
       - name: Enforce repository artifact budget
         shell: pwsh
         run: ./tools/Test-ArtifactBudget.ps1 -Paths @()

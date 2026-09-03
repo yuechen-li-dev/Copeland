@@ -99,6 +99,7 @@ public sealed class TinyFarmResolver
             WaterIntent water => ResolveWater(state, actor, envelope, water),
             HarvestIntent harvest => ResolveHarvest(state, actor, envelope, harvest),
             SelectHotbarSlotIntent select => ResolveSelectHotbarSlot(state, actor, envelope, select),
+            UseSelectedIntent => ResolveUseSelected(state, actor, envelope),
             WaitIntent wait => ResolveWait(state, actor, envelope, wait),
             _ => throw new InvalidOperationException($"Unsupported intent type {envelope.Intent.GetType().Name}.")
         };
@@ -122,6 +123,59 @@ public sealed class TinyFarmResolver
                 GameEventKind.HotbarSlotSelected,
                 actor.Id,
                 Amount: intent.Slot.Value));
+    }
+
+    private IntentResult ResolveUseSelected(
+        TinyFarmState state,
+        ActorState actor,
+        IntentEnvelope envelope)
+    {
+        if (!actor.IsPlayer || state.Version < TinyFarmState.PlayerUiSaveVersion)
+        {
+            return Rejected(envelope, IntentReason.NoSelectedBinding);
+        }
+
+        HotbarSlot slot = TinyFarmHotbar.DefaultSlots.Single(candidate =>
+            candidate.Id.Value == state.SelectedHotbarSlot);
+        if (slot.Binding is null)
+        {
+            return Rejected(envelope, IntentReason.NoSelectedBinding);
+        }
+
+        if (slot.Binding is not ProductHotbarBinding product)
+        {
+            return Rejected(envelope, IntentReason.UnsupportedSelectedUse);
+        }
+
+        if (state.ProductCount(actor.Id, product.Product) <= 0)
+        {
+            return Rejected(envelope, IntentReason.SelectedBindingUnavailable);
+        }
+
+        if (product.Product != TinyFarmIds.TurnipSeed)
+        {
+            return Rejected(envelope, IntentReason.UnsupportedSelectedUse);
+        }
+
+        InteractionTarget? target = TinyFarmSpatialQueries.SelectInteractionTarget(
+            state,
+            actor.Id,
+            Scenes);
+        if (target is null)
+        {
+            return Rejected(envelope, IntentReason.NoInteractionTarget);
+        }
+
+        if (target.Plot is not FarmPlotId plot)
+        {
+            return Rejected(envelope, IntentReason.WrongTargetKind);
+        }
+
+        return ResolvePlant(
+            state,
+            actor,
+            envelope,
+            new PlantIntent(plot, TinyFarmIds.TurnipCrop));
     }
 
     private IntentResult ResolveMove(
@@ -430,6 +484,11 @@ public sealed class TinyFarmResolver
                 return Rejected(envelope, IntentReason.NoInteractionTarget);
             }
 
+            if (selected.Item is ItemId item)
+            {
+                return ResolveTake(state, actor, envelope, new TakeIntent(item));
+            }
+
             if (selected.Actor is ActorId targetActor)
             {
                 return ResolveTalk(state, actor, envelope, new TalkIntent(targetActor));
@@ -440,6 +499,10 @@ public sealed class TinyFarmResolver
                 FarmPlotState plotState = state.FarmPlots.Single(candidate => candidate.Id == plot);
                 if (plotState.Crop is null)
                 {
+                    if (state.Version >= TinyFarmState.ItemActionSaveVersion)
+                    {
+                        return Rejected(envelope, IntentReason.NoInteraction);
+                    }
                     return ResolvePlant(
                         state,
                         actor,
@@ -607,7 +670,7 @@ public sealed class TinyFarmResolver
         return Accepted(envelope, events);
     }
 
-    private static IntentResult ResolveTake(
+    private IntentResult ResolveTake(
         TinyFarmState state,
         ActorState actor,
         IntentEnvelope envelope,
@@ -619,12 +682,34 @@ public sealed class TinyFarmResolver
             return Rejected(envelope, IntentReason.UnknownItem);
         }
 
-        if (item.Owner is not null || item.GroundLocation != actor.Location)
+        if (item.Owner is not null || item.GroundLocation is null)
+        {
+            return Rejected(
+                envelope,
+                state.Version >= TinyFarmState.ItemActionSaveVersion
+                    ? IntentReason.ItemNotGround
+                    : IntentReason.ItemAbsent);
+        }
+
+        if (item.GroundLocation != actor.Location)
         {
             return Rejected(envelope, IntentReason.ItemAbsent);
         }
 
-        ReplaceItem(state, item with { GroundLocation = null, Owner = actor.Id });
+
+        if (state.Version >= TinyFarmState.ItemActionSaveVersion
+            && TinyFarmSpatialQueries.SelectItemTarget(state, actor.Id, item.Id) is null)
+        {
+            return Rejected(envelope, IntentReason.ItemOutOfRange);
+        }
+
+        ReplaceItem(state, item with
+        {
+            GroundLocation = null,
+            Owner = actor.Id,
+            GroundScene = null,
+            GroundPosition = null
+        });
         AddInventoryItem(state, actor.Id, item.Id);
         return Accepted(envelope, new GameEvent(GameEventKind.ItemTaken, actor.Id, Item: item.Id));
     }
@@ -1158,7 +1243,13 @@ public sealed class TinyFarmResolver
 
         ReplaceActor(state, source with { Inventory = sourceInventory });
         ReplaceActor(state, target with { Inventory = targetInventory });
-        ReplaceItem(state, state.Item(itemId) with { Owner = to, GroundLocation = null });
+        ReplaceItem(state, state.Item(itemId) with
+        {
+            Owner = to,
+            GroundLocation = null,
+            GroundScene = null,
+            GroundPosition = null
+        });
     }
 
     private static void AddFact(TinyFarmState state, WorldFact fact)

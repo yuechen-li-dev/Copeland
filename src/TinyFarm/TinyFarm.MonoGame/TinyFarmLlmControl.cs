@@ -14,7 +14,7 @@ internal static class TinyFarmLlmControl
     {
         TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.LoadM14();
         var host = new TinyFarmSimulationHost(
-            new TinyFarmSession(TinyFarmM16ControlStates.Create(definitions), definitions),
+            new TinyFarmSession(TinyFarmM17ControlStates.Create(definitions), definitions),
             definitions);
         string savePath = ReadOption(args, "--save-file")
             ?? Path.Combine(Environment.CurrentDirectory, "tiny-farm.save");

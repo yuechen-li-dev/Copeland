@@ -100,6 +100,7 @@ public static class TinyFarmChunkedSaveCodec
     public const string ContinuousSceneRuntimeVersion = "tiny-farm-m5@4";
     public const string EnergyRuntimeVersion = "tiny-farm-m12@5";
     public const string PlayerUiRuntimeVersion = "tiny-farm-m16@6";
+    public const string ItemActionRuntimeVersion = "tiny-farm-m17@7";
     public static readonly ChunkId WorldChunk = new("tinyfarm.world");
     public static readonly ChunkId RuntimeChunk = new("tinyfarm.runtime");
     public static readonly ChunkId AgentChunk = new("tinyfarm.agents");
@@ -182,7 +183,8 @@ public static class TinyFarmChunkedSaveCodec
             && state.Version != TinyFarmState.SceneSaveVersion
             && state.Version != TinyFarmState.ContinuousSceneSaveVersion
             && state.Version != TinyFarmState.EnergySaveVersion
-            && state.Version != TinyFarmState.PlayerUiSaveVersion)
+            && state.Version != TinyFarmState.PlayerUiSaveVersion
+            && state.Version != TinyFarmState.ItemActionSaveVersion)
         {
             throw new InvalidDataException($"Unsupported TinyFarm game save version {state.Version}.");
         }
@@ -216,6 +218,34 @@ public static class TinyFarmChunkedSaveCodec
             if (hasOwner == isGrounded)
             {
                 throw new InvalidDataException($"Item '{item.Id}' must have exactly one container.");
+            }
+            if (state.Version >= TinyFarmState.ItemActionSaveVersion)
+            {
+                bool hasScene = item.GroundScene is not null;
+                bool hasPosition = item.GroundPosition is not null;
+                if (isGrounded != hasScene || isGrounded != hasPosition)
+                {
+                    throw new InvalidDataException(
+                        $"Item '{item.Id}' scene placement must agree with its ground container.");
+                }
+                if (hasScene)
+                {
+                    SceneDefinition scene;
+                    try
+                    {
+                        scene = definitions.Scenes.Get(item.GroundScene!.Value);
+                    }
+                    catch (KeyNotFoundException exception)
+                    {
+                        throw new InvalidDataException(
+                            $"Item '{item.Id}' references unknown scene '{item.GroundScene}'.",
+                            exception);
+                    }
+                    if (!TinyFarmScenes.IsInBounds(scene, item.GroundPosition!.Value))
+                    {
+                        throw new InvalidDataException($"Item '{item.Id}' has invalid scene placement.");
+                    }
+                }
             }
         }
 
@@ -307,6 +337,10 @@ public static class TinyFarmChunkedSaveCodec
 
     private static string RuntimeVersionFor(int gameVersion)
     {
+        if (gameVersion >= TinyFarmState.ItemActionSaveVersion)
+        {
+            return ItemActionRuntimeVersion;
+        }
         if (gameVersion >= TinyFarmState.PlayerUiSaveVersion)
         {
             return PlayerUiRuntimeVersion;

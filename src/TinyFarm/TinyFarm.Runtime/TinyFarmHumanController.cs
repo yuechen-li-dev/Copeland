@@ -16,6 +16,7 @@ public enum TinyFarmControl
     Water,
     Harvest,
     Interact,
+    UseSelected,
     Wait
 }
 
@@ -70,6 +71,7 @@ public static class TinyFarmHumanController
             TinyFarmControl.MoveUp => new SpatialMoveIntent(0, -1, movementDistance),
             TinyFarmControl.MoveDown => new SpatialMoveIntent(0, 1, movementDistance),
             TinyFarmControl.Interact => new InteractIntent(),
+            TinyFarmControl.UseSelected => new UseSelectedIntent(),
             TinyFarmControl.Look => new LookIntent(),
             TinyFarmControl.Talk => FirstNearbyActor(state, player, scenes) is ActorState actor ? new TalkIntent(actor.Id) : null,
             TinyFarmControl.Take => FirstGroundItem(state, player) is ItemState item ? new TakeIntent(item.Id) : null,

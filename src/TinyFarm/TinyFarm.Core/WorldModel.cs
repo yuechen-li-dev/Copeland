@@ -34,7 +34,14 @@ public readonly record struct FarmPlotId(string Value)
 
 public sealed record LocationDefinition(LocationId Id, string Name, string Description, IReadOnlyList<LocationId> Exits);
 public sealed record ActorState(ActorId Id, string Name, LocationId Location, int Money, List<ItemId> Inventory, bool IsPlayer);
-public sealed record ItemState(ItemId Id, string Name, int Price, LocationId? GroundLocation, ActorId? Owner);
+public sealed record ItemState(
+    ItemId Id,
+    string Name,
+    int Price,
+    LocationId? GroundLocation,
+    ActorId? Owner,
+    SceneId? GroundScene = null,
+    ScenePosition? GroundPosition = null);
 public sealed record ItemDefinition(ProductId Id, string Name, int BuyPrice, int SellPrice);
 public sealed record CropDefinition(CropId Id, ProductId SeedItemId, ProductId HarvestItemId, int GrowthDays, int WaterRequirement, int Yield);
 public sealed record InventoryStack(ActorId Actor, ProductId Product, int Count);
@@ -180,6 +187,7 @@ public sealed class TinyFarmState
     public const int ContinuousSceneSaveVersion = 4;
     public const int EnergySaveVersion = 5;
     public const int PlayerUiSaveVersion = 6;
+    public const int ItemActionSaveVersion = 7;
 
     [JsonConstructor]
     public TinyFarmState(

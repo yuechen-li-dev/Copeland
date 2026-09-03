@@ -1,0 +1,14 @@
+{
+  "milestone": "TINY-FARM-M17",
+  "kind": "resolver-owned-pickup-use-selected",
+  "pickupUsesResolver": true,
+  "worldItemAuthorityMoved": false,
+  "inventoryAuthorityMoved": false,
+  "useSelectedAdded": true,
+  "useSelectedLowersToExistingIntent": true,
+  "uiMutatesInventoryDirectly": false,
+  "genericItemFrameworkAdded": false,
+  "craftingAdded": false,
+  "combatAdded": false,
+  "dragDropAdded": false
+}

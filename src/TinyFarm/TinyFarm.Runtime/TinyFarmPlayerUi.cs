@@ -102,11 +102,11 @@ public static class TinyFarmPlayerUiProjector
             .Select(slot => ProjectSlot(state, definitions, player, slot, selectedSlot))
             .ToArray();
         TinyFarmHotbarSlotView selected = hotbar.Single(slot => slot.Slot == selectedSlot);
-        string hint = selected.BindingKind is null
-            ? "Selected slot is empty"
-            : selected.VisualState == TinyFarmHotbarSlotVisualState.Available
-                ? $"Selected {selected.Label}"
-                : $"Selected {selected.Label} (none owned)";
+        InteractionTarget? target = TinyFarmSpatialQueries.SelectInteractionTarget(
+            state,
+            player.Id,
+            definitions.Scenes);
+        string hint = ProjectInteractionHint(state, selected, target);
 
         return new TinyFarmPlayerUiView(
             player.Money,
@@ -115,6 +115,31 @@ public static class TinyFarmPlayerUiProjector
             selectedSlot,
             selected.SemanticId,
             hint);
+    }
+
+    private static string ProjectInteractionHint(
+        TinyFarmState state,
+        TinyFarmHotbarSlotView selected,
+        InteractionTarget? target)
+    {
+        if (target?.Item is ItemId item)
+        {
+            return $"Take {state.Item(item).Name} [Interact]";
+        }
+        if (target?.Plot is FarmPlotId plot
+            && state.FarmPlots.Single(candidate => candidate.Id == plot).Crop is null
+            && selected.SemanticId == TinyFarmIds.TurnipSeed.Value
+            && selected.VisualState == TinyFarmHotbarSlotVisualState.Available)
+        {
+            return $"Plant {selected.Label} [Use]";
+        }
+        if (selected.BindingKind is null)
+        {
+            return "Selected slot is empty";
+        }
+        return selected.VisualState == TinyFarmHotbarSlotVisualState.Available
+            ? $"Selected {selected.Label}"
+            : $"Selected {selected.Label} (none owned)";
     }
 
     private static TinyFarmHotbarSlotView ProjectSlot(
@@ -163,7 +188,8 @@ public enum TinyFarmUiKey
     Inventory,
     PausePlay,
     FastForward,
-    Wait
+    Wait,
+    UseSelected
 }
 
 public sealed class TinyFarmPlayerUiController
@@ -206,6 +232,12 @@ public sealed class TinyFarmPlayerUiController
                 if (!InventoryOpen && host.Mode != TinyFarmSimulationMode.Paused)
                 {
                     host.ExecuteIntent(new WaitIntent(1));
+                }
+                break;
+            case TinyFarmUiKey.UseSelected:
+                if (!InventoryOpen && host.Mode != TinyFarmSimulationMode.Paused)
+                {
+                    host.ExecuteIntent(new UseSelectedIntent());
                 }
                 break;
             default:

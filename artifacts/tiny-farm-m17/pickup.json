@@ -1,0 +1,13 @@
+{
+  "intent": "TakeIntent",
+  "graphicalLowering": "InteractIntent -\u003E targeted ground item -\u003E TakeIntent",
+  "itemKind": "identity-bearing ItemId",
+  "item": "wild-mint",
+  "placement": "authoritative SceneId \u002B ScenePosition",
+  "reachUnits": 1280,
+  "priority": "actor, portal, ground item, plot, shop; then squared distance; then ordinal stable ID",
+  "result": "Accepted",
+  "eventKind": "ItemTaken",
+  "inventoryCount": 1,
+  "groundItemCount": 0
+}

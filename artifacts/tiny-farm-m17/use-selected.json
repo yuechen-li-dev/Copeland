@@ -1,0 +1,11 @@
+{
+  "intent": "UseSelectedIntent",
+  "selectedSlot": 1,
+  "selectedBinding": "turnip-seed",
+  "lowering": "ProductHotbarBinding(turnip-seed) \u002B plot -\u003E PlantIntent(plot-1, turnip)",
+  "result": "Accepted",
+  "reason": "None",
+  "crop": "turnip",
+  "remainingSeeds": 2,
+  "plantParity": true
+}

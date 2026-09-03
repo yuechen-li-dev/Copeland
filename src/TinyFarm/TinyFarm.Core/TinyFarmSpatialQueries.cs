@@ -5,7 +5,8 @@ public enum InteractionTargetKind
     Actor,
     Plot,
     Shop,
-    Portal
+    Portal,
+    GroundItem
 }
 
 public sealed record InteractionTarget(
@@ -14,6 +15,7 @@ public sealed record InteractionTarget(
     ActorId? Actor = null,
     SceneObjectId? SceneObject = null,
     FarmPlotId? Plot = null,
+    ItemId? Item = null,
     long SquaredDistance = 0);
 
 public static class TinyFarmSpatialQueries
@@ -80,11 +82,57 @@ public static class TinyFarmSpatialQueries
                     Plot: plot));
         }
 
+        foreach (ItemState item in state.Items.Where(candidate =>
+                     candidate.Owner is null
+                     && candidate.GroundScene == actor.Scene
+                     && candidate.GroundPosition is not null))
+        {
+            AddIfTargetable(
+                candidates,
+                actor,
+                item.GroundPosition!.Value,
+                new InteractionTarget(
+                    InteractionTargetKind.GroundItem,
+                    $"item:{item.Id.Value}",
+                    Item: item.Id));
+        }
+
         return candidates
             .OrderBy(candidate => Priority(candidate.Kind))
             .ThenBy(candidate => candidate.SquaredDistance)
             .ThenBy(candidate => candidate.StableId, StringComparer.Ordinal)
             .FirstOrDefault();
+    }
+
+    public static InteractionTarget? SelectItemTarget(
+        TinyFarmState state,
+        ActorId actorId,
+        ItemId itemId)
+    {
+        if (state.Version < TinyFarmState.ItemActionSaveVersion)
+        {
+            return null;
+        }
+
+        ActorSceneState actor = state.ActorScene(actorId);
+        ItemState? item = state.Items.SingleOrDefault(candidate => candidate.Id == itemId);
+        if (item?.Owner is not null
+            || item?.GroundScene != actor.Scene
+            || item.GroundPosition is not ScenePosition position)
+        {
+            return null;
+        }
+
+        var candidates = new List<InteractionTarget>();
+        AddIfTargetable(
+            candidates,
+            actor,
+            position,
+            new InteractionTarget(
+                InteractionTargetKind.GroundItem,
+                $"item:{item.Id.Value}",
+                Item: item.Id));
+        return candidates.SingleOrDefault();
     }
 
     public static InteractionTarget? SelectObjectTarget(
@@ -170,9 +218,11 @@ public static class TinyFarmSpatialQueries
         return kind switch
         {
             InteractionTargetKind.Actor => 0,
-            InteractionTargetKind.Plot => 1,
-            InteractionTargetKind.Shop => 2,
-            _ => 3
+            InteractionTargetKind.Portal => 1,
+            InteractionTargetKind.GroundItem => 2,
+            InteractionTargetKind.Plot => 3,
+            InteractionTargetKind.Shop => 4,
+            _ => 4
         };
     }
 }

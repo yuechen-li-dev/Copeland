@@ -104,6 +104,8 @@ public static class TinyFarmCommandParser
             "move" when parts.Length == 2 && ParseDirection(parts[1]) is SpatialMoveIntent spatial => spatial,
             "move" when parts.Length == 2 => new MoveIntent(new LocationId(parts[1])),
             "interact" when parts.Length == 1 => new InteractIntent(),
+            "pickup" when parts.Length == 1 => new InteractIntent(),
+            "take" when parts.Length == 1 => new InteractIntent(),
             "talk" when parts.Length == 2 => new TalkIntent(new ActorId(parts[1])),
             "take" when parts.Length == 2 => new TakeIntent(new ItemId(parts[1])),
             "give" when parts.Length == 3 => new GiveIntent(new ItemId(parts[1]), new ActorId(parts[2])),
@@ -114,9 +116,10 @@ public static class TinyFarmCommandParser
             "plant" when parts.Length == 3 => new PlantIntent(new FarmPlotId(parts[1]), new CropId(parts[2])),
             "water" when parts.Length == 2 => new WaterIntent(new FarmPlotId(parts[1])),
             "harvest" when parts.Length == 2 => new HarvestIntent(new FarmPlotId(parts[1])),
+            "use-selected" when parts.Length == 1 => new UseSelectedIntent(),
             "wait" when parts.Length == 2 && int.TryParse(parts[1], out int minutes) => new WaitIntent(minutes),
             _ => throw new FormatException(
-                "Use: look, go [to] <semantic anchor>, move <left/right/up/down> [distance] [units], move <location>, interact, talk/take/buy/sell, buy-product/sell-product <product>, plant <plot> <crop>, water/harvest <plot>, or wait <minutes>.")
+                "Use: look, go [to] <semantic anchor>, move <left/right/up/down> [distance] [units], move <location>, interact/pickup/take, take <item>, use-selected, talk/buy/sell, buy-product/sell-product <product>, plant <plot> <crop>, water/harvest <plot>, or wait <minutes>.")
         };
     }
 

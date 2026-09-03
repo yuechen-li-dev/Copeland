@@ -282,7 +282,10 @@ public sealed record TinyFarmSimulationSnapshot(
     SceneId? ActiveScene,
     IReadOnlyList<TinyFarmSimulationActorSnapshot> Actors,
     string StateHash,
-    TinyFarmPlayerUiView? PlayerUi = null);
+    TinyFarmPlayerUiView? PlayerUi = null,
+    IReadOnlyList<string>? GroundItems = null,
+    string? InteractionTarget = null,
+    IReadOnlyList<string>? Plots = null);
 
 public static class TinyFarmSimulationSnapshotProjector
 {
@@ -321,21 +324,45 @@ public static class TinyFarmSimulationSnapshotProjector
         TinyFarmPlayerUiView? playerUi = state.Version >= TinyFarmState.PlayerUiSaveVersion
             ? TinyFarmPlayerUiProjector.Project(state, definitions)
             : null;
+        bool hasItemActions = state.Version >= TinyFarmState.ItemActionSaveVersion;
+        InteractionTarget? target = hasItemActions
+            ? TinyFarmSpatialQueries.SelectInteractionTarget(state, TinyFarmIds.Player, definitions.Scenes)
+            : null;
+        IReadOnlyList<string>? groundItems = hasItemActions
+            ? state.Items
+                .Where(item => item.Owner is null && item.GroundScene is not null && item.GroundPosition is not null)
+                .OrderBy(item => item.Id.Value, StringComparer.Ordinal)
+                .Select(item => $"{item.Id.Value}:{item.GroundScene!.Value.Value}:{item.GroundPosition!.Value.XUnits}:{item.GroundPosition.Value.YUnits}")
+                .ToArray()
+            : null;
+        IReadOnlyList<string>? plots = hasItemActions
+            ? state.FarmPlots
+                .OrderBy(plot => plot.Id.Value, StringComparer.Ordinal)
+                .Select(plot => $"{plot.Id.Value}:{plot.Crop?.Value ?? string.Empty}:{plot.GrowthStage}")
+                .ToArray()
+            : null;
         return new TinyFarmSimulationSnapshot(
-            playerUi is null ? "tiny-farm-simulation@1" : "tiny-farm-simulation@2",
+            hasItemActions
+                ? "tiny-farm-simulation@3"
+                : playerUi is null ? "tiny-farm-simulation@1" : "tiny-farm-simulation@2",
             mode,
             state.Day,
             state.Minute,
             state.CurrentScene,
             actors,
             TinyFarmSemanticHash.Compute(state),
-            playerUi);
+            playerUi,
+            groundItems,
+            target?.StableId,
+            plots);
     }
 
     public static string WriteCanonicalTson(TinyFarmSimulationSnapshot snapshot)
     {
         var text = new StringBuilder();
-        string schemaVersion = snapshot.PlayerUi is null ? "v1" : "v2";
+        string schemaVersion = snapshot.GroundItems is not null
+            ? "v3"
+            : snapshot.PlayerUi is null ? "v1" : "v2";
         text.AppendLine($"const $schema: string = \"copeland://tiny-farm/simulation-snapshot/{schemaVersion}\";");
         text.AppendLine();
         text.AppendLine("record ActorId { value: string; }");
@@ -370,6 +397,12 @@ public static class TinyFarmSimulationSnapshotProjector
             text.AppendLine("    selectedSemanticId: string;");
             text.AppendLine("    inventorySummary: string[];");
             text.AppendLine("    hotbarSummary: string[];");
+            if (snapshot.GroundItems is not null)
+            {
+                text.AppendLine("    groundItemSummary: string[];");
+                text.AppendLine("    interactionTarget: string;");
+                text.AppendLine("    plotSummary: string[];");
+            }
         }
         text.AppendLine("}");
         text.AppendLine();
@@ -410,6 +443,12 @@ public static class TinyFarmSimulationSnapshotProjector
                 "hotbarSummary",
                 playerUi.Hotbar.Select(slot => $"{slot.Slot.Value}:{slot.SemanticId ?? string.Empty}:{slot.Count}"),
                 1);
+            if (snapshot.GroundItems is not null)
+            {
+                AppendStringArray(text, "groundItemSummary", snapshot.GroundItems, 1);
+                AppendString(text, "interactionTarget", snapshot.InteractionTarget ?? string.Empty, 1);
+                AppendStringArray(text, "plotSummary", snapshot.Plots ?? [], 1);
+            }
         }
         text.AppendLine("});");
         string authored = text.ToString().Replace("\r\n", "\n", StringComparison.Ordinal);

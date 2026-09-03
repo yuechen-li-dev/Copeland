@@ -26,12 +26,12 @@ internal sealed class TinyFarmGame : Game
             PreferredBackBufferHeight = ReadIntOption(args, "--height", 1440),
             SynchronizeWithVerticalRetrace = true
         };
-        Window.Title = "TinyFarm M16 - Inventory and Hotbar";
+        Window.Title = "TinyFarm M17 - Pickup and Use Selected";
         Window.AllowUserResizing = true;
         IsMouseVisible = true;
         definitions = TinyFarmDefinitionLoader.LoadM14();
         simulationHost = new TinyFarmSimulationHost(
-            new TinyFarmSession(TinyFarmM16ControlStates.Create(definitions), definitions),
+            new TinyFarmSession(TinyFarmM17ControlStates.Create(definitions), definitions),
             definitions,
             TinyFarmSimulationMode.Playing);
         playerUiController = new TinyFarmPlayerUiController(simulationHost);
@@ -116,6 +116,12 @@ internal sealed class TinyFarmGame : Game
             && (Pressed(keyboard, Keys.Enter) || Pressed(keyboard, Keys.E)))
         {
             ApplyControl(TinyFarmControl.Interact);
+        }
+        else if (!playerUiController.InventoryOpen
+            && simulationHost.Mode != TinyFarmSimulationMode.Paused
+            && Pressed(keyboard, Keys.Q))
+        {
+            ApplyControl(TinyFarmControl.UseSelected);
         }
         else if (!playerUiController.InventoryOpen
             && simulationHost.Mode != TinyFarmSimulationMode.Paused
@@ -304,6 +310,25 @@ internal sealed class TinyFarmGame : Game
             }
         }
 
+        foreach (TinyFarmItemView item in frame.GroundItems)
+        {
+            float sceneX = (float)item.Position.X / frame.SceneUnitsPerTile;
+            float sceneY = (float)item.Position.Y / frame.SceneUnitsPerTile;
+            int centerX = offsetX + (int)MathF.Round(sceneX * tileSize);
+            int centerY = offsetY + (int)MathF.Round(sceneY * tileSize);
+            int size = Math.Max(8, tileSize / 5);
+            var rectangle = new Rectangle(centerX - (size / 2), centerY - (size / 2), size, size);
+            Fill(rectangle, new Color(127, 220, 130));
+            Border(rectangle, Color.Gold, Math.Max(1, tileSize / 30));
+            BitmapText.Draw(
+                spriteBatch!,
+                pixel!,
+                item.Name.ToUpperInvariant(),
+                new Vector2(rectangle.Right + 3, rectangle.Y),
+                Color.White,
+                1);
+        }
+
         foreach (TinyFarmActorView actor in frame.Actors)
         {
             float sceneX = (float)actor.Position.X / frame.SceneUnitsPerTile;
@@ -364,7 +389,7 @@ internal sealed class TinyFarmGame : Game
         Fill(inventoryToggle, playerUiController.InventoryOpen ? new Color(91, 73, 38) : new Color(38, 53, 49));
         Border(inventoryToggle, playerUiController.InventoryOpen ? Color.Gold : new Color(126, 145, 133), 2);
         BitmapText.Draw(spriteBatch!, pixel!, "I INVENTORY", new Vector2(inventoryToggle.X + 10, inventoryToggle.Y + 10), Color.White, 1);
-        string controls = "1-8 HOTBAR  |  I INVENTORY  |  SPACE PAUSE/PLAY  |  F FAST X10  |  ARROWS/WASD MOVE  |  ENTER/E INTERACT  |  N WAIT  |  F5 SAVE  |  F9 LOAD";
+        string controls = "1-8 HOTBAR  |  I INVENTORY  |  SPACE PAUSE/PLAY  |  F FAST X10  |  ARROWS/WASD MOVE  |  ENTER/E INTERACT  |  Q USE  |  N WAIT  |  F5 SAVE  |  F9 LOAD";
         string context = string.Join("  |  ", frame.InteractionHints.Skip(4));
         if (frame.Narrative.Count > 0)
         {

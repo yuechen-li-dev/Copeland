@@ -1,6 +1,66 @@
 using TinyFarm.Core;
 using System.Diagnostics;
 
+if (args.Contains("--m17", StringComparer.Ordinal))
+{
+    string directory = Path.Combine(Environment.CurrentDirectory, "artifacts", "tiny-farm-m17");
+    int artifactIndex = Array.IndexOf(args, "--artifact-dir");
+    if (artifactIndex >= 0)
+    {
+        directory = RequiredOutputPath(args, artifactIndex, "--artifact-dir");
+    }
+    TinyFarmM17Scenario.WriteArtifacts(directory);
+    TinyFarmM17Evidence evidence = TinyFarmM17Scenario.Prove();
+    Console.WriteLine(TinyFarmM17Scenario.WriteJson(evidence.Proof));
+    return;
+}
+
+if (args.Contains("--m17-control", StringComparer.Ordinal))
+{
+    TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.LoadM14();
+    var host = new TinyFarmSimulationHost(
+        new TinyFarmSession(TinyFarmM17ControlStates.Create(definitions), definitions),
+        definitions,
+        TinyFarmSimulationMode.Playing);
+    Console.WriteLine("TinyFarm M17 control ready. Commands: inspect, select-slot <1-8>, pickup, interact, use-selected, quit.");
+    while (Console.ReadLine() is string command)
+    {
+        if (command.Equals("quit", StringComparison.OrdinalIgnoreCase))
+        {
+            break;
+        }
+
+        IReadOnlyList<IntentResult> results = [];
+        if (command.StartsWith("select-slot ", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(command["select-slot ".Length..], out int slot))
+        {
+            results = host.ExecuteIntent(new SelectHotbarSlotIntent(new HotbarSlotId(slot))).Results;
+        }
+        else if (command.Equals("pickup", StringComparison.OrdinalIgnoreCase)
+            || command.Equals("interact", StringComparison.OrdinalIgnoreCase))
+        {
+            results = host.ExecuteIntent(new InteractIntent()).Results;
+        }
+        else if (command.Equals("use-selected", StringComparison.OrdinalIgnoreCase))
+        {
+            results = host.ExecuteIntent(new UseSelectedIntent()).Results;
+        }
+        else if (!command.Equals("inspect", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new FormatException("Expected inspect, select-slot <1-8>, pickup, interact, use-selected, or quit.");
+        }
+
+        Console.WriteLine(TinyFarmM17Scenario.WriteJson(new
+        {
+            simulation = host.Snapshot(),
+            playerUi = TinyFarmPlayerUiProjector.Project(host.Session.State, definitions),
+            frame = TinyFarmFrameProjector.Project(host.Session.State, definitions),
+            results
+        }));
+    }
+    return;
+}
+
 if (args.Contains("--m16", StringComparer.Ordinal))
 {
     string directory = Path.Combine(Environment.CurrentDirectory, "artifacts", "tiny-farm-m16");

@@ -38,6 +38,8 @@ public sealed record HarvestIntent(FarmPlotId Plot) : GameIntent;
 
 public sealed record SelectHotbarSlotIntent(HotbarSlotId Slot) : GameIntent;
 
+public sealed record UseSelectedIntent : GameIntent;
+
 public sealed record WaitIntent(int Minutes) : GameIntent;
 
 public enum IntentSourceKind
@@ -87,7 +89,13 @@ public enum IntentReason
     MissingAnchor,
     AnchorUnreachable,
     InvalidAnchorRealization,
-    InvalidHotbarSlot
+    InvalidHotbarSlot,
+    ItemOutOfRange,
+    ItemNotGround,
+    NoSelectedBinding,
+    SelectedBindingUnavailable,
+    UnsupportedSelectedUse,
+    WrongTargetKind
 }
 
 public enum GameEventKind
