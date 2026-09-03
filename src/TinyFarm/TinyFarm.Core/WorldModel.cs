@@ -170,12 +170,16 @@ public sealed class TinyFarmState
     private readonly List<FarmPlotState> farmPlots;
     private readonly List<ActorSceneState> actorScenes;
     private readonly List<ActorEnergyState> actorEnergy;
+    private readonly Dictionary<ActorId, int> actorIndex;
+    private readonly Dictionary<ActorId, int> actorSceneIndex;
+    private readonly Dictionary<ActorId, int> actorEnergyIndex;
 
     public const int M1SaveVersion = 1;
     public const int SaveVersion = 2;
     public const int SceneSaveVersion = 3;
     public const int ContinuousSceneSaveVersion = 4;
     public const int EnergySaveVersion = 5;
+    public const int PlayerUiSaveVersion = 6;
 
     [JsonConstructor]
     public TinyFarmState(
@@ -190,7 +194,8 @@ public sealed class TinyFarmState
         IReadOnlyList<ShopStock>? shopStock = null,
         IReadOnlyList<FarmPlotState>? farmPlots = null,
         IReadOnlyList<ActorSceneState>? actorScenes = null,
-        IReadOnlyList<ActorEnergyState>? actorEnergy = null)
+        IReadOnlyList<ActorEnergyState>? actorEnergy = null,
+        int selectedHotbarSlot = 0)
     {
         Version = version;
         Minute = minute;
@@ -204,6 +209,10 @@ public sealed class TinyFarmState
         this.farmPlots = farmPlots?.ToList() ?? [];
         this.actorScenes = actorScenes?.ToList() ?? [];
         this.actorEnergy = actorEnergy?.ToList() ?? [];
+        SelectedHotbarSlot = selectedHotbarSlot;
+        actorIndex = BuildActorIndex(this.actors);
+        actorSceneIndex = BuildActorSceneIndex(this.actorScenes);
+        actorEnergyIndex = BuildActorEnergyIndex(this.actorEnergy);
     }
 
     public int Version { get; }
@@ -219,6 +228,7 @@ public sealed class TinyFarmState
     public IReadOnlyList<FarmPlotState> FarmPlots => farmPlots;
     public IReadOnlyList<ActorSceneState> ActorScenes => actorScenes;
     public IReadOnlyList<ActorEnergyState> ActorEnergy => actorEnergy;
+    public int SelectedHotbarSlot { get; internal set; }
     public SceneId? CurrentScene => actorScenes.SingleOrDefault(item => item.Actor == TinyFarmIds.Player)?.Scene;
     internal List<ActorState> MutableActors => actors;
     internal List<ItemState> MutableItems => items;
@@ -228,10 +238,25 @@ public sealed class TinyFarmState
     internal List<FarmPlotState> MutableFarmPlots => farmPlots;
     internal List<ActorSceneState> MutableActorScenes => actorScenes;
     internal List<ActorEnergyState> MutableActorEnergy => actorEnergy;
-    public ActorState Actor(ActorId id) => Actors.Single(actor => actor.Id == id);
+    public ActorState Actor(ActorId id) => actors[RequiredIndex(actorIndex, id, "actor")];
     public ItemState Item(ItemId id) => Items.Single(item => item.Id == id);
-    public ActorSceneState ActorScene(ActorId id) => ActorScenes.Single(item => item.Actor == id);
-    public ActorEnergyState EnergyFor(ActorId id) => ActorEnergy.Single(item => item.Actor == id);
+    public ActorSceneState ActorScene(ActorId id) => actorScenes[RequiredIndex(actorSceneIndex, id, "actor scene")];
+    public ActorEnergyState EnergyFor(ActorId id) => actorEnergy[RequiredIndex(actorEnergyIndex, id, "actor energy")];
+
+    internal bool TryGetActorIndex(ActorId id, out int index)
+    {
+        return actorIndex.TryGetValue(id, out index);
+    }
+
+    internal int ActorSceneIndex(ActorId id)
+    {
+        return RequiredIndex(actorSceneIndex, id, "actor scene");
+    }
+
+    internal bool TryGetActorEnergyIndex(ActorId id, out int index)
+    {
+        return actorEnergyIndex.TryGetValue(id, out index);
+    }
     public int ProductCount(ActorId actor, ProductId product)
     {
         return InventoryStacks
@@ -253,7 +278,48 @@ public sealed class TinyFarmState
             ShopStock.ToList(),
             FarmPlots.ToList(),
             ActorScenes.ToList(),
-            ActorEnergy.ToList());
+            ActorEnergy.ToList(),
+            SelectedHotbarSlot);
+    }
+
+    private static Dictionary<ActorId, int> BuildActorIndex(IReadOnlyList<ActorState> values)
+    {
+        var index = new Dictionary<ActorId, int>(values.Count);
+        for (int position = 0; position < values.Count; position++)
+        {
+            index.Add(values[position].Id, position);
+        }
+        return index;
+    }
+
+    private static Dictionary<ActorId, int> BuildActorSceneIndex(IReadOnlyList<ActorSceneState> values)
+    {
+        var index = new Dictionary<ActorId, int>(values.Count);
+        for (int position = 0; position < values.Count; position++)
+        {
+            index.Add(values[position].Actor, position);
+        }
+        return index;
+    }
+
+    private static Dictionary<ActorId, int> BuildActorEnergyIndex(IReadOnlyList<ActorEnergyState> values)
+    {
+        var index = new Dictionary<ActorId, int>(values.Count);
+        for (int position = 0; position < values.Count; position++)
+        {
+            index.Add(values[position].Actor, position);
+        }
+        return index;
+    }
+
+    private static int RequiredIndex(
+        IReadOnlyDictionary<ActorId, int> index,
+        ActorId id,
+        string kind)
+    {
+        return index.TryGetValue(id, out int position)
+            ? position
+            : throw new InvalidOperationException($"Unknown {kind} '{id}'.");
     }
 }
 

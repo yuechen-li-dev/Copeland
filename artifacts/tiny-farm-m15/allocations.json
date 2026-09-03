@@ -1,0 +1,285 @@
+{
+  "sample": {
+    "warmedReductions": 100000,
+    "baselineMeasuredBytesPerReduction": 6687.58728,
+    "m14ReportedBytesPerReduction": 6720,
+    "runtime": {
+      "reductionCount": 100000,
+      "allocatedBytes": 85752136,
+      "bytesPerReduction": 857.52136,
+      "nanosecondsPerReduction": 2705.94,
+      "gen0Collections": 5,
+      "policyEvaluations": 828,
+      "pathQueries": 276,
+      "anchorArrivals": 276
+    },
+    "core": {
+      "reductionCount": 100000,
+      "allocatedBytes": 4800040,
+      "bytesPerReduction": 48.0004,
+      "nanosecondsPerReduction": 479.197,
+      "gen0Collections": 1
+    },
+    "traceOff": {
+      "reductionCount": 100000,
+      "allocatedBytes": 85752136,
+      "bytesPerReduction": 857.52136,
+      "nanosecondsPerReduction": 2705.94,
+      "gen0Collections": 5,
+      "policyEvaluations": 828,
+      "pathQueries": 276,
+      "anchorArrivals": 276
+    },
+    "traceOn": {
+      "reductionCount": 10000,
+      "allocatedBytes": 34438536,
+      "bytesPerReduction": 3443.8536,
+      "nanosecondsPerReduction": 4960.19,
+      "gen0Collections": 3,
+      "policyEvaluations": 84,
+      "pathQueries": 28,
+      "anchorArrivals": 28
+    }
+  },
+  "attributionMethod": {
+    "bytes": "M14 exact 6,720-byte total normalized across EventPipe type samples and controlled differential measurements",
+    "counts": "source-audited allocation instances per accepted non-arrival reduction",
+    "histogram": "EventPipe GCAllocationTick samples; sample counts are not object counts"
+  },
+  "baselineAttribution": [
+    {
+      "source": "Intent/result",
+      "bytesPerReduction": 640,
+      "allocationObjectsPerReduction": 7,
+      "owner": "CORE_SEMANTICS"
+    },
+    {
+      "source": "Event records",
+      "bytesPerReduction": 224,
+      "allocationObjectsPerReduction": 1,
+      "owner": "CORE_SEMANTICS"
+    },
+    {
+      "source": "Event collection",
+      "bytesPerReduction": 704,
+      "allocationObjectsPerReduction": 4,
+      "owner": "COLLECTION_CHURN"
+    },
+    {
+      "source": "State copy/replacement",
+      "bytesPerReduction": 3512,
+      "allocationObjectsPerReduction": 40,
+      "owner": "CORE_SEMANTICS"
+    },
+    {
+      "source": "Actor lookup/projection",
+      "bytesPerReduction": 352,
+      "allocationObjectsPerReduction": 4,
+      "owner": "TINYFARM_INTEGRATION"
+    },
+    {
+      "source": "Scene/collision query",
+      "bytesPerReduction": 304,
+      "allocationObjectsPerReduction": 2,
+      "owner": "TINYFARM_INTEGRATION"
+    },
+    {
+      "source": "Hash/proof/inspection",
+      "bytesPerReduction": 0,
+      "allocationObjectsPerReduction": 0,
+      "owner": "PROOF_TRACE"
+    },
+    {
+      "source": "Enumerable/LINQ",
+      "bytesPerReduction": 640,
+      "allocationObjectsPerReduction": 10,
+      "owner": "COLLECTION_CHURN"
+    },
+    {
+      "source": "Temporary arrays/lists",
+      "bytesPerReduction": 288,
+      "allocationObjectsPerReduction": 6,
+      "owner": "COLLECTION_CHURN"
+    },
+    {
+      "source": "Other",
+      "bytesPerReduction": 56,
+      "allocationObjectsPerReduction": 1,
+      "owner": "PROJECTION"
+    }
+  ],
+  "baselineAllocationTickHistogram": [
+    {
+      "type": "TinyFarm.Core.ActorState",
+      "sampledBytes": 42536632,
+      "allocationTicks": 399,
+      "profiler": "EventPipe GCAllocationTick; sampled, not exact object count"
+    },
+    {
+      "type": "System.Collections.Generic.List\u003CTinyFarm.Core.ItemId\u003E",
+      "sampledBytes": 29740784,
+      "allocationTicks": 279,
+      "profiler": "EventPipe GCAllocationTick; sampled, not exact object count"
+    },
+    {
+      "type": "TinyFarm.Core.ActorSceneState predicate",
+      "sampledBytes": 28992080,
+      "allocationTicks": 272,
+      "profiler": "EventPipe GCAllocationTick; sampled, not exact object count"
+    },
+    {
+      "type": "TinyFarm.Core.GameEvent",
+      "sampledBytes": 23773464,
+      "allocationTicks": 223,
+      "profiler": "EventPipe GCAllocationTick; sampled, not exact object count"
+    },
+    {
+      "type": "TinyFarm.Core.TinyFarmState",
+      "sampledBytes": 23132864,
+      "allocationTicks": 217,
+      "profiler": "EventPipe GCAllocationTick; sampled, not exact object count"
+    },
+    {
+      "type": "TinyFarm.Core.ActorState[]",
+      "sampledBytes": 22705488,
+      "allocationTicks": 213,
+      "profiler": "EventPipe GCAllocationTick; sampled, not exact object count"
+    },
+    {
+      "type": "TinyFarm.Core.ActorSceneState[]",
+      "sampledBytes": 21213400,
+      "allocationTicks": 199,
+      "profiler": "EventPipe GCAllocationTick; sampled, not exact object count"
+    },
+    {
+      "type": "TinyFarm.Core.ItemState[]",
+      "sampledBytes": 20254256,
+      "allocationTicks": 190,
+      "profiler": "EventPipe GCAllocationTick; sampled, not exact object count"
+    },
+    {
+      "type": "TinyFarm.Core.ActorEnergyState[]",
+      "sampledBytes": 18336424,
+      "allocationTicks": 172,
+      "profiler": "EventPipe GCAllocationTick; sampled, not exact object count"
+    },
+    {
+      "type": "TinyFarm.Core.IntentResult[]",
+      "sampledBytes": 13111240,
+      "allocationTicks": 123,
+      "profiler": "EventPipe GCAllocationTick; sampled, not exact object count"
+    },
+    {
+      "type": "TinyFarm.Core.GameEvent[]",
+      "sampledBytes": 11300400,
+      "allocationTicks": 106,
+      "profiler": "EventPipe GCAllocationTick; sampled, not exact object count"
+    },
+    {
+      "type": "TinyFarm.Core.IntentEnvelope",
+      "sampledBytes": 10127808,
+      "allocationTicks": 95,
+      "profiler": "EventPipe GCAllocationTick; sampled, not exact object count"
+    }
+  ],
+  "remainingAllocationTickHistogram": [
+    {
+      "type": "TinyFarm.Core.GameEvent",
+      "sampledBytes": 22174792,
+      "allocationTicks": 208,
+      "profiler": "EventPipe GCAllocationTick; sampled, not exact object count"
+    },
+    {
+      "type": "TinyFarm.Core.IntentEnvelope",
+      "sampledBytes": 10021232,
+      "allocationTicks": 94,
+      "profiler": "EventPipe GCAllocationTick; sampled, not exact object count"
+    },
+    {
+      "type": "TinyFarm.Core.GameEvent predicate",
+      "sampledBytes": 6715800,
+      "allocationTicks": 63,
+      "profiler": "EventPipe GCAllocationTick; sampled, not exact object count"
+    },
+    {
+      "type": "TinyFarm.Core.IntentResult[]",
+      "sampledBytes": 5650784,
+      "allocationTicks": 53,
+      "profiler": "EventPipe GCAllocationTick; sampled, not exact object count"
+    },
+    {
+      "type": "TinyFarm.Core.ActorSceneState",
+      "sampledBytes": 5116240,
+      "allocationTicks": 48,
+      "profiler": "EventPipe GCAllocationTick; sampled, not exact object count"
+    },
+    {
+      "type": "TinyFarm.Core.TinyFarmStepResult",
+      "sampledBytes": 4477464,
+      "allocationTicks": 42,
+      "profiler": "EventPipe GCAllocationTick; sampled, not exact object count"
+    },
+    {
+      "type": "System.Int32[]",
+      "sampledBytes": 4045912,
+      "allocationTicks": 38,
+      "profiler": "EventPipe GCAllocationTick; sampled, not exact object count"
+    },
+    {
+      "type": "TinyFarm.Core.IntentResult",
+      "sampledBytes": 3944200,
+      "allocationTicks": 37,
+      "profiler": "EventPipe GCAllocationTick; sampled, not exact object count"
+    },
+    {
+      "type": "TinyFarm.Core.GameEvent[]",
+      "sampledBytes": 3837600,
+      "allocationTicks": 36,
+      "profiler": "EventPipe GCAllocationTick; sampled, not exact object count"
+    },
+    {
+      "type": "System.Collections.Generic.List\u003CTinyFarm.Core.IntentResult\u003E",
+      "sampledBytes": 2984800,
+      "allocationTicks": 28,
+      "profiler": "EventPipe GCAllocationTick; sampled, not exact object count"
+    },
+    {
+      "type": "TinyFarm.Core.NavigateToAnchorIntent",
+      "sampledBytes": 2771600,
+      "allocationTicks": 26,
+      "profiler": "EventPipe GCAllocationTick; sampled, not exact object count"
+    },
+    {
+      "type": "TinyFarm.Core.SpatialMoveIntent",
+      "sampledBytes": 2558400,
+      "allocationTicks": 24,
+      "profiler": "EventPipe GCAllocationTick; sampled, not exact object count"
+    }
+  ],
+  "remainingAllocationSources": [
+    {
+      "source": "public movement GameEvent",
+      "owner": "CORE_SEMANTICS"
+    },
+    {
+      "source": "SpatialMoveIntent and IntentEnvelope",
+      "owner": "TINYFARM_INTEGRATION"
+    },
+    {
+      "source": "IntentResult and bounded event array",
+      "owner": "CORE_SEMANTICS"
+    },
+    {
+      "source": "ActorSceneState replacement",
+      "owner": "CORE_SEMANTICS"
+    },
+    {
+      "source": "step result collection",
+      "owner": "COLLECTION_CHURN"
+    },
+    {
+      "source": "amortized arrival, policy, and path refresh",
+      "owner": "TINYFARM_INTEGRATION"
+    }
+  ]
+}

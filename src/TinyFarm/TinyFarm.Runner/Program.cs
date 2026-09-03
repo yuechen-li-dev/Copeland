@@ -1,6 +1,87 @@
 using TinyFarm.Core;
 using System.Diagnostics;
 
+if (args.Contains("--m16", StringComparer.Ordinal))
+{
+    string directory = Path.Combine(Environment.CurrentDirectory, "artifacts", "tiny-farm-m16");
+    int artifactIndex = Array.IndexOf(args, "--artifact-dir");
+    if (artifactIndex >= 0)
+    {
+        directory = RequiredOutputPath(args, artifactIndex, "--artifact-dir");
+    }
+    TinyFarmM16Scenario.WriteArtifacts(directory);
+    TinyFarmM16Evidence evidence = TinyFarmM16Scenario.Prove();
+    Console.WriteLine(TinyFarmM16Scenario.WriteJson(evidence.Proof));
+    return;
+}
+
+if (args.Contains("--m16-control", StringComparer.Ordinal))
+{
+    TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.LoadM14();
+    var host = new TinyFarmSimulationHost(
+        new TinyFarmSession(TinyFarmM16ControlStates.Create(definitions), definitions),
+        definitions,
+        TinyFarmSimulationMode.Playing);
+    Console.WriteLine(TinyFarmM16Scenario.WriteJson(new
+    {
+        simulation = host.Snapshot(),
+        selectedHotbarSlot = host.Session.State.SelectedHotbarSlot,
+        playerUi = TinyFarmPlayerUiProjector.Project(host.Session.State, definitions)
+    }));
+    while (Console.ReadLine() is string command)
+    {
+        if (command.Equals("quit", StringComparison.OrdinalIgnoreCase))
+        {
+            break;
+        }
+        if (command.StartsWith("select-slot ", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(command["select-slot ".Length..], out int slot))
+        {
+            host.ExecuteIntent(new SelectHotbarSlotIntent(new HotbarSlotId(slot)));
+        }
+        else if (!command.Equals("inspect", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new FormatException("Expected inspect, select-slot <1-8>, or quit.");
+        }
+        Console.WriteLine(TinyFarmM16Scenario.WriteJson(new
+        {
+            simulation = host.Snapshot(),
+            selectedHotbarSlot = host.Session.State.SelectedHotbarSlot,
+            playerUi = TinyFarmPlayerUiProjector.Project(host.Session.State, definitions)
+        }));
+    }
+    return;
+}
+
+if (args.Contains("--m15-profile", StringComparer.Ordinal))
+{
+    if (args.Contains("--profile-wait", StringComparer.Ordinal))
+    {
+        Console.WriteLine($"M15_PROFILE_READY pid={Environment.ProcessId}");
+        Thread.Sleep(TimeSpan.FromSeconds(5));
+    }
+    TinyFarmM15MovementMeasurement measurement =
+        TinyFarmM15Scenario.MeasureAuthoritativeLocomotion();
+    Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(
+        measurement,
+        new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+    return;
+}
+
+if (args.Contains("--m15", StringComparer.Ordinal))
+{
+    string directory = Path.Combine(Environment.CurrentDirectory, "artifacts", "tiny-farm-m15");
+    int artifactIndex = Array.IndexOf(args, "--artifact-dir");
+    if (artifactIndex >= 0)
+    {
+        directory = RequiredOutputPath(args, artifactIndex, "--artifact-dir");
+    }
+    TinyFarmM15Scenario.WriteArtifacts(directory);
+    TinyFarmM15Evidence evidence = TinyFarmM15Scenario.Prove();
+    Console.WriteLine(TinyFarmM15Scenario.WriteJson(evidence.Proof));
+    return;
+}
+
 if (args.Contains("--m11-open-profile", StringComparer.Ordinal))
 {
     TinyFarmDefinitions profileDefinitions = TinyFarmDefinitionLoader.Load();

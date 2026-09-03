@@ -1,0 +1,8 @@
+{
+  "ownershipDecision": "MONOGAME_TEMPORARY_UI",
+  "machinaUiRuntimeReused": false,
+  "reason": "Machina has layout, controls, focus, hit testing, and presentation IR but no qualified same-window game renderer/input adapter.",
+  "worldRenderer": "existing graphical game leaf",
+  "semanticProjection": "TinyFarmPlayerUiView",
+  "mutationPath": "input -\u003E TinyFarmPlayerUiController -\u003E SelectHotbarSlotIntent -\u003E TinyFarmSession -\u003E TinyFarmResolver"
+}

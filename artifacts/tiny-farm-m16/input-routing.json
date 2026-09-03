@@ -1,0 +1,10 @@
+{
+  "hotbarKeys": "1-8",
+  "pausePlayKey": "Space",
+  "fastForwardKey": "F",
+  "waitKey": "N",
+  "inventoryKey": "I",
+  "pointerAndKeyboardIssue": "SelectHotbarSlotIntent",
+  "inventoryOpenSuppressesMovement": true,
+  "inventoryOpenDoesNotPause": true
+}

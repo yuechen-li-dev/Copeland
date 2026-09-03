@@ -1,5 +1,42 @@
 namespace TinyFarm.Core;
 
+internal readonly record struct SpatialMoveReductionResult(
+    IntentResultStatus Status,
+    IntentReason Reason,
+    ActorId Actor,
+    LocationId Location,
+    ActorSceneState? PreviousPlacement,
+    ActorSceneState? CurrentPlacement)
+{
+    public SceneId? Scene => CurrentPlacement?.Scene;
+
+    public static SpatialMoveReductionResult Accepted(
+        ActorId actor,
+        LocationId location,
+        ActorSceneState previousPlacement,
+        ActorSceneState currentPlacement)
+    {
+        return new SpatialMoveReductionResult(
+            IntentResultStatus.Accepted,
+            IntentReason.None,
+            actor,
+            location,
+            previousPlacement,
+            currentPlacement);
+    }
+
+    public static SpatialMoveReductionResult Rejected(IntentReason reason)
+    {
+        return new SpatialMoveReductionResult(
+            IntentResultStatus.Rejected,
+            reason,
+            default,
+            default,
+            null,
+            null);
+    }
+}
+
 public sealed class TinyFarmResolver
 {
     private readonly TinyFarmDefinitions? definitions;
@@ -61,9 +98,30 @@ public sealed class TinyFarmResolver
             PlantIntent plant => ResolvePlant(state, actor, envelope, plant),
             WaterIntent water => ResolveWater(state, actor, envelope, water),
             HarvestIntent harvest => ResolveHarvest(state, actor, envelope, harvest),
+            SelectHotbarSlotIntent select => ResolveSelectHotbarSlot(state, actor, envelope, select),
             WaitIntent wait => ResolveWait(state, actor, envelope, wait),
             _ => throw new InvalidOperationException($"Unsupported intent type {envelope.Intent.GetType().Name}.")
         };
+    }
+
+    private static IntentResult ResolveSelectHotbarSlot(
+        TinyFarmState state,
+        ActorState actor,
+        IntentEnvelope envelope,
+        SelectHotbarSlotIntent intent)
+    {
+        if (!actor.IsPlayer || state.Version < TinyFarmState.PlayerUiSaveVersion)
+        {
+            return Rejected(envelope, IntentReason.InvalidHotbarSlot);
+        }
+
+        state.SelectedHotbarSlot = intent.Slot.Value;
+        return Accepted(
+            envelope,
+            new GameEvent(
+                GameEventKind.HotbarSlotSelected,
+                actor.Id,
+                Amount: intent.Slot.Value));
     }
 
     private IntentResult ResolveMove(
@@ -227,66 +285,126 @@ public sealed class TinyFarmResolver
         IntentEnvelope envelope,
         SpatialMoveIntent intent)
     {
-        if (state.Version < TinyFarmState.SceneSaveVersion
-            || Math.Abs(intent.DeltaX) + Math.Abs(intent.DeltaY) != 1
-            || intent.Distance <= 0
-            || intent.Distance > 1024)
+        SpatialMoveReductionResult reduction = ResolveSpatialMoveCore(
+            state,
+            actor,
+            intent.DeltaX,
+            intent.DeltaY,
+            intent.Distance);
+        return MaterializeSpatialMoveResult(envelope, reduction);
+    }
+
+    internal SpatialMoveReductionResult ResolveSpatialMoveCore(
+        TinyFarmState state,
+        ActorId actorId,
+        int deltaX,
+        int deltaY,
+        int distance)
+    {
+        if (!state.TryGetActorIndex(actorId, out int actorIndex))
         {
-            return Rejected(envelope, IntentReason.InvalidMovement);
+            return SpatialMoveReductionResult.Rejected(IntentReason.UnknownActor);
+        }
+
+        return ResolveSpatialMoveCore(
+            state,
+            state.MutableActors[actorIndex],
+            deltaX,
+            deltaY,
+            distance);
+    }
+
+    private SpatialMoveReductionResult ResolveSpatialMoveCore(
+        TinyFarmState state,
+        ActorState actor,
+        int deltaX,
+        int deltaY,
+        int distance)
+    {
+        if (state.Version < TinyFarmState.SceneSaveVersion
+            || Math.Abs(deltaX) + Math.Abs(deltaY) != 1
+            || distance <= 0
+            || distance > 1024)
+        {
+            return SpatialMoveReductionResult.Rejected(IntentReason.InvalidMovement);
         }
 
         ActorSceneState placement = state.ActorScene(actor.Id);
         SceneDefinition scene = Scenes.Get(placement.Scene);
-        ActorFacing facing = FacingFor(intent.DeltaX, intent.DeltaY);
+        ActorFacing facing = FacingFor(deltaX, deltaY);
         if (state.Version < TinyFarmState.ContinuousSceneSaveVersion)
         {
             GridPosition targetTile = placement.Position;
-            for (int step = 0; step < intent.Distance; step++)
+            for (int step = 0; step < distance; step++)
             {
-                targetTile = new GridPosition(targetTile.X + intent.DeltaX, targetTile.Y + intent.DeltaY);
+                targetTile = new GridPosition(targetTile.X + deltaX, targetTile.Y + deltaY);
                 if (!TinyFarmScenes.IsInBounds(scene, targetTile) || TinyFarmScenes.IsBlocked(scene, targetTile))
                 {
-                    return Rejected(envelope, IntentReason.MovementBlocked);
+                    return SpatialMoveReductionResult.Rejected(IntentReason.MovementBlocked);
                 }
             }
 
-            ReplaceActorScene(state, placement with
+            ActorSceneState replacement = placement with
             {
                 WorldPosition = ScenePosition.FromGrid(targetTile),
                 Facing = facing
-            });
+            };
+            ReplaceActorScene(state, replacement);
             if (state.Version >= TinyFarmState.EnergySaveVersion)
             {
                 SetResting(state, actor.Id, false);
             }
-            return Accepted(
-                envelope,
-                new GameEvent(GameEventKind.ActorMoved, actor.Id, Location: actor.Location, Scene: placement.Scene));
+            return SpatialMoveReductionResult.Accepted(
+                actor.Id,
+                actor.Location,
+                placement,
+                replacement);
         }
 
         ScenePosition target = placement.WorldPosition;
-        int remaining = intent.Distance;
+        int remaining = distance;
         while (remaining > 0)
         {
-            int distance = Math.Min(remaining, ScenePosition.UnitsPerTile / 4);
+            int stepDistance = Math.Min(remaining, ScenePosition.UnitsPerTile / 4);
             target = new ScenePosition(
-                target.XUnits + (intent.DeltaX * distance),
-                target.YUnits + (intent.DeltaY * distance));
+                target.XUnits + (deltaX * stepDistance),
+                target.YUnits + (deltaY * stepDistance));
             if (!TinyFarmScenes.IsInBounds(scene, target) || TinyFarmScenes.IsBlocked(scene, target))
             {
-                return Rejected(envelope, IntentReason.MovementBlocked);
+                return SpatialMoveReductionResult.Rejected(IntentReason.MovementBlocked);
             }
-            remaining -= distance;
+            remaining -= stepDistance;
         }
 
-        ReplaceActorScene(state, placement with { WorldPosition = target, Facing = facing });
+        ActorSceneState replacementPlacement = placement with { WorldPosition = target, Facing = facing };
+        ReplaceActorScene(state, replacementPlacement);
         if (state.Version >= TinyFarmState.EnergySaveVersion)
         {
             SetResting(state, actor.Id, false);
         }
+        return SpatialMoveReductionResult.Accepted(
+            actor.Id,
+            actor.Location,
+            placement,
+            replacementPlacement);
+    }
+
+    internal static IntentResult MaterializeSpatialMoveResult(
+        IntentEnvelope envelope,
+        SpatialMoveReductionResult reduction)
+    {
+        if (reduction.Status != IntentResultStatus.Accepted)
+        {
+            return new IntentResult(envelope, reduction.Status, reduction.Reason, []);
+        }
+
         return Accepted(
             envelope,
-            new GameEvent(GameEventKind.ActorMoved, actor.Id, Location: actor.Location, Scene: placement.Scene));
+            new GameEvent(
+                GameEventKind.ActorMoved,
+                reduction.Actor,
+                Location: reduction.Location,
+                Scene: reduction.Scene));
     }
 
     private IntentResult ResolveInteract(
@@ -913,7 +1031,9 @@ public sealed class TinyFarmResolver
 
     private static ActorState? FindActor(TinyFarmState state, ActorId id)
     {
-        return state.Actors.SingleOrDefault(actor => actor.Id == id);
+        return state.TryGetActorIndex(id, out int index)
+            ? state.MutableActors[index]
+            : null;
     }
 
     private static ItemState? FindItem(TinyFarmState state, ItemId id)
@@ -923,23 +1043,28 @@ public sealed class TinyFarmResolver
 
     private static void ReplaceActor(TinyFarmState state, ActorState replacement)
     {
-        int index = state.MutableActors.FindIndex(actor => actor.Id == replacement.Id);
+        if (!state.TryGetActorIndex(replacement.Id, out int index))
+        {
+            throw new InvalidOperationException($"Unknown actor '{replacement.Id}'.");
+        }
         state.MutableActors[index] = replacement;
     }
 
     private static void ReplaceActorScene(TinyFarmState state, ActorSceneState replacement)
     {
-        int index = state.MutableActorScenes.FindIndex(item => item.Actor == replacement.Actor);
+        int index = state.ActorSceneIndex(replacement.Actor);
         state.MutableActorScenes[index] = replacement;
     }
 
     private static void SetResting(TinyFarmState state, ActorId actor, bool isResting)
     {
-        int index = state.MutableActorEnergy.FindIndex(item => item.Actor == actor);
-        if (index >= 0)
+        if (state.TryGetActorEnergyIndex(actor, out int index))
         {
             ActorEnergyState current = state.MutableActorEnergy[index];
-            state.MutableActorEnergy[index] = current with { IsResting = isResting };
+            if (current.IsResting != isResting)
+            {
+                state.MutableActorEnergy[index] = current with { IsResting = isResting };
+            }
         }
     }
 

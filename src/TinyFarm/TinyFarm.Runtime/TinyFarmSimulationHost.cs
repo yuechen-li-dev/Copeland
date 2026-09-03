@@ -117,7 +117,8 @@ public sealed class TinyFarmSimulationHost
 
     public TinyFarmStepResult ExecuteIntent(GameIntent intent)
     {
-        bool evaluateNpcDecisions = intent is not SpatialMoveIntent;
+        bool evaluateNpcDecisions = intent is not SpatialMoveIntent
+            and not SelectHotbarSlotIntent;
         return Session.Step(intent, evaluateNpcDecisions);
     }
 
@@ -225,12 +226,10 @@ public sealed class TinyFarmSimulationHost
         LocomotionStepsAdvanced++;
         if (playerMovementX != 0 || playerMovementY != 0)
         {
-            TinyFarmStepResult player = Session.Step(
-                new SpatialMoveIntent(
-                    playerMovementX,
-                    playerMovementY,
-                    ScenePosition.UnitsPerTile / 8),
-                evaluateNpcDecisions: false);
+            TinyFarmStepResult player = Session.AdvancePlayerLocomotion(
+                playerMovementX,
+                playerMovementY,
+                ScenePosition.UnitsPerTile / 8);
             PlayerLocomotionReductions++;
             results.AddRange(player.Results);
             narrative.AddRange(player.Narrative);
@@ -238,7 +237,7 @@ public sealed class TinyFarmSimulationHost
 
         if (Session.HasActiveNpcNavigation)
         {
-            TinyFarmStepResult npc = Session.AdvanceActiveNpcLocomotion();
+            TinyFarmStepResult npc = Session.AdvanceActiveNpcLocomotionWithoutStateSnapshot();
             results.AddRange(npc.Results);
             narrative.AddRange(npc.Narrative);
         }
@@ -282,7 +281,8 @@ public sealed record TinyFarmSimulationSnapshot(
     int Minute,
     SceneId? ActiveScene,
     IReadOnlyList<TinyFarmSimulationActorSnapshot> Actors,
-    string StateHash);
+    string StateHash,
+    TinyFarmPlayerUiView? PlayerUi = null);
 
 public static class TinyFarmSimulationSnapshotProjector
 {
@@ -318,20 +318,25 @@ public static class TinyFarmSimulationSnapshotProjector
                     goal);
             })
             .ToArray();
+        TinyFarmPlayerUiView? playerUi = state.Version >= TinyFarmState.PlayerUiSaveVersion
+            ? TinyFarmPlayerUiProjector.Project(state, definitions)
+            : null;
         return new TinyFarmSimulationSnapshot(
-            "tiny-farm-simulation@1",
+            playerUi is null ? "tiny-farm-simulation@1" : "tiny-farm-simulation@2",
             mode,
             state.Day,
             state.Minute,
             state.CurrentScene,
             actors,
-            TinyFarmSemanticHash.Compute(state));
+            TinyFarmSemanticHash.Compute(state),
+            playerUi);
     }
 
     public static string WriteCanonicalTson(TinyFarmSimulationSnapshot snapshot)
     {
         var text = new StringBuilder();
-        text.AppendLine("const $schema: string = \"copeland://tiny-farm/simulation-snapshot/v1\";");
+        string schemaVersion = snapshot.PlayerUi is null ? "v1" : "v2";
+        text.AppendLine($"const $schema: string = \"copeland://tiny-farm/simulation-snapshot/{schemaVersion}\";");
         text.AppendLine();
         text.AppendLine("record ActorId { value: string; }");
         text.AppendLine("record SceneId { value: string; }");
@@ -358,6 +363,14 @@ public static class TinyFarmSimulationSnapshotProjector
         text.AppendLine("    activeScene: string;");
         text.AppendLine("    actors: ActorSnapshot[];");
         text.AppendLine("    stateHash: string;");
+        if (snapshot.PlayerUi is not null)
+        {
+            text.AppendLine("    money: number;");
+            text.AppendLine("    selectedHotbarSlot: number;");
+            text.AppendLine("    selectedSemanticId: string;");
+            text.AppendLine("    inventorySummary: string[];");
+            text.AppendLine("    hotbarSummary: string[];");
+        }
         text.AppendLine("}");
         text.AppendLine();
         text.AppendLine("const $value = $record.SimulationSnapshot({");
@@ -382,6 +395,22 @@ public static class TinyFarmSimulationSnapshotProjector
         }
         text.AppendLine("    ],");
         AppendString(text, "stateHash", snapshot.StateHash, 1);
+        if (snapshot.PlayerUi is TinyFarmPlayerUiView playerUi)
+        {
+            AppendNumber(text, "money", playerUi.Money, 1);
+            AppendNumber(text, "selectedHotbarSlot", playerUi.SelectedSlot.Value, 1);
+            AppendString(text, "selectedSemanticId", playerUi.SelectedSemanticId ?? string.Empty, 1);
+            AppendStringArray(
+                text,
+                "inventorySummary",
+                playerUi.Inventory.Select(item => $"{item.SemanticId}:{item.Count}"),
+                1);
+            AppendStringArray(
+                text,
+                "hotbarSummary",
+                playerUi.Hotbar.Select(slot => $"{slot.Slot.Value}:{slot.SemanticId ?? string.Empty}:{slot.Count}"),
+                1);
+        }
         text.AppendLine("});");
         string authored = text.ToString().Replace("\r\n", "\n", StringComparison.Ordinal);
         TsonReadResult read = TsonDocumentReader.ReadSelfDescribed(
@@ -413,6 +442,22 @@ public static class TinyFarmSimulationSnapshotProjector
     {
         string bits = BitConverter.DoubleToInt64Bits(value).ToString("X16", CultureInfo.InvariantCulture);
         text.Append(' ', indentation * 4).Append('"').Append(name).Append("\": $number(\"").Append(bits).AppendLine("\"),");
+    }
+
+    private static void AppendStringArray(
+        StringBuilder text,
+        string name,
+        IEnumerable<string> values,
+        int indentation)
+    {
+        text.Append(' ', indentation * 4).Append('"').Append(name).AppendLine("\": [");
+        foreach (string value in values)
+        {
+            string escaped = value.Replace("\\", "\\\\", StringComparison.Ordinal)
+                .Replace("\"", "\\\"", StringComparison.Ordinal);
+            text.Append(' ', (indentation + 1) * 4).Append('"').Append(escaped).AppendLine("\",");
+        }
+        text.Append(' ', indentation * 4).AppendLine("],");
     }
 
     private static void AppendIdentity(

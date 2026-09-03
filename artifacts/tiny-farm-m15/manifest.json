@@ -1,0 +1,13 @@
+{
+  "milestone": "TINY-FARM-M15",
+  "kind": "allocation-bounded-authoritative-locomotion",
+  "movementAuthorityChanged": false,
+  "resolverBypassed": false,
+  "semanticMovementCoreSingleSource": true,
+  "publicIntentSemanticsChanged": false,
+  "eventSemanticsChanged": false,
+  "projectionRemovedFromHotPath": true,
+  "proofTracingOptIn": true,
+  "physicsAdded": false,
+  "movementFrameworkAdded": false
+}

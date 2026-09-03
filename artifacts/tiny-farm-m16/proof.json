@@ -1,0 +1,10 @@
+{
+  "milestone": "TINY-FARM-M16",
+  "outcome": "A",
+  "initialSelectedSlot": 1,
+  "selectedAfterKeyboard": 2,
+  "selectedAfterClick": 3,
+  "inventoryOpenDoesNotMutateGameTruth": true,
+  "saveLoadSelectedSlotExact": true,
+  "stateHash": "c923a1e2f6780defd2b67e5ba1d1ee5394ec5507b4bf42ce67c91cb93ba43992"
+}

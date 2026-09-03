@@ -1,0 +1,27 @@
+{
+  "before": {
+    "bytesPerReduction": 6720,
+    "measuredBytesPerReduction": 6687.58728,
+    "nanosecondsPerReduction": 5953.373,
+    "gen0Per100K": 40
+  },
+  "after": {
+    "bytesPerReduction": 857.52136,
+    "nanosecondsPerReduction": 2705.94,
+    "gen0Per100K": 5,
+    "eventsPerAcceptedReduction": 1.00276,
+    "pathQueriesPer100K": 276,
+    "policyEvaluationsPer100K": 828
+  },
+  "allocationReductionPercent": 87.23926547619048,
+  "locomotionOnlyScale": {
+    "tenActiveNpcs": {
+      "movementReductionsPerSecond": 600,
+      "managedBytesPerSecond": 514512.81599999993
+    },
+    "hundredActiveNpcs": {
+      "movementReductionsPerSecond": 6000,
+      "managedBytesPerSecond": 5145128.16
+    }
+  }
+}

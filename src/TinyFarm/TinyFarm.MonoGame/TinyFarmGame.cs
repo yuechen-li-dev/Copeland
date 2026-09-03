@@ -9,10 +9,12 @@ internal sealed class TinyFarmGame : Game
     private readonly TinyFarmDefinitions definitions;
     private readonly string savePath;
     private readonly TinyFarmSimulationHost simulationHost;
+    private readonly TinyFarmPlayerUiController playerUiController;
     private TinyFarmSession session => simulationHost.Session;
     private SpriteBatch? spriteBatch;
     private Texture2D? pixel;
     private KeyboardState previousKeyboard;
+    private MouseState previousMouse;
     private IReadOnlyList<NarrativeLine> narrative = [];
     private string status = "Welcome to TinyFarm";
 
@@ -24,14 +26,15 @@ internal sealed class TinyFarmGame : Game
             PreferredBackBufferHeight = ReadIntOption(args, "--height", 1440),
             SynchronizeWithVerticalRetrace = true
         };
-        Window.Title = "TinyFarm M14 - Fixed-Step NPC Locomotion";
+        Window.Title = "TinyFarm M16 - Inventory and Hotbar";
         Window.AllowUserResizing = true;
         IsMouseVisible = true;
         definitions = TinyFarmDefinitionLoader.LoadM14();
         simulationHost = new TinyFarmSimulationHost(
-            new TinyFarmSession(TinyFarmM14ControlStates.Create(definitions, "wander"), definitions),
+            new TinyFarmSession(TinyFarmM16ControlStates.Create(definitions), definitions),
             definitions,
             TinyFarmSimulationMode.Playing);
+        playerUiController = new TinyFarmPlayerUiController(simulationHost);
         savePath = ReadOption(args, "--save-file")
             ?? Path.Combine(Environment.CurrentDirectory, "tiny-farm.save");
     }
@@ -46,26 +49,50 @@ internal sealed class TinyFarmGame : Game
     protected override void Update(GameTime gameTime)
     {
         KeyboardState keyboard = Keyboard.GetState();
+        MouseState mouse = Mouse.GetState();
         if (Pressed(keyboard, Keys.Escape))
         {
             Exit();
             return;
         }
 
-        if (Pressed(keyboard, Keys.D1))
+        if (TryReadHotbarKey(keyboard, out TinyFarmUiKey hotbarKey))
         {
-            simulationHost.Execute(new SetSimulationModeCommand(TinyFarmSimulationMode.Paused));
-            status = "Simulation paused";
+            playerUiController.HandleKey(hotbarKey);
+            status = $"Selected hotbar slot {simulationHost.Session.State.SelectedHotbarSlot}";
         }
-        else if (Pressed(keyboard, Keys.D2))
+        else if (Pressed(keyboard, Keys.I))
         {
-            simulationHost.Execute(new SetSimulationModeCommand(TinyFarmSimulationMode.Playing));
-            status = "Simulation playing";
+            playerUiController.HandleKey(TinyFarmUiKey.Inventory);
+            status = playerUiController.InventoryOpen ? "Inventory opened" : "Inventory closed";
         }
-        else if (Pressed(keyboard, Keys.D3))
+        else if (Pressed(keyboard, Keys.Space))
         {
-            simulationHost.Execute(new SetSimulationModeCommand(TinyFarmSimulationMode.FastForward));
-            status = "Simulation fast forward x10";
+            playerUiController.HandleKey(TinyFarmUiKey.PausePlay);
+            status = simulationHost.Mode == TinyFarmSimulationMode.Paused
+                ? "Simulation paused"
+                : "Simulation playing";
+        }
+        else if (Pressed(keyboard, Keys.F))
+        {
+            playerUiController.HandleKey(TinyFarmUiKey.FastForward);
+            status = simulationHost.Mode == TinyFarmSimulationMode.FastForward
+                ? "Simulation fast forward x10"
+                : "Simulation playing";
+        }
+        else if (Pressed(mouse))
+        {
+            HotbarSlotId? clicked = HitTestHotbar(mouse.Position);
+            if (clicked is HotbarSlotId slot)
+            {
+                playerUiController.ClickSlot(slot);
+                status = $"Selected hotbar slot {slot.Value}";
+            }
+            else if (InventoryToggleRectangle().Contains(mouse.Position))
+            {
+                playerUiController.HandleKey(TinyFarmUiKey.Inventory);
+                status = playerUiController.InventoryOpen ? "Inventory opened" : "Inventory closed";
+            }
         }
 
         if (Pressed(keyboard, Keys.F5))
@@ -76,19 +103,22 @@ internal sealed class TinyFarmGame : Game
         {
             Load();
         }
-        else if (simulationHost.Mode != TinyFarmSimulationMode.Paused
+        else if (!playerUiController.InventoryOpen
+            && simulationHost.Mode != TinyFarmSimulationMode.Paused
             && Pressed(keyboard, Keys.Enter)
             && narrative.Count > 0)
         {
             narrative = [];
             status = "Conversation closed";
         }
-        else if (simulationHost.Mode != TinyFarmSimulationMode.Paused
+        else if (!playerUiController.InventoryOpen
+            && simulationHost.Mode != TinyFarmSimulationMode.Paused
             && (Pressed(keyboard, Keys.Enter) || Pressed(keyboard, Keys.E)))
         {
             ApplyControl(TinyFarmControl.Interact);
         }
-        else if (simulationHost.Mode != TinyFarmSimulationMode.Paused
+        else if (!playerUiController.InventoryOpen
+            && simulationHost.Mode != TinyFarmSimulationMode.Paused
             && ReadControl(keyboard) is TinyFarmControl control)
         {
             ApplyControl(control);
@@ -96,6 +126,7 @@ internal sealed class TinyFarmGame : Game
 
 
         TinyFarmControl? heldMovement = simulationHost.Mode == TinyFarmSimulationMode.Paused
+            || playerUiController.SuppressWorldMovement
             ? null
             : ReadHeldMovement(keyboard);
         if (heldMovement is null)
@@ -128,6 +159,7 @@ internal sealed class TinyFarmGame : Game
                 : $"{movement.Status}: {movement.Reason}";
         }
         previousKeyboard = keyboard;
+        previousMouse = mouse;
         base.Update(gameTime);
     }
 
@@ -138,6 +170,7 @@ internal sealed class TinyFarmGame : Game
         simulationHost.ObserveRenderFrame();
         spriteBatch!.Begin(samplerState: SamplerState.PointClamp);
         DrawWorld(frame);
+        DrawPlayerUi(TinyFarmPlayerUiProjector.Project(session.State, definitions));
         DrawHud(frame);
         spriteBatch.End();
         base.Draw(gameTime);
@@ -327,11 +360,11 @@ internal sealed class TinyFarmGame : Game
             _ => "FAST X10"
         };
         BitmapText.Draw(spriteBatch!, pixel!, $"{mode}  DAY {frame.Day}  {frame.Time}  {frame.CurrentLocationName.ToUpperInvariant()}  {frame.Money}G", new Vector2(18, top + 10), Color.White, headingScale);
-        string inventory = frame.Inventory.Count == 0
-            ? "INVENTORY EMPTY"
-            : "INVENTORY " + string.Join("  ", frame.Inventory.Select(item => $"{item.Name.ToUpperInvariant()} X{item.Count}"));
-        BitmapText.Draw(spriteBatch!, pixel!, inventory, new Vector2(18, top + 34), new Color(204, 221, 190), 1);
-        string controls = "1 PAUSE  |  2 PLAY  |  3 FAST X10  |  ARROWS/WASD MOVE  |  ENTER/E INTERACT  |  SPACE WAIT  |  F5 SAVE  |  F9 LOAD";
+        Rectangle inventoryToggle = InventoryToggleRectangle();
+        Fill(inventoryToggle, playerUiController.InventoryOpen ? new Color(91, 73, 38) : new Color(38, 53, 49));
+        Border(inventoryToggle, playerUiController.InventoryOpen ? Color.Gold : new Color(126, 145, 133), 2);
+        BitmapText.Draw(spriteBatch!, pixel!, "I INVENTORY", new Vector2(inventoryToggle.X + 10, inventoryToggle.Y + 10), Color.White, 1);
+        string controls = "1-8 HOTBAR  |  I INVENTORY  |  SPACE PAUSE/PLAY  |  F FAST X10  |  ARROWS/WASD MOVE  |  ENTER/E INTERACT  |  N WAIT  |  F5 SAVE  |  F9 LOAD";
         string context = string.Join("  |  ", frame.InteractionHints.Skip(4));
         if (frame.Narrative.Count > 0)
         {
@@ -341,11 +374,64 @@ internal sealed class TinyFarmGame : Game
         {
             controls += "  |  " + context;
         }
-        BitmapText.Draw(spriteBatch!, pixel!, controls.ToUpperInvariant(), new Vector2(18, top + 52), new Color(242, 205, 111), 1);
+        BitmapText.Draw(spriteBatch!, pixel!, controls.ToUpperInvariant(), new Vector2(18, top + 38), new Color(242, 205, 111), 1);
         string message = frame.Narrative.LastOrDefault() ?? status;
         if (hudHeight >= 96)
         {
-            BitmapText.Draw(spriteBatch!, pixel!, message.ToUpperInvariant(), new Vector2(18, top + 72), Color.White, 1);
+            BitmapText.Draw(spriteBatch!, pixel!, message.ToUpperInvariant(), new Vector2(18, top + 62), Color.White, 1);
+        }
+    }
+
+    private void DrawPlayerUi(TinyFarmPlayerUiView view)
+    {
+        Rectangle[] slots = HotbarRectangles();
+        for (int index = 0; index < slots.Length; index++)
+        {
+            TinyFarmHotbarSlotView slot = view.Hotbar[index];
+            Color fill = slot.VisualState switch
+            {
+                TinyFarmHotbarSlotVisualState.Available => new Color(49, 72, 63),
+                TinyFarmHotbarSlotVisualState.Unavailable => new Color(48, 48, 48),
+                _ => new Color(30, 37, 35)
+            };
+            Fill(slots[index], fill);
+            Border(slots[index], slot.IsSelected ? Color.Gold : new Color(126, 145, 133), slot.IsSelected ? 4 : 2);
+            BitmapText.Draw(spriteBatch!, pixel!, slot.Slot.Value.ToString(), new Vector2(slots[index].X + 7, slots[index].Y + 6), Color.White, 1);
+            string label = slot.BindingKind is null
+                ? "EMPTY"
+                : $"{slot.Label.ToUpperInvariant()} X{slot.Count}";
+            BitmapText.Draw(spriteBatch!, pixel!, label, new Vector2(slots[index].X + 7, slots[index].Y + 24), Color.White, 1);
+        }
+
+        if (!playerUiController.InventoryOpen)
+        {
+            return;
+        }
+
+        TinyFarmUiRectangle layoutPanel = TinyFarmPlayerUiLayoutEngine.Compute(
+            GraphicsDevice.Viewport.Width,
+            GraphicsDevice.Viewport.Height,
+            view.Inventory.Count).InventoryPanel;
+        var panel = ToRectangle(layoutPanel);
+        Fill(panel, new Color(18, 27, 25, 242));
+        Border(panel, new Color(181, 154, 83), 3);
+        BitmapText.Draw(spriteBatch!, pixel!, "INVENTORY", new Vector2(panel.X + 18, panel.Y + 16), Color.Gold, 2);
+        if (view.Inventory.Count == 0)
+        {
+            BitmapText.Draw(spriteBatch!, pixel!, "EMPTY", new Vector2(panel.X + 18, panel.Y + 50), Color.White, 1);
+            return;
+        }
+
+        for (int index = 0; index < view.Inventory.Count; index++)
+        {
+            TinyFarmPlayerInventoryView item = view.Inventory[index];
+            BitmapText.Draw(
+                spriteBatch!,
+                pixel!,
+                $"{item.Name.ToUpperInvariant()}  X{item.Count}",
+                new Vector2(panel.X + 18, panel.Y + 52 + (index * 30)),
+                Color.White,
+                1);
         }
     }
 
@@ -362,7 +448,7 @@ internal sealed class TinyFarmGame : Game
             (Keys.P, TinyFarmControl.Plant),
             (Keys.R, TinyFarmControl.Water),
             (Keys.H, TinyFarmControl.Harvest),
-            (Keys.Space, TinyFarmControl.Wait)
+            (Keys.N, TinyFarmControl.Wait)
         ];
         foreach ((Keys key, TinyFarmControl control) in bindings)
         {
@@ -396,6 +482,64 @@ internal sealed class TinyFarmGame : Game
     }
 
     private bool Pressed(KeyboardState keyboard, Keys key) => keyboard.IsKeyDown(key) && previousKeyboard.IsKeyUp(key);
+
+    private bool Pressed(MouseState mouse)
+    {
+        return mouse.LeftButton == ButtonState.Pressed
+            && previousMouse.LeftButton == ButtonState.Released;
+    }
+
+    private bool TryReadHotbarKey(KeyboardState keyboard, out TinyFarmUiKey key)
+    {
+        Keys[] keys = [Keys.D1, Keys.D2, Keys.D3, Keys.D4, Keys.D5, Keys.D6, Keys.D7, Keys.D8];
+        for (int index = 0; index < keys.Length; index++)
+        {
+            if (Pressed(keyboard, keys[index]))
+            {
+                key = (TinyFarmUiKey)((int)TinyFarmUiKey.Number1 + index);
+                return true;
+            }
+        }
+        key = default;
+        return false;
+    }
+
+    private HotbarSlotId? HitTestHotbar(Point point)
+    {
+        Rectangle[] rectangles = HotbarRectangles();
+        for (int index = 0; index < rectangles.Length; index++)
+        {
+            if (rectangles[index].Contains(point))
+            {
+                return new HotbarSlotId(index + 1);
+            }
+        }
+        return null;
+    }
+
+    private Rectangle[] HotbarRectangles()
+    {
+        return TinyFarmPlayerUiLayoutEngine.Compute(
+                GraphicsDevice.Viewport.Width,
+                GraphicsDevice.Viewport.Height,
+                0)
+            .HotbarSlots
+            .Select(ToRectangle)
+            .ToArray();
+    }
+
+    private Rectangle InventoryToggleRectangle()
+    {
+        int width = GraphicsDevice.Viewport.Width;
+        int height = GraphicsDevice.Viewport.Height;
+        int hudHeight = Math.Clamp(height / 12, 76, 112);
+        return new Rectangle(width - 158, height - hudHeight + 8, 140, 32);
+    }
+
+    private static Rectangle ToRectangle(TinyFarmUiRectangle rectangle)
+    {
+        return new Rectangle(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height);
+    }
 
     private void ApplyControl(TinyFarmControl control)
     {

@@ -18,6 +18,7 @@ public sealed class TinyFarmSession
     private readonly TinyFarmNpcSchedule.Runtime scheduleRuntime;
     private readonly Dictionary<ActorId, NpcPathState> npcPaths = [];
     private readonly Dictionary<ActorId, SceneAnchorId> npcNavigationTargets = [];
+    private readonly List<KeyValuePair<ActorId, SceneAnchorId>> activeNpcMovementOrder = [];
     private int navigationPlanCount;
     private int activationCount;
     private int deactivationCount;
@@ -178,6 +179,29 @@ public sealed class TinyFarmSession
         return new TinyFarmStepResult(State.DeepCopy(), batch.Results, narrative);
     }
 
+    internal TinyFarmStepResult AdvancePlayerLocomotion(
+        int deltaX,
+        int deltaY,
+        int distance)
+    {
+        var intent = new SpatialMoveIntent(deltaX, deltaY, distance);
+        var envelope = new IntentEnvelope(
+            TinyFarmIds.Player,
+            intent,
+            State.Minute,
+            nextSequence++,
+            IntentSourceKind.Human);
+        SpatialMoveReductionResult reduction = resolver.ResolveSpatialMoveCore(
+            State,
+            TinyFarmIds.Player,
+            deltaX,
+            deltaY,
+            distance);
+        IntentResult result = TinyFarmResolver.MaterializeSpatialMoveResult(envelope, reduction);
+        recentEvents = result.Events;
+        return new TinyFarmStepResult(State, [result], []);
+    }
+
     private List<IntentEnvelope> PreserveCommittedWanderGoals(List<IntentEnvelope> envelopes)
     {
         return envelopes.Select(envelope =>
@@ -208,16 +232,30 @@ public sealed class TinyFarmSession
 
     public TinyFarmStepResult AdvanceActiveNpcLocomotion()
     {
+        return AdvanceActiveNpcLocomotion(snapshotState: true);
+    }
+
+    internal TinyFarmStepResult AdvanceActiveNpcLocomotionWithoutStateSnapshot()
+    {
+        return AdvanceActiveNpcLocomotion(snapshotState: false);
+    }
+
+    private TinyFarmStepResult AdvanceActiveNpcLocomotion(bool snapshotState)
+    {
         if (State.CurrentScene is not SceneId activeScene || npcNavigationTargets.Count == 0)
         {
-            return new TinyFarmStepResult(State.DeepCopy(), [], []);
+            return new TinyFarmStepResult(snapshotState ? State.DeepCopy() : State, [], []);
         }
 
         var results = new List<IntentResult>();
-        var events = new List<GameEvent>();
-        foreach ((ActorId actorId, SceneAnchorId target) in npcNavigationTargets
-                     .OrderBy(item => item.Key.Value, StringComparer.Ordinal)
-                     .ToArray())
+        activeNpcMovementOrder.Clear();
+        foreach (KeyValuePair<ActorId, SceneAnchorId> item in npcNavigationTargets)
+        {
+            activeNpcMovementOrder.Add(item);
+        }
+        activeNpcMovementOrder.Sort(static (left, right) =>
+            StringComparer.Ordinal.Compare(left.Key.Value, right.Key.Value));
+        foreach ((ActorId actorId, SceneAnchorId target) in activeNpcMovementOrder)
         {
             ActorSceneState placement = State.ActorScene(actorId);
             if (placement.Scene != activeScene)
@@ -239,16 +277,25 @@ public sealed class TinyFarmSession
                 continue;
             }
 
-            TinyFarmState before = State;
-            ResolutionBatchResult batch = resolver.Resolve(State, [movement]);
-            batch = AppendAnchorArrivalEvents(
-                before,
-                batch,
-                new Dictionary<ActorId, SceneAnchorId> { [actorId] = target });
-            State = batch.State;
-            IntentResult movementResult = batch.Results[0];
+            IntentResult movementResult;
+            if (movement.Intent is SpatialMoveIntent spatialMove)
+            {
+                SpatialMoveReductionResult reduction = resolver.ResolveSpatialMoveCore(
+                    State,
+                    actorId,
+                    spatialMove.DeltaX,
+                    spatialMove.DeltaY,
+                    spatialMove.Distance);
+                movementResult = TinyFarmResolver.MaterializeSpatialMoveResult(movement, reduction);
+                movementResult = AppendAnchorArrivalEvent(movementResult, reduction, target);
+            }
+            else
+            {
+                ResolutionBatchResult batch = resolver.Resolve(State, [movement]);
+                State = batch.State;
+                movementResult = batch.Results[0];
+            }
             results.Add(movementResult);
-            events.AddRange(movementResult.Events);
 
             if (movementResult.Status == IntentResultStatus.Accepted
                 && movementResult.Envelope.Intent is SpatialMoveIntent)
@@ -276,15 +323,81 @@ public sealed class TinyFarmSession
                 ResolutionBatchResult reachedBatch = resolver.Resolve(State, [reached]);
                 State = reachedBatch.State;
                 results.AddRange(reachedBatch.Results);
-                events.AddRange(reachedBatch.Results.SelectMany(item => item.Events));
             }
         }
 
-        recentEvents = events.ToArray();
+        recentEvents = CollectEvents(results);
         return new TinyFarmStepResult(
-            State.DeepCopy(),
+            snapshotState ? State.DeepCopy() : State,
             results,
             TinyFarmNarrative.Project(recentEvents));
+    }
+
+    private static IReadOnlyList<GameEvent> CollectEvents(IReadOnlyList<IntentResult> results)
+    {
+        if (results.Count == 0)
+        {
+            return [];
+        }
+        if (results.Count == 1)
+        {
+            return results[0].Events;
+        }
+
+        int eventCount = 0;
+        for (int resultIndex = 0; resultIndex < results.Count; resultIndex++)
+        {
+            eventCount += results[resultIndex].Events.Count;
+        }
+        var events = new GameEvent[eventCount];
+        int eventIndex = 0;
+        for (int resultIndex = 0; resultIndex < results.Count; resultIndex++)
+        {
+            IReadOnlyList<GameEvent> source = results[resultIndex].Events;
+            for (int sourceIndex = 0; sourceIndex < source.Count; sourceIndex++)
+            {
+                events[eventIndex++] = source[sourceIndex];
+            }
+        }
+        return events;
+    }
+
+    private IntentResult AppendAnchorArrivalEvent(
+        IntentResult result,
+        SpatialMoveReductionResult reduction,
+        SceneAnchorId anchorId)
+    {
+        if (reduction.Status != IntentResultStatus.Accepted
+            || reduction.PreviousPlacement is not ActorSceneState oldPlacement
+            || reduction.CurrentPlacement is not ActorSceneState newPlacement
+            || !Scenes.TryGetAnchor(anchorId, out SceneAnchorDefinition anchor))
+        {
+            return result;
+        }
+
+        long radiusSquared = (long)anchor.ArrivalRadiusUnits * anchor.ArrivalRadiusUnits;
+        bool wasReached = oldPlacement.Scene == anchor.Scene
+            && oldPlacement.WorldPosition.SquaredDistance(anchor.Position) <= radiusSquared;
+        bool isReached = newPlacement.Scene == anchor.Scene
+            && newPlacement.WorldPosition.SquaredDistance(anchor.Position) <= radiusSquared;
+        if (wasReached || !isReached)
+        {
+            return result;
+        }
+
+        var events = new GameEvent[result.Events.Count + 1];
+        for (int index = 0; index < result.Events.Count; index++)
+        {
+            events[index] = result.Events[index];
+        }
+        events[^1] = new GameEvent(
+            GameEventKind.AnchorReached,
+            result.Envelope.Actor,
+            Location: anchor.SemanticLocation,
+            Scene: anchor.Scene,
+            SceneObject: anchor.SemanticObject,
+            Anchor: anchor.Id);
+        return result with { Events = events };
     }
 
     private void RememberActiveNavigationTargets(
@@ -379,11 +492,11 @@ public sealed class TinyFarmSession
         SceneId destinationScene = anchor.Scene;
         SceneObjectId? portal = null;
         ScenePosition goal;
-        string goalIdentity;
+        NpcPathGoalIdentity goalIdentity;
         if (destinationScene == actor.Scene)
         {
             goal = anchor.Position;
-            goalIdentity = $"anchor:{move.Anchor.Value}";
+            goalIdentity = NpcPathGoalIdentity.ForAnchor(move.Anchor);
             long radiusSquared = (long)anchor.ArrivalRadiusUnits * anchor.ArrivalRadiusUnits;
             if (actor.WorldPosition.SquaredDistance(goal) <= radiusSquared)
             {
@@ -400,7 +513,7 @@ public sealed class TinyFarmSession
             }
             portal = route.TriggerObject;
             goal = Center(scene.Placement(route.TriggerObject));
-            goalIdentity = $"route:{route.Id.Value}";
+            goalIdentity = NpcPathGoalIdentity.ForRoute(route.Id);
             InteractionTarget? target = TinyFarmSpatialQueries.SelectInteractionTarget(State, actor.Actor, Scenes);
             if (target?.SceneObject == portal)
             {
@@ -466,7 +579,7 @@ public sealed class TinyFarmSession
         ActorSceneState actor,
         SceneDefinition scene,
         ScenePosition goal,
-        string goalIdentity)
+        NpcPathGoalIdentity goalIdentity)
     {
         if (npcPaths.TryGetValue(actor.Actor, out NpcPathState? cached)
             && cached.Scene == actor.Scene
@@ -515,9 +628,28 @@ public sealed class TinyFarmSession
 
     private sealed record NpcPathState(
         SceneId Scene,
-        string GoalIdentity,
+        NpcPathGoalIdentity GoalIdentity,
         NavigationPath Path,
         int Index);
+
+    private enum NpcPathGoalKind
+    {
+        Anchor,
+        Route
+    }
+
+    private readonly record struct NpcPathGoalIdentity(NpcPathGoalKind Kind, string Value)
+    {
+        public static NpcPathGoalIdentity ForAnchor(SceneAnchorId anchor)
+        {
+            return new NpcPathGoalIdentity(NpcPathGoalKind.Anchor, anchor.Value);
+        }
+
+        public static NpcPathGoalIdentity ForRoute(SceneRouteId route)
+        {
+            return new NpcPathGoalIdentity(NpcPathGoalKind.Route, route.Value);
+        }
+    }
 
     public TinyFarmSave CaptureSave()
     {

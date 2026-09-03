@@ -1,0 +1,21 @@
+{
+  "acceptedMovement": true,
+  "blockedMovement": true,
+  "outOfBounds": true,
+  "invalidActor": true,
+  "invalidDistance": true,
+  "facing": true,
+  "restClearing": true,
+  "anchorReached": true,
+  "wanderPath": true,
+  "bedPath": true,
+  "playerMovement": true,
+  "replayAndLlmPublicIntent": true,
+  "sixtyVsOneFortyFour": true,
+  "irregularPartition": true,
+  "pausePlayFastForward": true,
+  "saveLoadMidPath": true,
+  "activeInactiveHandoff": true,
+  "policyCadenceChanged": false,
+  "pathQueryCadenceChanged": false
+}

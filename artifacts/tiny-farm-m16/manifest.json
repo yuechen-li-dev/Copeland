@@ -1,0 +1,14 @@
+{
+  "milestone": "TINY-FARM-M16",
+  "kind": "inventory-hotbar-ui-foundation",
+  "existingUiInfrastructureAuditedFirst": true,
+  "machinaUiReusedWhereApplicable": true,
+  "inventoryAuthorityMoved": false,
+  "hotbarSemanticStateAdded": true,
+  "uiMutatesGameplayDirectly": false,
+  "numberKeysOwnHotbarSelection": true,
+  "simulationControlConflictResolved": true,
+  "skillSystemAdded": false,
+  "combatAdded": false,
+  "craftingAdded": false
+}

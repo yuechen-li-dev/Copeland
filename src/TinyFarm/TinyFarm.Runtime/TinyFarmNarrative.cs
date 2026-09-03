@@ -35,6 +35,23 @@ public static partial class TinyFarmNarrative
 
     public static IReadOnlyList<NarrativeLine> Project(IEnumerable<GameEvent> events)
     {
+        if (events is IReadOnlyList<GameEvent> eventList)
+        {
+            bool hasDialogue = false;
+            for (int index = 0; index < eventList.Count; index++)
+            {
+                if (eventList[index].Dialogue is not null)
+                {
+                    hasDialogue = true;
+                    break;
+                }
+            }
+            if (!hasDialogue)
+            {
+                return [];
+            }
+        }
+
         var lines = new List<NarrativeLine>();
 
         foreach (DialogueTopic topic in events

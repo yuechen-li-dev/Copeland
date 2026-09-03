@@ -98,6 +98,13 @@ public static class TinyFarmSemanticHash
             }
         }
 
+        if (state.Version >= TinyFarmState.PlayerUiSaveVersion)
+        {
+            canonical.Append("selected-hotbar-slot|")
+                .Append(state.SelectedHotbarSlot)
+                .AppendLine();
+        }
+
         canonical.Append("facts|").AppendJoin(',', state.Facts.OrderBy(fact => fact));
         byte[] bytes = Encoding.UTF8.GetBytes(canonical.ToString());
         return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();

@@ -99,6 +99,7 @@ public static class TinyFarmChunkedSaveCodec
     public const string SceneRuntimeVersion = "tiny-farm-m4@3";
     public const string ContinuousSceneRuntimeVersion = "tiny-farm-m5@4";
     public const string EnergyRuntimeVersion = "tiny-farm-m12@5";
+    public const string PlayerUiRuntimeVersion = "tiny-farm-m16@6";
     public static readonly ChunkId WorldChunk = new("tinyfarm.world");
     public static readonly ChunkId RuntimeChunk = new("tinyfarm.runtime");
     public static readonly ChunkId AgentChunk = new("tinyfarm.agents");
@@ -180,7 +181,8 @@ public static class TinyFarmChunkedSaveCodec
         if (state.Version != TinyFarmState.SaveVersion
             && state.Version != TinyFarmState.SceneSaveVersion
             && state.Version != TinyFarmState.ContinuousSceneSaveVersion
-            && state.Version != TinyFarmState.EnergySaveVersion)
+            && state.Version != TinyFarmState.EnergySaveVersion
+            && state.Version != TinyFarmState.PlayerUiSaveVersion)
         {
             throw new InvalidDataException($"Unsupported TinyFarm game save version {state.Version}.");
         }
@@ -295,10 +297,20 @@ public static class TinyFarmChunkedSaveCodec
                 throw new InvalidDataException("TinyFarm Energy state requires one finite, bounded row per NPC.");
             }
         }
+
+        if (state.Version >= TinyFarmState.PlayerUiSaveVersion
+            && state.SelectedHotbarSlot is < 1 or > HotbarSlotId.Count)
+        {
+            throw new InvalidDataException("TinyFarm player UI state requires a selected hotbar slot from 1 through 8.");
+        }
     }
 
     private static string RuntimeVersionFor(int gameVersion)
     {
+        if (gameVersion >= TinyFarmState.PlayerUiSaveVersion)
+        {
+            return PlayerUiRuntimeVersion;
+        }
         if (gameVersion >= TinyFarmState.EnergySaveVersion)
         {
             return EnergyRuntimeVersion;

@@ -313,6 +313,91 @@ jobs:
             throw "TinyFarm M13 CLI control smoke test failed."
           }
 
+      - name: Validate M14 locomotion parity and M15 allocation bound
+        shell: pwsh
+        run: |
+          $m14Directory = Join-Path $env:RUNNER_TEMP "tiny-farm-m14"
+          dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --m14 --artifact-dir $m14Directory
+          if ($LASTEXITCODE -ne 0) {
+            throw "TinyFarm M14 locomotion regression failed."
+          }
+
+          $m14Proof = Get-Content -Raw -LiteralPath (Join-Path $m14Directory "proof.json") | ConvertFrom-Json
+          if ($m14Proof.outcome -ne "A" -or
+              -not $m14Proof.sixtyVsOneFortyFourEquivalent -or
+              -not $m14Proof.irregularEquivalent -or
+              -not $m14Proof.pauseFreezes -or
+              -not $m14Proof.resumeContinues -or
+              $m14Proof.stateHash -ne "a0d79da0f0590d1c77d1a27bd19494e1ae68dd16ae8c46caccb20dfcbcb8fd84") {
+            throw "TinyFarm M14 canonical locomotion law changed."
+          }
+
+          $m15Directory = Join-Path $env:RUNNER_TEMP "tiny-farm-m15"
+          dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --m15 --artifact-dir $m15Directory
+          if ($LASTEXITCODE -ne 0) {
+            throw "TinyFarm M15 allocation proof failed."
+          }
+
+          $m15Proof = Get-Content -Raw -LiteralPath (Join-Path $m15Directory "proof.json") | ConvertFrom-Json
+          $allocations = Get-Content -Raw -LiteralPath (Join-Path $m15Directory "allocations.json") | ConvertFrom-Json
+          if ($m15Proof.outcome -ne "A" -or
+              -not $m15Proof.allocationBounded -or
+              -not $m15Proof.semanticMovementCoreSingleSource -or
+              -not $m15Proof.canonicalM14HashPreserved -or
+              $m15Proof.movementAuthorityChanged -or
+              $m15Proof.resolverBypassed -or
+              $m15Proof.publicIntentSemanticsChanged -or
+              $m15Proof.eventSemanticsChanged -or
+              $allocations.sample.runtime.bytesPerReduction -ge 1024 -or
+              $allocations.sample.core.bytesPerReduction -ge 128) {
+            throw "TinyFarm M15 did not preserve authority within its allocation budgets."
+          }
+
+          $expectedFiles = @("allocations.json", "manifest.json", "parity.json", "performance.json", "proof.json")
+          $artifactFiles = @(Get-ChildItem -LiteralPath $m15Directory -File | Sort-Object Name)
+          if ($artifactFiles.Count -ne 5 -or
+              (Compare-Object $expectedFiles $artifactFiles.Name) -or
+              ($artifactFiles | Where-Object Length -gt 262144)) {
+            throw "TinyFarm M15 evidence exceeded the compact five-file artifact budget."
+          }
+
+          $m16Directory = Join-Path $env:RUNNER_TEMP "tiny-farm-m16"
+          dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --m16 --artifact-dir $m16Directory
+          if ($LASTEXITCODE -ne 0) {
+            throw "TinyFarm M16 inventory/hotbar proof failed."
+          }
+
+          $m16Proof = Get-Content -Raw -LiteralPath (Join-Path $m16Directory "proof.json") | ConvertFrom-Json
+          $m16Manifest = Get-Content -Raw -LiteralPath (Join-Path $m16Directory "manifest.json") | ConvertFrom-Json
+          if ($m16Proof.outcome -ne "A" -or
+              -not $m16Proof.inventoryOpenDoesNotMutateGameTruth -or
+              -not $m16Proof.saveLoadSelectedSlotExact -or
+              $m16Proof.selectedAfterKeyboard -ne 2 -or
+              $m16Proof.selectedAfterClick -ne 3 -or
+              $m16Manifest.inventoryAuthorityMoved -or
+              $m16Manifest.uiMutatesGameplayDirectly -or
+              -not $m16Manifest.numberKeysOwnHotbarSelection -or
+              -not $m16Manifest.simulationControlConflictResolved) {
+            throw "TinyFarm M16 semantic UI authority law changed."
+          }
+
+          $controlOutput = @("inspect", "select-slot 2", "inspect", "quit") |
+            dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -c Release --no-build -- --m16-control |
+            Out-String
+          if ($LASTEXITCODE -ne 0 -or
+              $controlOutput -notmatch '"selectedHotbarSlot": 2' -or
+              $controlOutput -notmatch '"semanticId": "turnip-seed"') {
+            throw "TinyFarm M16 CLI inspection/select-slot smoke test failed."
+          }
+
+          $expectedFiles = @("host-integration.json", "input-routing.json", "manifest.json", "proof.json", "ui-projection.json")
+          $artifactFiles = @(Get-ChildItem -LiteralPath $m16Directory -File | Sort-Object Name)
+          if ($artifactFiles.Count -ne 5 -or
+              (Compare-Object $expectedFiles $artifactFiles.Name) -or
+              ($artifactFiles | Where-Object Length -gt 262144)) {
+            throw "TinyFarm M16 evidence exceeded the compact five-file artifact budget."
+          }
+
       - name: Enforce repository artifact budget
         shell: pwsh
         run: ./tools/Test-ArtifactBudget.ps1 -Paths @()

@@ -131,6 +131,7 @@ public sealed record SceneRoute(
 
 public sealed class SceneDefinition
 {
+    private bool[]? blockedTiles;
     public SceneDefinition(
         SceneId id,
         string name,
@@ -173,6 +174,45 @@ public sealed class SceneDefinition
     public SceneAnchorDefinition Anchor(SceneAnchorId id)
     {
         return Anchors.Single(item => item.Id == id);
+    }
+
+    internal bool IsBlocked(GridPosition position)
+    {
+        if (blockedTiles is not null)
+        {
+            return blockedTiles[(position.Y * Width) + position.X];
+        }
+
+        foreach (SceneLayoutRow row in Layout)
+        {
+            if (row.Contains(position) && Object(row.ObjectId).BlocksMovement)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    internal void BuildSpatialIndex()
+    {
+        var blocked = new bool[Width * Height];
+        var objectIndex = Objects.ToDictionary(item => item.Id);
+        foreach (SceneLayoutRow row in Layout)
+        {
+            if (!objectIndex[row.ObjectId].BlocksMovement)
+            {
+                continue;
+            }
+
+            for (int y = row.Y; y < row.Y + row.Height; y++)
+            {
+                for (int x = row.X; x < row.X + row.Width; x++)
+                {
+                    blocked[(y * Width) + x] = true;
+                }
+            }
+        }
+        blockedTiles = blocked;
     }
 }
 
@@ -245,6 +285,10 @@ public sealed class TinyFarmSceneCatalog
             .OrderBy(scene => scene.Id.Value, StringComparer.Ordinal)
             .ToArray();
         TinyFarmScenes.Validate(materialized);
+        foreach (SceneDefinition scene in materialized)
+        {
+            scene.BuildSpatialIndex();
+        }
         All = materialized;
         sceneIndex = materialized.ToDictionary(scene => scene.Id);
         anchorIndex = materialized
@@ -439,7 +483,7 @@ public static class TinyFarmScenes
 
     public static bool IsBlocked(SceneDefinition scene, GridPosition position)
     {
-        return scene.Layout.Any(row => row.Contains(position) && scene.Object(row.ObjectId).BlocksMovement);
+        return scene.IsBlocked(position);
     }
 
     public static bool IsInBounds(SceneDefinition scene, ScenePosition position)

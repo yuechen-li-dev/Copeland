@@ -36,6 +36,8 @@ public sealed record WaterIntent(FarmPlotId Plot) : GameIntent;
 
 public sealed record HarvestIntent(FarmPlotId Plot) : GameIntent;
 
+public sealed record SelectHotbarSlotIntent(HotbarSlotId Slot) : GameIntent;
+
 public sealed record WaitIntent(int Minutes) : GameIntent;
 
 public enum IntentSourceKind
@@ -84,7 +86,8 @@ public enum IntentReason
     NavigationFailed,
     MissingAnchor,
     AnchorUnreachable,
-    InvalidAnchorRealization
+    InvalidAnchorRealization,
+    InvalidHotbarSlot
 }
 
 public enum GameEventKind
@@ -107,7 +110,8 @@ public enum GameEventKind
     SceneExited,
     SceneEntered,
     InteractionTargeted,
-    AnchorReached
+    AnchorReached,
+    HotbarSlotSelected
 }
 
 public enum DialogueTopic

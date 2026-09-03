@@ -14,7 +14,7 @@ internal static class TinyFarmLlmControl
     {
         TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.LoadM14();
         var host = new TinyFarmSimulationHost(
-            new TinyFarmSession(TinyFarmM14ControlStates.Create(definitions, "wander"), definitions),
+            new TinyFarmSession(TinyFarmM16ControlStates.Create(definitions), definitions),
             definitions);
         string savePath = ReadOption(args, "--save-file")
             ?? Path.Combine(Environment.CurrentDirectory, "tiny-farm.save");
@@ -77,10 +77,23 @@ internal static class TinyFarmLlmControl
                     continue;
                 }
 
+                if (command.StartsWith("select-slot ", StringComparison.OrdinalIgnoreCase))
+                {
+                    string value = command["select-slot ".Length..].Trim();
+                    if (!int.TryParse(value, out int slotNumber))
+                    {
+                        throw new FormatException("Expected select-slot <1-8>.");
+                    }
+                    TinyFarmStepResult selection = host.ExecuteIntent(
+                        new SelectHotbarSlotIntent(new HotbarSlotId(slotNumber)));
+                    WriteResponse("selected", command, host, definitions, selection.Narrative, selection.Results);
+                    continue;
+                }
+
                 TinyFarmStepResult step = host.ExecuteIntent(TinyFarmCommandParser.Parse(command));
                 WriteResponse("stepped", command, host, definitions, step.Narrative, step.Results);
             }
-            catch (Exception exception) when (exception is FormatException or IOException or InvalidDataException)
+            catch (Exception exception) when (exception is FormatException or IOException or InvalidDataException or ArgumentOutOfRangeException)
             {
                 Console.WriteLine(JsonSerializer.Serialize(new
                 {
@@ -110,6 +123,9 @@ internal static class TinyFarmLlmControl
             projectionHash = TinyFarmFrameProjector.ComputeHash(frame),
             simulationMode = host.Mode,
             simulationSnapshot = host.Snapshot(),
+            playerUi = session.State.Version >= TinyFarmState.PlayerUiSaveVersion
+                ? TinyFarmPlayerUiProjector.Project(session.State, definitions)
+                : null,
             results = results?.Select(result => new
             {
                 actor = result.Envelope.Actor.Value,

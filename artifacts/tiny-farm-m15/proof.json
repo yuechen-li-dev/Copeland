@@ -1,0 +1,13 @@
+{
+  "milestone": "TINY-FARM-M15",
+  "outcome": "A",
+  "authoritativeMovementPath": "path follower -\u003E SpatialMoveIntent -\u003E TinyFarmResolver.ResolveSpatialMoveCore -\u003E authoritative ScenePosition",
+  "movementAuthorityChanged": false,
+  "resolverBypassed": false,
+  "semanticMovementCoreSingleSource": true,
+  "publicIntentSemanticsChanged": false,
+  "eventSemanticsChanged": false,
+  "allocationBounded": true,
+  "canonicalM14StateHash": "a0d79da0f0590d1c77d1a27bd19494e1ae68dd16ae8c46caccb20dfcbcb8fd84",
+  "canonicalM14HashPreserved": true
+}
