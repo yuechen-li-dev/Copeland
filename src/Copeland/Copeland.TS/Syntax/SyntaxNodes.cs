@@ -318,12 +318,17 @@ public sealed record TypeAliasDeclarationSyntax(
     SyntaxToken EqualsToken,
     TypeSyntax TargetType,
     IReadOnlyList<SyntaxToken> UnsupportedTokens,
-    SyntaxToken SemicolonToken) : MemberSyntax
+    SyntaxToken SemicolonToken,
+    IReadOnlyList<AnnotationSyntax>? Annotations = null) : MemberSyntax
 {
     public override SyntaxKind Kind => SyntaxKind.TypeAliasDeclaration;
 
     public override IEnumerable<object> GetChildren()
     {
+        foreach (AnnotationSyntax annotation in Annotations ?? [])
+        {
+            yield return annotation;
+        }
         yield return TypeKeyword;
         yield return Identifier;
         foreach (var token in TypeParameterTokens)

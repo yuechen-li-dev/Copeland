@@ -1,0 +1,26 @@
+{
+  "milestone": "AURELIAN-SDSLV-PORT-M3",
+  "kind": "forward-textured-semantic-space-material-port",
+  "octSpecIsAuthority": true,
+  "octConformanceIsAuthority": true,
+  "vdMirIsSharedSemanticContract": true,
+  "semanticSpacesAdded": true,
+  "resourceStreamsAdded": true,
+  "texture2dAdded": true,
+  "samplerAdded": true,
+  "typedSampleAdded": true,
+  "materialAdded": true,
+  "canonicalMaterialLayoutAdded": true,
+  "hostBindingMetadataAdded": true,
+  "rendererRuntimeAdded": false,
+  "materialRuntimeAdded": false,
+  "shaderCacheAdded": false,
+  "advancedTileMemoryFeaturesAdded": false,
+  "files": [
+    "proof.json",
+    "vd-mir-forward-textured.json",
+    "diagnostics.json",
+    "backend.json",
+    "manifest.json"
+  ]
+}

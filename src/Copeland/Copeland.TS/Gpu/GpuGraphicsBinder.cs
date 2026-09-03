@@ -3,7 +3,7 @@ using Copeland.TS.Syntax;
 
 namespace Copeland.TS.Gpu;
 
-/// <summary>Binds the bounded M2 vertex/pixel profile through ordinary Copeland syntax.</summary>
+/// <summary>Binds the bounded M3 vertex/pixel profile through ordinary Copeland syntax.</summary>
 public static class GpuGraphicsBinder
 {
     public static VdMirGraphicsModule Compile(GpuCompilationRequest request)
@@ -27,11 +27,17 @@ public static class GpuGraphicsBinder
         private readonly List<VdMirDiagnostic> _diagnostics = [];
         private readonly Dictionary<string, StreamSource> _streamSources = new(StringComparer.Ordinal);
         private readonly Dictionary<string, VdMirStream> _streams = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, AliasSource> _aliasSources = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, VdMirSemanticSpace> _semanticSpaces = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, MaterialSource> _materialSources = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, VdMirMaterial> _materials = new(StringComparer.Ordinal);
+        private readonly List<VdMirGraphicsResource> _resources = [];
         private readonly Dictionary<string, FunctionSource> _functionSources = new(StringComparer.Ordinal);
         private readonly Dictionary<string, VdMirFunction> _functions = new(StringComparer.Ordinal);
         private readonly HashSet<string> _activeFunctions = new(StringComparer.Ordinal);
         private readonly List<VdMirGraphicsEntryPoint> _entries = [];
         private VdMirGraphicsProgram? _program;
+        private VdMirGraphicsStage? _currentStage;
 
         public Binder(GpuCompilationRequest request)
         {
@@ -47,11 +53,14 @@ public static class GpuGraphicsBinder
             }
 
             ParseSources();
+            BindSemanticSpaces();
+            BindMaterials();
             foreach (StreamSource stream in _streamSources.Values.OrderBy(item => item.Path, StringComparer.Ordinal).ThenBy(item => item.Syntax.Identifier.Position))
             {
                 BindStream(stream);
             }
             BindEntries();
+            BindResources();
             LinkProgram();
             return CreateModule();
         }
@@ -72,6 +81,20 @@ public static class GpuGraphicsBinder
                         Add("COPE-GPU-SYMBOL-0001", "SDSL-V1509", "symbol", $"Duplicate stream '{stream.Identifier.Text}'.", Span(source.Path, stream.Identifier));
                     }
                 }
+                foreach (TypeAliasDeclarationSyntax alias in tree.Root.Members.OfType<TypeAliasDeclarationSyntax>())
+                {
+                    if (Find(alias.Annotations, "space") is not null && !_aliasSources.TryAdd(alias.Identifier.Text, new AliasSource(source.Path, alias)))
+                    {
+                        Add("COPE-GPU-SYMBOL-0001", "SDSL-V1509", "symbol", $"Duplicate semantic-space alias '{alias.Identifier.Text}'.", Span(source.Path, alias.Identifier));
+                    }
+                }
+                foreach (RecordDeclarationSyntax record in tree.Root.Members.OfType<RecordDeclarationSyntax>())
+                {
+                    if (Find(record.Annotations, "material") is not null && !_materialSources.TryAdd(record.Identifier.Text, new MaterialSource(source.Path, record)))
+                    {
+                        Add("COPE-GPU-SYMBOL-0001", "SDSL-V1509", "symbol", $"Duplicate material '{record.Identifier.Text}'.", Span(source.Path, record.Identifier));
+                    }
+                }
                 foreach (FunctionDeclarationSyntax function in tree.Root.Members.OfType<FunctionDeclarationSyntax>())
                 {
                     if (!_functionSources.TryAdd(function.Identifier.Text, new FunctionSource(source.Path, function)))
@@ -79,6 +102,70 @@ public static class GpuGraphicsBinder
                         Add("COPE-GPU-SYMBOL-0001", "SDSL-V1509", "symbol", $"Duplicate function '{function.Identifier.Text}'.", Span(source.Path, function.Identifier));
                     }
                 }
+            }
+        }
+
+        private void BindSemanticSpaces()
+        {
+            foreach (AliasSource source in _aliasSources.Values.OrderBy(item => item.Path, StringComparer.Ordinal).ThenBy(item => item.Syntax.Identifier.Position))
+            {
+                AnnotationSyntax annotation = Find(source.Syntax.Annotations, "space")!;
+                string? space = DottedNameArgument(annotation);
+                string? physicalType = source.Syntax.TargetType is IdentifierTypeSyntax identifier ? identifier.Identifier.Text : null;
+                if (space is null || !space.Contains('.', StringComparison.Ordinal))
+                {
+                    Add("COPE-GPU-SPACE-0001", "SDSL-V4120", "semantic-space-declaration", "Semantic-space identity must be one dotted canonical name.", Span(source.Path, annotation));
+                    continue;
+                }
+                if (physicalType is not ("float2" or "float3" or "float4"))
+                {
+                    Add("COPE-GPU-SPACE-0002", "SDSL-V4120", "semantic-space-declaration", "Semantic-space aliases require float2, float3, or float4 physical storage.", Span(source.Path, source.Syntax.TargetType));
+                    continue;
+                }
+                _semanticSpaces[source.Syntax.Identifier.Text] = new VdMirSemanticSpace(space, physicalType, Span(source.Path, source.Syntax));
+            }
+        }
+
+        private void BindMaterials()
+        {
+            foreach (MaterialSource source in _materialSources.Values.OrderBy(item => item.Path, StringComparer.Ordinal).ThenBy(item => item.Syntax.Identifier.Position))
+            {
+                AnnotationSyntax? bindingAnnotation = Find(source.Syntax.Annotations, "binding");
+                int? binding = bindingAnnotation is null ? null : NonnegativeInteger(bindingAnnotation);
+                if (binding is null)
+                {
+                    VdMirSourceSpan span = bindingAnnotation is null ? Span(source.Path, source.Syntax) : Span(source.Path, bindingAnnotation);
+                    Add("COPE-GPU-MATERIAL-0001", "SDSL-V4114", "material", "A material requires one explicit non-negative @binding.", span);
+                    continue;
+                }
+                var fields = new List<VdMirMaterialField>();
+                int offset = 0;
+                for (int order = 0; order < source.Syntax.Fields.Count; order++)
+                {
+                    RecordFieldSyntax field = source.Syntax.Fields[order];
+                    string type = BindType(source.Path, field.Type);
+                    (int size, int alignment) = MaterialLayout(type);
+                    if (size == 0)
+                    {
+                        Add("COPE-GPU-MATERIAL-0002", "SDSL-V4114", "material", $"Material field '{field.Identifier.Text}' has unsupported GPU type '{type}'.", Span(source.Path, field.Type));
+                        continue;
+                    }
+                    offset = AlignUp(offset, alignment);
+                    if (offset / 16 != (offset + size - 1) / 16)
+                    {
+                        offset = AlignUp(offset, 16);
+                    }
+                    fields.Add(new VdMirMaterialField(order, field.Identifier.Text, type, PhysicalType(type), offset, size, alignment, Span(source.Path, field)));
+                    offset += size;
+                }
+                if (fields.Count != 2 || fields[0].Name != "tint" || fields[0].Type != "float4" || fields[1].Name != "roughness" || fields[1].Type != "f32")
+                {
+                    Add("COPE-GPU-MATERIAL-0003", "SDSL-V4114", "material", "The bounded M3 material is exactly 'tint: float4; roughness: f32;' in canonical order.", Span(source.Path, source.Syntax));
+                }
+                VdMirSourceSpan bindingSource = Span(source.Path, bindingAnnotation!);
+                _materials[source.Syntax.Identifier.Text] = new VdMirMaterial(
+                    $"material:{source.Syntax.Identifier.Text}", source.Syntax.Identifier.Text, fields, AlignUp(offset, 16), 0, binding.Value,
+                    [], Span(source.Path, source.Syntax), bindingSource);
             }
         }
 
@@ -150,6 +237,10 @@ public static class GpuGraphicsBinder
                 {
                     Add("COPE-GPU-BUILTIN-0001", "SDSL-V4109", "builtin", "Builtin requires one canonical name.", Span(source.Path, builtinAnnotation));
                 }
+                if (bindingAnnotation is not null && NonnegativeInteger(bindingAnnotation) is null)
+                {
+                    Add("COPE-GPU-BINDING-0001", "SDSL-V4112", "resource-binding", "Binding requires one non-negative integer.", Span(source.Path, bindingAnnotation));
+                }
 
                 if (role == VdMirStreamRole.StageValue && target is null && location is null && builtin is null)
                 {
@@ -161,7 +252,19 @@ public static class GpuGraphicsBinder
                 }
 
                 AnnotationSyntax? metadata = locationAnnotation ?? builtinAnnotation ?? targetAnnotation ?? bindingAnnotation ?? interpolationAnnotation;
-                var member = new VdMirStreamMember(order, field.Identifier.Text, type, role, location, builtin, target, interpolation, Span(source.Path, field), metadata is null ? null : Span(source.Path, metadata));
+                var member = new VdMirStreamMember(
+                    order,
+                    field.Identifier.Text,
+                    type,
+                    role,
+                    location,
+                    builtin,
+                    target,
+                    interpolation,
+                    Span(source.Path, field),
+                    metadata is null ? null : Span(source.Path, metadata),
+                    PhysicalType(type),
+                    SemanticSpace(type));
                 members.Add(member);
                 ClaimInteger(source.Path, member, location, claimedLocations, "COPE-GPU-LOCATION-0002", "SDSL-V4105", "location");
                 ClaimInteger(source.Path, member, target, claimedTargets, "COPE-GPU-TARGET-0002", "SDSL-V4108", "target");
@@ -184,6 +287,70 @@ public static class GpuGraphicsBinder
             }
             VdMirStreamRole streamRole = roles.Count == 1 ? roles.Single() : VdMirStreamRole.StageValue;
             _streams[source.Syntax.Identifier.Text] = new VdMirStream($"stream:{source.Syntax.Identifier.Text}", source.Syntax.Identifier.Text, streamRole, members, Span(source.Path, source.Syntax));
+        }
+
+        private void BindResources()
+        {
+            var claimedBindings = new Dictionary<int, VdMirGraphicsResource>();
+            int order = 0;
+            foreach (StreamSource source in _streamSources.Values.OrderBy(item => item.Path, StringComparer.Ordinal).ThenBy(item => item.Syntax.Identifier.Position))
+            {
+                VdMirStream stream = _streams[source.Syntax.Identifier.Text];
+                if (stream.Role != VdMirStreamRole.Resource)
+                {
+                    continue;
+                }
+                for (int index = 0; index < source.Syntax.Fields.Count; index++)
+                {
+                    RecordFieldSyntax field = source.Syntax.Fields[index];
+                    AnnotationSyntax? bindingAnnotation = Find(field.Annotations, "binding");
+                    int? binding = bindingAnnotation is null ? null : NonnegativeInteger(bindingAnnotation);
+                    if (binding is null)
+                    {
+                        continue;
+                    }
+                    string type = stream.Members[index].Type;
+                    VdMirGraphicsResourceKind? kind = ResourceKind(type);
+                    if (kind is null)
+                    {
+                        Add("COPE-GPU-RESOURCE-0001", "SDSL-V4115", "resource", $"Resource '{field.Identifier.Text}' must be Texture2D<float4>, Sampler, or the canonical material.", Span(source.Path, field.Type));
+                        continue;
+                    }
+                    string? elementType = kind == VdMirGraphicsResourceKind.Texture2D ? "float4" : null;
+                    string? materialId = kind == VdMirGraphicsResourceKind.Material ? _materials[type].Id : null;
+                    VdMirGraphicsStage[] visibility = _entries
+                        .Where(entry => entry.ResourceStreams?.Contains(stream.Name, StringComparer.Ordinal) == true)
+                        .Select(entry => entry.Stage)
+                        .Distinct()
+                        .OrderBy(stage => stage)
+                        .ToArray();
+                    var resource = new VdMirGraphicsResource(
+                        order++, stream.Name, field.Identifier.Text, kind.Value, type, elementType, VdMirResourceAccess.Readonly,
+                        0, binding.Value, visibility, materialId,
+                        Span(source.Path, field), Span(source.Path, bindingAnnotation!));
+                    if (claimedBindings.TryGetValue(binding.Value, out VdMirGraphicsResource? prior))
+                    {
+                        Add("COPE-GPU-BINDING-0002", "SDSL-V4112", "resource-binding", $"Resource binding {binding.Value} collides in set 0.", resource.BindingSource, [new VdMirRelatedSpan("First binding is here.", prior.BindingSource)]);
+                    }
+                    else
+                    {
+                        claimedBindings.Add(binding.Value, resource);
+                    }
+                    _resources.Add(resource);
+                }
+            }
+            foreach (VdMirMaterial material in _materials.Values.ToArray())
+            {
+                VdMirGraphicsResource? owner = _resources.FirstOrDefault(resource => resource.MaterialId == material.Id);
+                if (owner is null || owner.Binding != material.Binding)
+                {
+                    Add("COPE-GPU-MATERIAL-0004", "SDSL-V4114", "material", $"Material '{material.Name}' must appear once at its declared binding {material.Binding} in a resource stream.", material.Source);
+                }
+                else
+                {
+                    _materials[material.Name] = material with { Visibility = owner.Visibility };
+                }
+            }
         }
 
         private void BindEntries()
@@ -221,14 +388,26 @@ public static class GpuGraphicsBinder
             {
                 Add("COPE-GPU-MATERIALIZATION-0001", "SDSL-V4113", "materialization", "Graphics entries must be concrete.", Span(source.Path, source.Syntax.Identifier));
             }
-            if (source.Syntax.Parameters.Count != 1)
+            if (source.Syntax.Parameters.Count == 0)
             {
-                Add("COPE-GPU-ENTRY-0004", "SDSL-V4104", "entry-point", "Graphics M2 entries require exactly one stage-value stream parameter.", Span(source.Path, source.Syntax));
+                Add("COPE-GPU-ENTRY-0004", "SDSL-V4104", "entry-point", "Graphics M3 entries require one stage-value stream parameter and may also declare builtin/resource streams.", Span(source.Path, source.Syntax));
                 return;
             }
 
-            ParameterSyntax parameter = source.Syntax.Parameters[0];
-            string inputType = BindType(source.Path, parameter.Type);
+            var parameterTypes = source.Syntax.Parameters
+                .Select(parameter => (Parameter: parameter, Type: BindType(source.Path, parameter.Type)))
+                .ToArray();
+            var stageParameters = parameterTypes.Where(item => _streams.TryGetValue(item.Type, out VdMirStream? stream) && stream.Role == VdMirStreamRole.StageValue).ToArray();
+            var builtinParameters = parameterTypes.Where(item => _streams.TryGetValue(item.Type, out VdMirStream? stream) && stream.Role == VdMirStreamRole.Builtin).ToArray();
+            var resourceParameters = parameterTypes.Where(item => _streams.TryGetValue(item.Type, out VdMirStream? stream) && stream.Role == VdMirStreamRole.Resource).ToArray();
+            if (stageParameters.Length != 1 || stageParameters.Length + builtinParameters.Length + resourceParameters.Length != parameterTypes.Length)
+            {
+                Add("COPE-GPU-ENTRY-0004", "SDSL-V4104", "entry-point", "Graphics M3 entries require exactly one stage-value stream and only builtin/resource stream companions.", Span(source.Path, source.Syntax));
+                return;
+            }
+
+            ParameterSyntax parameter = stageParameters[0].Parameter;
+            string inputType = stageParameters[0].Type;
             string outputType = BindType(source.Path, source.Syntax.ReturnType);
             if (!_streams.TryGetValue(inputType, out VdMirStream? input) || input.Role != VdMirStreamRole.StageValue || !_streams.TryGetValue(outputType, out VdMirStream? output) || output.Role != VdMirStreamRole.StageValue)
             {
@@ -236,15 +415,44 @@ public static class GpuGraphicsBinder
                 return;
             }
             ValidateStageBoundary(stage, input, output, source);
-
-            var scope = new Dictionary<string, string>(StringComparer.Ordinal)
+            foreach ((ParameterSyntax _, string builtinType) in builtinParameters)
             {
-                [parameter.Identifier.Text] = inputType,
-            };
+                ValidateBuiltinStream(stage, _streams[builtinType]);
+            }
+
+            var scope = parameterTypes.ToDictionary(item => item.Parameter.Identifier.Text, item => item.Type, StringComparer.Ordinal);
+            _currentStage = stage;
             IReadOnlyList<VdMirStatement> statements = BindStatements(source, scope, outputType);
-            var function = new VdMirFunction(source.Syntax.Identifier.Text, [new VdMirParameter(parameter.Identifier.Text, inputType, null, Span(source.Path, parameter))], outputType, statements, Span(source.Path, source.Syntax));
+            _currentStage = null;
+            var functionParameters = parameterTypes.Select(item => new VdMirParameter(item.Parameter.Identifier.Text, item.Type, null, Span(source.Path, item.Parameter))).ToArray();
+            var function = new VdMirFunction(source.Syntax.Identifier.Text, functionParameters, outputType, statements, Span(source.Path, source.Syntax));
             _functions[source.Syntax.Identifier.Text] = function;
-            _entries.Add(new VdMirGraphicsEntryPoint(source.Syntax.Identifier.Text, source.Syntax.Identifier.Text, stage, inputType, outputType, Span(source.Path, source.Syntax)));
+            _entries.Add(new VdMirGraphicsEntryPoint(
+                source.Syntax.Identifier.Text,
+                source.Syntax.Identifier.Text,
+                stage,
+                inputType,
+                outputType,
+                Span(source.Path, source.Syntax),
+                builtinParameters.Select(item => item.Type).ToArray(),
+                resourceParameters.Select(item => item.Type).ToArray()));
+        }
+
+        private void ValidateBuiltinStream(VdMirGraphicsStage stage, VdMirStream stream)
+        {
+            foreach (VdMirStreamMember member in stream.Members)
+            {
+                bool valid = stage switch
+                {
+                    VdMirGraphicsStage.Vertex => member.Builtin is "vertex_id" or "instance_id" && member.Type == "u32",
+                    VdMirGraphicsStage.Pixel => member.Builtin == "front_face" && member.Type == "bool",
+                    _ => false,
+                };
+                if (!valid)
+                {
+                    Add("COPE-GPU-BUILTIN-0003", "SDSL-V4109", "builtin", $"Builtin '{member.Builtin}' with type '{member.Type}' is not valid for {stage.ToString().ToLowerInvariant()}.", member.Source);
+                }
+            }
         }
 
         private void ValidateStageBoundary(VdMirGraphicsStage stage, VdMirStream input, VdMirStream output, FunctionSource source)
@@ -256,7 +464,7 @@ public static class GpuGraphicsBinder
                 {
                     Add("COPE-GPU-CLIP-0001", positions.Length == 0 ? "SDSL-V4106" : "SDSL-V4107", "graphics-interface", $"Vertex output stream '{output.Name}' requires exactly one clip-position builtin.", output.Source);
                 }
-                else if (positions[0].Type != "float4")
+                else if (PhysicalType(positions[0].Type) != "float4" || SemanticSpace(positions[0].Type) is string space && space != "clip.position")
                 {
                     Add("COPE-GPU-CLIP-0002", "SDSL-V4110", "builtin", "Clip position must have type float4.", positions[0].Source);
                 }
@@ -274,7 +482,7 @@ public static class GpuGraphicsBinder
                         Add("COPE-GPU-TARGET-0003", "SDSL-V4108", "graphics-interface", "Pixel output members require a target and float4 type.", member.Source);
                     }
                 }
-                foreach (VdMirStreamMember member in input.Members.Where(member => member.Builtin is not null))
+                foreach (VdMirStreamMember member in input.Members.Where(member => member.Builtin is not null && !(member.Builtin == "position" && PhysicalType(member.Type) == "float4" && SemanticSpace(member.Type) == "clip.position")))
                 {
                     Add("COPE-GPU-BUILTIN-0003", "SDSL-V4109", "builtin", $"Builtin '{member.Builtin}' is not valid in the bounded pixel input stream.", member.Source);
                 }
@@ -311,12 +519,65 @@ public static class GpuGraphicsBinder
                     scope[local.Identifier.Text] = declaredType;
                     result.Add(new VdMirStatement("local", Span(source.Path, local), local.Identifier.Text, declaredType, local.Keyword.Kind == SyntaxKind.VarKeyword, initializer));
                 }
+                else if (statement is ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax assignment }
+                    && assignment.Left is MemberAccessExpressionSyntax materialField)
+                {
+                    VdMirExpression target = BindExpression(source.Path, materialField.Target, scope);
+                    if (_materials.TryGetValue(target.Type, out VdMirMaterial? material))
+                    {
+                        Add(
+                            "COPE-GPU-MATERIAL-0005",
+                            "SDSL-V3701",
+                            "binding",
+                            $"Material field '{materialField.NameToken.Text}' is immutable shader input.",
+                            Span(source.Path, assignment.Left),
+                            [new VdMirRelatedSpan("Material is declared here.", material.Source)]);
+                    }
+                    else
+                    {
+                        Add("COPE-GPU-CLOSURE-0001", "SDSL-V4200", "host-only", "Reachable graphics assignment is unsupported.", Span(source.Path, assignment));
+                    }
+                }
+                else if (statement is IfStatementSyntax conditional)
+                {
+                    VdMirExpression condition = BindExpression(source.Path, conditional.Condition, scope, "bool");
+                    if (condition.Type != "bool")
+                    {
+                        TypeMismatch(source.Path, conditional.Condition, "bool", condition.Type);
+                    }
+                    IReadOnlyList<VdMirStatement> body = BindBranch(source.Path, conditional.ThenStatement, scope, returnType);
+                    IReadOnlyList<VdMirStatement> elseBody = conditional.ElseStatement is null
+                        ? []
+                        : BindBranch(source.Path, conditional.ElseStatement, scope, returnType);
+                    result.Add(new VdMirStatement("if", Span(source.Path, conditional), Expression: condition, Body: body, ElseBody: elseBody));
+                }
                 else
                 {
                     Add("COPE-GPU-CLOSURE-0001", "SDSL-V4200", "host-only", $"Reachable '{statement.Kind}' has no graphics M2 semantics.", Span(source.Path, statement));
                 }
             }
             _activeFunctions.Remove(source.Syntax.Identifier.Text);
+            return result;
+        }
+
+        private IReadOnlyList<VdMirStatement> BindBranch(string path, StatementSyntax syntax, Dictionary<string, string> scope, string returnType)
+        {
+            IReadOnlyList<StatementSyntax> statements = syntax is BlockStatementSyntax block ? block.Statements : [syntax];
+            var result = new List<VdMirStatement>();
+            foreach (StatementSyntax statement in statements)
+            {
+                if (statement is not ReturnStatementSyntax { Expression: not null } returned)
+                {
+                    Add("COPE-GPU-CLOSURE-0001", "SDSL-V4200", "host-only", "Bounded graphics branches support return statements only.", Span(path, statement));
+                    continue;
+                }
+                VdMirExpression expression = BindExpression(path, returned.Expression, scope, returnType);
+                if (expression.Type != returnType)
+                {
+                    TypeMismatch(path, returned.Expression, returnType, expression.Type);
+                }
+                result.Add(new VdMirStatement("return", Span(path, returned), Expression: expression));
+            }
             return result;
         }
 
@@ -338,6 +599,10 @@ public static class GpuGraphicsBinder
                     {
                         memberType = stream.Members.FirstOrDefault(item => item.Name == member.NameToken.Text)?.Type;
                     }
+                    if (memberType is null && _materials.TryGetValue(target.Type, out VdMirMaterial? material))
+                    {
+                        memberType = material.Fields.FirstOrDefault(item => item.Name == member.NameToken.Text)?.Type;
+                    }
                     if (memberType is null)
                     {
                         Add("COPE-GPU-MEMBER-0001", "SDSL-V1502", "member", $"Member '{member.NameToken.Text}' is not available on '{target.Type}'.", Span(path, member.NameToken));
@@ -346,7 +611,24 @@ public static class GpuGraphicsBinder
                     return new VdMirExpression("field", memberType, Span(path, member), member.NameToken.Text, [target]);
                 }
                 case CallExpressionSyntax call:
-                    return BindCall(path, call, scope);
+                    return BindCall(path, call, scope, expected);
+                case GenericCallExpressionSyntax call:
+                    return BindGenericCall(path, call, scope);
+                case BinaryExpressionSyntax binary:
+                {
+                    VdMirExpression left = BindExpression(path, binary.Left, scope);
+                    VdMirExpression right = BindExpression(path, binary.Right, scope);
+                    if (binary.OperatorToken.Kind == SyntaxKind.StarToken && left.Type == right.Type && left.Type is "f32" or "float4")
+                    {
+                        return new VdMirExpression("binary", left.Type, Span(path, binary), "*", [left, right]);
+                    }
+                    if (binary.OperatorToken.Kind == SyntaxKind.PlusToken && left.Type == right.Type && left.Type is "u32" or "f32")
+                    {
+                        return new VdMirExpression("binary", left.Type, Span(path, binary), "+", [left, right]);
+                    }
+                    Add("COPE-GPU-OPERATOR-0001", "SDSL-V1503", "type", $"Operator '{binary.OperatorToken.Text}' is not defined for '{left.Type}' and '{right.Type}' in graphics M3.", Span(path, binary.OperatorToken));
+                    return Error(path, binary);
+                }
                 case ObjectLiteralExpressionSyntax literal when expected is not null && _streams.TryGetValue(expected, out VdMirStream? stream):
                     return BindObject(path, literal, scope, stream);
                 default:
@@ -382,7 +664,7 @@ public static class GpuGraphicsBinder
             return new VdMirExpression("object", stream.Name, Span(path, literal), stream.Name, values, names);
         }
 
-        private VdMirExpression BindCall(string path, CallExpressionSyntax call, Dictionary<string, string> scope)
+        private VdMirExpression BindCall(string path, CallExpressionSyntax call, Dictionary<string, string> scope, string? expected)
         {
             if (call.Target is not NameExpressionSyntax name)
             {
@@ -391,14 +673,40 @@ public static class GpuGraphicsBinder
             }
             string target = name.IdentifierToken.Text;
             VdMirExpression[] arguments = call.Arguments.Select(argument => BindExpression(path, argument, scope)).ToArray();
+            if (target == "Sample")
+            {
+                if (arguments.Length != 3)
+                {
+                    Add("COPE-GPU-SAMPLE-0001", "SDSL-V4118", "texture-sampling", "Sample expects texture, sampler, and float2 coordinates.", Span(path, call));
+                    return Error(path, call);
+                }
+                if (!TryTextureElement(arguments[0].Type, out string? elementType))
+                {
+                    Add("COPE-GPU-SAMPLE-0002", "SDSL-V4118", "texture-sampling", "Sample first argument must be Texture2D<T>.", arguments[0].Source);
+                }
+                if (arguments[1].Type != "Sampler")
+                {
+                    Add("COPE-GPU-SAMPLE-0003", "SDSL-V4118", "texture-sampling", "Sample second argument must be Sampler.", arguments[1].Source);
+                }
+                if (arguments[2].Type != "float2")
+                {
+                    Add("COPE-GPU-SAMPLE-0004", "SDSL-V4119", "texture-sampling", "Sample coordinates must be plain float2.", arguments[2].Source);
+                }
+                if (_currentStage is not (VdMirGraphicsStage.Vertex or VdMirGraphicsStage.Pixel))
+                {
+                    Add("COPE-GPU-SAMPLE-0005", "SDSL-V4118", "texture-sampling", "Sample is supported only in vertex and pixel stages.", Span(path, call));
+                }
+                return new VdMirExpression("intrinsic", elementType ?? "error", Span(path, call), "Sample2D", arguments);
+            }
             if (target is "float2" or "float3" or "float4")
             {
-                if (!ValidConstructor(target, arguments.Select(argument => argument.Type).ToArray()))
+                if (!ValidConstructor(target, arguments.Select(argument => PhysicalType(argument.Type)).ToArray()))
                 {
                     Add("COPE-GPU-CONSTRUCTOR-0001", "SDSL-V1503", "type", $"No bounded {target} constructor matches these arguments.", Span(path, call));
                     return Error(path, call);
                 }
-                return new VdMirExpression("call", target, Span(path, call), target, arguments);
+                string resultType = expected is not null && PhysicalType(expected) == target ? expected : target;
+                return new VdMirExpression("call", resultType, Span(path, call), target, arguments);
             }
             if (!_functionSources.TryGetValue(target, out FunctionSource? helper) || Find(helper.Syntax.Annotations, "vertex") is not null || Find(helper.Syntax.Annotations, "pixel") is not null)
             {
@@ -429,6 +737,22 @@ public static class GpuGraphicsBinder
             return new VdMirExpression("call", returnType, Span(path, call), target, arguments);
         }
 
+        private VdMirExpression BindGenericCall(string path, GenericCallExpressionSyntax call, Dictionary<string, string> scope)
+        {
+            VdMirExpression[] arguments = call.Arguments.Select(argument => BindExpression(path, argument, scope)).ToArray();
+            bool isCanonicalConvert = call.Target is NameExpressionSyntax { IdentifierToken.Text: "Convert" }
+                && call.TypeArguments.Count == 1
+                && BindType(path, call.TypeArguments[0]) == "f32"
+                && arguments.Length == 1
+                && arguments[0].Type == "u32";
+            if (isCanonicalConvert)
+            {
+                return new VdMirExpression("intrinsic", "f32", Span(path, call), "ConvertU32ToF32", arguments);
+            }
+            Add("COPE-GPU-CONVERT-0001", "SDSL-V1503", "type", "The bounded graphics profile supports only Convert<f32>(u32).", Span(path, call));
+            return Error(path, call);
+        }
+
         private void LinkProgram()
         {
             VdMirGraphicsEntryPoint? vertex = _entries.SingleOrDefault(entry => entry.Stage == VdMirGraphicsStage.Vertex);
@@ -454,16 +778,24 @@ public static class GpuGraphicsBinder
                 }
                 if (consumer.Type != producer.Type || consumer.Interpolation != producer.Interpolation)
                 {
-                    Add("COPE-GPU-LINK-0002", "SDSL-V4111", "stage-linkage", $"Varying location {producer.Location} disagrees in type or interpolation.", consumer.Source, [new VdMirRelatedSpan("Vertex output is here.", producer.Source)]);
+                    Add("COPE-GPU-LINK-0002", "SDSL-V4111", "stage-linkage", $"Varying location {producer.Location} disagrees in physical type, semantic space, or interpolation.", consumer.Source, [new VdMirRelatedSpan("Vertex output is here.", producer.Source)]);
                     continue;
                 }
-                links.Add(new VdMirLinkedVarying(producer.Location!.Value, producer.Type, producer.Interpolation, vertexOutput.Name, producer.Name, pixelInput.Name, consumer.Name));
+                links.Add(new VdMirLinkedVarying(producer.Location!.Value, producer.Type, producer.Interpolation, vertexOutput.Name, producer.Name, pixelInput.Name, consumer.Name, producer.PhysicalType, producer.SemanticSpace));
             }
             foreach (VdMirStreamMember consumer in pixelVaryings.Where(consumer => vertexVaryings.All(producer => producer.Location != consumer.Location)))
             {
                 Add("COPE-GPU-LINK-0001", "SDSL-V4111", "stage-linkage", $"Pixel input location {consumer.Location} is missing from vertex output.", consumer.Source);
             }
-            _program = new VdMirGraphicsProgram("GraphicsProgram", vertex.Name, pixel.Name, links.OrderBy(link => link.Location).ToArray(), vertexInput.Members, pixelOutput.Members, []);
+            _program = new VdMirGraphicsProgram(
+                "GraphicsProgram",
+                vertex.Name,
+                pixel.Name,
+                links.OrderBy(link => link.Location).ToArray(),
+                vertexInput.Members,
+                pixelOutput.Members,
+                _resources.OrderBy(resource => resource.Order).ToArray(),
+                _materials.Values.SingleOrDefault());
         }
 
         private VdMirGraphicsModule CreateModule()
@@ -471,10 +803,12 @@ public static class GpuGraphicsBinder
             return new VdMirGraphicsModule(
                 VdMirComputeModule.CurrentSchema,
                 VdMirComputeModule.CanonicalConformanceSchema,
-                VdMirGraphicsModule.GraphicsM2FeatureLevel,
+                _semanticSpaces.Count > 0 || _resources.Count > 0 || _materials.Count > 0 ? VdMirGraphicsModule.GraphicsM3FeatureLevel : VdMirGraphicsModule.GraphicsM2FeatureLevel,
                 _request.Sources.Select(source => source.Path).Distinct(StringComparer.Ordinal).OrderBy(path => path, StringComparer.Ordinal).ToArray(),
-                _streams.Values.SelectMany(stream => stream.Members.Select(member => member.Type)).Concat(["f32", "float2", "float3", "float4"]).Distinct(StringComparer.Ordinal).OrderBy(type => type, StringComparer.Ordinal).ToArray(),
+                _streams.Values.SelectMany(stream => stream.Members.Select(member => member.Type)).Concat(_materials.Keys).Concat(["f32", "float2", "float3", "float4"]).Distinct(StringComparer.Ordinal).OrderBy(type => type, StringComparer.Ordinal).ToArray(),
+                _semanticSpaces.Values.OrderBy(space => space.Name, StringComparer.Ordinal).ToArray(),
                 _streams.Values.OrderBy(stream => stream.Name, StringComparer.Ordinal).ToArray(),
+                _materials.Values.OrderBy(material => material.Name, StringComparer.Ordinal).ToArray(),
                 _functions.Values.OrderBy(function => function.Name, StringComparer.Ordinal).ToArray(),
                 _entries.OrderBy(entry => entry.Stage).ToArray(),
                 _program,
@@ -486,12 +820,16 @@ public static class GpuGraphicsBinder
             string? type = syntax switch
             {
                 IdentifierTypeSyntax identifier when identifier.Identifier.Text is "f32" or "u32" or "bool" or "float2" or "float3" or "float4" => identifier.Identifier.Text,
+                IdentifierTypeSyntax identifier when identifier.Identifier.Text == "Sampler" => "Sampler",
                 IdentifierTypeSyntax identifier when _streamSources.ContainsKey(identifier.Identifier.Text) => identifier.Identifier.Text,
+                IdentifierTypeSyntax identifier when _semanticSpaces.ContainsKey(identifier.Identifier.Text) => identifier.Identifier.Text,
+                IdentifierTypeSyntax identifier when _materials.ContainsKey(identifier.Identifier.Text) => identifier.Identifier.Text,
+                GenericTypeSyntax generic when generic.Identifier.Text == "Texture2D" && generic.TypeArguments.Count == 1 && BindType(path, generic.TypeArguments[0]) == "float4" => "Texture2D<float4>",
                 _ => null,
             };
             if (type is null)
             {
-                Add("COPE-GPU-TYPE-0001", "SDSL-V1502", "type", "Type is not part of the graphics M2 GPU subset.", Span(path, syntax ?? throw new InvalidOperationException("A graphics type is required.")));
+                Add("COPE-GPU-TYPE-0001", "SDSL-V1502", "type", "Type is not part of the graphics M3 GPU subset.", Span(path, syntax ?? throw new InvalidOperationException("A graphics type is required.")));
                 return "error";
             }
             return type;
@@ -524,8 +862,9 @@ public static class GpuGraphicsBinder
             };
         }
 
-        private static string? VectorMemberType(string type, string member)
+        private string? VectorMemberType(string type, string member)
         {
+            type = PhysicalType(type);
             int width = type switch { "float2" => 2, "float3" => 3, "float4" => 4, _ => 0 };
             if (width == 0 || member.Any(character => "xyzw".IndexOf(character) < 0 || "xyzw".IndexOf(character) >= width))
             {
@@ -539,6 +878,64 @@ public static class GpuGraphicsBinder
 
         private static string? NameArgument(AnnotationSyntax annotation)
             => annotation.Arguments.Count == 1 && annotation.Arguments[0] is NameExpressionSyntax name ? name.IdentifierToken.Text : null;
+
+        private static string? DottedNameArgument(AnnotationSyntax annotation)
+            => annotation.Arguments.Count == 1 ? DottedName(annotation.Arguments[0]) : null;
+
+        private static string? DottedName(ExpressionSyntax expression)
+        {
+            return expression switch
+            {
+                NameExpressionSyntax name => name.IdentifierToken.Text,
+                MemberAccessExpressionSyntax member when DottedName(member.Target) is string prefix => prefix + "." + member.NameToken.Text,
+                _ => null,
+            };
+        }
+
+        private string PhysicalType(string type)
+            => _semanticSpaces.TryGetValue(type, out VdMirSemanticSpace? space) ? space.PhysicalType : type;
+
+        private string? SemanticSpace(string type)
+            => _semanticSpaces.TryGetValue(type, out VdMirSemanticSpace? space) ? space.Name : null;
+
+        private VdMirGraphicsResourceKind? ResourceKind(string type)
+        {
+            if (type == "Texture2D<float4>")
+            {
+                return VdMirGraphicsResourceKind.Texture2D;
+            }
+            if (type == "Sampler")
+            {
+                return VdMirGraphicsResourceKind.Sampler;
+            }
+            return _materials.ContainsKey(type) ? VdMirGraphicsResourceKind.Material : null;
+        }
+
+        private static bool TryTextureElement(string type, out string? elementType)
+        {
+            if (type == "Texture2D<float4>")
+            {
+                elementType = "float4";
+                return true;
+            }
+            elementType = null;
+            return false;
+        }
+
+        private static (int Size, int Alignment) MaterialLayout(string type)
+        {
+            return type switch
+            {
+                "float4" => (16, 16),
+                "float3" => (12, 16),
+                "float2" => (8, 8),
+                "f32" or "u32" or "bool" => (4, 4),
+                _ => (0, 0),
+            };
+        }
+
+        private static int AlignUp(int value, int alignment)
+            => alignment == 0 ? value : ((value + alignment - 1) / alignment) * alignment;
 
         private static int? NonnegativeInteger(AnnotationSyntax annotation)
             => annotation.Arguments.Count == 1 && annotation.Arguments[0] is LiteralExpressionSyntax literal && int.TryParse(literal.LiteralToken.Text, out int value) && value >= 0 ? value : null;
@@ -586,6 +983,10 @@ public static class GpuGraphicsBinder
         }
 
         private sealed record StreamSource(string Path, ShaderStreamDeclarationSyntax Syntax);
+
+        private sealed record AliasSource(string Path, TypeAliasDeclarationSyntax Syntax);
+
+        private sealed record MaterialSource(string Path, RecordDeclarationSyntax Syntax);
 
         private sealed record FunctionSource(string Path, FunctionDeclarationSyntax Syntax);
     }

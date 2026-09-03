@@ -1,0 +1,329 @@
+{
+  "milestone": "AURELIAN-SDSLV-PORT-M3",
+  "outcome": "A",
+  "octRevision": "584bd176fd50664edadcb2bc3ae78431ac0f1e51",
+  "copelandBaseRevision": "83ef70561fb9708e2c3e09b1d3f48166dac11346",
+  "authority": {
+    "specification": "docs/SDSL_V_LANGUAGE_SPEC.md",
+    "conformance": "sdslv.conformance.v1",
+    "canonicalCase": "graphics.canonical-forward-textured"
+  },
+  "audit": {
+    "semanticSpaces": "CONSISTENT",
+    "resourceStreams": "CONSISTENT",
+    "textureSamplerSample": "CONSISTENT",
+    "materialLayout": "CONSISTENT",
+    "bindings": "CONSISTENT",
+    "octChangesRequired": false
+  },
+  "normalizedSemanticParity": {
+    "stages": [
+      0,
+      1
+    ],
+    "streamRoles": {
+      "ForwardOutput": 0,
+      "ForwardResources": 1,
+      "ForwardVaryings": 0,
+      "PixelBuiltins": 2,
+      "VertexBuiltins": 2,
+      "VertexInput": 0
+    },
+    "semanticSpaces": [
+      {
+        "name": "clip.position",
+        "physicalType": "float4",
+        "source": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 110,
+          "length": 50
+        }
+      },
+      {
+        "name": "object.position",
+        "physicalType": "float3",
+        "source": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 0,
+          "length": 54
+        }
+      },
+      {
+        "name": "world.position",
+        "physicalType": "float3",
+        "source": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 56,
+          "length": 52
+        }
+      }
+    ],
+    "locations": [
+      {
+        "stream": "ForwardVaryings",
+        "name": "uv",
+        "type": "float2",
+        "physicalType": "float2",
+        "semanticSpace": null,
+        "location": 0
+      },
+      {
+        "stream": "ForwardVaryings",
+        "name": "worldPosition",
+        "type": "WorldPosition3",
+        "physicalType": "float3",
+        "semanticSpace": "world.position",
+        "location": 1
+      },
+      {
+        "stream": "VertexInput",
+        "name": "position",
+        "type": "ObjectPosition3",
+        "physicalType": "float3",
+        "semanticSpace": "object.position",
+        "location": 0
+      },
+      {
+        "stream": "VertexInput",
+        "name": "uv",
+        "type": "float2",
+        "physicalType": "float2",
+        "semanticSpace": null,
+        "location": 1
+      }
+    ],
+    "builtins": [
+      {
+        "stream": "ForwardVaryings",
+        "name": "position",
+        "type": "ClipPosition4",
+        "builtin": "position"
+      },
+      {
+        "stream": "PixelBuiltins",
+        "name": "frontFace",
+        "type": "bool",
+        "builtin": "front_face"
+      },
+      {
+        "stream": "VertexBuiltins",
+        "name": "vertexId",
+        "type": "u32",
+        "builtin": "vertex_id"
+      },
+      {
+        "stream": "VertexBuiltins",
+        "name": "instanceId",
+        "type": "u32",
+        "builtin": "instance_id"
+      }
+    ],
+    "targets": [
+      {
+        "order": 0,
+        "name": "color",
+        "type": "float4",
+        "role": 0,
+        "location": null,
+        "builtin": null,
+        "target": 0,
+        "interpolation": "linear",
+        "source": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 736,
+          "length": 29
+        },
+        "metadataSource": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 736,
+          "length": 10
+        },
+        "physicalType": "float4",
+        "semanticSpace": null
+      }
+    ],
+    "resources": [
+      {
+        "order": 0,
+        "stream": "ForwardResources",
+        "name": "albedo",
+        "kind": 0,
+        "type": "Texture2D\u003Cfloat4\u003E",
+        "elementType": "float4",
+        "access": 0,
+        "set": 0,
+        "binding": 0,
+        "visibility": [
+          1
+        ],
+        "materialId": null,
+        "source": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 799,
+          "length": 42
+        },
+        "bindingSource": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 799,
+          "length": 11
+        }
+      },
+      {
+        "order": 1,
+        "stream": "ForwardResources",
+        "name": "linearSampler",
+        "kind": 1,
+        "type": "Sampler",
+        "elementType": null,
+        "access": 0,
+        "set": 0,
+        "binding": 1,
+        "visibility": [
+          1
+        ],
+        "materialId": null,
+        "source": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 846,
+          "length": 39
+        },
+        "bindingSource": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 846,
+          "length": 11
+        }
+      },
+      {
+        "order": 2,
+        "stream": "ForwardResources",
+        "name": "material",
+        "kind": 2,
+        "type": "SurfaceMaterial",
+        "elementType": null,
+        "access": 0,
+        "set": 0,
+        "binding": 2,
+        "visibility": [
+          1
+        ],
+        "materialId": "material:SurfaceMaterial",
+        "source": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 890,
+          "length": 42
+        },
+        "bindingSource": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 890,
+          "length": 11
+        }
+      }
+    ],
+    "material": {
+      "id": "material:SurfaceMaterial",
+      "name": "SurfaceMaterial",
+      "fields": [
+        {
+          "order": 0,
+          "name": "tint",
+          "type": "float4",
+          "physicalType": "float4",
+          "offset": 0,
+          "size": 16,
+          "alignment": 16,
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 213,
+            "length": 13
+          }
+        },
+        {
+          "order": 1,
+          "name": "roughness",
+          "type": "f32",
+          "physicalType": "f32",
+          "offset": 16,
+          "size": 4,
+          "alignment": 4,
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 231,
+            "length": 15
+          }
+        }
+      ],
+      "size": 32,
+      "set": 0,
+      "binding": 2,
+      "visibility": [
+        1
+      ],
+      "source": {
+        "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+        "start": 162,
+        "length": 86
+      },
+      "bindingSource": {
+        "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+        "start": 172,
+        "length": 11
+      }
+    },
+    "intrinsic": "Sample2D(texture2d\u003Cfloat4\u003E, sampler, float2) -\u003E float4",
+    "linkage": [
+      {
+        "location": 0,
+        "type": "float2",
+        "interpolation": "linear",
+        "vertexStream": "ForwardVaryings",
+        "vertexMember": "uv",
+        "pixelStream": "ForwardVaryings",
+        "pixelMember": "uv",
+        "physicalType": "float2",
+        "semanticSpace": null
+      },
+      {
+        "location": 1,
+        "type": "WorldPosition3",
+        "interpolation": "linear",
+        "vertexStream": "ForwardVaryings",
+        "vertexMember": "worldPosition",
+        "pixelStream": "ForwardVaryings",
+        "pixelMember": "worldPosition",
+        "physicalType": "float3",
+        "semanticSpace": "world.position"
+      }
+    ]
+  },
+  "canonicalMaterialLayout": {
+    "tint": {
+      "offset": 0,
+      "size": 16,
+      "alignment": 16
+    },
+    "roughness": {
+      "offset": 16,
+      "size": 4,
+      "alignment": 4
+    },
+    "totalSize": 32,
+    "set": 0,
+    "binding": 2
+  },
+  "deterministic": true,
+  "hashes": {
+    "vdMir": "e6fb665eae51dbce33a5212a4f3c08480b1feb93333a1fd2f60468ef1b2f9cc0",
+    "hlslSha256": "305a7b4e2e8c8a306bddc861b87a73a1b48067b522266a9dc3b988572cde6ee7",
+    "vertex": "13d86b3a988fe809af02171951cef31183d44d3a02ed470f3294276fa2a8eb39",
+    "pixel": "e9d019d2eb2019be56507367fa735dfb35ec82cbe256cccb0fcfe00a7ab3a417"
+  },
+  "timingsMilliseconds": {
+    "parse": 33.278,
+    "gpuBindLinkSpaceLayoutProjection": 42.697,
+    "vdMirJson": 62.987,
+    "hlslEmission": 5.617,
+    "dxcVertexPixelAndSpirvValidation": 110.287,
+    "determinismRepeat": 95.971
+  },
+  "sourceBoilerplate": "typed streams, semantic aliases, resources, material, and Sample; no HLSL structs, SV spellings, descriptors, or offsets"
+}

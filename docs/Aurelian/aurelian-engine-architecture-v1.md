@@ -359,3 +359,18 @@ remains the contract with feature level `graphics.m2` and an explicit linked
 host-facing interface facts. Aurelian.Graphics remains unchanged: no runtime
 pipeline or renderer API was added. Texture, sampler, Sample, semantic spaces,
 and the canonical material uniform are the exact next language slice.
+
+## 28. AURELIAN-SDSLV-PORT-M3 forward-textured update
+
+The bounded graphics language surface is complete. `vdmir.semantic.v1` feature
+level `graphics.m3` carries nominal semantic spaces, builtin/resource streams,
+typed texture/sampler/Sample semantics, explicit set-zero bindings, resource
+visibility, and the canonical immutable 32-byte tint/roughness material layout.
+`Aurelian.Shaders.Graphics` generates resource declarations and validates both
+Vulkan 1.3 SPIR-V stages. `Aurelian.Graphics` remains untouched.
+
+The next renderer milestone must consume vertex/pixel SPIR-V and renderer
+metadata as one `CompiledGraphicsProgram`; it must not reparse shader source or
+HLSL or treat SPIR-V reflection as semantic authority. Host upload code may be
+generated from material metadata, but no parallel handwritten material layout
+may become authoritative.

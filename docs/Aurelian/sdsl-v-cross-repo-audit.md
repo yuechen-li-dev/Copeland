@@ -552,3 +552,13 @@ graphics stages. Parity uses `graphics.minimal-vertex`,
 `graphics.minimal-pixel`, and the linkage law of
 `graphics.canonical-forward-textured`. See
 `sdsl-v-port-m2-graphics-stream-report.md`.
+
+## M3 forward-textured closure update (2026-09-03)
+
+The final bounded production graphics slice is implemented without changing
+ownership. Copeland owns semantic aliases, resource/builtin stream typing,
+texture/sampler/Sample validation, material immutability and packing, linkage,
+and renderer-facing `graphics.m3` metadata. Aurelian owns generated resource
+HLSL, DXC, SPIR-V validation, and structural verification. Oct remained the
+unchanged spec/conformance authority. Language expansion stops here; next is
+native consumption of the qualified `CompiledGraphicsProgram` contract.

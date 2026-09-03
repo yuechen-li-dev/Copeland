@@ -17,7 +17,10 @@ public sealed record VdMirGraphicsStageResult(
     IReadOnlyList<string> DxcArguments,
     bool SpirvValidated,
     string SpirvValidationOutput,
-    string? SpirvDisassembly);
+    string? SpirvDisassembly,
+    double DxcMilliseconds,
+    double SpirvValidationMilliseconds,
+    double SpirvDisassemblyMilliseconds);
 
 public sealed record VdMirGraphicsBackendResult(
     string Hlsl,
@@ -42,23 +45,47 @@ public static class VdMirGraphicsBackend
 
     private static VdMirGraphicsStageResult CompileStage(string hlsl, VdMirGraphicsEntryPoint entry, string profile, DxcExecutableResolution resolution)
     {
+        Stopwatch dxcStopwatch = Stopwatch.StartNew();
         DxcSpirvCompileResult compilation = DxcSpirvCompiler.Compile(
             new DxcSpirvCompileRequest(hlsl, entry.EmittedName, profile, $"{entry.EmittedName}.hlsl"),
             resolution);
+        dxcStopwatch.Stop();
         bool validated = false;
         string validationOutput = string.Empty;
         string? disassembly = null;
+        double validationMilliseconds = 0;
+        double disassemblyMilliseconds = 0;
         if (compilation.Success)
         {
+            Stopwatch validationStopwatch = Stopwatch.StartNew();
             (validated, validationOutput) = RunSpirvTool("spirv-val", compilation.SpirvBytes, ["--target-env", "vulkan1.3"]);
+            validationStopwatch.Stop();
+            validationMilliseconds = validationStopwatch.Elapsed.TotalMilliseconds;
+            Stopwatch disassemblyStopwatch = Stopwatch.StartNew();
             (bool disassembled, string output) = RunSpirvTool("spirv-dis", compilation.SpirvBytes, []);
+            disassemblyStopwatch.Stop();
+            disassemblyMilliseconds = disassemblyStopwatch.Elapsed.TotalMilliseconds;
             if (disassembled)
             {
                 disassembly = output;
             }
         }
         string dxcOutput = string.Join(Environment.NewLine, new[] { compilation.StandardOutput, compilation.StandardError }.Where(value => !string.IsNullOrWhiteSpace(value))).Trim();
-        return new VdMirGraphicsStageResult(entry.Stage, entry.EmittedName, profile, compilation.SpirvBytes, compilation.Success ? Hash(compilation.SpirvBytes) : null, compilation.Status, dxcOutput, compilation.Arguments, validated, validationOutput, disassembly);
+        return new VdMirGraphicsStageResult(
+            entry.Stage,
+            entry.EmittedName,
+            profile,
+            compilation.SpirvBytes,
+            compilation.Success ? Hash(compilation.SpirvBytes) : null,
+            compilation.Status,
+            dxcOutput,
+            compilation.Arguments,
+            validated,
+            validationOutput,
+            disassembly,
+            Math.Round(dxcStopwatch.Elapsed.TotalMilliseconds, 3),
+            Math.Round(validationMilliseconds, 3),
+            Math.Round(disassemblyMilliseconds, 3));
     }
 
     private static (bool Success, string Output) RunSpirvTool(string executable, byte[] spirv, IReadOnlyList<string> arguments)

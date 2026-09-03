@@ -206,3 +206,12 @@ one texture, one sampler, and one material block. Do not add MRT expansion,
 descriptor allocation, Vulkan pipeline creation, renderer/material objects,
 geometry/tessellation/mesh stages, broad templates, payload enums, or general
 swizzles/intrinsics.
+
+## M3 closure update (2026-09-03)
+
+The recommended slice is complete as `vdmir.semantic.v1` / `graphics.m3`.
+Copeland now binds nominal semantic-space aliases, builtin and resource streams,
+`Texture2D<float4>`, `Sampler`, typed `Sample2D`, and the exact 32-byte
+tint/roughness material layout. Aurelian emits and validates both textured
+graphics stages. See `sdsl-v-port-m3-forward-textured-report.md`; M2 remains the
+untextured regression authority.

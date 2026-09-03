@@ -133,3 +133,20 @@ profile selection.
 
 Graphics resources, semantic spaces, texture/sampler/Sample, and material
 uniforms are the next feature level. M2 adds no renderer or Vulkan pipeline API.
+
+## Implemented graphics.m3 boundary
+
+`@space(dotted.name) type Alias = floatN` creates a nominal, physically erased
+semantic vector type. Assignment and linkage require the same nominal space;
+typed constructors/helper returns establish a space. The GPU binder admits
+only `Texture2D<float4>`, `Sampler`, and an `@material @binding(2)` record with
+canonical `tint: float4` and `roughness: f32` fields. `Sample` is represented as
+typed `Sample2D`, accepts plain `float2`, and is legal only in vertex/pixel
+binding contexts.
+
+Resource stream parameters lower to global readonly set-zero bindings and do
+not become HLSL entry parameters. Material packing is compiler-owned: offsets
+0/16, total 32 for the canonical fields. `graphics.m3` metadata contains
+nominal/physical types, roles, entries, visibility, binding kinds, linkage,
+layout, and provenance. No renderer runtime or host material type is part of
+this profile.

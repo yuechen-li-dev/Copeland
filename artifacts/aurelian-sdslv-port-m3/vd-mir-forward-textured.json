@@ -1,0 +1,1525 @@
+{
+  "schema": "vdmir.semantic.v1",
+  "conformanceSchema": "sdslv.conformance.v1",
+  "featureLevel": "graphics.m3",
+  "sourceFiles": [
+    "samples/Aurelian/ForwardTexturedM3.v.ts"
+  ],
+  "types": [
+    "ClipPosition4",
+    "ObjectPosition3",
+    "Sampler",
+    "SurfaceMaterial",
+    "Texture2D\u003Cfloat4\u003E",
+    "WorldPosition3",
+    "bool",
+    "f32",
+    "float2",
+    "float3",
+    "float4",
+    "u32"
+  ],
+  "semanticSpaces": [
+    {
+      "name": "clip.position",
+      "physicalType": "float4",
+      "source": {
+        "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+        "start": 110,
+        "length": 50
+      }
+    },
+    {
+      "name": "object.position",
+      "physicalType": "float3",
+      "source": {
+        "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+        "start": 0,
+        "length": 54
+      }
+    },
+    {
+      "name": "world.position",
+      "physicalType": "float3",
+      "source": {
+        "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+        "start": 56,
+        "length": 52
+      }
+    }
+  ],
+  "streams": [
+    {
+      "id": "stream:ForwardOutput",
+      "name": "ForwardOutput",
+      "role": 0,
+      "members": [
+        {
+          "order": 0,
+          "name": "color",
+          "type": "float4",
+          "role": 0,
+          "location": null,
+          "builtin": null,
+          "target": 0,
+          "interpolation": "linear",
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 736,
+            "length": 29
+          },
+          "metadataSource": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 736,
+            "length": 10
+          },
+          "physicalType": "float4",
+          "semanticSpace": null
+        }
+      ],
+      "source": {
+        "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+        "start": 709,
+        "length": 58
+      }
+    },
+    {
+      "id": "stream:ForwardResources",
+      "name": "ForwardResources",
+      "role": 1,
+      "members": [
+        {
+          "order": 0,
+          "name": "albedo",
+          "type": "Texture2D\u003Cfloat4\u003E",
+          "role": 1,
+          "location": null,
+          "builtin": null,
+          "target": null,
+          "interpolation": "linear",
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 799,
+            "length": 42
+          },
+          "metadataSource": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 799,
+            "length": 11
+          },
+          "physicalType": "Texture2D\u003Cfloat4\u003E",
+          "semanticSpace": null
+        },
+        {
+          "order": 1,
+          "name": "linearSampler",
+          "type": "Sampler",
+          "role": 1,
+          "location": null,
+          "builtin": null,
+          "target": null,
+          "interpolation": "linear",
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 846,
+            "length": 39
+          },
+          "metadataSource": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 846,
+            "length": 11
+          },
+          "physicalType": "Sampler",
+          "semanticSpace": null
+        },
+        {
+          "order": 2,
+          "name": "material",
+          "type": "SurfaceMaterial",
+          "role": 1,
+          "location": null,
+          "builtin": null,
+          "target": null,
+          "interpolation": "linear",
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 890,
+            "length": 42
+          },
+          "metadataSource": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 890,
+            "length": 11
+          },
+          "physicalType": "SurfaceMaterial",
+          "semanticSpace": null
+        }
+      ],
+      "source": {
+        "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+        "start": 769,
+        "length": 165
+      }
+    },
+    {
+      "id": "stream:ForwardVaryings",
+      "name": "ForwardVaryings",
+      "role": 0,
+      "members": [
+        {
+          "order": 0,
+          "name": "position",
+          "type": "ClipPosition4",
+          "role": 0,
+          "location": null,
+          "builtin": "position",
+          "target": null,
+          "interpolation": "linear",
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 501,
+            "length": 47
+          },
+          "metadataSource": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 501,
+            "length": 18
+          },
+          "physicalType": "float4",
+          "semanticSpace": "clip.position"
+        },
+        {
+          "order": 1,
+          "name": "uv",
+          "type": "float2",
+          "role": 0,
+          "location": 0,
+          "builtin": null,
+          "target": null,
+          "interpolation": "linear",
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 553,
+            "length": 28
+          },
+          "metadataSource": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 553,
+            "length": 12
+          },
+          "physicalType": "float2",
+          "semanticSpace": null
+        },
+        {
+          "order": 2,
+          "name": "worldPosition",
+          "type": "WorldPosition3",
+          "role": 0,
+          "location": 1,
+          "builtin": null,
+          "target": null,
+          "interpolation": "linear",
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 586,
+            "length": 47
+          },
+          "metadataSource": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 586,
+            "length": 12
+          },
+          "physicalType": "float3",
+          "semanticSpace": "world.position"
+        }
+      ],
+      "source": {
+        "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+        "start": 472,
+        "length": 163
+      }
+    },
+    {
+      "id": "stream:PixelBuiltins",
+      "name": "PixelBuiltins",
+      "role": 2,
+      "members": [
+        {
+          "order": 0,
+          "name": "frontFace",
+          "type": "bool",
+          "role": 2,
+          "location": null,
+          "builtin": "front_face",
+          "target": null,
+          "interpolation": "linear",
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 664,
+            "length": 41
+          },
+          "metadataSource": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 664,
+            "length": 20
+          },
+          "physicalType": "bool",
+          "semanticSpace": null
+        }
+      ],
+      "source": {
+        "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+        "start": 637,
+        "length": 70
+      }
+    },
+    {
+      "id": "stream:VertexBuiltins",
+      "name": "VertexBuiltins",
+      "role": 2,
+      "members": [
+        {
+          "order": 0,
+          "name": "vertexId",
+          "type": "u32",
+          "role": 2,
+          "location": null,
+          "builtin": "vertex_id",
+          "target": null,
+          "interpolation": "linear",
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 383,
+            "length": 38
+          },
+          "metadataSource": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 383,
+            "length": 19
+          },
+          "physicalType": "u32",
+          "semanticSpace": null
+        },
+        {
+          "order": 1,
+          "name": "instanceId",
+          "type": "u32",
+          "role": 2,
+          "location": null,
+          "builtin": "instance_id",
+          "target": null,
+          "interpolation": "linear",
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 426,
+            "length": 42
+          },
+          "metadataSource": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 426,
+            "length": 21
+          },
+          "physicalType": "u32",
+          "semanticSpace": null
+        }
+      ],
+      "source": {
+        "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+        "start": 355,
+        "length": 115
+      }
+    },
+    {
+      "id": "stream:VertexInput",
+      "name": "VertexInput",
+      "role": 0,
+      "members": [
+        {
+          "order": 0,
+          "name": "position",
+          "type": "ObjectPosition3",
+          "role": 0,
+          "location": 0,
+          "builtin": null,
+          "target": null,
+          "interpolation": "linear",
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 275,
+            "length": 43
+          },
+          "metadataSource": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 275,
+            "length": 12
+          },
+          "physicalType": "float3",
+          "semanticSpace": "object.position"
+        },
+        {
+          "order": 1,
+          "name": "uv",
+          "type": "float2",
+          "role": 0,
+          "location": 1,
+          "builtin": null,
+          "target": null,
+          "interpolation": "linear",
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 323,
+            "length": 28
+          },
+          "metadataSource": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 323,
+            "length": 12
+          },
+          "physicalType": "float2",
+          "semanticSpace": null
+        }
+      ],
+      "source": {
+        "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+        "start": 250,
+        "length": 103
+      }
+    }
+  ],
+  "materials": [
+    {
+      "id": "material:SurfaceMaterial",
+      "name": "SurfaceMaterial",
+      "fields": [
+        {
+          "order": 0,
+          "name": "tint",
+          "type": "float4",
+          "physicalType": "float4",
+          "offset": 0,
+          "size": 16,
+          "alignment": 16,
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 213,
+            "length": 13
+          }
+        },
+        {
+          "order": 1,
+          "name": "roughness",
+          "type": "f32",
+          "physicalType": "f32",
+          "offset": 16,
+          "size": 4,
+          "alignment": 4,
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 231,
+            "length": 15
+          }
+        }
+      ],
+      "size": 32,
+      "set": 0,
+      "binding": 2,
+      "visibility": [
+        1
+      ],
+      "source": {
+        "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+        "start": 162,
+        "length": 86
+      },
+      "bindingSource": {
+        "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+        "start": 172,
+        "length": 11
+      }
+    }
+  ],
+  "functions": [
+    {
+      "name": "EstablishWorld",
+      "parameters": [
+        {
+          "name": "value",
+          "type": "ObjectPosition3",
+          "builtin": null,
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 960,
+            "length": 22
+          }
+        }
+      ],
+      "returnType": "WorldPosition3",
+      "statements": [
+        {
+          "kind": "return",
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 1006,
+            "length": 41
+          },
+          "name": null,
+          "type": null,
+          "mutable": false,
+          "expression": {
+            "kind": "call",
+            "type": "WorldPosition3",
+            "source": {
+              "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+              "start": 1013,
+              "length": 33
+            },
+            "value": "float3",
+            "operands": [
+              {
+                "kind": "field",
+                "type": "f32",
+                "source": {
+                  "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                  "start": 1020,
+                  "length": 7
+                },
+                "value": "x",
+                "operands": [
+                  {
+                    "kind": "name",
+                    "type": "ObjectPosition3",
+                    "source": {
+                      "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                      "start": 1020,
+                      "length": 5
+                    },
+                    "value": "value",
+                    "operands": null
+                  }
+                ]
+              },
+              {
+                "kind": "field",
+                "type": "f32",
+                "source": {
+                  "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                  "start": 1029,
+                  "length": 7
+                },
+                "value": "y",
+                "operands": [
+                  {
+                    "kind": "name",
+                    "type": "ObjectPosition3",
+                    "source": {
+                      "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                      "start": 1029,
+                      "length": 5
+                    },
+                    "value": "value",
+                    "operands": null
+                  }
+                ]
+              },
+              {
+                "kind": "field",
+                "type": "f32",
+                "source": {
+                  "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                  "start": 1038,
+                  "length": 7
+                },
+                "value": "z",
+                "operands": [
+                  {
+                    "kind": "name",
+                    "type": "ObjectPosition3",
+                    "source": {
+                      "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                      "start": 1038,
+                      "length": 5
+                    },
+                    "value": "value",
+                    "operands": null
+                  }
+                ]
+              }
+            ]
+          },
+          "body": null,
+          "elseBody": null
+        }
+      ],
+      "source": {
+        "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+        "start": 936,
+        "length": 113
+      }
+    },
+    {
+      "name": "PixelMain",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "ForwardVaryings",
+          "builtin": null,
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 1580,
+            "length": 22
+          }
+        },
+        {
+          "name": "resources",
+          "type": "ForwardResources",
+          "builtin": null,
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 1604,
+            "length": 27
+          }
+        },
+        {
+          "name": "builtins",
+          "type": "PixelBuiltins",
+          "builtin": null,
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 1633,
+            "length": 23
+          }
+        }
+      ],
+      "returnType": "ForwardOutput",
+      "statements": [
+        {
+          "kind": "local",
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 1679,
+            "length": 82
+          },
+          "name": "texel",
+          "type": "float4",
+          "mutable": false,
+          "expression": {
+            "kind": "intrinsic",
+            "type": "float4",
+            "source": {
+              "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+              "start": 1701,
+              "length": 59
+            },
+            "value": "Sample2D",
+            "operands": [
+              {
+                "kind": "field",
+                "type": "Texture2D\u003Cfloat4\u003E",
+                "source": {
+                  "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                  "start": 1708,
+                  "length": 16
+                },
+                "value": "albedo",
+                "operands": [
+                  {
+                    "kind": "name",
+                    "type": "ForwardResources",
+                    "source": {
+                      "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                      "start": 1708,
+                      "length": 9
+                    },
+                    "value": "resources",
+                    "operands": null
+                  }
+                ]
+              },
+              {
+                "kind": "field",
+                "type": "Sampler",
+                "source": {
+                  "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                  "start": 1726,
+                  "length": 23
+                },
+                "value": "linearSampler",
+                "operands": [
+                  {
+                    "kind": "name",
+                    "type": "ForwardResources",
+                    "source": {
+                      "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                      "start": 1726,
+                      "length": 9
+                    },
+                    "value": "resources",
+                    "operands": null
+                  }
+                ]
+              },
+              {
+                "kind": "field",
+                "type": "float2",
+                "source": {
+                  "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                  "start": 1751,
+                  "length": 8
+                },
+                "value": "uv",
+                "operands": [
+                  {
+                    "kind": "name",
+                    "type": "ForwardVaryings",
+                    "source": {
+                      "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                      "start": 1751,
+                      "length": 5
+                    },
+                    "value": "input",
+                    "operands": null
+                  }
+                ]
+              }
+            ]
+          },
+          "body": null,
+          "elseBody": null
+        },
+        {
+          "kind": "if",
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 1766,
+            "length": 111
+          },
+          "name": null,
+          "type": null,
+          "mutable": false,
+          "expression": {
+            "kind": "field",
+            "type": "bool",
+            "source": {
+              "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+              "start": 1770,
+              "length": 18
+            },
+            "value": "frontFace",
+            "operands": [
+              {
+                "kind": "name",
+                "type": "PixelBuiltins",
+                "source": {
+                  "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                  "start": 1770,
+                  "length": 8
+                },
+                "value": "builtins",
+                "operands": null
+              }
+            ]
+          },
+          "body": [
+            {
+              "kind": "return",
+              "source": {
+                "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                "start": 1800,
+                "length": 71
+              },
+              "name": null,
+              "type": null,
+              "mutable": false,
+              "expression": {
+                "kind": "object",
+                "type": "ForwardOutput",
+                "source": {
+                  "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                  "start": 1807,
+                  "length": 63
+                },
+                "value": "ForwardOutput",
+                "operands": [
+                  {
+                    "kind": "binary",
+                    "type": "float4",
+                    "source": {
+                      "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                      "start": 1828,
+                      "length": 31
+                    },
+                    "value": "*",
+                    "operands": [
+                      {
+                        "kind": "name",
+                        "type": "float4",
+                        "source": {
+                          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                          "start": 1828,
+                          "length": 5
+                        },
+                        "value": "texel",
+                        "operands": null
+                      },
+                      {
+                        "kind": "field",
+                        "type": "float4",
+                        "source": {
+                          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                          "start": 1836,
+                          "length": 23
+                        },
+                        "value": "tint",
+                        "operands": [
+                          {
+                            "kind": "field",
+                            "type": "SurfaceMaterial",
+                            "source": {
+                              "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                              "start": 1836,
+                              "length": 18
+                            },
+                            "value": "material",
+                            "operands": [
+                              {
+                                "kind": "name",
+                                "type": "ForwardResources",
+                                "source": {
+                                  "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                                  "start": 1836,
+                                  "length": 9
+                                },
+                                "value": "resources",
+                                "operands": null
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "memberNames": [
+                  "color"
+                ]
+              },
+              "body": null,
+              "elseBody": null
+            }
+          ],
+          "elseBody": []
+        },
+        {
+          "kind": "return",
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 1882,
+            "length": 55
+          },
+          "name": null,
+          "type": null,
+          "mutable": false,
+          "expression": {
+            "kind": "object",
+            "type": "ForwardOutput",
+            "source": {
+              "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+              "start": 1889,
+              "length": 47
+            },
+            "value": "ForwardOutput",
+            "operands": [
+              {
+                "kind": "field",
+                "type": "float4",
+                "source": {
+                  "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                  "start": 1906,
+                  "length": 23
+                },
+                "value": "tint",
+                "operands": [
+                  {
+                    "kind": "field",
+                    "type": "SurfaceMaterial",
+                    "source": {
+                      "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                      "start": 1906,
+                      "length": 18
+                    },
+                    "value": "material",
+                    "operands": [
+                      {
+                        "kind": "name",
+                        "type": "ForwardResources",
+                        "source": {
+                          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                          "start": 1906,
+                          "length": 9
+                        },
+                        "value": "resources",
+                        "operands": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "memberNames": [
+              "color"
+            ]
+          },
+          "body": null,
+          "elseBody": null
+        }
+      ],
+      "source": {
+        "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+        "start": 1554,
+        "length": 385
+      }
+    },
+    {
+      "name": "VertexMain",
+      "parameters": [
+        {
+          "name": "input",
+          "type": "VertexInput",
+          "builtin": null,
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 1197,
+            "length": 18
+          }
+        },
+        {
+          "name": "builtins",
+          "type": "VertexBuiltins",
+          "builtin": null,
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 1217,
+            "length": 24
+          }
+        }
+      ],
+      "returnType": "ForwardVaryings",
+      "statements": [
+        {
+          "kind": "local",
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 1266,
+            "length": 89
+          },
+          "name": "vertexBias",
+          "type": "f32",
+          "mutable": false,
+          "expression": {
+            "kind": "binary",
+            "type": "f32",
+            "source": {
+              "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+              "start": 1290,
+              "length": 64
+            },
+            "value": "*",
+            "operands": [
+              {
+                "kind": "intrinsic",
+                "type": "f32",
+                "source": {
+                  "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                  "start": 1290,
+                  "length": 53
+                },
+                "value": "ConvertU32ToF32",
+                "operands": [
+                  {
+                    "kind": "binary",
+                    "type": "u32",
+                    "source": {
+                      "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                      "start": 1303,
+                      "length": 39
+                    },
+                    "value": "\u002B",
+                    "operands": [
+                      {
+                        "kind": "field",
+                        "type": "u32",
+                        "source": {
+                          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                          "start": 1303,
+                          "length": 17
+                        },
+                        "value": "vertexId",
+                        "operands": [
+                          {
+                            "kind": "name",
+                            "type": "VertexBuiltins",
+                            "source": {
+                              "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                              "start": 1303,
+                              "length": 8
+                            },
+                            "value": "builtins",
+                            "operands": null
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "field",
+                        "type": "u32",
+                        "source": {
+                          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                          "start": 1323,
+                          "length": 19
+                        },
+                        "value": "instanceId",
+                        "operands": [
+                          {
+                            "kind": "name",
+                            "type": "VertexBuiltins",
+                            "source": {
+                              "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                              "start": 1323,
+                              "length": 8
+                            },
+                            "value": "builtins",
+                            "operands": null
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "literal",
+                "type": "f32",
+                "source": {
+                  "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                  "start": 1346,
+                  "length": 8
+                },
+                "value": "0.000001",
+                "operands": null
+              }
+            ]
+          },
+          "body": null,
+          "elseBody": null
+        },
+        {
+          "kind": "return",
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 1360,
+            "length": 190
+          },
+          "name": null,
+          "type": null,
+          "mutable": false,
+          "expression": {
+            "kind": "object",
+            "type": "ForwardVaryings",
+            "source": {
+              "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+              "start": 1367,
+              "length": 182
+            },
+            "value": "ForwardVaryings",
+            "operands": [
+              {
+                "kind": "call",
+                "type": "ClipPosition4",
+                "source": {
+                  "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                  "start": 1387,
+                  "length": 78
+                },
+                "value": "float4",
+                "operands": [
+                  {
+                    "kind": "binary",
+                    "type": "f32",
+                    "source": {
+                      "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                      "start": 1394,
+                      "length": 29
+                    },
+                    "value": "\u002B",
+                    "operands": [
+                      {
+                        "kind": "field",
+                        "type": "f32",
+                        "source": {
+                          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                          "start": 1394,
+                          "length": 16
+                        },
+                        "value": "x",
+                        "operands": [
+                          {
+                            "kind": "field",
+                            "type": "ObjectPosition3",
+                            "source": {
+                              "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                              "start": 1394,
+                              "length": 14
+                            },
+                            "value": "position",
+                            "operands": [
+                              {
+                                "kind": "name",
+                                "type": "VertexInput",
+                                "source": {
+                                  "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                                  "start": 1394,
+                                  "length": 5
+                                },
+                                "value": "input",
+                                "operands": null
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "name",
+                        "type": "f32",
+                        "source": {
+                          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                          "start": 1413,
+                          "length": 10
+                        },
+                        "value": "vertexBias",
+                        "operands": null
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "field",
+                    "type": "f32",
+                    "source": {
+                      "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                      "start": 1425,
+                      "length": 16
+                    },
+                    "value": "y",
+                    "operands": [
+                      {
+                        "kind": "field",
+                        "type": "ObjectPosition3",
+                        "source": {
+                          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                          "start": 1425,
+                          "length": 14
+                        },
+                        "value": "position",
+                        "operands": [
+                          {
+                            "kind": "name",
+                            "type": "VertexInput",
+                            "source": {
+                              "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                              "start": 1425,
+                              "length": 5
+                            },
+                            "value": "input",
+                            "operands": null
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "field",
+                    "type": "f32",
+                    "source": {
+                      "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                      "start": 1443,
+                      "length": 16
+                    },
+                    "value": "z",
+                    "operands": [
+                      {
+                        "kind": "field",
+                        "type": "ObjectPosition3",
+                        "source": {
+                          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                          "start": 1443,
+                          "length": 14
+                        },
+                        "value": "position",
+                        "operands": [
+                          {
+                            "kind": "name",
+                            "type": "VertexInput",
+                            "source": {
+                              "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                              "start": 1443,
+                              "length": 5
+                            },
+                            "value": "input",
+                            "operands": null
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "literal",
+                    "type": "f32",
+                    "source": {
+                      "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                      "start": 1461,
+                      "length": 3
+                    },
+                    "value": "1.0",
+                    "operands": null
+                  }
+                ]
+              },
+              {
+                "kind": "field",
+                "type": "float2",
+                "source": {
+                  "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                  "start": 1479,
+                  "length": 8
+                },
+                "value": "uv",
+                "operands": [
+                  {
+                    "kind": "name",
+                    "type": "VertexInput",
+                    "source": {
+                      "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                      "start": 1479,
+                      "length": 5
+                    },
+                    "value": "input",
+                    "operands": null
+                  }
+                ]
+              },
+              {
+                "kind": "call",
+                "type": "WorldPosition3",
+                "source": {
+                  "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                  "start": 1512,
+                  "length": 30
+                },
+                "value": "EstablishWorld",
+                "operands": [
+                  {
+                    "kind": "field",
+                    "type": "ObjectPosition3",
+                    "source": {
+                      "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                      "start": 1527,
+                      "length": 14
+                    },
+                    "value": "position",
+                    "operands": [
+                      {
+                        "kind": "name",
+                        "type": "VertexInput",
+                        "source": {
+                          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+                          "start": 1527,
+                          "length": 5
+                        },
+                        "value": "input",
+                        "operands": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "memberNames": [
+              "position",
+              "uv",
+              "worldPosition"
+            ]
+          },
+          "body": null,
+          "elseBody": null
+        }
+      ],
+      "source": {
+        "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+        "start": 1169,
+        "length": 383
+      }
+    }
+  ],
+  "entryPoints": [
+    {
+      "name": "VertexMain",
+      "emittedName": "VertexMain",
+      "stage": 0,
+      "inputStream": "VertexInput",
+      "outputStream": "ForwardVaryings",
+      "source": {
+        "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+        "start": 1169,
+        "length": 383
+      },
+      "builtinStreams": [
+        "VertexBuiltins"
+      ],
+      "resourceStreams": []
+    },
+    {
+      "name": "PixelMain",
+      "emittedName": "PixelMain",
+      "stage": 1,
+      "inputStream": "ForwardVaryings",
+      "outputStream": "ForwardOutput",
+      "source": {
+        "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+        "start": 1554,
+        "length": 385
+      },
+      "builtinStreams": [
+        "PixelBuiltins"
+      ],
+      "resourceStreams": [
+        "ForwardResources"
+      ]
+    }
+  ],
+  "graphicsProgram": {
+    "name": "GraphicsProgram",
+    "vertexEntry": "VertexMain",
+    "pixelEntry": "PixelMain",
+    "varyings": [
+      {
+        "location": 0,
+        "type": "float2",
+        "interpolation": "linear",
+        "vertexStream": "ForwardVaryings",
+        "vertexMember": "uv",
+        "pixelStream": "ForwardVaryings",
+        "pixelMember": "uv",
+        "physicalType": "float2",
+        "semanticSpace": null
+      },
+      {
+        "location": 1,
+        "type": "WorldPosition3",
+        "interpolation": "linear",
+        "vertexStream": "ForwardVaryings",
+        "vertexMember": "worldPosition",
+        "pixelStream": "ForwardVaryings",
+        "pixelMember": "worldPosition",
+        "physicalType": "float3",
+        "semanticSpace": "world.position"
+      }
+    ],
+    "vertexInputs": [
+      {
+        "order": 0,
+        "name": "position",
+        "type": "ObjectPosition3",
+        "role": 0,
+        "location": 0,
+        "builtin": null,
+        "target": null,
+        "interpolation": "linear",
+        "source": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 275,
+          "length": 43
+        },
+        "metadataSource": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 275,
+          "length": 12
+        },
+        "physicalType": "float3",
+        "semanticSpace": "object.position"
+      },
+      {
+        "order": 1,
+        "name": "uv",
+        "type": "float2",
+        "role": 0,
+        "location": 1,
+        "builtin": null,
+        "target": null,
+        "interpolation": "linear",
+        "source": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 323,
+          "length": 28
+        },
+        "metadataSource": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 323,
+          "length": 12
+        },
+        "physicalType": "float2",
+        "semanticSpace": null
+      }
+    ],
+    "pixelTargets": [
+      {
+        "order": 0,
+        "name": "color",
+        "type": "float4",
+        "role": 0,
+        "location": null,
+        "builtin": null,
+        "target": 0,
+        "interpolation": "linear",
+        "source": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 736,
+          "length": 29
+        },
+        "metadataSource": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 736,
+          "length": 10
+        },
+        "physicalType": "float4",
+        "semanticSpace": null
+      }
+    ],
+    "resources": [
+      {
+        "order": 0,
+        "stream": "ForwardResources",
+        "name": "albedo",
+        "kind": 0,
+        "type": "Texture2D\u003Cfloat4\u003E",
+        "elementType": "float4",
+        "access": 0,
+        "set": 0,
+        "binding": 0,
+        "visibility": [
+          1
+        ],
+        "materialId": null,
+        "source": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 799,
+          "length": 42
+        },
+        "bindingSource": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 799,
+          "length": 11
+        }
+      },
+      {
+        "order": 1,
+        "stream": "ForwardResources",
+        "name": "linearSampler",
+        "kind": 1,
+        "type": "Sampler",
+        "elementType": null,
+        "access": 0,
+        "set": 0,
+        "binding": 1,
+        "visibility": [
+          1
+        ],
+        "materialId": null,
+        "source": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 846,
+          "length": 39
+        },
+        "bindingSource": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 846,
+          "length": 11
+        }
+      },
+      {
+        "order": 2,
+        "stream": "ForwardResources",
+        "name": "material",
+        "kind": 2,
+        "type": "SurfaceMaterial",
+        "elementType": null,
+        "access": 0,
+        "set": 0,
+        "binding": 2,
+        "visibility": [
+          1
+        ],
+        "materialId": "material:SurfaceMaterial",
+        "source": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 890,
+          "length": 42
+        },
+        "bindingSource": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 890,
+          "length": 11
+        }
+      }
+    ],
+    "material": {
+      "id": "material:SurfaceMaterial",
+      "name": "SurfaceMaterial",
+      "fields": [
+        {
+          "order": 0,
+          "name": "tint",
+          "type": "float4",
+          "physicalType": "float4",
+          "offset": 0,
+          "size": 16,
+          "alignment": 16,
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 213,
+            "length": 13
+          }
+        },
+        {
+          "order": 1,
+          "name": "roughness",
+          "type": "f32",
+          "physicalType": "f32",
+          "offset": 16,
+          "size": 4,
+          "alignment": 4,
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 231,
+            "length": 15
+          }
+        }
+      ],
+      "size": 32,
+      "set": 0,
+      "binding": 2,
+      "visibility": [
+        1
+      ],
+      "source": {
+        "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+        "start": 162,
+        "length": 86
+      },
+      "bindingSource": {
+        "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+        "start": 172,
+        "length": 11
+      }
+    }
+  },
+  "diagnostics": [],
+  "success": true
+}

@@ -1,0 +1,195 @@
+{
+  "schema": "aurelian.sdslv-port-m3.diagnostics.v1",
+  "positive": [],
+  "canonicalNegativeCoverage": [
+    {
+      "name": "wrong-sample-coordinate",
+      "canonicalCode": "SDSL-V4119",
+      "observed": true,
+      "diagnostic": {
+        "code": "COPE-GPU-SAMPLE-0004",
+        "canonicalCode": "SDSL-V4119",
+        "category": "texture-sampling",
+        "message": "Sample coordinates must be plain float2.",
+        "primarySpan": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 1751,
+          "length": 14
+        },
+        "relatedSpans": []
+      }
+    },
+    {
+      "name": "non-texture-sample",
+      "canonicalCode": "SDSL-V4118",
+      "observed": true,
+      "diagnostic": {
+        "code": "COPE-GPU-SAMPLE-0002",
+        "canonicalCode": "SDSL-V4118",
+        "category": "texture-sampling",
+        "message": "Sample first argument must be Texture2D\u003CT\u003E.",
+        "primarySpan": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 1708,
+          "length": 23
+        },
+        "relatedSpans": []
+      }
+    },
+    {
+      "name": "wrong-sampler",
+      "canonicalCode": "SDSL-V4118",
+      "observed": true,
+      "diagnostic": {
+        "code": "COPE-GPU-SAMPLE-0003",
+        "canonicalCode": "SDSL-V4118",
+        "category": "texture-sampling",
+        "message": "Sample second argument must be Sampler.",
+        "primarySpan": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 1726,
+          "length": 16
+        },
+        "relatedSpans": []
+      }
+    },
+    {
+      "name": "duplicate-binding",
+      "canonicalCode": "SDSL-V4112",
+      "observed": true,
+      "diagnostic": {
+        "code": "COPE-GPU-BINDING-0002",
+        "canonicalCode": "SDSL-V4112",
+        "category": "resource-binding",
+        "message": "Resource binding 0 collides in set 0.",
+        "primarySpan": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 846,
+          "length": 11
+        },
+        "relatedSpans": [
+          {
+            "message": "First binding is here.",
+            "span": {
+              "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+              "start": 799,
+              "length": 11
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "resource-role-conflict",
+      "canonicalCode": "SDSL-V4102",
+      "observed": true,
+      "diagnostic": {
+        "code": "COPE-GPU-STREAM-0001",
+        "canonicalCode": "SDSL-V4102",
+        "category": "stream-role",
+        "message": "Stream member \u0027albedo\u0027 has conflicting role annotations.",
+        "primarySpan": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 817,
+          "length": 7
+        },
+        "relatedSpans": [
+          {
+            "message": "First role annotation.",
+            "span": {
+              "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+              "start": 800,
+              "length": 8
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "material-type",
+      "canonicalCode": "SDSL-V4114",
+      "observed": true,
+      "diagnostic": {
+        "code": "COPE-GPU-MATERIAL-0003",
+        "canonicalCode": "SDSL-V4114",
+        "category": "material",
+        "message": "The bounded M3 material is exactly \u0027tint: float4; roughness: f32;\u0027 in canonical order.",
+        "primarySpan": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 162,
+          "length": 87
+        },
+        "relatedSpans": []
+      }
+    },
+    {
+      "name": "material-immutable",
+      "canonicalCode": "SDSL-V3701",
+      "observed": true,
+      "diagnostic": {
+        "code": "COPE-GPU-MATERIAL-0005",
+        "canonicalCode": "SDSL-V3701",
+        "category": "binding",
+        "message": "Material field \u0027tint\u0027 is immutable shader input.",
+        "primarySpan": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 1679,
+          "length": 23
+        },
+        "relatedSpans": [
+          {
+            "message": "Material is declared here.",
+            "span": {
+              "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+              "start": 162,
+              "length": 86
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "semantic-space-assignment",
+      "canonicalCode": "SDSL-V1503",
+      "observed": true,
+      "diagnostic": {
+        "code": "COPE-GPU-TYPE-0002",
+        "canonicalCode": "SDSL-V1503",
+        "category": "type",
+        "message": "Expected \u0027WorldPosition3\u0027, got \u0027ObjectPosition3\u0027.",
+        "primarySpan": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 1013,
+          "length": 5
+        },
+        "relatedSpans": []
+      }
+    },
+    {
+      "name": "semantic-space-linkage",
+      "canonicalCode": "SDSL-V4111",
+      "observed": true,
+      "diagnostic": {
+        "code": "COPE-GPU-LINK-0002",
+        "canonicalCode": "SDSL-V4111",
+        "category": "stage-linkage",
+        "message": "Varying location 1 disagrees in physical type, semantic space, or interpolation.",
+        "primarySpan": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 746,
+          "length": 48
+        },
+        "relatedSpans": [
+          {
+            "message": "Vertex output is here.",
+            "span": {
+              "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+              "start": 586,
+              "length": 47
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

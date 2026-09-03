@@ -174,7 +174,7 @@ public sealed class Parser
         if (Current.Kind == SyntaxKind.IdentifierToken
             && Current.Text == "type")
         {
-            return ParseTypeDeclaration();
+            return ParseTypeDeclaration(annotations);
         }
 
         if (Current.Kind == SyntaxKind.IdentifierToken
@@ -473,7 +473,7 @@ public sealed class Parser
         return new ExportDefaultDeclarationSyntax(exportToken, defaultToken, expression, semicolonToken);
     }
 
-    private MemberSyntax ParseTypeDeclaration()
+    private MemberSyntax ParseTypeDeclaration(IReadOnlyList<AnnotationSyntax>? annotations = null)
     {
         var typeKeyword = NextToken();
         SyntaxToken identifier;
@@ -569,7 +569,8 @@ public sealed class Parser
             equalsToken,
             targetType,
             unsupportedTokens,
-            semicolonToken);
+            semicolonToken,
+            annotations);
     }
 
     private NominalUnionDeclarationSyntax ParseNominalUnionDeclaration(

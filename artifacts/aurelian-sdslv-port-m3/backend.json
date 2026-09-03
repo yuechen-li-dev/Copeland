@@ -1,0 +1,308 @@
+{
+  "schema": "aurelian.vdmir.graphics-backend.m3.v1",
+  "hlsl": "// Generated from canonical VD-MIR graphics.m3. Do not edit.\r\n\r\n// semantic space clip.position physically lowers to float4\r\n// semantic space object.position physically lowers to float3\r\n// semantic space world.position physically lowers to float3\r\n\r\nstruct SurfaceMaterial\r\n{\r\n    float4 tint; // offset 0, size 16, align 16\r\n    float roughness; // offset 16, size 4, align 4\r\n};\r\n\r\nstruct ForwardOutput\r\n{\r\n    float4 color : SV_Target0;\r\n};\r\n\r\nstruct ForwardVaryings\r\n{\r\n    float4 position : SV_Position;\r\n    float2 uv : TEXCOORD0;\r\n    float3 worldPosition : TEXCOORD1;\r\n};\r\n\r\nstruct PixelBuiltins\r\n{\r\n    bool frontFace : SV_IsFrontFace;\r\n};\r\n\r\nstruct VertexBuiltins\r\n{\r\n    uint vertexId : SV_VertexID;\r\n    uint instanceId : SV_InstanceID;\r\n};\r\n\r\nstruct VertexInput\r\n{\r\n    float3 position : TEXCOORD0;\r\n    float2 uv : TEXCOORD1;\r\n};\r\n\r\n[[vk::binding(0, 0)]] Texture2D\u003Cfloat4\u003E albedo;\r\n[[vk::binding(1, 0)]] SamplerState linearSampler;\r\n[[vk::binding(2, 0)]] ConstantBuffer\u003CSurfaceMaterial\u003E material;\r\n\r\nfloat3 EstablishWorld(float3 value)\r\n{\r\n    return float3(value.x, value.y, value.z);\r\n}\r\n\r\nForwardVaryings VertexMain(VertexInput input, VertexBuiltins builtins)\r\n{\r\n    float vertexBias = (float((builtins.vertexId \u002B builtins.instanceId)) * 0.000001);\r\n    ForwardVaryings result;\r\n    result.position = float4((input.position.x \u002B vertexBias), input.position.y, input.position.z, 1.0);\r\n    result.uv = input.uv;\r\n    result.worldPosition = EstablishWorld(input.position);\r\n    return result;\r\n}\r\n\r\nForwardOutput PixelMain(ForwardVaryings input, PixelBuiltins builtins)\r\n{\r\n    float4 texel = albedo.Sample(linearSampler, input.uv);\r\n    if (builtins.frontFace)\r\n    {\r\n        ForwardOutput result;\r\n        result.color = (texel * material.tint);\r\n        return result;\r\n    }\r\n    ForwardOutput result;\r\n    result.color = material.tint;\r\n    return result;\r\n}\r\n",
+  "hlslSha256": "305a7b4e2e8c8a306bddc861b87a73a1b48067b522266a9dc3b988572cde6ee7",
+  "dxcPath": "C:\\Users\\yuech\\.nuget\\packages\\microsoft.direct3d.dxc\\1.9.2602.24\\build\\native\\bin\\x64\\dxc.exe",
+  "vertex": {
+    "stage": "Vertex",
+    "entryPoint": "VertexMain",
+    "profile": "vs_6_0",
+    "spirvSha256": "13d86b3a988fe809af02171951cef31183d44d3a02ed470f3294276fa2a8eb39",
+    "dxcStatus": "Compiled",
+    "dxcArguments": [
+      "-spirv",
+      "-fspv-target-env=vulkan1.3",
+      "-HV",
+      "2021",
+      "-E",
+      "VertexMain",
+      "-T",
+      "vs_6_0",
+      "C:\\Users\\yuech\\AppData\\Local\\Temp\\aurelian-dxc-91febb5a931a46bebd498ffdcac8f7c2\\VertexMain.hlsl",
+      "-Fo",
+      "C:\\Users\\yuech\\AppData\\Local\\Temp\\aurelian-dxc-91febb5a931a46bebd498ffdcac8f7c2\\VertexMain.spv"
+    ],
+    "dxcMilliseconds": 29.708,
+    "spirvValidated": true,
+    "spirvValidationOutput": "",
+    "spirvValidationMilliseconds": 12.819,
+    "spirvDisassemblyMilliseconds": 11.93,
+    "structuralFacts": {
+      "executionModel": true,
+      "entryName": true,
+      "location0": true,
+      "position": true,
+      "vertexId": true,
+      "instanceId": true,
+      "frontFace": false,
+      "descriptorSet0": false,
+      "bindings": []
+    }
+  },
+  "pixel": {
+    "stage": "Pixel",
+    "entryPoint": "PixelMain",
+    "profile": "ps_6_0",
+    "spirvSha256": "e9d019d2eb2019be56507367fa735dfb35ec82cbe256cccb0fcfe00a7ab3a417",
+    "dxcStatus": "Compiled",
+    "dxcArguments": [
+      "-spirv",
+      "-fspv-target-env=vulkan1.3",
+      "-HV",
+      "2021",
+      "-E",
+      "PixelMain",
+      "-T",
+      "ps_6_0",
+      "C:\\Users\\yuech\\AppData\\Local\\Temp\\aurelian-dxc-3b8072102e314d2baff50ecf1c88f9c4\\PixelMain.hlsl",
+      "-Fo",
+      "C:\\Users\\yuech\\AppData\\Local\\Temp\\aurelian-dxc-3b8072102e314d2baff50ecf1c88f9c4\\PixelMain.spv"
+    ],
+    "dxcMilliseconds": 24.267,
+    "spirvValidated": true,
+    "spirvValidationOutput": "",
+    "spirvValidationMilliseconds": 11.585,
+    "spirvDisassemblyMilliseconds": 11.969,
+    "structuralFacts": {
+      "executionModel": true,
+      "entryName": true,
+      "location0": true,
+      "position": false,
+      "vertexId": false,
+      "instanceId": false,
+      "frontFace": true,
+      "descriptorSet0": true,
+      "bindings": [
+        0,
+        1,
+        2
+      ]
+    }
+  },
+  "rendererMetadata": {
+    "name": "GraphicsProgram",
+    "vertexEntry": "VertexMain",
+    "pixelEntry": "PixelMain",
+    "varyings": [
+      {
+        "location": 0,
+        "type": "float2",
+        "interpolation": "linear",
+        "vertexStream": "ForwardVaryings",
+        "vertexMember": "uv",
+        "pixelStream": "ForwardVaryings",
+        "pixelMember": "uv",
+        "physicalType": "float2",
+        "semanticSpace": null
+      },
+      {
+        "location": 1,
+        "type": "WorldPosition3",
+        "interpolation": "linear",
+        "vertexStream": "ForwardVaryings",
+        "vertexMember": "worldPosition",
+        "pixelStream": "ForwardVaryings",
+        "pixelMember": "worldPosition",
+        "physicalType": "float3",
+        "semanticSpace": "world.position"
+      }
+    ],
+    "vertexInputs": [
+      {
+        "order": 0,
+        "name": "position",
+        "type": "ObjectPosition3",
+        "role": 0,
+        "location": 0,
+        "builtin": null,
+        "target": null,
+        "interpolation": "linear",
+        "source": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 275,
+          "length": 43
+        },
+        "metadataSource": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 275,
+          "length": 12
+        },
+        "physicalType": "float3",
+        "semanticSpace": "object.position"
+      },
+      {
+        "order": 1,
+        "name": "uv",
+        "type": "float2",
+        "role": 0,
+        "location": 1,
+        "builtin": null,
+        "target": null,
+        "interpolation": "linear",
+        "source": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 323,
+          "length": 28
+        },
+        "metadataSource": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 323,
+          "length": 12
+        },
+        "physicalType": "float2",
+        "semanticSpace": null
+      }
+    ],
+    "pixelTargets": [
+      {
+        "order": 0,
+        "name": "color",
+        "type": "float4",
+        "role": 0,
+        "location": null,
+        "builtin": null,
+        "target": 0,
+        "interpolation": "linear",
+        "source": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 736,
+          "length": 29
+        },
+        "metadataSource": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 736,
+          "length": 10
+        },
+        "physicalType": "float4",
+        "semanticSpace": null
+      }
+    ],
+    "resources": [
+      {
+        "order": 0,
+        "stream": "ForwardResources",
+        "name": "albedo",
+        "kind": 0,
+        "type": "Texture2D\u003Cfloat4\u003E",
+        "elementType": "float4",
+        "access": 0,
+        "set": 0,
+        "binding": 0,
+        "visibility": [
+          1
+        ],
+        "materialId": null,
+        "source": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 799,
+          "length": 42
+        },
+        "bindingSource": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 799,
+          "length": 11
+        }
+      },
+      {
+        "order": 1,
+        "stream": "ForwardResources",
+        "name": "linearSampler",
+        "kind": 1,
+        "type": "Sampler",
+        "elementType": null,
+        "access": 0,
+        "set": 0,
+        "binding": 1,
+        "visibility": [
+          1
+        ],
+        "materialId": null,
+        "source": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 846,
+          "length": 39
+        },
+        "bindingSource": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 846,
+          "length": 11
+        }
+      },
+      {
+        "order": 2,
+        "stream": "ForwardResources",
+        "name": "material",
+        "kind": 2,
+        "type": "SurfaceMaterial",
+        "elementType": null,
+        "access": 0,
+        "set": 0,
+        "binding": 2,
+        "visibility": [
+          1
+        ],
+        "materialId": "material:SurfaceMaterial",
+        "source": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 890,
+          "length": 42
+        },
+        "bindingSource": {
+          "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+          "start": 890,
+          "length": 11
+        }
+      }
+    ],
+    "material": {
+      "id": "material:SurfaceMaterial",
+      "name": "SurfaceMaterial",
+      "fields": [
+        {
+          "order": 0,
+          "name": "tint",
+          "type": "float4",
+          "physicalType": "float4",
+          "offset": 0,
+          "size": 16,
+          "alignment": 16,
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 213,
+            "length": 13
+          }
+        },
+        {
+          "order": 1,
+          "name": "roughness",
+          "type": "f32",
+          "physicalType": "f32",
+          "offset": 16,
+          "size": 4,
+          "alignment": 4,
+          "source": {
+            "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+            "start": 231,
+            "length": 15
+          }
+        }
+      ],
+      "size": 32,
+      "set": 0,
+      "binding": 2,
+      "visibility": [
+        1
+      ],
+      "source": {
+        "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+        "start": 162,
+        "length": 86
+      },
+      "bindingSource": {
+        "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
+        "start": 172,
+        "length": 11
+      }
+    }
+  }
+}
