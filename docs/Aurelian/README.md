@@ -3,6 +3,8 @@
 Aurelian owns the engine lifecycle, world and game-object models, actuation, frame coordination, renderer-neutral contracts, renderer backends, assets, shader-domain behavior, and engine-runtime Dominatus integration.
 
 - [Current architecture](architecture/)
+- [Aurelian engine architecture v1](aurelian-engine-architecture-v1.md)
+- [TinyFarm M1-M21 consolidation](games/tiny-farm-m1-m21-consolidation-report.md)
 - [Agent/body binding architecture](../architecture/AURELIAN_AGENT_BODY_BINDING.md)
 - [Legacy Skyrim agent import](../architecture/AURELIAN_LEGACY_AGENT_IMPORT.md)
 - [Dominatus candidate selection](../architecture/AURELIAN_AGENT_CANDIDATE_SELECTION.md)

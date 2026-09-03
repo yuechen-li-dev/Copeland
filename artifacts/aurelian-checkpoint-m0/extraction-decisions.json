@@ -1,0 +1,21 @@
+{
+  "milestone": "AURELIAN-CHKPT-M0",
+  "rule": "Generalize when repeated implementations exhibit shared law and maintenance pressure; extract systems machinery when a second application would otherwise reconstruct it.",
+  "decisions": [
+    {"shape": "Scene", "decision": "DEFER", "destination": "TinyFarm then Aurelian candidate", "evidence": "Seven scenes share one model; no second application proves compatible law."},
+    {"shape": "Simulation Host", "decision": "DEFER", "destination": "TinyFarm then Aurelian candidate", "evidence": "M13-M15 qualify cadence, but commands and world-minute semantics remain local."},
+    {"shape": "Interaction/Targeting", "decision": "KEEP_TINYFARM_LOCAL", "destination": "TinyFarm.Core", "evidence": "Mechanics repeat; target priority and failures are game law."},
+    {"shape": "Typed Intents", "decision": "ALREADY_CORRECT", "destination": "Application Core", "evidence": "Concrete payloads preserve authorization, failures, replay, and events."},
+    {"shape": "Closed Capability Lowering", "decision": "ALREADY_CORRECT", "destination": "TinyFarm.Core", "evidence": "Plant, Chop, and Attack have distinct availability, target, and mutation laws."},
+    {"shape": "Inventory", "decision": "KEEP_TINYFARM_LOCAL", "destination": "TinyFarm.Core", "evidence": "One consumer and domain-coupled item/product semantics."},
+    {"shape": "Hotbar", "decision": "KEEP_TINYFARM_LOCAL", "destination": "TinyFarm.Core", "evidence": "Semantic selection is game truth and binding lowering is closed."},
+    {"shape": "Navigation", "decision": "DEFER", "destination": "TinyFarm.Runtime then Aurelian candidate", "evidence": "Derived DotRecast boundary is sound; lifecycle contract has one consumer."},
+    {"shape": "Persistence", "decision": "DEFER", "destination": "Local codec plus reusable envelope", "evidence": "Application versions/chunks differ; container mechanics are the shared seam."},
+    {"shape": "Replay", "decision": "DEFER", "destination": "Aurelian candidate", "evidence": "Semantic-envelope law is proven once."},
+    {"shape": "Agent", "decision": "ALREADY_SHARED", "destination": "Dominatus", "evidence": "Persistent policy/flow and utility are reused without world authority."},
+    {"shape": "UI", "decision": "EXTRACT_NOW_ADAPTER_ONLY", "destination": "Machina integration adapter", "evidence": "Machina is shared; TinyFarm duplicates renderer drawing, layout realization, and hit testing."},
+    {"shape": "Combat", "decision": "KEEP_TINYFARM_LOCAL", "destination": "TinyFarm.Core", "evidence": "One passive one-hit enemy does not establish a generic combat law."},
+    {"shape": "Resource Nodes", "decision": "KEEP_TINYFARM_LOCAL", "destination": "TinyFarm.Core", "evidence": "Forage, Tree, and Enemy share mechanics but not semantics."}
+  ],
+  "forbiddenGeneralizationsAdded": []
+}

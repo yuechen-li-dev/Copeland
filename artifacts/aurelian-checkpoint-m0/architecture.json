@@ -1,0 +1,35 @@
+{
+  "milestone": "AURELIAN-CHKPT-M0",
+  "outcome": "A",
+  "engineDefinition": "Qualified reusable systems-level machinery exposed through explicit semantic composition and runtime boundaries so application authors do not repeatedly reconstruct infrastructure.",
+  "jtfThesis": {
+    "assessment": "SUPPORTED_DIRECTION_NOT_COMPLETE_PRODUCT",
+    "reason": "Copeland/TSON, Dominatus, Aurelian, Machina.UI, and TinyFarm have coherent ownership, while several application-facing kits remain locally implemented."
+  },
+  "currentAurelianRole": "World, actuation, runtime, renderer-neutral render contracts, raster/null/native graphics, assets, and shaders; implementation remains render-infrastructure-heavy.",
+  "formalAurelianRole": "Agentic interactive application and world runtime with native rendering as one backend capability.",
+  "layerModel": [
+    "SYSTEMS",
+    "RUNTIME_KITS",
+    "APPLICATION"
+  ],
+  "laws": {
+    "scene": "validated table contents plus graph composition plus reducer routing plus semantic state truth plus projection-only rendering",
+    "realization": "active scene uses detailed spatial realization; inactive scene uses coarse semantic progression",
+    "controllers": "controller produces typed intent; resolver alone mutates authoritative state",
+    "time": "host, render, locomotion, world, and agent-decision time are distinct",
+    "content": "TSON loads through validation and canonicalization into typed catalogs; raw rows are never runtime authority",
+    "presentation": "application state projects to semantic UI and world frames; replaceable backends realize them"
+  },
+  "ownership": {
+    "tinyFarmCore": ["game state", "typed intents", "resolver", "events/results", "target priority", "semantic hash"],
+    "tinyFarmRuntime": ["session", "TSON loading", "persistence codec", "navigation", "simulation host", "inspection DTOs"],
+    "aurelian": ["reusable world/runtime/render systems", "backend contracts", "engine lifecycle direction"],
+    "dominatus": ["agent lifecycle/flow", "utility", "decision policy"],
+    "machina": ["semantic UI", "layout", "hit testing", "interaction", "input records", "presentation IR"],
+    "copelandTson": ["authored semantic programs and tables", "portable semantic values"],
+    "backendHost": ["window lifecycle", "input normalization", "device resources", "world/UI composition"]
+  },
+  "canonicalScenario": "M21 checkpoint composition: hotbar selection, Chop, Gather, Cook, dungeon routing, Attack, semantic hashes; enclosing proof adds save/load, replay/repeat, projection/DTO, and peaceful host isolation.",
+  "nextMilestone": "AURELIAN-MACHINA-ADAPTER-M0"
+}

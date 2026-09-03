@@ -1,0 +1,303 @@
+# Aurelian engine architecture v1
+
+Status: current architecture after AURELIAN-CHKPT-M0 (TinyFarm M1–M21). This document is authoritative for the application/runtime architecture. Milestone reports remain evidence, not prerequisites.
+
+## 1. Purpose
+
+Aurelian is the reusable systems/runtime layer for explicit, deterministic, agentic interactive applications on .NET. Native graphics are one Aurelian capability, not its definition. Aurelian exists so an application author composes qualified runtime machinery with semantic content and small domain rules instead of rebuilding host timing, state transitions, inspection, persistence, replay, and presentation plumbing.
+
+The implementation is transitional. Aurelian already owns world, actuation, runtime, renderer-neutral render contracts, raster/null/native graphics backends, assets, and shaders. TinyFarm currently carries the newest application-runtime shapes locally while they await a second compatible consumer. This document distinguishes the formal role from code that has actually earned extraction.
+
+## 2. What Aurelian is
+
+Operationally, an engine is reusable systems-level machinery whose implementation details are normally hidden behind stable semantic composition and runtime APIs. TinyFarm made gameplay routine only after it had deterministic state reduction, scene/content catalogs, semantic destinations, fixed-step simulation, controller-to-intent boundaries, save/replay/hash infrastructure, inspection projections, and replaceable presentation.
+
+Therefore Aurelian's formal role is:
+
+> Aurelian is an agentic interactive application/world runtime that qualifies reusable host, world-realization, action, persistence, inspection, and presentation machinery while leaving application truth and domain rules application-owned.
+
+Current `Aurelian.*` code is still weighted toward world/render infrastructure. TinyFarm is not retroactively declared an Aurelian implementation, and its types are not moved merely to satisfy the definition.
+
+The north-star claim that JTF is a high-level application runtime over .NET is supported as a direction, not yet as a finished product. JTF already assembles Copeland/TSON, Dominatus, Aurelian, Machina.UI, and applications under explicit ownership. It still lacks qualified application-facing composition APIs for several TinyFarm-proven shapes.
+
+## 3. LLM-native engine definition
+
+An LLM-native engine minimizes the systems-level reasoning that must be repeated for each application. It favors stable IDs, concrete typed commands, deterministic ordering, explicit state, inspectable intermediate forms, machine-readable content, replayable inputs, and bounded adapters. It avoids hidden callback order, mutable object graphs as authority, reflection-driven behavior, implicit binding state, and renderer-owned truth because those increase context and reasoning cost.
+
+The primary authoring equation is:
+
+```text
+qualified systems/runtime kits
++ authored semantic content
++ small application-specific state, actions, reducers, and policy
+-> application
+```
+
+This does not mean hiding the systems implementation from engine contributors. It means ordinary application work should not require understanding accumulator arithmetic, save-envelope migration, GPU synchronization, path-mesh construction, or platform callback order.
+
+## 4. Layer model
+
+```text
+APPLICATION
+  authored content, semantic state, concrete intents, domain validation,
+  reducers, target priority, controller policy
+       |
+RUNTIME / KITS
+  stable composition APIs, host/time, scene realization, navigation,
+  persistence/replay envelopes, inspection, UI pipeline
+       |
+SYSTEMS
+  clocks, allocators, storage/indexes, pathfinding integration,
+  render command execution, windows, graphics, text and platform input
+```
+
+Current project approximation:
+
+- `TinyFarm.Core` is dependency-free application truth: semantic state, scene/value types, concrete intents/results/events, resolver, hashing, and UI model.
+- `TinyFarm.Runtime` is application integration: session, TSON loaders, persistence, Dominatus policy, DotRecast-derived navigation, simulation host, DTOs, and scenarios.
+- `TinyFarm.MonoGame` is a leaf window/input/world/UI projection.
+- `Aurelian.World`, `Aurelian.Actuation`, `Aurelian.Runtime`, and rendering projects are reusable systems/runtime foundations but do not yet own TinyFarm's scene or resolver contracts.
+- `Machina.*` owns renderer-neutral UI authoring, layout, semantics, hit testing, input records, interaction helpers, and presentation operations.
+- Dominatus owns decision policy and flow, not application mutation.
+- Copeland/TSON owns authored table/program truth and its compilation/loading path, not mutable application state.
+
+No dependency cycle between Aurelian and Machina is required. A thin integration adapter may depend on both.
+
+## 5. Application model
+
+An application owns:
+
+1. semantic state and stable identities;
+2. authored definitions and validation;
+3. concrete typed intents;
+4. authoritative resolution and domain failure reasons;
+5. domain events and projection models;
+6. controller policies expressed as intent production.
+
+Application authors should usually define content, scenes/routes, state, concrete actions/reducers, and policy, then select runtime and presentation capabilities. They should not normally write fixed-step accumulators, event envelopes, save container versioning, input-edge tracking, renderer synchronization, navigation mesh plumbing, or window adapters.
+
+## 6. Scene model
+
+TinyFarm supports the law:
+
+```text
+scene composition = graph
+scene contents = validated tables
+scene routing = authoritative reducer
+gameplay truth = semantic state
+rendering = projection
+```
+
+The same model realizes Farm, Overworld, Town, General Store, Riverside, Hearth House, and Old Burrow. No mutable GameObject hierarchy is needed.
+
+Ownership inside the scene model:
+
+| Shape | Owns |
+|---|---|
+| `SceneDefinition` | stable scene ID, display name, bounds, validated collections |
+| `SceneObjectDefinition` | stable object ID, semantic kind/reference, movement-blocking property |
+| layout row | authored rectangle and layer for a scene object |
+| anchor | stable semantic destination, scene position, kind, optional semantic referent/facing, arrival radius |
+| route | source trigger, target scene/anchor, interaction label |
+| dynamic state | actor positions/facing, item placement/ownership, plot/node/tree/enemy state |
+
+Definitions never become mutable gameplay truth. Routes are reduced by the application resolver. Derived blocked-tile and navigation structures may be cached, but are rebuilt from definitions and are not persisted.
+
+Scene is a proven kit shape and remains TinyFarm-local until a second application proves compatible laws. Aurelian should not impose `GameObject`, component callbacks, or scene-hierarchy mutation.
+
+## 7. Simulation and time
+
+Five time domains must remain distinct:
+
+| Domain | Meaning | Current law |
+|---|---|---|
+| Host time | elapsed time accepted from the platform | clamped before accumulation |
+| Render time | presentation observations | never advances gameplay |
+| Locomotion time | fixed spatial steps | integer/fixed-step, independent of frame count |
+| World time | authored minutes/days and coarse progression | normal or fast-forward rate |
+| Agent decision time | bounded policy evaluation cadence | not once per render frame |
+
+The renderer does not tick gameplay, frame rate does not define simulation, and agents do not think per frame. Pause/play/fast-forward and explicit semantic minute advance are host commands. Catch-up is bounded, order is deterministic, and fixed locomotion is qualified under multiple host-delta schedules.
+
+The multi-rate host is a proven kit shape. The current `TinyFarmSimulationHost` remains local because its command vocabulary, world-minute semantics, and session coupling are application-specific. A later Aurelian host primitive should extract only accumulator/cadence law after another consumer demonstrates the same need.
+
+## 8. Controllers
+
+Controllers are peers only at the semantic boundary:
+
+```text
+human | Dominatus | LLM | replay
+             -> typed intent envelope
+             -> application resolver
+```
+
+- Human control translates keyboard/pointer edges into typed intents and retains presentation-only focus/open state.
+- Dominatus observes bounded semantic state, selects NPC goals/actions, and emits intents; it does not mutate world state.
+- LLM control parses structured semantic commands such as movement or approach into the same intent path; it does not emulate keys or mouse.
+- Replay resubmits recorded semantic envelopes and receives the same validation.
+
+The concrete differences do not justify a generic controller object hierarchy. The stable contract is intent production plus source metadata.
+
+## 9. Intents and resolution
+
+TinyFarm's concrete intent set includes movement, routing, interaction, talk, item transfer/trade, product trade, planting/watering/harvest, gathering, cooking, chopping, attack, hotbar selection/use, and wait. Each intent carries domain meaning and supports precise authorization, failure reasons, events, replay, and inspection.
+
+`GameAction(ActionKind, ...)` would erase type-specific payloads and move validation into tag switches or nullable bags. Keep concrete typed intents. The resolver remains the only gameplay mutation authority and must validate direct, selected-use, replay, and agent requests independently before applying an atomic reduction.
+
+Result law:
+
+```text
+intent envelope + prior state
+-> accepted | rejected | no-op
++ typed reason
++ ordered domain events
++ next authoritative state
+```
+
+## 10. Closed capability lowering
+
+The repeated pattern is named **closed capability lowering**:
+
+```text
+selected Turnip Seed + Plot -> PlantIntent
+selected Axe + Tree         -> ChopIntent
+selected Sword + Enemy      -> AttackIntent
+```
+
+Decision: keep the closed explicit lowering and defer a generic capability system. The three branches share control flow but not availability, target, consumption, failure, or mutation laws. A registry would relocate rather than remove complexity and would weaken type specificity. Generalize only if multiple actions become data-configurable under genuinely shared validation and result laws.
+
+## 11. Active/inactive realization
+
+The proven rule is:
+
+```text
+active scene   -> detailed spatial realization
+inactive scene -> coarse semantic progression
+```
+
+Scheduled NPCs use fixed-step path following only when active; inactive transitions operate on semantic destinations without DotRecast. Activation/deactivation realizes or collapses position deterministically. Rest and wander participate through semantic schedule/energy policy. Old Burrow enemy state remains durable while no enemy AI runs in peaceful scenes.
+
+This is a reusable runtime shape, but extraction is deferred. A second application must prove what lifecycle hooks, coarse state, and realization guarantees are shared. Navigation is derived and replaceable; it never owns semantic destinations or persisted truth.
+
+## 12. Navigation
+
+Agents target semantic places, not coordinates. Anchors and routes are stable authored identities. Runtime lowers an anchor goal to an active-scene path and fixed-step motion. DotRecast is a Runtime-only derived implementation, cached and rebuilt from scene definitions. It does not leak into Core, saves, controllers, or presentation.
+
+Navigation is a potential kit. Aurelian may later own realization interfaces and lifecycle, but TinyFarm retains its anchor/path contract until cross-application evidence exists.
+
+## 13. Content and TSON
+
+The boundary is:
+
+```text
+TSON source -> Copeland/TSON load -> TinyFarm validation/canonicalization
+            -> typed immutable catalogs -> runtime
+```
+
+TSON owns authored semantic programs/data and portable values. TinyFarm owns domain schemas, referential validation, stable-ID canonicalization, and typed catalogs. Raw `TsonTable`, row position, and compiler objects never become runtime authority. Mutable state is C# runtime truth and is not written back into definitions.
+
+Current C# constants that are behavioral laws—reach, target priority, one-hit sword damage—should remain code until authorship pressure makes them content. Existing scene, schedule, forage, recipe, tree, and enemy definitions are correctly TSON-authored. No mass migration is warranted.
+
+## 14. Persistence and replay
+
+TinyFarm proves four separable shapes:
+
+- application-specific state codecs and migrations;
+- a shared chunk/version container protocol;
+- semantic intent replay envelopes;
+- canonical semantic hashing and definition identity.
+
+The container/checkpoint mechanisms are already supplied by Dominatus/Aurelian integration where applicable, while TinyFarm owns rich state chunks and migration validation. Replay records semantic requests rather than renderer input. Hashes cover authoritative state and support repeat/save-load/replay parity.
+
+Extraction decision: defer moving TinyFarm codecs; extract or reuse only envelope/container/hash mechanics when a second application would otherwise reproduce them. Save schemas must never include DotRecast, renderer, hover, or other derived/presentation state.
+
+## 15. Machina.UI
+
+Machina.UI is the renderer-neutral UI runtime, not application state. It already owns semantic controls/actions, styles, deterministic layout, UI semantics, hit testing, input records, dispatch helpers, text measurement, and a presentation IR of fill/stroke/text/clip operations. It does not own a game window or choose a world renderer.
+
+Application state projects to a semantic UI document. Machina lowers and lays it out, produces hit-test and presentation artifacts, and routes normalized UI input. An adapter translates presentation operations and platform input. Gameplay actions return to the application's typed intent path.
+
+TinyFarm's current `PlayerUiModel` and responsive geometry are renderer-neutral application projection, but its MonoGame drawing and hit testing are temporary duplicate realization. Migration belongs in a thin adapter/integration host, not Core or gameplay Runtime.
+
+## 16. Presentation backends
+
+The composition law is:
+
+```text
+world presentation
++ Machina presentation frame
++ one host-owned input/focus router
+-> one host window
+```
+
+Backend responsibilities are surface creation, primitive/text rendering, clip realization, input normalization, focus handoff, DPI/viewport transformation, z-order, and world/UI composition. They do not know inventory, hotbar, combat, scenes, or reducers.
+
+- MonoGame: current qualified TinyFarm world/window backend; UI adapter is missing.
+- Stride: plausible world/backend host, but no current Machina same-window bridge is qualified.
+- Aurelian native: renderer contracts and Vulkan/raster infrastructure exist; a complete TinyFarm sprite/tile/text UI backend is not yet qualified.
+- Avalonia: viable as a desktop control/library realizer or separate desktop presentation. Offscreen/embedded game composition requires a proof because dispatcher, lifecycle, GPU interop, and native-control airspace constraints are material.
+
+## 17. Dominatus boundary
+
+Dominatus owns agent lifecycle/flow, utility selection, decision cadence, and policy-local memory. It may observe semantic world projections and return typed intent requests. It does not own world mutation, movement legality, inventory, energy truth, combat damage, persistence schema, rendering, or target authority.
+
+TinyFarm usage respects this boundary. Required schedule windows are structural control flow; Open windows use bounded utility selection and persistent per-actor runtime. Mutable policy state is isolated per actor. The passive Slime correctly has no Dominatus agent.
+
+## 18. Kits
+
+A kit is a qualified reusable semantic/runtime pattern that an application can compose without reconstructing its systems machinery. It is not necessarily an assembly.
+
+| Candidate | Classification | Checkpoint decision |
+|---|---|---|
+| Scene | potential kit | keep local pending second consumer |
+| Simulation Host | potential kit | keep local; host cadence is promising |
+| Interaction/Targeting | potential kit | keep local; target priority is domain law |
+| Inventory | potential kit | keep local; state shape is simple and domain-coupled |
+| Hotbar | potential kit | keep local; closed binding/lowering is still evolving |
+| Navigation | potential kit | keep derived implementation local; later realization seam |
+| Persistence | proven systems shape | reuse container ideas; defer TinyFarm codec extraction |
+| Replay | proven systems shape | semantic replay law is stable; defer package move |
+| Agent | proven kit | already shared in Dominatus |
+| UI | proven kit | already shared in Machina.UI; add adapter, not semantics |
+
+## 19. Application authoring
+
+A human or LLM building an Aurelian application should need to understand only:
+
+1. define semantic state and authored content;
+2. define scenes, objects, anchors, and routes where spatial worlds apply;
+3. choose qualified kits;
+4. define concrete typed actions and small reducers for domain behavior;
+5. define controller policy as intent production;
+6. project semantic inspection/UI and choose a presentation backend.
+
+Already boring: typed UI layout/presentation, Dominatus utility/flow, renderer-neutral snapshots/commands, TSON compilation, and deterministic fixed-point locomotion mechanics inside TinyFarm.
+
+Partly boring: host clocks, semantic targeting, navigation realization, save/replay/hash plumbing, input normalization, and same-window UI composition.
+
+Still application-exposed: scene catalog wiring, target-priority enumeration, save-version branches, definition-loader composition, and backend-specific TinyFarm UI realization.
+
+## 20. Engine internals
+
+Systems/runtime contributors must understand time-domain accumulation and catch-up, reducer atomicity and ordering, derived indexes/caches, active/inactive handoff, backend coordinate transforms and clipping, save/replay envelopes and migrations, definition identity, input focus/capture, and allocation gates. These concerns must remain explicit and testable even when absent from application authoring.
+
+## 21. Extraction rules
+
+Generalize when repeated implementations exhibit shared law and maintenance pressure, not merely when concrete types look similar. Extract systems machinery when a second application would otherwise have to reconstruct it.
+
+Evidence:
+
+- Forage, Tree, and Enemy share identity/placement/target/projection mechanics but have different domain semantics: do not create `IResourceNode` or `InteractiveWorldEntity<T>`.
+- Plant, Chop, and Attack share closed lowering but not failure/mutation law: do not create a capability registry.
+- Seven scenes reuse the same authored graph/table/route law: name it as a potential kit, but await a second application before moving it.
+- Host/time and UI adapter plumbing are systems work a second application should not reconstruct; qualify their smallest contracts next.
+
+## 22. Current limitations and next qualified infrastructure work
+
+The current architecture is coherent (Outcome A), but formal role exceeds extracted implementation in several places. The next infrastructure milestone is:
+
+> AURELIAN-MACHINA-ADAPTER-M0 — qualify one renderer-neutral Machina presentation/input adapter contract in the existing MonoGame TinyFarm window, preserving TinyFarm state/resolver authority and replacing only temporary UI drawing/hit testing.
+
+It should prove surface/viewport translation, fill/stroke/text/clip rendering, ordered input normalization, focus suppression, world/UI z-order, and semantic action return. It must not introduce gameplay, MVVM state, a generic game framework, or new assemblies beyond a demonstrated dependency need.
+
+Other limitations remain deferred: cross-application scene/host/persistence extraction, Aurelian-native TinyFarm rendering, Stride bridge, Avalonia compositor proof, and generalized hostile behavior.

@@ -1,0 +1,23 @@
+{
+  "milestone": "AURELIAN-CHKPT-M0",
+  "adapterContract": [
+    "surface size and scale",
+    "viewport coordinate transform",
+    "ordered fill stroke text and clip operations",
+    "normalized pointer keyboard text resize and close input",
+    "focus capture and lifecycle observations",
+    "world and UI z-order composition"
+  ],
+  "backends": [
+    {"name": "MonoGame", "worldRendering": "QUALIFIED_TINYFARM", "uiRendering": "TEMPORARY_LOCAL", "sameWindow": "PROVEN_WITHOUT_MACHINA_ADAPTER", "offscreen": "AVAILABLE", "accessibility": "LIMITED", "decision": "FIRST_ADAPTER_TARGET"},
+    {"name": "Stride", "worldRendering": "CAPABLE_NOT_INTEGRATED", "uiRendering": "ADAPTER_POSSIBLE", "sameWindow": "UNQUALIFIED", "offscreen": "AVAILABLE", "accessibility": "LIMITED", "decision": "DEFER"},
+    {"name": "Aurelian Native", "worldRendering": "LOW_LEVEL_FOUNDATIONS", "uiRendering": "ADAPTER_INCOMPLETE", "sameWindow": "TARGET_UNQUALIFIED", "offscreen": "LOW_LEVEL_AVAILABLE", "accessibility": "NOT_QUALIFIED", "decision": "DEFER_UNTIL_RENDER_PATH_READY"},
+    {"name": "Avalonia", "worldRendering": "CUSTOM_DRAWING_ONLY", "uiRendering": "NATIVE_STRENGTH", "sameWindow": "CONDITIONAL_PROOF_REQUIRED", "offscreen": "RENDER_TARGET_BITMAP_OR_HEADLESS_SKIA", "accessibility": "STRONGEST", "decision": "DESKTOP_ALTERNATIVE_OR_FOCUSED_POC"}
+  ],
+  "avalonia": {
+    "preferredNearTermRole": "Desktop control and accessibility realizer or desktop-only alternative",
+    "conditionalRole": "Offscreen compositor with measured copy, latency, DPI, dispatcher, and device costs",
+    "notAuthorityFor": ["inventory", "hotbar semantic selection", "game state", "simulation", "navigation", "combat"],
+    "presentationLocalState": ["hover", "pressed", "focus realization", "caret", "text shaping caches", "pure scroll offsets", "native handles"]
+  }
+}

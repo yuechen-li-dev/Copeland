@@ -3,6 +3,7 @@
 Machina.UI owns the C# UI authoring, document, layout, text/font, presenter, input-routing, hit-testing, and local UI-state layers. Existing assemblies and namespaces remain `Machina.*` during JTF-M0.
 
 - [Architecture material](architecture/)
+- [Renderer-neutral presentation architecture](machina-renderer-neutral-presentation-architecture.md)
 - [Reference contracts](reference/)
 - [Historical milestone records](history/)
 - [Machina.UI solution](../../Machina.UI.slnx)

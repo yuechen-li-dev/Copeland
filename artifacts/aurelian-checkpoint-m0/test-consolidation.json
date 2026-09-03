@@ -1,0 +1,38 @@
+{
+  "milestone": "AURELIAN-CHKPT-M0",
+  "sourceFactAndTheoryDeclarations": 232,
+  "executedTinyFarmTests": 252,
+  "testsDeleted": 0,
+  "testsConsolidated": 0,
+  "reason": "Milestone suites retain distinct hashes, invalid-input matrices, save versions, controller parity, and timing/allocation gates. Removal without a replacement capability matrix would reduce signal.",
+  "retainedGroups": [
+    "state resolver save replay and hash invariants",
+    "scene content route anchor and schedule parity",
+    "M13 timing and M14 locomotion gates",
+    "M15 allocation gates",
+    "M16 UI and focus",
+    "M17 pickup and selected-use",
+    "M18 forage",
+    "M19 cooking",
+    "M20 chop",
+    "M21 dungeon and combat",
+    "compact proof and artifact contracts"
+  ],
+  "futureCandidates": [
+    "runner and proof JSON boilerplate",
+    "repeated historical viewport wrappers after replacement matrix",
+    "repeated loader row plumbing under hash-preserving tests"
+  ],
+  "canonicalIntegrationScenario": {
+    "implementation": "TinyFarmM21Scenario.Prove composed gameplay plus enclosing parity proof",
+    "capabilities": ["SelectHotbarSlot", "Chop", "Gather", "Cook", "EnterDungeon", "Attack", "LeaveDungeon", "SaveLoad", "Replay", "Projection", "Inspection", "PeacefulHostIsolation"]
+  },
+  "validation": {
+    "tinyFarm": 252,
+    "aurelian": 606,
+    "machinaFast": 673,
+    "machinaSlow": 308,
+    "jointTaskForce": 3178,
+    "failures": 0
+  }
+}
