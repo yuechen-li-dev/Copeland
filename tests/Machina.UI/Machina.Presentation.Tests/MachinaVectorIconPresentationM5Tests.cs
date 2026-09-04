@@ -7,6 +7,7 @@ using Machina.Layout.Documents;
 using Machina.Layout.Geometry;
 using Machina.Layout.Resolving;
 using Machina.Presentation;
+using Copeland.Profile;
 using Machina.VectorAssets;
 using Xunit;
 

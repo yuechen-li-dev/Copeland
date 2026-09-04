@@ -1,6 +1,8 @@
 using System.Security.Cryptography;
 using Machina.Core.Assets;
 
+using Copeland.Profile;
+
 namespace Machina.VectorAssets;
 
 public enum VectorAtlasRowOrder

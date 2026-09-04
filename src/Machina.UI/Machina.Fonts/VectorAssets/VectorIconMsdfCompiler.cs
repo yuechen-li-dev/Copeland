@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using Copeland.Profile;
 using Machina.Fonts.Generation;
 using Machina.Core.Assets;
 using Msdfgen;

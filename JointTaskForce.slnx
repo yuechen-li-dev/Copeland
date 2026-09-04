@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Copeland/Copeland.Profile/Copeland.Profile.csproj" />
     <Project Path="src/Oblivion/Oblivion.Model/Oblivion.Model.csproj" />
     <Project Path="src/Oblivion/Oblivion.Presentation/Oblivion.Presentation.csproj" />
     <Project Path="src/Oblivion/Oblivion.Persistence/Oblivion.Persistence.csproj" />
@@ -35,6 +36,9 @@
     <Project Path="src/Integrations/Aurelian.Machina/Aurelian.Machina.csproj" />
     <Project Path="src/Integrations/Aurelian.Machina.Graphics/Aurelian.Machina.Graphics.csproj" />
     <Project Path="src/Integrations/Oblivion.Avalonia/Oblivion.Avalonia.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Copeland.Profile.M0Evidence/Copeland.Profile.M0Evidence.csproj" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/Machina.UI/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj" />

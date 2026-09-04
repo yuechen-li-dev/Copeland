@@ -3,6 +3,7 @@ using Machina.Core.Styling;
 using Machina.Core.Assets;
 using Machina.Layout.Geometry;
 using Machina.Presentation;
+using Copeland.Profile;
 using Machina.VectorAssets;
 using Xunit;
 

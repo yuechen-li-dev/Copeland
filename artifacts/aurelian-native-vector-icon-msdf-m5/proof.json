@@ -2,40 +2,40 @@
   "sourceParseMilliseconds": [
     {
       "Name": "Settings",
-      "milliseconds": 99.2641
+      "milliseconds": 116.108
     },
     {
       "Name": "Play",
-      "milliseconds": 5.774
+      "milliseconds": 21.3855
     },
     {
       "Name": "Pause",
-      "milliseconds": 8.6967
+      "milliseconds": 9.1504
     },
     {
       "Name": "Check",
-      "milliseconds": 6.2719
+      "milliseconds": 6.535
     },
     {
       "Name": "Close",
-      "milliseconds": 11.6685
+      "milliseconds": 12.0709
     },
     {
       "Name": "Heart",
-      "milliseconds": 38.5677
+      "milliseconds": 38.9769
     },
     {
       "Name": "InfoCircle",
-      "milliseconds": 58.0968
+      "milliseconds": 58.2134
     },
     {
       "Name": "Folder",
-      "milliseconds": 6.9369
+      "milliseconds": 7.2082
     }
   ],
-  "totalCompilationMilliseconds": 236.1351,
-  "atlasPackMilliseconds": 6.52,
-  "compileAllocations": 4837608,
+  "totalCompilationMilliseconds": 270.5424,
+  "atlasPackMilliseconds": 6.9665,
+  "compileAllocations": 4688584,
   "adapterAllocations": 530360,
   "perFrameVectorCompilation": 0,
   "perFrameMsdfGeneration": 0,

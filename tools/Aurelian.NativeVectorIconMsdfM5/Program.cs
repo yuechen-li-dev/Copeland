@@ -30,6 +30,7 @@ using Machina.Presentation;
 using Machina.Standard.Authoring;
 using Machina.Standard.Components;
 using Machina.Standard.Theme;
+using Copeland.Profile;
 using Machina.VectorAssets;
 using FontRgba = Machina.Fonts.ReferenceRendering.Rgba32;
 using Resolved2DRgbaColor = Aurelian.Rendering.Contracts.Resolved2D.Resolved2DRgbaColor;
@@ -48,7 +49,7 @@ Dictionary<string, VectorIconMsdfArtifact> artifacts = new(StringComparer.Ordina
 foreach (VectorIconFixture fixture in VectorIconFixtures.Canonical)
 {
     Stopwatch watch = Stopwatch.StartNew();
-    VectorIconCompilationResult result = VectorIconMsdfCompiler.CompileSvg(fixture.Source, fixture.Name + ".svg");
+    VectorIconCompilationResult result = VectorIconFixtures.Compile(fixture);
     watch.Stop();
     Require(result.Success, fixture.Name + ": " + string.Join("; ", result.Diagnostics.Select(static diagnostic => diagnostic.Reason)));
     artifacts.Add(fixture.Name, result.Artifact!);

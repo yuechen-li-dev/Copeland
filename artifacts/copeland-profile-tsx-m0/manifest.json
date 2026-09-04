@@ -1,0 +1,327 @@
+{
+  "milestone": "COPELAND-PROFILE-TSX-M0",
+  "kind": "semantic-2d-profile-construction",
+  "firmamentAudited": true,
+  "tsxOptional": true,
+  "tsxRuntimeAdded": false,
+  "reactDependencyAdded": false,
+  "geometricSsaUsed": true,
+  "immutableProfileStates": true,
+  "canonicalContourIrUsed": true,
+  "svgIsBackendOnly": true,
+  "m5MsdfPathReused": true,
+  "rawSvgAuthoringRequired": false,
+  "fullCadSystemAdded": false,
+  "fullSvgRuntimeAdded": false,
+  "llmEdit": {
+    "changedParameters": [
+      "count: 8 -\u003E 12",
+      "hole radius: 8 -\u003E 12"
+    ],
+    "originalProfileIrHash": "9f1f20470f487d7dfa1d15a1d1282abd8dde0f5545d5828040ab69491bbe1793",
+    "editedProfileIrHash": "eff5141089e6c9e0e285bcd23df4c1e8623b05a2b2ed4cecb47bda4e4b88d03d",
+    "originalContourHash": "9739816fc0b0edff09fe4ade903c4a498821368d023b1b1235d15aa8a6f0955c",
+    "editedContourHash": "663176df3e459fba57e430ebad9ef3a56773d985305354c4ddbbf595d2f4e91e"
+  },
+  "fixtures": [
+    {
+      "name": "Gear",
+      "ProfileIrHash": "eff5141089e6c9e0e285bcd23df4c1e8623b05a2b2ed4cecb47bda4e4b88d03d",
+      "CanonicalContourHash": "663176df3e459fba57e430ebad9ef3a56773d985305354c4ddbbf595d2f4e91e",
+      "contours": 2,
+      "bounds": {
+        "MinX": -39.62991361885775,
+        "MinY": -39.62991361885774,
+        "MaxX": 39.62991361885775,
+        "MaxY": 39.62991361885774
+      },
+      "states": [
+        {
+          "Index": 0,
+          "Name": "Base",
+          "ProducingFeatureId": null,
+          "OperationKind": "Circle",
+          "AppliedFeatureIds": [],
+          "ContourCount": 1,
+          "Bounds": {
+            "MinX": -32,
+            "MinY": -32,
+            "MaxX": 32,
+            "MaxY": 32,
+            "Width": 64,
+            "Height": 64
+          },
+          "ContourHash": "8c6a12f33361d1bffed4599c752ee9ee920be016d28d72192baed5c08ff9b547"
+        },
+        {
+          "Index": 1,
+          "Name": "WithTeeth",
+          "ProducingFeatureId": "GearTeeth",
+          "OperationKind": "RepeatRadial",
+          "AppliedFeatureIds": [
+            "GearTeeth"
+          ],
+          "ContourCount": 1,
+          "Bounds": {
+            "MinX": -39.62991361885775,
+            "MinY": -39.62991361885774,
+            "MaxX": 39.62991361885775,
+            "MaxY": 39.62991361885774,
+            "Width": 79.2598272377155,
+            "Height": 79.25982723771548
+          },
+          "ContourHash": "3acee8ac0677b64e0f9a3ebd31d8eec337751d029ef35eebef5e4eeb7a6dfc40"
+        },
+        {
+          "Index": 2,
+          "Name": "Hollow",
+          "ProducingFeatureId": "CenterHole",
+          "OperationKind": "Hole",
+          "AppliedFeatureIds": [
+            "GearTeeth",
+            "CenterHole"
+          ],
+          "ContourCount": 2,
+          "Bounds": {
+            "MinX": -39.62991361885775,
+            "MinY": -39.62991361885774,
+            "MaxX": 39.62991361885775,
+            "MaxY": 39.62991361885774,
+            "Width": 79.2598272377155,
+            "Height": 79.25982723771548
+          },
+          "ContourHash": "663176df3e459fba57e430ebad9ef3a56773d985305354c4ddbbf595d2f4e91e"
+        }
+      ],
+      "svg": "Gear.svg",
+      "msdf": {
+        "identity": "vector-icon-sha256-4fc9f35fcfc0ada64c2d967a98656e07bd3c07b10e6857c5ae1dc478743e6307",
+        "FieldHash": "eb39a021453e1c8b756f1fd9714c8645bb652c5b2f983584baf40a6326c20767",
+        "Width": 64,
+        "Height": 64
+      }
+    },
+    {
+      "name": "TabbedBadge",
+      "ProfileIrHash": "90a199bdb73cf6b8bac2d6a45f0bea50e9e2d2cff3952acb8c087ccc1bdb552d",
+      "CanonicalContourHash": "ee8fc45104a805044963a3175228205b70d79902fec15b4a210116304b4954c1",
+      "contours": 2,
+      "bounds": {
+        "MinX": -50,
+        "MinY": -28,
+        "MaxX": 50,
+        "MaxY": 36
+      },
+      "states": [
+        {
+          "Index": 0,
+          "Name": "Base",
+          "ProducingFeatureId": null,
+          "OperationKind": "RoundedRectangle",
+          "AppliedFeatureIds": [],
+          "ContourCount": 1,
+          "Bounds": {
+            "MinX": -50,
+            "MinY": -28,
+            "MaxX": 50,
+            "MaxY": 28,
+            "Width": 100,
+            "Height": 56
+          },
+          "ContourHash": "6e02888623b9dbfee37df5db0e7196d44b769a6cf896cac735920660c7372503"
+        },
+        {
+          "Index": 1,
+          "Name": "WithTab",
+          "ProducingFeatureId": "MountTab",
+          "OperationKind": "Tab",
+          "AppliedFeatureIds": [
+            "MountTab"
+          ],
+          "ContourCount": 1,
+          "Bounds": {
+            "MinX": -50,
+            "MinY": -28,
+            "MaxX": 50,
+            "MaxY": 36,
+            "Width": 100,
+            "Height": 64
+          },
+          "ContourHash": "fb1b8715efc29bfb7aea21c7173e58daeb69a8ba216cf2fa650f4428f4a78b74"
+        },
+        {
+          "Index": 2,
+          "Name": "Notched",
+          "ProducingFeatureId": "CableNotch",
+          "OperationKind": "Notch",
+          "AppliedFeatureIds": [
+            "MountTab",
+            "CableNotch"
+          ],
+          "ContourCount": 1,
+          "Bounds": {
+            "MinX": -50,
+            "MinY": -28,
+            "MaxX": 50,
+            "MaxY": 36,
+            "Width": 100,
+            "Height": 64
+          },
+          "ContourHash": "f6fdbe2d5a2b366eec02ee6230791630dfe10423396f296ac56070b75645472d"
+        },
+        {
+          "Index": 3,
+          "Name": "Hollow",
+          "ProducingFeatureId": "MountHole",
+          "OperationKind": "Hole",
+          "AppliedFeatureIds": [
+            "MountTab",
+            "CableNotch",
+            "MountHole"
+          ],
+          "ContourCount": 2,
+          "Bounds": {
+            "MinX": -50,
+            "MinY": -28,
+            "MaxX": 50,
+            "MaxY": 36,
+            "Width": 100,
+            "Height": 64
+          },
+          "ContourHash": "ee8fc45104a805044963a3175228205b70d79902fec15b4a210116304b4954c1"
+        }
+      ],
+      "svg": "TabbedBadge.svg",
+      "msdf": {
+        "identity": "vector-icon-sha256-04830f2f57f1715d32ee0e91782ac4877b5f5eb64834f805d6604b216fb6eba1",
+        "FieldHash": "cd2504938d4d6e2dff4e730e18828dd9e9d779506de7d8bc19e2094684b40f0e",
+        "Width": 64,
+        "Height": 41
+      }
+    },
+    {
+      "name": "Shield",
+      "ProfileIrHash": "789448fe966265b6f9f74a9418fa1548e061bb1b7516494eb7bccfc07b8241d7",
+      "CanonicalContourHash": "288ff0bf933c6da2ec0eb835f5450efbfa166ee2d42988862de82aa7432e08c1",
+      "contours": 2,
+      "bounds": {
+        "MinX": -30,
+        "MinY": -38,
+        "MaxX": 30,
+        "MaxY": 36
+      },
+      "states": [
+        {
+          "Index": 0,
+          "Name": "Base",
+          "ProducingFeatureId": null,
+          "OperationKind": "Polygon",
+          "AppliedFeatureIds": [],
+          "ContourCount": 1,
+          "Bounds": {
+            "MinX": -30,
+            "MinY": -38,
+            "MaxX": 30,
+            "MaxY": 36,
+            "Width": 60,
+            "Height": 74
+          },
+          "ContourHash": "7e420a60178d09cf712d4135b768e4d205e4d0a657d4a826e217fd6afa8a6910"
+        },
+        {
+          "Index": 1,
+          "Name": "Cutout",
+          "ProducingFeatureId": "Roundel",
+          "OperationKind": "Hole",
+          "AppliedFeatureIds": [
+            "Roundel"
+          ],
+          "ContourCount": 2,
+          "Bounds": {
+            "MinX": -30,
+            "MinY": -38,
+            "MaxX": 30,
+            "MaxY": 36,
+            "Width": 60,
+            "Height": 74
+          },
+          "ContourHash": "288ff0bf933c6da2ec0eb835f5450efbfa166ee2d42988862de82aa7432e08c1"
+        }
+      ],
+      "svg": "Shield.svg",
+      "msdf": null
+    },
+    {
+      "name": "MultiHole",
+      "ProfileIrHash": "74bccb01d6a77b7762a09a02b6a52f70ad2e141330fae0bda425fd96b2e12f43",
+      "CanonicalContourHash": "e81aecd037e4cc13806141c9c92eaefc1df15ca62b2990f5ae80f762103803a2",
+      "contours": 3,
+      "bounds": {
+        "MinX": -48,
+        "MinY": -22,
+        "MaxX": 48,
+        "MaxY": 22
+      },
+      "states": [
+        {
+          "Index": 0,
+          "Name": "Base",
+          "ProducingFeatureId": null,
+          "OperationKind": "RoundedRectangle",
+          "AppliedFeatureIds": [],
+          "ContourCount": 1,
+          "Bounds": {
+            "MinX": -48,
+            "MinY": -22,
+            "MaxX": 48,
+            "MaxY": 22,
+            "Width": 96,
+            "Height": 44
+          },
+          "ContourHash": "3b112fd118b0b6712e5bdfc375d7ab91ef6394bf07a79ff116254c3f9e5782bf"
+        },
+        {
+          "Index": 1,
+          "Name": "LeftCut",
+          "ProducingFeatureId": "LeftHole",
+          "OperationKind": "Hole",
+          "AppliedFeatureIds": [
+            "LeftHole"
+          ],
+          "ContourCount": 2,
+          "Bounds": {
+            "MinX": -48,
+            "MinY": -22,
+            "MaxX": 48,
+            "MaxY": 22,
+            "Width": 96,
+            "Height": 44
+          },
+          "ContourHash": "6528e2b3f10dfc9586daa5d2181c82dfe670df33825d63eeac51635fb2fd57b8"
+        },
+        {
+          "Index": 2,
+          "Name": "BothCut",
+          "ProducingFeatureId": "RightHole",
+          "OperationKind": "Hole",
+          "AppliedFeatureIds": [
+            "LeftHole",
+            "RightHole"
+          ],
+          "ContourCount": 3,
+          "Bounds": {
+            "MinX": -48,
+            "MinY": -22,
+            "MaxX": 48,
+            "MaxY": 22,
+            "Width": 96,
+            "Height": 44
+          },
+          "ContourHash": "e81aecd037e4cc13806141c9c92eaefc1df15ca62b2990f5ae80f762103803a2"
+        }
+      ],
+      "svg": "MultiHole.svg",
+      "msdf": null
+    }
+  ]
+}

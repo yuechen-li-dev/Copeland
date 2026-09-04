@@ -11,10 +11,10 @@
     "DescriptorSetAllocations": 3,
     "DescriptorWrites": 9,
     "VertexCapacityQuads": 256,
-    "VertexUploadMilliseconds": 1.088,
-    "CommandRecordingMilliseconds": 9.805,
-    "SubmitWaitMilliseconds": 1.88,
-    "ReadbackMilliseconds": 20.785,
+    "VertexUploadMilliseconds": 0.992,
+    "CommandRecordingMilliseconds": 8.198,
+    "SubmitWaitMilliseconds": 1.668,
+    "ReadbackMilliseconds": 20.682,
     "CpuAllocatedBytes": 3703232
   },
   "warm": {
@@ -26,9 +26,9 @@
     "DescriptorSetAllocations": 0,
     "DescriptorWrites": 0,
     "VertexCapacityQuads": 256,
-    "VertexUploadMilliseconds": 0.076,
-    "CommandRecordingMilliseconds": 0.078,
-    "SubmitWaitMilliseconds": 0.401,
+    "VertexUploadMilliseconds": 0.105,
+    "CommandRecordingMilliseconds": 0.123,
+    "SubmitWaitMilliseconds": 0.396,
     "ReadbackMilliseconds": 0,
     "CpuAllocatedBytes": 10304
   },
@@ -41,10 +41,10 @@
     "DescriptorSetAllocations": 0,
     "DescriptorWrites": 0,
     "VertexCapacityQuads": 256,
-    "VertexUploadMilliseconds": 0.058,
-    "CommandRecordingMilliseconds": 0.098,
-    "SubmitWaitMilliseconds": 0.583,
-    "ReadbackMilliseconds": 15.93,
+    "VertexUploadMilliseconds": 0.063,
+    "CommandRecordingMilliseconds": 0.116,
+    "SubmitWaitMilliseconds": 0.63,
+    "ReadbackMilliseconds": 20.809,
     "CpuAllocatedBytes": 3697784
   },
   "vectorAtlasUploads": 1,
@@ -60,10 +60,10 @@
     "DescriptorSetAllocations": 6,
     "DescriptorWrites": 6,
     "VertexCapacityQuads": 256,
-    "VertexUploadMilliseconds": 0.008,
-    "CommandRecordingMilliseconds": 0.145,
-    "SubmitWaitMilliseconds": 0.667,
-    "ReadbackMilliseconds": 20.588,
+    "VertexUploadMilliseconds": 0.01,
+    "CommandRecordingMilliseconds": 0.166,
+    "SubmitWaitMilliseconds": 0.876,
+    "ReadbackMilliseconds": 20.427,
     "CpuAllocatedBytes": 3700648
   },
   "msdfShader": {
@@ -76,7 +76,7 @@
     "VdMirSha256": "c25beffaa0e22f29dc113310c523e8a1eed43e8b4b144a45f67a17692525763b",
     "HlslSha256": "f95747ea5f4a382140fa6e1377bce6e27dd89233c2c6301780ef7ef1a054db92"
   },
-  "PixelSha256": "31189773aaa219c61021c39683c36aca7ea4512dd6024e4a7cb3b8ca48e928c5",
+  "PixelSha256": "fb0bcf804aff349799382a5039b216b050607e5026c20ca011b369eedcfebb36",
   "screenshots": [
     "showcase-1280x720.png",
     "showcase-2560x1440.png"

@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Machina.VectorAssets;
+namespace Copeland.Profile;
 
 public enum VectorFillRule
 {
@@ -29,6 +29,13 @@ public readonly record struct VectorPoint
 
 public abstract record VectorSegment;
 
+public enum VectorContourRole
+{
+    Auto,
+    Outer,
+    Hole,
+}
+
 public sealed record VectorLine(VectorPoint P0, VectorPoint P1) : VectorSegment;
 
 public sealed record VectorQuadratic(VectorPoint P0, VectorPoint P1, VectorPoint P2) : VectorSegment;
@@ -37,13 +44,16 @@ public sealed record VectorCubic(VectorPoint P0, VectorPoint P1, VectorPoint P2,
 
 public sealed record VectorContour
 {
-    public VectorContour(IReadOnlyList<VectorSegment> segments)
+    public VectorContour(IReadOnlyList<VectorSegment> segments, VectorContourRole role = VectorContourRole.Auto)
     {
         ArgumentNullException.ThrowIfNull(segments);
         Segments = segments.Where(static segment => !IsExactlyZeroLength(segment)).ToArray();
+        Role = role;
     }
 
     public IReadOnlyList<VectorSegment> Segments { get; }
+
+    public VectorContourRole Role { get; }
 
     private static bool IsExactlyZeroLength(VectorSegment segment)
     {
@@ -139,7 +149,12 @@ public sealed record VectorShape
             }
             // MSDF-Sharp's upward-Y convention treats clockwise outer contours as filled.
             // Alternate direction by nesting depth so non-zero holes are canonical.
-            bool shouldBePositive = depth % 2 != 0;
+            bool shouldBePositive = contours[index].Role switch
+            {
+                VectorContourRole.Outer => false,
+                VectorContourRole.Hole => true,
+                _ => depth % 2 != 0,
+            };
             bool isPositive = SignedArea(flattened[index]) > 0;
             normalized[index] = shouldBePositive == isPositive ? contours[index] : Reverse(contours[index]);
         }
@@ -154,7 +169,7 @@ public sealed record VectorShape
             VectorQuadratic quadratic => new VectorQuadratic(quadratic.P2, quadratic.P1, quadratic.P0),
             VectorCubic cubic => new VectorCubic(cubic.P3, cubic.P2, cubic.P1, cubic.P0),
             _ => throw new InvalidOperationException(),
-        }).ToArray());
+        }).ToArray(), contour.Role);
     }
 
     private static IReadOnlyList<VectorPoint> Flatten(VectorContour contour)
@@ -250,6 +265,10 @@ public sealed record VectorShape
         foreach (VectorContour contour in contours)
         {
             canonical.Append("contour|");
+            if (contour.Role != VectorContourRole.Auto)
+            {
+                canonical.Append(contour.Role).Append('|');
+            }
             foreach (VectorSegment segment in contour.Segments)
             {
                 switch (segment)

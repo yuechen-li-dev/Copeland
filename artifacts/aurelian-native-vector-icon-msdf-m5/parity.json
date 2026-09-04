@@ -10,37 +10,37 @@
     {
       "name": "Settings",
       "Size": 16,
-      "IntersectionOverUnion": 0.9801324503311258,
-      "MeanEdgeDistance": 0.02631578947368421,
-      "MaximumEdgeDistance": 1
-    },
-    {
-      "name": "Settings",
-      "Size": 24,
-      "IntersectionOverUnion": 0.9882005899705014,
-      "MeanEdgeDistance": 0.023668639053254437,
-      "MaximumEdgeDistance": 1
-    },
-    {
-      "name": "Settings",
-      "Size": 32,
-      "IntersectionOverUnion": 0.9966666666666667,
-      "MeanEdgeDistance": 0.008368200836820083,
-      "MaximumEdgeDistance": 1
-    },
-    {
-      "name": "Settings",
-      "Size": 64,
       "IntersectionOverUnion": 1,
       "MeanEdgeDistance": 0,
       "MaximumEdgeDistance": 0
     },
     {
       "name": "Settings",
+      "Size": 24,
+      "IntersectionOverUnion": 1,
+      "MeanEdgeDistance": 0,
+      "MaximumEdgeDistance": 0
+    },
+    {
+      "name": "Settings",
+      "Size": 32,
+      "IntersectionOverUnion": 1,
+      "MeanEdgeDistance": 0,
+      "MaximumEdgeDistance": 0
+    },
+    {
+      "name": "Settings",
+      "Size": 64,
+      "IntersectionOverUnion": 0.9865092748735245,
+      "MeanEdgeDistance": 0.05194805194805195,
+      "MaximumEdgeDistance": 1
+    },
+    {
+      "name": "Settings",
       "Size": 128,
-      "IntersectionOverUnion": 0.9970942299709423,
-      "MeanEdgeDistance": 0.027144945599972867,
-      "MaximumEdgeDistance": 1.4142135623730951
+      "IntersectionOverUnion": 0.9966187658495351,
+      "MeanEdgeDistance": 0.025,
+      "MaximumEdgeDistance": 1
     },
     {
       "name": "Play",
@@ -292,8 +292,8 @@
     {
       "SourceId": "settings-icon",
       "size": 24,
-      "iou": 0.9940298507462687,
-      "gpuHash": "cd6d314acf8a8c6e9af16b97d23e5fc78b053b16af3e9074d004cc5bc3648c25"
+      "iou": 0.9940828402366864,
+      "gpuHash": "68743383552d7289089d20eb99e2ddec864d5c2d1f1b49a50d860aa797f98dc9"
     },
     {
       "SourceId": "play-icon",
@@ -316,8 +316,8 @@
     {
       "SourceId": "corpus-0",
       "size": 64,
-      "iou": 1,
-      "gpuHash": "8fd3cf5bfcb80ef66255153e10342318339fc9e412354fcd4275e1f144b78175"
+      "iou": 0.9923664122137404,
+      "gpuHash": "a73ffe0fcc2e6b552ff00ebb44a3f618d2d4db18b1ca8ec28988c8ea38b5cd12"
     },
     {
       "SourceId": "corpus-1",
@@ -364,38 +364,38 @@
     {
       "SourceId": "size-16",
       "size": 16,
-      "iou": 0.9932885906040269,
-      "gpuHash": "85c0c6f1ae24df572c56d0aa13e542e941fc96c67f59add0383dc51f6c868ce4"
+      "iou": 1,
+      "gpuHash": "d93db6d1fe7df49d79204f5c6acda5ca7c2cf916bd62a82c1ce7a51d28e640ae"
     },
     {
       "SourceId": "size-24",
       "size": 24,
-      "iou": 0.9823529411764705,
-      "gpuHash": "2f3748518915e7e9ca80f5741aca1d0ceb73c5a896ccc4f2dd6d57bb42bc156e"
+      "iou": 0.9821428571428571,
+      "gpuHash": "e6f651f9dc39a9981219543efdbc7561c103fe9e0eca7cc5d700be3c6c37e4da"
     },
     {
       "SourceId": "size-32",
       "size": 32,
-      "iou": 0.9916666666666667,
-      "gpuHash": "a49374f1be02240ce07bba73f56483c7c237d623fdef81bff90d51f60db4144d"
+      "iou": 1,
+      "gpuHash": "49552a5af9d60d95696865f4109c36e05ab6e9f6c31b353cd4627200d6b592ef"
     },
     {
       "SourceId": "size-64",
       "size": 64,
-      "iou": 1,
-      "gpuHash": "e1c874b8ebde81dbc4479e0bf6d3c416c2551a808e12d933600f383faf783e8e"
+      "iou": 0.9915254237288136,
+      "gpuHash": "8e63b8923407b7a4ce9bb3508810604af1df5f7137c2b78dcf0f6f1d778e3645"
     },
     {
       "SourceId": "size-128",
       "size": 128,
-      "iou": 0.9965746315133901,
-      "gpuHash": "6c32acb98c6c8a41dca178910f7a5fcb2cda2e4ac77cd7cf1f334137850d80f1"
+      "iou": 0.9947190536544148,
+      "gpuHash": "708a0301862da7838cb527cfada2169dd5c6bebbc3dff26b5efcba949a75a9be"
     },
     {
       "SourceId": "mixed-icon",
       "size": 32,
-      "iou": 0.9916666666666667,
-      "gpuHash": "f9d96730430ad7634ff0c28d4cb51149e247d662070fb5543cb61d4db2f37a4c"
+      "iou": 0.9966666666666667,
+      "gpuHash": "2076b7135e4423de04c0dae72230850e3e06fbe0d7d38ccb008661f949b7f273"
     }
   ],
   "nonFiniteFieldValues": 0

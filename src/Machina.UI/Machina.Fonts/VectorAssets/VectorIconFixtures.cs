@@ -1,5 +1,7 @@
 using Machina.Core.Assets;
 
+using Copeland.Profile;
+
 namespace Machina.VectorAssets;
 
 public sealed record VectorIconFixture(string Name, string Source, string Provenance);
@@ -41,10 +43,7 @@ public static class VectorIconFixtures
         Dictionary<string, VectorIconMsdfArtifact> result = new(StringComparer.Ordinal);
         foreach (VectorIconFixture fixture in Canonical)
         {
-            VectorIconCompilationResult compilation = VectorIconMsdfCompiler.CompileSvg(
-                fixture.Source,
-                fixture.Name + ".svg",
-                settings);
+            VectorIconCompilationResult compilation = Compile(fixture, settings);
             if (!compilation.Success)
             {
                 string message = string.Join("; ", compilation.Diagnostics.Select(static diagnostic => diagnostic.Reason));
@@ -53,6 +52,22 @@ public static class VectorIconFixtures
             result.Add(fixture.Name, compilation.Artifact!);
         }
         return result;
+    }
+
+    public static VectorIconCompilationResult Compile(
+        VectorIconFixture fixture,
+        VectorIconCompilationSettings? settings = null)
+    {
+        ArgumentNullException.ThrowIfNull(fixture);
+        settings ??= new VectorIconCompilationSettings();
+        if (fixture.Name == "Settings")
+        {
+            const string semanticSource = "Circle(radius:32) -> RepeatRadial(count:12,toothDepth:8) -> Hole(radius:12)";
+            ProfileCompilationResult profile = ProfileCompiler.Compile(ProfileFixtures.Gear());
+            return ProfileVectorIconCompiler.Compile(profile, semanticSource, "Settings.profile.tsx", settings);
+        }
+
+        return VectorIconMsdfCompiler.CompileSvg(fixture.Source, fixture.Name + ".svg", settings);
     }
 }
 

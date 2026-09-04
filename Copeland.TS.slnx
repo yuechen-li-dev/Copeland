@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Copeland/Copeland.Profile/Copeland.Profile.csproj" />
     <Project Path="src/Copeland/Copeland.TS.Mir/Copeland.TS.Mir.csproj" />
     <Project Path="src/Copeland/Copeland.TS/Copeland.TS.csproj" />
     <Project Path="src/Copeland/Copeland.TS.Backend.CSharp/Copeland.TS.Backend.CSharp.csproj" />

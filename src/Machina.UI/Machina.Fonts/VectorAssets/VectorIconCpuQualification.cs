@@ -1,3 +1,5 @@
+using Copeland.Profile;
+
 namespace Machina.VectorAssets;
 
 public sealed record VectorIconParityMetrics(

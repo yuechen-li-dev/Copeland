@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
+using Copeland.Profile;
 
 namespace Machina.VectorAssets;
 

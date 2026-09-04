@@ -2,6 +2,7 @@ using Aurelian.Graphics.Vulkan.Native2D;
 using Machina.Core.Styling;
 using Machina.Layout.Geometry;
 using Machina.Presentation;
+using Copeland.Profile;
 using Machina.VectorAssets;
 
 namespace Aurelian.Machina;

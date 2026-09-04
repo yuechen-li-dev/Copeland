@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Copeland/Copeland.Profile/Copeland.Profile.csproj" />
     <Project Path="src/ThirdParty/Machina.Typography.OpenFont/Machina.Typography.OpenFont.csproj" />
     <Project Path="src/Machina.UI/Machina.Core/Machina.Core.csproj" />
     <Project Path="src/Machina.UI/Machina.Fonts/Machina.Fonts.csproj" />

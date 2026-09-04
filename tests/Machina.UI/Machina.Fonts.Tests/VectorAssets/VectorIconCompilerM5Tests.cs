@@ -1,3 +1,4 @@
+using Copeland.Profile;
 using Machina.VectorAssets;
 using Xunit;
 

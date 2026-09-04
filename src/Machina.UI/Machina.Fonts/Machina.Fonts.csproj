@@ -4,6 +4,7 @@
     <RootNamespace>Machina.Fonts</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../Copeland/Copeland.Profile/Copeland.Profile.csproj" />
     <ProjectReference Include="../../ThirdParty/Machina.Typography.OpenFont/Machina.Typography.OpenFont.csproj" />
     <ProjectReference Include="../Machina.Core/Machina.Core.csproj" />
   </ItemGroup>
