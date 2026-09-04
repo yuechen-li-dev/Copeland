@@ -392,9 +392,14 @@ internal sealed class StaticEvaluator
     }
 
     public StaticValue Evaluate(BoundExpression expression)
+        => Evaluate(expression, new Dictionary<VariableSymbol, StaticValue>());
+
+    internal StaticValue Evaluate(
+        BoundExpression expression,
+        IReadOnlyDictionary<VariableSymbol, StaticValue> initialValues)
     {
         ResetBudgets();
-        StaticValue value = EvaluateExpression(expression, new StaticEnvironment());
+        StaticValue value = EvaluateExpression(expression, new StaticEnvironment(initialValues));
         int embeddedValues = CountEmbeddedValues(value);
         if (embeddedValues > _limits.MaximumEmbeddedValues)
         {
@@ -1091,6 +1096,11 @@ internal sealed class StaticEvaluator
         public StaticEnvironment()
         {
             _values = new Dictionary<string, StaticValue>(StringComparer.Ordinal);
+        }
+
+        public StaticEnvironment(IReadOnlyDictionary<VariableSymbol, StaticValue> values)
+        {
+            _values = values.ToDictionary(pair => pair.Key.Name, pair => pair.Value, StringComparer.Ordinal);
         }
 
         private StaticEnvironment(Dictionary<string, StaticValue> values)

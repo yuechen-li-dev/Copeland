@@ -1,0 +1,139 @@
+{
+  "milestone": "COPELAND-PROFILE-TEMPLATE-FUNCTIONS-M1",
+  "kind": "typed-compile-time-profile-function-composition",
+  "outcome": "A",
+  "profileFunctionsAreOrdinaryFunctions": true,
+  "templateValueParametersUsed": true,
+  "typeGenericsAbusedForValues": false,
+  "profileOperationArraySupported": true,
+  "templateReturnsTypedValues": true,
+  "syntaxInjectionUsed": false,
+  "reparseUsed": false,
+  "geometryMacroSystemAdded": false,
+  "runtimeProfileInterpreterAdded": false,
+  "profileSemanticIrChanged": false,
+  "m5RendererChanged": false,
+  "parity": {
+    "profileIr": true,
+    "contour": true,
+    "svg": true,
+    "msdf": true
+  },
+  "validation": {
+    "focused": 89,
+    "copeland": 1653,
+    "machina": 738,
+    "aurelian": 650,
+    "jointTaskForce": 3358,
+    "nativeM5Icons": 8,
+    "nativeM5SemanticUses": 18,
+    "nativeM5ValidationErrors": 0
+  },
+  "variants": [
+    {
+      "count": 8,
+      "templateSpecializationHash": "166ec5d490f5bf85ac9011686bf09a112c0c1d672080bc7118fda1e03431b949",
+      "profileOperationArrayHash": "166ec5d490f5bf85ac9011686bf09a112c0c1d672080bc7118fda1e03431b949",
+      "ProfileIrHash": "b6e828ab3a6484529fc2aa5a7c693c3139295629cb1fa0d951321a2a84af6086",
+      "CanonicalContourHash": "08c3bea79aee553a30c0cf60cb9b2bf59d7bd8b923302fe41a3264d354706d8a",
+      "svgHash": "e49ff0244b59e18dcb17cf3c750bd16c473ab06ecd56e4a75fbfeeea79f8215a",
+      "msdfHash": "590021e146f133fd08bdbbbd4d9bea403ac509cf4274c2f9ff116e1e9ec9bca7",
+      "iconIdentity": "vector-icon-sha256-22824c68aa8dc24a6afb841638fa042a73d2fc6f51d42caba8d5dea7067aecfc",
+      "operation": {
+        "FeatureId": "GearTeeth",
+        "InputState": "Base",
+        "OutputState": "WithTeeth",
+        "Kind": "RepeatRadial",
+        "Span": {
+          "Path": "Gear-8.profile.tsx",
+          "Start": 99,
+          "Length": 69
+        },
+        "TemplateProvenance": {
+          "TemplateName": "GearTeeth",
+          "SpecializationArguments": [
+            "count=8",
+            "toothFraction=0.52",
+            "toothDepth=8"
+          ],
+          "InstantiationSpan": {
+            "Path": "Gear-8.profile.tsx",
+            "Start": 99,
+            "Length": 69
+          },
+          "GeneratedOperationIndex": 0
+        }
+      }
+    },
+    {
+      "count": 12,
+      "templateSpecializationHash": "9dc1129ca007f24ec2311fa862ff934c3bf566a5ea7796c939f0ea5ce20b7995",
+      "profileOperationArrayHash": "9dc1129ca007f24ec2311fa862ff934c3bf566a5ea7796c939f0ea5ce20b7995",
+      "ProfileIrHash": "eff5141089e6c9e0e285bcd23df4c1e8623b05a2b2ed4cecb47bda4e4b88d03d",
+      "CanonicalContourHash": "663176df3e459fba57e430ebad9ef3a56773d985305354c4ddbbf595d2f4e91e",
+      "svgHash": "6b43df9e1ed9fe02a680602033ce5657e71be75564bcad7c394471b0c6219303",
+      "msdfHash": "eb39a021453e1c8b756f1fd9714c8645bb652c5b2f983584baf40a6326c20767",
+      "iconIdentity": "vector-icon-sha256-4fc9f35fcfc0ada64c2d967a98656e07bd3c07b10e6857c5ae1dc478743e6307",
+      "operation": {
+        "FeatureId": "GearTeeth",
+        "InputState": "Base",
+        "OutputState": "WithTeeth",
+        "Kind": "RepeatRadial",
+        "Span": {
+          "Path": "Gear-12.profile.tsx",
+          "Start": 99,
+          "Length": 70
+        },
+        "TemplateProvenance": {
+          "TemplateName": "GearTeeth",
+          "SpecializationArguments": [
+            "count=12",
+            "toothFraction=0.52",
+            "toothDepth=8"
+          ],
+          "InstantiationSpan": {
+            "Path": "Gear-12.profile.tsx",
+            "Start": 99,
+            "Length": 70
+          },
+          "GeneratedOperationIndex": 0
+        }
+      }
+    },
+    {
+      "count": 16,
+      "templateSpecializationHash": "35effd144b1b9adcb7083274ff457f958ea3b73c5e1126c15ba0b72a597a61eb",
+      "profileOperationArrayHash": "35effd144b1b9adcb7083274ff457f958ea3b73c5e1126c15ba0b72a597a61eb",
+      "ProfileIrHash": "2d578a5c4785b47979f5f176724fa15a1ce58ad001eb63c27fece3ac0407ab16",
+      "CanonicalContourHash": "8c38ab0947a29f9531589020f21db38da157187b37b38fd4a4d28da89ca88be4",
+      "svgHash": "0edc06282023aeb3033ed685cd94638466fd8c0be499e22eb4a299030cdb69be",
+      "msdfHash": "16c3050b6a52c5a88686b5521db4299b896c79e00bd9c06c3e4ca68372d41ea9",
+      "iconIdentity": "vector-icon-sha256-2ba1ae1515d8e698490d137ef8ec2005055df948c8a672d6eb9e847d26429cc4",
+      "operation": {
+        "FeatureId": "GearTeeth",
+        "InputState": "Base",
+        "OutputState": "WithTeeth",
+        "Kind": "RepeatRadial",
+        "Span": {
+          "Path": "Gear-16.profile.tsx",
+          "Start": 99,
+          "Length": 70
+        },
+        "TemplateProvenance": {
+          "TemplateName": "GearTeeth",
+          "SpecializationArguments": [
+            "count=16",
+            "toothFraction=0.52",
+            "toothDepth=8"
+          ],
+          "InstantiationSpan": {
+            "Path": "Gear-16.profile.tsx",
+            "Start": 99,
+            "Length": 70
+          },
+          "GeneratedOperationIndex": 0
+        }
+      }
+    }
+  ]
+}

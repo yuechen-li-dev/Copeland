@@ -1,5 +1,9 @@
 # COPELAND-PROFILE-TSX-M0 report
 
+> M1 update: Profile booleans/features are ordinary compile-time functions.
+> Templates specialize typed Profile values; they do not emit syntax. See
+> `profile-template-functions-m1-report.md` for the completed template seam.
+
 ## Outcome
 
 **Outcome B — the semantic model and real contour/MSDF path are good, but the

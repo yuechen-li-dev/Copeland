@@ -58,7 +58,16 @@ public abstract record ProfileOperation(
     string InputState,
     string OutputState,
     string Kind,
-    ProfileSourceSpan Span);
+    ProfileSourceSpan Span)
+{
+    public ProfileTemplateProvenance? TemplateProvenance { get; init; }
+}
+
+public sealed record ProfileTemplateProvenance(
+    string TemplateName,
+    IReadOnlyList<string> SpecializationArguments,
+    ProfileSourceSpan InstantiationSpan,
+    int GeneratedOperationIndex);
 
 public sealed record AddProfileOperation(
     string Id,

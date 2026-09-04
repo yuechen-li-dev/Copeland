@@ -3478,7 +3478,7 @@ public static class Binder
                     TemplateParameterSyntax syntaxParameter = declaration.Syntax.Parameters[index];
                     BoundTemplateValue? defaultValue = syntaxParameter.DefaultValue is null
                         ? null
-                        : BindTemplateValue(syntaxParameter.DefaultValue);
+                        : BindTemplateValue(syntaxParameter.DefaultValue, declaration.Symbol.Parameters[index].Type);
                     if (defaultValue is not null && !IsAssignable(declaration.Symbol.Parameters[index].Type, defaultValue.Type))
                     {
                         Report(
@@ -3532,10 +3532,11 @@ public static class Binder
                     {
                         Report("COPE-STATIC-0001", "Template-local values must be immutable 'const' declarations.", variable.Keyword);
                     }
-                    BoundTemplateValue initializer = BindTemplateValue(variable.Initializer);
-                    TypeSymbol localType = variable.Type is null
-                        ? initializer.Type
+                    TypeSymbol? declaredLocalType = variable.Type is null
+                        ? null
                         : BindType(variable.Type, variable.Identifier, "COPE-TEMPLATE-0002", "template local");
+                    BoundTemplateValue initializer = BindTemplateValue(variable.Initializer, declaredLocalType);
+                    TypeSymbol localType = declaredLocalType ?? initializer.Type;
                     if (!IsAssignable(localType, initializer.Type))
                     {
                         Report("COPE-TEMPLATE-0002", $"Template local '{variable.Identifier.Text}' expected '{localType.Name}', got '{initializer.Type.Name}'.", variable.Identifier);
@@ -3553,7 +3554,9 @@ public static class Binder
                     Report("COPE-STATIC-0003", "Only emit(artifact) is allowed as a template expression statement.", FirstToken(expression.Expression));
                     return new BoundTemplateBlock(FirstToken(expression.Expression), []);
                 case ReturnStatementSyntax returned:
-                    BoundTemplateValue? returnedValue = returned.Expression is null ? null : BindTemplateValue(returned.Expression);
+                    BoundTemplateValue? returnedValue = returned.Expression is null
+                        ? null
+                        : BindTemplateValue(returned.Expression, _activeTemplateResultType);
                     if (_activeTemplateResultType is not null
                         && (returnedValue is null || !IsAssignable(_activeTemplateResultType, returnedValue.Type)))
                     {
@@ -3638,7 +3641,7 @@ public static class Binder
             return new BoundTemplateLiteral(token, null, PrimitiveTypeSymbol.Error);
         }
 
-        private BoundTemplateValue BindTemplateValue(ExpressionSyntax syntax)
+        private BoundTemplateValue BindTemplateValue(ExpressionSyntax syntax, TypeSymbol? contextualType = null)
         {
             switch (syntax)
             {
@@ -3659,11 +3662,26 @@ public static class Binder
                     Report("COPE-TEMPLATE-0002", $"Unknown static value '{name.IdentifierToken.Text}'.", name.IdentifierToken);
                     return new BoundTemplateLiteral(name.IdentifierToken, null, PrimitiveTypeSymbol.Error);
                 case ParenthesizedExpressionSyntax parenthesized:
-                    return BindTemplateValue(parenthesized.Expression);
+                    return BindTemplateValue(parenthesized.Expression, contextualType);
                 case ReflectExpressionSyntax reflection:
                     return BindReflectionQuery(reflection);
                 case ArrayLiteralExpressionSyntax array:
-                    return new BoundTemplateArray(array.OpenBracketToken, array.Elements.Select(BindTemplateValue).ToArray());
+                    TypeSymbol? contextualElementType = (contextualType as ArrayTypeSymbol)?.ElementType;
+                    BoundTemplateValue[] elements = array.Elements
+                        .Select(element => BindTemplateValue(element, contextualElementType))
+                        .ToArray();
+                    TypeSymbol? elementType = contextualElementType ?? elements.FirstOrDefault()?.Type;
+                    foreach (BoundTemplateValue element in elements.Skip(1))
+                    {
+                        if (elementType is not null && !IsAssignable(elementType, element.Type))
+                        {
+                            Report(
+                                "COPE-TEMPLATE-0017",
+                                $"Template array element expected '{elementType.Name}', got '{element.Type.Name}'.",
+                                element.Anchor);
+                        }
+                    }
+                    return new BoundTemplateArray(array.OpenBracketToken, elements, contextualElementType);
                 case BinaryExpressionSyntax binary when binary.OperatorToken.Kind == SyntaxKind.PlusToken:
                     BoundTemplateValue left = BindTemplateValue(binary.Left);
                     BoundTemplateValue right = BindTemplateValue(binary.Right);
@@ -3672,6 +3690,10 @@ public static class Binder
                         Report("COPE-STATIC-0003", "Static '+' currently requires two static strings.", binary.OperatorToken);
                     }
                     return new BoundTemplateBinary(binary.OperatorToken, binary.OperatorToken.Kind, left, right, PrimitiveTypeSymbol.String);
+                case ObjectLiteralExpressionSyntax record when contextualType is RecordTypeSymbol:
+                    return new BoundTemplateOrdinaryExpression(
+                        record.OpenBraceToken,
+                        BindExpression(record, contextualType));
                 case ObjectLiteralExpressionSyntax record:
                     return BindTemplateRecord(record);
                 case MemberAccessExpressionSyntax access:
@@ -3704,7 +3726,7 @@ public static class Binder
 
             BoundTemplateValue value;
             BoundSemanticReflectionQuery query;
-            BoundTemplateValue[] arguments = generic.Arguments.Select(BindTemplateValue).ToArray();
+            BoundTemplateValue[] arguments = generic.Arguments.Select(argument => BindTemplateValue(argument)).ToArray();
             switch (name.IdentifierToken.Text)
             {
                 case "nameOf":
@@ -3796,7 +3818,19 @@ public static class Binder
             {
                 return BindTypedSourceArtifact(name.IdentifierToken, name.IdentifierToken.Text, typeArgumentSyntax[0], arguments);
             }
-            var values = arguments.Select(BindTemplateValue).ToArray();
+            if (_scope.TryLookup(name.IdentifierToken.Text, out Symbol? ordinaryResolved)
+                && ordinaryResolved is FunctionSymbol)
+            {
+                BoundExpression ordinary = call switch
+                {
+                    CallExpressionSyntax ordinaryCall => BindCall(ordinaryCall, null),
+                    GenericCallExpressionSyntax genericCall => BindGenericCall(genericCall, null),
+                    _ => new BoundErrorExpression(),
+                };
+                return new BoundTemplateOrdinaryExpression(anchor, ordinary);
+            }
+
+            var values = arguments.Select(argument => BindTemplateValue(argument)).ToArray();
             if (name.IdentifierToken.Text == "fieldsOf")
             {
                 ReportReflectionMigration(name.IdentifierToken);

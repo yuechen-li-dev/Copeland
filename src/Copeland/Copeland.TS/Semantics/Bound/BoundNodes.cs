@@ -1129,6 +1129,17 @@ public sealed class BoundTemplateInvocation(
     public IReadOnlyList<BoundTemplateValue> Arguments { get; } = arguments;
 }
 
+/// <summary>
+/// An ordinary, fully bound Copeland expression evaluated by the shared static
+/// evaluator while a template specialization is being constructed.
+/// </summary>
+public sealed class BoundTemplateOrdinaryExpression(
+    SyntaxToken anchor,
+    BoundExpression expression) : BoundTemplateValue(anchor, expression.Type)
+{
+    public BoundExpression Expression { get; } = expression;
+}
+
 public abstract class BoundTemplateStatement(SyntaxToken anchor) : BoundTemplateNode(anchor);
 public sealed class BoundTemplateBlock(SyntaxToken anchor, IReadOnlyList<BoundTemplateStatement> statements) : BoundTemplateStatement(anchor)
 {

@@ -16,15 +16,19 @@ public sealed class TemplateEvaluationResult(
     ProjectTree? project,
     IReadOnlyList<Diagnostic> diagnostics,
     IReadOnlyList<string> instantiationChain,
-    Diagram? diagram = null)
+    Diagram? diagram = null,
+    TemplateTypedValue? value = null)
 {
     public string TemplateName { get; } = templateName;
     public ProjectTree? Project { get; } = project;
     public Diagram? Diagram { get; } = diagram;
+    public TemplateTypedValue? Value { get; } = value;
     public IReadOnlyList<Diagnostic> Diagnostics { get; } = diagnostics;
     public IReadOnlyList<string> InstantiationChain { get; } = instantiationChain;
-    public bool Success => (Project is not null || Diagram is not null) && Diagnostics.Count == 0;
+    public bool Success => (Project is not null || Diagram is not null || Value is not null) && Diagnostics.Count == 0;
 }
+
+public sealed record TemplateTypedValue(TypeSymbol Type, object? Value, string DeterministicHash);
 
 /// <summary>
 /// Evaluates only the explicitly supported structural subset. It has no callback
@@ -83,6 +87,11 @@ public static class TemplateCompiler
         var evaluator = new BoundPlanEvaluator(boundCompilations, templates, diagnostics);
         object? result = evaluator.EvaluateTemplate(entry, entryArguments);
         Diagram? diagram = result as Diagram;
+        TemplateTypedValue? typedValue = result switch
+        {
+            ProjectTree or DotNetSolutionValue or ArtifactNode or Diagram or null => null,
+            _ => new TemplateTypedValue(entry.Symbol.ReturnType, result, HashTypedValue(entry.Symbol.ReturnType, result)),
+        };
         ProjectTree? project = result switch
         {
             ProjectTree tree => tree,
@@ -92,20 +101,14 @@ public static class TemplateCompiler
             ArtifactNode artifact => LowerArtifact(artifact),
             null => null,
             Diagram => null,
-            _ => ReportUnsupportedMaterializer(entry.Symbol.ReturnType),
+            _ => null,
         };
-        return new TemplateEvaluationResult(entry.Symbol.Name, project, diagnostics, evaluator.InstantiationChain, diagram);
+        return new TemplateEvaluationResult(entry.Symbol.Name, project, diagnostics, evaluator.InstantiationChain, diagram, typedValue);
 
         ProjectTree? ReportLoweringFailure(DotNetSolutionValue solution)
         {
             _ = solution.TryLower(out _, out IReadOnlyList<Diagnostic> loweringDiagnostics);
             diagnostics.AddRange(loweringDiagnostics);
-            return null;
-        }
-
-        ProjectTree? ReportUnsupportedMaterializer(TypeSymbol resultType)
-        {
-            diagnostics.Add(new Diagnostic("COPE-TEMPLATE-0009", $"Template result type '{resultType.Name}' has no artifact materializer for this command.", 0, 1));
             return null;
         }
 
@@ -118,6 +121,52 @@ public static class TemplateCompiler
 
             diagnostics.AddRange(artifactDiagnostics);
             return null;
+        }
+    }
+
+    private static string HashTypedValue(TypeSymbol type, object? value)
+    {
+        string text = type.Name + ":" + DescribeTypedValue(value);
+        return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(text))).ToLowerInvariant();
+    }
+
+    private static string DescribeTypedValue(object? value)
+    {
+        switch (value)
+        {
+            case null:
+                return "null";
+            case StaticPrimitiveValue primitive:
+                return primitive.Type.Name
+                    + ":"
+                    + Convert.ToString(primitive.Value, System.Globalization.CultureInfo.InvariantCulture);
+            case StaticEnumValue enumValue:
+                return enumValue.Type.Name
+                    + "."
+                    + enumValue.Case.Name
+                    + "("
+                    + string.Join(",", enumValue.Payloads.Select(DescribeTypedValue))
+                    + ")";
+            case StaticRecordValue record:
+                IEnumerable<string> recordFields = record.RecordType.Fields
+                    .OrderBy(field => field.Id.Ordinal)
+                    .Select(field => field.Name + "=" + DescribeTypedValue(record.Fields.GetValueOrDefault(field)));
+                return record.Type.Name + "{" + string.Join(",", recordFields) + "}";
+            case StaticArrayValue array:
+                return array.Type.Name
+                    + "["
+                    + string.Join(",", array.Elements.Select(DescribeTypedValue))
+                    + "]";
+            case object?[] array:
+                return "[" + string.Join(",", array.Select(DescribeTypedValue)) + "]";
+            case IReadOnlyDictionary<string, object?> fields:
+                IEnumerable<string> orderedFields = fields
+                    .OrderBy(field => field.Key, StringComparer.Ordinal)
+                    .Select(field => field.Key + "=" + DescribeTypedValue(field.Value));
+                return "{" + string.Join(",", orderedFields) + "}";
+            default:
+                return Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture)
+                    ?? string.Empty;
         }
     }
 
@@ -566,6 +615,7 @@ public static class TemplateCompiler
         private readonly Stack<TemplateSymbol> _active = new();
         private readonly List<string> _instantiationChain = [];
         private readonly Dictionary<string, object?> _completedInvocations = new(StringComparer.Ordinal);
+        private readonly StaticEvaluator _ordinaryEvaluator;
         private int _instantiationCount;
         private int _metadataIterations;
 
@@ -582,6 +632,13 @@ public static class TemplateCompiler
             List<Diagnostic> diagnostics)
         {
             _templates = templates.ToDictionary(template => template.Symbol);
+            BoundFunctionDeclaration[] functions = boundCompilations
+                .SelectMany(compilation => compilation.Program.Functions)
+                .ToArray();
+            IReadOnlyDictionary<FunctionSymbol, FunctionEffectSummary> summaries = boundCompilations
+                .SelectMany(compilation => compilation.Program.FunctionEffects)
+                .ToDictionary(pair => pair.Key, pair => pair.Value);
+            _ordinaryEvaluator = new StaticEvaluator(functions, summaries, StaticEvaluationLimits.M1);
             _callSitesByCaller = boundCompilations
                 .SelectMany(compilation => compilation.Program.SemanticCallSites)
                 .GroupBy(call => call.Caller.Id, StringComparer.Ordinal)
@@ -813,6 +870,8 @@ public static class TemplateCompiler
                     return EvaluateArtifactConstructor(artifact, context);
                 case BoundTemplateInvocation invocation:
                     return EvaluateInvocation(invocation, context);
+                case BoundTemplateOrdinaryExpression ordinary:
+                    return EvaluateOrdinaryExpression(ordinary, context);
                 case BoundTemplateXmlElement xml:
                     return EvaluateXmlElement(xml, context);
                 case BoundTypedSourceArtifact source:
@@ -821,6 +880,52 @@ public static class TemplateCompiler
                     Report("COPE-TEMPLATE-0003", "Template plan contains an unresolved static value.", value.Anchor);
                     return null;
             }
+        }
+
+        private StaticValue EvaluateOrdinaryExpression(
+            BoundTemplateOrdinaryExpression ordinary,
+            BoundEvaluationContext context)
+        {
+            var values = new Dictionary<VariableSymbol, StaticValue>();
+            foreach ((VariableSymbol variable, object? value) in context.Values)
+            {
+                values[variable] = ToStaticValue(variable.Type, value);
+            }
+            try
+            {
+                return _ordinaryEvaluator.Evaluate(ordinary.Expression, values);
+            }
+            catch (StaticEvaluationException exception)
+            {
+                Report(exception.DiagnosticId, exception.Message, ordinary.Anchor);
+                return new StaticPrimitiveValue(null, PrimitiveTypeSymbol.Error);
+            }
+        }
+
+        private static StaticValue ToStaticValue(TypeSymbol type, object? value)
+        {
+            if (value is StaticValue staticValue)
+            {
+                return staticValue;
+            }
+            if (type is ArrayTypeSymbol arrayType && value is object?[] elements)
+            {
+                return new StaticArrayValue(
+                    elements.Select(element => ToStaticValue(arrayType.ElementType, element)).ToArray(),
+                    arrayType);
+            }
+            if (type is RecordTypeSymbol recordType
+                && value is IReadOnlyDictionary<string, object?> fields)
+            {
+                return new StaticRecordValue(
+                    recordType.Fields
+                        .Where(field => fields.ContainsKey(field.Name))
+                        .ToDictionary(
+                            field => field,
+                            field => ToStaticValue(field.Type, fields[field.Name])),
+                    recordType);
+            }
+            return new StaticPrimitiveValue(value, type);
         }
 
         private object? EvaluateInvocation(BoundTemplateInvocation invocation, BoundEvaluationContext context)

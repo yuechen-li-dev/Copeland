@@ -53,6 +53,14 @@ duplicate, unknown, incorrectly typed, or constraint-violating arguments are
 normal diagnostics. M0 deliberately has no partial specialization, SFINAE,
 template-template parameters, higher-kinded types, or compile-time reflection.
 
+Templates may call ordinary Copeland functions when those functions are
+classified as static-safe. Typed records, payload enums, and immutable arrays
+remain intact in the result through the same bounded evaluator used by
+`static functionCall(...)`; runtime and host effects remain rejected. A
+compile-time host may consume the resulting `TemplateTypedValue` directly, as
+Profile does for `ProfileOperation[]`. Templates do not emit syntax for a
+second parse.
+
 ## Project templates
 
 The maintained bootstrap is
