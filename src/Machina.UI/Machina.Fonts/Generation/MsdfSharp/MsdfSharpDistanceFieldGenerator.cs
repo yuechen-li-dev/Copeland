@@ -100,10 +100,19 @@ public sealed class MsdfSharpDistanceFieldGenerator : IGlyphDistanceFieldGenerat
             float[] pixels = bitmap.Pixels;
             if (pixels.Any(static value => !float.IsFinite(value)))
             {
-                diagnostics.Add(CreateDiagnostic(
-                    outline.Key,
-                    FontGenerationDiagnosticCode.DistanceFieldGenerationFailed,
-                    "MSDF generation produced non-finite values."));
+                if (settings.Kind == DistanceFieldKind.Msdf)
+                {
+                    pixels = GenerateMonochromeMsdf(shape, projection, range, settings.Width, settings.Height);
+                }
+
+                if (pixels.Any(static value => !float.IsFinite(value)))
+                {
+                    int firstNonFinite = Array.FindIndex(pixels, static value => !float.IsFinite(value));
+                    diagnostics.Add(CreateDiagnostic(
+                        outline.Key,
+                        FontGenerationDiagnosticCode.DistanceFieldGenerationFailed,
+                        $"Distance-field generation produced a non-finite value at channel index {firstNonFinite}."));
+                }
             }
 
             return new GeneratedGlyphDistanceField(
@@ -130,6 +139,30 @@ public sealed class MsdfSharpDistanceFieldGenerator : IGlyphDistanceFieldGenerat
 
             return CreateResult(outline, settings, channelCount, diagnostics);
         }
+    }
+
+    private static float[] GenerateMonochromeMsdf(
+        Shape shape,
+        Projection projection,
+        Msdfgen.Range range,
+        int width,
+        int height)
+    {
+        Bitmap<float> sdfBitmap = new(width, height, 1);
+        MsdfGenerator.GenerateSDF(sdfBitmap, shape, projection, range, new GeneratorConfig(false));
+
+        float[] sdf = sdfBitmap.Pixels;
+        float[] rgb = new float[checked(width * height * 3)];
+        for (int pixelIndex = 0; pixelIndex < sdf.Length; pixelIndex++)
+        {
+            float distance = sdf[pixelIndex];
+            int channelIndex = pixelIndex * 3;
+            rgb[channelIndex] = distance;
+            rgb[channelIndex + 1] = distance;
+            rgb[channelIndex + 2] = distance;
+        }
+
+        return rgb;
     }
 
     private static bool TryApplyEdgeColoring(
@@ -196,13 +229,15 @@ public sealed class MsdfSharpDistanceFieldGenerator : IGlyphDistanceFieldGenerat
             return false;
         }
 
-        double translateX = ((settings.Width - (outlineWidth * appliedScale)) / 2d) - (outline.Bounds.MinX * appliedScale);
-        double translateY = ((settings.Height - (outlineHeight * appliedScale)) / 2d) - (outline.Bounds.MinY * appliedScale);
+        double pixelTranslateX = ((settings.Width - (outlineWidth * appliedScale)) / 2d) - (outline.Bounds.MinX * appliedScale);
+        double pixelTranslateY = ((settings.Height - (outlineHeight * appliedScale)) / 2d) - (outline.Bounds.MinY * appliedScale);
+        double shapeTranslateX = pixelTranslateX / appliedScale;
+        double shapeTranslateY = pixelTranslateY / appliedScale;
 
         projection = new Projection(
             new Vector2(appliedScale, appliedScale),
-            new Vector2(translateX, translateY));
-        fieldPlacement = CreatePlacement(settings, appliedScale, translateX, translateY);
+            new Vector2(shapeTranslateX, shapeTranslateY));
+        fieldPlacement = CreatePlacement(settings, appliedScale, shapeTranslateX, shapeTranslateY);
 
         return true;
     }
@@ -229,13 +264,13 @@ public sealed class MsdfSharpDistanceFieldGenerator : IGlyphDistanceFieldGenerat
     private static GlyphFieldPlacement CreatePlacement(
         MsdfGenerationSettings settings,
         double projectionScale,
-        double translateX,
-        double translateY)
+        double shapeTranslateX,
+        double shapeTranslateY)
     {
-        double glyphLeft = InverseProjectX(0d, projectionScale, translateX);
-        double glyphRight = InverseProjectX(settings.Width, projectionScale, translateX);
-        double glyphBottom = InverseProjectY(0d, projectionScale, translateY);
-        double glyphTop = InverseProjectY(settings.Height, projectionScale, translateY);
+        double glyphLeft = InverseProjectX(0d, projectionScale, shapeTranslateX);
+        double glyphRight = InverseProjectX(settings.Width, projectionScale, shapeTranslateX);
+        double glyphBottom = InverseProjectY(0d, projectionScale, shapeTranslateY);
+        double glyphTop = InverseProjectY(settings.Height, projectionScale, shapeTranslateY);
 
         return new GlyphFieldPlacement(
             glyphLeft,
@@ -246,14 +281,14 @@ public sealed class MsdfSharpDistanceFieldGenerator : IGlyphDistanceFieldGenerat
             projectionScale);
     }
 
-    private static double InverseProjectX(double bitmapX, double projectionScale, double translateX)
+    private static double InverseProjectX(double bitmapX, double projectionScale, double shapeTranslateX)
     {
-        return (bitmapX - translateX) / projectionScale;
+        return (bitmapX / projectionScale) - shapeTranslateX;
     }
 
-    private static double InverseProjectY(double bitmapY, double projectionScale, double translateY)
+    private static double InverseProjectY(double bitmapY, double projectionScale, double shapeTranslateY)
     {
-        return (bitmapY - translateY) / projectionScale;
+        return (bitmapY / projectionScale) - shapeTranslateY;
     }
 
     private static FontGenerationDiagnostic CreateDiagnostic(

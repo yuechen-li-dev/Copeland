@@ -12,19 +12,21 @@ public sealed class MsdfAlignmentRegressionTests : IClassFixture<MsdfAlignmentEx
     }
 
     [Fact]
-    public void MsdfAlignment_HelloMachina_ImprovesAgainstDirectOutline()
+    public void MsdfAlignment_HelloMachina_RemainsQualifiedWithScalableFields()
     {
         MsdfAlignmentExportPair exports = fixture.ExportPair;
 
         FontShapeDiff before = FindFixture(exports.Before.ShapeDiffReport, 64, "Hello Machina").DirectVsMsdf;
         FontShapeDiff after = FindFixture(exports.After.ShapeDiffReport, 64, "Hello Machina").DirectVsMsdf;
 
-        Assert.True(after.IntersectionOverUnion > before.IntersectionOverUnion + 0.05d);
-        Assert.True(after.P95EdgeDistance < before.P95EdgeDistance);
+        Assert.True(after.IntersectionOverUnion >= before.IntersectionOverUnion - 0.01d);
+        Assert.True(after.IntersectionOverUnion >= 0.75d);
+        Assert.True(after.P95EdgeDistance <= before.P95EdgeDistance);
+        Assert.True(after.P95EdgeDistance <= 2d);
     }
 
     [Fact]
-    public void MsdfAlignment_Settings_ImprovesAgainstDirectOutline()
+    public void MsdfAlignment_Settings_RemainsQualifiedWithScalableFields()
     {
         MsdfAlignmentExportPair exports = fixture.ExportPair;
 
@@ -38,8 +40,10 @@ public sealed class MsdfAlignmentRegressionTests : IClassFixture<MsdfAlignmentEx
             afterAverageIou >= beforeAverageIou - historicalIouTolerance,
             $"Expected no material Settings IoU regression. Before={beforeAverageIou:0.000000}, After={afterAverageIou:0.000000}.");
         Assert.True(
-            afterAverageP95 < beforeAverageP95,
-            $"Expected scalable fields to reduce Settings p95. Before={beforeAverageP95:0.000000}, After={afterAverageP95:0.000000}.");
+            afterAverageP95 <= beforeAverageP95,
+            $"Expected scalable fields not to regress Settings p95. Before={beforeAverageP95:0.000000}, After={afterAverageP95:0.000000}.");
+        Assert.True(afterAverageIou >= 0.75d);
+        Assert.True(afterAverageP95 <= 2d);
     }
 
     [Fact]

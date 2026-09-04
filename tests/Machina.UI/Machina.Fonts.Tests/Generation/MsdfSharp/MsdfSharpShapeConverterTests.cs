@@ -65,4 +65,29 @@ public sealed class MsdfSharpShapeConverterTests
         Assert.True(second.Success);
         Assert.Equal(MsdfSharpTestHelpers.SummarizeShape(first), MsdfSharpTestHelpers.SummarizeShape(second));
     }
+
+    [Fact]
+    public void Convert_RemovesOnlyExactlyDegenerateEdges()
+    {
+        GlyphPoint origin = new(0, 0);
+        GlyphContour contour = new(
+        [
+            new GlyphLineSegment(origin, origin),
+            new GlyphQuadraticSegment(origin, origin, origin),
+            new GlyphCubicSegment(origin, origin, origin, origin),
+            new GlyphLineSegment(origin, new GlyphPoint(0.000001, 0)),
+            new GlyphLineSegment(new GlyphPoint(0.000001, 0), origin),
+        ]);
+        GlyphOutline outline = new(
+            GlyphKey.FromChar(new FontFaceId("Fake"), '.', 32),
+            new GlyphMetrics(1, 0, 1, 1, 1),
+            new GlyphBounds(0, 0, 1, 1),
+            [contour]);
+
+        MsdfSharpShapeConversion result = MsdfSharpShapeConverter.Convert(outline);
+
+        Assert.True(result.Success);
+        Assert.NotNull(result.Shape);
+        Assert.Equal(2, result.Shape.EdgeCount());
+    }
 }

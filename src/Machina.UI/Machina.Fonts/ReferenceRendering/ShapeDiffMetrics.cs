@@ -22,4 +22,8 @@ public sealed record ShapeDiffMetrics(
     double MaxEdgeDistance,
     int AboveBaselineExtraArea,
     int BelowBaselineExtraArea,
-    int MismatchArea);
+    int MismatchArea,
+    double InkAreaRatio,
+    double CentroidDeltaX,
+    double CentroidDeltaY,
+    double CentroidDistance);

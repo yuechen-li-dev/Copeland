@@ -1,10 +1,8 @@
 # Machina text conformance architecture
 
 This document is the current authority for the bounded Latin text path established by
-`MACHINA-OUTLINE-CONFORMANCE-M1`. The M0 and M8/M9 documents remain historical evidence.
-
-Raster/MSDF work is frozen until positioned outline parity is qualified. M1 qualifies
-that upstream contract for the canonical Latin corpus; it does not qualify MSDF.
+`MACHINA-OUTLINE-CONFORMANCE-M1` and downstream
+`MACHINA-MSDF-REALIZATION-M1`. The M0 and M8/M9 documents remain historical evidence.
 
 ## Ownership
 
@@ -92,6 +90,24 @@ The M9f laws remain mandatory: scalable field dimensions grow with output/em siz
 UV reconstruction samples texel centers, padding is storage-only, and plane bounds
 determine draw rectangles. No threshold or visual offset may conceal layout error.
 
+The production field generator consumes `GlyphOutline` line, quadratic, and cubic
+segments directly. It removes only edges whose complete control polygon has exactly
+zero extent. `MSDF-Sharp.Core` receives a vector-space projection: translation is
+applied before scale, so Machina converts the desired pixel centering offset back to
+outline units. Field plane bounds are the inverse projection of the complete storage
+rectangle. They include range border, remain baseline-relative, and are distinct from
+the packed atlas rectangle.
+
+MSDF reconstruction samples texel centers, takes median RGB, and maps the signed
+distance boundary at `0.5` to alpha coverage. Direct/MSDF qualification compares
+that alpha at the same `0.5` boundary. RGB color against a transparent background is
+not a geometry mask because it classifies every nonzero smoothing sample as full ink.
+
+For the bounded smooth-contour failure where MSDF-Sharp produces a non-finite channel,
+Machina regenerates a vector SDF from the same normalized shape and replicates the
+distance into RGB. This is a direct-vector monochrome MSDF representation, not a
+raster fallback and not a glyph-specific exception.
+
 ## Measurement and production handoff
 
 The existing `ITextMeasurer` is not yet migrated. M0 records its boundary rather than
@@ -106,11 +122,11 @@ dotnet run --project tools/Machina.OutlineConformance/Machina.OutlineConformance
 ```
 
 It emits five compact JSON files and keeps vector-only SVG diagnostics in the local
-temporary directory reported by `proof.json`. The historical M0 command remains:
+temporary directory reported by `proof.json`. The canonical MSDF command is:
 
 ```powershell
-dotnet run --project tools/Machina.TextConformance/Machina.TextConformance.csproj -- --output artifacts/machina-text-conformance-m0
+dotnet run --project tools/Machina.TextConformance/Machina.TextConformance.csproj -- --output artifacts/machina-msdf-realization-m1
 ```
 
-It emits compact JSON evidence and keeps raster diagnostics under the local temporary
+It emits five compact JSON evidence files and keeps raster diagnostics under the local temporary
 directory recorded in `manifest.json`.

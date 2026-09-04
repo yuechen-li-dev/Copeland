@@ -73,6 +73,21 @@ public sealed class ShapeDiffContractTests
     }
 
     [Fact]
+    public void InkMask_FromAlphaPreservesFractionalCoverage()
+    {
+        RgbaImage image = new(2, 1);
+        image.SetPixel(0, 0, new Rgba32(255, 255, 255, 64));
+        image.SetPixel(1, 0, new Rgba32(255, 255, 255, 192));
+
+        InkMask mask = InkMask.FromAlpha(image);
+
+        Assert.Equal(64 / 255f, mask.GetCoverage(0, 0));
+        Assert.Equal(192 / 255f, mask.GetCoverage(1, 0));
+        Assert.False(mask.IsInk(0, 0, 0.5f));
+        Assert.True(mask.IsInk(1, 0, 0.5f));
+    }
+
+    [Fact]
     public void ShapeDiff_IdenticalMasksHavePerfectIntersectionOverUnion()
     {
         InkMask left = CreateRectMask(8, 8, 1, 1, 3, 3);
@@ -97,6 +112,10 @@ public sealed class ShapeDiffContractTests
         Assert.Equal(1, metrics.DeltaLeft);
         Assert.True(metrics.MeanEdgeDistance > 0d);
         Assert.True(metrics.P95EdgeDistance >= 1d);
+        Assert.Equal(1d, metrics.InkAreaRatio);
+        Assert.Equal(1d, metrics.CentroidDeltaX);
+        Assert.Equal(0d, metrics.CentroidDeltaY);
+        Assert.Equal(1d, metrics.CentroidDistance);
     }
 
     private static GlyphOutline CreateHoledRectangleOutline(GlyphKey key)

@@ -23,6 +23,10 @@ public static class InkMaskDiff
         int rightOnlyArea = 0;
         int aboveBaselineExtraArea = 0;
         int belowBaselineExtraArea = 0;
+        double leftXSum = 0d;
+        double leftYSum = 0d;
+        double rightXSum = 0d;
+        double rightYSum = 0d;
 
         for (int y = 0; y < left.Height; y++)
         {
@@ -34,11 +38,15 @@ public static class InkMaskDiff
                 if (leftInk)
                 {
                     leftInkArea++;
+                    leftXSum += x + 0.5d;
+                    leftYSum += y + 0.5d;
                 }
 
                 if (rightInk)
                 {
                     rightInkArea++;
+                    rightXSum += x + 0.5d;
+                    rightYSum += y + 0.5d;
                 }
 
                 if (leftInk && rightInk)
@@ -73,6 +81,12 @@ public static class InkMaskDiff
         int unionArea = intersectionArea + leftOnlyArea + rightOnlyArea;
         double intersectionOverUnion = unionArea == 0 ? 1d : intersectionArea / (double)unionArea;
         EdgeDistanceSummary edgeDistance = ComputeEdgeDistances(left, right, threshold);
+        double leftCentroidX = leftInkArea == 0 ? 0d : leftXSum / leftInkArea;
+        double leftCentroidY = leftInkArea == 0 ? 0d : leftYSum / leftInkArea;
+        double rightCentroidX = rightInkArea == 0 ? 0d : rightXSum / rightInkArea;
+        double rightCentroidY = rightInkArea == 0 ? 0d : rightYSum / rightInkArea;
+        double centroidDeltaX = rightCentroidX - leftCentroidX;
+        double centroidDeltaY = rightCentroidY - leftCentroidY;
 
         return new ShapeDiffMetrics(
             leftBounds,
@@ -96,7 +110,11 @@ public static class InkMaskDiff
             edgeDistance.Max,
             aboveBaselineExtraArea,
             belowBaselineExtraArea,
-            leftOnlyArea + rightOnlyArea);
+            leftOnlyArea + rightOnlyArea,
+            leftInkArea == 0 ? (rightInkArea == 0 ? 1d : 0d) : rightInkArea / (double)leftInkArea,
+            centroidDeltaX,
+            centroidDeltaY,
+            Math.Sqrt((centroidDeltaX * centroidDeltaX) + (centroidDeltaY * centroidDeltaY)));
     }
 
     private static EdgeDistanceSummary ComputeEdgeDistances(

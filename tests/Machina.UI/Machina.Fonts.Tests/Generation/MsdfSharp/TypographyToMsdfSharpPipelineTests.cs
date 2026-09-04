@@ -53,6 +53,57 @@ public sealed class TypographyToMsdfSharpPipelineTests
         Assert.NotNull(digit.DistanceField);
     }
 
+    [Theory]
+    [InlineData(16)]
+    [InlineData(32)]
+    [InlineData(64)]
+    [InlineData(96)]
+    [InlineData(128)]
+    public async Task Pipeline_GeneratesFiniteMsdfForPeriod(int size)
+    {
+        GlyphOutlineLoadOptions outlineOptions = new(size, 0, GlyphHintingMode.None, normalizeToEm: true);
+        int fieldDimension = Machina.Fonts.ReferenceRendering.ExperimentalMsdfSizing.ComputeFieldDimension(size);
+        GlyphGenerationPipeline pipeline = new(
+            TypographyFixtureFont.CreateSource(),
+            new MsdfSharpDistanceFieldGenerator());
+
+        GlyphGenerationResult result = await pipeline.GenerateAsync(
+            GlyphKey.FromCodepoint(TypographyFixtureFont.Face, '.', size),
+            outlineOptions,
+            MsdfSharpTestHelpers.CreateSettings(DistanceFieldKind.Msdf, fieldDimension, fieldDimension));
+
+        Assert.True(
+            result.Success,
+            string.Join(Environment.NewLine, result.Diagnostics.Select(static diagnostic => diagnostic.Message)));
+        Assert.NotNull(result.DistanceField);
+        MsdfSharpTestHelpers.AssertFiniteNonUniform(result.DistanceField);
+        float[] values = result.DistanceField.Data.Span.ToArray();
+        Assert.True(values.Max() > 0.5f, $"range={values.Min()}..{values.Max()}");
+    }
+
+    [Theory]
+    [InlineData('Q')]
+    [InlineData('g')]
+    [InlineData('j')]
+    [InlineData('p')]
+    [InlineData('q')]
+    [InlineData('y')]
+    public async Task Pipeline_GeneratesFiniteMsdfForStressGlyphs(char value)
+    {
+        GlyphGenerationPipeline pipeline = new(
+            TypographyFixtureFont.CreateSource(),
+            new MsdfSharpDistanceFieldGenerator());
+
+        GlyphGenerationResult result = await pipeline.GenerateAsync(
+            GlyphKey.FromCodepoint(TypographyFixtureFont.Face, value, 64),
+            new GlyphOutlineLoadOptions(64, 0, GlyphHintingMode.None, normalizeToEm: true),
+            MsdfSharpTestHelpers.CreateSettings(DistanceFieldKind.Msdf, 64, 64));
+
+        Assert.True(result.Success);
+        Assert.NotNull(result.DistanceField);
+        MsdfSharpTestHelpers.AssertFiniteNonUniform(result.DistanceField);
+    }
+
     [Fact]
     public async Task Pipeline_GeneratesDeterministicOutput()
     {

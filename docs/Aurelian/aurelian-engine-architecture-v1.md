@@ -420,7 +420,7 @@ opaque, synchronous renderer mechanism with optional proof readback—not a spri
 engine, retained scene, compositor, or swapchain path. See
 `docs/Aurelian/aurelian-native-2d-quad-m1-report.md`.
 
-## 31. MACHINA-TEXT-CONFORMANCE-M0 handoff
+## 31. Qualified Machina text handoff
 
 Machina now exposes a renderer-neutral `MachinaGlyphRun` containing line baselines,
 token anchors, glyph origins, advances, and plane bounds. DirectOutline and CPU MSDF
@@ -428,5 +428,8 @@ consume the same semantic placement; atlas storage cannot decide layout. Avaloni
 an isolated test/tooling oracle and is not an Aurelian or Machina production
 dependency. A future Aurelian text adapter may translate each non-whitespace glyph
 placement into ordered native quad submissions, but it must not recompute shaping or
-advance from atlas dimensions. Native text handoff remains deferred while MSDF field
-and reconstruction defects retain Outcome B status.
+advance from atlas dimensions. `MACHINA-MSDF-REALIZATION-M1` now qualifies the
+direct-vector MSDF field, deterministic atlas metadata, and CPU median-RGB
+reconstruction. The next native step is an Aurelian adapter from the qualified
+`MachinaGlyphRun` plus atlas metadata to ordered glyph quads and the existing native
+shader path; no layout or atlas-owned placement belongs in Aurelian.

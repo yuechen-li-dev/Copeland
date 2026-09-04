@@ -34,7 +34,10 @@ internal static class MsdfSharpShapeConverter
                 Contour contour = new();
                 foreach (GlyphOutlineSegment sourceSegment in sourceContour.Segments)
                 {
-                    contour.AddEdge(ConvertSegment(sourceSegment));
+                    if (!IsDegenerate(sourceSegment))
+                    {
+                        contour.AddEdge(ConvertSegment(sourceSegment));
+                    }
                 }
 
                 if (contour.Edges.Count > 0)
@@ -66,6 +69,27 @@ internal static class MsdfSharpShapeConverter
                     FontGenerationDiagnosticCode.DistanceFieldGenerationFailed,
                     $"Failed to convert Machina outline to MSDF shape: {ex.Message}")]);
         }
+    }
+
+    private static bool IsDegenerate(GlyphOutlineSegment segment)
+    {
+        return segment switch
+        {
+            GlyphLineSegment line => PointsEqual(line.P0, line.P1),
+            GlyphQuadraticSegment quadratic =>
+                PointsEqual(quadratic.P0, quadratic.P1)
+                && PointsEqual(quadratic.P1, quadratic.P2),
+            GlyphCubicSegment cubic =>
+                PointsEqual(cubic.P0, cubic.P1)
+                && PointsEqual(cubic.P1, cubic.P2)
+                && PointsEqual(cubic.P2, cubic.P3),
+            _ => false,
+        };
+    }
+
+    private static bool PointsEqual(GlyphPoint left, GlyphPoint right)
+    {
+        return left.X == right.X && left.Y == right.Y;
     }
 
     private static EdgeSegment ConvertSegment(GlyphOutlineSegment sourceSegment)

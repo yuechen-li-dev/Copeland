@@ -227,6 +227,22 @@ public sealed class InkMask
         return mask;
     }
 
+    public static InkMask FromAlpha(RgbaImage image)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+
+        InkMask mask = new(image.Width, image.Height);
+        for (int y = 0; y < image.Height; y++)
+        {
+            for (int x = 0; x < image.Width; x++)
+            {
+                mask.SetCoverage(x, y, image.GetPixel(x, y).A / 255f);
+            }
+        }
+
+        return mask;
+    }
+
     public static bool IsInkPixel(Rgba32 pixel, InkMaskExtractionOptions options)
     {
         return !IsBaselinePixel(pixel, options)

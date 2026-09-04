@@ -192,8 +192,10 @@ manifest.json
 fox-96-outline-overlay.svg
 ```
 
-The canonical runner exits zero with Outcome A. MSDF realization work is now safe to
-resume against the frozen positioned-outline law; MSDF itself is not yet qualified.
+The canonical runner exits zero with Outcome A. The downstream
+`MACHINA-MSDF-REALIZATION-M1` milestone subsequently qualified direct-vector field
+generation, atlas storage, and CPU reconstruction without changing this placement law.
+See `docs/Machina.UI/machina-msdf-realization-m1-report.md`.
 
 ## Validation
 

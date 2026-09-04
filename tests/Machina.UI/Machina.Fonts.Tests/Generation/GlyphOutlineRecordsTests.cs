@@ -48,4 +48,23 @@ public sealed class GlyphOutlineRecordsTests
         Assert.Equal(new GlyphPoint(2, 0), quadratic.P2);
         Assert.Equal(new GlyphPoint(3, 0), cubic.P3);
     }
+
+    [Fact]
+    public void GlyphOutlineFingerprint_IsDeterministicAndGeometrySensitive()
+    {
+        GlyphKey key = GlyphKey.FromChar(new FontFaceId("Fake"), 'A', 12);
+        GlyphMetrics metrics = new(8, 0, 10, 8, 12);
+        GlyphBounds bounds = new(0, 0, 10, 10);
+        GlyphOutline first = new(key, metrics, bounds,
+        [
+            new GlyphContour([new GlyphLineSegment(new GlyphPoint(0, 0), new GlyphPoint(1, 1))]),
+        ]);
+        GlyphOutline second = new(key, metrics, bounds,
+        [
+            new GlyphContour([new GlyphLineSegment(new GlyphPoint(0, 0), new GlyphPoint(1, 2))]),
+        ]);
+
+        Assert.Equal(GlyphOutlineFingerprint.ComputeSha256(first), GlyphOutlineFingerprint.ComputeSha256(first));
+        Assert.NotEqual(GlyphOutlineFingerprint.ComputeSha256(first), GlyphOutlineFingerprint.ComputeSha256(second));
+    }
 }

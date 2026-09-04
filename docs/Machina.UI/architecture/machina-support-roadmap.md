@@ -1573,3 +1573,18 @@ geometry uses neutral Machina.Standard names, and Oblivion owns typed
 interaction, invocation, effect, result, and host-capability contracts. Avalonia
 remains a host fallback. The next milestone returns to product development, not
 another extraction or widget/layout redesign.
+
+## MACHINA-MSDF-REALIZATION-M1 update
+
+The qualified Typography outline now feeds MSDF-Sharp directly through Machina's
+line/quadratic/cubic contour boundary. M1 corrects the vector-to-field projection,
+sanitizes only exactly degenerate edges, repairs the valid tiny-contour failure with
+a same-vector monochrome distance representation, and qualifies deterministic atlas
+packing plus CPU reconstruction against DirectOutline. Layout, shaping, advances,
+baseline, glyph origins, and positioned outlines remain frozen.
+
+Normal MSDF tests and the M1 proof runner are canonical. Historical browser tooling
+is optional manual archaeology and Avalonia remains only the upstream outline/layout
+oracle. The exact next text milestone is the bounded Aurelian native adapter:
+`MachinaGlyphRun + qualified atlas metadata -> ordered glyph quads + shader`, with no
+layout work inside Aurelian.

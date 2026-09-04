@@ -143,15 +143,17 @@ public sealed class MsdfSharpDistanceFieldGeneratorTests
             drawableWidth / (outline.Bounds.MaxX - outline.Bounds.MinX),
             drawableHeight / (outline.Bounds.MaxY - outline.Bounds.MinY));
         double projectionScale = fitScale * settings.Scale;
-        double translateX = ((settings.Width - ((outline.Bounds.MaxX - outline.Bounds.MinX) * projectionScale)) / 2d)
+        double pixelTranslateX = ((settings.Width - ((outline.Bounds.MaxX - outline.Bounds.MinX) * projectionScale)) / 2d)
             - (outline.Bounds.MinX * projectionScale);
-        double translateY = ((settings.Height - ((outline.Bounds.MaxY - outline.Bounds.MinY) * projectionScale)) / 2d)
+        double pixelTranslateY = ((settings.Height - ((outline.Bounds.MaxY - outline.Bounds.MinY) * projectionScale)) / 2d)
             - (outline.Bounds.MinY * projectionScale);
+        double shapeTranslateX = pixelTranslateX / projectionScale;
+        double shapeTranslateY = pixelTranslateY / projectionScale;
 
-        double planeLeft = (0d - translateX) / projectionScale;
-        double planeRight = (settings.Width - translateX) / projectionScale;
-        double glyphBottom = (0d - translateY) / projectionScale;
-        double glyphTop = (settings.Height - translateY) / projectionScale;
+        double planeLeft = (0d / projectionScale) - shapeTranslateX;
+        double planeRight = (settings.Width / projectionScale) - shapeTranslateX;
+        double glyphBottom = (0d / projectionScale) - shapeTranslateY;
+        double glyphTop = (settings.Height / projectionScale) - shapeTranslateY;
 
         Assert.Equal(planeLeft, result.Placement.PlaneLeft, 6);
         Assert.Equal(-glyphTop, result.Placement.PlaneTop, 6);
