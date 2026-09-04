@@ -18,8 +18,8 @@ public static class ProfileTemplateFunctions
 
         export record CircleArgs {
             radius: number;
-            x: number;
-            y: number;
+            x?: number;
+            y?: number;
         }
 
         export record RectangleArgs {
@@ -27,9 +27,36 @@ public static class ProfileTemplateFunctions
             height: number;
         }
 
+        export record RoundedRectangleArgs {
+            width: number;
+            height: number;
+            radius: number;
+        }
+
+        export record EllipseArgs {
+            radiusX: number;
+            radiusY: number;
+            x?: number;
+            y?: number;
+        }
+
+        export record RegularPolygonArgs {
+            sides: int;
+            radius: number;
+            rotation?: number;
+        }
+
+        export record PolygonArgs {
+            points: number[][];
+        }
+
         export enum ProfileShape {
             Circle(args: CircleArgs),
             Rectangle(args: RectangleArgs),
+            RoundedRectangle(args: RoundedRectangleArgs),
+            Ellipse(args: EllipseArgs),
+            RegularPolygon(args: RegularPolygonArgs),
+            Polygon(args: PolygonArgs),
         }
 
         export function Circle(args: CircleArgs): ProfileShape {
@@ -38,6 +65,22 @@ public static class ProfileTemplateFunctions
 
         export function Rectangle(args: RectangleArgs): ProfileShape {
             return ProfileShape.Rectangle(args);
+        }
+
+        export function RoundedRectangle(args: RoundedRectangleArgs): ProfileShape {
+            return ProfileShape.RoundedRectangle(args);
+        }
+
+        export function Ellipse(args: EllipseArgs): ProfileShape {
+            return ProfileShape.Ellipse(args);
+        }
+
+        export function RegularPolygon(args: RegularPolygonArgs): ProfileShape {
+            return ProfileShape.RegularPolygon(args);
+        }
+
+        export function Polygon(args: PolygonArgs): ProfileShape {
+            return ProfileShape.Polygon(args);
         }
 
         export record ShapeOperationArgs {
@@ -50,8 +93,8 @@ public static class ProfileTemplateFunctions
             id: string;
             as: string;
             radius: number;
-            x: number;
-            y: number;
+            x?: number;
+            y?: number;
         }
 
         export record EdgeOperationArgs {
@@ -60,7 +103,7 @@ public static class ProfileTemplateFunctions
             edge: ProfileEdge;
             width: number;
             depth: number;
-            position: number;
+            position?: number;
         }
 
         export record RepeatRadialArgs {
@@ -68,8 +111,8 @@ public static class ProfileTemplateFunctions
             as: string;
             count: int;
             toothDepth: number;
-            toothFraction: number;
-            rotation: number;
+            toothFraction?: number;
+            rotation?: number;
         }
 
         export record TranslateArgs {

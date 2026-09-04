@@ -44,6 +44,12 @@ or TSON), but canonical meaning must not. Source is parsed and bound before
 backends consume it. Generated artifacts transport compiler facts; they do not
 re-bind source or define new language semantics.
 
+Profile geometry is authored through ordinary typed Copeland functions. TSX
+supplies Profile structure and named-state yield markers, not geometry
+semantics. Functions, variables, arrays, records, `with`, `match`, static
+conditionals, and imports retain their ordinary language behavior when their
+compile-time values are consumed as Profile semantics.
+
 The browser has two deliberately separate kinds of state:
 
 - compiler semantics: definitions, instances, attachment identity, host box,

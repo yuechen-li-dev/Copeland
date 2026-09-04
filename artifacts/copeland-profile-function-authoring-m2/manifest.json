@@ -1,0 +1,16 @@
+{
+  "milestone": "COPELAND-PROFILE-FUNCTION-AUTHORING-M2",
+  "kind": "ordinary-typed-function-profile-authoring",
+  "tsxGeometryFunctionWhitelistRemoved": true,
+  "ordinaryCallBinderAuthoritative": true,
+  "returnTypeDrivenProfileAcceptance": true,
+  "userDefinedProfileHelpersSupported": true,
+  "templateHelpersSupported": true,
+  "profileOperationArraysSupported": true,
+  "geometrySpecificParserCallsRemoved": true,
+  "reactDependencyAdded": false,
+  "jsxRuntimeAdded": false,
+  "runtimeProfileInterpreterAdded": false,
+  "geometryIrChanged": false,
+  "rendererChanged": false
+}

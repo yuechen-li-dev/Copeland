@@ -1,6 +1,7 @@
 using Copeland.Profile;
 using Copeland.TS.Compiler;
 using Copeland.TS.Semantics;
+using Copeland.TS.Semantics.Bound;
 using Copeland.TS.Syntax;
 using Copeland.TS.Templates;
 
@@ -20,6 +21,173 @@ public static class ProfileTsxCompiler
         ArgumentNullException.ThrowIfNull(templateSource);
         return CompileCore(source, sourcePath, new TemplateLibrary(templateSource, templateSourcePath));
     }
+
+    private static IReadOnlyList<ProfileOperation> DecodeProfileBodyValue(
+        StaticValue value,
+        string inputState,
+        ProfileSourceSpan span,
+        List<ProfileDiagnostic> diagnostics)
+    {
+        if (value is StaticEnumValue operationValue && operationValue.Type.Name == "ProfileOperation")
+        {
+            ProfileOperation? operation = DecodeOperation(operationValue, inputState, span, diagnostics);
+            return operation is null ? [] : [operation];
+        }
+        if (value is StaticArrayValue array
+            && array.ArrayType.ElementType.Name == "ProfileOperation")
+        {
+            var operations = new List<ProfileOperation>();
+            string currentState = inputState;
+            foreach (StaticValue element in array.Elements)
+            {
+                if (element is not StaticEnumValue elementOperationValue)
+                {
+                    diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-TSX-0004", "Profile operation arrays may contain only ProfileOperation values.", span));
+                    continue;
+                }
+                ProfileOperation? operation = DecodeOperation(elementOperationValue, currentState, span, diagnostics);
+                if (operation is null)
+                {
+                    continue;
+                }
+                operations.Add(operation);
+                currentState = operation.OutputState;
+            }
+            return operations;
+        }
+
+        diagnostics.Add(new ProfileDiagnostic(
+            "COPE-PROFILE-TSX-0004",
+            $"Profile body expression has type '{value.Type.Name}'; expected ProfileOperation or ProfileOperation[].",
+            span));
+        return [];
+    }
+
+    private static ProfileOperation? DecodeOperation(
+        StaticEnumValue value,
+        string input,
+        ProfileSourceSpan span,
+        List<ProfileDiagnostic> diagnostics)
+    {
+        if (value.Type.Name != "ProfileOperation"
+            || value.Payloads.Count != 1
+            || value.Payloads[0] is not StaticRecordValue args)
+        {
+            diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-TEMPLATE-0008", "Profile operation has an invalid typed semantic payload.", span));
+            return null;
+        }
+
+        string id = Text(args, "id");
+        string output = Text(args, "as");
+        return value.Case.Name switch
+        {
+            "Add" => new AddProfileOperation(id, input, output, RequireShape(args, span, diagnostics), span),
+            "Subtract" => new SubtractProfileOperation(id, input, output, RequireShape(args, span, diagnostics), span),
+            "Hole" => new HoleProfileOperation(id, input, output, new CircleProfileShape(Number(args, "radius"), Number(args, "x", 0), Number(args, "y", 0), span), span),
+            "Tab" => EdgeOperation(true),
+            "Notch" => EdgeOperation(false),
+            "RepeatRadial" => new RepeatRadialProfileOperation(id, input, output, Integer(args, "count"), Number(args, "toothDepth"), Number(args, "toothFraction", 0.5), Number(args, "rotation", 0), span),
+            "Translate" => new TransformProfileOperation(id, input, output, "Translate", Number(args, "x"), Number(args, "y"), span),
+            "Rotate" => new TransformProfileOperation(id, input, output, "Rotate", Number(args, "degrees"), 0, span),
+            "Scale" => new TransformProfileOperation(id, input, output, "Scale", Number(args, "x"), Number(args, "y"), span),
+            "Mirror" => new TransformProfileOperation(id, input, output, "Mirror", Text(args, "axis") == "X" ? 1 : 0, 0, span),
+            _ => Unknown(),
+        };
+
+        ProfileOperation EdgeOperation(bool tab)
+        {
+            ProfileEdge edge = Enum.Parse<ProfileEdge>(EnumCase(args, "edge"));
+            double position = Number(args, "position", 0.5);
+            return tab
+                ? new TabProfileOperation(id, input, output, edge, Number(args, "width"), Number(args, "depth"), position, span)
+                : new NotchProfileOperation(id, input, output, edge, Number(args, "width"), Number(args, "depth"), position, span);
+        }
+
+        ProfileOperation? Unknown()
+        {
+            diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-TEMPLATE-0009", $"Unknown typed Profile operation case '{value.Case.Name}'.", span));
+            return null;
+        }
+    }
+
+    private static ProfileShapeSpec RequireShape(
+        StaticRecordValue operation,
+        ProfileSourceSpan span,
+        List<ProfileDiagnostic> diagnostics)
+        => DecodeShape(Field(operation, "shape"), span, diagnostics)
+            ?? new CircleProfileShape(double.NaN, 0, 0, span);
+
+    private static ProfileShapeSpec? DecodeShape(
+        StaticValue value,
+        ProfileSourceSpan span,
+        List<ProfileDiagnostic> diagnostics)
+    {
+        if (value is not StaticEnumValue { Type.Name: "ProfileShape", Payloads.Count: 1 } shape
+            || shape.Payloads[0] is not StaticRecordValue args)
+        {
+            diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-TSX-0020", $"Profile base expression has type '{value.Type.Name}'; expected ProfileShape.", span));
+            return null;
+        }
+        return shape.Case.Name switch
+        {
+            "Circle" => new CircleProfileShape(Number(args, "radius"), Number(args, "x", 0), Number(args, "y", 0), span),
+            "Rectangle" => new RectangleProfileShape(Number(args, "width"), Number(args, "height"), span),
+            "RoundedRectangle" => new RoundedRectangleProfileShape(Number(args, "width"), Number(args, "height"), Number(args, "radius"), span),
+            "Ellipse" => new EllipseProfileShape(Number(args, "radiusX"), Number(args, "radiusY"), Number(args, "x", 0), Number(args, "y", 0), span),
+            "RegularPolygon" => new RegularPolygonProfileShape(Integer(args, "sides"), Number(args, "radius"), Number(args, "rotation", 90), span),
+            "Polygon" => new PolygonProfileShape(PointArray(args, "points"), span),
+            _ => Unknown(),
+        };
+
+        ProfileShapeSpec? Unknown()
+        {
+            diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-TSX-0021", $"Unknown typed Profile shape case '{shape.Case.Name}'.", span));
+            return null;
+        }
+    }
+
+    private static IReadOnlyList<VectorPoint> PointArray(StaticRecordValue record, string name)
+    {
+        StaticArrayValue points = (StaticArrayValue)Field(record, name);
+        return points.Elements.Select(point =>
+        {
+            StaticArrayValue pair = (StaticArrayValue)point;
+            return new VectorPoint(
+                Convert.ToDouble(((StaticPrimitiveValue)pair.Elements[0]).Value, System.Globalization.CultureInfo.InvariantCulture),
+                Convert.ToDouble(((StaticPrimitiveValue)pair.Elements[1]).Value, System.Globalization.CultureInfo.InvariantCulture));
+        }).ToArray();
+    }
+
+    private static StaticValue Field(StaticRecordValue record, string name)
+        => record.Fields.Single(field => field.Key.Name == name).Value;
+
+    private static StaticValue? OptionalField(StaticRecordValue record, string name)
+        => record.Fields.FirstOrDefault(field => field.Key.Name == name).Value;
+
+    private static string Text(StaticRecordValue record, string name)
+        => Convert.ToString(((StaticPrimitiveValue)Field(record, name)).Value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+
+    private static double Number(StaticRecordValue record, string name, double? defaultValue = null)
+    {
+        StaticValue? value = OptionalField(record, name);
+        if (value is StaticEnumValue { Type: OptionTypeSymbol, Case.Name: "None" })
+        {
+            value = null;
+        }
+        else if (value is StaticEnumValue { Type: OptionTypeSymbol, Case.Name: "Some", Payloads.Count: 1 } some)
+        {
+            value = some.Payloads[0];
+        }
+        return value is null && defaultValue.HasValue
+            ? defaultValue.Value
+            : Convert.ToDouble(((StaticPrimitiveValue)value!).Value, System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private static int Integer(StaticRecordValue record, string name)
+        => Convert.ToInt32(((StaticPrimitiveValue)Field(record, name)).Value, System.Globalization.CultureInfo.InvariantCulture);
+
+    private static string EnumCase(StaticRecordValue record, string name)
+        => ((StaticEnumValue)Field(record, name)).Case.Name;
 
     private static ProfileCompilationResult CompileCore(
         string source,
@@ -57,12 +225,12 @@ public static class ProfileTsxCompiler
         string baseState = attributes.String("baseState", required: false) ?? "Base";
         ExpressionSyntax? baseExpression = attributes.Expression("base", required: true);
         attributes.RejectUnknown("name", "baseState", "base");
-        ProfileShapeSpec? baseShape = baseExpression is null
-            ? null
-            : ParseShape(baseExpression, sourcePath, diagnostics);
-
-        List<ProfileOperation> operations = [];
-        string currentState = baseState;
+        var ordinaryExpressions = new List<(string Name, ExpressionSyntax Expression)>();
+        if (baseExpression is not null)
+        {
+            ordinaryExpressions.Add(("__cope_profile_base", baseExpression));
+        }
+        var bodyExpressions = new List<(ExpressionSyntax Expression, TemplateInstantiationExpressionSyntax? Template, string? ProbeName)>();
         string? yieldState = null;
         foreach (TsXmlChildSyntax child in root.Children)
         {
@@ -78,35 +246,60 @@ public static class ProfileTsxCompiler
             ExpressionSyntax childExpression = Unwrap(expressionChild.Expression);
             if (childExpression is TemplateInstantiationExpressionSyntax instantiation)
             {
+                bodyExpressions.Add((childExpression, instantiation, null));
+                continue;
+            }
+            if (childExpression is CallExpressionSyntax call
+                && call.Target is NameExpressionSyntax target
+                && target.IdentifierToken.Text == "Yield")
+            {
+                yieldState = ReadYield(call, sourcePath, diagnostics);
+                continue;
+            }
+            string probeName = "__cope_profile_child_" + bodyExpressions.Count;
+            ordinaryExpressions.Add((probeName, childExpression));
+            bodyExpressions.Add((childExpression, null, probeName));
+        }
+
+        ProfileExpressionEvaluation evaluation = ProfileExpressionEvaluator.Evaluate(
+            source,
+            sourcePath,
+            exports[0],
+            ordinaryExpressions,
+            templateLibrary?.SourceText,
+            templateLibrary?.SourcePath);
+        diagnostics.AddRange(evaluation.Diagnostics);
+
+        ProfileShapeSpec? baseShape = null;
+        if (baseExpression is not null
+            && evaluation.Values.TryGetValue("__cope_profile_base", out StaticValue? baseValue))
+        {
+            baseShape = DecodeShape(baseValue, Span(baseExpression, sourcePath), diagnostics);
+        }
+
+        List<ProfileOperation> operations = [];
+        string currentState = baseState;
+        foreach ((ExpressionSyntax bodyExpression, TemplateInstantiationExpressionSyntax? instantiation, string? probeName) in bodyExpressions)
+        {
+            IReadOnlyList<ProfileOperation> generated;
+            if (instantiation is not null)
+            {
                 if (templateLibrary is null)
                 {
                     diagnostics.Add(Diagnostic("COPE-PROFILE-TEMPLATE-0001", "Profile template specialization requires a supplied template library.", instantiation, sourcePath));
                     continue;
                 }
-                IReadOnlyList<ProfileOperation> generated = templateLibrary.Evaluate(
-                    instantiation,
-                    currentState,
-                    sourcePath,
-                    diagnostics);
-                foreach (ProfileOperation generatedOperation in generated)
+                generated = templateLibrary.Evaluate(instantiation, currentState, sourcePath, diagnostics);
+            }
+            else
+            {
+                if (probeName is null || !evaluation.Values.TryGetValue(probeName, out StaticValue? value))
                 {
-                    operations.Add(generatedOperation);
-                    currentState = generatedOperation.OutputState;
+                    continue;
                 }
-                continue;
+                generated = DecodeProfileBodyValue(value, currentState, Span(bodyExpression, sourcePath), diagnostics);
             }
-            if (childExpression is not CallExpressionSyntax call || call.Target is not NameExpressionSyntax target)
-            {
-                diagnostics.Add(Diagnostic("COPE-PROFILE-TSX-0004", "Profile child must call Add, Subtract, Hole, Tab, Notch, RepeatRadial, a transform, or Yield.", expressionChild, sourcePath));
-                continue;
-            }
-            if (target.IdentifierToken.Text == "Yield")
-            {
-                yieldState = ReadYield(call, sourcePath, diagnostics);
-                continue;
-            }
-            ProfileOperation? operation = ParseOperation(call, target.IdentifierToken.Text, currentState, sourcePath, diagnostics);
-            if (operation is not null)
+            foreach (ProfileOperation operation in generated)
             {
                 operations.Add(operation);
                 currentState = operation.OutputState;
@@ -137,6 +330,9 @@ public static class ProfileTsxCompiler
 
     private sealed class TemplateLibrary(string source, string sourcePath)
     {
+        public string SourceText => source;
+        public string SourcePath => sourcePath;
+
         public IReadOnlyList<ProfileOperation> Evaluate(
             TemplateInstantiationExpressionSyntax instantiation,
             string inputState,
@@ -282,276 +478,6 @@ public static class ProfileTsxCompiler
             return false;
         }
 
-        private static ProfileOperation? DecodeOperation(
-            StaticEnumValue value,
-            string input,
-            ProfileSourceSpan span,
-            List<ProfileDiagnostic> diagnostics)
-        {
-            if (value.Payloads.Count != 1 || value.Payloads[0] is not StaticRecordValue args)
-            {
-                diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-TEMPLATE-0008", $"Profile operation '{value.Case.Name}' has an invalid semantic payload.", span));
-                return null;
-            }
-            string id = Text(args, "id");
-            string output = Text(args, "as");
-            return value.Case.Name switch
-            {
-                "Add" => new AddProfileOperation(id, input, output, Shape(args, span), span),
-                "Subtract" => new SubtractProfileOperation(id, input, output, Shape(args, span), span),
-                "Hole" => new HoleProfileOperation(
-                    id,
-                    input,
-                    output,
-                    new CircleProfileShape(
-                        Number(args, "radius"),
-                        Number(args, "x"),
-                        Number(args, "y"),
-                        span),
-                    span),
-                "Tab" => EdgeOperation(true),
-                "Notch" => EdgeOperation(false),
-                "RepeatRadial" => new RepeatRadialProfileOperation(
-                    id,
-                    input,
-                    output,
-                    Integer(args, "count"),
-                    Number(args, "toothDepth"),
-                    Number(args, "toothFraction"),
-                    Number(args, "rotation"),
-                    span),
-                "Translate" => new TransformProfileOperation(
-                    id,
-                    input,
-                    output,
-                    "Translate",
-                    Number(args, "x"),
-                    Number(args, "y"),
-                    span),
-                "Rotate" => new TransformProfileOperation(
-                    id,
-                    input,
-                    output,
-                    "Rotate",
-                    Number(args, "degrees"),
-                    0,
-                    span),
-                "Scale" => new TransformProfileOperation(
-                    id,
-                    input,
-                    output,
-                    "Scale",
-                    Number(args, "x"),
-                    Number(args, "y"),
-                    span),
-                "Mirror" => new TransformProfileOperation(
-                    id,
-                    input,
-                    output,
-                    "Mirror",
-                    Text(args, "axis") == "X" ? 1 : 0,
-                    0,
-                    span),
-                _ => Unknown(),
-            };
-
-            ProfileOperation EdgeOperation(bool tab)
-            {
-                ProfileEdge edge = Enum.Parse<ProfileEdge>(EnumCase(args, "edge"));
-                return tab
-                    ? new TabProfileOperation(
-                        id,
-                        input,
-                        output,
-                        edge,
-                        Number(args, "width"),
-                        Number(args, "depth"),
-                        Number(args, "position"),
-                        span)
-                    : new NotchProfileOperation(
-                        id,
-                        input,
-                        output,
-                        edge,
-                        Number(args, "width"),
-                        Number(args, "depth"),
-                        Number(args, "position"),
-                        span);
-            }
-
-            ProfileOperation? Unknown()
-            {
-                diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-TEMPLATE-0009", $"Unknown typed Profile operation '{value.Case.Name}'.", span));
-                return null;
-            }
-        }
-
-        private static ProfileShapeSpec Shape(StaticRecordValue operation, ProfileSourceSpan span)
-        {
-            StaticEnumValue shape = (StaticEnumValue)Field(operation, "shape");
-            StaticRecordValue args = (StaticRecordValue)shape.Payloads[0];
-            return shape.Case.Name switch
-            {
-                "Circle" => new CircleProfileShape(Number(args, "radius"), Number(args, "x"), Number(args, "y"), span),
-                "Rectangle" => new RectangleProfileShape(Number(args, "width"), Number(args, "height"), span),
-                _ => throw new InvalidOperationException($"Unknown Profile shape '{shape.Case.Name}'."),
-            };
-        }
-
-        private static StaticValue Field(StaticRecordValue record, string name)
-            => record.Fields.Single(field => field.Key.Name == name).Value;
-
-        private static string Text(StaticRecordValue record, string name)
-            => Convert.ToString(((StaticPrimitiveValue)Field(record, name)).Value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
-
-        private static double Number(StaticRecordValue record, string name)
-            => Convert.ToDouble(((StaticPrimitiveValue)Field(record, name)).Value, System.Globalization.CultureInfo.InvariantCulture);
-
-        private static int Integer(StaticRecordValue record, string name)
-            => Convert.ToInt32(((StaticPrimitiveValue)Field(record, name)).Value, System.Globalization.CultureInfo.InvariantCulture);
-
-        private static string EnumCase(StaticRecordValue record, string name)
-            => ((StaticEnumValue)Field(record, name)).Case.Name;
-    }
-
-    private static ProfileOperation? ParseOperation(
-        CallExpressionSyntax call,
-        string kind,
-        string input,
-        string sourcePath,
-        List<ProfileDiagnostic> diagnostics)
-    {
-        if (call.Arguments.Count != 1 || Unwrap(call.Arguments[0]) is not ObjectLiteralExpressionSyntax options)
-        {
-            diagnostics.Add(Diagnostic("COPE-PROFILE-TSX-0010", $"{kind} requires one object-literal argument.", call, sourcePath));
-            return null;
-        }
-        OptionReader reader = new(options, sourcePath, diagnostics);
-        string? output = reader.String("as", required: true);
-        string featureId = reader.String("id", required: false) ?? output ?? kind;
-        if (output is null)
-        {
-            return null;
-        }
-        ProfileSourceSpan span = Span(call, sourcePath);
-        ProfileOperation? result = kind switch
-        {
-            "Add" => ShapeOperation(true),
-            "Subtract" => ShapeOperation(false),
-            "Hole" => Hole(),
-            "Tab" => EdgeOperation(true),
-            "Notch" => EdgeOperation(false),
-            "RepeatRadial" => new RepeatRadialProfileOperation(
-                featureId,
-                input,
-                output,
-                reader.Int("count", true) ?? 0,
-                reader.Number("toothDepth", true) ?? double.NaN,
-                reader.Number("toothFraction", false) ?? 0.5,
-                reader.Number("rotation", false) ?? 0,
-                span),
-            "Translate" => new TransformProfileOperation(featureId, input, output, "Translate", reader.Number("x", true) ?? double.NaN, reader.Number("y", true) ?? double.NaN, span),
-            "Rotate" => new TransformProfileOperation(featureId, input, output, "Rotate", reader.Number("degrees", true) ?? double.NaN, 0, span),
-            "Scale" => new TransformProfileOperation(featureId, input, output, "Scale", reader.Number("x", true) ?? double.NaN, reader.Number("y", true) ?? double.NaN, span),
-            "Mirror" => new TransformProfileOperation(featureId, input, output, "Mirror", reader.Name("axis", true) == "X" ? 1 : 0, 0, span),
-            _ => null,
-        };
-        if (result is null)
-        {
-            diagnostics.Add(Diagnostic("COPE-PROFILE-TSX-0011", $"Unknown Profile operation '{kind}'.", call, sourcePath));
-            return null;
-        }
-        reader.RejectUnread();
-        return result;
-
-        ProfileOperation? ShapeOperation(bool add)
-        {
-            ExpressionSyntax? shapeExpression = reader.Expression("shape", true);
-            ProfileShapeSpec? shape = shapeExpression is null ? null : ParseShape(shapeExpression, sourcePath, diagnostics);
-            if (shape is null)
-            {
-                return null;
-            }
-            return add
-                ? new AddProfileOperation(featureId, input, output, shape, span)
-                : new SubtractProfileOperation(featureId, input, output, shape, span);
-        }
-
-        ProfileOperation Hole()
-        {
-            double radius = reader.Number("radius", true) ?? double.NaN;
-            double x = reader.Number("x", false) ?? 0;
-            double y = reader.Number("y", false) ?? 0;
-            return new HoleProfileOperation(featureId, input, output, new CircleProfileShape(radius, x, y, span), span);
-        }
-
-        ProfileOperation EdgeOperation(bool tab)
-        {
-            string? edgeName = reader.Name("edge", true);
-            ProfileEdge edge = Enum.TryParse(edgeName, out ProfileEdge parsed) ? parsed : (ProfileEdge)(-1);
-            double width = reader.Number("width", true) ?? double.NaN;
-            double depth = reader.Number("depth", true) ?? double.NaN;
-            double position = reader.Number("position", false) ?? 0.5;
-            return tab
-                ? new TabProfileOperation(featureId, input, output, edge, width, depth, position, span)
-                : new NotchProfileOperation(featureId, input, output, edge, width, depth, position, span);
-        }
-    }
-
-    private static ProfileShapeSpec? ParseShape(
-        ExpressionSyntax expression,
-        string sourcePath,
-        List<ProfileDiagnostic> diagnostics)
-    {
-        expression = Unwrap(expression);
-        if (expression is not CallExpressionSyntax call || call.Target is not NameExpressionSyntax target
-            || call.Arguments.Count != 1 || Unwrap(call.Arguments[0]) is not ObjectLiteralExpressionSyntax options)
-        {
-            diagnostics.Add(Diagnostic("COPE-PROFILE-TSX-0020", "Shape must be a supported compile-time function call with one options object.", expression, sourcePath));
-            return null;
-        }
-        string kind = target.IdentifierToken.Text;
-        OptionReader reader = new(options, sourcePath, diagnostics);
-        ProfileSourceSpan span = Span(call, sourcePath);
-        ProfileShapeSpec? shape = kind switch
-        {
-            "Rectangle" => new RectangleProfileShape(reader.Number("width", true) ?? double.NaN, reader.Number("height", true) ?? double.NaN, span),
-            "RoundedRectangle" => new RoundedRectangleProfileShape(reader.Number("width", true) ?? double.NaN, reader.Number("height", true) ?? double.NaN, reader.Number("radius", true) ?? double.NaN, span),
-            "Circle" => new CircleProfileShape(reader.Number("radius", true) ?? double.NaN, reader.Number("x", false) ?? 0, reader.Number("y", false) ?? 0, span),
-            "Ellipse" => new EllipseProfileShape(reader.Number("radiusX", true) ?? double.NaN, reader.Number("radiusY", true) ?? double.NaN, reader.Number("x", false) ?? 0, reader.Number("y", false) ?? 0, span),
-            "RegularPolygon" => new RegularPolygonProfileShape(reader.Int("sides", true) ?? 0, reader.Number("radius", true) ?? double.NaN, reader.Number("rotation", false) ?? 90, span),
-            "Polygon" => Polygon(),
-            _ => null,
-        };
-        if (shape is null)
-        {
-            diagnostics.Add(Diagnostic("COPE-PROFILE-TSX-0021", $"Unknown Profile shape '{kind}'.", call, sourcePath));
-            return null;
-        }
-        reader.RejectUnread();
-        return shape;
-
-        ProfileShapeSpec Polygon()
-        {
-            ExpressionSyntax? pointsExpression = reader.Expression("points", true);
-            List<VectorPoint> points = [];
-            if (UnwrapNullable(pointsExpression) is ArrayLiteralExpressionSyntax array)
-            {
-                foreach (ExpressionSyntax item in array.Elements)
-                {
-                    if (Unwrap(item) is ArrayLiteralExpressionSyntax pair && pair.Elements.Count == 2
-                        && TryNumber(pair.Elements[0], out double x) && TryNumber(pair.Elements[1], out double y))
-                    {
-                        points.Add(new VectorPoint(x, y));
-                    }
-                    else
-                    {
-                        diagnostics.Add(Diagnostic("COPE-PROFILE-TSX-0022", "Polygon points must be [x, y] numeric pairs.", item, sourcePath));
-                    }
-                }
-            }
-            return new PolygonProfileShape(points, span);
-        }
     }
 
     private static string? ReadYield(CallExpressionSyntax call, string sourcePath, List<ProfileDiagnostic> diagnostics)
@@ -568,23 +494,6 @@ public static class ProfileTsxCompiler
         return null;
     }
 
-    private static bool TryNumber(ExpressionSyntax expression, out double value)
-    {
-        expression = Unwrap(expression);
-        if (expression is LiteralExpressionSyntax literal && literal.LiteralToken.Value is IConvertible convertible)
-        {
-            value = convertible.ToDouble(System.Globalization.CultureInfo.InvariantCulture);
-            return double.IsFinite(value);
-        }
-        if (expression is UnaryExpressionSyntax unary && unary.OperatorToken.Text == "-" && TryNumber(unary.Operand, out double positive))
-        {
-            value = -positive;
-            return true;
-        }
-        value = double.NaN;
-        return false;
-    }
-
     private static ExpressionSyntax Unwrap(ExpressionSyntax expression)
     {
         while (expression is ParenthesizedExpressionSyntax parenthesized)
@@ -593,8 +502,6 @@ public static class ProfileTsxCompiler
         }
         return expression;
     }
-
-    private static ExpressionSyntax? UnwrapNullable(ExpressionSyntax? expression) => expression is null ? null : Unwrap(expression);
 
     private static ProfileCompilationResult Failed(IReadOnlyList<ProfileDiagnostic> diagnostics)
     {
@@ -633,6 +540,137 @@ public static class ProfileTsxCompiler
                     yield return descendant;
                 }
             }
+        }
+    }
+
+    private sealed record ProfileExpressionEvaluation(
+        IReadOnlyDictionary<string, StaticValue> Values,
+        IReadOnlyList<ProfileDiagnostic> Diagnostics);
+
+    private static class ProfileExpressionEvaluator
+    {
+        private const string AuthoringLogicalPath = "ProfileAuthoring.ts";
+
+        public static ProfileExpressionEvaluation Evaluate(
+            string source,
+            string sourcePath,
+            ExportDefaultDeclarationSyntax profileExport,
+            IReadOnlyList<(string Name, ExpressionSyntax Expression)> expressions,
+            string? librarySource,
+            string? librarySourcePath)
+        {
+            string evaluationSource = BuildEvaluationSource(source, profileExport, expressions);
+            var sources = new List<CopelandProjectSource>
+            {
+                new("Profile.ts", "Profile.ts", ProfileTemplateFunctions.Source),
+                new(AuthoringLogicalPath, sourcePath, evaluationSource),
+            };
+            if (librarySource is not null)
+            {
+                sources.Add(new("ProfileTemplates.ts", librarySourcePath ?? "ProfileTemplates.ts", librarySource));
+            }
+
+            CopelandProjectCompilation compilation = CopelandProjectCompiler.CompileToMir(sources);
+            var diagnostics = compilation.Diagnostics
+                .Select(diagnostic => new ProfileDiagnostic(
+                    diagnostic.Id,
+                    diagnostic.Message,
+                    new ProfileSourceSpan(
+                        diagnostic.SourcePath ?? sourcePath,
+                        diagnostic.Position,
+                        Math.Max(1, diagnostic.Length))))
+                .ToList();
+            if (diagnostics.Count > 0)
+            {
+                return new ProfileExpressionEvaluation(new Dictionary<string, StaticValue>(), diagnostics);
+            }
+
+            BoundCompilation[] boundCompilations = compilation.Modules
+                .Select(module => module.BoundCompilation)
+                .OfType<BoundCompilation>()
+                .ToArray();
+            BoundFunctionDeclaration[] functions = boundCompilations
+                .SelectMany(bound => bound.Program.Functions)
+                .ToArray();
+            IReadOnlyDictionary<FunctionSymbol, FunctionEffectSummary> summaries = boundCompilations
+                .SelectMany(bound => bound.Program.FunctionEffects)
+                .ToDictionary(pair => pair.Key, pair => pair.Value);
+            var evaluator = new StaticEvaluator(functions, summaries, StaticEvaluationLimits.M1);
+            var environment = new Dictionary<VariableSymbol, StaticValue>();
+            var values = new Dictionary<string, StaticValue>(StringComparer.Ordinal);
+            BoundCompilation? authoring = compilation.Modules
+                .FirstOrDefault(module => module.LogicalPath == AuthoringLogicalPath)
+                ?.BoundCompilation;
+            if (authoring is null)
+            {
+                diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-TSX-0006", "Ordinary Profile expression module did not bind.", new(sourcePath, 0, 1)));
+                return new ProfileExpressionEvaluation(values, diagnostics);
+            }
+
+            foreach (BoundStatement statement in authoring.Program.GlobalStatements)
+            {
+                if (statement is not BoundVariableDeclaration variable)
+                {
+                    continue;
+                }
+                try
+                {
+                    StaticValue value = evaluator.Evaluate(variable.Initializer, environment);
+                    environment[variable.Variable] = value;
+                    if (expressions.Any(expression => expression.Name == variable.Variable.Name))
+                    {
+                        values[variable.Variable.Name] = value;
+                    }
+                }
+                catch (StaticEvaluationException exception)
+                {
+                    diagnostics.Add(new ProfileDiagnostic(
+                        exception.DiagnosticId,
+                        exception.Message,
+                        new ProfileSourceSpan(sourcePath, 0, 1)));
+                }
+            }
+            return new ProfileExpressionEvaluation(values, diagnostics);
+        }
+
+        private static string BuildEvaluationSource(
+            string source,
+            ExportDefaultDeclarationSyntax profileExport,
+            IReadOnlyList<(string Name, ExpressionSyntax Expression)> expressions)
+        {
+            char[] text = source.ToCharArray();
+            ProfileSourceSpan exportSpan = Span(profileExport, string.Empty);
+            for (int index = exportSpan.Start; index < exportSpan.Start + exportSpan.Length && index < text.Length; index++)
+            {
+                if (text[index] != '\r' && text[index] != '\n')
+                {
+                    text[index] = ' ';
+                }
+            }
+
+            var builder = new System.Text.StringBuilder(new string(text));
+            builder.AppendLine();
+            if (!source.Contains("from \"./Profile\"", StringComparison.Ordinal)
+                && !source.Contains("from './Profile'", StringComparison.Ordinal))
+            {
+                builder.AppendLine("import { Add, Circle, EdgeOperationArgs, Ellipse, Hole, HoleArgs, Mirror, Notch, Polygon, ProfileEdge, ProfileOperation, ProfileShape, Rectangle, RegularPolygon, RepeatRadial, RepeatRadialArgs, Rotate, RoundedRectangle, Scale, ShapeOperationArgs, Subtract, Tab, Translate } from \"./Profile\";");
+            }
+            builder.AppendLine("const Top: ProfileEdge = ProfileEdge.Top;");
+            builder.AppendLine("const Right: ProfileEdge = ProfileEdge.Right;");
+            builder.AppendLine("const Bottom: ProfileEdge = ProfileEdge.Bottom;");
+            builder.AppendLine("const Left: ProfileEdge = ProfileEdge.Left;");
+            foreach ((string name, ExpressionSyntax expression) in expressions)
+            {
+                builder.Append("const ").Append(name).Append(" = ")
+                    .Append(SourceText(source, expression)).AppendLine(";");
+            }
+            return builder.ToString();
+        }
+
+        private static string SourceText(string source, SyntaxNode node)
+        {
+            ProfileSourceSpan span = Span(node, string.Empty);
+            return source.Substring(span.Start, span.Length);
         }
     }
 
@@ -689,71 +727,4 @@ public static class ProfileTsxCompiler
         }
     }
 
-    private sealed class OptionReader
-    {
-        private readonly Dictionary<string, ObjectPropertySyntax> properties;
-        private readonly string path;
-        private readonly List<ProfileDiagnostic> diagnostics;
-
-        public OptionReader(ObjectLiteralExpressionSyntax options, string path, List<ProfileDiagnostic> diagnostics)
-        {
-            this.path = path;
-            this.diagnostics = diagnostics;
-            properties = [];
-            foreach (ObjectPropertySyntax property in options.Properties)
-            {
-                if (!properties.TryAdd(property.NameToken.Text, property))
-                {
-                    diagnostics.Add(Diagnostic("COPE-PROFILE-TSX-0050", $"Duplicate option '{property.NameToken.Text}'.", property, path));
-                }
-            }
-        }
-
-        public ExpressionSyntax? Expression(string name, bool required)
-        {
-            if (properties.Remove(name, out ObjectPropertySyntax? property)) return property.ValueExpression;
-            if (required) diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-TSX-0051", $"Missing '{name}' option.", new(path, 0, 1)));
-            return null;
-        }
-
-        public string? String(string name, bool required)
-        {
-            ExpressionSyntax? expression = Expression(name, required);
-            if (UnwrapNullable(expression) is LiteralExpressionSyntax literal && literal.LiteralToken.Value is string value) return value;
-            if (expression is not null) diagnostics.Add(Diagnostic("COPE-PROFILE-TSX-0052", $"Option '{name}' must be a string.", expression, path));
-            return null;
-        }
-
-        public string? Name(string name, bool required)
-        {
-            ExpressionSyntax? expression = Expression(name, required);
-            if (UnwrapNullable(expression) is NameExpressionSyntax value) return value.IdentifierToken.Text;
-            if (expression is not null) diagnostics.Add(Diagnostic("COPE-PROFILE-TSX-0053", $"Option '{name}' must be a semantic name.", expression, path));
-            return null;
-        }
-
-        public double? Number(string name, bool required)
-        {
-            ExpressionSyntax? expression = Expression(name, required);
-            if (expression is not null && TryNumber(expression, out double value)) return value;
-            if (expression is not null) diagnostics.Add(Diagnostic("COPE-PROFILE-TSX-0054", $"Option '{name}' must be a finite number.", expression, path));
-            return null;
-        }
-
-        public int? Int(string name, bool required)
-        {
-            double? value = Number(name, required);
-            if (value is not null && value == Math.Truncate(value.Value)) return (int)value.Value;
-            if (value is not null) diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-TSX-0055", $"Option '{name}' must be an integer.", new(path, 0, 1)));
-            return null;
-        }
-
-        public void RejectUnread()
-        {
-            foreach (ObjectPropertySyntax property in properties.Values)
-            {
-                diagnostics.Add(Diagnostic("COPE-PROFILE-TSX-0056", $"Unknown option '{property.NameToken.Text}'.", property, path));
-            }
-        }
-    }
 }
