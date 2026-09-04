@@ -53,7 +53,7 @@
     ",",
     "."
   ],
-  "localDiagnosticDirectory": "C:\\Users\\yuech\\AppData\\Local\\Temp\\machina-text-conformance-m0\\20260904-045917",
+  "localDiagnosticDirectory": "C:\\Users\\yuech\\AppData\\Local\\Temp\\machina-text-conformance-m0\\20260904-052217",
   "slowLaneRetired": false,
   "slowLaneDisposition": "Retained only for historical large-export/browser workflows; normal conformance is independent.",
   "summary": {
@@ -79,13 +79,13 @@
     "directVsMsdfMinimumIou": 0,
     "directVsMsdfMaximumPlacementDelta": 0,
     "averageTimings": {
-      "avaloniaReferenceMilliseconds": 10.868914285714286,
-      "directOutlineMilliseconds": 1211.0691297619048,
-      "machinaLayoutMilliseconds": 0.1340690476190477,
-      "directOutlineRasterMilliseconds": 1208.5723583333336,
-      "msdfAtlasGenerationAndRenderMilliseconds": 154.91910357142854,
-      "msdfAtlasGenerationMilliseconds": 150.9107819277109,
-      "msdfRenderMilliseconds": 5.824921686746988
+      "avaloniaReferenceMilliseconds": 14.821240476190477,
+      "directOutlineMilliseconds": 1235.533138095238,
+      "machinaLayoutMilliseconds": 0.13159166666666666,
+      "directOutlineRasterMilliseconds": 1232.812260714286,
+      "msdfAtlasGenerationAndRenderMilliseconds": 159.24789285714283,
+      "msdfAtlasGenerationMilliseconds": 154.60127349397595,
+      "msdfRenderMilliseconds": 6.521562650602409
     }
   }
 }

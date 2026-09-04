@@ -50,16 +50,16 @@ public static class CpuDistanceFieldTextRenderer
                 throw new InvalidOperationException($"Missing page {entry.PageIndex} for glyph U+{placement.Key.Codepoint:X4}.");
             }
 
-            DistanceFieldGlyphDrawBounds drawBounds = CpuDistanceFieldGlyphRenderer.ComputeDrawBounds(placement, entry);
+            DistanceFieldGlyphDrawPlane drawPlane = CpuDistanceFieldGlyphRenderer.ComputeDrawPlane(placement, entry);
 
-            CpuDistanceFieldGlyphRenderer.RenderGlyphInto(
+            CpuDistanceFieldGlyphRenderer.RenderGlyphPlaneInto(
                 image,
                 page,
                 entry,
-                drawBounds.X,
-                drawBounds.Y,
-                drawBounds.Width,
-                drawBounds.Height,
+                drawPlane.X,
+                drawPlane.Y,
+                drawPlane.Width,
+                drawPlane.Height,
                 glyphOptions);
         }
 

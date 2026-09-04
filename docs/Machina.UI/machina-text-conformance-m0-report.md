@@ -24,13 +24,13 @@ All 83 successful MSDF cases preserve reference identity for the Direct-created
 before realization can consume a placement.
 
 Direct-vs-MSDF raster evidence does not meet production acceptance. Median mask IoU
-is approximately `0.336`; punctuation can reach `0.000`, p95 edge distance reaches
-approximately `10.38 px`, and maximum edge distance reaches approximately `19.10 px`.
+is approximately `0.352`; punctuation can reach `0.000`, p95 edge distance reaches
+approximately `10.38 px`, and maximum edge distance reaches approximately `18.60 px`.
 The selected production gate is minimum IoU `0.30` and maximum p95 edge distance
 `4 px`, evaluated separately from placement. Average measured times per case are
-approximately `10.9 ms` for Avalonia layout/raster, `0.13 ms` for Machina layout,
-`1.21 s` for the supersampled DirectOutline raster, `150.9 ms` for MSDF
-generation/packing, and `5.82 ms` for MSDF render/export. These are diagnostic
+approximately `14.8 ms` for Avalonia layout/raster, `0.13 ms` for Machina layout,
+`1.23 s` for the supersampled DirectOutline raster, `154.6 ms` for MSDF
+generation/packing, and `6.52 ms` for MSDF render/export. These are diagnostic
 timings, not optimized production benchmarks.
 
 ## Historical audit
@@ -90,8 +90,12 @@ anchor by token index, making a drift cascade visible independently of line boun
 7. The initial conformance runner omitted the qualified Typography/MSDF Y inversion,
    making every reconstructed glyph visibly upside down. The runner now supplies
    `FlipY: true`; the regenerated raw and overlay images are upright.
+8. The CPU text renderer rounded every glyph draw rectangle before reconstruction,
+   discarding fractional origins and the `30.375`/`60.75` reference baselines. It now
+   samples each destination pixel against the unrounded semantic plane and quantizes
+   only at the final pixel. A normal test preserves this subpixel handoff.
 
-The diagnostic bundle uses the Avalonia PNG, DirectOutline and MSDF PPM masks,
+The 32px and 64px diagnostic bundles use the Avalonia PNG, DirectOutline and MSDF PPM masks,
 Avalonia/Direct and Direct/MSDF two-channel overlays, a three-channel overlay
 (Avalonia red, Direct green, MSDF blue), an absolute edge-difference view, white
 baseline, yellow token-anchor guides, cyan plane boxes, and magenta glyph origins.
@@ -132,7 +136,7 @@ changing the shared token placement law or adding Avalonia to production.
 
 The final solution matrix is green:
 
-- `dotnet test Machina.UI.slnx -m:1`: 684 tests.
+- `dotnet test Machina.UI.slnx -m:1`: 685 tests.
 - `dotnet test Machina.UI.Slow.slnx -m:1`: 316 tests.
 - `dotnet test Aurelian.slnx -m:1`: 636 tests.
 - `dotnet test JointTaskForce.slnx -m:1`: 3,240 tests.

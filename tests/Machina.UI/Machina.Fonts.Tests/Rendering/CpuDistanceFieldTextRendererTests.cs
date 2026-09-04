@@ -203,6 +203,21 @@ public sealed class CpuDistanceFieldTextRendererTests
     }
 
     [Fact]
+    public void GlyphFieldPlacement_PreservesSubpixelPlaneUntilRasterSampling()
+    {
+        GlyphFieldPlacement placement = new(2d, -9d, 8d, 3d, 4d, 1d);
+        GlyphAtlasEntry entry = CreateEntry('A', 0, 0, placement: placement);
+        DistanceFieldTextLayoutResult layout = CreateLayout("A", baselineY: 20.375d);
+
+        DistanceFieldGlyphDrawPlane plane = CpuDistanceFieldGlyphRenderer.ComputeDrawPlane(layout.Placements[0], entry);
+
+        Assert.Equal(3d, plane.X);
+        Assert.Equal(11.375d, plane.Y);
+        Assert.Equal(6d, plane.Width);
+        Assert.Equal(12d, plane.Height);
+    }
+
+    [Fact]
     public void MsdfDrawRect_UsesPlaneBoundsNotAtlasRect()
     {
         GlyphFieldPlacement placement = new(0d, -6d, 4d, 0d, 4d, 1d);

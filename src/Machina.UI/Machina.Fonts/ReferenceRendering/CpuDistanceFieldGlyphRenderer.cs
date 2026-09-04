@@ -50,6 +50,20 @@ public static class CpuDistanceFieldGlyphRenderer
             outputHeight);
     }
 
+    internal static DistanceFieldGlyphDrawPlane ComputeDrawPlane(
+        DistanceFieldGlyphPlacement placement,
+        GlyphAtlasEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(placement);
+        ArgumentNullException.ThrowIfNull(entry);
+
+        return new DistanceFieldGlyphDrawPlane(
+            placement.X + (entry.Placement.PlaneLeft * placement.Scale),
+            placement.BaselineY + (entry.Placement.PlaneTop * placement.Scale),
+            entry.Placement.Width * placement.Scale,
+            entry.Placement.Height * placement.Scale);
+    }
+
     internal static int ComputeBaselineOffsetInOutput(
         GlyphAtlasEntry entry,
         int outputHeight)
@@ -127,6 +141,75 @@ public static class CpuDistanceFieldGlyphRenderer
                 }
 
                 double normalizedX = (x + 0.5d) / outputWidth;
+                double u = Lerp(entry.U0, entry.U1, normalizedX);
+                float distance = DistanceFieldSampling.SampleDistance(page, u, v);
+                double coverage = DistanceFieldSampling.ComputeCoverage(distance, options.PxRange, options.Threshold, scale);
+                Rgba32 existing = image.GetPixel(targetX, targetY);
+                image.SetPixel(targetX, targetY, Composite(existing, options.Foreground, coverage));
+            }
+        }
+    }
+
+    internal static void RenderGlyphPlaneInto(
+        RgbaImage image,
+        DistanceFieldPageReference page,
+        GlyphAtlasEntry entry,
+        double destinationX,
+        double destinationY,
+        double outputWidth,
+        double outputHeight,
+        DistanceFieldRenderOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        ValidateEntry(page, entry);
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (!double.IsFinite(destinationX) || !double.IsFinite(destinationY))
+        {
+            throw new ArgumentOutOfRangeException(nameof(destinationX), "Destination coordinates must be finite.");
+        }
+
+        if (!double.IsFinite(outputWidth) || outputWidth <= 0d)
+        {
+            throw new ArgumentOutOfRangeException(nameof(outputWidth));
+        }
+
+        if (!double.IsFinite(outputHeight) || outputHeight <= 0d)
+        {
+            throw new ArgumentOutOfRangeException(nameof(outputHeight));
+        }
+
+        double scaleX = outputWidth / entry.Width;
+        double scaleY = outputHeight / entry.Height;
+        double scale = Math.Min(scaleX, scaleY);
+        int firstX = Math.Max(0, (int)Math.Floor(destinationX));
+        int lastX = Math.Min(image.Width - 1, (int)Math.Ceiling(destinationX + outputWidth) - 1);
+        int firstY = Math.Max(0, (int)Math.Floor(destinationY));
+        int lastY = Math.Min(image.Height - 1, (int)Math.Ceiling(destinationY + outputHeight) - 1);
+
+        for (int targetY = firstY; targetY <= lastY; targetY++)
+        {
+            double normalizedY = ((targetY + 0.5d) - destinationY) / outputHeight;
+            if (normalizedY < 0d || normalizedY >= 1d)
+            {
+                continue;
+            }
+
+            if (options.FlipY)
+            {
+                normalizedY = 1d - normalizedY;
+            }
+
+            double v = Lerp(entry.V0, entry.V1, normalizedY);
+
+            for (int targetX = firstX; targetX <= lastX; targetX++)
+            {
+                double normalizedX = ((targetX + 0.5d) - destinationX) / outputWidth;
+                if (normalizedX < 0d || normalizedX >= 1d)
+                {
+                    continue;
+                }
+
                 double u = Lerp(entry.U0, entry.U1, normalizedX);
                 float distance = DistanceFieldSampling.SampleDistance(page, u, v);
                 double coverage = DistanceFieldSampling.ComputeCoverage(distance, options.PxRange, options.Threshold, scale);
@@ -219,3 +302,9 @@ internal readonly record struct DistanceFieldGlyphDrawBounds(
     int Y,
     int Width,
     int Height);
+
+internal readonly record struct DistanceFieldGlyphDrawPlane(
+    double X,
+    double Y,
+    double Width,
+    double Height);

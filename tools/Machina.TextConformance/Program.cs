@@ -80,7 +80,7 @@ internal static class Program
         string text,
         int size)
     {
-        const int outputWidth = 900;
+        const int outputWidth = 1400;
         const int outputHeight = 180;
         const double originX = 12d;
         string caseId = CreateCaseId(text, size);
@@ -197,7 +197,8 @@ internal static class Program
             msdf.Image,
             new InkMaskExtractionOptions(Rgba32.Transparent, new Rgba32(255, 0, 255, 255), 4, 4));
         ShapeDiffMetrics directVsMsdf = InkMaskDiff.Compare(direct.Mask, msdfMask, baseline);
-        if (size == 32 && string.Equals(text, "The quick brown fox jumps over the lazy dog", StringComparison.Ordinal))
+        if (size is 32 or 64
+            && string.Equals(text, "The quick brown fox jumps over the lazy dog", StringComparison.Ordinal))
         {
             ExportDiagnosticBundle(
                 diagnosticDirectory,
@@ -618,6 +619,7 @@ internal static class Program
 
         RgbaImage overlay = new(direct.Width, direct.Height);
         RgbaImage referenceDirect = new(direct.Width, direct.Height);
+        RgbaImage referenceMsdf = new(direct.Width, direct.Height);
         RgbaImage directMsdf = new(direct.Width, direct.Height);
         RgbaImage edgeDifference = new(direct.Width, direct.Height);
         for (int y = 0; y < overlay.Height; y++)
@@ -630,6 +632,7 @@ internal static class Program
                 byte msdfInk = (byte)Math.Round(msdf.GetCoverage(x, y) * 255d, MidpointRounding.AwayFromZero);
                 overlay.SetPixel(x, y, new Rgba32(referenceInk, directInk, msdfInk, 255));
                 referenceDirect.SetPixel(x, y, new Rgba32(referenceInk, directInk, 0, 255));
+                referenceMsdf.SetPixel(x, y, new Rgba32(referenceInk, msdfInk, msdfInk, 255));
                 directMsdf.SetPixel(x, y, new Rgba32(directInk, msdfInk, 0, 255));
                 byte difference = (byte)Math.Abs(directInk - msdfInk);
                 edgeDifference.SetPixel(x, y, new Rgba32(difference, difference, difference, 255));
@@ -675,6 +678,7 @@ internal static class Program
         }
 
         PpmImageWriter.Write(Path.Combine(directory, caseId + "-avalonia-direct-overlay.ppm"), referenceDirect);
+        PpmImageWriter.Write(Path.Combine(directory, caseId + "-avalonia-msdf-overlay.ppm"), referenceMsdf);
         PpmImageWriter.Write(Path.Combine(directory, caseId + "-direct-msdf-overlay.ppm"), directMsdf);
         PpmImageWriter.Write(Path.Combine(directory, caseId + "-edge-difference.ppm"), edgeDifference);
         PpmImageWriter.Write(Path.Combine(directory, caseId + "-three-way-guides.ppm"), overlay);
