@@ -1,0 +1,54 @@
+{
+  "schema": "aurelian.native-2d-quad.rendering.v1",
+  "target": {
+    "width": 256,
+    "height": 256,
+    "format": "R8G8B8A8_UNORM",
+    "clear": [
+      16,
+      32,
+      64,
+      255
+    ]
+  },
+  "coordinates": "pixel-space; top-left origin; \u002Bx right; \u002By down; axis-aligned; natural raster clipping",
+  "uv": "immutable u0,v0,u1,v1 with ordered bounds; nearest/clamp sampling",
+  "ordering": "submission sequence only; no sorting; contiguous identical texture/tint pairs may share one draw",
+  "canonical": {
+    "quads": 9,
+    "pixelSha256": "4fedd1050accc442864faaa8eeae11c7d02efc6b1009a85d80d080c1372b1192",
+    "drawCalls": 9
+  },
+  "semanticAssertions": [
+    "fixed clear",
+    "red tint",
+    "green tint",
+    "later opaque overlap wins",
+    "partial offscreen clipping",
+    "two textures",
+    "three or more tints"
+  ],
+  "stress100": {
+    "pixelSha256": "56bb01ad7377a4ae342fa70f107d72e3abc878d3cc4d1dc448726588863adbf5",
+    "metrics": {
+      "quadCount": 100,
+      "drawCalls": 100,
+      "commandBuffers": 1,
+      "queueSubmissions": 1,
+      "bufferUploads": 1,
+      "descriptorSetAllocations": 3,
+      "descriptorWrites": 9,
+      "vertexCapacityQuads": 256,
+      "vertexUploadMilliseconds": 0.065,
+      "commandRecordingMilliseconds": 0.572,
+      "submitWaitMilliseconds": 0.376,
+      "readbackMilliseconds": 1.344,
+      "cpuAllocatedBytes": 294848
+    }
+  },
+  "repeatedPasses": {
+    "count": 100,
+    "stable": true,
+    "hash": "4fedd1050accc442864faaa8eeae11c7d02efc6b1009a85d80d080c1372b1192"
+  }
+}

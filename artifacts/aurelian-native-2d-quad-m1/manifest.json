@@ -1,0 +1,26 @@
+{
+  "milestone": "AURELIAN-NATIVE-2D-QUAD-M1",
+  "kind": "ordered-multi-quad-native-2d-submission",
+  "compiledGraphicsProgramIsAuthority": true,
+  "persistentPipelineReuse": true,
+  "persistentTextureReuse": true,
+  "multiQuadSubmission": true,
+  "multiTextureSubmission": true,
+  "orderedRendering": true,
+  "axisAlignedOnly": true,
+  "swapchainAdded": false,
+  "cameraAdded": false,
+  "spriteAbstractionAdded": false,
+  "textAdded": false,
+  "compositorIntegrated": false,
+  "tinyFarmIntegrated": false,
+  "renderGraphAdded": false,
+  "bindlessAdded": false,
+  "files": [
+    "proof.json",
+    "rendering.json",
+    "resources.json",
+    "performance.json",
+    "manifest.json"
+  ]
+}

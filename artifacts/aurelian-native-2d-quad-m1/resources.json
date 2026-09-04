@@ -1,0 +1,22 @@
+{
+  "schema": "aurelian.native-2d-quad.resources.v1",
+  "deviceOwner": "existing AurelianVulkanPlant",
+  "rendererOwns": [
+    "render pass/framebuffer/target",
+    "descriptor layout/pool",
+    "graphics pipeline/layout",
+    "nearest clamp sampler",
+    "mapped dynamic vertex buffer",
+    "command/fence/upload helpers"
+  ],
+  "textureHandle": "opaque Native2DTextureHandle; no Vulkan handles exposed",
+  "textureLifetime": "persistent across passes; upload once; stable shader-read layout",
+  "material": "compiler-offset 32-byte buffer per cached unique texture/tint pair; roughness fixed to 1",
+  "descriptors": "one cached set per unique texture/tint pair; freed with disposed texture; no per-pass rewrites after warmup",
+  "vertices": {
+    "initialCapacityQuads": 256,
+    "growth": "power of two; no shrink",
+    "strategy": "six CPU-built vertices per quad; one mapped upload per pass"
+  },
+  "recreatedTextureProof": "created, rendered, disposed, and rejected after disposal while renderer stayed alive"
+}

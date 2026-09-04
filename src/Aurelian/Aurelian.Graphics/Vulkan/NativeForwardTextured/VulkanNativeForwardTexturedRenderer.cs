@@ -464,7 +464,7 @@ public static unsafe class VulkanNativeForwardTexturedRenderer
         }
     }
 
-    private static AurelianVulkanTexture CreateTexture(
+    internal static AurelianVulkanTexture CreateTexture(
         AurelianVulkanPlant plant,
         IVulkanMemoryAllocator allocator,
         uint width,
@@ -489,7 +489,7 @@ public static unsafe class VulkanNativeForwardTexturedRenderer
         return result.Texture!;
     }
 
-    private static AurelianVulkanBuffer CreateMappedBuffer(
+    internal static AurelianVulkanBuffer CreateMappedBuffer(
         AurelianVulkanPlant plant,
         IVulkanMemoryAllocator allocator,
         ulong size,
@@ -535,7 +535,7 @@ public static unsafe class VulkanNativeForwardTexturedRenderer
         return result.Framebuffer!;
     }
 
-    private static DescriptorSetLayout CreateDescriptorSetLayout(AurelianVulkanPlant plant, CompiledGraphicsProgram program)
+    internal static DescriptorSetLayout CreateDescriptorSetLayout(AurelianVulkanPlant plant, CompiledGraphicsProgram program)
     {
         DescriptorSetLayoutBinding[] bindings = program.Resources
             .OrderBy(resource => resource.Binding)
@@ -562,7 +562,7 @@ public static unsafe class VulkanNativeForwardTexturedRenderer
         }
     }
 
-    private static AurelianVulkanGraphicsPipeline CreatePipeline(
+    internal static AurelianVulkanGraphicsPipeline CreatePipeline(
         AurelianVulkanPlant plant,
         AurelianVulkanRenderPass renderPass,
         CompiledGraphicsProgram program,
@@ -591,7 +591,7 @@ public static unsafe class VulkanNativeForwardTexturedRenderer
         return result.Pipeline!;
     }
 
-    private static Sampler CreateSampler(AurelianVulkanPlant plant)
+    internal static Sampler CreateSampler(AurelianVulkanPlant plant)
     {
         SamplerCreateInfo createInfo = new()
         {
@@ -742,7 +742,7 @@ public static unsafe class VulkanNativeForwardTexturedRenderer
         return new VulkanForwardTexturedPixelFacts(clear, drawn, drawnColors.Count, drawnColors.Count >= 3, tint);
     }
 
-    private static DescriptorType MapDescriptorType(CompiledGraphicsResourceKind kind)
+    internal static DescriptorType MapDescriptorType(CompiledGraphicsResourceKind kind)
         => kind switch
         {
             CompiledGraphicsResourceKind.Texture2D => DescriptorType.SampledImage,
@@ -751,7 +751,7 @@ public static unsafe class VulkanNativeForwardTexturedRenderer
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
         };
 
-    private static ShaderStageFlags MapStageFlags(IReadOnlyList<CompiledGraphicsStage> stages)
+    internal static ShaderStageFlags MapStageFlags(IReadOnlyList<CompiledGraphicsStage> stages)
     {
         ShaderStageFlags flags = 0;
         foreach (CompiledGraphicsStage stage in stages)
@@ -906,7 +906,7 @@ public static unsafe class VulkanNativeForwardTexturedRenderer
             _ => throw new InvalidOperationException($"Unsupported reflected graphics stage '{stage}'."),
         };
 
-    private static void Require(bool condition, string message, IEnumerable<string> details)
+    internal static void Require(bool condition, string message, IEnumerable<string> details)
     {
         if (!condition)
         {

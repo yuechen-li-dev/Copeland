@@ -1,0 +1,72 @@
+{
+  "schema": "aurelian.native-2d-quad.performance.v1",
+  "milliseconds": {
+    "compiler": 235.534,
+    "deviceInitialization": 378.347,
+    "rendererInitialization": 45.715,
+    "steady1": {
+      "quadCount": 1,
+      "drawCalls": 1,
+      "commandBuffers": 1,
+      "queueSubmissions": 1,
+      "bufferUploads": 1,
+      "descriptorSetAllocations": 0,
+      "descriptorWrites": 0,
+      "vertexCapacityQuads": 256,
+      "vertexUploadMilliseconds": 0.002,
+      "commandRecordingMilliseconds": 0.041,
+      "submitWaitMilliseconds": 0.106,
+      "readbackMilliseconds": 0,
+      "cpuAllocatedBytes": 1336
+    },
+    "steady10": {
+      "quadCount": 10,
+      "drawCalls": 1,
+      "commandBuffers": 1,
+      "queueSubmissions": 1,
+      "bufferUploads": 1,
+      "descriptorSetAllocations": 0,
+      "descriptorWrites": 0,
+      "vertexCapacityQuads": 256,
+      "vertexUploadMilliseconds": 0.007,
+      "commandRecordingMilliseconds": 0.038,
+      "submitWaitMilliseconds": 0.094,
+      "readbackMilliseconds": 0,
+      "cpuAllocatedBytes": 2632
+    },
+    "steady100": {
+      "quadCount": 100,
+      "drawCalls": 1,
+      "commandBuffers": 1,
+      "queueSubmissions": 1,
+      "bufferUploads": 1,
+      "descriptorSetAllocations": 0,
+      "descriptorWrites": 0,
+      "vertexCapacityQuads": 256,
+      "vertexUploadMilliseconds": 0.065,
+      "commandRecordingMilliseconds": 0.042,
+      "submitWaitMilliseconds": 0.439,
+      "readbackMilliseconds": 0.001,
+      "cpuAllocatedBytes": 15592
+    }
+  },
+  "descriptorChurn": {
+    "oneQuad": {
+      "descriptorSetAllocations": 1,
+      "descriptorWrites": 3,
+      "warmWrites": 0
+    },
+    "tenQuads": {
+      "descriptorSetAllocations": 1,
+      "descriptorWrites": 3,
+      "warmWrites": 0
+    },
+    "hundredQuads": {
+      "descriptorSetAllocations": 1,
+      "descriptorWrites": 3,
+      "warmWrites": 0
+    },
+    "note": "Each case uses one new tint to measure a cold compatible binding group. Repeating the same group writes zero descriptors."
+  },
+  "comparisonLaw": "cold compiler/device/renderer initialization is separate from synchronous steady pass cost; readback is opt-in proof work"
+}

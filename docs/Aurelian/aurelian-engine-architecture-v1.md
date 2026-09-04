@@ -397,3 +397,25 @@ bounded step is a minimal reusable native 2D quad submission primitive; it does
 not authorize TinyFarm integration, text, material/asset frameworks, generalized
 batching, cameras, transforms, or render graphs. See
 `docs/Aurelian/aurelian-native-forward-textured-m0-report.md`.
+
+## 30. AURELIAN-NATIVE-2D-QUAD-M1 update
+
+The first reusable native 2D primitive is now qualified. `VulkanOrderedQuadRenderer`
+reuses the existing Vulkan plant and owns one compiler-derived pipeline/layout,
+render pass/target/framebuffer, nearest-clamp sampler, descriptor pool, mapped
+vertex buffer, and command/fence/upload infrastructure. Application-facing texture
+identity is an opaque handle over persistent raw RGBA8 resources; Vulkan handles do
+not escape.
+
+Each pass records immutable axis-aligned pixel-space quad values containing a
+destination rect, ordered UV rect, texture handle, and tint. Submission sequence is
+the only order law. Adjacent identical texture/tint pairs may share a draw, but the
+renderer never sorts. The unchanged M3 shader keeps `sample * tint`; compiler
+metadata remains construction authority for vertex, descriptor, and material ABI,
+with SPIR-V reflection only cross-checking it.
+
+The 256x256 canonical proof, 100-quad stress, and 100 persistent-pass stress pass
+with Khronos validation and stable same-machine hashes. This remains an offscreen,
+opaque, synchronous renderer mechanism with optional proof readback—not a sprite
+engine, retained scene, compositor, or swapchain path. See
+`docs/Aurelian/aurelian-native-2d-quad-m1-report.md`.

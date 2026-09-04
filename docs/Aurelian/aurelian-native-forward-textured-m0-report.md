@@ -98,6 +98,6 @@ Focused tests cover compiled metadata completeness, stage SPIR-V presence, verte
 
 The five compact artifacts are under `artifacts/aurelian-native-forward-textured-m0/`. They contain hashes and sampled pixel evidence only; no framebuffer or screenshot is stored.
 
-## Exact next milestone
+## M1 continuation
 
-**AURELIAN-NATIVE-2D-QUAD-M1 — qualify a minimal reusable native 2D quad submission primitive over the now-proven compiler/pipeline/resource path.** It should reuse `CompiledGraphicsProgram`, accept explicit renderer-neutral quad instances and texture/material bindings, and prove a small ordered multi-quad draw. It must not add TinyFarm, text, a material framework, an asset pipeline, camera/world transforms, generalized batching, or a render graph.
+**AURELIAN-NATIVE-2D-QUAD-M1 is now qualified with Outcome A.** The persistent renderer reuses `CompiledGraphicsProgram`, records immutable ordered quad submissions, owns opaque persistent RGBA8 textures, and passes canonical, 100-quad, and 100-pass native Vulkan proofs without adding TinyFarm, sprites, text, materials, assets, cameras, transforms, generalized batching, or a render graph. See `docs/Aurelian/aurelian-native-2d-quad-m1-report.md`.

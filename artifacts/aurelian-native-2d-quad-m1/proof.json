@@ -1,0 +1,56 @@
+{
+  "milestone": "AURELIAN-NATIVE-2D-QUAD-M1",
+  "outcome": "A",
+  "program": {
+    "name": "GraphicsProgram",
+    "featureLevel": "graphics.m3",
+    "compilerProfile": "dxc-vulkan1.3",
+    "vdMirSha256": "e6fb665eae51dbce33a5212a4f3c08480b1feb93333a1fd2f60468ef1b2f9cc0"
+  },
+  "compilerMetadataConstructsLayouts": true,
+  "spirvReflectionCrossCheckPassed": true,
+  "gpu": {
+    "plantId": {
+      "value": 0
+    },
+    "physicalDeviceName": "NVIDIA GeForce RTX 3070",
+    "deviceType": "DiscreteGpu",
+    "apiVersion": 4211017,
+    "driverVersion": 2500395008,
+    "vendorId": 4318,
+    "deviceId": 9352,
+    "queueFamilyIndex": 0,
+    "timelineSemaphores": true,
+    "enabledInstanceExtensions": [
+      "VK_EXT_debug_utils"
+    ],
+    "enabledDeviceExtensions": [],
+    "enabledValidationLayers": [
+      "VK_LAYER_KHRONOS_validation"
+    ]
+  },
+  "validation": {
+    "requested": true,
+    "available": true,
+    "errors": 0,
+    "warnings": 0
+  },
+  "canonicalHash": "4fedd1050accc442864faaa8eeae11c7d02efc6b1009a85d80d080c1372b1192",
+  "stress100Hash": "56bb01ad7377a4ae342fa70f107d72e3abc878d3cc4d1dc448726588863adbf5",
+  "repeatedPassHash": "4fedd1050accc442864faaa8eeae11c7d02efc6b1009a85d80d080c1372b1192",
+  "laws": {
+    "submissionOrderOnly": true,
+    "opaque": true,
+    "pixelSpaceTopLeft": true,
+    "retainedSceneState": false,
+    "readbackOptional": true
+  },
+  "negativeContracts": [
+    "unknown/disposed texture",
+    "non-finite coordinates",
+    "invalid tint",
+    "submit outside pass",
+    "nested Begin2D",
+    "End2D without Begin2D"
+  ]
+}
