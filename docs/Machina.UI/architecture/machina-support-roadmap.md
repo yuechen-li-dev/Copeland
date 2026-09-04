@@ -792,7 +792,10 @@ See `docs/Machina.UI/history/machina-font-generation-adapters-m8f.md`.
 
 M8g lands the first real managed outline adapter inside standalone `Machina.Fonts`.
 
-- `Machina.Fonts` now consumes `WycliffeAssociates.Typography.OpenFont` `1.0.0`.
+- Historical M8g initially consumed `WycliffeAssociates.Typography.OpenFont` `1.0.0`.
+  M1 replaces it with the pinned, source-built `Machina.Typography.OpenFont` fork,
+  which preserves glyph identity for empty outlines and ships under upstream's
+  original license.
 - `TypographyGlyphOutlineSource` implements `IGlyphOutlineSource`.
 - one checked-in OFL fixture font is loaded from an explicit file path only.
 - real glyph metrics and contours now translate into Machina-owned outline records.

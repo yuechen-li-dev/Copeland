@@ -11,15 +11,14 @@ internal static class TypographyOutlineConversion
         float emSize,
         bool normalizeToEm,
         Typeface typeface,
-        Glyph glyph,
-        ushort advanceWidthFontUnits)
+        Glyph glyph)
     {
         ArgumentNullException.ThrowIfNull(typeface);
         ArgumentNullException.ThrowIfNull(glyph);
 
         double scale = GetScale(typeface, emSize, normalizeToEm);
         GlyphKey key = GlyphKey.FromCodepoint(face, codepoint, emSize);
-        GlyphMetrics metrics = CreateMetrics(typeface, glyph, scale, advanceWidthFontUnits);
+        GlyphMetrics metrics = CreateMetrics(typeface, glyph, scale);
         GlyphBounds bounds = CreateBounds(glyph, scale);
         IReadOnlyList<GlyphContour> contours = CreateContours(typeface, glyph, scale);
         return new GlyphOutline(key, metrics, bounds, contours);
@@ -64,9 +63,9 @@ internal static class TypographyOutlineConversion
         return normalizeToEm ? emSize / typeface.UnitsPerEm : 1d;
     }
 
-    private static GlyphMetrics CreateMetrics(Typeface typeface, Glyph glyph, double scale, ushort advanceWidthFontUnits)
+    private static GlyphMetrics CreateMetrics(Typeface typeface, Glyph glyph, double scale)
     {
-        double advance = advanceWidthFontUnits * scale;
+        double advance = typeface.GetAdvanceWidthFromGlyphIndex(glyph.GlyphIndex) * scale;
         double bearingX = typeface.GetLeftSideBearing(glyph.GlyphIndex) * scale;
         double bearingY = glyph.MaxY * scale;
         double width = Math.Max(0, (glyph.MaxX - glyph.MinX) * scale);

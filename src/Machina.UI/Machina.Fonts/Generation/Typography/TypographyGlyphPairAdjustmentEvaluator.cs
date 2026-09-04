@@ -122,19 +122,24 @@ internal static class TypographyGlyphPairAdjustmentEvaluator
         {
         }
 
-        public ushort GetGlyph(int index, out ushort glyphIndex)
+        public ushort GetGlyph(int index, out short advanceWidth)
         {
-            glyphIndex = glyphIndices[index];
-            return glyphIndex;
+            advanceWidth = index == 0 ? XAdvance0 : (short)0;
+            return glyphIndices[index];
         }
 
-        public ushort GetGlyph(int index, out ushort glyphIndex, out short advW, out short offsetX, out short offsetY)
+        public ushort GetGlyph(
+            int index,
+            out ushort inputOffset,
+            out short offsetX,
+            out short offsetY,
+            out short advanceWidth)
         {
-            glyphIndex = glyphIndices[index];
-            advW = index == 0 ? XAdvance0 : (short)0;
+            inputOffset = checked((ushort)index);
             offsetX = 0;
             offsetY = 0;
-            return glyphIndex;
+            advanceWidth = index == 0 ? XAdvance0 : (short)0;
+            return glyphIndices[index];
         }
 
         public GlyphClassKind GetGlyphClassKind(int index)

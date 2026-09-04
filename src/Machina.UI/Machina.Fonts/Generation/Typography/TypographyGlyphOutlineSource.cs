@@ -92,18 +92,13 @@ public sealed class TypographyGlyphOutlineSource : IGlyphOutlineSource, IGlyphPa
                     $"Glyph U+{codepoint:X4} uses a CFF outline, which is deferred in the Typography proof adapter."));
             }
 
-            ushort advanceWidth = TrueTypeHorizontalMetricsReader.ReadAdvanceWidth(
-                source.Path,
-                source.FaceIndex,
-                glyphIndex);
             GlyphOutline outline = TypographyOutlineConversion.CreateOutline(
                 face,
                 codepoint,
                 options.EmSize,
                 options.NormalizeToEm,
                 typeface,
-                glyph,
-                advanceWidth);
+                glyph);
 
             if (outline.Contours.Count == 0 && !TypographyOutlineConversion.IsWhitespace(codepoint))
             {

@@ -22,7 +22,6 @@
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="MSDF-Sharp.Core" />
     <PackageReference Include="Tomlyn" />
-    <PackageReference Include="WycliffeAssociates.Typography.OpenFont" />
   </ItemGroup>
 
   <ItemGroup>

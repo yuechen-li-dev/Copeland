@@ -10,3 +10,8 @@
 *.js text eol=lf
 *.tson text eol=lf
 *.cope text eol=lf
+
+# Preserve the pinned LayoutFarm source snapshot byte-for-byte. Downstream files
+# outside Upstream remain subject to the repository's normal whitespace checks.
+src/ThirdParty/Machina.Typography.OpenFont/Upstream/** -whitespace
+src/ThirdParty/Machina.Typography.OpenFont/LICENSE.md -whitespace

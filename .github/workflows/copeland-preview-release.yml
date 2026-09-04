@@ -23,6 +23,16 @@ on:
         required: true
         default: false
         type: boolean
+      publish_machina_typography_openfont:
+        description: Build, verify, and publish Machina.Typography.OpenFont
+        required: true
+        default: false
+        type: boolean
+      machina_typography_openfont_version:
+        description: Machina.Typography.OpenFont package version
+        required: true
+        default: 1.0.0
+        type: string
 
 permissions:
   contents: read
@@ -33,6 +43,7 @@ concurrency:
 
 jobs:
   build-and-verify:
+    if: ${{ inputs.publish_nuget || inputs.publish_npm || inputs.create_github_release || !inputs.publish_machina_typography_openfont }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -62,6 +73,68 @@ jobs:
           path: artifacts/releases/${{ inputs.version }}/
           if-no-files-found: error
           retention-days: 30
+
+  build-machina-typography-openfont:
+    if: ${{ inputs.publish_machina_typography_openfont }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Test, pack, inspect, and consumer-smoke the package
+        shell: pwsh
+        run: ./tools/Build-MachinaTypographyOpenFontRelease.ps1 -Version '${{ inputs.machina_typography_openfont_version }}'
+
+      - name: Upload validated Machina Typography artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: machina-typography-openfont-${{ inputs.machina_typography_openfont_version }}
+          path: artifacts/releases/machina-typography-openfont/${{ inputs.machina_typography_openfont_version }}/
+          if-no-files-found: error
+          retention-days: 30
+
+  publish-machina-typography-openfont:
+    if: ${{ inputs.publish_machina_typography_openfont }}
+    needs: build-machina-typography-openfont
+    runs-on: windows-latest
+    environment: copeland-publication
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: machina-typography-openfont-${{ inputs.machina_typography_openfont_version }}
+          path: release
+
+      - name: NuGet login (OIDC to temporary API key)
+        uses: NuGet/login@v1
+        id: nuget-login
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      - name: Publish Machina.Typography.OpenFont
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:NUGET_API_KEY)) {
+              throw 'NuGet OIDC login did not return a temporary API key.'
+          }
+          $package = 'release/nuget/Machina.Typography.OpenFont.${{ inputs.machina_typography_openfont_version }}.nupkg'
+          if (-not (Test-Path -LiteralPath $package -PathType Leaf)) {
+              throw "Validated package was not downloaded: $package"
+          }
+          dotnet nuget push $package `
+              --source https://api.nuget.org/v3/index.json `
+              --api-key $env:NUGET_API_KEY `
+              --skip-duplicate
+          if ($LASTEXITCODE -ne 0) {
+              throw 'NuGet publication failed for Machina.Typography.OpenFont.'
+          }
 
   publish-nuget:
     if: ${{ inputs.publish_nuget }}

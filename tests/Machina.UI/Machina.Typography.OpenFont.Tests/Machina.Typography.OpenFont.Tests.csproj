@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Machina.Typography.OpenFont.Tests</AssemblyName>
+    <RootNamespace>Machina.Typography.OpenFont.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="coverlet.collector" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../src/ThirdParty/Machina.Typography.OpenFont/Machina.Typography.OpenFont.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="../Machina.Fonts.Tests/Fixtures/Fonts/CrimsonText-Regular.ttf"
+             Link="Fixtures/Fonts/CrimsonText-Regular.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

@@ -28,7 +28,6 @@
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="Tomlyn" />
-    <PackageReference Include="WycliffeAssociates.Typography.OpenFont" />
   </ItemGroup>
 
   <ItemGroup>

@@ -4,8 +4,10 @@
     <RootNamespace>Machina.Fonts</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../ThirdParty/Machina.Typography.OpenFont/Machina.Typography.OpenFont.csproj" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="MSDF-Sharp.Core" />
     <PackageReference Include="Tomlyn" />
-    <PackageReference Include="WycliffeAssociates.Typography.OpenFont" />
   </ItemGroup>
 </Project>

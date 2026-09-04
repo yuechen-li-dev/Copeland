@@ -20,7 +20,7 @@ Avalonia TextLayout -> ShapedTextRun -> GlyphRun/GlyphInfo
               v                         v
        reference placement + positioned vector outline
 
-Typography exact-byte face -> hmtx + GPOS -> MachinaGlyphRun
+Machina.Typography.OpenFont exact-byte face -> hmtx + GPOS -> MachinaGlyphRun
               |                              |
               v                              v
        Typography outline --------> positioned vector outline
@@ -46,7 +46,10 @@ from the M1 comparison.
 
 The M0 oracle embeds the qualified `CrimsonText-Regular.ttf` and rejects a request
 whose SHA-256 does not match those bytes. Avalonia and Typography therefore observe
-the same face. Font metadata records units per em, ascender, descender, and line gap.
+the same face. Machina consumes its pinned, source-built
+`Machina.Typography.OpenFont` fork; its original upstream license and downstream
+patch ledger are shipped with the package. Font metadata records units per em,
+ascender, descender, and line gap.
 
 Machina and Avalonia evidence use device-independent pixels at 96 DPI and a
 pixels-per-DIP value of one. X increases

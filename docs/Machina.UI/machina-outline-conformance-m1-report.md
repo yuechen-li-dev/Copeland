@@ -103,12 +103,14 @@ The first run isolated drift at the first space. At 64px Avalonia reported a 14.
 space advance (229 font units), while Typography's `GetAdvanceWidthFromGlyphIndex`
 reported 23.375px (374 units). Every later word moved by another 9.0625px. Glyph IDs,
 non-space advances, baselines, scale, and translation-fitted outlines were already
-equal. The defect was the TrueType rule for glyphs beyond `numberOfHMetrics`: their
-advance must repeat the last long horizontal metric.
+equal. The defect was in the obsolete Typography/OpenFont distribution: all
+zero-length TrueType outlines reused a glyph-zero object. Crimson Text's space maps
+to glyph 556, but `GetGlyph(556).GlyphIndex` incorrectly returned zero, so callers
+looked up the `.notdef` advance.
 
-`TrueTypeHorizontalMetricsReader` now reads `hhea.numberOfHMetrics` and `hmtx`
-directly from the exact standalone font or TTC face and applies that rule. No special
-case for space or Crimson Text was added. A second diagnostic-truth defect was found:
+`Machina.Typography.OpenFont` now preserves the requested identity on every empty
+outline in both TrueType and WOFF2 loading. The correction is general and contains
+no special case for space or Crimson Text. A second diagnostic-truth defect was found:
 Machina applied GPOS movement to the pen but left the preceding semantic glyph's
 reported advance unadjusted. `DistanceFieldTextLayout` now records the effective
 pair-adjusted advance while preserving the already-correct origins.
