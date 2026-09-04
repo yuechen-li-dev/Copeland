@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../../src/Machina.UI/Machina.Fonts/Machina.Fonts.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Fonts.AvaloniaOracle/Machina.Fonts.AvaloniaOracle.csproj" />
   </ItemGroup>
 
   <ItemGroup>

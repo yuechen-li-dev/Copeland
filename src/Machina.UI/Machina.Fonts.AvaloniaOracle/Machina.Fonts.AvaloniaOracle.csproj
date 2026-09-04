@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Machina.Fonts.AvaloniaOracle</AssemblyName>
+    <RootNamespace>Machina.Fonts.AvaloniaOracle</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Machina.Fonts/Machina.Fonts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Headless" />
+    <PackageReference Include="Avalonia.Skia" />
+  </ItemGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="../../../tests/Machina.UI/Machina.Fonts.Tests/Fixtures/Fonts/CrimsonText-Regular.ttf">
+      <Link>Assets/CrimsonText-Regular.ttf</Link>
+    </AvaloniaResource>
+  </ItemGroup>
+</Project>

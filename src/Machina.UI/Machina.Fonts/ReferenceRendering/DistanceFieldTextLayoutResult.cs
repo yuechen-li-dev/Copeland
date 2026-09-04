@@ -14,4 +14,24 @@ public sealed record DistanceFieldTextLayoutResult(
     IReadOnlyList<DistanceFieldGlyphPlacement> Placements,
     double Width,
     double Height,
-    IReadOnlyList<FontGenerationDiagnostic> Diagnostics);
+    IReadOnlyList<FontGenerationDiagnostic> Diagnostics,
+    MachinaGlyphRun GlyphRun)
+{
+    public DistanceFieldTextLayoutResult(
+        IReadOnlyList<DistanceFieldGlyphPlacement> placements,
+        double width,
+        double height,
+        IReadOnlyList<FontGenerationDiagnostic> diagnostics)
+        : this(
+            placements,
+            width,
+            height,
+            diagnostics,
+            new MachinaGlyphRun(
+                string.Empty,
+                Array.Empty<MachinaLinePlacement>(),
+                Array.Empty<MachinaTokenPlacement>(),
+                Array.Empty<MachinaGlyphPlacement>()))
+    {
+    }
+}

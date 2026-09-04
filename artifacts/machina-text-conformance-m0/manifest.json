@@ -1,0 +1,91 @@
+{
+  "milestone": "MACHINA-TEXT-CONFORMANCE-M0",
+  "kind": "avalonia-token-anchored-text-conformance",
+  "avaloniaIsExternalLayoutOracle": true,
+  "avaloniaOwnsApplicationState": false,
+  "browserIsPrimaryOracle": false,
+  "tokenFirstGlyphIsPositionOracle": true,
+  "internalKerningRequiresExactParity": false,
+  "crossTokenDriftAllowed": false,
+  "directOutlineUsesSharedGlyphRun": true,
+  "msdfUsesSharedGlyphRun": true,
+  "atlasOwnsLayout": false,
+  "arbitraryVisualFudgeFactorsAdded": false,
+  "complexScriptSupportClaimed": false,
+  "fontPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\tests\\Machina.UI\\Machina.Fonts.Tests\\Fixtures\\Fonts\\CrimsonText-Regular.ttf",
+  "fontSha256": "48e6c5d5ad1d01599d374ecb817e15890d1feb3b8a3a88e527d44c90389e1f06",
+  "canonicalSizes": [
+    16,
+    24,
+    32,
+    48,
+    64
+  ],
+  "canonicalTexts": [
+    "Machina",
+    "Hello Machina",
+    "AV To Ta Wa Yo",
+    "Aa0",
+    "The quick brown fox jumps over the lazy dog",
+    "Agjpqy",
+    "Hello, world!"
+  ],
+  "targetedTexts": [
+    "Il1",
+    "WMWM",
+    "iiii",
+    "mmmm",
+    "To AV Wa Yo"
+  ],
+  "heldOutTexts": [
+    "Il1 WMWM iiii mmmm",
+    "office ffi fi",
+    "Settings remain aligned"
+  ],
+  "singleGlyphTexts": [
+    "A",
+    "M",
+    "i",
+    "W",
+    "g",
+    "y",
+    "0",
+    ",",
+    "."
+  ],
+  "localDiagnosticDirectory": "C:\\Users\\yuech\\AppData\\Local\\Temp\\machina-text-conformance-m0\\20260904-045917",
+  "slowLaneRetired": false,
+  "slowLaneDisposition": "Retained only for historical large-export/browser workflows; normal conformance is independent.",
+  "summary": {
+    "outcome": "B",
+    "caseCount": 84,
+    "passedCount": 83,
+    "failedCount": 1,
+    "tokenAnchor": {
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+    },
+    "internalGlyphOrigin": {
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+    },
+    "baseline": {
+      "p50": 0,
+      "p95": 0,
+      "max": 0
+    },
+    "directVsMsdfMinimumIou": 0,
+    "directVsMsdfMaximumPlacementDelta": 0,
+    "averageTimings": {
+      "avaloniaReferenceMilliseconds": 10.868914285714286,
+      "directOutlineMilliseconds": 1211.0691297619048,
+      "machinaLayoutMilliseconds": 0.1340690476190477,
+      "directOutlineRasterMilliseconds": 1208.5723583333336,
+      "msdfAtlasGenerationAndRenderMilliseconds": 154.91910357142854,
+      "msdfAtlasGenerationMilliseconds": 150.9107819277109,
+      "msdfRenderMilliseconds": 5.824921686746988
+    }
+  }
+}

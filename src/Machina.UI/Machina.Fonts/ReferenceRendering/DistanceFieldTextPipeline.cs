@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using Machina.Fonts.Artifacts;
 using Machina.Fonts.Artifacts.DistanceField;
@@ -34,6 +35,8 @@ public sealed class DistanceFieldTextPipeline
         string text,
         DistanceFieldTextRenderOptions options,
         string? artifactDirectory = null,
+        IReadOnlyDictionary<int, double>? tokenAnchorOrigins = null,
+        DistanceFieldTextLayoutResult? sharedLayout = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(text);
@@ -61,6 +64,7 @@ public sealed class DistanceFieldTextPipeline
             1d,
             options.EdgeColoring,
             options.MiterLimit);
+        Stopwatch generationTimer = Stopwatch.StartNew();
 
         List<GeneratedGlyphDistanceField> fields = [];
         Dictionary<GlyphKey, GlyphMetrics> metricsByGlyph = [];
@@ -123,7 +127,19 @@ public sealed class DistanceFieldTextPipeline
         }
 
         Dictionary<GlyphPairKey, GlyphPairAdjustment> pairAdjustments = await CollectPairAdjustmentsAsync(run, cancellationToken);
-        DistanceFieldTextLayoutResult layout = DistanceFieldTextLayout.Layout(run, metricsByGlyph, options, diagnostics, pairAdjustments);
+        DistanceFieldTextLayoutResult layout = sharedLayout
+            ?? DistanceFieldTextLayout.Layout(
+                run,
+                metricsByGlyph,
+                options,
+                diagnostics,
+                pairAdjustments,
+                tokenAnchorOrigins);
+
+        if (sharedLayout is not null && !string.Equals(sharedLayout.GlyphRun.Text, text, StringComparison.Ordinal))
+        {
+            throw new ArgumentException("The shared layout text must match the requested text.", nameof(sharedLayout));
+        }
         if (layout.Diagnostics.Any(static diagnostic => diagnostic.Severity == FontGenerationDiagnosticSeverity.Error))
         {
             return CreateFailure(metricsOnlyGlyphs, renderedGlyphs, layout.Diagnostics);
@@ -155,19 +171,26 @@ public sealed class DistanceFieldTextPipeline
             string pagePath = Path.Combine(outputDirectory, page.ImagePath);
             pages.Add(page.Index, DistanceFieldPageReferenceReader.Read(pagePath));
         }
+        generationTimer.Stop();
 
+        Stopwatch renderTimer = Stopwatch.StartNew();
         RgbaImage image = CpuDistanceFieldTextRenderer.RenderText(import.Snapshot, pages, layout, options);
         string ppmPath = Path.Combine(outputDirectory, metadata.Name + ".ppm");
         PpmImageWriter.Write(ppmPath, image);
+        renderTimer.Stop();
 
         return new DistanceFieldTextPipelineResult(
             true,
             image,
             ppmPath,
             import.Snapshot,
+            layout,
             renderedGlyphs,
             metricsOnlyGlyphs,
-            diagnostics);
+            diagnostics,
+            new DistanceFieldTextPipelineTimings(
+                generationTimer.Elapsed.TotalMilliseconds,
+                renderTimer.Elapsed.TotalMilliseconds));
     }
 
     private async ValueTask<Dictionary<GlyphPairKey, GlyphPairAdjustment>> CollectPairAdjustmentsAsync(
@@ -233,9 +256,11 @@ public sealed class DistanceFieldTextPipeline
             null,
             null,
             null,
+            null,
             renderedGlyphs.ToArray(),
             metricsOnlyGlyphs.ToArray(),
-            diagnostics.ToArray());
+            diagnostics.ToArray(),
+            null);
     }
 }
 
@@ -244,6 +269,12 @@ public sealed record DistanceFieldTextPipelineResult(
     RgbaImage? Image,
     string? PpmPath,
     FontAtlasSnapshot? Snapshot,
+    DistanceFieldTextLayoutResult? Layout,
     IReadOnlyList<GlyphKey> RenderedGlyphs,
     IReadOnlyList<GlyphKey> MetricsOnlyGlyphs,
-    IReadOnlyList<FontGenerationDiagnostic> Diagnostics);
+    IReadOnlyList<FontGenerationDiagnostic> Diagnostics,
+    DistanceFieldTextPipelineTimings? Timings = null);
+
+public sealed record DistanceFieldTextPipelineTimings(
+    double AtlasGenerationMilliseconds,
+    double RenderMilliseconds);

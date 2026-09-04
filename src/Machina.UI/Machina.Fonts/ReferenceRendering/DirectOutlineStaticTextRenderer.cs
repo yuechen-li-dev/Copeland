@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using Machina.Fonts.Generation;
 
@@ -20,7 +21,8 @@ public sealed record DirectOutlineTextRenderOptions(
     int CurveSubdivisionCount = 24,
     bool ShowBaselineGuide = false,
     Rgba32? BaselineGuideColor = null,
-    bool UsePairAdjustments = true)
+    bool UsePairAdjustments = true,
+    IReadOnlyDictionary<int, double>? TokenAnchorOrigins = null)
 {
     public DirectOutlineTextRenderOptions Validate()
     {
@@ -86,7 +88,14 @@ public sealed record DirectOutlineTextRenderResult(
     InkMask? Mask,
     InkMaskBounds? InkBounds,
     IReadOnlyList<DirectOutlineGlyphRenderPlacement> Glyphs,
-    IReadOnlyList<FontGenerationDiagnostic> Diagnostics);
+    IReadOnlyList<FontGenerationDiagnostic> Diagnostics,
+    MachinaGlyphRun? GlyphRun = null,
+    DistanceFieldTextLayoutResult? Layout = null,
+    DirectOutlineTextRenderTimings? Timings = null);
+
+public sealed record DirectOutlineTextRenderTimings(
+    double LayoutMilliseconds,
+    double RasterMilliseconds);
 
 public sealed class DirectOutlineStaticTextRenderer
 {
@@ -147,6 +156,7 @@ public sealed class DirectOutlineStaticTextRenderer
             metricsByGlyph[glyphKey] = result.Outline.Metrics;
         }
 
+        Stopwatch layoutTimer = Stopwatch.StartNew();
         Dictionary<GlyphPairKey, GlyphPairAdjustment> pairAdjustments = validated.UsePairAdjustments
             ? await CollectPairAdjustmentsAsync(run, cancellationToken)
             : [];
@@ -156,7 +166,9 @@ public sealed class DirectOutlineStaticTextRenderer
             metricsByGlyph,
             CreateLayoutOptions(validated),
             diagnostics,
-            pairAdjustments);
+            pairAdjustments,
+            validated.TokenAnchorOrigins);
+        layoutTimer.Stop();
 
         if (layout.Diagnostics.Any(static diagnostic => diagnostic.Severity == FontGenerationDiagnosticSeverity.Error))
         {
@@ -176,6 +188,7 @@ public sealed class DirectOutlineStaticTextRenderer
             validated.ShowBaselineGuide,
             validated.BaselineGuideColor);
 
+        Stopwatch rasterTimer = Stopwatch.StartNew();
         InkMask mask = DirectOutlineMaskRenderer.RenderMask(outlinesByGlyph, layout, renderOptions);
         RgbaImage image = mask.ToImage(
             validated.Foreground,
@@ -183,6 +196,7 @@ public sealed class DirectOutlineStaticTextRenderer
             validated.ShowBaselineGuide,
             validated.BaselineY,
             validated.BaselineGuideColor);
+        rasterTimer.Stop();
 
         List<DirectOutlineGlyphRenderPlacement> glyphs = layout.Placements
             .Select(placement => CreateGlyphPlacement(placement, outlinesByGlyph))
@@ -195,7 +209,12 @@ public sealed class DirectOutlineStaticTextRenderer
             mask,
             mask.ComputeBounds(),
             glyphs,
-            layout.Diagnostics.ToArray());
+            layout.Diagnostics.ToArray(),
+            layout.GlyphRun,
+            layout,
+            new DirectOutlineTextRenderTimings(
+                layoutTimer.Elapsed.TotalMilliseconds,
+                rasterTimer.Elapsed.TotalMilliseconds));
     }
 
     private async ValueTask<Dictionary<GlyphPairKey, GlyphPairAdjustment>> CollectPairAdjustmentsAsync(

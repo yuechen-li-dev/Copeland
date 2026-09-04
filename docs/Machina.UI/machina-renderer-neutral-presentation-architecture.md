@@ -30,6 +30,13 @@ backend adapter + host window
 | Input records | ordered pointer/key/text/resize/close `UiInputBatch` | yes | platform adapter normalizes; Machina routes |
 | Presentation IR | fill rectangle, stroke rectangle, positioned text, push/pop rectangular clip | yes | Machina.Presentation |
 | Text realization | deterministic measurement and CPU/font tooling exist | mostly; backend still chooses actual glyph rendering | split |
+
+`MACHINA-TEXT-CONFORMANCE-M0` sharpens that split. Avalonia is a test/tooling-only
+external layout and raster oracle. Machina owns the immutable `MachinaGlyphRun`, whose
+line baselines, token anchors, glyph origins, advances, and plane bounds are shared by
+DirectOutline and MSDF. Backend atlas rectangles, padding, UVs, and texture handles
+cannot affect layout. Production packages do not reference Avalonia, and the current
+`ITextMeasurer` migration remains a separate decision after conformance.
 | Focus | semantic and presenter-local behavior exists, but no complete general focus manager/control lifecycle | partial | integration/Machina |
 | Platform/window | samples and integration hosts | no | backend host |
 | Backends | raster/reference and Aurelian integration paths; no TinyFarm MonoGame adapter | partial | adapter projects |

@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/Machina.UI/Machina.Core/Machina.Core.csproj" />
     <Project Path="src/Machina.UI/Machina.Fonts/Machina.Fonts.csproj" />
+    <Project Path="src/Machina.UI/Machina.Fonts.AvaloniaOracle/Machina.Fonts.AvaloniaOracle.csproj" />
     <Project Path="src/Machina.UI/Machina.Fonts.Tooling/Machina.Fonts.Tooling.csproj" />
     <Project Path="src/Machina.UI/Machina.Layout/Machina.Layout.csproj" />
     <Project Path="src/Machina.UI/Machina.Pipeline/Machina.Pipeline.csproj" />
@@ -19,5 +20,8 @@
     <Project Path="tests/Machina.UI/Machina.Runtime.Tests/Machina.Runtime.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Standard.Tests/Machina.Standard.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Testing/Machina.Testing.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Machina.TextConformance/Machina.TextConformance.csproj" />
   </Folder>
 </Solution>

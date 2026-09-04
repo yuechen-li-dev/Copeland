@@ -15,6 +15,8 @@ artifacts/m9i/*.png
 artifacts/m9i-font-diagnostics/
 artifacts/m12a/
 artifacts/m*/
+!artifacts/machina-text-conformance-m0/
+!artifacts/machina-text-conformance-m0/*.json
 artifacts/derived/
 artifacts/canonical-playback/
 artifacts/repo-hygiene/playback-validation/

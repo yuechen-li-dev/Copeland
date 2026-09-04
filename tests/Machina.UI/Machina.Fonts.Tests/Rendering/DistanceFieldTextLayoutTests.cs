@@ -93,6 +93,7 @@ public sealed class DistanceFieldTextLayoutTests
 
         Assert.Equal(Options.X + 4d, layout.Placements[1].X);
         Assert.Equal(10d, layout.Width);
+        Assert.Equal(10d, layout.GlyphRun.Tokens[0].AdvanceWidth);
     }
 
     [Fact]
@@ -107,5 +108,70 @@ public sealed class DistanceFieldTextLayoutTests
 
         Assert.Equal(Options.X + 6d, layout.Placements[1].X);
         Assert.Equal(12d, layout.Width);
+    }
+
+    [Fact]
+    public void Tokenizer_SeparatesWordsPunctuationAndWhitespace()
+    {
+        IReadOnlyList<MachinaTokenPlacement> tokens = MachinaTextTokenizer.Tokenize("Hello, world!");
+
+        Assert.Equal(new[] { "Hello", ",", " ", "world", "!" }, tokens.Select(static token => token.Text));
+        Assert.Equal(
+            new[]
+            {
+                MachinaTextTokenKind.Word,
+                MachinaTextTokenKind.Punctuation,
+                MachinaTextTokenKind.Whitespace,
+                MachinaTextTokenKind.Word,
+                MachinaTextTokenKind.Punctuation,
+            },
+            tokens.Select(static token => token.Kind));
+    }
+
+    [Fact]
+    public void DistanceFieldTextLayout_RecordsRendererNeutralTokenAnchors()
+    {
+        DistanceFieldTextRun run = DistanceFieldTextRun.Create("A B", Options.Face, Options.EmSize, Options.Weight, Options.Slant);
+        Dictionary<GlyphKey, GlyphMetrics> metrics = run.GlyphKeys.Distinct().ToDictionary(
+            static key => key,
+            static key => key.Codepoint == ' '
+                ? new GlyphMetrics(3, 0, 0, 0, 0)
+                : new GlyphMetrics(5, 1, 7, 4, 6));
+
+        DistanceFieldTextLayoutResult layout = DistanceFieldTextLayout.Layout(run, metrics, Options);
+
+        Assert.Equal(3, layout.GlyphRun.Tokens.Count);
+        Assert.Equal(Options.X, layout.GlyphRun.Tokens[0].AnchorOriginX);
+        Assert.Null(layout.GlyphRun.Tokens[1].AnchorOriginX);
+        Assert.Equal(Options.X + 8d, layout.GlyphRun.Tokens[2].AnchorOriginX);
+        Assert.All(layout.GlyphRun.Glyphs, static glyph => Assert.Equal(20d, glyph.BaselineY));
+    }
+
+    [Fact]
+    public void DistanceFieldTextLayout_ExplicitTokenAnchorsPreventCrossTokenDrift()
+    {
+        DistanceFieldTextRun run = DistanceFieldTextRun.Create("AA BB CC", Options.Face, Options.EmSize, Options.Weight, Options.Slant);
+        Dictionary<GlyphKey, GlyphMetrics> metrics = run.GlyphKeys.Distinct().ToDictionary(
+            static key => key,
+            static key => key.Codepoint == ' '
+                ? new GlyphMetrics(50, 0, 0, 0, 0)
+                : new GlyphMetrics(20, 1, 7, 4, 6));
+        Dictionary<int, double> anchors = new()
+        {
+            [0] = 3d,
+            [2] = 30d,
+            [4] = 60d,
+        };
+
+        DistanceFieldTextLayoutResult layout = DistanceFieldTextLayout.Layout(
+            run,
+            metrics,
+            Options,
+            tokenAnchorOrigins: anchors);
+
+        Assert.Equal(3d, layout.GlyphRun.Tokens[0].AnchorOriginX);
+        Assert.Equal(30d, layout.GlyphRun.Tokens[2].AnchorOriginX);
+        Assert.Equal(60d, layout.GlyphRun.Tokens[4].AnchorOriginX);
+        Assert.Equal(20d, layout.GlyphRun.Glyphs[1].OriginX - layout.GlyphRun.Glyphs[0].OriginX);
     }
 }

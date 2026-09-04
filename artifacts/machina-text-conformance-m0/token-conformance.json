@@ -1,0 +1,5346 @@
+[
+  {
+    "caseId": "16-machina",
+    "text": "Machina",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Machina",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 48.328125
+    }
+  },
+  {
+    "caseId": "16-hello-machina",
+    "text": "Hello Machina",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Hello",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 25.609375
+    }
+  },
+  {
+    "caseId": "16-hello-machina",
+    "text": "Hello Machina",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 2.265625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-hello-machina",
+    "text": "Hello Machina",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": "Machina",
+      "kind": "Word",
+      "avaloniaAnchorX": 49.15625,
+      "machinaAnchorX": 49.15625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 48.328125
+    }
+  },
+  {
+    "caseId": "16-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "AV",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 9.4375
+    }
+  },
+  {
+    "caseId": "16-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 2.265625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": "To",
+      "kind": "Word",
+      "avaloniaAnchorX": 36.09375,
+      "machinaAnchorX": 36.09375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 9.203125
+    }
+  },
+  {
+    "caseId": "16-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 2.265625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 4,
+      "text": "Ta",
+      "kind": "Word",
+      "avaloniaAnchorX": 56.84375,
+      "machinaAnchorX": 56.84375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 9.203125
+    }
+  },
+  {
+    "caseId": "16-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 5,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 2.265625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 6,
+      "text": "Wa",
+      "kind": "Word",
+      "avaloniaAnchorX": 76.234375,
+      "machinaAnchorX": 76.234375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 15.25
+    }
+  },
+  {
+    "caseId": "16-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 7,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 2.265625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 8,
+      "text": "Yo",
+      "kind": "Word",
+      "avaloniaAnchorX": 101.671875,
+      "machinaAnchorX": 101.671875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 8.578125
+    }
+  },
+  {
+    "caseId": "16-aa0",
+    "text": "Aa0",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Aa0",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 17.296875
+    }
+  },
+  {
+    "caseId": "16-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "The",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 18.734375
+    }
+  },
+  {
+    "caseId": "16-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 2.265625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": "quick",
+      "kind": "Word",
+      "avaloniaAnchorX": 41.03125,
+      "machinaAnchorX": 41.03125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 26.453125
+    }
+  },
+  {
+    "caseId": "16-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 2.265625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 4,
+      "text": "brown",
+      "kind": "Word",
+      "avaloniaAnchorX": 78.8125,
+      "machinaAnchorX": 78.8125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 33.171875
+    }
+  },
+  {
+    "caseId": "16-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 5,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 2.265625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 6,
+      "text": "fox",
+      "kind": "Word",
+      "avaloniaAnchorX": 124.046875,
+      "machinaAnchorX": 124.046875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 12.671875
+    }
+  },
+  {
+    "caseId": "16-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 7,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 2.265625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 8,
+      "text": "jumps",
+      "kind": "Word",
+      "avaloniaAnchorX": 147.59375,
+      "machinaAnchorX": 147.59375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 32.6875
+    }
+  },
+  {
+    "caseId": "16-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 9,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 2.265625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 10,
+      "text": "over",
+      "kind": "Word",
+      "avaloniaAnchorX": 189.46875,
+      "machinaAnchorX": 189.46875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 22.390625
+    }
+  },
+  {
+    "caseId": "16-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 11,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 2.265625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 12,
+      "text": "the",
+      "kind": "Word",
+      "avaloniaAnchorX": 221.375,
+      "machinaAnchorX": 221.375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 13.1875
+    }
+  },
+  {
+    "caseId": "16-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 13,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 2.265625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 14,
+      "text": "lazy",
+      "kind": "Word",
+      "avaloniaAnchorX": 244.859375,
+      "machinaAnchorX": 244.859375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 17
+    }
+  },
+  {
+    "caseId": "16-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 15,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 2.265625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 16,
+      "text": "dog",
+      "kind": "Word",
+      "avaloniaAnchorX": 272.53125,
+      "machinaAnchorX": 272.53125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 15.734375
+    }
+  },
+  {
+    "caseId": "16-agjpqy",
+    "text": "Agjpqy",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Agjpqy",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 37.84375
+    }
+  },
+  {
+    "caseId": "16-hello-world",
+    "text": "Hello, world!",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Hello",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 25.609375
+    }
+  },
+  {
+    "caseId": "16-hello-world",
+    "text": "Hello, world!",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": ",",
+      "kind": "Punctuation",
+      "avaloniaAnchorX": 45.578125,
+      "machinaAnchorX": 45.578125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-hello-world",
+    "text": "Hello, world!",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 2.265625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-hello-world",
+    "text": "Hello, world!",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 3,
+      "text": "world",
+      "kind": "Word",
+      "avaloniaAnchorX": 52.890625,
+      "machinaAnchorX": 52.890625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 29.296875
+    }
+  },
+  {
+    "caseId": "16-hello-world",
+    "text": "Hello, world!",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 4,
+      "text": "!",
+      "kind": "Punctuation",
+      "avaloniaAnchorX": 89.953125,
+      "machinaAnchorX": 89.953125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-il1",
+    "text": "Il1",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Il1",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 8.890625
+    }
+  },
+  {
+    "caseId": "16-wmwm",
+    "text": "WMWM",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "WMWM",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 47.84375
+    }
+  },
+  {
+    "caseId": "16-iiii",
+    "text": "iiii",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "iiii",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 13.21875
+    }
+  },
+  {
+    "caseId": "16-mmmm",
+    "text": "mmmm",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "mmmm",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 37.5
+    }
+  },
+  {
+    "caseId": "16-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "To",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 9.203125
+    }
+  },
+  {
+    "caseId": "16-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 2.265625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": "AV",
+      "kind": "Word",
+      "avaloniaAnchorX": 32.75,
+      "machinaAnchorX": 32.75,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 9.4375
+    }
+  },
+  {
+    "caseId": "16-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 2.265625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 4,
+      "text": "Wa",
+      "kind": "Word",
+      "avaloniaAnchorX": 56.84375,
+      "machinaAnchorX": 56.84375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 15.25
+    }
+  },
+  {
+    "caseId": "16-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 5,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 2.265625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 16,
+    "heldOut": false,
+    "token": {
+      "tokenId": 6,
+      "text": "Yo",
+      "kind": "Word",
+      "avaloniaAnchorX": 82.28125,
+      "machinaAnchorX": 82.28125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 8.578125
+    }
+  },
+  {
+    "caseId": "16-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 16,
+    "heldOut": true,
+    "token": {
+      "tokenId": 0,
+      "text": "Il1",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 8.890625
+    }
+  },
+  {
+    "caseId": "16-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 16,
+    "heldOut": true,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 2.265625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 16,
+    "heldOut": true,
+    "token": {
+      "tokenId": 2,
+      "text": "WMWM",
+      "kind": "Word",
+      "avaloniaAnchorX": 30.375,
+      "machinaAnchorX": 30.375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 47.84375
+    }
+  },
+  {
+    "caseId": "16-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 16,
+    "heldOut": true,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 2.265625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 16,
+    "heldOut": true,
+    "token": {
+      "tokenId": 4,
+      "text": "iiii",
+      "kind": "Word",
+      "avaloniaAnchorX": 96.015625,
+      "machinaAnchorX": 96.015625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 13.21875
+    }
+  },
+  {
+    "caseId": "16-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 16,
+    "heldOut": true,
+    "token": {
+      "tokenId": 5,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 2.265625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 16,
+    "heldOut": true,
+    "token": {
+      "tokenId": 6,
+      "text": "mmmm",
+      "kind": "Word",
+      "avaloniaAnchorX": 117.21875,
+      "machinaAnchorX": 117.21875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 37.5
+    }
+  },
+  {
+    "caseId": "16-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 16,
+    "heldOut": true,
+    "token": {
+      "tokenId": 0,
+      "text": "office",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 28.109375
+    }
+  },
+  {
+    "caseId": "16-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 16,
+    "heldOut": true,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 2.265625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 16,
+    "heldOut": true,
+    "token": {
+      "tokenId": 2,
+      "text": "ffi",
+      "kind": "Word",
+      "avaloniaAnchorX": 50.40625,
+      "machinaAnchorX": 50.40625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 9.40625
+    }
+  },
+  {
+    "caseId": "16-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 16,
+    "heldOut": true,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 2.265625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 16,
+    "heldOut": true,
+    "token": {
+      "tokenId": 4,
+      "text": "fi",
+      "kind": "Word",
+      "avaloniaAnchorX": 67.796875,
+      "machinaAnchorX": 67.796875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 4.703125
+    }
+  },
+  {
+    "caseId": "16-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 16,
+    "heldOut": true,
+    "token": {
+      "tokenId": 0,
+      "text": "Settings",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 44.5
+    }
+  },
+  {
+    "caseId": "16-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 16,
+    "heldOut": true,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 2.265625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 16,
+    "heldOut": true,
+    "token": {
+      "tokenId": 2,
+      "text": "remain",
+      "kind": "Word",
+      "avaloniaAnchorX": 65.6875,
+      "machinaAnchorX": 65.6875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 36.171875
+    }
+  },
+  {
+    "caseId": "16-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 16,
+    "heldOut": true,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 2.265625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "16-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 16,
+    "heldOut": true,
+    "token": {
+      "tokenId": 4,
+      "text": "aligned",
+      "kind": "Word",
+      "avaloniaAnchorX": 113.921875,
+      "machinaAnchorX": 113.921875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 37.546875
+    }
+  },
+  {
+    "caseId": "24-machina",
+    "text": "Machina",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Machina",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 72.4921875
+    }
+  },
+  {
+    "caseId": "24-hello-machina",
+    "text": "Hello Machina",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Hello",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 38.4140625
+    }
+  },
+  {
+    "caseId": "24-hello-machina",
+    "text": "Hello Machina",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 3.3984375,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-hello-machina",
+    "text": "Hello Machina",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": "Machina",
+      "kind": "Word",
+      "avaloniaAnchorX": 67.734375,
+      "machinaAnchorX": 67.734375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 72.4921875
+    }
+  },
+  {
+    "caseId": "24-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "AV",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 14.15625
+    }
+  },
+  {
+    "caseId": "24-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 3.3984375,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": "To",
+      "kind": "Word",
+      "avaloniaAnchorX": 48.140625,
+      "machinaAnchorX": 48.140625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 13.8046875
+    }
+  },
+  {
+    "caseId": "24-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 3.3984375,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 4,
+      "text": "Ta",
+      "kind": "Word",
+      "avaloniaAnchorX": 79.265625,
+      "machinaAnchorX": 79.265625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 13.8046875
+    }
+  },
+  {
+    "caseId": "24-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 5,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 3.3984375,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 6,
+      "text": "Wa",
+      "kind": "Word",
+      "avaloniaAnchorX": 108.3515625,
+      "machinaAnchorX": 108.3515625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 22.875
+    }
+  },
+  {
+    "caseId": "24-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 7,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 3.3984375,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 8,
+      "text": "Yo",
+      "kind": "Word",
+      "avaloniaAnchorX": 146.5078125,
+      "machinaAnchorX": 146.5078125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 12.8671875
+    }
+  },
+  {
+    "caseId": "24-aa0",
+    "text": "Aa0",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Aa0",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 25.9453125
+    }
+  },
+  {
+    "caseId": "24-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "The",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 28.1015625
+    }
+  },
+  {
+    "caseId": "24-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 3.3984375,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": "quick",
+      "kind": "Word",
+      "avaloniaAnchorX": 55.546875,
+      "machinaAnchorX": 55.546875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 39.6796875
+    }
+  },
+  {
+    "caseId": "24-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 3.3984375,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 4,
+      "text": "brown",
+      "kind": "Word",
+      "avaloniaAnchorX": 112.21875,
+      "machinaAnchorX": 112.21875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 49.7578125
+    }
+  },
+  {
+    "caseId": "24-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 5,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 3.3984375,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 6,
+      "text": "fox",
+      "kind": "Word",
+      "avaloniaAnchorX": 180.0703125,
+      "machinaAnchorX": 180.0703125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 19.0078125
+    }
+  },
+  {
+    "caseId": "24-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 7,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 3.3984375,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 8,
+      "text": "jumps",
+      "kind": "Word",
+      "avaloniaAnchorX": 215.390625,
+      "machinaAnchorX": 215.390625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 49.03125
+    }
+  },
+  {
+    "caseId": "24-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 9,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 3.3984375,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 10,
+      "text": "over",
+      "kind": "Word",
+      "avaloniaAnchorX": 278.203125,
+      "machinaAnchorX": 278.203125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 33.5859375
+    }
+  },
+  {
+    "caseId": "24-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 11,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 3.3984375,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 12,
+      "text": "the",
+      "kind": "Word",
+      "avaloniaAnchorX": 326.0625,
+      "machinaAnchorX": 326.0625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 19.78125
+    }
+  },
+  {
+    "caseId": "24-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 13,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 3.3984375,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 14,
+      "text": "lazy",
+      "kind": "Word",
+      "avaloniaAnchorX": 361.2890625,
+      "machinaAnchorX": 361.2890625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 25.5
+    }
+  },
+  {
+    "caseId": "24-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 15,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 3.3984375,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 16,
+      "text": "dog",
+      "kind": "Word",
+      "avaloniaAnchorX": 402.796875,
+      "machinaAnchorX": 402.796875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 23.6015625
+    }
+  },
+  {
+    "caseId": "24-agjpqy",
+    "text": "Agjpqy",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Agjpqy",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 56.765625
+    }
+  },
+  {
+    "caseId": "24-hello-world",
+    "text": "Hello, world!",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Hello",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 38.4140625
+    }
+  },
+  {
+    "caseId": "24-hello-world",
+    "text": "Hello, world!",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": ",",
+      "kind": "Punctuation",
+      "avaloniaAnchorX": 62.3671875,
+      "machinaAnchorX": 62.3671875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-hello-world",
+    "text": "Hello, world!",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 3.3984375,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-hello-world",
+    "text": "Hello, world!",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 3,
+      "text": "world",
+      "kind": "Word",
+      "avaloniaAnchorX": 73.3359375,
+      "machinaAnchorX": 73.3359375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 43.9453125
+    }
+  },
+  {
+    "caseId": "24-hello-world",
+    "text": "Hello, world!",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 4,
+      "text": "!",
+      "kind": "Punctuation",
+      "avaloniaAnchorX": 128.9296875,
+      "machinaAnchorX": 128.9296875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-il1",
+    "text": "Il1",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Il1",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 13.3359375
+    }
+  },
+  {
+    "caseId": "24-wmwm",
+    "text": "WMWM",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "WMWM",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 71.765625
+    }
+  },
+  {
+    "caseId": "24-iiii",
+    "text": "iiii",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "iiii",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 19.828125
+    }
+  },
+  {
+    "caseId": "24-mmmm",
+    "text": "mmmm",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "mmmm",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 56.25
+    }
+  },
+  {
+    "caseId": "24-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "To",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 13.8046875
+    }
+  },
+  {
+    "caseId": "24-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 3.3984375,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": "AV",
+      "kind": "Word",
+      "avaloniaAnchorX": 43.125,
+      "machinaAnchorX": 43.125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 14.15625
+    }
+  },
+  {
+    "caseId": "24-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 3.3984375,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 4,
+      "text": "Wa",
+      "kind": "Word",
+      "avaloniaAnchorX": 79.265625,
+      "machinaAnchorX": 79.265625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 22.875
+    }
+  },
+  {
+    "caseId": "24-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 5,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 3.3984375,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 24,
+    "heldOut": false,
+    "token": {
+      "tokenId": 6,
+      "text": "Yo",
+      "kind": "Word",
+      "avaloniaAnchorX": 117.421875,
+      "machinaAnchorX": 117.421875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 12.8671875
+    }
+  },
+  {
+    "caseId": "24-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 24,
+    "heldOut": true,
+    "token": {
+      "tokenId": 0,
+      "text": "Il1",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 13.3359375
+    }
+  },
+  {
+    "caseId": "24-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 24,
+    "heldOut": true,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 3.3984375,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 24,
+    "heldOut": true,
+    "token": {
+      "tokenId": 2,
+      "text": "WMWM",
+      "kind": "Word",
+      "avaloniaAnchorX": 39.5625,
+      "machinaAnchorX": 39.5625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 71.765625
+    }
+  },
+  {
+    "caseId": "24-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 24,
+    "heldOut": true,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 3.3984375,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 24,
+    "heldOut": true,
+    "token": {
+      "tokenId": 4,
+      "text": "iiii",
+      "kind": "Word",
+      "avaloniaAnchorX": 138.0234375,
+      "machinaAnchorX": 138.0234375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 19.828125
+    }
+  },
+  {
+    "caseId": "24-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 24,
+    "heldOut": true,
+    "token": {
+      "tokenId": 5,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 3.3984375,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 24,
+    "heldOut": true,
+    "token": {
+      "tokenId": 6,
+      "text": "mmmm",
+      "kind": "Word",
+      "avaloniaAnchorX": 169.828125,
+      "machinaAnchorX": 169.828125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 56.25
+    }
+  },
+  {
+    "caseId": "24-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 24,
+    "heldOut": true,
+    "token": {
+      "tokenId": 0,
+      "text": "office",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 42.1640625
+    }
+  },
+  {
+    "caseId": "24-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 24,
+    "heldOut": true,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 3.3984375,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 24,
+    "heldOut": true,
+    "token": {
+      "tokenId": 2,
+      "text": "ffi",
+      "kind": "Word",
+      "avaloniaAnchorX": 69.609375,
+      "machinaAnchorX": 69.609375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 14.109375
+    }
+  },
+  {
+    "caseId": "24-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 24,
+    "heldOut": true,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 3.3984375,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 24,
+    "heldOut": true,
+    "token": {
+      "tokenId": 4,
+      "text": "fi",
+      "kind": "Word",
+      "avaloniaAnchorX": 95.6953125,
+      "machinaAnchorX": 95.6953125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 7.0546875
+    }
+  },
+  {
+    "caseId": "24-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 24,
+    "heldOut": true,
+    "token": {
+      "tokenId": 0,
+      "text": "Settings",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 66.75
+    }
+  },
+  {
+    "caseId": "24-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 24,
+    "heldOut": true,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 3.3984375,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 24,
+    "heldOut": true,
+    "token": {
+      "tokenId": 2,
+      "text": "remain",
+      "kind": "Word",
+      "avaloniaAnchorX": 92.53125,
+      "machinaAnchorX": 92.53125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 54.2578125
+    }
+  },
+  {
+    "caseId": "24-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 24,
+    "heldOut": true,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 3.3984375,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "24-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 24,
+    "heldOut": true,
+    "token": {
+      "tokenId": 4,
+      "text": "aligned",
+      "kind": "Word",
+      "avaloniaAnchorX": 164.8828125,
+      "machinaAnchorX": 164.8828125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 56.3203125
+    }
+  },
+  {
+    "caseId": "32-machina",
+    "text": "Machina",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Machina",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 96.65625
+    }
+  },
+  {
+    "caseId": "32-hello-machina",
+    "text": "Hello Machina",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Hello",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 51.21875
+    }
+  },
+  {
+    "caseId": "32-hello-machina",
+    "text": "Hello Machina",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 4.53125,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-hello-machina",
+    "text": "Hello Machina",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": "Machina",
+      "kind": "Word",
+      "avaloniaAnchorX": 86.3125,
+      "machinaAnchorX": 86.3125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 96.65625
+    }
+  },
+  {
+    "caseId": "32-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "AV",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 18.875
+    }
+  },
+  {
+    "caseId": "32-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 4.53125,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": "To",
+      "kind": "Word",
+      "avaloniaAnchorX": 60.1875,
+      "machinaAnchorX": 60.1875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 18.40625
+    }
+  },
+  {
+    "caseId": "32-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 4.53125,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 4,
+      "text": "Ta",
+      "kind": "Word",
+      "avaloniaAnchorX": 101.6875,
+      "machinaAnchorX": 101.6875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 18.40625
+    }
+  },
+  {
+    "caseId": "32-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 5,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 4.53125,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 6,
+      "text": "Wa",
+      "kind": "Word",
+      "avaloniaAnchorX": 140.46875,
+      "machinaAnchorX": 140.46875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 30.5
+    }
+  },
+  {
+    "caseId": "32-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 7,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 4.53125,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 8,
+      "text": "Yo",
+      "kind": "Word",
+      "avaloniaAnchorX": 191.34375,
+      "machinaAnchorX": 191.34375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 17.15625
+    }
+  },
+  {
+    "caseId": "32-aa0",
+    "text": "Aa0",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Aa0",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 34.59375
+    }
+  },
+  {
+    "caseId": "32-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "The",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 37.46875
+    }
+  },
+  {
+    "caseId": "32-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 4.53125,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": "quick",
+      "kind": "Word",
+      "avaloniaAnchorX": 70.0625,
+      "machinaAnchorX": 70.0625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 52.90625
+    }
+  },
+  {
+    "caseId": "32-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 4.53125,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 4,
+      "text": "brown",
+      "kind": "Word",
+      "avaloniaAnchorX": 145.625,
+      "machinaAnchorX": 145.625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 66.34375
+    }
+  },
+  {
+    "caseId": "32-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 5,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 4.53125,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 6,
+      "text": "fox",
+      "kind": "Word",
+      "avaloniaAnchorX": 236.09375,
+      "machinaAnchorX": 236.09375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 25.34375
+    }
+  },
+  {
+    "caseId": "32-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 7,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 4.53125,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 8,
+      "text": "jumps",
+      "kind": "Word",
+      "avaloniaAnchorX": 283.1875,
+      "machinaAnchorX": 283.1875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 65.375
+    }
+  },
+  {
+    "caseId": "32-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 9,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 4.53125,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 10,
+      "text": "over",
+      "kind": "Word",
+      "avaloniaAnchorX": 366.9375,
+      "machinaAnchorX": 366.9375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 44.78125
+    }
+  },
+  {
+    "caseId": "32-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 11,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 4.53125,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 12,
+      "text": "the",
+      "kind": "Word",
+      "avaloniaAnchorX": 430.75,
+      "machinaAnchorX": 430.75,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 26.375
+    }
+  },
+  {
+    "caseId": "32-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 13,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 4.53125,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 14,
+      "text": "lazy",
+      "kind": "Word",
+      "avaloniaAnchorX": 477.71875,
+      "machinaAnchorX": 477.71875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 34
+    }
+  },
+  {
+    "caseId": "32-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 15,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 4.53125,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 16,
+      "text": "dog",
+      "kind": "Word",
+      "avaloniaAnchorX": 533.0625,
+      "machinaAnchorX": 533.0625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 31.46875
+    }
+  },
+  {
+    "caseId": "32-agjpqy",
+    "text": "Agjpqy",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Agjpqy",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 75.6875
+    }
+  },
+  {
+    "caseId": "32-hello-world",
+    "text": "Hello, world!",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Hello",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 51.21875
+    }
+  },
+  {
+    "caseId": "32-hello-world",
+    "text": "Hello, world!",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": ",",
+      "kind": "Punctuation",
+      "avaloniaAnchorX": 79.15625,
+      "machinaAnchorX": 79.15625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-hello-world",
+    "text": "Hello, world!",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 4.53125,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-hello-world",
+    "text": "Hello, world!",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 3,
+      "text": "world",
+      "kind": "Word",
+      "avaloniaAnchorX": 93.78125,
+      "machinaAnchorX": 93.78125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 58.59375
+    }
+  },
+  {
+    "caseId": "32-hello-world",
+    "text": "Hello, world!",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 4,
+      "text": "!",
+      "kind": "Punctuation",
+      "avaloniaAnchorX": 167.90625,
+      "machinaAnchorX": 167.90625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-il1",
+    "text": "Il1",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Il1",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 17.78125
+    }
+  },
+  {
+    "caseId": "32-wmwm",
+    "text": "WMWM",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "WMWM",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 95.6875
+    }
+  },
+  {
+    "caseId": "32-iiii",
+    "text": "iiii",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "iiii",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 26.4375
+    }
+  },
+  {
+    "caseId": "32-mmmm",
+    "text": "mmmm",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "mmmm",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 75
+    }
+  },
+  {
+    "caseId": "32-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "To",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 18.40625
+    }
+  },
+  {
+    "caseId": "32-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 4.53125,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": "AV",
+      "kind": "Word",
+      "avaloniaAnchorX": 53.5,
+      "machinaAnchorX": 53.5,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 18.875
+    }
+  },
+  {
+    "caseId": "32-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 4.53125,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 4,
+      "text": "Wa",
+      "kind": "Word",
+      "avaloniaAnchorX": 101.6875,
+      "machinaAnchorX": 101.6875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 30.5
+    }
+  },
+  {
+    "caseId": "32-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 5,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 4.53125,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 6,
+      "text": "Yo",
+      "kind": "Word",
+      "avaloniaAnchorX": 152.5625,
+      "machinaAnchorX": 152.5625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 17.15625
+    }
+  },
+  {
+    "caseId": "32-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 32,
+    "heldOut": true,
+    "token": {
+      "tokenId": 0,
+      "text": "Il1",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 17.78125
+    }
+  },
+  {
+    "caseId": "32-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 32,
+    "heldOut": true,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 4.53125,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 32,
+    "heldOut": true,
+    "token": {
+      "tokenId": 2,
+      "text": "WMWM",
+      "kind": "Word",
+      "avaloniaAnchorX": 48.75,
+      "machinaAnchorX": 48.75,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 95.6875
+    }
+  },
+  {
+    "caseId": "32-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 32,
+    "heldOut": true,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 4.53125,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 32,
+    "heldOut": true,
+    "token": {
+      "tokenId": 4,
+      "text": "iiii",
+      "kind": "Word",
+      "avaloniaAnchorX": 180.03125,
+      "machinaAnchorX": 180.03125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 26.4375
+    }
+  },
+  {
+    "caseId": "32-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 32,
+    "heldOut": true,
+    "token": {
+      "tokenId": 5,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 4.53125,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 32,
+    "heldOut": true,
+    "token": {
+      "tokenId": 6,
+      "text": "mmmm",
+      "kind": "Word",
+      "avaloniaAnchorX": 222.4375,
+      "machinaAnchorX": 222.4375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 75
+    }
+  },
+  {
+    "caseId": "32-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 32,
+    "heldOut": true,
+    "token": {
+      "tokenId": 0,
+      "text": "office",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 56.21875
+    }
+  },
+  {
+    "caseId": "32-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 32,
+    "heldOut": true,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 4.53125,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 32,
+    "heldOut": true,
+    "token": {
+      "tokenId": 2,
+      "text": "ffi",
+      "kind": "Word",
+      "avaloniaAnchorX": 88.8125,
+      "machinaAnchorX": 88.8125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 18.8125
+    }
+  },
+  {
+    "caseId": "32-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 32,
+    "heldOut": true,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 4.53125,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 32,
+    "heldOut": true,
+    "token": {
+      "tokenId": 4,
+      "text": "fi",
+      "kind": "Word",
+      "avaloniaAnchorX": 123.59375,
+      "machinaAnchorX": 123.59375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 9.40625
+    }
+  },
+  {
+    "caseId": "32-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 32,
+    "heldOut": true,
+    "token": {
+      "tokenId": 0,
+      "text": "Settings",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 89
+    }
+  },
+  {
+    "caseId": "32-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 32,
+    "heldOut": true,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 4.53125,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 32,
+    "heldOut": true,
+    "token": {
+      "tokenId": 2,
+      "text": "remain",
+      "kind": "Word",
+      "avaloniaAnchorX": 119.375,
+      "machinaAnchorX": 119.375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 72.34375
+    }
+  },
+  {
+    "caseId": "32-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 32,
+    "heldOut": true,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 4.53125,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 32,
+    "heldOut": true,
+    "token": {
+      "tokenId": 4,
+      "text": "aligned",
+      "kind": "Word",
+      "avaloniaAnchorX": 215.84375,
+      "machinaAnchorX": 215.84375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 75.09375
+    }
+  },
+  {
+    "caseId": "48-machina",
+    "text": "Machina",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Machina",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 144.984375
+    }
+  },
+  {
+    "caseId": "48-hello-machina",
+    "text": "Hello Machina",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Hello",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 76.828125
+    }
+  },
+  {
+    "caseId": "48-hello-machina",
+    "text": "Hello Machina",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 6.796875,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-hello-machina",
+    "text": "Hello Machina",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": "Machina",
+      "kind": "Word",
+      "avaloniaAnchorX": 123.46875,
+      "machinaAnchorX": 123.46875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 144.984375
+    }
+  },
+  {
+    "caseId": "48-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "AV",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 28.3125
+    }
+  },
+  {
+    "caseId": "48-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 6.796875,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": "To",
+      "kind": "Word",
+      "avaloniaAnchorX": 84.28125,
+      "machinaAnchorX": 84.28125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 27.609375
+    }
+  },
+  {
+    "caseId": "48-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 6.796875,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 4,
+      "text": "Ta",
+      "kind": "Word",
+      "avaloniaAnchorX": 146.53125,
+      "machinaAnchorX": 146.53125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 27.609375
+    }
+  },
+  {
+    "caseId": "48-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 5,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 6.796875,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 6,
+      "text": "Wa",
+      "kind": "Word",
+      "avaloniaAnchorX": 204.703125,
+      "machinaAnchorX": 204.703125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 45.75
+    }
+  },
+  {
+    "caseId": "48-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 7,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 6.796875,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 8,
+      "text": "Yo",
+      "kind": "Word",
+      "avaloniaAnchorX": 281.015625,
+      "machinaAnchorX": 281.015625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 25.734375
+    }
+  },
+  {
+    "caseId": "48-aa0",
+    "text": "Aa0",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Aa0",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 51.890625
+    }
+  },
+  {
+    "caseId": "48-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "The",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 56.203125
+    }
+  },
+  {
+    "caseId": "48-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 6.796875,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": "quick",
+      "kind": "Word",
+      "avaloniaAnchorX": 99.09375,
+      "machinaAnchorX": 99.09375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 79.359375
+    }
+  },
+  {
+    "caseId": "48-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 6.796875,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 4,
+      "text": "brown",
+      "kind": "Word",
+      "avaloniaAnchorX": 212.4375,
+      "machinaAnchorX": 212.4375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 99.515625
+    }
+  },
+  {
+    "caseId": "48-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 5,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 6.796875,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 6,
+      "text": "fox",
+      "kind": "Word",
+      "avaloniaAnchorX": 348.140625,
+      "machinaAnchorX": 348.140625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 38.015625
+    }
+  },
+  {
+    "caseId": "48-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 7,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 6.796875,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 8,
+      "text": "jumps",
+      "kind": "Word",
+      "avaloniaAnchorX": 418.78125,
+      "machinaAnchorX": 418.78125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 98.0625
+    }
+  },
+  {
+    "caseId": "48-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 9,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 6.796875,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 10,
+      "text": "over",
+      "kind": "Word",
+      "avaloniaAnchorX": 544.40625,
+      "machinaAnchorX": 544.40625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 67.171875
+    }
+  },
+  {
+    "caseId": "48-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 11,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 6.796875,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 12,
+      "text": "the",
+      "kind": "Word",
+      "avaloniaAnchorX": 640.125,
+      "machinaAnchorX": 640.125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 39.5625
+    }
+  },
+  {
+    "caseId": "48-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 13,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 6.796875,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 14,
+      "text": "lazy",
+      "kind": "Word",
+      "avaloniaAnchorX": 710.578125,
+      "machinaAnchorX": 710.578125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 51
+    }
+  },
+  {
+    "caseId": "48-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 15,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 6.796875,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 16,
+      "text": "dog",
+      "kind": "Word",
+      "avaloniaAnchorX": 793.59375,
+      "machinaAnchorX": 793.59375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 47.203125
+    }
+  },
+  {
+    "caseId": "48-agjpqy",
+    "text": "Agjpqy",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Agjpqy",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 113.53125
+    }
+  },
+  {
+    "caseId": "48-hello-world",
+    "text": "Hello, world!",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Hello",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 76.828125
+    }
+  },
+  {
+    "caseId": "48-hello-world",
+    "text": "Hello, world!",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": ",",
+      "kind": "Punctuation",
+      "avaloniaAnchorX": 112.734375,
+      "machinaAnchorX": 112.734375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-hello-world",
+    "text": "Hello, world!",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 6.796875,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-hello-world",
+    "text": "Hello, world!",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 3,
+      "text": "world",
+      "kind": "Word",
+      "avaloniaAnchorX": 134.671875,
+      "machinaAnchorX": 134.671875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 87.890625
+    }
+  },
+  {
+    "caseId": "48-hello-world",
+    "text": "Hello, world!",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 4,
+      "text": "!",
+      "kind": "Punctuation",
+      "avaloniaAnchorX": 245.859375,
+      "machinaAnchorX": 245.859375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-il1",
+    "text": "Il1",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Il1",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 26.671875
+    }
+  },
+  {
+    "caseId": "48-wmwm",
+    "text": "WMWM",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "WMWM",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 143.53125
+    }
+  },
+  {
+    "caseId": "48-iiii",
+    "text": "iiii",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "iiii",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 39.65625
+    }
+  },
+  {
+    "caseId": "48-mmmm",
+    "text": "mmmm",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "mmmm",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 112.5
+    }
+  },
+  {
+    "caseId": "48-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "To",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 27.609375
+    }
+  },
+  {
+    "caseId": "48-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 6.796875,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": "AV",
+      "kind": "Word",
+      "avaloniaAnchorX": 74.25,
+      "machinaAnchorX": 74.25,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 28.3125
+    }
+  },
+  {
+    "caseId": "48-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 6.796875,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 4,
+      "text": "Wa",
+      "kind": "Word",
+      "avaloniaAnchorX": 146.53125,
+      "machinaAnchorX": 146.53125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 45.75
+    }
+  },
+  {
+    "caseId": "48-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 5,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 6.796875,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 48,
+    "heldOut": false,
+    "token": {
+      "tokenId": 6,
+      "text": "Yo",
+      "kind": "Word",
+      "avaloniaAnchorX": 222.84375,
+      "machinaAnchorX": 222.84375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 25.734375
+    }
+  },
+  {
+    "caseId": "48-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 48,
+    "heldOut": true,
+    "token": {
+      "tokenId": 0,
+      "text": "Il1",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 26.671875
+    }
+  },
+  {
+    "caseId": "48-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 48,
+    "heldOut": true,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 6.796875,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 48,
+    "heldOut": true,
+    "token": {
+      "tokenId": 2,
+      "text": "WMWM",
+      "kind": "Word",
+      "avaloniaAnchorX": 67.125,
+      "machinaAnchorX": 67.125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 143.53125
+    }
+  },
+  {
+    "caseId": "48-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 48,
+    "heldOut": true,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 6.796875,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 48,
+    "heldOut": true,
+    "token": {
+      "tokenId": 4,
+      "text": "iiii",
+      "kind": "Word",
+      "avaloniaAnchorX": 264.046875,
+      "machinaAnchorX": 264.046875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 39.65625
+    }
+  },
+  {
+    "caseId": "48-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 48,
+    "heldOut": true,
+    "token": {
+      "tokenId": 5,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 6.796875,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 48,
+    "heldOut": true,
+    "token": {
+      "tokenId": 6,
+      "text": "mmmm",
+      "kind": "Word",
+      "avaloniaAnchorX": 327.65625,
+      "machinaAnchorX": 327.65625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 112.5
+    }
+  },
+  {
+    "caseId": "48-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 48,
+    "heldOut": true,
+    "token": {
+      "tokenId": 0,
+      "text": "office",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 84.328125
+    }
+  },
+  {
+    "caseId": "48-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 48,
+    "heldOut": true,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 6.796875,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 48,
+    "heldOut": true,
+    "token": {
+      "tokenId": 2,
+      "text": "ffi",
+      "kind": "Word",
+      "avaloniaAnchorX": 127.21875,
+      "machinaAnchorX": 127.21875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 28.21875
+    }
+  },
+  {
+    "caseId": "48-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 48,
+    "heldOut": true,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 6.796875,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 48,
+    "heldOut": true,
+    "token": {
+      "tokenId": 4,
+      "text": "fi",
+      "kind": "Word",
+      "avaloniaAnchorX": 179.390625,
+      "machinaAnchorX": 179.390625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 14.109375
+    }
+  },
+  {
+    "caseId": "48-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 48,
+    "heldOut": true,
+    "token": {
+      "tokenId": 0,
+      "text": "Settings",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 133.5
+    }
+  },
+  {
+    "caseId": "48-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 48,
+    "heldOut": true,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 6.796875,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 48,
+    "heldOut": true,
+    "token": {
+      "tokenId": 2,
+      "text": "remain",
+      "kind": "Word",
+      "avaloniaAnchorX": 173.0625,
+      "machinaAnchorX": 173.0625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 108.515625
+    }
+  },
+  {
+    "caseId": "48-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 48,
+    "heldOut": true,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 6.796875,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "48-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 48,
+    "heldOut": true,
+    "token": {
+      "tokenId": 4,
+      "text": "aligned",
+      "kind": "Word",
+      "avaloniaAnchorX": 317.765625,
+      "machinaAnchorX": 317.765625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 112.640625
+    }
+  },
+  {
+    "caseId": "64-machina",
+    "text": "Machina",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Machina",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 193.3125
+    }
+  },
+  {
+    "caseId": "64-hello-machina",
+    "text": "Hello Machina",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Hello",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 102.4375
+    }
+  },
+  {
+    "caseId": "64-hello-machina",
+    "text": "Hello Machina",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 9.0625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-hello-machina",
+    "text": "Hello Machina",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": "Machina",
+      "kind": "Word",
+      "avaloniaAnchorX": 160.625,
+      "machinaAnchorX": 160.625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 193.3125
+    }
+  },
+  {
+    "caseId": "64-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "AV",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 37.75
+    }
+  },
+  {
+    "caseId": "64-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 9.0625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": "To",
+      "kind": "Word",
+      "avaloniaAnchorX": 108.375,
+      "machinaAnchorX": 108.375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 36.8125
+    }
+  },
+  {
+    "caseId": "64-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 9.0625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 4,
+      "text": "Ta",
+      "kind": "Word",
+      "avaloniaAnchorX": 191.375,
+      "machinaAnchorX": 191.375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 36.8125
+    }
+  },
+  {
+    "caseId": "64-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 5,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 9.0625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 6,
+      "text": "Wa",
+      "kind": "Word",
+      "avaloniaAnchorX": 268.9375,
+      "machinaAnchorX": 268.9375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 61
+    }
+  },
+  {
+    "caseId": "64-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 7,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 9.0625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 8,
+      "text": "Yo",
+      "kind": "Word",
+      "avaloniaAnchorX": 370.6875,
+      "machinaAnchorX": 370.6875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 34.3125
+    }
+  },
+  {
+    "caseId": "64-aa0",
+    "text": "Aa0",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Aa0",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 69.1875
+    }
+  },
+  {
+    "caseId": "64-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "The",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 74.9375
+    }
+  },
+  {
+    "caseId": "64-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 9.0625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": "quick",
+      "kind": "Word",
+      "avaloniaAnchorX": 128.125,
+      "machinaAnchorX": 128.125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 105.8125
+    }
+  },
+  {
+    "caseId": "64-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 9.0625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 4,
+      "text": "brown",
+      "kind": "Word",
+      "avaloniaAnchorX": 279.25,
+      "machinaAnchorX": 279.25,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 132.6875
+    }
+  },
+  {
+    "caseId": "64-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 5,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 9.0625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 6,
+      "text": "fox",
+      "kind": "Word",
+      "avaloniaAnchorX": 460.1875,
+      "machinaAnchorX": 460.1875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 50.6875
+    }
+  },
+  {
+    "caseId": "64-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 7,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 9.0625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 8,
+      "text": "jumps",
+      "kind": "Word",
+      "avaloniaAnchorX": 554.375,
+      "machinaAnchorX": 554.375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 130.75
+    }
+  },
+  {
+    "caseId": "64-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 9,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 9.0625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 10,
+      "text": "over",
+      "kind": "Word",
+      "avaloniaAnchorX": 721.875,
+      "machinaAnchorX": 721.875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 89.5625
+    }
+  },
+  {
+    "caseId": "64-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 11,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 9.0625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 12,
+      "text": "the",
+      "kind": "Word",
+      "avaloniaAnchorX": 849.5,
+      "machinaAnchorX": 849.5,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 52.75
+    }
+  },
+  {
+    "caseId": "64-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 13,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 9.0625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 14,
+      "text": "lazy",
+      "kind": "Word",
+      "avaloniaAnchorX": 943.4375,
+      "machinaAnchorX": 943.4375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 68
+    }
+  },
+  {
+    "caseId": "64-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 15,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 9.0625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 16,
+      "text": "dog",
+      "kind": "Word",
+      "avaloniaAnchorX": 1054.125,
+      "machinaAnchorX": 1054.125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 62.9375
+    }
+  },
+  {
+    "caseId": "64-agjpqy",
+    "text": "Agjpqy",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Agjpqy",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 151.375
+    }
+  },
+  {
+    "caseId": "64-hello-world",
+    "text": "Hello, world!",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Hello",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 102.4375
+    }
+  },
+  {
+    "caseId": "64-hello-world",
+    "text": "Hello, world!",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": ",",
+      "kind": "Punctuation",
+      "avaloniaAnchorX": 146.3125,
+      "machinaAnchorX": 146.3125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-hello-world",
+    "text": "Hello, world!",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 9.0625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-hello-world",
+    "text": "Hello, world!",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 3,
+      "text": "world",
+      "kind": "Word",
+      "avaloniaAnchorX": 175.5625,
+      "machinaAnchorX": 175.5625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 117.1875
+    }
+  },
+  {
+    "caseId": "64-hello-world",
+    "text": "Hello, world!",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 4,
+      "text": "!",
+      "kind": "Punctuation",
+      "avaloniaAnchorX": 323.8125,
+      "machinaAnchorX": 323.8125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-il1",
+    "text": "Il1",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "Il1",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 35.5625
+    }
+  },
+  {
+    "caseId": "64-wmwm",
+    "text": "WMWM",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "WMWM",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 191.375
+    }
+  },
+  {
+    "caseId": "64-iiii",
+    "text": "iiii",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "iiii",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 52.875
+    }
+  },
+  {
+    "caseId": "64-mmmm",
+    "text": "mmmm",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "mmmm",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 150
+    }
+  },
+  {
+    "caseId": "64-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "To",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 36.8125
+    }
+  },
+  {
+    "caseId": "64-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 9.0625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 2,
+      "text": "AV",
+      "kind": "Word",
+      "avaloniaAnchorX": 95,
+      "machinaAnchorX": 95,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 37.75
+    }
+  },
+  {
+    "caseId": "64-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 9.0625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 4,
+      "text": "Wa",
+      "kind": "Word",
+      "avaloniaAnchorX": 191.375,
+      "machinaAnchorX": 191.375,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 61
+    }
+  },
+  {
+    "caseId": "64-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 5,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 9.0625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 64,
+    "heldOut": false,
+    "token": {
+      "tokenId": 6,
+      "text": "Yo",
+      "kind": "Word",
+      "avaloniaAnchorX": 293.125,
+      "machinaAnchorX": 293.125,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 34.3125
+    }
+  },
+  {
+    "caseId": "64-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 64,
+    "heldOut": true,
+    "token": {
+      "tokenId": 0,
+      "text": "Il1",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 35.5625
+    }
+  },
+  {
+    "caseId": "64-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 64,
+    "heldOut": true,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 9.0625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 64,
+    "heldOut": true,
+    "token": {
+      "tokenId": 2,
+      "text": "WMWM",
+      "kind": "Word",
+      "avaloniaAnchorX": 85.5,
+      "machinaAnchorX": 85.5,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 191.375
+    }
+  },
+  {
+    "caseId": "64-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 64,
+    "heldOut": true,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 9.0625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 64,
+    "heldOut": true,
+    "token": {
+      "tokenId": 4,
+      "text": "iiii",
+      "kind": "Word",
+      "avaloniaAnchorX": 348.0625,
+      "machinaAnchorX": 348.0625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 52.875
+    }
+  },
+  {
+    "caseId": "64-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 64,
+    "heldOut": true,
+    "token": {
+      "tokenId": 5,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 9.0625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 64,
+    "heldOut": true,
+    "token": {
+      "tokenId": 6,
+      "text": "mmmm",
+      "kind": "Word",
+      "avaloniaAnchorX": 432.875,
+      "machinaAnchorX": 432.875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 150
+    }
+  },
+  {
+    "caseId": "64-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 64,
+    "heldOut": true,
+    "token": {
+      "tokenId": 0,
+      "text": "office",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 112.4375
+    }
+  },
+  {
+    "caseId": "64-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 64,
+    "heldOut": true,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 9.0625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 64,
+    "heldOut": true,
+    "token": {
+      "tokenId": 2,
+      "text": "ffi",
+      "kind": "Word",
+      "avaloniaAnchorX": 165.625,
+      "machinaAnchorX": 165.625,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 37.625
+    }
+  },
+  {
+    "caseId": "64-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 64,
+    "heldOut": true,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 9.0625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 64,
+    "heldOut": true,
+    "token": {
+      "tokenId": 4,
+      "text": "fi",
+      "kind": "Word",
+      "avaloniaAnchorX": 235.1875,
+      "machinaAnchorX": 235.1875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 18.8125
+    }
+  },
+  {
+    "caseId": "64-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 64,
+    "heldOut": true,
+    "token": {
+      "tokenId": 0,
+      "text": "Settings",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 178
+    }
+  },
+  {
+    "caseId": "64-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 64,
+    "heldOut": true,
+    "token": {
+      "tokenId": 1,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 9.0625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 64,
+    "heldOut": true,
+    "token": {
+      "tokenId": 2,
+      "text": "remain",
+      "kind": "Word",
+      "avaloniaAnchorX": 226.75,
+      "machinaAnchorX": 226.75,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 144.6875
+    }
+  },
+  {
+    "caseId": "64-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 64,
+    "heldOut": true,
+    "token": {
+      "tokenId": 3,
+      "text": " ",
+      "kind": "Whitespace",
+      "avaloniaAnchorX": null,
+      "machinaAnchorX": null,
+      "anchorDeltaX": null,
+      "widthDelta": 9.0625,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "64-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 64,
+    "heldOut": true,
+    "token": {
+      "tokenId": 4,
+      "text": "aligned",
+      "kind": "Word",
+      "avaloniaAnchorX": 419.6875,
+      "machinaAnchorX": 419.6875,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 150.1875
+    }
+  },
+  {
+    "caseId": "32-a",
+    "text": "A",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "A",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-m",
+    "text": "M",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "M",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-i",
+    "text": "i",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "i",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-w",
+    "text": "W",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "W",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-g",
+    "text": "g",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "g",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-y",
+    "text": "y",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "y",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-0",
+    "text": "0",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": "0",
+      "kind": "Word",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-u002c",
+    "text": ",",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": ",",
+      "kind": "Punctuation",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 0
+    }
+  },
+  {
+    "caseId": "32-u002e",
+    "text": ".",
+    "size": 32,
+    "heldOut": false,
+    "token": {
+      "tokenId": 0,
+      "text": ".",
+      "kind": "Punctuation",
+      "avaloniaAnchorX": 12,
+      "machinaAnchorX": 12,
+      "anchorDeltaX": 0,
+      "widthDelta": 0,
+      "machinaInternalSpan": 0
+    }
+  }
+]

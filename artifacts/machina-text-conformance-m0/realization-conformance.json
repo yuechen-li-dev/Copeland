@@ -1,0 +1,4944 @@
+[
+  {
+    "caseId": "16-machina",
+    "text": "Machina",
+    "size": 16,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 4,
+        "right": 66,
+        "bottom": 15,
+        "width": 55,
+        "height": 12
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 1,
+        "right": 67,
+        "bottom": 13,
+        "width": 55,
+        "height": 13
+      },
+      "deltaLeft": 1,
+      "deltaTop": -3,
+      "deltaRight": 1,
+      "deltaBottom": -2,
+      "deltaWidth": 0,
+      "deltaHeight": 1,
+      "leftInkArea": 322,
+      "rightInkArea": 375,
+      "intersectionArea": 168,
+      "unionArea": 529,
+      "leftOnlyArea": 154,
+      "rightOnlyArea": 207,
+      "intersectionOverUnion": 0.31758034026465026,
+      "meanEdgeDistance": 1.1442302095754209,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 3,
+      "maxEdgeDistance": 4.242640687119285,
+      "aboveBaselineExtraArea": 319,
+      "belowBaselineExtraArea": 42,
+      "mismatchArea": 361
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 197.0538,
+      "directOutlineMilliseconds": 257.0874,
+      "machinaLayoutMilliseconds": 6.4681,
+      "directOutlineRasterMilliseconds": 212.9044,
+      "msdfAtlasGenerationAndRenderMilliseconds": 382.7662,
+      "msdfAtlasGenerationMilliseconds": 373.638,
+      "msdfRenderMilliseconds": 6.7617
+    }
+  },
+  {
+    "caseId": "16-hello-machina",
+    "text": "Hello Machina",
+    "size": 16,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 4,
+        "right": 103,
+        "bottom": 15,
+        "width": 92,
+        "height": 12
+      },
+      "rightBounds": {
+        "left": 14,
+        "top": 1,
+        "right": 104,
+        "bottom": 13,
+        "width": 91,
+        "height": 13
+      },
+      "deltaLeft": 2,
+      "deltaTop": -3,
+      "deltaRight": 1,
+      "deltaBottom": -2,
+      "deltaWidth": -1,
+      "deltaHeight": 1,
+      "leftInkArea": 531,
+      "rightInkArea": 614,
+      "intersectionArea": 265,
+      "unionArea": 880,
+      "leftOnlyArea": 266,
+      "rightOnlyArea": 349,
+      "intersectionOverUnion": 0.30113636363636365,
+      "meanEdgeDistance": 1.1722363864683476,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 3,
+      "maxEdgeDistance": 6,
+      "aboveBaselineExtraArea": 547,
+      "belowBaselineExtraArea": 68,
+      "mismatchArea": 615
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 11.2467,
+      "directOutlineMilliseconds": 311.2684,
+      "machinaLayoutMilliseconds": 0.0979,
+      "directOutlineRasterMilliseconds": 306.3259,
+      "msdfAtlasGenerationAndRenderMilliseconds": 183.4462,
+      "msdfAtlasGenerationMilliseconds": 180.3125,
+      "msdfRenderMilliseconds": 3.1002
+    }
+  },
+  {
+    "caseId": "16-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 16,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 4,
+        "right": 117,
+        "bottom": 15,
+        "width": 106,
+        "height": 12
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 1,
+        "right": 118,
+        "bottom": 13,
+        "width": 106,
+        "height": 13
+      },
+      "deltaLeft": 1,
+      "deltaTop": -3,
+      "deltaRight": 1,
+      "deltaBottom": -2,
+      "deltaWidth": 0,
+      "deltaHeight": 1,
+      "leftInkArea": 497,
+      "rightInkArea": 622,
+      "intersectionArea": 250,
+      "unionArea": 869,
+      "leftOnlyArea": 247,
+      "rightOnlyArea": 372,
+      "intersectionOverUnion": 0.28768699654775604,
+      "meanEdgeDistance": 1.0392072992557841,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.8284271247461903,
+      "maxEdgeDistance": 3.605551275463989,
+      "aboveBaselineExtraArea": 577,
+      "belowBaselineExtraArea": 42,
+      "mismatchArea": 619
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 9.1242,
+      "directOutlineMilliseconds": 328.6988,
+      "machinaLayoutMilliseconds": 1.5196,
+      "directOutlineRasterMilliseconds": 323.2324,
+      "msdfAtlasGenerationAndRenderMilliseconds": 167.6335,
+      "msdfAtlasGenerationMilliseconds": 164.6858,
+      "msdfRenderMilliseconds": 2.914
+    }
+  },
+  {
+    "caseId": "16-aa0",
+    "text": "Aa0",
+    "size": 16,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 4,
+        "right": 36,
+        "bottom": 15,
+        "width": 25,
+        "height": 12
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 3,
+        "right": 39,
+        "bottom": 13,
+        "width": 27,
+        "height": 11
+      },
+      "deltaLeft": 1,
+      "deltaTop": -1,
+      "deltaRight": 3,
+      "deltaBottom": -2,
+      "deltaWidth": 2,
+      "deltaHeight": -1,
+      "leftInkArea": 140,
+      "rightInkArea": 172,
+      "intersectionArea": 74,
+      "unionArea": 238,
+      "leftOnlyArea": 66,
+      "rightOnlyArea": 98,
+      "intersectionOverUnion": 0.31092436974789917,
+      "meanEdgeDistance": 1.0563537802255567,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 3,
+      "maxEdgeDistance": 4.123105625617661,
+      "aboveBaselineExtraArea": 149,
+      "belowBaselineExtraArea": 15,
+      "mismatchArea": 164
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.8584,
+      "directOutlineMilliseconds": 83.8396,
+      "machinaLayoutMilliseconds": 0.0602,
+      "directOutlineRasterMilliseconds": 78.3952,
+      "msdfAtlasGenerationAndRenderMilliseconds": 151.4786,
+      "msdfAtlasGenerationMilliseconds": 139.2618,
+      "msdfRenderMilliseconds": 12.2016
+    }
+  },
+  {
+    "caseId": "16-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 16,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 4,
+        "right": 295,
+        "bottom": 18,
+        "width": 284,
+        "height": 15
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 2,
+        "right": 298,
+        "bottom": 14,
+        "width": 286,
+        "height": 13
+      },
+      "deltaLeft": 1,
+      "deltaTop": -2,
+      "deltaRight": 3,
+      "deltaBottom": -4,
+      "deltaWidth": 2,
+      "deltaHeight": -2,
+      "leftInkArea": 1396,
+      "rightInkArea": 1479,
+      "intersectionArea": 546,
+      "unionArea": 2329,
+      "leftOnlyArea": 850,
+      "rightOnlyArea": 933,
+      "intersectionOverUnion": 0.23443537999141262,
+      "meanEdgeDistance": 1.5888133940489795,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 4.123105625617661,
+      "maxEdgeDistance": 7.615773105863909,
+      "aboveBaselineExtraArea": 1587,
+      "belowBaselineExtraArea": 196,
+      "mismatchArea": 1783
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 10.333,
+      "directOutlineMilliseconds": 684.8624,
+      "machinaLayoutMilliseconds": 0.1788,
+      "directOutlineRasterMilliseconds": 675.2245,
+      "msdfAtlasGenerationAndRenderMilliseconds": 177.5025,
+      "msdfAtlasGenerationMilliseconds": 173.78,
+      "msdfRenderMilliseconds": 3.6948
+    }
+  },
+  {
+    "caseId": "16-agjpqy",
+    "text": "Agjpqy",
+    "size": 16,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 4,
+        "right": 57,
+        "bottom": 18,
+        "width": 46,
+        "height": 15
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 3,
+        "right": 59,
+        "bottom": 14,
+        "width": 47,
+        "height": 12
+      },
+      "deltaLeft": 1,
+      "deltaTop": -1,
+      "deltaRight": 2,
+      "deltaBottom": -4,
+      "deltaWidth": 1,
+      "deltaHeight": -3,
+      "leftInkArea": 280,
+      "rightInkArea": 229,
+      "intersectionArea": 93,
+      "unionArea": 416,
+      "leftOnlyArea": 187,
+      "rightOnlyArea": 136,
+      "intersectionOverUnion": 0.22355769230769232,
+      "meanEdgeDistance": 1.7332070891929467,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 5.385164807134504,
+      "maxEdgeDistance": 7.615773105863909,
+      "aboveBaselineExtraArea": 250,
+      "belowBaselineExtraArea": 73,
+      "mismatchArea": 323
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.7689,
+      "directOutlineMilliseconds": 164.8333,
+      "machinaLayoutMilliseconds": 0.0465,
+      "directOutlineRasterMilliseconds": 162.9533,
+      "msdfAtlasGenerationAndRenderMilliseconds": 149.3597,
+      "msdfAtlasGenerationMilliseconds": 146.2459,
+      "msdfRenderMilliseconds": 3.1027
+    }
+  },
+  {
+    "caseId": "16-hello-world",
+    "text": "Hello, world!",
+    "size": 16,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 4,
+        "right": 92,
+        "bottom": 17,
+        "width": 81,
+        "height": 14
+      },
+      "rightBounds": {
+        "left": 14,
+        "top": 2,
+        "right": 98,
+        "bottom": 13,
+        "width": 85,
+        "height": 12
+      },
+      "deltaLeft": 2,
+      "deltaTop": -2,
+      "deltaRight": 6,
+      "deltaBottom": -4,
+      "deltaWidth": 4,
+      "deltaHeight": -2,
+      "leftInkArea": 445,
+      "rightInkArea": 501,
+      "intersectionArea": 194,
+      "unionArea": 752,
+      "leftOnlyArea": 251,
+      "rightOnlyArea": 307,
+      "intersectionOverUnion": 0.2579787234042553,
+      "meanEdgeDistance": 1.4431035759861894,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 4.212756921743878,
+      "maxEdgeDistance": 6.324555320336759,
+      "aboveBaselineExtraArea": 506,
+      "belowBaselineExtraArea": 52,
+      "mismatchArea": 558
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.9919,
+      "directOutlineMilliseconds": 205.9683,
+      "machinaLayoutMilliseconds": 0.0604,
+      "directOutlineRasterMilliseconds": 204.0346,
+      "msdfAtlasGenerationAndRenderMilliseconds": 147.2869,
+      "msdfAtlasGenerationMilliseconds": 144.3379,
+      "msdfRenderMilliseconds": 2.9268
+    }
+  },
+  {
+    "caseId": "16-il1",
+    "text": "Il1",
+    "size": 16,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 4,
+        "right": 25,
+        "bottom": 15,
+        "width": 14,
+        "height": 12
+      },
+      "rightBounds": {
+        "left": 18,
+        "top": 2,
+        "right": 29,
+        "bottom": 13,
+        "width": 12,
+        "height": 12
+      },
+      "deltaLeft": 6,
+      "deltaTop": -2,
+      "deltaRight": 4,
+      "deltaBottom": -2,
+      "deltaWidth": -2,
+      "deltaHeight": 0,
+      "leftInkArea": 102,
+      "rightInkArea": 105,
+      "intersectionArea": 24,
+      "unionArea": 183,
+      "leftOnlyArea": 78,
+      "rightOnlyArea": 81,
+      "intersectionOverUnion": 0.13114754098360656,
+      "meanEdgeDistance": 1.9847988645916044,
+      "p50EdgeDistance": 1.4142135623730951,
+      "p95EdgeDistance": 5.407454161520036,
+      "maxEdgeDistance": 6.324555320336759,
+      "aboveBaselineExtraArea": 146,
+      "belowBaselineExtraArea": 13,
+      "mismatchArea": 159
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 9.132,
+      "directOutlineMilliseconds": 39.9265,
+      "machinaLayoutMilliseconds": 0.0331,
+      "directOutlineRasterMilliseconds": 38.3256,
+      "msdfAtlasGenerationAndRenderMilliseconds": 135.1901,
+      "msdfAtlasGenerationMilliseconds": 123.4334,
+      "msdfRenderMilliseconds": 11.7462
+    }
+  },
+  {
+    "caseId": "16-wmwm",
+    "text": "WMWM",
+    "size": 16,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 4,
+        "right": 73,
+        "bottom": 15,
+        "width": 62,
+        "height": 12
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 1,
+        "right": 75,
+        "bottom": 12,
+        "width": 63,
+        "height": 12
+      },
+      "deltaLeft": 1,
+      "deltaTop": -3,
+      "deltaRight": 2,
+      "deltaBottom": -3,
+      "deltaWidth": 1,
+      "deltaHeight": 0,
+      "leftInkArea": 401,
+      "rightInkArea": 506,
+      "intersectionArea": 222,
+      "unionArea": 685,
+      "leftOnlyArea": 179,
+      "rightOnlyArea": 284,
+      "intersectionOverUnion": 0.32408759124087594,
+      "meanEdgeDistance": 1.149293614674477,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 3.1622776601683795,
+      "maxEdgeDistance": 3.605551275463989,
+      "aboveBaselineExtraArea": 439,
+      "belowBaselineExtraArea": 24,
+      "mismatchArea": 463
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.8862,
+      "directOutlineMilliseconds": 311.5859,
+      "machinaLayoutMilliseconds": 0.0361,
+      "directOutlineRasterMilliseconds": 309.8094,
+      "msdfAtlasGenerationAndRenderMilliseconds": 138.494,
+      "msdfAtlasGenerationMilliseconds": 135.757,
+      "msdfRenderMilliseconds": 2.726
+    }
+  },
+  {
+    "caseId": "16-iiii",
+    "text": "iiii",
+    "size": 16,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 5,
+        "right": 29,
+        "bottom": 15,
+        "width": 18,
+        "height": 11
+      },
+      "rightBounds": {
+        "left": 18,
+        "top": 4,
+        "right": 33,
+        "bottom": 13,
+        "width": 16,
+        "height": 10
+      },
+      "deltaLeft": 6,
+      "deltaTop": -1,
+      "deltaRight": 4,
+      "deltaBottom": -2,
+      "deltaWidth": -2,
+      "deltaHeight": -1,
+      "leftInkArea": 109,
+      "rightInkArea": 97,
+      "intersectionArea": 34,
+      "unionArea": 172,
+      "leftOnlyArea": 75,
+      "rightOnlyArea": 63,
+      "intersectionOverUnion": 0.19767441860465115,
+      "meanEdgeDistance": 1.6948798482533718,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 5.370857542457415,
+      "maxEdgeDistance": 6.324555320336759,
+      "aboveBaselineExtraArea": 121,
+      "belowBaselineExtraArea": 17,
+      "mismatchArea": 138
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.3813,
+      "directOutlineMilliseconds": 58.0522,
+      "machinaLayoutMilliseconds": 0.0325,
+      "directOutlineRasterMilliseconds": 52.4211,
+      "msdfAtlasGenerationAndRenderMilliseconds": 129.5704,
+      "msdfAtlasGenerationMilliseconds": 125.4286,
+      "msdfRenderMilliseconds": 4.1248
+    }
+  },
+  {
+    "caseId": "16-mmmm",
+    "text": "mmmm",
+    "size": 16,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 8,
+        "right": 61,
+        "bottom": 15,
+        "width": 50,
+        "height": 8
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 4,
+        "right": 63,
+        "bottom": 11,
+        "width": 51,
+        "height": 8
+      },
+      "deltaLeft": 1,
+      "deltaTop": -4,
+      "deltaRight": 2,
+      "deltaBottom": -4,
+      "deltaWidth": 1,
+      "deltaHeight": 0,
+      "leftInkArea": 280,
+      "rightInkArea": 357,
+      "intersectionArea": 118,
+      "unionArea": 519,
+      "leftOnlyArea": 162,
+      "rightOnlyArea": 239,
+      "intersectionOverUnion": 0.22736030828516376,
+      "meanEdgeDistance": 1.8022449868476649,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 4,
+      "maxEdgeDistance": 5,
+      "aboveBaselineExtraArea": 351,
+      "belowBaselineExtraArea": 50,
+      "mismatchArea": 401
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.534,
+      "directOutlineMilliseconds": 206.4423,
+      "machinaLayoutMilliseconds": 0.0646,
+      "directOutlineRasterMilliseconds": 204.862,
+      "msdfAtlasGenerationAndRenderMilliseconds": 133.4101,
+      "msdfAtlasGenerationMilliseconds": 130.6733,
+      "msdfRenderMilliseconds": 2.7267
+    }
+  },
+  {
+    "caseId": "16-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 16,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 4,
+        "right": 98,
+        "bottom": 15,
+        "width": 87,
+        "height": 12
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 1,
+        "right": 98,
+        "bottom": 13,
+        "width": 86,
+        "height": 13
+      },
+      "deltaLeft": 1,
+      "deltaTop": -3,
+      "deltaRight": 0,
+      "deltaBottom": -2,
+      "deltaWidth": -1,
+      "deltaHeight": 1,
+      "leftInkArea": 413,
+      "rightInkArea": 520,
+      "intersectionArea": 209,
+      "unionArea": 724,
+      "leftOnlyArea": 204,
+      "rightOnlyArea": 311,
+      "intersectionOverUnion": 0.2886740331491713,
+      "meanEdgeDistance": 1.02047384147042,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.23606797749979,
+      "maxEdgeDistance": 3.1622776601683795,
+      "aboveBaselineExtraArea": 484,
+      "belowBaselineExtraArea": 31,
+      "mismatchArea": 515
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.9572,
+      "directOutlineMilliseconds": 281.662,
+      "machinaLayoutMilliseconds": 0.0567,
+      "directOutlineRasterMilliseconds": 279.8727,
+      "msdfAtlasGenerationAndRenderMilliseconds": 140.8335,
+      "msdfAtlasGenerationMilliseconds": 137.6809,
+      "msdfRenderMilliseconds": 3.1433
+    }
+  },
+  {
+    "caseId": "16-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 16,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 4,
+        "right": 166,
+        "bottom": 15,
+        "width": 155,
+        "height": 12
+      },
+      "rightBounds": {
+        "left": 18,
+        "top": 1,
+        "right": 168,
+        "bottom": 13,
+        "width": 151,
+        "height": 13
+      },
+      "deltaLeft": 6,
+      "deltaTop": -3,
+      "deltaRight": 2,
+      "deltaBottom": -2,
+      "deltaWidth": -4,
+      "deltaHeight": 1,
+      "leftInkArea": 875,
+      "rightInkArea": 1062,
+      "intersectionArea": 389,
+      "unionArea": 1548,
+      "leftOnlyArea": 486,
+      "rightOnlyArea": 673,
+      "intersectionOverUnion": 0.25129198966408267,
+      "meanEdgeDistance": 1.445672903901002,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 4,
+      "maxEdgeDistance": 6.324555320336759,
+      "aboveBaselineExtraArea": 1051,
+      "belowBaselineExtraArea": 108,
+      "mismatchArea": 1159
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 9.0824,
+      "directOutlineMilliseconds": 570.2836,
+      "machinaLayoutMilliseconds": 0.0504,
+      "directOutlineRasterMilliseconds": 568.1184,
+      "msdfAtlasGenerationAndRenderMilliseconds": 148.4464,
+      "msdfAtlasGenerationMilliseconds": 145.1188,
+      "msdfRenderMilliseconds": 3.3164
+    }
+  },
+  {
+    "caseId": "16-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 16,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 4,
+        "right": 76,
+        "bottom": 15,
+        "width": 65,
+        "height": 12
+      },
+      "rightBounds": {
+        "left": 12,
+        "top": 2,
+        "right": 80,
+        "bottom": 13,
+        "width": 69,
+        "height": 12
+      },
+      "deltaLeft": 0,
+      "deltaTop": -2,
+      "deltaRight": 4,
+      "deltaBottom": -2,
+      "deltaWidth": 4,
+      "deltaHeight": 0,
+      "leftInkArea": 365,
+      "rightInkArea": 437,
+      "intersectionArea": 160,
+      "unionArea": 642,
+      "leftOnlyArea": 205,
+      "rightOnlyArea": 277,
+      "intersectionOverUnion": 0.24922118380062305,
+      "meanEdgeDistance": 1.451272389681954,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 3.605551275463989,
+      "maxEdgeDistance": 5.0990195135927845,
+      "aboveBaselineExtraArea": 442,
+      "belowBaselineExtraArea": 40,
+      "mismatchArea": 482
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.3492,
+      "directOutlineMilliseconds": 161.9014,
+      "machinaLayoutMilliseconds": 0.0391,
+      "directOutlineRasterMilliseconds": 160.2934,
+      "msdfAtlasGenerationAndRenderMilliseconds": 141.1967,
+      "msdfAtlasGenerationMilliseconds": 137.8429,
+      "msdfRenderMilliseconds": 3.3376
+    }
+  },
+  {
+    "caseId": "16-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 16,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 4,
+        "right": 158,
+        "bottom": 18,
+        "width": 147,
+        "height": 15
+      },
+      "rightBounds": {
+        "left": 16,
+        "top": 2,
+        "right": 162,
+        "bottom": 13,
+        "width": 147,
+        "height": 12
+      },
+      "deltaLeft": 4,
+      "deltaTop": -2,
+      "deltaRight": 4,
+      "deltaBottom": -5,
+      "deltaWidth": 0,
+      "deltaHeight": -3,
+      "leftInkArea": 817,
+      "rightInkArea": 787,
+      "intersectionArea": 341,
+      "unionArea": 1263,
+      "leftOnlyArea": 476,
+      "rightOnlyArea": 446,
+      "intersectionOverUnion": 0.26999208234362626,
+      "meanEdgeDistance": 1.4623589002688682,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 4,
+      "maxEdgeDistance": 7.0710678118654755,
+      "aboveBaselineExtraArea": 788,
+      "belowBaselineExtraArea": 134,
+      "mismatchArea": 922
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.5834,
+      "directOutlineMilliseconds": 379.3608,
+      "machinaLayoutMilliseconds": 0.0575,
+      "directOutlineRasterMilliseconds": 377.5909,
+      "msdfAtlasGenerationAndRenderMilliseconds": 157.6744,
+      "msdfAtlasGenerationMilliseconds": 154.5858,
+      "msdfRenderMilliseconds": 3.0786
+    }
+  },
+  {
+    "caseId": "24-machina",
+    "text": "Machina",
+    "size": 24,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 6,
+        "right": 94,
+        "bottom": 22,
+        "width": 83,
+        "height": 17
+      },
+      "rightBounds": {
+        "left": 12,
+        "top": 5,
+        "right": 96,
+        "bottom": 22,
+        "width": 85,
+        "height": 18
+      },
+      "deltaLeft": 0,
+      "deltaTop": -1,
+      "deltaRight": 2,
+      "deltaBottom": 0,
+      "deltaWidth": 2,
+      "deltaHeight": 1,
+      "leftInkArea": 565,
+      "rightInkArea": 766,
+      "intersectionArea": 389,
+      "unionArea": 942,
+      "leftOnlyArea": 176,
+      "rightOnlyArea": 377,
+      "intersectionOverUnion": 0.4129511677282378,
+      "meanEdgeDistance": 0.7993483068368982,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.23606797749979,
+      "maxEdgeDistance": 4.123105625617661,
+      "aboveBaselineExtraArea": 553,
+      "belowBaselineExtraArea": 0,
+      "mismatchArea": 553
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.83,
+      "directOutlineMilliseconds": 363.9101,
+      "machinaLayoutMilliseconds": 0.0297,
+      "directOutlineRasterMilliseconds": 362.3376,
+      "msdfAtlasGenerationAndRenderMilliseconds": 135.7419,
+      "msdfAtlasGenerationMilliseconds": 132.6364,
+      "msdfRenderMilliseconds": 3.0968
+    }
+  },
+  {
+    "caseId": "24-hello-machina",
+    "text": "Hello Machina",
+    "size": 24,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 6,
+        "right": 149,
+        "bottom": 22,
+        "width": 137,
+        "height": 17
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 5,
+        "right": 152,
+        "bottom": 22,
+        "width": 140,
+        "height": 18
+      },
+      "deltaLeft": 0,
+      "deltaTop": -1,
+      "deltaRight": 3,
+      "deltaBottom": 0,
+      "deltaWidth": 3,
+      "deltaHeight": 1,
+      "leftInkArea": 908,
+      "rightInkArea": 1249,
+      "intersectionArea": 583,
+      "unionArea": 1574,
+      "leftOnlyArea": 325,
+      "rightOnlyArea": 666,
+      "intersectionOverUnion": 0.3703939008894536,
+      "meanEdgeDistance": 0.9192559973790054,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.23606797749979,
+      "maxEdgeDistance": 5.0990195135927845,
+      "aboveBaselineExtraArea": 991,
+      "belowBaselineExtraArea": 0,
+      "mismatchArea": 991
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 9.0423,
+      "directOutlineMilliseconds": 558.7334,
+      "machinaLayoutMilliseconds": 0.0403,
+      "directOutlineRasterMilliseconds": 557.0612,
+      "msdfAtlasGenerationAndRenderMilliseconds": 152.9828,
+      "msdfAtlasGenerationMilliseconds": 149.5622,
+      "msdfRenderMilliseconds": 3.4082
+    }
+  },
+  {
+    "caseId": "24-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 24,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 7,
+        "right": 170,
+        "bottom": 22,
+        "width": 159,
+        "height": 16
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 5,
+        "right": 171,
+        "bottom": 23,
+        "width": 159,
+        "height": 19
+      },
+      "deltaLeft": 1,
+      "deltaTop": -2,
+      "deltaRight": 1,
+      "deltaBottom": 1,
+      "deltaWidth": 0,
+      "deltaHeight": 3,
+      "leftInkArea": 844,
+      "rightInkArea": 1155,
+      "intersectionArea": 614,
+      "unionArea": 1385,
+      "leftOnlyArea": 230,
+      "rightOnlyArea": 541,
+      "intersectionOverUnion": 0.4433212996389892,
+      "meanEdgeDistance": 0.822025201930002,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.23606797749979,
+      "maxEdgeDistance": 4.242640687119285,
+      "aboveBaselineExtraArea": 768,
+      "belowBaselineExtraArea": 3,
+      "mismatchArea": 771
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.9369,
+      "directOutlineMilliseconds": 616.6212,
+      "machinaLayoutMilliseconds": 0.0454,
+      "directOutlineRasterMilliseconds": 615.0077,
+      "msdfAtlasGenerationAndRenderMilliseconds": 144.334,
+      "msdfAtlasGenerationMilliseconds": 140.4749,
+      "msdfRenderMilliseconds": 3.8501
+    }
+  },
+  {
+    "caseId": "24-aa0",
+    "text": "Aa0",
+    "size": 24,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 7,
+        "right": 48,
+        "bottom": 22,
+        "width": 37,
+        "height": 16
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 6,
+        "right": 51,
+        "bottom": 22,
+        "width": 39,
+        "height": 17
+      },
+      "deltaLeft": 1,
+      "deltaTop": -1,
+      "deltaRight": 3,
+      "deltaBottom": 0,
+      "deltaWidth": 2,
+      "deltaHeight": 1,
+      "leftInkArea": 239,
+      "rightInkArea": 335,
+      "intersectionArea": 144,
+      "unionArea": 430,
+      "leftOnlyArea": 95,
+      "rightOnlyArea": 191,
+      "intersectionOverUnion": 0.33488372093023255,
+      "meanEdgeDistance": 0.8520274239366187,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.23606797749979,
+      "maxEdgeDistance": 3,
+      "aboveBaselineExtraArea": 286,
+      "belowBaselineExtraArea": 0,
+      "mismatchArea": 286
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.2255,
+      "directOutlineMilliseconds": 147.3616,
+      "machinaLayoutMilliseconds": 0.025,
+      "directOutlineRasterMilliseconds": 145.8027,
+      "msdfAtlasGenerationAndRenderMilliseconds": 135.6573,
+      "msdfAtlasGenerationMilliseconds": 132.8246,
+      "msdfRenderMilliseconds": 2.8253
+    }
+  },
+  {
+    "caseId": "24-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 24,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 6,
+        "right": 436,
+        "bottom": 28,
+        "width": 425,
+        "height": 23
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 5,
+        "right": 440,
+        "bottom": 27,
+        "width": 428,
+        "height": 23
+      },
+      "deltaLeft": 1,
+      "deltaTop": -1,
+      "deltaRight": 4,
+      "deltaBottom": -1,
+      "deltaWidth": 3,
+      "deltaHeight": 0,
+      "leftInkArea": 2514,
+      "rightInkArea": 3263,
+      "intersectionArea": 1352,
+      "unionArea": 4425,
+      "leftOnlyArea": 1162,
+      "rightOnlyArea": 1911,
+      "intersectionOverUnion": 0.3055367231638418,
+      "meanEdgeDistance": 1.0445533558429139,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.8284271247461903,
+      "maxEdgeDistance": 5.0990195135927845,
+      "aboveBaselineExtraArea": 2977,
+      "belowBaselineExtraArea": 96,
+      "mismatchArea": 3073
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 9.5837,
+      "directOutlineMilliseconds": 1343.1103,
+      "machinaLayoutMilliseconds": 0.0928,
+      "directOutlineRasterMilliseconds": 1341.1949,
+      "msdfAtlasGenerationAndRenderMilliseconds": 186.2953,
+      "msdfAtlasGenerationMilliseconds": 180.2896,
+      "msdfRenderMilliseconds": 5.9961
+    }
+  },
+  {
+    "caseId": "24-agjpqy",
+    "text": "Agjpqy",
+    "size": 24,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 7,
+        "right": 79,
+        "bottom": 28,
+        "width": 68,
+        "height": 22
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 6,
+        "right": 81,
+        "bottom": 27,
+        "width": 69,
+        "height": 22
+      },
+      "deltaLeft": 1,
+      "deltaTop": -1,
+      "deltaRight": 2,
+      "deltaBottom": -1,
+      "deltaWidth": 1,
+      "deltaHeight": 0,
+      "leftInkArea": 515,
+      "rightInkArea": 541,
+      "intersectionArea": 241,
+      "unionArea": 815,
+      "leftOnlyArea": 274,
+      "rightOnlyArea": 300,
+      "intersectionOverUnion": 0.29570552147239265,
+      "meanEdgeDistance": 1.0802750090121953,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 3,
+      "maxEdgeDistance": 5,
+      "aboveBaselineExtraArea": 470,
+      "belowBaselineExtraArea": 104,
+      "mismatchArea": 574
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.6943,
+      "directOutlineMilliseconds": 337.2516,
+      "machinaLayoutMilliseconds": 0.0364,
+      "directOutlineRasterMilliseconds": 335.6339,
+      "msdfAtlasGenerationAndRenderMilliseconds": 136.8059,
+      "msdfAtlasGenerationMilliseconds": 133.596,
+      "msdfRenderMilliseconds": 3.2009
+    }
+  },
+  {
+    "caseId": "24-hello-world",
+    "text": "Hello, world!",
+    "size": 24,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 6,
+        "right": 133,
+        "bottom": 26,
+        "width": 121,
+        "height": 21
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 5,
+        "right": 138,
+        "bottom": 22,
+        "width": 126,
+        "height": 18
+      },
+      "deltaLeft": 0,
+      "deltaTop": -1,
+      "deltaRight": 5,
+      "deltaBottom": -4,
+      "deltaWidth": 5,
+      "deltaHeight": -3,
+      "leftInkArea": 782,
+      "rightInkArea": 1020,
+      "intersectionArea": 421,
+      "unionArea": 1381,
+      "leftOnlyArea": 361,
+      "rightOnlyArea": 599,
+      "intersectionOverUnion": 0.30485155684286747,
+      "meanEdgeDistance": 1.133823822499649,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 3,
+      "maxEdgeDistance": 7.0710678118654755,
+      "aboveBaselineExtraArea": 949,
+      "belowBaselineExtraArea": 11,
+      "mismatchArea": 960
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.8498,
+      "directOutlineMilliseconds": 402.7722,
+      "machinaLayoutMilliseconds": 0.0395,
+      "directOutlineRasterMilliseconds": 400.4943,
+      "msdfAtlasGenerationAndRenderMilliseconds": 151.7677,
+      "msdfAtlasGenerationMilliseconds": 147.4221,
+      "msdfRenderMilliseconds": 4.3382
+    }
+  },
+  {
+    "caseId": "24-il1",
+    "text": "Il1",
+    "size": 24,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 6,
+        "right": 32,
+        "bottom": 22,
+        "width": 20,
+        "height": 17
+      },
+      "rightBounds": {
+        "left": 16,
+        "top": 5,
+        "right": 36,
+        "bottom": 22,
+        "width": 21,
+        "height": 18
+      },
+      "deltaLeft": 3,
+      "deltaTop": -1,
+      "deltaRight": 4,
+      "deltaBottom": 0,
+      "deltaWidth": 1,
+      "deltaHeight": 1,
+      "leftInkArea": 155,
+      "rightInkArea": 215,
+      "intersectionArea": 41,
+      "unionArea": 329,
+      "leftOnlyArea": 114,
+      "rightOnlyArea": 174,
+      "intersectionOverUnion": 0.12462006079027356,
+      "meanEdgeDistance": 1.3798862787745154,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 3.605551275463989,
+      "maxEdgeDistance": 4.123105625617661,
+      "aboveBaselineExtraArea": 288,
+      "belowBaselineExtraArea": 0,
+      "mismatchArea": 288
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.3268,
+      "directOutlineMilliseconds": 71.1153,
+      "machinaLayoutMilliseconds": 0.036,
+      "directOutlineRasterMilliseconds": 69.4176,
+      "msdfAtlasGenerationAndRenderMilliseconds": 134.5998,
+      "msdfAtlasGenerationMilliseconds": 131.7715,
+      "msdfRenderMilliseconds": 2.8204
+    }
+  },
+  {
+    "caseId": "24-wmwm",
+    "text": "WMWM",
+    "size": 24,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 7,
+        "right": 104,
+        "bottom": 22,
+        "width": 93,
+        "height": 16
+      },
+      "rightBounds": {
+        "left": 12,
+        "top": 6,
+        "right": 105,
+        "bottom": 23,
+        "width": 94,
+        "height": 18
+      },
+      "deltaLeft": 0,
+      "deltaTop": -1,
+      "deltaRight": 1,
+      "deltaBottom": 1,
+      "deltaWidth": 1,
+      "deltaHeight": 2,
+      "leftInkArea": 676,
+      "rightInkArea": 788,
+      "intersectionArea": 625,
+      "unionArea": 839,
+      "leftOnlyArea": 51,
+      "rightOnlyArea": 163,
+      "intersectionOverUnion": 0.7449344457687723,
+      "meanEdgeDistance": 0.41548547785755763,
+      "p50EdgeDistance": 0,
+      "p95EdgeDistance": 1,
+      "maxEdgeDistance": 1.4142135623730951,
+      "aboveBaselineExtraArea": 208,
+      "belowBaselineExtraArea": 6,
+      "mismatchArea": 214
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.7178,
+      "directOutlineMilliseconds": 612.518,
+      "machinaLayoutMilliseconds": 0.0365,
+      "directOutlineRasterMilliseconds": 610.8079,
+      "msdfAtlasGenerationAndRenderMilliseconds": 124.679,
+      "msdfAtlasGenerationMilliseconds": 120.1678,
+      "msdfRenderMilliseconds": 4.502
+    }
+  },
+  {
+    "caseId": "24-iiii",
+    "text": "iiii",
+    "size": 24,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 7,
+        "right": 37,
+        "bottom": 22,
+        "width": 26,
+        "height": 16
+      },
+      "rightBounds": {
+        "left": 16,
+        "top": 6,
+        "right": 41,
+        "bottom": 22,
+        "width": 26,
+        "height": 17
+      },
+      "deltaLeft": 4,
+      "deltaTop": -1,
+      "deltaRight": 4,
+      "deltaBottom": 0,
+      "deltaWidth": 0,
+      "deltaHeight": 1,
+      "leftInkArea": 171,
+      "rightInkArea": 261,
+      "intersectionArea": 52,
+      "unionArea": 380,
+      "leftOnlyArea": 119,
+      "rightOnlyArea": 209,
+      "intersectionOverUnion": 0.1368421052631579,
+      "meanEdgeDistance": 1.1937415285370099,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 3.7830532015051896,
+      "maxEdgeDistance": 5,
+      "aboveBaselineExtraArea": 328,
+      "belowBaselineExtraArea": 0,
+      "mismatchArea": 328
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.2237,
+      "directOutlineMilliseconds": 97.1401,
+      "machinaLayoutMilliseconds": 0.0242,
+      "directOutlineRasterMilliseconds": 95.5852,
+      "msdfAtlasGenerationAndRenderMilliseconds": 133.6689,
+      "msdfAtlasGenerationMilliseconds": 130.9557,
+      "msdfRenderMilliseconds": 2.705
+    }
+  },
+  {
+    "caseId": "24-mmmm",
+    "text": "mmmm",
+    "size": 24,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 12,
+        "right": 86,
+        "bottom": 22,
+        "width": 75,
+        "height": 11
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 9,
+        "right": 87,
+        "bottom": 20,
+        "width": 75,
+        "height": 12
+      },
+      "deltaLeft": 1,
+      "deltaTop": -3,
+      "deltaRight": 1,
+      "deltaBottom": -2,
+      "deltaWidth": 0,
+      "deltaHeight": 1,
+      "leftInkArea": 454,
+      "rightInkArea": 545,
+      "intersectionArea": 244,
+      "unionArea": 755,
+      "leftOnlyArea": 210,
+      "rightOnlyArea": 301,
+      "intersectionOverUnion": 0.32317880794701986,
+      "meanEdgeDistance": 1.0569889149503118,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.23606797749979,
+      "maxEdgeDistance": 3,
+      "aboveBaselineExtraArea": 511,
+      "belowBaselineExtraArea": 0,
+      "mismatchArea": 511
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.4464,
+      "directOutlineMilliseconds": 391.6836,
+      "machinaLayoutMilliseconds": 0.0281,
+      "directOutlineRasterMilliseconds": 390.0363,
+      "msdfAtlasGenerationAndRenderMilliseconds": 127.0938,
+      "msdfAtlasGenerationMilliseconds": 123.8888,
+      "msdfRenderMilliseconds": 3.1972
+    }
+  },
+  {
+    "caseId": "24-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 24,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 7,
+        "right": 141,
+        "bottom": 22,
+        "width": 130,
+        "height": 16
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 5,
+        "right": 142,
+        "bottom": 23,
+        "width": 130,
+        "height": 19
+      },
+      "deltaLeft": 1,
+      "deltaTop": -2,
+      "deltaRight": 1,
+      "deltaBottom": 1,
+      "deltaWidth": 0,
+      "deltaHeight": 3,
+      "leftInkArea": 723,
+      "rightInkArea": 949,
+      "intersectionArea": 525,
+      "unionArea": 1147,
+      "leftOnlyArea": 198,
+      "rightOnlyArea": 424,
+      "intersectionOverUnion": 0.45771578029642546,
+      "meanEdgeDistance": 0.8274047369256747,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.23606797749979,
+      "maxEdgeDistance": 4.47213595499958,
+      "aboveBaselineExtraArea": 619,
+      "belowBaselineExtraArea": 3,
+      "mismatchArea": 622
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.4208,
+      "directOutlineMilliseconds": 528.1966,
+      "machinaLayoutMilliseconds": 0.0378,
+      "directOutlineRasterMilliseconds": 526.4572,
+      "msdfAtlasGenerationAndRenderMilliseconds": 152.945,
+      "msdfAtlasGenerationMilliseconds": 149.7271,
+      "msdfRenderMilliseconds": 3.2099
+    }
+  },
+  {
+    "caseId": "24-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 24,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 6,
+        "right": 244,
+        "bottom": 22,
+        "width": 232,
+        "height": 17
+      },
+      "rightBounds": {
+        "left": 16,
+        "top": 5,
+        "right": 245,
+        "bottom": 23,
+        "width": 230,
+        "height": 19
+      },
+      "deltaLeft": 3,
+      "deltaTop": -1,
+      "deltaRight": 1,
+      "deltaBottom": 1,
+      "deltaWidth": -2,
+      "deltaHeight": 2,
+      "leftInkArea": 1455,
+      "rightInkArea": 1807,
+      "intersectionArea": 928,
+      "unionArea": 2334,
+      "leftOnlyArea": 527,
+      "rightOnlyArea": 879,
+      "intersectionOverUnion": 0.3976006855184233,
+      "meanEdgeDistance": 0.8797387393773392,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.23606797749979,
+      "maxEdgeDistance": 5,
+      "aboveBaselineExtraArea": 1400,
+      "belowBaselineExtraArea": 6,
+      "mismatchArea": 1406
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.5577,
+      "directOutlineMilliseconds": 1146.1281,
+      "machinaLayoutMilliseconds": 0.0438,
+      "directOutlineRasterMilliseconds": 1144.5104,
+      "msdfAtlasGenerationAndRenderMilliseconds": 144.2924,
+      "msdfAtlasGenerationMilliseconds": 139.6185,
+      "msdfRenderMilliseconds": 4.6646
+    }
+  },
+  {
+    "caseId": "24-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 24,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 6,
+        "right": 108,
+        "bottom": 22,
+        "width": 97,
+        "height": 17
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 5,
+        "right": 112,
+        "bottom": 22,
+        "width": 100,
+        "height": 18
+      },
+      "deltaLeft": 1,
+      "deltaTop": -1,
+      "deltaRight": 4,
+      "deltaBottom": 0,
+      "deltaWidth": 3,
+      "deltaHeight": 1,
+      "leftInkArea": 573,
+      "rightInkArea": 862,
+      "intersectionArea": 258,
+      "unionArea": 1177,
+      "leftOnlyArea": 315,
+      "rightOnlyArea": 604,
+      "intersectionOverUnion": 0.21920135938827529,
+      "meanEdgeDistance": 1.1842328428692706,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 3,
+      "maxEdgeDistance": 5.0990195135927845,
+      "aboveBaselineExtraArea": 919,
+      "belowBaselineExtraArea": 0,
+      "mismatchArea": 919
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.2776,
+      "directOutlineMilliseconds": 319.2286,
+      "machinaLayoutMilliseconds": 0.0361,
+      "directOutlineRasterMilliseconds": 317.6815,
+      "msdfAtlasGenerationAndRenderMilliseconds": 140.7246,
+      "msdfAtlasGenerationMilliseconds": 137.2776,
+      "msdfRenderMilliseconds": 3.4372
+    }
+  },
+  {
+    "caseId": "24-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 24,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 6,
+        "right": 232,
+        "bottom": 27,
+        "width": 220,
+        "height": 22
+      },
+      "rightBounds": {
+        "left": 14,
+        "top": 5,
+        "right": 234,
+        "bottom": 24,
+        "width": 221,
+        "height": 20
+      },
+      "deltaLeft": 1,
+      "deltaTop": -1,
+      "deltaRight": 2,
+      "deltaBottom": -3,
+      "deltaWidth": 1,
+      "deltaHeight": -2,
+      "leftInkArea": 1403,
+      "rightInkArea": 1901,
+      "intersectionArea": 766,
+      "unionArea": 2538,
+      "leftOnlyArea": 637,
+      "rightOnlyArea": 1135,
+      "intersectionOverUnion": 0.30181245074862095,
+      "meanEdgeDistance": 1.0191935153224643,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.8284271247461903,
+      "maxEdgeDistance": 5.0990195135927845,
+      "aboveBaselineExtraArea": 1710,
+      "belowBaselineExtraArea": 62,
+      "mismatchArea": 1772
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.7344,
+      "directOutlineMilliseconds": 742.5977,
+      "machinaLayoutMilliseconds": 0.0441,
+      "directOutlineRasterMilliseconds": 740.9477,
+      "msdfAtlasGenerationAndRenderMilliseconds": 160.5343,
+      "msdfAtlasGenerationMilliseconds": 156.158,
+      "msdfRenderMilliseconds": 4.3668
+    }
+  },
+  {
+    "caseId": "32-machina",
+    "text": "Machina",
+    "size": 32,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 8,
+        "right": 121,
+        "bottom": 30,
+        "width": 110,
+        "height": 23
+      },
+      "rightBounds": {
+        "left": 12,
+        "top": 8,
+        "right": 123,
+        "bottom": 31,
+        "width": 112,
+        "height": 24
+      },
+      "deltaLeft": 0,
+      "deltaTop": 0,
+      "deltaRight": 2,
+      "deltaBottom": 1,
+      "deltaWidth": 2,
+      "deltaHeight": 1,
+      "leftInkArea": 933,
+      "rightInkArea": 1051,
+      "intersectionArea": 612,
+      "unionArea": 1372,
+      "leftOnlyArea": 321,
+      "rightOnlyArea": 439,
+      "intersectionOverUnion": 0.446064139941691,
+      "meanEdgeDistance": 0.8887177754332355,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.23606797749979,
+      "maxEdgeDistance": 3.605551275463989,
+      "aboveBaselineExtraArea": 686,
+      "belowBaselineExtraArea": 74,
+      "mismatchArea": 760
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.6302,
+      "directOutlineMilliseconds": 631.8391,
+      "machinaLayoutMilliseconds": 0.0314,
+      "directOutlineRasterMilliseconds": 630.2414,
+      "msdfAtlasGenerationAndRenderMilliseconds": 145.4671,
+      "msdfAtlasGenerationMilliseconds": 141.4192,
+      "msdfRenderMilliseconds": 4.0393
+    }
+  },
+  {
+    "caseId": "32-hello-machina",
+    "text": "Hello Machina",
+    "size": 32,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 8,
+        "right": 195,
+        "bottom": 30,
+        "width": 183,
+        "height": 23
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 8,
+        "right": 197,
+        "bottom": 31,
+        "width": 185,
+        "height": 24
+      },
+      "deltaLeft": 0,
+      "deltaTop": 0,
+      "deltaRight": 2,
+      "deltaBottom": 1,
+      "deltaWidth": 2,
+      "deltaHeight": 1,
+      "leftInkArea": 1528,
+      "rightInkArea": 1702,
+      "intersectionArea": 1044,
+      "unionArea": 2186,
+      "leftOnlyArea": 484,
+      "rightOnlyArea": 658,
+      "intersectionOverUnion": 0.4775846294602013,
+      "meanEdgeDistance": 0.8230952307223565,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.0944271909998835,
+      "maxEdgeDistance": 3.605551275463989,
+      "aboveBaselineExtraArea": 1029,
+      "belowBaselineExtraArea": 113,
+      "mismatchArea": 1142
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 9.4461,
+      "directOutlineMilliseconds": 965.264,
+      "machinaLayoutMilliseconds": 0.0346,
+      "directOutlineRasterMilliseconds": 963.479,
+      "msdfAtlasGenerationAndRenderMilliseconds": 149.9439,
+      "msdfAtlasGenerationMilliseconds": 145.6384,
+      "msdfRenderMilliseconds": 4.2958
+    }
+  },
+  {
+    "caseId": "32-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 32,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 9,
+        "right": 223,
+        "bottom": 30,
+        "width": 212,
+        "height": 22
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 8,
+        "right": 224,
+        "bottom": 33,
+        "width": 212,
+        "height": 26
+      },
+      "deltaLeft": 1,
+      "deltaTop": -1,
+      "deltaRight": 1,
+      "deltaBottom": 3,
+      "deltaWidth": 0,
+      "deltaHeight": 4,
+      "leftInkArea": 1479,
+      "rightInkArea": 1531,
+      "intersectionArea": 985,
+      "unionArea": 2025,
+      "leftOnlyArea": 494,
+      "rightOnlyArea": 546,
+      "intersectionOverUnion": 0.48641975308641977,
+      "meanEdgeDistance": 0.865496316585412,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.23606797749979,
+      "maxEdgeDistance": 3.605551275463989,
+      "aboveBaselineExtraArea": 955,
+      "belowBaselineExtraArea": 85,
+      "mismatchArea": 1040
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 9.0376,
+      "directOutlineMilliseconds": 1092.2571,
+      "machinaLayoutMilliseconds": 0.0468,
+      "directOutlineRasterMilliseconds": 1090.5943,
+      "msdfAtlasGenerationAndRenderMilliseconds": 144.366,
+      "msdfAtlasGenerationMilliseconds": 139.6637,
+      "msdfRenderMilliseconds": 4.6942
+    }
+  },
+  {
+    "caseId": "32-aa0",
+    "text": "Aa0",
+    "size": 32,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 9,
+        "right": 61,
+        "bottom": 30,
+        "width": 50,
+        "height": 22
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 8,
+        "right": 62,
+        "bottom": 30,
+        "width": 50,
+        "height": 23
+      },
+      "deltaLeft": 1,
+      "deltaTop": -1,
+      "deltaRight": 1,
+      "deltaBottom": 0,
+      "deltaWidth": 0,
+      "deltaHeight": 1,
+      "leftInkArea": 416,
+      "rightInkArea": 458,
+      "intersectionArea": 290,
+      "unionArea": 584,
+      "leftOnlyArea": 126,
+      "rightOnlyArea": 168,
+      "intersectionOverUnion": 0.4965753424657534,
+      "meanEdgeDistance": 0.8292078121258628,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2,
+      "maxEdgeDistance": 2.8284271247461903,
+      "aboveBaselineExtraArea": 266,
+      "belowBaselineExtraArea": 28,
+      "mismatchArea": 294
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.0673,
+      "directOutlineMilliseconds": 250.9394,
+      "machinaLayoutMilliseconds": 0.0259,
+      "directOutlineRasterMilliseconds": 249.0227,
+      "msdfAtlasGenerationAndRenderMilliseconds": 142.5784,
+      "msdfAtlasGenerationMilliseconds": 131.1146,
+      "msdfRenderMilliseconds": 11.4549
+    }
+  },
+  {
+    "caseId": "32-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 32,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 8,
+        "right": 578,
+        "bottom": 37,
+        "width": 567,
+        "height": 30
+      },
+      "rightBounds": {
+        "left": 12,
+        "top": 8,
+        "right": 578,
+        "bottom": 38,
+        "width": 567,
+        "height": 31
+      },
+      "deltaLeft": 0,
+      "deltaTop": 0,
+      "deltaRight": 0,
+      "deltaBottom": 1,
+      "deltaWidth": 0,
+      "deltaHeight": 1,
+      "leftInkArea": 4136,
+      "rightInkArea": 4656,
+      "intersectionArea": 2694,
+      "unionArea": 6098,
+      "leftOnlyArea": 1442,
+      "rightOnlyArea": 1962,
+      "intersectionOverUnion": 0.44178419153820925,
+      "meanEdgeDistance": 0.8881729781934244,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.23606797749979,
+      "maxEdgeDistance": 4.47213595499958,
+      "aboveBaselineExtraArea": 3018,
+      "belowBaselineExtraArea": 386,
+      "mismatchArea": 3404
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 9.2345,
+      "directOutlineMilliseconds": 2314.2528,
+      "machinaLayoutMilliseconds": 0.0805,
+      "directOutlineRasterMilliseconds": 2312.4963,
+      "msdfAtlasGenerationAndRenderMilliseconds": 187.4359,
+      "msdfAtlasGenerationMilliseconds": 179.398,
+      "msdfRenderMilliseconds": 8.0285
+    }
+  },
+  {
+    "caseId": "32-agjpqy",
+    "text": "Agjpqy",
+    "size": 32,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 9,
+        "right": 102,
+        "bottom": 37,
+        "width": 91,
+        "height": 29
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 8,
+        "right": 103,
+        "bottom": 38,
+        "width": 91,
+        "height": 31
+      },
+      "deltaLeft": 1,
+      "deltaTop": -1,
+      "deltaRight": 1,
+      "deltaBottom": 1,
+      "deltaWidth": 0,
+      "deltaHeight": 2,
+      "leftInkArea": 807,
+      "rightInkArea": 858,
+      "intersectionArea": 499,
+      "unionArea": 1166,
+      "leftOnlyArea": 308,
+      "rightOnlyArea": 359,
+      "intersectionOverUnion": 0.427958833619211,
+      "meanEdgeDistance": 0.9174565505812372,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.23606797749979,
+      "maxEdgeDistance": 3.1622776601683795,
+      "aboveBaselineExtraArea": 485,
+      "belowBaselineExtraArea": 182,
+      "mismatchArea": 667
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.081,
+      "directOutlineMilliseconds": 576.4344,
+      "machinaLayoutMilliseconds": 0.0307,
+      "directOutlineRasterMilliseconds": 574.8653,
+      "msdfAtlasGenerationAndRenderMilliseconds": 143.3803,
+      "msdfAtlasGenerationMilliseconds": 138.9235,
+      "msdfRenderMilliseconds": 4.4482
+    }
+  },
+  {
+    "caseId": "32-hello-world",
+    "text": "Hello, world!",
+    "size": 32,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 8,
+        "right": 173,
+        "bottom": 35,
+        "width": 161,
+        "height": 28
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 8,
+        "right": 175,
+        "bottom": 30,
+        "width": 163,
+        "height": 23
+      },
+      "deltaLeft": 0,
+      "deltaTop": 0,
+      "deltaRight": 2,
+      "deltaBottom": -5,
+      "deltaWidth": 2,
+      "deltaHeight": -5,
+      "leftInkArea": 1275,
+      "rightInkArea": 1357,
+      "intersectionArea": 869,
+      "unionArea": 1763,
+      "leftOnlyArea": 406,
+      "rightOnlyArea": 488,
+      "intersectionOverUnion": 0.49290981281905843,
+      "meanEdgeDistance": 0.863103894268733,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2,
+      "maxEdgeDistance": 9.433981132056603,
+      "aboveBaselineExtraArea": 801,
+      "belowBaselineExtraArea": 93,
+      "mismatchArea": 894
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.3328,
+      "directOutlineMilliseconds": 675.4364,
+      "machinaLayoutMilliseconds": 0.0464,
+      "directOutlineRasterMilliseconds": 671.777,
+      "msdfAtlasGenerationAndRenderMilliseconds": 152.8512,
+      "msdfAtlasGenerationMilliseconds": 148.6952,
+      "msdfRenderMilliseconds": 4.147
+    }
+  },
+  {
+    "caseId": "32-il1",
+    "text": "Il1",
+    "size": 32,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 8,
+        "right": 39,
+        "bottom": 30,
+        "width": 27,
+        "height": 23
+      },
+      "rightBounds": {
+        "left": 14,
+        "top": 8,
+        "right": 41,
+        "bottom": 29,
+        "width": 28,
+        "height": 22
+      },
+      "deltaLeft": 1,
+      "deltaTop": 0,
+      "deltaRight": 2,
+      "deltaBottom": -1,
+      "deltaWidth": 1,
+      "deltaHeight": -1,
+      "leftInkArea": 287,
+      "rightInkArea": 277,
+      "intersectionArea": 199,
+      "unionArea": 365,
+      "leftOnlyArea": 88,
+      "rightOnlyArea": 78,
+      "intersectionOverUnion": 0.5452054794520548,
+      "meanEdgeDistance": 0.8768564424216714,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 1.4142135623730951,
+      "maxEdgeDistance": 2.23606797749979,
+      "aboveBaselineExtraArea": 142,
+      "belowBaselineExtraArea": 24,
+      "mismatchArea": 166
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.8035,
+      "directOutlineMilliseconds": 108.8907,
+      "machinaLayoutMilliseconds": 0.0252,
+      "directOutlineRasterMilliseconds": 107.3528,
+      "msdfAtlasGenerationAndRenderMilliseconds": 133.5101,
+      "msdfAtlasGenerationMilliseconds": 121.1325,
+      "msdfRenderMilliseconds": 12.3701
+    }
+  },
+  {
+    "caseId": "32-wmwm",
+    "text": "WMWM",
+    "size": 32,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 9,
+        "right": 135,
+        "bottom": 30,
+        "width": 124,
+        "height": 22
+      },
+      "rightBounds": {
+        "left": 11,
+        "top": 10,
+        "right": 134,
+        "bottom": 33,
+        "width": 124,
+        "height": 24
+      },
+      "deltaLeft": -1,
+      "deltaTop": 1,
+      "deltaRight": -1,
+      "deltaBottom": 3,
+      "deltaWidth": 0,
+      "deltaHeight": 2,
+      "leftInkArea": 1191,
+      "rightInkArea": 1142,
+      "intersectionArea": 816,
+      "unionArea": 1517,
+      "leftOnlyArea": 375,
+      "rightOnlyArea": 326,
+      "intersectionOverUnion": 0.5379037574159525,
+      "meanEdgeDistance": 0.7565341335195211,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.8284271247461903,
+      "maxEdgeDistance": 3.1622776601683795,
+      "aboveBaselineExtraArea": 626,
+      "belowBaselineExtraArea": 75,
+      "mismatchArea": 701
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.1456,
+      "directOutlineMilliseconds": 1111.9732,
+      "machinaLayoutMilliseconds": 0.0258,
+      "directOutlineRasterMilliseconds": 1110.3127,
+      "msdfAtlasGenerationAndRenderMilliseconds": 135.7578,
+      "msdfAtlasGenerationMilliseconds": 131.8489,
+      "msdfRenderMilliseconds": 3.9007
+    }
+  },
+  {
+    "caseId": "32-iiii",
+    "text": "iiii",
+    "size": 32,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 10,
+        "right": 46,
+        "bottom": 30,
+        "width": 34,
+        "height": 21
+      },
+      "rightBounds": {
+        "left": 14,
+        "top": 8,
+        "right": 47,
+        "bottom": 29,
+        "width": 34,
+        "height": 22
+      },
+      "deltaLeft": 1,
+      "deltaTop": -2,
+      "deltaRight": 1,
+      "deltaBottom": -1,
+      "deltaWidth": 0,
+      "deltaHeight": 1,
+      "leftInkArea": 302,
+      "rightInkArea": 326,
+      "intersectionArea": 140,
+      "unionArea": 488,
+      "leftOnlyArea": 162,
+      "rightOnlyArea": 186,
+      "intersectionOverUnion": 0.28688524590163933,
+      "meanEdgeDistance": 1.248500815152531,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.23606797749979,
+      "maxEdgeDistance": 2.8284271247461903,
+      "aboveBaselineExtraArea": 317,
+      "belowBaselineExtraArea": 31,
+      "mismatchArea": 348
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.1894,
+      "directOutlineMilliseconds": 152.7067,
+      "machinaLayoutMilliseconds": 0.0248,
+      "directOutlineRasterMilliseconds": 150.7212,
+      "msdfAtlasGenerationAndRenderMilliseconds": 134.2991,
+      "msdfAtlasGenerationMilliseconds": 130.4902,
+      "msdfRenderMilliseconds": 3.8017
+    }
+  },
+  {
+    "caseId": "32-mmmm",
+    "text": "mmmm",
+    "size": 32,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 16,
+        "right": 111,
+        "bottom": 30,
+        "width": 100,
+        "height": 15
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 16,
+        "right": 111,
+        "bottom": 30,
+        "width": 99,
+        "height": 15
+      },
+      "deltaLeft": 1,
+      "deltaTop": 0,
+      "deltaRight": 0,
+      "deltaBottom": 0,
+      "deltaWidth": -1,
+      "deltaHeight": 0,
+      "leftInkArea": 772,
+      "rightInkArea": 784,
+      "intersectionArea": 744,
+      "unionArea": 812,
+      "leftOnlyArea": 28,
+      "rightOnlyArea": 40,
+      "intersectionOverUnion": 0.916256157635468,
+      "meanEdgeDistance": 0.1322314049586777,
+      "p50EdgeDistance": 0,
+      "p95EdgeDistance": 1,
+      "maxEdgeDistance": 1,
+      "aboveBaselineExtraArea": 48,
+      "belowBaselineExtraArea": 20,
+      "mismatchArea": 68
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.4067,
+      "directOutlineMilliseconds": 712.2551,
+      "machinaLayoutMilliseconds": 0.0277,
+      "directOutlineRasterMilliseconds": 710.7226,
+      "msdfAtlasGenerationAndRenderMilliseconds": 138.1837,
+      "msdfAtlasGenerationMilliseconds": 134.8234,
+      "msdfRenderMilliseconds": 3.3514
+    }
+  },
+  {
+    "caseId": "32-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 32,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 9,
+        "right": 184,
+        "bottom": 30,
+        "width": 173,
+        "height": 22
+      },
+      "rightBounds": {
+        "left": 12,
+        "top": 8,
+        "right": 185,
+        "bottom": 33,
+        "width": 174,
+        "height": 26
+      },
+      "deltaLeft": 0,
+      "deltaTop": -1,
+      "deltaRight": 1,
+      "deltaBottom": 3,
+      "deltaWidth": 1,
+      "deltaHeight": 4,
+      "leftInkArea": 1218,
+      "rightInkArea": 1269,
+      "intersectionArea": 851,
+      "unionArea": 1636,
+      "leftOnlyArea": 367,
+      "rightOnlyArea": 418,
+      "intersectionOverUnion": 0.5201711491442543,
+      "meanEdgeDistance": 0.7927989106938443,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.23606797749979,
+      "maxEdgeDistance": 3.1622776601683795,
+      "aboveBaselineExtraArea": 713,
+      "belowBaselineExtraArea": 72,
+      "mismatchArea": 785
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.7501,
+      "directOutlineMilliseconds": 946.5842,
+      "machinaLayoutMilliseconds": 0.0442,
+      "directOutlineRasterMilliseconds": 940.3359,
+      "msdfAtlasGenerationAndRenderMilliseconds": 134.2215,
+      "msdfAtlasGenerationMilliseconds": 129.9968,
+      "msdfRenderMilliseconds": 4.2161
+    }
+  },
+  {
+    "caseId": "32-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 32,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 8,
+        "right": 321,
+        "bottom": 30,
+        "width": 309,
+        "height": 23
+      },
+      "rightBounds": {
+        "left": 14,
+        "top": 8,
+        "right": 321,
+        "bottom": 33,
+        "width": 308,
+        "height": 26
+      },
+      "deltaLeft": 1,
+      "deltaTop": 0,
+      "deltaRight": 0,
+      "deltaBottom": 3,
+      "deltaWidth": -1,
+      "deltaHeight": 3,
+      "leftInkArea": 2566,
+      "rightInkArea": 2529,
+      "intersectionArea": 1871,
+      "unionArea": 3224,
+      "leftOnlyArea": 695,
+      "rightOnlyArea": 658,
+      "intersectionOverUnion": 0.5803349875930521,
+      "meanEdgeDistance": 0.7121001387168443,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2,
+      "maxEdgeDistance": 3.1622776601683795,
+      "aboveBaselineExtraArea": 1200,
+      "belowBaselineExtraArea": 153,
+      "mismatchArea": 1353
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.383,
+      "directOutlineMilliseconds": 1988.0788,
+      "machinaLayoutMilliseconds": 0.0477,
+      "directOutlineRasterMilliseconds": 1986.5063,
+      "msdfAtlasGenerationAndRenderMilliseconds": 142.9333,
+      "msdfAtlasGenerationMilliseconds": 136.6601,
+      "msdfRenderMilliseconds": 6.2643
+    }
+  },
+  {
+    "caseId": "32-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 32,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 8,
+        "right": 140,
+        "bottom": 30,
+        "width": 128,
+        "height": 23
+      },
+      "rightBounds": {
+        "left": 14,
+        "top": 8,
+        "right": 142,
+        "bottom": 29,
+        "width": 129,
+        "height": 22
+      },
+      "deltaLeft": 1,
+      "deltaTop": 0,
+      "deltaRight": 2,
+      "deltaBottom": -1,
+      "deltaWidth": 1,
+      "deltaHeight": -1,
+      "leftInkArea": 1042,
+      "rightInkArea": 1163,
+      "intersectionArea": 665,
+      "unionArea": 1540,
+      "leftOnlyArea": 377,
+      "rightOnlyArea": 498,
+      "intersectionOverUnion": 0.4318181818181818,
+      "meanEdgeDistance": 0.911024987585205,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.23606797749979,
+      "maxEdgeDistance": 3.605551275463989,
+      "aboveBaselineExtraArea": 797,
+      "belowBaselineExtraArea": 78,
+      "mismatchArea": 875
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.3621,
+      "directOutlineMilliseconds": 541.4253,
+      "machinaLayoutMilliseconds": 0.0362,
+      "directOutlineRasterMilliseconds": 539.8893,
+      "msdfAtlasGenerationAndRenderMilliseconds": 144.6659,
+      "msdfAtlasGenerationMilliseconds": 140.0054,
+      "msdfRenderMilliseconds": 4.6512
+    }
+  },
+  {
+    "caseId": "32-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 32,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 8,
+        "right": 305,
+        "bottom": 37,
+        "width": 293,
+        "height": 30
+      },
+      "rightBounds": {
+        "left": 14,
+        "top": 8,
+        "right": 307,
+        "bottom": 34,
+        "width": 294,
+        "height": 27
+      },
+      "deltaLeft": 1,
+      "deltaTop": 0,
+      "deltaRight": 2,
+      "deltaBottom": -3,
+      "deltaWidth": 1,
+      "deltaHeight": -3,
+      "leftInkArea": 2391,
+      "rightInkArea": 2661,
+      "intersectionArea": 1370,
+      "unionArea": 3682,
+      "leftOnlyArea": 1021,
+      "rightOnlyArea": 1291,
+      "intersectionOverUnion": 0.3720803910917979,
+      "meanEdgeDistance": 0.9949971388510372,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.23606797749979,
+      "maxEdgeDistance": 3.605551275463989,
+      "aboveBaselineExtraArea": 2046,
+      "belowBaselineExtraArea": 266,
+      "mismatchArea": 2312
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.4262,
+      "directOutlineMilliseconds": 1274.9362,
+      "machinaLayoutMilliseconds": 0.0451,
+      "directOutlineRasterMilliseconds": 1273.3312,
+      "msdfAtlasGenerationAndRenderMilliseconds": 159.8137,
+      "msdfAtlasGenerationMilliseconds": 154.0875,
+      "msdfRenderMilliseconds": 5.7154
+    }
+  },
+  {
+    "caseId": "48-machina",
+    "text": "Machina",
+    "size": 48,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 13,
+        "right": 176,
+        "bottom": 45,
+        "width": 164,
+        "height": 33
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 11,
+        "right": 179,
+        "bottom": 44,
+        "width": 167,
+        "height": 34
+      },
+      "deltaLeft": 0,
+      "deltaTop": -2,
+      "deltaRight": 3,
+      "deltaBottom": -1,
+      "deltaWidth": 3,
+      "deltaHeight": 1,
+      "leftInkArea": 1823,
+      "rightInkArea": 2207,
+      "intersectionArea": 1087,
+      "unionArea": 2943,
+      "leftOnlyArea": 736,
+      "rightOnlyArea": 1120,
+      "intersectionOverUnion": 0.3693510023785253,
+      "meanEdgeDistance": 1.5690244558411364,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 4,
+      "maxEdgeDistance": 10.44030650891055,
+      "aboveBaselineExtraArea": 1856,
+      "belowBaselineExtraArea": 0,
+      "mismatchArea": 1856
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.6808,
+      "directOutlineMilliseconds": 1310.6141,
+      "machinaLayoutMilliseconds": 0.0287,
+      "directOutlineRasterMilliseconds": 1309.0862,
+      "msdfAtlasGenerationAndRenderMilliseconds": 167.4552,
+      "msdfAtlasGenerationMilliseconds": 163.0465,
+      "msdfRenderMilliseconds": 4.4007
+    }
+  },
+  {
+    "caseId": "48-hello-machina",
+    "text": "Hello Machina",
+    "size": 48,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 13,
+        "right": 287,
+        "bottom": 45,
+        "width": 275,
+        "height": 33
+      },
+      "rightBounds": {
+        "left": 14,
+        "top": 11,
+        "right": 290,
+        "bottom": 44,
+        "width": 277,
+        "height": 34
+      },
+      "deltaLeft": 1,
+      "deltaTop": -2,
+      "deltaRight": 3,
+      "deltaBottom": -1,
+      "deltaWidth": 2,
+      "deltaHeight": 1,
+      "leftInkArea": 3037,
+      "rightInkArea": 3657,
+      "intersectionArea": 1798,
+      "unionArea": 4896,
+      "leftOnlyArea": 1239,
+      "rightOnlyArea": 1859,
+      "intersectionOverUnion": 0.3672385620915033,
+      "meanEdgeDistance": 1.6332736981616558,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 4,
+      "maxEdgeDistance": 10,
+      "aboveBaselineExtraArea": 3098,
+      "belowBaselineExtraArea": 0,
+      "mismatchArea": 3098
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.8005,
+      "directOutlineMilliseconds": 2065.9596,
+      "machinaLayoutMilliseconds": 0.0355,
+      "directOutlineRasterMilliseconds": 2064.3562,
+      "msdfAtlasGenerationAndRenderMilliseconds": 192.1644,
+      "msdfAtlasGenerationMilliseconds": 186.4741,
+      "msdfRenderMilliseconds": 5.6818
+    }
+  },
+  {
+    "caseId": "48-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 48,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 14,
+        "right": 328,
+        "bottom": 45,
+        "width": 316,
+        "height": 32
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 12,
+        "right": 330,
+        "bottom": 44,
+        "width": 318,
+        "height": 33
+      },
+      "deltaLeft": 0,
+      "deltaTop": -2,
+      "deltaRight": 2,
+      "deltaBottom": -1,
+      "deltaWidth": 2,
+      "deltaHeight": 1,
+      "leftInkArea": 2866,
+      "rightInkArea": 3544,
+      "intersectionArea": 2254,
+      "unionArea": 4156,
+      "leftOnlyArea": 612,
+      "rightOnlyArea": 1290,
+      "intersectionOverUnion": 0.5423484119345524,
+      "meanEdgeDistance": 1.1434611537857797,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.23606797749979,
+      "maxEdgeDistance": 5,
+      "aboveBaselineExtraArea": 1902,
+      "belowBaselineExtraArea": 0,
+      "mismatchArea": 1902
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.9126,
+      "directOutlineMilliseconds": 2302.2729,
+      "machinaLayoutMilliseconds": 0.0525,
+      "directOutlineRasterMilliseconds": 2300.7017,
+      "msdfAtlasGenerationAndRenderMilliseconds": 175.9437,
+      "msdfAtlasGenerationMilliseconds": 170.2775,
+      "msdfRenderMilliseconds": 5.6575
+    }
+  },
+  {
+    "caseId": "48-aa0",
+    "text": "Aa0",
+    "size": 48,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 14,
+        "right": 86,
+        "bottom": 45,
+        "width": 74,
+        "height": 32
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 12,
+        "right": 91,
+        "bottom": 44,
+        "width": 79,
+        "height": 33
+      },
+      "deltaLeft": 0,
+      "deltaTop": -2,
+      "deltaRight": 5,
+      "deltaBottom": -1,
+      "deltaWidth": 5,
+      "deltaHeight": 1,
+      "leftInkArea": 808,
+      "rightInkArea": 1047,
+      "intersectionArea": 453,
+      "unionArea": 1402,
+      "leftOnlyArea": 355,
+      "rightOnlyArea": 594,
+      "intersectionOverUnion": 0.3231098430813124,
+      "meanEdgeDistance": 1.5534460585760013,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 5,
+      "maxEdgeDistance": 6.324555320336759,
+      "aboveBaselineExtraArea": 949,
+      "belowBaselineExtraArea": 0,
+      "mismatchArea": 949
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.1083,
+      "directOutlineMilliseconds": 527.5534,
+      "machinaLayoutMilliseconds": 0.0263,
+      "directOutlineRasterMilliseconds": 526.0267,
+      "msdfAtlasGenerationAndRenderMilliseconds": 153.3264,
+      "msdfAtlasGenerationMilliseconds": 140.9318,
+      "msdfRenderMilliseconds": 12.3869
+    }
+  },
+  {
+    "caseId": "48-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 48,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 13,
+        "right": 861,
+        "bottom": 56,
+        "width": 849,
+        "height": 44
+      },
+      "rightBounds": {
+        "left": 15,
+        "top": 11,
+        "right": 866,
+        "bottom": 52,
+        "width": 852,
+        "height": 42
+      },
+      "deltaLeft": 2,
+      "deltaTop": -2,
+      "deltaRight": 5,
+      "deltaBottom": -4,
+      "deltaWidth": 3,
+      "deltaHeight": -2,
+      "leftInkArea": 8106,
+      "rightInkArea": 9485,
+      "intersectionArea": 3921,
+      "unionArea": 13670,
+      "leftOnlyArea": 4185,
+      "rightOnlyArea": 5564,
+      "intersectionOverUnion": 0.28683247988295535,
+      "meanEdgeDistance": 1.8807144409909853,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 5.385164807134504,
+      "maxEdgeDistance": 10.816653826391969,
+      "aboveBaselineExtraArea": 9410,
+      "belowBaselineExtraArea": 339,
+      "mismatchArea": 9749
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 10.0784,
+      "directOutlineMilliseconds": 4846.875,
+      "machinaLayoutMilliseconds": 0.0774,
+      "directOutlineRasterMilliseconds": 4844.6595,
+      "msdfAtlasGenerationAndRenderMilliseconds": 280.058,
+      "msdfAtlasGenerationMilliseconds": 268.0702,
+      "msdfRenderMilliseconds": 11.9761
+    }
+  },
+  {
+    "caseId": "48-agjpqy",
+    "text": "Agjpqy",
+    "size": 48,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 14,
+        "right": 147,
+        "bottom": 56,
+        "width": 135,
+        "height": 43
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 12,
+        "right": 147,
+        "bottom": 52,
+        "width": 135,
+        "height": 41
+      },
+      "deltaLeft": 0,
+      "deltaTop": -2,
+      "deltaRight": 0,
+      "deltaBottom": -4,
+      "deltaWidth": 0,
+      "deltaHeight": -2,
+      "leftInkArea": 1633,
+      "rightInkArea": 1482,
+      "intersectionArea": 616,
+      "unionArea": 2499,
+      "leftOnlyArea": 1017,
+      "rightOnlyArea": 866,
+      "intersectionOverUnion": 0.24649859943977592,
+      "meanEdgeDistance": 2.1999568219748817,
+      "p50EdgeDistance": 1.4142135623730951,
+      "p95EdgeDistance": 7.674116076876723,
+      "maxEdgeDistance": 11.180339887498949,
+      "aboveBaselineExtraArea": 1538,
+      "belowBaselineExtraArea": 345,
+      "mismatchArea": 1883
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.0644,
+      "directOutlineMilliseconds": 1209.9304,
+      "machinaLayoutMilliseconds": 0.0291,
+      "directOutlineRasterMilliseconds": 1208.3795,
+      "msdfAtlasGenerationAndRenderMilliseconds": 156.8722,
+      "msdfAtlasGenerationMilliseconds": 152.2955,
+      "msdfRenderMilliseconds": 4.5671
+    }
+  },
+  {
+    "caseId": "48-hello-world",
+    "text": "Hello, world!",
+    "size": 48,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 13,
+        "right": 255,
+        "bottom": 53,
+        "width": 243,
+        "height": 41
+      },
+      "rightBounds": {
+        "left": 14,
+        "top": 11,
+        "right": 264,
+        "bottom": 44,
+        "width": 251,
+        "height": 34
+      },
+      "deltaLeft": 1,
+      "deltaTop": -2,
+      "deltaRight": 9,
+      "deltaBottom": -9,
+      "deltaWidth": 8,
+      "deltaHeight": -7,
+      "leftInkArea": 2535,
+      "rightInkArea": 2996,
+      "intersectionArea": 1287,
+      "unionArea": 4244,
+      "leftOnlyArea": 1248,
+      "rightOnlyArea": 1709,
+      "intersectionOverUnion": 0.3032516493873704,
+      "meanEdgeDistance": 2.0968085966114733,
+      "p50EdgeDistance": 1.4142135623730951,
+      "p95EdgeDistance": 6.082762530298219,
+      "maxEdgeDistance": 14.142135623730951,
+      "aboveBaselineExtraArea": 2928,
+      "belowBaselineExtraArea": 29,
+      "mismatchArea": 2957
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.2077,
+      "directOutlineMilliseconds": 1444.9689,
+      "machinaLayoutMilliseconds": 0.038,
+      "directOutlineRasterMilliseconds": 1443.3578,
+      "msdfAtlasGenerationAndRenderMilliseconds": 170.9455,
+      "msdfAtlasGenerationMilliseconds": 164.7107,
+      "msdfRenderMilliseconds": 6.2259
+    }
+  },
+  {
+    "caseId": "48-il1",
+    "text": "Il1",
+    "size": 48,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 13,
+        "right": 53,
+        "bottom": 45,
+        "width": 41,
+        "height": 33
+      },
+      "rightBounds": {
+        "left": 22,
+        "top": 11,
+        "right": 61,
+        "bottom": 44,
+        "width": 40,
+        "height": 34
+      },
+      "deltaLeft": 9,
+      "deltaTop": -2,
+      "deltaRight": 8,
+      "deltaBottom": -1,
+      "deltaWidth": -1,
+      "deltaHeight": 1,
+      "leftInkArea": 513,
+      "rightInkArea": 668,
+      "intersectionArea": 82,
+      "unionArea": 1099,
+      "leftOnlyArea": 431,
+      "rightOnlyArea": 586,
+      "intersectionOverUnion": 0.0746132848043676,
+      "meanEdgeDistance": 2.9757133006458347,
+      "p50EdgeDistance": 2.8284271247461903,
+      "p95EdgeDistance": 8,
+      "maxEdgeDistance": 9.055385138137417,
+      "aboveBaselineExtraArea": 1017,
+      "belowBaselineExtraArea": 0,
+      "mismatchArea": 1017
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.216,
+      "directOutlineMilliseconds": 224.2155,
+      "machinaLayoutMilliseconds": 0.0252,
+      "directOutlineRasterMilliseconds": 222.6615,
+      "msdfAtlasGenerationAndRenderMilliseconds": 149.5297,
+      "msdfAtlasGenerationMilliseconds": 146.0407,
+      "msdfRenderMilliseconds": 3.4806
+    }
+  },
+  {
+    "caseId": "48-wmwm",
+    "text": "WMWM",
+    "size": 48,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 14,
+        "right": 196,
+        "bottom": 45,
+        "width": 185,
+        "height": 32
+      },
+      "rightBounds": {
+        "left": 12,
+        "top": 11,
+        "right": 197,
+        "bottom": 44,
+        "width": 186,
+        "height": 34
+      },
+      "deltaLeft": 0,
+      "deltaTop": -3,
+      "deltaRight": 1,
+      "deltaBottom": -1,
+      "deltaWidth": 1,
+      "deltaHeight": 2,
+      "leftInkArea": 2330,
+      "rightInkArea": 2452,
+      "intersectionArea": 1842,
+      "unionArea": 2940,
+      "leftOnlyArea": 488,
+      "rightOnlyArea": 610,
+      "intersectionOverUnion": 0.6265306122448979,
+      "meanEdgeDistance": 0.9728842919378036,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 3,
+      "maxEdgeDistance": 3.605551275463989,
+      "aboveBaselineExtraArea": 1098,
+      "belowBaselineExtraArea": 0,
+      "mismatchArea": 1098
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.2997,
+      "directOutlineMilliseconds": 2359.0909,
+      "machinaLayoutMilliseconds": 0.0305,
+      "directOutlineRasterMilliseconds": 2357.5535,
+      "msdfAtlasGenerationAndRenderMilliseconds": 148.9003,
+      "msdfAtlasGenerationMilliseconds": 142.9004,
+      "msdfRenderMilliseconds": 5.9932
+    }
+  },
+  {
+    "caseId": "48-iiii",
+    "text": "iiii",
+    "size": 48,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 15,
+        "right": 63,
+        "bottom": 45,
+        "width": 51,
+        "height": 31
+      },
+      "rightBounds": {
+        "left": 21,
+        "top": 13,
+        "right": 73,
+        "bottom": 44,
+        "width": 53,
+        "height": 32
+      },
+      "deltaLeft": 8,
+      "deltaTop": -2,
+      "deltaRight": 10,
+      "deltaBottom": -1,
+      "deltaWidth": 2,
+      "deltaHeight": 1,
+      "leftInkArea": 565,
+      "rightInkArea": 723,
+      "intersectionArea": 134,
+      "unionArea": 1154,
+      "leftOnlyArea": 431,
+      "rightOnlyArea": 589,
+      "intersectionOverUnion": 0.11611785095320624,
+      "meanEdgeDistance": 2.757494895715217,
+      "p50EdgeDistance": 2,
+      "p95EdgeDistance": 8.54400374531753,
+      "maxEdgeDistance": 10.198039027185569,
+      "aboveBaselineExtraArea": 1020,
+      "belowBaselineExtraArea": 0,
+      "mismatchArea": 1020
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.0721,
+      "directOutlineMilliseconds": 318.6316,
+      "machinaLayoutMilliseconds": 0.0256,
+      "directOutlineRasterMilliseconds": 317.1134,
+      "msdfAtlasGenerationAndRenderMilliseconds": 133.8224,
+      "msdfAtlasGenerationMilliseconds": 130.2518,
+      "msdfRenderMilliseconds": 3.563
+    }
+  },
+  {
+    "caseId": "48-mmmm",
+    "text": "mmmm",
+    "size": 48,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 25,
+        "right": 160,
+        "bottom": 45,
+        "width": 148,
+        "height": 21
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 19,
+        "right": 161,
+        "bottom": 40,
+        "width": 149,
+        "height": 22
+      },
+      "deltaLeft": 0,
+      "deltaTop": -6,
+      "deltaRight": 1,
+      "deltaBottom": -5,
+      "deltaWidth": 1,
+      "deltaHeight": 1,
+      "leftInkArea": 1522,
+      "rightInkArea": 1849,
+      "intersectionArea": 788,
+      "unionArea": 2583,
+      "leftOnlyArea": 734,
+      "rightOnlyArea": 1061,
+      "intersectionOverUnion": 0.3050716221447929,
+      "meanEdgeDistance": 2.1580994423401956,
+      "p50EdgeDistance": 2,
+      "p95EdgeDistance": 5.0990195135927845,
+      "maxEdgeDistance": 6.082762530298219,
+      "aboveBaselineExtraArea": 1795,
+      "belowBaselineExtraArea": 0,
+      "mismatchArea": 1795
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.3492,
+      "directOutlineMilliseconds": 1423.7251,
+      "machinaLayoutMilliseconds": 0.0263,
+      "directOutlineRasterMilliseconds": 1422.2201,
+      "msdfAtlasGenerationAndRenderMilliseconds": 140.2861,
+      "msdfAtlasGenerationMilliseconds": 136.1262,
+      "msdfRenderMilliseconds": 4.1516
+    }
+  },
+  {
+    "caseId": "48-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 48,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 14,
+        "right": 270,
+        "bottom": 45,
+        "width": 258,
+        "height": 32
+      },
+      "rightBounds": {
+        "left": 15,
+        "top": 12,
+        "right": 272,
+        "bottom": 44,
+        "width": 258,
+        "height": 33
+      },
+      "deltaLeft": 2,
+      "deltaTop": -2,
+      "deltaRight": 2,
+      "deltaBottom": -1,
+      "deltaWidth": 0,
+      "deltaHeight": 1,
+      "leftInkArea": 2393,
+      "rightInkArea": 2904,
+      "intersectionArea": 1877,
+      "unionArea": 3420,
+      "leftOnlyArea": 516,
+      "rightOnlyArea": 1027,
+      "intersectionOverUnion": 0.5488304093567251,
+      "meanEdgeDistance": 1.114070959203828,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.23606797749979,
+      "maxEdgeDistance": 4.242640687119285,
+      "aboveBaselineExtraArea": 1543,
+      "belowBaselineExtraArea": 0,
+      "mismatchArea": 1543
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.2098,
+      "directOutlineMilliseconds": 1962.1745,
+      "machinaLayoutMilliseconds": 0.0402,
+      "directOutlineRasterMilliseconds": 1960.6192,
+      "msdfAtlasGenerationAndRenderMilliseconds": 177.7452,
+      "msdfAtlasGenerationMilliseconds": 172.7665,
+      "msdfRenderMilliseconds": 4.9699
+    }
+  },
+  {
+    "caseId": "48-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 48,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 13,
+        "right": 476,
+        "bottom": 45,
+        "width": 464,
+        "height": 33
+      },
+      "rightBounds": {
+        "left": 22,
+        "top": 11,
+        "right": 477,
+        "bottom": 44,
+        "width": 456,
+        "height": 34
+      },
+      "deltaLeft": 9,
+      "deltaTop": -2,
+      "deltaRight": 1,
+      "deltaBottom": -1,
+      "deltaWidth": -8,
+      "deltaHeight": 1,
+      "leftInkArea": 4922,
+      "rightInkArea": 5692,
+      "intersectionArea": 2895,
+      "unionArea": 7719,
+      "leftOnlyArea": 2027,
+      "rightOnlyArea": 2797,
+      "intersectionOverUnion": 0.37504858142246406,
+      "meanEdgeDistance": 1.770182023698658,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 5.0990195135927845,
+      "maxEdgeDistance": 10.04987562112089,
+      "aboveBaselineExtraArea": 4824,
+      "belowBaselineExtraArea": 0,
+      "mismatchArea": 4824
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.745,
+      "directOutlineMilliseconds": 4327.9338,
+      "machinaLayoutMilliseconds": 0.0457,
+      "directOutlineRasterMilliseconds": 4326.3487,
+      "msdfAtlasGenerationAndRenderMilliseconds": 176.9017,
+      "msdfAtlasGenerationMilliseconds": 166.9024,
+      "msdfRenderMilliseconds": 9.9903
+    }
+  },
+  {
+    "caseId": "48-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 48,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 13,
+        "right": 205,
+        "bottom": 45,
+        "width": 193,
+        "height": 33
+      },
+      "rightBounds": {
+        "left": 12,
+        "top": 11,
+        "right": 215,
+        "bottom": 44,
+        "width": 204,
+        "height": 34
+      },
+      "deltaLeft": -1,
+      "deltaTop": -2,
+      "deltaRight": 10,
+      "deltaBottom": -1,
+      "deltaWidth": 11,
+      "deltaHeight": 1,
+      "leftInkArea": 2001,
+      "rightInkArea": 2492,
+      "intersectionArea": 733,
+      "unionArea": 3760,
+      "leftOnlyArea": 1268,
+      "rightOnlyArea": 1759,
+      "intersectionOverUnion": 0.1949468085106383,
+      "meanEdgeDistance": 2.2358368207830037,
+      "p50EdgeDistance": 1.4142135623730951,
+      "p95EdgeDistance": 6,
+      "maxEdgeDistance": 10.44030650891055,
+      "aboveBaselineExtraArea": 3027,
+      "belowBaselineExtraArea": 0,
+      "mismatchArea": 3027
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.1148,
+      "directOutlineMilliseconds": 1170.0699,
+      "machinaLayoutMilliseconds": 0.0428,
+      "directOutlineRasterMilliseconds": 1168.4417,
+      "msdfAtlasGenerationAndRenderMilliseconds": 147.8884,
+      "msdfAtlasGenerationMilliseconds": 142.2231,
+      "msdfRenderMilliseconds": 5.6556
+    }
+  },
+  {
+    "caseId": "48-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 48,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 14,
+        "top": 13,
+        "right": 453,
+        "bottom": 56,
+        "width": 440,
+        "height": 44
+      },
+      "rightBounds": {
+        "left": 18,
+        "top": 11,
+        "right": 458,
+        "bottom": 46,
+        "width": 441,
+        "height": 36
+      },
+      "deltaLeft": 4,
+      "deltaTop": -2,
+      "deltaRight": 5,
+      "deltaBottom": -10,
+      "deltaWidth": 1,
+      "deltaHeight": -8,
+      "leftInkArea": 4623,
+      "rightInkArea": 5483,
+      "intersectionArea": 2212,
+      "unionArea": 7894,
+      "leftOnlyArea": 2411,
+      "rightOnlyArea": 3271,
+      "intersectionOverUnion": 0.28021281986318725,
+      "meanEdgeDistance": 1.942614465418867,
+      "p50EdgeDistance": 1.4142135623730951,
+      "p95EdgeDistance": 5.227784895686506,
+      "maxEdgeDistance": 10.770329614269007,
+      "aboveBaselineExtraArea": 5485,
+      "belowBaselineExtraArea": 197,
+      "mismatchArea": 5682
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.7708,
+      "directOutlineMilliseconds": 2732.5383,
+      "machinaLayoutMilliseconds": 0.0507,
+      "directOutlineRasterMilliseconds": 2730.8477,
+      "msdfAtlasGenerationAndRenderMilliseconds": 195.8436,
+      "msdfAtlasGenerationMilliseconds": 187.9872,
+      "msdfRenderMilliseconds": 7.8475
+    }
+  },
+  {
+    "caseId": "64-machina",
+    "text": "Machina",
+    "size": 64,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 17,
+        "right": 231,
+        "bottom": 61,
+        "width": 219,
+        "height": 45
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 16,
+        "right": 234,
+        "bottom": 60,
+        "width": 222,
+        "height": 45
+      },
+      "deltaLeft": 0,
+      "deltaTop": -1,
+      "deltaRight": 3,
+      "deltaBottom": -1,
+      "deltaWidth": 3,
+      "deltaHeight": 0,
+      "leftInkArea": 3057,
+      "rightInkArea": 3485,
+      "intersectionArea": 2265,
+      "unionArea": 4277,
+      "leftOnlyArea": 792,
+      "rightOnlyArea": 1220,
+      "intersectionOverUnion": 0.5295768061725509,
+      "meanEdgeDistance": 1.2677090776125006,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 3.1622776601683795,
+      "maxEdgeDistance": 6.082762530298219,
+      "aboveBaselineExtraArea": 2006,
+      "belowBaselineExtraArea": 6,
+      "mismatchArea": 2012
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.772,
+      "directOutlineMilliseconds": 2282.5713,
+      "machinaLayoutMilliseconds": 0.0303,
+      "directOutlineRasterMilliseconds": 2280.8772,
+      "msdfAtlasGenerationAndRenderMilliseconds": 166.1363,
+      "msdfAtlasGenerationMilliseconds": 160.5472,
+      "msdfRenderMilliseconds": 5.5808
+    }
+  },
+  {
+    "caseId": "64-hello-machina",
+    "text": "Hello Machina",
+    "size": 64,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 14,
+        "top": 17,
+        "right": 379,
+        "bottom": 61,
+        "width": 366,
+        "height": 45
+      },
+      "rightBounds": {
+        "left": 14,
+        "top": 16,
+        "right": 382,
+        "bottom": 60,
+        "width": 369,
+        "height": 45
+      },
+      "deltaLeft": 0,
+      "deltaTop": -1,
+      "deltaRight": 3,
+      "deltaBottom": -1,
+      "deltaWidth": 3,
+      "deltaHeight": 0,
+      "leftInkArea": 5059,
+      "rightInkArea": 5723,
+      "intersectionArea": 3503,
+      "unionArea": 7279,
+      "leftOnlyArea": 1556,
+      "rightOnlyArea": 2220,
+      "intersectionOverUnion": 0.48124742409671656,
+      "meanEdgeDistance": 1.3343651511314039,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 3.605551275463989,
+      "maxEdgeDistance": 6,
+      "aboveBaselineExtraArea": 3768,
+      "belowBaselineExtraArea": 8,
+      "mismatchArea": 3776
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 9.2137,
+      "directOutlineMilliseconds": 3593.7805,
+      "machinaLayoutMilliseconds": 0.034,
+      "directOutlineRasterMilliseconds": 3592.084,
+      "msdfAtlasGenerationAndRenderMilliseconds": 188.7926,
+      "msdfAtlasGenerationMilliseconds": 180.4748,
+      "msdfRenderMilliseconds": 8.3075
+    }
+  },
+  {
+    "caseId": "64-av-to-ta-wa-yo",
+    "text": "AV To Ta Wa Yo",
+    "size": 64,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 18,
+        "right": 434,
+        "bottom": 61,
+        "width": 422,
+        "height": 44
+      },
+      "rightBounds": {
+        "left": 14,
+        "top": 17,
+        "right": 435,
+        "bottom": 63,
+        "width": 422,
+        "height": 47
+      },
+      "deltaLeft": 1,
+      "deltaTop": -1,
+      "deltaRight": 1,
+      "deltaBottom": 2,
+      "deltaWidth": 0,
+      "deltaHeight": 3,
+      "leftInkArea": 4796,
+      "rightInkArea": 5236,
+      "intersectionArea": 3705,
+      "unionArea": 6327,
+      "leftOnlyArea": 1091,
+      "rightOnlyArea": 1531,
+      "intersectionOverUnion": 0.5855855855855856,
+      "meanEdgeDistance": 1.184284387925671,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.8284271247461903,
+      "maxEdgeDistance": 4.47213595499958,
+      "aboveBaselineExtraArea": 2585,
+      "belowBaselineExtraArea": 37,
+      "mismatchArea": 2622
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 9.403,
+      "directOutlineMilliseconds": 4058.8127,
+      "machinaLayoutMilliseconds": 0.0433,
+      "directOutlineRasterMilliseconds": 4057.3156,
+      "msdfAtlasGenerationAndRenderMilliseconds": 168.0448,
+      "msdfAtlasGenerationMilliseconds": 160.1819,
+      "msdfRenderMilliseconds": 7.8535
+    }
+  },
+  {
+    "caseId": "64-aa0",
+    "text": "Aa0",
+    "size": 64,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 19,
+        "right": 110,
+        "bottom": 61,
+        "width": 98,
+        "height": 43
+      },
+      "rightBounds": {
+        "left": 14,
+        "top": 17,
+        "right": 113,
+        "bottom": 60,
+        "width": 100,
+        "height": 44
+      },
+      "deltaLeft": 1,
+      "deltaTop": -2,
+      "deltaRight": 3,
+      "deltaBottom": -1,
+      "deltaWidth": 2,
+      "deltaHeight": 1,
+      "leftInkArea": 1364,
+      "rightInkArea": 1536,
+      "intersectionArea": 993,
+      "unionArea": 1907,
+      "leftOnlyArea": 371,
+      "rightOnlyArea": 543,
+      "intersectionOverUnion": 0.5207131620346094,
+      "meanEdgeDistance": 1.4871497770199233,
+      "p50EdgeDistance": 1.4142135623730951,
+      "p95EdgeDistance": 2.8284271247461903,
+      "maxEdgeDistance": 4.242640687119285,
+      "aboveBaselineExtraArea": 911,
+      "belowBaselineExtraArea": 3,
+      "mismatchArea": 914
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.5424,
+      "directOutlineMilliseconds": 888.7511,
+      "machinaLayoutMilliseconds": 0.0278,
+      "directOutlineRasterMilliseconds": 887.1931,
+      "msdfAtlasGenerationAndRenderMilliseconds": 150.3864,
+      "msdfAtlasGenerationMilliseconds": 146.064,
+      "msdfRenderMilliseconds": 4.3147
+    }
+  },
+  {
+    "caseId": "64-the-quick-brown-fox-jumps-over-the-lazy-dog",
+    "text": "The quick brown fox jumps over the lazy dog",
+    "size": 64,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 17,
+        "right": 899,
+        "bottom": 75,
+        "width": 887,
+        "height": 59
+      },
+      "rightBounds": {
+        "left": 14,
+        "top": 16,
+        "right": 899,
+        "bottom": 74,
+        "width": 886,
+        "height": 59
+      },
+      "deltaLeft": 1,
+      "deltaTop": -1,
+      "deltaRight": 0,
+      "deltaBottom": -1,
+      "deltaWidth": -1,
+      "deltaHeight": 0,
+      "leftInkArea": 10456,
+      "rightInkArea": 11768,
+      "intersectionArea": 6725,
+      "unionArea": 15499,
+      "leftOnlyArea": 3731,
+      "rightOnlyArea": 5043,
+      "intersectionOverUnion": 0.43389896122330474,
+      "meanEdgeDistance": 1.6011190369007993,
+      "p50EdgeDistance": 1.4142135623730951,
+      "p95EdgeDistance": 3.605551275463989,
+      "maxEdgeDistance": 6.708203932499369,
+      "aboveBaselineExtraArea": 8501,
+      "belowBaselineExtraArea": 273,
+      "mismatchArea": 8774
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 10.2137,
+      "directOutlineMilliseconds": 6799.5597,
+      "machinaLayoutMilliseconds": 0.0783,
+      "directOutlineRasterMilliseconds": 6797.7364,
+      "msdfAtlasGenerationAndRenderMilliseconds": 293.743,
+      "msdfAtlasGenerationMilliseconds": 278.8143,
+      "msdfRenderMilliseconds": 14.9179
+    }
+  },
+  {
+    "caseId": "64-agjpqy",
+    "text": "Agjpqy",
+    "size": 64,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 19,
+        "right": 192,
+        "bottom": 75,
+        "width": 180,
+        "height": 57
+      },
+      "rightBounds": {
+        "left": 14,
+        "top": 17,
+        "right": 192,
+        "bottom": 74,
+        "width": 179,
+        "height": 58
+      },
+      "deltaLeft": 1,
+      "deltaTop": -2,
+      "deltaRight": 0,
+      "deltaBottom": -1,
+      "deltaWidth": -1,
+      "deltaHeight": 1,
+      "leftInkArea": 2707,
+      "rightInkArea": 2637,
+      "intersectionArea": 1399,
+      "unionArea": 3945,
+      "leftOnlyArea": 1308,
+      "rightOnlyArea": 1238,
+      "intersectionOverUnion": 0.3546261089987326,
+      "meanEdgeDistance": 1.7716050091508069,
+      "p50EdgeDistance": 1.4142135623730951,
+      "p95EdgeDistance": 5,
+      "maxEdgeDistance": 6.708203932499369,
+      "aboveBaselineExtraArea": 2013,
+      "belowBaselineExtraArea": 533,
+      "mismatchArea": 2546
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.0849,
+      "directOutlineMilliseconds": 2078.3243,
+      "machinaLayoutMilliseconds": 0.0291,
+      "directOutlineRasterMilliseconds": 2076.8763,
+      "msdfAtlasGenerationAndRenderMilliseconds": 157.692,
+      "msdfAtlasGenerationMilliseconds": 151.2056,
+      "msdfRenderMilliseconds": 6.4778
+    }
+  },
+  {
+    "caseId": "64-hello-world",
+    "text": "Hello, world!",
+    "size": 64,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 14,
+        "top": 17,
+        "right": 336,
+        "bottom": 70,
+        "width": 323,
+        "height": 54
+      },
+      "rightBounds": {
+        "left": 14,
+        "top": 16,
+        "right": 341,
+        "bottom": 60,
+        "width": 328,
+        "height": 45
+      },
+      "deltaLeft": 0,
+      "deltaTop": -1,
+      "deltaRight": 5,
+      "deltaBottom": -10,
+      "deltaWidth": 5,
+      "deltaHeight": -9,
+      "leftInkArea": 4239,
+      "rightInkArea": 4627,
+      "intersectionArea": 2514,
+      "unionArea": 6352,
+      "leftOnlyArea": 1725,
+      "rightOnlyArea": 2113,
+      "intersectionOverUnion": 0.3957808564231738,
+      "meanEdgeDistance": 1.7635850228185923,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 5,
+      "maxEdgeDistance": 19.1049731745428,
+      "aboveBaselineExtraArea": 3777,
+      "belowBaselineExtraArea": 61,
+      "mismatchArea": 3838
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.1712,
+      "directOutlineMilliseconds": 2498.6083,
+      "machinaLayoutMilliseconds": 0.0372,
+      "directOutlineRasterMilliseconds": 2497.1536,
+      "msdfAtlasGenerationAndRenderMilliseconds": 171.6871,
+      "msdfAtlasGenerationMilliseconds": 163.7104,
+      "msdfRenderMilliseconds": 7.9678
+    }
+  },
+  {
+    "caseId": "64-il1",
+    "text": "Il1",
+    "size": 64,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 14,
+        "top": 17,
+        "right": 67,
+        "bottom": 60,
+        "width": 54,
+        "height": 44
+      },
+      "rightBounds": {
+        "left": 19,
+        "top": 16,
+        "right": 71,
+        "bottom": 60,
+        "width": 53,
+        "height": 45
+      },
+      "deltaLeft": 5,
+      "deltaTop": -1,
+      "deltaRight": 4,
+      "deltaBottom": 0,
+      "deltaWidth": -1,
+      "deltaHeight": 1,
+      "leftInkArea": 870,
+      "rightInkArea": 971,
+      "intersectionArea": 314,
+      "unionArea": 1527,
+      "leftOnlyArea": 556,
+      "rightOnlyArea": 657,
+      "intersectionOverUnion": 0.20563195808775375,
+      "meanEdgeDistance": 2.139628212349165,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 5,
+      "maxEdgeDistance": 6,
+      "aboveBaselineExtraArea": 1213,
+      "belowBaselineExtraArea": 0,
+      "mismatchArea": 1213
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.2802,
+      "directOutlineMilliseconds": 367.0067,
+      "machinaLayoutMilliseconds": 0.0261,
+      "directOutlineRasterMilliseconds": 365.4924,
+      "msdfAtlasGenerationAndRenderMilliseconds": 145.9755,
+      "msdfAtlasGenerationMilliseconds": 133.0389,
+      "msdfRenderMilliseconds": 12.9283
+    }
+  },
+  {
+    "caseId": "64-wmwm",
+    "text": "WMWM",
+    "size": 64,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 19,
+        "right": 258,
+        "bottom": 61,
+        "width": 246,
+        "height": 43
+      },
+      "rightBounds": {
+        "left": 12,
+        "top": 19,
+        "right": 258,
+        "bottom": 63,
+        "width": 247,
+        "height": 45
+      },
+      "deltaLeft": -1,
+      "deltaTop": 0,
+      "deltaRight": 0,
+      "deltaBottom": 2,
+      "deltaWidth": 1,
+      "deltaHeight": 2,
+      "leftInkArea": 3841,
+      "rightInkArea": 3799,
+      "intersectionArea": 3202,
+      "unionArea": 4438,
+      "leftOnlyArea": 639,
+      "rightOnlyArea": 597,
+      "intersectionOverUnion": 0.7214961694456963,
+      "meanEdgeDistance": 0.7366701244136098,
+      "p50EdgeDistance": 0,
+      "p95EdgeDistance": 2.23606797749979,
+      "maxEdgeDistance": 3.1622776601683795,
+      "aboveBaselineExtraArea": 1191,
+      "belowBaselineExtraArea": 45,
+      "mismatchArea": 1236
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.2241,
+      "directOutlineMilliseconds": 4119.0887,
+      "machinaLayoutMilliseconds": 0.028,
+      "directOutlineRasterMilliseconds": 4117.4362,
+      "msdfAtlasGenerationAndRenderMilliseconds": 145.0515,
+      "msdfAtlasGenerationMilliseconds": 137.9703,
+      "msdfRenderMilliseconds": 7.0734
+    }
+  },
+  {
+    "caseId": "64-iiii",
+    "text": "iiii",
+    "size": 64,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 14,
+        "top": 20,
+        "right": 80,
+        "bottom": 60,
+        "width": 67,
+        "height": 41
+      },
+      "rightBounds": {
+        "left": 19,
+        "top": 19,
+        "right": 86,
+        "bottom": 60,
+        "width": 68,
+        "height": 42
+      },
+      "deltaLeft": 5,
+      "deltaTop": -1,
+      "deltaRight": 6,
+      "deltaBottom": 0,
+      "deltaWidth": 1,
+      "deltaHeight": 1,
+      "leftInkArea": 944,
+      "rightInkArea": 1082,
+      "intersectionArea": 297,
+      "unionArea": 1729,
+      "leftOnlyArea": 647,
+      "rightOnlyArea": 785,
+      "intersectionOverUnion": 0.1717755928282244,
+      "meanEdgeDistance": 2.079913026281794,
+      "p50EdgeDistance": 1.4142135623730951,
+      "p95EdgeDistance": 5.385164807134504,
+      "maxEdgeDistance": 6.082762530298219,
+      "aboveBaselineExtraArea": 1432,
+      "belowBaselineExtraArea": 0,
+      "mismatchArea": 1432
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.2471,
+      "directOutlineMilliseconds": 542.6227,
+      "machinaLayoutMilliseconds": 0.0289,
+      "directOutlineRasterMilliseconds": 541.189,
+      "msdfAtlasGenerationAndRenderMilliseconds": 131.9492,
+      "msdfAtlasGenerationMilliseconds": 126.7166,
+      "msdfRenderMilliseconds": 5.2248
+    }
+  },
+  {
+    "caseId": "64-mmmm",
+    "text": "mmmm",
+    "size": 64,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 33,
+        "right": 210,
+        "bottom": 60,
+        "width": 198,
+        "height": 28
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 30,
+        "right": 210,
+        "bottom": 58,
+        "width": 198,
+        "height": 29
+      },
+      "deltaLeft": 0,
+      "deltaTop": -3,
+      "deltaRight": 0,
+      "deltaBottom": -2,
+      "deltaWidth": 0,
+      "deltaHeight": 1,
+      "leftInkArea": 2552,
+      "rightInkArea": 2852,
+      "intersectionArea": 1908,
+      "unionArea": 3496,
+      "leftOnlyArea": 644,
+      "rightOnlyArea": 944,
+      "intersectionOverUnion": 0.545766590389016,
+      "meanEdgeDistance": 1.158263456930207,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.8284271247461903,
+      "maxEdgeDistance": 3.1622776601683795,
+      "aboveBaselineExtraArea": 1588,
+      "belowBaselineExtraArea": 0,
+      "mismatchArea": 1588
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 7.9756,
+      "directOutlineMilliseconds": 2526.6186,
+      "machinaLayoutMilliseconds": 0.0251,
+      "directOutlineRasterMilliseconds": 2525.1106,
+      "msdfAtlasGenerationAndRenderMilliseconds": 142.4233,
+      "msdfAtlasGenerationMilliseconds": 137.1519,
+      "msdfRenderMilliseconds": 5.2643
+    }
+  },
+  {
+    "caseId": "64-to-av-wa-yo",
+    "text": "To AV Wa Yo",
+    "size": 64,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 18,
+        "right": 356,
+        "bottom": 61,
+        "width": 344,
+        "height": 44
+      },
+      "rightBounds": {
+        "left": 14,
+        "top": 17,
+        "right": 357,
+        "bottom": 63,
+        "width": 344,
+        "height": 47
+      },
+      "deltaLeft": 1,
+      "deltaTop": -1,
+      "deltaRight": 1,
+      "deltaBottom": 2,
+      "deltaWidth": 0,
+      "deltaHeight": 3,
+      "leftInkArea": 4013,
+      "rightInkArea": 4330,
+      "intersectionArea": 3059,
+      "unionArea": 5284,
+      "leftOnlyArea": 954,
+      "rightOnlyArea": 1271,
+      "intersectionOverUnion": 0.5789174867524602,
+      "meanEdgeDistance": 1.2133418655953814,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.8284271247461903,
+      "maxEdgeDistance": 4.47213595499958,
+      "aboveBaselineExtraArea": 2191,
+      "belowBaselineExtraArea": 34,
+      "mismatchArea": 2225
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.5159,
+      "directOutlineMilliseconds": 3475.7143,
+      "machinaLayoutMilliseconds": 0.0393,
+      "directOutlineRasterMilliseconds": 3474.2127,
+      "msdfAtlasGenerationAndRenderMilliseconds": 169.5125,
+      "msdfAtlasGenerationMilliseconds": 162.061,
+      "msdfRenderMilliseconds": 7.443
+    }
+  },
+  {
+    "caseId": "64-il1-wmwm-iiii-mmmm",
+    "text": "Il1 WMWM iiii mmmm",
+    "size": 64,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 14,
+        "top": 17,
+        "right": 631,
+        "bottom": 61,
+        "width": 618,
+        "height": 45
+      },
+      "rightBounds": {
+        "left": 19,
+        "top": 16,
+        "right": 631,
+        "bottom": 63,
+        "width": 613,
+        "height": 48
+      },
+      "deltaLeft": 5,
+      "deltaTop": -1,
+      "deltaRight": 0,
+      "deltaBottom": 2,
+      "deltaWidth": -5,
+      "deltaHeight": 3,
+      "leftInkArea": 8212,
+      "rightInkArea": 8704,
+      "intersectionArea": 5598,
+      "unionArea": 11318,
+      "leftOnlyArea": 2614,
+      "rightOnlyArea": 3106,
+      "intersectionOverUnion": 0.4946103551864287,
+      "meanEdgeDistance": 1.270334316572228,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 4.123105625617661,
+      "maxEdgeDistance": 6.082762530298219,
+      "aboveBaselineExtraArea": 5675,
+      "belowBaselineExtraArea": 45,
+      "mismatchArea": 5720
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.5481,
+      "directOutlineMilliseconds": 7504.7963,
+      "machinaLayoutMilliseconds": 0.0423,
+      "directOutlineRasterMilliseconds": 7503.2823,
+      "msdfAtlasGenerationAndRenderMilliseconds": 198.8678,
+      "msdfAtlasGenerationMilliseconds": 184.3768,
+      "msdfRenderMilliseconds": 14.4812
+    }
+  },
+  {
+    "caseId": "64-office-ffi-fi",
+    "text": "office ffi fi",
+    "size": 64,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 14,
+        "top": 17,
+        "right": 269,
+        "bottom": 61,
+        "width": 256,
+        "height": 45
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 16,
+        "right": 275,
+        "bottom": 60,
+        "width": 263,
+        "height": 45
+      },
+      "deltaLeft": -1,
+      "deltaTop": -1,
+      "deltaRight": 6,
+      "deltaBottom": -1,
+      "deltaWidth": 7,
+      "deltaHeight": 0,
+      "leftInkArea": 3386,
+      "rightInkArea": 3844,
+      "intersectionArea": 1768,
+      "unionArea": 5462,
+      "leftOnlyArea": 1618,
+      "rightOnlyArea": 2076,
+      "intersectionOverUnion": 0.323690955693885,
+      "meanEdgeDistance": 1.7223729952238154,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 4.123105625617661,
+      "maxEdgeDistance": 6.082762530298219,
+      "aboveBaselineExtraArea": 3690,
+      "belowBaselineExtraArea": 4,
+      "mismatchArea": 3694
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.4093,
+      "directOutlineMilliseconds": 1982.9016,
+      "machinaLayoutMilliseconds": 0.036,
+      "directOutlineRasterMilliseconds": 1981.467,
+      "msdfAtlasGenerationAndRenderMilliseconds": 155.4084,
+      "msdfAtlasGenerationMilliseconds": 146.3406,
+      "msdfRenderMilliseconds": 9.0598
+    }
+  },
+  {
+    "caseId": "64-settings-remain-aligned",
+    "text": "Settings remain aligned",
+    "size": 64,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 14,
+        "top": 17,
+        "right": 600,
+        "bottom": 74,
+        "width": 587,
+        "height": 58
+      },
+      "rightBounds": {
+        "left": 16,
+        "top": 16,
+        "right": 602,
+        "bottom": 69,
+        "width": 587,
+        "height": 54
+      },
+      "deltaLeft": 2,
+      "deltaTop": -1,
+      "deltaRight": 2,
+      "deltaBottom": -5,
+      "deltaWidth": 0,
+      "deltaHeight": -4,
+      "leftInkArea": 7751,
+      "rightInkArea": 8715,
+      "intersectionArea": 4273,
+      "unionArea": 12193,
+      "leftOnlyArea": 3478,
+      "rightOnlyArea": 4442,
+      "intersectionOverUnion": 0.3504469777741327,
+      "meanEdgeDistance": 1.6963252071686747,
+      "p50EdgeDistance": 1.4142135623730951,
+      "p95EdgeDistance": 5,
+      "maxEdgeDistance": 7,
+      "aboveBaselineExtraArea": 7452,
+      "belowBaselineExtraArea": 468,
+      "mismatchArea": 7920
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 64,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.8575,
+      "directOutlineMilliseconds": 4660.6574,
+      "machinaLayoutMilliseconds": 0.0459,
+      "directOutlineRasterMilliseconds": 4659.1313,
+      "msdfAtlasGenerationAndRenderMilliseconds": 202.3718,
+      "msdfAtlasGenerationMilliseconds": 190.8497,
+      "msdfRenderMilliseconds": 11.5125
+    }
+  },
+  {
+    "caseId": "32-a",
+    "text": "A",
+    "size": 32,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 9,
+        "right": 32,
+        "bottom": 30,
+        "width": 21,
+        "height": 22
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 8,
+        "right": 33,
+        "bottom": 30,
+        "width": 21,
+        "height": 23
+      },
+      "deltaLeft": 1,
+      "deltaTop": -1,
+      "deltaRight": 1,
+      "deltaBottom": 0,
+      "deltaWidth": 0,
+      "deltaHeight": 1,
+      "leftInkArea": 159,
+      "rightInkArea": 164,
+      "intersectionArea": 126,
+      "unionArea": 197,
+      "leftOnlyArea": 33,
+      "rightOnlyArea": 38,
+      "intersectionOverUnion": 0.6395939086294417,
+      "meanEdgeDistance": 0.6924346597552865,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 1,
+      "maxEdgeDistance": 1.4142135623730951,
+      "aboveBaselineExtraArea": 56,
+      "belowBaselineExtraArea": 15,
+      "mismatchArea": 71
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.3674,
+      "directOutlineMilliseconds": 152.3574,
+      "machinaLayoutMilliseconds": 0.0183,
+      "directOutlineRasterMilliseconds": 150.8332,
+      "msdfAtlasGenerationAndRenderMilliseconds": 132.5429,
+      "msdfAtlasGenerationMilliseconds": 121.958,
+      "msdfRenderMilliseconds": 10.5754
+    }
+  },
+  {
+    "caseId": "32-m",
+    "text": "M",
+    "size": 32,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 9,
+        "right": 39,
+        "bottom": 30,
+        "width": 28,
+        "height": 22
+      },
+      "rightBounds": {
+        "left": 12,
+        "top": 10,
+        "right": 38,
+        "bottom": 31,
+        "width": 27,
+        "height": 22
+      },
+      "deltaLeft": 0,
+      "deltaTop": 1,
+      "deltaRight": -1,
+      "deltaBottom": 1,
+      "deltaWidth": -1,
+      "deltaHeight": 0,
+      "leftInkArea": 278,
+      "rightInkArea": 296,
+      "intersectionArea": 232,
+      "unionArea": 342,
+      "leftOnlyArea": 46,
+      "rightOnlyArea": 64,
+      "intersectionOverUnion": 0.6783625730994152,
+      "meanEdgeDistance": 0.5925134578940472,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 1,
+      "maxEdgeDistance": 2,
+      "aboveBaselineExtraArea": 91,
+      "belowBaselineExtraArea": 19,
+      "mismatchArea": 110
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.0898,
+      "directOutlineMilliseconds": 265.8201,
+      "machinaLayoutMilliseconds": 0.018,
+      "directOutlineRasterMilliseconds": 264.2496,
+      "msdfAtlasGenerationAndRenderMilliseconds": 129.3068,
+      "msdfAtlasGenerationMilliseconds": 126.2896,
+      "msdfRenderMilliseconds": 3.0089
+    }
+  },
+  {
+    "caseId": "32-i",
+    "text": "i",
+    "size": 32,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 10,
+        "right": 19,
+        "bottom": 30,
+        "width": 7,
+        "height": 21
+      },
+      "rightBounds": {
+        "left": 14,
+        "top": 8,
+        "right": 21,
+        "bottom": 29,
+        "width": 8,
+        "height": 22
+      },
+      "deltaLeft": 1,
+      "deltaTop": -2,
+      "deltaRight": 2,
+      "deltaBottom": -1,
+      "deltaWidth": 1,
+      "deltaHeight": 1,
+      "leftInkArea": 69,
+      "rightInkArea": 83,
+      "intersectionArea": 33,
+      "unionArea": 119,
+      "leftOnlyArea": 36,
+      "rightOnlyArea": 50,
+      "intersectionOverUnion": 0.2773109243697479,
+      "meanEdgeDistance": 1.2625234616560732,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.23606797749979,
+      "maxEdgeDistance": 2.23606797749979,
+      "aboveBaselineExtraArea": 79,
+      "belowBaselineExtraArea": 7,
+      "mismatchArea": 86
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.5424,
+      "directOutlineMilliseconds": 42.4609,
+      "machinaLayoutMilliseconds": 0.0176,
+      "directOutlineRasterMilliseconds": 40.7357,
+      "msdfAtlasGenerationAndRenderMilliseconds": 118.2596,
+      "msdfAtlasGenerationMilliseconds": 114.6418,
+      "msdfRenderMilliseconds": 3.6113
+    }
+  },
+  {
+    "caseId": "32-w",
+    "text": "W",
+    "size": 32,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 9,
+        "right": 45,
+        "bottom": 30,
+        "width": 34,
+        "height": 22
+      },
+      "rightBounds": {
+        "left": 11,
+        "top": 12,
+        "right": 43,
+        "bottom": 33,
+        "width": 33,
+        "height": 22
+      },
+      "deltaLeft": -1,
+      "deltaTop": 3,
+      "deltaRight": -2,
+      "deltaBottom": 3,
+      "deltaWidth": -1,
+      "deltaHeight": 0,
+      "leftInkArea": 294,
+      "rightInkArea": 275,
+      "intersectionArea": 143,
+      "unionArea": 426,
+      "leftOnlyArea": 151,
+      "rightOnlyArea": 132,
+      "intersectionOverUnion": 0.33568075117370894,
+      "meanEdgeDistance": 1.1347744227245018,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 3,
+      "maxEdgeDistance": 3.605551275463989,
+      "aboveBaselineExtraArea": 262,
+      "belowBaselineExtraArea": 21,
+      "mismatchArea": 283
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 7.899,
+      "directOutlineMilliseconds": 301.7928,
+      "machinaLayoutMilliseconds": 0.0275,
+      "directOutlineRasterMilliseconds": 300.2133,
+      "msdfAtlasGenerationAndRenderMilliseconds": 132.9398,
+      "msdfAtlasGenerationMilliseconds": 121.5564,
+      "msdfRenderMilliseconds": 11.376
+    }
+  },
+  {
+    "caseId": "32-g",
+    "text": "g",
+    "size": 32,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 17,
+        "right": 25,
+        "bottom": 37,
+        "width": 13,
+        "height": 21
+      },
+      "rightBounds": {
+        "left": 14,
+        "top": 14,
+        "right": 26,
+        "bottom": 34,
+        "width": 13,
+        "height": 21
+      },
+      "deltaLeft": 1,
+      "deltaTop": -3,
+      "deltaRight": 1,
+      "deltaBottom": -3,
+      "deltaWidth": 0,
+      "deltaHeight": 0,
+      "leftInkArea": 162,
+      "rightInkArea": 170,
+      "intersectionArea": 82,
+      "unionArea": 250,
+      "leftOnlyArea": 80,
+      "rightOnlyArea": 88,
+      "intersectionOverUnion": 0.328,
+      "meanEdgeDistance": 1.053457668089142,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 3,
+      "maxEdgeDistance": 3,
+      "aboveBaselineExtraArea": 109,
+      "belowBaselineExtraArea": 59,
+      "mismatchArea": 168
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.24,
+      "directOutlineMilliseconds": 119.0301,
+      "machinaLayoutMilliseconds": 0.0181,
+      "directOutlineRasterMilliseconds": 117.6347,
+      "msdfAtlasGenerationAndRenderMilliseconds": 138.6307,
+      "msdfAtlasGenerationMilliseconds": 126.9806,
+      "msdfRenderMilliseconds": 11.6419
+    }
+  },
+  {
+    "caseId": "32-y",
+    "text": "y",
+    "size": 32,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 12,
+        "top": 16,
+        "right": 26,
+        "bottom": 37,
+        "width": 15,
+        "height": 22
+      },
+      "rightBounds": {
+        "left": 13,
+        "top": 14,
+        "right": 28,
+        "bottom": 35,
+        "width": 16,
+        "height": 22
+      },
+      "deltaLeft": 1,
+      "deltaTop": -2,
+      "deltaRight": 2,
+      "deltaBottom": -2,
+      "deltaWidth": 1,
+      "deltaHeight": 0,
+      "leftInkArea": 114,
+      "rightInkArea": 130,
+      "intersectionArea": 61,
+      "unionArea": 183,
+      "leftOnlyArea": 53,
+      "rightOnlyArea": 69,
+      "intersectionOverUnion": 0.3333333333333333,
+      "meanEdgeDistance": 1.1511124230262932,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2.23606797749979,
+      "maxEdgeDistance": 2.8284271247461903,
+      "aboveBaselineExtraArea": 104,
+      "belowBaselineExtraArea": 18,
+      "mismatchArea": 122
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 7.8527,
+      "directOutlineMilliseconds": 90.5758,
+      "machinaLayoutMilliseconds": 0.0173,
+      "directOutlineRasterMilliseconds": 89.0459,
+      "msdfAtlasGenerationAndRenderMilliseconds": 128.6191,
+      "msdfAtlasGenerationMilliseconds": 125.8444,
+      "msdfRenderMilliseconds": 2.7658
+    }
+  },
+  {
+    "caseId": "32-0",
+    "text": "0",
+    "size": 32,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 10,
+        "right": 26,
+        "bottom": 30,
+        "width": 14,
+        "height": 21
+      },
+      "rightBounds": {
+        "left": 14,
+        "top": 8,
+        "right": 28,
+        "bottom": 29,
+        "width": 15,
+        "height": 22
+      },
+      "deltaLeft": 1,
+      "deltaTop": -2,
+      "deltaRight": 2,
+      "deltaBottom": -1,
+      "deltaWidth": 1,
+      "deltaHeight": 1,
+      "leftInkArea": 148,
+      "rightInkArea": 164,
+      "intersectionArea": 91,
+      "unionArea": 221,
+      "leftOnlyArea": 57,
+      "rightOnlyArea": 73,
+      "intersectionOverUnion": 0.4117647058823529,
+      "meanEdgeDistance": 1.0115379513848257,
+      "p50EdgeDistance": 1,
+      "p95EdgeDistance": 2,
+      "maxEdgeDistance": 2.23606797749979,
+      "aboveBaselineExtraArea": 126,
+      "belowBaselineExtraArea": 4,
+      "mismatchArea": 130
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.0777,
+      "directOutlineMilliseconds": 56.4475,
+      "machinaLayoutMilliseconds": 0.0154,
+      "directOutlineRasterMilliseconds": 54.9628,
+      "msdfAtlasGenerationAndRenderMilliseconds": 120.1283,
+      "msdfAtlasGenerationMilliseconds": 116.9945,
+      "msdfRenderMilliseconds": 3.1267
+    }
+  },
+  {
+    "caseId": "32-u002c",
+    "text": ",",
+    "size": 32,
+    "directVsMsdf": {
+      "leftBounds": {
+        "left": 13,
+        "top": 26,
+        "right": 18,
+        "bottom": 35,
+        "width": 6,
+        "height": 10
+      },
+      "rightBounds": {
+        "left": 17,
+        "top": 25,
+        "right": 18,
+        "bottom": 25,
+        "width": 2,
+        "height": 1
+      },
+      "deltaLeft": 4,
+      "deltaTop": -1,
+      "deltaRight": 0,
+      "deltaBottom": -10,
+      "deltaWidth": -4,
+      "deltaHeight": -9,
+      "leftInkArea": 33,
+      "rightInkArea": 2,
+      "intersectionArea": 0,
+      "unionArea": 35,
+      "leftOnlyArea": 33,
+      "rightOnlyArea": 2,
+      "intersectionOverUnion": 0,
+      "meanEdgeDistance": 5.318740031492639,
+      "p50EdgeDistance": 5,
+      "p95EdgeDistance": 10.381161638199105,
+      "maxEdgeDistance": 10.770329614269007,
+      "aboveBaselineExtraArea": 19,
+      "belowBaselineExtraArea": 16,
+      "mismatchArea": 35
+    },
+    "placement": {
+      "samePlacementInstance": true,
+      "sameGlyphCount": true,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 7.9575,
+      "directOutlineMilliseconds": 15.958,
+      "machinaLayoutMilliseconds": 0.018,
+      "directOutlineRasterMilliseconds": 14.4128,
+      "msdfAtlasGenerationAndRenderMilliseconds": 120.2867,
+      "msdfAtlasGenerationMilliseconds": 117.7702,
+      "msdfRenderMilliseconds": 2.5086
+    }
+  },
+  {
+    "caseId": "32-u002e",
+    "text": ".",
+    "size": 32,
+    "directVsMsdf": {
+      "leftBounds": null,
+      "rightBounds": null,
+      "deltaLeft": null,
+      "deltaTop": null,
+      "deltaRight": null,
+      "deltaBottom": null,
+      "deltaWidth": null,
+      "deltaHeight": null,
+      "leftInkArea": 0,
+      "rightInkArea": 0,
+      "intersectionArea": 0,
+      "unionArea": 0,
+      "leftOnlyArea": 0,
+      "rightOnlyArea": 0,
+      "intersectionOverUnion": 0,
+      "meanEdgeDistance": 0,
+      "p50EdgeDistance": 0,
+      "p95EdgeDistance": 0,
+      "maxEdgeDistance": 0,
+      "aboveBaselineExtraArea": 0,
+      "belowBaselineExtraArea": 0,
+      "mismatchArea": 0
+    },
+    "placement": {
+      "samePlacementInstance": false,
+      "sameGlyphCount": false,
+      "maximumSemanticDelta": 0,
+      "fieldDimension": 32,
+      "atlasPadding": 2
+    },
+    "timings": {
+      "avaloniaReferenceMilliseconds": 8.4271,
+      "directOutlineMilliseconds": 11.5815,
+      "machinaLayoutMilliseconds": 0.0153,
+      "directOutlineRasterMilliseconds": 10.0711,
+      "msdfAtlasGenerationAndRenderMilliseconds": 0.946,
+      "msdfAtlasGenerationMilliseconds": null,
+      "msdfRenderMilliseconds": null
+    }
+  }
+]

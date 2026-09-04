@@ -43,6 +43,38 @@ public sealed class DistanceFieldTextPipelineKerningTests
         Assert.True(kernedRight < plainRight);
     }
 
+    [Fact]
+    public async Task DistanceFieldTextPipeline_UsesProvidedSharedLayoutInstance()
+    {
+        TypographyGlyphOutlineSource source = TypographyKerningFixtureFont.CreateSource();
+        DirectOutlineTextRenderResult direct = await new DirectOutlineStaticTextRenderer(source, source).RenderAsync(
+            new DirectOutlineTextRenderOptions(
+                "AV",
+                TypographyKerningFixtureFont.Face,
+                32,
+                96,
+                64,
+                new Rgba32(240, 240, 240, 255),
+                Background,
+                8d,
+                40d));
+        Assert.True(direct.Success);
+        Assert.NotNull(direct.Layout);
+
+        DistanceFieldTextPipeline pipeline = new(
+            source,
+            new MsdfSharpDistanceFieldGenerator(),
+            DistanceFieldArtifactTestHelpers.Metadata("crimson-shared-layout", "msdf"));
+        DistanceFieldTextPipelineResult result = await pipeline.RenderTextAsync(
+            "AV",
+            CreateOptions(),
+            CreateArtifactDirectory(),
+            sharedLayout: direct.Layout);
+
+        Assert.True(result.Success);
+        Assert.Same(direct.Layout, result.Layout);
+    }
+
     private static DistanceFieldTextRenderOptions CreateOptions()
     {
         return new DistanceFieldTextRenderOptions(
