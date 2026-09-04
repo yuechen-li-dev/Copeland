@@ -14,7 +14,14 @@ public static class Card
         var effectiveStyle = style ?? effectiveTheme.Card.Default;
 
         var content = UI.Anchor(child, id: CreateChildId(id, "content"), left: effectiveStyle.ContentInset, right: effectiveStyle.ContentInset, top: effectiveStyle.ContentInset, bottom: effectiveStyle.ContentInset);
-        var shellStyle = new UiStyle(effectiveStyle.Background, effectiveStyle.Foreground, 0, effectiveStyle.BorderColor, effectiveStyle.BorderThickness);
+        var shellStyle = new UiStyle(
+            effectiveStyle.Background,
+            effectiveStyle.Foreground,
+            0,
+            effectiveStyle.BorderColor,
+            effectiveStyle.BorderThickness,
+            Shape: effectiveStyle.CornerRadius > 0 ? UiShapeKind.RoundedRect : null,
+            CornerRadius: effectiveStyle.CornerRadius);
 
         return UI.Rect(content, id, width, height, color: null, padding: null, style: shellStyle);
     }

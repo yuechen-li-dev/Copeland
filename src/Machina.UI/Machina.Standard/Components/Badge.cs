@@ -31,7 +31,8 @@ public static class Badge
             Foreground: effectiveStyle.Foreground,
             Padding: 0,
             BorderColor: effectiveStyle.BorderColor,
-            BorderThickness: effectiveStyle.BorderThickness);
+            BorderThickness: effectiveStyle.BorderThickness,
+            Shape: effectiveStyle.Shape);
 
         return UI.Rect(
             child: labelRegion,

@@ -84,11 +84,25 @@ public static class MachinaPresentationFrameBuilder
 
         if (style.Background is not null)
         {
-            operations.Add(new FillRectangleOperation(node.Id.Value, node.Rect, style.Background.Value));
+            if (style.Shape is UiShapeKind shape)
+            {
+                operations.Add(new MachinaAnalyticShapePrimitive(
+                    node.Id.Value,
+                    ToPresentationShape(shape),
+                    node.Rect,
+                    style.Background.Value,
+                    style.CornerRadius,
+                    style.BorderColor,
+                    style.BorderThickness));
+            }
+            else
+            {
+                operations.Add(new FillRectangleOperation(node.Id.Value, node.Rect, style.Background.Value));
+            }
         }
 
         ValidateBorderThickness(style.BorderThickness, node.Id);
-        if (style.BorderColor is not null && style.BorderThickness > 0)
+        if (style.Shape is null && style.BorderColor is not null && style.BorderThickness > 0)
         {
             operations.Add(new StrokeRectangleOperation(
                 node.Id.Value,
@@ -96,6 +110,17 @@ public static class MachinaPresentationFrameBuilder
                 style.BorderColor.Value,
                 style.BorderThickness));
         }
+    }
+
+    private static MachinaAnalyticShapeKind ToPresentationShape(UiShapeKind shape)
+    {
+        return shape switch
+        {
+            UiShapeKind.RoundedRect => MachinaAnalyticShapeKind.RoundedRect,
+            UiShapeKind.Circle => MachinaAnalyticShapeKind.Circle,
+            UiShapeKind.Pill => MachinaAnalyticShapeKind.Pill,
+            _ => throw new ArgumentOutOfRangeException(nameof(shape), shape, null),
+        };
     }
 
     private static bool EmitRichTextOperations(

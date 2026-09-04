@@ -39,7 +39,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
     private readonly RawVulkanMemoryAllocator allocator;
     private readonly VulkanFenceBundle fences;
     private readonly VulkanCommandBufferPool commandPool;
-    private readonly VulkanTextureUploader textureUploader;
+    private readonly VulkanTextureUploader? textureUploader;
     private readonly VulkanCommandSubmitter submitter;
     private readonly AurelianVulkanRenderPass renderPass;
     private readonly AurelianVulkanTexture renderTarget;
@@ -47,6 +47,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
     private readonly DescriptorSetLayout descriptorSetLayout;
     private readonly DescriptorPool descriptorPool;
     private readonly Sampler sampler;
+    private readonly bool usesTextureResources;
     private readonly AurelianVulkanGraphicsPipeline pipeline;
     private readonly Dictionary<ulong, TextureResource> textures = [];
     private readonly Dictionary<BindingKey, BindingResource> bindings = [];
@@ -83,11 +84,14 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             .ToArray();
         vertexStride = orderedVertexInputs
             .Sum(input => VulkanForwardTexturedCanonicalFixture.PhysicalTypeSize(input.PhysicalType));
+        usesTextureResources = program.Resources.Any(resource => resource.Kind == CompiledGraphicsResourceKind.Texture2D);
 
         allocator = new RawVulkanMemoryAllocator(plant);
         fences = VulkanFenceBundle.Create(plant);
         commandPool = VulkanCommandBufferPool.Create(plant);
-        textureUploader = new VulkanTextureUploader(plant, allocator, commandPool, fences);
+        textureUploader = usesTextureResources
+            ? new VulkanTextureUploader(plant, allocator, commandPool, fences)
+            : null;
         submitter = new VulkanCommandSubmitter(plant, commandPool, fences);
 
         renderTarget = VulkanNativeForwardTexturedRenderer.CreateTexture(
@@ -108,7 +112,9 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             vertexStride,
             descriptorSetLayout,
             options.StraightAlphaBlend);
-        sampler = VulkanNativeForwardTexturedRenderer.CreateSampler(plant, options.LinearFiltering);
+        sampler = usesTextureResources
+            ? VulkanNativeForwardTexturedRenderer.CreateSampler(plant, options.LinearFiltering)
+            : default;
         descriptorPool = CreateDescriptorPool();
         vertexBuffer = CreateVertexBuffer(vertexCapacityQuads);
     }
@@ -129,6 +135,10 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         if (passActive)
         {
             throw new InvalidOperationException("Textures cannot be created during an active 2D pass.");
+        }
+        if (textureUploader is null)
+        {
+            throw new InvalidOperationException("The textureless analytic pipeline cannot create textures.");
         }
         if (textureWidth == 0 || textureHeight == 0)
         {
@@ -222,6 +232,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             submission.Uv,
             submission.Texture,
             submission.Tint,
+            default,
             default));
     }
 
@@ -246,7 +257,37 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             submission.Uv,
             submission.AtlasTexture,
             submission.Color,
-            submission.Msdf));
+            submission.Msdf,
+            default));
+    }
+
+    public void SubmitAnalyticShape(NativeAnalyticShapeSubmission submission)
+    {
+        ThrowIfDisposed();
+        if (!passActive)
+        {
+            throw new InvalidOperationException("SubmitAnalyticShape requires an active 2D pass.");
+        }
+        if (options.Kind != Native2DPipelineKind.AnalyticShape2D)
+        {
+            throw new InvalidOperationException("SubmitAnalyticShape requires the analytic shape 2D pipeline.");
+        }
+        Native2DSubmissionValidator.ValidateValues(submission);
+        float radius = submission.Kind == NativeAnalyticShapeKind.Pill
+            ? MathF.Min(submission.ShapeSize.Width, submission.ShapeSize.Height) / 2
+            : submission.Radius;
+        submissions.Add(new RenderSubmission(
+            submission.Destination,
+            submission.LocalCoordinates,
+            default,
+            submission.FillColor,
+            default,
+            new AnalyticParameters(
+                submission.Kind,
+                submission.ShapeSize,
+                radius,
+                submission.BorderColor,
+                submission.BorderWidth)));
     }
 
     public Native2DPassResult End2D(bool captureReadback = false)
@@ -302,7 +343,9 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
                 new VulkanRenderPassBeginRequest(
                     renderPass,
                     framebuffer,
-                    new VulkanColorClearValue(16f / 255f, 32f / 255f, 64f / 255f, 1)));
+                    options.TransparentClear
+                        ? new VulkanColorClearValue(0, 0, 0, 0)
+                        : new VulkanColorClearValue(16f / 255f, 32f / 255f, 64f / 255f, 1)));
             Require(begin.Success, "Render pass begin failed.");
 
             int drawCalls = RecordOrderedDraws(commandBuffer, begin.Scope!.Value, submissionKeys);
@@ -376,14 +419,17 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         textures.Clear();
         vertexBuffer.Dispose();
         plant.Vk.DestroyDescriptorPool(plant.Device, descriptorPool, null);
-        plant.Vk.DestroySampler(plant.Device, sampler, null);
+        if (usesTextureResources)
+        {
+            plant.Vk.DestroySampler(plant.Device, sampler, null);
+        }
         pipeline.Dispose();
         framebuffer.Dispose();
         renderPass.Dispose();
         plant.Vk.DestroyDescriptorSetLayout(plant.Device, descriptorSetLayout, null);
         renderTarget.Dispose();
         submitter.Dispose();
-        textureUploader.Dispose();
+        textureUploader?.Dispose();
         commandPool.Dispose();
         fences.Dispose();
         allocator.Dispose();
@@ -403,7 +449,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             inputMismatch = inputMismatch
                 || inputs[0].Name != "position"
                 || inputs[0].PhysicalType != "float3"
-                || inputs[1].Name != "uv"
+                || inputs[1].Name != (options.Kind == Native2DPipelineKind.AnalyticShape2D ? "local" : "uv")
                 || inputs[1].PhysicalType != "float2";
         }
         if (!inputMismatch && options.Kind == Native2DPipelineKind.MsdfText)
@@ -415,18 +461,24 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         {
             throw new ArgumentException("Native 2D requires position: float3 followed by uv: float2.", nameof(program));
         }
-        if (program.Resources.Count != 3
-            || program.Resources.Count(resource => resource.Kind == CompiledGraphicsResourceKind.Texture2D) != 1
-            || program.Resources.Count(resource => resource.Kind == CompiledGraphicsResourceKind.Sampler) != 1
-            || program.Resources.Count(resource => resource.Kind == CompiledGraphicsResourceKind.UniformBuffer) != 1)
+        bool resourcesValid = options.Kind == Native2DPipelineKind.AnalyticShape2D
+            ? program.Resources.Count == 1 && program.Resources.Single().Kind == CompiledGraphicsResourceKind.UniformBuffer
+            : program.Resources.Count == 3
+                && program.Resources.Count(resource => resource.Kind == CompiledGraphicsResourceKind.Texture2D) == 1
+                && program.Resources.Count(resource => resource.Kind == CompiledGraphicsResourceKind.Sampler) == 1
+                && program.Resources.Count(resource => resource.Kind == CompiledGraphicsResourceKind.UniformBuffer) == 1;
+        if (!resourcesValid)
         {
-            throw new ArgumentException("Native 2D requires one compiler-described texture, sampler, and material buffer.", nameof(program));
+            throw new ArgumentException("Native 2D resources do not match the selected compiler-described pipeline variant.", nameof(program));
         }
         CompiledMaterialLayout material = program.Material
             ?? throw new ArgumentException("Native 2D requires compiler-described material metadata.", nameof(program));
-        string[] expectedFields = options.Kind == Native2DPipelineKind.MsdfText
-            ? ["tint", "pixelRange", "threshold"]
-            : ["tint", "roughness"];
+        string[] expectedFields = options.Kind switch
+        {
+            Native2DPipelineKind.MsdfText => ["tint", "pixelRange", "threshold"],
+            Native2DPipelineKind.AnalyticShape2D => ["fillColor", "borderColor", "halfSize", "radius", "borderWidth", "shapeKind"],
+            _ => ["tint", "roughness"],
+        };
         if (!material.Fields.OrderBy(field => field.Order).Select(field => field.Name).SequenceEqual(expectedFields, StringComparer.Ordinal))
         {
             throw new ArgumentException($"The {options.Kind} pipeline material shape is incompatible with native 2D.", nameof(program));
@@ -444,7 +496,10 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
                 1,
                 new byte[material.Size],
                 program.Resources.Select(resource => resource.Binding).ToHashSet());
-        VulkanForwardTexturedValidation reflectionValidation = VulkanNativeForwardTexturedRenderer.Validate(program, reflectionFixture);
+        VulkanForwardTexturedValidation reflectionValidation = VulkanNativeForwardTexturedRenderer.Validate(
+            program,
+            reflectionFixture,
+            requireTexturedResourceShape: options.Kind != Native2DPipelineKind.AnalyticShape2D);
         if (!reflectionValidation.Success)
         {
             throw new ArgumentException(
@@ -498,7 +553,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
                 WriteFloat(bytes, offset + 4, vertex.Y);
                 WriteFloat(bytes, offset + 8, vertex.Z);
             }
-            else if (input.Name == "uv" && input.PhysicalType == "float2")
+            else if ((input.Name == "uv" || input.Name == "local") && input.PhysicalType == "float2")
             {
                 WriteFloat(bytes, offset, vertex.U);
                 WriteFloat(bytes, offset + 4, vertex.V);
@@ -572,20 +627,31 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
 
         CompiledMaterialLayout material = program.Material!;
         byte[] materialBytes = new byte[material.Size];
-        CompiledMaterialField tint = material.Fields.Single(field => field.Name == "tint");
-        WriteFloat(materialBytes, tint.Offset, submission.Tint.Red);
-        WriteFloat(materialBytes, tint.Offset + 4, submission.Tint.Green);
-        WriteFloat(materialBytes, tint.Offset + 8, submission.Tint.Blue);
-        WriteFloat(materialBytes, tint.Offset + 12, submission.Tint.Alpha);
+        if (options.Kind is Native2DPipelineKind.Textured or Native2DPipelineKind.MsdfText)
+        {
+            WriteMaterialColor(materialBytes, material, "tint", submission.Tint);
+        }
         if (options.Kind == Native2DPipelineKind.Textured)
         {
             CompiledMaterialField roughness = material.Fields.Single(field => field.Name == "roughness");
             WriteFloat(materialBytes, roughness.Offset, 1);
         }
-        else
+        else if (options.Kind == Native2DPipelineKind.MsdfText)
         {
             WriteMaterialFloat(materialBytes, material, "pixelRange", submission.Msdf.PixelRange);
             WriteMaterialFloat(materialBytes, material, "threshold", submission.Msdf.Threshold);
+        }
+        else
+        {
+            WriteMaterialColor(materialBytes, material, "fillColor", submission.Tint);
+            WriteMaterialColor(materialBytes, material, "borderColor", submission.Analytic.BorderColor);
+            CompiledMaterialField halfSize = material.Fields.Single(field => field.Name == "halfSize");
+            WriteFloat(materialBytes, halfSize.Offset, submission.Analytic.ShapeSize.Width / 2);
+            WriteFloat(materialBytes, halfSize.Offset + 4, submission.Analytic.ShapeSize.Height / 2);
+            WriteMaterialFloat(materialBytes, material, "radius", submission.Analytic.Radius);
+            WriteMaterialFloat(materialBytes, material, "borderWidth", submission.Analytic.BorderWidth);
+            CompiledMaterialField kind = material.Fields.Single(field => field.Name == "shapeKind");
+            BinaryPrimitives.WriteUInt32LittleEndian(materialBytes.AsSpan(kind.Offset, 4), (uint)(submission.Analytic.Kind == NativeAnalyticShapeKind.Circle ? 1 : 0));
         }
         AurelianVulkanBuffer materialBuffer = VulkanNativeForwardTexturedRenderer.CreateMappedBuffer(
             plant,
@@ -611,8 +677,12 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             throw new InvalidOperationException($"Descriptor set allocation failed with {allocateResult}.");
         }
 
-        TextureResource texture = textures[key.TextureId];
-        DescriptorImageInfo textureInfo = new(default, texture.Texture.NativeImageView!.Value, ImageLayout.ShaderReadOnlyOptimal);
+        DescriptorImageInfo textureInfo = default;
+        if (program.Resources.Any(resource => resource.Kind == CompiledGraphicsResourceKind.Texture2D))
+        {
+            TextureResource texture = textures[key.TextureId];
+            textureInfo = new(default, texture.Texture.NativeImageView!.Value, ImageLayout.ShaderReadOnlyOptimal);
+        }
         DescriptorImageInfo samplerInfo = new(sampler, default, ImageLayout.Undefined);
         DescriptorBufferInfo materialInfo = new(materialBuffer.NativeBuffer, 0, materialBuffer.SizeBytes);
         WriteDescriptorSet* writes = stackalloc WriteDescriptorSet[program.Resources.Count];
@@ -699,18 +769,18 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
 
     private DescriptorPool CreateDescriptorPool()
     {
-        DescriptorPoolSize* sizes = stackalloc DescriptorPoolSize[3]
+        DescriptorPoolSize* sizes = stackalloc DescriptorPoolSize[3];
+        uint poolSizeCount = 0;
+        foreach (DescriptorType descriptorType in program.Resources.Select(resource => VulkanNativeForwardTexturedRenderer.MapDescriptorType(resource.Kind)).Distinct())
         {
-            new(DescriptorType.SampledImage, MaximumBindingSets),
-            new(DescriptorType.Sampler, MaximumBindingSets),
-            new(DescriptorType.UniformBuffer, MaximumBindingSets),
-        };
+            sizes[poolSizeCount++] = new DescriptorPoolSize(descriptorType, MaximumBindingSets);
+        }
         DescriptorPoolCreateInfo createInfo = new()
         {
             SType = StructureType.DescriptorPoolCreateInfo,
             Flags = DescriptorPoolCreateFlags.FreeDescriptorSetBit,
             MaxSets = MaximumBindingSets,
-            PoolSizeCount = 3,
+            PoolSizeCount = poolSizeCount,
             PPoolSizes = sizes,
         };
         Result result = plant.Vk.CreateDescriptorPool(plant.Device, &createInfo, null, out DescriptorPool pool);
@@ -767,6 +837,15 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         WriteFloat(destination, field.Offset, value);
     }
 
+    private static void WriteMaterialColor(byte[] destination, CompiledMaterialLayout material, string name, Native2DTint value)
+    {
+        CompiledMaterialField field = material.Fields.Single(candidate => candidate.Name == name);
+        WriteFloat(destination, field.Offset, value.Red);
+        WriteFloat(destination, field.Offset + 4, value.Green);
+        WriteFloat(destination, field.Offset + 8, value.Blue);
+        WriteFloat(destination, field.Offset + 12, value.Alpha);
+    }
+
     private static InvalidOperationException UnknownTexture(Native2DTextureHandle handle)
         => new($"Texture handle {handle.Value} is unknown or disposed.");
 
@@ -792,7 +871,16 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         int Blue,
         int Alpha,
         int PixelRange,
-        int Threshold)
+        int Threshold,
+        int HalfWidth,
+        int HalfHeight,
+        int Radius,
+        int BorderRed,
+        int BorderGreen,
+        int BorderBlue,
+        int BorderAlpha,
+        int BorderWidth,
+        uint ShapeKind)
     {
         public static BindingKey From(RenderSubmission submission)
             => new(
@@ -802,7 +890,16 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
                 BitConverter.SingleToInt32Bits(submission.Tint.Blue),
                 BitConverter.SingleToInt32Bits(submission.Tint.Alpha),
                 BitConverter.SingleToInt32Bits(submission.Msdf.PixelRange),
-                BitConverter.SingleToInt32Bits(submission.Msdf.Threshold));
+                BitConverter.SingleToInt32Bits(submission.Msdf.Threshold),
+                BitConverter.SingleToInt32Bits(submission.Analytic.ShapeSize.Width / 2),
+                BitConverter.SingleToInt32Bits(submission.Analytic.ShapeSize.Height / 2),
+                BitConverter.SingleToInt32Bits(submission.Analytic.Radius),
+                BitConverter.SingleToInt32Bits(submission.Analytic.BorderColor.Red),
+                BitConverter.SingleToInt32Bits(submission.Analytic.BorderColor.Green),
+                BitConverter.SingleToInt32Bits(submission.Analytic.BorderColor.Blue),
+                BitConverter.SingleToInt32Bits(submission.Analytic.BorderColor.Alpha),
+                BitConverter.SingleToInt32Bits(submission.Analytic.BorderWidth),
+                (uint)submission.Analytic.Kind);
     }
 
     private readonly record struct RenderSubmission(
@@ -810,7 +907,15 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         Native2DUvRect Uv,
         Native2DTextureHandle Texture,
         Native2DTint Tint,
-        NativeMsdfParameters Msdf);
+        NativeMsdfParameters Msdf,
+        AnalyticParameters Analytic);
+
+    private readonly record struct AnalyticParameters(
+        NativeAnalyticShapeKind Kind,
+        Native2DSize ShapeSize,
+        float Radius,
+        Native2DTint BorderColor,
+        float BorderWidth);
 
     private readonly record struct Vertex(float X, float Y, float Z, float U, float V, float FieldScale);
 }

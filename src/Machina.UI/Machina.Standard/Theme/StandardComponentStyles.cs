@@ -10,7 +10,8 @@ public sealed record StandardButtonStyle(
     double BorderThickness,
     TextStyle TextStyle,
     double Width,
-    double Height);
+    double Height,
+    double CornerRadius = 0);
 
 public sealed record StandardButtonStyles(
     StandardButtonStyle Default,
@@ -47,7 +48,8 @@ public sealed record StandardBadgeStyle(
     TextAlignY TextAlignY,
     double TextOffsetX,
     double TextOffsetY,
-    TextStyle TextStyle);
+    TextStyle TextStyle,
+    UiShapeKind? Shape = null);
 
 public sealed record StandardBadgeStyles(
     StandardBadgeStyle Default,
@@ -73,7 +75,8 @@ public sealed record StandardCardStyle(
     ColorToken Foreground,
     ColorToken BorderColor,
     double BorderThickness,
-    double ContentInset);
+    double ContentInset,
+    double CornerRadius = 0);
 
 public sealed record StandardCardStyles(StandardCardStyle Default);
 

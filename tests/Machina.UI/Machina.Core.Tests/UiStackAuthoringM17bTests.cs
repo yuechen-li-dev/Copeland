@@ -129,6 +129,30 @@ public sealed class UiStackAuthoringM17bTests
     }
 
     [Fact]
+    public void UIStack_OffersConciseFixedFillAndSpaceAuthoring()
+    {
+        var result = UiLowerer.Lower(UI.VStack(
+            id: "stack",
+            children:
+            [
+                UI.Fixed(24, UI.Text("Title", id: "title")),
+                UI.Fill(UI.Rect(id: "body"), weight: 2),
+                UI.Space(),
+            ]));
+
+        var fixedFrame = Assert.IsType<FixedFrame>(
+            Assert.Single(result.Rows, row => row.Id == new NodeId("stack.item-0")).Frame);
+        var fillFrame = Assert.IsType<FillFrame>(
+            Assert.Single(result.Rows, row => row.Id == new NodeId("stack.item-1")).Frame);
+        var spaceFrame = Assert.IsType<FillFrame>(
+            Assert.Single(result.Rows, row => row.Id == new NodeId("stack.item-2")).Frame);
+
+        Assert.Equal(24, fixedFrame.Height);
+        Assert.Equal(2, fillFrame.Weight);
+        Assert.Equal(1, spaceFrame.Weight);
+    }
+
+    [Fact]
     public void UIStack_DerivesWrapperIdsDeterministically()
     {
         var first = Snapshot(UI.Stack(

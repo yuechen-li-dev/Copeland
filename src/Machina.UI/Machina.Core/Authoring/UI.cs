@@ -199,6 +199,30 @@ public static class UI
         }
     }
 
+    public static UiStackItem Fixed(
+        double main,
+        UiNode child)
+    {
+        return StackItem.Fixed(main, child);
+    }
+
+    public static UiStackItem Fill(
+        UiNode child,
+        double weight = 1)
+    {
+        return StackItem.Fill(weight, child);
+    }
+
+    public static UiStackItem Auto(UiNode child)
+    {
+        return StackItem.Auto(child);
+    }
+
+    public static UiStackItem Space(double weight = 1)
+    {
+        return StackItem.Fill(weight, Rect());
+    }
+
     public static class Track
     {
         public static GridTrack Fixed(double size)

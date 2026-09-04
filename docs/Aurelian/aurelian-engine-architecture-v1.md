@@ -450,3 +450,25 @@ planes, pixel range, atlas storage, and UVs. Aurelian owns persistent opaque tex
 the fixed MSDF pipeline/sampler/blend state, ordered glyph quads, offscreen execution,
 and readback. `CompiledGraphicsProgram` remains the sole descriptor/material authority.
 No font parsing, shaping, baseline derivation, or atlas packing belongs in Graphics.
+
+## Native 2D primitive families (M4)
+
+The native ordered-quad path has three deliberately closed realization families:
+
+- Solid/Textured uses a sampled image and tint for raster content.
+- MSDF uses precompiled multi-channel distance fields for arbitrary static contours,
+  including scalable text.
+- AnalyticSDF uses a textureless compiler-owned GPU program for simple parametric
+  RoundedRect, Circle, and Pill geometry.
+
+Aurelian treats simple 2D vector geometry as analytic GPU programs, not pre-rasterized
+assets. MSDF is used for arbitrary precompiled contours; analytic SDF is used for
+simple parametric contours.
+
+Machina owns shape kind, rectangle, uniform corner radius, fill, border, clipping,
+ordering, and hit-test meaning. `Aurelian.Machina.Graphics` adapts that presentation
+intent to one native quad. `Aurelian.Graphics` owns only compiler-described pipeline,
+material-buffer, vertex, blend, Vulkan, and lifetime realization. No Vulkan type enters
+Machina and no Machina type enters low-level Graphics. A shape-exact input geometry,
+generic SDF expression tree, arbitrary path, ellipse, per-corner radius, gradient,
+shadow, or blur is not part of M4.

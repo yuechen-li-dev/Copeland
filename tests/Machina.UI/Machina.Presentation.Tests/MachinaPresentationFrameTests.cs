@@ -84,6 +84,41 @@ public sealed class MachinaPresentationFrameTests
     }
 
     [Fact]
+    public void AnalyticShapes_ClampRadius_DerivePill_AndRejectInvalidInputs()
+    {
+        var rounded = new MachinaAnalyticShapePrimitive(
+            "rounded",
+            MachinaAnalyticShapeKind.RoundedRect,
+            new Rect(0, 0, 40, 20),
+            ColorToken.White,
+            radius: 99);
+        var pill = new MachinaAnalyticShapePrimitive(
+            "pill",
+            MachinaAnalyticShapeKind.Pill,
+            new Rect(0, 0, 240, 32),
+            ColorToken.White);
+
+        Assert.Equal(10, rounded.Radius);
+        Assert.Equal(16, pill.Radius);
+        Assert.Throws<ArgumentException>(() => new MachinaAnalyticShapePrimitive(
+            "circle",
+            MachinaAnalyticShapeKind.Circle,
+            new Rect(0, 0, 20, 19),
+            ColorToken.White));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new MachinaAnalyticShapePrimitive(
+            "negative",
+            MachinaAnalyticShapeKind.RoundedRect,
+            new Rect(0, 0, 20, 20),
+            ColorToken.White,
+            radius: -1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new MachinaAnalyticShapePrimitive(
+            "zero",
+            MachinaAnalyticShapeKind.RoundedRect,
+            new Rect(0, 0, 0, 20),
+            ColorToken.White));
+    }
+
+    [Fact]
     public void Builder_ProducesOrderedFillStrokePositionedTextAndNestedClips()
     {
         var childStyle = new UiStyle(

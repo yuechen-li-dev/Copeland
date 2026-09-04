@@ -1,0 +1,21 @@
+{
+  "milestone": "AURELIAN-NATIVE-ANALYTIC-SDF-PRIMITIVES-M4",
+  "kind": "native-analytic-sdf-vector-ui-primitives",
+  "roundedRectQualified": true,
+  "circleQualified": true,
+  "pillQualified": true,
+  "cpuTessellationUsed": false,
+  "bitmapFallbackUsed": false,
+  "textureUploadRequired": false,
+  "visualTypeScriptShaderUsed": true,
+  "vdMirShaderPathUsed": true,
+  "orderedQuadPathReused": true,
+  "machinaOwnsShapeSemantics": true,
+  "aurelianGraphicsOwnsGpuOnly": true,
+  "msdfTextStillQualified": true,
+  "msdfTextVisibleInShowcase": true,
+  "rasterTextStillSupported": true,
+  "rasterTextVisibleInShowcase": true,
+  "svgAdded": false,
+  "genericSdfDslAdded": false
+}

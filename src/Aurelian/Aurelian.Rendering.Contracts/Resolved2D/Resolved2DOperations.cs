@@ -30,6 +30,46 @@ public sealed record FillRectangleOperation : Resolved2DOperation
     public Resolved2DRgbaColor Color { get; }
 }
 
+public enum Resolved2DAnalyticShapeKind
+{
+    RoundedRect,
+    Circle,
+    Pill,
+}
+
+public sealed record AnalyticShapeOperation : Resolved2DOperation
+{
+    public AnalyticShapeOperation(
+        string operationId,
+        Resolved2DAnalyticShapeKind kind,
+        Resolved2DRectangle rectangle,
+        Resolved2DRgbaColor fillColor,
+        double radius,
+        Resolved2DRgbaColor borderColor,
+        double borderWidth)
+        : base(operationId)
+    {
+        if (!Enum.IsDefined(kind) || !double.IsFinite(radius) || radius < 0
+            || !double.IsFinite(borderWidth) || borderWidth < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(radius), "Analytic shape parameters are invalid.");
+        }
+        Kind = kind;
+        Rectangle = rectangle;
+        FillColor = fillColor;
+        Radius = radius;
+        BorderColor = borderColor;
+        BorderWidth = borderWidth;
+    }
+
+    public Resolved2DAnalyticShapeKind Kind { get; }
+    public Resolved2DRectangle Rectangle { get; }
+    public Resolved2DRgbaColor FillColor { get; }
+    public double Radius { get; }
+    public Resolved2DRgbaColor BorderColor { get; }
+    public double BorderWidth { get; }
+}
+
 public sealed record StrokeRectangleOperation : Resolved2DOperation
 {
     public StrokeRectangleOperation(

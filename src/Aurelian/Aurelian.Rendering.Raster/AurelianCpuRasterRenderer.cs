@@ -22,6 +22,9 @@ public sealed class AurelianCpuRasterRenderer
                 case FillRectangleOperation fill:
                     buffer.FillRectangle(fill.Rectangle, fill.Color, currentClip);
                     break;
+                case AnalyticShapeOperation shape:
+                    buffer.FillAnalyticShape(shape, currentClip);
+                    break;
                 case StrokeRectangleOperation stroke:
                     buffer.StrokeRectangle(stroke.Rectangle, stroke.Color, stroke.Thickness, currentClip);
                     break;

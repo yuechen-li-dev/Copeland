@@ -5,6 +5,67 @@ namespace Machina.Presentation;
 
 public abstract record MachinaPresentationOperation;
 
+public enum MachinaAnalyticShapeKind
+{
+    RoundedRect,
+    Circle,
+    Pill,
+}
+
+public sealed record MachinaAnalyticShapePrimitive : MachinaPresentationOperation
+{
+    public MachinaAnalyticShapePrimitive(
+        string sourceId,
+        MachinaAnalyticShapeKind kind,
+        Rect destinationRect,
+        ColorToken fillColor,
+        double radius = 0,
+        ColorToken? borderColor = null,
+        double borderWidth = 0)
+    {
+        SourceId = MachinaPresentationValidation.ValidateSourceId(sourceId);
+        DestinationRect = MachinaPresentationValidation.ValidateRect(destinationRect, nameof(destinationRect));
+        if (destinationRect.Width <= 0 || destinationRect.Height <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(destinationRect), "Analytic shape dimensions must be positive.");
+        }
+        if (!Enum.IsDefined(kind))
+        {
+            throw new ArgumentOutOfRangeException(nameof(kind));
+        }
+        if (kind == MachinaAnalyticShapeKind.Circle && destinationRect.Width != destinationRect.Height)
+        {
+            throw new ArgumentException("Circle destination bounds must be square.", nameof(destinationRect));
+        }
+        if (!double.IsFinite(radius) || radius < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(radius), radius, "Radius must be finite and non-negative.");
+        }
+        if (!double.IsFinite(borderWidth) || borderWidth < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(borderWidth), borderWidth, "Border width must be finite and non-negative.");
+        }
+        Kind = kind;
+        FillColor = fillColor;
+        BorderColor = borderColor;
+        BorderWidth = Math.Min(borderWidth, Math.Min(destinationRect.Width, destinationRect.Height) / 2);
+        Radius = kind switch
+        {
+            MachinaAnalyticShapeKind.Circle => destinationRect.Width / 2,
+            MachinaAnalyticShapeKind.Pill => Math.Min(destinationRect.Width, destinationRect.Height) / 2,
+            _ => Math.Min(radius, Math.Min(destinationRect.Width, destinationRect.Height) / 2),
+        };
+    }
+
+    public string SourceId { get; }
+    public MachinaAnalyticShapeKind Kind { get; }
+    public Rect DestinationRect { get; }
+    public ColorToken FillColor { get; }
+    public ColorToken? BorderColor { get; }
+    public double BorderWidth { get; }
+    public double Radius { get; }
+}
+
 public sealed record FillRectangleOperation : MachinaPresentationOperation
 {
     public FillRectangleOperation(string sourceId, Rect rect, ColorToken color)

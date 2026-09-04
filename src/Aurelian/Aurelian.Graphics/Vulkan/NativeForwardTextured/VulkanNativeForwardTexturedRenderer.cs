@@ -163,7 +163,8 @@ public static unsafe class VulkanNativeForwardTexturedRenderer
 
     public static VulkanForwardTexturedValidation Validate(
         CompiledGraphicsProgram program,
-        VulkanForwardTexturedFixture fixture)
+        VulkanForwardTexturedFixture fixture,
+        bool requireTexturedResourceShape = true)
     {
         ArgumentNullException.ThrowIfNull(program);
         ArgumentNullException.ThrowIfNull(fixture);
@@ -233,9 +234,10 @@ public static unsafe class VulkanNativeForwardTexturedRenderer
             errors.Add($"Fixture is missing required descriptor binding(s): {string.Join(", ", missingBindings)}.");
         }
 
-        if (program.Resources.Count(resource => resource.Kind == CompiledGraphicsResourceKind.Texture2D) != 1
+        if (requireTexturedResourceShape
+            && (program.Resources.Count(resource => resource.Kind == CompiledGraphicsResourceKind.Texture2D) != 1
             || program.Resources.Count(resource => resource.Kind == CompiledGraphicsResourceKind.Sampler) != 1
-            || program.Resources.Count(resource => resource.Kind == CompiledGraphicsResourceKind.UniformBuffer) != 1)
+            || program.Resources.Count(resource => resource.Kind == CompiledGraphicsResourceKind.UniformBuffer) != 1))
         {
             errors.Add("ForwardTextured M0 requires exactly one texture, one sampler, and one uniform buffer resource.");
         }

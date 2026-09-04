@@ -37,7 +37,9 @@ public static class StandardButton
             Foreground: effectiveStyle.Foreground,
             Padding: 0,
             BorderColor: effectiveStyle.BorderColor,
-            BorderThickness: effectiveStyle.BorderThickness);
+            BorderThickness: effectiveStyle.BorderThickness,
+            Shape: effectiveStyle.CornerRadius > 0 ? UiShapeKind.RoundedRect : null,
+            CornerRadius: effectiveStyle.CornerRadius);
 
         var width = size == ButtonSize.Icon ? effectiveStyle.Height : effectiveStyle.Width;
 

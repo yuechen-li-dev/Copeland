@@ -6,4 +6,13 @@ public sealed record UiStyle(
     double Padding = 0,
     ColorToken? BorderColor = null,
     double BorderThickness = 0,
-    bool ClipToBounds = false);
+    bool ClipToBounds = false,
+    UiShapeKind? Shape = null,
+    double CornerRadius = 0);
+
+public enum UiShapeKind
+{
+    RoundedRect,
+    Circle,
+    Pill,
+}

@@ -1,0 +1,81 @@
+{
+  "source": "src/Aurelian/Aurelian.Shaders/Assets/AnalyticShape2D.v.ts",
+  "vdMirSha256": "c25beffaa0e22f29dc113310c523e8a1eed43e8b4b144a45f67a17692525763b",
+  "HlslSha256": "f95747ea5f4a382140fa6e1377bce6e27dd89233c2c6301780ef7ef1a054db92",
+  "vertexSpirvSha256": "fb05dd7a65e26615c8c5686f4ac7379abd1360d10036879ace0513275a050841",
+  "pixelSpirvSha256": "8b1a997d5c14d5bc995f5e3f3f79274f9aff54ae194ba213476588cf8d3254c4",
+  "metadataSha256": "4f79f658a6b4d101a1afedaad80fd3f67cfd65fa5337933064574a37794ce6c8",
+  "resources": [
+    {
+      "Name": "material",
+      "Binding": 0,
+      "kind": "UniformBuffer"
+    }
+  ],
+  "material": {
+    "Name": "AnalyticShapeMaterial",
+    "Size": 64,
+    "Set": 0,
+    "Binding": 0,
+    "Visibility": [
+      1
+    ],
+    "Fields": [
+      {
+        "Order": 0,
+        "Name": "fillColor",
+        "PhysicalType": "float4",
+        "Offset": 0,
+        "Size": 16,
+        "Alignment": 16
+      },
+      {
+        "Order": 1,
+        "Name": "borderColor",
+        "PhysicalType": "float4",
+        "Offset": 16,
+        "Size": 16,
+        "Alignment": 16
+      },
+      {
+        "Order": 2,
+        "Name": "halfSize",
+        "PhysicalType": "float2",
+        "Offset": 32,
+        "Size": 8,
+        "Alignment": 8
+      },
+      {
+        "Order": 3,
+        "Name": "radius",
+        "PhysicalType": "f32",
+        "Offset": 40,
+        "Size": 4,
+        "Alignment": 4
+      },
+      {
+        "Order": 4,
+        "Name": "borderWidth",
+        "PhysicalType": "f32",
+        "Offset": 44,
+        "Size": 4,
+        "Alignment": 4
+      },
+      {
+        "Order": 5,
+        "Name": "shapeKind",
+        "PhysicalType": "u32",
+        "Offset": 48,
+        "Size": 4,
+        "Alignment": 4
+      }
+    ]
+  },
+  "msdfHeading": {
+    "source": "src/Aurelian/Aurelian.Shaders/Assets/MsdfText.v.ts",
+    "VdMirSha256": "a5bd3700a1835692f036af43b971ad70aac4906ca723a6fe6b10918fcf7e53c7",
+    "HlslSha256": "92d7f9dfd33e0a458da84c9e264c62eaefa3b45aa53da127ee936ed375c7fe0a",
+    "vertexSpirvSha256": "82a0080d39dba4dac957dae58d5aaf61d7083c7eb32166a613f87e7b755e2de3",
+    "pixelSpirvSha256": "d075854aa947790ef555e1fc841a90d4f5316f1b04a7e7bfee0e090a90c37936"
+  }
+}

@@ -1,0 +1,212 @@
+{
+  "milestone": "AURELIAN-NATIVE-ANALYTIC-SDF-PRIMITIVES-M4",
+  "outcome": "A",
+  "localCoordinates": "[0,1] across original quad; clipped quads preserve the original local interval",
+  "pixelCoordinates": "top-left origin; \u002Bx right; \u002By down",
+  "smoothing": "one-pixel dimension-aware smoothstep; no derivatives",
+  "showcase": "real Machina UiNode tree -\u003E presentation frame -\u003E analytic and text realization",
+  "msdfHeadingSourceId": "heading",
+  "validation": {
+    "requested": true,
+    "available": true,
+    "errors": 0
+  },
+  "shapes": [
+    {
+      "index": 0,
+      "sourceId": "canonical-card",
+      "kind": "RoundedRect",
+      "destination": {
+        "X": 64,
+        "Y": 72,
+        "Width": 256,
+        "Height": 128
+      },
+      "Radius": 24,
+      "BorderWidth": 1,
+      "drawBatch": 0
+    },
+    {
+      "index": 1,
+      "sourceId": "status-circle",
+      "kind": "Circle",
+      "destination": {
+        "X": 384,
+        "Y": 72,
+        "Width": 128,
+        "Height": 128
+      },
+      "Radius": 64,
+      "BorderWidth": 0,
+      "drawBatch": 1
+    },
+    {
+      "index": 2,
+      "sourceId": "active-badge",
+      "kind": "Pill",
+      "destination": {
+        "X": 576,
+        "Y": 104,
+        "Width": 256,
+        "Height": 64
+      },
+      "Radius": 32,
+      "BorderWidth": 0,
+      "drawBatch": 2
+    },
+    {
+      "index": 3,
+      "sourceId": "extreme-pill",
+      "kind": "Pill",
+      "destination": {
+        "X": 896,
+        "Y": 72,
+        "Width": 240,
+        "Height": 32
+      },
+      "Radius": 16,
+      "BorderWidth": 0,
+      "drawBatch": 3
+    },
+    {
+      "index": 4,
+      "sourceId": "tiny-status-circle",
+      "kind": "Circle",
+      "destination": {
+        "X": 896,
+        "Y": 136,
+        "Width": 16,
+        "Height": 16
+      },
+      "Radius": 8,
+      "BorderWidth": 0,
+      "drawBatch": 4
+    },
+    {
+      "index": 5,
+      "sourceId": "large-card",
+      "kind": "RoundedRect",
+      "destination": {
+        "X": 64,
+        "Y": 264,
+        "Width": 512,
+        "Height": 256
+      },
+      "Radius": 48,
+      "BorderWidth": 1,
+      "drawBatch": 5
+    },
+    {
+      "index": 6,
+      "sourceId": "settings-button",
+      "kind": "RoundedRect",
+      "destination": {
+        "X": 640,
+        "Y": 264,
+        "Width": 112,
+        "Height": 40
+      },
+      "Radius": 8,
+      "BorderWidth": 1,
+      "drawBatch": 6
+    },
+    {
+      "index": 7,
+      "sourceId": "play-button",
+      "kind": "RoundedRect",
+      "destination": {
+        "X": 768,
+        "Y": 264,
+        "Width": 112,
+        "Height": 40
+      },
+      "Radius": 8,
+      "BorderWidth": 1,
+      "drawBatch": 7
+    },
+    {
+      "index": 8,
+      "sourceId": "radius-0",
+      "kind": "RoundedRect",
+      "destination": {
+        "X": 640,
+        "Y": 344,
+        "Width": 64,
+        "Height": 32
+      },
+      "Radius": 0,
+      "BorderWidth": 0,
+      "drawBatch": 8
+    },
+    {
+      "index": 9,
+      "sourceId": "radius-1",
+      "kind": "RoundedRect",
+      "destination": {
+        "X": 720,
+        "Y": 344,
+        "Width": 64,
+        "Height": 32
+      },
+      "Radius": 1,
+      "BorderWidth": 0,
+      "drawBatch": 9
+    },
+    {
+      "index": 10,
+      "sourceId": "radius-quarter",
+      "kind": "RoundedRect",
+      "destination": {
+        "X": 800,
+        "Y": 344,
+        "Width": 64,
+        "Height": 32
+      },
+      "Radius": 8,
+      "BorderWidth": 0,
+      "drawBatch": 10
+    },
+    {
+      "index": 11,
+      "sourceId": "radius-half",
+      "kind": "RoundedRect",
+      "destination": {
+        "X": 880,
+        "Y": 344,
+        "Width": 64,
+        "Height": 32
+      },
+      "Radius": 16,
+      "BorderWidth": 0,
+      "drawBatch": 11
+    },
+    {
+      "index": 12,
+      "sourceId": "painter-back",
+      "kind": "RoundedRect",
+      "destination": {
+        "X": 640,
+        "Y": 520,
+        "Width": 160,
+        "Height": 96
+      },
+      "Radius": 12,
+      "BorderWidth": 0,
+      "drawBatch": 12
+    },
+    {
+      "index": 13,
+      "sourceId": "painter-front",
+      "kind": "RoundedRect",
+      "destination": {
+        "X": 680,
+        "Y": 552,
+        "Width": 160,
+        "Height": 96
+      },
+      "Radius": 12,
+      "BorderWidth": 0,
+      "drawBatch": 13
+    }
+  ]
+}

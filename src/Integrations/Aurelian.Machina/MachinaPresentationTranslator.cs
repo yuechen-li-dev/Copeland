@@ -8,6 +8,7 @@ using AurelianPush = Aurelian.Rendering.Contracts.Resolved2D.PushRectangularClip
 using AurelianStroke = Aurelian.Rendering.Contracts.Resolved2D.StrokeRectangleOperation;
 using AurelianText = Aurelian.Rendering.Contracts.Resolved2D.PositionedTextOperation;
 using MachinaFill = Machina.Presentation.FillRectangleOperation;
+using MachinaShape = Machina.Presentation.MachinaAnalyticShapePrimitive;
 using MachinaPop = Machina.Presentation.PopClipOperation;
 using MachinaPush = Machina.Presentation.PushRectangularClipOperation;
 using MachinaStroke = Machina.Presentation.StrokeRectangleOperation;
@@ -51,6 +52,14 @@ public static class MachinaPresentationTranslator
                 CreateOperationId(fill.SourceId, operationIndex),
                 ToRectangle(fill.Rect),
                 ToColor(fill.Color)),
+            MachinaShape shape => new AnalyticShapeOperation(
+                CreateOperationId(shape.SourceId, operationIndex),
+                ToShapeKind(shape.Kind),
+                ToRectangle(shape.DestinationRect),
+                ToColor(shape.FillColor),
+                shape.Radius,
+                ToColor(shape.BorderColor ?? shape.FillColor),
+                shape.BorderWidth),
             MachinaStroke stroke => new AurelianStroke(
                 CreateOperationId(stroke.SourceId, operationIndex),
                 ToRectangle(stroke.Rect),
@@ -108,6 +117,17 @@ public static class MachinaPresentationTranslator
             (byte)(color.Rgba >> 16),
             (byte)(color.Rgba >> 8),
             (byte)color.Rgba);
+    }
+
+    private static Resolved2DAnalyticShapeKind ToShapeKind(MachinaAnalyticShapeKind kind)
+    {
+        return kind switch
+        {
+            MachinaAnalyticShapeKind.RoundedRect => Resolved2DAnalyticShapeKind.RoundedRect,
+            MachinaAnalyticShapeKind.Circle => Resolved2DAnalyticShapeKind.Circle,
+            MachinaAnalyticShapeKind.Pill => Resolved2DAnalyticShapeKind.Pill,
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+        };
     }
 
     private static Resolved2DTextSize ToTextSize(TextSize size)

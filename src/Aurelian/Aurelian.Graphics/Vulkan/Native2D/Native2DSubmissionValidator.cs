@@ -63,4 +63,54 @@ internal static class Native2DSubmissionValidator
             throw new ArgumentException("MSDF threshold must be in [0, 1].", nameof(submission));
         }
     }
+
+    public static void ValidateValues(NativeAnalyticShapeSubmission submission)
+    {
+        ValidateValues(new NativeQuadSubmission(
+            submission.Destination,
+            submission.LocalCoordinates,
+            default,
+            submission.FillColor));
+        ValidateTint(submission.BorderColor, nameof(submission));
+        if (submission.Destination.Width <= 0 || submission.Destination.Height <= 0)
+        {
+            throw new ArgumentException("Analytic shape dimensions must be positive.", nameof(submission));
+        }
+        if (!Enum.IsDefined(submission.Kind))
+        {
+            throw new ArgumentOutOfRangeException(nameof(submission));
+        }
+        if (submission.Kind == NativeAnalyticShapeKind.Circle && submission.ShapeSize.Width != submission.ShapeSize.Height)
+        {
+            throw new ArgumentException("Circle destination bounds must be square.", nameof(submission));
+        }
+        if (!float.IsFinite(submission.Radius) || !float.IsFinite(submission.BorderWidth))
+        {
+            throw new ArgumentException("Analytic shape parameters must be finite.", nameof(submission));
+        }
+        if (!float.IsFinite(submission.ShapeSize.Width) || !float.IsFinite(submission.ShapeSize.Height)
+            || submission.ShapeSize.Width <= 0 || submission.ShapeSize.Height <= 0)
+        {
+            throw new ArgumentException("Analytic shape source dimensions must be finite and positive.", nameof(submission));
+        }
+        float halfMinimum = MathF.Min(submission.ShapeSize.Width, submission.ShapeSize.Height) / 2;
+        if (submission.Radius < 0 || submission.Radius > halfMinimum)
+        {
+            throw new ArgumentOutOfRangeException(nameof(submission), "Analytic shape radius must be in [0, min(width, height) / 2].");
+        }
+        if (submission.BorderWidth < 0 || submission.BorderWidth > halfMinimum)
+        {
+            throw new ArgumentOutOfRangeException(nameof(submission), "Analytic border width must be in [0, min(width, height) / 2].");
+        }
+    }
+
+    private static void ValidateTint(Native2DTint tint, string parameterName)
+    {
+        if (!float.IsFinite(tint.Red) || !float.IsFinite(tint.Green) || !float.IsFinite(tint.Blue) || !float.IsFinite(tint.Alpha)
+            || tint.Red < 0 || tint.Red > 1 || tint.Green < 0 || tint.Green > 1
+            || tint.Blue < 0 || tint.Blue > 1 || tint.Alpha < 0 || tint.Alpha > 1)
+        {
+            throw new ArgumentException("Analytic shape colors must be finite and in [0, 1].", parameterName);
+        }
+    }
 }
