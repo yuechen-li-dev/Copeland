@@ -3,6 +3,13 @@ using Typography.OpenFont;
 
 namespace Machina.Fonts.Generation.Typography;
 
+public sealed record TypographyFontFaceFacts(
+    int FaceIndex,
+    int UnitsPerEm,
+    int Ascender,
+    int Descender,
+    int LineGap);
+
 public sealed class TypographyGlyphOutlineSource : IGlyphOutlineSource, IGlyphPairAdjustmentSource, IDirectOutlineFontMetricsSource
 {
     private readonly TypographyFontFaceCache faceCache;
@@ -85,13 +92,18 @@ public sealed class TypographyGlyphOutlineSource : IGlyphOutlineSource, IGlyphPa
                     $"Glyph U+{codepoint:X4} uses a CFF outline, which is deferred in the Typography proof adapter."));
             }
 
+            ushort advanceWidth = TrueTypeHorizontalMetricsReader.ReadAdvanceWidth(
+                source.Path,
+                source.FaceIndex,
+                glyphIndex);
             GlyphOutline outline = TypographyOutlineConversion.CreateOutline(
                 face,
                 codepoint,
                 options.EmSize,
                 options.NormalizeToEm,
                 typeface,
-                glyph);
+                glyph,
+                advanceWidth);
 
             if (outline.Contours.Count == 0 && !TypographyOutlineConversion.IsWhitespace(codepoint))
             {
@@ -189,6 +201,39 @@ public sealed class TypographyGlyphOutlineSource : IGlyphOutlineSource, IGlyphPa
             Math.Max(0d, typeface.LineGap * scale));
 
         return ValueTask.FromResult(new DirectOutlineFontMetricsLoadResult(true, metrics, false, []));
+    }
+
+    public ushort GetGlyphId(FontFaceId face, int codepoint)
+    {
+        TypographyFontFaceCache.CachedTypeface cachedFace = faceCache.GetOrLoad(face);
+        if (!cachedFace.Success || cachedFace.Typeface is null)
+        {
+            throw new InvalidOperationException(cachedFace.ErrorMessage ?? $"Failed to load font face '{face}'.");
+        }
+
+        return cachedFace.Typeface.GetGlyphIndex(codepoint);
+    }
+
+    public TypographyFontFaceFacts GetFaceFacts(FontFaceId face)
+    {
+        if (!faceCache.TryGetSource(face, out TypographyFontFaceSource? source))
+        {
+            throw new InvalidOperationException($"No Typography font face source is configured for '{face}'.");
+        }
+
+        TypographyFontFaceCache.CachedTypeface cachedFace = faceCache.GetOrLoad(face);
+        if (!cachedFace.Success || cachedFace.Typeface is null)
+        {
+            throw new InvalidOperationException(cachedFace.ErrorMessage ?? $"Failed to load font face '{face}'.");
+        }
+
+        Typeface typeface = cachedFace.Typeface;
+        return new TypographyFontFaceFacts(
+            source.FaceIndex,
+            typeface.UnitsPerEm,
+            typeface.Ascender,
+            typeface.Descender,
+            typeface.LineGap);
     }
 
     private static GlyphOutlineLoadResult CreateFailure(

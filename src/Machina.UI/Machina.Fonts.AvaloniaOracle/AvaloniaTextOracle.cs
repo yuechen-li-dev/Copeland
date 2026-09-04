@@ -10,6 +10,8 @@ using Avalonia.Media.TextFormatting;
 using Avalonia.Platform;
 using Avalonia.Skia;
 using Machina.Fonts.ReferenceRendering;
+using Machina.Fonts.Generation;
+using SkiaSharp;
 
 namespace Machina.Fonts.AvaloniaOracle;
 
@@ -28,7 +30,9 @@ public sealed record AvaloniaTextReferenceRequest(
     AvaloniaReferenceAlignment Alignment = AvaloniaReferenceAlignment.Left,
     double? ExplicitLineHeight = null,
     int OutputWidth = 800,
-    int OutputHeight = 180);
+    int OutputHeight = 180,
+    int FaceIndex = 0,
+    double Dpi = 96d);
 
 public sealed record AvaloniaReferenceAvailability(
     bool GlyphIds,
@@ -46,7 +50,9 @@ public sealed record AvaloniaReferenceFont(
     int UnitsPerEm,
     int Ascender,
     int Descender,
-    int LineGap);
+    int LineGap,
+    int FaceIndex,
+    string Subfamily);
 
 public sealed record AvaloniaReferenceGlyph(
     ushort GlyphId,
@@ -88,11 +94,13 @@ public sealed record AvaloniaTextReferenceRun(
     string RasterPath,
     double LayoutWidth,
     double LayoutHeight,
+    [property: JsonIgnore] IReadOnlyList<PositionedGlyphOutline> Outlines,
     [property: JsonIgnore] RgbaImage RasterImage);
 
 public static class AvaloniaTextOraclePlatform
 {
     private static readonly object Gate = new();
+    private static readonly Dictionary<string, EmbeddedFontCollection> FontCollections = [];
     private static bool initialized;
 
     public static void EnsureInitialized()
@@ -115,6 +123,23 @@ public static class AvaloniaTextOraclePlatform
             initialized = true;
         }
     }
+
+    public static EmbeddedFontCollection EnsureFontCollection(string fontHash, Uri embeddedFontUri)
+    {
+        lock (Gate)
+        {
+            if (FontCollections.TryGetValue(fontHash, out EmbeddedFontCollection? existing))
+            {
+                return existing;
+            }
+
+            Uri collectionKey = new($"fonts:machina-text-conformance-{fontHash[..16]}");
+            EmbeddedFontCollection collection = new(collectionKey, embeddedFontUri);
+            FontManager.Current.AddFontCollection(collection);
+            FontCollections.Add(fontHash, collection);
+            return collection;
+        }
+    }
 }
 
 public sealed class AvaloniaTextOracle
@@ -123,7 +148,19 @@ public sealed class AvaloniaTextOracle
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentException.ThrowIfNullOrWhiteSpace(rasterPath);
+        return CreateReferenceCore(request, rasterPath);
+    }
 
+    public AvaloniaTextReferenceRun CreateGeometryReference(AvaloniaTextReferenceRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return CreateReferenceCore(request, null);
+    }
+
+    private static AvaloniaTextReferenceRun CreateReferenceCore(
+        AvaloniaTextReferenceRequest request,
+        string? rasterPath)
+    {
         if (!File.Exists(request.FontPath))
         {
             throw new FileNotFoundException("The exact oracle font file was not found.", request.FontPath);
@@ -132,49 +169,55 @@ public sealed class AvaloniaTextOracle
         AvaloniaTextOraclePlatform.EnsureInitialized();
 
         string fontHash = ComputeSha256(request.FontPath);
-        Uri collectionKey = new($"fonts:machina-text-conformance-{fontHash[..16]}");
         Uri embeddedFontUri = new("avares://Machina.Fonts.AvaloniaOracle/Assets/CrimsonText-Regular.ttf");
         VerifyEmbeddedFontIdentity(embeddedFontUri, fontHash);
-        EmbeddedFontCollection collection = new(collectionKey, embeddedFontUri);
-        FontManager.Current.AddFontCollection(collection);
+        EmbeddedFontCollection collection = AvaloniaTextOraclePlatform.EnsureFontCollection(fontHash, embeddedFontUri);
 
-        try
+        if (collection.Count != 1)
         {
-            if (collection.Count != 1)
-            {
-                throw new InvalidOperationException($"Expected one exact font face, but Avalonia loaded {collection.Count}.");
-            }
+            throw new InvalidOperationException($"Expected one exact font face, but Avalonia loaded {collection.Count}.");
+        }
 
-            Typeface typeface = new(
+        Typeface typeface = new(
                 new FontFamily($"avares://Machina.Fonts.AvaloniaOracle/Assets#{collection[0].Name}"),
                 FontStyle.Normal,
                 FontWeight.Normal,
                 FontStretch.Normal);
-            if (!FontManager.Current.TryGetGlyphTypeface(typeface, out IGlyphTypeface? resolvedTypeface))
-            {
-                throw new InvalidOperationException(
-                    $"Avalonia could not resolve embedded family '{collection[0].Name}' from the exact font resource.");
-            }
+        if (!FontManager.Current.TryGetGlyphTypeface(typeface, out IGlyphTypeface? resolvedTypeface))
+        {
+            throw new InvalidOperationException(
+                $"Avalonia could not resolve embedded family '{collection[0].Name}' from the exact font resource.");
+        }
 
-            using TextLayout layout = CreateLayout(request, typeface);
-            IReadOnlyList<MachinaTokenPlacement> sourceTokens = MachinaTextTokenizer.Tokenize(request.Text);
-            List<AvaloniaReferenceGlyph> glyphs = ExtractGlyphs(layout, request, sourceTokens);
-            List<AvaloniaReferenceToken> tokens = ExtractTokens(layout, request, sourceTokens, glyphs);
-            List<AvaloniaReferenceLine> lines = ExtractLines(layout, request);
+        using TextLayout layout = CreateLayout(request, typeface);
+        IReadOnlyList<MachinaTokenPlacement> sourceTokens = MachinaTextTokenizer.Tokenize(request.Text);
+        List<AvaloniaReferenceGlyph> glyphs = ExtractGlyphs(layout, request, sourceTokens);
+        IReadOnlyList<PositionedGlyphOutline> outlines = SkiaPositionedOutlineExtractor.Extract(
+            request.FontPath,
+            request.FaceIndex,
+            request.FontSize,
+            request.Text,
+            glyphs);
+        List<AvaloniaReferenceToken> tokens = ExtractTokens(layout, request, sourceTokens, glyphs);
+        List<AvaloniaReferenceLine> lines = ExtractLines(layout, request);
 
-            RgbaImage rasterImage = Render(layout, request, rasterPath);
+        RgbaImage rasterImage = rasterPath is null
+            ? new RgbaImage(1, 1)
+            : Render(layout, request, rasterPath);
 
-            FontMetrics metrics = resolvedTypeface.Metrics;
-            AvaloniaReferenceFont font = new(
-                fontHash,
-                resolvedTypeface.FamilyName,
-                resolvedTypeface.Style.ToString(),
-                metrics.DesignEmHeight,
-                -metrics.Ascent,
-                metrics.Descent,
-                metrics.LineGap);
+        FontMetrics metrics = resolvedTypeface.Metrics;
+        AvaloniaReferenceFont font = new(
+            fontHash,
+            resolvedTypeface.FamilyName,
+            resolvedTypeface.Style.ToString(),
+            metrics.DesignEmHeight,
+            -metrics.Ascent,
+            metrics.Descent,
+            metrics.LineGap,
+            request.FaceIndex,
+            resolvedTypeface.Style.ToString());
 
-            return new AvaloniaTextReferenceRun(
+        return new AvaloniaTextReferenceRun(
                 font,
                 new AvaloniaReferenceAvailability(
                     GlyphIds: true,
@@ -187,15 +230,11 @@ public sealed class AvaloniaTextOracle
                 lines,
                 tokens,
                 glyphs,
-                Path.GetFullPath(rasterPath),
+                rasterPath is null ? string.Empty : Path.GetFullPath(rasterPath),
                 layout.WidthIncludingTrailingWhitespace,
                 layout.Height,
-                rasterImage);
-        }
-        finally
-        {
-            FontManager.Current.RemoveFontCollection(collection.Key);
-        }
+                outlines,
+            rasterImage);
     }
 
     private static TextLayout CreateLayout(AvaloniaTextReferenceRequest request, Typeface typeface)
@@ -375,7 +414,7 @@ public sealed class AvaloniaTextOracle
 
         using RenderTargetBitmap bitmap = new(
             new PixelSize(request.OutputWidth, request.OutputHeight),
-            new Vector(96d, 96d));
+            new Vector(request.Dpi, request.Dpi));
 
         using (DrawingContext context = bitmap.CreateDrawingContext())
         {

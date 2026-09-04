@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>Machina.OutlineConformance</AssemblyName>
+    <RootNamespace>Machina.OutlineConformance</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Machina.UI/Machina.Fonts/Machina.Fonts.csproj" />
+    <ProjectReference Include="../../src/Machina.UI/Machina.Fonts.AvaloniaOracle/Machina.Fonts.AvaloniaOracle.csproj" />
+  </ItemGroup>
+</Project>

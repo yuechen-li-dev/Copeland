@@ -22,6 +22,7 @@
     <Project Path="tests/Machina.UI/Machina.Testing/Machina.Testing.csproj" />
   </Folder>
   <Folder Name="/tools/">
+    <Project Path="tools/Machina.OutlineConformance/Machina.OutlineConformance.csproj" />
     <Project Path="tools/Machina.TextConformance/Machina.TextConformance.csproj" />
   </Folder>
 </Solution>

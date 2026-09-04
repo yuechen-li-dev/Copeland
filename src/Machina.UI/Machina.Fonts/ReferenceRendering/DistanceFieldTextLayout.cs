@@ -63,7 +63,16 @@ public static class DistanceFieldTextLayout
                 && pairAdjustments is not null
                 && pairAdjustments.TryGetValue(new GlyphPairKey(previous, key), out GlyphPairAdjustment? adjustment))
             {
-                penX += adjustment.AdvanceX * scale;
+                double advanceAdjustment = adjustment.AdvanceX * scale;
+                penX += advanceAdjustment;
+                if (semanticGlyphs.Count > 0)
+                {
+                    MachinaGlyphPlacement precedingGlyph = semanticGlyphs[^1];
+                    semanticGlyphs[^1] = precedingGlyph with
+                    {
+                        Advance = precedingGlyph.Advance + advanceAdjustment,
+                    };
+                }
             }
 
             placements.Add(new DistanceFieldGlyphPlacement(key, metrics, penX, options.BaselineY, scale, isWhitespace));

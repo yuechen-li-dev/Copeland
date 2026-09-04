@@ -1,5 +1,12 @@
 # MACHINA-TEXT-CONFORMANCE-M0 report
 
+> Historical status after M1: M0's token-anchor and raster evidence is diagnostic,
+> not the current layout acceptance contract. `MACHINA-OUTLINE-CONFORMANCE-M1`
+> found and repaired the natural-layout space-advance law, then qualified positioned
+> vector outlines without token resets. Raster/MSDF work is frozen until positioned
+> outline parity is qualified; that prerequisite is now satisfied by M1, while M0's
+> MSDF failures remain unresolved.
+
 ## Result
 
 Outcome B: token layout converged through the explicit shared token-anchor contract,

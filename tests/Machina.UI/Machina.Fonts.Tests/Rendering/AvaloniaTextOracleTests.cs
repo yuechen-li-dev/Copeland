@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Machina.Fonts.Tests.Rendering;
 
+[Collection("Avalonia text oracle")]
 public sealed class AvaloniaTextOracleTests
 {
     [Fact]

@@ -10,6 +10,7 @@
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Headless" />
     <PackageReference Include="Avalonia.Skia" />
+    <PackageReference Include="SkiaSharp" />
   </ItemGroup>
   <ItemGroup>
     <AvaloniaResource Include="../../../tests/Machina.UI/Machina.Fonts.Tests/Fixtures/Fonts/CrimsonText-Regular.ttf">

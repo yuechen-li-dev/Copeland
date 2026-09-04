@@ -1,7 +1,10 @@
 # Machina text conformance architecture
 
 This document is the current authority for the bounded Latin text path established by
-`MACHINA-TEXT-CONFORMANCE-M0`. The M8/M9 documents remain historical evidence.
+`MACHINA-OUTLINE-CONFORMANCE-M1`. The M0 and M8/M9 documents remain historical evidence.
+
+Raster/MSDF work is frozen until positioned outline parity is qualified. M1 qualifies
+that upstream contract for the canonical Latin corpus; it does not qualify MSDF.
 
 ## Ownership
 
@@ -9,19 +12,25 @@ This document is the current authority for the bounded Latin text path establish
 exact font bytes + text + size
               |
               v
-Avalonia reference adapter (test/tooling only)
-              |
-              v
-token anchors and shaped geometry evidence
-              |
-              v
-MachinaGlyphRun (renderer neutral)
-       |                    |
-       v                    v
-DirectOutline          MSDF/atlas
+Avalonia TextLayout -> ShapedTextRun -> GlyphRun/GlyphInfo
+              |                         |
+              |                         v
+              |                 exact-byte SKFont.GetGlyphPath
+              |                         |
+              v                         v
+       reference placement + positioned vector outline
+
+Typography exact-byte face -> hmtx + GPOS -> MachinaGlyphRun
+              |                              |
+              v                              v
+       Typography outline --------> positioned vector outline
+                              |
+                              v
+              MachinaOutlineComparisonSpace
 ```
 
-Avalonia is the external layout, shaping, and raster oracle. It owns no Machina
+Avalonia is the external layout and shaping oracle and Skia is the reference outline
+source. They own no Machina
 application state and is absent from `Machina.Fonts.csproj`. The adapter uses real
 Skia/HarfBuzz text formatting under Avalonia's headless host; the headless drawing
 stub is forbidden because it substitutes fake font metrics.
@@ -30,7 +39,8 @@ stub is forbidden because it substitutes fake font metrics.
 advance, line height, and ink bounds. Tokens contain deterministic source spans,
 the first visible glyph anchor, advance width, and ink bounds. Glyphs contain source
 span, origin, baseline, advance, renderer-neutral plane bounds, and token identity.
-Atlas pages, UVs, padding, and texture handles are deliberately absent.
+Atlas pages, UVs, padding, texture handles, masks, and pixels are deliberately absent
+from the M1 comparison.
 
 ## Font and coordinate law
 
@@ -38,25 +48,29 @@ The M0 oracle embeds the qualified `CrimsonText-Regular.ttf` and rejects a reque
 whose SHA-256 does not match those bytes. Avalonia and Typography therefore observe
 the same face. Font metadata records units per em, ascender, descender, and line gap.
 
-Machina and Avalonia evidence use device-independent pixels at 96 DPI. X increases
+Machina and Avalonia evidence use device-independent pixels at 96 DPI and a
+pixels-per-DIP value of one. X increases
 rightward and Y downward. A glyph origin is `(originX, baselineY)` plus its shaped
 offset. Plane top/bottom are baseline-relative. Subpixel origins, advances, bounds,
-and baselines remain `double`; rasterization quantizes only at sampling time.
+and baselines remain `double`. M1 does not rasterize. Skia's sized glyph path is
+already Y-down; Typography's Y-up font outline is normalized by
+`comparisonY = baselineY - fontY`. Both use `fontSize / unitsPerEm`.
 
 ## Token and shaping law
 
 The comparison tokenizer groups consecutive letters/digits/underscore as a word,
 consecutive punctuation as punctuation, and consecutive whitespace as a separator.
 It is a comparison boundary, not language semantics. A non-whitespace token's first
-shaped glyph is its absolute anchor. Whitespace has no visual anchor. Later glyphs
-are compared relative to that anchor, so preceding-token error cannot contaminate
-the measurement.
+shaped glyph is its absolute anchor. Whitespace has no visual anchor. M1 compares
+natural cumulative positions. Token-relative values and the first-glyph oracle remain
+diagnostics only; they no longer reset the pen in the primary proof.
 
-`DistanceFieldTextLayout` accepts an explicit token-anchor map. Applying an anchor
+`DistanceFieldTextLayout` still accepts an explicit token-anchor map for historical
+diagnostics. Applying an anchor
 resets the pen and pair-adjustment predecessor before laying out that token. This is
 the anti-cascade seam used by conformance and by any future qualified Machina-owned
 anchor provider. Production code does not call Avalonia. M0 does not yet nominate a
-production anchor provider.
+production anchor provider. The M1 runner passes no map.
 
 Standard ligatures (`liga` and `clig`) are disabled in the Avalonia reference for M0
 because the current Typography path is codepoint-based. Kerning remains enabled in
@@ -82,7 +96,14 @@ claiming parity. A future production realizer should accept `MachinaGlyphRun` an
 submit DirectOutline pixels or MSDF quads. Aurelian's native quad renderer is a valid
 leaf consumer, but it must not recompute advances, baselines, or atlas-derived layout.
 
-The canonical command is:
+The canonical outline command is:
+
+```powershell
+dotnet run --project tools/Machina.OutlineConformance/Machina.OutlineConformance.csproj
+```
+
+It emits five compact JSON files and keeps vector-only SVG diagnostics in the local
+temporary directory reported by `proof.json`. The historical M0 command remains:
 
 ```powershell
 dotnet run --project tools/Machina.TextConformance/Machina.TextConformance.csproj -- --output artifacts/machina-text-conformance-m0
