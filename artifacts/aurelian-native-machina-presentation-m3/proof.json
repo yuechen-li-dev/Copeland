@@ -1,0 +1,26 @@
+{
+  "milestone": "AURELIAN-NATIVE-MACHINA-PRESENTATION-M3",
+  "outcome": "A",
+  "font": {
+    "identity": "CrimsonText-Regular",
+    "sha256": "48e6c5d5ad1d01599d374ecb817e15890d1feb3b8a3a88e527d44c90389e1f06"
+  },
+  "shader": {
+    "vdMirSha256": "a5bd3700a1835692f036af43b971ad70aac4906ca723a6fe6b10918fcf7e53c7",
+    "hlslSha256": "92d7f9dfd33e0a458da84c9e264c62eaefa3b45aa53da127ee936ed375c7fe0a",
+    "vertexSpirvSha256": "82a0080d39dba4dac957dae58d5aaf61d7083c7eb32166a613f87e7b755e2de3",
+    "pixelSpirvSha256": "d075854aa947790ef555e1fc841a90d4f5316f1b04a7e7bfee0e090a90c37936"
+  },
+  "validation": {
+    "requested": true,
+    "available": true,
+    "errors": 0
+  },
+  "visual": [
+    "artifacts/aurelian-native-machina-presentation-m3-visual/machina-text-rendering-1280x720.png",
+    "artifacts/aurelian-native-machina-presentation-m3-visual/machina-text-rendering-2560x1440.png"
+  ],
+  "rasterDefault": true,
+  "msdfOptIn": true,
+  "sharedLayout": true
+}

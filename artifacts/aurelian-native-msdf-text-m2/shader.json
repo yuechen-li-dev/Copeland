@@ -1,6 +1,6 @@
 {
   "source": "src/Aurelian/Aurelian.Shaders/Assets/MsdfText.v.ts",
-  "compileMilliseconds": 255.02,
+  "compileMilliseconds": 292.1767,
   "vdMirSha256": "a5bd3700a1835692f036af43b971ad70aac4906ca723a6fe6b10918fcf7e53c7",
   "hlslSha256": "92d7f9dfd33e0a458da84c9e264c62eaefa3b45aa53da127ee936ed375c7fe0a",
   "vertexSpirvSha256": "82a0080d39dba4dac957dae58d5aaf61d7083c7eb32166a613f87e7b755e2de3",

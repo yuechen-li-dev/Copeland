@@ -1,0 +1,37 @@
+{
+  "invariant": "same semantic text, same MachinaGlyphRun, same layout hash; realization mode only",
+  "cases": [
+    {
+      "text": "Hello Machina",
+      "size": 64,
+      "glyphRunHash": "fd8fcfe26ec6160f304ad0790c82cfcfb427fe94d71a8b56e16af627e2cbd7d4",
+      "layoutHash": "fd8fcfe26ec6160f304ad0790c82cfcfb427fe94d71a8b56e16af627e2cbd7d4",
+      "sameGlyphRun": true,
+      "sameLayoutHash": true
+    },
+    {
+      "text": "Inventory",
+      "size": 24,
+      "glyphRunHash": "b19e56e2f80714a5e901444c4c9622c5ef2047b7542df4f181dab65f13b254bf",
+      "layoutHash": "b19e56e2f80714a5e901444c4c9622c5ef2047b7542df4f181dab65f13b254bf",
+      "sameGlyphRun": true,
+      "sameLayoutHash": true
+    },
+    {
+      "text": "Settings",
+      "size": 24,
+      "glyphRunHash": "5d7d731b6f668e1c344526b46c999e0e3ca72d9f443d4cbd7c99025bbae7bcd3",
+      "layoutHash": "5d7d731b6f668e1c344526b46c999e0e3ca72d9f443d4cbd7c99025bbae7bcd3",
+      "sameGlyphRun": true,
+      "sameLayoutHash": true
+    },
+    {
+      "text": "The quick brown fox jumps over the lazy dog",
+      "size": 16,
+      "glyphRunHash": "7bce6f21ac057f441de038e71a2acc9f37113555c1a4a701fd7b0918470a5956",
+      "layoutHash": "7bce6f21ac057f441de038e71a2acc9f37113555c1a4a701fd7b0918470a5956",
+      "sameGlyphRun": true,
+      "sameLayoutHash": true
+    }
+  ]
+}

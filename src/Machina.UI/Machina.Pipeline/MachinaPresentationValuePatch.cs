@@ -79,7 +79,8 @@ public static class MachinaPreparedPresentationUpdater
                             positioned.Rect,
                             text,
                             positioned.Style,
-                            positioned.Color);
+                            positioned.Color,
+                            primitive: null);
                         patchedText.Add(textNodeId);
                     }
                     break;

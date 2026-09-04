@@ -6,4 +6,6 @@ public sealed record StackNode(
     StackAxis Axis,
     IReadOnlyList<UiStackItem> Items,
     double Gap = 0,
-    EdgeInsets Padding = default) : UiNode;
+    EdgeInsets Padding = default,
+    StackJustify Justify = StackJustify.Start,
+    StackAlign Align = StackAlign.Start) : UiNode;

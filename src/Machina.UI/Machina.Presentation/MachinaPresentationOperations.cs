@@ -48,7 +48,13 @@ public sealed record StrokeRectangleOperation : MachinaPresentationOperation
 
 public sealed record PositionedTextOperation : MachinaPresentationOperation
 {
-    public PositionedTextOperation(string sourceId, Rect rect, string text, TextStyle style, ColorToken color)
+    public PositionedTextOperation(
+        string sourceId,
+        Rect rect,
+        string text,
+        TextStyle style,
+        ColorToken color,
+        MachinaTextPresentationPrimitive? primitive = null)
     {
         SourceId = MachinaPresentationValidation.ValidateSourceId(sourceId);
         Rect = MachinaPresentationValidation.ValidateRect(rect, nameof(rect));
@@ -57,6 +63,12 @@ public sealed record PositionedTextOperation : MachinaPresentationOperation
             : text;
         Style = style ?? throw new ArgumentNullException(nameof(style));
         Color = color;
+        Primitive = primitive;
+
+        if (primitive is not null && !string.Equals(primitive.GlyphRun.Text, Text, StringComparison.Ordinal))
+        {
+            throw new ArgumentException("The presentation glyph run text must match the semantic text.", nameof(primitive));
+        }
     }
 
     public string SourceId { get; }
@@ -74,6 +86,14 @@ public sealed record PositionedTextOperation : MachinaPresentationOperation
     /// The presentation color resolved from the Machina text style.
     /// </summary>
     public ColorToken Color { get; }
+
+    /// <summary>
+    /// Optional qualified glyph realization. Existing UI remains raster/pixel by default when absent.
+    /// </summary>
+    public MachinaTextPresentationPrimitive? Primitive { get; }
+
+    public MachinaTextRenderingMode RenderingMode =>
+        Primitive?.RenderingMode ?? MachinaTextRenderingMode.RasterPixel;
 }
 
 public sealed record PushRectangularClipOperation : MachinaPresentationOperation

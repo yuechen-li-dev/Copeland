@@ -210,3 +210,25 @@ AURELIAN-COMPOSITOR-M1 adds one bounded Machina primitive: `MachinaPreparedPrese
 This is not reconciliation. It cannot insert, remove, reorder, or infer controls; it has no component lifecycle or state graph. The application adapter derives topology from its semantic DTO and chooses among complete reuse, value patch, layout rebuild, and topology rebuild. Existing Machina IDs remain the only identity scheme.
 
 TinyFarm proves the law with a fixed eight-slot toolbar, changing HUD text and selection, an inserted/removed inventory row, resize, and scale invalidation. Stable repeated frames measure 0 B/update after the cold frame; alternating dynamic values measure 14,712 B and 18.13 microseconds versus M0's 194,387 B and 294.57 microseconds. Text measurement itself measured 0 B in the bounded deterministic sample, so no font engine or rendered-string cache was added.
+
+## M3 text realization mode
+
+`PositionedTextOperation` remains the sole text presentation operation. It may now
+carry a `MachinaTextPresentationPrimitive` containing an already-positioned
+`MachinaGlyphRun`, opaque `MachinaFontAtlasId`, and the closed renderer-neutral mode
+`RasterPixel | Msdf`. Absence of that optional value means `RasterPixel`, preserving
+all existing UI defaults.
+
+`MachinaTextPresentationFrame.Apply` attaches realization choices without changing
+layout, operation order, rectangles, hit testing, or application topology. Backends
+dispatch on the explicit mode; they must not infer it from font name or size. Native
+atlas handles remain in `Aurelian.Machina.Graphics`, never in Machina. See the M3
+report for the real Card/Button/Label composition and parity proof.
+
+The M3 proof also closes a small C#/JavaScript authoring parity gap. C# `Row`,
+`Column`, `Stack`, `VStack`, and `HStack` now expose the resolver's existing
+`StackJustify` and `StackAlign` laws, matching MachinaLayout.JS's
+`start | center | end | space-between` and cross-axis alignment vocabulary. Defaults
+remain `Start`, so existing layouts and hashes do not change. The proof uses
+`SpaceBetween` to distribute fixed text contexts without hand-tuned gaps. Grid matrix
+areas/spans were not ported because M3 does not need them.

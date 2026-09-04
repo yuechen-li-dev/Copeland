@@ -38,10 +38,10 @@
         "descriptorSetAllocations": 1,
         "descriptorWrites": 3,
         "vertexCapacityQuads": 256,
-        "vertexUploadMilliseconds": 1.415,
-        "commandRecordingMilliseconds": 7.687,
-        "submitWaitMilliseconds": 1.552,
-        "readbackMilliseconds": 18.315,
+        "vertexUploadMilliseconds": 0.984,
+        "commandRecordingMilliseconds": 9.302,
+        "submitWaitMilliseconds": 1.682,
+        "readbackMilliseconds": 17.427,
         "cpuAllocatedBytes": 3939016
       }
     },
@@ -70,10 +70,10 @@
         "descriptorSetAllocations": 0,
         "descriptorWrites": 0,
         "vertexCapacityQuads": 256,
-        "vertexUploadMilliseconds": 0.046,
-        "commandRecordingMilliseconds": 0.18,
-        "submitWaitMilliseconds": 0.612,
-        "readbackMilliseconds": 24.567,
+        "vertexUploadMilliseconds": 0.059,
+        "commandRecordingMilliseconds": 0.171,
+        "submitWaitMilliseconds": 0.464,
+        "readbackMilliseconds": 22.42,
         "cpuAllocatedBytes": 3940592
       }
     },
@@ -102,10 +102,10 @@
         "descriptorSetAllocations": 1,
         "descriptorWrites": 3,
         "vertexCapacityQuads": 256,
-        "vertexUploadMilliseconds": 0.017,
+        "vertexUploadMilliseconds": 0.023,
         "commandRecordingMilliseconds": 0.114,
-        "submitWaitMilliseconds": 0.553,
-        "readbackMilliseconds": 24.596,
+        "submitWaitMilliseconds": 0.576,
+        "readbackMilliseconds": 22.173,
         "cpuAllocatedBytes": 3938048
       }
     },
@@ -134,10 +134,10 @@
         "descriptorSetAllocations": 0,
         "descriptorWrites": 0,
         "vertexCapacityQuads": 256,
-        "vertexUploadMilliseconds": 0.046,
-        "commandRecordingMilliseconds": 0.226,
-        "submitWaitMilliseconds": 0.862,
-        "readbackMilliseconds": 25.388,
+        "vertexUploadMilliseconds": 0.05,
+        "commandRecordingMilliseconds": 0.199,
+        "submitWaitMilliseconds": 0.656,
+        "readbackMilliseconds": 22.271,
         "cpuAllocatedBytes": 3940592
       }
     },
@@ -166,10 +166,10 @@
         "descriptorSetAllocations": 1,
         "descriptorWrites": 3,
         "vertexCapacityQuads": 256,
-        "vertexUploadMilliseconds": 0.026,
-        "commandRecordingMilliseconds": 0.169,
-        "submitWaitMilliseconds": 0.752,
-        "readbackMilliseconds": 22.118,
+        "vertexUploadMilliseconds": 0.021,
+        "commandRecordingMilliseconds": 0.119,
+        "submitWaitMilliseconds": 0.609,
+        "readbackMilliseconds": 25.335,
         "cpuAllocatedBytes": 3938048
       }
     },
@@ -198,10 +198,10 @@
         "descriptorSetAllocations": 0,
         "descriptorWrites": 0,
         "vertexCapacityQuads": 256,
-        "vertexUploadMilliseconds": 0.036,
-        "commandRecordingMilliseconds": 0.173,
-        "submitWaitMilliseconds": 0.452,
-        "readbackMilliseconds": 22.163,
+        "vertexUploadMilliseconds": 0.05,
+        "commandRecordingMilliseconds": 0.186,
+        "submitWaitMilliseconds": 0.623,
+        "readbackMilliseconds": 22.149,
         "cpuAllocatedBytes": 3940592
       }
     },
@@ -230,10 +230,10 @@
         "descriptorSetAllocations": 0,
         "descriptorWrites": 0,
         "vertexCapacityQuads": 256,
-        "vertexUploadMilliseconds": 0.005,
-        "commandRecordingMilliseconds": 0.19,
-        "submitWaitMilliseconds": 0.541,
-        "readbackMilliseconds": 22.347,
+        "vertexUploadMilliseconds": 0.007,
+        "commandRecordingMilliseconds": 0.191,
+        "submitWaitMilliseconds": 0.47,
+        "readbackMilliseconds": 22.166,
         "cpuAllocatedBytes": 3934608
       }
     },
@@ -262,10 +262,10 @@
         "descriptorSetAllocations": 0,
         "descriptorWrites": 0,
         "vertexCapacityQuads": 256,
-        "vertexUploadMilliseconds": 0.004,
-        "commandRecordingMilliseconds": 0.152,
-        "submitWaitMilliseconds": 0.685,
-        "readbackMilliseconds": 22.307,
+        "vertexUploadMilliseconds": 0.005,
+        "commandRecordingMilliseconds": 0.155,
+        "submitWaitMilliseconds": 0.485,
+        "readbackMilliseconds": 22.328,
         "cpuAllocatedBytes": 3934608
       }
     },
@@ -294,10 +294,10 @@
         "descriptorSetAllocations": 0,
         "descriptorWrites": 0,
         "vertexCapacityQuads": 256,
-        "vertexUploadMilliseconds": 0.005,
-        "commandRecordingMilliseconds": 0.167,
-        "submitWaitMilliseconds": 0.594,
-        "readbackMilliseconds": 22.291,
+        "vertexUploadMilliseconds": 0.007,
+        "commandRecordingMilliseconds": 0.18,
+        "submitWaitMilliseconds": 0.46,
+        "readbackMilliseconds": 22.038,
         "cpuAllocatedBytes": 3934608
       }
     },
@@ -326,10 +326,10 @@
         "descriptorSetAllocations": 0,
         "descriptorWrites": 0,
         "vertexCapacityQuads": 256,
-        "vertexUploadMilliseconds": 0.005,
-        "commandRecordingMilliseconds": 0.174,
-        "submitWaitMilliseconds": 0.627,
-        "readbackMilliseconds": 21.942,
+        "vertexUploadMilliseconds": 0.007,
+        "commandRecordingMilliseconds": 0.177,
+        "submitWaitMilliseconds": 0.478,
+        "readbackMilliseconds": 22.092,
         "cpuAllocatedBytes": 3934608
       }
     },
@@ -358,10 +358,10 @@
         "descriptorSetAllocations": 0,
         "descriptorWrites": 0,
         "vertexCapacityQuads": 256,
-        "vertexUploadMilliseconds": 0.01,
-        "commandRecordingMilliseconds": 0.158,
-        "submitWaitMilliseconds": 0.44,
-        "readbackMilliseconds": 22.152,
+        "vertexUploadMilliseconds": 0.016,
+        "commandRecordingMilliseconds": 0.181,
+        "submitWaitMilliseconds": 0.46,
+        "readbackMilliseconds": 23.117,
         "cpuAllocatedBytes": 3935488
       }
     },
@@ -390,10 +390,10 @@
         "descriptorSetAllocations": 0,
         "descriptorWrites": 0,
         "vertexCapacityQuads": 256,
-        "vertexUploadMilliseconds": 0.01,
-        "commandRecordingMilliseconds": 0.16,
-        "submitWaitMilliseconds": 0.44,
-        "readbackMilliseconds": 22.597,
+        "vertexUploadMilliseconds": 0.016,
+        "commandRecordingMilliseconds": 0.227,
+        "submitWaitMilliseconds": 0.639,
+        "readbackMilliseconds": 22.011,
         "cpuAllocatedBytes": 3935488
       }
     },
@@ -422,10 +422,10 @@
         "descriptorSetAllocations": 1,
         "descriptorWrites": 3,
         "vertexCapacityQuads": 256,
-        "vertexUploadMilliseconds": 0.024,
-        "commandRecordingMilliseconds": 0.125,
-        "submitWaitMilliseconds": 0.564,
-        "readbackMilliseconds": 22.564,
+        "vertexUploadMilliseconds": 0.032,
+        "commandRecordingMilliseconds": 0.178,
+        "submitWaitMilliseconds": 1.975,
+        "readbackMilliseconds": 24.187,
         "cpuAllocatedBytes": 3938048
       }
     },
@@ -454,10 +454,10 @@
         "descriptorSetAllocations": 0,
         "descriptorWrites": 0,
         "vertexCapacityQuads": 256,
-        "vertexUploadMilliseconds": 0.007,
-        "commandRecordingMilliseconds": 0.185,
-        "submitWaitMilliseconds": 0.62,
-        "readbackMilliseconds": 22.397,
+        "vertexUploadMilliseconds": 0.06,
+        "commandRecordingMilliseconds": 0.22,
+        "submitWaitMilliseconds": 4.329,
+        "readbackMilliseconds": 26.708,
         "cpuAllocatedBytes": 3940592
       }
     },
@@ -486,10 +486,10 @@
         "descriptorSetAllocations": 0,
         "descriptorWrites": 0,
         "vertexCapacityQuads": 256,
-        "vertexUploadMilliseconds": 0.005,
-        "commandRecordingMilliseconds": 0.184,
-        "submitWaitMilliseconds": 0.463,
-        "readbackMilliseconds": 22.12,
+        "vertexUploadMilliseconds": 0.012,
+        "commandRecordingMilliseconds": 0.181,
+        "submitWaitMilliseconds": 2.109,
+        "readbackMilliseconds": 21.948,
         "cpuAllocatedBytes": 3935488
       }
     },
@@ -518,10 +518,10 @@
         "descriptorSetAllocations": 1,
         "descriptorWrites": 3,
         "vertexCapacityQuads": 256,
-        "vertexUploadMilliseconds": 0.005,
-        "commandRecordingMilliseconds": 0.121,
-        "submitWaitMilliseconds": 1.201,
-        "readbackMilliseconds": 23.445,
+        "vertexUploadMilliseconds": 0.025,
+        "commandRecordingMilliseconds": 0.106,
+        "submitWaitMilliseconds": 1.503,
+        "readbackMilliseconds": 23.062,
         "cpuAllocatedBytes": 3938048
       }
     },
@@ -550,10 +550,10 @@
         "descriptorSetAllocations": 0,
         "descriptorWrites": 0,
         "vertexCapacityQuads": 256,
-        "vertexUploadMilliseconds": 0.008,
-        "commandRecordingMilliseconds": 0.185,
-        "submitWaitMilliseconds": 1.114,
-        "readbackMilliseconds": 22.395,
+        "vertexUploadMilliseconds": 0.06,
+        "commandRecordingMilliseconds": 0.236,
+        "submitWaitMilliseconds": 5.029,
+        "readbackMilliseconds": 17.262,
         "cpuAllocatedBytes": 3940592
       }
     }
@@ -564,45 +564,45 @@
       "fieldDimension": 32,
       "atlasPages": 1,
       "uniqueFields": 29,
-      "atlasGenerationMilliseconds": 601.765,
-      "rendererCreationMilliseconds": 46.4953,
-      "atlasUploadMilliseconds": 13.3306
+      "atlasGenerationMilliseconds": 804.6553,
+      "rendererCreationMilliseconds": 52.7653,
+      "atlasUploadMilliseconds": 15.9326
     },
     {
       "size": 32,
       "fieldDimension": 32,
       "atlasPages": 1,
       "uniqueFields": 29,
-      "atlasGenerationMilliseconds": 78.9207,
-      "rendererCreationMilliseconds": 2.2172,
-      "atlasUploadMilliseconds": 2.0011
+      "atlasGenerationMilliseconds": 142.925,
+      "rendererCreationMilliseconds": 1.9306,
+      "atlasUploadMilliseconds": 2.905
     },
     {
       "size": 64,
       "fieldDimension": 64,
       "atlasPages": 1,
       "uniqueFields": 32,
-      "atlasGenerationMilliseconds": 199.5416,
-      "rendererCreationMilliseconds": 2.2207,
-      "atlasUploadMilliseconds": 3.3536
+      "atlasGenerationMilliseconds": 229.3345,
+      "rendererCreationMilliseconds": 1.8069,
+      "atlasUploadMilliseconds": 2.5888
     },
     {
       "size": 96,
       "fieldDimension": 128,
       "atlasPages": 1,
       "uniqueFields": 30,
-      "atlasGenerationMilliseconds": 545.4431,
-      "rendererCreationMilliseconds": 2.0399,
-      "atlasUploadMilliseconds": 1.7256
+      "atlasGenerationMilliseconds": 635.9316,
+      "rendererCreationMilliseconds": 2.2852,
+      "atlasUploadMilliseconds": 4.506
     },
     {
       "size": 128,
       "fieldDimension": 128,
       "atlasPages": 1,
       "uniqueFields": 29,
-      "atlasGenerationMilliseconds": 517.6372,
-      "rendererCreationMilliseconds": 2.2243,
-      "atlasUploadMilliseconds": 2.534
+      "atlasGenerationMilliseconds": 565.9209,
+      "rendererCreationMilliseconds": 2.1122,
+      "atlasUploadMilliseconds": 3.8669
     }
   ],
   "multipleRuns": {
@@ -614,10 +614,10 @@
     "descriptorSetAllocations": 0,
     "descriptorWrites": 0,
     "vertexCapacityQuads": 256,
-    "vertexUploadMilliseconds": 0.092,
-    "commandRecordingMilliseconds": 0.15,
-    "submitWaitMilliseconds": 0.632,
-    "readbackMilliseconds": 21.85,
+    "vertexUploadMilliseconds": 0.066,
+    "commandRecordingMilliseconds": 0.166,
+    "submitWaitMilliseconds": 0.625,
+    "readbackMilliseconds": 21.82,
     "cpuAllocatedBytes": 3943760
   },
   "multipleColors": {
@@ -629,10 +629,10 @@
     "descriptorSetAllocations": 2,
     "descriptorWrites": 6,
     "vertexCapacityQuads": 256,
-    "vertexUploadMilliseconds": 0.048,
-    "commandRecordingMilliseconds": 0.168,
-    "submitWaitMilliseconds": 0.606,
-    "readbackMilliseconds": 22.031,
+    "vertexUploadMilliseconds": 0.058,
+    "commandRecordingMilliseconds": 0.105,
+    "submitWaitMilliseconds": 0.591,
+    "readbackMilliseconds": 22.066,
     "cpuAllocatedBytes": 3945424
   },
   "repeated100Final": {
@@ -644,10 +644,10 @@
     "descriptorSetAllocations": 0,
     "descriptorWrites": 0,
     "vertexCapacityQuads": 256,
-    "vertexUploadMilliseconds": 0.012,
-    "commandRecordingMilliseconds": 0.072,
-    "submitWaitMilliseconds": 0.375,
-    "readbackMilliseconds": 16.909,
+    "vertexUploadMilliseconds": 0.016,
+    "commandRecordingMilliseconds": 0.071,
+    "submitWaitMilliseconds": 0.392,
+    "readbackMilliseconds": 17.274,
     "cpuAllocatedBytes": 3936544
   }
 }

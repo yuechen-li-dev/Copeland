@@ -10,7 +10,10 @@ public static class AurelianGlyphRunAdapter
         MachinaGlyphRun glyphRun,
         FontAtlasSnapshot atlas,
         IReadOnlyDictionary<int, Native2DTextureHandle> pageTextures,
-        Native2DTint color)
+        Native2DTint color,
+        Native2DRect? clipRect = null,
+        float destinationOffsetX = 0,
+        float destinationOffsetY = 0)
     {
         ArgumentNullException.ThrowIfNull(glyphRun);
         ArgumentNullException.ThrowIfNull(atlas);
@@ -40,13 +43,13 @@ public static class AurelianGlyphRunAdapter
 
             ValidateEntry(entry, page);
             GlyphFieldPlacement field = entry.Placement;
-            float destinationX = CheckedFloat(glyph.OriginX + field.PlaneLeft, "destination X");
-            float destinationY = CheckedFloat(glyph.BaselineY + field.PlaneTop, "destination Y");
+            float destinationX = CheckedFloat(glyph.OriginX + field.PlaneLeft + destinationOffsetX, "destination X");
+            float destinationY = CheckedFloat(glyph.BaselineY + field.PlaneTop + destinationOffsetY, "destination Y");
             float destinationWidth = CheckedPositiveFloat(field.Width, "destination width");
             float destinationHeight = CheckedPositiveFloat(field.Height, "destination height");
             float fieldScale = Math.Min(destinationWidth / entry.Width, destinationHeight / entry.Height);
 
-            submissions.Add(new NativeMsdfQuadSubmission(
+            var submission = new NativeMsdfQuadSubmission(
                 new Native2DRect(destinationX, destinationY, destinationWidth, destinationHeight),
                 new Native2DUvRect(
                     CheckedFloat(entry.U0, "u0"),
@@ -58,10 +61,46 @@ public static class AurelianGlyphRunAdapter
                 new NativeMsdfParameters(
                     CheckedPositiveFloat(field.PixelRange, "pixel range"),
                     CheckedPositiveFloat(fieldScale, "field scale"),
-                    0.5f)));
+                    0.5f));
+
+            if (clipRect is Native2DRect clip && !TryClip(submission, clip, out submission))
+            {
+                continue;
+            }
+
+            submissions.Add(submission);
         }
 
         return submissions;
+    }
+
+    private static bool TryClip(
+        NativeMsdfQuadSubmission source,
+        Native2DRect clip,
+        out NativeMsdfQuadSubmission clipped)
+    {
+        float left = Math.Max(source.Destination.X, clip.X);
+        float top = Math.Max(source.Destination.Y, clip.Y);
+        float right = Math.Min(source.Destination.X + source.Destination.Width, clip.X + clip.Width);
+        float bottom = Math.Min(source.Destination.Y + source.Destination.Height, clip.Y + clip.Height);
+        if (right <= left || bottom <= top)
+        {
+            clipped = default;
+            return false;
+        }
+
+        float uScale = (source.Uv.U1 - source.Uv.U0) / source.Destination.Width;
+        float vScale = (source.Uv.V1 - source.Uv.V0) / source.Destination.Height;
+        clipped = source with
+        {
+            Destination = new Native2DRect(left, top, right - left, bottom - top),
+            Uv = new Native2DUvRect(
+                source.Uv.U0 + ((left - source.Destination.X) * uScale),
+                source.Uv.V0 + ((top - source.Destination.Y) * vScale),
+                source.Uv.U1 - (((source.Destination.X + source.Destination.Width) - right) * uScale),
+                source.Uv.V1 - (((source.Destination.Y + source.Destination.Height) - bottom) * vScale)),
+        };
+        return true;
     }
 
     private static void ValidateEntry(GlyphAtlasEntry entry, FontAtlasPage page)
@@ -117,5 +156,3 @@ public static class AurelianGlyphRunAdapter
         return result;
     }
 }
-
-

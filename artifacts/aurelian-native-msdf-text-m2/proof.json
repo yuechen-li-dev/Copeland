@@ -7,7 +7,7 @@
   },
   "upstream": {
     "outlineQualificationManifestSha256": "8a2a0cf5f5684745cb5b3648817e3fd0a77d31aec3d63c4c9332aaadf4220688",
-    "msdfQualificationManifestSha256": "b8b04f211b5d07a5f345c3bdae75cea09f7fd37f56c8b740beb1077d3a0daa4c",
+    "msdfQualificationManifestSha256": "52a5a19f2287adc9b293b8cacdc34c866ab66e6451724b88464e1aafa7198f7f",
     "machinaGlyphRunSha256": "c5fc69dc48482911bd2782ff0b848f0d7ff167a15b51bc29be6dc76bbc0e64ac",
     "atlasFloatSha256": "6010902d276385e5d417c1ac9be3a78d1e9bfb0754686d15588781d80f13f8e0",
     "fieldSha256": {
@@ -70,10 +70,10 @@
       "descriptorSetAllocations": 1,
       "descriptorWrites": 3,
       "vertexCapacityQuads": 256,
-      "vertexUploadMilliseconds": 0.026,
-      "commandRecordingMilliseconds": 0.169,
-      "submitWaitMilliseconds": 0.752,
-      "readbackMilliseconds": 22.118,
+      "vertexUploadMilliseconds": 0.021,
+      "commandRecordingMilliseconds": 0.119,
+      "submitWaitMilliseconds": 0.609,
+      "readbackMilliseconds": 25.335,
       "cpuAllocatedBytes": 3938048
     }
   },
@@ -102,10 +102,10 @@
       "descriptorSetAllocations": 0,
       "descriptorWrites": 0,
       "vertexCapacityQuads": 256,
-      "vertexUploadMilliseconds": 0.036,
-      "commandRecordingMilliseconds": 0.173,
-      "submitWaitMilliseconds": 0.452,
-      "readbackMilliseconds": 22.163,
+      "vertexUploadMilliseconds": 0.05,
+      "commandRecordingMilliseconds": 0.186,
+      "submitWaitMilliseconds": 0.623,
+      "readbackMilliseconds": 22.149,
       "cpuAllocatedBytes": 3940592
     }
   },
@@ -135,10 +135,10 @@
         "descriptorSetAllocations": 0,
         "descriptorWrites": 0,
         "vertexCapacityQuads": 256,
-        "vertexUploadMilliseconds": 0.005,
-        "commandRecordingMilliseconds": 0.19,
-        "submitWaitMilliseconds": 0.541,
-        "readbackMilliseconds": 22.347,
+        "vertexUploadMilliseconds": 0.007,
+        "commandRecordingMilliseconds": 0.191,
+        "submitWaitMilliseconds": 0.47,
+        "readbackMilliseconds": 22.166,
         "cpuAllocatedBytes": 3934608
       }
     },
@@ -167,10 +167,10 @@
         "descriptorSetAllocations": 0,
         "descriptorWrites": 0,
         "vertexCapacityQuads": 256,
-        "vertexUploadMilliseconds": 0.004,
-        "commandRecordingMilliseconds": 0.152,
-        "submitWaitMilliseconds": 0.685,
-        "readbackMilliseconds": 22.307,
+        "vertexUploadMilliseconds": 0.005,
+        "commandRecordingMilliseconds": 0.155,
+        "submitWaitMilliseconds": 0.485,
+        "readbackMilliseconds": 22.328,
         "cpuAllocatedBytes": 3934608
       }
     },
@@ -199,10 +199,10 @@
         "descriptorSetAllocations": 0,
         "descriptorWrites": 0,
         "vertexCapacityQuads": 256,
-        "vertexUploadMilliseconds": 0.005,
-        "commandRecordingMilliseconds": 0.167,
-        "submitWaitMilliseconds": 0.594,
-        "readbackMilliseconds": 22.291,
+        "vertexUploadMilliseconds": 0.007,
+        "commandRecordingMilliseconds": 0.18,
+        "submitWaitMilliseconds": 0.46,
+        "readbackMilliseconds": 22.038,
         "cpuAllocatedBytes": 3934608
       }
     },
@@ -231,10 +231,10 @@
         "descriptorSetAllocations": 0,
         "descriptorWrites": 0,
         "vertexCapacityQuads": 256,
-        "vertexUploadMilliseconds": 0.005,
-        "commandRecordingMilliseconds": 0.174,
-        "submitWaitMilliseconds": 0.627,
-        "readbackMilliseconds": 21.942,
+        "vertexUploadMilliseconds": 0.007,
+        "commandRecordingMilliseconds": 0.177,
+        "submitWaitMilliseconds": 0.478,
+        "readbackMilliseconds": 22.092,
         "cpuAllocatedBytes": 3934608
       }
     }
@@ -264,10 +264,10 @@
       "descriptorSetAllocations": 0,
       "descriptorWrites": 0,
       "vertexCapacityQuads": 256,
-      "vertexUploadMilliseconds": 0.01,
-      "commandRecordingMilliseconds": 0.158,
-      "submitWaitMilliseconds": 0.44,
-      "readbackMilliseconds": 22.152,
+      "vertexUploadMilliseconds": 0.016,
+      "commandRecordingMilliseconds": 0.181,
+      "submitWaitMilliseconds": 0.46,
+      "readbackMilliseconds": 23.117,
       "cpuAllocatedBytes": 3935488
     }
   },
@@ -296,10 +296,10 @@
       "descriptorSetAllocations": 0,
       "descriptorWrites": 0,
       "vertexCapacityQuads": 256,
-      "vertexUploadMilliseconds": 0.01,
-      "commandRecordingMilliseconds": 0.16,
-      "submitWaitMilliseconds": 0.44,
-      "readbackMilliseconds": 22.597,
+      "vertexUploadMilliseconds": 0.016,
+      "commandRecordingMilliseconds": 0.227,
+      "submitWaitMilliseconds": 0.639,
+      "readbackMilliseconds": 22.011,
       "cpuAllocatedBytes": 3935488
     }
   },
@@ -310,10 +310,10 @@
     "warnings": 0
   },
   "performance": {
-    "shaderCompileMilliseconds": 255.02,
-    "atlasGenerationMilliseconds": 199.5416,
-    "pipelineAndRendererCreationMilliseconds": 2.2207,
-    "atlasUploadMilliseconds": 3.3536,
+    "shaderCompileMilliseconds": 292.1767,
+    "atlasGenerationMilliseconds": 229.3345,
+    "pipelineAndRendererCreationMilliseconds": 1.8069,
+    "atlasUploadMilliseconds": 2.5888,
     "canonicalAdapterAllocatedBytes": 1280,
     "steadyPass": {
       "quadCount": 12,
@@ -324,10 +324,10 @@
       "descriptorSetAllocations": 0,
       "descriptorWrites": 0,
       "vertexCapacityQuads": 256,
-      "vertexUploadMilliseconds": 0.012,
-      "commandRecordingMilliseconds": 0.072,
-      "submitWaitMilliseconds": 0.375,
-      "readbackMilliseconds": 16.909,
+      "vertexUploadMilliseconds": 0.016,
+      "commandRecordingMilliseconds": 0.071,
+      "submitWaitMilliseconds": 0.392,
+      "readbackMilliseconds": 17.274,
       "cpuAllocatedBytes": 3936544
     }
   }

@@ -1,0 +1,17 @@
+{
+  "milestone": "AURELIAN-NATIVE-MACHINA-PRESENTATION-M3",
+  "kind": "real-machina-ui-native-msdf-text-presentation",
+  "machinaOwnsLayout": true,
+  "machinaOwnsAtlasSemantics": true,
+  "aurelianGraphicsOwnsGpuOnly": true,
+  "rasterTextStillSupported": true,
+  "rasterTextStillDefault": true,
+  "msdfTextProductionQualified": true,
+  "sameGlyphRunAcrossModes": true,
+  "msdfVisibleInRealUi": true,
+  "globalUiDefaultChanged": false,
+  "tinyFarmRequired": false,
+  "newMsdfGenerationWork": false,
+  "newShaderWork": false,
+  "artifactFiles": 5
+}

@@ -147,3 +147,9 @@ text editing, rich text, fallback, or a general compositor framework.
 Compact evidence is limited to five JSON files under
 `artifacts/aurelian-native-msdf-text-m2/` (about 43 KB total). No framebuffer bundle is
 committed.
+
+M3 is now complete. The glyph-run adapter is consumed by an explicit renderer-neutral
+`RasterPixel | Msdf` presentation mode and an integration-owned atlas cache. M3 also
+closes a practical orientation footgun: Machina atlas resources must declare
+top-to-bottom rows, and the adapter normalizes both uploaded rows and V intervals as
+one tested boundary operation. Raster/pixel remains the default style.

@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../Machina.UI/Machina.Fonts/Machina.Fonts.csproj" />
+    <ProjectReference Include="../../Machina.UI/Machina.Presentation/Machina.Presentation.csproj" />
     <ProjectReference Include="../../Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />
   </ItemGroup>
 </Project>

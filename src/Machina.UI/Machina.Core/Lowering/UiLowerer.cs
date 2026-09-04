@@ -208,7 +208,9 @@ public static class UiLowerer
             return new StackArrange(
                 stack.Axis,
                 stack.Gap,
-                Padding: stack.Padding);
+                Padding: stack.Padding,
+                Justify: stack.Justify,
+                Align: stack.Align);
         }
 
         if (node is GridNode grid)

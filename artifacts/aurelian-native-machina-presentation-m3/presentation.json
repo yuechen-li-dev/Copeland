@@ -1,0 +1,194 @@
+{
+  "surface": "real Machina Row/Column/Card/Button composition",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "operationCount": 32,
+  "textOperationCount": 19,
+  "rasterTextCount": 10,
+  "msdfTextCount": 9,
+  "componentCoverage": [
+    "heading",
+    "button",
+    "label",
+    "inventory-like-row",
+    "longer-sentence"
+  ],
+  "topologyHash": "4737ebb2850bb4b74ed7304daccb6e643f1758a4f8e87d1aa2a9ec5f3b3158f3",
+  "mixedTopologyHash": "4737ebb2850bb4b74ed7304daccb6e643f1758a4f8e87d1aa2a9ec5f3b3158f3",
+  "hitTestEntryCount": 4,
+  "runs": {
+    "title/title-text": {
+      "text": "Text Rendering Backends",
+      "size": 16,
+      "mode": "rasterPixel",
+      "glyphRunHash": "48ba4949f95c1ce1371f6621bfa0911e2a47e59bf21f6d8fef321cf73a459bc4",
+      "layoutHash": "48ba4949f95c1ce1371f6621bfa0911e2a47e59bf21f6d8fef321cf73a459bc4",
+      "glyphCount": 23,
+      "alpha": 255
+    },
+    "retro/raster-mode": {
+      "text": "Raster / Retro",
+      "size": 32,
+      "mode": "rasterPixel",
+      "glyphRunHash": "1aa9bfbcd316f6c566bccb6392409c975e45c4024b07b0dc6e3a485071123f38",
+      "layoutHash": "1aa9bfbcd316f6c566bccb6392409c975e45c4024b07b0dc6e3a485071123f38",
+      "glyphCount": 14,
+      "alpha": 255
+    },
+    "retro/raster-hello": {
+      "text": "Hello Machina",
+      "size": 64,
+      "mode": "rasterPixel",
+      "glyphRunHash": "fd8fcfe26ec6160f304ad0790c82cfcfb427fe94d71a8b56e16af627e2cbd7d4",
+      "layoutHash": "fd8fcfe26ec6160f304ad0790c82cfcfb427fe94d71a8b56e16af627e2cbd7d4",
+      "glyphCount": 13,
+      "alpha": 255
+    },
+    "retro/raster-inventory": {
+      "text": "Inventory",
+      "size": 24,
+      "mode": "rasterPixel",
+      "glyphRunHash": "b19e56e2f80714a5e901444c4c9622c5ef2047b7542df4f181dab65f13b254bf",
+      "layoutHash": "b19e56e2f80714a5e901444c4c9622c5ef2047b7542df4f181dab65f13b254bf",
+      "glyphCount": 9,
+      "alpha": 255
+    },
+    "retro/raster-settings.label": {
+      "text": "Settings",
+      "size": 24,
+      "mode": "rasterPixel",
+      "glyphRunHash": "5d7d731b6f668e1c344526b46c999e0e3ca72d9f443d4cbd7c99025bbae7bcd3",
+      "layoutHash": "5d7d731b6f668e1c344526b46c999e0e3ca72d9f443d4cbd7c99025bbae7bcd3",
+      "glyphCount": 8,
+      "alpha": 255
+    },
+    "retro/raster-play.label": {
+      "text": "Play",
+      "size": 24,
+      "mode": "rasterPixel",
+      "glyphRunHash": "427294dd6699bfd32a0b6b69571429ebb1ec52acbb69811443c5fcbaf23c382c",
+      "layoutHash": "427294dd6699bfd32a0b6b69571429ebb1ec52acbb69811443c5fcbaf23c382c",
+      "glyphCount": 4,
+      "alpha": 255
+    },
+    "retro/raster-hotbar": {
+      "text": "Hotbar  1  2  3  4  5",
+      "size": 16,
+      "mode": "rasterPixel",
+      "glyphRunHash": "e184e69a9d6b5ccaa86a37d69bd00a1b4d3f7f7db62f41e02768a9ade0d45c2a",
+      "layoutHash": "e184e69a9d6b5ccaa86a37d69bd00a1b4d3f7f7db62f41e02768a9ade0d45c2a",
+      "glyphCount": 21,
+      "alpha": 255
+    },
+    "retro/raster-small": {
+      "text": "16 px  Small status: ready",
+      "size": 16,
+      "mode": "rasterPixel",
+      "glyphRunHash": "1d51bcfe2e6ef2d76f2b6009fb35b7061c240605fca1fc836f3f786e7238b2f8",
+      "layoutHash": "1d51bcfe2e6ef2d76f2b6009fb35b7061c240605fca1fc836f3f786e7238b2f8",
+      "glyphCount": 26,
+      "alpha": 192
+    },
+    "retro/raster-medium": {
+      "text": "32 px  Inventory / Settings",
+      "size": 32,
+      "mode": "rasterPixel",
+      "glyphRunHash": "c62969876d9b1e9b5ca180d6fdfaaae276f2343cbd9ecde3160dc0d1ec3b09f9",
+      "layoutHash": "c62969876d9b1e9b5ca180d6fdfaaae276f2343cbd9ecde3160dc0d1ec3b09f9",
+      "glyphCount": 27,
+      "alpha": 255
+    },
+    "retro/raster-fox": {
+      "text": "The quick brown fox jumps over the lazy dog",
+      "size": 16,
+      "mode": "rasterPixel",
+      "glyphRunHash": "7bce6f21ac057f441de038e71a2acc9f37113555c1a4a701fd7b0918470a5956",
+      "layoutHash": "7bce6f21ac057f441de038e71a2acc9f37113555c1a4a701fd7b0918470a5956",
+      "glyphCount": 43,
+      "alpha": 192
+    },
+    "smooth/msdf-mode": {
+      "text": "MSDF / Smooth",
+      "size": 32,
+      "mode": "msdf",
+      "glyphRunHash": "55d3dd554ec776e7f88975162dcbec2d43d7929e3e414a935bd25946769e8f95",
+      "layoutHash": "55d3dd554ec776e7f88975162dcbec2d43d7929e3e414a935bd25946769e8f95",
+      "glyphCount": 13,
+      "alpha": 255
+    },
+    "smooth/msdf-hello": {
+      "text": "Hello Machina",
+      "size": 64,
+      "mode": "msdf",
+      "glyphRunHash": "fd8fcfe26ec6160f304ad0790c82cfcfb427fe94d71a8b56e16af627e2cbd7d4",
+      "layoutHash": "fd8fcfe26ec6160f304ad0790c82cfcfb427fe94d71a8b56e16af627e2cbd7d4",
+      "glyphCount": 13,
+      "alpha": 255
+    },
+    "smooth/msdf-inventory": {
+      "text": "Inventory",
+      "size": 24,
+      "mode": "msdf",
+      "glyphRunHash": "b19e56e2f80714a5e901444c4c9622c5ef2047b7542df4f181dab65f13b254bf",
+      "layoutHash": "b19e56e2f80714a5e901444c4c9622c5ef2047b7542df4f181dab65f13b254bf",
+      "glyphCount": 9,
+      "alpha": 255
+    },
+    "smooth/msdf-settings.label": {
+      "text": "Settings",
+      "size": 24,
+      "mode": "msdf",
+      "glyphRunHash": "5d7d731b6f668e1c344526b46c999e0e3ca72d9f443d4cbd7c99025bbae7bcd3",
+      "layoutHash": "5d7d731b6f668e1c344526b46c999e0e3ca72d9f443d4cbd7c99025bbae7bcd3",
+      "glyphCount": 8,
+      "alpha": 255
+    },
+    "smooth/msdf-play.label": {
+      "text": "Play",
+      "size": 24,
+      "mode": "msdf",
+      "glyphRunHash": "427294dd6699bfd32a0b6b69571429ebb1ec52acbb69811443c5fcbaf23c382c",
+      "layoutHash": "427294dd6699bfd32a0b6b69571429ebb1ec52acbb69811443c5fcbaf23c382c",
+      "glyphCount": 4,
+      "alpha": 255
+    },
+    "smooth/msdf-hotbar": {
+      "text": "Hotbar  1  2  3  4  5",
+      "size": 16,
+      "mode": "msdf",
+      "glyphRunHash": "e184e69a9d6b5ccaa86a37d69bd00a1b4d3f7f7db62f41e02768a9ade0d45c2a",
+      "layoutHash": "e184e69a9d6b5ccaa86a37d69bd00a1b4d3f7f7db62f41e02768a9ade0d45c2a",
+      "glyphCount": 21,
+      "alpha": 255
+    },
+    "smooth/msdf-small": {
+      "text": "16 px  Small status: ready",
+      "size": 16,
+      "mode": "msdf",
+      "glyphRunHash": "1d51bcfe2e6ef2d76f2b6009fb35b7061c240605fca1fc836f3f786e7238b2f8",
+      "layoutHash": "1d51bcfe2e6ef2d76f2b6009fb35b7061c240605fca1fc836f3f786e7238b2f8",
+      "glyphCount": 26,
+      "alpha": 192
+    },
+    "smooth/msdf-medium": {
+      "text": "32 px  Inventory / Settings",
+      "size": 32,
+      "mode": "msdf",
+      "glyphRunHash": "c62969876d9b1e9b5ca180d6fdfaaae276f2343cbd9ecde3160dc0d1ec3b09f9",
+      "layoutHash": "c62969876d9b1e9b5ca180d6fdfaaae276f2343cbd9ecde3160dc0d1ec3b09f9",
+      "glyphCount": 27,
+      "alpha": 255
+    },
+    "smooth/msdf-fox": {
+      "text": "The quick brown fox jumps over the lazy dog",
+      "size": 16,
+      "mode": "msdf",
+      "glyphRunHash": "7bce6f21ac057f441de038e71a2acc9f37113555c1a4a701fd7b0918470a5956",
+      "layoutHash": "7bce6f21ac057f441de038e71a2acc9f37113555c1a4a701fd7b0918470a5956",
+      "glyphCount": 43,
+      "alpha": 192
+    }
+  }
+}

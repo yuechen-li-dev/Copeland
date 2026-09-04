@@ -63,6 +63,20 @@ public sealed class AurelianGlyphRunAdapterM2Tests
         Assert.Contains("outside page", error.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Adapt_ClipsDestinationAndUvsWithoutChangingLayout()
+    {
+        NativeMsdfQuadSubmission submission = Assert.Single(AurelianGlyphRunAdapter.Adapt(
+            CreateRun(Key),
+            CreateAtlas(),
+            new Dictionary<int, Native2DTextureHandle> { [0] = new(17) },
+            Native2DTint.White,
+            new Native2DRect(12, 14, 8, 10)));
+
+        Assert.Equal(new Native2DRect(12, 14, 8, 10), submission.Destination);
+        Assert.Equal(new Native2DUvRect(0.1875f, 0.28125f, 0.3125f, 0.4375f), submission.Uv);
+    }
+
     private static FontAtlasSnapshot CreateAtlas()
     {
         GlyphAtlasEntry entry = CreateEntry();

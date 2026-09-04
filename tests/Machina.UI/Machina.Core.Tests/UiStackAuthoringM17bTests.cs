@@ -111,6 +111,24 @@ public sealed class UiStackAuthoringM17bTests
     }
 
     [Fact]
+    public void UIStack_ExposesJsJustifyAndAlignVocabulary()
+    {
+        var result = UiLowerer.Lower(UI.VStack(
+            id: "stack",
+            justify: StackJustify.SpaceBetween,
+            align: StackAlign.Center,
+            children:
+            [
+                UI.StackItem.Fixed(main: 24, child: UI.Text("A")),
+                UI.StackItem.Fixed(main: 24, child: UI.Text("B")),
+            ]));
+
+        var arrange = Assert.IsType<StackArrange>(Assert.Single(result.Rows, row => row.Id == new NodeId("stack")).Arrange);
+        Assert.Equal(StackJustify.SpaceBetween, arrange.Justify);
+        Assert.Equal(StackAlign.Center, arrange.Align);
+    }
+
+    [Fact]
     public void UIStack_DerivesWrapperIdsDeterministically()
     {
         var first = Snapshot(UI.Stack(

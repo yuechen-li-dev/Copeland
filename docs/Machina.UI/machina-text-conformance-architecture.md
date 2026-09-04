@@ -138,3 +138,18 @@ glyph origins/baselines plus MSDF field planes into renderer-space rectangles an
 preserves existing atlas UVs and order. Aurelian does not recompute advances, kerning,
 anchors, shaping, or baselines. See
 `docs/Aurelian/aurelian-native-msdf-text-m2-report.md` for Vulkan qualification.
+
+## Production presentation boundary (Aurelian/Machina M3)
+
+The qualified run can now be attached to an existing `PositionedTextOperation` as a
+`MachinaTextPresentationPrimitive`. Raster/pixel and MSDF are explicit peer modes.
+Canonical parity cases reference the same run and retain identical layout hashes;
+mode selection does not invalidate control geometry or hit testing. Raster/pixel
+remains the default first-class aesthetic mode, while MSDF is opt-in scalable
+realization.
+
+The Aurelian integration resolves `MachinaFontAtlasId` through a persistent native
+texture cache and performs no parsing or layout. Atlas orientation is explicit:
+Machina top-to-bottom rows are normalized once together with their V intervals, and
+unspecified row order fails. See
+`docs/Aurelian/aurelian-native-machina-presentation-m3-report.md`.

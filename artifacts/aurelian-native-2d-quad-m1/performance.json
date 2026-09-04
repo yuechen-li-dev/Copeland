@@ -1,9 +1,9 @@
 {
   "schema": "aurelian.native-2d-quad.performance.v1",
   "milliseconds": {
-    "compiler": 242.027,
-    "deviceInitialization": 362.618,
-    "rendererInitialization": 35.218,
+    "compiler": 400.576,
+    "deviceInitialization": 439.858,
+    "rendererInitialization": 48.685,
     "steady1": {
       "quadCount": 1,
       "drawCalls": 1,
@@ -13,9 +13,9 @@
       "descriptorSetAllocations": 0,
       "descriptorWrites": 0,
       "vertexCapacityQuads": 256,
-      "vertexUploadMilliseconds": 0.002,
+      "vertexUploadMilliseconds": 0.004,
       "commandRecordingMilliseconds": 0.048,
-      "submitWaitMilliseconds": 0.102,
+      "submitWaitMilliseconds": 0.103,
       "readbackMilliseconds": 0,
       "cpuAllocatedBytes": 1344
     },
@@ -28,9 +28,9 @@
       "descriptorSetAllocations": 0,
       "descriptorWrites": 0,
       "vertexCapacityQuads": 256,
-      "vertexUploadMilliseconds": 0.008,
-      "commandRecordingMilliseconds": 0.038,
-      "submitWaitMilliseconds": 0.091,
+      "vertexUploadMilliseconds": 0.014,
+      "commandRecordingMilliseconds": 0.041,
+      "submitWaitMilliseconds": 0.092,
       "readbackMilliseconds": 0,
       "cpuAllocatedBytes": 2712
     },
@@ -43,9 +43,9 @@
       "descriptorSetAllocations": 0,
       "descriptorWrites": 0,
       "vertexCapacityQuads": 256,
-      "vertexUploadMilliseconds": 0.068,
-      "commandRecordingMilliseconds": 0.043,
-      "submitWaitMilliseconds": 0.394,
+      "vertexUploadMilliseconds": 0.115,
+      "commandRecordingMilliseconds": 0.046,
+      "submitWaitMilliseconds": 0.43,
       "readbackMilliseconds": 0.001,
       "cpuAllocatedBytes": 16392
     }

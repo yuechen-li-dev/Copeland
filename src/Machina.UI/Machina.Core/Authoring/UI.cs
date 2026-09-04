@@ -54,9 +54,11 @@ public static class UI
         IReadOnlyList<UiNode> children,
         NodeId? id = null,
         double gap = 0,
-        double padding = 0)
+        double padding = 0,
+        StackJustify justify = StackJustify.Start,
+        StackAlign align = StackAlign.Start)
     {
-        return new StackNode(StackAxis.Horizontal, WrapImplicitStackItems(children), gap, EdgeInsets.All(padding)) with
+        return new StackNode(StackAxis.Horizontal, WrapImplicitStackItems(children), gap, EdgeInsets.All(padding), justify, align) with
         {
             Id = id,
         };
@@ -66,9 +68,11 @@ public static class UI
         IReadOnlyList<UiNode> children,
         NodeId? id = null,
         double gap = 0,
-        double padding = 0)
+        double padding = 0,
+        StackJustify justify = StackJustify.Start,
+        StackAlign align = StackAlign.Start)
     {
-        return new StackNode(StackAxis.Vertical, WrapImplicitStackItems(children), gap, EdgeInsets.All(padding)) with
+        return new StackNode(StackAxis.Vertical, WrapImplicitStackItems(children), gap, EdgeInsets.All(padding), justify, align) with
         {
             Id = id,
         };
@@ -79,9 +83,11 @@ public static class UI
         StackAxis axis,
         IReadOnlyList<UiStackItem> children,
         double gap = 0,
-        UiPadding? padding = null)
+        UiPadding? padding = null,
+        StackJustify justify = StackJustify.Start,
+        StackAlign align = StackAlign.Start)
     {
-        return new StackNode(axis, children, gap, (padding ?? UiPadding.Zero).ToEdgeInsets()) with
+        return new StackNode(axis, children, gap, (padding ?? UiPadding.Zero).ToEdgeInsets(), justify, align) with
         {
             Id = id,
         };
@@ -91,18 +97,22 @@ public static class UI
         IReadOnlyList<UiStackItem> children,
         NodeId? id = null,
         double gap = 0,
-        UiPadding? padding = null)
+        UiPadding? padding = null,
+        StackJustify justify = StackJustify.Start,
+        StackAlign align = StackAlign.Start)
     {
-        return Stack(id, StackAxis.Vertical, children, gap, padding);
+        return Stack(id, StackAxis.Vertical, children, gap, padding, justify, align);
     }
 
     public static UiNode HStack(
         IReadOnlyList<UiStackItem> children,
         NodeId? id = null,
         double gap = 0,
-        UiPadding? padding = null)
+        UiPadding? padding = null,
+        StackJustify justify = StackJustify.Start,
+        StackAlign align = StackAlign.Start)
     {
-        return Stack(id, StackAxis.Horizontal, children, gap, padding);
+        return Stack(id, StackAxis.Horizontal, children, gap, padding, justify, align);
     }
 
     public static UiNode Grid(

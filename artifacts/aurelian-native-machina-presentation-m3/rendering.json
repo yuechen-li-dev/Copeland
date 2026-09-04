@@ -1,0 +1,47 @@
+{
+  "pipeline": "MsdfText.v.ts -\u003E VD-MIR -\u003E SPIR-V -\u003E VulkanOrderedQuadRenderer",
+  "sampler": "linear-clamp-to-edge",
+  "blend": "straight-alpha",
+  "clear": "#102040",
+  "scales": [
+    {
+      "scale": 1,
+      "width": 1280,
+      "height": 720,
+      "glyphQuads": 133,
+      "drawCalls": 7,
+      "coldDescriptorWrites": 18,
+      "warmDescriptorWrites": 0,
+      "atlasUploads": 4,
+      "adapterAllocatedBytes": 393696,
+      "adapterMilliseconds": 5.4966,
+      "warmFrameMilliseconds": 22.0296,
+      "warmFrameAllocatedBytes": 3712848,
+      "pixelSha256": "aa45e73ddcc80b3ba6c782536baafcc0b3ce088e84ba0b60d3bececc4cf5c291",
+      "visualPath": "artifacts/aurelian-native-machina-presentation-m3-visual/machina-text-rendering-1280x720.png"
+    },
+    {
+      "scale": 2,
+      "width": 2560,
+      "height": 1440,
+      "glyphQuads": 133,
+      "drawCalls": 7,
+      "coldDescriptorWrites": 18,
+      "warmDescriptorWrites": 0,
+      "atlasUploads": 4,
+      "adapterAllocatedBytes": 393456,
+      "adapterMilliseconds": 0.8938,
+      "warmFrameMilliseconds": 89.093,
+      "warmFrameAllocatedBytes": 14772048,
+      "pixelSha256": "934b64c98d8cd695cbb5e431cb2965b41783ed2c6b9bf527adced04b943f1c81",
+      "visualPath": "artifacts/aurelian-native-machina-presentation-m3-visual/machina-text-rendering-2560x1440.png"
+    }
+  ],
+  "sizes": [
+    16,
+    24,
+    32,
+    64
+  ],
+  "atlasPolicy": "size-qualified atlas identity; generated and uploaded before draw"
+}

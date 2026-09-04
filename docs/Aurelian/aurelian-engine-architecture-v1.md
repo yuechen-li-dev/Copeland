@@ -219,6 +219,14 @@ Application state projects to a semantic UI document. Machina lowers and lays it
 
 TinyFarm's current `PlayerUiModel` and responsive geometry are renderer-neutral application projection, but its MonoGame drawing and hit testing are temporary duplicate realization. Migration belongs in a thin adapter/integration host, not Core or gameplay Runtime.
 
+AURELIAN-NATIVE-MACHINA-PRESENTATION-M3 qualifies native MSDF text as an optional
+first-class realization of the same Machina presentation frame. Machina owns the
+already-positioned `MachinaGlyphRun`, opaque atlas identity, color, mode, and layout;
+`Aurelian.Machina.Graphics` owns atlas-to-native-texture caching and glyph-quad
+adaptation; `Aurelian.Graphics` remains Vulkan-only. Raster/pixel is still the default
+and a deliberate retro aesthetic. MSDF adds scalable smooth text rather than replacing
+that style.
+
 ## 16. Presentation backends
 
 The composition law is:
