@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "milestone": "COPELAND-FLOW-TSX-M0",
+  "kind": "optional-tsx-authoring-for-flow",
+  "outcome": "A",
+  "fixtures": {
+    "native": "tests/Copeland/Copeland.TS.Tests/TestData/FlowTsxM0/Delivery.flow.ts",
+    "tsx": "tests/Copeland/Copeland.TS.Tests/TestData/FlowTsxM0/Delivery.flow.tsx"
+  },
+  "flowSemanticSha256": "1e0515b8d0d02c7ce1645a7841443690586a41c6dee3f181d9d05a1a81730fd8",
+  "requiredExecutionPaths": [
+    "success",
+    "retry",
+    "reject",
+    "cancel",
+    "reset"
+  ],
+  "validation": {
+    "flowTsxM0TestsPassed": 22,
+    "focusedCompilerTestsPassed": 166,
+    "focusedCSharpRuntimeTestsPassed": 2,
+    "focusedJavaScriptRuntimeTestsPassed": 2,
+    "copelandTsSolutionTestsPassed": 1625,
+    "jointTaskForceSolutionTestsPassed": 3325,
+    "gitDiffCheckPassed": true
+  },
+  "nativeFlowStillCanonical": true,
+  "tsxOptional": true,
+  "sameFlowSemanticIr": true,
+  "eventsRemainPayloadEnums": true,
+  "reactDependencyAdded": false,
+  "jsxRuntimeAdded": false,
+  "secondFlowRuntimeAdded": false,
+  "nativeFlowSyntaxChanged": false,
+  "geometryProfileAdded": false
+}

@@ -562,11 +562,12 @@ internal sealed class WorkspaceParser
             TryStringArray(config, "types", required: false, out projectTypes);
             string? unknownType = projectTypes.FirstOrDefault(type =>
                 !type.Equals("TextDocuments", StringComparison.OrdinalIgnoreCase)
-                && !type.Equals("ReactComponents", StringComparison.OrdinalIgnoreCase));
+                && !type.Equals("ReactComponents", StringComparison.OrdinalIgnoreCase)
+                && !type.Equals("FlowAuthoring", StringComparison.OrdinalIgnoreCase));
             if (unknownType is not null)
             {
                 int offset = config.Properties.TryGetValue("types", out WorkspaceValue? typesValue) ? typesValue.Offset : config.Offset;
-                _values.Report("COPE-WORKSPACE-0014", $"Unknown Copeland project type '{unknownType}'. Supported types are TextDocuments and ReactComponents.", offset);
+                _values.Report("COPE-WORKSPACE-0014", $"Unknown Copeland project type '{unknownType}'. Supported types are TextDocuments, ReactComponents, and FlowAuthoring.", offset);
             }
         }
 

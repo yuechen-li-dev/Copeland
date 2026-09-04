@@ -133,6 +133,7 @@ public sealed class CopelandTestCompile : Microsoft.Build.Utilities.Task
         string generatedNamespace = NormalizeNamespaceForCode(RootNamespace) + ".CopelandTests.Generated";
         string moduleName = "TestModule_" + outputName;
         string compilerSourcePath = ProjectTypes.Contains("TextDocuments", StringComparison.OrdinalIgnoreCase)
+            || ProjectTypes.Contains("FlowAuthoring", StringComparison.OrdinalIgnoreCase)
             ? Path.ChangeExtension(sourcePath, ".tsx")
             : sourcePath;
         CopelandCompilation compilation = CopelandCompiler.CompileToMir(

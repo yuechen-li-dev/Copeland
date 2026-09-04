@@ -4541,7 +4541,453 @@ public static class Binder
             {
                 BindFlow(declaration);
             }
+
+            foreach (ExportDefaultDeclarationSyntax export in root.Members.OfType<ExportDefaultDeclarationSyntax>())
+            {
+                TsXmlElementExpressionSyntax? element = UnwrapTsXmlElement(export.Expression);
+                if (element?.NameToken.Text != "Flow")
+                {
+                    continue;
+                }
+
+                if (!_projectTypes.HasFlag(CopelandProjectTypeSet.FlowAuthoring))
+                {
+                    Report(
+                        "COPE-FLOW-TSX-0001",
+                        "The TSX Flow semantic form requires the FlowAuthoring project type.",
+                        element.NameToken);
+                    continue;
+                }
+
+                FlowDeclarationSyntax? declaration = LowerTsxFlow(root, element);
+                if (declaration is not null)
+                {
+                    BindFlow(declaration);
+                }
+            }
         }
+
+        private FlowDeclarationSyntax? LowerTsxFlow(
+            CompilationUnitSyntax root,
+            TsXmlElementExpressionSyntax flowElement)
+        {
+            ValidateTsxAttributes(flowElement, ["name", "events", "result", "failure", "board"]);
+            string? flowName = RequireStaticStringAttribute(flowElement, "name");
+            string? eventEnumName = RequireStaticNameAttribute(flowElement, "events");
+            if (flowName is null || eventEnumName is null)
+            {
+                return null;
+            }
+
+            EnumDeclarationSyntax? eventEnum = root.Members
+                .OfType<EnumDeclarationSyntax>()
+                .FirstOrDefault(candidate => candidate.Identifier.Text == eventEnumName);
+            if (eventEnum is null)
+            {
+                TsXmlAttributeSyntax? eventsAttribute = FindTsxAttribute(flowElement, "events");
+                Report(
+                    "COPE-FLOW-TSX-0005",
+                    $"Flow event source '{eventEnumName}' must name a payload enum in this module.",
+                    eventsAttribute?.NameToken ?? flowElement.NameToken);
+                return null;
+            }
+
+            TypeSyntax? resultType = ParseTsxTypeAttribute(flowElement, "result");
+            TypeSyntax? failureType = ParseTsxTypeAttribute(flowElement, "failure");
+            if (failureType is not null)
+            {
+                resultType ??= ParseTsxType("void", flowElement.NameToken);
+                if (resultType is null)
+                {
+                    return null;
+                }
+                resultType = new ResultTypeSyntax(
+                    resultType,
+                    SyntheticToken(SyntaxKind.BangToken, "!", flowElement.NameToken),
+                    failureType);
+            }
+
+            var events = eventEnum.Cases.Select(@case => new FlowEventSyntax(
+                SyntheticToken(SyntaxKind.IdentifierToken, "event", @case.Identifier),
+                @case.Identifier,
+                @case.OpenParenToken ?? SyntheticToken(SyntaxKind.OpenParenToken, "(", @case.Identifier),
+                @case.PayloadFields.Select(field => new ParameterSyntax(field.Identifier, field.ColonToken, field.Type)).ToArray(),
+                @case.PayloadFields.Where(field => field.CommaToken is not null).Select(field => field.CommaToken!).ToArray(),
+                @case.CloseParenToken ?? SyntheticToken(SyntaxKind.CloseParenToken, ")", @case.Identifier),
+                SyntheticToken(SyntaxKind.SemicolonToken, ";", @case.Identifier))).ToArray();
+
+            FlowBoardSyntax? board = LowerTsxBoardAttribute(flowElement);
+            var states = new List<FlowStateSyntax>();
+            foreach (TsXmlChildSyntax child in flowElement.Children)
+            {
+                if (IsWhitespaceTsxText(child))
+                {
+                    continue;
+                }
+                if (child is not TsXmlElementChildSyntax { Element: TsXmlElementExpressionSyntax element })
+                {
+                    ReportInvalidTsxChild(flowElement, child, "Flow children must be State semantic elements.");
+                    continue;
+                }
+
+                if (element.NameToken.Text == "State")
+                {
+                    FlowStateSyntax? state = LowerTsxState(element);
+                    if (state is not null)
+                    {
+                        states.Add(state);
+                    }
+                }
+                else
+                {
+                    Report("COPE-FLOW-TSX-0006", $"Unsupported Flow child element '{element.NameToken.Text}'.", element.NameToken);
+                }
+            }
+
+            TsXmlAttributeSyntax flowNameAttribute = FindTsxAttribute(flowElement, "name")!;
+            SyntaxToken nameToken = SyntheticToken(
+                SyntaxKind.IdentifierToken,
+                flowName,
+                flowNameAttribute.StringValueToken ?? flowNameAttribute.NameToken);
+            return new FlowDeclarationSyntax(
+                flowElement.NameToken,
+                nameToken,
+                resultType is null ? null : SyntheticToken(SyntaxKind.ArrowToken, "->", flowElement.NameToken),
+                resultType,
+                flowElement.OpenCloseToken,
+                board,
+                events,
+                states,
+                flowElement.CloseGreaterToken ?? flowElement.OpenCloseToken);
+        }
+
+        private FlowBoardSyntax? LowerTsxBoardAttribute(TsXmlElementExpressionSyntax flowElement)
+        {
+            TsXmlAttributeSyntax? boardAttribute = FindTsxAttribute(flowElement, "board");
+            if (boardAttribute is null)
+            {
+                Report("COPE-FLOW-TSX-0002", "Element 'Flow' requires 'board'.", flowElement.NameToken);
+                return null;
+            }
+            if (boardAttribute.ExpressionValue is not ObjectLiteralExpressionSyntax boardObject)
+            {
+                Report(
+                    "COPE-FLOW-TSX-0004",
+                    "Flow 'board' must be an ordinary object literal whose initializer values determine the fixed field types.",
+                    boardAttribute.NameToken);
+                return null;
+            }
+
+            var fields = new List<FlowBoardFieldSyntax>();
+            foreach (ObjectPropertySyntax property in boardObject.Properties)
+            {
+                if (property.NameToken.Kind != SyntaxKind.IdentifierToken)
+                {
+                    Report(
+                        "COPE-FLOW-TSX-0004",
+                        "Flow board field names must be static TypeScript identifiers.",
+                        property.NameToken);
+                    continue;
+                }
+                fields.Add(new FlowBoardFieldSyntax(
+                    property.NameToken,
+                    property.ColonToken,
+                    null,
+                    SyntheticToken(SyntaxKind.EqualsToken, "=", property.ColonToken),
+                    property.ValueExpression,
+                    SyntheticToken(SyntaxKind.SemicolonToken, ";", property.NameToken)));
+            }
+
+            return new FlowBoardSyntax(
+                boardAttribute.NameToken,
+                boardObject.OpenBraceToken,
+                fields,
+                boardObject.CloseBraceToken);
+        }
+
+        private FlowStateSyntax? LowerTsxState(TsXmlElementExpressionSyntax stateElement)
+        {
+            ValidateTsxAttributes(stateElement, ["name", "initial"]);
+            string? stateName = RequireStaticStringAttribute(stateElement, "name");
+            if (stateName is null)
+            {
+                return null;
+            }
+
+            TsXmlAttributeSyntax? initialAttribute = FindTsxAttribute(stateElement, "initial");
+            if (initialAttribute is not null && initialAttribute.EqualsToken is not null)
+            {
+                Report("COPE-FLOW-TSX-0004", "State 'initial' is a presence-only marker.", initialAttribute.NameToken);
+            }
+
+            var transitions = new List<FlowTransitionSyntax>();
+            FlowTerminalSyntax? terminal = null;
+            foreach (TsXmlChildSyntax child in stateElement.Children)
+            {
+                if (IsWhitespaceTsxText(child))
+                {
+                    continue;
+                }
+                if (child is TsXmlExpressionChildSyntax expressionChild)
+                {
+                    FlowTransitionSyntax? transition = LowerTsxTransitionArm(expressionChild.Expression);
+                    if (transition is null)
+                    {
+                        Report(
+                            "COPE-FLOW-TSX-0010",
+                            "State expression children must be payload-enum transition arms such as {Start(amount) when amount > 0 => Staging { ... }}.",
+                            expressionChild.OpenBraceToken);
+                    }
+                    else
+                    {
+                        transitions.Add(transition);
+                    }
+                    continue;
+                }
+                if (child is not TsXmlElementChildSyntax { Element: TsXmlElementExpressionSyntax element })
+                {
+                    ReportInvalidTsxChild(stateElement, child, "State children must be transition arms, Finish, or Fail semantic elements.");
+                    continue;
+                }
+
+                if (element.NameToken.Text is "Finish" or "Fail")
+                {
+                    if (terminal is not null)
+                    {
+                        Report("COPE-FLOW-TSX-0009", "A State may declare only one terminal outcome.", element.NameToken);
+                        continue;
+                    }
+                    terminal = LowerTsxTerminal(element);
+                    continue;
+                }
+
+                Report("COPE-FLOW-TSX-0006", $"Unsupported State child element '{element.NameToken.Text}'.", element.NameToken);
+            }
+
+            TsXmlAttributeSyntax stateNameAttribute = FindTsxAttribute(stateElement, "name")!;
+            SyntaxToken stateNameToken = SyntheticToken(
+                SyntaxKind.IdentifierToken,
+                stateName,
+                stateNameAttribute.StringValueToken ?? stateNameAttribute.NameToken);
+            return new FlowStateSyntax(
+                stateElement.NameToken,
+                stateNameToken,
+                initialAttribute?.NameToken,
+                stateElement.OpenCloseToken,
+                transitions,
+                terminal,
+                stateElement.CloseGreaterToken ?? stateElement.OpenCloseToken);
+        }
+
+        private FlowTransitionSyntax? LowerTsxTransitionArm(ExpressionSyntax expression)
+        {
+            if (expression is TsXmlFlowTransitionArmExpressionSyntax arm)
+            {
+                return CreateTsxTransition(
+                    arm.Pattern,
+                    arm.WhenToken,
+                    arm.Guard,
+                    arm.ArrowToken,
+                    arm.TargetIdentifier,
+                    arm.Body);
+            }
+
+            if (expression is ArrowExpressionSyntax
+                {
+                    OpenParenToken: null,
+                    Parameters.Count: 1,
+                    ReturnType: null,
+                    ExpressionBody: NameExpressionSyntax target,
+                    BlockBody: null,
+                } arrow)
+            {
+                ArrowParameterSyntax parameter = arrow.Parameters[0];
+                if (parameter.ColonToken is not null || parameter.Type is not null)
+                {
+                    return null;
+                }
+                var pattern = new MatchPatternSyntax(parameter.Identifier, null, [], [], null);
+                return CreateTsxTransition(
+                    pattern,
+                    null,
+                    null,
+                    arrow.ArrowToken,
+                    target.IdentifierToken,
+                    null);
+            }
+
+            return null;
+        }
+
+        private static FlowTransitionSyntax CreateTsxTransition(
+            MatchPatternSyntax pattern,
+            SyntaxToken? whenToken,
+            ExpressionSyntax? guard,
+            SyntaxToken arrowToken,
+            SyntaxToken targetIdentifier,
+            BlockStatementSyntax? body)
+            => new(
+                pattern.CaseIdentifier,
+                pattern.CaseIdentifier,
+                pattern.OpenParenToken ?? SyntheticToken(SyntaxKind.OpenParenToken, "(", pattern.CaseIdentifier),
+                pattern.PayloadIdentifiers,
+                pattern.CommaTokens,
+                pattern.CloseParenToken ?? SyntheticToken(SyntaxKind.CloseParenToken, ")", pattern.CaseIdentifier),
+                whenToken,
+                guard,
+                arrowToken,
+                targetIdentifier,
+                body,
+                SyntheticToken(
+                    SyntaxKind.SemicolonToken,
+                    ";",
+                    body?.CloseBraceToken ?? targetIdentifier));
+
+        private FlowTerminalSyntax LowerTsxTerminal(TsXmlElementExpressionSyntax terminalElement)
+        {
+            string valueAttributeName = terminalElement.NameToken.Text == "Finish" ? "value" : "error";
+            ValidateTsxAttributes(terminalElement, [valueAttributeName]);
+            TsXmlAttributeSyntax? valueAttribute = FindTsxAttribute(terminalElement, valueAttributeName);
+            if (valueAttribute is not null && valueAttribute.ExpressionValue is null && valueAttribute.StringValueToken is null)
+            {
+                Report("COPE-FLOW-TSX-0003", $"{terminalElement.NameToken.Text} '{valueAttributeName}' requires a value.", valueAttribute.NameToken);
+            }
+            if (terminalElement.SlashToken is null || terminalElement.Children.Any(child => !IsWhitespaceTsxText(child)))
+            {
+                Report("COPE-FLOW-TSX-0007", $"{terminalElement.NameToken.Text} must be self-closing.", terminalElement.NameToken);
+            }
+
+            ExpressionSyntax? expression = valueAttribute?.ExpressionValue;
+            if (expression is null && valueAttribute?.StringValueToken is not null)
+            {
+                expression = new LiteralExpressionSyntax(valueAttribute.StringValueToken);
+            }
+            return new FlowTerminalSyntax(
+                SyntheticToken(
+                    SyntaxKind.IdentifierToken,
+                    terminalElement.NameToken.Text == "Finish" ? "finish" : "fail",
+                    terminalElement.NameToken),
+                expression,
+                SyntheticToken(SyntaxKind.SemicolonToken, ";", terminalElement.OpenCloseToken));
+        }
+
+        private TypeSyntax? ParseTsxTypeAttribute(
+            TsXmlElementExpressionSyntax element,
+            string attributeName,
+            bool required = false)
+        {
+            TsXmlAttributeSyntax? attribute = FindTsxAttribute(element, attributeName);
+            if (attribute is null)
+            {
+                if (required)
+                {
+                    Report("COPE-FLOW-TSX-0002", $"Element '{element.NameToken.Text}' requires '{attributeName}'.", element.NameToken);
+                }
+                return null;
+            }
+            if (attribute.StringValueToken?.Value is not string typeText)
+            {
+                Report("COPE-FLOW-TSX-0004", $"Attribute '{attributeName}' must be a static type string.", attribute.NameToken);
+                return null;
+            }
+            return ParseTsxType(typeText, attribute.NameToken);
+        }
+
+        private TypeSyntax? ParseTsxType(string typeText, SyntaxToken anchor)
+        {
+            var parser = new Parser(typeText);
+            TypeSyntax type = parser.ParseStandaloneType();
+            if (parser.Diagnostics.Count > 0)
+            {
+                Report("COPE-FLOW-TSX-0011", $"'{typeText}' is not a valid Copeland type.", anchor);
+                return null;
+            }
+            return type;
+        }
+
+        private void ValidateTsxAttributes(
+            TsXmlElementExpressionSyntax element,
+            IReadOnlyCollection<string> allowed)
+        {
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            foreach (TsXmlAttributeSyntax attribute in element.Attributes)
+            {
+                if (!names.Add(attribute.NameToken.Text))
+                {
+                    Report("COPE-FLOW-TSX-0012", $"Duplicate attribute '{attribute.NameToken.Text}'.", attribute.NameToken);
+                }
+                if (!allowed.Contains(attribute.NameToken.Text))
+                {
+                    Report("COPE-FLOW-TSX-0006", $"Unsupported attribute '{attribute.NameToken.Text}' on '{element.NameToken.Text}'.", attribute.NameToken);
+                }
+            }
+        }
+
+        private string? RequireStaticStringAttribute(TsXmlElementExpressionSyntax element, string name)
+        {
+            TsXmlAttributeSyntax? attribute = FindTsxAttribute(element, name);
+            if (attribute is null)
+            {
+                Report("COPE-FLOW-TSX-0002", $"Element '{element.NameToken.Text}' requires '{name}'.", element.NameToken);
+                return null;
+            }
+            if (attribute.StringValueToken?.Value is string value && !string.IsNullOrWhiteSpace(value))
+            {
+                return value;
+            }
+            Report("COPE-FLOW-TSX-0004", $"Attribute '{name}' must be a non-empty static string.", attribute.NameToken);
+            return null;
+        }
+
+        private string? RequireStaticNameAttribute(TsXmlElementExpressionSyntax element, string name)
+        {
+            TsXmlAttributeSyntax? attribute = FindTsxAttribute(element, name);
+            if (attribute is null)
+            {
+                Report("COPE-FLOW-TSX-0002", $"Element '{element.NameToken.Text}' requires '{name}'.", element.NameToken);
+                return null;
+            }
+            if (attribute.ExpressionValue is NameExpressionSyntax identifier)
+            {
+                return identifier.IdentifierToken.Text;
+            }
+            Report("COPE-FLOW-TSX-0004", $"Attribute '{name}' must be a static symbol reference.", attribute.NameToken);
+            return null;
+        }
+
+        private static TsXmlAttributeSyntax? FindTsxAttribute(TsXmlElementExpressionSyntax element, string name)
+            => element.Attributes.FirstOrDefault(attribute => attribute.NameToken.Text == name);
+
+        private static TsXmlElementExpressionSyntax? UnwrapTsXmlElement(ExpressionSyntax expression)
+        {
+            while (expression is ParenthesizedExpressionSyntax parenthesized)
+            {
+                expression = parenthesized.Expression;
+            }
+            return expression as TsXmlElementExpressionSyntax;
+        }
+
+        private static bool IsWhitespaceTsxText(TsXmlChildSyntax child)
+            => child is TsXmlTextSyntax text && string.IsNullOrWhiteSpace(text.TextToken.Text);
+
+        private void ReportInvalidTsxChild(
+            TsXmlElementExpressionSyntax parent,
+            TsXmlChildSyntax child,
+            string message)
+        {
+            SyntaxToken anchor = child switch
+            {
+                TsXmlTextSyntax text => text.TextToken,
+                TsXmlExpressionChildSyntax expression => expression.OpenBraceToken,
+                TsXmlElementChildSyntax { Element: TsXmlElementExpressionSyntax element } => element.NameToken,
+                TsXmlElementChildSyntax { Element: TsXmlFragmentExpressionSyntax fragment } => fragment.LessToken,
+                _ => parent.NameToken,
+            };
+            Report("COPE-FLOW-TSX-0006", message, anchor);
+        }
+
+        private static SyntaxToken SyntheticToken(SyntaxKind kind, string text, SyntaxToken anchor)
+            => new(kind, anchor.Position, text, text);
 
         private void BindFlow(FlowDeclarationSyntax declaration)
         {
@@ -4579,23 +5025,32 @@ public static class Binder
                         continue;
                     }
 
-                    TypeSymbol type = BindType(fieldSyntax.Type, fieldSyntax.Identifier, "COPE-FLOW-0005", "board field");
-                    var field = new RecordFieldSymbol(fieldSyntax.Identifier.Text, new RecordFieldId(boardType.Id, boardType.Fields.Count), type);
-                    boardType.AddField(field);
+                    TypeSymbol type;
                     BoundExpression initializer;
                     if (fieldSyntax.Initializer is null)
                     {
-                        Report("COPE-FLOW-0006", $"Board field '{field.Name}' requires an explicit initializer in FLOW-M1.", fieldSyntax.Identifier);
+                        Report("COPE-FLOW-0006", $"Board field '{fieldSyntax.Identifier.Text}' requires an explicit initializer in FLOW-M1.", fieldSyntax.Identifier);
+                        type = fieldSyntax.Type is null
+                            ? PrimitiveTypeSymbol.Error
+                            : BindType(fieldSyntax.Type, fieldSyntax.Identifier, "COPE-FLOW-0005", "board field");
                         initializer = new BoundErrorExpression();
+                    }
+                    else if (fieldSyntax.Type is null)
+                    {
+                        initializer = BindExpression(fieldSyntax.Initializer);
+                        type = initializer.Type;
                     }
                     else
                     {
+                        type = BindType(fieldSyntax.Type, fieldSyntax.Identifier, "COPE-FLOW-0005", "board field");
                         initializer = BindExpression(fieldSyntax.Initializer, type);
                         if (initializer.Type != PrimitiveTypeSymbol.Error && !IsAssignable(type, initializer.Type))
                         {
-                            Report("COPE-FLOW-0007", $"Board initializer for '{field.Name}' must have type '{type.Name}', got '{initializer.Type.Name}'.", fieldSyntax.Identifier);
+                            Report("COPE-FLOW-0007", $"Board initializer for '{fieldSyntax.Identifier.Text}' must have type '{type.Name}', got '{initializer.Type.Name}'.", fieldSyntax.Identifier);
                         }
                     }
+                    var field = new RecordFieldSymbol(fieldSyntax.Identifier.Text, new RecordFieldId(boardType.Id, boardType.Fields.Count), type);
+                    boardType.AddField(field);
                     boardFields.Add(new BoundFlowBoardField(field, initializer));
                 }
             }
@@ -4651,6 +5106,13 @@ public static class Binder
             var states = new List<BoundFlowState>();
             foreach (FlowStateSyntax stateSyntax in declaration.States)
             {
+                if (stateSyntax.Terminal is not null && stateSyntax.Transitions.Count > 0)
+                {
+                    Report(
+                        "COPE-FLOW-0031",
+                        $"Terminal state '{stateSyntax.Identifier.Text}' cannot declare outgoing transitions.",
+                        stateSyntax.Transitions[0].OnKeyword);
+                }
                 var transitions = new List<BoundFlowTransition>();
                 for (int transitionIndex = 0; transitionIndex < stateSyntax.Transitions.Count; transitionIndex++)
                 {
@@ -6021,7 +6483,7 @@ public static class Binder
             };
             Report(
                 "COPE-TSXML-0101",
-                "TS-XML syntax requires an enabled project type; select ReactComponents or TextDocuments in tsconfig.tsx.",
+                "TS-XML syntax requires an enabled project type; select ReactComponents, TextDocuments, or FlowAuthoring in tsconfig.tsx.",
                 token);
             return new BoundErrorExpression();
         }

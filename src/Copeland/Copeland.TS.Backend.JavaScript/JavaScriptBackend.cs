@@ -305,7 +305,7 @@ public static class JavaScriptBackend
         writer.WriteLine("let terminal = false;");
         writer.WriteLine("let sending = false;");
         writer.WriteLine("let revision = 0;");
-        writer.WriteLine("const result = (kind, fromState, toState, event, error = null) => Object.freeze({ kind, fromState, toState, event, revision, terminal, error });");
+        writer.WriteLine("const result = (kind, fromState, toState, event, value = null, error = null) => Object.freeze({ kind, fromState, toState, event, revision, terminal, value, error });");
         writer.WriteLine("const session = {");
         writer.Indent();
         writer.WriteLine("get state() { return state; },");
@@ -366,10 +366,13 @@ public static class JavaScriptBackend
                 MirFlowTerminal terminal = target.Terminal;
                 writer.WriteLine("terminal = true;");
                 string kind = terminal.IsFailure ? "Failed" : "Completed";
+                string value = !terminal.IsFailure && terminal.Expression is not null
+                    ? EmitFlowExpression(terminal.Expression, fieldsById)
+                    : "null";
                 string error = terminal.IsFailure && terminal.Expression is not null
                     ? EmitFlowExpression(terminal.Expression, fieldsById)
                     : terminal.IsFailure ? JavaScriptLiteralWriter.WriteString("Flow failed.") : "null";
-                writer.WriteLine($"return result({JavaScriptLiteralWriter.WriteString(kind)}, fromState, state, {JavaScriptLiteralWriter.WriteString(@event.Name)}, {error});");
+                writer.WriteLine($"return result({JavaScriptLiteralWriter.WriteString(kind)}, fromState, state, {JavaScriptLiteralWriter.WriteString(@event.Name)}, {value}, {error});");
             }
             else
             {

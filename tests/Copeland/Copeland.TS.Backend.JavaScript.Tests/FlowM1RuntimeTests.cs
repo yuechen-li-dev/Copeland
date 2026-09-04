@@ -10,6 +10,32 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 public sealed class FlowM1RuntimeTests
 {
     [Fact]
+    public async Task Completed_flow_transition_exposes_the_typed_finish_value()
+    {
+        var lowered = MirLowerer.Lower(SyntaxTree.Parse("""
+            flow Completion -> int {
+                board { value: int = 7; }
+                event Complete();
+                state Ready initial { on Complete() -> Done; }
+                state Done { finish board.value; }
+            }
+            """));
+
+        Assert.Empty(lowered.Diagnostics);
+        var compilation = JavaScriptBackend.Emit(lowered.Program!);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+
+        const string suffix = """
+            const transition = Completion.start().sendComplete();
+            console.log(transition.kind);
+            console.log(transition.value);
+            console.log(transition.error);
+            """;
+        string output = await Execute(compilation.SourceText! + suffix);
+        Assert.Equal("Completed\n7\nnull\n", output);
+    }
+
+    [Fact]
     public async Task Node_executes_a_flow_transition_with_the_same_observable_result()
     {
         const string source = """
@@ -38,10 +64,16 @@ public sealed class FlowM1RuntimeTests
             console.log(session.state);
             console.log(session.board.attempts);
             """;
+        string stdout = await Execute(javaScript + suffix);
+        Assert.Equal("Transitioned\nOpened\n1\n", stdout);
+    }
+
+    private static async Task<string> Execute(string source)
+    {
         string path = Path.Combine(Path.GetTempPath(), "copeland-flow-" + Guid.NewGuid().ToString("N") + ".js");
         try
         {
-            await File.WriteAllTextAsync(path, javaScript + suffix, new UTF8Encoding(false));
+            await File.WriteAllTextAsync(path, source, new UTF8Encoding(false));
             using var process = Process.Start(new ProcessStartInfo("node", '"' + path + '"')
             {
                 UseShellExecute = false,
@@ -54,7 +86,7 @@ public sealed class FlowM1RuntimeTests
 
             Assert.Equal(0, process.ExitCode);
             Assert.Equal(string.Empty, stderr);
-            Assert.Equal("Transitioned\nOpened\n1\n", stdout);
+            return stdout.Replace("\r\n", "\n", StringComparison.Ordinal);
         }
         finally
         {

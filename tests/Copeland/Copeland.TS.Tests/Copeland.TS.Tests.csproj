@@ -28,6 +28,7 @@
     <Compile Remove="TsonAssets/**/*.cs" />
     <Compile Remove="TsonTableAssets/**/*.cs" />
     <None Include="TestData/Corpus/**/*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="TestData/FlowTsxM0/**/*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Language/**/*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Manifest/**/*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Tson/**/*" CopyToOutputDirectory="PreserveNewest" />

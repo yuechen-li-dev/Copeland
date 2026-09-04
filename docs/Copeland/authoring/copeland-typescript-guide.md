@@ -675,8 +675,43 @@ export flow PantryRun -> int ! string {
 permits `finish;`. A state/event pair has one transition. A false guard is
 unhandled and changes nothing. Guards and updates may use only pure literals,
 local/event bindings, primitive operators, and board reads: calls, async, npm,
-CLR, `batch`, and inline C# are rejected. Updates commit atomically with the
-target state.
+CLR, `batch`, and inline C# are rejected. Effect-qualified pure Copeland helper
+calls are allowed in updates; guards remain call-free. Updates commit atomically
+with the target state.
+
+Projects that enable the `FlowAuthoring` type may instead use the optional
+`.flow.tsx` spelling. It is compile-time notation over the same flow graph:
+
+```tsx
+enum PantryEvent { Add(amount: int), Close, }
+
+export default (
+    <Flow
+        name="PantryRun"
+        events={PantryEvent}
+        result="int"
+        failure="string"
+        board={{ servings: 0 }}
+    >
+        <State name="Planning" initial>
+            {Add(amount) when amount > 0 => Planning {
+                board.servings = board.servings + amount;
+            }}
+            {Close => Completed}
+        </State>
+        <State name="Completed">
+            <Finish value={board.servings} />
+        </State>
+    </Flow>
+);
+```
+
+These tags are compiler semantic forms, not components. The board is an ordinary
+object literal whose fixed field types are inferred by the existing binder.
+There is no JSX runtime
+or React dependency. State/target strings are static symbols; event patterns are
+payload-enum cases with typed positional bindings. See the
+[M0 architecture and equivalence report](../flow-tsx-authoring-m0-report.md).
 
 The compiler retains a dedicated Bound/MIR graph. Generated CLR/JavaScript
 session APIs are provisional. Do not author `Flow.start()`, first-class event

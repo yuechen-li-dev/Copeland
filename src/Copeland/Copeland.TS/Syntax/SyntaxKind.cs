@@ -230,6 +230,7 @@ public enum SyntaxKind
     ArrowParameter,
     TsXmlElementExpression,
     TsXmlFragmentExpression,
+    TsXmlFlowTransitionArmExpression,
     TsXmlAttribute,
     TsXmlText,
     TsXmlExpressionChild,

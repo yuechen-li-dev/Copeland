@@ -19,11 +19,11 @@ canonical bound/MIR fact; it does not imply every runtime ecosystem is present.
 | Arrays, TSON values/assets, record tables | Bounded | Yes | Yes | Yes | TSON/table tools |
 | Templates and static evaluation | Bounded | Yes | C# generation | generated artifacts | template tooling |
 | Typed source artifacts | Preview M0 supported | `CopelandTS`, `CopelandTest`, `CSharp`; explicit identifier imports | Roslyn syntax validation | Copeland module/test parsing; nested TS-XML | outer-template diagnostics; rich embedded LSP deferred |
-| TSX / XML-shaped frontend | Bounded | React M0 profile | projection | projection | syntax/LSP |
+| TSX / XML-shaped frontend | Bounded | React, text-document, and optional flow-authoring profiles | projection | projection | syntax/LSP |
 | Components, captures, private streams/layouts | Bounded | Yes | semantic runtime tests | React/Custom Element proof | tables/hover |
 | Component state, events, presentation branches | Bounded | Yes | in-process semantic runtime | browser frame proof | inspection |
 | Effects | Foundation only | descriptors/runtime model | semantic runtime | browser execution deferred | inspection partial |
-| `flow` | Bounded | Yes | Yes | Yes | compile/runtime tests |
+| `flow` | Bounded | Canonical native syntax plus optional TSX authoring; same MIR | Yes | Yes | compile/runtime tests |
 | Machina layouts, streams, bindings, derivations, z-order | Bounded | Yes | layout projections | browser CSS/materialization proof | layout/table inspect |
 | CSV-shaped layout authoring | Bounded | Yes | layout projections | browser proof | layout/table inspect |
 | Text documents, Markdown-style inline syntax, fitting | Bounded | Yes | model/projections | browser text-fit proof | text tables |

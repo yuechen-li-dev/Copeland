@@ -1380,12 +1380,13 @@ public sealed record FlowBoardSyntax(SyntaxToken BoardKeyword, SyntaxToken OpenB
     }
 }
 
-public sealed record FlowBoardFieldSyntax(SyntaxToken Identifier, SyntaxToken ColonToken, TypeSyntax Type, SyntaxToken? EqualsToken, ExpressionSyntax? Initializer, SyntaxToken SemicolonToken) : SyntaxNode
+public sealed record FlowBoardFieldSyntax(SyntaxToken Identifier, SyntaxToken ColonToken, TypeSyntax? Type, SyntaxToken? EqualsToken, ExpressionSyntax? Initializer, SyntaxToken SemicolonToken) : SyntaxNode
 {
     public override SyntaxKind Kind => SyntaxKind.FlowBoardField;
     public override IEnumerable<object> GetChildren()
     {
-        yield return Identifier; yield return ColonToken; yield return Type;
+        yield return Identifier; yield return ColonToken;
+        if (Type is not null) yield return Type;
         if (EqualsToken is not null) yield return EqualsToken;
         if (Initializer is not null) yield return Initializer;
         yield return SemicolonToken;
@@ -2706,6 +2707,31 @@ public sealed record CaptureExpressionSyntax(
 /// this syntax node deliberately does not imply a UI, component, or runtime model.
 /// </summary>
 public abstract record TsXmlExpressionSyntax : ExpressionSyntax;
+
+/// <summary>
+/// A payload-enum match arm used as a static child of a TSX Flow State.
+/// Semantic profiles decide whether this otherwise inert syntax has meaning.
+/// </summary>
+public sealed record TsXmlFlowTransitionArmExpressionSyntax(
+    MatchPatternSyntax Pattern,
+    SyntaxToken? WhenToken,
+    ExpressionSyntax? Guard,
+    SyntaxToken ArrowToken,
+    SyntaxToken TargetIdentifier,
+    BlockStatementSyntax? Body) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.TsXmlFlowTransitionArmExpression;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Pattern;
+        if (WhenToken is not null) yield return WhenToken;
+        if (Guard is not null) yield return Guard;
+        yield return ArrowToken;
+        yield return TargetIdentifier;
+        if (Body is not null) yield return Body;
+    }
+}
 
 /// <summary>
 /// A language-owned source body in a static template.  The parser deliberately

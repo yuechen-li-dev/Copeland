@@ -224,7 +224,7 @@ public static class CSharpBackend
         string boardType = RecordTypeName(flow.BoardType.RecordTypeId);
         string resultType = flowName + "TransitionResult";
         var expressionContext = new MirFunction("<flow>", [], new MirNamedType("void"), [], []);
-        writer.WriteLine($"public readonly record struct {resultType}(string Kind, string FromState, string? ToState, string Event, long Revision, bool IsTerminal, object? Error);");
+        writer.WriteLine($"public readonly record struct {resultType}(string Kind, string FromState, string? ToState, string Event, long Revision, bool IsTerminal, object? Value, object? Error);");
         writer.WriteLine($"public static class {flowName}");
         writer.WriteLine("{");
         writer.Indent();
@@ -265,7 +265,7 @@ public static class CSharpBackend
         writer.WriteLine("{");
         writer.Indent();
         writer.WriteLine("if (sending) throw new global::System.InvalidOperationException(\"A Copeland flow session cannot receive a reentrant event.\");");
-        writer.WriteLine("if (terminal) return new(" + CSharpLiteralWriter.Write("Terminal") + ", state, null, " + CSharpLiteralWriter.Write(@event.Name) + ", revision, true, null);");
+        writer.WriteLine("if (terminal) return new(" + CSharpLiteralWriter.Write("Terminal") + ", state, null, " + CSharpLiteralWriter.Write(@event.Name) + ", revision, true, null, null);");
         writer.WriteLine("sending = true;");
         writer.WriteLine("try");
         writer.WriteLine("{");
@@ -283,7 +283,7 @@ public static class CSharpBackend
             if (transition.Guard is not null)
             {
                 string guard = EmitExpression(writer, transition.Guard, expressionContext, enumNames, ref tempIndex, diagnostics);
-                writer.WriteLine($"if (!({guard})) return new({CSharpLiteralWriter.Write("Unhandled")}, state, null, {CSharpLiteralWriter.Write(@event.Name)}, revision, false, null);");
+                writer.WriteLine($"if (!({guard})) return new({CSharpLiteralWriter.Write("Unhandled")}, state, null, {CSharpLiteralWriter.Write(@event.Name)}, revision, false, null, null);");
             }
             writer.WriteLine($"{RecordTypeName(flow.BoardType.RecordTypeId)} nextBoard = this.board;");
             writer.WriteLine($"{RecordTypeName(flow.BoardType.RecordTypeId)} board = nextBoard;");
@@ -308,13 +308,13 @@ public static class CSharpBackend
             }
             else
             {
-                writer.WriteLine($"return new({CSharpLiteralWriter.Write("Transitioned")}, fromState, state, {CSharpLiteralWriter.Write(@event.Name)}, revision, false, null);");
+                writer.WriteLine($"return new({CSharpLiteralWriter.Write("Transitioned")}, fromState, state, {CSharpLiteralWriter.Write(@event.Name)}, revision, false, null, null);");
             }
             writer.Unindent();
         }
         writer.WriteLine("default:");
         writer.Indent();
-        writer.WriteLine($"return new({CSharpLiteralWriter.Write("Unhandled")}, state, null, {CSharpLiteralWriter.Write(@event.Name)}, revision, false, null);");
+        writer.WriteLine($"return new({CSharpLiteralWriter.Write("Unhandled")}, state, null, {CSharpLiteralWriter.Write(@event.Name)}, revision, false, null, null);");
         writer.Unindent();
         writer.Unindent();
         writer.WriteLine("}");
@@ -337,13 +337,16 @@ public static class CSharpBackend
         string? error = terminal.IsFailure && terminal.Expression is not null
             ? EmitExpression(writer, terminal.Expression, expressionContext, enumNames, ref tempIndex, diagnostics)
             : terminal.IsFailure ? CSharpLiteralWriter.Write("Flow failed.") : "null";
+        string? value = !terminal.IsFailure && terminal.Expression is not null
+            ? EmitExpression(writer, terminal.Expression, expressionContext, enumNames, ref tempIndex, diagnostics)
+            : "null";
         writer.WriteLine($"private {resultType} Enter{CSharpNameMangler.Mangle(state.Name)}(string fromState, string eventName)");
         writer.WriteLine("{");
         writer.Indent();
         writer.WriteLine($"{RecordTypeName(flow.BoardType.RecordTypeId)} board = this.board;");
         writer.WriteLine("terminal = true;");
         string kind = terminal.IsFailure ? "Failed" : "Completed";
-        writer.WriteLine($"return new({CSharpLiteralWriter.Write(kind)}, fromState, state, eventName, revision, true, {(terminal.IsFailure ? error : "null")});");
+        writer.WriteLine($"return new({CSharpLiteralWriter.Write(kind)}, fromState, state, eventName, revision, true, {value}, {error});");
         writer.Unindent();
         writer.WriteLine("}");
     }

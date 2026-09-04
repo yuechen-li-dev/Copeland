@@ -362,7 +362,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
             ProjectTypes.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
             out string? unknownType);
         if (unknownType is null) return true;
-        Log.LogError("COPE-MSBUILD-0008", "", "", ProjectDirectory, 0, 0, 0, 0, $"Unknown Copeland project type '{unknownType}'. Supported types are TextDocuments and ReactComponents.");
+        Log.LogError("COPE-MSBUILD-0008", "", "", ProjectDirectory, 0, 0, 0, 0, $"Unknown Copeland project type '{unknownType}'. Supported types are TextDocuments, ReactComponents, and FlowAuthoring.");
         return false;
     }
 

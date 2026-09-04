@@ -1,5 +1,10 @@
 # CTS-FLOW-M1 — explicit typed flow/state automata
 
+> Native `flow` is the canonical semantic syntax. COPELAND-FLOW-TSX-M0 also
+> provides an optional compiler-owned `.flow.tsx` authoring surface that lowers
+> to the same `FlowDeclarationSyntax`, bound FLOW model, MIR, and runtime. See
+> [the TSX authoring report](Copeland/flow-tsx-authoring-m0-report.md).
+
 `flow` is Copeland TS's synchronous, event-driven application automaton. It is
 not a generator or an async function: a flow owns a durable session state, a
 fixed board, and a visible event-to-transition graph.
@@ -42,8 +47,8 @@ implicit source-order priority. A false guard returns the same inspectable
 `Unhandled` outcome as a missing handler, leaving state, board, and revision
 unchanged. Guards and board-update expressions are deliberately limited to
 pure literals, local/event bindings, primitive operators, and board reads.
-Calls, async/npm/CLR operations, batch, and inline C# are rejected in flow
-logic.
+Effect-qualified pure Copeland helper calls are accepted in updates. Guards,
+async/npm/CLR operations, batch, and inline C# remain rejected in flow logic.
 
 `flow Name -> ResultType` declares the type required by `finish value`.
 `flow Name -> ResultType ! ErrorType` also declares the type required by
@@ -56,8 +61,8 @@ then increments the session revision. External inspection exposes a read-only
 board value. Generated CLR sessions currently have `Door.Start()` and one typed
 `Send<Event>(...)` method per declared event; generated JavaScript has
 `Door.start()` and `session.send<Event>(...)`. A send returns a transition
-result with `kind`, source/target state, event, revision, terminal status, and
-an optional failure message. `Transitioned`, `Unhandled`, `Terminal`,
+result with `kind`, source/target state, event, revision, terminal status, an
+optional completion value, and an optional failure message. `Transitioned`, `Unhandled`, `Terminal`,
 `Completed`, and `Failed` are the current result kinds. Reentrant sends throw
 deterministically; terminal sends return `Terminal` without mutation.
 

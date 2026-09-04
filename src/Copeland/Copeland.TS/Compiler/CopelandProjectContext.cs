@@ -320,14 +320,14 @@ public sealed class CopelandProjectContext
 
     private static string? ProjectTypesProfile(IReadOnlyList<string>? projectTypes)
     {
-        bool react = projectTypes?.Contains("ReactComponents", StringComparer.Ordinal) == true;
-        bool text = projectTypes?.Contains("TextDocuments", StringComparer.Ordinal) == true;
-        return (react, text) switch
+        CopelandProjectTypeSet types = CopelandProjectTypes.FromNames(projectTypes ?? [], out _);
+        return types switch
         {
-            (true, true) => "react-m0+text-m0",
-            (true, false) => "react-m0",
-            (false, true) => "text-m0",
-            _ => null,
+            CopelandProjectTypeSet.None => null,
+            CopelandProjectTypeSet.ReactComponents => "react-m0",
+            CopelandProjectTypeSet.TextDocuments => "text-m0",
+            CopelandProjectTypeSet.ReactComponents | CopelandProjectTypeSet.TextDocuments => "react-m0+text-m0",
+            _ => CopelandProjectTypes.ToTransport(types),
         };
     }
 
@@ -410,13 +410,7 @@ public sealed class CopelandProjectContext
             ProjectRoot = projectRoot,
             NpmDependencies = npmDependencies,
             JavaScriptHostModules = browser ? [CopelandProjectHostContracts.Browser()] : [],
-            ProjectTypes = descriptor.TsXmlProfile?.ToLowerInvariant() switch
-            {
-                "react-m0" => CopelandProjectTypeSet.ReactComponents,
-                "text-m0" => CopelandProjectTypeSet.TextDocuments,
-                "react-m0+text-m0" or "text-m0+react-m0" => CopelandProjectTypeSet.ReactComponents | CopelandProjectTypeSet.TextDocuments,
-                _ => CopelandProjectTypeSet.None,
-            },
+            ProjectTypes = ParseDescriptorProjectTypes(descriptor.TsXmlProfile),
         };
         return new CopelandProjectContext(
             Path.GetFullPath(descriptorPath),
@@ -424,6 +418,30 @@ public sealed class CopelandProjectContext
             sources,
             options,
             FingerprintFor(sources, descriptor, options));
+    }
+
+    private static CopelandProjectTypeSet ParseDescriptorProjectTypes(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return CopelandProjectTypeSet.None;
+        }
+
+        CopelandProjectTypeSet types = CopelandProjectTypes.FromNames(
+            value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+            out string? unknownName);
+        if (unknownName is null)
+        {
+            return types;
+        }
+
+        return value.ToLowerInvariant() switch
+        {
+            "react-m0" => CopelandProjectTypeSet.ReactComponents,
+            "text-m0" => CopelandProjectTypeSet.TextDocuments,
+            "react-m0+text-m0" or "text-m0+react-m0" => CopelandProjectTypeSet.ReactComponents | CopelandProjectTypeSet.TextDocuments,
+            _ => CopelandProjectTypeSet.None,
+        };
     }
 
     public CopelandProjectSnapshot CreateSnapshot(IReadOnlyDictionary<string, string>? overlays = null)

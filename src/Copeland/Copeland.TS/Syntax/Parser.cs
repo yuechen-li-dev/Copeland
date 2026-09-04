@@ -91,6 +91,22 @@ public sealed class Parser
         return expression;
     }
 
+    /// <summary>Parses exactly one Copeland type from this parser's input.</summary>
+    public TypeSyntax ParseStandaloneType()
+    {
+        TypeSyntax type = ParseTypeSyntax();
+        if (Current.Kind != SyntaxKind.EndOfFileToken)
+        {
+            _diagnostics.Report(
+                "COPE-PARSE-0001",
+                $"Unexpected token '{Current.Text}' after type.",
+                Current.Position,
+                Math.Max(1, Current.Text.Length));
+        }
+
+        return type;
+    }
+
     private bool IsCSharpBlockDiagnostic(Diagnostic diagnostic)
         => _csharpBlockRanges.Any(range => diagnostic.Position > range.Start && diagnostic.Position < range.End);
 
@@ -3564,7 +3580,9 @@ public sealed class Parser
             {
                 AdvancePastSourcePosition(textStart);
                 SyntaxToken openBrace = MatchTsXml(SyntaxKind.OpenBraceToken, "Expected '{' to begin a TS-XML expression child.");
-                ExpressionSyntax expression = ParseExpression();
+                ExpressionSyntax expression = IsTsXmlFlowTransitionArmAhead()
+                    ? ParseTsXmlFlowTransitionArm()
+                    : ParseExpression();
                 SyntaxToken closeBrace = MatchTsXml(SyntaxKind.CloseBraceToken, "Expected '}' to close the TS-XML expression child.");
                 children.Add(new TsXmlExpressionChildSyntax(openBrace, expression, closeBrace));
                 textStart = closeBrace.Position + closeBrace.Text.Length;
@@ -3575,6 +3593,69 @@ public sealed class Parser
         }
 
         return children;
+    }
+
+    private bool IsTsXmlFlowTransitionArmAhead()
+    {
+        if (Current.Kind != SyntaxKind.IdentifierToken)
+        {
+            return false;
+        }
+
+        int offset = 1;
+        bool hasPayloadPattern = false;
+        if (Peek(offset).Kind == SyntaxKind.OpenParenToken)
+        {
+            hasPayloadPattern = true;
+            int depth = 0;
+            do
+            {
+                SyntaxKind kind = Peek(offset).Kind;
+                if (kind == SyntaxKind.OpenParenToken) depth++;
+                if (kind == SyntaxKind.CloseParenToken) depth--;
+                offset++;
+                if (kind == SyntaxKind.EndOfFileToken) return false;
+            }
+            while (depth > 0);
+        }
+
+        if (hasPayloadPattern && (Peek(offset).Kind == SyntaxKind.ArrowToken || IsWord(Peek(offset), "when")))
+        {
+            return true;
+        }
+        if (IsWord(Peek(offset), "when"))
+        {
+            return true;
+        }
+
+        return Peek(offset).Kind == SyntaxKind.ArrowToken
+            && Peek(offset + 1).Kind == SyntaxKind.IdentifierToken
+            && Peek(offset + 2).Kind == SyntaxKind.OpenBraceToken;
+    }
+
+    private TsXmlFlowTransitionArmExpressionSyntax ParseTsXmlFlowTransitionArm()
+    {
+        MatchPatternSyntax pattern = ParseMatchPattern();
+        SyntaxToken? whenToken = null;
+        ExpressionSyntax? guard = null;
+        if (IsWord(Current, "when"))
+        {
+            whenToken = NextToken();
+            guard = ParseExpression();
+        }
+
+        SyntaxToken arrowToken = MatchTsXml(SyntaxKind.ArrowToken, "Expected '=>' in a TSX Flow transition arm.");
+        SyntaxToken targetIdentifier = MatchTsXmlName("Expected a target state after '=>'.");
+        BlockStatementSyntax? body = Current.Kind == SyntaxKind.OpenBraceToken
+            ? ParseBlockStatement()
+            : null;
+        return new TsXmlFlowTransitionArmExpressionSyntax(
+            pattern,
+            whenToken,
+            guard,
+            arrowToken,
+            targetIdentifier,
+            body);
     }
 
     private TsXmlAttributeSyntax ParseTsXmlAttribute()
