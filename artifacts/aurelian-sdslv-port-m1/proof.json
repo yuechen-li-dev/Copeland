@@ -38,12 +38,12 @@
     "equal": true
   },
   "timingsMilliseconds": {
-    "parse": 26.1865,
-    "gpuBindProductionPassIncludingParse": 19.4623,
+    "parse": 25.3556,
+    "gpuBindProductionPassIncludingParse": 22.2415,
     "vdMirProjection": 0,
-    "jsonProjection": 39.5407,
-    "hlslEmit": 1.8763,
-    "dxcAndSpirvValidation": 61.3425
+    "jsonProjection": 44.749,
+    "hlslEmit": 2.1914,
+    "dxcAndSpirvValidation": 60.4949
   },
   "artifactCount": 5
 }

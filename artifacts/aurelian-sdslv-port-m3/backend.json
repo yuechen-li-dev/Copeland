@@ -18,15 +18,15 @@
       "VertexMain",
       "-T",
       "vs_6_0",
-      "C:\\Users\\yuech\\AppData\\Local\\Temp\\aurelian-dxc-91febb5a931a46bebd498ffdcac8f7c2\\VertexMain.hlsl",
+      "C:\\Users\\yuech\\AppData\\Local\\Temp\\aurelian-dxc-8786317cbf504b57b26c3dc6e138d53a\\VertexMain.hlsl",
       "-Fo",
-      "C:\\Users\\yuech\\AppData\\Local\\Temp\\aurelian-dxc-91febb5a931a46bebd498ffdcac8f7c2\\VertexMain.spv"
+      "C:\\Users\\yuech\\AppData\\Local\\Temp\\aurelian-dxc-8786317cbf504b57b26c3dc6e138d53a\\VertexMain.spv"
     ],
-    "dxcMilliseconds": 29.708,
+    "dxcMilliseconds": 29.332,
     "spirvValidated": true,
     "spirvValidationOutput": "",
-    "spirvValidationMilliseconds": 12.819,
-    "spirvDisassemblyMilliseconds": 11.93,
+    "spirvValidationMilliseconds": 12.81,
+    "spirvDisassemblyMilliseconds": 11.629,
     "structuralFacts": {
       "executionModel": true,
       "entryName": true,
@@ -54,15 +54,15 @@
       "PixelMain",
       "-T",
       "ps_6_0",
-      "C:\\Users\\yuech\\AppData\\Local\\Temp\\aurelian-dxc-3b8072102e314d2baff50ecf1c88f9c4\\PixelMain.hlsl",
+      "C:\\Users\\yuech\\AppData\\Local\\Temp\\aurelian-dxc-02513d815be24e8e915802604d49fbd1\\PixelMain.hlsl",
       "-Fo",
-      "C:\\Users\\yuech\\AppData\\Local\\Temp\\aurelian-dxc-3b8072102e314d2baff50ecf1c88f9c4\\PixelMain.spv"
+      "C:\\Users\\yuech\\AppData\\Local\\Temp\\aurelian-dxc-02513d815be24e8e915802604d49fbd1\\PixelMain.spv"
     ],
-    "dxcMilliseconds": 24.267,
+    "dxcMilliseconds": 32.086,
     "spirvValidated": true,
     "spirvValidationOutput": "",
-    "spirvValidationMilliseconds": 11.585,
-    "spirvDisassemblyMilliseconds": 11.969,
+    "spirvValidationMilliseconds": 11.621,
+    "spirvDisassemblyMilliseconds": 12.154,
     "structuralFacts": {
       "executionModel": true,
       "entryName": true,

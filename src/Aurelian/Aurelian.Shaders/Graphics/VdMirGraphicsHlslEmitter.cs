@@ -171,6 +171,7 @@ public static class VdMirGraphicsHlslEmitter
             "binary" => $"({EmitExpression(expression.Operands![0], module)} {expression.Value} {EmitExpression(expression.Operands[1], module)})",
             "intrinsic" when expression.Value == "Sample2D" => $"{EmitExpression(expression.Operands![0], module)}.Sample({EmitExpression(expression.Operands[1], module)}, {EmitExpression(expression.Operands[2], module)})",
             "intrinsic" when expression.Value == "ConvertU32ToF32" => $"float({EmitExpression(expression.Operands![0], module)})",
+            "intrinsic" when expression.Value is "Min" or "Max" or "Clamp" => $"{expression.Value!.ToLowerInvariant()}({string.Join(", ", expression.Operands!.Select(operand => EmitExpression(operand, module)))})",
             "object" => throw new InvalidOperationException("Object values must be lowered into generated stream assignments."),
             _ => throw new InvalidOperationException($"Unsupported graphics expression '{expression.Kind}'."),
         };

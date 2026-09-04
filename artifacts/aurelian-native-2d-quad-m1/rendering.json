@@ -39,11 +39,11 @@
       "descriptorSetAllocations": 3,
       "descriptorWrites": 9,
       "vertexCapacityQuads": 256,
-      "vertexUploadMilliseconds": 0.065,
-      "commandRecordingMilliseconds": 0.572,
-      "submitWaitMilliseconds": 0.376,
-      "readbackMilliseconds": 1.344,
-      "cpuAllocatedBytes": 294848
+      "vertexUploadMilliseconds": 0.068,
+      "commandRecordingMilliseconds": 0.565,
+      "submitWaitMilliseconds": 0.371,
+      "readbackMilliseconds": 1.383,
+      "cpuAllocatedBytes": 295648
     }
   },
   "repeatedPasses": {

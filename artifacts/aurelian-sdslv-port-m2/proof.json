@@ -73,7 +73,9 @@
         "vertexStream": "VertexOutput",
         "vertexMember": "uv",
         "pixelStream": "PixelInput",
-        "pixelMember": "uv"
+        "pixelMember": "uv",
+        "physicalType": "float2",
+        "semanticSpace": null
       }
     ]
   },
@@ -84,10 +86,10 @@
     "pixel": "b606ee3f5da93a7868f4f5e4ae962b44da6db65168bf081aa22cb96c157a9439"
   },
   "timingsMilliseconds": {
-    "parseBindLinkSerialize": 50.628,
-    "vdMirSerialization": 55.266,
-    "hlslDxcSpirvValidation": 105.439,
-    "determinismRepeat": 86.92
+    "parseBindLinkSerialize": 63.418,
+    "vdMirSerialization": 64.945,
+    "hlslDxcSpirvValidation": 112.709,
+    "determinismRepeat": 93.537
   },
   "sourceBoilerplate": {
     "visualTypeScript": "4 typed streams, 3 semantic annotations kinds, no backend structs or HLSL semantic names",

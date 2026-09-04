@@ -54,14 +54,14 @@
     "freshDevicePassed": true
   },
   "timingsMilliseconds": {
-    "compiler": 251.902,
-    "deviceInit": 399.868,
+    "compiler": 246.877,
+    "deviceInit": 472.465,
     "timings": {
-      "resourceUploadMilliseconds": 19.342,
-      "pipelineMilliseconds": 23.976,
-      "recordSubmitMilliseconds": 8.215,
-      "readbackMilliseconds": 0.918,
-      "totalMilliseconds": 54.576
+      "resourceUploadMilliseconds": 18.785,
+      "pipelineMilliseconds": 23.915,
+      "recordSubmitMilliseconds": 8.348,
+      "readbackMilliseconds": 0.859,
+      "totalMilliseconds": 53.894
     }
   },
   "negativeContracts": {

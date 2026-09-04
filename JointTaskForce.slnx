@@ -33,6 +33,7 @@
     <Project Path="src/Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj" />
     <Project Path="src/Aurelian/Aurelian.World/Aurelian.World.csproj" />
     <Project Path="src/Integrations/Aurelian.Machina/Aurelian.Machina.csproj" />
+    <Project Path="src/Integrations/Aurelian.Machina.Graphics/Aurelian.Machina.Graphics.csproj" />
     <Project Path="src/Integrations/Oblivion.Avalonia/Oblivion.Avalonia.csproj" />
   </Folder>
   <Folder Name="/samples/">

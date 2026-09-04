@@ -433,3 +433,12 @@ direct-vector MSDF field, deterministic atlas metadata, and CPU median-RGB
 reconstruction. The next native step is an Aurelian adapter from the qualified
 `MachinaGlyphRun` plus atlas metadata to ordered glyph quads and the existing native
 shader path; no layout or atlas-owned placement belongs in Aurelian.
+## Native MSDF text realization (M2)
+
+Qualified text crosses into native rendering only through `AurelianGlyphRunAdapter`
+in the renderer-specific `Aurelian.Machina.Graphics` integration leaf. The established
+`Aurelian.Machina` bridge remains renderer-neutral. Machina remains authoritative for `MachinaGlyphRun`, field
+planes, pixel range, atlas storage, and UVs. Aurelian owns persistent opaque textures,
+the fixed MSDF pipeline/sampler/blend state, ordered glyph quads, offscreen execution,
+and readback. `CompiledGraphicsProgram` remains the sole descriptor/material authority.
+No font parsing, shaping, baseline derivation, or atlas packing belongs in Graphics.

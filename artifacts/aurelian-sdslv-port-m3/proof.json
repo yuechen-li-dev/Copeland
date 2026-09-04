@@ -318,12 +318,12 @@
     "pixel": "e9d019d2eb2019be56507367fa735dfb35ec82cbe256cccb0fcfe00a7ab3a417"
   },
   "timingsMilliseconds": {
-    "parse": 33.278,
-    "gpuBindLinkSpaceLayoutProjection": 42.697,
-    "vdMirJson": 62.987,
-    "hlslEmission": 5.617,
-    "dxcVertexPixelAndSpirvValidation": 110.287,
-    "determinismRepeat": 95.971
+    "parse": 29.587,
+    "gpuBindLinkSpaceLayoutProjection": 39.891,
+    "vdMirJson": 61.558,
+    "hlslEmission": 5.605,
+    "dxcVertexPixelAndSpirvValidation": 117.838,
+    "determinismRepeat": 96.806
   },
   "sourceBoilerplate": "typed streams, semantic aliases, resources, material, and Sample; no HLSL structs, SV spellings, descriptors, or offsets"
 }

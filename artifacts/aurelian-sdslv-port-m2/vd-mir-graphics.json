@@ -11,6 +11,7 @@
     "float3",
     "float4"
   ],
+  "semanticSpaces": [],
   "streams": [
     {
       "id": "stream:PixelInput",
@@ -35,7 +36,9 @@
             "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
             "start": 223,
             "length": 12
-          }
+          },
+          "physicalType": "float2",
+          "semanticSpace": null
         }
       ],
       "source": {
@@ -67,7 +70,9 @@
             "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
             "start": 280,
             "length": 10
-          }
+          },
+          "physicalType": "float4",
+          "semanticSpace": null
         }
       ],
       "source": {
@@ -99,7 +104,9 @@
             "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
             "start": 25,
             "length": 12
-          }
+          },
+          "physicalType": "float3",
+          "semanticSpace": null
         },
         {
           "order": 1,
@@ -119,7 +126,9 @@
             "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
             "start": 64,
             "length": 12
-          }
+          },
+          "physicalType": "float2",
+          "semanticSpace": null
         }
       ],
       "source": {
@@ -151,7 +160,9 @@
             "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
             "start": 122,
             "length": 18
-          }
+          },
+          "physicalType": "float4",
+          "semanticSpace": null
         },
         {
           "order": 1,
@@ -171,7 +182,9 @@
             "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
             "start": 167,
             "length": 12
-          }
+          },
+          "physicalType": "float2",
+          "semanticSpace": null
         }
       ],
       "source": {
@@ -181,6 +194,7 @@
       }
     }
   ],
+  "materials": [],
   "functions": [
     {
       "name": "PassUv",
@@ -494,7 +508,9 @@
         "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
         "start": 375,
         "length": 162
-      }
+      },
+      "builtinStreams": [],
+      "resourceStreams": []
     },
     {
       "name": "PixelMain",
@@ -506,7 +522,9 @@
         "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
         "start": 539,
         "length": 132
-      }
+      },
+      "builtinStreams": [],
+      "resourceStreams": []
     }
   ],
   "graphicsProgram": {
@@ -521,7 +539,9 @@
         "vertexStream": "VertexOutput",
         "vertexMember": "uv",
         "pixelStream": "PixelInput",
-        "pixelMember": "uv"
+        "pixelMember": "uv",
+        "physicalType": "float2",
+        "semanticSpace": null
       }
     ],
     "vertexInputs": [
@@ -543,7 +563,9 @@
           "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
           "start": 25,
           "length": 12
-        }
+        },
+        "physicalType": "float3",
+        "semanticSpace": null
       },
       {
         "order": 1,
@@ -563,7 +585,9 @@
           "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
           "start": 64,
           "length": 12
-        }
+        },
+        "physicalType": "float2",
+        "semanticSpace": null
       }
     ],
     "pixelTargets": [
@@ -585,10 +609,13 @@
           "file": "samples/Aurelian/GraphicsStreamM2.v.ts",
           "start": 280,
           "length": 10
-        }
+        },
+        "physicalType": "float4",
+        "semanticSpace": null
       }
     ],
-    "resources": []
+    "resources": [],
+    "material": null
   },
   "diagnostics": [],
   "success": true

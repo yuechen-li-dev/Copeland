@@ -1,0 +1,18 @@
+{
+  "milestone": "AURELIAN-NATIVE-MSDF-TEXT-M2",
+  "kind": "qualified-glyphrun-msdf-atlas-vulkan-text",
+  "layoutLawChanged": false,
+  "msdfGenerationChanged": false,
+  "machinaGlyphRunIsAuthority": true,
+  "vectorDerivedAtlasIsAuthority": true,
+  "visualTypeScriptShaderAdded": true,
+  "vdMirShaderPathUsed": true,
+  "nativeOrderedQuadPathReused": true,
+  "fontParsingInAurelian": false,
+  "typographyDependencyInAurelianGraphics": false,
+  "gpuTextLayoutAdded": false,
+  "swapchainAdded": false,
+  "compositorIntegrated": false,
+  "tinyFarmIntegrated": false,
+  "artifactFiles": 5
+}

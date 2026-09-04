@@ -1,0 +1,449 @@
+{
+  "reference": "CPU reconstruction over the same quantized RGBA8 atlas bytes",
+  "minimumIou": 0.8560794044665012,
+  "maximumMeanAbsoluteChannelDelta": 0.1632250467936198,
+  "cases": [
+    {
+      "text": "Hello Machina",
+      "size": 16,
+      "iou": 0.9377431906614786,
+      "meanAbsoluteChannelDelta": 0.002242279052734375,
+      "gpuBounds": {
+        "left": 17,
+        "top": 37,
+        "right": 107,
+        "bottom": 47,
+        "width": 91,
+        "height": 11
+      },
+      "cpuBounds": {
+        "left": 17,
+        "top": 37,
+        "right": 107,
+        "bottom": 47,
+        "width": 91,
+        "height": 11
+      },
+      "baselineY": 48,
+      "layoutGlyphCount": 13,
+      "qualifiedInkLeft": 16.59375,
+      "qualifiedInkRight": 108
+    },
+    {
+      "text": "The quick brown fox jumps over the lazy dog",
+      "size": 16,
+      "iou": 0.8560794044665012,
+      "meanAbsoluteChannelDelta": 0.014460500081380208,
+      "gpuBounds": {
+        "left": 17,
+        "top": 37,
+        "right": 298,
+        "bottom": 51,
+        "width": 282,
+        "height": 15
+      },
+      "cpuBounds": {
+        "left": 17,
+        "top": 37,
+        "right": 298,
+        "bottom": 51,
+        "width": 282,
+        "height": 15
+      },
+      "baselineY": 48,
+      "layoutGlyphCount": 43,
+      "qualifiedInkLeft": 16.4375,
+      "qualifiedInkRight": 299.21875
+    },
+    {
+      "text": "Hello Machina",
+      "size": 32,
+      "iou": 0.9269612263300271,
+      "meanAbsoluteChannelDelta": 0.007585652669270833,
+      "gpuBounds": {
+        "left": 17,
+        "top": 42,
+        "right": 199,
+        "bottom": 63,
+        "width": 183,
+        "height": 22
+      },
+      "cpuBounds": {
+        "left": 17,
+        "top": 42,
+        "right": 199,
+        "bottom": 63,
+        "width": 183,
+        "height": 22
+      },
+      "baselineY": 64,
+      "layoutGlyphCount": 13,
+      "qualifiedInkLeft": 17.1875,
+      "qualifiedInkRight": 200
+    },
+    {
+      "text": "The quick brown fox jumps over the lazy dog",
+      "size": 32,
+      "iou": 0.8992731048805815,
+      "meanAbsoluteChannelDelta": 0.04288152058919271,
+      "gpuBounds": {
+        "left": 17,
+        "top": 42,
+        "right": 582,
+        "bottom": 70,
+        "width": 566,
+        "height": 29
+      },
+      "cpuBounds": {
+        "left": 17,
+        "top": 42,
+        "right": 581,
+        "bottom": 70,
+        "width": 565,
+        "height": 29
+      },
+      "baselineY": 64,
+      "layoutGlyphCount": 43,
+      "qualifiedInkLeft": 16.875,
+      "qualifiedInkRight": 582.4375
+    },
+    {
+      "text": "Hello Machina",
+      "size": 64,
+      "iou": 0.9888942539835828,
+      "meanAbsoluteChannelDelta": 0.010729217529296875,
+      "gpuBounds": {
+        "left": 18,
+        "top": 53,
+        "right": 383,
+        "bottom": 95,
+        "width": 366,
+        "height": 43
+      },
+      "cpuBounds": {
+        "left": 18,
+        "top": 53,
+        "right": 383,
+        "bottom": 95,
+        "width": 366,
+        "height": 43
+      },
+      "baselineY": 96,
+      "layoutGlyphCount": 13,
+      "qualifiedInkLeft": 18.375,
+      "qualifiedInkRight": 384
+    },
+    {
+      "text": "The quick brown fox jumps over the lazy dog",
+      "size": 64,
+      "iou": 0.9568364611260054,
+      "meanAbsoluteChannelDelta": 0.08226852416992188,
+      "gpuBounds": {
+        "left": 18,
+        "top": 53,
+        "right": 1148,
+        "bottom": 109,
+        "width": 1131,
+        "height": 57
+      },
+      "cpuBounds": {
+        "left": 18,
+        "top": 53,
+        "right": 1148,
+        "bottom": 109,
+        "width": 1131,
+        "height": 57
+      },
+      "baselineY": 96,
+      "layoutGlyphCount": 43,
+      "qualifiedInkLeft": 17.75,
+      "qualifiedInkRight": 1148.875
+    },
+    {
+      "text": "M",
+      "size": 64,
+      "iou": 1,
+      "meanAbsoluteChannelDelta": 0.0004336039225260417,
+      "gpuBounds": {
+        "left": 18,
+        "top": 55,
+        "right": 70,
+        "bottom": 95,
+        "width": 53,
+        "height": 41
+      },
+      "cpuBounds": {
+        "left": 18,
+        "top": 55,
+        "right": 70,
+        "bottom": 95,
+        "width": 53,
+        "height": 41
+      },
+      "baselineY": 96,
+      "layoutGlyphCount": 1,
+      "qualifiedInkLeft": 17.625,
+      "qualifiedInkRight": 71
+    },
+    {
+      "text": ".",
+      "size": 64,
+      "iou": 1,
+      "meanAbsoluteChannelDelta": 9.1552734375E-06,
+      "gpuBounds": {
+        "left": 20,
+        "top": 90,
+        "right": 26,
+        "bottom": 96,
+        "width": 7,
+        "height": 7
+      },
+      "cpuBounds": {
+        "left": 20,
+        "top": 90,
+        "right": 26,
+        "bottom": 96,
+        "width": 7,
+        "height": 7
+      },
+      "baselineY": 96,
+      "layoutGlyphCount": 1,
+      "qualifiedInkLeft": 19.625,
+      "qualifiedInkRight": 26.9375
+    },
+    {
+      "text": "g",
+      "size": 64,
+      "iou": 0.9977477477477478,
+      "meanAbsoluteChannelDelta": 0.00022404988606770834,
+      "gpuBounds": {
+        "left": 18,
+        "top": 69,
+        "right": 43,
+        "bottom": 109,
+        "width": 26,
+        "height": 41
+      },
+      "cpuBounds": {
+        "left": 18,
+        "top": 69,
+        "right": 43,
+        "bottom": 109,
+        "width": 26,
+        "height": 41
+      },
+      "baselineY": 96,
+      "layoutGlyphCount": 1,
+      "qualifiedInkLeft": 17.8125,
+      "qualifiedInkRight": 43.8125
+    },
+    {
+      "text": "Q",
+      "size": 64,
+      "iou": 1,
+      "meanAbsoluteChannelDelta": 0.00014216105143229166,
+      "gpuBounds": {
+        "left": 19,
+        "top": 54,
+        "right": 63,
+        "bottom": 103,
+        "width": 45,
+        "height": 50
+      },
+      "cpuBounds": {
+        "left": 19,
+        "top": 54,
+        "right": 63,
+        "bottom": 103,
+        "width": 45,
+        "height": 50
+      },
+      "baselineY": 96,
+      "layoutGlyphCount": 1,
+      "qualifiedInkLeft": 18.75,
+      "qualifiedInkRight": 64.25
+    },
+    {
+      "text": "Hello.",
+      "size": 64,
+      "iou": 0.9926873857404022,
+      "meanAbsoluteChannelDelta": 0.001776885986328125,
+      "gpuBounds": {
+        "left": 18,
+        "top": 53,
+        "right": 160,
+        "bottom": 96,
+        "width": 143,
+        "height": 44
+      },
+      "cpuBounds": {
+        "left": 18,
+        "top": 53,
+        "right": 160,
+        "bottom": 96,
+        "width": 143,
+        "height": 44
+      },
+      "baselineY": 96,
+      "layoutGlyphCount": 6,
+      "qualifiedInkLeft": 18.375,
+      "qualifiedInkRight": 161.25
+    },
+    {
+      "text": "Agjpqy",
+      "size": 64,
+      "iou": 0.9945553539019963,
+      "meanAbsoluteChannelDelta": 0.003275299072265625,
+      "gpuBounds": {
+        "left": 17,
+        "top": 55,
+        "right": 196,
+        "bottom": 109,
+        "width": 180,
+        "height": 55
+      },
+      "cpuBounds": {
+        "left": 17,
+        "top": 55,
+        "right": 196,
+        "bottom": 109,
+        "width": 180,
+        "height": 55
+      },
+      "baselineY": 96,
+      "layoutGlyphCount": 6,
+      "qualifiedInkLeft": 17.25,
+      "qualifiedInkRight": 196.9375
+    },
+    {
+      "text": "Hello Machina",
+      "size": 96,
+      "iou": 0.9888748950461796,
+      "meanAbsoluteChannelDelta": 0.015614827473958334,
+      "gpuBounds": {
+        "left": 20,
+        "top": 63,
+        "right": 567,
+        "bottom": 128,
+        "width": 548,
+        "height": 66
+      },
+      "cpuBounds": {
+        "left": 20,
+        "top": 63,
+        "right": 567,
+        "bottom": 128,
+        "width": 548,
+        "height": 66
+      },
+      "baselineY": 128,
+      "layoutGlyphCount": 13,
+      "qualifiedInkLeft": 19.5625,
+      "qualifiedInkRight": 568
+    },
+    {
+      "text": "The quick brown fox jumps over the lazy dog",
+      "size": 96,
+      "iou": 0.9661216789812922,
+      "meanAbsoluteChannelDelta": 0.12126592000325521,
+      "gpuBounds": {
+        "left": 19,
+        "top": 63,
+        "right": 1715,
+        "bottom": 149,
+        "width": 1697,
+        "height": 87
+      },
+      "cpuBounds": {
+        "left": 19,
+        "top": 63,
+        "right": 1714,
+        "bottom": 149,
+        "width": 1696,
+        "height": 87
+      },
+      "baselineY": 128,
+      "layoutGlyphCount": 43,
+      "qualifiedInkLeft": 18.625,
+      "qualifiedInkRight": 1715.3125
+    },
+    {
+      "text": "Agjpqy",
+      "size": 96,
+      "iou": 0.9971796937953263,
+      "meanAbsoluteChannelDelta": 0.004308064778645833,
+      "gpuBounds": {
+        "left": 18,
+        "top": 66,
+        "right": 286,
+        "bottom": 149,
+        "width": 269,
+        "height": 84
+      },
+      "cpuBounds": {
+        "left": 18,
+        "top": 66,
+        "right": 286,
+        "bottom": 149,
+        "width": 269,
+        "height": 84
+      },
+      "baselineY": 128,
+      "layoutGlyphCount": 6,
+      "qualifiedInkLeft": 17.875,
+      "qualifiedInkRight": 287.40625
+    },
+    {
+      "text": "Hello Machina",
+      "size": 128,
+      "iou": 0.9922265742693582,
+      "meanAbsoluteChannelDelta": 0.02085851033528646,
+      "gpuBounds": {
+        "left": 21,
+        "top": 73,
+        "right": 751,
+        "bottom": 160,
+        "width": 731,
+        "height": 88
+      },
+      "cpuBounds": {
+        "left": 21,
+        "top": 73,
+        "right": 751,
+        "bottom": 160,
+        "width": 731,
+        "height": 88
+      },
+      "baselineY": 160,
+      "layoutGlyphCount": 13,
+      "qualifiedInkLeft": 20.75,
+      "qualifiedInkRight": 752
+    },
+    {
+      "text": "The quick brown fox jumps over the lazy dog",
+      "size": 128,
+      "iou": 0.974939986090234,
+      "meanAbsoluteChannelDelta": 0.1632250467936198,
+      "gpuBounds": {
+        "left": 20,
+        "top": 73,
+        "right": 2281,
+        "bottom": 188,
+        "width": 2262,
+        "height": 116
+      },
+      "cpuBounds": {
+        "left": 20,
+        "top": 73,
+        "right": 2281,
+        "bottom": 188,
+        "width": 2262,
+        "height": 116
+      },
+      "baselineY": 160,
+      "layoutGlyphCount": 43,
+      "qualifiedInkLeft": 19.5,
+      "qualifiedInkRight": 2281.75
+    }
+  ]
+}

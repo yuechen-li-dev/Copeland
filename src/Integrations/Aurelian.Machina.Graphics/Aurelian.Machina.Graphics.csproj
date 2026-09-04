@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Aurelian.Machina.Graphics</AssemblyName>
+    <RootNamespace>Aurelian.Machina.Graphics</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../Machina.UI/Machina.Fonts/Machina.Fonts.csproj" />
+    <ProjectReference Include="../../Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />
+  </ItemGroup>
+</Project>

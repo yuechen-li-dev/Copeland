@@ -11,6 +11,9 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../../src/Integrations/Aurelian.Machina/Aurelian.Machina.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Machina.Graphics/Aurelian.Machina.Graphics.csproj" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Fonts/Machina.Fonts.csproj" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Rendering.Raster/Aurelian.Rendering.Raster.csproj" />
     <ProjectReference Include="../../../src/Integrations/Oblivion.Avalonia/Oblivion.Avalonia.csproj" />
     <ProjectReference Include="../../../samples/Integrations/Machina.Presenter.Sample/Machina.Presenter.Sample.csproj" />

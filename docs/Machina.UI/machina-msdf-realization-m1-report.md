@@ -1,5 +1,11 @@
 # MACHINA-MSDF-REALIZATION-M1 report
 
+> Native follow-on: AURELIAN-NATIVE-MSDF-TEXT-M2 consumes this unchanged vector-derived
+> atlas and reconstruction law through an integration-owned adapter. RGB fields are
+> quantized directly to RGBA8, sampled linear/clamp, and reconstructed in the production
+> Visual TypeScript shader. This report remains upstream authority; M2 changes no field
+> generation, packing, placement, or layout semantics.
+
 ## Outcome
 
 Outcome A. The qualified Typography outline now generates a deterministic scalable

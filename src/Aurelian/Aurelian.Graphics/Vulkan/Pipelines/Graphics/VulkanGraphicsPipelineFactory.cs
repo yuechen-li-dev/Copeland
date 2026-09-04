@@ -149,7 +149,13 @@ public static unsafe class VulkanGraphicsPipelineFactory
 
                 PipelineColorBlendAttachmentState colorBlendAttachment = new()
                 {
-                    BlendEnable = false,
+                    BlendEnable = descriptor.EnableStraightAlphaBlend,
+                    SrcColorBlendFactor = BlendFactor.SrcAlpha,
+                    DstColorBlendFactor = BlendFactor.OneMinusSrcAlpha,
+                    ColorBlendOp = BlendOp.Add,
+                    SrcAlphaBlendFactor = BlendFactor.One,
+                    DstAlphaBlendFactor = BlendFactor.OneMinusSrcAlpha,
+                    AlphaBlendOp = BlendOp.Add,
                     ColorWriteMask = ColorComponentFlags.RBit
                         | ColorComponentFlags.GBit
                         | ColorComponentFlags.BBit
@@ -502,6 +508,7 @@ public static unsafe class VulkanGraphicsPipelineFactory
     private static Format MapVertexAttributeFormat(VulkanVertexAttributeFormat format)
         => format switch
         {
+            VulkanVertexAttributeFormat.Float => Format.R32Sfloat,
             VulkanVertexAttributeFormat.Float2 => Format.R32G32Sfloat,
             VulkanVertexAttributeFormat.Float3 => Format.R32G32B32Sfloat,
             VulkanVertexAttributeFormat.Float4 => Format.R32G32B32A32Sfloat,

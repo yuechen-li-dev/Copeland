@@ -1,0 +1,653 @@
+{
+  "format": "VK_FORMAT_R8G8B8A8_UNORM",
+  "sampler": "linear-clamp-to-edge",
+  "blend": "straight-alpha: src-alpha / one-minus-src-alpha; alpha: one / one-minus-src-alpha",
+  "target": {
+    "width": 2560,
+    "height": 384,
+    "clear": [
+      16,
+      32,
+      64,
+      255
+    ]
+  },
+  "renders": [
+    {
+      "text": "Hello Machina",
+      "size": 16,
+      "glyphCount": 12,
+      "pixelSha256": "bad002626558ed34c934bc5587c5617b374578ff98a3b94f4f44e49adb2ffdf6",
+      "drawCalls": 1,
+      "descriptorWrites": 3,
+      "bounds": {
+        "left": 17,
+        "top": 37,
+        "right": 107,
+        "bottom": 47,
+        "width": 91,
+        "height": 11
+      },
+      "adapterAllocatedBytes": 1368,
+      "metrics": {
+        "quadCount": 12,
+        "drawCalls": 1,
+        "commandBuffers": 1,
+        "queueSubmissions": 1,
+        "bufferUploads": 1,
+        "descriptorSetAllocations": 1,
+        "descriptorWrites": 3,
+        "vertexCapacityQuads": 256,
+        "vertexUploadMilliseconds": 1.415,
+        "commandRecordingMilliseconds": 7.687,
+        "submitWaitMilliseconds": 1.552,
+        "readbackMilliseconds": 18.315,
+        "cpuAllocatedBytes": 3939016
+      }
+    },
+    {
+      "text": "The quick brown fox jumps over the lazy dog",
+      "size": 16,
+      "glyphCount": 35,
+      "pixelSha256": "2a33064bc00806c800ccfc3d90d2fef7cc1d6ebd349838a0b3cca56e2e49b4be",
+      "drawCalls": 1,
+      "descriptorWrites": 0,
+      "bounds": {
+        "left": 17,
+        "top": 37,
+        "right": 298,
+        "bottom": 51,
+        "width": 282,
+        "height": 15
+      },
+      "adapterAllocatedBytes": 3440,
+      "metrics": {
+        "quadCount": 35,
+        "drawCalls": 1,
+        "commandBuffers": 1,
+        "queueSubmissions": 1,
+        "bufferUploads": 1,
+        "descriptorSetAllocations": 0,
+        "descriptorWrites": 0,
+        "vertexCapacityQuads": 256,
+        "vertexUploadMilliseconds": 0.046,
+        "commandRecordingMilliseconds": 0.18,
+        "submitWaitMilliseconds": 0.612,
+        "readbackMilliseconds": 24.567,
+        "cpuAllocatedBytes": 3940592
+      }
+    },
+    {
+      "text": "Hello Machina",
+      "size": 32,
+      "glyphCount": 12,
+      "pixelSha256": "c2c3b3843a3db430b723c6bc8f245cd48e30e9af32312116e356fdc22fd7f13c",
+      "drawCalls": 1,
+      "descriptorWrites": 3,
+      "bounds": {
+        "left": 17,
+        "top": 42,
+        "right": 199,
+        "bottom": 63,
+        "width": 183,
+        "height": 22
+      },
+      "adapterAllocatedBytes": 1280,
+      "metrics": {
+        "quadCount": 12,
+        "drawCalls": 1,
+        "commandBuffers": 1,
+        "queueSubmissions": 1,
+        "bufferUploads": 1,
+        "descriptorSetAllocations": 1,
+        "descriptorWrites": 3,
+        "vertexCapacityQuads": 256,
+        "vertexUploadMilliseconds": 0.017,
+        "commandRecordingMilliseconds": 0.114,
+        "submitWaitMilliseconds": 0.553,
+        "readbackMilliseconds": 24.596,
+        "cpuAllocatedBytes": 3938048
+      }
+    },
+    {
+      "text": "The quick brown fox jumps over the lazy dog",
+      "size": 32,
+      "glyphCount": 35,
+      "pixelSha256": "dbd458375ee0cb1455901e2ae0b35398cb560670d42b08dcd419b5d2fd087055",
+      "drawCalls": 1,
+      "descriptorWrites": 0,
+      "bounds": {
+        "left": 17,
+        "top": 42,
+        "right": 582,
+        "bottom": 70,
+        "width": 566,
+        "height": 29
+      },
+      "adapterAllocatedBytes": 3440,
+      "metrics": {
+        "quadCount": 35,
+        "drawCalls": 1,
+        "commandBuffers": 1,
+        "queueSubmissions": 1,
+        "bufferUploads": 1,
+        "descriptorSetAllocations": 0,
+        "descriptorWrites": 0,
+        "vertexCapacityQuads": 256,
+        "vertexUploadMilliseconds": 0.046,
+        "commandRecordingMilliseconds": 0.226,
+        "submitWaitMilliseconds": 0.862,
+        "readbackMilliseconds": 25.388,
+        "cpuAllocatedBytes": 3940592
+      }
+    },
+    {
+      "text": "Hello Machina",
+      "size": 64,
+      "glyphCount": 12,
+      "pixelSha256": "972e1cd92139d8bd4f13ac92a0795196627b58d5bd24f555079d6e189a6b18e9",
+      "drawCalls": 1,
+      "descriptorWrites": 3,
+      "bounds": {
+        "left": 18,
+        "top": 53,
+        "right": 383,
+        "bottom": 95,
+        "width": 366,
+        "height": 43
+      },
+      "adapterAllocatedBytes": 1280,
+      "metrics": {
+        "quadCount": 12,
+        "drawCalls": 1,
+        "commandBuffers": 1,
+        "queueSubmissions": 1,
+        "bufferUploads": 1,
+        "descriptorSetAllocations": 1,
+        "descriptorWrites": 3,
+        "vertexCapacityQuads": 256,
+        "vertexUploadMilliseconds": 0.026,
+        "commandRecordingMilliseconds": 0.169,
+        "submitWaitMilliseconds": 0.752,
+        "readbackMilliseconds": 22.118,
+        "cpuAllocatedBytes": 3938048
+      }
+    },
+    {
+      "text": "The quick brown fox jumps over the lazy dog",
+      "size": 64,
+      "glyphCount": 35,
+      "pixelSha256": "f00df20b778d501a2b3603a27a303c756a0bb1bd3abd13576cf86002c789fa29",
+      "drawCalls": 1,
+      "descriptorWrites": 0,
+      "bounds": {
+        "left": 18,
+        "top": 53,
+        "right": 1148,
+        "bottom": 109,
+        "width": 1131,
+        "height": 57
+      },
+      "adapterAllocatedBytes": 3440,
+      "metrics": {
+        "quadCount": 35,
+        "drawCalls": 1,
+        "commandBuffers": 1,
+        "queueSubmissions": 1,
+        "bufferUploads": 1,
+        "descriptorSetAllocations": 0,
+        "descriptorWrites": 0,
+        "vertexCapacityQuads": 256,
+        "vertexUploadMilliseconds": 0.036,
+        "commandRecordingMilliseconds": 0.173,
+        "submitWaitMilliseconds": 0.452,
+        "readbackMilliseconds": 22.163,
+        "cpuAllocatedBytes": 3940592
+      }
+    },
+    {
+      "text": "M",
+      "size": 64,
+      "glyphCount": 1,
+      "pixelSha256": "886c05fe3513f4b2bc940257f899bd22808f492705865381b55c3249a44266a7",
+      "drawCalls": 1,
+      "descriptorWrites": 0,
+      "bounds": {
+        "left": 18,
+        "top": 55,
+        "right": 70,
+        "bottom": 95,
+        "width": 53,
+        "height": 41
+      },
+      "adapterAllocatedBytes": 416,
+      "metrics": {
+        "quadCount": 1,
+        "drawCalls": 1,
+        "commandBuffers": 1,
+        "queueSubmissions": 1,
+        "bufferUploads": 1,
+        "descriptorSetAllocations": 0,
+        "descriptorWrites": 0,
+        "vertexCapacityQuads": 256,
+        "vertexUploadMilliseconds": 0.005,
+        "commandRecordingMilliseconds": 0.19,
+        "submitWaitMilliseconds": 0.541,
+        "readbackMilliseconds": 22.347,
+        "cpuAllocatedBytes": 3934608
+      }
+    },
+    {
+      "text": ".",
+      "size": 64,
+      "glyphCount": 1,
+      "pixelSha256": "2a032409cfb0d8c06c563ccda443ec7d759705954dd6f64ce4b54b97d606568b",
+      "drawCalls": 1,
+      "descriptorWrites": 0,
+      "bounds": {
+        "left": 20,
+        "top": 90,
+        "right": 26,
+        "bottom": 96,
+        "width": 7,
+        "height": 7
+      },
+      "adapterAllocatedBytes": 416,
+      "metrics": {
+        "quadCount": 1,
+        "drawCalls": 1,
+        "commandBuffers": 1,
+        "queueSubmissions": 1,
+        "bufferUploads": 1,
+        "descriptorSetAllocations": 0,
+        "descriptorWrites": 0,
+        "vertexCapacityQuads": 256,
+        "vertexUploadMilliseconds": 0.004,
+        "commandRecordingMilliseconds": 0.152,
+        "submitWaitMilliseconds": 0.685,
+        "readbackMilliseconds": 22.307,
+        "cpuAllocatedBytes": 3934608
+      }
+    },
+    {
+      "text": "g",
+      "size": 64,
+      "glyphCount": 1,
+      "pixelSha256": "abc6038b922f9a10dce1e33353d5dae09e3673622f69792c761e009e620a6c05",
+      "drawCalls": 1,
+      "descriptorWrites": 0,
+      "bounds": {
+        "left": 18,
+        "top": 69,
+        "right": 43,
+        "bottom": 109,
+        "width": 26,
+        "height": 41
+      },
+      "adapterAllocatedBytes": 416,
+      "metrics": {
+        "quadCount": 1,
+        "drawCalls": 1,
+        "commandBuffers": 1,
+        "queueSubmissions": 1,
+        "bufferUploads": 1,
+        "descriptorSetAllocations": 0,
+        "descriptorWrites": 0,
+        "vertexCapacityQuads": 256,
+        "vertexUploadMilliseconds": 0.005,
+        "commandRecordingMilliseconds": 0.167,
+        "submitWaitMilliseconds": 0.594,
+        "readbackMilliseconds": 22.291,
+        "cpuAllocatedBytes": 3934608
+      }
+    },
+    {
+      "text": "Q",
+      "size": 64,
+      "glyphCount": 1,
+      "pixelSha256": "8e8568f3888142454e44519f29c75fb84221ed8e844b294aaa3b8a7ca46055d8",
+      "drawCalls": 1,
+      "descriptorWrites": 0,
+      "bounds": {
+        "left": 19,
+        "top": 54,
+        "right": 63,
+        "bottom": 103,
+        "width": 45,
+        "height": 50
+      },
+      "adapterAllocatedBytes": 416,
+      "metrics": {
+        "quadCount": 1,
+        "drawCalls": 1,
+        "commandBuffers": 1,
+        "queueSubmissions": 1,
+        "bufferUploads": 1,
+        "descriptorSetAllocations": 0,
+        "descriptorWrites": 0,
+        "vertexCapacityQuads": 256,
+        "vertexUploadMilliseconds": 0.005,
+        "commandRecordingMilliseconds": 0.174,
+        "submitWaitMilliseconds": 0.627,
+        "readbackMilliseconds": 21.942,
+        "cpuAllocatedBytes": 3934608
+      }
+    },
+    {
+      "text": "Hello.",
+      "size": 64,
+      "glyphCount": 6,
+      "pixelSha256": "1b058d4490b07a6b54d060b7c9c2f1e5979c80158dd2754f88eed6b6328f9007",
+      "drawCalls": 1,
+      "descriptorWrites": 0,
+      "bounds": {
+        "left": 18,
+        "top": 53,
+        "right": 160,
+        "bottom": 96,
+        "width": 143,
+        "height": 44
+      },
+      "adapterAllocatedBytes": 776,
+      "metrics": {
+        "quadCount": 6,
+        "drawCalls": 1,
+        "commandBuffers": 1,
+        "queueSubmissions": 1,
+        "bufferUploads": 1,
+        "descriptorSetAllocations": 0,
+        "descriptorWrites": 0,
+        "vertexCapacityQuads": 256,
+        "vertexUploadMilliseconds": 0.01,
+        "commandRecordingMilliseconds": 0.158,
+        "submitWaitMilliseconds": 0.44,
+        "readbackMilliseconds": 22.152,
+        "cpuAllocatedBytes": 3935488
+      }
+    },
+    {
+      "text": "Agjpqy",
+      "size": 64,
+      "glyphCount": 6,
+      "pixelSha256": "2c9661c6ad6bee9263918f083752e122c08603e0f42d86f2abbb4b17d67a8922",
+      "drawCalls": 1,
+      "descriptorWrites": 0,
+      "bounds": {
+        "left": 17,
+        "top": 55,
+        "right": 196,
+        "bottom": 109,
+        "width": 180,
+        "height": 55
+      },
+      "adapterAllocatedBytes": 776,
+      "metrics": {
+        "quadCount": 6,
+        "drawCalls": 1,
+        "commandBuffers": 1,
+        "queueSubmissions": 1,
+        "bufferUploads": 1,
+        "descriptorSetAllocations": 0,
+        "descriptorWrites": 0,
+        "vertexCapacityQuads": 256,
+        "vertexUploadMilliseconds": 0.01,
+        "commandRecordingMilliseconds": 0.16,
+        "submitWaitMilliseconds": 0.44,
+        "readbackMilliseconds": 22.597,
+        "cpuAllocatedBytes": 3935488
+      }
+    },
+    {
+      "text": "Hello Machina",
+      "size": 96,
+      "glyphCount": 12,
+      "pixelSha256": "a25df08a0839e8fc7426e586331d20eaec1884e228c013cf129fe4d4d095dad9",
+      "drawCalls": 1,
+      "descriptorWrites": 3,
+      "bounds": {
+        "left": 20,
+        "top": 63,
+        "right": 567,
+        "bottom": 128,
+        "width": 548,
+        "height": 66
+      },
+      "adapterAllocatedBytes": 1280,
+      "metrics": {
+        "quadCount": 12,
+        "drawCalls": 1,
+        "commandBuffers": 1,
+        "queueSubmissions": 1,
+        "bufferUploads": 1,
+        "descriptorSetAllocations": 1,
+        "descriptorWrites": 3,
+        "vertexCapacityQuads": 256,
+        "vertexUploadMilliseconds": 0.024,
+        "commandRecordingMilliseconds": 0.125,
+        "submitWaitMilliseconds": 0.564,
+        "readbackMilliseconds": 22.564,
+        "cpuAllocatedBytes": 3938048
+      }
+    },
+    {
+      "text": "The quick brown fox jumps over the lazy dog",
+      "size": 96,
+      "glyphCount": 35,
+      "pixelSha256": "31045ce66bed1fa177d2268fc613346da329769d7d4ecd6152d3d67795376d61",
+      "drawCalls": 1,
+      "descriptorWrites": 0,
+      "bounds": {
+        "left": 19,
+        "top": 63,
+        "right": 1715,
+        "bottom": 149,
+        "width": 1697,
+        "height": 87
+      },
+      "adapterAllocatedBytes": 3440,
+      "metrics": {
+        "quadCount": 35,
+        "drawCalls": 1,
+        "commandBuffers": 1,
+        "queueSubmissions": 1,
+        "bufferUploads": 1,
+        "descriptorSetAllocations": 0,
+        "descriptorWrites": 0,
+        "vertexCapacityQuads": 256,
+        "vertexUploadMilliseconds": 0.007,
+        "commandRecordingMilliseconds": 0.185,
+        "submitWaitMilliseconds": 0.62,
+        "readbackMilliseconds": 22.397,
+        "cpuAllocatedBytes": 3940592
+      }
+    },
+    {
+      "text": "Agjpqy",
+      "size": 96,
+      "glyphCount": 6,
+      "pixelSha256": "0edaa990e3ef8946b6822e4285b3e59e8013d8ef7a748b70b916396554837c3f",
+      "drawCalls": 1,
+      "descriptorWrites": 0,
+      "bounds": {
+        "left": 18,
+        "top": 66,
+        "right": 286,
+        "bottom": 149,
+        "width": 269,
+        "height": 84
+      },
+      "adapterAllocatedBytes": 776,
+      "metrics": {
+        "quadCount": 6,
+        "drawCalls": 1,
+        "commandBuffers": 1,
+        "queueSubmissions": 1,
+        "bufferUploads": 1,
+        "descriptorSetAllocations": 0,
+        "descriptorWrites": 0,
+        "vertexCapacityQuads": 256,
+        "vertexUploadMilliseconds": 0.005,
+        "commandRecordingMilliseconds": 0.184,
+        "submitWaitMilliseconds": 0.463,
+        "readbackMilliseconds": 22.12,
+        "cpuAllocatedBytes": 3935488
+      }
+    },
+    {
+      "text": "Hello Machina",
+      "size": 128,
+      "glyphCount": 12,
+      "pixelSha256": "9c58f9e57c4fe59adb57deb51792d5d695d89c0ef448e46494cbb7417d39476d",
+      "drawCalls": 1,
+      "descriptorWrites": 3,
+      "bounds": {
+        "left": 21,
+        "top": 73,
+        "right": 751,
+        "bottom": 160,
+        "width": 731,
+        "height": 88
+      },
+      "adapterAllocatedBytes": 1280,
+      "metrics": {
+        "quadCount": 12,
+        "drawCalls": 1,
+        "commandBuffers": 1,
+        "queueSubmissions": 1,
+        "bufferUploads": 1,
+        "descriptorSetAllocations": 1,
+        "descriptorWrites": 3,
+        "vertexCapacityQuads": 256,
+        "vertexUploadMilliseconds": 0.005,
+        "commandRecordingMilliseconds": 0.121,
+        "submitWaitMilliseconds": 1.201,
+        "readbackMilliseconds": 23.445,
+        "cpuAllocatedBytes": 3938048
+      }
+    },
+    {
+      "text": "The quick brown fox jumps over the lazy dog",
+      "size": 128,
+      "glyphCount": 35,
+      "pixelSha256": "2e89ca64996cd439d1b0c41c5e08536028285147fbe1f0453fcd13b97d97c7ba",
+      "drawCalls": 1,
+      "descriptorWrites": 0,
+      "bounds": {
+        "left": 20,
+        "top": 73,
+        "right": 2281,
+        "bottom": 188,
+        "width": 2262,
+        "height": 116
+      },
+      "adapterAllocatedBytes": 3440,
+      "metrics": {
+        "quadCount": 35,
+        "drawCalls": 1,
+        "commandBuffers": 1,
+        "queueSubmissions": 1,
+        "bufferUploads": 1,
+        "descriptorSetAllocations": 0,
+        "descriptorWrites": 0,
+        "vertexCapacityQuads": 256,
+        "vertexUploadMilliseconds": 0.008,
+        "commandRecordingMilliseconds": 0.185,
+        "submitWaitMilliseconds": 1.114,
+        "readbackMilliseconds": 22.395,
+        "cpuAllocatedBytes": 3940592
+      }
+    }
+  ],
+  "sizes": [
+    {
+      "size": 16,
+      "fieldDimension": 32,
+      "atlasPages": 1,
+      "uniqueFields": 29,
+      "atlasGenerationMilliseconds": 601.765,
+      "rendererCreationMilliseconds": 46.4953,
+      "atlasUploadMilliseconds": 13.3306
+    },
+    {
+      "size": 32,
+      "fieldDimension": 32,
+      "atlasPages": 1,
+      "uniqueFields": 29,
+      "atlasGenerationMilliseconds": 78.9207,
+      "rendererCreationMilliseconds": 2.2172,
+      "atlasUploadMilliseconds": 2.0011
+    },
+    {
+      "size": 64,
+      "fieldDimension": 64,
+      "atlasPages": 1,
+      "uniqueFields": 32,
+      "atlasGenerationMilliseconds": 199.5416,
+      "rendererCreationMilliseconds": 2.2207,
+      "atlasUploadMilliseconds": 3.3536
+    },
+    {
+      "size": 96,
+      "fieldDimension": 128,
+      "atlasPages": 1,
+      "uniqueFields": 30,
+      "atlasGenerationMilliseconds": 545.4431,
+      "rendererCreationMilliseconds": 2.0399,
+      "atlasUploadMilliseconds": 1.7256
+    },
+    {
+      "size": 128,
+      "fieldDimension": 128,
+      "atlasPages": 1,
+      "uniqueFields": 29,
+      "atlasGenerationMilliseconds": 517.6372,
+      "rendererCreationMilliseconds": 2.2243,
+      "atlasUploadMilliseconds": 2.534
+    }
+  ],
+  "multipleRuns": {
+    "quadCount": 53,
+    "drawCalls": 1,
+    "commandBuffers": 1,
+    "queueSubmissions": 1,
+    "bufferUploads": 1,
+    "descriptorSetAllocations": 0,
+    "descriptorWrites": 0,
+    "vertexCapacityQuads": 256,
+    "vertexUploadMilliseconds": 0.092,
+    "commandRecordingMilliseconds": 0.15,
+    "submitWaitMilliseconds": 0.632,
+    "readbackMilliseconds": 21.85,
+    "cpuAllocatedBytes": 3943760
+  },
+  "multipleColors": {
+    "quadCount": 47,
+    "drawCalls": 2,
+    "commandBuffers": 1,
+    "queueSubmissions": 1,
+    "bufferUploads": 1,
+    "descriptorSetAllocations": 2,
+    "descriptorWrites": 6,
+    "vertexCapacityQuads": 256,
+    "vertexUploadMilliseconds": 0.048,
+    "commandRecordingMilliseconds": 0.168,
+    "submitWaitMilliseconds": 0.606,
+    "readbackMilliseconds": 22.031,
+    "cpuAllocatedBytes": 3945424
+  },
+  "repeated100Final": {
+    "quadCount": 12,
+    "drawCalls": 1,
+    "commandBuffers": 1,
+    "queueSubmissions": 1,
+    "bufferUploads": 1,
+    "descriptorSetAllocations": 0,
+    "descriptorWrites": 0,
+    "vertexCapacityQuads": 256,
+    "vertexUploadMilliseconds": 0.012,
+    "commandRecordingMilliseconds": 0.072,
+    "submitWaitMilliseconds": 0.375,
+    "readbackMilliseconds": 16.909,
+    "cpuAllocatedBytes": 3936544
+  }
+}

@@ -38,4 +38,29 @@ internal static class Native2DSubmissionValidator
             throw new ArgumentException("Quad tint components must be in [0, 1].", nameof(submission));
         }
     }
+
+    public static void ValidateValues(NativeMsdfQuadSubmission submission)
+    {
+        ValidateValues(new NativeQuadSubmission(
+            submission.Destination,
+            submission.Uv,
+            submission.AtlasTexture,
+            submission.Color));
+
+        NativeMsdfParameters parameters = submission.Msdf;
+        if (!float.IsFinite(parameters.PixelRange)
+            || !float.IsFinite(parameters.FieldScale)
+            || !float.IsFinite(parameters.Threshold))
+        {
+            throw new ArgumentException("MSDF reconstruction parameters must be finite.", nameof(submission));
+        }
+        if (parameters.PixelRange <= 0 || parameters.FieldScale <= 0)
+        {
+            throw new ArgumentException("MSDF pixel range and field scale must be positive.", nameof(submission));
+        }
+        if (parameters.Threshold < 0 || parameters.Threshold > 1)
+        {
+            throw new ArgumentException("MSDF threshold must be in [0, 1].", nameof(submission));
+        }
+    }
 }

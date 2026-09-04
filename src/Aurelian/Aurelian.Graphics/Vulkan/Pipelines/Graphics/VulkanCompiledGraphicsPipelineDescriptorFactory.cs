@@ -11,7 +11,8 @@ public static class VulkanCompiledGraphicsPipelineDescriptorFactory
         IReadOnlyList<VulkanVertexBufferLayoutDescriptor> vertexBuffers,
         IReadOnlyList<VulkanVertexAttributeDescriptor> vertexAttributes,
         bool enableDepthTest = false,
-        bool enableDepthWrite = false)
+        bool enableDepthWrite = false,
+        bool enableStraightAlphaBlend = false)
     {
         List<VulkanCompiledGraphicsPipelineDiagnostic> diagnostics = [];
 
@@ -92,7 +93,8 @@ public static class VulkanCompiledGraphicsPipelineDescriptorFactory
             vertexBuffers,
             vertexAttributes,
             enableDepthTest,
-            enableDepthWrite);
+            enableDepthWrite,
+            enableStraightAlphaBlend);
 
         return new VulkanCompiledGraphicsPipelineDescriptorResult(
             VulkanCompiledGraphicsPipelineStatus.Created,
@@ -107,14 +109,16 @@ public static class VulkanCompiledGraphicsPipelineDescriptorFactory
         IReadOnlyList<VulkanVertexBufferLayoutDescriptor> vertexBuffers,
         IReadOnlyList<VulkanVertexAttributeDescriptor> vertexAttributes,
         bool enableDepthTest = false,
-        bool enableDepthWrite = false)
+        bool enableDepthWrite = false,
+        bool enableStraightAlphaBlend = false)
     {
         VulkanCompiledGraphicsPipelineDescriptorResult descriptorResult = CreateDescriptor(
             program,
             vertexBuffers,
             vertexAttributes,
             enableDepthTest,
-            enableDepthWrite);
+            enableDepthWrite,
+            enableStraightAlphaBlend);
 
         if (!descriptorResult.Success)
         {

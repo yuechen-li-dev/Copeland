@@ -113,7 +113,7 @@
         "code": "COPE-GPU-MATERIAL-0003",
         "canonicalCode": "SDSL-V4114",
         "category": "material",
-        "message": "The bounded M3 material is exactly \u0027tint: float4; roughness: f32;\u0027 in canonical order.",
+        "message": "The bounded graphics material must be the ForwardTextured or MsdfText canonical shape.",
         "primarySpan": {
           "file": "samples/Aurelian/ForwardTexturedM3.v.ts",
           "start": 162,

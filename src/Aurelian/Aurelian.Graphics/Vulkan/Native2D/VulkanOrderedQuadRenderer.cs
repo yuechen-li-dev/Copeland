@@ -31,6 +31,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
 
     private readonly AurelianVulkanPlant plant;
     private readonly CompiledGraphicsProgram program;
+    private readonly Native2DPipelineOptions options;
     private readonly uint width;
     private readonly uint height;
     private readonly int vertexStride;
@@ -49,7 +50,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
     private readonly AurelianVulkanGraphicsPipeline pipeline;
     private readonly Dictionary<ulong, TextureResource> textures = [];
     private readonly Dictionary<BindingKey, BindingResource> bindings = [];
-    private readonly List<NativeQuadSubmission> submissions = new(InitialQuadCapacity);
+    private readonly List<RenderSubmission> submissions = new(InitialQuadCapacity);
 
     private AurelianVulkanBuffer vertexBuffer;
     private int vertexCapacityQuads = InitialQuadCapacity;
@@ -60,7 +61,8 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         AurelianVulkanPlant plant,
         CompiledGraphicsProgram program,
         uint width = 256,
-        uint height = 256)
+        uint height = 256,
+        Native2DPipelineOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(plant);
         ArgumentNullException.ThrowIfNull(program);
@@ -69,9 +71,11 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             throw new ArgumentOutOfRangeException(nameof(width), "The 2D target extent must be positive.");
         }
 
-        ValidateProgram(program);
+        options ??= Native2DPipelineOptions.Textured;
+        ValidateProgram(program, options);
         this.plant = plant;
         this.program = program;
+        this.options = options;
         this.width = width;
         this.height = height;
         orderedVertexInputs = program.VertexInputs
@@ -97,8 +101,14 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         renderPass = CreateRenderPass();
         framebuffer = CreateFramebuffer();
         descriptorSetLayout = VulkanNativeForwardTexturedRenderer.CreateDescriptorSetLayout(plant, program);
-        pipeline = VulkanNativeForwardTexturedRenderer.CreatePipeline(plant, renderPass, program, vertexStride, descriptorSetLayout);
-        sampler = VulkanNativeForwardTexturedRenderer.CreateSampler(plant);
+        pipeline = VulkanNativeForwardTexturedRenderer.CreatePipeline(
+            plant,
+            renderPass,
+            program,
+            vertexStride,
+            descriptorSetLayout,
+            options.StraightAlphaBlend);
+        sampler = VulkanNativeForwardTexturedRenderer.CreateSampler(plant, options.LinearFiltering);
         descriptorPool = CreateDescriptorPool();
         vertexBuffer = CreateVertexBuffer(vertexCapacityQuads);
     }
@@ -110,6 +120,8 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
     public int TextureCount => textures.Count;
 
     public int VertexCapacityQuads => vertexCapacityQuads;
+
+    public Native2DPipelineKind PipelineKind => options.Kind;
 
     public Native2DTextureHandle CreateTexture(uint textureWidth, uint textureHeight, ReadOnlySpan<byte> rgba8)
     {
@@ -200,8 +212,41 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         {
             throw new InvalidOperationException("SubmitQuad requires an active 2D pass.");
         }
-        ValidateSubmission(submission);
-        submissions.Add(submission);
+        if (options.Kind != Native2DPipelineKind.Textured)
+        {
+            throw new InvalidOperationException("SubmitQuad requires the textured 2D pipeline.");
+        }
+        ValidateSubmission(submission.Texture, submission);
+        submissions.Add(new RenderSubmission(
+            submission.Destination,
+            submission.Uv,
+            submission.Texture,
+            submission.Tint,
+            default));
+    }
+
+    public void SubmitMsdfQuad(NativeMsdfQuadSubmission submission)
+    {
+        ThrowIfDisposed();
+        if (!passActive)
+        {
+            throw new InvalidOperationException("SubmitMsdfQuad requires an active 2D pass.");
+        }
+        if (options.Kind != Native2DPipelineKind.MsdfText)
+        {
+            throw new InvalidOperationException("SubmitMsdfQuad requires the MSDF text pipeline.");
+        }
+        Native2DSubmissionValidator.ValidateValues(submission);
+        if (!textures.ContainsKey(submission.AtlasTexture.Value))
+        {
+            throw UnknownTexture(submission.AtlasTexture);
+        }
+        submissions.Add(new RenderSubmission(
+            submission.Destination,
+            submission.Uv,
+            submission.AtlasTexture,
+            submission.Color,
+            submission.Msdf));
     }
 
     public Native2DPassResult End2D(bool captureReadback = false)
@@ -344,22 +389,76 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         allocator.Dispose();
     }
 
-    private static void ValidateProgram(CompiledGraphicsProgram program)
+    private static void ValidateProgram(CompiledGraphicsProgram program, Native2DPipelineOptions options)
     {
-        VulkanForwardTexturedFixture fixture = VulkanForwardTexturedCanonicalFixture.Create(program);
-        VulkanForwardTexturedValidation validation = VulkanNativeForwardTexturedRenderer.Validate(program, fixture);
-        if (!validation.Success)
+        if (program.FormatVersion != CompiledGraphicsProgram.CurrentFormatVersion)
         {
-            throw new ArgumentException("Compiled graphics program is not compatible with the native 2D path: " + string.Join("; ", validation.Errors), nameof(program));
+            throw new ArgumentException("Compiled graphics program format is unsupported.", nameof(program));
+        }
+        CompiledVertexInput[] inputs = program.VertexInputs.OrderBy(input => input.Order).ToArray();
+        int expectedInputCount = options.Kind == Native2DPipelineKind.MsdfText ? 3 : 2;
+        bool inputMismatch = inputs.Length != expectedInputCount;
+        if (!inputMismatch)
+        {
+            inputMismatch = inputMismatch
+                || inputs[0].Name != "position"
+                || inputs[0].PhysicalType != "float3"
+                || inputs[1].Name != "uv"
+                || inputs[1].PhysicalType != "float2";
+        }
+        if (!inputMismatch && options.Kind == Native2DPipelineKind.MsdfText)
+        {
+            inputMismatch = inputs[2].Name != "fieldScale"
+                || inputs[2].PhysicalType != "f32";
+        }
+        if (inputMismatch)
+        {
+            throw new ArgumentException("Native 2D requires position: float3 followed by uv: float2.", nameof(program));
+        }
+        if (program.Resources.Count != 3
+            || program.Resources.Count(resource => resource.Kind == CompiledGraphicsResourceKind.Texture2D) != 1
+            || program.Resources.Count(resource => resource.Kind == CompiledGraphicsResourceKind.Sampler) != 1
+            || program.Resources.Count(resource => resource.Kind == CompiledGraphicsResourceKind.UniformBuffer) != 1)
+        {
+            throw new ArgumentException("Native 2D requires one compiler-described texture, sampler, and material buffer.", nameof(program));
+        }
+        CompiledMaterialLayout material = program.Material
+            ?? throw new ArgumentException("Native 2D requires compiler-described material metadata.", nameof(program));
+        string[] expectedFields = options.Kind == Native2DPipelineKind.MsdfText
+            ? ["tint", "pixelRange", "threshold"]
+            : ["tint", "roughness"];
+        if (!material.Fields.OrderBy(field => field.Order).Select(field => field.Name).SequenceEqual(expectedFields, StringComparer.Ordinal))
+        {
+            throw new ArgumentException($"The {options.Kind} pipeline material shape is incompatible with native 2D.", nameof(program));
+        }
+
+        int stride = inputs.Sum(input => VulkanForwardTexturedCanonicalFixture.PhysicalTypeSize(input.PhysicalType));
+        VulkanForwardTexturedFixture reflectionFixture = options.Kind == Native2DPipelineKind.Textured
+            ? VulkanForwardTexturedCanonicalFixture.Create(program)
+            : new VulkanForwardTexturedFixture(
+                new byte[checked(stride * VerticesPerQuad)],
+                stride,
+                VerticesPerQuad,
+                [255, 255, 255, 255],
+                1,
+                1,
+                new byte[material.Size],
+                program.Resources.Select(resource => resource.Binding).ToHashSet());
+        VulkanForwardTexturedValidation reflectionValidation = VulkanNativeForwardTexturedRenderer.Validate(program, reflectionFixture);
+        if (!reflectionValidation.Success)
+        {
+            throw new ArgumentException(
+                "Compiled graphics program failed the native 2D SPIR-V cross-check: " + string.Join("; ", reflectionValidation.Errors),
+                nameof(program));
         }
     }
 
-    private void ValidateSubmission(NativeQuadSubmission submission)
+    private void ValidateSubmission(Native2DTextureHandle texture, NativeQuadSubmission submission)
     {
         Native2DSubmissionValidator.ValidateValues(submission);
-        if (!textures.ContainsKey(submission.Texture.Value))
+        if (!textures.ContainsKey(texture.Value))
         {
-            throw UnknownTexture(submission.Texture);
+            throw UnknownTexture(texture);
         }
     }
 
@@ -369,17 +468,17 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         Span<Vertex> vertices = stackalloc Vertex[VerticesPerQuad];
         for (int quadIndex = 0; quadIndex < submissions.Count; quadIndex++)
         {
-            NativeQuadSubmission submission = submissions[quadIndex];
+            RenderSubmission submission = submissions[quadIndex];
             float left = ToNdcX(submission.Destination.X);
             float right = ToNdcX(submission.Destination.X + submission.Destination.Width);
             float top = ToNdcY(submission.Destination.Y);
             float bottom = ToNdcY(submission.Destination.Y + submission.Destination.Height);
-            vertices[0] = new Vertex(left, bottom, 0, submission.Uv.U0, submission.Uv.V1);
-            vertices[1] = new Vertex(right, top, 0, submission.Uv.U1, submission.Uv.V0);
-            vertices[2] = new Vertex(right, bottom, 0, submission.Uv.U1, submission.Uv.V1);
-            vertices[3] = new Vertex(left, bottom, 0, submission.Uv.U0, submission.Uv.V1);
-            vertices[4] = new Vertex(left, top, 0, submission.Uv.U0, submission.Uv.V0);
-            vertices[5] = new Vertex(right, top, 0, submission.Uv.U1, submission.Uv.V0);
+            vertices[0] = new Vertex(left, bottom, 0, submission.Uv.U0, submission.Uv.V1, submission.Msdf.FieldScale);
+            vertices[1] = new Vertex(right, top, 0, submission.Uv.U1, submission.Uv.V0, submission.Msdf.FieldScale);
+            vertices[2] = new Vertex(right, bottom, 0, submission.Uv.U1, submission.Uv.V1, submission.Msdf.FieldScale);
+            vertices[3] = new Vertex(left, bottom, 0, submission.Uv.U0, submission.Uv.V1, submission.Msdf.FieldScale);
+            vertices[4] = new Vertex(left, top, 0, submission.Uv.U0, submission.Uv.V0, submission.Msdf.FieldScale);
+            vertices[5] = new Vertex(right, top, 0, submission.Uv.U1, submission.Uv.V0, submission.Msdf.FieldScale);
             for (int vertexIndex = 0; vertexIndex < vertices.Length; vertexIndex++)
             {
                 WriteVertex(bytes, (quadIndex * VerticesPerQuad + vertexIndex) * vertexStride, vertices[vertexIndex]);
@@ -403,6 +502,10 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             {
                 WriteFloat(bytes, offset, vertex.U);
                 WriteFloat(bytes, offset + 4, vertex.V);
+            }
+            else if (input.Name == "fieldScale" && input.PhysicalType == "f32")
+            {
+                WriteFloat(bytes, offset, vertex.FieldScale);
             }
             else
             {
@@ -460,7 +563,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         return drawCalls;
     }
 
-    private BindingResource CreateBinding(BindingKey key, NativeQuadSubmission submission)
+    private BindingResource CreateBinding(BindingKey key, RenderSubmission submission)
     {
         if (bindings.Count >= MaximumBindingSets)
         {
@@ -470,12 +573,20 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         CompiledMaterialLayout material = program.Material!;
         byte[] materialBytes = new byte[material.Size];
         CompiledMaterialField tint = material.Fields.Single(field => field.Name == "tint");
-        CompiledMaterialField roughness = material.Fields.Single(field => field.Name == "roughness");
         WriteFloat(materialBytes, tint.Offset, submission.Tint.Red);
         WriteFloat(materialBytes, tint.Offset + 4, submission.Tint.Green);
         WriteFloat(materialBytes, tint.Offset + 8, submission.Tint.Blue);
         WriteFloat(materialBytes, tint.Offset + 12, submission.Tint.Alpha);
-        WriteFloat(materialBytes, roughness.Offset, 1);
+        if (options.Kind == Native2DPipelineKind.Textured)
+        {
+            CompiledMaterialField roughness = material.Fields.Single(field => field.Name == "roughness");
+            WriteFloat(materialBytes, roughness.Offset, 1);
+        }
+        else
+        {
+            WriteMaterialFloat(materialBytes, material, "pixelRange", submission.Msdf.PixelRange);
+            WriteMaterialFloat(materialBytes, material, "threshold", submission.Msdf.Threshold);
+        }
         AurelianVulkanBuffer materialBuffer = VulkanNativeForwardTexturedRenderer.CreateMappedBuffer(
             plant,
             allocator,
@@ -650,6 +761,12 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
     private static void WriteFloat(byte[] destination, int offset, float value)
         => BinaryPrimitives.WriteInt32LittleEndian(destination.AsSpan(offset, 4), BitConverter.SingleToInt32Bits(value));
 
+    private static void WriteMaterialFloat(byte[] destination, CompiledMaterialLayout material, string name, float value)
+    {
+        CompiledMaterialField field = material.Fields.Single(candidate => candidate.Name == name);
+        WriteFloat(destination, field.Offset, value);
+    }
+
     private static InvalidOperationException UnknownTexture(Native2DTextureHandle handle)
         => new($"Texture handle {handle.Value} is unknown or disposed.");
 
@@ -668,16 +785,32 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
 
     private sealed record BindingResource(DescriptorSet DescriptorSet, AurelianVulkanBuffer MaterialBuffer);
 
-    private readonly record struct BindingKey(ulong TextureId, int Red, int Green, int Blue, int Alpha)
+    private readonly record struct BindingKey(
+        ulong TextureId,
+        int Red,
+        int Green,
+        int Blue,
+        int Alpha,
+        int PixelRange,
+        int Threshold)
     {
-        public static BindingKey From(NativeQuadSubmission submission)
+        public static BindingKey From(RenderSubmission submission)
             => new(
                 submission.Texture.Value,
                 BitConverter.SingleToInt32Bits(submission.Tint.Red),
                 BitConverter.SingleToInt32Bits(submission.Tint.Green),
                 BitConverter.SingleToInt32Bits(submission.Tint.Blue),
-                BitConverter.SingleToInt32Bits(submission.Tint.Alpha));
+                BitConverter.SingleToInt32Bits(submission.Tint.Alpha),
+                BitConverter.SingleToInt32Bits(submission.Msdf.PixelRange),
+                BitConverter.SingleToInt32Bits(submission.Msdf.Threshold));
     }
 
-    private readonly record struct Vertex(float X, float Y, float Z, float U, float V);
+    private readonly record struct RenderSubmission(
+        Native2DRect Destination,
+        Native2DUvRect Uv,
+        Native2DTextureHandle Texture,
+        Native2DTint Tint,
+        NativeMsdfParameters Msdf);
+
+    private readonly record struct Vertex(float X, float Y, float Z, float U, float V, float FieldScale);
 }

@@ -20,6 +20,39 @@ public readonly record struct NativeQuadSubmission(
     Native2DTextureHandle Texture,
     Native2DTint Tint);
 
+public readonly record struct NativeMsdfParameters(
+    float PixelRange,
+    float FieldScale,
+    float Threshold)
+{
+    public static NativeMsdfParameters Create(float pixelRange, float fieldScale)
+        => new(pixelRange, fieldScale, 0.5f);
+}
+
+public readonly record struct NativeMsdfQuadSubmission(
+    Native2DRect Destination,
+    Native2DUvRect Uv,
+    Native2DTextureHandle AtlasTexture,
+    Native2DTint Color,
+    NativeMsdfParameters Msdf);
+
+public enum Native2DPipelineKind
+{
+    Textured,
+    MsdfText,
+}
+
+public sealed record Native2DPipelineOptions(Native2DPipelineKind Kind)
+{
+    public static Native2DPipelineOptions Textured { get; } = new(Native2DPipelineKind.Textured);
+
+    public static Native2DPipelineOptions MsdfText { get; } = new(Native2DPipelineKind.MsdfText);
+
+    public bool LinearFiltering => Kind == Native2DPipelineKind.MsdfText;
+
+    public bool StraightAlphaBlend => Kind == Native2DPipelineKind.MsdfText;
+}
+
 public sealed record Native2DPassMetrics(
     int QuadCount,
     int DrawCalls,

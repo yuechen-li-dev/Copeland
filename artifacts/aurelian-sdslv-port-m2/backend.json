@@ -19,9 +19,9 @@
       "VertexMain",
       "-T",
       "vs_6_0",
-      "C:\\Users\\yuech\\AppData\\Local\\Temp\\aurelian-dxc-0b29f69a262b47edb6485bdea49124f8\\VertexMain.hlsl",
+      "C:\\Users\\yuech\\AppData\\Local\\Temp\\aurelian-dxc-68d601e145d84904ae68ee28ee3ecc34\\VertexMain.hlsl",
       "-Fo",
-      "C:\\Users\\yuech\\AppData\\Local\\Temp\\aurelian-dxc-0b29f69a262b47edb6485bdea49124f8\\VertexMain.spv"
+      "C:\\Users\\yuech\\AppData\\Local\\Temp\\aurelian-dxc-68d601e145d84904ae68ee28ee3ecc34\\VertexMain.spv"
     ],
     "spirvValidated": true,
     "spirvValidationOutput": "",
@@ -48,9 +48,9 @@
       "PixelMain",
       "-T",
       "ps_6_0",
-      "C:\\Users\\yuech\\AppData\\Local\\Temp\\aurelian-dxc-0e23456e94224106b0bb0de1e347c147\\PixelMain.hlsl",
+      "C:\\Users\\yuech\\AppData\\Local\\Temp\\aurelian-dxc-170a36582547404898032fc5b55dc680\\PixelMain.hlsl",
       "-Fo",
-      "C:\\Users\\yuech\\AppData\\Local\\Temp\\aurelian-dxc-0e23456e94224106b0bb0de1e347c147\\PixelMain.spv"
+      "C:\\Users\\yuech\\AppData\\Local\\Temp\\aurelian-dxc-170a36582547404898032fc5b55dc680\\PixelMain.spv"
     ],
     "spirvValidated": true,
     "spirvValidationOutput": "",

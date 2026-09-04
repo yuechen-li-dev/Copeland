@@ -5,4 +5,5 @@ public sealed record VulkanGraphicsPipelineDescriptor(
     IReadOnlyList<VulkanVertexBufferLayoutDescriptor> VertexBuffers,
     IReadOnlyList<VulkanVertexAttributeDescriptor> VertexAttributes,
     bool EnableDepthTest = false,
-    bool EnableDepthWrite = false);
+    bool EnableDepthWrite = false,
+    bool EnableStraightAlphaBlend = false);

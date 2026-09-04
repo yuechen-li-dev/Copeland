@@ -130,3 +130,11 @@ dotnet run --project tools/Machina.TextConformance/Machina.TextConformance.cspro
 
 It emits five compact JSON evidence files and keeps raster diagnostics under the local temporary
 directory recorded in `manifest.json`.
+## Native realization boundary (Aurelian M2)
+
+The qualified `MachinaGlyphRun` is now consumed unchanged by
+`AurelianGlyphRunAdapter` in the `Aurelian.Machina.Graphics` integration leaf. The adapter converts qualified
+glyph origins/baselines plus MSDF field planes into renderer-space rectangles and
+preserves existing atlas UVs and order. Aurelian does not recompute advances, kerning,
+anchors, shaping, or baselines. See
+`docs/Aurelian/aurelian-native-msdf-text-m2-report.md` for Vulkan qualification.

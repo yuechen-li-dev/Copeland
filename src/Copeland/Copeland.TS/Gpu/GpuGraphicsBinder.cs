@@ -158,9 +158,26 @@ public static class GpuGraphicsBinder
                     fields.Add(new VdMirMaterialField(order, field.Identifier.Text, type, PhysicalType(type), offset, size, alignment, Span(source.Path, field)));
                     offset += size;
                 }
-                if (fields.Count != 2 || fields[0].Name != "tint" || fields[0].Type != "float4" || fields[1].Name != "roughness" || fields[1].Type != "f32")
+                bool isForwardMaterial = fields.Count == 2
+                    && fields[0].Name == "tint"
+                    && fields[0].Type == "float4"
+                    && fields[1].Name == "roughness"
+                    && fields[1].Type == "f32";
+                bool isMsdfTextMaterial = fields.Count == 3
+                    && fields[0].Name == "tint"
+                    && fields[0].Type == "float4"
+                    && fields[1].Name == "pixelRange"
+                    && fields[1].Type == "f32"
+                    && fields[2].Name == "threshold"
+                    && fields[2].Type == "f32";
+                if (!isForwardMaterial && !isMsdfTextMaterial)
                 {
-                    Add("COPE-GPU-MATERIAL-0003", "SDSL-V4114", "material", "The bounded M3 material is exactly 'tint: float4; roughness: f32;' in canonical order.", Span(source.Path, source.Syntax));
+                    Add(
+                        "COPE-GPU-MATERIAL-0003",
+                        "SDSL-V4114",
+                        "material",
+                        "The bounded graphics material must be the ForwardTextured or MsdfText canonical shape.",
+                        Span(source.Path, source.Syntax));
                 }
                 VdMirSourceSpan bindingSource = Span(source.Path, bindingAnnotation!);
                 _materials[source.Syntax.Identifier.Text] = new VdMirMaterial(
@@ -626,6 +643,14 @@ public static class GpuGraphicsBinder
                     {
                         return new VdMirExpression("binary", left.Type, Span(path, binary), "+", [left, right]);
                     }
+                    if (binary.OperatorToken.Kind == SyntaxKind.MinusToken && left.Type == right.Type && left.Type == "f32")
+                    {
+                        return new VdMirExpression("binary", left.Type, Span(path, binary), "-", [left, right]);
+                    }
+                    if (binary.OperatorToken.Kind == SyntaxKind.SlashToken && left.Type == right.Type && left.Type == "f32")
+                    {
+                        return new VdMirExpression("binary", left.Type, Span(path, binary), "/", [left, right]);
+                    }
                     Add("COPE-GPU-OPERATOR-0001", "SDSL-V1503", "type", $"Operator '{binary.OperatorToken.Text}' is not defined for '{left.Type}' and '{right.Type}' in graphics M3.", Span(path, binary.OperatorToken));
                     return Error(path, binary);
                 }
@@ -697,6 +722,24 @@ public static class GpuGraphicsBinder
                     Add("COPE-GPU-SAMPLE-0005", "SDSL-V4118", "texture-sampling", "Sample is supported only in vertex and pixel stages.", Span(path, call));
                 }
                 return new VdMirExpression("intrinsic", elementType ?? "error", Span(path, call), "Sample2D", arguments);
+            }
+            if (target is "Min" or "Max")
+            {
+                if (arguments.Length != 2 || arguments.Any(argument => argument.Type != "f32"))
+                {
+                    Add("COPE-GPU-MATH-0001", "SDSL-V1503", "type", $"{target} expects two f32 arguments.", Span(path, call));
+                    return Error(path, call);
+                }
+                return new VdMirExpression("intrinsic", "f32", Span(path, call), target, arguments);
+            }
+            if (target == "Clamp")
+            {
+                if (arguments.Length != 3 || arguments.Any(argument => argument.Type != "f32"))
+                {
+                    Add("COPE-GPU-MATH-0001", "SDSL-V1503", "type", "Clamp expects three f32 arguments.", Span(path, call));
+                    return Error(path, call);
+                }
+                return new VdMirExpression("intrinsic", "f32", Span(path, call), "Clamp", arguments);
             }
             if (target is "float2" or "float3" or "float4")
             {

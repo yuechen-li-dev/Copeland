@@ -1,5 +1,11 @@
 # AURELIAN-NATIVE-2D-QUAD-M1 report
 
+> M2 follow-on: the same persistent ordered six-vertex quad owner now has one explicit
+> MSDF text pipeline variant. Glyph-specific field scale is a vertex attribute; run-level
+> tint, pixel range, threshold, atlas, sampler, and descriptors remain reusable, so an
+> ordinary run is one draw without reordering. The original textured M1 defaults and
+> canonical regression path remain unchanged.
+
 ## Outcome
 
 **Outcome A — a reusable native ordered-quad primitive emerges cleanly.** One `VulkanOrderedQuadRenderer` reuses the existing `AurelianVulkanPlant`, compiler-driven pipeline and descriptor layout, sampler, descriptor pool, command/fence infrastructure, target, framebuffer, and mapped vertex buffer across passes. Raw RGBA8 textures persist independently across passes. The API is the deliberately small `Begin2D`, immutable `SubmitQuad`, and `End2D` path; optional readback remains proof-only.

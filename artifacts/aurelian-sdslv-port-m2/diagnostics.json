@@ -70,7 +70,7 @@
         "code": "COPE-GPU-LINK-0002",
         "canonicalCode": "SDSL-V4111",
         "category": "stage-linkage",
-        "message": "Varying location 0 disagrees in type or interpolation.",
+        "message": "Varying location 0 disagrees in physical type, semantic space, or interpolation.",
         "primarySpan": {
           "file": "varying-mismatch.v.ts",
           "start": 223,

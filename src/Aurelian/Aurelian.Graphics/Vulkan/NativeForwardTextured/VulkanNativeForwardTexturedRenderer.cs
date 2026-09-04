@@ -567,7 +567,8 @@ public static unsafe class VulkanNativeForwardTexturedRenderer
         AurelianVulkanRenderPass renderPass,
         CompiledGraphicsProgram program,
         int stride,
-        DescriptorSetLayout setLayout)
+        DescriptorSetLayout setLayout,
+        bool enableStraightAlphaBlend = false)
     {
         uint offset = 0;
         List<VulkanVertexAttributeDescriptor> attributes = [];
@@ -584,21 +585,22 @@ public static unsafe class VulkanNativeForwardTexturedRenderer
         VulkanCompiledGraphicsPipelineDescriptorResult descriptor = VulkanCompiledGraphicsPipelineDescriptorFactory.CreateDescriptor(
             program.Shaders,
             [new VulkanVertexBufferLayoutDescriptor(Binding: 0, (uint)stride)],
-            attributes);
+            attributes,
+            enableStraightAlphaBlend: enableStraightAlphaBlend);
         Require(descriptor.Success, "Compiled pipeline descriptor creation failed", descriptor.Diagnostics.Select(item => $"{item.Code}: {item.Message}"));
         VulkanGraphicsPipelineCreateResult result = VulkanGraphicsPipelineFactory.Create(plant, renderPass, descriptor.Descriptor!, [setLayout]);
         Require(result.Success, "Native graphics pipeline creation failed", result.Diagnostics.Select(item => $"{item.Code}: {item.Message}"));
         return result.Pipeline!;
     }
 
-    internal static Sampler CreateSampler(AurelianVulkanPlant plant)
+    internal static Sampler CreateSampler(AurelianVulkanPlant plant, bool linearFiltering = false)
     {
         SamplerCreateInfo createInfo = new()
         {
             SType = StructureType.SamplerCreateInfo,
-            MagFilter = Filter.Nearest,
-            MinFilter = Filter.Nearest,
-            MipmapMode = SamplerMipmapMode.Nearest,
+            MagFilter = linearFiltering ? Filter.Linear : Filter.Nearest,
+            MinFilter = linearFiltering ? Filter.Linear : Filter.Nearest,
+            MipmapMode = linearFiltering ? SamplerMipmapMode.Linear : SamplerMipmapMode.Nearest,
             AddressModeU = SamplerAddressMode.ClampToEdge,
             AddressModeV = SamplerAddressMode.ClampToEdge,
             AddressModeW = SamplerAddressMode.ClampToEdge,
@@ -769,6 +771,7 @@ public static unsafe class VulkanNativeForwardTexturedRenderer
     private static VulkanVertexAttributeFormat MapVertexFormat(string physicalType)
         => physicalType switch
         {
+            "float" or "f32" => VulkanVertexAttributeFormat.Float,
             "float2" => VulkanVertexAttributeFormat.Float2,
             "float3" => VulkanVertexAttributeFormat.Float3,
             "float4" => VulkanVertexAttributeFormat.Float4,
