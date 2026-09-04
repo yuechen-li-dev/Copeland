@@ -1,0 +1,162 @@
+[
+  {
+    "name": "Settings",
+    "contours": 2,
+    "segments": 20,
+    "bounds": {
+      "MinX": 1,
+      "MinY": 1,
+      "MaxX": 23,
+      "MaxY": 23,
+      "Width": 22,
+      "Height": 22
+    },
+    "Width": 64,
+    "Height": 64,
+    "SourceHash": "38bde6f8bae2a6fe62b63b5d5c0d26e1560f0326718201e73495c71c72f5eded",
+    "normalizedHash": "9f5d97b1de41bf590cc59d8ab203a8c08589a982a8568fba8ada16cfbfb74e36",
+    "FieldHash": "fe872c11d88ac3e7d99334133ff534d8e1c6dde591aba74db295955b86258544",
+    "atlasEntryHash": "5648f7e1382f9c682f66bec306cee9c25713ad250fd84b613fdb9fa902cca161",
+    "provenance": "Self-authored Copeland M5 qualification fixture."
+  },
+  {
+    "name": "Play",
+    "contours": 1,
+    "segments": 3,
+    "bounds": {
+      "MinX": 5,
+      "MinY": 3,
+      "MaxX": 21,
+      "MaxY": 21,
+      "Width": 16,
+      "Height": 18
+    },
+    "Width": 57,
+    "Height": 64,
+    "SourceHash": "3e955d366f752e60e19e9f7d7c7ebe08ccd9ad6b12d2d7204cc455338501052f",
+    "normalizedHash": "ce542c43c82ae3a263f6eea107ef28e06ec3288091d6fbf34b9911358522d4ef",
+    "FieldHash": "97e509ae4f8155e9632730719fdd314862b19907433b084c2a5893c8946061fd",
+    "atlasEntryHash": "46da9c9887770df2b135ffb4637b101b784170c22cc521046ac691f99a33aecc",
+    "provenance": "Self-authored Copeland M5 qualification fixture."
+  },
+  {
+    "name": "Pause",
+    "contours": 2,
+    "segments": 8,
+    "bounds": {
+      "MinX": 5,
+      "MinY": 3,
+      "MaxX": 19,
+      "MaxY": 21,
+      "Width": 14,
+      "Height": 18
+    },
+    "Width": 50,
+    "Height": 64,
+    "SourceHash": "8aa0bed578ec0dd321bc6c7575f78cf75a656e94c62fed346e9267e71481b6a0",
+    "normalizedHash": "c63bd2002514f31bb2f0e3a478a86f3fb3b8f8b1e788b967809586d1b0e356dd",
+    "FieldHash": "15d019255350745fb31e4a82b0b14786474b003cc06117d8065f0463ac7d2d46",
+    "atlasEntryHash": "2c1edc419eaadcff97d29209d63871ac95dc3aeffcbeaea25abde17290812795",
+    "provenance": "Self-authored Copeland M5 qualification fixture."
+  },
+  {
+    "name": "Check",
+    "contours": 1,
+    "segments": 6,
+    "bounds": {
+      "MinX": 2,
+      "MinY": 4,
+      "MaxX": 22,
+      "MaxY": 20,
+      "Width": 20,
+      "Height": 16
+    },
+    "Width": 64,
+    "Height": 52,
+    "SourceHash": "813fec3fdb7e6fb506767565f2668cdd52f6e9eda372828b650899ce9b74ffa5",
+    "normalizedHash": "121a8d49ee0de9cecf1bb8d08c2ccd4e5a19bc55275db5150d7ed1d869de5f1e",
+    "FieldHash": "18d0b4a24dfd515cdbb8b51d6ed4578e299bf80dacea360a7eede75ccd4cc718",
+    "atlasEntryHash": "c236d4d8b4c7f7055b02cd0b442e901a59b050aeeff9c9833b42d7d7eb857fed",
+    "provenance": "Self-authored Copeland M5 qualification fixture."
+  },
+  {
+    "name": "Close",
+    "contours": 1,
+    "segments": 12,
+    "bounds": {
+      "MinX": 2.1005050633883346,
+      "MinY": 2.1005050633883364,
+      "MaxX": 21.899494936611667,
+      "MaxY": 21.899494936611667,
+      "Width": 19.798989873223334,
+      "Height": 19.79898987322333
+    },
+    "Width": 64,
+    "Height": 64,
+    "SourceHash": "eb1065a0e01d53ab2ef7b3814991d6344eea155d5c8630fd97e89d28eb427804",
+    "normalizedHash": "22fd8732b520d07d72fc26e463eeb2469a0d65a7b7c7d245fd608976a1c31e7e",
+    "FieldHash": "b1365614068d0385bbbc0f46bacdbf21a13bbd437f1c2de42ed552a3cd950c56",
+    "atlasEntryHash": "683bf3c2a7200db7e801eb0d738d3d34d7805328f9bc5d8cd597b4c7f91172dc",
+    "provenance": "Self-authored Copeland M5 qualification fixture; includes source rotation."
+  },
+  {
+    "name": "Heart",
+    "contours": 1,
+    "segments": 4,
+    "bounds": {
+      "MinX": 2,
+      "MinY": 2,
+      "MaxX": 22,
+      "MaxY": 23,
+      "Width": 20,
+      "Height": 21
+    },
+    "Width": 61,
+    "Height": 64,
+    "SourceHash": "00cc159c91c31a7700978c95651bacfd19ad632e3771b44f33a7de9387ef9ba5",
+    "normalizedHash": "84b600b7a2e0c0a89be9a93070616ec8d4a904af13054e29bf8811dd5a300528",
+    "FieldHash": "bce9d73e4cdedb13e51f1a736c072402e51c492210d9f60612d4072e89ef6245",
+    "atlasEntryHash": "bb15dfc2aab821cc20732f1e56b8526ce7ea2f004a801943da64f0dd3e54e4f7",
+    "provenance": "Self-authored Copeland M5 qualification fixture."
+  },
+  {
+    "name": "InfoCircle",
+    "contours": 4,
+    "segments": 16,
+    "bounds": {
+      "MinX": 1,
+      "MinY": 1,
+      "MaxX": 23,
+      "MaxY": 23,
+      "Width": 22,
+      "Height": 22
+    },
+    "Width": 64,
+    "Height": 64,
+    "SourceHash": "bc10421f5eeb1d05763f736d22e8e36403a144b566c419f47c3ffc35905116ef",
+    "normalizedHash": "456378ea756212adda4a9d8393c03647096ea933b9b00394cf55ac1313886505",
+    "FieldHash": "17e997e48737fdd94e19ae79c5477c0e46823c8c6280e5297e6407eeed3e60cb",
+    "atlasEntryHash": "c20aebfd2f8acd9e87d70560829f5c015695e8720ac4c8885f9b65644080da23",
+    "provenance": "Self-authored Copeland M5 qualification fixture; nested contours exercise non-zero orientation."
+  },
+  {
+    "name": "Folder",
+    "contours": 2,
+    "segments": 10,
+    "bounds": {
+      "MinX": 1,
+      "MinY": 1,
+      "MaxX": 31,
+      "MaxY": 19,
+      "Width": 30,
+      "Height": 18
+    },
+    "Width": 64,
+    "Height": 39,
+    "SourceHash": "619d0bb833967bb50ff0be72a61c7f504a67498975fa86caf0b1baf510466436",
+    "normalizedHash": "fca623db9b1fb6e651ab33e503c0dc095b822b324b0ded6e9c19ca9b2c0ea91a",
+    "FieldHash": "d1937f8154a2a4a6683ce74fcdc7a2c9bc77316e797e6a68c8d2bf0b4dd68499",
+    "atlasEntryHash": "0d44a1f5352f1a5032df05b1dfbd803307cf03e77b5bba688f6cd021c44c4ec1",
+    "provenance": "Self-authored Copeland M5 qualification fixture; intentionally wide."
+  }
+]

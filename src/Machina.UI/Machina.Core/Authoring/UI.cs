@@ -4,11 +4,42 @@ using Machina.Core.Styling;
 using Machina.Layout.Frames;
 using Machina.Layout.Geometry;
 using Machina.Layout.Rows;
+using Machina.Core.Assets;
 
 namespace Machina.Core.Authoring;
 
 public static class UI
 {
+    public static UiNode Icon(
+        MachinaVectorIconId icon,
+        double size,
+        NodeId? id = null,
+        ColorToken? tint = null)
+    {
+        ValidateFinitePositive(size, nameof(size));
+        ColorToken effectiveTint = tint ?? ColorToken.White;
+        return new VectorIconNode(icon, size, size, effectiveTint) with
+        {
+            Id = id,
+        };
+    }
+
+    public static UiNode Icon(
+        MachinaVectorIconId icon,
+        double width,
+        double height,
+        NodeId? id = null,
+        ColorToken? tint = null)
+    {
+        ValidateFinitePositive(width, nameof(width));
+        ValidateFinitePositive(height, nameof(height));
+        ColorToken effectiveTint = tint ?? ColorToken.White;
+        return new VectorIconNode(icon, width, height, effectiveTint) with
+        {
+            Id = id,
+        };
+    }
+
     public static UiNode Text(
         string text,
         NodeId? id = null,

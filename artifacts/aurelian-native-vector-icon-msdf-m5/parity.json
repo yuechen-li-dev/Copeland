@@ -1,0 +1,402 @@
+{
+  "directVectorVsCpuMsdfThreshold": {
+    "minimumIoU": 0.72,
+    "meanEdgeDistancePixels": 1.5
+  },
+  "cpuMsdfVsGpuMsdfThreshold": {
+    "minimumIoU": 0.72
+  },
+  "directVectorVsCpuMsdf": [
+    {
+      "name": "Settings",
+      "Size": 16,
+      "IntersectionOverUnion": 0.9801324503311258,
+      "MeanEdgeDistance": 0.02631578947368421,
+      "MaximumEdgeDistance": 1
+    },
+    {
+      "name": "Settings",
+      "Size": 24,
+      "IntersectionOverUnion": 0.9882005899705014,
+      "MeanEdgeDistance": 0.023668639053254437,
+      "MaximumEdgeDistance": 1
+    },
+    {
+      "name": "Settings",
+      "Size": 32,
+      "IntersectionOverUnion": 0.9966666666666667,
+      "MeanEdgeDistance": 0.008368200836820083,
+      "MaximumEdgeDistance": 1
+    },
+    {
+      "name": "Settings",
+      "Size": 64,
+      "IntersectionOverUnion": 1,
+      "MeanEdgeDistance": 0,
+      "MaximumEdgeDistance": 0
+    },
+    {
+      "name": "Settings",
+      "Size": 128,
+      "IntersectionOverUnion": 0.9970942299709423,
+      "MeanEdgeDistance": 0.027144945599972867,
+      "MaximumEdgeDistance": 1.4142135623730951
+    },
+    {
+      "name": "Play",
+      "Size": 16,
+      "IntersectionOverUnion": 0.9824561403508771,
+      "MeanEdgeDistance": 0.024390243902439025,
+      "MaximumEdgeDistance": 1
+    },
+    {
+      "name": "Play",
+      "Size": 24,
+      "IntersectionOverUnion": 0.9924812030075187,
+      "MeanEdgeDistance": 0.015384615384615385,
+      "MaximumEdgeDistance": 1
+    },
+    {
+      "name": "Play",
+      "Size": 32,
+      "IntersectionOverUnion": 0.9911504424778761,
+      "MeanEdgeDistance": 0.023529411764705882,
+      "MaximumEdgeDistance": 1
+    },
+    {
+      "name": "Play",
+      "Size": 64,
+      "IntersectionOverUnion": 0.9613319011815252,
+      "MeanEdgeDistance": 0.20461095100864554,
+      "MaximumEdgeDistance": 1
+    },
+    {
+      "name": "Play",
+      "Size": 128,
+      "IntersectionOverUnion": 0.9972640218878249,
+      "MeanEdgeDistance": 0.027695026479847496,
+      "MaximumEdgeDistance": 1.4142135623730951
+    },
+    {
+      "name": "Pause",
+      "Size": 16,
+      "IntersectionOverUnion": 1,
+      "MeanEdgeDistance": 0,
+      "MaximumEdgeDistance": 0
+    },
+    {
+      "name": "Pause",
+      "Size": 24,
+      "IntersectionOverUnion": 1,
+      "MeanEdgeDistance": 0,
+      "MaximumEdgeDistance": 0
+    },
+    {
+      "name": "Pause",
+      "Size": 32,
+      "IntersectionOverUnion": 0.8,
+      "MeanEdgeDistance": 0.5,
+      "MaximumEdgeDistance": 1
+    },
+    {
+      "name": "Pause",
+      "Size": 64,
+      "IntersectionOverUnion": 1,
+      "MeanEdgeDistance": 0,
+      "MaximumEdgeDistance": 0
+    },
+    {
+      "name": "Pause",
+      "Size": 128,
+      "IntersectionOverUnion": 0.9991319444444444,
+      "MeanEdgeDistance": 0.0078125,
+      "MaximumEdgeDistance": 1
+    },
+    {
+      "name": "Check",
+      "Size": 16,
+      "IntersectionOverUnion": 0.8928571428571429,
+      "MeanEdgeDistance": 0.12903225806451613,
+      "MaximumEdgeDistance": 1
+    },
+    {
+      "name": "Check",
+      "Size": 24,
+      "IntersectionOverUnion": 0.9846153846153847,
+      "MeanEdgeDistance": 0.031578947368421054,
+      "MaximumEdgeDistance": 1
+    },
+    {
+      "name": "Check",
+      "Size": 32,
+      "IntersectionOverUnion": 1,
+      "MeanEdgeDistance": 0,
+      "MaximumEdgeDistance": 0
+    },
+    {
+      "name": "Check",
+      "Size": 64,
+      "IntersectionOverUnion": 0.9970126960418223,
+      "MeanEdgeDistance": 0.009746588693957114,
+      "MaximumEdgeDistance": 1
+    },
+    {
+      "name": "Check",
+      "Size": 128,
+      "IntersectionOverUnion": 0.9992422807349877,
+      "MeanEdgeDistance": 0.004878048780487805,
+      "MaximumEdgeDistance": 1
+    },
+    {
+      "name": "Close",
+      "Size": 16,
+      "IntersectionOverUnion": 1,
+      "MeanEdgeDistance": 0,
+      "MaximumEdgeDistance": 0
+    },
+    {
+      "name": "Close",
+      "Size": 24,
+      "IntersectionOverUnion": 1,
+      "MeanEdgeDistance": 0,
+      "MaximumEdgeDistance": 0
+    },
+    {
+      "name": "Close",
+      "Size": 32,
+      "IntersectionOverUnion": 1,
+      "MeanEdgeDistance": 0,
+      "MaximumEdgeDistance": 0
+    },
+    {
+      "name": "Close",
+      "Size": 64,
+      "IntersectionOverUnion": 0.9966159052453468,
+      "MeanEdgeDistance": 0.01,
+      "MaximumEdgeDistance": 1
+    },
+    {
+      "name": "Close",
+      "Size": 128,
+      "IntersectionOverUnion": 0.998324958123953,
+      "MeanEdgeDistance": 0.015,
+      "MaximumEdgeDistance": 1
+    },
+    {
+      "name": "Heart",
+      "Size": 16,
+      "IntersectionOverUnion": 1,
+      "MeanEdgeDistance": 0,
+      "MaximumEdgeDistance": 0
+    },
+    {
+      "name": "Heart",
+      "Size": 24,
+      "IntersectionOverUnion": 0.9883720930232558,
+      "MeanEdgeDistance": 0.01639344262295082,
+      "MaximumEdgeDistance": 1
+    },
+    {
+      "name": "Heart",
+      "Size": 32,
+      "IntersectionOverUnion": 0.9933993399339934,
+      "MeanEdgeDistance": 0.024390243902439025,
+      "MaximumEdgeDistance": 1
+    },
+    {
+      "name": "Heart",
+      "Size": 64,
+      "IntersectionOverUnion": 0.9950535861500412,
+      "MeanEdgeDistance": 0.037037037037037035,
+      "MaximumEdgeDistance": 1
+    },
+    {
+      "name": "Heart",
+      "Size": 128,
+      "IntersectionOverUnion": 0.9993818256748404,
+      "MeanEdgeDistance": 0.009036144578313253,
+      "MaximumEdgeDistance": 1
+    },
+    {
+      "name": "InfoCircle",
+      "Size": 16,
+      "IntersectionOverUnion": 0.7625,
+      "MeanEdgeDistance": 0.20985805776412708,
+      "MaximumEdgeDistance": 2.23606797749979
+    },
+    {
+      "name": "InfoCircle",
+      "Size": 24,
+      "IntersectionOverUnion": 0.8875,
+      "MeanEdgeDistance": 0.11773061049005665,
+      "MaximumEdgeDistance": 2.8284271247461903
+    },
+    {
+      "name": "InfoCircle",
+      "Size": 32,
+      "IntersectionOverUnion": 0.872852233676976,
+      "MeanEdgeDistance": 0.16336275360664398,
+      "MaximumEdgeDistance": 3.605551275463989
+    },
+    {
+      "name": "InfoCircle",
+      "Size": 64,
+      "IntersectionOverUnion": 0.8693808312128923,
+      "MeanEdgeDistance": 0.38973317562567084,
+      "MaximumEdgeDistance": 7.810249675906654
+    },
+    {
+      "name": "InfoCircle",
+      "Size": 128,
+      "IntersectionOverUnion": 0.8684097728246892,
+      "MeanEdgeDistance": 0.8137882943615116,
+      "MaximumEdgeDistance": 12.806248474865697
+    },
+    {
+      "name": "Folder",
+      "Size": 16,
+      "IntersectionOverUnion": 1,
+      "MeanEdgeDistance": 0,
+      "MaximumEdgeDistance": 0
+    },
+    {
+      "name": "Folder",
+      "Size": 24,
+      "IntersectionOverUnion": 0.9964028776978417,
+      "MeanEdgeDistance": 0.01020408163265306,
+      "MaximumEdgeDistance": 1
+    },
+    {
+      "name": "Folder",
+      "Size": 32,
+      "IntersectionOverUnion": 0.9750479846449136,
+      "MeanEdgeDistance": 0.1775312159878193,
+      "MaximumEdgeDistance": 3
+    },
+    {
+      "name": "Folder",
+      "Size": 64,
+      "IntersectionOverUnion": 0.9807881773399014,
+      "MeanEdgeDistance": 0.27381877977443386,
+      "MaximumEdgeDistance": 4
+    },
+    {
+      "name": "Folder",
+      "Size": 128,
+      "IntersectionOverUnion": 0.9649208282582217,
+      "MeanEdgeDistance": 1.0033669430525969,
+      "MaximumEdgeDistance": 9
+    }
+  ],
+  "cpuMsdfVsGpuMsdf": [
+    {
+      "SourceId": "settings-icon",
+      "size": 24,
+      "iou": 0.9940298507462687,
+      "gpuHash": "cd6d314acf8a8c6e9af16b97d23e5fc78b053b16af3e9074d004cc5bc3648c25"
+    },
+    {
+      "SourceId": "play-icon",
+      "size": 24,
+      "iou": 1,
+      "gpuHash": "97871d3a48292556da242df865159d0d1e50ab60fd89b55c9eedc03eb201f1d5"
+    },
+    {
+      "SourceId": "active-check",
+      "size": 24,
+      "iou": 0.9230769230769231,
+      "gpuHash": "74a241d270f7adc14092a95f3f63442aefe8d99beda0d6279123645048b6f8ad"
+    },
+    {
+      "SourceId": "info-icon",
+      "size": 24,
+      "iou": 0.9826989619377162,
+      "gpuHash": "686cb43f52c2f30452b04118e39b57df88c9e9d4a604ab99e63f1edf7ffde4ab"
+    },
+    {
+      "SourceId": "corpus-0",
+      "size": 64,
+      "iou": 1,
+      "gpuHash": "8fd3cf5bfcb80ef66255153e10342318339fc9e412354fcd4275e1f144b78175"
+    },
+    {
+      "SourceId": "corpus-1",
+      "size": 64,
+      "iou": 0.9988839285714286,
+      "gpuHash": "4dcea6a23e7acd48986df179db7a5d2da2ca5cb6d2bf87830938214600b06e70"
+    },
+    {
+      "SourceId": "corpus-2",
+      "size": 64,
+      "iou": 1,
+      "gpuHash": "a157ce5e2213815b6a2a958f8a23a7e17b62b1c183b3397463e0ebf6df80d0f5"
+    },
+    {
+      "SourceId": "corpus-3",
+      "size": 64,
+      "iou": 0.9715781600598354,
+      "gpuHash": "345b0a2cf51042f47f9c0fa4a638b06a96d6f43e871f3516bcfdb6951d4f9f6c"
+    },
+    {
+      "SourceId": "corpus-4",
+      "size": 64,
+      "iou": 0.9966159052453468,
+      "gpuHash": "7d581f052972435fd58056f398b82cf8ae90fd3d2a99aa2a776146f44dbef9a6"
+    },
+    {
+      "SourceId": "corpus-5",
+      "size": 64,
+      "iou": 0.998343685300207,
+      "gpuHash": "6e3a030fa773b37ea47ed61e74c11adfc9dd68689c12e09b35dcb9079c25d367"
+    },
+    {
+      "SourceId": "corpus-6",
+      "size": 64,
+      "iou": 0.9933142311365807,
+      "gpuHash": "d801676277fa04d8cd39532c97e7a40afe90a22ffc5badd435eb65c36debd10a"
+    },
+    {
+      "SourceId": "corpus-7",
+      "size": 64,
+      "iou": 0.9979949874686717,
+      "gpuHash": "37671ad18d6f010c579cac16c547073c1a42691c978dd25847c9b6c7029b020f"
+    },
+    {
+      "SourceId": "size-16",
+      "size": 16,
+      "iou": 0.9932885906040269,
+      "gpuHash": "85c0c6f1ae24df572c56d0aa13e542e941fc96c67f59add0383dc51f6c868ce4"
+    },
+    {
+      "SourceId": "size-24",
+      "size": 24,
+      "iou": 0.9823529411764705,
+      "gpuHash": "2f3748518915e7e9ca80f5741aca1d0ceb73c5a896ccc4f2dd6d57bb42bc156e"
+    },
+    {
+      "SourceId": "size-32",
+      "size": 32,
+      "iou": 0.9916666666666667,
+      "gpuHash": "a49374f1be02240ce07bba73f56483c7c237d623fdef81bff90d51f60db4144d"
+    },
+    {
+      "SourceId": "size-64",
+      "size": 64,
+      "iou": 1,
+      "gpuHash": "e1c874b8ebde81dbc4479e0bf6d3c416c2551a808e12d933600f383faf783e8e"
+    },
+    {
+      "SourceId": "size-128",
+      "size": 128,
+      "iou": 0.9965746315133901,
+      "gpuHash": "6c32acb98c6c8a41dca178910f7a5fcb2cda2e4ac77cd7cf1f334137850d80f1"
+    },
+    {
+      "SourceId": "mixed-icon",
+      "size": 32,
+      "iou": 0.9916666666666667,
+      "gpuHash": "f9d96730430ad7634ff0c28d4cb51149e247d662070fb5543cb61d4db2f37a4c"
+    }
+  ],
+  "nonFiniteFieldValues": 0
+}

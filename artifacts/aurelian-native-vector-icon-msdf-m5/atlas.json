@@ -1,0 +1,268 @@
+{
+  "Identity": "vector-atlas-sha256-21a2185657be4273f15906cba402a1d3ffb4d3714856e290622b2e768b5978d4",
+  "Width": 256,
+  "Height": 256,
+  "Padding": 2,
+  "orientation": "TopToBottom",
+  "AtlasHash": "21a2185657be4273f15906cba402a1d3ffb4d3714856e290622b2e768b5978d4",
+  "iconCount": 8,
+  "occupancy": 0.4404296875,
+  "entries": [
+    {
+      "Identity": {
+        "Value": "vector-icon-sha256-99238748592e27704deebf0f7e1413d85c0b35d6ac9dd38df3837c24994f5e15"
+      },
+      "X": 0,
+      "Y": 0,
+      "Width": 64,
+      "Height": 64,
+      "U0": 0,
+      "V0": 0,
+      "U1": 0.25,
+      "V1": 0.25,
+      "PlaneBounds": {
+        "MinX": 2.1005050633883346,
+        "MinY": 2.1005050633883364,
+        "MaxX": 21.899494936611667,
+        "MaxY": 21.899494936611667,
+        "Width": 19.798989873223334,
+        "Height": 19.79898987322333
+      },
+      "FieldBounds": {
+        "MinX": 0.686291501015238,
+        "MinY": 0.6862915010152386,
+        "MaxX": 23.313708498984763,
+        "MaxY": 23.313708498984763,
+        "Width": 22.627416997969526,
+        "Height": 22.627416997969526
+      },
+      "PixelRange": 4,
+      "ProjectionScale": 2.8284271247461894,
+      "FieldHash": "b1365614068d0385bbbc0f46bacdbf21a13bbd437f1c2de42ed552a3cd950c56"
+    },
+    {
+      "Identity": {
+        "Value": "vector-icon-sha256-ae80ea892326343bd3bff2935d581452b009603dad5925b33ccaf08736940be8"
+      },
+      "X": 66,
+      "Y": 0,
+      "Width": 64,
+      "Height": 64,
+      "U0": 0.2578125,
+      "V0": 0,
+      "U1": 0.5078125,
+      "V1": 0.25,
+      "PlaneBounds": {
+        "MinX": 1,
+        "MinY": 1,
+        "MaxX": 23,
+        "MaxY": 23,
+        "Width": 22,
+        "Height": 22
+      },
+      "FieldBounds": {
+        "MinX": -0.5714285714285714,
+        "MinY": -0.5714285714285714,
+        "MaxX": 24.57142857142857,
+        "MaxY": 24.57142857142857,
+        "Width": 25.142857142857142,
+        "Height": 25.142857142857142
+      },
+      "PixelRange": 4,
+      "ProjectionScale": 2.5454545454545454,
+      "FieldHash": "fe872c11d88ac3e7d99334133ff534d8e1c6dde591aba74db295955b86258544"
+    },
+    {
+      "Identity": {
+        "Value": "vector-icon-sha256-c0f0265999589b39c7f6c1481b5f2d2852b6127396307f70fb99ec684ddafbd9"
+      },
+      "X": 132,
+      "Y": 0,
+      "Width": 64,
+      "Height": 64,
+      "U0": 0.515625,
+      "V0": 0,
+      "U1": 0.765625,
+      "V1": 0.25,
+      "PlaneBounds": {
+        "MinX": 1,
+        "MinY": 1,
+        "MaxX": 23,
+        "MaxY": 23,
+        "Width": 22,
+        "Height": 22
+      },
+      "FieldBounds": {
+        "MinX": -0.5714285714285714,
+        "MinY": -0.5714285714285714,
+        "MaxX": 24.57142857142857,
+        "MaxY": 24.57142857142857,
+        "Width": 25.142857142857142,
+        "Height": 25.142857142857142
+      },
+      "PixelRange": 4,
+      "ProjectionScale": 2.5454545454545454,
+      "FieldHash": "17e997e48737fdd94e19ae79c5477c0e46823c8c6280e5297e6407eeed3e60cb"
+    },
+    {
+      "Identity": {
+        "Value": "vector-icon-sha256-38679d9578cff282f7809df3431dd6f6f33af7db1b13158ec329fe8c424ff428"
+      },
+      "X": 0,
+      "Y": 66,
+      "Width": 61,
+      "Height": 64,
+      "U0": 0,
+      "V0": 0.2578125,
+      "U1": 0.23828125,
+      "V1": 0.5078125,
+      "PlaneBounds": {
+        "MinX": 2,
+        "MinY": 2,
+        "MaxX": 22,
+        "MaxY": 23,
+        "Width": 20,
+        "Height": 21
+      },
+      "FieldBounds": {
+        "MinX": 0.49056603773584895,
+        "MinY": 0.424528301886792,
+        "MaxX": 23.50943396226415,
+        "MaxY": 24.57547169811321,
+        "Width": 23.0188679245283,
+        "Height": 24.150943396226417
+      },
+      "PixelRange": 4,
+      "ProjectionScale": 2.65,
+      "FieldHash": "bce9d73e4cdedb13e51f1a736c072402e51c492210d9f60612d4072e89ef6245"
+    },
+    {
+      "Identity": {
+        "Value": "vector-icon-sha256-24d4ac55655d3548dd13c97b6eb11c1c2f94b1a7a5a77180c56358e45bc16460"
+      },
+      "X": 63,
+      "Y": 66,
+      "Width": 57,
+      "Height": 64,
+      "U0": 0.24609375,
+      "V0": 0.2578125,
+      "U1": 0.46875,
+      "V1": 0.5078125,
+      "PlaneBounds": {
+        "MinX": 5,
+        "MinY": 3,
+        "MaxX": 21,
+        "MaxY": 21,
+        "Width": 16,
+        "Height": 18
+      },
+      "FieldBounds": {
+        "MinX": 3.6938775510204085,
+        "MinY": 1.5510204081632653,
+        "MaxX": 22.306122448979593,
+        "MaxY": 22.448979591836732,
+        "Width": 18.612244897959187,
+        "Height": 20.897959183673468
+      },
+      "PixelRange": 4,
+      "ProjectionScale": 3.0625,
+      "FieldHash": "97e509ae4f8155e9632730719fdd314862b19907433b084c2a5893c8946061fd"
+    },
+    {
+      "Identity": {
+        "Value": "vector-icon-sha256-c1ce9abcb95b8f1629d79dfd775639f40857f2971245d68e1e32f4e61b6a9224"
+      },
+      "X": 122,
+      "Y": 66,
+      "Width": 50,
+      "Height": 64,
+      "U0": 0.4765625,
+      "V0": 0.2578125,
+      "U1": 0.671875,
+      "V1": 0.5078125,
+      "PlaneBounds": {
+        "MinX": 5,
+        "MinY": 3,
+        "MaxX": 19,
+        "MaxY": 21,
+        "Width": 14,
+        "Height": 18
+      },
+      "FieldBounds": {
+        "MinX": 3.666666666666667,
+        "MinY": 1.3333333333333333,
+        "MaxX": 20.333333333333336,
+        "MaxY": 22.666666666666664,
+        "Width": 16.666666666666668,
+        "Height": 21.333333333333332
+      },
+      "PixelRange": 4,
+      "ProjectionScale": 3,
+      "FieldHash": "15d019255350745fb31e4a82b0b14786474b003cc06117d8065f0463ac7d2d46"
+    },
+    {
+      "Identity": {
+        "Value": "vector-icon-sha256-6dbafadafe2fba6cf82b934d4c0c55caf39c9585e1456e71e409c45b7bed9da1"
+      },
+      "X": 174,
+      "Y": 66,
+      "Width": 64,
+      "Height": 52,
+      "U0": 0.6796875,
+      "V0": 0.2578125,
+      "U1": 0.9296875,
+      "V1": 0.4609375,
+      "PlaneBounds": {
+        "MinX": 2,
+        "MinY": 4,
+        "MaxX": 22,
+        "MaxY": 20,
+        "Width": 20,
+        "Height": 16
+      },
+      "FieldBounds": {
+        "MinX": 0.36363636363636354,
+        "MinY": 2.5454545454545454,
+        "MaxX": 23.636363636363637,
+        "MaxY": 21.454545454545457,
+        "Width": 23.272727272727273,
+        "Height": 18.90909090909091
+      },
+      "PixelRange": 4,
+      "ProjectionScale": 2.75,
+      "FieldHash": "18d0b4a24dfd515cdbb8b51d6ed4578e299bf80dacea360a7eede75ccd4cc718"
+    },
+    {
+      "Identity": {
+        "Value": "vector-icon-sha256-6fd956eed5ba2e965a056929d88868cc339e19528689997922501107d2f5b3fb"
+      },
+      "X": 0,
+      "Y": 132,
+      "Width": 64,
+      "Height": 39,
+      "U0": 0,
+      "V0": 0.515625,
+      "U1": 0.25,
+      "V1": 0.66796875,
+      "PlaneBounds": {
+        "MinX": 1,
+        "MinY": 1,
+        "MaxX": 31,
+        "MaxY": 19,
+        "Width": 30,
+        "Height": 18
+      },
+      "FieldBounds": {
+        "MinX": -2.580645161290321,
+        "MinY": -1.32258064516129,
+        "MaxX": 34.58064516129032,
+        "MaxY": 21.32258064516129,
+        "Width": 37.16129032258064,
+        "Height": 22.645161290322577
+      },
+      "PixelRange": 4,
+      "ProjectionScale": 1.7222222222222223,
+      "FieldHash": "d1937f8154a2a4a6683ce74fcdc7a2c9bc77316e797e6a68c8d2bf0b4dd68499"
+    }
+  ]
+}

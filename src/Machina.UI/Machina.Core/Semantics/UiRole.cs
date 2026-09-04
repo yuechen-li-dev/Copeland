@@ -10,4 +10,5 @@ public enum UiRole
     Input,
     Checkbox,
     Switch,
+    Image,
 }

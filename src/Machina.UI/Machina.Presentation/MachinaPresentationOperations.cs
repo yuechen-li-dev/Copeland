@@ -1,9 +1,46 @@
 using Machina.Core.Styling;
 using Machina.Layout.Geometry;
+using Machina.VectorAssets;
+using Machina.Core.Assets;
 
 namespace Machina.Presentation;
 
 public abstract record MachinaPresentationOperation;
+
+public sealed record MachinaVectorIconPresentationPrimitive : MachinaPresentationOperation
+{
+    public MachinaVectorIconPresentationPrimitive(
+        string sourceId,
+        MachinaVectorIconId icon,
+        Rect destinationRect,
+        ColorToken tint,
+        Rect? clipRect = null)
+    {
+        SourceId = MachinaPresentationValidation.ValidateSourceId(sourceId);
+        DestinationRect = MachinaPresentationValidation.ValidateRect(destinationRect, nameof(destinationRect));
+        if (destinationRect.Width <= 0 || destinationRect.Height <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(destinationRect), "Vector icon destination dimensions must be positive.");
+        }
+        if (clipRect is Rect clip)
+        {
+            MachinaPresentationValidation.ValidateRect(clip, nameof(clipRect));
+        }
+        Icon = icon;
+        Tint = tint;
+        ClipRect = clipRect;
+    }
+
+    public string SourceId { get; }
+
+    public MachinaVectorIconId Icon { get; }
+
+    public Rect DestinationRect { get; }
+
+    public ColorToken Tint { get; }
+
+    public Rect? ClipRect { get; }
+}
 
 public enum MachinaAnalyticShapeKind
 {

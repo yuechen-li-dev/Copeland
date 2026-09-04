@@ -96,6 +96,7 @@ public static class UiLowerer
             PlacementNode placement => placement.Frame,
             LayerNode layer => layer.Frame ?? new FillFrame(),
             RichTextNode => new FillFrame(),
+            VectorIconNode icon => new FixedFrame(icon.Width, icon.Height),
             _ => throw Unsupported(node),
         };
     }
@@ -114,6 +115,7 @@ public static class UiLowerer
             PlacementNode placement => placement.Frame,
             LayerNode layer => layer.Frame ?? new AnchorFrame(Left: 0, Right: 0, Top: 0, Bottom: 0),
             RichTextNode => new AnchorFrame(Left: 0, Right: 0, Top: 0, Bottom: 0),
+            VectorIconNode icon => new AnchorFrame(Left: 0, Width: icon.Width, Top: 0, Height: icon.Height),
             _ => throw Unsupported(node),
         };
     }
@@ -272,6 +274,7 @@ public static class UiLowerer
             case ButtonNode:
             case SpacerNode:
             case RichTextNode:
+            case VectorIconNode:
                 return;
 
             default:
@@ -343,6 +346,11 @@ public static class UiLowerer
                 context.NodePayloads[id] = richText.Payload;
                 return;
 
+            case VectorIconNode icon:
+                context.Semantics[id] = new UiSemantics(UiRole.Image, icon.Icon.Value);
+                context.NodePayloads[id] = icon;
+                return;
+
             default:
                 throw Unsupported(node);
         }
@@ -383,6 +391,7 @@ public static class UiLowerer
             PlacementNode => "Placement",
             LayerNode => "Layer",
             RichTextNode => "RichText",
+            VectorIconNode icon => $"VectorIcon: {icon.Icon}",
             _ => throw Unsupported(node),
         };
     }

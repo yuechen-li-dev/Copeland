@@ -1,0 +1,19 @@
+{
+  "milestone": "AURELIAN-NATIVE-VECTOR-ICON-MSDF-M5",
+  "kind": "compiled-static-vector-icon-msdf-native-ui",
+  "boundedSvgSubset": true,
+  "bitmapIntermediateUsed": false,
+  "cpuTessellationUsed": false,
+  "directVectorMsdfUsed": true,
+  "singleColorTintedIcons": true,
+  "msdfShaderReused": true,
+  "oneQuadPerIcon": true,
+  "machinaOwnsIconSemantics": true,
+  "aurelianGraphicsOwnsGpuOnly": true,
+  "warmAtlasUploads": 0,
+  "fullSvgImplemented": false,
+  "svgTextImplemented": false,
+  "svgFiltersImplemented": false,
+  "gradientsImplemented": false,
+  "gpuMsdfGenerationImplemented": false
+}

@@ -472,3 +472,23 @@ material-buffer, vertex, blend, Vulkan, and lifetime realization. No Vulkan type
 Machina and no Machina type enters low-level Graphics. A shape-exact input geometry,
 generic SDF expression tree, arbitrary path, ellipse, per-corner radius, gradient,
 shadow, or blur is not part of M4.
+
+## Compiled vector icon realization (M5)
+
+The final native 2D content taxonomy is:
+
+- Raster/Texture is sampled image content.
+- AnalyticSDF is simple parametric vector geometry: RoundedRect, Circle, and Pill.
+- MSDF is arbitrary compiled vector contours, including glyphs and monochrome icons.
+
+Machina owns the typed `MachinaVectorIconId`, destination rectangle, tint, ordinary
+layout, clipping, painter order, and rectangular hit-test meaning. The vector asset
+compiler owns the bounded source parser, canonical contours, non-zero winding,
+content identity, field generation, and deterministic atlas. `Aurelian.Machina.Graphics`
+maps that renderer-neutral primitive to one `NativeMsdfQuadSubmission`; low-level
+Graphics receives only field texture, rectangle, UVs, tint, and MSDF parameters.
+
+SVG is an authoring/import format, not a runtime rendering model. Aurelian renders
+compiled vector fields, not SVG DOMs. Runtime drawing never parses source, tessellates
+contours, generates fields, or packs atlases. The intended production flow is
+`assets/icons/*.svg -> build/compiler -> compiled MSDF asset bundle -> app/runtime`.

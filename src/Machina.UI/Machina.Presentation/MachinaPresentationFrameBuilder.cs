@@ -7,6 +7,7 @@ using Machina.Layout.Projection;
 using Machina.Layout.Rows;
 using Machina.Standard.Components;
 using Machina.Standard.Text;
+using Machina.Core.Nodes;
 
 namespace Machina.Presentation;
 
@@ -56,6 +57,7 @@ public static class MachinaPresentationFrameBuilder
             operations.Add(new PushRectangularClipOperation(node.Id.Value, node.Rect));
         }
 
+        EmitVectorIconOperation(node, lowering.NodePayloads, operations);
         if (!EmitRichTextOperations(node, lowering.NodePayloads, operations))
         {
             EmitTextOperation(node, resolved, lowering.TextStyles, lowering.Semantics, operations);
@@ -69,6 +71,21 @@ public static class MachinaPresentationFrameBuilder
         if (pushClip)
         {
             operations.Add(new PopClipOperation());
+        }
+    }
+
+    private static void EmitVectorIconOperation(
+        ResolvedLayoutNode node,
+        IReadOnlyDictionary<NodeId, object> nodePayloads,
+        ICollection<MachinaPresentationOperation> operations)
+    {
+        if (nodePayloads.TryGetValue(node.Id, out object? payload) && payload is VectorIconNode icon)
+        {
+            operations.Add(new MachinaVectorIconPresentationPrimitive(
+                node.Id.Value,
+                icon.Icon,
+                node.Rect,
+                icon.Tint));
         }
     }
 

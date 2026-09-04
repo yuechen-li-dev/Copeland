@@ -1,0 +1,84 @@
+{
+  "iconPrimitiveCount": 18,
+  "oneQuadPerIcon": true,
+  "verticesPerIcon": 6,
+  "cold": {
+    "QuadCount": 41,
+    "DrawCalls": 3,
+    "CommandBuffers": 1,
+    "QueueSubmissions": 1,
+    "BufferUploads": 1,
+    "DescriptorSetAllocations": 3,
+    "DescriptorWrites": 9,
+    "VertexCapacityQuads": 256,
+    "VertexUploadMilliseconds": 1.088,
+    "CommandRecordingMilliseconds": 9.805,
+    "SubmitWaitMilliseconds": 1.88,
+    "ReadbackMilliseconds": 20.785,
+    "CpuAllocatedBytes": 3703232
+  },
+  "warm": {
+    "QuadCount": 41,
+    "DrawCalls": 3,
+    "CommandBuffers": 1,
+    "QueueSubmissions": 1,
+    "BufferUploads": 1,
+    "DescriptorSetAllocations": 0,
+    "DescriptorWrites": 0,
+    "VertexCapacityQuads": 256,
+    "VertexUploadMilliseconds": 0.076,
+    "CommandRecordingMilliseconds": 0.078,
+    "SubmitWaitMilliseconds": 0.401,
+    "ReadbackMilliseconds": 0,
+    "CpuAllocatedBytes": 10304
+  },
+  "warmWithReadback": {
+    "QuadCount": 41,
+    "DrawCalls": 3,
+    "CommandBuffers": 1,
+    "QueueSubmissions": 1,
+    "BufferUploads": 1,
+    "DescriptorSetAllocations": 0,
+    "DescriptorWrites": 0,
+    "VertexCapacityQuads": 256,
+    "VertexUploadMilliseconds": 0.058,
+    "CommandRecordingMilliseconds": 0.098,
+    "SubmitWaitMilliseconds": 0.583,
+    "ReadbackMilliseconds": 15.93,
+    "CpuAllocatedBytes": 3697784
+  },
+  "vectorAtlasUploads": 1,
+  "fontAtlasUploads": 1,
+  "warmAtlasUploads": 0,
+  "warmDescriptorWrites": 0,
+  "analytic": {
+    "QuadCount": 6,
+    "DrawCalls": 6,
+    "CommandBuffers": 1,
+    "QueueSubmissions": 1,
+    "BufferUploads": 1,
+    "DescriptorSetAllocations": 6,
+    "DescriptorWrites": 6,
+    "VertexCapacityQuads": 256,
+    "VertexUploadMilliseconds": 0.008,
+    "CommandRecordingMilliseconds": 0.145,
+    "SubmitWaitMilliseconds": 0.667,
+    "ReadbackMilliseconds": 20.588,
+    "CpuAllocatedBytes": 3700648
+  },
+  "msdfShader": {
+    "VdMirSha256": "a5bd3700a1835692f036af43b971ad70aac4906ca723a6fe6b10918fcf7e53c7",
+    "HlslSha256": "92d7f9dfd33e0a458da84c9e264c62eaefa3b45aa53da127ee936ed375c7fe0a",
+    "vertex": "82a0080d39dba4dac957dae58d5aaf61d7083c7eb32166a613f87e7b755e2de3",
+    "pixel": "d075854aa947790ef555e1fc841a90d4f5316f1b04a7e7bfee0e090a90c37936"
+  },
+  "analyticShader": {
+    "VdMirSha256": "c25beffaa0e22f29dc113310c523e8a1eed43e8b4b144a45f67a17692525763b",
+    "HlslSha256": "f95747ea5f4a382140fa6e1377bce6e27dd89233c2c6301780ef7ef1a054db92"
+  },
+  "PixelSha256": "31189773aaa219c61021c39683c36aca7ea4512dd6024e4a7cb3b8ca48e928c5",
+  "screenshots": [
+    "showcase-1280x720.png",
+    "showcase-2560x1440.png"
+  ]
+}

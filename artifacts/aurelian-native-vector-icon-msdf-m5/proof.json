@@ -1,0 +1,54 @@
+{
+  "sourceParseMilliseconds": [
+    {
+      "Name": "Settings",
+      "milliseconds": 99.2641
+    },
+    {
+      "Name": "Play",
+      "milliseconds": 5.774
+    },
+    {
+      "Name": "Pause",
+      "milliseconds": 8.6967
+    },
+    {
+      "Name": "Check",
+      "milliseconds": 6.2719
+    },
+    {
+      "Name": "Close",
+      "milliseconds": 11.6685
+    },
+    {
+      "Name": "Heart",
+      "milliseconds": 38.5677
+    },
+    {
+      "Name": "InfoCircle",
+      "milliseconds": 58.0968
+    },
+    {
+      "Name": "Folder",
+      "milliseconds": 6.9369
+    }
+  ],
+  "totalCompilationMilliseconds": 236.1351,
+  "atlasPackMilliseconds": 6.52,
+  "compileAllocations": 4837608,
+  "adapterAllocations": 530360,
+  "perFrameVectorCompilation": 0,
+  "perFrameMsdfGeneration": 0,
+  "perFrameAtlasPacking": 0,
+  "disposedVectorCacheRejected": true,
+  "bitmapIntermediateUsed": false,
+  "cpuTessellationUsed": false,
+  "nativeValidationErrors": 0,
+  "semanticIconCount": 18,
+  "realActions": [
+    "settings-button",
+    "play-button"
+  ],
+  "rasterTextOperations": 6,
+  "msdfTextOperations": 2
+}
