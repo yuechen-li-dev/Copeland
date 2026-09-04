@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "packageId": "Machina.Typography.OpenFont",
+  "version": "1.0.0",
+  "upstreamCommit": "5877180c7c5271091379a0eaf9f03ab6ebd256b3",
+  "licenseFile": "LICENSE.md",
+  "validationStatus": "package tests and clean package-consumer smoke passed",
+  "publicationTarget": "NuGet.org trusted publishing",
+  "published": false,
+  "artifacts": [
+    {
+      "name": "Machina.Typography.OpenFont.1.0.0.nupkg",
+      "sha256": "3a3edbc645ac064fbb6ad09874a869bb23433f054dc4f3060024d1775603359f",
+      "size": 181211
+    },
+    {
+      "name": "Machina.Typography.OpenFont.1.0.0.snupkg",
+      "sha256": "aa2011558867a06e5eaca56938c9d0ec4750d727b1a1c3f3d5feb42da95016f8",
+      "size": 62176
+    }
+  ]
+}
