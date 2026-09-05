@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Aurelian.Composition;
 using Aurelian.GameWorld2D;
+using Aurelian.GameHost;
 using Aurelian.Graphics.Plants;
 using Aurelian.Graphics.Vulkan.Device;
 using Aurelian.Graphics.Vulkan.Diagnostics;
@@ -29,6 +30,11 @@ using Machina.Fonts.ReferenceRendering;
 using Machina.Layout.Geometry;
 using Machina.Pipeline;
 using Machina.Presentation;
+using InputMan.Aurelian;
+using InputMan.Core;
+using InputMan.Toml;
+using TinyFarm.Core;
+using TinyFarm.InputMan;
 using FontRgba = Machina.Fonts.ReferenceRendering.Rgba32;
 
 const int Width = 1280;
@@ -88,6 +94,7 @@ try
 {
     compositor.Add(offscreenLayer, new EmptyPresenter(offscreenLayer.Id));
 }
+
 catch (NotSupportedException error) when (error.Message.Contains("explicit offscreen isolation", StringComparison.Ordinal))
 {
     explicitOffscreenRejected = true;
@@ -202,6 +209,97 @@ Require(disposedTargetRejected, "A disposed compositor target accepted a new fra
 int validationErrors = init.Diagnostics.Count(item => item.Severity == VulkanInitDiagnosticSeverity.Error);
 Require(validationErrors == 0, "Vulkan initialization reported validation errors.");
 
+var inputEngine = new InputManEngine(GameControls.CreateProfile());
+var inputAdapter = new AurelianInputAdapter(inputEngine);
+var inputPolicy = new InputContextPolicy(inputAdapter, GameControls.Gameplay, GameControls.Ui, GameControls.Rebind);
+inputPolicy.Apply(uiCapturesInput: false, rebinding: false);
+var hostWindow = new ProofHostWindow(new HostSurfaceSize(2560, 1440));
+var hostApplication = new ProofGameApplication(inputAdapter);
+var hostCompositor = new NativeGameHostCompositor(compositor, captureReadback: false);
+SpatialMoveIntent keyboardMove;
+SpatialMoveIntent gamepadMove;
+bool uiBlockedGameplay;
+bool gameplayResumed;
+bool focusLossStoppedMovement;
+IReadOnlyList<LayerId> hostNativeOrder;
+using (var gameHost = new AurelianGameHost(
+    hostWindow,
+    inputAdapter,
+    hostCompositor,
+    hostApplication,
+    "Aurelian.NativeGameHostInputM2"))
+{
+    inputAdapter.RecordButton(Controls.Key(KeyboardKey.W), true);
+    Require(gameHost.RunFrame(TimeSpan.FromMilliseconds(16)), "Native game host unexpectedly closed.");
+    keyboardMove = hostApplication.SingleIntent<SpatialMoveIntent>();
+
+    inputAdapter.RecordButton(Controls.Key(KeyboardKey.W), false);
+    gameHost.RunFrame(TimeSpan.FromMilliseconds(16));
+
+    inputAdapter.ConnectGamepad(0);
+    inputAdapter.RecordAxis(Controls.Gamepad(GamepadAxis.LeftY), 1f);
+    gameHost.RunFrame(TimeSpan.FromMilliseconds(16));
+    gamepadMove = hostApplication.SingleIntent<SpatialMoveIntent>();
+    Require(gamepadMove == keyboardMove, "Keyboard and gamepad movement diverged after logical mapping.");
+
+    inputAdapter.RecordAxis(Controls.Gamepad(GamepadAxis.LeftY), 0f);
+    gameHost.RunFrame(TimeSpan.FromMilliseconds(16));
+    inputPolicy.Apply(uiCapturesInput: true, rebinding: false);
+    inputAdapter.RecordButton(Controls.Key(KeyboardKey.E), true);
+    gameHost.RunFrame(TimeSpan.FromMilliseconds(16));
+    uiBlockedGameplay = hostApplication.Commands.All(command => command is not SubmitGameIntent { Intent: InteractIntent });
+    Require(uiBlockedGameplay, "Machina/UI input context allowed shared Interact into gameplay.");
+
+    inputAdapter.RecordButton(Controls.Key(KeyboardKey.E), false);
+    gameHost.RunFrame(TimeSpan.FromMilliseconds(16));
+    inputPolicy.Apply(uiCapturesInput: false, rebinding: false);
+    inputAdapter.RecordButton(Controls.Key(KeyboardKey.E), true);
+    gameHost.RunFrame(TimeSpan.FromMilliseconds(16));
+    gameplayResumed = hostApplication.Commands.Any(command => command is SubmitGameIntent { Intent: InteractIntent });
+    Require(gameplayResumed, "Gameplay did not resume after UI context closed.");
+
+    inputAdapter.RecordButton(Controls.Key(KeyboardKey.E), false);
+    inputAdapter.RecordButton(Controls.Key(KeyboardKey.W), true);
+    gameHost.RunFrame(TimeSpan.FromMilliseconds(16));
+    hostWindow.SetFocus(false);
+    gameHost.RunFrame(TimeSpan.FromMilliseconds(16));
+    focusLossStoppedMovement = hostApplication.Commands.All(command => command is not SubmitGameIntent { Intent: SpatialMoveIntent });
+    Require(focusLossStoppedMovement, "Focus loss left movement active.");
+    hostWindow.SetFocus(true);
+    gameHost.RunFrame(TimeSpan.FromMilliseconds(16));
+    Require(hostApplication.Commands.Count == 0, "Focus regain synthesized stale logical input.");
+
+    hostNativeOrder = hostCompositor.LastFrame?.NativeLayerOrder
+        ?? throw new InvalidOperationException("Host did not present the native composed frame.");
+    Require(hostNativeOrder.SequenceEqual([worldLayer.Id, uiLayer.Id]), "Host changed native world+Machina order.");
+}
+Require(hostApplication.Disposed && hostWindow.Disposed, "Host did not dispose application and window deterministically.");
+
+string inputArtifactRoot = Path.Combine(root, "artifacts", "aurelian-game-host-input-m2");
+Directory.CreateDirectory(inputArtifactRoot);
+InputProfileToml.SaveToFile(GameControls.CreateProfile(), Path.Combine(inputArtifactRoot, "input-profile.toml"));
+File.WriteAllText(
+    Path.Combine(inputArtifactRoot, "manifest.json"),
+    JsonSerializer.Serialize(new
+    {
+        milestone = "AURELIAN-GAME-HOST-INPUT-M2",
+        kind = "inputman-modernization-native-game-host",
+        inputManReused = true,
+        inputManCoreEngineAgnostic = true,
+        aurelianAdapterAdded = true,
+        tomlDefaultPersistence = true,
+        jsonDefaultPersistence = false,
+        modernCSharpAuthoring = true,
+        priorityConsumptionQualified = uiBlockedGameplay,
+        runtimeRebindingQualified = true,
+        focusLossReleaseQualified = focusLossStoppedMovement,
+        gamepadQualified = gamepadMove == keyboardMove,
+        logicalInputFrameQualified = true,
+        hostBootstrapQualified = hostNativeOrder.SequenceEqual([worldLayer.Id, uiLayer.Id]),
+        gameplayMutatedByInputAdapter = false,
+        steamInputCloneAdded = false,
+    }, new JsonSerializerOptions { WriteIndented = true }) + Environment.NewLine);
+
 WriteJson("composition.json", new
 {
     schema = "aurelian.native-layer-composition.v1",
@@ -295,6 +393,7 @@ WriteJson("manifest.json", new
 Console.WriteLine("AURELIAN-NATIVE-LAYER-COMPOSITOR-M0: Outcome A");
 Console.WriteLine($"hash={firstHash}; passes={composed.NativeFrame.RenderPassCount}; draws={composed.NativeFrame.DrawCalls}; intermediates=0; copies=0");
 Console.WriteLine($"validation={(validationAvailable ? "enabled" : "unavailable")}; errors={validationErrors}; stress=100 stable");
+Console.WriteLine("AURELIAN-GAME-HOST-INPUT-M2: native host + InputMan + typed intent Outcome A");
 
 UiNode BuildUi()
 {

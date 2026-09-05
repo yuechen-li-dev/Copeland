@@ -6,6 +6,7 @@
     <Project Path="src/Aurelian/Aurelian.AssetTool/Aurelian.AssetTool.csproj" />
     <Project Path="src/Aurelian/Aurelian.Core/Aurelian.Core.csproj" />
     <Project Path="src/Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />
+    <Project Path="src/Aurelian/Aurelian.GameHost/Aurelian.GameHost.csproj" />
     <Project Path="src/Aurelian/Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />
     <Project Path="src/Aurelian/Aurelian.Rendering.Null/Aurelian.Rendering.Null.csproj" />
     <Project Path="src/Aurelian/Aurelian.Rendering.Raster/Aurelian.Rendering.Raster.csproj" />
@@ -14,6 +15,9 @@
     <Project Path="src/Aurelian/Aurelian.World/Aurelian.World.csproj" />
     <Project Path="src/Integrations/Aurelian.GameWorld2D/Aurelian.GameWorld2D.csproj" />
     <Project Path="src/Integrations/Aurelian.NativeComposition/Aurelian.NativeComposition.csproj" />
+    <Project Path="src/Integrations/Aurelian.GameHost.Silk/Aurelian.GameHost.Silk.csproj" />
+    <Project Path="src/Integrations/InputMan.Aurelian/InputMan.Aurelian.csproj" />
+    <Project Path="src/TinyFarm/TinyFarm.InputMan/TinyFarm.InputMan.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Aurelian/Aurelian.Composition.Tests/Aurelian.Composition.Tests.csproj" />
@@ -22,6 +26,7 @@
     <Project Path="tests/Aurelian/Aurelian.AssetTool.Tests/Aurelian.AssetTool.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Core.Tests/Aurelian.Core.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Graphics.Tests/Aurelian.Graphics.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.GameHost.Tests/Aurelian.GameHost.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Rendering.Contracts.Tests/Aurelian.Rendering.Contracts.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Rendering.Null.Tests/Aurelian.Rendering.Null.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Rendering.Raster.Tests/Aurelian.Rendering.Raster.Tests.csproj" />

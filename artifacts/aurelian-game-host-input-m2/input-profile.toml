@@ -1,0 +1,194 @@
+formatVersion = 1
+
+[options]
+defaultDeadzone = 0.15
+axisEpsilon = 0.0001
+
+[[axis2]]
+id = "Move"
+x = "MoveX"
+y = "MoveY"
+
+[[maps]]
+id = "Rebind"
+priority = 1000
+canConsume = true
+
+[[maps]]
+id = "UI"
+priority = 100
+canConsume = true
+
+[[maps.bindings]]
+name = "Cancel.Gamepad"
+trigger = "Button"
+control = "Gamepad.0.East"
+edge = "Pressed"
+output = "Action"
+action = "UI.Cancel"
+consume = "ControlOnly"
+
+[[maps.bindings]]
+name = "Cancel.Keyboard"
+trigger = "Button"
+control = "Keyboard.0.Escape"
+edge = "Pressed"
+output = "Action"
+action = "UI.Cancel"
+consume = "ControlOnly"
+
+[[maps.bindings]]
+name = "Confirm.Gamepad"
+trigger = "Button"
+control = "Gamepad.0.South"
+edge = "Pressed"
+output = "Action"
+action = "UI.Confirm"
+consume = "ControlOnly"
+
+[[maps.bindings]]
+name = "Confirm.Keyboard"
+trigger = "Button"
+control = "Keyboard.0.E"
+edge = "Pressed"
+output = "Action"
+action = "UI.Confirm"
+consume = "ControlOnly"
+
+[[maps]]
+id = "Gameplay"
+priority = 10
+canConsume = false
+
+[[maps.bindings]]
+name = "Hotbar1.Keyboard"
+trigger = "Button"
+control = "Keyboard.0.Number1"
+edge = "Pressed"
+output = "Action"
+action = "Hotbar1"
+consume = "None"
+
+[[maps.bindings]]
+name = "Hotbar2.Keyboard"
+trigger = "Button"
+control = "Keyboard.0.Number2"
+edge = "Pressed"
+output = "Action"
+action = "Hotbar2"
+consume = "None"
+
+[[maps.bindings]]
+name = "Interact.AlternateChord"
+trigger = "Button"
+control = "Keyboard.0.F"
+edge = "Pressed"
+modifiers = ["Keyboard.0.LeftShift"]
+output = "Action"
+action = "Interact"
+consume = "None"
+
+[[maps.bindings]]
+name = "Interact.Gamepad"
+trigger = "Button"
+control = "Gamepad.0.South"
+edge = "Pressed"
+output = "Action"
+action = "Interact"
+consume = "None"
+
+[[maps.bindings]]
+name = "Interact.Keyboard"
+trigger = "Button"
+control = "Keyboard.0.E"
+edge = "Pressed"
+output = "Action"
+action = "Interact"
+consume = "None"
+
+[[maps.bindings]]
+name = "Inventory.Keyboard"
+trigger = "Button"
+control = "Keyboard.0.I"
+edge = "Pressed"
+output = "Action"
+action = "ToggleInventory"
+consume = "None"
+
+[[maps.bindings]]
+name = "Move.Gamepad.X"
+trigger = "Axis"
+control = "Gamepad.0.LeftX"
+output = "Axis"
+axis = "MoveX"
+scale = 1
+consume = "None"
+processors = ["Deadzone:0.15"]
+
+[[maps.bindings]]
+name = "Move.Gamepad.Y"
+trigger = "Axis"
+control = "Gamepad.0.LeftY"
+output = "Axis"
+axis = "MoveY"
+scale = 1
+consume = "None"
+processors = ["Deadzone:0.15"]
+
+[[maps.bindings]]
+name = "Move.Keyboard.Down"
+trigger = "Button"
+control = "Keyboard.0.S"
+edge = "Down"
+output = "Axis"
+axis = "MoveY"
+scale = -1
+consume = "None"
+
+[[maps.bindings]]
+name = "Move.Keyboard.Left"
+trigger = "Button"
+control = "Keyboard.0.A"
+edge = "Down"
+output = "Axis"
+axis = "MoveX"
+scale = -1
+consume = "None"
+
+[[maps.bindings]]
+name = "Move.Keyboard.Right"
+trigger = "Button"
+control = "Keyboard.0.D"
+edge = "Down"
+output = "Axis"
+axis = "MoveX"
+scale = 1
+consume = "None"
+
+[[maps.bindings]]
+name = "Move.Keyboard.Up"
+trigger = "Button"
+control = "Keyboard.0.W"
+edge = "Down"
+output = "Axis"
+axis = "MoveY"
+scale = 1
+consume = "None"
+
+[[maps.bindings]]
+name = "Pause.Gamepad"
+trigger = "Button"
+control = "Gamepad.0.Start"
+edge = "Pressed"
+output = "Action"
+action = "Pause"
+consume = "None"
+
+[[maps.bindings]]
+name = "Pause.Keyboard"
+trigger = "Button"
+control = "Keyboard.0.Escape"
+edge = "Pressed"
+output = "Action"
+action = "Pause"
+consume = "None"

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.GameHost/Aurelian.GameHost.csproj" />
+    <ProjectReference Include="../../../src/Integrations/InputMan.Aurelian/InputMan.Aurelian.csproj" />
+    <ProjectReference Include="../../../src/TinyFarm/TinyFarm.InputMan/TinyFarm.InputMan.csproj" />
+  </ItemGroup>
+</Project>

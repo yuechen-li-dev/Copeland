@@ -1,0 +1,18 @@
+{
+  "milestone": "AURELIAN-GAME-HOST-INPUT-M2",
+  "kind": "inputman-modernization-native-game-host",
+  "inputManReused": true,
+  "inputManCoreEngineAgnostic": true,
+  "aurelianAdapterAdded": true,
+  "tomlDefaultPersistence": true,
+  "jsonDefaultPersistence": false,
+  "modernCSharpAuthoring": true,
+  "priorityConsumptionQualified": true,
+  "runtimeRebindingQualified": true,
+  "focusLossReleaseQualified": true,
+  "gamepadQualified": true,
+  "logicalInputFrameQualified": true,
+  "hostBootstrapQualified": true,
+  "gameplayMutatedByInputAdapter": false,
+  "steamInputCloneAdded": false
+}

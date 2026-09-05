@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>TinyFarm.InputMan</AssemblyName>
+    <RootNamespace>TinyFarm.InputMan</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../TinyFarm.Core/TinyFarm.Core.csproj" />
+    <ProjectReference Include="../../../../InputMan/src/InputMan.Core/InputMan.Core.csproj" />
+  </ItemGroup>
+</Project>

@@ -136,6 +136,12 @@ public sealed class NativeLayerCompositor : IDisposable
         semanticCompositor.SetZOrder(layer, zOrder);
     }
 
+    public LayerInputRoutingResult RouteInput(LayerInputEvent input)
+    {
+        ThrowIfDisposed();
+        return semanticCompositor.RouteInput(input);
+    }
+
     public void DetachLayer(LayerId layer)
     {
         ThrowIfDisposed();

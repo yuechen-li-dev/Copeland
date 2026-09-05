@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Aurelian.GameHost.Silk</AssemblyName>
+    <RootNamespace>Aurelian.GameHost.Silk</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Silk.NET.Windowing" />
+    <ProjectReference Include="../../Aurelian/Aurelian.GameHost/Aurelian.GameHost.csproj" />
+  </ItemGroup>
+</Project>

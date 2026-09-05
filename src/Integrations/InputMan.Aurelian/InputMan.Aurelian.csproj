@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>InputMan.Aurelian</AssemblyName>
+    <RootNamespace>InputMan.Aurelian</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Silk.NET.Input" />
+    <ProjectReference Include="../../Aurelian/Aurelian.GameHost/Aurelian.GameHost.csproj" />
+    <ProjectReference Include="../../Aurelian/Aurelian.Composition/Aurelian.Composition.csproj" />
+    <ProjectReference Include="../../../../InputMan/src/InputMan.Core/InputMan.Core.csproj" />
+  </ItemGroup>
+</Project>

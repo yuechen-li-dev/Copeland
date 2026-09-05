@@ -6,12 +6,16 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Aurelian/Aurelian.Composition/Aurelian.Composition.csproj" />
+    <ProjectReference Include="../../src/Aurelian/Aurelian.GameHost/Aurelian.GameHost.csproj" />
     <ProjectReference Include="../../src/Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />
     <ProjectReference Include="../../src/Aurelian/Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />
     <ProjectReference Include="../../src/Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj" />
     <ProjectReference Include="../../src/Integrations/Aurelian.GameWorld2D/Aurelian.GameWorld2D.csproj" />
     <ProjectReference Include="../../src/Integrations/Aurelian.Machina.Graphics/Aurelian.Machina.Graphics.csproj" />
     <ProjectReference Include="../../src/Integrations/Aurelian.NativeComposition/Aurelian.NativeComposition.csproj" />
+    <ProjectReference Include="../../src/Integrations/InputMan.Aurelian/InputMan.Aurelian.csproj" />
+    <ProjectReference Include="../../src/TinyFarm/TinyFarm.InputMan/TinyFarm.InputMan.csproj" />
+    <ProjectReference Include="../../../InputMan/src/InputMan.Toml/InputMan.Toml.csproj" />
     <ProjectReference Include="../../src/Machina.UI/Machina.Fonts/Machina.Fonts.csproj" />
     <ProjectReference Include="../../src/Machina.UI/Machina.Pipeline/Machina.Pipeline.csproj" />
     <ProjectReference Include="../../src/Machina.UI/Machina.Standard/Machina.Standard.csproj" />
