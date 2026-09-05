@@ -24,6 +24,9 @@
     <Project Path="src/Integrations/InputMan.Aurelian/InputMan.Aurelian.csproj" />
     <Project Path="src/TinyFarm/TinyFarm.InputMan/TinyFarm.InputMan.csproj" />
   </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/Integrations/Aurelian.Ariadne.VnDemo/Aurelian.Ariadne.VnDemo.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Aurelian/Aurelian.Composition.Tests/Aurelian.Composition.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Actuation.Tests/Aurelian.Actuation.Tests.csproj" />

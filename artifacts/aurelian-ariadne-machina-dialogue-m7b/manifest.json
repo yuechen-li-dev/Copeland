@@ -1,0 +1,51 @@
+{
+  "milestone": "AURELIAN-ARIADNE-MACHINA-DIALOGUE-M7B",
+  "files": [
+    "proof.json",
+    "manifest.json",
+    "01-line-presentation.png",
+    "01b-subdialogue-mika.png",
+    "02-choice-presentation.png",
+    "03-save-load-restored.png",
+    "saves/mid-line.dlv",
+    "saves/pending-choice.dlv",
+    "saves/post-effect.dlv"
+  ],
+  "assetKeys": {
+    "background": "classroom.sunset",
+    "portraits": [
+      "rei:angry",
+      "rei:soft",
+      "mika:concerned"
+    ]
+  },
+  "generation": {
+    "mode": "OpenAI built-in image generation",
+    "originalCharactersOnly": true,
+    "prompts": [
+      "Transparent full-body anime portrait: stern black-haired red-eyed schoolgirl, angry expression, navy uniform and red ribbon.",
+      "Matching transparent portrait variant of Rei: softened guarded smile, same design and pose.",
+      "Transparent anime portrait: brown-haired green-eyed schoolgirl, concerned expression, complementary school uniform.",
+      "Empty Japanese classroom at sunset, warm amber light, visual-novel background, no people or text."
+    ],
+    "alphaRepair": "MachinaCanvas deriveAlphaMapPixels, threshold 32"
+  },
+  "assets": [
+    {
+      "path": "samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/rei-angry.png",
+      "sha256": "5afa15dcf8a6fbe8c5b7466f41c161642ce8562495ae09b75cba5c622898a41c"
+    },
+    {
+      "path": "samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/rei-soft-cutout.png",
+      "sha256": "0423cad8188242175b6705f534c885924d28160b6f9f8df3a612c0c51524a578"
+    },
+    {
+      "path": "samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/mika-concerned.png",
+      "sha256": "cf55ba97ee481af1f9531145c993517b73bbad230b7d8ee25752fc3e890acc57"
+    },
+    {
+      "path": "samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/classroom-sunset.png",
+      "sha256": "bc5b7f3c244ceac22e2f395ed2260ac09330d752bbeac8ad949e8a38ea1b61a3"
+    }
+  ]
+}

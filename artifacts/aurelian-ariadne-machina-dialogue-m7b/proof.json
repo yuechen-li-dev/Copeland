@@ -1,0 +1,34 @@
+{
+  "milestone": "AURELIAN-ARIADNE-MACHINA-DIALOGUE-M7B",
+  "outcome": "A",
+  "dialogueAuthority": "Ariadne.OptFlow.Dialogue via Diag explicit authored operations and Dominatus HFSM",
+  "presentationProjection": "definition \u002B active semantic checkpoint",
+  "layers": [
+    "world-background",
+    "portrait",
+    "machina-dialogue-overlay"
+  ],
+  "nativePasses": 3,
+  "nativePixelHash": "be047912e85c98f56d261e61f172677572cb1c54911768f0fe63841ea5b7bca7",
+  "linePresentation": true,
+  "choicePresentation": true,
+  "subdialogueCall": true,
+  "conditionalBranch": true,
+  "typedConsequence": true,
+  "midLineRestoreExact": true,
+  "pendingChoiceRestoreExact": true,
+  "completedEffectNotReemitted": true,
+  "autoSkipPersisted": true,
+  "autoAdvanceBounded": true,
+  "saveLoadLogicalControls": true,
+  "inputManLogicalActions": true,
+  "machinaPointerFocusCapture": true,
+  "machinaPointerChoiceActivation": true,
+  "gameplayInputSuppressed": true,
+  "generatedAssets": [
+    "Assets/rei-angry.png",
+    "Assets/rei-soft-cutout.png",
+    "Assets/mika-concerned.png",
+    "Assets/classroom-sunset.png"
+  ]
+}
