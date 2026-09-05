@@ -67,6 +67,8 @@ public static class TinyFarmDialogueProofState
 public static class TinyFarmMaraDialogue
 {
     public const string DialogueId = "tinyfarm.mara.wild-mint";
+    public static readonly BbKey<bool> SupperSlice = new("mara-dialogue.supper-slice");
+    public static readonly BbKey<bool> SupperDone = new("mara-dialogue.supper-done");
     public static readonly BbKey<bool> HasWildMint = new("mara-dialogue.has-wild-mint");
     public static readonly BbKey<string> Choice = new("mara-dialogue.choice");
     public static readonly BbKey<bool> ConsequenceAccepted = new("mara-dialogue.consequence-accepted");
@@ -75,6 +77,11 @@ public static class TinyFarmMaraDialogue
 
     public static IReadOnlyList<DialoguePresentationOperation> Operations { get; } =
     [
+        Line("mara.supper-opening", "Mara", "A proper supper needs mushrooms, mint, and one fewer slime. Very traditional."),
+        Line("mara.supper-help", "Mara", "Plant a turnip for tomorrow. Gather river mushrooms, cook them at home, and clear Old Burrow. Bring me the mint when you are ready."),
+        Line("mara.supper-ready", "Mara", "The stove smells wonderful. The burrow is quiet. Is that the mint for our supper?"),
+        Line("mara.supper-thanks", "Mara", "A seed for tomorrow, a meal for today. You made this place a little more like home. Supper is on me."),
+        Line("mara.supper-after", "Mara", "You saved supper. Even the turnips are impressed, and they are a difficult audience."),
         Line("mara.greeting", "Mara", "Morning. The farm looks steadier every time I pass."),
         Line("mara.mint-notice", "Mara", "Is that wild mint? The kitchen has been missing its clean scent."),
         Line("mara.no-mint", "Mara", "The riverbank mint should be high enough to gather today."),
@@ -114,7 +121,13 @@ public static class TinyFarmMaraDialogue
 
     private static IEnumerator<AiStep> Greeting(AiCtx context)
     {
-        yield return Show("mara.greeting");
+        if (context.Bb.GetOrDefault(SupperDone, false))
+        {
+            yield return Show("mara.supper-after");
+            yield return Ai.Goto("complete");
+            yield break;
+        }
+        yield return Show(context.Bb.GetOrDefault(SupperSlice, false) ? "mara.supper-opening" : "mara.greeting");
         yield return Ai.Push("weather");
         yield return Ai.Goto("branch");
     }
@@ -129,12 +142,12 @@ public static class TinyFarmMaraDialogue
     {
         if (context.Bb.GetOrDefault(HasWildMint, false))
         {
-            yield return Show("mara.mint-notice");
+            yield return Show(context.Bb.GetOrDefault(SupperSlice, false) ? "mara.supper-ready" : "mara.mint-notice");
             yield return Ai.Goto("mint-choice");
             yield break;
         }
 
-        yield return Show("mara.no-mint");
+        yield return Show(context.Bb.GetOrDefault(SupperSlice, false) ? "mara.supper-help" : "mara.no-mint");
         yield return Ai.Goto("town-choice");
     }
 
@@ -154,7 +167,7 @@ public static class TinyFarmMaraDialogue
             context.Bb.Set(MintTransferCompleted, true);
         }
         yield return Show(context.Bb.GetOrDefault(ConsequenceAccepted, false)
-            ? "mara.mint-thanks"
+            ? (context.Bb.GetOrDefault(SupperSlice, false) ? "mara.supper-thanks" : "mara.mint-thanks")
             : "mara.mint-rejected");
         yield return Ai.Goto("complete");
     }
@@ -381,7 +394,10 @@ public sealed class TinyFarmDialogueCoordinator
         bool hasWildMint = host.Session.State.Actors
             .Single(actor => actor.Id == TinyFarmIds.Player)
             .Inventory.Contains(TinyFarmIds.WildMint);
-        agent.Bb.Set(TinyFarmMaraDialogue.HasWildMint, hasWildMint);
+        bool supper = host.Session.State.Facts.Contains(WorldFact.SupperRequested);
+        agent.Bb.Set(TinyFarmMaraDialogue.SupperSlice, supper);
+        agent.Bb.Set(TinyFarmMaraDialogue.SupperDone, TinyFarmSupper.IsComplete(host.Session.State));
+        agent.Bb.Set(TinyFarmMaraDialogue.HasWildMint, supper ? TinyFarmSupper.IsReady(host.Session.State) : hasWildMint);
         IsActive = true;
         IsCancelled = false;
         SelectedChoiceIndex = 0;
@@ -498,7 +514,10 @@ internal sealed class TinyFarmDialogueConsequenceHandler : IActuationHandler<Giv
         GiveMaraWildMintConsequence command)
     {
         EmissionCount++;
-        TinyFarmStepResult step = this.host.ExecuteIntent(new GiveIntent(command.Item, TinyFarmIds.Mara));
+        GameIntent intent = this.host.Session.State.Facts.Contains(WorldFact.SupperRequested)
+            ? new CompleteSupperIntent()
+            : new GiveIntent(command.Item, TinyFarmIds.Mara);
+        TinyFarmStepResult step = this.host.ExecuteIntent(intent);
         LastResult = step.Results.Single(result => result.Envelope.Source == IntentSourceKind.Human);
         context.Bb.Set(
             TinyFarmMaraDialogue.ConsequenceAccepted,

@@ -1,0 +1,62 @@
+{
+  "milestone": "AURELIAN-FULL-GAME-SLICE-M9",
+  "outcome": "A",
+  "screenshots": [
+    {
+      "file": "01-title-or-start.png",
+      "pixelSha256": "e92990462049a7d7ab3b2ef67ea588b053e8f02b426b0208025d35646e94e33e",
+      "drawCalls": 99,
+      "quadCount": 307,
+      "shaderQuads": 0
+    },
+    {
+      "file": "02-farm-gameplay.png",
+      "pixelSha256": "223b9f693e50ad1ea3ddd6083680e7702575323c6076a20ea8c43004f5475d59",
+      "drawCalls": 99,
+      "quadCount": 307,
+      "shaderQuads": 0
+    },
+    {
+      "file": "04-farming-or-pickup.png",
+      "pixelSha256": "eccd164807add9ac129b42345739ebf9a41330992a53aeabe413abdc3077d695",
+      "drawCalls": 107,
+      "quadCount": 320,
+      "shaderQuads": 0
+    },
+    {
+      "file": "03-dialogue.png",
+      "pixelSha256": "45805e884c6bdd709c1e6221c97042cedc35ef71a74a9a435a686b2b1c00df80",
+      "drawCalls": 108,
+      "quadCount": 364,
+      "shaderQuads": 0
+    },
+    {
+      "file": "06-secondary-scene.png",
+      "pixelSha256": "c14846ab5bb35e47fcfbd1ac40a3ad7a533cecd64154163540136c3c05a61d0b",
+      "drawCalls": 24,
+      "quadCount": 215,
+      "shaderQuads": 0
+    },
+    {
+      "file": "05-combat.png",
+      "pixelSha256": "f1a90797cc08ccac917c389b11ffb207a51968fce3459590a6bbe19592cf2b37",
+      "drawCalls": 39,
+      "quadCount": 240,
+      "shaderQuads": 1
+    },
+    {
+      "file": "07-completion.png",
+      "pixelSha256": "4b7caac1655fa9eb12e2e93e40f5b86de43ab0775c84ee91a991884b18a902a0",
+      "drawCalls": 74,
+      "quadCount": 229,
+      "shaderQuads": 0
+    }
+  ],
+  "completion": true,
+  "inputManStartAndMenuCapture": true,
+  "renderRebuildsDuplicateFeedback": false,
+  "shaderVisible": true,
+  "audioBackend": "Windows NAudio",
+  "audioEvents": 1432,
+  "effectEvents": 338
+}

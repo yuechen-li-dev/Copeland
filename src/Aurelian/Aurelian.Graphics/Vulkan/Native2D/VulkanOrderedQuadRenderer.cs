@@ -408,7 +408,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         }
 
         long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
-        int allocationsBefore = bindings.Count;
+        int descriptorAllocations = 0;
         int descriptorWrites = 0;
         AurelianVulkanBuffer? readbackBuffer = null;
         try
@@ -422,11 +422,16 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             BindingKey[] submissionKeys = new BindingKey[submissions.Count];
             for (int index = 0; index < submissions.Count; index++)
             {
-                BindingKey key = BindingKey.From(submissions[index]);
-                submissionKeys[index] = key;
+                submissionKeys[index] = BindingKey.From(submissions[index]);
+            }
+            MakeBindingRoom(submissionKeys);
+            for (int index = 0; index < submissions.Count; index++)
+            {
+                BindingKey key = submissionKeys[index];
                 if (!bindings.ContainsKey(key))
                 {
                     bindings.Add(key, CreateBinding(key, submissions[index]));
+                    descriptorAllocations++;
                     descriptorWrites += program.Resources.Count;
                 }
             }
@@ -498,7 +503,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
                 CommandBuffers: 1,
                 QueueSubmissions: 1,
                 BufferUploads: 1,
-                DescriptorSetAllocations: bindings.Count - allocationsBefore,
+                DescriptorSetAllocations: descriptorAllocations,
                 DescriptorWrites: descriptorWrites,
                 VertexCapacityQuads: vertexCapacityQuads,
                 Math.Round(uploadWatch.Elapsed.TotalMilliseconds, 3),
@@ -742,6 +747,36 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             startQuad = endQuad;
         }
         return drawCalls;
+    }
+
+    private void MakeBindingRoom(IReadOnlyList<BindingKey> submissionKeys)
+    {
+        if (bindings.Count + submissionKeys.Count <= MaximumBindingSets)
+        {
+            return;
+        }
+        var currentKeys = submissionKeys.ToHashSet();
+        if (currentKeys.Count > MaximumBindingSets)
+        {
+            throw new InvalidOperationException($"Native 2D pass exceeds {MaximumBindingSets} simultaneously required material bindings.");
+        }
+        int missing = currentKeys.Count(key => !bindings.ContainsKey(key));
+        if (bindings.Count + missing <= MaximumBindingSets)
+        {
+            return;
+        }
+
+        // Every preceding End2DCore submission waits for completion. Only bindings absent
+        // from this pass may be released; current draws retain their original painter order.
+        foreach (BindingKey key in bindings.Keys.Where(key => !currentKeys.Contains(key)).ToArray())
+        {
+            BindingResource binding = bindings[key];
+            DescriptorSet set = binding.DescriptorSet;
+            Require(plant.Vk.FreeDescriptorSets(plant.Device, descriptorPool, 1, &set) == Result.Success,
+                "Stale native material descriptor release failed.");
+            binding.MaterialBuffer.Dispose();
+            bindings.Remove(key);
+        }
     }
 
     private BindingResource CreateBinding(BindingKey key, RenderSubmission submission)

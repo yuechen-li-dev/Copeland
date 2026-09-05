@@ -29,7 +29,7 @@ record table NpcSchedules {
     ];
     requiredAnchorId: string = [
         "town.square", "riverside.meeting-point", "", "mara.home-bed", "general-store.counter", "riverside.meeting-point",
-        "", "riverside.meeting-point", "", "elias.home-bed",
+        "", "riverside.elias-bench", "", "elias.home-bed",
         "sela.home-bed", "general-store.counter", "", "sela.home-bed"
     ];
     priority: number = [0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0];

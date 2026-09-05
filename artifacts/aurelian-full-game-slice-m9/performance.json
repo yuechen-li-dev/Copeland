@@ -1,0 +1,24 @@
+{
+  "device": "NVIDIA GeForce RTX 3070",
+  "audioBackend": "Windows NAudio",
+  "measuredFrames": 120,
+  "meanFrameMilliseconds": 28.231999166666682,
+  "medianFrameMilliseconds": 27.3705,
+  "p95FrameMilliseconds": 29.3422,
+  "allocatedBytesPerFrame": 4137503,
+  "uiRebuilds": 130,
+  "idleRebuilds": 0,
+  "maxParticles": 232,
+  "maxEmitters": 1,
+  "maxVoices": 1,
+  "retainedManagedBytesAt0_200_400_600Seconds": [
+    20023944,
+    21202520,
+    21323368,
+    21480736
+  ],
+  "stressHostSeconds": 600,
+  "stressNativeFrames": 600,
+  "presentation": "Vulkan native composition; fixed 1280x720 readback to a Windows client surface",
+  "limitation": "Readback and CPU realization of changed Machina overlays allocate; swapchain presentation remains a release optimization."
+}

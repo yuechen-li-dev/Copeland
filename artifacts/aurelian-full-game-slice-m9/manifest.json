@@ -1,0 +1,21 @@
+{
+  "milestone": "AURELIAN-FULL-GAME-SLICE-M9",
+  "kind": "playable-small-game-vertical-slice",
+  "launchableGame": true,
+  "clearObjective": true,
+  "dialogueQualified": true,
+  "farmingQualified": true,
+  "inventoryQualified": true,
+  "combatQualified": true,
+  "secondarySceneQualified": true,
+  "audioQualified": true,
+  "effectsQualified": true,
+  "visualTypeScriptEffectVisible": true,
+  "saveLoadQualified": true,
+  "replayQualified": true,
+  "completionStateQualified": true,
+  "nativeAurelianHostUsed": true,
+  "monoGameFallbackUsedForFinalProof": false,
+  "newQuestFrameworkAdded": false,
+  "newCinematicFrameworkAdded": false
+}

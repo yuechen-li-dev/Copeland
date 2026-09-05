@@ -18,7 +18,7 @@ record table SceneRoutes {
     ];
     targetAnchor: string = [
         "farm.from-overworld", "town.south-gate", "riverside.from-overworld", "overworld.from-farm",
-        "residence.from-farm", "overworld.from-town", "general-store.door", "town.from-store", "overworld.from-riverside", "farm.from-overworld"
+        "residence.from-farm", "overworld.from-town", "general-store.door", "town.from-store", "overworld.from-riverside", "farm.start"
     ];
     interactionLabel: string = [
         "ENTER FARM", "ENTER TOWN", "ENTER RIVERSIDE", "RETURN TO OVERWORLD",

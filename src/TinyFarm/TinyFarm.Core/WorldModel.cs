@@ -329,7 +329,10 @@ public enum WorldFact
     EliasHasLetter,
     MaraThankedPlayer,
     FirstCropHarvested,
-    FirstCropSold
+    FirstCropSold,
+    SupperRequested,
+    SupperCompleted,
+    SupperSeedPlanted
 }
 
 public sealed class TinyFarmState

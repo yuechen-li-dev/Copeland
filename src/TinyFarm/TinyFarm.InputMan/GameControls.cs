@@ -10,6 +10,10 @@ public static class GameControls
     public static readonly ActionMapId Dialogue = new("Dialogue");
     public static readonly ActionMapId Rebind = new("Rebind");
 
+    public static readonly ActionId Save = new("Save");
+    public static readonly ActionId Load = new("Load");
+    public static readonly ActionId Quit = new("Quit");
+    public static readonly ActionMapId System = new("System");
     public static readonly ActionId Interact = new("Interact");
     public static readonly ActionId Pause = new("Pause");
     public static readonly ActionId ToggleInventory = new("ToggleInventory");
@@ -33,6 +37,12 @@ public static class GameControls
     {
         List<Binding> gameplayBindings =
         [
+            Bind.Action(Controls.Gamepad(GamepadButton.West), UseSelected),
+            Bind.Action(Controls.Gamepad(GamepadButton.DpadUp), Hotbar1),
+            Bind.Action(Controls.Gamepad(GamepadButton.DpadDown), Hotbar2),
+            Bind.Action(Controls.Gamepad(GamepadButton.DpadLeft), Hotbar3),
+            Bind.Action(Controls.Gamepad(GamepadButton.DpadRight), Hotbar4),
+            Bind.Action(Controls.Gamepad(GamepadButton.North), ToggleInventory),
             .. Input.Wasd(MoveX, MoveY),
             .. Input.GamepadLeftStick(MoveX, MoveY, deadzone: 0.15f),
             Bind.Action(Controls.Key(KeyboardKey.E), Interact, name: "Interact.Keyboard"),
@@ -55,10 +65,17 @@ public static class GameControls
 
         return Input.Profile(
             [
+                Input.Map(System, 300, [
+                    Bind.Action(Controls.Key(KeyboardKey.F), Save),
+                    Bind.Action(Controls.Key(KeyboardKey.N), Load),
+                    Bind.Action(Controls.Key(KeyboardKey.Q), Quit)
+                ]),
                 Input.Map(
                     Dialogue,
                     200,
                     [
+                        Bind.Action(Controls.Gamepad(GamepadButton.DpadUp), DialogueChoiceUp),
+                        Bind.Action(Controls.Gamepad(GamepadButton.DpadDown), DialogueChoiceDown),
                         Bind.Action(Controls.Key(KeyboardKey.Space), DialogueAdvance, consume: ConsumeMode.ControlOnly),
                         Bind.Action(Controls.Key(KeyboardKey.ArrowUp), DialogueChoiceUp, consume: ConsumeMode.ControlOnly),
                         Bind.Action(Controls.Key(KeyboardKey.ArrowDown), DialogueChoiceDown, consume: ConsumeMode.ControlOnly),
@@ -72,6 +89,8 @@ public static class GameControls
                     Ui,
                     100,
                     [
+                        Bind.Action(Controls.Key(KeyboardKey.Enter), UiConfirm),
+                        Bind.Action(Controls.Key(KeyboardKey.I), UiCancel),
                         Bind.Action(Controls.Key(KeyboardKey.E), UiConfirm, consume: ConsumeMode.ControlOnly, name: "Confirm.Keyboard"),
                         Bind.Action(Controls.Gamepad(GamepadButton.South), UiConfirm, consume: ConsumeMode.ControlOnly, name: "Confirm.Gamepad"),
                         Bind.Action(Controls.Key(KeyboardKey.Escape), UiCancel, consume: ConsumeMode.ControlOnly, name: "Cancel.Keyboard"),

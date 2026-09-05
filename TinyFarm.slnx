@@ -6,6 +6,7 @@
     <Project Path="src/TinyFarm/TinyFarm.Core/TinyFarm.Core.csproj" />
     <Project Path="src/TinyFarm/TinyFarm.Runtime/TinyFarm.Runtime.csproj" />
     <Project Path="src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj" />
+  <Project Path="src/TinyFarm/TinyFarm.Native/TinyFarm.Native.csproj" />
   <Project Path="src/TinyFarm/TinyFarm.MonoGame/TinyFarm.MonoGame.csproj" />
   <Project Path="src/TinyFarm/TinyFarm.InputMan/TinyFarm.InputMan.csproj" />
     <Project Path="src/TinyFarm/TinyFarm.Presentation/TinyFarm.Presentation.csproj" />

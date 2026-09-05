@@ -27,7 +27,10 @@ namespace TinyFarm.Core;
 [JsonDerivedType(typeof(SelectHotbarSlotIntent), "select-hotbar")]
 [JsonDerivedType(typeof(UseSelectedIntent), "use-selected")]
 [JsonDerivedType(typeof(WaitIntent), "wait")]
+[JsonDerivedType(typeof(CompleteSupperIntent), "complete-supper")]
 public abstract record GameIntent;
+
+public sealed record CompleteSupperIntent : GameIntent;
 
 public sealed record MoveIntent(LocationId Destination) : GameIntent;
 
@@ -150,7 +153,9 @@ public enum IntentReason
     EnemyOutOfRange,
     MissingSword,
     WrongWeapon,
-    AlreadyDefeated
+    AlreadyDefeated,
+    SupperNotReady,
+    SupperAlreadyCompleted
 }
 
 public enum GameEventKind

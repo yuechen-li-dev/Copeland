@@ -98,6 +98,7 @@ public sealed class TinyFarmResolver
             TalkIntent talk => ResolveTalk(state, actor, envelope, talk),
             TakeIntent take => ResolveTake(state, actor, envelope, take),
             GiveIntent give => ResolveGive(state, actor, envelope, give),
+            CompleteSupperIntent => ResolveSupper(state, actor, envelope),
             BuyIntent buy => ResolveBuy(state, actor, envelope, buy),
             SellIntent sell => ResolveSell(state, actor, envelope, sell),
             BuyProductIntent buy => ResolveBuyProduct(state, actor, envelope, buy),
@@ -778,6 +779,24 @@ public sealed class TinyFarmResolver
         return Accepted(envelope, new GameEvent(GameEventKind.ItemTaken, actor.Id, Item: item.Id));
     }
 
+    private static IntentResult ResolveSupper(TinyFarmState state, ActorState actor, IntentEnvelope envelope)
+    {
+        if (state.Facts.Contains(WorldFact.SupperCompleted))
+        {
+            return Rejected(envelope, IntentReason.SupperAlreadyCompleted);
+        }
+        if (actor.Id != TinyFarmIds.Player || !TinyFarmSupper.IsReady(state))
+        {
+            return Rejected(envelope, IntentReason.SupperNotReady);
+        }
+        IntentResult transfer = ResolveGive(state, actor, envelope, new GiveIntent(TinyFarmIds.WildMint, TinyFarmIds.Mara));
+        if (transfer.Status == IntentResultStatus.Accepted)
+        {
+            AddFact(state, WorldFact.SupperCompleted);
+        }
+        return transfer;
+    }
+
     private static IntentResult ResolveGive(
         TinyFarmState state,
         ActorState actor,
@@ -1315,6 +1334,10 @@ public sealed class TinyFarmResolver
 
         SetProductCount(state, actor.Id, crop.SeedItemId, seedCount - 1);
         ReplacePlot(state, plot with { Crop = crop.Id, PlantedDay = state.Day, GrowthStage = 0, WateredToday = false });
+        if (actor.IsPlayer && state.Facts.Contains(WorldFact.SupperRequested))
+        {
+            AddFact(state, WorldFact.SupperSeedPlanted);
+        }
         return Accepted(envelope, new GameEvent(GameEventKind.CropPlanted, actor.Id, Crop: crop.Id, Plot: plot.Id));
     }
 

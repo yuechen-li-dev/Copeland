@@ -118,7 +118,22 @@ using (init.Plant)
         }
     }
     Require(repeatedHashes.Count == 1 && repeatedHashes.Single() == canonical.PixelSha256, "Repeated-pass hashes were not stable.");
+    // M9 regression: an afternoon of animated materials must not exhaust the descriptor cache.
+    for (int frame = 0; frame < 80; frame++)
+    {
+        renderer.Begin2D();
+        for (int item = 0; item < 64; item++)
+        {
+            float value = (frame * 64 + item) / 6000f;
+            renderer.SubmitQuad(Quad(item * 3, 0, 3, 8, white, new Native2DTint(value, .4f, .2f, 1)));
+        }
+        Native2DPassResult churn = renderer.End2D(captureReadback: false);
+        Require(churn.Metrics.DescriptorSetAllocations >= 0, "Descriptor allocation metric became negative after eviction.");
+    }
+    Require(RenderCanonical(renderer, white, checker).PixelSha256 == canonical.PixelSha256,
+        "Material eviction changed canonical painter output.");
     repeatedFinal = RenderCanonical(renderer, white, checker);
+    Require(repeatedFinal.Metrics.DescriptorWrites == 0, "Unchanged materials stopped being warm after eviction.");
 }
 
 bool validationAvailable = init.Facts!.EnabledValidationLayers.Contains("VK_LAYER_KHRONOS_validation", StringComparer.Ordinal);
