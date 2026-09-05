@@ -1,0 +1,96 @@
+﻿{
+  "schema": "aurelian.native-layer-rendering.v1",
+  "firstHash": "539030cf04b60cad870114569eaf05479c2de2b7c20b644339714005278cf3dd",
+  "worldOnlyHash": "f19ed4a017d3d05350e4c999559670029041b55b2ed7f6fc4e56f4e04a7d32c8",
+  "renderPassCount": 3,
+  "drawCalls": 9,
+  "worldDraws": 6,
+  "machinaDraws": 3,
+  "quadCount": 103,
+  "intermediateColorSurfaces": 0,
+  "compositionCopyBlitCount": 0,
+  "finalReadbackCopies": 1,
+  "finalReadbackMilliseconds": 22.566,
+  "passes": [
+    {
+      "index": 0,
+      "quadCount": 89,
+      "drawCalls": 6,
+      "vertexUploadMilliseconds": 0.16,
+      "commandRecordingMilliseconds": 0.202,
+      "submitWaitMilliseconds": 0.444
+    },
+    {
+      "index": 1,
+      "quadCount": 2,
+      "drawCalls": 2,
+      "vertexUploadMilliseconds": 0.007,
+      "commandRecordingMilliseconds": 0.085,
+      "submitWaitMilliseconds": 0.482
+    },
+    {
+      "index": 2,
+      "quadCount": 12,
+      "drawCalls": 1,
+      "vertexUploadMilliseconds": 0.057,
+      "commandRecordingMilliseconds": 0.075,
+      "submitWaitMilliseconds": 0.214
+    }
+  ],
+  "targetTransitions": [
+    "undefined -\u003E color attachment -\u003E transfer source",
+    "transfer source -\u003E color attachment -\u003E transfer source",
+    "transfer source -\u003E color attachment -\u003E transfer source"
+  ],
+  "pixels": {
+    "transparent": {
+      "name": "transparent rounded panel corner",
+      "x": 100,
+      "y": 60,
+      "rgba": [
+        40,
+        111,
+        46,
+        255
+      ]
+    },
+    "blended": {
+      "name": "alpha-blended analytic panel over world",
+      "x": 120,
+      "y": 70,
+      "rgba": [
+        26,
+        62,
+        72,
+        255
+      ]
+    },
+    "opaque": {
+      "name": "opaque analytic border over world",
+      "x": 117,
+      "y": 60,
+      "rgba": [
+        72,
+        215,
+        255,
+        255
+      ]
+    },
+    "msdf": {
+      "name": "MSDF text over world",
+      "x": 154,
+      "y": 85,
+      "rgba": [
+        36,
+        58,
+        74,
+        255
+      ]
+    }
+  },
+  "validation": {
+    "requested": true,
+    "available": true,
+    "errors": 0
+  }
+}

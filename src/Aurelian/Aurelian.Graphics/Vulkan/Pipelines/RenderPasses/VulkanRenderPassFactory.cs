@@ -193,7 +193,10 @@ public static unsafe class VulkanRenderPassFactory
     }
 
     private static bool IsSupportedInitialLayout(VulkanResourceLayout layout)
-        => layout is VulkanResourceLayout.Undefined or VulkanResourceLayout.ColorAttachment or VulkanResourceLayout.Present;
+        => layout is VulkanResourceLayout.Undefined
+            or VulkanResourceLayout.ColorAttachment
+            or VulkanResourceLayout.Present
+            or VulkanResourceLayout.TransferSource;
 
     private static bool IsSupportedFinalLayout(VulkanResourceLayout layout)
         => layout is VulkanResourceLayout.ColorAttachment

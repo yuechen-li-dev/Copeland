@@ -492,3 +492,30 @@ SVG is an authoring/import format, not a runtime rendering model. Aurelian rende
 compiled vector fields, not SVG DOMs. Runtime drawing never parses source, tessellates
 contours, generates fields, or packs atlases. The intended production flow is
 `assets/icons/*.svg -> build/compiler -> compiled MSDF asset bundle -> app/runtime`.
+
+## Native ordered layer composition (M0)
+
+Native layers compose in semantic compositor order. `Aurelian.Composition` remains
+renderer-neutral and dependency-free; it continues to own layer identity, the
+`(ZOrder, LayerId ordinal, registration sequence)` law, visibility, viewport,
+lifecycle and input focus/capture. `Aurelian.NativeComposition` consumes that exact
+ordered presentation result and owns the Vulkan frame boundary.
+
+Direct same-target composition is preferred when compatible. The compositor-owned
+`VulkanNativeFrameTarget` fixes extent, `R8G8B8A8_UNORM`, sample count one, clear and
+final readback/presentation. The first direct pass clears; later direct passes load
+and preserve the target. A layer-bound renderer cannot end its own shared pass or
+replace the target. Textured world, analytic Machina shapes and MSDF text therefore
+coexist as sequential compatible passes with zero intermediate color surfaces and
+zero composition copies.
+
+Offscreen surfaces are explicit tools for isolation/effects, not mandatory layer
+representation. An explicit `OffscreenSurface` request currently fails closed until
+a bounded effect/isolation implementation exists. No render graph, scene graph or
+world/UI drawable unification is implied. World painter order remains inside the
+world presenter; Machina presentation order remains inside its presenter; only
+top-level semantic layers are compositor-sorted.
+
+The same boundary can later target a swapchain and order `World`, `Particles`,
+`Machina`, `Debug` or editor/inspection layers without changing their semantics.
+See `docs/Aurelian/aurelian-native-layer-compositor-m0-report.md`.

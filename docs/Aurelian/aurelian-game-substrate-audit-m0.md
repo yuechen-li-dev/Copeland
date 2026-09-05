@@ -78,7 +78,7 @@ Measured facts from the successful run:
 | Frame 0 PPM SHA-256 | `A4D3F23257E613F4D220E462D35A2204BC38D7386D429B0A7DFEDE9B4D71EB11` |
 | Frame 1 PPM SHA-256 | `3F5090AB60A7EA5D8639EB6CF131868F89168CF2CFC14CB7473AC8DAB60F7092` |
 
-This is an **executable integrated sketch**, deliberately using colored rectangles and a color-frame animation. It does not prove atlas texture playback, sprite alpha, smooth camera, native world/UI composition, gamepad or a playable host. An independent native quad run proves the underlying GPU mechanism, not this missing integration. That missing integration is the next milestone, not something hidden by the sketch.
+This original audit sketch deliberately used colored rectangles and a color-frame animation. Subsequent M1 and native-layer-compositor qualifications now prove atlas texture playback, straight-alpha sprites, camera projection, and native world/UI same-target composition. Gamepad and a playable native host remain unqualified.
 
 Two concrete reconstruction hazards appeared while building it:
 
@@ -171,8 +171,8 @@ Explicitly deferred: physics dynamics, capsule/polygon without a caller, general
 
 ## 8. Milestone sequence and acceptance gates
 
-1. **AURELIAN-NATIVE-GAME-WORLD-2D-M1** — coherent world presentation. Qualify SpriteForge fixture/loader in its owner; reuse its resolved frames. Add typed world/pixel boundary, explicit camera Follow/Snap/Clamp/Zoom, sprite/frame/pivot lowering, opaque plus straight-alpha textured material policy, stable `(layer, feetY, stableId)` order and scoped texture uploads. Render a player, NPC, two-frame object, tile floor and occluder under the real Machina overlay using compiler-owned shaders. Prove transparent corners, overlapping sprites, camera motion, repeatability and disposal/resize; preserve existing opaque quad proof. No game rules or general animation graph.
-2. **AURELIAN-GAME-HOST-INPUT-M2** — make that same scene playable through reusable native host/bootstrap and keyboard/gamepad action sampling, UI capture, focus-loss release and clean resource shutdown. Configuration/save-root is explicit. Game code contains state/intents/content and projections, not Vulkan setup.
+1. **Qualified:** `AURELIAN-NATIVE-GAME-WORLD-2D-M1` plus `AURELIAN-NATIVE-LAYER-COMPOSITOR-M0` now provide the typed camera/sprite world and real Machina analytic/MSDF overlay in one compositor-owned native target. Direct compatible passes use one clear followed by loads, with no intermediate color surfaces.
+2. **Next: AURELIAN-GAME-HOST-INPUT-M2** — make that same scene playable through reusable native host/bootstrap and keyboard/gamepad action sampling, UI capture, focus-loss release and clean resource shutdown. Configuration/save-root is explicit. Game code contains state/intents/content and projections, not Vulkan setup.
 3. **AURELIAN-SPATIAL-2D-M3** — AABB/circle overlap plus static-map sweep/slide and trigger transitions, deterministic contact ties. Qualify no tunneling, corners, overlap, rejected movement and replay. Add hit-region/knockback use in a concrete game resolver, not a combat framework.
 4. **AURELIAN-GAME-AUDIO-M4** — typed event playback, bounded voices, music/ambient loop, buses, volume, fade/crossfade and simple positional attenuation; qualify stop/disposal and replay event duplication policy.
 5. **AURELIAN-SIMULATION-SCENE-KIT-M5** — now a second host consumer exists: extract ordered cadence and scene/nav/schedule adapters with TinyFarm parity across host-delta schedules, pause, fast-forward and active/inactive scenes. No duplicated pathfinder.
@@ -226,4 +226,4 @@ All paths below are repository-relative unless explicitly marked standalone; the
 | Host | `samples/Integrations/Aurelian.VisibleTriangle/Program.cs`; `src/Aurelian/Aurelian.Core/Engine/Frames`; `src/Aurelian/Aurelian.Runtime/Sessions` |
 | Regression evidence | `tests/TinyFarm/TinyFarm.Core.Tests/TinyFarmM5Tests.cs`, M13–M21 tests and compositor tests; `tools/Aurelian.Native2DQuadM1` |
 
-**Exact next milestone: AURELIAN-NATIVE-GAME-WORLD-2D-M1.** Its deliverable is the smallest real native scene adapter that eliminates the probe's world/units/camera/animation glue and fixes ordinary transparent sprite rendering. Do this before extracting general gameplay frameworks.
+**Exact next milestone: AURELIAN-GAME-HOST-INPUT-M2.** The native world and Machina UI now compose directly in one ordered target; the remaining bounded seam is host/window, swapchain target, normalized keyboard/gamepad input, UI capture/focus-loss behavior and deterministic shutdown.

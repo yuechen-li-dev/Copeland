@@ -1,0 +1,9 @@
+﻿{
+  "schema": "aurelian.native-layer-resources.v1",
+  "targetCreationsBeforeStress": 1,
+  "targetRecreationsDuringStress": 0,
+  "worldTextureUploads": 1,
+  "machinaAtlasUploads": 1,
+  "warmDescriptorWrites": 0,
+  "layerResourcesRemainPresenterOwned": true
+}

@@ -87,6 +87,30 @@ public sealed class VulkanRenderPassM0Tests
         });
 
     [Fact]
+    public void VulkanRenderPassFactory_AllowsLoadFromTransferSourceForSequentialLayerPass()
+        => WithPlant(plant =>
+        {
+            VulkanRenderPassCreateResult result = VulkanRenderPassFactory.Create(
+                plant,
+                new VulkanRenderPassDescriptor([
+                    ColorAttachment("Color0") with
+                    {
+                        LoadOp = VulkanAttachmentLoadOp.Load,
+                        InitialLayout = VulkanResourceLayout.TransferSource,
+                        FinalLayout = VulkanResourceLayout.TransferSource,
+                    },
+                ]));
+
+            AssertSuccessOrCleanFailure(result);
+            if (result.Success)
+            {
+                using AurelianVulkanRenderPass renderPass = result.RenderPass!;
+                Assert.Equal(VulkanAttachmentLoadOp.Load, renderPass.Descriptor.ColorAttachments[0].LoadOp);
+                Assert.Equal(VulkanResourceLayout.TransferSource, renderPass.Descriptor.ColorAttachments[0].InitialLayout);
+            }
+        });
+
+    [Fact]
     public void VulkanRenderPassFactory_CreateSingleColorRenderPass_WhenPlantCreated_SucceedsOrReportsCleanFailure()
         => WithPlant(plant =>
         {

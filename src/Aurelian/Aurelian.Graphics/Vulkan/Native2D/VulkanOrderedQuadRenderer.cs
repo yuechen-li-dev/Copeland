@@ -41,9 +41,12 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
     private readonly VulkanCommandBufferPool commandPool;
     private readonly VulkanTextureUploader? textureUploader;
     private readonly VulkanCommandSubmitter submitter;
-    private readonly AurelianVulkanRenderPass renderPass;
+    private readonly AurelianVulkanRenderPass clearRenderPass;
+    private readonly AurelianVulkanRenderPass? loadRenderPass;
     private readonly AurelianVulkanTexture renderTarget;
-    private readonly AurelianVulkanFramebuffer framebuffer;
+    private readonly AurelianVulkanFramebuffer clearFramebuffer;
+    private readonly AurelianVulkanFramebuffer? loadFramebuffer;
+    private readonly VulkanNativeFrameTarget? sharedTarget;
     private readonly DescriptorSetLayout descriptorSetLayout;
     private readonly DescriptorPool descriptorPool;
     private readonly Sampler sampler;
@@ -64,6 +67,32 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         uint width = 256,
         uint height = 256,
         Native2DPipelineOptions? options = null)
+        : this(plant, program, width, height, options, null)
+    {
+    }
+
+    public VulkanOrderedQuadRenderer(
+        AurelianVulkanPlant plant,
+        CompiledGraphicsProgram program,
+        VulkanNativeFrameTarget target,
+        Native2DPipelineOptions? options = null)
+        : this(
+            plant,
+            program,
+            target?.Width ?? throw new ArgumentNullException(nameof(target)),
+            target.Height,
+            options,
+            target)
+    {
+    }
+
+    private VulkanOrderedQuadRenderer(
+        AurelianVulkanPlant plant,
+        CompiledGraphicsProgram program,
+        uint width,
+        uint height,
+        Native2DPipelineOptions? options,
+        VulkanNativeFrameTarget? sharedTarget)
     {
         ArgumentNullException.ThrowIfNull(plant);
         ArgumentNullException.ThrowIfNull(program);
@@ -77,8 +106,13 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         this.plant = plant;
         this.program = program;
         this.options = options;
+        this.sharedTarget = sharedTarget;
         this.width = width;
         this.height = height;
+        if (sharedTarget is not null)
+        {
+            sharedTarget.ValidateCompatibility(plant, width, height);
+        }
         orderedVertexInputs = program.VertexInputs
             .OrderBy(input => input.Order)
             .ToArray();
@@ -94,7 +128,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             : null;
         submitter = new VulkanCommandSubmitter(plant, commandPool, fences);
 
-        renderTarget = VulkanNativeForwardTexturedRenderer.CreateTexture(
+        renderTarget = sharedTarget?.Texture ?? VulkanNativeForwardTexturedRenderer.CreateTexture(
             plant,
             allocator,
             width,
@@ -102,12 +136,17 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.TransferSource,
             VulkanMemoryUsage.GpuOnly,
             "native-2d.target");
-        renderPass = CreateRenderPass();
-        framebuffer = CreateFramebuffer();
+        clearRenderPass = CreateRenderPass(VulkanAttachmentLoadOp.Clear, VulkanResourceLayout.Undefined);
+        clearFramebuffer = CreateFramebuffer(clearRenderPass);
+        if (sharedTarget is not null)
+        {
+            loadRenderPass = CreateRenderPass(VulkanAttachmentLoadOp.Load, VulkanResourceLayout.TransferSource);
+            loadFramebuffer = CreateFramebuffer(loadRenderPass);
+        }
         descriptorSetLayout = VulkanNativeForwardTexturedRenderer.CreateDescriptorSetLayout(plant, program);
         pipeline = VulkanNativeForwardTexturedRenderer.CreatePipeline(
             plant,
-            renderPass,
+            clearRenderPass,
             program,
             vertexStride,
             descriptorSetLayout,
@@ -296,6 +335,41 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
 
     public Native2DPassResult End2D(bool captureReadback = false)
     {
+        if (sharedTarget is not null)
+        {
+            Cancel2D();
+            throw new InvalidOperationException(
+                "A renderer bound to a shared native frame target must be presented through VulkanNativeFrameSession.");
+        }
+        return End2DCore(captureReadback, clear: true, default);
+    }
+
+    internal Native2DPassResult EndShared2D(bool clear, VulkanColorClearValue clearColor)
+    {
+        if (sharedTarget is null)
+        {
+            throw new InvalidOperationException("The renderer is not bound to a shared native frame target.");
+        }
+        sharedTarget.ThrowIfDisposed();
+        return End2DCore(captureReadback: false, clear, clearColor);
+    }
+
+    internal bool Targets(VulkanNativeFrameTarget target)
+    {
+        return ReferenceEquals(sharedTarget, target);
+    }
+
+    internal void Cancel2D()
+    {
+        submissions.Clear();
+        passActive = false;
+    }
+
+    private Native2DPassResult End2DCore(
+        bool captureReadback,
+        bool clear,
+        VulkanColorClearValue frameClearColor)
+    {
         ThrowIfDisposed();
         if (!passActive)
         {
@@ -341,15 +415,24 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             VulkanCommandBufferLease commandBuffer = commandPool.Rent(fences.CommandListFence.LastKnownCompletedValue);
             Require(commandBuffer.Begin().Success, "Command buffer begin failed.");
             var renderPassEncoder = new VulkanRenderPassCommandEncoder();
+            AurelianVulkanRenderPass activeRenderPass = clear
+                ? clearRenderPass
+                : loadRenderPass ?? throw new InvalidOperationException("The renderer has no shared-target load pass.");
+            AurelianVulkanFramebuffer activeFramebuffer = clear
+                ? clearFramebuffer
+                : loadFramebuffer ?? throw new InvalidOperationException("The renderer has no shared-target load framebuffer.");
+            VulkanColorClearValue clearValue = sharedTarget is null
+                ? options.TransparentClear
+                    ? new VulkanColorClearValue(0, 0, 0, 0)
+                    : new VulkanColorClearValue(16f / 255f, 32f / 255f, 64f / 255f, 1)
+                : frameClearColor;
             VulkanRenderPassBeginResult begin = renderPassEncoder.Begin(
                 plant,
                 commandBuffer,
                 new VulkanRenderPassBeginRequest(
-                    renderPass,
-                    framebuffer,
-                    options.TransparentClear
-                        ? new VulkanColorClearValue(0, 0, 0, 0)
-                        : new VulkanColorClearValue(16f / 255f, 32f / 255f, 64f / 255f, 1)));
+                    activeRenderPass,
+                    activeFramebuffer,
+                    clearValue));
             Require(begin.Success, "Render pass begin failed.");
 
             int drawCalls = RecordOrderedDraws(commandBuffer, begin.Scope!.Value, submissionKeys);
@@ -428,10 +511,15 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             plant.Vk.DestroySampler(plant.Device, sampler, null);
         }
         pipeline.Dispose();
-        framebuffer.Dispose();
-        renderPass.Dispose();
+        loadFramebuffer?.Dispose();
+        clearFramebuffer.Dispose();
+        loadRenderPass?.Dispose();
+        clearRenderPass.Dispose();
         plant.Vk.DestroyDescriptorSetLayout(plant.Device, descriptorSetLayout, null);
-        renderTarget.Dispose();
+        if (sharedTarget is null)
+        {
+            renderTarget.Dispose();
+        }
         submitter.Dispose();
         textureUploader?.Dispose();
         commandPool.Dispose();
@@ -616,7 +704,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
                     vertexBuffer,
                     checked((uint)((endQuad - startQuad) * VerticesPerQuad)),
                     checked((uint)(startQuad * VerticesPerQuad)),
-                    VulkanViewportScissor.FromFramebuffer(framebuffer)));
+                    VulkanViewportScissor.FromFramebuffer(clearFramebuffer)));
             Require(draw.Success, "Quad draw recording failed.");
             drawCalls++;
             startQuad = endQuad;
@@ -746,7 +834,9 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             VulkanMemoryUsage.CpuToGpu,
             "native-2d.vertices");
 
-    private AurelianVulkanRenderPass CreateRenderPass()
+    private AurelianVulkanRenderPass CreateRenderPass(
+        VulkanAttachmentLoadOp loadOperation,
+        VulkanResourceLayout initialLayout)
     {
         VulkanRenderPassCreateResult result = VulkanRenderPassFactory.Create(
             plant,
@@ -754,20 +844,20 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
                 new VulkanRenderPassAttachmentDescriptor(
                     "Color0",
                     VulkanTextureFormat.Rgba8Unorm,
-                    VulkanAttachmentLoadOp.Clear,
+                    loadOperation,
                     VulkanAttachmentStoreOp.Store,
-                    VulkanResourceLayout.Undefined,
+                    initialLayout,
                     VulkanResourceLayout.TransferSource),
             ]));
         Require(result.Success, "Native 2D render pass creation failed.");
         return result.RenderPass!;
     }
 
-    private AurelianVulkanFramebuffer CreateFramebuffer()
+    private AurelianVulkanFramebuffer CreateFramebuffer(AurelianVulkanRenderPass pass)
     {
         VulkanFramebufferCreateResult result = VulkanFramebufferFactory.Create(
             plant,
-            renderPass,
+            pass,
             new VulkanFramebufferDescriptor(width, height, [renderTarget]));
         Require(result.Success, "Native 2D framebuffer creation failed.");
         return result.Framebuffer!;

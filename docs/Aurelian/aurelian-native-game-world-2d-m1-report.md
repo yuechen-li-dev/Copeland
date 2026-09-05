@@ -2,11 +2,11 @@
 
 ## Decision
 
-**Outcome B — the reusable native world kit works; one bounded native composition seam remains.**
+**Outcome A after AURELIAN-NATIVE-LAYER-COMPOSITOR-M0 — the reusable native world kit and its native Machina overlay now share one ordered target.**
 
 The new `Aurelian.GameWorld2D` integration owns typed coordinate conversion, a presentation-only camera, SpriteForge playback/frame lowering, stable painter order, typed sprite identities, and scene-scoped Vulkan texture realization. The native proof renders a tile floor, wall, two overlapping actors, an animated object, a transparent sprite, and a foreground occluder. It qualifies deterministic camera/frame/order hashes, straight alpha, viewport reprojection, disposal, content-hash replacement, and 100 warm frames.
 
-Outcome A is not claimed because `VulkanCompositorPassthrough` rejects more than one plant output. The textured world and the independently qualified native Machina MSDF/analytic overlay cannot yet be combined into one native target through the real compositor. A proof-local CPU merge or rasterized HUD texture would hide that missing engine seam, so neither was added.
+The original M1 qualification correctly stopped at Outcome B because `VulkanCompositorPassthrough` accepted one plant output. M0 now closes that seam with a compositor-owned native frame target and ordered direct passes: world `CLEAR`, Machina analytic `LOAD`, Machina MSDF `LOAD`, then one readback. No CPU merge, raster HUD texture, intermediate color surface or composition copy is used. The isolated M1 world hash remains unchanged.
 
 ## Mandatory audit
 
@@ -80,7 +80,7 @@ Result: 8/8 tests pass on net8.0 and 8/8 pass on net10.0. Loader, validation, gr
 | Animated object | SpriteForge 2-frame loop and once clip qualified; frame hashes differ |
 | Transparent sprite | transparent corner reveals contrasting prior world layers; no opaque box |
 | Camera motion/resize | follow, clamp, snap, zoom and viewport reprojection qualified; atlas retained |
-| Machina overlay/MSDF | existing real paths remain qualified, but combined native target is blocked |
+| Machina overlay/MSDF | real analytic and MSDF paths compose over the world on the same native target |
 | Disposal/version | scope disposal and stale/replaced handle rejection qualified |
 | Warm resources | 100 frames; 0 texture uploads and 0 descriptor writes after warmup |
 | Vulkan | RTX 3070; validation layer enabled; 0 errors reported |
@@ -102,4 +102,4 @@ Compact artifacts are under `artifacts/aurelian-native-game-world-2d-m1/`: `proo
 
 ## Exact next milestone
 
-Run **`AURELIAN-NATIVE-LAYER-COMPOSITOR-M0`** next: accept two or more ordered native plant outputs, source-over composite textured/MSDF/analytic layers into one target, preserve explicit layer order, resize and lifetime, and qualify the real TinyFarm Machina hotbar/status overlay above this M1 world. Then rerun M1 to Outcome A, run the bounded MachinaCanvas sprite-tooling stabilization, and only then proceed to `AURELIAN-GAME-HOST-INPUT-M2`.
+The composition blocker is closed. Proceed to **`AURELIAN-GAME-HOST-INPUT-M2`** for the bounded native host, swapchain target, input sampling, Machina capture/focus integration and clean shutdown. The optional MachinaCanvas sprite-tooling stabilization remains separate.

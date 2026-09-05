@@ -1,0 +1,22 @@
+﻿{
+  "schema": "aurelian.native-layer-composition.v1",
+  "semanticOrder": [
+    "world",
+    "machina-ui"
+  ],
+  "nativeOrder": [
+    "world",
+    "machina-ui"
+  ],
+  "sequence": [
+    "BeginFrame(CLEAR)",
+    "World textured pass",
+    "Machina analytic pass (LOAD)",
+    "Machina MSDF pass (LOAD)",
+    "EndFrame/readback"
+  ],
+  "directSameTarget": true,
+  "explicitOffscreenMode": "LayerPresentationMode.OffscreenSurface is explicit and rejected until an isolation/effect implementation is supplied",
+  "clearCount": 1,
+  "loadPassCount": 2
+}

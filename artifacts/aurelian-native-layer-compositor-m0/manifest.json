@@ -1,0 +1,22 @@
+﻿{
+  "milestone": "AURELIAN-NATIVE-LAYER-COMPOSITOR-M0",
+  "kind": "ordered-multi-native-layer-frame-composition",
+  "worldLayerQualified": true,
+  "machinaLayerQualified": true,
+  "sameTargetDirectCompositionPreferred": true,
+  "mandatoryIntermediateTextures": false,
+  "clearAuthoritySingle": true,
+  "semanticLayerOrderingPreserved": true,
+  "rendererNeutralCompositorChanged": false,
+  "worldMachinaUnifiedSemantically": false,
+  "renderGraphAdded": false,
+  "sceneGraphAdded": false,
+  "files": [
+    "proof.json",
+    "composition.json",
+    "rendering.json",
+    "resources.json",
+    "manifest.json",
+    "world-machina-1280x720.png"
+  ]
+}

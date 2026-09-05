@@ -1,0 +1,64 @@
+﻿{
+  "milestone": "AURELIAN-NATIVE-LAYER-COMPOSITOR-M0",
+  "outcome": "A",
+  "worldLayerQualified": true,
+  "machinaLayerQualified": true,
+  "sameTargetDirectCompositionPreferred": true,
+  "mandatoryIntermediateTextures": false,
+  "clearAuthoritySingle": true,
+  "semanticLayerOrderingPreserved": true,
+  "transparentUiPreservesWorld": {
+    "name": "transparent rounded panel corner",
+    "x": 100,
+    "y": 60,
+    "rgba": [
+      40,
+      111,
+      46,
+      255
+    ]
+  },
+  "blendedUiChangesWorld": {
+    "name": "alpha-blended analytic panel over world",
+    "x": 120,
+    "y": 70,
+    "rgba": [
+      26,
+      62,
+      72,
+      255
+    ]
+  },
+  "opaqueUiChangesWorld": {
+    "name": "opaque analytic border over world",
+    "x": 117,
+    "y": 60,
+    "rgba": [
+      72,
+      215,
+      255,
+      255
+    ]
+  },
+  "msdfOverWorld": {
+    "name": "MSDF text over world",
+    "x": 154,
+    "y": 85,
+    "rgba": [
+      36,
+      58,
+      74,
+      255
+    ]
+  },
+  "worldPainterOrderPreserved": true,
+  "hiddenLayerQualified": true,
+  "detachedLayerQualified": true,
+  "resizeQualified": true,
+  "incompatibleDirectRejected": true,
+  "explicitOffscreenRejected": true,
+  "clearMisuseRejected": true,
+  "disposedTargetRejected": true,
+  "stressFrames": 100,
+  "stableHash": true
+}
