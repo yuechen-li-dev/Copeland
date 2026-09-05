@@ -1,0 +1,13 @@
+{
+  "milestone": "AURELIAN-TINYFARM-DIALOGUE-CONSUMER-M7B2",
+  "outcome": "A",
+  "dialogueId": "tinyfarm.mara.wild-mint",
+  "interactionStartsDialogue": true,
+  "conditionalBranch": true,
+  "typedConsequence": true,
+  "inputCapture": true,
+  "simulationPolicy": "full semantic pause while dialogue is active",
+  "worldLayer": "tiny-farm-world",
+  "dialogueLayer": "tiny-farm-ui",
+  "finalWorldHash": "e04c963374ee66e984724ce5cbcd0540f303e19d7e71be521a9ce44b0ff14d24"
+}

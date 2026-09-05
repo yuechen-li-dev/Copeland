@@ -1,39 +1,14 @@
 using Ariadne.OptFlow;
 using Ariadne.OptFlow.Commands;
+using Ariadne.OptFlow.Presentation;
 using Dominatus.Core.Blackboard;
 using Dominatus.Core.Runtime;
 
 namespace Aurelian.Ariadne.VnDemo;
 
-public enum DialoguePresentationStepKind
-{
-    Line,
-    Narration,
-    Choice,
-    Terminal,
-}
-
-public sealed record DialoguePresentationChoice(string Id, string Text, int DeclarationIndex);
-
-public sealed record DialoguePresentation(
-    string DialogueId,
-    string StepId,
-    DialoguePresentationStepKind Kind,
-    string? Speaker,
-    string Text,
-    string BackgroundKey,
-    string? PortraitKey,
-    string? ExpressionKey,
-    IReadOnlyList<DialoguePresentationChoice> Choices,
-    int SelectedChoiceIndex,
-    bool CanAdvance,
-    bool AutoEnabled,
-    bool SkipEnabled,
-    long? PendingActuationId);
-
 public sealed record AuthoredDialogueStep(
     string Id,
-    DialoguePresentationStepKind Kind,
+    DialoguePresentationOperationKind Kind,
     string? Speaker,
     string Text,
     string BackgroundKey,
@@ -41,92 +16,7 @@ public sealed record AuthoredDialogueStep(
     string? ExpressionKey,
     IReadOnlyList<DiagChoice>? Choices = null)
 {
-    public DialoguePresentation Project(long? pendingActuationId, int selectedChoiceIndex, bool auto, bool skip)
-    {
-        DialoguePresentationChoice[] visibleChoices = (Choices ?? [])
-            .Select((choice, index) => new DialoguePresentationChoice(choice.Key, choice.Text, index))
-            .ToArray();
-        int selected = visibleChoices.Length == 0
-            ? 0
-            : Math.Clamp(selectedChoiceIndex, 0, visibleChoices.Length - 1);
-        return new DialoguePresentation(
-            VnDialogueDefinition.DialogueId,
-            Id,
-            Kind,
-            Speaker,
-            Text,
-            BackgroundKey,
-            PortraitKey,
-            ExpressionKey,
-            visibleChoices,
-            selected,
-            Kind is DialoguePresentationStepKind.Line or DialoguePresentationStepKind.Narration,
-            auto,
-            skip,
-            pendingActuationId);
-    }
-}
-
-public sealed class DialoguePresentationProjector
-{
-    private readonly IReadOnlyDictionary<string, AuthoredDialogueStep> steps;
-
-    public DialoguePresentationProjector(IEnumerable<AuthoredDialogueStep> steps)
-    {
-        this.steps = steps.ToDictionary(step => step.Id, StringComparer.Ordinal);
-    }
-
-    public DialoguePresentation Project(
-        AiAgent agent,
-        AuthoredDialogueStep? active,
-        int selectedChoiceIndex,
-        bool auto,
-        bool skip,
-        bool terminal = false)
-    {
-        if (terminal)
-        {
-            return new DialoguePresentation(
-                VnDialogueDefinition.DialogueId,
-                "after-school.terminal",
-                DialoguePresentationStepKind.Terminal,
-                null,
-                "END OF SCENE",
-                "classroom.sunset",
-                null,
-                null,
-                [],
-                0,
-                false,
-                auto,
-                skip,
-                null);
-        }
-        AuthoredDialogueStep resolved = active ?? RecoverPending(agent);
-        DiagOperationKind operationKind = resolved.Kind == DialoguePresentationStepKind.Choice
-            ? DiagOperationKind.Choose
-            : DiagOperationKind.Line;
-        DiagOperationInspection inspection = Diag.Inspect(resolved.Id, operationKind);
-        long pending = agent.Bb.GetOrDefault(inspection.PendingIdKey, 0L);
-        return resolved.Project(pending == 0 ? null : pending, selectedChoiceIndex, auto, skip);
-    }
-
-    public AuthoredDialogueStep RecoverPending(AiAgent agent)
-    {
-        foreach (AuthoredDialogueStep step in steps.Values.OrderBy(step => step.Id, StringComparer.Ordinal))
-        {
-            DiagOperationKind kind = step.Kind == DialoguePresentationStepKind.Choice
-                ? DiagOperationKind.Choose
-                : DiagOperationKind.Line;
-            DiagOperationInspection inspection = Diag.Inspect(step.Id, kind);
-            if (agent.Bb.GetOrDefault(inspection.StartedKey, false))
-            {
-                return step;
-            }
-        }
-        string keys = string.Join(", ", agent.Bb.EnumerateSnapshotEntries().Select(entry => $"{entry.Key}={entry.Value}"));
-        throw new InvalidOperationException($"No pending authored dialogue operation exists in restored semantic state. Blackboard keys: {keys}");
-    }
+    public DialoguePresentationOperation Presentation => new(Id, Kind, Speaker, Text, Choices);
 }
 
 public sealed class DialogueSurfaceActuator :
@@ -140,10 +30,10 @@ public sealed class DialogueSurfaceActuator :
     {
         AuthoredDialogueStep[] materialized = definitions.ToArray();
         lines = materialized
-            .Where(step => step.Kind is DialoguePresentationStepKind.Line or DialoguePresentationStepKind.Narration)
+            .Where(step => step.Kind == DialoguePresentationOperationKind.Line)
             .ToDictionary(step => (step.Text, step.Speaker));
         choices = materialized
-            .Where(step => step.Kind == DialoguePresentationStepKind.Choice)
+            .Where(step => step.Kind == DialoguePresentationOperationKind.Choice)
             .ToDictionary(step => step.Text, StringComparer.Ordinal);
     }
 
@@ -166,7 +56,7 @@ public sealed class DialogueSurfaceActuator :
 
     public void Restore(AiAgent agent, AuthoredDialogueStep step)
     {
-        DiagOperationKind kind = step.Kind == DialoguePresentationStepKind.Choice
+        DiagOperationKind kind = step.Kind == DialoguePresentationOperationKind.Choice
             ? DiagOperationKind.Choose
             : DiagOperationKind.Line;
         long id = agent.Bb.GetOrDefault(Diag.Inspect(step.Id, kind).PendingIdKey, 0L);
@@ -181,7 +71,7 @@ public sealed class DialogueSurfaceActuator :
         {
             throw new InvalidOperationException("There is no pending dialogue operation to complete.");
         }
-        if (ActiveStep.Kind == DialoguePresentationStepKind.Choice)
+        if (ActiveStep.Kind == DialoguePresentationOperationKind.Choice)
         {
             ActiveAgent.Events.Publish(new ActuationCompleted<string>(id, true, null, choiceId ?? ""));
         }

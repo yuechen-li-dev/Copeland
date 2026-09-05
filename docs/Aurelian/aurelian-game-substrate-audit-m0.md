@@ -8,7 +8,7 @@ The semantic architecture is viable. A small action/farming game can reuse subst
 
 M0 audit outcome: **Success**. An executable integrated sketch and fresh regression/native checks support the ranked answer below. This does not declare the engine game-ready or the sketch a playable native game.
 
-Audited Copeland base: `cae570daef8c067cc2c67f44ea4361ceef21609e`. Both `reference/dominatus` and the explicitly requested standalone `C:/Users/yuech/source/repos/Dominatus` were clean at `adbecd91cf1e07ca9a53c60a38fbb8356245b076`. The standalone repository has no newer commit to import. TinyFarm consumes Dominatus/Ariadne **1.0.0 NuGet packages**, not arbitrary source changes in either checkout. Source availability, package availability and Aurelian integration are distinct claims.
+Audited Copeland base: `cae570daef8c067cc2c67f44ea4361ceef21609e`. At the original audit boundary, both the embedded reference and standalone Dominatus checkout were clean at `adbecd91cf1e07ca9a53c60a38fbb8356245b076`. M7a later advanced standalone Dominatus master, and M7b2 removed the embedded checkout. Active source-level integrations now resolve the standalone sibling repository; package-only consumers retain centrally pinned packages. Source availability, package availability and Aurelian integration remain distinct claims.
 
 ## 1. Engine definition and target
 
@@ -43,7 +43,7 @@ Letters apply to the named capability, not every possible feature in its categor
 | 8 | Particles/VFX | C | No reusable native emitter/pool found. Bounded seeded emitters with spawn/lifetime/velocity/color/size are enough. Prefer compiled Visual TS programs and persistent GPU resources; event-to-emitter projection stays outside gameplay state. Do after sprite resource lifetime/blending. |
 | 9 | Shader/effects | A compiler path; C effect configuration | Copeland GPU profile -> VD-MIR -> Aurelian compiled graphics programs -> Vulkan is real. MSDF and analytic shapes are already authored `.v.ts`. Tint can support day/night color; arbitrary sprite effects need uniform/material binding and alpha policy. Start hit flash, tint and fade. Outline/palette/dissolve next; distortion, bloom/light masks need deliberate pass ordering and targets. |
 | 10 | Audio | A resident playback; A generation; B streaming/Linux | M4 adds `Aurelian.Audio` typed resources/cues, bounded voices, buses, volume/mute, fades/crossfades, music/ambient policy, spatial pan/attenuation, dedupe, completion, null/offline mixing, host ownership, a Windows NAudio leaf, and TinyFarm accepted-result projection. `Dominatus.Actuators.Audio` remains generation authority behind a narrow artifact adapter. Long-resource streaming, compressed decoding, and Linux device output remain bounded seams. |
-| 11 | Dialogue | A Ariadne flow; B presentation bridge | `Diag.Line/Ask/Choose`, typed commands, wait completion and replay already exist. `DemoDialogue` branches in ordinary flow; Stride has dialogue state/surface handlers. Reuse that law in a Machina adapter; add speaker/portrait IDs and typed camera/actor/event cues. No new dialogue language or scheduler. |
+| 11 | Dialogue | A semantic flow and neutral presentation projection | M7b2 proves the same `DialoguePresentationSnapshot` in the VN demo and an in-world TinyFarm lower-third. Shared facts are stable operation/speaker/content/choice/pending identities; portrait/background/auto/skip/save controls remain skin or host policy. Typed effects return through the TinyFarm resolver. No new dialogue language, scheduler, voice, quest, relationship, or camera system. |
 | 12 | Interaction | B law; D priorities | TinyFarm finds forward/range candidates and orders by category, distance, ordinal stable ID, then resolves contextual intent. Share stable selection/comparison only after compatible candidate consumers exist. Keep crop/shop/enemy target construction and intent mapping local. Do not export its nullable all-target record as universal engine API. |
 | 13 | Combat | D rules; C spatial/timing primitives | M21 is selected/direct Sword intent -> one-hit Slime defeat with rejection/parity. Not damage/knockback/invulnerability framework. Reuse future queries and clocks; second game must demonstrate shared health/status law before extracting combat. |
 | 14 | Farming | D | Plant, water, growth, harvest and day progression exist in TinyFarm. Specific turnips, yields, watering rules and future seasons stay local. Reuse world-time scheduling; no farming engine module. |
@@ -144,7 +144,7 @@ Scores: 1 low, 5 high. LLM pain includes repeated correctness reasoning; reuse i
 | Native game audio | C | 5 | 5 | 4 | 4 |
 | Ordered multi-rate clock/scene/nav/schedule bridge | B | 4 | 5 | 3 | 5 |
 | Save-slot/replay envelope bridge | B | 4 | 5 | 3 | 6 |
-| Ariadne/Machina dialogue adapter | B | 3 | 4 | 2 | 7 |
+| Ariadne neutral dialogue projection | A | 1 | 4 | complete | qualified M7b2 |
 | Parameterized sprite effects and small emitters | C | 4 | 4 | 3 | 8 |
 | Inventory slot/stack conveniences | B/D | 2 | 3 | 2 | 9 |
 | Unified frame inspection | B | 3 | 4 | 2 | Incremental with each kit |
@@ -177,7 +177,7 @@ Explicitly deferred: physics dynamics, capsule/polygon without a caller, general
 4. **AURELIAN-GAME-AUDIO-M4** — typed event playback, bounded voices, music/ambient loop, buses, volume, fade/crossfade and simple positional attenuation; qualify stop/disposal and replay event duplication policy.
 5. **AURELIAN-SIMULATION-SCENE-KIT-M5** — now a second host consumer exists: extract ordered cadence and scene/nav/schedule adapters with TinyFarm parity across host-delta schedules, pause, fast-forward and active/inactive scenes. No duplicated pathfinder.
 6. **AURELIAN-GAME-SAVE-REPLAY-M6** — versioned game envelope/slot IO and intent tape around existing containers/domain codecs; prove save mid-action, reload, definition mismatch, migration and replay hash parity.
-7. **AURELIAN-ARIADNE-MACHINA-DIALOGUE-M7** — line/choice/portrait/wait/action/camera cue with input capture, completion IDs and save/replay continuation. No new scripting language.
+7. **Qualified: AURELIAN-ARIADNE-MACHINA-DIALOGUE-M7B2** — VN and TinyFarm consume one renderer-neutral snapshot with input capture, completion IDs, typed resolver consequence, save continuation, and replay parity. Portrait/background/layout remain skin.
 8. **AURELIAN-GAME-FEEDBACK-M8** — hit flash, tint, fade and bounded dust/harvest/hit emitters on compiled shader paths; explicit budgets and presentation lifetime.
 9. **AURELIAN-GAME-SLICE-QUALIFICATION-M9** — assemble combat/farming/NPC/inventory/quest content, inspect real UI and sound, package clean Windows build and qualify Linux separately. Extract inventory helpers only if actual repetition remains.
 
@@ -218,11 +218,11 @@ All paths below are repository-relative unless explicitly marked standalone; the
 | World projection units | `src/TinyFarm/TinyFarm.Runtime/TinyFarmFrame.cs` |
 | Input/UI | `src/Aurelian/Aurelian.Composition/InputContracts.cs`; `src/TinyFarm/TinyFarm.Presentation/TinyFarmMachinaUiLayer.cs`; `src/TinyFarm/TinyFarm.Runtime/TinyFarmHumanController.cs` |
 | Interaction | `src/TinyFarm/TinyFarm.Core/TinyFarmSpatialQueries.cs` |
-| Game assets | `src/Aurelian/Aurelian.Assets/AssetPipeline.cs`; `reference/dominatus/src/Dominatus.SpriteForge/SpriteForgeAtlas.cs`, `SpriteForgeResolver.cs` |
+| Game assets | `src/Aurelian/Aurelian.Assets/AssetPipeline.cs`; `../Dominatus/src/Dominatus.SpriteForge/SpriteForgeAtlas.cs`, `SpriteForgeResolver.cs` |
 | Effects | `src/Aurelian/Aurelian.Shaders/Assets/AnalyticShape2D.v.ts`, `MsdfText.v.ts`; native quad proof compiler path |
-| Persistence/replay | `src/TinyFarm/TinyFarm.Runtime/TinyFarmPersistence.cs`, `TinyFarmSession.cs`; `reference/dominatus/src/Dominatus.Core/Persistence/ReplayDriver.cs`, `SaveFile.cs` |
+| Persistence/replay | `src/TinyFarm/TinyFarm.Runtime/TinyFarmPersistence.cs`, `TinyFarmSession.cs`; `../Dominatus/src/Dominatus.Core/Persistence/ReplayDriver.cs`, `SaveFile.cs` |
 | Nav/schedule | `src/TinyFarm/TinyFarm.Runtime/TinyFarmNavigation.cs`, `TinyFarmNpcSchedule.cs`, `Content/tiny-farm-npc-schedules.obj.ts` |
-| Dialogue/audio | `reference/dominatus/src/Ariadne.OptFlow/DiagSteps.cs`; `reference/dominatus/src/Ariadne.Console/Scripts/DemoDialogue.cs`; `reference/dominatus/src/Dominatus.Actuators.Audio/AudioModels.cs` |
+| Dialogue/audio | `../Dominatus/src/Ariadne.OptFlow/DiagSteps.cs`; `../Dominatus/src/Ariadne.Console/Scripts/DemoDialogue.cs`; `../Dominatus/src/Dominatus.Actuators.Audio/AudioModels.cs` |
 | Host | `samples/Integrations/Aurelian.VisibleTriangle/Program.cs`; `src/Aurelian/Aurelian.Core/Engine/Frames`; `src/Aurelian/Aurelian.Runtime/Sessions` |
 | Regression evidence | `tests/TinyFarm/TinyFarm.Core.Tests/TinyFarmM5Tests.cs`, M13–M21 tests and compositor tests; `tools/Aurelian.Native2DQuadM1` |
 

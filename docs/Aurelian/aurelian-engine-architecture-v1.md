@@ -1,6 +1,6 @@
 # Aurelian engine architecture v1
 
-Status: current architecture after AURELIAN-SIMULATION-SCENE-KIT-M5. This document is authoritative for the application/runtime architecture. Milestone reports remain evidence, not prerequisites.
+Status: current architecture after AURELIAN-TINYFARM-DIALOGUE-CONSUMER-M7B2. This document is authoritative for the application/runtime architecture. Milestone reports remain evidence, not prerequisites.
 
 ## 1. Purpose
 
@@ -62,6 +62,9 @@ Current project approximation:
 - `Machina.*` owns renderer-neutral UI authoring, layout, semantics, hit testing, input records, interaction helpers, and presentation operations.
 - Dominatus owns decision policy and flow, not application mutation.
 - Copeland/TSON owns authored table/program truth and its compilation/loading path, not mutable application state.
+- Ariadne owns dialogue flow and the renderer-neutral `DialoguePresentationSnapshot`;
+  applications own skin metadata, input policy, simulation policy, and conversion of
+  typed dialogue effects into authoritative game intents.
 
 No dependency cycle between Aurelian and Machina is required. A thin integration adapter may depend on both.
 
@@ -563,3 +566,31 @@ must not turn this query substrate into an engine-owned physics scene. See
 `Aurelian.Audio` owns engine-neutral realtime playback policy: typed assets/events/voices/buses, scoped resident PCM resources, bounded allocation, deterministic stealing, gain/mute, explicit-clock fades and crossfades, simple 2D pan/attenuation, event dedupe, completion queues, diagnostics, and null/offline mixing. `Aurelian.Audio.NAudio` is the Windows device leaf; backend types do not enter game code. `AurelianGameHost` owns update, focus, and disposal.
 
 Dominatus remains the optional generation/provider owner. `Dominatus.Audio.Aurelian` adapts a generated `AudioArtifact` into the same PCM-WAV resource path used by authored files. TinyFarm projects accepted semantic results into cues; Core does not reference audio. Mixer state and voices are never save/replay/gameplay authority. Streamed music, compressed formats, and a Linux device leaf remain explicit backend/resource seams. See `docs/Aurelian/aurelian-game-audio-m4-report.md`.
+
+## Renderer-neutral dialogue presentation (M7b2)
+
+The VN demo and TinyFarm directly consume one immutable
+`Ariadne.OptFlow.Presentation.DialoguePresentationSnapshot`. It carries stable
+dialogue/operation identity, operation kind, speaker/content, ordered visible choices,
+selection, advance/choice lifecycle facts, completion/cancellation, and pending
+actuation identity. It carries no renderer, portrait, expression, background,
+auto/skip, save-button, camera, focus object, or panel-layout state.
+
+The authority flow is:
+
+```text
+Ariadne/OptFlow semantic runtime
+  -> DialoguePresentationSnapshot
+  -> application skin and input adapter
+  -> typed effect at application boundary
+  -> application resolver
+  -> authoritative application state
+```
+
+TinyFarm proves the non-VN style: the native world remains visible, a compact Machina
+lower-third overlays it, InputMan dialogue actions suppress movement/tool input, and
+an accepted `GiveIntent` owns the Wild Mint transfer. TinyFarm chooses a full semantic
+pause and speaking-NPC stability; neither is generic dialogue law. Deliverance stores
+Dominatus dialogue chunks and intentional selection state, then reconstructs the UI
+without dispatch replay. See
+`docs/Aurelian/aurelian-tinyfarm-dialogue-consumer-m7b2-report.md`.

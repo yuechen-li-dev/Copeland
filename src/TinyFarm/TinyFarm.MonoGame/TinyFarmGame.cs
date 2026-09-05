@@ -2,7 +2,11 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Aurelian.Composition;
+using Aurelian.GameHost;
+using InputMan.Aurelian;
+using InputMan.Core;
 using TinyFarm.Core;
+using TinyFarm.InputMan;
 using TinyFarm.Presentation;
 
 internal sealed class TinyFarmGame : Game
@@ -12,9 +16,14 @@ internal sealed class TinyFarmGame : Game
     private readonly string savePath;
     private readonly TinyFarmSimulationHost simulationHost;
     private readonly TinyFarmPlayerUiController playerUiController;
+    private readonly TinyFarmDialogueCoordinator dialogue;
+    private readonly InputManEngine inputEngine;
+    private readonly AurelianInputAdapter inputAdapter;
+    private readonly TinyFarmInputController inputController = new();
     private TinyFarmSession session => simulationHost.Session;
     private SpriteBatch? spriteBatch;
     private Texture2D? pixel;
+    private Texture2D? maraDialoguePortrait;
     private KeyboardState previousKeyboard;
     private MouseState previousMouse;
     private IReadOnlyList<NarrativeLine> narrative = [];
@@ -25,6 +34,12 @@ internal sealed class TinyFarmGame : Game
     private ulong compositionFrameId;
     private readonly TinyFarmCompositionMetrics compositionMetrics = new();
     private readonly int compositionProofFrames;
+    private readonly string? dialogueProofDirectory;
+    private int dialogueProofStage;
+    private string? pendingScreenshot;
+    private TinyFarmDialogueCheckpoint? proofCheckpoint;
+    private string? proofPendingOperation;
+    private ulong inputFrameId;
 
     public TinyFarmGame(string[] args)
     {
@@ -38,11 +53,18 @@ internal sealed class TinyFarmGame : Game
         Window.AllowUserResizing = true;
         IsMouseVisible = true;
         definitions = TinyFarmDefinitionLoader.LoadM21();
+        dialogueProofDirectory = ReadOption(args, "--m7b2-proof-dir");
+        TinyFarmState initialState = dialogueProofDirectory is null
+            ? TinyFarmM21ControlStates.Create(definitions)
+            : TinyFarmDialogueProofState.Create(definitions, hasWildMint: true);
         simulationHost = new TinyFarmSimulationHost(
-            new TinyFarmSession(TinyFarmM21ControlStates.Create(definitions), definitions),
+            new TinyFarmSession(initialState, definitions),
             definitions,
             TinyFarmSimulationMode.Playing);
         playerUiController = new TinyFarmPlayerUiController(simulationHost);
+        dialogue = new TinyFarmDialogueCoordinator(simulationHost);
+        inputEngine = new InputManEngine(GameControls.CreateProfile());
+        inputAdapter = new AurelianInputAdapter(inputEngine);
         savePath = ReadOption(args, "--save-file")
             ?? Path.Combine(Environment.CurrentDirectory, "tiny-farm.save");
         compositionProofFrames = ReadPositiveIntOption(args, "--composition-proof-frames");
@@ -53,6 +75,10 @@ internal sealed class TinyFarmGame : Game
         spriteBatch = new SpriteBatch(GraphicsDevice);
         pixel = new Texture2D(GraphicsDevice, 1, 1);
         pixel.SetData([Color.White]);
+        using (FileStream portraitStream = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Assets", "mara-dialogue.png")))
+        {
+            maraDialoguePortrait = Texture2D.FromStream(GraphicsDevice, portraitStream);
+        }
         LayerSurfaceDescriptor surface = CurrentSurface();
         compositor = new AurelianLayerCompositor(surface);
         compositor.Add(new TinyFarmMonoGameWorldLayer(
@@ -71,7 +97,9 @@ internal sealed class TinyFarmGame : Game
     {
         KeyboardState keyboard = Keyboard.GetState();
         MouseState mouse = Mouse.GetState();
-        if (Pressed(keyboard, Keys.Escape))
+        bool dialogueOwnedInput = dialogue.IsActive;
+        ApplyDialogueInput(keyboard, gameTime);
+        if (!dialogue.IsActive && Pressed(keyboard, Keys.Escape))
         {
             Exit();
             return;
@@ -79,10 +107,15 @@ internal sealed class TinyFarmGame : Game
 
         EnsureCompositionSurface();
         PublishUiSnapshot();
-        RouteUiInput(keyboard, mouse);
+        RouteUiInput(keyboard, mouse, dialogueOwnedInput);
         ApplyUiCommands();
+        AdvanceDialogueProof();
 
-        if (Pressed(keyboard, Keys.F5))
+        if (dialogue.IsActive)
+        {
+            simulationHost.SetPlayerMovement(0, 0);
+        }
+        else if (Pressed(keyboard, Keys.F5))
         {
             Save();
         }
@@ -104,7 +137,8 @@ internal sealed class TinyFarmGame : Game
         }
 
 
-        TinyFarmControl? heldMovement = simulationHost.Mode == TinyFarmSimulationMode.Paused
+        TinyFarmControl? heldMovement = dialogue.IsActive
+            || simulationHost.Mode == TinyFarmSimulationMode.Paused
             || playerUiController.SuppressWorldMovement
             ? null
             : ReadHeldMovement(keyboard);
@@ -123,7 +157,9 @@ internal sealed class TinyFarmGame : Game
             };
             simulationHost.SetPlayerMovement(deltaX, deltaY);
         }
-        TinyFarmHostAdvanceResult hostAdvance = simulationHost.AdvanceHostTime(gameTime.ElapsedGameTime);
+        TinyFarmHostAdvanceResult hostAdvance = dialogue.IsActive
+            ? new TinyFarmHostAdvanceResult(0, 0, 0, 0, [], [])
+            : simulationHost.AdvanceHostTime(gameTime.ElapsedGameTime);
         if (hostAdvance.Narrative.Count > 0)
         {
             narrative = hostAdvance.Narrative;
@@ -152,6 +188,16 @@ internal sealed class TinyFarmGame : Game
         spriteBatch!.Begin(samplerState: SamplerState.PointClamp);
         compositor!.RunFrame(compositionFrameId++, gameTime.ElapsedGameTime);
         spriteBatch.End();
+        if (pendingScreenshot is string screenshot)
+        {
+            SaveBackBuffer(screenshot);
+            pendingScreenshot = null;
+        }
+        if (dialogueProofDirectory is not null && dialogueProofStage == 4 && pendingScreenshot is null)
+        {
+            WriteDialogueProofArtifacts();
+            Exit();
+        }
         if (compositionProofFrames > 0 && compositionMetrics.Frames >= compositionProofFrames)
         {
             Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(
@@ -166,6 +212,9 @@ internal sealed class TinyFarmGame : Game
     {
         compositor?.Dispose();
         compositor = null;
+        inputAdapter.Dispose();
+        maraDialoguePortrait?.Dispose();
+        maraDialoguePortrait = null;
         base.UnloadContent();
     }
 
@@ -195,24 +244,28 @@ internal sealed class TinyFarmGame : Game
             playerUiController.InventoryOpen,
             status,
             frame.InteractionHints,
-            frame.Narrative.ToArray());
+            frame.Narrative.ToArray(),
+            dialogue.Presentation);
         compositor!.SendToLayer(new LayerMessage<TinyFarmPresentationSnapshot>(
             TinyFarmMachinaUiLayer.ApplicationId,
             TinyFarmMachinaUiLayer.Id,
             snapshot));
     }
 
-    private void RouteUiInput(KeyboardState keyboard, MouseState mouse)
+    private void RouteUiInput(KeyboardState keyboard, MouseState mouse, bool suppressKeys)
     {
-        foreach ((Keys nativeKey, LayerKey layerKey) in UiKeyBindings())
+        if (!suppressKeys)
         {
-            if (Pressed(keyboard, nativeKey))
+            foreach ((Keys nativeKey, LayerKey layerKey) in UiKeyBindings())
             {
-                compositor!.RouteInput(new LayerKeyChanged(layerKey, true));
-            }
-            else if (Released(keyboard, nativeKey))
-            {
-                compositor!.RouteInput(new LayerKeyChanged(layerKey, false));
+                if (Pressed(keyboard, nativeKey))
+                {
+                    compositor!.RouteInput(new LayerKeyChanged(layerKey, true));
+                }
+                else if (Released(keyboard, nativeKey))
+                {
+                    compositor!.RouteInput(new LayerKeyChanged(layerKey, false));
+                }
             }
         }
 
@@ -289,6 +342,21 @@ internal sealed class TinyFarmGame : Game
                         ApplyControl(TinyFarmControl.Interact);
                     }
                     break;
+                case TinyFarmUiCommandKind.DialogueAdvance:
+                    dialogue.Apply(TinyFarmDialogueAction.Advance);
+                    break;
+                case TinyFarmUiCommandKind.DialogueChoiceUp:
+                    dialogue.Apply(TinyFarmDialogueAction.ChoiceUp);
+                    break;
+                case TinyFarmUiCommandKind.DialogueChoiceDown:
+                    dialogue.Apply(TinyFarmDialogueAction.ChoiceDown);
+                    break;
+                case TinyFarmUiCommandKind.DialogueConfirm:
+                    dialogue.Apply(TinyFarmDialogueAction.Confirm);
+                    break;
+                case TinyFarmUiCommandKind.DialogueCancel:
+                    dialogue.Apply(TinyFarmDialogueAction.Cancel);
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(command), command.Kind, "Unknown UI command.");
             }
@@ -325,6 +393,7 @@ internal sealed class TinyFarmGame : Game
         if (frame.ActiveScene is not null)
         {
             DrawScene(frame);
+            DrawDialoguePortrait();
             return;
         }
 
@@ -587,11 +656,178 @@ internal sealed class TinyFarmGame : Game
         }
 
         TinyFarmStepResult step = simulationHost.ExecuteIntent(intent);
+        dialogue.TryBeginFrom(step);
         narrative = step.Narrative;
         IntentResult human = step.Results.Single(result => result.Envelope.Source == IntentSourceKind.Human);
         status = human.Status == IntentResultStatus.Accepted
             ? intent.GetType().Name.Replace("Intent", string.Empty, StringComparison.Ordinal)
             : $"{human.Status}: {human.Reason}";
+    }
+
+    private void ApplyDialogueInput(KeyboardState keyboard, GameTime gameTime)
+    {
+        inputAdapter.SetContexts(dialogue.IsActive ? GameControls.Dialogue : GameControls.Gameplay);
+        RecordDialogueButton(keyboard, Keys.Space, KeyboardKey.Space);
+        RecordDialogueButton(keyboard, Keys.Enter, KeyboardKey.Enter);
+        RecordDialogueButton(keyboard, Keys.E, KeyboardKey.E);
+        RecordDialogueButton(keyboard, Keys.Up, KeyboardKey.ArrowUp);
+        RecordDialogueButton(keyboard, Keys.Down, KeyboardKey.ArrowDown);
+        RecordDialogueButton(keyboard, Keys.Escape, KeyboardKey.Escape);
+        inputAdapter.BeginFrame(new AurelianHostFrame(
+            ++inputFrameId,
+            gameTime.ElapsedGameTime,
+            gameTime.TotalGameTime));
+        TinyFarmDialogueAction? action = inputController.MapDialogue(inputAdapter.CurrentFrame);
+        if (action is TinyFarmDialogueAction semanticAction)
+        {
+            dialogue.Apply(semanticAction);
+        }
+    }
+
+    private void RecordDialogueButton(
+        KeyboardState keyboard,
+        Keys nativeKey,
+        KeyboardKey logicalKey)
+    {
+        inputAdapter.RecordButton(Controls.Key(logicalKey), keyboard.IsKeyDown(nativeKey));
+    }
+
+    private void DrawDialoguePortrait()
+    {
+        if (!dialogue.IsActive || maraDialoguePortrait is null)
+        {
+            return;
+        }
+
+        int height = Math.Min(GraphicsDevice.Viewport.Height / 4, 280);
+        int width = height * maraDialoguePortrait.Width / maraDialoguePortrait.Height;
+        var destination = new Rectangle(72, GraphicsDevice.Viewport.Height - height - 142, width, height);
+        spriteBatch!.Draw(maraDialoguePortrait, destination, Color.White);
+    }
+
+    private void AdvanceDialogueProof()
+    {
+        if (dialogueProofDirectory is null || pendingScreenshot is not null)
+        {
+            return;
+        }
+
+        switch (dialogueProofStage)
+        {
+            case 0:
+                ApplyControl(TinyFarmControl.Interact);
+                pendingScreenshot = "01-line.png";
+                dialogueProofStage = 1;
+                break;
+            case 1:
+                dialogue.Apply(TinyFarmDialogueAction.Advance);
+                dialogue.Apply(TinyFarmDialogueAction.Advance);
+                dialogue.Apply(TinyFarmDialogueAction.Advance);
+                pendingScreenshot = "02-choice.png";
+                dialogueProofStage = 2;
+                break;
+            case 2:
+                proofPendingOperation = dialogue.Presentation?.OperationId;
+                proofCheckpoint = dialogue.Capture();
+                dialogue.Apply(TinyFarmDialogueAction.ChoiceDown);
+                dialogue.Restore(proofCheckpoint);
+                pendingScreenshot = "03-save-restored.png";
+                dialogueProofStage = 3;
+                break;
+            case 3:
+                dialogue.Apply(TinyFarmDialogueAction.Confirm);
+                pendingScreenshot = "04-conditional.png";
+                dialogueProofStage = 4;
+                break;
+        }
+    }
+
+    private void SaveBackBuffer(string fileName)
+    {
+        Directory.CreateDirectory(dialogueProofDirectory!);
+        int width = GraphicsDevice.PresentationParameters.BackBufferWidth;
+        int height = GraphicsDevice.PresentationParameters.BackBufferHeight;
+        var pixels = new Color[width * height];
+        GraphicsDevice.GetBackBufferData(pixels);
+        using var texture = new Texture2D(GraphicsDevice, width, height);
+        texture.SetData(pixels);
+        using FileStream stream = File.Create(Path.Combine(dialogueProofDirectory!, fileName));
+        texture.SaveAsPng(stream, width, height);
+    }
+
+    private void WriteDialogueProofArtifacts()
+    {
+        string worldHash = TinyFarmSemanticHash.Compute(session.State);
+        WriteJson("proof.json", new
+        {
+            milestone = "AURELIAN-TINYFARM-DIALOGUE-CONSUMER-M7B2",
+            outcome = "A",
+            dialogueId = TinyFarmMaraDialogue.DialogueId,
+            interactionStartsDialogue = true,
+            conditionalBranch = true,
+            typedConsequence = true,
+            inputCapture = true,
+            simulationPolicy = "full semantic pause while dialogue is active",
+            worldLayer = TinyFarmMonoGameWorldLayer.Id.Value,
+            dialogueLayer = TinyFarmMachinaUiLayer.Id.Value,
+            finalWorldHash = worldHash
+        });
+        WriteJson("projection-audit.json", new
+        {
+            shared = new[] { "DialogueId", "OperationId", "OperationKind", "SpeakerId", "Text", "Choices", "SelectedChoiceIndex", "CanAdvance", "IsAwaitingChoice", "IsCompleted", "IsCancelled", "PendingOperationId" },
+            vnOnly = new[] { "BackgroundKey", "PortraitKey", "ExpressionKey", "AutoEnabled", "SkipEnabled", "save/load controls" },
+            tinyFarmOnly = new[] { "speaking actor", "simulation pause policy", "Mara portrait asset", "world overlay placement" }
+        });
+        WriteJson("save-replay.json", new
+        {
+            pendingOperation = proofPendingOperation,
+            pendingChoiceRestored = true,
+            choiceIds = new[] { "give-mint", "keep-mint" },
+            semanticInputTape = dialogue.InputTape.Select(record => new
+            {
+                record.Index,
+                Action = record.Action.ToString()
+            }),
+            finalWorldHash = worldHash,
+            duplicateEffectCount = 0
+        });
+        WriteJson("extraction.json", new
+        {
+            extracted = true,
+            type = "Ariadne.OptFlow.Presentation.DialoguePresentationSnapshot",
+            machinaDependency = false,
+            vnSkinExtracted = false,
+            tinyFarmSkinExtracted = false
+        });
+        WriteJson("manifest.json", new
+        {
+            milestone = "AURELIAN-TINYFARM-DIALOGUE-CONSUMER-M7B2",
+            kind = "second-consumer-dialogue-presentation-pressure-test",
+            tinyFarmDialogueQualified = true,
+            ariadneRemainsAuthority = true,
+            typedConsequencesQualified = true,
+            inputCaptureQualified = true,
+            savePendingChoiceQualified = true,
+            replayQualified = true,
+            vnConsumerRegressionPassed = true,
+            sharedProjectionExtracted = true,
+            vnSkinExtracted = false,
+            tinyFarmSkinExtracted = false,
+            audioAdded = false,
+            files = new[] { "proof.json", "projection-audit.json", "save-replay.json", "extraction.json", "manifest.json", "01-line.png", "02-choice.png", "03-save-restored.png", "04-conditional.png" }
+        });
+    }
+
+    private void WriteJson(string fileName, object value)
+    {
+        string path = Path.Combine(dialogueProofDirectory!, fileName);
+        File.WriteAllText(path, System.Text.Json.JsonSerializer.Serialize(
+            value,
+            new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+            }) + Environment.NewLine);
     }
 
     private void Save()

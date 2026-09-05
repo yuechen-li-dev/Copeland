@@ -28,7 +28,8 @@ This roadmap tracks support status across Machina packages so implementation bra
 
 - **Integrations/Machina.Dominatus:** optional Dominatus-hosted coarse UI behavioral-scope proof. It is outside Machina core, not used by the general samples, and does not revive the retired render-command bridge.
 
-  Reference-only upstream Dominatus source is available under `reference/dominatus`. The active adapter remains pinned to NuGet `Dominatus.Core` and `Dominatus.OptFlow` `0.4.0`.
+  Dominatus source is available in the standalone sibling repository. The active
+  adapter remains pinned to NuGet `Dominatus.Core` and `Dominatus.OptFlow` `0.4.0`.
 
 - **Machina.Renderer.Raster**  
   CPU raster surface + primitive pixel operations.
@@ -83,7 +84,8 @@ M11g closes out the current Oblivion substrate. Markdown cards are next, and Ros
 M13b stabilizes the imported `Aurelian.slnx` as a separate build lane. That work changes dependency topology only:
 
 - Aurelian uses Dominatus NuGet packages for active dependencies.
-- `reference/dominatus` remains reference-only.
+- No embedded Dominatus checkout is retained; source inspection uses the standalone
+  sibling repository.
 - Machina production packages do not gain `Aurelian.Runtime`, `Aurelian.Graphics`, or Vulkan dependencies in M13b.
 - no `Machina.Aurelian` bridge is implemented yet.
 

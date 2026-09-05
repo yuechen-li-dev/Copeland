@@ -13,9 +13,9 @@
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />
-    <ProjectReference Include="../../../reference/dominatus/src/Ariadne.OptFlow/Ariadne.OptFlow.csproj" />
-    <ProjectReference Include="../../../reference/dominatus/src/Dominatus.Core/Dominatus.Core.csproj" />
-    <ProjectReference Include="../../../reference/dominatus/src/Dominatus.OptFlow/Dominatus.OptFlow.csproj" />
+    <ProjectReference Include="../../../../Dominatus/src/Ariadne.OptFlow/Ariadne.OptFlow.csproj" />
+    <ProjectReference Include="../../../../Dominatus/src/Dominatus.Core/Dominatus.Core.csproj" />
+    <ProjectReference Include="../../../../Dominatus/src/Dominatus.OptFlow/Dominatus.OptFlow.csproj" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Composition/Aurelian.Composition.csproj" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Rendering.Raster/Aurelian.Rendering.Raster.csproj" />

@@ -1,6 +1,6 @@
 # Dominatus Authoring Footguns
 
-> Historical integration note: the event-cursor and iterator guidance remains useful, but `vendor/Dominatus` paths and renderer-integration ownership below describe the earlier vendored layout. Current builds use NuGet packages plus the inspection-only `reference/dominatus` submodule. The surviving UI proof is `src/Integrations/Machina.Dominatus`, not a Machina-core project; see [JTF-M5b Dominatus ownership consolidation](architecture/jtf-dominatus-ownership-consolidation.md).
+> Historical integration note: the event-cursor and iterator guidance remains useful, but `vendor/Dominatus` paths and renderer-integration ownership below describe the earlier vendored layout. M7b2 removed the later inspection submodule; package-only consumers retain NuGet and active source integrations resolve the standalone sibling Dominatus repository. The surviving UI proof is `src/Integrations/Machina.Dominatus`, not a Machina-core project; see [JTF-M5b Dominatus ownership consolidation](architecture/jtf-dominatus-ownership-consolidation.md).
 
 ## Purpose
 

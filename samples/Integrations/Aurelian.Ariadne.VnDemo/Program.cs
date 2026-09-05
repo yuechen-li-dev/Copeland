@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Aurelian.Composition;
 using Aurelian.NativeComposition;
+using Ariadne.OptFlow.Presentation;
 using InputMan.Core;
 
 namespace Aurelian.Ariadne.VnDemo;
@@ -33,12 +34,12 @@ internal static class Program
         session.SaveRequested = () => persistence.SaveAsync("mid-line", session).GetAwaiter().GetResult();
         session.LoadRequested = () => persistence.LoadAsync("mid-line", session).GetAwaiter().GetResult();
 
-        Require(session.Presentation.StepId == "after-school.intro", "Dialogue did not enter the authored M7a opening line.");
+        Require(session.Presentation.OperationId == "after-school.intro", "Dialogue did not enter the authored M7a opening line.");
         session.Press(KeyboardKey.A);
         Require(session.AutoEnabled, "InputMan auto toggle did not update presentation state.");
         session.PulseAutomatic();
         session.Press(KeyboardKey.A);
-        Require(session.Presentation.StepId == "after-school.rei-angry", "Logical advance did not reach Rei's confrontation.");
+        Require(session.Presentation.OperationId == "after-school.rei-angry", "Logical advance did not reach Rei's confrontation.");
 
         using var native = new VnNativeRenderer(root, session, machina);
         NativeLayerFrameResult lineFrame = native.Render(1);
@@ -46,10 +47,10 @@ internal static class Program
 
         session.Press(KeyboardKey.F);
         session.Press(KeyboardKey.Enter);
-        Require(session.Presentation.StepId == "after-school.mika-warning", "Subdialogue call did not enter Mika's line.");
+        Require(session.Presentation.OperationId == "after-school.mika-warning", "Subdialogue call did not enter Mika's line.");
         WriteScreenshot(artifactRoot, "01b-subdialogue-mika.png", native.Render(2));
         session.Press(KeyboardKey.I);
-        Require(session.Presentation.StepId == "after-school.rei-angry", "Mid-line load did not restore the exact pending line.");
+        Require(session.Presentation.OperationId == "after-school.rei-angry", "Mid-line load did not restore the exact pending line.");
         Require(session.DialogueDispatchCount == 0, "Restored pending line was re-emitted.");
 
         LayerPoint advanceCenter = machina.ActionCenter("vn.advance");
@@ -63,12 +64,12 @@ internal static class Program
             false));
         Require(press.ConsumedBy == VnMachinaLayer.Id && press.CaptureOwner == VnMachinaLayer.Id, "Machina did not capture the advance click.");
         Require(release.FocusOwner == VnMachinaLayer.Id && release.CaptureOwner is null, "Machina did not retain focus and release pointer capture.");
-        Require(session.Presentation.StepId == "after-school.mika-warning", "Machina click did not advance the semantic runtime.");
+        Require(session.Presentation.OperationId == "after-school.mika-warning", "Machina click did not advance the semantic runtime.");
 
         session.Press(KeyboardKey.W);
         Require(!session.GameplayInputLeaked, "Gameplay input leaked through the opaque VN context.");
         session.Press(KeyboardKey.Enter);
-        Require(session.Presentation.Kind == DialoguePresentationStepKind.Choice, "Subdialogue return did not reach the authored choice.");
+        Require(session.Presentation.OperationKind == DialoguePresentationOperationKind.Choice, "Subdialogue return did not reach the authored choice.");
         session.Press(KeyboardKey.ArrowDown);
         Require(session.Presentation.SelectedChoiceIndex == 1, "InputMan logical down did not move choice focus.");
 
@@ -78,9 +79,9 @@ internal static class Program
         session.Press(KeyboardKey.S);
         await persistence.SaveAsync("pending-choice", session);
         session.Press(KeyboardKey.Enter);
-        Require(session.Presentation.StepId == "after-school.deflect", "Selected branch did not execute.");
+        Require(session.Presentation.OperationId == "after-school.deflect", "Selected branch did not execute.");
         await persistence.LoadAsync("pending-choice", session);
-        Require(session.Presentation.StepId == "after-school.response", "Pending choice load did not restore the exact operation.");
+        Require(session.Presentation.OperationId == "after-school.response", "Pending choice load did not restore the exact operation.");
         Require(session.Presentation.SelectedChoiceIndex == 1, "Pending choice load did not restore UI selection.");
         Require(session.Presentation.Choices.Select(choice => choice.Id).SequenceEqual(["apologize", "deflect"]), "Choice declaration order changed on restore.");
         Require(session.AutoEnabled && session.SkipEnabled, "Auto/skip presentation state did not follow the declared persisted law.");
@@ -91,14 +92,14 @@ internal static class Program
         LayerPoint apologyCenter = machina.ActionCenter("vn.choice.apologize");
         native.Route(new LayerPointerButtonChanged(apologyCenter, LayerPointerButton.Primary, true));
         native.Route(new LayerPointerButtonChanged(apologyCenter, LayerPointerButton.Primary, false));
-        Require(session.Presentation.StepId == "after-school.apology", "Conditional apology path did not execute.");
+        Require(session.Presentation.OperationId == "after-school.apology", "Conditional apology path did not execute.");
         Require(session.ConsequenceEmissionCount == 1, "Typed letter-return consequence was not emitted exactly once.");
         Require(session.Agent.Bb.GetOrDefault(VnDialogueDefinition.LetterReturned, false), "Typed consequence was not reflected in semantic state.");
         await persistence.SaveAsync("post-effect", session);
         session.Press(KeyboardKey.Enter);
-        Require(session.Presentation.StepId == "after-school.end", "Apology path did not reach the ending line.");
+        Require(session.Presentation.OperationId == "after-school.end", "Apology path did not reach the ending line.");
         await persistence.LoadAsync("post-effect", session);
-        Require(session.Presentation.StepId == "after-school.apology", "Post-effect load did not resume at the pending line.");
+        Require(session.Presentation.OperationId == "after-school.apology", "Post-effect load did not resume at the pending line.");
         Require(session.ConsequenceEmissionCount == 0, "A completed consequence was re-emitted during restore.");
         Require(session.Agent.Bb.GetOrDefault(VnDialogueDefinition.LetterReturned, false), "Loaded semantic state lost the completed consequence.");
 

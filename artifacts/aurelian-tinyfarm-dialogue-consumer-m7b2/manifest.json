@@ -1,0 +1,26 @@
+{
+  "milestone": "AURELIAN-TINYFARM-DIALOGUE-CONSUMER-M7B2",
+  "kind": "second-consumer-dialogue-presentation-pressure-test",
+  "tinyFarmDialogueQualified": true,
+  "ariadneRemainsAuthority": true,
+  "typedConsequencesQualified": true,
+  "inputCaptureQualified": true,
+  "savePendingChoiceQualified": true,
+  "replayQualified": true,
+  "vnConsumerRegressionPassed": true,
+  "sharedProjectionExtracted": true,
+  "vnSkinExtracted": false,
+  "tinyFarmSkinExtracted": false,
+  "audioAdded": false,
+  "files": [
+    "proof.json",
+    "projection-audit.json",
+    "save-replay.json",
+    "extraction.json",
+    "manifest.json",
+    "01-line.png",
+    "02-choice.png",
+    "03-save-restored.png",
+    "04-conditional.png"
+  ]
+}

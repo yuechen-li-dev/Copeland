@@ -5,6 +5,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../Aurelian/Aurelian.Audio/Aurelian.Audio.csproj" />
-    <ProjectReference Include="../../../reference/dominatus/src/Dominatus.Actuators.Audio/Dominatus.Actuators.Audio.csproj" />
+    <ProjectReference Include="../../../../Dominatus/src/Dominatus.Actuators.Audio/Dominatus.Actuators.Audio.csproj" />
   </ItemGroup>
 </Project>

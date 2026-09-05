@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../TinyFarm.Core/TinyFarm.Core.csproj" />
+    <ProjectReference Include="../TinyFarm.Runtime/TinyFarm.Runtime.csproj" />
     <ProjectReference Include="../../../../InputMan/src/InputMan.Core/InputMan.Core.csproj" />
   </ItemGroup>
 </Project>

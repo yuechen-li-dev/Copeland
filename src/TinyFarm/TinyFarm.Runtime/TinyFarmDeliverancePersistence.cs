@@ -15,7 +15,8 @@ public sealed record TinyFarmSemanticSaveSnapshot(
     string DefinitionHash,
     TinyFarmState World,
     long NextSequence,
-    IReadOnlyList<GameEvent> RecentEvents);
+    IReadOnlyList<GameEvent> RecentEvents,
+    TinyFarmDialogueCheckpoint? Dialogue = null);
 
 public sealed record TinyFarmSemanticSaveSnapshotV1(
     string RuntimeVersion,
@@ -33,6 +34,7 @@ public sealed class TinyFarmDeliverancePersistence : IPersistenceApplicationBrid
 
     private readonly TinyFarmSimulationHost host;
     private readonly TinyFarmDefinitions definitions;
+    private readonly TinyFarmDialogueCoordinator? dialogue;
 
     public DeliveranceService Deliverance { get; }
     public DeliverancePersistenceActuator Actuator { get; }
@@ -42,10 +44,12 @@ public sealed class TinyFarmDeliverancePersistence : IPersistenceApplicationBrid
         TinyFarmDefinitions definitions,
         ISaveStore store,
         IEncryptionCodec? encryption = null,
-        IEncryptionKeyProvider? keyProvider = null)
+        IEncryptionKeyProvider? keyProvider = null,
+        TinyFarmDialogueCoordinator? dialogue = null)
     {
         this.host = host ?? throw new ArgumentNullException(nameof(host));
         this.definitions = definitions ?? throw new ArgumentNullException(nameof(definitions));
+        this.dialogue = dialogue;
         var serializer = new MessagePackSaveSerializer();
         Deliverance = new DeliveranceService(new DeliveranceOptions
         {
@@ -114,6 +118,10 @@ public sealed class TinyFarmDeliverancePersistence : IPersistenceApplicationBrid
             snapshot.NextSequence,
             snapshot.RecentEvents);
         host.CommitLoadedSession(session);
+        if (dialogue is not null && snapshot.Dialogue is not null)
+        {
+            dialogue.Restore(snapshot.Dialogue);
+        }
     }
 
     public TinyFarmSemanticSaveSnapshot CaptureSnapshot()
@@ -126,7 +134,8 @@ public sealed class TinyFarmDeliverancePersistence : IPersistenceApplicationBrid
             definitions.Identity,
             session.State.DeepCopy(),
             session.NextSequence,
-            session.RecentEvents.ToArray());
+            session.RecentEvents.ToArray(),
+            dialogue?.Capture());
     }
 
     private TinyFarmSemanticSaveSnapshot DecodeAndValidate(ReadOnlyMemory<byte> bytes)
@@ -182,7 +191,8 @@ public sealed class TinyFarmDeliverancePersistence : IPersistenceApplicationBrid
             legacy.DefinitionHash,
             legacy.World,
             legacy.NextSequence,
-            legacy.RecentEvents);
+            legacy.RecentEvents,
+            null);
         return JsonSerializer.SerializeToUtf8Bytes(current, TinyFarmChunkedSaveCodec.ChunkOptions);
     }
 }

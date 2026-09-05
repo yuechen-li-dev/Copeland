@@ -12,7 +12,7 @@ The machine-readable graph is in `artifacts/aurelian-game-m0/repository-topology
 
 | Family | Direct evidence | Current owner |
 | --- | --- | --- |
-| Dominatus | `reference/dominatus/src/Dominatus.Core/Runtime/AiWorld.cs`; `AiAgent.cs`; `Persistence/*` | agent/runtime state, events, actuation, checkpoint/replay |
+| Dominatus | `../Dominatus/src/Dominatus.Core/Runtime/AiWorld.cs`; `AiAgent.cs`; `Persistence/*` | agent/runtime state, events, actuation, checkpoint/replay |
 | Aurelian | `src/Aurelian/Aurelian.*/*.csproj` | renderer contracts/mechanism, render-facing world data, shader assets |
 | Machina | `src/Machina/Machina.*/*.csproj` | UI nodes/layout/presentation/runtime; optional Dominatus adapter |
 | Oblivion | `src/Oblivion/Oblivion.*/*.csproj` | workbench model, persistence, presentation, app commands, CLI/UI hosts |
@@ -33,21 +33,21 @@ Dominatus remains AI infrastructure rather than a complete game engine because i
 
 ## 4. TinyTown reusable pieces
 
-`reference/dominatus/samples/Dominatus.TinyTown/TinyTownDemo.cs` defines townie profiles and traits, needs, `WorkSchedule`, relationships, memories, dialogue outcomes, typed messages, and snapshot/options. It creates four profiles, updates needs, consumes mail, ticks `AiWorld`, and applies game-specific actions. Utility decisions use `Ai.Decide`; work time uses `CurrentTick % 24`; locations are strings.
+`../Dominatus/samples/Dominatus.TinyTown/TinyTownDemo.cs` defines townie profiles and traits, needs, `WorkSchedule`, relationships, memories, dialogue outcomes, typed messages, and snapshot/options. It creates four profiles, updates needs, consumes mail, ticks `AiWorld`, and applies game-specific actions. Utility decisions use `Ai.Decide`; work time uses `CurrentTick % 24`; locations are strings.
 
 Direct reuse is at API/pattern level: `Ai.Decide`, typed mail, cassette LLM calls, deterministic tests, bounded parsing, relationship-effect clamping, and append-only memories. The profile, schedule, relationship, memory, location, and action types are `DEMO_ONLY` and should remain game-specific. No missing Dominatus contract is implied by those domain types.
 
-The 19 tests in `reference/dominatus/tests/Dominatus.TinyTown.Tests/TinyTownDemoTests.cs` cover repeatability, needs/actions, mail, relationships, memory, LLM fallback, and clamping without live dependencies. That test style is directly reusable.
+The 19 tests in `../Dominatus/tests/Dominatus.TinyTown.Tests/TinyTownDemoTests.cs` cover repeatability, needs/actions, mail, relationships, memory, LLM fallback, and clamping without live dependencies. That test style is directly reusable.
 
 ## 5. FishTank reusable pieces
 
-`reference/dominatus/samples/Dominatus.FishTank/FishtankGame.cs` owns the MonoGame `Game`, window/device, input, update/draw loops, `AiWorld`, fish agents, and food. Its loop reads input, spawns food, updates perception, ticks Dominatus, integrates motion, resolves food collection, and draws blackboard-derived state.
+`../Dominatus/samples/Dominatus.FishTank/FishtankGame.cs` owns the MonoGame `Game`, window/device, input, update/draw loops, `AiWorld`, fish agents, and food. Its loop reads input, spawns food, updates perception, ticks Dominatus, integrates motion, resolves food collection, and draws blackboard-derived state.
 
 The host sequence and actuator composition are `COPY_PATTERN_ONLY`. Fish rules, renderer, bindings, and unseeded `Random` are `LEAVE_SAMPLE_LOCAL`. Position/velocity in private agent blackboards is the key `WRONG_OWNER` precedent: a complete game needs positions and collision state in authoritative `GameState`, with observations copied into agent blackboards.
 
 ## 6. RTS reusable pieces
 
-Yes—the missing law already exists in `reference/dominatus/samples/Dominatus.RTSBenchmark/Simulation/BattleSimulation.cs`:
+Yes—the missing law already exists in `../Dominatus/samples/Dominatus.RTSBenchmark/Simulation/BattleSimulation.cs`:
 
 ```text
 SensorPhase -> DecisionPhase -> StageAction -> SortActions

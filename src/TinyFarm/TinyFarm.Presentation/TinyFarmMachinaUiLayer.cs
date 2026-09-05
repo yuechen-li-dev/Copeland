@@ -1,4 +1,5 @@
 using Aurelian.Composition;
+using Ariadne.OptFlow.Presentation;
 using Machina.Core.Actions;
 using Machina.Core.Authoring;
 using Machina.Core.Nodes;
@@ -45,7 +46,9 @@ public sealed class TinyFarmMachinaUiLayer : IAurelianLayer, IAurelianLayerMessa
             true,
             surface.FullViewport,
             LayerPresentationMode.DirectHostPass,
-            snapshot?.InventoryOpen == true ? LayerInputPolicy.Opaque : LayerInputPolicy.HitTest);
+            snapshot?.Dialogue is not null || snapshot?.InventoryOpen == true
+                ? LayerInputPolicy.Opaque
+                : LayerInputPolicy.HitTest);
     }
 
     public void Attach(LayerSurfaceDescriptor attachedSurface)
@@ -87,7 +90,7 @@ public sealed class TinyFarmMachinaUiLayer : IAurelianLayer, IAurelianLayerMessa
             UiHitTestResult? hit = prepared.HitTest.HitTest(new PointerPoint(pointer.Position.X, pointer.Position.Y));
             if (hit is null)
             {
-                return snapshot.InventoryOpen
+                return snapshot.InventoryOpen || snapshot.Dialogue is not null
                     ? new LayerInputResult(true, RequestFocus: true)
                     : LayerInputResult.Unconsumed;
             }
@@ -97,12 +100,12 @@ public sealed class TinyFarmMachinaUiLayer : IAurelianLayer, IAurelianLayerMessa
 
         if (input is LayerPointerButtonChanged { Button: LayerPointerButton.Primary, IsPressed: false })
         {
-            return new LayerInputResult(snapshot.InventoryOpen, ReleaseCapture: true);
+            return new LayerInputResult(snapshot.InventoryOpen || snapshot.Dialogue is not null, ReleaseCapture: true);
         }
 
         if (input is LayerKeyChanged { IsPressed: true, IsRepeat: false } key)
         {
-            if (snapshot.InventoryOpen && IsWorldKey(key.Key))
+            if ((snapshot.InventoryOpen || snapshot.Dialogue is not null) && IsWorldKey(key.Key))
             {
                 return new LayerInputResult(true, RequestFocus: true);
             }
@@ -110,7 +113,7 @@ public sealed class TinyFarmMachinaUiLayer : IAurelianLayer, IAurelianLayerMessa
             if (command is not null)
             {
                 Publish(command);
-                return new LayerInputResult(true, RequestFocus: snapshot.InventoryOpen);
+                return new LayerInputResult(true, RequestFocus: snapshot.InventoryOpen || snapshot.Dialogue is not null);
             }
         }
 
@@ -216,6 +219,7 @@ public sealed class TinyFarmMachinaUiLayer : IAurelianLayer, IAurelianLayerMessa
         }
         return action.Value switch
         {
+            "tiny-farm.dialogue.advance" => new TinyFarmUiCommandDto(TinyFarmUiCommandKind.DialogueAdvance),
             "tiny-farm.inventory.toggle" => new TinyFarmUiCommandDto(TinyFarmUiCommandKind.ToggleInventory),
             "tiny-farm.simulation.pause-play" => new TinyFarmUiCommandDto(TinyFarmUiCommandKind.TogglePausePlay),
             "tiny-farm.simulation.fast-forward" => new TinyFarmUiCommandDto(TinyFarmUiCommandKind.ToggleFastForward),
@@ -223,8 +227,20 @@ public sealed class TinyFarmMachinaUiLayer : IAurelianLayer, IAurelianLayerMessa
         };
     }
 
-    private static TinyFarmUiCommandDto? DecodeKey(LayerKey key)
+    private TinyFarmUiCommandDto? DecodeKey(LayerKey key)
     {
+        if (snapshot?.Dialogue is not null)
+        {
+            return key switch
+            {
+                LayerKey.ArrowUp => new TinyFarmUiCommandDto(TinyFarmUiCommandKind.DialogueChoiceUp),
+                LayerKey.ArrowDown => new TinyFarmUiCommandDto(TinyFarmUiCommandKind.DialogueChoiceDown),
+                LayerKey.Enter => new TinyFarmUiCommandDto(TinyFarmUiCommandKind.DialogueConfirm),
+                LayerKey.Space => new TinyFarmUiCommandDto(TinyFarmUiCommandKind.DialogueAdvance),
+                LayerKey.Escape => new TinyFarmUiCommandDto(TinyFarmUiCommandKind.DialogueCancel),
+                _ => null
+            };
+        }
         if (key is >= LayerKey.Number1 and <= LayerKey.Number8)
         {
             return new TinyFarmUiCommandDto(
@@ -372,6 +388,11 @@ public static class TinyFarmMachinaView
                 height: panel.Height));
         }
 
+        if (snapshot.Dialogue is DialoguePresentationSnapshot dialogue)
+        {
+            children.Add(BuildDialogue(dialogue, width, height));
+        }
+
         var hudChildren = new List<UiNode>
         {
             PlaceText(
@@ -491,7 +512,14 @@ public static class TinyFarmMachinaView
         TinyFarmPresentationSnapshot previous,
         TinyFarmPresentationSnapshot current)
     {
-        if (previous.InventoryOpen != current.InventoryOpen)
+        if (previous.InventoryOpen != current.InventoryOpen
+            || (previous.Dialogue is null) != (current.Dialogue is null))
+        {
+            return false;
+        }
+        if (previous.Dialogue is not null && current.Dialogue is not null
+            && (previous.Dialogue.OperationId != current.Dialogue.OperationId
+                || previous.Dialogue.Choices.Count != current.Dialogue.Choices.Count))
         {
             return false;
         }
@@ -545,7 +573,8 @@ public static class TinyFarmMachinaView
             || !SequenceEqual(previous.InteractionHints, current.InteractionHints)
             || !SequenceEqual(previous.Narrative, current.Narrative)
             || previous.PlayerUi.Inventory.Count != current.PlayerUi.Inventory.Count
-            || previous.PlayerUi.Hotbar.Count != current.PlayerUi.Hotbar.Count)
+            || previous.PlayerUi.Hotbar.Count != current.PlayerUi.Hotbar.Count
+            || previous.Dialogue != current.Dialogue)
         {
             return false;
         }
@@ -661,5 +690,68 @@ public static class TinyFarmMachinaView
             ? controls
             : controls + "  |  " + context;
         return composed.ToUpperInvariant();
+    }
+
+    private static UiNode BuildDialogue(
+        DialoguePresentationSnapshot dialogue,
+        int width,
+        int height)
+    {
+        int panelWidth = Math.Min(width - 96, 1120);
+        int panelHeight = dialogue.Choices.Count == 0 ? 210 : 310;
+        int x = (width - panelWidth) / 2;
+        int y = height - panelHeight - 126;
+        var content = new List<UiNode>
+        {
+            PlaceText(
+                "tiny-farm.dialogue.speaker",
+                (dialogue.SpeakerId ?? "Narration").ToUpperInvariant(),
+                28,
+                20,
+                panelWidth - 56,
+                28,
+                OldGold,
+                TextSize.H1),
+            PlaceText(
+                "tiny-farm.dialogue.text",
+                dialogue.Text,
+                28,
+                62,
+                panelWidth - 56,
+                40,
+                ColorToken.White)
+        };
+
+        for (int index = 0; index < dialogue.Choices.Count; index++)
+        {
+            DialoguePresentationChoice choice = dialogue.Choices[index];
+            bool selected = index == dialogue.SelectedChoiceIndex;
+            content.Add(PlaceText(
+                $"tiny-farm.dialogue.choice.{choice.Id}",
+                $"{(selected ? ">" : " ")} {choice.Text}",
+                54,
+                118 + (index * 42),
+                panelWidth - 108,
+                28,
+                selected ? Hint : ColorToken.White));
+        }
+
+        UiNode panel = UI.Rect(
+            UI.Layer(id: "tiny-farm.dialogue.content", children: content),
+            id: "tiny-farm.dialogue.panel",
+            color: ColorToken.Hex(0x1A2B22F2),
+            borderColor: ColorToken.Hex(0xD7B96AFF),
+            borderThickness: 3) with
+        {
+            DeclaredAction = UiAction.Named("tiny-farm.dialogue.advance"),
+            Semantics = new UiSemantics(UiRole.Button, "Advance dialogue", Focusable: true)
+        };
+        return UI.At(
+            panel,
+            id: "tiny-farm.dialogue.anchor",
+            x: x,
+            y: y,
+            width: panelWidth,
+            height: panelHeight);
     }
 }

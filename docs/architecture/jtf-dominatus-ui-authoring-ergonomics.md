@@ -23,7 +23,9 @@ This is a design recommendation, not an adoption decision. The proposed surface 
 - The worktree was clean when the audit began.
 - `Directory.Packages.props` pins `Dominatus.Core` and `Dominatus.OptFlow` to `0.4.0`.
 - The restored `0.4.0` NuGet nuspecs identify source commit `0d60cba322dfb4e4f5f61c72867d24d4da2fe33d` for both packages.
-- `reference/dominatus` is a source-inspection-only Git submodule pinned to that same commit. It is not in the build graph.
+- M7b2 later removed the source-inspection submodule. Active source integrations now
+  resolve the standalone sibling Dominatus repository; package-only consumers retain
+  centrally pinned packages.
 
 ### Current Dominatus checkout
 

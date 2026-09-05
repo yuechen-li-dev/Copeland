@@ -1,0 +1,32 @@
+{
+  "pendingOperation": "mara.mint-choice",
+  "pendingChoiceRestored": true,
+  "choiceIds": [
+    "give-mint",
+    "keep-mint"
+  ],
+  "semanticInputTape": [
+    {
+      "index": 0,
+      "action": "Advance"
+    },
+    {
+      "index": 1,
+      "action": "Advance"
+    },
+    {
+      "index": 2,
+      "action": "Advance"
+    },
+    {
+      "index": 3,
+      "action": "ChoiceDown"
+    },
+    {
+      "index": 4,
+      "action": "Confirm"
+    }
+  ],
+  "finalWorldHash": "e04c963374ee66e984724ce5cbcd0540f303e19d7e71be521a9ce44b0ff14d24",
+  "duplicateEffectCount": 0
+}

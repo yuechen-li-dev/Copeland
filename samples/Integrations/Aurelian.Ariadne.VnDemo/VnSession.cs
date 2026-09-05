@@ -1,4 +1,5 @@
 using Aurelian.GameHost;
+using Ariadne.OptFlow.Presentation;
 using Dominatus.Core.Hfsm;
 using Dominatus.Core.Persistence;
 using Dominatus.Core.Runtime;
@@ -48,7 +49,9 @@ public static class VnControls
 
 public sealed class VnSession : IDisposable
 {
-    private readonly DialoguePresentationProjector projector = new(VnDialogueDefinition.Steps);
+    private readonly DialoguePresentationProjector projector = new(
+        VnDialogueDefinition.DialogueId,
+        VnDialogueDefinition.Steps.Select(step => step.Presentation));
     private ActuatorHost host = null!;
     private AiWorld world = null!;
     private AiAgent agent = null!;
@@ -80,18 +83,16 @@ public sealed class VnSession : IDisposable
     public Action? SaveRequested { get; set; }
     public Action? LoadRequested { get; set; }
 
-    public DialoguePresentation Presentation => projector.Project(
+    public DialoguePresentationSnapshot Presentation => projector.Project(
         agent,
-        surface.ActiveStep,
+        surface.ActiveStep?.Presentation,
         SelectedChoiceIndex,
-        AutoEnabled,
-        SkipEnabled,
         IsTerminal);
 
     public void Advance()
     {
-        DialoguePresentation presentation = Presentation;
-        if (presentation.Kind == DialoguePresentationStepKind.Choice)
+        DialoguePresentationSnapshot presentation = Presentation;
+        if (presentation.OperationKind == DialoguePresentationOperationKind.Choice)
         {
             Choose(presentation.Choices[presentation.SelectedChoiceIndex].Id);
             return;
@@ -105,8 +106,8 @@ public sealed class VnSession : IDisposable
 
     public void Choose(string choiceId)
     {
-        DialoguePresentation presentation = Presentation;
-        if (presentation.Kind != DialoguePresentationStepKind.Choice
+        DialoguePresentationSnapshot presentation = Presentation;
+        if (presentation.OperationKind != DialoguePresentationOperationKind.Choice
             || presentation.Choices.All(choice => choice.Id != choiceId))
         {
             throw new InvalidOperationException($"Choice '{choiceId}' is not visible.");
@@ -139,7 +140,7 @@ public sealed class VnSession : IDisposable
 
     public void PulseAutomatic()
     {
-        DialoguePresentation presentation = Presentation;
+        DialoguePresentationSnapshot presentation = Presentation;
         if ((AutoEnabled || SkipEnabled) && presentation.CanAdvance)
             Advance();
     }
@@ -188,7 +189,8 @@ public sealed class VnSession : IDisposable
         SelectedChoiceIndex = checkpoint.SelectedChoiceIndex;
         AutoEnabled = checkpoint.AutoEnabled;
         SkipEnabled = checkpoint.SkipEnabled;
-        AuthoredDialogueStep pending = projector.RecoverPending(agent);
+        DialoguePresentationOperation recovered = projector.RecoverPending(agent);
+        AuthoredDialogueStep pending = VnDialogueDefinition.Get(recovered.Id);
         surface.Restore(agent, pending);
         world.Tick(0);
     }

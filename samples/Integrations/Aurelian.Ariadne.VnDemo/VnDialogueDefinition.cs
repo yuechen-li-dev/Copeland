@@ -1,4 +1,5 @@
 using Ariadne.OptFlow;
+using Ariadne.OptFlow.Presentation;
 using Dominatus.Core.Blackboard;
 using Dominatus.Core.Hfsm;
 using Dominatus.Core.Nodes;
@@ -18,15 +19,15 @@ public static class VnDialogueDefinition
 
     public static IReadOnlyList<AuthoredDialogueStep> Steps { get; } =
     [
-        Step("after-school.intro", DialoguePresentationStepKind.Narration, null,
+        Step("after-school.intro", DialoguePresentationOperationKind.Line, null,
             "The last bell is gone. Sunset holds the classroom in amber.", null, null),
-        Step("after-school.rei-angry", DialoguePresentationStepKind.Line, "Rei Kuroda",
+        Step("after-school.rei-angry", DialoguePresentationOperationKind.Line, "Rei Kuroda",
             "You read my letter. Without asking.", "rei", "angry"),
-        Step("after-school.mika-warning", DialoguePresentationStepKind.Line, "Mika Aono",
+        Step("after-school.mika-warning", DialoguePresentationOperationKind.Line, "Mika Aono",
             "Rei, wait. Let them answer before this gets worse.", "mika", "concerned"),
         new AuthoredDialogueStep(
             "after-school.response",
-            DialoguePresentationStepKind.Choice,
+            DialoguePresentationOperationKind.Choice,
             null,
             "How do you answer?",
             "classroom.sunset",
@@ -36,11 +37,11 @@ public static class VnDialogueDefinition
                 Diag.Option("apologize", "Apologize and return the sealed letter"),
                 Diag.Option("deflect", "Insist that it was already open"),
             ]),
-        Step("after-school.apology", DialoguePresentationStepKind.Line, "Rei Kuroda",
+        Step("after-school.apology", DialoguePresentationOperationKind.Line, "Rei Kuroda",
             "...You kept the seal intact. Fine. I believe you.", "rei", "soft"),
-        Step("after-school.deflect", DialoguePresentationStepKind.Line, "Rei Kuroda",
+        Step("after-school.deflect", DialoguePresentationOperationKind.Line, "Rei Kuroda",
             "That is exactly the answer I was afraid you would give.", "rei", "angry"),
-        Step("after-school.end", DialoguePresentationStepKind.Narration, null,
+        Step("after-school.end", DialoguePresentationOperationKind.Line, null,
             "Outside, the track team starts another lap. Inside, a smaller story has changed course.", null, null),
     ];
 
@@ -131,7 +132,7 @@ public static class VnDialogueDefinition
 
     private static AuthoredDialogueStep Step(
         string id,
-        DialoguePresentationStepKind kind,
+        DialoguePresentationOperationKind kind,
         string? speaker,
         string text,
         string? portrait,

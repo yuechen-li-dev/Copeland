@@ -7,11 +7,15 @@
     <ProjectReference Include="../TinyFarm.Core/TinyFarm.Core.csproj" />
     <ProjectReference Include="../TinyFarm.Runtime/TinyFarm.Runtime.csproj" />
     <ProjectReference Include="../TinyFarm.Presentation/TinyFarm.Presentation.csproj" />
+    <ProjectReference Include="../TinyFarm.InputMan/TinyFarm.InputMan.csproj" />
     <ProjectReference Include="../../Aurelian/Aurelian.Composition/Aurelian.Composition.csproj" />
+    <ProjectReference Include="../../Aurelian/Aurelian.GameHost/Aurelian.GameHost.csproj" />
+    <ProjectReference Include="../../Integrations/InputMan.Aurelian/InputMan.Aurelian.csproj" />
     <ProjectReference Include="../../Machina.UI/Machina.Presentation/Machina.Presentation.csproj" />
     <PackageReference Include="MonoGame.Framework.DesktopGL" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Assets/*.png" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../TinyFarm.Runtime/Content/tiny-farm-definitions.obj.ts"
              Link="Content/tiny-farm-definitions.obj.ts"
              CopyToOutputDirectory="PreserveNewest" />

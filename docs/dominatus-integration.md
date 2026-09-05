@@ -1,6 +1,10 @@
 # Dominatus Integration M0
 
-> Historical status: this records the original source-vendoring milestone. The current build consumes `Dominatus.Core` and `Dominatus.OptFlow` 0.4.0 from NuGet; `reference/dominatus` is an inspection-only submodule pinned to the package-recorded source commit and is not a project-reference dependency. Current ownership doctrine is in [JTF-M5b Dominatus ownership consolidation](architecture/jtf-dominatus-ownership-consolidation.md).
+> Historical status: this records the original source-vendoring milestone. The
+> `reference/dominatus` submodule was removed during the M7b2 cleanup. Package-only
+> consumers retain centrally pinned packages; active source integrations use the
+> standalone sibling Dominatus repository. Current ownership doctrine is in
+> [JTF-M5b Dominatus ownership consolidation](architecture/jtf-dominatus-ownership-consolidation.md).
 
 ## Purpose
 

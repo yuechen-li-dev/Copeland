@@ -28,4 +28,30 @@ public sealed class TinyFarmInputController(int movementDistance = ScenePosition
         if (frame.WasPressed(GameControls.ToggleInventory)) commands.Add(new ToggleInventoryCommand());
         return commands;
     }
+
+    public TinyFarmDialogueAction? MapDialogue(InputFrame frame)
+    {
+        ArgumentNullException.ThrowIfNull(frame);
+        if (frame.WasPressed(GameControls.DialogueChoiceUp))
+        {
+            return TinyFarmDialogueAction.ChoiceUp;
+        }
+        if (frame.WasPressed(GameControls.DialogueChoiceDown))
+        {
+            return TinyFarmDialogueAction.ChoiceDown;
+        }
+        if (frame.WasPressed(GameControls.DialogueCancel))
+        {
+            return TinyFarmDialogueAction.Cancel;
+        }
+        if (frame.WasPressed(GameControls.DialogueConfirm))
+        {
+            return TinyFarmDialogueAction.Confirm;
+        }
+        if (frame.WasPressed(GameControls.DialogueAdvance))
+        {
+            return TinyFarmDialogueAction.Advance;
+        }
+        return null;
+    }
 }

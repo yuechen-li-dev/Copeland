@@ -19,6 +19,6 @@
     <ProjectReference Include="../../src/Machina.UI/Machina.Fonts/Machina.Fonts.csproj" />
     <ProjectReference Include="../../src/Machina.UI/Machina.Pipeline/Machina.Pipeline.csproj" />
     <ProjectReference Include="../../src/Machina.UI/Machina.Standard/Machina.Standard.csproj" />
-    <ProjectReference Include="../../reference/dominatus/src/Dominatus.SpriteForge/Dominatus.SpriteForge.csproj" />
+    <ProjectReference Include="../../../Dominatus/src/Dominatus.SpriteForge/Dominatus.SpriteForge.csproj" />
   </ItemGroup>
 </Project>

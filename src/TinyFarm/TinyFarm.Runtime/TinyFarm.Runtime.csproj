@@ -10,9 +10,10 @@
     <ProjectReference Include="../../Copeland/Copeland.TS/Copeland.TS.csproj" />
     <ProjectReference Include="../../../../Deliverance/src/Deliverance.Core/Deliverance.Core.csproj" />
     <ProjectReference Include="../../../../Deliverance/src/Deliverance.Dominatus/Deliverance.Dominatus.csproj" />
-    <PackageReference Include="Dominatus.Core" />
-    <PackageReference Include="Dominatus.OptFlow" />
-    <PackageReference Include="Ariadne.OptFlow" />
+    <ProjectReference Include="../../../../Dominatus/src/Dominatus.Core/Dominatus.Core.csproj" />
+    <ProjectReference Include="../../../../Dominatus/src/Dominatus.OptFlow/Dominatus.OptFlow.csproj" />
+    <ProjectReference Include="../../../../Dominatus/src/Dominatus.OptFlow.Generators/Dominatus.OptFlow.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+    <ProjectReference Include="../../../../Dominatus/src/Ariadne.OptFlow/Ariadne.OptFlow.csproj" />
     <PackageReference Include="DotRecast.Detour" />
     <PackageReference Include="DotRecast.Recast" />
   </ItemGroup>

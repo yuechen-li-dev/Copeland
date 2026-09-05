@@ -1,4 +1,5 @@
 using Aurelian.Composition;
+using Ariadne.OptFlow.Presentation;
 using Aurelian.Machina;
 using Aurelian.Rendering.Raster;
 using Machina.Core.Actions;
@@ -59,7 +60,7 @@ public sealed class VnMachinaLayer : IAurelianLayer
     public LayerPresentationDto Present(LayerPresentationContext context)
     {
         EnsurePrepared();
-        return new LayerPresentationDto(Id, Describe().Viewport, true, context.Surface.Kind, session.Presentation.StepId);
+        return new LayerPresentationDto(Id, Describe().Viewport, true, context.Surface.Kind, session.Presentation.OperationId);
     }
 
     public LayerInputResult HandleInput(LayerInputEvent input)
@@ -141,8 +142,8 @@ public sealed class VnMachinaLayer : IAurelianLayer
 
     private void EnsurePrepared()
     {
-        DialoguePresentation presentation = session.Presentation;
-        string key = $"{presentation.StepId}|{presentation.SelectedChoiceIndex}|{presentation.AutoEnabled}|{presentation.SkipEnabled}";
+        DialoguePresentationSnapshot presentation = session.Presentation;
+        string key = $"{presentation.OperationId}|{presentation.SelectedChoiceIndex}|{session.AutoEnabled}|{session.SkipEnabled}";
         if (prepared is not null && preparedKey == key)
         {
             return;
@@ -151,7 +152,7 @@ public sealed class VnMachinaLayer : IAurelianLayer
         preparedKey = key;
     }
 
-    private static UiNode Build(DialoguePresentation presentation)
+    private UiNode Build(DialoguePresentationSnapshot presentation)
     {
         var children = new List<UiNode>
         {
@@ -174,7 +175,7 @@ public sealed class VnMachinaLayer : IAurelianLayer
                 height: 218),
         };
 
-        string speaker = string.IsNullOrWhiteSpace(presentation.Speaker) ? "NARRATION" : presentation.Speaker.ToUpperInvariant();
+        string speaker = string.IsNullOrWhiteSpace(presentation.SpeakerId) ? "NARRATION" : presentation.SpeakerId.ToUpperInvariant();
         children.Add(UI.Anchor(
             UI.Text(speaker, id: "speaker", color: ColorToken.Hex(0xFFBAC3FF), size: TextSize.H1),
             id: "speaker-slot",
@@ -220,7 +221,7 @@ public sealed class VnMachinaLayer : IAurelianLayer
                 height: 52));
         }
 
-        string[] controls = ["SAVE [F]", "LOAD [I]", presentation.AutoEnabled ? "AUTO ON" : "AUTO", presentation.SkipEnabled ? "SKIP ON" : "SKIP"];
+        string[] controls = ["SAVE [F]", "LOAD [I]", session.AutoEnabled ? "AUTO ON" : "AUTO", session.SkipEnabled ? "SKIP ON" : "SKIP"];
         for (int index = 0; index < controls.Length; index++)
         {
             string action = index switch { 2 => "vn.auto", 3 => "vn.skip", _ => $"vn.control.{index}" };

@@ -136,7 +136,8 @@ M13a changes the repository understanding, not the runtime:
 M13b then stabilizes the imported Aurelian build lane without integrating runtime behavior:
 
 - `Aurelian.slnx` remains separate from `Copeland.slnx` and `Machina.UI.Slow.slnx`.
-- Aurelian now follows the active Dominatus dependency doctrine already used by Machina: NuGet packages for builds, `reference/dominatus` for inspection only.
+- M7b2 removed the inspection submodule. Package-only consumers retain NuGet;
+  active source integrations resolve the standalone sibling Dominatus repository.
 - stale `vendor/Dominatus` and missing sample solution references are removed from the imported Aurelian topology.
 - central package management now covers the imported Aurelian package set needed for restore/build.
 

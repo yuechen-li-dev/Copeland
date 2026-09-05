@@ -1,4 +1,5 @@
 using TinyFarm.Core;
+using Ariadne.OptFlow.Presentation;
 
 namespace TinyFarm.Presentation;
 
@@ -11,7 +12,8 @@ public sealed record TinyFarmPresentationSnapshot(
     bool InventoryOpen,
     string Status,
     IReadOnlyList<string> InteractionHints,
-    IReadOnlyList<string> Narrative);
+    IReadOnlyList<string> Narrative,
+    DialoguePresentationSnapshot? Dialogue = null);
 
 public enum TinyFarmUiCommandKind
 {
@@ -21,7 +23,12 @@ public enum TinyFarmUiCommandKind
     ToggleFastForward,
     Wait,
     UseSelected,
-    Interact
+    Interact,
+    DialogueAdvance,
+    DialogueChoiceUp,
+    DialogueChoiceDown,
+    DialogueConfirm,
+    DialogueCancel
 }
 
 public sealed record TinyFarmUiCommandDto(TinyFarmUiCommandKind Kind, int? HotbarSlot = null);

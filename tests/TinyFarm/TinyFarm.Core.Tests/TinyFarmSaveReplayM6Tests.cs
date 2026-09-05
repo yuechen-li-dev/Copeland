@@ -98,7 +98,7 @@ public sealed class TinyFarmSaveReplayM6Tests
             .ToArray();
 
         Assert.Equal(
-            ["ApplicationSaveVersion", "RuntimeVersion", "DefinitionHash", "World", "NextSequence", "RecentEvents"],
+            ["ApplicationSaveVersion", "RuntimeVersion", "DefinitionHash", "World", "NextSequence", "RecentEvents", "Dialogue"],
             members);
         Assert.DoesNotContain(members, name => name.Contains("Audio", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(members, name => name.Contains("Input", StringComparison.OrdinalIgnoreCase));

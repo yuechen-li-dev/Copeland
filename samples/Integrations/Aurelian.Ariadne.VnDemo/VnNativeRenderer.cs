@@ -71,8 +71,12 @@ public sealed class VnNativeRenderer : IDisposable
 
     private SpriteAtlasResource Portrait()
     {
-        string? portrait = session.Presentation.PortraitKey;
-        string? expression = session.Presentation.ExpressionKey;
+        string? operationId = session.Presentation.OperationId;
+        AuthoredDialogueStep? presentation = operationId is null
+            ? null
+            : VnDialogueDefinition.Get(operationId);
+        string? portrait = presentation?.PortraitKey;
+        string? expression = presentation?.ExpressionKey;
         if (portrait is null)
         {
             return Transparent("portrait-empty");

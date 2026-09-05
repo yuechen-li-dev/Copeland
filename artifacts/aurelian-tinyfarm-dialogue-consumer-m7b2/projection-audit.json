@@ -1,0 +1,30 @@
+{
+  "shared": [
+    "DialogueId",
+    "OperationId",
+    "OperationKind",
+    "SpeakerId",
+    "Text",
+    "Choices",
+    "SelectedChoiceIndex",
+    "CanAdvance",
+    "IsAwaitingChoice",
+    "IsCompleted",
+    "IsCancelled",
+    "PendingOperationId"
+  ],
+  "vnOnly": [
+    "BackgroundKey",
+    "PortraitKey",
+    "ExpressionKey",
+    "AutoEnabled",
+    "SkipEnabled",
+    "save/load controls"
+  ],
+  "tinyFarmOnly": [
+    "speaking actor",
+    "simulation pause policy",
+    "Mara portrait asset",
+    "world overlay placement"
+  ]
+}

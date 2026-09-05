@@ -25,7 +25,9 @@ src/Aurelian/Aurelian.Core
   -> Aurelian.Runtime transitively exposed Dominatus actuator types in frame-pump composition
 ```
 
-`reference/dominatus` was and remains a source-inspection-only submodule. It has no `ProjectReference` edge and active builds remain valid without it initialized.
+M7b2 cleanup supersedes the inspection-submodule arrangement: `reference/dominatus`
+was removed. Package-only consumers retain centrally pinned packages, while active
+source integrations resolve the standalone sibling Dominatus repository.
 
 ## Graph after M5b
 

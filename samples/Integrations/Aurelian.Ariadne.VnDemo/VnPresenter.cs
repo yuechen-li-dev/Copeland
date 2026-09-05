@@ -9,6 +9,7 @@ using Avalonia.Platform;
 using Avalonia.Threading;
 using Aurelian.Composition;
 using Aurelian.NativeComposition;
+using Ariadne.OptFlow.Presentation;
 using InputMan.Core;
 
 namespace Aurelian.Ariadne.VnDemo;
@@ -102,9 +103,9 @@ internal sealed class VnWindow : Window
             return;
         }
 
-        string previousStep = session.Presentation.StepId;
+        string? previousStep = session.Presentation.OperationId;
         session.Press(key);
-        if (session.Presentation.StepId != previousStep || key is KeyboardKey.A or KeyboardKey.S or KeyboardKey.Escape)
+        if (session.Presentation.OperationId != previousStep || key is KeyboardKey.A or KeyboardKey.S or KeyboardKey.Escape)
         {
             ResetAutomaticDeadline();
         }
@@ -148,9 +149,9 @@ internal sealed class VnWindow : Window
             return;
         }
 
-        string previousStep = session.Presentation.StepId;
+        string? previousStep = session.Presentation.OperationId;
         session.PulseAutomatic();
-        if (session.Presentation.StepId != previousStep)
+        if (session.Presentation.OperationId != previousStep)
         {
             Render();
         }
@@ -187,8 +188,8 @@ internal sealed class VnWindow : Window
         bitmap?.Dispose();
         bitmap = CreateBitmap(pixels);
         image.Source = bitmap;
-        DialoguePresentation presentation = session.Presentation;
-        Title = $"Aurelian VN - {presentation.StepId} - {notice} - Auto {(session.AutoEnabled ? "ON" : "OFF")} / Skip {(session.SkipEnabled ? "ON" : "OFF")}";
+        DialoguePresentationSnapshot presentation = session.Presentation;
+        Title = $"Aurelian VN - {presentation.OperationId} - {notice} - Auto {(session.AutoEnabled ? "ON" : "OFF")} / Skip {(session.SkipEnabled ? "ON" : "OFF")}";
     }
 
     private void ResetAutomaticDeadline()

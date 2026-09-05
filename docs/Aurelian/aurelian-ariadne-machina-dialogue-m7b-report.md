@@ -4,6 +4,11 @@ Outcome A: Aurelian is usable today as a small, text-first visual novel engine.
 The executable sample presents original generated art, branching dialogue, a call,
 a condition, a typed consequence, native composition, deterministic input capture,
 and Deliverance-backed save/load through the real qualified paths.
+
+Post-M7b2 note: TinyFarm proved the second consumer. The extracted neutral
+`DialoguePresentationSnapshot` no longer includes background/portrait/expression or
+auto/skip fields. The VN consumer now looks up its asset metadata by `OperationId`
+and retains auto/skip in `VnSession`; its visual behavior is unchanged.
 The sample now starts as a playable native-frame presenter; pass `--proof` to run
 the deterministic artifact-producing qualification instead.
 
