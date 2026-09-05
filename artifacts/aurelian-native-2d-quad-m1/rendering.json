@@ -16,7 +16,7 @@
   "ordering": "submission sequence only; no sorting; contiguous identical texture/tint pairs may share one draw",
   "canonical": {
     "quads": 9,
-    "pixelSha256": "4fedd1050accc442864faaa8eeae11c7d02efc6b1009a85d80d080c1372b1192",
+    "pixelSha256": "2ee414a2d552002e5faf96f8864e793dc297cbebef77d6d4f47a5f08cfc735af",
     "drawCalls": 9
   },
   "semanticAssertions": [
@@ -29,7 +29,7 @@
     "three or more tints"
   ],
   "stress100": {
-    "pixelSha256": "56bb01ad7377a4ae342fa70f107d72e3abc878d3cc4d1dc448726588863adbf5",
+    "pixelSha256": "11876fceb99e38c688f7e05daa537ba7fe02c9203b677e2a910b4f7b52063967",
     "metrics": {
       "quadCount": 100,
       "drawCalls": 100,
@@ -49,6 +49,6 @@
   "repeatedPasses": {
     "count": 100,
     "stable": true,
-    "hash": "4fedd1050accc442864faaa8eeae11c7d02efc6b1009a85d80d080c1372b1192"
+    "hash": "2ee414a2d552002e5faf96f8864e793dc297cbebef77d6d4f47a5f08cfc735af"
   }
 }

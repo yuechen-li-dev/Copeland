@@ -1,0 +1,16 @@
+﻿{
+  "milestone": "AURELIAN-NATIVE-GAME-WORLD-2D-M1",
+  "kind": "native-camera-sprite-world-presentation",
+  "outcome": "B",
+  "ecsAdded": false,
+  "sceneGraphAdded": false,
+  "rendererRewritten": false,
+  "files": [
+    "proof.json",
+    "camera.json",
+    "sprites.json",
+    "resources.json",
+    "rendering.json",
+    "manifest.json"
+  ]
+}

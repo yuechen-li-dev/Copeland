@@ -1,0 +1,13 @@
+﻿{
+  "schema": "aurelian.game-world-2d.resources.v1",
+  "identity": "world-atlas",
+  "contentHash": "A25E04EBC89849C3C4A9EBE730F09D479F84B00303058E5807A176012F2B363E",
+  "sampling": "Nearest",
+  "textureUploads": 2,
+  "warmTextureUploads": 0,
+  "initialUploads": 1,
+  "contentReplacementUploads": 1,
+  "versionLaw": "same typed identity plus content hash reuses; changed hash disposes and uploads a replacement",
+  "replacedHandleRejected": true,
+  "disposedScopeRejected": true
+}

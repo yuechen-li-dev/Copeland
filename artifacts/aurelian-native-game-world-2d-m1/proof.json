@@ -1,0 +1,24 @@
+﻿{
+  "milestone": "AURELIAN-NATIVE-GAME-WORLD-2D-M1",
+  "outcome": "B",
+  "nativeWorldKitQualified": true,
+  "typedWorldPixelUvBoundaries": true,
+  "cameraKitQualified": true,
+  "spriteForgeMetadataReused": true,
+  "spritePlaybackQualified": true,
+  "straightAlphaSpritesQualified": true,
+  "stablePainterOrderQualified": true,
+  "scopedTextureLifetimeQualified": true,
+  "machinaOverlayIntegrated": false,
+  "remainingSeam": "The current Vulkan compositor accepts only one passthrough plant output, so native textured world plus native Machina MSDF/analytic overlay cannot yet share one target.",
+  "gameplayStateMutatedByRendering": false,
+  "animationOwnsGameplay": false,
+  "hashes": {
+    "cameraHash": "4A3EB679A4C4625AC74A73288C0AC94697DED69B0212FCFD168E8A7E23561F7A",
+    "orderedHash": "8B15333946EB13858C8FE477755B6BB675BF0849C75915ADE1CD6F72FBDE7349",
+    "overlapHash": "6AFE0A61EC72C7FB47F60203D6B4BBE45CD8DC09B5F2F8D9F1D9765690519C3C",
+    "frame0": "a26f0d9d64f96d5b90aa0823c7f0e599955829cf513e4b228a70183f9eb20ea3",
+    "frame1": "0ffb470fe69fd1239d7206cddd20a17648a560aa920750bec4192e258ee4db1c",
+    "overlap": "680e9a86bd44e715aef06790d6cca4fcfc20f43b65961ca6a926204e7c5dc13f"
+  }
+}

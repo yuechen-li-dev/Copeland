@@ -1,0 +1,49 @@
+﻿{
+  "schema": "aurelian.game-world-2d.camera.v1",
+  "tileToWorld": "world = tile * 256 fixed world units",
+  "worldToPixel": "pixel = viewportOrigin \u002B (world - cameraTopLeft) * pixelsPerWorldUnit * zoom",
+  "pixelSnap": "per-sprite, nearest pixel, midpoint away from zero",
+  "initial": {
+    "position": {
+      "x": 256,
+      "y": 432
+    },
+    "viewport": {
+      "x": 0,
+      "y": 0,
+      "width": 320,
+      "height": 180
+    },
+    "zoom": 1,
+    "bounds": {
+      "x": 0,
+      "y": 0,
+      "width": 4096,
+      "height": 2304,
+      "right": 4096,
+      "bottom": 2304
+    }
+  },
+  "resized": {
+    "position": {
+      "x": 256,
+      "y": 432
+    },
+    "viewport": {
+      "x": 0,
+      "y": 0,
+      "width": 256,
+      "height": 144
+    },
+    "zoom": 1,
+    "bounds": {
+      "x": 0,
+      "y": 0,
+      "width": 4096,
+      "height": 2304,
+      "right": 4096,
+      "bottom": 2304
+    }
+  },
+  "cameraHash": "4A3EB679A4C4625AC74A73288C0AC94697DED69B0212FCFD168E8A7E23561F7A"
+}

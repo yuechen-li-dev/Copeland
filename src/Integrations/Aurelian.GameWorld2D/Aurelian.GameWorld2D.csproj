@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Aurelian.GameWorld2D</AssemblyName>
+    <RootNamespace>Aurelian.GameWorld2D</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />
+    <ProjectReference Include="../../../reference/dominatus/src/Dominatus.SpriteForge/Dominatus.SpriteForge.csproj" />
+  </ItemGroup>
+</Project>

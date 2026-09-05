@@ -1,0 +1,79 @@
+﻿{
+  "schema": "aurelian.game-world-2d.rendering.v1",
+  "alpha": "straight alpha: src-alpha / one-minus-src-alpha; alpha: one / one-minus-src-alpha",
+  "sampler": "nearest/clamp; linear is a separate explicit Native2DPipelineOptions.SpriteLinear policy",
+  "frame0": {
+    "pixelSha256": "a26f0d9d64f96d5b90aa0823c7f0e599955829cf513e4b228a70183f9eb20ea3",
+    "metrics": {
+      "quadCount": 89,
+      "drawCalls": 6,
+      "commandBuffers": 1,
+      "queueSubmissions": 1,
+      "bufferUploads": 1,
+      "descriptorSetAllocations": 6,
+      "descriptorWrites": 18,
+      "vertexCapacityQuads": 256,
+      "vertexUploadMilliseconds": 1.15,
+      "commandRecordingMilliseconds": 7.49,
+      "submitWaitMilliseconds": 1.408,
+      "readbackMilliseconds": 0.94,
+      "cpuAllocatedBytes": 259704
+    }
+  },
+  "frame1": {
+    "pixelSha256": "0ffb470fe69fd1239d7206cddd20a17648a560aa920750bec4192e258ee4db1c",
+    "metrics": {
+      "quadCount": 89,
+      "drawCalls": 6,
+      "commandBuffers": 1,
+      "queueSubmissions": 1,
+      "bufferUploads": 1,
+      "descriptorSetAllocations": 0,
+      "descriptorWrites": 0,
+      "vertexCapacityQuads": 256,
+      "vertexUploadMilliseconds": 0.063,
+      "commandRecordingMilliseconds": 0.14,
+      "submitWaitMilliseconds": 0.351,
+      "readbackMilliseconds": 1.214,
+      "cpuAllocatedBytes": 250400
+    }
+  },
+  "overlap": {
+    "pixelSha256": "680e9a86bd44e715aef06790d6cca4fcfc20f43b65961ca6a926204e7c5dc13f",
+    "metrics": {
+      "quadCount": 89,
+      "drawCalls": 6,
+      "commandBuffers": 1,
+      "queueSubmissions": 1,
+      "bufferUploads": 1,
+      "descriptorSetAllocations": 0,
+      "descriptorWrites": 0,
+      "vertexCapacityQuads": 256,
+      "vertexUploadMilliseconds": 0.059,
+      "commandRecordingMilliseconds": 0.104,
+      "submitWaitMilliseconds": 0.375,
+      "readbackMilliseconds": 1.188,
+      "cpuAllocatedBytes": 250400
+    }
+  },
+  "repeatedFrames": {
+    "count": 100,
+    "stable": true,
+    "descriptorWrites": 0
+  },
+  "transparentCornerPixel": {
+    "x": 145,
+    "y": 59,
+    "rgba": [
+      55,
+      161,
+      73,
+      255
+    ]
+  },
+  "validation": {
+    "requested": true,
+    "available": true,
+    "errors": 0
+  }
+}

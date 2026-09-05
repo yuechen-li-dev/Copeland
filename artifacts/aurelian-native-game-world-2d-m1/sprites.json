@@ -1,0 +1,72 @@
+﻿{
+  "schema": "aurelian.game-world-2d.sprites.v1",
+  "metadataOwner": "Dominatus.SpriteForge",
+  "uv": "top-to-bottom atlas rows; normalized rect = pixel rect / atlas extent",
+  "pivot": "SpriteForge visual pivot is local to the frame; FeetY remains an independent painter anchor",
+  "playback": "same clip continues; new clip or explicit restart resets origin; loop wraps; once clamps at final frame",
+  "representativeFrames": [
+    {
+      "id": "wall",
+      "frameId": "tile::0",
+      "uv": {
+        "u0": 0,
+        "v0": 0,
+        "u1": 0.3333333333333333,
+        "v1": 1
+      },
+      "pivotX": 16,
+      "pivotY": 32
+    },
+    {
+      "id": "lantern",
+      "frameId": "hero:once:0",
+      "uv": {
+        "u0": 0.3333333333333333,
+        "v0": 0,
+        "u1": 0.6666666666666666,
+        "v1": 1
+      },
+      "pivotX": 16,
+      "pivotY": 32
+    },
+    {
+      "id": "npc",
+      "frameId": "hero:walk:0",
+      "uv": {
+        "u0": 0.3333333333333333,
+        "v0": 0,
+        "u1": 0.6666666666666666,
+        "v1": 1
+      },
+      "pivotX": 16,
+      "pivotY": 32
+    },
+    {
+      "id": "player",
+      "frameId": "hero:walk:0",
+      "uv": {
+        "u0": 0.3333333333333333,
+        "v0": 0,
+        "u1": 0.6666666666666666,
+        "v1": 1
+      },
+      "pivotX": 16,
+      "pivotY": 32
+    },
+    {
+      "id": "occluder",
+      "frameId": "tile::0",
+      "uv": {
+        "u0": 0,
+        "v0": 0,
+        "u1": 0.3333333333333333,
+        "v1": 1
+      },
+      "pivotX": 16,
+      "pivotY": 32
+    }
+  ],
+  "floorTileCount": 84,
+  "orderedHash": "8B15333946EB13858C8FE477755B6BB675BF0849C75915ADE1CD6F72FBDE7349",
+  "overlapHash": "6AFE0A61EC72C7FB47F60203D6B4BBE45CD8DC09B5F2F8D9F1D9765690519C3C"
+}

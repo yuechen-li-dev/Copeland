@@ -62,17 +62,31 @@ public enum Native2DPipelineKind
     AnalyticShape2D,
 }
 
-public sealed record Native2DPipelineOptions(Native2DPipelineKind Kind, bool TransparentClear = false)
+public sealed record Native2DPipelineOptions(
+    Native2DPipelineKind Kind,
+    bool TransparentClear = false,
+    bool EnableStraightAlphaBlend = false,
+    bool EnableLinearFiltering = false)
 {
     public static Native2DPipelineOptions Textured { get; } = new(Native2DPipelineKind.Textured);
+
+    public static Native2DPipelineOptions SpriteNearest { get; } = new(
+        Native2DPipelineKind.Textured,
+        EnableStraightAlphaBlend: true);
+
+    public static Native2DPipelineOptions SpriteLinear { get; } = new(
+        Native2DPipelineKind.Textured,
+        EnableStraightAlphaBlend: true,
+        EnableLinearFiltering: true);
 
     public static Native2DPipelineOptions MsdfText { get; } = new(Native2DPipelineKind.MsdfText);
 
     public static Native2DPipelineOptions AnalyticShape2D { get; } = new(Native2DPipelineKind.AnalyticShape2D);
 
-    public bool LinearFiltering => Kind == Native2DPipelineKind.MsdfText;
+    public bool LinearFiltering => Kind == Native2DPipelineKind.MsdfText || EnableLinearFiltering;
 
-    public bool StraightAlphaBlend => Kind is Native2DPipelineKind.MsdfText or Native2DPipelineKind.AnalyticShape2D;
+    public bool StraightAlphaBlend => EnableStraightAlphaBlend
+        || Kind is Native2DPipelineKind.MsdfText or Native2DPipelineKind.AnalyticShape2D;
 }
 
 public sealed record Native2DPassMetrics(
