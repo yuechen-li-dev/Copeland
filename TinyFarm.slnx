@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Aurelian/Aurelian.Spatial2D/Aurelian.Spatial2D.csproj" />
     <Project Path="src/TinyFarm/TinyFarm.Core/TinyFarm.Core.csproj" />
     <Project Path="src/TinyFarm/TinyFarm.Runtime/TinyFarm.Runtime.csproj" />
     <Project Path="src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj" />
@@ -8,6 +9,7 @@
     <Project Path="src/TinyFarm/TinyFarm.Presentation/TinyFarm.Presentation.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Aurelian/Aurelian.Spatial2D.Tests/Aurelian.Spatial2D.Tests.csproj" />
     <Project Path="tests/TinyFarm/TinyFarm.Core.Tests/TinyFarm.Core.Tests.csproj" />
   </Folder>
 </Solution>

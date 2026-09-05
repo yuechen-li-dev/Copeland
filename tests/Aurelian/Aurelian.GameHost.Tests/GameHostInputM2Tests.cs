@@ -23,6 +23,36 @@ public sealed class GameHostInputM2Tests
     }
 
     [Fact]
+    public void InputMoveFlowsThroughSpatialResolverToAuthoritativeWorldProjection()
+    {
+        TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.LoadM21();
+        var session = new TinyFarmSession(
+            TinyFarmM21ControlStates.Create(definitions),
+            definitions);
+        ScenePosition before = session.State.ActorScene(TinyFarmIds.Player).WorldPosition;
+        var engine = new InputManEngine(GameControls.CreateProfile());
+        using var adapter = new AurelianInputAdapter(engine);
+        adapter.SetContexts(GameControls.Gameplay);
+        adapter.RecordButton(Controls.Key(KeyboardKey.D), true);
+        adapter.BeginFrame(Frame(1));
+        SubmitGameIntent command = Assert.IsType<SubmitGameIntent>(
+            Assert.Single(new TinyFarmInputController().Map(adapter.CurrentFrame)));
+
+        TinyFarmStepResult step = session.Step(command.Intent, evaluateNpcDecisions: false);
+        ActorSceneState authoritative = session.State.ActorScene(TinyFarmIds.Player);
+        TinyFarmActorView projected = TinyFarmFrameProjector
+            .Project(session.State, definitions)
+            .Actors
+            .Single(actor => actor.Id == TinyFarmIds.Player);
+
+        Assert.Equal(IntentResultStatus.Accepted, step.Results.Single().Status);
+        Assert.Equal(before.XUnits + ScenePosition.UnitsPerTile / 8, authoritative.WorldPosition.XUnits);
+        Assert.Equal(before.YUnits, authoritative.WorldPosition.YUnits);
+        Assert.Equal(authoritative.WorldPosition.XUnits, projected.Position.X);
+        Assert.Equal(authoritative.WorldPosition.YUnits, projected.Position.Y);
+    }
+
+    [Fact]
     public void UiContextConsumesSharedConfirmAndGameplayResumesWhenClosed()
     {
         var engine = new InputManEngine(GameControls.CreateProfile());

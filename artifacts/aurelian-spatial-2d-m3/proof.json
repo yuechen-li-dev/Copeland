@@ -1,0 +1,27 @@
+{
+  "milestone": "AURELIAN-SPATIAL-2D-M3",
+  "outcome": "A",
+  "worldUnitsOnly": true,
+  "shapeSet": [
+    "Aabb2",
+    "Circle2"
+  ],
+  "stableContactOrdering": true,
+  "attackCandidate": "slime-1",
+  "pickupCandidate": "wild-mint",
+  "knockbackAccepted": {
+    "X": 3,
+    "Y": 0,
+    "LengthSquared": 9
+  },
+  "tinyFarmBlockedParity": true,
+  "tinyFarmUnblockedParity": true,
+  "dotRecastRelationship": "navigation proposes; spatial sweep validates actual motion",
+  "movementAuthority": "game resolver",
+  "replayRuns": 2,
+  "replayHash": "a47164134afc2f2d291821d6fcdf9c6f0a001f035a0b7272bf1e1f5608448138",
+  "thousandStepDeterministic": true,
+  "capsuleAdded": false,
+  "raycastAdded": false,
+  "rigidBodyDynamicsAdded": false
+}

@@ -1,0 +1,24 @@
+{
+  "sequence": [
+    {
+      "kind": "Entered",
+      "ids": [
+        "pickup-mint"
+      ]
+    },
+    {
+      "kind": "Stayed",
+      "ids": [
+        "pickup-mint"
+      ]
+    },
+    {
+      "kind": "Exited",
+      "ids": [
+        "pickup-mint"
+      ]
+    }
+  ],
+  "triggersBlockMovement": false,
+  "persistenceOwner": "game"
+}

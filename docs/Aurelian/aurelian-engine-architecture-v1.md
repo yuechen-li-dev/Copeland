@@ -53,10 +53,11 @@ SYSTEMS
 
 Current project approximation:
 
-- `TinyFarm.Core` is dependency-free application truth: semantic state, scene/value types, concrete intents/results/events, resolver, hashing, and UI model.
+- `TinyFarm.Core` is application truth: semantic state, scene/value types, concrete intents/results/events, resolver, hashing, and UI model. Its only engine dependency is the query-only `Aurelian.Spatial2D` substrate used by the resolver; that package cannot mutate TinyFarm state.
 - `TinyFarm.Runtime` is application integration: session, TSON loaders, persistence, Dominatus policy, DotRecast-derived navigation, simulation host, DTOs, and scenarios.
 - `TinyFarm.MonoGame` is a leaf window/input/world/UI projection.
 - `Aurelian.World`, `Aurelian.Actuation`, `Aurelian.Runtime`, and rendering projects are reusable systems/runtime foundations but do not yet own TinyFarm's scene or resolver contracts.
+- `Aurelian.Spatial2D` owns deterministic world-unit geometry queries, continuous sweep/slide accepted-displacement facts, trigger diffs, and stable spatial diagnostics. It owns no actors, gameplay callbacks, timestep, or rigid-body state.
 - `Machina.*` owns renderer-neutral UI authoring, layout, semantics, hit testing, input records, interaction helpers, and presentation operations.
 - Dominatus owns decision policy and flow, not application mutation.
 - Copeland/TSON owns authored table/program truth and its compilation/loading path, not mutable application state.
@@ -519,3 +520,29 @@ top-level semantic layers are compositor-sorted.
 The same boundary can later target a swapchain and order `World`, `Particles`,
 `Machina`, `Debug` or editor/inspection layers without changing their semantics.
 See `docs/Aurelian/aurelian-native-layer-compositor-m0-report.md`.
+
+## Deterministic 2D spatial facts (M3)
+
+`Aurelian.Spatial2D` is the engine-owned, pure-managed query and character-movement
+substrate. AABB/circle shapes and tile-authored obstacle adapters are expressed only
+in explicit world units. Static worlds are immutable and traverse colliders by stable
+typed identity. Overlaps order by distance then ID; sweeps order by normalized time of
+impact then ID. Normals point from obstacle toward moving shape. Equal-time contacts
+are ID-ordered before bounded slide removes blocked normal components.
+
+The authority flow is:
+
+```text
+game movement request
+  -> Aurelian.Spatial2D query/sweep
+  -> contact facts and accepted displacement
+  -> game resolver
+  -> authoritative game state
+```
+
+Triggers return overlap and entered/stayed/exited facts but never block or call game
+code. The game owns trigger history, actor policy, combat, inventory, saves, and all
+state changes. DotRecast proposes navigation paths; spatial sweep validates actual
+motion. A future full dynamics engine may coexist through a separate integration and
+must not turn this query substrate into an engine-owned physics scene. See
+`docs/Aurelian/aurelian-spatial-2d-m3-report.md`.

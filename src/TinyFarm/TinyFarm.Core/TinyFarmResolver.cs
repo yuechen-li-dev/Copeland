@@ -1,3 +1,5 @@
+using Aurelian.Spatial2D;
+
 namespace TinyFarm.Core;
 
 internal readonly record struct SpatialMoveReductionResult(
@@ -40,12 +42,17 @@ internal readonly record struct SpatialMoveReductionResult(
 public sealed class TinyFarmResolver
 {
     private readonly TinyFarmDefinitions? definitions;
+    private readonly IReadOnlyDictionary<SceneId, SpatialWorld2D> spatialWorlds;
     private TinyFarmSceneCatalog Scenes => definitions?.Scenes
         ?? throw new InvalidOperationException("Scene intents require loaded TinyFarm definitions.");
 
     public TinyFarmResolver(TinyFarmDefinitions? definitions = null)
     {
         this.definitions = definitions;
+        spatialWorlds = definitions?.Scenes.All.ToDictionary(
+            scene => scene.Id,
+            TinyFarmSpatialWorldAdapter.BuildStaticWorld)
+            ?? new Dictionary<SceneId, SpatialWorld2D>();
     }
 
     public ResolutionBatchResult Resolve(
@@ -458,19 +465,19 @@ public sealed class TinyFarmResolver
                 replacement);
         }
 
-        ScenePosition target = placement.WorldPosition;
-        int remaining = distance;
-        while (remaining > 0)
+        ScenePosition target = new(
+            checked(placement.WorldPosition.XUnits + (deltaX * distance)),
+            checked(placement.WorldPosition.YUnits + (deltaY * distance)));
+        if (!TinyFarmScenes.IsInBounds(scene, target))
         {
-            int stepDistance = Math.Min(remaining, ScenePosition.UnitsPerTile / 4);
-            target = new ScenePosition(
-                target.XUnits + (deltaX * stepDistance),
-                target.YUnits + (deltaY * stepDistance));
-            if (!TinyFarmScenes.IsInBounds(scene, target) || TinyFarmScenes.IsBlocked(scene, target))
-            {
-                return SpatialMoveReductionResult.Rejected(IntentReason.MovementBlocked);
-            }
-            remaining -= stepDistance;
+            return SpatialMoveReductionResult.Rejected(IntentReason.MovementBlocked);
+        }
+        SpatialHit2D? hit = spatialWorlds[scene.Id].Sweep(
+            TinyFarmSpatialWorldAdapter.ActorPoint(placement.WorldPosition),
+            new SpatialVector2D(deltaX * distance, deltaY * distance));
+        if (hit is not null)
+        {
+            return SpatialMoveReductionResult.Rejected(IntentReason.MovementBlocked);
         }
 
         ActorSceneState replacementPlacement = placement with { WorldPosition = target, Facing = facing };

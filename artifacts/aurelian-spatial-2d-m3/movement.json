@@ -1,0 +1,35 @@
+{
+  "noTunneling": {
+    "ColliderId": {
+      "Value": "wall-main"
+    },
+    "TimeOfImpact": 0.43333333333333335,
+    "Normal": {
+      "X": -1,
+      "Y": 0,
+      "LengthSquared": 1
+    },
+    "ContactPoint": {
+      "X": 4,
+      "Y": 0
+    }
+  },
+  "wallStop": {
+    "acceptedX": 3
+  },
+  "slide": {
+    "X": 3,
+    "Y": 7,
+    "LengthSquared": 58
+  },
+  "knockback": {
+    "X": 3,
+    "Y": 0,
+    "LengthSquared": 9
+  },
+  "innerCornerQualified": true,
+  "outerCornerQualified": true,
+  "narrowPassageQualified": true,
+  "penetrationLaw": "report initial overlap and accept zero displacement; never depenetrate or teleport",
+  "zeroDisplacementIsNoOp": true
+}

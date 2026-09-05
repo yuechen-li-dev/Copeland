@@ -1,0 +1,20 @@
+{
+  "orderingLaw": "overlap: squared center distance then ordinal stable ID; sweep: TOI then ordinal stable ID",
+  "aabbAabb": {
+    "qualified": true
+  },
+  "circleCircle": {
+    "qualified": true
+  },
+  "circleAabb": {
+    "qualified": true
+  },
+  "attackCandidates": [
+    "slime-1"
+  ],
+  "pickupCandidates": [
+    "wild-mint"
+  ],
+  "pointQueryQualified": true,
+  "dynamicTransientSetQualified": true
+}

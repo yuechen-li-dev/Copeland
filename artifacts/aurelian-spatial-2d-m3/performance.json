@@ -1,0 +1,65 @@
+{
+  "runtime": "10.0.11",
+  "broadphase": "flat deterministic scan",
+  "iterationsPerMeasurement": 2000,
+  "measurements": [
+    {
+      "colliderCount": 64,
+      "overlap": {
+        "microsecondsPerOperation": 8.1907,
+        "bytesPerOperation": 488.02
+      },
+      "sweep": {
+        "microsecondsPerOperation": 15.7017,
+        "bytesPerOperation": 32.02
+      },
+      "sweepAndSlide": {
+        "microsecondsPerOperation": 20.1787,
+        "bytesPerOperation": 992.02
+      },
+      "triggerDiff": {
+        "microsecondsPerOperation": 1.96885,
+        "bytesPerOperation": 2176.02
+      }
+    },
+    {
+      "colliderCount": 256,
+      "overlap": {
+        "microsecondsPerOperation": 32.26195,
+        "bytesPerOperation": 488.02
+      },
+      "sweep": {
+        "microsecondsPerOperation": 62.32535,
+        "bytesPerOperation": 32.02
+      },
+      "sweepAndSlide": {
+        "microsecondsPerOperation": 28.50575,
+        "bytesPerOperation": 992.02
+      },
+      "triggerDiff": {
+        "microsecondsPerOperation": 2.65195,
+        "bytesPerOperation": 2176.02
+      }
+    },
+    {
+      "colliderCount": 1024,
+      "overlap": {
+        "microsecondsPerOperation": 24.01595,
+        "bytesPerOperation": 488.02
+      },
+      "sweep": {
+        "microsecondsPerOperation": 30.68435,
+        "bytesPerOperation": 3.044
+      },
+      "sweepAndSlide": {
+        "microsecondsPerOperation": 37.98195,
+        "bytesPerOperation": 992.02
+      },
+      "triggerDiff": {
+        "microsecondsPerOperation": 0.51575,
+        "bytesPerOperation": 2176.02
+      }
+    }
+  ],
+  "decision": "Flat scan is retained for current LTTP-sized authored scenes. Re-measure near 1024 repeatedly queried colliders before adding a uniform grid."
+}

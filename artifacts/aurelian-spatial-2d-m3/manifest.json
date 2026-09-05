@@ -1,0 +1,22 @@
+{
+  "milestone": "AURELIAN-SPATIAL-2D-M3",
+  "kind": "deterministic-2d-spatial-query-movement-substrate",
+  "aabbQualified": true,
+  "circleQualified": true,
+  "sweepQualified": true,
+  "sweepSlideQualified": true,
+  "triggersQualified": true,
+  "stableContactOrdering": true,
+  "gameplayAuthorityInSpatial": false,
+  "rigidBodyDynamicsAdded": false,
+  "box2dDependencyAdded": false,
+  "tinyFarmParityQualified": true,
+  "artifactFiles": [
+    "proof.json",
+    "queries.json",
+    "movement.json",
+    "triggers.json",
+    "performance.json",
+    "manifest.json"
+  ]
+}

@@ -11,5 +11,6 @@
     <ProjectReference Include="../../../src/Aurelian/Aurelian.GameHost/Aurelian.GameHost.csproj" />
     <ProjectReference Include="../../../src/Integrations/InputMan.Aurelian/InputMan.Aurelian.csproj" />
     <ProjectReference Include="../../../src/TinyFarm/TinyFarm.InputMan/TinyFarm.InputMan.csproj" />
+    <ProjectReference Include="../../../src/TinyFarm/TinyFarm.Runtime/TinyFarm.Runtime.csproj" />
   </ItemGroup>
 </Project>
