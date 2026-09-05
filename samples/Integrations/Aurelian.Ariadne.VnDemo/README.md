@@ -5,10 +5,16 @@ It runs a compact branching after-school scene through Ariadne dialogue operatio
 projects the active semantic state into Machina, and composites background, portrait,
 and UI through Aurelian's native Vulkan layer path.
 
-Run from the Copeland repository root:
+Run the playable presenter from the Copeland repository root:
 
 ```powershell
 dotnet run --project samples/Integrations/Aurelian.Ariadne.VnDemo/Aurelian.Ariadne.VnDemo.csproj
+```
+
+Run the deterministic qualification separately:
+
+```powershell
+dotnet run --project samples/Integrations/Aurelian.Ariadne.VnDemo/Aurelian.Ariadne.VnDemo.csproj -- --proof
 ```
 
 The deterministic proof and screenshots are written to

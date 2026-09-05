@@ -1,14 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <AssemblyName>Aurelian.Ariadne.VnDemo</AssemblyName>
     <RootNamespace>Aurelian.Ariadne.VnDemo</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="SkiaSharp" />
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
     <ProjectReference Include="../../../reference/dominatus/src/Ariadne.OptFlow/Ariadne.OptFlow.csproj" />
     <ProjectReference Include="../../../reference/dominatus/src/Dominatus.Core/Dominatus.Core.csproj" />
     <ProjectReference Include="../../../reference/dominatus/src/Dominatus.OptFlow/Dominatus.OptFlow.csproj" />

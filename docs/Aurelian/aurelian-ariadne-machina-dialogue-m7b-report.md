@@ -4,6 +4,8 @@ Outcome A: Aurelian is usable today as a small, text-first visual novel engine.
 The executable sample presents original generated art, branching dialogue, a call,
 a condition, a typed consequence, native composition, deterministic input capture,
 and Deliverance-backed save/load through the real qualified paths.
+The sample now starts as a playable native-frame presenter; pass `--proof` to run
+the deterministic artifact-producing qualification instead.
 
 ## Ownership and flow
 

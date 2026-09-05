@@ -9,7 +9,18 @@ namespace Aurelian.Ariadne.VnDemo;
 
 internal static class Program
 {
-    public static async Task<int> Main(string[] args)
+    [STAThread]
+    public static int Main(string[] args)
+    {
+        if (!args.Contains("--proof", StringComparer.OrdinalIgnoreCase))
+        {
+            return VnPresenter.Run(args);
+        }
+
+        return RunProofAsync().GetAwaiter().GetResult();
+    }
+
+    private static async Task<int> RunProofAsync()
     {
         string root = FindRepositoryRoot();
         string artifactRoot = Path.Combine(root, "artifacts", "aurelian-ariadne-machina-dialogue-m7b");
@@ -201,7 +212,7 @@ internal static class Program
         };
     }
 
-    private static string FindRepositoryRoot()
+    internal static string FindRepositoryRoot()
     {
         DirectoryInfo? current = new(AppContext.BaseDirectory);
         while (current is not null && !File.Exists(Path.Combine(current.FullName, "Copeland.slnx"))) current = current.Parent;
