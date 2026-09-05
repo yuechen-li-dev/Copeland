@@ -24,6 +24,39 @@ public static class ProfileTemplateFunctions
             Left,
         }
 
+        export record ConceptPoint {
+            x: number;
+            y: number;
+        }
+
+        export record ConceptPath {
+            start: ConceptPoint;
+            end: ConceptPoint;
+        }
+
+        export function Point(x: number, y: number): ConceptPoint {
+            return { x: x, y: y };
+        }
+
+        export function PathBetween(start: ConceptPoint, end: ConceptPoint): ConceptPath {
+            return { start: start, end: end };
+        }
+
+        export function Midpoint(path: ConceptPath): ConceptPoint {
+            return Along(path, 0.5);
+        }
+
+        export function Along(path: ConceptPath, t: number): ConceptPoint {
+            return {
+                x: path.start.x + ((path.end.x - path.start.x) * t),
+                y: path.start.y + ((path.end.y - path.start.y) * t)
+            };
+        }
+
+        export function OffsetPoint(point: ConceptPoint, x: number, y: number): ConceptPoint {
+            return { x: point.x + x, y: point.y + y };
+        }
+
         export record CircleArgs {
             radius: number;
             x?: number;
@@ -48,6 +81,20 @@ public static class ProfileTemplateFunctions
             y?: number;
         }
 
+        export record SlotArgs {
+            length: number;
+            width: number;
+            angle?: number;
+            x?: number;
+            y?: number;
+        }
+
+        export record CapsuleArgs {
+            from: ConceptPoint;
+            to: ConceptPoint;
+            width: number;
+        }
+
         export record RegularPolygonArgs {
             sides: int;
             radius: number;
@@ -63,6 +110,8 @@ public static class ProfileTemplateFunctions
             Rectangle(args: RectangleArgs),
             RoundedRectangle(args: RoundedRectangleArgs),
             Ellipse(args: EllipseArgs),
+            Slot(args: SlotArgs),
+            Capsule(args: CapsuleArgs),
             RegularPolygon(args: RegularPolygonArgs),
             Polygon(args: PolygonArgs),
         }
@@ -81,6 +130,18 @@ public static class ProfileTemplateFunctions
 
         export function Ellipse(args: EllipseArgs): ProfileShape {
             return ProfileShape.Ellipse(args);
+        }
+
+        export function Slot(args: SlotArgs): ProfileShape {
+            return ProfileShape.Slot(args);
+        }
+
+        export function Capsule(args: CapsuleArgs): ProfileShape {
+            return ProfileShape.Capsule(args);
+        }
+
+        export function Tube(args: CapsuleArgs): ProfileShape {
+            return Capsule(args);
         }
 
         export function RegularPolygon(args: RegularPolygonArgs): ProfileShape {
@@ -149,6 +210,44 @@ public static class ProfileTemplateFunctions
             axis: string;
         }
 
+        export record ArcArgs {
+            bulge: number;
+        }
+
+        export record BulgeArgs {
+            amount: number;
+        }
+
+        export record SplineArgs {
+            control1: ConceptPoint;
+            control2: ConceptPoint;
+        }
+
+        export enum SegmentCurve {
+            Arc(args: ArcArgs),
+            Bulge(args: BulgeArgs),
+            Spline(args: SplineArgs),
+        }
+
+        export function Arc(args: ArcArgs): SegmentCurve {
+            return SegmentCurve.Arc(args);
+        }
+
+        export function Bulge(args: BulgeArgs): SegmentCurve {
+            return SegmentCurve.Bulge(args);
+        }
+
+        export function Spline(args: SplineArgs): SegmentCurve {
+            return SegmentCurve.Spline(args);
+        }
+
+        export record ReplaceSegmentArgs {
+            id: string;
+            as: string;
+            segment: int;
+            replacement: SegmentCurve;
+        }
+
         export enum ProfileOperation {
             Add(args: ShapeOperationArgs),
             Subtract(args: ShapeOperationArgs),
@@ -160,6 +259,7 @@ public static class ProfileTemplateFunctions
             Rotate(args: RotateArgs),
             Scale(args: ScaleArgs),
             Mirror(args: MirrorArgs),
+            ReplaceSegment(args: ReplaceSegmentArgs),
         }
 
         export function Add(args: ShapeOperationArgs): ProfileOperation {
@@ -200,6 +300,10 @@ public static class ProfileTemplateFunctions
 
         export function Mirror(args: MirrorArgs): ProfileOperation {
             return ProfileOperation.Mirror(args);
+        }
+
+        export function ReplaceSegment(args: ReplaceSegmentArgs): ProfileOperation {
+            return ProfileOperation.ReplaceSegment(args);
         }
 
         export record ProfileSource {

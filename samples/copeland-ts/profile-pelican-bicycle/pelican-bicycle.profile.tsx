@@ -1,26 +1,28 @@
 // A three-color cut-paper sketch. Named layer source order is painter order;
 // each Profile still resolves independently through the ordinary geometry path.
 // Coordinates are logical units, +Y upward. No SVG geometry lives here.
-record Vec2 {
-    x: number;
-    y: number;
-}
-
 record BicycleLayout {
-    rear: Vec2;
-    front: Vec2;
+    rear: ConceptPoint;
+    front: ConceptPoint;
     wheelRadius: number;
-    seat: Vec2;
-    handlebar: Vec2;
-    pedal: Vec2;
+    seat: ConceptPoint;
+    handlebar: ConceptPoint;
+    pedal: ConceptPoint;
+    forkGuide: ConceptPath;
+    topTubeGuide: ConceptPath;
+    seatGuide: ConceptPath;
+    handlebarGuide: ConceptPath;
 }
 
 record PelicanLayout {
-    body: Vec2;
-    head: Vec2;
-    wing: Vec2;
-    knee: Vec2;
-    foot: Vec2;
+    body: ConceptPoint;
+    head: ConceptPoint;
+    wing: ConceptPoint;
+    knee: ConceptPoint;
+    foot: ConceptPoint;
+    upperLegGuide: ConceptPath;
+    lowerLegGuide: ConceptPath;
+    beakAxis: ConceptPath;
     beakLength: number;
     headTilt: number;
     wingScale: number;
@@ -36,53 +38,42 @@ const InkStyle: ProfileStyle = { fill: "#193747" };
 const BicycleStyle: ProfileStyle = InkStyle with { fill: "#238f91" };
 const AccentStyle: ProfileStyle = InkStyle with { fill: "#e6a52e" };
 
-function Offset(point: Vec2, x: number, y: number): Vec2 {
-    return { x: point.x + x, y: point.y + y };
+function Offset(point: ConceptPoint, x: number, y: number): ConceptPoint {
+    return OffsetPoint(point, x, y);
 }
 
 function BuildBicycleLayout(wheelRadius: number, wheelbase: number): BicycleLayout {
-    const rear: Vec2 = { x: 100.0, y: wheelRadius + 12.0 };
-    const front: Vec2 = Offset(rear, wheelbase, 0.0);
-    const seat: Vec2 = Offset(rear, wheelbase * 0.33, 78.0);
-    const pedal: Vec2 = Offset(rear, wheelbase * 0.60, 4.0);
-    const handlebar: Vec2 = Offset(front, -16.0, 104.0);
-    return { rear, front, wheelRadius: wheelRadius, seat, handlebar, pedal };
+    const rear: ConceptPoint = Point(100.0, wheelRadius + 12.0);
+    const front: ConceptPoint = Offset(rear, wheelbase, 0.0);
+    const seat: ConceptPoint = Offset(rear, wheelbase * 0.33, 78.0);
+    const pedal: ConceptPoint = Offset(rear, wheelbase * 0.60, 4.0);
+    const handlebar: ConceptPoint = Offset(front, -16.0, 104.0);
+    return { rear, front, wheelRadius: wheelRadius, seat, handlebar, pedal,
+        forkGuide: PathBetween(front, handlebar),
+        topTubeGuide: PathBetween(seat, Offset(handlebar, 0.0, -22.0)),
+        seatGuide: PathBetween(Offset(seat, -17.0, 0.0), Offset(seat, 18.0, 0.0)),
+        handlebarGuide: PathBetween(Offset(handlebar, -13.0, 0.0), Offset(handlebar, 19.0, 0.0)) };
 }
 
 function BuildPelicanLayout(bike: BicycleLayout, bodyLift: number, beakLength: number, headTilt: number, wingScale: number): PelicanLayout {
-    const body: Vec2 = Offset(bike.seat, 0.0, bodyLift);
-    const head: Vec2 = Offset(body, 65.0, 82.0);
-    const wing: Vec2 = Offset(body, -8.0, 4.0);
-    const knee: Vec2 = Offset(body, 38.0, -44.0);
-    const foot: Vec2 = Offset(bike.pedal, 10.0, -4.0);
-    return { body, head, wing, knee, foot, beakLength: beakLength,
+    const body: ConceptPoint = Offset(bike.seat, 0.0, bodyLift);
+    const head: ConceptPoint = Offset(body, 65.0, 82.0);
+    const wing: ConceptPoint = Offset(body, -8.0, 4.0);
+    const knee: ConceptPoint = Offset(body, 38.0, -44.0);
+    const foot: ConceptPoint = Offset(bike.pedal, 10.0, -4.0);
+    return { body, head, wing, knee, foot,
+        upperLegGuide: PathBetween(Offset(body, 2.0, -22.0), knee),
+        lowerLegGuide: PathBetween(knee, foot),
+        beakAxis: PathBetween(head, Offset(head, beakLength, -4.0)),
+        beakLength: beakLength,
         headTilt: headTilt, wingScale: wingScale };
 }
 
 const Bicycle: BicycleLayout = BuildBicycleLayout(WheelRadius, Wheelbase);
 const Pelican: PelicanLayout = BuildPelicanLayout(Bicycle, BodyLift, BeakLength, HeadTilt, WingScale);
 
-function Absolute(value: number): number {
-    if (value < 0.0) {
-        return -value;
-    }
-    return value;
-}
-
-// Local polygon escape: a filled segment. Manhattan normalization is adequate
-// for this sketch; a real Capsule/PolylineStroke would remove this arithmetic.
-function Tube(start: Vec2, end: Vec2, width: number): ProfileShape {
-    const dx: number = end.x - start.x;
-    const dy: number = end.y - start.y;
-    const length: number = Absolute(dx) + Absolute(dy);
-    const nx: number = -dy * width / length;
-    const ny: number = dx * width / length;
-    return Polygon({ points: [
-        [start.x + nx, start.y + ny],
-        [end.x + nx, end.y + ny],
-        [end.x - nx, end.y - ny],
-        [start.x - nx, start.y - ny]
-    ] });
+function TubeFromGuide(guide: ConceptPath, width: number): ProfileShape {
+    return Tube({ from: guide.start, to: guide.end, width: width });
 }
 
 function BuildRearWheel(bike: BicycleLayout): ProfileShape {
@@ -97,14 +88,6 @@ function BuildFrame(bike: BicycleLayout): ProfileShape {
     return Polygon({ points: [
         [bike.rear.x, bike.rear.y],
         [bike.seat.x, bike.seat.y],
-        [bike.pedal.x, bike.pedal.y]
-    ] });
-}
-
-function BuildFrontFrame(bike: BicycleLayout): ProfileShape {
-    return Polygon({ points: [
-        [bike.seat.x, bike.seat.y],
-        [bike.handlebar.x, bike.handlebar.y - 22.0],
         [bike.pedal.x, bike.pedal.y]
     ] });
 }
@@ -149,7 +132,7 @@ function BuildPelicanTail(bird: PelicanLayout): ProfileShape {
 }
 
 function BuildPelicanLegs(bird: PelicanLayout): ProfileShape {
-    return Tube(Offset(bird.body, 2.0, -22.0), bird.knee, 5.0);
+    return TubeFromGuide(bird.upperLegGuide, 10.0);
 }
 
 function PaintProfile(name: string, shape: ProfileShape, operations: ProfileOperation[], yieldState: string, style: ProfileStyle): ProfileSource {
@@ -181,23 +164,17 @@ function BicycleLayers(bike: BicycleLayout, bird: PelicanLayout, ink: ProfileSty
                     [bike.pedal.x - 12.0, bike.pedal.y + 7.0]
                 ] }) })
             ], "Finished", bicycle),
-            PaintProfile("FrontFrame", BuildFrontFrame(bike), [
-                Subtract({ id: "FrontTriangle", as: "Finished", shape: Polygon({ points: [
-                    [bike.seat.x + 12.0, bike.seat.y - 6.0],
-                    [bike.handlebar.x - 12.0, bike.handlebar.y - 29.0],
-                    [bike.pedal.x + 1.0, bike.pedal.y + 15.0]
-                ] }) })
-            ], "Finished", bicycle),
-            PaintProfile("Fork", Tube(bike.front, bike.handlebar, 4.0), [], "Base", bicycle),
-            PaintProfile("Seat", Tube(Offset(bike.seat, -17.0, 0.0), Offset(bike.seat, 18.0, 0.0), 4.0), [], "Base", bicycle),
-            PaintProfile("Handlebar", Tube(Offset(bike.handlebar, -13.0, 0.0), Offset(bike.handlebar, 19.0, 0.0), 4.0), [], "Base", bicycle),
+            PaintProfile("FrontFrame", TubeFromGuide(bike.topTubeGuide, 8.0), [], "Base", bicycle),
+            PaintProfile("Fork", TubeFromGuide(bike.forkGuide, 8.0), [], "Base", bicycle),
+            PaintProfile("Seat", TubeFromGuide(bike.seatGuide, 8.0), [], "Base", bicycle),
+            PaintProfile("Handlebar", TubeFromGuide(bike.handlebarGuide, 8.0), [], "Base", bicycle),
             PaintProfile("Crank", Circle({ radius: 10.0, x: bike.pedal.x, y: bike.pedal.y }), [], "Base", bicycle),
-            PaintProfile("CrankArm", Tube(bike.pedal, bird.foot, 3.0), [], "Base", bicycle)
+            PaintProfile("CrankArm", Tube({ from: bike.pedal, to: bird.foot, width: 6.0 }), [], "Base", bicycle)
     ]);
     const PelicanLegsLayer: ProfileLayer = Layer("Pelican Legs", [
             PaintProfile("UpperLeg", BuildPelicanLegs(bird), [], "Base", accent),
-            PaintProfile("LowerLeg", Tube(bird.knee, bird.foot, 4.0), [], "Base", accent),
-            PaintProfile("WebbedFoot", Tube(Offset(bird.foot, -8.0, -2.0), Offset(bird.foot, 17.0, -2.0), 4.0), [], "Base", accent)
+            PaintProfile("LowerLeg", TubeFromGuide(bird.lowerLegGuide, 8.0), [], "Base", accent),
+            PaintProfile("WebbedFoot", Tube({ from: Offset(bird.foot, -8.0, -2.0), to: Offset(bird.foot, 17.0, -2.0), width: 8.0 }), [], "Base", accent)
     ]);
     const PelicanBodyLayer: ProfileLayer = Layer("Pelican Body", [
             PaintProfile("Tail", BuildPelicanTail(bird), [], "Base", ink),
@@ -206,11 +183,15 @@ function BicycleLayers(bike: BicycleLayout, bird: PelicanLayout, ink: ProfileSty
                 Translate({ id: "NeckAnchor", as: "Placed", x: bird.body.x + 49.0, y: bird.body.y + 51.0 })
             ], "Placed", ink),
             PaintProfile("BodyAndWing", BuildPelicanBody(bird), [
+                ReplaceSegment({ id: "BodyCurve", as: "CurvedBody", segment: 0,
+                    replacement: Bulge({ amount: 8.0 }) }),
                 BuildPelicanWing(bird)
             ], "WingCut", ink)
     ]);
     const PelicanDetailsLayer: ProfileLayer = Layer("Pelican Details", [
             PaintProfile("Beak", BuildPelicanBeak(bird), [
+                ReplaceSegment({ id: "BeakTopCurve", as: "CurvedBill", segment: 0,
+                    replacement: Arc({ bulge: 4.0 }) }),
                 Subtract({ id: "BillSeam", as: "Seamed", shape: Polygon({ points: [
                     [25.0, -5.0],
                     [bird.beakLength - 3.0, -8.0],

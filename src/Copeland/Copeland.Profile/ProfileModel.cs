@@ -43,6 +43,20 @@ public sealed record EllipseProfileShape(
     double CenterY,
     ProfileSourceSpan SourceSpan) : ProfileShapeSpec("Ellipse", SourceSpan);
 
+public sealed record SlotProfileShape(
+    double Length,
+    double Width,
+    double AngleDegrees,
+    double CenterX,
+    double CenterY,
+    ProfileSourceSpan SourceSpan) : ProfileShapeSpec("Slot", SourceSpan);
+
+public sealed record CapsuleProfileShape(
+    VectorPoint From,
+    VectorPoint To,
+    double Width,
+    ProfileSourceSpan SourceSpan) : ProfileShapeSpec("Capsule", SourceSpan);
+
 public sealed record RegularPolygonProfileShape(
     int Sides,
     double Radius,
@@ -120,6 +134,32 @@ public sealed record RepeatRadialProfileOperation(
     double RotationDegrees,
     ProfileSourceSpan SourceSpan) : ProfileOperation(Id, Input, Output, "RepeatRadial", SourceSpan);
 
+public enum ProfileCurveKind
+{
+    Arc,
+    Bulge,
+    Spline,
+}
+
+public sealed record SegmentReplacement(
+    ProfileCurveKind Kind,
+    double Amount,
+    VectorPoint Control1,
+    VectorPoint Control2);
+
+public sealed record ReplaceSegmentProfileOperation(
+    string Id,
+    string Input,
+    string Output,
+    int SegmentIndex,
+    SegmentReplacement Replacement,
+    ProfileSourceSpan SourceSpan) : ProfileOperation(Id, Input, Output, "ReplaceSegment", SourceSpan);
+
+public sealed record ProfileSegmentSummary(
+    string Id,
+    string GeometryHash,
+    string ProvenanceFeatureId);
+
 public sealed record TransformProfileOperation(
     string Id,
     string Input,
@@ -145,7 +185,10 @@ public sealed record ProfileStateSummary(
     IReadOnlyList<string> AppliedFeatureIds,
     int ContourCount,
     VectorBounds Bounds,
-    string ContourHash);
+    string ContourHash)
+{
+    public IReadOnlyList<ProfileSegmentSummary> Segments { get; init; } = [];
+}
 
 public sealed record ProfileCompilationResult(
     ProfileDefinition? Definition,

@@ -91,6 +91,7 @@ public static partial class ProfileTsxCompiler
             "Rotate" => new TransformProfileOperation(id, input, output, "Rotate", Number(args, "degrees"), 0, span),
             "Scale" => new TransformProfileOperation(id, input, output, "Scale", Number(args, "x"), Number(args, "y"), span),
             "Mirror" => new TransformProfileOperation(id, input, output, "Mirror", Text(args, "axis") == "X" ? 1 : 0, 0, span),
+            "ReplaceSegment" => DecodeReplaceSegment(id, input, output, args, span, diagnostics),
             _ => Unknown(),
         };
 
@@ -108,6 +109,31 @@ public static partial class ProfileTsxCompiler
             diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-TEMPLATE-0009", $"Unknown typed Profile operation case '{value.Case.Name}'.", span));
             return null;
         }
+    }
+
+    private static ProfileOperation? DecodeReplaceSegment(
+        string id,
+        string input,
+        string output,
+        StaticRecordValue args,
+        ProfileSourceSpan span,
+        List<ProfileDiagnostic> diagnostics)
+    {
+        if (Field(args, "replacement") is not StaticEnumValue { Type.Name: "SegmentCurve", Payloads.Count: 1 } curve
+            || curve.Payloads[0] is not StaticRecordValue curveArgs)
+        {
+            diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0040", "ReplaceSegment requires a typed semantic curve.", span));
+            return null;
+        }
+
+        SegmentReplacement replacement = curve.Case.Name switch
+        {
+            "Arc" => new SegmentReplacement(ProfileCurveKind.Arc, Number(curveArgs, "bulge"), default, default),
+            "Bulge" => new SegmentReplacement(ProfileCurveKind.Bulge, Number(curveArgs, "amount"), default, default),
+            "Spline" => new SegmentReplacement(ProfileCurveKind.Spline, 0, PointValue(curveArgs, "control1"), PointValue(curveArgs, "control2")),
+            _ => throw new InvalidOperationException($"Unknown SegmentCurve case '{curve.Case.Name}'."),
+        };
+        return new ReplaceSegmentProfileOperation(id, input, output, Integer(args, "segment"), replacement, span);
     }
 
     private static ProfileShapeSpec RequireShape(
@@ -134,6 +160,8 @@ public static partial class ProfileTsxCompiler
             "Rectangle" => new RectangleProfileShape(Number(args, "width"), Number(args, "height"), span),
             "RoundedRectangle" => new RoundedRectangleProfileShape(Number(args, "width"), Number(args, "height"), Number(args, "radius"), span),
             "Ellipse" => new EllipseProfileShape(Number(args, "radiusX"), Number(args, "radiusY"), Number(args, "x", 0), Number(args, "y", 0), span),
+            "Slot" => new SlotProfileShape(Number(args, "length"), Number(args, "width"), Number(args, "angle", 0), Number(args, "x", 0), Number(args, "y", 0), span),
+            "Capsule" => new CapsuleProfileShape(PointValue(args, "from"), PointValue(args, "to"), Number(args, "width"), span),
             "RegularPolygon" => new RegularPolygonProfileShape(Integer(args, "sides"), Number(args, "radius"), Number(args, "rotation", 90), span),
             "Polygon" => new PolygonProfileShape(PointArray(args, "points"), span),
             _ => Unknown(),
@@ -144,6 +172,12 @@ public static partial class ProfileTsxCompiler
             diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-TSX-0021", $"Unknown typed Profile shape case '{shape.Case.Name}'.", span));
             return null;
         }
+    }
+
+    private static VectorPoint PointValue(StaticRecordValue record, string name)
+    {
+        StaticRecordValue point = (StaticRecordValue)Field(record, name);
+        return new VectorPoint(Number(point, "x"), Number(point, "y"));
     }
 
     private static IReadOnlyList<VectorPoint> PointArray(StaticRecordValue record, string name)
@@ -684,7 +718,7 @@ public static partial class ProfileTsxCompiler
             if (!source.Contains("from \"./Profile\"", StringComparison.Ordinal)
                 && !source.Contains("from './Profile'", StringComparison.Ordinal))
             {
-                builder.AppendLine("import { Add, Circle, EdgeOperationArgs, Ellipse, Hole, HoleArgs, Layer, LayerId, Layers, Mirror, Notch, Polygon, Profile, ProfileEdge, ProfileLayer, ProfileLayerId, ProfileOperation, ProfileShape, ProfileSource, ProfileStyle, Rectangle, RegularPolygon, RepeatRadial, RepeatRadialArgs, Rotate, RoundedRectangle, Scale, ShapeOperationArgs, Subtract, Tab, Translate } from \"./Profile\";");
+                builder.AppendLine("import { Add, Along, Arc, Bulge, Capsule, Circle, ConceptPath, ConceptPoint, EdgeOperationArgs, Ellipse, Hole, HoleArgs, Layer, LayerId, Layers, Midpoint, Mirror, Notch, OffsetPoint, PathBetween, Point, Polygon, Profile, ProfileEdge, ProfileLayer, ProfileLayerId, ProfileOperation, ProfileShape, ProfileSource, ProfileStyle, Rectangle, RegularPolygon, RepeatRadial, RepeatRadialArgs, ReplaceSegment, Rotate, RoundedRectangle, Scale, SegmentCurve, ShapeOperationArgs, Slot, Spline, Subtract, Tab, Translate, Tube } from \"./Profile\";");
             }
             builder.AppendLine("const Top: ProfileEdge = ProfileEdge.Top;");
             builder.AppendLine("const Right: ProfileEdge = ProfileEdge.Right;");

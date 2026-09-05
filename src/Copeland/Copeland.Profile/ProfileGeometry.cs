@@ -14,6 +14,8 @@ internal static class ProfileGeometry
             RoundedRectangleProfileShape rounded => RoundedRectangle(rounded.Width, rounded.Height, rounded.Radius),
             CircleProfileShape circle => Ellipse(circle.Radius, circle.Radius, circle.CenterX, circle.CenterY),
             EllipseProfileShape ellipse => Ellipse(ellipse.RadiusX, ellipse.RadiusY, ellipse.CenterX, ellipse.CenterY),
+            SlotProfileShape slot => Slot(slot.Length, slot.Width, slot.AngleDegrees, slot.CenterX, slot.CenterY),
+            CapsuleProfileShape capsule => Capsule(capsule.From, capsule.To, capsule.Width),
             RegularPolygonProfileShape polygon => RegularPolygon(polygon.Sides, polygon.Radius, polygon.RotationDegrees),
             PolygonProfileShape polygon => Polygon(polygon.Points),
             _ => throw new InvalidOperationException($"Unknown profile shape '{shape.Kind}'."),
@@ -131,6 +133,36 @@ internal static class ProfileGeometry
             contour.Segments.Select(segment => Transform(segment, transform)).ToArray())).ToArray());
     }
 
+    public static VectorShape ReplaceSegment(VectorShape source, int segmentIndex, SegmentReplacement replacement)
+    {
+        VectorContour outer = source.Contours.First(contour => contour.Role != VectorContourRole.Hole);
+        if (segmentIndex < 0 || segmentIndex >= outer.Segments.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(segmentIndex), $"Segment index {segmentIndex} is outside the boundary.");
+        }
+
+        VectorSegment selected = outer.Segments[segmentIndex];
+        VectorPoint start = Start(selected);
+        VectorPoint end = End(selected);
+        VectorSegment replacementSegment = replacement.Kind switch
+        {
+            ProfileCurveKind.Arc => BulgeSegment(start, end, replacement.Amount),
+            ProfileCurveKind.Bulge => BulgeSegment(start, end, replacement.Amount),
+            ProfileCurveKind.Spline => new VectorCubic(start, replacement.Control1, replacement.Control2, end),
+            _ => throw new InvalidOperationException($"Unknown replacement curve '{replacement.Kind}'."),
+        };
+
+        VectorSegment[] segments = outer.Segments.ToArray();
+        segments[segmentIndex] = replacementSegment;
+        var changed = new VectorContour(segments, outer.Role);
+        VectorContour[] contours = source.Contours
+            .Select(contour => ReferenceEquals(contour, outer) ? changed : contour)
+            .ToArray();
+        VectorShape result = new(contours, source.FillRule);
+        ValidateSimpleBoundary(result, replacementSegment);
+        return result;
+    }
+
     public static string ToSvg(VectorShape shape)
     {
         VectorBounds bounds = shape.Bounds;
@@ -215,6 +247,114 @@ internal static class ProfileGeometry
             new VectorCubic(left, new(centerX - radiusX, centerY + cy), new(centerX - cx, centerY + radiusY), top),
         ])]);
     }
+
+    private static VectorShape Slot(double length, double width, double angleDegrees, double centerX, double centerY)
+    {
+        double straightLength = Math.Max(0, length - width);
+        VectorShape horizontal = Capsule(
+            new VectorPoint(-straightLength / 2d, 0),
+            new VectorPoint(straightLength / 2d, 0),
+            width);
+        VectorShape rotated = Transform(horizontal, "Rotate", angleDegrees, 0);
+        return Transform(rotated, "Translate", centerX, centerY);
+    }
+
+    private static VectorShape Capsule(VectorPoint from, VectorPoint to, double width)
+    {
+        double dx = to.X - from.X;
+        double dy = to.Y - from.Y;
+        double length = Math.Sqrt((dx * dx) + (dy * dy));
+        if (length == 0)
+        {
+            return Ellipse(width / 2d, width / 2d, from.X, from.Y);
+        }
+
+        double radius = width / 2d;
+        double nx = -dy / length;
+        double ny = dx / length;
+        VectorPoint aTop = new(from.X + (nx * radius), from.Y + (ny * radius));
+        VectorPoint bTop = new(to.X + (nx * radius), to.Y + (ny * radius));
+        VectorPoint bBottom = new(to.X - (nx * radius), to.Y - (ny * radius));
+        VectorPoint aBottom = new(from.X - (nx * radius), from.Y - (ny * radius));
+        double tangentX = dx / length * radius * CircleControl;
+        double tangentY = dy / length * radius * CircleControl;
+        return new VectorShape([new VectorContour([
+            new VectorLine(aTop, bTop),
+            new VectorCubic(bTop, new(bTop.X + tangentX, bTop.Y + tangentY), new(bBottom.X + tangentX, bBottom.Y + tangentY), bBottom),
+            new VectorLine(bBottom, aBottom),
+            new VectorCubic(aBottom, new(aBottom.X - tangentX, aBottom.Y - tangentY), new(aTop.X - tangentX, aTop.Y - tangentY), aTop),
+        ])]);
+    }
+
+    private static VectorSegment BulgeSegment(VectorPoint start, VectorPoint end, double amount)
+    {
+        double dx = end.X - start.X;
+        double dy = end.Y - start.Y;
+        double length = Math.Sqrt((dx * dx) + (dy * dy));
+        if (length == 0)
+        {
+            throw new ArgumentException("Cannot replace a zero-length boundary segment.");
+        }
+        VectorPoint control = new(
+            ((start.X + end.X) / 2d) - (dy / length * amount * 2d),
+            ((start.Y + end.Y) / 2d) + (dx / length * amount * 2d));
+        return new VectorQuadratic(start, control, end);
+    }
+
+    private static void ValidateSimpleBoundary(VectorShape shape, VectorSegment replacement)
+    {
+        VectorContour outer = shape.Contours.First(contour => contour.Role != VectorContourRole.Hole);
+        IReadOnlyList<VectorPoint> replacementPoints = FlattenForValidation(replacement);
+        for (int index = 0; index < outer.Segments.Count; index++)
+        {
+            VectorSegment candidate = outer.Segments[index];
+            if (ReferenceEquals(candidate, replacement) || End(candidate) == replacementPoints[0] || Start(candidate) == replacementPoints[^1])
+            {
+                continue;
+            }
+            IReadOnlyList<VectorPoint> candidatePoints = FlattenForValidation(candidate);
+            for (int left = 0; left < replacementPoints.Count - 1; left++)
+            {
+                for (int right = 0; right < candidatePoints.Count - 1; right++)
+                {
+                    if (SegmentsIntersect(replacementPoints[left], replacementPoints[left + 1], candidatePoints[right], candidatePoints[right + 1]))
+                    {
+                        throw new ProfileResolutionException("COPE-PROFILE-0043", "Segment replacement self-intersects the profile boundary.", ProfileSourceSpan.Generated());
+                    }
+                }
+            }
+        }
+    }
+
+    private static IReadOnlyList<VectorPoint> FlattenForValidation(VectorSegment segment)
+    {
+        var points = new List<VectorPoint>();
+        for (int step = 0; step <= 32; step++)
+        {
+            double t = step / 32d;
+            double s = 1d - t;
+            points.Add(segment switch
+            {
+                VectorLine line => new VectorPoint((s * line.P0.X) + (t * line.P1.X), (s * line.P0.Y) + (t * line.P1.Y)),
+                VectorQuadratic quadratic => new VectorPoint((s * s * quadratic.P0.X) + (2 * s * t * quadratic.P1.X) + (t * t * quadratic.P2.X), (s * s * quadratic.P0.Y) + (2 * s * t * quadratic.P1.Y) + (t * t * quadratic.P2.Y)),
+                VectorCubic cubic => new VectorPoint((s * s * s * cubic.P0.X) + (3 * s * s * t * cubic.P1.X) + (3 * s * t * t * cubic.P2.X) + (t * t * t * cubic.P3.X), (s * s * s * cubic.P0.Y) + (3 * s * s * t * cubic.P1.Y) + (3 * s * t * t * cubic.P2.Y) + (t * t * t * cubic.P3.Y)),
+                _ => throw new InvalidOperationException(),
+            });
+        }
+        return points;
+    }
+
+    private static bool SegmentsIntersect(VectorPoint a, VectorPoint b, VectorPoint c, VectorPoint d)
+    {
+        double abC = Cross(a, b, c);
+        double abD = Cross(a, b, d);
+        double cdA = Cross(c, d, a);
+        double cdB = Cross(c, d, b);
+        return abC * abD < -1e-12 && cdA * cdB < -1e-12;
+    }
+
+    private static double Cross(VectorPoint a, VectorPoint b, VectorPoint c)
+        => ((b.X - a.X) * (c.Y - a.Y)) - ((b.Y - a.Y) * (c.X - a.X));
 
     private static VectorShape RegularPolygon(int sides, double radius, double rotationDegrees)
     {
@@ -363,6 +503,17 @@ internal static class ProfileGeometry
             VectorLine line => line.P0,
             VectorQuadratic quadratic => quadratic.P0,
             VectorCubic cubic => cubic.P0,
+            _ => throw new InvalidOperationException(),
+        };
+    }
+
+    private static VectorPoint End(VectorSegment segment)
+    {
+        return segment switch
+        {
+            VectorLine line => line.P1,
+            VectorQuadratic quadratic => quadratic.P2,
+            VectorCubic cubic => cubic.P3,
             _ => throw new InvalidOperationException(),
         };
     }

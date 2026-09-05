@@ -1,0 +1,65 @@
+{
+  "milestone": "COPELAND-PROFILE-SEMANTIC-GEOMETRY-M3",
+  "kind": "concept-geometry-profile-delta-semantic-curves",
+  "conceptGeometryAdded": true,
+  "conceptGeometryErased": true,
+  "conceptCount": 30,
+  "finalContourContribution": 0,
+  "segmentLevelProfileDeltaAdded": true,
+  "replaceSegmentAdded": true,
+  "semanticCurvesAdded": true,
+  "explicitSplineIsEscapeHatch": true,
+  "closednessPreservedByConstruction": true,
+  "slotAdded": true,
+  "capsuleAdded": true,
+  "regularPolygonAdded": true,
+  "polygonAdded": true,
+  "customFeatureFunctionsSupported": true,
+  "customFeatureTemplatesSupported": true,
+  "runtimeGeometryInterpreterAdded": false,
+  "fullCadConstraintSolverAdded": false,
+  "rendererChanged": false,
+  "sourceComparison": {
+    "m1Lines": 285,
+    "m3Lines": 219,
+    "m1PolygonCalls": 8,
+    "m3PolygonCalls": 5,
+    "m1RawControlPoints": 0,
+    "m3RawControlPoints": 0,
+    "m3NamedConcepts": 30,
+    "m3SemanticCurveOperations": 2
+  },
+  "CompositionHash": "8d842c0150f82fcd2f598b77f664a5673ad38638d06a127032ad96ec039d78d2",
+  "CanonicalGeometryHash": "5ad0bbfce2df0461dca44e5e9b5821fd13a1deea9ad85827c9d0b37b485f4a99",
+  "svgHash": "6382c818a05a96c8318ed8c9f45f2a258a81e6a733543ec68f212bee88c7cc78",
+  "variants": [
+    {
+      "name": "body-curve-more",
+      "changedLines": 1,
+      "CompositionHash": "92973ecb0a9b7b3623978fe54d6afc7fcd9f4164a34929dbb0d23e134d6052bb",
+      "CanonicalGeometryHash": "6348a4582e5bbd2db044b7ecf1f79bc3539f52c40f3d581585869c065d37dff1",
+      "svgHash": "5b3bcb2a801a2679d71a5dea33f4c9e4036a3d7480d9f2ef33240b27903e48ad"
+    },
+    {
+      "name": "beak-up",
+      "changedLines": 1,
+      "CompositionHash": "69a795b4406904b7ec9d3f940fa8def18907a01b804f80065c0d0d3b6a3c3ca0",
+      "CanonicalGeometryHash": "c859c96f48ac6c7b3138419b29f1a1f43f71f10a5f095cce4000b4b6a28fa02a",
+      "svgHash": "5a72309b4fbad758bb50ce7a5ab5cf0ad19d587dccb62d079bc4d086bf641261"
+    },
+    {
+      "name": "top-tube-thicker",
+      "changedLines": 1,
+      "CompositionHash": "49720e1ac371e6f20a034b36feadd0c9ec333fadf95b3e34cae2aa9eb3da1574",
+      "CanonicalGeometryHash": "09ca162d1183fdcbb4f4cf47b2273ccc28402301ef284667e215303162487c92",
+      "svgHash": "153a84ba4bb4b0d9c7a3d61eb0bb8194bdbc6c3d93d7d68acf3235a0bffe4015"
+    },
+    {
+      "name": "upper-leg-thicker",
+      "changedLines": 1,
+      "CompositionHash": "dcaf0068aaab47c183ce182e2d2b60282ac9d6c1bcc6e9875ec0f4d15d3c4f10",
+      "CanonicalGeometryHash": "ba07bd44866848c732bfc4fae43c883c1cf3e686af82e6eaa2612d96a95306f2",
+      "svgHash": "84ee68d3e58bc52e40ade61cdf0a26a4af96f2aa477753f28a2addebdd09a891"
+    }
+  ]
+}

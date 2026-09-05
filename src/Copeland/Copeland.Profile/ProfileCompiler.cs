@@ -18,7 +18,14 @@ public static class ProfileCompiler
         try
         {
             VectorShape baseShape = ProfileGeometry.Create(definition.Base);
-            WorkingState first = new(baseShape, definition.Base, [], [], [], []);
+            WorkingState first = new(
+                baseShape,
+                definition.Base,
+                [],
+                [],
+                [],
+                [],
+                Enumerable.Repeat("Base", SegmentCount(baseShape)).ToArray());
             states.Add(definition.BaseState, first);
             summaries.Add(Summary(0, definition.BaseState, null, definition.Base.Kind, first));
 
@@ -100,11 +107,38 @@ public static class ProfileCompiler
                 return AddEdgeFeature(input, null, notch);
             case RepeatRadialProfileOperation repeat:
                 return RepeatRadial(input, repeat);
+            case ReplaceSegmentProfileOperation replace:
+                return ReplaceSegment(input, replace);
             case TransformProfileOperation transform:
                 return Changed(input, operation, ProfileGeometry.Transform(input.Shape, transform.TransformKind, transform.A, transform.B), clearBase: true);
             default:
                 throw new InvalidOperationException($"Unknown profile operation '{operation.Kind}'.");
         }
+    }
+
+    private static WorkingState ReplaceSegment(WorkingState input, ReplaceSegmentProfileOperation operation)
+    {
+        VectorShape shape;
+        try
+        {
+            shape = ProfileGeometry.ReplaceSegment(input.Shape, operation.SegmentIndex, operation.Replacement);
+        }
+        catch (ProfileResolutionException exception)
+        {
+            throw new ProfileResolutionException(exception.Id, $"Feature '{operation.FeatureId}' targeting segment '{operation.SegmentIndex}': {exception.Message}", operation.Span);
+        }
+        string[] provenance = input.SegmentProvenance.ToArray();
+        if (operation.SegmentIndex < provenance.Length)
+        {
+            provenance[operation.SegmentIndex] = operation.FeatureId;
+        }
+        return input with
+        {
+            Shape = shape,
+            Base = null,
+            AppliedFeatureIds = input.AppliedFeatureIds.Append(operation.FeatureId).ToArray(),
+            SegmentProvenance = provenance,
+        };
     }
 
     private static WorkingState Changed(WorkingState input, ProfileOperation operation, VectorShape shape, bool clearBase)
@@ -114,6 +148,7 @@ public static class ProfileCompiler
             Shape = shape,
             Base = clearBase ? null : input.Base,
             AppliedFeatureIds = input.AppliedFeatureIds.Append(operation.FeatureId).ToArray(),
+            SegmentProvenance = Enumerable.Repeat(operation.FeatureId, SegmentCount(shape)).ToArray(),
         };
     }
 
@@ -257,6 +292,15 @@ public static class ProfileCompiler
                         diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0024", "RepeatRadial requires count 3..256, positive toothDepth, and toothFraction between zero and one.", repeat.Span));
                     }
                     break;
+                case ReplaceSegmentProfileOperation replace:
+                    if (replace.SegmentIndex < 0
+                        || !double.IsFinite(replace.Replacement.Amount)
+                        || replace.Replacement.Kind == ProfileCurveKind.Spline
+                            && (!Finite(replace.Replacement.Control1) || !Finite(replace.Replacement.Control2)))
+                    {
+                        diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0041", "ReplaceSegment requires a non-negative selector and finite curve parameters.", replace.Span));
+                    }
+                    break;
                 case TransformProfileOperation transform:
                     if (!double.IsFinite(transform.A) || !double.IsFinite(transform.B)
                         || transform.TransformKind == "Scale" && (transform.A == 0 || transform.B == 0))
@@ -281,7 +325,10 @@ public static class ProfileCompiler
             EllipseProfileShape ellipse => Positive(ellipse.RadiusX) && Positive(ellipse.RadiusY)
                 && double.IsFinite(ellipse.CenterX) && double.IsFinite(ellipse.CenterY),
             RegularPolygonProfileShape polygon => polygon.Sides >= 3 && polygon.Sides <= 1024 && Positive(polygon.Radius),
-            PolygonProfileShape polygon => polygon.Points.Count >= 3,
+            PolygonProfileShape polygon => polygon.Points.Count >= 3 && polygon.Points.All(Finite),
+            SlotProfileShape slot => Positive(slot.Length) && Positive(slot.Width) && slot.Length >= slot.Width
+                && double.IsFinite(slot.AngleDegrees) && double.IsFinite(slot.CenterX) && double.IsFinite(slot.CenterY),
+            CapsuleProfileShape capsule => Positive(capsule.Width) && Finite(capsule.From) && Finite(capsule.To),
             _ => false,
         };
         if (!valid)
@@ -351,7 +398,16 @@ public static class ProfileCompiler
             state.AppliedFeatureIds,
             state.Shape.Contours.Count,
             state.Shape.Bounds,
-            state.Shape.NormalizedGeometryHash);
+            state.Shape.NormalizedGeometryHash)
+        {
+            Segments = state.Shape.Contours
+                .SelectMany((contour, contourIndex) => contour.Segments.Select((segment, segmentIndex) => (contourIndex, segmentIndex, segment)))
+                .Select((item, flatIndex) => new ProfileSegmentSummary(
+                    $"contour:{item.contourIndex}/segment:{item.segmentIndex}",
+                    SegmentHash(item.segment),
+                    flatIndex < state.SegmentProvenance.Count ? state.SegmentProvenance[flatIndex] : featureId ?? "Base"))
+                .ToArray(),
+        };
     }
 
     private static string CanonicalIr(ProfileDefinition definition)
@@ -383,6 +439,9 @@ public static class ProfileCompiler
                 case RepeatRadialProfileOperation repeat:
                     result.Append($"{repeat.Count}:{R(repeat.ToothDepth)}:{R(repeat.ToothFraction)}:{R(repeat.RotationDegrees)}");
                     break;
+                case ReplaceSegmentProfileOperation replace:
+                    result.Append($"{replace.SegmentIndex}:{replace.Replacement.Kind}:{R(replace.Replacement.Amount)}:{Point(replace.Replacement.Control1)}:{Point(replace.Replacement.Control2)}");
+                    break;
                 case TransformProfileOperation transform:
                     result.Append($"{R(transform.A)}:{R(transform.B)}");
                     break;
@@ -402,6 +461,8 @@ public static class ProfileCompiler
             EllipseProfileShape value => $"Ellipse:{R(value.RadiusX)}:{R(value.RadiusY)}:{R(value.CenterX)}:{R(value.CenterY)}",
             RegularPolygonProfileShape value => $"RegularPolygon:{value.Sides}:{R(value.Radius)}:{R(value.RotationDegrees)}",
             PolygonProfileShape value => "Polygon:" + string.Join(';', value.Points.Select(point => $"{R(point.X)},{R(point.Y)}")),
+            SlotProfileShape value => $"Slot:{R(value.Length)}:{R(value.Width)}:{R(value.AngleDegrees)}:{R(value.CenterX)}:{R(value.CenterY)}",
+            CapsuleProfileShape value => $"Capsule:{Point(value.From)}:{Point(value.To)}:{R(value.Width)}",
             _ => throw new InvalidOperationException(),
         };
     }
@@ -415,6 +476,24 @@ public static class ProfileCompiler
     }
 
     private static bool Positive(double value) => double.IsFinite(value) && value > 0;
+
+    private static bool Finite(VectorPoint point) => double.IsFinite(point.X) && double.IsFinite(point.Y);
+
+    private static string Point(VectorPoint point) => $"{R(point.X)},{R(point.Y)}";
+
+    private static string SegmentHash(VectorSegment segment)
+    {
+        string identity = segment switch
+        {
+            VectorLine line => $"L:{Point(line.P0)}:{Point(line.P1)}",
+            VectorQuadratic quadratic => $"Q:{Point(quadratic.P0)}:{Point(quadratic.P1)}:{Point(quadratic.P2)}",
+            VectorCubic cubic => $"C:{Point(cubic.P0)}:{Point(cubic.P1)}:{Point(cubic.P2)}:{Point(cubic.P3)}",
+            _ => throw new InvalidOperationException(),
+        };
+        return ProfileHash.Utf8(identity);
+    }
+
+    private static int SegmentCount(VectorShape shape) => shape.Contours.Sum(contour => contour.Segments.Count);
 
     private static bool Contains(VectorBounds outer, VectorBounds inner)
     {
@@ -430,5 +509,6 @@ public static class ProfileCompiler
         IReadOnlyList<TabProfileOperation> Tabs,
         IReadOnlyList<NotchProfileOperation> Notches,
         IReadOnlyList<VectorContour> Holes,
-        IReadOnlyList<string> AppliedFeatureIds);
+        IReadOnlyList<string> AppliedFeatureIds,
+        IReadOnlyList<string> SegmentProvenance);
 }
