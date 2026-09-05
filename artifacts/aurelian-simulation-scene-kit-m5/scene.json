@@ -1,0 +1,34 @@
+{
+  "scenes": 2,
+  "anchors": 2,
+  "routes": 1,
+  "transition": {
+    "Source": {
+      "Value": "lab-a"
+    },
+    "Route": {
+      "Value": "lab-a-b"
+    },
+    "Destination": {
+      "Value": "lab-b"
+    },
+    "DestinationAnchor": {
+      "Value": "lab-b.entry"
+    }
+  },
+  "activation": {
+    "Previous": {
+      "Value": "lab-a"
+    },
+    "Current": {
+      "Value": "lab-b"
+    },
+    "Detail": 1
+  },
+  "Events": [
+    "leave:lab-a",
+    "enter:lab-b",
+    "camera:lab-b:lab-b.entry"
+  ],
+  "resolverAcceptanceRequiredBeforeHooks": true
+}

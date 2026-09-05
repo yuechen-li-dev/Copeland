@@ -5,5 +5,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Aurelian.Audio/Aurelian.Audio.csproj" />
+    <ProjectReference Include="../Aurelian.Simulation/Aurelian.Simulation.csproj" />
   </ItemGroup>
 </Project>

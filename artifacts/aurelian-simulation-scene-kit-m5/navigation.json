@@ -1,0 +1,67 @@
+{
+  "goal": {
+    "Request": {
+      "Kind": 0,
+      "Value": "drone-1:charging-dock:1"
+    },
+    "Scene": {
+      "Value": "lab-a"
+    },
+    "Anchor": {
+      "Value": "lab-a.dock"
+    }
+  },
+  "facts": [
+    {
+      "Request": {
+        "Kind": 0,
+        "Value": "drone-1:charging-dock:1"
+      },
+      "Outcome": 0,
+      "Detail": null
+    },
+    {
+      "Request": {
+        "Kind": 0,
+        "Value": "drone-1:charging-dock:1"
+      },
+      "Outcome": 1,
+      "Detail": null
+    },
+    {
+      "Request": {
+        "Kind": 0,
+        "Value": "drone-1:charging-dock:1"
+      },
+      "Outcome": 3,
+      "Detail": null
+    },
+    {
+      "Request": {
+        "Kind": 0,
+        "Value": "drone-1:charging-dock:1"
+      },
+      "Outcome": 5,
+      "Detail": null
+    }
+  ],
+  "scheduleMatch": {
+    "WindowId": "charge",
+    "SemanticTime": 25,
+    "Priority": 2,
+    "Goal": {
+      "Request": {
+        "Kind": 0,
+        "Value": "drone-1:charging-dock:1"
+      },
+      "Scene": {
+        "Value": "lab-a"
+      },
+      "Anchor": {
+        "Value": "lab-a.dock"
+      }
+    }
+  },
+  "planner": "TinyFarm retains the single DotRecast adapter; Aurelian coordinates proposal facts only",
+  "positionMutationByAurelian": false
+}

@@ -1,6 +1,7 @@
 using Aurelian.GameHost;
 using Aurelian.Audio;
 using Aurelian.Composition;
+using Aurelian.Simulation;
 using InputMan.Aurelian;
 using InputMan.Core;
 using TinyFarm.Core;
@@ -160,6 +161,29 @@ public sealed class GameHostInputM2Tests
         Assert.Contains("audio.dispose", log);
     }
 
+    [Fact]
+    public void HostDeltaFlowsThroughCadenceFactsBeforeApplicationSemantics()
+    {
+        var log = new List<string>();
+        var semantic = new FakeCadenceApplication(log);
+        var scheduler = new CadenceScheduler(
+            [new CadenceDefinition(new CadenceId("simulation"), RationalRate.PerSecond(20), 0)],
+            TimeSpan.FromSeconds(1));
+        var cadenceApplication = new AurelianCadenceApplication(scheduler, semantic);
+        using var host = new AurelianGameHost(
+            new FakeWindow(log),
+            new FakeInput(log),
+            new FakeCompositor(log),
+            cadenceApplication,
+            "CadenceM5Proof");
+
+        Assert.True(host.RunFrame(TimeSpan.FromMilliseconds(100)));
+
+        Assert.Equal(2, semantic.DueCount);
+        Assert.Contains("cadence:simulation:1", log);
+        Assert.Contains("cadence:simulation:2", log);
+    }
+
     private static SpatialMoveIntent MoveWith(Action<AurelianInputAdapter> input)
     {
         var engine = new InputManEngine(GameControls.CreateProfile());
@@ -205,6 +229,36 @@ public sealed class GameHostInputM2Tests
         public void OnSimulationTick(AurelianHostFrame frame) => log.Add("app.tick");
         public void OnRender(AurelianHostFrame frame) => log.Add("app.render");
         public void Dispose() => log.Add("app.dispose");
+    }
+
+    private sealed class FakeCadenceApplication(List<string> log) : IAurelianCadenceApplication
+    {
+        public SimulationExecutionRate ExecutionRate => SimulationExecutionRate.Normal;
+        public int DueCount { get; private set; }
+
+        public void OnResize(HostSurfaceSize size)
+        {
+            log.Add("cadence.resize");
+        }
+
+        public void OnCadenceAdvance(AurelianHostFrame frame, CadenceAdvanceResult advance)
+        {
+            foreach (DueWorkFact due in advance.DueWork)
+            {
+                DueCount++;
+                log.Add($"cadence:{due.Cadence.Value}:{due.Tick}");
+            }
+        }
+
+        public void OnRender(AurelianHostFrame frame)
+        {
+            log.Add("cadence.render");
+        }
+
+        public void Dispose()
+        {
+            log.Add("cadence.dispose");
+        }
     }
 
     private sealed class FakeAudio(List<string> log) : IAurelianAudioRuntime

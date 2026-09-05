@@ -1,3 +1,5 @@
+using Aurelian.Simulation;
+
 namespace TinyFarm.Core;
 
 public sealed record TinyFarmStepResult(
@@ -16,6 +18,7 @@ public sealed class TinyFarmSession
     private IReadOnlyList<GameEvent> recentEvents;
     private readonly INavigationPlanner navigationPlanner;
     private readonly TinyFarmNpcSchedule.Runtime scheduleRuntime;
+    private readonly SceneCatalog simulationScenes;
     private readonly Dictionary<ActorId, NpcPathState> npcPaths = [];
     private readonly Dictionary<ActorId, SceneAnchorId> npcNavigationTargets = [];
     private readonly List<KeyValuePair<ActorId, SceneAnchorId>> activeNpcMovementOrder = [];
@@ -59,6 +62,7 @@ public sealed class TinyFarmSession
         resolver = new TinyFarmResolver(definitions);
         this.navigationPlanner = navigationPlanner ?? new DotRecastNavigationPlanner();
         scheduleRuntime = TinyFarmNpcSchedule.CreateRuntime(definitions!.Schedules);
+        simulationScenes = TinyFarmAurelianSimulationBridge.Project(definitions.Scenes);
     }
 
     public TinyFarmState State { get; private set; }
@@ -378,8 +382,21 @@ public sealed class TinyFarmSession
         long radiusSquared = (long)anchor.ArrivalRadiusUnits * anchor.ArrivalRadiusUnits;
         bool wasReached = oldPlacement.Scene == anchor.Scene
             && oldPlacement.WorldPosition.SquaredDistance(anchor.Position) <= radiusSquared;
+        var goal = new NavigationGoal(
+            TinyFarmAurelianSimulationBridge.AnchorRequest(anchor.Id),
+            new SimulationSceneId(anchor.Scene.Value),
+            new SimulationAnchorId(anchor.Id.Value));
+        var destination = new SimulationAnchor(
+            goal.Anchor,
+            goal.Scene,
+            new SimulationPoint(anchor.Position.XUnits, anchor.Position.YUnits),
+            anchor.ArrivalRadiusUnits);
+        NavigationFact navigation = NavigationCoordinator.ObservePosition(
+            goal,
+            new SimulationPoint(newPlacement.WorldPosition.XUnits, newPlacement.WorldPosition.YUnits),
+            destination);
         bool isReached = newPlacement.Scene == anchor.Scene
-            && newPlacement.WorldPosition.SquaredDistance(anchor.Position) <= radiusSquared;
+            && navigation.Outcome == NavigationOutcome.Arrived;
         if (wasReached || !isReached)
         {
             return result;
@@ -492,11 +509,11 @@ public sealed class TinyFarmSession
         SceneId destinationScene = anchor.Scene;
         SceneObjectId? portal = null;
         ScenePosition goal;
-        NpcPathGoalIdentity goalIdentity;
+        NavigationRequestId goalIdentity;
         if (destinationScene == actor.Scene)
         {
             goal = anchor.Position;
-            goalIdentity = NpcPathGoalIdentity.ForAnchor(move.Anchor);
+            goalIdentity = TinyFarmAurelianSimulationBridge.AnchorRequest(move.Anchor);
             long radiusSquared = (long)anchor.ArrivalRadiusUnits * anchor.ArrivalRadiusUnits;
             if (actor.WorldPosition.SquaredDistance(goal) <= radiusSquared)
             {
@@ -513,7 +530,7 @@ public sealed class TinyFarmSession
             }
             portal = route.TriggerObject;
             goal = Center(scene.Placement(route.TriggerObject));
-            goalIdentity = NpcPathGoalIdentity.ForRoute(route.Id);
+            goalIdentity = TinyFarmAurelianSimulationBridge.RouteRequest(route.Id);
             InteractionTarget? target = TinyFarmSpatialQueries.SelectInteractionTarget(State, actor.Actor, Scenes);
             if (target?.SceneObject == portal)
             {
@@ -579,7 +596,7 @@ public sealed class TinyFarmSession
         ActorSceneState actor,
         SceneDefinition scene,
         ScenePosition goal,
-        NpcPathGoalIdentity goalIdentity)
+        NavigationRequestId goalIdentity)
     {
         if (npcPaths.TryGetValue(actor.Actor, out NpcPathState? cached)
             && cached.Scene == actor.Scene
@@ -597,22 +614,23 @@ public sealed class TinyFarmSession
 
     private SceneRoute? FirstRouteToward(SceneId source, SceneId destination)
     {
-        var queue = new Queue<(SceneId Scene, SceneRoute? First)>();
-        var visited = new HashSet<SceneId> { source };
-        queue.Enqueue((source, null));
+        var queue = new Queue<(SimulationSceneId Scene, SimulationRouteId? First)>();
+        var visited = new HashSet<SimulationSceneId> { new(source.Value) };
+        queue.Enqueue((new SimulationSceneId(source.Value), null));
         while (queue.Count > 0)
         {
-            (SceneId sceneId, SceneRoute? first) = queue.Dequeue();
-            foreach (SceneRoute route in Scenes.Get(sceneId).Routes.OrderBy(item => item.Id.Value, StringComparer.Ordinal))
+            (SimulationSceneId sceneId, SimulationRouteId? first) = queue.Dequeue();
+            foreach (SimulationRoute route in simulationScenes.GetScene(sceneId).Routes.OrderBy(item => item.Id.Value, StringComparer.Ordinal))
             {
-                SceneRoute firstRoute = first ?? route;
-                if (route.TargetScene == destination)
+                SimulationRouteId firstRoute = first ?? route.Id;
+                if (route.Destination == new SimulationSceneId(destination.Value))
                 {
-                    return firstRoute;
+                    SceneRouteId result = new(firstRoute.Value);
+                    return Scenes.Get(source).Routes.Single(item => item.Id == result);
                 }
-                if (visited.Add(route.TargetScene))
+                if (visited.Add(route.Destination))
                 {
-                    queue.Enqueue((route.TargetScene, firstRoute));
+                    queue.Enqueue((route.Destination, firstRoute));
                 }
             }
         }
@@ -628,28 +646,9 @@ public sealed class TinyFarmSession
 
     private sealed record NpcPathState(
         SceneId Scene,
-        NpcPathGoalIdentity GoalIdentity,
+        NavigationRequestId GoalIdentity,
         NavigationPath Path,
         int Index);
-
-    private enum NpcPathGoalKind
-    {
-        Anchor,
-        Route
-    }
-
-    private readonly record struct NpcPathGoalIdentity(NpcPathGoalKind Kind, string Value)
-    {
-        public static NpcPathGoalIdentity ForAnchor(SceneAnchorId anchor)
-        {
-            return new NpcPathGoalIdentity(NpcPathGoalKind.Anchor, anchor.Value);
-        }
-
-        public static NpcPathGoalIdentity ForRoute(SceneRouteId route)
-        {
-            return new NpcPathGoalIdentity(NpcPathGoalKind.Route, route.Value);
-        }
-    }
 
     public TinyFarmSave CaptureSave()
     {

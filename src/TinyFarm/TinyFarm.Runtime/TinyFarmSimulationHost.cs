@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using Aurelian.Simulation;
 using Copeland.TS.Tson;
 
 namespace TinyFarm.Core;
@@ -39,8 +40,9 @@ public sealed class TinyFarmSimulationHost
 {
     private readonly TinyFarmDefinitions definitions;
     private readonly TinyFarmSimulationRates rates;
-    private long worldTickAccumulator;
-    private long locomotionTickNumerator;
+    private readonly CadenceScheduler cadenceScheduler;
+    private static readonly CadenceId LocomotionCadence = new("tiny-farm.locomotion");
+    private static readonly CadenceId WorldCadence = new("tiny-farm.world-minute");
     private int playerMovementX;
     private int playerMovementY;
 
@@ -54,6 +56,17 @@ public sealed class TinyFarmSimulationHost
         this.definitions = definitions ?? throw new ArgumentNullException(nameof(definitions));
         this.rates = rates ?? TinyFarmSimulationRates.Default;
         ValidateRates(this.rates);
+        cadenceScheduler = new CadenceScheduler(
+        [
+            new CadenceDefinition(
+                LocomotionCadence,
+                RationalRate.PerSecond(this.rates.LocomotionHz),
+                Order: 0),
+            new CadenceDefinition(
+                WorldCadence,
+                RationalRate.EverySeconds(this.rates.NormalRealSecondsPerGameMinute),
+                Order: 1)
+        ], TimeSpan.FromSeconds(this.rates.MaximumHostDeltaSeconds));
         Session.EnableFixedNpcLocomotion();
         Mode = initialMode;
     }
@@ -63,6 +76,7 @@ public sealed class TinyFarmSimulationHost
     public TinyFarmSimulationMode Mode { get; private set; }
 
     public TinyFarmSimulationRates Rates => rates;
+    public string CadenceConfigurationIdentity => cadenceScheduler.ConfigurationIdentity;
 
     public long HostUpdates { get; private set; }
 
@@ -135,48 +149,40 @@ public sealed class TinyFarmSimulationHost
             return new TinyFarmHostAdvanceResult(0, 0, 0, 0, [], []);
         }
 
-        long maximumTicks = checked((long)rates.MaximumHostDeltaSeconds * TimeSpan.TicksPerSecond);
-        long acceptedTicks = Math.Min(elapsed.Ticks, maximumTicks);
-        long discardedTicks = elapsed.Ticks - acceptedTicks;
-        int multiplier = Mode == TinyFarmSimulationMode.FastForward
-            ? rates.FastForwardMultiplier
-            : 1;
-
-        long semanticTicks = checked(acceptedTicks * multiplier);
-        long ticksPerGameMinute = checked((long)rates.NormalRealSecondsPerGameMinute * TimeSpan.TicksPerSecond);
+        SimulationExecutionRate executionRate = Mode switch
+        {
+            TinyFarmSimulationMode.Paused => SimulationExecutionRate.Paused,
+            TinyFarmSimulationMode.Playing => SimulationExecutionRate.Normal,
+            TinyFarmSimulationMode.FastForward => SimulationExecutionRate.FastForward(rates.FastForwardMultiplier),
+            _ => throw new InvalidOperationException($"Unknown TinyFarm simulation mode '{Mode}'.")
+        };
+        CadenceAdvanceResult schedule = cadenceScheduler.Advance(elapsed, executionRate);
         long locomotionBefore = LocomotionStepsAdvanced;
         int minutesBefore = checked((int)WorldMinutesAdvanced);
         var results = new List<IntentResult>();
         var narrative = new List<NarrativeLine>();
 
-        while (semanticTicks > 0)
+        foreach (DueWorkFact due in schedule.DueWork)
         {
-            long ticksToLocomotion = DivideRoundUp(
-                TimeSpan.TicksPerSecond - locomotionTickNumerator,
-                rates.LocomotionHz);
-            long ticksToMinute = ticksPerGameMinute - worldTickAccumulator;
-            long advance = Math.Min(semanticTicks, Math.Min(ticksToLocomotion, ticksToMinute));
-            semanticTicks -= advance;
-            worldTickAccumulator += advance;
-            locomotionTickNumerator += checked(advance * rates.LocomotionHz);
-
-            if (locomotionTickNumerator >= TimeSpan.TicksPerSecond)
+            if (due.Cadence == LocomotionCadence)
             {
-                locomotionTickNumerator -= TimeSpan.TicksPerSecond;
                 AdvanceLocomotion(results, narrative);
+                continue;
             }
-            if (worldTickAccumulator >= ticksPerGameMinute)
+            if (due.Cadence == WorldCadence)
             {
-                worldTickAccumulator -= ticksPerGameMinute;
                 TinyFarmHostAdvanceResult minute = AdvanceMinutes(1);
                 results.AddRange(minute.Results);
                 narrative.AddRange(minute.Narrative);
+                continue;
             }
+
+            throw new InvalidOperationException($"Unknown TinyFarm cadence '{due.Cadence}'.");
         }
 
         return new TinyFarmHostAdvanceResult(
-            acceptedTicks,
-            discardedTicks,
+            schedule.HostTicksAccepted,
+            schedule.HostTicksDiscarded,
             checked((int)WorldMinutesAdvanced - minutesBefore),
             LocomotionStepsAdvanced - locomotionBefore,
             results,
@@ -217,8 +223,7 @@ public sealed class TinyFarmSimulationHost
     {
         Session = session ?? throw new ArgumentNullException(nameof(session));
         Session.EnableFixedNpcLocomotion();
-        worldTickAccumulator = 0;
-        locomotionTickNumerator = 0;
+        cadenceScheduler.Reset();
     }
 
     private void AdvanceLocomotion(List<IntentResult> results, List<NarrativeLine> narrative)
@@ -241,11 +246,6 @@ public sealed class TinyFarmSimulationHost
             results.AddRange(npc.Results);
             narrative.AddRange(npc.Narrative);
         }
-    }
-
-    private static long DivideRoundUp(long numerator, int denominator)
-    {
-        return (numerator + denominator - 1) / denominator;
     }
 
     public TinyFarmSimulationSnapshot Snapshot()

@@ -1,0 +1,44 @@
+{
+  "configurationIdentity": "c57542f8a964c7efdef7b931d86f552c14396aba095fc4e959ec291ea0732387",
+  "semantics": [
+    "physics-like=30Hz",
+    "agent=5Hz",
+    "pulse=2Hz"
+  ],
+  "tieOrder": [
+    "physics-like",
+    "agent",
+    "pulse"
+  ],
+  "sixtyHz": {
+    "ConfigurationIdentity": "c57542f8a964c7efdef7b931d86f552c14396aba095fc4e959ec291ea0732387",
+    "HostTicks": 10000000,
+    "DueCount": 37,
+    "Trace": "physics-like:1|physics-like:2|physics-like:3|physics-like:4|physics-like:5|physics-like:6|agent:1|physics-like:7|physics-like:8|physics-like:9|physics-like:10|physics-like:11|physics-like:12|agent:2|physics-like:13|physics-like:14|physics-like:15|pulse:1|physics-like:16|physics-like:17|physics-like:18|agent:3|physics-like:19|physics-like:20|physics-like:21|physics-like:22|physics-like:23|physics-like:24|agent:4|physics-like:25|physics-like:26|physics-like:27|physics-like:28|physics-like:29|physics-like:30|agent:5|pulse:2"
+  },
+  "oneFortyFourHz": {
+    "ConfigurationIdentity": "c57542f8a964c7efdef7b931d86f552c14396aba095fc4e959ec291ea0732387",
+    "HostTicks": 10000000,
+    "DueCount": 37,
+    "Trace": "physics-like:1|physics-like:2|physics-like:3|physics-like:4|physics-like:5|physics-like:6|agent:1|physics-like:7|physics-like:8|physics-like:9|physics-like:10|physics-like:11|physics-like:12|agent:2|physics-like:13|physics-like:14|physics-like:15|pulse:1|physics-like:16|physics-like:17|physics-like:18|agent:3|physics-like:19|physics-like:20|physics-like:21|physics-like:22|physics-like:23|physics-like:24|agent:4|physics-like:25|physics-like:26|physics-like:27|physics-like:28|physics-like:29|physics-like:30|agent:5|pulse:2"
+  },
+  "irregular": {
+    "ConfigurationIdentity": "c57542f8a964c7efdef7b931d86f552c14396aba095fc4e959ec291ea0732387",
+    "HostTicks": 3000000,
+    "DueCount": 10,
+    "Trace": "physics-like:1|physics-like:2|physics-like:3|physics-like:4|physics-like:5|physics-like:6|agent:1|physics-like:7|physics-like:8|physics-like:9"
+  },
+  "irregularEven": {
+    "ConfigurationIdentity": "c57542f8a964c7efdef7b931d86f552c14396aba095fc4e959ec291ea0732387",
+    "HostTicks": 3000000,
+    "DueCount": 10,
+    "Trace": "physics-like:1|physics-like:2|physics-like:3|physics-like:4|physics-like:5|physics-like:6|agent:1|physics-like:7|physics-like:8|physics-like:9"
+  },
+  "partitionInvariant": true,
+  "performance": {
+    "iterations": 10000,
+    "elapsedMilliseconds": 1.0508,
+    "allocatedBytes": 365640,
+    "bytesPerAdvance": 36.564
+  }
+}

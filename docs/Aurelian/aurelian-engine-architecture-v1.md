@@ -1,6 +1,6 @@
 # Aurelian engine architecture v1
 
-Status: current architecture after AURELIAN-CHKPT-M0 (TinyFarm M1–M21). This document is authoritative for the application/runtime architecture. Milestone reports remain evidence, not prerequisites.
+Status: current architecture after AURELIAN-SIMULATION-SCENE-KIT-M5. This document is authoritative for the application/runtime architecture. Milestone reports remain evidence, not prerequisites.
 
 ## 1. Purpose
 
@@ -58,6 +58,7 @@ Current project approximation:
 - `TinyFarm.MonoGame` is a leaf window/input/world/UI projection.
 - `Aurelian.World`, `Aurelian.Actuation`, `Aurelian.Runtime`, and rendering projects are reusable systems/runtime foundations but do not yet own TinyFarm's scene or resolver contracts.
 - `Aurelian.Spatial2D` owns deterministic world-unit geometry queries, continuous sweep/slide accepted-displacement facts, trigger diffs, and stable spatial diagnostics. It owns no actors, gameplay callbacks, timestep, or rigid-body state.
+- `Aurelian.Simulation` owns ordered rational cadence production, accepted/discarded host-time accounting, generic scene/anchor/route queries, transition handoff, deterministic schedule selection, and navigation coordination facts. It owns no world-time meaning, actors, pathfinder, position mutation, schedule content, or inactive-scene policy.
 - `Machina.*` owns renderer-neutral UI authoring, layout, semantics, hit testing, input records, interaction helpers, and presentation operations.
 - Dominatus owns decision policy and flow, not application mutation.
 - Copeland/TSON owns authored table/program truth and its compilation/loading path, not mutable application state.
@@ -76,6 +77,16 @@ An application owns:
 6. controller policies expressed as intent production.
 
 Application authors should usually define content, scenes/routes, state, concrete actions/reducers, and policy, then select runtime and presentation capabilities. They should not normally write fixed-step accumulators, event envelopes, save container versioning, input-edge tracking, renderer synchronization, navigation mesh plumbing, or window adapters.
+
+The qualified M5 timing boundary is:
+
+```text
+host delta -> CadenceScheduler -> ordered DueWorkFact -> application resolver -> authoritative state
+```
+
+Host, render, simulation cadence, world, and agent-decision time remain distinct domains. Pause emits no cadence work and accrues no debt. Fast-forward scales cadence production without skipping semantic work. Explicit cadence order resolves simultaneous boundaries. Configuration identity participates in replay/save compatibility metadata, while application state and semantic intents remain replay authority.
+
+> Aurelian supplies cadence, scene, and navigation mechanisms. Applications define world-time meaning, schedule content, and simulation policy.
 
 ## 6. Scene model
 

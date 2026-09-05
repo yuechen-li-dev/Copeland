@@ -1,0 +1,15 @@
+{
+  "milestone": "AURELIAN-SIMULATION-SCENE-KIT-M5",
+  "kind": "ordered-multirate-simulation-scene-nav-schedule-bridge",
+  "genericCadenceSchedulerQualified": true,
+  "secondConsumerQualified": true,
+  "tinyFarmParityQualified": true,
+  "sceneCatalogBridgeQualified": true,
+  "navigationAdapterQualified": true,
+  "scheduleBridgeQualified": true,
+  "activeInactiveMechanismQualified": true,
+  "gameMinuteSemanticsInEngine": false,
+  "farmingSemanticsInEngine": false,
+  "npcJobFrameworkAdded": false,
+  "pathfinderDuplicated": false
+}

@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Aurelian.Simulation;
 using System.Collections.Concurrent;
 using Dominatus.Core;
 using Dominatus.Core.Blackboard;
@@ -294,28 +295,16 @@ public static partial class TinyFarmNpcSchedule
         ActorId actor,
         int minute)
     {
-        int day = minute / MinutesPerDay + 1;
-        int minuteOfDay = minute % MinutesPerDay;
-        TinyFarmScheduleWindow? winner = null;
-        foreach (TinyFarmScheduleWindow window in catalog.ForActor(actor))
-        {
-            if (!Matches(window, actor, day, minuteOfDay))
-            {
-                continue;
-            }
-
-            if (winner is null || window.Priority > winner.Priority)
-            {
-                winner = window;
-                continue;
-            }
-
-            if (window.Priority == winner.Priority && window.Id != winner.Id)
-            {
-                throw new InvalidOperationException(
-                    $"Schedule windows tie for actor '{actor}' at minute {minute} and priority {window.Priority}.");
-            }
-        }
+        TinyFarmScheduleWindow? winner = DeterministicSchedule.Select(
+            catalog.ForActor(actor),
+            minute,
+            static (window, time) => Matches(
+                window,
+                window.Actor,
+                checked((int)(time / MinutesPerDay) + 1),
+                checked((int)(time % MinutesPerDay))),
+            static window => window.Id,
+            static window => window.Priority);
 
         if (winner is null)
         {

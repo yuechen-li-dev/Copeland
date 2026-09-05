@@ -1,0 +1,10 @@
+{
+  "milestone": "AURELIAN-SIMULATION-SCENE-KIT-M5",
+  "outcome": "A",
+  "partitionInvariant": true,
+  "secondConsumerQualified": true,
+  "tinyFarmM13Outcome": "A",
+  "scheduleGoal": "drone-1:charging-dock:1",
+  "navigationArrival": "Arrived",
+  "sceneTransition": "lab-a-\u003Elab-b"
+}
