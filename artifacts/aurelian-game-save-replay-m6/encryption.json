@@ -1,0 +1,14 @@
+{
+  "optional": true,
+  "defaultEncrypted": false,
+  "algorithm": "AES-256-GCM",
+  "nonceBytes": 12,
+  "tagBytes": 16,
+  "keyOwner": "caller-provider",
+  "pipeline": ["serialize", "compress", "encrypt", "store"],
+  "roundTripQualified": true,
+  "uniqueNonceQualified": true,
+  "wrongKeyRejected": true,
+  "ciphertextTamperRejected": true,
+  "missingKeyRejected": true
+}

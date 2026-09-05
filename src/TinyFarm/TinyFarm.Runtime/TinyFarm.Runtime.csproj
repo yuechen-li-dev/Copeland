@@ -8,6 +8,8 @@
     <ProjectReference Include="../../Aurelian/Aurelian.Audio/Aurelian.Audio.csproj" />
     <ProjectReference Include="../../Aurelian/Aurelian.Simulation/Aurelian.Simulation.csproj" />
     <ProjectReference Include="../../Copeland/Copeland.TS/Copeland.TS.csproj" />
+    <ProjectReference Include="../../../../Deliverance/src/Deliverance.Core/Deliverance.Core.csproj" />
+    <ProjectReference Include="../../../../Deliverance/src/Deliverance.Dominatus/Deliverance.Dominatus.csproj" />
     <PackageReference Include="Dominatus.Core" />
     <PackageReference Include="Dominatus.OptFlow" />
     <PackageReference Include="Ariadne.OptFlow" />

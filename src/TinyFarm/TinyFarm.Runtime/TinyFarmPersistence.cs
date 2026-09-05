@@ -109,7 +109,7 @@ public static class TinyFarmChunkedSaveCodec
     public static readonly ChunkId AgentChunk = new("tinyfarm.agents");
     public static readonly ChunkId NarrativeChunk = new("tinyfarm.narrative");
 
-    private static readonly JsonSerializerOptions ChunkOptions = new()
+    internal static readonly JsonSerializerOptions ChunkOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = false,
@@ -180,7 +180,7 @@ public static class TinyFarmChunkedSaveCodec
         }
     }
 
-    private static void ValidateWorld(TinyFarmState state, TinyFarmDefinitions definitions)
+    internal static void ValidateWorld(TinyFarmState state, TinyFarmDefinitions definitions)
     {
         if (state.Version != TinyFarmState.SaveVersion
             && state.Version != TinyFarmState.SceneSaveVersion
@@ -410,7 +410,7 @@ public static class TinyFarmChunkedSaveCodec
         }
     }
 
-    private static string RuntimeVersionFor(int gameVersion)
+    internal static string RuntimeVersionFor(int gameVersion)
     {
         if (gameVersion >= TinyFarmState.DungeonCombatSaveVersion)
         {

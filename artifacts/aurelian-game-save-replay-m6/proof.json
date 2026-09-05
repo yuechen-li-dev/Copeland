@@ -1,0 +1,15 @@
+{
+  "application": "tiny-farm",
+  "module": "tinyfarm.semantic-state",
+  "moduleSchema": 2,
+  "saveLoadSemanticHashParity": true,
+  "midActionNpcPositionParity": true,
+  "sceneTransitionRestored": true,
+  "selectedHotbarSlotRestored": 4,
+  "worldMinuteRestored": 777,
+  "heldInputRestored": false,
+  "navigationCacheRestored": false,
+  "rendererStateSerialized": false,
+  "audioVoiceStateSerialized": false,
+  "spatialCacheSerialized": false
+}

@@ -1,0 +1,14 @@
+{
+  "formatVersion": 1,
+  "application": "tiny-farm",
+  "checkpointKind": "semantic-state",
+  "tapeKind": "ordered-game-intents",
+  "authoritativeResolverReused": true,
+  "intentCount": 2,
+  "intentTypes": ["select-hotbar-slot", "attack"],
+  "finalSemanticHashParity": true,
+  "definitionMismatchDiagnostic": true,
+  "cadenceMismatchDiagnostic": true,
+  "checkpointMismatchDiagnostic": true,
+  "indexAndSequenceDivergenceDiagnostic": true
+}

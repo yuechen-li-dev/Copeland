@@ -1,9 +1,12 @@
+using System.Text.Json.Serialization;
+
 namespace TinyFarm.Core;
 
 public readonly record struct HotbarSlotId
 {
     public const int Count = 8;
 
+    [JsonConstructor]
     public HotbarSlotId(int value)
     {
         if (value is < 1 or > Count)

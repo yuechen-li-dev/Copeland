@@ -1,0 +1,17 @@
+{
+  "milestone": "AURELIAN-GAME-SAVE-REPLAY-M6",
+  "outcome": "A",
+  "deliveranceFinished": true,
+  "explicitSemanticSnapshots": true,
+  "reflectionStateDiscoveryUsed": false,
+  "containerVersionSeparatedFromModuleVersion": true,
+  "moduleMigrationsQualified": true,
+  "defaultSaveExtensionDefined": true,
+  "optionalEncryptionQualified": true,
+  "authenticatedEncryptionUsed": true,
+  "dominatusPersistenceActuatorIntegrated": true,
+  "semanticIntentReplayQualified": true,
+  "rendererStateSerialized": false,
+  "inputDeviceStateSerialized": false,
+  "audioVoiceStateSerialized": false
+}

@@ -113,6 +113,16 @@ public sealed class TinyFarmSimulationHost
         playerMovementY = deltaY;
     }
 
+    public void CommitLoadedSession(TinyFarmSession candidate)
+    {
+        ArgumentNullException.ThrowIfNull(candidate);
+        Session = candidate;
+        Session.EnableFixedNpcLocomotion();
+        playerMovementX = 0;
+        playerMovementY = 0;
+        cadenceScheduler.Reset();
+    }
+
     public void Execute(TinyFarmSimulationCommand command)
     {
         ArgumentNullException.ThrowIfNull(command);

@@ -1,0 +1,13 @@
+{
+  "magic": "DLVR",
+  "containerFormatVersion": 2,
+  "legacyContainerVersionReadable": 1,
+  "legacyWriterEnabled": false,
+  "applicationSaveVersion": 1,
+  "tinyFarmModuleSchemaVersion": 2,
+  "replayFormatVersion": 1,
+  "definitionHashRequired": true,
+  "cadenceHashRequired": true,
+  "newerRequiredModulePolicy": "reject",
+  "newerOptionalModulePolicy": "warn-and-skip"
+}

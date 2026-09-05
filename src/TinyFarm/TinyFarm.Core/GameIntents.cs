@@ -2,6 +2,31 @@ using System.Text.Json.Serialization;
 
 namespace TinyFarm.Core;
 
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
+[JsonDerivedType(typeof(MoveIntent), "move")]
+[JsonDerivedType(typeof(NavigateToAnchorIntent), "navigate-anchor")]
+[JsonDerivedType(typeof(AnchorReachedIntent), "anchor-reached")]
+[JsonDerivedType(typeof(AnchorNavigationFailedIntent), "anchor-failed")]
+[JsonDerivedType(typeof(SpatialMoveIntent), "spatial-move")]
+[JsonDerivedType(typeof(InteractIntent), "interact")]
+[JsonDerivedType(typeof(LookIntent), "look")]
+[JsonDerivedType(typeof(TalkIntent), "talk")]
+[JsonDerivedType(typeof(TakeIntent), "take")]
+[JsonDerivedType(typeof(GiveIntent), "give")]
+[JsonDerivedType(typeof(BuyIntent), "buy-item")]
+[JsonDerivedType(typeof(SellIntent), "sell-item")]
+[JsonDerivedType(typeof(BuyProductIntent), "buy-product")]
+[JsonDerivedType(typeof(SellProductIntent), "sell-product")]
+[JsonDerivedType(typeof(PlantIntent), "plant")]
+[JsonDerivedType(typeof(WaterIntent), "water")]
+[JsonDerivedType(typeof(HarvestIntent), "harvest")]
+[JsonDerivedType(typeof(GatherIntent), "gather")]
+[JsonDerivedType(typeof(CookIntent), "cook")]
+[JsonDerivedType(typeof(ChopIntent), "chop")]
+[JsonDerivedType(typeof(AttackIntent), "attack")]
+[JsonDerivedType(typeof(SelectHotbarSlotIntent), "select-hotbar")]
+[JsonDerivedType(typeof(UseSelectedIntent), "use-selected")]
+[JsonDerivedType(typeof(WaitIntent), "wait")]
 public abstract record GameIntent;
 
 public sealed record MoveIntent(LocationId Destination) : GameIntent;

@@ -1,0 +1,19 @@
+{
+  "deliveranceFixture": {
+    "module": "profile",
+    "path": [1, 2, 3],
+    "exactResultQualified": true
+  },
+  "tinyFarmFixture": {
+    "module": "tinyfarm.semantic-state",
+    "path": [1, 2],
+    "owner": "TinyFarm",
+    "validatedBeforeCommit": true,
+    "semanticHashParity": true
+  },
+  "containerLegacy": {
+    "v1Fixture": "golden_v1.dlv_b",
+    "policy": "read-only-import",
+    "v2Policy": "current"
+  }
+}
