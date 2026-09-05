@@ -966,6 +966,8 @@ public static class TemplateCompiler
                     ResolveTypeArgument(array.ElementType, activeTypeArguments)),
                 MutableArrayTypeSymbol array => new MutableArrayTypeSymbol(
                     ResolveTypeArgument(array.ElementType, activeTypeArguments)),
+                SpanTypeSymbol span => new SpanTypeSymbol(
+                    ResolveTypeArgument(span.ElementType, activeTypeArguments)),
                 ResultTypeSymbol result => new ResultTypeSymbol(
                     ResolveTypeArgument(result.SuccessType, activeTypeArguments),
                     ResolveTypeArgument(result.ErrorType, activeTypeArguments)),
@@ -979,6 +981,7 @@ public static class TemplateCompiler
                 RecordTypeSymbol record => record.StableIdentity ?? record.Name,
                 EnumTypeSymbol @enum => @enum.StableIdentity ?? @enum.Name,
                 ArrayTypeSymbol array => "array(" + TypeIdentity(array.ElementType) + ")",
+                SpanTypeSymbol span => "span(" + TypeIdentity(span.ElementType) + ")",
                 ResultTypeSymbol result => "result(" + TypeIdentity(result.SuccessType) + "," + TypeIdentity(result.ErrorType) + ")",
                 _ => type.Name,
             };

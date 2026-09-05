@@ -600,6 +600,25 @@ may not mutate outer state, call CLR/npm/callables, use inline C#/async, or nest
 `batch`. Async batch, reduction, filter, flattening, and arbitrary iterables
 are deferred.
 
+### Spans
+
+`Span<T>` means a contiguous ordered region of `T`. It is a compiler-known
+generic value family, not a Profile-specific syntax form. Span element types
+are invariant, indexing is ordered, and the minimal common surface is
+`span.length` plus read-only `span[index]`. `SpanOf(values)` creates an
+immutable span view from an ordered array in compile-time authoring code;
+an empty span is a valid general value.
+
+The semantic contract does not prescribe one physical representation. Current
+ordinary backend lowering uses the existing immutable-array carrier. Profile
+authoring erases `Span<ProfileSegment>` into an owner-bound boundary selection
+or an immutable connected replacement sequence. A future systems profile may
+lower `Span<T>` to non-owning contiguous memory such as pointer plus length.
+Those representations share the same semantic abstraction but are not required
+to share a runtime layout. `Span<CurveSegment>` is the intended future spelling
+for contiguous open line-art and traced-contour regions; M4 adds no line-art
+runtime.
+
 ### Arrays
 
 Arrays are finite, ordered `T[]` values. They expose only the small

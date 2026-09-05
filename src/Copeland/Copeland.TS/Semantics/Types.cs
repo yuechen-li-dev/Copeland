@@ -48,6 +48,17 @@ public sealed class MutableArrayTypeSymbol(TypeSymbol elementType) : TypeSymbol
 }
 
 /// <summary>
+/// A contiguous ordered region of values. Span is a semantic, non-owning view;
+/// domains may choose different immutable compile-time representations.
+/// </summary>
+public sealed class SpanTypeSymbol(TypeSymbol elementType) : TypeSymbol
+{
+    public TypeSymbol ElementType { get; } = elementType;
+
+    public override string Name => $"Span<{ElementType.Name}>";
+}
+
+/// <summary>
 /// A finite, non-nominal compiler type. It describes data shape only and never
 /// causes a CLR or JavaScript runtime carrier to be emitted.
 /// </summary>
@@ -373,6 +384,7 @@ public static class TypeFacts
             (ColumnTypeSymbol leftColumn, ColumnTypeSymbol rightColumn) => AreEquivalent(leftColumn.ElementType, rightColumn.ElementType),
             (ArrayTypeSymbol leftArray, ArrayTypeSymbol rightArray) => AreEquivalent(leftArray.ElementType, rightArray.ElementType),
             (MutableArrayTypeSymbol leftArray, MutableArrayTypeSymbol rightArray) => AreEquivalent(leftArray.ElementType, rightArray.ElementType),
+            (SpanTypeSymbol leftSpan, SpanTypeSymbol rightSpan) => AreEquivalent(leftSpan.ElementType, rightSpan.ElementType),
             (ResultTypeSymbol leftResult, ResultTypeSymbol rightResult) =>
                 AreEquivalent(leftResult.SuccessType, rightResult.SuccessType)
                 && AreEquivalent(leftResult.ErrorType, rightResult.ErrorType),

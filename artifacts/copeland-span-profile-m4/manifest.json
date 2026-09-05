@@ -1,0 +1,23 @@
+{
+  "milestone": "COPELAND-SPAN-PROFILE-M4",
+  "kind": "generic-span-connected-profile-replacement",
+  "outcome": "B",
+  "spanIsLanguageLevel": true,
+  "spanSemanticLaw": "contiguous-ordered-region",
+  "profileSpanSupported": true,
+  "memorySpanRuntimeImplemented": false,
+  "replaceSpanSupported": true,
+  "replaceSegmentUsesSameCore": true,
+  "multiSpanFeaturesSupported": true,
+  "dovetailTabQualified": true,
+  "vNotchQualified": true,
+  "gearToothSpanQualified": true,
+  "gearToothRadialApplicationQualified": false,
+  "closednessPreservedByConstruction": true,
+  "runtimeGeometryInterpreterAdded": false,
+  "rendererChanged": false,
+  "focusedTests": 9,
+  "profileAndTemplateRegressionTests": 110,
+  "requiredSolutionTestExecutions": 6491,
+  "exactNextPressurePoint": "radial-application-of-owner-bound-authored-span"
+}

@@ -2724,6 +2724,9 @@ public static class Binder
                 case ArrayTypeSymbol arrayType:
                     foreach (var nested in EnumerateContainedRecordTypes(arrayType.ElementType, visited)) yield return nested;
                     break;
+                case SpanTypeSymbol spanType:
+                    foreach (var nested in EnumerateContainedRecordTypes(spanType.ElementType, visited)) yield return nested;
+                    break;
                 case ResultTypeSymbol resultType:
                     foreach (var nested in EnumerateContainedRecordTypes(resultType.SuccessType, visited)) yield return nested;
                     foreach (var nested in EnumerateContainedRecordTypes(resultType.ErrorType, visited)) yield return nested;
@@ -9766,6 +9769,9 @@ public static class Binder
                     case ArrayTypeSymbol array:
                         pending.Push(array.ElementType);
                         break;
+                    case SpanTypeSymbol span:
+                        pending.Push(span.ElementType);
+                        break;
                     case ResultTypeSymbol result:
                         pending.Push(result.SuccessType);
                         pending.Push(result.ErrorType);
@@ -9814,6 +9820,12 @@ public static class Binder
                 switch (item.Pattern, item.Actual)
                 {
                     case (ArrayTypeSymbol expected, ArrayTypeSymbol received):
+                        worklist.Push((expected.ElementType, received.ElementType, item.Depth + 1));
+                        break;
+                    case (SpanTypeSymbol expected, SpanTypeSymbol received):
+                        worklist.Push((expected.ElementType, received.ElementType, item.Depth + 1));
+                        break;
+                    case (SpanTypeSymbol expected, ArrayTypeSymbol received):
                         worklist.Push((expected.ElementType, received.ElementType, item.Depth + 1));
                         break;
                     case (ResultTypeSymbol expected, ResultTypeSymbol received):
@@ -10321,6 +10333,7 @@ public static class Binder
                 TypeParameterTypeSymbol => true,
                 ArrayTypeSymbol array => IsOpenOrIllegalTypeArgument(array.ElementType),
                 MutableArrayTypeSymbol array => IsOpenOrIllegalTypeArgument(array.ElementType),
+                SpanTypeSymbol span => IsOpenOrIllegalTypeArgument(span.ElementType),
                 ResultTypeSymbol result => IsOpenOrIllegalTypeArgument(result.SuccessType) || IsOpenOrIllegalTypeArgument(result.ErrorType),
                 _ => false
             };
@@ -10419,6 +10432,7 @@ public static class Binder
                 ColumnTypeSymbol column => "column(" + ClosedTypeIdentity(column.ElementType, depthRemaining - 1) + ")",
                 ArrayTypeSymbol array => "array(" + ClosedTypeIdentity(array.ElementType, depthRemaining - 1) + ")",
                 MutableArrayTypeSymbol array => "mutable-array(" + ClosedTypeIdentity(array.ElementType, depthRemaining - 1) + ")",
+                SpanTypeSymbol span => "span(" + ClosedTypeIdentity(span.ElementType, depthRemaining - 1) + ")",
                 ResultTypeSymbol result => "result(" + ClosedTypeIdentity(result.SuccessType, depthRemaining - 1) + "," + ClosedTypeIdentity(result.ErrorType, depthRemaining - 1) + ")",
                 CallableTypeSymbol callable => "callable(" + string.Join(",", callable.Parameters.Select(parameter => ClosedTypeIdentity(parameter.Type, depthRemaining - 1))) + ")->" + ClosedTypeIdentity(callable.ReturnType, depthRemaining - 1),
                 _ => "type:" + type.Name
@@ -10628,6 +10642,9 @@ public static class Binder
                 case ArrayTypeSymbol array:
                     ValidateClosedTypeDepth(array.ElementType, depthRemaining - 1);
                     break;
+                case SpanTypeSymbol span:
+                    ValidateClosedTypeDepth(span.ElementType, depthRemaining - 1);
+                    break;
                 case ResultTypeSymbol result:
                     ValidateClosedTypeDepth(result.SuccessType, depthRemaining - 1);
                     ValidateClosedTypeDepth(result.ErrorType, depthRemaining - 1);
@@ -10673,6 +10690,7 @@ public static class Binder
             {
                 ArrayTypeSymbol array => new ArrayTypeSymbol(SubstituteType(array.ElementType, substitutions)),
                 MutableArrayTypeSymbol array => new MutableArrayTypeSymbol(SubstituteType(array.ElementType, substitutions)),
+                SpanTypeSymbol span => new SpanTypeSymbol(SubstituteType(span.ElementType, substitutions)),
                 IterableTypeSymbol iterable => new IterableTypeSymbol(SubstituteType(iterable.ElementType, substitutions)),
                 ResultTypeSymbol result => new ResultTypeSymbol(SubstituteType(result.SuccessType, substitutions), SubstituteType(result.ErrorType, substitutions)),
                 ColumnTypeSymbol column => new ColumnTypeSymbol(SubstituteType(column.ElementType, substitutions)),
@@ -11792,6 +11810,9 @@ public static class Binder
                     case MutableArrayTypeSymbol array:
                         pending.Push(array.ElementType);
                         break;
+                    case SpanTypeSymbol span:
+                        pending.Push(span.ElementType);
+                        break;
                     case ResultTypeSymbol result:
                         pending.Push(result.SuccessType);
                         pending.Push(result.ErrorType);
@@ -12069,6 +12090,16 @@ public static class Binder
                 Report("COPE-ARRAY-0001", $"Array values support only the 'length' property; '{m.NameToken.Text}' is not available.", m.NameToken);
                 return new BoundErrorExpression();
             }
+            if (receiver.Type is SpanTypeSymbol)
+            {
+                if (m.NameToken.Text == "length")
+                {
+                    return new BoundArrayLengthExpression(receiver);
+                }
+
+                Report("COPE-SPAN-0002", $"Span values support only the 'length' property; '{m.NameToken.Text}' is not available.", m.NameToken);
+                return new BoundErrorExpression();
+            }
             if (receiver.Type is MutableArrayTypeSymbol mutableArray)
             {
                 if (m.NameToken.Text == "length")
@@ -12331,6 +12362,15 @@ public static class Binder
 
                 return new BoundArrayElementAccessExpression(receiver, boundIndex, array);
             }
+            if (receiver.Type is SpanTypeSymbol span)
+            {
+                if (boundIndex.Type != PrimitiveTypeSymbol.Int)
+                {
+                    Report("COPE-SPAN-0003", "Span indexes must have type int.", index.OpenBracketToken);
+                    return new BoundErrorExpression();
+                }
+                return new BoundArrayElementAccessExpression(receiver, boundIndex, new ArrayTypeSymbol(span.ElementType));
+            }
             if (receiver.Type is MutableArrayTypeSymbol mutableArray)
             {
                 if (boundIndex.Type != PrimitiveTypeSymbol.Int)
@@ -12546,6 +12586,8 @@ public static class Binder
                 IntersectionTypeSyntax i => new IntersectionTypeSymbol([BindType(i.Left, anchor, missingId, missingPrefix), BindType(i.Right, anchor, missingId, missingPrefix)]),
                 GenericTypeSyntax generic => generic.Identifier.Text == "MutableArray"
                     ? BindMutableArrayType(generic, anchor, missingId, missingPrefix)
+                    : generic.Identifier.Text == "Span"
+                        ? BindSpanType(generic, anchor, missingId, missingPrefix)
                     : generic.Identifier.Text == "Option"
                         ? BindOptionType(generic, anchor, missingId, missingPrefix)
                         : BindStructuralProjection(generic, anchor, missingId, missingPrefix),
@@ -12570,6 +12612,17 @@ public static class Binder
                 return PrimitiveTypeSymbol.Error;
             }
             return new MutableArrayTypeSymbol(BindType(syntax.TypeArguments[0], anchor, missingId, missingPrefix));
+        }
+
+        private TypeSymbol BindSpanType(GenericTypeSyntax syntax, SyntaxToken anchor, string missingId, string missingPrefix)
+        {
+            if (syntax.TypeArguments.Count != 1)
+            {
+                Report("COPE-SPAN-0001", "Span expects exactly one element type.", syntax.Identifier);
+                return PrimitiveTypeSymbol.Error;
+            }
+
+            return new SpanTypeSymbol(BindType(syntax.TypeArguments[0], anchor, missingId, missingPrefix));
         }
 
         private TypeSymbol BindOptionType(GenericTypeSyntax syntax, SyntaxToken anchor, string missingId, string missingPrefix)
@@ -12979,6 +13032,10 @@ public static class Binder
             {
                 return IsAssignable(option.ValueType, actual);
             }
+            if (target is SpanTypeSymbol span && actual is ArrayTypeSymbol array)
+            {
+                return IsAssignable(span.ElementType, array.ElementType);
+            }
             return false;
         }
 
@@ -13083,6 +13140,9 @@ public static class Binder
                     case ArrayTypeSymbol array:
                         pending.Push((array.ElementType, false));
                         break;
+                    case SpanTypeSymbol span:
+                        pending.Push((span.ElementType, false));
+                        break;
                     case ColumnTypeSymbol column:
                         pending.Push((column.ElementType, false));
                         break;
@@ -13111,6 +13171,7 @@ public static class Binder
             CallableTypeSymbol => true,
             ArrayTypeSymbol array => ContainsCallable(array.ElementType),
             MutableArrayTypeSymbol array => ContainsCallable(array.ElementType),
+            SpanTypeSymbol span => ContainsCallable(span.ElementType),
             ResultTypeSymbol result => ContainsCallable(result.SuccessType) || ContainsCallable(result.ErrorType),
             ColumnTypeSymbol column => ContainsCallable(column.ElementType),
             _ => false,

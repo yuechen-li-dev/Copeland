@@ -25,7 +25,8 @@ public static class ProfileCompiler
                 [],
                 [],
                 [],
-                Enumerable.Repeat("Base", SegmentCount(baseShape)).ToArray());
+                Enumerable.Repeat("Base", SegmentCount(baseShape)).ToArray(),
+                InitialSegmentIdentities(baseShape));
             states.Add(definition.BaseState, first);
             summaries.Add(Summary(0, definition.BaseState, null, definition.Base.Kind, first));
 
@@ -109,6 +110,8 @@ public static class ProfileCompiler
                 return RepeatRadial(input, repeat);
             case ReplaceSegmentProfileOperation replace:
                 return ReplaceSegment(input, replace);
+            case ReplaceSpanProfileOperation replace:
+                return ReplaceSpan(input, replace);
             case TransformProfileOperation transform:
                 return Changed(input, operation, ProfileGeometry.Transform(input.Shape, transform.TransformKind, transform.A, transform.B), clearBase: true);
             default:
@@ -141,6 +144,56 @@ public static class ProfileCompiler
         };
     }
 
+    private static WorkingState ReplaceSpan(WorkingState input, ReplaceSpanProfileOperation operation)
+    {
+        if (!string.Equals(operation.Target.OwnerState, operation.InputState, StringComparison.Ordinal))
+        {
+            throw new ProfileResolutionException(
+                "COPE-PROFILE-0047",
+                $"Feature '{operation.FeatureId}' uses a stale or cross-profile span owned by state '{operation.Target.OwnerState}', not current state '{operation.InputState}'.",
+                operation.Span);
+        }
+
+        VectorSegment[] replacements = operation.Replacement
+            .Select(ProfileGeometry.CreateReplacementSegment)
+            .ToArray();
+        VectorShape shape;
+        try
+        {
+            shape = ProfileGeometry.ReplaceSpan(
+                input.Shape,
+                operation.Target.StartSegmentIndex,
+                operation.Target.SegmentCount,
+                replacements);
+        }
+        catch (ProfileResolutionException exception)
+        {
+            throw new ProfileResolutionException(
+                exception.Id,
+                $"Feature '{operation.FeatureId}' targeting span '{operation.Target.StartSegmentIndex}+{operation.Target.SegmentCount}': {exception.Message}",
+                operation.Span);
+        }
+
+        string[] provenance = input.SegmentProvenance
+            .Take(operation.Target.StartSegmentIndex)
+            .Concat(Enumerable.Repeat(operation.FeatureId, replacements.Length))
+            .Concat(input.SegmentProvenance.Skip(operation.Target.StartSegmentIndex + operation.Target.SegmentCount))
+            .ToArray();
+        string[] identities = input.SegmentIdentities
+            .Take(operation.Target.StartSegmentIndex)
+            .Concat(Enumerable.Range(0, replacements.Length).Select(index => $"feature:{operation.FeatureId}/segment:{index}"))
+            .Concat(input.SegmentIdentities.Skip(operation.Target.StartSegmentIndex + operation.Target.SegmentCount))
+            .ToArray();
+        return input with
+        {
+            Shape = shape,
+            Base = null,
+            AppliedFeatureIds = input.AppliedFeatureIds.Append(operation.FeatureId).ToArray(),
+            SegmentProvenance = provenance,
+            SegmentIdentities = identities,
+        };
+    }
+
     private static WorkingState Changed(WorkingState input, ProfileOperation operation, VectorShape shape, bool clearBase)
     {
         return input with
@@ -149,6 +202,7 @@ public static class ProfileCompiler
             Base = clearBase ? null : input.Base,
             AppliedFeatureIds = input.AppliedFeatureIds.Append(operation.FeatureId).ToArray(),
             SegmentProvenance = Enumerable.Repeat(operation.FeatureId, SegmentCount(shape)).ToArray(),
+            SegmentIdentities = InitialSegmentIdentities(shape),
         };
     }
 
@@ -301,6 +355,19 @@ public static class ProfileCompiler
                         diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0041", "ReplaceSegment requires a non-negative selector and finite curve parameters.", replace.Span));
                     }
                     break;
+                case ReplaceSpanProfileOperation replace:
+                    if (replace.Target.StartSegmentIndex < 0
+                        || replace.Target.SegmentCount <= 0
+                        || replace.Replacement.Count == 0
+                        || replace.Replacement.Any(segment => !Finite(segment.Start)
+                            || !Finite(segment.End)
+                            || !double.IsFinite(segment.Amount)
+                            || segment.Kind == ProfileCurveKind.Spline
+                                && (!Finite(segment.Control1) || !Finite(segment.Control2))))
+                    {
+                        diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0044", "ReplaceSpan requires non-empty finite target and replacement spans.", replace.Span));
+                    }
+                    break;
                 case TransformProfileOperation transform:
                     if (!double.IsFinite(transform.A) || !double.IsFinite(transform.B)
                         || transform.TransformKind == "Scale" && (transform.A == 0 || transform.B == 0))
@@ -403,9 +470,15 @@ public static class ProfileCompiler
             Segments = state.Shape.Contours
                 .SelectMany((contour, contourIndex) => contour.Segments.Select((segment, segmentIndex) => (contourIndex, segmentIndex, segment)))
                 .Select((item, flatIndex) => new ProfileSegmentSummary(
-                    $"contour:{item.contourIndex}/segment:{item.segmentIndex}",
+                    flatIndex < state.SegmentIdentities.Count
+                        ? state.SegmentIdentities[flatIndex]
+                        : $"contour:{item.contourIndex}/segment:{item.segmentIndex}",
                     SegmentHash(item.segment),
-                    flatIndex < state.SegmentProvenance.Count ? state.SegmentProvenance[flatIndex] : featureId ?? "Base"))
+                    flatIndex < state.SegmentProvenance.Count ? state.SegmentProvenance[flatIndex] : featureId ?? "Base")
+                {
+                    GeneratedSegmentIndex = GeneratedIndex(
+                        flatIndex < state.SegmentIdentities.Count ? state.SegmentIdentities[flatIndex] : string.Empty)
+                })
                 .ToArray(),
         };
     }
@@ -441,6 +514,13 @@ public static class ProfileCompiler
                     break;
                 case ReplaceSegmentProfileOperation replace:
                     result.Append($"{replace.SegmentIndex}:{replace.Replacement.Kind}:{R(replace.Replacement.Amount)}:{Point(replace.Replacement.Control1)}:{Point(replace.Replacement.Control2)}");
+                    break;
+                case ReplaceSpanProfileOperation replace:
+                    result.Append($"{replace.Target.OwnerState}:{replace.Target.StartSegmentIndex}:{replace.Target.SegmentCount}");
+                    foreach (ProfileReplacementSegment segment in replace.Replacement)
+                    {
+                        result.Append($":{segment.Kind}:{Point(segment.Start)}:{Point(segment.End)}:{R(segment.Amount)}:{Point(segment.Control1)}:{Point(segment.Control2)}");
+                    }
                     break;
                 case TransformProfileOperation transform:
                     result.Append($"{R(transform.A)}:{R(transform.B)}");
@@ -495,6 +575,21 @@ public static class ProfileCompiler
 
     private static int SegmentCount(VectorShape shape) => shape.Contours.Sum(contour => contour.Segments.Count);
 
+    private static IReadOnlyList<string> InitialSegmentIdentities(VectorShape shape)
+        => shape.Contours
+            .SelectMany((contour, contourIndex) => contour.Segments.Select((_, segmentIndex) => $"contour:{contourIndex}/segment:{segmentIndex}"))
+            .ToArray();
+
+    private static int? GeneratedIndex(string identity)
+    {
+        int marker = identity.LastIndexOf("/segment:", StringComparison.Ordinal);
+        return identity.StartsWith("feature:", StringComparison.Ordinal)
+            && marker >= 0
+            && int.TryParse(identity[(marker + 9)..], out int index)
+                ? index
+                : null;
+    }
+
     private static bool Contains(VectorBounds outer, VectorBounds inner)
     {
         return inner.MinX > outer.MinX && inner.MaxX < outer.MaxX
@@ -510,5 +605,6 @@ public static class ProfileCompiler
         IReadOnlyList<NotchProfileOperation> Notches,
         IReadOnlyList<VectorContour> Holes,
         IReadOnlyList<string> AppliedFeatureIds,
-        IReadOnlyList<string> SegmentProvenance);
+        IReadOnlyList<string> SegmentProvenance,
+        IReadOnlyList<string> SegmentIdentities);
 }

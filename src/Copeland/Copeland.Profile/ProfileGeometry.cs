@@ -152,14 +152,54 @@ internal static class ProfileGeometry
             _ => throw new InvalidOperationException($"Unknown replacement curve '{replacement.Kind}'."),
         };
 
-        VectorSegment[] segments = outer.Segments.ToArray();
-        segments[segmentIndex] = replacementSegment;
+        return ReplaceSpan(source, segmentIndex, 1, [replacementSegment]);
+    }
+
+    public static VectorShape ReplaceSpan(
+        VectorShape source,
+        int startSegmentIndex,
+        int segmentCount,
+        IReadOnlyList<VectorSegment> replacements)
+    {
+        VectorContour outer = source.Contours.First(contour => contour.Role != VectorContourRole.Hole);
+        if (segmentCount <= 0 || replacements.Count == 0)
+        {
+            throw new ProfileResolutionException("COPE-PROFILE-0044", "ReplaceSpan target and replacement must be non-empty.", ProfileSourceSpan.Generated());
+        }
+        if (startSegmentIndex < 0 || startSegmentIndex + segmentCount > outer.Segments.Count)
+        {
+            throw new ProfileResolutionException("COPE-PROFILE-0042", "ReplaceSpan target is outside the profile boundary.", ProfileSourceSpan.Generated());
+        }
+        if (segmentCount == outer.Segments.Count)
+        {
+            throw new ProfileResolutionException("COPE-PROFILE-0048", "Replacing the entire boundary is not supported in M4.", ProfileSourceSpan.Generated());
+        }
+
+        VectorPoint targetStart = Start(outer.Segments[startSegmentIndex]);
+        VectorPoint targetEnd = End(outer.Segments[startSegmentIndex + segmentCount - 1]);
+        if (Start(replacements[0]) != targetStart || End(replacements[^1]) != targetEnd)
+        {
+            throw new ProfileResolutionException("COPE-PROFILE-0045", "Replacement span endpoints must exactly match the target traversal endpoints; reversed spans are rejected.", ProfileSourceSpan.Generated());
+        }
+        for (int index = 1; index < replacements.Count; index++)
+        {
+            if (End(replacements[index - 1]) != Start(replacements[index]))
+            {
+                throw new ProfileResolutionException("COPE-PROFILE-0046", $"Replacement span is disconnected between generated segments {index - 1} and {index}.", ProfileSourceSpan.Generated());
+            }
+        }
+
+        VectorSegment[] segments = outer.Segments
+            .Take(startSegmentIndex)
+            .Concat(replacements)
+            .Concat(outer.Segments.Skip(startSegmentIndex + segmentCount))
+            .ToArray();
         var changed = new VectorContour(segments, outer.Role);
         VectorContour[] contours = source.Contours
             .Select(contour => ReferenceEquals(contour, outer) ? changed : contour)
             .ToArray();
         VectorShape result = new(contours, source.FillRule);
-        ValidateSimpleBoundary(result, replacementSegment);
+        ValidateSimpleBoundary(result, replacements);
         return result;
     }
 
@@ -301,14 +341,48 @@ internal static class ProfileGeometry
         return new VectorQuadratic(start, control, end);
     }
 
-    private static void ValidateSimpleBoundary(VectorShape shape, VectorSegment replacement)
+    internal static VectorSegment CreateReplacementSegment(ProfileReplacementSegment segment)
+    {
+        return segment.Kind switch
+        {
+            ProfileCurveKind.Line => new VectorLine(segment.Start, segment.End),
+            ProfileCurveKind.Arc => BulgeSegment(segment.Start, segment.End, segment.Amount),
+            ProfileCurveKind.Bulge => BulgeSegment(segment.Start, segment.End, segment.Amount),
+            ProfileCurveKind.Spline => new VectorCubic(segment.Start, segment.Control1, segment.Control2, segment.End),
+            _ => throw new InvalidOperationException($"Unknown replacement curve '{segment.Kind}'."),
+        };
+    }
+
+    private static void ValidateSimpleBoundary(VectorShape shape, IReadOnlyList<VectorSegment> replacements)
     {
         VectorContour outer = shape.Contours.First(contour => contour.Role != VectorContourRole.Hole);
-        IReadOnlyList<VectorPoint> replacementPoints = FlattenForValidation(replacement);
+        IReadOnlyList<VectorPoint> replacementPoints = replacements
+            .SelectMany((segment, index) => FlattenForValidation(segment).Skip(index == 0 ? 0 : 1))
+            .ToArray();
+
+        for (int left = 0; left < replacementPoints.Count - 1; left++)
+        {
+            for (int right = left + 2; right < replacementPoints.Count - 1; right++)
+            {
+                if (left == 0
+                    && right == replacementPoints.Count - 2
+                    && replacementPoints[0] == replacementPoints[^1])
+                {
+                    continue;
+                }
+                if (SegmentsIntersect(replacementPoints[left], replacementPoints[left + 1], replacementPoints[right], replacementPoints[right + 1]))
+                {
+                    throw new ProfileResolutionException("COPE-PROFILE-0043", "Replacement span self-intersects.", ProfileSourceSpan.Generated());
+                }
+            }
+        }
+
         for (int index = 0; index < outer.Segments.Count; index++)
         {
             VectorSegment candidate = outer.Segments[index];
-            if (ReferenceEquals(candidate, replacement) || End(candidate) == replacementPoints[0] || Start(candidate) == replacementPoints[^1])
+            if (replacements.Any(replacement => ReferenceEquals(candidate, replacement))
+                || End(candidate) == replacementPoints[0]
+                || Start(candidate) == replacementPoints[^1])
             {
                 continue;
             }

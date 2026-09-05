@@ -34,6 +34,10 @@ public static class ProfileTemplateFunctions
             end: ConceptPoint;
         }
 
+        export function SpanOf<T>(elements: T[]): Span<T> {
+            return elements;
+        }
+
         export function Point(x: number, y: number): ConceptPoint {
             return { x: x, y: y };
         }
@@ -241,11 +245,95 @@ public static class ProfileTemplateFunctions
             return SegmentCurve.Spline(args);
         }
 
+        export record SelectedProfileSegmentArgs {
+            owner: string;
+            index: int;
+        }
+
+        export record LineProfileSegmentArgs {
+            start: ConceptPoint;
+            end: ConceptPoint;
+        }
+
+        export record CurvedProfileSegmentArgs {
+            start: ConceptPoint;
+            end: ConceptPoint;
+            curve: SegmentCurve;
+        }
+
+        export enum ProfileSegment {
+            Selected(args: SelectedProfileSegmentArgs),
+            Line(args: LineProfileSegmentArgs),
+            Curve(args: CurvedProfileSegmentArgs),
+        }
+
+        export function SelectSegment(owner: string, index: int): ProfileSegment {
+            return ProfileSegment.Selected({ owner: owner, index: index });
+        }
+
+        export function LineSegment(start: ConceptPoint, end: ConceptPoint): ProfileSegment {
+            return ProfileSegment.Line({ start: start, end: end });
+        }
+
+        export function CurveSegment(start: ConceptPoint, end: ConceptPoint, curve: SegmentCurve): ProfileSegment {
+            return ProfileSegment.Curve({ start: start, end: end, curve: curve });
+        }
+
+        export record DovetailTabArgs {
+            start: ConceptPoint;
+            end: ConceptPoint;
+            leftShoulder: ConceptPoint;
+            rightShoulder: ConceptPoint;
+        }
+
+        export function DovetailTab(args: DovetailTabArgs): Span<ProfileSegment> {
+            return SpanOf([
+                LineSegment(args.start, args.leftShoulder),
+                LineSegment(args.leftShoulder, args.rightShoulder),
+                LineSegment(args.rightShoulder, args.end)
+            ]);
+        }
+
+        export record VNotchArgs {
+            start: ConceptPoint;
+            tip: ConceptPoint;
+            end: ConceptPoint;
+        }
+
+        export function VNotch(args: VNotchArgs): Span<ProfileSegment> {
+            return SpanOf([
+                LineSegment(args.start, args.tip),
+                LineSegment(args.tip, args.end)
+            ]);
+        }
+
+        export record GearToothArgs {
+            rootLeft: ConceptPoint;
+            tipLeft: ConceptPoint;
+            tipRight: ConceptPoint;
+            rootRight: ConceptPoint;
+        }
+
+        export function GearTooth(args: GearToothArgs): Span<ProfileSegment> {
+            return SpanOf([
+                LineSegment(args.rootLeft, args.tipLeft),
+                LineSegment(args.tipLeft, args.tipRight),
+                LineSegment(args.tipRight, args.rootRight)
+            ]);
+        }
+
         export record ReplaceSegmentArgs {
             id: string;
             as: string;
             segment: int;
             replacement: SegmentCurve;
+        }
+
+        export record ReplaceSpanArgs {
+            id: string;
+            as: string;
+            target: Span<ProfileSegment>;
+            replacement: Span<ProfileSegment>;
         }
 
         export enum ProfileOperation {
@@ -260,6 +348,7 @@ public static class ProfileTemplateFunctions
             Scale(args: ScaleArgs),
             Mirror(args: MirrorArgs),
             ReplaceSegment(args: ReplaceSegmentArgs),
+            ReplaceSpan(args: ReplaceSpanArgs),
         }
 
         export function Add(args: ShapeOperationArgs): ProfileOperation {
@@ -304,6 +393,10 @@ public static class ProfileTemplateFunctions
 
         export function ReplaceSegment(args: ReplaceSegmentArgs): ProfileOperation {
             return ProfileOperation.ReplaceSegment(args);
+        }
+
+        export function ReplaceSpan(args: ReplaceSpanArgs): ProfileOperation {
+            return ProfileOperation.ReplaceSpan(args);
         }
 
         export record ProfileSource {

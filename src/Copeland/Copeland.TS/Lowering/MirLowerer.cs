@@ -1388,6 +1388,7 @@ public static class MirLowerer
     private static MirType ToMirType(TypeSymbol type) => type switch
     {
         ArrayTypeSymbol array => new MirArrayType(ToMirType(array.ElementType)),
+        SpanTypeSymbol span => new MirArrayType(ToMirType(span.ElementType)),
         MutableArrayTypeSymbol array => new MirMutableArrayType(ToMirType(array.ElementType)),
         AsyncTypeSymbol async => new MirAsyncType(ToMirType(async.EventualType)),
         IterableTypeSymbol iterable => new MirIterableType(ToMirType(iterable.ElementType)),

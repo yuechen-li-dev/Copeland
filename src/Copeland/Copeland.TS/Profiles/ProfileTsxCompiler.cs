@@ -92,6 +92,7 @@ public static partial class ProfileTsxCompiler
             "Scale" => new TransformProfileOperation(id, input, output, "Scale", Number(args, "x"), Number(args, "y"), span),
             "Mirror" => new TransformProfileOperation(id, input, output, "Mirror", Text(args, "axis") == "X" ? 1 : 0, 0, span),
             "ReplaceSegment" => DecodeReplaceSegment(id, input, output, args, span, diagnostics),
+            "ReplaceSpan" => DecodeReplaceSpan(id, input, output, args, span, diagnostics),
             _ => Unknown(),
         };
 
@@ -134,6 +135,101 @@ public static partial class ProfileTsxCompiler
             _ => throw new InvalidOperationException($"Unknown SegmentCurve case '{curve.Case.Name}'."),
         };
         return new ReplaceSegmentProfileOperation(id, input, output, Integer(args, "segment"), replacement, span);
+    }
+
+    private static ProfileOperation? DecodeReplaceSpan(
+        string id,
+        string input,
+        string output,
+        StaticRecordValue args,
+        ProfileSourceSpan span,
+        List<ProfileDiagnostic> diagnostics)
+    {
+        if (Field(args, "target") is not StaticArrayValue target
+            || Field(args, "replacement") is not StaticArrayValue replacement)
+        {
+            diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0044", "ReplaceSpan requires typed Span<ProfileSegment> values.", span));
+            return null;
+        }
+
+        var selected = new List<(string Owner, int Index)>();
+        foreach (StaticValue value in target.Elements)
+        {
+            if (value is not StaticEnumValue { Type.Name: "ProfileSegment", Case.Name: "Selected", Payloads.Count: 1 } segment
+                || segment.Payloads[0] is not StaticRecordValue segmentArgs)
+            {
+                diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0042", "ReplaceSpan target may contain only selected profile boundary segments.", span));
+                return null;
+            }
+            selected.Add((Text(segmentArgs, "owner"), Integer(segmentArgs, "index")));
+        }
+        if (selected.Count == 0)
+        {
+            diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0044", "ReplaceSpan target must be non-empty.", span));
+            return null;
+        }
+        if (selected.Any(item => item.Owner != selected[0].Owner)
+            || selected.Select(item => item.Index).Where((value, index) => value != selected[0].Index + index).Any())
+        {
+            diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0042", "ReplaceSpan target segments must be ordered, adjacent, and owned by one profile state.", span));
+            return null;
+        }
+
+        var generated = new List<ProfileReplacementSegment>();
+        foreach (StaticValue value in replacement.Elements)
+        {
+            if (value is not StaticEnumValue { Type.Name: "ProfileSegment", Payloads.Count: 1 } segment
+                || segment.Payloads[0] is not StaticRecordValue segmentArgs)
+            {
+                diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0044", "ReplaceSpan replacement may contain only constructed ProfileSegment values.", span));
+                return null;
+            }
+            if (segment.Case.Name == "Line")
+            {
+                generated.Add(new ProfileReplacementSegment(
+                    ProfileCurveKind.Line,
+                    PointValue(segmentArgs, "start"),
+                    PointValue(segmentArgs, "end"),
+                    0,
+                    default,
+                    default));
+                continue;
+            }
+            if (segment.Case.Name != "Curve"
+                || Field(segmentArgs, "curve") is not StaticEnumValue { Type.Name: "SegmentCurve", Payloads.Count: 1 } curve
+                || curve.Payloads[0] is not StaticRecordValue curveArgs)
+            {
+                diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0044", "ReplaceSpan replacement cannot contain selected segments.", span));
+                return null;
+            }
+            SegmentReplacement decoded = DecodeCurve(curve, curveArgs);
+            generated.Add(new ProfileReplacementSegment(
+                decoded.Kind,
+                PointValue(segmentArgs, "start"),
+                PointValue(segmentArgs, "end"),
+                decoded.Amount,
+                decoded.Control1,
+                decoded.Control2));
+        }
+
+        return new ReplaceSpanProfileOperation(
+            id,
+            input,
+            output,
+            new ProfileSpanSelection(selected[0].Owner, selected[0].Index, selected.Count),
+            generated,
+            span);
+    }
+
+    private static SegmentReplacement DecodeCurve(StaticEnumValue curve, StaticRecordValue curveArgs)
+    {
+        return curve.Case.Name switch
+        {
+            "Arc" => new SegmentReplacement(ProfileCurveKind.Arc, Number(curveArgs, "bulge"), default, default),
+            "Bulge" => new SegmentReplacement(ProfileCurveKind.Bulge, Number(curveArgs, "amount"), default, default),
+            "Spline" => new SegmentReplacement(ProfileCurveKind.Spline, 0, PointValue(curveArgs, "control1"), PointValue(curveArgs, "control2")),
+            _ => throw new InvalidOperationException($"Unknown SegmentCurve case '{curve.Case.Name}'."),
+        };
     }
 
     private static ProfileShapeSpec RequireShape(
@@ -471,7 +567,7 @@ public static partial class ProfileTsxCompiler
             TemplateEvaluationResult result = CopelandProjectCompiler.CompileTemplates(
                 [
                     new CopelandProjectSource("Profile.ts", "Profile.ts", ProfileTemplateFunctions.Source),
-                    new CopelandProjectSource("ProfileTemplates.ts", sourcePath, source),
+                    new CopelandProjectSource(LibraryLogicalPath(sourcePath), sourcePath, source),
                 ],
                 declaration.Identifier.Text,
                 arguments);
@@ -612,6 +708,12 @@ public static partial class ProfileTsxCompiler
         IReadOnlyDictionary<string, StaticValue> Values,
         IReadOnlyList<ProfileDiagnostic> Diagnostics);
 
+    private static string LibraryLogicalPath(string sourcePath)
+    {
+        string fileName = Path.GetFileName(sourcePath);
+        return string.IsNullOrWhiteSpace(fileName) ? "ProfileTemplates.ts" : fileName;
+    }
+
     private static class ProfileExpressionEvaluator
     {
         private const string AuthoringLogicalPath = "ProfileAuthoring.ts";
@@ -632,7 +734,8 @@ public static partial class ProfileTsxCompiler
             };
             if (librarySource is not null)
             {
-                sources.Add(new("ProfileTemplates.ts", librarySourcePath ?? "ProfileTemplates.ts", librarySource));
+                string physicalPath = librarySourcePath ?? "ProfileTemplates.ts";
+                sources.Add(new(LibraryLogicalPath(physicalPath), physicalPath, librarySource));
             }
 
             CopelandProjectCompilation compilation = CopelandProjectCompiler.CompileToMir(sources);
@@ -718,7 +821,7 @@ public static partial class ProfileTsxCompiler
             if (!source.Contains("from \"./Profile\"", StringComparison.Ordinal)
                 && !source.Contains("from './Profile'", StringComparison.Ordinal))
             {
-                builder.AppendLine("import { Add, Along, Arc, Bulge, Capsule, Circle, ConceptPath, ConceptPoint, EdgeOperationArgs, Ellipse, Hole, HoleArgs, Layer, LayerId, Layers, Midpoint, Mirror, Notch, OffsetPoint, PathBetween, Point, Polygon, Profile, ProfileEdge, ProfileLayer, ProfileLayerId, ProfileOperation, ProfileShape, ProfileSource, ProfileStyle, Rectangle, RegularPolygon, RepeatRadial, RepeatRadialArgs, ReplaceSegment, Rotate, RoundedRectangle, Scale, SegmentCurve, ShapeOperationArgs, Slot, Spline, Subtract, Tab, Translate, Tube } from \"./Profile\";");
+                builder.AppendLine("import { Add, Along, Arc, Bulge, Capsule, Circle, ConceptPath, ConceptPoint, CurveSegment, EdgeOperationArgs, Ellipse, Hole, HoleArgs, Layer, LayerId, Layers, LineSegment, Midpoint, Mirror, Notch, OffsetPoint, PathBetween, Point, Polygon, Profile, ProfileEdge, ProfileLayer, ProfileLayerId, ProfileOperation, ProfileSegment, ProfileShape, ProfileSource, ProfileStyle, Rectangle, RegularPolygon, RepeatRadial, RepeatRadialArgs, ReplaceSegment, ReplaceSpan, Rotate, RoundedRectangle, Scale, SegmentCurve, SelectSegment, ShapeOperationArgs, Slot, SpanOf, Spline, Subtract, Tab, Translate, Tube } from \"./Profile\";");
             }
             builder.AppendLine("const Top: ProfileEdge = ProfileEdge.Top;");
             builder.AppendLine("const Right: ProfileEdge = ProfileEdge.Right;");

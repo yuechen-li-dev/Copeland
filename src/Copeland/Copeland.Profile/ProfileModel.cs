@@ -136,6 +136,7 @@ public sealed record RepeatRadialProfileOperation(
 
 public enum ProfileCurveKind
 {
+    Line,
     Arc,
     Bulge,
     Spline,
@@ -155,10 +156,37 @@ public sealed record ReplaceSegmentProfileOperation(
     SegmentReplacement Replacement,
     ProfileSourceSpan SourceSpan) : ProfileOperation(Id, Input, Output, "ReplaceSegment", SourceSpan);
 
+public sealed record ProfileSpanSelection(
+    string OwnerState,
+    int StartSegmentIndex,
+    int SegmentCount)
+{
+    public string SemanticHash => ProfileHash.Utf8($"profile-span-v1|{OwnerState}|{StartSegmentIndex}|{SegmentCount}");
+}
+
+public sealed record ProfileReplacementSegment(
+    ProfileCurveKind Kind,
+    VectorPoint Start,
+    VectorPoint End,
+    double Amount,
+    VectorPoint Control1,
+    VectorPoint Control2);
+
+public sealed record ReplaceSpanProfileOperation(
+    string Id,
+    string Input,
+    string Output,
+    ProfileSpanSelection Target,
+    IReadOnlyList<ProfileReplacementSegment> Replacement,
+    ProfileSourceSpan SourceSpan) : ProfileOperation(Id, Input, Output, "ReplaceSpan", SourceSpan);
+
 public sealed record ProfileSegmentSummary(
     string Id,
     string GeometryHash,
-    string ProvenanceFeatureId);
+    string ProvenanceFeatureId)
+{
+    public int? GeneratedSegmentIndex { get; init; }
+}
 
 public sealed record TransformProfileOperation(
     string Id,
