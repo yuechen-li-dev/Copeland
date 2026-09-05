@@ -8,6 +8,12 @@ internal sealed record RadialPatternTargetLayout(
     VectorShape Shape,
     IReadOnlyList<RadialPatternTarget> Targets);
 
+internal sealed record RefinedSpanInterval(
+    VectorShape Shape,
+    int StartSegmentIndex,
+    int SegmentCount,
+    IReadOnlyList<int> SourceSegmentIndexes);
+
 internal static class ProfileGeometry
 {
     private const double CircleControl = 0.5522847498307936;
@@ -210,7 +216,8 @@ internal static class ProfileGeometry
     public static IReadOnlyList<ProfileReplacementSegment> InstantiatePattern(
         ProfileSpanPattern pattern,
         VectorPoint targetStart,
-        VectorPoint targetEnd)
+        VectorPoint targetEnd,
+        VectorPoint? orientationTangent = null)
     {
         double dx = targetEnd.X - targetStart.X;
         double dy = targetEnd.Y - targetStart.Y;
@@ -230,8 +237,9 @@ internal static class ProfileGeometry
             {
                 return targetEnd;
             }
-            double normalX = -dy / length;
-            double normalY = dx / length;
+            VectorPoint tangent = orientationTangent ?? new VectorPoint(dx / length, dy / length);
+            double normalX = -tangent.Y;
+            double normalY = tangent.X;
             return new VectorPoint(
                 targetStart.X + (local.X * dx) + (local.Y * normalX),
                 targetStart.Y + (local.X * dy) + (local.Y * normalY));
@@ -257,6 +265,238 @@ internal static class ProfileGeometry
             throw new ProfileResolutionException("COPE-PROFILE-0042", "Span pattern target is outside the profile boundary.", ProfileSourceSpan.Generated());
         }
         return (Start(outer.Segments[startSegmentIndex]), End(outer.Segments[startSegmentIndex + segmentCount - 1]));
+    }
+
+    public static double SpanLength(VectorShape source, int startSegmentIndex, int segmentCount)
+    {
+        VectorContour outer = source.Contours.First(contour => contour.Role != VectorContourRole.Hole);
+        return outer.Segments
+            .Skip(startSegmentIndex)
+            .Take(segmentCount)
+            .Sum(ArcLength);
+    }
+
+    public static double ConceptPathLength(ProfileConceptPath path)
+        => ArcLength(CreateReplacementSegment(path.Segment));
+
+    public static bool ConceptPathHasCusp(ProfileConceptPath path)
+    {
+        VectorSegment segment = CreateReplacementSegment(path.Segment);
+        for (int index = 0; index <= 256; index++)
+        {
+            double t = index / 256d;
+            VectorPoint tangent = Derivative(segment, t);
+            if ((tangent.X * tangent.X) + (tangent.Y * tangent.Y) <= 1e-16)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static VectorPoint ConceptPathTangent(ProfileConceptPath path, double distance)
+    {
+        VectorSegment segment = CreateReplacementSegment(path.Segment);
+        double parameter = ParameterAtLength(segment, distance);
+        VectorPoint tangent = Derivative(segment, parameter);
+        double length = Math.Sqrt((tangent.X * tangent.X) + (tangent.Y * tangent.Y));
+        if (length <= 1e-12)
+        {
+            throw new ProfileResolutionException("COPE-PROFILE-0063", "RepeatAlongPath encountered a cusp with no usable tangent.", ProfileSourceSpan.Generated());
+        }
+        return new VectorPoint(tangent.X / length, tangent.Y / length);
+    }
+
+    public static RefinedSpanInterval RefineSpanInterval(
+        VectorShape source,
+        int startSegmentIndex,
+        int segmentCount,
+        double startFraction,
+        double endFraction)
+    {
+        VectorContour outer = source.Contours.First(contour => contour.Role != VectorContourRole.Hole);
+        VectorSegment[] selected = outer.Segments.Skip(startSegmentIndex).Take(segmentCount).ToArray();
+        double[] lengths = selected.Select(ArcLength).ToArray();
+        double totalLength = lengths.Sum();
+        if (totalLength <= 1e-12)
+        {
+            throw new ProfileResolutionException("COPE-PROFILE-0063", "Selector resolves to a zero-length path.", ProfileSourceSpan.Generated());
+        }
+
+        double fromDistance = totalLength * startFraction;
+        double toDistance = totalLength * endFraction;
+        var replacement = new List<VectorSegment>();
+        var sourceIndexes = new List<int>();
+        int refinedStart = -1;
+        int refinedCount = 0;
+        double cursor = 0;
+        for (int localIndex = 0; localIndex < selected.Length; localIndex++)
+        {
+            VectorSegment segment = selected[localIndex];
+            double length = lengths[localIndex];
+            var cuts = new List<double> { 0, 1 };
+            if (fromDistance > cursor + 1e-12 && fromDistance < cursor + length - 1e-12)
+            {
+                cuts.Add(ParameterAtLength(segment, fromDistance - cursor));
+            }
+            if (toDistance > cursor + 1e-12 && toDistance < cursor + length - 1e-12)
+            {
+                cuts.Add(ParameterAtLength(segment, toDistance - cursor));
+            }
+            double[] orderedCuts = cuts.Distinct().Order().ToArray();
+            for (int cutIndex = 0; cutIndex < orderedCuts.Length - 1; cutIndex++)
+            {
+                double pieceStartDistance = cursor + ArcLength(Subsegment(segment, 0, orderedCuts[cutIndex]));
+                double pieceEndDistance = cursor + ArcLength(Subsegment(segment, 0, orderedCuts[cutIndex + 1]));
+                VectorSegment piece = Subsegment(segment, orderedCuts[cutIndex], orderedCuts[cutIndex + 1]);
+                if (replacement.Count > 0)
+                {
+                    piece = SetStart(piece, End(replacement[^1]));
+                }
+                replacement.Add(piece);
+                sourceIndexes.Add(startSegmentIndex + localIndex);
+                bool inTarget = pieceStartDistance >= fromDistance - 1e-8
+                    && pieceEndDistance <= toDistance + 1e-8;
+                if (inTarget)
+                {
+                    if (refinedStart < 0)
+                    {
+                        refinedStart = startSegmentIndex + replacement.Count - 1;
+                    }
+                    refinedCount++;
+                }
+            }
+            cursor += length;
+        }
+
+        VectorSegment[] outerSegments = outer.Segments
+            .Take(startSegmentIndex)
+            .Concat(replacement)
+            .Concat(outer.Segments.Skip(startSegmentIndex + segmentCount))
+            .ToArray();
+        var refinedOuter = new VectorContour(outerSegments, outer.Role);
+        VectorContour[] contours = source.Contours
+            .Select(contour => ReferenceEquals(contour, outer) ? refinedOuter : contour)
+            .ToArray();
+        return new RefinedSpanInterval(
+            new VectorShape(contours, source.FillRule),
+            refinedStart,
+            refinedCount,
+            sourceIndexes);
+    }
+
+    private static double ArcLength(VectorSegment segment)
+    {
+        const int steps = 96;
+        double length = 0;
+        VectorPoint previous = Evaluate(segment, 0);
+        for (int index = 1; index <= steps; index++)
+        {
+            VectorPoint point = Evaluate(segment, index / (double)steps);
+            length += Distance(previous, point);
+            previous = point;
+        }
+        return length;
+    }
+
+    private static double ParameterAtLength(VectorSegment segment, double requestedLength)
+    {
+        double total = ArcLength(segment);
+        double low = 0;
+        double high = 1;
+        for (int iteration = 0; iteration < 48; iteration++)
+        {
+            double middle = (low + high) / 2d;
+            double prefix = ArcLength(Subsegment(segment, 0, middle));
+            if (prefix < requestedLength)
+            {
+                low = middle;
+            }
+            else
+            {
+                high = middle;
+            }
+        }
+        return requestedLength <= 0 ? 0 : requestedLength >= total ? 1 : (low + high) / 2d;
+    }
+
+    private static VectorSegment Subsegment(VectorSegment segment, double from, double to)
+    {
+        if (segment is VectorLine line)
+        {
+            return new VectorLine(Evaluate(line, from), Evaluate(line, to));
+        }
+        if (segment is VectorQuadratic quadratic)
+        {
+            VectorQuadratic afterStart = from <= 0 ? quadratic : Split(quadratic, from).Right;
+            double relativeEnd = from <= 0 ? to : (to - from) / (1d - from);
+            return relativeEnd >= 1 ? afterStart : Split(afterStart, relativeEnd).Left;
+        }
+        if (segment is VectorCubic cubic)
+        {
+            return Subcurve(cubic, from, to);
+        }
+        throw new InvalidOperationException();
+    }
+
+    private static VectorSegment SetStart(VectorSegment segment, VectorPoint start)
+    {
+        return segment switch
+        {
+            VectorLine line => line with { P0 = start },
+            VectorQuadratic quadratic => quadratic with { P0 = start },
+            VectorCubic cubic => cubic with { P0 = start },
+            _ => throw new InvalidOperationException(),
+        };
+    }
+
+    private static (VectorQuadratic Left, VectorQuadratic Right) Split(VectorQuadratic curve, double t)
+    {
+        VectorPoint p01 = Lerp(curve.P0, curve.P1, t);
+        VectorPoint p12 = Lerp(curve.P1, curve.P2, t);
+        VectorPoint point = Lerp(p01, p12, t);
+        return (
+            new VectorQuadratic(curve.P0, p01, point),
+            new VectorQuadratic(point, p12, curve.P2));
+    }
+
+    private static VectorPoint Evaluate(VectorSegment segment, double t)
+    {
+        double s = 1d - t;
+        return segment switch
+        {
+            VectorLine line => Lerp(line.P0, line.P1, t),
+            VectorQuadratic quadratic => new VectorPoint(
+                (s * s * quadratic.P0.X) + (2 * s * t * quadratic.P1.X) + (t * t * quadratic.P2.X),
+                (s * s * quadratic.P0.Y) + (2 * s * t * quadratic.P1.Y) + (t * t * quadratic.P2.Y)),
+            VectorCubic cubic => new VectorPoint(
+                (s * s * s * cubic.P0.X) + (3 * s * s * t * cubic.P1.X) + (3 * s * t * t * cubic.P2.X) + (t * t * t * cubic.P3.X),
+                (s * s * s * cubic.P0.Y) + (3 * s * s * t * cubic.P1.Y) + (3 * s * t * t * cubic.P2.Y) + (t * t * t * cubic.P3.Y)),
+            _ => throw new InvalidOperationException(),
+        };
+    }
+
+    private static VectorPoint Derivative(VectorSegment segment, double t)
+    {
+        double s = 1d - t;
+        return segment switch
+        {
+            VectorLine line => new VectorPoint(line.P1.X - line.P0.X, line.P1.Y - line.P0.Y),
+            VectorQuadratic quadratic => new VectorPoint(
+                (2 * s * (quadratic.P1.X - quadratic.P0.X)) + (2 * t * (quadratic.P2.X - quadratic.P1.X)),
+                (2 * s * (quadratic.P1.Y - quadratic.P0.Y)) + (2 * t * (quadratic.P2.Y - quadratic.P1.Y))),
+            VectorCubic cubic => new VectorPoint(
+                (3 * s * s * (cubic.P1.X - cubic.P0.X)) + (6 * s * t * (cubic.P2.X - cubic.P1.X)) + (3 * t * t * (cubic.P3.X - cubic.P2.X)),
+                (3 * s * s * (cubic.P1.Y - cubic.P0.Y)) + (6 * s * t * (cubic.P2.Y - cubic.P1.Y)) + (3 * t * t * (cubic.P3.Y - cubic.P2.Y))),
+            _ => throw new InvalidOperationException(),
+        };
+    }
+
+    private static double Distance(VectorPoint left, VectorPoint right)
+    {
+        double dx = right.X - left.X;
+        double dy = right.Y - left.Y;
+        return Math.Sqrt((dx * dx) + (dy * dy));
     }
 
     public static VectorShape EdgeFeatures(

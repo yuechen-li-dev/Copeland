@@ -95,6 +95,9 @@ public static partial class ProfileTsxCompiler
             "ReplaceSegment" => DecodeReplaceSegment(id, input, output, args, span, diagnostics),
             "ReplaceSpan" => DecodeReplaceSpan(id, input, output, args, span, diagnostics),
             "ReplaceSpanPattern" => DecodeReplaceSpanPattern(id, input, output, args, span, diagnostics),
+            "NameSpan" => DecodeNameSpan(id, input, output, args, span, diagnostics),
+            "RepeatLinear" => DecodeRepeatLinear(id, input, output, args, span, diagnostics),
+            "RepeatAlongPath" => DecodeRepeatAlongPath(id, input, output, args, span, diagnostics),
             _ => Unknown(),
         };
 
@@ -244,6 +247,159 @@ public static partial class ProfileTsxCompiler
                 Number(args, "rotation", 0),
                 span);
     }
+
+    private static ProfileOperation? DecodeNameSpan(
+        string id,
+        string input,
+        string output,
+        StaticRecordValue args,
+        ProfileSourceSpan span,
+        List<ProfileDiagnostic> diagnostics)
+    {
+        return TryDecodeTarget(Field(args, "target"), span, diagnostics, out ProfileSpanSelection? target)
+            ? new NameSpanProfileOperation(id, input, output, Text(args, "name"), target!, span)
+            : null;
+    }
+
+    private static ProfileOperation? DecodeRepeatLinear(
+        string id,
+        string input,
+        string output,
+        StaticRecordValue args,
+        ProfileSourceSpan span,
+        List<ProfileDiagnostic> diagnostics)
+    {
+        ProfileSelector? selector = DecodeSelector(Field(args, "target"), span, diagnostics);
+        ProfileSpanPattern? pattern = DecodePattern(Field(args, "pattern"), span, diagnostics);
+        return selector is null || pattern is null
+            ? null
+            : new RepeatLinearPatternProfileOperation(
+                id,
+                input,
+                output,
+                selector,
+                pattern,
+                Integer(args, "count"),
+                Number(args, "spacing"),
+                Number(args, "footprint"),
+                Number(args, "offset", 0),
+                span);
+    }
+
+    private static ProfileOperation? DecodeRepeatAlongPath(
+        string id,
+        string input,
+        string output,
+        StaticRecordValue args,
+        ProfileSourceSpan span,
+        List<ProfileDiagnostic> diagnostics)
+    {
+        ProfileSelector? selector = DecodeSelector(Field(args, "target"), span, diagnostics);
+        ProfileSpanPattern? pattern = DecodePattern(Field(args, "pattern"), span, diagnostics);
+        ProfileConceptPath? path = DecodeConceptPath(Field(args, "path"), span, diagnostics);
+        return selector is null || pattern is null || path is null
+            ? null
+            : new RepeatAlongPathProfileOperation(
+                id,
+                input,
+                output,
+                selector,
+                path,
+                pattern,
+                Integer(args, "count"),
+                Number(args, "spacing"),
+                Number(args, "footprint"),
+                Number(args, "offset", 0),
+                span);
+    }
+
+    private static ProfileSelector? DecodeSelector(
+        StaticValue value,
+        ProfileSourceSpan span,
+        List<ProfileDiagnostic> diagnostics)
+    {
+        if (value is not StaticEnumValue { Type.Name: "ProfileSelector" } selector)
+        {
+            diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0055", "Expected a typed ProfileSelector value.", span));
+            return null;
+        }
+
+        ProfileSelector? result = selector.Case.Name switch
+        {
+            "FeatureSpan" when selector.Payloads.Count == 1 => new FeatureSpanProfileSelector(PrimitiveText(selector.Payloads[0])),
+            "NamedSpan" when selector.Payloads.Count == 1 => new NamedSpanProfileSelector(PrimitiveText(selector.Payloads[0])),
+            "Along" when selector.Payloads.Count == 3 => DecodeAlong(selector, span, diagnostics),
+            _ => null,
+        };
+        if (result is null)
+        {
+            diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0055", $"Unsupported ProfileSelector case '{selector.Case.Name}'.", span));
+        }
+        return result;
+    }
+
+    private static ProfileSelector? DecodeAlong(
+        StaticEnumValue selector,
+        ProfileSourceSpan span,
+        List<ProfileDiagnostic> diagnostics)
+    {
+        ProfileSelector? source = DecodeSelector(selector.Payloads[0], span, diagnostics);
+        if (source is null)
+        {
+            return null;
+        }
+        return new AlongProfileSelector(
+            source,
+            PrimitiveNumber(selector.Payloads[1]),
+            PrimitiveNumber(selector.Payloads[2]));
+    }
+
+    private static ProfileConceptPath? DecodeConceptPath(
+        StaticValue value,
+        ProfileSourceSpan span,
+        List<ProfileDiagnostic> diagnostics)
+    {
+        if (value is not StaticRecordValue { Type.Name: "ConceptPath" } path)
+        {
+            diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0063", "RepeatAlongPath requires a ConceptPath.", span));
+            return null;
+        }
+        VectorPoint start = PointValue(path, "start");
+        VectorPoint end = PointValue(path, "end");
+        StaticValue? curveValue = OptionalField(path, "curve");
+        if (curveValue is StaticEnumValue { Type: OptionTypeSymbol, Case.Name: "Some", Payloads.Count: 1 } some)
+        {
+            curveValue = some.Payloads[0];
+        }
+        else if (curveValue is StaticEnumValue { Type: OptionTypeSymbol, Case.Name: "None" })
+        {
+            curveValue = null;
+        }
+        if (curveValue is null)
+        {
+            return new ProfileConceptPath(new ProfileReplacementSegment(ProfileCurveKind.Line, start, end, 0, default, default));
+        }
+        if (curveValue is not StaticEnumValue { Type.Name: "SegmentCurve", Payloads.Count: 1 } curve
+            || curve.Payloads[0] is not StaticRecordValue curveArgs)
+        {
+            diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0063", "ConceptPath has an invalid curve.", span));
+            return null;
+        }
+        SegmentReplacement decoded = DecodeCurve(curve, curveArgs);
+        return new ProfileConceptPath(new ProfileReplacementSegment(
+            decoded.Kind,
+            start,
+            end,
+            decoded.Amount,
+            decoded.Control1,
+            decoded.Control2));
+    }
+
+    private static string PrimitiveText(StaticValue value)
+        => Convert.ToString(((StaticPrimitiveValue)value).Value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+
+    private static double PrimitiveNumber(StaticValue value)
+        => Convert.ToDouble(((StaticPrimitiveValue)value).Value, System.Globalization.CultureInfo.InvariantCulture);
 
     private static ProfileOperation? DecodeReplaceSpanPattern(
         string id,
@@ -948,7 +1104,7 @@ public static partial class ProfileTsxCompiler
             if (!source.Contains("from \"./Profile\"", StringComparison.Ordinal)
                 && !source.Contains("from './Profile'", StringComparison.Ordinal))
             {
-                builder.AppendLine("import { Add, Along, Arc, Bulge, Capsule, Circle, ConceptPath, ConceptPoint, CurveSegment, EdgeOperationArgs, Ellipse, Hole, HoleArgs, Layer, LayerId, Layers, LineSegment, Midpoint, Mirror, Notch, OffsetPoint, PathBetween, Point, Polygon, Profile, ProfileEdge, ProfileLayer, ProfileLayerId, ProfileOperation, ProfileSegment, ProfileShape, ProfileSource, ProfileSpanPattern, ProfileStyle, Rectangle, RegularPolygon, RepeatRadial, RepeatRadialArgs, RepeatRadialPattern, RepeatRadialPatternArgs, ReplaceSegment, ReplaceSpan, ReplaceSpanWithPattern, Rotate, RoundedRectangle, Scale, SegmentCurve, SelectSegment, ShapeOperationArgs, Slot, SpanOf, SpanPattern, Spline, Subtract, Tab, Translate, Tube } from \"./Profile\";");
+                builder.AppendLine("import { Add, Along, AlongSpan, Arc, Bulge, Capsule, Circle, ConceptPath, ConceptPoint, CurvedPath, CurveSegment, EdgeOperationArgs, Ellipse, FeatureSpan, Hole, HoleArgs, Layer, LayerId, Layers, LineSegment, Midpoint, Mirror, NamedSpan, NameSpan, Notch, OffsetPoint, PathBetween, Point, Polygon, Profile, ProfileEdge, ProfileLayer, ProfileLayerId, ProfileOperation, ProfileSegment, ProfileSelector, ProfileShape, ProfileSource, ProfileSpanPattern, ProfileStyle, Rectangle, RegularPolygon, RepeatAlongPath, RepeatLinear, RepeatRadial, RepeatRadialArgs, RepeatRadialPattern, RepeatRadialPatternArgs, ReplaceSegment, ReplaceSpan, ReplaceSpanWithPattern, Rotate, RoundedRectangle, Scale, SegmentCurve, SelectSegment, ShapeOperationArgs, Slot, SpanOf, SpanPattern, Spline, Subtract, Tab, Translate, Tube } from \"./Profile\";");
             }
             builder.AppendLine("const Top: ProfileEdge = ProfileEdge.Top;");
             builder.AppendLine("const Right: ProfileEdge = ProfileEdge.Right;");

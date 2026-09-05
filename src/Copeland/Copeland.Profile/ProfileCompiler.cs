@@ -27,6 +27,9 @@ public static class ProfileCompiler
                 [],
                 Enumerable.Repeat("Base", SegmentCount(baseShape)).ToArray(),
                 InitialSegmentIdentities(baseShape),
+                Enumerable.Range(0, SegmentCount(baseShape))
+                    .Select(_ => (IReadOnlyList<string>)["feature:Base"])
+                    .ToArray(),
                 [],
                 null);
             states.Add(definition.BaseState, first);
@@ -118,6 +121,12 @@ public static class ProfileCompiler
                 return ReplaceSpan(input, replace);
             case ReplaceSpanPatternProfileOperation replace:
                 return ReplaceSpanPattern(input, replace);
+            case NameSpanProfileOperation name:
+                return NameSpan(input, name);
+            case RepeatLinearPatternProfileOperation repeat:
+                return RepeatPattern(input, repeat, null);
+            case RepeatAlongPathProfileOperation repeat:
+                return RepeatPattern(input, null, repeat);
             case TransformProfileOperation transform:
                 return Changed(input, operation, ProfileGeometry.Transform(input.Shape, transform.TransformKind, transform.A, transform.B), clearBase: true);
             default:
@@ -231,6 +240,21 @@ public static class ProfileCompiler
             .Concat(Enumerable.Range(0, replacements.Length).Select(index => $"{identityPrefix}/segment:{index}"))
             .Concat(input.SegmentIdentities.Skip(target.StartSegmentIndex + target.SegmentCount))
             .ToArray();
+        string[] inheritedTags = input.SegmentSemanticTags
+            .Skip(target.StartSegmentIndex)
+            .Take(target.SegmentCount)
+            .SelectMany(tags => tags)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .Append("feature:" + provenanceFeatureId)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+        IReadOnlyList<string>[] semanticTags = input.SegmentSemanticTags
+            .Take(target.StartSegmentIndex)
+            .Concat(Enumerable.Range(0, replacements.Length).Select(_ => (IReadOnlyList<string>)inheritedTags))
+            .Concat(input.SegmentSemanticTags.Skip(target.StartSegmentIndex + target.SegmentCount))
+            .ToArray();
         return input with
         {
             Shape = shape,
@@ -240,6 +264,7 @@ public static class ProfileCompiler
                 : input.AppliedFeatureIds,
             SegmentProvenance = provenance,
             SegmentIdentities = identities,
+            SegmentSemanticTags = semanticTags,
         };
     }
 
@@ -252,6 +277,9 @@ public static class ProfileCompiler
             AppliedFeatureIds = input.AppliedFeatureIds.Append(operation.FeatureId).ToArray(),
             SegmentProvenance = Enumerable.Repeat(operation.FeatureId, SegmentCount(shape)).ToArray(),
             SegmentIdentities = InitialSegmentIdentities(shape),
+            SegmentSemanticTags = Enumerable.Range(0, SegmentCount(shape))
+                .Select(_ => (IReadOnlyList<string>)["feature:" + operation.FeatureId])
+                .ToArray(),
         };
     }
 
@@ -379,6 +407,10 @@ public static class ProfileCompiler
                 .Select(index => $"contour:0/segment:{index}")
                 .Concat(input.SegmentIdentities.Skip(originalOuterSegmentCount))
                 .ToArray(),
+            SegmentSemanticTags = Enumerable.Range(0, refinedOuterSegmentCount)
+                .Select(_ => (IReadOnlyList<string>)["feature:Base"])
+                .Concat(input.SegmentSemanticTags.Skip(originalOuterSegmentCount))
+                .ToArray(),
             RadialTargetPreparation = new ProfileRadialTargetPreparationSummary(
                 operation.InputState,
                 originalOuterSegmentCount,
@@ -421,6 +453,255 @@ public static class ProfileCompiler
             AppliedFeatureIds = input.AppliedFeatureIds.Append(operation.FeatureId).ToArray(),
             LoweredReplacements = current.LoweredReplacements.Concat(lowered).ToArray(),
         };
+    }
+
+    private static WorkingState NameSpan(WorkingState input, NameSpanProfileOperation operation)
+    {
+        if (!string.Equals(operation.Target.OwnerState, operation.InputState, StringComparison.Ordinal))
+        {
+            throw new ProfileResolutionException(
+                "COPE-PROFILE-0047",
+                $"Feature '{operation.FeatureId}' uses a stale or cross-profile span owned by state '{operation.Target.OwnerState}', not current state '{operation.InputState}'.",
+                operation.Span);
+        }
+        if (operation.Target.StartSegmentIndex < 0
+            || operation.Target.StartSegmentIndex + operation.Target.SegmentCount > input.SegmentSemanticTags.Count)
+        {
+            throw new ProfileResolutionException(
+                "COPE-PROFILE-0042",
+                $"NameSpan '{operation.Name}' target is outside the current profile boundary.",
+                operation.Span);
+        }
+        if (input.SegmentSemanticTags.Any(tags => tags.Contains("name:" + operation.Name, StringComparer.Ordinal)))
+        {
+            throw new ProfileResolutionException(
+                "COPE-PROFILE-0059",
+                $"Named span '{operation.Name}' is already defined; named selector resolution would be ambiguous.",
+                operation.Span);
+        }
+
+        IReadOnlyList<string>[] tags = input.SegmentSemanticTags
+            .Select(item => item.ToArray() as IReadOnlyList<string>)
+            .ToArray();
+        for (int index = operation.Target.StartSegmentIndex;
+            index < operation.Target.StartSegmentIndex + operation.Target.SegmentCount;
+            index++)
+        {
+            tags[index] = tags[index]
+                .Append("feature:" + operation.FeatureId)
+                .Append("name:" + operation.Name)
+                .Distinct(StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal)
+                .ToArray();
+        }
+        return input with
+        {
+            AppliedFeatureIds = input.AppliedFeatureIds.Append(operation.FeatureId).ToArray(),
+            SegmentSemanticTags = tags,
+        };
+    }
+
+    private static WorkingState RepeatPattern(
+        WorkingState input,
+        RepeatLinearPatternProfileOperation? linear,
+        RepeatAlongPathProfileOperation? alongPath)
+    {
+        ProfileOperation operation = (ProfileOperation?)linear ?? alongPath!;
+        ProfileSelector selector = linear?.Target ?? alongPath!.Target;
+        ProfileSpanPattern pattern = linear?.Pattern ?? alongPath!.Pattern;
+        int count = linear?.Count ?? alongPath!.Count;
+        double spacing = linear?.Spacing ?? alongPath!.Spacing;
+        double footprint = linear?.Footprint ?? alongPath!.Footprint;
+        double offset = linear?.Offset ?? alongPath!.Offset;
+        double pathLength = alongPath is null
+            ? ResolveSelectorLength(input, selector, operation.InputState, operation.Span)
+            : ProfileGeometry.ConceptPathLength(alongPath.Path);
+        if (alongPath is not null)
+        {
+            ResolvedProfileSelector initial = ResolveSelector(input, selector, operation.InputState, operation.Span);
+            (VectorPoint start, VectorPoint end) = ProfileGeometry.SpanEndpoints(
+                input.Shape,
+                initial.Selection.StartSegmentIndex,
+                initial.Selection.SegmentCount);
+            VectorPoint pathStart = alongPath.Path.Segment.Start;
+            VectorPoint pathEnd = alongPath.Path.Segment.End;
+            if (Distance(start, pathStart) > 1e-7 || Distance(end, pathEnd) > 1e-7)
+            {
+                throw new ProfileResolutionException(
+                    "COPE-PROFILE-0064",
+                    "RepeatAlongPath ConceptPath endpoints must match the semantic target traversal endpoints.",
+                    operation.Span);
+            }
+        }
+        if (offset + footprint + ((count - 1) * spacing) > pathLength + 1e-8)
+        {
+            throw new ProfileResolutionException(
+                "COPE-PROFILE-0062",
+                $"{operation.Kind} instances do not fit the selected path without squeezing or clipping.",
+                operation.Span);
+        }
+
+        WorkingState current = input;
+        var lowered = new List<ProfileLoweredReplacementSummary>();
+        for (int repetitionIndex = 0; repetitionIndex < count; repetitionIndex++)
+        {
+            string inputState = repetitionIndex == 0
+                ? operation.InputState
+                : $"{operation.OutputState}#instance:{repetitionIndex - 1}";
+            string outputState = repetitionIndex == count - 1
+                ? operation.OutputState
+                : $"{operation.OutputState}#instance:{repetitionIndex}";
+            ResolvedProfileSelector resolved = ResolveSelector(current, selector, inputState, operation.Span);
+            double startFraction = (offset + (repetitionIndex * spacing)) / pathLength;
+            double endFraction = (offset + (repetitionIndex * spacing) + footprint) / pathLength;
+            double selectorStart = resolved.StartFraction;
+            double selectorRange = resolved.EndFraction - resolved.StartFraction;
+            RefinedWorkingSpan refined = RefineWorkingSpan(
+                current,
+                resolved.Selection,
+                selectorStart + (selectorRange * startFraction),
+                selectorStart + (selectorRange * endFraction));
+            current = refined.State;
+            var target = new ProfileSpanSelection(inputState, refined.StartSegmentIndex, refined.SegmentCount);
+            (VectorPoint targetStart, VectorPoint targetEnd) = ProfileGeometry.SpanEndpoints(
+                current.Shape,
+                target.StartSegmentIndex,
+                target.SegmentCount);
+            VectorPoint? tangent = alongPath is null
+                ? null
+                : ProfileGeometry.ConceptPathTangent(
+                    alongPath.Path,
+                    offset + (repetitionIndex * spacing) + (footprint / 2d));
+            IReadOnlyList<ProfileReplacementSegment> replacement = ProfileGeometry.InstantiatePattern(
+                pattern,
+                targetStart,
+                targetEnd,
+                tangent);
+            current = ReplaceSpanCore(
+                current,
+                target,
+                replacement,
+                operation.FeatureId,
+                $"feature:{operation.FeatureId}/instance:{repetitionIndex}",
+                operation.Span,
+                appendFeature: false);
+            lowered.Add(new ProfileLoweredReplacementSummary(
+                repetitionIndex,
+                inputState,
+                outputState,
+                target.StartSegmentIndex,
+                replacement.Count));
+        }
+        return current with
+        {
+            AppliedFeatureIds = input.AppliedFeatureIds.Append(operation.FeatureId).ToArray(),
+            LoweredReplacements = current.LoweredReplacements
+                .Concat(lowered.OrderBy(item => item.RepetitionIndex))
+                .ToArray(),
+        };
+    }
+
+    private static double ResolveSelectorLength(
+        WorkingState state,
+        ProfileSelector selector,
+        string owner,
+        ProfileSourceSpan span)
+    {
+        ResolvedProfileSelector resolved = ResolveSelector(state, selector, owner, span);
+        double length = ProfileGeometry.SpanLength(
+            state.Shape,
+            resolved.Selection.StartSegmentIndex,
+            resolved.Selection.SegmentCount);
+        return length * (resolved.EndFraction - resolved.StartFraction);
+    }
+
+    private static ResolvedProfileSelector ResolveSelector(
+        WorkingState state,
+        ProfileSelector selector,
+        string owner,
+        ProfileSourceSpan span)
+    {
+        if (selector is AlongProfileSelector along)
+        {
+            ResolvedProfileSelector source = ResolveSelector(state, along.Source, owner, span);
+            double range = source.EndFraction - source.StartFraction;
+            return source with
+            {
+                StartFraction = source.StartFraction + (range * along.StartFraction),
+                EndFraction = source.StartFraction + (range * along.EndFraction),
+            };
+        }
+        string token = selector switch
+        {
+            FeatureSpanProfileSelector feature => "feature:" + feature.FeatureId,
+            NamedSpanProfileSelector named => "name:" + named.Name,
+            _ => throw new InvalidOperationException($"Unknown selector kind '{selector.Kind}'."),
+        };
+        int[] matches = state.SegmentSemanticTags
+            .Select((tags, index) => (tags, index))
+            .Where(item => item.tags.Contains(token, StringComparer.Ordinal))
+            .Select(item => item.index)
+            .ToArray();
+        if (matches.Length == 0)
+        {
+            throw new ProfileResolutionException("COPE-PROFILE-0056", $"Selector '{selector.SemanticIdentity}' resolved no boundary segments.", span);
+        }
+        if (matches.Where((value, index) => value != matches[0] + index).Any())
+        {
+            throw new ProfileResolutionException("COPE-PROFILE-0058", $"Selector '{selector.SemanticIdentity}' resolves to disconnected spans; M6 requires one contiguous span.", span);
+        }
+        return new ResolvedProfileSelector(
+            new ProfileSpanSelection(owner, matches[0], matches.Length),
+            0,
+            1);
+    }
+
+    private static RefinedWorkingSpan RefineWorkingSpan(
+        WorkingState state,
+        ProfileSpanSelection selection,
+        double startFraction,
+        double endFraction)
+    {
+        RefinedSpanInterval refined = ProfileGeometry.RefineSpanInterval(
+            state.Shape,
+            selection.StartSegmentIndex,
+            selection.SegmentCount,
+            startFraction,
+            endFraction);
+        int replacedStart = selection.StartSegmentIndex;
+        int replacedEnd = selection.StartSegmentIndex + selection.SegmentCount;
+        string[] provenance = state.SegmentProvenance
+            .Take(replacedStart)
+            .Concat(refined.SourceSegmentIndexes.Select(index => state.SegmentProvenance[index]))
+            .Concat(state.SegmentProvenance.Skip(replacedEnd))
+            .ToArray();
+        string[] identities = state.SegmentIdentities
+            .Take(replacedStart)
+            .Concat(refined.SourceSegmentIndexes.Select((index, piece) => state.SegmentIdentities[index] + $"/piece:{piece}"))
+            .Concat(state.SegmentIdentities.Skip(replacedEnd))
+            .ToArray();
+        IReadOnlyList<string>[] tags = state.SegmentSemanticTags
+            .Take(replacedStart)
+            .Concat(refined.SourceSegmentIndexes.Select(index => state.SegmentSemanticTags[index]))
+            .Concat(state.SegmentSemanticTags.Skip(replacedEnd))
+            .ToArray();
+        return new RefinedWorkingSpan(
+            state with
+            {
+                Shape = refined.Shape,
+                SegmentProvenance = provenance,
+                SegmentIdentities = identities,
+                SegmentSemanticTags = tags,
+            },
+            refined.StartSegmentIndex,
+            refined.SegmentCount);
+    }
+
+    private static double Distance(VectorPoint left, VectorPoint right)
+    {
+        double dx = right.X - left.X;
+        double dy = right.Y - left.Y;
+        return Math.Sqrt((dx * dx) + (dy * dy));
     }
 
     private static List<ProfileDiagnostic> ValidateDefinition(ProfileDefinition definition)
@@ -512,6 +793,25 @@ public static class ProfileCompiler
                     }
                     ValidatePattern(replace.Pattern, replace.Span, diagnostics);
                     break;
+                case NameSpanProfileOperation name:
+                    if (string.IsNullOrWhiteSpace(name.Name)
+                        || name.Target.StartSegmentIndex < 0
+                        || name.Target.SegmentCount <= 0)
+                    {
+                        diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0059", "NameSpan requires a non-empty name and concrete target span.", name.Span));
+                    }
+                    break;
+                case RepeatLinearPatternProfileOperation repeat:
+                    ValidateRepeat(repeat.Target, repeat.Pattern, repeat.Count, repeat.Spacing, repeat.Footprint, repeat.Offset, repeat.Span, diagnostics);
+                    break;
+                case RepeatAlongPathProfileOperation repeat:
+                    ValidateRepeat(repeat.Target, repeat.Pattern, repeat.Count, repeat.Spacing, repeat.Footprint, repeat.Offset, repeat.Span, diagnostics);
+                    if (ProfileGeometry.ConceptPathLength(repeat.Path) <= 1e-12
+                        || ProfileGeometry.ConceptPathHasCusp(repeat.Path))
+                    {
+                        diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0063", "RepeatAlongPath rejects a zero-length path or cusp with no usable tangent.", repeat.Span));
+                    }
+                    break;
                 case TransformProfileOperation transform:
                     if (!double.IsFinite(transform.A) || !double.IsFinite(transform.B)
                         || transform.TransformKind == "Scale" && (transform.A == 0 || transform.B == 0))
@@ -522,6 +822,63 @@ public static class ProfileCompiler
             }
         }
         return diagnostics;
+    }
+
+    private static void ValidateRepeat(
+        ProfileSelector selector,
+        ProfileSpanPattern pattern,
+        int count,
+        double spacing,
+        double footprint,
+        double offset,
+        ProfileSourceSpan span,
+        List<ProfileDiagnostic> diagnostics)
+    {
+        ValidateSelector(selector, span, diagnostics);
+        ValidatePattern(pattern, span, diagnostics);
+        if (count <= 0 || count > 256
+            || !Positive(spacing)
+            || !Positive(footprint)
+            || !double.IsFinite(offset)
+            || offset < 0)
+        {
+            diagnostics.Add(new ProfileDiagnostic(
+                "COPE-PROFILE-0061",
+                "Repetition requires count 1..256, positive world-unit spacing and footprint, and a non-negative offset; no auto-fit is implied.",
+                span));
+        }
+        if (count > 1 && Positive(spacing) && Positive(footprint) && spacing < footprint)
+        {
+            diagnostics.Add(new ProfileDiagnostic(
+                "COPE-PROFILE-0065",
+                "Repeated instance footprints overlap; clipping and implicit overlap are not allowed.",
+                span));
+        }
+    }
+
+    private static void ValidateSelector(
+        ProfileSelector selector,
+        ProfileSourceSpan span,
+        List<ProfileDiagnostic> diagnostics)
+    {
+        switch (selector)
+        {
+            case FeatureSpanProfileSelector feature when string.IsNullOrWhiteSpace(feature.FeatureId):
+            case NamedSpanProfileSelector named when string.IsNullOrWhiteSpace(named.Name):
+                diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0055", "Selector semantic identity must not be empty.", span));
+                break;
+            case AlongProfileSelector along:
+                ValidateSelector(along.Source, span, diagnostics);
+                if (!double.IsFinite(along.StartFraction)
+                    || !double.IsFinite(along.EndFraction)
+                    || along.StartFraction < 0
+                    || along.EndFraction > 1
+                    || along.StartFraction >= along.EndFraction)
+                {
+                    diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0060", "Along fractions must satisfy 0 <= start < end <= 1.", span));
+                }
+                break;
+        }
     }
 
     private static void ValidatePattern(
@@ -653,7 +1010,10 @@ public static class ProfileCompiler
                     GeneratedSegmentIndex = GeneratedIndex(
                         flatIndex < state.SegmentIdentities.Count ? state.SegmentIdentities[flatIndex] : string.Empty),
                     RepetitionIndex = RepetitionIndex(
-                        flatIndex < state.SegmentIdentities.Count ? state.SegmentIdentities[flatIndex] : string.Empty)
+                        flatIndex < state.SegmentIdentities.Count ? state.SegmentIdentities[flatIndex] : string.Empty),
+                    SemanticTags = flatIndex < state.SegmentSemanticTags.Count
+                        ? state.SegmentSemanticTags[flatIndex]
+                        : [],
                 })
                 .ToArray(),
             LoweredReplacements = state.LoweredReplacements,
@@ -705,6 +1065,15 @@ public static class ProfileCompiler
                     break;
                 case ReplaceSpanPatternProfileOperation replace:
                     result.Append($"{replace.Target.OwnerState}:{replace.Target.StartSegmentIndex}:{replace.Target.SegmentCount}:{replace.Pattern.SemanticHash}");
+                    break;
+                case NameSpanProfileOperation name:
+                    result.Append($"{name.Name}:{name.Target.OwnerState}:{name.Target.StartSegmentIndex}:{name.Target.SegmentCount}");
+                    break;
+                case RepeatLinearPatternProfileOperation repeat:
+                    result.Append($"{repeat.Target.SemanticHash}:{repeat.Pattern.SemanticHash}:{repeat.Count}:{R(repeat.Spacing)}:{R(repeat.Footprint)}:{R(repeat.Offset)}");
+                    break;
+                case RepeatAlongPathProfileOperation repeat:
+                    result.Append($"{repeat.Target.SemanticHash}:{repeat.Path.SemanticHash}:{repeat.Pattern.SemanticHash}:{repeat.Count}:{R(repeat.Spacing)}:{R(repeat.Footprint)}:{R(repeat.Offset)}");
                     break;
                 case TransformProfileOperation transform:
                     result.Append($"{R(transform.A)}:{R(transform.B)}");
@@ -805,6 +1174,17 @@ public static class ProfileCompiler
         IReadOnlyList<string> AppliedFeatureIds,
         IReadOnlyList<string> SegmentProvenance,
         IReadOnlyList<string> SegmentIdentities,
+        IReadOnlyList<IReadOnlyList<string>> SegmentSemanticTags,
         IReadOnlyList<ProfileLoweredReplacementSummary> LoweredReplacements,
         ProfileRadialTargetPreparationSummary? RadialTargetPreparation);
+
+    private sealed record ResolvedProfileSelector(
+        ProfileSpanSelection Selection,
+        double StartFraction,
+        double EndFraction);
+
+    private sealed record RefinedWorkingSpan(
+        WorkingState State,
+        int StartSegmentIndex,
+        int SegmentCount);
 }

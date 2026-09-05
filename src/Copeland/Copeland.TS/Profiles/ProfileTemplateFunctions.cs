@@ -32,6 +32,7 @@ public static class ProfileTemplateFunctions
         export record ConceptPath {
             start: ConceptPoint;
             end: ConceptPoint;
+            curve?: SegmentCurve;
         }
 
         export function SpanOf<T>(elements: T[]): Span<T> {
@@ -44,6 +45,10 @@ public static class ProfileTemplateFunctions
 
         export function PathBetween(start: ConceptPoint, end: ConceptPoint): ConceptPath {
             return { start: start, end: end };
+        }
+
+        export function CurvedPath(start: ConceptPoint, end: ConceptPoint, curve: SegmentCurve): ConceptPath {
+            return { start: start, end: end, curve: curve };
         }
 
         export function Midpoint(path: ConceptPath): ConceptPoint {
@@ -280,6 +285,24 @@ public static class ProfileTemplateFunctions
             segments: Span<ProfileSegment>;
         }
 
+        export enum ProfileSelector {
+            FeatureSpan(featureId: string),
+            NamedSpan(name: string),
+            Along(source: ProfileSelector, start: number, end: number),
+        }
+
+        export function FeatureSpan(featureId: string): ProfileSelector {
+            return ProfileSelector.FeatureSpan(featureId);
+        }
+
+        export function NamedSpan(name: string): ProfileSelector {
+            return ProfileSelector.NamedSpan(name);
+        }
+
+        export function AlongSpan(source: ProfileSelector, start: number, end: number): ProfileSelector {
+            return ProfileSelector.Along(source, start, end);
+        }
+
         export function SpanPattern(segments: Span<ProfileSegment>): ProfileSpanPattern {
             return { segments: segments };
         }
@@ -360,6 +383,36 @@ public static class ProfileTemplateFunctions
             pattern: ProfileSpanPattern;
         }
 
+        export record NameSpanArgs {
+            id: string;
+            as: string;
+            name: string;
+            target: Span<ProfileSegment>;
+        }
+
+        export record RepeatLinearArgs {
+            id: string;
+            as: string;
+            target: ProfileSelector;
+            pattern: ProfileSpanPattern;
+            count: int;
+            spacing: number;
+            footprint: number;
+            offset?: number;
+        }
+
+        export record RepeatAlongPathArgs {
+            id: string;
+            as: string;
+            target: ProfileSelector;
+            path: ConceptPath;
+            pattern: ProfileSpanPattern;
+            count: int;
+            spacing: number;
+            footprint: number;
+            offset?: number;
+        }
+
         export enum ProfileOperation {
             Add(args: ShapeOperationArgs),
             Subtract(args: ShapeOperationArgs),
@@ -375,6 +428,9 @@ public static class ProfileTemplateFunctions
             ReplaceSegment(args: ReplaceSegmentArgs),
             ReplaceSpan(args: ReplaceSpanArgs),
             ReplaceSpanPattern(args: ReplaceSpanPatternArgs),
+            NameSpan(args: NameSpanArgs),
+            RepeatLinear(args: RepeatLinearArgs),
+            RepeatAlongPath(args: RepeatAlongPathArgs),
         }
 
         export function Add(args: ShapeOperationArgs): ProfileOperation {
@@ -431,6 +487,18 @@ public static class ProfileTemplateFunctions
 
         export function ReplaceSpanWithPattern(args: ReplaceSpanPatternArgs): ProfileOperation {
             return ProfileOperation.ReplaceSpanPattern(args);
+        }
+
+        export function NameSpan(args: NameSpanArgs): ProfileOperation {
+            return ProfileOperation.NameSpan(args);
+        }
+
+        export function RepeatLinear(args: RepeatLinearArgs): ProfileOperation {
+            return ProfileOperation.RepeatLinear(args);
+        }
+
+        export function RepeatAlongPath(args: RepeatAlongPathArgs): ProfileOperation {
+            return ProfileOperation.RepeatAlongPath(args);
         }
 
         export record ProfileSource {

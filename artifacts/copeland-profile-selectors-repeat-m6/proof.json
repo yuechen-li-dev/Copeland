@@ -1,0 +1,90 @@
+{
+  "stableTopology": {
+    "targetFeature": "RightTarget",
+    "namedSpan": "RightEdge",
+    "beforeRawSegmentIndex": 1,
+    "afterRawSegmentIndex": 3,
+    "loweredReplacementIndexAfterArcRefinement": 4,
+    "resolution": "feature and name semantic tags are resolved on each current SSA state",
+    "CanonicalContourHash": "bb678eeb5cb17f22fa727a9735f2f9dcff7a0d5bf85b74c49d2a9c37bfe1f86d"
+  },
+  "repeatLinear": {
+    "count": 4,
+    "spacing": 14,
+    "footprint": 6,
+    "lowered": [
+      {
+        "RepetitionIndex": 0,
+        "InputState": "Named",
+        "OutputState": "Repeated#instance:0",
+        "TargetSegmentIndex": 1,
+        "GeneratedSegmentCount": 2
+      },
+      {
+        "RepetitionIndex": 1,
+        "InputState": "Repeated#instance:0",
+        "OutputState": "Repeated#instance:1",
+        "TargetSegmentIndex": 4,
+        "GeneratedSegmentCount": 2
+      },
+      {
+        "RepetitionIndex": 2,
+        "InputState": "Repeated#instance:1",
+        "OutputState": "Repeated#instance:2",
+        "TargetSegmentIndex": 7,
+        "GeneratedSegmentCount": 2
+      },
+      {
+        "RepetitionIndex": 3,
+        "InputState": "Repeated#instance:2",
+        "OutputState": "Repeated",
+        "TargetSegmentIndex": 10,
+        "GeneratedSegmentCount": 2
+      }
+    ]
+  },
+  "repeatAlongPath": {
+    "count": 4,
+    "spacing": 3.4,
+    "footprint": 1.4,
+    "parameterization": "deterministic-arc-length",
+    "orientation": "local-target-tangent-and-canonical-outward-normal",
+    "lowered": [
+      {
+        "RepetitionIndex": 0,
+        "InputState": "NamedCurve",
+        "OutputState": "Repeated#instance:0",
+        "TargetSegmentIndex": 2,
+        "GeneratedSegmentCount": 2
+      },
+      {
+        "RepetitionIndex": 1,
+        "InputState": "Repeated#instance:0",
+        "OutputState": "Repeated#instance:1",
+        "TargetSegmentIndex": 5,
+        "GeneratedSegmentCount": 2
+      },
+      {
+        "RepetitionIndex": 2,
+        "InputState": "Repeated#instance:1",
+        "OutputState": "Repeated#instance:2",
+        "TargetSegmentIndex": 8,
+        "GeneratedSegmentCount": 2
+      },
+      {
+        "RepetitionIndex": 3,
+        "InputState": "Repeated#instance:2",
+        "OutputState": "Repeated",
+        "TargetSegmentIndex": 11,
+        "GeneratedSegmentCount": 2
+      }
+    ]
+  },
+  "geometryHashIgnoresSelectorResolutionState": true,
+  "pelican": {
+    "changed": false,
+    "reason": "No forced repetition: the existing semantic illustration remains the stronger benchmark.",
+    "CompositionHash": "8d842c0150f82fcd2f598b77f664a5673ad38638d06a127032ad96ec039d78d2",
+    "CanonicalGeometryHash": "5ad0bbfce2df0461dca44e5e9b5821fd13a1deea9ad85827c9d0b37b485f4a99"
+  }
+}

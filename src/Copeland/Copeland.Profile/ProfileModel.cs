@@ -189,6 +189,75 @@ public sealed record ProfileSpanSelection(
     public string SemanticHash => ProfileHash.Utf8($"profile-span-v1|{OwnerState}|{StartSegmentIndex}|{SegmentCount}");
 }
 
+/// <summary>
+/// An owner-independent build-time query. Resolution always happens against
+/// the current immutable Profile state; the resulting ProfileSpanSelection is
+/// owner-bound in the usual M4 sense.
+/// </summary>
+public abstract record ProfileSelector(string Kind)
+{
+    public abstract string SemanticIdentity { get; }
+
+    public string SemanticHash => ProfileHash.Utf8($"profile-selector-v1|{SemanticIdentity}");
+}
+
+public sealed record FeatureSpanProfileSelector(string FeatureId) : ProfileSelector("FeatureSpan")
+{
+    public override string SemanticIdentity => $"FeatureSpan:{FeatureId}";
+}
+
+public sealed record NamedSpanProfileSelector(string Name) : ProfileSelector("NamedSpan")
+{
+    public override string SemanticIdentity => $"NamedSpan:{Name}";
+}
+
+public sealed record AlongProfileSelector(
+    ProfileSelector Source,
+    double StartFraction,
+    double EndFraction) : ProfileSelector("Along")
+{
+    public override string SemanticIdentity => $"Along:{Source.SemanticIdentity}:{StartFraction:R}:{EndFraction:R}";
+}
+
+public sealed record ProfileConceptPath(ProfileReplacementSegment Segment)
+{
+    public string SemanticHash => ProfileHash.Utf8(
+        $"profile-concept-path-v1|{Segment.Kind}:{Segment.Start.X:R},{Segment.Start.Y:R}:{Segment.End.X:R},{Segment.End.Y:R}:{Segment.Amount:R}:{Segment.Control1.X:R},{Segment.Control1.Y:R}:{Segment.Control2.X:R},{Segment.Control2.Y:R}");
+}
+
+public sealed record NameSpanProfileOperation(
+    string Id,
+    string Input,
+    string Output,
+    string Name,
+    ProfileSpanSelection Target,
+    ProfileSourceSpan SourceSpan) : ProfileOperation(Id, Input, Output, "NameSpan", SourceSpan);
+
+public sealed record RepeatLinearPatternProfileOperation(
+    string Id,
+    string Input,
+    string Output,
+    ProfileSelector Target,
+    ProfileSpanPattern Pattern,
+    int Count,
+    double Spacing,
+    double Footprint,
+    double Offset,
+    ProfileSourceSpan SourceSpan) : ProfileOperation(Id, Input, Output, "RepeatLinear", SourceSpan);
+
+public sealed record RepeatAlongPathProfileOperation(
+    string Id,
+    string Input,
+    string Output,
+    ProfileSelector Target,
+    ProfileConceptPath Path,
+    ProfileSpanPattern Pattern,
+    int Count,
+    double Spacing,
+    double Footprint,
+    double Offset,
+    ProfileSourceSpan SourceSpan) : ProfileOperation(Id, Input, Output, "RepeatAlongPath", SourceSpan);
+
 public sealed record ProfileReplacementSegment(
     ProfileCurveKind Kind,
     VectorPoint Start,
@@ -221,6 +290,8 @@ public sealed record ProfileSegmentSummary(
     public int? GeneratedSegmentIndex { get; init; }
 
     public int? RepetitionIndex { get; init; }
+
+    public IReadOnlyList<string> SemanticTags { get; init; } = [];
 }
 
 public sealed record TransformProfileOperation(

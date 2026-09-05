@@ -1,0 +1,22 @@
+{
+  "milestone": "COPELAND-PROFILE-SELECTORS-REPEAT-M6",
+  "kind": "stable-semantic-profile-selectors-linear-path-repeat",
+  "semanticSelectorsAdded": true,
+  "selectorIsOwnerIndependent": true,
+  "resolvedSpanIsOwnerBound": true,
+  "rawIndexSelectorStillEscapeHatch": true,
+  "repeatLinearQualified": true,
+  "repeatAlongPathQualified": true,
+  "arcLengthPlacementUsed": true,
+  "sequentialSsaUsed": true,
+  "stableFeatureIdentityUsed": true,
+  "runtimeQuerySystemAdded": false,
+  "cadConstraintSolverAdded": false,
+  "rendererChanged": false,
+  "svgProfileArcParkedAfterMilestone": true,
+  "ProfileIrHash": "00c0b95019a8960b78e875f1ac6d6a2647a36385d514dd5e4dbf11ca07fed1b9",
+  "CanonicalContourHash": "9b35a043b108e026a2cf22d9116c59e609bfd63cc3cd66bc6ed2d501f99ce0be",
+  "curvedProfileIrHash": "10861c24c07e150e2194a6bb88c1ced9646d7f42153d388455daa336a30909cf",
+  "curvedContourHash": "6ba1984ee6f0097e369d6fd8062f1ecaf6d0f0955fe51dd999ddf298b1f7b479",
+  "pelicanCompositionHash": "8d842c0150f82fcd2f598b77f664a5673ad38638d06a127032ad96ec039d78d2"
+}
