@@ -1,0 +1,21 @@
+{
+  "voiceCapacity": 8,
+  "exhaustion": "steal-lowest-priority-oldest",
+  "effectiveGainLaw": "voice * bus * master * spatial * fade",
+  "panLaw": "linear stereo balance",
+  "attenuationLaw": "one through near distance, then linear to zero at max distance",
+  "crossfadeHalfway": [
+    {
+      "asset": "music-a",
+      "gain": 0.2
+    },
+    {
+      "asset": "music-b",
+      "gain": 0.2
+    }
+  ],
+  "performance": {
+    "playStop1000Nanoseconds": 1359200,
+    "mix32Voices10msAverageNanoseconds": 3652980
+  }
+}

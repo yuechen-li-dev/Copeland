@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Aurelian.Audio</AssemblyName>
+    <RootNamespace>Aurelian.Audio</RootNamespace>
+  </PropertyGroup>
+</Project>

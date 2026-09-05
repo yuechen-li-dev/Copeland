@@ -5,6 +5,7 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Audio/Aurelian.Audio.csproj" />
     <ProjectReference Include="../../../src/TinyFarm/TinyFarm.Runtime/TinyFarm.Runtime.csproj" />
     <ProjectReference Include="../../../src/TinyFarm/TinyFarm.Presentation/TinyFarm.Presentation.csproj" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Composition/Aurelian.Composition.csproj" />

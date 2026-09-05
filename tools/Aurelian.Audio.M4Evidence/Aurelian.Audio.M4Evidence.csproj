@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Aurelian/Aurelian.Audio/Aurelian.Audio.csproj" />
+    <ProjectReference Include="../../src/Integrations/Aurelian.Audio.NAudio/Aurelian.Audio.NAudio.csproj" />
+    <ProjectReference Include="../../src/Integrations/Dominatus.Audio.Aurelian/Dominatus.Audio.Aurelian.csproj" />
+    <ProjectReference Include="../../src/TinyFarm/TinyFarm.Runtime/TinyFarm.Runtime.csproj" />
+  </ItemGroup>
+</Project>

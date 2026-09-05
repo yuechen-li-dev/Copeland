@@ -1,3 +1,5 @@
+using Aurelian.Audio;
+
 namespace Aurelian.GameHost;
 
 public readonly record struct HostSurfaceSize(int Width, int Height)
@@ -50,6 +52,7 @@ public sealed class AurelianGameHost : IDisposable
     private readonly IAurelianHostInput input;
     private readonly IAurelianHostCompositor compositor;
     private readonly IAurelianGameApplication application;
+    private readonly IAurelianAudioRuntime? audio;
     private bool disposed;
     private ulong sequence;
     private TimeSpan total;
@@ -59,12 +62,14 @@ public sealed class AurelianGameHost : IDisposable
         IAurelianHostInput input,
         IAurelianHostCompositor compositor,
         IAurelianGameApplication application,
-        string applicationName)
+        string applicationName,
+        IAurelianAudioRuntime? audio = null)
     {
         this.window = window ?? throw new ArgumentNullException(nameof(window));
         this.input = input ?? throw new ArgumentNullException(nameof(input));
         this.compositor = compositor ?? throw new ArgumentNullException(nameof(compositor));
         this.application = application ?? throw new ArgumentNullException(nameof(application));
+        this.audio = audio;
         ApplicationName = string.IsNullOrWhiteSpace(applicationName)
             ? throw new ArgumentException("Application name must not be empty.", nameof(applicationName))
             : applicationName;
@@ -98,6 +103,7 @@ public sealed class AurelianGameHost : IDisposable
         var frame = new AurelianHostFrame(++sequence, elapsed, total);
         input.BeginFrame(frame);
         application.OnSimulationTick(frame);
+        audio?.Update(elapsed);
         application.OnRender(frame);
         compositor.Present(frame);
         return true;
@@ -112,6 +118,10 @@ public sealed class AurelianGameHost : IDisposable
 
         List<Exception>? failures = null;
         DisposeOne(application, ref failures);
+        if (audio is not null)
+        {
+            DisposeOne(audio, ref failures);
+        }
         DisposeOne(input, ref failures);
         DisposeOne(compositor, ref failures);
         DisposeOne(window, ref failures);
@@ -125,7 +135,11 @@ public sealed class AurelianGameHost : IDisposable
         application.OnResize(size);
     }
 
-    private void HandleFocus(bool focused) => input.OnFocusChanged(focused);
+    private void HandleFocus(bool focused)
+    {
+        input.OnFocusChanged(focused);
+        audio?.SetFocused(focused);
+    }
 
     private static void DisposeOne(IDisposable item, ref List<Exception>? failures)
     {

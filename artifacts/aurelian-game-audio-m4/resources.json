@@ -1,0 +1,15 @@
+{
+  "format": "PCM WAV baseline",
+  "strategy": "resident M4",
+  "count": 7,
+  "generated": {
+    "id": "tinyfarm.sfx.harvest-pop",
+    "SampleRateHz": 22050,
+    "Channels": 1,
+    "FrameCount": 441,
+    "durationMilliseconds": 20,
+    "ContentHash": "2ebe6292861a44eb95e1ea4e584efb9912c3bfb3a0e7e313bda0b195a25317f0"
+  },
+  "compressedFormats": "deferred to a mature decoder/backend seam",
+  "streaming": "bounded remaining seam"
+}

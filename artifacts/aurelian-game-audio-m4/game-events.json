@@ -1,0 +1,19 @@
+{
+  "cues": [
+    {
+      "eventId": "tinyfarm:71:0:EnemyDefeated",
+      "asset": "tinyfarm.sfx.sword-swing",
+      "bus": "Sfx"
+    },
+    {
+      "eventId": "tinyfarm:72:0:ItemTaken",
+      "asset": "tinyfarm.sfx.pickup",
+      "bus": "Sfx"
+    }
+  ],
+  "authority": "accepted IntentResult GameEvents only",
+  "save": "no mixer or one-shot voice state",
+  "replay": "re-project semantic events",
+  "music": "tinyfarm.music.farm-day",
+  "ambient": "tinyfarm.ambient.river"
+}

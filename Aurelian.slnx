@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/Aurelian/Aurelian.Composition/Aurelian.Composition.csproj" />
     <Project Path="src/Aurelian/Aurelian.Actuation/Aurelian.Actuation.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Audio/Aurelian.Audio.csproj" />
     <Project Path="src/Aurelian/Aurelian.Assets/Aurelian.Assets.csproj" />
     <Project Path="src/Aurelian/Aurelian.AssetTool/Aurelian.AssetTool.csproj" />
     <Project Path="src/Aurelian/Aurelian.Core/Aurelian.Core.csproj" />
@@ -17,12 +18,15 @@
     <Project Path="src/Integrations/Aurelian.GameWorld2D/Aurelian.GameWorld2D.csproj" />
     <Project Path="src/Integrations/Aurelian.NativeComposition/Aurelian.NativeComposition.csproj" />
     <Project Path="src/Integrations/Aurelian.GameHost.Silk/Aurelian.GameHost.Silk.csproj" />
+    <Project Path="src/Integrations/Aurelian.Audio.NAudio/Aurelian.Audio.NAudio.csproj" />
+    <Project Path="src/Integrations/Dominatus.Audio.Aurelian/Dominatus.Audio.Aurelian.csproj" />
     <Project Path="src/Integrations/InputMan.Aurelian/InputMan.Aurelian.csproj" />
     <Project Path="src/TinyFarm/TinyFarm.InputMan/TinyFarm.InputMan.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Aurelian/Aurelian.Composition.Tests/Aurelian.Composition.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Actuation.Tests/Aurelian.Actuation.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.Audio.Tests/Aurelian.Audio.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Assets.Tests/Aurelian.Assets.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.AssetTool.Tests/Aurelian.AssetTool.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Core.Tests/Aurelian.Core.Tests.csproj" />

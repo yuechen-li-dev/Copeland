@@ -1,4 +1,5 @@
 using Aurelian.GameHost;
+using Aurelian.Audio;
 using Aurelian.Composition;
 using InputMan.Aurelian;
 using InputMan.Core;
@@ -137,6 +138,28 @@ public sealed class GameHostInputM2Tests
         Assert.True(log.IndexOf("compositor.dispose") < log.IndexOf("window.dispose"));
     }
 
+    [Fact]
+    public void HostOwnsAudioPumpFocusAndDisposal()
+    {
+        var log = new List<string>();
+        var window = new FakeWindow(log);
+        var audio = new FakeAudio(log);
+        using (var host = new AurelianGameHost(
+            window,
+            new FakeInput(log),
+            new FakeCompositor(log),
+            new FakeApplication(log),
+            "AudioM4Proof",
+            audio))
+        {
+            Assert.True(host.RunFrame(TimeSpan.FromMilliseconds(16)));
+        }
+
+        Assert.Contains("audio.focus:true", log);
+        Assert.Contains("audio.update:16", log);
+        Assert.Contains("audio.dispose", log);
+    }
+
     private static SpatialMoveIntent MoveWith(Action<AurelianInputAdapter> input)
     {
         var engine = new InputManEngine(GameControls.CreateProfile());
@@ -182,5 +205,12 @@ public sealed class GameHostInputM2Tests
         public void OnSimulationTick(AurelianHostFrame frame) => log.Add("app.tick");
         public void OnRender(AurelianHostFrame frame) => log.Add("app.render");
         public void Dispose() => log.Add("app.dispose");
+    }
+
+    private sealed class FakeAudio(List<string> log) : IAurelianAudioRuntime
+    {
+        public void Update(TimeSpan elapsed) => log.Add($"audio.update:{elapsed.TotalMilliseconds:0}");
+        public void SetFocused(bool focused) => log.Add($"audio.focus:{focused.ToString().ToLowerInvariant()}");
+        public void Dispose() => log.Add("audio.dispose");
     }
 }

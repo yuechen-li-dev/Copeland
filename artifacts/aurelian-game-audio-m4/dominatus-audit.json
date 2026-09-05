@@ -1,0 +1,30 @@
+{
+  "conclusion": "Generation-specific; integrate at artifact boundary",
+  "components": [
+    {
+      "concept": "AudioArtifact",
+      "purpose": "generated resource path and open format metadata",
+      "disposition": "adapt"
+    },
+    {
+      "concept": "AudioGenerationMetadata",
+      "purpose": "provider provenance and idempotency correlation",
+      "disposition": "adapt"
+    },
+    {
+      "concept": "AudioProviderRegistry and providers",
+      "purpose": "TTS and SFX generation",
+      "disposition": "reject-for-realtime"
+    },
+    {
+      "concept": "FakeAudioProvider",
+      "purpose": "deterministic generated WAV",
+      "disposition": "reuse-for-integration-proof"
+    },
+    {
+      "concept": "Godot playback handler",
+      "purpose": "agent-bound Godot scene playback",
+      "disposition": "reject-for-aurelian-realtime"
+    }
+  ]
+}

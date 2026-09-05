@@ -1,0 +1,20 @@
+{
+  "outcome": "B",
+  "focusedAudioTests": 15,
+  "tinyFarmTestsAtEvidenceTime": 280,
+  "aurelianSolutionTests": 713,
+  "tinyFarmSolutionTests": 307,
+  "jointTaskForceSolutionTests": 3476,
+  "dominatusAudioOwnerTests": 96,
+  "generatedArtifactLoaded": true,
+  "offlineFramesSubmitted": 24000,
+  "offlinePcmSha256": "b4f51b2b2f5eec7ff5323206c89d5d0757d0c14e659f434d8bfede76819aef0b",
+  "activeVoicesAtCrossfadeHalfway": 3,
+  "gameCueCount": 2,
+  "rejectedAttackCueCount": 0,
+  "windowsDeviceOpened": true,
+  "deviceFramesSubmitted": 480,
+  "deviceError": null,
+  "linuxDeviceQualified": false,
+  "streamedMusicQualified": false
+}

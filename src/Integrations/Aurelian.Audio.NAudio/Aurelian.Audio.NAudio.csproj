@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Aurelian.Audio.NAudio</AssemblyName>
+    <RootNamespace>Aurelian.Audio.NAudio</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NAudio" />
+    <ProjectReference Include="../../Aurelian/Aurelian.Audio/Aurelian.Audio.csproj" />
+  </ItemGroup>
+</Project>

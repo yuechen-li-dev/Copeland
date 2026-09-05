@@ -546,3 +546,9 @@ state changes. DotRecast proposes navigation paths; spatial sweep validates actu
 motion. A future full dynamics engine may coexist through a separate integration and
 must not turn this query substrate into an engine-owned physics scene. See
 `docs/Aurelian/aurelian-spatial-2d-m3-report.md`.
+
+## Native game audio (M4)
+
+`Aurelian.Audio` owns engine-neutral realtime playback policy: typed assets/events/voices/buses, scoped resident PCM resources, bounded allocation, deterministic stealing, gain/mute, explicit-clock fades and crossfades, simple 2D pan/attenuation, event dedupe, completion queues, diagnostics, and null/offline mixing. `Aurelian.Audio.NAudio` is the Windows device leaf; backend types do not enter game code. `AurelianGameHost` owns update, focus, and disposal.
+
+Dominatus remains the optional generation/provider owner. `Dominatus.Audio.Aurelian` adapts a generated `AudioArtifact` into the same PCM-WAV resource path used by authored files. TinyFarm projects accepted semantic results into cues; Core does not reference audio. Mixer state and voices are never save/replay/gameplay authority. Streamed music, compressed formats, and a Linux device leaf remain explicit backend/resource seams. See `docs/Aurelian/aurelian-game-audio-m4-report.md`.

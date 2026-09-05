@@ -3,4 +3,7 @@
     <AssemblyName>Aurelian.GameHost</AssemblyName>
     <RootNamespace>Aurelian.GameHost</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Aurelian.Audio/Aurelian.Audio.csproj" />
+  </ItemGroup>
 </Project>

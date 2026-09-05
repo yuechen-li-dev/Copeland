@@ -1,0 +1,18 @@
+{
+  "milestone": "AURELIAN-GAME-AUDIO-M4",
+  "kind": "realtime-game-audio-playback-mixer",
+  "dominatusAudioAudited": true,
+  "dominatusGenerationPreserved": true,
+  "gameAudioPlaybackQualified": true,
+  "sfxQualified": true,
+  "musicQualified": true,
+  "ambientLoopQualified": true,
+  "busesQualified": true,
+  "fadeCrossfadeQualified": true,
+  "simpleSpatialAudioQualified": true,
+  "eventDeduplicationQualified": true,
+  "nullHeadlessBackendQualified": true,
+  "gameplayAuthorityInAudio": false,
+  "audioEditorAdded": false,
+  "dspGraphAdded": false
+}

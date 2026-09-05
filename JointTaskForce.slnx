@@ -22,6 +22,7 @@
     <Project Path="src/Machina.UI/Machina.Runtime/Machina.Runtime.csproj" />
     <Project Path="src/Machina.UI/Machina.Standard/Machina.Standard.csproj" />
     <Project Path="src/Aurelian/Aurelian.Actuation/Aurelian.Actuation.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Audio/Aurelian.Audio.csproj" />
     <Project Path="src/Aurelian/Aurelian.Composition/Aurelian.Composition.csproj" />
     <Project Path="src/Aurelian/Aurelian.Assets/Aurelian.Assets.csproj" />
     <Project Path="src/Aurelian/Aurelian.AssetTool/Aurelian.AssetTool.csproj" />
@@ -37,6 +38,8 @@
     <Project Path="src/Integrations/Aurelian.Machina/Aurelian.Machina.csproj" />
     <Project Path="src/Integrations/Aurelian.Machina.Graphics/Aurelian.Machina.Graphics.csproj" />
     <Project Path="src/Integrations/Aurelian.NativeComposition/Aurelian.NativeComposition.csproj" />
+    <Project Path="src/Integrations/Aurelian.Audio.NAudio/Aurelian.Audio.NAudio.csproj" />
+    <Project Path="src/Integrations/Dominatus.Audio.Aurelian/Dominatus.Audio.Aurelian.csproj" />
     <Project Path="src/Integrations/Oblivion.Avalonia/Oblivion.Avalonia.csproj" />
   </Folder>
   <Folder Name="/tools/">
@@ -68,6 +71,7 @@
     <Project Path="tests/Machina.UI/Machina.Standard.Tests/Machina.Standard.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Testing/Machina.Testing.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Actuation.Tests/Aurelian.Actuation.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.Audio.Tests/Aurelian.Audio.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Composition.Tests/Aurelian.Composition.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Assets.Tests/Aurelian.Assets.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.AssetTool.Tests/Aurelian.AssetTool.Tests.csproj" />
