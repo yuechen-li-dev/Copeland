@@ -268,21 +268,21 @@ public sealed class SpanProfileM4Tests
     }
 
     [Fact]
-    public void Standard_gear_tooth_is_a_real_three_segment_span()
+    public void Standard_gear_tooth_is_a_real_three_segment_pattern_instantiated_through_replace_span()
     {
         const string source = """
-            import { GearTooth, Point, Profile, ProfileEdge, Rectangle, ReplaceSpan, SelectSegment, SpanOf } from "./Profile";
+            import { GearTooth, Point, Profile, ProfileEdge, Rectangle, ReplaceSpanWithPattern, SelectSegment, SpanOf } from "./Profile";
 
             export default (
                 <Profile name="Tooth" base={Rectangle({ width: 40.0, height: 30.0 })}>
-                    {ReplaceSpan({
+                    {ReplaceSpanWithPattern({
                         id: "GearTooth", as: "Toothed",
                         target: SpanOf([SelectSegment("Base", 0)]),
-                        replacement: GearTooth({
-                            rootLeft: Point(-20.0, 15.0),
-                            tipLeft: Point(-8.0, 22.0),
-                            tipRight: Point(8.0, 22.0),
-                            rootRight: Point(20.0, 15.0)
+                        pattern: GearTooth({
+                            rootLeft: Point(0.0, 0.0),
+                            tipLeft: Point(0.3, 7.0),
+                            tipRight: Point(0.7, 7.0),
+                            rootRight: Point(1.0, 0.0)
                         })
                     })}
                     {Yield(Toothed)}

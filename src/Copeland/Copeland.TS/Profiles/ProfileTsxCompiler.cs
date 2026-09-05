@@ -87,12 +87,14 @@ public static partial class ProfileTsxCompiler
             "Tab" => EdgeOperation(true),
             "Notch" => EdgeOperation(false),
             "RepeatRadial" => new RepeatRadialProfileOperation(id, input, output, Integer(args, "count"), Number(args, "toothDepth"), Number(args, "toothFraction", 0.5), Number(args, "rotation", 0), span),
+            "RepeatRadialPattern" => DecodeRepeatRadialPattern(id, input, output, args, span, diagnostics),
             "Translate" => new TransformProfileOperation(id, input, output, "Translate", Number(args, "x"), Number(args, "y"), span),
             "Rotate" => new TransformProfileOperation(id, input, output, "Rotate", Number(args, "degrees"), 0, span),
             "Scale" => new TransformProfileOperation(id, input, output, "Scale", Number(args, "x"), Number(args, "y"), span),
             "Mirror" => new TransformProfileOperation(id, input, output, "Mirror", Text(args, "axis") == "X" ? 1 : 0, 0, span),
             "ReplaceSegment" => DecodeReplaceSegment(id, input, output, args, span, diagnostics),
             "ReplaceSpan" => DecodeReplaceSpan(id, input, output, args, span, diagnostics),
+            "ReplaceSpanPattern" => DecodeReplaceSpanPattern(id, input, output, args, span, diagnostics),
             _ => Unknown(),
         };
 
@@ -219,6 +221,131 @@ public static partial class ProfileTsxCompiler
             new ProfileSpanSelection(selected[0].Owner, selected[0].Index, selected.Count),
             generated,
             span);
+    }
+
+    private static ProfileOperation? DecodeRepeatRadialPattern(
+        string id,
+        string input,
+        string output,
+        StaticRecordValue args,
+        ProfileSourceSpan span,
+        List<ProfileDiagnostic> diagnostics)
+    {
+        ProfileSpanPattern? pattern = DecodePattern(Field(args, "pattern"), span, diagnostics);
+        return pattern is null
+            ? null
+            : new RepeatRadialPatternProfileOperation(
+                id,
+                input,
+                output,
+                Integer(args, "count"),
+                pattern,
+                Number(args, "targetFraction", 0.5),
+                Number(args, "rotation", 0),
+                span);
+    }
+
+    private static ProfileOperation? DecodeReplaceSpanPattern(
+        string id,
+        string input,
+        string output,
+        StaticRecordValue args,
+        ProfileSourceSpan span,
+        List<ProfileDiagnostic> diagnostics)
+    {
+        if (!TryDecodeTarget(Field(args, "target"), span, diagnostics, out ProfileSpanSelection? target))
+        {
+            return null;
+        }
+        ProfileSpanPattern? pattern = DecodePattern(Field(args, "pattern"), span, diagnostics);
+        return pattern is null
+            ? null
+            : new ReplaceSpanPatternProfileOperation(id, input, output, target!, pattern, span);
+    }
+
+    private static bool TryDecodeTarget(
+        StaticValue value,
+        ProfileSourceSpan span,
+        List<ProfileDiagnostic> diagnostics,
+        out ProfileSpanSelection? target)
+    {
+        target = null;
+        if (value is not StaticArrayValue selectedValues)
+        {
+            diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0044", "Span pattern instantiation requires a typed Span<ProfileSegment> target.", span));
+            return false;
+        }
+        var selected = new List<(string Owner, int Index)>();
+        foreach (StaticValue selectedValue in selectedValues.Elements)
+        {
+            if (selectedValue is not StaticEnumValue { Type.Name: "ProfileSegment", Case.Name: "Selected", Payloads.Count: 1 } segment
+                || segment.Payloads[0] is not StaticRecordValue segmentArgs)
+            {
+                diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0042", "Span pattern target may contain only selected profile boundary segments.", span));
+                return false;
+            }
+            selected.Add((Text(segmentArgs, "owner"), Integer(segmentArgs, "index")));
+        }
+        if (selected.Count == 0
+            || selected.Any(item => item.Owner != selected[0].Owner)
+            || selected.Select(item => item.Index).Where((index, offset) => index != selected[0].Index + offset).Any())
+        {
+            diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0042", "Span pattern target segments must be non-empty, ordered, adjacent, and owned by one profile state.", span));
+            return false;
+        }
+        target = new ProfileSpanSelection(selected[0].Owner, selected[0].Index, selected.Count);
+        return true;
+    }
+
+    private static ProfileSpanPattern? DecodePattern(
+        StaticValue value,
+        ProfileSourceSpan span,
+        List<ProfileDiagnostic> diagnostics)
+    {
+        if (value is not StaticRecordValue { Type.Name: "ProfileSpanPattern" } pattern
+            || Field(pattern, "segments") is not StaticArrayValue segments)
+        {
+            diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0050", "Expected an ownerless ProfileSpanPattern value.", span));
+            return null;
+        }
+        var generated = new List<ProfileReplacementSegment>();
+        foreach (StaticValue segmentValue in segments.Elements)
+        {
+            if (segmentValue is not StaticEnumValue { Type.Name: "ProfileSegment", Payloads.Count: 1 } segment
+                || segment.Payloads[0] is not StaticRecordValue segmentArgs
+                || segment.Case.Name == "Selected")
+            {
+                diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0050", "ProfileSpanPattern may contain only ownerless constructed ProfileSegment values.", span));
+                return null;
+            }
+            if (segment.Case.Name == "Line")
+            {
+                generated.Add(new ProfileReplacementSegment(
+                    ProfileCurveKind.Line,
+                    PointValue(segmentArgs, "start"),
+                    PointValue(segmentArgs, "end"),
+                    0,
+                    default,
+                    default));
+                continue;
+            }
+            if (segment.Case.Name != "Curve"
+                || Field(segmentArgs, "curve") is not StaticEnumValue { Type.Name: "SegmentCurve", Payloads.Count: 1 } curve
+                || curve.Payloads[0] is not StaticRecordValue curveArgs)
+            {
+                diagnostics.Add(new ProfileDiagnostic("COPE-PROFILE-0050", "ProfileSpanPattern contains an unsupported segment kind.", span));
+                return null;
+            }
+            SegmentReplacement decoded = DecodeCurve(curve, curveArgs);
+            generated.Add(new ProfileReplacementSegment(
+                decoded.Kind,
+                PointValue(segmentArgs, "start"),
+                PointValue(segmentArgs, "end"),
+                decoded.Amount,
+                decoded.Control1,
+                decoded.Control2));
+        }
+        return new ProfileSpanPattern(generated);
     }
 
     private static SegmentReplacement DecodeCurve(StaticEnumValue curve, StaticRecordValue curveArgs)
@@ -821,7 +948,7 @@ public static partial class ProfileTsxCompiler
             if (!source.Contains("from \"./Profile\"", StringComparison.Ordinal)
                 && !source.Contains("from './Profile'", StringComparison.Ordinal))
             {
-                builder.AppendLine("import { Add, Along, Arc, Bulge, Capsule, Circle, ConceptPath, ConceptPoint, CurveSegment, EdgeOperationArgs, Ellipse, Hole, HoleArgs, Layer, LayerId, Layers, LineSegment, Midpoint, Mirror, Notch, OffsetPoint, PathBetween, Point, Polygon, Profile, ProfileEdge, ProfileLayer, ProfileLayerId, ProfileOperation, ProfileSegment, ProfileShape, ProfileSource, ProfileStyle, Rectangle, RegularPolygon, RepeatRadial, RepeatRadialArgs, ReplaceSegment, ReplaceSpan, Rotate, RoundedRectangle, Scale, SegmentCurve, SelectSegment, ShapeOperationArgs, Slot, SpanOf, Spline, Subtract, Tab, Translate, Tube } from \"./Profile\";");
+                builder.AppendLine("import { Add, Along, Arc, Bulge, Capsule, Circle, ConceptPath, ConceptPoint, CurveSegment, EdgeOperationArgs, Ellipse, Hole, HoleArgs, Layer, LayerId, Layers, LineSegment, Midpoint, Mirror, Notch, OffsetPoint, PathBetween, Point, Polygon, Profile, ProfileEdge, ProfileLayer, ProfileLayerId, ProfileOperation, ProfileSegment, ProfileShape, ProfileSource, ProfileSpanPattern, ProfileStyle, Rectangle, RegularPolygon, RepeatRadial, RepeatRadialArgs, RepeatRadialPattern, RepeatRadialPatternArgs, ReplaceSegment, ReplaceSpan, ReplaceSpanWithPattern, Rotate, RoundedRectangle, Scale, SegmentCurve, SelectSegment, ShapeOperationArgs, Slot, SpanOf, SpanPattern, Spline, Subtract, Tab, Translate, Tube } from \"./Profile\";");
             }
             builder.AppendLine("const Top: ProfileEdge = ProfileEdge.Top;");
             builder.AppendLine("const Right: ProfileEdge = ProfileEdge.Right;");

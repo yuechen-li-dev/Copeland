@@ -1,0 +1,36 @@
+{
+  "localCoordinates": {
+    "start": [0.0, 0.0],
+    "end": [1.0, 0.0],
+    "u": "target-traversal-fraction",
+    "v": "canonical-outward-normal-world-units",
+    "fit": "FitEndpoints"
+  },
+  "gear": [
+    {
+      "count": 8,
+      "loweredReplacements": 8,
+      "outerSegments": 32,
+      "profileIrHash": "41e9620a4c5b1fbd765017b8f0044f9b288c20e1a0279f61c7bced6711f34903",
+      "contourHash": "50c6a7f8990d430d210099290347a06d0ae1bac71634c120ab4e4c560e015ca4"
+    },
+    {
+      "count": 12,
+      "loweredReplacements": 12,
+      "outerSegments": 48,
+      "profileIrHash": "66f5929952cc733a4c07501eb9d7c94db43a752df9ade7ec2eafe3ee1987b3ff",
+      "contourHash": "0750728ee6fe52d89850660a8a11f8a960d9feaf8ce80209ac9567dea872ed47"
+    },
+    {
+      "count": 16,
+      "loweredReplacements": 16,
+      "outerSegments": 64,
+      "profileIrHash": "def6a07e883aa3e9fb3141348e2186eac45c55c043ad7265cf6d93d4bf63971d",
+      "contourHash": "2594d75903557c69b6c9ca64247b3e0c6a7253710aff87e501c6c90fd664c165"
+    }
+  ],
+  "legacyGear12ContourHash": "663176df3e459fba57e430ebad9ef3a56773d985305354c4ddbbf595d2f4e91e",
+  "legacyParity": "intentionally-different-geometry-law",
+  "svg": "existing-canonical-profile-svg-path",
+  "msdf": "existing-profile-vector-icon-msdf-path-finite"
+}

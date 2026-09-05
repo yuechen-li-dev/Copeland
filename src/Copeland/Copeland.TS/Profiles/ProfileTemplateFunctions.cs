@@ -188,6 +188,15 @@ public static class ProfileTemplateFunctions
             rotation?: number;
         }
 
+        export record RepeatRadialPatternArgs {
+            id: string;
+            as: string;
+            count: int;
+            pattern: ProfileSpanPattern;
+            targetFraction?: number;
+            rotation?: number;
+        }
+
         export record TranslateArgs {
             id: string;
             as: string;
@@ -267,6 +276,14 @@ public static class ProfileTemplateFunctions
             Curve(args: CurvedProfileSegmentArgs),
         }
 
+        export record ProfileSpanPattern {
+            segments: Span<ProfileSegment>;
+        }
+
+        export function SpanPattern(segments: Span<ProfileSegment>): ProfileSpanPattern {
+            return { segments: segments };
+        }
+
         export function SelectSegment(owner: string, index: int): ProfileSegment {
             return ProfileSegment.Selected({ owner: owner, index: index });
         }
@@ -286,12 +303,12 @@ public static class ProfileTemplateFunctions
             rightShoulder: ConceptPoint;
         }
 
-        export function DovetailTab(args: DovetailTabArgs): Span<ProfileSegment> {
-            return SpanOf([
+        export function DovetailTab(args: DovetailTabArgs): ProfileSpanPattern {
+            return SpanPattern(SpanOf([
                 LineSegment(args.start, args.leftShoulder),
                 LineSegment(args.leftShoulder, args.rightShoulder),
                 LineSegment(args.rightShoulder, args.end)
-            ]);
+            ]));
         }
 
         export record VNotchArgs {
@@ -300,11 +317,11 @@ public static class ProfileTemplateFunctions
             end: ConceptPoint;
         }
 
-        export function VNotch(args: VNotchArgs): Span<ProfileSegment> {
-            return SpanOf([
+        export function VNotch(args: VNotchArgs): ProfileSpanPattern {
+            return SpanPattern(SpanOf([
                 LineSegment(args.start, args.tip),
                 LineSegment(args.tip, args.end)
-            ]);
+            ]));
         }
 
         export record GearToothArgs {
@@ -314,12 +331,12 @@ public static class ProfileTemplateFunctions
             rootRight: ConceptPoint;
         }
 
-        export function GearTooth(args: GearToothArgs): Span<ProfileSegment> {
-            return SpanOf([
+        export function GearTooth(args: GearToothArgs): ProfileSpanPattern {
+            return SpanPattern(SpanOf([
                 LineSegment(args.rootLeft, args.tipLeft),
                 LineSegment(args.tipLeft, args.tipRight),
                 LineSegment(args.tipRight, args.rootRight)
-            ]);
+            ]));
         }
 
         export record ReplaceSegmentArgs {
@@ -336,6 +353,13 @@ public static class ProfileTemplateFunctions
             replacement: Span<ProfileSegment>;
         }
 
+        export record ReplaceSpanPatternArgs {
+            id: string;
+            as: string;
+            target: Span<ProfileSegment>;
+            pattern: ProfileSpanPattern;
+        }
+
         export enum ProfileOperation {
             Add(args: ShapeOperationArgs),
             Subtract(args: ShapeOperationArgs),
@@ -343,12 +367,14 @@ public static class ProfileTemplateFunctions
             Tab(args: EdgeOperationArgs),
             Notch(args: EdgeOperationArgs),
             RepeatRadial(args: RepeatRadialArgs),
+            RepeatRadialPattern(args: RepeatRadialPatternArgs),
             Translate(args: TranslateArgs),
             Rotate(args: RotateArgs),
             Scale(args: ScaleArgs),
             Mirror(args: MirrorArgs),
             ReplaceSegment(args: ReplaceSegmentArgs),
             ReplaceSpan(args: ReplaceSpanArgs),
+            ReplaceSpanPattern(args: ReplaceSpanPatternArgs),
         }
 
         export function Add(args: ShapeOperationArgs): ProfileOperation {
@@ -375,6 +401,10 @@ public static class ProfileTemplateFunctions
             return ProfileOperation.RepeatRadial(args);
         }
 
+        export function RepeatRadialPattern(args: RepeatRadialPatternArgs): ProfileOperation {
+            return ProfileOperation.RepeatRadialPattern(args);
+        }
+
         export function Translate(args: TranslateArgs): ProfileOperation {
             return ProfileOperation.Translate(args);
         }
@@ -397,6 +427,10 @@ public static class ProfileTemplateFunctions
 
         export function ReplaceSpan(args: ReplaceSpanArgs): ProfileOperation {
             return ProfileOperation.ReplaceSpan(args);
+        }
+
+        export function ReplaceSpanWithPattern(args: ReplaceSpanPatternArgs): ProfileOperation {
+            return ProfileOperation.ReplaceSpanPattern(args);
         }
 
         export record ProfileSource {

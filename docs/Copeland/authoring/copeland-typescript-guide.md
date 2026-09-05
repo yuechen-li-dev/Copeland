@@ -619,6 +619,46 @@ to share a runtime layout. `Span<CurveSegment>` is the intended future spelling
 for contiguous open line-art and traced-contour regions; M4 adds no line-art
 runtime.
 
+#### Reusable Profile span patterns
+
+`Span<ProfileSegment>` is a concrete contiguous view owned by one Profile SSA
+state. Its selected segments have concrete identities and become stale as soon
+as a later operation advances that state.
+
+`ProfileSpanPattern` is different: it is ownerless connected geometry in a
+local `(u, v)` frame. Its first point is exactly `(0, 0)`, its last point is
+exactly `(1, 0)`, `u` runs along the target traversal, and positive `v` points
+outward from the canonical clockwise outer boundary. Longitudinal coordinates
+fit the selected endpoints; normal distances remain authored Profile units.
+
+```ts
+const Tooth: ProfileSpanPattern = GearTooth({
+    rootLeft: Point(0.0, 0.0),
+    tipLeft: Point(0.3, 8.0),
+    tipRight: Point(0.7, 8.0),
+    rootRight: Point(1.0, 0.0)
+});
+
+RepeatRadialPattern({
+    id: "GearTeeth",
+    as: "WithTeeth",
+    count: 12,
+    pattern: Tooth,
+    targetFraction: 0.52,
+    rotation: 90.0
+});
+```
+
+`ReplaceSpanWithPattern` instantiates once against an explicitly selected
+current-state span. `RepeatRadialPattern` resolves one target on the current
+state, instantiates, calls the authoritative `ReplaceSpan` core, and advances
+to the next state before resolving the next target. It never caches concrete
+spans from the original owner. Reversal is not inferred, endpoint fit is the
+only M5 fit mode, and excessive or intersecting instances fail deterministically.
+
+Legacy `RepeatRadial` remains a separate primitive gear operation for source
+compatibility. It does not accept or disguise a reusable pattern.
+
 ### Arrays
 
 Arrays are finite, ordered `T[]` values. They expose only the small

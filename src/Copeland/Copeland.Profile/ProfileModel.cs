@@ -134,6 +134,31 @@ public sealed record RepeatRadialProfileOperation(
     double RotationDegrees,
     ProfileSourceSpan SourceSpan) : ProfileOperation(Id, Input, Output, "RepeatRadial", SourceSpan);
 
+public sealed record ProfileSpanPattern
+{
+    public ProfileSpanPattern(IReadOnlyList<ProfileReplacementSegment> segments)
+    {
+        ArgumentNullException.ThrowIfNull(segments);
+        Segments = segments.ToArray();
+    }
+
+    public IReadOnlyList<ProfileReplacementSegment> Segments { get; }
+
+    public string SemanticHash => ProfileHash.Utf8(
+        "profile-span-pattern-v1|" + string.Join('|', Segments.Select(segment =>
+            $"{segment.Kind}:{segment.Start.X:R},{segment.Start.Y:R}:{segment.End.X:R},{segment.End.Y:R}:{segment.Amount:R}:{segment.Control1.X:R},{segment.Control1.Y:R}:{segment.Control2.X:R},{segment.Control2.Y:R}")));
+}
+
+public sealed record RepeatRadialPatternProfileOperation(
+    string Id,
+    string Input,
+    string Output,
+    int Count,
+    ProfileSpanPattern Pattern,
+    double TargetFraction,
+    double RotationDegrees,
+    ProfileSourceSpan SourceSpan) : ProfileOperation(Id, Input, Output, "RepeatRadialPattern", SourceSpan);
+
 public enum ProfileCurveKind
 {
     Line,
@@ -180,12 +205,22 @@ public sealed record ReplaceSpanProfileOperation(
     IReadOnlyList<ProfileReplacementSegment> Replacement,
     ProfileSourceSpan SourceSpan) : ProfileOperation(Id, Input, Output, "ReplaceSpan", SourceSpan);
 
+public sealed record ReplaceSpanPatternProfileOperation(
+    string Id,
+    string Input,
+    string Output,
+    ProfileSpanSelection Target,
+    ProfileSpanPattern Pattern,
+    ProfileSourceSpan SourceSpan) : ProfileOperation(Id, Input, Output, "ReplaceSpanPattern", SourceSpan);
+
 public sealed record ProfileSegmentSummary(
     string Id,
     string GeometryHash,
     string ProvenanceFeatureId)
 {
     public int? GeneratedSegmentIndex { get; init; }
+
+    public int? RepetitionIndex { get; init; }
 }
 
 public sealed record TransformProfileOperation(
@@ -216,7 +251,24 @@ public sealed record ProfileStateSummary(
     string ContourHash)
 {
     public IReadOnlyList<ProfileSegmentSummary> Segments { get; init; } = [];
+
+    public IReadOnlyList<ProfileLoweredReplacementSummary> LoweredReplacements { get; init; } = [];
+
+    public ProfileRadialTargetPreparationSummary? RadialTargetPreparation { get; init; }
 }
+
+public sealed record ProfileLoweredReplacementSummary(
+    int RepetitionIndex,
+    string InputState,
+    string OutputState,
+    int TargetSegmentIndex,
+    int GeneratedSegmentCount);
+
+public sealed record ProfileRadialTargetPreparationSummary(
+    string InputState,
+    int OriginalOuterSegmentCount,
+    int RefinedOuterSegmentCount,
+    string Law);
 
 public sealed record ProfileCompilationResult(
     ProfileDefinition? Definition,

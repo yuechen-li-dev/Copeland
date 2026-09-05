@@ -2,6 +2,12 @@ using System.Globalization;
 using System.Text;
 namespace Copeland.Profile;
 
+internal sealed record RadialPatternTarget(int StartSegmentIndex, int SegmentCount);
+
+internal sealed record RadialPatternTargetLayout(
+    VectorShape Shape,
+    IReadOnlyList<RadialPatternTarget> Targets);
+
 internal static class ProfileGeometry
 {
     private const double CircleControl = 0.5522847498307936;
@@ -70,6 +76,187 @@ internal static class ProfileGeometry
                 circle.CenterY + (Math.Sin(angle) * radius));
         }
         return Polygon(points);
+    }
+
+    public static RadialPatternTargetLayout RadialPatternTargets(
+        CircleProfileShape circle,
+        int count,
+        double targetFraction,
+        double rotationDegrees)
+    {
+        double pitch = 4d / count;
+        double targetStartAngle = Degrees(rotationDegrees) + (Math.PI * targetFraction / count);
+        double targetStartParameter = ((Math.PI / 2d) - targetStartAngle) / (Math.PI / 2d);
+        targetStartParameter %= 4d;
+        if (targetStartParameter < 0)
+        {
+            targetStartParameter += 4d;
+        }
+        var boundaries = new SortedSet<double> { targetStartParameter, targetStartParameter + 4d };
+        for (int index = 0; index < count; index++)
+        {
+            boundaries.Add(targetStartParameter + (index * pitch));
+            boundaries.Add(targetStartParameter + ((index + targetFraction) * pitch));
+            boundaries.Add(targetStartParameter + ((index + 1) * pitch));
+        }
+        for (int quadrantBoundary = (int)Math.Ceiling(targetStartParameter);
+            quadrantBoundary < targetStartParameter + 4d;
+            quadrantBoundary++)
+        {
+            boundaries.Add(quadrantBoundary);
+        }
+
+        VectorCubic[] quadrants = CircleCubics(circle, Math.PI / 2d);
+        double[] ordered = boundaries.ToArray();
+        var segments = new List<VectorSegment>();
+        var targets = new List<RadialPatternTarget>();
+        int? targetStart = null;
+        for (int index = 0; index < ordered.Length - 1; index++)
+        {
+            double from = ordered[index];
+            double to = ordered[index + 1];
+            if (to - from <= 1e-12)
+            {
+                continue;
+            }
+            int unwrappedQuadrant = (int)Math.Floor(from);
+            int quadrant = ((unwrappedQuadrant % 4) + 4) % 4;
+            VectorCubic segment = Subcurve(quadrants[quadrant], from - unwrappedQuadrant, to - unwrappedQuadrant);
+            if (segments.Count > 0 && segments[^1] is VectorCubic previous)
+            {
+                segment = segment with { P0 = previous.P3 };
+            }
+            if (Math.Abs(to - (targetStartParameter + 4d)) <= 1e-12
+                && segments.Count > 0
+                && segments[0] is VectorCubic first)
+            {
+                segment = segment with { P3 = first.P0 };
+            }
+            segments.Add(segment);
+
+            double midpoint = (from + to) / 2d;
+            double toothPhase = (midpoint - targetStartParameter) / pitch;
+            bool isTarget = toothPhase - Math.Floor(toothPhase) < targetFraction;
+            if (isTarget && targetStart is null)
+            {
+                targetStart = segments.Count - 1;
+            }
+            if (!isTarget && targetStart is int start)
+            {
+                targets.Add(new RadialPatternTarget(start, segments.Count - 1 - start));
+                targetStart = null;
+            }
+        }
+        if (targetStart is int finalStart)
+        {
+            targets.Add(new RadialPatternTarget(finalStart, segments.Count - finalStart));
+        }
+        return new RadialPatternTargetLayout(
+            new VectorShape([new VectorContour(segments, VectorContourRole.Outer)]),
+            targets);
+    }
+
+    private static VectorCubic[] CircleCubics(CircleProfileShape circle, double startAngle)
+    {
+        VectorPoint Map(double x, double y)
+        {
+            double cosine = Math.Cos(startAngle);
+            double sine = Math.Sin(startAngle);
+            return new VectorPoint(
+                circle.CenterX + (x * cosine) - (y * sine),
+                circle.CenterY + (x * sine) + (y * cosine));
+        }
+
+        double radius = circle.Radius;
+        double control = radius * CircleControl;
+        VectorPoint p0 = Map(radius, 0);
+        VectorPoint p1 = Map(0, -radius);
+        VectorPoint p2 = Map(-radius, 0);
+        VectorPoint p3 = Map(0, radius);
+        return
+        [
+            new VectorCubic(p0, Map(radius, -control), Map(control, -radius), p1),
+            new VectorCubic(p1, Map(-control, -radius), Map(-radius, -control), p2),
+            new VectorCubic(p2, Map(-radius, control), Map(-control, radius), p3),
+            new VectorCubic(p3, Map(control, radius), Map(radius, control), p0),
+        ];
+    }
+
+    private static VectorCubic Subcurve(VectorCubic curve, double from, double to)
+    {
+        VectorCubic afterStart = from <= 0 ? curve : Split(curve, from).Right;
+        double relativeEnd = from <= 0 ? to : (to - from) / (1d - from);
+        return relativeEnd >= 1 ? afterStart : Split(afterStart, relativeEnd).Left;
+    }
+
+    private static (VectorCubic Left, VectorCubic Right) Split(VectorCubic curve, double t)
+    {
+        VectorPoint p01 = Lerp(curve.P0, curve.P1, t);
+        VectorPoint p12 = Lerp(curve.P1, curve.P2, t);
+        VectorPoint p23 = Lerp(curve.P2, curve.P3, t);
+        VectorPoint p012 = Lerp(p01, p12, t);
+        VectorPoint p123 = Lerp(p12, p23, t);
+        VectorPoint point = Lerp(p012, p123, t);
+        return (
+            new VectorCubic(curve.P0, p01, p012, point),
+            new VectorCubic(point, p123, p23, curve.P3));
+    }
+
+    private static VectorPoint Lerp(VectorPoint left, VectorPoint right, double t)
+        => new(
+            left.X + ((right.X - left.X) * t),
+            left.Y + ((right.Y - left.Y) * t));
+
+    public static IReadOnlyList<ProfileReplacementSegment> InstantiatePattern(
+        ProfileSpanPattern pattern,
+        VectorPoint targetStart,
+        VectorPoint targetEnd)
+    {
+        double dx = targetEnd.X - targetStart.X;
+        double dy = targetEnd.Y - targetStart.Y;
+        double length = Math.Sqrt((dx * dx) + (dy * dy));
+        if (length == 0)
+        {
+            throw new ProfileResolutionException("COPE-PROFILE-0053", "A span pattern cannot target a zero-length boundary span.", ProfileSourceSpan.Generated());
+        }
+
+        VectorPoint Map(VectorPoint local)
+        {
+            if (local == new VectorPoint(0, 0))
+            {
+                return targetStart;
+            }
+            if (local == new VectorPoint(1, 0))
+            {
+                return targetEnd;
+            }
+            double normalX = -dy / length;
+            double normalY = dx / length;
+            return new VectorPoint(
+                targetStart.X + (local.X * dx) + (local.Y * normalX),
+                targetStart.Y + (local.X * dy) + (local.Y * normalY));
+        }
+
+        return pattern.Segments.Select(segment => new ProfileReplacementSegment(
+            segment.Kind,
+            Map(segment.Start),
+            Map(segment.End),
+            segment.Amount,
+            Map(segment.Control1),
+            Map(segment.Control2))).ToArray();
+    }
+
+    public static (VectorPoint Start, VectorPoint End) SpanEndpoints(
+        VectorShape source,
+        int startSegmentIndex,
+        int segmentCount)
+    {
+        VectorContour outer = source.Contours.First(contour => contour.Role != VectorContourRole.Hole);
+        if (startSegmentIndex < 0 || segmentCount <= 0 || startSegmentIndex + segmentCount > outer.Segments.Count)
+        {
+            throw new ProfileResolutionException("COPE-PROFILE-0042", "Span pattern target is outside the profile boundary.", ProfileSourceSpan.Generated());
+        }
+        return (Start(outer.Segments[startSegmentIndex]), End(outer.Segments[startSegmentIndex + segmentCount - 1]));
     }
 
     public static VectorShape EdgeFeatures(

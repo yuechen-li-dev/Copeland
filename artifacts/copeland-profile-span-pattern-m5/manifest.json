@@ -1,0 +1,21 @@
+{
+  "milestone": "COPELAND-PROFILE-SPAN-PATTERN-M5",
+  "kind": "ownerless-connected-span-pattern-radial-ssa",
+  "outcome": "A",
+  "spanSemanticsChanged": false,
+  "patternType": "ProfileSpanPattern",
+  "patternIsOwnerless": true,
+  "replaceSpanRemainsAuthoritative": true,
+  "radialPatternApplicationSupported": true,
+  "gearToothSpanQualified": true,
+  "dovetailPatternQualified": true,
+  "vNotchPatternQualified": true,
+  "sequentialSsaApplication": true,
+  "closednessPreserved": true,
+  "runtimePatternSystemAdded": false,
+  "rendererChanged": false,
+  "focusedM4M5Tests": 21,
+  "focusedMsdfTests": 1,
+  "requiredSolutionTestExecutions": 6519,
+  "exactNextAuthoringPressure": "stable-non-circular-repeat-selector"
+}

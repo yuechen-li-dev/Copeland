@@ -80,4 +80,38 @@ public sealed class ProfileVectorIconCompilerM0Tests
         Assert.Equal(["Vertical", "RightArmState", "Cross", "Finished"], profile.States.Select(item => item.Name));
         Assert.True(VectorIconCpuQualification.Compare(icon.Artifact!, 64).IntersectionOverUnion >= 0.98);
     }
+
+    [Fact]
+    public void Authored_radial_span_pattern_uses_the_existing_profile_to_msdf_path()
+    {
+        ProfileSourceSpan span = ProfileSourceSpan.Generated("GearPattern.profile.tsx");
+        ProfileSpanPattern tooth = new([
+            Line(new(0, 0), new(0.3, 8)),
+            Line(new(0.3, 8), new(0.7, 8)),
+            Line(new(0.7, 8), new(1, 0)),
+        ]);
+        ProfileDefinition definition = new(
+            "GearPattern",
+            "Base",
+            new CircleProfileShape(32, 0, 0, span),
+            [
+                new RepeatRadialPatternProfileOperation("GearTeeth", "Base", "WithTeeth", 12, tooth, 0.52, 90, span),
+                new HoleProfileOperation("CenterHole", "WithTeeth", "Hollow", new CircleProfileShape(12, 0, 0, span), span),
+            ],
+            "Hollow",
+            span);
+
+        ProfileCompilationResult profile = ProfileCompiler.Compile(definition);
+        VectorIconCompilationResult icon = ProfileVectorIconCompiler.Compile(
+            profile,
+            profile.Svg!,
+            "GearPattern.profile.tsx");
+
+        Assert.True(icon.Success, string.Join(Environment.NewLine, icon.Diagnostics.Select(item => item.Reason)));
+        Assert.Equal(profile.CanonicalContourHash, icon.Artifact!.Shape.NormalizedGeometryHash);
+        Assert.All(icon.Artifact.FieldPixels.ToArray(), value => Assert.True(float.IsFinite(value)));
+    }
+
+    private static ProfileReplacementSegment Line(VectorPoint start, VectorPoint end)
+        => new(ProfileCurveKind.Line, start, end, 0, default, default);
 }
