@@ -1,0 +1,12 @@
+{
+  "source": "src/Aurelian/Aurelian.Shaders/Assets/SoftShockwave.v.ts",
+  "sourceSha256": "ef3c90b98e88dfd4a63a6ae85bfb1fab7cf7b0a76651b63e554704ff7bdb15a4",
+  "vdMirSha256": "7a23cb87ba989e00f1f2352c9e6f2f38ea2b5ca4d2df67a090a1a80190ebb49f",
+  "hlslSha256": "eb3905801c919f2b81fee685c3ba2b8c8e363d4a9f5897412107dc17c8eed1fb",
+  "vertexSpirvSha256": "f9fc17f4965ef28b72f8c9c4c870a769c0de1bc74662c80ebd2750fd7da8932e",
+  "pixelSpirvSha256": "8fc56664ee2911c8ae62623e21142bd62da035cc2a65f32ca24a90ce9fa630b9",
+  "vertexSpirvValidated": true,
+  "pixelSpirvValidated": true,
+  "negativeDiagnostic": "COPE-GPU-CLOSURE-0001: Reachable managed allocation has no closed GPU semantics.",
+  "runtimeJavaScript": false
+}

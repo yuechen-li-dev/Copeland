@@ -55,11 +55,23 @@ public readonly record struct NativeAnalyticShapeSubmission(
     Native2DTint BorderColor,
     float BorderWidth);
 
+public readonly record struct NativeSoftShockwaveSubmission(
+    Native2DRect Destination,
+    Native2DUvRect LocalCoordinates,
+    Native2DTint Color,
+    float Age,
+    float Lifetime,
+    float Radius,
+    float Thickness,
+    float Intensity,
+    float Seed);
+
 public enum Native2DPipelineKind
 {
     Textured,
     MsdfText,
     AnalyticShape2D,
+    SoftShockwave,
 }
 
 public sealed record Native2DPipelineOptions(
@@ -83,10 +95,12 @@ public sealed record Native2DPipelineOptions(
 
     public static Native2DPipelineOptions AnalyticShape2D { get; } = new(Native2DPipelineKind.AnalyticShape2D);
 
+    public static Native2DPipelineOptions SoftShockwave { get; } = new(Native2DPipelineKind.SoftShockwave);
+
     public bool LinearFiltering => Kind == Native2DPipelineKind.MsdfText || EnableLinearFiltering;
 
     public bool StraightAlphaBlend => EnableStraightAlphaBlend
-        || Kind is Native2DPipelineKind.MsdfText or Native2DPipelineKind.AnalyticShape2D;
+        || Kind is Native2DPipelineKind.MsdfText or Native2DPipelineKind.AnalyticShape2D or Native2DPipelineKind.SoftShockwave;
 }
 
 public sealed record Native2DPassMetrics(

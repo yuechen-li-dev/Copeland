@@ -24,6 +24,9 @@ public sealed class TinyFarmInputController(int movementDistance = ScenePosition
         if (frame.WasPressed(GameControls.Interact)) commands.Add(new SubmitGameIntent(new InteractIntent()));
         if (frame.WasPressed(GameControls.Hotbar1)) commands.Add(new SubmitGameIntent(new SelectHotbarSlotIntent(new HotbarSlotId(1))));
         if (frame.WasPressed(GameControls.Hotbar2)) commands.Add(new SubmitGameIntent(new SelectHotbarSlotIntent(new HotbarSlotId(2))));
+        if (frame.WasPressed(GameControls.Hotbar3)) commands.Add(new SubmitGameIntent(new SelectHotbarSlotIntent(new HotbarSlotId(3))));
+        if (frame.WasPressed(GameControls.Hotbar4)) commands.Add(new SubmitGameIntent(new SelectHotbarSlotIntent(new HotbarSlotId(4))));
+        if (frame.WasPressed(GameControls.UseSelected)) commands.Add(new SubmitGameIntent(new UseSelectedIntent()));
         if (frame.WasPressed(GameControls.Pause)) commands.Add(new TogglePauseCommand());
         if (frame.WasPressed(GameControls.ToggleInventory)) commands.Add(new ToggleInventoryCommand());
         return commands;

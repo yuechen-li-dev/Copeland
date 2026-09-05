@@ -1,0 +1,150 @@
+{
+  "milestone": "AURELIAN-GAME-EFFECTS-EMITTERS-M8",
+  "outcome": "A",
+  "acceptedAttack": true,
+  "inputManAttackChain": true,
+  "rejectedAttackHasNoEffects": true,
+  "acceptedPickup": true,
+  "gameHashUnaffectedByEffects": true,
+  "visuals": [
+    {
+      "file": "01-sword-hit.png",
+      "pixelSha256": "d01122269abb8f415a678ce4cab2c0c745fdf24ca681ea98057e8dbb171fc596",
+      "quadCount": 18,
+      "drawCalls": 18,
+      "renderPassCount": 2,
+      "particleCount": 14,
+      "shaderQuadCount": 1,
+      "flashCount": 0,
+      "passes": [
+        {
+          "quadCount": 17,
+          "drawCalls": 17,
+          "commandBuffers": 1,
+          "queueSubmissions": 1,
+          "bufferUploads": 1,
+          "descriptorSetAllocations": 17,
+          "descriptorWrites": 17,
+          "vertexCapacityQuads": 256,
+          "vertexUploadMilliseconds": 1.522,
+          "commandRecordingMilliseconds": 9.324,
+          "submitWaitMilliseconds": 2.416,
+          "readbackMilliseconds": 0,
+          "cpuAllocatedBytes": 36624
+        },
+        {
+          "quadCount": 1,
+          "drawCalls": 1,
+          "commandBuffers": 1,
+          "queueSubmissions": 1,
+          "bufferUploads": 1,
+          "descriptorSetAllocations": 1,
+          "descriptorWrites": 1,
+          "vertexCapacityQuads": 256,
+          "vertexUploadMilliseconds": 0.006,
+          "commandRecordingMilliseconds": 0.102,
+          "submitWaitMilliseconds": 0.296,
+          "readbackMilliseconds": 0,
+          "cpuAllocatedBytes": 3728
+        }
+      ]
+    },
+    {
+      "file": "02-harvest-or-pickup.png",
+      "pixelSha256": "d81f0c9f8a80095413fd9a52c58417215cf3b06267c4908548ec0f536735a6a8",
+      "quadCount": 11,
+      "drawCalls": 11,
+      "renderPassCount": 1,
+      "particleCount": 8,
+      "shaderQuadCount": 0,
+      "flashCount": 0,
+      "passes": [
+        {
+          "quadCount": 11,
+          "drawCalls": 11,
+          "commandBuffers": 1,
+          "queueSubmissions": 1,
+          "bufferUploads": 1,
+          "descriptorSetAllocations": 8,
+          "descriptorWrites": 8,
+          "vertexCapacityQuads": 256,
+          "vertexUploadMilliseconds": 0.015,
+          "commandRecordingMilliseconds": 0.725,
+          "submitWaitMilliseconds": 0.427,
+          "readbackMilliseconds": 0,
+          "cpuAllocatedBytes": 20968
+        }
+      ]
+    },
+    {
+      "file": "03-ambient.png",
+      "pixelSha256": "46065fb83740ed5a667d88b9683d428f1aca5a8d2ce4b1467424e6c041cc5f85",
+      "quadCount": 23,
+      "drawCalls": 23,
+      "renderPassCount": 1,
+      "particleCount": 20,
+      "shaderQuadCount": 0,
+      "flashCount": 0,
+      "passes": [
+        {
+          "quadCount": 23,
+          "drawCalls": 23,
+          "commandBuffers": 1,
+          "queueSubmissions": 1,
+          "bufferUploads": 1,
+          "descriptorSetAllocations": 20,
+          "descriptorWrites": 20,
+          "vertexCapacityQuads": 256,
+          "vertexUploadMilliseconds": 0.024,
+          "commandRecordingMilliseconds": 0.207,
+          "submitWaitMilliseconds": 0.393,
+          "readbackMilliseconds": 0,
+          "cpuAllocatedBytes": 48792
+        }
+      ]
+    },
+    {
+      "file": "04-screen-flash.png",
+      "pixelSha256": "608249de44d53fa120ef769413db2c558857a000e49636a42551b55f8d1c22fc",
+      "quadCount": 4,
+      "drawCalls": 4,
+      "renderPassCount": 1,
+      "particleCount": 0,
+      "shaderQuadCount": 0,
+      "flashCount": 1,
+      "passes": [
+        {
+          "quadCount": 4,
+          "drawCalls": 4,
+          "commandBuffers": 1,
+          "queueSubmissions": 1,
+          "bufferUploads": 1,
+          "descriptorSetAllocations": 1,
+          "descriptorWrites": 1,
+          "vertexCapacityQuads": 256,
+          "vertexUploadMilliseconds": 0.007,
+          "commandRecordingMilliseconds": 0.137,
+          "submitWaitMilliseconds": 0.466,
+          "readbackMilliseconds": 0,
+          "cpuAllocatedBytes": 3912
+        }
+      ]
+    }
+  ],
+  "vulkan": {
+    "physicalDeviceName": "NVIDIA GeForce RTX 3070",
+    "validationLayers": [
+      "VK_LAYER_KHRONOS_validation"
+    ],
+    "diagnostics": [
+      {
+        "code": "AGV1010",
+        "severity": "Info",
+        "message": "Selected Vulkan physical device \u0027NVIDIA GeForce RTX 3070\u0027 with queue family 0.",
+        "plantId": {
+          "value": 0
+        }
+      }
+    ]
+  }
+}

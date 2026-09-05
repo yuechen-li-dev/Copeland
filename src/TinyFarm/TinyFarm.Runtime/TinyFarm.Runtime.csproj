@@ -6,6 +6,7 @@
     <ProjectReference Include="../TinyFarm.Core/TinyFarm.Core.csproj" />
     <ProjectReference Include="../../Aurelian/Aurelian.Runtime/Aurelian.Runtime.csproj" />
     <ProjectReference Include="../../Aurelian/Aurelian.Audio/Aurelian.Audio.csproj" />
+    <ProjectReference Include="../../Aurelian/Aurelian.Effects2D/Aurelian.Effects2D.csproj" />
     <ProjectReference Include="../../Aurelian/Aurelian.Simulation/Aurelian.Simulation.csproj" />
     <ProjectReference Include="../../Copeland/Copeland.TS/Copeland.TS.csproj" />
     <ProjectReference Include="../../../../Deliverance/src/Deliverance.Core/Deliverance.Core.csproj" />

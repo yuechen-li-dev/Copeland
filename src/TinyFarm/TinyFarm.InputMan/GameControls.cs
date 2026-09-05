@@ -17,6 +17,9 @@ public static class GameControls
     public static readonly ActionId UiCancel = new("UI.Cancel");
     public static readonly ActionId Hotbar1 = new("Hotbar1");
     public static readonly ActionId Hotbar2 = new("Hotbar2");
+    public static readonly ActionId Hotbar3 = new("Hotbar3");
+    public static readonly ActionId Hotbar4 = new("Hotbar4");
+    public static readonly ActionId UseSelected = new("UseSelected");
     public static readonly ActionId DialogueAdvance = new("DialogueAdvance");
     public static readonly ActionId DialogueChoiceUp = new("DialogueChoiceUp");
     public static readonly ActionId DialogueChoiceDown = new("DialogueChoiceDown");
@@ -39,6 +42,9 @@ public static class GameControls
             Bind.Action(Controls.Key(KeyboardKey.I), ToggleInventory, name: "Inventory.Keyboard"),
             Bind.Action(Controls.Key(KeyboardKey.Number1), Hotbar1, name: "Hotbar1.Keyboard"),
             Bind.Action(Controls.Key(KeyboardKey.Number2), Hotbar2, name: "Hotbar2.Keyboard"),
+            Bind.Action(Controls.Key(KeyboardKey.Number3), Hotbar3, name: "Hotbar3.Keyboard"),
+            Bind.Action(Controls.Key(KeyboardKey.Number4), Hotbar4, name: "Hotbar4.Keyboard"),
+            Bind.Action(Controls.Key(KeyboardKey.Space), UseSelected, name: "UseSelected.Keyboard"),
             Bind.ActionChord(
                 Controls.Key(KeyboardKey.F),
                 Interact,

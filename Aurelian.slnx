@@ -3,6 +3,7 @@
     <Project Path="src/Aurelian/Aurelian.Composition/Aurelian.Composition.csproj" />
     <Project Path="src/Aurelian/Aurelian.Actuation/Aurelian.Actuation.csproj" />
     <Project Path="src/Aurelian/Aurelian.Audio/Aurelian.Audio.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Effects2D/Aurelian.Effects2D.csproj" />
     <Project Path="src/Aurelian/Aurelian.Assets/Aurelian.Assets.csproj" />
     <Project Path="src/Aurelian/Aurelian.AssetTool/Aurelian.AssetTool.csproj" />
     <Project Path="src/Aurelian/Aurelian.Core/Aurelian.Core.csproj" />
@@ -17,6 +18,7 @@
     <Project Path="src/Aurelian/Aurelian.Spatial2D/Aurelian.Spatial2D.csproj" />
     <Project Path="src/Aurelian/Aurelian.World/Aurelian.World.csproj" />
     <Project Path="src/Integrations/Aurelian.GameWorld2D/Aurelian.GameWorld2D.csproj" />
+    <Project Path="src/Integrations/Aurelian.Effects2D.Graphics/Aurelian.Effects2D.Graphics.csproj" />
     <Project Path="src/Integrations/Aurelian.NativeComposition/Aurelian.NativeComposition.csproj" />
     <Project Path="src/Integrations/Aurelian.GameHost.Silk/Aurelian.GameHost.Silk.csproj" />
     <Project Path="src/Integrations/Aurelian.Audio.NAudio/Aurelian.Audio.NAudio.csproj" />
@@ -31,6 +33,7 @@
     <Project Path="tests/Aurelian/Aurelian.Composition.Tests/Aurelian.Composition.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Actuation.Tests/Aurelian.Actuation.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Audio.Tests/Aurelian.Audio.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.Effects2D.Tests/Aurelian.Effects2D.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Assets.Tests/Aurelian.Assets.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.AssetTool.Tests/Aurelian.AssetTool.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Core.Tests/Aurelian.Core.Tests.csproj" />

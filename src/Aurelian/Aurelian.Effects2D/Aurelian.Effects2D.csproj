@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Aurelian.Effects2D</AssemblyName>
+    <RootNamespace>Aurelian.Effects2D</RootNamespace>
+  </PropertyGroup>
+</Project>

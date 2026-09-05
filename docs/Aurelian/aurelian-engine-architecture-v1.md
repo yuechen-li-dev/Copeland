@@ -1,6 +1,6 @@
 # Aurelian engine architecture v1
 
-Status: current architecture after AURELIAN-TINYFARM-DIALOGUE-CONSUMER-M7B2. This document is authoritative for the application/runtime architecture. Milestone reports remain evidence, not prerequisites.
+Status: current architecture after AURELIAN-GAME-EFFECTS-EMITTERS-M8. This document is authoritative for the application/runtime architecture. Milestone reports remain evidence, not prerequisites.
 
 ## 1. Purpose
 
@@ -59,6 +59,7 @@ Current project approximation:
 - `Aurelian.World`, `Aurelian.Actuation`, `Aurelian.Runtime`, and rendering projects are reusable systems/runtime foundations but do not yet own TinyFarm's scene or resolver contracts.
 - `Aurelian.Spatial2D` owns deterministic world-unit geometry queries, continuous sweep/slide accepted-displacement facts, trigger diffs, and stable spatial diagnostics. It owns no actors, gameplay callbacks, timestep, or rigid-body state.
 - `Aurelian.Simulation` owns ordered rational cadence production, accepted/discarded host-time accounting, generic scene/anchor/route queries, transition handoff, deterministic schedule selection, and navigation coordination facts. It owns no world-time meaning, actors, pathfinder, position mutation, schedule content, or inactive-scene policy.
+- `Aurelian.Effects2D` owns typed semantic effect requests, immutable definitions, deterministic bounded CPU emitters, dedupe, lifetime/capacity policy, renderer-neutral draw data, transforms, and inspection. It owns no gameplay mutation, save truth, GPU handles, effect meaning, audio cues, or render timing. `Aurelian.Effects2D.Graphics` adapts that draw data to existing analytic and Visual TypeScript-backed native quads.
 - `Machina.*` owns renderer-neutral UI authoring, layout, semantics, hit testing, input records, interaction helpers, and presentation operations.
 - Dominatus owns decision policy and flow, not application mutation.
 - Copeland/TSON owns authored table/program truth and its compilation/loading path, not mutable application state.
@@ -90,6 +91,20 @@ host delta -> CadenceScheduler -> ordered DueWorkFact -> application resolver ->
 Host, render, simulation cadence, world, and agent-decision time remain distinct domains. Pause emits no cadence work and accrues no debt. Fast-forward scales cadence production without skipping semantic work. Explicit cadence order resolves simultaneous boundaries. Configuration identity participates in replay/save compatibility metadata, while application state and semantic intents remain replay authority.
 
 > Aurelian supplies cadence, scene, and navigation mechanisms. Applications define world-time meaning, schedule content, and simulation policy.
+
+The qualified M8 visual-effect boundary is:
+
+```text
+authoritative resolver/state
+  -> application semantic event projection
+  -> VisualEffectEvent
+  -> Aurelian.Effects2D deterministic emitter state
+  -> renderer-neutral particle/quad data
+  -> analytic or Visual TypeScript material
+  -> existing Aurelian native ordered-quad renderer
+```
+
+Effect loss, dedupe, expiry, capacity rejection, shader failure, and device failure are presentation facts only. Transient particle arrays are neither saved nor replayed; stable semantic event IDs and seeds reconstruct an optional exact cosmetic trace.
 
 ## 6. Scene model
 

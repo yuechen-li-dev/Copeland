@@ -276,6 +276,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             submission.Texture,
             submission.Tint,
             default,
+            default,
             default));
     }
 
@@ -301,6 +302,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             submission.AtlasTexture,
             submission.Color,
             submission.Msdf,
+            default,
             default));
     }
 
@@ -330,7 +332,36 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
                 submission.ShapeSize,
                 radius,
                 submission.BorderColor,
-                submission.BorderWidth)));
+                submission.BorderWidth),
+            default));
+    }
+
+    public void SubmitSoftShockwave(NativeSoftShockwaveSubmission submission)
+    {
+        ThrowIfDisposed();
+        if (!passActive)
+        {
+            throw new InvalidOperationException("SubmitSoftShockwave requires an active 2D pass.");
+        }
+        if (options.Kind != Native2DPipelineKind.SoftShockwave)
+        {
+            throw new InvalidOperationException("SubmitSoftShockwave requires the soft shockwave pipeline.");
+        }
+        Native2DSubmissionValidator.ValidateValues(submission);
+        submissions.Add(new RenderSubmission(
+            submission.Destination,
+            submission.LocalCoordinates,
+            default,
+            submission.Color,
+            default,
+            default,
+            new SoftShockwaveParameters(
+                submission.Age,
+                submission.Lifetime,
+                submission.Radius,
+                submission.Thickness,
+                submission.Intensity,
+                submission.Seed)));
     }
 
     public Native2DPassResult End2D(bool captureReadback = false)
@@ -541,7 +572,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             inputMismatch = inputMismatch
                 || inputs[0].Name != "position"
                 || inputs[0].PhysicalType != "float3"
-                || inputs[1].Name != (options.Kind == Native2DPipelineKind.AnalyticShape2D ? "local" : "uv")
+                || inputs[1].Name != (options.Kind is Native2DPipelineKind.AnalyticShape2D or Native2DPipelineKind.SoftShockwave ? "local" : "uv")
                 || inputs[1].PhysicalType != "float2";
         }
         if (!inputMismatch && options.Kind == Native2DPipelineKind.MsdfText)
@@ -553,7 +584,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         {
             throw new ArgumentException("Native 2D requires position: float3 followed by uv: float2.", nameof(program));
         }
-        bool resourcesValid = options.Kind == Native2DPipelineKind.AnalyticShape2D
+        bool resourcesValid = options.Kind is Native2DPipelineKind.AnalyticShape2D or Native2DPipelineKind.SoftShockwave
             ? program.Resources.Count == 1 && program.Resources.Single().Kind == CompiledGraphicsResourceKind.UniformBuffer
             : program.Resources.Count == 3
                 && program.Resources.Count(resource => resource.Kind == CompiledGraphicsResourceKind.Texture2D) == 1
@@ -569,6 +600,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         {
             Native2DPipelineKind.MsdfText => ["tint", "pixelRange", "threshold"],
             Native2DPipelineKind.AnalyticShape2D => ["fillColor", "borderColor", "halfSize", "radius", "borderWidth", "shapeKind"],
+            Native2DPipelineKind.SoftShockwave => ["color", "age", "lifetime", "radius", "thickness", "intensity", "seed"],
             _ => ["tint", "roughness"],
         };
         if (!material.Fields.OrderBy(field => field.Order).Select(field => field.Name).SequenceEqual(expectedFields, StringComparer.Ordinal))
@@ -591,7 +623,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         VulkanForwardTexturedValidation reflectionValidation = VulkanNativeForwardTexturedRenderer.Validate(
             program,
             reflectionFixture,
-            requireTexturedResourceShape: options.Kind != Native2DPipelineKind.AnalyticShape2D);
+            requireTexturedResourceShape: options.Kind is not (Native2DPipelineKind.AnalyticShape2D or Native2DPipelineKind.SoftShockwave));
         if (!reflectionValidation.Success)
         {
             throw new ArgumentException(
@@ -735,7 +767,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             WriteMaterialFloat(materialBytes, material, "pixelRange", submission.Msdf.PixelRange);
             WriteMaterialFloat(materialBytes, material, "threshold", submission.Msdf.Threshold);
         }
-        else
+        else if (options.Kind == Native2DPipelineKind.AnalyticShape2D)
         {
             WriteMaterialColor(materialBytes, material, "fillColor", submission.Tint);
             WriteMaterialColor(materialBytes, material, "borderColor", submission.Analytic.BorderColor);
@@ -746,6 +778,16 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             WriteMaterialFloat(materialBytes, material, "borderWidth", submission.Analytic.BorderWidth);
             CompiledMaterialField kind = material.Fields.Single(field => field.Name == "shapeKind");
             BinaryPrimitives.WriteUInt32LittleEndian(materialBytes.AsSpan(kind.Offset, 4), (uint)(submission.Analytic.Kind == NativeAnalyticShapeKind.Circle ? 1 : 0));
+        }
+        else
+        {
+            WriteMaterialColor(materialBytes, material, "color", submission.Tint);
+            WriteMaterialFloat(materialBytes, material, "age", submission.Shockwave.Age);
+            WriteMaterialFloat(materialBytes, material, "lifetime", submission.Shockwave.Lifetime);
+            WriteMaterialFloat(materialBytes, material, "radius", submission.Shockwave.Radius);
+            WriteMaterialFloat(materialBytes, material, "thickness", submission.Shockwave.Thickness);
+            WriteMaterialFloat(materialBytes, material, "intensity", submission.Shockwave.Intensity);
+            WriteMaterialFloat(materialBytes, material, "seed", submission.Shockwave.Seed);
         }
         AurelianVulkanBuffer materialBuffer = VulkanNativeForwardTexturedRenderer.CreateMappedBuffer(
             plant,
@@ -976,7 +1018,13 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         int BorderBlue,
         int BorderAlpha,
         int BorderWidth,
-        uint ShapeKind)
+        uint ShapeKind,
+        int ShockwaveAge,
+        int ShockwaveLifetime,
+        int ShockwaveRadius,
+        int ShockwaveThickness,
+        int ShockwaveIntensity,
+        int ShockwaveSeed)
     {
         public static BindingKey From(RenderSubmission submission)
             => new(
@@ -995,7 +1043,13 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
                 BitConverter.SingleToInt32Bits(submission.Analytic.BorderColor.Blue),
                 BitConverter.SingleToInt32Bits(submission.Analytic.BorderColor.Alpha),
                 BitConverter.SingleToInt32Bits(submission.Analytic.BorderWidth),
-                (uint)submission.Analytic.Kind);
+                (uint)submission.Analytic.Kind,
+                BitConverter.SingleToInt32Bits(submission.Shockwave.Age),
+                BitConverter.SingleToInt32Bits(submission.Shockwave.Lifetime),
+                BitConverter.SingleToInt32Bits(submission.Shockwave.Radius),
+                BitConverter.SingleToInt32Bits(submission.Shockwave.Thickness),
+                BitConverter.SingleToInt32Bits(submission.Shockwave.Intensity),
+                BitConverter.SingleToInt32Bits(submission.Shockwave.Seed));
     }
 
     private readonly record struct RenderSubmission(
@@ -1004,7 +1058,8 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         Native2DTextureHandle Texture,
         Native2DTint Tint,
         NativeMsdfParameters Msdf,
-        AnalyticParameters Analytic);
+        AnalyticParameters Analytic,
+        SoftShockwaveParameters Shockwave);
 
     private readonly record struct AnalyticParameters(
         NativeAnalyticShapeKind Kind,
@@ -1012,6 +1067,14 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         float Radius,
         Native2DTint BorderColor,
         float BorderWidth);
+
+    private readonly record struct SoftShockwaveParameters(
+        float Age,
+        float Lifetime,
+        float Radius,
+        float Thickness,
+        float Intensity,
+        float Seed);
 
     private readonly record struct Vertex(float X, float Y, float Z, float U, float V, float FieldScale);
 }

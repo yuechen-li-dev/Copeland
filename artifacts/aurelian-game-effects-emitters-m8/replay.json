@@ -1,0 +1,10 @@
+{
+  "gameHash": "2f01fd1a756c1e5dd4e787bd92c61fa48d27e277199dac60451160474aae053d",
+  "eventIds": [
+    "tinyfarm:1:0:EnemyDefeated",
+    "tinyfarm:1:0:EnemyDefeated:screen-flash"
+  ],
+  "spawnTraceSha256": "c71038ed032dbb5eeedf5390bd4a90bb651d3e86bee2a06b43754ee3ecdff9b1",
+  "deterministicRepeat": true,
+  "framebufferHashRequired": false
+}

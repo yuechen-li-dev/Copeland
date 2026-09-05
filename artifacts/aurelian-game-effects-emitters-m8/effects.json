@@ -1,0 +1,135 @@
+{
+  "definitions": [
+    {
+      "id": {
+        "value": "aurelian.effect.sword-hit"
+      },
+      "emitterKind": "Burst",
+      "lifetime": "00:00:00.4200000",
+      "spawnCount": 14,
+      "minimumSize": 24,
+      "maximumSize": 64,
+      "minimumSpeed": 320,
+      "maximumSpeed": 720,
+      "spawnsPerSecond": 0,
+      "painterLayer": "FrontOfActors",
+      "blendMode": "StraightAlpha",
+      "priority": 100,
+      "materialId": {
+        "value": "aurelian.material.soft-shockwave"
+      },
+      "shaderQuad": true
+    },
+    {
+      "id": {
+        "value": "aurelian.effect.harvest-puff"
+      },
+      "emitterKind": "Burst",
+      "lifetime": "00:00:00.6500000",
+      "spawnCount": 10,
+      "minimumSize": 36,
+      "maximumSize": 88,
+      "minimumSpeed": 160,
+      "maximumSpeed": 420,
+      "spawnsPerSecond": 0,
+      "painterLayer": "FrontOfActors",
+      "blendMode": "StraightAlpha",
+      "priority": 60,
+      "materialId": {
+        "value": "aurelian.material.analytic-particle"
+      },
+      "shaderQuad": false
+    },
+    {
+      "id": {
+        "value": "aurelian.effect.pickup-sparkle"
+      },
+      "emitterKind": "Burst",
+      "lifetime": "00:00:00.7500000",
+      "spawnCount": 8,
+      "minimumSize": 18,
+      "maximumSize": 40,
+      "minimumSpeed": 180,
+      "maximumSpeed": 520,
+      "spawnsPerSecond": 0,
+      "painterLayer": "FrontOfActors",
+      "blendMode": "StraightAlpha",
+      "priority": 70,
+      "materialId": {
+        "value": "aurelian.material.analytic-particle"
+      },
+      "shaderQuad": false
+    },
+    {
+      "id": {
+        "value": "aurelian.effect.footstep-dust"
+      },
+      "emitterKind": "Trail",
+      "lifetime": "00:00:00.5000000",
+      "spawnCount": 1,
+      "minimumSize": 24,
+      "maximumSize": 56,
+      "minimumSpeed": 40,
+      "maximumSpeed": 100,
+      "spawnsPerSecond": 12,
+      "painterLayer": "BehindActors",
+      "blendMode": "StraightAlpha",
+      "priority": 20,
+      "materialId": {
+        "value": "aurelian.material.analytic-particle"
+      },
+      "shaderQuad": false
+    },
+    {
+      "id": {
+        "value": "aurelian.effect.ambient-motes"
+      },
+      "emitterKind": "Ambient",
+      "lifetime": "00:00:30",
+      "spawnCount": 0,
+      "minimumSize": 18,
+      "maximumSize": 32,
+      "minimumSpeed": 20,
+      "maximumSpeed": 60,
+      "spawnsPerSecond": 8,
+      "painterLayer": "BehindActors",
+      "blendMode": "StraightAlpha",
+      "priority": 10,
+      "materialId": {
+        "value": "aurelian.material.analytic-particle"
+      },
+      "shaderQuad": false
+    },
+    {
+      "id": {
+        "value": "aurelian.effect.screen-flash"
+      },
+      "emitterKind": "ScreenFlash",
+      "lifetime": "00:00:00.1800000",
+      "spawnCount": 0,
+      "minimumSize": 1,
+      "maximumSize": 1,
+      "minimumSpeed": 0,
+      "maximumSpeed": 0,
+      "spawnsPerSecond": 0,
+      "painterLayer": "ScreenFlash",
+      "blendMode": "StraightAlpha",
+      "priority": 90,
+      "materialId": {
+        "value": "aurelian.material.screen-flash"
+      },
+      "shaderQuad": false
+    }
+  ],
+  "categories": [
+    "Burst",
+    "Ambient",
+    "Trail",
+    "ScreenFlash"
+  ],
+  "capacityPolicy": "reject-newest",
+  "defaultParticleCapacity": 2048,
+  "defaultEmitterCapacity": 256,
+  "dedupeCapacity": 4096,
+  "transientSavePolicy": "particle and emitter arrays are not serialized; semantic ambience is re-derived"
+}

@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Aurelian.Effects2D.Graphics</AssemblyName>
+    <RootNamespace>Aurelian.Effects2D.Graphics</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../Aurelian/Aurelian.Effects2D/Aurelian.Effects2D.csproj" />
+    <ProjectReference Include="../../Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />
+  </ItemGroup>
+</Project>

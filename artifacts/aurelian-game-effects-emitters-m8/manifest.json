@@ -1,0 +1,17 @@
+{
+  "milestone": "AURELIAN-GAME-EFFECTS-EMITTERS-M8",
+  "kind": "semantic-2d-effects-emitter-substrate",
+  "visualTypeScriptQualified": true,
+  "vdMirShaderPathQualified": true,
+  "burstEmitterQualified": true,
+  "ambientEmitterQualified": true,
+  "screenSpaceEffectQualified": true,
+  "trailQualified": true,
+  "deterministicSeedQualified": true,
+  "effectDeduplicationQualified": true,
+  "saveTransientEffectsSerialized": false,
+  "replayEffectTraceQualified": true,
+  "gameplayAuthorityInEffects": false,
+  "particleEditorAdded": false,
+  "physicsParticlesAdded": false
+}

@@ -104,6 +104,33 @@ internal static class Native2DSubmissionValidator
         }
     }
 
+    public static void ValidateValues(NativeSoftShockwaveSubmission submission)
+    {
+        ValidateValues(new NativeQuadSubmission(
+            submission.Destination,
+            submission.LocalCoordinates,
+            default,
+            submission.Color));
+        if (submission.Destination.Width <= 0 || submission.Destination.Height <= 0)
+        {
+            throw new ArgumentException("Soft shockwave dimensions must be positive.", nameof(submission));
+        }
+        if (!float.IsFinite(submission.Age)
+            || !float.IsFinite(submission.Lifetime)
+            || !float.IsFinite(submission.Radius)
+            || !float.IsFinite(submission.Thickness)
+            || !float.IsFinite(submission.Intensity)
+            || !float.IsFinite(submission.Seed))
+        {
+            throw new ArgumentException("Soft shockwave parameters must be finite.", nameof(submission));
+        }
+        if (submission.Age < 0 || submission.Lifetime <= 0 || submission.Radius < 0
+            || submission.Thickness <= 0 || submission.Intensity < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(submission), "Soft shockwave age, lifetime, radius, thickness, and intensity are outside their valid ranges.");
+        }
+    }
+
     private static void ValidateTint(Native2DTint tint, string parameterName)
     {
         if (!float.IsFinite(tint.Red) || !float.IsFinite(tint.Green) || !float.IsFinite(tint.Blue) || !float.IsFinite(tint.Alpha)

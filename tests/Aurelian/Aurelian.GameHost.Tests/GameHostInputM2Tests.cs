@@ -1,11 +1,13 @@
 using Aurelian.GameHost;
 using Aurelian.Audio;
+using Aurelian.Effects2D;
 using Aurelian.Composition;
 using Aurelian.Simulation;
 using InputMan.Aurelian;
 using InputMan.Core;
 using TinyFarm.Core;
 using TinyFarm.InputMan;
+using TinyFarm.Runtime;
 using Xunit;
 
 namespace Aurelian.GameHost.Tests;
@@ -52,6 +54,32 @@ public sealed class GameHostInputM2Tests
         Assert.Equal(before.YUnits, authoritative.WorldPosition.YUnits);
         Assert.Equal(authoritative.WorldPosition.XUnits, projected.Position.X);
         Assert.Equal(authoritative.WorldPosition.YUnits, projected.Position.Y);
+    }
+
+    [Fact]
+    public void InputManAttackFlowsToAcceptedResolverEventAndVisualEffectProjection()
+    {
+        TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.LoadM21();
+        TinyFarmState state = TinyFarmM21ControlStates.Create(definitions);
+        var session = new TinyFarmSession(state, definitions);
+        _ = session.Step(new SelectHotbarSlotIntent(new HotbarSlotId(4)), evaluateNpcDecisions: false);
+        var engine = new InputManEngine(GameControls.CreateProfile());
+        using var adapter = new AurelianInputAdapter(engine);
+        adapter.SetContexts(GameControls.Gameplay);
+        adapter.RecordButton(Controls.Key(KeyboardKey.Space), true);
+        adapter.BeginFrame(Frame(1));
+        SubmitGameIntent command = Assert.IsType<SubmitGameIntent>(
+            Assert.Single(new TinyFarmInputController().Map(adapter.CurrentFrame)));
+
+        TinyFarmStepResult step = session.Step(command.Intent, evaluateNpcDecisions: false);
+        IReadOnlyList<VisualEffectEvent> effects = new TinyFarmVisualEffectProjector()
+            .Project(step.Results, session.State, definitions);
+
+        Assert.IsType<UseSelectedIntent>(command.Intent);
+        Assert.Equal(IntentResultStatus.Accepted, step.Results.Single().Status);
+        Assert.Equal(GameEventKind.EnemyDefeated, Assert.Single(step.Results.Single().Events).Kind);
+        Assert.Equal(VisualEffectIds.SwordHit, effects[0].EffectId);
+        Assert.Equal(VisualEffectIds.ScreenFlash, effects[1].EffectId);
     }
 
     [Fact]
