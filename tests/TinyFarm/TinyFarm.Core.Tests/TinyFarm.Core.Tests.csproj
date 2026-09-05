@@ -8,6 +8,8 @@
     <ProjectReference Include="../../../src/TinyFarm/TinyFarm.Runtime/TinyFarm.Runtime.csproj" />
     <ProjectReference Include="../../../src/TinyFarm/TinyFarm.Presentation/TinyFarm.Presentation.csproj" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Composition/Aurelian.Composition.csproj" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Rendering.Raster/Aurelian.Rendering.Raster.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Machina/Aurelian.Machina.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />

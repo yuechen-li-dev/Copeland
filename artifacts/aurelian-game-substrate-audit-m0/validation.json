@@ -1,0 +1,39 @@
+{
+  "milestone": "AURELIAN-GAME-SUBSTRATE-AUDIT-M0",
+  "auditOutcome": "B",
+  "auditTaskResult": "Success",
+  "sdk": "10.0.400",
+  "copelandBase": "cae570daef8c067cc2c67f44ea4361ceef21609e",
+  "dominatusSourceCommit": "adbecd91cf1e07ca9a53c60a38fbb8356245b076",
+  "builds": {
+    "Aurelian.slnx": { "success": true, "warnings": 0, "errors": 0 },
+    "TinyFarm.slnx": { "success": true, "warnings": 0, "errors": 0 }
+  },
+  "tests": {
+    "Aurelian.slnx": { "passed": 750, "failed": 0, "skipped": 0 },
+    "TinyFarm.slnx": { "passed": 273, "failed": 0, "skipped": 0 },
+    "SpriteForge-net10-source": {
+      "passed": 2,
+      "failed": 6,
+      "centralPackageManagementOverride": false,
+      "diagnostic": "toml.parse: Invalid \\r not followed by \\n",
+      "cause": "Test fixture Replace(newline, Environment.NewLine) duplicates CR on CRLF checkout",
+      "log": "spriteforge-validation.txt"
+    }
+  },
+  "nativeQuadProof": {
+    "gpu": "NVIDIA GeForce RTX 3070",
+    "validationEnabled": true,
+    "validationErrors": 0,
+    "stableRepeatedPasses": 100,
+    "canonicalHash": "4fedd1050accc442864faaa8eeae11c7d02efc6b1009a85d80d080c1372b1192"
+  },
+  "integratedProbe": {
+    "backend": "CPU raster",
+    "visualInspected": true,
+    "nativeSpriteSceneQualified": false,
+    "animation": "two-frame color projection of authored farm-tree"
+  },
+  "notQualified": ["Linux", "native animated sprite scene", "game audio", "remote CI"],
+  "nextMilestone": "AURELIAN-NATIVE-GAME-WORLD-2D-M1"
+}

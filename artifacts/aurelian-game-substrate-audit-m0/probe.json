@@ -1,0 +1,30 @@
+{
+  "milestone": "AURELIAN-GAME-SUBSTRATE-AUDIT-M0",
+  "backend": "Aurelian CPU raster; native sprite path NOT qualified",
+  "interaction": "Accepted",
+  "collision": "MovementBlocked",
+  "cameraBefore": 220.125,
+  "cameraAfter": 216.125,
+  "npc": "mara",
+  "animatedObject": "farm-tree",
+  "animationFrames": [
+    0,
+    1
+  ],
+  "hudOperations": 38,
+  "uiCommand": {
+    "Kind": 0,
+    "HotbarSlot": 3
+  },
+  "stateHash": "f36302545c681999182057160094502f6c216697f5d0cc4139efd928737ddba8",
+  "frameHashes": [
+    "A4D3F23257E613F4D220E462D35A2204BC38D7386D429B0A7DFEDE9B4D71EB11",
+    "3F5090AB60A7EA5D8639EB6CF131868F89168CF2CFC14CB7473AC8DAB60F7092"
+  ],
+  "reconstructedGlue": [
+    "camera projection",
+    "world rectangle lowering",
+    "painter order",
+    "two-frame presentation clock"
+  ]
+}

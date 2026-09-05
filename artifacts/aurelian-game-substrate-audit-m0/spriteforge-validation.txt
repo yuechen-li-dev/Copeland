@@ -1,0 +1,97 @@
+  Determining projects to restore...
+  Restored C:\Users\yuech\source\repos\Copeland\reference\dominatus\src\Dominatus.SpriteForge\Dominatus.SpriteForge.csproj (in 152 ms).
+  Restored C:\Users\yuech\source\repos\Copeland\reference\dominatus\src\Dominatus.Assets.Toml\Dominatus.Assets.Toml.csproj (in 152 ms).
+  Restored C:\Users\yuech\source\repos\Copeland\reference\dominatus\tests\Dominatus.SpriteForge.Tests\Dominatus.SpriteForge.Tests.csproj (in 176 ms).
+  Dominatus.Assets.Toml -> C:\Users\yuech\source\repos\Copeland\reference\dominatus\src\Dominatus.Assets.Toml\bin\Debug\net10.0\Dominatus.Assets.Toml.dll
+  Dominatus.SpriteForge -> C:\Users\yuech\source\repos\Copeland\reference\dominatus\src\Dominatus.SpriteForge\bin\Debug\net10.0\Dominatus.SpriteForge.dll
+  Dominatus.SpriteForge.Tests -> C:\Users\yuech\source\repos\Copeland\reference\dominatus\tests\Dominatus.SpriteForge.Tests\bin\Debug\net10.0\Dominatus.SpriteForge.Tests.dll
+Test run for C:\Users\yuech\source\repos\Copeland\reference\dominatus\tests\Dominatus.SpriteForge.Tests\bin\Debug\net10.0\Dominatus.SpriteForge.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.52]     Dominatus.SpriteForge.Tests.SpriteForgeTomlLoaderTests.SpriteForgeValidator_RejectsFrameIndexOutOfBounds [FAIL]
+[xUnit.net 00:00:00.52]     Dominatus.SpriteForge.Tests.SpriteForgeTomlLoaderTests.SpriteForgeLoader_LoadsHermeticGridAndExactFrameFixture [FAIL]
+[xUnit.net 00:00:00.54]     Dominatus.SpriteForge.Tests.SpriteForgeTomlLoaderTests.SpriteForgeLoader_LoadsNestedGridToml [FAIL]
+[xUnit.net 00:00:00.54]     Dominatus.SpriteForge.Tests.SpriteForgeTomlLoaderTests.SpriteForgeValidator_RejectsUnknownAnimationGrid [FAIL]
+[xUnit.net 00:00:00.55]     Dominatus.SpriteForge.Tests.SpriteForgeTomlLoaderTests.SpriteForgeValidator_RejectsGridOutOfBounds [FAIL]
+[xUnit.net 00:00:00.55]     Dominatus.SpriteForge.Tests.SpriteForgeTomlLoaderTests.SpriteForgeValidator_RejectsDuplicateOrInvalidIds [FAIL]
+  Failed Dominatus.SpriteForge.Tests.SpriteForgeTomlLoaderTests.SpriteForgeValidator_RejectsFrameIndexOutOfBounds [211 ms]
+  Error Message:
+   Assert.Contains() Failure: Filter not matched in collection
+Collection: [AssetDiagnostic { Severity = Error, Code = toml.parse, Message = Invalid \r not followed by \n, SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-378f4a12326a4618a550f82453ec9f72.sprite.toml, Line = 1, Column = 8, Span = AssetSourceSpan { SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-378f4a12326a4618a550f82453ec9f72.sprite.toml, StartLine = 1, StartColumn = 8, EndLine = 1, EndColumn = 8 }, KeyPath =  }, AssetDiagnostic { Severity = Error, Code = toml.parse, Message = Invalid \r not followed by \n, SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-378f4a12326a4618a550f82453ec9f72.sprite.toml, Line = 5, Column = 1, Span = AssetSourceSpan { SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-378f4a12326a4618a550f82453ec9f72.sprite.toml, StartLine = 5, StartColumn = 1, EndLine = 5, EndColumn = 1 }, KeyPath =  }, AssetDiagnostic { Severity = Error, Code = toml.parse, Message = Invalid \r not followed by \n, SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-378f4a12326a4618a550f82453ec9f72.sprite.toml, Line = 6, Column = 13, Span = AssetSourceSpan { SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-378f4a12326a4618a550f82453ec9f72.sprite.toml, StartLine = 6, StartColumn = 13, EndLine = 6, EndColumn = 13 }, KeyPath =  }, AssetDiagnostic { Severity = Error, Code = toml.parse, Message = Invalid \r not followed by \n, SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-378f4a12326a4618a550f82453ec9f72.sprite.toml, Line = 13, Column = 1, Span = AssetSourceSpan { SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-378f4a12326a4618a550f82453ec9f72.sprite.toml, StartLine = 13, StartColumn = 1, EndLine = 13, EndColumn = 1 }, KeyPath =  }, AssetDiagnostic { Severity = Error, Code = toml.parse, Message = Invalid \r not followed by \n, SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-378f4a12326a4618a550f82453ec9f72.sprite.toml, Line = 14, Column = 15, Span = AssetSourceSpan { SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-378f4a12326a4618a550f82453ec9f72.sprite.toml, StartLine = 14, StartColumn = 15, EndLine = 14, EndColumn = 15 }, KeyPath =  }, ···]
+  Stack Trace:
+     at Dominatus.SpriteForge.Tests.SpriteForgeTomlLoaderTests.SpriteForgeValidator_RejectsFrameIndexOutOfBounds() in /_/tests/Dominatus.SpriteForge.Tests/SpriteForgeTomlLoaderTests.cs:line 280
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Dominatus.SpriteForge.Tests.SpriteForgeTomlLoaderTests.SpriteForgeLoader_LoadsHermeticGridAndExactFrameFixture [7 ms]
+  Error Message:
+   error toml.parse: Invalid \r not followed by \n
+at C:\Users\yuech\AppData\Local\Temp\spriteforge-fixture-c03d198f443043fa88f57fc7ddb6a401\atlas.spriteforge.toml:1:8
+error toml.parse: Invalid \r not followed by \n
+at C:\Users\yuech\AppData\Local\Temp\spriteforge-fixture-c03d198f443043fa88f57fc7ddb6a401\atlas.spriteforge.toml:5:1
+error toml.parse: Invalid \r not followed by \n
+at C:\Users\yuech\AppData\Local\Temp\spriteforge-fixture-c03d198f443043fa88f57fc7ddb6a401\atlas.spriteforge.toml:6:19
+error toml.parse: Invalid \r not followed by \n
+at C:\Users\yuech\AppData\Local\Temp\spriteforge-fixture-c03d198f443043fa88f57fc7ddb6a401\atlas.spriteforge.toml:14:1
+error toml.parse: Invalid \r not followed by \n
+at C:\Users\yuech\AppData\Local\Temp\spriteforge-fixture-c03d198f443043fa88f57fc7ddb6a401\atlas.spriteforge.toml:15:27
+error toml.parse: Invalid \r not followed by \n
+at C:\Users\yuech\AppData\Local\Temp\spriteforge-fixture-c03d198f443043fa88f57fc7ddb6a401\atlas.spriteforge.toml:21:1
+error toml.parse: Invalid \r not followed by \n
+at C:\Users\yuech\AppData\Local\Temp\spriteforge-fixture-c03d198f443043fa88f57fc7ddb6a401\atlas.spriteforge.toml:22:15
+error toml.parse: Invalid \r not followed by \n
+at C:\Users\yuech\AppData\Local\Temp\spriteforge-fixture-c03d198f443043fa88f57fc7ddb6a401\atlas.spriteforge.toml:24:1
+error toml.parse: Invalid \r not followed by \n
+at C:\Users\yuech\AppData\Local\Temp\spriteforge-fixture-c03d198f443043fa88f57fc7ddb6a401\atlas.spriteforge.toml:25:31
+  Stack Trace:
+     at Dominatus.SpriteForge.Tests.SpriteForgeTomlLoaderTests.SpriteForgeLoader_LoadsHermeticGridAndExactFrameFixture() in /_/tests/Dominatus.SpriteForge.Tests/SpriteForgeTomlLoaderTests.cs:line 364
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Dominatus.SpriteForge.Tests.SpriteForgeTomlLoaderTests.SpriteForgeLoader_LoadsNestedGridToml [5 ms]
+  Error Message:
+   error toml.parse: Invalid \r not followed by \n
+at C:\Users\yuech\AppData\Local\Temp\spriteforge-8613b76aba98447baff3a70dda009b70.sprite.toml:1:8
+error toml.parse: Invalid \r not followed by \n
+at C:\Users\yuech\AppData\Local\Temp\spriteforge-8613b76aba98447baff3a70dda009b70.sprite.toml:5:1
+error toml.parse: Invalid \r not followed by \n
+at C:\Users\yuech\AppData\Local\Temp\spriteforge-8613b76aba98447baff3a70dda009b70.sprite.toml:6:23
+error toml.parse: Invalid \r not followed by \n
+at C:\Users\yuech\AppData\Local\Temp\spriteforge-8613b76aba98447baff3a70dda009b70.sprite.toml:14:1
+error toml.parse: Invalid \r not followed by \n
+at C:\Users\yuech\AppData\Local\Temp\spriteforge-8613b76aba98447baff3a70dda009b70.sprite.toml:15:14
+error toml.parse: Invalid \r not followed by \n
+at C:\Users\yuech\AppData\Local\Temp\spriteforge-8613b76aba98447baff3a70dda009b70.sprite.toml:23:1
+error toml.parse: Invalid \r not followed by \n
+at C:\Users\yuech\AppData\Local\Temp\spriteforge-8613b76aba98447baff3a70dda009b70.sprite.toml:24:15
+error toml.parse: Invalid \r not followed by \n
+at C:\Users\yuech\AppData\Local\Temp\spriteforge-8613b76aba98447baff3a70dda009b70.sprite.toml:27:1
+error toml.parse: Invalid \r not followed by \n
+at C:\Users\yuech\AppData\Local\Temp\spriteforge-8613b76aba98447baff3a70dda009b70.sprite.toml:28:31
+  Stack Trace:
+     at Dominatus.SpriteForge.Tests.SpriteForgeTomlLoaderTests.SpriteForgeLoader_LoadsNestedGridToml() in /_/tests/Dominatus.SpriteForge.Tests/SpriteForgeTomlLoaderTests.cs:line 50
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Dominatus.SpriteForge.Tests.SpriteForgeTomlLoaderTests.SpriteForgeValidator_RejectsUnknownAnimationGrid [5 ms]
+  Error Message:
+   Assert.Contains() Failure: Filter not matched in collection
+Collection: [AssetDiagnostic { Severity = Error, Code = toml.parse, Message = Invalid \r not followed by \n, SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-8224be41ef8c49188e021c91e00263d7.sprite.toml, Line = 1, Column = 8, Span = AssetSourceSpan { SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-8224be41ef8c49188e021c91e00263d7.sprite.toml, StartLine = 1, StartColumn = 8, EndLine = 1, EndColumn = 8 }, KeyPath =  }, AssetDiagnostic { Severity = Error, Code = toml.parse, Message = Invalid \r not followed by \n, SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-8224be41ef8c49188e021c91e00263d7.sprite.toml, Line = 5, Column = 1, Span = AssetSourceSpan { SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-8224be41ef8c49188e021c91e00263d7.sprite.toml, StartLine = 5, StartColumn = 1, EndLine = 5, EndColumn = 1 }, KeyPath =  }, AssetDiagnostic { Severity = Error, Code = toml.parse, Message = Invalid \r not followed by \n, SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-8224be41ef8c49188e021c91e00263d7.sprite.toml, Line = 6, Column = 13, Span = AssetSourceSpan { SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-8224be41ef8c49188e021c91e00263d7.sprite.toml, StartLine = 6, StartColumn = 13, EndLine = 6, EndColumn = 13 }, KeyPath =  }, AssetDiagnostic { Severity = Error, Code = toml.parse, Message = Invalid \r not followed by \n, SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-8224be41ef8c49188e021c91e00263d7.sprite.toml, Line = 13, Column = 1, Span = AssetSourceSpan { SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-8224be41ef8c49188e021c91e00263d7.sprite.toml, StartLine = 13, StartColumn = 1, EndLine = 13, EndColumn = 1 }, KeyPath =  }, AssetDiagnostic { Severity = Error, Code = toml.parse, Message = Invalid \r not followed by \n, SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-8224be41ef8c49188e021c91e00263d7.sprite.toml, Line = 14, Column = 15, Span = AssetSourceSpan { SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-8224be41ef8c49188e021c91e00263d7.sprite.toml, StartLine = 14, StartColumn = 15, EndLine = 14, EndColumn = 15 }, KeyPath =  }, ···]
+  Stack Trace:
+     at Dominatus.SpriteForge.Tests.SpriteForgeTomlLoaderTests.SpriteForgeValidator_RejectsUnknownAnimationGrid() in /_/tests/Dominatus.SpriteForge.Tests/SpriteForgeTomlLoaderTests.cs:line 125
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Dominatus.SpriteForge.Tests.SpriteForgeTomlLoaderTests.SpriteForgeValidator_RejectsGridOutOfBounds [5 ms]
+  Error Message:
+   Assert.Contains() Failure: Filter not matched in collection
+Collection: [AssetDiagnostic { Severity = Error, Code = toml.parse, Message = Invalid \r not followed by \n, SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-11437a979a2140368f304a14a563d7c3.sprite.toml, Line = 1, Column = 8, Span = AssetSourceSpan { SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-11437a979a2140368f304a14a563d7c3.sprite.toml, StartLine = 1, StartColumn = 8, EndLine = 1, EndColumn = 8 }, KeyPath =  }, AssetDiagnostic { Severity = Error, Code = toml.parse, Message = Invalid \r not followed by \n, SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-11437a979a2140368f304a14a563d7c3.sprite.toml, Line = 5, Column = 1, Span = AssetSourceSpan { SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-11437a979a2140368f304a14a563d7c3.sprite.toml, StartLine = 5, StartColumn = 1, EndLine = 5, EndColumn = 1 }, KeyPath =  }, AssetDiagnostic { Severity = Error, Code = toml.parse, Message = Invalid \r not followed by \n, SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-11437a979a2140368f304a14a563d7c3.sprite.toml, Line = 6, Column = 12, Span = AssetSourceSpan { SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-11437a979a2140368f304a14a563d7c3.sprite.toml, StartLine = 6, StartColumn = 12, EndLine = 6, EndColumn = 12 }, KeyPath =  }]
+  Stack Trace:
+     at Dominatus.SpriteForge.Tests.SpriteForgeTomlLoaderTests.SpriteForgeValidator_RejectsGridOutOfBounds() in /_/tests/Dominatus.SpriteForge.Tests/SpriteForgeTomlLoaderTests.cs:line 86
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed Dominatus.SpriteForge.Tests.SpriteForgeTomlLoaderTests.SpriteForgeValidator_RejectsDuplicateOrInvalidIds [4 ms]
+  Error Message:
+   Assert.Contains() Failure: Filter not matched in collection
+Collection: [AssetDiagnostic { Severity = Error, Code = toml.parse, Message = Invalid \r not followed by \n, SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-6dbef0a1af5140788a0c43fde72d7e23.sprite.toml, Line = 1, Column = 8, Span = AssetSourceSpan { SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-6dbef0a1af5140788a0c43fde72d7e23.sprite.toml, StartLine = 1, StartColumn = 8, EndLine = 1, EndColumn = 8 }, KeyPath =  }, AssetDiagnostic { Severity = Error, Code = toml.parse, Message = Invalid \r not followed by \n, SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-6dbef0a1af5140788a0c43fde72d7e23.sprite.toml, Line = 5, Column = 1, Span = AssetSourceSpan { SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-6dbef0a1af5140788a0c43fde72d7e23.sprite.toml, StartLine = 5, StartColumn = 1, EndLine = 5, EndColumn = 1 }, KeyPath =  }, AssetDiagnostic { Severity = Error, Code = toml.parse, Message = Invalid \r not followed by \n, SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-6dbef0a1af5140788a0c43fde72d7e23.sprite.toml, Line = 6, Column = 17, Span = AssetSourceSpan { SourcePath = C:\Users\yuech\AppData\Local\Temp\spriteforge-6dbef0a1af5140788a0c43fde72d7e23.sprite.toml, StartLine = 6, StartColumn = 17, EndLine = 6, EndColumn = 17 }, KeyPath =  }]
+  Stack Trace:
+     at Dominatus.SpriteForge.Tests.SpriteForgeTomlLoaderTests.SpriteForgeValidator_RejectsDuplicateOrInvalidIds() in /_/tests/Dominatus.SpriteForge.Tests/SpriteForgeTomlLoaderTests.cs:line 311
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+Failed!  - Failed:     6, Passed:     2, Skipped:     0, Total:     8, Duration: 245 ms - Dominatus.SpriteForge.Tests.dll (net10.0)
