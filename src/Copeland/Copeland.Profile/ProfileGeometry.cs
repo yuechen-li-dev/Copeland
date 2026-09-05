@@ -134,6 +134,12 @@ internal static class ProfileGeometry
     public static string ToSvg(VectorShape shape)
     {
         VectorBounds bounds = shape.Bounds;
+        return FormattableString.Invariant(
+            $"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"{bounds.MinX:R} {-bounds.MaxY:R} {bounds.Width:R} {bounds.Height:R}\"><path fill=\"black\" fill-rule=\"nonzero\" d=\"{ToSvgPath(shape)}\"/></svg>");
+    }
+
+    internal static string ToSvgPath(VectorShape shape)
+    {
         StringBuilder path = new();
         foreach (VectorContour contour in shape.Contours)
         {
@@ -159,8 +165,7 @@ internal static class ProfileGeometry
             }
             path.Append("Z ");
         }
-        return FormattableString.Invariant(
-            $"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"{bounds.MinX:R} {-bounds.MaxY:R} {bounds.Width:R} {bounds.Height:R}\"><path fill=\"black\" fill-rule=\"nonzero\" d=\"{path.ToString().TrimEnd()}\"/></svg>");
+        return path.ToString().TrimEnd();
     }
 
     private static VectorShape Rectangle(double width, double height)

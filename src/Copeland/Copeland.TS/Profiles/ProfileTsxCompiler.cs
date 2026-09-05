@@ -7,7 +7,7 @@ using Copeland.TS.Templates;
 
 namespace Copeland.TS.Profiles;
 
-public static class ProfileTsxCompiler
+public static partial class ProfileTsxCompiler
 {
     public static ProfileCompilationResult Compile(string source, string sourcePath = "Asset.profile.tsx")
         => CompileCore(source, sourcePath, null);
@@ -224,8 +224,13 @@ public static class ProfileTsxCompiler
         string? name = attributes.String("name", required: true);
         string baseState = attributes.String("baseState", required: false) ?? "Base";
         ExpressionSyntax? baseExpression = attributes.Expression("base", required: true);
-        attributes.RejectUnknown("name", "baseState", "base");
+        ExpressionSyntax? styleExpression = attributes.Expression("style", required: false);
+        attributes.RejectUnknown("name", "baseState", "base", "style");
         var ordinaryExpressions = new List<(string Name, ExpressionSyntax Expression)>();
+        if (styleExpression is not null)
+        {
+            ordinaryExpressions.Add(("__cope_profile_style", styleExpression));
+        }
         if (baseExpression is not null)
         {
             ordinaryExpressions.Add(("__cope_profile_base", baseExpression));
@@ -269,6 +274,24 @@ public static class ProfileTsxCompiler
             templateLibrary?.SourceText,
             templateLibrary?.SourcePath);
         diagnostics.AddRange(evaluation.Diagnostics);
+
+        ProfileStyle style = ProfileStyle.Default;
+        if (styleExpression is not null
+            && evaluation.Values.TryGetValue("__cope_profile_style", out StaticValue? styleValue))
+        {
+            if (styleValue is StaticRecordValue record && record.Type.Name == "ProfileStyle")
+            {
+                style = new ProfileStyle(Text(record, "fill"));
+                if (!style.IsValid)
+                {
+                    diagnostics.Add(Diagnostic("COPE-PROFILE-TSX-0051", "ProfileStyle.fill requires black, white, or #RRGGBB.", styleExpression, sourcePath));
+                }
+            }
+            else
+            {
+                diagnostics.Add(Diagnostic("COPE-PROFILE-TSX-0050", "Profile style must be a typed ProfileStyle record.", styleExpression, sourcePath));
+            }
+        }
 
         ProfileShapeSpec? baseShape = null;
         if (baseExpression is not null
@@ -323,6 +346,14 @@ public static class ProfileTsxCompiler
             yieldState,
             Span(root, sourcePath));
         ProfileCompilationResult result = ProfileCompiler.Compile(definition);
+        if (result.Success && styleExpression is not null)
+        {
+            result = result with
+            {
+                Style = style,
+                Svg = ProfileSvgExporter.ExportLayers([new ProfileSvgLayer(name, result.Shape!, style)], padding: 0)
+            };
+        }
         return result.Diagnostics.Count == 0
             ? result
             : result with { Diagnostics = diagnostics.Concat(result.Diagnostics).ToArray() };
@@ -653,7 +684,7 @@ public static class ProfileTsxCompiler
             if (!source.Contains("from \"./Profile\"", StringComparison.Ordinal)
                 && !source.Contains("from './Profile'", StringComparison.Ordinal))
             {
-                builder.AppendLine("import { Add, Circle, EdgeOperationArgs, Ellipse, Hole, HoleArgs, Mirror, Notch, Polygon, ProfileEdge, ProfileOperation, ProfileShape, Rectangle, RegularPolygon, RepeatRadial, RepeatRadialArgs, Rotate, RoundedRectangle, Scale, ShapeOperationArgs, Subtract, Tab, Translate } from \"./Profile\";");
+                builder.AppendLine("import { Add, Circle, EdgeOperationArgs, Ellipse, Hole, HoleArgs, Layer, LayerId, Layers, Mirror, Notch, Polygon, Profile, ProfileEdge, ProfileLayer, ProfileLayerId, ProfileOperation, ProfileShape, ProfileSource, ProfileStyle, Rectangle, RegularPolygon, RepeatRadial, RepeatRadialArgs, Rotate, RoundedRectangle, Scale, ShapeOperationArgs, Subtract, Tab, Translate } from \"./Profile\";");
             }
             builder.AppendLine("const Top: ProfileEdge = ProfileEdge.Top;");
             builder.AppendLine("const Right: ProfileEdge = ProfileEdge.Right;");

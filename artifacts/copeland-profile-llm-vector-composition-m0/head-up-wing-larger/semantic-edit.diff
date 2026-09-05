@@ -1,0 +1,6 @@
+@@ line 33 @@
+-const HeadTilt: number = 0.0;
++const HeadTilt: number = 12.0;
+@@ line 34 @@
+-const WingScale: number = 1.0;
++const WingScale: number = 1.15;

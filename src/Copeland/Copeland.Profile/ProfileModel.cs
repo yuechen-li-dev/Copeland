@@ -157,6 +157,8 @@ public sealed record ProfileCompilationResult(
     string? Svg)
 {
     public bool Success => Definition is not null && Shape is not null && Diagnostics.Count == 0;
+
+    public ProfileStyle Style { get; init; } = ProfileStyle.Default;
 }
 
 internal static class ProfileHash

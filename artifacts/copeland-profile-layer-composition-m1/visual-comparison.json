@@ -1,0 +1,9 @@
+{
+  "renderer": "Google Chrome headless",
+  "viewport": "800x600",
+  "m0Png": "m0-baseline.png",
+  "m1Png": "m1-baseline.png",
+  "m0PngSha256": "526bd39a36364845451cac453fdbec714169f2d18bedf491006e37e4e1b51627",
+  "m1PngSha256": "526bd39a36364845451cac453fdbec714169f2d18bedf491006e37e4e1b51627",
+  "pixelOutputIdentical": true
+}

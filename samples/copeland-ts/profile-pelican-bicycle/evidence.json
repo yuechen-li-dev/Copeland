@@ -1,0 +1,2398 @@
+{
+  "milestone": "COPELAND-PROFILE-LLM-VECTOR-COMPOSITION-M0",
+  "benchmark": "pelican-riding-bicycle",
+  "outcome": "B",
+  "semanticProfileUsed": true,
+  "targetEffort": "10-15-minute-sketch",
+  "rawSvgAuthoredDirectly": false,
+  "tsxCompositionUsed": true,
+  "typedLayoutUsed": true,
+  "layeredConstructionUsed": true,
+  "typedStyleRecordsWithExpressions": true,
+  "rendererChanged": false,
+  "noRuntimeTsx": true,
+  "deterministicRepeatedCompilation": true,
+  "allContoursContinuousAndClosed": true,
+  "sceneHashLaw": "SHA256 of newline-joined layer hashes in paint order; not a Boolean-union contour hash",
+  "variants": [
+    {
+      "variant": "baseline",
+      "beforeSourceHash": "0e4615d97b29d2e78de3695afbd53f8f3378fe3f62b4adbc1aa46f8923cbcf84",
+      "afterSourceHash": "0e4615d97b29d2e78de3695afbd53f8f3378fe3f62b4adbc1aa46f8923cbcf84",
+      "profileHash": "602967c77d8d5adac82632d4570cd1764c196eed7cd58c95753195cee09e8789",
+      "contourHash": "c2a9d3e5acadcbb71fce730eb3f5c390b0935574f02ebe4cf7438c01711ecafb",
+      "svgHash": "9d0cbde4e3dd33876b33c4093b432588bd443244ffcfed98c16f125113455d29",
+      "changedLines": 0,
+      "diff": [],
+      "sourceLineCount": 285,
+      "sourceNumericLiteralCount": 142,
+      "exportedNumericTokenCount": 428,
+      "exportedPathCoordinateCount": 394,
+      "exportedPathCommandCount": 141,
+      "ordinaryHelperCount": 18,
+      "polygonEscapeSites": 8,
+      "polygonNumericLiteralCount": 39,
+      "layerCount": 17,
+      "layerEvidence": [
+        {
+          "name": "RearWheel",
+          "ProfileIrHash": "0f7be8f40b6a133174be895eeed2de9f25364faa766332a76a7f900ab474b97d",
+          "CanonicalContourHash": "1316464bcc6e4f7063da74ccd08b3a1738ac780d1b69bc06f0310f8da043e025",
+          "svgHash": "39e7d1917f30b1cf8bf73b1fd79ea412abf1ec81b8f5e376e4179a0750b8db02",
+          "contours": 2,
+          "segments": 8,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Circle",
+              "ContourHash": "113068515b09bc3365b32dfe8d841844048618c8cd2a42966458184473c81d1d"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Hole",
+              "ContourHash": "1316464bcc6e4f7063da74ccd08b3a1738ac780d1b69bc06f0310f8da043e025"
+            }
+          ]
+        },
+        {
+          "name": "FrontWheel",
+          "ProfileIrHash": "682ee406ada38a45840ac5652d994f62d3ee33107c1364551ce6ddb0bb038401",
+          "CanonicalContourHash": "fea93c860afb1904b4ffe361ed4ad6a5521b54e37195691a4e47420deef26a6b",
+          "svgHash": "cb581f18c9ed9e81515c3ecdd98bf0992e443b14fb3f68a8e14ecb0f2e29a4c2",
+          "contours": 2,
+          "segments": 8,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Circle",
+              "ContourHash": "45f8a35c7d0029376c0682527f2a19152330f7669d96fce9d323797ed50692f0"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Hole",
+              "ContourHash": "fea93c860afb1904b4ffe361ed4ad6a5521b54e37195691a4e47420deef26a6b"
+            }
+          ]
+        },
+        {
+          "name": "RearFrame",
+          "ProfileIrHash": "bfd41dd0e94f654386a1391b29aae311c8ed4a88cb2dc800ac2c6378a29697c5",
+          "CanonicalContourHash": "26789b3bf4aa0c8456eee16bee5990df2f3a56d6b882d4b4de79a9631e387fa1",
+          "svgHash": "ca184f8c51cd83bbb5e4392635736da5e6631c2bb0726fff14a1ee36bf52173f",
+          "contours": 2,
+          "segments": 6,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "43fcf6346eaabc5f91488d4e15fc919fe5c31317a83580668b6146031a939fba"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Subtract",
+              "ContourHash": "26789b3bf4aa0c8456eee16bee5990df2f3a56d6b882d4b4de79a9631e387fa1"
+            }
+          ]
+        },
+        {
+          "name": "FrontFrame",
+          "ProfileIrHash": "95e6471a971655a279e2cb717476da73284718269046fd26d6db166dbfa1da05",
+          "CanonicalContourHash": "5aecd2dfccaef8a4518852beba32cc479a52bd5e2063eeec3186c04ee7e83dd8",
+          "svgHash": "400734e30b5810279d381e40c7e1d3adc8a23030e0ae6b8548bea57c07929bac",
+          "contours": 2,
+          "segments": 6,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "fd2f05636cfa2749fa593405e1ac20ac68e799dd9c3caa3039f14a283559eb4f"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Subtract",
+              "ContourHash": "5aecd2dfccaef8a4518852beba32cc479a52bd5e2063eeec3186c04ee7e83dd8"
+            }
+          ]
+        },
+        {
+          "name": "Fork",
+          "ProfileIrHash": "04707a042fc070f2685a0922b72a8c489f2d1c3a78ed69beee521a85ec6f0a86",
+          "CanonicalContourHash": "aa14cd80eea9a7586d0baa5a19eac9219f940968cd31d950b0b14a1b9d162f1e",
+          "svgHash": "b68c70e6782c187d546bada5f73ea5c4676ed8bfb01823d2f3a4083808f30c98",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "aa14cd80eea9a7586d0baa5a19eac9219f940968cd31d950b0b14a1b9d162f1e"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "aa14cd80eea9a7586d0baa5a19eac9219f940968cd31d950b0b14a1b9d162f1e"
+            }
+          ]
+        },
+        {
+          "name": "Seat",
+          "ProfileIrHash": "96ba83827ca7832a78907990c0f110d68614199764781ab88dc7792deffaa550",
+          "CanonicalContourHash": "de8f418507efda9801d0ca230a67c581d2e2beaa35b964fd4ae8845455670633",
+          "svgHash": "168252e52a41ca635c3bfa379008b41dde0e4d5f780a1c264a6a4a699733bd94",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "de8f418507efda9801d0ca230a67c581d2e2beaa35b964fd4ae8845455670633"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "de8f418507efda9801d0ca230a67c581d2e2beaa35b964fd4ae8845455670633"
+            }
+          ]
+        },
+        {
+          "name": "Handlebar",
+          "ProfileIrHash": "f2ecda67815f4bd950a2b61c57d1bafa497b9c19233425eeba77a1c477ad349e",
+          "CanonicalContourHash": "083b27c0cbb113f21366663fec796736a01c4eeb1df5965a35496dd66c02db8b",
+          "svgHash": "8cfb6b808647f91d7574fce23f6ae5530bba7bcea49dce9e4adcf030257a764b",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "083b27c0cbb113f21366663fec796736a01c4eeb1df5965a35496dd66c02db8b"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "083b27c0cbb113f21366663fec796736a01c4eeb1df5965a35496dd66c02db8b"
+            }
+          ]
+        },
+        {
+          "name": "Crank",
+          "ProfileIrHash": "105299c685d69e1b3b5bd744733268df39e0214ebd648a3b1d706f54c98c50c0",
+          "CanonicalContourHash": "c496060c8e58440587f07d5a34aa09635d6f3db39cd5b96e151fe28a3fd0a3c3",
+          "svgHash": "f7ec0985ef2b955feb8495413a5050df64a0c0a65a77bdb51fe3bd8a60549cd7",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Circle",
+              "ContourHash": "c496060c8e58440587f07d5a34aa09635d6f3db39cd5b96e151fe28a3fd0a3c3"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "c496060c8e58440587f07d5a34aa09635d6f3db39cd5b96e151fe28a3fd0a3c3"
+            }
+          ]
+        },
+        {
+          "name": "CrankArm",
+          "ProfileIrHash": "39bd18c65c4782c8c9ad4c87778ab6d29408d1680160cb100b1dbdf605233074",
+          "CanonicalContourHash": "06281fe185763f2d8db1c0a79a130c2330c2ddebf9bfa82e398b5b2f3eb328c3",
+          "svgHash": "68e49c88aead6dd2983efa49328b43afa025cba93f6b0748adc48681a6849600",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "06281fe185763f2d8db1c0a79a130c2330c2ddebf9bfa82e398b5b2f3eb328c3"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "06281fe185763f2d8db1c0a79a130c2330c2ddebf9bfa82e398b5b2f3eb328c3"
+            }
+          ]
+        },
+        {
+          "name": "UpperLeg",
+          "ProfileIrHash": "41d1d5fbb7f90e1f5d518740fc43af11aa1824da1f74d8731ea1b949bab5959c",
+          "CanonicalContourHash": "27c499798203320da8d95ef5059be4723d0ef94d8ad4bfe570445c592fd0ff80",
+          "svgHash": "0968e7369dc272cfee9d71f9cf776a4fd72b5c5759dbda0a92593e9f62f343c9",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#e6a52e",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "27c499798203320da8d95ef5059be4723d0ef94d8ad4bfe570445c592fd0ff80"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "27c499798203320da8d95ef5059be4723d0ef94d8ad4bfe570445c592fd0ff80"
+            }
+          ]
+        },
+        {
+          "name": "LowerLeg",
+          "ProfileIrHash": "f4189a32212e2c1bfa743b519a0b2b360dc0c1323b3d4b348d2b1e0e14fd6f2b",
+          "CanonicalContourHash": "faf4fe2a3c9a4e8be6155c6be787c3eec3fd8f505be7672bc3cd7831954e52e6",
+          "svgHash": "8a56cf63d56ff7c306ed60eb70c5d85a67cc576a74d3bd1247e95ad59f83df64",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#e6a52e",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "faf4fe2a3c9a4e8be6155c6be787c3eec3fd8f505be7672bc3cd7831954e52e6"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "faf4fe2a3c9a4e8be6155c6be787c3eec3fd8f505be7672bc3cd7831954e52e6"
+            }
+          ]
+        },
+        {
+          "name": "WebbedFoot",
+          "ProfileIrHash": "124e0afe5fa909e28d888ae73f3d832a0dc36819dc50ac653ecfb30b0ad88951",
+          "CanonicalContourHash": "8950d49c942c5911325ad21abd135a5d43db5dd80a9e78d483f5f38a619bba8a",
+          "svgHash": "464cc058bfb1f8fc5d8cf698d5014a4befbdc84e87522a0c2feb3643ca8a48d8",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#e6a52e",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "8950d49c942c5911325ad21abd135a5d43db5dd80a9e78d483f5f38a619bba8a"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "8950d49c942c5911325ad21abd135a5d43db5dd80a9e78d483f5f38a619bba8a"
+            }
+          ]
+        },
+        {
+          "name": "Tail",
+          "ProfileIrHash": "fe77ed1c6330a7644abfa63c53352c9faec0302e85756f7298e7e566acb87bf3",
+          "CanonicalContourHash": "c07565f6f3eef63e3ccb68b4891323f585cbee8564ea739ac2bc21ec63c62cad",
+          "svgHash": "433b1a58c2b277889ca1d1c3f7fd06de352c2b88f9df30ed1dce6efb4d4b04a1",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "c07565f6f3eef63e3ccb68b4891323f585cbee8564ea739ac2bc21ec63c62cad"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "c07565f6f3eef63e3ccb68b4891323f585cbee8564ea739ac2bc21ec63c62cad"
+            }
+          ]
+        },
+        {
+          "name": "Neck",
+          "ProfileIrHash": "db9ca11593ded2c3839808ad704f41826aa9b15b4ae18b08be02b3d280425e53",
+          "CanonicalContourHash": "9e3b5a097a3674ef33e10915db99eb7fd2a50367c4d21944096d0b1133645568",
+          "svgHash": "6474e45083d5a8d5d4d106b30104d64c6c57d83a7c7ea6306f410e37eeac1c94",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Ellipse",
+              "ContourHash": "5e4803d50549d99169f1287ccaf1832d088859c3c16e09afba727b92dbe23f47"
+            },
+            {
+              "Name": "Leaning",
+              "OperationKind": "Rotate",
+              "ContourHash": "ce827bedda4363ac30c2460479065d13f1367a1ef2efc485ede5fa179722067a"
+            },
+            {
+              "Name": "Placed",
+              "OperationKind": "Translate",
+              "ContourHash": "9e3b5a097a3674ef33e10915db99eb7fd2a50367c4d21944096d0b1133645568"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "9e3b5a097a3674ef33e10915db99eb7fd2a50367c4d21944096d0b1133645568"
+            }
+          ]
+        },
+        {
+          "name": "BodyAndWing",
+          "ProfileIrHash": "32c16000095413cc399ffa98d99c7df1d8f20926379bb4e2580a81657dfc21de",
+          "CanonicalContourHash": "b7c940c9fb70414a40a6493e6a3171f47f51b34e99ea47128b62af53a2903cf7",
+          "svgHash": "9047e2a10a60f36640fc3b83ca4ea690c8f6478faa721c4d6dc30abfd611a789",
+          "contours": 2,
+          "segments": 8,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Ellipse",
+              "ContourHash": "dc54cdbe675a8954cdec278c97da6d4082311411f23d986cd943be752d113c8d"
+            },
+            {
+              "Name": "WingCut",
+              "OperationKind": "Subtract",
+              "ContourHash": "0a522c1f157d0d610e4448b019780e48c1ed2a1c98fe96b2f59220da535a0163"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "b7c940c9fb70414a40a6493e6a3171f47f51b34e99ea47128b62af53a2903cf7"
+            }
+          ]
+        },
+        {
+          "name": "Beak",
+          "ProfileIrHash": "3ffb0a3abef7b1200dcf940ca8415b46efcc05439e02b45ac615d20528572dfc",
+          "CanonicalContourHash": "f13b57df9ecf3547a83601830372ea005336292cc810ed6625d6e178a488079d",
+          "svgHash": "b21c561af1ee5731928b1789c771ed0f7e484b8f8c8215111bde30abf6ea0dbb",
+          "contours": 2,
+          "segments": 9,
+          "style": {
+            "Fill": "#e6a52e",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "7b5d44fc727b25a57bd3346e68342b175b346cef09250b7db0ab4e94acfb78f7"
+            },
+            {
+              "Name": "Seamed",
+              "OperationKind": "Subtract",
+              "ContourHash": "2150d31ed64b1ef41a357f2467cf0bfd2683a4a9373d67dfb8581ba2c4206f33"
+            },
+            {
+              "Name": "Tilted",
+              "OperationKind": "Rotate",
+              "ContourHash": "7d27f7e59e14a2e40475a53e608c36ed51dde2078d4fe49a37ace208c7ebeace"
+            },
+            {
+              "Name": "Placed",
+              "OperationKind": "Translate",
+              "ContourHash": "f13b57df9ecf3547a83601830372ea005336292cc810ed6625d6e178a488079d"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "f13b57df9ecf3547a83601830372ea005336292cc810ed6625d6e178a488079d"
+            }
+          ]
+        },
+        {
+          "name": "HeadAndEye",
+          "ProfileIrHash": "c4134d312b3d8d819f61f792d1b48a1c8712b2febebf6a71e0de93921b24ccc8",
+          "CanonicalContourHash": "c34f2e517d91fc895c8bf81577252218fc41af5ca25cc1780859d3c87cd46826",
+          "svgHash": "5d83a85f86ac8205edc4278acda229fe686a2ad31bb434dd6453ee19d1580ddf",
+          "contours": 2,
+          "segments": 8,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Circle",
+              "ContourHash": "e5a79f7fe56aa778f92ee3f5aff3e5236e9ce296ef46932f7ea2ef2490f31572"
+            },
+            {
+              "Name": "EyeCut",
+              "OperationKind": "Hole",
+              "ContourHash": "1c5f8686f3a5c9ad015f1c15dd839e183462092a6cf132b8f6feca0fdb5fbed3"
+            },
+            {
+              "Name": "Tilted",
+              "OperationKind": "Rotate",
+              "ContourHash": "1eba0591b813f9959083863c53abe4cf484ae656869b624981093a694a67d012"
+            },
+            {
+              "Name": "Placed",
+              "OperationKind": "Translate",
+              "ContourHash": "c34f2e517d91fc895c8bf81577252218fc41af5ca25cc1780859d3c87cd46826"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "c34f2e517d91fc895c8bf81577252218fc41af5ca25cc1780859d3c87cd46826"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "variant": "beak-plus-20-percent",
+      "beforeSourceHash": "0e4615d97b29d2e78de3695afbd53f8f3378fe3f62b4adbc1aa46f8923cbcf84",
+      "afterSourceHash": "6d7b3786f71459b85ba5c6761dca0ab22d068926ecb6711cb0c37e3b2943d04a",
+      "profileHash": "33ec8fdacddea1d925b145b6b4f741f8565551d7d211fd383927b7f4205b40aa",
+      "contourHash": "8b356d573db4f2d16fbae4133a94da60b90e0dd622d97ebc3e012db648700b56",
+      "svgHash": "6a2b413f68665c796c6bffec413b2c40aa1e076b87cca3bc17f919ec2a3c3c16",
+      "changedLines": 1,
+      "diff": [
+        "@@ line 31 @@\n-const BeakLength: number = 98.0;\n\u002Bconst BeakLength: number = 117.6;"
+      ],
+      "sourceLineCount": 285,
+      "sourceNumericLiteralCount": 142,
+      "exportedNumericTokenCount": 428,
+      "exportedPathCoordinateCount": 394,
+      "exportedPathCommandCount": 141,
+      "ordinaryHelperCount": 18,
+      "polygonEscapeSites": 8,
+      "polygonNumericLiteralCount": 39,
+      "layerCount": 17,
+      "layerEvidence": [
+        {
+          "name": "RearWheel",
+          "ProfileIrHash": "0f7be8f40b6a133174be895eeed2de9f25364faa766332a76a7f900ab474b97d",
+          "CanonicalContourHash": "1316464bcc6e4f7063da74ccd08b3a1738ac780d1b69bc06f0310f8da043e025",
+          "svgHash": "39e7d1917f30b1cf8bf73b1fd79ea412abf1ec81b8f5e376e4179a0750b8db02",
+          "contours": 2,
+          "segments": 8,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Circle",
+              "ContourHash": "113068515b09bc3365b32dfe8d841844048618c8cd2a42966458184473c81d1d"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Hole",
+              "ContourHash": "1316464bcc6e4f7063da74ccd08b3a1738ac780d1b69bc06f0310f8da043e025"
+            }
+          ]
+        },
+        {
+          "name": "FrontWheel",
+          "ProfileIrHash": "682ee406ada38a45840ac5652d994f62d3ee33107c1364551ce6ddb0bb038401",
+          "CanonicalContourHash": "fea93c860afb1904b4ffe361ed4ad6a5521b54e37195691a4e47420deef26a6b",
+          "svgHash": "cb581f18c9ed9e81515c3ecdd98bf0992e443b14fb3f68a8e14ecb0f2e29a4c2",
+          "contours": 2,
+          "segments": 8,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Circle",
+              "ContourHash": "45f8a35c7d0029376c0682527f2a19152330f7669d96fce9d323797ed50692f0"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Hole",
+              "ContourHash": "fea93c860afb1904b4ffe361ed4ad6a5521b54e37195691a4e47420deef26a6b"
+            }
+          ]
+        },
+        {
+          "name": "RearFrame",
+          "ProfileIrHash": "bfd41dd0e94f654386a1391b29aae311c8ed4a88cb2dc800ac2c6378a29697c5",
+          "CanonicalContourHash": "26789b3bf4aa0c8456eee16bee5990df2f3a56d6b882d4b4de79a9631e387fa1",
+          "svgHash": "ca184f8c51cd83bbb5e4392635736da5e6631c2bb0726fff14a1ee36bf52173f",
+          "contours": 2,
+          "segments": 6,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "43fcf6346eaabc5f91488d4e15fc919fe5c31317a83580668b6146031a939fba"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Subtract",
+              "ContourHash": "26789b3bf4aa0c8456eee16bee5990df2f3a56d6b882d4b4de79a9631e387fa1"
+            }
+          ]
+        },
+        {
+          "name": "FrontFrame",
+          "ProfileIrHash": "95e6471a971655a279e2cb717476da73284718269046fd26d6db166dbfa1da05",
+          "CanonicalContourHash": "5aecd2dfccaef8a4518852beba32cc479a52bd5e2063eeec3186c04ee7e83dd8",
+          "svgHash": "400734e30b5810279d381e40c7e1d3adc8a23030e0ae6b8548bea57c07929bac",
+          "contours": 2,
+          "segments": 6,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "fd2f05636cfa2749fa593405e1ac20ac68e799dd9c3caa3039f14a283559eb4f"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Subtract",
+              "ContourHash": "5aecd2dfccaef8a4518852beba32cc479a52bd5e2063eeec3186c04ee7e83dd8"
+            }
+          ]
+        },
+        {
+          "name": "Fork",
+          "ProfileIrHash": "04707a042fc070f2685a0922b72a8c489f2d1c3a78ed69beee521a85ec6f0a86",
+          "CanonicalContourHash": "aa14cd80eea9a7586d0baa5a19eac9219f940968cd31d950b0b14a1b9d162f1e",
+          "svgHash": "b68c70e6782c187d546bada5f73ea5c4676ed8bfb01823d2f3a4083808f30c98",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "aa14cd80eea9a7586d0baa5a19eac9219f940968cd31d950b0b14a1b9d162f1e"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "aa14cd80eea9a7586d0baa5a19eac9219f940968cd31d950b0b14a1b9d162f1e"
+            }
+          ]
+        },
+        {
+          "name": "Seat",
+          "ProfileIrHash": "96ba83827ca7832a78907990c0f110d68614199764781ab88dc7792deffaa550",
+          "CanonicalContourHash": "de8f418507efda9801d0ca230a67c581d2e2beaa35b964fd4ae8845455670633",
+          "svgHash": "168252e52a41ca635c3bfa379008b41dde0e4d5f780a1c264a6a4a699733bd94",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "de8f418507efda9801d0ca230a67c581d2e2beaa35b964fd4ae8845455670633"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "de8f418507efda9801d0ca230a67c581d2e2beaa35b964fd4ae8845455670633"
+            }
+          ]
+        },
+        {
+          "name": "Handlebar",
+          "ProfileIrHash": "f2ecda67815f4bd950a2b61c57d1bafa497b9c19233425eeba77a1c477ad349e",
+          "CanonicalContourHash": "083b27c0cbb113f21366663fec796736a01c4eeb1df5965a35496dd66c02db8b",
+          "svgHash": "8cfb6b808647f91d7574fce23f6ae5530bba7bcea49dce9e4adcf030257a764b",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "083b27c0cbb113f21366663fec796736a01c4eeb1df5965a35496dd66c02db8b"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "083b27c0cbb113f21366663fec796736a01c4eeb1df5965a35496dd66c02db8b"
+            }
+          ]
+        },
+        {
+          "name": "Crank",
+          "ProfileIrHash": "105299c685d69e1b3b5bd744733268df39e0214ebd648a3b1d706f54c98c50c0",
+          "CanonicalContourHash": "c496060c8e58440587f07d5a34aa09635d6f3db39cd5b96e151fe28a3fd0a3c3",
+          "svgHash": "f7ec0985ef2b955feb8495413a5050df64a0c0a65a77bdb51fe3bd8a60549cd7",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Circle",
+              "ContourHash": "c496060c8e58440587f07d5a34aa09635d6f3db39cd5b96e151fe28a3fd0a3c3"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "c496060c8e58440587f07d5a34aa09635d6f3db39cd5b96e151fe28a3fd0a3c3"
+            }
+          ]
+        },
+        {
+          "name": "CrankArm",
+          "ProfileIrHash": "39bd18c65c4782c8c9ad4c87778ab6d29408d1680160cb100b1dbdf605233074",
+          "CanonicalContourHash": "06281fe185763f2d8db1c0a79a130c2330c2ddebf9bfa82e398b5b2f3eb328c3",
+          "svgHash": "68e49c88aead6dd2983efa49328b43afa025cba93f6b0748adc48681a6849600",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "06281fe185763f2d8db1c0a79a130c2330c2ddebf9bfa82e398b5b2f3eb328c3"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "06281fe185763f2d8db1c0a79a130c2330c2ddebf9bfa82e398b5b2f3eb328c3"
+            }
+          ]
+        },
+        {
+          "name": "UpperLeg",
+          "ProfileIrHash": "41d1d5fbb7f90e1f5d518740fc43af11aa1824da1f74d8731ea1b949bab5959c",
+          "CanonicalContourHash": "27c499798203320da8d95ef5059be4723d0ef94d8ad4bfe570445c592fd0ff80",
+          "svgHash": "0968e7369dc272cfee9d71f9cf776a4fd72b5c5759dbda0a92593e9f62f343c9",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#e6a52e",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "27c499798203320da8d95ef5059be4723d0ef94d8ad4bfe570445c592fd0ff80"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "27c499798203320da8d95ef5059be4723d0ef94d8ad4bfe570445c592fd0ff80"
+            }
+          ]
+        },
+        {
+          "name": "LowerLeg",
+          "ProfileIrHash": "f4189a32212e2c1bfa743b519a0b2b360dc0c1323b3d4b348d2b1e0e14fd6f2b",
+          "CanonicalContourHash": "faf4fe2a3c9a4e8be6155c6be787c3eec3fd8f505be7672bc3cd7831954e52e6",
+          "svgHash": "8a56cf63d56ff7c306ed60eb70c5d85a67cc576a74d3bd1247e95ad59f83df64",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#e6a52e",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "faf4fe2a3c9a4e8be6155c6be787c3eec3fd8f505be7672bc3cd7831954e52e6"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "faf4fe2a3c9a4e8be6155c6be787c3eec3fd8f505be7672bc3cd7831954e52e6"
+            }
+          ]
+        },
+        {
+          "name": "WebbedFoot",
+          "ProfileIrHash": "124e0afe5fa909e28d888ae73f3d832a0dc36819dc50ac653ecfb30b0ad88951",
+          "CanonicalContourHash": "8950d49c942c5911325ad21abd135a5d43db5dd80a9e78d483f5f38a619bba8a",
+          "svgHash": "464cc058bfb1f8fc5d8cf698d5014a4befbdc84e87522a0c2feb3643ca8a48d8",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#e6a52e",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "8950d49c942c5911325ad21abd135a5d43db5dd80a9e78d483f5f38a619bba8a"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "8950d49c942c5911325ad21abd135a5d43db5dd80a9e78d483f5f38a619bba8a"
+            }
+          ]
+        },
+        {
+          "name": "Tail",
+          "ProfileIrHash": "fe77ed1c6330a7644abfa63c53352c9faec0302e85756f7298e7e566acb87bf3",
+          "CanonicalContourHash": "c07565f6f3eef63e3ccb68b4891323f585cbee8564ea739ac2bc21ec63c62cad",
+          "svgHash": "433b1a58c2b277889ca1d1c3f7fd06de352c2b88f9df30ed1dce6efb4d4b04a1",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "c07565f6f3eef63e3ccb68b4891323f585cbee8564ea739ac2bc21ec63c62cad"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "c07565f6f3eef63e3ccb68b4891323f585cbee8564ea739ac2bc21ec63c62cad"
+            }
+          ]
+        },
+        {
+          "name": "Neck",
+          "ProfileIrHash": "db9ca11593ded2c3839808ad704f41826aa9b15b4ae18b08be02b3d280425e53",
+          "CanonicalContourHash": "9e3b5a097a3674ef33e10915db99eb7fd2a50367c4d21944096d0b1133645568",
+          "svgHash": "6474e45083d5a8d5d4d106b30104d64c6c57d83a7c7ea6306f410e37eeac1c94",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Ellipse",
+              "ContourHash": "5e4803d50549d99169f1287ccaf1832d088859c3c16e09afba727b92dbe23f47"
+            },
+            {
+              "Name": "Leaning",
+              "OperationKind": "Rotate",
+              "ContourHash": "ce827bedda4363ac30c2460479065d13f1367a1ef2efc485ede5fa179722067a"
+            },
+            {
+              "Name": "Placed",
+              "OperationKind": "Translate",
+              "ContourHash": "9e3b5a097a3674ef33e10915db99eb7fd2a50367c4d21944096d0b1133645568"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "9e3b5a097a3674ef33e10915db99eb7fd2a50367c4d21944096d0b1133645568"
+            }
+          ]
+        },
+        {
+          "name": "BodyAndWing",
+          "ProfileIrHash": "32c16000095413cc399ffa98d99c7df1d8f20926379bb4e2580a81657dfc21de",
+          "CanonicalContourHash": "b7c940c9fb70414a40a6493e6a3171f47f51b34e99ea47128b62af53a2903cf7",
+          "svgHash": "9047e2a10a60f36640fc3b83ca4ea690c8f6478faa721c4d6dc30abfd611a789",
+          "contours": 2,
+          "segments": 8,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Ellipse",
+              "ContourHash": "dc54cdbe675a8954cdec278c97da6d4082311411f23d986cd943be752d113c8d"
+            },
+            {
+              "Name": "WingCut",
+              "OperationKind": "Subtract",
+              "ContourHash": "0a522c1f157d0d610e4448b019780e48c1ed2a1c98fe96b2f59220da535a0163"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "b7c940c9fb70414a40a6493e6a3171f47f51b34e99ea47128b62af53a2903cf7"
+            }
+          ]
+        },
+        {
+          "name": "Beak",
+          "ProfileIrHash": "49a71199d435b0e0a2bcd713f79395e1a64c49513e2c34c5ea98b022133c59a5",
+          "CanonicalContourHash": "4cd4b30ccf8d4fc67c64541d92e93ad7d60cc66da50a2be719abdd32ef246e57",
+          "svgHash": "820132ba153a433a8769f7bb7abafc5cf874932b02674af0485e18270d8ebe00",
+          "contours": 2,
+          "segments": 9,
+          "style": {
+            "Fill": "#e6a52e",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "f9fde2b73a83d5f7b415172d49a9421b217781261ab6a57f30c76f34d02f22f9"
+            },
+            {
+              "Name": "Seamed",
+              "OperationKind": "Subtract",
+              "ContourHash": "d77873a50013c313cf3a2a521df22844603f25fa4f9b2e67e6622ef54602596b"
+            },
+            {
+              "Name": "Tilted",
+              "OperationKind": "Rotate",
+              "ContourHash": "a576d6c55664d040ceb9fc8b8f1ea9a188e9b03e150180f2d4d41b1eef09c0f8"
+            },
+            {
+              "Name": "Placed",
+              "OperationKind": "Translate",
+              "ContourHash": "4cd4b30ccf8d4fc67c64541d92e93ad7d60cc66da50a2be719abdd32ef246e57"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "4cd4b30ccf8d4fc67c64541d92e93ad7d60cc66da50a2be719abdd32ef246e57"
+            }
+          ]
+        },
+        {
+          "name": "HeadAndEye",
+          "ProfileIrHash": "c4134d312b3d8d819f61f792d1b48a1c8712b2febebf6a71e0de93921b24ccc8",
+          "CanonicalContourHash": "c34f2e517d91fc895c8bf81577252218fc41af5ca25cc1780859d3c87cd46826",
+          "svgHash": "5d83a85f86ac8205edc4278acda229fe686a2ad31bb434dd6453ee19d1580ddf",
+          "contours": 2,
+          "segments": 8,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Circle",
+              "ContourHash": "e5a79f7fe56aa778f92ee3f5aff3e5236e9ce296ef46932f7ea2ef2490f31572"
+            },
+            {
+              "Name": "EyeCut",
+              "OperationKind": "Hole",
+              "ContourHash": "1c5f8686f3a5c9ad015f1c15dd839e183462092a6cf132b8f6feca0fdb5fbed3"
+            },
+            {
+              "Name": "Tilted",
+              "OperationKind": "Rotate",
+              "ContourHash": "1eba0591b813f9959083863c53abe4cf484ae656869b624981093a694a67d012"
+            },
+            {
+              "Name": "Placed",
+              "OperationKind": "Translate",
+              "ContourHash": "c34f2e517d91fc895c8bf81577252218fc41af5ca25cc1780859d3c87cd46826"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "c34f2e517d91fc895c8bf81577252218fc41af5ca25cc1780859d3c87cd46826"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "variant": "wheels-plus-15-percent",
+      "beforeSourceHash": "0e4615d97b29d2e78de3695afbd53f8f3378fe3f62b4adbc1aa46f8923cbcf84",
+      "afterSourceHash": "09f29ba81b2c4c389b16c51a190688fe17be309eeac7ff9a9483a77badada502",
+      "profileHash": "6f57f9aea5f6369e316c3802109573c5d2ac13262ad910daad26dde11c373fd8",
+      "contourHash": "17f85d5aca3d6651e5e1d147f1488b882adf4ae2f0ce3d36411aeb717adee739",
+      "svgHash": "d23f419d2c6a8bd1d2cce04c0d620450ec63ac78b2fffa5ec9d054645c4863c1",
+      "changedLines": 1,
+      "diff": [
+        "@@ line 29 @@\n-const WheelRadius: number = 52.0;\n\u002Bconst WheelRadius: number = 59.8;"
+      ],
+      "sourceLineCount": 285,
+      "sourceNumericLiteralCount": 142,
+      "exportedNumericTokenCount": 428,
+      "exportedPathCoordinateCount": 394,
+      "exportedPathCommandCount": 141,
+      "ordinaryHelperCount": 18,
+      "polygonEscapeSites": 8,
+      "polygonNumericLiteralCount": 39,
+      "layerCount": 17,
+      "layerEvidence": [
+        {
+          "name": "RearWheel",
+          "ProfileIrHash": "4bb16f04a789e3c4ca75a827e5bd9ca9153ec8dbd47f4353496f31d33eccd4d5",
+          "CanonicalContourHash": "b5b687d8e7751963c6d33bb8313a88e6e7f2a83ed3e3c5c0f0c15240bc157eb1",
+          "svgHash": "281e4be7c67c5db687d578accdc98db7cf068dee79fda2bdabf3cf9d34ff1372",
+          "contours": 2,
+          "segments": 8,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Circle",
+              "ContourHash": "bf0f76067cb9b948fbe9b05055ef2e31eafa106048469ece9dcd5398c89a301a"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Hole",
+              "ContourHash": "b5b687d8e7751963c6d33bb8313a88e6e7f2a83ed3e3c5c0f0c15240bc157eb1"
+            }
+          ]
+        },
+        {
+          "name": "FrontWheel",
+          "ProfileIrHash": "dd832d24c0ed41c5e2c8203989a2407b68397fe3303410fa5ef0e1653dfba7d8",
+          "CanonicalContourHash": "7cd22b781def12b01ecc27e906339d40e910d01b88ef07cb4904c71756d11862",
+          "svgHash": "1f2e2eab15277c75ff61d78c081ad78b5854635e0e7712e805fec539ffe877ee",
+          "contours": 2,
+          "segments": 8,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Circle",
+              "ContourHash": "bea582d2c6be10ea7395933576eb0ad7b5fca86a7c11d76b4e740909c7392c45"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Hole",
+              "ContourHash": "7cd22b781def12b01ecc27e906339d40e910d01b88ef07cb4904c71756d11862"
+            }
+          ]
+        },
+        {
+          "name": "RearFrame",
+          "ProfileIrHash": "674bc677eac3c1fefe16c49e3e898ecc94d745b65840b1d0ae8da8b717a5bc74",
+          "CanonicalContourHash": "29ed4c2f43151281276e6f3f5707ff36aaa6e651203fd1c3c26530df224c6890",
+          "svgHash": "2c75b9f2d83209b8e159fc4b5a6f3d72ef65931b0c60f2f9a2bd1a551d6d2df3",
+          "contours": 2,
+          "segments": 6,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "d5230cec22b1d3cbb61ea7842614dc66c3ff0fdc8576f065cfce68c0ed71496b"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Subtract",
+              "ContourHash": "29ed4c2f43151281276e6f3f5707ff36aaa6e651203fd1c3c26530df224c6890"
+            }
+          ]
+        },
+        {
+          "name": "FrontFrame",
+          "ProfileIrHash": "f5d695c5faa818f3c7d04b117ca0f58a54a55b7b674029b51610a88508a188ca",
+          "CanonicalContourHash": "2ab99ab6683ae7419f81d64415fa753da06b1512551c56c64e6f1a19d5eeeaf6",
+          "svgHash": "3c0958ea76e9d4722b8788454ad4e569fae6b6517ce8479a0024f283434beede",
+          "contours": 2,
+          "segments": 6,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "157509358714cb34647a617f59def44990107aa77515cc3b6459c3f161bdb989"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Subtract",
+              "ContourHash": "2ab99ab6683ae7419f81d64415fa753da06b1512551c56c64e6f1a19d5eeeaf6"
+            }
+          ]
+        },
+        {
+          "name": "Fork",
+          "ProfileIrHash": "63ea11b3a8a164a0aa87d05a0304dc745c2011b23dd51177c2b6665f5633718f",
+          "CanonicalContourHash": "b2ecf497ce60b588af5334e5ca3383d39ff859ffc098706eb45d1c24871a8792",
+          "svgHash": "e0643ce4b3b47be217c6680cac3448325c813ebcdfff04d833c4513c3a7ea849",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "b2ecf497ce60b588af5334e5ca3383d39ff859ffc098706eb45d1c24871a8792"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "b2ecf497ce60b588af5334e5ca3383d39ff859ffc098706eb45d1c24871a8792"
+            }
+          ]
+        },
+        {
+          "name": "Seat",
+          "ProfileIrHash": "bb96297596563530d5352a2ff7ff9db66a3a678eed76c434d3d4d764da068da8",
+          "CanonicalContourHash": "2b0ac5ae2285281dadc743e0b6ff1ee994887e1865108a68ee2cc99caa3b599c",
+          "svgHash": "077c5fcacceb7382e8c0b33517280f711894fb42b01906bcd421844a79e370e9",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "2b0ac5ae2285281dadc743e0b6ff1ee994887e1865108a68ee2cc99caa3b599c"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "2b0ac5ae2285281dadc743e0b6ff1ee994887e1865108a68ee2cc99caa3b599c"
+            }
+          ]
+        },
+        {
+          "name": "Handlebar",
+          "ProfileIrHash": "e6354b352a4afa64b8fa2d9465e8ccb4123e1f8c3d417588d6a9eb56bc5d1013",
+          "CanonicalContourHash": "386393a36beb4641f409ae08b7c7fa168ac92550c3388047bcc513d9c6c8445b",
+          "svgHash": "1bdac22c31bb05eb5b1a1a51b93a657b350e6cfe76435bed4cb2f68f3f1c4928",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "386393a36beb4641f409ae08b7c7fa168ac92550c3388047bcc513d9c6c8445b"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "386393a36beb4641f409ae08b7c7fa168ac92550c3388047bcc513d9c6c8445b"
+            }
+          ]
+        },
+        {
+          "name": "Crank",
+          "ProfileIrHash": "a8093325bd61b9445b5d28d9cc129ab588da43e47023aebde469f888e01a4987",
+          "CanonicalContourHash": "be88a8da2d94e15e00a3df089197c46295432d8230a83bc51394b78c4a9a3ed0",
+          "svgHash": "73f3b096c6035913540731bd14dacbfce8175839ea0e38765be87f01468679cd",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Circle",
+              "ContourHash": "be88a8da2d94e15e00a3df089197c46295432d8230a83bc51394b78c4a9a3ed0"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "be88a8da2d94e15e00a3df089197c46295432d8230a83bc51394b78c4a9a3ed0"
+            }
+          ]
+        },
+        {
+          "name": "CrankArm",
+          "ProfileIrHash": "b926a7337ca63a37dec8788aa2bd65be7a7f44a72302778380d3edc9d864c21f",
+          "CanonicalContourHash": "36cec168ebe06f07a6bb410e90a7f2d16168b283b19a9ba276a303b65eadf412",
+          "svgHash": "30cd10b7a602bb49325ac4425b50e4c01c283d20aa485a2e1edc4478ddc86078",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "36cec168ebe06f07a6bb410e90a7f2d16168b283b19a9ba276a303b65eadf412"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "36cec168ebe06f07a6bb410e90a7f2d16168b283b19a9ba276a303b65eadf412"
+            }
+          ]
+        },
+        {
+          "name": "UpperLeg",
+          "ProfileIrHash": "9b56f760d4ddcb0cc0a40c1095d067133dca6c0b5c6d68df437e6355104124d9",
+          "CanonicalContourHash": "81cde96c3e8a0d0aacb06abfe06c827e6e746a1c7bfdbebb18ca58308273c823",
+          "svgHash": "5db977a85b36de6c76e7370e13235cbeffab5c6be71cb80d97d5deca61863a52",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#e6a52e",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "81cde96c3e8a0d0aacb06abfe06c827e6e746a1c7bfdbebb18ca58308273c823"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "81cde96c3e8a0d0aacb06abfe06c827e6e746a1c7bfdbebb18ca58308273c823"
+            }
+          ]
+        },
+        {
+          "name": "LowerLeg",
+          "ProfileIrHash": "e2c25da7e18341dc934d3f7b4462c656256b7ad05251ef3ff7a3d943f9ff8d4b",
+          "CanonicalContourHash": "5bb75cc570da25f957ef9ea8d7b9a321e2bdd7e6a38d444957379ff03d835312",
+          "svgHash": "5bfca493892842ee9ec7644040b6f19454a01cb2e5867da2db92a9fadf0b87e1",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#e6a52e",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "5bb75cc570da25f957ef9ea8d7b9a321e2bdd7e6a38d444957379ff03d835312"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "5bb75cc570da25f957ef9ea8d7b9a321e2bdd7e6a38d444957379ff03d835312"
+            }
+          ]
+        },
+        {
+          "name": "WebbedFoot",
+          "ProfileIrHash": "22c3cfc3f3ff1d7b94f8565ece873d18903e4e98b1dba9bec81c72178c47a7da",
+          "CanonicalContourHash": "013ea4a6d8cb16bbeb432708e2b4769be5e558f4bc64cbe2e029e12196f21567",
+          "svgHash": "0abc560e52812dcddb8b3edada43db6f2e80516f582be378e325a13c9e03be68",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#e6a52e",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "013ea4a6d8cb16bbeb432708e2b4769be5e558f4bc64cbe2e029e12196f21567"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "013ea4a6d8cb16bbeb432708e2b4769be5e558f4bc64cbe2e029e12196f21567"
+            }
+          ]
+        },
+        {
+          "name": "Tail",
+          "ProfileIrHash": "ede3da43aa2596bee4843710cd41d50da4c75d4cea78a9ef8e57232e19b71f59",
+          "CanonicalContourHash": "f0f532597d7edd96b05bce47332cd37f17da144f8ef9ca0e29c71266c7cd0026",
+          "svgHash": "95258d296c5e3014f250a8fedc06b2424c52da3c2a9f64fdf3df49a071bc9399",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "f0f532597d7edd96b05bce47332cd37f17da144f8ef9ca0e29c71266c7cd0026"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "f0f532597d7edd96b05bce47332cd37f17da144f8ef9ca0e29c71266c7cd0026"
+            }
+          ]
+        },
+        {
+          "name": "Neck",
+          "ProfileIrHash": "6e61dbe9a74dbdb9242c7ac7797c968c4639aa311704f8de87d3fae291affff8",
+          "CanonicalContourHash": "d630a0627f18fe48d84ff6891b6fc42ee2ff7462262840aeeb8b21590576a52e",
+          "svgHash": "63c9c67b62b60207866b42de062f124356f8a5a8f8bb35f7a60c0c2d908a3f9f",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Ellipse",
+              "ContourHash": "5e4803d50549d99169f1287ccaf1832d088859c3c16e09afba727b92dbe23f47"
+            },
+            {
+              "Name": "Leaning",
+              "OperationKind": "Rotate",
+              "ContourHash": "ce827bedda4363ac30c2460479065d13f1367a1ef2efc485ede5fa179722067a"
+            },
+            {
+              "Name": "Placed",
+              "OperationKind": "Translate",
+              "ContourHash": "d630a0627f18fe48d84ff6891b6fc42ee2ff7462262840aeeb8b21590576a52e"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "d630a0627f18fe48d84ff6891b6fc42ee2ff7462262840aeeb8b21590576a52e"
+            }
+          ]
+        },
+        {
+          "name": "BodyAndWing",
+          "ProfileIrHash": "de226992f589e5f83a37157afcc40badfb6bcc0df7572f2edab42127a65f2454",
+          "CanonicalContourHash": "3c575a0d148e3e35ab1baba71926616d097e553e48e1ec0a2ef279e6c399a6b7",
+          "svgHash": "9a540a6bceffb6915136cb2f7402711d6ec6b46a549e751f120000c93add421e",
+          "contours": 2,
+          "segments": 8,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Ellipse",
+              "ContourHash": "5edaf1c01423eafec086a3a3d1be28985c57acde51950a8c7ff9b7ebeb7db6cf"
+            },
+            {
+              "Name": "WingCut",
+              "OperationKind": "Subtract",
+              "ContourHash": "ca581e03431f20c68177494a9869dc158b7cf5500d3e153c6be277af4fdbb780"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "3c575a0d148e3e35ab1baba71926616d097e553e48e1ec0a2ef279e6c399a6b7"
+            }
+          ]
+        },
+        {
+          "name": "Beak",
+          "ProfileIrHash": "07eb63c2b50142d9c34ea03a2e1ab9c793091ac10f04120c249d346b69a22be8",
+          "CanonicalContourHash": "a5ae0fe5e62b22320b79999348e0b3ff7eda7ed5b5ef1286ff8e1f951a19b1f7",
+          "svgHash": "930c7134f225d05baaf95b3dc02a0a71f061e95475e8a774e4e0ef82b211c391",
+          "contours": 2,
+          "segments": 9,
+          "style": {
+            "Fill": "#e6a52e",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "7b5d44fc727b25a57bd3346e68342b175b346cef09250b7db0ab4e94acfb78f7"
+            },
+            {
+              "Name": "Seamed",
+              "OperationKind": "Subtract",
+              "ContourHash": "2150d31ed64b1ef41a357f2467cf0bfd2683a4a9373d67dfb8581ba2c4206f33"
+            },
+            {
+              "Name": "Tilted",
+              "OperationKind": "Rotate",
+              "ContourHash": "7d27f7e59e14a2e40475a53e608c36ed51dde2078d4fe49a37ace208c7ebeace"
+            },
+            {
+              "Name": "Placed",
+              "OperationKind": "Translate",
+              "ContourHash": "a5ae0fe5e62b22320b79999348e0b3ff7eda7ed5b5ef1286ff8e1f951a19b1f7"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "a5ae0fe5e62b22320b79999348e0b3ff7eda7ed5b5ef1286ff8e1f951a19b1f7"
+            }
+          ]
+        },
+        {
+          "name": "HeadAndEye",
+          "ProfileIrHash": "43f022430f87949460849d832d966c17c6ff0559eb43b078b7465a711efeb4a8",
+          "CanonicalContourHash": "92988bffe741085332f6a2981c6d779586ee755321dfbca335633b5b6cc5999a",
+          "svgHash": "a7db3aff1ecf78684f1a2a8bcfb646a9c04e41ae8b23673413e9506563cab4d7",
+          "contours": 2,
+          "segments": 8,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Circle",
+              "ContourHash": "e5a79f7fe56aa778f92ee3f5aff3e5236e9ce296ef46932f7ea2ef2490f31572"
+            },
+            {
+              "Name": "EyeCut",
+              "OperationKind": "Hole",
+              "ContourHash": "1c5f8686f3a5c9ad015f1c15dd839e183462092a6cf132b8f6feca0fdb5fbed3"
+            },
+            {
+              "Name": "Tilted",
+              "OperationKind": "Rotate",
+              "ContourHash": "1eba0591b813f9959083863c53abe4cf484ae656869b624981093a694a67d012"
+            },
+            {
+              "Name": "Placed",
+              "OperationKind": "Translate",
+              "ContourHash": "92988bffe741085332f6a2981c6d779586ee755321dfbca335633b5b6cc5999a"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "92988bffe741085332f6a2981c6d779586ee755321dfbca335633b5b6cc5999a"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "variant": "body-raised",
+      "beforeSourceHash": "0e4615d97b29d2e78de3695afbd53f8f3378fe3f62b4adbc1aa46f8923cbcf84",
+      "afterSourceHash": "478d54377335f3ad3adb3dda51caffb05683b05063d20fd42d093028e4703866",
+      "profileHash": "a6cd03694ab789d2c1c4e62944681120202fc4f18ef9e0623ea79fa1de51f854",
+      "contourHash": "bc4689a1966afb22f16d7d47de06a7bc50003e0faa8384fd94207a7c67461c11",
+      "svgHash": "3ee5e06aab06898d037f3109eb2bd0a3962f1afbc35b774f2214c500994ef3ae",
+      "changedLines": 1,
+      "diff": [
+        "@@ line 32 @@\n-const BodyLift: number = 44.0;\n\u002Bconst BodyLift: number = 52.0;"
+      ],
+      "sourceLineCount": 285,
+      "sourceNumericLiteralCount": 142,
+      "exportedNumericTokenCount": 428,
+      "exportedPathCoordinateCount": 394,
+      "exportedPathCommandCount": 141,
+      "ordinaryHelperCount": 18,
+      "polygonEscapeSites": 8,
+      "polygonNumericLiteralCount": 39,
+      "layerCount": 17,
+      "layerEvidence": [
+        {
+          "name": "RearWheel",
+          "ProfileIrHash": "0f7be8f40b6a133174be895eeed2de9f25364faa766332a76a7f900ab474b97d",
+          "CanonicalContourHash": "1316464bcc6e4f7063da74ccd08b3a1738ac780d1b69bc06f0310f8da043e025",
+          "svgHash": "39e7d1917f30b1cf8bf73b1fd79ea412abf1ec81b8f5e376e4179a0750b8db02",
+          "contours": 2,
+          "segments": 8,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Circle",
+              "ContourHash": "113068515b09bc3365b32dfe8d841844048618c8cd2a42966458184473c81d1d"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Hole",
+              "ContourHash": "1316464bcc6e4f7063da74ccd08b3a1738ac780d1b69bc06f0310f8da043e025"
+            }
+          ]
+        },
+        {
+          "name": "FrontWheel",
+          "ProfileIrHash": "682ee406ada38a45840ac5652d994f62d3ee33107c1364551ce6ddb0bb038401",
+          "CanonicalContourHash": "fea93c860afb1904b4ffe361ed4ad6a5521b54e37195691a4e47420deef26a6b",
+          "svgHash": "cb581f18c9ed9e81515c3ecdd98bf0992e443b14fb3f68a8e14ecb0f2e29a4c2",
+          "contours": 2,
+          "segments": 8,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Circle",
+              "ContourHash": "45f8a35c7d0029376c0682527f2a19152330f7669d96fce9d323797ed50692f0"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Hole",
+              "ContourHash": "fea93c860afb1904b4ffe361ed4ad6a5521b54e37195691a4e47420deef26a6b"
+            }
+          ]
+        },
+        {
+          "name": "RearFrame",
+          "ProfileIrHash": "bfd41dd0e94f654386a1391b29aae311c8ed4a88cb2dc800ac2c6378a29697c5",
+          "CanonicalContourHash": "26789b3bf4aa0c8456eee16bee5990df2f3a56d6b882d4b4de79a9631e387fa1",
+          "svgHash": "ca184f8c51cd83bbb5e4392635736da5e6631c2bb0726fff14a1ee36bf52173f",
+          "contours": 2,
+          "segments": 6,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "43fcf6346eaabc5f91488d4e15fc919fe5c31317a83580668b6146031a939fba"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Subtract",
+              "ContourHash": "26789b3bf4aa0c8456eee16bee5990df2f3a56d6b882d4b4de79a9631e387fa1"
+            }
+          ]
+        },
+        {
+          "name": "FrontFrame",
+          "ProfileIrHash": "95e6471a971655a279e2cb717476da73284718269046fd26d6db166dbfa1da05",
+          "CanonicalContourHash": "5aecd2dfccaef8a4518852beba32cc479a52bd5e2063eeec3186c04ee7e83dd8",
+          "svgHash": "400734e30b5810279d381e40c7e1d3adc8a23030e0ae6b8548bea57c07929bac",
+          "contours": 2,
+          "segments": 6,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "fd2f05636cfa2749fa593405e1ac20ac68e799dd9c3caa3039f14a283559eb4f"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Subtract",
+              "ContourHash": "5aecd2dfccaef8a4518852beba32cc479a52bd5e2063eeec3186c04ee7e83dd8"
+            }
+          ]
+        },
+        {
+          "name": "Fork",
+          "ProfileIrHash": "04707a042fc070f2685a0922b72a8c489f2d1c3a78ed69beee521a85ec6f0a86",
+          "CanonicalContourHash": "aa14cd80eea9a7586d0baa5a19eac9219f940968cd31d950b0b14a1b9d162f1e",
+          "svgHash": "b68c70e6782c187d546bada5f73ea5c4676ed8bfb01823d2f3a4083808f30c98",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "aa14cd80eea9a7586d0baa5a19eac9219f940968cd31d950b0b14a1b9d162f1e"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "aa14cd80eea9a7586d0baa5a19eac9219f940968cd31d950b0b14a1b9d162f1e"
+            }
+          ]
+        },
+        {
+          "name": "Seat",
+          "ProfileIrHash": "96ba83827ca7832a78907990c0f110d68614199764781ab88dc7792deffaa550",
+          "CanonicalContourHash": "de8f418507efda9801d0ca230a67c581d2e2beaa35b964fd4ae8845455670633",
+          "svgHash": "168252e52a41ca635c3bfa379008b41dde0e4d5f780a1c264a6a4a699733bd94",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "de8f418507efda9801d0ca230a67c581d2e2beaa35b964fd4ae8845455670633"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "de8f418507efda9801d0ca230a67c581d2e2beaa35b964fd4ae8845455670633"
+            }
+          ]
+        },
+        {
+          "name": "Handlebar",
+          "ProfileIrHash": "f2ecda67815f4bd950a2b61c57d1bafa497b9c19233425eeba77a1c477ad349e",
+          "CanonicalContourHash": "083b27c0cbb113f21366663fec796736a01c4eeb1df5965a35496dd66c02db8b",
+          "svgHash": "8cfb6b808647f91d7574fce23f6ae5530bba7bcea49dce9e4adcf030257a764b",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "083b27c0cbb113f21366663fec796736a01c4eeb1df5965a35496dd66c02db8b"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "083b27c0cbb113f21366663fec796736a01c4eeb1df5965a35496dd66c02db8b"
+            }
+          ]
+        },
+        {
+          "name": "Crank",
+          "ProfileIrHash": "105299c685d69e1b3b5bd744733268df39e0214ebd648a3b1d706f54c98c50c0",
+          "CanonicalContourHash": "c496060c8e58440587f07d5a34aa09635d6f3db39cd5b96e151fe28a3fd0a3c3",
+          "svgHash": "f7ec0985ef2b955feb8495413a5050df64a0c0a65a77bdb51fe3bd8a60549cd7",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Circle",
+              "ContourHash": "c496060c8e58440587f07d5a34aa09635d6f3db39cd5b96e151fe28a3fd0a3c3"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "c496060c8e58440587f07d5a34aa09635d6f3db39cd5b96e151fe28a3fd0a3c3"
+            }
+          ]
+        },
+        {
+          "name": "CrankArm",
+          "ProfileIrHash": "39bd18c65c4782c8c9ad4c87778ab6d29408d1680160cb100b1dbdf605233074",
+          "CanonicalContourHash": "06281fe185763f2d8db1c0a79a130c2330c2ddebf9bfa82e398b5b2f3eb328c3",
+          "svgHash": "68e49c88aead6dd2983efa49328b43afa025cba93f6b0748adc48681a6849600",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "06281fe185763f2d8db1c0a79a130c2330c2ddebf9bfa82e398b5b2f3eb328c3"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "06281fe185763f2d8db1c0a79a130c2330c2ddebf9bfa82e398b5b2f3eb328c3"
+            }
+          ]
+        },
+        {
+          "name": "UpperLeg",
+          "ProfileIrHash": "c8c942969c7b356a3b177efce42b8c3927910da05917d6f4c7204e820bc58288",
+          "CanonicalContourHash": "a992c5a95868efc9ff7b4abd5926fda75c734900c70e286571fc3bec483ae34a",
+          "svgHash": "b5284f50561c005a1e51e06763e07a465401728b893523ef009950e679d5a1f3",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#e6a52e",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "a992c5a95868efc9ff7b4abd5926fda75c734900c70e286571fc3bec483ae34a"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "a992c5a95868efc9ff7b4abd5926fda75c734900c70e286571fc3bec483ae34a"
+            }
+          ]
+        },
+        {
+          "name": "LowerLeg",
+          "ProfileIrHash": "98455a614a7e740288fd447e23572e121d536622b86d61fc8164fe2106bda230",
+          "CanonicalContourHash": "33216bb9ee6dcf10feae55d6a2e9f8187010c51c523cf1a416c604d642d3693c",
+          "svgHash": "984cc9bea9a7248280425a9bac7c26b1e929e999caa4cef4cdc5ebefec9616dc",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#e6a52e",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "33216bb9ee6dcf10feae55d6a2e9f8187010c51c523cf1a416c604d642d3693c"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "33216bb9ee6dcf10feae55d6a2e9f8187010c51c523cf1a416c604d642d3693c"
+            }
+          ]
+        },
+        {
+          "name": "WebbedFoot",
+          "ProfileIrHash": "124e0afe5fa909e28d888ae73f3d832a0dc36819dc50ac653ecfb30b0ad88951",
+          "CanonicalContourHash": "8950d49c942c5911325ad21abd135a5d43db5dd80a9e78d483f5f38a619bba8a",
+          "svgHash": "464cc058bfb1f8fc5d8cf698d5014a4befbdc84e87522a0c2feb3643ca8a48d8",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#e6a52e",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "8950d49c942c5911325ad21abd135a5d43db5dd80a9e78d483f5f38a619bba8a"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "8950d49c942c5911325ad21abd135a5d43db5dd80a9e78d483f5f38a619bba8a"
+            }
+          ]
+        },
+        {
+          "name": "Tail",
+          "ProfileIrHash": "e29024dcfe2b2ad066a339b66ab8bc3e06c94393ebd4e0c2533a2bc74de856e3",
+          "CanonicalContourHash": "33ac7ccd1b5da308065ae9ad375fbbb2b289a99fd86625dca51d9c26f05b2274",
+          "svgHash": "fcde6af18231bcb37a7a305b7796dd537eef6c5934bae94b20cf3256653fc6ce",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "33ac7ccd1b5da308065ae9ad375fbbb2b289a99fd86625dca51d9c26f05b2274"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "33ac7ccd1b5da308065ae9ad375fbbb2b289a99fd86625dca51d9c26f05b2274"
+            }
+          ]
+        },
+        {
+          "name": "Neck",
+          "ProfileIrHash": "9cbafe8107961ac0e8a2e0e660f83079818a2e5e530875cc04c4b753a2c6b44d",
+          "CanonicalContourHash": "e9e8a71f70030892deec97a3b65a7ed770cdb2c52aab6736f22abea5a66c4372",
+          "svgHash": "7b04364563ea6c2707abc664fcabc89cce085063d52d50ca17babdc88d19e592",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Ellipse",
+              "ContourHash": "5e4803d50549d99169f1287ccaf1832d088859c3c16e09afba727b92dbe23f47"
+            },
+            {
+              "Name": "Leaning",
+              "OperationKind": "Rotate",
+              "ContourHash": "ce827bedda4363ac30c2460479065d13f1367a1ef2efc485ede5fa179722067a"
+            },
+            {
+              "Name": "Placed",
+              "OperationKind": "Translate",
+              "ContourHash": "e9e8a71f70030892deec97a3b65a7ed770cdb2c52aab6736f22abea5a66c4372"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "e9e8a71f70030892deec97a3b65a7ed770cdb2c52aab6736f22abea5a66c4372"
+            }
+          ]
+        },
+        {
+          "name": "BodyAndWing",
+          "ProfileIrHash": "b6e4e74fec98481966ce3358af2b5051a5812c6e3b0f33d0bada5cd1a7c543f8",
+          "CanonicalContourHash": "e48abc1e9daf5f2a02e92fecb76aa2bd34470d29613e65ae7217ba31578cbbee",
+          "svgHash": "ab9afc2d065f05eaf44d3325038afd28134edd2b2ac59ce1c6c32edf18970845",
+          "contours": 2,
+          "segments": 8,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Ellipse",
+              "ContourHash": "60bed64e452b6a905ce89319cc504a1dc8a55c14926f62cdf5b457772b9b66d8"
+            },
+            {
+              "Name": "WingCut",
+              "OperationKind": "Subtract",
+              "ContourHash": "f0cc57a341020b0aca66c4bdea80d6e1fe30a3a73fb62b9b4d01799182ea2fd7"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "e48abc1e9daf5f2a02e92fecb76aa2bd34470d29613e65ae7217ba31578cbbee"
+            }
+          ]
+        },
+        {
+          "name": "Beak",
+          "ProfileIrHash": "161d7356ea847734ca7e6c4a9cb94689060db40fc816534f7b4f9220831a4c31",
+          "CanonicalContourHash": "6d1f32b1764e363c43d3e6430c8d1c7fb8a3b7d7957fc79a38839530b43618b0",
+          "svgHash": "b69011539bac206a8e0f8f43a464e1ce0b8c0e08de3f55247413574a416921b3",
+          "contours": 2,
+          "segments": 9,
+          "style": {
+            "Fill": "#e6a52e",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "7b5d44fc727b25a57bd3346e68342b175b346cef09250b7db0ab4e94acfb78f7"
+            },
+            {
+              "Name": "Seamed",
+              "OperationKind": "Subtract",
+              "ContourHash": "2150d31ed64b1ef41a357f2467cf0bfd2683a4a9373d67dfb8581ba2c4206f33"
+            },
+            {
+              "Name": "Tilted",
+              "OperationKind": "Rotate",
+              "ContourHash": "7d27f7e59e14a2e40475a53e608c36ed51dde2078d4fe49a37ace208c7ebeace"
+            },
+            {
+              "Name": "Placed",
+              "OperationKind": "Translate",
+              "ContourHash": "6d1f32b1764e363c43d3e6430c8d1c7fb8a3b7d7957fc79a38839530b43618b0"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "6d1f32b1764e363c43d3e6430c8d1c7fb8a3b7d7957fc79a38839530b43618b0"
+            }
+          ]
+        },
+        {
+          "name": "HeadAndEye",
+          "ProfileIrHash": "cb098d73f6b747136349f19ec38fa38ecc14270c85ee7d0ae5c7380c9bc3fdf5",
+          "CanonicalContourHash": "57736a150579d96644dcb05fabd1481270aae16c7628eb27e18337bab682512f",
+          "svgHash": "c9aec08d4dcbe6991f95eabc6071d575bd1ca7acc21cd64d0c90f5e3205d9280",
+          "contours": 2,
+          "segments": 8,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Circle",
+              "ContourHash": "e5a79f7fe56aa778f92ee3f5aff3e5236e9ce296ef46932f7ea2ef2490f31572"
+            },
+            {
+              "Name": "EyeCut",
+              "OperationKind": "Hole",
+              "ContourHash": "1c5f8686f3a5c9ad015f1c15dd839e183462092a6cf132b8f6feca0fdb5fbed3"
+            },
+            {
+              "Name": "Tilted",
+              "OperationKind": "Rotate",
+              "ContourHash": "1eba0591b813f9959083863c53abe4cf484ae656869b624981093a694a67d012"
+            },
+            {
+              "Name": "Placed",
+              "OperationKind": "Translate",
+              "ContourHash": "57736a150579d96644dcb05fabd1481270aae16c7628eb27e18337bab682512f"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "57736a150579d96644dcb05fabd1481270aae16c7628eb27e18337bab682512f"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "variant": "head-up-wing-larger",
+      "beforeSourceHash": "0e4615d97b29d2e78de3695afbd53f8f3378fe3f62b4adbc1aa46f8923cbcf84",
+      "afterSourceHash": "99763ffb4e92da3fdd2594f4715938500499172f2769dd57a166e2bb7255fb3a",
+      "profileHash": "be73150128635c5dacbd7a8f6858050f97aa1c333a9700b64cf08c8f4ce383f7",
+      "contourHash": "482f2810d09dd49a6c14e8e793c8c39c717c2bd3c14968eaa6f4e9e22f65db1d",
+      "svgHash": "b1e29ef40a11409c84b7c23e3344a8f51a91352b70e243638c38deb6f95ec122",
+      "changedLines": 2,
+      "diff": [
+        "@@ line 33 @@\n-const HeadTilt: number = 0.0;\n\u002Bconst HeadTilt: number = 12.0;",
+        "@@ line 34 @@\n-const WingScale: number = 1.0;\n\u002Bconst WingScale: number = 1.15;"
+      ],
+      "sourceLineCount": 285,
+      "sourceNumericLiteralCount": 142,
+      "exportedNumericTokenCount": 428,
+      "exportedPathCoordinateCount": 394,
+      "exportedPathCommandCount": 141,
+      "ordinaryHelperCount": 18,
+      "polygonEscapeSites": 8,
+      "polygonNumericLiteralCount": 39,
+      "layerCount": 17,
+      "layerEvidence": [
+        {
+          "name": "RearWheel",
+          "ProfileIrHash": "0f7be8f40b6a133174be895eeed2de9f25364faa766332a76a7f900ab474b97d",
+          "CanonicalContourHash": "1316464bcc6e4f7063da74ccd08b3a1738ac780d1b69bc06f0310f8da043e025",
+          "svgHash": "39e7d1917f30b1cf8bf73b1fd79ea412abf1ec81b8f5e376e4179a0750b8db02",
+          "contours": 2,
+          "segments": 8,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Circle",
+              "ContourHash": "113068515b09bc3365b32dfe8d841844048618c8cd2a42966458184473c81d1d"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Hole",
+              "ContourHash": "1316464bcc6e4f7063da74ccd08b3a1738ac780d1b69bc06f0310f8da043e025"
+            }
+          ]
+        },
+        {
+          "name": "FrontWheel",
+          "ProfileIrHash": "682ee406ada38a45840ac5652d994f62d3ee33107c1364551ce6ddb0bb038401",
+          "CanonicalContourHash": "fea93c860afb1904b4ffe361ed4ad6a5521b54e37195691a4e47420deef26a6b",
+          "svgHash": "cb581f18c9ed9e81515c3ecdd98bf0992e443b14fb3f68a8e14ecb0f2e29a4c2",
+          "contours": 2,
+          "segments": 8,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Circle",
+              "ContourHash": "45f8a35c7d0029376c0682527f2a19152330f7669d96fce9d323797ed50692f0"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Hole",
+              "ContourHash": "fea93c860afb1904b4ffe361ed4ad6a5521b54e37195691a4e47420deef26a6b"
+            }
+          ]
+        },
+        {
+          "name": "RearFrame",
+          "ProfileIrHash": "bfd41dd0e94f654386a1391b29aae311c8ed4a88cb2dc800ac2c6378a29697c5",
+          "CanonicalContourHash": "26789b3bf4aa0c8456eee16bee5990df2f3a56d6b882d4b4de79a9631e387fa1",
+          "svgHash": "ca184f8c51cd83bbb5e4392635736da5e6631c2bb0726fff14a1ee36bf52173f",
+          "contours": 2,
+          "segments": 6,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "43fcf6346eaabc5f91488d4e15fc919fe5c31317a83580668b6146031a939fba"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Subtract",
+              "ContourHash": "26789b3bf4aa0c8456eee16bee5990df2f3a56d6b882d4b4de79a9631e387fa1"
+            }
+          ]
+        },
+        {
+          "name": "FrontFrame",
+          "ProfileIrHash": "95e6471a971655a279e2cb717476da73284718269046fd26d6db166dbfa1da05",
+          "CanonicalContourHash": "5aecd2dfccaef8a4518852beba32cc479a52bd5e2063eeec3186c04ee7e83dd8",
+          "svgHash": "400734e30b5810279d381e40c7e1d3adc8a23030e0ae6b8548bea57c07929bac",
+          "contours": 2,
+          "segments": 6,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "fd2f05636cfa2749fa593405e1ac20ac68e799dd9c3caa3039f14a283559eb4f"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Subtract",
+              "ContourHash": "5aecd2dfccaef8a4518852beba32cc479a52bd5e2063eeec3186c04ee7e83dd8"
+            }
+          ]
+        },
+        {
+          "name": "Fork",
+          "ProfileIrHash": "04707a042fc070f2685a0922b72a8c489f2d1c3a78ed69beee521a85ec6f0a86",
+          "CanonicalContourHash": "aa14cd80eea9a7586d0baa5a19eac9219f940968cd31d950b0b14a1b9d162f1e",
+          "svgHash": "b68c70e6782c187d546bada5f73ea5c4676ed8bfb01823d2f3a4083808f30c98",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "aa14cd80eea9a7586d0baa5a19eac9219f940968cd31d950b0b14a1b9d162f1e"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "aa14cd80eea9a7586d0baa5a19eac9219f940968cd31d950b0b14a1b9d162f1e"
+            }
+          ]
+        },
+        {
+          "name": "Seat",
+          "ProfileIrHash": "96ba83827ca7832a78907990c0f110d68614199764781ab88dc7792deffaa550",
+          "CanonicalContourHash": "de8f418507efda9801d0ca230a67c581d2e2beaa35b964fd4ae8845455670633",
+          "svgHash": "168252e52a41ca635c3bfa379008b41dde0e4d5f780a1c264a6a4a699733bd94",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "de8f418507efda9801d0ca230a67c581d2e2beaa35b964fd4ae8845455670633"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "de8f418507efda9801d0ca230a67c581d2e2beaa35b964fd4ae8845455670633"
+            }
+          ]
+        },
+        {
+          "name": "Handlebar",
+          "ProfileIrHash": "f2ecda67815f4bd950a2b61c57d1bafa497b9c19233425eeba77a1c477ad349e",
+          "CanonicalContourHash": "083b27c0cbb113f21366663fec796736a01c4eeb1df5965a35496dd66c02db8b",
+          "svgHash": "8cfb6b808647f91d7574fce23f6ae5530bba7bcea49dce9e4adcf030257a764b",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "083b27c0cbb113f21366663fec796736a01c4eeb1df5965a35496dd66c02db8b"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "083b27c0cbb113f21366663fec796736a01c4eeb1df5965a35496dd66c02db8b"
+            }
+          ]
+        },
+        {
+          "name": "Crank",
+          "ProfileIrHash": "105299c685d69e1b3b5bd744733268df39e0214ebd648a3b1d706f54c98c50c0",
+          "CanonicalContourHash": "c496060c8e58440587f07d5a34aa09635d6f3db39cd5b96e151fe28a3fd0a3c3",
+          "svgHash": "f7ec0985ef2b955feb8495413a5050df64a0c0a65a77bdb51fe3bd8a60549cd7",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Circle",
+              "ContourHash": "c496060c8e58440587f07d5a34aa09635d6f3db39cd5b96e151fe28a3fd0a3c3"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "c496060c8e58440587f07d5a34aa09635d6f3db39cd5b96e151fe28a3fd0a3c3"
+            }
+          ]
+        },
+        {
+          "name": "CrankArm",
+          "ProfileIrHash": "39bd18c65c4782c8c9ad4c87778ab6d29408d1680160cb100b1dbdf605233074",
+          "CanonicalContourHash": "06281fe185763f2d8db1c0a79a130c2330c2ddebf9bfa82e398b5b2f3eb328c3",
+          "svgHash": "68e49c88aead6dd2983efa49328b43afa025cba93f6b0748adc48681a6849600",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#238f91",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "06281fe185763f2d8db1c0a79a130c2330c2ddebf9bfa82e398b5b2f3eb328c3"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "06281fe185763f2d8db1c0a79a130c2330c2ddebf9bfa82e398b5b2f3eb328c3"
+            }
+          ]
+        },
+        {
+          "name": "UpperLeg",
+          "ProfileIrHash": "41d1d5fbb7f90e1f5d518740fc43af11aa1824da1f74d8731ea1b949bab5959c",
+          "CanonicalContourHash": "27c499798203320da8d95ef5059be4723d0ef94d8ad4bfe570445c592fd0ff80",
+          "svgHash": "0968e7369dc272cfee9d71f9cf776a4fd72b5c5759dbda0a92593e9f62f343c9",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#e6a52e",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "27c499798203320da8d95ef5059be4723d0ef94d8ad4bfe570445c592fd0ff80"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "27c499798203320da8d95ef5059be4723d0ef94d8ad4bfe570445c592fd0ff80"
+            }
+          ]
+        },
+        {
+          "name": "LowerLeg",
+          "ProfileIrHash": "f4189a32212e2c1bfa743b519a0b2b360dc0c1323b3d4b348d2b1e0e14fd6f2b",
+          "CanonicalContourHash": "faf4fe2a3c9a4e8be6155c6be787c3eec3fd8f505be7672bc3cd7831954e52e6",
+          "svgHash": "8a56cf63d56ff7c306ed60eb70c5d85a67cc576a74d3bd1247e95ad59f83df64",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#e6a52e",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "faf4fe2a3c9a4e8be6155c6be787c3eec3fd8f505be7672bc3cd7831954e52e6"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "faf4fe2a3c9a4e8be6155c6be787c3eec3fd8f505be7672bc3cd7831954e52e6"
+            }
+          ]
+        },
+        {
+          "name": "WebbedFoot",
+          "ProfileIrHash": "124e0afe5fa909e28d888ae73f3d832a0dc36819dc50ac653ecfb30b0ad88951",
+          "CanonicalContourHash": "8950d49c942c5911325ad21abd135a5d43db5dd80a9e78d483f5f38a619bba8a",
+          "svgHash": "464cc058bfb1f8fc5d8cf698d5014a4befbdc84e87522a0c2feb3643ca8a48d8",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#e6a52e",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "8950d49c942c5911325ad21abd135a5d43db5dd80a9e78d483f5f38a619bba8a"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "8950d49c942c5911325ad21abd135a5d43db5dd80a9e78d483f5f38a619bba8a"
+            }
+          ]
+        },
+        {
+          "name": "Tail",
+          "ProfileIrHash": "fe77ed1c6330a7644abfa63c53352c9faec0302e85756f7298e7e566acb87bf3",
+          "CanonicalContourHash": "c07565f6f3eef63e3ccb68b4891323f585cbee8564ea739ac2bc21ec63c62cad",
+          "svgHash": "433b1a58c2b277889ca1d1c3f7fd06de352c2b88f9df30ed1dce6efb4d4b04a1",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "c07565f6f3eef63e3ccb68b4891323f585cbee8564ea739ac2bc21ec63c62cad"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "c07565f6f3eef63e3ccb68b4891323f585cbee8564ea739ac2bc21ec63c62cad"
+            }
+          ]
+        },
+        {
+          "name": "Neck",
+          "ProfileIrHash": "db9ca11593ded2c3839808ad704f41826aa9b15b4ae18b08be02b3d280425e53",
+          "CanonicalContourHash": "9e3b5a097a3674ef33e10915db99eb7fd2a50367c4d21944096d0b1133645568",
+          "svgHash": "6474e45083d5a8d5d4d106b30104d64c6c57d83a7c7ea6306f410e37eeac1c94",
+          "contours": 1,
+          "segments": 4,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Ellipse",
+              "ContourHash": "5e4803d50549d99169f1287ccaf1832d088859c3c16e09afba727b92dbe23f47"
+            },
+            {
+              "Name": "Leaning",
+              "OperationKind": "Rotate",
+              "ContourHash": "ce827bedda4363ac30c2460479065d13f1367a1ef2efc485ede5fa179722067a"
+            },
+            {
+              "Name": "Placed",
+              "OperationKind": "Translate",
+              "ContourHash": "9e3b5a097a3674ef33e10915db99eb7fd2a50367c4d21944096d0b1133645568"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "9e3b5a097a3674ef33e10915db99eb7fd2a50367c4d21944096d0b1133645568"
+            }
+          ]
+        },
+        {
+          "name": "BodyAndWing",
+          "ProfileIrHash": "0383dedea5c9996f51b93e0a43edac17ee83adab1b7e1897738aa04a18e94791",
+          "CanonicalContourHash": "4573b94a448715788de7721804debf6a9c3d0bc3ede1a378e0f9f38b3211a9d0",
+          "svgHash": "f352f90369f54ba801c6f8cca32ae99d06571a2c710ef58f9c7b9124510a736b",
+          "contours": 2,
+          "segments": 8,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Ellipse",
+              "ContourHash": "dc54cdbe675a8954cdec278c97da6d4082311411f23d986cd943be752d113c8d"
+            },
+            {
+              "Name": "WingCut",
+              "OperationKind": "Subtract",
+              "ContourHash": "c122e40ddf976d6765ad1b3f82a5d1269a907bfcf2ccecffcf8e5d829a15cdbd"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "4573b94a448715788de7721804debf6a9c3d0bc3ede1a378e0f9f38b3211a9d0"
+            }
+          ]
+        },
+        {
+          "name": "Beak",
+          "ProfileIrHash": "89e23b3485531f5bba4ddc0d46bfaacf2e3b307a750012b0788b145f6182ef44",
+          "CanonicalContourHash": "75376f22e8988d8daced643e8edbfb819088732a8eeb82324451725a6c249e1d",
+          "svgHash": "f098e2044104dbd15ea7bf5ff0ef77f3b235a621d4cc963cb95ff68ff3604e13",
+          "contours": 2,
+          "segments": 9,
+          "style": {
+            "Fill": "#e6a52e",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Polygon",
+              "ContourHash": "7b5d44fc727b25a57bd3346e68342b175b346cef09250b7db0ab4e94acfb78f7"
+            },
+            {
+              "Name": "Seamed",
+              "OperationKind": "Subtract",
+              "ContourHash": "2150d31ed64b1ef41a357f2467cf0bfd2683a4a9373d67dfb8581ba2c4206f33"
+            },
+            {
+              "Name": "Tilted",
+              "OperationKind": "Rotate",
+              "ContourHash": "aacd3aa546faed75fe6e209fb1afd3a0f8cb1a8d3cc6cd03b4d2e8af945fcb96"
+            },
+            {
+              "Name": "Placed",
+              "OperationKind": "Translate",
+              "ContourHash": "75376f22e8988d8daced643e8edbfb819088732a8eeb82324451725a6c249e1d"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "75376f22e8988d8daced643e8edbfb819088732a8eeb82324451725a6c249e1d"
+            }
+          ]
+        },
+        {
+          "name": "HeadAndEye",
+          "ProfileIrHash": "562088820b588299346aa21137df5b50a7680f3f0c56a4ebb012ef749e438421",
+          "CanonicalContourHash": "f50c4a616b5d825ea38257a2f18b7c098c411835f4013d325259446aef17e779",
+          "svgHash": "63a77e9b88a176ab10bedc9f66f59313c906f8b61fa5a8b4698993bbb0f9d923",
+          "contours": 2,
+          "segments": 8,
+          "style": {
+            "Fill": "#193747",
+            "IsValid": true
+          },
+          "states": [
+            {
+              "Name": "Base",
+              "OperationKind": "Circle",
+              "ContourHash": "e5a79f7fe56aa778f92ee3f5aff3e5236e9ce296ef46932f7ea2ef2490f31572"
+            },
+            {
+              "Name": "EyeCut",
+              "OperationKind": "Hole",
+              "ContourHash": "1c5f8686f3a5c9ad015f1c15dd839e183462092a6cf132b8f6feca0fdb5fbed3"
+            },
+            {
+              "Name": "Tilted",
+              "OperationKind": "Rotate",
+              "ContourHash": "7808849e44c51df2d85ea44f6b2f1de36d0a04a05aaec4ffe8e556d945e65a2b"
+            },
+            {
+              "Name": "Placed",
+              "OperationKind": "Translate",
+              "ContourHash": "f50c4a616b5d825ea38257a2f18b7c098c411835f4013d325259446aef17e779"
+            },
+            {
+              "Name": "Finished",
+              "OperationKind": "Translate",
+              "ContourHash": "f50c4a616b5d825ea38257a2f18b7c098c411835f4013d325259446aef17e779"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

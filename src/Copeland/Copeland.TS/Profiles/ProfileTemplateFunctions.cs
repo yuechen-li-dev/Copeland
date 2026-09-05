@@ -9,6 +9,14 @@ namespace Copeland.TS.Profiles;
 public static class ProfileTemplateFunctions
 {
     public const string Source = """
+        export record ProfileStyle {
+            fill: string;
+        }
+
+        export record ProfileLayerId {
+            name: string;
+        }
+
         export enum ProfileEdge {
             Top,
             Right,
@@ -192,6 +200,40 @@ public static class ProfileTemplateFunctions
 
         export function Mirror(args: MirrorArgs): ProfileOperation {
             return ProfileOperation.Mirror(args);
+        }
+
+        export record ProfileSource {
+            name: string;
+            shape: ProfileShape;
+            operations: ProfileOperation[];
+            yieldState: string;
+            baseState?: string;
+            style?: ProfileStyle;
+        }
+
+        export record ProfileLayer {
+            id: ProfileLayerId;
+            profiles: ProfileSource[];
+        }
+
+        export record ProfileComposition {
+            layers: ProfileLayer[];
+        }
+
+        export function LayerId(name: string): ProfileLayerId {
+            return { name: name };
+        }
+
+        export function Profile(args: ProfileSource): ProfileSource {
+            return args;
+        }
+
+        export function Layer(name: string, profiles: ProfileSource[]): ProfileLayer {
+            return { id: LayerId(name), profiles: profiles };
+        }
+
+        export function Layers(layers: ProfileLayer[]): ProfileComposition {
+            return { layers: layers };
         }
         """;
 }

@@ -1,0 +1,198 @@
+{
+  "milestone": "COPELAND-PROFILE-LAYER-COMPOSITION-M1",
+  "kind": "typed-source-level-vector-painter-composition",
+  "numericLayerSelectorRequired": false,
+  "numericLayerSelectorCount": 0,
+  "typedLayerIdentity": true,
+  "sourceOrderDefinesPainterOrder": true,
+  "semanticLayerCount": 5,
+  "semanticLayers": [
+    {
+      "name": "Wheels",
+      "profiles": [
+        "RearWheel",
+        "FrontWheel"
+      ]
+    },
+    {
+      "name": "Bicycle Frame",
+      "profiles": [
+        "RearFrame",
+        "FrontFrame",
+        "Fork",
+        "Seat",
+        "Handlebar",
+        "Crank",
+        "CrankArm"
+      ]
+    },
+    {
+      "name": "Pelican Legs",
+      "profiles": [
+        "UpperLeg",
+        "LowerLeg",
+        "WebbedFoot"
+      ]
+    },
+    {
+      "name": "Pelican Body",
+      "profiles": [
+        "Tail",
+        "Neck",
+        "BodyAndWing"
+      ]
+    },
+    {
+      "name": "Pelican Details",
+      "profiles": [
+        "Beak",
+        "HeadAndEye"
+      ]
+    }
+  ],
+  "layerRelatedSourceLines": 12,
+  "sourceLineCount": 238,
+  "m0SvgHash": "9d0cbde4e3dd33876b33c4093b432588bd443244ffcfed98c16f125113455d29",
+  "m1SvgHash": "2a51f2428d33192931f778aa3065a51042223886fd0371dfdb1319a8c77b5caf",
+  "canonicalPaintHashBefore": "c5f21cd77ede49a635d821c25ba748b6b7bbc17ed48450bebcf1d5de7a6395b3",
+  "canonicalPaintHashAfter": "c5f21cd77ede49a635d821c25ba748b6b7bbc17ed48450bebcf1d5de7a6395b3",
+  "visualPaintDataUnchanged": true,
+  "CompositionHash": "ee6933e87a9819cc1b731cd815636a7111960231922eae78cb89628bae79a732",
+  "CanonicalGeometryHash": "26fb8ad6e9e1802d6b3933660c33808660a612c1cf081d6037e9b4b935e7b48d",
+  "deterministicCompilationRuns": 107,
+  "profileGeometrySemanticsChanged": false,
+  "profileFeatureIdentityChanged": false,
+  "svgLayerGroupsEmitted": true,
+  "runtimeLayerTreeAdded": false,
+  "reactDependencyAdded": false,
+  "rendererChanged": false,
+  "duplicateLayerLaw": "reject exact duplicate semantic identities",
+  "emptyLayerLaw": "allow in source and erase during composition lowering",
+  "variants": [
+    {
+      "variant": "baseline",
+      "changedLines": 0,
+      "changedProfiles": [],
+      "CompositionHash": "ee6933e87a9819cc1b731cd815636a7111960231922eae78cb89628bae79a732",
+      "CanonicalGeometryHash": "26fb8ad6e9e1802d6b3933660c33808660a612c1cf081d6037e9b4b935e7b48d",
+      "svgHash": "2a51f2428d33192931f778aa3065a51042223886fd0371dfdb1319a8c77b5caf"
+    },
+    {
+      "variant": "beak-plus-20-percent",
+      "changedLines": 1,
+      "changedProfiles": [
+        "Beak"
+      ],
+      "CompositionHash": "85f5e4958fb3351727f7f8c84062f128327b2b060896c972e8bdbf24204b43ad",
+      "CanonicalGeometryHash": "cb6dbbe5d05a776d19c08816e9389c95d686c6f64cc8bcd28f9d889d981f65a1",
+      "svgHash": "114ea01990c4eea224105f29ad74434fcc585b6d0e78e8aa7b9ebfc600c5bc8d"
+    },
+    {
+      "variant": "wheels-plus-15-percent",
+      "changedLines": 1,
+      "changedProfiles": [
+        "RearWheel",
+        "FrontWheel",
+        "RearFrame",
+        "FrontFrame",
+        "Fork",
+        "Seat",
+        "Handlebar",
+        "Crank",
+        "CrankArm",
+        "UpperLeg",
+        "LowerLeg",
+        "WebbedFoot",
+        "Tail",
+        "Neck",
+        "BodyAndWing",
+        "Beak",
+        "HeadAndEye"
+      ],
+      "CompositionHash": "75cf26be6b149d8637c5aec1d7b0818cb9690629db36b26ab176e74b5ae2b006",
+      "CanonicalGeometryHash": "c92c87da84ef25974989608ff7fed0fa747085ad1cb9b9c3fd127f0163117815",
+      "svgHash": "4f8e58b4302bbb4715d329c449bddb899cd64bd9998ebde20c16450886dd2065"
+    },
+    {
+      "variant": "body-raised",
+      "changedLines": 1,
+      "changedProfiles": [
+        "UpperLeg",
+        "LowerLeg",
+        "Tail",
+        "Neck",
+        "BodyAndWing",
+        "Beak",
+        "HeadAndEye"
+      ],
+      "CompositionHash": "b6fa750ade9fb4497b3d9366e774c0653bdbf40dd39d78909c6be332759db0cd",
+      "CanonicalGeometryHash": "f0c13b979137113edee9a43e2eb5308589d9ed371a4e9911a348191a82fe9840",
+      "svgHash": "ab2000a283379275cc12e7c27dde658bd13b5cb0f6d47be2e7fa651e7e13235e"
+    },
+    {
+      "variant": "head-up-wing-larger",
+      "changedLines": 2,
+      "changedProfiles": [
+        "BodyAndWing",
+        "Beak",
+        "HeadAndEye"
+      ],
+      "CompositionHash": "9b83a4d508134cb6fc5e633f959e183fbce7f1207711690ab37c428ff2d70f04",
+      "CanonicalGeometryHash": "f1961dee09c2c9456ba7ae0c88427d005287c1299787d512b47c11701eceef8f",
+      "svgHash": "6c2580ee36760f78319fb2da94af2b9ae82ecc4f0565ed80d5699b3b7e9095ff"
+    }
+  ],
+  "reorderTests": [
+    {
+      "name": "pelican-body-before-bicycle-frame",
+      "compositionHash": "65a526106d358fbef37d7d0e3ad8988e2c508a1e380dc1060b99b31f66a08759",
+      "geometryHash": "26fb8ad6e9e1802d6b3933660c33808660a612c1cf081d6037e9b4b935e7b48d",
+      "svgHash": "09ea31f6c895b2b3df12a707f55a6f6920fe39da4b3673a73ae9268599b41684",
+      "layerOrder": [
+        "Wheels",
+        "Pelican Body",
+        "Bicycle Frame",
+        "Pelican Legs",
+        "Pelican Details"
+      ],
+      "detailOrder": [
+        "Beak",
+        "HeadAndEye"
+      ]
+    },
+    {
+      "name": "pelican-details-before-body",
+      "compositionHash": "ec2bef5a8853fa31d27a0691d2b096f0372d19e48caf5bda68e9b9380d1c152e",
+      "geometryHash": "26fb8ad6e9e1802d6b3933660c33808660a612c1cf081d6037e9b4b935e7b48d",
+      "svgHash": "8cf9f731e745e444f516646c4da0e69e919a07acd75c0c5f3dab586615b9c946",
+      "layerOrder": [
+        "Wheels",
+        "Bicycle Frame",
+        "Pelican Legs",
+        "Pelican Details",
+        "Pelican Body"
+      ],
+      "detailOrder": [
+        "Beak",
+        "HeadAndEye"
+      ]
+    },
+    {
+      "name": "beak-in-front-of-head",
+      "compositionHash": "41f11e7ff7c5ed3983d85e4ad4dc56557c62a8d78e39fec9bd593359cb986399",
+      "geometryHash": "26fb8ad6e9e1802d6b3933660c33808660a612c1cf081d6037e9b4b935e7b48d",
+      "svgHash": "97c73719cf9d1cd2c1e8f999f6eb0ea334b6c7cdfe305615ce4ca4e4383b6f91",
+      "layerOrder": [
+        "Wheels",
+        "Bicycle Frame",
+        "Pelican Legs",
+        "Pelican Body",
+        "Pelican Details"
+      ],
+      "detailOrder": [
+        "HeadAndEye",
+        "Beak"
+      ]
+    }
+  ]
+}
