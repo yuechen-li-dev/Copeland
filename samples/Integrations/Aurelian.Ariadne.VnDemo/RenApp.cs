@@ -104,17 +104,25 @@ public sealed class RenApp : IDisposable
     private string notice = "READY";
     private ulong inputSequence;
 
-    public RenApp(string saveDirectory, string settingsPath)
+    public RenApp(
+        string saveDirectory,
+        string settingsPath,
+        Action<string>? startupProgress = null)
     {
         persistence = new VnPersistence(saveDirectory);
+        startupProgress?.Invoke("persistence");
         settingsStore = new RenSettingsStore(settingsPath);
         Settings = settingsStore.Load();
+        startupProgress?.Invoke("settings");
         audio = new RenAudioSettingsProjection();
         audio.Apply(Settings);
+        startupProgress?.Invoke("audio");
         inputEngine = new InputManEngine(RenControls.CreateProfile());
         inputAdapter = new AurelianInputAdapter(inputEngine);
         inputAdapter.SetContexts(RenControls.Ui);
+        startupProgress?.Invoke("input");
         RefreshSlots();
+        startupProgress?.Invoke("save-slots");
     }
 
     public VnSession? ActiveGame { get; private set; }

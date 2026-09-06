@@ -87,14 +87,15 @@ public sealed class VnPersistence
                     BuildId: BuildId,
                     DefinitionHash: DefinitionHash,
                     ApplicationSaveVersion: SchemaVersion),
-                [payload]));
+                [payload]))
+            .ConfigureAwait(false);
         return envelope;
     }
 
     public async Task<RenGameSave> LoadAsync(int slotNumber, VnSession session)
     {
         ArgumentNullException.ThrowIfNull(session);
-        RenGameSave envelope = await ReadAsync(slotNumber);
+        RenGameSave envelope = await ReadAsync(slotNumber).ConfigureAwait(false);
         Validate(envelope);
         session.Restore(envelope.Session);
         return envelope;
@@ -107,7 +108,7 @@ public sealed class VnPersistence
         {
             try
             {
-                RenGameSave envelope = await ReadAsync(slotNumber);
+                RenGameSave envelope = await ReadAsync(slotNumber).ConfigureAwait(false);
                 Validate(envelope);
                 result.Add(new RenSaveSlotMetadata(
                     slotNumber,
@@ -148,7 +149,8 @@ public sealed class VnPersistence
                 ApplicationId,
                 DefinitionHash,
                 RequireCadenceMatch: false,
-                ApplicationSaveVersion: SchemaVersion));
+                ApplicationSaveVersion: SchemaVersion))
+            .ConfigureAwait(false);
         return candidate.Deserialize<RenGameSave>(
             ModuleId,
             deliverance.Options.Serializers);

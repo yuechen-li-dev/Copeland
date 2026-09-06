@@ -197,6 +197,21 @@ public sealed class SunkillM13Tests
         Assert.Equal(first, second);
     }
 
+    [Fact]
+    public async Task ExistingSaveMetadataDoesNotCaptureTheUiSynchronizationContext()
+    {
+        using var files = new TestFiles();
+        var persistence = new VnPersistence(files.SaveDirectory);
+        using var session = new VnSession();
+        await persistence.SaveAsync(1, session, DateTimeOffset.UnixEpoch);
+        (IReadOnlyList<RenSaveSlotMetadata> slots, int postCount) = await Task
+            .Run(() => ReadMetadataWithUiLikeContext(persistence))
+            .WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.True(slots[0].Available);
+        Assert.Equal(0, postCount);
+    }
+
     private static string Replay(string choice)
     {
         using var session = new VnSession();
@@ -223,6 +238,26 @@ public sealed class SunkillM13Tests
         }
 
         throw new InvalidOperationException("SUNKILL did not reach its choice.");
+    }
+
+    private static (IReadOnlyList<RenSaveSlotMetadata> Slots, int PostCount)
+        ReadMetadataWithUiLikeContext(VnPersistence persistence)
+    {
+        var synchronizationContext = new RecordingSynchronizationContext();
+        SynchronizationContext? previous = SynchronizationContext.Current;
+        try
+        {
+            SynchronizationContext.SetSynchronizationContext(synchronizationContext);
+            IReadOnlyList<RenSaveSlotMetadata> slots = persistence
+                .ReadSlotMetadataAsync()
+                .GetAwaiter()
+                .GetResult();
+            return (slots, synchronizationContext.PostCount);
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(previous);
+        }
     }
 
     private sealed class TestFiles : IDisposable
@@ -252,6 +287,19 @@ public sealed class SunkillM13Tests
             {
                 Directory.Delete(Root, recursive: true);
             }
+        }
+    }
+
+    private sealed class RecordingSynchronizationContext : SynchronizationContext
+    {
+        private int postCount;
+
+        public int PostCount => Volatile.Read(ref postCount);
+
+        public override void Post(SendOrPostCallback callback, object? state)
+        {
+            Interlocked.Increment(ref postCount);
+            ThreadPool.QueueUserWorkItem(_ => callback(state));
         }
     }
 }

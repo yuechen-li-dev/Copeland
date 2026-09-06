@@ -26,14 +26,25 @@ public sealed class VnNativeRenderer : IDisposable
     private readonly SpriteAtlasResource portraitResource;
     private readonly SpriteAtlasResource transparentPortraitResource;
 
-    public VnNativeRenderer(string repositoryRoot, RenApp app, VnMachinaLayer machinaLayer)
+    public VnNativeRenderer(
+        string repositoryRoot,
+        RenApp app,
+        VnMachinaLayer machinaLayer,
+        Action<string>? startupProgress = null)
     {
         this.app = app;
         this.machinaLayer = machinaLayer;
         backgroundResource = LoadImage(app.Presentation.BackgroundAsset, "sunkill-bunker", opaqueBackground: true);
         portraitResource = LoadPortrait("sunkill-oppenheimer.png", "oppenheimer");
         transparentPortraitResource = Transparent("portrait-empty");
-        CompiledGraphicsProgram program = CompileShader(repositoryRoot, "samples/Aurelian/ForwardTexturedM3.v.ts");
+        startupProgress?.Invoke("assets");
+        CompiledGraphicsProgram program = Task.Run(() => CompileShader(
+                repositoryRoot,
+                "samples/Aurelian/ForwardTexturedM3.v.ts",
+                startupProgress))
+            .GetAwaiter()
+            .GetResult();
+        startupProgress?.Invoke("shader");
         VulkanInitResult init = VulkanPlantInitializer.CreatePlant(
             PlantId.Zero,
             new VulkanPlantOptions(EnableValidation: true, ApplicationName: "SUNKILL"));
@@ -42,13 +53,16 @@ public sealed class VnNativeRenderer : IDisposable
             throw new InvalidOperationException(string.Join("; ", init.Diagnostics.Select(item => item.Message)));
         }
         plant = init.Plant;
+        startupProgress?.Invoke("vulkan-plant");
         compositor = new NativeLayerCompositor(plant, Width, Height, clearColor: NativeFrameClearColor.Transparent);
         var backgroundLayer = new VnImageSemanticLayer(new LayerId("world-background"), 0);
         var portraitLayer = new VnImageSemanticLayer(new LayerId("portrait"), 50);
         compositor.Add(backgroundLayer, new TextureLayerPresenter(backgroundLayer.Describe().Id, plant, program, Background));
         compositor.Add(portraitLayer, new TextureLayerPresenter(portraitLayer.Describe().Id, plant, program, Portrait));
         compositor.Add(machinaLayer, new TextureLayerPresenter(VnMachinaLayer.Id, plant, program, Overlay));
+        startupProgress?.Invoke("composition");
         compositor.Attach();
+        startupProgress?.Invoke("attached");
     }
 
     public NativeLayerFrameResult Render(ulong frameId)
@@ -134,16 +148,22 @@ public sealed class VnNativeRenderer : IDisposable
         return new SpriteAtlasResource(new SpriteAssetId(id), hash, Width, Height, rgba, SpriteSampling.Linear);
     }
 
-    private static CompiledGraphicsProgram CompileShader(string repositoryRoot, string sourceName)
+    private static CompiledGraphicsProgram CompileShader(
+        string repositoryRoot,
+        string sourceName,
+        Action<string>? startupProgress)
     {
         string path = Path.Combine(repositoryRoot, sourceName.Replace('/', Path.DirectorySeparatorChar));
         string source = File.ReadAllText(path).Replace("\r\n", "\n", StringComparison.Ordinal);
+        startupProgress?.Invoke("shader-source");
         VdMirGraphicsModule module = GpuGraphicsBinder.Compile(new GpuCompilationRequest([new GpuSourceFile(sourceName, source)]));
+        startupProgress?.Invoke("shader-bound");
         if (!module.Success)
         {
             throw new InvalidOperationException(string.Join(Environment.NewLine, module.Diagnostics.Select(item => item.Message)));
         }
         VdMirGraphicsBackendResult backend = VdMirGraphicsBackend.Compile(module);
+        startupProgress?.Invoke("shader-backend");
         if (!backend.Vertex.SpirvValidated || !backend.Pixel.SpirvValidated)
         {
             throw new InvalidOperationException(backend.Vertex.DxcOutput + backend.Pixel.DxcOutput);

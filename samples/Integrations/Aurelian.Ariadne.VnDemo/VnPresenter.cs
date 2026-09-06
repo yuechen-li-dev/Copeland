@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.Threading;
 using Aurelian.Composition;
 using Aurelian.NativeComposition;
 using InputMan.Core;
@@ -16,8 +17,12 @@ internal static class VnPresenter
 {
     public static int Run(string[] args)
     {
+        VnApplication.LaunchSmokeRequested = args.Contains(
+            "--launch-smoke",
+            StringComparer.OrdinalIgnoreCase);
+        VnApplication.LaunchExitCode = 0;
         BuildApp().StartWithClassicDesktopLifetime(args);
-        return 0;
+        return VnApplication.LaunchExitCode;
     }
 
     private static AppBuilder BuildApp()
@@ -29,11 +34,14 @@ internal static class VnPresenter
 
 internal sealed class VnApplication : Application
 {
+    public static bool LaunchSmokeRequested { get; set; }
+    public static int LaunchExitCode { get; set; }
+
     public override void OnFrameworkInitializationCompleted()
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new VnWindow();
+            desktop.MainWindow = new VnWindow(LaunchSmokeRequested);
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -42,24 +50,17 @@ internal sealed class VnApplication : Application
 
 internal sealed class VnWindow : Window
 {
-    private readonly RenApp app;
-    private readonly VnMachinaLayer machina;
-    private readonly VnNativeRenderer native;
+    private readonly bool launchSmokeRequested;
     private readonly Image image;
+    private RenApp? app;
+    private VnMachinaLayer? machina;
+    private VnNativeRenderer? native;
     private WriteableBitmap? bitmap;
     private ulong frameSequence;
 
-    public VnWindow()
+    public VnWindow(bool launchSmokeRequested)
     {
-        string root = Program.FindRepositoryRoot();
-        string userRoot = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "SUNKILL");
-        app = new RenApp(
-            Path.Combine(userRoot, "Saves"),
-            Path.Combine(userRoot, "settings.json"));
-        machina = new VnMachinaLayer(app);
-        native = new VnNativeRenderer(root, app, machina);
+        this.launchSmokeRequested = launchSmokeRequested;
 
         image = new Image
         {
@@ -76,15 +77,102 @@ internal sealed class VnWindow : Window
         Width = VnNativeRenderer.Width;
         Height = VnNativeRenderer.Height;
         CanResize = false;
-        Content = image;
+        Background = Brushes.Black;
+        Content = new TextBlock
+        {
+            Text = "INITIALIZING DAWN ENGINE...",
+            Foreground = Brushes.Orange,
+            FontSize = 24,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+        };
+        Title = "SUNKILL — STARTING";
         KeyDown += OnKeyDown;
         Closed += OnClosed;
-        Opened += (_, _) => image.Focus();
-        Render();
+        Opened += OnOpened;
+    }
+
+    private void OnOpened(object? sender, EventArgs args)
+    {
+        InitializeProduct();
+    }
+
+    private void InitializeProduct()
+    {
+        try
+        {
+            ReportSmokeStage("initialize");
+            string root = Program.FindRepositoryRoot();
+            ReportSmokeStage("repository-root");
+            string userRoot = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "SUNKILL");
+            app = new RenApp(
+                Path.Combine(userRoot, "Saves"),
+                Path.Combine(userRoot, "settings.json"),
+                stage => ReportSmokeStage($"app-{stage}"));
+            ReportSmokeStage("app-state");
+            machina = new VnMachinaLayer(app);
+            ReportSmokeStage("machina-layer");
+            native = new VnNativeRenderer(
+                root,
+                app,
+                machina,
+                stage => ReportSmokeStage($"native-{stage}"));
+            ReportSmokeStage("native-renderer");
+            Content = image;
+            Render();
+            ReportSmokeStage("first-frame");
+            image.Focus();
+
+            if (launchSmokeRequested)
+            {
+                Console.WriteLine(
+                    $"SUNKILL_LAUNCH_READY screen={app.State.Screen} notice={app.State.Notice}");
+                Console.Out.Flush();
+                Dispatcher.UIThread.Post(Close, DispatcherPriority.Normal);
+            }
+        }
+        catch (Exception exception)
+        {
+            VnApplication.LaunchExitCode = 1;
+            Title = "SUNKILL — STARTUP FAILED";
+            Content = new TextBlock
+            {
+                Text = $"DAWN ENGINE STARTUP FAILED\n\n{exception.Message}",
+                Foreground = Brushes.OrangeRed,
+                FontSize = 20,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(48),
+            };
+            Console.Error.WriteLine(exception);
+            Console.Error.Flush();
+
+            if (launchSmokeRequested)
+            {
+                Dispatcher.UIThread.Post(Close, DispatcherPriority.Normal);
+            }
+        }
+    }
+
+    private void ReportSmokeStage(string stage)
+    {
+        if (!launchSmokeRequested)
+        {
+            return;
+        }
+
+        Console.Error.WriteLine($"SUNKILL_LAUNCH_STAGE {stage}");
+        Console.Error.Flush();
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs args)
     {
+        if (app is null)
+        {
+            return;
+        }
+
         if (!TryMapKey(args.Key, out KeyboardKey key))
         {
             return;
@@ -97,6 +185,11 @@ internal sealed class VnWindow : Window
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs args)
     {
+        if (native is null)
+        {
+            return;
+        }
+
         PointerPoint point = args.GetCurrentPoint(image);
         if (!point.Properties.IsLeftButtonPressed)
         {
@@ -113,6 +206,11 @@ internal sealed class VnWindow : Window
 
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs args)
     {
+        if (native is null)
+        {
+            return;
+        }
+
         native.Route(new LayerPointerButtonChanged(
             ToLayerPoint(args.GetPosition(image)),
             LayerPointerButton.Primary,
@@ -124,6 +222,11 @@ internal sealed class VnWindow : Window
 
     private void CompleteInteraction()
     {
+        if (app is null)
+        {
+            return;
+        }
+
         if (app.ExitRequested)
         {
             Close();
@@ -135,6 +238,11 @@ internal sealed class VnWindow : Window
 
     private void Render()
     {
+        if (native is null || app is null)
+        {
+            throw new InvalidOperationException("The SUNKILL renderer is not initialized.");
+        }
+
         NativeLayerFrameResult frame = native.Render(++frameSequence);
         byte[] pixels = frame.NativeFrame.Pixels
             ?? throw new InvalidOperationException("The native presenter frame did not return pixels.");
@@ -148,8 +256,8 @@ internal sealed class VnWindow : Window
     private void OnClosed(object? sender, EventArgs args)
     {
         bitmap?.Dispose();
-        native.Dispose();
-        app.Dispose();
+        native?.Dispose();
+        app?.Dispose();
     }
 
     private static WriteableBitmap CreateBitmap(byte[] pixels)

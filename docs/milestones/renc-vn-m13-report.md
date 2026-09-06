@@ -250,7 +250,7 @@ The trace is semantic rather than coupled to a hard-coded dialogue-beat count.
 ## 23. Performance sanity
 
 The final 12-frame native-compositor/readback sample averaged **29.75 ms** and
-had a **101.78 ms** worst sample on this machine. This includes synchronous
+had a **104.90 ms** worst sample on this machine. This includes synchronous
 1280×720 proof readback and is not an interactive frame-budget benchmark. A
 local presentation cache removed repeated image decoding and unchanged Machina
 rasterization; the pre-cache proof averaged about 132 ms. No engine performance
@@ -322,7 +322,35 @@ Deliverance slots with their single retained backups.
 ## Validation
 
 - Focused product build: succeeded with 0 warnings and 0 errors.
-- Focused SUNKILL tests: 9 passed.
-- Full `Aurelian.slnx` test run: 761 passed, 0 failed.
+- Focused SUNKILL tests: 10 passed.
+- Full `Aurelian.slnx` test run: 762 passed, 0 failed.
 - Default executable: responsive native window smoke-tested.
 - Proof runner: Outcome A and all required artifacts regenerated successfully.
+
+## Launch hardening follow-up
+
+The first interactive save exposed a startup defect that the original
+process-exists smoke did not catch. Slot metadata was read with a synchronous
+wait over an async continuation on Avalonia's UI synchronization context. With
+an existing `.dlv` file, startup could deadlock before the window acquired a
+handle. After that was isolated, runtime DXC compilation could also remain in a
+subprocess wait when invoked directly from the Avalonia UI apartment.
+
+The repair is bounded to those owner seams:
+
+- persistence awaits explicitly avoid capturing the UI context;
+- shader compilation runs away from the UI apartment;
+- DXC drains stdout/stderr concurrently, creates no console window, has a
+  15-second deadline, and kills its complete process tree on timeout;
+- the presenter creates a visible `SUNKILL — STARTING` shell before product
+  initialization and shows a readable startup error if initialization fails;
+- `Play-Sunkill.cmd` builds with one non-reusable node and launches the built
+  apphost directly instead of nesting `dotnet run`;
+- `tools/Test-SunkillLaunch.ps1` requires an opened window and rendered native
+  frame, applies a 20-second deadline, captures both streams, kills a timed-out
+  child tree, and rejects any newly leaked reusable MSBuild process.
+
+The hardened launch test passed three consecutive runs and the launcher itself
+passed the same `--launch-smoke` route. A focused regression additionally proves
+that populated save-slot metadata does not post a continuation back to a UI-like
+synchronization context.

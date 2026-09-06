@@ -52,6 +52,7 @@ public static class DxcSpirvCompiler
             {
                 FileName = resolution.ExecutablePath!,
                 UseShellExecute = false,
+                CreateNoWindow = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
             };
@@ -62,9 +63,27 @@ public static class DxcSpirvCompiler
             }
 
             process.Start();
-            var standardOutput = process.StandardOutput.ReadToEnd();
-            var standardError = process.StandardError.ReadToEnd();
-            process.WaitForExit();
+            Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync();
+            Task<string> standardErrorTask = process.StandardError.ReadToEndAsync();
+            if (!process.WaitForExit(milliseconds: 15_000))
+            {
+                process.Kill(entireProcessTree: true);
+                process.WaitForExit();
+                return new DxcSpirvCompileResult(
+                    DxcSpirvStatus.Failed,
+                    [],
+                    null,
+                    string.Empty,
+                    "DXC did not exit within 15 seconds; its process tree was terminated.",
+                    arguments,
+                    [new DxcToolDiagnostic(
+                        DxcToolDiagnosticCodes.PathProbeFailed,
+                        "DXC subprocess timed out after 15 seconds.",
+                        resolution.ExecutablePath)]);
+            }
+
+            var standardOutput = standardOutputTask.GetAwaiter().GetResult();
+            var standardError = standardErrorTask.GetAwaiter().GetResult();
 
             if (process.ExitCode != 0)
             {

@@ -22,6 +22,18 @@ Run deterministic qualification separately:
 dotnet run --project samples/Integrations/Aurelian.Ariadne.VnDemo/Aurelian.Ariadne.VnDemo.csproj -- --proof
 ```
 
+Run the bounded real-window launch smoke test without nested `dotnet run`:
+
+```powershell
+pwsh ./tools/Test-SunkillLaunch.ps1
+```
+
+The launcher and smoke test build with one non-reusable MSBuild node, then run
+the produced apphost directly. The smoke test requires the actual Avalonia
+window to open and the first native frame to render, enforces a 20-second
+timeout, terminates the child tree on timeout, drains both output streams, and
+rejects newly leaked reusable MSBuild processes.
+
 The proof writes native runtime screenshots and structured evidence to
 `artifacts/renc-vn-m13/`.
 

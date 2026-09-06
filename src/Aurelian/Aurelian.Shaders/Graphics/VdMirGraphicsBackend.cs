@@ -99,6 +99,7 @@ public static class VdMirGraphicsBackend
             {
                 FileName = ResolveSpirvExecutable(executable),
                 UseShellExecute = false,
+                CreateNoWindow = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
             };
@@ -108,9 +109,17 @@ public static class VdMirGraphicsBackend
             }
             process.StartInfo.ArgumentList.Add(temporaryPath);
             process.Start();
-            string output = process.StandardOutput.ReadToEnd();
-            string error = process.StandardError.ReadToEnd();
-            process.WaitForExit();
+            Task<string> outputTask = process.StandardOutput.ReadToEndAsync();
+            Task<string> errorTask = process.StandardError.ReadToEndAsync();
+            if (!process.WaitForExit(milliseconds: 15_000))
+            {
+                process.Kill(entireProcessTree: true);
+                process.WaitForExit();
+                return (false, $"{executable} did not exit within 15 seconds; its process tree was terminated.");
+            }
+
+            string output = outputTask.GetAwaiter().GetResult();
+            string error = errorTask.GetAwaiter().GetResult();
             return (process.ExitCode == 0, string.Join(Environment.NewLine, new[] { output, error }.Where(value => !string.IsNullOrWhiteSpace(value))).Trim());
         }
         catch (Exception exception) when (exception is IOException or System.ComponentModel.Win32Exception or InvalidOperationException)
