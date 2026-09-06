@@ -32,6 +32,18 @@ internal static class Program
             return;
         }
 
+        if (args.Length == 2 && args[0] == "--sprite-cards-m17-proof")
+        {
+            SpriteCardsM17Proof.Run(args[1]);
+            return;
+        }
+
+        if (args.Length == 2 && args[0] == "--sprite-cards-m17-native-proof")
+        {
+            SpriteCardsM17Proof.RunNative(args[1]);
+            return;
+        }
+
         OblivionStandaloneOptions options = OblivionStandaloneOptions.Parse(args);
         OblivionConfigResult configResult = new OblivionConfigStore().Load();
         if (!configResult.Succeeded || configResult.Config is null)

@@ -1,0 +1,24 @@
+{
+  "milestone": "OBLIVION-NOTEBOOK-SPRITE-CARDS-STRUCTURAL-EDITING-M17",
+  "kind": "source-preserving-structural-visual-programming",
+  "insertQualified": true,
+  "removeQualified": true,
+  "reorderQualified": true,
+  "sourceAuthorityPreserved": true,
+  "compileBeforeReplaceQualified": true,
+  "staleSourceRejectionQualified": true,
+  "ambiguityRejectionQualified": true,
+  "conceptPathStableUnderMove": true,
+  "commentPreservationQualified": true,
+  "allocatorRecomputationQualified": true,
+  "sunkillStructuralDogfoodQualified": true,
+  "generalAstEditorAdded": false,
+  "dragDropGraphEditorAdded": false,
+  "rasterArtifacts": [
+    "insert-before.png",
+    "insert-after.png",
+    "reordered.png",
+    "removed.png",
+    "native-sunkill-structural-edit.png"
+  ]
+}

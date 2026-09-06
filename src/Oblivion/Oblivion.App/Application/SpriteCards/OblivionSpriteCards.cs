@@ -11,7 +11,7 @@ namespace Oblivion.App;
 /// App-owned orchestration for compiler-authoritative graphical assets.
 /// Cards are rebuilt projections; no card value is persisted as asset truth.
 /// </summary>
-public sealed class OblivionSpriteCardService
+public sealed partial class OblivionSpriteCardService
 {
     private long _compileVersion;
 
@@ -171,8 +171,9 @@ public sealed class OblivionSpriteCardService
                     panelPath));
             }
 
-            foreach (SpanPlacement<ObjectAssetEdgeSegment> placement in allocation.Placements)
+            for (int segmentIndex = 0; segmentIndex < allocation.Placements.Count; segmentIndex++)
             {
+                SpanPlacement<ObjectAssetEdgeSegment> placement = allocation.Placements[segmentIndex];
                 ObjectAssetEdgeSegment segment = placement.Payload;
                 GraphicalConceptPath conceptPath = SegmentPath(panel.Id, segment.Id);
                 ObjectAssetRegion region = regions[segment.RegionId];
@@ -182,7 +183,7 @@ public sealed class OblivionSpriteCardService
                         source,
                         segment,
                         SpriteCardEditProperty.SourceRegion)
-                    : LocateText(fullPath, source, Quote(segment.RegionId));
+                    : LocateStructuralSegment(fullPath, source, edgeName, segment);
                 IReadOnlyList<SpriteCardEditProperty> capabilities = segment.AllocationKind == SpanAllocationKind.Flex
                     ? [
                         SpriteCardEditProperty.FlexWeight,
@@ -191,6 +192,27 @@ public sealed class OblivionSpriteCardService
                         SpriteCardEditProperty.SourceRegion,
                     ]
                     : [];
+                var structuralCapabilities = new List<SpriteCardStructuralEditKind>
+                {
+                    SpriteCardStructuralEditKind.InsertBefore,
+                    SpriteCardStructuralEditKind.InsertAfter,
+                };
+                if (segmentIndex > 1 && segmentIndex + 1 < allocation.Placements.Count)
+                {
+                    structuralCapabilities.Add(SpriteCardStructuralEditKind.MoveBefore);
+                }
+
+                if (segmentIndex > 0 && segmentIndex + 2 < allocation.Placements.Count)
+                {
+                    structuralCapabilities.Add(SpriteCardStructuralEditKind.MoveAfter);
+                }
+
+                bool isCap = segmentIndex == 0 || segmentIndex + 1 == allocation.Placements.Count;
+                if (!isCap && allocation.Placements.Count > 3)
+                {
+                    structuralCapabilities.Add(SpriteCardStructuralEditKind.Remove);
+                }
+
                 cards.Add(new SpriteCard(
                     conceptPath,
                     GraphicalConceptKind.EdgeSegment,
@@ -216,7 +238,8 @@ public sealed class OblivionSpriteCardService
                             new GraphicalConceptPath("region." + segment.RegionId)),
                     ],
                     diagnostics.Where(item => item.ConceptPath == conceptPath).ToArray(),
-                    capabilities));
+                    capabilities,
+                    structuralCapabilities));
             }
         }
     }
@@ -269,20 +292,7 @@ public sealed class OblivionSpriteCardService
             return Trace(false, "compile-failed", before, replacement, span, currentHash, currentHash, timer.Elapsed, compileDiagnostics);
         }
 
-        string temporaryPath = projection.SourcePath + ".m16.tmp";
-        try
-        {
-            File.WriteAllText(temporaryPath, candidate, new UTF8Encoding(false));
-            File.Move(temporaryPath, projection.SourcePath, overwrite: true);
-            EmitOutputs(compiled.Document, projection.SourcePath);
-        }
-        finally
-        {
-            if (File.Exists(temporaryPath))
-            {
-                File.Delete(temporaryPath);
-            }
-        }
+        CommitSourceAndOutputs(projection.SourcePath, candidate, compiled.Document, "m16");
 
         timer.Stop();
         string nextHash = Hash(candidate);
@@ -545,14 +555,82 @@ public sealed class OblivionSpriteCardService
         return new GraphicalSourceLocation(path, start, length, line, column);
     }
 
-    private static void EmitOutputs(ObjectAssetDocument document, string sourcePath)
+    private static void CommitSourceAndOutputs(
+        string sourcePath,
+        string source,
+        ObjectAssetDocument document,
+        string transactionName)
     {
         ObjectAssetBuildOutputs outputs = ObjectAssetCompiler.Emit(document, sourcePath);
         string stem = sourcePath[..^".obj.ts".Length];
-        File.WriteAllText(stem + ".obj.toml", outputs.Toml);
-        File.WriteAllText(stem + ".runtime.toml", outputs.RuntimeToml);
-        File.WriteAllText(stem + ".obj.json", outputs.Json);
-        File.WriteAllText(stem + ".audit.json", outputs.AuditJson);
+        string transactionId = transactionName + "." + Guid.NewGuid().ToString("N");
+        (string Path, string Content)[] files =
+        [
+            (sourcePath, source),
+            (stem + ".obj.toml", outputs.Toml),
+            (stem + ".runtime.toml", outputs.RuntimeToml),
+            (stem + ".obj.json", outputs.Json),
+            (stem + ".audit.json", outputs.AuditJson),
+        ];
+        var originallyExisting = files.ToDictionary(file => file.Path, file => File.Exists(file.Path));
+        try
+        {
+            foreach ((string path, string content) in files)
+            {
+                File.WriteAllText(Temporary(path), content, new UTF8Encoding(false));
+                if (originallyExisting[path])
+                {
+                    File.Copy(path, Backup(path), overwrite: true);
+                }
+            }
+
+            foreach ((string path, _) in files)
+            {
+                File.Move(Temporary(path), path, overwrite: true);
+            }
+        }
+        catch
+        {
+            foreach ((string path, _) in files)
+            {
+                string backup = Backup(path);
+                if (File.Exists(backup))
+                {
+                    File.Copy(backup, path, overwrite: true);
+                }
+                else if (!originallyExisting[path] && File.Exists(path))
+                {
+                    File.Delete(path);
+                }
+            }
+
+            throw;
+        }
+        finally
+        {
+            foreach ((string path, _) in files)
+            {
+                if (File.Exists(Temporary(path)))
+                {
+                    File.Delete(Temporary(path));
+                }
+
+                if (File.Exists(Backup(path)))
+                {
+                    File.Delete(Backup(path));
+                }
+            }
+        }
+
+        string Temporary(string path)
+        {
+            return path + "." + transactionId + ".tmp";
+        }
+
+        string Backup(string path)
+        {
+            return path + "." + transactionId + ".bak";
+        }
     }
 
     private static string Hash(string source)

@@ -1,0 +1,22 @@
+{
+  "strategy": "comment-aware bounded source-span rewrite of one ordered segments list",
+  "smallestEnclosingConstruct": "horizontalEdge.segments",
+  "commentsPreserved": true,
+  "recordTableUnchanged": true,
+  "exactFormattingRoundtrip": true,
+  "limitation": "Moves carry leading comments with the moved segment; removal preserves leading comments even when that can leave whitespace.",
+  "beforeSpan": {
+    "path": "C:\\Users\\yuech\\AppData\\Local\\Temp\\oblivion-m17-proof-11100d05a3034a628f3b1e4cd4a2e847\\sunkill-dialogue-panel.obj.ts",
+    "start": 4029,
+    "length": 686,
+    "line": 169,
+    "column": 19
+  },
+  "afterSpan": {
+    "path": "C:\\Users\\yuech\\AppData\\Local\\Temp\\oblivion-m17-proof-11100d05a3034a628f3b1e4cd4a2e847\\sunkill-dialogue-panel.obj.ts",
+    "start": 4029,
+    "length": 745,
+    "line": 169,
+    "column": 19
+  }
+}

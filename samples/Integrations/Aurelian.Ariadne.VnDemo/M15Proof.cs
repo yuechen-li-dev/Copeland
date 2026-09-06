@@ -295,7 +295,7 @@ internal static class M15Proof
         {
             float left = stripLeft + ((float)placement.Offset / Math.Max(1, edge.Extent) * stripWidth);
             float width = (float)placement.Length / Math.Max(1, edge.Extent) * stripWidth;
-            using var fill = new SKPaint { Color = palette[index] };
+            using var fill = new SKPaint { Color = palette[index % palette.Length] };
             canvas.DrawRect(left, stripTop, width, stripHeight, fill);
             if (width > 38)
             {
@@ -304,8 +304,9 @@ internal static class M15Proof
         }
         canvas.DrawRect(stripLeft, stripTop, stripWidth, stripHeight, border);
 
-        const float cardWidth = 164;
         const float gap = 9;
+        float cardWidth = (stripWidth - (gap * Math.Max(0, segments.Length - 1))) /
+            Math.Max(1, segments.Length);
         const float cardTop = 198;
         for (int index = 0; index < segments.Length; index++)
         {
@@ -324,7 +325,12 @@ internal static class M15Proof
                 (float)(segment.SourceRect.Y + segment.SourceRect.Height));
             var preview = new SKRect(x + 12, cardTop + 14, x + cardWidth - 12, cardTop + 146);
             canvas.DrawBitmap(atlas, source, preview);
-            using var accent = new SKPaint { Color = palette[index], Style = SKPaintStyle.Stroke, StrokeWidth = 3 };
+            using var accent = new SKPaint
+            {
+                Color = palette[index % palette.Length],
+                Style = SKPaintStyle.Stroke,
+                StrokeWidth = 3,
+            };
             canvas.DrawRect(preview, accent);
 
             DrawWrapped(canvas, segment.Id, x + 12, cardTop + 178, cardWidth - 24, label);

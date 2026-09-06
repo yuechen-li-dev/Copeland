@@ -22,7 +22,20 @@ Compiler and allocation diagnostics retain stable codes and severity. Relevant f
 
 SUNKILL authors these as `record table AssetConcepts`. They are semantic authoring geometry, appear as cards/overlays, and are deliberately absent from SpriteForge runtime TOML. This recovers the useful MachinaCanvas behavior without restoring TOML sidecars as authority.
 
+## Structural editing
+
+M17 adds a bounded semantic API for ordered programmable-panel edge programs:
+
+- insert a fixed or flexible segment before or after an existing segment;
+- move a segment across exactly one adjacent segment;
+- remove a non-cap segment while retaining at least three segments.
+
+Each intent carries the parent edge Concept Path, target and/or anchor Concept Path, expected source hash, and expected enclosing construct identity. A new segment supplies a readable collision-checked local ID, an existing compatible region, allocation policy, minimum, weight, and sampling policy. The card surface projects explicit `+ Before`, `+ After`, `←`, `→`, and `Remove` affordances. It does not treat ordinal position as identity.
+
+The current SUNKILL source authors top/bottom through one `horizontalEdge` template and left/right through one `verticalEdge` template. Editing either shared ordered program intentionally changes both instances, and the edit result reports every added or removed path. The service rejects a missing or multiply located template rather than selecting the first text match.
+
+Structural transformation is comment/string aware and rewrites only the selected `segments: [...]` contents. Inserted source follows the enclosing indentation and newline style. Moves carry leading comments with their segment. Removal retains leading comments, which can leave harmless whitespace. Unrelated record-table rows and surrounding functions remain byte-identical. The candidate is compiled and its Concept Paths, caps, segment minimum, requested order, and target lifecycle are validated before atomic replacement.
+
 ## Current edit boundary
 
-M16 supports flex weight, minimum length, sampling mode, and compatible source region selection for explicit flex segment calls. It does not support arbitrary source formatting, segment reorder, painting, animation timelines, layers, shader graphs, or a general node graph. Animation frames, stackframes, and atlas subgrids remain compatible with future Region/Card adapters because SpriteForge retains ownership.
-
+M16 parameter edits remain unchanged: flex weight, minimum length, sampling mode, and compatible source region selection use explicit call arguments. M17 structure edits are limited to the existing `horizontalEdge` and `verticalEdge` ordered lists. They do not edit manifests, create atlas crops, manipulate arbitrary arrays/statements/object graphs, provide drag-and-drop, or implement general undo/redo. Animation frames, stackframes, and atlas subgrids remain compatible with future Region/Card adapters because SpriteForge retains ownership.

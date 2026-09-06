@@ -147,7 +147,12 @@ public sealed record SpriteCard(
     SpriteCardRuntimeState Runtime,
     IReadOnlyList<SpriteCardRelationship> Relationships,
     IReadOnlyList<SpriteCardDiagnostic> Diagnostics,
-    IReadOnlyList<SpriteCardEditProperty> EditCapabilities);
+    IReadOnlyList<SpriteCardEditProperty> EditCapabilities,
+    IReadOnlyList<SpriteCardStructuralEditKind>? StructuralEditCapabilities = null)
+{
+    public IReadOnlyList<SpriteCardStructuralEditKind> StructuralCapabilities =>
+        StructuralEditCapabilities ?? [];
+}
 
 public enum SpriteCardEditProperty
 {
@@ -227,3 +232,62 @@ public sealed record SpriteCardEditTrace(
     string SourceSha256After,
     TimeSpan RecompileDuration,
     IReadOnlyList<SpriteCardDiagnostic> Diagnostics);
+
+public enum SpriteCardStructuralEditKind
+{
+    InsertBefore,
+    InsertAfter,
+    Remove,
+    MoveBefore,
+    MoveAfter,
+}
+
+public enum SpriteCardSegmentAllocation
+{
+    Fixed,
+    Flex,
+}
+
+public sealed record SpriteCardNewSegment(
+    string LocalId,
+    string RegionId,
+    SpriteCardSegmentAllocation Allocation,
+    int MinimumLength,
+    int Weight,
+    string Sampling);
+
+/// <summary>
+/// A bounded semantic request against one authored ordered edge program. Raw
+/// source replacements are deliberately not part of this public contract.
+/// </summary>
+public sealed record SpriteCardStructuralEditIntent(
+    SpriteCardStructuralEditKind Kind,
+    GraphicalConceptPath ParentPath,
+    GraphicalConceptPath? ConceptPath,
+    GraphicalConceptPath? AnchorPath,
+    SpriteCardNewSegment? NewConcept,
+    string ExpectedSourceSha256,
+    string ExpectedEnclosingConstructIdentity);
+
+public sealed record SpriteCardStructuralEditResult(
+    bool Applied,
+    string Status,
+    SpriteCardStructuralEditKind EditKind,
+    GraphicalConceptPath? TargetPath,
+    GraphicalConceptPath? AnchorPath,
+    GraphicalSourceLocation? BeforeSourceSpan,
+    GraphicalSourceLocation? AfterSourceSpan,
+    string SourceSha256Before,
+    string SourceSha256After,
+    string BeforeSnippet,
+    string AfterSnippet,
+    IReadOnlyList<GraphicalConceptPath> ConceptsAdded,
+    IReadOnlyList<GraphicalConceptPath> ConceptsRemoved,
+    IReadOnlyList<GraphicalConceptPath> ConceptsMoved,
+    IReadOnlyList<SpriteCardDiagnostic> Diagnostics,
+    string CompileResult,
+    TimeSpan SourceTransformationDuration,
+    TimeSpan CompileDuration,
+    TimeSpan CardRefreshDuration,
+    TimeSpan PreviewRefreshDuration,
+    SpriteCardProjection? RefreshedProjection);

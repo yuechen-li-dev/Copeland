@@ -1,0 +1,40 @@
+{
+  "result": {
+    "applied": false,
+    "status": "rejected",
+    "editKind": "insertBefore",
+    "targetPath": {
+      "value": "panel.dialogue.top.clamp-decorative"
+    },
+    "anchorPath": {
+      "value": "panel.dialogue.top.center"
+    },
+    "beforeSourceSpan": null,
+    "afterSourceSpan": null,
+    "sourceSha256Before": "cf6df16c22744063bc16934652dce1fc7eefcc6cf55f864b3194e26369dc76d9",
+    "sourceSha256After": "f148ff704641683b15d3575e195791cc68a7db9a42aa590dd78cc32d590016d6",
+    "beforeSnippet": "",
+    "afterSnippet": "",
+    "conceptsAdded": [],
+    "conceptsRemoved": [],
+    "conceptsMoved": [],
+    "diagnostics": [
+      {
+        "code": "OBLIVION-SPRITE-CARD-STALE-SOURCE",
+        "severity": "error",
+        "message": "The authored source changed after this structural intent was created; refresh before editing.",
+        "conceptPath": {
+          "value": "panel.dialogue.top.clamp-decorative"
+        }
+      }
+    ],
+    "compileResult": "not-run",
+    "sourceTransformationDuration": "00:00:00",
+    "compileDuration": "00:00:00",
+    "cardRefreshDuration": "00:00:00",
+    "previewRefreshDuration": "00:00:00",
+    "refreshedProjection": null
+  },
+  "sourceUnchangedByRejectedEdit": true,
+  "refreshRequired": true
+}

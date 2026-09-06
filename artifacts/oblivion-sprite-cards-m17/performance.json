@@ -1,0 +1,35 @@
+{
+  "totalStructuralSequenceMilliseconds": 117.7568,
+  "edits": [
+    {
+      "kind": "insertBefore",
+      "transformMilliseconds": 3.9179,
+      "compileMilliseconds": 2.3399,
+      "cardRefreshMilliseconds": 10.4111
+    },
+    {
+      "kind": "moveAfter",
+      "transformMilliseconds": 0.2358,
+      "compileMilliseconds": 2.3823,
+      "cardRefreshMilliseconds": 11.38
+    },
+    {
+      "kind": "moveAfter",
+      "transformMilliseconds": 0.0213,
+      "compileMilliseconds": 2.2576,
+      "cardRefreshMilliseconds": 11.6151
+    },
+    {
+      "kind": "remove",
+      "transformMilliseconds": 0.2606,
+      "compileMilliseconds": 2.6741,
+      "cardRefreshMilliseconds": 9.8657
+    }
+  ],
+  "previewRefreshMilliseconds": [
+    7.2655,
+    0.1339,
+    0.1808,
+    0.1032
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "movedPath": {
+    "value": "panel.dialogue.top.clamp-decorative"
+  },
+  "moveOne": [
+    {
+      "value": "panel.dialogue.top.clamp-decorative"
+    }
+  ],
+  "moveTwo": [
+    {
+      "value": "panel.dialogue.top.clamp-decorative"
+    }
+  ],
+  "insertionRenamedExistingConcepts": false,
+  "removalRenamedSurvivingConcepts": false,
+  "repeatedCompileStable": true,
+  "templateFanoutWasReported": [
+    {
+      "value": "panel.dialogue.top.clamp-decorative"
+    },
+    {
+      "value": "panel.dialogue.bottom.clamp-decorative"
+    }
+  ]
+}

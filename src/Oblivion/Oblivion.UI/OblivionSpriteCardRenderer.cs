@@ -13,7 +13,7 @@ public sealed record OblivionSpriteCardRenderOptions(
     bool ShowAuthoringOverlay = true,
     int Width = 1500,
     int CardWidth = 210,
-    int CardHeight = 250);
+    int CardHeight = 290);
 
 /// <summary>
 /// Deterministic renderer-neutral notebook projection. It consumes resolved
@@ -234,6 +234,37 @@ public static class OblivionSpriteCardRenderer
         {
             Text(svg, x + 12, cursor, 11, "#a7f3d0", $"bounds {bounds.X},{bounds.Y} {bounds.Width}×{bounds.Height}");
             cursor += 17;
+        }
+
+        if (card.StructuralCapabilities.Count > 0)
+        {
+            var controls = new List<string>();
+            if (card.StructuralCapabilities.Contains(SpriteCardStructuralEditKind.InsertBefore))
+            {
+                controls.Add("+ Before");
+            }
+
+            if (card.StructuralCapabilities.Contains(SpriteCardStructuralEditKind.InsertAfter))
+            {
+                controls.Add("+ After");
+            }
+
+            if (card.StructuralCapabilities.Contains(SpriteCardStructuralEditKind.MoveBefore))
+            {
+                controls.Add("←");
+            }
+
+            if (card.StructuralCapabilities.Contains(SpriteCardStructuralEditKind.MoveAfter))
+            {
+                controls.Add("→");
+            }
+
+            if (card.StructuralCapabilities.Contains(SpriteCardStructuralEditKind.Remove))
+            {
+                controls.Add("Remove");
+            }
+
+            Text(svg, x + 12, y + options.CardHeight - 48, 9, "#7dd3fc", string.Join("  ", controls));
         }
 
         Text(svg, x + 12, y + options.CardHeight - 32, 10, "#94a3b8", $"source L{card.Source.Line}:{card.Source.Column}");
