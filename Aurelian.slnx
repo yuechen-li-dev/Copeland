@@ -48,5 +48,6 @@
     <Project Path="tests/Aurelian/Aurelian.Spatial2D.Tests/Aurelian.Spatial2D.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.World.Tests/Aurelian.World.Tests.csproj" />
     <Project Path="tests/Integrations/Aurelian.GameWorld2D.Tests/Aurelian.GameWorld2D.Tests.csproj" />
+    <Project Path="tests/Integrations/Sunkill.Tests/Sunkill.Tests.csproj" />
   </Folder>
 </Solution>

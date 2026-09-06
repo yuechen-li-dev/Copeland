@@ -1,0 +1,24 @@
+{
+  "qualified": true,
+  "separateFromGameSave": true,
+  "persistedPath": "runtime/settings.json",
+  "values": {
+    "masterVolume": 0.7,
+    "musicVolume": 0.54999995,
+    "sfxVolume": 0
+  },
+  "aurelianBusGains": {
+    "Master": 0.7,
+    "Music": 0.54999995,
+    "Sfx": 0,
+    "Ambient": 1,
+    "UI": 1,
+    "Dialogue": 1
+  },
+  "malformedSettingsFallback": {
+    "masterVolume": 0.8,
+    "musicVolume": 0.65,
+    "sfxVolume": 0.8
+  },
+  "textSpeed": "deferred: current dialogue text appears instantly"
+}

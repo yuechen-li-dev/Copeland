@@ -1,30 +1,42 @@
-# Aurelian Ariadne VN demo
+# SUNKILL — RenC# VN M13
 
-This sample is the executable proof for `AURELIAN-ARIADNE-MACHINA-DIALOGUE-M7B`.
-It runs a compact branching after-school scene through Ariadne dialogue operations,
-projects the active semantic state into Machina, and composites background, portrait,
-and UI through Aurelian's native Vulkan layer path.
+This project is the playable `RENC#-VN-M13` proof: a minimal native visual-novel
+application profile over Ariadne, Dominatus, Deliverance, InputMan, Machina.UI,
+and Aurelian. It is deliberately an application, not a new VN engine.
 
-Run the playable presenter from the Copeland repository root:
+Launch the product from the repository root:
+
+```powershell
+.\Play-Sunkill.cmd
+```
+
+or directly:
 
 ```powershell
 dotnet run --project samples/Integrations/Aurelian.Ariadne.VnDemo/Aurelian.Ariadne.VnDemo.csproj
 ```
 
-Run the deterministic qualification separately:
+Run deterministic qualification separately:
 
 ```powershell
 dotnet run --project samples/Integrations/Aurelian.Ariadne.VnDemo/Aurelian.Ariadne.VnDemo.csproj -- --proof
 ```
 
-The deterministic proof and screenshots are written to
-`artifacts/aurelian-ariadne-machina-dialogue-m7b/`.
+The proof writes native runtime screenshots and structured evidence to
+`artifacts/renc-vn-m13/`.
 
-Controls are Enter/Space to advance or confirm, arrows to select, A for auto, S for
-skip, Escape to cancel skip, F to save, and I to load. The pointer can activate
-choices and visible controls. Auto advances one line per host-requested pulse; skip
-uses the same bounded pulse and always stops at choices.
+Keyboard controls:
 
-The original art is generated for this sample. `rei-soft-cutout.png` was repaired
-from an accidentally baked checkerboard by applying MachinaCanvas's existing
-`deriveAlphaMapPixels` algorithm through `tools/remove-checkerboard-with-machina-canvas.ts`.
+- arrows navigate menus and choices;
+- Enter or Space confirms and advances dialogue;
+- Escape opens or leaves the in-game menu;
+- F saves to slot 1;
+- I loads slot 1.
+
+The mouse can activate every visible Machina button. Settings and saves are kept
+under `%LOCALAPPDATA%\SUNKILL` in the interactive application. The proof runner
+uses repository-local artifact paths so qualification is isolated.
+
+SUNKILL is absurd alternate-history parody. Its generated background and
+Oppenheimer portrait are original assets and do not copy movie stills or actor
+likeness references.

@@ -1,0 +1,10 @@
+{
+  "qualified": true,
+  "trace": [
+    "Advance until protocol choice",
+    "Choose open-shutters",
+    "Advance until terminal"
+  ],
+  "firstHash": "7d8272b00185b88455587ad91b84bceed860247cc39f9c8ed5f4bad54f0d4cf1",
+  "secondHash": "7d8272b00185b88455587ad91b84bceed860247cc39f9c8ed5f4bad54f0d4cf1"
+}

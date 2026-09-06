@@ -1,87 +1,36 @@
-using Aurelian.GameHost;
+using System.Security.Cryptography;
+using System.Text;
+using Ariadne.OptFlow.Dialogue;
 using Ariadne.OptFlow.Presentation;
-using Dominatus.Core.Hfsm;
 using Dominatus.Core.Persistence;
 using Dominatus.Core.Runtime;
-using InputMan.Aurelian;
-using InputMan.Core;
 
 namespace Aurelian.Ariadne.VnDemo;
-
-public static class VnControls
-{
-    public static readonly ActionMapId Dialogue = new("VN.Dialogue");
-    public static readonly ActionMapId Gameplay = new("VN.Gameplay");
-    public static readonly ActionId Advance = new("VN.Advance");
-    public static readonly ActionId Up = new("VN.Up");
-    public static readonly ActionId Down = new("VN.Down");
-    public static readonly ActionId Cancel = new("VN.Cancel");
-    public static readonly ActionId Auto = new("VN.Auto");
-    public static readonly ActionId Skip = new("VN.Skip");
-    public static readonly ActionId Save = new("VN.Save");
-    public static readonly ActionId Load = new("VN.Load");
-    public static readonly ActionId GameplayMove = new("Gameplay.Move");
-
-    public static InputProfile CreateProfile()
-    {
-        return Input.Profile(
-        [
-            Input.Map(Dialogue, 100,
-            [
-                Bind.Action(Controls.Key(KeyboardKey.Enter), Advance, consume: ConsumeMode.ControlOnly),
-                Bind.Action(Controls.Key(KeyboardKey.Space), Advance, consume: ConsumeMode.ControlOnly),
-                Bind.Action(Controls.Mouse(MouseButton.Primary), Advance, consume: ConsumeMode.ControlOnly),
-                Bind.Action(Controls.Key(KeyboardKey.ArrowUp), Up, consume: ConsumeMode.ControlOnly),
-                Bind.Action(Controls.Key(KeyboardKey.ArrowDown), Down, consume: ConsumeMode.ControlOnly),
-                Bind.Action(Controls.Key(KeyboardKey.Escape), Cancel, consume: ConsumeMode.ControlOnly),
-                Bind.Action(Controls.Key(KeyboardKey.A), Auto, consume: ConsumeMode.ControlOnly),
-                Bind.Action(Controls.Key(KeyboardKey.S), Skip, consume: ConsumeMode.ControlOnly),
-                Bind.Action(Controls.Key(KeyboardKey.F), Save, consume: ConsumeMode.ControlOnly),
-                Bind.Action(Controls.Key(KeyboardKey.I), Load, consume: ConsumeMode.ControlOnly),
-            ]),
-            Input.Map(Gameplay, 10,
-            [
-                Bind.Action(Controls.Key(KeyboardKey.W), GameplayMove),
-            ], canConsume: false),
-        ]);
-    }
-}
 
 public sealed class VnSession : IDisposable
 {
     private readonly DialoguePresentationProjector projector = new(
-        VnDialogueDefinition.DialogueId,
-        VnDialogueDefinition.Steps.Select(step => step.Presentation));
-    private ActuatorHost host = null!;
+        SunkillDialogue.DialogueId,
+        SunkillDialogue.Steps.Select(step => step.Presentation));
     private AiWorld world = null!;
     private AiAgent agent = null!;
     private DialogueSurfaceActuator surface = null!;
-    private ReturnLetterConsequenceHandler consequence = null!;
-    private readonly InputManEngine inputEngine;
-    private readonly AurelianInputAdapter inputAdapter;
-    private ulong inputSequence;
+    private SunkillConsequenceHandler consequence = null!;
 
     public VnSession()
     {
-        inputEngine = new InputManEngine(VnControls.CreateProfile());
-        inputAdapter = new AurelianInputAdapter(inputEngine);
-        inputAdapter.SetContexts(VnControls.Dialogue);
         BuildWorld();
         TickUntilPresentation();
     }
 
-    public bool AutoEnabled { get; private set; }
-    public bool SkipEnabled { get; private set; }
     public int SelectedChoiceIndex { get; private set; }
-    public bool GameplayInputLeaked { get; private set; }
     public int DialogueDispatchCount => surface.DispatchCount;
     public int ConsequenceEmissionCount => consequence.EmissionCount;
-    public AiWorld World => world;
     public AiAgent Agent => agent;
-    public DialogueSurfaceActuator Surface => surface;
-    public bool IsTerminal => agent.Bb.GetOrDefault(VnDialogueDefinition.Completed, false);
-    public Action? SaveRequested { get; set; }
-    public Action? LoadRequested { get; set; }
+    public bool IsTerminal => SunkillDialogue.Lowered.IsComplete(agent);
+    public DawnProtocol Protocol => SunkillDialogue.ReadProtocol(agent);
+    public bool DawnEngineTested => agent.Bb.GetOrDefault(SunkillDialogue.DawnEngineTested, false);
+    public bool StraussWaitedFor => agent.Bb.GetOrDefault(SunkillDialogue.StraussWaitedFor, false);
 
     public DialoguePresentationSnapshot Presentation => projector.Project(
         agent,
@@ -97,11 +46,14 @@ public sealed class VnSession : IDisposable
             Choose(presentation.Choices[presentation.SelectedChoiceIndex].Id);
             return;
         }
-        if (presentation.CanAdvance)
+
+        if (!presentation.CanAdvance)
         {
-            surface.Complete();
-            TickUntilPresentation();
+            return;
         }
+
+        surface.Complete();
+        TickUntilPresentation();
     }
 
     public void Choose(string choiceId)
@@ -112,6 +64,7 @@ public sealed class VnSession : IDisposable
         {
             throw new InvalidOperationException($"Choice '{choiceId}' is not visible.");
         }
+
         surface.Complete(choiceId);
         SelectedChoiceIndex = 0;
         TickUntilPresentation();
@@ -124,47 +77,8 @@ public sealed class VnSession : IDisposable
         {
             return;
         }
+
         SelectedChoiceIndex = (SelectedChoiceIndex + delta + count) % count;
-    }
-
-    public void ToggleAuto() => AutoEnabled = !AutoEnabled;
-    public void ToggleSkip() => SkipEnabled = !SkipEnabled;
-
-    public void Cancel()
-    {
-        SkipEnabled = false;
-    }
-
-    public void RequestSave() => SaveRequested?.Invoke();
-    public void RequestLoad() => LoadRequested?.Invoke();
-
-    public void PulseAutomatic()
-    {
-        DialoguePresentationSnapshot presentation = Presentation;
-        if ((AutoEnabled || SkipEnabled) && presentation.CanAdvance)
-            Advance();
-    }
-
-    public void ApplyInput(InputFrame frame)
-    {
-        if (frame.WasPressed(VnControls.Up)) MoveChoice(-1);
-        if (frame.WasPressed(VnControls.Down)) MoveChoice(1);
-        if (frame.WasPressed(VnControls.Auto)) ToggleAuto();
-        if (frame.WasPressed(VnControls.Skip)) ToggleSkip();
-        if (frame.WasPressed(VnControls.Cancel)) Cancel();
-        if (frame.WasPressed(VnControls.Save)) RequestSave();
-        if (frame.WasPressed(VnControls.Load)) RequestLoad();
-        if (frame.WasPressed(VnControls.Advance)) Advance();
-        GameplayInputLeaked |= frame.WasPressed(VnControls.GameplayMove);
-    }
-
-    public void Press(KeyboardKey key)
-    {
-        inputAdapter.RecordButton(Controls.Key(key), true);
-        inputAdapter.BeginFrame(new AurelianHostFrame(++inputSequence, TimeSpan.FromMilliseconds(16), TimeSpan.FromMilliseconds(inputSequence * 16)));
-        ApplyInput(inputAdapter.CurrentFrame);
-        inputAdapter.RecordButton(Controls.Key(key), false);
-        inputAdapter.BeginFrame(new AurelianHostFrame(++inputSequence, TimeSpan.FromMilliseconds(16), TimeSpan.FromMilliseconds(inputSequence * 16)));
     }
 
     public VnSessionCheckpoint Capture()
@@ -173,43 +87,60 @@ public sealed class VnSession : IDisposable
             DominatusSave.CreateCheckpointChunks(DominatusCheckpointBuilder.Capture(world))
                 .Select(chunk => new VnDominatusChunk(chunk.Id.Value, chunk.Payload))
                 .ToArray(),
-            SelectedChoiceIndex,
-            AutoEnabled,
-            SkipEnabled);
+            SelectedChoiceIndex);
     }
 
     public void Restore(VnSessionCheckpoint checkpoint)
     {
         BuildWorld();
         Dominatus.Core.Persistence.SaveChunk[] chunks = checkpoint.DominatusChunks
-            .Select(chunk => new Dominatus.Core.Persistence.SaveChunk(new ChunkId(chunk.Id), chunk.Payload))
+            .Select(chunk => new Dominatus.Core.Persistence.SaveChunk(
+                new ChunkId(chunk.Id),
+                chunk.Payload))
             .ToArray();
         DominatusCheckpoint restored = DominatusSave.ReadCheckpointChunks(chunks).checkpoint;
         DominatusCheckpointBuilder.Restore(world, restored);
         SelectedChoiceIndex = checkpoint.SelectedChoiceIndex;
-        AutoEnabled = checkpoint.AutoEnabled;
-        SkipEnabled = checkpoint.SkipEnabled;
-        DialoguePresentationOperation recovered = projector.RecoverPending(agent);
-        AuthoredDialogueStep pending = VnDialogueDefinition.Get(recovered.Id);
-        surface.Restore(agent, pending);
+
+        if (!IsTerminal)
+        {
+            DialoguePresentationOperation recovered = projector.RecoverPending(agent);
+            surface.Restore(agent, SunkillDialogue.Get(recovered.Id));
+        }
+
         world.Tick(0);
+    }
+
+    public string SemanticHash()
+    {
+        DialoguePresentationSnapshot presentation = Presentation;
+        string canonical = string.Join(
+            "|",
+            SunkillDialogue.DialogueId,
+            presentation.OperationId ?? "terminal",
+            presentation.SelectedChoiceIndex,
+            Protocol,
+            DawnEngineTested,
+            StraussWaitedFor,
+            IsTerminal);
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)))
+            .ToLowerInvariant();
     }
 
     public void Dispose()
     {
-        inputAdapter.Dispose();
     }
 
     private void BuildWorld()
     {
-        surface = new DialogueSurfaceActuator(VnDialogueDefinition.Steps);
-        consequence = new ReturnLetterConsequenceHandler();
-        host = new ActuatorHost();
+        surface = new DialogueSurfaceActuator(SunkillDialogue.Steps);
+        consequence = new SunkillConsequenceHandler();
+        var host = new ActuatorHost();
         host.Register<global::Ariadne.OptFlow.Commands.DiagLineCommand>(surface);
         host.Register<global::Ariadne.OptFlow.Commands.DiagChooseCommand>(surface);
-        host.Register<ReturnLetterConsequence>(consequence);
+        host.Register<DialogueEffectCommand<SunkillConsequence>>(consequence);
         world = new AiWorld(host);
-        agent = new AiAgent(new HfsmInstance(VnDialogueDefinition.CreateGraph()));
+        agent = new AiAgent(SunkillDialogue.Lowered.Flow.CreateBrain());
         world.Add(agent);
     }
 
@@ -221,8 +152,9 @@ public sealed class VnSession : IDisposable
             world.Tick(0);
             guard++;
         }
-        while (!IsTerminal && surface.PendingId is null && guard < 32);
-        if (guard >= 32)
+        while (!IsTerminal && surface.PendingId is null && guard < 64);
+
+        if (guard >= 64)
         {
             throw new InvalidOperationException("Dialogue failed to converge to a presentation step.");
         }
@@ -233,6 +165,4 @@ public sealed record VnDominatusChunk(string Id, byte[] Payload);
 
 public sealed record VnSessionCheckpoint(
     VnDominatusChunk[] DominatusChunks,
-    int SelectedChoiceIndex,
-    bool AutoEnabled,
-    bool SkipEnabled);
+    int SelectedChoiceIndex);

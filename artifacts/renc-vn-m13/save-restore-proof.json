@@ -1,0 +1,23 @@
+{
+  "applicationSaveVersion": 1,
+  "activeScene": "sunkill.dawn-engine",
+  "afterLine": {
+    "qualified": true,
+    "operation": "dialogue.sunkill.dawn-engine.line.intro",
+    "redispatchCount": 0
+  },
+  "pendingChoice": {
+    "qualified": true,
+    "operation": "dialogue.sunkill.dawn-engine.choice.protocol",
+    "selectedChoice": "wait-for-strauss",
+    "consequenceEmissionCount": 0
+  },
+  "postEffect": {
+    "qualified": true,
+    "operation": "dialogue.sunkill.dawn-engine.line.open-result",
+    "protocol": "ImmediateShutter",
+    "dawnEngineTested": true,
+    "consequenceEmissionCountAfterRestore": 0
+  },
+  "restoreLaw": "Deliverance candidate -\u003E application validation -\u003E Dominatus checkpoint restore -\u003E presentation rebuild"
+}

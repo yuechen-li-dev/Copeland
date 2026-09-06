@@ -18,19 +18,25 @@ public sealed class VnNativeRenderer : IDisposable
 {
     public const int Width = 1280;
     public const int Height = 720;
-    private readonly VnSession session;
+    private readonly RenApp app;
     private readonly VnMachinaLayer machinaLayer;
     private readonly AurelianVulkanPlant plant;
     private readonly NativeLayerCompositor compositor;
+    private readonly SpriteAtlasResource backgroundResource;
+    private readonly SpriteAtlasResource portraitResource;
+    private readonly SpriteAtlasResource transparentPortraitResource;
 
-    public VnNativeRenderer(string repositoryRoot, VnSession session, VnMachinaLayer machinaLayer)
+    public VnNativeRenderer(string repositoryRoot, RenApp app, VnMachinaLayer machinaLayer)
     {
-        this.session = session;
+        this.app = app;
         this.machinaLayer = machinaLayer;
+        backgroundResource = LoadImage(app.Presentation.BackgroundAsset, "sunkill-bunker", opaqueBackground: true);
+        portraitResource = LoadPortrait("sunkill-oppenheimer.png", "oppenheimer");
+        transparentPortraitResource = Transparent("portrait-empty");
         CompiledGraphicsProgram program = CompileShader(repositoryRoot, "samples/Aurelian/ForwardTexturedM3.v.ts");
         VulkanInitResult init = VulkanPlantInitializer.CreatePlant(
             PlantId.Zero,
-            new VulkanPlantOptions(EnableValidation: true, ApplicationName: "Aurelian.Ariadne.VnDemo"));
+            new VulkanPlantOptions(EnableValidation: true, ApplicationName: "SUNKILL"));
         if (!init.Success || init.Plant is null)
         {
             throw new InvalidOperationException(string.Join("; ", init.Diagnostics.Select(item => item.Message)));
@@ -66,28 +72,18 @@ public sealed class VnNativeRenderer : IDisposable
 
     private SpriteAtlasResource Background()
     {
-        return LoadImage("classroom-sunset.png", "classroom-sunset", opaqueBackground: true);
+        return backgroundResource;
     }
 
     private SpriteAtlasResource Portrait()
     {
-        string? operationId = session.Presentation.OperationId;
-        AuthoredDialogueStep? presentation = operationId is null
-            ? null
-            : VnDialogueDefinition.Get(operationId);
-        string? portrait = presentation?.PortraitKey;
-        string? expression = presentation?.ExpressionKey;
+        string? portrait = app.Presentation.PortraitAsset;
         if (portrait is null)
         {
-            return Transparent("portrait-empty");
+            return transparentPortraitResource;
         }
-        string file = portrait switch
-        {
-            "mika" => "mika-concerned.png",
-            "rei" when expression == "soft" => "rei-soft-cutout.png",
-            _ => "rei-angry.png",
-        };
-        return LoadPortrait(file, $"{portrait}-{expression}");
+
+        return portraitResource;
     }
 
     private SpriteAtlasResource Overlay()
@@ -118,15 +114,13 @@ public sealed class VnNativeRenderer : IDisposable
         using var target = new SKBitmap(new SKImageInfo(Width, Height, SKColorType.Rgba8888, SKAlphaType.Unpremul));
         using var canvas = new SKCanvas(target);
         canvas.Clear(SKColors.Transparent);
-        float scale = 0.60f;
+        float scale = 0.54f;
         float drawWidth = source.Width * scale;
         float drawHeight = source.Height * scale;
-        float centerX = portraitCenter(id);
+        float centerX = 760;
         canvas.DrawBitmap(source, new SKRect(centerX - drawWidth / 2, Height - drawHeight + 110, centerX + drawWidth / 2, Height + 110));
         canvas.Flush();
         return Resource(id, target.Bytes);
-
-        static float portraitCenter(string assetId) => assetId.StartsWith("mika", StringComparison.Ordinal) ? 560 : 610;
     }
 
     private static SpriteAtlasResource Transparent(string id)

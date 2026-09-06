@@ -6,10 +6,8 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using Avalonia.Threading;
 using Aurelian.Composition;
 using Aurelian.NativeComposition;
-using Ariadne.OptFlow.Presentation;
 using InputMan.Core;
 
 namespace Aurelian.Ariadne.VnDemo;
@@ -44,32 +42,24 @@ internal sealed class VnApplication : Application
 
 internal sealed class VnWindow : Window
 {
-    private readonly VnSession session;
+    private readonly RenApp app;
     private readonly VnMachinaLayer machina;
     private readonly VnNativeRenderer native;
-    private readonly VnPersistence persistence;
     private readonly Image image;
-    private readonly DispatcherTimer automationTimer;
     private WriteableBitmap? bitmap;
     private ulong frameSequence;
-    private DateTimeOffset nextAutomaticAdvance;
-    private string notice = "READY";
 
     public VnWindow()
     {
         string root = Program.FindRepositoryRoot();
-        string saveRoot = Path.Combine(
-            root,
-            "artifacts",
-            "aurelian-ariadne-machina-dialogue-m7b",
-            "presenter-saves");
-
-        session = new VnSession();
-        machina = new VnMachinaLayer(session);
-        native = new VnNativeRenderer(root, session, machina);
-        persistence = new VnPersistence(saveRoot);
-        session.SaveRequested = SaveQuickSlot;
-        session.LoadRequested = LoadQuickSlot;
+        string userRoot = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "SUNKILL");
+        app = new RenApp(
+            Path.Combine(userRoot, "Saves"),
+            Path.Combine(userRoot, "settings.json"));
+        machina = new VnMachinaLayer(app);
+        native = new VnNativeRenderer(root, app, machina);
 
         image = new Image
         {
@@ -90,9 +80,6 @@ internal sealed class VnWindow : Window
         KeyDown += OnKeyDown;
         Closed += OnClosed;
         Opened += (_, _) => image.Focus();
-
-        automationTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(50), DispatcherPriority.Normal, OnAutomationTick);
-        automationTimer.Start();
         Render();
     }
 
@@ -103,14 +90,8 @@ internal sealed class VnWindow : Window
             return;
         }
 
-        string? previousStep = session.Presentation.OperationId;
-        session.Press(key);
-        if (session.Presentation.OperationId != previousStep || key is KeyboardKey.A or KeyboardKey.S or KeyboardKey.Escape)
-        {
-            ResetAutomaticDeadline();
-        }
-
-        Render();
+        app.Press(key);
+        CompleteInteraction();
         args.Handled = true;
     }
 
@@ -137,46 +118,19 @@ internal sealed class VnWindow : Window
             LayerPointerButton.Primary,
             false));
         args.Pointer.Capture(null);
-        ResetAutomaticDeadline();
-        Render();
+        CompleteInteraction();
         args.Handled = true;
     }
 
-    private void OnAutomationTick(object? sender, EventArgs args)
+    private void CompleteInteraction()
     {
-        if ((!session.AutoEnabled && !session.SkipEnabled) || DateTimeOffset.UtcNow < nextAutomaticAdvance)
+        if (app.ExitRequested)
         {
+            Close();
             return;
         }
 
-        string? previousStep = session.Presentation.OperationId;
-        session.PulseAutomatic();
-        if (session.Presentation.OperationId != previousStep)
-        {
-            Render();
-        }
-
-        ResetAutomaticDeadline();
-    }
-
-    private void SaveQuickSlot()
-    {
-        persistence.SaveAsync("quick", session).GetAwaiter().GetResult();
-        notice = "QUICK SAVE WRITTEN";
-    }
-
-    private void LoadQuickSlot()
-    {
-        try
-        {
-            persistence.LoadAsync("quick", session).GetAwaiter().GetResult();
-            notice = "QUICK SAVE RESTORED";
-            ResetAutomaticDeadline();
-        }
-        catch (FileNotFoundException)
-        {
-            notice = "NO QUICK SAVE YET";
-        }
+        Render();
     }
 
     private void Render()
@@ -188,22 +142,14 @@ internal sealed class VnWindow : Window
         bitmap?.Dispose();
         bitmap = CreateBitmap(pixels);
         image.Source = bitmap;
-        DialoguePresentationSnapshot presentation = session.Presentation;
-        Title = $"Aurelian VN - {presentation.OperationId} - {notice} - Auto {(session.AutoEnabled ? "ON" : "OFF")} / Skip {(session.SkipEnabled ? "ON" : "OFF")}";
-    }
-
-    private void ResetAutomaticDeadline()
-    {
-        int delayMilliseconds = session.SkipEnabled ? 90 : 1400;
-        nextAutomaticAdvance = DateTimeOffset.UtcNow.AddMilliseconds(delayMilliseconds);
+        Title = $"SUNKILL — {app.State.Screen} — {app.State.Notice}";
     }
 
     private void OnClosed(object? sender, EventArgs args)
     {
-        automationTimer.Stop();
         bitmap?.Dispose();
         native.Dispose();
-        session.Dispose();
+        app.Dispose();
     }
 
     private static WriteableBitmap CreateBitmap(byte[] pixels)
@@ -220,7 +166,7 @@ internal sealed class VnWindow : Window
             Marshal.Copy(
                 pixels,
                 row * sourceStride,
-                framebuffer.Address + row * framebuffer.RowBytes,
+                framebuffer.Address + (row * framebuffer.RowBytes),
                 sourceStride);
         }
 
@@ -240,13 +186,21 @@ internal sealed class VnWindow : Window
             Key.Space => KeyboardKey.Space,
             Key.Up => KeyboardKey.ArrowUp,
             Key.Down => KeyboardKey.ArrowDown,
+            Key.Left => KeyboardKey.ArrowLeft,
+            Key.Right => KeyboardKey.ArrowRight,
             Key.Escape => KeyboardKey.Escape,
-            Key.A => KeyboardKey.A,
-            Key.S => KeyboardKey.S,
             Key.F => KeyboardKey.F,
             Key.I => KeyboardKey.I,
             _ => default,
         };
-        return key is Key.Enter or Key.Space or Key.Up or Key.Down or Key.Escape or Key.A or Key.S or Key.F or Key.I;
+        return key is Key.Enter
+            or Key.Space
+            or Key.Up
+            or Key.Down
+            or Key.Left
+            or Key.Right
+            or Key.Escape
+            or Key.F
+            or Key.I;
     }
 }

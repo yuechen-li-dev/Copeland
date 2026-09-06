@@ -1,0 +1,6 @@
+{
+  "sampleFrames": 12,
+  "averageMilliseconds": 29.754941666666664,
+  "worstMilliseconds": 101.7775,
+  "scope": "native compositor sanity only; M13 is not a performance milestone"
+}

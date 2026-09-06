@@ -1,0 +1,17 @@
+{
+  "qualified": true,
+  "boot": "MainMenu",
+  "routes": [
+    "MainMenu \u002B NewGame -\u003E Game",
+    "MainMenu \u002B Load -\u003E LoadMenu",
+    "MainMenu \u002B Settings -\u003E Settings",
+    "Game \u002B Back -\u003E PauseMenu",
+    "Game \u002B Save -\u003E SaveMenu",
+    "LoadMenu \u002B successful Load -\u003E Game",
+    "End \u002B ReturnToMainMenu -\u003E MainMenu",
+    "MainMenu \u002B Quit -\u003E ExitRequested"
+  ],
+  "input": "physical input -\u003E InputMan logical action -\u003E typed RenIntent -\u003E RenApp reducer",
+  "machinaPointerFocusCapture": true,
+  "quitRequested": true
+}

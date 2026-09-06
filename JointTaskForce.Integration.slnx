@@ -6,6 +6,7 @@
     <Project Path="samples/Machina.UI/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj" />
     <Project Path="samples/Integrations/Machina.Presenter.Sample/Machina.Presenter.Sample.csproj" />
     <Project Path="samples/Integrations/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj" />
+    <Project Path="samples/Integrations/Aurelian.Ariadne.VnDemo/Aurelian.Ariadne.VnDemo.csproj" />
   </Folder>
   <Folder Name="/tests/Aurelian/">
     <Project Path="tests/Aurelian/Aurelian.Integration.Tests/Aurelian.Integration.Tests.csproj" />
@@ -14,5 +15,6 @@
     <Project Path="tests/Integrations/Machina.Dominatus.Tests/Machina.Dominatus.Tests.csproj" />
     <Project Path="tests/Integrations/Aurelian.Machina.Tests/Aurelian.Machina.Tests.csproj" />
     <Project Path="tests/Integrations/Aurelian.VisibleTriangle.Tests/Aurelian.VisibleTriangle.Tests.csproj" />
+    <Project Path="tests/Integrations/Sunkill.Tests/Sunkill.Tests.csproj" />
   </Folder>
 </Solution>

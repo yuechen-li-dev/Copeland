@@ -1,0 +1,48 @@
+{
+  "milestone": "RENC#-VN-M13",
+  "kind": "minimal-native-vn-application-slice",
+  "title": "SUNKILL",
+  "outcome": "A",
+  "mainMenuQualified": true,
+  "newGameQualified": true,
+  "saveQualified": true,
+  "loadQualified": true,
+  "settingsQualified": true,
+  "quitQualified": true,
+  "shortSceneQualified": true,
+  "choiceQualified": true,
+  "semanticConsequenceQualified": true,
+  "pendingChoiceRestoreQualified": true,
+  "nativePresentationQualified": true,
+  "machinaCanvasRuntimeDependency": false,
+  "vnCathedralAdded": false,
+  "nativeLayerOrder": [
+    "world-background",
+    "portrait",
+    "machina-vn-ui"
+  ],
+  "assets": [
+    {
+      "path": "samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/sunkill-bunker.png",
+      "sha256": "ffed7802a0b15c9879ce35b3655c39c13d31a1421b1505f6b4d82df9dcd3faad"
+    },
+    {
+      "path": "samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/sunkill-oppenheimer.png",
+      "sha256": "5ab9b97ed3609d49bb9ba8bda9fd609e92b14662622e15aaff900df3014fafae"
+    }
+  ],
+  "files": [
+    "main-menu.png",
+    "settings.png",
+    "scene-line.png",
+    "scene-choice.png",
+    "save-menu.png",
+    "load-menu.png",
+    "save-restore-proof.json",
+    "settings-proof.json",
+    "navigation-proof.json",
+    "replay-proof.json",
+    "performance.json",
+    "manifest.json"
+  ]
+}
