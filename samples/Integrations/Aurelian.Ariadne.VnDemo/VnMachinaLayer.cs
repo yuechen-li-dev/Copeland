@@ -39,6 +39,8 @@ public sealed class VnMachinaLayer : IAurelianLayer
 
     public IReadOnlyList<global::Machina.Presentation.MachinaNineSlicePrimitive>? ProofNineSlices { get; set; }
 
+    public IReadOnlyList<global::Machina.Presentation.MachinaProgrammablePanelPrimitive>? ProofPanels { get; set; }
+
     public bool SuppressOverlay { get; set; }
 
     public IReadOnlyList<global::Machina.Presentation.MachinaNineSlicePrimitive> NineSlices
@@ -47,6 +49,15 @@ public sealed class VnMachinaLayer : IAurelianLayer
         {
             EnsurePrepared();
             return ProofNineSlices ?? BuildNineSlices();
+        }
+    }
+
+    public IReadOnlyList<global::Machina.Presentation.MachinaProgrammablePanelPrimitive> Panels
+    {
+        get
+        {
+            EnsurePrepared();
+            return ProofPanels ?? BuildPanels();
         }
     }
 
@@ -241,6 +252,18 @@ public sealed class VnMachinaLayer : IAurelianLayer
             AddPanel(result, "menu-shadow", "dialogue");
         }
 
+        return result;
+    }
+
+    private IReadOnlyList<global::Machina.Presentation.MachinaProgrammablePanelPrimitive> BuildPanels()
+    {
+        var result = new List<global::Machina.Presentation.MachinaProgrammablePanelPrimitive>();
+        string nodeId = app.State.Screen == RenScreen.Game ? "dialogue-panel" : "menu-shadow";
+        var id = new global::Machina.Layout.Rows.NodeId(nodeId);
+        if (prepared!.Resolved.Nodes.TryGetValue(id, out global::Machina.Layout.Documents.ResolvedLayoutNode? node))
+        {
+            result.Add(skin.CreateProgrammable($"skin.{nodeId}", "dialogue", node.Rect));
+        }
         return result;
     }
 

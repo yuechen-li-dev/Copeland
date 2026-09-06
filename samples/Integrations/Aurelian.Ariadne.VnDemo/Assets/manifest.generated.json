@@ -1,0 +1,38 @@
+{
+  "generated": "Do not edit; regenerate from manifest.tsx and *.obj.ts.",
+  "schemaVersion": 1,
+  "generatedFrom": "manifest.tsx",
+  "name": "sunkill",
+  "sourceRoot": "Assets",
+  "textures": [
+    {
+      "id": "sunkill.ui.atlas",
+      "source": "sunkill-ui-atlas.png"
+    }
+  ],
+  "objects": [
+    {
+      "id": "sunkill.dialogue-panel",
+      "source": "sunkill-dialogue-panel.obj.ts",
+      "dependencies": [],
+      "semanticId": "sunkill.ui",
+      "textureId": "sunkill.ui.atlas",
+      "panelIds": [
+        "dialogue"
+      ]
+    }
+  ],
+  "outputs": {
+    "toml": true,
+    "json": true,
+    "runtime": true,
+    "audit": true
+  },
+  "files": [
+    "manifest.generated.json",
+    "sunkill-dialogue-panel.audit.json",
+    "sunkill-dialogue-panel.obj.json",
+    "sunkill-dialogue-panel.obj.toml",
+    "sunkill-dialogue-panel.runtime.toml"
+  ]
+}

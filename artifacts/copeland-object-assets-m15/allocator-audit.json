@@ -1,0 +1,14 @@
+{
+  "existingSpanMeaning": "compiler-known contiguous ordered region with owner and stale rules",
+  "existingLayoutMeaning": "compiler-owned spatial box, layer, and stream relationships",
+  "decision": "ordinary generic runtime kit; no new Copeland syntax or layout meaning",
+  "owner": "Copeland.SpanAllocation",
+  "spriteDependency": false,
+  "deferred": [
+    "alignment",
+    "optional priority",
+    "intrinsic sizing",
+    "maximum sizing",
+    "memory semantics"
+  ]
+}

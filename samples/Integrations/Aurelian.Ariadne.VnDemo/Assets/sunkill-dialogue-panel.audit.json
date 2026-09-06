@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "source": "sunkill-dialogue-panel.obj.ts",
+  "sourceSha256": "62dbfe7fa9368372449b99ba58ae37773d9f87b04b4754fbe80fc08079cfc465",
+  "id": "sunkill.ui",
+  "regionCount": 25,
+  "panelCount": 1,
+  "minimumSizes": {
+    "dialogue": {
+      "width": 278,
+      "height": 218
+    }
+  },
+  "diagnostics": []
+}

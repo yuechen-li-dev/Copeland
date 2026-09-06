@@ -17,7 +17,27 @@ public sealed record CopelandManifest(
     IReadOnlyList<ManifestPackageReference> PackageReferences,
     ManifestSecurity? Security,
     ManifestUpdatePolicy? UpdatePolicy,
-    IReadOnlyList<ManifestCompatFile> CompatFiles);
+    IReadOnlyList<ManifestCompatFile> CompatFiles,
+    ManifestAssetGraph? Assets = null,
+    ManifestAssetOutputs? AssetOutputs = null);
+
+public sealed record ManifestAssetGraph(
+    string SourceRoot,
+    IReadOnlyList<ManifestTextureAsset> Textures,
+    IReadOnlyList<ManifestObjectAsset> Objects);
+
+public sealed record ManifestTextureAsset(string Id, string Source);
+
+public sealed record ManifestObjectAsset(
+    string Id,
+    string Source,
+    IReadOnlyList<string> Dependencies);
+
+public sealed record ManifestAssetOutputs(
+    bool Toml,
+    bool Json,
+    bool Runtime,
+    bool Audit);
 
 public sealed record ManifestWorkspace(string Name, string Runtime);
 

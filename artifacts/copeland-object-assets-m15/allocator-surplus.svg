@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="220" viewBox="0 0 960 220">
+<rect width="960" height="220" fill="#0c0e14"/>
+<text x="40" y="36" fill="white" font-family="monospace" font-size="22">extent 60 · minimum 30 · SurplusDistributed</text>
+<rect x="40" y="70" width="146.667" height="70" fill="#df6f34" stroke="#0c0e14"/>
+<text x="46" y="112" fill="#10131a" font-family="monospace" font-size="18">cap 0+10</text>
+<rect x="186.667" y="70" width="293.333" height="70" fill="#69beff" stroke="#0c0e14"/>
+<text x="192.667" y="112" fill="#10131a" font-family="monospace" font-size="18">rail 10+20</text>
+<rect x="480" y="70" width="440" height="70" fill="#f6c445" stroke="#0c0e14"/>
+<text x="486" y="112" fill="#10131a" font-family="monospace" font-size="18">center 30+30</text>
+<text x="40" y="180" fill="#b4bfd2" font-family="monospace" font-size="18">used 60 · unused 0 · deficit 0</text>
+</svg>

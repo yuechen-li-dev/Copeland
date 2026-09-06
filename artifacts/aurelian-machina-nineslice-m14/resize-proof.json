@@ -5,35 +5,35 @@
       "name": "small",
       "width": 960,
       "height": 540,
-      "hash": "3c2e035992e814870db610299a3df4e3e80a9a81fe384fbb677fd0412ca25daa",
+      "hash": "f35648b67a7cf841d293e516f7f46baeaf4bef6fc0176f97d4d9e1d8a59e11ec",
       "passes": 3
     },
     {
       "name": "odd",
       "width": 1537,
       "height": 864,
-      "hash": "db5f67b330545d6a22627717e954182770d80ebd13131fa41aaf75a60149acb0",
+      "hash": "0aa0d9e8396b0266a955382070349cd18b604754f988beac61f13a40887cac5f",
       "passes": 3
     },
     {
       "name": "1440p",
       "width": 2560,
       "height": 1440,
-      "hash": "e53f66e9200cb4c370b36d1f9051b7613dd9c33be44e1af47f24406214470836",
+      "hash": "894e366203cb168f91e4c0cc66782094a56b4c421ca9228385177fb4abb4792c",
       "passes": 3
     },
     {
       "name": "restore-small",
       "width": 960,
       "height": 540,
-      "hash": "3c2e035992e814870db610299a3df4e3e80a9a81fe384fbb677fd0412ca25daa",
+      "hash": "f35648b67a7cf841d293e516f7f46baeaf4bef6fc0176f97d4d9e1d8a59e11ec",
       "passes": 3
     },
     {
       "name": "restore-reference",
       "width": 1280,
       "height": 720,
-      "hash": "cc6fbdc2b91f8a370a05b2fed57eed10f9617480c4386563f7f7cdf81d9b8f42",
+      "hash": "68f699bda72f2f4b742ef5127d4b5436453faca9ff60054385042d816fbfbd79",
       "passes": 3
     }
   ],
@@ -42,25 +42,25 @@
       "screen": "Settings",
       "width": 960,
       "height": 540,
-      "hash": "24a0398c14d03d925a2267e557f56f238cea712c1a55e327679f6be273589eef"
+      "hash": "4ef96968a07f60c7e152aead015301e31650b52dcd18ac6a6e4c7d5efd0eb67b"
     },
     {
       "screen": "dialogue",
       "width": 2560,
       "height": 1440,
-      "hash": "5a4f77db2761b20d60f9ff81adc05de9be2e9a5e9cf50ad3f9e18082ad9e76c5"
+      "hash": "534ce6372b91f0f3f86d89052ed8440ea6af3b3886faf8c5da60c558ec10c334"
     },
     {
       "screen": "choice",
       "width": 960,
       "height": 540,
-      "hash": "cd32f185877467538a0cf87ab4aa90c05bb17a327368671c92797019b02453b1"
+      "hash": "af4134fc3ff733156bd781afb519b2525ffec0ac065622e5461ffee98dc546d8"
     },
     {
       "screen": "SaveMenu",
       "width": 1537,
       "height": 864,
-      "hash": "5431c34f3ece0908f9dcfcd2cd961a377ab959df1e4dc19fc3eae6ca60d4b1fe"
+      "hash": "c39210eb284a78833fb20b229a4062e25300e45f63b1dbc3b939e0b86fc2d209"
     }
   ],
   "stableTextureUploadsBefore": 5,

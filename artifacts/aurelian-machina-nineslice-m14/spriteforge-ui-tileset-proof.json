@@ -1,6 +1,6 @@
 {
   "qualified": true,
-  "authoring": "samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/sunkill-ui.toml",
+  "authoring": "generated runtime TOML with legacy-authored TOML compatibility fallback",
   "image": "samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/sunkill-ui-atlas.png",
   "atlas": {
     "width": 1536,

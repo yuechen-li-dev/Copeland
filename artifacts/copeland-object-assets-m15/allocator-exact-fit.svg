@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="220" viewBox="0 0 960 220">
+<rect width="960" height="220" fill="#0c0e14"/>
+<text x="40" y="36" fill="white" font-family="monospace" font-size="22">extent 30 · minimum 30 · Exact</text>
+<rect x="40" y="70" width="293.333" height="70" fill="#df6f34" stroke="#0c0e14"/>
+<text x="46" y="112" fill="#10131a" font-family="monospace" font-size="18">cap 0+10</text>
+<rect x="333.333" y="70" width="293.333" height="70" fill="#69beff" stroke="#0c0e14"/>
+<text x="339.333" y="112" fill="#10131a" font-family="monospace" font-size="18">rail 10+10</text>
+<rect x="626.667" y="70" width="293.333" height="70" fill="#f6c445" stroke="#0c0e14"/>
+<text x="632.667" y="112" fill="#10131a" font-family="monospace" font-size="18">center 20+10</text>
+<text x="40" y="180" fill="#b4bfd2" font-family="monospace" font-size="18">used 30 · unused 0 · deficit 0</text>
+</svg>

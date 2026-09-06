@@ -1,0 +1,114 @@
+{
+  "milestone": "COPELAND-OBJECT-ASSETS-SPAN-ALLOCATOR-M15",
+  "kind": "programmable-assets-and-generic-span-allocation",
+  "outcome": "A",
+  "allocatorAuditedBeforeImplementation": true,
+  "allocatorMvpQualified": true,
+  "allocatorSpriteIndependent": true,
+  "genericPayloadQualified": true,
+  "objTsPreferredAuthoringQualified": true,
+  "columnarRecordTableQualified": true,
+  "tomlProjectionQualified": true,
+  "legacyTomlPreserved": true,
+  "manifestTsxQualified": true,
+  "manifestJsonProjectionQualified": true,
+  "spriteForgeIntegrationQualified": true,
+  "spriteCardsQualified": true,
+  "sunkillProgrammablePanelQualified": true,
+  "nineSliceIsAllocatorPrebuilt": true,
+  "inputLayoutParityQualified": true,
+  "seamColorQualified": true,
+  "panelProofs": [
+    {
+      "file": "sunkill-panel-narrow.png",
+      "logicalPanelWidth": 220,
+      "framebufferWidth": 1280,
+      "framebufferHeight": 720,
+      "top": {
+        "edge": "top",
+        "extent": 144,
+        "minimumDemand": 202,
+        "usedLength": 144,
+        "unusedLength": 0,
+        "deficitLength": 58,
+        "status": "Underflow"
+      },
+      "diagnosticCount": 2,
+      "pixelSha256": "a5d9e7ffc59dcf377c0bff30a3d989ec346448f904d5617227cccab62964655e"
+    },
+    {
+      "file": "sunkill-panel-nominal.png",
+      "logicalPanelWidth": 800,
+      "framebufferWidth": 1280,
+      "framebufferHeight": 720,
+      "top": {
+        "edge": "top",
+        "extent": 724,
+        "minimumDemand": 202,
+        "usedLength": 724,
+        "unusedLength": 0,
+        "deficitLength": 0,
+        "status": "SurplusDistributed"
+      },
+      "diagnosticCount": 0,
+      "pixelSha256": "87d1311621b2fd6315f099edc9205ba3c26c3b8f8f9e54081bf45627e0017a16"
+    },
+    {
+      "file": "sunkill-panel-wide.png",
+      "logicalPanelWidth": 1200,
+      "framebufferWidth": 1280,
+      "framebufferHeight": 720,
+      "top": {
+        "edge": "top",
+        "extent": 1124,
+        "minimumDemand": 202,
+        "usedLength": 1124,
+        "unusedLength": 0,
+        "deficitLength": 0,
+        "status": "SurplusDistributed"
+      },
+      "diagnosticCount": 0,
+      "pixelSha256": "d4c860e5bd76ad983f0dfe0a8135c4386da2609fd2eeddadcf15db26b31d30b1"
+    },
+    {
+      "file": "sunkill-panel-odd-resolution.png",
+      "logicalPanelWidth": 800,
+      "framebufferWidth": 1537,
+      "framebufferHeight": 864,
+      "top": {
+        "edge": "top",
+        "extent": 724,
+        "minimumDemand": 202,
+        "usedLength": 724,
+        "unusedLength": 0,
+        "deficitLength": 0,
+        "status": "SurplusDistributed"
+      },
+      "diagnosticCount": 0,
+      "pixelSha256": "32b909b2ea8ef8f55ec60c405fdde2cd227c6c1d5dc072291dc060500cc45204"
+    }
+  ],
+  "memoryAllocatorImplemented": false,
+  "generalVisualProgrammingFrameworkAdded": false,
+  "artifacts": [
+    "allocator-audit.json",
+    "allocator-mvp.json",
+    "allocator-exact-fit.svg",
+    "allocator-underflow.svg",
+    "allocator-surplus.svg",
+    "obj-ts-lowering-proof.json",
+    "obj-ts-generated.toml",
+    "manifest-tsx-proof.json",
+    "generated-manifest.json",
+    "sprite-card-narrow.png",
+    "sprite-card-nominal.png",
+    "sprite-card-wide.png",
+    "sunkill-panel-narrow.png",
+    "sunkill-panel-nominal.png",
+    "sunkill-panel-wide.png",
+    "sunkill-panel-odd-resolution.png",
+    "seam-proof.json",
+    "fresh-context-proof.json",
+    "manifest.json"
+  ]
+}

@@ -10,6 +10,58 @@ namespace Copeland.Cli.Tests;
 public sealed class CliIntegrationTests
 {
     [Fact]
+    public async Task Asset_build_compiles_manifest_and_obj_ts_into_deterministic_classified_projections()
+    {
+        using var temp = new TempDir();
+        string manifest = System.IO.Path.Combine(
+            GetRepoRoot(),
+            "samples",
+            "Integrations",
+            "Aurelian.Ariadne.VnDemo",
+            "manifest.tsx");
+
+        CliResult first = await RunCliAsync(
+            GetRepoRoot(),
+            "asset",
+            "build",
+            manifest,
+            "--output",
+            temp.Path);
+
+        Assert.Equal(0, first.ExitCode);
+        Assert.Contains("compiled 1 object asset", first.StdOut, StringComparison.Ordinal);
+        string[] expected =
+        [
+            "manifest.generated.json",
+            "sunkill-dialogue-panel.audit.json",
+            "sunkill-dialogue-panel.obj.json",
+            "sunkill-dialogue-panel.obj.toml",
+            "sunkill-dialogue-panel.runtime.toml",
+        ];
+        Assert.All(expected, name => Assert.True(File.Exists(System.IO.Path.Combine(temp.Path, name)), name));
+        string generatedToml = await File.ReadAllTextAsync(System.IO.Path.Combine(temp.Path, expected[3]));
+        string runtimeToml = await File.ReadAllTextAsync(System.IO.Path.Combine(temp.Path, expected[4]));
+        Assert.Contains("source_kind = \"generated-obj-ts\"", generatedToml, StringComparison.Ordinal);
+        Assert.Contains("source_kind = \"runtime-toml\"", runtimeToml, StringComparison.Ordinal);
+        Assert.Contains("[[programmable_panels.\"dialogue\".top]]", runtimeToml, StringComparison.Ordinal);
+        byte[][] firstBytes = expected.Select(name => File.ReadAllBytes(System.IO.Path.Combine(temp.Path, name))).ToArray();
+
+        CliResult second = await RunCliAsync(
+            GetRepoRoot(),
+            "asset",
+            "build",
+            manifest,
+            "--output",
+            temp.Path);
+
+        Assert.Equal(0, second.ExitCode);
+        for (int index = 0; index < expected.Length; index++)
+        {
+            Assert.Equal(firstBytes[index], File.ReadAllBytes(System.IO.Path.Combine(temp.Path, expected[index])));
+        }
+    }
+
+    [Fact]
     public async Task Template_cli_binds_defaulted_type_and_named_static_parameters_through_shared_evaluator()
     {
         using var temp = new TempDir();

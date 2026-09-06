@@ -22,7 +22,7 @@ public static class ManifestBinder
 
     private sealed class Implementation
     {
-        private static readonly HashSet<string> WorkspaceElements = ["Package", "Packages", "Sidecars", "Security", "UpdatePolicy", "CompatFiles"];
+        private static readonly HashSet<string> WorkspaceElements = ["Package", "Packages", "Sidecars", "Security", "UpdatePolicy", "CompatFiles", "Assets", "AssetOutputs"];
         private static readonly HashSet<string> PackageElements = ["Targets", "RunTargets", "Tools", "Boundaries", "Publish", "Policies"];
         private readonly SyntaxTree _tree;
         private readonly string _projectRoot;
@@ -186,6 +186,8 @@ public static class ManifestBinder
             ManifestSecurity? security = null;
             ManifestUpdatePolicy? updatePolicy = null;
             var compatFiles = new List<ManifestCompatFile>();
+            ManifestAssetGraph? assets = null;
+            ManifestAssetOutputs? assetOutputs = null;
             var seenSingletons = new HashSet<string>(StringComparer.Ordinal);
             bool hasPackageReferences = false;
 
@@ -243,6 +245,22 @@ public static class ManifestBinder
 
                         compatFiles.AddRange(BindCompatFiles(child));
                         break;
+                    case "Assets":
+                        if (!seenSingletons.Add("Assets"))
+                        {
+                            Report("COPE-MANIFEST-0012", "<Workspace> cannot contain duplicate <Assets> elements.", child.NameToken);
+                        }
+
+                        assets = BindAssets(child);
+                        break;
+                    case "AssetOutputs":
+                        if (!seenSingletons.Add("AssetOutputs"))
+                        {
+                            Report("COPE-MANIFEST-0012", "<Workspace> cannot contain duplicate <AssetOutputs> elements.", child.NameToken);
+                        }
+
+                        assetOutputs = BindAssetOutputs(child);
+                        break;
                 }
             }
 
@@ -270,7 +288,150 @@ public static class ManifestBinder
             }
             return name is null
                 ? null
-                : new CopelandManifest(_projectRoot, _sourcePath, new ManifestWorkspace(name, runtime), packages, bindings, sidecars, references, security, updatePolicy, compatFiles);
+                : new CopelandManifest(_projectRoot, _sourcePath, new ManifestWorkspace(name, runtime), packages, bindings, sidecars, references, security, updatePolicy, compatFiles, assets, assetOutputs);
+        }
+
+        private ManifestAssetGraph BindAssets(TsXmlElementExpressionSyntax element)
+        {
+            Dictionary<string, ManifestValue> attributes = BindAttributes(element, ["root"]);
+            string sourceRoot = OptionalString(attributes, "root", ".", element.NameToken) ?? ".";
+            if (!IsSafeRelativeDirectory(sourceRoot))
+            {
+                Report("COPE-MANIFEST-0040", "Assets root must be a safe relative directory.", AttributeToken(element, "root") ?? element.NameToken);
+                sourceRoot = ".";
+            }
+
+            var textures = new List<ManifestTextureAsset>();
+            var objects = new List<ManifestObjectAsset>();
+            foreach (TsXmlElementExpressionSyntax child in ElementChildren(element))
+            {
+                Dictionary<string, ManifestValue> childAttributes;
+                switch (child.NameToken.Text)
+                {
+                    case "Texture":
+                        childAttributes = BindAttributes(child, ["id", "src"]);
+                        string? textureId = RequiredString(childAttributes, "id", child.NameToken);
+                        string? textureSource = RequiredString(childAttributes, "src", child.NameToken);
+                        if (textureId is not null && textureSource is not null)
+                        {
+                            ValidateAssetPath(textureSource, sourceRoot, child.NameToken);
+                            textures.Add(new ManifestTextureAsset(textureId, textureSource));
+                        }
+
+                        break;
+                    case "Object":
+                        childAttributes = BindAttributes(child, ["id", "src", "dependsOn"]);
+                        string? objectId = RequiredString(childAttributes, "id", child.NameToken);
+                        string? objectSource = RequiredString(childAttributes, "src", child.NameToken);
+                        IReadOnlyList<string> dependencies = OptionalStringArray(childAttributes, "dependsOn", child.NameToken);
+                        if (objectId is not null && objectSource is not null)
+                        {
+                            if (!objectSource.EndsWith(".obj.ts", StringComparison.OrdinalIgnoreCase))
+                            {
+                                Report("COPE-MANIFEST-0041", $"Object asset '{objectId}' source must end in '.obj.ts'.", AttributeToken(child, "src") ?? child.NameToken);
+                            }
+                            ValidateAssetPath(objectSource, sourceRoot, child.NameToken);
+                            objects.Add(new ManifestObjectAsset(objectId, objectSource, dependencies));
+                        }
+
+                        break;
+                    default:
+                        Report("COPE-MANIFEST-0042", $"Element <{child.NameToken.Text}> is not valid inside <Assets>.", child.NameToken);
+                        break;
+                }
+            }
+
+            ValidateUnique(textures.Select(texture => (texture.Id, element.NameToken)), "texture asset", element.NameToken);
+            ValidateUnique(objects.Select(asset => (asset.Id, element.NameToken)), "object asset", element.NameToken);
+            ValidateObjectDependencies(objects, element.NameToken);
+            return new ManifestAssetGraph(sourceRoot, textures, objects);
+        }
+
+        private ManifestAssetOutputs BindAssetOutputs(TsXmlElementExpressionSyntax element)
+        {
+            _ = BindAttributes(element, []);
+            var requested = new HashSet<string>(StringComparer.Ordinal);
+            foreach (TsXmlElementExpressionSyntax child in ElementChildren(element))
+            {
+                if (child.NameToken.Text is not ("Toml" or "Json" or "Runtime" or "Audit"))
+                {
+                    Report("COPE-MANIFEST-0043", $"Unknown asset output <{child.NameToken.Text}>.", child.NameToken);
+                    continue;
+                }
+
+                _ = BindAttributes(child, []);
+                if (!requested.Add(child.NameToken.Text))
+                {
+                    Report("COPE-MANIFEST-0044", $"Duplicate asset output <{child.NameToken.Text}>.", child.NameToken);
+                }
+            }
+
+            return new ManifestAssetOutputs(
+                requested.Contains("Toml"),
+                requested.Contains("Json"),
+                requested.Contains("Runtime"),
+                requested.Contains("Audit"));
+        }
+
+        private void ValidateAssetPath(string path, string sourceRoot, SyntaxToken anchor)
+        {
+            if (!IsSafeRelativePath(path))
+            {
+                Report("COPE-MANIFEST-0045", $"Asset source '{path}' must be a safe relative path.", anchor);
+                return;
+            }
+
+            string fullPath = Path.GetFullPath(Path.Combine(_projectRoot, sourceRoot, path));
+            if (!File.Exists(fullPath))
+            {
+                Report("COPE-MANIFEST-0046", $"Asset source '{path}' does not exist below '{sourceRoot}'.", anchor);
+            }
+        }
+
+        private void ValidateObjectDependencies(IReadOnlyList<ManifestObjectAsset> objects, SyntaxToken anchor)
+        {
+            IReadOnlyDictionary<string, ManifestObjectAsset> byId = objects
+                .GroupBy(asset => asset.Id, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+            foreach (ManifestObjectAsset asset in objects)
+            {
+                foreach (string dependency in asset.Dependencies)
+                {
+                    if (!byId.ContainsKey(dependency))
+                    {
+                        Report("COPE-MANIFEST-0047", $"Object asset '{asset.Id}' depends on unknown object '{dependency}'.", anchor);
+                    }
+                }
+            }
+
+            var visiting = new HashSet<string>(StringComparer.Ordinal);
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+            foreach (ManifestObjectAsset asset in objects)
+            {
+                Visit(asset.Id, []);
+            }
+
+            void Visit(string id, IReadOnlyList<string> path)
+            {
+                if (visited.Contains(id) || !byId.TryGetValue(id, out ManifestObjectAsset? asset))
+                {
+                    return;
+                }
+
+                if (!visiting.Add(id))
+                {
+                    Report("COPE-MANIFEST-0048", "Object asset dependency cycle: " + string.Join(" -> ", path.Append(id)) + ".", anchor);
+                    return;
+                }
+
+                foreach (string dependency in asset.Dependencies)
+                {
+                    Visit(dependency, path.Append(id).ToArray());
+                }
+
+                visiting.Remove(id);
+                visited.Add(id);
+            }
         }
 
         private IReadOnlyList<ManifestSidecarBinding> BindSidecars(TsXmlElementExpressionSyntax element)
@@ -768,6 +929,9 @@ public static class ManifestBinder
                 && !Path.IsPathRooted(value)
                 && !value.Contains("..", StringComparison.Ordinal)
                 && !value.Contains('\\');
+
+        private static bool IsSafeRelativeDirectory(string value)
+            => value == "." || IsSafeRelativePath(value.TrimEnd('/'));
 
         private void ValidateUnique(IEnumerable<(string Name, SyntaxToken Token)> values, string kind, SyntaxToken fallback)
         {

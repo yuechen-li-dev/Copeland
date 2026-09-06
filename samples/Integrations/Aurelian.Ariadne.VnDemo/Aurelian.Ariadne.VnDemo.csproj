@@ -34,10 +34,14 @@
     <ProjectReference Include="../../../src/Machina.UI/Machina.Runtime/Machina.Runtime.csproj" />
     <ProjectReference Include="../../../src/Machina.UI/Machina.Standard/Machina.Standard.csproj" />
     <ProjectReference Include="../../../../Deliverance/src/Deliverance.Core/Deliverance.Core.csproj" />
+    <ProjectReference Include="../../../src/Copeland/Copeland.TS/Copeland.TS.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="Assets\*.png" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\*.toml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Assets\*.obj.ts" />
+    <None Include="manifest.tsx" />
   </ItemGroup>
 </Project>

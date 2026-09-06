@@ -1,0 +1,477 @@
+# GENERATED from sunkill-dialogue-panel.obj.ts; edit the Copeland source, not this projection.
+schema_version = 1
+asset_id = "sunkill.ui"
+
+[atlas]
+image = "sunkill-ui-atlas.png"
+width = 1536
+height = 1024
+source_kind = "generated-obj-ts"
+
+[regions."dialogue.bottom.cap-left"]
+x = 102
+y = 900
+width = 84
+height = 76
+
+[regions."dialogue.bottom.cap-right"]
+x = 836
+y = 900
+width = 84
+height = 76
+
+[regions."dialogue.bottom.center"]
+x = 400
+y = 900
+width = 224
+height = 76
+
+[regions."dialogue.bottom.clamp"]
+x = 186
+y = 900
+width = 14
+height = 76
+
+[regions."dialogue.bottom.glow"]
+x = 294
+y = 900
+width = 82
+height = 76
+
+[regions."dialogue.center"]
+x = 102
+y = 110
+width = 818
+height = 790
+
+[regions."dialogue.corner.bottom-left"]
+x = 26
+y = 900
+width = 76
+height = 76
+
+[regions."dialogue.corner.bottom-right"]
+x = 920
+y = 900
+width = 76
+height = 76
+
+[regions."dialogue.corner.top-left"]
+x = 26
+y = 34
+width = 76
+height = 76
+
+[regions."dialogue.corner.top-right"]
+x = 920
+y = 34
+width = 76
+height = 76
+
+[regions."dialogue.left.cap-bottom"]
+x = 26
+y = 816
+width = 76
+height = 84
+
+[regions."dialogue.left.cap-top"]
+x = 26
+y = 110
+width = 76
+height = 84
+
+[regions."dialogue.left.center"]
+x = 26
+y = 440
+width = 76
+height = 224
+
+[regions."dialogue.left.clamp"]
+x = 26
+y = 194
+width = 76
+height = 14
+
+[regions."dialogue.left.glow"]
+x = 26
+y = 350
+width = 76
+height = 82
+
+[regions."dialogue.right.cap-bottom"]
+x = 920
+y = 816
+width = 76
+height = 84
+
+[regions."dialogue.right.cap-top"]
+x = 920
+y = 110
+width = 76
+height = 84
+
+[regions."dialogue.right.center"]
+x = 920
+y = 440
+width = 76
+height = 224
+
+[regions."dialogue.right.clamp"]
+x = 920
+y = 194
+width = 76
+height = 14
+
+[regions."dialogue.right.glow"]
+x = 920
+y = 350
+width = 76
+height = 82
+
+[regions."dialogue.top.cap-left"]
+x = 102
+y = 34
+width = 84
+height = 76
+
+[regions."dialogue.top.cap-right"]
+x = 836
+y = 34
+width = 84
+height = 76
+
+[regions."dialogue.top.center"]
+x = 400
+y = 34
+width = 224
+height = 76
+
+[regions."dialogue.top.clamp"]
+x = 186
+y = 34
+width = 14
+height = 76
+
+[regions."dialogue.top.glow"]
+x = 294
+y = 34
+width = 82
+height = 76
+
+# Compatibility projection for M14/static consumers.
+[ui_panels."dialogue"]
+x = 26
+y = 34
+width = 970
+height = 942
+left = 76
+top = 76
+right = 76
+bottom = 76
+edge_mode = "stretch"
+center_mode = "stretch"
+border_scale = 0.5
+extrusion = 0
+
+[programmable_panels."dialogue"]
+top_left = "dialogue.corner.top-left"
+top_right = "dialogue.corner.top-right"
+bottom_right = "dialogue.corner.bottom-right"
+bottom_left = "dialogue.corner.bottom-left"
+center_policy = "stretch-region"
+center_region = "dialogue.center"
+border_scale = 0.5
+padding_left = 34
+padding_top = 34
+padding_right = 34
+padding_bottom = 28
+minimum_width = 278
+minimum_height = 218
+
+[[programmable_panels."dialogue".top]]
+id = "dialogue.top.cap-left"
+region = "dialogue.top.cap-left"
+allocation = "fixed"
+length = 42
+weight = 0
+sampling = "crop"
+
+[[programmable_panels."dialogue".top]]
+id = "dialogue.top.clamp-a"
+region = "dialogue.top.clamp"
+allocation = "fixed"
+length = 7
+weight = 0
+sampling = "crop"
+
+[[programmable_panels."dialogue".top]]
+id = "dialogue.top.glow-left"
+region = "dialogue.top.glow"
+allocation = "flex"
+length = 30
+weight = 1
+sampling = "stretch"
+
+[[programmable_panels."dialogue".top]]
+id = "dialogue.top.clamp-b"
+region = "dialogue.top.clamp"
+allocation = "fixed"
+length = 7
+weight = 0
+sampling = "crop"
+
+[[programmable_panels."dialogue".top]]
+id = "dialogue.top.center"
+region = "dialogue.top.center"
+allocation = "flex"
+length = 30
+weight = 2
+sampling = "stretch"
+
+[[programmable_panels."dialogue".top]]
+id = "dialogue.top.clamp-c"
+region = "dialogue.top.clamp"
+allocation = "fixed"
+length = 7
+weight = 0
+sampling = "crop"
+
+[[programmable_panels."dialogue".top]]
+id = "dialogue.top.glow-right"
+region = "dialogue.top.glow"
+allocation = "flex"
+length = 30
+weight = 1
+sampling = "stretch"
+
+[[programmable_panels."dialogue".top]]
+id = "dialogue.top.clamp-d"
+region = "dialogue.top.clamp"
+allocation = "fixed"
+length = 7
+weight = 0
+sampling = "crop"
+
+[[programmable_panels."dialogue".top]]
+id = "dialogue.top.cap-right"
+region = "dialogue.top.cap-right"
+allocation = "fixed"
+length = 42
+weight = 0
+sampling = "crop"
+
+[[programmable_panels."dialogue".right]]
+id = "dialogue.right.cap-top"
+region = "dialogue.right.cap-top"
+allocation = "fixed"
+length = 42
+weight = 0
+sampling = "crop"
+
+[[programmable_panels."dialogue".right]]
+id = "dialogue.right.clamp-a"
+region = "dialogue.right.clamp"
+allocation = "fixed"
+length = 7
+weight = 0
+sampling = "crop"
+
+[[programmable_panels."dialogue".right]]
+id = "dialogue.right.glow-top"
+region = "dialogue.right.glow"
+allocation = "flex"
+length = 10
+weight = 1
+sampling = "stretch"
+
+[[programmable_panels."dialogue".right]]
+id = "dialogue.right.clamp-b"
+region = "dialogue.right.clamp"
+allocation = "fixed"
+length = 7
+weight = 0
+sampling = "crop"
+
+[[programmable_panels."dialogue".right]]
+id = "dialogue.right.center"
+region = "dialogue.right.center"
+allocation = "flex"
+length = 10
+weight = 2
+sampling = "stretch"
+
+[[programmable_panels."dialogue".right]]
+id = "dialogue.right.clamp-c"
+region = "dialogue.right.clamp"
+allocation = "fixed"
+length = 7
+weight = 0
+sampling = "crop"
+
+[[programmable_panels."dialogue".right]]
+id = "dialogue.right.glow-bottom"
+region = "dialogue.right.glow"
+allocation = "flex"
+length = 10
+weight = 1
+sampling = "stretch"
+
+[[programmable_panels."dialogue".right]]
+id = "dialogue.right.clamp-d"
+region = "dialogue.right.clamp"
+allocation = "fixed"
+length = 7
+weight = 0
+sampling = "crop"
+
+[[programmable_panels."dialogue".right]]
+id = "dialogue.right.cap-bottom"
+region = "dialogue.right.cap-bottom"
+allocation = "fixed"
+length = 42
+weight = 0
+sampling = "crop"
+
+[[programmable_panels."dialogue".bottom]]
+id = "dialogue.bottom.cap-left"
+region = "dialogue.bottom.cap-left"
+allocation = "fixed"
+length = 42
+weight = 0
+sampling = "crop"
+
+[[programmable_panels."dialogue".bottom]]
+id = "dialogue.bottom.clamp-a"
+region = "dialogue.bottom.clamp"
+allocation = "fixed"
+length = 7
+weight = 0
+sampling = "crop"
+
+[[programmable_panels."dialogue".bottom]]
+id = "dialogue.bottom.glow-left"
+region = "dialogue.bottom.glow"
+allocation = "flex"
+length = 30
+weight = 1
+sampling = "stretch"
+
+[[programmable_panels."dialogue".bottom]]
+id = "dialogue.bottom.clamp-b"
+region = "dialogue.bottom.clamp"
+allocation = "fixed"
+length = 7
+weight = 0
+sampling = "crop"
+
+[[programmable_panels."dialogue".bottom]]
+id = "dialogue.bottom.center"
+region = "dialogue.bottom.center"
+allocation = "flex"
+length = 30
+weight = 2
+sampling = "stretch"
+
+[[programmable_panels."dialogue".bottom]]
+id = "dialogue.bottom.clamp-c"
+region = "dialogue.bottom.clamp"
+allocation = "fixed"
+length = 7
+weight = 0
+sampling = "crop"
+
+[[programmable_panels."dialogue".bottom]]
+id = "dialogue.bottom.glow-right"
+region = "dialogue.bottom.glow"
+allocation = "flex"
+length = 30
+weight = 1
+sampling = "stretch"
+
+[[programmable_panels."dialogue".bottom]]
+id = "dialogue.bottom.clamp-d"
+region = "dialogue.bottom.clamp"
+allocation = "fixed"
+length = 7
+weight = 0
+sampling = "crop"
+
+[[programmable_panels."dialogue".bottom]]
+id = "dialogue.bottom.cap-right"
+region = "dialogue.bottom.cap-right"
+allocation = "fixed"
+length = 42
+weight = 0
+sampling = "crop"
+
+[[programmable_panels."dialogue".left]]
+id = "dialogue.left.cap-top"
+region = "dialogue.left.cap-top"
+allocation = "fixed"
+length = 42
+weight = 0
+sampling = "crop"
+
+[[programmable_panels."dialogue".left]]
+id = "dialogue.left.clamp-a"
+region = "dialogue.left.clamp"
+allocation = "fixed"
+length = 7
+weight = 0
+sampling = "crop"
+
+[[programmable_panels."dialogue".left]]
+id = "dialogue.left.glow-top"
+region = "dialogue.left.glow"
+allocation = "flex"
+length = 10
+weight = 1
+sampling = "stretch"
+
+[[programmable_panels."dialogue".left]]
+id = "dialogue.left.clamp-b"
+region = "dialogue.left.clamp"
+allocation = "fixed"
+length = 7
+weight = 0
+sampling = "crop"
+
+[[programmable_panels."dialogue".left]]
+id = "dialogue.left.center"
+region = "dialogue.left.center"
+allocation = "flex"
+length = 10
+weight = 2
+sampling = "stretch"
+
+[[programmable_panels."dialogue".left]]
+id = "dialogue.left.clamp-c"
+region = "dialogue.left.clamp"
+allocation = "fixed"
+length = 7
+weight = 0
+sampling = "crop"
+
+[[programmable_panels."dialogue".left]]
+id = "dialogue.left.glow-bottom"
+region = "dialogue.left.glow"
+allocation = "flex"
+length = 10
+weight = 1
+sampling = "stretch"
+
+[[programmable_panels."dialogue".left]]
+id = "dialogue.left.clamp-d"
+region = "dialogue.left.clamp"
+allocation = "fixed"
+length = 7
+weight = 0
+sampling = "crop"
+
+[[programmable_panels."dialogue".left]]
+id = "dialogue.left.cap-bottom"
+region = "dialogue.left.cap-bottom"
+allocation = "fixed"
+length = 42
+weight = 0
+sampling = "crop"

@@ -1,0 +1,108 @@
+{
+  "policy": "ordered fixed and minimum-weighted-flex integer allocation",
+  "exact": {
+    "extent": 30,
+    "minimumDemand": 30,
+    "usedLength": 30,
+    "unusedLength": 0,
+    "deficitLength": 0,
+    "status": "Exact",
+    "placements": [
+      {
+        "payload": "cap",
+        "requestIndex": 0,
+        "offset": 0,
+        "length": 10,
+        "kind": "Fixed"
+      },
+      {
+        "payload": "rail",
+        "requestIndex": 1,
+        "offset": 10,
+        "length": 10,
+        "kind": "Flex"
+      },
+      {
+        "payload": "center",
+        "requestIndex": 2,
+        "offset": 20,
+        "length": 10,
+        "kind": "Flex"
+      }
+    ],
+    "diagnostics": [],
+    "success": true
+  },
+  "underflow": {
+    "extent": 15,
+    "minimumDemand": 30,
+    "usedLength": 15,
+    "unusedLength": 0,
+    "deficitLength": 15,
+    "status": "Underflow",
+    "placements": [
+      {
+        "payload": "cap",
+        "requestIndex": 0,
+        "offset": 0,
+        "length": 10,
+        "kind": "Fixed"
+      },
+      {
+        "payload": "rail",
+        "requestIndex": 1,
+        "offset": 10,
+        "length": 5,
+        "kind": "Flex"
+      },
+      {
+        "payload": "center",
+        "requestIndex": 2,
+        "offset": 15,
+        "length": 0,
+        "kind": "Flex"
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "COPE-SPAN-ALLOC-0100",
+        "message": "Minimum demand 30 exceeds extent 15 by 15; placements are deterministically clipped in request order.",
+        "requestIndex": null
+      }
+    ],
+    "success": true
+  },
+  "surplus": {
+    "extent": 60,
+    "minimumDemand": 30,
+    "usedLength": 60,
+    "unusedLength": 0,
+    "deficitLength": 0,
+    "status": "SurplusDistributed",
+    "placements": [
+      {
+        "payload": "cap",
+        "requestIndex": 0,
+        "offset": 0,
+        "length": 10,
+        "kind": "Fixed"
+      },
+      {
+        "payload": "rail",
+        "requestIndex": 1,
+        "offset": 10,
+        "length": 20,
+        "kind": "Flex"
+      },
+      {
+        "payload": "center",
+        "requestIndex": 2,
+        "offset": 30,
+        "length": 30,
+        "kind": "Flex"
+      }
+    ],
+    "diagnostics": [],
+    "success": true
+  }
+}

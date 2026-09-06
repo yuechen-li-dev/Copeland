@@ -23,13 +23,14 @@ internal static class Program
 
         if (args.Length == 0)
         {
-            return UsageError("COPE-CLI-0004", "Missing command. Supported commands: 'compile', 'build', 'workspace', 'database', 'markdown', 'template', 'flow', 'language-server'.");
+            return UsageError("COPE-CLI-0004", "Missing command. Supported commands: 'compile', 'build', 'asset', 'workspace', 'database', 'markdown', 'template', 'flow', 'language-server'.");
         }
 
         return args[0] switch
         {
             "compile" => RunCompile(args),
             "build" => TsclBuildContract.Run(args),
+            "asset" => AssetCommand.Run(args),
             "workspace" => WorkspaceCommand.Run(args),
             "database" => DatabaseCommand.Run(args),
             "markdown" => RunMarkdown(args),
@@ -40,7 +41,7 @@ internal static class Program
             "language-server" or "lsp" => RunLanguageServer(args),
             "doctor" => DistributionCommand.RunDoctor(args[1..]),
             "install-info" => DistributionCommand.RunInstallInfo(args[1..]),
-            _ => UsageError("COPE-CLI-0004", $"Unknown command '{args[0]}'. Supported commands: 'compile', 'build', 'workspace', 'database', 'markdown', 'table', 'template', 'flow', 'language-server'."),
+            _ => UsageError("COPE-CLI-0004", $"Unknown command '{args[0]}'. Supported commands: 'compile', 'build', 'asset', 'workspace', 'database', 'markdown', 'table', 'template', 'flow', 'language-server'."),
         };
     }
 
@@ -447,6 +448,7 @@ internal static class Program
         Console.Error.WriteLine("Usage:");
         Console.Error.WriteLine("  copeland compile <source-file> --emit mir|csharp|javascript [--javascript-profile diagnostic|symbolic|production] [--out <path>]");
         Console.Error.WriteLine("  tscl build (--project <descriptor.json> | --standalone <project-root> [--target <name>]) --result <result.json>");
+        Console.Error.WriteLine("  tscl asset build <manifest.tsx> [--output <directory>]");
         Console.Error.WriteLine("  tscl workspace sync|validate|status|owner ...");
         Console.Error.WriteLine("  tscl table list|schema|rows|query|set|add-row|delete-row|validate|export|import ...");
         Console.Error.WriteLine("  tscl table list (--project <manifest.tsx> | --source <entry.ts>)  (compiler-projected layout tables)");

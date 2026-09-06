@@ -1,0 +1,25 @@
+{
+  "qualified": true,
+  "source": "samples/Integrations/Aurelian.Ariadne.VnDemo/manifest.tsx",
+  "authoredStructure": "Workspace/Assets/Texture/Object/AssetOutputs",
+  "sourceRoot": "Assets",
+  "textures": [
+    {
+      "id": "sunkill.ui.atlas",
+      "source": "sunkill-ui-atlas.png"
+    }
+  ],
+  "objects": [
+    {
+      "id": "sunkill.dialogue-panel",
+      "source": "sunkill-dialogue-panel.obj.ts",
+      "dependencies": []
+    }
+  ],
+  "outputs": {
+    "toml": true,
+    "json": true,
+    "runtime": true,
+    "audit": true
+  }
+}

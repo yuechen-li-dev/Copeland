@@ -19,6 +19,11 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.Contains("--m15-proof", StringComparer.OrdinalIgnoreCase))
+        {
+            return M15Proof.Run();
+        }
+
         if (args.Contains("--m14-proof", StringComparer.OrdinalIgnoreCase))
         {
             return RunM14Proof();
@@ -279,10 +284,10 @@ internal static class Program
         WriteJson(Path.Combine(artifactRoot, "spriteforge-ui-tileset-proof.json"), new
         {
             qualified = true,
-            authoring = "samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/sunkill-ui.toml",
+            authoring = "generated runtime TOML with legacy-authored TOML compatibility fallback",
             image = "samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/sunkill-ui-atlas.png",
             atlas = new { machina.Skin.Atlas.Width, machina.Skin.Atlas.Height },
-            panels = machina.Skin.Atlas.UiPanels.Values.OrderBy(panel => panel.Id).Select(panel => new
+            panels = machina.Skin.NineSlicePanels.Values.OrderBy(panel => panel.Id).Select(panel => new
             {
                 panel.Id,
                 source = new { panel.X, panel.Y, panel.Width, panel.Height },
@@ -797,7 +802,7 @@ internal static class Program
             StrokeWidth = 2,
             IsAntialias = false,
         };
-        foreach (var panel in skin.Atlas.UiPanels.Values.OrderBy(item => item.Id))
+        foreach (var panel in skin.NineSlicePanels.Values.OrderBy(item => item.Id))
         {
             float left = destination.Left + (panel.X * scaleX);
             float top = destination.Top + (panel.Y * scaleY);

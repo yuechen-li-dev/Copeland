@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../Copeland/Copeland.SpanAllocation/Copeland.SpanAllocation.csproj" />
     <ProjectReference Include="../Machina.Core/Machina.Core.csproj" />
     <ProjectReference Include="../Machina.Fonts/Machina.Fonts.csproj" />
     <ProjectReference Include="../Machina.Layout/Machina.Layout.csproj" />

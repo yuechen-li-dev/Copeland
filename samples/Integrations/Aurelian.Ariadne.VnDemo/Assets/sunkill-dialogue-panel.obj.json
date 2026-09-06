@@ -1,0 +1,515 @@
+{
+  "schemaVersion": 1,
+  "id": "sunkill.ui",
+  "texture": {
+    "id": "sunkill.ui.atlas",
+    "source": "sunkill-ui-atlas.png",
+    "width": 1536,
+    "height": 1024
+  },
+  "regions": [
+    {
+      "id": "dialogue.corner.top-left",
+      "x": 26,
+      "y": 34,
+      "width": 76,
+      "height": 76
+    },
+    {
+      "id": "dialogue.corner.top-right",
+      "x": 920,
+      "y": 34,
+      "width": 76,
+      "height": 76
+    },
+    {
+      "id": "dialogue.corner.bottom-right",
+      "x": 920,
+      "y": 900,
+      "width": 76,
+      "height": 76
+    },
+    {
+      "id": "dialogue.corner.bottom-left",
+      "x": 26,
+      "y": 900,
+      "width": 76,
+      "height": 76
+    },
+    {
+      "id": "dialogue.top.cap-left",
+      "x": 102,
+      "y": 34,
+      "width": 84,
+      "height": 76
+    },
+    {
+      "id": "dialogue.top.clamp",
+      "x": 186,
+      "y": 34,
+      "width": 14,
+      "height": 76
+    },
+    {
+      "id": "dialogue.top.glow",
+      "x": 294,
+      "y": 34,
+      "width": 82,
+      "height": 76
+    },
+    {
+      "id": "dialogue.top.center",
+      "x": 400,
+      "y": 34,
+      "width": 224,
+      "height": 76
+    },
+    {
+      "id": "dialogue.top.cap-right",
+      "x": 836,
+      "y": 34,
+      "width": 84,
+      "height": 76
+    },
+    {
+      "id": "dialogue.bottom.cap-left",
+      "x": 102,
+      "y": 900,
+      "width": 84,
+      "height": 76
+    },
+    {
+      "id": "dialogue.bottom.clamp",
+      "x": 186,
+      "y": 900,
+      "width": 14,
+      "height": 76
+    },
+    {
+      "id": "dialogue.bottom.glow",
+      "x": 294,
+      "y": 900,
+      "width": 82,
+      "height": 76
+    },
+    {
+      "id": "dialogue.bottom.center",
+      "x": 400,
+      "y": 900,
+      "width": 224,
+      "height": 76
+    },
+    {
+      "id": "dialogue.bottom.cap-right",
+      "x": 836,
+      "y": 900,
+      "width": 84,
+      "height": 76
+    },
+    {
+      "id": "dialogue.left.cap-top",
+      "x": 26,
+      "y": 110,
+      "width": 76,
+      "height": 84
+    },
+    {
+      "id": "dialogue.left.clamp",
+      "x": 26,
+      "y": 194,
+      "width": 76,
+      "height": 14
+    },
+    {
+      "id": "dialogue.left.glow",
+      "x": 26,
+      "y": 350,
+      "width": 76,
+      "height": 82
+    },
+    {
+      "id": "dialogue.left.center",
+      "x": 26,
+      "y": 440,
+      "width": 76,
+      "height": 224
+    },
+    {
+      "id": "dialogue.left.cap-bottom",
+      "x": 26,
+      "y": 816,
+      "width": 76,
+      "height": 84
+    },
+    {
+      "id": "dialogue.right.cap-top",
+      "x": 920,
+      "y": 110,
+      "width": 76,
+      "height": 84
+    },
+    {
+      "id": "dialogue.right.clamp",
+      "x": 920,
+      "y": 194,
+      "width": 76,
+      "height": 14
+    },
+    {
+      "id": "dialogue.right.glow",
+      "x": 920,
+      "y": 350,
+      "width": 76,
+      "height": 82
+    },
+    {
+      "id": "dialogue.right.center",
+      "x": 920,
+      "y": 440,
+      "width": 76,
+      "height": 224
+    },
+    {
+      "id": "dialogue.right.cap-bottom",
+      "x": 920,
+      "y": 816,
+      "width": 76,
+      "height": 84
+    },
+    {
+      "id": "dialogue.center",
+      "x": 102,
+      "y": 110,
+      "width": 818,
+      "height": 790
+    }
+  ],
+  "panels": [
+    {
+      "id": "dialogue",
+      "topLeftRegionId": "dialogue.corner.top-left",
+      "topRightRegionId": "dialogue.corner.top-right",
+      "bottomRightRegionId": "dialogue.corner.bottom-right",
+      "bottomLeftRegionId": "dialogue.corner.bottom-left",
+      "top": {
+        "segments": [
+          {
+            "id": "dialogue.top.cap-left",
+            "regionId": "dialogue.top.cap-left",
+            "allocationKind": "fixed",
+            "minimumLength": 42,
+            "weight": 0,
+            "sampling": "crop"
+          },
+          {
+            "id": "dialogue.top.clamp-a",
+            "regionId": "dialogue.top.clamp",
+            "allocationKind": "fixed",
+            "minimumLength": 7,
+            "weight": 0,
+            "sampling": "crop"
+          },
+          {
+            "id": "dialogue.top.glow-left",
+            "regionId": "dialogue.top.glow",
+            "allocationKind": "flex",
+            "minimumLength": 30,
+            "weight": 1,
+            "sampling": "stretch"
+          },
+          {
+            "id": "dialogue.top.clamp-b",
+            "regionId": "dialogue.top.clamp",
+            "allocationKind": "fixed",
+            "minimumLength": 7,
+            "weight": 0,
+            "sampling": "crop"
+          },
+          {
+            "id": "dialogue.top.center",
+            "regionId": "dialogue.top.center",
+            "allocationKind": "flex",
+            "minimumLength": 30,
+            "weight": 2,
+            "sampling": "stretch"
+          },
+          {
+            "id": "dialogue.top.clamp-c",
+            "regionId": "dialogue.top.clamp",
+            "allocationKind": "fixed",
+            "minimumLength": 7,
+            "weight": 0,
+            "sampling": "crop"
+          },
+          {
+            "id": "dialogue.top.glow-right",
+            "regionId": "dialogue.top.glow",
+            "allocationKind": "flex",
+            "minimumLength": 30,
+            "weight": 1,
+            "sampling": "stretch"
+          },
+          {
+            "id": "dialogue.top.clamp-d",
+            "regionId": "dialogue.top.clamp",
+            "allocationKind": "fixed",
+            "minimumLength": 7,
+            "weight": 0,
+            "sampling": "crop"
+          },
+          {
+            "id": "dialogue.top.cap-right",
+            "regionId": "dialogue.top.cap-right",
+            "allocationKind": "fixed",
+            "minimumLength": 42,
+            "weight": 0,
+            "sampling": "crop"
+          }
+        ],
+        "minimumLength": 202
+      },
+      "right": {
+        "segments": [
+          {
+            "id": "dialogue.right.cap-top",
+            "regionId": "dialogue.right.cap-top",
+            "allocationKind": "fixed",
+            "minimumLength": 42,
+            "weight": 0,
+            "sampling": "crop"
+          },
+          {
+            "id": "dialogue.right.clamp-a",
+            "regionId": "dialogue.right.clamp",
+            "allocationKind": "fixed",
+            "minimumLength": 7,
+            "weight": 0,
+            "sampling": "crop"
+          },
+          {
+            "id": "dialogue.right.glow-top",
+            "regionId": "dialogue.right.glow",
+            "allocationKind": "flex",
+            "minimumLength": 10,
+            "weight": 1,
+            "sampling": "stretch"
+          },
+          {
+            "id": "dialogue.right.clamp-b",
+            "regionId": "dialogue.right.clamp",
+            "allocationKind": "fixed",
+            "minimumLength": 7,
+            "weight": 0,
+            "sampling": "crop"
+          },
+          {
+            "id": "dialogue.right.center",
+            "regionId": "dialogue.right.center",
+            "allocationKind": "flex",
+            "minimumLength": 10,
+            "weight": 2,
+            "sampling": "stretch"
+          },
+          {
+            "id": "dialogue.right.clamp-c",
+            "regionId": "dialogue.right.clamp",
+            "allocationKind": "fixed",
+            "minimumLength": 7,
+            "weight": 0,
+            "sampling": "crop"
+          },
+          {
+            "id": "dialogue.right.glow-bottom",
+            "regionId": "dialogue.right.glow",
+            "allocationKind": "flex",
+            "minimumLength": 10,
+            "weight": 1,
+            "sampling": "stretch"
+          },
+          {
+            "id": "dialogue.right.clamp-d",
+            "regionId": "dialogue.right.clamp",
+            "allocationKind": "fixed",
+            "minimumLength": 7,
+            "weight": 0,
+            "sampling": "crop"
+          },
+          {
+            "id": "dialogue.right.cap-bottom",
+            "regionId": "dialogue.right.cap-bottom",
+            "allocationKind": "fixed",
+            "minimumLength": 42,
+            "weight": 0,
+            "sampling": "crop"
+          }
+        ],
+        "minimumLength": 142
+      },
+      "bottom": {
+        "segments": [
+          {
+            "id": "dialogue.bottom.cap-left",
+            "regionId": "dialogue.bottom.cap-left",
+            "allocationKind": "fixed",
+            "minimumLength": 42,
+            "weight": 0,
+            "sampling": "crop"
+          },
+          {
+            "id": "dialogue.bottom.clamp-a",
+            "regionId": "dialogue.bottom.clamp",
+            "allocationKind": "fixed",
+            "minimumLength": 7,
+            "weight": 0,
+            "sampling": "crop"
+          },
+          {
+            "id": "dialogue.bottom.glow-left",
+            "regionId": "dialogue.bottom.glow",
+            "allocationKind": "flex",
+            "minimumLength": 30,
+            "weight": 1,
+            "sampling": "stretch"
+          },
+          {
+            "id": "dialogue.bottom.clamp-b",
+            "regionId": "dialogue.bottom.clamp",
+            "allocationKind": "fixed",
+            "minimumLength": 7,
+            "weight": 0,
+            "sampling": "crop"
+          },
+          {
+            "id": "dialogue.bottom.center",
+            "regionId": "dialogue.bottom.center",
+            "allocationKind": "flex",
+            "minimumLength": 30,
+            "weight": 2,
+            "sampling": "stretch"
+          },
+          {
+            "id": "dialogue.bottom.clamp-c",
+            "regionId": "dialogue.bottom.clamp",
+            "allocationKind": "fixed",
+            "minimumLength": 7,
+            "weight": 0,
+            "sampling": "crop"
+          },
+          {
+            "id": "dialogue.bottom.glow-right",
+            "regionId": "dialogue.bottom.glow",
+            "allocationKind": "flex",
+            "minimumLength": 30,
+            "weight": 1,
+            "sampling": "stretch"
+          },
+          {
+            "id": "dialogue.bottom.clamp-d",
+            "regionId": "dialogue.bottom.clamp",
+            "allocationKind": "fixed",
+            "minimumLength": 7,
+            "weight": 0,
+            "sampling": "crop"
+          },
+          {
+            "id": "dialogue.bottom.cap-right",
+            "regionId": "dialogue.bottom.cap-right",
+            "allocationKind": "fixed",
+            "minimumLength": 42,
+            "weight": 0,
+            "sampling": "crop"
+          }
+        ],
+        "minimumLength": 202
+      },
+      "left": {
+        "segments": [
+          {
+            "id": "dialogue.left.cap-top",
+            "regionId": "dialogue.left.cap-top",
+            "allocationKind": "fixed",
+            "minimumLength": 42,
+            "weight": 0,
+            "sampling": "crop"
+          },
+          {
+            "id": "dialogue.left.clamp-a",
+            "regionId": "dialogue.left.clamp",
+            "allocationKind": "fixed",
+            "minimumLength": 7,
+            "weight": 0,
+            "sampling": "crop"
+          },
+          {
+            "id": "dialogue.left.glow-top",
+            "regionId": "dialogue.left.glow",
+            "allocationKind": "flex",
+            "minimumLength": 10,
+            "weight": 1,
+            "sampling": "stretch"
+          },
+          {
+            "id": "dialogue.left.clamp-b",
+            "regionId": "dialogue.left.clamp",
+            "allocationKind": "fixed",
+            "minimumLength": 7,
+            "weight": 0,
+            "sampling": "crop"
+          },
+          {
+            "id": "dialogue.left.center",
+            "regionId": "dialogue.left.center",
+            "allocationKind": "flex",
+            "minimumLength": 10,
+            "weight": 2,
+            "sampling": "stretch"
+          },
+          {
+            "id": "dialogue.left.clamp-c",
+            "regionId": "dialogue.left.clamp",
+            "allocationKind": "fixed",
+            "minimumLength": 7,
+            "weight": 0,
+            "sampling": "crop"
+          },
+          {
+            "id": "dialogue.left.glow-bottom",
+            "regionId": "dialogue.left.glow",
+            "allocationKind": "flex",
+            "minimumLength": 10,
+            "weight": 1,
+            "sampling": "stretch"
+          },
+          {
+            "id": "dialogue.left.clamp-d",
+            "regionId": "dialogue.left.clamp",
+            "allocationKind": "fixed",
+            "minimumLength": 7,
+            "weight": 0,
+            "sampling": "crop"
+          },
+          {
+            "id": "dialogue.left.cap-bottom",
+            "regionId": "dialogue.left.cap-bottom",
+            "allocationKind": "fixed",
+            "minimumLength": 42,
+            "weight": 0,
+            "sampling": "crop"
+          }
+        ],
+        "minimumLength": 142
+      },
+      "centerPolicy": "stretchRegion",
+      "centerRegionId": "dialogue.center",
+      "borderScale": 0.5,
+      "contentPadding": {
+        "left": 34,
+        "top": 34,
+        "right": 34,
+        "bottom": 28
+      },
+      "minimumWidth": 278,
+      "minimumHeight": 218
+    }
+  ]
+}

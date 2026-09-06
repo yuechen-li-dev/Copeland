@@ -1,0 +1,34 @@
+{
+  "qualified": true,
+  "method": "fresh Codex agent with no conversation history; read-only repository inspection",
+  "allocatorEdit": {
+    "result": "pass",
+    "authoritativeFiles": [
+      "samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/sunkill-dialogue-panel.obj.ts",
+      "samples/Integrations/Aurelian.Ariadne.VnDemo/M15Proof.cs",
+      "tests/Copeland/Copeland.TS.Tests/ObjectAssetsM15Tests.cs",
+      "tests/Machina.UI/Machina.Presentation.Tests/MachinaProgrammablePanelTests.cs"
+    ],
+    "allocatorOwner": "src/Copeland/Copeland.SpanAllocation/SpanAllocator.cs",
+    "spriteForgeEditRequired": false
+  },
+  "assetAuthoring": {
+    "result": "pass",
+    "authoritativeFiles": [
+      "samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/sunkill-warning-panel.obj.ts",
+      "samples/Integrations/Aurelian.Ariadne.VnDemo/manifest.tsx"
+    ],
+    "generatedFilesRecognizedAsReadOnly": true,
+    "caveat": "SUNKILL explicitly loads the one runtime panel demanded by M15; rendering a second object would also require application composition."
+  },
+  "projectionEdit": {
+    "result": "pass",
+    "authoritativeFile": "samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/sunkill-dialogue-panel.obj.ts",
+    "generatedFilesRecognizedAsReadOnly": true,
+    "samplingIsExplicitPerSegment": true,
+    "resolvedFriction": "The fresh-context review found that the flex helper hardcoded stretch. Sampling is now an explicit helper argument, so a segment can switch to tile in one authored call.",
+    "pipelineRecognized": "Copeland compiler -> SpriteForge -> VnUiSkin -> Machina sampling"
+  },
+  "regeneration": "dotnet run --project src/Copeland/Copeland.Cli/Copeland.Cli.csproj -- asset build samples/Integrations/Aurelian.Ariadne.VnDemo/manifest.tsx",
+  "proof": "dotnet run --project samples/Integrations/Aurelian.Ariadne.VnDemo/Aurelian.Ariadne.VnDemo.csproj -- --m15-proof"
+}

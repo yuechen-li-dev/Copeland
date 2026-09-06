@@ -434,18 +434,38 @@ public sealed class VnUiLayerPresenter : INativeLayerPresenter
 
         context.Present(renderer, pass =>
         {
-            foreach (MachinaNineSlicePrimitive primitive in layer.NineSlices)
+            if (layer.ProofNineSlices is not null)
             {
-                bool usesSeamFixture = primitive.Texture.Value == "sunkill.seam.fixture";
-                IReadOnlyList<NativeQuadSubmission> quads = AurelianNineSliceAdapter.Lower(
-                    primitive,
-                    usesSeamFixture ? seamTexture : atlasTexture,
-                    usesSeamFixture ? (int)seamFixture.Width : (int)atlas.Width,
-                    usesSeamFixture ? (int)seamFixture.Height : (int)atlas.Height,
-                    viewport);
-                foreach (NativeQuadSubmission quad in quads)
+                foreach (MachinaNineSlicePrimitive primitive in layer.NineSlices)
                 {
-                    pass.SubmitQuad(quad);
+                    bool usesSeamFixture = primitive.Texture.Value == "sunkill.seam.fixture";
+                    IReadOnlyList<NativeQuadSubmission> quads = AurelianNineSliceAdapter.Lower(
+                        primitive,
+                        usesSeamFixture ? seamTexture : atlasTexture,
+                        usesSeamFixture ? (int)seamFixture.Width : (int)atlas.Width,
+                        usesSeamFixture ? (int)seamFixture.Height : (int)atlas.Height,
+                        viewport);
+                    foreach (NativeQuadSubmission quad in quads)
+                    {
+                        pass.SubmitQuad(quad);
+                    }
+                }
+            }
+            else
+            {
+                foreach (MachinaProgrammablePanelPrimitive primitive in layer.Panels)
+                {
+                    bool usesSeamFixture = primitive.Texture.Value == "sunkill.seam.fixture";
+                    AurelianProgrammablePanelLoweringResult panel = AurelianProgrammablePanelAdapter.Lower(
+                        primitive,
+                        usesSeamFixture ? seamTexture : atlasTexture,
+                        usesSeamFixture ? (int)seamFixture.Width : (int)atlas.Width,
+                        usesSeamFixture ? (int)seamFixture.Height : (int)atlas.Height,
+                        viewport);
+                    foreach (NativeQuadSubmission quad in panel.Quads)
+                    {
+                        pass.SubmitQuad(quad);
+                    }
                 }
             }
 
