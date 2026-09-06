@@ -1,0 +1,91 @@
+{
+  "qualified": true,
+  "reference": {
+    "width": 1280,
+    "height": 720
+  },
+  "model": "uniform fit; centered letterbox or pillarbox",
+  "samples": [
+    {
+      "name": "small",
+      "framebuffer": {
+        "width": 960,
+        "height": 540
+      },
+      "scale": 0.75,
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "width": 960,
+        "height": 540
+      }
+    },
+    {
+      "name": "odd",
+      "framebuffer": {
+        "width": 1537,
+        "height": 864
+      },
+      "scale": 1.2,
+      "viewport": {
+        "x": 0.5,
+        "y": 0,
+        "width": 1536,
+        "height": 864
+      }
+    },
+    {
+      "name": "1440p",
+      "framebuffer": {
+        "width": 2560,
+        "height": 1440
+      },
+      "scale": 2,
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "width": 2560,
+        "height": 1440
+      }
+    }
+  ],
+  "pointerProof": [
+    {
+      "name": "small",
+      "physical": {
+        "x": 282.75,
+        "y": 297
+      },
+      "logical": {
+        "x": 377,
+        "y": 396
+      },
+      "error": 0
+    },
+    {
+      "name": "odd",
+      "physical": {
+        "x": 452.9,
+        "y": 475.2
+      },
+      "logical": {
+        "x": 377,
+        "y": 396
+      },
+      "error": 0
+    },
+    {
+      "name": "1440p",
+      "physical": {
+        "x": 754,
+        "y": 792
+      },
+      "logical": {
+        "x": 377,
+        "y": 396
+      },
+      "error": 0
+    }
+  ],
+  "background": "cover is resolved into the 1280x720 logical scene before uniform framebuffer scaling"
+}

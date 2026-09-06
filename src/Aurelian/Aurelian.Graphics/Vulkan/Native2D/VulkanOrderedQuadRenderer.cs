@@ -33,8 +33,8 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
     private readonly AurelianVulkanPlant plant;
     private readonly CompiledGraphicsProgram program;
     private readonly Native2DPipelineOptions options;
-    private readonly uint width;
-    private readonly uint height;
+    private uint width;
+    private uint height;
     private readonly int vertexStride;
     private readonly CompiledVertexInput[] orderedVertexInputs;
     private readonly RawVulkanMemoryAllocator allocator;
@@ -44,10 +44,10 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
     private readonly VulkanCommandSubmitter submitter;
     private readonly AurelianVulkanRenderPass clearRenderPass;
     private readonly AurelianVulkanRenderPass? loadRenderPass;
-    private readonly AurelianVulkanTexture renderTarget;
-    private readonly AurelianVulkanFramebuffer clearFramebuffer;
-    private readonly AurelianVulkanFramebuffer? loadFramebuffer;
-    private readonly VulkanNativeFrameTarget? sharedTarget;
+    private AurelianVulkanTexture renderTarget;
+    private AurelianVulkanFramebuffer clearFramebuffer;
+    private AurelianVulkanFramebuffer? loadFramebuffer;
+    private VulkanNativeFrameTarget? sharedTarget;
     private readonly DescriptorSetLayout descriptorSetLayout;
     private readonly DescriptorPool descriptorPool;
     private readonly Sampler sampler;
@@ -177,6 +177,39 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
     public bool StraightAlphaBlend => options.StraightAlphaBlend;
 
     public bool CorrectsSrgbInputs => options.InputsAreSrgb && IsSrgb(renderTarget.Format);
+
+    /// <summary>
+    /// Rebinds a shared-target renderer to a same-format replacement framebuffer without
+    /// destroying texture, sampler, descriptor, pipeline, or upload resources.
+    /// </summary>
+    public void Retarget(VulkanNativeFrameTarget target)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        ThrowIfDisposed();
+        if (sharedTarget is null)
+        {
+            throw new InvalidOperationException("Only a renderer created for a shared target can be retargeted.");
+        }
+        if (passActive)
+        {
+            throw new InvalidOperationException("A renderer cannot be retargeted during an active pass.");
+        }
+        target.ValidateCompatibility(plant, target.Width, target.Height);
+        if (target.TextureFormat != sharedTarget.TextureFormat)
+        {
+            throw new ArgumentException("Replacement target format must match the current shared target.", nameof(target));
+        }
+
+        loadFramebuffer?.Dispose();
+        clearFramebuffer.Dispose();
+        sharedTarget = target;
+        renderTarget = target.Texture;
+        width = target.Width;
+        height = target.Height;
+        clearFramebuffer = CreateFramebuffer(clearRenderPass);
+        loadFramebuffer = CreateFramebuffer(loadRenderPass
+            ?? throw new InvalidOperationException("Shared renderer is missing its load render pass."));
+    }
 
     public Native2DTextureHandle CreateTexture(uint textureWidth, uint textureHeight, ReadOnlySpan<byte> rgba8)
     {

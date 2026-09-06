@@ -64,11 +64,9 @@ internal sealed class VnWindow : Window
 
         image = new Image
         {
-            Width = VnNativeRenderer.Width,
-            Height = VnNativeRenderer.Height,
-            Stretch = Stretch.None,
-            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
-            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+            Stretch = Stretch.Fill,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch,
             Focusable = true,
         };
         image.PointerPressed += OnPointerPressed;
@@ -76,7 +74,9 @@ internal sealed class VnWindow : Window
 
         Width = VnNativeRenderer.Width;
         Height = VnNativeRenderer.Height;
-        CanResize = false;
+        CanResize = true;
+        MinWidth = 640;
+        MinHeight = 360;
         Background = Brushes.Black;
         Content = new TextBlock
         {
@@ -90,6 +90,7 @@ internal sealed class VnWindow : Window
         KeyDown += OnKeyDown;
         Closed += OnClosed;
         Opened += OnOpened;
+        SizeChanged += OnSizeChanged;
     }
 
     private void OnOpened(object? sender, EventArgs args)
@@ -114,11 +115,15 @@ internal sealed class VnWindow : Window
             ReportSmokeStage("app-state");
             machina = new VnMachinaLayer(app);
             ReportSmokeStage("machina-layer");
+            int initialFramebufferWidth = Math.Max(1, (int)Math.Round(ClientSize.Width * RenderScaling));
+            int initialFramebufferHeight = Math.Max(1, (int)Math.Round(ClientSize.Height * RenderScaling));
             native = new VnNativeRenderer(
                 root,
                 app,
                 machina,
-                stage => ReportSmokeStage($"native-{stage}"));
+                initialFramebufferWidth,
+                initialFramebufferHeight,
+                startupProgress: stage => ReportSmokeStage($"native-{stage}"));
             ReportSmokeStage("native-renderer");
             Content = image;
             Render();
@@ -248,7 +253,7 @@ internal sealed class VnWindow : Window
             ?? throw new InvalidOperationException("The native presenter frame did not return pixels.");
 
         bitmap?.Dispose();
-        bitmap = CreateBitmap(pixels);
+        bitmap = CreateBitmap(pixels, native.FramebufferWidth, native.FramebufferHeight);
         image.Source = bitmap;
         Title = $"SUNKILL — {app.State.Screen} — {app.State.Notice}";
     }
@@ -260,16 +265,29 @@ internal sealed class VnWindow : Window
         app?.Dispose();
     }
 
-    private static WriteableBitmap CreateBitmap(byte[] pixels)
+    private void OnSizeChanged(object? sender, SizeChangedEventArgs args)
+    {
+        if (native is null || ClientSize.Width <= 0 || ClientSize.Height <= 0)
+        {
+            return;
+        }
+
+        int width = Math.Max(1, (int)Math.Round(ClientSize.Width * RenderScaling));
+        int height = Math.Max(1, (int)Math.Round(ClientSize.Height * RenderScaling));
+        native.Resize(width, height);
+        Render();
+    }
+
+    private WriteableBitmap CreateBitmap(byte[] pixels, int width, int height)
     {
         var result = new WriteableBitmap(
-            new PixelSize(VnNativeRenderer.Width, VnNativeRenderer.Height),
-            new Vector(96, 96),
+            new PixelSize(width, height),
+            new Vector(96 * RenderScaling, 96 * RenderScaling),
             PixelFormat.Rgba8888,
             AlphaFormat.Unpremul);
         using ILockedFramebuffer framebuffer = result.Lock();
-        int sourceStride = VnNativeRenderer.Width * 4;
-        for (int row = 0; row < VnNativeRenderer.Height; row++)
+        int sourceStride = width * 4;
+        for (int row = 0; row < height; row++)
         {
             Marshal.Copy(
                 pixels,
@@ -281,9 +299,16 @@ internal sealed class VnWindow : Window
         return result;
     }
 
-    private static LayerPoint ToLayerPoint(Point point)
+    private LayerPoint ToLayerPoint(Point point)
     {
-        return new LayerPoint(point.X, point.Y);
+        if (native is null || image.Bounds.Width <= 0 || image.Bounds.Height <= 0)
+        {
+            return new LayerPoint(point.X, point.Y);
+        }
+
+        double physicalX = point.X * native.FramebufferWidth / image.Bounds.Width;
+        double physicalY = point.Y * native.FramebufferHeight / image.Bounds.Height;
+        return native.ToLogicalPointer(physicalX, physicalY);
     }
 
     private static bool TryMapKey(Key key, out KeyboardKey mapped)

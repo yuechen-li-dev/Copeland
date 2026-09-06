@@ -16,6 +16,7 @@
     <ProjectReference Include="../../../../Dominatus/src/Ariadne.OptFlow/Ariadne.OptFlow.csproj" />
     <ProjectReference Include="../../../../Dominatus/src/Dominatus.Core/Dominatus.Core.csproj" />
     <ProjectReference Include="../../../../Dominatus/src/Dominatus.OptFlow/Dominatus.OptFlow.csproj" />
+    <ProjectReference Include="../../../../Dominatus/src/Dominatus.SpriteForge/Dominatus.SpriteForge.csproj" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Composition/Aurelian.Composition.csproj" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Audio/Aurelian.Audio.csproj" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />
@@ -24,6 +25,7 @@
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj" />
     <ProjectReference Include="../../../src/Integrations/Aurelian.GameWorld2D/Aurelian.GameWorld2D.csproj" />
     <ProjectReference Include="../../../src/Integrations/Aurelian.Machina/Aurelian.Machina.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Machina.Graphics/Aurelian.Machina.Graphics.csproj" />
     <ProjectReference Include="../../../src/Integrations/Aurelian.NativeComposition/Aurelian.NativeComposition.csproj" />
     <ProjectReference Include="../../../src/Integrations/InputMan.Aurelian/InputMan.Aurelian.csproj" />
     <ProjectReference Include="../../../src/Machina.UI/Machina.Core/Machina.Core.csproj" />
@@ -36,5 +38,6 @@
 
   <ItemGroup>
     <Content Include="Assets\*.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\*.toml" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -174,6 +174,18 @@ public sealed class NativeLayerCompositor : IDisposable
         }
         catch
         {
+            foreach (INativeLayerPresenter presenter in presenters.Values)
+            {
+                try
+                {
+                    presenter.Resize(target);
+                }
+                catch
+                {
+                    // Preserve the original resize failure. A presenter that cannot roll back
+                    // will fail closed on the next frame instead of hiding the root cause.
+                }
+            }
             replacement.Dispose();
             throw;
         }

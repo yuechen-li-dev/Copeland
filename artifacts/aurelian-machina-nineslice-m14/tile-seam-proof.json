@@ -1,0 +1,11 @@
+{
+  "qualified": true,
+  "fixture": "native Vulkan R8G8B8A8_UNORM readback",
+  "sourceTile": "16x16 high-contrast dark/orange periodic boundary fixture",
+  "sampler": "linear \u002B clamp",
+  "repeat": "repeated quads over atlas subrects",
+  "uvPolicy": "half-texel inset to boundary texel centers",
+  "sampleCount": 393,
+  "maxChannelError": 0,
+  "meanChannelError": 0
+}

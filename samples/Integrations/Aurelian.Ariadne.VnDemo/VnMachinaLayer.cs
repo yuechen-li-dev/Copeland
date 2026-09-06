@@ -21,17 +21,34 @@ public sealed class VnMachinaLayer : IAurelianLayer
     private const int Width = 1280;
     private const int Height = 720;
     private readonly RenApp app;
+    private readonly VnUiSkin skin;
     private MachinaPreparedPresentation? prepared;
     private string? preparedKey;
     private byte[]? renderedRgba;
     private UiAction? pressedAction;
 
-    public VnMachinaLayer(RenApp app)
+    public VnMachinaLayer(RenApp app, VnUiSkin? skin = null)
     {
         this.app = app;
+        this.skin = skin ?? VnUiSkin.Load();
     }
 
     public byte[] Rgba8 => RenderOverlay();
+
+    public VnUiSkin Skin => skin;
+
+    public IReadOnlyList<global::Machina.Presentation.MachinaNineSlicePrimitive>? ProofNineSlices { get; set; }
+
+    public bool SuppressOverlay { get; set; }
+
+    public IReadOnlyList<global::Machina.Presentation.MachinaNineSlicePrimitive> NineSlices
+    {
+        get
+        {
+            EnsurePrepared();
+            return ProofNineSlices ?? BuildNineSlices();
+        }
+    }
 
     public LayerPoint ActionCenter(string actionName)
     {
@@ -164,6 +181,10 @@ public sealed class VnMachinaLayer : IAurelianLayer
     private byte[] RenderOverlay()
     {
         EnsurePrepared();
+        if (SuppressOverlay)
+        {
+            return new byte[Width * Height * 4];
+        }
         if (renderedRgba is not null)
         {
             return renderedRgba;
@@ -208,6 +229,33 @@ public sealed class VnMachinaLayer : IAurelianLayer
         renderedRgba = null;
     }
 
+    private IReadOnlyList<global::Machina.Presentation.MachinaNineSlicePrimitive> BuildNineSlices()
+    {
+        var result = new List<global::Machina.Presentation.MachinaNineSlicePrimitive>();
+        if (app.State.Screen == RenScreen.Game)
+        {
+            AddPanel(result, "dialogue-panel", "dialogue");
+        }
+        else
+        {
+            AddPanel(result, "menu-shadow", "dialogue");
+        }
+
+        return result;
+    }
+
+    private void AddPanel(
+        ICollection<global::Machina.Presentation.MachinaNineSlicePrimitive> result,
+        string nodeId,
+        string panelId)
+    {
+        var id = new global::Machina.Layout.Rows.NodeId(nodeId);
+        if (prepared!.Resolved.Nodes.TryGetValue(id, out global::Machina.Layout.Documents.ResolvedLayoutNode? node))
+        {
+            result.Add(skin.Create($"skin.{nodeId}", panelId, node.Rect));
+        }
+    }
+
     private static UiNode BuildMenu(RenPresentationSnapshot presentation)
     {
         var children = new List<UiNode>
@@ -216,11 +264,7 @@ public sealed class VnMachinaLayer : IAurelianLayer
                 UI.Rect(
                     id: "menu-shadow",
                     style: new UiStyle(
-                        Background: ColorToken.Hex(0x090B12E8),
-                        BorderColor: ColorToken.Hex(0xED782FFF),
-                        BorderThickness: 2,
-                        Shape: UiShapeKind.RoundedRect,
-                        CornerRadius: 18)),
+                        Background: ColorToken.Hex(0x00000000))),
                 id: "menu-shadow-slot",
                 left: 54,
                 top: 48,
@@ -292,11 +336,7 @@ public sealed class VnMachinaLayer : IAurelianLayer
                 UI.Rect(
                     id: "dialogue-panel",
                     style: new UiStyle(
-                        Background: ColorToken.Hex(0x090B12EE),
-                        BorderColor: ColorToken.Hex(0xED782FFF),
-                        BorderThickness: 2,
-                        Shape: UiShapeKind.RoundedRect,
-                        CornerRadius: 14)),
+                        Background: ColorToken.Hex(0x00000000))),
                 id: "dialogue-panel-slot",
                 left: 44,
                 right: 44,

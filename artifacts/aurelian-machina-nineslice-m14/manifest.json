@@ -1,0 +1,30 @@
+{
+  "milestone": "AURELIAN-MACHINA-NINESLICE-SCALING-M14",
+  "kind": "resizable-native-ui-and-nine-slice",
+  "outcome": "A",
+  "resizableWindowQualified": true,
+  "aspectPreservingScalingQualified": true,
+  "inputCoordinateParityQualified": true,
+  "nineSliceQualified": true,
+  "tiledEdgesQualified": true,
+  "tiledCenterQualified": true,
+  "partialTileCroppingQualified": true,
+  "gaplessTilingQualified": true,
+  "spriteForgeUiTilesetQualified": true,
+  "sunkillIntegrationQualified": true,
+  "buttonNineSliceApplied": false,
+  "buttonPolicy": "existing Machina analytic buttons retained per user direction",
+  "resolution1440pQualified": true,
+  "smallWindowQualified": true,
+  "oddResolutionQualified": true,
+  "stableResizeTextureUploads": true,
+  "performance": {
+    "quadCount": 10,
+    "drawCalls": 2,
+    "descriptorWrites": 0,
+    "cpuAllocatedBytes": 1032,
+    "commandRecordingMilliseconds": 0.17
+  },
+  "webGpuImplemented": false,
+  "themeSystemAdded": false
+}

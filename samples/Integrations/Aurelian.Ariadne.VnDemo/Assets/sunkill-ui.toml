@@ -1,0 +1,31 @@
+[atlas]
+image = "sunkill-ui-atlas.png"
+width = 1536
+height = 1024
+
+[ui_panels.dialogue]
+x = 26
+y = 34
+width = 970
+height = 942
+left = 76
+top = 76
+right = 76
+bottom = 76
+edge_mode = "stretch"
+center_mode = "stretch"
+border_scale = 0.5
+extrusion = 0
+
+[ui_panels.button]
+x = 1051
+y = 258
+width = 460
+height = 467
+left = 55
+top = 55
+right = 55
+bottom = 55
+edge_mode = "tile"
+center_mode = "stretch"
+extrusion = 0

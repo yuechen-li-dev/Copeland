@@ -1,0 +1,10 @@
+{
+  "qualified": true,
+  "exactNineRegionCount": 9,
+  "partialQuadCount": 11,
+  "partialHorizontalTileCropped": true,
+  "partialVerticalTileCropped": true,
+  "cornersFixed": true,
+  "destinationGaps": 0,
+  "appApplication": "dialogue and menu cards only; buttons retain Machina analytic styling per user direction"
+}

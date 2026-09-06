@@ -1,0 +1,50 @@
+{
+  "qualified": true,
+  "authoring": "samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/sunkill-ui.toml",
+  "image": "samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/sunkill-ui-atlas.png",
+  "atlas": {
+    "width": 1536,
+    "height": 1024
+  },
+  "panels": [
+    {
+      "id": "button",
+      "source": {
+        "x": 1051,
+        "y": 258,
+        "width": 460,
+        "height": 467
+      },
+      "slices": {
+        "left": 55,
+        "top": 55,
+        "right": 55,
+        "bottom": 55
+      },
+      "edgeMode": "Tile",
+      "centerMode": "Stretch",
+      "borderScale": 1,
+      "extrusion": 0
+    },
+    {
+      "id": "dialogue",
+      "source": {
+        "x": 26,
+        "y": 34,
+        "width": 970,
+        "height": 942
+      },
+      "slices": {
+        "left": 76,
+        "top": 76,
+        "right": 76,
+        "bottom": 76
+      },
+      "edgeMode": "Stretch",
+      "centerMode": "Stretch",
+      "borderScale": 0.5,
+      "extrusion": 0
+    }
+  ],
+  "roundtrip": "SpriteForge TOML loader/validator -\u003E immutable UI panel metadata -\u003E Machina primitive -\u003E native quad lowering"
+}

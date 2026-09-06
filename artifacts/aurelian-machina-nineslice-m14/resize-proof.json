@@ -1,0 +1,71 @@
+{
+  "qualified": true,
+  "sequence": [
+    {
+      "name": "small",
+      "width": 960,
+      "height": 540,
+      "hash": "3c2e035992e814870db610299a3df4e3e80a9a81fe384fbb677fd0412ca25daa",
+      "passes": 3
+    },
+    {
+      "name": "odd",
+      "width": 1537,
+      "height": 864,
+      "hash": "db5f67b330545d6a22627717e954182770d80ebd13131fa41aaf75a60149acb0",
+      "passes": 3
+    },
+    {
+      "name": "1440p",
+      "width": 2560,
+      "height": 1440,
+      "hash": "e53f66e9200cb4c370b36d1f9051b7613dd9c33be44e1af47f24406214470836",
+      "passes": 3
+    },
+    {
+      "name": "restore-small",
+      "width": 960,
+      "height": 540,
+      "hash": "3c2e035992e814870db610299a3df4e3e80a9a81fe384fbb677fd0412ca25daa",
+      "passes": 3
+    },
+    {
+      "name": "restore-reference",
+      "width": 1280,
+      "height": 720,
+      "hash": "cc6fbdc2b91f8a370a05b2fed57eed10f9617480c4386563f7f7cdf81d9b8f42",
+      "passes": 3
+    }
+  ],
+  "screenSequence": [
+    {
+      "screen": "Settings",
+      "width": 960,
+      "height": 540,
+      "hash": "24a0398c14d03d925a2267e557f56f238cea712c1a55e327679f6be273589eef"
+    },
+    {
+      "screen": "dialogue",
+      "width": 2560,
+      "height": 1440,
+      "hash": "5a4f77db2761b20d60f9ff81adc05de9be2e9a5e9cf50ad3f9e18082ad9e76c5"
+    },
+    {
+      "screen": "choice",
+      "width": 960,
+      "height": 540,
+      "hash": "cd32f185877467538a0cf87ab4aa90c05bb17a327368671c92797019b02453b1"
+    },
+    {
+      "screen": "SaveMenu",
+      "width": 1537,
+      "height": 864,
+      "hash": "5431c34f3ece0908f9dcfcd2cd961a377ab959df1e4dc19fc3eae6ca60d4b1fe"
+    }
+  ],
+  "stableTextureUploadsBefore": 5,
+  "stableTextureUploadsAfter": 5,
+  "textureReuploadsDuringResize": 0,
+  "targetPolicy": "same-format Vulkan target/framebuffers retargeted; pipeline, descriptors, sampler, and textures retained",
+  "minimizeRestore": "zero-size framebuffer events are ignored until a positive restore extent arrives"
+}
