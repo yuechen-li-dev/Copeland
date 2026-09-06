@@ -1,0 +1,12 @@
+{
+  "source": "committed AURELIAN-TINYFARM-PERFORMANCE-M10 CPU-raster screenshots",
+  "method": "two-pixel-stride RGB comparison plus representative exact-coordinate probes",
+  "representativeInteriorPixelsMatch": true,
+  "maximumRepresentativeChannelDelta": 1,
+  "fullFrameRgbMeanAbsoluteErrorRange": {
+    "minimum": 3.26,
+    "maximum": 4.25
+  },
+  "differenceClassification": "Space Mono MSDF glyph silhouettes and antialiasing; authored translucent overlays are unchanged",
+  "paletteCompensationApplied": false
+}

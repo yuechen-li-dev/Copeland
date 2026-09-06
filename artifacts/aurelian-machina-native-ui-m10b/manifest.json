@@ -1,0 +1,21 @@
+{
+  "milestone": "AURELIAN-MACHINA-NATIVE-UI-M10B",
+  "kind": "native-machina-vulkan-realization-performance-hardening",
+  "outcome": "A",
+  "tinyFarmCanonicalUiUsesCpuRaster": false,
+  "nativeAnalyticShapesQualified": true,
+  "nativeMsdfTextQualified": true,
+  "nativeVectorIconsQualified": true,
+  "nativeRasterImagesQualified": true,
+  "fallbackRasterAvailable": true,
+  "fallbackRasterUsedInCanonicalProof": false,
+  "warmDescriptorWrites": 0,
+  "warmTextureUploads": 0,
+  "changedStateFramesUnder16_67ms": true,
+  "semanticParity": true,
+  "screenshotCaptureQualified": true,
+  "colorParityQualified": true,
+  "nativeUiPrimitiveCount": 338,
+  "nativeUiGeometryRebuilds": 167,
+  "textGeometryCacheEntries": 221
+}

@@ -9,19 +9,21 @@
     <ProjectReference Include="../../Aurelian/Aurelian.GameHost/Aurelian.GameHost.csproj" />
     <ProjectReference Include="../../Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />
     <ProjectReference Include="../../Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj" />
-    <ProjectReference Include="../../Aurelian/Aurelian.Rendering.Raster/Aurelian.Rendering.Raster.csproj" />
     <ProjectReference Include="../../Integrations/Aurelian.NativeComposition/Aurelian.NativeComposition.csproj" />
     <ProjectReference Include="../../Integrations/Aurelian.GameWorld2D/Aurelian.GameWorld2D.csproj" />
     <ProjectReference Include="../../Integrations/Aurelian.Machina/Aurelian.Machina.csproj" />
+    <ProjectReference Include="../../Integrations/Aurelian.Machina.Graphics/Aurelian.Machina.Graphics.csproj" />
     <ProjectReference Include="../../Integrations/Aurelian.Effects2D.Graphics/Aurelian.Effects2D.Graphics.csproj" />
     <ProjectReference Include="../../Integrations/Aurelian.Audio.NAudio/Aurelian.Audio.NAudio.csproj" />
     <ProjectReference Include="../../Integrations/InputMan.Aurelian/InputMan.Aurelian.csproj" />
     <ProjectReference Include="../../Machina.UI/Machina.Pipeline/Machina.Pipeline.csproj" />
+    <ProjectReference Include="../../Machina.UI/Machina.Fonts/Machina.Fonts.csproj" />
     <ProjectReference Include="../TinyFarm.InputMan/TinyFarm.InputMan.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Silk.NET.Input" />
     <PackageReference Include="Silk.NET.Windowing" />
     <Content Include="../TinyFarm.MonoGame/Assets/mara-dialogue.png" Link="Assets/mara-dialogue.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../tests/Machina.UI/Machina.Fonts.Tests/Fixtures/Fonts/SpaceMono-Regular.ttf" Link="Assets/SpaceMono-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -77,6 +77,31 @@ public sealed class AurelianGlyphRunAdapterM2Tests
         Assert.Equal(new Native2DUvRect(0.1875f, 0.28125f, 0.3125f, 0.4375f), submission.Uv);
     }
 
+    [Fact]
+    public void AdaptInto_AppendsTheSameQualifiedSubmissionsWithoutReplacingExistingStorage()
+    {
+        var destination = new List<NativeMsdfQuadSubmission>
+        {
+            new(
+                new Native2DRect(0, 0, 1, 1),
+                Native2DUvRect.Full,
+                new Native2DTextureHandle(99),
+                Native2DTint.White,
+                new NativeMsdfParameters(1, 1, 0.5f)),
+        };
+
+        AurelianGlyphRunAdapter.AdaptInto(
+            CreateRun(Key),
+            CreateAtlas(),
+            new Dictionary<int, Native2DTextureHandle> { [0] = new(17) },
+            Native2DTint.White,
+            destination);
+
+        Assert.Equal(2, destination.Count);
+        Assert.Equal(new Native2DTextureHandle(99), destination[0].AtlasTexture);
+        Assert.Equal(new Native2DRect(8, 12, 16, 20), destination[1].Destination);
+    }
+
     private static FontAtlasSnapshot CreateAtlas()
     {
         GlyphAtlasEntry entry = CreateEntry();

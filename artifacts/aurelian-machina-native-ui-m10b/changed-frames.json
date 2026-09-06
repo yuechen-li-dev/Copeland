@@ -1,0 +1,58 @@
+{
+  "firstCombat": {
+    "beforeMilliseconds": 27.258,
+    "afterMilliseconds": 8.1553,
+    "improvementPercent": 70.08107711497541,
+    "allocatedBytes": 570312,
+    "under16_67Milliseconds": true
+  },
+  "sceneChange": {
+    "beforeMilliseconds": 25.408,
+    "afterMilliseconds": 5.0872,
+    "improvementPercent": 79.977959697733,
+    "allocatedBytes": 519232,
+    "under16_67Milliseconds": true
+  },
+  "dialogueOpen": {
+    "beforeMilliseconds": null,
+    "afterMilliseconds": 14.0757,
+    "improvementPercent": null,
+    "allocatedBytes": 960520,
+    "under16_67Milliseconds": true
+  },
+  "objectiveAndHotbarUpdate": {
+    "beforeMilliseconds": null,
+    "afterMilliseconds": 8.673,
+    "improvementPercent": null,
+    "allocatedBytes": 667096,
+    "under16_67Milliseconds": true
+  },
+  "inventoryOpen": {
+    "beforeMilliseconds": null,
+    "afterMilliseconds": 7.3691,
+    "improvementPercent": null,
+    "allocatedBytes": 605704,
+    "under16_67Milliseconds": true
+  },
+  "pauseOpen": {
+    "beforeMilliseconds": null,
+    "afterMilliseconds": 8.4299,
+    "improvementPercent": null,
+    "allocatedBytes": 757544,
+    "under16_67Milliseconds": true
+  },
+  "title": {
+    "beforeMilliseconds": null,
+    "afterMilliseconds": 33.6083,
+    "improvementPercent": null,
+    "allocatedBytes": 61752,
+    "under16_67Milliseconds": false
+  },
+  "completion": {
+    "beforeMilliseconds": null,
+    "afterMilliseconds": 7.9018,
+    "improvementPercent": null,
+    "allocatedBytes": 1075464,
+    "under16_67Milliseconds": true
+  }
+}

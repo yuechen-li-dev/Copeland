@@ -1,12 +1,10 @@
-using System.Security.Cryptography;
 using Aurelian.GameWorld2D;
-using Aurelian.Machina;
-using Aurelian.Rendering.Raster;
 using Machina.Core.Authoring;
 using Machina.Core.Nodes;
 using Machina.Core.Semantics;
 using Machina.Core.Styling;
 using Machina.Pipeline;
+using Machina.Presentation;
 using TinyFarm.Core;
 using TinyFarm.InputMan;
 
@@ -15,14 +13,14 @@ namespace TinyFarm.Native;
 internal sealed class SupperUi(TinyFarmSupperGame game)
 {
     private SupperUiKey? key;
-    private SpriteAtlasResource? resource;
+    private MachinaPresentationFrame? resource;
     private string? clockKey;
-    private SpriteAtlasResource? clockResource;
+    private MachinaPresentationFrame? clockResource;
     private string? promptKey;
-    private SpriteAtlasResource? promptResource;
+    private MachinaPresentationFrame? promptResource;
     public int Rebuilds { get; private set; }
 
-    public SpriteAtlasResource Resource(TinyFarmFrame frame)
+    public MachinaPresentationFrame Resource(TinyFarmFrame frame)
     {
         SupperUiKey next = CreateKey(frame);
         if (key == next && resource is not null)
@@ -31,7 +29,7 @@ internal sealed class SupperUi(TinyFarmSupperGame game)
         }
         key = next;
         Rebuilds++;
-        resource = Render("supper-ui", Build(frame), 1280, 720);
+        resource = Prepare(Build(frame), 1280, 720);
         return resource;
     }
 
@@ -40,7 +38,7 @@ internal sealed class SupperUi(TinyFarmSupperGame game)
         return new SupperUiResources(Resource(frame), ClockResource(frame), PromptResource(frame));
     }
 
-    private SpriteAtlasResource ClockResource(TinyFarmFrame frame)
+    private MachinaPresentationFrame ClockResource(TinyFarmFrame frame)
     {
         string next = frame.CurrentLocationName + "\n" + frame.Time;
         if (clockKey == next && clockResource is not null)
@@ -50,11 +48,11 @@ internal sealed class SupperUi(TinyFarmSupperGame game)
         clockKey = next;
         var nodes = new List<UiNode>();
         Text(nodes, "clock", $"{frame.CurrentLocationName}  /  {frame.Time}", 0, 0, 400, TextSize.Md);
-        clockResource = Render("supper-clock", UI.Surface(id: "clock-surface", width: 400, height: 34, children: nodes), 400, 34);
+        clockResource = Prepare(UI.Surface(id: "clock-surface", width: 400, height: 34, children: nodes), 400, 34);
         return clockResource;
     }
 
-    private SpriteAtlasResource? PromptResource(TinyFarmFrame frame)
+    private MachinaPresentationFrame? PromptResource(TinyFarmFrame frame)
     {
         InteractionTarget? target = TinyFarmSpatialQueries.SelectInteractionTarget(
             game.State,
@@ -86,22 +84,13 @@ internal sealed class SupperUi(TinyFarmSupperGame game)
         var nodes = new List<UiNode>();
         Panel(nodes, "prompt", 0, 0, 710, 38, 0x203D32EE);
         Text(nodes, "prompt-text", prompt, 22, 8, 670, TextSize.Md, 0xFFF0BEFF);
-        promptResource = Render("supper-prompt", UI.Surface(id: "prompt-surface", width: 710, height: 38, children: nodes), 710, 38);
+        promptResource = Prepare(UI.Surface(id: "prompt-surface", width: 710, height: 38, children: nodes), 710, 38);
         return promptResource;
     }
 
-    private static SpriteAtlasResource Render(string id, UiNode node, int width, int height)
+    private static MachinaPresentationFrame Prepare(UiNode node, int width, int height)
     {
-        MachinaPreparedPresentation prepared = new MachinaPresentationPipeline().Prepare(node, width, height);
-        RasterFrame raster = new AurelianCpuRasterRenderer().Render(MachinaPresentationTranslator.Translate(prepared.PresentationFrame));
-        byte[] rgba = raster.Surface.CopyRgba8();
-        return new SpriteAtlasResource(
-            new SpriteAssetId(id),
-            Convert.ToHexString(SHA256.HashData(rgba)),
-            (uint)width,
-            (uint)height,
-            rgba,
-            SpriteSampling.Linear);
+        return new MachinaPresentationPipeline().Prepare(node, width, height).PresentationFrame;
     }
 
     private SupperUiKey CreateKey(TinyFarmFrame frame)
@@ -293,6 +282,6 @@ internal readonly record struct SupperUiKey(
     int InventoryHash);
 
 internal readonly record struct SupperUiResources(
-    SpriteAtlasResource Base,
-    SpriteAtlasResource Clock,
-    SpriteAtlasResource? Prompt);
+    MachinaPresentationFrame Base,
+    MachinaPresentationFrame Clock,
+    MachinaPresentationFrame? Prompt);

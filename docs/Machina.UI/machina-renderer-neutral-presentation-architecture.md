@@ -232,3 +232,20 @@ The M3 proof also closes a small C#/JavaScript authoring parity gap. C# `Row`,
 remain `Start`, so existing layouts and hashes do not change. The proof uses
 `SpaceBetween` to distribute fixed text contexts without hand-tuned gaps. Grid matrix
 areas/spans were not ported because M3 does not need them.
+
+## Native realization and CPU fallback
+
+AURELIAN-MACHINA-NATIVE-UI-M10B qualifies the production-native boundary through
+TinyFarm. Machina remains responsible for semantic controls, layout, painter order,
+rectangular clips, hit testing, and renderer-neutral presentation operations.
+`Aurelian.Machina.Graphics` adapts those operations to existing analytic-shape,
+MSDF-text, vector-icon, and persistent raster-image submissions. Aurelian.Graphics
+owns pipelines, buffers, textures, descriptors, Vulkan commands, and presentation.
+
+The CPU raster renderer is an alternate/fallback backend for tests, compatibility,
+and unsupported hosts. It is not the canonical Aurelian game-UI path. A normal
+dynamic UI change must update native shape/glyph submission data; it must not
+rasterize a full CPU surface and upload that surface as a replacement texture.
+Legitimate authored raster images retain stable content identities and persistent
+textures. Backend caches contain only immutable derived presentation data and are
+never application state or serialized state.

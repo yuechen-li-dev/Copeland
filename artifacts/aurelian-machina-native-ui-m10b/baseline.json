@@ -1,0 +1,8 @@
+{
+  "source": "AURELIAN-TINYFARM-PERFORMANCE-M10",
+  "firstCombatMilliseconds": 27.258,
+  "sceneChangeMilliseconds": 25.408,
+  "stableChangedRepeatMilliseconds": 2.2,
+  "steadyAllocatedBytesPerFrame": 41180,
+  "changedStatePath": "Machina prepare -\u003E CPU RGBA raster -\u003E copy/hash -\u003E synchronous texture upload -\u003E sampled quad"
+}

@@ -17,9 +17,22 @@ public static class AurelianMsdfTextPresentationAdapter
         AurelianMsdfAtlasCache cache,
         Rect? clipRect = null)
     {
+        var submissions = new List<NativeMsdfQuadSubmission>();
+        AdaptInto(operation, atlas, cache, submissions, clipRect);
+        return submissions;
+    }
+
+    public static void AdaptInto(
+        PositionedTextOperation operation,
+        AurelianMsdfAtlasResource atlas,
+        AurelianMsdfAtlasCache cache,
+        List<NativeMsdfQuadSubmission> destination,
+        Rect? clipRect = null)
+    {
         ArgumentNullException.ThrowIfNull(operation);
         ArgumentNullException.ThrowIfNull(atlas);
         ArgumentNullException.ThrowIfNull(cache);
+        ArgumentNullException.ThrowIfNull(destination);
 
         MachinaTextPresentationPrimitive primitive = operation.Primitive
             ?? throw new InvalidOperationException($"Text operation '{operation.SourceId}' has no qualified glyph primitive.");
@@ -37,21 +50,25 @@ public static class AurelianMsdfTextPresentationAdapter
         Native2DRect? nativeClip = clipRect is Rect clip
             ? new Native2DRect((float)clip.X, (float)clip.Y, (float)clip.Width, (float)clip.Height)
             : null;
-        IReadOnlyList<NativeMsdfQuadSubmission> submissions = AurelianGlyphRunAdapter.Adapt(
+        int firstAddedIndex = destination.Count;
+        AurelianGlyphRunAdapter.AdaptInto(
             primitive.GlyphRun,
             atlas.Snapshot,
             textures,
             ToTint(operation.Color),
+            destination,
             nativeClip,
             (float)operation.Rect.X,
             (float)operation.Rect.Y);
 
-        return submissions
-            .Select(static submission => submission with
+        for (int index = firstAddedIndex; index < destination.Count; index++)
+        {
+            NativeMsdfQuadSubmission submission = destination[index];
+            destination[index] = submission with
             {
                 Uv = AurelianMsdfAtlasUpload.NormalizeUv(submission.Uv),
-            })
-            .ToArray();
+            };
+        }
     }
 
     private static Native2DTint ToTint(ColorToken color)

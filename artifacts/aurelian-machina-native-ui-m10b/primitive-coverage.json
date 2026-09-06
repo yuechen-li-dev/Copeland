@@ -1,0 +1,12 @@
+{
+  "rendererNeutralStream": "MachinaPresentationFrame.Operations",
+  "nativeAnalyticShapes": true,
+  "nativeMsdfText": true,
+  "nativeVectorIcons": true,
+  "nativeRasterImages": true,
+  "rectangularClip": true,
+  "opacity": "premultiplied through primitive tint/fill alpha",
+  "painterOrder": "base shapes -\u003E base text -\u003E overlay shapes -\u003E overlay text -\u003E clock -\u003E prompt",
+  "nativeUiPrimitiveCount": 338,
+  "fallbackRasterPrimitiveCount": 0
+}

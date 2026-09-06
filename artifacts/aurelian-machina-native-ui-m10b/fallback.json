@@ -1,0 +1,9 @@
+{
+  "fallbackBackendAvailable": true,
+  "canonicalTinyFarmFallbackPrimitiveCount": 0,
+  "fallbackRasterBytes": 0,
+  "fallbackUploadCount": 0,
+  "ordinaryReadbacks": 0,
+  "fontAtlasUploadsAtStartup": 2,
+  "warmFontAtlasUploads": 0
+}

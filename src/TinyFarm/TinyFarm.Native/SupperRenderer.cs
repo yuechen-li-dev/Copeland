@@ -11,11 +11,15 @@ using Aurelian.Graphics.Vulkan.Diagnostics;
 using Aurelian.Graphics.Vulkan.Native2D;
 using Aurelian.Graphics.Vulkan.Presentation;
 using Aurelian.Graphics.Vulkan.Resources.Textures;
+using Aurelian.Machina;
 using Aurelian.NativeComposition;
 using Aurelian.Rendering.Contracts.Shaders;
 using Aurelian.Shaders.Graphics;
 using Copeland.TS.Gpu;
 using Copeland.TS.Gpu.VdMir;
+using Machina.Core.Styling;
+using Machina.Layout.Geometry;
+using Machina.Presentation;
 using TinyFarm.Core;
 using TinyFarm.InputMan;
 using Silk.NET.Windowing;
@@ -77,6 +81,7 @@ internal sealed class SupperRenderer : IAurelianHostCompositor
         compositor = new NativeLayerCompositor(plant, 1280, 720, format: targetFormat);
         CompiledGraphicsProgram analytic = Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/AnalyticShape2D.v.ts");
         CompiledGraphicsProgram shockwave = Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/SoftShockwave.v.ts");
+        CompiledGraphicsProgram msdf = Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/MsdfText.v.ts");
         CompiledGraphicsProgram texture = Compile(root, "samples/Aurelian/ForwardTexturedM3.v.ts");
         world = new SupperPresenter(new LayerId("farm-world"), plant, analytic, shockwave, game, () => frame);
         compositor.Add(new SupperLayer(world.Layer, 0), world);
@@ -86,9 +91,18 @@ internal sealed class SupperRenderer : IAurelianHostCompositor
             var portrait = new SupperPortrait(plant, texture, game, portraitPath);
             compositor.Add(new SupperLayer(portrait.Layer, 50), portrait);
         }
-        Overlay = new SupperOverlay(new LayerId("machina-hud"), plant, texture, () => ui.Resources(frame));
+        string fontPath = Path.Combine(AppContext.BaseDirectory, "Assets", "SpaceMono-Regular.ttf");
+        SupperNativeUiFont font = SupperNativeUiFont.Create(fontPath);
+        Overlay = new SupperOverlay(
+            new LayerId("machina-hud"),
+            plant,
+            analytic,
+            msdf,
+            font,
+            () => ui.Resources(frame));
         compositor.Add(new SupperLayer(Overlay.Layer, 100), Overlay);
         compositor.Attach();
+        compositor.RunFrame(0, TimeSpan.Zero);
         swapchainPresenter = new VulkanNativeSwapchainPresenter(plant, compositor.Target, swapchain);
     }
 
@@ -99,7 +113,14 @@ internal sealed class SupperRenderer : IAurelianHostCompositor
     private SupperOverlay Overlay { get; }
     public long WorldAllocatedBytes => world.AllocatedBytes;
     public long OverlayAllocatedBytes => Overlay.AllocatedBytes;
-    public int DynamicUiTextureUploads => Overlay.TextureUploads;
+    public int DynamicUiTextureUploads => 0;
+    public int NativeUiPrimitiveCount => Overlay.NativePrimitiveCount;
+    public int FallbackRasterPrimitiveCount => Overlay.FallbackRasterPrimitiveCount;
+    public long FallbackRasterBytes => 0;
+    public int FallbackRasterUploads => 0;
+    public int FontAtlasUploads => Overlay.FontAtlasUploads;
+    public int TextGeometryCacheEntries => Overlay.TextGeometryCacheEntries;
+    public int NativeUiGeometryRebuilds => Overlay.GeometryRebuilds;
     public string PresentMode => swapchainPresenter.PresentMode;
     public uint SwapchainImageCount => swapchainPresenter.SwapchainImageCount;
     public int ReadbackCount { get; private set; }
@@ -487,67 +508,284 @@ internal sealed class SupperPresenter(
     }
 }
 
-internal sealed class SupperOverlay(LayerId layer, AurelianVulkanPlant plant, CompiledGraphicsProgram program,
-    Func<SupperUiResources> resources) : INativeLayerPresenter
+internal sealed class SupperOverlay(
+    LayerId layer,
+    AurelianVulkanPlant plant,
+    CompiledGraphicsProgram analyticProgram,
+    CompiledGraphicsProgram msdfProgram,
+    SupperNativeUiFont font,
+    Func<SupperUiResources> presentation) : INativeLayerPresenter
 {
-    private VulkanOrderedQuadRenderer renderer = null!;
-    private NativeSpriteResourceScope resources = null!;
+    private VulkanOrderedQuadRenderer shapes = null!;
+    private VulkanOrderedQuadRenderer text = null!;
+    private AurelianMsdfAtlasCache atlasCache = null!;
+    private MachinaPresentationFrame? baseSource;
+    private MachinaPresentationFrame? clockSource;
+    private MachinaPresentationFrame? promptSource;
+    private SupperNativeUiSegments baseSegments = SupperNativeUiSegments.Empty;
+    private SupperNativeUiSegments clockSegments = SupperNativeUiSegments.Empty;
+    private SupperNativeUiSegments promptSegments = SupperNativeUiSegments.Empty;
     public LayerId Layer => layer;
     public long AllocatedBytes { get; private set; }
-    private int textureUploadBaseline;
-    public int TextureUploads => resources.TextureUploads - textureUploadBaseline;
+    public int NativePrimitiveCount =>
+        baseSegments.NativePrimitiveCount + clockSegments.NativePrimitiveCount + promptSegments.NativePrimitiveCount;
+    public int FallbackRasterPrimitiveCount =>
+        baseSegments.FallbackCount + clockSegments.FallbackCount + promptSegments.FallbackCount;
+    public int FontAtlasUploads => atlasCache?.UploadCount ?? 0;
+    public int TextGeometryCacheEntries => font.CachedTextRunCount;
+    public int GeometryRebuilds { get; private set; }
+
     public void ResetPerformanceMetrics()
     {
         AllocatedBytes = 0;
-        textureUploadBaseline = resources.TextureUploads;
     }
+
     public void Attach(VulkanNativeFrameTarget target)
     {
-        renderer = new VulkanOrderedQuadRenderer(plant, program, target, Native2DPipelineOptions.SpriteLinear);
-        resources = new NativeSpriteResourceScope(renderer, SpriteSampling.Linear);
+        shapes = new VulkanOrderedQuadRenderer(plant, analyticProgram, target, Native2DPipelineOptions.AnalyticShape2D);
+        text = new VulkanOrderedQuadRenderer(plant, msdfProgram, target, Native2DPipelineOptions.MsdfText);
+        atlasCache = new AurelianMsdfAtlasCache(text);
+        foreach (AurelianMsdfAtlasResource resource in font.Resources)
+        {
+            atlasCache.Resolve(resource);
+        }
+        WarmCurrentPresentation();
     }
+
     public void Resize(VulkanNativeFrameTarget target)
     {
         Detach();
         Attach(target);
+        baseSource = null;
+        clockSource = null;
+        promptSource = null;
     }
+
     public void Present(NativeLayerFrameContext context)
     {
         long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
-        SupperUiResources current = resources();
-        Native2DTextureHandle baseTexture = this.resources.Resolve(current.Base);
-        Native2DTextureHandle clockTexture = this.resources.Resolve(current.Clock);
-        Native2DTextureHandle? promptTexture = current.Prompt is null
-            ? null
-            : this.resources.Resolve(current.Prompt);
-        context.Present(renderer, pass =>
-        {
-            pass.SubmitQuad(new NativeQuadSubmission(
-                new Native2DRect(0, 0, 1280, 720),
-                Native2DUvRect.Full,
-                baseTexture,
-                Native2DTint.White));
-            pass.SubmitQuad(new NativeQuadSubmission(
-                new Native2DRect(835, 44, 400, 34),
-                Native2DUvRect.Full,
-                clockTexture,
-                Native2DTint.White));
-            if (promptTexture is Native2DTextureHandle prompt)
-            {
-                pass.SubmitQuad(new NativeQuadSubmission(
-                    new Native2DRect(125, 528, 710, 38),
-                    Native2DUvRect.Full,
-                    prompt,
-                    Native2DTint.White));
-            }
-        });
+        SupperUiResources current = presentation();
+        UpdateRealization(current);
+
+        PresentSegment(context, baseSegments.Base);
+        PresentSegment(context, baseSegments.Overlay);
+        PresentSegment(context, clockSegments.Base);
+        PresentSegment(context, promptSegments.Base);
         AllocatedBytes += GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
     }
+
+    private void WarmCurrentPresentation()
+    {
+        UpdateRealization(presentation());
+    }
+
+    private void UpdateRealization(SupperUiResources current)
+    {
+        if (!ReferenceEquals(baseSource, current.Base))
+        {
+            baseSource = current.Base;
+            baseSegments = Realize(current.Base, 0, 0, splitOverlay: true);
+        }
+        if (!ReferenceEquals(clockSource, current.Clock))
+        {
+            clockSource = current.Clock;
+            clockSegments = Realize(current.Clock, 835, 44, splitOverlay: false);
+        }
+        if (!ReferenceEquals(promptSource, current.Prompt))
+        {
+            promptSource = current.Prompt;
+            promptSegments = current.Prompt is null
+                ? SupperNativeUiSegments.Empty
+                : Realize(current.Prompt, 125, 528, splitOverlay: false);
+        }
+    }
+
+    private SupperNativeUiSegments Realize(
+        MachinaPresentationFrame frame,
+        float offsetX,
+        float offsetY,
+        bool splitOverlay)
+    {
+        GeometryRebuilds++;
+        var baseShapes = new List<NativeAnalyticShapeSubmission>();
+        var baseText = new List<NativeMsdfQuadSubmission>();
+        var overlayShapes = new List<NativeAnalyticShapeSubmission>();
+        var overlayText = new List<NativeMsdfQuadSubmission>();
+        var clips = new Stack<Rect>();
+        int fallbackCount = 0;
+
+        foreach (MachinaPresentationOperation operation in frame.Operations)
+        {
+            if (operation is PushRectangularClipOperation push)
+            {
+                Rect translated = Offset(push.Rect, offsetX, offsetY);
+                clips.Push(clips.Count == 0 ? translated : Intersect(clips.Peek(), translated));
+                continue;
+            }
+            if (operation is PopClipOperation)
+            {
+                clips.Pop();
+                continue;
+            }
+
+            bool overlay = splitOverlay && IsOverlay(operation);
+            List<NativeAnalyticShapeSubmission> shapeTarget = overlay ? overlayShapes : baseShapes;
+            List<NativeMsdfQuadSubmission> textTarget = overlay ? overlayText : baseText;
+            Rect? clip = clips.Count == 0 ? null : clips.Peek();
+
+            MachinaAnalyticShapePrimitive? shape = operation switch
+            {
+                MachinaAnalyticShapePrimitive analytic => Offset(analytic, offsetX, offsetY),
+                FillRectangleOperation fill => new MachinaAnalyticShapePrimitive(
+                    fill.SourceId,
+                    MachinaAnalyticShapeKind.RoundedRect,
+                    Offset(fill.Rect, offsetX, offsetY),
+                    fill.Color),
+                StrokeRectangleOperation stroke => new MachinaAnalyticShapePrimitive(
+                    stroke.SourceId,
+                    MachinaAnalyticShapeKind.RoundedRect,
+                    Offset(stroke.Rect, offsetX, offsetY),
+                    ColorToken.Hex(0x00000000),
+                    borderColor: stroke.Color,
+                    borderWidth: stroke.Thickness),
+                _ => null,
+            };
+            if (shape is not null)
+            {
+                NativeAnalyticShapeSubmission? submission = AurelianAnalyticShapePresentationAdapter.Adapt(shape, clip);
+                if (submission.HasValue)
+                {
+                    shapeTarget.Add(submission.Value);
+                }
+                continue;
+            }
+
+            if (operation is PositionedTextOperation sourceText)
+            {
+                PositionedTextOperation positioned = Offset(font.Qualify(sourceText), offsetX, offsetY);
+                AurelianMsdfAtlasResource atlas = font.ResourceFor(positioned);
+                AurelianMsdfTextPresentationAdapter.AdaptInto(positioned, atlas, atlasCache, textTarget, clip);
+                continue;
+            }
+
+            fallbackCount++;
+        }
+
+        return new SupperNativeUiSegments(
+            new SupperNativeUiSegment(baseShapes.ToArray(), baseText.ToArray()),
+            new SupperNativeUiSegment(overlayShapes.ToArray(), overlayText.ToArray()),
+            fallbackCount);
+    }
+
+    private void PresentSegment(NativeLayerFrameContext context, SupperNativeUiSegment segment)
+    {
+        if (segment.Shapes.Length > 0)
+        {
+            context.Present(shapes, pass =>
+            {
+                foreach (NativeAnalyticShapeSubmission submission in segment.Shapes)
+                {
+                    pass.SubmitAnalyticShape(submission);
+                }
+            });
+        }
+        if (segment.Text.Length > 0)
+        {
+            context.Present(text, pass =>
+            {
+                foreach (NativeMsdfQuadSubmission submission in segment.Text)
+                {
+                    pass.SubmitMsdfQuad(submission);
+                }
+            });
+        }
+    }
+
+    private static bool IsOverlay(MachinaPresentationOperation operation)
+    {
+        string? sourceId = operation switch
+        {
+            MachinaAnalyticShapePrimitive shape => shape.SourceId,
+            FillRectangleOperation fill => fill.SourceId,
+            StrokeRectangleOperation stroke => stroke.SourceId,
+            PositionedTextOperation positionedText => positionedText.SourceId,
+            _ => null,
+        };
+        return sourceId is not null
+            && (sourceId.StartsWith("dialogue", StringComparison.Ordinal)
+                || sourceId.StartsWith("speaker", StringComparison.Ordinal)
+                || sourceId.StartsWith("choice-", StringComparison.Ordinal)
+                || sourceId.StartsWith("modal", StringComparison.Ordinal));
+    }
+
+    private static MachinaAnalyticShapePrimitive Offset(
+        MachinaAnalyticShapePrimitive source,
+        float offsetX,
+        float offsetY)
+    {
+        return new MachinaAnalyticShapePrimitive(
+            source.SourceId,
+            source.Kind,
+            Offset(source.DestinationRect, offsetX, offsetY),
+            source.FillColor,
+            source.Radius,
+            source.BorderColor,
+            source.BorderWidth);
+    }
+
+    private static PositionedTextOperation Offset(PositionedTextOperation source, float offsetX, float offsetY)
+    {
+        return new PositionedTextOperation(
+            source.SourceId,
+            Offset(source.Rect, offsetX, offsetY),
+            source.Text,
+            source.Style,
+            source.Color,
+            source.Primitive);
+    }
+
+    private static Rect Offset(Rect source, float offsetX, float offsetY)
+    {
+        return new Rect(source.X + offsetX, source.Y + offsetY, source.Width, source.Height);
+    }
+
+    private static Rect Intersect(Rect left, Rect right)
+    {
+        double x = Math.Max(left.X, right.X);
+        double y = Math.Max(left.Y, right.Y);
+        double rightEdge = Math.Min(left.X + left.Width, right.X + right.Width);
+        double bottomEdge = Math.Min(left.Y + left.Height, right.Y + right.Height);
+        return new Rect(x, y, Math.Max(0, rightEdge - x), Math.Max(0, bottomEdge - y));
+    }
+
     public void Detach()
     {
-        resources?.Dispose();
-        renderer?.Dispose();
+        atlasCache?.Dispose();
+        text?.Dispose();
+        shapes?.Dispose();
     }
+}
+
+internal sealed record SupperNativeUiSegments(
+    SupperNativeUiSegment Base,
+    SupperNativeUiSegment Overlay,
+    int FallbackCount)
+{
+    public static SupperNativeUiSegments Empty { get; } = new(
+        SupperNativeUiSegment.Empty,
+        SupperNativeUiSegment.Empty,
+        0);
+
+    public int NativePrimitiveCount => Base.NativePrimitiveCount + Overlay.NativePrimitiveCount;
+}
+
+internal sealed record SupperNativeUiSegment(
+    NativeAnalyticShapeSubmission[] Shapes,
+    NativeMsdfQuadSubmission[] Text)
+{
+    public static SupperNativeUiSegment Empty { get; } = new([], []);
+
+    public int NativePrimitiveCount => Shapes.Length + Text.Length;
 }
 
 internal sealed class SupperLayer(LayerId id, int order) : IAurelianLayer

@@ -1,0 +1,19 @@
+{
+  "beforeSteadyBytesPerFrame": 41180,
+  "afterSteadyBytesPerFrame": 42996,
+  "changedFrames": {
+    "01-title-or-start": 61752,
+    "inventory-open": 605704,
+    "m10b-inventory": 37960,
+    "pause-open": 757544,
+    "m10b-pause": 38000,
+    "02-farm-gameplay": 35544,
+    "04-farming-or-pickup": 667096,
+    "03-dialogue": 960520,
+    "06-secondary-scene": 519232,
+    "05-combat": 570312,
+    "07-completion": 1075464
+  },
+  "fullBitmapBuffersAllocated": 0,
+  "fallbackRasterBytes": 0
+}

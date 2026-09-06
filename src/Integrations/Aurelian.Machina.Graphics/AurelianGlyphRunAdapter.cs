@@ -15,12 +15,33 @@ public static class AurelianGlyphRunAdapter
         float destinationOffsetX = 0,
         float destinationOffsetY = 0)
     {
+        var submissions = new List<NativeMsdfQuadSubmission>(glyphRun.Glyphs.Count);
+        AdaptInto(
+            glyphRun,
+            atlas,
+            pageTextures,
+            color,
+            submissions,
+            clipRect,
+            destinationOffsetX,
+            destinationOffsetY);
+        return submissions;
+    }
+
+    public static void AdaptInto(
+        MachinaGlyphRun glyphRun,
+        FontAtlasSnapshot atlas,
+        IReadOnlyDictionary<int, Native2DTextureHandle> pageTextures,
+        Native2DTint color,
+        ICollection<NativeMsdfQuadSubmission> destination,
+        Native2DRect? clipRect = null,
+        float destinationOffsetX = 0,
+        float destinationOffsetY = 0)
+    {
         ArgumentNullException.ThrowIfNull(glyphRun);
         ArgumentNullException.ThrowIfNull(atlas);
         ArgumentNullException.ThrowIfNull(pageTextures);
-
-        Dictionary<int, FontAtlasPage> pages = atlas.Pages.ToDictionary(page => page.Index);
-        List<NativeMsdfQuadSubmission> submissions = new(glyphRun.Glyphs.Count);
+        ArgumentNullException.ThrowIfNull(destination);
 
         foreach (MachinaGlyphPlacement glyph in glyphRun.Glyphs)
         {
@@ -32,7 +53,8 @@ public static class AurelianGlyphRunAdapter
             {
                 throw new InvalidOperationException($"Missing atlas entry for glyph U+{glyph.Key.Codepoint:X4}.");
             }
-            if (!pages.TryGetValue(entry.PageIndex, out FontAtlasPage? page))
+            FontAtlasPage? page = FindPage(atlas.Pages, entry.PageIndex);
+            if (page is null)
             {
                 throw new InvalidOperationException($"Atlas entry for U+{glyph.Key.Codepoint:X4} references missing page {entry.PageIndex}.");
             }
@@ -68,10 +90,20 @@ public static class AurelianGlyphRunAdapter
                 continue;
             }
 
-            submissions.Add(submission);
+            destination.Add(submission);
         }
+    }
 
-        return submissions;
+    private static FontAtlasPage? FindPage(IReadOnlyList<FontAtlasPage> pages, int pageIndex)
+    {
+        for (int index = 0; index < pages.Count; index++)
+        {
+            if (pages[index].Index == pageIndex)
+            {
+                return pages[index];
+            }
+        }
+        return null;
     }
 
     private static bool TryClip(
