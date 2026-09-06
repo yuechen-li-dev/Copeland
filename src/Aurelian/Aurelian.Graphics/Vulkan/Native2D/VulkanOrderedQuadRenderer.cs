@@ -18,6 +18,7 @@ using Aurelian.Graphics.Vulkan.Resources.Uploads;
 using Aurelian.Graphics.Vulkan.Sync;
 using Aurelian.Rendering.Contracts.Shaders;
 using Silk.NET.Vulkan;
+using NativeBuffer = Silk.NET.Vulkan.Buffer;
 
 namespace Aurelian.Graphics.Vulkan.Native2D;
 
@@ -57,6 +58,8 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
     private readonly List<RenderSubmission> submissions = new(InitialQuadCapacity);
 
     private AurelianVulkanBuffer vertexBuffer;
+    private byte[] vertexBytes;
+    private BindingKey[] submissionKeys = new BindingKey[InitialQuadCapacity];
     private int vertexCapacityQuads = InitialQuadCapacity;
     private bool passActive;
     private bool disposed;
@@ -156,6 +159,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             : default;
         descriptorPool = CreateDescriptorPool();
         vertexBuffer = CreateVertexBuffer(vertexCapacityQuads);
+        vertexBytes = new byte[checked(vertexCapacityQuads * VerticesPerQuad * vertexStride)];
     }
 
     public uint Width => width;
@@ -173,6 +177,17 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
     public bool StraightAlphaBlend => options.StraightAlphaBlend;
 
     public Native2DTextureHandle CreateTexture(uint textureWidth, uint textureHeight, ReadOnlySpan<byte> rgba8)
+    {
+        return CreateTextureCore(textureWidth, textureHeight, rgba8.ToArray());
+    }
+
+    public Native2DTextureHandle CreateTexture(uint textureWidth, uint textureHeight, byte[] rgba8)
+    {
+        ArgumentNullException.ThrowIfNull(rgba8);
+        return CreateTextureCore(textureWidth, textureHeight, rgba8);
+    }
+
+    private Native2DTextureHandle CreateTextureCore(uint textureWidth, uint textureHeight, byte[] rgba8)
     {
         ThrowIfDisposed();
         if (passActive)
@@ -203,7 +218,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             "native-2d.texture");
         VulkanTextureUploadResult upload = textureUploader.Upload(new VulkanTextureUploadRequest(
             texture,
-            rgba8.ToArray(),
+            rgba8,
             "native-2d.texture-upload"));
         if (!upload.Success)
         {
@@ -245,6 +260,41 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             bindings.Remove(key);
         }
         texture.Texture.Dispose();
+    }
+
+    public void UpdateTexture(Native2DTextureHandle handle, uint width, uint height, byte[] rgba8)
+    {
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(rgba8);
+        if (passActive)
+        {
+            throw new InvalidOperationException("Textures cannot be updated during an active 2D pass.");
+        }
+        if (textureUploader is null)
+        {
+            throw new InvalidOperationException("The textureless analytic pipeline cannot update textures.");
+        }
+        if (!textures.TryGetValue(handle.Value, out TextureResource? resource))
+        {
+            throw UnknownTexture(handle);
+        }
+        if (resource.Texture.Width != width || resource.Texture.Height != height)
+        {
+            throw new ArgumentException("Updated texture extent must match the existing texture extent.", nameof(width));
+        }
+        if ((ulong)rgba8.Length != checked((ulong)width * height * 4))
+        {
+            throw new ArgumentException("Updated RGBA8 payload length does not match the texture extent.", nameof(rgba8));
+        }
+
+        VulkanTextureUploadResult upload = textureUploader.Upload(new VulkanTextureUploadRequest(
+            resource.Texture,
+            rgba8,
+            "native-2d.texture-update"));
+        if (!upload.Success)
+        {
+            throw new InvalidOperationException("Texture update failed: " + string.Join("; ", upload.Diagnostics.Select(item => item.Message)));
+        }
     }
 
     public void Begin2D()
@@ -415,16 +465,15 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         {
             EnsureVertexCapacity(submissions.Count);
             Stopwatch uploadWatch = Stopwatch.StartNew();
-            byte[] vertexBytes = BuildVertices();
-            Require(vertexBuffer.Write(vertexBytes).Success, "Vertex upload failed.");
+            int vertexByteCount = BuildVertices();
+            Require(vertexBuffer.Write(vertexBytes.AsSpan(0, vertexByteCount)).Success, "Vertex upload failed.");
             uploadWatch.Stop();
 
-            BindingKey[] submissionKeys = new BindingKey[submissions.Count];
             for (int index = 0; index < submissions.Count; index++)
             {
                 submissionKeys[index] = BindingKey.From(submissions[index]);
             }
-            MakeBindingRoom(submissionKeys);
+            MakeBindingRoom(submissionKeys, submissions.Count);
             for (int index = 0; index < submissions.Count; index++)
             {
                 BindingKey key = submissionKeys[index];
@@ -471,7 +520,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
                     clearValue));
             Require(begin.Success, "Render pass begin failed.");
 
-            int drawCalls = RecordOrderedDraws(commandBuffer, begin.Scope!.Value, submissionKeys);
+            int drawCalls = RecordOrderedDraws(commandBuffer, begin.Scope!.Value, submissionKeys, submissions.Count);
             Require(renderPassEncoder.End(plant, commandBuffer, begin.Scope.Value).Success, "Render pass end failed.");
             if (readbackBuffer is not null)
             {
@@ -646,9 +695,8 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         }
     }
 
-    private byte[] BuildVertices()
+    private int BuildVertices()
     {
-        byte[] bytes = new byte[checked(submissions.Count * VerticesPerQuad * vertexStride)];
         Span<Vertex> vertices = stackalloc Vertex[VerticesPerQuad];
         for (int quadIndex = 0; quadIndex < submissions.Count; quadIndex++)
         {
@@ -667,10 +715,10 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             vertices[5] = new Vertex(left, top, 0, submission.Uv.U0, submission.Uv.V0, submission.Msdf.FieldScale);
             for (int vertexIndex = 0; vertexIndex < vertices.Length; vertexIndex++)
             {
-                WriteVertex(bytes, (quadIndex * VerticesPerQuad + vertexIndex) * vertexStride, vertices[vertexIndex]);
+                WriteVertex(vertexBytes, (quadIndex * VerticesPerQuad + vertexIndex) * vertexStride, vertices[vertexIndex]);
             }
         }
-        return bytes;
+        return checked(submissions.Count * VerticesPerQuad * vertexStride);
     }
 
     private void WriteVertex(byte[] bytes, int baseOffset, Vertex vertex)
@@ -704,20 +752,37 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
     private int RecordOrderedDraws(
         VulkanCommandBufferLease commandBuffer,
         VulkanRenderPassScope scope,
-        IReadOnlyList<BindingKey> keys)
+        BindingKey[] keys,
+        int keyCount)
     {
-        if (keys.Count == 0)
+        if (keyCount == 0)
         {
             return 0;
         }
-        var drawEncoder = new VulkanDrawCommandEncoder();
+        Viewport viewport = new()
+        {
+            X = 0,
+            Y = 0,
+            Width = clearFramebuffer.Width,
+            Height = clearFramebuffer.Height,
+            MinDepth = 0,
+            MaxDepth = 1,
+        };
+        Rect2D scissor = new(new Offset2D(0, 0), new Extent2D(clearFramebuffer.Width, clearFramebuffer.Height));
+        NativeBuffer nativeVertexBuffer = vertexBuffer.NativeBuffer;
+        ulong vertexOffset = 0;
+        plant.Vk.CmdSetViewport(commandBuffer.CommandBuffer, 0, 1, &viewport);
+        plant.Vk.CmdSetScissor(commandBuffer.CommandBuffer, 0, 1, &scissor);
+        plant.Vk.CmdBindPipeline(commandBuffer.CommandBuffer, PipelineBindPoint.Graphics, pipeline.NativePipeline);
+        plant.Vk.CmdBindVertexBuffers(commandBuffer.CommandBuffer, 0, 1, &nativeVertexBuffer, &vertexOffset);
+
         int drawCalls = 0;
         int startQuad = 0;
-        while (startQuad < keys.Count)
+        while (startQuad < keyCount)
         {
             BindingKey key = keys[startQuad];
             int endQuad = startQuad + 1;
-            while (endQuad < keys.Count && keys[endQuad] == key)
+            while (endQuad < keyCount && keys[endQuad] == key)
             {
                 endQuad++;
             }
@@ -732,30 +797,29 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
                 &descriptorSet,
                 0,
                 null);
-            VulkanDrawCommandResult draw = drawEncoder.DrawVertices(
-                plant,
-                commandBuffer,
-                scope,
-                new VulkanDrawVerticesRequest(
-                    pipeline,
-                    vertexBuffer,
-                    checked((uint)((endQuad - startQuad) * VerticesPerQuad)),
-                    checked((uint)(startQuad * VerticesPerQuad)),
-                    VulkanViewportScissor.FromFramebuffer(clearFramebuffer)));
-            Require(draw.Success, "Quad draw recording failed.");
+            plant.Vk.CmdDraw(
+                commandBuffer.CommandBuffer,
+                checked((uint)((endQuad - startQuad) * VerticesPerQuad)),
+                1,
+                checked((uint)(startQuad * VerticesPerQuad)),
+                0);
             drawCalls++;
             startQuad = endQuad;
         }
         return drawCalls;
     }
 
-    private void MakeBindingRoom(IReadOnlyList<BindingKey> submissionKeys)
+    private void MakeBindingRoom(BindingKey[] currentSubmissionKeys, int keyCount)
     {
-        if (bindings.Count + submissionKeys.Count <= MaximumBindingSets)
+        if (bindings.Count + keyCount <= MaximumBindingSets)
         {
             return;
         }
-        var currentKeys = submissionKeys.ToHashSet();
+        var currentKeys = new HashSet<BindingKey>();
+        for (int index = 0; index < keyCount; index++)
+        {
+            currentKeys.Add(currentSubmissionKeys[index]);
+        }
         if (currentKeys.Count > MaximumBindingSets)
         {
             throw new InvalidOperationException($"Native 2D pass exceeds {MaximumBindingSets} simultaneously required material bindings.");
@@ -900,6 +964,8 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         vertexBuffer.Dispose();
         vertexCapacityQuads = newCapacity;
         vertexBuffer = CreateVertexBuffer(newCapacity);
+        vertexBytes = new byte[checked(newCapacity * VerticesPerQuad * vertexStride)];
+        submissionKeys = new BindingKey[newCapacity];
     }
 
     private AurelianVulkanBuffer CreateVertexBuffer(int capacityQuads)
@@ -920,7 +986,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             new VulkanRenderPassDescriptor([
                 new VulkanRenderPassAttachmentDescriptor(
                     "Color0",
-                    VulkanTextureFormat.Rgba8Unorm,
+                    renderTarget.Format,
                     loadOperation,
                     VulkanAttachmentStoreOp.Store,
                     initialLayout,

@@ -1,4 +1,5 @@
 using Deliverance.Core.Storage;
+using System.Diagnostics;
 using InputMan.Core;
 using TinyFarm.InputMan;
 using Xunit;
@@ -125,10 +126,53 @@ public sealed class TinyFarmFullGameM9Tests
         Assert.StartsWith("Could not continue", game.Status);
     }
 
+    [Fact]
+    public async Task GameplaySaveBeginsWithoutWaitingForStorage()
+    {
+        var store = new GatedSaveStore();
+        var game = new TinyFarmSupperGame(store);
+        game.Start();
+
+        long started = Stopwatch.GetTimestamp();
+        Assert.True(game.BeginSave());
+        TimeSpan beginElapsed = Stopwatch.GetElapsedTime(started);
+
+        Assert.True(game.SaveInProgress);
+        Assert.True(beginElapsed < TimeSpan.FromMilliseconds(100));
+
+        store.Release();
+        var engine = new InputManEngine(GameControls.CreateProfile());
+        engine.SetMaps(game.Contexts);
+        engine.Tick(InputSnapshot.Empty, 0, 0);
+        for (int attempt = 0; attempt < 100 && game.SaveInProgress; attempt++)
+        {
+            await Task.Delay(5);
+            game.Advance(TimeSpan.Zero, engine.CurrentFrame, focused: true);
+        }
+
+        Assert.False(game.SaveInProgress);
+        Assert.StartsWith("Saved.", game.Status);
+    }
+
     private static TinyFarmSupperGame Create() => new(NewStore());
 
     private static FileSaveStore NewStore()
     {
         return new FileSaveStore(Path.Combine(Path.GetTempPath(), "tinyfarm-m9-tests", Guid.NewGuid().ToString("N")));
+    }
+
+    private sealed class GatedSaveStore : ISaveStore
+    {
+        private readonly TaskCompletionSource gate = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public void Release() => gate.SetResult();
+
+        public Task<bool> ExistsAsync(string slotId, CancellationToken ct = default) => Task.FromResult(false);
+        public Task<IReadOnlyList<string>> ListSlotsAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<string>>([]);
+        public Task<SlotInfo?> GetSlotInfoAsync(string slotId, CancellationToken ct = default) => Task.FromResult<SlotInfo?>(null);
+        public Task<IReadOnlyList<SlotInfo>> ListSlotInfosAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<SlotInfo>>([]);
+        public Task<ReadOnlyMemory<byte>> ReadSlotAsync(string slotId, CancellationToken ct = default) => throw new FileNotFoundException();
+        public Task WriteSlotAsync(string slotId, ReadOnlyMemory<byte> bytes, int keepBackups, CancellationToken ct = default) => gate.Task;
+        public Task DeleteAsync(string slotId, CancellationToken ct = default) => Task.CompletedTask;
     }
 }

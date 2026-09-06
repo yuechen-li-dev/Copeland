@@ -1,0 +1,19 @@
+{
+  "scenario": "canonical combat frame with world, Machina HUD, ambient particles, SoftShockwave, and audio active",
+  "shaderVisible": true,
+  "maxParticles": 232,
+  "maxEmitters": 1,
+  "maxVoices": 1,
+  "combatCheckpoint": {
+    "file": "05-combat.png",
+    "pixelSha256": "609aaae4f027193a55424ce580f8c9c73e4c5d3abcbf180e7fdeb89a37d4b2ba",
+    "drawCalls": 40,
+    "quadCount": 241,
+    "shaderQuads": 1,
+    "ordinaryFrameMilliseconds": 27.2577,
+    "capturedFrameMilliseconds": 23.5346,
+    "readbackMilliseconds": 21.346,
+    "frameWithoutReadbackMilliseconds": 2.188600000000001
+  },
+  "note": "The full canonical M9 walkthrough completed with all systems enabled; no feature was disabled for performance."
+}

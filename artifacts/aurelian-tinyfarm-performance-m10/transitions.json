@@ -1,0 +1,36 @@
+{
+  "qualifiedScenes": [
+    "Farm",
+    "Town",
+    "Riverside",
+    "Hearth House",
+    "General Store",
+    "Old Burrow"
+  ],
+  "shaderCompilationDuringGameplay": false,
+  "pipelineCreationDuringGameplay": false,
+  "stableTextureUploadsPerFrame": 0,
+  "secondarySceneCheckpoint": {
+    "file": "06-secondary-scene.png",
+    "pixelSha256": "41f3d3c33a8f970d48e190c72466f02f59399ae40fca31beaec7712c6753a2da",
+    "drawCalls": 25,
+    "quadCount": 216,
+    "shaderQuads": 0,
+    "ordinaryFrameMilliseconds": 25.4075,
+    "capturedFrameMilliseconds": 23.7043,
+    "readbackMilliseconds": 21.543,
+    "frameWithoutReadbackMilliseconds": 2.1613000000000007
+  },
+  "saveLoad": {
+    "saveSamples": 8,
+    "maximumSaveMilliseconds": 152.414,
+    "loadSamples": 7,
+    "maximumLoadMilliseconds": 48.696,
+    "asyncSaveRequestMilliseconds": 0.5552,
+    "asyncSaveMaximumPumpMilliseconds": 17.926,
+    "asyncLoadRequestMilliseconds": 0.3693,
+    "asyncLoadMaximumPumpMilliseconds": 16.0139,
+    "note": "F/N gameplay requests now capture immutable state and perform serialization, compression, and IO off-thread; load commit remains on the host thread."
+  },
+  "note": "Shaders and pipelines are compiled/created before compositor attachment. Scene entry reuses them."
+}

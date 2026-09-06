@@ -1,0 +1,10 @@
+{
+  "source": "AURELIAN-FULL-GAME-SLICE-M9 checked evidence",
+  "configuration": "Debug, NVIDIA GeForce RTX 3070, 1280x720",
+  "averageFrameMilliseconds": 28.231999166666682,
+  "medianFrameMilliseconds": 27.3705,
+  "p95FrameMilliseconds": 29.3422,
+  "allocatedBytesPerFrame": 4137503,
+  "readbacksPerFrame": 1,
+  "presentation": "GPU readback, CPU RGBA-to-BGRA conversion, WinForms repaint"
+}

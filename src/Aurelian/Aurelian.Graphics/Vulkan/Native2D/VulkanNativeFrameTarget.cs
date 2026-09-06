@@ -5,6 +5,7 @@ using Aurelian.Graphics.Vulkan.Commanding.Submit;
 using Aurelian.Graphics.Vulkan.Device;
 using Aurelian.Graphics.Vulkan.NativeForwardTextured;
 using Aurelian.Graphics.Vulkan.Resources.Allocation;
+using Aurelian.Graphics.Vulkan.Resources.Barriers;
 using Aurelian.Graphics.Vulkan.Resources.Buffers;
 using Aurelian.Graphics.Vulkan.Resources.Textures;
 using Aurelian.Graphics.Vulkan.Sync;
@@ -39,7 +40,11 @@ public sealed unsafe class VulkanNativeFrameTarget : IDisposable
     private bool frameActive;
     private bool disposed;
 
-    public VulkanNativeFrameTarget(AurelianVulkanPlant plant, uint width, uint height)
+    public VulkanNativeFrameTarget(
+        AurelianVulkanPlant plant,
+        uint width,
+        uint height,
+        VulkanTextureFormat format = VulkanTextureFormat.Rgba8Unorm)
     {
         ArgumentNullException.ThrowIfNull(plant);
         if (width == 0 || height == 0)
@@ -54,21 +59,36 @@ public sealed unsafe class VulkanNativeFrameTarget : IDisposable
         fences = VulkanFenceBundle.Create(plant);
         commandPool = VulkanCommandBufferPool.Create(plant);
         submitter = new VulkanCommandSubmitter(plant, commandPool, fences);
-        Texture = VulkanNativeForwardTexturedRenderer.CreateTexture(
+        VulkanTextureCreateResult textureResult = VulkanTextureFactory.Create(
             plant,
             allocator,
-            width,
-            height,
-            VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.TransferSource,
-            VulkanMemoryUsage.GpuOnly,
-            "native-frame.target");
+            new VulkanTextureCreatePlan(
+                plant.Context.Id,
+                width,
+                height,
+                format,
+                VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.TransferSource,
+                VulkanMemoryUsage.GpuOnly,
+                VulkanResourceLayout.Undefined,
+                DebugName: "native-frame.target"));
+        Require(textureResult.Success, "Native frame target texture creation failed.");
+        Texture = textureResult.Texture!;
     }
 
     public uint Width { get; }
 
     public uint Height { get; }
 
-    public string Format => "R8G8B8A8_UNORM";
+    public string Format => Texture.Format switch
+    {
+        VulkanTextureFormat.Rgba8Unorm => "R8G8B8A8Unorm",
+        VulkanTextureFormat.Bgra8Unorm => "B8G8R8A8Unorm",
+        VulkanTextureFormat.Rgba8Srgb => "R8G8B8A8Srgb",
+        VulkanTextureFormat.Bgra8Srgb => "B8G8R8A8Srgb",
+        _ => throw new InvalidOperationException($"Unsupported native frame format {Texture.Format}."),
+    };
+
+    public VulkanTextureFormat TextureFormat => Texture.Format;
 
     public int SampleCount => 1;
 
@@ -158,6 +178,13 @@ public sealed unsafe class VulkanNativeFrameTarget : IDisposable
         Require(submit.Success, "Native frame readback submission failed.");
 
         byte[] pixels = readback.ReadBytes(checked((int)(Width * Height * 4)));
+        if (Texture.Format is VulkanTextureFormat.Bgra8Unorm or VulkanTextureFormat.Bgra8Srgb)
+        {
+            for (int index = 0; index < pixels.Length; index += 4)
+            {
+                (pixels[index], pixels[index + 2]) = (pixels[index + 2], pixels[index]);
+            }
+        }
         string hash = Convert.ToHexString(SHA256.HashData(pixels)).ToLowerInvariant();
         stopwatch.Stop();
         return (pixels, hash, Math.Round(stopwatch.Elapsed.TotalMilliseconds, 3));

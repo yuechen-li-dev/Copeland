@@ -1,0 +1,17 @@
+{
+  "totalBytesPerFrame": 4137503,
+  "dominantMeasuredSite": "VulkanNativeFrameTarget.Capture -\u003E AurelianVulkanBuffer.ReadBytes",
+  "dominantBytesPerFrame": 3686400,
+  "additionalSites": [
+    "SupperWindow.Display full-frame channel conversion",
+    "SupperUi full-surface RasterBuffer",
+    "RasterSurface.CopyPixels clone",
+    "SupperUi RGBA conversion buffer",
+    "VulkanOrderedQuadRenderer per-pass vertex byte array",
+    "VulkanOrderedQuadRenderer per-pass binding-key array",
+    "EffectRuntime particle snapshot array",
+    "EffectNativeProjection particle submission array",
+    "TinyFarmFrameProjector immutable view arrays",
+    "NativeLayerCompositor frame result arrays"
+  ]
+}

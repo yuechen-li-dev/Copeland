@@ -59,8 +59,10 @@ public sealed class NativeSpriteResourceScope : IDisposable
             {
                 return existing.Texture;
             }
-            renderer.DisposeTexture(existing.Texture);
-            entries.Remove(resource.Id);
+            renderer.UpdateTexture(existing.Texture, resource.Width, resource.Height, resource.Rgba8);
+            existing.ContentHash = resource.ContentHash;
+            TextureUploads++;
+            return existing.Texture;
         }
 
         Native2DTextureHandle texture = renderer.CreateTexture(resource.Width, resource.Height, resource.Rgba8);
@@ -91,5 +93,9 @@ public sealed class NativeSpriteResourceScope : IDisposable
         disposed = true;
     }
 
-    private sealed record Entry(string ContentHash, Native2DTextureHandle Texture);
+    private sealed class Entry(string contentHash, Native2DTextureHandle texture)
+    {
+        public string ContentHash { get; set; } = contentHash;
+        public Native2DTextureHandle Texture { get; } = texture;
+    }
 }

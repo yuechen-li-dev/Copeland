@@ -65,6 +65,12 @@ public sealed class TinyFarmDeliverancePersistence : IPersistenceApplicationBrid
     public SaveRequest CaptureSave(string slotId)
     {
         TinyFarmSemanticSaveSnapshot snapshot = CaptureSnapshot();
+        return CreateSaveRequest(slotId, snapshot);
+    }
+
+    public SaveRequest CreateSaveRequest(string slotId, TinyFarmSemanticSaveSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
         byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(snapshot, TinyFarmChunkedSaveCodec.ChunkOptions);
         var module = new SaveModulePayload(
             ModuleId,

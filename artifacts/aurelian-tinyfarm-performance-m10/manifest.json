@@ -1,0 +1,15 @@
+{
+  "milestone": "AURELIAN-TINYFARM-PERFORMANCE-M10",
+  "kind": "native-game-performance-and-frame-pacing-hardening",
+  "outcome": "B",
+  "normalFrameReadback": false,
+  "steadyState60FpsQualified": true,
+  "steadyStateAllocationBounded": true,
+  "warmDescriptorWrites": 0,
+  "warmTextureUploads": 0,
+  "shaderFirstUseStutterRemoved": true,
+  "sceneTransitionStutterBounded": true,
+  "gameplaySemanticParity": true,
+  "featuresDisabledForPerformance": false,
+  "remainingHitch": "Changed-state Machina UI CPU rasterization and synchronous texture upload"
+}

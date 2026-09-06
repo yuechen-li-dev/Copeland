@@ -1,6 +1,7 @@
 using Aurelian.Composition;
 using Aurelian.Graphics.Vulkan.Device;
 using Aurelian.Graphics.Vulkan.Native2D;
+using Aurelian.Graphics.Vulkan.Resources.Textures;
 
 namespace Aurelian.NativeComposition;
 
@@ -67,7 +68,8 @@ public sealed class NativeLayerCompositor : IDisposable
         int width,
         int height,
         double scale = 1,
-        NativeFrameClearColor? clearColor = null)
+        NativeFrameClearColor? clearColor = null,
+        VulkanTextureFormat format = VulkanTextureFormat.Rgba8Unorm)
     {
         ArgumentNullException.ThrowIfNull(plant);
         if (width <= 0 || height <= 0)
@@ -77,7 +79,7 @@ public sealed class NativeLayerCompositor : IDisposable
         this.plant = plant;
         this.clearColor = clearColor ?? new NativeFrameClearColor(16f / 255f, 32f / 255f, 64f / 255f, 1);
         semanticCompositor = new AurelianLayerCompositor(new LayerSurfaceDescriptor(width, height, scale));
-        target = new VulkanNativeFrameTarget(plant, (uint)width, (uint)height);
+        target = new VulkanNativeFrameTarget(plant, (uint)width, (uint)height, format);
     }
 
     public LayerSurfaceDescriptor Surface => semanticCompositor.Surface;
@@ -161,7 +163,7 @@ public sealed class NativeLayerCompositor : IDisposable
             throw new ArgumentOutOfRangeException(nameof(width), "Native compositor extent must be positive.");
         }
 
-        var replacement = new VulkanNativeFrameTarget(plant, (uint)width, (uint)height);
+        var replacement = new VulkanNativeFrameTarget(plant, (uint)width, (uint)height, target.TextureFormat);
         try
         {
             foreach (INativeLayerPresenter presenter in presenters.Values)

@@ -35,6 +35,30 @@ public static class EffectNativeProjection
         return result;
     }
 
+    public static NativeAnalyticShapeSubmission Particle(ParticleSnapshot particle, EffectCameraTransform camera)
+    {
+        Vector2 center = camera.Project(particle.Position, particle.Space);
+        float scale = particle.Space == EffectCoordinateSpace.World
+            ? camera.PixelsPerWorldUnit * camera.Zoom
+            : 1;
+        float size = MathF.Max(1, MathF.Round(particle.Size * scale));
+        float fade = Math.Clamp(1 - (particle.AgeSeconds / particle.LifetimeSeconds), 0, 1);
+        // Native material bindings include tint. Keep the visually smooth lifetime
+        // curve bounded to four reusable variants so particles do not manufacture
+        // descriptor identities throughout otherwise-warm play.
+        fade = MathF.Round(fade * 3) / 3;
+        Native2DTint color = ParticleColor(particle.EffectId, particle.Variant, fade);
+        return new NativeAnalyticShapeSubmission(
+            new Native2DRect(center.X - size / 2, center.Y - size / 2, size, size),
+            new Native2DSize(size, size),
+            Native2DUvRect.Full,
+            NativeAnalyticShapeKind.Circle,
+            color,
+            size / 2,
+            color,
+            0);
+    }
+
     public static IReadOnlyList<NativeSoftShockwaveSubmission> Shockwaves(
         IReadOnlyList<EffectQuadSnapshot> quads,
         EffectCameraTransform camera)

@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Drawing.Imaging;
 using Aurelian.Audio;
 using Aurelian.Audio.NAudio;
 using Aurelian.GameHost;
@@ -8,6 +7,11 @@ using InputMan.Aurelian;
 using InputMan.Core;
 using TinyFarm.InputMan;
 using TinyFarm.Runtime;
+using Silk.NET.Core.Contexts;
+using Silk.NET.Core.Native;
+using Silk.NET.Input;
+using Silk.NET.Maths;
+using Silk.NET.Windowing;
 
 namespace TinyFarm.Native;
 
@@ -22,11 +26,10 @@ internal static class Program
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TinyFarm", "saves");
         try
         {
-            ApplicationConfiguration.Initialize();
             var game = new TinyFarmSupperGame(new FileSaveStore(saveRoot));
             var input = new AurelianInputAdapter(new InputManEngine(GameControls.CreateProfile()));
             input.SetContexts(game.Contexts);
-            var window = new SupperWindow(input, proof);
+            var window = SupperWindow.Create(input, proof);
             using var resources = SupperAudio.CreateResources();
             IAudioOutputBackend backend;
             string audioBackend;
@@ -43,7 +46,7 @@ internal static class Program
             var audio = new AurelianAudioRuntime(resources, backend, voiceCapacity: 16);
             audio.SetBusVolume(AudioBusId.Master, .35f);
             audio.Play(new TinyFarmAudioProjector().FarmMusic(new AudioEventId("supper:music")) with { Priority = 100 });
-            var renderer = new SupperRenderer(root, game, window.Display);
+            var renderer = new SupperRenderer(root, game, window, proof);
             var application = new SupperApplication(game, input, window, audio);
             using var host = new AurelianGameHost(window, input, renderer, application, "TinyFarm", audio);
             if (proof)
@@ -51,7 +54,6 @@ internal static class Program
                 SupperProof.Run(root, game, input, renderer, host, audio, audioBackend);
                 return 0;
             }
-            window.Show();
             if (args.Contains("--window-smoke", StringComparer.Ordinal))
             {
                 SupperProof.RunWindow(game, window, host);
@@ -68,7 +70,6 @@ internal static class Program
                 {
                     break;
                 }
-                Thread.Sleep(8);
             }
             return 0;
         }
@@ -78,7 +79,7 @@ internal static class Program
             File.WriteAllText(path, error.ToString());
             if (!proof)
             {
-                MessageBox.Show("TinyFarm could not start.\n" + error.Message + "\nDetails: " + path, "TinyFarm");
+                Console.Error.WriteLine("TinyFarm could not start. " + error.Message + " Details: " + path);
             }
             return 1;
         }
@@ -134,115 +135,103 @@ internal sealed class SupperApplication(TinyFarmSupperGame game, AurelianInputAd
     public void Dispose() { }
 }
 
-internal sealed class SupperWindow : Form, IAurelianGameWindow
+internal sealed class SupperWindow : IAurelianGameWindow
 {
+    private readonly IWindow window;
     private readonly AurelianInputAdapter input;
     private readonly bool proof;
-    private readonly Bitmap bitmap = new(1280, 720, PixelFormat.Format32bppArgb);
-    private bool closed;
+    private readonly IInputContext inputContext;
+    private readonly SilkInputBridge inputBridge;
+    private bool disposed;
+    private bool focused;
 
-    public SupperWindow(AurelianInputAdapter input, bool proof)
+    private SupperWindow(
+        IWindow window,
+        IInputContext inputContext,
+        SilkInputBridge inputBridge,
+        AurelianInputAdapter input,
+        bool proof,
+        IReadOnlyList<string> requiredVulkanInstanceExtensions)
     {
+        this.window = window;
+        this.inputContext = inputContext;
+        this.inputBridge = inputBridge;
         this.input = input;
         this.proof = proof;
-        Text = "TinyFarm - A Little Mint of Kindness";
-        ClientSize = new Size(1280, 720);
-        MinimumSize = Size;
-        MaximumSize = Size;
-        MaximizeBox = false;
-        DoubleBuffered = true;
-        KeyPreview = true;
-        StartPosition = FormStartPosition.CenterScreen;
-        KeyDown += (_, key) => Record(key, true);
-        KeyUp += (_, key) => Record(key, false);
-        Activated += (_, _) => FocusChanged?.Invoke(true);
-        Deactivate += (_, _) => FocusChanged?.Invoke(false);
-        FormClosed += (_, _) => closed = true;
+        focused = proof;
+        RequiredVulkanInstanceExtensions = requiredVulkanInstanceExtensions;
+        window.Resize += OnResize;
+        window.FocusChanged += OnFocusChanged;
     }
 
-    public HostSurfaceSize SurfaceSize => new(1280, 720);
-    public bool IsFocused => proof || ContainsFocus;
-    public bool ShouldClose => closed;
-    public event Action<HostSurfaceSize>? Resized { add { } remove { } }
+    public static SupperWindow Create(AurelianInputAdapter input, bool proof)
+    {
+        WindowOptions options = WindowOptions.DefaultVulkan;
+        options.IsVisible = !proof;
+        options.Size = new Vector2D<int>(1280, 720);
+        options.Title = "TinyFarm - A Little Mint of Kindness";
+        options.VSync = true;
+        options.WindowBorder = WindowBorder.Fixed;
+        IWindow window = Silk.NET.Windowing.Window.Create(options);
+        window.Initialize();
+        IReadOnlyList<string> requiredExtensions = ReadRequiredVulkanExtensions(window);
+        IInputContext inputContext = window.CreateInput();
+        var inputBridge = new SilkInputBridge(inputContext, input);
+        return new SupperWindow(window, inputContext, inputBridge, input, proof, requiredExtensions);
+    }
+
+    public IWindow NativeWindow => window;
+    public IReadOnlyList<string> RequiredVulkanInstanceExtensions { get; }
+    public HostSurfaceSize SurfaceSize => new(window.Size.X, window.Size.Y);
+    public bool IsFocused => proof || focused;
+    public bool ShouldClose => window.IsClosing;
+    public event Action<HostSurfaceSize>? Resized;
     public event Action<bool>? FocusChanged;
-    public void PumpEvents() => Application.DoEvents();
+    public void PumpEvents() => window.DoEvents();
 
-    internal void InjectKeyMessage(Keys key, bool down)
+    internal void InjectKey(KeyboardKey key, bool down)
     {
-        // Qualification enters through this window's normal key-message callback.
-        Message message = Message.Create(Handle, down ? 0x0100 : 0x0101, (nint)key, 0);
-        WndProc(ref message);
+        input.RecordButton(global::InputMan.Core.Controls.Key(key), down);
     }
 
-    public unsafe void Display(byte[] rgba)
+    public void Dispose()
     {
-        if (proof)
+        if (disposed)
         {
             return;
         }
-        BitmapData data = bitmap.LockBits(new Rectangle(0, 0, 1280, 720), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
-        try
+        disposed = true;
+        window.Resize -= OnResize;
+        window.FocusChanged -= OnFocusChanged;
+        inputBridge.Dispose();
+        inputContext.Dispose();
+        window.Dispose();
+    }
+
+    private void OnResize(Vector2D<int> size) => Resized?.Invoke(new HostSurfaceSize(size.X, size.Y));
+
+    private void OnFocusChanged(bool isFocused)
+    {
+        focused = isFocused;
+        FocusChanged?.Invoke(isFocused);
+    }
+
+    private static unsafe IReadOnlyList<string> ReadRequiredVulkanExtensions(IWindow window)
+    {
+        IVkSurface surface = window.VkSurface
+            ?? throw new InvalidOperationException("Silk.NET did not expose a Vulkan surface source.");
+        uint count = 0;
+        byte** extensions = surface.GetRequiredExtensions(out count);
+        var names = new List<string>((int)count);
+        for (int index = 0; index < count; index++)
         {
-            byte* target = (byte*)data.Scan0;
-            for (int i = 0; i < rgba.Length; i += 4)
+            string? name = SilkMarshal.PtrToString((nint)extensions[index], NativeStringEncoding.UTF8);
+            if (!string.IsNullOrWhiteSpace(name) && !names.Contains(name, StringComparer.Ordinal))
             {
-                target[i] = rgba[i + 2];
-                target[i + 1] = rgba[i + 1];
-                target[i + 2] = rgba[i];
-                target[i + 3] = rgba[i + 3];
+                names.Add(name);
             }
         }
-        finally
-        {
-            bitmap.UnlockBits(data);
-        }
-        Invalidate();
-    }
-
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        e.Graphics.DrawImageUnscaled(bitmap, 0, 0);
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            bitmap.Dispose();
-        }
-        base.Dispose(disposing);
-    }
-
-    private void Record(KeyEventArgs key, bool down)
-    {
-        KeyboardKey? control = key.KeyCode switch
-        {
-            Keys.W => KeyboardKey.W,
-            Keys.A => KeyboardKey.A,
-            Keys.S => KeyboardKey.S,
-            Keys.D => KeyboardKey.D,
-            Keys.E => KeyboardKey.E,
-            Keys.I => KeyboardKey.I,
-            Keys.F => KeyboardKey.F,
-            Keys.N => KeyboardKey.N,
-            Keys.Q => KeyboardKey.Q,
-            Keys.Enter => KeyboardKey.Enter,
-            Keys.Space => KeyboardKey.Space,
-            Keys.Escape => KeyboardKey.Escape,
-            Keys.Up => KeyboardKey.ArrowUp,
-            Keys.Down => KeyboardKey.ArrowDown,
-            Keys.D1 => KeyboardKey.Number1,
-            Keys.D2 => KeyboardKey.Number2,
-            Keys.D3 => KeyboardKey.Number3,
-            Keys.D4 => KeyboardKey.Number4,
-            _ => null
-        };
-        if (control is KeyboardKey value)
-        {
-            input.RecordButton(global::InputMan.Core.Controls.Key(value), down);
-            key.Handled = true;
-            key.SuppressKeyPress = true;
-        }
+        return names;
     }
 }
 

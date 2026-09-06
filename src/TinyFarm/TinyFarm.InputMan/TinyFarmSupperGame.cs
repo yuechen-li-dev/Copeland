@@ -26,6 +26,8 @@ public sealed class TinyFarmSupperGame
     private readonly ISaveStore store;
     private SceneId? effectsScene;
     private bool completionShown;
+    private Task? pendingSave;
+    private Task<LoadedSaveCandidate>? pendingLoad;
 
     public TinyFarmSupperGame(ISaveStore store)
     {
@@ -53,6 +55,8 @@ public sealed class TinyFarmSupperGame
     public int AudioEvents { get; private set; }
     public int FeedbackEpoch { get; private set; }
     public bool HasSave => store.ExistsAsync("supper").GetAwaiter().GetResult();
+    public bool SaveInProgress => pendingSave is not null;
+    public bool LoadInProgress => pendingLoad is not null;
 
     public ActionMapId[] Contexts => Dialogue.IsActive
         ? [GameControls.System, GameControls.Dialogue]
@@ -71,12 +75,12 @@ public sealed class TinyFarmSupperGame
     {
         if (input.WasPressed(GameControls.Save) && Screen != SupperScreen.Title)
         {
-            Save();
+            BeginSave();
             return;
         }
         if (input.WasPressed(GameControls.Load))
         {
-            Load();
+            BeginLoad();
             return;
         }
         if (Screen != SupperScreen.Playing && input.WasPressed(GameControls.Quit))
@@ -126,6 +130,7 @@ public sealed class TinyFarmSupperGame
 
     public void Advance(TimeSpan elapsed, InputFrame input, bool focused)
     {
+        CompletePendingPersistence();
         bool playing = !CapturesGameplay && focused;
         Host.Execute(new SetSimulationModeCommand(playing ? TinyFarmSimulationMode.Playing : TinyFarmSimulationMode.Paused));
         var move = input.GetAxis2(GameControls.Move);
@@ -205,6 +210,31 @@ public sealed class TinyFarmSupperGame
         }
     }
 
+    public bool BeginSave()
+    {
+        if (pendingSave is not null || pendingLoad is not null)
+        {
+            Status = "A persistence operation is already in progress.";
+            return false;
+        }
+        try
+        {
+            TinyFarmSemanticSaveSnapshot snapshot = Persistence.CaptureSnapshot();
+            pendingSave = Task.Run(async () =>
+            {
+                SaveRequest request = Persistence.CreateSaveRequest("supper", snapshot);
+                await Persistence.Deliverance.SaveAsync("supper", request).ConfigureAwait(false);
+            });
+            Status = "Saving in the background...";
+            return true;
+        }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        {
+            Status = "Could not save: " + error.Message;
+            return false;
+        }
+    }
+
     public bool Load()
     {
         try
@@ -226,6 +256,68 @@ public sealed class TinyFarmSupperGame
         {
             Status = "Could not continue: " + error.Message;
             return false;
+        }
+    }
+
+    public bool BeginLoad()
+    {
+        if (pendingLoad is not null || pendingSave is not null)
+        {
+            Status = "A persistence operation is already in progress.";
+            return false;
+        }
+        try
+        {
+            pendingLoad = Persistence.Deliverance.LoadAsync(
+                "supper",
+                Persistence.GetLoadDefinitions("supper"),
+                Persistence.GetLoadCompatibility("supper"));
+            Status = "Loading in the background...";
+            return true;
+        }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        {
+            Status = "Could not continue: " + error.Message;
+            return false;
+        }
+    }
+
+    private void CompletePendingPersistence()
+    {
+        if (pendingSave?.IsCompleted == true)
+        {
+            try
+            {
+                pendingSave.GetAwaiter().GetResult();
+                Status = "Saved. Your supper, world, and conversation are safe. N continues from here.";
+            }
+            catch (Exception error) when (error is not OutOfMemoryException)
+            {
+                Status = "Could not save: " + error.Message;
+            }
+            pendingSave = null;
+        }
+
+        if (pendingLoad?.IsCompleted == true)
+        {
+            try
+            {
+                LoadedSaveCandidate candidate = pendingLoad.GetAwaiter().GetResult();
+                Persistence.CommitLoadedCandidate("supper", candidate);
+                Screen = SupperScreen.Playing;
+                completionShown = TinyFarmSupper.IsComplete(State);
+                effectsScene = null;
+                FeedbackEpoch++;
+                Effects = NewEffects();
+                PendingAudio.Clear();
+                Status = "Welcome back. Everything is just where you left it.";
+                SynchronizeScene();
+            }
+            catch (Exception error) when (error is not OutOfMemoryException)
+            {
+                Status = "Could not continue: " + error.Message;
+            }
+            pendingLoad = null;
         }
     }
 

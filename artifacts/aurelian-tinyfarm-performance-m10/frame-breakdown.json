@@ -1,0 +1,7 @@
+{
+  "configuration": "Release",
+  "projectionMillisecondsPerFrame": 0.05592166666666667,
+  "compositionMillisecondsPerFrame": 1.7022108333333332,
+  "swapchainMillisecondsPerFrame": 4.704625833333334,
+  "otherHostSimulationInputAudioMillisecondsPerFrame": 0.478393333333333
+}

@@ -1,0 +1,15 @@
+{
+  "steadyAllocatedBytesPerFrame": 41180,
+  "projectionAllocatedBytesPerFrame": 11252,
+  "compositionAllocatedBytesPerFrame": 12799,
+  "swapchainAllocatedBytesPerFrame": 2845,
+  "nativePassAllocatedBytesPerFrame": 2272,
+  "eliminated": [
+    "ordinary full-frame readback byte array",
+    "CPU display channel conversion",
+    "per-pass vertex byte arrays",
+    "per-pass binding-key arrays",
+    "particle snapshot and projection arrays in TinyFarm native presentation",
+    "full-screen UI rebuild for clock and interaction prompt changes"
+  ]
+}

@@ -14,36 +14,136 @@ namespace TinyFarm.Native;
 
 internal sealed class SupperUi(TinyFarmSupperGame game)
 {
-    private string? key;
+    private SupperUiKey? key;
     private SpriteAtlasResource? resource;
+    private string? clockKey;
+    private SpriteAtlasResource? clockResource;
+    private string? promptKey;
+    private SpriteAtlasResource? promptResource;
     public int Rebuilds { get; private set; }
 
     public SpriteAtlasResource Resource(TinyFarmFrame frame)
     {
-        string next = string.Join('|', game.Screen, game.Status, frame.Time, frame.ActiveScene,
-            frame.InteractionTarget, game.State.SelectedHotbarSlot, string.Join(';', game.Objectives()),
-            game.Dialogue.Presentation?.OperationId, game.Dialogue.SelectedChoiceIndex,
-            string.Join(';', frame.Inventory.Select(item => $"{item.Id}:{item.Count}")));
+        SupperUiKey next = CreateKey(frame);
         if (key == next && resource is not null)
         {
             return resource;
         }
         key = next;
         Rebuilds++;
-        MachinaPreparedPresentation prepared = new MachinaPresentationPipeline().Prepare(Build(frame), 1280, 720);
-        RasterFrame raster = new AurelianCpuRasterRenderer().Render(MachinaPresentationTranslator.Translate(prepared.PresentationFrame));
-        var pixels = raster.Surface.CopyPixels();
-        byte[] rgba = new byte[pixels.Length * 4];
-        for (int index = 0; index < pixels.Length; index++)
-        {
-            rgba[index * 4] = pixels[index].R;
-            rgba[index * 4 + 1] = pixels[index].G;
-            rgba[index * 4 + 2] = pixels[index].B;
-            rgba[index * 4 + 3] = pixels[index].A;
-        }
-        resource = new SpriteAtlasResource(new SpriteAssetId("supper-ui"),
-            Convert.ToHexString(SHA256.HashData(rgba)), 1280, 720, rgba, SpriteSampling.Linear);
+        resource = Render("supper-ui", Build(frame), 1280, 720);
         return resource;
+    }
+
+    public SupperUiResources Resources(TinyFarmFrame frame)
+    {
+        return new SupperUiResources(Resource(frame), ClockResource(frame), PromptResource(frame));
+    }
+
+    private SpriteAtlasResource ClockResource(TinyFarmFrame frame)
+    {
+        string next = frame.CurrentLocationName + "\n" + frame.Time;
+        if (clockKey == next && clockResource is not null)
+        {
+            return clockResource;
+        }
+        clockKey = next;
+        var nodes = new List<UiNode>();
+        Text(nodes, "clock", $"{frame.CurrentLocationName}  /  {frame.Time}", 0, 0, 400, TextSize.Md);
+        clockResource = Render("supper-clock", UI.Surface(id: "clock-surface", width: 400, height: 34, children: nodes), 400, 34);
+        return clockResource;
+    }
+
+    private SpriteAtlasResource? PromptResource(TinyFarmFrame frame)
+    {
+        InteractionTarget? target = TinyFarmSpatialQueries.SelectInteractionTarget(
+            game.State,
+            TinyFarmIds.Player,
+            game.Definitions.Scenes);
+        string? prompt = target is null || game.CapturesGameplay
+            ? null
+            : target.Kind switch
+            {
+                InteractionTargetKind.Actor => "E  Talk to " + game.State.Actor(target.Actor!.Value).Name,
+                InteractionTargetKind.Plot => "1 + SPACE plant   /   E tend or harvest",
+                InteractionTargetKind.Enemy => "4 + SPACE  Shoo the slime",
+                InteractionTargetKind.Tree => "3 + SPACE  Chop firewood",
+                InteractionTargetKind.GroundItem => "E  Pick up wild mint",
+                InteractionTargetKind.ForageNode => "E  Gather mushrooms",
+                InteractionTargetKind.CookingStation => "E  Cook supper",
+                InteractionTargetKind.Portal => "E  " + frame.SceneRoutes!.Single(route => route.TriggerObject == target.SceneObject).InteractionLabel,
+                _ => "E  Interact",
+            };
+        if (prompt is null)
+        {
+            return null;
+        }
+        if (promptKey == prompt && promptResource is not null)
+        {
+            return promptResource;
+        }
+        promptKey = prompt;
+        var nodes = new List<UiNode>();
+        Panel(nodes, "prompt", 0, 0, 710, 38, 0x203D32EE);
+        Text(nodes, "prompt-text", prompt, 22, 8, 670, TextSize.Md, 0xFFF0BEFF);
+        promptResource = Render("supper-prompt", UI.Surface(id: "prompt-surface", width: 710, height: 38, children: nodes), 710, 38);
+        return promptResource;
+    }
+
+    private static SpriteAtlasResource Render(string id, UiNode node, int width, int height)
+    {
+        MachinaPreparedPresentation prepared = new MachinaPresentationPipeline().Prepare(node, width, height);
+        RasterFrame raster = new AurelianCpuRasterRenderer().Render(MachinaPresentationTranslator.Translate(prepared.PresentationFrame));
+        byte[] rgba = raster.Surface.CopyRgba8();
+        return new SpriteAtlasResource(
+            new SpriteAssetId(id),
+            Convert.ToHexString(SHA256.HashData(rgba)),
+            (uint)width,
+            (uint)height,
+            rgba,
+            SpriteSampling.Linear);
+    }
+
+    private SupperUiKey CreateKey(TinyFarmFrame frame)
+    {
+        int objectives = 0;
+        if (game.State.Facts.Contains(WorldFact.SupperSeedPlanted))
+        {
+            objectives |= 1;
+        }
+        if (game.State.ProductCount(TinyFarmIds.Player, TinyFarmIds.SauteedHenOfTheWoods) > 0)
+        {
+            objectives |= 2;
+        }
+        if (game.State.Enemy(TinyFarmIds.DungeonSlime).Lifecycle == EnemyLifecycle.Defeated)
+        {
+            objectives |= 4;
+        }
+        if (game.State.Item(TinyFarmIds.WildMint).Owner is not null)
+        {
+            objectives |= 8;
+        }
+        if (TinyFarmSupper.IsComplete(game.State))
+        {
+            objectives |= 16;
+        }
+
+        var inventoryHash = new HashCode();
+        foreach (TinyFarmInventoryView item in frame.Inventory)
+        {
+            inventoryHash.Add(item.Id, StringComparer.Ordinal);
+            inventoryHash.Add(item.Count);
+        }
+
+        return new SupperUiKey(
+            game.Screen,
+            game.Status,
+            frame.ActiveScene,
+            game.State.SelectedHotbarSlot,
+            objectives,
+            game.Dialogue.Presentation?.OperationId,
+            game.Dialogue.SelectedChoiceIndex,
+            inventoryHash.ToHashCode());
     }
 
     private UiNode Build(TinyFarmFrame frame)
@@ -52,7 +152,6 @@ internal sealed class SupperUi(TinyFarmSupperGame game)
         Panel(nodes, "header", 22, 18, 1236, 74);
         Text(nodes, "title", "TINYFARM", 44, 29, 230, TextSize.H1, 0xEDD6A0FF);
         Text(nodes, "subtitle", "A LITTLE MINT OF KINDNESS", 245, 45, 510, TextSize.Md);
-        Text(nodes, "clock", $"{frame.CurrentLocationName}  /  {frame.Time}", 835, 44, 400, TextSize.Md);
 
         Panel(nodes, "journal", 946, 110, 312, 457);
         Text(nodes, "journal-title", "SUPPER AT HOME", 965, 132, 275, TextSize.Md, 0xEDD6A0FF);
@@ -77,25 +176,6 @@ internal sealed class SupperUi(TinyFarmSupperGame game)
         Text(nodes, "controls", "WASD move  E interact  SPACE tool  I bag", 690, 604, 540, TextSize.Md);
         Text(nodes, "save-controls", "ESC pause   F save   N load", 690, 634, 490, TextSize.Md, 0xEDD6A0FF);
         Text(nodes, "status", game.Status.Length > 97 ? game.Status[..94] + "..." : game.Status, 43, 668, 1180, TextSize.Md);
-
-        InteractionTarget? target = TinyFarmSpatialQueries.SelectInteractionTarget(game.State, TinyFarmIds.Player, game.Definitions.Scenes);
-        if (target is not null && !game.CapturesGameplay)
-        {
-            string prompt = target.Kind switch
-            {
-                InteractionTargetKind.Actor => "E  Talk to " + game.State.Actor(target.Actor!.Value).Name,
-                InteractionTargetKind.Plot => "1 + SPACE plant   /   E tend or harvest",
-                InteractionTargetKind.Enemy => "4 + SPACE  Shoo the slime",
-                InteractionTargetKind.Tree => "3 + SPACE  Chop firewood",
-                InteractionTargetKind.GroundItem => "E  Pick up wild mint",
-                InteractionTargetKind.ForageNode => "E  Gather mushrooms",
-                InteractionTargetKind.CookingStation => "E  Cook supper",
-                InteractionTargetKind.Portal => "E  " + frame.SceneRoutes!.Single(route => route.TriggerObject == target.SceneObject).InteractionLabel,
-                _ => "E  Interact"
-            };
-            Panel(nodes, "prompt", 125, 528, 710, 38, 0x203D32EE);
-            Text(nodes, "prompt-text", prompt, 147, 536, 670, TextSize.Md, 0xFFF0BEFF);
-        }
 
         if (!game.CapturesGameplay)
         {
@@ -201,3 +281,18 @@ internal sealed class SupperUi(TinyFarmSupperGame game)
         Text(nodes, id + row, line, x, y + row * 25, width, size);
     }
 }
+
+internal readonly record struct SupperUiKey(
+    SupperScreen Screen,
+    string Status,
+    SceneId? ActiveScene,
+    int SelectedHotbarSlot,
+    int Objectives,
+    string? DialogueOperationId,
+    int DialogueSelectedChoiceIndex,
+    int InventoryHash);
+
+internal readonly record struct SupperUiResources(
+    SpriteAtlasResource Base,
+    SpriteAtlasResource Clock,
+    SpriteAtlasResource? Prompt);

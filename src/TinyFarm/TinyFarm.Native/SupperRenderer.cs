@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Numerics;
 using Aurelian.Composition;
 using Aurelian.Effects2D;
@@ -8,6 +9,8 @@ using Aurelian.Graphics.Plants;
 using Aurelian.Graphics.Vulkan.Device;
 using Aurelian.Graphics.Vulkan.Diagnostics;
 using Aurelian.Graphics.Vulkan.Native2D;
+using Aurelian.Graphics.Vulkan.Presentation;
+using Aurelian.Graphics.Vulkan.Resources.Textures;
 using Aurelian.NativeComposition;
 using Aurelian.Rendering.Contracts.Shaders;
 using Aurelian.Shaders.Graphics;
@@ -15,34 +18,63 @@ using Copeland.TS.Gpu;
 using Copeland.TS.Gpu.VdMir;
 using TinyFarm.Core;
 using TinyFarm.InputMan;
+using Silk.NET.Windowing;
 
 namespace TinyFarm.Native;
 
 internal sealed class SupperRenderer : IAurelianHostCompositor
 {
     private readonly AurelianVulkanPlant plant;
+    private readonly AurelianVulkanSurface surface;
+    private readonly AurelianVulkanSwapchain swapchain;
     private readonly NativeLayerCompositor compositor;
-    private readonly Action<byte[]> display;
+    private readonly VulkanNativeSwapchainPresenter swapchainPresenter;
     private readonly TinyFarmSupperGame game;
     private readonly SupperUi ui;
     private readonly SupperPresenter world;
     private TinyFarmFrame frame;
+    private bool captureNextFrame;
+    private long projectionAllocatedBytes;
+    private long compositionAllocatedBytes;
+    private long swapchainAllocatedBytes;
+    private long projectionTicks;
+    private long compositionTicks;
+    private long swapchainTicks;
+    private int measuredFrames;
+    private long nativePassAllocatedBytes;
+    private int descriptorWrites;
+    private int bufferUploads;
+    private int drawCalls;
 
-    public SupperRenderer(string root, TinyFarmSupperGame game, Action<byte[]> display)
+    public SupperRenderer(string root, TinyFarmSupperGame game, SupperWindow window, bool proof)
     {
         this.game = game;
-        this.display = display;
         ui = new SupperUi(game);
         frame = TinyFarmFrameProjector.Project(game.State, game.Definitions);
         var init = VulkanPlantInitializer.CreatePlant(PlantId.Zero,
-            new VulkanPlantOptions(EnableValidation: true, ApplicationName: "TinyFarm - A Little Mint of Kindness"));
+            new VulkanPlantOptions(
+                EnableValidation: proof,
+                ApplicationName: "TinyFarm - A Little Mint of Kindness",
+                EnablePresentation: true,
+                RequiredPresentationInstanceExtensions: window.RequiredVulkanInstanceExtensions));
         if (!init.Success || init.Plant is null)
         {
             throw new InvalidOperationException(string.Join("; ", init.Diagnostics.Select(item => item.Message)));
         }
         plant = init.Plant;
         Device = init.Facts!.PhysicalDeviceName;
-        compositor = new NativeLayerCompositor(plant, 1280, 720);
+        VulkanSwapchainCreateResult swapchainResult = VulkanSwapchainFactory.Create(
+            plant,
+            window.NativeWindow,
+            new VulkanSwapchainCreateOptions(1280, 720, VSync: true, "TinyFarm - A Little Mint of Kindness", Visible: !proof));
+        if (!swapchainResult.Success || swapchainResult.Surface is null || swapchainResult.Swapchain is null)
+        {
+            throw new InvalidOperationException(string.Join("; ", swapchainResult.Diagnostics.Select(item => item.Message)));
+        }
+        surface = swapchainResult.Surface;
+        swapchain = swapchainResult.Swapchain;
+        VulkanTextureFormat targetFormat = ParseSwapchainFormat(swapchain.Facts.SelectedFormat);
+        compositor = new NativeLayerCompositor(plant, 1280, 720, format: targetFormat);
         CompiledGraphicsProgram analytic = Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/AnalyticShape2D.v.ts");
         CompiledGraphicsProgram shockwave = Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/SoftShockwave.v.ts");
         CompiledGraphicsProgram texture = Compile(root, "samples/Aurelian/ForwardTexturedM3.v.ts");
@@ -54,33 +86,113 @@ internal sealed class SupperRenderer : IAurelianHostCompositor
             var portrait = new SupperPortrait(plant, texture, game, portraitPath);
             compositor.Add(new SupperLayer(portrait.Layer, 50), portrait);
         }
-        var overlay = new SupperOverlay(new LayerId("machina-hud"), plant, texture, () => ui.Resource(frame));
-        compositor.Add(new SupperLayer(overlay.Layer, 100), overlay);
+        Overlay = new SupperOverlay(new LayerId("machina-hud"), plant, texture, () => ui.Resources(frame));
+        compositor.Add(new SupperLayer(Overlay.Layer, 100), Overlay);
         compositor.Attach();
+        swapchainPresenter = new VulkanNativeSwapchainPresenter(plant, compositor.Target, swapchain);
     }
 
     public string Device { get; }
     public NativeLayerFrameResult? Last { get; private set; }
     public int UiRebuilds => ui.Rebuilds;
     public int ShaderQuads => world.ShaderQuads;
-    public bool PresentToWindow { get; set; } = true;
+    private SupperOverlay Overlay { get; }
+    public long WorldAllocatedBytes => world.AllocatedBytes;
+    public long OverlayAllocatedBytes => Overlay.AllocatedBytes;
+    public int DynamicUiTextureUploads => Overlay.TextureUploads;
+    public string PresentMode => swapchainPresenter.PresentMode;
+    public uint SwapchainImageCount => swapchainPresenter.SwapchainImageCount;
+    public int ReadbackCount { get; private set; }
+    public int MeasuredFrames => measuredFrames;
+    public long ProjectionAllocatedBytes => projectionAllocatedBytes;
+    public long CompositionAllocatedBytes => compositionAllocatedBytes;
+    public long SwapchainAllocatedBytes => swapchainAllocatedBytes;
+    public TimeSpan ProjectionTime => Stopwatch.GetElapsedTime(0, projectionTicks);
+    public TimeSpan CompositionTime => Stopwatch.GetElapsedTime(0, compositionTicks);
+    public TimeSpan SwapchainTime => Stopwatch.GetElapsedTime(0, swapchainTicks);
+    public long NativePassAllocatedBytes => nativePassAllocatedBytes;
+    public int DescriptorWrites => descriptorWrites;
+    public int BufferUploads => bufferUploads;
+    public int DrawCalls => drawCalls;
+
+    public void CaptureNextFrame()
+    {
+        captureNextFrame = true;
+    }
+
+    public void ResetPerformanceMetrics()
+    {
+        projectionAllocatedBytes = 0;
+        compositionAllocatedBytes = 0;
+        swapchainAllocatedBytes = 0;
+        projectionTicks = 0;
+        compositionTicks = 0;
+        swapchainTicks = 0;
+        measuredFrames = 0;
+        nativePassAllocatedBytes = 0;
+        descriptorWrites = 0;
+        bufferUploads = 0;
+        drawCalls = 0;
+        world.ResetPerformanceMetrics();
+        Overlay.ResetPerformanceMetrics();
+    }
 
     public void Resize(HostSurfaceSize size) { }
 
     public void Present(AurelianHostFrame hostFrame)
     {
+        long allocationStart = GC.GetAllocatedBytesForCurrentThread();
+        long timeStart = Stopwatch.GetTimestamp();
         frame = TinyFarmFrameProjector.Project(game.State, game.Definitions);
-        Last = compositor.RunFrame(hostFrame.Sequence, hostFrame.Elapsed, captureReadback: true);
-        if (PresentToWindow)
+        long projectionEnd = Stopwatch.GetTimestamp();
+        long projectionAllocationEnd = GC.GetAllocatedBytesForCurrentThread();
+        bool capture = captureNextFrame;
+        captureNextFrame = false;
+        Last = compositor.RunFrame(hostFrame.Sequence, hostFrame.Elapsed, captureReadback: capture);
+        foreach (Native2DPassResult pass in Last.NativeFrame.Passes)
         {
-            display(Last.NativeFrame.Pixels!);
+            nativePassAllocatedBytes += pass.Metrics.CpuAllocatedBytes;
+            descriptorWrites += pass.Metrics.DescriptorWrites;
+            bufferUploads += pass.Metrics.BufferUploads;
+            drawCalls += pass.Metrics.DrawCalls;
         }
+        long compositionEnd = Stopwatch.GetTimestamp();
+        long compositionAllocationEnd = GC.GetAllocatedBytesForCurrentThread();
+        if (capture)
+        {
+            ReadbackCount++;
+        }
+        swapchainPresenter.Present(hostFrame.Sequence);
+        long swapchainEnd = Stopwatch.GetTimestamp();
+        long swapchainAllocationEnd = GC.GetAllocatedBytesForCurrentThread();
+        projectionAllocatedBytes += projectionAllocationEnd - allocationStart;
+        compositionAllocatedBytes += compositionAllocationEnd - projectionAllocationEnd;
+        swapchainAllocatedBytes += swapchainAllocationEnd - compositionAllocationEnd;
+        projectionTicks += projectionEnd - timeStart;
+        compositionTicks += compositionEnd - projectionEnd;
+        swapchainTicks += swapchainEnd - compositionEnd;
+        measuredFrames++;
     }
 
     public void Dispose()
     {
+        swapchainPresenter.Dispose();
         compositor.Dispose();
+        swapchain.Dispose();
+        surface.Dispose();
         plant.Dispose();
+    }
+
+    private static VulkanTextureFormat ParseSwapchainFormat(string format)
+    {
+        return format switch
+        {
+            "R8G8B8A8Unorm" => VulkanTextureFormat.Rgba8Unorm,
+            "B8G8R8A8Unorm" => VulkanTextureFormat.Bgra8Unorm,
+            "R8G8B8A8Srgb" => VulkanTextureFormat.Rgba8Srgb,
+            "B8G8R8A8Srgb" => VulkanTextureFormat.Bgra8Srgb,
+            _ => throw new NotSupportedException($"TinyFarm does not support swapchain format {format}."),
+        };
     }
 
     private static CompiledGraphicsProgram Compile(string root, string file)
@@ -113,8 +225,16 @@ internal sealed class SupperPresenter(
     private float scale;
     private float left;
     private float top;
+    private readonly List<ParticleSnapshot> particleSnapshots = new(256);
+    private readonly List<EffectQuadSnapshot> quadSnapshots = new(32);
     public LayerId Layer => layer;
     public int ShaderQuads { get; private set; }
+    public long AllocatedBytes { get; private set; }
+
+    public void ResetPerformanceMetrics()
+    {
+        AllocatedBytes = 0;
+    }
 
     public void Attach(VulkanNativeFrameTarget target)
     {
@@ -130,6 +250,7 @@ internal sealed class SupperPresenter(
 
     public void Present(NativeLayerFrameContext context)
     {
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
         TinyFarmFrame frame = getFrame();
         scale = Math.Min(870f / frame.SceneWidth, 416f / frame.SceneHeight);
         left = 475 - frame.SceneWidth * scale / 2;
@@ -205,12 +326,14 @@ internal sealed class SupperPresenter(
                 Tile(pass, x + .17f, y - .52f, .13f, .2f, 0x143B35FF, 2);
                 Tile(pass, x - .05f, y - .28f, .17f, .07f, 0x143B35FF, 2);
             }
-            foreach (NativeAnalyticShapeSubmission particle in EffectNativeProjection.Particles(game.Effects.BuildParticleDrawData(), camera))
+            game.Effects.CopyParticleDrawData(particleSnapshots);
+            foreach (ParticleSnapshot particle in particleSnapshots)
             {
-                pass.SubmitAnalyticShape(particle);
+                pass.SubmitAnalyticShape(EffectNativeProjection.Particle(particle, camera));
             }
         });
-        var shockwaves = EffectNativeProjection.Shockwaves(game.Effects.BuildQuadDrawData(), camera);
+        game.Effects.CopyQuadDrawData(quadSnapshots);
+        IReadOnlyList<NativeSoftShockwaveSubmission> shockwaves = EffectNativeProjection.Shockwaves(quadSnapshots, camera);
         ShaderQuads = shockwaves.Count;
         if (ShaderQuads > 0)
         {
@@ -222,6 +345,7 @@ internal sealed class SupperPresenter(
                 }
             });
         }
+        AllocatedBytes += GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
     }
 
     private void DrawObject(VulkanOrderedQuadRenderer pass, TinyFarmSceneObjectView item, bool cave)
@@ -364,11 +488,19 @@ internal sealed class SupperPresenter(
 }
 
 internal sealed class SupperOverlay(LayerId layer, AurelianVulkanPlant plant, CompiledGraphicsProgram program,
-    Func<SpriteAtlasResource> resource) : INativeLayerPresenter
+    Func<SupperUiResources> resources) : INativeLayerPresenter
 {
     private VulkanOrderedQuadRenderer renderer = null!;
     private NativeSpriteResourceScope resources = null!;
     public LayerId Layer => layer;
+    public long AllocatedBytes { get; private set; }
+    private int textureUploadBaseline;
+    public int TextureUploads => resources.TextureUploads - textureUploadBaseline;
+    public void ResetPerformanceMetrics()
+    {
+        AllocatedBytes = 0;
+        textureUploadBaseline = resources.TextureUploads;
+    }
     public void Attach(VulkanNativeFrameTarget target)
     {
         renderer = new VulkanOrderedQuadRenderer(plant, program, target, Native2DPipelineOptions.SpriteLinear);
@@ -381,9 +513,35 @@ internal sealed class SupperOverlay(LayerId layer, AurelianVulkanPlant plant, Co
     }
     public void Present(NativeLayerFrameContext context)
     {
-        Native2DTextureHandle texture = resources.Resolve(resource());
-        context.Present(renderer, pass => pass.SubmitQuad(new NativeQuadSubmission(new Native2DRect(0, 0, 1280, 720),
-            Native2DUvRect.Full, texture, Native2DTint.White)));
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        SupperUiResources current = resources();
+        Native2DTextureHandle baseTexture = this.resources.Resolve(current.Base);
+        Native2DTextureHandle clockTexture = this.resources.Resolve(current.Clock);
+        Native2DTextureHandle? promptTexture = current.Prompt is null
+            ? null
+            : this.resources.Resolve(current.Prompt);
+        context.Present(renderer, pass =>
+        {
+            pass.SubmitQuad(new NativeQuadSubmission(
+                new Native2DRect(0, 0, 1280, 720),
+                Native2DUvRect.Full,
+                baseTexture,
+                Native2DTint.White));
+            pass.SubmitQuad(new NativeQuadSubmission(
+                new Native2DRect(835, 44, 400, 34),
+                Native2DUvRect.Full,
+                clockTexture,
+                Native2DTint.White));
+            if (promptTexture is Native2DTextureHandle prompt)
+            {
+                pass.SubmitQuad(new NativeQuadSubmission(
+                    new Native2DRect(125, 528, 710, 38),
+                    Native2DUvRect.Full,
+                    prompt,
+                    Native2DTint.White));
+            }
+        });
+        AllocatedBytes += GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
     }
     public void Detach()
     {

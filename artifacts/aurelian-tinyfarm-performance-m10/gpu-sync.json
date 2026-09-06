@@ -1,0 +1,12 @@
+{
+  "ordinaryFrameReadback": false,
+  "deviceWaitIdlePerFrame": false,
+  "required": [
+    "FIFO acquire/present synchronization"
+  ],
+  "remainingAvoidable": [
+    "two native layer submissions wait for completion",
+    "swapchain passthrough submission waits for completion"
+  ],
+  "classification": "bounded remaining headroom work; current frame pacing qualifies"
+}

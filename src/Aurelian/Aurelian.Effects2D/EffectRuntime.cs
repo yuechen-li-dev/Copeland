@@ -191,6 +191,21 @@ public sealed class EffectRuntime
         return result;
     }
 
+    public void CopyParticleDrawData(List<ParticleSnapshot> destination)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        destination.Clear();
+        for (int index = 0; index < particles.Count; index++)
+        {
+            destination.Add(particles[index].Snapshot);
+        }
+        destination.Sort(static (left, right) =>
+        {
+            int layer = left.PainterLayer.CompareTo(right.PainterLayer);
+            return layer != 0 ? layer : StringComparer.Ordinal.Compare(left.EmitterId.Value, right.EmitterId.Value);
+        });
+    }
+
     public IReadOnlyList<EffectQuadSnapshot> BuildQuadDrawData()
     {
         return emitters
@@ -212,6 +227,38 @@ public sealed class EffectRuntime
                 emitter.Definition.BlendMode,
                 emitter.Event.Space))
             .ToArray();
+    }
+
+    public void CopyQuadDrawData(List<EffectQuadSnapshot> destination)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        destination.Clear();
+        foreach (EmitterState emitter in emitters)
+        {
+            if (!emitter.Definition.ShaderQuad
+                && emitter.Definition.EmitterKind != EffectEmitterKind.ScreenFlash)
+            {
+                continue;
+            }
+            destination.Add(new EffectQuadSnapshot(
+                emitter.InstanceId,
+                emitter.Event.EffectId,
+                emitter.Definition.MaterialId,
+                emitter.Event.Position ?? Vector2.Zero,
+                emitter.AgeSeconds,
+                (float)emitter.Definition.Lifetime.TotalSeconds,
+                emitter.Definition.MaximumSize * emitter.Event.Scale,
+                emitter.Event.Intensity,
+                emitter.Event.Seed,
+                emitter.Definition.PainterLayer,
+                emitter.Definition.BlendMode,
+                emitter.Event.Space));
+        }
+        destination.Sort(static (left, right) =>
+        {
+            int layer = left.PainterLayer.CompareTo(right.PainterLayer);
+            return layer != 0 ? layer : StringComparer.Ordinal.Compare(left.EmitterId.Value, right.EmitterId.Value);
+        });
     }
 
     public EffectRuntimeInspection Inspect()

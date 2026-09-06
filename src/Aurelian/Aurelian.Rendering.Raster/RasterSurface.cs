@@ -1,4 +1,5 @@
 using Aurelian.Rendering.Contracts.Resolved2D;
+using System.Runtime.InteropServices;
 
 namespace Aurelian.Rendering.Raster;
 
@@ -31,6 +32,11 @@ public sealed class RasterSurface
     public Resolved2DRgbaColor[] CopyPixels()
     {
         return (Resolved2DRgbaColor[])pixels.Clone();
+    }
+
+    public byte[] CopyRgba8()
+    {
+        return MemoryMarshal.AsBytes(pixels.AsSpan()).ToArray();
     }
 
     private int GetIndex(int x, int y)
