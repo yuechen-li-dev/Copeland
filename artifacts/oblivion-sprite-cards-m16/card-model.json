@@ -1,0 +1,3259 @@
+{
+  "assetId": "sunkill.ui",
+  "panelId": "dialogue",
+  "sourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+  "atlasImagePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-ui-atlas.png",
+  "atlasWidth": 1536,
+  "atlasHeight": 1024,
+  "sourceSha256": "327e0010e0da9a9c7df1d9966c4f923b8300cea7176d4714decb138e645cb084",
+  "compileVersion": 4,
+  "width": 800,
+  "height": 220,
+  "cards": [
+    {
+      "conceptPath": {
+        "value": "panel.dialogue"
+      },
+      "kind": "panel",
+      "role": "programmable-panel",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 7133,
+        "length": 10,
+        "line": 274,
+        "column": 17
+      },
+      "sourceRect": null,
+      "authored": {
+        "policy": "center=StretchRegion; borderScale=0.5",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": null
+      },
+      "resolved": {
+        "offset": null,
+        "length": null,
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "width": 800,
+          "height": 220
+        },
+        "status": "resolved"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge programmable panel"
+      },
+      "relationships": [],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.corner.top-left"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1015,
+        "length": 26,
+        "line": 56,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 26,
+        "y": 34,
+        "width": 76,
+        "height": 76
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.corner.top-left"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.corner.top-right"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1051,
+        "length": 27,
+        "line": 57,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 920,
+        "y": 34,
+        "width": 76,
+        "height": 76
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.corner.top-right"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.corner.bottom-right"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1088,
+        "length": 30,
+        "line": 58,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 920,
+        "y": 900,
+        "width": 76,
+        "height": 76
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.corner.bottom-right"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.corner.bottom-left"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1128,
+        "length": 29,
+        "line": 59,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 26,
+        "y": 900,
+        "width": 76,
+        "height": 76
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.corner.bottom-left"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.top.cap-left"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1167,
+        "length": 23,
+        "line": 60,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 102,
+        "y": 34,
+        "width": 84,
+        "height": 76
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.top.cap-left"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.top.clamp"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1200,
+        "length": 20,
+        "line": 61,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 186,
+        "y": 34,
+        "width": 14,
+        "height": 76
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.top.clamp"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.top.glow"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1230,
+        "length": 19,
+        "line": 62,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 294,
+        "y": 34,
+        "width": 82,
+        "height": 76
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.top.glow"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.top.center"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1259,
+        "length": 21,
+        "line": 63,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 400,
+        "y": 34,
+        "width": 224,
+        "height": 76
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.top.center"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.top.cap-right"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1290,
+        "length": 24,
+        "line": 64,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 836,
+        "y": 34,
+        "width": 84,
+        "height": 76
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.top.cap-right"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.bottom.cap-left"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1324,
+        "length": 26,
+        "line": 65,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 102,
+        "y": 900,
+        "width": 84,
+        "height": 76
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.bottom.cap-left"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.bottom.clamp"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1360,
+        "length": 23,
+        "line": 66,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 186,
+        "y": 900,
+        "width": 14,
+        "height": 76
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.bottom.clamp"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.bottom.glow"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1393,
+        "length": 22,
+        "line": 67,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 294,
+        "y": 900,
+        "width": 82,
+        "height": 76
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.bottom.glow"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.bottom.center"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1425,
+        "length": 24,
+        "line": 68,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 400,
+        "y": 900,
+        "width": 224,
+        "height": 76
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.bottom.center"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.bottom.cap-right"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1459,
+        "length": 27,
+        "line": 69,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 836,
+        "y": 900,
+        "width": 84,
+        "height": 76
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.bottom.cap-right"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.left.cap-top"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1496,
+        "length": 23,
+        "line": 70,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 26,
+        "y": 110,
+        "width": 76,
+        "height": 84
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.left.cap-top"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.left.clamp"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1529,
+        "length": 21,
+        "line": 71,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 26,
+        "y": 194,
+        "width": 76,
+        "height": 14
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.left.clamp"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.left.glow"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1560,
+        "length": 20,
+        "line": 72,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 26,
+        "y": 350,
+        "width": 76,
+        "height": 82
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.left.glow"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.left.center"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1590,
+        "length": 22,
+        "line": 73,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 26,
+        "y": 440,
+        "width": 76,
+        "height": 224
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.left.center"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.left.cap-bottom"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1622,
+        "length": 26,
+        "line": 74,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 26,
+        "y": 816,
+        "width": 76,
+        "height": 84
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.left.cap-bottom"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.right.cap-top"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1658,
+        "length": 24,
+        "line": 75,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 920,
+        "y": 110,
+        "width": 76,
+        "height": 84
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.right.cap-top"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.right.clamp"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1692,
+        "length": 22,
+        "line": 76,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 920,
+        "y": 194,
+        "width": 76,
+        "height": 14
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.right.clamp"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.right.glow"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1724,
+        "length": 21,
+        "line": 77,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 920,
+        "y": 350,
+        "width": 76,
+        "height": 82
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.right.glow"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.right.center"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1755,
+        "length": 23,
+        "line": 78,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 920,
+        "y": 440,
+        "width": 76,
+        "height": 224
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.right.center"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.right.cap-bottom"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1788,
+        "length": 27,
+        "line": 79,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 920,
+        "y": 816,
+        "width": 76,
+        "height": 84
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.right.cap-bottom"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "region.dialogue.center"
+      },
+      "kind": "region",
+      "role": "atlas-region",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1825,
+        "length": 17,
+        "line": 80,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 102,
+        "y": 110,
+        "width": 818,
+        "height": 790
+      },
+      "authored": {
+        "policy": "record table AssetRegions",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": "dialogue.center"
+      },
+      "resolved": null,
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "SpriteForge atlas region"
+      },
+      "relationships": [
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.top.cap-left"
+      },
+      "kind": "edgeSegment",
+      "role": "top",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1167,
+        "length": 23,
+        "line": 60,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 102,
+        "y": 34,
+        "width": 84,
+        "height": 76
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 42,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.top.cap-left"
+      },
+      "resolved": {
+        "offset": 0,
+        "length": 42,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.top.cap-left"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.top.clamp-a"
+      },
+      "kind": "edgeSegment",
+      "role": "top",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1200,
+        "length": 20,
+        "line": 61,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 186,
+        "y": 34,
+        "width": 14,
+        "height": 76
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 7,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.top.clamp"
+      },
+      "resolved": {
+        "offset": 42,
+        "length": 7,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.top.clamp"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.top.glow-left"
+      },
+      "kind": "edgeSegment",
+      "role": "top",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 5736,
+        "length": 19,
+        "line": 216,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 294,
+        "y": 34,
+        "width": 82,
+        "height": 76
+      },
+      "authored": {
+        "policy": "flex",
+        "minimumLength": 30,
+        "weight": 1,
+        "sampling": "stretch",
+        "regionId": "dialogue.top.glow"
+      },
+      "resolved": {
+        "offset": 49,
+        "length": 161,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.top.glow"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": [
+        "flexWeight",
+        "minimumLength",
+        "sampling",
+        "sourceRegion"
+      ]
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.top.clamp-b"
+      },
+      "kind": "edgeSegment",
+      "role": "top",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1200,
+        "length": 20,
+        "line": 61,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 186,
+        "y": 34,
+        "width": 14,
+        "height": 76
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 7,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.top.clamp"
+      },
+      "resolved": {
+        "offset": 210,
+        "length": 7,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.top.clamp"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.top.center"
+      },
+      "kind": "edgeSegment",
+      "role": "top",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 5765,
+        "length": 21,
+        "line": 217,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 400,
+        "y": 34,
+        "width": 224,
+        "height": 76
+      },
+      "authored": {
+        "policy": "flex",
+        "minimumLength": 30,
+        "weight": 2,
+        "sampling": "stretch",
+        "regionId": "dialogue.top.center"
+      },
+      "resolved": {
+        "offset": 217,
+        "length": 291,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.top.center"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": [
+        "flexWeight",
+        "minimumLength",
+        "sampling",
+        "sourceRegion"
+      ]
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.top.clamp-c"
+      },
+      "kind": "edgeSegment",
+      "role": "top",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1200,
+        "length": 20,
+        "line": 61,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 186,
+        "y": 34,
+        "width": 14,
+        "height": 76
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 7,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.top.clamp"
+      },
+      "resolved": {
+        "offset": 508,
+        "length": 7,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.top.clamp"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.top.glow-right"
+      },
+      "kind": "edgeSegment",
+      "role": "top",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 5736,
+        "length": 19,
+        "line": 216,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 294,
+        "y": 34,
+        "width": 82,
+        "height": 76
+      },
+      "authored": {
+        "policy": "flex",
+        "minimumLength": 30,
+        "weight": 1,
+        "sampling": "stretch",
+        "regionId": "dialogue.top.glow"
+      },
+      "resolved": {
+        "offset": 515,
+        "length": 160,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.top.glow"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": [
+        "flexWeight",
+        "minimumLength",
+        "sampling",
+        "sourceRegion"
+      ]
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.top.clamp-d"
+      },
+      "kind": "edgeSegment",
+      "role": "top",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1200,
+        "length": 20,
+        "line": 61,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 186,
+        "y": 34,
+        "width": 14,
+        "height": 76
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 7,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.top.clamp"
+      },
+      "resolved": {
+        "offset": 675,
+        "length": 7,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.top.clamp"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.top.cap-right"
+      },
+      "kind": "edgeSegment",
+      "role": "top",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1290,
+        "length": 24,
+        "line": 64,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 836,
+        "y": 34,
+        "width": 84,
+        "height": 76
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 42,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.top.cap-right"
+      },
+      "resolved": {
+        "offset": 682,
+        "length": 42,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.top.cap-right"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.right.cap-top"
+      },
+      "kind": "edgeSegment",
+      "role": "right",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1658,
+        "length": 24,
+        "line": 75,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 920,
+        "y": 110,
+        "width": 76,
+        "height": 84
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 42,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.right.cap-top"
+      },
+      "resolved": {
+        "offset": 0,
+        "length": 42,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.right.cap-top"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.right.clamp-a"
+      },
+      "kind": "edgeSegment",
+      "role": "right",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1692,
+        "length": 22,
+        "line": 76,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 920,
+        "y": 194,
+        "width": 76,
+        "height": 14
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 7,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.right.clamp"
+      },
+      "resolved": {
+        "offset": 42,
+        "length": 7,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.right.clamp"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.right.glow-top"
+      },
+      "kind": "edgeSegment",
+      "role": "right",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 6694,
+        "length": 21,
+        "line": 255,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 920,
+        "y": 350,
+        "width": 76,
+        "height": 82
+      },
+      "authored": {
+        "policy": "flex",
+        "minimumLength": 10,
+        "weight": 1,
+        "sampling": "stretch",
+        "regionId": "dialogue.right.glow"
+      },
+      "resolved": {
+        "offset": 49,
+        "length": 11,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.right.glow"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": [
+        "flexWeight",
+        "minimumLength",
+        "sampling",
+        "sourceRegion"
+      ]
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.right.clamp-b"
+      },
+      "kind": "edgeSegment",
+      "role": "right",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1692,
+        "length": 22,
+        "line": 76,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 920,
+        "y": 194,
+        "width": 76,
+        "height": 14
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 7,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.right.clamp"
+      },
+      "resolved": {
+        "offset": 60,
+        "length": 7,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.right.clamp"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.right.center"
+      },
+      "kind": "edgeSegment",
+      "role": "right",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 6725,
+        "length": 23,
+        "line": 256,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 920,
+        "y": 440,
+        "width": 76,
+        "height": 224
+      },
+      "authored": {
+        "policy": "flex",
+        "minimumLength": 10,
+        "weight": 2,
+        "sampling": "stretch",
+        "regionId": "dialogue.right.center"
+      },
+      "resolved": {
+        "offset": 67,
+        "length": 11,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.right.center"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": [
+        "flexWeight",
+        "minimumLength",
+        "sampling",
+        "sourceRegion"
+      ]
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.right.clamp-c"
+      },
+      "kind": "edgeSegment",
+      "role": "right",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1692,
+        "length": 22,
+        "line": 76,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 920,
+        "y": 194,
+        "width": 76,
+        "height": 14
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 7,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.right.clamp"
+      },
+      "resolved": {
+        "offset": 78,
+        "length": 7,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.right.clamp"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.right.glow-bottom"
+      },
+      "kind": "edgeSegment",
+      "role": "right",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 6694,
+        "length": 21,
+        "line": 255,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 920,
+        "y": 350,
+        "width": 76,
+        "height": 82
+      },
+      "authored": {
+        "policy": "flex",
+        "minimumLength": 10,
+        "weight": 1,
+        "sampling": "stretch",
+        "regionId": "dialogue.right.glow"
+      },
+      "resolved": {
+        "offset": 85,
+        "length": 10,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.right.glow"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": [
+        "flexWeight",
+        "minimumLength",
+        "sampling",
+        "sourceRegion"
+      ]
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.right.clamp-d"
+      },
+      "kind": "edgeSegment",
+      "role": "right",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1692,
+        "length": 22,
+        "line": 76,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 920,
+        "y": 194,
+        "width": 76,
+        "height": 14
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 7,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.right.clamp"
+      },
+      "resolved": {
+        "offset": 95,
+        "length": 7,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.right.clamp"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.right.cap-bottom"
+      },
+      "kind": "edgeSegment",
+      "role": "right",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1788,
+        "length": 27,
+        "line": 79,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 920,
+        "y": 816,
+        "width": 76,
+        "height": 84
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 42,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.right.cap-bottom"
+      },
+      "resolved": {
+        "offset": 102,
+        "length": 42,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.right.cap-bottom"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.bottom.cap-left"
+      },
+      "kind": "edgeSegment",
+      "role": "bottom",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1324,
+        "length": 26,
+        "line": 65,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 102,
+        "y": 900,
+        "width": 84,
+        "height": 76
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 42,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.bottom.cap-left"
+      },
+      "resolved": {
+        "offset": 0,
+        "length": 42,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.bottom.cap-left"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.bottom.clamp-a"
+      },
+      "kind": "edgeSegment",
+      "role": "bottom",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1360,
+        "length": 23,
+        "line": 66,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 186,
+        "y": 900,
+        "width": 14,
+        "height": 76
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 7,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.bottom.clamp"
+      },
+      "resolved": {
+        "offset": 42,
+        "length": 7,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.bottom.clamp"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.bottom.glow-left"
+      },
+      "kind": "edgeSegment",
+      "role": "bottom",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 6057,
+        "length": 22,
+        "line": 229,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 294,
+        "y": 900,
+        "width": 82,
+        "height": 76
+      },
+      "authored": {
+        "policy": "flex",
+        "minimumLength": 30,
+        "weight": 1,
+        "sampling": "stretch",
+        "regionId": "dialogue.bottom.glow"
+      },
+      "resolved": {
+        "offset": 49,
+        "length": 161,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.bottom.glow"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": [
+        "flexWeight",
+        "minimumLength",
+        "sampling",
+        "sourceRegion"
+      ]
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.bottom.clamp-b"
+      },
+      "kind": "edgeSegment",
+      "role": "bottom",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1360,
+        "length": 23,
+        "line": 66,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 186,
+        "y": 900,
+        "width": 14,
+        "height": 76
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 7,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.bottom.clamp"
+      },
+      "resolved": {
+        "offset": 210,
+        "length": 7,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.bottom.clamp"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.bottom.center"
+      },
+      "kind": "edgeSegment",
+      "role": "bottom",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 6089,
+        "length": 24,
+        "line": 230,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 400,
+        "y": 900,
+        "width": 224,
+        "height": 76
+      },
+      "authored": {
+        "policy": "flex",
+        "minimumLength": 30,
+        "weight": 2,
+        "sampling": "stretch",
+        "regionId": "dialogue.bottom.center"
+      },
+      "resolved": {
+        "offset": 217,
+        "length": 291,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.bottom.center"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": [
+        "flexWeight",
+        "minimumLength",
+        "sampling",
+        "sourceRegion"
+      ]
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.bottom.clamp-c"
+      },
+      "kind": "edgeSegment",
+      "role": "bottom",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1360,
+        "length": 23,
+        "line": 66,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 186,
+        "y": 900,
+        "width": 14,
+        "height": 76
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 7,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.bottom.clamp"
+      },
+      "resolved": {
+        "offset": 508,
+        "length": 7,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.bottom.clamp"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.bottom.glow-right"
+      },
+      "kind": "edgeSegment",
+      "role": "bottom",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 6057,
+        "length": 22,
+        "line": 229,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 294,
+        "y": 900,
+        "width": 82,
+        "height": 76
+      },
+      "authored": {
+        "policy": "flex",
+        "minimumLength": 30,
+        "weight": 1,
+        "sampling": "stretch",
+        "regionId": "dialogue.bottom.glow"
+      },
+      "resolved": {
+        "offset": 515,
+        "length": 160,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.bottom.glow"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": [
+        "flexWeight",
+        "minimumLength",
+        "sampling",
+        "sourceRegion"
+      ]
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.bottom.clamp-d"
+      },
+      "kind": "edgeSegment",
+      "role": "bottom",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1360,
+        "length": 23,
+        "line": 66,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 186,
+        "y": 900,
+        "width": 14,
+        "height": 76
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 7,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.bottom.clamp"
+      },
+      "resolved": {
+        "offset": 675,
+        "length": 7,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.bottom.clamp"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.bottom.cap-right"
+      },
+      "kind": "edgeSegment",
+      "role": "bottom",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1459,
+        "length": 27,
+        "line": 69,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 836,
+        "y": 900,
+        "width": 84,
+        "height": 76
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 42,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.bottom.cap-right"
+      },
+      "resolved": {
+        "offset": 682,
+        "length": 42,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.bottom.cap-right"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.left.cap-top"
+      },
+      "kind": "edgeSegment",
+      "role": "left",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1496,
+        "length": 23,
+        "line": 70,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 26,
+        "y": 110,
+        "width": 76,
+        "height": 84
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 42,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.left.cap-top"
+      },
+      "resolved": {
+        "offset": 0,
+        "length": 42,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.left.cap-top"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.left.clamp-a"
+      },
+      "kind": "edgeSegment",
+      "role": "left",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1529,
+        "length": 21,
+        "line": 71,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 26,
+        "y": 194,
+        "width": 76,
+        "height": 14
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 7,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.left.clamp"
+      },
+      "resolved": {
+        "offset": 42,
+        "length": 7,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.left.clamp"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.left.glow-top"
+      },
+      "kind": "edgeSegment",
+      "role": "left",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 6376,
+        "length": 20,
+        "line": 242,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 26,
+        "y": 350,
+        "width": 76,
+        "height": 82
+      },
+      "authored": {
+        "policy": "flex",
+        "minimumLength": 10,
+        "weight": 1,
+        "sampling": "stretch",
+        "regionId": "dialogue.left.glow"
+      },
+      "resolved": {
+        "offset": 49,
+        "length": 11,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.left.glow"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": [
+        "flexWeight",
+        "minimumLength",
+        "sampling",
+        "sourceRegion"
+      ]
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.left.clamp-b"
+      },
+      "kind": "edgeSegment",
+      "role": "left",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1529,
+        "length": 21,
+        "line": 71,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 26,
+        "y": 194,
+        "width": 76,
+        "height": 14
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 7,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.left.clamp"
+      },
+      "resolved": {
+        "offset": 60,
+        "length": 7,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.left.clamp"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.left.center"
+      },
+      "kind": "edgeSegment",
+      "role": "left",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 6406,
+        "length": 22,
+        "line": 243,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 26,
+        "y": 440,
+        "width": 76,
+        "height": 224
+      },
+      "authored": {
+        "policy": "flex",
+        "minimumLength": 10,
+        "weight": 2,
+        "sampling": "stretch",
+        "regionId": "dialogue.left.center"
+      },
+      "resolved": {
+        "offset": 67,
+        "length": 11,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.left.center"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": [
+        "flexWeight",
+        "minimumLength",
+        "sampling",
+        "sourceRegion"
+      ]
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.left.clamp-c"
+      },
+      "kind": "edgeSegment",
+      "role": "left",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1529,
+        "length": 21,
+        "line": 71,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 26,
+        "y": 194,
+        "width": 76,
+        "height": 14
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 7,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.left.clamp"
+      },
+      "resolved": {
+        "offset": 78,
+        "length": 7,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.left.clamp"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.left.glow-bottom"
+      },
+      "kind": "edgeSegment",
+      "role": "left",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 6376,
+        "length": 20,
+        "line": 242,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 26,
+        "y": 350,
+        "width": 76,
+        "height": 82
+      },
+      "authored": {
+        "policy": "flex",
+        "minimumLength": 10,
+        "weight": 1,
+        "sampling": "stretch",
+        "regionId": "dialogue.left.glow"
+      },
+      "resolved": {
+        "offset": 85,
+        "length": 10,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.left.glow"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": [
+        "flexWeight",
+        "minimumLength",
+        "sampling",
+        "sourceRegion"
+      ]
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.left.clamp-d"
+      },
+      "kind": "edgeSegment",
+      "role": "left",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1529,
+        "length": 21,
+        "line": 71,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 26,
+        "y": 194,
+        "width": 76,
+        "height": 14
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 7,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.left.clamp"
+      },
+      "resolved": {
+        "offset": 95,
+        "length": 7,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.left.clamp"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.left.cap-bottom"
+      },
+      "kind": "edgeSegment",
+      "role": "left",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 1622,
+        "length": 26,
+        "line": 74,
+        "column": 9
+      },
+      "sourceRect": {
+        "x": 26,
+        "y": 816,
+        "width": 76,
+        "height": 84
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 42,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.left.cap-bottom"
+      },
+      "resolved": {
+        "offset": 102,
+        "length": 42,
+        "bounds": null,
+        "status": "surplusDistributed"
+      },
+      "runtime": {
+        "survivesLowering": true,
+        "projection": "allocator placement -\u003E Machina quad"
+      },
+      "relationships": [
+        {
+          "kind": "parent",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        },
+        {
+          "kind": "sourceOf",
+          "target": {
+            "value": "region.dialogue.left.cap-bottom"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": []
+    },
+    {
+      "conceptPath": {
+        "value": "guide.dialogue.content-safe-area"
+      },
+      "kind": "guide",
+      "role": "guide",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 2783,
+        "length": 34,
+        "line": 120,
+        "column": 9
+      },
+      "sourceRect": null,
+      "authored": {
+        "policy": "visible=True; axis=none",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": null
+      },
+      "resolved": {
+        "offset": null,
+        "length": null,
+        "bounds": {
+          "x": 102,
+          "y": 110,
+          "width": 818,
+          "height": 790
+        },
+        "status": "authoring-only"
+      },
+      "runtime": {
+        "survivesLowering": false,
+        "projection": "erased before runtime TOML"
+      },
+      "relationships": [
+        {
+          "kind": "attachedTo",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": [
+        "guideVisibility"
+      ]
+    },
+    {
+      "conceptPath": {
+        "value": "guide.dialogue.datum.text-baseline"
+      },
+      "kind": "datum",
+      "role": "horizontal",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 2827,
+        "length": 36,
+        "line": 121,
+        "column": 9
+      },
+      "sourceRect": null,
+      "authored": {
+        "policy": "visible=True; axis=horizontal",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": null
+      },
+      "resolved": {
+        "offset": null,
+        "length": null,
+        "bounds": {
+          "x": 102,
+          "y": 650,
+          "width": 818,
+          "height": 0
+        },
+        "status": "authoring-only"
+      },
+      "runtime": {
+        "survivesLowering": false,
+        "projection": "erased before runtime TOML"
+      },
+      "relationships": [
+        {
+          "kind": "attachedTo",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": [
+        "guideVisibility"
+      ]
+    },
+    {
+      "conceptPath": {
+        "value": "blockout.dialogue.content"
+      },
+      "kind": "blockout",
+      "role": "blockout",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 2873,
+        "length": 27,
+        "line": 122,
+        "column": 9
+      },
+      "sourceRect": null,
+      "authored": {
+        "policy": "visible=True; axis=none",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": null
+      },
+      "resolved": {
+        "offset": null,
+        "length": null,
+        "bounds": {
+          "x": 102,
+          "y": 110,
+          "width": 818,
+          "height": 790
+        },
+        "status": "authoring-only"
+      },
+      "runtime": {
+        "survivesLowering": false,
+        "projection": "erased before runtime TOML"
+      },
+      "relationships": [
+        {
+          "kind": "attachedTo",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": [
+        "guideVisibility"
+      ]
+    }
+  ],
+  "edgeSummaries": [
+    {
+      "edge": "top",
+      "extent": 724,
+      "minimumDemand": 202,
+      "usedLength": 724,
+      "unusedLength": 0,
+      "deficitLength": 0,
+      "status": "surplusDistributed"
+    },
+    {
+      "edge": "right",
+      "extent": 144,
+      "minimumDemand": 142,
+      "usedLength": 144,
+      "unusedLength": 0,
+      "deficitLength": 0,
+      "status": "surplusDistributed"
+    },
+    {
+      "edge": "bottom",
+      "extent": 724,
+      "minimumDemand": 202,
+      "usedLength": 724,
+      "unusedLength": 0,
+      "deficitLength": 0,
+      "status": "surplusDistributed"
+    },
+    {
+      "edge": "left",
+      "extent": 144,
+      "minimumDemand": 142,
+      "usedLength": 144,
+      "unusedLength": 0,
+      "deficitLength": 0,
+      "status": "surplusDistributed"
+    }
+  ],
+  "diagnostics": [],
+  "buildDuration": "00:00:00.0030120"
+}

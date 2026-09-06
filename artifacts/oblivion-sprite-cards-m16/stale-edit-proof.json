@@ -1,0 +1,33 @@
+{
+  "intent": {
+    "conceptPath": {
+      "value": "panel.dialogue.top.center"
+    },
+    "property": "flexWeight",
+    "before": "flex",
+    "after": "5",
+    "source": {
+      "path": "C:\\Users\\yuech\\AppData\\Local\\Temp\\m16-stale-d8dc3e56f29348e7890bca4fd31d71a3\\sunkill-dialogue-panel.obj.ts",
+      "start": 5765,
+      "length": 21,
+      "line": 217,
+      "column": 9
+    },
+    "expectedSourceSha256": "cf6df16c22744063bc16934652dce1fc7eefcc6cf55f864b3194e26369dc76d9"
+  },
+  "applied": false,
+  "compileResult": "rejected",
+  "sourceSha256Before": "cf6df16c22744063bc16934652dce1fc7eefcc6cf55f864b3194e26369dc76d9",
+  "sourceSha256After": "0cd357e89d9a3f2e826d703c553910d0a5c8a84fe1f7706e4fa9ae8330c0dbd4",
+  "recompileDuration": "00:00:00",
+  "diagnostics": [
+    {
+      "code": "OBLIVION-SPRITE-CARD-STALE-SOURCE",
+      "severity": "error",
+      "message": "The authored source changed after this card projection was built; refresh before editing.",
+      "conceptPath": {
+        "value": "panel.dialogue.top.center"
+      }
+    }
+  ]
+}

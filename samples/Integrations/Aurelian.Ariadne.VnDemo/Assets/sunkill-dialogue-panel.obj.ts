@@ -113,6 +113,23 @@ record table AssetRegions {
     ];
 }
 
+// Notebook-only semantic scaffolding. The compiler retains these concepts for
+// inspection and erases them from SpriteForge/runtime TOML.
+record table AssetConcepts {
+    path: string = [
+        "guide.dialogue.content-safe-area",
+        "guide.dialogue.datum.text-baseline",
+        "blockout.dialogue.content",
+    ];
+    kind: string = ["guide", "datum", "blockout"];
+    x: int = [102, 102, 102];
+    y: int = [110, 650, 110];
+    width: int = [818, 818, 818];
+    height: int = [790, 0, 790];
+    axis: string = ["none", "horizontal", "none"];
+    visible: boolean = [true, true, true];
+}
+
 function fixed(id: string, region: string, length: int): AssetEdgeSegment {
     return {
         id: id,
@@ -135,32 +152,56 @@ function flex(id: string, region: string, minimum: int, weight: int, sampling: s
     };
 }
 
-function horizontalEdge(prefix: string, capLeft: string, clamp: string, glow: string, center: string, capRight: string): AssetEdge {
+function horizontalEdge(
+    prefix: string,
+    capLeft: string,
+    clamp: string,
+    glow: string,
+    center: string,
+    capRight: string,
+    glowMinimum: int,
+    glowWeight: int,
+    centerMinimum: int,
+    centerWeight: int,
+    glowSampling: string,
+    centerSampling: string): AssetEdge {
     return {
         segments: [
             fixed(prefix + ".cap-left", capLeft, 42),
             fixed(prefix + ".clamp-a", clamp, 7),
-            flex(prefix + ".glow-left", glow, 30, 1, "stretch"),
+            flex(prefix + ".glow-left", glow, glowMinimum, glowWeight, glowSampling),
             fixed(prefix + ".clamp-b", clamp, 7),
-            flex(prefix + ".center", center, 30, 2, "stretch"),
+            flex(prefix + ".center", center, centerMinimum, centerWeight, centerSampling),
             fixed(prefix + ".clamp-c", clamp, 7),
-            flex(prefix + ".glow-right", glow, 30, 1, "stretch"),
+            flex(prefix + ".glow-right", glow, glowMinimum, glowWeight, glowSampling),
             fixed(prefix + ".clamp-d", clamp, 7),
             fixed(prefix + ".cap-right", capRight, 42),
         ],
     };
 }
 
-function verticalEdge(prefix: string, capTop: string, clamp: string, glow: string, center: string, capBottom: string): AssetEdge {
+function verticalEdge(
+    prefix: string,
+    capTop: string,
+    clamp: string,
+    glow: string,
+    center: string,
+    capBottom: string,
+    glowMinimum: int,
+    glowWeight: int,
+    centerMinimum: int,
+    centerWeight: int,
+    glowSampling: string,
+    centerSampling: string): AssetEdge {
     return {
         segments: [
             fixed(prefix + ".cap-top", capTop, 42),
             fixed(prefix + ".clamp-a", clamp, 7),
-            flex(prefix + ".glow-top", glow, 10, 1, "stretch"),
+            flex(prefix + ".glow-top", glow, glowMinimum, glowWeight, glowSampling),
             fixed(prefix + ".clamp-b", clamp, 7),
-            flex(prefix + ".center", center, 10, 2, "stretch"),
+            flex(prefix + ".center", center, centerMinimum, centerWeight, centerSampling),
             fixed(prefix + ".clamp-c", clamp, 7),
-            flex(prefix + ".glow-bottom", glow, 10, 1, "stretch"),
+            flex(prefix + ".glow-bottom", glow, glowMinimum, glowWeight, glowSampling),
             fixed(prefix + ".clamp-d", clamp, 7),
             fixed(prefix + ".cap-bottom", capBottom, 42),
         ],
@@ -174,28 +215,52 @@ function buildSunkillPanel(): AssetObject {
         "dialogue.top.clamp",
         "dialogue.top.glow",
         "dialogue.top.center",
-        "dialogue.top.cap-right");
+        "dialogue.top.cap-right",
+        30,
+        1,
+        44,
+        3,
+        "tile",
+        "stretch");
     const bottom: AssetEdge = horizontalEdge(
         "dialogue.bottom",
         "dialogue.bottom.cap-left",
         "dialogue.bottom.clamp",
         "dialogue.bottom.glow",
         "dialogue.bottom.center",
-        "dialogue.bottom.cap-right");
+        "dialogue.bottom.cap-right",
+        30,
+        1,
+        30,
+        2,
+        "stretch",
+        "stretch");
     const left: AssetEdge = verticalEdge(
         "dialogue.left",
         "dialogue.left.cap-top",
         "dialogue.left.clamp",
         "dialogue.left.glow",
         "dialogue.left.center",
-        "dialogue.left.cap-bottom");
+        "dialogue.left.cap-bottom",
+        10,
+        1,
+        10,
+        2,
+        "stretch",
+        "stretch");
     const right: AssetEdge = verticalEdge(
         "dialogue.right",
         "dialogue.right.cap-top",
         "dialogue.right.clamp",
         "dialogue.right.glow",
         "dialogue.right.center",
-        "dialogue.right.cap-bottom");
+        "dialogue.right.cap-bottom",
+        10,
+        1,
+        10,
+        2,
+        "stretch",
+        "stretch");
     return {
         schemaVersion: 1,
         id: "sunkill.ui",

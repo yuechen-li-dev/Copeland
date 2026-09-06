@@ -215,7 +215,7 @@
             "allocationKind": "flex",
             "minimumLength": 30,
             "weight": 1,
-            "sampling": "stretch"
+            "sampling": "tile"
           },
           {
             "id": "dialogue.top.clamp-b",
@@ -229,8 +229,8 @@
             "id": "dialogue.top.center",
             "regionId": "dialogue.top.center",
             "allocationKind": "flex",
-            "minimumLength": 30,
-            "weight": 2,
+            "minimumLength": 44,
+            "weight": 3,
             "sampling": "stretch"
           },
           {
@@ -247,7 +247,7 @@
             "allocationKind": "flex",
             "minimumLength": 30,
             "weight": 1,
-            "sampling": "stretch"
+            "sampling": "tile"
           },
           {
             "id": "dialogue.top.clamp-d",
@@ -266,7 +266,7 @@
             "sampling": "crop"
           }
         ],
-        "minimumLength": 202
+        "minimumLength": 216
       },
       "right": {
         "segments": [
@@ -508,8 +508,72 @@
         "right": 34,
         "bottom": 28
       },
-      "minimumWidth": 278,
+      "minimumWidth": 292,
       "minimumHeight": 218
+    }
+  ],
+  "authoringConcepts": [
+    {
+      "path": "guide.dialogue.content-safe-area",
+      "kind": "guide",
+      "x": 102,
+      "y": 110,
+      "width": 818,
+      "height": 790,
+      "axis": "none",
+      "visible": true
+    },
+    {
+      "path": "guide.dialogue.datum.text-baseline",
+      "kind": "datum",
+      "x": 102,
+      "y": 650,
+      "width": 818,
+      "height": 0,
+      "axis": "horizontal",
+      "visible": true
+    },
+    {
+      "path": "blockout.dialogue.content",
+      "kind": "blockout",
+      "x": 102,
+      "y": 110,
+      "width": 818,
+      "height": 790,
+      "axis": "none",
+      "visible": true
+    }
+  ],
+  "authoredConcepts": [
+    {
+      "path": "guide.dialogue.content-safe-area",
+      "kind": "guide",
+      "x": 102,
+      "y": 110,
+      "width": 818,
+      "height": 790,
+      "axis": "none",
+      "visible": true
+    },
+    {
+      "path": "guide.dialogue.datum.text-baseline",
+      "kind": "datum",
+      "x": 102,
+      "y": 650,
+      "width": 818,
+      "height": 0,
+      "axis": "horizontal",
+      "visible": true
+    },
+    {
+      "path": "blockout.dialogue.content",
+      "kind": "blockout",
+      "x": 102,
+      "y": 110,
+      "width": 818,
+      "height": 790,
+      "axis": "none",
+      "visible": true
     }
   ]
 }

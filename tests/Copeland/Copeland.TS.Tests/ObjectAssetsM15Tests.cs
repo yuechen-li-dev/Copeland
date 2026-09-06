@@ -73,7 +73,9 @@ public sealed class ObjectAssetsM15Tests
         ObjectAssetPanel panel = Assert.Single(document.Panels);
         Assert.Equal("sunkill.ui.atlas", document.Texture.Id);
         Assert.Equal(9, panel.Top.Segments.Count);
-        Assert.Equal(2, panel.Top.Segments[4].Weight);
+        Assert.Equal(3, panel.Top.Segments[4].Weight);
+        Assert.Equal(44, panel.Top.Segments[4].MinimumLength);
+        Assert.Equal(ObjectAssetSampling.Tile, panel.Top.Segments[2].Sampling);
         Assert.True(panel.MinimumWidth > 0);
         Assert.All(panel.Top.Segments, segment => Assert.Contains(segment.RegionId, document.Regions.Select(region => region.Id)));
 

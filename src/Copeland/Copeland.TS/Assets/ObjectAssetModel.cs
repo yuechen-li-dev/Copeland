@@ -16,6 +16,27 @@ public sealed record ObjectAssetRegion(
     int Width,
     int Height);
 
+public enum ObjectAssetAuthoringConceptKind
+{
+    Guide,
+    Datum,
+    Blockout,
+}
+
+/// <summary>
+/// Semantic authoring geometry. These concepts remain available to inspection
+/// projections and intentionally erase from SpriteForge runtime TOML.
+/// </summary>
+public sealed record ObjectAssetAuthoringConcept(
+    string Path,
+    ObjectAssetAuthoringConceptKind Kind,
+    int X,
+    int Y,
+    int Width,
+    int Height,
+    string Axis,
+    bool Visible);
+
 public enum ObjectAssetSampling
 {
     Stretch,
@@ -71,7 +92,11 @@ public sealed record ObjectAssetDocument(
     string Id,
     ObjectAssetTexture Texture,
     IReadOnlyList<ObjectAssetRegion> Regions,
-    IReadOnlyList<ObjectAssetPanel> Panels);
+    IReadOnlyList<ObjectAssetPanel> Panels,
+    IReadOnlyList<ObjectAssetAuthoringConcept>? AuthoringConcepts = null)
+{
+    public IReadOnlyList<ObjectAssetAuthoringConcept> AuthoredConcepts => AuthoringConcepts ?? [];
+}
 
 public sealed record ObjectAssetCompilationResult(
     ObjectAssetDocument? Document,

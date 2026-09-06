@@ -127,6 +127,7 @@ public static class ObjectAssetCompiler
             document.Id,
             regionCount = document.Regions.Count,
             panelCount = document.Panels.Count,
+            authoringConceptCount = document.AuthoredConcepts.Count,
             minimumSizes = document.Panels.ToDictionary(
                 panel => panel.Id,
                 panel => new { width = panel.MinimumWidth, height = panel.MinimumHeight },
@@ -168,13 +169,80 @@ public static class ObjectAssetCompiler
             sourcePath,
             diagnostics,
             "panels");
+        IReadOnlyList<ObjectAssetAuthoringConcept> authoringConcepts = DecodeAuthoringConcepts(
+            compilation,
+            source,
+            sourcePath,
+            diagnostics);
         IReadOnlyDictionary<string, ObjectAssetRegion> regionsById = regions
             .GroupBy(region => region.Id, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
         panels = panels.Select(panel => WithMinimumSize(panel, regionsById)).ToArray();
         return texture is null
             ? null
-            : new ObjectAssetDocument(schemaVersion, id, texture, regions, panels);
+            : new ObjectAssetDocument(schemaVersion, id, texture, regions, panels, authoringConcepts);
+    }
+
+    private static IReadOnlyList<ObjectAssetAuthoringConcept> DecodeAuthoringConcepts(
+        BoundCompilation compilation,
+        string source,
+        string sourcePath,
+        List<Diagnostic> diagnostics)
+    {
+        BoundTableDefinition[] tables = compilation.Program.Tables
+            .Where(table => table.TableType.Name == "AssetConcepts")
+            .ToArray();
+        if (tables.Length == 0)
+        {
+            return [];
+        }
+
+        if (tables.Length != 1)
+        {
+            diagnostics.Add(AtRoot(source, sourcePath, "COPE-ASSET-0018", "At most one columnar 'record table AssetConcepts' is allowed."));
+            return [];
+        }
+
+        BoundTableDefinition table = tables[0];
+        IReadOnlyDictionary<string, BoundTableColumnDefinition> columns = table.Columns
+            .ToDictionary(column => column.Column.Name, StringComparer.Ordinal);
+        string[] requiredColumns = ["path", "kind", "x", "y", "width", "height", "axis", "visible"];
+        foreach (string columnName in requiredColumns)
+        {
+            if (!columns.ContainsKey(columnName))
+            {
+                diagnostics.Add(AtRoot(source, sourcePath, "COPE-ASSET-0018", $"AssetConcepts is missing required column '{columnName}'."));
+            }
+        }
+
+        if (requiredColumns.Any(column => !columns.ContainsKey(column)))
+        {
+            return [];
+        }
+
+        var result = new List<ObjectAssetAuthoringConcept>(table.RowCount);
+        for (int row = 0; row < table.RowCount; row++)
+        {
+            string kindText = TableString(columns["kind"].Cells[row], "kind", source, sourcePath, diagnostics);
+            ObjectAssetAuthoringConceptKind kind = kindText switch
+            {
+                "guide" => ObjectAssetAuthoringConceptKind.Guide,
+                "datum" => ObjectAssetAuthoringConceptKind.Datum,
+                "blockout" => ObjectAssetAuthoringConceptKind.Blockout,
+                _ => InvalidAuthoringConceptKind(kindText, source, sourcePath, diagnostics),
+            };
+            result.Add(new ObjectAssetAuthoringConcept(
+                TableString(columns["path"].Cells[row], "path", source, sourcePath, diagnostics),
+                kind,
+                TableInt(columns["x"].Cells[row], "x", source, sourcePath, diagnostics),
+                TableInt(columns["y"].Cells[row], "y", source, sourcePath, diagnostics),
+                TableInt(columns["width"].Cells[row], "width", source, sourcePath, diagnostics),
+                TableInt(columns["height"].Cells[row], "height", source, sourcePath, diagnostics),
+                TableString(columns["axis"].Cells[row], "axis", source, sourcePath, diagnostics),
+                TableBool(columns["visible"].Cells[row], "visible", source, sourcePath, diagnostics)));
+        }
+
+        return result;
     }
 
     private static ObjectAssetTexture? DecodeTexture(
@@ -264,6 +332,18 @@ public static class ObjectAssetCompiler
         return value is BoundTableLiteralConstant { Value: int number }
             ? number
             : InvalidPrimitive<int>(column, "int table cell", source, sourcePath, diagnostics);
+    }
+
+    private static bool TableBool(
+        BoundTableConstant value,
+        string column,
+        string source,
+        string sourcePath,
+        List<Diagnostic> diagnostics)
+    {
+        return value is BoundTableLiteralConstant { Value: bool boolean }
+            ? boolean
+            : InvalidPrimitive<bool>(column, "boolean table cell", source, sourcePath, diagnostics);
     }
 
     private static ObjectAssetPanel? DecodePanel(
@@ -426,6 +506,28 @@ public static class ObjectAssetCompiler
 
         ValidateId(document.Id, "asset", source, sourcePath, diagnostics);
         ValidateId(document.Texture.Id, "texture", source, sourcePath, diagnostics);
+        var conceptPaths = new HashSet<string>(StringComparer.Ordinal);
+        foreach (ObjectAssetAuthoringConcept concept in document.AuthoredConcepts)
+        {
+            if (!IsConceptPath(concept.Path))
+            {
+                diagnostics.Add(AtValue(source, sourcePath, concept.Path, "COPE-ASSET-0114", $"Authoring concept path '{concept.Path}' is invalid."));
+            }
+            else if (!conceptPaths.Add(concept.Path))
+            {
+                diagnostics.Add(AtValue(source, sourcePath, concept.Path, "COPE-ASSET-0115", $"Duplicate authoring concept path '{concept.Path}'."));
+            }
+
+            if (concept.X < 0 || concept.Y < 0 || concept.Width < 0 || concept.Height < 0)
+            {
+                diagnostics.Add(AtValue(source, sourcePath, concept.Path, "COPE-ASSET-0116", $"Authoring concept '{concept.Path}' has invalid geometry."));
+            }
+
+            if (concept.Axis is not ("none" or "horizontal" or "vertical"))
+            {
+                diagnostics.Add(AtValue(source, sourcePath, concept.Axis, "COPE-ASSET-0117", $"Authoring concept '{concept.Path}' has invalid axis '{concept.Axis}'."));
+            }
+        }
         if (document.Texture.Width <= 0 || document.Texture.Height <= 0)
         {
             diagnostics.Add(AtValue(source, sourcePath, document.Texture.Id, "COPE-ASSET-0101", "Texture dimensions must be positive."));
@@ -799,6 +901,26 @@ public static class ObjectAssetCompiler
         return !string.IsNullOrWhiteSpace(value)
             && !Path.IsPathRooted(value)
             && !value.Split('/', '\\').Contains("..", StringComparer.Ordinal);
+    }
+
+    private static bool IsConceptPath(string value)
+    {
+        string[] segments = value.Split('.');
+        return value.Length is > 0 and <= 240
+            && segments.Length <= 24
+            && segments.All(segment => segment.Length is > 0 and <= 64
+                && char.IsAsciiLetter(segment[0])
+                && segment.All(character => char.IsAsciiLetterOrDigit(character) || character is '-' or '_'));
+    }
+
+    private static ObjectAssetAuthoringConceptKind InvalidAuthoringConceptKind(
+        string value,
+        string source,
+        string sourcePath,
+        List<Diagnostic> diagnostics)
+    {
+        diagnostics.Add(AtValue(source, sourcePath, value, "COPE-ASSET-0019", $"Invalid authoring concept kind '{value}'."));
+        return ObjectAssetAuthoringConceptKind.Guide;
     }
 
     private static Diagnostic AtRoot(string source, string sourcePath, string id, string message)

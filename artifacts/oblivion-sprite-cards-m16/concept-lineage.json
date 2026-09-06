@@ -1,0 +1,72 @@
+[
+  {
+    "concept": "stable semantic identity",
+    "origin": "Aetheris Concept Struct/Path \u002B M15 IDs",
+    "problem": "semantic graphical authoring/inspection",
+    "decision": "retain",
+    "owner": "GraphicalConceptPath"
+  },
+  {
+    "concept": "guides and datums",
+    "origin": "MachinaCanvas guide sidecars",
+    "problem": "semantic graphical authoring/inspection",
+    "decision": "adapt",
+    "owner": "ObjectAssetAuthoringConcept"
+  },
+  {
+    "concept": "blockouts",
+    "origin": "MachinaCanvas blockout sidecars",
+    "problem": "semantic graphical authoring/inspection",
+    "decision": "adapt",
+    "owner": "authoring-only spatial concept"
+  },
+  {
+    "concept": "sprite frames and regions",
+    "origin": "SpriteForge \u002B MachinaCanvas",
+    "problem": "semantic graphical authoring/inspection",
+    "decision": "retain region; defer animation",
+    "owner": "ObjectAssetRegion / RegionCard"
+  },
+  {
+    "concept": "sidecar attachment",
+    "origin": "MachinaCanvas TOML",
+    "problem": "semantic graphical authoring/inspection",
+    "decision": "supersede",
+    "owner": "compiler-owned semantic IR"
+  },
+  {
+    "concept": "resolved overlay",
+    "origin": "MachinaCanvas overlays \u002B M15 strip",
+    "problem": "semantic graphical authoring/inspection",
+    "decision": "merge",
+    "owner": "SpriteCardResolvedState \u002B SVG overlay"
+  },
+  {
+    "concept": "selectors",
+    "origin": "Aetheris/Profile",
+    "problem": "semantic graphical authoring/inspection",
+    "decision": "bound",
+    "owner": "exact path, kind filter, diagnostics-only"
+  },
+  {
+    "concept": "authoring erasure",
+    "origin": "Aetheris/Firmament",
+    "problem": "semantic graphical authoring/inspection",
+    "decision": "retain law",
+    "owner": "guides/datums/blockouts omit runtime TOML"
+  },
+  {
+    "concept": "allocation",
+    "origin": "M15",
+    "problem": "semantic graphical authoring/inspection",
+    "decision": "retain unchanged",
+    "owner": "SpanAllocator"
+  },
+  {
+    "concept": "freeform workflow graph",
+    "origin": "MachinaCanvas",
+    "problem": "semantic graphical authoring/inspection",
+    "decision": "reject",
+    "owner": "ordered strip/grid/detail only"
+  }
+]

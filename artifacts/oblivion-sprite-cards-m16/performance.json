@@ -1,0 +1,12 @@
+{
+  "cardProjectionMilliseconds": 3.3388,
+  "recompileMilliseconds": [
+    5.022,
+    4.9217,
+    5.2032,
+    5.1425,
+    4.6605
+  ],
+  "allocationVisualizationMilliseconds": 0.0955,
+  "previewRefreshMilliseconds": 3.4343
+}

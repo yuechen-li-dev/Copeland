@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="818" viewBox="0 0 1500 818">
+<rect width="100%" height="100%" fill="#07111f"/>
+<text x="24" y="32" font-family="Segoe UI, sans-serif" font-size="22" fill="#f8fafc" font-weight="600">sunkill.ui · dialogue · 1200×220</text>
+<text x="24" y="58" font-family="Segoe UI, sans-serif" font-size="13" fill="#94a3b8">source C:\Users\yuech\source\repos\Copeland\samples\Integrations\Aurelian.Ariadne.VnDemo\Assets\sunkill-dialogue-panel.obj.ts · v12 · cf6df16c2274</text>
+<rect x="24" y="72" width="1452" height="92" rx="5" fill="#0b1526" stroke="#334155"/><text x="32" y="89" font-family="Segoe UI, sans-serif" font-size="10" fill="#94a3b8">AUTHORING OVERLAY · guides/datums/blockouts erase before runtime</text>
+<rect x="175.039" y="100.875" width="1147.117" height="49.375" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="5 3"/><text x="32" y="108" font-family="Segoe UI, sans-serif" font-size="9" fill="#22d3ee">guide.dialogue.content-safe-area</text>
+<line x1="175.039" y1="134.625" x2="1322.156" y2="134.625" stroke="#fbbf24" stroke-width="2"/><text x="32" y="122" font-family="Segoe UI, sans-serif" font-size="9" fill="#fbbf24">guide.dialogue.datum.text-baseline</text>
+<rect x="175.039" y="100.875" width="1147.117" height="49.375" fill="none" stroke="#c084fc" stroke-width="1.5" stroke-dasharray="5 3"/><text x="32" y="136" font-family="Segoe UI, sans-serif" font-size="9" fill="#c084fc">blockout.dialogue.content</text>
+<rect x="24" y="182" width="1452" height="42" rx="5" fill="#111c2d" stroke="#334155"/><rect x="24" y="182" width="54.256" height="42" fill="#475569" stroke="#0f172a" stroke-width="1"/><rect x="78.256" y="182" width="9.043" height="42" fill="#475569" stroke="#0f172a" stroke-width="1"/><rect x="87.299" y="182" width="273.865" height="42" fill="#0369a1" stroke="#0f172a" stroke-width="1"/><text x="91.299" y="199" font-family="Segoe UI, sans-serif" font-size="10" fill="#f8fafc">glow-left</text>
+<text x="91.299" y="215" font-family="Segoe UI, sans-serif" font-size="10" fill="#bae6fd">212</text>
+<rect x="361.164" y="182" width="9.043" height="42" fill="#475569" stroke="#0f172a" stroke-width="1"/><rect x="370.206" y="182" width="760.879" height="42" fill="#0369a1" stroke="#0f172a" stroke-width="1"/><text x="374.206" y="199" font-family="Segoe UI, sans-serif" font-size="10" fill="#f8fafc">center</text>
+<text x="374.206" y="215" font-family="Segoe UI, sans-serif" font-size="10" fill="#bae6fd">589</text>
+<rect x="1131.085" y="182" width="9.043" height="42" fill="#475569" stroke="#0f172a" stroke-width="1"/><rect x="1140.128" y="182" width="272.573" height="42" fill="#0369a1" stroke="#0f172a" stroke-width="1"/><text x="1144.128" y="199" font-family="Segoe UI, sans-serif" font-size="10" fill="#f8fafc">glow-right</text>
+<text x="1144.128" y="215" font-family="Segoe UI, sans-serif" font-size="10" fill="#bae6fd">211</text>
+<rect x="1412.701" y="182" width="9.043" height="42" fill="#475569" stroke="#0f172a" stroke-width="1"/><rect x="1421.744" y="182" width="54.256" height="42" fill="#475569" stroke="#0f172a" stroke-width="1"/><text x="24" y="243" font-family="Segoe UI, sans-serif" font-size="12" fill="#94a3b8">top: extent 1124 · minimum 216 · used 1124 · unused 0 · deficit 0 · surplusDistributed</text>
+<g opacity="1"><rect x="24" y="264" width="210" height="250" rx="8" fill="#0f1b2d" stroke="#334155" stroke-width="1"/><text x="36" y="288" font-family="Segoe UI, sans-serif" font-size="11" fill="#38bdf8" font-weight="600">EDGESEGMENT</text>
+<text x="36" y="312" font-family="Segoe UI, sans-serif" font-size="13" fill="#f8fafc" font-weight="600">panel.dialogue.top.cap-left</text>
+<svg x="36" y="331" width="56" height="42" viewBox="102 34 84 76" preserveAspectRatio="xMidYMid slice"><image href="file:///C:/Users/yuech/source/repos/Copeland/samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/sunkill-ui-atlas.png" width="1536" height="1024"/></svg><rect x="36" y="331" width="56" height="42" fill="none" stroke="#60a5fa"/><text x="36" y="383" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">role top</text>
+<text x="36" y="400" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">fixed</text>
+<text x="36" y="417" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">min 42 · weight 0</text>
+<text x="36" y="434" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">sampling crop</text>
+<text x="36" y="451" font-family="Segoe UI, sans-serif" font-size="11" fill="#a7f3d0">resolved 0+42</text>
+<text x="36" y="482" font-family="Segoe UI, sans-serif" font-size="10" fill="#94a3b8">source L60:9</text>
+<text x="36" y="500" font-family="Segoe UI, sans-serif" font-size="10" fill="#a7f3d0">runtime: survives</text>
+</g>
+<g opacity="1"><rect x="252" y="264" width="210" height="250" rx="8" fill="#0f1b2d" stroke="#334155" stroke-width="1"/><text x="264" y="288" font-family="Segoe UI, sans-serif" font-size="11" fill="#38bdf8" font-weight="600">EDGESEGMENT</text>
+<text x="264" y="312" font-family="Segoe UI, sans-serif" font-size="13" fill="#f8fafc" font-weight="600">panel.dialogue.top.clamp-a</text>
+<svg x="264" y="331" width="56" height="42" viewBox="186 34 14 76" preserveAspectRatio="xMidYMid slice"><image href="file:///C:/Users/yuech/source/repos/Copeland/samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/sunkill-ui-atlas.png" width="1536" height="1024"/></svg><rect x="264" y="331" width="56" height="42" fill="none" stroke="#60a5fa"/><text x="264" y="383" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">role top</text>
+<text x="264" y="400" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">fixed</text>
+<text x="264" y="417" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">min 7 · weight 0</text>
+<text x="264" y="434" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">sampling crop</text>
+<text x="264" y="451" font-family="Segoe UI, sans-serif" font-size="11" fill="#a7f3d0">resolved 42+7</text>
+<text x="264" y="482" font-family="Segoe UI, sans-serif" font-size="10" fill="#94a3b8">source L61:9</text>
+<text x="264" y="500" font-family="Segoe UI, sans-serif" font-size="10" fill="#a7f3d0">runtime: survives</text>
+</g>
+<g opacity="1"><rect x="480" y="264" width="210" height="250" rx="8" fill="#0f1b2d" stroke="#334155" stroke-width="1"/><text x="492" y="288" font-family="Segoe UI, sans-serif" font-size="11" fill="#38bdf8" font-weight="600">EDGESEGMENT</text>
+<text x="492" y="312" font-family="Segoe UI, sans-serif" font-size="13" fill="#f8fafc" font-weight="600">panel.dialogue.top.glow-left</text>
+<svg x="492" y="331" width="56" height="42" viewBox="294 34 82 76" preserveAspectRatio="xMidYMid slice"><image href="file:///C:/Users/yuech/source/repos/Copeland/samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/sunkill-ui-atlas.png" width="1536" height="1024"/></svg><rect x="492" y="331" width="56" height="42" fill="none" stroke="#60a5fa"/><text x="492" y="383" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">role top</text>
+<text x="492" y="400" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">flex</text>
+<text x="492" y="417" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">min 30 · weight 1</text>
+<text x="492" y="434" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">sampling tile</text>
+<text x="492" y="451" font-family="Segoe UI, sans-serif" font-size="11" fill="#a7f3d0">resolved 49+212</text>
+<text x="492" y="482" font-family="Segoe UI, sans-serif" font-size="10" fill="#94a3b8">source L216:9</text>
+<text x="492" y="500" font-family="Segoe UI, sans-serif" font-size="10" fill="#a7f3d0">runtime: survives</text>
+</g>
+<g opacity="1"><rect x="708" y="264" width="210" height="250" rx="8" fill="#0f1b2d" stroke="#334155" stroke-width="1"/><text x="720" y="288" font-family="Segoe UI, sans-serif" font-size="11" fill="#38bdf8" font-weight="600">EDGESEGMENT</text>
+<text x="720" y="312" font-family="Segoe UI, sans-serif" font-size="13" fill="#f8fafc" font-weight="600">panel.dialogue.top.clamp-b</text>
+<svg x="720" y="331" width="56" height="42" viewBox="186 34 14 76" preserveAspectRatio="xMidYMid slice"><image href="file:///C:/Users/yuech/source/repos/Copeland/samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/sunkill-ui-atlas.png" width="1536" height="1024"/></svg><rect x="720" y="331" width="56" height="42" fill="none" stroke="#60a5fa"/><text x="720" y="383" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">role top</text>
+<text x="720" y="400" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">fixed</text>
+<text x="720" y="417" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">min 7 · weight 0</text>
+<text x="720" y="434" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">sampling crop</text>
+<text x="720" y="451" font-family="Segoe UI, sans-serif" font-size="11" fill="#a7f3d0">resolved 261+7</text>
+<text x="720" y="482" font-family="Segoe UI, sans-serif" font-size="10" fill="#94a3b8">source L61:9</text>
+<text x="720" y="500" font-family="Segoe UI, sans-serif" font-size="10" fill="#a7f3d0">runtime: survives</text>
+</g>
+<g opacity="1"><rect x="936" y="264" width="210" height="250" rx="8" fill="#0f1b2d" stroke="#334155" stroke-width="1"/><text x="948" y="288" font-family="Segoe UI, sans-serif" font-size="11" fill="#38bdf8" font-weight="600">EDGESEGMENT</text>
+<text x="948" y="312" font-family="Segoe UI, sans-serif" font-size="13" fill="#f8fafc" font-weight="600">panel.dialogue.top.center</text>
+<svg x="948" y="331" width="56" height="42" viewBox="400 34 224 76" preserveAspectRatio="xMidYMid slice"><image href="file:///C:/Users/yuech/source/repos/Copeland/samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/sunkill-ui-atlas.png" width="1536" height="1024"/></svg><rect x="948" y="331" width="56" height="42" fill="none" stroke="#60a5fa"/><text x="948" y="383" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">role top</text>
+<text x="948" y="400" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">flex</text>
+<text x="948" y="417" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">min 44 · weight 3</text>
+<text x="948" y="434" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">sampling stretch</text>
+<text x="948" y="451" font-family="Segoe UI, sans-serif" font-size="11" fill="#a7f3d0">resolved 268+589</text>
+<text x="948" y="482" font-family="Segoe UI, sans-serif" font-size="10" fill="#94a3b8">source L217:9</text>
+<text x="948" y="500" font-family="Segoe UI, sans-serif" font-size="10" fill="#a7f3d0">runtime: survives</text>
+</g>
+<g opacity="1"><rect x="1164" y="264" width="210" height="250" rx="8" fill="#0f1b2d" stroke="#334155" stroke-width="1"/><text x="1176" y="288" font-family="Segoe UI, sans-serif" font-size="11" fill="#38bdf8" font-weight="600">EDGESEGMENT</text>
+<text x="1176" y="312" font-family="Segoe UI, sans-serif" font-size="13" fill="#f8fafc" font-weight="600">panel.dialogue.top.clamp-c</text>
+<svg x="1176" y="331" width="56" height="42" viewBox="186 34 14 76" preserveAspectRatio="xMidYMid slice"><image href="file:///C:/Users/yuech/source/repos/Copeland/samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/sunkill-ui-atlas.png" width="1536" height="1024"/></svg><rect x="1176" y="331" width="56" height="42" fill="none" stroke="#60a5fa"/><text x="1176" y="383" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">role top</text>
+<text x="1176" y="400" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">fixed</text>
+<text x="1176" y="417" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">min 7 · weight 0</text>
+<text x="1176" y="434" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">sampling crop</text>
+<text x="1176" y="451" font-family="Segoe UI, sans-serif" font-size="11" fill="#a7f3d0">resolved 857+7</text>
+<text x="1176" y="482" font-family="Segoe UI, sans-serif" font-size="10" fill="#94a3b8">source L61:9</text>
+<text x="1176" y="500" font-family="Segoe UI, sans-serif" font-size="10" fill="#a7f3d0">runtime: survives</text>
+</g>
+<g opacity="1"><rect x="24" y="532" width="210" height="250" rx="8" fill="#0f1b2d" stroke="#334155" stroke-width="1"/><text x="36" y="556" font-family="Segoe UI, sans-serif" font-size="11" fill="#38bdf8" font-weight="600">EDGESEGMENT</text>
+<text x="36" y="580" font-family="Segoe UI, sans-serif" font-size="13" fill="#f8fafc" font-weight="600">panel.dialogue.top.glow-right</text>
+<svg x="36" y="599" width="56" height="42" viewBox="294 34 82 76" preserveAspectRatio="xMidYMid slice"><image href="file:///C:/Users/yuech/source/repos/Copeland/samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/sunkill-ui-atlas.png" width="1536" height="1024"/></svg><rect x="36" y="599" width="56" height="42" fill="none" stroke="#60a5fa"/><text x="36" y="651" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">role top</text>
+<text x="36" y="668" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">flex</text>
+<text x="36" y="685" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">min 30 · weight 1</text>
+<text x="36" y="702" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">sampling tile</text>
+<text x="36" y="719" font-family="Segoe UI, sans-serif" font-size="11" fill="#a7f3d0">resolved 864+211</text>
+<text x="36" y="750" font-family="Segoe UI, sans-serif" font-size="10" fill="#94a3b8">source L216:9</text>
+<text x="36" y="768" font-family="Segoe UI, sans-serif" font-size="10" fill="#a7f3d0">runtime: survives</text>
+</g>
+<g opacity="1"><rect x="252" y="532" width="210" height="250" rx="8" fill="#0f1b2d" stroke="#334155" stroke-width="1"/><text x="264" y="556" font-family="Segoe UI, sans-serif" font-size="11" fill="#38bdf8" font-weight="600">EDGESEGMENT</text>
+<text x="264" y="580" font-family="Segoe UI, sans-serif" font-size="13" fill="#f8fafc" font-weight="600">panel.dialogue.top.clamp-d</text>
+<svg x="264" y="599" width="56" height="42" viewBox="186 34 14 76" preserveAspectRatio="xMidYMid slice"><image href="file:///C:/Users/yuech/source/repos/Copeland/samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/sunkill-ui-atlas.png" width="1536" height="1024"/></svg><rect x="264" y="599" width="56" height="42" fill="none" stroke="#60a5fa"/><text x="264" y="651" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">role top</text>
+<text x="264" y="668" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">fixed</text>
+<text x="264" y="685" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">min 7 · weight 0</text>
+<text x="264" y="702" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">sampling crop</text>
+<text x="264" y="719" font-family="Segoe UI, sans-serif" font-size="11" fill="#a7f3d0">resolved 1075+7</text>
+<text x="264" y="750" font-family="Segoe UI, sans-serif" font-size="10" fill="#94a3b8">source L61:9</text>
+<text x="264" y="768" font-family="Segoe UI, sans-serif" font-size="10" fill="#a7f3d0">runtime: survives</text>
+</g>
+<g opacity="1"><rect x="480" y="532" width="210" height="250" rx="8" fill="#0f1b2d" stroke="#334155" stroke-width="1"/><text x="492" y="556" font-family="Segoe UI, sans-serif" font-size="11" fill="#38bdf8" font-weight="600">EDGESEGMENT</text>
+<text x="492" y="580" font-family="Segoe UI, sans-serif" font-size="13" fill="#f8fafc" font-weight="600">panel.dialogue.top.cap-right</text>
+<svg x="492" y="599" width="56" height="42" viewBox="836 34 84 76" preserveAspectRatio="xMidYMid slice"><image href="file:///C:/Users/yuech/source/repos/Copeland/samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/sunkill-ui-atlas.png" width="1536" height="1024"/></svg><rect x="492" y="599" width="56" height="42" fill="none" stroke="#60a5fa"/><text x="492" y="651" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">role top</text>
+<text x="492" y="668" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">fixed</text>
+<text x="492" y="685" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">min 42 · weight 0</text>
+<text x="492" y="702" font-family="Segoe UI, sans-serif" font-size="11" fill="#cbd5e1">sampling crop</text>
+<text x="492" y="719" font-family="Segoe UI, sans-serif" font-size="11" fill="#a7f3d0">resolved 1082+42</text>
+<text x="492" y="750" font-family="Segoe UI, sans-serif" font-size="10" fill="#94a3b8">source L64:9</text>
+<text x="492" y="768" font-family="Segoe UI, sans-serif" font-size="10" fill="#a7f3d0">runtime: survives</text>
+</g>
+</svg>

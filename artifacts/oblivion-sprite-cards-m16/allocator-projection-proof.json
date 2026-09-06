@@ -1,0 +1,118 @@
+{
+  "owner": "Copeland.SpanAllocation.SpanAllocator",
+  "duplicatePreviewAllocator": false,
+  "narrow": [
+    {
+      "edge": "top",
+      "extent": 144,
+      "minimumDemand": 216,
+      "usedLength": 144,
+      "unusedLength": 0,
+      "deficitLength": 72,
+      "status": "underflow"
+    },
+    {
+      "edge": "right",
+      "extent": 144,
+      "minimumDemand": 142,
+      "usedLength": 144,
+      "unusedLength": 0,
+      "deficitLength": 0,
+      "status": "surplusDistributed"
+    },
+    {
+      "edge": "bottom",
+      "extent": 144,
+      "minimumDemand": 202,
+      "usedLength": 144,
+      "unusedLength": 0,
+      "deficitLength": 58,
+      "status": "underflow"
+    },
+    {
+      "edge": "left",
+      "extent": 144,
+      "minimumDemand": 142,
+      "usedLength": 144,
+      "unusedLength": 0,
+      "deficitLength": 0,
+      "status": "surplusDistributed"
+    }
+  ],
+  "nominal": [
+    {
+      "edge": "top",
+      "extent": 724,
+      "minimumDemand": 216,
+      "usedLength": 724,
+      "unusedLength": 0,
+      "deficitLength": 0,
+      "status": "surplusDistributed"
+    },
+    {
+      "edge": "right",
+      "extent": 144,
+      "minimumDemand": 142,
+      "usedLength": 144,
+      "unusedLength": 0,
+      "deficitLength": 0,
+      "status": "surplusDistributed"
+    },
+    {
+      "edge": "bottom",
+      "extent": 724,
+      "minimumDemand": 202,
+      "usedLength": 724,
+      "unusedLength": 0,
+      "deficitLength": 0,
+      "status": "surplusDistributed"
+    },
+    {
+      "edge": "left",
+      "extent": 144,
+      "minimumDemand": 142,
+      "usedLength": 144,
+      "unusedLength": 0,
+      "deficitLength": 0,
+      "status": "surplusDistributed"
+    }
+  ],
+  "wide": [
+    {
+      "edge": "top",
+      "extent": 1124,
+      "minimumDemand": 216,
+      "usedLength": 1124,
+      "unusedLength": 0,
+      "deficitLength": 0,
+      "status": "surplusDistributed"
+    },
+    {
+      "edge": "right",
+      "extent": 144,
+      "minimumDemand": 142,
+      "usedLength": 144,
+      "unusedLength": 0,
+      "deficitLength": 0,
+      "status": "surplusDistributed"
+    },
+    {
+      "edge": "bottom",
+      "extent": 1124,
+      "minimumDemand": 202,
+      "usedLength": 1124,
+      "unusedLength": 0,
+      "deficitLength": 0,
+      "status": "surplusDistributed"
+    },
+    {
+      "edge": "left",
+      "extent": 144,
+      "minimumDemand": 142,
+      "usedLength": 144,
+      "unusedLength": 0,
+      "deficitLength": 0,
+      "status": "surplusDistributed"
+    }
+  ]
+}

@@ -1,0 +1,128 @@
+{
+  "authority": "sunkill-dialogue-panel.obj.ts",
+  "generatedTomlEdited": false,
+  "traces": [
+    {
+      "intent": {
+        "conceptPath": {
+          "value": "panel.dialogue.top.center"
+        },
+        "property": "flexWeight",
+        "before": "2",
+        "after": "3",
+        "source": {
+          "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+          "start": 5865,
+          "length": 1,
+          "line": 222,
+          "column": 9
+        },
+        "expectedSourceSha256": "327e0010e0da9a9c7df1d9966c4f923b8300cea7176d4714decb138e645cb084"
+      },
+      "applied": true,
+      "compileResult": "success",
+      "sourceSha256Before": "327e0010e0da9a9c7df1d9966c4f923b8300cea7176d4714decb138e645cb084",
+      "sourceSha256After": "d6896bcf08ae6552c8b53c3aaff34d7a4ed15a19a42be9a6d9c192290f55d4b3",
+      "recompileDuration": "00:00:00.0050220",
+      "diagnostics": []
+    },
+    {
+      "intent": {
+        "conceptPath": {
+          "value": "panel.dialogue.top.glow-left"
+        },
+        "property": "sampling",
+        "before": "\u0022stretch\u0022",
+        "after": "\u0022tile\u0022",
+        "source": {
+          "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+          "start": 5876,
+          "length": 9,
+          "line": 223,
+          "column": 9
+        },
+        "expectedSourceSha256": "d6896bcf08ae6552c8b53c3aaff34d7a4ed15a19a42be9a6d9c192290f55d4b3"
+      },
+      "applied": true,
+      "compileResult": "success",
+      "sourceSha256Before": "d6896bcf08ae6552c8b53c3aaff34d7a4ed15a19a42be9a6d9c192290f55d4b3",
+      "sourceSha256After": "c67ad301f7d739176b75b19361b4605107e9be28fe2294cac8f3ce795919f1ef",
+      "recompileDuration": "00:00:00.0049217",
+      "diagnostics": []
+    },
+    {
+      "intent": {
+        "conceptPath": {
+          "value": "panel.dialogue.top.center"
+        },
+        "property": "minimumLength",
+        "before": "30",
+        "after": "44",
+        "source": {
+          "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+          "start": 5853,
+          "length": 2,
+          "line": 221,
+          "column": 9
+        },
+        "expectedSourceSha256": "c67ad301f7d739176b75b19361b4605107e9be28fe2294cac8f3ce795919f1ef"
+      },
+      "applied": true,
+      "compileResult": "success",
+      "sourceSha256Before": "c67ad301f7d739176b75b19361b4605107e9be28fe2294cac8f3ce795919f1ef",
+      "sourceSha256After": "cf6df16c22744063bc16934652dce1fc7eefcc6cf55f864b3194e26369dc76d9",
+      "recompileDuration": "00:00:00.0052032",
+      "diagnostics": []
+    },
+    {
+      "intent": {
+        "conceptPath": {
+          "value": "panel.dialogue.top.center"
+        },
+        "property": "sourceRegion",
+        "before": "\u0022dialogue.top.center\u0022",
+        "after": "\u0022dialogue.top.glow\u0022",
+        "source": {
+          "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+          "start": 5765,
+          "length": 21,
+          "line": 217,
+          "column": 9
+        },
+        "expectedSourceSha256": "cf6df16c22744063bc16934652dce1fc7eefcc6cf55f864b3194e26369dc76d9"
+      },
+      "applied": true,
+      "compileResult": "success",
+      "sourceSha256Before": "cf6df16c22744063bc16934652dce1fc7eefcc6cf55f864b3194e26369dc76d9",
+      "sourceSha256After": "4b9a1e4b29d23cc2419ee2147af440783a0ce14aa5b4f6d22403b1b243ea17f9",
+      "recompileDuration": "00:00:00.0051425",
+      "diagnostics": []
+    },
+    {
+      "intent": {
+        "conceptPath": {
+          "value": "panel.dialogue.top.center"
+        },
+        "property": "sourceRegion",
+        "before": "\u0022dialogue.top.glow\u0022",
+        "after": "\u0022dialogue.top.center\u0022",
+        "source": {
+          "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+          "start": 5765,
+          "length": 19,
+          "line": 217,
+          "column": 9
+        },
+        "expectedSourceSha256": "4b9a1e4b29d23cc2419ee2147af440783a0ce14aa5b4f6d22403b1b243ea17f9"
+      },
+      "applied": true,
+      "compileResult": "success",
+      "sourceSha256Before": "4b9a1e4b29d23cc2419ee2147af440783a0ce14aa5b4f6d22403b1b243ea17f9",
+      "sourceSha256After": "cf6df16c22744063bc16934652dce1fc7eefcc6cf55f864b3194e26369dc76d9",
+      "recompileDuration": "00:00:00.0046605",
+      "diagnostics": []
+    }
+  ],
+  "refreshedVersion": 10,
+  "refreshedSourceSha256": "cf6df16c22744063bc16934652dce1fc7eefcc6cf55f864b3194e26369dc76d9"
+}

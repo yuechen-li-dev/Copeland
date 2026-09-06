@@ -22,13 +22,15 @@ public sealed class SunkillM15Tests
         Assert.Equal(9, panel.Bottom.Segments.Count);
         Assert.Equal(9, panel.Left.Segments.Count);
         Assert.Equal(9, panel.Right.Segments.Count);
-        Assert.Equal(2, panel.Top.Segments[4].Weight);
+        Assert.Equal(3, panel.Top.Segments[4].Weight);
+        Assert.Equal(44, panel.Top.Segments[4].MinimumLength);
+        Assert.Equal("Tile", panel.Top.Segments[2].Sampling.ToString());
         Assert.Equal("dialogue.top.center", panel.Top.Segments[4].RegionId);
     }
 
     [Theory]
     [InlineData(220, SpanAllocationStatus.Underflow)]
-    [InlineData(278, SpanAllocationStatus.Exact)]
+    [InlineData(292, SpanAllocationStatus.Exact)]
     [InlineData(800, SpanAllocationStatus.SurplusDistributed)]
     [InlineData(1200, SpanAllocationStatus.SurplusDistributed)]
     public void ProgrammablePanelResolvesNarrowExactNominalAndWideWithoutOverlap(

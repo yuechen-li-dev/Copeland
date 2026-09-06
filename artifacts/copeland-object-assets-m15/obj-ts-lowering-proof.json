@@ -2,7 +2,7 @@
   "qualified": true,
   "source": "samples/Integrations/Aurelian.Ariadne.VnDemo/Assets/sunkill-dialogue-panel.obj.ts",
   "sourceAuthority": true,
-  "sourceSha256": "62dbfe7fa9368372449b99ba58ae37773d9f87b04b4754fbe80fc08079cfc465",
+  "sourceSha256": "cf6df16c22744063bc16934652dce1fc7eefcc6cf55f864b3194e26369dc76d9",
   "regionRepresentation": "Copeland record table AssetRegions with columnar id/x/y/width/height arrays",
   "regionCount": 25,
   "edgeSegmentCounts": {
@@ -12,6 +12,6 @@
     "left": 9
   },
   "compileTimeRoot": "const $asset: AssetObject = static buildSunkillPanel()",
-  "tomlSha256": "9baca99c92b0ea6137e97900379c33676b6b9b9bbd036ddca68c622cb59b55dc",
-  "runtimeTomlSha256": "177c389738c003c35139d8a339cf02f67fe14f508f41624881c69fb85b562736"
+  "tomlSha256": "c47ba9043a833357e82cfcdf2ab989406397b6e63b877c21f0a42fbd71df7f3a",
+  "runtimeTomlSha256": "74360e1faa9ed16e21e83f683efc9b96f8088486b12332fca15b7cc46fc7f139"
 }

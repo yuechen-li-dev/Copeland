@@ -19,11 +19,11 @@
   "oddResolutionQualified": true,
   "stableResizeTextureUploads": true,
   "performance": {
-    "quadCount": 42,
+    "quadCount": 52,
     "drawCalls": 2,
     "descriptorWrites": 0,
     "cpuAllocatedBytes": 1032,
-    "commandRecordingMilliseconds": 0.205
+    "commandRecordingMilliseconds": 0.174
   },
   "webGpuImplemented": false,
   "themeSystemAdded": false

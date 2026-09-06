@@ -185,7 +185,7 @@ padding_left = 34
 padding_top = 34
 padding_right = 34
 padding_bottom = 28
-minimum_width = 278
+minimum_width = 292
 minimum_height = 218
 
 [[programmable_panels."dialogue".top]]
@@ -210,7 +210,7 @@ region = "dialogue.top.glow"
 allocation = "flex"
 length = 30
 weight = 1
-sampling = "stretch"
+sampling = "tile"
 
 [[programmable_panels."dialogue".top]]
 id = "dialogue.top.clamp-b"
@@ -224,8 +224,8 @@ sampling = "crop"
 id = "dialogue.top.center"
 region = "dialogue.top.center"
 allocation = "flex"
-length = 30
-weight = 2
+length = 44
+weight = 3
 sampling = "stretch"
 
 [[programmable_panels."dialogue".top]]
@@ -242,7 +242,7 @@ region = "dialogue.top.glow"
 allocation = "flex"
 length = 30
 weight = 1
-sampling = "stretch"
+sampling = "tile"
 
 [[programmable_panels."dialogue".top]]
 id = "dialogue.top.clamp-d"

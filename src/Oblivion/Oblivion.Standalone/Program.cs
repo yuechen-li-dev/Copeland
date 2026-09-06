@@ -26,6 +26,12 @@ internal static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        if (args.Length == 2 && args[0] == "--sprite-cards-m16-proof")
+        {
+            SpriteCardsM16Proof.Run(args[1]);
+            return;
+        }
+
         OblivionStandaloneOptions options = OblivionStandaloneOptions.Parse(args);
         OblivionConfigResult configResult = new OblivionConfigStore().Load();
         if (!configResult.Succeeded || configResult.Config is null)

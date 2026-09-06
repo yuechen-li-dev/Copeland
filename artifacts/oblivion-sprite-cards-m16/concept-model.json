@@ -1,0 +1,30 @@
+{
+  "law": [
+    "concept",
+    "stable-path",
+    "authored",
+    "resolved",
+    "runtime-projection",
+    "notebook-card"
+  ],
+  "cardKinds": [
+    "Panel",
+    "Region",
+    "EdgeSegment",
+    "Guide",
+    "Datum",
+    "Blockout"
+  ],
+  "relationshipKinds": [
+    "Parent",
+    "SourceOf",
+    "ResolvesTo",
+    "AttachedTo",
+    "ConstrainedBy"
+  ],
+  "sourceAuthority": [
+    "*.obj.ts",
+    "manifest.tsx"
+  ],
+  "generatedAuthority": false
+}

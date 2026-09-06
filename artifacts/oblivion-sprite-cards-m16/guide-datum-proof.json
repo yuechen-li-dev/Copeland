@@ -1,0 +1,153 @@
+{
+  "authored": [
+    {
+      "conceptPath": {
+        "value": "guide.dialogue.content-safe-area"
+      },
+      "kind": "guide",
+      "role": "guide",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 2783,
+        "length": 34,
+        "line": 120,
+        "column": 9
+      },
+      "sourceRect": null,
+      "authored": {
+        "policy": "visible=True; axis=none",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": null
+      },
+      "resolved": {
+        "offset": null,
+        "length": null,
+        "bounds": {
+          "x": 102,
+          "y": 110,
+          "width": 818,
+          "height": 790
+        },
+        "status": "authoring-only"
+      },
+      "runtime": {
+        "survivesLowering": false,
+        "projection": "erased before runtime TOML"
+      },
+      "relationships": [
+        {
+          "kind": "attachedTo",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": [
+        "guideVisibility"
+      ]
+    },
+    {
+      "conceptPath": {
+        "value": "guide.dialogue.datum.text-baseline"
+      },
+      "kind": "datum",
+      "role": "horizontal",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 2827,
+        "length": 36,
+        "line": 121,
+        "column": 9
+      },
+      "sourceRect": null,
+      "authored": {
+        "policy": "visible=True; axis=horizontal",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": null
+      },
+      "resolved": {
+        "offset": null,
+        "length": null,
+        "bounds": {
+          "x": 102,
+          "y": 650,
+          "width": 818,
+          "height": 0
+        },
+        "status": "authoring-only"
+      },
+      "runtime": {
+        "survivesLowering": false,
+        "projection": "erased before runtime TOML"
+      },
+      "relationships": [
+        {
+          "kind": "attachedTo",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": [
+        "guideVisibility"
+      ]
+    },
+    {
+      "conceptPath": {
+        "value": "blockout.dialogue.content"
+      },
+      "kind": "blockout",
+      "role": "blockout",
+      "source": {
+        "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.Ariadne.VnDemo\\Assets\\sunkill-dialogue-panel.obj.ts",
+        "start": 2873,
+        "length": 27,
+        "line": 122,
+        "column": 9
+      },
+      "sourceRect": null,
+      "authored": {
+        "policy": "visible=True; axis=none",
+        "minimumLength": null,
+        "weight": null,
+        "sampling": null,
+        "regionId": null
+      },
+      "resolved": {
+        "offset": null,
+        "length": null,
+        "bounds": {
+          "x": 102,
+          "y": 110,
+          "width": 818,
+          "height": 790
+        },
+        "status": "authoring-only"
+      },
+      "runtime": {
+        "survivesLowering": false,
+        "projection": "erased before runtime TOML"
+      },
+      "relationships": [
+        {
+          "kind": "attachedTo",
+          "target": {
+            "value": "panel.dialogue"
+          }
+        }
+      ],
+      "diagnostics": [],
+      "editCapabilities": [
+        "guideVisibility"
+      ]
+    }
+  ],
+  "visualized": true,
+  "runtimeTomlContainsScaffolding": false
+}
