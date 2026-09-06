@@ -1,0 +1,12 @@
+﻿{
+  "milestone": "AURELIAN-NATIVE-SPRITE-TILE-GRAPHICS-M11A",
+  "files": [
+    "palette-before-double-encoded.png",
+    "palette-after-analytic.png",
+    "palette-after-textured.png",
+    "palette-measurements.json",
+    "path-audit.json",
+    "proof.json",
+    "manifest.json"
+  ]
+}

@@ -473,7 +473,8 @@ public static unsafe class VulkanNativeForwardTexturedRenderer
         uint height,
         VulkanTextureUsage usage,
         VulkanMemoryUsage memoryUsage,
-        string debugName)
+        string debugName,
+        VulkanTextureFormat format = VulkanTextureFormat.Rgba8Unorm)
     {
         VulkanTextureCreateResult result = VulkanTextureFactory.Create(
             plant,
@@ -482,7 +483,7 @@ public static unsafe class VulkanNativeForwardTexturedRenderer
                 plant.Context.Id,
                 width,
                 height,
-                VulkanTextureFormat.Rgba8Unorm,
+                format,
                 usage,
                 memoryUsage,
                 VulkanResourceLayout.Undefined,

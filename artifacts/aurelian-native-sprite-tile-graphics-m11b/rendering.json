@@ -1,0 +1,35 @@
+{
+  "schema": "aurelian.native-sprite-tile-rendering.v1",
+  "nativePath": "SpriteForge metadata -\u003E Aurelian.GameWorld2D projection -\u003E VulkanOrderedQuadRenderer -\u003E shared Vulkan target -\u003E swapchain",
+  "cpuRasterFallbackUsed": false,
+  "sampler": "nearest and clamp",
+  "alpha": "straight-alpha source-over in linear light on the sRGB attachment",
+  "alphaCleanup": "authored direct alpha thresholded at 128; transparent RGB cleared to prevent sampling halos",
+  "camera": {
+    "position": {
+      "x": 0,
+      "y": 0
+    },
+    "viewport": {
+      "x": 22,
+      "y": 24,
+      "width": 904,
+      "height": 648
+    },
+    "zoom": 1,
+    "bounds": {
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 10,
+      "right": 16,
+      "bottom": 10
+    }
+  },
+  "cameraFollowsAuthoritativePlayerPosition": true,
+  "worldSpriteCount": 166,
+  "spriteTextureUploads": 1,
+  "spriteTextureUploadsPerStableFrame": 0,
+  "screenshot": "tinyfarm-farm-sprite-tile-scene.png",
+  "gpu": "NVIDIA GeForce RTX 3070"
+}

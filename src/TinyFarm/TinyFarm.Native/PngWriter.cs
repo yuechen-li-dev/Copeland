@@ -11,6 +11,8 @@ internal static class PngWriter
         using var stream = File.Create(path);
         stream.Write(Signature);
         WriteChunk(stream, "IHDR"u8, Header(width, height));
+        WriteChunk(stream, "sRGB"u8, [0]);
+        WriteChunk(stream, "gAMA"u8, [0, 0, 177, 143]);
         WriteChunk(stream, "IDAT"u8, Compress(width, height, rgba));
         WriteChunk(stream, "IEND"u8, []);
     }

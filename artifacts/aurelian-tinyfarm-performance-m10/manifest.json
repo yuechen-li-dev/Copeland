@@ -4,7 +4,7 @@
   "outcome": "B",
   "normalFrameReadback": false,
   "steadyState60FpsQualified": true,
-  "steadyStateAllocationBounded": true,
+  "steadyStateAllocationBounded": false,
   "warmDescriptorWrites": 0,
   "warmTextureUploads": 0,
   "shaderFirstUseStutterRemoved": true,

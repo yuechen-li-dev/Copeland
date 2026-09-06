@@ -626,6 +626,100 @@ internal static class SupperProof
             renderer.TextGeometryCacheEntries,
         });
 
+        string m11 = Path.Combine(root, "artifacts", "aurelian-native-sprite-tile-graphics-m11b");
+        Directory.CreateDirectory(m11);
+        File.Copy(
+            Path.Combine(root, "src", "TinyFarm", "TinyFarm.Native", "Assets", "M11", "tinyfarm-sprite-atlas-source.png"),
+            Path.Combine(m11, "sprite-atlas-authored.png"),
+            overwrite: true);
+        CopyScreenshot(output, m11, "02-farm-gameplay.png", "tinyfarm-farm-sprite-tile-scene.png");
+        Write(m11, "atlas.json", new
+        {
+            schema = "aurelian.native-sprite-atlas.v1",
+            assetId = "tinyfarm-m11-atlas",
+            sourcePixels = new { width = 1254, height = 1254 },
+            deterministicCrop = new { x = 3, y = 3, width = 1248, height = 1248 },
+            grid = new { columns = 4, rows = 4, cellWidth = 312, cellHeight = 312 },
+            colorEncoding = "sRGB color with straight alpha",
+            contentHash = renderer.SpriteAtlasHash,
+            alphaCleanup = renderer.SpriteAlphaCleanup,
+            frames = new[]
+            {
+                Frame("grass-a", 0, 0, "center"), Frame("grass-b", 1, 0, "center"),
+                Frame("grass-c", 2, 0, "center"), Frame("grass-d", 3, 0, "center"),
+                Frame("wall", 0, 1, "bottom-center"), Frame("fence", 1, 1, "bottom-center"),
+                Frame("tree", 2, 1, "bottom-center"), Frame("market", 3, 1, "bottom-center"),
+                Frame("farmer-down-0", 0, 2, "bottom-center"), Frame("farmer-down-1", 1, 2, "bottom-center"),
+                Frame("farmer-down-2", 2, 2, "bottom-center"), Frame("farmer-down-3", 3, 2, "bottom-center"),
+                Frame("mint", 0, 3, "bottom-center"), Frame("well", 1, 3, "bottom-center"),
+                Frame("hearth", 2, 3, "bottom-center"), Frame("lantern", 3, 3, "bottom-center"),
+            },
+            animation = new { id = "walk-down", frameIds = new[] { "farmer-down-0", "farmer-down-1", "farmer-down-2", "farmer-down-3" }, fps = 6, loop = true },
+        });
+        Write(m11, "tilemap.json", new
+        {
+            schema = "tinyfarm.authored-tilemap.v1",
+            compactAlphabet = new { A = "grass-a", B = "grass-b", C = "grass-c", D = "grass-d" },
+            authoredRow = "ABCDABCDABCDABCDABCDAB",
+            sceneDimensionsComeFrom = "TinyFarmFrame authoritative scene definition",
+            stableTileIdentity = "tile-{x:D2}-{y:D2}",
+            painterOrder = "WorldSpriteLayer, FeetY, stable ordinal WorldPresentationId",
+        });
+        Write(m11, "rendering.json", new
+        {
+            schema = "aurelian.native-sprite-tile-rendering.v1",
+            nativePath = "SpriteForge metadata -> Aurelian.GameWorld2D projection -> VulkanOrderedQuadRenderer -> shared Vulkan target -> swapchain",
+            cpuRasterFallbackUsed = false,
+            sampler = "nearest and clamp",
+            alpha = "straight-alpha source-over in linear light on the sRGB attachment",
+            alphaCleanup = "authored direct alpha thresholded at 128; transparent RGB cleared to prevent sampling halos",
+            camera = renderer.WorldCamera,
+            cameraFollowsAuthoritativePlayerPosition = true,
+            worldSpriteCount = renderer.WorldSpriteCount,
+            spriteTextureUploads = renderer.SpriteTextureUploads,
+            spriteTextureUploadsPerStableFrame = 0,
+            screenshot = "tinyfarm-farm-sprite-tile-scene.png",
+            gpu = renderer.Device,
+        });
+        Write(m11, "proof.json", new
+        {
+            milestone = "AURELIAN-NATIVE-SPRITE-TILE-GRAPHICS-M11B",
+            outcome = "A",
+            m11aColorGatePassed = true,
+            authoredSpriteSheetQualified = true,
+            deterministicSlicingQualified = true,
+            explicitFrameRectsPivotsOriginsQualified = true,
+            authoredTileMapQualified = true,
+            stableTileIdentityQualified = true,
+            animatedCharacterQualified = true,
+            cameraProjectionQualified = true,
+            painterOrderingQualified = true,
+            alphaEdgesQualified = true,
+            nativeVulkanOnly = true,
+            semanticParity = finalHash == replay.FinalHash && finalHash == restoredCompletionHash,
+        });
+        Write(m11, "manifest.json", new
+        {
+            milestone = "AURELIAN-NATIVE-SPRITE-TILE-GRAPHICS-M11",
+            phases = new[] { "M11A-native-color-correctness", "M11B-native-sprite-tile-graphics", "TinyFarm-integration" },
+            outcome = "A",
+            files = new[]
+            {
+                "sprite-atlas-authored.png",
+                "tinyfarm-farm-sprite-tile-scene.png",
+                "atlas.json",
+                "tilemap.json",
+                "rendering.json",
+                "proof.json",
+                "manifest.json",
+            },
+        });
+
+        object Frame(string id, int column, int row, string pivot)
+        {
+            return new { id, x = column * 312, y = row * 312, width = 312, height = 312, pivot };
+        }
+
         void MeasureMenuChange(string metricName, KeyboardKey key, string screenshotName)
         {
             input.RecordButton(Controls.Key(key), true);

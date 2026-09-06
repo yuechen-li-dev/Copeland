@@ -1,0 +1,21 @@
+﻿{
+  "milestone": "AURELIAN-NATIVE-SPRITE-TILE-GRAPHICS-M11A",
+  "outcome": "A",
+  "sourceOfFadeIdentified": true,
+  "sourceOfFadeFixed": true,
+  "nativeReadbackQualified": true,
+  "pngEvidenceQualified": true,
+  "opaqueToleranceBytes": 1,
+  "alphaToleranceBytes": 1,
+  "beforeMaximumChannelError": 71,
+  "beforeAverageChannelError": 15.34375,
+  "afterAnalyticMaximumChannelError": 0,
+  "afterAnalyticAverageChannelError": 0,
+  "afterTexturedMaximumChannelError": 0,
+  "afterTexturedAverageChannelError": 0,
+  "analyticTextureParityMaximumChannelError": 0,
+  "renderPassClearMaximumChannelError": 0,
+  "gpu": "NVIDIA GeForce RTX 3070",
+  "validationRequested": true,
+  "validationAvailable": true
+}

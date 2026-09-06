@@ -1,0 +1,18 @@
+{
+  "milestone": "AURELIAN-NATIVE-SPRITE-TILE-GRAPHICS-M11",
+  "phases": [
+    "M11A-native-color-correctness",
+    "M11B-native-sprite-tile-graphics",
+    "TinyFarm-integration"
+  ],
+  "outcome": "A",
+  "files": [
+    "sprite-atlas-authored.png",
+    "tinyfarm-farm-sprite-tile-scene.png",
+    "atlas.json",
+    "tilemap.json",
+    "rendering.json",
+    "proof.json",
+    "manifest.json"
+  ]
+}

@@ -1,0 +1,171 @@
+{
+  "schema": "aurelian.native-sprite-atlas.v1",
+  "assetId": "tinyfarm-m11-atlas",
+  "sourcePixels": {
+    "width": 1254,
+    "height": 1254
+  },
+  "deterministicCrop": {
+    "x": 3,
+    "y": 3,
+    "width": 1248,
+    "height": 1248
+  },
+  "grid": {
+    "columns": 4,
+    "rows": 4,
+    "cellWidth": 312,
+    "cellHeight": 312
+  },
+  "colorEncoding": "sRGB color with straight alpha",
+  "contentHash": "05ef4302157394429413404edf6c5ae957aefa061311acddc676d854c185370d",
+  "alphaCleanup": {
+    "threshold": 128,
+    "sourceTransparentPixels": 548581,
+    "sourcePartialPixels": 1008349,
+    "sourceOpaquePixels": 574,
+    "outputTransparentPixels": 735182,
+    "outputOpaquePixels": 822322
+  },
+  "frames": [
+    {
+      "id": "grass-a",
+      "x": 0,
+      "y": 0,
+      "width": 312,
+      "height": 312,
+      "pivot": "center"
+    },
+    {
+      "id": "grass-b",
+      "x": 312,
+      "y": 0,
+      "width": 312,
+      "height": 312,
+      "pivot": "center"
+    },
+    {
+      "id": "grass-c",
+      "x": 624,
+      "y": 0,
+      "width": 312,
+      "height": 312,
+      "pivot": "center"
+    },
+    {
+      "id": "grass-d",
+      "x": 936,
+      "y": 0,
+      "width": 312,
+      "height": 312,
+      "pivot": "center"
+    },
+    {
+      "id": "wall",
+      "x": 0,
+      "y": 312,
+      "width": 312,
+      "height": 312,
+      "pivot": "bottom-center"
+    },
+    {
+      "id": "fence",
+      "x": 312,
+      "y": 312,
+      "width": 312,
+      "height": 312,
+      "pivot": "bottom-center"
+    },
+    {
+      "id": "tree",
+      "x": 624,
+      "y": 312,
+      "width": 312,
+      "height": 312,
+      "pivot": "bottom-center"
+    },
+    {
+      "id": "market",
+      "x": 936,
+      "y": 312,
+      "width": 312,
+      "height": 312,
+      "pivot": "bottom-center"
+    },
+    {
+      "id": "farmer-down-0",
+      "x": 0,
+      "y": 624,
+      "width": 312,
+      "height": 312,
+      "pivot": "bottom-center"
+    },
+    {
+      "id": "farmer-down-1",
+      "x": 312,
+      "y": 624,
+      "width": 312,
+      "height": 312,
+      "pivot": "bottom-center"
+    },
+    {
+      "id": "farmer-down-2",
+      "x": 624,
+      "y": 624,
+      "width": 312,
+      "height": 312,
+      "pivot": "bottom-center"
+    },
+    {
+      "id": "farmer-down-3",
+      "x": 936,
+      "y": 624,
+      "width": 312,
+      "height": 312,
+      "pivot": "bottom-center"
+    },
+    {
+      "id": "mint",
+      "x": 0,
+      "y": 936,
+      "width": 312,
+      "height": 312,
+      "pivot": "bottom-center"
+    },
+    {
+      "id": "well",
+      "x": 312,
+      "y": 936,
+      "width": 312,
+      "height": 312,
+      "pivot": "bottom-center"
+    },
+    {
+      "id": "hearth",
+      "x": 624,
+      "y": 936,
+      "width": 312,
+      "height": 312,
+      "pivot": "bottom-center"
+    },
+    {
+      "id": "lantern",
+      "x": 936,
+      "y": 936,
+      "width": 312,
+      "height": 312,
+      "pivot": "bottom-center"
+    }
+  ],
+  "animation": {
+    "id": "walk-down",
+    "frameIds": [
+      "farmer-down-0",
+      "farmer-down-1",
+      "farmer-down-2",
+      "farmer-down-3"
+    ],
+    "fps": 6,
+    "loop": true
+  }
+}

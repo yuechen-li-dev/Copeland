@@ -1,0 +1,14 @@
+﻿{
+  "schema": "aurelian.native-color.path-audit.v1",
+  "cause": "Authored sRGB color numbers and RGBA8 texture bytes were treated as linear shader values, then encoded by the sRGB color attachment a second time.",
+  "swapchain": "prefers B8G8R8A8_SRGB with SRGB_NONLINEAR when available",
+  "renderTarget": "matches swapchain sRGB format in the visible native path",
+  "materialColors": "decoded from authored sRGB to linear before uniform upload when rendering to an sRGB target",
+  "spriteTextures": "created as R8G8B8A8_SRGB when authored sprite bytes feed an sRGB target; sampling performs the required decode",
+  "dataTextures": "MSDF atlas remains UNORM because its channels are distance data, not color",
+  "blend": "straight alpha: srcAlpha / oneMinusSrcAlpha for RGB; one / oneMinusSrcAlpha for alpha; performed in linear space on sRGB attachments",
+  "premultiplication": "not used by the sprite path",
+  "png": "PNG evidence carries explicit sRGB and gAMA chunks; encoded bytes are identical to native readback",
+  "readback": "direct vkCmdCopyImageToBuffer from the render target; BGRA targets are normalized to RGBA by VulkanNativeFrameTarget",
+  "shaderGamma": "no shader gamma function; Vulkan format conversion is the sole output encoding"
+}

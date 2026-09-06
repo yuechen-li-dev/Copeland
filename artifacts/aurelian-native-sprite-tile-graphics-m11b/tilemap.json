@@ -1,0 +1,13 @@
+{
+  "schema": "tinyfarm.authored-tilemap.v1",
+  "compactAlphabet": {
+    "a": "grass-a",
+    "b": "grass-b",
+    "c": "grass-c",
+    "d": "grass-d"
+  },
+  "authoredRow": "ABCDABCDABCDABCDABCDAB",
+  "sceneDimensionsComeFrom": "TinyFarmFrame authoritative scene definition",
+  "stableTileIdentity": "tile-{x:D2}-{y:D2}",
+  "painterOrder": "WorldSpriteLayer, FeetY, stable ordinal WorldPresentationId"
+}

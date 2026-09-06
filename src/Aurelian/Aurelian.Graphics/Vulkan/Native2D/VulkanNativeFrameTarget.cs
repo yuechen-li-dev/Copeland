@@ -195,6 +195,20 @@ public sealed unsafe class VulkanNativeFrameTarget : IDisposable
         frameActive = false;
     }
 
+    internal VulkanColorClearValue PrepareClearColor(NativeFrameClearColor color)
+    {
+        if (Texture.Format is not (VulkanTextureFormat.Rgba8Srgb or VulkanTextureFormat.Bgra8Srgb))
+        {
+            return new VulkanColorClearValue(color.Red, color.Green, color.Blue, color.Alpha);
+        }
+
+        return new VulkanColorClearValue(
+            NativeSrgbTransfer.Decode(color.Red),
+            NativeSrgbTransfer.Decode(color.Green),
+            NativeSrgbTransfer.Decode(color.Blue),
+            color.Alpha);
+    }
+
     internal void ThrowIfDisposed()
     {
         ObjectDisposedException.ThrowIf(disposed, this);
@@ -247,7 +261,7 @@ public sealed class VulkanNativeFrameSession : IDisposable
     internal VulkanNativeFrameSession(VulkanNativeFrameTarget target, NativeFrameClearColor clearColor)
     {
         this.target = target;
-        this.clearColor = new VulkanColorClearValue(clearColor.Red, clearColor.Green, clearColor.Blue, clearColor.Alpha);
+        this.clearColor = target.PrepareClearColor(clearColor);
     }
 
     public uint Width => target.Width;

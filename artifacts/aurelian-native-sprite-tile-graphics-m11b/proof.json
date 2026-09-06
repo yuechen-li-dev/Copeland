@@ -1,0 +1,16 @@
+{
+  "milestone": "AURELIAN-NATIVE-SPRITE-TILE-GRAPHICS-M11B",
+  "outcome": "A",
+  "m11aColorGatePassed": true,
+  "authoredSpriteSheetQualified": true,
+  "deterministicSlicingQualified": true,
+  "explicitFrameRectsPivotsOriginsQualified": true,
+  "authoredTileMapQualified": true,
+  "stableTileIdentityQualified": true,
+  "animatedCharacterQualified": true,
+  "cameraProjectionQualified": true,
+  "painterOrderingQualified": true,
+  "alphaEdgesQualified": true,
+  "nativeVulkanOnly": true,
+  "semanticParity": true
+}

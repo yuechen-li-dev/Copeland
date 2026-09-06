@@ -1,18 +1,18 @@
 {
   "beforeSteadyBytesPerFrame": 41180,
-  "afterSteadyBytesPerFrame": 42996,
+  "afterSteadyBytesPerFrame": 141158,
   "changedFrames": {
-    "01-title-or-start": 61752,
-    "inventory-open": 605704,
-    "m10b-inventory": 37960,
-    "pause-open": 757544,
-    "m10b-pause": 38000,
-    "02-farm-gameplay": 35544,
-    "04-farming-or-pickup": 667096,
-    "03-dialogue": 960520,
-    "06-secondary-scene": 519232,
-    "05-combat": 570312,
-    "07-completion": 1075464
+    "01-title-or-start": 199008,
+    "inventory-open": 742960,
+    "m10b-inventory": 175216,
+    "pause-open": 894800,
+    "m10b-pause": 175256,
+    "02-farm-gameplay": 172888,
+    "04-farming-or-pickup": 795120,
+    "03-dialogue": 1271880,
+    "06-secondary-scene": 629880,
+    "05-combat": 669088,
+    "07-completion": 1145296
   },
   "fullBitmapBuffersAllocated": 0,
   "fallbackRasterBytes": 0

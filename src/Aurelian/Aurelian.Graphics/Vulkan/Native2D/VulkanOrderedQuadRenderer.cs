@@ -176,6 +176,8 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
 
     public bool StraightAlphaBlend => options.StraightAlphaBlend;
 
+    public bool CorrectsSrgbInputs => options.InputsAreSrgb && IsSrgb(renderTarget.Format);
+
     public Native2DTextureHandle CreateTexture(uint textureWidth, uint textureHeight, ReadOnlySpan<byte> rgba8)
     {
         return CreateTextureCore(textureWidth, textureHeight, rgba8.ToArray());
@@ -208,6 +210,9 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             throw new ArgumentException($"RGBA8 payload is {rgba8.Length} bytes; extent requires {requiredBytes} bytes.", nameof(rgba8));
         }
 
+        VulkanTextureFormat textureFormat = CorrectsSrgbInputs && options.Kind == Native2DPipelineKind.Textured
+            ? VulkanTextureFormat.Rgba8Srgb
+            : VulkanTextureFormat.Rgba8Unorm;
         AurelianVulkanTexture texture = VulkanNativeForwardTexturedRenderer.CreateTexture(
             plant,
             allocator,
@@ -215,7 +220,8 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             textureHeight,
             VulkanTextureUsage.ShaderResource | VulkanTextureUsage.TransferDestination,
             VulkanMemoryUsage.GpuOnly,
-            "native-2d.texture");
+            "native-2d.texture",
+            textureFormat);
         VulkanTextureUploadResult upload = textureUploader.Upload(new VulkanTextureUploadRequest(
             texture,
             rgba8,
@@ -852,9 +858,12 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
 
         CompiledMaterialLayout material = program.Material!;
         byte[] materialBytes = new byte[material.Size];
+        Native2DTint shaderTint = CorrectsSrgbInputs
+            ? NativeSrgbTransfer.Decode(submission.Tint)
+            : submission.Tint;
         if (options.Kind is Native2DPipelineKind.Textured or Native2DPipelineKind.MsdfText)
         {
-            WriteMaterialColor(materialBytes, material, "tint", submission.Tint);
+            WriteMaterialColor(materialBytes, material, "tint", shaderTint);
         }
         if (options.Kind == Native2DPipelineKind.Textured)
         {
@@ -868,8 +877,11 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         }
         else if (options.Kind == Native2DPipelineKind.AnalyticShape2D)
         {
-            WriteMaterialColor(materialBytes, material, "fillColor", submission.Tint);
-            WriteMaterialColor(materialBytes, material, "borderColor", submission.Analytic.BorderColor);
+            WriteMaterialColor(materialBytes, material, "fillColor", shaderTint);
+            Native2DTint shaderBorder = CorrectsSrgbInputs
+                ? NativeSrgbTransfer.Decode(submission.Analytic.BorderColor)
+                : submission.Analytic.BorderColor;
+            WriteMaterialColor(materialBytes, material, "borderColor", shaderBorder);
             CompiledMaterialField halfSize = material.Fields.Single(field => field.Name == "halfSize");
             WriteFloat(materialBytes, halfSize.Offset, submission.Analytic.ShapeSize.Width / 2);
             WriteFloat(materialBytes, halfSize.Offset + 4, submission.Analytic.ShapeSize.Height / 2);
@@ -880,7 +892,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         }
         else
         {
-            WriteMaterialColor(materialBytes, material, "color", submission.Tint);
+            WriteMaterialColor(materialBytes, material, "color", shaderTint);
             WriteMaterialFloat(materialBytes, material, "age", submission.Shockwave.Age);
             WriteMaterialFloat(materialBytes, material, "lifetime", submission.Shockwave.Lifetime);
             WriteMaterialFloat(materialBytes, material, "radius", submission.Shockwave.Radius);
@@ -1083,6 +1095,11 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         WriteFloat(destination, field.Offset + 4, value.Green);
         WriteFloat(destination, field.Offset + 8, value.Blue);
         WriteFloat(destination, field.Offset + 12, value.Alpha);
+    }
+
+    private static bool IsSrgb(VulkanTextureFormat format)
+    {
+        return format is VulkanTextureFormat.Rgba8Srgb or VulkanTextureFormat.Bgra8Srgb;
     }
 
     private static InvalidOperationException UnknownTexture(Native2DTextureHandle handle)

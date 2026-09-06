@@ -1,0 +1,1526 @@
+﻿{
+  "schema": "aurelian.native-color.palette.v1",
+  "authoredColorEncoding": "IEC 61966-2-1 sRGB bytes; straight alpha",
+  "targetFormat": "Rgba8Srgb",
+  "samplePoint": "center pixel of each 48x48 swatch",
+  "expectedBlend": "decode source and destination sRGB to linear; source-over in linear RGB; encode result to sRGB; alpha remains linear",
+  "before": {
+    "swatches": [
+      {
+        "name": "white",
+        "expected": {
+          "red": 255,
+          "green": 255,
+          "blue": 255,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 255,
+          "green": 255,
+          "blue": 255,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "black",
+        "expected": {
+          "red": 0,
+          "green": 0,
+          "blue": 0,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 0,
+          "green": 0,
+          "blue": 0,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "middle-gray",
+        "expected": {
+          "red": 128,
+          "green": 128,
+          "blue": 128,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 188,
+          "green": 188,
+          "blue": 188,
+          "alpha": 255
+        },
+        "perChannelError": [
+          60,
+          60,
+          60,
+          0
+        ],
+        "averageChannelError": 45,
+        "maximumChannelError": 60
+      },
+      {
+        "name": "red",
+        "expected": {
+          "red": 255,
+          "green": 0,
+          "blue": 0,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 255,
+          "green": 0,
+          "blue": 0,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "green",
+        "expected": {
+          "red": 0,
+          "green": 255,
+          "blue": 0,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 0,
+          "green": 255,
+          "blue": 0,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "blue",
+        "expected": {
+          "red": 0,
+          "green": 0,
+          "blue": 255,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 0,
+          "green": 0,
+          "blue": 255,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "yellow",
+        "expected": {
+          "red": 255,
+          "green": 255,
+          "blue": 0,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 255,
+          "green": 255,
+          "blue": 0,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "cyan",
+        "expected": {
+          "red": 0,
+          "green": 255,
+          "blue": 255,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 0,
+          "green": 255,
+          "blue": 255,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "magenta",
+        "expected": {
+          "red": 255,
+          "green": 0,
+          "blue": 255,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 255,
+          "green": 0,
+          "blue": 255,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "sage",
+        "expected": {
+          "red": 127,
+          "green": 165,
+          "blue": 118,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 187,
+          "green": 210,
+          "blue": 181,
+          "alpha": 255
+        },
+        "perChannelError": [
+          60,
+          45,
+          63,
+          0
+        ],
+        "averageChannelError": 42,
+        "maximumChannelError": 63
+      },
+      {
+        "name": "sand",
+        "expected": {
+          "red": 213,
+          "green": 191,
+          "blue": 141,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 236,
+          "green": 224,
+          "blue": 196,
+          "alpha": 255
+        },
+        "perChannelError": [
+          23,
+          33,
+          55,
+          0
+        ],
+        "averageChannelError": 27.75,
+        "maximumChannelError": 55
+      },
+      {
+        "name": "coral",
+        "expected": {
+          "red": 183,
+          "green": 109,
+          "blue": 84,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 220,
+          "green": 175,
+          "blue": 155,
+          "alpha": 255
+        },
+        "perChannelError": [
+          37,
+          66,
+          71,
+          0
+        ],
+        "averageChannelError": 43.5,
+        "maximumChannelError": 71
+      },
+      {
+        "name": "red-50-over-slate",
+        "expected": {
+          "red": 189,
+          "green": 43,
+          "blue": 37,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 198,
+          "green": 97,
+          "blue": 91,
+          "alpha": 255
+        },
+        "perChannelError": [
+          9,
+          54,
+          54,
+          0
+        ],
+        "averageChannelError": 29.25,
+        "maximumChannelError": 54
+      },
+      {
+        "name": "cyan-25-over-navy",
+        "expected": {
+          "red": 13,
+          "green": 140,
+          "blue": 146,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 61,
+          "green": 159,
+          "blue": 177,
+          "alpha": 255
+        },
+        "perChannelError": [
+          48,
+          19,
+          31,
+          0
+        ],
+        "averageChannelError": 24.5,
+        "maximumChannelError": 48
+      },
+      {
+        "name": "white-50-over-gray",
+        "expected": {
+          "red": 205,
+          "green": 205,
+          "blue": 205,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 225,
+          "green": 225,
+          "blue": 225,
+          "alpha": 255
+        },
+        "perChannelError": [
+          20,
+          20,
+          20,
+          0
+        ],
+        "averageChannelError": 15,
+        "maximumChannelError": 20
+      },
+      {
+        "name": "pastel-75-over-black",
+        "expected": {
+          "red": 199,
+          "green": 188,
+          "blue": 145,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 213,
+          "green": 208,
+          "blue": 185,
+          "alpha": 255
+        },
+        "perChannelError": [
+          14,
+          20,
+          40,
+          0
+        ],
+        "averageChannelError": 18.5,
+        "maximumChannelError": 40
+      }
+    ],
+    "averageChannelError": 15.34375,
+    "maximumChannelError": 71
+  },
+  "afterAnalytic": {
+    "swatches": [
+      {
+        "name": "white",
+        "expected": {
+          "red": 255,
+          "green": 255,
+          "blue": 255,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 255,
+          "green": 255,
+          "blue": 255,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "black",
+        "expected": {
+          "red": 0,
+          "green": 0,
+          "blue": 0,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 0,
+          "green": 0,
+          "blue": 0,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "middle-gray",
+        "expected": {
+          "red": 128,
+          "green": 128,
+          "blue": 128,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 128,
+          "green": 128,
+          "blue": 128,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "red",
+        "expected": {
+          "red": 255,
+          "green": 0,
+          "blue": 0,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 255,
+          "green": 0,
+          "blue": 0,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "green",
+        "expected": {
+          "red": 0,
+          "green": 255,
+          "blue": 0,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 0,
+          "green": 255,
+          "blue": 0,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "blue",
+        "expected": {
+          "red": 0,
+          "green": 0,
+          "blue": 255,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 0,
+          "green": 0,
+          "blue": 255,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "yellow",
+        "expected": {
+          "red": 255,
+          "green": 255,
+          "blue": 0,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 255,
+          "green": 255,
+          "blue": 0,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "cyan",
+        "expected": {
+          "red": 0,
+          "green": 255,
+          "blue": 255,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 0,
+          "green": 255,
+          "blue": 255,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "magenta",
+        "expected": {
+          "red": 255,
+          "green": 0,
+          "blue": 255,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 255,
+          "green": 0,
+          "blue": 255,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "sage",
+        "expected": {
+          "red": 127,
+          "green": 165,
+          "blue": 118,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 127,
+          "green": 165,
+          "blue": 118,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "sand",
+        "expected": {
+          "red": 213,
+          "green": 191,
+          "blue": 141,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 213,
+          "green": 191,
+          "blue": 141,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "coral",
+        "expected": {
+          "red": 183,
+          "green": 109,
+          "blue": 84,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 183,
+          "green": 109,
+          "blue": 84,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "red-50-over-slate",
+        "expected": {
+          "red": 189,
+          "green": 43,
+          "blue": 37,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 189,
+          "green": 43,
+          "blue": 37,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "cyan-25-over-navy",
+        "expected": {
+          "red": 13,
+          "green": 140,
+          "blue": 146,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 13,
+          "green": 140,
+          "blue": 146,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "white-50-over-gray",
+        "expected": {
+          "red": 205,
+          "green": 205,
+          "blue": 205,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 205,
+          "green": 205,
+          "blue": 205,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "pastel-75-over-black",
+        "expected": {
+          "red": 199,
+          "green": 188,
+          "blue": 145,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 199,
+          "green": 188,
+          "blue": 145,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      }
+    ],
+    "averageChannelError": 0,
+    "maximumChannelError": 0
+  },
+  "afterTextured": {
+    "swatches": [
+      {
+        "name": "white",
+        "expected": {
+          "red": 255,
+          "green": 255,
+          "blue": 255,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 255,
+          "green": 255,
+          "blue": 255,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "black",
+        "expected": {
+          "red": 0,
+          "green": 0,
+          "blue": 0,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 0,
+          "green": 0,
+          "blue": 0,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "middle-gray",
+        "expected": {
+          "red": 128,
+          "green": 128,
+          "blue": 128,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 128,
+          "green": 128,
+          "blue": 128,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "red",
+        "expected": {
+          "red": 255,
+          "green": 0,
+          "blue": 0,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 255,
+          "green": 0,
+          "blue": 0,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "green",
+        "expected": {
+          "red": 0,
+          "green": 255,
+          "blue": 0,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 0,
+          "green": 255,
+          "blue": 0,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "blue",
+        "expected": {
+          "red": 0,
+          "green": 0,
+          "blue": 255,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 0,
+          "green": 0,
+          "blue": 255,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "yellow",
+        "expected": {
+          "red": 255,
+          "green": 255,
+          "blue": 0,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 255,
+          "green": 255,
+          "blue": 0,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "cyan",
+        "expected": {
+          "red": 0,
+          "green": 255,
+          "blue": 255,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 0,
+          "green": 255,
+          "blue": 255,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "magenta",
+        "expected": {
+          "red": 255,
+          "green": 0,
+          "blue": 255,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 255,
+          "green": 0,
+          "blue": 255,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "sage",
+        "expected": {
+          "red": 127,
+          "green": 165,
+          "blue": 118,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 127,
+          "green": 165,
+          "blue": 118,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "sand",
+        "expected": {
+          "red": 213,
+          "green": 191,
+          "blue": 141,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 213,
+          "green": 191,
+          "blue": 141,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "coral",
+        "expected": {
+          "red": 183,
+          "green": 109,
+          "blue": 84,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 183,
+          "green": 109,
+          "blue": 84,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "red-50-over-slate",
+        "expected": {
+          "red": 189,
+          "green": 43,
+          "blue": 37,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 189,
+          "green": 43,
+          "blue": 37,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "cyan-25-over-navy",
+        "expected": {
+          "red": 13,
+          "green": 140,
+          "blue": 146,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 13,
+          "green": 140,
+          "blue": 146,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "white-50-over-gray",
+        "expected": {
+          "red": 205,
+          "green": 205,
+          "blue": 205,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 205,
+          "green": 205,
+          "blue": 205,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "pastel-75-over-black",
+        "expected": {
+          "red": 199,
+          "green": 188,
+          "blue": 145,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 199,
+          "green": 188,
+          "blue": 145,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      }
+    ],
+    "averageChannelError": 0,
+    "maximumChannelError": 0
+  },
+  "analyticTextureParity": {
+    "swatches": [
+      {
+        "name": "white",
+        "expected": {
+          "red": 255,
+          "green": 255,
+          "blue": 255,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 255,
+          "green": 255,
+          "blue": 255,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "black",
+        "expected": {
+          "red": 0,
+          "green": 0,
+          "blue": 0,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 0,
+          "green": 0,
+          "blue": 0,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "middle-gray",
+        "expected": {
+          "red": 128,
+          "green": 128,
+          "blue": 128,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 128,
+          "green": 128,
+          "blue": 128,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "red",
+        "expected": {
+          "red": 255,
+          "green": 0,
+          "blue": 0,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 255,
+          "green": 0,
+          "blue": 0,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "green",
+        "expected": {
+          "red": 0,
+          "green": 255,
+          "blue": 0,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 0,
+          "green": 255,
+          "blue": 0,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "blue",
+        "expected": {
+          "red": 0,
+          "green": 0,
+          "blue": 255,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 0,
+          "green": 0,
+          "blue": 255,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "yellow",
+        "expected": {
+          "red": 255,
+          "green": 255,
+          "blue": 0,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 255,
+          "green": 255,
+          "blue": 0,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "cyan",
+        "expected": {
+          "red": 0,
+          "green": 255,
+          "blue": 255,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 0,
+          "green": 255,
+          "blue": 255,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "magenta",
+        "expected": {
+          "red": 255,
+          "green": 0,
+          "blue": 255,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 255,
+          "green": 0,
+          "blue": 255,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "sage",
+        "expected": {
+          "red": 127,
+          "green": 165,
+          "blue": 118,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 127,
+          "green": 165,
+          "blue": 118,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "sand",
+        "expected": {
+          "red": 213,
+          "green": 191,
+          "blue": 141,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 213,
+          "green": 191,
+          "blue": 141,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "coral",
+        "expected": {
+          "red": 183,
+          "green": 109,
+          "blue": 84,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 183,
+          "green": 109,
+          "blue": 84,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "red-50-over-slate",
+        "expected": {
+          "red": 189,
+          "green": 43,
+          "blue": 37,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 189,
+          "green": 43,
+          "blue": 37,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "cyan-25-over-navy",
+        "expected": {
+          "red": 13,
+          "green": 140,
+          "blue": 146,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 13,
+          "green": 140,
+          "blue": 146,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "white-50-over-gray",
+        "expected": {
+          "red": 205,
+          "green": 205,
+          "blue": 205,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 205,
+          "green": 205,
+          "blue": 205,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      },
+      {
+        "name": "pastel-75-over-black",
+        "expected": {
+          "red": 199,
+          "green": 188,
+          "blue": 145,
+          "alpha": 255
+        },
+        "actual": {
+          "red": 199,
+          "green": 188,
+          "blue": 145,
+          "alpha": 255
+        },
+        "perChannelError": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "averageChannelError": 0,
+        "maximumChannelError": 0
+      }
+    ],
+    "averageChannelError": 0,
+    "maximumChannelError": 0
+  },
+  "renderPassClear": {
+    "name": "render-pass-clear",
+    "expected": {
+      "red": 128,
+      "green": 96,
+      "blue": 64,
+      "alpha": 255
+    },
+    "actual": {
+      "red": 128,
+      "green": 96,
+      "blue": 64,
+      "alpha": 255
+    },
+    "perChannelError": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "averageChannelError": 0,
+    "maximumChannelError": 0
+  }
+}

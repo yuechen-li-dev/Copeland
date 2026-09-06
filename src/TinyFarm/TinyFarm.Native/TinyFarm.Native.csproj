@@ -24,6 +24,7 @@
     <PackageReference Include="Silk.NET.Input" />
     <PackageReference Include="Silk.NET.Windowing" />
     <Content Include="../TinyFarm.MonoGame/Assets/mara-dialogue.png" Link="Assets/mara-dialogue.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets/M11/tinyfarm-sprite-atlas-source.png" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../tests/Machina.UI/Machina.Fonts.Tests/Fixtures/Fonts/SpaceMono-Regular.ttf" Link="Assets/SpaceMono-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

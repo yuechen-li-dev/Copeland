@@ -78,7 +78,8 @@ public sealed record Native2DPipelineOptions(
     Native2DPipelineKind Kind,
     bool TransparentClear = false,
     bool EnableStraightAlphaBlend = false,
-    bool EnableLinearFiltering = false)
+    bool EnableLinearFiltering = false,
+    bool InputsAreSrgb = true)
 {
     public static Native2DPipelineOptions Textured { get; } = new(Native2DPipelineKind.Textured);
 
@@ -101,6 +102,30 @@ public sealed record Native2DPipelineOptions(
 
     public bool StraightAlphaBlend => EnableStraightAlphaBlend
         || Kind is Native2DPipelineKind.MsdfText or Native2DPipelineKind.AnalyticShape2D or Native2DPipelineKind.SoftShockwave;
+}
+
+public static class NativeSrgbTransfer
+{
+    public static float Decode(float encoded)
+    {
+        if (!float.IsFinite(encoded) || encoded < 0 || encoded > 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(encoded), "An sRGB channel must be finite and in [0,1].");
+        }
+
+        return encoded <= 0.04045f
+            ? encoded / 12.92f
+            : MathF.Pow((encoded + 0.055f) / 1.055f, 2.4f);
+    }
+
+    public static Native2DTint Decode(Native2DTint encoded)
+    {
+        return new Native2DTint(
+            Decode(encoded.Red),
+            Decode(encoded.Green),
+            Decode(encoded.Blue),
+            encoded.Alpha);
+    }
 }
 
 public sealed record Native2DPassMetrics(
