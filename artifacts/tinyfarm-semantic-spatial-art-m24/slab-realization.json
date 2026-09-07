@@ -1,0 +1,23 @@
+{
+  "asset": {
+    "fileName": "meadow-slab.png",
+    "width": 1254,
+    "height": 1254,
+    "fileBytes": 2188465,
+    "sha256": "c0222629a63f12067bbe4c78ce7cb864fa263702d875e6cbd4a7b84c6ce987ee",
+    "hasTransparency": false
+  },
+  "worldExtentMeters": {
+    "width": 16,
+    "depth": 10
+  },
+  "mapping": "one full-UV slab stretched once across the bounded scene; no internal repetition",
+  "sampling": "clamped full image; no interior tile boundary",
+  "multiSlabReady": true,
+  "approximateGpuBytes": 6290064,
+  "seamCheck": {
+    "internalRepeatCount": 0,
+    "intendedScalePixelsPerMeter": 48,
+    "visibleInternalSamplingSeams": false
+  }
+}

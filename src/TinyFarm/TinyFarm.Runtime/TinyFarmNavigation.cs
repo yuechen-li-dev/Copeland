@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Aurelian.Spatial2D;
 using DotRecast.Core.Numerics;
 using DotRecast.Detour;
 using DotRecast.Recast;
@@ -39,6 +40,11 @@ public sealed class DotRecastNavigationPlanner : INavigationPlanner
     public NavigationPath FindPath(SceneDefinition scene, ScenePosition start, ScenePosition goal)
     {
         ArgumentNullException.ThrowIfNull(scene);
+        if (scene.Id == TinyFarmSceneIds.Riverside)
+        {
+            return FindSemanticRiversidePath(scene, start, goal);
+        }
+
         if (!TinyFarmScenes.IsInBounds(scene, start) || TinyFarmScenes.IsBlocked(scene, start))
         {
             return Failure(scene.Id, NavigationFailure.StartBlocked);
@@ -114,6 +120,99 @@ public sealed class DotRecastNavigationPlanner : INavigationPlanner
             NavigationFailure.None,
             navigation.BuildMilliseconds,
             stopwatch.Elapsed.TotalMilliseconds);
+    }
+
+    private static NavigationPath FindSemanticRiversidePath(
+        SceneDefinition scene,
+        ScenePosition start,
+        ScenePosition goal)
+    {
+        const double cellSize = 0.5;
+        var buildStopwatch = Stopwatch.StartNew();
+        CompiledSemanticWorld compiled = TinyFarmSemanticSpatialScene.Compile();
+        buildStopwatch.Stop();
+        int columns = (int)Math.Ceiling(16 / cellSize);
+        int rows = (int)Math.Ceiling(10 / cellSize);
+        (int X, int Y) startCell = Cell(start);
+        (int X, int Y) goalCell = Cell(goal);
+        if (!IsWalkable(startCell))
+        {
+            return Failure(scene.Id, NavigationFailure.StartBlocked, buildStopwatch.Elapsed.TotalMilliseconds);
+        }
+        if (!IsWalkable(goalCell))
+        {
+            return Failure(scene.Id, NavigationFailure.GoalBlocked, buildStopwatch.Elapsed.TotalMilliseconds);
+        }
+
+        var queryStopwatch = Stopwatch.StartNew();
+        var frontier = new Queue<(int X, int Y)>();
+        var previous = new Dictionary<(int X, int Y), (int X, int Y)>();
+        frontier.Enqueue(startCell);
+        previous[startCell] = startCell;
+        (int X, int Y)[] directions = [(1, 0), (0, 1), (-1, 0), (0, -1)];
+        while (frontier.Count > 0 && !previous.ContainsKey(goalCell))
+        {
+            (int X, int Y) current = frontier.Dequeue();
+            foreach ((int X, int Y) direction in directions)
+            {
+                var next = (current.X + direction.X, current.Y + direction.Y);
+                if (!previous.ContainsKey(next) && IsWalkable(next))
+                {
+                    previous[next] = current;
+                    frontier.Enqueue(next);
+                }
+            }
+        }
+
+        if (!previous.ContainsKey(goalCell))
+        {
+            queryStopwatch.Stop();
+            return Failure(
+                scene.Id,
+                NavigationFailure.NoPath,
+                buildStopwatch.Elapsed.TotalMilliseconds,
+                queryStopwatch.Elapsed.TotalMilliseconds);
+        }
+
+        var cells = new List<(int X, int Y)>();
+        (int X, int Y) cursor = goalCell;
+        while (cursor != startCell)
+        {
+            cells.Add(cursor);
+            cursor = previous[cursor];
+        }
+        cells.Add(startCell);
+        cells.Reverse();
+        ScenePosition[] waypoints = cells
+            .Select(item => new ScenePosition(
+                (int)Math.Round((item.X + 0.5) * cellSize * ScenePosition.UnitsPerTile),
+                (int)Math.Round((item.Y + 0.5) * cellSize * ScenePosition.UnitsPerTile)))
+            .ToArray();
+        waypoints[0] = start;
+        waypoints[^1] = goal;
+        queryStopwatch.Stop();
+        return new NavigationPath(
+            scene.Id,
+            waypoints,
+            NavigationFailure.None,
+            buildStopwatch.Elapsed.TotalMilliseconds,
+            queryStopwatch.Elapsed.TotalMilliseconds);
+
+        (int X, int Y) Cell(ScenePosition position)
+        {
+            return (
+                (int)Math.Floor(position.XUnits / (ScenePosition.UnitsPerTile * cellSize)),
+                (int)Math.Floor(position.YUnits / (ScenePosition.UnitsPerTile * cellSize)));
+        }
+
+        bool IsWalkable((int X, int Y) cell)
+        {
+            if (cell.X < 0 || cell.X >= columns || cell.Y < 0 || cell.Y >= rows)
+            {
+                return false;
+            }
+            return compiled.Navigation[(cell.Y * columns) + cell.X].Walkable;
+        }
     }
 
     private CachedSceneNavigation GetOrBuild(SceneDefinition scene)

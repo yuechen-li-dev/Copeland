@@ -1,4 +1,5 @@
 using Aurelian.Field2D;
+using Aurelian.Spatial2D;
 using Oblivion.Model;
 using TinyFarm.Core;
 
@@ -16,7 +17,8 @@ public sealed class TinyFarmOblivionLiveSurfaces
     public IReadOnlyList<string> RegisteredSurfaceIds { get; } =
     [
         "tinyfarm.live.field",
-        "tinyfarm.live.combat"
+        "tinyfarm.live.combat",
+        "tinyfarm.spatial.m24"
     ];
 
     public OblivionWorkspace Capture()
@@ -25,17 +27,47 @@ public sealed class TinyFarmOblivionLiveSurfaces
         var pageId = new OblivionPageId("tinyfarm.runtime");
         OblivionCard field = FieldCard(workspaceId, pageId);
         OblivionCard combat = CombatCard(workspaceId, pageId);
+        OblivionCard spatial = SpatialCard(workspaceId, pageId);
         var page = new OblivionWorkspacePage(
             pageId,
             "TinyFarm live runtime",
             "Read-only semantic surfaces captured from the running TinyFarm session.",
             ["live", "read-only", "TinyFarm"],
-            [field, combat]);
+            [field, combat, spatial]);
         return new OblivionWorkspace(
             workspaceId,
             "TinyFarm live",
             pageId,
             [new OblivionWorkspaceSection("runtime", "Runtime", [page])]);
+    }
+
+    private static OblivionCard SpatialCard(OblivionWorkspaceId workspaceId, OblivionPageId pageId)
+    {
+        SemanticWorldScene scene = TinyFarmSemanticSpatialScene.Create();
+        CompiledSemanticWorld compiled = TinyFarmSemanticSpatialScene.Compile();
+        string body = string.Join('\n',
+        [
+            $"semantic-scene: {scene.Id}",
+            $"surfaces: {string.Join(", ", scene.Surfaces.Select(item => item.Id))}",
+            $"paths: {string.Join(", ", scene.Paths.Select(item => item.Id))}",
+            $"patches: {string.Join(", ", scene.Patches.Select(item => item.Id))}",
+            $"objects: {string.Join(", ", scene.Objects.Select(item => item.Id))}",
+            $"collision-shapes: {compiled.Collision.Count}",
+            $"interaction-regions: {compiled.Interactions.Count}",
+            $"occlusion-shapes: {compiled.Occlusion.Count}",
+            $"navigation-cells: {compiled.Navigation.Count}",
+            $"presentation-recipes: {string.Join(", ", scene.PresentationRecipes.Select(item => item.Id + "=" + item.AssetId))}",
+            "toggles: surfaces, paths, object-footprints, collision, navigation, occlusion, presentation",
+            "authority: semantic intent -> navigation/collision/occlusion/interaction/presentation",
+        ]);
+        return Card(
+            "tinyfarm.spatial.m24",
+            "TinyFarm M24 semantic spatial scene",
+            OblivionCardStatus.Passing,
+            ["spatial", "surfaces", "paths", "collision", "navigation", "occlusion", "presentation"],
+            body,
+            workspaceId,
+            pageId);
     }
 
     private OblivionCard FieldCard(OblivionWorkspaceId workspaceId, OblivionPageId pageId)

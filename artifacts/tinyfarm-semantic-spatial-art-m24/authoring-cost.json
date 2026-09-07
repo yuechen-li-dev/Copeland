@@ -1,0 +1,42 @@
+[
+  {
+    "edit": "add flower meadow",
+    "filesTouched": 1,
+    "semanticEdits": 1,
+    "generatedAssets": 0,
+    "rendererChanges": 0,
+    "steps": "add WorldPatch \u002B overlay recipe; base image unchanged"
+  },
+  {
+    "edit": "move dirt path",
+    "filesTouched": 1,
+    "semanticEdits": 1,
+    "generatedAssets": 0,
+    "rendererChanges": 0,
+    "steps": "edit centerline; nav labels and native ribbon recompile"
+  },
+  {
+    "edit": "move tree and enlarge canopy",
+    "filesTouched": 1,
+    "semanticEdits": 2,
+    "generatedAssets": 0,
+    "rendererChanges": 0,
+    "steps": "edit transform and occlusion footprint; trunk collision value unchanged"
+  },
+  {
+    "edit": "change collision",
+    "filesTouched": 1,
+    "semanticEdits": 1,
+    "generatedAssets": 0,
+    "rendererChanges": 0,
+    "steps": "edit semantic footprint only; art unchanged"
+  },
+  {
+    "edit": "replace farmhouse art",
+    "filesTouched": 2,
+    "semanticEdits": 1,
+    "generatedAssets": 1,
+    "rendererChanges": 0,
+    "steps": "approve new asset and swap recipe asset ID; semantic object unchanged"
+  }
+]

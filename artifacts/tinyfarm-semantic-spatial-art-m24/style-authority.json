@@ -1,0 +1,26 @@
+{
+  "id": "tinyfarm.painterly-meadow.v1",
+  "palette": [
+    "sage",
+    "moss",
+    "olive",
+    "cream",
+    "muted terracotta",
+    "warm brown",
+    "restrained gold"
+  ],
+  "lighting": "soft warm morning light from upper left",
+  "saturationAndValue": "moderate saturation; broad readable value groups",
+  "brushCharacter": "storybook gouache-like painterly forms with low-frequency environmental variation",
+  "perspective": "fixed orthographic three-quarter top-down 2.5D",
+  "edgeSoftness": "soft environment edges; crisp interaction silhouettes",
+  "shadows": "soft painted static shadows; no collision",
+  "propProportions": "slightly generous readable silhouettes at 48 pixels per meter",
+  "camera": {
+    "id": "tinyfarm.fixed-oblique.v1",
+    "kind": "Oblique",
+    "pixelsPerMeter": 48,
+    "elevationPixelsPerMeter": 18,
+    "shearX": 0.08
+  }
+}

@@ -1,0 +1,65 @@
+[
+  {
+    "id": "path.farmhouse-well-south-gate",
+    "centerline": [
+      {
+        "x": 3.5,
+        "y": 4.2,
+        "z": 0.03,
+        "ground": {
+          "x": 3.5,
+          "y": 4.2
+        }
+      },
+      {
+        "x": 5.1,
+        "y": 4.9,
+        "z": 0.03,
+        "ground": {
+          "x": 5.1,
+          "y": 4.9
+        }
+      },
+      {
+        "x": 6.1,
+        "y": 5.7,
+        "z": 0.03,
+        "ground": {
+          "x": 6.1,
+          "y": 5.7
+        }
+      },
+      {
+        "x": 7.6,
+        "y": 6,
+        "z": 0.03,
+        "ground": {
+          "x": 7.6,
+          "y": 6
+        }
+      },
+      {
+        "x": 8.6,
+        "y": 7.6,
+        "z": 0.03,
+        "ground": {
+          "x": 8.6,
+          "y": 7.6
+        }
+      },
+      {
+        "x": 8.2,
+        "y": 9.7,
+        "z": 0.03,
+        "ground": {
+          "x": 8.2,
+          "y": 9.7
+        }
+      }
+    ],
+    "width": 1.15,
+    "semanticMaterial": "PackedDirt",
+    "traversal": "Walkable",
+    "presentationRecipeId": "dirt-path-overlay"
+  }
+]

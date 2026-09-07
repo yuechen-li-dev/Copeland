@@ -353,7 +353,9 @@ public sealed class TinyFarmProductionFieldM21Tests
         host.Session.Field.Energize(WaterPosition());
         string after = surfaces.Capture().Pages.Single().Cards[0].Body.RawText;
 
-        Assert.Equal(["tinyfarm.live.field", "tinyfarm.live.combat"], surfaces.RegisteredSurfaceIds);
+        Assert.Equal(
+            ["tinyfarm.live.field", "tinyfarm.live.combat", "tinyfarm.spatial.m24"],
+            surfaces.RegisteredSurfaceIds);
         Assert.NotEqual(before, after);
         Assert.Contains("wet-cells: 240", after, StringComparison.Ordinal);
         Assert.Contains("snapshot-version: 1", after, StringComparison.Ordinal);

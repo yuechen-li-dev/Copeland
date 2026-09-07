@@ -2,6 +2,11 @@ namespace Aurelian.Spatial2D;
 
 public sealed class SpatialWorld2D
 {
+    public static bool Overlaps(SpatialShape2D left, SpatialShape2D right)
+    {
+        return SpatialGeometry2D.Overlaps(left, right);
+    }
+
     private readonly SpatialCollider2D[] staticColliders;
     private readonly SpatialTrigger2D[] triggers;
 

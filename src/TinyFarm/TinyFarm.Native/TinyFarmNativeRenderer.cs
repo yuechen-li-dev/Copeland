@@ -15,6 +15,7 @@ using Aurelian.Machina;
 using Aurelian.NativeComposition;
 using Aurelian.Profile.Graphics;
 using Aurelian.Rendering.Contracts.Shaders;
+using Aurelian.Spatial2D;
 using Aurelian.Shaders.Graphics;
 using Copeland.TS.Gpu;
 using Copeland.TS.Gpu.VdMir;
@@ -95,6 +96,8 @@ internal sealed class TinyFarmNativeRenderer : IAurelianHostCompositor
         CompiledGraphicsProgram field = Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/ReactiveFluid2D.v.ts");
         string spriteAtlasPath = Path.Combine(AppContext.BaseDirectory, "Assets", "M11", "tinyfarm-sprite-atlas-source.png");
         TinyFarmSpriteAtlas spriteAtlas = TinyFarmSpriteAtlas.Load(spriteAtlasPath);
+        string m24AssetDirectory = Path.Combine(AppContext.BaseDirectory, "Assets", "M24");
+        TinyFarmM24Assets m24Assets = TinyFarmM24Assets.Load(m24AssetDirectory);
         string profilePath = Path.Combine(AppContext.BaseDirectory, "Assets", "M19", "mossward-tree.profile.tsx");
         ProfileCompositionCompilationResult profileCompilation = ProfileTsxCompiler.CompileComposition(
             File.ReadAllText(profilePath),
@@ -116,6 +119,7 @@ internal sealed class TinyFarmNativeRenderer : IAurelianHostCompositor
             texture,
             field,
             spriteAtlas,
+            m24Assets,
             game,
             () => frame);
         compositor.Add(new TinyFarmNativeLayer(world.Layer, 0), world);
@@ -182,6 +186,7 @@ internal sealed class TinyFarmNativeRenderer : IAurelianHostCompositor
     public long FieldUploadBytes => world.FieldUploadBytes;
     public string SpriteAtlasHash => world.SpriteAtlasHash;
     public SpriteAlphaCleanupFacts SpriteAlphaCleanup => world.SpriteAlphaCleanup;
+    public IReadOnlyDictionary<string, string> M24AssetHashes => world.M24AssetHashes;
 
     public void CaptureNextFrame()
     {
@@ -288,6 +293,7 @@ internal sealed class TinyFarmWorldPresenter(
     CompiledGraphicsProgram textured,
     CompiledGraphicsProgram fieldProgram,
     TinyFarmSpriteAtlas spriteAtlas,
+    TinyFarmM24Assets m24Assets,
     TinyFarmGame game,
     Func<TinyFarmFrame> getFrame) : INativeLayerPresenter
 {
@@ -310,6 +316,7 @@ internal sealed class TinyFarmWorldPresenter(
     private readonly List<WorldSprite> worldSpriteScratch = new(512);
     private readonly List<PreparedWorldSprite> orderedSpriteScratch = new(512);
     private readonly List<WorldSprite> staticTileSprites = new(512);
+    private readonly SemanticWorldScene m24Scene = TinyFarmSemanticSpatialScene.Create();
     private int staticTileWidth = -1;
     private int staticTileHeight = -1;
     private bool staticTileCave;
@@ -325,6 +332,12 @@ internal sealed class TinyFarmWorldPresenter(
     public int SpriteTextureUploads => spriteResources?.TextureUploads ?? 0;
     public string SpriteAtlasHash => spriteAtlas.Resource.ContentHash;
     public SpriteAlphaCleanupFacts SpriteAlphaCleanup => spriteAtlas.AlphaCleanup;
+    public IReadOnlyDictionary<string, string> M24AssetHashes { get; } = new Dictionary<string, string>
+    {
+        ["meadow-slab.png"] = m24Assets.Meadow.ContentHash,
+        ["farmhouse.png"] = m24Assets.Farmhouse.ContentHash,
+        ["tree.png"] = m24Assets.Tree.ContentHash,
+    };
     public int FieldTextureUploads { get; private set; }
     public long FieldUploadBytes { get; private set; }
     public long SnapshotAllocatedBytes => snapshotAllocatedBytes;
@@ -355,6 +368,10 @@ internal sealed class TinyFarmWorldPresenter(
                 InputsAreSrgb: false));
         spriteResources = new NativeSpriteResourceScope(sprites, SpriteSampling.Nearest);
         spriteResources.Resolve(spriteAtlas.Resource);
+        foreach (SpriteAtlasResource resource in m24Assets.Resources)
+        {
+            spriteResources.Resolve(resource);
+        }
         byte[] pixels = game.Host.Session.Field.ProjectRgba8();
         TinyFarmFieldDefinition definition = game.Host.Session.Field.Definition;
         fieldTexture = field.CreateTexture((uint)definition.Width, (uint)definition.Height, pixels);
@@ -393,7 +410,7 @@ internal sealed class TinyFarmWorldPresenter(
             camera.Snapshot(),
             worldScale,
             spriteResources.Get,
-            sprite => playback.Resolve(sprite, spriteAtlas.Metadata, spriteResolver),
+            ResolveFrame,
             orderedSpriteScratch);
         spriteProjectionAllocatedBytes += GC.GetAllocatedBytesForCurrentThread() - spriteProjectionAllocationStart;
         long nativeSubmissionAllocationStart = GC.GetAllocatedBytesForCurrentThread();
@@ -403,6 +420,7 @@ internal sealed class TinyFarmWorldPresenter(
         bool showField = frame.ActiveScene == game.Host.Session.Field.Definition.Scene;
         if (showField)
         {
+            PresentM24Ground(context);
             context.Present(sprites, pass =>
             {
                 foreach (PreparedWorldSprite sprite in ordered)
@@ -414,6 +432,7 @@ internal sealed class TinyFarmWorldPresenter(
                 }
             });
             PresentField(context, frame);
+            PresentM24Bridge(context);
             context.Present(sprites, pass =>
             {
                 foreach (PreparedWorldSprite sprite in ordered)
@@ -522,12 +541,20 @@ internal sealed class TinyFarmWorldPresenter(
     {
         TimeSpan elapsed = TimeSpan.FromSeconds(frameId / 60.0);
         worldSpriteScratch.Clear();
-        EnsureStaticTileSprites(frame.SceneWidth, frame.SceneHeight, cave, house);
-        worldSpriteScratch.AddRange(staticTileSprites);
+        bool semanticRiverside = frame.ActiveScene == TinyFarmSceneIds.Riverside;
+        if (semanticRiverside)
+        {
+            AddM24WorldObjects(elapsed);
+        }
+        else
+        {
+            EnsureStaticTileSprites(frame.SceneWidth, frame.SceneHeight, cave, house);
+            worldSpriteScratch.AddRange(staticTileSprites);
+        }
 
         foreach (TinyFarmSceneObjectView item in frame.SceneObjects ?? [])
         {
-            if (item.Id.Value == "river")
+            if (item.Id.Value == "river" || semanticRiverside && item.Id.Value == "reeds")
             {
                 continue;
             }
@@ -577,6 +604,135 @@ internal sealed class TinyFarmWorldPresenter(
             worldSpriteScratch.Add(Sprite("enemy-" + enemy.Id.Value, "mint", new WorldPoint2(x, y), elapsed, WorldSpriteLayer.Actors, y, new Native2DTint(0.65f, 1, 0.72f, 1)));
         }
         return new WorldPresentationSnapshot(worldSpriteScratch);
+    }
+
+    private void AddM24WorldObjects(TimeSpan elapsed)
+    {
+        worldSpriteScratch.Add(M24Sprite(
+            "m24-farmhouse",
+            m24Assets.Farmhouse.Id,
+            new WorldPoint2(3.2, 3.3),
+            elapsed,
+            feetY: 3.3));
+        AddTree("m24-tree-west", 1.3, 5.25, elapsed, 1.0);
+        AddTree("m24-tree-path", 7.0, 3.1, elapsed, 1.08);
+        AddTree("m24-tree-bank", 8.35, 1.25, elapsed, 1.02);
+        AddTree("m24-tree-south", 6.4, 8.75, elapsed, 0.94);
+        worldSpriteScratch.Add(Sprite(
+            "m24-well",
+            "well",
+            new WorldPoint2(6.25, 5.65),
+            elapsed,
+            WorldSpriteLayer.Actors,
+            5.65,
+            Native2DTint.White));
+        for (int index = 0; index < 5; index++)
+        {
+            double x = 1.0 + index;
+            worldSpriteScratch.Add(Sprite(
+                "m24-fence-" + index,
+                "fence",
+                new WorldPoint2(x, 0.85),
+                elapsed,
+                WorldSpriteLayer.Actors,
+                0.85,
+                Native2DTint.White));
+        }
+    }
+
+    private void AddTree(string stableId, double x, double y, TimeSpan elapsed, double spriteScale)
+    {
+        worldSpriteScratch.Add(M24Sprite(
+            stableId,
+            m24Assets.Tree.Id,
+            new WorldPoint2(x, y),
+            elapsed,
+            y,
+            spriteScale));
+    }
+
+    private WorldSprite M24Sprite(
+        string stableId,
+        SpriteAssetId assetId,
+        WorldPoint2 anchor,
+        TimeSpan elapsed,
+        double feetY,
+        double spriteScale = 1)
+    {
+        return new WorldSprite(
+            new WorldPresentationId(stableId),
+            anchor,
+            assetId,
+            "full",
+            ClipId: null,
+            elapsed,
+            Restart: false,
+            Scale: spriteScale,
+            Native2DTint.White,
+            WorldSpriteLayer.Actors,
+            feetY);
+    }
+
+    private SpriteFrameMetadata ResolveFrame(WorldSprite sprite)
+    {
+        return sprite.AssetId == spriteAtlas.Resource.Id
+            ? playback.Resolve(sprite, spriteAtlas.Metadata, spriteResolver)
+            : m24Assets.Frame(sprite.AssetId);
+    }
+
+    private void PresentM24Ground(NativeLayerFrameContext context)
+    {
+        context.Present(sprites, pass => pass.SubmitQuad(new NativeQuadSubmission(
+            new Native2DRect(left, top, 16 * scale, 10 * scale),
+            Native2DUvRect.Full,
+            spriteResources.Get(m24Assets.Meadow.Id),
+            Native2DTint.White)));
+        context.Present(shapes, pass =>
+        {
+            Tile(pass, 9.12f, 0, 0.76f, 10, 0xA98A61FF, 12);
+            DrawPath(pass);
+            Tile(pass, 2.2f, 6.4f, 3.4f, 2.2f, 0x795A3DE6, 12);
+            for (int row = 0; row < 4; row++)
+            {
+                Tile(pass, 2.45f, 6.7f + row * 0.42f, 2.9f, 0.08f, 0xB68A59FF, 3);
+            }
+            for (int index = 0; index < 15; index++)
+            {
+                float x = 5.55f + ((index * 37) % 20) / 10f;
+                float y = 2.35f + ((index * 19) % 11) / 10f;
+                Tile(pass, x, y, 0.11f, 0.11f, index % 3 == 0 ? 0xF3D38BFF : 0xF4E7C2FF, 6);
+            }
+        });
+    }
+
+    private void DrawPath(VulkanOrderedQuadRenderer pass)
+    {
+        SpatialPoint3D[] points = m24Scene.Paths.Single().Centerline.ToArray();
+        for (int segment = 0; segment < points.Length - 1; segment++)
+        {
+            for (int step = 0; step <= 10; step++)
+            {
+                float amount = step / 10f;
+                float x = (float)(points[segment].X + ((points[segment + 1].X - points[segment].X) * amount));
+                float y = (float)(points[segment].Y + ((points[segment + 1].Y - points[segment].Y) * amount));
+                float irregular = ((segment * 11 + step * 7) % 5 - 2) * 0.025f;
+                Tile(pass, x - 0.58f - irregular, y - 0.58f, 1.16f + irregular * 2, 1.16f, 0xB88D58F2, 28);
+            }
+        }
+    }
+
+    private void PresentM24Bridge(NativeLayerFrameContext context)
+    {
+        context.Present(shapes, pass =>
+        {
+            Tile(pass, 9.22f, 0, 0.20f, 10, 0x78904CFF, 7);
+            Tile(pass, 9.40f, 0, 0.24f, 10, 0xA98A61E8, 8);
+            Tile(pass, 9.2f, 4.25f, 2.4f, 1.5f, 0x8A623FFF, 5);
+            for (int plank = 0; plank < 6; plank++)
+            {
+                Tile(pass, 9.28f + plank * 0.38f, 4.34f, 0.28f, 1.32f, 0xC99A61FF, 3);
+            }
+        });
     }
 
     private void EnsureStaticTileSprites(int width, int height, bool cave, bool house)

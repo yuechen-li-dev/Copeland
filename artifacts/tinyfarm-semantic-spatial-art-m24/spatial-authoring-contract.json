@@ -1,0 +1,18 @@
+{
+  "authority": "semantic spatial intent -\u003E navigation | collision | occlusion | interaction | presentation",
+  "laws": [
+    "art is not collision",
+    "collision is not art",
+    "navigation never inspects pixels or tile IDs",
+    "camera projection does not mutate world truth",
+    "approved art is deterministic runtime input"
+  ],
+  "vocabulary": [
+    "WorldSurface",
+    "WorldPath",
+    "WorldPatch",
+    "WorldObject"
+  ],
+  "coordinateModel": "(x,y,z) meters; planes, footprints, and fixed-camera projection",
+  "tilemapRole": "optional realization for patterns, grids, retro art, modular repetition, and tactical cells"
+}

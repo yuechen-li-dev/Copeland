@@ -1,0 +1,63 @@
+{
+  "tool": "OpenAI built-in image generation",
+  "runtimeGeneration": false,
+  "assets": [
+    {
+      "fileName": "meadow-slab.png",
+      "semanticSubject": "coherent painterly meadow ground slab",
+      "styleId": "tinyfarm.painterly-meadow.v1",
+      "targetDimensions": {
+        "width": 1254,
+        "height": 1254
+      },
+      "intendedCamera": "fixed orthographic three-quarter top-down",
+      "promptSpec": "storybook gouache meadow, top-down, no path/buildings/objects; warm upper-left light; no grid repetition",
+      "source": "OpenAI built-in image generation",
+      "approvedArtifactSha256": "c0222629a63f12067bbe4c78ce7cb864fa263702d875e6cbd4a7b84c6ce987ee",
+      "hasTransparency": false
+    },
+    {
+      "fileName": "farmhouse.png",
+      "semanticSubject": "separately composed farmhouse realization",
+      "styleId": "tinyfarm.painterly-meadow.v1",
+      "targetDimensions": {
+        "width": 1374,
+        "height": 1145
+      },
+      "intendedCamera": "fixed orthographic three-quarter top-down",
+      "promptSpec": "cream plaster and terracotta farmhouse, orthographic three-quarter top-down, transparent background",
+      "source": "OpenAI built-in image generation",
+      "approvedArtifactSha256": "f2334a458c82f5d39c69d8a9220fe7171595f0daa89d30dc5d9dee83fa9f8529",
+      "hasTransparency": true
+    },
+    {
+      "fileName": "tree.png",
+      "semanticSubject": "separately composed tree realization",
+      "styleId": "tinyfarm.painterly-meadow.v1",
+      "targetDimensions": {
+        "width": 1218,
+        "height": 1292
+      },
+      "intendedCamera": "fixed orthographic three-quarter top-down",
+      "promptSpec": "mature deciduous painterly tree, broad canopy and visible trunk, transparent background",
+      "source": "OpenAI built-in image generation",
+      "approvedArtifactSha256": "abf86042eb4ec4497cf7a300488cf7cf5a5c15de73aeddbc2dad2847675c4d6f",
+      "hasTransparency": true
+    },
+    {
+      "fileName": "farmhouse-replacement.png",
+      "semanticSubject": "alternate approved farmhouse realization",
+      "styleId": "tinyfarm.painterly-meadow.v1",
+      "targetDimensions": {
+        "width": 1536,
+        "height": 1024
+      },
+      "intendedCamera": "fixed orthographic three-quarter top-down",
+      "promptSpec": "same semantic farmhouse scale/view/door placement, alternate roof and detailing, transparent background",
+      "source": "OpenAI built-in image generation",
+      "approvedArtifactSha256": "06be80c44f0962e073487ba3e18dc537d0bd9ad263e6a89e9a268916fa4aaec8",
+      "hasTransparency": true
+    }
+  ],
+  "approval": "selected for M24 dogfood; no post-generation pixel edits"
+}

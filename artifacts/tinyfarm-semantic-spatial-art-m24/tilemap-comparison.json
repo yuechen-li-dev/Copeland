@@ -1,0 +1,22 @@
+{
+  "prototype": {
+    "authoredGroundPrimitives": 160,
+    "runtimeGroundSprites": 160,
+    "visualRepetition": "four-cell AB/CD repeating grass pattern",
+    "collisionSource": "SceneLayoutRow rectangles",
+    "navigationSource": "SceneLayoutRow blockers through DotRecast",
+    "editModel": "tile replacement or TileAt policy change"
+  },
+  "semantic": {
+    "authoredSurfaces": 4,
+    "authoredPaths": 1,
+    "authoredPatches": 2,
+    "authoredObjects": 8,
+    "runtimeGroundSlabs": 1,
+    "visualRepetition": "none inside the bounded slab",
+    "collisionSource": "WorldObject collision footprints",
+    "navigationSource": "WorldSurface/path traversal plus WorldObject footprints",
+    "editModel": "one semantic geometry/recipe edit"
+  },
+  "honestTradeoff": "semantic mode adds explicit recipes/provenance and large texture memory, but removes 160 ground sprites and decouples edit domains"
+}

@@ -1,0 +1,30 @@
+{
+  "input": "semantic static scene \u002B approved meadow slab",
+  "output": "static-scene-bake.png",
+  "baked": [
+    "ambient meadow variation",
+    "tiny stones",
+    "minor flowers",
+    "path ribbon",
+    "flower patch",
+    "crop-soil presentation"
+  ],
+  "composed": [
+    "trees",
+    "farmhouse",
+    "fence",
+    "well",
+    "bridge"
+  ],
+  "live": [
+    "player",
+    "NPCs",
+    "reactive water",
+    "crops",
+    "doors",
+    "dropped items",
+    "effects"
+  ],
+  "bakeMilliseconds": 56.8395,
+  "interactiveObjectsBaked": false
+}

@@ -15,6 +15,8 @@ internal static class TinyFarmNativeProof
     public static void RunWindow(TinyFarmGame game, TinyFarmNativeWindow window, AurelianGameHost host)
     {
         host.RunFrame(TimeSpan.Zero);
+        window.InjectFocus(true);
+        host.RunFrame(TimeSpan.Zero);
         window.InjectKey(KeyboardKey.Enter, true);
         host.RunFrame(TimeSpan.FromSeconds(1.0 / 60));
         window.InjectKey(KeyboardKey.Enter, false);

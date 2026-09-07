@@ -1,0 +1,50 @@
+{
+  "scene": "riverside",
+  "dimensions": {
+    "widthTiles": 16,
+    "heightTiles": 10
+  },
+  "classification": [
+    {
+      "mechanism": "SceneDefinition objects/layout and resolver-owned SpatialWorld2D",
+      "category": "A",
+      "note": "semantic gameplay and collision authority"
+    },
+    {
+      "mechanism": "TinyFarmFieldRuntime reactive river",
+      "category": "A",
+      "note": "live semantic water field"
+    },
+    {
+      "mechanism": "WorldPresentationSnapshot and native compositor",
+      "category": "B",
+      "note": "presentation-only projection"
+    },
+    {
+      "mechanism": "TinyFarmAuthoredTileMap and one ground sprite per cell",
+      "category": "C",
+      "note": "tilemap-as-world-looking presentation coupling"
+    },
+    {
+      "mechanism": "sprite identity chosen from SceneObjectKind",
+      "category": "C",
+      "note": "tile/object identity implies appearance"
+    },
+    {
+      "mechanism": "SceneLayoutRow.Layer always zero",
+      "category": "D",
+      "note": "elevation/order implicit in feet-Y"
+    },
+    {
+      "mechanism": "Aurelian.Spatial2D shapes and native Vulkan textured quads",
+      "category": "E",
+      "note": "reused substrate"
+    }
+  ],
+  "artImpliesCollision": "prototype object art and collision share SceneLayoutRow extents",
+  "tileIdentityImpliesGameplay": false,
+  "elevationImplicit": true,
+  "navigationArtCoupled": false,
+  "navigationLayoutCoupled": true,
+  "prototypeGroundTileSprites": 160
+}

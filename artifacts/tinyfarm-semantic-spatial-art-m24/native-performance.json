@@ -1,0 +1,33 @@
+{
+  "path": "TinyFarm.Native -\u003E NativeLayerCompositor -\u003E VulkanOrderedQuadRenderer",
+  "device": "NVIDIA GeForce RTX 3070",
+  "frames": 120,
+  "prototype": {
+    "p50Milliseconds": 6.9429,
+    "p95Milliseconds": 7.2419,
+    "p99Milliseconds": 11.0574,
+    "worstMilliseconds": 43.0345,
+    "drawCalls": 31136,
+    "averageDrawCallsPerFrame": 259.46666666666664,
+    "groundSprites": 160
+  },
+  "semantic": {
+    "p50Milliseconds": 6.9437,
+    "p95Milliseconds": 9.0747,
+    "p99Milliseconds": 11.4761,
+    "worstMilliseconds": 11.884,
+    "drawCalls": 42296,
+    "averageDrawCallsPerFrame": 352.46666666666664,
+    "groundSlabs": 1
+  },
+  "worldSpriteCount": 14,
+  "textureUploads": 4,
+  "fieldTextureUploads": 120,
+  "fieldUploadBytes": 147840,
+  "assetHashes": {
+    "meadow-slab.png": "e163ad4e41cb2a6fbced7728c4e361a0e2ce3acb598c5cc3d4593d4a3a005680",
+    "farmhouse.png": "5733b877246b18f82d5b9a45c1a77e1c2c0a95d078712050541a7e0adde2cde3",
+    "tree.png": "152f3b5f9e15793281ce60e1f7aa207438e16e6dc4f06d1b20c82a305684450d"
+  },
+  "capturedPixelHash": "8eb2089284e6bca92d090638ae7317dc9f341b50b1934108f7ddee40b7db305a"
+}

@@ -7,6 +7,11 @@ public static class TinyFarmSpatialWorldAdapter
     public static SpatialWorld2D BuildStaticWorld(SceneDefinition scene)
     {
         ArgumentNullException.ThrowIfNull(scene);
+        if (scene.Id == TinyFarmSceneIds.Riverside)
+        {
+            return TinyFarmSemanticSpatialScene.BuildCollisionWorld();
+        }
+
         SpatialCollider2D[] colliders = scene.Layout
             .Where(row => scene.Object(row.ObjectId).BlocksMovement)
             .Select(row => new SpatialCollider2D(

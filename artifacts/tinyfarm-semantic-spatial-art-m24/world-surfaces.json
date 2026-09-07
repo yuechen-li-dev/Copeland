@@ -1,0 +1,102 @@
+[
+  {
+    "id": "surface.meadow",
+    "boundary": [
+      {
+        "x": 0,
+        "y": 0
+      },
+      {
+        "x": 9.5,
+        "y": 0
+      },
+      {
+        "x": 9.5,
+        "y": 10
+      },
+      {
+        "x": 0,
+        "y": 10
+      }
+    ],
+    "elevation": 0,
+    "semanticMaterial": "Meadow",
+    "traversal": "Walkable",
+    "presentationRecipeId": "meadow-slab"
+  },
+  {
+    "id": "surface.river",
+    "boundary": [
+      {
+        "x": 9.5,
+        "y": 0
+      },
+      {
+        "x": 16,
+        "y": 0
+      },
+      {
+        "x": 16,
+        "y": 10
+      },
+      {
+        "x": 9.5,
+        "y": 10
+      }
+    ],
+    "elevation": -0.18,
+    "semanticMaterial": "WaterSurface",
+    "traversal": "Restricted",
+    "presentationRecipeId": "water-live"
+  },
+  {
+    "id": "surface.bridge-deck",
+    "boundary": [
+      {
+        "x": 9.2,
+        "y": 4.25
+      },
+      {
+        "x": 11.6,
+        "y": 4.25
+      },
+      {
+        "x": 11.6,
+        "y": 5.75
+      },
+      {
+        "x": 9.2,
+        "y": 5.75
+      }
+    ],
+    "elevation": 0.35,
+    "semanticMaterial": "TimberDeck",
+    "traversal": "Bridge",
+    "presentationRecipeId": "fence-profile"
+  },
+  {
+    "id": "surface.crop-plot",
+    "boundary": [
+      {
+        "x": 2.2,
+        "y": 6.4
+      },
+      {
+        "x": 5.6,
+        "y": 6.4
+      },
+      {
+        "x": 5.6,
+        "y": 8.600000000000001
+      },
+      {
+        "x": 2.2,
+        "y": 8.600000000000001
+      }
+    ],
+    "elevation": 0.02,
+    "semanticMaterial": "CultivatedSoil",
+    "traversal": "Walkable",
+    "presentationRecipeId": "crop-live"
+  }
+]

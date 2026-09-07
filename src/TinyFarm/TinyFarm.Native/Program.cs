@@ -23,7 +23,8 @@ internal static class Program
     {
         string root = FindRoot();
         int soakFrames = ParseSoakFrames(args);
-        bool proof = args.Contains("--proof", StringComparer.Ordinal) || soakFrames > 0;
+        bool m24Proof = args.Contains("--m24-proof", StringComparer.Ordinal);
+        bool proof = args.Contains("--proof", StringComparer.Ordinal) || m24Proof || soakFrames > 0;
         string saveRoot = proof ? Path.Combine(root, "artifacts", "validation", "m9-saves")
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TinyFarm", "saves");
         try
@@ -62,6 +63,11 @@ internal static class Program
             if (soakFrames > 0)
             {
                 TinyFarmNativeSoak.Run(root, soakFrames, game, renderer, host);
+                return 0;
+            }
+            if (m24Proof)
+            {
+                TinyFarmM24NativeProof.Run(root, game, renderer, host);
                 return 0;
             }
             if (proof)
@@ -229,6 +235,11 @@ internal sealed class TinyFarmNativeWindow : IAurelianGameWindow
     internal void InjectKey(KeyboardKey key, bool down)
     {
         input.RecordButton(global::InputMan.Core.Controls.Key(key), down);
+    }
+
+    internal void InjectFocus(bool isFocused)
+    {
+        OnFocusChanged(isFocused);
     }
 
     public void Dispose()
