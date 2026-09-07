@@ -1,0 +1,35 @@
+{
+  "unitCount": 5,
+  "stressColliders": 256,
+  "selectionQuery": {
+    "iterations": 1000,
+    "millisecondsPerOperation": 0.0648193,
+    "managedBytesPerOperation": 4168
+  },
+  "simulationUpdate": {
+    "iterations": 300,
+    "millisecondsPerOperation": 0.014739666666666667,
+    "managedBytesPerOperation": 3113
+  },
+  "fogUpdate": {
+    "iterations": 500,
+    "millisecondsPerOperation": 0.0167834,
+    "managedBytesPerOperation": 240
+  },
+  "semanticMinimapProjectionAndRender": {
+    "iterations": 100,
+    "millisecondsPerOperation": 0.199848,
+    "managedBytesPerOperation": 416
+  },
+  "cachedVectorAssetRender": {
+    "iterations": 100,
+    "millisecondsPerOperation": 0.053034,
+    "managedBytesPerOperation": 0
+  },
+  "vectorAndHudAndMinimapRender": {
+    "iterations": 30,
+    "millisecondsPerOperation": 7.303296666666666,
+    "managedBytesPerOperation": 70970
+  },
+  "limitation": "CPU proof; render includes output bitmap allocation, cached HUD, vectors and semantic minimap. GPU and large army performance unqualified."
+}

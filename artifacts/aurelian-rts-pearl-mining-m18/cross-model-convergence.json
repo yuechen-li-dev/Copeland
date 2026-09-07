@@ -1,0 +1,30 @@
+{
+  "allSix": [
+    "point/box selection",
+    "context command",
+    "carry/dropoff economy",
+    "production",
+    "visible vs explored",
+    "semantic minimap",
+    "procedural art"
+  ],
+  "partial": {
+    "controlGroups": [
+      "Fable",
+      "Opus"
+    ],
+    "combat": [
+      "Fable",
+      "Opus",
+      "Qwen",
+      "Kimi"
+    ],
+    "isometric": [
+      "Astra"
+    ],
+    "save": [
+      "Astra"
+    ]
+  },
+  "interpretation": "Convergence is evidence of recurring problems, not proof of design quality or independent invention; shared benchmark prompts confound model-family claims."
+}

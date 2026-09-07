@@ -1,0 +1,18 @@
+{
+  "Passed": true,
+  "Checks": [
+    "Ranger recruitment reserves crystal and completes through production ticks.",
+    "Ranger selection and control-group recall preserve the live unit ID.",
+    "Ranger moves through the ordinary MoveOrder and attacks beyond soldier range.",
+    "Invalid target, fog, ownership, position and gather orders reject without semantic mutation.",
+    "Worker harvests wood and deposits it into wood stock through the existing HFSM.",
+    "Switching resource orders deposits existing cargo without changing its resource kind.",
+    "All three accepted/rejected intent tapes replay to identical semantic hashes."
+  ],
+  "RangedHash": "2AFBDFDF42DBC0AFDD12089FC02AF29E1544845E50DB96BF6C4899B4D89305E6",
+  "WoodHash": "2580C8E6ADD8DEF298B89C8759AA885CBBC061BC6DBC8F7BD185F34AD37CC7CC",
+  "SwitchedCargoHash": "4E525A04E1C27AA8FC184E78439FF9E1BAAD6481085650C029F4F8A0653E75CA",
+  "WoodDeposited": 10,
+  "SwitchedWoodDeposited": 2,
+  "CrystalDepositedAfterSwitch": 10
+}

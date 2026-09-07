@@ -1,0 +1,96 @@
+{
+  "method": "Physical source lines, including comments/blank lines; no generated bin/obj. Unequal product scopes, not a controlled productivity experiment.",
+  "benchmarks": [
+    {
+      "model": "Fable",
+      "wholeHtmlLines": 1445,
+      "wholeHtmlBytes": 92500
+    },
+    {
+      "model": "Opus",
+      "wholeHtmlLines": 3058,
+      "wholeHtmlBytes": 128241
+    },
+    {
+      "model": "Astra",
+      "wholeHtmlLines": 384,
+      "wholeHtmlBytes": 87612
+    },
+    {
+      "model": "Sol",
+      "wholeHtmlLines": 746,
+      "wholeHtmlBytes": 51067
+    },
+    {
+      "model": "Qwen",
+      "wholeHtmlLines": 2531,
+      "wholeHtmlBytes": 100515
+    },
+    {
+      "model": "Kimi",
+      "wholeHtmlLines": 1293,
+      "wholeHtmlBytes": 58892
+    }
+  ],
+  "aurelian": {
+    "sampleCSharpIncludingProofs": {
+      "files": 12,
+      "physicalLines": 2120
+    },
+    "profileArt": {
+      "files": 10,
+      "physicalLines": 177
+    },
+    "newSharedCSharp": {
+      "files": 4,
+      "physicalLines": 317
+    },
+    "newTests": {
+      "files": 2,
+      "physicalLines": 143
+    }
+  },
+  "existingRuntimeTouched": [
+    {
+      "file": "src/Machina.UI/Machina.Pipeline/MachinaPresentationPipeline.cs",
+      "change": "7-line forwarding overload, preserving existing entry point"
+    }
+  ],
+  "systemsReconstructed": {
+    "inputMapper": 0,
+    "cadenceScheduler": 0,
+    "hfsmRuntime": 0,
+    "spatialQueryEngine": 0,
+    "layoutEngine": 0,
+    "vectorCompiler": 0
+  },
+  "newMechanisms": [
+    "generic selection/group storage",
+    "integer disk visibility",
+    "diamond projection",
+    "bounded HUD profile",
+    "sample native vector adapter"
+  ],
+  "secondFeatureLocality": [
+    {
+      "feature": "ranger + wood",
+      "agentMinutesApproximate": 8,
+      "sharedEngineEdits": 0,
+      "detail": "Sample model/behavior/proof; root wired content into native input and HUD."
+    },
+    {
+      "feature": "farming restyle",
+      "agentMinutesApproximate": 4,
+      "simulationEdits": 0,
+      "detail": "One presentation fixture; root exposed shared copy after fresh-use friction."
+    },
+    {
+      "feature": "watchtower + ranger art",
+      "agentMinutesApproximate": 3,
+      "assetLinesAtHandoff": 53,
+      "compilerRendererEdits": 0
+    }
+  ],
+  "inferenceCostSavedMeasured": false,
+  "benefit": "Local extension through existing owners is demonstrated. Absolute time, LOC and inference savings versus rebuilding are not measured."
+}

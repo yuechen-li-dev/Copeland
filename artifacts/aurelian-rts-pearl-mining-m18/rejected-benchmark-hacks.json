@@ -1,0 +1,37 @@
+[
+  {
+    "pattern": "Global state/one-file dispatch",
+    "source": "all six",
+    "replacement": "owner modules plus typed intents and authoritative session"
+  },
+  {
+    "pattern": "Occupant teleport on build",
+    "source": "Fable placeBuilding",
+    "replacement": "reject overlapping footprint before charge"
+  },
+  {
+    "pattern": "Permit occupied building footprint",
+    "source": "Opus canPlaceAt",
+    "replacement": "validate transient units as well as buildings"
+  },
+  {
+    "pattern": "Frame-delta work remainder loss",
+    "source": "Astra work=0; Opus trainT=0; Fable shift queue",
+    "replacement": "integer semantic ticks and cadence partition proof"
+  },
+  {
+    "pattern": "Unseeded random state",
+    "source": "Qwen rand; Kimi rand",
+    "replacement": "authored deterministic map; deterministic appearance hash"
+  },
+  {
+    "pattern": "DOM/callback-owned semantic mutation",
+    "source": "all six input/UI handlers",
+    "replacement": "InputMan logical frame -> validated intent"
+  },
+  {
+    "pattern": "Render/animation consumes game RNG",
+    "source": "mixed presentation/model generators",
+    "replacement": "appearance independent from semantic state"
+  }
+]

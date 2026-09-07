@@ -1,0 +1,38 @@
+{
+  "milestone": "M18",
+  "proof": "fresh-context-system-and-mechanic-extension",
+  "status": "passed-real-session-and-replay",
+  "baseline": "Subagent extension exercise on the current sample; not an independent baseline measurement.",
+  "changes": [
+    "Ranger uses existing production, move, attack, selection and control-group paths with 4.2 range.",
+    "Wood uses existing resource nodes, GatherOrder and Dominatus harvest/return phases.",
+    "Typed cargo kind preserves wood/crystal balances when orders change.",
+    "Building/dropoff reach clears the existing AABB collision footprint."
+  ],
+  "touchedFiles": [
+    "samples/Integrations/Aurelian.StrategyDemo/StrategyModel.cs",
+    "samples/Integrations/Aurelian.StrategyDemo/WorkerBehaviors.cs",
+    "samples/Integrations/Aurelian.StrategyDemo/FreshSystemProof.cs",
+    "artifacts/aurelian-rts-pearl-mining-m18/fresh-system-extension.json"
+  ],
+  "locality": "Sample-local semantic model, existing behavior phases and focused proof only; no shared engine, rendering or input rewrites.",
+  "tests": {
+    "cases": [
+      "Ranger production/move/ranged combat",
+      "Selection/control-group recall",
+      "Rejected orders preserve semantic hash",
+      "Wood harvest/dropoff",
+      "Cargo-kind preservation on resource switch",
+      "Deterministic intent replay"
+    ],
+    "entrypoint": "FreshSystemProof.Run()",
+    "status": "passed",
+    "evidence": "fresh-system-proof.json"
+  },
+  "effort": {
+    "approximateAddedSourceLines": 235,
+    "approximateModifiedExistingSourceLines": 18,
+    "approximateElapsedMinutes": 8
+  },
+  "rootIntegration": "Native F action, resource-strip projection, ranger asset mapping and additional boundary regressions; no shared engine reconstruction."
+}

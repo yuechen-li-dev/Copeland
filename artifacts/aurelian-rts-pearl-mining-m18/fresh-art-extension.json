@@ -1,0 +1,50 @@
+{
+  "exercise": "M18 fresh-context procedural art extension",
+  "authoringAuthority": "ordinary Copeland Profile source compiled to canonical Profile contours",
+  "freshContext": "Independent bounded agent received only the asset toolkit location, existing compile path, and extension constraints.",
+  "assets": [
+    {
+      "id": "watchtower",
+      "source": "samples/Integrations/Aurelian.StrategyDemo/Assets/watchtower.profile.tsx",
+      "description": "Stone watchtower with narrow openings, observation shelter, roof, and signal pennant",
+      "templatesReused": [
+        "Shadow",
+        "Block",
+        "Roof",
+        "Paint"
+      ],
+      "addedLines": 44,
+      "sourceSha256": "255B15EE7D5EA9907E9C907735E0D95E105087AFC0120BD5ABC88917C1C54B19",
+      "compositionHash": "f8f2cbea08a23f9ebdbf943b634582e5bc7088d87e0a80da92be2b7b61dd95c1"
+    },
+    {
+      "id": "ranger",
+      "source": "samples/Integrations/Aurelian.StrategyDemo/Assets/ranger.profile.tsx",
+      "description": "Light figure variant with local scouting palette",
+      "templatesReused": [
+        "Figure"
+      ],
+      "addedLines": 9,
+      "sourceSha256": "BBA5E13D06F1478731574A68F968BDC96FFABA7FAD1357BCB656731DACB80C55",
+      "compositionHash": "2bbd62511f3f2d176f27598df4affc8b392809a5d0eb5dc1cba371d7ef69fb68"
+    }
+  ],
+  "locality": {
+    "newAssetFiles": 2,
+    "sharedToolkitEdits": 0,
+    "compilerEdits": 0,
+    "runtimeEdits": 0,
+    "rendererEdits": 0,
+    "svgParserEdits": 0,
+    "canvas2dUsage": false,
+    "vulkanEdits": 0
+  },
+  "elapsedAuthoringMinutesApproximate": 3,
+  "validation": {
+    "compileStatus": "passed ProfileTsxCompiler.CompileComposition",
+    "renderStatus": "passed same StrategyAssets.Draw used by native world/portrait",
+    "artifact": "vector-asset-pack.png",
+    "registryEditsNeeded": 0,
+    "visualInspection": "Watchtower and ranger visible in inspected asset pack"
+  }
+}

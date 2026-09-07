@@ -1,0 +1,27 @@
+{
+  "source": "https://senko.net/vibecode-bench/2026/rts-gpt-6-astra.html",
+  "mechanism": "Canvas2D world paths plus inline SVG UI symbols; generated canvas portraits reused from world draw functions; CSS chrome",
+  "primitives": [
+    "polygon",
+    "ellipse",
+    "line",
+    "isoBox",
+    "gabled roof",
+    "translate/scale/rotate",
+    "alpha",
+    "faceted canopy",
+    "repeated roof seams"
+  ],
+  "projection": "screen diamond: ((x-y)*TW/2,(x+y)*TH/2), then camera; inverse used for input",
+  "palette": "muted green field and panel, cream masonry, terracotta/teal roofs, restrained gold commands",
+  "hierarchy": "resource header; upper-left objective card; lower selection/commands/build/minimap dock; low-contrast keyboard footer",
+  "fog": "semantic explored/visible plus presentation visionStrength; softened composited mask",
+  "reexpression": "Copeland named Profile layers + typed palette templates; Machina semantic HUD; Aurelian camera/isometric transform",
+  "notReproduced": [
+    "soft fog mask",
+    "full responsive breakpoints",
+    "roof seam density",
+    "animated unit gait",
+    "SVG icon set"
+  ]
+}

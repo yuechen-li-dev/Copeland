@@ -1,0 +1,170 @@
+{
+  "milestone": "AURELIAN-RTS-PEARL-MINING-M18",
+  "kind": "cross-model-benchmark-architecture-mining",
+  "outcome": "B",
+  "corpusCompared": true,
+  "fableOpusSystemsMined": true,
+  "astraWilderlandPresentationMined": true,
+  "wilderlandVisualProofQualified": false,
+  "proceduralVectorArtQualified": true,
+  "proceduralVectorArtScope": "Canonical flat-fill Profile proof pack through sample CPU adapter; production GPU/atlas/card integration unqualified",
+  "strategySelectionQualified": true,
+  "strategyOrdersQualified": true,
+  "strategyOrdersScope": "App-owned move/stop/gather/build/attack/produce; no attack-move, rally or cancellation",
+  "strategyHudQualified": true,
+  "minimapQualified": true,
+  "minimapReusableLibraryQualified": false,
+  "fogQualified": true,
+  "fogScope": "Bounded single-faction integer disk visibility/exploration; no occlusion or soft fog",
+  "benchmarkCodePortedWholesale": false,
+  "benchmarkHacksRejected": true,
+  "reusableConceptsIntegrated": true,
+  "compoundingBenefitMeasured": true,
+  "compoundingMeasurementScope": "Source-size/locality measurements; no controlled time or inference-cost savings",
+  "nativeLaunchQualified": true,
+  "deterministicProofQualified": true,
+  "deferredSeam": "Reusable canonical Profile composition realization/preview with supported-paint validation, second native consumer and visual polish parity",
+  "report": "docs/milestones/aurelian-rts-pearl-mining-m18-report.md",
+  "artifacts": [
+    {
+      "name": "compounding-benefit.json",
+      "bytes": 2551,
+      "sha256": "f2669e08800c0b2090b17833d342a8197c2787a03d3142d91e772e9184b73075"
+    },
+    {
+      "name": "concept-classification.json",
+      "bytes": 15231,
+      "sha256": "cf31297493ee2f61082cc3c1a73feb60ad5d20452f75321cce73e6f5d2867b83"
+    },
+    {
+      "name": "corpus-audit.json",
+      "bytes": 23327,
+      "sha256": "172cdc37ec5e555e11a01638f464b93bfd3175da776de4f496c46490b584af1c"
+    },
+    {
+      "name": "cross-model-convergence.json",
+      "bytes": 631,
+      "sha256": "6eeca4a51ff51227681777f2c050f7896bce3f27eaab64a94035e68d812a0bb1"
+    },
+    {
+      "name": "deterministic-proof.json",
+      "bytes": 585,
+      "sha256": "145fed5e8903a2e4488e608c4f1cd023cafdac06369c0e6f97edf2f712075d39"
+    },
+    {
+      "name": "diff-stat.json",
+      "bytes": 6005,
+      "sha256": "2d3fc41839a0c624b88c7a78a9f157387a2719b10d1f992b956e2e78b1b73873"
+    },
+    {
+      "name": "forest-farming-restyle.png",
+      "bytes": 125445,
+      "sha256": "8cca49342477e1fe0a72455e633c0baf81df9c96fc4d8cd759b85335dacc4eed"
+    },
+    {
+      "name": "fresh-art-extension.json",
+      "bytes": 1962,
+      "sha256": "57eae2c265ddb8d193f3ed50beb86e4ba77efe744107faa22e03334d5b4ae14c"
+    },
+    {
+      "name": "fresh-presentation-extension.json",
+      "bytes": 1690,
+      "sha256": "fa2d522646cfedb0b29071d8f25ed4430bf15a0bf021a50a9a2587e2bf916aa8"
+    },
+    {
+      "name": "fresh-presentation-proof.json",
+      "bytes": 448,
+      "sha256": "7b87d8fa2a6e63e29645ca32ad3924b1b2997324c1d4c42ba88e3697a4cb74dd"
+    },
+    {
+      "name": "fresh-system-extension.json",
+      "bytes": 1794,
+      "sha256": "4f90b4ab993867da1ed6f215a54bd2dde9a6d4f8ae0ce097d9939e9ef7d55b31"
+    },
+    {
+      "name": "fresh-system-proof.json",
+      "bytes": 1012,
+      "sha256": "08434f59263eb58e580186fb41d7abc7849d9a6a4f416dd75397749eda610d21"
+    },
+    {
+      "name": "native-launch-frame.png",
+      "bytes": 111219,
+      "sha256": "18317bfc504b57516a3d35bc3f13a4a66e17f2ac51ef6f0020f13efef2e21937"
+    },
+    {
+      "name": "native-launch.json",
+      "bytes": 245,
+      "sha256": "c41f7bf87f336e622aeee1aab369cf059182d3e9e8edadae1f3e063629f6efb0"
+    },
+    {
+      "name": "ownership-map.json",
+      "bytes": 5193,
+      "sha256": "ce6ba4a3c80a984c4f653f494f2a000982560d4373437885903e13da810ecfad"
+    },
+    {
+      "name": "performance.json",
+      "bytes": 1072,
+      "sha256": "5ee075d5326473731762d15167a8b2d84f6a5719e74162badd1943430190b02d"
+    },
+    {
+      "name": "procedural-art-capabilities.json",
+      "bytes": 937,
+      "sha256": "4b7ba0beac558716a2868edab99d808f1f2215b888e7742d3c1a6e50319fd8d6"
+    },
+    {
+      "name": "rejected-benchmark-hacks.json",
+      "bytes": 1231,
+      "sha256": "6f4b59aee83a254639e55879169052dc036976d8e418f5db249c68705a6f14a1"
+    },
+    {
+      "name": "strategy-sample-build.png",
+      "bytes": 112290,
+      "sha256": "aef23a01fa9fcc52afe12b43d6a2529c54c61c2856ffde4185f1c4246ecf8640"
+    },
+    {
+      "name": "strategy-sample-main.png",
+      "bytes": 111219,
+      "sha256": "18317bfc504b57516a3d35bc3f13a4a66e17f2ac51ef6f0020f13efef2e21937"
+    },
+    {
+      "name": "strategy-sample-minimap.png",
+      "bytes": 107120,
+      "sha256": "19e043f09b59de4b1caab84c46426470dcf31fcd0aef43109ad91bbfa9c8814b"
+    },
+    {
+      "name": "strategy-sample-selection.png",
+      "bytes": 106633,
+      "sha256": "1769a9ef465e64389a2ab3f266b104437603e14f4262add01aff50849ec1a9b1"
+    },
+    {
+      "name": "strategy-system-map.json",
+      "bytes": 794,
+      "sha256": "bfbd09dc0b2815b94b4c720bd68c758ace71d09573a54a9f89c98db97151086e"
+    },
+    {
+      "name": "validation.json",
+      "bytes": 4902,
+      "sha256": "26d00f54249e924438732900e9145ecb9a1e796f0884691f5d02e69adfb3dc44"
+    },
+    {
+      "name": "vector-asset-hashes.json",
+      "bytes": 735,
+      "sha256": "a417b87b27cea9945cab5b21d5914864f258217bd3e0f1f1cdec5a1e17368b9c"
+    },
+    {
+      "name": "vector-asset-pack.png",
+      "bytes": 50111,
+      "sha256": "ac4e6de44a6fade1e5271a602a0949371f1b72545a496c73ed55ba762023a914"
+    },
+    {
+      "name": "wilderland-art-audit.json",
+      "bytes": 1157,
+      "sha256": "db61ec3e515650d31431e6513d87b654f3c513c5affeb257a08708f9939129b3"
+    },
+    {
+      "name": "wilderland-style-proof.png",
+      "bytes": 127166,
+      "sha256": "f858f3a18c1b43463212f6e315ae5a9a2402c50a8c60a3ea68da9bf4df3839c2"
+    }
+  ]
+}

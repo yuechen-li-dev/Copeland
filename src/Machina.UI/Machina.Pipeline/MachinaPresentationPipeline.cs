@@ -23,10 +23,15 @@ public sealed class MachinaPresentationPipeline
 
     public MachinaPreparedPresentation Prepare(UiNode ui, int width, int height)
     {
+        return Prepare(ui, width, height, null);
+    }
+
+    public MachinaPreparedPresentation Prepare(UiNode ui, int width, int height, UiLoweringOptions? options)
+    {
         ArgumentNullException.ThrowIfNull(ui);
         ValidateDimensions(width, height);
 
-        UiLoweringResult lowering = UiLowerer.Lower(ui);
+        UiLoweringResult lowering = UiLowerer.Lower(ui, options);
         LayoutDocument document = LayoutCompiler.CompileLayoutRows(lowering.Rows);
 
         var rootRect = new Rect(0, 0, width, height);

@@ -1,0 +1,11 @@
+{
+  "Consumer": "Farming facts projected through StrategyHudSnapshot",
+  "ResolvedNodeCount": 105,
+  "PanelCount": 18,
+  "TextCount": 34,
+  "ChangedPanelColors": 18,
+  "ChangedTextColors": 34,
+  "IdenticalNodeIdsAndRectangles": true,
+  "IdenticalTextAndOperationOrder": true,
+  "ScopeLimit": "Presentation fixture only; farming facts, captions, controls and style are supplied by the application. No farming simulation is implemented."
+}

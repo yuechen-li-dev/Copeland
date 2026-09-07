@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" />
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Strategy/Aurelian.Strategy.csproj" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Spatial2D/Aurelian.Spatial2D.csproj" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Simulation/Aurelian.Simulation.csproj" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Rendering.Raster/Aurelian.Rendering.Raster.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.GameWorld2D/Aurelian.GameWorld2D.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Machina/Aurelian.Machina.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Pipeline/Machina.Pipeline.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Fonts/Machina.Fonts.csproj" />
+    <ProjectReference Include="../../../src/Integrations/InputMan.Aurelian/InputMan.Aurelian.csproj" />
+    <ProjectReference Include="../../../src/Copeland/Copeland.TS/Copeland.TS.csproj" />
+    <ProjectReference Include="../../../../Dominatus/src/Dominatus.Core/Dominatus.Core.csproj" />
+    <ProjectReference Include="../../../../Dominatus/src/Dominatus.OptFlow/Dominatus.OptFlow.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Assets/*.ts*" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../tests/Machina.UI/Machina.Fonts.Tests/Fixtures/Fonts/*.ttf" Link="Assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../tests/Machina.UI/Machina.Fonts.Tests/Fixtures/Fonts/*.LICENSE.txt" Link="Assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

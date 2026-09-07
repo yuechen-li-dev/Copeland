@@ -1,0 +1,9 @@
+{
+  "input": "Avalonia callbacks -> AurelianInputAdapter -> InputManEngine -> StrategyInput -> StrategyIntent",
+  "orders": "StrategySession validation -> accepted UnitOrder -> Dominatus HFSM -> staged proposals sorted by ID -> session mutation",
+  "time": "host delta -> CadenceScheduler -> AdvanceIntent -> 10Hz world and 2Hz reveal",
+  "presentation": "session facts -> StrategyHudSnapshot -> Machina nodes -> Aurelian CPU panels + Machina direct-outline text; Profile contours -> cached Skia paths",
+  "camera": "world -> IsometricProjection -> Camera2D -> screen; inverse for input",
+  "minimap": "visibility grid + semantic unit/resource positions + inverse camera viewport; camera intent only",
+  "save": "in-memory semantic tape replay only; no Deliverance envelope claimed"
+}

@@ -1,0 +1,430 @@
+{
+  "classes": {
+    "A": "already solved by existing JTF owner",
+    "B": "bounded reusable gap integrated",
+    "C": "app/sample policy",
+    "D": "implementation pattern rejected"
+  },
+  "concepts": [
+    {
+      "concept": "Simulation loop",
+      "observations": {
+        "Fable": "frame dt cap; update",
+        "Opus": "frame dt cap .05; tick",
+        "Astra": "frame dt cap .06; update",
+        "Sol": "frame dt cap .05; loop",
+        "Qwen": "dt update and speed modes",
+        "Kimi": "dt update"
+      },
+      "category": "A",
+      "owner": "Aurelian.Simulation",
+      "decision": "Existing integer CadenceScheduler; sample uses 10 Hz with 2 Hz reveal."
+    },
+    {
+      "concept": "World/map model",
+      "observations": {
+        "Fable": "typed tile arrays / noise",
+        "Opus": "terrain/passable/blocked arrays",
+        "Astra": "48x48 terrain / nodes",
+        "Sol": "continuous top-down / fog cells",
+        "Qwen": "tile arrays / blockers",
+        "Kimi": "tile arrays / blockers"
+      },
+      "category": "C",
+      "owner": "sample-local",
+      "decision": "24x24 authored proof; application owns terrain meaning."
+    },
+    {
+      "concept": "Unit/building model",
+      "observations": {
+        "Fable": "definitions plus mutable records",
+        "Opus": "definitions plus mutable records",
+        "Astra": "unit/building definitions",
+        "Sol": "TYPES plus records",
+        "Qwen": "definitions plus records",
+        "Kimi": "COSTS plus records"
+      },
+      "category": "C",
+      "owner": "sample-local",
+      "decision": "Typed IDs, unit/resource kinds and authoritative records."
+    },
+    {
+      "concept": "Economy",
+      "observations": {
+        "Fable": "gold/wood carry/dropoff",
+        "Opus": "gold/wood return/retarget",
+        "Astra": "gold/wood carry; sawmill bonus",
+        "Sol": "aether cargo/dropoff",
+        "Qwen": "gold/wood cargo phases",
+        "Kimi": "gold/wood cargo phases"
+      },
+      "category": "C",
+      "owner": "sample-local + Dominatus",
+      "decision": "Crystal plus fresh wood; cargo kind preserved; no economy framework."
+    },
+    {
+      "concept": "Point selection",
+      "observations": {
+        "Fable": "nearest unit then building",
+        "Opus": "unit/building/resource priority",
+        "Astra": "screen-space silhouette hit",
+        "Sol": "entity radius hit",
+        "Qwen": "pickAt handlers",
+        "Kimi": "pickAt / selectSingle"
+      },
+      "category": "A",
+      "owner": "Aurelian.Spatial2D",
+      "decision": "Existing PointQuery/Overlap; sample uses overlap plus eligibility."
+    },
+    {
+      "concept": "Box selection",
+      "observations": {
+        "Fable": "owned units / additive",
+        "Opus": "units; building fallback",
+        "Astra": "projected screen rectangle",
+        "Sol": "selected entity set",
+        "Qwen": "world-space box",
+        "Kimi": "boxSelect"
+      },
+      "category": "A",
+      "owner": "Aurelian.Spatial2D",
+      "decision": "World AABB broad query then isometric screen filter."
+    },
+    {
+      "concept": "Selection identity",
+      "observations": {
+        "Fable": "object references",
+        "Opus": "objects + selected flags",
+        "Astra": "kind/id records",
+        "Sol": "objects + selected flags",
+        "Qwen": "selected object array",
+        "Kimi": "unit selection + building slot"
+      },
+      "category": "B",
+      "owner": "Aurelian kit/profile",
+      "decision": "EntitySelection<TId> owns sorted detached snapshots, filtering and groups."
+    },
+    {
+      "concept": "Shift/double-click",
+      "observations": {
+        "Fable": "shift toggle; viewport type set",
+        "Opus": "shift toggle; viewport type set",
+        "Astra": "shift toggle; all type",
+        "Sol": "shift union; no double-click handler found",
+        "Qwen": "shift; same type",
+        "Kimi": "shift; same type"
+      },
+      "category": "C",
+      "owner": "sample-local",
+      "decision": "Input controller chooses toggle/add and same-kind scope."
+    },
+    {
+      "concept": "Control groups",
+      "observations": {
+        "Fable": "Ctrl digits; double recall centers",
+        "Opus": "Ctrl 1..9; recall",
+        "Astra": "not found",
+        "Sol": "not found",
+        "Qwen": "not found",
+        "Kimi": "not found"
+      },
+      "category": "B",
+      "owner": "Aurelian kit/profile",
+      "decision": "Stable group storage/pruning; sample binds groups 1..3."
+    },
+    {
+      "concept": "Context right-click",
+      "observations": {
+        "Fable": "move/gather/build/attack/rally",
+        "Opus": "move/harvest/build/dropoff/attack/rally",
+        "Astra": "move/gather/build/rally",
+        "Sol": "move/gather",
+        "Qwen": "move/gather/build/attack/rally",
+        "Kimi": "move/gather/build/attack/rally"
+      },
+      "category": "C",
+      "owner": "sample-local",
+      "decision": "Typed orders, all-target validation; application retains command policy."
+    },
+    {
+      "concept": "Move / stop",
+      "observations": {
+        "Fable": "both",
+        "Opus": "both",
+        "Astra": "both",
+        "Sol": "both",
+        "Qwen": "both + hold",
+        "Kimi": "move; state clear"
+      },
+      "category": "A",
+      "owner": "Dominatus + Aurelian.Spatial2D",
+      "decision": "Persistent HFSM and resolver sweep validation; blocked routes fail explicitly."
+    },
+    {
+      "concept": "Attack / attack-move",
+      "observations": {
+        "Fable": "both; resume destination",
+        "Opus": "both; acquisition",
+        "Astra": "peaceful; no combat loop",
+        "Sol": "no enemy combat loop found",
+        "Qwen": "both; hold behavior",
+        "Kimi": "attack slimes; no attack-move found"
+      },
+      "category": "C",
+      "owner": "sample-local + Dominatus",
+      "decision": "Attack landed, ranger reuse proven. Attack-move deferred."
+    },
+    {
+      "concept": "Production queues",
+      "observations": {
+        "Fable": "reserve cost/supply; cancellation",
+        "Opus": "reserve supply; rally/autoassign",
+        "Astra": "5 items; reservedPop",
+        "Sol": "queue; supply",
+        "Qwen": "queue/cancel/spawn",
+        "Kimi": "queue/cancel/spawn"
+      },
+      "category": "C",
+      "owner": "sample-local + Aurelian.Simulation",
+      "decision": "Four-item bounded queue, integer ticks, upfront charge; no second queue consumer yet."
+    },
+    {
+      "concept": "Construction placement",
+      "observations": {
+        "Fable": "clear tile; push occupants out",
+        "Opus": "explored/passable; permits unit overlap",
+        "Astra": "full footprint; worker reach rollback",
+        "Sol": "circle/box checks",
+        "Qwen": "footprint/cost",
+        "Kimi": "canPlaceAt / tryPlace"
+      },
+      "category": "A",
+      "owner": "Aurelian.Spatial2D",
+      "decision": "Spatial preview; commit revalidates footprint, resources, idle worker and cost."
+    },
+    {
+      "concept": "Supply/capacity",
+      "observations": {
+        "Fable": "live + queued reservation",
+        "Opus": "reservation at enqueue",
+        "Astra": "reservedPop includes queue",
+        "Sol": "supply function",
+        "Qwen": "recomputeFood",
+        "Kimi": "supplyUsed includes queue"
+      },
+      "category": "C",
+      "owner": "sample-local",
+      "decision": "Cap 12, queued people count against cap. No tech tree."
+    },
+    {
+      "concept": "Fog/exploration",
+      "observations": {
+        "Fable": "0/1/2 states",
+        "Opus": "visible/explored/explorable",
+        "Astra": "visible/explored + soft strength",
+        "Sol": "visible/discovered",
+        "Qwen": "visible/explored arrays",
+        "Kimi": "fogE/fogV"
+      },
+      "category": "B",
+      "owner": "Aurelian kit/profile",
+      "decision": "VisibilityGrid integer disks; detached exploration; no occlusion or multifaction adapter."
+    },
+    {
+      "concept": "Minimap",
+      "observations": {
+        "Fable": "semantic terrain/entities/fog",
+        "Opus": "baked terrain + live overlay",
+        "Astra": "diamond semantic terrain/fog/viewport",
+        "Sol": "semantic fog and markers",
+        "Qwen": "terrain/fog/markers",
+        "Kimi": "terrain/fog/live dots"
+      },
+      "category": "C",
+      "owner": "sample-local",
+      "decision": "Semantic grid/entities/viewport projection; no screenshot reuse; click/drag camera-only."
+    },
+    {
+      "concept": "Camera",
+      "observations": {
+        "Fable": "pan/edge; no zoom found",
+        "Opus": "arrow/edge/middle/wheel",
+        "Astra": "WASD/drag/wheel; anchored zoom",
+        "Sol": "WASD/wheel; anchored zoom",
+        "Qwen": "arrows/edges/zoom",
+        "Kimi": "arrows/edges/wheel"
+      },
+      "category": "A",
+      "owner": "Aurelian.GameWorld2D + InputMan",
+      "decision": "Reuse Camera2D; logical pan/zoom/center and minimap jump."
+    },
+    {
+      "concept": "Isometric projection",
+      "observations": {
+        "Fable": "top-down",
+        "Opus": "top-down",
+        "Astra": "diamond project/unproject",
+        "Sol": "top-down",
+        "Qwen": "top-down",
+        "Kimi": "top-down"
+      },
+      "category": "B",
+      "owner": "Aurelian.GameWorld2D",
+      "decision": "Small validated invertible renderer-neutral transform; no tile engine."
+    },
+    {
+      "concept": "Idle worker UX",
+      "observations": {
+        "Fable": "comma cycles idle",
+        "Opus": "autoAssignWorker",
+        "Astra": "findIdle cycles and centers",
+        "Sol": "collector count",
+        "Qwen": "worker command panel",
+        "Kimi": "worker command panel"
+      },
+      "category": "C",
+      "owner": "sample-local",
+      "decision": "I selects and centers first idle worker."
+    },
+    {
+      "concept": "HUD hierarchy",
+      "observations": {
+        "Fable": "resource/header + command panel",
+        "Opus": "resource/header + dynamic cards",
+        "Astra": "resource strip/objective/selection/actions/minimap",
+        "Sol": "resource strip/directive/command matrix/minimap",
+        "Qwen": "topbar + command cards",
+        "Kimi": "topbar + selection panel"
+      },
+      "category": "B",
+      "owner": "Aurelian.Machina profile",
+      "decision": "StrategyHudSnapshot/Style/Copy -> named Machina nodes; bounded logical viewport."
+    },
+    {
+      "concept": "Objectives",
+      "observations": {
+        "Fable": "exploration / win state",
+        "Opus": "explorable total / loss",
+        "Astra": "gather/build/full exploration",
+        "Sol": "90% survey",
+        "Qwen": "100% exploration",
+        "Kimi": "95% exploration"
+      },
+      "category": "C",
+      "owner": "sample-local",
+      "decision": "Gather 20 crystal and complete lodge; no general quest engine."
+    },
+    {
+      "concept": "Procedural art",
+      "observations": {
+        "Fable": "canvas circles/polygons",
+        "Opus": "cached sprite shapes and masonry",
+        "Astra": "isoBox/roof/facets/portrait reuse",
+        "Sol": "rounded hulls/crystal fans/glow",
+        "Qwen": "canvas motifs and icons",
+        "Kimi": "canvas stylized buildings/units"
+      },
+      "category": "B",
+      "owner": "Copeland asset tooling templates",
+      "decision": "Ordinary Profile composition; original first-party assets; canonical contour realization."
+    },
+    {
+      "concept": "Terrain presentation",
+      "observations": {
+        "Fable": "cached tiles/coastline/noise",
+        "Opus": "baked terrain/coastline",
+        "Astra": "diamond patches/flowers/river/bridge",
+        "Sol": "hash patches/routes/grass",
+        "Qwen": "tiles/noise/trees",
+        "Kimi": "prerenderTerrain"
+      },
+      "category": "C",
+      "owner": "sample-local",
+      "decision": "Deterministic color variation and decorative foliage; no terrain editor."
+    },
+    {
+      "concept": "UI layout/typography",
+      "observations": {
+        "Fable": "CSS/DOM",
+        "Opus": "CSS/DOM",
+        "Astra": "serif + sans; grid; responsive breakpoints",
+        "Sol": "CSS product hierarchy",
+        "Qwen": "CSS/DOM",
+        "Kimi": "CSS/DOM"
+      },
+      "category": "A",
+      "owner": "Machina.UI",
+      "decision": "Existing named nodes/style + direct outlines; forward text measurement through pipeline."
+    },
+    {
+      "concept": "Persistence",
+      "observations": {
+        "Fable": "not found",
+        "Opus": "not found",
+        "Astra": "localStorage version1; 15s autosave",
+        "Sol": "not found",
+        "Qwen": "not found",
+        "Kimi": "not found"
+      },
+      "category": "A",
+      "owner": "Deliverance",
+      "decision": "Existing semantic save owner retained; sample only qualifies in-memory replay, not save files."
+    },
+    {
+      "concept": "Input",
+      "observations": {
+        "Fable": "DOM callbacks mutate G",
+        "Opus": "DOM callbacks mutate G",
+        "Astra": "DOM callbacks mutate arrays",
+        "Sol": "DOM callbacks mutate state",
+        "Qwen": "DOM callbacks mutate S",
+        "Kimi": "DOM callbacks mutate globals"
+      },
+      "category": "A",
+      "owner": "InputMan",
+      "decision": "Physical adapter -> logical frame -> typed strategy intent; focus and HUD capture checked."
+    },
+    {
+      "concept": "Audio/effects",
+      "observations": {
+        "Fable": "local visual effects",
+        "Opus": "projectiles/floaters",
+        "Astra": "command/float effects",
+        "Sol": "glow/activity hints",
+        "Qwen": "particles/projectiles",
+        "Kimi": "bursts/floaters"
+      },
+      "category": "A",
+      "owner": "Aurelian.Audio / Effects2D",
+      "decision": "Existing owners retained; no new audio/effect system required for this slice."
+    },
+    {
+      "concept": "Architecture quality",
+      "observations": {
+        "Fable": "monolith; named subsystems",
+        "Opus": "monolith; stronger caches/indexes",
+        "Astra": "monolith; strong visual decomposition",
+        "Sol": "monolith; differentiated product",
+        "Qwen": "monolith; conventional RTS",
+        "Kimi": "monolith; conventional RTS"
+      },
+      "category": "D",
+      "owner": "rejected",
+      "decision": "Extract semantic laws, not global state, string dispatch or frame-owned behavior."
+    },
+    {
+      "concept": "Map repair",
+      "observations": {
+        "Fable": "seeded noise + repeated reach/carve",
+        "Opus": "seeded map + floodReach",
+        "Astra": "fixed seed + designed corridors",
+        "Sol": "hash/decorative layout",
+        "Qwen": "random walks + unseeded random",
+        "Kimi": "Math.random generation"
+      },
+      "category": "C",
+      "owner": "sample-local",
+      "decision": "Guarantee usable start + connectivity repair is a candidate recipe, not a general generator."
+    }
+  ]
+}

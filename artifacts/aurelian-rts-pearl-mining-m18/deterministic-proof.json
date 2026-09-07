@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "cadence": "10 Hz semantic / 2 Hz visibility",
+  "ticks": 600,
+  "partitions": [
+    "100ms",
+    "7\u002B31\u002B62ms"
+  ],
+  "hash": "9E775C153EABDF09A3DB686B315D701772AC82B0739B0723B1F1BA2C93873741",
+  "replayHash": "9E775C153EABDF09A3DB686B315D701772AC82B0739B0723B1F1BA2C93873741",
+  "gathered": 120,
+  "objectiveComplete": true,
+  "produced": 1,
+  "physicalInput": true,
+  "focusLoss": true,
+  "previewIsolation": true,
+  "rejectedBuildAtomic": true,
+  "persistence": "in-memory semantic tape replay; Deliverance save envelope deferred"
+}

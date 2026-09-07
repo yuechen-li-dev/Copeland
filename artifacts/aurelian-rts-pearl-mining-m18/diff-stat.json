@@ -1,0 +1,233 @@
+{
+  "baseCommit": "3f451267cab4fcd0eaeab025cf6e05164d69c8bd",
+  "trackedNumstat": [
+    "3\t0\tAurelian.slnx",
+    "6\t1\tsrc/Machina.UI/Machina.Pipeline/MachinaPresentationPipeline.cs"
+  ],
+  "addedSourceDocumentationAndTools": [
+    {
+      "path": "docs/Aurelian/strategy-profile.md",
+      "bytes": 4849,
+      "lines": 48
+    },
+    {
+      "path": "docs/cookbook/procedural-strategy-art.md",
+      "bytes": 2755,
+      "lines": 30
+    },
+    {
+      "path": "docs/milestones/aurelian-rts-pearl-mining-m18-report.md",
+      "bytes": 21993,
+      "lines": 174
+    },
+    {
+      "path": "docs/milestones/m18-rts-corpus-audit.md",
+      "bytes": 11867,
+      "lines": 47
+    },
+    {
+      "path": "docs/research/rts-procedural-art-mine.md",
+      "bytes": 5833,
+      "lines": 43
+    },
+    {
+      "path": "docs/research/vibecode-rts-pearl-mine.md",
+      "bytes": 6504,
+      "lines": 38
+    },
+    {
+      "path": "samples/Integrations/Aurelian.StrategyDemo/Assets/StrategyArt.ts",
+      "bytes": 4325,
+      "lines": 95
+    },
+    {
+      "path": "samples/Integrations/Aurelian.StrategyDemo/Assets/crystal.profile.tsx",
+      "bytes": 561,
+      "lines": 9
+    },
+    {
+      "path": "samples/Integrations/Aurelian.StrategyDemo/Assets/heavy.profile.tsx",
+      "bytes": 83,
+      "lines": 1
+    },
+    {
+      "path": "samples/Integrations/Aurelian.StrategyDemo/Assets/hq.profile.tsx",
+      "bytes": 47,
+      "lines": 1
+    },
+    {
+      "path": "samples/Integrations/Aurelian.StrategyDemo/Assets/marker.profile.tsx",
+      "bytes": 274,
+      "lines": 6
+    },
+    {
+      "path": "samples/Integrations/Aurelian.StrategyDemo/Assets/production.profile.tsx",
+      "bytes": 83,
+      "lines": 1
+    },
+    {
+      "path": "samples/Integrations/Aurelian.StrategyDemo/Assets/ranger.profile.tsx",
+      "bytes": 316,
+      "lines": 9
+    },
+    {
+      "path": "samples/Integrations/Aurelian.StrategyDemo/Assets/tree.profile.tsx",
+      "bytes": 577,
+      "lines": 10
+    },
+    {
+      "path": "samples/Integrations/Aurelian.StrategyDemo/Assets/watchtower.profile.tsx",
+      "bytes": 1841,
+      "lines": 44
+    },
+    {
+      "path": "samples/Integrations/Aurelian.StrategyDemo/Assets/worker.profile.tsx",
+      "bytes": 49,
+      "lines": 1
+    },
+    {
+      "path": "samples/Integrations/Aurelian.StrategyDemo/Aurelian.StrategyDemo.csproj",
+      "bytes": 2116,
+      "lines": 30
+    },
+    {
+      "path": "samples/Integrations/Aurelian.StrategyDemo/FreshPresentationProof.cs",
+      "bytes": 6314,
+      "lines": 150
+    },
+    {
+      "path": "samples/Integrations/Aurelian.StrategyDemo/FreshSystemProof.cs",
+      "bytes": 8368,
+      "lines": 159
+    },
+    {
+      "path": "samples/Integrations/Aurelian.StrategyDemo/HudTextRenderer.cs",
+      "bytes": 4632,
+      "lines": 98
+    },
+    {
+      "path": "samples/Integrations/Aurelian.StrategyDemo/Program.cs",
+      "bytes": 519,
+      "lines": 16
+    },
+    {
+      "path": "samples/Integrations/Aurelian.StrategyDemo/ProofArtifacts.cs",
+      "bytes": 1296,
+      "lines": 36
+    },
+    {
+      "path": "samples/Integrations/Aurelian.StrategyDemo/StrategyAssets.cs",
+      "bytes": 3485,
+      "lines": 87
+    },
+    {
+      "path": "samples/Integrations/Aurelian.StrategyDemo/StrategyDesktop.cs",
+      "bytes": 7096,
+      "lines": 198
+    },
+    {
+      "path": "samples/Integrations/Aurelian.StrategyDemo/StrategyInput.cs",
+      "bytes": 9630,
+      "lines": 251
+    },
+    {
+      "path": "samples/Integrations/Aurelian.StrategyDemo/StrategyModel.cs",
+      "bytes": 16185,
+      "lines": 424
+    },
+    {
+      "path": "samples/Integrations/Aurelian.StrategyDemo/StrategyProof.cs",
+      "bytes": 11381,
+      "lines": 224
+    },
+    {
+      "path": "samples/Integrations/Aurelian.StrategyDemo/StrategyRenderer.cs",
+      "bytes": 14418,
+      "lines": 315
+    },
+    {
+      "path": "samples/Integrations/Aurelian.StrategyDemo/WorkerBehaviors.cs",
+      "bytes": 5877,
+      "lines": 162
+    },
+    {
+      "path": "scripts/Build-RtsM18Audit.py",
+      "bytes": 19436,
+      "lines": 165
+    },
+    {
+      "path": "scripts/Complete-RtsM18Evidence.py",
+      "bytes": 12108,
+      "lines": 188
+    },
+    {
+      "path": "scripts/Invoke-AurelianRtsM18.ps1",
+      "bytes": 1623,
+      "lines": 50
+    },
+    {
+      "path": "src/Aurelian/Aurelian.Strategy/Aurelian.Strategy.csproj",
+      "bytes": 45,
+      "lines": 2
+    },
+    {
+      "path": "src/Aurelian/Aurelian.Strategy/EntitySelection.cs",
+      "bytes": 2133,
+      "lines": 75
+    },
+    {
+      "path": "src/Aurelian/Aurelian.Strategy/VisibilityGrid.cs",
+      "bytes": 3323,
+      "lines": 106
+    },
+    {
+      "path": "src/Integrations/Aurelian.GameWorld2D/IsometricProjection.cs",
+      "bytes": 1158,
+      "lines": 36
+    },
+    {
+      "path": "src/Integrations/Aurelian.Machina/StrategyHudProfile.cs",
+      "bytes": 5868,
+      "lines": 100
+    },
+    {
+      "path": "tests/Aurelian/Aurelian.Strategy.Tests/Aurelian.Strategy.Tests.csproj",
+      "bytes": 414,
+      "lines": 9
+    },
+    {
+      "path": "tests/Aurelian/Aurelian.Strategy.Tests/StrategyTests.cs",
+      "bytes": 4053,
+      "lines": 109
+    },
+    {
+      "path": "tests/Machina.UI/Machina.Pipeline.Tests/CustomTextMeasurementTests.cs",
+      "bytes": 1269,
+      "lines": 34
+    }
+  ],
+  "sourceCategories": {
+    "sampleCSharpIncludingProofs": {
+      "files": 12,
+      "physicalLines": 2120
+    },
+    "profileArt": {
+      "files": 10,
+      "physicalLines": 177
+    },
+    "newSharedCSharp": {
+      "files": 4,
+      "physicalLines": 317
+    },
+    "newTests": {
+      "files": 2,
+      "physicalLines": 143
+    }
+  },
+  "excluded": [
+    "artifacts (inventoried in manifest)",
+    ".work corpus/logs",
+    "bin/obj"
+  ],
+  "committed": false
+}

@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Aurelian/Aurelian.Strategy/Aurelian.Strategy.csproj" />
     <Project Path="src/Aurelian/Aurelian.Composition/Aurelian.Composition.csproj" />
     <Project Path="src/Aurelian/Aurelian.Actuation/Aurelian.Actuation.csproj" />
     <Project Path="src/Aurelian/Aurelian.Audio/Aurelian.Audio.csproj" />
@@ -27,9 +28,11 @@
     <Project Path="src/TinyFarm/TinyFarm.InputMan/TinyFarm.InputMan.csproj" />
   </Folder>
   <Folder Name="/samples/">
+    <Project Path="samples/Integrations/Aurelian.StrategyDemo/Aurelian.StrategyDemo.csproj" />
     <Project Path="samples/Integrations/Aurelian.Ariadne.VnDemo/Aurelian.Ariadne.VnDemo.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Aurelian/Aurelian.Strategy.Tests/Aurelian.Strategy.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Composition.Tests/Aurelian.Composition.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Actuation.Tests/Aurelian.Actuation.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Audio.Tests/Aurelian.Audio.Tests.csproj" />

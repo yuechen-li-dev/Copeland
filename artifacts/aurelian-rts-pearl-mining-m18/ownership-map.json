@@ -1,0 +1,152 @@
+[
+  {
+    "concept": "Simulation loop",
+    "owner": "Aurelian.Simulation",
+    "decision": "Existing integer CadenceScheduler; sample uses 10 Hz with 2 Hz reveal."
+  },
+  {
+    "concept": "World/map model",
+    "owner": "sample-local",
+    "decision": "24x24 authored proof; application owns terrain meaning."
+  },
+  {
+    "concept": "Unit/building model",
+    "owner": "sample-local",
+    "decision": "Typed IDs, unit/resource kinds and authoritative records."
+  },
+  {
+    "concept": "Economy",
+    "owner": "sample-local + Dominatus",
+    "decision": "Crystal plus fresh wood; cargo kind preserved; no economy framework."
+  },
+  {
+    "concept": "Point selection",
+    "owner": "Aurelian.Spatial2D",
+    "decision": "Existing PointQuery/Overlap; sample uses overlap plus eligibility."
+  },
+  {
+    "concept": "Box selection",
+    "owner": "Aurelian.Spatial2D",
+    "decision": "World AABB broad query then isometric screen filter."
+  },
+  {
+    "concept": "Selection identity",
+    "owner": "Aurelian kit/profile",
+    "decision": "EntitySelection<TId> owns sorted detached snapshots, filtering and groups."
+  },
+  {
+    "concept": "Shift/double-click",
+    "owner": "sample-local",
+    "decision": "Input controller chooses toggle/add and same-kind scope."
+  },
+  {
+    "concept": "Control groups",
+    "owner": "Aurelian kit/profile",
+    "decision": "Stable group storage/pruning; sample binds groups 1..3."
+  },
+  {
+    "concept": "Context right-click",
+    "owner": "sample-local",
+    "decision": "Typed orders, all-target validation; application retains command policy."
+  },
+  {
+    "concept": "Move / stop",
+    "owner": "Dominatus + Aurelian.Spatial2D",
+    "decision": "Persistent HFSM and resolver sweep validation; blocked routes fail explicitly."
+  },
+  {
+    "concept": "Attack / attack-move",
+    "owner": "sample-local + Dominatus",
+    "decision": "Attack landed, ranger reuse proven. Attack-move deferred."
+  },
+  {
+    "concept": "Production queues",
+    "owner": "sample-local + Aurelian.Simulation",
+    "decision": "Four-item bounded queue, integer ticks, upfront charge; no second queue consumer yet."
+  },
+  {
+    "concept": "Construction placement",
+    "owner": "Aurelian.Spatial2D",
+    "decision": "Spatial preview; commit revalidates footprint, resources, idle worker and cost."
+  },
+  {
+    "concept": "Supply/capacity",
+    "owner": "sample-local",
+    "decision": "Cap 12, queued people count against cap. No tech tree."
+  },
+  {
+    "concept": "Fog/exploration",
+    "owner": "Aurelian kit/profile",
+    "decision": "VisibilityGrid integer disks; detached exploration; no occlusion or multifaction adapter."
+  },
+  {
+    "concept": "Minimap",
+    "owner": "sample-local",
+    "decision": "Semantic grid/entities/viewport projection; no screenshot reuse; click/drag camera-only."
+  },
+  {
+    "concept": "Camera",
+    "owner": "Aurelian.GameWorld2D + InputMan",
+    "decision": "Reuse Camera2D; logical pan/zoom/center and minimap jump."
+  },
+  {
+    "concept": "Isometric projection",
+    "owner": "Aurelian.GameWorld2D",
+    "decision": "Small validated invertible renderer-neutral transform; no tile engine."
+  },
+  {
+    "concept": "Idle worker UX",
+    "owner": "sample-local",
+    "decision": "I selects and centers first idle worker."
+  },
+  {
+    "concept": "HUD hierarchy",
+    "owner": "Aurelian.Machina profile",
+    "decision": "StrategyHudSnapshot/Style/Copy -> named Machina nodes; bounded logical viewport."
+  },
+  {
+    "concept": "Objectives",
+    "owner": "sample-local",
+    "decision": "Gather 20 crystal and complete lodge; no general quest engine."
+  },
+  {
+    "concept": "Procedural art",
+    "owner": "Copeland asset tooling templates",
+    "decision": "Ordinary Profile composition; original first-party assets; canonical contour realization."
+  },
+  {
+    "concept": "Terrain presentation",
+    "owner": "sample-local",
+    "decision": "Deterministic color variation and decorative foliage; no terrain editor."
+  },
+  {
+    "concept": "UI layout/typography",
+    "owner": "Machina.UI",
+    "decision": "Existing named nodes/style + direct outlines; forward text measurement through pipeline."
+  },
+  {
+    "concept": "Persistence",
+    "owner": "Deliverance",
+    "decision": "Existing semantic save owner retained; sample only qualifies in-memory replay, not save files."
+  },
+  {
+    "concept": "Input",
+    "owner": "InputMan",
+    "decision": "Physical adapter -> logical frame -> typed strategy intent; focus and HUD capture checked."
+  },
+  {
+    "concept": "Audio/effects",
+    "owner": "Aurelian.Audio / Effects2D",
+    "decision": "Existing owners retained; no new audio/effect system required for this slice."
+  },
+  {
+    "concept": "Architecture quality",
+    "owner": "rejected",
+    "decision": "Extract semantic laws, not global state, string dispatch or frame-owned behavior."
+  },
+  {
+    "concept": "Map repair",
+    "owner": "sample-local",
+    "decision": "Guarantee usable start + connectivity repair is a candidate recipe, not a general generator."
+  }
+]

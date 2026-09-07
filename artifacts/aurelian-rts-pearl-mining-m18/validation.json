@@ -1,0 +1,121 @@
+{
+  "status": "passed-local",
+  "recordedUtc": "2026-09-06T22:35:56.877303+00:00",
+  "dotnetSdk": "10.0.400",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "lanes": [
+    {
+      "command": "dotnet test Aurelian.slnx -c Release -m:1 --nologo",
+      "buildIncluded": true,
+      "passedExecutions": 785,
+      "skippedExecutions": 0,
+      "testAssemblyRuns": 20,
+      "logSha256": "f7af6c1785815b1e57a76263f5fc250ed42be8292f763458a9a0cf332ab731bb",
+      "exitCode": 0
+    },
+    {
+      "command": "dotnet test Copeland.slnx -c Release -m:1 --nologo",
+      "buildIncluded": true,
+      "passedExecutions": 1868,
+      "skippedExecutions": 0,
+      "testAssemblyRuns": 8,
+      "logSha256": "f5a4b5e0567385a61fde642a24c63e1ff662b174b4186bc5c4c85b28d198f865",
+      "exitCode": 0
+    },
+    {
+      "command": "dotnet test Machina.UI.slnx -c Release -m:1 --nologo",
+      "buildIncluded": true,
+      "passedExecutions": 752,
+      "skippedExecutions": 0,
+      "testAssemblyRuns": 9,
+      "logSha256": "da464c7b34faa17ed40de7d41dc3f7d7a0afe11dc4b2cf6196b5aa792fa276cc",
+      "exitCode": 0
+    },
+    {
+      "command": "dotnet test JointTaskForce.slnx -c Release -m:1 --nologo",
+      "buildIncluded": true,
+      "passedExecutions": 3519,
+      "skippedExecutions": 0,
+      "testAssemblyRuns": 33,
+      "logSha256": "06a8c825bdeb4e00ef586701b6c1719dde2b78a965dab72046854b0cad63b689",
+      "exitCode": 0
+    },
+    {
+      "command": "dotnet test ../Dominatus/tests/Dominatus.Core.Tests/Dominatus.Core.Tests.csproj -c Release -m:1 --nologo",
+      "buildIncluded": true,
+      "passedExecutions": 510,
+      "skippedExecutions": 0,
+      "testAssemblyRuns": 2,
+      "logSha256": "70374593330ddb324b7506a7212ac40bc70d397167186325ba2f787b34b2f15d",
+      "exitCode": 0
+    },
+    {
+      "command": "dotnet test ../Dominatus/tests/Dominatus.SpriteForge.Tests/Dominatus.SpriteForge.Tests.csproj -c Release -m:1 --nologo",
+      "buildIncluded": true,
+      "passedExecutions": 26,
+      "skippedExecutions": 0,
+      "testAssemblyRuns": 2,
+      "logSha256": "da25d7938d632a9607d5737fd44ba2e04d736877ab81195a19d9370dc6ee913d",
+      "exitCode": 0
+    },
+    {
+      "command": "dotnet test ../InputMan/tests/InputMan.Core.Tests/InputMan.Core.Tests.csproj -c Release -m:1 --nologo",
+      "buildIncluded": true,
+      "passedExecutions": 64,
+      "skippedExecutions": 0,
+      "testAssemblyRuns": 1,
+      "logSha256": "24384b7bca83264e6c99cc8f741fd2bf8d198943eeeb176f3b6391bbdf2adc9b",
+      "exitCode": 0
+    },
+    {
+      "command": "dotnet test tests/Aurelian/Aurelian.Strategy.Tests/Aurelian.Strategy.Tests.csproj -c Release -m:1 --nologo",
+      "buildIncluded": true,
+      "passedExecutions": 8,
+      "skippedExecutions": 0,
+      "testAssemblyRuns": 1,
+      "logSha256": "6831542d0ef62251289749314ae5f7cc668234ca54265bef8ad9663659d71e7f",
+      "exitCode": 0
+    }
+  ],
+  "countLimit": "Execution counts overlap between solutions; they are not unique test counts. Full lanes preceded final local sample refinements; focused strategy tests ran on final source.",
+  "formatting": [
+    {
+      "Command": "dotnet format whitespace Aurelian.slnx --include samples/Integrations/Aurelian.StrategyDemo src/Aurelian/Aurelian.Strategy src/Integrations/Aurelian.GameWorld2D/IsometricProjection.cs src/Integrations/Aurelian.Machina/StrategyHudProfile.cs src/Machina.UI/Machina.Pipeline/MachinaPresentationPipeline.cs tests/Aurelian/Aurelian.Strategy.Tests --no-restore --verify-no-changes",
+      "ExitCode": 0
+    },
+    {
+      "Command": "dotnet format whitespace tests/Machina.UI/Machina.Pipeline.Tests/Machina.Pipeline.Tests.csproj --include tests/Machina.UI/Machina.Pipeline.Tests/CustomTextMeasurementTests.cs --no-restore --verify-no-changes",
+      "ExitCode": 0
+    }
+  ],
+  "nativeSmoke": {
+    "windowOpened": true,
+    "framesRendered": 3,
+    "title": "Mossward \u2014 ready",
+    "renderer": "Aurelian CPU panels + Machina direct outline + Copeland vector contours / Avalonia desktop",
+    "width": 1280,
+    "height": 800
+  },
+  "deterministicProof": "deterministic-proof.json",
+  "freshProofs": [
+    "fresh-system-proof.json",
+    "fresh-presentation-proof.json",
+    "vector-asset-hashes.json"
+  ],
+  "visualInspection": [
+    "wilderland-style-proof.png",
+    "vector-asset-pack.png",
+    "forest-farming-restyle.png",
+    "strategy-sample-build.png"
+  ],
+  "screenshotProvenance": "Native renderer framebuffer exports; not desktop captures.",
+  "notRun": [
+    "remote CI",
+    "Deliverance (not used)",
+    "Oblivion-specific lane (tooling inspected, unchanged)"
+  ],
+  "warnings": [
+    "dotnet format reports workspace-load warnings and exits zero",
+    "Existing desktop sample NU1903 suppression retained; no dependency-advisory fix claimed"
+  ]
+}

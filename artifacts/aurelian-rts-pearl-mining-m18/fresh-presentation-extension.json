@@ -1,0 +1,29 @@
+{
+  "milestone": "M18",
+  "extension": "Fresh-context forest and farming HUD restyle",
+  "authoringScope": "One new sample source file; no existing files or game systems edited by the extension agent",
+  "source": "samples/Integrations/Aurelian.StrategyDemo/FreshPresentationProof.cs",
+  "sourceLines": 149,
+  "approximateEffortMinutes": 4,
+  "measurementLimit": "Wall-clock authoring estimate only; not an independent baseline or productivity benchmark",
+  "styleEntryPoint": "FreshPresentationProof.Style()",
+  "snapshotEntryPoint": "FreshPresentationProof.FarmingSnapshot(FarmingHudFacts? facts = null)",
+  "proofEntryPoint": "FreshPresentationProof.Run()",
+  "proofChecks": [
+    "Same farming snapshot prepared with default and new paint through MachinaPresentationPipeline",
+    "All resolved node IDs and rectangles match",
+    "Panel and text operation identity, order and rectangles match",
+    "Text content matches",
+    "Panel and text paint both change",
+    "Farming title reaches presentation operations"
+  ],
+  "validationStatus": "Passed real Machina prepare comparison and native renderer export",
+  "consumerQualification": "Second presentation fixture consuming application-owned farming facts; not an integrated farming game",
+  "knownLimitation": "Second presentation fixture only; no farming game semantics or input implementation.",
+  "semanticChanges": 0,
+  "layoutChanges": 0,
+  "coreFilesChanged": 0,
+  "rendererFilesChanged": 0,
+  "rootIntegration": "Added StrategyHudCopy in shared profile, supplied farming captions, and rendered forest-farming-restyle.png; no simulation changes.",
+  "evidence": "fresh-presentation-proof.json"
+}

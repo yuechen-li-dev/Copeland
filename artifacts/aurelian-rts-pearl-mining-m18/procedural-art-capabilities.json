@@ -1,0 +1,32 @@
+[
+  {
+    "pattern": "closed polygon/ellipse/tube",
+    "kind": "existing reusable primitive",
+    "owner": "Copeland.Profile"
+  },
+  {
+    "pattern": "named painter layers",
+    "kind": "existing reusable primitive",
+    "owner": "Copeland.Profile"
+  },
+  {
+    "pattern": "shaded Block / Roof / Figure / Lodge / Shadow",
+    "kind": "new reusable template",
+    "owner": "Copeland sample authoring library StrategyArt.ts"
+  },
+  {
+    "pattern": "worker/heavy/ranger/HQ/lodge/tree/crystal/marker/watchtower",
+    "kind": "new reusable assets",
+    "owner": "first-party sample proof pack"
+  },
+  {
+    "pattern": "Mossward palette and decorative terrain",
+    "kind": "app-local style",
+    "owner": "sample-local"
+  },
+  {
+    "pattern": "gradient fill / animated detail / object-card vector integration",
+    "kind": "deferred",
+    "owner": "Copeland/Machina tooling; do not invent SVG parser"
+  }
+]
