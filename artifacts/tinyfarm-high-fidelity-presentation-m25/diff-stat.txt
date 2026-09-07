@@ -1,0 +1,54 @@
+Copeland
+Tracked changes:
+Play-TinyFarm.cmd                                  |   2 +-
+ .../InputMan.Aurelian/SilkInputBridge.cs           |  12 +
+ .../TinyFarmOblivionLiveSurfaces.cs                |  20 +-
+ src/TinyFarm/README.md                             |  11 +-
+ .../TinyFarm.Core/TinyFarmSemanticSpatialScene.cs  |  17 +-
+ src/TinyFarm/TinyFarm.InputMan/GameControls.cs     |   6 +
+ src/TinyFarm/TinyFarm.InputMan/TinyFarmGame.cs     |   2 +
+ src/TinyFarm/TinyFarm.Native/Program.cs            |  74 +++-
+ .../TinyFarm.Native/TinyFarm.Native.csproj         |   1 +
+ src/TinyFarm/TinyFarm.Native/TinyFarmM24Assets.cs  |  24 +-
+ .../TinyFarm.Native/TinyFarmNativePortrait.cs      |   5 +-
+ .../TinyFarm.Native/TinyFarmNativeRenderer.cs      | 485 +++++++++++++++++----
+ src/TinyFarm/TinyFarm.Native/TinyFarmNativeUi.cs   |  34 +-
+ .../TinyFarm.Core.Tests/TinyFarm.Core.Tests.csproj |   2 +
+ .../TinyFarmProductionFieldM21Tests.cs             |   2 +-
+ .../TinyFarmSemanticSpatialM24Tests.cs             |   2 +-
+ 16 files changed, 558 insertions(+), 141 deletions(-)
+
+New source/document/asset files (not yet staged):
+docs/milestones/tinyfarm-high-fidelity-world-presentation-m25-report.md: +134 lines; 16285 bytes
+docs/research/tinyfarm-art-projection-contract-m25.md: +15 lines; 2467 bytes
+docs/research/tinyfarm-presentation-fidelity-baseline-m25.md: +34 lines; 5388 bytes
+docs/research/tinyfarm-visual-defect-ledger-m25.md: +18 lines; 2506 bytes
+src/Integrations/TinyFarm.Oblivion/TinyFarmPresentationInspection.cs: +14 lines; 327 bytes
+src/TinyFarm/TinyFarm.InputMan/TinyFarmPresentationPreferences.cs: +27 lines; 775 bytes
+src/TinyFarm/TinyFarm.Native/Assets/M25/PainterlyWater.v.ts: +63 lines; 1543 bytes
+src/TinyFarm/TinyFarm.Native/Assets/M25/farmhouse-three-quarter-guide.png: 56157 binary bytes
+src/TinyFarm/TinyFarm.Native/Assets/M25/farmhouse-three-quarter-guide.svg: +58 lines; 3787 bytes
+src/TinyFarm/TinyFarm.Native/Assets/M25/farmhouse-three-quarter-paint-study.png: 1942224 binary bytes
+src/TinyFarm/TinyFarm.Native/Assets/M25/farmhouse-three-quarter.png: 2215427 binary bytes
+src/TinyFarm/TinyFarm.Native/Assets/M25/farmhouse-topdown-guide.png: 58094 binary bytes
+src/TinyFarm/TinyFarm.Native/Assets/M25/farmhouse-topdown-guide.svg: +39 lines; 2765 bytes
+src/TinyFarm/TinyFarm.Native/Assets/M25/farmhouse-topdown-paint-study.png: 1743623 binary bytes
+src/TinyFarm/TinyFarm.Native/Assets/M25/farmhouse-topdown.png: 2237530 binary bytes
+src/TinyFarm/TinyFarm.Native/TinyFarmBankMask.cs: +32 lines; 1249 bytes
+src/TinyFarm/TinyFarm.Native/TinyFarmM25NativeProof.cs: +217 lines; 11823 bytes
+src/TinyFarm/TinyFarm.Native/TinyFarmPainterlyPolicy.cs: +15 lines; 678 bytes
+src/TinyFarm/TinyFarm.Native/TinyFarmPresentationLayout.cs: +24 lines; 1128 bytes
+tests/TinyFarm/TinyFarm.Core.Tests/TinyFarmPresentationM25Tests.cs: +119 lines; 5133 bytes
+tools/tinyfarm-presentation-m25-evidence.py: +329 lines; 21389 bytes
+
+Evidence artifacts are inventoried with individual sizes and hashes in manifest.json.
+
+InputMan (explicitly authorized)
+Tracked changes:
+src/InputMan.Core/Controls.cs | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+New source/document/asset files (not yet staged):
+tests/InputMan.Core.Tests/FunctionKeyTests.cs: +28 lines; 951 bytes
+
+Evidence artifacts are inventoried with individual sizes and hashes in manifest.json.

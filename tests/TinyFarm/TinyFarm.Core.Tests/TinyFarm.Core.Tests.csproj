@@ -21,6 +21,8 @@
     <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="../../../src/TinyFarm/TinyFarm.Native/TinyFarmBankMask.cs" Link="Presentation/TinyFarmBankMask.cs" />
+    <Compile Include="../../../src/TinyFarm/TinyFarm.Native/TinyFarmPresentationLayout.cs" Link="Presentation/TinyFarmPresentationLayout.cs" />
     <Content Include="Fixtures/M7/Valid/*.obj.ts" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

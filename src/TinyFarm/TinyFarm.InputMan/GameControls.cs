@@ -13,6 +13,9 @@ public static class GameControls
     public static readonly ActionId Save = new("Save");
     public static readonly ActionId Load = new("Load");
     public static readonly ActionId Quit = new("Quit");
+    public static readonly ActionId ToggleHud = new("Presentation.ToggleHud");
+    public static readonly ActionId ToggleInspector = new("Presentation.ToggleInspector");
+    public static readonly ActionId CleanCapture = new("Presentation.CleanCapture");
     public static readonly ActionMapId System = new("System");
     public static readonly ActionId Interact = new("Interact");
     public static readonly ActionId Pause = new("Pause");
@@ -66,6 +69,9 @@ public static class GameControls
         return Input.Profile(
             [
                 Input.Map(System, 300, [
+                    Bind.Action(Controls.Key(KeyboardKey.F9), ToggleHud),
+                    Bind.Action(Controls.Key(KeyboardKey.F10), ToggleInspector),
+                    Bind.Action(Controls.Key(KeyboardKey.F11), CleanCapture),
                     Bind.Action(Controls.Key(KeyboardKey.F), Save),
                     Bind.Action(Controls.Key(KeyboardKey.N), Load),
                     Bind.Action(Controls.Key(KeyboardKey.Q), Quit)

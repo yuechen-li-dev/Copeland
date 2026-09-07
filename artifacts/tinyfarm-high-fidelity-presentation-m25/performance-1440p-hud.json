@@ -1,0 +1,34 @@
+{
+  "Device": "NVIDIA GeForce RTX 3070",
+  "Layout": {
+    "Width": 2560,
+    "Height": 1440,
+    "Legacy": false,
+    "UiScale": 2,
+    "UiLeft": 0,
+    "UiTop": 0,
+    "WorldScale": 110.76923,
+    "WorldViewport": {
+      "X": 393.84613037109375,
+      "Y": 0,
+      "Width": 1772.3077392578125,
+      "Height": 1440
+    }
+  },
+  "hud": true,
+  "frames": 180,
+  "timing": "CPU wall-clock complete host frame, synchronous Vulkan submission, VSync off; GPU timestamps unavailable",
+  "p50Milliseconds": 6.9435,
+  "p95Milliseconds": 7.0136,
+  "p99Milliseconds": 8.4281,
+  "worstMilliseconds": 20.4204,
+  "averageDrawCount": 388.22777777777776,
+  "BufferUploads": 2880,
+  "spriteUploadsDuringMeasurement": 0,
+  "fieldUploadBytes": 276480,
+  "projectionMilliseconds": 3.8502,
+  "compositionMilliseconds": 812.9598,
+  "uiAllocatedBytes": 1567560,
+  "WorldSpriteCount": 14,
+  "FieldProjectionMilliseconds": 0.5658
+}

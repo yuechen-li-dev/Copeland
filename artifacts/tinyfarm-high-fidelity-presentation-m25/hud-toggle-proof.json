@@ -1,0 +1,29 @@
+{
+  "baseline": false,
+  "nativePath": "TinyFarm.Native / NativeLayerCompositor / Vulkan",
+  "Device": "NVIDIA GeForce RTX 3070",
+  "Layout": {
+    "Width": 1920,
+    "Height": 1080,
+    "Legacy": false,
+    "UiScale": 1.5,
+    "UiLeft": 0,
+    "UiTop": 0,
+    "WorldScale": 83.07692,
+    "WorldViewport": {
+      "X": 295.3846435546875,
+      "Y": 0,
+      "Width": 1329.230712890625,
+      "Height": 1080
+    }
+  },
+  "hudKey": "F9",
+  "stateBefore": "696432616126a34534302c6906ae3f95f86fe9c3cdc689b16f4db2f3c19b7c82:008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+  "stateAfter": "696432616126a34534302c6906ae3f95f86fe9c3cdc689b16f4db2f3c19b7c82:008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+  "cameraBefore": "{\u0022Position\u0022:{\u0022X\u0022:0,\u0022Y\u0022:-3},\u0022Viewport\u0022:{\u0022X\u0022:295.3846435546875,\u0022Y\u0022:0,\u0022Width\u0022:1329.230712890625,\u0022Height\u0022:1080},\u0022Zoom\u0022:1.730769157409668,\u0022Bounds\u0022:{\u0022X\u0022:0,\u0022Y\u0022:-3,\u0022Width\u0022:16,\u0022Height\u0022:13,\u0022Right\u0022:16,\u0022Bottom\u0022:10}}",
+  "cameraAfter": "{\u0022Position\u0022:{\u0022X\u0022:0,\u0022Y\u0022:-3},\u0022Viewport\u0022:{\u0022X\u0022:295.3846435546875,\u0022Y\u0022:0,\u0022Width\u0022:1329.230712890625,\u0022Height\u0022:1080},\u0022Zoom\u0022:1.730769157409668,\u0022Bounds\u0022:{\u0022X\u0022:0,\u0022Y\u0022:-3,\u0022Width\u0022:16,\u0022Height\u0022:13,\u0022Right\u0022:16,\u0022Bottom\u0022:10}}",
+  "outsideHudDifferences": 0,
+  "frozenRenderSequence": 42,
+  "hudHidden": true,
+  "worldHash": "8c6ea4b7539c7bc3d6f8e3f206dade09b39da7ec7c1e2a374ef9a1e3c92658b8"
+}

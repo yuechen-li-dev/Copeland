@@ -1,0 +1,4 @@
+System.InvalidOperationException: HUD toggle altered pixels outside HUD chrome at the same render time.
+   at TinyFarm.Native.TinyFarmM25NativeProof.Require(Boolean condition, String message) in /_/src/TinyFarm/TinyFarm.Native/TinyFarmM25NativeProof.cs:line 208
+   at TinyFarm.Native.TinyFarmM25NativeProof.Run(String root, TinyFarmGame game, AurelianInputAdapter input, TinyFarmNativeWindow window, TinyFarmNativeRenderer renderer, AurelianGameHost host, Boolean baseline) in /_/src/TinyFarm/TinyFarm.Native/TinyFarmM25NativeProof.cs:line 36
+   at TinyFarm.Native.Program.Main(String[] args) in /_/src/TinyFarm/TinyFarm.Native/Program.cs:line 75

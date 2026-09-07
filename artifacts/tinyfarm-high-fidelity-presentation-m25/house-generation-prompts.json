@@ -1,0 +1,22 @@
+{
+  "tool": "Built-in image_gen.imagegen",
+  "selectedAsset": "src/TinyFarm/TinyFarm.Native/Assets/M25/farmhouse-three-quarter.png",
+  "geometryStep": {
+    "inputs": [
+      "src/TinyFarm/TinyFarm.Native/Assets/M25/farmhouse-three-quarter-guide.png",
+      "src/TinyFarm/TinyFarm.Native/Assets/M24/farmhouse.png"
+    ],
+    "prompt": "Use case: sketch-to-render. Controlled painterly paint-over of IMAGE 1, the approved vector geometry guide. IMAGE 2 is ONLY material, palette and brushwork reference; its rotated isometric geometry must NOT be used. TinyFarm's approved art-camera convention: north-up game three-quarter orthographic, nominal 45 degrees elevated above ground, viewing NORTH with ZERO horizontal yaw. Follow guide image 1 exactly for screen silhouette, straight horizontal ridge, broad visible south roof slope, shallow front facade, centered front door, two windows, flowerboxes, front steps and chimney top/front. The building's broad roof dominates roughly 60 percent of visible height, facade roughly 30 percent, entry/steps 10 percent. No large east/west side wall is visible. Horizontal eaves/window lintels stay horizontal. This is NOT a roof-only architectural blueprint, NOT a rotated isometric house, NOT ground-level facade photography. Preserve guide composition and proportions, soften handmade geometry slightly. Render beautiful high-detail painterly gouache/storybook materials: terracotta individual tiles with restrained moss, warm cream rough stone walls, brown wooden door and shutters, muted blue-green windows, a few flowers, warm upper-left sunlight. Use reference 2 craft/detail without its camera. One original isolated game farmhouse asset, entire object uncropped, generous transparent padding. Deliver actual RGBA TRANSPARENT background with alpha zero outside the building; do not paint a checkerboard, black background, white background, meadow or scenery. No text or watermark.",
+    "output": "farmhouse-three-quarter-paint-study.png",
+    "status": "Geometry/material study; RGB painted checkerboard rejected as runtime alpha"
+  },
+  "selectedAlphaStep": {
+    "input": "src/TinyFarm/TinyFarm.Native/Assets/M25/farmhouse-three-quarter-paint-study.png",
+    "prompt": "BACKGROUND REMOVAL / TRANSPARENT PNG CUTOUT, not an illustration generation. Input background contains painted checkerboard. Extract ONLY the farmhouse from the input image. Return the house on a genuinely transparent background with a real alpha channel. All pixels surrounding the exact silhouette must be alpha 0, building interiors opaque. Preserve image's house shape, orientation, palette, lighting and painted detail. Remove the checkerboard completely. Do not draw another checkerboard. Do not draw any background, glow, ground or cast shadow outside the silhouette. The deliverable must be RGBA with transparency, not an RGB image depicting transparency. Keep the camera unchanged.",
+    "generationFile": "exec-c90619a6-e123-4ccd-82c3-e4334e5d13f7.png",
+    "verifiedMode": "RGBA",
+    "verifiedDimensions": [1408, 1117],
+    "sha256": "735e2ef7f093edc7cdbf93b86237cc69905baf6431e46a23dd9c74340648a6f5"
+  },
+  "review": "Selected after native scene and dark-edge inspection. Guide constrains generation but output is reviewed rather than assumed to preserve vector geometry exactly. Earlier perpendicular roof-plan studies were rejected after user clarified the desired three-quarter convention."
+}

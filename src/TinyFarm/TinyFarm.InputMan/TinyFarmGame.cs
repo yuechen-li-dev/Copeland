@@ -49,6 +49,7 @@ public sealed class TinyFarmGame
     public TinyFarmScreen Screen { get; private set; } = TinyFarmScreen.Title;
     public string Status { get; private set; } = "A note from Mara: let us make this place feel like home.";
     public bool ShouldQuit { get; private set; }
+    public TinyFarmPresentationPreferences Presentation { get; } = new();
     public bool CapturesGameplay => Screen != TinyFarmScreen.Playing || Dialogue.IsActive;
     public EffectRuntime Effects { get; private set; } = NewEffects();
     public Queue<AudioCue> PendingAudio { get; } = new();
@@ -76,6 +77,7 @@ public sealed class TinyFarmGame
 
     public void Handle(InputFrame input)
     {
+        Presentation.Handle(input);
         if (input.WasPressed(GameControls.Save) && Screen != TinyFarmScreen.Title)
         {
             BeginSave();

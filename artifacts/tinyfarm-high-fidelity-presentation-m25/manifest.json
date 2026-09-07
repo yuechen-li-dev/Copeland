@@ -1,0 +1,566 @@
+{
+  "milestone": "TINYFARM-HIGH-FIDELITY-WORLD-PRESENTATION-M25",
+  "kind": "world-first-painterly-presentation-isolation",
+  "outcome": "B",
+  "remainingSeam": "Riverside's corrected soft alpha still outlines a rectangular water field; painterly shoreline material composition remains incomplete.",
+  "hudToggleQualified": true,
+  "worldOnlyModeQualified": true,
+  "defaultResolutionRaised": true,
+  "aspectRatioQualified": true,
+  "highDpiAudited": true,
+  "highDpiPhysicalMultiScaleTested": false,
+  "painterlyAssetScaleAudited": true,
+  "treeScaleImproved": true,
+  "farmhouseScaleImproved": true,
+  "assetClassSamplingQualified": true,
+  "painterlyLinearFilteringQualified": true,
+  "semanticBankMaskQualified": true,
+  "riversideSeamImproved": true,
+  "shorelineArtComplete": false,
+  "worldViewportIndependentOfHud": true,
+  "semanticReplayUnchangedByPresentation": true,
+  "1080pQualified": true,
+  "1440pQualified": true,
+  "visualDefectLedgerProduced": true,
+  "uiRedesignPerformed": false,
+  "gameplaySystemsAdded": false,
+  "baselineCaveat": "Native legacy camera/resources/composition; current control legend and reduced prompt are retained by the reproduction mode.",
+  "nextPrimaryPressure": "Painterly ground-material composition, starting with Riverside shoreline and path/bridge transitions.",
+  "requiredFilesVerified": 24,
+  "files": [
+    {
+      "file": "alpha-dark-background.png",
+      "bytes": 1187996,
+      "sha256": "85879eb2165228f393ead92bd2022e410a13fe45ce80555d2b163eae4bc275f9",
+      "required": false,
+      "dimensions": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "file": "alpha-edge-proof.json",
+      "bytes": 1350,
+      "sha256": "83a3f368e6004d019b74450e44bd8ab08028dd1468bc1fb45f713eeb96906ceb",
+      "required": true
+    },
+    {
+      "file": "asset-scale-audit.json",
+      "bytes": 12489,
+      "sha256": "f5cb9d3d8f00fbaf66136d014dc72259603382199aefa2a225a996f90f82e4ab",
+      "required": true
+    },
+    {
+      "file": "bank-mask-proof.json",
+      "bytes": 944,
+      "sha256": "ff2fa207387e790b732f1c958eef9afb1ec80bd4e3cc847a1c520e4ac7e1e517",
+      "required": true
+    },
+    {
+      "file": "baseline-parity-diagnostic.txt",
+      "bytes": 649,
+      "sha256": "249dac3671910919b63b4ccf64239f2906fa5a5f5e08f5779a2b7ea9ba356f7c",
+      "required": false
+    },
+    {
+      "file": "diff-stat.txt",
+      "bytes": 3411,
+      "sha256": "e618752432cee2f38f94177a563f718cb315fe248210a84da0b3998ba3aa6f9b",
+      "required": false
+    },
+    {
+      "file": "f11-clean-capture.png",
+      "bytes": 3935365,
+      "sha256": "113dd23bd21d1ae3e7de7d96b52623b9f1810febe81ead501bdeb211dc6bbce6",
+      "required": false,
+      "dimensions": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "file": "farmhouse-scale-1.0.png",
+      "bytes": 3926265,
+      "sha256": "f96d813ae16903be3d3fbdc312e5ff63de1aa545f712a293b55be70d4bf10bd0",
+      "required": false,
+      "dimensions": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "file": "farmhouse-scale-1.5.png",
+      "bytes": 4048049,
+      "sha256": "0f4152afb469dad3ec4db6b2aee8862f85d43f168a90c3d6deb6768aa9771d38",
+      "required": false,
+      "dimensions": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "file": "farmhouse-scale-2.0.png",
+      "bytes": 4064794,
+      "sha256": "d040749e35113fa5d1b81054d447ffe54f8c39ae6fc0cda38c46ff7be2eebb0d",
+      "required": false,
+      "dimensions": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "file": "farmhouse-scale-2.5.png",
+      "bytes": 4063743,
+      "sha256": "f9a4a0fba887d95b81e28800bff33bb13e2ff9b49ac1a93ea2a4b7c9a3b8976a",
+      "required": false,
+      "dimensions": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "file": "farmhouse-scale-comparison.png",
+      "bytes": 1924664,
+      "sha256": "09b8095106bd750957423886dacdc6ef8e2f42b9978c75b7609198199b17a004",
+      "required": true,
+      "dimensions": [
+        1920,
+        1160
+      ]
+    },
+    {
+      "file": "fresh-scale-proof.json",
+      "bytes": 230,
+      "sha256": "68cff5048de2c70b4a7c6e33ac1f0b1b70dd321044a4f198ca36617279aada6e",
+      "required": false
+    },
+    {
+      "file": "generated-house-provenance.json",
+      "bytes": 1843,
+      "sha256": "8274f51bd0a5755926552786a899939efde58e1a514a766a4914e9d7639e1198",
+      "required": false
+    },
+    {
+      "file": "house-generation-prompts.json",
+      "bytes": 3428,
+      "sha256": "b92b8bde507ac73710aa351d67bf8fd3bb192aa3a411b019fb8ea52a9daae062",
+      "required": false
+    },
+    {
+      "file": "hud-toggle-proof.json",
+      "bytes": 1696,
+      "sha256": "36f737df6591ed5a726c4c12956f3345a45e6a39249753ddd09a2b45a22ac454",
+      "required": true
+    },
+    {
+      "file": "inputman-tests.log",
+      "bytes": 1031,
+      "sha256": "c9f625ee05f092a6c8c4d0d60254f7e287ebf071d487422f8f099657aa37406e",
+      "required": false
+    },
+    {
+      "file": "native-default-window-smoke.png",
+      "bytes": 1363117,
+      "sha256": "5c70e8010dc7ced09a7f044d4cc37c081038fd48ec8eb2cf7e42e5147ec3bf91",
+      "required": false,
+      "dimensions": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "file": "native-window-smoke.json",
+      "bytes": 482,
+      "sha256": "620db5168df084ad1428ae88113eae9dc2c15bde023f9d5827982e632300ac3c",
+      "required": false
+    },
+    {
+      "file": "oblivion-presentation-1080p.json",
+      "bytes": 14925,
+      "sha256": "adfe13259fcc6acecea56431c56a06c7716c1b25a67a1b4ff33d10fa47fe2603",
+      "required": false
+    },
+    {
+      "file": "oblivion-presentation-1421p.json",
+      "bytes": 14915,
+      "sha256": "c8213de3c80636d5f70717c11b20adb5f542675f9dbd8d414fab41e2e3a85d36",
+      "required": false
+    },
+    {
+      "file": "oblivion-presentation-1440p.json",
+      "bytes": 14929,
+      "sha256": "b1ef8139165e49b93343a161f795135ca0c21ba25332332a1096e8804ef22abc",
+      "required": false
+    },
+    {
+      "file": "oblivion-presentation-720p.json",
+      "bytes": 14923,
+      "sha256": "f813e1deef74ccaba272d3766f6d24610973b064d221b9ba1b7e7bd5cef4838d",
+      "required": false
+    },
+    {
+      "file": "oblivion-presentation-inspector.png",
+      "bytes": 3500834,
+      "sha256": "cf38cc621966102866c707fcd379043b9f0dc576eed542f8ff982ea02ea7c9df",
+      "required": true,
+      "dimensions": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "file": "performance-1080p-hud.json",
+      "bytes": 930,
+      "sha256": "8c580d32c73c1a31c80d3fa59073434d307ea205267edcc66bedda64e155ade2",
+      "required": false
+    },
+    {
+      "file": "performance-1080p.json",
+      "bytes": 943,
+      "sha256": "fbf02ded815985c27297ba1e3d20c020f8db3c85249c2565e8c6d8ef61bfeb6a",
+      "required": true
+    },
+    {
+      "file": "performance-1421p-hud.json",
+      "bytes": 903,
+      "sha256": "f4db0aeb859fec1c571eecce6f7f74ccfa4e6b6ceecdb23e1f2132faf2a6452f",
+      "required": false
+    },
+    {
+      "file": "performance-1421p.json",
+      "bytes": 913,
+      "sha256": "1acb58eec79ce6231528d56ea71fe534a8625197403548f0da327b352af45515",
+      "required": false
+    },
+    {
+      "file": "performance-1440p-hud.json",
+      "bytes": 943,
+      "sha256": "a7eb5720c199dd1410b2494ceec50ea7e680af95d548b7999410f910811e6dde",
+      "required": false
+    },
+    {
+      "file": "performance-1440p.json",
+      "bytes": 930,
+      "sha256": "603ee42f78a51563a89cc767ad36fbe3526b6eeec05a5b351b12384094e9f221",
+      "required": true
+    },
+    {
+      "file": "performance-720p-hud.json",
+      "bytes": 939,
+      "sha256": "8eab37bb14bcb9532f6cc37038906b5304990f7494b8ed70a55224beca670de6",
+      "required": false
+    },
+    {
+      "file": "performance-720p.json",
+      "bytes": 941,
+      "sha256": "437b7f3e280762fc262b02870d7c7581ed3c4f6873755a5f803a41b438da1758",
+      "required": true
+    },
+    {
+      "file": "performance-summary.md",
+      "bytes": 800,
+      "sha256": "697b498265a0102a46946f488d95c771c51b94ae9bda7abc15d3917090e9b488",
+      "required": false
+    },
+    {
+      "file": "presentation-baseline.json",
+      "bytes": 1797,
+      "sha256": "e88b37658d6ddd36dd191f177190f8c545f9d37ab4d97920b4adb59a4e7a860f",
+      "required": true
+    },
+    {
+      "file": "resize-1600x1000.png",
+      "bytes": 3077661,
+      "sha256": "adc06eedc9637d06f9ffc947df6b22f75451411e95103aacf27df9181e64628a",
+      "required": false,
+      "dimensions": [
+        1600,
+        1000
+      ]
+    },
+    {
+      "file": "resize-1920x1080.png",
+      "bytes": 3935485,
+      "sha256": "4b4ed0a0e0582c6765a125c839db7c92e743ee636e0a7fad36c899010abaaaa5",
+      "required": false,
+      "dimensions": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "file": "resize-2560x1440.png",
+      "bytes": 6578656,
+      "sha256": "8f62cee31593deb1decf0a971ae33dbf445dd9fdb81cc1cb4c409dc06d4764f8",
+      "required": false,
+      "dimensions": [
+        2560,
+        1440
+      ]
+    },
+    {
+      "file": "resolution-policy.json",
+      "bytes": 2685,
+      "sha256": "f6c71b772e194c50a43b2c72a5b1bf40099143f4a8dd16667f1d5ea80fc800b3",
+      "required": true
+    },
+    {
+      "file": "riverbank-after.png",
+      "bytes": 357428,
+      "sha256": "b280504e40b6ce107edcadb8956dab43f847fad292155a27ee928fcab6c99b56",
+      "required": true,
+      "dimensions": [
+        640,
+        900
+      ]
+    },
+    {
+      "file": "sampler-nearest-tree-native.json",
+      "bytes": 1062,
+      "sha256": "181e91c51862563d8c0e58e3495b63dc4fd0fd4b151f779fd8bd8defcde7c673",
+      "required": false
+    },
+    {
+      "file": "sampler-nearest-tree.png",
+      "bytes": 3916085,
+      "sha256": "7b236981fc4b83a13922c70671f5077b2b8f0d2e32073298dd0909eef55f39de",
+      "required": false,
+      "dimensions": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "file": "sampler-policy.json",
+      "bytes": 2192,
+      "sha256": "7b608224c215e39046983d67d29a948aa75726e1709f75e98383b9295c0ab7a6",
+      "required": true
+    },
+    {
+      "file": "source-detail-utilization.json",
+      "bytes": 12240,
+      "sha256": "82f8a981d9f1316fc46de5beb9ae24befa4d354607d65f03245509fb3da49b57",
+      "required": true
+    },
+    {
+      "file": "texture-1080p-native.json",
+      "bytes": 1067,
+      "sha256": "9e7a3c280bcb715864621583d3b5a73ee7f82264a3ad31ee16f6844f85683ce8",
+      "required": false
+    },
+    {
+      "file": "texture-1440p-native.json",
+      "bytes": 1067,
+      "sha256": "9e7a3c280bcb715864621583d3b5a73ee7f82264a3ad31ee16f6844f85683ce8",
+      "required": false
+    },
+    {
+      "file": "texture-720p-native.json",
+      "bytes": 1067,
+      "sha256": "9e7a3c280bcb715864621583d3b5a73ee7f82264a3ad31ee16f6844f85683ce8",
+      "required": false
+    },
+    {
+      "file": "texture-baseline-native.json",
+      "bytes": 1056,
+      "sha256": "a0791e4dd882f6300e20a984c7947dcfbce8425ef020d43d64b2841a15cbbba7",
+      "required": false
+    },
+    {
+      "file": "texture-memory.json",
+      "bytes": 1913,
+      "sha256": "17ce6f5c4156d741fb2e42f8e1303b4cfc26d942a1a86cc58d52a89f5caaa12f",
+      "required": true
+    },
+    {
+      "file": "tinyfarm-tests.log",
+      "bytes": 693,
+      "sha256": "9ddea499d6c86a1f30af3d42467238cc3c14a7cd65dcfbf6b4375a8a8c78671d",
+      "required": false
+    },
+    {
+      "file": "tree-scale-1.0.png",
+      "bytes": 3900300,
+      "sha256": "304bee92791b4cd5dbb0c6d30794d648bf1a5e484a8375348ae3d131199de680",
+      "required": false,
+      "dimensions": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "file": "tree-scale-1.5.png",
+      "bytes": 4052028,
+      "sha256": "dde474f3ae1edeee114aa42d66802ece48f880e206d6105957a959f9c41f239d",
+      "required": false,
+      "dimensions": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "file": "tree-scale-2.0.png",
+      "bytes": 4160639,
+      "sha256": "9c7c9be4c9af5b68bff32917baf445a4ee18010083c8aba35abbf39590b2872a",
+      "required": false,
+      "dimensions": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "file": "tree-scale-2.5.png",
+      "bytes": 4241333,
+      "sha256": "ba4a48dcd8fafd78c99fb2d02b7e0a465dd191c397e4aaeed7c10950e7de06ab",
+      "required": false,
+      "dimensions": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "file": "tree-scale-comparison.png",
+      "bytes": 2166117,
+      "sha256": "25b89e765e8347a0ff54385519142d31dc7f6014e3012e200745fd22a3e4fc52",
+      "required": true,
+      "dimensions": [
+        1920,
+        1160
+      ]
+    },
+    {
+      "file": "ui-on-1080p-after.png",
+      "bytes": 2900963,
+      "sha256": "e69284f965284edeb3fd4d53202934fbf4b88f954f9346b2b5a7cba85e2ffe9a",
+      "required": true,
+      "dimensions": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "file": "ui-on-1421p-after.png",
+      "bytes": 4781111,
+      "sha256": "c05efec2956a25dc1294780afb3f419b35eee12892ad8ef27c86186e2c28cb43",
+      "required": false,
+      "dimensions": [
+        2560,
+        1421
+      ]
+    },
+    {
+      "file": "ui-on-1440p-after.png",
+      "bytes": 4802172,
+      "sha256": "7eec25a6e3b9a98827aca7d7e5fd98549368abeb84165a2f83be9cf6039d2925",
+      "required": false,
+      "dimensions": [
+        2560,
+        1440
+      ]
+    },
+    {
+      "file": "ui-on-720p-after.png",
+      "bytes": 1416138,
+      "sha256": "ec0071ba490b10f3df394c8c9ee28a20e6ef29077a88dc7d8f711dab01674036",
+      "required": false,
+      "dimensions": [
+        1280,
+        720
+      ]
+    },
+    {
+      "file": "ui-on-before.png",
+      "bytes": 667308,
+      "sha256": "d6f6f991d879506f7aba60bdebc241868940117b4b3ac1ebd14ea22c81a34eff",
+      "required": true,
+      "dimensions": [
+        1280,
+        720
+      ]
+    },
+    {
+      "file": "validation.json",
+      "bytes": 469,
+      "sha256": "1cbcf5462b57d379bb9869c6542a353eefd53825d0e56a355f7df994296ba56a",
+      "required": false
+    },
+    {
+      "file": "visual-defect-ledger.json",
+      "bytes": 2507,
+      "sha256": "d8f386d37226d842ee36d49b56102b2553ad5503c17dec767b2875e51e1299b8",
+      "required": true
+    },
+    {
+      "file": "world-occupancy.json",
+      "bytes": 1025,
+      "sha256": "bb5f52414730dd070817cc765b54e0a8b5884d558f6a6db3c83fa512139bfffd",
+      "required": true
+    },
+    {
+      "file": "world-only-1080p-after.png",
+      "bytes": 3935750,
+      "sha256": "1297dc4f29a26fbd991912aad0c8d7bdc122cde7b1d871b986fb08f8651d49e7",
+      "required": true,
+      "dimensions": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "file": "world-only-1080p-before-house-perspective.png",
+      "bytes": 3926146,
+      "sha256": "3604400802252756fcd24dba335fec7d63ffeedb563f7151ea9f7632057ac93d",
+      "required": false,
+      "dimensions": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "file": "world-only-1421p-after.png",
+      "bytes": 6502448,
+      "sha256": "f514a1e4959557563df30fcdcb6dbb717441e03a95e86430d0b6b3162771e207",
+      "required": false,
+      "dimensions": [
+        2560,
+        1421
+      ]
+    },
+    {
+      "file": "world-only-1440p-after.png",
+      "bytes": 6582567,
+      "sha256": "142384af02998b1c127626b814963870d48fdefbbcccaf63a64122da1b2db850",
+      "required": true,
+      "dimensions": [
+        2560,
+        1440
+      ]
+    },
+    {
+      "file": "world-only-720p-after.png",
+      "bytes": 1885396,
+      "sha256": "be8c6a63d016b9d1c80bb29d7f967a077ee030cdef65187efd1e39f0cdbd758c",
+      "required": false,
+      "dimensions": [
+        1280,
+        720
+      ]
+    },
+    {
+      "file": "world-only-before.png",
+      "bytes": 693871,
+      "sha256": "b1c215a4955861ca0bdfd4cda74c1ce83f672d853f224dee8ec781db79ea73d9",
+      "required": true,
+      "dimensions": [
+        1280,
+        720
+      ]
+    },
+    {
+      "file": "world-only-proof.json",
+      "bytes": 207,
+      "sha256": "aae5118d6aa496be5a09d4dd23b9f11784e17399a0fa62b46a790a751c2b3d4a",
+      "required": true
+    }
+  ]
+}

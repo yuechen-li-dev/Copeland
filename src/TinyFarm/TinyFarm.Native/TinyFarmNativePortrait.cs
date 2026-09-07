@@ -38,8 +38,7 @@ internal sealed class TinyFarmNativePortrait : INativeLayerPresenter
 
     public void Resize(VulkanNativeFrameTarget target)
     {
-        Detach();
-        Attach(target);
+        renderer.Retarget(target);
     }
 
     public void Present(NativeLayerFrameContext context)
@@ -50,7 +49,7 @@ internal sealed class TinyFarmNativePortrait : INativeLayerPresenter
         }
         Native2DTextureHandle texture = resources.Resolve(resource);
         context.Present(renderer, pass => pass.SubmitQuad(new NativeQuadSubmission(
-            new Native2DRect(55, 101, 260, 260), Native2DUvRect.Full, texture, Native2DTint.White)));
+            new TinyFarmPresentationLayout((int)context.TargetWidth, (int)context.TargetHeight).UiRect(new Native2DRect(55, 101, 260, 260)), Native2DUvRect.Full, texture, Native2DTint.White)));
     }
 
     public void Detach()

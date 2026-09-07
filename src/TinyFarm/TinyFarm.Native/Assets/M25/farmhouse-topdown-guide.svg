@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1280" viewBox="0 0 1536 1280">
+  <title>TinyFarm farmhouse: strict orthographic roof plan</title>
+  <desc>Geometry guide. North is up. Roof ridge is horizontal. Southern porch and two steps point down. No facade or side-wall perspective.</desc>
+  <defs>
+    <pattern id="tiles" width="78" height="58" patternUnits="userSpaceOnUse">
+      <path d="M0 0H78M0 58H78M39 0V58" fill="none" stroke="#88462d" stroke-width="5"/>
+      <path d="M5 7H34M44 7H73" fill="none" stroke="#e0a366" stroke-width="4"/>
+    </pattern>
+  </defs>
+  <!-- Everything lies in plan: parallel walls, zero converging verticals. -->
+  <rect x="281" y="263" width="988" height="696" rx="18" fill="#253b2f" opacity="0.16"/>
+  <rect x="258" y="238" width="1016" height="714" rx="10" fill="#8c633b"/>
+  <rect x="282" y="260" width="968" height="668" fill="#d5bf8c"/>
+  <path d="M238 224H1298L1202 560H332Z" fill="#ca804b" stroke="#754a2e" stroke-width="12"/>
+  <path d="M332 560H1202L1298 902H238Z" fill="#b3673e" stroke="#754a2e" stroke-width="12"/>
+  <path d="M238 224H1298L1202 560H332ZM332 560H1202L1298 902H238Z" fill="url(#tiles)"/>
+  <path d="M238 224L332 560L238 902M1298 224L1202 560L1298 902" fill="none" stroke="#e3a568" stroke-width="14"/>
+  <path d="M332 560H1202" fill="none" stroke="#713f2b" stroke-width="28"/>
+  <path d="M338 554H1196" fill="none" stroke="#e1a161" stroke-width="17"/>
+  <!-- Chimney cap, seen from above; no tall upright stack. -->
+  <rect x="1040" y="332" width="116" height="112" rx="5" fill="#d5c49d" stroke="#756d55" stroke-width="10"/>
+  <rect x="1065" y="357" width="66" height="62" fill="#38362d" stroke="#aa9877" stroke-width="7"/>
+  <!-- Porch canopy and stone threshold at south centre. -->
+  <rect x="587" y="877" width="362" height="160" rx="6" fill="#805837" stroke="#614832" stroke-width="9"/>
+  <rect x="605" y="885" width="326" height="128" fill="#c7874e"/>
+  <path d="M615 907H921M615 937H921M615 967H921M615 997H921" stroke="#865332" stroke-width="8"/>
+  <rect x="652" y="1037" width="232" height="40" rx="5" fill="#bcae89" stroke="#897d62" stroke-width="5"/>
+  <rect x="628" y="1077" width="280" height="40" rx="5" fill="#d0c29c" stroke="#897d62" stroke-width="5"/>
+  <!-- Two small plan-view flower planters communicate the entry without a facade. -->
+  <rect x="466" y="945" width="96" height="98" rx="12" fill="#826044"/>
+  <rect x="974" y="945" width="96" height="98" rx="12" fill="#826044"/>
+  <g fill="#587145">
+    <circle cx="513" cy="992" r="44"/><circle cx="1021" cy="992" r="44"/>
+  </g>
+  <g fill="#eed58b">
+    <circle cx="492" cy="980" r="10"/><circle cx="530" cy="1004" r="12"/>
+    <circle cx="1002" cy="1007" r="12"/><circle cx="1037" cy="980" r="10"/>
+  </g>
+</svg>

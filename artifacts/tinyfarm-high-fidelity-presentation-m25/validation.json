@@ -1,0 +1,9 @@
+{
+  "build": {"command": "dotnet build TinyFarm.slnx -c Release -m:1 --nologo -v:q", "exitCode": 0, "warnings": 0, "errors": 0},
+  "tinyfarmTests": {"passed": 341, "failed": 0},
+  "spatial2DTests": {"passed": 27, "failed": 0},
+  "inputManTests": {"core": 76, "monoGame": 19, "stride": 7, "failed": 0},
+  "native": {"defaultVisibleWindow": true, "720p": true, "1080p": true, "1440p": true, "resize1600x1000": true},
+  "remoteCiRun": false,
+  "gitDiffCheck": "passed"
+}

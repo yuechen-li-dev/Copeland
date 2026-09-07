@@ -1,0 +1,8 @@
+{
+  "multiplier": 1.4,
+  "before": 1.1,
+  "after": 1.54,
+  "stateUnchanged": true,
+  "collisionUnchanged": true,
+  "occlusion": "Semantic canopy unchanged; visual cover and player silhouette use projected artwork bounds."
+}

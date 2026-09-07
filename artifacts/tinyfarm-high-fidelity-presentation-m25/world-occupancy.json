@@ -1,0 +1,23 @@
+{
+  "measurements": {
+    "before": {
+      "semanticGroundPercent": 40.0,
+      "groundPlusComposedArtCoveragePercent": 41.03,
+      "worldBackdropCoveragePercent": 40,
+      "deadFlatBorderPercent": 58.97,
+      "decorativeExtensionBeyondActiveWorldPercent": 0,
+      "normalHudPanelRectanglePercent": 41.49,
+      "worldOnlyNormalHudPercent": 0
+    },
+    "after1080p": {
+      "semanticGroundPercent": 53.25,
+      "groundPlusComposedArtCoveragePercent": 57.88,
+      "worldBackdropCoveragePercent": 100,
+      "deadFlatBorderPercent": 0,
+      "decorativeExtensionBeyondActiveWorldPercent": 42.12,
+      "normalHudPanelRectanglePercent": 41.49,
+      "worldOnlyNormalHudPercent": 0
+    }
+  },
+  "method": "Semantic ground rectangle union alpha>20 of four trees and house; transparent padding excluded. HUD is an overlapping panel-rectangle estimate, not disjoint area. Decorative meadow extension is reported separately from active game-world coverage, not counted as extra traversable ground."
+}

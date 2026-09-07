@@ -8,6 +8,7 @@ namespace TinyFarm.Oblivion;
 public sealed class TinyFarmOblivionLiveSurfaces
 {
     private readonly TinyFarmSimulationHost host;
+    public TinyFarmPresentationInspection? Presentation { get; set; }
 
     public TinyFarmOblivionLiveSurfaces(TinyFarmSimulationHost host)
     {
@@ -18,7 +19,8 @@ public sealed class TinyFarmOblivionLiveSurfaces
     [
         "tinyfarm.live.field",
         "tinyfarm.live.combat",
-        "tinyfarm.spatial.m24"
+        "tinyfarm.spatial.m24",
+        "tinyfarm.presentation.m25"
     ];
 
     public OblivionWorkspace Capture()
@@ -33,12 +35,26 @@ public sealed class TinyFarmOblivionLiveSurfaces
             "TinyFarm live runtime",
             "Read-only semantic surfaces captured from the running TinyFarm session.",
             ["live", "read-only", "TinyFarm"],
-            [field, combat, spatial]);
+            [field, combat, spatial, PresentationCard(workspaceId, pageId)]);
         return new OblivionWorkspace(
             workspaceId,
             "TinyFarm live",
             pageId,
             [new OblivionWorkspaceSection("runtime", "Runtime", [page])]);
+    }
+
+    private OblivionCard PresentationCard(OblivionWorkspaceId workspaceId, OblivionPageId pageId)
+    {
+        string body = Presentation is { } view
+            ? $"viewport: {view.Width} x {view.Height}\nworld-pixels-per-metre: {view.WorldPixelsPerMetre:R}\n"
+                + $"hud-visible: {view.HudVisible}\ninspector-visible: {view.InspectorVisible}\n"
+                + $"tree-scale: {view.TreeScale:R}\nfarmhouse-scale: {view.FarmhouseScale:R}\n"
+                + $"sampling: {view.Sampling}\nsource-detail: {view.Detail}\n"
+                + $"world-frame: {view.WorldFrame}\nhud-frame: {view.HudFrame}\n"
+                + "authority: presentation preferences and scale never enter semantic saves or replay hashes"
+            : "Native presentation has not attached. No viewport or sampler facts are inferred.";
+        return Card("tinyfarm.presentation.m25", "TinyFarm world presentation", OblivionCardStatus.Passing,
+            ["presentation", "viewport", "sampling", "read-only"], body, workspaceId, pageId);
     }
 
     private static OblivionCard SpatialCard(OblivionWorkspaceId workspaceId, OblivionPageId pageId)

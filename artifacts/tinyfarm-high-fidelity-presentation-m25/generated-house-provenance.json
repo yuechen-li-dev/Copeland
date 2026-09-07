@@ -1,0 +1,50 @@
+{
+  "selectedAsset": {
+    "path": "src/TinyFarm/TinyFarm.Native/Assets/M25/farmhouse-three-quarter.png",
+    "width": 1408,
+    "height": 1117,
+    "fileBytes": 2215427,
+    "fileSha256": "735e2ef7f093edc7cdbf93b86237cc69905baf6431e46a23dd9c74340648a6f5",
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  "geometryGuide": {
+    "path": "src/TinyFarm/TinyFarm.Native/Assets/M25/farmhouse-three-quarter-guide.png",
+    "width": 1536,
+    "height": 1280,
+    "fileBytes": 56157,
+    "fileSha256": "d6f521db5dacd163d621b0b9bda3f7203a5c7333453579dca0cc0ba1e58b94ec",
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  "vectorGuide": "src/TinyFarm/TinyFarm.Native/Assets/M25/farmhouse-three-quarter-guide.svg",
+  "materialReference": {
+    "path": "src/TinyFarm/TinyFarm.Native/Assets/M24/farmhouse.png",
+    "width": 1374,
+    "height": 1145,
+    "fileBytes": 1924238,
+    "fileSha256": "f2334a458c82f5d39c69d8a9220fe7171595f0daa89d30dc5d9dee83fa9f8529",
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      255
+    ]
+  },
+  "approvedConvention": "Nominal 45 degree elevation, north-up, zero yaw, parallel projection; prominent roof plus shallow south facade",
+  "source": "Built-in image_gen, guide-constrained paint-over followed by generated RGBA extraction",
+  "finalGenerationFile": "exec-c90619a6-e123-4ccd-82c3-e4334e5d13f7.png",
+  "rejectedStudies": [
+    "farmhouse-topdown-guide.svg",
+    "farmhouse-topdown.png",
+    "farmhouse-topdown-paint-study.png",
+    "farmhouse-three-quarter-paint-study.png"
+  ],
+  "reasonForReplacement": "User identified original diagonal/isometric perspective mismatch, then explicitly approved the fixed three-quarter convention. Roof-plan study was rejected after clarification.",
+  "semanticChanges": false
+}

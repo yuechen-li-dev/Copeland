@@ -1,0 +1,62 @@
+{
+  "outcome": "B",
+  "defects": [
+    {
+      "id": "M25-C1",
+      "class": "C",
+      "priority": "primary",
+      "defect": "Riverside still reads as a softly feathered rectangular cyan field against the meadow; shoreline material lacks the painterly structure of the assets.",
+      "evidence": "riverbank-after.png"
+    },
+    {
+      "id": "M25-C2",
+      "class": "C",
+      "priority": "next-pass",
+      "defect": "Path, crop patch and bridge use broad flat analytic shapes with a strong style mismatch to the foliage and house.",
+      "evidence": "world-only-1080p-after.png"
+    },
+    {
+      "id": "M25-A1",
+      "class": "A",
+      "priority": "medium",
+      "defect": "Canopy headroom prevents clipping, but decorative meadow extension and a large quiet water area are weakly composed.",
+      "evidence": "world-occupancy.json"
+    },
+    {
+      "id": "M25-B1",
+      "class": "B",
+      "priority": "medium",
+      "defect": "House now follows approved north-up three-quarter geometry; pixel well/fence/character and taller M24 tree silhouettes still need a catalog-wide consistency pass.",
+      "evidence": "world-only-1440p-after.png"
+    },
+    {
+      "id": "M25-D1",
+      "class": "D",
+      "priority": "medium",
+      "defect": "Player is locatable through foreground foliage via a translucent silhouette, but pixel styling and occlusion treatment remain visibly provisional.",
+      "evidence": "world-only-1080p-after.png"
+    },
+    {
+      "id": "M25-E1",
+      "class": "E",
+      "priority": "medium",
+      "defect": "Local prompt is much smaller but still wordy for tool/plot interactions; some target art is less readable than its prompt.",
+      "evidence": "world-only-1080p-after.png"
+    },
+    {
+      "id": "M25-F1",
+      "class": "F",
+      "priority": "deferred",
+      "defect": "Full HUD remains large when enabled. It is now optional and overlays the world, but a future UI pass can reduce chrome.",
+      "evidence": "ui-on-1080p-after.png"
+    },
+    {
+      "id": "M25-G1",
+      "class": "G",
+      "priority": "deferred",
+      "defect": "No content/gameplay expansion attempted; static captures do not establish long-term play appeal.",
+      "evidence": "world-only-1080p-after.png"
+    }
+  ],
+  "nextPrimaryPressure": "Painterly ground-material composition, beginning with the Riverside shoreline and its connection to the existing path/bridge. Preserve semantic wet/dry authority."
+}

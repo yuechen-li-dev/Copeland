@@ -1,0 +1,42 @@
+{
+  "painterly": [
+    {
+      "id": "tinyfarm-m24-meadow",
+      "Width": 1254,
+      "Height": 1254,
+      "ContentHash": "e163ad4e41cb2a6fbced7728c4e361a0e2ce3acb598c5cc3d4593d4a3a005680",
+      "sampling": "Linear",
+      "rgbaBytes": 6290064
+    },
+    {
+      "id": "tinyfarm-m25-farmhouse-topdown",
+      "Width": 1536,
+      "Height": 1024,
+      "ContentHash": "276520369f39c28e9dd189fc305f9a085dd0e6feb82227a7d97322190ee214c9",
+      "sampling": "Linear",
+      "rgbaBytes": 6291456
+    },
+    {
+      "id": "tinyfarm-m24-tree",
+      "Width": 1218,
+      "Height": 1292,
+      "ContentHash": "152f3b5f9e15793281ce60e1f7aa207438e16e6dc4f06d1b20c82a305684450d",
+      "sampling": "Nearest",
+      "rgbaBytes": 6294624
+    }
+  ],
+  "pixelAtlas": {
+    "Width": 1248,
+    "Height": 1248,
+    "sampling": "Nearest",
+    "rgbaBytes": 6230016
+  },
+  "field": {
+    "width": 16,
+    "height": 24,
+    "sampling": "Linear UNORM"
+  },
+  "SpriteTextureUploads": 4,
+  "FieldTextureUploads": 1,
+  "FieldUploadBytes": 1536
+}

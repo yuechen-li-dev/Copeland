@@ -82,8 +82,9 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
         }
         promptKey = prompt;
         var nodes = new List<UiNode>();
-        Panel(nodes, "prompt", 0, 0, 710, 38, 0x203D32EE);
-        Text(nodes, "prompt-text", prompt, 22, 8, 670, TextSize.Md, 0xFFF0BEFF);
+        int width = Math.Clamp(prompt.Length * 10 + 24, 100, 460);
+        Panel(nodes, "prompt", 0, 0, width, 32, 0x203D32EE);
+        Text(nodes, "prompt-text", prompt, 12, 6, width - 24, TextSize.Md, 0xFFF0BEFF);
         promptResource = Prepare(UI.Surface(id: "prompt-surface", width: 710, height: 38, children: nodes), 710, 38);
         return promptResource;
     }
@@ -163,31 +164,8 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
                 selected ? 0xFFF0BEFF : 0xD8E3D6FF);
         }
         Text(nodes, "controls", "WASD move  E interact  SPACE tool  I bag", 690, 604, 540, TextSize.Md);
-        Text(nodes, "save-controls", "ESC pause   F save   N load", 690, 634, 490, TextSize.Md, 0xEDD6A0FF);
+        Text(nodes, "save-controls", "F9 HUD F10 inspect F11 capture", 690, 634, 490, TextSize.Md, 0xEDD6A0FF);
         Text(nodes, "status", game.Status.Length > 97 ? game.Status[..94] + "..." : game.Status, 43, 668, 1180, TextSize.Md);
-
-        if (!game.CapturesGameplay)
-        {
-            float scale = Math.Min(870f / frame.SceneWidth, 416f / frame.SceneHeight);
-            float left = 475 - frame.SceneWidth * scale / 2;
-            float top = 315 - frame.SceneHeight * scale / 2;
-            foreach (TinyFarmSceneObjectView portal in frame.SceneObjects!.Where(item => item.Kind == SceneObjectKind.Portal))
-            {
-                string label = portal.Id.Value switch
-                {
-                    "farm-exit" => "TRAIL",
-                    "residence-entrance" => "HEARTH HOUSE",
-                    "dungeon-entrance" => "OLD BURROW",
-                    "farm-entrance" => "FARM",
-                    "town-entrance" => "TOWN",
-                    "riverside-entrance" => "RIVER",
-                    _ => "EXIT"
-                };
-                int x = Math.Clamp((int)(left + portal.Position.X * scale - 35), 40, 765);
-                int py = Math.Clamp((int)(top + portal.Position.Y * scale - 25), 110, 505);
-                Text(nodes, "sign-" + portal.Id.Value, label, x, py, 180, TextSize.Md, 0xFFF0BEFF);
-            }
-        }
 
         if (game.Dialogue.Presentation is { } dialogue)
         {
@@ -240,14 +218,14 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
         return UI.Surface(id: "supper", width: 1280, height: 720, children: nodes);
     }
 
-    private static void Panel(List<UiNode> nodes, string id, int x, int y, int width, int height, uint color = 0x163D31F5)
+    internal static void Panel(List<UiNode> nodes, string id, int x, int y, int width, int height, uint color = 0x163D31F5)
     {
         nodes.Add(UI.Anchor(UI.Rect(id: id, style: new UiStyle(Background: ColorToken.Hex(color),
             BorderColor: ColorToken.Hex(0x8DA48180), BorderThickness: 1, Shape: UiShapeKind.RoundedRect, CornerRadius: 12)),
             id: id + "-anchor", left: x, top: y, width: width, height: height));
     }
 
-    private static void Text(List<UiNode> nodes, string id, string text, int x, int y, int width, TextSize size, uint color = 0xE7EBDDFF)
+    internal static void Text(List<UiNode> nodes, string id, string text, int x, int y, int width, TextSize size, uint color = 0xE7EBDDFF)
     {
         nodes.Add(UI.Anchor(UI.Text(text, id: id, color: ColorToken.Hex(color), size: size),
             id: id + "-anchor", left: x, top: y, width: width, height: 34));

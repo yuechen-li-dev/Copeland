@@ -1,0 +1,60 @@
+{
+  "nativeResources": {
+    "painterly": [
+      {
+        "id": "tinyfarm-m24-meadow",
+        "Width": 1254,
+        "Height": 1254,
+        "ContentHash": "e163ad4e41cb2a6fbced7728c4e361a0e2ce3acb598c5cc3d4593d4a3a005680",
+        "sampling": "Linear",
+        "rgbaBytes": 6290064
+      },
+      {
+        "id": "tinyfarm-m25-farmhouse-three-quarter",
+        "Width": 1408,
+        "Height": 1117,
+        "ContentHash": "dfc6c2dcbbd5372b027a782e34756699dd92b68453ae3ea894d99d43a6ead9ab",
+        "sampling": "Linear",
+        "rgbaBytes": 6290944
+      },
+      {
+        "id": "tinyfarm-m24-tree",
+        "Width": 1218,
+        "Height": 1292,
+        "ContentHash": "152f3b5f9e15793281ce60e1f7aa207438e16e6dc4f06d1b20c82a305684450d",
+        "sampling": "Linear",
+        "rgbaBytes": 6294624
+      }
+    ],
+    "pixelAtlas": {
+      "Width": 1248,
+      "Height": 1248,
+      "sampling": "Nearest",
+      "rgbaBytes": 6230016
+    },
+    "field": {
+      "width": 16,
+      "height": 24,
+      "sampling": "Linear UNORM"
+    },
+    "SpriteTextureUploads": 4,
+    "FieldTextureUploads": 1,
+    "FieldUploadBytes": 1536
+  },
+  "policyOwner": "TinyFarmPainterlyPolicy.cs + SpriteAtlasResource.Sampling",
+  "painterlyClasses": {
+    "PainterlySlab": "Linear",
+    "PainterlyObject": "Linear"
+  },
+  "otherClasses": {
+    "PixelAtlas": "Nearest",
+    "MSDF": "Existing derivative-aware reconstruction",
+    "SemanticField": "Linear UNORM"
+  },
+  "ordering": "Contiguous sampler runs over one existing feet-Y ordered projection; no grouping that reorders overlapping art.",
+  "freshTest": "Changed only TreeSampling to Nearest, built and captured the real native path, then restored Linear. sampler-nearest-tree-native.json records the realized resource policy; capture predates the final house-art revision.",
+  "mipmaps": {
+    "implemented": false,
+    "reason": "Minification remains measurable (tree about 3.8 source texels per displayed texel per axis at 1080p). Linear native captures are readable; no shimmering gate was established. Alpha-aware deterministic mip generation is deferred, not claimed unnecessary."
+  }
+}

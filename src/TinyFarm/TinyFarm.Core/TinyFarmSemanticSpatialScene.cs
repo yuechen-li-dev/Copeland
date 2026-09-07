@@ -6,6 +6,20 @@ public static class TinyFarmSemanticSpatialScene
 {
     public const string SceneId = "tinyfarm.riverside-farmhouse.m24";
     public const string StyleId = "tinyfarm.painterly-meadow.v1";
+    public const string FarmhousePresentationAsset = "m25/farmhouse-three-quarter.png";
+    public static readonly ArtRecipe FarmhousePresentationArt = new(
+        "farmhouse-m25",
+        "same farmhouse, approved north-up three-quarter presentation",
+        StyleId,
+        1408,
+        1117,
+        "nominal 45 degree elevation, north-up, zero yaw, parallel projection",
+        "Paint over farmhouse-three-quarter-guide.svg; M24 house is material reference only; preserve roof, shallow south facade and centred entry.",
+        SeedOrRevision: null,
+        Source: "OpenAI built-in image generation",
+        ApprovedArtifactSha256: "735e2ef7f093edc7cdbf93b86237cc69905baf6431e46a23dd9c74340648a6f5",
+        SelectionOrEditNotes: "M25 user-approved projection convention; generated paint-over followed by generated RGBA background extraction.",
+        LicenseMetadata: null);
 
     public static readonly FixedWorldCamera DefaultCamera = new(
         "tinyfarm.fixed-oblique.v1",
@@ -31,7 +45,7 @@ public static class TinyFarmSemanticSpatialScene
             new("flower-overlay", SurfacePresentationKind.Overlay, "native-flower-patch", StyleId),
             new("water-live", SurfacePresentationKind.Overlay, "tinyfarm-field2d-live", StyleId, false),
             new("tree-image", SurfacePresentationKind.Sprite, "m24/tree.png", StyleId),
-            new("farmhouse-image", SurfacePresentationKind.Sprite, "m24/farmhouse.png", StyleId),
+            new("farmhouse-image", SurfacePresentationKind.Sprite, FarmhousePresentationAsset, StyleId),
             new("well-profile", SurfacePresentationKind.Profile, "m11/well", StyleId),
             new("fence-profile", SurfacePresentationKind.Profile, "m11/fence", StyleId),
             new("crop-live", SurfacePresentationKind.Profile, "tinyfarm-live-crops", StyleId, false),
@@ -39,6 +53,7 @@ public static class TinyFarmSemanticSpatialScene
 
         ArtRecipe[] artRecipes =
         [
+            FarmhousePresentationArt,
             ApprovedArt(
                 "meadow-slab",
                 "coherent painterly meadow ground slab",

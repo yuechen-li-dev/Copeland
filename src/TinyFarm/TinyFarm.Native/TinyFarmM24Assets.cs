@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Aurelian.GameWorld2D;
 using Dominatus.SpriteForge;
+using TinyFarm.Core;
 
 namespace TinyFarm.Native;
 
@@ -18,7 +19,8 @@ internal sealed class TinyFarmM24Assets
     private TinyFarmM24Assets(
         SpriteAtlasResource meadow,
         SpriteAtlasResource farmhouse,
-        SpriteAtlasResource tree)
+        SpriteAtlasResource tree,
+        bool legacy)
     {
         Meadow = meadow;
         Farmhouse = farmhouse;
@@ -26,8 +28,8 @@ internal sealed class TinyFarmM24Assets
         Resources = [meadow, farmhouse, tree];
         frames = new Dictionary<SpriteAssetId, SpriteFrameMetadata>
         {
-            [farmhouse.Id] = FullFrame(farmhouse, 238),
-            [tree.Id] = FullFrame(tree, 178),
+            [farmhouse.Id] = FullFrame(farmhouse, legacy ? 238 : TinyFarmPainterlyPolicy.FarmhouseHeightAt48PixelsPerMetre),
+            [tree.Id] = FullFrame(tree, TinyFarmPainterlyPolicy.TreeHeightAt48PixelsPerMetre),
         };
     }
 
@@ -36,21 +38,21 @@ internal sealed class TinyFarmM24Assets
     public SpriteAtlasResource Tree { get; }
     public IReadOnlyList<SpriteAtlasResource> Resources { get; }
 
-    public static TinyFarmM24Assets Load(string assetDirectory)
+    public static TinyFarmM24Assets Load(string assetDirectory, bool legacy = false)
     {
         return new TinyFarmM24Assets(
             LoadResource(
                 "tinyfarm-m24-meadow",
                 Path.Combine(assetDirectory, "meadow-slab.png"),
-                MeadowApprovedFileHash),
+                MeadowApprovedFileHash, legacy, TinyFarmPainterlyPolicy.MeadowSampling),
             LoadResource(
-                "tinyfarm-m24-farmhouse",
-                Path.Combine(assetDirectory, "farmhouse.png"),
-                FarmhouseApprovedFileHash),
+                legacy ? "tinyfarm-m24-farmhouse" : "tinyfarm-m25-farmhouse-three-quarter",
+                legacy ? Path.Combine(assetDirectory, "farmhouse.png") : Path.Combine(assetDirectory, "..", TinyFarmSemanticSpatialScene.FarmhousePresentationAsset),
+                legacy ? FarmhouseApprovedFileHash : TinyFarmSemanticSpatialScene.FarmhousePresentationArt.ApprovedArtifactSha256, legacy, TinyFarmPainterlyPolicy.FarmhouseSampling),
             LoadResource(
                 "tinyfarm-m24-tree",
                 Path.Combine(assetDirectory, "tree.png"),
-                TreeApprovedFileHash));
+                TreeApprovedFileHash, legacy, TinyFarmPainterlyPolicy.TreeSampling), legacy);
     }
 
     public SpriteFrameMetadata Frame(SpriteAssetId id)
@@ -76,7 +78,7 @@ internal sealed class TinyFarmM24Assets
             new UvRect(0, 0, 1, 1));
     }
 
-    private static SpriteAtlasResource LoadResource(string id, string path, string approvedFileHash)
+    private static SpriteAtlasResource LoadResource(string id, string path, string approvedFileHash, bool legacy, SpriteSampling sampling)
     {
         string actualFileHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant();
         if (!string.Equals(actualFileHash, approvedFileHash, StringComparison.Ordinal))
@@ -122,7 +124,7 @@ internal sealed class TinyFarmM24Assets
                 (uint)width,
                 (uint)height,
                 rgba,
-                SpriteSampling.Nearest);
+                legacy ? SpriteSampling.Nearest : sampling);
         }
         finally
         {

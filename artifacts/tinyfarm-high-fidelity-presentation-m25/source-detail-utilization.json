@@ -1,0 +1,386 @@
+{
+  "metric": "source rectangle pixels / displayed rectangle pixels",
+  "assets": [
+    {
+      "asset": "tree",
+      "source": {
+        "path": "src/TinyFarm/TinyFarm.Native/Assets/M24/tree.png",
+        "width": 1218,
+        "height": 1292,
+        "fileBytes": 1844497,
+        "fileSha256": "abf86042eb4ec4497cf7a300488cf7cf5a5c15de73aeddbc2dad2847675c4d6f",
+        "mode": "RGBA",
+        "alphaRange": [
+          0,
+          255
+        ]
+      },
+      "previousSource": {
+        "path": "src/TinyFarm/TinyFarm.Native/Assets/M24/tree.png",
+        "width": 1218,
+        "height": 1292,
+        "fileBytes": 1844497,
+        "fileSha256": "abf86042eb4ec4497cf7a300488cf7cf5a5c15de73aeddbc2dad2847675c4d6f",
+        "mode": "RGBA",
+        "alphaRange": [
+          0,
+          255
+        ]
+      },
+      "semantic": {
+        "trunkRadiusMetres": 0.34,
+        "canopy": "Independent existing semantic footprint; no change",
+        "instances": [
+          1.0,
+          1.08,
+          1.02,
+          0.94
+        ]
+      },
+      "presentationHeightMetresIncludingHeightAndPadding": 4.079166666666667,
+      "visualMultiplier": 1.1,
+      "before720p": {
+        "width": 167.805,
+        "height": 178.0,
+        "sourcePixelsPerDisplayedPixel": 52.685,
+        "sourcePixelsPerDisplayedPixelAxis": 7.258
+      },
+      "after": {
+        "720": {
+          "width": 212.983,
+          "height": 225.923,
+          "sourcePixelsPerDisplayedPixel": 32.704,
+          "sourcePixelsPerDisplayedPixelAxis": 5.719
+        },
+        "1080": {
+          "width": 319.475,
+          "height": 338.885,
+          "sourcePixelsPerDisplayedPixel": 14.535,
+          "sourcePixelsPerDisplayedPixelAxis": 3.813
+        },
+        "1440": {
+          "width": 425.966,
+          "height": 451.846,
+          "sourcePixelsPerDisplayedPixel": 8.176,
+          "sourcePixelsPerDisplayedPixelAxis": 2.859
+        }
+      },
+      "samplingBefore": "Nearest",
+      "samplingAfter": "Linear",
+      "detailWasteBefore": "Strong minification; tree also clipped by original top framing.",
+      "metricCaveat": "Full source rectangle includes transparent padding; this is utilization evidence, not a quality score."
+    },
+    {
+      "asset": "farmhouse",
+      "source": {
+        "path": "src/TinyFarm/TinyFarm.Native/Assets/M25/farmhouse-three-quarter.png",
+        "width": 1408,
+        "height": 1117,
+        "fileBytes": 2215427,
+        "fileSha256": "735e2ef7f093edc7cdbf93b86237cc69905baf6431e46a23dd9c74340648a6f5",
+        "mode": "RGBA",
+        "alphaRange": [
+          0,
+          255
+        ]
+      },
+      "previousSource": {
+        "path": "src/TinyFarm/TinyFarm.Native/Assets/M24/farmhouse.png",
+        "width": 1374,
+        "height": 1145,
+        "fileBytes": 1924238,
+        "fileSha256": "f2334a458c82f5d39c69d8a9220fe7171595f0daa89d30dc5d9dee83fa9f8529",
+        "mode": "RGBA",
+        "alphaRange": [
+          0,
+          255
+        ]
+      },
+      "semantic": {
+        "wallsMetres": [
+          3.6,
+          2.3
+        ],
+        "roofOcclusionMetres": [
+          4.6,
+          3.3
+        ],
+        "heightMetres": 3.4,
+        "changed": false
+      },
+      "presentationHeightMetresIncludingHeightAndPadding": 4.59375,
+      "visualMultiplier": 1.05,
+      "before720p": {
+        "width": 285.6,
+        "height": 238,
+        "sourcePixelsPerDisplayedPixel": 23.145,
+        "sourcePixelsPerDisplayedPixelAxis": 4.811
+      },
+      "after": {
+        "720": {
+          "width": 320.705,
+          "height": 254.423,
+          "sourcePixelsPerDisplayedPixel": 19.275,
+          "sourcePixelsPerDisplayedPixelAxis": 4.39
+        },
+        "1080": {
+          "width": 481.058,
+          "height": 381.635,
+          "sourcePixelsPerDisplayedPixel": 8.567,
+          "sourcePixelsPerDisplayedPixelAxis": 2.927
+        },
+        "1440": {
+          "width": 641.41,
+          "height": 508.846,
+          "sourcePixelsPerDisplayedPixel": 4.819,
+          "sourcePixelsPerDisplayedPixelAxis": 2.195
+        }
+      },
+      "samplingBefore": "Nearest",
+      "samplingAfter": "Linear",
+      "detailWasteBefore": "Strong minification; tree also clipped by original top framing.",
+      "metricCaveat": "Full source rectangle includes transparent padding; this is utilization evidence, not a quality score."
+    },
+    {
+      "asset": "meadow slab",
+      "source": {
+        "path": "src/TinyFarm/TinyFarm.Native/Assets/M24/meadow-slab.png",
+        "width": 1254,
+        "height": 1254,
+        "fileBytes": 2188465,
+        "fileSha256": "c0222629a63f12067bbe4c78ce7cb864fa263702d875e6cbd4a7b84c6ce987ee",
+        "mode": "RGB",
+        "alphaRange": null
+      },
+      "semanticWorldMetres": [
+        16,
+        10
+      ],
+      "before720p": {
+        "width": 768,
+        "height": 480,
+        "sourcePixelsPerDisplayedPixel": 4.26572265625
+      },
+      "after": {
+        "720": {
+          "width": 1280.0,
+          "height": 720,
+          "sourcePixelsPerDisplayedPixel": 1.7062890625
+        },
+        "1080": {
+          "width": 1920.0,
+          "height": 1080,
+          "sourcePixelsPerDisplayedPixel": 0.7583506944444445
+        },
+        "1440": {
+          "width": 2560.0,
+          "height": 1440,
+          "sourcePixelsPerDisplayedPixel": 0.426572265625
+        }
+      },
+      "samplingBefore": "Nearest",
+      "samplingAfter": "Linear",
+      "note": "One decorative full-frame mapping; semantic ground stays 16x10 m. At 1080p/1440p the slab is magnified along X, so it is now the source-detail limit."
+    },
+    {
+      "asset": "bridge and bank",
+      "source": null,
+      "sourceFileBytes": 0,
+      "sourceDimensions": "Analytic geometry, no PNG",
+      "bridgeWorldMetres": [
+        2.4,
+        1.5
+      ],
+      "bridgeBeforePixels": [
+        115.2,
+        72
+      ],
+      "bridgeAfter1080pPixels": [
+        199.3846153846154,
+        124.61538461538461
+      ],
+      "sampling": "Analytic reconstruction; bank wet coverage comes from linearly sampled field metadata",
+      "detailRatio": null
+    },
+    {
+      "asset": "character",
+      "source": {
+        "path": "src/TinyFarm/TinyFarm.Native/Assets/M11/tinyfarm-sprite-atlas-source.png",
+        "width": 312,
+        "height": 312,
+        "fileBytes": 1766923,
+        "fileSha256": "217df59b652fc8d7c4303dce6c3dfcd847118ecc6a9048462c756adc746e9e99",
+        "mode": "RGBA",
+        "alphaRange": [
+          0,
+          255
+        ],
+        "note": "One cell of shared 1248x1248 atlas; file bytes are shared, not additive."
+      },
+      "semantic": "Existing M11 gameplay position/footprint unchanged",
+      "before720p": {
+        "width": 70.0,
+        "height": 70,
+        "sourcePixelsPerDisplayedPixel": 19.866,
+        "sourcePixelsPerDisplayedPixelAxis": 4.457
+      },
+      "after": {
+        "720": {
+          "width": 80.769,
+          "height": 80.769,
+          "sourcePixelsPerDisplayedPixel": 14.922,
+          "sourcePixelsPerDisplayedPixelAxis": 3.863
+        },
+        "1080": {
+          "width": 121.154,
+          "height": 121.154,
+          "sourcePixelsPerDisplayedPixel": 6.632,
+          "sourcePixelsPerDisplayedPixelAxis": 2.575
+        },
+        "1440": {
+          "width": 161.538,
+          "height": 161.538,
+          "sourcePixelsPerDisplayedPixel": 3.73,
+          "sourcePixelsPerDisplayedPixelAxis": 1.931
+        }
+      },
+      "samplingBefore": "Nearest",
+      "samplingAfter": "Nearest (intentional pixel atlas)"
+    },
+    {
+      "asset": "well",
+      "source": {
+        "path": "src/TinyFarm/TinyFarm.Native/Assets/M11/tinyfarm-sprite-atlas-source.png",
+        "width": 312,
+        "height": 312,
+        "fileBytes": 1766923,
+        "fileSha256": "217df59b652fc8d7c4303dce6c3dfcd847118ecc6a9048462c756adc746e9e99",
+        "mode": "RGBA",
+        "alphaRange": [
+          0,
+          255
+        ],
+        "note": "One cell of shared 1248x1248 atlas; file bytes are shared, not additive."
+      },
+      "semantic": "Existing M11 gameplay position/footprint unchanged",
+      "before720p": {
+        "width": 76.0,
+        "height": 76,
+        "sourcePixelsPerDisplayedPixel": 16.853,
+        "sourcePixelsPerDisplayedPixelAxis": 4.105
+      },
+      "after": {
+        "720": {
+          "width": 87.692,
+          "height": 87.692,
+          "sourcePixelsPerDisplayedPixel": 12.659,
+          "sourcePixelsPerDisplayedPixelAxis": 3.558
+        },
+        "1080": {
+          "width": 131.538,
+          "height": 131.538,
+          "sourcePixelsPerDisplayedPixel": 5.626,
+          "sourcePixelsPerDisplayedPixelAxis": 2.372
+        },
+        "1440": {
+          "width": 175.385,
+          "height": 175.385,
+          "sourcePixelsPerDisplayedPixel": 3.165,
+          "sourcePixelsPerDisplayedPixelAxis": 1.779
+        }
+      },
+      "samplingBefore": "Nearest",
+      "samplingAfter": "Nearest (intentional pixel atlas)"
+    },
+    {
+      "asset": "foreground lantern",
+      "source": {
+        "path": "src/TinyFarm/TinyFarm.Native/Assets/M11/tinyfarm-sprite-atlas-source.png",
+        "width": 312,
+        "height": 312,
+        "fileBytes": 1766923,
+        "fileSha256": "217df59b652fc8d7c4303dce6c3dfcd847118ecc6a9048462c756adc746e9e99",
+        "mode": "RGBA",
+        "alphaRange": [
+          0,
+          255
+        ],
+        "note": "One cell of shared 1248x1248 atlas; file bytes are shared, not additive."
+      },
+      "semantic": "Existing M11 gameplay position/footprint unchanged",
+      "before720p": {
+        "width": 58.0,
+        "height": 58,
+        "sourcePixelsPerDisplayedPixel": 28.937,
+        "sourcePixelsPerDisplayedPixelAxis": 5.379
+      },
+      "after": {
+        "720": {
+          "width": 66.923,
+          "height": 66.923,
+          "sourcePixelsPerDisplayedPixel": 21.735,
+          "sourcePixelsPerDisplayedPixelAxis": 4.662
+        },
+        "1080": {
+          "width": 100.385,
+          "height": 100.385,
+          "sourcePixelsPerDisplayedPixel": 9.66,
+          "sourcePixelsPerDisplayedPixelAxis": 3.108
+        },
+        "1440": {
+          "width": 133.846,
+          "height": 133.846,
+          "sourcePixelsPerDisplayedPixel": 5.434,
+          "sourcePixelsPerDisplayedPixelAxis": 2.331
+        }
+      },
+      "samplingBefore": "Nearest",
+      "samplingAfter": "Nearest (intentional pixel atlas)"
+    },
+    {
+      "asset": "fence",
+      "source": {
+        "path": "src/TinyFarm/TinyFarm.Native/Assets/M11/tinyfarm-sprite-atlas-source.png",
+        "width": 312,
+        "height": 312,
+        "fileBytes": 1766923,
+        "fileSha256": "217df59b652fc8d7c4303dce6c3dfcd847118ecc6a9048462c756adc746e9e99",
+        "mode": "RGBA",
+        "alphaRange": [
+          0,
+          255
+        ],
+        "note": "One cell of shared 1248x1248 atlas; file bytes are shared, not additive."
+      },
+      "semantic": "Existing M11 gameplay position/footprint unchanged",
+      "before720p": {
+        "width": 54.0,
+        "height": 54,
+        "sourcePixelsPerDisplayedPixel": 33.383,
+        "sourcePixelsPerDisplayedPixelAxis": 5.778
+      },
+      "after": {
+        "720": {
+          "width": 62.308,
+          "height": 62.308,
+          "sourcePixelsPerDisplayedPixel": 25.074,
+          "sourcePixelsPerDisplayedPixelAxis": 5.007
+        },
+        "1080": {
+          "width": 93.462,
+          "height": 93.462,
+          "sourcePixelsPerDisplayedPixel": 11.144,
+          "sourcePixelsPerDisplayedPixelAxis": 3.338
+        },
+        "1440": {
+          "width": 124.615,
+          "height": 124.615,
+          "sourcePixelsPerDisplayedPixel": 6.269,
+          "sourcePixelsPerDisplayedPixelAxis": 2.504
+        }
+      },
+      "samplingBefore": "Nearest",
+      "samplingAfter": "Nearest (intentional pixel atlas)"
+    }
+  ]
+}

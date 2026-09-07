@@ -1,0 +1,47 @@
+{
+  "baseline": true,
+  "nativePath": "TinyFarm.Native / NativeLayerCompositor / Vulkan",
+  "Device": "NVIDIA GeForce RTX 3070",
+  "Layout": {
+    "Width": 1280,
+    "Height": 720,
+    "Legacy": true,
+    "UiScale": 1,
+    "UiLeft": 0,
+    "UiTop": 0,
+    "WorldScale": 48,
+    "WorldViewport": {
+      "X": 22,
+      "Y": 24,
+      "Width": 904,
+      "Height": 648
+    }
+  },
+  "hudKey": "F9",
+  "stateBefore": "696432616126a34534302c6906ae3f95f86fe9c3cdc689b16f4db2f3c19b7c82:008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+  "stateAfter": "696432616126a34534302c6906ae3f95f86fe9c3cdc689b16f4db2f3c19b7c82:008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+  "cameraBefore": "{\"Position\":{\"X\":0,\"Y\":0},\"Viewport\":{\"X\":22,\"Y\":24,\"Width\":904,\"Height\":648},\"Zoom\":1,\"Bounds\":{\"X\":0,\"Y\":0,\"Width\":16,\"Height\":10,\"Right\":16,\"Bottom\":10}}",
+  "cameraAfter": "{\"Position\":{\"X\":0,\"Y\":0},\"Viewport\":{\"X\":22,\"Y\":24,\"Width\":904,\"Height\":648},\"Zoom\":1,\"Bounds\":{\"X\":0,\"Y\":0,\"Width\":16,\"Height\":10,\"Right\":16,\"Bottom\":10}}",
+  "outsideHudDifferences": 0,
+  "frozenRenderSequence": 42,
+  "hudHidden": true,
+  "worldHash": "b2c8244e7ca3a145f1e854d5e8f95d5bdc89a88a90ed495ec78eb4df650e4a6e",
+  "originalLogicalExtent": [
+    1280,
+    720
+  ],
+  "originalFramebufferExtent": [
+    1280,
+    720
+  ],
+  "originalWorldViewport": [
+    22,
+    24,
+    904,
+    648
+  ],
+  "originalPixelsPerMetre": 48,
+  "originalResize": "Fixed window; empty renderer Resize",
+  "originalSampling": "One nearest-sampled sprite scope",
+  "captureCaveat": "Native legacy camera/resources/composition; current control legend and reduced prompt are retained by the reproduction mode."
+}

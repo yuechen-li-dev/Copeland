@@ -1,0 +1,17 @@
+{
+  "qualified": true,
+  "source": "Existing ReactiveFluid2D liquid mask in blue channel",
+  "implementation": "Copy all interior field RGBA bytes unchanged into a one-texel dry border, expand visual field bounds by that texel, sample linearly. Gameplay wet/dry data is never changed.",
+  "validation": "BankPaddingPreservesInteriorAndMakesOnlyTheBorderDry test; HUD/resize hashes and byte-identical save test",
+  "blend": "TinyFarm PainterlyWater.v.ts outputs straight RGB and wet-derived alpha; removed the old second RGB-by-wet multiplication.",
+  "order": [
+    "meadow",
+    "soil feather and paths/patches",
+    "semantic wet alpha with live water",
+    "bridge",
+    "feet-Y ordered objects and actors",
+    "occluded-player silhouette",
+    "effects"
+  ],
+  "remainingSeam": "The soft edge still outlines a rectangular low-resolution field. Alpha transport is fixed; painterly shoreline composition is not complete."
+}

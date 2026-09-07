@@ -1,0 +1,36 @@
+{
+  "sources": [
+    {
+      "path": "src/TinyFarm/TinyFarm.Native/Assets/M24/tree.png",
+      "width": 1218,
+      "height": 1292,
+      "fileBytes": 1844497,
+      "fileSha256": "abf86042eb4ec4497cf7a300488cf7cf5a5c15de73aeddbc2dad2847675c4d6f",
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "src/TinyFarm/TinyFarm.Native/Assets/M25/farmhouse-three-quarter.png",
+      "width": 1408,
+      "height": 1117,
+      "fileBytes": 2215427,
+      "fileSha256": "735e2ef7f093edc7cdbf93b86237cc69905baf6431e46a23dd9c74340648a6f5",
+      "mode": "RGBA",
+      "alphaRange": [
+        0,
+        255
+      ]
+    }
+  ],
+  "nativeEvidence": [
+    "alpha-dark-background.png",
+    "world-only-1080p-after.png",
+    "world-only-1440p-after.png",
+    "riverbank-after.png"
+  ],
+  "inspection": "Tree foliage and selected farmhouse were inspected on dark and meadow backgrounds, with the northern tree adjacent to the bank. No opaque checkerboard, white matte, or broad bright fringe survives in the selected native asset. Fine foliage is softer under linear minification. The water alpha ramp is still visually too uniform/rectangular.",
+  "measurementLimits": "Visual native edge inspection plus exact RGBA alpha ranges; not a pixel-perfect image matte certification."
+}

@@ -1,0 +1,25 @@
+{
+  "IsVisible": true,
+  "SurfaceSize": {
+    "Width": 1920,
+    "Height": 1080
+  },
+  "Layout": {
+    "Width": 1920,
+    "Height": 1080,
+    "Legacy": false,
+    "UiScale": 1.5,
+    "UiLeft": 0,
+    "UiTop": 0,
+    "WorldScale": 83.07692,
+    "WorldViewport": {
+      "X": 295.3846435546875,
+      "Y": 0,
+      "Width": 1329.230712890625,
+      "Height": 1080
+    }
+  },
+  "Screen": 1,
+  "titleEnterMovementPausePassed": true,
+  "renderedPixels": 8294400
+}

@@ -1,0 +1,371 @@
+{
+  "Id": {
+    "Value": "tinyfarm.live"
+  },
+  "Title": "TinyFarm live",
+  "DefaultPageId": {
+    "Value": "tinyfarm.runtime"
+  },
+  "Sections": [
+    {
+      "Id": "runtime",
+      "Title": "Runtime",
+      "Pages": [
+        {
+          "Id": {
+            "Value": "tinyfarm.runtime"
+          },
+          "Title": "TinyFarm live runtime",
+          "Description": "Read-only semantic surfaces captured from the running TinyFarm session.",
+          "Tags": [
+            "live",
+            "read-only",
+            "TinyFarm"
+          ],
+          "Cards": [
+            {
+              "Id": {
+                "Value": "tinyfarm.live.field"
+              },
+              "Kind": 1,
+              "Status": 1,
+              "Title": "TinyFarm live pond field",
+              "Subtitle": "Live session projection",
+              "Tags": [
+                "height",
+                "velocity",
+                "foam",
+                "charge",
+                "liquid-mask",
+                "flow-x",
+                "flow-y",
+                "read-only"
+              ],
+              "Body": {
+                "Format": 0,
+                "Content": {},
+                "RawText": "owner: TinyFarmSession\nconcept: TinyFarm.World.Pond.Fluid.Charge\ndefinition: tinyfarm.riverside.stream.v1\ndimensions: 14 x 22\ncell-size: 512\ntick: 419\nhash: 0b7cc452d0622703141b28eb67ca0ade8b9fdbfeec9961d2ea048620cf17e2e1\nsnapshot-version: 1\nwet-cells: 240\nheight: min=0 max=0\nvelocity: min=0 max=0\nfoam: min=0 max=0\ncharge: min=0 max=0\nflow-x: min=0 max=0\nflow-y: min=0 max=0.025\npresets: normal, charge-only, wave-height, liquid-topology, flow\nrecent-disturbances:",
+                "SourceReference": null
+              },
+              "Actions": [],
+              "Artifacts": [],
+              "Provenance": {
+                "SourceKind": 4,
+                "SourceReference": "tinyfarm.live.field",
+                "ProducerActionId": null,
+                "ParentArtifactId": null,
+                "ParentCardId": null
+              },
+              "PageId": {
+                "Value": "tinyfarm.runtime"
+              },
+              "WorkspaceId": {
+                "Value": "tinyfarm.live"
+              },
+              "Diagram": null,
+              "Table": null,
+              "Function": null
+            },
+            {
+              "Id": {
+                "Value": "tinyfarm.live.combat"
+              },
+              "Kind": 1,
+              "Status": 1,
+              "Title": "TinyFarm live combat",
+              "Subtitle": "Live session projection",
+              "Tags": [
+                "combat",
+                "Dominatus",
+                "read-only"
+              ],
+              "Body": {
+                "Format": 0,
+                "Content": {},
+                "RawText": "concept: TinyFarm.Player.Combat.ActiveAction\nactive-move: none\nphase: Idle\nphase-tick: 0\nfacing: Down\nhit-ids: \ncontact-count: 0\nsave-law: TinyFarm attacks resolve atomically at a safe boundary",
+                "SourceReference": null
+              },
+              "Actions": [],
+              "Artifacts": [],
+              "Provenance": {
+                "SourceKind": 4,
+                "SourceReference": "tinyfarm.live.combat",
+                "ProducerActionId": null,
+                "ParentArtifactId": null,
+                "ParentCardId": null
+              },
+              "PageId": {
+                "Value": "tinyfarm.runtime"
+              },
+              "WorkspaceId": {
+                "Value": "tinyfarm.live"
+              },
+              "Diagram": null,
+              "Table": null,
+              "Function": null
+            },
+            {
+              "Id": {
+                "Value": "tinyfarm.spatial.m24"
+              },
+              "Kind": 1,
+              "Status": 1,
+              "Title": "TinyFarm M24 semantic spatial scene",
+              "Subtitle": "Live session projection",
+              "Tags": [
+                "spatial",
+                "surfaces",
+                "paths",
+                "collision",
+                "navigation",
+                "occlusion",
+                "presentation"
+              ],
+              "Body": {
+                "Format": 0,
+                "Content": {},
+                "RawText": "semantic-scene: tinyfarm.riverside-farmhouse.m24\nsurfaces: surface.meadow, surface.river, surface.bridge-deck, surface.crop-plot\npaths: path.farmhouse-well-south-gate\npatches: patch.flower-meadow, patch.riverbank-mud\nobjects: farmhouse, tree.west, tree.path, tree.bank, tree.south, well, fence.north, riverside-exit\ncollision-shapes: 7\ninteraction-regions: 7\nocclusion-shapes: 7\nnavigation-cells: 640\npresentation-recipes: meadow-slab=m24/meadow-slab.png, river-bank-overlay=native-bank-paint, dirt-path-overlay=native-path-ribbon, flower-overlay=native-flower-patch, water-live=tinyfarm-field2d-live, tree-image=m24/tree.png, farmhouse-image=m24/farmhouse.png, well-profile=m11/well, fence-profile=m11/fence, crop-live=tinyfarm-live-crops\ntoggles: surfaces, paths, object-footprints, collision, navigation, occlusion, presentation\nauthority: semantic intent -\u003E navigation/collision/occlusion/interaction/presentation",
+                "SourceReference": null
+              },
+              "Actions": [],
+              "Artifacts": [],
+              "Provenance": {
+                "SourceKind": 4,
+                "SourceReference": "tinyfarm.spatial.m24",
+                "ProducerActionId": null,
+                "ParentArtifactId": null,
+                "ParentCardId": null
+              },
+              "PageId": {
+                "Value": "tinyfarm.runtime"
+              },
+              "WorkspaceId": {
+                "Value": "tinyfarm.live"
+              },
+              "Diagram": null,
+              "Table": null,
+              "Function": null
+            },
+            {
+              "Id": {
+                "Value": "tinyfarm.presentation.m25"
+              },
+              "Kind": 1,
+              "Status": 1,
+              "Title": "TinyFarm world presentation",
+              "Subtitle": "Live session projection",
+              "Tags": [
+                "presentation",
+                "viewport",
+                "sampling",
+                "read-only"
+              ],
+              "Body": {
+                "Format": 0,
+                "Content": {},
+                "RawText": "viewport: 2560 x 1421\nworld-pixels-per-metre: 109.30769\nhud-visible: True\ninspector-visible: False\ntree-scale: 1.1\nfarmhouse-scale: 1.05\nsampling: PainterlySlab/Object linear; PixelAtlas nearest; MSDF derivative reconstruction\nsource-detail: 1254px tree / 445.9px = 2.81 source/display axis; 1254px house / 569.1px = 2.20\nworld-frame: artifacts/tinyfarm-high-fidelity-presentation-m25/world-only-1421p-after.png\nhud-frame: artifacts/tinyfarm-high-fidelity-presentation-m25/ui-on-1421p-after.png\nauthority: presentation preferences and scale never enter semantic saves or replay hashes",
+                "SourceReference": null
+              },
+              "Actions": [],
+              "Artifacts": [],
+              "Provenance": {
+                "SourceKind": 4,
+                "SourceReference": "tinyfarm.presentation.m25",
+                "ProducerActionId": null,
+                "ParentArtifactId": null,
+                "ParentCardId": null
+              },
+              "PageId": {
+                "Value": "tinyfarm.runtime"
+              },
+              "WorkspaceId": {
+                "Value": "tinyfarm.live"
+              },
+              "Diagram": null,
+              "Table": null,
+              "Function": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "Pages": [
+    {
+      "Id": {
+        "Value": "tinyfarm.runtime"
+      },
+      "Title": "TinyFarm live runtime",
+      "Description": "Read-only semantic surfaces captured from the running TinyFarm session.",
+      "Tags": [
+        "live",
+        "read-only",
+        "TinyFarm"
+      ],
+      "Cards": [
+        {
+          "Id": {
+            "Value": "tinyfarm.live.field"
+          },
+          "Kind": 1,
+          "Status": 1,
+          "Title": "TinyFarm live pond field",
+          "Subtitle": "Live session projection",
+          "Tags": [
+            "height",
+            "velocity",
+            "foam",
+            "charge",
+            "liquid-mask",
+            "flow-x",
+            "flow-y",
+            "read-only"
+          ],
+          "Body": {
+            "Format": 0,
+            "Content": {},
+            "RawText": "owner: TinyFarmSession\nconcept: TinyFarm.World.Pond.Fluid.Charge\ndefinition: tinyfarm.riverside.stream.v1\ndimensions: 14 x 22\ncell-size: 512\ntick: 419\nhash: 0b7cc452d0622703141b28eb67ca0ade8b9fdbfeec9961d2ea048620cf17e2e1\nsnapshot-version: 1\nwet-cells: 240\nheight: min=0 max=0\nvelocity: min=0 max=0\nfoam: min=0 max=0\ncharge: min=0 max=0\nflow-x: min=0 max=0\nflow-y: min=0 max=0.025\npresets: normal, charge-only, wave-height, liquid-topology, flow\nrecent-disturbances:",
+            "SourceReference": null
+          },
+          "Actions": [],
+          "Artifacts": [],
+          "Provenance": {
+            "SourceKind": 4,
+            "SourceReference": "tinyfarm.live.field",
+            "ProducerActionId": null,
+            "ParentArtifactId": null,
+            "ParentCardId": null
+          },
+          "PageId": {
+            "Value": "tinyfarm.runtime"
+          },
+          "WorkspaceId": {
+            "Value": "tinyfarm.live"
+          },
+          "Diagram": null,
+          "Table": null,
+          "Function": null
+        },
+        {
+          "Id": {
+            "Value": "tinyfarm.live.combat"
+          },
+          "Kind": 1,
+          "Status": 1,
+          "Title": "TinyFarm live combat",
+          "Subtitle": "Live session projection",
+          "Tags": [
+            "combat",
+            "Dominatus",
+            "read-only"
+          ],
+          "Body": {
+            "Format": 0,
+            "Content": {},
+            "RawText": "concept: TinyFarm.Player.Combat.ActiveAction\nactive-move: none\nphase: Idle\nphase-tick: 0\nfacing: Down\nhit-ids: \ncontact-count: 0\nsave-law: TinyFarm attacks resolve atomically at a safe boundary",
+            "SourceReference": null
+          },
+          "Actions": [],
+          "Artifacts": [],
+          "Provenance": {
+            "SourceKind": 4,
+            "SourceReference": "tinyfarm.live.combat",
+            "ProducerActionId": null,
+            "ParentArtifactId": null,
+            "ParentCardId": null
+          },
+          "PageId": {
+            "Value": "tinyfarm.runtime"
+          },
+          "WorkspaceId": {
+            "Value": "tinyfarm.live"
+          },
+          "Diagram": null,
+          "Table": null,
+          "Function": null
+        },
+        {
+          "Id": {
+            "Value": "tinyfarm.spatial.m24"
+          },
+          "Kind": 1,
+          "Status": 1,
+          "Title": "TinyFarm M24 semantic spatial scene",
+          "Subtitle": "Live session projection",
+          "Tags": [
+            "spatial",
+            "surfaces",
+            "paths",
+            "collision",
+            "navigation",
+            "occlusion",
+            "presentation"
+          ],
+          "Body": {
+            "Format": 0,
+            "Content": {},
+            "RawText": "semantic-scene: tinyfarm.riverside-farmhouse.m24\nsurfaces: surface.meadow, surface.river, surface.bridge-deck, surface.crop-plot\npaths: path.farmhouse-well-south-gate\npatches: patch.flower-meadow, patch.riverbank-mud\nobjects: farmhouse, tree.west, tree.path, tree.bank, tree.south, well, fence.north, riverside-exit\ncollision-shapes: 7\ninteraction-regions: 7\nocclusion-shapes: 7\nnavigation-cells: 640\npresentation-recipes: meadow-slab=m24/meadow-slab.png, river-bank-overlay=native-bank-paint, dirt-path-overlay=native-path-ribbon, flower-overlay=native-flower-patch, water-live=tinyfarm-field2d-live, tree-image=m24/tree.png, farmhouse-image=m24/farmhouse.png, well-profile=m11/well, fence-profile=m11/fence, crop-live=tinyfarm-live-crops\ntoggles: surfaces, paths, object-footprints, collision, navigation, occlusion, presentation\nauthority: semantic intent -\u003E navigation/collision/occlusion/interaction/presentation",
+            "SourceReference": null
+          },
+          "Actions": [],
+          "Artifacts": [],
+          "Provenance": {
+            "SourceKind": 4,
+            "SourceReference": "tinyfarm.spatial.m24",
+            "ProducerActionId": null,
+            "ParentArtifactId": null,
+            "ParentCardId": null
+          },
+          "PageId": {
+            "Value": "tinyfarm.runtime"
+          },
+          "WorkspaceId": {
+            "Value": "tinyfarm.live"
+          },
+          "Diagram": null,
+          "Table": null,
+          "Function": null
+        },
+        {
+          "Id": {
+            "Value": "tinyfarm.presentation.m25"
+          },
+          "Kind": 1,
+          "Status": 1,
+          "Title": "TinyFarm world presentation",
+          "Subtitle": "Live session projection",
+          "Tags": [
+            "presentation",
+            "viewport",
+            "sampling",
+            "read-only"
+          ],
+          "Body": {
+            "Format": 0,
+            "Content": {},
+            "RawText": "viewport: 2560 x 1421\nworld-pixels-per-metre: 109.30769\nhud-visible: True\ninspector-visible: False\ntree-scale: 1.1\nfarmhouse-scale: 1.05\nsampling: PainterlySlab/Object linear; PixelAtlas nearest; MSDF derivative reconstruction\nsource-detail: 1254px tree / 445.9px = 2.81 source/display axis; 1254px house / 569.1px = 2.20\nworld-frame: artifacts/tinyfarm-high-fidelity-presentation-m25/world-only-1421p-after.png\nhud-frame: artifacts/tinyfarm-high-fidelity-presentation-m25/ui-on-1421p-after.png\nauthority: presentation preferences and scale never enter semantic saves or replay hashes",
+            "SourceReference": null
+          },
+          "Actions": [],
+          "Artifacts": [],
+          "Provenance": {
+            "SourceKind": 4,
+            "SourceReference": "tinyfarm.presentation.m25",
+            "ProducerActionId": null,
+            "ParentArtifactId": null,
+            "ParentCardId": null
+          },
+          "PageId": {
+            "Value": "tinyfarm.runtime"
+          },
+          "WorkspaceId": {
+            "Value": "tinyfarm.live"
+          },
+          "Diagram": null,
+          "Table": null,
+          "Function": null
+        }
+      ]
+    }
+  ]
+}

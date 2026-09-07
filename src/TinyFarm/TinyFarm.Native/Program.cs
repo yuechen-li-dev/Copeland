@@ -23,8 +23,10 @@ internal static class Program
     {
         string root = FindRoot();
         int soakFrames = ParseSoakFrames(args);
+        bool m25Proof = args.Contains("--m25-proof", StringComparer.Ordinal);
+        bool baseline = args.Contains("--m25-baseline", StringComparer.Ordinal);
         bool m24Proof = args.Contains("--m24-proof", StringComparer.Ordinal);
-        bool proof = args.Contains("--proof", StringComparer.Ordinal) || m24Proof || soakFrames > 0;
+        bool proof = args.Contains("--proof", StringComparer.Ordinal) || m24Proof || m25Proof || soakFrames > 0;
         string saveRoot = proof ? Path.Combine(root, "artifacts", "validation", "m9-saves")
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TinyFarm", "saves");
         try
@@ -32,7 +34,14 @@ internal static class Program
             var game = new TinyFarmGame(new FileSaveStore(saveRoot));
             var input = new AurelianInputAdapter(new InputManEngine(GameControls.CreateProfile()));
             input.SetContexts(game.Contexts);
-            var window = TinyFarmNativeWindow.Create(input, proof, vSync: soakFrames == 0);
+            int width = ParseDimension(args, "--width", baseline || proof && !m25Proof ? 1280 : 1920);
+            int height = ParseDimension(args, "--height", baseline || proof && !m25Proof ? 720 : 1080);
+            game.Presentation.HudVisible = !args.Contains("--world-only", StringComparer.Ordinal);
+            if (!game.Presentation.HudVisible)
+            {
+                game.Start();
+            }
+            var window = TinyFarmNativeWindow.Create(input, proof, vSync: soakFrames == 0 && !m25Proof, width, height);
             using var resources = TinyFarmNativeAudio.CreateResources();
             IAudioOutputBackend backend;
             string audioBackend;
@@ -57,12 +66,17 @@ internal static class Program
             var audio = new AurelianAudioRuntime(resources, backend, voiceCapacity: 16);
             audio.SetBusVolume(AudioBusId.Master, .35f);
             audio.Play(new TinyFarmAudioProjector().FarmMusic(new AudioEventId("tinyfarm:music")) with { Priority = 100 });
-            var renderer = new TinyFarmNativeRenderer(root, game, window, proof, vSync: soakFrames == 0);
+            var renderer = new TinyFarmNativeRenderer(root, game, window, proof, vSync: soakFrames == 0 && !m25Proof, legacy: baseline || proof && !m25Proof);
             var application = new TinyFarmNativeApplication(game, input, window, audio);
             using var host = new AurelianGameHost(window, input, renderer, application, "TinyFarm", audio);
             if (soakFrames > 0)
             {
                 TinyFarmNativeSoak.Run(root, soakFrames, game, renderer, host);
+                return 0;
+            }
+            if (m25Proof)
+            {
+                TinyFarmM25NativeProof.Run(root, game, input, window, renderer, host, baseline);
                 return 0;
             }
             if (m24Proof)
@@ -78,6 +92,19 @@ internal static class Program
             if (args.Contains("--window-smoke", StringComparer.Ordinal))
             {
                 TinyFarmNativeProof.RunWindow(game, window, host);
+                game.Start();
+                string evidence = Path.Combine(root, "artifacts", "tinyfarm-high-fidelity-presentation-m25");
+                Directory.CreateDirectory(evidence);
+                TinyFarmM25NativeProof.Capture(Path.Combine(evidence, "native-default-window-smoke.png"), renderer, host);
+                TinyFarmM25NativeProof.Write(evidence, "native-window-smoke.json", new
+                {
+                    window.NativeWindow.IsVisible,
+                    window.SurfaceSize,
+                    renderer.Layout,
+                    game.Screen,
+                    titleEnterMovementPausePassed = true,
+                    renderedPixels = renderer.Last!.NativeFrame.Pixels!.Length,
+                });
                 return 0;
             }
             var clock = Stopwatch.StartNew();
@@ -116,6 +143,20 @@ internal static class Program
             }
         }
         throw new DirectoryNotFoundException("Run TinyFarm from its repository build.");
+    }
+
+    private static int ParseDimension(string[] args, string flag, int fallback)
+    {
+        int index = Array.IndexOf(args, flag);
+        if (index < 0)
+        {
+            return fallback;
+        }
+        if (index + 1 >= args.Length || !int.TryParse(args[index + 1], out int value) || value < 320 || value > 7680)
+        {
+            throw new ArgumentException(flag + " requires an integer from 320 through 7680.");
+        }
+        return value;
     }
 
     private static int ParseSoakFrames(string[] args)
@@ -203,20 +244,27 @@ internal sealed class TinyFarmNativeWindow : IAurelianGameWindow
         this.proof = proof;
         focused = proof;
         RequiredVulkanInstanceExtensions = requiredVulkanInstanceExtensions;
-        window.Resize += OnResize;
+        window.FramebufferResize += OnResize;
         window.FocusChanged += OnFocusChanged;
     }
 
-    public static TinyFarmNativeWindow Create(AurelianInputAdapter input, bool proof, bool vSync = true)
+    public static TinyFarmNativeWindow Create(AurelianInputAdapter input, bool proof, bool vSync = true, int width = 1920, int height = 1080)
     {
         WindowOptions options = WindowOptions.DefaultVulkan;
         options.IsVisible = !proof;
-        options.Size = new Vector2D<int>(1280, 720);
+        options.Size = new Vector2D<int>(width, height);
         options.Title = "TinyFarm - A Little Mint of Kindness";
         options.VSync = vSync;
-        options.WindowBorder = WindowBorder.Fixed;
+        options.WindowBorder = proof ? WindowBorder.Hidden : WindowBorder.Resizable;
         IWindow window = Silk.NET.Windowing.Window.Create(options);
         window.Initialize();
+        if (window.Size.X != width || window.Size.Y != height)
+        {
+            // Desktop decorations can reduce oversized client requests. Borderless preserves the requested pixels.
+            window.WindowBorder = WindowBorder.Hidden;
+            window.Size = new Vector2D<int>(width, height);
+            window.DoEvents();
+        }
         IReadOnlyList<string> requiredExtensions = ReadRequiredVulkanExtensions(window);
         IInputContext inputContext = window.CreateInput();
         var inputBridge = new SilkInputBridge(inputContext, input);
@@ -225,7 +273,7 @@ internal sealed class TinyFarmNativeWindow : IAurelianGameWindow
 
     public IWindow NativeWindow => window;
     public IReadOnlyList<string> RequiredVulkanInstanceExtensions { get; }
-    public HostSurfaceSize SurfaceSize => new(window.Size.X, window.Size.Y);
+    public HostSurfaceSize SurfaceSize => new(window.FramebufferSize.X, window.FramebufferSize.Y);
     public bool IsFocused => proof || focused;
     public bool ShouldClose => window.IsClosing;
     public event Action<HostSurfaceSize>? Resized;
@@ -249,14 +297,20 @@ internal sealed class TinyFarmNativeWindow : IAurelianGameWindow
             return;
         }
         disposed = true;
-        window.Resize -= OnResize;
+        window.FramebufferResize -= OnResize;
         window.FocusChanged -= OnFocusChanged;
         inputBridge.Dispose();
         inputContext.Dispose();
         window.Dispose();
     }
 
-    private void OnResize(Vector2D<int> size) => Resized?.Invoke(new HostSurfaceSize(size.X, size.Y));
+    private void OnResize(Vector2D<int> size)
+    {
+        if (size.X > 0 && size.Y > 0)
+        {
+            Resized?.Invoke(new HostSurfaceSize(size.X, size.Y));
+        }
+    }
 
     private void OnFocusChanged(bool isFocused)
     {

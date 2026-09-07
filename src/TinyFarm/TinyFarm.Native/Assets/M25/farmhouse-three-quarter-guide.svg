@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1280" viewBox="0 0 1536 1280">
+  <title>TinyFarm north-up three-quarter farmhouse geometry guide</title>
+  <desc>Approximately 45 degree elevation, looking north, zero yaw, parallel projection. Roof dominates, shallow south-facing facade remains readable. No east or west wall is visible.</desc>
+  <defs>
+    <pattern id="roof-tiles" width="80" height="64" patternUnits="userSpaceOnUse">
+      <path d="M0 0H80M0 64H80M40 0V64" fill="none" stroke="#915333" stroke-width="5"/>
+      <path d="M5 8H35M45 8H75" stroke="#e4ad72" stroke-width="4"/>
+    </pattern>
+    <pattern id="stone" width="112" height="54" patternUnits="userSpaceOnUse">
+      <path d="M0 0H112M56 0V54" fill="none" stroke="#beaa80" stroke-width="5"/>
+    </pattern>
+  </defs>
+  <!-- South-facing facade: horizontal lintels, vertical door jambs, no receding side wall. -->
+  <rect x="304" y="624" width="928" height="338" rx="8" fill="#e2cda1" stroke="#866b46" stroke-width="10"/>
+  <rect x="310" y="636" width="916" height="320" fill="url(#stone)"/>
+  <!-- Parallel east-west roof ridge, thin rear slope, broad visible south slope. -->
+  <path d="M280 256L320 196H1216L1256 256Z" fill="#d79758" stroke="#895234" stroke-width="10"/>
+  <path d="M280 256H1256L1300 652H236Z" fill="#bf7543" stroke="#895234" stroke-width="12"/>
+  <path d="M280 256H1256L1300 652H236Z" fill="url(#roof-tiles)"/>
+  <path d="M282 252H1254" stroke="#e0a05d" stroke-width="26"/>
+  <path d="M236 652H1300" stroke="#79472f" stroke-width="20"/>
+  <!-- Chimney has a square top cap and one shallow front face. -->
+  <rect x="1032" y="290" width="108" height="139" fill="#b9a685" stroke="#7a715e" stroke-width="8"/>
+  <rect x="1023" y="270" width="126" height="61" rx="5" fill="#ddccaa" stroke="#7a715e" stroke-width="7"/>
+  <rect x="1046" y="287" width="80" height="26" fill="#474333"/>
+  <!-- Front windows and centred door establish the entry direction. -->
+  <g fill="#a16f40" stroke="#755336" stroke-width="8">
+    <rect x="424" y="716" width="180" height="120" rx="3"/>
+    <rect x="932" y="716" width="180" height="120" rx="3"/>
+    <path d="M700 962V788Q700 733 768 733Q836 733 836 788V962Z"/>
+  </g>
+  <g fill="#8eaba2" stroke="#d6bc83" stroke-width="7">
+    <rect x="443" y="730" width="142" height="87"/>
+    <rect x="951" y="730" width="142" height="87"/>
+  </g>
+  <path d="M514 733V814M446 771H582M1022 733V814M954 771H1090" stroke="#d6bc83" stroke-width="7"/>
+  <path d="M725 794V951M753 766V951M783 766V951M811 794V951" stroke="#7c512e" stroke-width="6"/>
+  <circle cx="813" cy="868" r="9" fill="#e4bd67"/>
+  <!-- Shallow porch canopy, parallel to the main eave. -->
+  <path d="M664 690H872L899 749H637Z" fill="#bc7546" stroke="#7b4c30" stroke-width="8"/>
+  <path d="M650 738H887" stroke="#df9c59" stroke-width="10"/>
+  <rect x="676" y="961" width="184" height="35" rx="4" fill="#c5b68f" stroke="#8f805f" stroke-width="5"/>
+  <rect x="650" y="996" width="236" height="35" rx="4" fill="#d9c8a0" stroke="#8f805f" stroke-width="5"/>
+  <g fill="#8b6541" stroke="#6e5538" stroke-width="6">
+    <rect x="418" y="835" width="192" height="45" rx="6"/>
+    <rect x="926" y="835" width="192" height="45" rx="6"/>
+    <ellipse cx="608" cy="962" rx="35" ry="37"/>
+    <ellipse cx="923" cy="962" rx="35" ry="37"/>
+  </g>
+  <g fill="#5b7948">
+    <ellipse cx="514" cy="833" rx="94" ry="23"/><ellipse cx="1022" cy="833" rx="94" ry="23"/>
+    <ellipse cx="608" cy="935" rx="36" ry="25"/><ellipse cx="923" cy="935" rx="36" ry="25"/>
+  </g>
+  <g fill="#edda98">
+    <circle cx="460" cy="826" r="11"/><circle cx="518" cy="821" r="10"/><circle cx="561" cy="833" r="11"/>
+    <circle cx="969" cy="826" r="11"/><circle cx="1027" cy="821" r="10"/><circle cx="1070" cy="833" r="11"/>
+  </g>
+</svg>

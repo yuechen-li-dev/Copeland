@@ -1,0 +1,95 @@
+{
+  "defaultWidth": 1920,
+  "defaultHeight": 1080,
+  "policy": "Uniform world fit with three metres canopy headroom; decorative meadow extends into aspect space. UI uniformly fits 1280x720 logical units independently.",
+  "dpi": "FramebufferSize is the native render target authority; no intermediate low-resolution image.",
+  "sizes": [
+    {
+      "requestedWidth": 1600,
+      "requestedHeight": 1000,
+      "physical": {
+        "Width": 1600,
+        "Height": 1000
+      },
+      "windowSize": {
+        "X": 1600,
+        "Y": 1000
+      },
+      "Layout": {
+        "Width": 1600,
+        "Height": 1000,
+        "Legacy": false,
+        "UiScale": 1.25,
+        "UiLeft": 0,
+        "UiTop": 50,
+        "WorldScale": 76.92308,
+        "WorldViewport": {
+          "X": 184.6153564453125,
+          "Y": 0,
+          "Width": 1230.769287109375,
+          "Height": 1000.0000610351562
+        }
+      },
+      "stateHash": "696432616126a34534302c6906ae3f95f86fe9c3cdc689b16f4db2f3c19b7c82:008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "spriteReuploads": 0
+    },
+    {
+      "requestedWidth": 2560,
+      "requestedHeight": 1440,
+      "physical": {
+        "Width": 2560,
+        "Height": 1440
+      },
+      "windowSize": {
+        "X": 2560,
+        "Y": 1440
+      },
+      "Layout": {
+        "Width": 2560,
+        "Height": 1440,
+        "Legacy": false,
+        "UiScale": 2,
+        "UiLeft": 0,
+        "UiTop": 0,
+        "WorldScale": 110.76923,
+        "WorldViewport": {
+          "X": 393.84613037109375,
+          "Y": 0,
+          "Width": 1772.3077392578125,
+          "Height": 1440
+        }
+      },
+      "stateHash": "696432616126a34534302c6906ae3f95f86fe9c3cdc689b16f4db2f3c19b7c82:008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "spriteReuploads": 0
+    },
+    {
+      "requestedWidth": 1920,
+      "requestedHeight": 1080,
+      "physical": {
+        "Width": 1920,
+        "Height": 1080
+      },
+      "windowSize": {
+        "X": 1920,
+        "Y": 1080
+      },
+      "Layout": {
+        "Width": 1920,
+        "Height": 1080,
+        "Legacy": false,
+        "UiScale": 1.5,
+        "UiLeft": 0,
+        "UiTop": 0,
+        "WorldScale": 83.07692,
+        "WorldViewport": {
+          "X": 295.3846435546875,
+          "Y": 0,
+          "Width": 1329.230712890625,
+          "Height": 1080
+        }
+      },
+      "stateHash": "696432616126a34534302c6906ae3f95f86fe9c3cdc689b16f4db2f3c19b7c82:008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "spriteReuploads": 0
+    }
+  ]
+}

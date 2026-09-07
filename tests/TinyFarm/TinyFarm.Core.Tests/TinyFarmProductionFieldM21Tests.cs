@@ -354,7 +354,7 @@ public sealed class TinyFarmProductionFieldM21Tests
         string after = surfaces.Capture().Pages.Single().Cards[0].Body.RawText;
 
         Assert.Equal(
-            ["tinyfarm.live.field", "tinyfarm.live.combat", "tinyfarm.spatial.m24"],
+            ["tinyfarm.live.field", "tinyfarm.live.combat", "tinyfarm.spatial.m24", "tinyfarm.presentation.m25"],
             surfaces.RegisteredSurfaceIds);
         Assert.NotEqual(before, after);
         Assert.Contains("wet-cells: 240", after, StringComparison.Ordinal);

@@ -17,7 +17,7 @@ public sealed class TinyFarmSemanticSpatialM24Tests
         Assert.Single(scene.Paths);
         Assert.Equal(2, scene.Patches.Count);
         Assert.Equal(8, scene.Objects.Count);
-        Assert.Equal(4, scene.ArtRecipes.Count);
+        Assert.Equal(5, scene.ArtRecipes.Count);
         Assert.All(scene.ArtRecipes, item => Assert.Equal(64, item.ApprovedArtifactSha256.Length));
         Assert.Equal(7, compiled.Collision.Count);
         Assert.Equal(7, compiled.Interactions.Count);

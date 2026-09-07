@@ -1,0 +1,9 @@
+{
+  "hud": "F9",
+  "inspector": "F10",
+  "cleanCapture": "F11",
+  "stateUnchanged": true,
+  "hudRestoredAfterCapture": true,
+  "contextualPromptRetained": true,
+  "specialExecutableRequired": false
+}
