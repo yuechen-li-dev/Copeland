@@ -52,6 +52,21 @@ public sealed record ProfileNativeDrawItem(
     string GeometryHash,
     string SourcePath);
 
+public sealed record ProfileNativeFieldDiagnostic(
+    int PainterIndex,
+    string LayerId,
+    string ItemId,
+    int AtlasX,
+    int AtlasY,
+    int Width,
+    int Height,
+    double U0,
+    double V0,
+    double U1,
+    double V1,
+    double PixelRange,
+    double ProjectionScale);
+
 public sealed class ProfileNativeCompositionResource
 {
     internal ProfileNativeCompositionResource(
@@ -92,6 +107,33 @@ public sealed class ProfileNativeCompositionResource
 
     public int MaximumFieldDimension => Atlas.Entries.Values.Max(static entry => Math.Max(entry.Width, entry.Height));
 
+    public IReadOnlyList<ProfileNativeFieldDiagnostic> DescribeFields()
+    {
+        return DrawPlan.Select(item =>
+        {
+            VectorIconAtlasEntry field = Atlas.Entries[item.FieldIdentity];
+            return new ProfileNativeFieldDiagnostic(
+                item.PainterIndex,
+                item.LayerId,
+                item.ItemId,
+                field.X,
+                field.Y,
+                field.Width,
+                field.Height,
+                field.U0,
+                field.V0,
+                field.U1,
+                field.V1,
+                field.PixelRange,
+                field.ProjectionScale);
+        }).ToArray();
+    }
+
+    public byte[] CopyAtlasRgbaPixels()
+    {
+        return (byte[])RgbaPixels.Clone();
+    }
+
     internal VectorIconAtlas Atlas { get; }
 
     internal byte[] RgbaPixels { get; }
@@ -105,6 +147,24 @@ public readonly record struct ProfileNativeInstance(float OriginX, float OriginY
             || !float.IsFinite(Scale) || Scale <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(Scale), "Profile instance transform must be finite with positive scale.");
+        }
+    }
+}
+
+public readonly record struct ProfileNativeReconstructionOptions(float? ThresholdOverride)
+{
+    public static ProfileNativeReconstructionOptions GlyphSmallScreenCompensation { get; } = new(null);
+
+    public static ProfileNativeReconstructionOptions RuntimeDefault { get; } = new(0.5f);
+
+    public void Validate()
+    {
+        if (ThresholdOverride is { } threshold
+            && (!float.IsFinite(threshold) || threshold is < 0.35f or > 0.65f))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(ThresholdOverride),
+                "Profile threshold override must be finite and within [0.35, 0.65].");
         }
     }
 }
@@ -366,9 +426,18 @@ public sealed class ProfileNativeRealizationCache : IDisposable
 
     public void Submit(ProfileNativeCompositionResource resource, ProfileNativeInstance instance)
     {
+        Submit(resource, instance, ProfileNativeReconstructionOptions.RuntimeDefault);
+    }
+
+    public void Submit(
+        ProfileNativeCompositionResource resource,
+        ProfileNativeInstance instance,
+        ProfileNativeReconstructionOptions reconstruction)
+    {
         ObjectDisposedException.ThrowIf(disposed, this);
         ArgumentNullException.ThrowIfNull(resource);
         instance.Validate();
+        reconstruction.Validate();
         CacheEntry entry = Resolve(resource);
         foreach (ProfileNativeDrawItem item in resource.DrawPlan)
         {
@@ -380,6 +449,9 @@ public sealed class ProfileNativeRealizationCache : IDisposable
                 (float)field.V1));
             float x = instance.OriginX + ((float)item.FieldBounds.MinX * instance.Scale);
             float y = instance.OriginY - ((float)item.FieldBounds.MaxY * instance.Scale);
+            NativeMsdfParameters parameters = NativeMsdfParameters.Create(
+                (float)field.PixelRange,
+                instance.Scale / (float)field.ProjectionScale);
             renderer.SubmitMsdfQuad(new NativeMsdfQuadSubmission(
                 new Native2DRect(
                     x,
@@ -389,9 +461,9 @@ public sealed class ProfileNativeRealizationCache : IDisposable
                 uv,
                 entry.Texture,
                 item.Fill,
-                NativeMsdfParameters.Create(
-                    (float)field.PixelRange,
-                    instance.Scale / (float)field.ProjectionScale)));
+                reconstruction.ThresholdOverride is { } threshold
+                    ? parameters with { Threshold = threshold }
+                    : parameters));
         }
     }
 

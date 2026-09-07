@@ -1,0 +1,57 @@
+[
+  {
+    "file": "edge-diagnostics.json",
+    "bytes": 17850,
+    "sha256": "1a9da5b93cbae85bd35d5c734b5f3f0ef437936e591b68562f054f22c84fa6a3"
+  },
+  {
+    "file": "strategy-after.png",
+    "bytes": 251409,
+    "sha256": "c005991e1dfa2570875995bfae1dba302d44020d826344f4a7ccedf11bf62a0d"
+  },
+  {
+    "file": "strategy-before.png",
+    "bytes": 260748,
+    "sha256": "181725eb414d8c1161cea2baf94c87cd45b788bf9628c15eb51b96b103c33412"
+  },
+  {
+    "file": "tree-atlas.png",
+    "bytes": 185637,
+    "sha256": "3bbd0a6eed7d2a53c78c2296553cfbb411b63852831b6ca952a71b54cf7a901c"
+  },
+  {
+    "file": "tree-dark-8x.png",
+    "bytes": 32226,
+    "sha256": "59042ae7b041b6c3938710eaaba991a46f1439274de9badc56b1115f2451fcca"
+  },
+  {
+    "file": "tree-light-8x.png",
+    "bytes": 32978,
+    "sha256": "148689bf53c72c27e0dbd76c0c380e12ea718533da3a9f871fb396a6da012e19"
+  },
+  {
+    "file": "tree-native-1x.png",
+    "bytes": 1863,
+    "sha256": "738db3841d85aba2ab2e9bafd1df07b562ea0323164903b682219741d643071f"
+  },
+  {
+    "file": "worker-atlas.png",
+    "bytes": 164927,
+    "sha256": "437c4c5b266a59cec4172b1c083275bf43597a3ea86c99e1747ae10a7a73510c"
+  },
+  {
+    "file": "worker-dark-8x.png",
+    "bytes": 28103,
+    "sha256": "55583f58995f0a9e1980fd139b72d1290588ab56da5f0a0f7ec7feea949b149d"
+  },
+  {
+    "file": "worker-light-8x.png",
+    "bytes": 29116,
+    "sha256": "d077d0c84067fc278018a31eb4333d1ea253b442015ba074655cb35408012e63"
+  },
+  {
+    "file": "worker-native-1x.png",
+    "bytes": 2217,
+    "sha256": "a89d612c834ce1aa40911b750013f9e9ef08a988402da935b60c46250b4e2afe"
+  }
+]

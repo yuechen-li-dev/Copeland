@@ -34,6 +34,36 @@ public sealed class ProfileNativeRealizationTests
         Assert.True(resource.MaximumFieldDimension <= ProfileNativeCompiler.DefaultQualitySize);
         Assert.True(resource.AtlasWidth >= resource.MaximumFieldDimension);
         Assert.True(resource.AtlasHeight >= resource.MaximumFieldDimension);
+        Assert.Equal(resource.DrawPlan.Count, resource.DescribeFields().Count);
+        Assert.Equal(0.5f, ProfileNativeReconstructionOptions.RuntimeDefault.ThresholdOverride);
+    }
+
+    [Fact]
+    public void EdgeDiagnosticsMeasureTransitionAndSilhouetteDifference()
+    {
+        byte[] sharp =
+        [
+            0, 0, 0, 0,
+            255, 255, 255, 255,
+            255, 255, 255, 255,
+            0, 0, 0, 0,
+        ];
+        byte[] soft =
+        [
+            255, 255, 255, 64,
+            255, 255, 255, 192,
+            255, 255, 255, 192,
+            255, 255, 255, 64,
+        ];
+
+        ProfileEdgeMetrics sharpMetrics = ProfileEdgeDiagnostics.Measure(sharp, 4, 1);
+        ProfileEdgeMetrics softMetrics = ProfileEdgeDiagnostics.Measure(soft, 4, 1);
+        ProfileImageComparison comparison = ProfileEdgeDiagnostics.Compare(sharp, soft, 4, 1);
+
+        Assert.Equal(0, sharpMetrics.PartialCoveragePixels);
+        Assert.Equal(4, softMetrics.PartialCoveragePixels);
+        Assert.Equal(1, comparison.SilhouetteIntersectionOverUnion);
+        Assert.True(comparison.MeanAbsoluteChannelError > 0);
     }
 
     [Fact]
