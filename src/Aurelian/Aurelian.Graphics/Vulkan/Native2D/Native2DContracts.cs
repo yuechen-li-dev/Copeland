@@ -86,6 +86,7 @@ public enum Native2DPipelineKind
 {
     Textured,
     MsdfText,
+    ProfileMsdf,
     AnalyticShape2D,
     SoftShockwave,
     SemanticFog,
@@ -111,6 +112,8 @@ public sealed record Native2DPipelineOptions(
 
     public static Native2DPipelineOptions MsdfText { get; } = new(Native2DPipelineKind.MsdfText);
 
+    public static Native2DPipelineOptions ProfileMsdf { get; } = new(Native2DPipelineKind.ProfileMsdf);
+
     public static Native2DPipelineOptions AnalyticShape2D { get; } = new(Native2DPipelineKind.AnalyticShape2D);
 
     public static Native2DPipelineOptions SoftShockwave { get; } = new(Native2DPipelineKind.SoftShockwave);
@@ -121,10 +124,11 @@ public sealed record Native2DPipelineOptions(
         EnableLinearFiltering: true,
         InputsAreSrgb: true);
 
-    public bool LinearFiltering => Kind == Native2DPipelineKind.MsdfText || EnableLinearFiltering;
+    public bool LinearFiltering => Kind is Native2DPipelineKind.MsdfText or Native2DPipelineKind.ProfileMsdf
+        || EnableLinearFiltering;
 
     public bool StraightAlphaBlend => EnableStraightAlphaBlend
-        || Kind is Native2DPipelineKind.MsdfText or Native2DPipelineKind.AnalyticShape2D or Native2DPipelineKind.SoftShockwave or Native2DPipelineKind.SemanticFog;
+        || Kind is Native2DPipelineKind.MsdfText or Native2DPipelineKind.ProfileMsdf or Native2DPipelineKind.AnalyticShape2D or Native2DPipelineKind.SoftShockwave or Native2DPipelineKind.SemanticFog;
 }
 
 public static class NativeSrgbTransfer

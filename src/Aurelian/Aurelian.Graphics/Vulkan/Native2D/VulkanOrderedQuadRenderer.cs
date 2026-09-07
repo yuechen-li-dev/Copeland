@@ -377,9 +377,9 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         {
             throw new InvalidOperationException("SubmitMsdfQuad requires an active 2D pass.");
         }
-        if (options.Kind != Native2DPipelineKind.MsdfText)
+        if (options.Kind is not (Native2DPipelineKind.MsdfText or Native2DPipelineKind.ProfileMsdf))
         {
-            throw new InvalidOperationException("SubmitMsdfQuad requires the MSDF text pipeline.");
+            throw new InvalidOperationException("SubmitMsdfQuad requires an MSDF pipeline.");
         }
         Native2DSubmissionValidator.ValidateValues(submission);
         if (!textures.ContainsKey(submission.AtlasTexture.Value))
@@ -694,7 +694,8 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             throw new ArgumentException("Compiled graphics program format is unsupported.", nameof(program));
         }
         CompiledVertexInput[] inputs = program.VertexInputs.OrderBy(input => input.Order).ToArray();
-        int expectedInputCount = options.Kind == Native2DPipelineKind.MsdfText ? 3 : 2;
+        bool isMsdf = options.Kind is Native2DPipelineKind.MsdfText or Native2DPipelineKind.ProfileMsdf;
+        int expectedInputCount = isMsdf ? 3 : 2;
         bool inputMismatch = inputs.Length != expectedInputCount;
         if (!inputMismatch)
         {
@@ -704,7 +705,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
                 || inputs[1].Name != (options.Kind is Native2DPipelineKind.AnalyticShape2D or Native2DPipelineKind.SoftShockwave ? "local" : "uv")
                 || inputs[1].PhysicalType != "float2";
         }
-        if (!inputMismatch && options.Kind == Native2DPipelineKind.MsdfText)
+        if (!inputMismatch && isMsdf)
         {
             inputMismatch = inputs[2].Name != "fieldScale"
                 || inputs[2].PhysicalType != "f32";
@@ -727,7 +728,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             ?? throw new ArgumentException("Native 2D requires compiler-described material metadata.", nameof(program));
         string[] expectedFields = options.Kind switch
         {
-            Native2DPipelineKind.MsdfText => ["tint", "pixelRange", "threshold"],
+            Native2DPipelineKind.MsdfText or Native2DPipelineKind.ProfileMsdf => ["tint", "pixelRange", "threshold"],
             Native2DPipelineKind.AnalyticShape2D => ["fillColor", "borderColor", "halfSize", "radius", "borderWidth", "shapeKind"],
             Native2DPipelineKind.SoftShockwave => ["color", "age", "lifetime", "radius", "thickness", "intensity", "seed"],
             Native2DPipelineKind.SemanticFog => ["tint", "unexploredOpacity", "exploredOpacity", "edgeSoftness", "noiseAmount", "temporalPhase"],
@@ -931,7 +932,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         Native2DTint shaderTint = CorrectsSrgbInputs
             ? NativeSrgbTransfer.Decode(submission.Tint)
             : submission.Tint;
-        if (options.Kind is Native2DPipelineKind.Textured or Native2DPipelineKind.MsdfText or Native2DPipelineKind.SemanticFog)
+        if (options.Kind is Native2DPipelineKind.Textured or Native2DPipelineKind.MsdfText or Native2DPipelineKind.ProfileMsdf or Native2DPipelineKind.SemanticFog)
         {
             WriteMaterialColor(materialBytes, material, "tint", shaderTint);
         }
@@ -940,7 +941,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             CompiledMaterialField roughness = material.Fields.Single(field => field.Name == "roughness");
             WriteFloat(materialBytes, roughness.Offset, 1);
         }
-        else if (options.Kind == Native2DPipelineKind.MsdfText)
+        else if (options.Kind is Native2DPipelineKind.MsdfText or Native2DPipelineKind.ProfileMsdf)
         {
             WriteMaterialFloat(materialBytes, material, "pixelRange", submission.Msdf.PixelRange);
             WriteMaterialFloat(materialBytes, material, "threshold", submission.Msdf.Threshold);

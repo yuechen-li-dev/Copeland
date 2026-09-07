@@ -1,0 +1,146 @@
+[
+  {
+    "scale": 0.5,
+    "cpu": {
+      "OpaquePixels": 112,
+      "PartialCoveragePixels": 114,
+      "SilhouettePixels": 176,
+      "PartialCoveragePerSilhouette": 0.6477272727272727,
+      "MeanEdgeGradient": 0.0010392637447135715,
+      "EstimatedTransitionWidthPixels": 0.890625
+    },
+    "derivative": {
+      "OpaquePixels": 113,
+      "PartialCoveragePixels": 121,
+      "SilhouettePixels": 173,
+      "PartialCoveragePerSilhouette": 0.6994219653179191,
+      "MeanEdgeGradient": 0.0010664167627835455,
+      "EstimatedTransitionWidthPixels": 0.9307692307692308
+    },
+    "comparison": {
+      "SilhouetteIntersectionOverUnion": 0.9497206703910615,
+      "MeanAbsoluteChannelError": 0.086395263671875,
+      "DifferingSilhouettePixels": 9
+    }
+  },
+  {
+    "scale": 0.75,
+    "cpu": {
+      "OpaquePixels": 295,
+      "PartialCoveragePixels": 172,
+      "SilhouettePixels": 391,
+      "PartialCoveragePerSilhouette": 0.4398976982097187,
+      "MeanEdgeGradient": 0.0016351283160322963,
+      "EstimatedTransitionWidthPixels": 0.882051282051282
+    },
+    "derivative": {
+      "OpaquePixels": 299,
+      "PartialCoveragePixels": 195,
+      "SilhouettePixels": 385,
+      "PartialCoveragePerSilhouette": 0.5064935064935064,
+      "MeanEdgeGradient": 0.0016528498654363735,
+      "EstimatedTransitionWidthPixels": 0.9898477157360406
+    },
+    "comparison": {
+      "SilhouetteIntersectionOverUnion": 0.9846547314578005,
+      "MeanAbsoluteChannelError": 0.1337127685546875,
+      "DifferingSilhouettePixels": 6
+    }
+  },
+  {
+    "scale": 1,
+    "cpu": {
+      "OpaquePixels": 564,
+      "PartialCoveragePixels": 234,
+      "SilhouettePixels": 684,
+      "PartialCoveragePerSilhouette": 0.34210526315789475,
+      "MeanEdgeGradient": 0.0022415056708958094,
+      "EstimatedTransitionWidthPixels": 0.8731343283582089
+    },
+    "derivative": {
+      "OpaquePixels": 562,
+      "PartialCoveragePixels": 268,
+      "SilhouettePixels": 678,
+      "PartialCoveragePerSilhouette": 0.3952802359882006,
+      "MeanEdgeGradient": 0.0022596477316416774,
+      "EstimatedTransitionWidthPixels": 1
+    },
+    "comparison": {
+      "SilhouetteIntersectionOverUnion": 0.9796511627906976,
+      "MeanAbsoluteChannelError": 0.18581390380859375,
+      "DifferingSilhouettePixels": 14
+    }
+  },
+  {
+    "scale": 1.5,
+    "cpu": {
+      "OpaquePixels": 1342,
+      "PartialCoveragePixels": 373,
+      "SilhouettePixels": 1542,
+      "PartialCoveragePerSilhouette": 0.24189364461738003,
+      "MeanEdgeGradient": 0.003407403402537491,
+      "EstimatedTransitionWidthPixels": 0.9209876543209876
+    },
+    "derivative": {
+      "OpaquePixels": 1340,
+      "PartialCoveragePixels": 411,
+      "SilhouettePixels": 1536,
+      "PartialCoveragePerSilhouette": 0.267578125,
+      "MeanEdgeGradient": 0.0034483131487889314,
+      "EstimatedTransitionWidthPixels": 1.0173267326732673
+    },
+    "comparison": {
+      "SilhouetteIntersectionOverUnion": 0.9896574014221073,
+      "MeanAbsoluteChannelError": 0.2951164245605469,
+      "DifferingSilhouettePixels": 16
+    }
+  },
+  {
+    "scale": 2,
+    "cpu": {
+      "OpaquePixels": 2477,
+      "PartialCoveragePixels": 496,
+      "SilhouettePixels": 2723,
+      "PartialCoveragePerSilhouette": 0.1821520381931693,
+      "MeanEdgeGradient": 0.004597390426758962,
+      "EstimatedTransitionWidthPixels": 0.9051094890510949
+    },
+    "derivative": {
+      "OpaquePixels": 2475,
+      "PartialCoveragePixels": 561,
+      "SilhouettePixels": 2725,
+      "PartialCoveragePerSilhouette": 0.20587155963302753,
+      "MeanEdgeGradient": 0.004668336697424063,
+      "EstimatedTransitionWidthPixels": 1.0255941499085923
+    },
+    "comparison": {
+      "SilhouetteIntersectionOverUnion": 0.9919561243144425,
+      "MeanAbsoluteChannelError": 0.4196319580078125,
+      "DifferingSilhouettePixels": 22
+    }
+  },
+  {
+    "scale": 4,
+    "cpu": {
+      "OpaquePixels": 10407,
+      "PartialCoveragePixels": 1007,
+      "SilhouettePixels": 10910,
+      "PartialCoveragePerSilhouette": 0.0923006416131989,
+      "MeanEdgeGradient": 0.009320393598615908,
+      "EstimatedTransitionWidthPixels": 0.8975044563279857
+    },
+    "derivative": {
+      "OpaquePixels": 10426,
+      "PartialCoveragePixels": 1143,
+      "SilhouettePixels": 10907,
+      "PartialCoveragePerSilhouette": 0.10479508572476391,
+      "MeanEdgeGradient": 0.009645268646674286,
+      "EstimatedTransitionWidthPixels": 1.0269541778975741
+    },
+    "comparison": {
+      "SilhouetteIntersectionOverUnion": 0.9951531778692273,
+      "MeanAbsoluteChannelError": 0.8770675659179688,
+      "DifferingSilhouettePixels": 53
+    }
+  }
+]

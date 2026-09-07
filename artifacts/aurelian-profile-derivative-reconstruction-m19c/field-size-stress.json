@@ -1,0 +1,102 @@
+[
+  {
+    "fieldSize": 64,
+    "atlasWidth": 512,
+    "atlasHeight": 512,
+    "MinimumFieldDimension": 40,
+    "MaximumFieldDimension": 64,
+    "derivative": {
+      "OpaquePixels": 441,
+      "PartialCoveragePixels": 227,
+      "SilhouettePixels": 552,
+      "PartialCoveragePerSilhouette": 0.411231884057971,
+      "MeanEdgeGradient": 0.01434167526659788,
+      "EstimatedTransitionWidthPixels": 0.9578059071729957
+    },
+    "comparison": {
+      "SilhouetteIntersectionOverUnion": 0.9751332149200711,
+      "MeanAbsoluteChannelError": 1.142822265625,
+      "DifferingSilhouettePixels": 14
+    }
+  },
+  {
+    "fieldSize": 96,
+    "atlasWidth": 512,
+    "atlasHeight": 512,
+    "MinimumFieldDimension": 40,
+    "MaximumFieldDimension": 96,
+    "derivative": {
+      "OpaquePixels": 441,
+      "PartialCoveragePixels": 233,
+      "SilhouettePixels": 551,
+      "PartialCoveragePerSilhouette": 0.42286751361161523,
+      "MeanEdgeGradient": 0.014394564843481256,
+      "EstimatedTransitionWidthPixels": 0.9789915966386554
+    },
+    "comparison": {
+      "SilhouetteIntersectionOverUnion": 0.9733570159857904,
+      "MeanAbsoluteChannelError": 1.1484375,
+      "DifferingSilhouettePixels": 15
+    }
+  },
+  {
+    "fieldSize": 128,
+    "atlasWidth": 1024,
+    "atlasHeight": 1024,
+    "MinimumFieldDimension": 40,
+    "MaximumFieldDimension": 128,
+    "derivative": {
+      "OpaquePixels": 441,
+      "PartialCoveragePixels": 229,
+      "SilhouettePixels": 551,
+      "PartialCoveragePerSilhouette": 0.41560798548094374,
+      "MeanEdgeGradient": 0.014386824905400776,
+      "EstimatedTransitionWidthPixels": 0.9662447257383966
+    },
+    "comparison": {
+      "SilhouetteIntersectionOverUnion": 0.9768683274021353,
+      "MeanAbsoluteChannelError": 1.1413302951388888,
+      "DifferingSilhouettePixels": 13
+    }
+  },
+  {
+    "fieldSize": 192,
+    "atlasWidth": 1024,
+    "atlasHeight": 1024,
+    "MinimumFieldDimension": 40,
+    "MaximumFieldDimension": 192,
+    "derivative": {
+      "OpaquePixels": 441,
+      "PartialCoveragePixels": 234,
+      "SilhouettePixels": 552,
+      "PartialCoveragePerSilhouette": 0.42391304347826086,
+      "MeanEdgeGradient": 0.014391554867561062,
+      "EstimatedTransitionWidthPixels": 0.975
+    },
+    "comparison": {
+      "SilhouetteIntersectionOverUnion": 0.968141592920354,
+      "MeanAbsoluteChannelError": 1.1708170572916667,
+      "DifferingSilhouettePixels": 18
+    }
+  },
+  {
+    "fieldSize": 256,
+    "atlasWidth": 2048,
+    "atlasHeight": 2048,
+    "MinimumFieldDimension": 48,
+    "MaximumFieldDimension": 256,
+    "derivative": {
+      "OpaquePixels": 442,
+      "PartialCoveragePixels": 243,
+      "SilhouettePixels": 554,
+      "PartialCoveragePerSilhouette": 0.43862815884476536,
+      "MeanEdgeGradient": 0.014351135190918487,
+      "EstimatedTransitionWidthPixels": 1.008298755186722
+    },
+    "comparison": {
+      "SilhouetteIntersectionOverUnion": 0.9681978798586572,
+      "MeanAbsoluteChannelError": 1.1886664496527777,
+      "DifferingSilhouettePixels": 18
+    }
+  }
+]

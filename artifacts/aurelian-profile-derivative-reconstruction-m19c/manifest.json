@@ -1,0 +1,174 @@
+{
+  "milestone": "AURELIAN-PROFILE-DERIVATIVE-RECONSTRUCTION-M19C",
+  "kind": "screen-space-derivative-msdf-reconstruction",
+  "derivativeIntrinsicsQualified": true,
+  "profileDerivativeReconstructionQualified": true,
+  "workerBlurMateriallyReduced": true,
+  "treeNonRegressionQualified": true,
+  "buildingNonRegressionQualified": true,
+  "glyphBehaviorPreserved": true,
+  "subpixelPlacementQualified": true,
+  "scaleStressQualified": true,
+  "fieldSizeStressQualified": true,
+  "mosswardNativeQualified": true,
+  "tinyfarmRegressionQualified": true,
+  "postprocessSharpenUsed": false,
+  "nearestFilterUsedAsFix": false,
+  "files": [
+    {
+      "file": "baseline.json",
+      "bytes": 329,
+      "sha256": "bcb70cced7a9a64a9930f1330b40f5a319e6c21ac2319bb78ba8196066bac3f9"
+    },
+    {
+      "file": "building-after.png",
+      "bytes": 4445,
+      "sha256": "3afe3dfba9e4e34636ba6133511e13378910d3f4e3dd0645d122b65b74873ed4"
+    },
+    {
+      "file": "derivative-model.json",
+      "bytes": 456,
+      "sha256": "03d43fc9f72e53f16051f498d2fda79110eb128a222de102b6e1b958f5205e2a"
+    },
+    {
+      "file": "edge-diagnostics.json",
+      "bytes": 32175,
+      "sha256": "5a17fd81f676682c78a7a9a64be0774542479d53af0084b42f4947e6418fed5f"
+    },
+    {
+      "file": "edge-metrics.json",
+      "bytes": 31048,
+      "sha256": "ff58e750e3c71802e9e6c5e103165a6cae4b2d8adea2d8c3f9598e50b1e6c0ee"
+    },
+    {
+      "file": "field-size-stress.json",
+      "bytes": 3130,
+      "sha256": "258681ab5050940b200ac4c0b51ef927ff79ea75c2cab99745b8a31242f0782c"
+    },
+    {
+      "file": "glyph-small-after.png",
+      "bytes": 576889,
+      "sha256": "e9df5f112d5d64ed221b050b7ff83b9607a5244162318058d199f99c82ae1f67"
+    },
+    {
+      "file": "hq-atlas.png",
+      "bytes": 709531,
+      "sha256": "e3f421150bc1c24753d39f36a5b63fac2f65bd8a559be986403e36f95b690c8f"
+    },
+    {
+      "file": "hq-dark-8x.png",
+      "bytes": 42527,
+      "sha256": "c0aa31465acbeb357109710000725aa8ce67be183090a11720e7b73b8d700ceb"
+    },
+    {
+      "file": "hq-light-8x.png",
+      "bytes": 42815,
+      "sha256": "93384668b98e4ea3b828b6ea3e5cfcf527c723ddf18a6132bda09f555623d5d9"
+    },
+    {
+      "file": "hq-native-1x.png",
+      "bytes": 2592,
+      "sha256": "b5c07363aa62e018e13fe48899d9f32ecb645e55aadcac5a43f964dca773845a"
+    },
+    {
+      "file": "mossward-native-after.png",
+      "bytes": 246933,
+      "sha256": "cb496fe6f056c15c6d1cb294a8378acbcc268a2891a0efaae69d1964cb166b46"
+    },
+    {
+      "file": "performance.json",
+      "bytes": 546,
+      "sha256": "3f36f943ab566ec88a43271e2186f24b41d1752c8003db58cffca3175b55c933"
+    },
+    {
+      "file": "scale-stress.json",
+      "bytes": 4761,
+      "sha256": "63acfa7816bbd869de8deba686cf034860d92321c3d048359113742dc4538cc6"
+    },
+    {
+      "file": "subpixel-stress.json",
+      "bytes": 8484,
+      "sha256": "3b378b3091a29f6972c10eaabf496c13054d627d33276b32d184a72c84f0cb97"
+    },
+    {
+      "file": "synthetic-profile-after.png",
+      "bytes": 4129,
+      "sha256": "440a740094f5783ce57fad8883c27f5e753180ea93e5bc5b0370dd6ce253db88"
+    },
+    {
+      "file": "tinyfarm-regression.png",
+      "bytes": 20055,
+      "sha256": "ac535247b342df15f417fcbbd706e9efd9e45672465c83197801edc77a4f3486"
+    },
+    {
+      "file": "tree-after.png",
+      "bytes": 3783,
+      "sha256": "76c3df936e4a4fc34564a023f4cffe1f13484239c836bc63e4c7b35eaa982a00"
+    },
+    {
+      "file": "tree-atlas.png",
+      "bytes": 185637,
+      "sha256": "3bbd0a6eed7d2a53c78c2296553cfbb411b63852831b6ca952a71b54cf7a901c"
+    },
+    {
+      "file": "tree-dark-8x.png",
+      "bytes": 38720,
+      "sha256": "049fda3501c8c760af8c6ff3c3ad38123fe53f14ad37646fb6b3fc9ab088c39f"
+    },
+    {
+      "file": "tree-light-8x.png",
+      "bytes": 39783,
+      "sha256": "85c203b979dd1617bb94d65102a3d9e928655fe65c5e356fc676b7e09e86e11a"
+    },
+    {
+      "file": "tree-native-1x.png",
+      "bytes": 1863,
+      "sha256": "738db3841d85aba2ab2e9bafd1df07b562ea0323164903b682219741d643071f"
+    },
+    {
+      "file": "worker-atlas.png",
+      "bytes": 164927,
+      "sha256": "437c4c5b266a59cec4172b1c083275bf43597a3ea86c99e1747ae10a7a73510c"
+    },
+    {
+      "file": "worker-dark-8x-after.png",
+      "bytes": 6235,
+      "sha256": "9e6b30dbe8ef4d676a1dd8dfe44a13c73955e83fd24574366be5270d185bbb42"
+    },
+    {
+      "file": "worker-dark-8x-before.png",
+      "bytes": 7659,
+      "sha256": "eeac85aaa1295caa67f3987b2d60181ff8ed62d75c1e066775b38fda84c359bb"
+    },
+    {
+      "file": "worker-dark-8x.png",
+      "bytes": 31965,
+      "sha256": "51483b3ac83215c2892bf9a5b4c22d68730769bb3304f115fd72403872d19409"
+    },
+    {
+      "file": "worker-diff-after.png",
+      "bytes": 6230,
+      "sha256": "bd4365e98c3edb20f2834179bcb84dbccebdaa3866bef9bcd45915bf897eea61"
+    },
+    {
+      "file": "worker-diff-before.png",
+      "bytes": 7697,
+      "sha256": "b6cfc143055e2b8c573774695746d844f6970d8132159bbe13fc7391ad8adba3"
+    },
+    {
+      "file": "worker-light-8x-after.png",
+      "bytes": 6463,
+      "sha256": "83265778345de9b6dc36afdcaadfb57da299b855fae1e72e2641540b776c9daf"
+    },
+    {
+      "file": "worker-light-8x.png",
+      "bytes": 33267,
+      "sha256": "39d9611a0d8f13a98fd72f923f1542824833d730cf6e89e42b06df2390091aa8"
+    },
+    {
+      "file": "worker-native-1x.png",
+      "bytes": 2217,
+      "sha256": "a89d612c834ce1aa40911b750013f9e9ef08a988402da935b60c46250b4e2afe"
+    }
+  ]
+}

@@ -351,6 +351,7 @@ internal sealed class StrategyNativeRenderer : IDisposable
     private readonly VulkanNativeSwapchainPresenter presenter;
     private readonly VulkanOrderedQuadRenderer shapes;
     private readonly VulkanOrderedQuadRenderer profiles;
+    private readonly VulkanOrderedQuadRenderer text;
     private readonly VulkanOrderedQuadRenderer fog;
     private readonly ProfileNativeRealizationCache profileCache;
     private readonly AurelianMsdfAtlasCache fontCache;
@@ -418,6 +419,11 @@ internal sealed class StrategyNativeRenderer : IDisposable
             Native2DPipelineOptions.AnalyticShape2D);
         profiles = new VulkanOrderedQuadRenderer(
             plant,
+            Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/ProfileMsdf.v.ts"),
+            target,
+            Native2DPipelineOptions.ProfileMsdf);
+        text = new VulkanOrderedQuadRenderer(
+            plant,
             Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/MsdfText.v.ts"),
             target,
             Native2DPipelineOptions.MsdfText);
@@ -431,7 +437,7 @@ internal sealed class StrategyNativeRenderer : IDisposable
         {
             profileCache.Warm(asset);
         }
-        fontCache = new AurelianMsdfAtlasCache(profiles);
+        fontCache = new AurelianMsdfAtlasCache(text);
         foreach (AurelianMsdfAtlasResource resource in font.Resources)
         {
             fontCache.Resolve(resource);
@@ -474,12 +480,15 @@ internal sealed class StrategyNativeRenderer : IDisposable
             }
             DrawMinimap(pass);
         });
-        frame.Present(profiles, pass =>
+        frame.Present(text, pass =>
         {
             foreach (NativeMsdfQuadSubmission submission in hudText)
             {
                 pass.SubmitMsdfQuad(submission);
             }
+        });
+        frame.Present(profiles, pass =>
+        {
             string portrait = session.Selection.Snapshot().Count == 0
                 ? "hq"
                 : StrategyRenderer.UnitAsset(session.Units.First(unit => session.Selection.Contains(unit.Id)).Kind);
@@ -502,6 +511,7 @@ internal sealed class StrategyNativeRenderer : IDisposable
         fontCache.Dispose();
         profileCache.Dispose();
         fog.Dispose();
+        text.Dispose();
         profiles.Dispose();
         shapes.Dispose();
         presenter.Dispose();

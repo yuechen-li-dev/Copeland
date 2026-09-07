@@ -24,6 +24,7 @@ public sealed class MsdfTextShaderM2Tests
         Assert.Contains("float pixelRange; // offset 16", first.Hlsl, StringComparison.Ordinal);
         Assert.Contains("float threshold; // offset 20", first.Hlsl, StringComparison.Ordinal);
         Assert.Contains("float fieldScale : TEXCOORD1", first.Hlsl, StringComparison.Ordinal);
+        Assert.DoesNotContain("fwidth", first.Hlsl, StringComparison.Ordinal);
     }
 
     internal static VdMirGraphicsModule Compile()

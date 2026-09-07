@@ -155,6 +155,8 @@ public readonly record struct ProfileNativeReconstructionOptions(float? Threshol
 {
     public static ProfileNativeReconstructionOptions GlyphSmallScreenCompensation { get; } = new(null);
 
+    public static ProfileNativeReconstructionOptions M19BNeutralThreshold { get; } = new(0.5f);
+
     public static ProfileNativeReconstructionOptions RuntimeDefault { get; } = new(0.5f);
 
     public void Validate()
@@ -398,9 +400,9 @@ public sealed class ProfileNativeRealizationCache : IDisposable
     public ProfileNativeRealizationCache(VulkanOrderedQuadRenderer renderer, int capacity = 64)
     {
         this.renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
-        if (renderer.PipelineKind != Native2DPipelineKind.MsdfText)
+        if (renderer.PipelineKind != Native2DPipelineKind.ProfileMsdf)
         {
-            throw new ArgumentException("Canonical Profile realization uses the qualified native MSDF pipeline.", nameof(renderer));
+            throw new ArgumentException("Canonical Profile realization requires the Profile-specific MSDF pipeline.", nameof(renderer));
         }
         if (capacity is < 1 or > 1024)
         {

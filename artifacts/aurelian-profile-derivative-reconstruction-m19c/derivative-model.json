@@ -1,0 +1,9 @@
+{
+  "fieldEncoding": "median RGB; encoded edge at threshold 0.5",
+  "signedDistance": "median(sample.rgb) - threshold",
+  "derivativeUnits": "encoded distance per screen pixel",
+  "width": "max(fwidth(median(sample.rgb)), 0.000001)",
+  "coverage": "smooth cubic ramp over threshold \u002B/- width/2",
+  "profilePolicy": "neutral threshold plus derivative width",
+  "glyphPolicy": "separate MsdfText shader with existing threshold and fixed ramp"
+}

@@ -1,0 +1,27 @@
+{
+  "neutral": {
+    "mode": "neutral",
+    "frames": 64,
+    "totalMilliseconds": 11.887,
+    "meanMilliseconds": 0.1857,
+    "allocatedBytes": 85184,
+    "QuadCount": 10,
+    "DrawCalls": 7
+  },
+  "derivative": {
+    "mode": "derivative",
+    "frames": 64,
+    "totalMilliseconds": 11.722,
+    "meanMilliseconds": 0.1832,
+    "allocatedBytes": 85184,
+    "QuadCount": 10,
+    "DrawCalls": 7
+  },
+  "textureUploads": 2,
+  "cacheHits": 128,
+  "atlasSize": [
+    1024,
+    1024
+  ],
+  "cpuSubmissionPathChanged": false
+}

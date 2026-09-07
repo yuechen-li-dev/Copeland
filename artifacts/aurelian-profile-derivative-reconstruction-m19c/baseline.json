@@ -1,0 +1,13 @@
+{
+  "milestone": "OBLIVION-NOTEBOOK-NATIVE-SPRITE-EDGE-DIAGNOSTICS-M19B",
+  "workerCpuTransitionWidth": 0.902542,
+  "workerNeutralTransitionWidth": 2.57,
+  "workerNeutralSilhouetteIoU": 0.955,
+  "excludedCauses": [
+    "pixel snapping",
+    "sampler",
+    "mipmapping",
+    "UV precision",
+    "alpha blending"
+  ]
+}

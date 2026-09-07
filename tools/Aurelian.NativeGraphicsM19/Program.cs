@@ -78,6 +78,9 @@ if (previewIndex >= 0)
 (CompiledGraphicsProgram msdfProgram, VdMirGraphicsBackendResult msdfBackend) = CompileShader(
     root,
     "src/Aurelian/Aurelian.Shaders/Assets/MsdfText.v.ts");
+(CompiledGraphicsProgram profileMsdfProgram, _) = CompileShader(
+    root,
+    "src/Aurelian/Aurelian.Shaders/Assets/ProfileMsdf.v.ts");
 (CompiledGraphicsProgram fogProgram, VdMirGraphicsBackendResult fogBackend) = CompileShader(
     root,
     "src/Aurelian/Aurelian.Shaders/Assets/SemanticFog.v.ts");
@@ -95,12 +98,13 @@ using var target = new VulkanNativeFrameTarget(plant, Width, Height);
 using var shapes = new VulkanOrderedQuadRenderer(plant, analyticProgram, target, Native2DPipelineOptions.AnalyticShape2D);
 using var profiles = new VulkanOrderedQuadRenderer(
     plant,
-    msdfProgram,
+    profileMsdfProgram,
     target,
-    new Native2DPipelineOptions(Native2DPipelineKind.MsdfText, EnableStraightAlphaBlend: true));
+    new Native2DPipelineOptions(Native2DPipelineKind.ProfileMsdf, EnableStraightAlphaBlend: true));
+using var text = new VulkanOrderedQuadRenderer(plant, msdfProgram, target, Native2DPipelineOptions.MsdfText);
 using var fog = new VulkanOrderedQuadRenderer(plant, fogProgram, target, Native2DPipelineOptions.SemanticFog);
 using var cache = new ProfileNativeRealizationCache(profiles, capacity: 32);
-using var fontCache = new AurelianMsdfAtlasCache(profiles);
+using var fontCache = new AurelianMsdfAtlasCache(text);
 StrategyNativeUiFont nativeFont = StrategyNativeUiFont.Create(Path.Combine(AppContext.BaseDirectory, "Assets"));
 foreach (AurelianMsdfAtlasResource fontResource in nativeFont.Resources)
 {
@@ -175,6 +179,7 @@ VulkanNativeFrameResult strategyFrame = RenderStrategy(
     target,
     shapes,
     profiles,
+    text,
     fog,
     cache,
     resources,
@@ -204,6 +209,7 @@ VulkanNativeFrameResult warmFrame = RenderStrategy(
     target,
     shapes,
     profiles,
+    text,
     fog,
     cache,
     resources,
@@ -222,6 +228,7 @@ VulkanNativeFrameResult stressFrame = RenderStrategy(
     target,
     shapes,
     profiles,
+    text,
     fog,
     cache,
     resources,
@@ -240,7 +247,7 @@ cache.Warm(tinyFarmTree);
 VulkanNativeFrameResult tinyFarmFrame = RenderTinyFarm(target, shapes, profiles, cache, tinyFarmTree);
 PngWriter.Write(Path.Combine(output, "tinyfarm-second-consumer.png"), Width, Height, tinyFarmFrame.Pixels!);
 
-object parity = MeasureSkiaParity(root, plant, msdfProgram, resources["worker"]);
+object parity = MeasureSkiaParity(root, plant, profileMsdfProgram, resources["worker"]);
 WriteJson(Path.Combine(output, "skia-native-parity.json"), parity);
 WriteJson(Path.Combine(output, "profile-cache-proof.json"), new
 {
@@ -446,6 +453,7 @@ static VulkanNativeFrameResult RenderStrategy(
     VulkanNativeFrameTarget target,
     VulkanOrderedQuadRenderer shapes,
     VulkanOrderedQuadRenderer profiles,
+    VulkanOrderedQuadRenderer text,
     VulkanOrderedQuadRenderer fog,
     ProfileNativeRealizationCache cache,
     IReadOnlyDictionary<string, ProfileNativeCompositionResource> resources,
@@ -508,12 +516,15 @@ static VulkanNativeFrameResult RenderStrategy(
             pass.SubmitAnalyticShape(submission);
         }
     });
-    frame.Present(profiles, pass =>
+    frame.Present(text, pass =>
     {
         foreach (NativeMsdfQuadSubmission submission in hudText)
         {
             pass.SubmitMsdfQuad(submission);
         }
+    });
+    frame.Present(profiles, pass =>
+    {
         cache.Submit(resources["hq"], Fit(resources["hq"], 76, 740, 80, 92));
     });
     return frame.EndFrame();
@@ -637,7 +648,7 @@ static object MeasureSkiaParity(
         program,
         size,
         size,
-        new Native2DPipelineOptions(Native2DPipelineKind.MsdfText, TransparentClear: true, EnableStraightAlphaBlend: true));
+        new Native2DPipelineOptions(Native2DPipelineKind.ProfileMsdf, TransparentClear: true, EnableStraightAlphaBlend: true));
     using var cache = new ProfileNativeRealizationCache(renderer, 2);
     cache.Warm(resource);
     renderer.Begin2D();

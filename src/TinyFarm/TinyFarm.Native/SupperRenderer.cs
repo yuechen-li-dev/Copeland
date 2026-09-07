@@ -85,6 +85,7 @@ internal sealed class SupperRenderer : IAurelianHostCompositor
         CompiledGraphicsProgram analytic = Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/AnalyticShape2D.v.ts");
         CompiledGraphicsProgram shockwave = Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/SoftShockwave.v.ts");
         CompiledGraphicsProgram msdf = Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/MsdfText.v.ts");
+        CompiledGraphicsProgram profileMsdf = Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/ProfileMsdf.v.ts");
         CompiledGraphicsProgram texture = Compile(root, "samples/Aurelian/ForwardTexturedM3.v.ts");
         string spriteAtlasPath = Path.Combine(AppContext.BaseDirectory, "Assets", "M11", "tinyfarm-sprite-atlas-source.png");
         TinyFarmSpriteAtlas spriteAtlas = TinyFarmSpriteAtlas.Load(spriteAtlasPath);
@@ -124,6 +125,7 @@ internal sealed class SupperRenderer : IAurelianHostCompositor
             plant,
             analytic,
             msdf,
+            profileMsdf,
             font,
             profileNative.Resource!,
             () => ui.Resources(frame));
@@ -654,12 +656,14 @@ internal sealed class SupperOverlay(
     AurelianVulkanPlant plant,
     CompiledGraphicsProgram analyticProgram,
     CompiledGraphicsProgram msdfProgram,
+    CompiledGraphicsProgram profileMsdfProgram,
     SupperNativeUiFont font,
     ProfileNativeCompositionResource profileTree,
     Func<SupperUiResources> presentation) : INativeLayerPresenter
 {
     private VulkanOrderedQuadRenderer shapes = null!;
     private VulkanOrderedQuadRenderer text = null!;
+    private VulkanOrderedQuadRenderer profiles = null!;
     private AurelianMsdfAtlasCache atlasCache = null!;
     private ProfileNativeRealizationCache profileCache = null!;
     private MachinaPresentationFrame? baseSource;
@@ -687,8 +691,9 @@ internal sealed class SupperOverlay(
     {
         shapes = new VulkanOrderedQuadRenderer(plant, analyticProgram, target, Native2DPipelineOptions.AnalyticShape2D);
         text = new VulkanOrderedQuadRenderer(plant, msdfProgram, target, Native2DPipelineOptions.MsdfText);
+        profiles = new VulkanOrderedQuadRenderer(plant, profileMsdfProgram, target, Native2DPipelineOptions.ProfileMsdf);
         atlasCache = new AurelianMsdfAtlasCache(text);
-        profileCache = new ProfileNativeRealizationCache(text, capacity: 4);
+        profileCache = new ProfileNativeRealizationCache(profiles, capacity: 4);
         foreach (AurelianMsdfAtlasResource resource in font.Resources)
         {
             atlasCache.Resolve(resource);
@@ -845,10 +850,13 @@ internal sealed class SupperOverlay(
                 {
                     pass.SubmitMsdfQuad(submission);
                 }
-                if (includeProfile)
-                {
-                    profileCache.Submit(profileTree, new ProfileNativeInstance(550, 430, 0.68f));
-                }
+            });
+        }
+        if (includeProfile)
+        {
+            context.Present(profiles, pass =>
+            {
+                profileCache.Submit(profileTree, new ProfileNativeInstance(550, 430, 0.68f));
             });
         }
     }
@@ -914,6 +922,7 @@ internal sealed class SupperOverlay(
     {
         profileCache?.Dispose();
         atlasCache?.Dispose();
+        profiles?.Dispose();
         text?.Dispose();
         shapes?.Dispose();
     }

@@ -5,9 +5,10 @@
   "inspection": {
     "panelOrder": [
       "CPU reference",
-      "former native policy",
-      "fixed native policy",
-      "amplified CPU/former-native alpha difference"
+      "legacy",
+      "M19B neutral",
+      "M19C derivative",
+      "amplified CPU/derivative difference"
     ],
     "backgrounds": [
       "dark",
@@ -293,20 +294,21 @@
           "DifferingSilhouettePixels": 26
         }
       },
-      "coverageThreshold": {
-        "threshold": 0.45,
+      "derivative": {
+        "threshold": 0.5,
+        "widthModel": "fwidth(medianDistance)",
         "nativeEdges": {
-          "OpaquePixels": 353,
-          "PartialCoveragePixels": 563,
-          "SilhouettePixels": 696,
-          "PartialCoveragePerSilhouette": 0.8089080459770115,
-          "MeanEdgeGradient": 0.012910216718266358,
-          "EstimatedTransitionWidthPixels": 2.502222222222222
+          "OpaquePixels": 441,
+          "PartialCoveragePixels": 234,
+          "SilhouettePixels": 552,
+          "PartialCoveragePerSilhouette": 0.42391304347826086,
+          "MeanEdgeGradient": 0.014391554867561062,
+          "EstimatedTransitionWidthPixels": 0.975
         },
         "comparison": {
-          "SilhouetteIntersectionOverUnion": 0.8045977011494253,
-          "MeanAbsoluteChannelError": 2.535888671875,
-          "DifferingSilhouettePixels": 136
+          "SilhouetteIntersectionOverUnion": 0.968141592920354,
+          "MeanAbsoluteChannelError": 1.1708170572916667,
+          "DifferingSilhouettePixels": 18
         }
       },
       "snappingDelta": {
@@ -529,20 +531,21 @@
           "DifferingSilhouettePixels": 13
         }
       },
-      "coverageThreshold": {
-        "threshold": 0.45,
+      "derivative": {
+        "threshold": 0.5,
+        "widthModel": "fwidth(medianDistance)",
         "nativeEdges": {
-          "OpaquePixels": 1846,
-          "PartialCoveragePixels": 325,
-          "SilhouettePixels": 2010,
-          "PartialCoveragePerSilhouette": 0.16169154228855723,
-          "MeanEdgeGradient": 0.018004170966632285,
-          "EstimatedTransitionWidthPixels": 1.1484098939929328
+          "OpaquePixels": 1748,
+          "PartialCoveragePixels": 268,
+          "SilhouettePixels": 1885,
+          "PartialCoveragePerSilhouette": 0.14217506631299734,
+          "MeanEdgeGradient": 0.017942896456828363,
+          "EstimatedTransitionWidthPixels": 0.9605734767025089
         },
         "comparison": {
-          "SilhouetteIntersectionOverUnion": 0.9383084577114428,
-          "MeanAbsoluteChannelError": 1.5979275173611112,
-          "DifferingSilhouettePixels": 124
+          "SilhouetteIntersectionOverUnion": 0.9941829719725013,
+          "MeanAbsoluteChannelError": 1.0877278645833333,
+          "DifferingSilhouettePixels": 11
         }
       },
       "snappingDelta": {

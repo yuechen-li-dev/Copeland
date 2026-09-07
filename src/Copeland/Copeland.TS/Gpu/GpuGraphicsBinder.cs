@@ -792,6 +792,24 @@ public static class GpuGraphicsBinder
                 }
                 return new VdMirExpression("intrinsic", "f32", Span(path, call), target, arguments);
             }
+            if (target == "Fwidth")
+            {
+                if (arguments.Length != 1 || arguments[0].Type != "f32")
+                {
+                    Add("COPE-GPU-DERIVATIVE-0001", "SDSL-V1503", "type", "Fwidth expects one f32 argument.", Span(path, call));
+                    return Error(path, call);
+                }
+                if (_currentStage != VdMirGraphicsStage.Pixel)
+                {
+                    Add(
+                        "COPE-GPU-DERIVATIVE-0002",
+                        "SDSL-V4200",
+                        "stage",
+                        "Fwidth is supported only in the pixel stage.",
+                        Span(path, call));
+                }
+                return new VdMirExpression("intrinsic", "f32", Span(path, call), "Fwidth", arguments);
+            }
             if (target is "float2" or "float3" or "float4")
             {
                 if (!ValidConstructor(target, arguments.Select(argument => PhysicalType(argument.Type)).ToArray()))

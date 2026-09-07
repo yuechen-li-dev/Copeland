@@ -1,0 +1,1019 @@
+{
+  "milestone": "AURELIAN-PROFILE-DERIVATIVE-RECONSTRUCTION-M19C",
+  "device": "NVIDIA GeForce RTX 3070",
+  "command": "dotnet run --project tools/Aurelian.NativeSpriteEdgeDiagnosticsM19B -c Release -- --asset worker --asset tree --zoom 8",
+  "inspection": {
+    "panelOrder": [
+      "CPU reference",
+      "legacy",
+      "M19B neutral",
+      "M19C derivative",
+      "amplified CPU/derivative difference"
+    ],
+    "backgrounds": [
+      "dark",
+      "light"
+    ],
+    "inspectionScaling": "nearest-neighbor",
+    "supportedZoom": [
+      1,
+      2,
+      4,
+      8,
+      16
+    ],
+    "surface": [
+      96,
+      96
+    ]
+  },
+  "auditedSeams": {
+    "sampler": "MSDF pipeline forces linear min/mag filtering",
+    "uv": "atlas entries expose exact integer-derived normalized crop bounds",
+    "alpha": "straight-alpha shader output with SrcAlpha/OneMinusSrcAlpha color blend",
+    "mipmapping": "disabled; sampler MaxLod is zero and texture has one level",
+    "reconstruction": "Profile median RGB, neutral 0.5 threshold, fwidth-scaled one-screen-pixel ramp",
+    "placement": "fractional and rounded presentation origins measured separately"
+  },
+  "diagnosis": {
+    "rootCause": "A fixed normalized field ramp did not track the field\u0027s projected screen-pixel footprint during Profile minification.",
+    "ruledOut": [
+      "pixel snapping",
+      "nearest sampler",
+      "mipmapping",
+      "atlas crop precision",
+      "alpha blend mode"
+    ],
+    "fix": "ProfileMsdf reconstructs median RGB at threshold 0.5 with a complete coverage ramp equal to fwidth(distance). Glyph rendering remains in its separate qualified shader.",
+    "residual": "No bounded reconstruction blocker remains; field-generation corner behavior remains a future general MSDF concern.",
+    "nextStep": "Retain this diagnostic for future Profile atlas-pressure and corner-artifact investigations."
+  },
+  "measurements": [
+    {
+      "asset": "worker",
+      "source": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.StrategyDemo\\Assets\\worker.profile.tsx",
+      "CompositionHash": "f5d7b0a3e58d516a06d5bcae7ef04a9965be5022cdf99686bf3b7067ef8c6e13",
+      "worldScale": 0.9,
+      "expectedAssetHeightPixels": 43.754,
+      "sourceBounds": {
+        "MinX": -9,
+        "MinY": -6.615384615384615,
+        "MaxX": 20.193912627175283,
+        "MaxY": 42,
+        "Width": 29.193912627175283,
+        "Height": 48.61538461538461
+      },
+      "atlas": {
+        "width": 1024,
+        "height": 1024,
+        "filtering": "linear",
+        "mipLevels": 1,
+        "addressMode": "clamp-to-edge",
+        "fields": [
+          {
+            "PainterIndex": 0,
+            "LayerId": "Ground shadow",
+            "ItemId": "shadow",
+            "AtlasX": 194,
+            "AtlasY": 194,
+            "Width": 192,
+            "Height": 74,
+            "U0": 0.189453125,
+            "V0": 0.189453125,
+            "U1": 0.376953125,
+            "V1": 0.26171875,
+            "PixelRange": 12,
+            "ProjectionScale": 5.416666666666667
+          },
+          {
+            "PainterIndex": 1,
+            "LayerId": "Legs",
+            "ItemId": "left boot",
+            "AtlasX": 606,
+            "AtlasY": 0,
+            "Width": 74,
+            "Height": 192,
+            "U0": 0.591796875,
+            "V0": 0,
+            "U1": 0.6640625,
+            "V1": 0.1875,
+            "PixelRange": 12,
+            "ProjectionScale": 9.645845316963834
+          },
+          {
+            "PainterIndex": 2,
+            "LayerId": "Legs",
+            "ItemId": "right boot",
+            "AtlasX": 516,
+            "AtlasY": 0,
+            "Width": 88,
+            "Height": 192,
+            "U0": 0.50390625,
+            "V0": 0,
+            "U1": 0.58984375,
+            "V1": 0.1875,
+            "PixelRange": 12,
+            "ProjectionScale": 10.109526550084027
+          },
+          {
+            "PainterIndex": 3,
+            "LayerId": "Coat",
+            "ItemId": "silhouette",
+            "AtlasX": 364,
+            "AtlasY": 0,
+            "Width": 150,
+            "Height": 192,
+            "U0": 0.35546875,
+            "V0": 0,
+            "U1": 0.501953125,
+            "V1": 0.1875,
+            "PixelRange": 12,
+            "ProjectionScale": 9
+          },
+          {
+            "PainterIndex": 4,
+            "LayerId": "Coat",
+            "ItemId": "sash",
+            "AtlasX": 194,
+            "AtlasY": 0,
+            "Width": 168,
+            "Height": 192,
+            "U0": 0.189453125,
+            "V0": 0,
+            "U1": 0.353515625,
+            "V1": 0.1875,
+            "PixelRange": 12,
+            "ProjectionScale": 11.246078455954924
+          },
+          {
+            "PainterIndex": 5,
+            "LayerId": "Head",
+            "ItemId": "face",
+            "AtlasX": 0,
+            "AtlasY": 0,
+            "Width": 192,
+            "Height": 192,
+            "U0": 0,
+            "V0": 0,
+            "U1": 0.1875,
+            "V1": 0.1875,
+            "PixelRange": 12,
+            "ProjectionScale": 16.8
+          },
+          {
+            "PainterIndex": 6,
+            "LayerId": "Head",
+            "ItemId": "hat",
+            "AtlasX": 388,
+            "AtlasY": 194,
+            "Width": 192,
+            "Height": 54,
+            "U0": 0.37890625,
+            "V0": 0.189453125,
+            "U1": 0.56640625,
+            "V1": 0.2421875,
+            "PixelRange": 12,
+            "ProjectionScale": 6
+          },
+          {
+            "PainterIndex": 7,
+            "LayerId": "Head",
+            "ItemId": "crown",
+            "AtlasX": 724,
+            "AtlasY": 0,
+            "Width": 192,
+            "Height": 96,
+            "U0": 0.70703125,
+            "V0": 0,
+            "U1": 0.89453125,
+            "V1": 0.09375,
+            "PixelRange": 12,
+            "ProjectionScale": 14.4
+          },
+          {
+            "PainterIndex": 8,
+            "LayerId": "Tool",
+            "ItemId": "shaft",
+            "AtlasX": 682,
+            "AtlasY": 0,
+            "Width": 40,
+            "Height": 192,
+            "U0": 0.666015625,
+            "V0": 0,
+            "U1": 0.705078125,
+            "V1": 0.1875,
+            "PixelRange": 12,
+            "ProjectionScale": 3.129016284696233
+          },
+          {
+            "PainterIndex": 9,
+            "LayerId": "Tool",
+            "ItemId": "head",
+            "AtlasX": 0,
+            "AtlasY": 194,
+            "Width": 192,
+            "Height": 91,
+            "U0": 0,
+            "V0": 0.189453125,
+            "U1": 0.1875,
+            "V1": 0.2783203125,
+            "PixelRange": 12,
+            "ProjectionScale": 10.58411912172811
+          }
+        ]
+      },
+      "fractionalOrigin": {
+        "OriginX": 48.375,
+        "OriginY": 70.625,
+        "Scale": 0.9
+      },
+      "snappedOrigin": {
+        "OriginX": 48,
+        "OriginY": 71,
+        "Scale": 0.9
+      },
+      "fractional": {
+        "cpuEdges": {
+          "OpaquePixels": 444,
+          "PartialCoveragePixels": 213,
+          "SilhouettePixels": 560,
+          "PartialCoveragePerSilhouette": 0.38035714285714284,
+          "MeanEdgeGradient": 0.014360165118679054,
+          "EstimatedTransitionWidthPixels": 0.902542372881356
+        },
+        "nativeEdges": {
+          "OpaquePixels": 162,
+          "PartialCoveragePixels": 607,
+          "SilhouettePixels": 462,
+          "PartialCoveragePerSilhouette": 1.3138528138528138,
+          "MeanEdgeGradient": 0.012633728930168639,
+          "EstimatedTransitionWidthPixels": 2.594017094017094
+        },
+        "comparison": {
+          "SilhouetteIntersectionOverUnion": 0.825,
+          "MeanAbsoluteChannelError": 3.06884765625,
+          "DifferingSilhouettePixels": 98
+        }
+      },
+      "snapped": {
+        "cpuEdges": {
+          "OpaquePixels": 444,
+          "PartialCoveragePixels": 202,
+          "SilhouettePixels": 560,
+          "PartialCoveragePerSilhouette": 0.3607142857142857,
+          "MeanEdgeGradient": 0.014448744410044727,
+          "EstimatedTransitionWidthPixels": 0.8487394957983193
+        },
+        "nativeEdges": {
+          "OpaquePixels": 167,
+          "PartialCoveragePixels": 609,
+          "SilhouettePixels": 468,
+          "PartialCoveragePerSilhouette": 1.3012820512820513,
+          "MeanEdgeGradient": 0.012615239078087452,
+          "EstimatedTransitionWidthPixels": 2.580508474576271
+        },
+        "comparison": {
+          "SilhouetteIntersectionOverUnion": 0.8357142857142857,
+          "MeanAbsoluteChannelError": 3.047607421875,
+          "DifferingSilhouettePixels": 92
+        }
+      },
+      "neutralThreshold": {
+        "threshold": 0.5,
+        "nativeEdges": {
+          "OpaquePixels": 243,
+          "PartialCoveragePixels": 604,
+          "SilhouettePixels": 574,
+          "PartialCoveragePerSilhouette": 1.0522648083623694,
+          "MeanEdgeGradient": 0.01308565531475757,
+          "EstimatedTransitionWidthPixels": 2.6375545851528384
+        },
+        "comparison": {
+          "SilhouetteIntersectionOverUnion": 0.9551724137931035,
+          "MeanAbsoluteChannelError": 2.325439453125,
+          "DifferingSilhouettePixels": 26
+        }
+      },
+      "derivative": {
+        "threshold": 0.5,
+        "widthModel": "fwidth(medianDistance)",
+        "nativeEdges": {
+          "OpaquePixels": 441,
+          "PartialCoveragePixels": 234,
+          "SilhouettePixels": 552,
+          "PartialCoveragePerSilhouette": 0.42391304347826086,
+          "MeanEdgeGradient": 0.014391554867561062,
+          "EstimatedTransitionWidthPixels": 0.975
+        },
+        "comparison": {
+          "SilhouetteIntersectionOverUnion": 0.968141592920354,
+          "MeanAbsoluteChannelError": 1.1708170572916667,
+          "DifferingSilhouettePixels": 18
+        }
+      },
+      "snappingDelta": {
+        "silhouetteIoU": 0.010714285714285787,
+        "nativeTransitionWidthPixels": -0.013508619440822933
+      }
+    },
+    {
+      "asset": "tree",
+      "source": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.StrategyDemo\\Assets\\tree.profile.tsx",
+      "CompositionHash": "8c711c52a1480b21c0ec4b68a676235499bf378a1afb3f618ee2145adab57fb2",
+      "worldScale": 0.8,
+      "expectedAssetHeightPixels": 87.692,
+      "sourceBounds": {
+        "MinX": -24,
+        "MinY": -11.615384615384615,
+        "MaxX": 31,
+        "MaxY": 98,
+        "Width": 55,
+        "Height": 109.61538461538461
+      },
+      "atlas": {
+        "width": 1024,
+        "height": 1024,
+        "filtering": "linear",
+        "mipLevels": 1,
+        "addressMode": "clamp-to-edge",
+        "fields": [
+          {
+            "PainterIndex": 0,
+            "LayerId": "Ground shadow",
+            "ItemId": "shadow",
+            "AtlasX": 810,
+            "AtlasY": 0,
+            "Width": 192,
+            "Height": 74,
+            "U0": 0.791015625,
+            "V0": 0,
+            "U1": 0.978515625,
+            "V1": 0.072265625,
+            "PixelRange": 12,
+            "ProjectionScale": 2.6
+          },
+          {
+            "PainterIndex": 1,
+            "LayerId": "Trunk",
+            "ItemId": "Trunk left",
+            "AtlasX": 532,
+            "AtlasY": 0,
+            "Width": 40,
+            "Height": 192,
+            "U0": 0.51953125,
+            "V0": 0,
+            "U1": 0.55859375,
+            "V1": 0.1875,
+            "PixelRange": 12,
+            "ProjectionScale": 5.333333333333333
+          },
+          {
+            "PainterIndex": 2,
+            "LayerId": "Trunk",
+            "ItemId": "Trunk right",
+            "AtlasX": 574,
+            "AtlasY": 0,
+            "Width": 40,
+            "Height": 192,
+            "U0": 0.560546875,
+            "V0": 0,
+            "U1": 0.599609375,
+            "V1": 0.1875,
+            "PixelRange": 12,
+            "ProjectionScale": 5.333333333333333
+          },
+          {
+            "PainterIndex": 3,
+            "LayerId": "Trunk",
+            "ItemId": "Trunk top",
+            "AtlasX": 616,
+            "AtlasY": 0,
+            "Width": 192,
+            "Height": 128,
+            "U0": 0.6015625,
+            "V0": 0,
+            "U1": 0.7890625,
+            "V1": 0.125,
+            "PixelRange": 12,
+            "ProjectionScale": 26
+          },
+          {
+            "PainterIndex": 4,
+            "LayerId": "Canopy",
+            "ItemId": "lower",
+            "AtlasX": 0,
+            "AtlasY": 0,
+            "Width": 185,
+            "Height": 192,
+            "U0": 0,
+            "V0": 0,
+            "U1": 0.1806640625,
+            "V1": 0.1875,
+            "PixelRange": 12,
+            "ProjectionScale": 3.22
+          },
+          {
+            "PainterIndex": 5,
+            "LayerId": "Canopy",
+            "ItemId": "middle",
+            "AtlasX": 187,
+            "AtlasY": 0,
+            "Width": 158,
+            "Height": 192,
+            "U0": 0.1826171875,
+            "V0": 0,
+            "U1": 0.3369140625,
+            "V1": 0.1875,
+            "PixelRange": 12,
+            "ProjectionScale": 3.268292682926829
+          },
+          {
+            "PainterIndex": 6,
+            "LayerId": "Canopy",
+            "ItemId": "upper",
+            "AtlasX": 347,
+            "AtlasY": 0,
+            "Width": 118,
+            "Height": 192,
+            "U0": 0.3388671875,
+            "V0": 0,
+            "U1": 0.4541015625,
+            "V1": 0.1875,
+            "PixelRange": 12,
+            "ProjectionScale": 3.1333333333333333
+          },
+          {
+            "PainterIndex": 7,
+            "LayerId": "Canopy",
+            "ItemId": "facet",
+            "AtlasX": 467,
+            "AtlasY": 0,
+            "Width": 63,
+            "Height": 192,
+            "U0": 0.4560546875,
+            "V0": 0,
+            "U1": 0.517578125,
+            "V1": 0.1875,
+            "PixelRange": 12,
+            "ProjectionScale": 2.4375
+          }
+        ]
+      },
+      "fractionalOrigin": {
+        "OriginX": 48.375,
+        "OriginY": 70.625,
+        "Scale": 0.8
+      },
+      "snappedOrigin": {
+        "OriginX": 48,
+        "OriginY": 71,
+        "Scale": 0.8
+      },
+      "fractional": {
+        "cpuEdges": {
+          "OpaquePixels": 1754,
+          "PartialCoveragePixels": 257,
+          "SilhouettePixels": 1886,
+          "PartialCoveragePerSilhouette": 0.13626723223753975,
+          "MeanEdgeGradient": 0.017892156862745114,
+          "EstimatedTransitionWidthPixels": 0.9244604316546763
+        },
+        "nativeEdges": {
+          "OpaquePixels": 1657,
+          "PartialCoveragePixels": 325,
+          "SilhouettePixels": 1828,
+          "PartialCoveragePerSilhouette": 0.17778993435448578,
+          "MeanEdgeGradient": 0.01797665118679054,
+          "EstimatedTransitionWidthPixels": 1.132404181184669
+        },
+        "comparison": {
+          "SilhouetteIntersectionOverUnion": 0.9692470837751855,
+          "MeanAbsoluteChannelError": 1.9328342013888888,
+          "DifferingSilhouettePixels": 58
+        }
+      },
+      "snapped": {
+        "cpuEdges": {
+          "OpaquePixels": 1759,
+          "PartialCoveragePixels": 245,
+          "SilhouettePixels": 1878,
+          "PartialCoveragePerSilhouette": 0.13045793397231098,
+          "MeanEdgeGradient": 0.017890221878224997,
+          "EstimatedTransitionWidthPixels": 0.8687943262411347
+        },
+        "nativeEdges": {
+          "OpaquePixels": 1655,
+          "PartialCoveragePixels": 326,
+          "SilhouettePixels": 1837,
+          "PartialCoveragePerSilhouette": 0.17746325530756668,
+          "MeanEdgeGradient": 0.018000730994152076,
+          "EstimatedTransitionWidthPixels": 1.1560283687943262
+        },
+        "comparison": {
+          "SilhouetteIntersectionOverUnion": 0.9781682641107561,
+          "MeanAbsoluteChannelError": 1.9021267361111112,
+          "DifferingSilhouettePixels": 41
+        }
+      },
+      "neutralThreshold": {
+        "threshold": 0.5,
+        "nativeEdges": {
+          "OpaquePixels": 1715,
+          "PartialCoveragePixels": 327,
+          "SilhouettePixels": 1889,
+          "PartialCoveragePerSilhouette": 0.17310746426680784,
+          "MeanEdgeGradient": 0.01793429652562782,
+          "EstimatedTransitionWidthPixels": 1.1762589928057554
+        },
+        "comparison": {
+          "SilhouetteIntersectionOverUnion": 0.9931362196409715,
+          "MeanAbsoluteChannelError": 1.157958984375,
+          "DifferingSilhouettePixels": 13
+        }
+      },
+      "derivative": {
+        "threshold": 0.5,
+        "widthModel": "fwidth(medianDistance)",
+        "nativeEdges": {
+          "OpaquePixels": 1748,
+          "PartialCoveragePixels": 268,
+          "SilhouettePixels": 1885,
+          "PartialCoveragePerSilhouette": 0.14217506631299734,
+          "MeanEdgeGradient": 0.017942896456828363,
+          "EstimatedTransitionWidthPixels": 0.9605734767025089
+        },
+        "comparison": {
+          "SilhouetteIntersectionOverUnion": 0.9941829719725013,
+          "MeanAbsoluteChannelError": 1.0877278645833333,
+          "DifferingSilhouettePixels": 11
+        }
+      },
+      "snappingDelta": {
+        "silhouetteIoU": 0.008921180335570544,
+        "nativeTransitionWidthPixels": 0.023624187609657232
+      }
+    },
+    {
+      "asset": "hq",
+      "source": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.StrategyDemo\\Assets\\hq.profile.tsx",
+      "CompositionHash": "cefad59109ed53e6962e0e9871ef016ae5e2cd2fbd536033e1620fa018aaf434",
+      "worldScale": 0.45,
+      "expectedAssetHeightPixels": 66.371,
+      "sourceBounds": {
+        "MinX": -41,
+        "MinY": -20.076923076923077,
+        "MaxX": 53,
+        "MaxY": 127.41421356237309,
+        "Width": 94,
+        "Height": 147.49113663929617
+      },
+      "atlas": {
+        "width": 1024,
+        "height": 1024,
+        "filtering": "linear",
+        "mipLevels": 1,
+        "addressMode": "clamp-to-edge",
+        "fields": [
+          {
+            "PainterIndex": 0,
+            "LayerId": "Ground shadow",
+            "ItemId": "shadow",
+            "AtlasX": 388,
+            "AtlasY": 515,
+            "Width": 192,
+            "Height": 74,
+            "U0": 0.37890625,
+            "V0": 0.5029296875,
+            "U1": 0.56640625,
+            "V1": 0.5751953125,
+            "PixelRange": 12,
+            "ProjectionScale": 1.3829787234042554
+          },
+          {
+            "PainterIndex": 1,
+            "LayerId": "Foundation",
+            "ItemId": "Foundation left",
+            "AtlasX": 0,
+            "AtlasY": 388,
+            "Width": 192,
+            "Height": 125,
+            "U0": 0,
+            "V0": 0.37890625,
+            "U1": 0.1875,
+            "V1": 0.5009765625,
+            "PixelRange": 12,
+            "ProjectionScale": 4.208333333333333
+          },
+          {
+            "PainterIndex": 2,
+            "LayerId": "Foundation",
+            "ItemId": "Foundation right",
+            "AtlasX": 659,
+            "AtlasY": 194,
+            "Width": 192,
+            "Height": 125,
+            "U0": 0.6435546875,
+            "V0": 0.189453125,
+            "U1": 0.8310546875,
+            "V1": 0.3115234375,
+            "PixelRange": 12,
+            "ProjectionScale": 4.208333333333333
+          },
+          {
+            "PainterIndex": 3,
+            "LayerId": "Foundation",
+            "ItemId": "Foundation top",
+            "AtlasX": 0,
+            "AtlasY": 515,
+            "Width": 192,
+            "Height": 94,
+            "U0": 0,
+            "V0": 0.5029296875,
+            "U1": 0.1875,
+            "V1": 0.5947265625,
+            "PixelRange": 12,
+            "ProjectionScale": 1.9444444444444444
+          },
+          {
+            "PainterIndex": 4,
+            "LayerId": "Walls",
+            "ItemId": "Walls left",
+            "AtlasX": 742,
+            "AtlasY": 0,
+            "Width": 95,
+            "Height": 192,
+            "U0": 0.724609375,
+            "V0": 0,
+            "U1": 0.8173828125,
+            "V1": 0.1875,
+            "PixelRange": 12,
+            "ProjectionScale": 2.2903225806451615
+          },
+          {
+            "PainterIndex": 5,
+            "LayerId": "Walls",
+            "ItemId": "Walls right",
+            "AtlasX": 645,
+            "AtlasY": 0,
+            "Width": 95,
+            "Height": 192,
+            "U0": 0.6298828125,
+            "V0": 0,
+            "U1": 0.72265625,
+            "V1": 0.1875,
+            "PixelRange": 12,
+            "ProjectionScale": 2.2903225806451615
+          },
+          {
+            "PainterIndex": 6,
+            "LayerId": "Walls",
+            "ItemId": "Walls top",
+            "AtlasX": 194,
+            "AtlasY": 515,
+            "Width": 192,
+            "Height": 93,
+            "U0": 0.189453125,
+            "V0": 0.5029296875,
+            "U1": 0.376953125,
+            "V1": 0.59375,
+            "PixelRange": 12,
+            "ProjectionScale": 2.3
+          },
+          {
+            "PainterIndex": 7,
+            "LayerId": "Windows and door",
+            "ItemId": "door",
+            "AtlasX": 160,
+            "AtlasY": 194,
+            "Width": 67,
+            "Height": 192,
+            "U0": 0.15625,
+            "V0": 0.189453125,
+            "U1": 0.2216796875,
+            "V1": 0.376953125,
+            "PixelRange": 12,
+            "ProjectionScale": 4.3
+          },
+          {
+            "PainterIndex": 8,
+            "LayerId": "Windows and door",
+            "ItemId": "window one",
+            "AtlasX": 839,
+            "AtlasY": 0,
+            "Width": 84,
+            "Height": 192,
+            "U0": 0.8193359375,
+            "V0": 0,
+            "U1": 0.9013671875,
+            "V1": 0.1875,
+            "PixelRange": 12,
+            "ProjectionScale": 8.571428571428571
+          },
+          {
+            "PainterIndex": 9,
+            "LayerId": "Windows and door",
+            "ItemId": "window two",
+            "AtlasX": 81,
+            "AtlasY": 194,
+            "Width": 77,
+            "Height": 192,
+            "U0": 0.0791015625,
+            "V0": 0.189453125,
+            "U1": 0.154296875,
+            "V1": 0.376953125,
+            "PixelRange": 12,
+            "ProjectionScale": 8.833333333333334
+          },
+          {
+            "PainterIndex": 10,
+            "LayerId": "Roof",
+            "ItemId": "Roof gable",
+            "AtlasX": 184,
+            "AtlasY": 0,
+            "Width": 179,
+            "Height": 192,
+            "U0": 0.1796875,
+            "V0": 0,
+            "U1": 0.3544921875,
+            "V1": 0.1875,
+            "PixelRange": 12,
+            "ProjectionScale": 3.9743589743589745
+          },
+          {
+            "PainterIndex": 11,
+            "LayerId": "Roof",
+            "ItemId": "Roof lit slope",
+            "AtlasX": 465,
+            "AtlasY": 194,
+            "Width": 192,
+            "Height": 138,
+            "U0": 0.4541015625,
+            "V0": 0.189453125,
+            "U1": 0.6416015625,
+            "V1": 0.32421875,
+            "PixelRange": 12,
+            "ProjectionScale": 2.7142857142857144
+          },
+          {
+            "PainterIndex": 12,
+            "LayerId": "Roof",
+            "ItemId": "Roof dark slope",
+            "AtlasX": 0,
+            "AtlasY": 0,
+            "Width": 182,
+            "Height": 192,
+            "U0": 0,
+            "V0": 0,
+            "U1": 0.177734375,
+            "V1": 0.1875,
+            "PixelRange": 12,
+            "ProjectionScale": 2.700854700854701
+          },
+          {
+            "PainterIndex": 13,
+            "LayerId": "Roof",
+            "ItemId": "Roof ridge",
+            "AtlasX": 776,
+            "AtlasY": 388,
+            "Width": 192,
+            "Height": 103,
+            "U0": 0.7578125,
+            "V0": 0.37890625,
+            "U1": 0.9453125,
+            "V1": 0.4794921875,
+            "PixelRange": 12,
+            "ProjectionScale": 3.6576499191266287
+          },
+          {
+            "PainterIndex": 14,
+            "LayerId": "Cupola",
+            "ItemId": "Cupola left",
+            "AtlasX": 925,
+            "AtlasY": 0,
+            "Width": 79,
+            "Height": 192,
+            "U0": 0.9033203125,
+            "V0": 0,
+            "U1": 0.98046875,
+            "V1": 0.1875,
+            "PixelRange": 12,
+            "ProjectionScale": 6.111111111111111
+          },
+          {
+            "PainterIndex": 15,
+            "LayerId": "Cupola",
+            "ItemId": "Cupola right",
+            "AtlasX": 0,
+            "AtlasY": 194,
+            "Width": 79,
+            "Height": 192,
+            "U0": 0,
+            "V0": 0.189453125,
+            "U1": 0.0771484375,
+            "V1": 0.376953125,
+            "PixelRange": 12,
+            "ProjectionScale": 6.111111111111111
+          },
+          {
+            "PainterIndex": 16,
+            "LayerId": "Cupola",
+            "ItemId": "Cupola top",
+            "AtlasX": 582,
+            "AtlasY": 388,
+            "Width": 192,
+            "Height": 107,
+            "U0": 0.568359375,
+            "V0": 0.37890625,
+            "U1": 0.755859375,
+            "V1": 0.4833984375,
+            "PixelRange": 12,
+            "ProjectionScale": 8.3
+          },
+          {
+            "PainterIndex": 17,
+            "LayerId": "Cupola roof",
+            "ItemId": "Cupola roof gable",
+            "AtlasX": 511,
+            "AtlasY": 0,
+            "Width": 132,
+            "Height": 192,
+            "U0": 0.4990234375,
+            "V0": 0,
+            "U1": 0.6279296875,
+            "V1": 0.1875,
+            "PixelRange": 12,
+            "ProjectionScale": 8.307692307692308
+          },
+          {
+            "PainterIndex": 18,
+            "LayerId": "Cupola roof",
+            "ItemId": "Cupola roof lit slope",
+            "AtlasX": 271,
+            "AtlasY": 194,
+            "Width": 192,
+            "Height": 188,
+            "U0": 0.2646484375,
+            "V0": 0.189453125,
+            "U1": 0.4521484375,
+            "V1": 0.373046875,
+            "PixelRange": 12,
+            "ProjectionScale": 8.615384615384615
+          },
+          {
+            "PainterIndex": 19,
+            "LayerId": "Cupola roof",
+            "ItemId": "Cupola roof dark slope",
+            "AtlasX": 365,
+            "AtlasY": 0,
+            "Width": 144,
+            "Height": 192,
+            "U0": 0.3564453125,
+            "V0": 0,
+            "U1": 0.4970703125,
+            "V1": 0.1875,
+            "PixelRange": 12,
+            "ProjectionScale": 6.153846153846154
+          },
+          {
+            "PainterIndex": 20,
+            "LayerId": "Cupola roof",
+            "ItemId": "Cupola roof ridge",
+            "AtlasX": 194,
+            "AtlasY": 388,
+            "Width": 192,
+            "Height": 116,
+            "U0": 0.189453125,
+            "V0": 0.37890625,
+            "U1": 0.376953125,
+            "V1": 0.4921875,
+            "PixelRange": 12,
+            "ProjectionScale": 10.698628732661687
+          },
+          {
+            "PainterIndex": 21,
+            "LayerId": "Banner",
+            "ItemId": "pole",
+            "AtlasX": 229,
+            "AtlasY": 194,
+            "Width": 40,
+            "Height": 192,
+            "U0": 0.2236328125,
+            "V0": 0.189453125,
+            "U1": 0.2626953125,
+            "V1": 0.376953125,
+            "PixelRange": 12,
+            "ProjectionScale": 8.472684138941782
+          },
+          {
+            "PainterIndex": 22,
+            "LayerId": "Banner",
+            "ItemId": "flag",
+            "AtlasX": 388,
+            "AtlasY": 388,
+            "Width": 192,
+            "Height": 112,
+            "U0": 0.37890625,
+            "V0": 0.37890625,
+            "U1": 0.56640625,
+            "V1": 0.48828125,
+            "PixelRange": 12,
+            "ProjectionScale": 8
+          }
+        ]
+      },
+      "fractionalOrigin": {
+        "OriginX": 48.375,
+        "OriginY": 70.625,
+        "Scale": 0.45
+      },
+      "snappedOrigin": {
+        "OriginX": 48,
+        "OriginY": 71,
+        "Scale": 0.45
+      },
+      "fractional": {
+        "cpuEdges": {
+          "OpaquePixels": 1462,
+          "PartialCoveragePixels": 221,
+          "SilhouettePixels": 1598,
+          "PartialCoveragePerSilhouette": 0.13829787234042554,
+          "MeanEdgeGradient": 0.013979618163054708,
+          "EstimatedTransitionWidthPixels": 1.0375586854460095
+        },
+        "nativeEdges": {
+          "OpaquePixels": 1371,
+          "PartialCoveragePixels": 318,
+          "SilhouettePixels": 1542,
+          "PartialCoveragePerSilhouette": 0.20622568093385213,
+          "MeanEdgeGradient": 0.014853801169590671,
+          "EstimatedTransitionWidthPixels": 1.3766233766233766
+        },
+        "comparison": {
+          "SilhouetteIntersectionOverUnion": 0.9637273295809882,
+          "MeanAbsoluteChannelError": 2.3902723524305554,
+          "DifferingSilhouettePixels": 58
+        }
+      },
+      "snapped": {
+        "cpuEdges": {
+          "OpaquePixels": 1444,
+          "PartialCoveragePixels": 226,
+          "SilhouettePixels": 1594,
+          "PartialCoveragePerSilhouette": 0.14178168130489335,
+          "MeanEdgeGradient": 0.013724630202958402,
+          "EstimatedTransitionWidthPixels": 1.0462962962962963
+        },
+        "nativeEdges": {
+          "OpaquePixels": 1346,
+          "PartialCoveragePixels": 321,
+          "SilhouettePixels": 1567,
+          "PartialCoveragePerSilhouette": 0.20485003190810466,
+          "MeanEdgeGradient": 0.01450206398348815,
+          "EstimatedTransitionWidthPixels": 1.4724770642201834
+        },
+        "comparison": {
+          "SilhouetteIntersectionOverUnion": 0.9818181818181818,
+          "MeanAbsoluteChannelError": 2.0602213541666665,
+          "DifferingSilhouettePixels": 29
+        }
+      },
+      "neutralThreshold": {
+        "threshold": 0.5,
+        "nativeEdges": {
+          "OpaquePixels": 1432,
+          "PartialCoveragePixels": 281,
+          "SilhouettePixels": 1605,
+          "PartialCoveragePerSilhouette": 0.1750778816199377,
+          "MeanEdgeGradient": 0.01396155830753357,
+          "EstimatedTransitionWidthPixels": 1.3254716981132075
+        },
+        "comparison": {
+          "SilhouetteIntersectionOverUnion": 0.9919154228855721,
+          "MeanAbsoluteChannelError": 1.5245225694444444,
+          "DifferingSilhouettePixels": 13
+        }
+      },
+      "derivative": {
+        "threshold": 0.5,
+        "widthModel": "fwidth(medianDistance)",
+        "nativeEdges": {
+          "OpaquePixels": 1462,
+          "PartialCoveragePixels": 230,
+          "SilhouettePixels": 1596,
+          "PartialCoveragePerSilhouette": 0.14411027568922305,
+          "MeanEdgeGradient": 0.014136136910904736,
+          "EstimatedTransitionWidthPixels": 1.0648148148148149
+        },
+        "comparison": {
+          "SilhouetteIntersectionOverUnion": 0.9950031230480949,
+          "MeanAbsoluteChannelError": 1.2245008680555556,
+          "DifferingSilhouettePixels": 8
+        }
+      },
+      "snappingDelta": {
+        "silhouetteIoU": 0.018090852237193644,
+        "nativeTransitionWidthPixels": 0.09585368759680679
+      }
+    }
+  ]
+}

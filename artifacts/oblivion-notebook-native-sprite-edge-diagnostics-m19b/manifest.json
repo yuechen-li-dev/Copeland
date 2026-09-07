@@ -1,8 +1,8 @@
 [
   {
     "file": "edge-diagnostics.json",
-    "bytes": 17850,
-    "sha256": "1a9da5b93cbae85bd35d5c734b5f3f0ef437936e591b68562f054f22c84fa6a3"
+    "bytes": 17918,
+    "sha256": "738c3749c97ef0e78f1edb1a39900b04f4ef2f17142ac6869bdc6de2001ff123"
   },
   {
     "file": "strategy-after.png",
@@ -21,13 +21,13 @@
   },
   {
     "file": "tree-dark-8x.png",
-    "bytes": 32226,
-    "sha256": "59042ae7b041b6c3938710eaaba991a46f1439274de9badc56b1115f2451fcca"
+    "bytes": 38720,
+    "sha256": "049fda3501c8c760af8c6ff3c3ad38123fe53f14ad37646fb6b3fc9ab088c39f"
   },
   {
     "file": "tree-light-8x.png",
-    "bytes": 32978,
-    "sha256": "148689bf53c72c27e0dbd76c0c380e12ea718533da3a9f871fb396a6da012e19"
+    "bytes": 39783,
+    "sha256": "85c203b979dd1617bb94d65102a3d9e928655fe65c5e356fc676b7e09e86e11a"
   },
   {
     "file": "tree-native-1x.png",
@@ -41,13 +41,13 @@
   },
   {
     "file": "worker-dark-8x.png",
-    "bytes": 28103,
-    "sha256": "55583f58995f0a9e1980fd139b72d1290588ab56da5f0a0f7ec7feea949b149d"
+    "bytes": 31965,
+    "sha256": "51483b3ac83215c2892bf9a5b4c22d68730769bb3304f115fd72403872d19409"
   },
   {
     "file": "worker-light-8x.png",
-    "bytes": 29116,
-    "sha256": "d077d0c84067fc278018a31eb4333d1ea253b442015ba074655cb35408012e63"
+    "bytes": 33267,
+    "sha256": "39d9611a0d8f13a98fd72f923f1542824833d730cf6e89e42b06df2390091aa8"
   },
   {
     "file": "worker-native-1x.png",

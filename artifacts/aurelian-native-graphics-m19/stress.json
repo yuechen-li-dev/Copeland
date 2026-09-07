@@ -1,10 +1,10 @@
 {
   "repeatedAsset": "worker",
   "instances": 250,
-  "milliseconds": 33.368,
-  "allocatedBytes": 6263712,
+  "milliseconds": 41.673,
+  "allocatedBytes": 6333104,
   "QuadCount": 3362,
-  "DrawCalls": 2926,
+  "DrawCalls": 2409,
   "cacheUploads": 9,
   "conclusion": "submission count supports an M20 instancing decision; no M19 batching was added"
 }

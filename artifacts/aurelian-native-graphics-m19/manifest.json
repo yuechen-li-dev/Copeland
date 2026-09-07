@@ -39,8 +39,8 @@
     },
     {
       "path": "fog-fixture.png",
-      "bytes": 216851,
-      "sha256": "93b01ada08dbb6a68c710c45e5ad69bd1de8d23283d673dfc3a83aa8c92bc84b"
+      "bytes": 201046,
+      "sha256": "49995911e2f8a4cbcefadb54d0f3e8f20a1d03e532b948bb303b1c49ea223f35"
     },
     {
       "path": "fog-semantic-projection.json",
@@ -50,17 +50,17 @@
     {
       "path": "fog-shader-proof.json",
       "bytes": 528,
-      "sha256": "340db190b9f85ac383e9599a3679b3cf80909c844b3a39c090567a8e717b52c4"
+      "sha256": "fcf5aa4c8a25437bdb9e1b67bbfdc3838e3332649b616348db067f51407f95d8"
     },
     {
       "path": "native-preview-proof.png",
-      "bytes": 32198,
-      "sha256": "2622a94d3ab1d9786a24bb299d8784a24656006c59d935f430f6aea2aefac6ac"
+      "bytes": 27705,
+      "sha256": "34f995524c6012ab369fc748ecda112d99b84690c52d482a74a5910346c5bbe8"
     },
     {
       "path": "native-preview.json",
       "bytes": 539,
-      "sha256": "5bb30097946fbfcd0eb9ecaa8aa4f7103433444267c31ac1464fab223d06b75e"
+      "sha256": "af12f15f76ae9c202299fdef2ace4bd5135264ea78eebaa0a955f2203851593b"
     },
     {
       "path": "paint-support-profile.json",
@@ -69,8 +69,8 @@
     },
     {
       "path": "performance.json",
-      "bytes": 2575,
-      "sha256": "7443107312c6e5e2257a2b8812d0bc21e95f22658d537457424fb16801bcf298"
+      "bytes": 2576,
+      "sha256": "ef06af516f19cdf8d48b07140360d70bea4178332228d88af64f6fd026ddcff0"
     },
     {
       "path": "profile-cache-proof.json",
@@ -79,8 +79,8 @@
     },
     {
       "path": "profile-pack-native.png",
-      "bytes": 87813,
-      "sha256": "c7c89751285849e2d8dd4fd97ef2c280986c12f881521b6e6bf6e7e16cea7b27"
+      "bytes": 58797,
+      "sha256": "1d24a98bc0fb1e4a9cf12c0c2fee8c0cabcba441d892e74847ab97119daa828b"
     },
     {
       "path": "profile-realization-contract.json",
@@ -95,17 +95,17 @@
     {
       "path": "skia-native-parity.json",
       "bytes": 318,
-      "sha256": "bd2b341d92ad014c3f8c2821230aff40cd4b82058ce027f8cdb59370eb487c56"
+      "sha256": "c1ad3349ceb366ba5ac300b9bd383ea523bf17bd617f997534b15a2c6562c5da"
     },
     {
       "path": "strategy-native-acceptance.json",
       "bytes": 635,
-      "sha256": "7bd24fa8c5d7789710fe0cc37c6e48f88b8529b3184285fb2c5269a5db1acbbf"
+      "sha256": "96ded331582707aa825c8a46d62e6d43d18e0b2687e9ef689b3c6dc32cbb6dd8"
     },
     {
       "path": "strategy-native-after.png",
-      "bytes": 260748,
-      "sha256": "181725eb414d8c1161cea2baf94c87cd45b788bf9628c15eb51b96b103c33412"
+      "bytes": 246933,
+      "sha256": "cb496fe6f056c15c6d1cb294a8378acbcc268a2891a0efaae69d1964cb166b46"
     },
     {
       "path": "strategy-native-before.png",
@@ -115,12 +115,12 @@
     {
       "path": "stress.json",
       "bytes": 278,
-      "sha256": "07f1405a8bb6c4d8f3a3e807c6b3d6bb11df9d5ce8b2af285f74439833649ef3"
+      "sha256": "6b562724e127d63eebd1cacf912fc5dd25e24438c696195e56a03434f2bbd106"
     },
     {
       "path": "tinyfarm-second-consumer.png",
-      "bytes": 19956,
-      "sha256": "9dcc67a57b03ec0d162032524f79915a12f609558db99a9888e7ae2b76796595"
+      "bytes": 20055,
+      "sha256": "ac535247b342df15f417fcbbd706e9efd9e45672465c83197801edc77a4f3486"
     }
   ]
 }

@@ -88,6 +88,39 @@ public sealed class GpuGraphicsBinderM3Tests
     }
 
     [Fact]
+    public void Fwidth_Is_A_Typed_Pixel_Stage_Intrinsic()
+    {
+        string source = Source.Replace(
+            "const texel: float4 = Sample(resources.albedo, resources.linearSampler, input.uv);",
+            "const width: f32 = Fwidth(input.uv.x);\n    const texel: float4 = Sample(resources.albedo, resources.linearSampler, input.uv);",
+            StringComparison.Ordinal);
+
+        VdMirGraphicsModule module = Compile(source);
+
+        Assert.True(module.Success, Diagnostics(module));
+        VdMirExpression derivative = module.Functions
+            .SelectMany(function => function.Statements)
+            .Where(statement => statement.Expression is not null)
+            .SelectMany(statement => Descendants(statement.Expression!))
+            .Single(expression => expression.Kind == "intrinsic" && expression.Value == "Fwidth");
+        Assert.Equal("f32", derivative.Type);
+    }
+
+    [Fact]
+    public void Fwidth_Is_Rejected_Outside_The_Pixel_Stage()
+    {
+        string source = Source.Replace(
+            "const vertexBias: f32 = Convert<f32>(builtins.vertexId + builtins.instanceId) * 0.000001;",
+            "const derivative: f32 = Fwidth(input.uv.x);\n    const vertexBias: f32 = derivative * 0.000001;",
+            StringComparison.Ordinal);
+
+        VdMirDiagnostic diagnostic = Assert.Single(
+            Compile(source).Diagnostics,
+            item => item.Code == "COPE-GPU-DERIVATIVE-0002");
+        Assert.Equal("SDSL-V4200", diagnostic.CanonicalCode);
+    }
+
+    [Fact]
     public void Ts_And_Vts_Are_Equivalent_And_M3_Json_Is_Deterministic()
     {
         VdMirGraphicsModule first = Compile(Source, "forward-textured.v.ts");
