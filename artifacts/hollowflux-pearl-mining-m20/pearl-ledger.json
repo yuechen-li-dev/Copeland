@@ -1,0 +1,45 @@
+{
+  "schema": "hollowflux.pearl-ledger.m20.v1",
+  "pearls": [
+    {
+      "pearl": "phased combat",
+      "hollowflux": "startup-active-recovery plus per-action hit ids",
+      "existing": "atomic TinyFarm AttackIntent and Spatial2D targeting",
+      "action": "Aurelian.Combat",
+      "owner": "Aurelian mechanism plus app mutation",
+      "reuseProof": "sword, spear, hammer, twin strike, sweeping hoe"
+    },
+    {
+      "pearl": "connected semantic fields",
+      "hollowflux": "SoA arrays plus generation-counter BFS",
+      "existing": "no game-semantic field owner",
+      "action": "Aurelian.Field2D",
+      "owner": "Aurelian mechanism plus app meaning",
+      "reuseProof": "waves and conductive charge"
+    },
+    {
+      "pearl": "wet-safe interpolation",
+      "hollowflux": "divide continuous fields by bounded liquid coverage",
+      "existing": "Visual TS to VD-MIR native path",
+      "action": "Visual TS re-authoring",
+      "owner": "realization",
+      "reuseProof": "validated HLSL and SPIR-V"
+    },
+    {
+      "pearl": "procedural equipment composition",
+      "hollowflux": "Canvas actor layers",
+      "existing": "Profile layer composition already stronger",
+      "action": "document only",
+      "owner": "Copeland.Profile",
+      "reuseProof": "existing M1 evidence"
+    },
+    {
+      "pearl": "procedural WebAudio",
+      "hollowflux": "oscillator and noise recipes",
+      "existing": "semantic audio cues and native resident PCM",
+      "action": "defer",
+      "owner": "Aurelian.Audio",
+      "reuseProof": "none in M20"
+    }
+  ]
+}

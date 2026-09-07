@@ -1,4 +1,5 @@
 using Aurelian.Spatial2D;
+using Aurelian.Combat;
 
 namespace TinyFarm.Core;
 
@@ -1089,7 +1090,38 @@ public sealed class TinyFarmResolver
             return Rejected(envelope, IntentReason.EnemyOutOfRange);
         }
 
-        const int swordDamage = 1;
+        CombatMoveDefinition move = TinyFarmCombatMoves.SwordSwing;
+        double facing = Math.Atan2(
+            definition.SpawnPosition.YUnits - placement.WorldPosition.YUnits,
+            definition.SpawnPosition.XUnits - placement.WorldPosition.XUnits);
+        CombatActionState action = CombatActionState.Start(
+            envelope.Sequence,
+            move,
+            new CombatActorId(actor.Id.Value),
+            new SpatialPoint2D(placement.WorldPosition.XUnits, placement.WorldPosition.YUnits),
+            facing);
+        IReadOnlyList<CombatContact> contacts = [];
+        while (action.Phase != CombatPhase.Complete)
+        {
+            CombatStepResult step = CombatResolver.Advance(
+                move,
+                action,
+                [new CombatTarget(
+                    new CombatActorId(enemy.Id.Value),
+                    new SpatialPoint2D(definition.SpawnPosition.XUnits, definition.SpawnPosition.YUnits))]);
+            action = step.State;
+            if (step.Contacts.Count > 0)
+            {
+                contacts = step.Contacts;
+            }
+        }
+        CombatContact? contact = contacts.SingleOrDefault();
+        if (contact is null)
+        {
+            return Rejected(envelope, IntentReason.EnemyOutOfRange);
+        }
+
+        int swordDamage = checked((int)Math.Round(contact.Damage));
         int remainingHealth = Math.Max(0, enemy.CurrentHealth - swordDamage);
         int enemyIndex = state.MutableEnemies.FindIndex(candidate => candidate.Id == enemy.Id);
         state.MutableEnemies[enemyIndex] = enemy with { CurrentHealth = remainingHealth };

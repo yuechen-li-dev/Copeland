@@ -1,0 +1,8 @@
+{
+  "schema": "hollowflux.replay-determinism.m20.v1",
+  "sixtyOneTickFrames": "a5ed8b20bb042847bab88bfe22ad33a0a8ae6891a853d03acdd1bb9042abb4c4",
+  "twentyThreeTickFrames": "a5ed8b20bb042847bab88bfe22ad33a0a8ae6891a853d03acdd1bb9042abb4c4",
+  "equal": true,
+  "gpuPixelsExcluded": true,
+  "snapshotStrategy": "full bounded semantic channels; regeneration plus sparse deltas recommended for large authored worlds"
+}

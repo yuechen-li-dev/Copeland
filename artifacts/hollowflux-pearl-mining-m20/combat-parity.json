@@ -1,0 +1,67 @@
+{
+  "schema": "hollowflux.combat-parity.m20.v1",
+  "original": {
+    "fragmentIndex": 126742,
+    "startup": 3,
+    "active": 5,
+    "recovery": 10,
+    "totalTicks": 18
+  },
+  "originalJavaScriptFixture": {
+    "totalTicks": 18,
+    "trace": [
+      "startup:0",
+      "startup:1",
+      "startup:2",
+      "active:0",
+      "active:1",
+      "active:2",
+      "active:3",
+      "active:4",
+      "recovery:0",
+      "recovery:1",
+      "recovery:2",
+      "recovery:3",
+      "recovery:4",
+      "recovery:5",
+      "recovery:6",
+      "recovery:7",
+      "recovery:8",
+      "recovery:9",
+      "recovery:0"
+    ]
+  },
+  "recovered": {
+    "StartupTicks": 3,
+    "ActiveTicks": 5,
+    "RecoveryTicks": 10,
+    "totalTicks": 18,
+    "phaseTrace": [
+      "Startup:0",
+      "Startup:1",
+      "Startup:2",
+      "Active:0",
+      "Active:1",
+      "Active:2",
+      "Active:3",
+      "Active:4",
+      "Recovery:0",
+      "Recovery:1",
+      "Recovery:2",
+      "Recovery:3",
+      "Recovery:4",
+      "Recovery:5",
+      "Recovery:6",
+      "Recovery:7",
+      "Recovery:8",
+      "Recovery:9",
+      "Complete:0"
+    ],
+    "phaseTransitionRules": [
+      "combat.startup-complete",
+      "combat.active-complete",
+      "combat.recovery-complete"
+    ]
+  },
+  "equal": true
+}

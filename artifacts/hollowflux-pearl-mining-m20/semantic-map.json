@@ -1,0 +1,78 @@
+{
+  "schema": "hollowflux.semantic-map.m20.v1",
+  "inputs": {
+    "bundle": {
+      "path": "C:\\Users\\yuech\\Downloads\\index-DH9fX_Oc.js",
+      "bytes": 727282,
+      "characters": 727165,
+      "sha256": "55da0bd0c689acfb6dd96ad89242478ea09ab0284b6d71c1463c7400653f10dd"
+    },
+    "audit": {
+      "path": "C:\\Users\\yuech\\Downloads\\Text Docs\\Claude on Hollowflux.txt",
+      "bytes": 17840,
+      "characters": 17766,
+      "sha256": "10503373ea6c3483a1a19a5d936e9293a37004ffd8f344aad7bf2462a2a9bc06"
+    },
+    "css": {
+      "path": "C:\\Users\\yuech\\Downloads\\index-CRYSzZhk.css",
+      "bytes": 107027,
+      "characters": 107024,
+      "sha256": "a97843a3e487e0f86ce3b87d31164cda5eb2ff53d5b848587c83d07bc9ebc701"
+    }
+  },
+  "regions": [
+    {
+      "subsystem": "combat phase and move tables",
+      "classification": "B",
+      "owner": "Aurelian.Combat",
+      "action": "adapt",
+      "confidence": "high",
+      "Index": 126742
+    },
+    {
+      "subsystem": "CPU reactive fluid and connected disturbances",
+      "classification": "B",
+      "owner": "Aurelian.Field2D",
+      "action": "adapt",
+      "confidence": "high",
+      "Index": 95349
+    },
+    {
+      "subsystem": "coverage-safe field reconstruction",
+      "classification": "B",
+      "owner": "Visual TS realization",
+      "action": "adapt",
+      "confidence": "high",
+      "Index": 143360
+    },
+    {
+      "subsystem": "deterministic loot and affix content",
+      "classification": "C",
+      "owner": "application",
+      "action": "defer",
+      "confidence": "medium",
+      "Index": 61312
+    },
+    {
+      "subsystem": "Canvas/WebGL/DOM glue",
+      "classification": "D",
+      "owner": "none",
+      "action": "reject",
+      "confidence": "high"
+    },
+    {
+      "subsystem": "duplicated renderer fork and telemetry harness",
+      "classification": "E",
+      "owner": "none",
+      "action": "reject",
+      "confidence": "high"
+    },
+    {
+      "subsystem": "InputMan and authoritative TinyFarm resolver",
+      "classification": "A",
+      "owner": "existing JTF",
+      "action": "keep existing",
+      "confidence": "high"
+    }
+  ]
+}

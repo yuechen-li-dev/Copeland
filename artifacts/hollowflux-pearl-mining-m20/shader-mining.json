@@ -1,0 +1,17 @@
+{
+  "schema": "hollowflux.shader-mining.m20.v1",
+  "adopted": [
+    "liquid-mask-safe continuous-field reconstruction",
+    "semantic RGBA projection"
+  ],
+  "rejected": [
+    "copied GLSL",
+    "browser WebGL plumbing",
+    "monolithic renderer fork",
+    "game-specific caustic style"
+  ],
+  "provenance": {
+    "bundleSha256": "55da0bd0c689acfb6dd96ad89242478ea09ab0284b6d71c1463c7400653f10dd",
+    "Index": 143360
+  }
+}

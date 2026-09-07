@@ -1,0 +1,57 @@
+{
+  "schema": "hollowflux.decompilation-islands.m20.v1",
+  "islands": [
+    {
+      "id": "combat-action-phase",
+      "minifiedNames": [
+        "ja",
+        "Ba",
+        "sr"
+      ],
+      "semanticNames": [
+        "StartCombatAction",
+        "AdvanceCombatPhase",
+        "ProjectCombatPose"
+      ],
+      "evidence": {
+        "Index": 126742,
+        "Fragment": "_slam\u0022:i.kind===\u0022brute\u0022?\u0022brute_slam\u0022:i.kind===\u0022broodmother\u0022?\u0022brood_shot\u0022:i.kind===\u0022conduit\u0022?\u0022conduit_arc\u0022:i.kind===\u0022spitter\u0022?\u0022spitter_shot\u0022:i.kind===\u0022stalker\u0022?\u0022stalker_pounce\u0022:i.kind===\u0022jelly\u0022?\u0022jelly_pulse\u0022:i.kind===\u0022eel\u0022?\u0022eel_lunge\u0022:\u0022skitter_lunge\u0022}function ja(i,e,t,s,a,o){return{id:i,move:e,phase:\u0022startup\u0022,phaseTick:0,phaseTicks:{...o},facing:Number.isFinite(t)?t:0,side:s\u003C0?-1:1,profile:a===null?null:{...a},hitActorIds:[],contactTriggered:!1}}function Ba(i){return i.phaseTick\u002B=1,i.phaseTick\u003CMath.max(1,i.phaseTicks[i.phase])?!1:(i.phaseTick=0,i.phase===\u0022startup\u0022?(i.phase=\u0022active\u0022,!1):i.phase===\u0022active\u0022?(i.phase=\u0022recovery\u0022,!1):!0)}function sr(i){if(i===null)return null;const e=Math.max(1,i.phaseTicks[i.phase]),t=As(i.phaseTick/e,0,1),s=i.phase===\u0022startup\u0022?0:i.phase===\u0022active\u0022?i.phaseTicks.startup:i.phaseTicks.startup\u002Bi.phaseTicks.active,a=Math.max(1,i.phaseTicks.startup\u002Bi.phaseTicks.active\u002Bi.phaseTicks.recovery),o=As((s\u002Bi.phaseTick)/a,0,1),n=i.phase===\u0022startup\u0022?t*t:0,r=i.phase===\u0022active\u0022?Math.sin((.16\u002Bt*.74)*Math.PI):0,l=i.phase===\u0022recovery\u0022?t:0,c=i.profile?.kind??(i.move===\u0022sword\u0022||i.move===\u0022spear\u0022||i.move===\u0022hammer\u0022||i.move===\u0022twinblades\u0022||i.move===\u0022chain\u0022||i.move===\u0022bell\u0022?i.move:null);return{phase:i.phase,phaseProgress:t,progress:o,side:i.side\u003C0?-1:1,facing:i.facing,move:i.move,weaponKind:c,anticipation:n,strike:r,recovery:l,impact:i.contactTriggered}}function Qa(i,e,t,s,a,o=1.2){const n=Math.hypot(s-e,a-t),r=Math.max(1,Math.ceil(n/4));for(let l=1;l\u003Cr;l\u002B=1){const c=l/r;if(i.isSolid(e\u002B(s-e)*c,t\u002B(a-t)*c,o))return!1}return!0}function Ma(i,e,t){return e\u003C0||t\u003C0||e\u003E=i.width||t"
+      }
+    },
+    {
+      "id": "weapon-move-record",
+      "minifiedNames": [
+        "bs"
+      ],
+      "semanticNames": [
+        "WeaponMoveDefinitions"
+      ],
+      "evidenceIndex": 67623
+    },
+    {
+      "id": "connected-disturbance",
+      "minifiedNames": [
+        "ha",
+        "disturbanceVisits"
+      ],
+      "semanticNames": [
+        "ReactiveFluid2D",
+        "ApplyConnectedDisturbance"
+      ],
+      "evidence": {
+        "Index": 95349,
+        "Fragment": ".cellSize)),g=Math.min(this.width-2,Math.ceil((t\u002Bf)/this.cellSize)),p=Math.max(1,Math.floor((s-f)/this.cellSize)),y=Math.min(this.height-2,Math.ceil((s\u002Bf)/this.cellSize));if(m\u003Eg||p\u003Ey)return;const v=this.findDisturbanceSeed(t,s,m,g,p,y);if(v\u003C0)return;this.disturbanceVisit\u002B=1,this.disturbanceVisit\u003E=4294967295\u0026\u0026(this.disturbanceVisits.fill(0),this.disturbanceVisit=1);const w=this.disturbanceVisit;let b=0,M=1,k=0;for(this.disturbanceQueue[0]=v,this.disturbanceVisits[v]=w;b\u003CM;){const R=this.disturbanceQueue[b];b\u002B=1;const T=R%this.width,A=Math.floor(R/this.width),C=(T\u002B.5)*this.cellSize-t,E=(A\u002B.5)*this.cellSize-s,x=this.disturbanceInfluence(e,C,E,r,l,c,u,d),B=Math.abs(x);if(B\u003E0){const P=a*x*Math.min(1,this.wetness[R]*1.7);if(this.heightField[R]=_(this.heightField[R]\u002BP*.33,-1.5,1.5),this.velocity[R]=_(this.velocity[R]\u002BP*.13,-.85,.85),this.foam[R]=_(this.foam[R]\u002BMath.abs(a)*B*.38*this.turbulenceScale\u002Bo*B*.14,0,1),this.activity[R]=_(this.activity[R]\u002B(Math.abs(a)*.61\u002Bo*.38\u002Bn*.52)*B,0,1),this.memory[R]=_(this.memory[R]\u002Bx*a*this.behavior.memoryGain*.18,-1,1),a!==0\u0026\u0026this.portalCurrent===0){const I=Math.hypot(C,E),F=I\u003E.001?C/I:u,X=I\u003E.001?E/I:d;let Y=F,q=X,V=0,$=.12;if(e.shape===\u0022line\u0022){const K=_((-C*d\u002BE*u)/Math.max(l*.5,1),-1,1);Y=u*.88-d*K*.34,q=d*.88\u002Bu*K*.34,V=-K*.39,$=.235}else if(e.shape===\u0022arc\u0022){const K=Math.sign(e.arc??1)||1;Y=-X*K*.72\u002BF*.2\u002Bu*.24,q=F*K*.72\u002BX*.2\u002Bd*.24,V=K*.46,$=.19}else e.shape===\u0022ring\u0022?$=.205:Number.isFinite(e.angle)\u0026\u0026(Y=u*.62\u002BF*.38,q=d*.62\u002BX*.38);const ee=a*B*$*Math.min(1,this.wetness[R]*1.7);this.depositMomentum(R,Y*ee,q*ee,V*ee)}o\u003E0\u0026\u0026(this.blood[R]=_(this.blood[R]\u002Bo*B*.82,0,1)),n\u003E0\u0026\u0026this.conductive[R]!==0\u0026\u0026(this.charge[R]=_(this.charge[R]\u002Bn*B*this.electricalConductivity,0,1)),k\u002B=1}T\u003Em\u0026\u0026(M=this.enqueueDisturbance(R-1,w,M)),T\u003Cg\u0026\u0026(M=this.enqueueDisturbance(R\u002B1,w,M)),A\u003Ep\u0026\u0026(M=this.enqueueDisturbance(R-this.width,w,M)),A\u003Cy\u0026\u0026(M=this.enqueueDisturbance(R\u002Bthis.width,w,M))}k\u003E0\u0026\u0026a!==0\u0026\u0026this.behavior.id===\u0022astral-glass\u0022\u0026\u0026this.scheduleEcho(t,s,a,r)}injectMomentum(e,t,s,a,o,n=this.cellSize*2.2){if(this.portalCurrent!==0||!Number.isFinite(e)||!Number.isFinite(t)||!Number.isFinite(s)||!Number.isFinite(a)||!Number.isFinite(o)||o===0)return;const r=Math.hypot(s,a);if(r\u003C1e-5)return;const l=Math.floor(e/this.cellSize),c=Math.floor(t/this.cellSize);if(l\u003C1||c\u003C1||l\u003E=this.width-1||c\u003E=this.height-1)return;const h=c*this.width\u002Bl;if(this.liquid[h]===0)return;const u=s/r,d=a/r,f=_(o,-.9,.9),m=_(Number.isFinite(n)?n:this.cellSize*2.2,this.cellSize*.75,64),g=m*m,p=Math.max(1"
+      }
+    },
+    {
+      "id": "field-falloff-kernel",
+      "minifiedNames": [
+        "disturbanceInfluence"
+      ],
+      "semanticNames": [
+        "DisturbanceInfluence"
+      ],
+      "evidenceIndex": 95720
+    }
+  ]
+}

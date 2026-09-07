@@ -1,0 +1,14 @@
+{
+  "schema": "tinyfarm.combat-field.m20.v1",
+  "pipeline": [
+    "AttackIntent",
+    "TinyFarmResolver",
+    "CombatContact",
+    "FieldDisturbance",
+    "ReactiveFluid2D",
+    "FieldProjection"
+  ],
+  "move": "tinyfarm.hammer.smash",
+  "disturbance": "Ring",
+  "fieldAffectsGameplay": true
+}

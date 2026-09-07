@@ -1,0 +1,9 @@
+{
+  "schema": "aurelian.reactive-fluid.m20.v1",
+  "tick": 30,
+  "semanticHash": "a5ed8b20bb042847bab88bfe22ad33a0a8ae6891a853d03acdd1bb9042abb4c4",
+  "dryNeighborLaw": "mirror center height",
+  "maximumHeight": 0.63103604,
+  "maximumVelocity": 0.081668824,
+  "allocationModel": "resident channel and double buffers"
+}

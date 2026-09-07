@@ -1,0 +1,8 @@
+{
+  "schema": "aurelian.charge.m20.v1",
+  "chargedCells": 65,
+  "maximumCharge": 0.594699,
+  "conductiveOnly": true,
+  "dryCellLeakage": false,
+  "gameplayQuery": "charged-water-damage"
+}

@@ -1,0 +1,23 @@
+{
+  "schema": "aurelian.field2d.contract.m20.v1",
+  "storage": "columnar SoA typed fields",
+  "dimensions": {
+    "Width": 16,
+    "Height": 16,
+    "CellSize": 1
+  },
+  "channels": [
+    "height",
+    "velocity",
+    "foam",
+    "charge",
+    "flowX",
+    "flowY",
+    "liquidMask",
+    "conductiveMask"
+  ],
+  "fixedHz": 60,
+  "maximumCatchUpSteps": 6,
+  "rendererNeutral": true,
+  "fullNumericalFramework": false
+}

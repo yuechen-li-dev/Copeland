@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Description>Deterministic phased combat contact proposals for Aurelian applications.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Aurelian.Spatial2D/Aurelian.Spatial2D.csproj" />
+    <ProjectReference Include="../../../../Dominatus/src/Dominatus.OptFlow/Dominatus.OptFlow.csproj" />
+  </ItemGroup>
+</Project>

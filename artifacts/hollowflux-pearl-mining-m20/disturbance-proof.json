@@ -1,0 +1,11 @@
+{
+  "schema": "aurelian.disturbance.m20.v1",
+  "shape": "Ring",
+  "X": 7.5,
+  "Y": 7.5,
+  "Radius": 3,
+  "Width": 3,
+  "SemanticPayload": "tinyfarm.hammer.smash",
+  "disturbedCells": 53,
+  "connectivity": "generation-counter BFS over liquid mask"
+}

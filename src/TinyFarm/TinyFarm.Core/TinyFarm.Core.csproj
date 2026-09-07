@@ -3,6 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../Aurelian/Aurelian.Combat/Aurelian.Combat.csproj" />
     <ProjectReference Include="../../Aurelian/Aurelian.Spatial2D/Aurelian.Spatial2D.csproj" />
   </ItemGroup>
 </Project>

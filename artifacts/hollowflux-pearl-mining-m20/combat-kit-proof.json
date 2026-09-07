@@ -1,0 +1,52 @@
+{
+  "schema": "aurelian.combat-kit.m20.v1",
+  "phases": [
+    "Startup",
+    "Active",
+    "Recovery",
+    "Complete"
+  ],
+  "shapes": [
+    "point",
+    "line",
+    "arc",
+    "ring"
+  ],
+  "contacts": [
+    {
+      "source": "player",
+      "target": "slime-a",
+      "Damage": 1,
+      "impulse": {
+        "X": 0.9938837346736188,
+        "Y": -0.11043152607484653,
+        "LengthSquared": 0.9999999999999998
+      }
+    },
+    {
+      "source": "player",
+      "target": "slime-b",
+      "Damage": 1,
+      "impulse": {
+        "X": 0.9938837346736188,
+        "Y": 0.11043152607484653,
+        "LengthSquared": 0.9999999999999998
+      }
+    }
+  ],
+  "distinctTargetsHitOnce": true,
+  "phaseAuthority": "Dominatus.OptFlow Transition.For typed deterministic definition",
+  "phaseTransitionRules": [
+    "combat.startup-complete",
+    "combat.active-complete",
+    "combat.recovery-complete"
+  ],
+  "tinyFarmMoveIds": [
+    "tinyfarm.sword.swing",
+    "tinyfarm.spear.thrust",
+    "tinyfarm.hammer.smash",
+    "tinyfarm.pruning-shears.twin-strike",
+    "tinyfarm.hoe.sweep"
+  ],
+  "worldMutationOwner": "TinyFarmResolver"
+}
