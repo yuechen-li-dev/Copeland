@@ -15,6 +15,21 @@ public sealed partial class OblivionSpriteCardService
         SpriteCardProjection projection,
         SpriteCardStructuralEditIntent intent)
     {
+        return ExecuteStructuralEdit(projection, intent, commit: true);
+    }
+
+    public SpriteCardStructuralEditResult PreviewStructuralEdit(
+        SpriteCardProjection projection,
+        SpriteCardStructuralEditIntent intent)
+    {
+        return ExecuteStructuralEdit(projection, intent, commit: false);
+    }
+
+    private SpriteCardStructuralEditResult ExecuteStructuralEdit(
+        SpriteCardProjection projection,
+        SpriteCardStructuralEditIntent intent,
+        bool commit)
+    {
         ArgumentNullException.ThrowIfNull(projection);
         ArgumentNullException.ThrowIfNull(intent);
 
@@ -122,41 +137,80 @@ public sealed partial class OblivionSpriteCardService
                 compileTimer.Elapsed);
         }
 
+        Stopwatch refreshTimer = Stopwatch.StartNew();
+        SpriteCardProjection refreshed;
         try
         {
-            CommitSourceAndOutputs(projection.SourcePath, candidate, compiled.Document, "m17");
+            refreshed = BuildProjectionFromSource(
+                projection.SourcePath,
+                candidate,
+                projection.PanelId,
+                projection.Width,
+                projection.Height);
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        catch (Exception exception)
         {
+            refreshTimer.Stop();
             return Reject(
-                "OBLIVION-SPRITE-CARD-WRITE-FAILED",
-                $"The validated structural edit could not be committed and was rolled back: {exception.Message}",
+                "OBLIVION-SPRITE-CARD-REFRESH-FAILED",
+                $"The validated candidate could not be projected and was not committed: {exception.Message}",
                 transformTimer.Elapsed,
                 compileTimer.Elapsed);
         }
 
-        string nextHash = Hash(candidate);
-        Stopwatch refreshTimer = Stopwatch.StartNew();
-        SpriteCardProjection refreshed = BuildProjection(
-            projection.SourcePath,
-            projection.PanelId,
-            projection.Width,
-            projection.Height);
         refreshTimer.Stop();
+        if (refreshed.Diagnostics.Any(diagnostic =>
+                diagnostic.Severity == SpriteCardDiagnosticSeverity.Error))
+        {
+            return Result(
+                applied: false,
+                status: "refresh-failed",
+                candidate,
+                program,
+                currentHash,
+                currentHash,
+                refreshed.Diagnostics,
+                "success",
+                transformTimer.Elapsed,
+                compileTimer.Elapsed,
+                null,
+                refreshTimer.Elapsed);
+        }
+
+        if (commit)
+        {
+            try
+            {
+                CommitSourceAndOutputs(projection.SourcePath, candidate, compiled.Document, "m17");
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                return Reject(
+                    "OBLIVION-SPRITE-CARD-WRITE-FAILED",
+                    $"The validated structural edit could not be committed and was rolled back: {exception.Message}",
+                    transformTimer.Elapsed,
+                    compileTimer.Elapsed);
+            }
+        }
+
+        string nextHash = Hash(candidate);
         SpriteCardStructuralEditResult result = Result(
-            applied: true,
-            status: "success",
+            applied: commit,
+            status: commit ? "success" : "preview",
             candidate,
             program,
             currentHash,
             nextHash,
-            [],
+            refreshed.Diagnostics,
             "success",
             transformTimer.Elapsed,
             compileTimer.Elapsed,
             refreshed,
             refreshTimer.Elapsed);
-        _structuralHistory.Add(result);
+        if (commit)
+        {
+            _structuralHistory.Add(result);
+        }
         return result;
 
         SpriteCardStructuralEditResult Reject(
@@ -191,7 +245,9 @@ public sealed partial class OblivionSpriteCardService
                 compileDuration,
                 TimeSpan.Zero,
                 TimeSpan.Zero,
-                null);
+                null,
+                WouldApply: false,
+                CommitStatus: "rejected");
         }
 
         SpriteCardStructuralEditResult Result(
@@ -220,6 +276,18 @@ public sealed partial class OblivionSpriteCardService
                     : [];
             int beforeLength = sourceProgram.CloseBracket - sourceProgram.OpenBracket + 1;
             int afterLength = candidateSource.Length - source.Length + beforeLength;
+            IReadOnlyList<GraphicalConceptPath> affected = added
+                .Concat(removed)
+                .Concat(moved)
+                .Distinct()
+                .ToArray();
+            IReadOnlyList<string> fanout = affected
+                .Select(path => path.Value.Split('.'))
+                .Where(parts => parts.Length >= 3)
+                .Select(parts => parts[2])
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(edgeName => edgeName, StringComparer.Ordinal)
+                .ToArray();
             return new SpriteCardStructuralEditResult(
                 applied,
                 status,
@@ -241,7 +309,13 @@ public sealed partial class OblivionSpriteCardService
                 compileDuration,
                 cardRefreshDuration,
                 TimeSpan.Zero,
-                refreshedProjection);
+                refreshedProjection,
+                WouldApply: refreshedProjection is not null,
+                CommitStatus: commit ? "committed" : "preview-only",
+                FanoutEdges: fanout,
+                AffectedRuntimeProjections: affected,
+                BeforeAllocation: projection.EdgeSummaries,
+                AfterAllocation: refreshedProjection?.EdgeSummaries ?? []);
         }
     }
 

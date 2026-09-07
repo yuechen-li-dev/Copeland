@@ -1,0 +1,14 @@
+{
+  "schema": "aurelian.runtime.retention-proof.m22.v1",
+  "productionRetainedIterations": 0,
+  "harnessRetainedIterations": 100000,
+  "harness": {
+    "FramesAttempted": 500,
+    "RetainedIterations": 500,
+    "StopReason": "MaxFramesReached",
+    "ExactCount": true
+  },
+  "productionApi": "AurelianFrameLoop.RunAsync",
+  "evidenceApi": "AurelianFrameLoop.RunHarnessAsync",
+  "streamingApi": "AurelianFrameLoop.RunWithSinkAsync"
+}

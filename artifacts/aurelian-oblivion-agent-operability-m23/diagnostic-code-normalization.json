@@ -1,0 +1,27 @@
+{
+  "schema": "oblivion.diagnostic-normalization.m23.v1",
+  "convention": "OBLIVION-UPPER-KEBAB",
+  "compatibilityLaw": "legacy persistence codes are exposed as legacyCode when normalization occurs",
+  "sample": {
+    "code": "OBLIVION-UNKNOWN-CARD",
+    "severity": "error",
+    "message": "Card 'does-not-exist' was not found in workspace 'm19i-notebook'.",
+    "workspaceId": "m19i-notebook",
+    "cardId": "does-not-exist",
+    "source": "C:\\Users\\yuech\\source\\repos\\Copeland\\src\\Oblivion\\Oblivion.Standalone\\M19iNotebook.oblivion\\workspace.json"
+  },
+  "mappings": [
+    {
+      "legacy": "unknown-card",
+      "canonical": "OBLIVION-UNKNOWN-CARD"
+    },
+    {
+      "legacy": "missing-markdown-body-file",
+      "canonical": "OBLIVION-MISSING-MARKDOWN-BODY-FILE"
+    },
+    {
+      "legacy": "unknown-page",
+      "canonical": "OBLIVION-UNKNOWN-PAGE"
+    }
+  ]
+}

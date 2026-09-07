@@ -290,4 +290,16 @@ public sealed record SpriteCardStructuralEditResult(
     TimeSpan CompileDuration,
     TimeSpan CardRefreshDuration,
     TimeSpan PreviewRefreshDuration,
-    SpriteCardProjection? RefreshedProjection);
+    SpriteCardProjection? RefreshedProjection,
+    bool WouldApply = false,
+    string CommitStatus = "not-committed",
+    IReadOnlyList<string>? FanoutEdges = null,
+    IReadOnlyList<GraphicalConceptPath>? AffectedRuntimeProjections = null,
+    IReadOnlyList<SpriteCardEdgeSummary>? BeforeAllocation = null,
+    IReadOnlyList<SpriteCardEdgeSummary>? AfterAllocation = null)
+{
+    public IReadOnlyList<string> Fanout => FanoutEdges ?? [];
+    public IReadOnlyList<GraphicalConceptPath> RuntimeProjections => AffectedRuntimeProjections ?? [];
+    public IReadOnlyList<SpriteCardEdgeSummary> AllocationBefore => BeforeAllocation ?? [];
+    public IReadOnlyList<SpriteCardEdgeSummary> AllocationAfter => AfterAllocation ?? [];
+}

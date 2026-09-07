@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using Copeland.SpanAllocation;
 using Copeland.TS.Assets;
 using Oblivion.Model;
@@ -21,9 +22,19 @@ public sealed partial class OblivionSpriteCardService
         int width,
         int height)
     {
-        Stopwatch timer = Stopwatch.StartNew();
         string fullPath = Path.GetFullPath(sourcePath);
         string source = File.ReadAllText(fullPath);
+        return BuildProjectionFromSource(fullPath, source, panelId, width, height);
+    }
+
+    private SpriteCardProjection BuildProjectionFromSource(
+        string fullPath,
+        string source,
+        string panelId,
+        int width,
+        int height)
+    {
+        Stopwatch timer = Stopwatch.StartNew();
         string hash = Hash(source);
         ObjectAssetCompilationResult compilation = ObjectAssetCompiler.Compile(source, fullPath);
         if (!compilation.Success || compilation.Document is null)
@@ -53,7 +64,7 @@ public sealed partial class OblivionSpriteCardService
 
         ObjectAssetDocument document = compilation.Document;
         ObjectAssetPanel panel = document.Panels.SingleOrDefault(candidate => candidate.Id == panelId)
-            ?? throw new ArgumentException($"Panel '{panelId}' does not exist in '{sourcePath}'.", nameof(panelId));
+            ?? throw new ArgumentException($"Panel '{panelId}' does not exist in '{fullPath}'.", nameof(panelId));
         IReadOnlyDictionary<string, ObjectAssetRegion> regions = document.Regions.ToDictionary(
             region => region.Id,
             StringComparer.Ordinal);
@@ -230,7 +241,11 @@ public sealed partial class OblivionSpriteCardService
                         placement.Length,
                         null,
                         FormatStatus(allocation.Status)),
-                    new SpriteCardRuntimeState(true, "allocator placement -> Machina quad"),
+                    new SpriteCardRuntimeState(
+                        placement.Length > 0,
+                        placement.Length > 0
+                            ? "allocator placement -> Machina quad"
+                            : "collapsed; zero-length; not rendered"),
                     [
                         new SpriteCardRelationship(SpriteCardRelationshipKind.Parent, panelPath),
                         new SpriteCardRelationship(
@@ -413,29 +428,81 @@ public sealed partial class OblivionSpriteCardService
             || edgePrefix.EndsWith(".bottom", StringComparison.Ordinal)
                 ? "horizontalEdge"
                 : "verticalEdge";
-        IReadOnlyList<SourceArgument> arguments = FindCallArguments(source, callName, edgePrefix);
-        int argumentIndex = ResolveArgumentIndex(role, property);
-        SourceArgument argument = arguments[argumentIndex];
-        return Location(path, source, argument.Start, argument.Length);
-    }
-
-    private static int ResolveArgumentIndex(string role, SpriteCardEditProperty property)
-    {
-        bool center = role == "center";
-        bool glow = role.StartsWith("glow-", StringComparison.Ordinal);
-        if (!center && !glow)
+        if (!TryFindOrderedProgram(source, callName, out OrderedProgram program, out string error))
         {
-            throw new InvalidOperationException($"M16 source edits are bounded to flex center/glow segments, not '{role}'.");
+            throw new InvalidOperationException(error);
         }
 
-        return property switch
+        SourceItem[] matchingItems = program.Items
+            .Where(candidate => candidate.LocalId == role)
+            .ToArray();
+        if (matchingItems.Length != 1)
         {
-            SpriteCardEditProperty.SourceRegion => center ? 4 : 3,
-            SpriteCardEditProperty.MinimumLength => center ? 8 : 6,
-            SpriteCardEditProperty.FlexWeight => center ? 9 : 7,
-            SpriteCardEditProperty.Sampling => center ? 11 : 10,
-            _ => throw new InvalidOperationException($"M16 does not source-edit '{property}' through an edge call."),
+            throw new InvalidOperationException(
+                $"The authored '{callName}' program has no unique segment named '{role}'.");
+        }
+
+        SourceItem item = matchingItems[0];
+        int open = source.IndexOf('(', item.ExpressionStart, item.ExpressionEnd - item.ExpressionStart);
+        IReadOnlyList<SourceArgument> segmentArguments = SplitArguments(source, open);
+        int segmentArgumentIndex = property switch
+        {
+            SpriteCardEditProperty.SourceRegion => 1,
+            SpriteCardEditProperty.MinimumLength => 2,
+            SpriteCardEditProperty.FlexWeight => 3,
+            SpriteCardEditProperty.Sampling => 4,
+            _ => throw new InvalidOperationException(
+                $"Sprite Card source editing does not support '{property}' through an edge segment."),
         };
+        if (segmentArguments.Count <= segmentArgumentIndex)
+        {
+            throw new InvalidOperationException(
+                $"Segment '{role}' does not expose the expected '{property}' argument.");
+        }
+
+        SourceArgument authoredArgument = segmentArguments[segmentArgumentIndex];
+        string authoredExpression = source.Substring(authoredArgument.Start, authoredArgument.Length).Trim();
+        if (!Regex.IsMatch(authoredExpression, @"^[A-Za-z_][A-Za-z0-9_]*$"))
+        {
+            return Location(path, source, authoredArgument.Start, authoredArgument.Length);
+        }
+
+        int parameterIndex = FindFunctionParameterIndex(source, callName, authoredExpression);
+        IReadOnlyList<SourceArgument> invocationArguments = FindCallArguments(source, callName, edgePrefix);
+        if (parameterIndex < 0 || parameterIndex >= invocationArguments.Count)
+        {
+            throw new InvalidOperationException(
+                $"The '{property}' parameter '{authoredExpression}' is not supplied by edge '{edgePrefix}'.");
+        }
+
+        SourceArgument invocationArgument = invocationArguments[parameterIndex];
+        return Location(path, source, invocationArgument.Start, invocationArgument.Length);
+    }
+
+    private static int FindFunctionParameterIndex(string source, string functionName, string parameterName)
+    {
+        Match declaration = Regex.Match(
+            MaskCommentsAndStrings(source),
+            $@"\bfunction\s+{Regex.Escape(functionName)}\s*\(");
+        if (!declaration.Success)
+        {
+            return -1;
+        }
+
+        int open = source.IndexOf('(', declaration.Index, declaration.Length);
+        IReadOnlyList<SourceArgument> parameters = SplitArguments(source, open);
+        for (int index = 0; index < parameters.Count; index++)
+        {
+            string parameter = source.Substring(parameters[index].Start, parameters[index].Length);
+            int colon = parameter.IndexOf(':');
+            string name = (colon < 0 ? parameter : parameter[..colon]).Trim();
+            if (string.Equals(name, parameterName, StringComparison.Ordinal))
+            {
+                return index;
+            }
+        }
+
+        return -1;
     }
 
     private static IReadOnlyList<SourceArgument> FindCallArguments(

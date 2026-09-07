@@ -17,7 +17,7 @@ internal static class TinyFarmNativeSoak
         TinyFarmNativeRenderer renderer,
         AurelianGameHost host)
     {
-        string output = Path.Combine(root, "artifacts", "aurelian-runtime-soak-hardening-m22");
+        string output = Path.Combine(root, "artifacts", "aurelian-oblivion-agent-operability-m23");
         Directory.CreateDirectory(output);
 
         var walkthrough = new TinyFarmWalkthrough(game);
@@ -102,7 +102,7 @@ internal static class TinyFarmNativeSoak
 
         var result = new
         {
-            schema = "aurelian.runtime.vulkan-soak.m22.v1",
+            schema = "aurelian.runtime.vulkan-soak.m23.v1",
             backend = "TinyFarm.Native / AurelianGameHost / Vulkan",
             scene = game.State.ActorScene(TinyFarmIds.Player).Scene.Value,
             device = renderer.Device,
@@ -131,7 +131,7 @@ internal static class TinyFarmNativeSoak
             samples,
         };
         bool qualifyingRun = frameCount >= 100_000;
-        Write(output, qualifyingRun ? "vulkan-100k-soak.json" : "vulkan-attribution-1k.json", result);
+        Write(output, qualifyingRun ? "vulkan-soak-regression.json" : "vulkan-allocation-attribution.json", result);
         if (!qualifyingRun)
         {
             Console.WriteLine(JsonSerializer.Serialize(result, Options()));
@@ -200,6 +200,9 @@ internal static class TinyFarmNativeSoak
             renderer.WorldAllocatedBytes,
             renderer.OverlayAllocatedBytes,
             renderer.NativePassAllocatedBytes,
+            renderer.SnapshotAllocatedBytes,
+            renderer.SpriteProjectionAllocatedBytes,
+            renderer.NativeSubmissionAllocatedBytes,
         };
     }
 

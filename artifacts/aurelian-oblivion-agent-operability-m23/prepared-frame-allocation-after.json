@@ -1,0 +1,43 @@
+{
+  "schema": "aurelian.prepared-frame-allocation-after.m23.v1",
+  "sourceArtifact": "vulkan-soak-regression.json",
+  "backend": "TinyFarm.Native / AurelianGameHost / Vulkan",
+  "scene": "riverside",
+  "frameCount": 100000,
+  "allocatedBytes": 5643503880,
+  "allocatedBytesPerFrame": 56435.0388,
+  "baselineAllocatedBytesPerFrame": 148157.59104,
+  "bytesSavedPerFrame": 91722.55224,
+  "reductionPercent": 61.9088,
+  "postWarmupManagedBytesPerFrameSlope": -126.97414060995186,
+  "retainedFrameResults": 0,
+  "diagnosticsProduced": 0,
+  "hashParityWithM22AtFrames": [1, 1000, 10000, 50000, 100000],
+  "hotRepresentation": [
+    "caller-owned world sprite scratch",
+    "caller-owned prepared sprite scratch",
+    "cached static tile semantic records",
+    "cached atlas animation metadata",
+    "non-boxing stable layer comparison"
+  ],
+  "remainingAttributionMeasuredFramesIncludingWarmup": 100120,
+  "remainingAttribution": {
+    "projectionAllocatedBytes": 1161022176,
+    "compositionAllocatedBytes": 2479447472,
+    "swapchainAllocatedBytes": 275557064,
+    "worldAllocatedBytes": 1503557912,
+    "overlayAllocatedBytes": 697100344,
+    "nativePassAllocatedBytes": 702974192,
+    "snapshotAllocatedBytes": 104283200,
+    "spriteProjectionAllocatedBytes": 415261712,
+    "nativeSubmissionAllocatedBytes": 867789976
+  },
+  "remainingSources": [
+    "TinyFarmFrameProjector immutable application view arrays",
+    "dynamic world sprite IDs and semantic WorldSprite records",
+    "composition command-plan and resolved operation materialization",
+    "native submission and overlay staging records",
+    "persistent field RGBA projection when its semantic generation advances"
+  ],
+  "justification": "These are still measurable and therefore not called near-zero. M23 keeps immutable public evidence and deterministic render contracts intact; the next optimization must address each owner rather than introduce shared mutable global frame state."
+}

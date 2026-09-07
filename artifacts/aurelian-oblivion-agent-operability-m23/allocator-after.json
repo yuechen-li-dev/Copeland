@@ -1,0 +1,224 @@
+{
+  "owner": "Copeland.SpanAllocation.SpanAllocator",
+  "duplicateNotebookAllocator": false,
+  "summaries": [
+    {
+      "edge": "top",
+      "extent": 724,
+      "minimumDemand": 223,
+      "usedLength": 724,
+      "unusedLength": 0,
+      "deficitLength": 0,
+      "status": "surplusDistributed"
+    },
+    {
+      "edge": "right",
+      "extent": 144,
+      "minimumDemand": 142,
+      "usedLength": 144,
+      "unusedLength": 0,
+      "deficitLength": 0,
+      "status": "surplusDistributed"
+    },
+    {
+      "edge": "bottom",
+      "extent": 724,
+      "minimumDemand": 209,
+      "usedLength": 724,
+      "unusedLength": 0,
+      "deficitLength": 0,
+      "status": "surplusDistributed"
+    },
+    {
+      "edge": "left",
+      "extent": 144,
+      "minimumDemand": 142,
+      "usedLength": 144,
+      "unusedLength": 0,
+      "deficitLength": 0,
+      "status": "surplusDistributed"
+    }
+  ],
+  "topPlacements": [
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.top.cap-left"
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 42,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.top.cap-left"
+      },
+      "resolved": {
+        "offset": 0,
+        "length": 42,
+        "bounds": null,
+        "status": "surplusDistributed"
+      }
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.top.clamp-a"
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 7,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.top.clamp"
+      },
+      "resolved": {
+        "offset": 42,
+        "length": 7,
+        "bounds": null,
+        "status": "surplusDistributed"
+      }
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.top.glow-left"
+      },
+      "authored": {
+        "policy": "flex",
+        "minimumLength": 30,
+        "weight": 1,
+        "sampling": "tile",
+        "regionId": "dialogue.top.glow"
+      },
+      "resolved": {
+        "offset": 49,
+        "length": 130,
+        "bounds": null,
+        "status": "surplusDistributed"
+      }
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.top.clamp-b"
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 7,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.top.clamp"
+      },
+      "resolved": {
+        "offset": 179,
+        "length": 7,
+        "bounds": null,
+        "status": "surplusDistributed"
+      }
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.top.clamp-decorative"
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 7,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.top.clamp"
+      },
+      "resolved": {
+        "offset": 186,
+        "length": 7,
+        "bounds": null,
+        "status": "surplusDistributed"
+      }
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.top.center"
+      },
+      "authored": {
+        "policy": "flex",
+        "minimumLength": 44,
+        "weight": 3,
+        "sampling": "stretch",
+        "regionId": "dialogue.top.center"
+      },
+      "resolved": {
+        "offset": 193,
+        "length": 345,
+        "bounds": null,
+        "status": "surplusDistributed"
+      }
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.top.clamp-c"
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 7,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.top.clamp"
+      },
+      "resolved": {
+        "offset": 538,
+        "length": 7,
+        "bounds": null,
+        "status": "surplusDistributed"
+      }
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.top.glow-right"
+      },
+      "authored": {
+        "policy": "flex",
+        "minimumLength": 30,
+        "weight": 1,
+        "sampling": "tile",
+        "regionId": "dialogue.top.glow"
+      },
+      "resolved": {
+        "offset": 545,
+        "length": 130,
+        "bounds": null,
+        "status": "surplusDistributed"
+      }
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.top.clamp-d"
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 7,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.top.clamp"
+      },
+      "resolved": {
+        "offset": 675,
+        "length": 7,
+        "bounds": null,
+        "status": "surplusDistributed"
+      }
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.top.cap-right"
+      },
+      "authored": {
+        "policy": "fixed",
+        "minimumLength": 42,
+        "weight": 0,
+        "sampling": "crop",
+        "regionId": "dialogue.top.cap-right"
+      },
+      "resolved": {
+        "offset": 682,
+        "length": 42,
+        "bounds": null,
+        "status": "surplusDistributed"
+      }
+    }
+  ]
+}

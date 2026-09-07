@@ -80,42 +80,29 @@ public static class M20bNativeDiagramLayout
     public static M20bNativeDiagramGeometry Resolve(Diagram diagram)
     {
         ArgumentNullException.ThrowIfNull(diagram);
-        List<M20bNativeNodeGeometry> nodes = [];
-        foreach (DiagramNode node in diagram.Nodes)
-        {
-            if (!Placements.TryGetValue(node.Label, out (double X, double Y) placement))
-            {
-                throw new InvalidOperationException(
-                    $"M20b explicit layout has no placement for Diagram node '{node.Id}'.");
-            }
-
-            nodes.Add(new M20bNativeNodeGeometry(
-                node.Id,
-                node.Label,
-                placement.X,
-                placement.Y,
-                NodeWidth,
-                NodeHeight));
-        }
-
-        List<M20bNativeEdgeLabelGeometry> edgeLabels = [];
-        foreach (DiagramEdge edge in diagram.Edges)
-        {
-            string eventName = EventName(edge.Label);
-            if (!ReadingTaskLabelPlacements.TryGetValue(eventName, out (double X, double Y) placement))
-            {
-                continue;
-            }
-
-            string destination = nodes.Single(node => node.Id == edge.To).Label;
-            edgeLabels.Add(new M20bNativeEdgeLabelGeometry(
-                eventName,
-                destination,
-                placement.X,
-                placement.Y));
-        }
-
-        return new M20bNativeDiagramGeometry(2460, 510, nodes, diagram.Edges, edgeLabels);
+        OblivionResolvedDiagram resolved = OblivionNativeDiagramLayout.Resolve(diagram);
+        M20bNativeNodeGeometry[] nodes = resolved.Nodes.Select(node => new M20bNativeNodeGeometry(
+            node.Id,
+            node.Label,
+            node.X,
+            node.Y,
+            node.Width,
+            node.Height)).ToArray();
+        Dictionary<string, string> labelsById = nodes.ToDictionary(node => node.Id, node => node.Label, StringComparer.Ordinal);
+        M20bNativeEdgeLabelGeometry[] edgeLabels = resolved.Edges
+            .Where(edge => labelsById.ContainsKey(edge.To))
+            .Select(edge => new M20bNativeEdgeLabelGeometry(
+                EventName(edge.Label),
+                labelsById[edge.To],
+                edge.LabelAnchor.X,
+                edge.LabelAnchor.Y))
+            .ToArray();
+        return new M20bNativeDiagramGeometry(
+            resolved.Width,
+            resolved.Height,
+            nodes,
+            diagram.Edges,
+            edgeLabels);
     }
 
     private static string EventName(string? label)

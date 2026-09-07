@@ -1,0 +1,18 @@
+{
+  "schema": "oblivion.diagram-routing.m23.v1",
+  "workspaceId": "m20c-call-ownership",
+  "cardId": "realization-call-ownership",
+  "fixtureWasUnfamiliarToLegacyLayout": true,
+  "policyIdentity": "branching-calls-v1",
+  "nodeCount": 9,
+  "edgeCount": 8,
+  "intrinsicBounds": { "width": 1432, "height": 326 },
+  "viewport": { "width": 1200, "height": 700 },
+  "fitScale": 0.8379888268156425,
+  "directedArrowheads": true,
+  "orthogonalRouteCount": 8,
+  "duplicateLabelAnchorCount": 0,
+  "routeKinds": { "orthogonal": 8 },
+  "diagnostics": [],
+  "succeeded": true
+}

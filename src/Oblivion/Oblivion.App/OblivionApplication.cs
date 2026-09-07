@@ -340,6 +340,41 @@ public sealed class OblivionApplication
         return new OblivionWorkspaceSessionOpenResult(session, load.Diagnostics);
     }
 
+    public OblivionWorkspaceSessionOpenResult RestoreWorkspace(
+        string vaultRoot,
+        OblivionSessionDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        OblivionWorkspaceSessionOpenResult open = OpenWorkspace(vaultRoot);
+        if (!open.Succeeded || open.Session is null)
+        {
+            return open;
+        }
+
+        OblivionWorkspaceSession fresh = open.Session;
+        if (!string.Equals(
+                Path.GetFullPath(document.WorkspaceRoot),
+                Path.GetFullPath(fresh.Location.RootDirectory),
+                StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(document.WorkspaceId, fresh.Workspace.Id.Value, StringComparison.Ordinal))
+        {
+            return new OblivionWorkspaceSessionOpenResult(
+                null,
+                [.. open.Diagnostics, OblivionWorkspaceValidator.Error(
+                    "OBLIVION-SESSION-WORKSPACE-MISMATCH",
+                    "The session document belongs to a different workspace.",
+                    fresh.Location.ManifestPath)]);
+        }
+
+        OblivionWorkspacePage activePage = fresh.Workspace.Pages.FirstOrDefault(page =>
+                page.Id.Value == document.ActivePageId)
+            ?? fresh.ActivePage;
+        OblivionSessionState state = ReconcileSession(document.State, fresh.Workspace);
+        return new OblivionWorkspaceSessionOpenResult(
+            fresh with { ActivePage = activePage, State = state },
+            open.Diagnostics);
+    }
+
     public OblivionWorkspaceSessionReloadResult ReloadWorkspace(OblivionWorkspaceSession current)
     {
         ArgumentNullException.ThrowIfNull(current);
@@ -555,6 +590,15 @@ public sealed class OblivionApplication
             new(StringComparer.Ordinal);
         Dictionary<string, OblivionViewportState> viewportStates = new(StringComparer.Ordinal);
         Dictionary<string, OblivionDiagramViewportState> diagramViewportStates = new(StringComparer.Ordinal);
+        HashSet<string> allCardIds = workspace.Pages
+            .SelectMany(page => page.Cards)
+            .Select(card => card.Id.Value)
+            .ToHashSet(StringComparer.Ordinal);
+        IReadOnlyDictionary<string, string> currentContext =
+            current.ContextFidelityByCardId ?? new Dictionary<string, string>();
+        Dictionary<string, string> contextSelections = currentContext
+            .Where(pair => allCardIds.Contains(pair.Key))
+            .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
 
         foreach (OblivionWorkspacePage page in workspace.Pages)
         {
@@ -620,6 +664,8 @@ public sealed class OblivionApplication
             viewportStates,
             diagramViewportStates,
             new Dictionary<string, OblivionFunctionExecutionResult>(StringComparer.Ordinal),
+            contextSelections,
+            current.ContextTokenBudget,
             current.InspectorPaneSelected);
     }
 }

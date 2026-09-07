@@ -1,0 +1,13 @@
+{
+  "applied": true,
+  "commitStatus": "committed",
+  "fanout": [
+    "bottom",
+    "top"
+  ],
+  "sourceCommittedAfterRefresh": true,
+  "projectionReopened": true,
+  "arbitraryLocalId": "agent-flex",
+  "localIdHardcodingRemoved": true,
+  "diagnostics": []
+}

@@ -15,6 +15,8 @@ public sealed record OblivionSessionState(
     IReadOnlyDictionary<string, OblivionViewportState> ViewportStateByPageId,
     IReadOnlyDictionary<string, OblivionDiagramViewportState> DiagramViewportStateByCardId,
     IReadOnlyDictionary<string, OblivionFunctionExecutionResult> FunctionExecutionByCardId,
+    IReadOnlyDictionary<string, string> ContextFidelityByCardId,
+    int? ContextTokenBudget,
     bool InspectorPaneSelected)
 {
     public static OblivionSessionState Empty { get; } = new(
@@ -26,6 +28,8 @@ public sealed record OblivionSessionState(
         new Dictionary<string, OblivionViewportState>(StringComparer.Ordinal),
         new Dictionary<string, OblivionDiagramViewportState>(StringComparer.Ordinal),
         new Dictionary<string, OblivionFunctionExecutionResult>(StringComparer.Ordinal),
+        new Dictionary<string, string>(StringComparer.Ordinal),
+        ContextTokenBudget: null,
         InspectorPaneSelected: false);
 
     public double GetMainScrollOffset(string pageId) => GetOffset(MainScrollOffsetByPageId, pageId);
@@ -232,6 +236,27 @@ public sealed record OblivionSessionState(
             new(FunctionExecutionByCardId, StringComparer.Ordinal);
         results.Remove(cardId);
         return this with { FunctionExecutionByCardId = results };
+    }
+
+    public OblivionSessionState WithContextCard(string cardId, string fidelity)
+    {
+        Dictionary<string, string> selections = new(ContextFidelityByCardId, StringComparer.Ordinal)
+        {
+            [cardId] = fidelity,
+        };
+        return this with { ContextFidelityByCardId = selections };
+    }
+
+    public OblivionSessionState WithoutContextCard(string cardId)
+    {
+        Dictionary<string, string> selections = new(ContextFidelityByCardId, StringComparer.Ordinal);
+        selections.Remove(cardId);
+        return this with { ContextFidelityByCardId = selections };
+    }
+
+    public OblivionSessionState WithContextTokenBudget(int? tokenBudget)
+    {
+        return this with { ContextTokenBudget = tokenBudget };
     }
 
     private static double GetOffset(IReadOnlyDictionary<string, double> offsets, string id)

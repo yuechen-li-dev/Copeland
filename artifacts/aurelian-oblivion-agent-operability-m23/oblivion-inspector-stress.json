@@ -1,0 +1,8 @@
+{
+  "schema": "aurelian.runtime.oblivion-inspector-stress.m22.v1",
+  "captures": 1000,
+  "allocatedBytes": 36504576,
+  "registeredSurfaceCount": 2,
+  "retainedSubscriptions": 0,
+  "note": "Capture is snapshot-only; the live surface owns no event subscription or capture history."
+}

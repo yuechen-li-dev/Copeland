@@ -6,6 +6,9 @@ namespace Aurelian.GameWorld2D;
 public sealed class SpritePlaybackState
 {
     private readonly Dictionary<WorldPresentationId, PlaybackEntry> entries = [];
+    private readonly Dictionary<string, SpriteFrameMetadata> staticFrames = new(StringComparer.Ordinal);
+    private readonly Dictionary<(string SpriteId, string ClipId), IReadOnlyList<SpriteFrameMetadata>> animationFrames = [];
+    private SpriteForgeAtlas? cachedAtlas;
 
     public SpriteFrameMetadata Resolve(
         WorldSprite sprite,
@@ -15,12 +18,23 @@ public sealed class SpritePlaybackState
         ArgumentNullException.ThrowIfNull(sprite);
         ArgumentNullException.ThrowIfNull(atlas);
         ArgumentNullException.ThrowIfNull(resolver);
+        if (!ReferenceEquals(cachedAtlas, atlas))
+        {
+            cachedAtlas = atlas;
+            staticFrames.Clear();
+            animationFrames.Clear();
+            entries.Clear();
+        }
 
         if (string.IsNullOrWhiteSpace(sprite.ClipId))
         {
-            SpriteForgeResolvedFrame staticFrame = resolver.ResolveStaticSprite(atlas, sprite.SpriteId);
             entries.Remove(sprite.StableId);
-            return Convert(staticFrame, atlas);
+            if (!staticFrames.TryGetValue(sprite.SpriteId, out SpriteFrameMetadata? cached))
+            {
+                cached = Convert(resolver.ResolveStaticSprite(atlas, sprite.SpriteId), atlas);
+                staticFrames.Add(sprite.SpriteId, cached);
+            }
+            return cached;
         }
 
         SpriteForgeSprite definition = atlas.Sprites.TryGetValue(sprite.SpriteId, out SpriteForgeSprite? found)
@@ -29,19 +43,29 @@ public sealed class SpritePlaybackState
         SpriteForgeAnimation animation = definition.Animations.TryGetValue(sprite.ClipId, out SpriteForgeAnimation? clip)
             ? clip
             : throw new KeyNotFoundException($"Missing atlas clip '{sprite.ClipId}' for sprite '{sprite.SpriteId}'.");
-        IReadOnlyList<SpriteForgeResolvedFrame> frames = resolver.ResolveAnimation(atlas, sprite.SpriteId, sprite.ClipId);
+        var cacheKey = (sprite.SpriteId, sprite.ClipId);
+        if (!animationFrames.TryGetValue(cacheKey, out IReadOnlyList<SpriteFrameMetadata>? frames))
+        {
+            frames = resolver.ResolveAnimation(atlas, sprite.SpriteId, sprite.ClipId)
+                .Select(frame => Convert(frame, atlas))
+                .ToArray();
+            animationFrames.Add(cacheKey, frames);
+        }
         if (frames.Count == 0)
         {
             throw new InvalidOperationException($"Sprite clip '{sprite.ClipId}' has no frames.");
         }
 
-        bool clipChanged = !entries.TryGetValue(sprite.StableId, out PlaybackEntry? previous)
+        bool clipChanged = !entries.TryGetValue(sprite.StableId, out PlaybackEntry previous)
             || previous.SpriteId != sprite.SpriteId
             || previous.ClipId != sprite.ClipId;
-        TimeSpan origin = clipChanged || sprite.Restart ? sprite.Elapsed : previous!.Origin;
-        entries[sprite.StableId] = new PlaybackEntry(sprite.SpriteId, sprite.ClipId, origin);
+        TimeSpan origin = clipChanged || sprite.Restart ? sprite.Elapsed : previous.Origin;
+        if (clipChanged || sprite.Restart)
+        {
+            entries[sprite.StableId] = new PlaybackEntry(sprite.SpriteId, sprite.ClipId, origin);
+        }
         int index = SampleFrameIndex(sprite.Elapsed - origin, animation.Fps, frames.Count, animation.Loop);
-        return Convert(frames[index], atlas);
+        return frames[index];
     }
 
     public static int SampleFrameIndex(TimeSpan elapsed, float framesPerSecond, int frameCount, bool loop)
@@ -98,11 +122,13 @@ public sealed class SpritePlaybackState
                 (double)(frame.Y + frame.Height) / atlas.Height));
     }
 
-    private sealed record PlaybackEntry(string SpriteId, string ClipId, TimeSpan Origin);
+    private readonly record struct PlaybackEntry(string SpriteId, string ClipId, TimeSpan Origin);
 }
 
 public sealed class WorldSpriteProjectionAdapter
 {
+    private readonly List<WorldSprite> orderingScratch = [];
+
     public IReadOnlyList<OrderedWorldSprite> Project(
         WorldPresentationSnapshot snapshot,
         Camera2DSnapshot camera,
@@ -116,12 +142,74 @@ public sealed class WorldSpriteProjectionAdapter
         ArgumentNullException.ThrowIfNull(resolveFrame);
         unitScale.Validate();
 
-        return snapshot.Sprites
-            .OrderBy(sprite => sprite.Layer)
-            .ThenBy(sprite => sprite.FeetY)
-            .ThenBy(sprite => sprite.StableId.Value, StringComparer.Ordinal)
-            .Select(sprite => ProjectOne(sprite, camera, unitScale, resolveTexture(sprite.AssetId), resolveFrame(sprite)))
-            .ToArray();
+        var destination = new List<OrderedWorldSprite>(snapshot.Sprites.Count);
+        ProjectInto(snapshot, camera, unitScale, resolveTexture, resolveFrame, destination);
+        return destination.ToArray();
+    }
+
+    /// <summary>
+    /// Projects into caller-owned storage for a stable realtime path. The public snapshot and
+    /// immutable-returning <see cref="Project"/> method remain the cold evidence boundary.
+    /// </summary>
+    public void ProjectInto(
+        WorldPresentationSnapshot snapshot,
+        Camera2DSnapshot camera,
+        World2DUnitScale unitScale,
+        Func<SpriteAssetId, Native2DTextureHandle> resolveTexture,
+        Func<WorldSprite, SpriteFrameMetadata> resolveFrame,
+        List<OrderedWorldSprite> destination)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(unitScale);
+        ArgumentNullException.ThrowIfNull(resolveTexture);
+        ArgumentNullException.ThrowIfNull(resolveFrame);
+        ArgumentNullException.ThrowIfNull(destination);
+        unitScale.Validate();
+
+        orderingScratch.Clear();
+        orderingScratch.AddRange(snapshot.Sprites);
+        orderingScratch.Sort(WorldSpriteOrderComparer.Instance);
+        destination.Clear();
+        foreach (WorldSprite sprite in orderingScratch)
+        {
+            destination.Add(ProjectOne(
+                sprite,
+                camera,
+                unitScale,
+                resolveTexture(sprite.AssetId),
+                resolveFrame(sprite)));
+        }
+    }
+
+    public void ProjectPreparedInto(
+        WorldPresentationSnapshot snapshot,
+        Camera2DSnapshot camera,
+        World2DUnitScale unitScale,
+        Func<SpriteAssetId, Native2DTextureHandle> resolveTexture,
+        Func<WorldSprite, SpriteFrameMetadata> resolveFrame,
+        List<PreparedWorldSprite> destination)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(unitScale);
+        ArgumentNullException.ThrowIfNull(resolveTexture);
+        ArgumentNullException.ThrowIfNull(resolveFrame);
+        ArgumentNullException.ThrowIfNull(destination);
+        unitScale.Validate();
+
+        orderingScratch.Clear();
+        orderingScratch.AddRange(snapshot.Sprites);
+        orderingScratch.Sort(WorldSpriteOrderComparer.Instance);
+        destination.Clear();
+        foreach (WorldSprite sprite in orderingScratch)
+        {
+            NativeQuadSubmission submission = ProjectSubmission(
+                sprite,
+                camera,
+                unitScale,
+                resolveTexture(sprite.AssetId),
+                resolveFrame(sprite));
+            destination.Add(new PreparedWorldSprite(sprite.Layer, submission));
+        }
     }
 
     public PixelPoint2 WorldToPixel(WorldPoint2 point, Camera2DSnapshot camera, World2DUnitScale unitScale)
@@ -135,6 +223,17 @@ public sealed class WorldSpriteProjectionAdapter
     }
 
     private OrderedWorldSprite ProjectOne(
+        WorldSprite sprite,
+        Camera2DSnapshot camera,
+        World2DUnitScale unitScale,
+        Native2DTextureHandle texture,
+        SpriteFrameMetadata frame)
+    {
+        NativeQuadSubmission submission = ProjectSubmission(sprite, camera, unitScale, texture, frame);
+        return new OrderedWorldSprite(sprite, frame, submission);
+    }
+
+    private NativeQuadSubmission ProjectSubmission(
         WorldSprite sprite,
         Camera2DSnapshot camera,
         World2DUnitScale unitScale,
@@ -162,11 +261,41 @@ public sealed class WorldSpriteProjectionAdapter
             height = Math.Round(height, MidpointRounding.AwayFromZero);
         }
 
-        var submission = new NativeQuadSubmission(
+        return new NativeQuadSubmission(
             new Native2DRect((float)x, (float)y, (float)width, (float)height),
             new Native2DUvRect((float)frame.Uv.U0, (float)frame.Uv.V0, (float)frame.Uv.U1, (float)frame.Uv.V1),
             texture,
             sprite.Tint);
-        return new OrderedWorldSprite(sprite, frame, submission);
+    }
+
+    private sealed class WorldSpriteOrderComparer : IComparer<WorldSprite>
+    {
+        public static WorldSpriteOrderComparer Instance { get; } = new();
+
+        public int Compare(WorldSprite? left, WorldSprite? right)
+        {
+            if (ReferenceEquals(left, right))
+            {
+                return 0;
+            }
+            if (left is null)
+            {
+                return -1;
+            }
+            if (right is null)
+            {
+                return 1;
+            }
+
+            int layer = ((int)left.Layer).CompareTo((int)right.Layer);
+            if (layer != 0)
+            {
+                return layer;
+            }
+            int feet = left.FeetY.CompareTo(right.FeetY);
+            return feet != 0
+                ? feet
+                : StringComparer.Ordinal.Compare(left.StableId.Value, right.StableId.Value);
+        }
     }
 }

@@ -1,0 +1,50 @@
+{
+  "result": {
+    "applied": false,
+    "status": "rejected",
+    "editKind": "insertBefore",
+    "targetPath": {
+      "value": "panel.dialogue.top.clamp-decorative"
+    },
+    "anchorPath": {
+      "value": "panel.dialogue.top.center"
+    },
+    "beforeSourceSpan": null,
+    "afterSourceSpan": null,
+    "sourceSha256Before": "2e0f593fca1fb70a44b75102b889c4c5346acfb6df12db710905664e6944958b",
+    "sourceSha256After": "2e0f593fca1fb70a44b75102b889c4c5346acfb6df12db710905664e6944958b",
+    "beforeSnippet": "",
+    "afterSnippet": "",
+    "conceptsAdded": [],
+    "conceptsRemoved": [],
+    "conceptsMoved": [],
+    "diagnostics": [
+      {
+        "code": "OBLIVION-SPRITE-CARD-AMBIGUOUS-SOURCE",
+        "severity": "error",
+        "message": "Expected one ordered segments list in \u0027horizontalEdge\u0027, found 2.",
+        "conceptPath": {
+          "value": "panel.dialogue.top.clamp-decorative"
+        }
+      }
+    ],
+    "compileResult": "not-run",
+    "sourceTransformationDuration": "00:00:00",
+    "compileDuration": "00:00:00",
+    "cardRefreshDuration": "00:00:00",
+    "previewRefreshDuration": "00:00:00",
+    "refreshedProjection": null,
+    "wouldApply": false,
+    "commitStatus": "rejected",
+    "fanoutEdges": null,
+    "affectedRuntimeProjections": null,
+    "beforeAllocation": null,
+    "afterAllocation": null,
+    "fanout": [],
+    "runtimeProjections": [],
+    "allocationBefore": [],
+    "allocationAfter": []
+  },
+  "locationsFound": 2,
+  "sourceUnchangedByRejectedEdit": true
+}

@@ -1,0 +1,27 @@
+{
+  "schema": "aurelian.runtime.performance-comparison.m22.v1",
+  "baseline": {
+    "FrameCount": 100000,
+    "ElapsedMilliseconds": 1453.6429,
+    "MeanFrameMilliseconds": 0.014158673000000942,
+    "P95FrameMilliseconds": 0.0072,
+    "P99FrameMilliseconds": 0.0096,
+    "WorstFrameMilliseconds": 20.6135,
+    "AllocatedBytes": 679986752,
+    "allocatedBytesPerFrame": 6799.86752,
+    "RetainedIterations": 100000,
+    "PostWarmupManagedBytesPerFrame": 335.80424901839734
+  },
+  "production": {
+    "FrameCount": 1000000,
+    "ElapsedMilliseconds": 8026.4815,
+    "MeanFrameMilliseconds": 0.008026433699999821,
+    "P95FrameMilliseconds": 0.002,
+    "P99FrameMilliseconds": 0.0026,
+    "WorstFrameMilliseconds": 9.5153,
+    "AllocatedBytes": 6699310832,
+    "allocatedBytesPerFrame": 6699.310832,
+    "RetainedIterations": 0,
+    "PostWarmupManagedBytesPerFrame": 0.1206251685084384
+  }
+}

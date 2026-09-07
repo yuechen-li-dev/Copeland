@@ -1,0 +1,18 @@
+{
+  "wouldApply": true,
+  "applied": false,
+  "commitStatus": "preview-only",
+  "fanout": [
+    "bottom",
+    "top"
+  ],
+  "runtimeProjections": [
+    {
+      "value": "panel.dialogue.top.huge-preview"
+    },
+    {
+      "value": "panel.dialogue.bottom.huge-preview"
+    }
+  ],
+  "sourceUnchanged": true
+}

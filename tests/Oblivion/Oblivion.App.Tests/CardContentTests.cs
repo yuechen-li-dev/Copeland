@@ -42,7 +42,9 @@ public sealed class CardContentTests
         Assert.Null(result.Value);
         Assert.Contains(
             result.Diagnostics,
-            diagnostic => diagnostic.Code == "missing-markdown-body-file");
+            diagnostic =>
+                diagnostic.Code == "OBLIVION-MISSING-MARKDOWN-BODY-FILE" &&
+                diagnostic.LegacyCode == "missing-markdown-body-file");
     }
 
     [Fact]

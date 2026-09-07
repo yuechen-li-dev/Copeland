@@ -1,0 +1,1 @@
+{"workspaceId":"m19i-notebook","items":[{"cardId":"physical-atom","fidelity":"full","cost":{"bytes":722,"characters":722,"approximateTokens":181,"method":"estimated as ceil(characters/4); not tokenizer-exact"}}],"totalEstimatedTokens":181,"tokenBudget":1,"remainingEstimatedTokens":-180,"overBudget":true,"diagnostics":[]}

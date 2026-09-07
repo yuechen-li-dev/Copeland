@@ -187,6 +187,67 @@ public sealed class SpriteCardsM17Tests
     }
 
     [Fact]
+    public void ArbitraryFlexInsertionIsProjectedBeforeCommitAndRemainsReopenable()
+    {
+        using TemporarySunkillAsset asset = TemporarySunkillAsset.Create();
+        var service = new OblivionSpriteCardService();
+        SpriteCardProjection projection = service.BuildProjection(asset.SourcePath, "dialogue", 800, 220);
+        var flexPath = new GraphicalConceptPath("panel.dialogue.top.probe-flex");
+        var intent = new SpriteCardStructuralEditIntent(
+            SpriteCardStructuralEditKind.InsertBefore,
+            Top,
+            null,
+            Center,
+            new SpriteCardNewSegment(
+                "probe-flex",
+                "dialogue.top.glow",
+                SpriteCardSegmentAllocation.Flex,
+                20,
+                2,
+                "tile"),
+            projection.SourceSha256,
+            "horizontalEdge");
+
+        SpriteCardStructuralEditResult result = service.ApplyStructuralEdit(projection, intent);
+
+        Assert.True(result.Applied, FirstDiagnostic(result));
+        SpriteCard inserted = result.RefreshedProjection!.Cards.Single(card => card.ConceptPath == flexPath);
+        Assert.Contains(SpriteCardEditProperty.FlexWeight, inserted.EditCapabilities);
+        SpriteCardProjection reopened = service.BuildProjection(asset.SourcePath, "dialogue", 800, 220);
+        Assert.Contains(reopened.Cards, card => card.ConceptPath == flexPath);
+    }
+
+    [Fact]
+    public void PreviewReportsSharedTemplateFanoutAndUnderflowWithoutWriting()
+    {
+        using TemporarySunkillAsset asset = TemporarySunkillAsset.Create();
+        var service = new OblivionSpriteCardService();
+        SpriteCardProjection projection = service.BuildProjection(asset.SourcePath, "dialogue", 800, 220);
+        string sourceBefore = File.ReadAllText(asset.SourcePath);
+        SpriteCardStructuralEditIntent intent = InsertBefore(projection, Center) with
+        {
+            NewConcept = new SpriteCardNewSegment(
+                "huge-preview",
+                "dialogue.top.clamp",
+                SpriteCardSegmentAllocation.Fixed,
+                5000,
+                0,
+                "crop"),
+        };
+
+        SpriteCardStructuralEditResult result = service.PreviewStructuralEdit(projection, intent);
+
+        Assert.False(result.Applied);
+        Assert.True(result.WouldApply, FirstDiagnostic(result));
+        Assert.Equal("preview-only", result.CommitStatus);
+        Assert.Equal(["bottom", "top"], result.Fanout);
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Severity == SpriteCardDiagnosticSeverity.Warning);
+        Assert.Contains(result.AllocationAfter, summary => summary.Status == "underflow");
+        Assert.Equal(sourceBefore, File.ReadAllText(asset.SourcePath));
+    }
+
+    [Fact]
     public void CardViewProjectsExplicitStructuralControls()
     {
         using TemporarySunkillAsset asset = TemporarySunkillAsset.Create();

@@ -1,0 +1,32 @@
+{
+  "schema": "aurelian.runtime.scene-transition-stress.m22.v1",
+  "transitions": [
+    "farm-to-town",
+    "town-to-riverside"
+  ],
+  "finalScene": "riverside",
+  "rendererResources": {
+    "SwapchainImageCount": 3,
+    "SpriteTextureUploads": 1,
+    "FieldTextureUploads": 100120,
+    "FontAtlasUploads": 2,
+    "TextGeometryCacheEntries": 256,
+    "TextGeometryCacheCapacity": 256,
+    "DescriptorWrites": 40,
+    "BufferUploads": 805832,
+    "DrawCalls": 26120841,
+    "ReadbackCount": 5,
+    "MeasuredFrames": 100120,
+    "ProjectionAllocatedBytes": 1161022176,
+    "CompositionAllocatedBytes": 2479447472,
+    "SwapchainAllocatedBytes": 275557064,
+    "WorldAllocatedBytes": 1503557912,
+    "OverlayAllocatedBytes": 697100344,
+    "NativePassAllocatedBytes": 702974192,
+    "SnapshotAllocatedBytes": 104283200,
+    "SpriteProjectionAllocatedBytes": 415261712,
+    "NativeSubmissionAllocatedBytes": 867789976
+  },
+  "qualified": true,
+  "scope": "real pre-soak application traversal; repeated transition cycling deferred"
+}

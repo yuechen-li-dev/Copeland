@@ -1,0 +1,1 @@
+{"frameId":60,"passCount":1,"drawCount":1,"trace":{"passes":[{"name":"Main2D","target":"agent-null-target","pipeline":"agent-null-2d","shader":"agent-null-shader","draws":[{"id":"2","mesh":"quad","material":"blue","x":12,"y":34,"sortOrder":7}]}],"passCount":1,"drawCount":1},"frameHash":"ff3b2f409c7e66bd9ed8597ddd40a5d01b264b243290cb81b70a1c869eacfa0e"}

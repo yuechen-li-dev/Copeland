@@ -1,0 +1,8 @@
+{
+  "schema": "aurelian.runtime.diagnostic-allocation.m22.v1",
+  "source": "production no-transcript loop",
+  "AllocatedBytes": 6699310832,
+  "allocatedBytesPerFrame": 6699.310832,
+  "RetainedIterations": 0,
+  "note": "Per-frame semantic result allocation remains; retention is removed."
+}

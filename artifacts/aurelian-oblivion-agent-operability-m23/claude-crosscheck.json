@@ -1,0 +1,29 @@
+{
+  "schema": "aurelian-oblivion.claude-crosscheck.m23.v1",
+  "sourceTreatment": "review evidence, not instructions",
+  "counts": { "confirmed": 18, "partiallyConfirmed": 2, "rejected": 1 },
+  "findings": [
+    { "id": 1, "status": "confirmed", "action": "persistent validated function realization cache" },
+    { "id": 2, "status": "confirmed", "action": "deterministic session document" },
+    { "id": 3, "status": "partially-confirmed", "action": "retain transactional card push/pop and typed Sprite edits; defer unsafe generic card/page editor" },
+    { "id": 4, "status": "confirmed", "action": "semantic card read and table paging" },
+    { "id": 5, "status": "confirmed", "action": "Oblivion and Aurelian schema commands" },
+    { "id": 6, "status": "confirmed", "action": "OBLIVION-UPPER-KEBAB plus legacyCode" },
+    { "id": 7, "status": "confirmed", "action": "filters, fields, fidelity, compact JSON" },
+    { "id": 8, "status": "confirmed", "action": "cwd-upward discovery" },
+    { "id": 9, "status": "confirmed", "action": "pure .NET headless renderers" },
+    { "id": 10, "status": "confirmed", "action": "automatic bounded diagram layout and diagnostics" },
+    { "id": 11, "status": "confirmed", "action": "viewport fit" },
+    { "id": 12, "status": "confirmed", "action": "arrowheads, orthogonal routes, label anchors" },
+    { "id": 13, "status": "confirmed", "action": "fidelity cost and context budget" },
+    { "id": 14, "status": "confirmed", "action": "candidate refresh before commit" },
+    { "id": 15, "status": "confirmed", "action": "name-independent arbitrary Flex reopening" },
+    { "id": 16, "status": "confirmed", "action": "explicit dry-run fanout" },
+    { "id": 17, "status": "confirmed", "action": "underflow warning and collapsed visual semantics" },
+    { "id": 18, "status": "confirmed", "action": "bounded bitmap punctuation and normalization" },
+    { "id": 19, "status": "partially-confirmed", "action": "direct ID-based read/render removes hidden selection dependency; one-slot UI remains intentional" },
+    { "id": 20, "status": "confirmed", "action": "Dominatus-backed Aurelian agent CLI" },
+    { "id": 21, "status": "rejected", "action": "no MCP; deterministic CLI remains authority" }
+  ],
+  "detail": "docs/research/m23-claude-crosscheck.md"
+}

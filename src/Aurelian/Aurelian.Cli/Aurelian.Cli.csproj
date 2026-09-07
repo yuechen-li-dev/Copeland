@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>aurelian</AssemblyName>
+    <RootNamespace>Aurelian.Cli</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" />
+    <ProjectReference Include="../Aurelian.Runtime/Aurelian.Runtime.csproj" />
+    <ProjectReference Include="../Aurelian.Actuation/Aurelian.Actuation.csproj" />
+    <ProjectReference Include="../Aurelian.World/Aurelian.World.csproj" />
+    <ProjectReference Include="../Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />
+    <ProjectReference Include="../Aurelian.Rendering.Null/Aurelian.Rendering.Null.csproj" />
+  </ItemGroup>
+</Project>

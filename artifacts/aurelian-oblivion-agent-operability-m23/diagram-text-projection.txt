@@ -1,0 +1,10 @@
+flow:VehicleFlow.state:Still --Start [speed > 0]--> flow:VehicleFlow.state:Moving
+flow:VehicleFlow.state:Still --Wait [board.speed == 0]--> flow:VehicleFlow.state:Still
+flow:VehicleFlow.state:Moving --Stop [speed == 0]--> flow:VehicleFlow.state:Still
+flow:VehicleFlow.state:Moving --Brake [engaged == true]--> flow:VehicleFlow.state:Still
+flow:VehicleFlow.state:Moving --Impact [detected == true]--> flow:VehicleFlow.state:Crash
+
+initial: flow:VehicleFlow.state:Still
+terminal: flow:VehicleFlow.state:Crash
+unreachable: (none)
+emphasized: (none)

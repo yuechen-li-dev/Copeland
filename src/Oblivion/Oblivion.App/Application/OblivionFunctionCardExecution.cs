@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Oblivion.Model;
@@ -133,6 +134,23 @@ public sealed class OblivionXunitFunctionRunner : IOblivionFunctionRunner
                     card,
                     resolution,
                     cached,
+                    OblivionFunctionRealizationKind.Warm,
+                    resolutionClock.Elapsed,
+                    fingerprintClock.Elapsed,
+                    materializationInvoked: false,
+                    discoveryInvoked: false);
+            }
+
+            ProjectRealization? persisted = TryLoadPersistedRealization(
+                resolution.ProjectPath,
+                fingerprint);
+            if (persisted is not null)
+            {
+                _realizations[resolution.ProjectPath] = persisted;
+                return SelectDescriptor(
+                    card,
+                    resolution,
+                    persisted,
                     OblivionFunctionRealizationKind.Warm,
                     resolutionClock.Elapsed,
                     fingerprintClock.Elapsed,
@@ -293,6 +311,7 @@ public sealed class OblivionXunitFunctionRunner : IOblivionFunctionRunner
             ComputeFileHash(testAssemblyPath),
             ParseDiscoveredTests(discovery.StandardOutput));
         _realizations[projectPath] = realization;
+        PersistRealization(realization);
         return SelectDescriptor(
             card,
             resolution,
@@ -771,6 +790,87 @@ public sealed class OblivionXunitFunctionRunner : IOblivionFunctionRunner
                 StringComparison.Ordinal);
     }
 
+    private static ProjectRealization? TryLoadPersistedRealization(
+        string projectPath,
+        string expectedFingerprint)
+    {
+        string metadataPath = PersistentRealizationPath(projectPath);
+        try
+        {
+            if (!File.Exists(metadataPath))
+            {
+                return null;
+            }
+
+            PersistedProjectRealization? persisted = JsonSerializer.Deserialize<PersistedProjectRealization>(
+                File.ReadAllText(metadataPath));
+            if (persisted is null ||
+                persisted.Schema != RealizationSchemaIdentity ||
+                persisted.Runner != RunnerIdentity ||
+                !string.Equals(persisted.Fingerprint, expectedFingerprint, StringComparison.Ordinal) ||
+                !string.Equals(
+                    Path.GetFullPath(persisted.ProjectPath),
+                    Path.GetFullPath(projectPath),
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            var realization = new ProjectRealization(
+                persisted.Fingerprint,
+                persisted.ProjectPath,
+                persisted.TestProjectPath,
+                persisted.TestAssemblyPath,
+                persisted.TestAssemblyHash,
+                persisted.DiscoveredTests ?? []);
+            return OutputsAreValid(realization) ? realization : null;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static void PersistRealization(ProjectRealization realization)
+    {
+        string metadataPath = PersistentRealizationPath(realization.ProjectPath);
+        string temporaryPath = metadataPath + ".tmp-" + Guid.NewGuid().ToString("N");
+        var persisted = new PersistedProjectRealization(
+            RealizationSchemaIdentity,
+            RunnerIdentity,
+            realization.Fingerprint,
+            realization.ProjectPath,
+            realization.TestProjectPath,
+            realization.TestAssemblyPath,
+            realization.TestAssemblyHash,
+            realization.DiscoveredTests.ToArray());
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(metadataPath)!);
+            File.WriteAllText(
+                temporaryPath,
+                JsonSerializer.Serialize(persisted, new JsonSerializerOptions { WriteIndented = true }),
+                new UTF8Encoding(false));
+            File.Move(temporaryPath, metadataPath, overwrite: true);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            if (File.Exists(temporaryPath))
+            {
+                File.Delete(temporaryPath);
+            }
+        }
+    }
+
+    private static string PersistentRealizationPath(string projectPath)
+    {
+        return Path.Combine(
+            Path.GetDirectoryName(projectPath)!,
+            "obj",
+            "CopelandTests",
+            ".oblivion-function-realization-v1.json");
+    }
+
     private static string? ResolveTestAssembly(string testProjectPath)
     {
         string projectName = Path.GetFileNameWithoutExtension(testProjectPath);
@@ -896,4 +996,14 @@ public sealed class OblivionXunitFunctionRunner : IOblivionFunctionRunner
         string TestAssemblyPath,
         string TestAssemblyHash,
         IReadOnlyList<string> DiscoveredTests);
+
+    private sealed record PersistedProjectRealization(
+        string Schema,
+        string Runner,
+        string Fingerprint,
+        string ProjectPath,
+        string TestProjectPath,
+        string TestAssemblyPath,
+        string TestAssemblyHash,
+        string[]? DiscoveredTests);
 }

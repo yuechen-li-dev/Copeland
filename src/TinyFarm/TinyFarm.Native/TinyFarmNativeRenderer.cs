@@ -148,6 +148,9 @@ internal sealed class TinyFarmNativeRenderer : IAurelianHostCompositor
     public int ShaderQuads => world.ShaderQuads;
     private TinyFarmNativeOverlay Overlay { get; }
     public long WorldAllocatedBytes => world.AllocatedBytes;
+    public long SnapshotAllocatedBytes => world.SnapshotAllocatedBytes;
+    public long SpriteProjectionAllocatedBytes => world.SpriteProjectionAllocatedBytes;
+    public long NativeSubmissionAllocatedBytes => world.NativeSubmissionAllocatedBytes;
     public long OverlayAllocatedBytes => Overlay.AllocatedBytes;
     public int DynamicUiTextureUploads => 0;
     public int NativeUiPrimitiveCount => Overlay.NativePrimitiveCount;
@@ -304,6 +307,16 @@ internal sealed class TinyFarmWorldPresenter(
     private float top;
     private readonly List<ParticleSnapshot> particleSnapshots = new(256);
     private readonly List<EffectQuadSnapshot> quadSnapshots = new(32);
+    private readonly List<WorldSprite> worldSpriteScratch = new(512);
+    private readonly List<PreparedWorldSprite> orderedSpriteScratch = new(512);
+    private readonly List<WorldSprite> staticTileSprites = new(512);
+    private int staticTileWidth = -1;
+    private int staticTileHeight = -1;
+    private bool staticTileCave;
+    private bool staticTileHouse;
+    private long snapshotAllocatedBytes;
+    private long spriteProjectionAllocatedBytes;
+    private long nativeSubmissionAllocatedBytes;
     public LayerId Layer => layer;
     public int ShaderQuads { get; private set; }
     public long AllocatedBytes { get; private set; }
@@ -314,10 +327,16 @@ internal sealed class TinyFarmWorldPresenter(
     public SpriteAlphaCleanupFacts SpriteAlphaCleanup => spriteAtlas.AlphaCleanup;
     public int FieldTextureUploads { get; private set; }
     public long FieldUploadBytes { get; private set; }
+    public long SnapshotAllocatedBytes => snapshotAllocatedBytes;
+    public long SpriteProjectionAllocatedBytes => spriteProjectionAllocatedBytes;
+    public long NativeSubmissionAllocatedBytes => nativeSubmissionAllocatedBytes;
 
     public void ResetPerformanceMetrics()
     {
         AllocatedBytes = 0;
+        snapshotAllocatedBytes = 0;
+        spriteProjectionAllocatedBytes = 0;
+        nativeSubmissionAllocatedBytes = 0;
     }
 
     public void Attach(VulkanNativeFrameTarget target)
@@ -365,13 +384,20 @@ internal sealed class TinyFarmWorldPresenter(
         scale = 48;
         left = 22 - (float)camera.Position.X * scale;
         top = 24 - (float)camera.Position.Y * scale;
+        long snapshotAllocationStart = GC.GetAllocatedBytesForCurrentThread();
         WorldPresentationSnapshot snapshot = BuildSpriteSnapshot(frame, context.FrameId, cave, house);
-        IReadOnlyList<OrderedWorldSprite> ordered = spriteProjection.Project(
+        snapshotAllocatedBytes += GC.GetAllocatedBytesForCurrentThread() - snapshotAllocationStart;
+        long spriteProjectionAllocationStart = GC.GetAllocatedBytesForCurrentThread();
+        spriteProjection.ProjectPreparedInto(
             snapshot,
             camera.Snapshot(),
             worldScale,
             spriteResources.Get,
-            sprite => playback.Resolve(sprite, spriteAtlas.Metadata, spriteResolver));
+            sprite => playback.Resolve(sprite, spriteAtlas.Metadata, spriteResolver),
+            orderedSpriteScratch);
+        spriteProjectionAllocatedBytes += GC.GetAllocatedBytesForCurrentThread() - spriteProjectionAllocationStart;
+        long nativeSubmissionAllocationStart = GC.GetAllocatedBytesForCurrentThread();
+        IReadOnlyList<PreparedWorldSprite> ordered = orderedSpriteScratch;
         LastCamera = camera.Snapshot();
         LastSpriteCount = ordered.Count;
         bool showField = frame.ActiveScene == game.Host.Session.Field.Definition.Scene;
@@ -379,9 +405,9 @@ internal sealed class TinyFarmWorldPresenter(
         {
             context.Present(sprites, pass =>
             {
-                foreach (OrderedWorldSprite sprite in ordered)
+                foreach (PreparedWorldSprite sprite in ordered)
                 {
-                    if (sprite.Source.Layer == WorldSpriteLayer.Ground)
+                    if (sprite.Layer == WorldSpriteLayer.Ground)
                     {
                         pass.SubmitQuad(sprite.Submission);
                     }
@@ -390,9 +416,9 @@ internal sealed class TinyFarmWorldPresenter(
             PresentField(context, frame);
             context.Present(sprites, pass =>
             {
-                foreach (OrderedWorldSprite sprite in ordered)
+                foreach (PreparedWorldSprite sprite in ordered)
                 {
-                    if (sprite.Source.Layer != WorldSpriteLayer.Ground)
+                    if (sprite.Layer != WorldSpriteLayer.Ground)
                     {
                         pass.SubmitQuad(sprite.Submission);
                     }
@@ -403,7 +429,7 @@ internal sealed class TinyFarmWorldPresenter(
         {
             context.Present(sprites, pass =>
             {
-                foreach (OrderedWorldSprite sprite in ordered)
+                foreach (PreparedWorldSprite sprite in ordered)
                 {
                     pass.SubmitQuad(sprite.Submission);
                 }
@@ -435,6 +461,7 @@ internal sealed class TinyFarmWorldPresenter(
                 }
             });
         }
+        nativeSubmissionAllocatedBytes += GC.GetAllocatedBytesForCurrentThread() - nativeSubmissionAllocationStart;
         AllocatedBytes += GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
     }
 
@@ -494,21 +521,9 @@ internal sealed class TinyFarmWorldPresenter(
         bool house)
     {
         TimeSpan elapsed = TimeSpan.FromSeconds(frameId / 60.0);
-        var worldSprites = new List<WorldSprite>(frame.SceneWidth * frame.SceneHeight + 32);
-        for (int y = 0; y < frame.SceneHeight; y++)
-        {
-            for (int x = 0; x < frame.SceneWidth; x++)
-            {
-                worldSprites.Add(Sprite(
-                    $"tile-{x:D2}-{y:D2}",
-                    TinyFarmAuthoredTileMap.TileAt(x, y, house, cave),
-                    new WorldPoint2(x + 0.5, y + 0.5),
-                    elapsed,
-                    WorldSpriteLayer.Ground,
-                    y,
-                    Native2DTint.White));
-            }
-        }
+        worldSpriteScratch.Clear();
+        EnsureStaticTileSprites(frame.SceneWidth, frame.SceneHeight, cave, house);
+        worldSpriteScratch.AddRange(staticTileSprites);
 
         foreach (TinyFarmSceneObjectView item in frame.SceneObjects ?? [])
         {
@@ -519,7 +534,7 @@ internal sealed class TinyFarmWorldPresenter(
             string spriteId = item.Depleted && item.Kind == SceneObjectKind.Tree
                 ? "grass-d"
                 : SpriteFor(item);
-            worldSprites.Add(Sprite(
+            worldSpriteScratch.Add(Sprite(
                 "object-" + item.Id.Value,
                 spriteId,
                 new WorldPoint2(item.Position.X + item.Width / 2.0, item.Position.Y + item.Height),
@@ -533,14 +548,14 @@ internal sealed class TinyFarmWorldPresenter(
         {
             double x = plot.Position.X / 1024.0;
             double y = plot.Position.Y / 1024.0;
-            worldSprites.Add(Sprite("crop-" + plot.Id.Value, "mint", new WorldPoint2(x, y), elapsed, WorldSpriteLayer.World, y, Native2DTint.White));
+            worldSpriteScratch.Add(Sprite("crop-" + plot.Id.Value, "mint", new WorldPoint2(x, y), elapsed, WorldSpriteLayer.World, y, Native2DTint.White));
         }
 
         foreach (TinyFarmItemView item in frame.GroundItems)
         {
             double x = item.Position.X / 1024.0;
             double y = item.Position.Y / 1024.0;
-            worldSprites.Add(Sprite("ground-item-" + item.Id.Value, "mint", new WorldPoint2(x, y), elapsed, WorldSpriteLayer.World, y, Native2DTint.White));
+            worldSpriteScratch.Add(Sprite("ground-item-" + item.Id.Value, "mint", new WorldPoint2(x, y), elapsed, WorldSpriteLayer.World, y, Native2DTint.White));
         }
 
         foreach (TinyFarmActorView actor in frame.Actors)
@@ -548,7 +563,7 @@ internal sealed class TinyFarmWorldPresenter(
             double x = actor.Position.X / 1024.0;
             double y = actor.Position.Y / 1024.0;
             Native2DTint tint = actor.IsPlayer ? Native2DTint.White : new Native2DTint(1, 0.82f, 0.72f, 1);
-            worldSprites.Add(Sprite("actor-" + actor.Id.Value, "farmer", new WorldPoint2(x, y), elapsed, WorldSpriteLayer.Actors, y, tint, "walk-down"));
+            worldSpriteScratch.Add(Sprite("actor-" + actor.Id.Value, "farmer", new WorldPoint2(x, y), elapsed, WorldSpriteLayer.Actors, y, tint, "walk-down"));
         }
 
         foreach (TinyFarmEnemyView enemy in frame.Enemies ?? [])
@@ -559,9 +574,41 @@ internal sealed class TinyFarmWorldPresenter(
             }
             double x = enemy.Position.X / 1024.0;
             double y = enemy.Position.Y / 1024.0;
-            worldSprites.Add(Sprite("enemy-" + enemy.Id.Value, "mint", new WorldPoint2(x, y), elapsed, WorldSpriteLayer.Actors, y, new Native2DTint(0.65f, 1, 0.72f, 1)));
+            worldSpriteScratch.Add(Sprite("enemy-" + enemy.Id.Value, "mint", new WorldPoint2(x, y), elapsed, WorldSpriteLayer.Actors, y, new Native2DTint(0.65f, 1, 0.72f, 1)));
         }
-        return new WorldPresentationSnapshot(worldSprites);
+        return new WorldPresentationSnapshot(worldSpriteScratch);
+    }
+
+    private void EnsureStaticTileSprites(int width, int height, bool cave, bool house)
+    {
+        if (staticTileWidth == width
+            && staticTileHeight == height
+            && staticTileCave == cave
+            && staticTileHouse == house)
+        {
+            return;
+        }
+
+        staticTileSprites.Clear();
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                staticTileSprites.Add(Sprite(
+                    $"tile-{x:D2}-{y:D2}",
+                    TinyFarmAuthoredTileMap.TileAt(x, y, house, cave),
+                    new WorldPoint2(x + 0.5, y + 0.5),
+                    TimeSpan.Zero,
+                    WorldSpriteLayer.Ground,
+                    y,
+                    Native2DTint.White));
+            }
+        }
+
+        staticTileWidth = width;
+        staticTileHeight = height;
+        staticTileCave = cave;
+        staticTileHouse = house;
     }
 
     private WorldSprite Sprite(

@@ -1,0 +1,15 @@
+{
+  "schema": "aurelian.runtime.diagnostic-storm.m22.v1",
+  "FrameCount": 100000,
+  "FramesCompleted": 0,
+  "Success": true,
+  "StopReason": "MaxFramesReached",
+  "AllocatedBytes": 705960824,
+  "ManagedBytesAfterCollection": 2972904,
+  "Gen0Collections": 44,
+  "Gen1Collections": 2,
+  "Gen2Collections": 2,
+  "RetainedIterations": 0,
+  "RetainedDiagnostics": 64,
+  "DroppedDiagnostics": 99936
+}

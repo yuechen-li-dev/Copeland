@@ -20,7 +20,11 @@ internal static class Program
     public static async Task<int> Main(string[] args)
     {
         string root = FindRoot();
-        string output = Path.Combine(root, "artifacts", "aurelian-runtime-soak-hardening-m22");
+        bool m23 = args.Contains("--m23", StringComparer.Ordinal);
+        string output = Path.Combine(
+            root,
+            "artifacts",
+            m23 ? "aurelian-oblivion-agent-operability-m23" : "aurelian-runtime-soak-hardening-m22");
         Directory.CreateDirectory(output);
 
         RunMetrics baseline = await MeasureFrameLoopAsync(BaselineFrames, captureTranscript: true, failEveryFrame: false);
@@ -56,6 +60,17 @@ internal static class Program
             streamingApi = "AurelianFrameLoop.RunWithSinkAsync",
         });
         Write(output, "null-1m-soak.json", production);
+        if (m23)
+        {
+            Write(output, "null-soak-regression.json", new
+            {
+                schema = "aurelian.runtime.null-soak-regression.m23.v1",
+                baselineGuarantee = "M22 production no-transcript Null loop",
+                result = production,
+                noTranscriptRetention = production.RetainedIterations == 0,
+                boundedMemorySlope = Math.Abs(production.PostWarmupManagedBytesPerFrame) < 1,
+            });
+        }
         Write(output, "final-memory-slope.json", new
         {
             schema = "aurelian.runtime.memory-slope.m22.v1",

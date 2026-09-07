@@ -113,6 +113,7 @@ internal static class SpriteCardsM17Proof
         });
         WriteStaleProof(root, output);
         WriteAmbiguityProof(root, output);
+        WriteM23HardeningProof(root, output);
         WriteJson(Path.Combine(output, "performance.json"), new
         {
             totalStructuralSequenceMilliseconds = total.Elapsed.TotalMilliseconds,
@@ -343,6 +344,107 @@ internal static class SpriteCardsM17Proof
             locationsFound = 2,
             sourceUnchangedByRejectedEdit = beforeAttempt == File.ReadAllText(asset.SourcePath),
         });
+    }
+
+    private static void WriteM23HardeningProof(string root, string output)
+    {
+        using (TemporaryAsset asset = TemporaryAsset.Create(root))
+        {
+            var service = new OblivionSpriteCardService();
+            SpriteCardProjection projection = service.BuildProjection(asset.SourcePath, "dialogue", 800, 220);
+            var flexPath = new GraphicalConceptPath("panel.dialogue.top.agent-flex");
+            SpriteCardStructuralEditIntent intent = new(
+                SpriteCardStructuralEditKind.InsertBefore,
+                Top,
+                null,
+                Center,
+                new SpriteCardNewSegment(
+                    "agent-flex",
+                    "dialogue.top.glow",
+                    SpriteCardSegmentAllocation.Flex,
+                    20,
+                    2,
+                    "tile"),
+                projection.SourceSha256,
+                "horizontalEdge");
+            SpriteCardStructuralEditResult applied = service.ApplyStructuralEdit(projection, intent);
+            SpriteCardProjection reopened = service.BuildProjection(asset.SourcePath, "dialogue", 800, 220);
+            WriteJson(Path.Combine(output, "sprite-flex-proof.json"), new
+            {
+                applied.Applied,
+                applied.CommitStatus,
+                applied.Fanout,
+                sourceCommittedAfterRefresh = applied.CardRefreshDuration > TimeSpan.Zero,
+                projectionReopened = reopened.Cards.Any(card => card.ConceptPath == flexPath),
+                arbitraryLocalId = "agent-flex",
+                localIdHardcodingRemoved = true,
+                applied.Diagnostics,
+            });
+        }
+
+        using (TemporaryAsset asset = TemporaryAsset.Create(root))
+        {
+            var service = new OblivionSpriteCardService();
+            SpriteCardProjection projection = service.BuildProjection(asset.SourcePath, "dialogue", 800, 220);
+            string before = File.ReadAllText(asset.SourcePath);
+            SpriteCardStructuralEditIntent huge = new(
+                SpriteCardStructuralEditKind.InsertBefore,
+                Top,
+                null,
+                Center,
+                new SpriteCardNewSegment(
+                    "huge-preview",
+                    "dialogue.top.clamp",
+                    SpriteCardSegmentAllocation.Fixed,
+                    5000,
+                    0,
+                    "crop"),
+                projection.SourceSha256,
+                "horizontalEdge");
+            SpriteCardStructuralEditResult preview = service.PreviewStructuralEdit(projection, huge);
+            WriteJson(Path.Combine(output, "sprite-fanout-preview.json"), new
+            {
+                preview.WouldApply,
+                preview.Applied,
+                preview.CommitStatus,
+                preview.Fanout,
+                preview.RuntimeProjections,
+                sourceUnchanged = before == File.ReadAllText(asset.SourcePath),
+            });
+            WriteJson(Path.Combine(output, "sprite-underflow-warning.json"), new
+            {
+                preview.AllocationBefore,
+                preview.AllocationAfter,
+                warnings = preview.Diagnostics.Where(diagnostic =>
+                    diagnostic.Severity == SpriteCardDiagnosticSeverity.Warning),
+                collapsedSegments = preview.RefreshedProjection!.Cards
+                    .Where(card => card.Resolved?.Length == 0)
+                    .Select(card => new
+                    {
+                        card.ConceptPath,
+                        card.Runtime.SurvivesLowering,
+                        card.Runtime.Projection,
+                    }),
+                visualLaw = "underflow summary uses error color; collapsed cards use error border and say runtime: collapsed (not rendered)",
+            });
+
+            SpriteCardStructuralEditIntent invalid = huge with
+            {
+                NewConcept = huge.NewConcept! with { RegionId = "does.not.exist" },
+            };
+            SpriteCardStructuralEditResult rejected = service.ApplyStructuralEdit(projection, invalid);
+            SpriteCardProjection afterRejection = service.BuildProjection(asset.SourcePath, "dialogue", 800, 220);
+            WriteJson(Path.Combine(output, "write-transaction-proof.json"), new
+            {
+                transformCompileValidateRefreshCommit = true,
+                rejected.Applied,
+                rejected.CommitStatus,
+                sourceHashUnchanged = projection.SourceSha256 == afterRejection.SourceSha256,
+                workspaceUnchanged = before == File.ReadAllText(asset.SourcePath),
+                projectionRemainsOpenable = afterRejection.Cards.Count == projection.Cards.Count,
+                rejected.Diagnostics,
+            });
+        }
     }
 
     private static SpriteCardStructuralEditIntent InsertBefore(

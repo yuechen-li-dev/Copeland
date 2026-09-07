@@ -1,0 +1,79 @@
+{
+  "schema": "aurelian.runtime.vulkan-soak.m23.v1",
+  "backend": "TinyFarm.Native / AurelianGameHost / Vulkan",
+  "scene": "riverside",
+  "device": "NVIDIA GeForce RTX 3070",
+  "presentMode": "PresentModeMailboxKhr",
+  "vSync": false,
+  "frameCount": 1000,
+  "elapsedMilliseconds": 7902.576,
+  "meanFrameMilliseconds": 7.874843899999994,
+  "p95FrameMilliseconds": 11.5315,
+  "p99FrameMilliseconds": 12.6275,
+  "worstFrameMilliseconds": 30.6149,
+  "allocatedBytes": 75188512,
+  "allocatedBytesPerFrame": 75188.512,
+  "managedAfterCollection": 46889936,
+  "workingSetBytes": 332382208,
+  "postWarmupManagedBytesPerFrame": 0,
+  "gen0Collections": 6,
+  "gen1Collections": 2,
+  "gen2Collections": 2,
+  "threadIds": [
+    2
+  ],
+  "stopReason": "MaxFramesReached",
+  "retainedFrameResults": 0,
+  "diagnosticsProduced": 0,
+  "resources": {
+    "SwapchainImageCount": 3,
+    "SpriteTextureUploads": 1,
+    "FieldTextureUploads": 1120,
+    "FontAtlasUploads": 2,
+    "TextGeometryCacheEntries": 38,
+    "TextGeometryCacheCapacity": 256,
+    "DescriptorWrites": 21,
+    "BufferUploads": 10073,
+    "DrawCalls": 357166,
+    "ReadbackCount": 2,
+    "MeasuredFrames": 1120,
+    "ProjectionAllocatedBytes": 9339136,
+    "CompositionAllocatedBytes": 50263832,
+    "SwapchainAllocatedBytes": 3102368,
+    "WorldAllocatedBytes": 31895264,
+    "OverlayAllocatedBytes": 8074320,
+    "NativePassAllocatedBytes": 9050736,
+    "SnapshotAllocatedBytes": 873824,
+    "SpriteProjectionAllocatedBytes": 4623744,
+    "NativeSubmissionAllocatedBytes": 25071496
+  },
+  "hashes": [
+    {
+      "Frame": 1,
+      "PixelSha256": "34129a029eb8b7abf8d95e57477a0833b768d378588b2d7e7ab53d6a82c8e30e",
+      "FieldHash": "4173cad912348c4d5b8a78ac6a94c77b07641cda5b0aeacef4605afce2363d65"
+    },
+    {
+      "Frame": 1000,
+      "PixelSha256": "33b3b735b385a707a94abd0b16efc96414e941659ab56585268ba72f2cbcb195",
+      "FieldHash": "311aa22d84ac55d425ded065e9cafcfa3fb1782a1177903a78b712ae2599741d"
+    }
+  ],
+  "samples": [
+    {
+      "Frame": 1000,
+      "ManagedHeapBytes": 51656248,
+      "WorkingSetBytes": 331988992,
+      "Gen0Collections": 23,
+      "Gen1Collections": 14,
+      "Gen2Collections": 6,
+      "SpriteTextureUploads": 1,
+      "FieldTextureUploads": 1120,
+      "FontAtlasUploads": 2,
+      "TextGeometryCacheEntries": 38,
+      "SwapchainImageCount": 3,
+      "FieldProjectionGeneration": 1120,
+      "FieldRecentEventCount": 1
+    }
+  ]
+}

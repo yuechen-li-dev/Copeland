@@ -1,0 +1,58 @@
+{
+  "schema": "oblivion.fidelity-projections.m23.v1",
+  "summary": {
+    "workspaceId": "m19i-notebook",
+    "pageId": "notebook",
+    "cardId": "physical-atom",
+    "kind": "note",
+    "fidelity": "summary",
+    "summary": "# The physical atom of Oblivion A trustworthy notebook begins with a readable...",
+    "offset": 0,
+    "limit": 100,
+    "totalItems": 722,
+    "cost": {
+      "bytes": 80,
+      "characters": 80,
+      "approximateTokens": 20,
+      "method": "estimated as ceil(characters/4); not tokenizer-exact"
+    },
+    "diagnostics": []
+  },
+  "schemaProjection": {
+    "workspaceId": "m19i-notebook",
+    "pageId": "notebook",
+    "cardId": "physical-atom",
+    "kind": "note",
+    "fidelity": "schema",
+    "summary": "# The physical atom of Oblivion A trustworthy notebook begins with a readable...",
+    "offset": 0,
+    "limit": 100,
+    "totalItems": 722,
+    "cost": {
+      "bytes": 80,
+      "characters": 80,
+      "approximateTokens": 20,
+      "method": "estimated as ceil(characters/4); not tokenizer-exact"
+    },
+    "diagnostics": []
+  },
+  "full": {
+    "workspaceId": "m19i-notebook",
+    "pageId": "notebook",
+    "cardId": "physical-atom",
+    "kind": "note",
+    "fidelity": "full",
+    "summary": "# The physical atom of Oblivion A trustworthy notebook begins with a readable...",
+    "offset": 0,
+    "limit": 100,
+    "totalItems": 722,
+    "text": "# The physical atom of Oblivion\n\nA trustworthy notebook begins with a readable physical atom. Each Card carries semantic Markdown through the same product pipeline, while the standalone shell stays quiet enough for the document to remain the point.\n\n## The contract\n\n- Machina owns the Card frame, header, spacing, state, and square affordance.\n- Avalonia owns mature type metrics, wrapping, selection, and document measurement.\n- Collapsing removes the body instead of manufacturing a miniature preview.\n\nThe wide shell establishes application scale. A centered prose column independently protects readable line length, so resizing the window changes available space without changing the meaning or order of the content.\n",
+    "cost": {
+      "bytes": 722,
+      "characters": 722,
+      "approximateTokens": 181,
+      "method": "estimated as ceil(characters/4); not tokenizer-exact"
+    },
+    "diagnostics": []
+  }
+}

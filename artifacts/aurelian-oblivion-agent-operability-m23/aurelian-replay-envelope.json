@@ -1,0 +1,44 @@
+{
+  "schema": "aurelian.replay.v1",
+  "session": {
+    "schema": "aurelian.agent-session.v1",
+    "sessionId": "m23-proof",
+    "tickIndex": 60,
+    "entities": [
+      {
+        "id": 1,
+        "kind": "root",
+        "name": "Root",
+        "x": 0,
+        "y": 0,
+        "rotationRadians": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "mesh": null,
+        "material": null,
+        "visible": false,
+        "sortOrder": 0,
+        "parentId": null,
+        "slot": null
+      },
+      {
+        "id": 2,
+        "kind": "agent-probe",
+        "name": "Probe",
+        "x": 12,
+        "y": 34,
+        "rotationRadians": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "mesh": "quad",
+        "material": "blue",
+        "visible": true,
+        "sortOrder": 7,
+        "parentId": 1,
+        "slot": null
+      }
+    ]
+  },
+  "expectedStateHash": "67f1c6669bdb9ae52ba919892ea9304b3ddb8a52c8ad37eddedc3bbaa0bd7b16",
+  "expectedFrameHash": "ff3b2f409c7e66bd9ed8597ddd40a5d01b264b243290cb81b70a1c869eacfa0e"
+}

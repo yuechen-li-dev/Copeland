@@ -1,0 +1,181 @@
+{
+  "schema": "oblivion.all-workspaces-headless.m23.v1",
+  "workspaceCount": 8,
+  "cardCount": 19,
+  "succeeded": true,
+  "blankOutputs": 0,
+  "deterministicIdentity": "sha256 per PNG",
+  "results": [
+    {
+      "workspace": "M19iNotebook.oblivion",
+      "cardId": "physical-atom",
+      "kind": "note",
+      "succeeded": true,
+      "sha256": "6653dfc915f897d1798a5a7342191cd54ce29dc3e411e620c6ef4df4e4722a00",
+      "renderedItems": 14,
+      "diagnostics": []
+    },
+    {
+      "workspace": "M19iNotebook.oblivion",
+      "cardId": "notebook-stack",
+      "kind": "note",
+      "succeeded": true,
+      "sha256": "7ebcf40ca963c54703c6578d1f6895151f42e729c11a636aa325b32d514ea3dc",
+      "renderedItems": 15,
+      "diagnostics": []
+    },
+    {
+      "workspace": "M19oDiagramCards.oblivion",
+      "cardId": "flow-context",
+      "kind": "note",
+      "succeeded": true,
+      "sha256": "a2ffec6b814fa71e2cd80c3da5a7d4d8d86575d5f1ffc902e4359f7a2fef8bad",
+      "renderedItems": 5,
+      "diagnostics": []
+    },
+    {
+      "workspace": "M19oDiagramCards.oblivion",
+      "cardId": "vehicle-flow-state",
+      "kind": "diagram",
+      "succeeded": true,
+      "sha256": "3978f640ba3249ab245dcbe88cbe0122317478e3be7c128c9c66e8eec09549b5",
+      "renderedItems": 8,
+      "diagnostics": []
+    },
+    {
+      "workspace": "M19oDiagramCards.oblivion",
+      "cardId": "flow-findings",
+      "kind": "note",
+      "succeeded": true,
+      "sha256": "fd068e26d1ab3c81450d65f091b0ffade8d2e33dce481c2a5cf7bebcda60c7d4",
+      "renderedItems": 5,
+      "diagnostics": []
+    },
+    {
+      "workspace": "M20aDenseDiagram.oblivion",
+      "cardId": "diagram-card-realization",
+      "kind": "diagram",
+      "succeeded": true,
+      "sha256": "eab5308b2d9065a9d8cd285fd2f53856b83270b18b967792cfc48d3986d0b828",
+      "renderedItems": 47,
+      "diagnostics": []
+    },
+    {
+      "workspace": "M20bViewportDiagram.oblivion",
+      "cardId": "diagram-card-realization",
+      "kind": "diagram",
+      "succeeded": true,
+      "sha256": "eab5308b2d9065a9d8cd285fd2f53856b83270b18b967792cfc48d3986d0b828",
+      "renderedItems": 47,
+      "diagnostics": []
+    },
+    {
+      "workspace": "M20bViewportDiagram.oblivion",
+      "cardId": "reading-task",
+      "kind": "note",
+      "succeeded": true,
+      "sha256": "c5967358d1db6e7611f44870f75596df828f17121df5691acc2301ba4cbe1672",
+      "renderedItems": 11,
+      "diagnostics": []
+    },
+    {
+      "workspace": "M20cCallOwnership.oblivion",
+      "cardId": "realization-call-ownership",
+      "kind": "diagram",
+      "succeeded": true,
+      "sha256": "4e9ad9c2b18de6dfccc364f24faa5344a5f7cf68bc47b4eb9872a98aecd6267d",
+      "renderedItems": 17,
+      "diagnostics": []
+    },
+    {
+      "workspace": "M20cCallOwnership.oblivion",
+      "cardId": "ownership-question",
+      "kind": "note",
+      "succeeded": true,
+      "sha256": "7c6548a3dd59b04a629b30a81c66467c9353d5ed90a3dbf601993fc1cc3c265e",
+      "renderedItems": 9,
+      "diagnostics": []
+    },
+    {
+      "workspace": "M20dLayeredArchitecture.oblivion",
+      "cardId": "diagram-realization-architecture",
+      "kind": "diagram",
+      "succeeded": true,
+      "sha256": "529d924818bfd5d102c3e319fd530c114b344e83710a19892726e074ae108136",
+      "renderedItems": 33,
+      "diagnostics": []
+    },
+    {
+      "workspace": "M20dLayeredArchitecture.oblivion",
+      "cardId": "architecture-question",
+      "kind": "note",
+      "succeeded": true,
+      "sha256": "4554da5ef3948be17ed9ac1da0811ea1d80e873971f341eed049a9103b11492c",
+      "renderedItems": 9,
+      "diagnostics": []
+    },
+    {
+      "workspace": "M20eTsonTables.oblivion",
+      "cardId": "validation-evidence",
+      "kind": "table",
+      "succeeded": true,
+      "sha256": "f2e9a841bf85d212b18665154cba1dd6a1b4f015999eaa96781e9ad4a5a3a285",
+      "renderedItems": 14,
+      "diagnostics": []
+    },
+    {
+      "workspace": "M20eTsonTables.oblivion",
+      "cardId": "review-question",
+      "kind": "note",
+      "succeeded": true,
+      "sha256": "0b0cdefeff754cc749947cd8cf858fd17b198186b1f9746cafbe0c5d6b15ef3c",
+      "renderedItems": 9,
+      "diagnostics": []
+    },
+    {
+      "workspace": "M20eTsonTables.oblivion",
+      "cardId": "validation-evidence-canonical",
+      "kind": "table",
+      "succeeded": true,
+      "sha256": "3e3c856cb101f6254b8ee83bc985dea394a42283692ca915fbacfc9cf671dc2e",
+      "renderedItems": 14,
+      "diagnostics": []
+    },
+    {
+      "workspace": "M20fFunctionCards.oblivion",
+      "cardId": "execution-context",
+      "kind": "note",
+      "succeeded": true,
+      "sha256": "7de68bd296c8ea65cc7c170dacc4b983866860ed58293d52195cc818a0af1b64",
+      "renderedItems": 7,
+      "diagnostics": []
+    },
+    {
+      "workspace": "M20fFunctionCards.oblivion",
+      "cardId": "passing-function",
+      "kind": "function",
+      "succeeded": true,
+      "sha256": "ece1b0a774cfe35a8e3aa6e1c5ba4f11e58e59913648ccecdb3eb0a1df01e248",
+      "renderedItems": 1,
+      "diagnostics": []
+    },
+    {
+      "workspace": "M20fFunctionCards.oblivion",
+      "cardId": "failing-function",
+      "kind": "function",
+      "succeeded": true,
+      "sha256": "45e562d814ee7d79de87d96e848b3df164a4ec25338f7048d2e2b58faaaf06d8",
+      "renderedItems": 1,
+      "diagnostics": []
+    },
+    {
+      "workspace": "M20fFunctionCards.oblivion",
+      "cardId": "theory-function",
+      "kind": "function",
+      "succeeded": true,
+      "sha256": "94d09e6e3437e6254eabb5df201d34ad1cd830d6e3e8cccd584db758c8ade8e3",
+      "renderedItems": 1,
+      "diagnostics": []
+    }
+  ]
+}

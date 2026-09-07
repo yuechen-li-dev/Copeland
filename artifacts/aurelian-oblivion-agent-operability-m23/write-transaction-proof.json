@@ -1,0 +1,18 @@
+{
+  "transformCompileValidateRefreshCommit": true,
+  "applied": false,
+  "commitStatus": "rejected",
+  "sourceHashUnchanged": true,
+  "workspaceUnchanged": true,
+  "projectionRemainsOpenable": true,
+  "diagnostics": [
+    {
+      "code": "OBLIVION-SPRITE-CARD-STRUCTURAL-INVALID",
+      "severity": "error",
+      "message": "Region \u0027does.not.exist\u0027 is not represented by this authored edge template.",
+      "conceptPath": {
+        "value": "panel.dialogue.top.huge-preview"
+      }
+    }
+  ]
+}

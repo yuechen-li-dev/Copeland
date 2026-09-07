@@ -1,0 +1,169 @@
+{
+  "allocationBefore": [
+    {
+      "edge": "top",
+      "extent": 724,
+      "minimumDemand": 216,
+      "usedLength": 724,
+      "unusedLength": 0,
+      "deficitLength": 0,
+      "status": "surplusDistributed"
+    },
+    {
+      "edge": "right",
+      "extent": 144,
+      "minimumDemand": 142,
+      "usedLength": 144,
+      "unusedLength": 0,
+      "deficitLength": 0,
+      "status": "surplusDistributed"
+    },
+    {
+      "edge": "bottom",
+      "extent": 724,
+      "minimumDemand": 202,
+      "usedLength": 724,
+      "unusedLength": 0,
+      "deficitLength": 0,
+      "status": "surplusDistributed"
+    },
+    {
+      "edge": "left",
+      "extent": 144,
+      "minimumDemand": 142,
+      "usedLength": 144,
+      "unusedLength": 0,
+      "deficitLength": 0,
+      "status": "surplusDistributed"
+    }
+  ],
+  "allocationAfter": [
+    {
+      "edge": "top",
+      "extent": 724,
+      "minimumDemand": 5216,
+      "usedLength": 724,
+      "unusedLength": 0,
+      "deficitLength": 4492,
+      "status": "underflow"
+    },
+    {
+      "edge": "right",
+      "extent": 144,
+      "minimumDemand": 142,
+      "usedLength": 144,
+      "unusedLength": 0,
+      "deficitLength": 0,
+      "status": "surplusDistributed"
+    },
+    {
+      "edge": "bottom",
+      "extent": 724,
+      "minimumDemand": 5202,
+      "usedLength": 724,
+      "unusedLength": 0,
+      "deficitLength": 4478,
+      "status": "underflow"
+    },
+    {
+      "edge": "left",
+      "extent": 144,
+      "minimumDemand": 142,
+      "usedLength": 144,
+      "unusedLength": 0,
+      "deficitLength": 0,
+      "status": "surplusDistributed"
+    }
+  ],
+  "warnings": [
+    {
+      "code": "COPE-SPAN-ALLOC-0100",
+      "severity": "warning",
+      "message": "top: Minimum demand 5216 exceeds extent 724 by 4492; placements are deterministically clipped in request order.",
+      "conceptPath": {
+        "value": "panel.dialogue"
+      }
+    },
+    {
+      "code": "COPE-SPAN-ALLOC-0100",
+      "severity": "warning",
+      "message": "bottom: Minimum demand 5202 exceeds extent 724 by 4478; placements are deterministically clipped in request order.",
+      "conceptPath": {
+        "value": "panel.dialogue"
+      }
+    }
+  ],
+  "collapsedSegments": [
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.top.center"
+      },
+      "survivesLowering": false,
+      "projection": "collapsed; zero-length; not rendered"
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.top.clamp-c"
+      },
+      "survivesLowering": false,
+      "projection": "collapsed; zero-length; not rendered"
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.top.glow-right"
+      },
+      "survivesLowering": false,
+      "projection": "collapsed; zero-length; not rendered"
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.top.clamp-d"
+      },
+      "survivesLowering": false,
+      "projection": "collapsed; zero-length; not rendered"
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.top.cap-right"
+      },
+      "survivesLowering": false,
+      "projection": "collapsed; zero-length; not rendered"
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.bottom.center"
+      },
+      "survivesLowering": false,
+      "projection": "collapsed; zero-length; not rendered"
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.bottom.clamp-c"
+      },
+      "survivesLowering": false,
+      "projection": "collapsed; zero-length; not rendered"
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.bottom.glow-right"
+      },
+      "survivesLowering": false,
+      "projection": "collapsed; zero-length; not rendered"
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.bottom.clamp-d"
+      },
+      "survivesLowering": false,
+      "projection": "collapsed; zero-length; not rendered"
+    },
+    {
+      "conceptPath": {
+        "value": "panel.dialogue.bottom.cap-right"
+      },
+      "survivesLowering": false,
+      "projection": "collapsed; zero-length; not rendered"
+    }
+  ],
+  "visualLaw": "underflow summary uses error color; collapsed cards use error border and say runtime: collapsed (not rendered)"
+}

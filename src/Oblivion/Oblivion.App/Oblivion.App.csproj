@@ -11,6 +11,8 @@
     <ProjectReference Include="../Oblivion.UI/Oblivion.UI.csproj" />
     <ProjectReference Include="../../Copeland/Copeland.TS/Copeland.TS.csproj" />
     <ProjectReference Include="../../Copeland/Copeland.SpanAllocation/Copeland.SpanAllocation.csproj" />
+    <ProjectReference Include="../../Aurelian/Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />
+    <ProjectReference Include="../../Aurelian/Aurelian.Rendering.Raster/Aurelian.Rendering.Raster.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="OblivionSampleWorkspace/**/*">

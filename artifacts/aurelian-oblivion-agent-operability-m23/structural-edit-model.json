@@ -1,0 +1,23 @@
+{
+  "publicIntent": "SpriteCardStructuralEditIntent",
+  "editKinds": [
+    "InsertBefore",
+    "InsertAfter",
+    "Remove",
+    "MoveBefore",
+    "MoveAfter"
+  ],
+  "target": "ordered horizontalEdge/verticalEdge segments arrays only",
+  "authority": "*.obj.ts",
+  "generatedTomlAuthority": false,
+  "templateFanout": {
+    "horizontalEdge": [
+      "panel.dialogue.top",
+      "panel.dialogue.bottom"
+    ],
+    "verticalEdge": [
+      "panel.dialogue.left",
+      "panel.dialogue.right"
+    ]
+  }
+}

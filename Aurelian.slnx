@@ -16,6 +16,7 @@
     <Project Path="src/Aurelian/Aurelian.Rendering.Null/Aurelian.Rendering.Null.csproj" />
     <Project Path="src/Aurelian/Aurelian.Rendering.Raster/Aurelian.Rendering.Raster.csproj" />
     <Project Path="src/Aurelian/Aurelian.Runtime/Aurelian.Runtime.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Cli/Aurelian.Cli.csproj" />
     <Project Path="src/Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj" />
     <Project Path="src/Aurelian/Aurelian.Simulation/Aurelian.Simulation.csproj" />
     <Project Path="src/Aurelian/Aurelian.Field2D/Aurelian.Field2D.csproj" />
@@ -55,6 +56,7 @@
     <Project Path="tests/Aurelian/Aurelian.Rendering.Null.Tests/Aurelian.Rendering.Null.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Rendering.Raster.Tests/Aurelian.Rendering.Raster.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Runtime.Tests/Aurelian.Runtime.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.Cli.Tests/Aurelian.Cli.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Shaders.Tests/Aurelian.Shaders.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Simulation.Tests/Aurelian.Simulation.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Spatial2D.Tests/Aurelian.Spatial2D.Tests.csproj" />

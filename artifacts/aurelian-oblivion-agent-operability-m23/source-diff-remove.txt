@@ -1,0 +1,31 @@
+--- before (GraphicalSourceLocation { Path = C:\Users\yuech\AppData\Local\Temp\oblivion-m17-proof-877eb0c13b4f47c182d4b04ca9ecd569\sunkill-dialogue-panel.obj.ts, Start = 4029, Length = 745, Line = 169, Column = 19 })
+[
+            fixed(prefix + ".cap-left", capLeft, 42),
+            fixed(prefix + ".clamp-a", clamp, 7),
+            flex(prefix + ".glow-left", glow, glowMinimum, glowWeight, glowSampling),
+            // keep: clamp-b leads the center ornament
+            fixed(prefix + ".clamp-b", clamp, 7),
+
+            // keep: center remains authored
+            flex(prefix + ".center", center, centerMinimum, centerWeight, centerSampling),
+            fixed(prefix + ".clamp-c", clamp, 7),
+            fixed(prefix + ".clamp-decorative", clamp, 7),
+            flex(prefix + ".glow-right", glow, glowMinimum, glowWeight, glowSampling),
+            fixed(prefix + ".clamp-d", clamp, 7),
+            fixed(prefix + ".cap-right", capRight, 42),
+        ]
++++ after (GraphicalSourceLocation { Path = C:\Users\yuech\AppData\Local\Temp\oblivion-m17-proof-877eb0c13b4f47c182d4b04ca9ecd569\sunkill-dialogue-panel.obj.ts, Start = 4029, Length = 686, Line = 169, Column = 19 })
+[
+            fixed(prefix + ".cap-left", capLeft, 42),
+            fixed(prefix + ".clamp-a", clamp, 7),
+            flex(prefix + ".glow-left", glow, glowMinimum, glowWeight, glowSampling),
+            // keep: clamp-b leads the center ornament
+            fixed(prefix + ".clamp-b", clamp, 7),
+
+            // keep: center remains authored
+            flex(prefix + ".center", center, centerMinimum, centerWeight, centerSampling),
+            fixed(prefix + ".clamp-c", clamp, 7),
+            flex(prefix + ".glow-right", glow, glowMinimum, glowWeight, glowSampling),
+            fixed(prefix + ".clamp-d", clamp, 7),
+            fixed(prefix + ".cap-right", capRight, 42),
+        ]

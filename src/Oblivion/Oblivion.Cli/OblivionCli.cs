@@ -29,6 +29,10 @@ public sealed class OblivionCli
     private readonly OblivionConfigStore _configStore;
     private readonly Option<string?> _workspaceOption;
     private readonly Option<bool> _jsonOption;
+    private readonly Option<bool> _jsonCompactOption;
+    private readonly Option<string?> _sessionFileOption;
+    private bool _writeIndented = true;
+    private string? _discoveredWorkspace;
 
     public OblivionCli(
         TextWriter output,
@@ -52,6 +56,16 @@ public sealed class OblivionCli
             Description = "Write one deterministic JSON result to stdout.",
             Recursive = true,
         };
+        _jsonCompactOption = new Option<bool>("--json-compact")
+        {
+            Description = "Write one deterministic compact JSON result to stdout.",
+            Recursive = true,
+        };
+        _sessionFileOption = new Option<string?>("--session-file")
+        {
+            Description = "Read and atomically update a deterministic session document.",
+            Recursive = true,
+        };
     }
 
     public static Task<int> RunAsync(
@@ -69,6 +83,8 @@ public sealed class OblivionCli
         RootCommand root = new("Semantic shell access to Oblivion structured workspaces.");
         root.Options.Add(_workspaceOption);
         root.Options.Add(_jsonOption);
+        root.Options.Add(_jsonCompactOption);
+        root.Options.Add(_sessionFileOption);
 
         Command workspace = new("workspace", "Inspect, validate, or transactionally reload a workspace.");
         workspace.Subcommands.Add(CreateWorkspaceShowCommand());
@@ -80,8 +96,12 @@ public sealed class OblivionCli
 
         Command card = new("card", "Inspect semantic workspace cards.");
         card.Subcommands.Add(CreateCardListCommand());
+        card.Subcommands.Add(CreateCardQueryCommand());
         card.Subcommands.Add(CreateCardShowCommand());
         card.Subcommands.Add(CreateCardContentCommand());
+        card.Subcommands.Add(CreateCardReadCommand());
+        card.Subcommands.Add(CreateCardRenderCommand());
+        card.Subcommands.Add(CreateCardLayoutCommand());
         card.Subcommands.Add(CreateCardPeekCommand());
         card.Subcommands.Add(CreateCardPushCommand());
         card.Subcommands.Add(CreateCardPopCommand());
@@ -98,12 +118,23 @@ public sealed class OblivionCli
         Command function = new("function", "Inspect or run xUnit-backed Function Cards.");
         function.Subcommands.Add(CreateFunctionRunCommand());
 
+        Command schema = new("schema", "Describe the agent-operable command surface as data.");
+        schema.SetAction(parseResult => WriteSchema(Json(parseResult)));
+
+        Command context = new("context", "Maintain an explicit fidelity and token-budget context set.");
+        context.Subcommands.Add(CreateContextAddCommand());
+        context.Subcommands.Add(CreateContextRemoveCommand());
+        context.Subcommands.Add(CreateContextShowCommand());
+        context.Subcommands.Add(CreateContextBudgetCommand());
+
         root.Subcommands.Add(workspace);
         root.Subcommands.Add(page);
         root.Subcommands.Add(card);
         root.Subcommands.Add(config);
         root.Subcommands.Add(command);
         root.Subcommands.Add(function);
+        root.Subcommands.Add(schema);
+        root.Subcommands.Add(context);
         return root;
     }
 
@@ -114,6 +145,9 @@ public sealed class OblivionCli
         RootCommand root = CreateRootCommand();
         ParseResult parseResult = root.Parse(args);
         bool json = parseResult.GetValue(_jsonOption);
+        bool compact = parseResult.GetValue(_jsonCompactOption);
+        json |= compact;
+        _writeIndented = !compact;
         if (parseResult.Errors.Count > 0)
         {
             if (json)
@@ -141,7 +175,14 @@ public sealed class OblivionCli
 
         if (RequiresWorkspace(args) && string.IsNullOrWhiteSpace(parseResult.GetValue(_workspaceOption)))
         {
-            const string message = "Option '--workspace' is required for this command.";
+            _discoveredWorkspace = DiscoverWorkspace(Environment.CurrentDirectory);
+        }
+
+        if (RequiresWorkspace(args) &&
+            string.IsNullOrWhiteSpace(parseResult.GetValue(_workspaceOption)) &&
+            _discoveredWorkspace is null)
+        {
+            const string message = "No workspace.json was found in the current directory or its parents; pass '--workspace'.";
             if (json)
             {
                 WriteJson(new
@@ -306,6 +347,49 @@ public sealed class OblivionCli
         return command;
     }
 
+    private Command CreateCardQueryCommand()
+    {
+        Option<string?> pageOption = new("--page");
+        Option<string?> kindOption = new("--kind");
+        Option<string?> statusOption = new("--status");
+        Option<string?> tagOption = new("--tag");
+        Option<string?> containsOption = new("--contains");
+        Option<string?> fieldsOption = new("--fields")
+        {
+            Description = "Comma-separated fields to project without full payloads.",
+        };
+        Command command = new("query", "Filter Cards and return only requested semantic fields.");
+        command.Options.Add(pageOption);
+        command.Options.Add(kindOption);
+        command.Options.Add(statusOption);
+        command.Options.Add(tagOption);
+        command.Options.Add(containsOption);
+        command.Options.Add(fieldsOption);
+        command.SetAction(parseResult =>
+        {
+            string[] fields = (parseResult.GetValue(fieldsOption) ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            return WriteResult(
+                _control.QueryCards(
+                    Workspace(parseResult),
+                    parseResult.GetValue(pageOption),
+                    parseResult.GetValue(kindOption),
+                    parseResult.GetValue(statusOption),
+                    parseResult.GetValue(tagOption),
+                    parseResult.GetValue(containsOption),
+                    fields),
+                Json(parseResult),
+                rows =>
+                {
+                    foreach (IReadOnlyDictionary<string, object?> row in rows)
+                    {
+                        _output.WriteLine(string.Join("\t", row.Select(pair => $"{pair.Key}={pair.Value}")));
+                    }
+                });
+        });
+        return command;
+    }
+
     private Command CreateCardShowCommand()
     {
         Argument<string> cardIdArgument = new("card-id")
@@ -366,6 +450,134 @@ public sealed class OblivionCli
                 parseResult.GetValue(pageOption));
             return WriteResult(result, Json(parseResult), value => _output.Write(value.Content));
         });
+        return command;
+    }
+
+    private Command CreateCardReadCommand()
+    {
+        Argument<string> cardIdArgument = new("card-id")
+        {
+            Description = "Exact semantic Card id.",
+        };
+        Option<int> offsetOption = new("--offset")
+        {
+            Description = "Zero-based row or edge offset.",
+            DefaultValueFactory = _ => 0,
+        };
+        Option<int> limitOption = new("--limit")
+        {
+            Description = "Maximum rows or edges to return (1-500).",
+            DefaultValueFactory = _ => 100,
+        };
+        Option<string> fidelityOption = new("--fidelity")
+        {
+            Description = "Projection fidelity: summary, schema, or full.",
+            DefaultValueFactory = _ => "full",
+        };
+        Option<string?> emphasizeOption = new("--emphasize")
+        {
+            Description = "Comma-separated diagram node ids to mark as emphasized.",
+        };
+        Command command = new("read", "Read semantic Card content with bounded fidelity and paging.");
+        command.Arguments.Add(cardIdArgument);
+        command.Options.Add(offsetOption);
+        command.Options.Add(limitOption);
+        command.Options.Add(fidelityOption);
+        command.Options.Add(emphasizeOption);
+        command.SetAction(parseResult =>
+        {
+            OblivionControlResult<OblivionCardReadResult> result = _control.ReadCard(
+                Workspace(parseResult),
+                parseResult.GetValue(cardIdArgument)!,
+                parseResult.GetValue(fidelityOption)!,
+                parseResult.GetValue(offsetOption),
+                parseResult.GetValue(limitOption),
+                (parseResult.GetValue(emphasizeOption) ?? string.Empty)
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .ToHashSet(StringComparer.Ordinal));
+            return WriteResult(result, Json(parseResult), value =>
+            {
+                if (value.Text is not null)
+                {
+                    _output.Write(value.Text);
+                }
+                else
+                {
+                    _output.WriteLine(value.Summary);
+                }
+            });
+        });
+        return command;
+    }
+
+    private Command CreateCardRenderCommand()
+    {
+        Argument<string> cardIdArgument = new("card-id");
+        Option<string?> outputOption = new("--out") { Description = "PNG output path." };
+        Option<int> widthOption = new("--width") { DefaultValueFactory = _ => 1200 };
+        Option<int> heightOption = new("--height") { DefaultValueFactory = _ => 700 };
+        Option<int> offsetOption = new("--offset") { DefaultValueFactory = _ => 0 };
+        Option<int> limitOption = new("--limit") { DefaultValueFactory = _ => 100 };
+        Command command = new("render", "Render one Card headlessly to deterministic PNG.");
+        command.Arguments.Add(cardIdArgument);
+        command.Options.Add(outputOption);
+        command.Options.Add(widthOption);
+        command.Options.Add(heightOption);
+        command.Options.Add(offsetOption);
+        command.Options.Add(limitOption);
+        command.SetAction(parseResult =>
+        {
+            string? outputPath = parseResult.GetValue(outputOption);
+            if (string.IsNullOrWhiteSpace(outputPath))
+            {
+                const string message = "Option '--out' is required.";
+                if (Json(parseResult))
+                {
+                    WriteJson(new
+                    {
+                        succeeded = false,
+                        diagnostics = new[] { new { code = "OBLIVION-CLI-USAGE", severity = "error", message } },
+                    });
+                }
+                else
+                {
+                    _error.WriteLine("error:OBLIVION-CLI-USAGE:" + message);
+                }
+                return OblivionCliExitCode.UsageError;
+            }
+
+            return WriteResult(
+                _control.RenderCard(
+                    Workspace(parseResult),
+                    parseResult.GetValue(cardIdArgument)!,
+                    Path.GetFullPath(outputPath),
+                    parseResult.GetValue(widthOption),
+                    parseResult.GetValue(heightOption),
+                    parseResult.GetValue(offsetOption),
+                    parseResult.GetValue(limitOption)),
+                Json(parseResult),
+                value => _output.WriteLine(value.OutputPath));
+        });
+        return command;
+    }
+
+    private Command CreateCardLayoutCommand()
+    {
+        Argument<string> cardIdArgument = new("card-id");
+        Option<int> widthOption = new("--width") { DefaultValueFactory = _ => 1200 };
+        Option<int> heightOption = new("--height") { DefaultValueFactory = _ => 700 };
+        Command command = new("layout", "Inspect deterministic native Diagram layout and viewport fit.");
+        command.Arguments.Add(cardIdArgument);
+        command.Options.Add(widthOption);
+        command.Options.Add(heightOption);
+        command.SetAction(parseResult => WriteResult(
+            _control.InspectDiagramLayout(
+                Workspace(parseResult),
+                parseResult.GetValue(cardIdArgument)!,
+                parseResult.GetValue(widthOption),
+                parseResult.GetValue(heightOption)),
+            Json(parseResult),
+            value => _output.WriteLine($"{value.PolicyIdentity}: {value.Nodes.Count} nodes, {value.Edges.Count} edges, fit {value.FitScale:F3}")));
         return command;
     }
 
@@ -527,13 +739,14 @@ public sealed class OblivionCli
         {
             Description = "Exact stable application command id.",
         };
-        Command command = new("run", "Run one command against a process-local App session.");
+        Command command = new("run", "Run one command against an optional durable session document.");
         command.Arguments.Add(commandIdArgument);
         command.SetAction(parseResult =>
         {
             OblivionControlResult<OblivionCommandRunInfo> result = _control.RunCommand(
                 Workspace(parseResult),
-                parseResult.GetValue(commandIdArgument)!);
+                parseResult.GetValue(commandIdArgument)!,
+                SessionFile(parseResult));
             return WriteResult(result, Json(parseResult), value =>
             {
                 _output.WriteLine($"Executed {value.Id}: {value.Title}");
@@ -591,6 +804,103 @@ public sealed class OblivionCli
                 : OblivionCliExitCode.ProductFailure;
         });
         return command;
+    }
+
+    private Command CreateContextAddCommand()
+    {
+        Argument<string> cardId = new("card-id");
+        Option<string> fidelity = new("--fidelity")
+        {
+            DefaultValueFactory = _ => "summary",
+            Description = "Projection fidelity: summary, schema, or full.",
+        };
+        Command command = new("add", "Add or replace one Card fidelity selection.");
+        command.Arguments.Add(cardId);
+        command.Options.Add(fidelity);
+        command.SetAction(parseResult => WithRequiredSessionFile(parseResult, sessionFile => WriteResult(
+            _control.AddContextCard(
+                Workspace(parseResult),
+                sessionFile,
+                parseResult.GetValue(cardId)!,
+                parseResult.GetValue(fidelity)!),
+            Json(parseResult),
+            WriteContextText)));
+        return command;
+    }
+
+    private Command CreateContextRemoveCommand()
+    {
+        Argument<string> cardId = new("card-id");
+        Command command = new("remove", "Remove one Card from the context set.");
+        command.Arguments.Add(cardId);
+        command.SetAction(parseResult => WithRequiredSessionFile(parseResult, sessionFile => WriteResult(
+            _control.RemoveContextCard(
+                Workspace(parseResult),
+                sessionFile,
+                parseResult.GetValue(cardId)!),
+            Json(parseResult),
+            WriteContextText)));
+        return command;
+    }
+
+    private Command CreateContextShowCommand()
+    {
+        Command command = new("show", "Show selected fidelities and estimated budget use.");
+        command.SetAction(parseResult => WithRequiredSessionFile(parseResult, sessionFile => WriteResult(
+            _control.ShowContext(Workspace(parseResult), sessionFile),
+            Json(parseResult),
+            WriteContextText)));
+        return command;
+    }
+
+    private Command CreateContextBudgetCommand()
+    {
+        Argument<int> tokens = new("estimated-tokens");
+        Command command = new("budget", "Set the optional estimated-token ceiling.");
+        command.Arguments.Add(tokens);
+        command.SetAction(parseResult => WithRequiredSessionFile(parseResult, sessionFile => WriteResult(
+            _control.SetContextBudget(
+                Workspace(parseResult),
+                sessionFile,
+                parseResult.GetValue(tokens)),
+            Json(parseResult),
+            WriteContextText)));
+        return command;
+    }
+
+    private void WriteContextText(OblivionContextSetInfo context)
+    {
+        foreach (OblivionContextItem item in context.Items)
+        {
+            _output.WriteLine($"{item.CardId}\t{item.Fidelity}\t~{item.Cost.ApproximateTokens} tokens");
+        }
+        _output.WriteLine($"Total estimated tokens: {context.TotalEstimatedTokens}");
+        _output.WriteLine($"Budget: {context.TokenBudget?.ToString() ?? "<none>"}");
+        _output.WriteLine($"Over budget: {context.OverBudget}");
+    }
+
+    private int WithRequiredSessionFile(ParseResult parseResult, Func<string, int> action)
+    {
+        string? sessionFile = SessionFile(parseResult);
+        if (sessionFile is not null)
+        {
+            return action(sessionFile);
+        }
+
+        const string message = "Option '--session-file' is required for context commands.";
+        if (Json(parseResult))
+        {
+            WriteJson(new
+            {
+                succeeded = false,
+                diagnostics = new[] { new { code = "OBLIVION-CLI-USAGE", severity = "error", message } },
+            });
+        }
+        else
+        {
+            _error.WriteLine("error:OBLIVION-CLI-USAGE:" + message);
+        }
+        return OblivionCliExitCode.UsageError;
     }
 
     private int WriteConfigShow(OblivionConfigResult result, bool json)
@@ -780,12 +1090,90 @@ public sealed class OblivionCli
 
     private void WriteJson<T>(T value)
     {
-        _output.WriteLine(JsonSerializer.Serialize(value, JsonOptions));
+        JsonSerializerOptions options = new(JsonOptions) { WriteIndented = _writeIndented };
+        _output.WriteLine(JsonSerializer.Serialize(value, options));
     }
 
     private string Workspace(ParseResult parseResult)
     {
-        return Path.GetFullPath(parseResult.GetValue(_workspaceOption)!);
+        string? explicitWorkspace = parseResult.GetValue(_workspaceOption);
+        return Path.GetFullPath(explicitWorkspace ?? _discoveredWorkspace!);
+    }
+
+    private string? SessionFile(ParseResult parseResult)
+    {
+        string? path = parseResult.GetValue(_sessionFileOption);
+        return string.IsNullOrWhiteSpace(path) ? null : Path.GetFullPath(path);
+    }
+
+    private static string? DiscoverWorkspace(string startDirectory)
+    {
+        DirectoryInfo? directory = new(Path.GetFullPath(startDirectory));
+        while (directory is not null)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "workspace.json")))
+            {
+                return directory.FullName;
+            }
+
+            directory = directory.Parent;
+        }
+
+        return null;
+    }
+
+    private int WriteSchema(bool json)
+    {
+        var manifest = new
+        {
+            schema = "oblivion.cli.schema.v1",
+            commands = new object[]
+            {
+                new { id = "workspace.show", access = "read", workspace = "required-or-discovered" },
+                new { id = "workspace.validate", access = "read", workspace = "required-or-discovered" },
+                new { id = "page.list", access = "read", workspace = "required-or-discovered" },
+                new { id = "card.list", access = "read", arguments = new[] { "--page" } },
+                new { id = "card.query", access = "read", arguments = new[] { "--page", "--kind", "--status", "--tag", "--contains", "--fields" } },
+                new { id = "card.show", access = "read", arguments = new[] { "card-id" } },
+                new { id = "card.content", access = "read", arguments = new[] { "card-id", "--page" } },
+                new { id = "card.read", access = "read", arguments = new[] { "card-id", "--fidelity", "--offset", "--limit", "--emphasize" } },
+                new { id = "card.render", access = "write-artifact", arguments = new[] { "card-id", "--out", "--width", "--height", "--offset", "--limit" } },
+                new { id = "card.layout", access = "read", arguments = new[] { "card-id", "--width", "--height" } },
+                new { id = "card.push", access = "write", arguments = new[] { "markdown-file", "--page", "--id", "--title", "--subtitle" } },
+                new { id = "card.pop", access = "write", arguments = new[] { "--page" } },
+                new { id = "command.run", access = "session-write", arguments = new[] { "command-id", "--session-file" } },
+                new { id = "function.run", access = "execute", arguments = new[] { "card-id" } },
+                new { id = "context.add", access = "session-write", arguments = new[] { "card-id", "--fidelity", "--session-file" } },
+                new { id = "context.remove", access = "session-write", arguments = new[] { "card-id", "--session-file" } },
+                new { id = "context.show", access = "read", arguments = new[] { "--session-file" } },
+                new { id = "context.budget", access = "session-write", arguments = new[] { "estimated-tokens", "--session-file" } },
+                new { id = "schema", access = "read", arguments = Array.Empty<string>() },
+            },
+            globalOptions = new[] { "--workspace", "--session-file", "--json", "--json-compact" },
+            exitCodes = new { success = 0, productFailure = 1, usage = 2, workspaceUnavailable = 3, internalFailure = 4 },
+            sessionSchema = OblivionSessionDocument.CurrentSchema,
+            diagnostics = new[]
+            {
+                "OBLIVION-CLI-USAGE",
+                "OBLIVION-CLI-INTERNAL",
+                "OBLIVION-COMMAND-UNKNOWN",
+                "OBLIVION-SESSION-SCHEMA-INVALID",
+                "OBLIVION-SESSION-WORKSPACE-MISMATCH",
+                "OBLIVION-SESSION-READ-FAILED",
+                "OBLIVION-SESSION-WRITE-FAILED",
+            },
+        };
+        if (json)
+        {
+            WriteJson(manifest);
+        }
+        else
+        {
+            _output.WriteLine("oblivion.cli.schema.v1");
+            _output.WriteLine("Use --json or --json-compact for the machine-readable manifest.");
+        }
+
+        return OblivionCliExitCode.Success;
     }
 
     private static bool RequiresWorkspace(string[] args)
@@ -801,6 +1189,11 @@ public sealed class OblivionCli
             return false;
         }
 
+        if (Array.IndexOf(args, "schema") >= 0)
+        {
+            return false;
+        }
+
         int commandIndex = Array.IndexOf(args, "command");
         if (commandIndex >= 0 && commandIndex + 1 < args.Length && args[commandIndex + 1] == "list")
         {
@@ -812,14 +1205,14 @@ public sealed class OblivionCli
 
     private bool Json(ParseResult parseResult)
     {
-        return parseResult.GetValue(_jsonOption);
+        return parseResult.GetValue(_jsonOption) || parseResult.GetValue(_jsonCompactOption);
     }
 
     private static int FailureCode(IReadOnlyList<OblivionControlDiagnostic> diagnostics)
     {
         return diagnostics.Any(diagnostic => diagnostic.Code is
-            "missing-workspace-manifest" or
-            "workspace-unreadable")
+            "OBLIVION-MISSING-WORKSPACE-MANIFEST" or
+            "OBLIVION-WORKSPACE-UNREADABLE")
                 ? OblivionCliExitCode.WorkspaceUnavailable
                 : OblivionCliExitCode.ProductFailure;
     }

@@ -1,0 +1,25 @@
+{
+  "schema": "oblivion.diagram-layout.m23.v1",
+  "workspaceId": "m20d-layered-architecture",
+  "cardId": "diagram-realization-architecture",
+  "fixtureWasUnfamiliarToLegacyLayout": true,
+  "policyIdentity": "automatic-layered-v1",
+  "nodeCount": 14,
+  "edgeCount": 19,
+  "intrinsicBounds": { "width": 2340, "height": 252 },
+  "viewport": { "width": 1200, "height": 700 },
+  "fitScale": 0.5128205128205128,
+  "layerCount": 11,
+  "componentCount": 1,
+  "backEdgeCount": 1,
+  "crossLayerEdgeCount": 3,
+  "directedArrowheads": true,
+  "orthogonalRouteCount": 19,
+  "duplicateLabelAnchorCount": 0,
+  "diagnostics": [
+    "OBLIVION-NATIVE-CYCLE-NORMALIZED",
+    "OBLIVION-NATIVE-BACK-EDGES-ROUTED",
+    "OBLIVION-NATIVE-CROSS-LAYER-EDGES-ROUTED"
+  ],
+  "succeeded": true
+}

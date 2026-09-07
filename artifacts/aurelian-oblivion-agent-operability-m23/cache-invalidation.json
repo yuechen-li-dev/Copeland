@@ -1,0 +1,20 @@
+{
+  "schema": "oblivion.cache-invalidation.m23.v1",
+  "keyInputs": [
+    "source hash and all Copeland project inputs",
+    "project-reference closure hashes",
+    "package/central build props and lockfiles",
+    "compiler and lowering assembly/project identity",
+    "runtime target framework and properties",
+    "generated test harness project/options",
+    "runner and realization schema identity"
+  ],
+  "outputValidation": [
+    "test project exists",
+    "test assembly exists",
+    "test assembly SHA-256 matches persisted metadata"
+  ],
+  "sourceEditInvalidated": true,
+  "invalidatedRun": "cold",
+  "staleOutputReused": false
+}

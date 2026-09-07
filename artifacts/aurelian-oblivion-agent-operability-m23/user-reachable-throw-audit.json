@@ -1,0 +1,35 @@
+{
+  "schema": "oblivion.user-reachable-throw-audit.m23.v1",
+  "scope": [
+    "Oblivion.Cli",
+    "Oblivion.App",
+    "Oblivion.UI",
+    "automatic diagram layout",
+    "headless card rendering",
+    "Sprite Card structural editing"
+  ],
+  "searchTerms": ["throw", "Single", "First", "index access"],
+  "userReachableRawThrows": 0,
+  "fixed": [
+    {
+      "surface": "legacy M20b diagram layout",
+      "previousFailure": "unknown nodes raised InvalidOperationException",
+      "resolution": "delegates to bounded automatic layout and the CLI converts failures to OBLIVION-DIAGRAM-LAYOUT-FAILED"
+    },
+    {
+      "surface": "Sprite Card candidate refresh",
+      "previousFailure": "post-write refresh could raise and leave poisoned source",
+      "resolution": "candidate refresh is guarded and occurs before commit; failure returns a structured diagnostic"
+    }
+  ],
+  "safeInvariants": [
+    "private resolved-layout suffix lookup over renderer-authored nodes",
+    "effect request/result identity mismatch in typed in-process state",
+    "exhaustive enum switches for validated configuration and command ids",
+    "bounds-checked table presentation accessors",
+    "test and dogfood fixture Single calls",
+    "process-start throws caught within result-producing boundaries"
+  ],
+  "topLevelCliBoundary": "all unexpected exceptions become OBLIVION-CLI-INTERNAL with exit code 4 and no stack trace",
+  "result": "pass"
+}

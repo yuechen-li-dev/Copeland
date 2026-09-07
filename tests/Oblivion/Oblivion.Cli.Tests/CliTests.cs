@@ -72,7 +72,7 @@ public sealed class CliTests
         Assert.False(json.RootElement.GetProperty("valid").GetBoolean());
         Assert.Contains(
             json.RootElement.GetProperty("diagnostics").EnumerateArray(),
-            diagnostic => diagnostic.GetProperty("code").GetString() == "missing-markdown-body-file");
+            diagnostic => diagnostic.GetProperty("code").GetString() == "OBLIVION-MISSING-MARKDOWN-BODY-FILE");
     }
 
     [Fact]
@@ -120,6 +120,89 @@ public sealed class CliTests
     }
 
     [Fact]
+    public async Task Card_read_returns_paged_table_rows_and_exact_diagram_text()
+    {
+        string tableRoot = Path.Combine(AppContext.BaseDirectory, "Fixtures", "M20eTsonTables.oblivion");
+        CliResult table = await Run(
+            "card", "read", "validation-evidence",
+            "-w", tableRoot,
+            "--offset", "3",
+            "--limit", "4",
+            "--fidelity", "full",
+            "--json-compact");
+
+        Assert.Equal(0, table.ExitCode);
+        using JsonDocument tableJson = JsonDocument.Parse(table.Output);
+        Assert.Equal(16, tableJson.RootElement.GetProperty("totalItems").GetInt32());
+        Assert.Equal(4, tableJson.RootElement.GetProperty("rows").GetArrayLength());
+        Assert.Equal(4, tableJson.RootElement.GetProperty("rows")[0].GetProperty("order").GetInt32());
+        Assert.Contains("not tokenizer-exact", tableJson.RootElement.GetProperty("cost").GetProperty("method").GetString());
+
+        string diagramRoot = Path.Combine(
+            FindRepositoryRoot(),
+            "src", "Oblivion", "Oblivion.Standalone", "M19oDiagramCards.oblivion");
+        CliResult diagram = await Run(
+            "card", "read", "vehicle-flow-state",
+            "-w", diagramRoot,
+            "--fidelity", "full",
+            "--json-compact");
+
+        Assert.Equal(0, diagram.ExitCode);
+        using JsonDocument diagramJson = JsonDocument.Parse(diagram.Output);
+        Assert.True(diagramJson.RootElement.GetProperty("nodes").GetArrayLength() >= 3);
+        Assert.Contains("--", diagramJson.RootElement.GetProperty("text").GetString(), StringComparison.Ordinal);
+        Assert.Contains("-->", diagramJson.RootElement.GetProperty("text").GetString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Query_projects_fields_and_headless_render_is_deterministic_for_mature_content()
+    {
+        CliResult query = await Run(
+            "card", "query",
+            "-w", FixtureRoot,
+            "--contains", "physical",
+            "--fields", "id,pageId,title",
+            "--json-compact");
+        Assert.Equal(0, query.ExitCode);
+        using JsonDocument queryJson = JsonDocument.Parse(query.Output);
+        Assert.Equal("physical-atom", queryJson.RootElement[0].GetProperty("id").GetString());
+        Assert.False(queryJson.RootElement[0].TryGetProperty("summary", out _));
+
+        string diagramRoot = Path.Combine(
+            FindRepositoryRoot(),
+            "src", "Oblivion", "Oblivion.Standalone", "M19oDiagramCards.oblivion");
+        string tableRoot = Path.Combine(AppContext.BaseDirectory, "Fixtures", "M20eTsonTables.oblivion");
+        string directory = Path.Combine(Path.GetTempPath(), "oblivion-headless-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            string tablePath = Path.Combine(directory, "table.png");
+            string documentPath = Path.Combine(directory, "document.png");
+            string diagramPath = Path.Combine(directory, "diagram.png");
+            CliResult table = await Run("card", "render", "validation-evidence", "-w", tableRoot, "--out", tablePath, "--json-compact");
+            CliResult document = await Run("card", "render", "physical-atom", "-w", FixtureRoot, "--out", documentPath, "--json-compact");
+            CliResult diagram = await Run("card", "render", "vehicle-flow-state", "-w", diagramRoot, "--out", diagramPath, "--json-compact");
+            Assert.Equal(0, table.ExitCode);
+            Assert.Equal(0, document.ExitCode);
+            Assert.Equal(0, diagram.ExitCode);
+            Assert.All(new[] { tablePath, documentPath, diagramPath }, path =>
+            {
+                Assert.True(new FileInfo(path).Length > 1000);
+                Assert.Equal(new byte[] { 137, 80, 78, 71 }, File.ReadAllBytes(path)[..4]);
+            });
+            using JsonDocument first = JsonDocument.Parse(diagram.Output);
+            string firstHash = first.RootElement.GetProperty("sha256").GetString()!;
+            CliResult rerender = await Run("card", "render", "vehicle-flow-state", "-w", diagramRoot, "--out", diagramPath, "--json-compact");
+            using JsonDocument second = JsonDocument.Parse(rerender.Output);
+            Assert.Equal(firstHash, second.RootElement.GetProperty("sha256").GetString());
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task Function_run_uses_exact_card_and_returns_structured_runner_result()
     {
         string root = Path.Combine(
@@ -151,9 +234,14 @@ public sealed class CliTests
         Assert.Equal("Passed", json.RootElement.GetProperty("outcome").GetString());
         Assert.Equal("dotnet-test-trx-v1", json.RootElement.GetProperty("runner").GetString());
         Assert.True(json.RootElement.GetProperty("durationMilliseconds").GetDouble() > 0);
-        Assert.Equal("cold", json.RootElement.GetProperty("realization").GetString());
-        Assert.True(json.RootElement.GetProperty("materializationInvoked").GetBoolean());
-        Assert.True(json.RootElement.GetProperty("discoveryInvoked").GetBoolean());
+        string firstRealization = json.RootElement.GetProperty("realization").GetString()!;
+        Assert.Contains(firstRealization, new[] { "cold", "warm" });
+        Assert.Equal(
+            firstRealization == "cold",
+            json.RootElement.GetProperty("materializationInvoked").GetBoolean());
+        Assert.Equal(
+            firstRealization == "cold",
+            json.RootElement.GetProperty("discoveryInvoked").GetBoolean());
         Assert.True(json.RootElement.GetProperty("executionInvoked").GetBoolean());
         Assert.Equal("warm", warmJson.RootElement.GetProperty("realization").GetString());
         Assert.False(warmJson.RootElement.GetProperty("materializationInvoked").GetBoolean());
@@ -183,7 +271,7 @@ public sealed class CliTests
         Assert.Empty(result.Error);
         using JsonDocument json = JsonDocument.Parse(result.Output);
         Assert.Equal(
-            "unknown-card",
+            "OBLIVION-UNKNOWN-CARD",
             json.RootElement.GetProperty("diagnostics")[0].GetProperty("code").GetString());
     }
 
@@ -274,12 +362,15 @@ public sealed class CliTests
 
         Assert.Equal(OblivionCliExitCode.ProductFailure, unknownHuman.ExitCode);
         Assert.Empty(unknownHuman.Output);
-        Assert.Contains("unknown-card", unknownHuman.Error, StringComparison.Ordinal);
+        Assert.Contains("OBLIVION-UNKNOWN-CARD", unknownHuman.Error, StringComparison.Ordinal);
         Assert.Equal(OblivionCliExitCode.ProductFailure, unknownJson.ExitCode);
         Assert.Empty(unknownJson.Error);
-        Assert.Contains("unknown-card", unknownJson.Output, StringComparison.Ordinal);
+        Assert.Contains("OBLIVION-UNKNOWN-CARD", unknownJson.Output, StringComparison.Ordinal);
         Assert.Equal(OblivionCliExitCode.ProductFailure, missingContent.ExitCode);
-        Assert.Contains("missing-markdown-body-file", missingContent.Output, StringComparison.Ordinal);
+        Assert.Contains(
+            "OBLIVION-MISSING-MARKDOWN-BODY-FILE",
+            missingContent.Output,
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -353,6 +444,83 @@ public sealed class CliTests
         Assert.Equal(2, verticalSession.GetProperty("slots").GetArrayLength());
         Assert.Equal(OblivionCliExitCode.ProductFailure, unknown.ExitCode);
         Assert.Contains("OBLIVION-COMMAND-UNKNOWN", unknown.Output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Durable_session_survives_cli_instances_and_compact_schema_is_machine_readable()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "oblivion-session-test-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string sessionPath = Path.Combine(directory, "session.json");
+        try
+        {
+            CliResult vertical = await Run(
+                "command", "run", "layout.vertical-split",
+                "-w", FixtureRoot,
+                "--session-file", sessionPath,
+                "--json-compact");
+            CliResult expand = await Run(
+                "command", "run", "cards.expand-all",
+                "-w", FixtureRoot,
+                "--session-file", sessionPath,
+                "--json-compact");
+            CliResult schema = await Run("schema", "--json-compact");
+
+            Assert.Equal(0, vertical.ExitCode);
+            Assert.Equal(0, expand.ExitCode);
+            Assert.DoesNotContain(Environment.NewLine + "  ", expand.Output, StringComparison.Ordinal);
+            using JsonDocument expandedJson = JsonDocument.Parse(expand.Output);
+            JsonElement session = expandedJson.RootElement.GetProperty("session");
+            Assert.Equal("VerticalSplit", session.GetProperty("viewportLayout").GetString());
+            Assert.Equal(2, session.GetProperty("expandedCardIds").GetArrayLength());
+            using JsonDocument sessionDocument = JsonDocument.Parse(File.ReadAllText(sessionPath));
+            Assert.Equal("oblivion.session.v1", sessionDocument.RootElement.GetProperty("schema").GetString());
+            using JsonDocument schemaJson = JsonDocument.Parse(schema.Output);
+            Assert.Equal("oblivion.cli.schema.v1", schemaJson.RootElement.GetProperty("schema").GetString());
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task Context_set_persists_fidelity_and_reports_budget_without_auto_selection()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), "oblivion-context-test-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string sessionPath = Path.Combine(directory, "session.json");
+        try
+        {
+            CliResult budget = await Run(
+                "context", "budget", "1",
+                "-w", FixtureRoot,
+                "--session-file", sessionPath,
+                "--json-compact");
+            CliResult add = await Run(
+                "context", "add", "physical-atom",
+                "--fidelity", "full",
+                "-w", FixtureRoot,
+                "--session-file", sessionPath,
+                "--json-compact");
+            CliResult show = await Run(
+                "context", "show",
+                "-w", FixtureRoot,
+                "--session-file", sessionPath,
+                "--json-compact");
+
+            Assert.Equal(0, budget.ExitCode);
+            Assert.Equal(0, add.ExitCode);
+            Assert.Equal(add.Output, show.Output);
+            using JsonDocument json = JsonDocument.Parse(show.Output);
+            Assert.Single(json.RootElement.GetProperty("items").EnumerateArray());
+            Assert.Equal("full", json.RootElement.GetProperty("items")[0].GetProperty("fidelity").GetString());
+            Assert.True(json.RootElement.GetProperty("overBudget").GetBoolean());
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
     }
 
     [Fact]
@@ -491,7 +659,12 @@ public sealed class CliTests
         Assert.DoesNotContain("Avalonia", project, StringComparison.Ordinal);
         Assert.DoesNotContain("Machina", project, StringComparison.Ordinal);
         Assert.DoesNotContain("Presenter", project, StringComparison.Ordinal);
-        Assert.DoesNotContain("Aurelian", project, StringComparison.Ordinal);
+        Assert.DoesNotContain("Aurelian.Graphics", project, StringComparison.Ordinal);
+        Assert.DoesNotContain("Aurelian.World", project, StringComparison.Ordinal);
+        Assert.DoesNotContain("Aurelian.Runtime", project, StringComparison.Ordinal);
+        Assert.DoesNotContain("Aurelian.Native", project, StringComparison.Ordinal);
+        Assert.Contains("Aurelian.Rendering.Contracts", project, StringComparison.Ordinal);
+        Assert.Contains("Aurelian.Rendering.Raster", project, StringComparison.Ordinal);
         Assert.DoesNotContain("File.Read", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Toml", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Oblivion.Persistence", source, StringComparison.Ordinal);

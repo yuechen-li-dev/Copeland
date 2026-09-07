@@ -224,4 +224,9 @@ public sealed record OrderedWorldSprite(
     SpriteFrameMetadata Frame,
     NativeQuadSubmission Submission);
 
+/// <summary>Allocation-free carrier for an owner-held stable realtime projection.</summary>
+public readonly record struct PreparedWorldSprite(
+    WorldSpriteLayer Layer,
+    NativeQuadSubmission Submission);
+
 public sealed record WorldPresentationSnapshot(IReadOnlyList<WorldSprite> Sprites);

@@ -7,5 +7,7 @@
   <ItemGroup>
     <PackageReference Include="System.CommandLine" />
     <ProjectReference Include="../Oblivion.App/Oblivion.App.csproj" />
+    <ProjectReference Include="../../Aurelian/Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />
+    <ProjectReference Include="../../Aurelian/Aurelian.Rendering.Raster/Aurelian.Rendering.Raster.csproj" />
   </ItemGroup>
 </Project>

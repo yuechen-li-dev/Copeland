@@ -1,0 +1,78 @@
+{
+  "schema": "oblivion.session-roundtrip.m23.v1",
+  "process1": {
+    "activePageId": "notebook",
+    "selectedCardId": "physical-atom",
+    "expandedCardIds": [],
+    "viewportLayout": "VerticalSplit",
+    "focusedSlot": "A",
+    "slots": [
+      {
+        "slotId": "A",
+        "cardId": "physical-atom"
+      },
+      {
+        "slotId": "B",
+        "cardId": "notebook-stack"
+      }
+    ]
+  },
+  "process2": {
+    "activePageId": "notebook",
+    "selectedCardId": "physical-atom",
+    "expandedCardIds": [
+      "physical-atom",
+      "notebook-stack"
+    ],
+    "viewportLayout": "VerticalSplit",
+    "focusedSlot": "A",
+    "slots": [
+      {
+        "slotId": "A",
+        "cardId": "physical-atom"
+      },
+      {
+        "slotId": "B",
+        "cardId": "notebook-stack"
+      }
+    ]
+  },
+  "persistedDocument": {
+    "schema": "oblivion.session.v1",
+    "workspaceRoot": "C:\\Users\\yuech\\source\\repos\\Copeland\\src\\Oblivion\\Oblivion.Standalone\\M19iNotebook.oblivion",
+    "workspaceId": "m19i-notebook",
+    "activePageId": "notebook",
+    "state": {
+      "mainScrollOffsetByPageId": {},
+      "inspectorScrollOffsetByPageId": {},
+      "selectedCardByPageId": {
+        "notebook": "physical-atom"
+      },
+      "rawSourceScrollOffsetByCardId": {},
+      "cardViewStateByPageId": {
+        "notebook": {
+          "physical-atom": {
+            "isExpanded": true,
+            "bodyScrollOffset": 0
+          },
+          "notebook-stack": {
+            "isExpanded": true,
+            "bodyScrollOffset": 0
+          }
+        }
+      },
+      "viewportStateByPageId": {
+        "notebook": {
+          "layoutMode": "VerticalSplit",
+          "focusedSlot": "A"
+        }
+      },
+      "diagramViewportStateByCardId": {},
+      "functionExecutionByCardId": {},
+      "contextFidelityByCardId": {},
+      "contextTokenBudget": null,
+      "inspectorPaneSelected": false
+    }
+  },
+  "preserved": true
+}

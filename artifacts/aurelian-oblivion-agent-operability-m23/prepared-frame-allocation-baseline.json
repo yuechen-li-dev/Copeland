@@ -1,0 +1,21 @@
+{
+  "schema": "aurelian.prepared-frame-allocation-baseline.m23.v1",
+  "sourceArtifact": "../aurelian-runtime-soak-hardening-m22/vulkan-100k-soak.json",
+  "backend": "TinyFarm.Native / AurelianGameHost / Vulkan",
+  "scene": "riverside",
+  "frameCount": 100000,
+  "allocatedBytes": 14815759104,
+  "allocatedBytesPerFrame": 148157.59104,
+  "attributionSourceArtifact": "../aurelian-runtime-soak-hardening-m22/vulkan-100k-soak.json",
+  "attributionMeasuredFramesIncludingWarmup": 100120,
+  "attribution": {
+    "projectionAllocatedBytes": 1161013392,
+    "compositionAllocatedBytes": 11662840888,
+    "swapchainAllocatedBytes": 275554400,
+    "worldAllocatedBytes": 10686800856,
+    "overlayAllocatedBytes": 697254720,
+    "nativePassAllocatedBytes": 702974632
+  },
+  "dominantConfirmedSource": "World sprite projection rebuilt and sorted immutable records each stable frame; enum comparison boxed per comparison.",
+  "nullControl": "M22 established bounded no-transcript execution; the prepared-world change targets the real presenter rather than weakening public semantic results."
+}

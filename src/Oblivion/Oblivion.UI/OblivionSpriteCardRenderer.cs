@@ -179,13 +179,14 @@ public static class OblivionSpriteCardRenderer
     {
         bool selected = options.Selected == card.ConceptPath;
         bool related = options.Selected is null || selected || card.Relationships.Any(relation => relation.Target == options.Selected);
+        bool collapsed = card.Resolved?.Length == 0 && card.Runtime.Projection.Contains("collapsed", StringComparison.Ordinal);
         string opacity = related ? "1" : "0.32";
         svg.Append("<g opacity=\"").Append(opacity).Append("\">");
         svg.Append("<rect x=\"").Append(x).Append("\" y=\"").Append(y)
             .Append("\" width=\"").Append(options.CardWidth).Append("\" height=\"")
             .Append(options.CardHeight).Append("\" rx=\"8\" fill=\"#0f1b2d\" stroke=\"")
-            .Append(selected ? "#fbbf24" : card.Diagnostics.Count > 0 ? "#ef4444" : "#334155")
-            .Append("\" stroke-width=\"").Append(selected ? 3 : 1).Append("\"/>");
+            .Append(selected ? "#fbbf24" : collapsed || card.Diagnostics.Count > 0 ? "#ef4444" : "#334155")
+            .Append("\" stroke-width=\"").Append(selected || collapsed ? 3 : 1).Append("\"/>");
         Text(svg, x + 12, y + 24, 11, "#38bdf8", card.Kind.ToString().ToUpperInvariant(), bold: true);
         IReadOnlyList<string> pathLines = Wrap(card.ConceptPath.Value, 30);
         int cursor = y + 48;
@@ -273,8 +274,8 @@ public static class OblivionSpriteCardRenderer
             x + 12,
             y + options.CardHeight - 14,
             10,
-            card.Runtime.SurvivesLowering ? "#a7f3d0" : "#f0abfc",
-            card.Runtime.SurvivesLowering ? "runtime: survives" : "runtime: erased");
+            card.Runtime.SurvivesLowering ? "#a7f3d0" : collapsed ? "#fca5a5" : "#f0abfc",
+            card.Runtime.SurvivesLowering ? "runtime: survives" : collapsed ? "runtime: collapsed (not rendered)" : "runtime: erased");
         svg.AppendLine("</g>");
 
     }

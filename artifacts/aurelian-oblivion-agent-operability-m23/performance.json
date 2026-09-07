@@ -1,0 +1,32 @@
+{
+  "schema": "aurelian-oblivion.performance.m23.v1",
+  "oblivionFunctionRealization": {
+    "coldBuildMilliseconds": 2851.9681,
+    "coldTotalMilliseconds": 4885.5663,
+    "warmBuildMilliseconds": 0,
+    "warmDiscoveryMilliseconds": 0,
+    "warmTotalMilliseconds": 1065.1259,
+    "latencyReductionPercent": 78.2,
+    "warmStillExecutesRequestedTest": true
+  },
+  "wholeProcessCliMeanOfTenMilliseconds": {
+    "cardReadSummary": 186.594,
+    "tablePagingFiveRows": 201.821,
+    "diagramLayout1200x700": 231.156,
+    "headlessTableRaster1200x700": 222.2,
+    "sessionLoadAndContextShow": 216.69,
+    "note": "Includes dotnet process startup and workspace load; not an in-process microbenchmark."
+  },
+  "aurelianAgentCli": {
+    "tick1000FramesMeanOfFiveMilliseconds": 152.626,
+    "approximateTicksPerSecond": 6552.0,
+    "drawDescriptionMeanOfTenMilliseconds": 121.27,
+    "backend": "Rendering.Null",
+    "stateMachineAuthority": "AurelianRuntimeSession over Dominatus"
+  },
+  "preparedFrame": {
+    "baselineAllocatedBytesPerFrame": 148157.59104,
+    "afterAllocatedBytesPerFrame": 56435.0388,
+    "reductionPercent": 61.9088
+  }
+}
