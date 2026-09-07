@@ -1,0 +1,10 @@
+{
+  "schema": "aurelian.plant-kind-audit.m22.v1",
+  "meaning": "native graphics plant implementation family and resource ownership identity",
+  "values": ["Unknown", "Vulkan"],
+  "vulkan": "real native device, queue, resource, and presentation owner",
+  "raster": "renderer mechanism; not a native graphics plant",
+  "null": "trace renderer mechanism; not a native graphics plant",
+  "casesAdded": [],
+  "conclusion": "valid single-production-backend abstraction; keep narrow"
+}

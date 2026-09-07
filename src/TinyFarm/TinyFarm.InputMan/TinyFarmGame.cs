@@ -9,7 +9,7 @@ using TinyFarm.Oblivion;
 
 namespace TinyFarm.InputMan;
 
-public enum SupperScreen
+public enum TinyFarmScreen
 {
     Title,
     Playing,
@@ -19,7 +19,7 @@ public enum SupperScreen
 }
 
 /// <summary>Small-game application policy; all world changes go through the simulation host.</summary>
-public sealed class TinyFarmSupperGame
+public sealed class TinyFarmGame
 {
     private readonly TinyFarmInputController controls = new();
     private readonly TinyFarmAudioProjector audioProjector = new();
@@ -30,7 +30,7 @@ public sealed class TinyFarmSupperGame
     private Task? pendingSave;
     private Task<LoadedSaveCandidate>? pendingLoad;
 
-    public TinyFarmSupperGame(ISaveStore store)
+    public TinyFarmGame(ISaveStore store)
     {
         this.store = store;
         Definitions = TinyFarmDefinitionLoader.LoadM21();
@@ -46,10 +46,10 @@ public sealed class TinyFarmSupperGame
     public TinyFarmDeliverancePersistence Persistence { get; }
     public TinyFarmOblivionLiveSurfaces LiveInspection { get; }
     public TinyFarmState State => Host.Session.State;
-    public SupperScreen Screen { get; private set; } = SupperScreen.Title;
+    public TinyFarmScreen Screen { get; private set; } = TinyFarmScreen.Title;
     public string Status { get; private set; } = "A note from Mara: let us make this place feel like home.";
     public bool ShouldQuit { get; private set; }
-    public bool CapturesGameplay => Screen != SupperScreen.Playing || Dialogue.IsActive;
+    public bool CapturesGameplay => Screen != TinyFarmScreen.Playing || Dialogue.IsActive;
     public EffectRuntime Effects { get; private set; } = NewEffects();
     public Queue<AudioCue> PendingAudio { get; } = new();
     public int AcceptedActions { get; private set; }
@@ -67,16 +67,16 @@ public sealed class TinyFarmSupperGame
 
     public void Start()
     {
-        if (Screen == SupperScreen.Title)
+        if (Screen == TinyFarmScreen.Title)
         {
             Status = "Plant a seed by the house. Mara is in town until noon, then by the river.";
         }
-        Screen = SupperScreen.Playing;
+        Screen = TinyFarmScreen.Playing;
     }
 
     public void Handle(InputFrame input)
     {
-        if (input.WasPressed(GameControls.Save) && Screen != SupperScreen.Title)
+        if (input.WasPressed(GameControls.Save) && Screen != TinyFarmScreen.Title)
         {
             BeginSave();
             return;
@@ -86,7 +86,7 @@ public sealed class TinyFarmSupperGame
             BeginLoad();
             return;
         }
-        if (Screen != SupperScreen.Playing && input.WasPressed(GameControls.Quit))
+        if (Screen != TinyFarmScreen.Playing && input.WasPressed(GameControls.Quit))
         {
             ShouldQuit = true;
             return;
@@ -118,10 +118,10 @@ public sealed class TinyFarmSupperGame
                     Execute(submit.Intent);
                     break;
                 case TogglePauseCommand:
-                    Screen = SupperScreen.Paused;
+                    Screen = TinyFarmScreen.Paused;
                     break;
                 case ToggleInventoryCommand:
-                    Screen = SupperScreen.Inventory;
+                    Screen = TinyFarmScreen.Inventory;
                     break;
             }
             if (CapturesGameplay)
@@ -255,7 +255,7 @@ public sealed class TinyFarmSupperGame
             LoadedSaveCandidate candidate = Persistence.Deliverance.LoadAsync("supper",
                 Persistence.GetLoadDefinitions("supper"), Persistence.GetLoadCompatibility("supper")).GetAwaiter().GetResult();
             Persistence.CommitLoadedCandidate("supper", candidate);
-            Screen = SupperScreen.Playing;
+            Screen = TinyFarmScreen.Playing;
             completionShown = TinyFarmSupper.IsComplete(State);
             effectsScene = null;
             FeedbackEpoch++;
@@ -317,7 +317,7 @@ public sealed class TinyFarmSupperGame
             {
                 LoadedSaveCandidate candidate = pendingLoad.GetAwaiter().GetResult();
                 Persistence.CommitLoadedCandidate("supper", candidate);
-                Screen = SupperScreen.Playing;
+                Screen = TinyFarmScreen.Playing;
                 completionShown = TinyFarmSupper.IsComplete(State);
                 effectsScene = null;
                 FeedbackEpoch++;
@@ -352,7 +352,7 @@ public sealed class TinyFarmSupperGame
         if (TinyFarmSupper.IsComplete(State) && !Dialogue.IsActive && !completionShown)
         {
             completionShown = true;
-            Screen = SupperScreen.Complete;
+            Screen = TinyFarmScreen.Complete;
             Status = "Supper is ready. Tomorrow can wait.";
         }
     }

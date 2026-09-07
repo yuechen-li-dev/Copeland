@@ -1,0 +1,33 @@
+{
+  "schema": "aurelian.runtime.field-long-run.m22.v1",
+  "scene": "riverside",
+  "frameCount": 100000,
+  "semanticHashSamples": [
+    {
+      "Frame": 1,
+      "FieldHash": "4173cad912348c4d5b8a78ac6a94c77b07641cda5b0aeacef4605afce2363d65"
+    },
+    {
+      "Frame": 1000,
+      "FieldHash": "311aa22d84ac55d425ded065e9cafcfa3fb1782a1177903a78b712ae2599741d"
+    },
+    {
+      "Frame": 10000,
+      "FieldHash": "7327b5d2134550d5a9eec617d629622c7694fe86788cfbe7ed920580077cb8f9"
+    },
+    {
+      "Frame": 50000,
+      "FieldHash": "da5d4843001a36c025c9e6c3dcc8f77ba7de456658c1cdf6329d2a7c57b085d7"
+    },
+    {
+      "Frame": 100000,
+      "FieldHash": "07a9292d61837d57b39287f2093e47947777e1cb4441d46952dc0121c1fb7d36"
+    }
+  ],
+  "projectionGeneration": 100285,
+  "recentEventCount": 16,
+  "recentEventCapacity": 16,
+  "FieldTextureUploads": 100120,
+  "FieldUploadBytes": 123347840,
+  "boundedRecentEvents": true
+}

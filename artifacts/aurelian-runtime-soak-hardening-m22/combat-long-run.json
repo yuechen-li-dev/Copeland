@@ -1,0 +1,10 @@
+{
+  "Schema": "aurelian.runtime.combat-long-run.m22.v1",
+  "ActionCount": 10000,
+  "AcceptedCount": 10000,
+  "CompletedCount": 10000,
+  "MaximumHitIdsPerAction": 1,
+  "AllocatedBytes": 1265530776,
+  "ElapsedMilliseconds": 2460.4812,
+  "Bounded": true
+}

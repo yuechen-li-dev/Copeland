@@ -1,0 +1,46 @@
+{
+  "schema": "aurelian.runtime.performance-comparison.m22.v1",
+  "baseline": {
+    "FrameCount": 100000,
+    "ElapsedMilliseconds": 1517.4189,
+    "MeanFrameMilliseconds": 0.015143655000000613,
+    "P95FrameMilliseconds": 0.007,
+    "P99FrameMilliseconds": 0.0092,
+    "WorstFrameMilliseconds": 62.1362,
+    "AllocatedBytes": 680159856,
+    "allocatedBytesPerFrame": 6801.59856,
+    "RetainedIterations": 100000,
+    "PostWarmupManagedBytesPerFrame": 337.5402653496316
+  },
+  "production": {
+    "FrameCount": 1000000,
+    "ElapsedMilliseconds": 8157.7871,
+    "MeanFrameMilliseconds": 0.00815772829999663,
+    "P95FrameMilliseconds": 0.0019,
+    "P99FrameMilliseconds": 0.0025,
+    "WorstFrameMilliseconds": 9.9398,
+    "AllocatedBytes": 6699313656,
+    "allocatedBytesPerFrame": 6699.313656,
+    "RetainedIterations": 0,
+    "PostWarmupManagedBytesPerFrame": 0.15417682533764424
+  },
+  "nativeTextCacheFix": {
+    "preFix": {
+      "meanFrameMilliseconds": 7.41209149799999,
+      "p99FrameMilliseconds": 12.8767,
+      "worstFrameMilliseconds": 64.834,
+      "postWarmupManagedBytesPerFrame": 3.66914638021155,
+      "textGeometryCacheEntriesAtFrame1000": 38,
+      "textGeometryCacheEntriesAtFrame100000": 370
+    },
+    "postFix": {
+      "meanFrameMilliseconds": 7.30965164300012,
+      "p99FrameMilliseconds": 12.3449,
+      "worstFrameMilliseconds": 30.0773,
+      "postWarmupManagedBytesPerFrame": -14.6155258015393,
+      "textGeometryCacheEntriesAtFrame1000": 38,
+      "textGeometryCacheEntriesAtFrame100000": 256,
+      "textGeometryCacheCapacity": 256
+    }
+  }
+}

@@ -30,7 +30,7 @@ internal static class VisibleTrianglePresenterScreenStack
         return stack;
     }
 
-    public static async Task<AurelianFrameLoopResult> RunWorldScreenAsync(
+    public static async Task<AurelianFrameLoopHarnessResult> RunWorldScreenAsync(
         PresenterScreenStack screenStack,
         AurelianRuntimeTickFrameStep runtimeTickStep,
         CancellationToken cancellationToken = default)

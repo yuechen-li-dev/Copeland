@@ -1,0 +1,16 @@
+{
+  "schema": "aurelian.severity-consolidation.m22.v1",
+  "sharedType": "Aurelian.Diagnostics.AurelianDiagnosticSeverity",
+  "values": ["Info", "Warning", "Error"],
+  "deletedTypes": [
+    "AurelianEngineDiagnosticSeverity",
+    "AurelianFrameDiagnosticSeverity",
+    "AurelianFrameLoopDiagnosticSeverity",
+    "AurelianRuntimeTickFrameStepDiagnosticSeverity",
+    "AurelianPreparedGraphicsSubsystemDiagnosticSeverity",
+    "WorldActuationDiagnosticSeverity",
+    "PlantRegistryDiagnosticSeverity"
+  ],
+  "diagnosticCodeSpacesUnified": false,
+  "typedDiagnosticRecordsUnified": false
+}

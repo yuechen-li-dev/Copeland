@@ -160,7 +160,7 @@ public sealed class TinyFarmProductionFieldM21Tests
     [Fact]
     public void ActiveHostedCombatIsAnExplicitSaveBoundary()
     {
-        var game = new TinyFarmSupperGame(new MemorySaveStore());
+        var game = new TinyFarmGame(new MemorySaveStore());
         game.Start();
         PlacePlayer(game.State, TinyFarmSceneIds.Riverside, WaterPosition());
         game.Host.ExecuteIntent(new SelectHotbarSlotIntent(new HotbarSlotId(4)));

@@ -15,7 +15,7 @@ internal sealed class VisibleTriangleWorldScreen
 
     public VisibleTriangleSampleFrame SampleFrame => sampleFrame;
 
-    public Task<AurelianFrameLoopResult> RunFrameLoopAsync(
+    public Task<AurelianFrameLoopHarnessResult> RunFrameLoopAsync(
         AurelianRuntimeTickFrameStep runtimeTickStep,
         CancellationToken cancellationToken = default)
     {
@@ -31,6 +31,6 @@ internal sealed class VisibleTriangleWorldScreen
                 StopOnFrameFailure: true),
             runtimeTickStep);
 
-        return frameLoop.RunAsync(sampleFrame.StartFrameId, cancellationToken);
+        return frameLoop.RunHarnessAsync(sampleFrame.StartFrameId, cancellationToken);
     }
 }

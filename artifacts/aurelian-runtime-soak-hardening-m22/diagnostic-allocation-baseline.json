@@ -1,0 +1,7 @@
+{
+  "schema": "aurelian.runtime.diagnostic-allocation.m22.v1",
+  "source": "pre-hardening-equivalent explicit transcript harness",
+  "AllocatedBytes": 680159856,
+  "allocatedBytesPerFrame": 6801.59856,
+  "RetainedIterations": 100000
+}

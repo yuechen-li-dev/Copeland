@@ -1,5 +1,6 @@
 using Aurelian.Core.Engine.Graphics;
 using Aurelian.Core.Engine.Runtime;
+using Aurelian.Diagnostics;
 using Aurelian.Rendering.Contracts.Presentation;
 
 namespace Aurelian.Core.Engine.Frames;
@@ -26,14 +27,57 @@ public sealed class AurelianFrameLoop
         this.runtimeTickStep = runtimeTickStep;
     }
 
-    public async Task<AurelianFrameLoopResult> RunAsync(
+    /// <summary>Runs with bounded completion diagnostics and no frame transcript.</summary>
+    public Task<AurelianFrameLoopResult> RunAsync(
         AurelianFrameId startFrame,
         CancellationToken cancellationToken = default)
     {
-        List<AurelianFrameLoopIterationResult> iterations = [];
-        List<AurelianFrameLoopDiagnostic> diagnostics = [];
+        return ExecuteAsync(startFrame, iterationSink: null, cancellationToken);
+    }
 
-        AurelianFrameLoopResult? rejected = Validate(iterations, diagnostics);
+    /// <summary>Runs a finite evidence harness and retains every attempted iteration explicitly.</summary>
+    public async Task<AurelianFrameLoopHarnessResult> RunHarnessAsync(
+        AurelianFrameId startFrame,
+        CancellationToken cancellationToken = default)
+    {
+        if (options.MaxFrames is null)
+        {
+            var diagnostic = new AurelianFrameLoopDiagnostic(
+                AurelianFrameLoopDiagnosticCodes.HarnessRequiresFiniteMaxFrames,
+                AurelianDiagnosticSeverity.Error,
+                "Full transcript capture requires an explicit finite MaxFrames value.");
+            var rejected = new AurelianFrameLoopResult(
+                AurelianFrameLoopStatus.Rejected,
+                AurelianFrameLoopStopReason.Rejected,
+                0,
+                0,
+                [diagnostic]);
+            return new AurelianFrameLoopHarnessResult(rejected, []);
+        }
+
+        var collector = new TranscriptCollector(options.MaxFrames.Value);
+        AurelianFrameLoopResult completion = await ExecuteAsync(startFrame, collector, cancellationToken)
+            .ConfigureAwait(false);
+        return new AurelianFrameLoopHarnessResult(completion, collector.Materialize());
+    }
+
+    /// <summary>Streams iteration evidence to a caller-owned sink without retaining it in the loop.</summary>
+    public Task<AurelianFrameLoopResult> RunWithSinkAsync(
+        AurelianFrameId startFrame,
+        IAurelianFrameLoopIterationSink iterationSink,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(iterationSink);
+        return ExecuteAsync(startFrame, iterationSink, cancellationToken);
+    }
+
+    private async Task<AurelianFrameLoopResult> ExecuteAsync(
+        AurelianFrameId startFrame,
+        IAurelianFrameLoopIterationSink? iterationSink,
+        CancellationToken cancellationToken)
+    {
+        var diagnostics = new BoundedDiagnosticBuffer(options.MaxRetainedDiagnostics);
+        AurelianFrameLoopResult? rejected = Validate(diagnostics);
         if (rejected is not null)
         {
             return rejected;
@@ -56,7 +100,6 @@ public sealed class AurelianFrameLoop
                         AurelianFrameLoopStopReason.MaxFramesReached,
                         framesAttempted,
                         framesCompleted,
-                        iterations,
                         diagnostics);
                 }
 
@@ -68,7 +111,7 @@ public sealed class AurelianFrameLoop
                 {
                     diagnostics.Add(new AurelianFrameLoopDiagnostic(
                         AurelianFrameLoopDiagnosticCodes.FrameInputMissing,
-                        AurelianFrameLoopDiagnosticSeverity.Info,
+                        AurelianDiagnosticSeverity.Info,
                         $"Frame input provider completed before frame {frameId}."));
 
                     return Result(
@@ -76,7 +119,6 @@ public sealed class AurelianFrameLoop
                         AurelianFrameLoopStopReason.InputProviderCompleted,
                         framesAttempted,
                         framesCompleted,
-                        iterations,
                         diagnostics);
                 }
 
@@ -87,7 +129,7 @@ public sealed class AurelianFrameLoop
                     {
                         diagnostics.Add(new AurelianFrameLoopDiagnostic(
                             AurelianFrameLoopDiagnosticCodes.CloseRejected,
-                            AurelianFrameLoopDiagnosticSeverity.Error,
+                            AurelianDiagnosticSeverity.Error,
                             "Aurelian engine rejected the explicit close request."));
 
                         return Result(
@@ -95,13 +137,12 @@ public sealed class AurelianFrameLoop
                             AurelianFrameLoopStopReason.FrameFailed,
                             framesAttempted,
                             framesCompleted,
-                            iterations,
                             diagnostics);
                     }
 
                     diagnostics.Add(new AurelianFrameLoopDiagnostic(
                         AurelianFrameLoopDiagnosticCodes.CloseAccepted,
-                        AurelianFrameLoopDiagnosticSeverity.Info,
+                        AurelianDiagnosticSeverity.Info,
                         "Aurelian engine accepted the explicit close request before a new frame began."));
 
                     return Result(
@@ -109,12 +150,10 @@ public sealed class AurelianFrameLoop
                         AurelianFrameLoopStopReason.CloseRequested,
                         framesAttempted,
                         framesCompleted,
-                        iterations,
                         diagnostics);
                 }
 
                 framesAttempted++;
-
                 AurelianRuntimeTickFrameStepResult? runtimeTickResult = null;
                 if (runtimeTickStep is not null)
                 {
@@ -124,7 +163,7 @@ public sealed class AurelianFrameLoop
 
                     if (!runtimeTickResult.Success)
                     {
-                        diagnostics.Add(MapRuntimeTickDiagnostic(runtimeTickResult));
+                        diagnostics.Add(CreateRuntimeTickFailureDiagnostic(runtimeTickResult));
 
                         return Result(
                             runtimeTickResult.Status == AurelianRuntimeTickFrameStepStatus.Cancelled
@@ -135,7 +174,6 @@ public sealed class AurelianFrameLoop
                                 : AurelianFrameLoopStopReason.FrameFailed,
                             framesAttempted,
                             framesCompleted,
-                            iterations,
                             diagnostics);
                     }
                 }
@@ -148,7 +186,6 @@ public sealed class AurelianFrameLoop
                 if (frameResult.Success)
                 {
                     framesCompleted++;
-
                     if (options.PresentAfterCompletedFrame && presentationMechanism is not null)
                     {
                         try
@@ -164,7 +201,7 @@ public sealed class AurelianFrameLoop
                         {
                             diagnostics.Add(new AurelianFrameLoopDiagnostic(
                                 AurelianFrameLoopDiagnosticCodes.PresentationFailed,
-                                AurelianFrameLoopDiagnosticSeverity.Error,
+                                AurelianDiagnosticSeverity.Error,
                                 $"Frame {input.FrameId} presentation failed: {ex.Message}"));
 
                             return Result(
@@ -172,19 +209,25 @@ public sealed class AurelianFrameLoop
                                 AurelianFrameLoopStopReason.FrameFailed,
                                 framesAttempted,
                                 framesCompleted,
-                                iterations,
                                 diagnostics);
                         }
                     }
                 }
 
-                iterations.Add(new AurelianFrameLoopIterationResult(input.FrameId, runtimeTickResult, frameResult, presented));
+                if (iterationSink is not null)
+                {
+                    iterationSink.OnIteration(new AurelianFrameLoopIterationResult(
+                        input.FrameId,
+                        runtimeTickResult,
+                        frameResult,
+                        presented));
+                }
 
                 if (!frameResult.Success)
                 {
                     diagnostics.Add(new AurelianFrameLoopDiagnostic(
                         AurelianFrameLoopDiagnosticCodes.FrameFailed,
-                        AurelianFrameLoopDiagnosticSeverity.Error,
+                        AurelianDiagnosticSeverity.Error,
                         $"Frame {input.FrameId} ended with status {frameResult.Status}."));
 
                     if (options.StopOnFrameFailure)
@@ -194,7 +237,6 @@ public sealed class AurelianFrameLoop
                             AurelianFrameLoopStopReason.FrameFailed,
                             framesAttempted,
                             framesCompleted,
-                            iterations,
                             diagnostics);
                     }
                 }
@@ -206,7 +248,7 @@ public sealed class AurelianFrameLoop
         {
             diagnostics.Add(new AurelianFrameLoopDiagnostic(
                 AurelianFrameLoopDiagnosticCodes.Cancelled,
-                AurelianFrameLoopDiagnosticSeverity.Warning,
+                AurelianDiagnosticSeverity.Warning,
                 "Aurelian frame loop run was canceled."));
 
             return Result(
@@ -214,14 +256,13 @@ public sealed class AurelianFrameLoop
                 AurelianFrameLoopStopReason.Cancelled,
                 framesAttempted,
                 framesCompleted,
-                iterations,
                 diagnostics);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             diagnostics.Add(new AurelianFrameLoopDiagnostic(
                 AurelianFrameLoopDiagnosticCodes.FrameFailed,
-                AurelianFrameLoopDiagnosticSeverity.Error,
+                AurelianDiagnosticSeverity.Error,
                 $"Frame loop failed: {ex.Message}"));
 
             return Result(
@@ -229,46 +270,53 @@ public sealed class AurelianFrameLoop
                 AurelianFrameLoopStopReason.FrameFailed,
                 framesAttempted,
                 framesCompleted,
-                iterations,
                 diagnostics);
         }
     }
 
-    private AurelianFrameLoopResult? Validate(
-        List<AurelianFrameLoopIterationResult> iterations,
-        List<AurelianFrameLoopDiagnostic> diagnostics)
+    private AurelianFrameLoopResult? Validate(BoundedDiagnosticBuffer diagnostics)
     {
+        if (options.MaxRetainedDiagnostics <= 0)
+        {
+            diagnostics.Add(new AurelianFrameLoopDiagnostic(
+                AurelianFrameLoopDiagnosticCodes.InvalidDiagnosticCapacity,
+                AurelianDiagnosticSeverity.Error,
+                "Aurelian frame loop MaxRetainedDiagnostics must be greater than zero."));
+            return Result(AurelianFrameLoopStatus.Rejected, AurelianFrameLoopStopReason.Rejected, 0, 0, diagnostics);
+        }
+
         if (framePump is null)
         {
             diagnostics.Add(new AurelianFrameLoopDiagnostic(
                 AurelianFrameLoopDiagnosticCodes.FramePumpMissing,
-                AurelianFrameLoopDiagnosticSeverity.Error,
+                AurelianDiagnosticSeverity.Error,
                 "Aurelian frame loop requires an existing frame pump."));
-            return Result(AurelianFrameLoopStatus.Rejected, AurelianFrameLoopStopReason.Rejected, 0, 0, iterations, diagnostics);
+            return Result(AurelianFrameLoopStatus.Rejected, AurelianFrameLoopStopReason.Rejected, 0, 0, diagnostics);
         }
 
         if (inputProvider is null)
         {
             diagnostics.Add(new AurelianFrameLoopDiagnostic(
                 AurelianFrameLoopDiagnosticCodes.InputProviderMissing,
-                AurelianFrameLoopDiagnosticSeverity.Error,
+                AurelianDiagnosticSeverity.Error,
                 "Aurelian frame loop requires a frame input provider."));
-            return Result(AurelianFrameLoopStatus.Rejected, AurelianFrameLoopStopReason.Rejected, 0, 0, iterations, diagnostics);
+            return Result(AurelianFrameLoopStatus.Rejected, AurelianFrameLoopStopReason.Rejected, 0, 0, diagnostics);
         }
 
         if (options.MaxFrames is <= 0)
         {
             diagnostics.Add(new AurelianFrameLoopDiagnostic(
                 AurelianFrameLoopDiagnosticCodes.InvalidMaxFrames,
-                AurelianFrameLoopDiagnosticSeverity.Error,
+                AurelianDiagnosticSeverity.Error,
                 "Aurelian frame loop MaxFrames must be greater than zero when provided."));
-            return Result(AurelianFrameLoopStatus.Rejected, AurelianFrameLoopStopReason.Rejected, 0, 0, iterations, diagnostics);
+            return Result(AurelianFrameLoopStatus.Rejected, AurelianFrameLoopStopReason.Rejected, 0, 0, diagnostics);
         }
 
         return null;
     }
 
-    private static AurelianFrameLoopDiagnostic MapRuntimeTickDiagnostic(AurelianRuntimeTickFrameStepResult runtimeTickResult)
+    private static AurelianFrameLoopDiagnostic CreateRuntimeTickFailureDiagnostic(
+        AurelianRuntimeTickFrameStepResult runtimeTickResult)
     {
         string code = runtimeTickResult.Status switch
         {
@@ -277,9 +325,9 @@ public sealed class AurelianFrameLoop
             _ => AurelianFrameLoopDiagnosticCodes.RuntimeTickFailed,
         };
 
-        AurelianFrameLoopDiagnosticSeverity severity = runtimeTickResult.Status == AurelianRuntimeTickFrameStepStatus.Cancelled
-            ? AurelianFrameLoopDiagnosticSeverity.Warning
-            : AurelianFrameLoopDiagnosticSeverity.Error;
+        AurelianDiagnosticSeverity severity = runtimeTickResult.Status == AurelianRuntimeTickFrameStepStatus.Cancelled
+            ? AurelianDiagnosticSeverity.Warning
+            : AurelianDiagnosticSeverity.Error;
         string detail = runtimeTickResult.Diagnostics.Count > 0
             ? string.Join("; ", runtimeTickResult.Diagnostics.Select(static diagnostic => $"{diagnostic.Code}: {diagnostic.Message}"))
             : $"Runtime tick frame step ended with status {runtimeTickResult.Status}.";
@@ -295,7 +343,66 @@ public sealed class AurelianFrameLoop
         AurelianFrameLoopStopReason stopReason,
         int framesAttempted,
         int framesCompleted,
-        IReadOnlyList<AurelianFrameLoopIterationResult> iterations,
-        IReadOnlyList<AurelianFrameLoopDiagnostic> diagnostics) =>
-        new(status, stopReason, framesAttempted, framesCompleted, iterations.ToArray(), diagnostics.ToArray());
+        BoundedDiagnosticBuffer diagnostics)
+    {
+        return new AurelianFrameLoopResult(
+            status,
+            stopReason,
+            framesAttempted,
+            framesCompleted,
+            diagnostics.Materialize(),
+            diagnostics.DroppedCount);
+    }
+
+    private sealed class TranscriptCollector : IAurelianFrameLoopIterationSink
+    {
+        private readonly List<AurelianFrameLoopIterationResult> iterations;
+
+        public TranscriptCollector(int capacity)
+        {
+            iterations = new List<AurelianFrameLoopIterationResult>(capacity);
+        }
+
+        public void OnIteration(AurelianFrameLoopIterationResult iteration)
+        {
+            iterations.Add(iteration);
+        }
+
+        public IReadOnlyList<AurelianFrameLoopIterationResult> Materialize()
+        {
+            return iterations.ToArray();
+        }
+    }
+
+    private sealed class BoundedDiagnosticBuffer
+    {
+        private readonly int capacity;
+        private readonly List<AurelianFrameLoopDiagnostic> diagnostics;
+
+        public BoundedDiagnosticBuffer(int capacity)
+        {
+            this.capacity = Math.Max(1, capacity);
+            diagnostics = new List<AurelianFrameLoopDiagnostic>(Math.Min(this.capacity, 16));
+        }
+
+        public int DroppedCount { get; private set; }
+
+        public void Add(AurelianFrameLoopDiagnostic diagnostic)
+        {
+            if (diagnostics.Count < capacity)
+            {
+                diagnostics.Add(diagnostic);
+                return;
+            }
+
+            DroppedCount++;
+        }
+
+        public IReadOnlyList<AurelianFrameLoopDiagnostic> Materialize()
+        {
+            return diagnostics.Count == 0
+                ? Array.Empty<AurelianFrameLoopDiagnostic>()
+                : diagnostics.ToArray();
+        }
+    }
 }

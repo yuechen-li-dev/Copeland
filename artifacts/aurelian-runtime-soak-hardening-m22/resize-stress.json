@@ -1,0 +1,5 @@
+{
+  "schema": "aurelian.runtime.resize-stress.m22.v1",
+  "qualified": false,
+  "reason": "TinyFarm production window is intentionally fixed-border and exposes no resize-driving test seam; no platform code was added solely for M22."
+}

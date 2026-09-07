@@ -11,8 +11,8 @@ public sealed class TinyFarmFullGameM9Tests
     [Fact]
     public void StartHasObjectiveToolsAndNoCompletedJobs()
     {
-        TinyFarmSupperGame game = Create();
-        Assert.Equal(SupperScreen.Title, game.Screen);
+        TinyFarmGame game = Create();
+        Assert.Equal(TinyFarmScreen.Title, game.Screen);
         Assert.True(game.CapturesGameplay);
         Assert.Equal(TinyFarmSceneIds.Farm, game.State.CurrentScene);
         Assert.Contains(WorldFact.SupperRequested, game.State.Facts);
@@ -27,7 +27,7 @@ public sealed class TinyFarmFullGameM9Tests
     [Fact]
     public void PrematureCompletionRejectsWithoutAnySemanticMutation()
     {
-        TinyFarmSupperGame game = Create();
+        TinyFarmGame game = Create();
         string before = TinyFarmSemanticHash.Compute(game.State);
         var resolver = new TinyFarmResolver(game.Definitions);
         var reduction = resolver.Resolve(game.State,
@@ -40,8 +40,8 @@ public sealed class TinyFarmFullGameM9Tests
     public void RealSessionCompletesWithDialogueScenesSaveRestoreAndReplayParity()
     {
         FileSaveStore store = NewStore();
-        var game = new TinyFarmSupperGame(store);
-        var walkthrough = new TinyFarmSupperWalkthrough(game);
+        var game = new TinyFarmGame(store);
+        var walkthrough = new TinyFarmWalkthrough(game);
         bool midSave = false;
         walkthrough.Checkpoint = name =>
         {
@@ -59,7 +59,7 @@ public sealed class TinyFarmFullGameM9Tests
                 game.Advance(TimeSpan.FromSeconds(1), engine.CurrentFrame, true);
                 Assert.Equal(before, TinyFarmSemanticHash.Compute(game.State));
                 Assert.True(game.Save());
-                var restoredDialogue = new TinyFarmSupperGame(store);
+                var restoredDialogue = new TinyFarmGame(store);
                 Assert.True(restoredDialogue.Load());
                 Assert.True(restoredDialogue.Dialogue.IsActive);
                 Assert.Equal(game.Dialogue.Presentation!.OperationId, restoredDialogue.Dialogue.Presentation!.OperationId);
@@ -73,7 +73,7 @@ public sealed class TinyFarmFullGameM9Tests
             Assert.False(TinyFarmSupper.IsComplete(game.State));
             Assert.True(TinyFarmSupper.IsReady(game.State));
             Assert.True(game.Save());
-            TinyFarmSupperGame restored = new(store);
+            TinyFarmGame restored = new(store);
             Assert.True(restored.Load());
             Assert.Equal(TinyFarmSemanticHash.Compute(game.State), TinyFarmSemanticHash.Compute(restored.State));
             Assert.Equal(game.Host.Session.NextSequence, restored.Host.Session.NextSequence);
@@ -81,7 +81,7 @@ public sealed class TinyFarmFullGameM9Tests
             Assert.Equal(game.State.ActorScenes, restored.State.ActorScenes);
             Assert.Equal(game.State.Minute, restored.State.Minute);
             Assert.Equal(game.State.InventoryStacks, restored.State.InventoryStacks);
-            new TinyFarmSupperWalkthrough(restored).FinishFromKitchen();
+            new TinyFarmWalkthrough(restored).FinishFromKitchen();
             Assert.True(TinyFarmSupper.IsComplete(restored.State));
             midSave = true;
         };
@@ -92,7 +92,7 @@ public sealed class TinyFarmFullGameM9Tests
         Assert.Contains("mara.supper-ready", game.Dialogue.Trace);
         Assert.Contains("mara.supper-thanks", game.Dialogue.Trace);
         Assert.Equal(TinyFarmIds.Mara, game.State.Item(TinyFarmIds.WildMint).Owner);
-        Assert.Equal(SupperScreen.Complete, game.Screen);
+        Assert.Equal(TinyFarmScreen.Complete, game.Screen);
         Assert.True(game.EffectEvents > 0);
         Assert.True(game.AudioEvents > 0);
         Assert.Equal(IntentReason.SupperAlreadyCompleted, game.Execute(new CompleteSupperIntent()).Results.First().Reason);
@@ -101,7 +101,7 @@ public sealed class TinyFarmFullGameM9Tests
     [Fact]
     public void MenuContextsSuppressMovementAttackAndHotbar()
     {
-        TinyFarmSupperGame game = Create();
+        TinyFarmGame game = Create();
         var engine = new InputManEngine(GameControls.CreateProfile());
         engine.SetMaps(game.Contexts);
         engine.Tick(new InputSnapshot(new Dictionary<ControlKey, bool>
@@ -119,7 +119,7 @@ public sealed class TinyFarmFullGameM9Tests
     [Fact]
     public void MissingSaveLeavesLiveSessionIntactAndReportsFailure()
     {
-        TinyFarmSupperGame game = Create();
+        TinyFarmGame game = Create();
         string before = TinyFarmSemanticHash.Compute(game.State);
         Assert.False(game.Load());
         Assert.Equal(before, TinyFarmSemanticHash.Compute(game.State));
@@ -130,7 +130,7 @@ public sealed class TinyFarmFullGameM9Tests
     public async Task GameplaySaveBeginsWithoutWaitingForStorage()
     {
         var store = new GatedSaveStore();
-        var game = new TinyFarmSupperGame(store);
+        var game = new TinyFarmGame(store);
         game.Start();
 
         long started = Stopwatch.GetTimestamp();
@@ -154,7 +154,7 @@ public sealed class TinyFarmFullGameM9Tests
         Assert.StartsWith("Saved.", game.Status);
     }
 
-    private static TinyFarmSupperGame Create() => new(NewStore());
+    private static TinyFarmGame Create() => new(NewStore());
 
     private static FileSaveStore NewStore()
     {

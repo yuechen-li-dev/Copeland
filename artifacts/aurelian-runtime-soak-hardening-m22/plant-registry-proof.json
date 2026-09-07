@@ -1,0 +1,14 @@
+{
+  "schema": "aurelian.plant-registry-proof.m22.v1",
+  "deadSkipValidationParameterPresent": false,
+  "singleFailurePathPresent": false,
+  "stableCodes": ["AGP1001", "AGP1002", "AGP1003", "AGP1004"],
+  "cases": {
+    "zeroPresentationPlants": "rejected: AGP1003",
+    "onePresentationPlant": "accepted",
+    "twoPresentationPlants": "rejected: AGP1004",
+    "invalidEmptyInput": "rejected: AGP1001",
+    "validConstruction": "accepted and sorted"
+  },
+  "focusedTestsPassed": 13
+}

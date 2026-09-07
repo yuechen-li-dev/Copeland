@@ -1,0 +1,12 @@
+{
+  "schema": "aurelian.runtime.thread-affinity.m22.v1",
+  "EntryThreadId": 2,
+  "InputThreadIds": [
+    2
+  ],
+  "DispatchThreadIds": [
+    2
+  ],
+  "ExitThreadId": 2,
+  "assessment": "stable in this synchronization-context-free completed-task control"
+}

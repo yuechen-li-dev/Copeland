@@ -15,28 +15,38 @@ using Silk.NET.Windowing;
 
 namespace TinyFarm.Native;
 
+// Historical note: the first native TinyFarm proof was codenamed "Supper".
 internal static class Program
 {
     [STAThread]
     private static int Main(string[] args)
     {
         string root = FindRoot();
-        bool proof = args.Contains("--proof", StringComparer.Ordinal);
+        int soakFrames = ParseSoakFrames(args);
+        bool proof = args.Contains("--proof", StringComparer.Ordinal) || soakFrames > 0;
         string saveRoot = proof ? Path.Combine(root, "artifacts", "validation", "m9-saves")
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TinyFarm", "saves");
         try
         {
-            var game = new TinyFarmSupperGame(new FileSaveStore(saveRoot));
+            var game = new TinyFarmGame(new FileSaveStore(saveRoot));
             var input = new AurelianInputAdapter(new InputManEngine(GameControls.CreateProfile()));
             input.SetContexts(game.Contexts);
-            var window = SupperWindow.Create(input, proof);
-            using var resources = SupperAudio.CreateResources();
+            var window = TinyFarmNativeWindow.Create(input, proof, vSync: soakFrames == 0);
+            using var resources = TinyFarmNativeAudio.CreateResources();
             IAudioOutputBackend backend;
             string audioBackend;
             try
             {
-                backend = new NAudioOutputBackend();
-                audioBackend = "Windows NAudio";
+                if (soakFrames > 0)
+                {
+                    backend = new NullAudioOutputBackend();
+                    audioBackend = "Null soak backend";
+                }
+                else
+                {
+                    backend = new NAudioOutputBackend();
+                    audioBackend = "Windows NAudio";
+                }
             }
             catch (Exception error) when (error is not OutOfMemoryException)
             {
@@ -45,18 +55,23 @@ internal static class Program
             }
             var audio = new AurelianAudioRuntime(resources, backend, voiceCapacity: 16);
             audio.SetBusVolume(AudioBusId.Master, .35f);
-            audio.Play(new TinyFarmAudioProjector().FarmMusic(new AudioEventId("supper:music")) with { Priority = 100 });
-            var renderer = new SupperRenderer(root, game, window, proof);
-            var application = new SupperApplication(game, input, window, audio);
+            audio.Play(new TinyFarmAudioProjector().FarmMusic(new AudioEventId("tinyfarm:music")) with { Priority = 100 });
+            var renderer = new TinyFarmNativeRenderer(root, game, window, proof, vSync: soakFrames == 0);
+            var application = new TinyFarmNativeApplication(game, input, window, audio);
             using var host = new AurelianGameHost(window, input, renderer, application, "TinyFarm", audio);
+            if (soakFrames > 0)
+            {
+                TinyFarmNativeSoak.Run(root, soakFrames, game, renderer, host);
+                return 0;
+            }
             if (proof)
             {
-                SupperProof.Run(root, game, input, renderer, host, audio, audioBackend);
+                TinyFarmNativeProof.Run(root, game, input, renderer, host, audio, audioBackend);
                 return 0;
             }
             if (args.Contains("--window-smoke", StringComparer.Ordinal))
             {
-                SupperProof.RunWindow(game, window, host);
+                TinyFarmNativeProof.RunWindow(game, window, host);
                 return 0;
             }
             var clock = Stopwatch.StartNew();
@@ -96,21 +111,43 @@ internal static class Program
         }
         throw new DirectoryNotFoundException("Run TinyFarm from its repository build.");
     }
+
+    private static int ParseSoakFrames(string[] args)
+    {
+        for (int index = 0; index < args.Length; index++)
+        {
+            if (!string.Equals(args[index], "--soak-frames", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (index + 1 >= args.Length
+                || !int.TryParse(args[index + 1], out int frames)
+                || frames <= 0)
+            {
+                throw new ArgumentException("--soak-frames requires a positive integer frame count.");
+            }
+
+            return frames;
+        }
+
+        return 0;
+    }
 }
 
-internal sealed class SupperApplication(TinyFarmSupperGame game, AurelianInputAdapter input,
-    SupperWindow window, AurelianAudioRuntime audio) : IAurelianGameApplication
+internal sealed class TinyFarmNativeApplication(TinyFarmGame game, AurelianInputAdapter input,
+    TinyFarmNativeWindow window, AurelianAudioRuntime audio) : IAurelianGameApplication
 {
     public void OnResize(HostSurfaceSize size) { }
     public void OnSimulationTick(AurelianHostFrame frame)
     {
         string? dialogueBefore = game.Dialogue.Presentation?.OperationId;
-        SupperScreen screenBefore = game.Screen;
+        TinyFarmScreen screenBefore = game.Screen;
         int feedbackEpoch = game.FeedbackEpoch;
         game.Handle(input.CurrentFrame);
         if (dialogueBefore != game.Dialogue.Presentation?.OperationId || screenBefore != game.Screen)
         {
-            audio.Play(new AudioCue(new AudioEventId($"ui:{frame.Sequence}"), SupperAudio.Confirm, AudioBusId.UI, Volume: .3f));
+            audio.Play(new AudioCue(new AudioEventId($"ui:{frame.Sequence}"), TinyFarmNativeAudio.Confirm, AudioBusId.UI, Volume: .3f));
         }
         if (feedbackEpoch != game.FeedbackEpoch)
         {
@@ -135,7 +172,7 @@ internal sealed class SupperApplication(TinyFarmSupperGame game, AurelianInputAd
     public void Dispose() { }
 }
 
-internal sealed class SupperWindow : IAurelianGameWindow
+internal sealed class TinyFarmNativeWindow : IAurelianGameWindow
 {
     private readonly IWindow window;
     private readonly AurelianInputAdapter input;
@@ -145,7 +182,7 @@ internal sealed class SupperWindow : IAurelianGameWindow
     private bool disposed;
     private bool focused;
 
-    private SupperWindow(
+    private TinyFarmNativeWindow(
         IWindow window,
         IInputContext inputContext,
         SilkInputBridge inputBridge,
@@ -164,20 +201,20 @@ internal sealed class SupperWindow : IAurelianGameWindow
         window.FocusChanged += OnFocusChanged;
     }
 
-    public static SupperWindow Create(AurelianInputAdapter input, bool proof)
+    public static TinyFarmNativeWindow Create(AurelianInputAdapter input, bool proof, bool vSync = true)
     {
         WindowOptions options = WindowOptions.DefaultVulkan;
         options.IsVisible = !proof;
         options.Size = new Vector2D<int>(1280, 720);
         options.Title = "TinyFarm - A Little Mint of Kindness";
-        options.VSync = true;
+        options.VSync = vSync;
         options.WindowBorder = WindowBorder.Fixed;
         IWindow window = Silk.NET.Windowing.Window.Create(options);
         window.Initialize();
         IReadOnlyList<string> requiredExtensions = ReadRequiredVulkanExtensions(window);
         IInputContext inputContext = window.CreateInput();
         var inputBridge = new SilkInputBridge(inputContext, input);
-        return new SupperWindow(window, inputContext, inputBridge, input, proof, requiredExtensions);
+        return new TinyFarmNativeWindow(window, inputContext, inputBridge, input, proof, requiredExtensions);
     }
 
     public IWindow NativeWindow => window;
@@ -235,7 +272,7 @@ internal sealed class SupperWindow : IAurelianGameWindow
     }
 }
 
-internal static class SupperAudio
+internal static class TinyFarmNativeAudio
 {
     public static readonly AudioAssetId Confirm = new("tinyfarm.ui.confirm");
     public static AudioResourceScope CreateResources()

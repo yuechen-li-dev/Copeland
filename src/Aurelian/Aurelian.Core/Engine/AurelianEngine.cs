@@ -1,4 +1,5 @@
 using Aurelian.Core.Engine.Commands;
+using Aurelian.Diagnostics;
 
 namespace Aurelian.Core.Engine;
 
@@ -79,5 +80,5 @@ public sealed class AurelianEngine
     }
 
     private static AurelianEngineDiagnostic Diagnostic(string code, string message) =>
-        new(code, AurelianEngineDiagnosticSeverity.Error, message);
+        new(code, AurelianDiagnosticSeverity.Error, message);
 }

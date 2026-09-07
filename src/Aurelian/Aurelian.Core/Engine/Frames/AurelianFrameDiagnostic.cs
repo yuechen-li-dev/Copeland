@@ -1,13 +1,8 @@
-namespace Aurelian.Core.Engine.Frames;
+using Aurelian.Diagnostics;
 
-public enum AurelianFrameDiagnosticSeverity
-{
-    Error,
-    Warning,
-    Info,
-}
+namespace Aurelian.Core.Engine.Frames;
 
 public sealed record AurelianFrameDiagnostic(
     string Code,
-    AurelianFrameDiagnosticSeverity Severity,
+    AurelianDiagnosticSeverity Severity,
     string Message);

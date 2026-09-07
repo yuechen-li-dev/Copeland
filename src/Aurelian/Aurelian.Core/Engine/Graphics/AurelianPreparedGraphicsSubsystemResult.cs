@@ -5,5 +5,5 @@ public sealed record AurelianPreparedGraphicsSubsystemResult(
     IReadOnlyList<AurelianPreparedGraphicsSubsystemDiagnostic> Diagnostics)
 {
     public bool Success => Status == AurelianPreparedGraphicsSubsystemStatus.Valid
-        && Diagnostics.All(static diagnostic => diagnostic.Severity != AurelianPreparedGraphicsSubsystemDiagnosticSeverity.Error);
+        && Diagnostics.All(static diagnostic => diagnostic.Severity != Aurelian.Diagnostics.AurelianDiagnosticSeverity.Error);
 }

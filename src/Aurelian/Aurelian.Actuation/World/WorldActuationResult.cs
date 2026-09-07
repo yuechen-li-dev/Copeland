@@ -10,7 +10,7 @@ public sealed record WorldActuationResult(
     public bool Applied => Status == WorldActuationStatus.Applied;
 
     public bool Success => Status != WorldActuationStatus.Rejected
-        && Diagnostics.All(x => x.Severity != WorldActuationDiagnosticSeverity.Error);
+        && Diagnostics.All(x => x.Severity != Aurelian.Diagnostics.AurelianDiagnosticSeverity.Error);
 }
 
 public sealed record WorldActuationResult<TDocument>(
@@ -21,5 +21,5 @@ public sealed record WorldActuationResult<TDocument>(
     public bool Applied => Status == WorldActuationStatus.Applied;
 
     public bool Success => Status != WorldActuationStatus.Rejected
-        && Diagnostics.All(x => x.Severity != WorldActuationDiagnosticSeverity.Error);
+        && Diagnostics.All(x => x.Severity != Aurelian.Diagnostics.AurelianDiagnosticSeverity.Error);
 }

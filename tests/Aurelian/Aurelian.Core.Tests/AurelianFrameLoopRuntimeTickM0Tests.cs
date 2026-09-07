@@ -46,7 +46,6 @@ public sealed class AurelianFrameLoopRuntimeTickM0Tests
         Assert.Equal(AurelianFrameLoopStopReason.FrameFailed, result.StopReason);
         Assert.Equal(1, result.FramesAttempted);
         Assert.Equal(0, result.FramesCompleted);
-        Assert.Empty(result.Iterations);
         Assert.Equal(["runtime:10"], calls);
         Assert.Equal(AurelianFrameLoopDiagnosticCodes.RuntimeTickFailed, Assert.Single(result.Diagnostics).Code);
     }
@@ -60,7 +59,7 @@ public sealed class AurelianFrameLoopRuntimeTickM0Tests
             new SingleFrameInputProvider(Input(11)),
             runtimeTickStep: new AurelianRuntimeTickFrameStep(ticker));
 
-        AurelianFrameLoopResult result = await loop.RunAsync(new AurelianFrameId(11));
+        AurelianFrameLoopHarnessResult result = await loop.RunHarnessAsync(new AurelianFrameId(11));
 
         Assert.True(result.Success, FormatDiagnostics(result));
         AurelianFrameLoopIterationResult iteration = Assert.Single(result.Iterations);
@@ -75,7 +74,7 @@ public sealed class AurelianFrameLoopRuntimeTickM0Tests
         List<string> calls = [];
         var loop = new AurelianFrameLoop(StartedPump(new RecordingCompositorMechanism(calls)), new SingleFrameInputProvider(Input(12)));
 
-        AurelianFrameLoopResult result = await loop.RunAsync(new AurelianFrameId(12));
+        AurelianFrameLoopHarnessResult result = await loop.RunHarnessAsync(new AurelianFrameId(12));
 
         Assert.True(result.Success, FormatDiagnostics(result));
         AurelianFrameLoopIterationResult iteration = Assert.Single(result.Iterations);
@@ -93,7 +92,7 @@ public sealed class AurelianFrameLoopRuntimeTickM0Tests
             new SingleFrameInputProvider(Input(13)),
             runtimeTickStep: new AurelianRuntimeTickFrameStep(new AurelianRuntimeSessionTickerAdapter(session)));
 
-        AurelianFrameLoopResult result = await loop.RunAsync(new AurelianFrameId(13));
+        AurelianFrameLoopHarnessResult result = await loop.RunHarnessAsync(new AurelianFrameId(13));
 
         Assert.True(result.Success, FormatDiagnostics(result));
         AurelianFrameLoopIterationResult iteration = Assert.Single(result.Iterations);
@@ -124,6 +123,9 @@ public sealed class AurelianFrameLoopRuntimeTickM0Tests
 
     private static string FormatDiagnostics(AurelianFrameLoopResult result) =>
         string.Join(Environment.NewLine, result.Diagnostics.Select(static diagnostic => $"{diagnostic.Code}: {diagnostic.Message}"));
+
+    private static string FormatDiagnostics(AurelianFrameLoopHarnessResult result) =>
+        FormatDiagnostics(result.Completion);
 
     private sealed class SingleFrameInputProvider : IAurelianFrameInputProvider
     {

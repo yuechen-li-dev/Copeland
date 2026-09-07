@@ -6,7 +6,7 @@
 
 ## 2. Exact old changed-state path
 
-`SupperUi` built a `UiNode`, `MachinaPresentationPipeline` prepared it, `MachinaPresentationTranslator` converted it to resolved 2D operations, and `AurelianCpuRasterRenderer` produced a full RGBA surface. TinyFarm then copied and hashed those pixels into a `SpriteAtlasResource`; `NativeSpriteResourceScope.Resolve` synchronously updated or created the Vulkan texture; one textured quad sampled the result.
+`TinyFarmNativeUi` built a `UiNode`, `MachinaPresentationPipeline` prepared it, `MachinaPresentationTranslator` converted it to resolved 2D operations, and `AurelianCpuRasterRenderer` produced a full RGBA surface. TinyFarm then copied and hashed those pixels into a `SpriteAtlasResource`; `NativeSpriteResourceScope.Resolve` synchronously updated or created the Vulkan texture; one textured quad sampled the result.
 
 ## 3. Root cause
 

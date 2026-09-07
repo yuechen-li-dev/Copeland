@@ -3,7 +3,7 @@ using TinyFarm.Core;
 namespace TinyFarm.InputMan;
 
 /// <summary>Qualification driver: DotRecast proposes, ordinary resolver movement accepts.</summary>
-public sealed class TinyFarmSupperWalkthrough(TinyFarmSupperGame game)
+public sealed class TinyFarmWalkthrough(TinyFarmGame game)
 {
     private readonly DotRecastNavigationPlanner navigation = new();
     private readonly TinyFarmState initial = game.State.DeepCopy();
@@ -16,27 +16,7 @@ public sealed class TinyFarmSupperWalkthrough(TinyFarmSupperGame game)
 
     public void Run()
     {
-        game.Start();
-        Checkpoint?.Invoke("02-farm-gameplay");
-        Act(new CompleteSupperIntent(), expectAccepted: false);
-        Walk(new GridPosition(6, 5));
-        Face(1, 0);
-        Act(new InteractIntent());
-        if (game.State.Item(TinyFarmIds.WildMint).Owner != TinyFarmIds.Player)
-        {
-            throw new InvalidOperationException("The player-facing E interaction did not pick up the mint.");
-        }
-        Act(new SelectHotbarSlotIntent(new HotbarSlotId(1)));
-        Act(new UseSelectedIntent());
-        Checkpoint?.Invoke("04-farming-or-pickup");
-        Portal("farm-exit");
-        Portal("town-entrance");
-        TalkToMara();
-        Checkpoint?.Invoke("03-dialogue");
-        FinishDialogue();
-        Portal("town-exit");
-        Portal("riverside-entrance");
-        Checkpoint?.Invoke("m21-riverside-pond");
+        RunToRiverside();
         Approach(game.Definitions.ForageNode(TinyFarmIds.RiversideHenOfTheWoods).Position);
         Act(new InteractIntent());
         // Noon gives the live schedule a real location change during this session.
@@ -63,6 +43,31 @@ public sealed class TinyFarmSupperWalkthrough(TinyFarmSupperGame game)
         FinishFromKitchen();
     }
 
+    public void RunToRiverside()
+    {
+        game.Start();
+        Checkpoint?.Invoke("02-farm-gameplay");
+        Act(new CompleteSupperIntent(), expectAccepted: false);
+        Walk(new GridPosition(6, 5));
+        Face(1, 0);
+        Act(new InteractIntent());
+        if (game.State.Item(TinyFarmIds.WildMint).Owner != TinyFarmIds.Player)
+        {
+            throw new InvalidOperationException("The player-facing E interaction did not pick up the mint.");
+        }
+        Act(new SelectHotbarSlotIntent(new HotbarSlotId(1)));
+        Act(new UseSelectedIntent());
+        Checkpoint?.Invoke("04-farming-or-pickup");
+        Portal("farm-exit");
+        Portal("town-entrance");
+        TalkToMara();
+        Checkpoint?.Invoke("03-dialogue");
+        FinishDialogue();
+        Portal("town-exit");
+        Portal("riverside-entrance");
+        Checkpoint?.Invoke("m21-riverside-pond");
+    }
+
     public void FinishFromKitchen()
     {
         game.Start();
@@ -75,7 +80,7 @@ public sealed class TinyFarmSupperWalkthrough(TinyFarmSupperGame game)
         Portal("riverside-entrance");
         TalkToMara();
         FinishDialogue();
-        if (!TinyFarmSupper.IsComplete(game.State) || game.Screen != SupperScreen.Complete)
+        if (!TinyFarmSupper.IsComplete(game.State) || game.Screen != TinyFarmScreen.Complete)
         {
             throw new InvalidOperationException("The supper walkthrough did not complete.");
         }

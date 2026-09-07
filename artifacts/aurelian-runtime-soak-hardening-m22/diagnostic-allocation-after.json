@@ -1,0 +1,17 @@
+{
+  "schema": "aurelian.runtime.diagnostic-allocation.m22.v1",
+  "source": "production no-transcript loop",
+  "AllocatedBytes": 6699313656,
+  "allocatedBytesPerFrame": 6699.313656,
+  "RetainedIterations": 0,
+  "nativeVulkan100k": {
+    "allocatedBytesPerFrame": 148157.59104,
+    "projectionAllocatedBytes": 1161013392,
+    "compositionAllocatedBytes": 11662840888,
+    "swapchainAllocatedBytes": 275554400,
+    "worldAllocatedBytes": 10686800856,
+    "overlayAllocatedBytes": 697254720,
+    "nativePassAllocatedBytes": 702974632
+  },
+  "note": "Transcript retention is removed. Immutable projection and prepared-frame composition remain the principal transient allocation seam."
+}

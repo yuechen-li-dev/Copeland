@@ -13,5 +13,5 @@ public sealed record AurelianFrameResult(
     public bool Success => Status == AurelianFrameStatus.Completed
         && CompositorResult is not null
         && CompositorResult.Success
-        && Diagnostics.All(x => x.Severity != AurelianFrameDiagnosticSeverity.Error);
+        && Diagnostics.All(x => x.Severity != Aurelian.Diagnostics.AurelianDiagnosticSeverity.Error);
 }

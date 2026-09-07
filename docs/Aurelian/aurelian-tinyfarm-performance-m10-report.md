@@ -70,7 +70,7 @@ BGRA swapchain targets are supported without changing screenshot semantics: expl
 
 ## 8. UI invalidation fix
 
-The UI is split into a stable 1280x720 base, a 400x34 clock surface, and a 710x38 interaction-prompt surface. A typed `SupperUiKey` tracks only semantic base dependencies. Unchanged UI performs zero topology/layout rebuilds; twelve repeated idle frames produced zero rebuilds. Dynamic content updates preserve the existing GPU texture and descriptor identity. The 60-second trace contained 12 legitimate small clock/prompt content uploads and zero uploads for unchanged resources.
+The UI is split into a stable 1280x720 base, a 400x34 clock surface, and a 710x38 interaction-prompt surface. A typed `TinyFarmUiKey` tracks only semantic base dependencies. Unchanged UI performs zero topology/layout rebuilds; twelve repeated idle frames produced zero rebuilds. Dynamic content updates preserve the existing GPU texture and descriptor identity. The 60-second trace contained 12 legitimate small clock/prompt content uploads and zero uploads for unchanged resources.
 
 Text and glyph work inherits this invalidation: identical strings reuse their raster resource and never reshape/rebuild on a stable frame. This milestone did not add a second text cache or UI framework.
 

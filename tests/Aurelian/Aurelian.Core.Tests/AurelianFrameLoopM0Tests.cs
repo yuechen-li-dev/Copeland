@@ -55,7 +55,7 @@ public sealed class AurelianFrameLoopM0Tests
         var provider = new FakeFrameInputProvider(Input(7));
         var loop = new AurelianFrameLoop(StartedPump(), provider);
 
-        AurelianFrameLoopResult result = await loop.RunAsync(new AurelianFrameId(7));
+        AurelianFrameLoopHarnessResult result = await loop.RunHarnessAsync(new AurelianFrameId(7));
 
         Assert.True(result.Success, FormatDiagnostics(result));
         Assert.Equal(AurelianFrameLoopStatus.Completed, result.Status);
@@ -112,7 +112,6 @@ public sealed class AurelianFrameLoopM0Tests
         Assert.Equal(AurelianFrameLoopStopReason.CloseRequested, result.StopReason);
         Assert.Equal(0, result.FramesAttempted);
         Assert.Equal(0, result.FramesCompleted);
-        Assert.Empty(result.Iterations);
         Assert.True(engine.CloseRequestAccepted);
         Assert.Equal(AurelianEngineStatus.Stopped, engine.Status);
         Assert.Equal(AurelianFrameLoopDiagnosticCodes.CloseAccepted, Assert.Single(result.Diagnostics).Code);
@@ -124,7 +123,7 @@ public sealed class AurelianFrameLoopM0Tests
         var presentation = new FakePresentationMechanism();
         var loop = new AurelianFrameLoop(StartedPump(), new FakeFrameInputProvider(Input(30)), presentation);
 
-        AurelianFrameLoopResult result = await loop.RunAsync(new AurelianFrameId(30));
+        AurelianFrameLoopHarnessResult result = await loop.RunHarnessAsync(new AurelianFrameId(30));
 
         Assert.True(result.Success, FormatDiagnostics(result));
         Assert.Equal(1, presentation.PresentCount);
@@ -136,7 +135,7 @@ public sealed class AurelianFrameLoopM0Tests
     {
         var loop = new AurelianFrameLoop(StartedPump(), new FakeFrameInputProvider(Input(40)), presentationMechanism: null);
 
-        AurelianFrameLoopResult result = await loop.RunAsync(new AurelianFrameId(40));
+        AurelianFrameLoopHarnessResult result = await loop.RunHarnessAsync(new AurelianFrameId(40));
 
         Assert.True(result.Success, FormatDiagnostics(result));
         Assert.False(Assert.Single(result.Iterations).Presented);
@@ -166,7 +165,7 @@ public sealed class AurelianFrameLoopM0Tests
             provider,
             options: new AurelianFrameLoopOptions(MaxFrames: 2, StopOnFrameFailure: false));
 
-        AurelianFrameLoopResult result = await loop.RunAsync(new AurelianFrameId(60));
+        AurelianFrameLoopHarnessResult result = await loop.RunHarnessAsync(new AurelianFrameId(60));
 
         Assert.False(result.Success);
         Assert.Equal(AurelianFrameLoopStatus.Completed, result.Status);
@@ -190,6 +189,103 @@ public sealed class AurelianFrameLoopM0Tests
         Assert.Equal(AurelianFrameLoopStatus.Cancelled, result.Status);
         Assert.Equal(AurelianFrameLoopStopReason.Cancelled, result.StopReason);
         Assert.Equal(AurelianFrameLoopDiagnosticCodes.Cancelled, Assert.Single(result.Diagnostics).Code);
+    }
+
+    [Fact]
+    public async Task AurelianFrameLoop_RunAsync_ReturnsNoTranscriptContract()
+    {
+        var loop = new AurelianFrameLoop(
+            StartedPump(),
+            new SequenceFrameInputProvider(frameId => Input(frameId.Value)),
+            options: new AurelianFrameLoopOptions(MaxFrames: 10_000));
+
+        AurelianFrameLoopResult result = await loop.RunAsync(AurelianFrameId.Zero);
+
+        Assert.True(result.Success, FormatDiagnostics(result));
+        Assert.Equal(10_000, result.FramesCompleted);
+        Assert.Null(typeof(AurelianFrameLoopResult).GetProperty("Iterations"));
+    }
+
+    [Fact]
+    public async Task AurelianFrameLoop_RunHarnessAsync_CapturesExactFiniteTranscript()
+    {
+        var loop = new AurelianFrameLoop(
+            StartedPump(),
+            new SequenceFrameInputProvider(frameId => Input(frameId.Value)),
+            options: new AurelianFrameLoopOptions(MaxFrames: 500));
+
+        AurelianFrameLoopHarnessResult result = await loop.RunHarnessAsync(AurelianFrameId.Zero);
+
+        Assert.True(result.Success, FormatDiagnostics(result));
+        Assert.Equal(500, result.Iterations.Count);
+        Assert.Equal(AurelianFrameLoopStopReason.MaxFramesReached, result.StopReason);
+    }
+
+    [Fact]
+    public async Task AurelianFrameLoop_RunHarnessAsync_RejectsUnboundedFullTranscript()
+    {
+        var loop = new AurelianFrameLoop(
+            StartedPump(),
+            new SequenceFrameInputProvider(frameId => Input(frameId.Value)),
+            options: new AurelianFrameLoopOptions(MaxFrames: null));
+
+        AurelianFrameLoopHarnessResult result = await loop.RunHarnessAsync(AurelianFrameId.Zero);
+
+        Assert.False(result.Success);
+        Assert.Empty(result.Iterations);
+        Assert.Equal(
+            AurelianFrameLoopDiagnosticCodes.HarnessRequiresFiniteMaxFrames,
+            Assert.Single(result.Diagnostics).Code);
+    }
+
+    [Fact]
+    public async Task AurelianFrameLoop_RunAsync_BoundsRecurringFailureDiagnostics()
+    {
+        var loop = new AurelianFrameLoop(
+            StartedPump(new FakeCompositorMechanism(CompositorDispatchStatus.Failed)),
+            new SequenceFrameInputProvider(frameId => Input(frameId.Value)),
+            options: new AurelianFrameLoopOptions(
+                MaxFrames: 100,
+                StopOnFrameFailure: false,
+                MaxRetainedDiagnostics: 4));
+
+        AurelianFrameLoopResult result = await loop.RunAsync(AurelianFrameId.Zero);
+
+        Assert.Equal(4, result.Diagnostics.Count);
+        Assert.Equal(96, result.DroppedDiagnosticCount);
+    }
+
+    [Fact]
+    public async Task AurelianFrameLoop_RunAsync_RejectsInvalidDiagnosticCapacity()
+    {
+        var loop = new AurelianFrameLoop(
+            StartedPump(),
+            new SequenceFrameInputProvider(frameId => Input(frameId.Value)),
+            options: new AurelianFrameLoopOptions(MaxFrames: 1, MaxRetainedDiagnostics: 0));
+
+        AurelianFrameLoopResult result = await loop.RunAsync(AurelianFrameId.Zero);
+
+        Assert.False(result.Success);
+        Assert.Equal(AurelianFrameLoopStopReason.Rejected, result.StopReason);
+        Assert.Equal(
+            AurelianFrameLoopDiagnosticCodes.InvalidDiagnosticCapacity,
+            Assert.Single(result.Diagnostics).Code);
+    }
+
+    [Fact]
+    public async Task AurelianFrameLoop_RunWithSinkAsync_StreamsWithoutOwningTranscript()
+    {
+        var sink = new CountingIterationSink();
+        var loop = new AurelianFrameLoop(
+            StartedPump(),
+            new SequenceFrameInputProvider(frameId => Input(frameId.Value)),
+            options: new AurelianFrameLoopOptions(MaxFrames: 3));
+
+        AurelianFrameLoopResult result = await loop.RunWithSinkAsync(AurelianFrameId.Zero, sink);
+
+        Assert.True(result.Success, FormatDiagnostics(result));
+        Assert.Equal(3, sink.Count);
+        Assert.Null(typeof(AurelianFrameLoopResult).GetProperty("Iterations"));
     }
 
     [Fact]
@@ -237,6 +333,9 @@ public sealed class AurelianFrameLoopM0Tests
 
     private static string FormatDiagnostics(AurelianFrameLoopResult result) =>
         string.Join(Environment.NewLine, result.Diagnostics.Select(static diagnostic => $"{diagnostic.Code}: {diagnostic.Message}"));
+
+    private static string FormatDiagnostics(AurelianFrameLoopHarnessResult result) =>
+        FormatDiagnostics(result.Completion);
 
     private static string ProjectPath(string relativePath)
     {
@@ -292,6 +391,16 @@ public sealed class AurelianFrameLoopM0Tests
         {
             cancellationToken.ThrowIfCancellationRequested();
             return ValueTask.FromResult<AurelianFrameInput?>(Input(frameId.Value));
+        }
+    }
+
+    private sealed class CountingIterationSink : IAurelianFrameLoopIterationSink
+    {
+        public int Count { get; private set; }
+
+        public void OnIteration(AurelianFrameLoopIterationResult iteration)
+        {
+            Count++;
         }
     }
 

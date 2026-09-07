@@ -12,17 +12,19 @@ using FontRgba = Machina.Fonts.ReferenceRendering.Rgba32;
 
 namespace TinyFarm.Native;
 
-internal sealed class SupperNativeUiFont
+internal sealed class TinyFarmNativeUiFont
 {
     private const int MediumSize = 16;
     private const int HeadingSize = 24;
+    private const int TextGeometryCapacity = 256;
     private const string SupportedCharacters =
         " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
 
-    private readonly IReadOnlyDictionary<int, SupperFontAtlas> atlases;
-    private readonly Dictionary<SupperTextGeometryKey, PositionedTextOperation> textGeometry = [];
+    private readonly IReadOnlyDictionary<int, TinyFarmFontAtlas> atlases;
+    private readonly Dictionary<TinyFarmTextGeometryKey, PositionedTextOperation> textGeometry = [];
+    private readonly Queue<TinyFarmTextGeometryKey> textGeometryInsertionOrder = [];
 
-    private SupperNativeUiFont(IReadOnlyDictionary<int, SupperFontAtlas> atlases)
+    private TinyFarmNativeUiFont(IReadOnlyDictionary<int, TinyFarmFontAtlas> atlases)
     {
         this.atlases = atlases;
     }
@@ -31,8 +33,9 @@ internal sealed class SupperNativeUiFont
         atlases.Values.Select(static atlas => atlas.Resource).ToArray();
 
     public int CachedTextRunCount => textGeometry.Count;
+    public int CachedTextRunCapacity => TextGeometryCapacity;
 
-    public static SupperNativeUiFont Create(string fontPath)
+    public static TinyFarmNativeUiFont Create(string fontPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fontPath);
         if (!File.Exists(fontPath))
@@ -40,19 +43,19 @@ internal sealed class SupperNativeUiFont
             throw new FileNotFoundException("TinyFarm's native UI font is missing.", fontPath);
         }
 
-        var atlases = new Dictionary<int, SupperFontAtlas>
+        var atlases = new Dictionary<int, TinyFarmFontAtlas>
         {
             [MediumSize] = BuildAtlasAsync(fontPath, MediumSize).GetAwaiter().GetResult(),
             [HeadingSize] = BuildAtlasAsync(fontPath, HeadingSize).GetAwaiter().GetResult(),
         };
-        return new SupperNativeUiFont(atlases);
+        return new TinyFarmNativeUiFont(atlases);
     }
 
     public PositionedTextOperation Qualify(PositionedTextOperation operation)
     {
         ArgumentNullException.ThrowIfNull(operation);
         int size = ResolveSize(operation.Style.Size);
-        var key = new SupperTextGeometryKey(
+        var key = new TinyFarmTextGeometryKey(
             operation.SourceId,
             operation.Text,
             operation.Rect,
@@ -64,7 +67,7 @@ internal sealed class SupperNativeUiFont
             return cached;
         }
 
-        SupperFontAtlas atlas = atlases[size];
+        TinyFarmFontAtlas atlas = atlases[size];
         ValidateCharacters(operation);
         DistanceFieldTextLayoutResult initial = Layout(atlas, operation.Text, 0, 0);
         double x = operation.Style.AlignX switch
@@ -90,8 +93,22 @@ internal sealed class SupperNativeUiFont
                 positioned.GlyphRun,
                 atlas.Resource.Identity,
                 MachinaTextRenderingMode.Msdf));
-        textGeometry.Add(key, qualified);
+        AddToTextGeometryCache(key, qualified);
         return qualified;
+    }
+
+    private void AddToTextGeometryCache(
+        TinyFarmTextGeometryKey key,
+        PositionedTextOperation operation)
+    {
+        if (textGeometry.Count == TextGeometryCapacity)
+        {
+            TinyFarmTextGeometryKey oldest = textGeometryInsertionOrder.Dequeue();
+            textGeometry.Remove(oldest);
+        }
+
+        textGeometry.Add(key, operation);
+        textGeometryInsertionOrder.Enqueue(key);
     }
 
     public AurelianMsdfAtlasResource ResourceFor(PositionedTextOperation operation)
@@ -125,7 +142,7 @@ internal sealed class SupperNativeUiFont
     }
 
     private static DistanceFieldTextLayoutResult Layout(
-        SupperFontAtlas atlas,
+        TinyFarmFontAtlas atlas,
         string text,
         double x,
         double baseline)
@@ -159,7 +176,7 @@ internal sealed class SupperNativeUiFont
                 PagePadding: 2));
     }
 
-    private static async Task<SupperFontAtlas> BuildAtlasAsync(string fontPath, int size)
+    private static async Task<TinyFarmFontAtlas> BuildAtlasAsync(string fontPath, int size)
     {
         FontFaceId face = new("SpaceMono-Regular");
         var source = new TypographyGlyphOutlineSource(
@@ -218,7 +235,7 @@ internal sealed class SupperNativeUiFont
             packed.Snapshot,
             pages,
             AurelianMsdfAtlasRowOrder.TopToBottom);
-        return new SupperFontAtlas(face, size, metrics, resource);
+        return new TinyFarmFontAtlas(face, size, metrics, resource);
     }
 
     private static byte[] EncodeRgba8(GeneratedFieldAtlasPage page)
@@ -251,13 +268,13 @@ internal sealed class SupperNativeUiFont
         return result;
     }
 
-    private sealed record SupperFontAtlas(
+    private sealed record TinyFarmFontAtlas(
         FontFaceId Face,
         int Size,
         IReadOnlyDictionary<GlyphKey, GlyphMetrics> Metrics,
         AurelianMsdfAtlasResource Resource);
 
-    private readonly record struct SupperTextGeometryKey(
+    private readonly record struct TinyFarmTextGeometryKey(
         string SourceId,
         string Text,
         Machina.Layout.Geometry.Rect Rect,

@@ -134,7 +134,7 @@ public static class WorldUnitActuator
                 document,
                 [new WorldActuationDiagnostic(
                     WorldActuationDiagnosticCodes.ChildNotAttached,
-                    WorldActuationDiagnosticSeverity.Info,
+                    Aurelian.Diagnostics.AurelianDiagnosticSeverity.Info,
                     $"Child unit '{request.ChildId}' is not attached to parent unit '{request.ParentId}'.")]);
         }
 
@@ -193,14 +193,14 @@ public static class WorldUnitActuator
         new(WorldActuationStatus.Rejected, document, [diagnostic]);
 
     private static WorldActuationDiagnostic Diagnostic(string code, string message) =>
-        new(code, WorldActuationDiagnosticSeverity.Error, message);
+        new(code, Aurelian.Diagnostics.AurelianDiagnosticSeverity.Error, message);
 
     private static WorldActuationDiagnostic MapResolverDiagnostic(WorldResolutionDiagnostic diagnostic) =>
         new(
             diagnostic.Code,
             diagnostic.Severity == WorldResolutionDiagnosticSeverity.Error
-                ? WorldActuationDiagnosticSeverity.Error
-                : WorldActuationDiagnosticSeverity.Warning,
+                ? Aurelian.Diagnostics.AurelianDiagnosticSeverity.Error
+                : Aurelian.Diagnostics.AurelianDiagnosticSeverity.Warning,
             diagnostic.Message);
 
     private static Dictionary<UnitId, WorldUnitDescriptor> CloneUnits(WorldDocument document) =>

@@ -5,5 +5,5 @@ public sealed record PlantRegistryResult(
     IReadOnlyList<PlantRegistryDiagnostic> Diagnostics)
 {
     public bool Success => Registry is not null
-        && Diagnostics.All(diagnostic => diagnostic.Severity != PlantRegistryDiagnosticSeverity.Error);
+        && Diagnostics.All(diagnostic => diagnostic.Severity != Aurelian.Diagnostics.AurelianDiagnosticSeverity.Error);
 }

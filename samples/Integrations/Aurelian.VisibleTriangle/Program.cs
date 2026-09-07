@@ -67,7 +67,7 @@ internal static class Program
             PresenterScreenStack screenStack = VisibleTrianglePresenterScreenStack.CreateStack(machinaWorldScreen);
             PrintScreenStack(screenStack);
 
-            AurelianFrameLoopResult loopResult = await VisibleTrianglePresenterScreenStack
+            AurelianFrameLoopHarnessResult loopResult = await VisibleTrianglePresenterScreenStack
                 .RunWorldScreenAsync(screenStack, runtimeTickStep)
                 .ConfigureAwait(false);
             PrintLoopResult(loopResult);
@@ -196,7 +196,7 @@ internal static class Program
         return DefaultFrameCount;
     }
 
-    private static void PrintLoopResult(AurelianFrameLoopResult result)
+    private static void PrintLoopResult(AurelianFrameLoopHarnessResult result)
     {
         Console.WriteLine($"Frame loop status: {result.Status}; stop reason: {result.StopReason}; attempted: {result.FramesAttempted}; completed: {result.FramesCompleted}.");
 
@@ -264,7 +264,7 @@ internal static class Program
     private static string FormatDiagnostics(AurelianEngineResult result) =>
         string.Join(Environment.NewLine, result.Diagnostics.Select(static diagnostic => $"{diagnostic.Code}: {diagnostic.Message}"));
 
-    private static string FormatDiagnostics(AurelianFrameLoopResult result) =>
+    private static string FormatDiagnostics(AurelianFrameLoopHarnessResult result) =>
         string.Join(Environment.NewLine, result.Diagnostics.Select(static diagnostic => $"{diagnostic.Code}: {diagnostic.Message}"));
 
     private static string FormatDiagnostics(AurelianRuntimeResult result) =>

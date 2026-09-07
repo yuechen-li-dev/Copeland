@@ -11,5 +11,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Actuation/Aurelian.Actuation.csproj" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Diagnostics/Aurelian.Diagnostics.csproj" />
   </ItemGroup>
 </Project>

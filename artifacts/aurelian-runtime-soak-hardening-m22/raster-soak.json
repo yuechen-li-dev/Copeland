@@ -1,0 +1,8 @@
+{
+  "Schema": "aurelian.runtime.raster-soak.m22.v1",
+  "FrameCount": 10000,
+  "ElapsedMilliseconds": 130.683,
+  "AllocatedBytes": 329920336,
+  "Checksum": 0,
+  "RetentionPolicy": "RasterFrame owns a fresh immutable surface per render; output is discarded each frame."
+}

@@ -47,7 +47,7 @@ public static class WorldDataActuator
         {
             return NoOp(document, new WorldActuationDiagnostic(
                 WorldActuationDiagnosticCodes.UnitNameNotSet,
-                WorldActuationDiagnosticSeverity.Info,
+                Aurelian.Diagnostics.AurelianDiagnosticSeverity.Info,
                 $"Unit '{request.UnitId}' has no name to remove."));
         }
 
@@ -96,7 +96,7 @@ public static class WorldDataActuator
         {
             return NoOp(document, new WorldActuationDiagnostic(
                 WorldActuationDiagnosticCodes.UnitTransformNotSet,
-                WorldActuationDiagnosticSeverity.Info,
+                Aurelian.Diagnostics.AurelianDiagnosticSeverity.Info,
                 $"Unit '{request.UnitId}' has no transform to remove."));
         }
 
@@ -152,7 +152,7 @@ public static class WorldDataActuator
         {
             return NoOp(document, new WorldActuationDiagnostic(
                 WorldActuationDiagnosticCodes.RenderableMissing,
-                WorldActuationDiagnosticSeverity.Info,
+                Aurelian.Diagnostics.AurelianDiagnosticSeverity.Info,
                 $"Unit '{request.UnitId}' has no renderable to remove."));
         }
 
@@ -180,5 +180,5 @@ public static class WorldDataActuator
         new(WorldActuationStatus.Rejected, document, [diagnostic]);
 
     private static WorldActuationDiagnostic Diagnostic(string code, string message) =>
-        new(code, WorldActuationDiagnosticSeverity.Error, message);
+        new(code, Aurelian.Diagnostics.AurelianDiagnosticSeverity.Error, message);
 }

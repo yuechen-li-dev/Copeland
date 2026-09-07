@@ -10,16 +10,16 @@ using TinyFarm.InputMan;
 
 namespace TinyFarm.Native;
 
-internal static class SupperProof
+internal static class TinyFarmNativeProof
 {
-    public static void RunWindow(TinyFarmSupperGame game, SupperWindow window, AurelianGameHost host)
+    public static void RunWindow(TinyFarmGame game, TinyFarmNativeWindow window, AurelianGameHost host)
     {
         host.RunFrame(TimeSpan.Zero);
         window.InjectKey(KeyboardKey.Enter, true);
         host.RunFrame(TimeSpan.FromSeconds(1.0 / 60));
         window.InjectKey(KeyboardKey.Enter, false);
         host.RunFrame(TimeSpan.Zero);
-        Require(game.Screen == SupperScreen.Playing, "Native window Enter callback failed.");
+        Require(game.Screen == TinyFarmScreen.Playing, "Native window Enter callback failed.");
         ScenePosition start = game.State.ActorScene(TinyFarmIds.Player).WorldPosition;
         window.InjectKey(KeyboardKey.D, true);
         for (int i = 0; i < 30; i++)
@@ -44,8 +44,8 @@ internal static class SupperProof
         Console.WriteLine("Native window: title, Enter, movement, pause, and captured attack passed.");
     }
 
-    public static void Run(string root, TinyFarmSupperGame game, AurelianInputAdapter input,
-        SupperRenderer renderer, AurelianGameHost host, AurelianAudioRuntime audio, string audioBackend)
+    public static void Run(string root, TinyFarmGame game, AurelianInputAdapter input,
+        TinyFarmNativeRenderer renderer, AurelianGameHost host, AurelianAudioRuntime audio, string audioBackend)
     {
         string output = Path.Combine(root, "artifacts", "aurelian-full-game-slice-m9");
         Directory.CreateDirectory(output);
@@ -59,7 +59,7 @@ internal static class SupperProof
         string? restoredCompletionHash = null;
         bool savedDialogue = false;
 
-        bool SaveMeasured(TinyFarmSupperGame candidate)
+        bool SaveMeasured(TinyFarmGame candidate)
         {
             long started = Stopwatch.GetTimestamp();
             bool saved = candidate.Save();
@@ -67,7 +67,7 @@ internal static class SupperProof
             return saved;
         }
 
-        bool LoadMeasured(TinyFarmSupperGame candidate)
+        bool LoadMeasured(TinyFarmGame candidate)
         {
             long started = Stopwatch.GetTimestamp();
             bool loaded = candidate.Load();
@@ -81,17 +81,17 @@ internal static class SupperProof
             {
                 savedHash = TinyFarmSemanticHash.Compute(game.State);
                 Require(SaveMeasured(game), game.Status);
-                var restored = new TinyFarmSupperGame(new FileSaveStore(Path.Combine(root, "artifacts", "validation", "m9-saves")));
+                var restored = new TinyFarmGame(new FileSaveStore(Path.Combine(root, "artifacts", "validation", "m9-saves")));
                 Require(LoadMeasured(restored), restored.Status);
                 Require(savedHash == TinyFarmSemanticHash.Compute(restored.State), "Save/load semantic mismatch.");
-                new TinyFarmSupperWalkthrough(restored).FinishFromKitchen();
+                new TinyFarmWalkthrough(restored).FinishFromKitchen();
                 restoredCompletionHash = TinyFarmSemanticHash.Compute(restored.State);
                 return;
             }
             if (name == "03-dialogue")
             {
                 Require(SaveMeasured(game), game.Status);
-                var restored = new TinyFarmSupperGame(new FileSaveStore(Path.Combine(root, "artifacts", "validation", "m9-saves")));
+                var restored = new TinyFarmGame(new FileSaveStore(Path.Combine(root, "artifacts", "validation", "m9-saves")));
                 Require(LoadMeasured(restored), restored.Status);
                 Require(restored.Dialogue.Presentation?.OperationId == game.Dialogue.Presentation?.OperationId, "Dialogue checkpoint did not restore.");
                 savedDialogue = true;
@@ -143,14 +143,14 @@ internal static class SupperProof
         host.RunFrame(TimeSpan.Zero);
         input.RecordButton(Controls.Key(KeyboardKey.Enter), true);
         host.RunFrame(TimeSpan.Zero);
-        Require(game.Screen == SupperScreen.Playing, "Logical Enter did not start play.");
+        Require(game.Screen == TinyFarmScreen.Playing, "Logical Enter did not start play.");
         input.RecordButton(Controls.Key(KeyboardKey.Enter), false);
         host.RunFrame(TimeSpan.Zero);
 
         MeasureMenuChange("inventory-open", KeyboardKey.I, "m10b-inventory");
         MeasureMenuChange("pause-open", KeyboardKey.Escape, "m10b-pause");
 
-        var walkthrough = new TinyFarmSupperWalkthrough(game)
+        var walkthrough = new TinyFarmWalkthrough(game)
         {
             Checkpoint = name =>
             {
@@ -479,10 +479,10 @@ internal static class SupperProof
             dominantBytesPerFrame = 1280 * 720 * 4,
             additionalSites = new[]
             {
-                "SupperWindow.Display full-frame channel conversion",
-                "SupperUi full-surface RasterBuffer",
+                "TinyFarmNativeWindow.Display full-frame channel conversion",
+                "TinyFarmNativeUi full-surface RasterBuffer",
                 "RasterSurface.CopyPixels clone",
-                "SupperUi RGBA conversion buffer",
+                "TinyFarmNativeUi RGBA conversion buffer",
                 "VulkanOrderedQuadRenderer per-pass vertex byte array",
                 "VulkanOrderedQuadRenderer per-pass binding-key array",
                 "EffectRuntime particle snapshot array",

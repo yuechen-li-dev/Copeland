@@ -1,0 +1,81 @@
+{
+  "schema": "aurelian.runtime.memory-slope.m22.v1",
+  "FrameCount": 100000,
+  "sampleInterval": 10000,
+  "samples": [
+    {
+      "Frame": 10000,
+      "ManagedHeapBytes": 6176928,
+      "WorkingSetBytes": 50622464,
+      "Gen0Collections": 6,
+      "Gen1Collections": 3,
+      "Gen2Collections": 2
+    },
+    {
+      "Frame": 20000,
+      "ManagedHeapBytes": 10689760,
+      "WorkingSetBytes": 55234560,
+      "Gen0Collections": 10,
+      "Gen1Collections": 4,
+      "Gen2Collections": 3
+    },
+    {
+      "Frame": 30000,
+      "ManagedHeapBytes": 15200832,
+      "WorkingSetBytes": 60264448,
+      "Gen0Collections": 14,
+      "Gen1Collections": 5,
+      "Gen2Collections": 3
+    },
+    {
+      "Frame": 40000,
+      "ManagedHeapBytes": 19736680,
+      "WorkingSetBytes": 65970176,
+      "Gen0Collections": 19,
+      "Gen1Collections": 7,
+      "Gen2Collections": 4
+    },
+    {
+      "Frame": 50000,
+      "ManagedHeapBytes": 23156712,
+      "WorkingSetBytes": 65728512,
+      "Gen0Collections": 24,
+      "Gen1Collections": 8,
+      "Gen2Collections": 5
+    },
+    {
+      "Frame": 60000,
+      "ManagedHeapBytes": 28769648,
+      "WorkingSetBytes": 77524992,
+      "Gen0Collections": 28,
+      "Gen1Collections": 9,
+      "Gen2Collections": 5
+    },
+    {
+      "Frame": 70000,
+      "ManagedHeapBytes": 32683800,
+      "WorkingSetBytes": 79536128,
+      "Gen0Collections": 32,
+      "Gen1Collections": 10,
+      "Gen2Collections": 5
+    },
+    {
+      "Frame": 80000,
+      "ManagedHeapBytes": 36570176,
+      "WorkingSetBytes": 83791872,
+      "Gen0Collections": 36,
+      "Gen1Collections": 11,
+      "Gen2Collections": 5
+    },
+    {
+      "Frame": 90000,
+      "ManagedHeapBytes": 40501016,
+      "WorkingSetBytes": 88109056,
+      "Gen0Collections": 41,
+      "Gen1Collections": 13,
+      "Gen2Collections": 6
+    }
+  ],
+  "PostWarmupManagedBytesPerFrame": 337.5402653496316,
+  "expectedCause": "explicit full transcript retention"
+}

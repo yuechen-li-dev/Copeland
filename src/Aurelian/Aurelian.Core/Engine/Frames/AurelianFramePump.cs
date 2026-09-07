@@ -91,22 +91,22 @@ public sealed class AurelianFramePump
                 AurelianFrameStatus.Waiting,
                 frameId,
                 compositorResult,
-                [new AurelianFrameDiagnostic(AurelianFrameDiagnosticCodes.CompositorWaiting, AurelianFrameDiagnosticSeverity.Info, "Compositor policy is waiting for required plant outputs.")]),
+                [new AurelianFrameDiagnostic(AurelianFrameDiagnosticCodes.CompositorWaiting, Aurelian.Diagnostics.AurelianDiagnosticSeverity.Info, "Compositor policy is waiting for required plant outputs.")]),
             CompositorPolicyStatus.Rejected => new AurelianFrameResult(
                 AurelianFrameStatus.Rejected,
                 frameId,
                 compositorResult,
-                [new AurelianFrameDiagnostic(AurelianFrameDiagnosticCodes.CompositorRejected, AurelianFrameDiagnosticSeverity.Error, "Compositor policy rejected the frame facts.")]),
+                [new AurelianFrameDiagnostic(AurelianFrameDiagnosticCodes.CompositorRejected, Aurelian.Diagnostics.AurelianDiagnosticSeverity.Error, "Compositor policy rejected the frame facts.")]),
             CompositorPolicyStatus.Failed => Failed(frameId, compositorResult, AurelianFrameDiagnosticCodes.CompositorFailed, "Compositor policy failed while running the frame."),
             _ => Failed(frameId, compositorResult, AurelianFrameDiagnosticCodes.CompositorFailed, $"Compositor policy returned unsupported status '{compositorResult.Status}'."),
         };
     }
 
     private static AurelianFrameResult Rejected(AurelianFrameId frameId, string code, string message) =>
-        new(AurelianFrameStatus.Rejected, frameId, null, [new AurelianFrameDiagnostic(code, AurelianFrameDiagnosticSeverity.Error, message)]);
+        new(AurelianFrameStatus.Rejected, frameId, null, [new AurelianFrameDiagnostic(code, Aurelian.Diagnostics.AurelianDiagnosticSeverity.Error, message)]);
 
     private static AurelianFrameResult Failed(AurelianFrameId frameId, CompositorPolicyResult? compositorResult, string code, string message) =>
-        new(AurelianFrameStatus.Failed, frameId, compositorResult, [new AurelianFrameDiagnostic(code, AurelianFrameDiagnosticSeverity.Error, message)]);
+        new(AurelianFrameStatus.Failed, frameId, compositorResult, [new AurelianFrameDiagnostic(code, Aurelian.Diagnostics.AurelianDiagnosticSeverity.Error, message)]);
 
     private static AurelianFrameResult Cancelled(AurelianFrameId frameId, CompositorPolicyResult? compositorResult) =>
         Failed(frameId, compositorResult, AurelianFrameDiagnosticCodes.FrameCancelled, "Aurelian frame pump run was canceled.");

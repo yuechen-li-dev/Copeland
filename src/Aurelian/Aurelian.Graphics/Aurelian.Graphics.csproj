@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../Aurelian.Diagnostics/Aurelian.Diagnostics.csproj" />
     <ProjectReference Include="../Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />
   </ItemGroup>
 

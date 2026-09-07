@@ -60,7 +60,7 @@ public sealed class AurelianEngineGraphicsOptionsM0Tests
         Assert.Equal(AurelianPreparedGraphicsSubsystemStatus.Rejected, result.Status);
         Assert.Contains(result.Diagnostics, static diagnostic =>
             diagnostic.Code == AurelianPreparedGraphicsSubsystemDiagnosticCodes.PreparedVisibleRequiresCompositorMechanism
-            && diagnostic.Severity == AurelianPreparedGraphicsSubsystemDiagnosticSeverity.Error);
+            && diagnostic.Severity == Aurelian.Diagnostics.AurelianDiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public sealed class AurelianEngineGraphicsOptionsM0Tests
         Assert.Equal(AurelianPreparedGraphicsSubsystemStatus.Rejected, result.Status);
         Assert.Contains(result.Diagnostics, static diagnostic =>
             diagnostic.Code == AurelianPreparedGraphicsSubsystemDiagnosticCodes.PreparedVisibleRequiresPresentationMechanism
-            && diagnostic.Severity == AurelianPreparedGraphicsSubsystemDiagnosticSeverity.Error);
+            && diagnostic.Severity == Aurelian.Diagnostics.AurelianDiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -109,7 +109,7 @@ public sealed class AurelianEngineGraphicsOptionsM0Tests
         Assert.Equal(AurelianPreparedGraphicsSubsystemStatus.Valid, result.Status);
         AurelianPreparedGraphicsSubsystemDiagnostic diagnostic = Assert.Single(result.Diagnostics);
         Assert.Equal(AurelianPreparedGraphicsSubsystemDiagnosticCodes.HeadlessIgnoresPresentationMechanism, diagnostic.Code);
-        Assert.Equal(AurelianPreparedGraphicsSubsystemDiagnosticSeverity.Warning, diagnostic.Severity);
+        Assert.Equal(Aurelian.Diagnostics.AurelianDiagnosticSeverity.Warning, diagnostic.Severity);
     }
 
     [Fact]

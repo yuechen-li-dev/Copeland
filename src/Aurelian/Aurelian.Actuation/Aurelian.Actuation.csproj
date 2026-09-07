@@ -3,6 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../Aurelian.Diagnostics/Aurelian.Diagnostics.csproj" />
     <ProjectReference Include="../Aurelian.World/Aurelian.World.csproj" />
   </ItemGroup>
 </Project>

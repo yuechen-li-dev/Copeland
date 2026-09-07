@@ -88,7 +88,7 @@ public sealed class PlantRegistryM0Tests
         Assert.Null(result.Registry);
         var diagnostic = Assert.Single(result.Diagnostics);
         Assert.Equal(PlantRegistryDiagnosticCodes.NoPlants, diagnostic.Code);
-        Assert.Equal(PlantRegistryDiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Equal(Aurelian.Diagnostics.AurelianDiagnosticSeverity.Error, diagnostic.Severity);
     }
 
     [Fact]
@@ -127,6 +127,19 @@ public sealed class PlantRegistryM0Tests
         Assert.False(result.Success);
         Assert.Null(result.Registry);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == PlantRegistryDiagnosticCodes.MultiplePresentationPlants);
+    }
+
+    [Fact]
+    public void PlantRegistry_Constructor_UsesValidatedCardinalityFailure()
+    {
+        var exception = Assert.Throws<ArgumentException>(() => new PlantRegistry(
+        [
+            CreatePlant(0, isPresentationPlant: true),
+            CreatePlant(1, isPresentationPlant: true),
+        ]));
+
+        Assert.Contains(PlantRegistryDiagnosticCodes.MultiplePresentationPlants, exception.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("Sequence contains", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

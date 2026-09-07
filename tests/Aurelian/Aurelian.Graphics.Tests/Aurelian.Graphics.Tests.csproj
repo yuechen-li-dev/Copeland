@@ -11,6 +11,7 @@
     <PackageReference Include="xunit.runner.visualstudio" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Diagnostics/Aurelian.Diagnostics.csproj" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />
   </ItemGroup>
 </Project>

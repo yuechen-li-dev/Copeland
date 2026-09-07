@@ -11,16 +11,16 @@ using TinyFarm.InputMan;
 
 namespace TinyFarm.Native;
 
-internal sealed class SupperPortrait : INativeLayerPresenter
+internal sealed class TinyFarmNativePortrait : INativeLayerPresenter
 {
     private readonly AurelianVulkanPlant plant;
     private readonly CompiledGraphicsProgram program;
-    private readonly TinyFarmSupperGame game;
+    private readonly TinyFarmGame game;
     private readonly SpriteAtlasResource resource;
     private VulkanOrderedQuadRenderer renderer = null!;
     private NativeSpriteResourceScope resources = null!;
 
-    public SupperPortrait(AurelianVulkanPlant plant, CompiledGraphicsProgram program, TinyFarmSupperGame game, string path)
+    public TinyFarmNativePortrait(AurelianVulkanPlant plant, CompiledGraphicsProgram program, TinyFarmGame game, string path)
     {
         this.plant = plant;
         this.program = program;

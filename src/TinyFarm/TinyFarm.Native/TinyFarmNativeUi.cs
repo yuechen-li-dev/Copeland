@@ -10,9 +10,9 @@ using TinyFarm.InputMan;
 
 namespace TinyFarm.Native;
 
-internal sealed class SupperUi(TinyFarmSupperGame game)
+internal sealed class TinyFarmNativeUi(TinyFarmGame game)
 {
-    private SupperUiKey? key;
+    private TinyFarmUiKey? key;
     private MachinaPresentationFrame? resource;
     private string? clockKey;
     private MachinaPresentationFrame? clockResource;
@@ -22,7 +22,7 @@ internal sealed class SupperUi(TinyFarmSupperGame game)
 
     public MachinaPresentationFrame Resource(TinyFarmFrame frame)
     {
-        SupperUiKey next = CreateKey(frame);
+        TinyFarmUiKey next = CreateKey(frame);
         if (key == next && resource is not null)
         {
             return resource;
@@ -33,9 +33,9 @@ internal sealed class SupperUi(TinyFarmSupperGame game)
         return resource;
     }
 
-    public SupperUiResources Resources(TinyFarmFrame frame)
+    public TinyFarmUiResources Resources(TinyFarmFrame frame)
     {
-        return new SupperUiResources(Resource(frame), ClockResource(frame), PromptResource(frame));
+        return new TinyFarmUiResources(Resource(frame), ClockResource(frame), PromptResource(frame));
     }
 
     private MachinaPresentationFrame ClockResource(TinyFarmFrame frame)
@@ -93,7 +93,7 @@ internal sealed class SupperUi(TinyFarmSupperGame game)
         return new MachinaPresentationPipeline().Prepare(node, width, height).PresentationFrame;
     }
 
-    private SupperUiKey CreateKey(TinyFarmFrame frame)
+    private TinyFarmUiKey CreateKey(TinyFarmFrame frame)
     {
         int objectives = 0;
         if (game.State.Facts.Contains(WorldFact.SupperSeedPlanted))
@@ -124,7 +124,7 @@ internal sealed class SupperUi(TinyFarmSupperGame game)
             inventoryHash.Add(item.Count);
         }
 
-        return new SupperUiKey(
+        return new TinyFarmUiKey(
             game.Screen,
             game.Status,
             frame.ActiveScene,
@@ -202,23 +202,23 @@ internal sealed class SupperUi(TinyFarmSupperGame game)
             }
             Text(nodes, "dialogue-hint", "SPACE / ENTER next     UP / DOWN choose     ESC leave     F save", 82, 531, 1060, TextSize.Md);
         }
-        else if (game.Screen != SupperScreen.Playing)
+        else if (game.Screen != TinyFarmScreen.Playing)
         {
             Panel(nodes, "modal-shade", 0, 0, 1280, 720, 0x102D25B0);
             Panel(nodes, "modal", 193, 133, 894, 436, 0x163D31FC);
             string title = game.Screen switch
             {
-                SupperScreen.Title => "A LITTLE MINT OF KINDNESS",
-                SupperScreen.Complete => "SUPPER IS READY",
-                SupperScreen.Inventory => "YOUR POCKETS",
+                TinyFarmScreen.Title => "A LITTLE MINT OF KINDNESS",
+                TinyFarmScreen.Complete => "SUPPER IS READY",
+                TinyFarmScreen.Inventory => "YOUR POCKETS",
                 _ => "TAKE A BREATHER"
             };
             Text(nodes, "modal-title", title, 233, 167, 800, TextSize.H1, 0xEDD6A0FF);
             string body = game.Screen switch
             {
-                SupperScreen.Title => "A seed for tomorrow. A meal for today.\nHelp Mara make a little corner of the world feel like home.\nPlant, forage, cook - and discourage one uninvited slime.\nA small afternoon adventure. No timer. No grinding.",
-                SupperScreen.Complete => "The stove is warm. The burrow is quiet.\nMara has set another place at the table: yours.\nYou finished this little afternoon. Thank you for playing.\nSave your home, or stay a little longer.",
-                SupperScreen.Inventory => string.Join('\n', frame.Inventory.Select(item => $"{item.Name}  x{item.Count}")),
+                TinyFarmScreen.Title => "A seed for tomorrow. A meal for today.\nHelp Mara make a little corner of the world feel like home.\nPlant, forage, cook - and discourage one uninvited slime.\nA small afternoon adventure. No timer. No grinding.",
+                TinyFarmScreen.Complete => "The stove is warm. The burrow is quiet.\nMara has set another place at the table: yours.\nYou finished this little afternoon. Thank you for playing.\nSave your home, or stay a little longer.",
+                TinyFarmScreen.Inventory => string.Join('\n', frame.Inventory.Select(item => $"{item.Name}  x{item.Count}")),
                 _ => "Your afternoon is paused.\nWASD move / face objects. E interacts.\n1 seeds, 3 axe, 4 sword. SPACE uses the selected tool.\nFollow doorway signs. The journal keeps track of supper."
             };
             int lineY = 232;
@@ -227,8 +227,8 @@ internal sealed class SupperUi(TinyFarmSupperGame game)
                 Text(nodes, "modal-line-" + lineY, line, 235, lineY, 800, TextSize.Md);
                 lineY += 35;
             }
-            Text(nodes, "modal-action", game.Screen == SupperScreen.Title ? "ENTER  Begin your afternoon" : "ENTER  Back to the farm", 235, 460, 790, TextSize.Md, 0xEDD6A0FF);
-            string secondary = game.Screen == SupperScreen.Title
+            Text(nodes, "modal-action", game.Screen == TinyFarmScreen.Title ? "ENTER  Begin your afternoon" : "ENTER  Back to the farm", 235, 460, 790, TextSize.Md, 0xEDD6A0FF);
+            string secondary = game.Screen == TinyFarmScreen.Title
                 ? "N  Continue saved game     Q  Quit"
                 : "F  Save     N  Continue saved game     Q  Quit";
             Text(nodes, "modal-secondary", secondary, 235, 507, 790, TextSize.Md);
@@ -271,8 +271,8 @@ internal sealed class SupperUi(TinyFarmSupperGame game)
     }
 }
 
-internal readonly record struct SupperUiKey(
-    SupperScreen Screen,
+internal readonly record struct TinyFarmUiKey(
+    TinyFarmScreen Screen,
     string Status,
     SceneId? ActiveScene,
     int SelectedHotbarSlot,
@@ -281,7 +281,7 @@ internal readonly record struct SupperUiKey(
     int DialogueSelectedChoiceIndex,
     int InventoryHash);
 
-internal readonly record struct SupperUiResources(
+internal readonly record struct TinyFarmUiResources(
     MachinaPresentationFrame Base,
     MachinaPresentationFrame Clock,
     MachinaPresentationFrame? Prompt);

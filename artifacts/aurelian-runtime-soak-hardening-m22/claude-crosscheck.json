@@ -1,0 +1,15 @@
+{
+  "schema": "aurelian.claude-crosscheck.m22.v1",
+  "source": "C:/Users/yuech/Downloads/Text Docs/Claude on Aurelian engine.txt",
+  "treatedAsAuthority": false,
+  "findings": [
+    { "id": 1, "disposition": "confirmed", "action": "production transcript retention removed" },
+    { "id": 2, "disposition": "partially-confirmed", "action": "async evidence loop and synchronous native host roles documented" },
+    { "id": 3, "disposition": "confirmed", "action": "retention fixed; remaining allocation measured and deferred explicitly" },
+    { "id": 4, "disposition": "confirmed", "action": "shared severity contract introduced" },
+    { "id": 5, "disposition": "confirmed-in-touched-area", "action": "frame-loop and runtime-tick contracts consolidated" },
+    { "id": 6, "disposition": "confirmed-with-bounded-action", "action": "egregious severity names removed; repository-wide rename rejected" },
+    { "id": 7, "disposition": "confirmed", "action": "dead flag and Single failure path removed" },
+    { "id": "7.plant-kind", "disposition": "partially-confirmed", "action": "Vulkan retained as native plant family; Raster and Null are not plants" }
+  ]
+}

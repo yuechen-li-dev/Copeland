@@ -37,7 +37,7 @@ public static class AurelianPreparedGraphicsSubsystemValidation
                 {
                     diagnostics.Add(new AurelianPreparedGraphicsSubsystemDiagnostic(
                         AurelianPreparedGraphicsSubsystemDiagnosticCodes.HeadlessIgnoresPresentationMechanism,
-                        AurelianPreparedGraphicsSubsystemDiagnosticSeverity.Warning,
+                        Aurelian.Diagnostics.AurelianDiagnosticSeverity.Warning,
                         "Aurelian headless graphics mode ignores the supplied presentation mechanism."));
                 }
                 break;
@@ -65,7 +65,7 @@ public static class AurelianPreparedGraphicsSubsystemValidation
                 break;
         }
 
-        return diagnostics.Any(static diagnostic => diagnostic.Severity == AurelianPreparedGraphicsSubsystemDiagnosticSeverity.Error)
+        return diagnostics.Any(static diagnostic => diagnostic.Severity == Aurelian.Diagnostics.AurelianDiagnosticSeverity.Error)
             ? Rejected(diagnostics)
             : new AurelianPreparedGraphicsSubsystemResult(AurelianPreparedGraphicsSubsystemStatus.Valid, diagnostics);
     }
@@ -75,5 +75,5 @@ public static class AurelianPreparedGraphicsSubsystemValidation
         new(AurelianPreparedGraphicsSubsystemStatus.Rejected, diagnostics);
 
     private static AurelianPreparedGraphicsSubsystemDiagnostic Error(string code, string message) =>
-        new(code, AurelianPreparedGraphicsSubsystemDiagnosticSeverity.Error, message);
+        new(code, Aurelian.Diagnostics.AurelianDiagnosticSeverity.Error, message);
 }

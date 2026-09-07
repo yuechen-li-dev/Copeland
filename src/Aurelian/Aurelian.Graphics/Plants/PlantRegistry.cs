@@ -3,16 +3,14 @@ namespace Aurelian.Graphics.Plants;
 public sealed class PlantRegistry
 {
     public PlantRegistry(IReadOnlyList<PlantContext> plants)
-        : this(CreateValidatedPlants(plants), skipValidation: true)
+        : this(CreateValidatedState(plants))
     {
     }
 
-    private PlantRegistry(IReadOnlyList<PlantContext> plants, bool skipValidation)
+    private PlantRegistry(ValidatedPlantState state)
     {
-        Plants = plants
-            .OrderBy(plant => plant.Id.Value)
-            .ToArray();
-        PresentationPlant = Plants.Single(plant => plant.IsPresentationPlant);
+        Plants = state.Plants;
+        PresentationPlant = state.PresentationPlant;
     }
 
     public IReadOnlyList<PlantContext> Plants { get; }
@@ -33,12 +31,18 @@ public sealed class PlantRegistry
     public static PlantRegistryResult Create(IReadOnlyList<PlantContext>? plants)
     {
         var diagnostics = Validate(plants);
-        if (diagnostics.Any(diagnostic => diagnostic.Severity == PlantRegistryDiagnosticSeverity.Error))
+        if (diagnostics.Any(diagnostic => diagnostic.Severity == Aurelian.Diagnostics.AurelianDiagnosticSeverity.Error))
         {
             return new PlantRegistryResult(null, diagnostics);
         }
 
-        return new PlantRegistryResult(new PlantRegistry(plants!, skipValidation: true), diagnostics);
+        PlantContext[] orderedPlants = plants!
+            .OrderBy(plant => plant.Id.Value)
+            .ToArray();
+        PlantContext presentationPlant = orderedPlants.First(plant => plant.IsPresentationPlant);
+        return new PlantRegistryResult(
+            new PlantRegistry(new ValidatedPlantState(orderedPlants, presentationPlant)),
+            diagnostics);
     }
 
     public bool TryGet(PlantId id, out PlantContext context)
@@ -64,16 +68,20 @@ public sealed class PlantRegistry
                 ? "M0 fixed plant-zero selection policy."
                 : "M0 fixed presentation-plant selection policy.");
 
-    private static IReadOnlyList<PlantContext> CreateValidatedPlants(IReadOnlyList<PlantContext>? plants)
+    private static ValidatedPlantState CreateValidatedState(IReadOnlyList<PlantContext>? plants)
     {
         var diagnostics = Validate(plants);
-        if (diagnostics.Any(diagnostic => diagnostic.Severity == PlantRegistryDiagnosticSeverity.Error))
+        if (diagnostics.Any(diagnostic => diagnostic.Severity == Aurelian.Diagnostics.AurelianDiagnosticSeverity.Error))
         {
             string message = string.Join(" ", diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}"));
             throw new ArgumentException(message, nameof(plants));
         }
 
-        return plants!;
+        PlantContext[] orderedPlants = plants!
+            .OrderBy(plant => plant.Id.Value)
+            .ToArray();
+        PlantContext presentationPlant = orderedPlants.First(plant => plant.IsPresentationPlant);
+        return new ValidatedPlantState(orderedPlants, presentationPlant);
     }
 
     private static IReadOnlyList<PlantRegistryDiagnostic> Validate(IReadOnlyList<PlantContext>? plants)
@@ -84,7 +92,7 @@ public sealed class PlantRegistry
             [
                 new PlantRegistryDiagnostic(
                     PlantRegistryDiagnosticCodes.NoPlants,
-                    PlantRegistryDiagnosticSeverity.Error,
+                    Aurelian.Diagnostics.AurelianDiagnosticSeverity.Error,
                     "A plant registry requires at least one plant."),
             ];
         }
@@ -95,7 +103,7 @@ public sealed class PlantRegistry
         {
             diagnostics.Add(new PlantRegistryDiagnostic(
                 PlantRegistryDiagnosticCodes.DuplicatePlantId,
-                PlantRegistryDiagnosticSeverity.Error,
+                Aurelian.Diagnostics.AurelianDiagnosticSeverity.Error,
                 $"Plant id '{duplicateGroup.Key}' appears more than once.",
                 duplicateGroup.Key));
         }
@@ -105,17 +113,21 @@ public sealed class PlantRegistry
         {
             diagnostics.Add(new PlantRegistryDiagnostic(
                 PlantRegistryDiagnosticCodes.MissingPresentationPlant,
-                PlantRegistryDiagnosticSeverity.Error,
+                Aurelian.Diagnostics.AurelianDiagnosticSeverity.Error,
                 "Exactly one presentation plant is required."));
         }
         else if (presentationPlantCount > 1)
         {
             diagnostics.Add(new PlantRegistryDiagnostic(
                 PlantRegistryDiagnosticCodes.MultiplePresentationPlants,
-                PlantRegistryDiagnosticSeverity.Error,
+                Aurelian.Diagnostics.AurelianDiagnosticSeverity.Error,
                 "Only one presentation plant is allowed."));
         }
 
         return diagnostics;
     }
+
+    private sealed record ValidatedPlantState(
+        IReadOnlyList<PlantContext> Plants,
+        PlantContext PresentationPlant);
 }

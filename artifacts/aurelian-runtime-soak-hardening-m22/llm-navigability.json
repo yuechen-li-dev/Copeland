@@ -1,0 +1,15 @@
+{
+  "schema": "aurelian.llm-navigability.m22.v1",
+  "task": "Find all contracts needed to understand one frame-loop iteration",
+  "method": "deterministic source-layout proxy; no independent model benchmark was run",
+  "before": {
+    "frameLoopContractFiles": 8,
+    "runtimeTickContractFiles": 4
+  },
+  "after": {
+    "frameLoopContractFiles": 1,
+    "runtimeTickContractFiles": 1
+  },
+  "freshModelQualified": false,
+  "conclusion": "contract locality materially improved; claim limited to file-open count"
+}

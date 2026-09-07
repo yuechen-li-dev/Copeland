@@ -1,0 +1,15 @@
+{
+  "schema": "aurelian.source-granularity.m22.v1",
+  "before": {
+    "Aurelian.Core": { "files": 53 },
+    "Aurelian.Rendering.Contracts": { "files": 58 }
+  },
+  "after": {
+    "Aurelian.Core": { "files": 43, "lines": 1154, "averageLinesPerFile": 26.84 },
+    "Aurelian.Rendering.Contracts": { "files": 58, "lines": 884, "averageLinesPerFile": 15.24 }
+  },
+  "consolidatedClusters": ["FrameLoopContracts.cs", "RuntimeTickContracts.cs"],
+  "houseRule": "one cohesive concept cluster per file, not one CLR type per file by reflex",
+  "renderingContractsChanged": false,
+  "reason": "no rendering-contract semantic cluster was otherwise touched"
+}

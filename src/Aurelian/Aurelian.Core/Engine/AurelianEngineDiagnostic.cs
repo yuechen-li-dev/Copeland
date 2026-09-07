@@ -1,13 +1,8 @@
-namespace Aurelian.Core.Engine;
+using Aurelian.Diagnostics;
 
-public enum AurelianEngineDiagnosticSeverity
-{
-    Error,
-    Warning,
-    Info,
-}
+namespace Aurelian.Core.Engine;
 
 public sealed record AurelianEngineDiagnostic(
     string Code,
-    AurelianEngineDiagnosticSeverity Severity,
+    AurelianDiagnosticSeverity Severity,
     string Message);

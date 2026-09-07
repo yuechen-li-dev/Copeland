@@ -29,16 +29,16 @@ using Silk.NET.Windowing;
 
 namespace TinyFarm.Native;
 
-internal sealed class SupperRenderer : IAurelianHostCompositor
+internal sealed class TinyFarmNativeRenderer : IAurelianHostCompositor
 {
     private readonly AurelianVulkanPlant plant;
     private readonly AurelianVulkanSurface surface;
     private readonly AurelianVulkanSwapchain swapchain;
     private readonly NativeLayerCompositor compositor;
     private readonly VulkanNativeSwapchainPresenter swapchainPresenter;
-    private readonly TinyFarmSupperGame game;
-    private readonly SupperUi ui;
-    private readonly SupperPresenter world;
+    private readonly TinyFarmGame game;
+    private readonly TinyFarmNativeUi ui;
+    private readonly TinyFarmWorldPresenter world;
     private TinyFarmFrame frame;
     private bool captureNextFrame;
     private long projectionAllocatedBytes;
@@ -53,10 +53,15 @@ internal sealed class SupperRenderer : IAurelianHostCompositor
     private int bufferUploads;
     private int drawCalls;
 
-    public SupperRenderer(string root, TinyFarmSupperGame game, SupperWindow window, bool proof)
+    public TinyFarmNativeRenderer(
+        string root,
+        TinyFarmGame game,
+        TinyFarmNativeWindow window,
+        bool proof,
+        bool vSync = true)
     {
         this.game = game;
-        ui = new SupperUi(game);
+        ui = new TinyFarmNativeUi(game);
         frame = TinyFarmFrameProjector.Project(game.State, game.Definitions);
         var init = VulkanPlantInitializer.CreatePlant(PlantId.Zero,
             new VulkanPlantOptions(
@@ -73,7 +78,7 @@ internal sealed class SupperRenderer : IAurelianHostCompositor
         VulkanSwapchainCreateResult swapchainResult = VulkanSwapchainFactory.Create(
             plant,
             window.NativeWindow,
-            new VulkanSwapchainCreateOptions(1280, 720, VSync: true, "TinyFarm - A Little Mint of Kindness", Visible: !proof));
+            new VulkanSwapchainCreateOptions(1280, 720, VSync: vSync, "TinyFarm - A Little Mint of Kindness", Visible: !proof));
         if (!swapchainResult.Success || swapchainResult.Surface is null || swapchainResult.Swapchain is null)
         {
             throw new InvalidOperationException(string.Join("; ", swapchainResult.Diagnostics.Select(item => item.Message)));
@@ -103,7 +108,7 @@ internal sealed class SupperRenderer : IAurelianHostCompositor
         {
             throw new InvalidOperationException(string.Join("; ", profileNative.Diagnostics.Select(static item => item.Message)));
         }
-        world = new SupperPresenter(
+        world = new TinyFarmWorldPresenter(
             new LayerId("farm-world"),
             plant,
             analytic,
@@ -113,16 +118,16 @@ internal sealed class SupperRenderer : IAurelianHostCompositor
             spriteAtlas,
             game,
             () => frame);
-        compositor.Add(new SupperLayer(world.Layer, 0), world);
+        compositor.Add(new TinyFarmNativeLayer(world.Layer, 0), world);
         string portraitPath = Path.Combine(AppContext.BaseDirectory, "Assets", "mara-dialogue.png");
         if (File.Exists(portraitPath))
         {
-            var portrait = new SupperPortrait(plant, texture, game, portraitPath);
-            compositor.Add(new SupperLayer(portrait.Layer, 50), portrait);
+            var portrait = new TinyFarmNativePortrait(plant, texture, game, portraitPath);
+            compositor.Add(new TinyFarmNativeLayer(portrait.Layer, 50), portrait);
         }
         string fontPath = Path.Combine(AppContext.BaseDirectory, "Assets", "SpaceMono-Regular.ttf");
-        SupperNativeUiFont font = SupperNativeUiFont.Create(fontPath);
-        Overlay = new SupperOverlay(
+        TinyFarmNativeUiFont font = TinyFarmNativeUiFont.Create(fontPath);
+        Overlay = new TinyFarmNativeOverlay(
             new LayerId("machina-hud"),
             plant,
             analytic,
@@ -131,7 +136,7 @@ internal sealed class SupperRenderer : IAurelianHostCompositor
             font,
             profileNative.Resource!,
             () => ui.Resources(frame));
-        compositor.Add(new SupperLayer(Overlay.Layer, 100), Overlay);
+        compositor.Add(new TinyFarmNativeLayer(Overlay.Layer, 100), Overlay);
         compositor.Attach();
         compositor.RunFrame(0, TimeSpan.Zero);
         swapchainPresenter = new VulkanNativeSwapchainPresenter(plant, compositor.Target, swapchain);
@@ -141,7 +146,7 @@ internal sealed class SupperRenderer : IAurelianHostCompositor
     public NativeLayerFrameResult? Last { get; private set; }
     public int UiRebuilds => ui.Rebuilds;
     public int ShaderQuads => world.ShaderQuads;
-    private SupperOverlay Overlay { get; }
+    private TinyFarmNativeOverlay Overlay { get; }
     public long WorldAllocatedBytes => world.AllocatedBytes;
     public long OverlayAllocatedBytes => Overlay.AllocatedBytes;
     public int DynamicUiTextureUploads => 0;
@@ -151,6 +156,7 @@ internal sealed class SupperRenderer : IAurelianHostCompositor
     public int FallbackRasterUploads => 0;
     public int FontAtlasUploads => Overlay.FontAtlasUploads;
     public int TextGeometryCacheEntries => Overlay.TextGeometryCacheEntries;
+    public int TextGeometryCacheCapacity => Overlay.TextGeometryCacheCapacity;
     public int NativeUiGeometryRebuilds => Overlay.GeometryRebuilds;
     public string PresentMode => swapchainPresenter.PresentMode;
     public uint SwapchainImageCount => swapchainPresenter.SwapchainImageCount;
@@ -271,7 +277,7 @@ internal sealed class SupperRenderer : IAurelianHostCompositor
     }
 }
 
-internal sealed class SupperPresenter(
+internal sealed class TinyFarmWorldPresenter(
     LayerId layer,
     AurelianVulkanPlant plant,
     CompiledGraphicsProgram analytic,
@@ -279,7 +285,7 @@ internal sealed class SupperPresenter(
     CompiledGraphicsProgram textured,
     CompiledGraphicsProgram fieldProgram,
     TinyFarmSpriteAtlas spriteAtlas,
-    TinyFarmSupperGame game,
+    TinyFarmGame game,
     Func<TinyFarmFrame> getFrame) : INativeLayerPresenter
 {
     private VulkanOrderedQuadRenderer shapes = null!;
@@ -741,15 +747,15 @@ internal sealed class SupperPresenter(
     }
 }
 
-internal sealed class SupperOverlay(
+internal sealed class TinyFarmNativeOverlay(
     LayerId layer,
     AurelianVulkanPlant plant,
     CompiledGraphicsProgram analyticProgram,
     CompiledGraphicsProgram msdfProgram,
     CompiledGraphicsProgram profileMsdfProgram,
-    SupperNativeUiFont font,
+    TinyFarmNativeUiFont font,
     ProfileNativeCompositionResource profileTree,
-    Func<SupperUiResources> presentation) : INativeLayerPresenter
+    Func<TinyFarmUiResources> presentation) : INativeLayerPresenter
 {
     private VulkanOrderedQuadRenderer shapes = null!;
     private VulkanOrderedQuadRenderer text = null!;
@@ -759,9 +765,9 @@ internal sealed class SupperOverlay(
     private MachinaPresentationFrame? baseSource;
     private MachinaPresentationFrame? clockSource;
     private MachinaPresentationFrame? promptSource;
-    private SupperNativeUiSegments baseSegments = SupperNativeUiSegments.Empty;
-    private SupperNativeUiSegments clockSegments = SupperNativeUiSegments.Empty;
-    private SupperNativeUiSegments promptSegments = SupperNativeUiSegments.Empty;
+    private TinyFarmNativeUiSegments baseSegments = TinyFarmNativeUiSegments.Empty;
+    private TinyFarmNativeUiSegments clockSegments = TinyFarmNativeUiSegments.Empty;
+    private TinyFarmNativeUiSegments promptSegments = TinyFarmNativeUiSegments.Empty;
     public LayerId Layer => layer;
     public long AllocatedBytes { get; private set; }
     public int NativePrimitiveCount =>
@@ -770,6 +776,7 @@ internal sealed class SupperOverlay(
         baseSegments.FallbackCount + clockSegments.FallbackCount + promptSegments.FallbackCount;
     public int FontAtlasUploads => atlasCache?.UploadCount ?? 0;
     public int TextGeometryCacheEntries => font.CachedTextRunCount;
+    public int TextGeometryCacheCapacity => font.CachedTextRunCapacity;
     public int GeometryRebuilds { get; private set; }
 
     public void ResetPerformanceMetrics()
@@ -804,7 +811,7 @@ internal sealed class SupperOverlay(
     public void Present(NativeLayerFrameContext context)
     {
         long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
-        SupperUiResources current = presentation();
+        TinyFarmUiResources current = presentation();
         UpdateRealization(current);
 
         PresentSegment(context, baseSegments.Base, includeProfile: true);
@@ -819,7 +826,7 @@ internal sealed class SupperOverlay(
         UpdateRealization(presentation());
     }
 
-    private void UpdateRealization(SupperUiResources current)
+    private void UpdateRealization(TinyFarmUiResources current)
     {
         if (!ReferenceEquals(baseSource, current.Base))
         {
@@ -835,12 +842,12 @@ internal sealed class SupperOverlay(
         {
             promptSource = current.Prompt;
             promptSegments = current.Prompt is null
-                ? SupperNativeUiSegments.Empty
+                ? TinyFarmNativeUiSegments.Empty
                 : Realize(current.Prompt, 125, 528, splitOverlay: false);
         }
     }
 
-    private SupperNativeUiSegments Realize(
+    private TinyFarmNativeUiSegments Realize(
         MachinaPresentationFrame frame,
         float offsetX,
         float offsetY,
@@ -911,15 +918,15 @@ internal sealed class SupperOverlay(
             fallbackCount++;
         }
 
-        return new SupperNativeUiSegments(
-            new SupperNativeUiSegment(baseShapes.ToArray(), baseText.ToArray()),
-            new SupperNativeUiSegment(overlayShapes.ToArray(), overlayText.ToArray()),
+        return new TinyFarmNativeUiSegments(
+            new TinyFarmNativeUiSegment(baseShapes.ToArray(), baseText.ToArray()),
+            new TinyFarmNativeUiSegment(overlayShapes.ToArray(), overlayText.ToArray()),
             fallbackCount);
     }
 
     private void PresentSegment(
         NativeLayerFrameContext context,
-        SupperNativeUiSegment segment,
+        TinyFarmNativeUiSegment segment,
         bool includeProfile = false)
     {
         if (segment.Shapes.Length > 0)
@@ -1018,29 +1025,29 @@ internal sealed class SupperOverlay(
     }
 }
 
-internal sealed record SupperNativeUiSegments(
-    SupperNativeUiSegment Base,
-    SupperNativeUiSegment Overlay,
+internal sealed record TinyFarmNativeUiSegments(
+    TinyFarmNativeUiSegment Base,
+    TinyFarmNativeUiSegment Overlay,
     int FallbackCount)
 {
-    public static SupperNativeUiSegments Empty { get; } = new(
-        SupperNativeUiSegment.Empty,
-        SupperNativeUiSegment.Empty,
+    public static TinyFarmNativeUiSegments Empty { get; } = new(
+        TinyFarmNativeUiSegment.Empty,
+        TinyFarmNativeUiSegment.Empty,
         0);
 
     public int NativePrimitiveCount => Base.NativePrimitiveCount + Overlay.NativePrimitiveCount;
 }
 
-internal sealed record SupperNativeUiSegment(
+internal sealed record TinyFarmNativeUiSegment(
     NativeAnalyticShapeSubmission[] Shapes,
     NativeMsdfQuadSubmission[] Text)
 {
-    public static SupperNativeUiSegment Empty { get; } = new([], []);
+    public static TinyFarmNativeUiSegment Empty { get; } = new([], []);
 
     public int NativePrimitiveCount => Shapes.Length + Text.Length;
 }
 
-internal sealed class SupperLayer(LayerId id, int order) : IAurelianLayer
+internal sealed class TinyFarmNativeLayer(LayerId id, int order) : IAurelianLayer
 {
     public LayerDescriptor Describe() => new(id, order, true, new LayerViewport(0, 0, 1280, 720), LayerPresentationMode.DirectHostPass, LayerInputPolicy.None);
     public void Attach(LayerSurfaceDescriptor surface) { }

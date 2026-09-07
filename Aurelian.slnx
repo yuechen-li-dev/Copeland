@@ -9,6 +9,7 @@
     <Project Path="src/Aurelian/Aurelian.Assets/Aurelian.Assets.csproj" />
     <Project Path="src/Aurelian/Aurelian.AssetTool/Aurelian.AssetTool.csproj" />
     <Project Path="src/Aurelian/Aurelian.Core/Aurelian.Core.csproj" />
+    <Project Path="src/Aurelian/Aurelian.Diagnostics/Aurelian.Diagnostics.csproj" />
     <Project Path="src/Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />
     <Project Path="src/Aurelian/Aurelian.GameHost/Aurelian.GameHost.csproj" />
     <Project Path="src/Aurelian/Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />
@@ -35,6 +36,7 @@
     <Project Path="samples/Integrations/Aurelian.Ariadne.VnDemo/Aurelian.Ariadne.VnDemo.csproj" />
   </Folder>
   <Folder Name="/tools/">
+    <Project Path="tools/Aurelian.RuntimeSoakM22/Aurelian.RuntimeSoakM22.csproj" />
     <Project Path="tools/Aurelian.NativeGraphicsM19/Aurelian.NativeGraphicsM19.csproj" />
     <Project Path="tools/Hollowflux.PearlMiningM20/Hollowflux.PearlMiningM20.csproj" />
   </Folder>

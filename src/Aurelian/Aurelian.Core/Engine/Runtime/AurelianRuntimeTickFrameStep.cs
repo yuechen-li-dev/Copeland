@@ -86,5 +86,5 @@ public sealed class AurelianRuntimeTickFrameStep
         new(status, frameId, runtimeResult, [diagnostic]);
 
     private static AurelianRuntimeTickFrameStepDiagnostic Diagnostic(string code, string message) =>
-        new(code, AurelianRuntimeTickFrameStepDiagnosticSeverity.Error, message);
+        new(code, Aurelian.Diagnostics.AurelianDiagnosticSeverity.Error, message);
 }

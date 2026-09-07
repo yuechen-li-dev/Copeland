@@ -1,0 +1,20 @@
+{
+  "schema": "aurelian.execution-model-audit.m22.v1",
+  "frameLoop": {
+    "purpose": "context-free compositor-policy production and evidence integration",
+    "awaits": [
+      { "stage": "input", "returnType": "ValueTask<AurelianFrameInput?>", "commonFastPath": "synchronous", "affinity": "none owned by Core" },
+      { "stage": "runtimeTick", "returnType": "Task<AurelianRuntimeTickFrameStepResult>", "commonFastPath": "completed Task in current runtime", "affinity": "none owned by Core" },
+      { "stage": "framePump", "returnType": "Task<AurelianFrameResult>", "commonFastPath": "completed Task for current Dominatus/compositor control", "affinity": "mechanism-defined" },
+      { "stage": "presentation", "returnType": "Task", "commonFastPath": "backend-defined", "affinity": "backend-defined" }
+    ],
+    "configureAwait": false,
+    "decision": "do not promise caller-context affinity"
+  },
+  "nativeHost": {
+    "type": "AurelianGameHost",
+    "execution": "synchronous caller-owned thread",
+    "stages": ["events", "input", "simulation", "audio", "render", "submit-present"],
+    "decision": "production default for thread-affine Vulkan applications"
+  }
+}
