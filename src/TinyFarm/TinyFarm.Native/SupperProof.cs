@@ -150,13 +150,50 @@ internal static class SupperProof
         MeasureMenuChange("inventory-open", KeyboardKey.I, "m10b-inventory");
         MeasureMenuChange("pause-open", KeyboardKey.Escape, "m10b-pause");
 
-        var walkthrough = new TinyFarmSupperWalkthrough(game) { Checkpoint = Capture };
+        var walkthrough = new TinyFarmSupperWalkthrough(game)
+        {
+            Checkpoint = name =>
+            {
+                if (name != "m21-riverside-pond")
+                {
+                    Capture(name);
+                    return;
+                }
+                Capture("m21-pond-normal");
+                ScenePosition water = ScenePosition.FromGrid(new GridPosition(10, 5));
+                Require(game.Host.Session.Field.ApplyCombatMove(
+                    TinyFarmCombatMoves.HammerSmash,
+                    TinyFarmSceneIds.Riverside,
+                    water,
+                    ActorFacing.Right,
+                    contact: true) > 0,
+                    "Hammer did not disturb the live Riverside field.");
+                Capture("m21-pond-hammer");
+                Require(game.Host.Session.Field.Energize(water) > 0,
+                    "Charge did not enter the live Riverside field.");
+                Capture("m21-pond-charged");
+            }
+        };
         walkthrough.Run();
         string finalHash = TinyFarmSemanticHash.Compute(game.State);
         TinyFarmReplayResult replay = walkthrough.Replay();
         Require(finalHash == replay.FinalHash, "Replay final hash mismatch.");
         Require(finalHash == restoredCompletionHash, "Restored session did not continue to the same ending.");
         Require(SaveMeasured(game), game.Status);
+
+        string m21Output = Path.Combine(root, "artifacts", "tinyfarm-production-field-ownership-m21");
+        Directory.CreateDirectory(m21Output);
+        CopyScreenshot(output, m21Output, "m21-pond-normal.png", "native-tinyfarm-pond.png");
+        CopyScreenshot(output, m21Output, "m21-pond-hammer.png", "native-tinyfarm-hammer-ripple.png");
+        CopyScreenshot(output, m21Output, "m21-pond-charged.png", "native-tinyfarm-charged-water.png");
+        Write(m21Output, "field-upload-metrics.json", new
+        {
+            schema = "tinyfarm.field-upload-metrics.m21.v1",
+            renderer.FieldTextureUploads,
+            renderer.FieldUploadBytes,
+            projectionPolicy = "upload only when semantic ProjectionGeneration changes",
+            textureFormat = "linear RGBA8 semantic channels",
+        });
 
         host.RunFrame(TimeSpan.Zero);
         int effectsBefore = game.EffectEvents;

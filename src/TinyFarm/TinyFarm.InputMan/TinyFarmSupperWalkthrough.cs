@@ -36,6 +36,7 @@ public sealed class TinyFarmSupperWalkthrough(TinyFarmSupperGame game)
         FinishDialogue();
         Portal("town-exit");
         Portal("riverside-entrance");
+        Checkpoint?.Invoke("m21-riverside-pond");
         Approach(game.Definitions.ForageNode(TinyFarmIds.RiversideHenOfTheWoods).Position);
         Act(new InteractIntent());
         // Noon gives the live schedule a real location change during this session.
@@ -48,6 +49,7 @@ public sealed class TinyFarmSupperWalkthrough(TinyFarmSupperGame game)
         Act(new SelectHotbarSlotIntent(new HotbarSlotId(4)));
         Act(new UseSelectedIntent());
         Checkpoint?.Invoke("05-combat");
+        FinishActiveCombat();
         Portal("dungeon-exit");
         Walk(new GridPosition(18, 8));
         Portal("farm-entrance");
@@ -178,12 +180,43 @@ public sealed class TinyFarmSupperWalkthrough(TinyFarmSupperGame game)
     private void Act(GameIntent intent, bool expectAccepted = true)
     {
         TinyFarmStepResult step = game.Execute(intent);
+        if (game.Host.Session.HasActiveCombat)
+        {
+            game.Advance(
+                TimeSpan.FromMilliseconds(70),
+                new global::InputMan.Core.InputFrame(
+                    0,
+                    0.07f,
+                    new Dictionary<global::InputMan.Core.ActionId, global::InputMan.Core.ActionValue>(),
+                    new Dictionary<global::InputMan.Core.AxisId, float>(),
+                    new Dictionary<global::InputMan.Core.Axis2Id, System.Numerics.Vector2>(),
+                    null),
+                focused: true);
+        }
         Record(step.Results);
         IntentResult result = step.Results[0];
         if (expectAccepted && result.Status == IntentResultStatus.Rejected)
         {
             throw new InvalidOperationException($"{intent} rejected at {game.State.ActorScene(TinyFarmIds.Player)}: {result.Reason}");
         }
+    }
+
+    private void FinishActiveCombat()
+    {
+        if (!game.Host.Session.HasActiveCombat)
+        {
+            return;
+        }
+        game.Advance(
+            TimeSpan.FromMilliseconds(300),
+            new global::InputMan.Core.InputFrame(
+                0,
+                0.3f,
+                new Dictionary<global::InputMan.Core.ActionId, global::InputMan.Core.ActionValue>(),
+                new Dictionary<global::InputMan.Core.AxisId, float>(),
+                new Dictionary<global::InputMan.Core.Axis2Id, System.Numerics.Vector2>(),
+                null),
+            focused: true);
     }
 
     private void Record(IReadOnlyList<IntentResult> results)

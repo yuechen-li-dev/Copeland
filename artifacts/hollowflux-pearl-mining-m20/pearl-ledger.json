@@ -40,6 +40,14 @@
       "action": "defer",
       "owner": "Aurelian.Audio",
       "reuseProof": "none in M20"
+    },
+    {
+      "pearl": "blood-scent gradient steering",
+      "hollowflux": "four-offset blood samples feed enemy steering",
+      "existing": "no TinyFarm blood mechanic or channel pressure",
+      "action": "defer explicitly",
+      "owner": "future application AI over Field2D",
+      "reuseProof": "confirmed and triaged; no speculative channel added"
     }
   ]
 }

@@ -42,6 +42,7 @@ public sealed class TinyFarmSimulationHost
     private readonly TinyFarmSimulationRates rates;
     private readonly CadenceScheduler cadenceScheduler;
     private static readonly CadenceId LocomotionCadence = new("tiny-farm.locomotion");
+    private static readonly CadenceId FieldCadence = new("tiny-farm.semantic-field");
     private static readonly CadenceId WorldCadence = new("tiny-farm.world-minute");
     private int playerMovementX;
     private int playerMovementY;
@@ -59,13 +60,17 @@ public sealed class TinyFarmSimulationHost
         cadenceScheduler = new CadenceScheduler(
         [
             new CadenceDefinition(
+                FieldCadence,
+                RationalRate.PerSecond(60),
+                Order: 0),
+            new CadenceDefinition(
                 LocomotionCadence,
                 RationalRate.PerSecond(this.rates.LocomotionHz),
-                Order: 0),
+                Order: 1),
             new CadenceDefinition(
                 WorldCadence,
                 RationalRate.EverySeconds(this.rates.NormalRealSecondsPerGameMinute),
-                Order: 1)
+                Order: 2)
         ], TimeSpan.FromSeconds(this.rates.MaximumHostDeltaSeconds));
         Session.EnableFixedNpcLocomotion();
         Mode = initialMode;
@@ -85,6 +90,7 @@ public sealed class TinyFarmSimulationHost
     public long WorldMinutesAdvanced { get; private set; }
 
     public long LocomotionStepsAdvanced { get; private set; }
+    public long FieldStepsAdvanced { get; private set; }
     public long PlayerLocomotionReductions { get; private set; }
     public long NpcLocomotionReductions => Session.NpcLocomotionReductionCount;
     public long AnchorArrivals => Session.AnchorArrivalCount;
@@ -141,6 +147,28 @@ public sealed class TinyFarmSimulationHost
 
     public TinyFarmStepResult ExecuteIntent(GameIntent intent)
     {
+        if (intent is AttackIntent attack)
+        {
+            return Session.BeginCombatAttack(attack);
+        }
+        if (intent is UseSelectedIntent
+            && Session.State.SelectedHotbarSlot == 4
+            && TinyFarmSpatialQueries.SelectInteractionTarget(
+                Session.State,
+                TinyFarmIds.Player,
+                definitions.Scenes)?.Enemy is EnemyId enemy)
+        {
+            return Session.BeginCombatAttack(new AttackIntent(enemy));
+        }
+        if (intent is UseSelectedIntent
+            && Session.State.SelectedHotbarSlot == 4)
+        {
+            ActorSceneState player = Session.State.ActorScene(TinyFarmIds.Player);
+            if (Session.Field.Contains(player.Scene, player.WorldPosition))
+            {
+                return Session.BeginEnvironmentalSwordSwing();
+            }
+        }
         bool evaluateNpcDecisions = intent is not SpatialMoveIntent
             and not SelectHotbarSlotIntent;
         return Session.Step(intent, evaluateNpcDecisions);
@@ -174,6 +202,17 @@ public sealed class TinyFarmSimulationHost
 
         foreach (DueWorkFact due in schedule.DueWork)
         {
+            if (due.Cadence == FieldCadence)
+            {
+                TinyFarmStepResult? combat = Session.AdvanceFieldTick();
+                FieldStepsAdvanced++;
+                if (combat is not null)
+                {
+                    results.AddRange(combat.Results);
+                    narrative.AddRange(combat.Narrative);
+                }
+                continue;
+            }
             if (due.Cadence == LocomotionCadence)
             {
                 AdvanceLocomotion(results, narrative);

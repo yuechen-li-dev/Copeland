@@ -38,6 +38,13 @@
       "Index": 95349
     },
     {
+      "subsystem": "blood-scent gradient steering",
+      "classification": "C",
+      "owner": "future application AI over Field2D",
+      "action": "defer until an application pressures a blood channel",
+      "confidence": "high"
+    },
+    {
       "subsystem": "coverage-safe field reconstruction",
       "classification": "B",
       "owner": "Visual TS realization",

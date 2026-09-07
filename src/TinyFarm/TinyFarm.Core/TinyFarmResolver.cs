@@ -1100,22 +1100,15 @@ public sealed class TinyFarmResolver
             new CombatActorId(actor.Id.Value),
             new SpatialPoint2D(placement.WorldPosition.XUnits, placement.WorldPosition.YUnits),
             facing);
-        IReadOnlyList<CombatContact> contacts = [];
-        while (action.Phase != CombatPhase.Complete)
-        {
-            CombatStepResult step = CombatResolver.Advance(
-                move,
-                action,
-                [new CombatTarget(
-                    new CombatActorId(enemy.Id.Value),
-                    new SpatialPoint2D(definition.SpawnPosition.XUnits, definition.SpawnPosition.YUnits))]);
-            action = step.State;
-            if (step.Contacts.Count > 0)
-            {
-                contacts = step.Contacts;
-            }
-        }
-        CombatContact? contact = contacts.SingleOrDefault();
+        action = action with { Phase = CombatPhase.Active, PhaseTick = 0 };
+        CombatStepResult combat = CombatResolver.Advance(
+            move,
+            action,
+            [new CombatTarget(
+                new CombatActorId(enemy.Id.Value),
+                new SpatialPoint2D(definition.SpawnPosition.XUnits, definition.SpawnPosition.YUnits))]);
+        CombatContact? contact = combat.Contacts.FirstOrDefault(item =>
+            item.Target == new CombatActorId(intent.Enemy.Value));
         if (contact is null)
         {
             return Rejected(envelope, IntentReason.EnemyOutOfRange);

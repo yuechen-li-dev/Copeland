@@ -1,0 +1,34 @@
+{
+  "law": "motion disturbance on accepted attack; stronger disturbance on contact",
+  "rows": [
+    {
+      "move": "tinyfarm.sword.swing",
+      "shape": 2,
+      "motion": 8,
+      "contact": 8,
+      "hash": "6a439e7851b78e084b8b3b37072c8ccf32f3ada5458532d2a76ff997637696f8"
+    },
+    {
+      "move": "tinyfarm.spear.thrust",
+      "shape": 1,
+      "motion": 10,
+      "contact": 10,
+      "hash": "2d93833ad420f5b6b92443e71df48780cef96635bbb6438193ad0d6fb6d89149"
+    },
+    {
+      "move": "tinyfarm.hammer.smash",
+      "shape": 3,
+      "motion": 18,
+      "contact": 18,
+      "hash": "42d99bb2092ba45137d7a126b86d257dfbcae22a542e30371a6b8324ae90dd62"
+    },
+    {
+      "move": "tinyfarm.hoe.sweep",
+      "shape": 2,
+      "motion": 14,
+      "contact": 14,
+      "hash": "886f6877d8239b3cd69abfef51e27e0845f324dc62cfb664f5f307b1a0b160f5"
+    }
+  ],
+  "hostedPhaseLaw": "one CombatResolver advance per existing 60 Hz semantic cadence tick"
+}

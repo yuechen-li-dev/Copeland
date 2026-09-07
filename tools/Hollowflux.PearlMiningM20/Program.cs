@@ -189,6 +189,7 @@ WriteJson("semantic-map.json", new
     {
         new { subsystem = "combat phase and move tables", classification = "B", owner = "Aurelian.Combat", action = "adapt", confidence = "high", phaseEvidence.Index },
         new { subsystem = "CPU reactive fluid and connected disturbances", classification = "B", owner = "Aurelian.Field2D", action = "adapt", confidence = "high", fieldEvidence.Index },
+        new { subsystem = "blood-scent gradient steering", classification = "C", owner = "future application AI over Field2D", action = "defer until an application pressures a blood channel", confidence = "high" },
         new { subsystem = "coverage-safe field reconstruction", classification = "B", owner = "Visual TS realization", action = "adapt", confidence = "high", shaderEvidence.Index },
         new { subsystem = "deterministic loot and affix content", classification = "C", owner = "application", action = "defer", confidence = "medium", lootEvidence.Index },
         new { subsystem = "Canvas/WebGL/DOM glue", classification = "D", owner = "none", action = "reject", confidence = "high" },
@@ -205,12 +206,14 @@ WriteJson("pearl-ledger.json", new
         new { pearl = "connected semantic fields", hollowflux = "SoA arrays plus generation-counter BFS", existing = "no game-semantic field owner", action = "Aurelian.Field2D", owner = "Aurelian mechanism plus app meaning", reuseProof = "waves and conductive charge" },
         new { pearl = "wet-safe interpolation", hollowflux = "divide continuous fields by bounded liquid coverage", existing = "Visual TS to VD-MIR native path", action = "Visual TS re-authoring", owner = "realization", reuseProof = "validated HLSL and SPIR-V" },
         new { pearl = "procedural equipment composition", hollowflux = "Canvas actor layers", existing = "Profile layer composition already stronger", action = "document only", owner = "Copeland.Profile", reuseProof = "existing M1 evidence" },
-        new { pearl = "procedural WebAudio", hollowflux = "oscillator and noise recipes", existing = "semantic audio cues and native resident PCM", action = "defer", owner = "Aurelian.Audio", reuseProof = "none in M20" }
+        new { pearl = "procedural WebAudio", hollowflux = "oscillator and noise recipes", existing = "semantic audio cues and native resident PCM", action = "defer", owner = "Aurelian.Audio", reuseProof = "none in M20" },
+        new { pearl = "blood-scent gradient steering", hollowflux = "four-offset blood samples feed enemy steering", existing = "no TinyFarm blood mechanic or channel pressure", action = "defer explicitly", owner = "future application AI over Field2D", reuseProof = "confirmed and triaged; no speculative channel added" }
     }
 });
-WriteJson("decompilation-islands.json", new
+WriteJson("semantic-anchors.json", new
 {
-    schema = "hollowflux.decompilation-islands.m20.v1",
+    schema = "hollowflux.semantic-anchors.m20.v1",
+    namingLaw = "Human-assigned semantic names with automatically verified source anchors; not decompiler-recovered identifiers.",
     islands = new object[]
     {
         new { id = "combat-action-phase", minifiedNames = new[] { "ja", "Ba", "sr" }, semanticNames = new[] { "StartCombatAction", "AdvanceCombatPhase", "ProjectCombatPose" }, evidence = phaseEvidence },

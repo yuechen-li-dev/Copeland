@@ -12,6 +12,7 @@
   <Project Path="src/TinyFarm/TinyFarm.MonoGame/TinyFarm.MonoGame.csproj" />
   <Project Path="src/TinyFarm/TinyFarm.InputMan/TinyFarm.InputMan.csproj" />
     <Project Path="src/TinyFarm/TinyFarm.Presentation/TinyFarm.Presentation.csproj" />
+    <Project Path="src/Integrations/TinyFarm.Oblivion/TinyFarm.Oblivion.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Aurelian/Aurelian.Spatial2D.Tests/Aurelian.Spatial2D.Tests.csproj" />

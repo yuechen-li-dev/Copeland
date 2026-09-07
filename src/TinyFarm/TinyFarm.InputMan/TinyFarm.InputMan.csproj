@@ -4,6 +4,7 @@
     <RootNamespace>TinyFarm.InputMan</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../Integrations/TinyFarm.Oblivion/TinyFarm.Oblivion.csproj" />
     <ProjectReference Include="../TinyFarm.Core/TinyFarm.Core.csproj" />
     <ProjectReference Include="../TinyFarm.Runtime/TinyFarm.Runtime.csproj" />
     <ProjectReference Include="../../../../InputMan/src/InputMan.Core/InputMan.Core.csproj" />

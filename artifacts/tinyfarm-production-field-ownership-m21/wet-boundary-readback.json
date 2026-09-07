@@ -1,0 +1,7 @@
+{
+  "dryPixelsCannotContribute": true,
+  "dryHeightEncodingIgnoredByWetMask": true,
+  "shaderMasksRgbByWetCoverage": true,
+  "alphaConvention": "straight alpha",
+  "textureColorSpace": "linear RGBA8 semantic data"
+}

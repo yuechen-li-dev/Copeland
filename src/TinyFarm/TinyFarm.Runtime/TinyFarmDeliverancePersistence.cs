@@ -16,7 +16,8 @@ public sealed record TinyFarmSemanticSaveSnapshot(
     TinyFarmState World,
     long NextSequence,
     IReadOnlyList<GameEvent> RecentEvents,
-    TinyFarmDialogueCheckpoint? Dialogue = null);
+    TinyFarmDialogueCheckpoint? Dialogue = null,
+    TinyFarmFieldSnapshot? Field = null);
 
 public sealed record TinyFarmSemanticSaveSnapshotV1(
     string RuntimeVersion,
@@ -30,7 +31,7 @@ public sealed class TinyFarmDeliverancePersistence : IPersistenceApplicationBrid
     public const string ApplicationId = "tiny-farm";
     public const string ApplicationVersion = "m6";
     public const string ModuleId = "tinyfarm.semantic-state";
-    public const int ModuleSchemaVersion = 2;
+    public const int ModuleSchemaVersion = 3;
 
     private readonly TinyFarmSimulationHost host;
     private readonly TinyFarmDefinitions definitions;
@@ -100,6 +101,7 @@ public sealed class TinyFarmDeliverancePersistence : IPersistenceApplicationBrid
                 migrations:
                 [
                     new ModuleMigration(1, MigrateV1ToV2),
+                    new ModuleMigration(2, MigrateV2ToV3),
                 ],
                 validateCurrentPayload: bytes => _ = DecodeAndValidate(bytes))
         ];
@@ -122,7 +124,8 @@ public sealed class TinyFarmDeliverancePersistence : IPersistenceApplicationBrid
             snapshot.World,
             definitions,
             snapshot.NextSequence,
-            snapshot.RecentEvents);
+            snapshot.RecentEvents,
+            fieldSnapshot: snapshot.Field);
         host.CommitLoadedSession(session);
         if (dialogue is not null && snapshot.Dialogue is not null)
         {
@@ -141,7 +144,8 @@ public sealed class TinyFarmDeliverancePersistence : IPersistenceApplicationBrid
             session.State.DeepCopy(),
             session.NextSequence,
             session.RecentEvents.ToArray(),
-            dialogue?.Capture());
+            dialogue?.Capture(),
+            session.Field.Capture());
     }
 
     private TinyFarmSemanticSaveSnapshot DecodeAndValidate(ReadOnlyMemory<byte> bytes)
@@ -173,6 +177,11 @@ public sealed class TinyFarmDeliverancePersistence : IPersistenceApplicationBrid
             throw new InvalidDataException($"TinyFarm definition mismatch: save '{snapshot.DefinitionHash}', runtime '{definitions.Identity}'.");
         }
         TinyFarmChunkedSaveCodec.ValidateWorld(snapshot.World, definitions);
+        if (snapshot.Field is null)
+        {
+            throw new InvalidDataException("TinyFarm semantic save module is missing its field snapshot.");
+        }
+        _ = TinyFarmFieldRuntime.Restore(snapshot.Field);
         return snapshot;
     }
 
@@ -198,7 +207,29 @@ public sealed class TinyFarmDeliverancePersistence : IPersistenceApplicationBrid
             legacy.World,
             legacy.NextSequence,
             legacy.RecentEvents,
+            null,
             null);
+        return JsonSerializer.SerializeToUtf8Bytes(current, TinyFarmChunkedSaveCodec.ChunkOptions);
+    }
+
+    private static ReadOnlyMemory<byte> MigrateV2ToV3(ReadOnlyMemory<byte> bytes)
+    {
+        TinyFarmSemanticSaveSnapshot snapshot;
+        try
+        {
+            snapshot = JsonSerializer.Deserialize<TinyFarmSemanticSaveSnapshot>(
+                bytes.Span,
+                TinyFarmChunkedSaveCodec.ChunkOptions)
+                ?? throw new InvalidDataException("TinyFarm schema-v2 semantic save module was empty.");
+        }
+        catch (JsonException exception)
+        {
+            throw new InvalidDataException("TinyFarm schema-v2 semantic save module contains malformed JSON.", exception);
+        }
+        TinyFarmSemanticSaveSnapshot current = snapshot with
+        {
+            Field = TinyFarmFieldRuntime.CreateDefault().Capture()
+        };
         return JsonSerializer.SerializeToUtf8Bytes(current, TinyFarmChunkedSaveCodec.ChunkOptions);
     }
 }
@@ -206,7 +237,8 @@ public sealed class TinyFarmDeliverancePersistence : IPersistenceApplicationBrid
 public sealed record TinyFarmReplayRecord(
     int Index,
     IntentEnvelope Intent,
-    string ExpectedStateHash);
+    string ExpectedStateHash,
+    string? ExpectedFieldHash = null);
 
 public sealed record TinyFarmReplayEnvelope(
     int ReplayFormatVersion,
@@ -215,9 +247,16 @@ public sealed record TinyFarmReplayEnvelope(
     string CadenceConfigHash,
     TinyFarmState InitialCheckpoint,
     string InitialCheckpointHash,
-    IReadOnlyList<TinyFarmReplayRecord> Intents);
+    IReadOnlyList<TinyFarmReplayRecord> Intents,
+    TinyFarmFieldSnapshot? InitialField = null,
+    string? InitialFieldHash = null);
 
-public sealed record TinyFarmReplayResult(TinyFarmState State, string FinalHash, int AppliedIntentCount);
+public sealed record TinyFarmReplayResult(
+    TinyFarmState State,
+    string FinalHash,
+    int AppliedIntentCount,
+    TinyFarmFieldSnapshot Field,
+    string FieldHash);
 
 public static class TinyFarmSemanticReplay
 {
@@ -248,9 +287,11 @@ public static class TinyFarmSemanticReplay
         TinyFarmState initialCheckpoint,
         string definitionHash,
         string cadenceConfigHash,
-        IReadOnlyList<TinyFarmReplayRecord> intents)
+        IReadOnlyList<TinyFarmReplayRecord> intents,
+        TinyFarmFieldSnapshot? initialField = null)
     {
         ArgumentNullException.ThrowIfNull(initialCheckpoint);
+        TinyFarmFieldSnapshot field = initialField ?? TinyFarmFieldRuntime.CreateDefault().Capture();
         return new TinyFarmReplayEnvelope(
             CurrentReplayFormatVersion,
             TinyFarmDeliverancePersistence.ApplicationId,
@@ -258,7 +299,9 @@ public static class TinyFarmSemanticReplay
             cadenceConfigHash,
             initialCheckpoint.DeepCopy(),
             TinyFarmSemanticHash.Compute(initialCheckpoint),
-            intents);
+            intents,
+            field,
+            TinyFarmFieldRuntime.ComputeHash(field));
     }
 
     public static TinyFarmReplayResult Replay(
@@ -291,6 +334,15 @@ public static class TinyFarmSemanticReplay
             throw new InvalidDataException("Replay checkpoint hash mismatch at sequence 0.");
         }
 
+        TinyFarmFieldSnapshot initialField = envelope.InitialField
+            ?? TinyFarmFieldRuntime.CreateDefault().Capture();
+        var field = TinyFarmFieldRuntime.Restore(initialField);
+        if (envelope.InitialFieldHash is not null
+            && !string.Equals(field.SemanticHash, envelope.InitialFieldHash, StringComparison.Ordinal))
+        {
+            throw new InvalidDataException("Replay field checkpoint hash mismatch at sequence 0.");
+        }
+
         TinyFarmState state = envelope.InitialCheckpoint.DeepCopy();
         var resolver = new TinyFarmResolver(definitions);
         long previousSequence = long.MinValue;
@@ -302,15 +354,71 @@ public static class TinyFarmSemanticReplay
                 throw new InvalidDataException($"Replay intent ordering mismatch at index {index}.");
             }
             previousSequence = record.Intent.Sequence;
+            ActorSceneState playerBefore = state.ActorScene(TinyFarmIds.Player);
             IntentEnvelope replayIntent = record.Intent with { Source = IntentSourceKind.Replay };
-            state = resolver.Resolve(state, [replayIntent]).State;
+            ResolutionBatchResult batch = resolver.Resolve(state, [replayIntent]);
+            state = batch.State;
+            bool accepted = batch.Results[0].Status == IntentResultStatus.Accepted;
+            bool environmentalSwordSwing = !accepted
+                && replayIntent.Actor == TinyFarmIds.Player
+                && replayIntent.Intent is UseSelectedIntent
+                && state.SelectedHotbarSlot == 4
+                && state.Actor(TinyFarmIds.Player).Inventory.Contains(TinyFarmIds.Sword)
+                && state.Items.Any(item =>
+                    item.Id == TinyFarmIds.Sword
+                    && item.Owner == TinyFarmIds.Player)
+                && field.Contains(playerBefore.Scene, playerBefore.WorldPosition);
+            if ((accepted || environmentalSwordSwing)
+                && replayIntent.Actor == TinyFarmIds.Player)
+            {
+                if (replayIntent.Intent is SpatialMoveIntent)
+                {
+                    ActorSceneState playerAfter = state.ActorScene(TinyFarmIds.Player);
+                    field.ApplyMovement(playerAfter.Scene, playerBefore.WorldPosition, playerAfter.WorldPosition);
+                }
+                else if (replayIntent.Intent is AttackIntent)
+                {
+                    field.ApplyCombatMove(
+                        TinyFarmCombatMoves.SwordSwing,
+                        playerBefore.Scene,
+                        playerBefore.WorldPosition,
+                        playerBefore.Facing,
+                        contact: false);
+                    field.ApplyCombatMove(
+                        TinyFarmCombatMoves.SwordSwing,
+                        playerBefore.Scene,
+                        playerBefore.WorldPosition,
+                        playerBefore.Facing,
+                        contact: true);
+                }
+                else if (environmentalSwordSwing)
+                {
+                    field.ApplyCombatMove(
+                        TinyFarmCombatMoves.SwordSwing,
+                        playerBefore.Scene,
+                        playerBefore.WorldPosition,
+                        playerBefore.Facing,
+                        contact: false);
+                }
+            }
             string actualHash = TinyFarmSemanticHash.Compute(state);
             if (!string.Equals(actualHash, record.ExpectedStateHash, StringComparison.Ordinal))
             {
                 throw new InvalidDataException(
                     $"Replay state hash divergence at index {index}, sequence {record.Intent.Sequence}: expected '{record.ExpectedStateHash}', actual '{actualHash}'.");
             }
+            if (record.ExpectedFieldHash is not null
+                && !string.Equals(field.SemanticHash, record.ExpectedFieldHash, StringComparison.Ordinal))
+            {
+                throw new InvalidDataException(
+                    $"Replay field hash divergence at index {index}, sequence {record.Intent.Sequence}: expected '{record.ExpectedFieldHash}', actual '{field.SemanticHash}'.");
+            }
         }
-        return new TinyFarmReplayResult(state, TinyFarmSemanticHash.Compute(state), envelope.Intents.Count);
+        return new TinyFarmReplayResult(
+            state,
+            TinyFarmSemanticHash.Compute(state),
+            envelope.Intents.Count,
+            field.Capture(),
+            field.SemanticHash);
     }
 }

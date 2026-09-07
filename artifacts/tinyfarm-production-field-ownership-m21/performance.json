@@ -1,0 +1,27 @@
+{
+  "width": 14,
+  "height": 22,
+  "meanUpdateMilliseconds": 0.10515366666666666,
+  "updateAllocatedBytesFor600Ticks": 0,
+  "disturbanceMilliseconds": 0.0195,
+  "disturbanceCells": 18,
+  "chargeMilliseconds": 0.0084,
+  "chargeCells": 34,
+  "projectionMilliseconds": 0.0285,
+  "projectionAllocatedBytes": 1256,
+  "uploadBytes": 1232,
+  "pressureDimensions": [
+    {
+      "width": 28,
+      "height": 44,
+      "meanUpdateMilliseconds": 0.55664,
+      "allocatedBytes": 0
+    },
+    {
+      "width": 28,
+      "height": 88,
+      "meanUpdateMilliseconds": 1.1055,
+      "allocatedBytes": 0
+    }
+  ]
+}

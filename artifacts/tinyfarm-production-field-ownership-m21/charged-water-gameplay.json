@@ -1,0 +1,9 @@
+{
+  "chargedCells": 34,
+  "threshold": 0.35,
+  "consequenceApplied": true,
+  "immediateRepeatApplied": false,
+  "movementPenaltyTicks": 12,
+  "cooldownTicks": 29,
+  "authority": "TinyFarmFieldRuntime query and application; shader excluded"
+}

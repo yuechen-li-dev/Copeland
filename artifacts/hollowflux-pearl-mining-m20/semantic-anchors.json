@@ -1,5 +1,6 @@
 {
-  "schema": "hollowflux.decompilation-islands.m20.v1",
+  "schema": "hollowflux.semantic-anchors.m20.v1",
+  "namingLaw": "Human-assigned semantic names with automatically verified source anchors; not decompiler-recovered identifiers.",
   "islands": [
     {
       "id": "combat-action-phase",

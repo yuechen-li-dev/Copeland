@@ -2,34 +2,34 @@
   "Schema": "hollowflux.performance.m20.v1",
   "CombatCandidateCounts": {
     "1": {
-      "Milliseconds": 0.228,
+      "Milliseconds": 0.212,
       "AllocatedBytes": 227328
     },
     "32": {
-      "Milliseconds": 3.231,
+      "Milliseconds": 3.453,
       "AllocatedBytes": 1491328
     },
     "256": {
-      "Milliseconds": 31.618,
+      "Milliseconds": 26.562,
       "AllocatedBytes": 11214528
     }
   },
   "Field": {
     "dimensions": "16x16",
     "update1000": {
-      "Milliseconds": 87.216,
+      "Milliseconds": 91.668,
       "AllocatedBytes": 40
     },
     "disturbance200": {
-      "Milliseconds": 4.153,
+      "Milliseconds": 4.118,
       "AllocatedBytes": 40
     },
     "charge200": {
-      "Milliseconds": 2.658,
+      "Milliseconds": 2.514,
       "AllocatedBytes": 40
     },
     "projection200": {
-      "Milliseconds": 4.631,
+      "Milliseconds": 4.563,
       "AllocatedBytes": 209640
     },
     "projectionBytes": 1024

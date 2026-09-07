@@ -1,0 +1,7 @@
+{
+  "owner": "TinyFarmSession",
+  "lifecycle": "constructed and restored with TinyFarmSession",
+  "rendererOwnsTruth": false,
+  "secondLoopAdded": false,
+  "independentInstances": true
+}

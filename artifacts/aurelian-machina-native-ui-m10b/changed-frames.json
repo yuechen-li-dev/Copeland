@@ -1,58 +1,58 @@
 {
   "firstCombat": {
     "beforeMilliseconds": 27.258,
-    "afterMilliseconds": 9.4574,
-    "improvementPercent": 65.30413089735123,
-    "allocatedBytes": 673280,
+    "afterMilliseconds": 12.8206,
+    "improvementPercent": 52.965734830141606,
+    "allocatedBytes": 568680,
     "under16_67Milliseconds": true
   },
   "sceneChange": {
     "beforeMilliseconds": 25.408,
-    "afterMilliseconds": 7.1481,
-    "improvementPercent": 71.86673488664988,
-    "allocatedBytes": 627304,
+    "afterMilliseconds": 9.5294,
+    "improvementPercent": 62.49448992443325,
+    "allocatedBytes": 524448,
     "under16_67Milliseconds": true
   },
   "dialogueOpen": {
     "beforeMilliseconds": null,
-    "afterMilliseconds": 10.9022,
+    "afterMilliseconds": 18.7695,
     "improvementPercent": null,
-    "allocatedBytes": 1291976,
-    "under16_67Milliseconds": true
+    "allocatedBytes": 1296128,
+    "under16_67Milliseconds": false
   },
   "objectiveAndHotbarUpdate": {
     "beforeMilliseconds": null,
-    "afterMilliseconds": 9.4815,
+    "afterMilliseconds": 16.329,
     "improvementPercent": null,
-    "allocatedBytes": 795072,
+    "allocatedBytes": 803784,
     "under16_67Milliseconds": true
   },
   "inventoryOpen": {
     "beforeMilliseconds": null,
-    "afterMilliseconds": 6.6237,
+    "afterMilliseconds": 7.3641,
     "improvementPercent": null,
-    "allocatedBytes": 743064,
+    "allocatedBytes": 748432,
     "under16_67Milliseconds": true
   },
   "pauseOpen": {
     "beforeMilliseconds": null,
-    "afterMilliseconds": 6.9456,
+    "afterMilliseconds": 10.3414,
     "improvementPercent": null,
-    "allocatedBytes": 895184,
+    "allocatedBytes": 909304,
     "under16_67Milliseconds": true
   },
   "title": {
     "beforeMilliseconds": null,
-    "afterMilliseconds": 32.2641,
+    "afterMilliseconds": 41.8525,
     "improvementPercent": null,
-    "allocatedBytes": 198576,
+    "allocatedBytes": 199776,
     "under16_67Milliseconds": false
   },
   "completion": {
     "beforeMilliseconds": null,
-    "afterMilliseconds": 8.6286,
+    "afterMilliseconds": 12.3938,
     "improvementPercent": null,
-    "allocatedBytes": 1147544,
+    "allocatedBytes": 1149808,
     "under16_67Milliseconds": true
   }
 }

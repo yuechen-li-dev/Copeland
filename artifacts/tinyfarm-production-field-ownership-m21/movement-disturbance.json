@@ -1,0 +1,15 @@
+{
+  "affectedCells": 4,
+  "hash": "6d1547fdc0d869cc91e54852cd94c6beb302995a137504ba389ce4d101c976d9",
+  "disturbance": {
+    "tick": 0,
+    "kind": "movement-disturbance",
+    "conceptPath": "TinyFarm.World.Pond.Fluid.Disturbance",
+    "shape": 0,
+    "x": 10880,
+    "y": 5632,
+    "strength": 0.12,
+    "affectedCells": 4
+  },
+  "dash": "deferred: TinyFarm has no dash"
+}

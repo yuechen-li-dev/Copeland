@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Description>Read-only live Oblivion inspection surfaces for a running TinyFarm session.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../TinyFarm/TinyFarm.Runtime/TinyFarm.Runtime.csproj" />
+    <ProjectReference Include="../../Oblivion/Oblivion.Model/Oblivion.Model.csproj" />
+  </ItemGroup>
+</Project>

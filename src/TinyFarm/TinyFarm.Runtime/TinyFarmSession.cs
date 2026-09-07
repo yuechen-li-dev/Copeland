@@ -1,4 +1,6 @@
 using Aurelian.Simulation;
+using Aurelian.Combat;
+using Aurelian.Spatial2D;
 
 namespace TinyFarm.Core;
 
@@ -6,6 +8,15 @@ public sealed record TinyFarmStepResult(
     TinyFarmState State,
     IReadOnlyList<IntentResult> Results,
     IReadOnlyList<NarrativeLine> Narrative);
+
+public sealed record TinyFarmCombatInspection(
+    string? ActiveMove,
+    string Phase,
+    int PhaseTick,
+    ActorFacing Facing,
+    IReadOnlyList<string> HitIds,
+    int ContactCount,
+    string ConceptPath);
 
 public sealed class TinyFarmSession
 {
@@ -29,6 +40,7 @@ public sealed class TinyFarmSession
     private long npcLocomotionReductionCount;
     private long anchorArrivalCount;
     private bool fixedNpcLocomotionEnabled;
+    private PendingCombatAction? pendingCombat;
 
     public TinyFarmSession(TinyFarmState state)
         : this(state, TinyFarmDefinitionLoader.Load(), 0, [])
@@ -53,7 +65,8 @@ public sealed class TinyFarmSession
         TinyFarmDefinitions? definitions,
         long nextSequence,
         IReadOnlyList<GameEvent> recentEvents,
-        INavigationPlanner? navigationPlanner = null)
+        INavigationPlanner? navigationPlanner = null,
+        TinyFarmFieldSnapshot? fieldSnapshot = null)
     {
         State = state.DeepCopy();
         this.definitions = definitions;
@@ -63,9 +76,23 @@ public sealed class TinyFarmSession
         this.navigationPlanner = navigationPlanner ?? new DotRecastNavigationPlanner();
         scheduleRuntime = TinyFarmNpcSchedule.CreateRuntime(definitions!.Schedules);
         simulationScenes = TinyFarmAurelianSimulationBridge.Project(definitions.Scenes);
+        Field = fieldSnapshot is null
+            ? TinyFarmFieldRuntime.CreateDefault()
+            : TinyFarmFieldRuntime.Restore(fieldSnapshot);
     }
 
     public TinyFarmState State { get; private set; }
+
+    public TinyFarmFieldRuntime Field { get; }
+
+    public TinyFarmCombatInspection CombatInspection { get; private set; } = new(
+        null,
+        "Idle",
+        0,
+        ActorFacing.Down,
+        [],
+        0,
+        "TinyFarm.Player.Combat.ActiveAction");
 
     public long NextSequence => nextSequence;
 
@@ -81,6 +108,7 @@ public sealed class TinyFarmSession
     public long NpcLocomotionReductionCount => npcLocomotionReductionCount;
     public long AnchorArrivalCount => anchorArrivalCount;
     public bool HasActiveNpcNavigation => npcNavigationTargets.Count > 0;
+    public bool HasActiveCombat => pendingCombat is not null;
 
     public SceneAnchorId? NavigationTargetFor(ActorId actor)
     {
@@ -161,6 +189,9 @@ public sealed class TinyFarmSession
             .ToList();
 
         SceneId? activeSceneBefore = State.CurrentScene;
+        ActorSceneState? playerBefore = State.Version >= TinyFarmState.SceneSaveVersion
+            ? State.ActorScene(TinyFarmIds.Player)
+            : null;
         ResolutionBatchResult batch = resolver.Resolve(State, envelopes);
         batch = AppendAnchorArrivalEvents(State, batch, semanticTargets);
         foreach (IntentResult result in batch.Results.Where(result =>
@@ -171,6 +202,7 @@ public sealed class TinyFarmSession
             npcPaths.Remove(result.Envelope.Actor);
         }
         State = batch.State;
+        RouteAcceptedFieldActions(batch.Results, playerBefore);
         SceneId? activeSceneAfter = State.CurrentScene;
         if (activeSceneAfter != activeSceneBefore)
         {
@@ -188,6 +220,11 @@ public sealed class TinyFarmSession
         int deltaY,
         int distance)
     {
+        if (Field.PlayerMovementPenaltyRemaining > 0)
+        {
+            return new TinyFarmStepResult(State, [], []);
+        }
+        ActorSceneState before = State.ActorScene(TinyFarmIds.Player);
         var intent = new SpatialMoveIntent(deltaX, deltaY, distance);
         var envelope = new IntentEnvelope(
             TinyFarmIds.Player,
@@ -202,8 +239,226 @@ public sealed class TinyFarmSession
             deltaY,
             distance);
         IntentResult result = TinyFarmResolver.MaterializeSpatialMoveResult(envelope, reduction);
+        if (result.Status == IntentResultStatus.Accepted)
+        {
+            ActorSceneState after = State.ActorScene(TinyFarmIds.Player);
+            Field.ApplyMovement(after.Scene, before.WorldPosition, after.WorldPosition);
+        }
         recentEvents = result.Events;
         return new TinyFarmStepResult(State, [result], []);
+    }
+
+    internal TinyFarmStepResult? AdvanceFieldTick()
+    {
+        TinyFarmStepResult? combat = AdvanceCombatTick();
+        if (State.Version < TinyFarmState.SceneSaveVersion)
+        {
+            Field.AdvanceTick(TinyFarmSceneIds.Farm, default);
+            return combat;
+        }
+        ActorSceneState player = State.ActorScene(TinyFarmIds.Player);
+        Field.AdvanceTick(player.Scene, player.WorldPosition);
+        return combat;
+    }
+
+    internal TinyFarmStepResult BeginCombatAttack(AttackIntent attack)
+    {
+        ArgumentNullException.ThrowIfNull(attack);
+        var envelope = new IntentEnvelope(
+            TinyFarmIds.Player,
+            attack,
+            State.Minute,
+            nextSequence++,
+            IntentSourceKind.Human);
+        if (pendingCombat is not null)
+        {
+            var busy = new IntentResult(
+                envelope,
+                IntentResultStatus.NoOp,
+                IntentReason.UnsupportedSelectedUse,
+                []);
+            return new TinyFarmStepResult(State.DeepCopy(), [busy], []);
+        }
+
+        ResolutionBatchResult validation = resolver.Resolve(State.DeepCopy(), [envelope]);
+        IntentResult validationResult = validation.Results[0];
+        if (validationResult.Status != IntentResultStatus.Accepted)
+        {
+            return new TinyFarmStepResult(State.DeepCopy(), [validationResult], []);
+        }
+
+        ActorSceneState player = State.ActorScene(TinyFarmIds.Player);
+        EnemyDefinition enemy = definitions!.Enemy(attack.Enemy);
+        double facing = Math.Atan2(
+            enemy.SpawnPosition.YUnits - player.WorldPosition.YUnits,
+            enemy.SpawnPosition.XUnits - player.WorldPosition.XUnits);
+        CombatMoveDefinition move = TinyFarmCombatMoves.SwordSwing;
+        CombatActionState action = CombatActionState.Start(
+            envelope.Sequence,
+            move,
+            new CombatActorId(TinyFarmIds.Player.Value),
+            new SpatialPoint2D(player.WorldPosition.XUnits, player.WorldPosition.YUnits),
+            facing);
+        pendingCombat = new PendingCombatAction(
+            envelope,
+            move,
+            action,
+            new CombatTarget(
+                new CombatActorId(enemy.Id.Value),
+                new SpatialPoint2D(enemy.SpawnPosition.XUnits, enemy.SpawnPosition.YUnits)));
+        Field.ApplyCombatMove(move, player.Scene, player.WorldPosition, player.Facing, contact: false);
+        CombatInspection = new TinyFarmCombatInspection(
+            move.Id.Value,
+            CombatPhase.Startup.ToString(),
+            0,
+            player.Facing,
+            [],
+            0,
+            "TinyFarm.Player.Combat.ActiveAction");
+        var accepted = new IntentResult(envelope, IntentResultStatus.Accepted, IntentReason.None, []);
+        return new TinyFarmStepResult(State.DeepCopy(), [accepted], []);
+    }
+
+    internal TinyFarmStepResult BeginEnvironmentalSwordSwing()
+    {
+        var envelope = new IntentEnvelope(
+            TinyFarmIds.Player,
+            new UseSelectedIntent(),
+            State.Minute,
+            nextSequence++,
+            IntentSourceKind.Human);
+        ActorState playerActor = State.Actor(TinyFarmIds.Player);
+        bool ownsSword = playerActor.Inventory.Contains(TinyFarmIds.Sword)
+            && State.Items.SingleOrDefault(item => item.Id == TinyFarmIds.Sword)?.Owner == TinyFarmIds.Player;
+        if (pendingCombat is not null || State.SelectedHotbarSlot != 4 || !ownsSword)
+        {
+            var rejected = new IntentResult(
+                envelope,
+                IntentResultStatus.Rejected,
+                ownsSword ? IntentReason.UnsupportedSelectedUse : IntentReason.MissingSword,
+                []);
+            return new TinyFarmStepResult(State.DeepCopy(), [rejected], []);
+        }
+
+        ActorSceneState player = State.ActorScene(TinyFarmIds.Player);
+        CombatMoveDefinition move = TinyFarmCombatMoves.SwordSwing;
+        CombatActionState action = CombatActionState.Start(
+            envelope.Sequence,
+            move,
+            new CombatActorId(TinyFarmIds.Player.Value),
+            new SpatialPoint2D(player.WorldPosition.XUnits, player.WorldPosition.YUnits),
+            FacingRadians(player.Facing));
+        pendingCombat = new PendingCombatAction(envelope, move, action, null);
+        Field.ApplyCombatMove(move, player.Scene, player.WorldPosition, player.Facing, contact: false);
+        CombatInspection = new TinyFarmCombatInspection(
+            move.Id.Value,
+            CombatPhase.Startup.ToString(),
+            0,
+            player.Facing,
+            [],
+            0,
+            "TinyFarm.Player.Combat.ActiveAction");
+        var accepted = new IntentResult(envelope, IntentResultStatus.Accepted, IntentReason.None, []);
+        return new TinyFarmStepResult(State.DeepCopy(), [accepted], []);
+    }
+
+    private TinyFarmStepResult? AdvanceCombatTick()
+    {
+        if (pendingCombat is not PendingCombatAction pending)
+        {
+            return null;
+        }
+        IReadOnlyList<CombatTarget> targets = pending.Target is CombatTarget target ? [target] : [];
+        CombatStepResult combat = CombatResolver.Advance(pending.Move, pending.Action, targets);
+        pendingCombat = pending with { Action = combat.State };
+        ActorSceneState player = State.ActorScene(TinyFarmIds.Player);
+        CombatInspection = new TinyFarmCombatInspection(
+            pending.Move.Id.Value,
+            combat.Presentation.Phase.ToString(),
+            combat.Presentation.PhaseTick,
+            player.Facing,
+            combat.State.HitTargets.Select(item => item.Value).ToArray(),
+            combat.State.HitTargets.Count,
+            "TinyFarm.Player.Combat.ActiveAction");
+
+        TinyFarmStepResult? step = null;
+        if (combat.Contacts.Count > 0)
+        {
+            ResolutionBatchResult applied = resolver.Resolve(State, [pending.Envelope]);
+            State = applied.State;
+            recentEvents = applied.Results.SelectMany(item => item.Events).ToArray();
+            Field.ApplyCombatMove(pending.Move, player.Scene, player.WorldPosition, player.Facing, contact: true);
+            step = new TinyFarmStepResult(State.DeepCopy(), applied.Results, TinyFarmNarrative.Project(recentEvents));
+        }
+        if (combat.State.Phase == CombatPhase.Complete)
+        {
+            CombatInspection = CombatInspection with
+            {
+                ActiveMove = null,
+                Phase = CombatPhase.Complete.ToString()
+            };
+            pendingCombat = null;
+        }
+        return step;
+    }
+
+    private void RouteAcceptedFieldActions(
+        IReadOnlyList<IntentResult> results,
+        ActorSceneState? playerBefore)
+    {
+        if (playerBefore is null)
+        {
+            return;
+        }
+        foreach (IntentResult result in results)
+        {
+            if (result.Status != IntentResultStatus.Accepted
+                || result.Envelope.Actor != TinyFarmIds.Player
+                || result.Envelope.Intent is not AttackIntent attack)
+            {
+                continue;
+            }
+            Field.ApplyCombatMove(
+                TinyFarmCombatMoves.SwordSwing,
+                playerBefore.Scene,
+                playerBefore.WorldPosition,
+                playerBefore.Facing,
+                contact: false);
+            Field.ApplyCombatMove(
+                TinyFarmCombatMoves.SwordSwing,
+                playerBefore.Scene,
+                playerBefore.WorldPosition,
+                playerBefore.Facing,
+                contact: true);
+            CombatInspection = new TinyFarmCombatInspection(
+                TinyFarmCombatMoves.SwordSwing.Id.Value,
+                "Complete",
+                TinyFarmCombatMoves.SwordSwing.StartupTicks
+                    + TinyFarmCombatMoves.SwordSwing.ActiveTicks
+                    + TinyFarmCombatMoves.SwordSwing.RecoveryTicks,
+                playerBefore.Facing,
+                [attack.Enemy.Value],
+                1,
+                "TinyFarm.Player.Combat.ActiveAction");
+        }
+    }
+
+    private sealed record PendingCombatAction(
+        IntentEnvelope Envelope,
+        CombatMoveDefinition Move,
+        CombatActionState Action,
+        CombatTarget? Target);
+
+    private static double FacingRadians(ActorFacing facing)
+    {
+        return facing switch
+        {
+            ActorFacing.Right => 0,
+            ActorFacing.Down => Math.PI / 2,
+            ActorFacing.Left => Math.PI,
+            ActorFacing.Up => -Math.PI / 2,
+            _ => throw new ArgumentOutOfRangeException(nameof(facing))
+        };
     }
 
     private List<IntentEnvelope> PreserveCommittedWanderGoals(List<IntentEnvelope> envelopes)

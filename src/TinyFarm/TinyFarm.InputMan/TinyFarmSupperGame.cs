@@ -5,6 +5,7 @@ using Deliverance.Core.Storage;
 using InputMan.Core;
 using TinyFarm.Core;
 using TinyFarm.Runtime;
+using TinyFarm.Oblivion;
 
 namespace TinyFarm.InputMan;
 
@@ -36,12 +37,14 @@ public sealed class TinyFarmSupperGame
         Host = new TinyFarmSimulationHost(new TinyFarmSession(TinyFarmSupperStart.Create(Definitions), Definitions), Definitions);
         Dialogue = new TinyFarmDialogueCoordinator(Host);
         Persistence = new TinyFarmDeliverancePersistence(Host, Definitions, store, dialogue: Dialogue);
+        LiveInspection = new TinyFarmOblivionLiveSurfaces(Host);
     }
 
     public TinyFarmDefinitions Definitions { get; }
     public TinyFarmSimulationHost Host { get; }
     public TinyFarmDialogueCoordinator Dialogue { get; }
     public TinyFarmDeliverancePersistence Persistence { get; }
+    public TinyFarmOblivionLiveSurfaces LiveInspection { get; }
     public TinyFarmState State => Host.Session.State;
     public SupperScreen Screen { get; private set; } = SupperScreen.Title;
     public string Status { get; private set; } = "A note from Mara: let us make this place feel like home.";
@@ -141,11 +144,11 @@ public sealed class TinyFarmSupperGame
         SynchronizeScene();
         if (playing)
         {
-            IntentResult[] footsteps = advanced.Results.Where(result =>
-                result.Envelope.Actor == TinyFarmIds.Player
-                && result.Envelope.Intent is SpatialMoveIntent
+            IntentResult[] feedback = advanced.Results.Where(result =>
+                result.Envelope.Intent is not SpatialMoveIntent
+                || result.Envelope.Actor == TinyFarmIds.Player
                 && result.Envelope.Sequence % 12 == 0).ToArray();
-            ProjectFeedback(footsteps);
+            ProjectFeedback(feedback);
             Effects.Update(elapsed);
         }
         CheckCompletion();
@@ -197,6 +200,11 @@ public sealed class TinyFarmSupperGame
 
     public bool Save()
     {
+        if (Host.Session.HasActiveCombat)
+        {
+            Status = "Finish the swing before saving.";
+            return false;
+        }
         try
         {
             Persistence.Deliverance.SaveAsync("supper", Persistence.CaptureSave("supper")).GetAwaiter().GetResult();
@@ -212,6 +220,11 @@ public sealed class TinyFarmSupperGame
 
     public bool BeginSave()
     {
+        if (Host.Session.HasActiveCombat)
+        {
+            Status = "Finish the swing before saving.";
+            return false;
+        }
         if (pendingSave is not null || pendingLoad is not null)
         {
             Status = "A persistence operation is already in progress.";

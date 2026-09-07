@@ -1,0 +1,7 @@
+{
+  "schema": "tinyfarm.field-upload-metrics.m21.v1",
+  "fieldTextureUploads": 4,
+  "fieldUploadBytes": 4928,
+  "projectionPolicy": "upload only when semantic ProjectionGeneration changes",
+  "textureFormat": "linear RGBA8 semantic channels"
+}

@@ -21,21 +21,23 @@ public static class CombatResolver
             throw new ArgumentException("The action and move definition do not match.", nameof(move));
         }
 
-        var hitTargets = state.HitTargets.ToHashSet();
-        var contacts = new List<CombatContact>();
+        IReadOnlyList<CombatActorId> hitTargets = state.HitTargets;
+        IReadOnlyList<CombatContact> contacts = [];
         if (state.Phase == CombatPhase.Active)
         {
+            var mutableHitTargets = state.HitTargets.ToHashSet();
+            var mutableContacts = new List<CombatContact>();
             foreach (CombatTarget target in candidates.OrderBy(candidate => candidate.Id))
             {
                 if (target.Id == state.Source
-                    || !move.MayHitTargetMoreThanOnce && hitTargets.Contains(target.Id)
+                    || !move.MayHitTargetMoreThanOnce && mutableHitTargets.Contains(target.Id)
                     || !CombatGeometry.Contains(move.Shape, state.Origin, state.FacingRadians, target))
                 {
                     continue;
                 }
 
                 SpatialVector2D direction = CombatGeometry.Direction(state.Origin, target.Position, state.FacingRadians);
-                contacts.Add(new CombatContact(
+                mutableContacts.Add(new CombatContact(
                     state.ActionId,
                     state.Move,
                     state.Source,
@@ -43,13 +45,15 @@ public static class CombatResolver
                     move.Damage,
                     target.Position,
                     direction * move.Knockback));
-                hitTargets.Add(target.Id);
+                mutableHitTargets.Add(target.Id);
             }
+            contacts = mutableContacts;
+            hitTargets = mutableHitTargets.OrderBy(id => id).ToArray();
         }
 
         (CombatActionState advanced, string? transitionRuleId) = AdvancePhase(move, state with
         {
-            HitTargets = hitTargets.OrderBy(id => id).ToArray(),
+            HitTargets = hitTargets,
             ContactTriggered = state.ContactTriggered || contacts.Count > 0
         });
         return new CombatStepResult(
@@ -58,8 +62,8 @@ public static class CombatResolver
             new CombatPresentationEvent(
                 state.ActionId,
                 state.Move,
-                advanced.Phase,
-                advanced.PhaseTick,
+                state.Phase,
+                state.PhaseTick,
                 advanced.ContactTriggered),
             transitionRuleId);
     }

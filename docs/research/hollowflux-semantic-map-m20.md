@@ -4,7 +4,7 @@
 
 The 727,282-byte production JavaScript bundle is primary evidence. The Claude audit is a secondary map: its proposed names and subsystem boundaries were used to locate strings, object shapes, adjacent functions, and call sites, then checked against the bundle. The 107,027-byte CSS bundle was read to distinguish interface styling from semantic code; it yielded no core pearl.
 
-The mining tool reads every input in full and refuses truncated inputs. Evidence offsets and bounded original fragments are retained in `artifacts/hollowflux-pearl-mining-m20/semantic-map.json` and `decompilation-islands.json`.
+The mining tool reads every input in full and refuses truncated inputs. Evidence offsets and bounded original fragments are retained in `artifacts/hollowflux-pearl-mining-m20/semantic-map.json` and `semantic-anchors.json`. The anchors are human-chosen semantic mappings with automatically verified source locations; they are not decompiler-recovered names.
 
 ## Classification
 
@@ -17,6 +17,7 @@ The mining tool reads every input in full and refuses truncated inputs. Evidence
 | Fluid SoA | `class ha` and parallel typed arrays | Resident semantic field channels | High | Aurelian.Field2D | B | Adapt bounded channel set |
 | Connected disturbances | `disturbanceVisit`, queue, liquid mask | Shape influence without wall leakage | High | Aurelian.Field2D | B | Retain generation-counter BFS principle |
 | Charge | `chargeVisits`, `conductive` | Conductive liquid propagation/query | High | ReactiveFluid2D | B | Retain as second semantic consumer |
+| Blood-scent gradient steering | four-offset blood samples and gradient steering call sites | Field feedback into enemy decisions | High | Future application AI over Field2D | C | Deferred: valuable feedback pearl, but TinyFarm M21 has no blood mechanic and its hard channel-pressure gate forbids adding one speculatively |
 | Full theme cell behavior | `bloodroot`, `violet-static`, `emberglass` | Hollowflux biome meaning | High | Hollowflux application | C | Reject from reusable core |
 | Shader wet-boundary correction | `liquidCoverage` | Prevent neutral dry texels bleeding into wet samples | High | Visual TS realization | B | Re-author in Visual TS |
 | Canvas/WebGL renderer | duplicated painter/compositor classes | Browser presentation | High | None | D/E | Reject |
@@ -35,7 +36,7 @@ The mining tool reads every input in full and refuses truncated inputs. Evidence
 - `ha` → `ReactiveFluid2D` (class boundary only; not a claim about its original source name).
 - `disturbanceVisits`/`disturbanceQueue` → connected-liquid visit generations and BFS queue.
 
-Names above are high-confidence because strings and field shapes agree across construction, update, rendering, and telemetry call sites. Theme-specific helper names remain deliberately unrecovered where meaning is not needed by M20.
+Names above are semantic names assigned during reconstruction, with high-confidence evidence because strings and field shapes agree across construction, update, rendering, and telemetry call sites. They are not claimed as automatically recovered original identifiers. Theme-specific helper names remain deliberately unnamed where meaning is not needed by M20.
 
 ## What was not taken
 

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Hollowflux.PearlMiningM20/PngWriter.cs" Link="PngWriter.cs" />
+    <ProjectReference Include="../../src/Aurelian/Aurelian.Field2D/Aurelian.Field2D.csproj" />
+    <ProjectReference Include="../../src/Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj" />
+    <ProjectReference Include="../../src/Copeland/Copeland.TS/Copeland.TS.csproj" />
+    <ProjectReference Include="../../src/Integrations/TinyFarm.Oblivion/TinyFarm.Oblivion.csproj" />
+    <ProjectReference Include="../../src/TinyFarm/TinyFarm.Runtime/TinyFarm.Runtime.csproj" />
+  </ItemGroup>
+</Project>

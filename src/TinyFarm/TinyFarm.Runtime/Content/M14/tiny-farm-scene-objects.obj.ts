@@ -43,7 +43,7 @@ record table SceneObjects {
         false, false, true, false, false, true,
         false, false, true, true,
         false, true, true,
-        false, true, true,
+        false, false, true,
         false, true, true, true
     ];
     semanticReference: OptionalText = [

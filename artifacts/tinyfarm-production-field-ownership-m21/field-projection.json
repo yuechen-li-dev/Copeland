@@ -1,0 +1,9 @@
+{
+  "visualTs": "src/Aurelian/Aurelian.Shaders/Assets/ReactiveFluid2D.v.ts",
+  "vdMir": true,
+  "hlsl": true,
+  "vertexSpirv": true,
+  "pixelSpirv": true,
+  "rgbaBytes": 1232,
+  "channelPacking": "height, foam, liquid-mask, charge"
+}

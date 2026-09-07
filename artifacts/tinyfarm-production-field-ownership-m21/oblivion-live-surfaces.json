@@ -1,0 +1,20 @@
+{
+  "registeredSurfaceIds": [
+    "tinyfarm.live.field",
+    "tinyfarm.live.combat"
+  ],
+  "cards": [
+    {
+      "id": "tinyfarm.live.field",
+      "title": "TinyFarm live pond field",
+      "body": "owner: TinyFarmSession\nconcept: TinyFarm.World.Pond.Fluid.Charge\ndefinition: tinyfarm.riverside.stream.v1\ndimensions: 14 x 22\ncell-size: 512\ntick: 0\nhash: 008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e\nsnapshot-version: 1\nwet-cells: 240\nheight: min=0 max=0\nvelocity: min=0 max=0\nfoam: min=0 max=0\ncharge: min=0 max=0\nflow-x: min=0 max=0\nflow-y: min=0 max=0.025\npresets: normal, charge-only, wave-height, liquid-topology, flow\nrecent-disturbances:"
+    },
+    {
+      "id": "tinyfarm.live.combat",
+      "title": "TinyFarm live combat",
+      "body": "concept: TinyFarm.Player.Combat.ActiveAction\nactive-move: none\nphase: Idle\nphase-tick: 0\nfacing: Down\nhit-ids: \ncontact-count: 0\nsave-law: TinyFarm attacks resolve atomically at a safe boundary"
+    }
+  ],
+  "actualSessionHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+  "readOnly": true
+}

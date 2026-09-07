@@ -27,7 +27,7 @@
     }
   },
   "cameraFollowsAuthoritativePlayerPosition": true,
-  "worldSpriteCount": 166,
+  "worldSpriteCount": 165,
   "spriteTextureUploads": 1,
   "spriteTextureUploadsPerStableFrame": 0,
   "screenshot": "tinyfarm-farm-sprite-tile-scene.png",

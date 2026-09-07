@@ -1,0 +1,33 @@
+{
+  "definition": {
+    "id": "tinyfarm.riverside.stream.v1",
+    "scene": {
+      "value": "riverside"
+    },
+    "origin": {
+      "xUnits": 9728,
+      "yUnits": -512,
+      "tile": {
+        "x": 9,
+        "y": -1
+      }
+    },
+    "width": 14,
+    "height": 22,
+    "cellSize": 512,
+    "semanticOwner": "TinyFarmSession"
+  },
+  "authoredSceneObject": "riverside/river",
+  "authoredBoundsTiles": {
+    "x": 10,
+    "y": 0,
+    "width": 6,
+    "height": 10
+  },
+  "wetCells": 240,
+  "baseRecipe": {
+    "dryBorderCells": 1,
+    "conductiveWetCells": true,
+    "flowY": 0.025
+  }
+}

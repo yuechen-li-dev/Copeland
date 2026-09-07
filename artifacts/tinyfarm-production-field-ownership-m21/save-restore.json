@@ -1,0 +1,9 @@
+{
+  "fieldSnapshotBytes": 6427,
+  "before": "712aa8c6345a947919d342cbb2ec11fd74eb9f7dc9cbeda46aef5557fffb7d18",
+  "afterMutation": "00006cea244d74a0d419fa08deca0100b66db376ac4f38b34ba84142804a3be2",
+  "restored": "712aa8c6345a947919d342cbb2ec11fd74eb9f7dc9cbeda46aef5557fffb7d18",
+  "exact": true,
+  "chargedWaterContactCount": 1,
+  "saveBoundary": "full bounded mutable channels plus versioned application debounce state"
+}

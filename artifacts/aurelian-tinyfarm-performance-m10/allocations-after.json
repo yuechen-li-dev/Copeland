@@ -1,9 +1,9 @@
 {
-  "steadyAllocatedBytesPerFrame": 141262,
-  "projectionAllocatedBytesPerFrame": 11349,
-  "compositionAllocatedBytesPerFrame": 121009,
-  "swapchainAllocatedBytesPerFrame": 2844,
-  "nativePassAllocatedBytesPerFrame": 6558,
+  "steadyAllocatedBytesPerFrame": 149721,
+  "projectionAllocatedBytesPerFrame": 11809,
+  "compositionAllocatedBytesPerFrame": 128543,
+  "swapchainAllocatedBytesPerFrame": 2863,
+  "nativePassAllocatedBytesPerFrame": 9613,
   "eliminated": [
     "ordinary full-frame readback byte array",
     "CPU display channel conversion",

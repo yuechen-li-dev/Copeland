@@ -12,25 +12,25 @@
   "stableTextureUploadsPerFrame": 0,
   "secondarySceneCheckpoint": {
     "file": "06-secondary-scene.png",
-    "pixelSha256": "65279e332a5fb28bdb23eadc03f8ab5fe1c60a2a59c9669f20baf73f911c1018",
-    "drawCalls": 26,
+    "pixelSha256": "2b8cf9399680d94b624e7edcd6d904d6706a4fc6ff62d4f29267310580d1f799",
+    "drawCalls": 258,
     "quadCount": 536,
     "shaderQuads": 0,
-    "ordinaryFrameMilliseconds": 7.1481,
-    "allocatedBytes": 627304,
-    "capturedFrameMilliseconds": 22.8656,
-    "readbackMilliseconds": 17.969,
-    "frameWithoutReadbackMilliseconds": 4.896599999999999
+    "ordinaryFrameMilliseconds": 9.5294,
+    "allocatedBytes": 524448,
+    "capturedFrameMilliseconds": 33.0267,
+    "readbackMilliseconds": 22.537,
+    "frameWithoutReadbackMilliseconds": 10.4897
   },
   "saveLoad": {
     "saveSamples": 8,
-    "maximumSaveMilliseconds": 149.7689,
+    "maximumSaveMilliseconds": 162.6801,
     "loadSamples": 7,
-    "maximumLoadMilliseconds": 49.5206,
-    "asyncSaveRequestMilliseconds": 0.5086,
-    "asyncSaveMaximumPumpMilliseconds": 6.9454,
-    "asyncLoadRequestMilliseconds": 0.3188,
-    "asyncLoadMaximumPumpMilliseconds": 6.9412,
+    "maximumLoadMilliseconds": 54.3482,
+    "asyncSaveRequestMilliseconds": 0.5789,
+    "asyncSaveMaximumPumpMilliseconds": 8.2488,
+    "asyncLoadRequestMilliseconds": 0.3509,
+    "asyncLoadMaximumPumpMilliseconds": 10.3552,
     "note": "F/N gameplay requests now capture immutable state and perform serialization, compression, and IO off-thread; load commit remains on the host thread."
   },
   "note": "Shaders and pipelines are compiled/created before compositor attachment. Scene entry reuses them."

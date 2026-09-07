@@ -1,0 +1,7 @@
+{
+  "fromModuleSchema": 2,
+  "toModuleSchema": 3,
+  "defaultHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+  "law": "v2 save without field regenerates deterministic authored base field",
+  "verifiedBy": "SchemaV2SaveRegeneratesDeterministicDefaultField"
+}

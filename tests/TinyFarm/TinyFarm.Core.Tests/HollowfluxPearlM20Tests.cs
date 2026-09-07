@@ -10,6 +10,32 @@ namespace TinyFarm.Core.Tests;
 public sealed class HollowfluxPearlM20Tests
 {
     [Fact]
+    public void PresentationDescribesThePhaseThatProducedContacts()
+    {
+        CombatMoveDefinition move = TinyFarmCombatMoves.SwordSwing;
+        CombatActionState active = CombatActionState.Start(
+            1,
+            move,
+            new CombatActorId("player"),
+            new SpatialPoint2D(0, 0),
+            0) with
+        {
+            Phase = CombatPhase.Active,
+            PhaseTick = move.ActiveTicks - 1
+        };
+
+        CombatStepResult result = CombatResolver.Advance(
+            move,
+            active,
+            [new CombatTarget(new CombatActorId("slime"), new SpatialPoint2D(100, 0))]);
+
+        Assert.Single(result.Contacts);
+        Assert.Equal(CombatPhase.Active, result.Presentation.Phase);
+        Assert.Equal(move.ActiveTicks - 1, result.Presentation.PhaseTick);
+        Assert.Equal(CombatPhase.Recovery, result.State.Phase);
+    }
+
+    [Fact]
     public void RecoveredPhaseMachineMatchesHollowfluxBoundedFixture()
     {
         CombatMoveDefinition move = TinyFarmCombatMoves.SwordSwing;

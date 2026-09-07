@@ -73,6 +73,40 @@ public sealed class ReactiveFluid2D
     public Field2D<byte> ConductiveMask { get; }
     public long Tick { get; private set; }
 
+    public static ReactiveFluid2D Restore(ReactiveFluidSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        var field = new ReactiveFluid2D(snapshot.Width, snapshot.Height, snapshot.CellSize);
+        field.RestoreSnapshot(snapshot);
+        return field;
+    }
+
+    public void RestoreSnapshot(ReactiveFluidSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        if (snapshot.Width != HeightField.Width
+            || snapshot.Height != HeightField.Height
+            || snapshot.CellSize != HeightField.CellSize)
+        {
+            throw new InvalidDataException("Reactive-fluid snapshot geometry does not match the resident field.");
+        }
+
+        RestoreChannel(snapshot.HeightField, HeightField.Cells, nameof(snapshot.HeightField));
+        RestoreChannel(snapshot.Velocity, Velocity.Cells, nameof(snapshot.Velocity));
+        RestoreChannel(snapshot.Foam, Foam.Cells, nameof(snapshot.Foam));
+        RestoreChannel(snapshot.Charge, Charge.Cells, nameof(snapshot.Charge));
+        RestoreChannel(snapshot.FlowX, FlowX.Cells, nameof(snapshot.FlowX));
+        RestoreChannel(snapshot.FlowY, FlowY.Cells, nameof(snapshot.FlowY));
+        RestoreChannel(snapshot.LiquidMask, LiquidMask.Cells, nameof(snapshot.LiquidMask));
+        RestoreChannel(snapshot.ConductiveMask, ConductiveMask.Cells, nameof(snapshot.ConductiveMask));
+        if (snapshot.Tick < 0)
+        {
+            throw new InvalidDataException("Reactive-fluid snapshot tick cannot be negative.");
+        }
+        Tick = snapshot.Tick;
+        accumulator = 0;
+    }
+
     public int AdvanceFrame(double elapsedSeconds)
     {
         if (!double.IsFinite(elapsedSeconds) || elapsedSeconds < 0)
@@ -400,5 +434,14 @@ public sealed class ReactiveFluid2D
     private static byte ToByte(float value)
     {
         return (byte)Math.Round(Math.Clamp(value, 0, 1) * 255);
+    }
+
+    private static void RestoreChannel<T>(T[] source, Span<T> destination, string name)
+    {
+        if (source is null || source.Length != destination.Length)
+        {
+            throw new InvalidDataException($"Reactive-fluid snapshot channel '{name}' has the wrong length.");
+        }
+        source.CopyTo(destination);
     }
 }

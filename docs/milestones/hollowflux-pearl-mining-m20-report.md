@@ -6,9 +6,9 @@
 
 ## 2–5. Inputs, map, cross-check, classification
 
-The complete JS bundle, Claude audit, and CSS were read. SHA-256 values, sizes, exact offsets, and bounded fragments are recorded in `semantic-map.json` and `decompilation-islands.json`. The Claude audit served as the intent-reconstruction map and was independently checked in [hollowflux-claude-audit-crosscheck-m20.md](../research/hollowflux-claude-audit-crosscheck-m20.md). The A–E subsystem map and rejection decisions are in [hollowflux-semantic-map-m20.md](../research/hollowflux-semantic-map-m20.md).
+The complete JS bundle, Claude audit, and CSS were read. SHA-256 values, sizes, exact offsets, and bounded fragments are recorded in `semantic-map.json` and `semantic-anchors.json`. The latter is explicitly a human-authored mapping with machine-verified anchors, not decompiler name recovery. The Claude audit served as the intent-reconstruction map and was independently checked in [hollowflux-claude-audit-crosscheck-m20.md](../research/hollowflux-claude-audit-crosscheck-m20.md). The A–E subsystem map and rejection decisions are in [hollowflux-semantic-map-m20.md](../research/hollowflux-semantic-map-m20.md).
 
-## 6–10. Semantic decompilation and MIR
+## 6–10. Semantic reconstruction and MIR
 
 Four islands were selected: action phase construction/advancement, weapon move records, connected disturbances, and the disturbance falloff kernel. Minifier names were replaced before import. A bounded semantic Copeland program uses records, enums, numeric expressions, conditionals, and match; ordinary `CopelandCompiler.CompileToMir`, `MirTextWriter`, and `CSharpBackend` produce real MIR and C#. No MIR extension and no JavaScript-specific MIR were needed.
 
@@ -20,7 +20,7 @@ The prior TinyFarm attack was an atomic, target-specific one-damage reduction gu
 
 Phase boundaries are not a second state-machine stack. They are an immutable `Dominatus.OptFlow.Transition.For` definition with three typed rules and stable inspection identities. Tick accumulation stays ordinary combat data. Contacts are only proposed during Active; targets are stable-sorted; per-action IDs prevent repeat hits unless a move opts in. Arc, line, ring, and point are bounded geometry, while displacement remains an impulse proposal for the existing world owner to validate.
 
-TinyFarm's real `AttackIntent` path retains its prior validation but now creates and advances the generic sword move and applies the resulting `CombatContact` damage. Existing behavior remains compatible: the focused old and new suite passes. Spear thrust and hammer smash provide the two additional profiles. Twin strike and sweeping hoe are fresh-context, data-only extensions with no resolver or Spatial2D rewrite.
+At M20, TinyFarm's atomic `AttackIntent` path retained its prior validation but spun the generic sword move to completion inside one resolution. That proved adapter compatibility, not observable phased gameplay: the reusable mechanism had landed, but its timing pearl was still on the shelf. M21 removes that spin-loop and advances the default hosted combat action one tick at a time through the existing scheduler. Direct resolver use remains an explicitly atomic safe-boundary operation. Spear thrust and hammer smash provide the two additional profiles. Twin strike and sweeping hoe are fresh-context, data-only extensions with no resolver or Spatial2D rewrite.
 
 ## 17–28. Field2D and synthesis
 
@@ -36,7 +36,7 @@ Persistence uses an explicit `ReactiveFluidSnapshot` for the bounded proof. For 
 
 The adopted shader pearl is liquid-mask-safe reconstruction: continuous channel deviation is divided by a lower-bounded wet coverage, while the wet mask remains authoritative. It was re-authored in `samples/Aurelian/HollowfluxFieldM20.v.ts`, lowered through VD-MIR to HLSL, compiled to SPIR-V, and validated. The RGBA choice—height, foam, wet mask, charge—is realization metadata, not a public field API.
 
-Browser WebGL plumbing, duplicated renderer classes, exact caustic style, and Canvas character paint code were rejected. Equipment-driven composition maps to existing Copeland.Profile semantic layers and did not justify a second asset system. Loot and procedural-audio recipe layers were audited and deferred.
+Browser WebGL plumbing, duplicated renderer classes, exact caustic style, and Canvas character paint code were rejected. Equipment-driven composition maps to existing Copeland.Profile semantic layers and did not justify a second asset system. Loot and procedural-audio recipe layers were audited and deferred. The confirmed blood-scent gradient was also triaged: it is a strong future field-to-AI feedback pearl, but adding a Blood channel without a TinyFarm production mechanic would violate the channel-pressure gate, so it is explicitly deferred rather than silently omitted.
 
 The evidence tool emits field and combat inspector PNGs with machine-readable JSON. These make channels, phase bands, and contacts directly inspectable. Actual Oblivion Notebook registration is deliberately marked unqualified and belongs with production field ownership.
 

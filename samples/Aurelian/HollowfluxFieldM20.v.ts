@@ -46,6 +46,6 @@ function PixelMain(input: FieldPixelInput, resources: FieldResources): FieldOutp
     const foam: f32 = field.y / safeCoverage;
     const charge: f32 = field.w / safeCoverage;
     return {
-        color: float4(reconstructedHeight, foam, charge, wet),
+        color: float4(reconstructedHeight * wet, foam * wet, charge * wet, wet),
     };
 }
