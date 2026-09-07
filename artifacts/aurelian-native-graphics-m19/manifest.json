@@ -1,0 +1,126 @@
+{
+  "milestone": "AURELIAN-NATIVE-GRAPHICS-REALIZATION-M19",
+  "kind": "canonical-native-profile-and-semantic-fog-realization",
+  "nativeGraphicsPrimary": true,
+  "skiaCompatibilityRetained": true,
+  "avaloniaCompatibilityRetained": true,
+  "profileRealizationQualified": true,
+  "flatFillQualified": true,
+  "gradientQualified": false,
+  "strokeQualified": false,
+  "profileCacheQualified": true,
+  "m18AssetPackMigrated": true,
+  "secondNativeConsumerQualified": true,
+  "semanticFogQualified": true,
+  "visualTsFogQualified": true,
+  "fogReadbackQualified": true,
+  "fogColorParityQualified": true,
+  "normalStrategyHostUsesVulkan": true,
+  "normalStrategyHudUsesStrategyHudProfile": true,
+  "fogComposesBeforeCrispProfileAssets": true,
+  "inspectorOverlayQualified": true,
+  "msdfSmallSizeCompensationQualified": true,
+  "wilderlandPolishImproved": true,
+  "files": [
+    {
+      "path": "baseline-graphics-map.json",
+      "bytes": 494,
+      "sha256": "a4f9ab43ba995f4929af15fbb705b3cba61ae2e98f7df5bf35844acc5c8a6c44"
+    },
+    {
+      "path": "fog-color-proof.json",
+      "bytes": 759,
+      "sha256": "f203f617113072c6af471d6bcddad5c4d6d188dd62222271ea0a7685b76a5084"
+    },
+    {
+      "path": "fog-edge-proof.json",
+      "bytes": 474,
+      "sha256": "b9a0c42a1b89823748c930e3fa3420416f215b511ad16d38d0392da41a073731"
+    },
+    {
+      "path": "fog-fixture.png",
+      "bytes": 216851,
+      "sha256": "93b01ada08dbb6a68c710c45e5ad69bd1de8d23283d673dfc3a83aa8c92bc84b"
+    },
+    {
+      "path": "fog-semantic-projection.json",
+      "bytes": 356,
+      "sha256": "83aa241f85a369554b5e2e352ad71ab0bd94040dae2235a0396f7cb5a6313703"
+    },
+    {
+      "path": "fog-shader-proof.json",
+      "bytes": 528,
+      "sha256": "340db190b9f85ac383e9599a3679b3cf80909c844b3a39c090567a8e717b52c4"
+    },
+    {
+      "path": "native-preview-proof.png",
+      "bytes": 32198,
+      "sha256": "2622a94d3ab1d9786a24bb299d8784a24656006c59d935f430f6aea2aefac6ac"
+    },
+    {
+      "path": "native-preview.json",
+      "bytes": 539,
+      "sha256": "5bb30097946fbfcd0eb9ecaa8aa4f7103433444267c31ac1464fab223d06b75e"
+    },
+    {
+      "path": "paint-support-profile.json",
+      "bytes": 131,
+      "sha256": "9b021b503ec5d9f4e77aceda45e9724028830e1696d97ecfeb2cf8e5524b8f8f"
+    },
+    {
+      "path": "performance.json",
+      "bytes": 2575,
+      "sha256": "7443107312c6e5e2257a2b8812d0bc21e95f22658d537457424fb16801bcf298"
+    },
+    {
+      "path": "profile-cache-proof.json",
+      "bytes": 264,
+      "sha256": "513fe3b41a159b4aa9e8c498603ed035fe4c6c51ca7791fc90d1f437c41ceb20"
+    },
+    {
+      "path": "profile-pack-native.png",
+      "bytes": 87813,
+      "sha256": "c7c89751285849e2d8dd4fd97ef2c280986c12f881521b6e6bf6e7e16cea7b27"
+    },
+    {
+      "path": "profile-realization-contract.json",
+      "bytes": 701,
+      "sha256": "fbc4ad82266d475e100a57f7bae0a8e3951ec80250a110d089dbe8ba71c975bc"
+    },
+    {
+      "path": "shader-provenance.json",
+      "bytes": 656,
+      "sha256": "d870e8bd082707f03f6052e8524d8485ea344818109cf9f1a9921d789b8d1a53"
+    },
+    {
+      "path": "skia-native-parity.json",
+      "bytes": 318,
+      "sha256": "bd2b341d92ad014c3f8c2821230aff40cd4b82058ce027f8cdb59370eb487c56"
+    },
+    {
+      "path": "strategy-native-acceptance.json",
+      "bytes": 635,
+      "sha256": "7bd24fa8c5d7789710fe0cc37c6e48f88b8529b3184285fb2c5269a5db1acbbf"
+    },
+    {
+      "path": "strategy-native-after.png",
+      "bytes": 260748,
+      "sha256": "181725eb414d8c1161cea2baf94c87cd45b788bf9628c15eb51b96b103c33412"
+    },
+    {
+      "path": "strategy-native-before.png",
+      "bytes": 111219,
+      "sha256": "18317bfc504b57516a3d35bc3f13a4a66e17f2ac51ef6f0020f13efef2e21937"
+    },
+    {
+      "path": "stress.json",
+      "bytes": 278,
+      "sha256": "07f1405a8bb6c4d8f3a3e807c6b3d6bb11df9d5ce8b2af285f74439833649ef3"
+    },
+    {
+      "path": "tinyfarm-second-consumer.png",
+      "bytes": 19956,
+      "sha256": "9dcc67a57b03ec0d162032524f79915a12f609558db99a9888e7ae2b76796595"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Aurelian.Profile.Graphics</AssemblyName>
+    <RootNamespace>Aurelian.Profile.Graphics</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />
+    <ProjectReference Include="../../Copeland/Copeland.Profile/Copeland.Profile.csproj" />
+    <ProjectReference Include="../../Machina.UI/Machina.Fonts/Machina.Fonts.csproj" />
+  </ItemGroup>
+</Project>

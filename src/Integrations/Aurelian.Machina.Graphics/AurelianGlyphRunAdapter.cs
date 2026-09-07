@@ -80,10 +80,9 @@ public static class AurelianGlyphRunAdapter
                     CheckedFloat(entry.V1, "v1")),
                 texture,
                 color,
-                new NativeMsdfParameters(
+                NativeMsdfParameters.Create(
                     CheckedPositiveFloat(field.PixelRange, "pixel range"),
-                    CheckedPositiveFloat(fieldScale, "field scale"),
-                    0.5f));
+                    CheckedPositiveFloat(fieldScale, "field scale")));
 
             if (clipRect is Native2DRect clip && !TryClip(submission, clip, out submission))
             {

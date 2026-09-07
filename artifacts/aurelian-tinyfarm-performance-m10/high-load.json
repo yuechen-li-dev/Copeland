@@ -6,15 +6,15 @@
   "maxVoices": 1,
   "combatCheckpoint": {
     "file": "05-combat.png",
-    "pixelSha256": "b219a1bdd326c06835e7ed2b02fd9fde1eebd95e1c0a3454f6fac6dfb1f3cb6d",
-    "drawCalls": 35,
-    "quadCount": 564,
+    "pixelSha256": "80f29b7954531d62cd04bf1b27c9bf475467b2e5ccaa20888b8c00ec3df8420e",
+    "drawCalls": 40,
+    "quadCount": 569,
     "shaderQuads": 1,
-    "ordinaryFrameMilliseconds": 9.3177,
-    "allocatedBytes": 669088,
-    "capturedFrameMilliseconds": 20.5461,
-    "readbackMilliseconds": 16.777,
-    "frameWithoutReadbackMilliseconds": 3.769099999999998
+    "ordinaryFrameMilliseconds": 9.4574,
+    "allocatedBytes": 673280,
+    "capturedFrameMilliseconds": 26.4709,
+    "readbackMilliseconds": 21.942,
+    "frameWithoutReadbackMilliseconds": 4.5289
   },
   "note": "The full canonical M9 walkthrough completed with all systems enabled; no feature was disabled for performance."
 }

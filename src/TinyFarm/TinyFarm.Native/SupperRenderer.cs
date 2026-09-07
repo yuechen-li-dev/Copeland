@@ -13,10 +13,13 @@ using Aurelian.Graphics.Vulkan.Presentation;
 using Aurelian.Graphics.Vulkan.Resources.Textures;
 using Aurelian.Machina;
 using Aurelian.NativeComposition;
+using Aurelian.Profile.Graphics;
 using Aurelian.Rendering.Contracts.Shaders;
 using Aurelian.Shaders.Graphics;
 using Copeland.TS.Gpu;
 using Copeland.TS.Gpu.VdMir;
+using Copeland.TS.Profiles;
+using Copeland.Profile;
 using Machina.Core.Styling;
 using Machina.Layout.Geometry;
 using Machina.Presentation;
@@ -85,6 +88,19 @@ internal sealed class SupperRenderer : IAurelianHostCompositor
         CompiledGraphicsProgram texture = Compile(root, "samples/Aurelian/ForwardTexturedM3.v.ts");
         string spriteAtlasPath = Path.Combine(AppContext.BaseDirectory, "Assets", "M11", "tinyfarm-sprite-atlas-source.png");
         TinyFarmSpriteAtlas spriteAtlas = TinyFarmSpriteAtlas.Load(spriteAtlasPath);
+        string profilePath = Path.Combine(AppContext.BaseDirectory, "Assets", "M19", "mossward-tree.profile.tsx");
+        ProfileCompositionCompilationResult profileCompilation = ProfileTsxCompiler.CompileComposition(
+            File.ReadAllText(profilePath),
+            profilePath);
+        if (!profileCompilation.Success)
+        {
+            throw new InvalidOperationException(string.Join("; ", profileCompilation.Diagnostics.Select(static item => item.Message)));
+        }
+        ProfileNativeCompileResult profileNative = ProfileNativeCompiler.Compile(profileCompilation.Composition!, profilePath);
+        if (!profileNative.Success)
+        {
+            throw new InvalidOperationException(string.Join("; ", profileNative.Diagnostics.Select(static item => item.Message)));
+        }
         world = new SupperPresenter(
             new LayerId("farm-world"),
             plant,
@@ -109,6 +125,7 @@ internal sealed class SupperRenderer : IAurelianHostCompositor
             analytic,
             msdf,
             font,
+            profileNative.Resource!,
             () => ui.Resources(frame));
         compositor.Add(new SupperLayer(Overlay.Layer, 100), Overlay);
         compositor.Attach();
@@ -638,11 +655,13 @@ internal sealed class SupperOverlay(
     CompiledGraphicsProgram analyticProgram,
     CompiledGraphicsProgram msdfProgram,
     SupperNativeUiFont font,
+    ProfileNativeCompositionResource profileTree,
     Func<SupperUiResources> presentation) : INativeLayerPresenter
 {
     private VulkanOrderedQuadRenderer shapes = null!;
     private VulkanOrderedQuadRenderer text = null!;
     private AurelianMsdfAtlasCache atlasCache = null!;
+    private ProfileNativeRealizationCache profileCache = null!;
     private MachinaPresentationFrame? baseSource;
     private MachinaPresentationFrame? clockSource;
     private MachinaPresentationFrame? promptSource;
@@ -669,10 +688,12 @@ internal sealed class SupperOverlay(
         shapes = new VulkanOrderedQuadRenderer(plant, analyticProgram, target, Native2DPipelineOptions.AnalyticShape2D);
         text = new VulkanOrderedQuadRenderer(plant, msdfProgram, target, Native2DPipelineOptions.MsdfText);
         atlasCache = new AurelianMsdfAtlasCache(text);
+        profileCache = new ProfileNativeRealizationCache(text, capacity: 4);
         foreach (AurelianMsdfAtlasResource resource in font.Resources)
         {
             atlasCache.Resolve(resource);
         }
+        profileCache.Warm(profileTree);
         WarmCurrentPresentation();
     }
 
@@ -691,7 +712,7 @@ internal sealed class SupperOverlay(
         SupperUiResources current = presentation();
         UpdateRealization(current);
 
-        PresentSegment(context, baseSegments.Base);
+        PresentSegment(context, baseSegments.Base, includeProfile: true);
         PresentSegment(context, baseSegments.Overlay);
         PresentSegment(context, clockSegments.Base);
         PresentSegment(context, promptSegments.Base);
@@ -801,7 +822,10 @@ internal sealed class SupperOverlay(
             fallbackCount);
     }
 
-    private void PresentSegment(NativeLayerFrameContext context, SupperNativeUiSegment segment)
+    private void PresentSegment(
+        NativeLayerFrameContext context,
+        SupperNativeUiSegment segment,
+        bool includeProfile = false)
     {
         if (segment.Shapes.Length > 0)
         {
@@ -820,6 +844,10 @@ internal sealed class SupperOverlay(
                 foreach (NativeMsdfQuadSubmission submission in segment.Text)
                 {
                     pass.SubmitMsdfQuad(submission);
+                }
+                if (includeProfile)
+                {
+                    profileCache.Submit(profileTree, new ProfileNativeInstance(550, 430, 0.68f));
                 }
             });
         }
@@ -884,6 +912,7 @@ internal sealed class SupperOverlay(
 
     public void Detach()
     {
+        profileCache?.Dispose();
         atlasCache?.Dispose();
         text?.Dispose();
         shapes?.Dispose();

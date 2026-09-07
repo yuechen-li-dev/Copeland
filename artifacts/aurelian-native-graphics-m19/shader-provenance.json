@@ -1,0 +1,21 @@
+{
+  "implementation": "independently re-authored",
+  "copiedCode": false,
+  "sources": [
+    {
+      "project": "Godot Engine",
+      "commit": "34d06658a85845111a50db9e485ec4a0701d4298",
+      "file": "servers/rendering/renderer_rd/shaders/environment/volumetric_fog.glsl",
+      "license": "MIT",
+      "use": "conceptual comparison only"
+    },
+    {
+      "project": "Bevy Engine",
+      "commit": "7a21c21ecbce9ba28c970ffdf73063321b6bb636",
+      "file": "crates/bevy_pbr/src/render/fog.wgsl",
+      "license": "MIT OR Apache-2.0",
+      "use": "conceptual comparison only"
+    }
+  ],
+  "attributionRequiredForCopiedCode": false
+}

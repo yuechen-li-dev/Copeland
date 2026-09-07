@@ -1,0 +1,9 @@
+{
+  "command": "dotnet run --project tools/Aurelian.NativeGraphicsM19 -c Release -- --preview hq",
+  "sourceConceptPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Integrations\\Aurelian.StrategyDemo\\Assets\\hq.profile.tsx",
+  "compositionHash": "cefad59109ed53e6962e0e9871ef016ae5e2cd2fbd536033e1620fa018aaf434",
+  "supportedPaintMode": "FlatFill",
+  "cacheStatus": "hit after explicit warm",
+  "proof": "native-preview-proof.png",
+  "PixelSha256": "1c6fc235521a7428330cb4415c2f1f06d695a211ebddb135f9195a27f40ce161"
+}

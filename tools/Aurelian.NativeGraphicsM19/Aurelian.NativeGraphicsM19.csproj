@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />
+    <ProjectReference Include="../../src/Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj" />
+    <ProjectReference Include="../../src/Aurelian/Aurelian.Strategy/Aurelian.Strategy.csproj" />
+    <ProjectReference Include="../../src/Integrations/Aurelian.Profile.Graphics/Aurelian.Profile.Graphics.csproj" />
+    <ProjectReference Include="../../src/Copeland/Copeland.TS/Copeland.TS.csproj" />
+    <ProjectReference Include="../../samples/Integrations/Aurelian.StrategyDemo/Aurelian.StrategyDemo.csproj" />
+  </ItemGroup>
+</Project>

@@ -131,6 +131,39 @@ internal static class Native2DSubmissionValidator
         }
     }
 
+    public static void ValidateValues(NativeSemanticFogSubmission submission)
+    {
+        ValidateValues(new NativeQuadSubmission(
+            submission.Destination,
+            submission.FieldCoordinates,
+            submission.VisibilityField,
+            submission.Tint));
+        if (submission.Destination.Width <= 0 || submission.Destination.Height <= 0)
+        {
+            throw new ArgumentException("Semantic fog dimensions must be positive.", nameof(submission));
+        }
+        float[] values =
+        [
+            submission.UnexploredOpacity,
+            submission.ExploredOpacity,
+            submission.EdgeSoftness,
+            submission.NoiseAmount,
+            submission.TemporalPhase,
+        ];
+        if (values.Any(static value => !float.IsFinite(value)))
+        {
+            throw new ArgumentException("Semantic fog parameters must be finite.", nameof(submission));
+        }
+        if (submission.UnexploredOpacity is < 0 or > 1
+            || submission.ExploredOpacity is < 0 or > 1
+            || submission.ExploredOpacity > submission.UnexploredOpacity
+            || submission.EdgeSoftness is < 0.1f or > 2f
+            || submission.NoiseAmount is < 0 or > 0.25f)
+        {
+            throw new ArgumentOutOfRangeException(nameof(submission), "Semantic fog opacity, softness, or noise is outside its bounded presentation range.");
+        }
+    }
+
     private static void ValidateTint(Native2DTint tint, string parameterName)
     {
         if (!float.IsFinite(tint.Red) || !float.IsFinite(tint.Green) || !float.IsFinite(tint.Blue) || !float.IsFinite(tint.Alpha)

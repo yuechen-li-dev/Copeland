@@ -7,6 +7,27 @@ namespace Aurelian.Strategy.Tests;
 public sealed class StrategyTests
 {
     [Fact]
+    public void VisibilityProjectionIsDetachedAndUploadsOnlyOnSemanticChange()
+    {
+        var grid = new VisibilityGrid(8, 8);
+        grid.Recompute([new RevealSource(3, 3, 2)]);
+        VisibilityFieldProjection first = VisibilityFieldProjector.Project(grid);
+        var tracker = new VisibilityFieldUploadTracker();
+
+        Assert.True(tracker.ShouldUpload(first));
+        Assert.False(tracker.ShouldUpload(VisibilityFieldProjector.Project(grid)));
+        first.RgbaPixels[0] = 99;
+        Assert.False(tracker.ShouldUpload(VisibilityFieldProjector.Project(grid)));
+
+        grid.Recompute([new RevealSource(6, 6, 1)]);
+        VisibilityFieldProjection changed = VisibilityFieldProjector.Project(grid);
+        Assert.True(tracker.ShouldUpload(changed));
+        Assert.Equal(2, tracker.UploadCount);
+        Assert.Equal(changed.UploadBytes * 2L, tracker.UploadedBytes);
+        Assert.Equal(255, changed.RgbaPixels[((6 * 8) + 6) * 4]);
+        Assert.Equal(128, changed.RgbaPixels[((3 * 8) + 3) * 4]);
+    }
+    [Fact]
     public void Gather_construction_production_and_replay_use_real_resolver()
     {
         StrategySession first = StrategyProof.Scenario([TimeSpan.FromMilliseconds(100)]);

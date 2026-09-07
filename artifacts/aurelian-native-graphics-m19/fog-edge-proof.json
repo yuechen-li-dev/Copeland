@@ -1,0 +1,37 @@
+{
+  "visible": {
+    "cell": [
+      16,
+      10
+    ],
+    "pixel": {
+      "X": 660,
+      "Y": 357
+    },
+    "luma": 1155
+  },
+  "explored": {
+    "cell": [
+      10,
+      10
+    ],
+    "pixel": {
+      "X": 420,
+      "Y": 357
+    },
+    "luma": 808
+  },
+  "unexplored": {
+    "cell": [
+      2,
+      2
+    ],
+    "pixel": {
+      "X": 100,
+      "Y": 144
+    },
+    "luma": 453
+  },
+  "monotonic": true,
+  "EdgeSoftness": 0.72
+}

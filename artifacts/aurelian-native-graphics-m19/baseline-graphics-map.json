@@ -1,0 +1,10 @@
+{
+  "before": "StrategyAssets Profile contours -\u003E sample-local Skia SKPath -\u003E Avalonia bitmap",
+  "canonical": "Profile composition -\u003E Aurelian.Profile.Graphics MSDF resources -\u003E VulkanOrderedQuadRenderer",
+  "fogBefore": "sample-local hard tile recolor",
+  "fogCanonical": "VisibilityGrid -\u003E immutable visibility field -\u003E SemanticFog.v.ts -\u003E Vulkan",
+  "compatibility": [
+    "Skia reference/parity/offline",
+    "Avalonia compatibility host"
+  ]
+}

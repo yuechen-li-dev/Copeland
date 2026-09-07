@@ -56,7 +56,10 @@ function Median3(a: f32, b: f32, c: f32): f32 {
 }
 
 function SmoothCoverage(distance: f32, pixelRange: f32, fieldScale: f32, threshold: f32): f32 {
-    const smoothing: f32 = 0.5 / Max(1.0, pixelRange * fieldScale);
+    // A full half-pixel ramp swells narrow stems at Mossward's 12px UI size.
+    // The shared CPU policy supplies a small-size threshold correction; this
+    // narrower screen-space ramp keeps both Profile vectors and glyphs crisp.
+    const smoothing: f32 = 0.25 / Max(1.0, pixelRange * fieldScale);
     const t: f32 = Clamp((distance - (threshold - smoothing)) / (smoothing + smoothing), 0.0, 1.0);
     return t * t * (3.0 - (2.0 * t));
 }

@@ -3,33 +3,33 @@
   "stressColliders": 256,
   "selectionQuery": {
     "iterations": 1000,
-    "millisecondsPerOperation": 0.0648193,
+    "millisecondsPerOperation": 0.07218429999999999,
     "managedBytesPerOperation": 4168
   },
   "simulationUpdate": {
     "iterations": 300,
-    "millisecondsPerOperation": 0.014739666666666667,
+    "millisecondsPerOperation": 0.013279666666666667,
     "managedBytesPerOperation": 3113
   },
   "fogUpdate": {
     "iterations": 500,
-    "millisecondsPerOperation": 0.0167834,
+    "millisecondsPerOperation": 0.013866400000000001,
     "managedBytesPerOperation": 240
   },
   "semanticMinimapProjectionAndRender": {
     "iterations": 100,
-    "millisecondsPerOperation": 0.199848,
+    "millisecondsPerOperation": 0.133181,
     "managedBytesPerOperation": 416
   },
   "cachedVectorAssetRender": {
     "iterations": 100,
-    "millisecondsPerOperation": 0.053034,
+    "millisecondsPerOperation": 0.036305000000000004,
     "managedBytesPerOperation": 0
   },
   "vectorAndHudAndMinimapRender": {
     "iterations": 30,
-    "millisecondsPerOperation": 7.303296666666666,
-    "managedBytesPerOperation": 70970
+    "millisecondsPerOperation": 5.6330366666666665,
+    "managedBytesPerOperation": 70896
   },
   "limitation": "CPU proof; render includes output bitmap allocation, cached HUD, vectors and semantic minimap. GPU and large army performance unqualified."
 }

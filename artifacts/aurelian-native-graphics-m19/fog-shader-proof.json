@@ -1,0 +1,13 @@
+{
+  "source": "src/Aurelian/Aurelian.Shaders/Assets/SemanticFog.v.ts",
+  "path": "Visual TypeScript -\u003E VD-MIR -\u003E HLSL -\u003E DXC -\u003E SPIR-V -\u003E Vulkan",
+  "vertexSpirvValidated": true,
+  "pixelSpirvValidated": true,
+  "hlslSha256": "43f9027c5201fb31ed4c9a0cada5873ff129a62542d8b7797363dc7c1b3ae14b",
+  "nativeFrame": "27a42a78cf96252ed6870b8219565991f75d8ec9c5a0ff9d5a343be9fc4a9089",
+  "styleOnlyExtension": {
+    "ExploredOpacity": 0.48,
+    "EdgeSoftness": 0.72,
+    "NoiseAmount": 0.015
+  }
+}

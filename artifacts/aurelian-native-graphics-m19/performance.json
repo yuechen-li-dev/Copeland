@@ -1,0 +1,88 @@
+{
+  "coldCompile": [
+    {
+      "asset": "crystal",
+      "milliseconds": 1162.003,
+      "allocatedBytes": 55209552,
+      "compositionHash": "e5c755ab9d1deef728264315aa364b290d5afd679467114494878cd954a52f0b",
+      "drawCount": 7,
+      "geometryCount": 7
+    },
+    {
+      "asset": "heavy",
+      "milliseconds": 755.634,
+      "allocatedBytes": 63506056,
+      "compositionHash": "8042fafaec386e319c33609e37f32b11d57ab92cd166c3d2522f3c47aef152a9",
+      "drawCount": 10,
+      "geometryCount": 10
+    },
+    {
+      "asset": "hq",
+      "milliseconds": 169.065,
+      "allocatedBytes": 79365872,
+      "compositionHash": "cefad59109ed53e6962e0e9871ef016ae5e2cd2fbd536033e1620fa018aaf434",
+      "drawCount": 23,
+      "geometryCount": 23
+    },
+    {
+      "asset": "marker",
+      "milliseconds": 50.425,
+      "allocatedBytes": 24477024,
+      "compositionHash": "96e481dcec1452b1dfc43bd9e2f29af60e23419fa4cf0dff9cce75aa075fa3c7",
+      "drawCount": 2,
+      "geometryCount": 2
+    },
+    {
+      "asset": "production",
+      "milliseconds": 164.141,
+      "allocatedBytes": 80298232,
+      "compositionHash": "e3d41c122d67cd33c16898c4c04027f262076e77bca00a3a41517ceafdbce650",
+      "drawCount": 23,
+      "geometryCount": 23
+    },
+    {
+      "asset": "ranger",
+      "milliseconds": 120.463,
+      "allocatedBytes": 63416328,
+      "compositionHash": "2bbd62511f3f2d176f27598df4affc8b392809a5d0eb5dc1cba371d7ef69fb68",
+      "drawCount": 10,
+      "geometryCount": 10
+    },
+    {
+      "asset": "tree",
+      "milliseconds": 70.568,
+      "allocatedBytes": 55147296,
+      "compositionHash": "8c711c52a1480b21c0ec4b68a676235499bf378a1afb3f618ee2145adab57fb2",
+      "drawCount": 8,
+      "geometryCount": 8
+    },
+    {
+      "asset": "watchtower",
+      "milliseconds": 146.687,
+      "allocatedBytes": 79644184,
+      "compositionHash": "f8f2cbea08a23f9ebdbf943b634582e5bc7088d87e0a80da92be2b7b61dd95c1",
+      "drawCount": 24,
+      "geometryCount": 24
+    },
+    {
+      "asset": "worker",
+      "milliseconds": 112.01,
+      "allocatedBytes": 65802800,
+      "compositionHash": "f5d7b0a3e58d516a06d5bcae7ef04a9965be5022cdf99686bf3b7067ef8c6e13",
+      "drawCount": 10,
+      "geometryCount": 10
+    }
+  ],
+  "firstRealization": {
+    "milliseconds": 20.357,
+    "allocatedBytes": 34634712,
+    "textureUploads": 9
+  },
+  "warmFrame": {
+    "milliseconds": 23.58,
+    "allocatedBytes": 4105096,
+    "QuadCount": 862,
+    "DrawCalls": 676,
+    "descriptorWrites": 0
+  }
+}

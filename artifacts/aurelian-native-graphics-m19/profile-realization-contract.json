@@ -1,0 +1,23 @@
+{
+  "input": [
+    "composition hash",
+    "ordered paint items",
+    "closed canonical contours",
+    "flat fill",
+    "bounds",
+    "source path"
+  ],
+  "output": [
+    "immutable MSDF atlas resource",
+    "ordered native draw plan",
+    "bounded hash cache"
+  ],
+  "painterOrder": "exact layer then item source order",
+  "applicationVulkanHandles": false,
+  "resourceLifetime": "explicit cache disposal and invalidation",
+  "defaultFieldQuality": 192,
+  "defaultMinimumShortAxis": 40,
+  "defaultPixelRange": 12,
+  "atlasSizing": "capacity-aware power of two, bounded to 4096",
+  "reconstruction": "shared small-screen threshold compensation and quarter-pixel coverage ramp"
+}

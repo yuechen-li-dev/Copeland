@@ -198,13 +198,27 @@ public static class GpuGraphicsBinder
                     && fields[5].Type == "f32"
                     && fields[6].Name == "seed"
                     && fields[6].Type == "f32";
-                if (!isForwardMaterial && !isMsdfTextMaterial && !isAnalyticShapeMaterial && !isSoftShockwaveMaterial)
+                bool isSemanticFogMaterial = fields.Count == 6
+                    && fields[0].Name == "tint"
+                    && fields[0].Type == "float4"
+                    && fields[1].Name == "unexploredOpacity"
+                    && fields[1].Type == "f32"
+                    && fields[2].Name == "exploredOpacity"
+                    && fields[2].Type == "f32"
+                    && fields[3].Name == "edgeSoftness"
+                    && fields[3].Type == "f32"
+                    && fields[4].Name == "noiseAmount"
+                    && fields[4].Type == "f32"
+                    && fields[5].Name == "temporalPhase"
+                    && fields[5].Type == "f32";
+                if (!isForwardMaterial && !isMsdfTextMaterial && !isAnalyticShapeMaterial
+                    && !isSoftShockwaveMaterial && !isSemanticFogMaterial)
                 {
                     Add(
                         "COPE-GPU-MATERIAL-0003",
                         "SDSL-V4114",
                         "material",
-                        "The bounded graphics material must be the ForwardTextured, MsdfText, AnalyticShape2D, or SoftShockwave canonical shape.",
+                        "The bounded graphics material must be a qualified canonical graphics shape.",
                         Span(source.Path, source.Syntax));
                 }
                 VdMirSourceSpan bindingSource = Span(source.Path, bindingAnnotation!);
@@ -769,7 +783,7 @@ public static class GpuGraphicsBinder
                 }
                 return new VdMirExpression("intrinsic", "f32", Span(path, call), "Clamp", arguments);
             }
-            if (target is "Abs" or "Sqrt")
+            if (target is "Abs" or "Sqrt" or "Floor")
             {
                 if (arguments.Length != 1 || arguments[0].Type != "f32")
                 {

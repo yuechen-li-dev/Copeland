@@ -13,6 +13,16 @@ public sealed class NativeMsdfSubmissionM2Tests
         Native2DSubmissionValidator.ValidateValues(submission);
     }
 
+    [Fact]
+    public void Shared_Msdf_Policy_Compensates_Only_Small_Screen_Ranges()
+    {
+        NativeMsdfParameters small = NativeMsdfParameters.Create(4, 0.5f);
+        NativeMsdfParameters large = NativeMsdfParameters.Create(8, 1);
+
+        Assert.InRange(small.Threshold, 0.54f, 0.55f);
+        Assert.Equal(0.5f, large.Threshold);
+    }
+
     [Theory]
     [InlineData(0, 1, 0.5)]
     [InlineData(4, 0, 0.5)]

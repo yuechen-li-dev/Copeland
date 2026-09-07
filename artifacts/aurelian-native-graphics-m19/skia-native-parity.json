@@ -1,0 +1,8 @@
+{
+  "asset": "worker",
+  "reference": "sample-local Skia compatibility renderer",
+  "native": "canonical Profile MSDF Vulkan realization",
+  "silhouetteIntersectionOverUnion": 0.981679,
+  "meanInteriorChannelError": 5.409562,
+  "nativeHash": "a2ec1710fe8f826e8cd4f9d015bbaa1e45c82ca60b5f536d7ad1c3ddda4fccd6"
+}

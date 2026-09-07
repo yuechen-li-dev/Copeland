@@ -28,7 +28,12 @@ public readonly record struct NativeMsdfParameters(
     float Threshold)
 {
     public static NativeMsdfParameters Create(float pixelRange, float fieldScale)
-        => new(pixelRange, fieldScale, 0.5f);
+    {
+        float screenPixelRange = pixelRange * fieldScale;
+        float smallSizeAmount = Math.Clamp((5f - screenPixelRange) / 4f, 0f, 1f);
+        float threshold = 0.5f + (0.055f * smallSizeAmount);
+        return new NativeMsdfParameters(pixelRange, fieldScale, threshold);
+    }
 }
 
 public readonly record struct NativeMsdfQuadSubmission(
@@ -66,12 +71,24 @@ public readonly record struct NativeSoftShockwaveSubmission(
     float Intensity,
     float Seed);
 
+public readonly record struct NativeSemanticFogSubmission(
+    Native2DRect Destination,
+    Native2DUvRect FieldCoordinates,
+    Native2DTextureHandle VisibilityField,
+    Native2DTint Tint,
+    float UnexploredOpacity,
+    float ExploredOpacity,
+    float EdgeSoftness,
+    float NoiseAmount,
+    float TemporalPhase);
+
 public enum Native2DPipelineKind
 {
     Textured,
     MsdfText,
     AnalyticShape2D,
     SoftShockwave,
+    SemanticFog,
 }
 
 public sealed record Native2DPipelineOptions(
@@ -98,10 +115,16 @@ public sealed record Native2DPipelineOptions(
 
     public static Native2DPipelineOptions SoftShockwave { get; } = new(Native2DPipelineKind.SoftShockwave);
 
+    public static Native2DPipelineOptions SemanticFog { get; } = new(
+        Native2DPipelineKind.SemanticFog,
+        EnableStraightAlphaBlend: true,
+        EnableLinearFiltering: true,
+        InputsAreSrgb: true);
+
     public bool LinearFiltering => Kind == Native2DPipelineKind.MsdfText || EnableLinearFiltering;
 
     public bool StraightAlphaBlend => EnableStraightAlphaBlend
-        || Kind is Native2DPipelineKind.MsdfText or Native2DPipelineKind.AnalyticShape2D or Native2DPipelineKind.SoftShockwave;
+        || Kind is Native2DPipelineKind.MsdfText or Native2DPipelineKind.AnalyticShape2D or Native2DPipelineKind.SoftShockwave or Native2DPipelineKind.SemanticFog;
 }
 
 public static class NativeSrgbTransfer

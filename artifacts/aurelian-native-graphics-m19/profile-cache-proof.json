@@ -1,0 +1,10 @@
+{
+  "key": "ProfileComposition.SemanticHash",
+  "coldUploads": 9,
+  "uploadsDuringSecondWarm": 0,
+  "secondConsumerUploads": 1,
+  "cacheHits": 346,
+  "changedSourceInvalidatesByChangedCompositionHash": true,
+  "capacity": 32,
+  "explicitDisposal": true
+}

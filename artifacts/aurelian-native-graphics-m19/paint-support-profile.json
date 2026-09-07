@@ -1,0 +1,9 @@
+{
+  "FillRule": "NonZero",
+  "PaintModes": [
+    "FlatFill"
+  ],
+  "Alpha": true,
+  "Gradient": false,
+  "Stroke": false
+}

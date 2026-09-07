@@ -1,0 +1,11 @@
+{
+  "owner": "application VisibilityGrid",
+  "rendererRole": "immutable RGBA8 field projection only",
+  "Width": 32,
+  "Height": 20,
+  "SemanticHash": "1440ff6cae8b9075e061deae7478121a6074e409f248154401e618e5474e4841",
+  "UploadBytes": 2560,
+  "UploadCount": 1,
+  "UploadedBytes": 2560,
+  "minimapUsesSameFactsButIndependentPresentation": true
+}

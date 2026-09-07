@@ -21,6 +21,7 @@
     <Project Path="src/Integrations/Aurelian.GameWorld2D/Aurelian.GameWorld2D.csproj" />
     <Project Path="src/Integrations/Aurelian.Effects2D.Graphics/Aurelian.Effects2D.Graphics.csproj" />
     <Project Path="src/Integrations/Aurelian.NativeComposition/Aurelian.NativeComposition.csproj" />
+    <Project Path="src/Integrations/Aurelian.Profile.Graphics/Aurelian.Profile.Graphics.csproj" />
     <Project Path="src/Integrations/Aurelian.GameHost.Silk/Aurelian.GameHost.Silk.csproj" />
     <Project Path="src/Integrations/Aurelian.Audio.NAudio/Aurelian.Audio.NAudio.csproj" />
     <Project Path="src/Integrations/Dominatus.Audio.Aurelian/Dominatus.Audio.Aurelian.csproj" />
@@ -30,6 +31,9 @@
   <Folder Name="/samples/">
     <Project Path="samples/Integrations/Aurelian.StrategyDemo/Aurelian.StrategyDemo.csproj" />
     <Project Path="samples/Integrations/Aurelian.Ariadne.VnDemo/Aurelian.Ariadne.VnDemo.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Aurelian.NativeGraphicsM19/Aurelian.NativeGraphicsM19.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Aurelian/Aurelian.Strategy.Tests/Aurelian.Strategy.Tests.csproj" />
@@ -51,6 +55,7 @@
     <Project Path="tests/Aurelian/Aurelian.Spatial2D.Tests/Aurelian.Spatial2D.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.World.Tests/Aurelian.World.Tests.csproj" />
     <Project Path="tests/Integrations/Aurelian.GameWorld2D.Tests/Aurelian.GameWorld2D.Tests.csproj" />
+    <Project Path="tests/Integrations/Aurelian.Profile.Graphics.Tests/Aurelian.Profile.Graphics.Tests.csproj" />
     <Project Path="tests/Integrations/Sunkill.Tests/Sunkill.Tests.csproj" />
   </Folder>
 </Solution>

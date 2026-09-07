@@ -366,6 +366,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             submission.Tint,
             default,
             default,
+            default,
             default));
     }
 
@@ -391,6 +392,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             submission.AtlasTexture,
             submission.Color,
             submission.Msdf,
+            default,
             default,
             default));
     }
@@ -422,6 +424,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
                 radius,
                 submission.BorderColor,
                 submission.BorderWidth),
+            default,
             default));
     }
 
@@ -450,7 +453,40 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
                 submission.Radius,
                 submission.Thickness,
                 submission.Intensity,
-                submission.Seed)));
+                submission.Seed),
+            default));
+    }
+
+    public void SubmitSemanticFog(NativeSemanticFogSubmission submission)
+    {
+        ThrowIfDisposed();
+        if (!passActive)
+        {
+            throw new InvalidOperationException("SubmitSemanticFog requires an active 2D pass.");
+        }
+        if (options.Kind != Native2DPipelineKind.SemanticFog)
+        {
+            throw new InvalidOperationException("SubmitSemanticFog requires the semantic fog pipeline.");
+        }
+        Native2DSubmissionValidator.ValidateValues(submission);
+        if (!textures.ContainsKey(submission.VisibilityField.Value))
+        {
+            throw UnknownTexture(submission.VisibilityField);
+        }
+        submissions.Add(new RenderSubmission(
+            submission.Destination,
+            submission.FieldCoordinates,
+            submission.VisibilityField,
+            submission.Tint,
+            default,
+            default,
+            default,
+            new SemanticFogParameters(
+                submission.UnexploredOpacity,
+                submission.ExploredOpacity,
+                submission.EdgeSoftness,
+                submission.NoiseAmount,
+                submission.TemporalPhase)));
     }
 
     public Native2DPassResult End2D(bool captureReadback = false)
@@ -694,6 +730,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             Native2DPipelineKind.MsdfText => ["tint", "pixelRange", "threshold"],
             Native2DPipelineKind.AnalyticShape2D => ["fillColor", "borderColor", "halfSize", "radius", "borderWidth", "shapeKind"],
             Native2DPipelineKind.SoftShockwave => ["color", "age", "lifetime", "radius", "thickness", "intensity", "seed"],
+            Native2DPipelineKind.SemanticFog => ["tint", "unexploredOpacity", "exploredOpacity", "edgeSoftness", "noiseAmount", "temporalPhase"],
             _ => ["tint", "roughness"],
         };
         if (!material.Fields.OrderBy(field => field.Order).Select(field => field.Name).SequenceEqual(expectedFields, StringComparer.Ordinal))
@@ -894,7 +931,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         Native2DTint shaderTint = CorrectsSrgbInputs
             ? NativeSrgbTransfer.Decode(submission.Tint)
             : submission.Tint;
-        if (options.Kind is Native2DPipelineKind.Textured or Native2DPipelineKind.MsdfText)
+        if (options.Kind is Native2DPipelineKind.Textured or Native2DPipelineKind.MsdfText or Native2DPipelineKind.SemanticFog)
         {
             WriteMaterialColor(materialBytes, material, "tint", shaderTint);
         }
@@ -923,7 +960,7 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             CompiledMaterialField kind = material.Fields.Single(field => field.Name == "shapeKind");
             BinaryPrimitives.WriteUInt32LittleEndian(materialBytes.AsSpan(kind.Offset, 4), (uint)(submission.Analytic.Kind == NativeAnalyticShapeKind.Circle ? 1 : 0));
         }
-        else
+        else if (options.Kind == Native2DPipelineKind.SoftShockwave)
         {
             WriteMaterialColor(materialBytes, material, "color", shaderTint);
             WriteMaterialFloat(materialBytes, material, "age", submission.Shockwave.Age);
@@ -932,6 +969,14 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
             WriteMaterialFloat(materialBytes, material, "thickness", submission.Shockwave.Thickness);
             WriteMaterialFloat(materialBytes, material, "intensity", submission.Shockwave.Intensity);
             WriteMaterialFloat(materialBytes, material, "seed", submission.Shockwave.Seed);
+        }
+        else
+        {
+            WriteMaterialFloat(materialBytes, material, "unexploredOpacity", submission.Fog.UnexploredOpacity);
+            WriteMaterialFloat(materialBytes, material, "exploredOpacity", submission.Fog.ExploredOpacity);
+            WriteMaterialFloat(materialBytes, material, "edgeSoftness", submission.Fog.EdgeSoftness);
+            WriteMaterialFloat(materialBytes, material, "noiseAmount", submission.Fog.NoiseAmount);
+            WriteMaterialFloat(materialBytes, material, "temporalPhase", submission.Fog.TemporalPhase);
         }
         AurelianVulkanBuffer materialBuffer = VulkanNativeForwardTexturedRenderer.CreateMappedBuffer(
             plant,
@@ -1175,7 +1220,12 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         int ShockwaveRadius,
         int ShockwaveThickness,
         int ShockwaveIntensity,
-        int ShockwaveSeed)
+        int ShockwaveSeed,
+        int FogUnexploredOpacity,
+        int FogExploredOpacity,
+        int FogEdgeSoftness,
+        int FogNoiseAmount,
+        int FogTemporalPhase)
     {
         public static BindingKey From(RenderSubmission submission)
             => new(
@@ -1200,7 +1250,12 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
                 BitConverter.SingleToInt32Bits(submission.Shockwave.Radius),
                 BitConverter.SingleToInt32Bits(submission.Shockwave.Thickness),
                 BitConverter.SingleToInt32Bits(submission.Shockwave.Intensity),
-                BitConverter.SingleToInt32Bits(submission.Shockwave.Seed));
+                BitConverter.SingleToInt32Bits(submission.Shockwave.Seed),
+                BitConverter.SingleToInt32Bits(submission.Fog.UnexploredOpacity),
+                BitConverter.SingleToInt32Bits(submission.Fog.ExploredOpacity),
+                BitConverter.SingleToInt32Bits(submission.Fog.EdgeSoftness),
+                BitConverter.SingleToInt32Bits(submission.Fog.NoiseAmount),
+                BitConverter.SingleToInt32Bits(submission.Fog.TemporalPhase));
     }
 
     private readonly record struct RenderSubmission(
@@ -1210,7 +1265,8 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         Native2DTint Tint,
         NativeMsdfParameters Msdf,
         AnalyticParameters Analytic,
-        SoftShockwaveParameters Shockwave);
+        SoftShockwaveParameters Shockwave,
+        SemanticFogParameters Fog);
 
     private readonly record struct AnalyticParameters(
         NativeAnalyticShapeKind Kind,
@@ -1226,6 +1282,13 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         float Thickness,
         float Intensity,
         float Seed);
+
+    private readonly record struct SemanticFogParameters(
+        float UnexploredOpacity,
+        float ExploredOpacity,
+        float EdgeSoftness,
+        float NoiseAmount,
+        float TemporalPhase);
 
     private readonly record struct Vertex(float X, float Y, float Z, float U, float V, float FieldScale);
 }

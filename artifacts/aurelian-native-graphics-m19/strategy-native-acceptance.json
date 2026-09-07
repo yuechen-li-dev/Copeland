@@ -1,0 +1,19 @@
+{
+  "image": "strategy-native-after.png",
+  "source": "live Aurelian.StrategyDemo Vulkan presenter smoke capture",
+  "perspective": "Mossward isometric",
+  "semanticState": "AURELIAN-RTS-PEARL-MINING-M18 default session",
+  "hud": "StrategyHudProfile.Build",
+  "fonts": [
+    "CrimsonText-Regular.ttf / 22,30",
+    "SpaceMono-Regular.ttf / 12"
+  ],
+  "profileFieldQuality": 192,
+  "profileMinimumShortAxis": 40,
+  "profilePixelRange": 12,
+  "textMinimumFieldDimension": 64,
+  "textPixelRange": 8,
+  "width": 1280,
+  "height": 800,
+  "PixelSha256": "a9b628b80044fe83a6f46b861bd9be673482a1c39cfc28bce42cf1cde3e989c1"
+}
