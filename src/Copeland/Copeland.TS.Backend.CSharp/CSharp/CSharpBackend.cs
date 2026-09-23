@@ -69,9 +69,54 @@ public static class CSharpBackend
 
     private static readonly AsyncLocal<CSharpEmissionState?> CurrentEmissionState = new();
     private static readonly AsyncLocal<string?> CurrentSourcePath = new();
+    private static readonly AsyncLocal<string?> CurrentModuleClassName = new();
+
+    /// <summary>The module class name used when no host-specific name is requested.</summary>
+    public const string DefaultModuleClassName = "CopelandModule";
 
     public static CSharpCompilation Emit(MirProgram program)
-        => EmitCore(program, null);
+        => EmitCore(program, null, DefaultModuleClassName);
+
+    /// <summary>
+    /// Emits the module class under <paramref name="moduleClassName"/>. Every
+    /// generated reference to module members (captured-callable environments,
+    /// flows) uses the same name, so hosts must not rename the class textually
+    /// after emission.
+    /// </summary>
+    public static CSharpCompilation Emit(MirProgram program, string moduleClassName)
+    {
+        if (!IsValidModuleClassName(moduleClassName))
+        {
+            throw new ArgumentException($"'{moduleClassName}' is not a valid C# module class name.", nameof(moduleClassName));
+        }
+
+        return EmitCore(program, null, moduleClassName);
+    }
+
+    private static bool IsValidModuleClassName(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+        {
+            return false;
+        }
+
+        if (!(char.IsLetter(name[0]) || name[0] == '_'))
+        {
+            return false;
+        }
+
+        foreach (char character in name)
+        {
+            if (!(char.IsLetterOrDigit(character) || character == '_'))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static string ModuleClassName => CurrentModuleClassName.Value ?? DefaultModuleClassName;
 
     /// <summary>
     /// Emits a root application and binds targetless tsonCall to the one
@@ -86,10 +131,10 @@ public static class CSharpBackend
             return new CSharpCompilation(string.Empty, [diagnostic!]);
         }
 
-        return EmitCore(program, ProgramUsesTsonTransport(program) ? contract : null);
+        return EmitCore(program, ProgramUsesTsonTransport(program) ? contract : null, DefaultModuleClassName);
     }
 
-    private static CSharpCompilation EmitCore(MirProgram program, CSharpSidecarContract? sidecarContract)
+    private static CSharpCompilation EmitCore(MirProgram program, CSharpSidecarContract? sidecarContract, string moduleClassName)
     {
         var diagnostics = MirValidator.Validate(program)
             .Select(diagnostic => new CSharpDiagnostic("COPE-CS-0002", $"Invalid MIR: {diagnostic.Message}"))
@@ -113,6 +158,8 @@ public static class CSharpBackend
         var writer = new CSharpTextWriter();
         string? previousSourcePath = CurrentSourcePath.Value;
         CurrentSourcePath.Value = program.CSharpSourcePath;
+        string? previousModuleClassName = CurrentModuleClassName.Value;
+        CurrentModuleClassName.Value = moduleClassName;
         var enumNames = program.Enums.Select(@enum => @enum.Name).ToHashSet(StringComparer.Ordinal);
         var recordsById = program.Records.ToDictionary(record => record.Id);
         var tablesById = program.Tables.ToDictionary(table => table.Id);
@@ -171,7 +218,7 @@ public static class CSharpBackend
                 EmitTable(writer, table, recordsById, tablesById, tsonTableIds.Contains(table.Id), usesTableWith, enumNames);
             }
         }
-        writer.WriteLine("public static class CopelandModule"); writer.WriteLine("{"); writer.Indent();
+        writer.WriteLine($"public static class {ModuleClassName}"); writer.WriteLine("{"); writer.Indent();
         foreach (var table in program.Tables)
         {
             string createExpression = table.DerivedPlan is null
@@ -213,6 +260,7 @@ public static class CSharpBackend
         foreach (var function in program.Functions) EmitFunction(writer, function, enumNames, recordsById, diagnostics);
         writer.Unindent(); writer.WriteLine("}");
         CurrentSourcePath.Value = previousSourcePath;
+        CurrentModuleClassName.Value = previousModuleClassName;
         return diagnostics.Count == 0
             ? new CSharpCompilation(writer.ToString(), diagnostics, sidecarContract)
             : new CSharpCompilation(string.Empty, diagnostics);
@@ -736,7 +784,7 @@ public static class CSharpBackend
                 .Select((parameter, index) => $"{MapValueStorageType(parameter.Type)} value{index}"));
             string arguments = string.Join(", ", Enumerable.Range(0, construction.Captures.Count).Select(index => $"_capture{index}")
                 .Concat(Enumerable.Range(0, code.Parameters.Count - construction.Captures.Count).Select(index => $"value{index}")));
-            writer.WriteLine($"internal {MapValueStorageType(code.ReturnType)} Invoke({invokeParameters}) => CopelandModule.{CSharpNameMangler.Mangle(code.Name)}({arguments});");
+            writer.WriteLine($"internal {MapValueStorageType(code.ReturnType)} Invoke({invokeParameters}) => {ModuleClassName}.{CSharpNameMangler.Mangle(code.Name)}({arguments});");
             writer.Unindent();
             writer.WriteLine("}");
             writer.WriteLine();
@@ -1801,7 +1849,7 @@ public static class CSharpBackend
         ref int tempIndex,
         List<CSharpDiagnostic> diagnostics)
     {
-        string owner = function.Name == "<flow>" ? "CopelandModule." : string.Empty;
+        string owner = function.Name == "<flow>" ? ModuleClassName + "." : string.Empty;
         string functionName = CSharpNameMangler.Mangle(call.FunctionName);
         string arguments = string.Join(", ", EmitArguments(
             call.Arguments,

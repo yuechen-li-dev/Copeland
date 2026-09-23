@@ -2951,11 +2951,16 @@ public sealed class Parser
             }
 
             string expressionText = text.Substring(expressionStart, index - expressionStart - 1);
-            var nested = new Parser(expressionText, _allowsTsXml, _allowsImports);
+            // The token value excludes the opening backtick, hence the +1. The
+            // nested source is left-padded so every token in the interpolation
+            // carries its absolute file position; binder diagnostics and spans
+            // on those tokens otherwise point at the top of the file.
+            int absoluteExpressionStart = token.Position + 1 + expressionStart;
+            var nested = new Parser(new string(' ', absoluteExpressionStart) + expressionText, _allowsTsXml, _allowsImports);
             ExpressionSyntax expression = nested.ParseExpression();
             foreach (Diagnostic diagnostic in nested.Diagnostics)
             {
-                _diagnostics.Report(diagnostic.Id, diagnostic.Message, token.Position + expressionStart + diagnostic.Position + 1, diagnostic.Length);
+                _diagnostics.Report(diagnostic.Id, diagnostic.Message, diagnostic.Position, diagnostic.Length);
             }
             parts.Add(new TemplateInterpolationPartSyntax(expression));
             index--;

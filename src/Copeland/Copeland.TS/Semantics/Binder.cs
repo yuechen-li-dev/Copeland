@@ -12973,10 +12973,49 @@ public static class Binder
             return PrimitiveTypeSymbol.Error;
         }
 
+        // `value.Method(...)` on a Copeland value (string, record, array, ...) is
+        // not a receiver call and not an enum case. Without this check the call
+        // fell through to enum construction and reported COPE-ENUM-0010 against
+        // the variable, which names neither the value nor the missing method.
+        private bool TryReportValueMemberCall(MemberAccessExpressionSyntax member, NameExpressionSyntax receiverName)
+        {
+            if (!_scope.TryLookup(receiverName.IdentifierToken.Text, out Symbol? symbol))
+            {
+                return false;
+            }
+
+            TypeSymbol? receiverType = symbol switch
+            {
+                VariableSymbol variable => variable.Type,
+                ParameterSymbol parameter => parameter.Type,
+                _ => null,
+            };
+            if (receiverType is null)
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(receiverType, PrimitiveTypeSymbol.Error))
+            {
+                return true;
+            }
+
+            Report(
+                "COPE-CALL-0021",
+                $"'{member.NameToken.Text}' is not a method of '{receiverName.IdentifierToken.Text}' of type '{receiverType.Name}'. Copeland values have no receiver methods; pass the value to a function or a CLR static API instead.",
+                member.NameToken);
+            return true;
+        }
+
         private BoundExpression BindEnumConstructorCall(CallExpressionSyntax call, MemberAccessExpressionSyntax member, NameExpressionSyntax enumName)
         {
             if (!_enumTypes.TryGetValue(enumName.IdentifierToken.Text, out var enumType))
             {
+                if (TryReportValueMemberCall(member, enumName))
+                {
+                    return new BoundErrorExpression();
+                }
+
                 Report("COPE-ENUM-0010", "Expected enum type name.", enumName.IdentifierToken);
                 return new BoundErrorExpression();
             }

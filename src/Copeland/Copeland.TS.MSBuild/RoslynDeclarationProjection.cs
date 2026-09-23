@@ -136,9 +136,31 @@ internal static class RoslynDeclarationProjection
         public override SyntaxNode? VisitAttributeList(AttributeListSyntax node) => null;
 
         public override SyntaxNode? VisitUsingDirective(UsingDirectiveSyntax node)
-            => string.Equals(node.Name?.ToString(), generatedNamespace, StringComparison.Ordinal)
+            => TargetsGeneratedNamespace(node)
                 ? null
                 : base.VisitUsingDirective(node);
+
+        // Generated Copeland types do not exist yet when authored C# is
+        // projected, so any using that names them must go -- not only the plain
+        // namespace import, but aliases (`using M = X.Copeland.CopelandProject;`),
+        // `using static`, and `global::`-qualified spellings of the same target.
+        private bool TargetsGeneratedNamespace(UsingDirectiveSyntax node)
+        {
+            if (node.Name is null)
+            {
+                return false;
+            }
+
+            string target = node.Name.ToString();
+            const string globalPrefix = "global::";
+            if (target.StartsWith(globalPrefix, StringComparison.Ordinal))
+            {
+                target = target[globalPrefix.Length..];
+            }
+
+            return string.Equals(target, generatedNamespace, StringComparison.Ordinal)
+                || target.StartsWith(generatedNamespace + ".", StringComparison.Ordinal);
+        }
 
         public override SyntaxNode? VisitMethodDeclaration(MethodDeclarationSyntax node)
             => node.Body is null && node.ExpressionBody is null

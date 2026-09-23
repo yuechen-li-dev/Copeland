@@ -251,7 +251,10 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
                 return false;
             }
 
-            CSharpCompilation emitted = CSharpBackend.Emit(project.Compilation!.MirCompilation!.Program!);
+            string publicModuleName = sources.Any(source => string.Equals(Path.GetFileNameWithoutExtension(source.LogicalPath), "Main", StringComparison.OrdinalIgnoreCase))
+                ? "Main"
+                : graphArtifactName;
+            CSharpCompilation emitted = CSharpBackend.Emit(project.Compilation!.MirCompilation!.Program!, publicModuleName);
             if (emitted.Diagnostics.Count > 0)
             {
                 foreach (CSharpDiagnostic diagnostic in emitted.Diagnostics)
@@ -262,13 +265,9 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
                 return false;
             }
 
-            string publicModuleName = sources.Any(source => string.Equals(Path.GetFileNameWithoutExtension(source.LogicalPath), "Main", StringComparison.OrdinalIgnoreCase))
-                ? "Main"
-                : graphArtifactName;
             string generatedNamespace = NormalizeNamespace(rootNamespace) + ".Copeland";
             string generatedSource = emitted.SourceText
-                .Replace("namespace Copeland.Generated;", "namespace " + generatedNamespace + ";", StringComparison.Ordinal)
-                .Replace("public static class CopelandModule", "public static class " + publicModuleName, StringComparison.Ordinal);
+                .Replace("namespace Copeland.Generated;", "namespace " + generatedNamespace + ";", StringComparison.Ordinal);
             generatedSource = ScopeProjectFunctionAccessibility(generatedSource, project.MirProjectGraph!, publicModuleName);
             generatedSource = ScopeRecordCarrierNames(generatedSource, graphArtifactName);
             WriteIfChanged(outputPath, generatedSource);
@@ -328,7 +327,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
             return false;
         }
 
-        CSharpCompilation emitted = CSharpBackend.Emit(compilation.MirCompilation!.Program!);
+        CSharpCompilation emitted = CSharpBackend.Emit(compilation.MirCompilation!.Program!, moduleName);
         if (emitted.Diagnostics.Count > 0)
         {
             foreach (CSharpDiagnostic diagnostic in emitted.Diagnostics)
@@ -341,8 +340,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
 
         string generatedNamespace = NormalizeNamespace(rootNamespace) + ".Copeland";
         string generatedSource = emitted.SourceText
-            .Replace("namespace Copeland.Generated;", "namespace " + generatedNamespace + ";", StringComparison.Ordinal)
-            .Replace("public static class CopelandModule", "public static class " + moduleName, StringComparison.Ordinal);
+            .Replace("namespace Copeland.Generated;", "namespace " + generatedNamespace + ";", StringComparison.Ordinal);
         generatedSource = ScopeRecordCarrierNames(generatedSource, moduleName);
 
         WriteIfChanged(outputPath, generatedSource);

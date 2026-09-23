@@ -1,0 +1,555 @@
+diff --git a/src/Copeland/Copeland.TS.Backend.CSharp/CSharp/CSharpBackend.cs b/src/Copeland/Copeland.TS.Backend.CSharp/CSharp/CSharpBackend.cs
+index 4b3452b..0f2b774 100644
+--- a/src/Copeland/Copeland.TS.Backend.CSharp/CSharp/CSharpBackend.cs
++++ b/src/Copeland/Copeland.TS.Backend.CSharp/CSharp/CSharpBackend.cs
+@@ -69,9 +69,54 @@ public static class CSharpBackend
+ 
+     private static readonly AsyncLocal<CSharpEmissionState?> CurrentEmissionState = new();
+     private static readonly AsyncLocal<string?> CurrentSourcePath = new();
++    private static readonly AsyncLocal<string?> CurrentModuleClassName = new();
++
++    /// <summary>The module class name used when no host-specific name is requested.</summary>
++    public const string DefaultModuleClassName = "CopelandModule";
+ 
+     public static CSharpCompilation Emit(MirProgram program)
+-        => EmitCore(program, null);
++        => EmitCore(program, null, DefaultModuleClassName);
++
++    /// <summary>
++    /// Emits the module class under <paramref name="moduleClassName"/>. Every
++    /// generated reference to module members (captured-callable environments,
++    /// flows) uses the same name, so hosts must not rename the class textually
++    /// after emission.
++    /// </summary>
++    public static CSharpCompilation Emit(MirProgram program, string moduleClassName)
++    {
++        if (!IsValidModuleClassName(moduleClassName))
++        {
++            throw new ArgumentException($"'{moduleClassName}' is not a valid C# module class name.", nameof(moduleClassName));
++        }
++
++        return EmitCore(program, null, moduleClassName);
++    }
++
++    private static bool IsValidModuleClassName(string name)
++    {
++        if (string.IsNullOrEmpty(name))
++        {
++            return false;
++        }
++
++        if (!(char.IsLetter(name[0]) || name[0] == '_'))
++        {
++            return false;
++        }
++
++        foreach (char character in name)
++        {
++            if (!(char.IsLetterOrDigit(character) || character == '_'))
++            {
++                return false;
++            }
++        }
++
++        return true;
++    }
++
++    private static string ModuleClassName => CurrentModuleClassName.Value ?? DefaultModuleClassName;
+ 
+     /// <summary>
+     /// Emits a root application and binds targetless tsonCall to the one
+@@ -86,10 +131,10 @@ public static class CSharpBackend
+             return new CSharpCompilation(string.Empty, [diagnostic!]);
+         }
+ 
+-        return EmitCore(program, ProgramUsesTsonTransport(program) ? contract : null);
++        return EmitCore(program, ProgramUsesTsonTransport(program) ? contract : null, DefaultModuleClassName);
+     }
+ 
+-    private static CSharpCompilation EmitCore(MirProgram program, CSharpSidecarContract? sidecarContract)
++    private static CSharpCompilation EmitCore(MirProgram program, CSharpSidecarContract? sidecarContract, string moduleClassName)
+     {
+         var diagnostics = MirValidator.Validate(program)
+             .Select(diagnostic => new CSharpDiagnostic("COPE-CS-0002", $"Invalid MIR: {diagnostic.Message}"))
+@@ -113,6 +158,8 @@ public static class CSharpBackend
+         var writer = new CSharpTextWriter();
+         string? previousSourcePath = CurrentSourcePath.Value;
+         CurrentSourcePath.Value = program.CSharpSourcePath;
++        string? previousModuleClassName = CurrentModuleClassName.Value;
++        CurrentModuleClassName.Value = moduleClassName;
+         var enumNames = program.Enums.Select(@enum => @enum.Name).ToHashSet(StringComparer.Ordinal);
+         var recordsById = program.Records.ToDictionary(record => record.Id);
+         var tablesById = program.Tables.ToDictionary(table => table.Id);
+@@ -171,7 +218,7 @@ public static class CSharpBackend
+                 EmitTable(writer, table, recordsById, tablesById, tsonTableIds.Contains(table.Id), usesTableWith, enumNames);
+             }
+         }
+-        writer.WriteLine("public static class CopelandModule"); writer.WriteLine("{"); writer.Indent();
++        writer.WriteLine($"public static class {ModuleClassName}"); writer.WriteLine("{"); writer.Indent();
+         foreach (var table in program.Tables)
+         {
+             string createExpression = table.DerivedPlan is null
+@@ -213,6 +260,7 @@ public static class CSharpBackend
+         foreach (var function in program.Functions) EmitFunction(writer, function, enumNames, recordsById, diagnostics);
+         writer.Unindent(); writer.WriteLine("}");
+         CurrentSourcePath.Value = previousSourcePath;
++        CurrentModuleClassName.Value = previousModuleClassName;
+         return diagnostics.Count == 0
+             ? new CSharpCompilation(writer.ToString(), diagnostics, sidecarContract)
+             : new CSharpCompilation(string.Empty, diagnostics);
+@@ -736,7 +784,7 @@ public static class CSharpBackend
+                 .Select((parameter, index) => $"{MapValueStorageType(parameter.Type)} value{index}"));
+             string arguments = string.Join(", ", Enumerable.Range(0, construction.Captures.Count).Select(index => $"_capture{index}")
+                 .Concat(Enumerable.Range(0, code.Parameters.Count - construction.Captures.Count).Select(index => $"value{index}")));
+-            writer.WriteLine($"internal {MapValueStorageType(code.ReturnType)} Invoke({invokeParameters}) => CopelandModule.{CSharpNameMangler.Mangle(code.Name)}({arguments});");
++            writer.WriteLine($"internal {MapValueStorageType(code.ReturnType)} Invoke({invokeParameters}) => {ModuleClassName}.{CSharpNameMangler.Mangle(code.Name)}({arguments});");
+             writer.Unindent();
+             writer.WriteLine("}");
+             writer.WriteLine();
+@@ -1801,7 +1849,7 @@ public static class CSharpBackend
+         ref int tempIndex,
+         List<CSharpDiagnostic> diagnostics)
+     {
+-        string owner = function.Name == "<flow>" ? "CopelandModule." : string.Empty;
++        string owner = function.Name == "<flow>" ? ModuleClassName + "." : string.Empty;
+         string functionName = CSharpNameMangler.Mangle(call.FunctionName);
+         string arguments = string.Join(", ", EmitArguments(
+             call.Arguments,
+diff --git a/src/Copeland/Copeland.TS.MSBuild/CopelandCompile.cs b/src/Copeland/Copeland.TS.MSBuild/CopelandCompile.cs
+index 14daa59..42a6269 100644
+--- a/src/Copeland/Copeland.TS.MSBuild/CopelandCompile.cs
++++ b/src/Copeland/Copeland.TS.MSBuild/CopelandCompile.cs
+@@ -251,7 +251,10 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
+                 return false;
+             }
+ 
+-            CSharpCompilation emitted = CSharpBackend.Emit(project.Compilation!.MirCompilation!.Program!);
++            string publicModuleName = sources.Any(source => string.Equals(Path.GetFileNameWithoutExtension(source.LogicalPath), "Main", StringComparison.OrdinalIgnoreCase))
++                ? "Main"
++                : graphArtifactName;
++            CSharpCompilation emitted = CSharpBackend.Emit(project.Compilation!.MirCompilation!.Program!, publicModuleName);
+             if (emitted.Diagnostics.Count > 0)
+             {
+                 foreach (CSharpDiagnostic diagnostic in emitted.Diagnostics)
+@@ -262,13 +265,9 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
+                 return false;
+             }
+ 
+-            string publicModuleName = sources.Any(source => string.Equals(Path.GetFileNameWithoutExtension(source.LogicalPath), "Main", StringComparison.OrdinalIgnoreCase))
+-                ? "Main"
+-                : graphArtifactName;
+             string generatedNamespace = NormalizeNamespace(rootNamespace) + ".Copeland";
+             string generatedSource = emitted.SourceText
+-                .Replace("namespace Copeland.Generated;", "namespace " + generatedNamespace + ";", StringComparison.Ordinal)
+-                .Replace("public static class CopelandModule", "public static class " + publicModuleName, StringComparison.Ordinal);
++                .Replace("namespace Copeland.Generated;", "namespace " + generatedNamespace + ";", StringComparison.Ordinal);
+             generatedSource = ScopeProjectFunctionAccessibility(generatedSource, project.MirProjectGraph!, publicModuleName);
+             generatedSource = ScopeRecordCarrierNames(generatedSource, graphArtifactName);
+             WriteIfChanged(outputPath, generatedSource);
+@@ -328,7 +327,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
+             return false;
+         }
+ 
+-        CSharpCompilation emitted = CSharpBackend.Emit(compilation.MirCompilation!.Program!);
++        CSharpCompilation emitted = CSharpBackend.Emit(compilation.MirCompilation!.Program!, moduleName);
+         if (emitted.Diagnostics.Count > 0)
+         {
+             foreach (CSharpDiagnostic diagnostic in emitted.Diagnostics)
+@@ -341,8 +340,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
+ 
+         string generatedNamespace = NormalizeNamespace(rootNamespace) + ".Copeland";
+         string generatedSource = emitted.SourceText
+-            .Replace("namespace Copeland.Generated;", "namespace " + generatedNamespace + ";", StringComparison.Ordinal)
+-            .Replace("public static class CopelandModule", "public static class " + moduleName, StringComparison.Ordinal);
++            .Replace("namespace Copeland.Generated;", "namespace " + generatedNamespace + ";", StringComparison.Ordinal);
+         generatedSource = ScopeRecordCarrierNames(generatedSource, moduleName);
+ 
+         WriteIfChanged(outputPath, generatedSource);
+diff --git a/src/Copeland/Copeland.TS.MSBuild/RoslynDeclarationProjection.cs b/src/Copeland/Copeland.TS.MSBuild/RoslynDeclarationProjection.cs
+index 81ad221..63543b9 100644
+--- a/src/Copeland/Copeland.TS.MSBuild/RoslynDeclarationProjection.cs
++++ b/src/Copeland/Copeland.TS.MSBuild/RoslynDeclarationProjection.cs
+@@ -136,10 +136,32 @@ internal static class RoslynDeclarationProjection
+         public override SyntaxNode? VisitAttributeList(AttributeListSyntax node) => null;
+ 
+         public override SyntaxNode? VisitUsingDirective(UsingDirectiveSyntax node)
+-            => string.Equals(node.Name?.ToString(), generatedNamespace, StringComparison.Ordinal)
++            => TargetsGeneratedNamespace(node)
+                 ? null
+                 : base.VisitUsingDirective(node);
+ 
++        // Generated Copeland types do not exist yet when authored C# is
++        // projected, so any using that names them must go -- not only the plain
++        // namespace import, but aliases (`using M = X.Copeland.CopelandProject;`),
++        // `using static`, and `global::`-qualified spellings of the same target.
++        private bool TargetsGeneratedNamespace(UsingDirectiveSyntax node)
++        {
++            if (node.Name is null)
++            {
++                return false;
++            }
++
++            string target = node.Name.ToString();
++            const string globalPrefix = "global::";
++            if (target.StartsWith(globalPrefix, StringComparison.Ordinal))
++            {
++                target = target[globalPrefix.Length..];
++            }
++
++            return string.Equals(target, generatedNamespace, StringComparison.Ordinal)
++                || target.StartsWith(generatedNamespace + ".", StringComparison.Ordinal);
++        }
++
+         public override SyntaxNode? VisitMethodDeclaration(MethodDeclarationSyntax node)
+             => node.Body is null && node.ExpressionBody is null
+                 ? base.VisitMethodDeclaration(node)
+diff --git a/src/Copeland/Copeland.TS/Semantics/Binder.cs b/src/Copeland/Copeland.TS/Semantics/Binder.cs
+index 6b0fff7..762175b 100644
+--- a/src/Copeland/Copeland.TS/Semantics/Binder.cs
++++ b/src/Copeland/Copeland.TS/Semantics/Binder.cs
+@@ -12973,10 +12973,49 @@ public static class Binder
+             return PrimitiveTypeSymbol.Error;
+         }
+ 
++        // `value.Method(...)` on a Copeland value (string, record, array, ...) is
++        // not a receiver call and not an enum case. Without this check the call
++        // fell through to enum construction and reported COPE-ENUM-0010 against
++        // the variable, which names neither the value nor the missing method.
++        private bool TryReportValueMemberCall(MemberAccessExpressionSyntax member, NameExpressionSyntax receiverName)
++        {
++            if (!_scope.TryLookup(receiverName.IdentifierToken.Text, out Symbol? symbol))
++            {
++                return false;
++            }
++
++            TypeSymbol? receiverType = symbol switch
++            {
++                VariableSymbol variable => variable.Type,
++                ParameterSymbol parameter => parameter.Type,
++                _ => null,
++            };
++            if (receiverType is null)
++            {
++                return false;
++            }
++
++            if (ReferenceEquals(receiverType, PrimitiveTypeSymbol.Error))
++            {
++                return true;
++            }
++
++            Report(
++                "COPE-CALL-0021",
++                $"'{member.NameToken.Text}' is not a method of '{receiverName.IdentifierToken.Text}' of type '{receiverType.Name}'. Copeland values have no receiver methods; pass the value to a function or a CLR static API instead.",
++                member.NameToken);
++            return true;
++        }
++
+         private BoundExpression BindEnumConstructorCall(CallExpressionSyntax call, MemberAccessExpressionSyntax member, NameExpressionSyntax enumName)
+         {
+             if (!_enumTypes.TryGetValue(enumName.IdentifierToken.Text, out var enumType))
+             {
++                if (TryReportValueMemberCall(member, enumName))
++                {
++                    return new BoundErrorExpression();
++                }
++
+                 Report("COPE-ENUM-0010", "Expected enum type name.", enumName.IdentifierToken);
+                 return new BoundErrorExpression();
+             }
+diff --git a/src/Copeland/Copeland.TS/Syntax/Lexer.cs b/src/Copeland/Copeland.TS/Syntax/Lexer.cs
+index 6ee652a..07ca4f3 100644
+--- a/src/Copeland/Copeland.TS/Syntax/Lexer.cs
++++ b/src/Copeland/Copeland.TS/Syntax/Lexer.cs
+@@ -203,11 +203,31 @@ public sealed class Lexer
+             }
+         }
+ 
++        // Exponent notation (`1e-3`, `2.5E+10`) is ordinary TypeScript float
++        // syntax. It is consumed only when a digit follows the `e` (after an
++        // optional sign), so an identifier-like suffix still reaches the unit
++        // and invalid-literal handling below. An exponent always makes a float.
++        bool hasExponent = false;
++        if ((Current == 'e' || Current == 'E')
++            && (char.IsAsciiDigit(Peek(1)) || ((Peek(1) == '+' || Peek(1) == '-') && char.IsAsciiDigit(Peek(2)))))
++        {
++            hasExponent = true;
++            hasDecimalPoint = true;
++            _position += Peek(1) == '+' || Peek(1) == '-' ? 2 : 1;
++            while (char.IsAsciiDigit(Current))
++            {
++                _position++;
++            }
++        }
++
+         string numericText = _text.Substring(start, _position - start);
+         double floatValue = default;
+         int intValue = default;
++        System.Globalization.NumberStyles floatStyles = hasExponent
++            ? System.Globalization.NumberStyles.AllowDecimalPoint | System.Globalization.NumberStyles.AllowExponent
++            : System.Globalization.NumberStyles.AllowDecimalPoint;
+         bool parsed = hasDecimalPoint
+-            ? double.TryParse(numericText, System.Globalization.NumberStyles.AllowDecimalPoint, System.Globalization.CultureInfo.InvariantCulture, out floatValue)
++            ? double.TryParse(numericText, floatStyles, System.Globalization.CultureInfo.InvariantCulture, out floatValue)
+             : int.TryParse(numericText, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out intValue);
+ 
+         if (IsIdentifierStart(Current))
+diff --git a/src/Copeland/Copeland.TS/Syntax/Parser.cs b/src/Copeland/Copeland.TS/Syntax/Parser.cs
+index 6f7d76f..e3ec9a4 100644
+--- a/src/Copeland/Copeland.TS/Syntax/Parser.cs
++++ b/src/Copeland/Copeland.TS/Syntax/Parser.cs
+@@ -2951,11 +2951,16 @@ public sealed class Parser
+             }
+ 
+             string expressionText = text.Substring(expressionStart, index - expressionStart - 1);
+-            var nested = new Parser(expressionText, _allowsTsXml, _allowsImports);
++            // The token value excludes the opening backtick, hence the +1. The
++            // nested source is left-padded so every token in the interpolation
++            // carries its absolute file position; binder diagnostics and spans
++            // on those tokens otherwise point at the top of the file.
++            int absoluteExpressionStart = token.Position + 1 + expressionStart;
++            var nested = new Parser(new string(' ', absoluteExpressionStart) + expressionText, _allowsTsXml, _allowsImports);
+             ExpressionSyntax expression = nested.ParseExpression();
+             foreach (Diagnostic diagnostic in nested.Diagnostics)
+             {
+-                _diagnostics.Report(diagnostic.Id, diagnostic.Message, token.Position + expressionStart + diagnostic.Position + 1, diagnostic.Length);
++                _diagnostics.Report(diagnostic.Id, diagnostic.Message, diagnostic.Position, diagnostic.Length);
+             }
+             parts.Add(new TemplateInterpolationPartSyntax(expression));
+             index--;
+diff --git a/tests/Copeland/Copeland.TS.MSBuild.Tests/MsBuildIntegrationTests.cs b/tests/Copeland/Copeland.TS.MSBuild.Tests/MsBuildIntegrationTests.cs
+index d43cd9b..fe0c702 100644
+--- a/tests/Copeland/Copeland.TS.MSBuild.Tests/MsBuildIntegrationTests.cs
++++ b/tests/Copeland/Copeland.TS.MSBuild.Tests/MsBuildIntegrationTests.cs
+@@ -498,6 +498,49 @@ public sealed class MsBuildIntegrationTests
+         Assert.Contains("public static string Run", source, StringComparison.Ordinal);
+     }
+ 
++    [Fact]
++    public void Graph_artifact_with_captured_callables_builds_under_aliased_csharp_usings()
++    {
++        using var fixture = new TemporaryProject();
++        string taskAssembly = EscapeXml(Path.Combine(AppContext.BaseDirectory, "Copeland.TS.MSBuild.dll"));
++        string targets = EscapeXml(Path.Combine(AppContext.BaseDirectory, "Copeland.TS.Sdk.targets"));
++        fixture.Write("Demo/Demo.csproj", $$"""
++            <Project Sdk="Microsoft.NET.Sdk">
++              <PropertyGroup>
++                <OutputType>Exe</OutputType>
++                <TargetFramework>net10.0</TargetFramework>
++                <RootNamespace>Demo</RootNamespace>
++                <CopelandTaskAssembly>{{taskAssembly}}</CopelandTaskAssembly>
++              </PropertyGroup>
++              <ItemGroup>
++                <CopelandCompile Include="Adders.ts" />
++                <CopelandCompile Include="Entry.ts" />
++              </ItemGroup>
++              <Import Project="{{targets}}" />
++            </Project>
++            """);
++        fixture.Write("Demo/Adders.ts", """
++            type Adder = (value: int) => int;
++            export function makeAdder(k: int): Adder { return capture { k } (value: int) => value + k; }
++            """);
++        fixture.Write("Demo/Entry.ts", """
++            import { makeAdder } from "./Adders";
++            export function Run(): int { const add = makeAdder(40); return add(2); }
++            """);
++        fixture.Write("Demo/Program.cs", """
++            using Project = global::Demo.Copeland.CopelandProject;
++            using static Demo.Copeland.CopelandProject;
++            System.Console.WriteLine(Project.Run() + Run());
++            """);
++
++        fixture.Run("Demo", "restore");
++        fixture.Run("Demo", "build", "--no-restore");
++        fixture.Run("Demo", "run", "--no-build").AssertOutput("84");
++
++        string generated = Path.Combine(fixture.Root, "Demo", "obj", "Debug", "net10.0", "Copeland", "CopelandProject.g.cs");
++        Assert.DoesNotContain("CopelandModule", File.ReadAllText(generated), StringComparison.Ordinal);
++    }
++
+     private static string CreateProjectFile(bool includeFeature = true, bool includeProjectReference = true, bool includePackage = true)
+     {
+         string taskAssembly = EscapeXml(Path.Combine(AppContext.BaseDirectory, "Copeland.TS.MSBuild.dll"));
+diff --git a/tests/Copeland/Copeland.TS.Tests/BenchmarkPortRegressionTests.cs b/tests/Copeland/Copeland.TS.Tests/BenchmarkPortRegressionTests.cs
+new file mode 100644
+index 0000000..9fffedc
+--- /dev/null
++++ b/tests/Copeland/Copeland.TS.Tests/BenchmarkPortRegressionTests.cs
+@@ -0,0 +1,176 @@
++using Copeland.TS.Backend.CSharp;
++using Copeland.TS.Compiler;
++using Microsoft.CodeAnalysis;
++using Microsoft.CodeAnalysis.CSharp;
++using Microsoft.CodeAnalysis.Emit;
++using Xunit;
++using RoslynCSharpCompilation = Microsoft.CodeAnalysis.CSharp.CSharpCompilation;
++
++namespace Copeland.TS.Tests;
++
++// Regressions found while porting the TS microbenchmarks to an SDK project.
++public sealed class BenchmarkPortRegressionTests
++{
++    private const string CapturedAdderSource = """
++type Adder = (value: int) => int;
++
++function makeAdder(k: int): Adder {
++    return capture { k } (value: int) => value + k;
++}
++
++export function run(): int {
++    const add: Adder = makeAdder(40);
++    return add(2);
++}
++""";
++
++    [Fact]
++    public void Captured_callable_environment_uses_the_requested_module_class_name()
++    {
++        var compilation = CopelandCompiler.CompileToMir(CapturedAdderSource, new CopelandCompilationOptions { SourcePath = "adder.ts" });
++        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
++
++        var emitted = CSharpBackend.Emit(compilation.MirCompilation!.Program!, "CopelandProject");
++
++        Assert.Empty(emitted.Diagnostics);
++        Assert.Contains("public static class CopelandProject", emitted.SourceText, StringComparison.Ordinal);
++        Assert.DoesNotContain("CopelandModule", emitted.SourceText, StringComparison.Ordinal);
++
++        using var assemblyStream = new MemoryStream();
++        RoslynCSharpCompilation csharp = RoslynCSharpCompilation.Create(
++            "CopelandModuleNameProof",
++            [CSharpSyntaxTree.ParseText(emitted.SourceText)],
++            GetRuntimeReferences(),
++            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
++        EmitResult result = csharp.Emit(assemblyStream);
++        Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics));
++
++        var assembly = System.Reflection.Assembly.Load(assemblyStream.ToArray());
++        Type module = assembly.GetType("Copeland.Generated.CopelandProject")!;
++        Assert.Equal(42, (int)module.GetMethod("run")!.Invoke(null, [])!);
++    }
++
++    [Fact]
++    public void Default_emission_keeps_the_CopelandModule_name()
++    {
++        var compilation = CopelandCompiler.CompileToMir(CapturedAdderSource, new CopelandCompilationOptions { SourcePath = "adder.ts" });
++        var emitted = CSharpBackend.Emit(compilation.MirCompilation!.Program!);
++
++        Assert.Contains("public static class CopelandModule", emitted.SourceText, StringComparison.Ordinal);
++        Assert.Contains("=> CopelandModule.", emitted.SourceText, StringComparison.Ordinal);
++    }
++
++    [Theory]
++    [InlineData("")]
++    [InlineData("1Module")]
++    [InlineData("Copeland.Module")]
++    public void Invalid_module_class_names_are_rejected(string name)
++    {
++        var compilation = CopelandCompiler.CompileToMir(CapturedAdderSource, new CopelandCompilationOptions { SourcePath = "adder.ts" });
++
++        Assert.Throws<ArgumentException>(() => CSharpBackend.Emit(compilation.MirCompilation!.Program!, name));
++    }
++
++    [Fact]
++    public void Method_call_on_a_copeland_value_names_the_value_instead_of_expecting_an_enum()
++    {
++        var compilation = CopelandCompiler.CompileToMir("""
++function run(text: string): int {
++    const parts: string[] = text.Split(",");
++    return parts.length;
++}
++""", new CopelandCompilationOptions { SourcePath = "split.ts" });
++
++        Assert.DoesNotContain(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-ENUM-0010");
++        var diagnostic = Assert.Single(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-CALL-0021");
++        Assert.Contains("'Split'", diagnostic.Message, StringComparison.Ordinal);
++        Assert.Contains("'text'", diagnostic.Message, StringComparison.Ordinal);
++    }
++
++    [Fact]
++    public void Method_call_on_an_undefined_name_still_reports_the_enum_diagnostic()
++    {
++        var compilation = CopelandCompiler.CompileToMir("""
++function run(): int {
++    return Missing.Case(1);
++}
++""", new CopelandCompilationOptions { SourcePath = "missing.ts" });
++
++        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-ENUM-0010");
++        Assert.DoesNotContain(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-CALL-0021");
++    }
++
++    [Fact]
++    public void Binder_diagnostics_inside_template_interpolation_use_absolute_positions()
++    {
++        const string source = """
++function run(text: string): string {
++    return `size ${text.Length}`;
++}
++""";
++        var compilation = CopelandCompiler.CompileToMir(source, new CopelandCompilationOptions { SourcePath = "interp.ts" });
++
++        var diagnostic = Assert.Single(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-STRING-0001");
++        Assert.Equal(source.IndexOf("Length", StringComparison.Ordinal), diagnostic.Position);
++    }
++
++    [Fact]
++    public void Parse_diagnostics_inside_template_interpolation_keep_absolute_positions()
++    {
++        const string source = """
++function run(): string {
++    return `bad ${1 +}`;
++}
++""";
++        var compilation = CopelandCompiler.CompileToMir(source, new CopelandCompilationOptions { SourcePath = "interp-parse.ts" });
++
++        Assert.NotEmpty(compilation.Diagnostics);
++        int holeStart = source.IndexOf("${", StringComparison.Ordinal) + 2;
++        int holeEnd = source.IndexOf('}', holeStart);
++        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Position >= holeStart && diagnostic.Position <= holeEnd);
++    }
++
++    [Theory]
++    [InlineData("1e3", 1000.0)]
++    [InlineData("2.5E+2", 250.0)]
++    [InlineData("1.66007664274403694e-03", 1.66007664274403694e-03)]
++    public void Exponent_literals_lex_as_float(string literal, double expected)
++    {
++        var tokens = Copeland.TS.Syntax.SyntaxTree.ParseTokens(literal);
++        var number = Assert.Single(tokens.Tokens, token => token.Kind == Copeland.TS.Syntax.SyntaxKind.NumberToken);
++        Assert.Equal(literal, number.Text);
++        Assert.Equal(expected, Assert.IsType<double>(number.Value));
++    }
++
++    [Fact]
++    public void Exponent_literal_binds_as_float_without_a_decimal_point()
++    {
++        var compilation = CopelandCompiler.CompileToMir("""
++function scale(): float {
++    const small: float = 1e-3;
++    return small * 2e3;
++}
++""", new CopelandCompilationOptions { SourcePath = "exponent.ts" });
++
++        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
++    }
++
++    [Theory]
++    [InlineData("1e")]
++    [InlineData("1ex")]
++    [InlineData("2e+")]
++    public void Incomplete_exponent_is_still_an_invalid_literal(string literal)
++    {
++        var compilation = CopelandCompiler.CompileToMir($"function f(): float {{ return {literal}; }}", new CopelandCompilationOptions { SourcePath = "bad-exponent.ts" });
++
++        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-LEX-0004" || diagnostic.Id.StartsWith("COPE-PARSE-", StringComparison.Ordinal));
++    }
++
++    private static IEnumerable<MetadataReference> GetRuntimeReferences()
++    {
++        string trustedPlatformAssemblies = (string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!;
++        return trustedPlatformAssemblies
++            .Split(Path.PathSeparator)
++            .Select(path => MetadataReference.CreateFromFile(path));
++    }
++}

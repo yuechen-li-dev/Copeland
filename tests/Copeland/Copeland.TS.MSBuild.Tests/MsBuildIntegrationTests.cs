@@ -498,6 +498,49 @@ public sealed class MsBuildIntegrationTests
         Assert.Contains("public static string Run", source, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Graph_artifact_with_captured_callables_builds_under_aliased_csharp_usings()
+    {
+        using var fixture = new TemporaryProject();
+        string taskAssembly = EscapeXml(Path.Combine(AppContext.BaseDirectory, "Copeland.TS.MSBuild.dll"));
+        string targets = EscapeXml(Path.Combine(AppContext.BaseDirectory, "Copeland.TS.Sdk.targets"));
+        fixture.Write("Demo/Demo.csproj", $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <OutputType>Exe</OutputType>
+                <TargetFramework>net10.0</TargetFramework>
+                <RootNamespace>Demo</RootNamespace>
+                <CopelandTaskAssembly>{{taskAssembly}}</CopelandTaskAssembly>
+              </PropertyGroup>
+              <ItemGroup>
+                <CopelandCompile Include="Adders.ts" />
+                <CopelandCompile Include="Entry.ts" />
+              </ItemGroup>
+              <Import Project="{{targets}}" />
+            </Project>
+            """);
+        fixture.Write("Demo/Adders.ts", """
+            type Adder = (value: int) => int;
+            export function makeAdder(k: int): Adder { return capture { k } (value: int) => value + k; }
+            """);
+        fixture.Write("Demo/Entry.ts", """
+            import { makeAdder } from "./Adders";
+            export function Run(): int { const add = makeAdder(40); return add(2); }
+            """);
+        fixture.Write("Demo/Program.cs", """
+            using Project = global::Demo.Copeland.CopelandProject;
+            using static Demo.Copeland.CopelandProject;
+            System.Console.WriteLine(Project.Run() + Run());
+            """);
+
+        fixture.Run("Demo", "restore");
+        fixture.Run("Demo", "build", "--no-restore");
+        fixture.Run("Demo", "run", "--no-build").AssertOutput("84");
+
+        string generated = Path.Combine(fixture.Root, "Demo", "obj", "Debug", "net10.0", "Copeland", "CopelandProject.g.cs");
+        Assert.DoesNotContain("CopelandModule", File.ReadAllText(generated), StringComparison.Ordinal);
+    }
+
     private static string CreateProjectFile(bool includeFeature = true, bool includeProjectReference = true, bool includePackage = true)
     {
         string taskAssembly = EscapeXml(Path.Combine(AppContext.BaseDirectory, "Copeland.TS.MSBuild.dll"));

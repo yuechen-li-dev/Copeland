@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Copeland.ReactClr.M0.Host": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:57563;http://localhost:57565"
+    }
+  }
+}

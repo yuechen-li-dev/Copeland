@@ -203,11 +203,31 @@ public sealed class Lexer
             }
         }
 
+        // Exponent notation (`1e-3`, `2.5E+10`) is ordinary TypeScript float
+        // syntax. It is consumed only when a digit follows the `e` (after an
+        // optional sign), so an identifier-like suffix still reaches the unit
+        // and invalid-literal handling below. An exponent always makes a float.
+        bool hasExponent = false;
+        if ((Current == 'e' || Current == 'E')
+            && (char.IsAsciiDigit(Peek(1)) || ((Peek(1) == '+' || Peek(1) == '-') && char.IsAsciiDigit(Peek(2)))))
+        {
+            hasExponent = true;
+            hasDecimalPoint = true;
+            _position += Peek(1) == '+' || Peek(1) == '-' ? 2 : 1;
+            while (char.IsAsciiDigit(Current))
+            {
+                _position++;
+            }
+        }
+
         string numericText = _text.Substring(start, _position - start);
         double floatValue = default;
         int intValue = default;
+        System.Globalization.NumberStyles floatStyles = hasExponent
+            ? System.Globalization.NumberStyles.AllowDecimalPoint | System.Globalization.NumberStyles.AllowExponent
+            : System.Globalization.NumberStyles.AllowDecimalPoint;
         bool parsed = hasDecimalPoint
-            ? double.TryParse(numericText, System.Globalization.NumberStyles.AllowDecimalPoint, System.Globalization.CultureInfo.InvariantCulture, out floatValue)
+            ? double.TryParse(numericText, floatStyles, System.Globalization.CultureInfo.InvariantCulture, out floatValue)
             : int.TryParse(numericText, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out intValue);
 
         if (IsIdentifierStart(Current))
