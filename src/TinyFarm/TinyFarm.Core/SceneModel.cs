@@ -254,6 +254,7 @@ public static class TinyFarmAnchorIds
     public static readonly SceneAnchorId TownSquare = new("town.square");
     public static readonly SceneAnchorId StoreCounter = new("general-store.counter");
     public static readonly SceneAnchorId RiversideMeetingPoint = new("riverside.meeting-point");
+    public static readonly SceneAnchorId EliasRiversideBench = new("riverside.elias-bench");
     public static readonly SceneAnchorId EliasHomeBed = new("elias.home-bed");
     public static readonly SceneAnchorId MaraHomeBed = new("mara.home-bed");
     public static readonly SceneAnchorId SelaHomeBed = new("sela.home-bed");

@@ -29,7 +29,7 @@ public static class TinyFarmSaveCodec
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true,
-        Converters = { new JsonStringEnumConverter() }
+        TypeInfoResolver = TinyFarmSaveJsonContext.Default
     };
 
     public static string Write(TinyFarmSave save)
@@ -113,7 +113,7 @@ public static class TinyFarmChunkedSaveCodec
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = false,
-        Converters = { new JsonStringEnumConverter() }
+        TypeInfoResolver = TinyFarmSaveJsonContext.Default
     };
 
     public static byte[] Write(TinyFarmSession session, TinyFarmDefinitions definitions)
@@ -190,7 +190,8 @@ public static class TinyFarmChunkedSaveCodec
             && state.Version != TinyFarmState.ItemActionSaveVersion
             && state.Version != TinyFarmState.ForageSaveVersion
             && state.Version != TinyFarmState.WoodcuttingSaveVersion
-            && state.Version != TinyFarmState.DungeonCombatSaveVersion)
+            && state.Version != TinyFarmState.DungeonCombatSaveVersion
+            && state.Version != TinyFarmState.SliceSaveVersion)
         {
             throw new InvalidDataException($"Unsupported TinyFarm game save version {state.Version}.");
         }
@@ -266,6 +267,24 @@ public static class TinyFarmChunkedSaveCodec
                     }
                 }
             }
+        }
+
+        if (state.Version == TinyFarmState.SliceSaveVersion)
+        {
+            TinyFarmSliceState slice = state.Slice ?? throw new InvalidDataException("Opening slice state is missing.");
+            if (slice.Tick < 0 || slice.Health is < 1 or > 12 || slice.HurtTicks is < 0 or > 90
+                || slice.SwordTicks is < 0 or > 18 || slice.DodgeTicks is < 0 or > 15
+                || slice.DodgeCooldown is < 0 or > 36 || slice.Defeats < 0
+                || slice.SlimeTicks is < 0 or > 90 || slice.SlimePhase is < SlimePhase.Rest or > SlimePhase.Recover
+                || Math.Abs((long)slice.DodgeDirection.XUnits) > 1 || Math.Abs((long)slice.DodgeDirection.YUnits) > 1
+                || !TinyFarmScenes.IsInBounds(definitions.Scenes.Get(TinyFarmSceneIds.DungeonEntrance), slice.SlimePosition))
+            {
+                throw new InvalidDataException("Opening slice combat state is outside its legal bounds.");
+            }
+        }
+        else if (state.Slice is not null)
+        {
+            throw new InvalidDataException("Opening slice data requires save version 11.");
         }
 
         foreach (InventoryStack stack in state.InventoryStacks)
@@ -412,6 +431,10 @@ public static class TinyFarmChunkedSaveCodec
 
     internal static string RuntimeVersionFor(int gameVersion)
     {
+        if (gameVersion >= TinyFarmState.SliceSaveVersion)
+        {
+            return "tiny-farm-slice-a@11";
+        }
         if (gameVersion >= TinyFarmState.DungeonCombatSaveVersion)
         {
             return DungeonCombatRuntimeVersion;
@@ -471,5 +494,5 @@ public static class TinyFarmChunkedSaveCodec
         }
     }
 
-    private sealed record WorldChunkModel(string RuntimeVersion, string DefinitionSetId, TinyFarmState Game);
+    internal sealed record WorldChunkModel(string RuntimeVersion, string DefinitionSetId, TinyFarmState Game);
 }

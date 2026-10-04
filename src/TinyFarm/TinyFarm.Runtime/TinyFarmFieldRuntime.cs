@@ -261,7 +261,7 @@ public sealed class TinyFarmFieldRuntime
 
     public static string ComputeHash(TinyFarmFieldSnapshot snapshot)
     {
-        byte[] canonical = JsonSerializer.SerializeToUtf8Bytes(snapshot);
+        byte[] canonical = JsonSerializer.SerializeToUtf8Bytes(snapshot, TinyFarmFieldJsonContext.Default.TinyFarmFieldSnapshot);
         return Convert.ToHexString(SHA256.HashData(canonical)).ToLowerInvariant();
     }
 
@@ -339,3 +339,7 @@ public sealed class TinyFarmFieldRuntime
         }
     }
 }
+
+// Preserve the original PascalCase/numeric-enum hash bytes while removing reflection serialization.
+[System.Text.Json.Serialization.JsonSerializable(typeof(TinyFarmFieldSnapshot))]
+internal partial class TinyFarmFieldJsonContext : System.Text.Json.Serialization.JsonSerializerContext;

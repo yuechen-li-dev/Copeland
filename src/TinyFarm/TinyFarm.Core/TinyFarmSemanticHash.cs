@@ -68,7 +68,12 @@ public static class TinyFarmSemanticHash
             {
                 canonical.Append("plot|").Append(plot.Id.Value).Append('|').Append(plot.Location.Value).Append('|')
                     .Append(plot.Crop?.Value ?? "-").Append('|').Append(plot.PlantedDay?.ToString() ?? "-").Append('|')
-                    .Append(plot.GrowthStage).Append('|').Append(plot.WateredToday ? '1' : '0').AppendLine();
+                    .Append(plot.GrowthStage).Append('|').Append(plot.WateredToday ? '1' : '0');
+                if (state.Slice is not null)
+                {
+                    canonical.Append('|').Append(plot.PlantedByPlayer ? '1' : '0');
+                }
+                canonical.AppendLine();
             }
         }
 
@@ -140,6 +145,11 @@ public static class TinyFarmSemanticHash
             }
         }
 
+        if (state.Slice is not null)
+        {
+            canonical.Append("slice|").Append(System.Text.Json.JsonSerializer.Serialize(
+                state.Slice, TinyFarmSliceJsonContext.Default.TinyFarmSliceState));
+        }
         canonical.Append("facts|").AppendJoin(',', state.Facts.OrderBy(fact => fact));
         byte[] bytes = Encoding.UTF8.GetBytes(canonical.ToString());
         return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();

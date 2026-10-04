@@ -309,7 +309,9 @@ public static class TinyFarmFrameProjector
                         enemy.Id,
                         enemy.Kind,
                         enemy.Scene,
-                        new TinyFarmPoint(enemy.SpawnPosition.XUnits, enemy.SpawnPosition.YUnits),
+                        state.Slice is TinyFarmSliceState slice
+                            ? new TinyFarmPoint(slice.SlimePosition.XUnits, slice.SlimePosition.YUnits)
+                            : new TinyFarmPoint(enemy.SpawnPosition.XUnits, enemy.SpawnPosition.YUnits),
                         enemyState.CurrentHealth,
                         enemy.MaxHealth,
                         enemyState.Lifecycle,

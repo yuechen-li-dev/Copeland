@@ -1,0 +1,20 @@
+[
+  {
+    "hud": true,
+    "timing": "Complete native host frame, CPU wall clock, synchronous Vulkan, VSync off, no readback or recording",
+    "p50Ms": 6.9435,
+    "p95Ms": 6.9754,
+    "p99Ms": 6.987,
+    "drawsPerFrame": 113.37222222222222,
+    "textureUploadsTotal": 14
+  },
+  {
+    "hud": false,
+    "timing": "Complete native host frame, CPU wall clock, synchronous Vulkan, VSync off, no readback or recording",
+    "p50Ms": 6.9435,
+    "p95Ms": 6.9662,
+    "p99Ms": 7.7238,
+    "drawsPerFrame": 53.66111111111111,
+    "textureUploadsTotal": 14
+  }
+]

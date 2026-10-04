@@ -67,6 +67,7 @@ public static class TinyFarmDialogueProofState
 public static class TinyFarmMaraDialogue
 {
     public const string DialogueId = "tinyfarm.mara.wild-mint";
+    public static readonly BbKey<bool> OpeningSlice = new("mara-dialogue.opening-slice");
     public static readonly BbKey<bool> SupperSlice = new("mara-dialogue.supper-slice");
     public static readonly BbKey<bool> SupperDone = new("mara-dialogue.supper-done");
     public static readonly BbKey<bool> HasWildMint = new("mara-dialogue.has-wild-mint");
@@ -77,6 +78,7 @@ public static class TinyFarmMaraDialogue
 
     public static IReadOnlyList<DialoguePresentationOperation> Operations { get; } =
     [
+        Line("mara.opening", "Mara", "That ripe turnip is yours. Cook broth at the house stove before visiting Old Burrow. The slime crouches before jumping: step aside, then strike. Plant and water a seed before bed; tomorrow belongs to your garden."),
         Line("mara.supper-opening", "Mara", "A proper supper needs mushrooms, mint, and one fewer slime. Very traditional."),
         Line("mara.supper-help", "Mara", "Plant a turnip for tomorrow. Gather river mushrooms, cook them at home, and clear Old Burrow. Bring me the mint when you are ready."),
         Line("mara.supper-ready", "Mara", "The stove smells wonderful. The burrow is quiet. Is that the mint for our supper?"),
@@ -121,6 +123,12 @@ public static class TinyFarmMaraDialogue
 
     private static IEnumerator<AiStep> Greeting(AiCtx context)
     {
+        if (context.Bb.GetOrDefault(OpeningSlice, false))
+        {
+            yield return Show("mara.opening");
+            yield return Ai.Goto("complete");
+            yield break;
+        }
         if (context.Bb.GetOrDefault(SupperDone, false))
         {
             yield return Show("mara.supper-after");
@@ -395,6 +403,7 @@ public sealed class TinyFarmDialogueCoordinator
             .Single(actor => actor.Id == TinyFarmIds.Player)
             .Inventory.Contains(TinyFarmIds.WildMint);
         bool supper = host.Session.State.Facts.Contains(WorldFact.SupperRequested);
+        agent.Bb.Set(TinyFarmMaraDialogue.OpeningSlice, host.Session.State.Slice is not null);
         agent.Bb.Set(TinyFarmMaraDialogue.SupperSlice, supper);
         agent.Bb.Set(TinyFarmMaraDialogue.SupperDone, TinyFarmSupper.IsComplete(host.Session.State));
         agent.Bb.Set(TinyFarmMaraDialogue.HasWildMint, supper ? TinyFarmSupper.IsReady(host.Session.State) : hasWildMint);

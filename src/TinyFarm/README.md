@@ -1,58 +1,67 @@
-# TinyFarm: A Little Mint of Kindness
+# TinyFarm: The Sleeping Spring
 
-A seed for tomorrow. A meal for today. Help Mara make a small corner of the world feel like home.
+The first playable MVP slice: a garden, a home stove and bed, a woodland crossing, and one attacking slime in Old Burrow. Harvest a starter turnip, cook healing broth, plant and water, explore, fight or retreat, and come home to your own harvest after sleeping.
 
-Plant a turnip, gather mushrooms beside the river, cook them in Hearth House, and shoo the slime out of Old Burrow. Pick up the wild mint by the farm plots and bring it to Mara when supper is ready. Your journal keeps track of every job. Expect a small, forgiving afternoon: roughly 5-10 minutes on a first visit, with no deadline and no grinding.
+This is a review build of Gate A. The campaign, additional rooms, village shops and progression are unfinished. Roads outside the opening route are closed. Fresh-player comprehension and combat feel still need human review.
 
 ## Play
 
-On Windows with .NET 10 and a Vulkan-capable graphics driver, double-click **Play-TinyFarm.cmd** in the repository root. Or run:
+On Windows with .NET 10 and a Vulkan-capable graphics driver, double-click **Play-TinyFarm.cmd** in the repository root, or run:
 
 ```powershell
 dotnet run --project src/TinyFarm/TinyFarm.Native -c Release
 ```
 
-Press **Enter** at the title. **N** continues your saved afternoon. This is the native Aurelian client.
+Press **Enter** to begin. **N** continues your save. Normal launch opens the opening slice at 1920×1080; no proof flag is needed.
 
 ## Controls
 
 | Control | Action |
 | --- | --- |
-| WASD | Move and face an object |
-| E | Talk, pick up, gather, cook, tend crops, or enter a doorway |
-| 1 / 3 / 4 | Select seeds / axe / sword |
-| Space | Use the selected seed or tool |
-| I | Open your pockets; I, Escape, or Enter closes them |
-| Escape | Pause; Escape or Enter resumes |
-| Space / Enter | Advance Mara's dialogue |
-| Up / Down, then Enter | Choose a reply |
-| F | Save the current afternoon, including an open conversation |
-| N | Load your save |
-| F9 | Toggle normal HUD; world and local interaction prompt stay in place |
-| F10 | Toggle the presentation inspector independently |
-| F11 | Save a clean gameplay PNG, temporarily hiding HUD and inspector |
-| Q | Quit from the title, pause, pockets, or completion panel |
+| WASD | Move, including normalized diagonal movement; face a nearby target |
+| E | Talk, harvest, water, cook, sleep at your bed, or enter a doorway |
+| J | Swing the sword; no target selection required |
+| Space | Dodge in your movement direction, or forward while standing |
+| 1 then K | Plant a turnip in an empty plot |
+| 3 then K | Use the axe beside a tree |
+| R | Eat broth; restores up to four health, consumes nothing at full health |
+| I | Pockets and opening objectives; I, Escape or Enter closes them |
+| Escape | Pause / return |
+| Enter | Begin, resume, or advance dialogue |
+| F / N | Save / load |
+| F9 / F10 | Toggle HUD / inspector independently |
+| F11 | Capture a clean gameplay PNG |
+| Q | Quit from the title, pause or pockets screen |
 
-Stand close and **face** an object. A contextual prompt tells you what the controls will do. Planting counts immediately; you do not need to wait for the turnip to grow. The slime takes one sword hit and cannot hurt you.
+Stand nearby and face an object. The local prompt shows the available action. Follow the east path across the wooden bridge, then north into Old Burrow. Amber dots show the slime's committed jump direction; dodge sideways and strike during recovery. Two connected swings defeat it. Defeat returns you to the entrance with half health and preserves inventory.
 
-Follow the signed farm gate to the trail. Town is in the middle, the river to the right, and Old Burrow on the upper right. Hearth House is the doorway by the farmhouse. Mara is in town before noon and by the river afterward; the journal always shows her current scene. Elias has his own nearby meeting spot.
+Watered turnips grow after one night's sleep. The starter harvest does not count as a crop you grew. Sleep restores health and saves the new morning. At 22:00 outdoors, the game brings you home for rest without a fee. Dungeon time, menus, dialogue, pause and focus loss freeze the calendar.
 
-## Save and continue
+## Save and presentation
 
-There is one manual slot. **F** shows a success or failure message; **N** restores it. Saves live at `%LOCALAPPDATA%\TinyFarm\saves\supper.dlv`. Loading discards changes since the last save. A completed afternoon stays complete, and you can continue wandering afterward.
+The opening save is separate from the earlier supper prototype: `%LOCALAPPDATA%\TinyFarm\saves\sleeping-spring-gate-a.dlv`. Loading replaces changes since that save. Manual save happens in the background; sleeping serializes its checkpoint after any earlier pending save. Failures are shown in the status message.
 
-The native window defaults to 1920x1080 and supports resize with uniform projection. Keyboard play is qualified. Logical gamepad mappings exist (left stick, South interact, West tool, D-pad slots, Start pause), but this Windows window does not yet collect physical gamepad events. Audio falls back to silence if no Windows output device is available.
+```powershell
+Play-TinyFarm.cmd --width 2560 --height 1440
+Play-TinyFarm.cmd --world-only --width 2560 --height 1440
+```
 
-For a clean world at 1440p, run `Play-TinyFarm.cmd --world-only --width 2560 --height 1440`. This starts play with normal HUD hidden. F11 writes `artifacts/tinyfarm-captures/tinyfarm-<UTC timestamp>.png` and restores the previous HUD/inspector settings after that frame. The local interaction prompt remains. Existing modal screens and conversations retain their controls. Capturing does not pause simulation or change saves/replay state.
+The world has a uniform fixed projection and owns its camera viewport. The HUD overlays it. Resize uses framebuffer dimensions; painterly cutouts, floors and brushes use linear sampling. F9 hides normal chrome but retains the local prompt. F11 temporarily hides HUD and inspector, writes `artifacts/tinyfarm-captures/tinyfarm-<UTC timestamp>.png`, then restores their prior settings. It does not pause play or change semantic state. Modal screens remain usable.
 
-M25 presentation evidence and reproduction commands are documented in `docs/milestones/tinyfarm-high-fidelity-world-presentation-m25-report.md`.
+Keyboard play is qualified. Controller bindings are declared, but physical gamepad play is not qualified. Existing tone-based audio remains provisional; the recorded proof video is silent.
 
 ## Developer verification
 
 ```powershell
-dotnet run --project src/TinyFarm/TinyFarm.Native -- --proof
-dotnet run --project src/TinyFarm/TinyFarm.Native -- --window-smoke
-dotnet test TinyFarm.slnx -m:1
+dotnet build TinyFarm.slnx -c Release -m:1
+dotnet test TinyFarm.slnx -c Release -m:1
+dotnet run --project src/TinyFarm/TinyFarm.Native -c Release -- --slice-proof
+dotnet run --project src/TinyFarm/TinyFarm.Native -c Release -- --slice-proof --width 2560 --height 1440
+dotnet run --project src/TinyFarm/TinyFarm.Native -c Release -- --window-smoke
 ```
 
-The proof follows real resolver movement and interactions, compiles the Visual TypeScript effect, captures native frames, restores and continues a saved session, and verifies semantic replay. See `docs/Aurelian/aurelian-full-game-slice-m9-report.md` for evidence and release limitations.
+`--slice-proof` needs `ffmpeg` on PATH to record a continuous native walkthrough. It injects keyboard events through the normal Silk/InputMan bridge, uses resolver-owned movement and interactions, demonstrates damage/dodge/healing, completes the home loop, and checks save/load equality. It never loads fixtures or writes player coordinates during play. The optimized 34-second script is not a human ten-minute playtest.
+
+Evidence is in `artifacts/tinyfarm-gate-a/`; the report is [Gate A report](../../docs/milestones/tinyfarm-mvp-gate-a-report.md).
+
+The earlier supper scenario remains accessible with `--legacy-supper`. Existing `--proof`, `--m24-proof` and `--m25-proof` retain their historical content and presentation paths. Those modes use their original controls and separate `supper` save slot.

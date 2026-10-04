@@ -1,0 +1,14 @@
+[
+  {
+    "Name": "AMD Radeon(TM) Graphics",
+    "DriverVersion": "32.0.21030.2001",
+    "CurrentHorizontalResolution": null,
+    "CurrentVerticalResolution": null
+  },
+  {
+    "Name": "NVIDIA GeForce RTX 3070",
+    "DriverVersion": "32.0.15.9636",
+    "CurrentHorizontalResolution": 2560,
+    "CurrentVerticalResolution": 1440
+  }
+]

@@ -55,6 +55,8 @@ public sealed class TinyFarmVisualEffectProjector
     {
         VisualEffectId? effectId = gameEvent.Kind switch
         {
+            GameEventKind.SwordConnected or GameEventKind.PlayerHurt => VisualEffectIds.SwordHit,
+            GameEventKind.PlayerHealed => VisualEffectIds.PickupSparkle,
             GameEventKind.EnemyDefeated => VisualEffectIds.SwordHit,
             GameEventKind.CropHarvested or GameEventKind.ForageGathered => VisualEffectIds.HarvestPuff,
             GameEventKind.ItemTaken => VisualEffectIds.PickupSparkle,
@@ -74,8 +76,8 @@ public sealed class TinyFarmVisualEffectProjector
             EffectCoordinateSpace.World,
             Position: position,
             Direction: ResolveDirection(state, gameEvent.Actor),
-            Scale: ScenePosition.UnitsPerTile / 128f,
-            Intensity: 1,
+            Scale: ScenePosition.UnitsPerTile / (state.Slice is null ? 128f : 256f),
+            Intensity: state.Slice is null ? 1 : .75f,
             SourceId: gameEvent.Actor.Value,
             TargetId: gameEvent.Enemy?.Value ?? gameEvent.SceneObject?.Value ?? gameEvent.Item?.Value,
             Seed: StableSeed(identity),
@@ -101,6 +103,10 @@ public sealed class TinyFarmVisualEffectProjector
         TinyFarmState state,
         TinyFarmDefinitions definitions)
     {
+        if (gameEvent.Enemy is not null && state.Slice is not null)
+        {
+            return new Vector2(state.Slice.SlimePosition.XUnits, state.Slice.SlimePosition.YUnits);
+        }
         if (gameEvent.Scene is SceneId sceneId && gameEvent.SceneObject is SceneObjectId objectId)
         {
             SceneLayoutRow placement = definitions.Scenes.Get(sceneId).Placement(objectId);

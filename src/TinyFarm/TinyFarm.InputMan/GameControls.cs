@@ -27,6 +27,10 @@ public static class GameControls
     public static readonly ActionId Hotbar3 = new("Hotbar3");
     public static readonly ActionId Hotbar4 = new("Hotbar4");
     public static readonly ActionId UseSelected = new("UseSelected");
+    public static readonly ActionId Sword = new("Sword");
+    public static readonly ActionId Dodge = new("Dodge");
+    public static readonly ActionId Eat = new("Eat");
+    public static readonly ActionId Sleep = new("Sleep");
     public static readonly ActionId DialogueAdvance = new("DialogueAdvance");
     public static readonly ActionId DialogueChoiceUp = new("DialogueChoiceUp");
     public static readonly ActionId DialogueChoiceDown = new("DialogueChoiceDown");
@@ -36,16 +40,16 @@ public static class GameControls
     public static readonly AxisId MoveY = new("MoveY");
     public static readonly Axis2Id Move = new("Move");
 
-    public static InputProfile CreateProfile()
+    public static InputProfile CreateProfile(bool slice = false)
     {
         List<Binding> gameplayBindings =
         [
-            Bind.Action(Controls.Gamepad(GamepadButton.West), UseSelected),
+            Bind.Action(Controls.Gamepad(GamepadButton.West), slice ? Sword : UseSelected),
             Bind.Action(Controls.Gamepad(GamepadButton.DpadUp), Hotbar1),
             Bind.Action(Controls.Gamepad(GamepadButton.DpadDown), Hotbar2),
             Bind.Action(Controls.Gamepad(GamepadButton.DpadLeft), Hotbar3),
             Bind.Action(Controls.Gamepad(GamepadButton.DpadRight), Hotbar4),
-            Bind.Action(Controls.Gamepad(GamepadButton.North), ToggleInventory),
+            Bind.Action(Controls.Gamepad(GamepadButton.North), slice ? UseSelected : ToggleInventory),
             .. Input.Wasd(MoveX, MoveY),
             .. Input.GamepadLeftStick(MoveX, MoveY, deadzone: 0.15f),
             Bind.Action(Controls.Key(KeyboardKey.E), Interact, name: "Interact.Keyboard"),
@@ -57,7 +61,7 @@ public static class GameControls
             Bind.Action(Controls.Key(KeyboardKey.Number2), Hotbar2, name: "Hotbar2.Keyboard"),
             Bind.Action(Controls.Key(KeyboardKey.Number3), Hotbar3, name: "Hotbar3.Keyboard"),
             Bind.Action(Controls.Key(KeyboardKey.Number4), Hotbar4, name: "Hotbar4.Keyboard"),
-            Bind.Action(Controls.Key(KeyboardKey.Space), UseSelected, name: "UseSelected.Keyboard"),
+            Bind.Action(Controls.Key(slice ? KeyboardKey.K : KeyboardKey.Space), UseSelected, name: "UseSelected.Keyboard"),
             Bind.ActionChord(
                 Controls.Key(KeyboardKey.F),
                 Interact,
@@ -65,6 +69,16 @@ public static class GameControls
                 name: "Interact.AlternateChord",
                 modifiers: Controls.Key(KeyboardKey.LeftShift)),
         ];
+        if (slice)
+        {
+            gameplayBindings.Add(Bind.Action(Controls.Key(KeyboardKey.J), Sword));
+            gameplayBindings.Add(Bind.Action(Controls.Key(KeyboardKey.Space), Dodge));
+            gameplayBindings.Add(Bind.Action(Controls.Key(KeyboardKey.R), Eat));
+            gameplayBindings.Add(Bind.Action(Controls.Key(KeyboardKey.B), Sleep));
+            gameplayBindings.Add(Bind.Action(Controls.Gamepad(GamepadButton.East), Dodge));
+            gameplayBindings.Add(Bind.Action(Controls.Gamepad(GamepadButton.RightShoulder), Eat));
+            gameplayBindings.Add(Bind.Action(Controls.Gamepad(GamepadButton.Back), ToggleInventory));
+        }
 
         return Input.Profile(
             [

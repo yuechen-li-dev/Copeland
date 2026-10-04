@@ -250,6 +250,13 @@ public sealed class TinyFarmSession
 
     internal TinyFarmStepResult? AdvanceFieldTick()
     {
+        if (State.Slice is not null)
+        {
+            var envelope = new IntentEnvelope(TinyFarmIds.Player, new SliceTickIntent(),
+                State.Minute, nextSequence++, IntentSourceKind.Human);
+            IntentResult result = resolver.ReduceSliceTick(State, envelope);
+            return new TinyFarmStepResult(State, [result], []);
+        }
         TinyFarmStepResult? combat = AdvanceCombatTick();
         if (State.Version < TinyFarmState.SceneSaveVersion)
         {

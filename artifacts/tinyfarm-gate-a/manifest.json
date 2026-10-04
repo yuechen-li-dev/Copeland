@@ -1,0 +1,295 @@
+{
+  "milestone": "TinyFarm MVP Gate A",
+  "outcome": "Playable opening review build delivered; human product gate remains open",
+  "reviewBuildReady": true,
+  "gateAHumanQualified": false,
+  "gateBStarted": false,
+  "normalNativeLaunch": true,
+  "nativeContinuousLoopQualifiedAt1080pAnd1440p": true,
+  "keyboardQualified": true,
+  "physicalControllerQualified": false,
+  "maraConversationQualified": true,
+  "plantWaterSleepOwnHarvestQualified": true,
+  "swordEnemyDodgeDamageHealingRetreatQualified": true,
+  "saveLoadQualified": true,
+  "sleepAutosaveOrderingQualified": true,
+  "hudSemanticNonInterference": true,
+  "resolutionSemanticNonInterference": true,
+  "actualNon16By9ResizeQualified": true,
+  "mixedMonitorDpiQualified": false,
+  "newRuntimeReflectionAdded": false,
+  "newPhysicsOrAnimationLibraryAdded": false,
+  "legacyContentRetained": true,
+  "newAssetsHumanApproved": false,
+  "simulationSecondsInOptimizedNativeWalk": 34.7,
+  "recordingFps": 10,
+  "recordingContainsAudio": false,
+  "nativeFinalSemanticHash": "2189c294c8eacb4f35f1a4bebebfd31ebd03a4705d0e12c4e932995defb6d876",
+  "tests": {
+    "spatial2D": 27,
+    "tinyFarm": 362,
+    "openingWithJsonReflectionDisabled": 20,
+    "inputManCore": 76,
+    "inputManMonoGame": 19,
+    "inputManStride": 7,
+    "skipped": 0
+  },
+  "build": "Release TinyFarm.slnx, zero warnings/errors",
+  "performanceScope": "180 stationary native frames per resolution/HUD state, requests VSync off, CPU wall clock through synchronous presentation, no GPU timestamps or long-session qualification",
+  "primaryNextPressure": "Fresh-player combat feel and opening-loop comprehension before Gate B",
+  "baseCommit": "715c667ba14b1f525547c078294531cf517327b7",
+  "sourceSnapshotSha256": "09839a5e5e1ae29716a438af83e8ef300be098cde8a11e9e652d4a3d4a3a55b6",
+  "sourceFileHashes": {
+    "src/Integrations/Aurelian.GameWorld2D/GridSpriteSheet.cs": "ca5d0e8e6b91fb079bb10312732b4defb4af539705a1f776414c3b60146c7da0",
+    "src/Integrations/Aurelian.GameWorld2D/GroundBrushRasterizer.cs": "1b8ff0dfbeda79db0471f0a8e74b28a74370151d8b585b67d86b7fa0d341a0f9",
+    "src/Integrations/InputMan.Aurelian/SilkInputBridge.cs": "80ec840226420ec65ddff65a27533bbdd4cf8143b267c3ef141536799ffa4c3a",
+    "src/TinyFarm/TinyFarm.Core/GameIntents.cs": "d97dfd8916d43827663ae4d62582381db183ae2425876e9c42514000891f62ae",
+    "src/TinyFarm/TinyFarm.Core/SceneModel.cs": "6e5813737f19769702dddd994cf265f18821a9ebcadd8fffcdf67515c0f9ba4d",
+    "src/TinyFarm/TinyFarm.Core/TinyFarmResolver.cs": "4682ccbaea1f8e3fd31e08bf273a1ac12797bfa5fa2a876e5e9d39037fdfe993",
+    "src/TinyFarm/TinyFarm.Core/TinyFarmSemanticHash.cs": "f8a3026f2b2809e028f86f5da1f2a68588fb61c70b5c773ff70d43640d014298",
+    "src/TinyFarm/TinyFarm.Core/TinyFarmSliceJsonContext.cs": "962125822a71e2e8c28f1e5e9ffae0d4f9e8a46e75a9b37b117af9c9679a6469",
+    "src/TinyFarm/TinyFarm.Core/TinyFarmSliceResolver.cs": "50c355cf3e9793f51ad0136fe5d52413dcab345acb5cb63cf7f2fe90da07aa5e",
+    "src/TinyFarm/TinyFarm.Core/TinyFarmSliceState.cs": "eeafbbf7b443f7bbe5e0f3ab111d122fbccf3121e3a0edb7bf0180e9b89104dd",
+    "src/TinyFarm/TinyFarm.Core/TinyFarmSpatialQueries.cs": "b7d7add073ba46504061f2cf91ae0b09556696bab8d7e288aac020e41fa03c13",
+    "src/TinyFarm/TinyFarm.Core/WorldModel.cs": "e7cac918d6e081e83acc0da557c0ca6a9997c3219a556f6466cf233302181490",
+    "src/TinyFarm/TinyFarm.InputMan/GameControls.cs": "0342fec55b0bbdb378485dc8c127fb94a97204221b4864dbb63b493aba1ad4dd",
+    "src/TinyFarm/TinyFarm.InputMan/TinyFarmGame.cs": "8c24bce198b86b6241ef12f3ca44bfa4e32eaf472e3c842a263d8c66db3633e1",
+    "src/TinyFarm/TinyFarm.Native/Program.cs": "8bd8981be150d1e1d6db6ff599602a1f1247d9906ef708510ad4aa9bc138b34e",
+    "src/TinyFarm/TinyFarm.Native/TinyFarm.Native.csproj": "cd258530282d910e5749df346a9e4887c0911d8d20d0821228ed88b7ec9559d2",
+    "src/TinyFarm/TinyFarm.Native/TinyFarmM24Assets.cs": "d5d595e2546016598a97371d1d0431dd5ba2598173c0615de82e25a7c79778d2",
+    "src/TinyFarm/TinyFarm.Native/TinyFarmNativeRenderer.cs": "2ffbd30ea92600f40cbcc6e32b1f3bfc20dfeba783a37ff15701baef65b0af99",
+    "src/TinyFarm/TinyFarm.Native/TinyFarmNativeUi.cs": "acaea9270c4c3533773562c6d6e4d172b3090de05d3d8bb64f3b2a7fa4dc8caa",
+    "src/TinyFarm/TinyFarm.Native/TinyFarmPresentationLayout.cs": "dd8e7ab2d5f11e27f01ed7fa1d5d3fca55fcb7765af879bf7b61a4f4069bddbb",
+    "src/TinyFarm/TinyFarm.Native/TinyFarmSliceArt.cs": "06c29a739d33c838a4f684fa92c1911ac48755437d28774262be1c2364fb738f",
+    "src/TinyFarm/TinyFarm.Native/TinyFarmSliceNativeProof.cs": "777d30ef9af612406e532d0a3503a003bfeabb45df15ceb0132b3d0eff880ee7",
+    "src/TinyFarm/TinyFarm.Native/TinyFarmSliceWorldPresenter.cs": "d044eb829422f94bab48ef7c4aef37eb7e21ff232e47652d4ecbbdf0242f66be",
+    "src/TinyFarm/TinyFarm.Runtime/TinyFarmAudioProjector.cs": "a65f7003db638f917eacfbe443571ea3b88b55b2760a38c9731aca0c51170899",
+    "src/TinyFarm/TinyFarm.Runtime/TinyFarmDialogue.cs": "4aef9675c912d7cb324f4350e7318017f186189dcc0a5c41a16f60ce23448e2c",
+    "src/TinyFarm/TinyFarm.Runtime/TinyFarmFieldRuntime.cs": "8130f701a71fcd64f0b88e4b7db2a6f24635e574e7d5da91d63ea601d6f896fa",
+    "src/TinyFarm/TinyFarm.Runtime/TinyFarmFrame.cs": "feef07d31174a81e64bd7702e3c30504ec76028eaff0fc0729bf01668b1e6bab",
+    "src/TinyFarm/TinyFarm.Runtime/TinyFarmPersistence.cs": "19d44ebc073898b824be3d2d8990ad50344c47847edfd8ab961961193f1c16bb",
+    "src/TinyFarm/TinyFarm.Runtime/TinyFarmSaveJsonContext.cs": "57304b2c04f16bf42b921ab2ad7ec8e3e62d843e5b9c83a2c36defbf1dd1b505",
+    "src/TinyFarm/TinyFarm.Runtime/TinyFarmSession.cs": "dd0aaafb0f8400d96758b8c69934aa67fcd2b64d4c744afaf21c85220ba16d6a",
+    "src/TinyFarm/TinyFarm.Runtime/TinyFarmSimulationHost.cs": "496b9365bb3af701684501600558543959ab6f660a30e255770f771d681e4765",
+    "src/TinyFarm/TinyFarm.Runtime/TinyFarmSliceContent.cs": "7f0831f6314cafba1f15ef27b08332cade29bd726e87adc1c65db1c4a3565f30",
+    "src/TinyFarm/TinyFarm.Runtime/TinyFarmVisualEffectProjector.cs": "b22ab361b19b232a95d8a6ca972cbae7db5bed22bb1fac54aa8a6bfeda3d938b",
+    "tests/TinyFarm/TinyFarm.Core.Tests/TinyFarmOpeningSliceTests.cs": "898eb69fa2b457cba349dacf17082f2ac8de7d0b77984ded323fb7a76b0f3551",
+    "tests/TinyFarm/TinyFarm.Core.Tests/TinyFarmProductionFieldM21Tests.cs": "c6198fd76ac78d5332af24780621a77a0722f306d154101f3662ab714f5880b6"
+  },
+  "diff": {
+    "tracked": [
+      {
+        "file": "src/Integrations/InputMan.Aurelian/SilkInputBridge.cs",
+        "added": 16,
+        "removed": 1
+      },
+      {
+        "file": "src/TinyFarm/README.md",
+        "added": 39,
+        "removed": 30
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Core/GameIntents.cs",
+        "added": 13,
+        "removed": 1
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Core/SceneModel.cs",
+        "added": 1,
+        "removed": 0
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Core/TinyFarmResolver.cs",
+        "added": 61,
+        "removed": 4
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Core/TinyFarmSemanticHash.cs",
+        "added": 11,
+        "removed": 1
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Core/TinyFarmSpatialQueries.cs",
+        "added": 19,
+        "removed": 0
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Core/WorldModel.cs",
+        "added": 10,
+        "removed": 3
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.InputMan/GameControls.cs",
+        "added": 18,
+        "removed": 4
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.InputMan/TinyFarmGame.cs",
+        "added": 137,
+        "removed": 19
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Native/Program.cs",
+        "added": 45,
+        "removed": 17
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Native/TinyFarm.Native.csproj",
+        "added": 1,
+        "removed": 0
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Native/TinyFarmM24Assets.cs",
+        "added": 2,
+        "removed": 2
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Native/TinyFarmNativeRenderer.cs",
+        "added": 152,
+        "removed": 25
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Native/TinyFarmNativeUi.cs",
+        "added": 99,
+        "removed": 7
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Native/TinyFarmPresentationLayout.cs",
+        "added": 5,
+        "removed": 4
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Runtime/TinyFarmAudioProjector.cs",
+        "added": 3,
+        "removed": 0
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Runtime/TinyFarmDialogue.cs",
+        "added": 9,
+        "removed": 0
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Runtime/TinyFarmFieldRuntime.cs",
+        "added": 5,
+        "removed": 1
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Runtime/TinyFarmFrame.cs",
+        "added": 3,
+        "removed": 1
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Runtime/TinyFarmPersistence.cs",
+        "added": 27,
+        "removed": 4
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Runtime/TinyFarmSession.cs",
+        "added": 7,
+        "removed": 0
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Runtime/TinyFarmSimulationHost.cs",
+        "added": 14,
+        "removed": 6
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Runtime/TinyFarmVisualEffectProjector.cs",
+        "added": 8,
+        "removed": 2
+      },
+      {
+        "file": "tests/TinyFarm/TinyFarm.Core.Tests/TinyFarmProductionFieldM21Tests.cs",
+        "added": 10,
+        "removed": 0
+      }
+    ],
+    "newCSharp": [
+      {
+        "file": "src/Integrations/Aurelian.GameWorld2D/GridSpriteSheet.cs",
+        "lines": 61
+      },
+      {
+        "file": "src/Integrations/Aurelian.GameWorld2D/GroundBrushRasterizer.cs",
+        "lines": 83
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Core/TinyFarmSliceJsonContext.cs",
+        "lines": 7
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Core/TinyFarmSliceResolver.cs",
+        "lines": 246
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Core/TinyFarmSliceState.cs",
+        "lines": 44
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Native/TinyFarmSliceArt.cs",
+        "lines": 66
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Native/TinyFarmSliceNativeProof.cs",
+        "lines": 327
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Native/TinyFarmSliceWorldPresenter.cs",
+        "lines": 249
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Runtime/TinyFarmSaveJsonContext.cs",
+        "lines": 16
+      },
+      {
+        "file": "src/TinyFarm/TinyFarm.Runtime/TinyFarmSliceContent.cs",
+        "lines": 156
+      },
+      {
+        "file": "tests/TinyFarm/TinyFarm.Core.Tests/TinyFarmOpeningSliceTests.cs",
+        "lines": 347
+      }
+    ],
+    "newCSharpLines": 1602,
+    "newAssetPngFiles": 6,
+    "notes": "Tracked diff counts omit new sources/assets/artifacts; approved design spec already existed untracked when Gate A began. Authorized InputMan sibling alphabet additions are separate and preserve prior function-key edits."
+  },
+  "artifactSha256": {
+    "2560x1440/broth-healing.png": "92369e8fc76105e8486b564aeb227955b92b1eb5312ffd0d241abbd0115adf72",
+    "2560x1440/burrow-cleared.png": "3ad547138cddd2fd208af1c16043605e999712346d7a3ae99e2b3845942228c7",
+    "2560x1440/garden-hud.png": "1d31c4ffd3ddf2c0df720ae21a88d0826f7a05e254ec312cb03127055c7e23c5",
+    "2560x1440/garden-world.png": "0d06e37e20bb7c58950e6aa13e40ec1ec97335971d88a55dfb5001f9fea13bb0",
+    "2560x1440/hearth-house.png": "620a0cae6567983dbc239006de58686dae6815d468d0628b12bf468e30929f94",
+    "2560x1440/home-after-adventure.png": "23b6e09447b46f791636f77cd1a465f1d7bda321aa33265c4413e6d278956767",
+    "2560x1440/mara-conversation.png": "e8174ef0d3ecaa3d3080e2fd3e1cf552fd702cba86465c05b7edbda8474ec21e",
+    "2560x1440/native-proof.json": "6519639dcead8343ce7e8cd10695b7e93b9a45fcf335a3b3c17af7c58304fad9",
+    "2560x1440/opening-loop.mp4": "5f7b7ec0139e6f5258c02c48270657554912a67091208a4ba87f691250e4ee9e",
+    "2560x1440/performance.json": "52ebea65d946579832405dfc722e3368c0a96e0d3008bb38e265e54143b1d271",
+    "2560x1440/presentation-inspector.png": "601debbdd9d25c0518762b03a67d655f8cf79b2a2d9bd6a9cabf4f7187afac1a",
+    "2560x1440/riverwood-approach.png": "0b2ea15df2f4012dbebb0d67f61ff4f49f1ae664d5282e151411d69c09e055c6",
+    "2560x1440/slime-telegraph.png": "4e9d3c08a1da9b43caff2d3cd4847a66024d7d454bdaf9a7b5623f5ff3731d85",
+    "asset-audit.json": "b5d0b14130120a49132ea1d7cb42a785e8b8eb9c2f67d383b002a94fa4d1fc7b",
+    "audit-captures.py": "69c03805d0f98327643f659fe24c09b4f8bb6a8ea90c83f49c50ae986d08d777",
+    "broth-healing.png": "e7385638b662d376359b5a46068bfb34ca90832bf7fc0fdef62199e218fbb9d3",
+    "burrow-cleared.png": "b97c4055e073ca79d2f82be8f83008fd3876f1011e19f8d65076021e94961812",
+    "display-hardware.json": "b275a582be37cdc2cab7b71ef6ca31081337d39abd8b9cd9186dcb4e901be863",
+    "garden-hud.png": "167d7d25f56016af95b401e847632b50405c97f09934f6605dd854587d4d96f2",
+    "garden-world.png": "48736afa728db3826cfc0c29ef68d38cde36f79b66eb8b021f9a9114b27e46f0",
+    "hearth-house.png": "7f02b3f1ddf970b3382af1915569304dc14b9d058e757163f51eb3911358bee2",
+    "home-after-adventure.png": "fa428dcf0ce95325dc7a1e755c44672d0fcc41de33ba125dc48e7ac70c324adc",
+    "hud-world-proof.json": "0c74e8e034c5603ccb9ed6d7804b097cee630b6b44943413c5103c6c10f745a3",
+    "mara-conversation.png": "cc85543039634b941a0a619ebe0f4664283706ee155b5ad00331b7a2e7321891",
+    "native-proof.json": "e4639aa086c55997ca6beff6a1e12bf8729f2eeb7b9168e7b31ae81dd7ae71d8",
+    "native-resized-1600x1000.png": "f6d34468610a97c1037f77d456c0a9dd2a5045e734bf67b805f0c74aa523e55f",
+    "native-window-1920x1080.json": "01943f5d165e843d4b0856fe461292e08f409ab106dd344ab10e5f6d115bbc2b",
+    "native-window-1920x1080.png": "e927d5dc5061c0a8c5206f2d735734ceb99029f4064d76594334e3966b8d15a5",
+    "opening-loop.mp4": "0b1df15bad1758c1887fdf2b5437c42e2a27256025b58c74145cee3dda0b4c66",
+    "performance.json": "8c48ee026a96637034fe150e96b10241f5c523fc8b029e8bacebb33acc643520",
+    "presentation-inspector.png": "0a005fda17ea9437acb8c773a5ad9414ad8bfe90f8554e734db40e543350a994",
+    "riverwood-approach.png": "4fbd6c71f74718ccf42ca653ba9a3a358441e6056285232ddf7c321f0a8748d4",
+    "slime-telegraph.png": "0005ec2902fbcf9a9d67468517c6e283c37b1d842267ed4d4917ec4fa50c8230",
+    "texture-memory.json": "d4d524a0f0e4102311e6ed5602bfc3aef6f1eae157ceb4c505a14f1c0ea3d9d3",
+    "visual-defect-ledger.json": "b698fb5b0e0620465f13f2c2fd3fe1b87f579b8b1dfa31d675a069babd786cd2",
+    "write-manifest.py": "47a7d42233e0de0299da8983761d90bc6816f0c84f1ec7056eccf0390482e20c"
+  }
+}

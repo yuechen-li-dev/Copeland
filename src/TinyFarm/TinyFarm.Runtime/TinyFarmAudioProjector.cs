@@ -52,6 +52,9 @@ public sealed class TinyFarmAudioProjector
 
     private static AudioAssetId? AssetFor(GameEventKind kind) => kind switch
     {
+        GameEventKind.SwordStarted => TinyFarmAudioAssets.SwordSwing,
+        GameEventKind.SwordConnected or GameEventKind.PlayerHurt => TinyFarmAudioAssets.Harvest,
+        GameEventKind.PlayerHealed => TinyFarmAudioAssets.Pickup,
         GameEventKind.EnemyDefeated => TinyFarmAudioAssets.SwordSwing,
         GameEventKind.ItemTaken => TinyFarmAudioAssets.Pickup,
         GameEventKind.CropHarvested or GameEventKind.ForageGathered => TinyFarmAudioAssets.Harvest,

@@ -78,13 +78,13 @@ internal sealed class TinyFarmM24Assets
             new UvRect(0, 0, 1, 1));
     }
 
-    private static SpriteAtlasResource LoadResource(string id, string path, string approvedFileHash, bool legacy, SpriteSampling sampling)
+    internal static SpriteAtlasResource LoadResource(string id, string path, string approvedFileHash, bool legacy, SpriteSampling sampling)
     {
         string actualFileHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant();
         if (!string.Equals(actualFileHash, approvedFileHash, StringComparison.Ordinal))
         {
             throw new InvalidDataException(
-                $"M24 approved asset '{Path.GetFileName(path)}' has hash '{actualFileHash}', expected '{approvedFileHash}'.");
+                $"Pinned presentation asset '{Path.GetFileName(path)}' has hash '{actualFileHash}', expected '{approvedFileHash}'.");
         }
 
         using var bitmap = new Bitmap(path);

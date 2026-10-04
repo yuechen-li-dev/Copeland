@@ -14,6 +14,16 @@ namespace TinyFarm.Core.Tests;
 public sealed class TinyFarmProductionFieldM21Tests
 {
     [Fact]
+    public void GeneratedFieldSerializerPreservesTheExistingCanonicalHashBytes()
+    {
+        TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.LoadM21();
+        var session = new TinyFarmSession(TinyFarmM21ControlStates.Create(definitions), definitions);
+        byte[] previousBytes = JsonSerializer.SerializeToUtf8Bytes(session.Field.Capture());
+        string previousHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(previousBytes)).ToLowerInvariant();
+        Assert.Equal(previousHash, session.Field.SemanticHash);
+    }
+
+    [Fact]
     public void DefaultSessionOwnsAuthoredRiversideField()
     {
         TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.LoadM21();

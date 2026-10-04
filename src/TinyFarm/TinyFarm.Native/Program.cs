@@ -23,25 +23,31 @@ internal static class Program
     {
         string root = FindRoot();
         int soakFrames = ParseSoakFrames(args);
+        bool sliceProof = args.Contains("--slice-proof", StringComparer.Ordinal);
         bool m25Proof = args.Contains("--m25-proof", StringComparer.Ordinal);
         bool baseline = args.Contains("--m25-baseline", StringComparer.Ordinal);
         bool m24Proof = args.Contains("--m24-proof", StringComparer.Ordinal);
-        bool proof = args.Contains("--proof", StringComparer.Ordinal) || m24Proof || m25Proof || soakFrames > 0;
+        bool proof = args.Contains("--proof", StringComparer.Ordinal) || m24Proof || m25Proof || soakFrames > 0 || sliceProof;
         string saveRoot = proof ? Path.Combine(root, "artifacts", "validation", "m9-saves")
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TinyFarm", "saves");
         try
         {
-            var game = new TinyFarmGame(new FileSaveStore(saveRoot));
-            var input = new AurelianInputAdapter(new InputManEngine(GameControls.CreateProfile()));
+            bool opening = sliceProof || !proof && !baseline && !args.Contains("--legacy-supper", StringComparer.Ordinal);
+            var game = new TinyFarmGame(new FileSaveStore(saveRoot), slice: opening);
+            var input = new AurelianInputAdapter(new InputManEngine(GameControls.CreateProfile(opening)));
             input.SetContexts(game.Contexts);
-            int width = ParseDimension(args, "--width", baseline || proof && !m25Proof ? 1280 : 1920);
-            int height = ParseDimension(args, "--height", baseline || proof && !m25Proof ? 720 : 1080);
+            int width = ParseDimension(args, "--width", baseline || proof && !m25Proof && !sliceProof ? 1280 : 1920);
+            int height = ParseDimension(args, "--height", baseline || proof && !m25Proof && !sliceProof ? 720 : 1080);
             game.Presentation.HudVisible = !args.Contains("--world-only", StringComparer.Ordinal);
             if (!game.Presentation.HudVisible)
             {
                 game.Start();
             }
-            var window = TinyFarmNativeWindow.Create(input, proof, vSync: soakFrames == 0 && !m25Proof, width, height);
+            var window = TinyFarmNativeWindow.Create(input, proof, vSync: soakFrames == 0 && !m25Proof && !sliceProof, width, height);
+            if (opening)
+            {
+                window.NativeWindow.Title = "TinyFarm - Sleeping Spring";
+            }
             using var resources = TinyFarmNativeAudio.CreateResources();
             IAudioOutputBackend backend;
             string audioBackend;
@@ -66,9 +72,14 @@ internal static class Program
             var audio = new AurelianAudioRuntime(resources, backend, voiceCapacity: 16);
             audio.SetBusVolume(AudioBusId.Master, .35f);
             audio.Play(new TinyFarmAudioProjector().FarmMusic(new AudioEventId("tinyfarm:music")) with { Priority = 100 });
-            var renderer = new TinyFarmNativeRenderer(root, game, window, proof, vSync: soakFrames == 0 && !m25Proof, legacy: baseline || proof && !m25Proof);
+            var renderer = new TinyFarmNativeRenderer(root, game, window, proof, vSync: soakFrames == 0 && !m25Proof && !sliceProof, legacy: baseline || proof && !m25Proof && !sliceProof);
             var application = new TinyFarmNativeApplication(game, input, window, audio);
             using var host = new AurelianGameHost(window, input, renderer, application, "TinyFarm", audio);
+            if (sliceProof)
+            {
+                TinyFarmSliceNativeProof.Run(root, game, input, window, renderer, host);
+                return 0;
+            }
             if (soakFrames > 0)
             {
                 TinyFarmNativeSoak.Run(root, soakFrames, game, renderer, host);
@@ -93,18 +104,35 @@ internal static class Program
             {
                 TinyFarmNativeProof.RunWindow(game, window, host);
                 game.Start();
-                string evidence = Path.Combine(root, "artifacts", "tinyfarm-high-fidelity-presentation-m25");
+                string evidence = Path.Combine(root, "artifacts", opening ? "tinyfarm-gate-a" : "tinyfarm-high-fidelity-presentation-m25");
                 Directory.CreateDirectory(evidence);
-                TinyFarmM25NativeProof.Capture(Path.Combine(evidence, "native-default-window-smoke.png"), renderer, host);
-                TinyFarmM25NativeProof.Write(evidence, "native-window-smoke.json", new
+                string name = $"native-window-{renderer.Layout.Width}x{renderer.Layout.Height}";
+                TinyFarmM25NativeProof.Capture(Path.Combine(evidence, name + ".png"), renderer, host);
+                using var stream = File.Create(Path.Combine(evidence, name + ".json"));
+                using var json = new System.Text.Json.Utf8JsonWriter(stream, new System.Text.Json.JsonWriterOptions { Indented = true });
+                json.WriteStartObject();
+                json.WriteBoolean("visible", window.NativeWindow.IsVisible);
+                json.WriteNumber("framebufferWidth", window.SurfaceSize.Width);
+                json.WriteNumber("framebufferHeight", window.SurfaceSize.Height);
+                json.WriteBoolean("titleEnterMovementPausePassed", true);
+                json.WriteNumber("renderedRgbaBytes", renderer.Last!.NativeFrame.Pixels!.Length);
+                string beforeResize = TinyFarm.Core.TinyFarmSemanticHash.Compute(game.State);
+                window.NativeWindow.Size = new Vector2D<int>(1600, 1000);
+                for (int frame = 0; frame < 8; frame++)
                 {
-                    window.NativeWindow.IsVisible,
-                    window.SurfaceSize,
-                    renderer.Layout,
-                    game.Screen,
-                    titleEnterMovementPausePassed = true,
-                    renderedPixels = renderer.Last!.NativeFrame.Pixels!.Length,
-                });
+                    host.RunFrame(TimeSpan.Zero);
+                }
+                if (renderer.Layout.Width != 1600 || renderer.Layout.Height != 1000
+                    || beforeResize != TinyFarm.Core.TinyFarmSemanticHash.Compute(game.State))
+                {
+                    throw new InvalidOperationException("Native resize changed gameplay or failed to retarget the framebuffer.");
+                }
+                TinyFarmM25NativeProof.Capture(Path.Combine(evidence, "native-resized-1600x1000.png"), renderer, host);
+                json.WriteNumber("resizedWidth", renderer.Layout.Width);
+                json.WriteNumber("resizedHeight", renderer.Layout.Height);
+                json.WriteNumber("uniformWorldPixelsPerMetre", renderer.Layout.WorldScale);
+                json.WriteBoolean("resizeSemanticNonInterference", true);
+                json.WriteEndObject();
                 return 0;
             }
             var clock = Stopwatch.StartNew();

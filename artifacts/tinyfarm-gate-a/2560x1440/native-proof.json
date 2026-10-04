@@ -1,0 +1,16 @@
+{
+  "milestone": "TinyFarm MVP Gate A",
+  "path": "Default native game / InputMan Silk injected keys / authoritative resolver / Vulkan",
+  "coordinateWritesDuringLoop": false,
+  "harvestCookPlantWaterSleepOwnHarvestFightRetreatSaveLoad": true,
+  "hudSemanticNonInterference": true,
+  "humanFreshPlayTest": false,
+  "width": 2560,
+  "height": 1440,
+  "frames": 2082,
+  "simulationSeconds": 34.7,
+  "frameP50MsIncludingPeriodicReadback": 6.9436,
+  "frameP95MsIncludingPeriodicReadback": 104.2327,
+  "frameP99MsIncludingPeriodicReadback": 106.7013,
+  "finalHash": "2189c294c8eacb4f35f1a4bebebfd31ebd03a4705d0e12c4e932995defb6d876"
+}

@@ -1,0 +1,57 @@
+{
+  "scope": "Final Gate A garden, house, approach and burrow captures; automated continuous recording",
+  "humanPlaytestPerformed": false,
+  "defects": [
+    {
+      "id": "A1",
+      "class": "world composition",
+      "observation": "Old Burrow is one sparse arena with a quiet painted floor and simple semantic wall shapes. It needs authored environmental purpose and landmarks before campaign expansion.",
+      "evidence": "slime-telegraph.png",
+      "action": "Keep the encounter small for combat review; improve room storytelling after feedback."
+    },
+    {
+      "id": "A2",
+      "class": "world composition",
+      "observation": "Hearth House retains three prototype NPC beds alongside the new player bed. It reads as shared lodging rather than a personal cottage.",
+      "evidence": "hearth-house.png",
+      "action": "Reauthor NPC home locations and the house interior together in a later content pass; preserve explicit bed ownership."
+    },
+    {
+      "id": "B1",
+      "class": "animation",
+      "observation": "Player walking has four directions and four poses. Sword and dodge use derived presentation and existing poses rather than authored body action clips. Mara uses one static pose.",
+      "evidence": "opening-loop.mp4",
+      "action": "Judge input timing and readability first; add action poses if that is the limiting factor."
+    },
+    {
+      "id": "C1",
+      "class": "water and path composition",
+      "observation": "Riverwood has a soft painted bank and wooden crossing, but the river remains a straight passive strip. Paths lack local wear and the bridge is a flat deck.",
+      "evidence": "riverwood-approach.png",
+      "action": "Refine shoreline shape and bridge depth within authored collision after the opening playtest."
+    },
+    {
+      "id": "D1",
+      "class": "combat feedback",
+      "observation": "Amber jump markers are readable, but inherited round sparkles sometimes overlap the slime and its health bar. Sword feedback needs a human feel check.",
+      "evidence": "slime-telegraph.png",
+      "action": "Primary next pressure: fresh-player combat timing, threat reading and defensive feedback."
+    },
+    {
+      "id": "E1",
+      "class": "interaction presentation",
+      "observation": "Door thresholds remain simple warm analytic markers. Closed roads announce their unfinished state when targeted. Discoverability away from prompts has not been tested with a fresh player.",
+      "evidence": "garden-hud.png",
+      "action": "Observe a fresh player without coaching before adding more hints."
+    },
+    {
+      "id": "G1",
+      "class": "content and sound",
+      "observation": "One slime, two plots, one meal and six starter seeds prove the loop but do not establish ten to twenty minutes of engaging first-play duration. Tone audio and the short repeating melody remain provisional.",
+      "evidence": "opening-loop.mp4",
+      "action": "Measure human duration and motivation; expand or refine only this loop before Gate B."
+    }
+  ],
+  "primaryNextPressure": "Fresh-player combat feel and comprehension within the opening loop",
+  "gateBStarted": false
+}

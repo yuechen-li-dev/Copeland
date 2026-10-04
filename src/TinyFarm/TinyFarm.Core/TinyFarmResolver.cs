@@ -40,7 +40,7 @@ internal readonly record struct SpatialMoveReductionResult(
     }
 }
 
-public sealed class TinyFarmResolver
+public sealed partial class TinyFarmResolver
 {
     private readonly TinyFarmDefinitions? definitions;
     private readonly IReadOnlyDictionary<SceneId, SpatialWorld2D> spatialWorlds;
@@ -89,6 +89,11 @@ public sealed class TinyFarmResolver
 
         return envelope.Intent switch
         {
+            SliceTickIntent => ResolveSliceTick(state, envelope),
+            SwordIntent => ResolveSliceSword(state, envelope),
+            DodgeIntent dodge => ResolveSliceDodge(state, envelope, dodge),
+            EatIntent => ResolveSliceEat(state, envelope),
+            SleepIntent => ResolveSliceSleep(state, envelope),
             MoveIntent move => ResolveMove(state, actor, envelope, move),
             NavigateToAnchorIntent move => ResolveAnchorTravel(state, actor, envelope, move),
             AnchorReachedIntent reached => ResolveAnchorReached(state, actor, envelope, reached),
@@ -428,7 +433,8 @@ public sealed class TinyFarmResolver
         int distance)
     {
         if (state.Version < TinyFarmState.SceneSaveVersion
-            || Math.Abs(deltaX) + Math.Abs(deltaY) != 1
+            || (state.Slice is null && Math.Abs(deltaX) + Math.Abs(deltaY) != 1)
+            || Math.Abs(deltaX) > 1 || Math.Abs(deltaY) > 1 || deltaX == 0 && deltaY == 0
             || distance <= 0
             || distance > 1024)
         {
@@ -467,6 +473,10 @@ public sealed class TinyFarmResolver
                 replacement);
         }
 
+        if (deltaX != 0 && deltaY != 0)
+        {
+            distance = (int)Math.Round(distance / Math.Sqrt(2));
+        }
         ScenePosition target = new(
             checked(placement.WorldPosition.XUnits + (deltaX * distance)),
             checked(placement.WorldPosition.YUnits + (deltaY * distance)));
@@ -553,6 +563,11 @@ public sealed class TinyFarmResolver
                 return recipe is null
                     ? Rejected(envelope, IntentReason.UnknownRecipe)
                     : ResolveCook(state, actor, envelope, new CookIntent(station, recipe.Id));
+            }
+
+            if (selected.Kind == InteractionTargetKind.Bed)
+            {
+                return ResolveSliceSleep(state, envelope);
             }
 
             if (selected.Actor is ActorId targetActor)
@@ -644,6 +659,12 @@ public sealed class TinyFarmResolver
         SceneDefinition scene,
         SceneRoute route)
     {
+        if (state.Slice is not null && actor.IsPlayer && route.TargetScene != TinyFarmSceneIds.Farm
+            && route.TargetScene != TinyFarmSceneIds.Residence && route.TargetScene != TinyFarmSceneIds.Overworld
+            && route.TargetScene != TinyFarmSceneIds.DungeonEntrance)
+        {
+            return Rejected(envelope, IntentReason.WrongLocation);
+        }
         SceneDefinition target = Scenes.Get(route.TargetScene);
         SceneAnchorDefinition targetAnchor = target.Anchor(route.TargetAnchor);
         ReplaceActorScene(state, placement with
@@ -653,6 +674,10 @@ public sealed class TinyFarmResolver
             Facing = targetAnchor.Facing ?? placement.Facing
         });
         ReplaceActor(state, actor with { Location = TinyFarmScenes.LocationForScene(target.Id) });
+        if (actor.IsPlayer && target.Id == TinyFarmSceneIds.Farm && state.Slice is { Defeats: > 0 } slice)
+        {
+            state.Slice = slice with { ReturnedHome = true };
+        }
         return Accepted(
             envelope,
             [
@@ -694,6 +719,12 @@ public sealed class TinyFarmResolver
         if (target.Location != actor.Location || !ActorsAreNearWhenSpatial(state, actor.Id, target.Id))
         {
             return Rejected(envelope, IntentReason.TargetAbsent);
+        }
+
+        if (state.Slice is not null && intent.Target == TinyFarmIds.Mara)
+        {
+            return Accepted(envelope, new GameEvent(GameEventKind.Conversation,
+                actor.Id, target.Id, Dialogue: DialogueTopic.Greeting));
         }
 
         var events = new List<GameEvent>();
@@ -972,6 +1003,10 @@ public sealed class TinyFarmResolver
             SetProductCount(state, actor.Id, input.Product, remaining);
         }
         SetProductCount(state, actor.Id, recipe.OutputProduct, outputCount);
+        if (state.Slice is not null && actor.IsPlayer && recipe.OutputProduct == new ProductId("turnip-broth"))
+        {
+            state.Slice = state.Slice with { CookedBroth = true };
+        }
         return Accepted(
             envelope,
             new GameEvent(
@@ -1054,6 +1089,11 @@ public sealed class TinyFarmResolver
         IntentEnvelope envelope,
         AttackIntent intent)
     {
+        if (state.Slice is not null)
+        {
+            return ResolveSliceSword(state, envelope);
+        }
+
         EnemyDefinition? definition = definitions?.Enemies.SingleOrDefault(enemy => enemy.Id == intent.Enemy);
         EnemyState? enemy = state.Enemies.SingleOrDefault(candidate => candidate.Id == intent.Enemy);
         if (definition is null || enemy is null)
@@ -1245,6 +1285,12 @@ public sealed class TinyFarmResolver
                 };
             }
         }
+        if (state.Slice is not null && actor.IsPlayer && state.CurrentScene != TinyFarmSceneIds.DungeonEntrance
+            && state.Minute + intent.Minutes >= (state.Minute / 1440) * 1440 + 1320)
+        {
+            ReturnSlicePlayerForRest(state, events);
+            return Accepted(envelope, events);
+        }
         state.Minute += intent.Minutes;
         for (int day = previousDay + 1; day <= state.Day; day++)
         {
@@ -1358,7 +1404,14 @@ public sealed class TinyFarmResolver
         }
 
         SetProductCount(state, actor.Id, crop.SeedItemId, seedCount - 1);
-        ReplacePlot(state, plot with { Crop = crop.Id, PlantedDay = state.Day, GrowthStage = 0, WateredToday = false });
+        ReplacePlot(state, plot with
+        {
+            Crop = crop.Id,
+            PlantedDay = state.Day,
+            GrowthStage = 0,
+            WateredToday = false,
+            PlantedByPlayer = state.Slice is not null && actor.IsPlayer
+        });
         if (actor.IsPlayer && state.Facts.Contains(WorldFact.SupperRequested))
         {
             AddFact(state, WorldFact.SupperSeedPlanted);
@@ -1428,7 +1481,11 @@ public sealed class TinyFarmResolver
         }
 
         SetProductCount(state, actor.Id, crop.HarvestItemId, state.ProductCount(actor.Id, crop.HarvestItemId) + crop.Yield);
-        ReplacePlot(state, plot with { Crop = null, PlantedDay = null, GrowthStage = 0, WateredToday = false });
+        if (state.Slice is TinyFarmSliceState slice && plot.PlantedByPlayer && actor.IsPlayer)
+        {
+            state.Slice = slice with { OwnHarvest = true };
+        }
+        ReplacePlot(state, plot with { Crop = null, PlantedDay = null, GrowthStage = 0, WateredToday = false, PlantedByPlayer = false });
         AddFact(state, WorldFact.FirstCropHarvested);
         return Accepted(
             envelope,

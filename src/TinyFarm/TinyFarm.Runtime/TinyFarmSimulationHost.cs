@@ -108,12 +108,10 @@ public sealed class TinyFarmSimulationHost
             playerMovementY = 0;
             return;
         }
-        if (Math.Abs(deltaX) + Math.Abs(deltaY) != 1)
+        if (Math.Abs(deltaX) > 1 || Math.Abs(deltaY) > 1
+            || Session.State.Slice is null && Math.Abs(deltaX) + Math.Abs(deltaY) != 1)
         {
             throw new ArgumentOutOfRangeException(nameof(deltaX), "Movement must be one cardinal direction or zero.");
-        }
-        if (deltaX != playerMovementX || deltaY != playerMovementY)
-        {
         }
         playerMovementX = deltaX;
         playerMovementY = deltaY;
@@ -147,6 +145,11 @@ public sealed class TinyFarmSimulationHost
 
     public TinyFarmStepResult ExecuteIntent(GameIntent intent)
     {
+        if (Session.State.Slice is not null && (intent is AttackIntent
+            || intent is UseSelectedIntent && Session.State.SelectedHotbarSlot == 4))
+        {
+            return Session.Step(new SwordIntent(), evaluateNpcDecisions: false);
+        }
         if (intent is AttackIntent attack)
         {
             return Session.BeginCombatAttack(attack);
@@ -220,6 +223,10 @@ public sealed class TinyFarmSimulationHost
             }
             if (due.Cadence == WorldCadence)
             {
+                if (Session.State.Slice is not null && Session.State.CurrentScene == TinyFarmSceneIds.DungeonEntrance)
+                {
+                    continue;
+                }
                 TinyFarmHostAdvanceResult minute = AdvanceMinutes(1);
                 results.AddRange(minute.Results);
                 narrative.AddRange(minute.Narrative);
@@ -278,12 +285,13 @@ public sealed class TinyFarmSimulationHost
     private void AdvanceLocomotion(List<IntentResult> results, List<NarrativeLine> narrative)
     {
         LocomotionStepsAdvanced++;
-        if (playerMovementX != 0 || playerMovementY != 0)
+        if ((playerMovementX != 0 || playerMovementY != 0)
+            && (Session.State.Slice is null || Session.State.Slice.DodgeTicks == 0))
         {
             TinyFarmStepResult player = Session.AdvancePlayerLocomotion(
                 playerMovementX,
                 playerMovementY,
-                ScenePosition.UnitsPerTile / 8);
+                Session.State.Slice is null ? ScenePosition.UnitsPerTile / 8 : ScenePosition.UnitsPerTile / 20);
             PlayerLocomotionReductions++;
             results.AddRange(player.Results);
             narrative.AddRange(player.Narrative);

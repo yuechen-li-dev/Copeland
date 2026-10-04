@@ -28,6 +28,11 @@ namespace TinyFarm.Core;
 [JsonDerivedType(typeof(UseSelectedIntent), "use-selected")]
 [JsonDerivedType(typeof(WaitIntent), "wait")]
 [JsonDerivedType(typeof(CompleteSupperIntent), "complete-supper")]
+[JsonDerivedType(typeof(SliceTickIntent), "slice-tick")]
+[JsonDerivedType(typeof(SwordIntent), "sword")]
+[JsonDerivedType(typeof(DodgeIntent), "dodge")]
+[JsonDerivedType(typeof(EatIntent), "eat")]
+[JsonDerivedType(typeof(SleepIntent), "sleep")]
 public abstract record GameIntent;
 
 public sealed record CompleteSupperIntent : GameIntent;
@@ -183,7 +188,14 @@ public enum GameEventKind
     ForageGathered,
     RecipeCooked,
     TreeChopped,
-    EnemyDefeated
+    EnemyDefeated,
+    SwordStarted,
+    SwordConnected,
+    PlayerHurt,
+    PlayerHealed,
+    PlayerDodged,
+    PlayerRescued,
+    PlayerReturnedForRest
 }
 
 public enum DialogueTopic

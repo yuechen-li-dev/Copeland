@@ -106,7 +106,8 @@ public sealed record ItemDefinition(ProductId Id, string Name, int BuyPrice, int
 public sealed record CropDefinition(CropId Id, ProductId SeedItemId, ProductId HarvestItemId, int GrowthDays, int WaterRequirement, int Yield);
 public sealed record InventoryStack(ActorId Actor, ProductId Product, int Count);
 public sealed record ShopStock(ProductId Product, int Count, int DailyRestockCount);
-public sealed record FarmPlotState(FarmPlotId Id, LocationId Location, CropId? Crop, int? PlantedDay, int GrowthStage, bool WateredToday);
+public sealed record FarmPlotState(FarmPlotId Id, LocationId Location, CropId? Crop, int? PlantedDay, int GrowthStage, bool WateredToday,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool PlantedByPlayer = false);
 public sealed record ForageNodeDefinition(
     ForageNodeId Id,
     SceneId Scene,
@@ -362,6 +363,7 @@ public sealed class TinyFarmState
     public const int ForageSaveVersion = 8;
     public const int WoodcuttingSaveVersion = 9;
     public const int DungeonCombatSaveVersion = 10;
+    public const int SliceSaveVersion = 11;
 
     [JsonConstructor]
     public TinyFarmState(
@@ -380,7 +382,8 @@ public sealed class TinyFarmState
         int selectedHotbarSlot = 0,
         IReadOnlyList<ForageNodeState>? forageNodes = null,
         IReadOnlyList<TreeState>? trees = null,
-        IReadOnlyList<EnemyState>? enemies = null)
+        IReadOnlyList<EnemyState>? enemies = null,
+        TinyFarmSliceState? slice = null)
     {
         Version = version;
         Minute = minute;
@@ -398,6 +401,7 @@ public sealed class TinyFarmState
         this.forageNodes = forageNodes?.ToList() ?? [];
         this.trees = trees?.ToList() ?? [];
         this.enemies = enemies?.ToList() ?? [];
+        Slice = slice;
         actorIndex = BuildActorIndex(this.actors);
         actorSceneIndex = BuildActorSceneIndex(this.actorScenes);
         actorEnergyIndex = BuildActorEnergyIndex(this.actorEnergy);
@@ -420,6 +424,8 @@ public sealed class TinyFarmState
     public IReadOnlyList<ForageNodeState> ForageNodes => forageNodes;
     public IReadOnlyList<TreeState> Trees => trees;
     public IReadOnlyList<EnemyState> Enemies => enemies;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public TinyFarmSliceState? Slice { get; internal set; }
     public SceneId? CurrentScene => actorScenes.SingleOrDefault(item => item.Actor == TinyFarmIds.Player)?.Scene;
     internal List<ActorState> MutableActors => actors;
     internal List<ItemState> MutableItems => items;
@@ -479,7 +485,8 @@ public sealed class TinyFarmState
             SelectedHotbarSlot,
             ForageNodes.ToList(),
             Trees.ToList(),
-            Enemies.ToList());
+            Enemies.ToList(),
+            Slice);
     }
 
     private static Dictionary<ActorId, int> BuildActorIndex(IReadOnlyList<ActorState> values)

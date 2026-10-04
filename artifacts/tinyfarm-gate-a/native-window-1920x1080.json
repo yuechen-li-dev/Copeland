@@ -1,0 +1,11 @@
+{
+  "visible": true,
+  "framebufferWidth": 1920,
+  "framebufferHeight": 1080,
+  "titleEnterMovementPausePassed": true,
+  "renderedRgbaBytes": 8294400,
+  "resizedWidth": 1600,
+  "resizedHeight": 1000,
+  "uniformWorldPixelsPerMetre": 90.90909,
+  "resizeSemanticNonInterference": true
+}

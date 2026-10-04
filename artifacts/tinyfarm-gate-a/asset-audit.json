@@ -1,0 +1,506 @@
+{
+  "metric": "source pixels per displayed pixel along an axis, including trimmed alpha bounds; evidence, not a quality score",
+  "runtimeMipmaps": false,
+  "assets": [
+    {
+      "file": "gardener.png",
+      "sourceDimensions": [
+        1254,
+        1254
+      ],
+      "fileBytes": 1236295,
+      "rgbaPayloadBytes": 6290064,
+      "sampling": "Linear sRGB straight alpha",
+      "poses": [
+        {
+          "trimmedSourceDimensions": [
+            160,
+            262
+          ],
+          "presentationHeightWorldMetres": 1.1722595078299776,
+          "display1080p": [
+            70.29,
+            115.09
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 2.276,
+          "display1440p": [
+            93.72,
+            153.45
+          ]
+        },
+        {
+          "trimmedSourceDimensions": [
+            163,
+            265
+          ],
+          "presentationHeightWorldMetres": 1.1856823266219239,
+          "display1080p": [
+            71.6,
+            116.41
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 2.276,
+          "display1440p": [
+            95.47,
+            155.21
+          ]
+        },
+        {
+          "trimmedSourceDimensions": [
+            162,
+            263
+          ],
+          "presentationHeightWorldMetres": 1.1767337807606264,
+          "display1080p": [
+            71.17,
+            115.53
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 2.276,
+          "display1440p": [
+            94.89,
+            154.04
+          ]
+        },
+        {
+          "trimmedSourceDimensions": [
+            166,
+            262
+          ],
+          "presentationHeightWorldMetres": 1.1722595078299776,
+          "display1080p": [
+            72.92,
+            115.09
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 2.276,
+          "display1440p": [
+            97.23,
+            153.45
+          ]
+        },
+        {
+          "trimmedSourceDimensions": [
+            154,
+            273
+          ],
+          "presentationHeightWorldMetres": 1.221476510067114,
+          "display1080p": [
+            67.65,
+            119.93
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 2.276,
+          "display1440p": [
+            90.2,
+            159.91
+          ]
+        },
+        {
+          "trimmedSourceDimensions": [
+            160,
+            275
+          ],
+          "presentationHeightWorldMetres": 1.2304250559284116,
+          "display1080p": [
+            70.29,
+            120.81
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 2.276,
+          "display1440p": [
+            93.72,
+            161.08
+          ]
+        },
+        {
+          "trimmedSourceDimensions": [
+            154,
+            272
+          ],
+          "presentationHeightWorldMetres": 1.2170022371364653,
+          "display1080p": [
+            67.65,
+            119.49
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 2.276,
+          "display1440p": [
+            90.2,
+            159.32
+          ]
+        },
+        {
+          "trimmedSourceDimensions": [
+            160,
+            276
+          ],
+          "presentationHeightWorldMetres": 1.2348993288590604,
+          "display1080p": [
+            70.29,
+            121.24
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 2.276,
+          "display1440p": [
+            93.72,
+            161.65
+          ]
+        },
+        {
+          "trimmedSourceDimensions": [
+            148,
+            298
+          ],
+          "presentationHeightWorldMetres": 1.3333333333333333,
+          "display1080p": [
+            65.02,
+            130.91
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 2.276,
+          "display1440p": [
+            86.69,
+            174.55
+          ]
+        },
+        {
+          "trimmedSourceDimensions": [
+            160,
+            296
+          ],
+          "presentationHeightWorldMetres": 1.3243847874720358,
+          "display1080p": [
+            70.29,
+            130.03
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 2.276,
+          "display1440p": [
+            93.72,
+            173.37
+          ]
+        },
+        {
+          "trimmedSourceDimensions": [
+            159,
+            295
+          ],
+          "presentationHeightWorldMetres": 1.319910514541387,
+          "display1080p": [
+            69.85,
+            129.59
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 2.276,
+          "display1440p": [
+            93.13,
+            172.79
+          ]
+        },
+        {
+          "trimmedSourceDimensions": [
+            156,
+            296
+          ],
+          "presentationHeightWorldMetres": 1.3243847874720358,
+          "display1080p": [
+            68.53,
+            130.03
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 2.276,
+          "display1440p": [
+            91.37,
+            173.37
+          ]
+        },
+        {
+          "trimmedSourceDimensions": [
+            165,
+            258
+          ],
+          "presentationHeightWorldMetres": 1.1543624161073824,
+          "display1080p": [
+            72.48,
+            113.34
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 2.276,
+          "display1440p": [
+            96.64,
+            151.12
+          ]
+        },
+        {
+          "trimmedSourceDimensions": [
+            171,
+            256
+          ],
+          "presentationHeightWorldMetres": 1.145413870246085,
+          "display1080p": [
+            75.12,
+            112.46
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 2.276,
+          "display1440p": [
+            100.16,
+            149.95
+          ]
+        },
+        {
+          "trimmedSourceDimensions": [
+            165,
+            260
+          ],
+          "presentationHeightWorldMetres": 1.1633109619686801,
+          "display1080p": [
+            72.48,
+            114.22
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 2.276,
+          "display1440p": [
+            96.64,
+            152.29
+          ]
+        },
+        {
+          "trimmedSourceDimensions": [
+            170,
+            258
+          ],
+          "presentationHeightWorldMetres": 1.1543624161073824,
+          "display1080p": [
+            74.68,
+            113.34
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 2.276,
+          "display1440p": [
+            99.57,
+            151.12
+          ]
+        }
+      ]
+    },
+    {
+      "file": "slime.png",
+      "sourceDimensions": [
+        2172,
+        724
+      ],
+      "fileBytes": 970114,
+      "rgbaPayloadBytes": 6290112,
+      "sampling": "Linear sRGB straight alpha",
+      "poses": [
+        {
+          "trimmedSourceDimensions": [
+            429,
+            470
+          ],
+          "presentationHeightWorldMetres": 1.0263801537386443,
+          "display1080p": [
+            91.98,
+            100.77
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 4.664,
+          "display1440p": [
+            122.64,
+            134.36
+          ]
+        },
+        {
+          "trimmedSourceDimensions": [
+            489,
+            267
+          ],
+          "presentationHeightWorldMetres": 0.5830712788259959,
+          "display1080p": [
+            104.85,
+            57.25
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 4.664,
+          "display1440p": [
+            139.8,
+            76.33
+          ]
+        },
+        {
+          "trimmedSourceDimensions": [
+            476,
+            477
+          ],
+          "presentationHeightWorldMetres": 1.0416666666666667,
+          "display1080p": [
+            102.06,
+            102.27
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 4.664,
+          "display1440p": [
+            136.08,
+            136.36
+          ]
+        },
+        {
+          "trimmedSourceDimensions": [
+            438,
+            278
+          ],
+          "presentationHeightWorldMetres": 0.6070929419986023,
+          "display1080p": [
+            93.91,
+            59.61
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 4.664,
+          "display1440p": [
+            125.21,
+            79.48
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mara.png",
+      "sourceDimensions": [
+        1054,
+        1492
+      ],
+      "fileBytes": 925458,
+      "rgbaPayloadBytes": 6290272,
+      "sampling": "Linear sRGB straight alpha",
+      "poses": [
+        {
+          "trimmedSourceDimensions": [
+            500,
+            1244
+          ],
+          "presentationHeightWorldMetres": 1.3333333333333333,
+          "display1080p": [
+            52.62,
+            130.91
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 9.503,
+          "display1440p": [
+            70.16,
+            174.55
+          ]
+        }
+      ]
+    },
+    {
+      "file": "props.png",
+      "sourceDimensions": [
+        2172,
+        724
+      ],
+      "fileBytes": 1237289,
+      "rgbaPayloadBytes": 6290112,
+      "sampling": "Linear sRGB straight alpha",
+      "poses": [
+        {
+          "trimmedSourceDimensions": [
+            378,
+            515
+          ],
+          "presentationHeightWorldMetres": 1.5,
+          "display1080p": [
+            108.1,
+            147.27
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 3.497,
+          "display1440p": [
+            144.13,
+            196.36
+          ]
+        },
+        {
+          "trimmedSourceDimensions": [
+            397,
+            454
+          ],
+          "presentationHeightWorldMetres": 1.0833333333333333,
+          "display1080p": [
+            93.01,
+            106.36
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 4.268,
+          "display1440p": [
+            124.01,
+            141.81
+          ]
+        },
+        {
+          "trimmedSourceDimensions": [
+            473,
+            438
+          ],
+          "presentationHeightWorldMetres": 1.0,
+          "display1080p": [
+            106.03,
+            98.18
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 4.461,
+          "display1440p": [
+            141.37,
+            130.91
+          ]
+        },
+        {
+          "trimmedSourceDimensions": [
+            496,
+            290
+          ],
+          "presentationHeightWorldMetres": 0.9166666666666666,
+          "display1080p": [
+            153.93,
+            90.0
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 3.222,
+          "display1440p": [
+            205.24,
+            120.0
+          ]
+        }
+      ]
+    },
+    {
+      "file": "floors.png",
+      "sourceDimensions": [
+        1774,
+        887
+      ],
+      "fileBytes": 2082274,
+      "rgbaPayloadBytes": 6294152,
+      "sampling": "Linear sRGB straight alpha",
+      "poses": [
+        {
+          "trimmedSourceDimensions": [
+            887,
+            887
+          ]
+        },
+        {
+          "trimmedSourceDimensions": [
+            887,
+            887
+          ]
+        }
+      ]
+    },
+    {
+      "file": "turnip.png",
+      "sourceDimensions": [
+        1241,
+        1267
+      ],
+      "fileBytes": 1303906,
+      "rgbaPayloadBytes": 6289388,
+      "sampling": "Linear sRGB straight alpha",
+      "poses": [
+        {
+          "trimmedSourceDimensions": [
+            1147,
+            1114
+          ],
+          "presentationHeightWorldMetres": 0.6666666666666666,
+          "display1080p": [
+            67.39,
+            65.45
+          ],
+          "sourcePixelsPerDisplayedPixel1080pAxis": 17.019,
+          "display1440p": [
+            89.85,
+            87.27
+          ]
+        }
+      ]
+    }
+  ]
+}

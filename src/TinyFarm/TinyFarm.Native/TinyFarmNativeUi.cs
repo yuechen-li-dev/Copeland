@@ -63,13 +63,14 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
             : target.Kind switch
             {
                 InteractionTargetKind.Actor => "E  Talk to " + game.State.Actor(target.Actor!.Value).Name,
-                InteractionTargetKind.Plot => "1 + SPACE plant   /   E tend or harvest",
-                InteractionTargetKind.Enemy => "4 + SPACE  Shoo the slime",
-                InteractionTargetKind.Tree => "3 + SPACE  Chop firewood",
+                InteractionTargetKind.Plot => game.State.Slice is not null ? SlicePlotPrompt(target) : "1 + SPACE plant   /   E tend or harvest",
+                InteractionTargetKind.Enemy => game.State.Slice is not null ? "J sword   /   SPACE dodge" : "4 + SPACE  Shoo the slime",
+                InteractionTargetKind.Tree => game.State.Slice is not null ? "3 + K  Chop firewood" : "3 + SPACE  Chop firewood",
                 InteractionTargetKind.GroundItem => "E  Pick up wild mint",
                 InteractionTargetKind.ForageNode => "E  Gather mushrooms",
-                InteractionTargetKind.CookingStation => "E  Cook supper",
-                InteractionTargetKind.Portal => "E  " + frame.SceneRoutes!.Single(route => route.TriggerObject == target.SceneObject).InteractionLabel,
+                InteractionTargetKind.CookingStation => game.State.Slice is not null ? "E  Cook turnip broth" : "E  Cook supper",
+                InteractionTargetKind.Bed => "E  Sleep until morning",
+                InteractionTargetKind.Portal => PortalPrompt(frame, target),
                 _ => "E  Interact",
             };
         if (prompt is null)
@@ -92,6 +93,32 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
     private static MachinaPresentationFrame Prepare(UiNode node, int width, int height)
     {
         return new MachinaPresentationPipeline().Prepare(node, width, height).PresentationFrame;
+    }
+
+    private string SlicePlotPrompt(InteractionTarget target)
+    {
+        FarmPlotState plot = game.State.FarmPlots.Single(candidate => candidate.Id == target.Plot);
+        if (plot.Crop is null)
+        {
+            return "1 + K  Plant turnip";
+        }
+        if (plot.GrowthStage >= game.Definitions.Crop(plot.Crop.Value).GrowthDays)
+        {
+            return "E  Harvest turnip";
+        }
+        return plot.WateredToday ? "Watered / grows after sleep" : "E  Water turnip";
+    }
+
+    private string PortalPrompt(TinyFarmFrame frame, InteractionTarget target)
+    {
+        TinyFarmRouteView route = frame.SceneRoutes!.Single(candidate => candidate.TriggerObject == target.SceneObject);
+        if (game.State.Slice is not null && route.TargetScene != TinyFarmSceneIds.Farm
+            && route.TargetScene != TinyFarmSceneIds.Residence && route.TargetScene != TinyFarmSceneIds.Overworld
+            && route.TargetScene != TinyFarmSceneIds.DungeonEntrance)
+        {
+            return "Unfinished road / closed in this slice";
+        }
+        return "E  " + route.InteractionLabel;
     }
 
     private TinyFarmUiKey CreateKey(TinyFarmFrame frame)
@@ -133,11 +160,17 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
             objectives,
             game.Dialogue.Presentation?.OperationId,
             game.Dialogue.SelectedChoiceIndex,
-            inventoryHash.ToHashCode());
+            inventoryHash.ToHashCode(),
+            game.State.Slice?.Health ?? 0,
+            game.State.Slice?.LoopComplete ?? false);
     }
 
     private UiNode Build(TinyFarmFrame frame)
     {
+        if (game.State.Slice is not null)
+        {
+            return BuildSlice(frame);
+        }
         List<UiNode> nodes = [];
         Panel(nodes, "header", 22, 18, 1236, 74);
         Text(nodes, "title", "TINYFARM", 44, 29, 230, TextSize.H1, 0xEDD6A0FF);
@@ -218,6 +251,63 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
         return UI.Surface(id: "supper", width: 1280, height: 720, children: nodes);
     }
 
+    private UiNode BuildSlice(TinyFarmFrame frame)
+    {
+        var nodes = new List<UiNode>();
+        TinyFarmSliceState slice = game.State.Slice!;
+        Panel(nodes, "health", 24, 72, 225, 40, 0x19362BD9);
+        Text(nodes, "health-text", $"HP {slice.Health}/12  BROTH {game.State.ProductCount(TinyFarmIds.Player, new ProductId("turnip-broth"))}",
+            36, 82, 210, TextSize.Md, 0xF5DDB5FF);
+        string tool = game.State.SelectedHotbarSlot switch
+        {
+            1 => "TOOL: SEEDS / 1 + K",
+            3 => "TOOL: AXE / 3 + K",
+            4 => "SWORD / J",
+            _ => "TOOL: TURNIP / 2 + K"
+        };
+        Text(nodes, "selected-tool", tool, 36, 122, 210, TextSize.Md, 0xF5DDB5FF);
+        Panel(nodes, "slice-status", 24, 662, 910, 36, 0x19362BD9);
+        Text(nodes, "slice-status-text", game.Status, 36, 672, 890, TextSize.Md);
+        if (game.Dialogue.Presentation is { } dialogue)
+        {
+            Panel(nodes, "dialogue", 180, 450, 920, 172, 0x19362BF5);
+            Text(nodes, "speaker", "MARA", 208, 466, 850, TextSize.Md, 0xF5DDB5FF);
+            Lines(nodes, "dialogue-body", dialogue.Text, 208, 498, 850, 83, TextSize.Md);
+            Text(nodes, "dialogue-hint", "ENTER next   /   ESC leave", 208, 590, 850, TextSize.Md);
+        }
+        else if (game.Screen != TinyFarmScreen.Playing)
+        {
+            Panel(nodes, "modal-shade", 0, 0, 1280, 720, 0x102D25A0);
+            Panel(nodes, "modal", 220, 130, 840, 460, 0x19362BFA);
+            string title = game.Screen switch
+            {
+                TinyFarmScreen.Title => "TINYFARM / THE SLEEPING SPRING",
+                TinyFarmScreen.Inventory => "YOUR POCKETS & PLANS",
+                _ => "A MOMENT AT HOME"
+            };
+            Text(nodes, "modal-title", title, 252, 165, 776, TextSize.H1, 0xF5DDB5FF);
+            string[] lines = game.Screen == TinyFarmScreen.Inventory
+                ? new[]
+                {
+                    $"Seeds {game.State.ProductCount(TinyFarmIds.Player, TinyFarmIds.TurnipSeed)} / Turnips {game.State.ProductCount(TinyFarmIds.Player, TinyFarmIds.Turnip)} / Broth {game.State.ProductCount(TinyFarmIds.Player, new ProductId("turnip-broth"))}",
+                    "Tools: J sword / 1 + K seeds / 3 + K axe"
+                }.Concat(game.Objectives()).ToArray()
+                : ["Make a little home beside the woods.",
+                   "Harvest the ripe turnip. Cook broth at your house stove.",
+                   "Follow the east path to Old Burrow. Watch the slime before striking.",
+                   "Plant and water. Sleep in your bed. Return to your own harvest.",
+                   "WASD move   E interact   J sword   SPACE dodge",
+                   "1 + K plant   R eat broth   I pockets & plans",
+                   "F save   N continue   F9 HUD   F11 clean capture"];
+            for (int row = 0; row < lines.Length; row++)
+            {
+                Text(nodes, "modal-row-" + row, lines[row], 252, 231 + row * 34, 776, TextSize.Md);
+            }
+            Text(nodes, "modal-action", "ENTER begin / return    Q quit", 252, 550, 776, TextSize.Md, 0xF5DDB5FF);
+        }
+        return UI.Surface(id: "opening-slice", width: 1280, height: 720, children: nodes);
+    }
+
     internal static void Panel(List<UiNode> nodes, string id, int x, int y, int width, int height, uint color = 0x163D31F5)
     {
         nodes.Add(UI.Anchor(UI.Rect(id: id, style: new UiStyle(Background: ColorToken.Hex(color),
@@ -257,7 +347,9 @@ internal readonly record struct TinyFarmUiKey(
     int Objectives,
     string? DialogueOperationId,
     int DialogueSelectedChoiceIndex,
-    int InventoryHash);
+    int InventoryHash,
+    int Health,
+    bool LoopComplete);
 
 internal readonly record struct TinyFarmUiResources(
     MachinaPresentationFrame Base,

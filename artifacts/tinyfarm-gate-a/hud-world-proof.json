@@ -1,0 +1,12 @@
+{
+  "semanticHashUnchanged": "native proof F9 assertion",
+  "comparisonRectangle": [
+    400,
+    220,
+    1920,
+    980
+  ],
+  "comparedPixels": 1155200,
+  "worldPixelsExactlyEqualAwayFromHud": true,
+  "scope": "same start position, zero elapsed capture; excludes HUD area"
+}

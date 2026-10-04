@@ -171,7 +171,7 @@ public sealed class SilkInputBridge : IDisposable
     private void RecordGamepadButton(SilkGamepad gamepad, SilkButton button, bool down)
     {
         int portableCode = button.Index + 1;
-        if (Enum.IsDefined(typeof(GamepadButton), portableCode))
+        if (portableCode is >= 1 and <= 15)
         {
             adapter.RecordButton(Controls.Gamepad((GamepadButton)portableCode, CheckedIndex(gamepad.Index)), down);
         }
@@ -222,11 +222,26 @@ public sealed class SilkInputBridge : IDisposable
             SilkKey.D => KeyboardKey.D,
             SilkKey.E => KeyboardKey.E,
             SilkKey.F => KeyboardKey.F,
+            SilkKey.G => KeyboardKey.G,
+            SilkKey.H => KeyboardKey.H,
             SilkKey.I => KeyboardKey.I,
+            SilkKey.J => KeyboardKey.J,
+            SilkKey.K => KeyboardKey.K,
+            SilkKey.L => KeyboardKey.L,
+            SilkKey.M => KeyboardKey.M,
             SilkKey.N => KeyboardKey.N,
+            SilkKey.O => KeyboardKey.O,
+            SilkKey.P => KeyboardKey.P,
             SilkKey.Q => KeyboardKey.Q,
+            SilkKey.R => KeyboardKey.R,
             SilkKey.S => KeyboardKey.S,
+            SilkKey.T => KeyboardKey.T,
+            SilkKey.U => KeyboardKey.U,
+            SilkKey.V => KeyboardKey.V,
             SilkKey.W => KeyboardKey.W,
+            SilkKey.X => KeyboardKey.X,
+            SilkKey.Y => KeyboardKey.Y,
+            SilkKey.Z => KeyboardKey.Z,
             SilkKey.Number1 => KeyboardKey.Number1,
             SilkKey.Number2 => KeyboardKey.Number2,
             SilkKey.Number3 => KeyboardKey.Number3,

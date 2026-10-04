@@ -1,0 +1,116 @@
+{
+  "milestone": "TinyFarm MVP Gate A",
+  "generatedAt": "2026-10-03",
+  "tool": "image_gen.imagegen",
+  "humanAssetApproval": "pending review of Gate A",
+  "projection": "Nominal 45 degree elevated north-up orthographic, parallel ground axes, warm upper-left light, painterly gouache",
+  "reusedApprovedAssets": [
+    "M24/meadow-slab.png",
+    "M24/tree.png",
+    "M25/farmhouse-three-quarter.png"
+  ],
+  "assets": [
+    {
+      "file": "gardener.png",
+      "generatedFile": "exec-f5268c5e-5595-4b8b-8ef1-f084bf5f1fe1.png",
+      "grid": [
+        4,
+        4
+      ],
+      "requestedTransparency": true,
+      "prompt": "Production game sprite sheet, original TinyFarm gardener adventurer, painterly gouache storybook fantasy, 45-degree elevated north-up orthographic game view. Blue short coat, warm orange scarf, brown boots, small straw hat. Full body with head readable from above, warm light upper left, soft edge accents, no pixel art. EXACT GRID: 4 columns by 4 rows, sixteen equally sized square cells. Each cell contains the SAME character same proportions scale and pivot, full body uncropped centered horizontally, feet on baseline at 85 percent of cell height. ROW ONE facing south/front: idle, left-foot walk, passing idle, right-foot walk. ROW TWO facing north/back: idle, left-foot walk, passing idle, right-foot walk. ROW THREE facing west/left: idle, left-foot walk, passing idle, right-foot walk. ROW FOUR facing east/right: idle, left-foot walk, passing idle, right-foot walk. Character occupies 65 percent cell height. Separately isolated poses, no shadows extending across cells, no props carried, no text, no labels, no lines, no grid visibly drawn, no environment. Actual RGBA transparent background everywhere outside characters. Crisp painted readable silhouette at 85 screen pixels high, restrained material detail, consistent animation poses. Whole sheet square, each cell regular and identical size.",
+      "sourceDimensions": [
+        1254,
+        1254
+      ],
+      "sourceFileBytes": 1236295,
+      "sha256": "e37877db50de173e9287527fcd0ae055b52bb4122aa8745ab7a48f62e6165b0d"
+    },
+    {
+      "file": "slime.png",
+      "generatedFile": "exec-039a0a44-020a-4d21-857b-aa1f1829af37.png",
+      "grid": [
+        4,
+        1
+      ],
+      "requestedTransparency": true,
+      "prompt": "Original TinyFarm game asset, a moss slime animation sheet, painterly gouache storybook fantasy. Same cute but dangerous round green woodland slime in FOUR evenly spaced square cells, ONE horizontal row, transparent background. Consistent size and feet baseline, isolated with padding, no grid or text. CELL 1 idle round bean-shaped slime, CELL 2 anticipation squash very low and wide with amber eyes, CELL 3 lunging stretch taller with cheek and leaf swept backward, CELL 4 recovering low with tired eyes. Nominal north-up 45 degree overhead orthographic angle with top visible, no perspective scene. Muted moss green, cream highlights, teal shadows, tiny leafy crest, clear two eyes and silhouette, warm upper-left light. Painted smooth edges and texture, not pixel art, not 3D glossy. No floor, cast shadow, particles or background. Actual RGBA transparency, whole four-cell sheet landscape exactly 4:1.",
+      "sourceDimensions": [
+        2172,
+        724
+      ],
+      "sourceFileBytes": 970114,
+      "sha256": "4186270097e953cabe582ffe3f2bb5ed041d746382f2e0c071dd986580100138"
+    },
+    {
+      "file": "mara.png",
+      "generatedFile": "exec-bc56f656-c4df-4743-a453-a170b36d0d24.png",
+      "grid": [
+        1,
+        1
+      ],
+      "requestedTransparency": true,
+      "prompt": "Original TinyFarm production game sprite: Mara, a kind adult female gardener neighbour with dark brown hair tied in a bun, sage green dress, cream apron, leather boots, carrying a small seed pouch at belt. Painterly gouache storybook fantasy matching warm blue-coat gardener sprites, restrained teal shadows and cream highlights, no pixel art. One full body character facing south, nominal 45-degree elevated north-up orthographic RPG view, top of head visible, compact readable proportions, arms relaxed. Isolated centered, entire body and feet visible, actual transparent RGBA background, no floor, no cast shadow, no text, no scene. Warm upper-left light, silhouette readable at 85 screen pixels high.",
+      "sourceDimensions": [
+        1054,
+        1492
+      ],
+      "sourceFileBytes": 925458,
+      "sha256": "e7ccf26813f70bef7fe8a967ccb8840d6a5e3576d02512383887199ee977de3a"
+    },
+    {
+      "file": "props.png",
+      "generatedFile": "exec-7cc4c263-afc8-432e-a864-03274ae35560.png",
+      "grid": [
+        4,
+        1
+      ],
+      "requestedTransparency": true,
+      "prompt": "Original TinyFarm production environment props, painterly gouache storybook RPG at a strict elevated 45-degree north-up orthographic view: parallel edges, front face toward viewer, no side wall visible. Four isolated props in a single horizontal row, one prop in each equal width cell, RGBA transparent background, no floor outside the objects, no cast shadow, no grid, no text. Cell 1: a cozy single wooden bed, cream pillow at the north end, moss green quilt, top of mattress dominant. Cell 2: small squat warm stone kitchen stove with black cast-iron soup pot on top and tiny amber flame in front. Cell 3: square dark brown garden soil patch with three shallow furrows and softly frayed soil edge, seen from above with no vertical face. Cell 4: rustic short pale wooden fence section with two posts and two crossrails viewed from the south from above. Muted sage, warm cream, teal shadow, warm upper-left light, brush texture and natural imperfect edges. Readable at 120px wide, compact game props, no pixel art. Each prop centered and fully uncropped within its own cell with clear transparent padding.",
+      "sourceDimensions": [
+        2172,
+        724
+      ],
+      "sourceFileBytes": 1237289,
+      "sha256": "1b0bcb6fc6cd8ac422ec199c392e5c77fe78fcb0c20ad6332edb985189ff682d"
+    },
+    {
+      "file": "floors.png",
+      "generatedFile": "exec-bc35353d-3e9b-4db2-b11b-7554550ac7c9.png",
+      "grid": [
+        2,
+        1
+      ],
+      "requestedTransparency": false,
+      "prompt": "Two original TinyFarm painterly ground texture swatches side by side in equal square cells, ONE horizontal row, no gaps, no border, image aspect 2:1. Elevated orthographic RPG ground viewed from above, no perspective vanishing points, flat material only with subtle brushwork and gentle even lighting. Left cell cozy warm oak floorboards running vertically: softly painted wood grain, natural restrained seams, desaturated honey and walnut tones, no furniture, no objects, no walls, no highlights too bright. Right cell quiet mossy earthen cave floor: desaturated teal-grey soil, soft mottled earth brushwork, sparse embedded small flat stones, tiny moss patches around perimeter but quiet central ground, no props, no walls, no grid, no large rocks, no characters, no decoration. Smooth hand-painted gouache storybook style, readable but understated background for clear characters and orange attack telegraphs. Entire image opaque, no text or symbols.",
+      "sourceDimensions": [
+        1774,
+        887
+      ],
+      "sourceFileBytes": 2082274,
+      "sha256": "2b03eeb10682918c1cd67f1560b9290881c1f178adae40f2f2ca1ad5cafbbd0c"
+    },
+    {
+      "file": "turnip.png",
+      "generatedFile": "exec-94679658-a9dc-4b38-9375-8eafd0c2c6e6.png",
+      "grid": [
+        1,
+        1
+      ],
+      "requestedTransparency": true,
+      "prompt": "Original TinyFarm production game crop cutout, painterly gouache storybook fantasy RPG. One mature turnip plant seen from a 45-degree elevated north-up orthographic game camera, top of foliage visible, NO ground or soil patch, NO cast shadow, isolated on actual RGBA transparent background. A squat warm cream turnip bulb with subtle lavender shoulder mostly buried implied by flat cropped base, a tiny root tip, three broad lively sage green leaves with muted teal shadows and cream highlights. Compact natural brush textured silhouette, restrained detail readable at 50 screen pixels wide. Match warm painted wooden farmhouse and blue-coat straw-hat gardener, no pixel art, no cartoon black outlines, no 3D gloss, no text, centered full crop with transparent padding. One single plant only.",
+      "sourceDimensions": [
+        1241,
+        1267
+      ],
+      "sourceFileBytes": 1303906,
+      "sha256": "93cd63902d684125c3b77979b2d35b8a29482a0687263c94ecb713915c775b2e"
+    }
+  ],
+  "notes": [
+    "Original generated files remain in C:/Users/yuech/.codex/generated_images/01a07cb8-d26f-77f2-a93c-77e945a5c8bd/.",
+    "Source PNGs are copied without image edits. Runtime alpha trimming and normalized integer cell boundaries use GridSpriteSheet in Aurelian.GameWorld2D.",
+    "Generated dimensions are measured, not assumed from requested aspect ratios. Props and slime came back at 3:1; their four regular cells are imported at the actual source dimensions.",
+    "Hashes pin selected outputs for deterministic loading. Hash pinning does not imply human approval or a separately established license."
+  ]
+}

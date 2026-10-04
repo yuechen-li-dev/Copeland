@@ -9,6 +9,7 @@ public enum InteractionTargetKind
     GroundItem,
     ForageNode,
     CookingStation,
+    Bed,
     Tree,
     Enemy
 }
@@ -69,6 +70,7 @@ public static class TinyFarmSpatialQueries
                 SceneObjectKind.Tree when IsTreeStanding(state, definition.Id) => InteractionTargetKind.Tree,
                 SceneObjectKind.Enemy when IsEnemyAlive(state, definition.Id) => InteractionTargetKind.Enemy,
                 SceneObjectKind.CookingStation => InteractionTargetKind.CookingStation,
+                SceneObjectKind.Bed when state.Slice is not null && definition.SemanticReference == "player" => InteractionTargetKind.Bed,
                 _ => null
             };
             if (kind is null)
@@ -79,6 +81,14 @@ public static class TinyFarmSpatialQueries
             var center = new ScenePosition(
                 (row.X * ScenePosition.UnitsPerTile) + (row.Width * ScenePosition.UnitsPerTile / 2),
                 (row.Y * ScenePosition.UnitsPerTile) + (row.Height * ScenePosition.UnitsPerTile / 2));
+            if (definition.Kind == SceneObjectKind.Enemy && state.Slice is not null)
+            {
+                center = state.Slice.SlimePosition;
+            }
+            if (definition.Kind == SceneObjectKind.Portal && row.Contains(actor.Position))
+            {
+                center = actor.WorldPosition;
+            }
             FarmPlotId? plot = kind == InteractionTargetKind.Plot && definition.SemanticReference is string reference
                 ? new FarmPlotId(reference)
                 : null;
@@ -183,6 +193,7 @@ public static class TinyFarmSpatialQueries
             SceneObjectKind.Tree when IsTreeStanding(state, definition.Id) => InteractionTargetKind.Tree,
             SceneObjectKind.Enemy when IsEnemyAlive(state, definition.Id) => InteractionTargetKind.Enemy,
             SceneObjectKind.CookingStation => InteractionTargetKind.CookingStation,
+            SceneObjectKind.Bed when state.Slice is not null && definition.SemanticReference == "player" => InteractionTargetKind.Bed,
             _ => null
         };
         if (kind is null)
@@ -193,6 +204,14 @@ public static class TinyFarmSpatialQueries
         var center = new ScenePosition(
             (row.X * ScenePosition.UnitsPerTile) + (row.Width * ScenePosition.UnitsPerTile / 2),
             (row.Y * ScenePosition.UnitsPerTile) + (row.Height * ScenePosition.UnitsPerTile / 2));
+        if (definition.Kind == SceneObjectKind.Enemy && state.Slice is not null)
+        {
+            center = state.Slice.SlimePosition;
+        }
+        if (definition.Kind == SceneObjectKind.Portal && row.Contains(actor.Position))
+        {
+            center = actor.WorldPosition;
+        }
         var candidates = new List<InteractionTarget>();
         AddIfTargetable(
             candidates,
