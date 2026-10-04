@@ -191,7 +191,8 @@ public static class TinyFarmChunkedSaveCodec
             && state.Version != TinyFarmState.ForageSaveVersion
             && state.Version != TinyFarmState.WoodcuttingSaveVersion
             && state.Version != TinyFarmState.DungeonCombatSaveVersion
-            && state.Version != TinyFarmState.SliceSaveVersion)
+            && state.Version != TinyFarmState.SliceSaveVersion
+            && state.Version != TinyFarmState.EquipmentSaveVersion)
         {
             throw new InvalidDataException($"Unsupported TinyFarm game save version {state.Version}.");
         }
@@ -269,7 +270,8 @@ public static class TinyFarmChunkedSaveCodec
             }
         }
 
-        if (state.Version == TinyFarmState.SliceSaveVersion)
+        if (state.Version >= TinyFarmState.SliceSaveVersion && state.Slice is not null
+            || state.Version == TinyFarmState.SliceSaveVersion)
         {
             TinyFarmSliceState slice = state.Slice ?? throw new InvalidDataException("Opening slice state is missing.");
             if (slice.Tick < 0 || slice.Health is < 1 or > 12 || slice.HurtTicks is < 0 or > 90
@@ -284,7 +286,27 @@ public static class TinyFarmChunkedSaveCodec
         }
         else if (state.Slice is not null)
         {
-            throw new InvalidDataException("Opening slice data requires save version 11.");
+            throw new InvalidDataException("Opening slice data requires save version 11 or later.");
+        }
+
+        if (state.Version == TinyFarmState.EquipmentSaveVersion && state.Equipment is null
+            || state.Version < TinyFarmState.EquipmentSaveVersion && state.Equipment is not null)
+        {
+            throw new InvalidDataException("Explicit equipment requires save version 12.");
+        }
+        if (state.Equipment is TinyFarmEquipment equipment)
+        {
+            ValidateEquipmentItem(equipment.Weapon, EquipmentSlot.Weapon);
+            ValidateEquipmentItem(equipment.Tool, EquipmentSlot.Tool);
+        }
+
+        void ValidateEquipmentItem(ItemId? item, EquipmentSlot slot)
+        {
+            if (item is ItemId id && (TinyFarmEquipmentRules.Slot(id) != slot
+                || !TinyFarmEquipmentRules.IsEquipped(state, id)))
+            {
+                throw new InvalidDataException("Equipment slot disagrees with player ownership or item kind.");
+            }
         }
 
         foreach (InventoryStack stack in state.InventoryStacks)
@@ -431,6 +453,10 @@ public static class TinyFarmChunkedSaveCodec
 
     internal static string RuntimeVersionFor(int gameVersion)
     {
+        if (gameVersion >= TinyFarmState.EquipmentSaveVersion)
+        {
+            return "tiny-farm-equipment@12";
+        }
         if (gameVersion >= TinyFarmState.SliceSaveVersion)
         {
             return "tiny-farm-slice-a@11";

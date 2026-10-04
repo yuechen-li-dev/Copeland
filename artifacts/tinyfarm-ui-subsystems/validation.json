@@ -1,0 +1,103 @@
+{
+  "outcome": "Success",
+  "sdk": "10.0.401",
+  "configuration": "Release",
+  "msbuildWorkers": 1,
+  "solutionBuild": {
+    "command": "dotnet build TinyFarm.slnx -c Release -m:1 -nodeReuse:false -p:JsonSerializerIsReflectionEnabledByDefault=false",
+    "warnings": 0,
+    "errors": 0
+  },
+  "regressionSuites": [
+    {
+      "suite": "Aurelian.Spatial2D.Tests",
+      "failed": 0,
+      "passed": 27,
+      "skipped": 0,
+      "total": 27,
+      "sourceLog": "tinyfarm-menu-solution-tests.log"
+    },
+    {
+      "suite": "TinyFarm.Core.Tests",
+      "failed": 0,
+      "passed": 373,
+      "skipped": 0,
+      "total": 373,
+      "sourceLog": "tinyfarm-menu-solution-tests.log"
+    },
+    {
+      "suite": "Machina.Pipeline.Tests",
+      "failed": 0,
+      "passed": 14,
+      "skipped": 0,
+      "total": 14,
+      "sourceLog": "tinyfarm-menu-Machina.Pipeline.Tests.log"
+    },
+    {
+      "suite": "Machina.Standard.Tests",
+      "failed": 0,
+      "passed": 98,
+      "skipped": 0,
+      "total": 98,
+      "sourceLog": "tinyfarm-menu-Machina.Standard.Tests.log"
+    },
+    {
+      "suite": "Sunkill.Tests",
+      "failed": 0,
+      "passed": 27,
+      "skipped": 0,
+      "total": 27,
+      "sourceLog": "tinyfarm-menu-sunkill-tests.log"
+    },
+    {
+      "suite": "Oblivion.UI.Tests",
+      "failed": 0,
+      "passed": 19,
+      "skipped": 0,
+      "total": 19,
+      "sourceLog": "tinyfarm-menu-oblivion-tests.log"
+    },
+    {
+      "suite": "Oblivion.App.Tests",
+      "failed": 0,
+      "passed": 129,
+      "skipped": 0,
+      "total": 129,
+      "sourceLog": "tinyfarm-menu-oblivion-app-tests.log"
+    },
+    {
+      "suite": "Copeland.TS.Tests",
+      "failed": 0,
+      "passed": 1305,
+      "skipped": 0,
+      "total": 1305,
+      "sourceLog": "tinyfarm-menu-copeland-tests.log"
+    },
+    {
+      "suite": "Aurelian.Graphics.Tests",
+      "failed": 0,
+      "passed": 268,
+      "skipped": 0,
+      "total": 268,
+      "sourceLog": "tinyfarm-menu-graphics-tests.log"
+    },
+    {
+      "suite": "Aurelian.Shaders.Tests",
+      "failed": 0,
+      "passed": 139,
+      "skipped": 0,
+      "total": 139,
+      "sourceLog": "tinyfarm-menu-shader-tests.log"
+    }
+  ],
+  "distinctTestsPassed": 2399,
+  "newMenuTestsWithReflectionSerializationDisabled": 11,
+  "nativeProof": {
+    "exitCode": 0,
+    "reflectionSerializationDisabled": true,
+    "stderrEmpty": true,
+    "stdout": "TINYFARM_MENUS_NATIVE_QUALIFIED 4078301e15ad3947504ed327283b21c597e0de817f3688b1027cc61becbae834:008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+    "humanPhysicalInputReviewPerformed": false
+  },
+  "reflectionBoundary": "New menu/save/replay/native paths qualified with reflection serialization disabled. Full historical suites retain legacy evidence writers and test-only reflection oracles."
+}

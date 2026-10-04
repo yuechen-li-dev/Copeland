@@ -334,9 +334,7 @@ public sealed class TinyFarmSession
             State.Minute,
             nextSequence++,
             IntentSourceKind.Human);
-        ActorState playerActor = State.Actor(TinyFarmIds.Player);
-        bool ownsSword = playerActor.Inventory.Contains(TinyFarmIds.Sword)
-            && State.Items.SingleOrDefault(item => item.Id == TinyFarmIds.Sword)?.Owner == TinyFarmIds.Player;
+        bool ownsSword = TinyFarmEquipmentRules.IsEquipped(State, TinyFarmIds.Sword);
         if (pendingCombat is not null || State.SelectedHotbarSlot != 4 || !ownsSword)
         {
             var rejected = new IntentResult(

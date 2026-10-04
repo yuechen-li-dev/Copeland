@@ -33,7 +33,10 @@ namespace TinyFarm.Core;
 [JsonDerivedType(typeof(DodgeIntent), "dodge")]
 [JsonDerivedType(typeof(EatIntent), "eat")]
 [JsonDerivedType(typeof(SleepIntent), "sleep")]
+[JsonDerivedType(typeof(SetEquipmentIntent), "set-equipment")]
 public abstract record GameIntent;
+
+public sealed record SetEquipmentIntent(EquipmentSlot Slot, ItemId? Item) : GameIntent;
 
 public sealed record CompleteSupperIntent : GameIntent;
 
@@ -195,7 +198,8 @@ public enum GameEventKind
     PlayerHealed,
     PlayerDodged,
     PlayerRescued,
-    PlayerReturnedForRest
+    PlayerReturnedForRest,
+    EquipmentChanged
 }
 
 public enum DialogueTopic

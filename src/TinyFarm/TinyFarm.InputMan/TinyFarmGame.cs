@@ -19,7 +19,7 @@ public enum TinyFarmScreen
 }
 
 /// <summary>Small-game application policy; all world changes go through the simulation host.</summary>
-public sealed class TinyFarmGame
+public sealed partial class TinyFarmGame
 {
     private readonly TinyFarmInputController controls = new();
     private readonly TinyFarmAudioProjector audioProjector = new();
@@ -52,6 +52,7 @@ public sealed class TinyFarmGame
     public string Status { get; private set; } = "A note from Mara: let us make this place feel like home.";
     public bool ShouldQuit { get; private set; }
     public TinyFarmPresentationPreferences Presentation { get; } = new();
+    public TinyFarmMenus Menus { get; } = new();
     public bool CapturesGameplay => Screen != TinyFarmScreen.Playing || Dialogue.IsActive;
     public EffectRuntime Effects { get; private set; } = NewEffects();
     public Queue<AudioCue> PendingAudio { get; } = new();
@@ -83,6 +84,14 @@ public sealed class TinyFarmGame
     public void Handle(InputFrame input)
     {
         Presentation.Handle(input);
+        if (Screen == TinyFarmScreen.Inventory && Menus.SearchFocused)
+        {
+            if (input.WasPressed(GameControls.UiSearchFinish))
+            {
+                Menus.SearchFocused = false;
+            }
+            return;
+        }
         if (input.WasPressed(GameControls.Save) && Screen != TinyFarmScreen.Title)
         {
             BeginSave();
@@ -95,6 +104,11 @@ public sealed class TinyFarmGame
         }
         if (Screen != TinyFarmScreen.Playing && input.WasPressed(GameControls.Quit))
         {
+            if (SaveInProgress || LoadInProgress)
+            {
+                Status = "Wait for the checkpoint operation before quitting.";
+                return;
+            }
             ShouldQuit = true;
             return;
         }
@@ -108,10 +122,7 @@ public sealed class TinyFarmGame
         }
         if (CapturesGameplay)
         {
-            if (input.WasPressed(GameControls.UiConfirm) || input.WasPressed(GameControls.UiCancel))
-            {
-                Start();
-            }
+            HandleMenuInput(input);
             return;
         }
         foreach (TinyFarmInputCommand command in controls.Map(input))
@@ -126,9 +137,11 @@ public sealed class TinyFarmGame
                     break;
                 case TogglePauseCommand:
                     Screen = TinyFarmScreen.Paused;
+                    Menus.Confirmation = null;
+                    MenuSaveAvailable = HasSave;
                     break;
                 case ToggleInventoryCommand:
-                    Screen = TinyFarmScreen.Inventory;
+                    OpenInventory(false);
                     break;
             }
             if (CapturesGameplay)
@@ -232,6 +245,8 @@ public sealed class TinyFarmGame
             Status = result.Status == IntentResultStatus.Rejected ? result.Reason switch
             {
                 IntentReason.MissingIngredient => "Broth needs one turnip. Harvest the cream bulb in your garden.",
+                IntentReason.WrongWeapon or IntentReason.MissingSword => "Equip your sword in I / Equipment before striking. Finish an active dodge first.",
+                IntentReason.MissingAxe => "Equip your axe in I / Equipment, then use tool 3 beside a tree.",
                 IntentReason.WrongLocation => intent is SleepIntent ? "Rest beside your bed at home."
                     : "This road is closed for now. Follow the woodland path east.",
                 _ => "Move closer and face the object. E interacts; K uses your selected tool."
@@ -302,6 +317,7 @@ public sealed class TinyFarmGame
             pendingSave = null;
             earlierSave?.GetAwaiter().GetResult();
             Persistence.Deliverance.SaveAsync(SaveSlot, Persistence.CaptureSave(SaveSlot)).GetAwaiter().GetResult();
+            MenuSaveAvailable = true;
             Status = State.Slice is not null
                 ? "Saved. N continues your garden and adventure from here."
                 : "Saved. Your supper, world, and conversation are safe. N continues from here.";
@@ -398,6 +414,7 @@ public sealed class TinyFarmGame
             try
             {
                 pendingSave.GetAwaiter().GetResult();
+                MenuSaveAvailable = true;
                 Status = "Saved. Your supper, world, and conversation are safe. N continues from here.";
             }
             catch (Exception error) when (error is not OutOfMemoryException)

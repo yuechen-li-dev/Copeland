@@ -1,0 +1,51 @@
+{
+  "outcome": "A: native inventory, equipment and pause/save menu work",
+  "device": "NVIDIA GeForce RTX 3070",
+  "width": 1600,
+  "height": 1000,
+  "pointerQualified": true,
+  "textSearchQualified": true,
+  "keyboardQualified": true,
+  "menuFreezesWorld": true,
+  "equipmentAffectsSword": true,
+  "saveLoadRestoresEquipment": true,
+  "resizeQualified": true,
+  "captures": [
+    "inventory-1080p.png",
+    "equipment-1080p.png",
+    "inventory-filter.png",
+    "pause-1080p.png",
+    "load-confirmation.png",
+    "inventory-1440p.png",
+    "inventory-1600x1000.png",
+    "inventory-hud-hidden.png"
+  ],
+  "uiRebuilds": 28,
+  "dynamicTextureUploads": 0,
+  "reflectionSerializationDisabled": true,
+  "performance": [
+    {
+      "width": 1920,
+      "height": 1080,
+      "frames": 120,
+      "p50Milliseconds": 7.0172,
+      "p95Milliseconds": 8.0161,
+      "p99Milliseconds": 8.4804,
+      "drawsPerFrame": 511,
+      "uiRebuilds": 0,
+      "uiTextureUploads": 0
+    },
+    {
+      "width": 2560,
+      "height": 1440,
+      "frames": 120,
+      "p50Milliseconds": 6.9452,
+      "p95Milliseconds": 8.072,
+      "p99Milliseconds": 8.5553,
+      "drawsPerFrame": 485,
+      "uiRebuilds": 0,
+      "uiTextureUploads": 0
+    }
+  ],
+  "semanticHash": "4078301e15ad3947504ed327283b21c597e0de817f3688b1027cc61becbae834:008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e"
+}

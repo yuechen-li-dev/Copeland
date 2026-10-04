@@ -1,0 +1,96 @@
+{
+  "task": "TinyFarm PC inventory/equipment and pause/save menus",
+  "outcome": "Success",
+  "baseCommit": "f97ceb0229c89488eb6ee6a44d30dc48d6a19ab3",
+  "report": "docs/milestones/tinyfarm-inventory-equipment-ui-report.md",
+  "nativeRenderer": "Aurelian Vulkan",
+  "semanticOwner": "TinyFarm.Core",
+  "uiAuthoring": "Machina.UI",
+  "notebookReuse": "Existing table layout policy shared; standalone still CPU/Avalonia in this checkout",
+  "sunkillReuse": "StandardUI.Button and Machina action/hit-test path",
+  "inventoryTableQualified": true,
+  "equipmentQualified": true,
+  "pauseSaveLoadQualified": true,
+  "resizeQualified": true,
+  "reflectionDisabledRuntimeQualified": true,
+  "craftingScreenAdded": false,
+  "approvedArtReplaced": false,
+  "nativeProof": "native-proof.json",
+  "validation": "validation.json",
+  "captures": [
+    "inventory-1080p.png",
+    "equipment-1080p.png",
+    "inventory-filter.png",
+    "pause-1080p.png",
+    "load-confirmation.png",
+    "inventory-1440p.png",
+    "inventory-1600x1000.png",
+    "inventory-hud-hidden.png"
+  ],
+  "codeDiff": {
+    "modifiedFiles": 25,
+    "newFiles": 10,
+    "trackedInsertions": 343,
+    "trackedDeletions": 43,
+    "newSourceLines": 1298,
+    "totalInsertionsIncludingNewSources": 1641,
+    "scope": "src and tests only; documentation and artifacts excluded"
+  },
+  "files": [
+    {
+      "name": ".gitignore",
+      "bytes": 8,
+      "sha256": "7d9fed7c2d3172f3904307a68eeb5e29d7d2d305f87dba2171951760e6a31cfd"
+    },
+    {
+      "name": "equipment-1080p.png",
+      "bytes": 846181,
+      "sha256": "1653698da34059eaf4e29e510b878b2ce80f98c2771b353cc1c7e6089f122d36"
+    },
+    {
+      "name": "inventory-1080p.png",
+      "bytes": 838201,
+      "sha256": "366cc2c2369270794e07675f776c4a2ab9db98719b30a08e7b86330868901772"
+    },
+    {
+      "name": "inventory-1440p.png",
+      "bytes": 1286926,
+      "sha256": "ba5325f48189e7ab780d6c5a8b7551444291285130e4d7b1d8ee05b84357aef0"
+    },
+    {
+      "name": "inventory-1600x1000.png",
+      "bytes": 935430,
+      "sha256": "aaef26b1db2b69df0d518282d2e14a416baf43a72e671a95f0dcb00352022bd7"
+    },
+    {
+      "name": "inventory-filter.png",
+      "bytes": 843470,
+      "sha256": "9f6c5de5a39671332d50a2ed9e9415c7514666c06a2d782569bcd4977704265d"
+    },
+    {
+      "name": "inventory-hud-hidden.png",
+      "bytes": 836002,
+      "sha256": "c7e7e1b50223c8a8fdf9590ee29452aca95f3dba2403c240ea87e997570df4e6"
+    },
+    {
+      "name": "load-confirmation.png",
+      "bytes": 1801710,
+      "sha256": "3df0726af571f342c8db89578329d611931a25b4d709a35802f54946d8d31edb"
+    },
+    {
+      "name": "native-proof.json",
+      "bytes": 1431,
+      "sha256": "2ac41643bf053b3aa5f6f50920696210af3255144c79d3cb81ac335f40dffd46"
+    },
+    {
+      "name": "pause-1080p.png",
+      "bytes": 1773967,
+      "sha256": "4dd23c84ac3f12ec0f8b8276da2fdccb8b4c52d5e5d4666894e8cf2730b5eca5"
+    },
+    {
+      "name": "validation.json",
+      "bytes": 2915,
+      "sha256": "0788ab670f7abea7fe680745370173c435d978bb2a8dab02420d701eaccc5daa"
+    }
+  ]
+}

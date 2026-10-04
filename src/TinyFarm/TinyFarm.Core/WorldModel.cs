@@ -364,6 +364,7 @@ public sealed class TinyFarmState
     public const int WoodcuttingSaveVersion = 9;
     public const int DungeonCombatSaveVersion = 10;
     public const int SliceSaveVersion = 11;
+    public const int EquipmentSaveVersion = 12;
 
     [JsonConstructor]
     public TinyFarmState(
@@ -383,7 +384,8 @@ public sealed class TinyFarmState
         IReadOnlyList<ForageNodeState>? forageNodes = null,
         IReadOnlyList<TreeState>? trees = null,
         IReadOnlyList<EnemyState>? enemies = null,
-        TinyFarmSliceState? slice = null)
+        TinyFarmSliceState? slice = null,
+        TinyFarmEquipment? equipment = null)
     {
         Version = version;
         Minute = minute;
@@ -402,12 +404,13 @@ public sealed class TinyFarmState
         this.trees = trees?.ToList() ?? [];
         this.enemies = enemies?.ToList() ?? [];
         Slice = slice;
+        Equipment = equipment;
         actorIndex = BuildActorIndex(this.actors);
         actorSceneIndex = BuildActorSceneIndex(this.actorScenes);
         actorEnergyIndex = BuildActorEnergyIndex(this.actorEnergy);
     }
 
-    public int Version { get; }
+    public int Version { get; internal set; }
     public int Minute { get; internal set; }
     public int Day => Minute / 1440 + 1;
     public IReadOnlyList<ActorState> Actors => actors;
@@ -426,6 +429,8 @@ public sealed class TinyFarmState
     public IReadOnlyList<EnemyState> Enemies => enemies;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public TinyFarmSliceState? Slice { get; internal set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public TinyFarmEquipment? Equipment { get; internal set; }
     public SceneId? CurrentScene => actorScenes.SingleOrDefault(item => item.Actor == TinyFarmIds.Player)?.Scene;
     internal List<ActorState> MutableActors => actors;
     internal List<ItemState> MutableItems => items;
@@ -486,7 +491,8 @@ public sealed class TinyFarmState
             ForageNodes.ToList(),
             Trees.ToList(),
             Enemies.ToList(),
-            Slice);
+            Slice,
+            Equipment);
     }
 
     private static Dictionary<ActorId, int> BuildActorIndex(IReadOnlyList<ActorState> values)

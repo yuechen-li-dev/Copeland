@@ -363,6 +363,7 @@ public static class TinyFarmSemanticReplay
                 && replayIntent.Actor == TinyFarmIds.Player
                 && replayIntent.Intent is UseSelectedIntent
                 && state.SelectedHotbarSlot == 4
+                && TinyFarmEquipmentRules.IsEquipped(state, TinyFarmIds.Sword)
                 && state.Actor(TinyFarmIds.Player).Inventory.Contains(TinyFarmIds.Sword)
                 && state.Items.Any(item =>
                     item.Id == TinyFarmIds.Sword

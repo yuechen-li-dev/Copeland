@@ -30,7 +30,10 @@ public enum LayerKey
     Number5,
     Number6,
     Number7,
-    Number8
+    Number8,
+    Backspace,
+    Delete,
+    Tab
 }
 
 public sealed record LayerPointerMoved(LayerPoint Position, LayerPoint? PreviousPosition = null) : LayerInputEvent;

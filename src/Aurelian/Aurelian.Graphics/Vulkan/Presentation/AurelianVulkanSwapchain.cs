@@ -234,6 +234,13 @@ public sealed class AurelianVulkanSwapchain : IDisposable
 
         disposed = true;
 
+        if (plant.Device.Handle != 0)
+        {
+            // A completed rendering/copy fence does not prove vkQueuePresentKHR has released these images.
+            // Resize and shutdown must drain presentation before destroying its semaphores or swapchain.
+            _ = plant.Vk.DeviceWaitIdle(plant.Device);
+        }
+
         semaphoreSet.Dispose();
 
         foreach (ImageView imageView in imageViews)

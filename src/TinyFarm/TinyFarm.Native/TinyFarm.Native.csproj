@@ -19,6 +19,7 @@
     <ProjectReference Include="../../Integrations/Aurelian.Audio.NAudio/Aurelian.Audio.NAudio.csproj" />
     <ProjectReference Include="../../Integrations/InputMan.Aurelian/InputMan.Aurelian.csproj" />
     <ProjectReference Include="../../Machina.UI/Machina.Pipeline/Machina.Pipeline.csproj" />
+    <ProjectReference Include="../../Machina.UI/Machina.Standard/Machina.Standard.csproj" />
     <ProjectReference Include="../../Machina.UI/Machina.Fonts/Machina.Fonts.csproj" />
     <ProjectReference Include="../../Copeland/Copeland.TS/Copeland.TS.csproj" />
     <ProjectReference Include="../TinyFarm.InputMan/TinyFarm.InputMan.csproj" />

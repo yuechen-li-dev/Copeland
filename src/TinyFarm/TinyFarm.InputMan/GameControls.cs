@@ -22,6 +22,11 @@ public static class GameControls
     public static readonly ActionId ToggleInventory = new("ToggleInventory");
     public static readonly ActionId UiConfirm = new("UI.Confirm");
     public static readonly ActionId UiCancel = new("UI.Cancel");
+    public static readonly ActionId UiUp = new("UI.Up");
+    public static readonly ActionId UiDown = new("UI.Down");
+    public static readonly ActionId UiLeft = new("UI.Left");
+    public static readonly ActionId UiRight = new("UI.Right");
+    public static readonly ActionId UiSearchFinish = new("UI.SearchFinish");
     public static readonly ActionId Hotbar1 = new("Hotbar1");
     public static readonly ActionId Hotbar2 = new("Hotbar2");
     public static readonly ActionId Hotbar3 = new("Hotbar3");
@@ -109,7 +114,17 @@ public static class GameControls
                     Ui,
                     100,
                     [
+                        Bind.Action(Controls.Key(KeyboardKey.Enter), UiSearchFinish, consume: ConsumeMode.None),
+                        Bind.Action(Controls.Key(KeyboardKey.Escape), UiSearchFinish, consume: ConsumeMode.None),
                         Bind.Action(Controls.Key(KeyboardKey.Enter), UiConfirm),
+                        Bind.Action(Controls.Key(KeyboardKey.ArrowUp), UiUp),
+                        Bind.Action(Controls.Key(KeyboardKey.ArrowDown), UiDown),
+                        Bind.Action(Controls.Key(KeyboardKey.ArrowLeft), UiLeft),
+                        Bind.Action(Controls.Key(KeyboardKey.ArrowRight), UiRight),
+                        Bind.Action(Controls.Gamepad(GamepadButton.DpadUp), UiUp),
+                        Bind.Action(Controls.Gamepad(GamepadButton.DpadDown), UiDown),
+                        Bind.Action(Controls.Gamepad(GamepadButton.DpadLeft), UiLeft),
+                        Bind.Action(Controls.Gamepad(GamepadButton.DpadRight), UiRight),
                         Bind.Action(Controls.Key(KeyboardKey.I), UiCancel),
                         Bind.Action(Controls.Key(KeyboardKey.E), UiConfirm, consume: ConsumeMode.ControlOnly, name: "Confirm.Keyboard"),
                         Bind.Action(Controls.Gamepad(GamepadButton.South), UiConfirm, consume: ConsumeMode.ControlOnly, name: "Confirm.Gamepad"),

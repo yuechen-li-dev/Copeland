@@ -65,12 +65,14 @@ public sealed class SilkInputBridge : IDisposable
     {
         keyboard.KeyDown += OnKeyDown;
         keyboard.KeyUp += OnKeyUp;
+        keyboard.KeyChar += OnKeyChar;
     }
 
     private void Detach(SilkKeyboard keyboard)
     {
         keyboard.KeyDown -= OnKeyDown;
         keyboard.KeyUp -= OnKeyUp;
+        keyboard.KeyChar -= OnKeyChar;
     }
 
     private void Attach(SilkMouse mouse)
@@ -112,10 +114,28 @@ public sealed class SilkInputBridge : IDisposable
 
     private void OnKeyDown(SilkKeyboard keyboard, SilkKey key, int scanCode)
     {
+        if (key is SilkKey.Backspace or SilkKey.Tab or SilkKey.Delete)
+        {
+            LayerKey editingKey = key switch
+            {
+                SilkKey.Backspace => LayerKey.Backspace,
+                SilkKey.Tab => LayerKey.Tab,
+                _ => LayerKey.Delete
+            };
+            routeInput?.Invoke(new LayerKeyChanged(editingKey, true));
+        }
         if (TryMapKey(key, out KeyboardKey mapped))
         {
             routeInput?.Invoke(adapter.ToLayerEvent(mapped, pressed: true));
             adapter.RecordButton(Controls.Key(mapped), true);
+        }
+    }
+
+    private void OnKeyChar(SilkKeyboard keyboard, char character)
+    {
+        if (!char.IsControl(character))
+        {
+            routeInput?.Invoke(new LayerTextEntered(character.ToString()));
         }
     }
 

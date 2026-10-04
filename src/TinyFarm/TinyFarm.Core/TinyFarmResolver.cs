@@ -89,6 +89,7 @@ public sealed partial class TinyFarmResolver
 
         return envelope.Intent switch
         {
+            SetEquipmentIntent equip => ResolveEquipment(state, actor, envelope, equip),
             SliceTickIntent => ResolveSliceTick(state, envelope),
             SwordIntent => ResolveSliceSword(state, envelope),
             DodgeIntent dodge => ResolveSliceDodge(state, envelope, dodge),
@@ -1035,7 +1036,7 @@ public sealed partial class TinyFarmResolver
         {
             return Rejected(envelope, IntentReason.WrongTargetKind);
         }
-        if (!OwnsItem(state, actor, TinyFarmIds.Axe))
+        if (!TinyFarmEquipmentRules.IsEquipped(state, TinyFarmIds.Axe))
         {
             return Rejected(envelope, IntentReason.MissingAxe);
         }
@@ -1104,7 +1105,7 @@ public sealed partial class TinyFarmResolver
         {
             return Rejected(envelope, IntentReason.WrongTargetKind);
         }
-        if (!OwnsItem(state, actor, TinyFarmIds.Sword))
+        if (!TinyFarmEquipmentRules.IsEquipped(state, TinyFarmIds.Sword))
         {
             return Rejected(envelope, IntentReason.MissingSword);
         }
@@ -1565,6 +1566,14 @@ public sealed partial class TinyFarmResolver
             throw new InvalidOperationException($"Unknown actor '{replacement.Id}'.");
         }
         state.MutableActors[index] = replacement;
+        if (replacement.IsPlayer && state.Equipment is TinyFarmEquipment equipment)
+        {
+            state.Equipment = equipment with
+            {
+                Weapon = equipment.Weapon is ItemId weapon && replacement.Inventory.Contains(weapon) ? weapon : null,
+                Tool = equipment.Tool is ItemId tool && replacement.Inventory.Contains(tool) ? tool : null
+            };
+        }
     }
 
     private static void ReplaceActorScene(TinyFarmState state, ActorSceneState replacement)

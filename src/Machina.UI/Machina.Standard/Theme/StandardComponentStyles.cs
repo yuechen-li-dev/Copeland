@@ -11,7 +11,8 @@ public sealed record StandardButtonStyle(
     TextStyle TextStyle,
     double Width,
     double Height,
-    double CornerRadius = 0);
+    double CornerRadius = 0,
+    double HorizontalPadding = 0);
 
 public sealed record StandardButtonStyles(
     StandardButtonStyle Default,

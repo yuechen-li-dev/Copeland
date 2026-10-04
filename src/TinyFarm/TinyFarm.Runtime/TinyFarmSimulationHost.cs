@@ -173,7 +173,9 @@ public sealed class TinyFarmSimulationHost
             }
         }
         bool evaluateNpcDecisions = intent is not SpatialMoveIntent
-            and not SelectHotbarSlotIntent;
+            and not SelectHotbarSlotIntent
+            and not SetEquipmentIntent
+            and not EatIntent;
         return Session.Step(intent, evaluateNpcDecisions);
     }
 

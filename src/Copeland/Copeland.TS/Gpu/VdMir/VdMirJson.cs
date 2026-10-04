@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Copeland.TS.Gpu.VdMir;
 
@@ -31,5 +32,11 @@ public static class VdMirJson
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true,
+        TypeInfoResolver = VdMirJsonContext.Default,
     };
 }
+
+[JsonSerializable(typeof(VdMirComputeModule))]
+[JsonSerializable(typeof(VdMirGraphicsModule))]
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, WriteIndented = true)]
+internal partial class VdMirJsonContext : JsonSerializerContext;

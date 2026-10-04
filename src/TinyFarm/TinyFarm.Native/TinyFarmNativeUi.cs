@@ -5,6 +5,7 @@ using Machina.Core.Semantics;
 using Machina.Core.Styling;
 using Machina.Pipeline;
 using Machina.Presentation;
+using Machina.Runtime.Input;
 using TinyFarm.Core;
 using TinyFarm.InputMan;
 
@@ -14,6 +15,9 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
 {
     private TinyFarmUiKey? key;
     private MachinaPresentationFrame? resource;
+    private MachinaPreparedPresentation? prepared;
+    private string? pressedAction;
+    private TinyFarmScreen pressedScreen;
     private string? clockKey;
     private MachinaPresentationFrame? clockResource;
     private string? promptKey;
@@ -22,6 +26,10 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
 
     public MachinaPresentationFrame Resource(TinyFarmFrame frame)
     {
+        if (game.Screen == TinyFarmScreen.Inventory)
+        {
+            game.Menus.Rows(game.State, game.Definitions);
+        }
         TinyFarmUiKey next = CreateKey(frame);
         if (key == next && resource is not null)
         {
@@ -29,8 +37,41 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
         }
         key = next;
         Rebuilds++;
-        resource = Prepare(Build(frame), 1280, 720);
+        prepared = new MachinaPresentationPipeline().Prepare(Build(frame), 1280, 720);
+        resource = prepared.PresentationFrame;
         return resource;
+    }
+
+    public void Pointer(TinyFarmFrame frame, PointerPoint point, bool down)
+    {
+        Resource(frame);
+        UiHitTestResult? hit = prepared!.HitTest.HitTest(point);
+        string? action = hit?.Semantics?.Disabled == true ? null : hit?.Action.Name;
+        if (down)
+        {
+            pressedAction = action;
+            pressedScreen = game.Screen;
+            return;
+        }
+        string? pressed = pressedAction;
+        pressedAction = null;
+        if (pressed is not null && action == pressed && game.Screen == pressedScreen)
+        {
+            game.DispatchMenu(action);
+        }
+    }
+
+    public void ResetPointer()
+    {
+        pressedAction = null;
+    }
+
+    public PointerPoint ActionCenter(TinyFarmFrame frame, string action)
+    {
+        Resource(frame);
+        var entry = prepared!.Lowering.Actions.First(pair => pair.Value.Name == action);
+        var rect = prepared.Resolved.Nodes[entry.Key].Rect;
+        return new PointerPoint(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
     }
 
     public TinyFarmUiResources Resources(TinyFarmFrame frame)
@@ -162,11 +203,19 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
             game.Dialogue.SelectedChoiceIndex,
             inventoryHash.ToHashCode(),
             game.State.Slice?.Health ?? 0,
-            game.State.Slice?.LoopComplete ?? false);
+            game.State.Slice?.LoopComplete ?? false,
+            game.Menus.CacheKey,
+            game.State.Equipment,
+            game.SaveInProgress || game.LoadInProgress,
+            game.MenuSaveAvailable);
     }
 
     private UiNode Build(TinyFarmFrame frame)
     {
+        if (game.Screen is TinyFarmScreen.Inventory or TinyFarmScreen.Paused)
+        {
+            return TinyFarmMenuPresentation.Build(game);
+        }
         if (game.State.Slice is not null)
         {
             return BuildSlice(frame);
@@ -349,7 +398,11 @@ internal readonly record struct TinyFarmUiKey(
     int DialogueSelectedChoiceIndex,
     int InventoryHash,
     int Health,
-    bool LoopComplete);
+    bool LoopComplete,
+    string MenuState,
+    TinyFarmEquipment? Equipment,
+    bool PersistenceBusy,
+    bool SaveAvailable);
 
 internal readonly record struct TinyFarmUiResources(
     MachinaPresentationFrame Base,

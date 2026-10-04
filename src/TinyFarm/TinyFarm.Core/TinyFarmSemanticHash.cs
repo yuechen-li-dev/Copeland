@@ -9,6 +9,11 @@ public static class TinyFarmSemanticHash
     {
         ArgumentNullException.ThrowIfNull(state);
         var canonical = new StringBuilder();
+        if (state.Equipment is TinyFarmEquipment equipment)
+        {
+            canonical.Append("equipment|").Append(equipment.Weapon?.Value ?? "-")
+                .Append('|').Append(equipment.Tool?.Value ?? "-").AppendLine();
+        }
         canonical.Append("v=").Append(state.Version)
             .Append(";minute=").Append(state.Minute)
             .Append(";favor=").Append(state.Favor).AppendLine();

@@ -176,6 +176,62 @@ internal sealed class TinyFarmNativeRenderer : IAurelianHostCompositor
     public string Device { get; }
     public NativeLayerFrameResult? Last { get; private set; }
     public int UiRebuilds => ui.Rebuilds;
+    internal void ResetMenuPointer()
+    {
+        ui.ResetPointer();
+    }
+
+    internal void HandleMenuInput(LayerInputEvent input)
+    {
+        if (game.Screen is not TinyFarmScreen.Inventory and not TinyFarmScreen.Paused)
+        {
+            ui.ResetPointer();
+            return;
+        }
+        switch (input)
+        {
+            case LayerTextEntered text:
+                game.EnterMenuText(text.Text);
+                break;
+            case LayerKeyChanged { IsPressed: true, Key: LayerKey.Backspace }:
+                game.EditMenuSearch(false);
+                break;
+            case LayerKeyChanged { IsPressed: true, Key: LayerKey.Delete }:
+                game.EditMenuSearch(true);
+                break;
+            case LayerKeyChanged { IsPressed: true, Key: LayerKey.Tab } when game.Screen == TinyFarmScreen.Inventory:
+                game.Menus.SearchFocused = !game.Menus.SearchFocused;
+                break;
+            case LayerPointerButtonChanged { Button: LayerPointerButton.Primary } pointer:
+                ui.Pointer(TinyFarmFrameProjector.Project(game.State, game.Definitions),
+                    ToMenuPoint(pointer.Position), pointer.IsPressed);
+                break;
+            case LayerPointerWheel wheel when game.Screen == TinyFarmScreen.Inventory:
+                var point = ToMenuPoint(wheel.Position);
+                if (point.X >= 234 && point.X < 854 && point.Y >= 218 && point.Y < 594)
+                {
+                    int count = game.Menus.Rows(game.State, game.Definitions).Count;
+                    game.Menus.Scroll(-Math.Sign(wheel.DeltaY) * 3, count);
+                }
+                break;
+        }
+    }
+
+    private Machina.Runtime.Input.PointerPoint ToMenuPoint(LayerPoint point)
+    {
+        // Silk mouse coordinates are client units; Vulkan uses physical framebuffer pixels.
+        double x = point.X * Layout.Width / window.NativeWindow.Size.X;
+        double y = point.Y * Layout.Height / window.NativeWindow.Size.Y;
+        return new Machina.Runtime.Input.PointerPoint((x - Layout.UiLeft) / Layout.UiScale,
+            (y - Layout.UiTop) / Layout.UiScale);
+    }
+
+    internal LayerPoint MenuActionCenter(string action)
+    {
+        var point = ui.ActionCenter(TinyFarmFrameProjector.Project(game.State, game.Definitions), action);
+        return new LayerPoint((Layout.UiLeft + point.X * Layout.UiScale) * window.NativeWindow.Size.X / Layout.Width,
+            (Layout.UiTop + point.Y * Layout.UiScale) * window.NativeWindow.Size.Y / Layout.Height);
+    }
     public int ShaderQuads => world.ShaderQuads;
     private TinyFarmNativeOverlay Overlay { get; }
     public long WorldAllocatedBytes => world.AllocatedBytes;
@@ -244,7 +300,7 @@ internal sealed class TinyFarmNativeRenderer : IAurelianHostCompositor
         {
             return;
         }
-        // All native submissions finish synchronously. Retarget retained resources only after presentation stops.
+        // The swapchain owner drains queued presentation before releasing its images.
         swapchainPresenter.Dispose();
         swapchain.Dispose();
         surface.Dispose();
@@ -1405,9 +1461,12 @@ internal sealed class TinyFarmNativeOverlay(
         TinyFarmUiResources current = presentation();
         UpdateRealization(current);
 
-        if (game.Presentation.HudVisible)
+        if (game.Presentation.HudVisible || game.Screen is TinyFarmScreen.Inventory or TinyFarmScreen.Paused)
         {
             PresentSegment(context, baseSegments.Base, includeProfile: getLayout().Legacy);
+        }
+        if (game.Presentation.HudVisible)
+        {
             PresentSegment(context, clockSegments.Base);
         }
         PresentSegment(context, baseSegments.Overlay);

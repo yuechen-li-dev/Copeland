@@ -9,6 +9,20 @@ namespace Copeland.TS.Tests;
 
 public sealed class GpuComputeBinderM1Tests
 {
+    [Fact]
+    public void GeneratedComputeJsonPreservesTheExistingExporterBytes()
+    {
+        VdMirComputeModule module = Compile(ComputeSource, "compute.v.ts");
+        var options = new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+            WriteIndented = true,
+            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver()
+        };
+        string previous = System.Text.Json.JsonSerializer.Serialize(module, options) + Environment.NewLine;
+        Assert.Equal(previous, VdMirJson.Serialize(module));
+    }
+
     private const string ComputeSource = """
         @compute
         @numthreads(8, 1, 1)

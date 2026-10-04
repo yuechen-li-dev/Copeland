@@ -27,8 +27,8 @@ public static class StandardButton
                 alignY: labelTextStyle.AlignY,
                 style: labelTextStyle),
             id: CreateChildId(id, "label-region"),
-            left: 0,
-            right: 0,
+            left: effectiveStyle.HorizontalPadding,
+            right: effectiveStyle.HorizontalPadding,
             top: 0,
             bottom: 0);
 

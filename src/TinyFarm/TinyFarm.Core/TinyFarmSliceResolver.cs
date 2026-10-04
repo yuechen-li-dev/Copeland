@@ -12,7 +12,7 @@ public sealed partial class TinyFarmResolver
     private IntentResult ResolveSliceSword(TinyFarmState state, IntentEnvelope envelope)
     {
         if (state.Slice is not TinyFarmSliceState slice || slice.DodgeTicks > 0
-            || envelope.Actor != TinyFarmIds.Player || !OwnsItem(state, state.Actor(envelope.Actor), TinyFarmIds.Sword))
+            || envelope.Actor != TinyFarmIds.Player || !TinyFarmEquipmentRules.IsEquipped(state, TinyFarmIds.Sword))
         {
             return NoOp(envelope, IntentReason.WrongWeapon);
         }

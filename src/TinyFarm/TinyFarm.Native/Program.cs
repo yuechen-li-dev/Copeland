@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Aurelian.Audio;
 using Aurelian.Audio.NAudio;
 using Aurelian.GameHost;
+using Aurelian.Composition;
 using Deliverance.Core.Storage;
 using InputMan.Aurelian;
 using InputMan.Core;
@@ -24,20 +25,25 @@ internal static class Program
         string root = FindRoot();
         int soakFrames = ParseSoakFrames(args);
         bool sliceProof = args.Contains("--slice-proof", StringComparer.Ordinal);
+        bool menusProof = args.Contains("--menus-proof", StringComparer.Ordinal);
         bool m25Proof = args.Contains("--m25-proof", StringComparer.Ordinal);
         bool baseline = args.Contains("--m25-baseline", StringComparer.Ordinal);
         bool m24Proof = args.Contains("--m24-proof", StringComparer.Ordinal);
-        bool proof = args.Contains("--proof", StringComparer.Ordinal) || m24Proof || m25Proof || soakFrames > 0 || sliceProof;
+        bool proof = args.Contains("--proof", StringComparer.Ordinal) || m24Proof || m25Proof || soakFrames > 0 || sliceProof || menusProof;
         string saveRoot = proof ? Path.Combine(root, "artifacts", "validation", "m9-saves")
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TinyFarm", "saves");
+        if (menusProof)
+        {
+            saveRoot = Path.Combine(root, "artifacts", "tinyfarm-ui-subsystems", "saves");
+        }
         try
         {
-            bool opening = sliceProof || !proof && !baseline && !args.Contains("--legacy-supper", StringComparer.Ordinal);
+            bool opening = sliceProof || menusProof || !proof && !baseline && !args.Contains("--legacy-supper", StringComparer.Ordinal);
             var game = new TinyFarmGame(new FileSaveStore(saveRoot), slice: opening);
             var input = new AurelianInputAdapter(new InputManEngine(GameControls.CreateProfile(opening)));
             input.SetContexts(game.Contexts);
-            int width = ParseDimension(args, "--width", baseline || proof && !m25Proof && !sliceProof ? 1280 : 1920);
-            int height = ParseDimension(args, "--height", baseline || proof && !m25Proof && !sliceProof ? 720 : 1080);
+            int width = ParseDimension(args, "--width", baseline || proof && !m25Proof && !sliceProof && !menusProof ? 1280 : 1920);
+            int height = ParseDimension(args, "--height", baseline || proof && !m25Proof && !sliceProof && !menusProof ? 720 : 1080);
             game.Presentation.HudVisible = !args.Contains("--world-only", StringComparer.Ordinal);
             if (!game.Presentation.HudVisible)
             {
@@ -72,9 +78,14 @@ internal static class Program
             var audio = new AurelianAudioRuntime(resources, backend, voiceCapacity: 16);
             audio.SetBusVolume(AudioBusId.Master, .35f);
             audio.Play(new TinyFarmAudioProjector().FarmMusic(new AudioEventId("tinyfarm:music")) with { Priority = 100 });
-            var renderer = new TinyFarmNativeRenderer(root, game, window, proof, vSync: soakFrames == 0 && !m25Proof && !sliceProof, legacy: baseline || proof && !m25Proof && !sliceProof);
-            var application = new TinyFarmNativeApplication(game, input, window, audio);
+            var renderer = new TinyFarmNativeRenderer(root, game, window, proof, vSync: soakFrames == 0 && !m25Proof && !sliceProof, legacy: baseline || proof && !m25Proof && !sliceProof && !menusProof);
+            var application = new TinyFarmNativeApplication(game, input, window, audio, renderer);
             using var host = new AurelianGameHost(window, input, renderer, application, "TinyFarm", audio);
+            if (menusProof)
+            {
+                TinyFarmMenuNativeProof.Run(root, game, window, renderer, host);
+                return 0;
+            }
             if (sliceProof)
             {
                 TinyFarmSliceNativeProof.Run(root, game, input, window, renderer, host);
@@ -151,7 +162,7 @@ internal static class Program
         }
         catch (Exception error)
         {
-            string path = Path.Combine(root, "artifacts", "m9-error.txt");
+            string path = Path.Combine(root, "artifacts", menusProof ? "tinyfarm-menu-error.txt" : "m9-error.txt");
             File.WriteAllText(path, error.ToString());
             if (!proof)
             {
@@ -211,7 +222,7 @@ internal static class Program
 }
 
 internal sealed class TinyFarmNativeApplication(TinyFarmGame game, AurelianInputAdapter input,
-    TinyFarmNativeWindow window, AurelianAudioRuntime audio) : IAurelianGameApplication
+    TinyFarmNativeWindow window, AurelianAudioRuntime audio, TinyFarmNativeRenderer renderer) : IAurelianGameApplication
 {
     public void OnResize(HostSurfaceSize size) { }
     public void OnSimulationTick(AurelianHostFrame frame)
@@ -219,6 +230,18 @@ internal sealed class TinyFarmNativeApplication(TinyFarmGame game, AurelianInput
         string? dialogueBefore = game.Dialogue.Presentation?.OperationId;
         TinyFarmScreen screenBefore = game.Screen;
         int feedbackEpoch = game.FeedbackEpoch;
+        while (window.MenuInput.TryDequeue(out LayerInputEvent? menuInput))
+        {
+            if (window.IsFocused)
+            {
+                renderer.HandleMenuInput(menuInput);
+            }
+        }
+        if (!window.IsFocused)
+        {
+            renderer.ResetMenuPointer();
+            game.Menus.SearchFocused = false;
+        }
         game.Handle(input.CurrentFrame);
         if (dialogueBefore != game.Dialogue.Presentation?.OperationId || screenBefore != game.Screen)
         {
@@ -263,7 +286,8 @@ internal sealed class TinyFarmNativeWindow : IAurelianGameWindow
         SilkInputBridge inputBridge,
         AurelianInputAdapter input,
         bool proof,
-        IReadOnlyList<string> requiredVulkanInstanceExtensions)
+        IReadOnlyList<string> requiredVulkanInstanceExtensions,
+        Queue<LayerInputEvent> menuInput)
     {
         this.window = window;
         this.inputContext = inputContext;
@@ -272,6 +296,7 @@ internal sealed class TinyFarmNativeWindow : IAurelianGameWindow
         this.proof = proof;
         focused = proof;
         RequiredVulkanInstanceExtensions = requiredVulkanInstanceExtensions;
+        MenuInput = menuInput;
         window.FramebufferResize += OnResize;
         window.FocusChanged += OnFocusChanged;
     }
@@ -295,11 +320,17 @@ internal sealed class TinyFarmNativeWindow : IAurelianGameWindow
         }
         IReadOnlyList<string> requiredExtensions = ReadRequiredVulkanExtensions(window);
         IInputContext inputContext = window.CreateInput();
-        var inputBridge = new SilkInputBridge(inputContext, input);
-        return new TinyFarmNativeWindow(window, inputContext, inputBridge, input, proof, requiredExtensions);
+        var menuInput = new Queue<LayerInputEvent>();
+        var inputBridge = new SilkInputBridge(inputContext, input, layerEvent =>
+        {
+            menuInput.Enqueue(layerEvent);
+            return new LayerInputRoutingResult(false, null, null, null, []);
+        });
+        return new TinyFarmNativeWindow(window, inputContext, inputBridge, input, proof, requiredExtensions, menuInput);
     }
 
     public IWindow NativeWindow => window;
+    internal Queue<LayerInputEvent> MenuInput { get; }
     public IReadOnlyList<string> RequiredVulkanInstanceExtensions { get; }
     public HostSurfaceSize SurfaceSize => new(window.FramebufferSize.X, window.FramebufferSize.Y);
     public bool IsFocused => proof || focused;
@@ -343,6 +374,10 @@ internal sealed class TinyFarmNativeWindow : IAurelianGameWindow
     private void OnFocusChanged(bool isFocused)
     {
         focused = isFocused;
+        if (!isFocused)
+        {
+            MenuInput.Clear();
+        }
         FocusChanged?.Invoke(isFocused);
     }
 

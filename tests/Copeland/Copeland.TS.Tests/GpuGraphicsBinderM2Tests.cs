@@ -9,6 +9,20 @@ namespace Copeland.TS.Tests;
 
 public sealed class GpuGraphicsBinderM2Tests
 {
+    [Fact]
+    public void GeneratedGraphicsJsonPreservesTheExistingExporterBytes()
+    {
+        VdMirGraphicsModule module = Compile(GraphicsSource);
+        var options = new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+            WriteIndented = true,
+            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver()
+        };
+        string previous = System.Text.Json.JsonSerializer.Serialize(module, options) + Environment.NewLine;
+        Assert.Equal(previous, VdMirJson.Serialize(module));
+    }
+
     private const string GraphicsSource = """
         stream VertexInput {
             @location(0)

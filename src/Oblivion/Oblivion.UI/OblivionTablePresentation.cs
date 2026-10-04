@@ -34,11 +34,11 @@ public static class OblivionTableProjection
 
 public static class OblivionTableLayoutPolicy
 {
-    public const int ColumnWidthSampleSize = 32;
+    public const int ColumnWidthSampleSize = Machina.Core.Authoring.UiTableLayout.WidthSampleSize;
     public const double RowIndexWidth = 56;
     public const double MinimumColumnWidth = 180;
     public const double MaximumColumnWidth = 320;
-    public const double RowHeight = 34;
+    public const double RowHeight = Machina.Core.Authoring.UiTableLayout.RowHeight;
     public const double HeaderHeight = 54;
 
     public static double PreferredTableWidth(TsonTable table)
@@ -62,7 +62,8 @@ public static class OblivionTableLayoutPolicy
                 OblivionTableCellDisplayFormatter.Format(column.Cells[rowIndex]).Length);
         }
 
-        return Math.Clamp(28 + (characters * 7.2), MinimumColumnWidth, MaximumColumnWidth);
+        return Machina.Core.Authoring.UiTableLayout.PreferredColumnWidth(
+            characters, MinimumColumnWidth, MaximumColumnWidth);
     }
 }
 
