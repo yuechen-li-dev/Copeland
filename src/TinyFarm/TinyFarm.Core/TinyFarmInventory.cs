@@ -71,6 +71,10 @@ public static class TinyFarmInventory
                     description = "An authored tool. Its gameplay use is not configured in this opening slice.";
                 }
             }
+            if (item.TeachesRecipe is not null)
+            {
+                description = "Read to learn a cooking recipe. The card is retained.";
+            }
             rows.Add(new TinyFarmInventoryRow("item:" + id.Value, item.Name, category, 1, Math.Max(1, item.Price / 2),
                 owner == TinyFarmIds.Player ? description : "Owned by " + actor.Name + ".",
                 id, null, slot, equipped));
@@ -82,12 +86,16 @@ public static class TinyFarmInventory
             string description = category switch
             {
                 InventoryCategory.Seeds => "Plant with tool 1 + K beside an empty plot. E waters it; sleep at home to grow it.",
-                InventoryCategory.Ingredients => "Bring this ingredient to the house stove. E cooks a recipe when its ingredients are ready.",
+                InventoryCategory.Ingredients => "Bring this ingredient to the house stove.",
                 InventoryCategory.Food when stack.Product.Value == "turnip-broth" => "Warm turnip broth restores 4 health, up to 12. It is consumed only when you need healing.",
                 InventoryCategory.Food => "Food from your kitchen. Keep it for a neighbour or a later adventure.",
                 InventoryCategory.Materials => "Gathered material. Keep it for future crafting; crafting is not part of this menu yet.",
                 _ => "An item in your pockets."
             };
+            if (definition.Food is TinyFarmFoodEffect food)
+            {
+                description = $"Restores {food.HealthRestore} HP and {food.SpiritRestore} SP. Consumed only when either is needed.";
+            }
             rows.Add(new TinyFarmInventoryRow("product:" + stack.Product.Value, definition.Name, category,
                 stack.Count, definition.SellPrice, description, null, stack.Product, null, false));
         }
@@ -104,7 +112,7 @@ public static class TinyFarmInventory
         {
             return InventoryCategory.Materials;
         }
-        if (definitions.CookingRecipes.Any(recipe => recipe.OutputProduct == product))
+        if (definitions.Item(product).Food is not null || definitions.CookingRecipes.Any(recipe => recipe.OutputProduct == product))
         {
             return InventoryCategory.Food;
         }

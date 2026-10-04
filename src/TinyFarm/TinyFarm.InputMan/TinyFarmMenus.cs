@@ -25,9 +25,50 @@ public sealed class TinyFarmMenus
     public int Offset { get; private set; }
     public int PauseSelection { get; private set; }
     public bool InventoryFromPause { get; set; }
+    public bool StatsFromPause { get; set; }
+    public ActorId StatsAgent { get; private set; } = TinyFarmIds.Player;
+    public string StatsGroup { get; private set; } = "Stats";
+    public int StatsOffset { get; private set; }
     public string? Confirmation { get; set; }
 
-    public string CacheKey => $"{Category}|{Sort}|{Descending}|{EquipmentOnly}|{Search}|{SearchFocused}|{SelectedKey}|{Offset}|{PauseSelection}|{Confirmation}";
+    public string CacheKey => $"{Category}|{Sort}|{Descending}|{EquipmentOnly}|{Search}|{SearchFocused}|{SelectedKey}|{Offset}|{PauseSelection}|{Confirmation}|{StatsAgent}|{StatsGroup}|{StatsOffset}";
+
+    public IReadOnlyList<TinyFarmAgentProperty> PropertyRows(TinyFarmState state, TinyFarmDefinitions definitions)
+    {
+        if (!state.Actors.Any(actor => actor.Id == StatsAgent))
+        {
+            StatsAgent = TinyFarmIds.Player;
+        }
+        TinyFarmAgentProperty[] rows = TinyFarmAgentProperties.Project(state, definitions, StatsAgent)
+            .Where(row => StatsGroup == "All" || row.Group == StatsGroup)
+            .Where(row => row.Name.Contains(Search, StringComparison.OrdinalIgnoreCase)
+                || row.Group.Contains(Search, StringComparison.OrdinalIgnoreCase)
+                || row.Value.Contains(Search, StringComparison.OrdinalIgnoreCase)
+                || row.Source.Contains(Search, StringComparison.OrdinalIgnoreCase)).ToArray();
+        StatsOffset = Math.Clamp(StatsOffset, 0, Math.Max(0, rows.Length - PageSize));
+        return rows;
+    }
+
+    public void SetStatsGroup(string group)
+    {
+        StatsGroup = group;
+        StatsOffset = 0;
+    }
+
+    public void ChangeStatsAgent(int delta, TinyFarmState state)
+    {
+        ActorState[] agents = state.Actors.OrderByDescending(actor => actor.IsPlayer)
+            .ThenBy(actor => actor.Id.Value, StringComparer.Ordinal).ToArray();
+        int index = Array.FindIndex(agents, actor => actor.Id == StatsAgent);
+        index = (index + delta + agents.Length) % agents.Length;
+        StatsAgent = agents[index].Id;
+        StatsOffset = 0;
+    }
+
+    public void ScrollStats(int delta, int count)
+    {
+        StatsOffset = Math.Clamp(StatsOffset + delta, 0, Math.Max(0, count - PageSize));
+    }
 
     public IReadOnlyList<TinyFarmInventoryRow> Rows(TinyFarmState state, TinyFarmDefinitions definitions)
     {
@@ -66,6 +107,7 @@ public sealed class TinyFarmMenus
     {
         Search = text.Length > 48 ? text[..48] : text;
         Offset = 0;
+        StatsOffset = 0;
     }
 
     public void SetEquipmentOnly(bool value)
@@ -116,7 +158,7 @@ public sealed class TinyFarmMenus
 
     public void MovePause(int delta)
     {
-        PauseSelection = Math.Clamp(PauseSelection + delta, 0, 4);
+        PauseSelection = Math.Clamp(PauseSelection + delta, 0, TinyFarmGame.PauseActions.Length - 1);
     }
 
     private IOrderedEnumerable<TinyFarmInventoryRow> Order<T>(IEnumerable<TinyFarmInventoryRow> rows,

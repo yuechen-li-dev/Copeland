@@ -10,6 +10,13 @@ public static class TinyFarmAgentExamples
         {
             Money = 5,
             Level = 2,
+            Rpg = TinyFarmRpgProfile.Starter() with
+            {
+                BaseAbilities = new TinyFarmAbilities(Strength: 11, Constitution: 12),
+                Skills = [new TinyFarmSkillProgress(TinyFarmSkill.Farming, 12, 15),
+                    new TinyFarmSkillProgress(TinyFarmSkill.Sword, 4)],
+                Traits = ["green-thumb"]
+            },
             Conditions = ["well-rested"],
             Items = [new TinyFarmAgentItemSeed("hoe", "Ivy's hoe", 4, EquipmentSlot.Tool, Equip: true)],
             Appearance = new TinyFarmAgentAppearance(TinyFarmAgentSprite.Gardener, ScalePercent: 110)

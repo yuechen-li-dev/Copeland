@@ -183,7 +183,7 @@ internal sealed class TinyFarmNativeRenderer : IAurelianHostCompositor
 
     internal void HandleMenuInput(LayerInputEvent input)
     {
-        if (game.Screen is not TinyFarmScreen.Inventory and not TinyFarmScreen.Paused)
+        if (!game.IsModalMenu && game.Screen != TinyFarmScreen.Paused)
         {
             ui.ResetPointer();
             return;
@@ -199,8 +199,16 @@ internal sealed class TinyFarmNativeRenderer : IAurelianHostCompositor
             case LayerKeyChanged { IsPressed: true, Key: LayerKey.Delete }:
                 game.EditMenuSearch(true);
                 break;
-            case LayerKeyChanged { IsPressed: true, Key: LayerKey.Tab } when game.Screen == TinyFarmScreen.Inventory:
+            case LayerKeyChanged { IsPressed: true, Key: LayerKey.Tab } when game.IsAgentMenu:
                 game.Menus.SearchFocused = !game.Menus.SearchFocused;
+                break;
+            case LayerPointerMoved moved when game.Screen == TinyFarmScreen.Stats:
+                ui.ScrollStats(new Machina.Runtime.Input.UiPointerMoved(ToMenuPoint(moved.Position), null,
+                    Machina.Runtime.Input.UiModifiers.None));
+                break;
+            case LayerPointerWheel wheel when game.Screen == TinyFarmScreen.Stats:
+                ui.ScrollStats(new Machina.Runtime.Input.UiPointerWheel(ToMenuPoint(wheel.Position),
+                    wheel.DeltaX, wheel.DeltaY, Machina.Runtime.Input.UiModifiers.None));
                 break;
             case LayerPointerButtonChanged { Button: LayerPointerButton.Primary } pointer:
                 ui.Pointer(TinyFarmFrameProjector.Project(game.State, game.Definitions),
@@ -586,6 +594,7 @@ internal sealed partial class TinyFarmWorldPresenter(
         if (game.State.Slice is not null)
         {
             sliceArt = new TinyFarmSliceArt();
+            linearTextures.Add(painterlyResources.Resolve(sliceArt.Title));
             linearTextures.Add(painterlyResources.Resolve(sliceArt.Gardener));
             linearTextures.Add(painterlyResources.Resolve(sliceArt.Slime));
             linearTextures.Add(painterlyResources.Resolve(sliceArt.Mara));
@@ -618,6 +627,16 @@ internal sealed partial class TinyFarmWorldPresenter(
     {
         long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
         TinyFarmFrame frame = getFrame();
+        if (game.Screen == TinyFarmScreen.Title && sliceArt is not null)
+        {
+            context.Present(painterly, pass => pass.SubmitQuad(new NativeQuadSubmission(
+                new Native2DRect(0, 0, context.TargetWidth, context.TargetHeight),
+                getLayout().CoverUv((int)sliceArt.Title.Width, (int)sliceArt.Title.Height),
+                painterlyResources.Get(sliceArt.Title.Id), Native2DTint.White)));
+            LastSpriteCount = 1;
+            AllocatedBytes += GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+            return;
+        }
         bool cave = frame.ActiveScene == TinyFarmSceneIds.DungeonEntrance;
         bool house = frame.ActiveScene == TinyFarmSceneIds.Residence || frame.ActiveScene == TinyFarmSceneIds.GeneralStore;
         context.Present(shapes, pass =>
@@ -1471,11 +1490,19 @@ internal sealed class TinyFarmNativeOverlay(
         TinyFarmUiResources current = presentation();
         UpdateRealization(current);
 
-        if (game.Presentation.HudVisible || game.Screen is TinyFarmScreen.Inventory or TinyFarmScreen.Paused)
+        if (game.Screen != TinyFarmScreen.Playing && !game.Dialogue.IsActive)
+        {
+            context.Present(shapes, pass => pass.SubmitAnalyticShape(new NativeAnalyticShapeSubmission(
+                new Native2DRect(0, 0, context.TargetWidth, context.TargetHeight),
+                new Native2DSize(context.TargetWidth, context.TargetHeight), Native2DUvRect.Full,
+                NativeAnalyticShapeKind.RoundedRect, new Native2DTint(.04f, .10f, .08f, game.Screen == TinyFarmScreen.Title ? .08f : .6f),
+                0, default, 0)));
+        }
+        if (game.Presentation.HudVisible || game.Screen is TinyFarmScreen.Inventory or TinyFarmScreen.Stats or TinyFarmScreen.Crafting or TinyFarmScreen.Paused or TinyFarmScreen.Title)
         {
             PresentSegment(context, baseSegments.Base, includeProfile: getLayout().Legacy);
         }
-        if (game.Presentation.HudVisible)
+        if (game.Presentation.HudVisible && game.Screen != TinyFarmScreen.Title)
         {
             PresentSegment(context, clockSegments.Base);
         }

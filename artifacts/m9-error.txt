@@ -1,0 +1,9 @@
+System.InvalidOperationException: TinyFarm native UI text 'menu.search.label' contains unsupported glyph U+4E2D.
+   at TinyFarm.Native.TinyFarmNativeUiFont.ValidateCharacters(PositionedTextOperation operation) in /_/src/TinyFarm/TinyFarm.Native/TinyFarmNativeUiFont.cs:line 138
+   at TinyFarm.Native.TinyFarmNativeUiFont.Qualify(PositionedTextOperation operation) in /_/src/TinyFarm/TinyFarm.Native/TinyFarmNativeUiFont.cs:line 71
+   at TinyFarm.Native.TinyFarmNativeOverlay.Realize(MachinaPresentationFrame frame, Single offsetX, Single offsetY, Boolean splitOverlay) in /_/src/TinyFarm/TinyFarm.Native/TinyFarmNativeRenderer.cs:line 1642
+   at TinyFarm.Native.TinyFarmNativeOverlay.Present(NativeLayerFrameContext context) in /_/src/TinyFarm/TinyFarm.Native/TinyFarmNativeRenderer.cs:line 1491
+   at Aurelian.NativeComposition.NativeLayerCompositor.RunFrame(UInt64 frameId, TimeSpan elapsed, Boolean captureReadback) in /_/src/Integrations/Aurelian.NativeComposition/NativeLayerCompositor.cs:line 219
+   at TinyFarm.Native.TinyFarmNativeRenderer.Present(AurelianHostFrame hostFrame) in /_/src/TinyFarm/TinyFarm.Native/TinyFarmNativeRenderer.cs:line 350
+   at Aurelian.GameHost.AurelianGameHost.RunFrame(TimeSpan elapsed) in /_/src/Aurelian/Aurelian.GameHost/AurelianGameHost.cs:line 108
+   at TinyFarm.Native.Program.Main(String[] args) in /_/src/TinyFarm/TinyFarm.Native/Program.cs:line 197

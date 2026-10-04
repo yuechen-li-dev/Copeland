@@ -1,0 +1,88 @@
+{
+  "milestone": "TINYFARM-CRAFTING-GATE-A2",
+  "outcome": "A",
+  "normalLaunchA2": true,
+  "nativeProof": {
+    "outcome": "A: crafting vertical slice qualified",
+    "device": "NVIDIA GeForce RTX 3070",
+    "farmHarvest": true,
+    "saltGathered": true,
+    "experimentDiscovery": true,
+    "exhaustion": true,
+    "foodSpiritRecovery": true,
+    "modifierCraft": true,
+    "inputMaps": true,
+    "saveLoad": true,
+    "reflectionDisabled": true,
+    "semanticHash": "f164d17640d25331679053cac11ea4450f94a17fd871dd7c5c2fb83af0df6df4"
+  },
+  "tests": {
+    "tinyFarm": 411,
+    "spatial2D": 27,
+    "focusedA2": 18,
+    "a1A2ReflectionDisabled": 31
+  },
+  "captures": [
+    {
+      "file": "cooking-practice-1440p.png",
+      "sha256": "8275e3f2cb638f3f74e7573377b705672ccac8b0d1ba3d9df685b268d2b0d98d",
+      "bytes": 375440
+    },
+    {
+      "file": "exhausted-at-stove.png",
+      "sha256": "6a36e031992cbe07b45e3e3ff34d3bb41c28b9c7cf6f18823dbff10cdfde8c1c",
+      "bytes": 255695
+    },
+    {
+      "file": "farm-ingredients.png",
+      "sha256": "97e1388db87a5149c069f303790e840e2d8700bbdfd1dbe8babb6cdfbdaf922d",
+      "bytes": 3889758
+    },
+    {
+      "file": "learned-salted-preview-1080p.png",
+      "sha256": "f5014540808397b67038aaad20dcfcb225142957c395cbf89baf1b9ec7de66f0",
+      "bytes": 253567
+    },
+    {
+      "file": "recipe-card-at-home.png",
+      "sha256": "16a809cef866ad01471259a256a166595372d4009adb57ce75ca898a23ed126f",
+      "bytes": 1932124
+    },
+    {
+      "file": "recipe-card-inventory.png",
+      "sha256": "0d2ce5939a210748ee59f4b62789d68b0bc8838a7bbfc009fb325f49b2a86ae0",
+      "bytes": 226056
+    },
+    {
+      "file": "recipe-discovered-1080p.png",
+      "sha256": "a10fb807a867ec7da6d7b2fc015541bc60c0dabc34e4b777853ef0a7d4c5667a",
+      "bytes": 249850
+    },
+    {
+      "file": "salt-outcrop.png",
+      "sha256": "79403052661ed18d6c32bb09361e47753929bf5117f398f999930fafb11b248a",
+      "bytes": 3876866
+    },
+    {
+      "file": "salted-soup-crafted.png",
+      "sha256": "c6c767e3a42bbaf9d069665839226c3fa47780a689f1fbffda8dc9e9919f1dc4",
+      "bytes": 247954
+    },
+    {
+      "file": "stove-1440p.png",
+      "sha256": "691d303831fbb6817e7492a74d9d62c4d3bc6e5546d59d314d7cb653204f162f",
+      "bytes": 371567
+    },
+    {
+      "file": "unknown-salted-preview.png",
+      "sha256": "a3ccb6bf57e477beceb01a3018b207dc65fee811d867666b424e172094ee1fbf",
+      "bytes": 256888
+    }
+  ],
+  "limits": [
+    "One cooking recipe, one optional salt modifier",
+    "Water supplied at stove",
+    "Provisional salt marker art",
+    "General ability and trait modifiers deferred"
+  ]
+}

@@ -77,6 +77,7 @@ public sealed partial class TinyFarmResolver
         int tomorrow = state.Day + 1;
         state.Minute += minutes;
         AdvanceDay(state, envelope.Actor, tomorrow, events);
+        RestoreCraftingSpiritForRest(state, envelope.Actor);
         state.Slice = slice with { Health = 12, HurtTicks = 0, SwordTicks = 0, SwordBuffered = false, DodgeTicks = 0, Slept = true };
         return new IntentResult(envelope, IntentResultStatus.Accepted, IntentReason.None, events);
     }
@@ -96,6 +97,7 @@ public sealed partial class TinyFarmResolver
         int tomorrow = state.Day + 1;
         state.Minute = (tomorrow - 1) * 1440 + 360;
         AdvanceDay(state, TinyFarmIds.Player, tomorrow, events);
+        RestoreCraftingSpiritForRest(state, TinyFarmIds.Player);
         state.Slice = state.Slice! with
         {
             Health = 12,

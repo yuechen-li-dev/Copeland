@@ -1,0 +1,9 @@
+{
+  "Mode": "mouse",
+  "InitialFocus": true,
+  "Screen": "Playing",
+  "Quit": false,
+  "Checkpoint": true,
+  "Device": "NVIDIA GeForce RTX 3070",
+  "Hash": "cc4922440b2fcb9a4c00b08c770f5318bf42ce221a50a14e341aa6b584f20cf0"
+}

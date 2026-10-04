@@ -11,7 +11,10 @@ public sealed partial class TinyFarmGame
         InventoryCategory.Ingredients, InventoryCategory.Food, InventoryCategory.Materials, InventoryCategory.Keepsakes
     ];
 
-    public static readonly string[] PauseActions = ["resume", "inventory", "save", "load", "quit"];
+    public static readonly string[] PauseActions = ["resume", "inventory", "stats", "save", "load", "quit"];
+    public static readonly string[] StatsGroups = ["All", "Identity", "Resources", "Stats", "Skills", "Traits", "Conditions", "Equipment", "Inventory", "Presentation"];
+    public int TitleSelection { get; private set; }
+    public static readonly string[] TitleActions = ["new-game", "load", "quit"];
     public bool MenuSaveAvailable { get; private set; }
 
     public void OpenInventory(bool fromPause)
@@ -23,11 +26,65 @@ public sealed partial class TinyFarmGame
         Menus.Rows(State, Definitions);
     }
 
+    public void OpenStats(bool fromPause)
+    {
+        Menus.StatsFromPause = fromPause;
+        Menus.SearchFocused = false;
+        Menus.SetSearch("");
+        Menus.Confirmation = null;
+        Screen = TinyFarmScreen.Stats;
+    }
+
     private void HandleMenuInput(InputFrame input)
     {
         if (input.WasPressed(GameControls.UiCancel))
         {
             BackFromMenu();
+            return;
+        }
+        if (Screen == TinyFarmScreen.Title)
+        {
+            if (input.WasPressed(GameControls.UiUp))
+            {
+                TitleSelection = Math.Max(0, TitleSelection - 1);
+            }
+            if (input.WasPressed(GameControls.UiDown))
+            {
+                TitleSelection = Math.Min(TitleActions.Length - 1, TitleSelection + 1);
+            }
+            if (input.WasPressed(GameControls.UiConfirm))
+            {
+                DispatchMenu(TitleActions[TitleSelection]);
+            }
+            return;
+        }
+        if (Screen == TinyFarmScreen.Crafting)
+        {
+            if (input.WasPressed(GameControls.UiConfirm))
+            {
+                HandleCraftAction("craft");
+            }
+            return;
+        }
+        if (Screen == TinyFarmScreen.Stats)
+        {
+            int count = Menus.PropertyRows(State, Definitions).Count;
+            if (input.WasPressed(GameControls.UiUp))
+            {
+                Menus.ScrollStats(-1, count);
+            }
+            if (input.WasPressed(GameControls.UiDown))
+            {
+                Menus.ScrollStats(1, count);
+            }
+            if (input.WasPressed(GameControls.UiLeft))
+            {
+                Menus.ChangeStatsAgent(-1, State);
+            }
+            if (input.WasPressed(GameControls.UiRight))
+            {
+                Menus.ChangeStatsAgent(1, State);
+            }
             return;
         }
         if (Screen == TinyFarmScreen.Inventory)
@@ -84,6 +141,14 @@ public sealed partial class TinyFarmGame
         {
             Menus.Confirmation = null;
         }
+        else if (IsAgentMenu && Menus.SearchFocused)
+        {
+            Menus.SearchFocused = false;
+        }
+        else if (Screen == TinyFarmScreen.Stats)
+        {
+            Screen = Menus.StatsFromPause ? TinyFarmScreen.Paused : TinyFarmScreen.Playing;
+        }
         else if (Screen == TinyFarmScreen.Inventory)
         {
             Menus.SearchFocused = false;
@@ -97,7 +162,7 @@ public sealed partial class TinyFarmGame
 
     public void DispatchMenu(string action)
     {
-        if (Screen is not TinyFarmScreen.Inventory and not TinyFarmScreen.Paused)
+        if (!IsModalMenu && Screen != TinyFarmScreen.Paused)
         {
             return;
         }
@@ -109,15 +174,41 @@ public sealed partial class TinyFarmGame
         {
             return;
         }
-        Menus.SearchFocused = action == "search";
+        Menus.SearchFocused = IsAgentMenu && action == "search";
         if (action == "close")
         {
             BackFromMenu();
             return;
         }
+        if (Screen == TinyFarmScreen.Title)
+        {
+            switch (action)
+            {
+                case "new-game":
+                    Start();
+                    break;
+                case "load" when MenuSaveAvailable:
+                    BeginLoad();
+                    break;
+                case "quit":
+                    ShouldQuit = true;
+                    break;
+            }
+            return;
+        }
+        if (Screen == TinyFarmScreen.Crafting)
+        {
+            HandleCraftAction(action);
+            return;
+        }
         if (Screen == TinyFarmScreen.Inventory)
         {
             HandleInventoryAction(action);
+            return;
+        }
+        if (Screen == TinyFarmScreen.Stats)
+        {
+            HandleStatsAction(action);
             return;
         }
         switch (action)
@@ -127,6 +218,9 @@ public sealed partial class TinyFarmGame
                 break;
             case "inventory":
                 OpenInventory(true);
+                break;
+            case "stats":
+                OpenStats(true);
                 break;
             case "save":
                 BeginSave();
@@ -145,6 +239,38 @@ public sealed partial class TinyFarmGame
                 break;
             case "confirm" when Menus.Confirmation == "quit":
                 ShouldQuit = true;
+                break;
+        }
+    }
+
+    private void HandleStatsAction(string action)
+    {
+        if (action.StartsWith("group:", StringComparison.Ordinal))
+        {
+            string group = action[6..];
+            if (StatsGroups.Contains(group))
+            {
+                Menus.SetStatsGroup(group);
+            }
+            return;
+        }
+        int count = Menus.PropertyRows(State, Definitions).Count;
+        switch (action)
+        {
+            case "agent:previous":
+                Menus.ChangeStatsAgent(-1, State);
+                break;
+            case "agent:next":
+                Menus.ChangeStatsAgent(1, State);
+                break;
+            case "previous":
+                Menus.ScrollStats(-TinyFarmMenus.PageSize, count);
+                break;
+            case "next":
+                Menus.ScrollStats(TinyFarmMenus.PageSize, count);
+                break;
+            case "clear":
+                Menus.SetSearch("");
                 break;
         }
     }
@@ -212,6 +338,14 @@ public sealed partial class TinyFarmGame
                     Status = accepted ? selected.Name + (selected.Equipped ? " unequipped." : " equipped.")
                         : "Finish your swing or dodge before changing equipment.";
                 }
+                else if (selected?.Item is ItemId recipeCard && State.Item(recipeCard).TeachesRecipe is not null)
+                {
+                    Execute(new ReadRecipeIntent(recipeCard));
+                }
+                else if (selected?.Product is ProductId food && Definitions.Items.Any(item => item.Id == food && item.Food is not null))
+                {
+                    Execute(new EatIntent(food));
+                }
                 else if (selected?.Product?.Value == "turnip-broth" && State.Slice is not null)
                 {
                     Execute(new EatIntent());
@@ -222,7 +356,7 @@ public sealed partial class TinyFarmGame
 
     public void EnterMenuText(string text)
     {
-        if (Screen == TinyFarmScreen.Inventory && Menus.SearchFocused)
+        if (IsAgentMenu && Menus.SearchFocused)
         {
             string printable = new(text.Where(character => !char.IsControl(character)).ToArray());
             Menus.SetSearch(Menus.Search + printable);
@@ -231,7 +365,7 @@ public sealed partial class TinyFarmGame
 
     public void EditMenuSearch(bool clear)
     {
-        if (Screen == TinyFarmScreen.Inventory && Menus.SearchFocused)
+        if (IsAgentMenu && Menus.SearchFocused)
         {
             string next = "";
             if (!clear && Menus.Search.Length > 0)

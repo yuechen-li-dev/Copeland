@@ -193,7 +193,9 @@ public static class TinyFarmChunkedSaveCodec
             && state.Version != TinyFarmState.DungeonCombatSaveVersion
             && state.Version != TinyFarmState.SliceSaveVersion
             && state.Version != TinyFarmState.EquipmentSaveVersion
-            && state.Version != TinyFarmState.AgentAuthoringSaveVersion)
+            && state.Version != TinyFarmState.AgentAuthoringSaveVersion
+            && state.Version != TinyFarmState.RpgProfileSaveVersion
+            && state.Version != TinyFarmState.CraftingSaveVersion)
         {
             throw new InvalidDataException($"Unsupported TinyFarm game save version {state.Version}.");
         }
@@ -217,6 +219,24 @@ public static class TinyFarmChunkedSaveCodec
 
         foreach (ActorState actor in state.Actors)
         {
+            if (actor.Rpg is not null)
+            {
+                if (state.Version < TinyFarmState.RpgProfileSaveVersion
+                    || actor.Agent?.Kind == TinyFarmAgentKind.Object)
+                {
+                    throw new InvalidDataException("Character RPG profiles require save version 14 or later.");
+                }
+                actor.Rpg.Validate();
+                if (actor.Rpg.Crafting is not null || actor.Rpg.ActiveConditions is not null)
+                {
+                    if (state.Version < TinyFarmState.CraftingSaveVersion
+                        || actor.Rpg.Crafting?.KnownRecipes.Any(known => !definitions.CookingRecipes.Any(recipe => recipe.Id == known.Recipe && recipe.Crafting is not null)) == true
+                        || actor.Rpg.ActiveConditions?.Any(condition => !definitions.Scenes.All.Any(scene => scene.Objects.Any(item => item.Id == condition.SourceStation && item.Kind == SceneObjectKind.CookingStation))) == true)
+                    {
+                        throw new InvalidDataException("Invalid crafting progression or condition provenance.");
+                    }
+                }
+            }
             if (actor.Agent is not null)
             {
                 if (state.Version < TinyFarmState.AgentAuthoringSaveVersion)
@@ -244,6 +264,12 @@ public static class TinyFarmChunkedSaveCodec
 
         foreach (ItemState item in state.Items)
         {
+            if (item.TeachesRecipe is CookingRecipeId recipeId
+                && (state.Version < TinyFarmState.CraftingSaveVersion
+                    || !definitions.CookingRecipes.Any(recipe => recipe.Id == recipeId && recipe.Crafting is not null)))
+            {
+                throw new InvalidDataException("Invalid recipe card provenance.");
+            }
             if (item.EquipmentSlot is not null && (state.Version < TinyFarmState.AgentAuthoringSaveVersion
                 || item.EquipmentSlot is not EquipmentSlot.Weapon and not EquipmentSlot.Tool))
             {
@@ -481,6 +507,14 @@ public static class TinyFarmChunkedSaveCodec
 
     internal static string RuntimeVersionFor(int gameVersion)
     {
+        if (gameVersion >= TinyFarmState.CraftingSaveVersion)
+        {
+            return "tiny-farm-crafting@15";
+        }
+        if (gameVersion >= TinyFarmState.RpgProfileSaveVersion)
+        {
+            return "tiny-farm-rpg-profile@14";
+        }
         if (gameVersion >= TinyFarmState.AgentAuthoringSaveVersion)
         {
             return "tiny-farm-agents@13";

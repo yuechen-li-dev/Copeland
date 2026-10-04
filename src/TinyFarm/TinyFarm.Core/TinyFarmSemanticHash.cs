@@ -20,6 +20,13 @@ public static class TinyFarmSemanticHash
 
         foreach (ActorState actor in state.Actors.OrderBy(actor => actor.Id.Value, StringComparer.Ordinal))
         {
+            if (actor.Rpg is TinyFarmRpgProfile rpg)
+            {
+                string profile = System.Text.Json.JsonSerializer.Serialize(rpg.Canonical(),
+                    TinyFarmRpgJsonContext.Default.TinyFarmRpgProfile);
+                canonical.Append("rpg|").Append(actor.Id.Value).Append('|').Append(profile.Length)
+                    .Append('|').Append(profile).AppendLine();
+            }
             if (actor.Agent is TinyFarmAgentState agent)
             {
                 // Appearance is a presentation choice, not gameplay truth.
@@ -53,6 +60,10 @@ public static class TinyFarmSemanticHash
             if (item.EquipmentSlot is EquipmentSlot slot)
             {
                 canonical.Append("|equipment-slot=").Append(slot);
+            }
+            if (item.TeachesRecipe is CookingRecipeId recipe)
+            {
+                canonical.Append("|teaches-recipe=").Append(recipe.Value);
             }
             if (state.Version >= TinyFarmState.ItemActionSaveVersion)
             {

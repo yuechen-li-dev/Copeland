@@ -79,9 +79,17 @@ public static class TinyFarmSliceContent
         TinyFarmState source = TinyFarmSupperStart.Create(definitions);
         FarmPlotId firstPlot = source.FarmPlots[0].Id;
         var initial = new TinyFarmState(
-            TinyFarmState.SliceSaveVersion,
+            TinyFarmState.RpgProfileSaveVersion,
             480,
-            source.Actors,
+            source.Actors.Select(actor => actor with
+            {
+                Rpg = TinyFarmRpgProfile.Starter(actor.Id == TinyFarmIds.Player || actor.Id == TinyFarmIds.Mara) with
+                {
+                    Skills = actor.Id == TinyFarmIds.Mara
+                        ? [new TinyFarmSkillProgress(TinyFarmSkill.Farming, 3),
+                            new TinyFarmSkillProgress(TinyFarmSkill.Foraging, 4)] : []
+                }
+            }).ToArray(),
             source.Items.Select(item => item.Id == TinyFarmIds.WildMint
                 ? item with
                 {

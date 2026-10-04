@@ -1,0 +1,23 @@
+{
+  "task": "TinyFarm Sunkill-based title menu and intro input fix",
+  "outcome": "Success",
+  "existingUiBasis": "Sunkill VnMachinaLayer BuildMenu / MenuButton, Machina StandardUI.Button and named actions",
+  "generatedTitleArt": true,
+  "visibleWindowInitialFocusQualified": true,
+  "clickNewGameQualified": true,
+  "enterNewGameQualified": true,
+  "clickLoadQualified": true,
+  "clickQuitQualified": true,
+  "missingSaveDisablesLoad": true,
+  "titleBlocksGameplayInput": true,
+  "fullFramebufferModalDimmer": true,
+  "aspectPreservingTitleCover": true,
+  "semanticStateUnchangedByTitleResizeAndPause": true,
+  "nativeDevice": "NVIDIA GeForce RTX 3070",
+  "captureDimensions": [[1280, 720], [1920, 1080], [2560, 1440], [1600, 1000]],
+  "pauseCapture": "pause-1600x1000.png",
+  "fullSuite": {"tinyFarmPassed": 419, "spatialPassed": 27, "failed": 0},
+  "reflectionDisabledTitleTestsPassed": 8,
+  "nativeReflectionDisabledBuild": "Passed, zero warnings and errors",
+  "qualificationLimit": "Native proof injects portable key and pointer events through the visible host and actual Machina hit testing; it does not automate operating-system key or mouse delivery."
+}

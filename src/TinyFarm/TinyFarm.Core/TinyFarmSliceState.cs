@@ -3,7 +3,9 @@ namespace TinyFarm.Core;
 public sealed record SliceTickIntent : GameIntent;
 public sealed record SwordIntent : GameIntent;
 public sealed record DodgeIntent(int X, int Y) : GameIntent;
-public sealed record EatIntent : GameIntent;
+public sealed record EatIntent(
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    ProductId? Product = null) : GameIntent;
 public sealed record SleepIntent : GameIntent;
 
 public enum SlimePhase

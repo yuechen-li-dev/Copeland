@@ -15,6 +15,7 @@ public sealed record TinyFarmAgentTemplate
     public TinyFarmAgentControl Control { get; init; } = TinyFarmAgentControl.Idle;
     public TinyFarmAgentHealth? Health { get; init; } = new(12, 12);
     public int Level { get; init; } = 1;
+    public TinyFarmRpgProfile? Rpg { get; init; } = TinyFarmRpgProfile.Starter(false);
     public int Money { get; init; }
     public int Energy { get; init; } = TinyFarmEnergy.InitialUnits;
     public IReadOnlyList<string> Conditions { get; init; } = [];
@@ -35,6 +36,7 @@ public sealed record TinyFarmAgentTemplate
             Id = id,
             Kind = TinyFarmAgentKind.Object,
             Health = null,
+            Rpg = null,
             ObjectPose = TinyFarmObjectPose.Closed,
             Appearance = new TinyFarmAgentAppearance(TinyFarmAgentSprite.ObjectMarker, WalkingAnimation: false)
         };
@@ -198,14 +200,15 @@ public static class TinyFarmAgentAuthoring
                 template.Level, template.Conditions.OrderBy(value => value, StringComparer.Ordinal).ToArray(),
                 new TinyFarmEquipment(weapon, tool), template.ObjectPose, template.Appearance);
             actors.Add(new ActorState(spawn.Id, spawn.Name, location, template.Money, owned,
-                template.Control == TinyFarmAgentControl.Human, data));
+                template.Control == TinyFarmAgentControl.Human, data, template.Rpg?.Copy()));
             placements.Add(placement);
             if (template.Control != TinyFarmAgentControl.Human)
             {
                 energy.Add(new ActorEnergyState(spawn.Id, template.Energy, false));
             }
             products.AddRange(template.Products.Select(seed => new InventoryStack(spawn.Id, seed.Product, seed.Count)));
-            version = TinyFarmState.AgentAuthoringSaveVersion;
+            version = Math.Max(version, template.Rpg is null
+                ? TinyFarmState.AgentAuthoringSaveVersion : TinyFarmState.RpgProfileSaveVersion);
         }
         var result = new TinyFarmState(version, copy.Minute,
             actors.OrderBy(actor => actor.Id.Value, StringComparer.Ordinal).ToArray(), items, copy.Facts, copy.Favor,
@@ -250,6 +253,11 @@ public static class TinyFarmAgentAuthoring
 
     private static void ValidateTemplate(TinyFarmAgentSpawn spawn, TinyFarmAgentTemplate template, TinyFarmDefinitions definitions)
     {
+        template.Rpg?.Validate();
+        if (template.Kind == TinyFarmAgentKind.Object && template.Rpg is not null)
+        {
+            throw Invalid(spawn, "cannot assign a character RPG profile to an object");
+        }
         if (template.Items is null || template.Products is null || template.Conditions is null
             || template.Money < 0 || template.Energy is < TinyFarmEnergy.MinimumUnits or > TinyFarmEnergy.MaximumUnits
             || template.Items.Select(seed => seed.Key).Distinct(StringComparer.Ordinal).Count() != template.Items.Count

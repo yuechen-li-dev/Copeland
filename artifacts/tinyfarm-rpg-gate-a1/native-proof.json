@@ -1,0 +1,29 @@
+{
+  "outcome": "A: agent properties and action-map isolation qualified",
+  "device": "NVIDIA GeForce RTX 3070",
+  "gameplayMapExcluded": true,
+  "textMapExclusive": true,
+  "textDoesNotMoveAgent": true,
+  "semanticWorldAndFieldUnchanged": true,
+  "scrollbarWheelAndDragQualified": true,
+  "agentSelectionQualified": true,
+  "saveLoadQualified": true,
+  "hudIndependent": true,
+  "resizeQualified": true,
+  "reflectionSerializationDisabled": true,
+  "saveVersion": 14,
+  "captures": [
+    "agent-properties-1080p.png",
+    "agent-stats-1080p.png",
+    "agent-filter-1080p.png",
+    "agent-properties-scrolled.png",
+    "ivy-stats-1080p.png",
+    "ivy-traits-1080p.png",
+    "ivy-conditions-1080p.png",
+    "object-properties-1080p.png",
+    "properties-hud-hidden.png",
+    "agent-skills-1440p.png",
+    "agent-stats-1600x1000.png"
+  ],
+  "semanticHash": "7fa95a226af9f4563c94a33552abceb915edc4bcbc259454d658c476a5558db5:008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e"
+}

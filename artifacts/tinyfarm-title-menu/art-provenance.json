@@ -1,0 +1,11 @@
+{
+  "asset": "src/TinyFarm/TinyFarm.Native/Assets/GateA/title-sleeping-spring.png",
+  "source": "OpenAI image generation tool, generated for this task",
+  "sha256": "78b1ae5809dd2873d96eb0e34fa7dccd01b5ec7c9b1a88e8abb6d44c8a63bf34",
+  "width": 1672,
+  "height": 941,
+  "sampling": "Linear",
+  "presentation": "Opaque background, centered aspect-preserving cover crop; title text and buttons remain Machina UI",
+  "authority": "Presentation only; no gameplay or spatial authority",
+  "prompt": "Painterly title background for TinyFarm: The Sleeping Spring, gentle fantasy action RPG with farming. Storybook watercolor/gouache, wide 16:9 spring dawn woodland farm, warmly lit stone cottage and terracotta roof on the right, turnip rows, river and bridge toward mossy ruins, gardener in straw hat seen from behind. Elevated view, sage and forest greens, earth and pale gold. Left 40% quiet dark woodland and mist for typography. No text, UI, border or watermark; opaque full rectangle."
+}

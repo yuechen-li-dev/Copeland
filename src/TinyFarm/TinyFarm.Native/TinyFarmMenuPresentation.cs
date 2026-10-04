@@ -9,7 +9,7 @@ using TinyFarm.InputMan;
 
 namespace TinyFarm.Native;
 
-internal static class TinyFarmMenuPresentation
+internal static partial class TinyFarmMenuPresentation
 {
     private const uint Gold = 0xF5DDB5FF;
     private static readonly StandardColors TableColors = StandardTheme.Default.Colors with
@@ -25,16 +25,77 @@ internal static class TinyFarmMenuPresentation
     public static UiNode Build(TinyFarmGame game)
     {
         var nodes = new List<UiNode>();
-        TinyFarmNativeUi.Panel(nodes, "menu-shade", 0, 0, 1280, 720, 0x0C211B99);
-        if (game.Screen == TinyFarmScreen.Inventory)
+        if (game.Screen == TinyFarmScreen.Title)
+        {
+            Title(nodes, game);
+        }
+        else if (game.Screen == TinyFarmScreen.Inventory)
         {
             Inventory(nodes, game);
+        }
+        else if (game.Screen == TinyFarmScreen.Stats)
+        {
+            Stats(nodes, game);
+        }
+        else if (game.Screen == TinyFarmScreen.Crafting)
+        {
+            Crafting(nodes, game);
         }
         else
         {
             Pause(nodes, game);
         }
         return UI.Surface(id: "tinyfarm-menu", width: 1280, height: 720, children: nodes);
+    }
+
+    private static void Stats(List<UiNode> nodes, TinyFarmGame game)
+    {
+        TinyFarmMenus menu = game.Menus;
+        IReadOnlyList<TinyFarmAgentProperty> rows = menu.PropertyRows(game.State, game.Definitions);
+        ActorState agent = game.State.Actor(menu.StatsAgent);
+        TinyFarmNativeUi.Panel(nodes, "stats-panel", 44, 56, 1192, 612, 0x19362BFC);
+        Label(nodes, "stats-title", "AGENT / " + agent.Name.ToUpperInvariant(), 66, 78, 900, TextSize.H1, Gold);
+        Label(nodes, "stats-summary", "Live properties + authored RPG foundation  /  world paused", 68, 120, 960);
+        Button(nodes, "close", "Close / C or ESC", 1022, 80, 190);
+        Button(nodes, "agent:previous", "< Agent", 66, 162, 110);
+        Button(nodes, "agent:next", "Agent >", 184, 162, 110);
+        string search = menu.Search.Length == 0 ? "Click to filter properties..." : menu.Search;
+        if (menu.SearchFocused)
+        {
+            search += " |";
+        }
+        Button(nodes, "search", search, 308, 162, 818, selected: menu.SearchFocused);
+        Button(nodes, "clear", "Clear", 1134, 162, 78);
+        for (int index = 0; index < TinyFarmGame.StatsGroups.Length; index++)
+        {
+            string group = TinyFarmGame.StatsGroups[index];
+            Button(nodes, "group:" + group, group, 66, 218 + index * 38, 152, selected: group == menu.StatsGroup);
+        }
+        UiTableColumn[] columns = [new("Property", 225), new("Value", 275), new("Source / status", 430)];
+        UiTableRow[] visible = rows.Skip(menu.StatsOffset).Take(TinyFarmMenus.PageSize)
+            .Select((row, index) => new UiTableRow("property." + (menu.StatsOffset + index),
+                [row.Name, row.Value, row.Source], null)).ToArray();
+        nodes.Add(UI.Anchor(UiDataTable.Build("agent-properties", columns, visible, colors: TableColors),
+            left: 234, top: 218, width: 930, height: 376));
+        if (rows.Count == 0)
+        {
+            Label(nodes, "stats-empty", "No properties match. Clear the filter or choose All.", 250, 275, 870, color: Gold);
+        }
+        var bar = TinyFarmStatsScrollbar.Geometry(rows.Count, menu.StatsOffset);
+        TinyFarmNativeUi.Panel(nodes, "stats-scroll-track", 1180, 254, 24, 340, 0x102A21FF);
+        if (bar.IsVisible)
+        {
+            TinyFarmNativeUi.Panel(nodes, "stats-scroll-thumb", 1180, (int)bar.ThumbRect.Y, 24,
+                (int)bar.ThumbRect.Height, 0x839784FF);
+        }
+        Button(nodes, "previous", "Previous", 234, 600, 128, disabled: menu.StatsOffset == 0);
+        Button(nodes, "next", "Next", 1036, 600, 128, disabled: menu.StatsOffset + TinyFarmMenus.PageSize >= rows.Count);
+        int first = rows.Count == 0 ? 0 : menu.StatsOffset + 1;
+        Label(nodes, "stats-range", $"{first}-{Math.Min(rows.Count, menu.StatsOffset + TinyFarmMenus.PageSize)} / {rows.Count}", 430, 609, 500);
+        Label(nodes, "stats-footer", "Wheel / drag scroll  UP/DOWN scroll  LEFT/RIGHT agent  TAB filter  ENTER/ESC finish typing", 66, 642, 1140, TextSize.Sm);
+        Label(nodes, "stats-boundary", game.State.Version >= TinyFarmState.CraftingSaveVersion
+            ? "A2: Cooking / Fire practice is live; general ability and trait modifiers remain pending."
+            : "A1: skill practice and trait/condition modifiers are pending; combat retains its existing rules.", 66, 686, 1140, TextSize.Sm, Gold);
     }
 
     private static void Inventory(List<UiNode> nodes, TinyFarmGame game)
@@ -98,6 +159,14 @@ internal static class TinyFarmMenuPresentation
                 Button(nodes, "primary", selected.Equipped ? "Unequip / ENTER" : "Equip / ENTER", 898, 544, 294,
                     disabled: game.State.Slice is { SwordTicks: > 0 } or { DodgeTicks: > 0 });
             }
+            else if (selected.Item is ItemId card && game.State.Item(card).TeachesRecipe is not null)
+            {
+                Button(nodes, "primary", "Read recipe / ENTER", 898, 544, 294);
+            }
+            else if (selected.Product is ProductId food && game.Definitions.Items.Any(item => item.Id == food && item.Food is not null))
+            {
+                Button(nodes, "primary", "Eat / ENTER", 898, 544, 294);
+            }
             else if (selected.Product?.Value == "turnip-broth" && game.State.Slice is not null)
             {
                 Button(nodes, "primary", "Eat broth / ENTER", 898, 544, 294, disabled: game.State.Slice.Health >= 12);
@@ -132,11 +201,11 @@ internal static class TinyFarmMenuPresentation
         }
         else
         {
-            string[] labels = ["Resume", "Inventory & Equipment", "Save checkpoint", "Load checkpoint", "Quit"];
+            string[] labels = ["Resume", "Inventory & Equipment", "Agent properties", "Save checkpoint", "Load checkpoint", "Quit"];
             for (int index = 0; index < labels.Length; index++)
             {
-                bool disabled = busy || index == 3 && !game.MenuSaveAvailable;
-                Button(nodes, TinyFarmGame.PauseActions[index], labels[index], 338, 228 + index * 49, 604,
+                bool disabled = busy || TinyFarmGame.PauseActions[index] == "load" && !game.MenuSaveAvailable;
+                Button(nodes, TinyFarmGame.PauseActions[index], labels[index], 338, 217 + index * 44, 604,
                     selected: game.Menus.PauseSelection == index, disabled: disabled);
             }
             string checkpoint = game.MenuSaveAvailable ? "Checkpoint available" : "No checkpoint yet / Save to create one";

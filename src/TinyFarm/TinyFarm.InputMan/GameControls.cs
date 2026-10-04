@@ -7,6 +7,8 @@ public static class GameControls
 {
     public static readonly ActionMapId Gameplay = new("Gameplay");
     public static readonly ActionMapId Ui = new("UI");
+    public static readonly ActionMapId TextEntry = new("TextEntry");
+    public static readonly ActionMapId Shortcuts = new("Shortcuts");
     public static readonly ActionMapId Dialogue = new("Dialogue");
     public static readonly ActionMapId Rebind = new("Rebind");
 
@@ -20,6 +22,7 @@ public static class GameControls
     public static readonly ActionId Interact = new("Interact");
     public static readonly ActionId Pause = new("Pause");
     public static readonly ActionId ToggleInventory = new("ToggleInventory");
+    public static readonly ActionId ToggleStats = new("ToggleStats");
     public static readonly ActionId UiConfirm = new("UI.Confirm");
     public static readonly ActionId UiCancel = new("UI.Cancel");
     public static readonly ActionId UiUp = new("UI.Up");
@@ -62,6 +65,7 @@ public static class GameControls
             Bind.Action(Controls.Key(KeyboardKey.Escape), Pause, name: "Pause.Keyboard"),
             Bind.Action(Controls.Gamepad(GamepadButton.Start), Pause, name: "Pause.Gamepad"),
             Bind.Action(Controls.Key(KeyboardKey.I), ToggleInventory, name: "Inventory.Keyboard"),
+            Bind.Action(Controls.Key(KeyboardKey.C), ToggleStats, name: "Stats.Keyboard"),
             Bind.Action(Controls.Key(KeyboardKey.Number1), Hotbar1, name: "Hotbar1.Keyboard"),
             Bind.Action(Controls.Key(KeyboardKey.Number2), Hotbar2, name: "Hotbar2.Keyboard"),
             Bind.Action(Controls.Key(KeyboardKey.Number3), Hotbar3, name: "Hotbar3.Keyboard"),
@@ -90,10 +94,17 @@ public static class GameControls
                 Input.Map(System, 300, [
                     Bind.Action(Controls.Key(KeyboardKey.F9), ToggleHud),
                     Bind.Action(Controls.Key(KeyboardKey.F10), ToggleInspector),
-                    Bind.Action(Controls.Key(KeyboardKey.F11), CleanCapture),
+                    Bind.Action(Controls.Key(KeyboardKey.F11), CleanCapture)
+                ]),
+                Input.Map(Shortcuts, 20, [
                     Bind.Action(Controls.Key(KeyboardKey.F), Save),
                     Bind.Action(Controls.Key(KeyboardKey.N), Load),
                     Bind.Action(Controls.Key(KeyboardKey.Q), Quit)
+                ]),
+                Input.Map(TextEntry, 400, [
+                    Bind.Action(Controls.Key(KeyboardKey.Enter), UiSearchFinish),
+                    Bind.Action(Controls.Key(KeyboardKey.Escape), UiSearchFinish),
+                    Bind.Action(Controls.Gamepad(GamepadButton.East), UiSearchFinish)
                 ]),
                 Input.Map(
                     Dialogue,
@@ -114,8 +125,6 @@ public static class GameControls
                     Ui,
                     100,
                     [
-                        Bind.Action(Controls.Key(KeyboardKey.Enter), UiSearchFinish, consume: ConsumeMode.None),
-                        Bind.Action(Controls.Key(KeyboardKey.Escape), UiSearchFinish, consume: ConsumeMode.None),
                         Bind.Action(Controls.Key(KeyboardKey.Enter), UiConfirm),
                         Bind.Action(Controls.Key(KeyboardKey.ArrowUp), UiUp),
                         Bind.Action(Controls.Key(KeyboardKey.ArrowDown), UiDown),
@@ -126,6 +135,7 @@ public static class GameControls
                         Bind.Action(Controls.Gamepad(GamepadButton.DpadLeft), UiLeft),
                         Bind.Action(Controls.Gamepad(GamepadButton.DpadRight), UiRight),
                         Bind.Action(Controls.Key(KeyboardKey.I), UiCancel),
+                        Bind.Action(Controls.Key(KeyboardKey.C), UiCancel),
                         Bind.Action(Controls.Key(KeyboardKey.E), UiConfirm, consume: ConsumeMode.ControlOnly, name: "Confirm.Keyboard"),
                         Bind.Action(Controls.Gamepad(GamepadButton.South), UiConfirm, consume: ConsumeMode.ControlOnly, name: "Confirm.Gamepad"),
                         Bind.Action(Controls.Key(KeyboardKey.Escape), UiCancel, consume: ConsumeMode.ControlOnly, name: "Cancel.Keyboard"),

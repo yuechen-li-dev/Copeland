@@ -93,7 +93,8 @@ public sealed partial class TinyFarmResolver
             SliceTickIntent => ResolveSliceTick(state, envelope),
             SwordIntent => ResolveSliceSword(state, envelope),
             DodgeIntent dodge => ResolveSliceDodge(state, envelope, dodge),
-            EatIntent => ResolveSliceEat(state, envelope),
+            EatIntent eat => actor.Rpg?.Crafting is not null ? ResolveCraftingFood(state, actor, envelope, eat)
+                : ResolveSliceEat(state, envelope),
             SleepIntent => ResolveSliceSleep(state, envelope),
             MoveIntent move => ResolveMove(state, actor, envelope, move),
             NavigateToAnchorIntent move => ResolveAnchorTravel(state, actor, envelope, move),
@@ -115,6 +116,8 @@ public sealed partial class TinyFarmResolver
             HarvestIntent harvest => ResolveHarvest(state, actor, envelope, harvest),
             GatherIntent gather => ResolveGather(state, actor, envelope, gather),
             CookIntent cook => ResolveCook(state, actor, envelope, cook),
+            CraftIntent craft => ResolveCraft(state, actor, envelope, craft),
+            ReadRecipeIntent read => ResolveReadRecipe(state, actor, envelope, read),
             ChopIntent chop => ResolveChop(state, actor, envelope, chop),
             AttackIntent attack => ResolveAttack(state, actor, envelope, attack),
             SelectHotbarSlotIntent select => ResolveSelectHotbarSlot(state, actor, envelope, select),
@@ -560,6 +563,11 @@ public sealed partial class TinyFarmResolver
             if (selected.Kind == InteractionTargetKind.CookingStation
                 && selected.SceneObject is SceneObjectId station)
             {
+                if (definitions?.CookingRecipes.Any(recipe => recipe.Crafting is not null) == true)
+                {
+                    return Accepted(envelope, new GameEvent(GameEventKind.CraftingStationOpened,
+                        actor.Id, Scene: placement.Scene, SceneObject: station));
+                }
                 CookingRecipeDefinition? recipe = definitions?.CookingRecipes.SingleOrDefault();
                 return recipe is null
                     ? Rejected(envelope, IntentReason.UnknownRecipe)
@@ -962,6 +970,10 @@ public sealed partial class TinyFarmResolver
         if (recipe is null)
         {
             return Rejected(envelope, IntentReason.UnknownRecipe);
+        }
+        if (recipe.Crafting is not null)
+        {
+            return ResolveCraft(state, actor, envelope, new CraftIntent(intent.Station, recipe.Inputs, recipe.Id));
         }
         if (!actor.IsPlayer)
         {

@@ -22,6 +22,8 @@ namespace TinyFarm.Core;
 [JsonDerivedType(typeof(HarvestIntent), "harvest")]
 [JsonDerivedType(typeof(GatherIntent), "gather")]
 [JsonDerivedType(typeof(CookIntent), "cook")]
+[JsonDerivedType(typeof(CraftIntent), "craft")]
+[JsonDerivedType(typeof(ReadRecipeIntent), "read-recipe")]
 [JsonDerivedType(typeof(ChopIntent), "chop")]
 [JsonDerivedType(typeof(AttackIntent), "attack")]
 [JsonDerivedType(typeof(SelectHotbarSlotIntent), "select-hotbar")]
@@ -77,6 +79,9 @@ public sealed record HarvestIntent(FarmPlotId Plot) : GameIntent;
 public sealed record GatherIntent(ForageNodeId Node) : GameIntent;
 
 public sealed record CookIntent(SceneObjectId Station, CookingRecipeId Recipe) : GameIntent;
+public sealed record CraftIntent(SceneObjectId Station, IReadOnlyList<CookingRecipeInput> Inputs,
+    CookingRecipeId? Recipe = null) : GameIntent;
+public sealed record ReadRecipeIntent(ItemId Item) : GameIntent;
 
 public sealed record ChopIntent(TreeId Tree) : GameIntent;
 
@@ -163,7 +168,13 @@ public enum IntentReason
     WrongWeapon,
     AlreadyDefeated,
     SupperNotReady,
-    SupperAlreadyCompleted
+    SupperAlreadyCompleted,
+    InvalidCraftInputs,
+    RecipeNotKnown,
+    InsufficientSpirit,
+    ExperimentFailed,
+    InventoryFull,
+    RpgUnavailable
 }
 
 public enum GameEventKind
@@ -199,7 +210,14 @@ public enum GameEventKind
     PlayerDodged,
     PlayerRescued,
     PlayerReturnedForRest,
-    EquipmentChanged
+    EquipmentChanged,
+    CraftingStationOpened,
+    RecipeLearned,
+    SpiritSpent,
+    SpiritRecovered,
+    SkillPracticed,
+    CraftingExhausted,
+    CraftExperimentFailed
 }
 
 public enum DialogueTopic
@@ -238,7 +256,8 @@ public sealed record GameEvent(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     EnemyId? Enemy = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    EnemyKind? EnemyKind = null);
+    EnemyKind? EnemyKind = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TinyFarmSkill? Skill = null);
 
 public sealed record IntentResult(IntentEnvelope Envelope, IntentResultStatus Status, IntentReason Reason, IReadOnlyList<GameEvent> Events);
 

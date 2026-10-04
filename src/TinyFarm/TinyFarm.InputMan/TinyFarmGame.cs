@@ -15,6 +15,8 @@ public enum TinyFarmScreen
     Playing,
     Paused,
     Inventory,
+    Stats,
+    Crafting,
     Complete
 }
 
@@ -30,16 +32,17 @@ public sealed partial class TinyFarmGame
     private Task? pendingSave;
     private Task<LoadedSaveCandidate>? pendingLoad;
 
-    public TinyFarmGame(ISaveStore store, bool slice = false, TinyFarmAuthoredWorld? authored = null)
+    public TinyFarmGame(ISaveStore store, bool slice = false, TinyFarmAuthoredWorld? authored = null, bool crafting = false)
     {
         this.store = store;
-        Definitions = authored?.Definitions ?? (slice ? TinyFarmSliceContent.Load() : TinyFarmDefinitionLoader.LoadM21());
-        TinyFarmState initial = authored?.State ?? (slice ? TinyFarmSliceContent.Start(Definitions) : TinyFarmSupperStart.Create(Definitions));
+        Definitions = authored?.Definitions ?? (crafting ? TinyFarmCraftingContent.Load() : slice ? TinyFarmSliceContent.Load() : TinyFarmDefinitionLoader.LoadM21());
+        TinyFarmState initial = authored?.State ?? (crafting ? TinyFarmCraftingContent.Start(Definitions) : slice ? TinyFarmSliceContent.Start(Definitions) : TinyFarmSupperStart.Create(Definitions));
         Host = new TinyFarmSimulationHost(new TinyFarmSession(initial, Definitions), Definitions,
             rates: slice ? new TinyFarmSimulationRates(NormalRealSecondsPerGameMinute: 1) : null);
         Dialogue = new TinyFarmDialogueCoordinator(Host);
         Persistence = new TinyFarmDeliverancePersistence(Host, Definitions, store, dialogue: Dialogue);
         LiveInspection = new TinyFarmOblivionLiveSurfaces(Host);
+        MenuSaveAvailable = HasSave;
     }
 
     public TinyFarmDefinitions Definitions { get; }
@@ -61,14 +64,33 @@ public sealed partial class TinyFarmGame
     public int EffectEvents { get; private set; }
     public int AudioEvents { get; private set; }
     public int FeedbackEpoch { get; private set; }
-    private string SaveSlot => State.Slice is not null ? "sleeping-spring-gate-a" : "supper";
+    private string SaveSlot => State.Version >= TinyFarmState.CraftingSaveVersion ? "sleeping-spring-a2" : State.Slice is not null ? "sleeping-spring-gate-a" : "supper";
     public bool HasSave => store.ExistsAsync(SaveSlot).GetAwaiter().GetResult();
     public bool SaveInProgress => pendingSave is not null;
     public bool LoadInProgress => pendingLoad is not null;
 
-    public ActionMapId[] Contexts => Dialogue.IsActive
-        ? [GameControls.System, GameControls.Dialogue]
-        : CapturesGameplay ? [GameControls.System, GameControls.Ui] : [GameControls.System, GameControls.Gameplay];
+    public ActionMapId[] Contexts
+    {
+        get
+        {
+            if (IsAgentMenu && Menus.SearchFocused)
+            {
+                return [GameControls.System, GameControls.TextEntry];
+            }
+            if (Dialogue.IsActive)
+            {
+                return [GameControls.System, GameControls.Dialogue];
+            }
+            if (CapturesGameplay)
+            {
+                return [GameControls.System, GameControls.Shortcuts, GameControls.Ui];
+            }
+            return [GameControls.System, GameControls.Shortcuts, GameControls.Gameplay];
+        }
+    }
+
+    public bool IsAgentMenu => Screen is TinyFarmScreen.Inventory or TinyFarmScreen.Stats;
+    public bool IsModalMenu => IsAgentMenu || Screen is TinyFarmScreen.Crafting or TinyFarmScreen.Title;
 
     public void Start()
     {
@@ -84,7 +106,7 @@ public sealed partial class TinyFarmGame
     public void Handle(InputFrame input)
     {
         Presentation.Handle(input);
-        if (Screen == TinyFarmScreen.Inventory && Menus.SearchFocused)
+        if (IsAgentMenu && Menus.SearchFocused)
         {
             if (input.WasPressed(GameControls.UiSearchFinish))
             {
@@ -99,6 +121,11 @@ public sealed partial class TinyFarmGame
         }
         if (input.WasPressed(GameControls.Load))
         {
+            if (Screen == TinyFarmScreen.Title && !MenuSaveAvailable)
+            {
+                Status = "No saved game yet. Choose New Game to begin.";
+                return;
+            }
             BeginLoad();
             return;
         }
@@ -142,6 +169,9 @@ public sealed partial class TinyFarmGame
                     break;
                 case ToggleInventoryCommand:
                     OpenInventory(false);
+                    break;
+                case ToggleStatsCommand:
+                    OpenStats(false);
                     break;
             }
             if (CapturesGameplay)
@@ -276,6 +306,7 @@ public sealed partial class TinyFarmGame
                 Status = "Morning. Your garden has grown. Rest saved your progress.";
             }
         }
+        ApplyCraftingFeedback(intent, result);
         CheckCompletion();
         return step;
     }
@@ -298,7 +329,9 @@ public sealed partial class TinyFarmGame
         }
         if (State.CurrentScene == TinyFarmSceneIds.Residence)
         {
-            return "The stove cooks broth. Your bed is beside the south wall.";
+            return State.Version >= TinyFarmState.CraftingSaveVersion
+                ? "E opens the stove. Pick up the recipe card beside your bed, or experiment."
+                : "The stove cooks broth. Your bed is beside the south wall.";
         }
         return "Home again. Watered crops grow after a night's rest.";
     }
@@ -454,7 +487,7 @@ public sealed partial class TinyFarmGame
         {
             return
             [
-                Mark(slice.CookedBroth, "Harvest the starter turnip; E cooks broth at home"),
+                Mark(slice.CookedBroth, State.Version >= TinyFarmState.CraftingSaveVersion ? "Harvest a turnip; E opens your stove to cook soup" : "Harvest the starter turnip; E cooks broth at home"),
                 Mark(slice.Defeats > 0, "Follow the east path; clear Old Burrow"),
                 Mark(slice.ReturnedHome, "Return home from your adventure"),
                 Mark(slice.Slept, "Plant with 1 + K, water with E, sleep in your bed"),

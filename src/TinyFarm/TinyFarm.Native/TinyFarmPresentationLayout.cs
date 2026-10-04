@@ -17,6 +17,15 @@ internal sealed record TinyFarmPresentationLayout(int Width, int Height, bool Le
         : new PixelRect(Math.Max(0, (Width - 16 * WorldScale) / 2), Math.Max(0, (Height - WorldHeight * WorldScale) / 2),
             16 * WorldScale, WorldHeight * WorldScale);
 
+    public Native2DUvRect CoverUv(int imageWidth, int imageHeight)
+    {
+        float scale = Math.Max(Width / (float)imageWidth, Height / (float)imageHeight);
+        float visibleWidth = Math.Clamp(Width / (imageWidth * scale), 0, 1);
+        float visibleHeight = Math.Clamp(Height / (imageHeight * scale), 0, 1);
+        return new Native2DUvRect((1 - visibleWidth) / 2, (1 - visibleHeight) / 2,
+            (1 + visibleWidth) / 2, (1 + visibleHeight) / 2);
+    }
+
     public Native2DRect UiRect(Native2DRect rect)
     {
         return new Native2DRect(UiLeft + rect.X * UiScale, UiTop + rect.Y * UiScale,

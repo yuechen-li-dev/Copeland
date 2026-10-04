@@ -7,6 +7,7 @@ public abstract record TinyFarmInputCommand;
 public sealed record SubmitGameIntent(GameIntent Intent) : TinyFarmInputCommand;
 public sealed record TogglePauseCommand : TinyFarmInputCommand;
 public sealed record ToggleInventoryCommand : TinyFarmInputCommand;
+public sealed record ToggleStatsCommand : TinyFarmInputCommand;
 
 /// <summary>App-owned logical-input lowering. Replay authority begins at the emitted semantic intent.</summary>
 public sealed class TinyFarmInputController(int movementDistance = ScenePosition.UnitsPerTile / 8)
@@ -29,6 +30,10 @@ public sealed class TinyFarmInputController(int movementDistance = ScenePosition
         if (frame.WasPressed(GameControls.UseSelected)) commands.Add(new SubmitGameIntent(new UseSelectedIntent()));
         if (frame.WasPressed(GameControls.Pause)) commands.Add(new TogglePauseCommand());
         if (frame.WasPressed(GameControls.ToggleInventory)) commands.Add(new ToggleInventoryCommand());
+        if (frame.WasPressed(GameControls.ToggleStats))
+        {
+            commands.Add(new ToggleStatsCommand());
+        }
         return commands;
     }
 

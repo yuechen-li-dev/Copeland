@@ -149,6 +149,10 @@ public static class TinyFarmPlayerUiProjector
         }
         if (target?.Kind == InteractionTargetKind.CookingStation)
         {
+            if (state.Version >= TinyFarmState.CraftingSaveVersion)
+            {
+                return "Open stove [Interact]";
+            }
             CookingRecipeDefinition? recipe = definitions.CookingRecipes.SingleOrDefault();
             if (recipe is null)
             {

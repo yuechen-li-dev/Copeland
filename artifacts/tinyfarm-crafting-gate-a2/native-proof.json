@@ -1,0 +1,14 @@
+{
+  "outcome": "A: crafting vertical slice qualified",
+  "device": "NVIDIA GeForce RTX 3070",
+  "farmHarvest": true,
+  "saltGathered": true,
+  "experimentDiscovery": true,
+  "exhaustion": true,
+  "foodSpiritRecovery": true,
+  "modifierCraft": true,
+  "inputMaps": true,
+  "saveLoad": true,
+  "reflectionDisabled": true,
+  "semanticHash": "f164d17640d25331679053cac11ea4450f94a17fd871dd7c5c2fb83af0df6df4"
+}

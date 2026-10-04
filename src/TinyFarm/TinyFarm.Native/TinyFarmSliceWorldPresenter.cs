@@ -176,6 +176,30 @@ internal sealed partial class TinyFarmWorldPresenter
         });
         context.Present(shapes, pass =>
         {
+            foreach (TinyFarmItemView item in frame.GroundItems)
+            {
+                float x = item.Position.X / 1024.0f;
+                float y = item.Position.Y / 1024.0f;
+                bool card = game.State.Item(item.Id).TeachesRecipe is not null;
+                Tile(pass, x - .22f, y - .25f, .44f, .5f, card ? 0xF4DEAEFF : 0x82BB77FF, 2);
+                if (card)
+                {
+                    Tile(pass, x - .14f, y - .12f, .28f, .04f, 0x74624AFF, 1);
+                    Tile(pass, x - .14f, y + .02f, .2f, .04f, 0x74624AFF, 1);
+                }
+            }
+            foreach (TinyFarmSceneObjectView item in frame.SceneObjects ?? [])
+            {
+                if (item.Id.Value == TinyFarmCraftingContent.SaltOutcrop.Value)
+                {
+                    Tile(pass, item.Position.X + .08f, item.Position.Y + .3f, .82f, .55f, 0x899488FF, 8);
+                    if (!item.Depleted)
+                    {
+                        Tile(pass, item.Position.X + .2f, item.Position.Y + .18f, .32f, .3f, 0xE1DCCBFF, 3);
+                        Tile(pass, item.Position.X + .55f, item.Position.Y + .38f, .23f, .24f, 0xF0E8D6FF, 3);
+                    }
+                }
+            }
             foreach (TinyFarmPlotView plot in frame.Plots)
             {
                 FarmPlotState truth = game.State.FarmPlots.Single(candidate => candidate.Id == plot.Id);

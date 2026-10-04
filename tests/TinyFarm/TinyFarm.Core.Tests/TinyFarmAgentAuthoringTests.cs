@@ -183,7 +183,7 @@ public sealed class TinyFarmAgentAuthoringTests
         Assert.Equal(TinyFarmSemanticHash.Compute(state), result.FinalHash);
         var session = new TinyFarmSession(state, world.Definitions);
         session.Step(new SetEquipmentIntent(EquipmentSlot.Tool, null), false);
-        Assert.Equal(TinyFarmState.AgentAuthoringSaveVersion, session.State.Version);
+        Assert.Equal(TinyFarmState.RpgProfileSaveVersion, session.State.Version);
         _ = TinyFarmChunkedSaveCodec.Write(session, world.Definitions);
     }
 }

@@ -17,6 +17,7 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
     private MachinaPresentationFrame? resource;
     private MachinaPreparedPresentation? prepared;
     private string? pressedAction;
+    private ScrollbarInteractionState statsScroll = ScrollbarInteractionState.Default;
     private TinyFarmScreen pressedScreen;
     private string? clockKey;
     private MachinaPresentationFrame? clockResource;
@@ -44,6 +45,11 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
 
     public void Pointer(TinyFarmFrame frame, PointerPoint point, bool down)
     {
+        if (ScrollStats(new UiPointerButtonChanged(point, UiPointerButton.Primary, down, UiModifiers.None)))
+        {
+            pressedAction = null;
+            return;
+        }
         Resource(frame);
         UiHitTestResult? hit = prepared!.HitTest.HitTest(point);
         string? action = hit?.Semantics?.Disabled == true ? null : hit?.Action.Name;
@@ -64,6 +70,52 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
     public void ResetPointer()
     {
         pressedAction = null;
+        statsScroll = ScrollbarInteractionState.Default;
+    }
+
+    internal bool ScrollStats(UiInputEvent input)
+    {
+        if (game.Screen != TinyFarmScreen.Stats)
+        {
+            statsScroll = ScrollbarInteractionState.Default;
+            return false;
+        }
+        int count = game.Menus.PropertyRows(game.State, game.Definitions).Count;
+        var geometry = TinyFarmStatsScrollbar.Geometry(count, game.Menus.StatsOffset);
+        var interaction = new ScrollbarInteractionGeometry(geometry.TrackRect, geometry.ThumbRect,
+            geometry.IsVisible, geometry.ScrollOffset, geometry.MaxScrollOffset);
+        ScrollbarHitPart hit = ScrollbarHitPart.None;
+        if (input.TryGetPointerPosition(out PointerPoint point))
+        {
+            if (Contains(geometry.ThumbRect, point))
+            {
+                hit = ScrollbarHitPart.Thumb;
+            }
+            else if (Contains(geometry.TrackRect, point))
+            {
+                hit = ScrollbarHitPart.Track;
+            }
+            else if (point.X >= 234 && point.X < 1164 && point.Y >= 254 && point.Y < 594)
+            {
+                hit = ScrollbarHitPart.Viewport;
+            }
+        }
+        ScrollbarInteractionResult result = ScrollbarInteraction.Reduce(statsScroll,
+            new ScrollbarInteractionContext(new ScrollbarInteractionTarget("agent-properties"), interaction,
+                TinyFarmStatsScrollbar.ViewportHeight, WheelMultiplier: TinyFarmStatsScrollbar.RowHeight * 3), hit, input);
+        statsScroll = result.State;
+        if (result.RequestedScrollOffset is double requested)
+        {
+            int row = (int)Math.Round(requested / TinyFarmStatsScrollbar.RowHeight);
+            game.Menus.ScrollStats(row - game.Menus.StatsOffset, count);
+        }
+        return result.Consumed;
+    }
+
+    private static bool Contains(Machina.Layout.Geometry.Rect rect, PointerPoint point)
+    {
+        return point.X >= rect.X && point.X < rect.X + rect.Width
+            && point.Y >= rect.Y && point.Y < rect.Y + rect.Height;
     }
 
     public PointerPoint ActionCenter(TinyFarmFrame frame, string action)
@@ -107,9 +159,9 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
                 InteractionTargetKind.Plot => game.State.Slice is not null ? SlicePlotPrompt(target) : "1 + SPACE plant   /   E tend or harvest",
                 InteractionTargetKind.Enemy => game.State.Slice is not null ? "J sword   /   SPACE dodge" : "4 + SPACE  Shoo the slime",
                 InteractionTargetKind.Tree => game.State.Slice is not null ? "3 + K  Chop firewood" : "3 + SPACE  Chop firewood",
-                InteractionTargetKind.GroundItem => "E  Pick up wild mint",
-                InteractionTargetKind.ForageNode => "E  Gather mushrooms",
-                InteractionTargetKind.CookingStation => game.State.Slice is not null ? "E  Cook turnip broth" : "E  Cook supper",
+                InteractionTargetKind.GroundItem => "E  Pick up " + game.State.Item(target.Item!.Value).Name,
+                InteractionTargetKind.ForageNode => "E  Gather " + game.Definitions.Item(game.Definitions.ForageNode(target.ForageNode!.Value).Product).Name,
+                InteractionTargetKind.CookingStation => game.State.Version >= TinyFarmState.CraftingSaveVersion ? "E  Open stove" : game.State.Slice is not null ? "E  Cook turnip broth" : "E  Cook supper",
                 InteractionTargetKind.Bed => "E  Sleep until morning",
                 InteractionTargetKind.Portal => PortalPrompt(frame, target),
                 _ => "E  Interact",
@@ -204,7 +256,7 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
             inventoryHash.ToHashCode(),
             game.State.Slice?.Health ?? 0,
             game.State.Slice?.LoopComplete ?? false,
-            game.Menus.CacheKey,
+            game.Menus.CacheKey + game.CraftCacheKey + "|" + game.TitleSelection,
             game.State.Equipment,
             game.SaveInProgress || game.LoadInProgress,
             game.MenuSaveAvailable);
@@ -212,7 +264,7 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
 
     private UiNode Build(TinyFarmFrame frame)
     {
-        if (game.Screen is TinyFarmScreen.Inventory or TinyFarmScreen.Paused)
+        if (game.Screen is TinyFarmScreen.Inventory or TinyFarmScreen.Stats or TinyFarmScreen.Crafting or TinyFarmScreen.Paused or TinyFarmScreen.Title)
         {
             return TinyFarmMenuPresentation.Build(game);
         }
@@ -264,7 +316,6 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
         }
         else if (game.Screen != TinyFarmScreen.Playing)
         {
-            Panel(nodes, "modal-shade", 0, 0, 1280, 720, 0x102D25B0);
             Panel(nodes, "modal", 193, 133, 894, 436, 0x163D31FC);
             string title = game.Screen switch
             {
@@ -305,7 +356,7 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
         var nodes = new List<UiNode>();
         TinyFarmSliceState slice = game.State.Slice!;
         Panel(nodes, "health", 24, 72, 225, 40, 0x19362BD9);
-        Text(nodes, "health-text", $"HP {slice.Health}/12  BROTH {game.State.ProductCount(TinyFarmIds.Player, new ProductId("turnip-broth"))}",
+        Text(nodes, "health-text", $"HP {slice.Health}/12  SP {game.State.Actor(TinyFarmIds.Player).Rpg?.SpiritCurrent ?? 0}/{game.State.Actor(TinyFarmIds.Player).Rpg?.SpiritMaximum ?? 0}",
             36, 82, 210, TextSize.Md, 0xF5DDB5FF);
         string tool = game.State.SelectedHotbarSlot switch
         {
@@ -326,7 +377,6 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
         }
         else if (game.Screen != TinyFarmScreen.Playing)
         {
-            Panel(nodes, "modal-shade", 0, 0, 1280, 720, 0x102D25A0);
             Panel(nodes, "modal", 220, 130, 840, 460, 0x19362BFA);
             string title = game.Screen switch
             {

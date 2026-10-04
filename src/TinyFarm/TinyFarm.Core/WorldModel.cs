@@ -90,11 +90,13 @@ public sealed record CookingRecipeDefinition(
     CookingStationKind StationKind,
     IReadOnlyList<CookingRecipeInput> Inputs,
     ProductId OutputProduct,
-    int OutputCount);
+    int OutputCount,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TinyFarmCraftingRules? Crafting = null);
 
 public sealed record LocationDefinition(LocationId Id, string Name, string Description, IReadOnlyList<LocationId> Exits);
 public sealed record ActorState(ActorId Id, string Name, LocationId Location, int Money, List<ItemId> Inventory, bool IsPlayer,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TinyFarmAgentState? Agent = null);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TinyFarmAgentState? Agent = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TinyFarmRpgProfile? Rpg = null);
 public sealed record ItemState(
     ItemId Id,
     string Name,
@@ -103,8 +105,10 @@ public sealed record ItemState(
     ActorId? Owner,
     SceneId? GroundScene = null,
     ScenePosition? GroundPosition = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] EquipmentSlot? EquipmentSlot = null);
-public sealed record ItemDefinition(ProductId Id, string Name, int BuyPrice, int SellPrice);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] EquipmentSlot? EquipmentSlot = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] CookingRecipeId? TeachesRecipe = null);
+public sealed record ItemDefinition(ProductId Id, string Name, int BuyPrice, int SellPrice,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TinyFarmFoodEffect? Food = null);
 public sealed record CropDefinition(CropId Id, ProductId SeedItemId, ProductId HarvestItemId, int GrowthDays, int WaterRequirement, int Yield);
 public sealed record InventoryStack(ActorId Actor, ProductId Product, int Count);
 public sealed record ShopStock(ProductId Product, int Count, int DailyRestockCount);
@@ -212,8 +216,15 @@ public sealed class TinyFarmDefinitions
         {
             throw new InvalidDataException("TinyFarm cooking recipe identities must be unique.");
         }
+        if (Items.Any(item => item.Food is { } food && (food.HealthRestore is < 0 or > 1000
+            || food.SpiritRestore is < 0 or > 100000 || food.HealthRestore == 0 && food.SpiritRestore == 0)))
+        {
+            throw new InvalidDataException("Invalid food recovery metadata.");
+        }
+
         foreach (CookingRecipeDefinition recipe in CookingRecipes)
         {
+            recipe.Crafting?.Validate(recipe, Items);
             if (recipe.Inputs.Count == 0
                 || recipe.OutputCount <= 0
                 || !Items.Any(item => item.Id == recipe.OutputProduct)
@@ -368,6 +379,8 @@ public sealed class TinyFarmState
     public const int SliceSaveVersion = 11;
     public const int EquipmentSaveVersion = 12;
     public const int AgentAuthoringSaveVersion = 13;
+    public const int RpgProfileSaveVersion = 14;
+    public const int CraftingSaveVersion = 15;
 
     [JsonConstructor]
     public TinyFarmState(
@@ -483,7 +496,8 @@ public sealed class TinyFarmState
             Actors.Select(actor => actor with
             {
                 Inventory = actor.Inventory.ToList(),
-                Agent = actor.Agent is null ? null : actor.Agent with { Conditions = actor.Agent.Conditions.ToArray() }
+                Agent = actor.Agent is null ? null : actor.Agent with { Conditions = actor.Agent.Conditions.ToArray() },
+                Rpg = actor.Rpg?.Copy()
             }).ToList(),
             Items.ToList(),
             Facts.ToList(),

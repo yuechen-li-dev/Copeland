@@ -24,7 +24,10 @@
     <Compile Include="../../../src/TinyFarm/TinyFarm.Native/TinyFarmBankMask.cs" Link="Presentation/TinyFarmBankMask.cs" />
     <Compile Include="../../../src/TinyFarm/TinyFarm.Native/TinyFarmPresentationLayout.cs" Link="Presentation/TinyFarmPresentationLayout.cs" />
     <Compile Include="../../../src/TinyFarm/TinyFarm.Native/TinyFarmNativeUi.cs" Link="Presentation/TinyFarmNativeUi.cs" />
+    <Compile Include="../../../src/TinyFarm/TinyFarm.Native/TinyFarmTitlePresentation.cs" Link="Presentation/TinyFarmTitlePresentation.cs" />
+    <Compile Include="../../../src/TinyFarm/TinyFarm.Native/TinyFarmCraftingPresentation.cs" Link="Presentation/TinyFarmCraftingPresentation.cs" />
     <Compile Include="../../../src/TinyFarm/TinyFarm.Native/TinyFarmMenuPresentation.cs" Link="Presentation/TinyFarmMenuPresentation.cs" />
+    <Compile Include="../../../src/TinyFarm/TinyFarm.Native/TinyFarmStatsScrollbar.cs" Link="Presentation/TinyFarmStatsScrollbar.cs" />
     <Content Include="Fixtures/M7/Valid/*.obj.ts" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -69,7 +69,7 @@ public sealed class TinyFarmInventoryMenuTests
             session.Step(new SetEquipmentIntent(EquipmentSlot.Weapon, TinyFarmIds.Axe), false).Results.Single().Reason);
         Assert.Equal(IntentResultStatus.Accepted,
             session.Step(new SetEquipmentIntent(EquipmentSlot.Weapon, null), false).Results.Single().Status);
-        Assert.Equal(TinyFarmState.EquipmentSaveVersion, session.State.Version);
+        Assert.Equal(TinyFarmState.RpgProfileSaveVersion, session.State.Version);
         Assert.NotEqual(before, TinyFarmSemanticHash.Compute(session.State));
         Assert.Equal(IntentResultStatus.NoOp, session.Step(new SwordIntent(), false).Results.Single().Status);
         session.Step(new SetEquipmentIntent(EquipmentSlot.Weapon, TinyFarmIds.Sword), false);
