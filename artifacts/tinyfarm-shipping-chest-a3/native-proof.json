@@ -1,0 +1,14 @@
+{
+  "outcome": "Success",
+  "device": "NVIDIA GeForce RTX 3070",
+  "harvest": true,
+  "deposit": true,
+  "retrieve": true,
+  "keyAndGearProtected": true,
+  "inputIsolation": true,
+  "shippingAtNine": true,
+  "noDuplicateAfterLoad": true,
+  "openWindowRestored": true,
+  "coinsEarned": 5,
+  "hash": "31bf3164305da9d4650ba7a83af762d502d7edf507e6eae2e4922e24c52e6387"
+}

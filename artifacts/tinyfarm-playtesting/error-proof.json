@@ -1,0 +1,6 @@
+{
+  "exitCode": 1,
+  "expectedExitCode": 1,
+  "qualified": true,
+  "error": "Step 0 (command) failed: Assertion failed: assert screen Inventory"
+}

@@ -1,5 +1,8 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/TinyFarm/TinyFarm.UI/TinyFarm.UI.csproj" />
+    <Project Path="src/TinyFarm/TinyFarm.Playtesting/TinyFarm.Playtesting.csproj" />
+    <Project Path="src/TinyFarm/TinyFarm.Cli/TinyFarm.Cli.csproj" />
     <Project Path="src/Aurelian/Aurelian.Audio/Aurelian.Audio.csproj" />
     <Project Path="src/Aurelian/Aurelian.Combat/Aurelian.Combat.csproj" />
     <Project Path="src/Aurelian/Aurelian.Field2D/Aurelian.Field2D.csproj" />

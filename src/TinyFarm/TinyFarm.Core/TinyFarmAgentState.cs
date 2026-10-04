@@ -19,7 +19,8 @@ public enum TinyFarmAgentSprite
 {
     Gardener,
     Mara,
-    ObjectMarker
+    ObjectMarker,
+    Chest
 }
 
 public enum TinyFarmObjectPose
@@ -49,7 +50,8 @@ public sealed record TinyFarmAgentState(
     IReadOnlyList<string> Conditions,
     TinyFarmEquipment Equipment,
     TinyFarmObjectPose? ObjectPose,
-    TinyFarmAgentAppearance Appearance);
+    TinyFarmAgentAppearance Appearance,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TinyFarmContainerState? Container = null);
 
 public static class TinyFarmAgentPolicy
 {

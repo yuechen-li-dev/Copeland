@@ -31,6 +31,13 @@ public static class TinyFarmAgentProperties
         Add("Resources", "Work energy", energy is null ? "Not applicable" : $"{energy.Energy} / {TinyFarmEnergy.MaximumUnits}",
             "Existing energy owner");
         Add("Resources", "Coins", actor.Money.ToString(), "Agent wallet");
+        if (actor.Agent?.Container is TinyFarmContainerState container)
+        {
+            Add("Resources", "Container policy", container.Shipping ? "Shipping / daily 09:00" : "Storage", "Agent container capability");
+            Add("Resources", "Opened by", container.OpenedBy?.Value ?? "Closed", "Container reducer");
+            Add("Resources", "Last pickup day", container.LastCollectionDay.ToString(), "Persisted daily gate");
+            Add("Resources", "Last shipment", $"{container.LastCollectionItems} items / {container.LastCollectionCoins} coins", "Shipping receipt");
+        }
 
         if (actor.Rpg is TinyFarmRpgProfile rpg)
         {

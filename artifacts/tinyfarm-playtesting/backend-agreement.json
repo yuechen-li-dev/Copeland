@@ -1,0 +1,38 @@
+[
+  {
+    "headless": "input",
+    "native": "input-native",
+    "worldAgreement": true,
+    "fieldAgreement": true,
+    "positionAgreement": true,
+    "screenAgreement": true,
+    "worldHash": "65fb5fa358d4329fecfabe5b415291b296c0d6803d2648a97c5a7d3b1f8de588",
+    "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+    "headlessRecords": 24,
+    "nativeRecords": 24
+  },
+  {
+    "headless": "fuzz",
+    "native": "fuzz-native",
+    "worldAgreement": true,
+    "fieldAgreement": true,
+    "positionAgreement": true,
+    "screenAgreement": true,
+    "worldHash": "574516ffac680eacda56685b305d1549c42b11e07eafd2a988b97f058939bc83",
+    "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+    "headlessRecords": 101,
+    "nativeRecords": 101
+  },
+  {
+    "headless": "container",
+    "native": "container-native",
+    "worldAgreement": true,
+    "fieldAgreement": true,
+    "positionAgreement": true,
+    "screenAgreement": true,
+    "worldHash": "15b326809fb80cec5bf837cc23fd0a94b1927d71a473b6413b222b158e41f2c4",
+    "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+    "headlessRecords": 16,
+    "nativeRecords": 16
+  }
+]

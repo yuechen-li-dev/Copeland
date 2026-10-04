@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "steps": [
+    { "kind": "capture", "path": "title.png" },
+    { "kind": "click-action", "text": "new-game" },
+    { "kind": "command", "command": "mark start" },
+    { "kind": "tap", "keys": ["f9"] },
+    { "kind": "capture", "path": "world.png" },
+    { "kind": "command", "command": "assert unchanged start" },
+    { "kind": "hold", "keys": ["w"], "seconds": 0.3 },
+    { "kind": "command", "command": "open inventory" },
+    { "kind": "click-action", "text": "search" },
+    { "kind": "text", "text": "w" },
+    { "kind": "command", "command": "mark search" },
+    { "kind": "hold", "keys": ["w"], "seconds": 1 },
+    { "kind": "command", "command": "assert unchanged search" },
+    { "kind": "capture", "path": "filter.png" },
+    { "kind": "tap", "keys": ["escape"] },
+    { "kind": "click-action", "text": "close" },
+    { "kind": "command", "command": "save slot2.sav" },
+    { "kind": "command", "command": "mark saved" },
+    { "kind": "hold", "keys": ["d"], "seconds": 0.3 },
+    { "kind": "command", "command": "load slot2.sav" },
+    { "kind": "command", "command": "assert unchanged saved" },
+    { "kind": "resize", "width": 2560, "height": 1440 },
+    { "kind": "capture", "path": "world-1440p.png" },
+    { "kind": "command", "command": "assert unchanged saved" }
+  ]
+}

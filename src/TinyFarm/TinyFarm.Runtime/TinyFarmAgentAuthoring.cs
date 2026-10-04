@@ -1,7 +1,8 @@
 namespace TinyFarm.Core;
 
 public sealed record TinyFarmAgentItemSeed(string Key, string Name, int Price = 0,
-    EquipmentSlot? Slot = null, bool Equip = false);
+    EquipmentSlot? Slot = null, bool Equip = false,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)] bool IsKeyItem = false);
 public sealed record TinyFarmAgentProductSeed(ProductId Product, int Count);
 public sealed record TinyFarmAgentScheduleStop(int StartMinute, int EndMinute, SceneAnchorId Anchor, string Reason);
 public sealed record TinyFarmAuthoredWorld(TinyFarmDefinitions Definitions, TinyFarmState State);
@@ -21,6 +22,7 @@ public sealed record TinyFarmAgentTemplate
     public IReadOnlyList<string> Conditions { get; init; } = [];
     public IReadOnlyList<TinyFarmAgentItemSeed> Items { get; init; } = [];
     public IReadOnlyList<TinyFarmAgentProductSeed> Products { get; init; } = [];
+    public TinyFarmContainerState? Container { get; init; }
     public TinyFarmObjectPose? ObjectPose { get; init; }
     public TinyFarmAgentAppearance Appearance { get; init; } = new(TinyFarmAgentSprite.Gardener);
 
@@ -186,7 +188,7 @@ public static class TinyFarmAgentAuthoring
                     throw Invalid(spawn, $"item '{item}' collides with an existing item");
                 }
                 owned.Add(item);
-                items.Add(new ItemState(item, seed.Name, seed.Price, null, spawn.Id, EquipmentSlot: seed.Slot));
+                items.Add(new ItemState(item, seed.Name, seed.Price, null, spawn.Id, EquipmentSlot: seed.Slot, IsKeyItem: seed.IsKeyItem));
                 if (seed.Equip && seed.Slot == EquipmentSlot.Weapon)
                 {
                     weapon = item;
@@ -198,7 +200,7 @@ public static class TinyFarmAgentAuthoring
             }
             var data = new TinyFarmAgentState(template.Id, template.Kind, template.Control, template.Health,
                 template.Level, template.Conditions.OrderBy(value => value, StringComparer.Ordinal).ToArray(),
-                new TinyFarmEquipment(weapon, tool), template.ObjectPose, template.Appearance);
+                new TinyFarmEquipment(weapon, tool), template.ObjectPose, template.Appearance, template.Container);
             actors.Add(new ActorState(spawn.Id, spawn.Name, location, template.Money, owned,
                 template.Control == TinyFarmAgentControl.Human, data, template.Rpg?.Copy()));
             placements.Add(placement);
@@ -207,6 +209,10 @@ public static class TinyFarmAgentAuthoring
                 energy.Add(new ActorEnergyState(spawn.Id, template.Energy, false));
             }
             products.AddRange(template.Products.Select(seed => new InventoryStack(spawn.Id, seed.Product, seed.Count)));
+            if (template.Container is not null)
+            {
+                version = Math.Max(version, TinyFarmState.ContainerSaveVersion);
+            }
             version = Math.Max(version, template.Rpg is null
                 ? TinyFarmState.AgentAuthoringSaveVersion : TinyFarmState.RpgProfileSaveVersion);
         }
@@ -236,8 +242,9 @@ public static class TinyFarmAgentAuthoring
             || agent.Control == TinyFarmAgentControl.Human && actor.Id != TinyFarmIds.Player
             || agent.Kind == TinyFarmAgentKind.Object && (agent.Control != TinyFarmAgentControl.Idle || agent.ObjectPose is null)
             || agent.Kind == TinyFarmAgentKind.Character && agent.ObjectPose is not null
+            || agent.Container is not null && agent.Kind != TinyFarmAgentKind.Object
             || agent.ObjectPose is not null && agent.ObjectPose is not TinyFarmObjectPose.Closed and not TinyFarmObjectPose.Open
-            || agent.Appearance.OverworldSprite is < TinyFarmAgentSprite.Gardener or > TinyFarmAgentSprite.ObjectMarker
+            || agent.Appearance.OverworldSprite is < TinyFarmAgentSprite.Gardener or > TinyFarmAgentSprite.Chest
             || agent.Appearance.ScalePercent is < 25 or > 400
             || agent.Equipment.Weapon is ItemId weapon && !actor.Inventory.Contains(weapon)
             || agent.Equipment.Tool is ItemId tool && !actor.Inventory.Contains(tool)
@@ -285,7 +292,7 @@ public static class TinyFarmAgentAuthoring
             }
         }
         var data = new TinyFarmAgentState(template.Id, template.Kind, template.Control, template.Health,
-            template.Level, template.Conditions, new TinyFarmEquipment(null, null), template.ObjectPose, template.Appearance);
+            template.Level, template.Conditions, new TinyFarmEquipment(null, null), template.ObjectPose, template.Appearance, template.Container);
         ValidateAgent(new ActorState(spawn.Id, spawn.Name, TinyFarmIds.Farmhouse, template.Money, [],
             template.Control == TinyFarmAgentControl.Human, data));
         if (template.Control == TinyFarmAgentControl.Schedule)

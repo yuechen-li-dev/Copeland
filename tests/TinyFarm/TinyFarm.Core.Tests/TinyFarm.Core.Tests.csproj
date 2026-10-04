@@ -5,6 +5,8 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../../src/TinyFarm/TinyFarm.Playtesting/TinyFarm.Playtesting.csproj" />
+    <ProjectReference Include="../../../src/TinyFarm/TinyFarm.UI/TinyFarm.UI.csproj" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Combat/Aurelian.Combat.csproj" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Field2D/Aurelian.Field2D.csproj" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Audio/Aurelian.Audio.csproj" />
@@ -22,12 +24,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="../../../src/TinyFarm/TinyFarm.Native/TinyFarmBankMask.cs" Link="Presentation/TinyFarmBankMask.cs" />
-    <Compile Include="../../../src/TinyFarm/TinyFarm.Native/TinyFarmPresentationLayout.cs" Link="Presentation/TinyFarmPresentationLayout.cs" />
-    <Compile Include="../../../src/TinyFarm/TinyFarm.Native/TinyFarmNativeUi.cs" Link="Presentation/TinyFarmNativeUi.cs" />
-    <Compile Include="../../../src/TinyFarm/TinyFarm.Native/TinyFarmTitlePresentation.cs" Link="Presentation/TinyFarmTitlePresentation.cs" />
-    <Compile Include="../../../src/TinyFarm/TinyFarm.Native/TinyFarmCraftingPresentation.cs" Link="Presentation/TinyFarmCraftingPresentation.cs" />
-    <Compile Include="../../../src/TinyFarm/TinyFarm.Native/TinyFarmMenuPresentation.cs" Link="Presentation/TinyFarmMenuPresentation.cs" />
-    <Compile Include="../../../src/TinyFarm/TinyFarm.Native/TinyFarmStatsScrollbar.cs" Link="Presentation/TinyFarmStatsScrollbar.cs" />
     <Content Include="Fixtures/M7/Valid/*.obj.ts" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,13 @@
+{
+  "command": "dotnet test TinyFarm.slnx -c Release -m:1 -p:JsonSerializerIsReflectionEnabledByDefault=false --nologo -v:q",
+  "auditStage": "Initial 12 container tests, before adding the final five regressions",
+  "tinyFarmPassed": 404,
+  "tinyFarmFailed": 27,
+  "spatialPassed": 27,
+  "representativeTest": "TinyFarmM2Tests.M1CanonicalHash_RemainsExact",
+  "exception": "System.InvalidOperationException: Reflection-based serialization has been disabled for this application. Either use the source generator APIs or explicitly configure the JsonSerializerOptions.TypeInfoResolver property.",
+  "representativeSource": "src/TinyFarm/TinyFarm.Runtime/TinyFarmCanonicalScenario.cs:69",
+  "sourceChangedByThisTask": false,
+  "newContainerRuntime": "Source-generated JSON contexts; all 17 final focused tests and the native walkthrough pass with reflection disabled",
+  "scope": "Historical proof serializer migration remains separate from the container loop"
+}

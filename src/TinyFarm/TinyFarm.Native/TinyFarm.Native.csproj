@@ -6,6 +6,9 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../TinyFarm.Playtesting/TinyFarm.Playtesting.csproj" />
+    <ProjectReference Include="../TinyFarm.UI/TinyFarm.UI.csproj" />
+    <Compile Remove="TinyFarmNativeUi.cs;TinyFarmMenuPresentation.cs;TinyFarmTitlePresentation.cs;TinyFarmContainerPresentation.cs;TinyFarmCraftingPresentation.cs;TinyFarmStatsScrollbar.cs;TinyFarmPresentationLayout.cs" />
     <Content Include="Assets/GateA/*.png" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../../Aurelian/Aurelian.GameHost/Aurelian.GameHost.csproj" />
     <ProjectReference Include="../../Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />

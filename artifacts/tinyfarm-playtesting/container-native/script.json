@@ -1,0 +1,220 @@
+{
+  "schemaVersion": 1,
+  "steps": [
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "new game",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "hold",
+      "keys": [
+        "w"
+      ],
+      "seconds": 0.3,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "hold",
+      "keys": [
+        "d"
+      ],
+      "seconds": 0.3,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "hold",
+      "keys": [
+        "w"
+      ],
+      "seconds": 0.2,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "open container shipping-chest",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "assert screen Container",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "deposit product:turnip-seed 2",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "assert product shipping-chest turnip-seed 2",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "withdraw product:turnip-seed 1",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "assert product player turnip-seed 5",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "save chest.sav",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "mark saved",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "close",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "load chest.sav",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "assert screen Container",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "assert unchanged saved",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    }
+  ],
+  "seed": null
+}

@@ -11,7 +11,8 @@ public enum InteractionTargetKind
     CookingStation,
     Bed,
     Tree,
-    Enemy
+    Enemy,
+    Container
 }
 
 public sealed record InteractionTarget(
@@ -48,9 +49,14 @@ public static class TinyFarmSpatialQueries
         foreach (ActorSceneState other in state.ActorScenes.Where(candidate =>
                      candidate.Actor != actorId && candidate.Scene == actor.Scene))
         {
-            // Passive authored props are not conversations. Container interaction is a later reducer.
+            // Object agents have explicit interaction capabilities; other props remain passive.
             if (TinyFarmAgentPolicy.IsObject(state.Actor(other.Actor)))
             {
+                if (state.Actor(other.Actor).Agent?.Container is not null)
+                {
+                    AddIfTargetable(candidates, actor, other.WorldPosition,
+                        new InteractionTarget(InteractionTargetKind.Container, $"container:{other.Actor.Value}", Actor: other.Actor));
+                }
                 continue;
             }
             AddIfTargetable(
@@ -275,6 +281,7 @@ public static class TinyFarmSpatialQueries
         return kind switch
         {
             InteractionTargetKind.Actor => 0,
+            InteractionTargetKind.Container => 0,
             InteractionTargetKind.Enemy => 1,
             InteractionTargetKind.Portal => 2,
             InteractionTargetKind.GroundItem => 3,

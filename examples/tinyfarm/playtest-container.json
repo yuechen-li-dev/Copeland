@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "steps": [
+    { "kind": "command", "command": "new game" },
+    { "kind": "hold", "keys": ["w"], "seconds": 0.3 },
+    { "kind": "hold", "keys": ["d"], "seconds": 0.3 },
+    { "kind": "hold", "keys": ["w"], "seconds": 0.2 },
+    { "kind": "command", "command": "open container shipping-chest" },
+    { "kind": "command", "command": "assert screen Container" },
+    { "kind": "command", "command": "deposit product:turnip-seed 2" },
+    { "kind": "command", "command": "assert product shipping-chest turnip-seed 2" },
+    { "kind": "command", "command": "withdraw product:turnip-seed 1" },
+    { "kind": "command", "command": "assert product player turnip-seed 5" },
+    { "kind": "command", "command": "save chest.sav" },
+    { "kind": "command", "command": "mark saved" },
+    { "kind": "command", "command": "close" },
+    { "kind": "command", "command": "load chest.sav" },
+    { "kind": "command", "command": "assert screen Container" },
+    { "kind": "command", "command": "assert unchanged saved" }
+  ]
+}

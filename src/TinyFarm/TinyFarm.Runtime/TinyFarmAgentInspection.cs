@@ -17,7 +17,8 @@ public sealed record TinyFarmAgentInspection(
     TinyFarmEquipment Equipment,
     TinyFarmObjectPose? ObjectPose,
     TinyFarmAgentAppearance Appearance,
-    bool UsesLegacyStateAdapter);
+    bool UsesLegacyStateAdapter,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TinyFarmContainerState? Container = null);
 
 public sealed record TinyFarmAgentAuthoringProof(
     string Outcome,
@@ -51,7 +52,7 @@ public static class TinyFarmAgentInspector
         return new TinyFarmAgentInspection(actor.Id, actor.Name, data?.Kind ?? TinyFarmAgentKind.Character,
             data?.Control ?? (actor.IsPlayer ? TinyFarmAgentControl.Human : TinyFarmAgentControl.Schedule),
             placement.Scene, placement.WorldPosition, health, data?.Level ?? 1, data?.Conditions ?? [],
-            TinyFarmInventory.Project(state, definitions, id), equipment, data?.ObjectPose, appearance, data is null);
+            TinyFarmInventory.Project(state, definitions, id), equipment, data?.ObjectPose, appearance, data is null, data?.Container);
     }
 
     public static TinyFarmAgentAuthoringProof Prove()

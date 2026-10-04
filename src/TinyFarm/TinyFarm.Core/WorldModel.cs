@@ -106,9 +106,11 @@ public sealed record ItemState(
     SceneId? GroundScene = null,
     ScenePosition? GroundPosition = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] EquipmentSlot? EquipmentSlot = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] CookingRecipeId? TeachesRecipe = null);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] CookingRecipeId? TeachesRecipe = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool IsKeyItem = false);
 public sealed record ItemDefinition(ProductId Id, string Name, int BuyPrice, int SellPrice,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TinyFarmFoodEffect? Food = null);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TinyFarmFoodEffect? Food = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool IsKeyItem = false);
 public sealed record CropDefinition(CropId Id, ProductId SeedItemId, ProductId HarvestItemId, int GrowthDays, int WaterRequirement, int Yield);
 public sealed record InventoryStack(ActorId Actor, ProductId Product, int Count);
 public sealed record ShopStock(ProductId Product, int Count, int DailyRestockCount);
@@ -381,6 +383,7 @@ public sealed class TinyFarmState
     public const int AgentAuthoringSaveVersion = 13;
     public const int RpgProfileSaveVersion = 14;
     public const int CraftingSaveVersion = 15;
+    public const int ContainerSaveVersion = 16;
 
     [JsonConstructor]
     public TinyFarmState(

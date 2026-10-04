@@ -17,6 +17,7 @@ public enum TinyFarmScreen
     Inventory,
     Stats,
     Crafting,
+    Container,
     Complete
 }
 
@@ -32,11 +33,11 @@ public sealed partial class TinyFarmGame
     private Task? pendingSave;
     private Task<LoadedSaveCandidate>? pendingLoad;
 
-    public TinyFarmGame(ISaveStore store, bool slice = false, TinyFarmAuthoredWorld? authored = null, bool crafting = false)
+    public TinyFarmGame(ISaveStore store, bool slice = false, TinyFarmAuthoredWorld? authored = null, bool crafting = false, bool shipping = false)
     {
         this.store = store;
-        Definitions = authored?.Definitions ?? (crafting ? TinyFarmCraftingContent.Load() : slice ? TinyFarmSliceContent.Load() : TinyFarmDefinitionLoader.LoadM21());
-        TinyFarmState initial = authored?.State ?? (crafting ? TinyFarmCraftingContent.Start(Definitions) : slice ? TinyFarmSliceContent.Start(Definitions) : TinyFarmSupperStart.Create(Definitions));
+        Definitions = authored?.Definitions ?? (shipping ? TinyFarmShippingContent.Load() : crafting ? TinyFarmCraftingContent.Load() : slice ? TinyFarmSliceContent.Load() : TinyFarmDefinitionLoader.LoadM21());
+        TinyFarmState initial = authored?.State ?? (shipping ? TinyFarmShippingContent.Start(Definitions) : crafting ? TinyFarmCraftingContent.Start(Definitions) : slice ? TinyFarmSliceContent.Start(Definitions) : TinyFarmSupperStart.Create(Definitions));
         Host = new TinyFarmSimulationHost(new TinyFarmSession(initial, Definitions), Definitions,
             rates: slice ? new TinyFarmSimulationRates(NormalRealSecondsPerGameMinute: 1) : null);
         Dialogue = new TinyFarmDialogueCoordinator(Host);
@@ -64,7 +65,7 @@ public sealed partial class TinyFarmGame
     public int EffectEvents { get; private set; }
     public int AudioEvents { get; private set; }
     public int FeedbackEpoch { get; private set; }
-    private string SaveSlot => State.Version >= TinyFarmState.CraftingSaveVersion ? "sleeping-spring-a2" : State.Slice is not null ? "sleeping-spring-gate-a" : "supper";
+    private string SaveSlot => State.Version >= TinyFarmState.ContainerSaveVersion ? "sleeping-spring-a3" : State.Version >= TinyFarmState.CraftingSaveVersion ? "sleeping-spring-a2" : State.Slice is not null ? "sleeping-spring-gate-a" : "supper";
     public bool HasSave => store.ExistsAsync(SaveSlot).GetAwaiter().GetResult();
     public bool SaveInProgress => pendingSave is not null;
     public bool LoadInProgress => pendingLoad is not null;
@@ -90,7 +91,7 @@ public sealed partial class TinyFarmGame
     }
 
     public bool IsAgentMenu => Screen is TinyFarmScreen.Inventory or TinyFarmScreen.Stats;
-    public bool IsModalMenu => IsAgentMenu || Screen is TinyFarmScreen.Crafting or TinyFarmScreen.Title;
+    public bool IsModalMenu => IsAgentMenu || Screen is TinyFarmScreen.Crafting or TinyFarmScreen.Title or TinyFarmScreen.Container;
 
     public void Start()
     {
@@ -163,9 +164,7 @@ public sealed partial class TinyFarmGame
                     Execute(submit.Intent);
                     break;
                 case TogglePauseCommand:
-                    Screen = TinyFarmScreen.Paused;
-                    Menus.Confirmation = null;
-                    MenuSaveAvailable = HasSave;
+                    OpenPause();
                     break;
                 case ToggleInventoryCommand:
                     OpenInventory(false);
@@ -307,6 +306,7 @@ public sealed partial class TinyFarmGame
             }
         }
         ApplyCraftingFeedback(intent, result);
+        ApplyContainerFeedback(result);
         CheckCompletion();
         return step;
     }
@@ -336,7 +336,7 @@ public sealed partial class TinyFarmGame
         return "Home again. Watered crops grow after a night's rest.";
     }
 
-    public bool Save()
+    public bool Save(string? slot = null)
     {
         if (Host.Session.HasActiveCombat)
         {
@@ -349,8 +349,9 @@ public sealed partial class TinyFarmGame
             Task? earlierSave = pendingSave;
             pendingSave = null;
             earlierSave?.GetAwaiter().GetResult();
-            Persistence.Deliverance.SaveAsync(SaveSlot, Persistence.CaptureSave(SaveSlot)).GetAwaiter().GetResult();
-            MenuSaveAvailable = true;
+            string targetSlot = slot ?? SaveSlot;
+            Persistence.Deliverance.SaveAsync(targetSlot, Persistence.CaptureSave(targetSlot)).GetAwaiter().GetResult();
+            MenuSaveAvailable = HasSave;
             Status = State.Slice is not null
                 ? "Saved. N continues your garden and adventure from here."
                 : "Saved. Your supper, world, and conversation are safe. N continues from here.";
@@ -393,13 +394,14 @@ public sealed partial class TinyFarmGame
         }
     }
 
-    public bool Load()
+    public bool Load(string? slot = null)
     {
         try
         {
-            LoadedSaveCandidate candidate = Persistence.Deliverance.LoadAsync(SaveSlot,
-                Persistence.GetLoadDefinitions(SaveSlot), Persistence.GetLoadCompatibility(SaveSlot)).GetAwaiter().GetResult();
-            Persistence.CommitLoadedCandidate(SaveSlot, candidate);
+            string targetSlot = slot ?? SaveSlot;
+            LoadedSaveCandidate candidate = Persistence.Deliverance.LoadAsync(targetSlot,
+                Persistence.GetLoadDefinitions(targetSlot), Persistence.GetLoadCompatibility(targetSlot)).GetAwaiter().GetResult();
+            Persistence.CommitLoadedCandidate(targetSlot, candidate);
             Screen = TinyFarmScreen.Playing;
             completionShown = TinyFarmSupper.IsComplete(State);
             effectsScene = null;
@@ -408,6 +410,7 @@ public sealed partial class TinyFarmGame
             PendingAudio.Clear();
             Status = "Welcome back. Everything is just where you left it.";
             SynchronizeScene();
+            RestoreContainerPresentation();
             return true;
         }
         catch (Exception error) when (error is not OutOfMemoryException)
@@ -471,6 +474,7 @@ public sealed partial class TinyFarmGame
                 PendingAudio.Clear();
                 Status = "Welcome back. Everything is just where you left it.";
                 SynchronizeScene();
+                RestoreContainerPresentation();
             }
             catch (Exception error) when (error is not OutOfMemoryException)
             {
@@ -540,6 +544,10 @@ public sealed partial class TinyFarmGame
         if (results.Any(result => result.Events.Any(item => item.Kind == GameEventKind.PlayerRescued)))
         {
             Status = "Caught your breath at the entrance. Try again, or retreat home for rest.";
+        }
+        foreach (IntentResult result in results.Where(result => result.Events.Any(item => item.Kind == GameEventKind.ShipmentCollected)))
+        {
+            ApplyContainerFeedback(result);
         }
         foreach (VisualEffectEvent effect in effectProjector.Project(results, State, Definitions))
         {

@@ -6,6 +6,7 @@ internal sealed class TinyFarmSliceArt
 {
     public TinyFarmSliceArt()
     {
+        ChestPoses = GridSpriteSheet.Import(Chest, 2, 1, 64);
         Title = TinyFarmM24Assets.LoadResource("tinyfarm-title-sleeping-spring",
             Path.Combine(AppContext.BaseDirectory, "Assets/GateA/title-sleeping-spring.png"),
             "78b1ae5809dd2873d96eb0e34fa7dccd01b5ec7c9b1a88e8abb6d44c8a63bf34",
@@ -52,6 +53,8 @@ internal sealed class TinyFarmSliceArt
             [new GroundBrushStroke([new(2.5, 7.5), new(6, 8), new(13, 8), new(16.5, 8), new(18, 6), new(19.5, 2.5)], .62)], 0xB9A67BC8);
     }
 
+    public SpriteAtlasResource Chest { get; } = TinyFarmChestArt.Create();
+    public IReadOnlyList<SpriteFrameMetadata> ChestPoses { get; }
     public SpriteAtlasResource Title { get; }
     public SpriteAtlasResource Floors { get; }
     public SpriteAtlasResource Turnip { get; }

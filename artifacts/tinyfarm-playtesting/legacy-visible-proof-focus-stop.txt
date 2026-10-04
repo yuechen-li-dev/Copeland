@@ -1,0 +1,4 @@
+System.InvalidOperationException: Shipping proof must use the real visible launch focus.
+   at TinyFarm.Native.TinyFarmContainerNativeProof.Require(Boolean condition, String message) in /_/src/TinyFarm/TinyFarm.Native/TinyFarmContainerNativeProof.cs:line 169
+   at TinyFarm.Native.TinyFarmContainerNativeProof.Run(String root, TinyFarmGame game, TinyFarmNativeWindow window, TinyFarmNativeRenderer renderer, AurelianGameHost host) in /_/src/TinyFarm/TinyFarm.Native/TinyFarmContainerNativeProof.cs:line 29
+   at TinyFarm.Native.Program.Main(String[] args) in /_/src/TinyFarm/TinyFarm.Native/Program.cs:line 128

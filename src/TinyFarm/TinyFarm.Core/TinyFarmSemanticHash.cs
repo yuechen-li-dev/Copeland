@@ -61,6 +61,10 @@ public static class TinyFarmSemanticHash
             {
                 canonical.Append("|equipment-slot=").Append(slot);
             }
+            if (item.IsKeyItem)
+            {
+                canonical.Append("|key-item");
+            }
             if (item.TeachesRecipe is CookingRecipeId recipe)
             {
                 canonical.Append("|teaches-recipe=").Append(recipe.Value);

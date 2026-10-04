@@ -1,0 +1,331 @@
+{
+  "schemaVersion": 1,
+  "steps": [
+    {
+      "kind": "click-action",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": "new-game",
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "assert screen Playing",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "hold",
+      "keys": [
+        "w"
+      ],
+      "seconds": 0.3,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "hold",
+      "keys": [
+        "w",
+        "s"
+      ],
+      "seconds": 2,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "open inventory",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "mark before-search",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "click-action",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": "search",
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "text",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": "w",
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "hold",
+      "keys": [
+        "w"
+      ],
+      "seconds": 3,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "assert search w",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "assert unchanged before-search",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "tap",
+      "keys": [
+        "escape"
+      ],
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "click-action",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": "close",
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "save slot2.sav",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "mark saved",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "hold",
+      "keys": [
+        "a"
+      ],
+      "seconds": 0.3,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "load slot2.sav",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "assert unchanged saved",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "resize",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": null,
+      "path": null,
+      "width": 2560,
+      "height": 1440,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "assert unchanged saved",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "focus",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": false
+    },
+    {
+      "kind": "hold",
+      "keys": [
+        "w"
+      ],
+      "seconds": 1,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "focus",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "assert unchanged saved",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    }
+  ],
+  "seed": null
+}

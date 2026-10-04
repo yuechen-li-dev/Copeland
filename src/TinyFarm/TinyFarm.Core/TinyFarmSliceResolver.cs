@@ -76,6 +76,7 @@ public sealed partial class TinyFarmResolver
         var events = new List<GameEvent>();
         int tomorrow = state.Day + 1;
         state.Minute += minutes;
+        CollectShipments(state, events);
         AdvanceDay(state, envelope.Actor, tomorrow, events);
         RestoreCraftingSpiritForRest(state, envelope.Actor);
         state.Slice = slice with { Health = 12, HurtTicks = 0, SwordTicks = 0, SwordBuffered = false, DodgeTicks = 0, Slept = true };
@@ -96,6 +97,7 @@ public sealed partial class TinyFarmResolver
         ReplaceActor(state, state.Actor(TinyFarmIds.Player) with { Location = TinyFarmIds.Farmhouse });
         int tomorrow = state.Day + 1;
         state.Minute = (tomorrow - 1) * 1440 + 360;
+        CollectShipments(state, events);
         AdvanceDay(state, TinyFarmIds.Player, tomorrow, events);
         RestoreCraftingSpiritForRest(state, TinyFarmIds.Player);
         state.Slice = state.Slice! with

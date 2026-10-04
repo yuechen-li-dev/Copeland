@@ -1,0 +1,132 @@
+{
+  "backend": "native-vulkan-inputman-machina",
+  "screen": "Playing",
+  "status": "Welcome back. Everything is just where you left it.",
+  "semanticHash": "65fb5fa358d4329fecfabe5b415291b296c0d6803d2648a97c5a7d3b1f8de588",
+  "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+  "minute": 482,
+  "scene": "farm",
+  "x": 6656,
+  "y": 6762,
+  "money": 12,
+  "capturesGameplay": false,
+  "focused": true,
+  "hudVisible": true,
+  "search": "w",
+  "searchFocused": false,
+  "actionMaps": [
+    "System",
+    "Shortcuts",
+    "Gameplay"
+  ],
+  "products": [
+    {
+      "actor": "player",
+      "product": "turnip-seed",
+      "count": 6
+    }
+  ],
+  "items": [
+    {
+      "actor": "mara",
+      "item": "mara-letter",
+      "name": "sealed letter"
+    },
+    {
+      "actor": "player",
+      "item": "axe",
+      "name": "Axe"
+    },
+    {
+      "actor": "player",
+      "item": "sword",
+      "name": "Sword"
+    },
+    {
+      "actor": "sela",
+      "item": "store-apple",
+      "name": "red apple"
+    },
+    {
+      "actor": "sela",
+      "item": "fishing-rod",
+      "name": "fishing rod"
+    }
+  ],
+  "targets": [],
+  "width": 2560,
+  "height": 1440,
+  "quit": false,
+  "acceptedActions": 0,
+  "rejectedActions": 0,
+  "health": 12,
+  "spirit": 20,
+  "spiritMaximum": 20,
+  "agents": [
+    {
+      "id": "elias",
+      "name": "Elias",
+      "scene": "riverside",
+      "x": 3584,
+      "y": 8704,
+      "kind": null,
+      "control": null,
+      "objectPose": null,
+      "conditions": [],
+      "lastCollectionDay": null,
+      "lastCollectionCoins": null
+    },
+    {
+      "id": "mara",
+      "name": "Mara",
+      "scene": "farm",
+      "x": 6656,
+      "y": 5632,
+      "kind": null,
+      "control": null,
+      "objectPose": null,
+      "conditions": [],
+      "lastCollectionDay": null,
+      "lastCollectionCoins": null
+    },
+    {
+      "id": "player",
+      "name": "You",
+      "scene": "farm",
+      "x": 6656,
+      "y": 6762,
+      "kind": null,
+      "control": null,
+      "objectPose": null,
+      "conditions": [],
+      "lastCollectionDay": null,
+      "lastCollectionCoins": null
+    },
+    {
+      "id": "sela",
+      "name": "Sela",
+      "scene": "general-store",
+      "x": 5632,
+      "y": 3584,
+      "kind": null,
+      "control": null,
+      "objectPose": null,
+      "conditions": [],
+      "lastCollectionDay": null,
+      "lastCollectionCoins": null
+    },
+    {
+      "id": "shipping-chest",
+      "name": "Shipping Chest",
+      "scene": "farm",
+      "x": 7680,
+      "y": 5120,
+      "kind": "Object",
+      "control": "Idle",
+      "objectPose": "Closed",
+      "conditions": [],
+      "lastCollectionDay": 0,
+      "lastCollectionCoins": 0
+    }
+  ]
+}

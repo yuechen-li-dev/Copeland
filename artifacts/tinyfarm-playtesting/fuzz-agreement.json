@@ -1,0 +1,11 @@
+{
+  "seed": 25,
+  "requestedFuzzSteps": 100,
+  "headlessTraceRecords": 101,
+  "nativeTraceRecords": 101,
+  "worldAgreement": true,
+  "fieldAgreement": true,
+  "positionAgreement": true,
+  "worldHash": "574516ffac680eacda56685b305d1549c42b11e07eafd2a988b97f058939bc83",
+  "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e"
+}

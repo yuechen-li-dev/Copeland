@@ -183,46 +183,7 @@ internal sealed class TinyFarmNativeRenderer : IAurelianHostCompositor
 
     internal void HandleMenuInput(LayerInputEvent input)
     {
-        if (!game.IsModalMenu && game.Screen != TinyFarmScreen.Paused)
-        {
-            ui.ResetPointer();
-            return;
-        }
-        switch (input)
-        {
-            case LayerTextEntered text:
-                game.EnterMenuText(text.Text);
-                break;
-            case LayerKeyChanged { IsPressed: true, Key: LayerKey.Backspace }:
-                game.EditMenuSearch(false);
-                break;
-            case LayerKeyChanged { IsPressed: true, Key: LayerKey.Delete }:
-                game.EditMenuSearch(true);
-                break;
-            case LayerKeyChanged { IsPressed: true, Key: LayerKey.Tab } when game.IsAgentMenu:
-                game.Menus.SearchFocused = !game.Menus.SearchFocused;
-                break;
-            case LayerPointerMoved moved when game.Screen == TinyFarmScreen.Stats:
-                ui.ScrollStats(new Machina.Runtime.Input.UiPointerMoved(ToMenuPoint(moved.Position), null,
-                    Machina.Runtime.Input.UiModifiers.None));
-                break;
-            case LayerPointerWheel wheel when game.Screen == TinyFarmScreen.Stats:
-                ui.ScrollStats(new Machina.Runtime.Input.UiPointerWheel(ToMenuPoint(wheel.Position),
-                    wheel.DeltaX, wheel.DeltaY, Machina.Runtime.Input.UiModifiers.None));
-                break;
-            case LayerPointerButtonChanged { Button: LayerPointerButton.Primary } pointer:
-                ui.Pointer(TinyFarmFrameProjector.Project(game.State, game.Definitions),
-                    ToMenuPoint(pointer.Position), pointer.IsPressed);
-                break;
-            case LayerPointerWheel wheel when game.Screen == TinyFarmScreen.Inventory:
-                var point = ToMenuPoint(wheel.Position);
-                if (point.X >= 234 && point.X < 854 && point.Y >= 218 && point.Y < 594)
-                {
-                    int count = game.Menus.Rows(game.State, game.Definitions).Count;
-                    game.Menus.Scroll(-Math.Sign(wheel.DeltaY) * 3, count);
-                }
-                break;
-        }
+        TinyFarmMenuInputRouter.Handle(game, ui, input, ToMenuPoint);
     }
 
     private Machina.Runtime.Input.PointerPoint ToMenuPoint(LayerPoint point)
@@ -595,6 +556,7 @@ internal sealed partial class TinyFarmWorldPresenter(
         {
             sliceArt = new TinyFarmSliceArt();
             linearTextures.Add(painterlyResources.Resolve(sliceArt.Title));
+            linearTextures.Add(painterlyResources.Resolve(sliceArt.Chest));
             linearTextures.Add(painterlyResources.Resolve(sliceArt.Gardener));
             linearTextures.Add(painterlyResources.Resolve(sliceArt.Slime));
             linearTextures.Add(painterlyResources.Resolve(sliceArt.Mara));
@@ -764,7 +726,7 @@ internal sealed partial class TinyFarmWorldPresenter(
 
     private Native2DTextureHandle ResolveTexture(SpriteAssetId id)
     {
-        if (sliceArt is not null && (id == sliceArt.Gardener.Id || id == sliceArt.Slime.Id || id == sliceArt.Mara.Id || id == sliceArt.Props.Id))
+        if (sliceArt is not null && (id == sliceArt.Gardener.Id || id == sliceArt.Slime.Id || id == sliceArt.Mara.Id || id == sliceArt.Props.Id || id == sliceArt.Chest.Id))
         {
             return painterlyResources.Get(id);
         }
@@ -964,6 +926,14 @@ internal sealed partial class TinyFarmWorldPresenter(
             TinyFarmAgentSprite appearance = actor.Appearance?.OverworldSprite
                 ?? (actor.Id == TinyFarmIds.Mara ? TinyFarmAgentSprite.Mara : TinyFarmAgentSprite.Gardener);
             double visualScale = (actor.Appearance?.ScalePercent ?? 100) / 100.0;
+            if (sliceArt is not null && appearance == TinyFarmAgentSprite.Chest)
+            {
+                int pose = game.State.Actor(actor.Id).Agent?.ObjectPose == TinyFarmObjectPose.Open ? 1 : 0;
+                worldSpriteScratch.Add(new WorldSprite(new WorldPresentationId("actor-" + actor.Id.Value),
+                    new WorldPoint2(x, y), sliceArt.Chest.Id, pose.ToString(), null, elapsed, false, visualScale,
+                    Native2DTint.White, WorldSpriteLayer.Actors, y, false));
+                continue;
+            }
             if (appearance == TinyFarmAgentSprite.ObjectMarker)
             {
                 WorldSprite marker = Sprite("actor-" + actor.Id.Value, "well", new WorldPoint2(x, y),
@@ -1110,6 +1080,10 @@ internal sealed partial class TinyFarmWorldPresenter(
         if (sliceArt is not null && sprite.AssetId == sliceArt.Mara.Id)
         {
             return sliceArt.MaraPose;
+        }
+        if (sliceArt is not null && sprite.AssetId == sliceArt.Chest.Id)
+        {
+            return sliceArt.ChestPoses[int.Parse(sprite.SpriteId, System.Globalization.CultureInfo.InvariantCulture)];
         }
         if (sliceArt is not null && sprite.AssetId == sliceArt.Props.Id)
         {
@@ -1498,7 +1472,7 @@ internal sealed class TinyFarmNativeOverlay(
                 NativeAnalyticShapeKind.RoundedRect, new Native2DTint(.04f, .10f, .08f, game.Screen == TinyFarmScreen.Title ? .08f : .6f),
                 0, default, 0)));
         }
-        if (game.Presentation.HudVisible || game.Screen is TinyFarmScreen.Inventory or TinyFarmScreen.Stats or TinyFarmScreen.Crafting or TinyFarmScreen.Paused or TinyFarmScreen.Title)
+        if (game.Presentation.HudVisible || game.Screen is TinyFarmScreen.Inventory or TinyFarmScreen.Stats or TinyFarmScreen.Crafting or TinyFarmScreen.Container or TinyFarmScreen.Paused or TinyFarmScreen.Title)
         {
             PresentSegment(context, baseSegments.Base, includeProfile: getLayout().Legacy);
         }

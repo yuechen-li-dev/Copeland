@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "steps": [
+    { "kind": "click-action", "text": "new-game" },
+    { "kind": "command", "command": "assert screen Playing" },
+    { "kind": "hold", "keys": ["w"], "seconds": 0.3 },
+    { "kind": "hold", "keys": ["w", "s"], "seconds": 2 },
+    { "kind": "command", "command": "open inventory" },
+    { "kind": "command", "command": "mark before-search" },
+    { "kind": "click-action", "text": "search" },
+    { "kind": "text", "text": "w" },
+    { "kind": "hold", "keys": ["w"], "seconds": 3 },
+    { "kind": "command", "command": "assert search w" },
+    { "kind": "command", "command": "assert unchanged before-search" },
+    { "kind": "tap", "keys": ["escape"] },
+    { "kind": "click-action", "text": "close" },
+    { "kind": "command", "command": "save slot2.sav" },
+    { "kind": "command", "command": "mark saved" },
+    { "kind": "hold", "keys": ["a"], "seconds": 0.3 },
+    { "kind": "command", "command": "load slot2.sav" },
+    { "kind": "command", "command": "assert unchanged saved" },
+    { "kind": "resize", "width": 2560, "height": 1440 },
+    { "kind": "command", "command": "assert unchanged saved" },
+    { "kind": "focus", "focused": false },
+    { "kind": "hold", "keys": ["w"], "seconds": 1 },
+    { "kind": "focus", "focused": true },
+    { "kind": "command", "command": "assert unchanged saved" }
+  ]
+}

@@ -36,6 +36,9 @@ namespace TinyFarm.Core;
 [JsonDerivedType(typeof(EatIntent), "eat")]
 [JsonDerivedType(typeof(SleepIntent), "sleep")]
 [JsonDerivedType(typeof(SetEquipmentIntent), "set-equipment")]
+[JsonDerivedType(typeof(OpenContainerIntent), "open-container")]
+[JsonDerivedType(typeof(CloseContainerIntent), "close-container")]
+[JsonDerivedType(typeof(TransferContainerIntent), "transfer-container")]
 public abstract record GameIntent;
 
 public sealed record SetEquipmentIntent(EquipmentSlot Slot, ItemId? Item) : GameIntent;
@@ -174,7 +177,12 @@ public enum IntentReason
     InsufficientSpirit,
     ExperimentFailed,
     InventoryFull,
-    RpgUnavailable
+    RpgUnavailable,
+    ContainerUnavailable,
+    ContainerClosed,
+    KeyItemProtected,
+    EquippedItemProtected,
+    InvalidTransfer
 }
 
 public enum GameEventKind
@@ -217,7 +225,11 @@ public enum GameEventKind
     SpiritRecovered,
     SkillPracticed,
     CraftingExhausted,
-    CraftExperimentFailed
+    CraftExperimentFailed,
+    ContainerOpened,
+    ContainerClosed,
+    ContainerTransferred,
+    ShipmentCollected
 }
 
 public enum DialogueTopic

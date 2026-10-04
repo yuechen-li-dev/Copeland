@@ -89,6 +89,9 @@ public sealed partial class TinyFarmResolver
 
         return envelope.Intent switch
         {
+            OpenContainerIntent open => ResolveOpenContainer(state, actor, envelope, open.Container),
+            CloseContainerIntent close => ResolveCloseContainer(state, actor, envelope, close.Container),
+            TransferContainerIntent transfer => ResolveContainerTransfer(state, actor, envelope, transfer),
             SetEquipmentIntent equip => ResolveEquipment(state, actor, envelope, equip),
             SliceTickIntent => ResolveSliceTick(state, envelope),
             SwordIntent => ResolveSliceSword(state, envelope),
@@ -550,6 +553,11 @@ public sealed partial class TinyFarmResolver
                 return Rejected(envelope, IntentReason.NoInteractionTarget);
             }
 
+            if (selected.Kind == InteractionTargetKind.Container && selected.Actor is ActorId container)
+            {
+                return ResolveOpenContainer(state, actor, envelope, container);
+            }
+
             if (selected.Item is ItemId item)
             {
                 return ResolveTake(state, actor, envelope, new TakeIntent(item));
@@ -613,7 +621,7 @@ public sealed partial class TinyFarmResolver
 
             if (selected.Kind == InteractionTargetKind.Shop)
             {
-                if (state.ProductCount(actor.Id, TinyFarmIds.Turnip) > 0)
+                if (state.Version < TinyFarmState.ContainerSaveVersion && state.ProductCount(actor.Id, TinyFarmIds.Turnip) > 0)
                 {
                     return ResolveSellProduct(state, actor, envelope, new SellProductIntent(TinyFarmIds.Turnip));
                 }
@@ -1242,6 +1250,10 @@ public sealed partial class TinyFarmResolver
         IntentEnvelope envelope,
         SellIntent intent)
     {
+        if (state.Version >= TinyFarmState.ContainerSaveVersion)
+        {
+            return Rejected(envelope, IntentReason.NotForSale);
+        }
         if (!StoreIsOpen(state.Minute))
         {
             return Rejected(envelope, IntentReason.StoreClosed);
@@ -1314,6 +1326,7 @@ public sealed partial class TinyFarmResolver
             return Accepted(envelope, events);
         }
         state.Minute += intent.Minutes;
+        CollectShipments(state, events);
         for (int day = previousDay + 1; day <= state.Day; day++)
         {
             AdvanceDay(state, actor.Id, day, events);
@@ -1361,6 +1374,10 @@ public sealed partial class TinyFarmResolver
 
     private IntentResult ResolveSellProduct(TinyFarmState state, ActorState actor, IntentEnvelope envelope, SellProductIntent intent)
     {
+        if (state.Version >= TinyFarmState.ContainerSaveVersion)
+        {
+            return Rejected(envelope, IntentReason.NotForSale);
+        }
         if (!StoreIsOpen(state.Minute))
         {
             return Rejected(envelope, IntentReason.StoreClosed);

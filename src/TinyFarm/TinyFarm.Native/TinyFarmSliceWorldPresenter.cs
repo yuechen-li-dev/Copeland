@@ -118,6 +118,10 @@ internal sealed partial class TinyFarmWorldPresenter
             }
             foreach (TinyFarmSceneObjectView item in frame.SceneObjects ?? [])
             {
+                if (item.Id.Value == "shipping-chest-footprint")
+                {
+                    continue;
+                }
                 if (item.Id.Value.StartsWith("opening-river-", StringComparison.Ordinal) || item.Id.Value == "hill")
                 {
                     continue;

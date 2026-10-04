@@ -195,7 +195,8 @@ public static class TinyFarmChunkedSaveCodec
             && state.Version != TinyFarmState.EquipmentSaveVersion
             && state.Version != TinyFarmState.AgentAuthoringSaveVersion
             && state.Version != TinyFarmState.RpgProfileSaveVersion
-            && state.Version != TinyFarmState.CraftingSaveVersion)
+            && state.Version != TinyFarmState.CraftingSaveVersion
+            && state.Version != TinyFarmState.ContainerSaveVersion)
         {
             throw new InvalidDataException($"Unsupported TinyFarm game save version {state.Version}.");
         }
@@ -219,6 +220,21 @@ public static class TinyFarmChunkedSaveCodec
 
         foreach (ActorState actor in state.Actors)
         {
+            if (actor.Agent?.Container is TinyFarmContainerState container)
+            {
+                if (state.Version < TinyFarmState.ContainerSaveVersion || !TinyFarmAgentPolicy.IsObject(actor)
+                    || container.LastCollectionDay < 0 || container.LastCollectionDay > state.Day
+                    || container.LastCollectionDay == state.Day && state.Minute % 1440 < TinyFarmContainers.CollectionMinute
+                    || container.LastCollectionCoins < 0 || container.LastCollectionItems < 0
+                    || container.Shipping && (container.Beneficiary is not ActorId beneficiary
+                        || beneficiary == actor.Id || !state.Actors.Any(candidate => candidate.Id == beneficiary))
+                    || (container.OpenedBy is null) != (actor.Agent.ObjectPose == TinyFarmObjectPose.Closed)
+                    || container.OpenedBy is ActorId opener && (opener == actor.Id
+                        || !state.Actors.Any(candidate => candidate.Id == opener)))
+                {
+                    throw new InvalidDataException($"Container '{actor.Id}' has invalid ownership, pose or collection state.");
+                }
+            }
             if (actor.Rpg is not null)
             {
                 if (state.Version < TinyFarmState.RpgProfileSaveVersion
@@ -507,6 +523,10 @@ public static class TinyFarmChunkedSaveCodec
 
     internal static string RuntimeVersionFor(int gameVersion)
     {
+        if (gameVersion >= TinyFarmState.ContainerSaveVersion)
+        {
+            return "tiny-farm-containers@16";
+        }
         if (gameVersion >= TinyFarmState.CraftingSaveVersion)
         {
             return "tiny-farm-crafting@15";

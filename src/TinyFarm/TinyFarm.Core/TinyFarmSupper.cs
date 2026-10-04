@@ -8,7 +8,7 @@ public static class TinyFarmSupper
     public static bool IsReady(TinyFarmState state)
     {
         return state.Facts.Contains(WorldFact.SupperRequested)
-            && state.Item(TinyFarmIds.WildMint).Owner == TinyFarmIds.Player
+            && state.Items.FirstOrDefault(item => item.Id == TinyFarmIds.WildMint)?.Owner == TinyFarmIds.Player
             && state.ProductCount(TinyFarmIds.Player, TinyFarmIds.SauteedHenOfTheWoods) > 0
             && state.Facts.Contains(WorldFact.SupperSeedPlanted)
             && state.Enemies.Any(enemy => enemy.Id == TinyFarmIds.DungeonSlime && enemy.Lifecycle == EnemyLifecycle.Defeated);

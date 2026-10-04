@@ -385,7 +385,7 @@ public sealed class TinyFarmDialogueCoordinator
         agent.Bb.Set(
             TinyFarmMaraDialogue.ConsequenceAccepted,
             checkpoint.PendingOperationId == "mara.mint-thanks"
-            || host.Session.State.Item(TinyFarmIds.WildMint).Owner == TinyFarmIds.Mara);
+            || host.Session.State.Items.FirstOrDefault(item => item.Id == TinyFarmIds.WildMint)?.Owner == TinyFarmIds.Mara);
         DialoguePresentationOperation pending = checkpoint.PendingOperationId is string operationId
             ? TinyFarmMaraDialogue.Get(operationId)
             : projector.RecoverPending(agent);

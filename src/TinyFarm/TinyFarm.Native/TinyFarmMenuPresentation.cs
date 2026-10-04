@@ -37,6 +37,10 @@ internal static partial class TinyFarmMenuPresentation
         {
             Stats(nodes, game);
         }
+        else if (game.Screen == TinyFarmScreen.Container)
+        {
+            Container(nodes, game);
+        }
         else if (game.Screen == TinyFarmScreen.Crafting)
         {
             Crafting(nodes, game);

@@ -1,0 +1,172 @@
+{
+  "backend": "headless-inputman-machina",
+  "screen": "Inventory",
+  "status": "A note from Mara: let us make this place feel like home.",
+  "semanticHash": "b33b8791a24536942ee86f799d626b1d0b2a42583f736412e35a4394906db3c1",
+  "minute": 480,
+  "scene": "farm",
+  "x": 6656,
+  "y": 7680,
+  "money": 12,
+  "capturesGameplay": true,
+  "focused": true,
+  "hudVisible": true,
+  "search": "",
+  "searchFocused": false,
+  "actionMaps": [
+    "System",
+    "Shortcuts",
+    "UI"
+  ],
+  "products": [
+    {
+      "actor": "player",
+      "product": "turnip-seed",
+      "count": 6
+    }
+  ],
+  "items": [
+    {
+      "actor": "mara",
+      "item": "mara-letter",
+      "name": "sealed letter"
+    },
+    {
+      "actor": "player",
+      "item": "axe",
+      "name": "Axe"
+    },
+    {
+      "actor": "player",
+      "item": "sword",
+      "name": "Sword"
+    },
+    {
+      "actor": "sela",
+      "item": "store-apple",
+      "name": "red apple"
+    },
+    {
+      "actor": "sela",
+      "item": "fishing-rod",
+      "name": "fishing rod"
+    }
+  ],
+  "targets": [
+    {
+      "action": "close",
+      "x": 0.87265625,
+      "y": 0.13472222222222222
+    },
+    {
+      "action": "bag",
+      "x": 0.23671875,
+      "y": 0.24861111111111112
+    },
+    {
+      "action": "equipment",
+      "x": 0.3515625,
+      "y": 0.24861111111111112
+    },
+    {
+      "action": "search",
+      "x": 0.64921875,
+      "y": 0.24861111111111112
+    },
+    {
+      "action": "clear",
+      "x": 0.91640625,
+      "y": 0.24861111111111112
+    },
+    {
+      "action": "category:All",
+      "x": 0.1109375,
+      "y": 0.3263888888888889
+    },
+    {
+      "action": "category:Weapons",
+      "x": 0.1109375,
+      "y": 0.38055555555555554
+    },
+    {
+      "action": "category:Tools",
+      "x": 0.1109375,
+      "y": 0.43472222222222223
+    },
+    {
+      "action": "category:Seeds",
+      "x": 0.1109375,
+      "y": 0.4888888888888889
+    },
+    {
+      "action": "category:Ingredients",
+      "x": 0.1109375,
+      "y": 0.5430555555555555
+    },
+    {
+      "action": "category:Food",
+      "x": 0.1109375,
+      "y": 0.5972222222222222
+    },
+    {
+      "action": "category:Materials",
+      "x": 0.1109375,
+      "y": 0.6513888888888889
+    },
+    {
+      "action": "category:Keepsakes",
+      "x": 0.1109375,
+      "y": 0.7055555555555556
+    },
+    {
+      "action": "sort:name",
+      "x": 0.270703125,
+      "y": 0.3277777777777778
+    },
+    {
+      "action": "sort:category",
+      "x": 0.409375,
+      "y": 0.3277777777777778
+    },
+    {
+      "action": "sort:quantity",
+      "x": 0.485546875,
+      "y": 0.3277777777777778
+    },
+    {
+      "action": "sort:value",
+      "x": 0.54609375,
+      "y": 0.3277777777777778
+    },
+    {
+      "action": "sort:equipped",
+      "x": 0.62421875,
+      "y": 0.3277777777777778
+    },
+    {
+      "action": "row:item:axe",
+      "x": 0.270703125,
+      "y": 0.3763888888888889
+    },
+    {
+      "action": "row:item:sword",
+      "x": 0.270703125,
+      "y": 0.4236111111111111
+    },
+    {
+      "action": "row:product:turnip-seed",
+      "x": 0.270703125,
+      "y": 0.4708333333333333
+    },
+    {
+      "action": "primary",
+      "x": 0.81640625,
+      "y": 0.7791666666666667
+    }
+  ],
+  "width": 1920,
+  "height": 1080,
+  "quit": false,
+  "acceptedActions": 0,
+  "rejectedActions": 0
+}

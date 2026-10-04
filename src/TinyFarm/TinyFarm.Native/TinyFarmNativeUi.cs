@@ -126,6 +126,12 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
         return new PointerPoint(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
     }
 
+    public string[] ActionNames(TinyFarmFrame frame)
+    {
+        Resource(frame);
+        return prepared!.Lowering.Actions.Values.Select(action => action.Name).Distinct().ToArray();
+    }
+
     public TinyFarmUiResources Resources(TinyFarmFrame frame)
     {
         return new TinyFarmUiResources(Resource(frame), ClockResource(frame), PromptResource(frame));
@@ -161,6 +167,7 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
                 InteractionTargetKind.Tree => game.State.Slice is not null ? "3 + K  Chop firewood" : "3 + SPACE  Chop firewood",
                 InteractionTargetKind.GroundItem => "E  Pick up " + game.State.Item(target.Item!.Value).Name,
                 InteractionTargetKind.ForageNode => "E  Gather " + game.Definitions.Item(game.Definitions.ForageNode(target.ForageNode!.Value).Product).Name,
+                InteractionTargetKind.Container => "E  Open " + game.State.Actor(target.Actor!.Value).Name,
                 InteractionTargetKind.CookingStation => game.State.Version >= TinyFarmState.CraftingSaveVersion ? "E  Open stove" : game.State.Slice is not null ? "E  Cook turnip broth" : "E  Cook supper",
                 InteractionTargetKind.Bed => "E  Sleep until morning",
                 InteractionTargetKind.Portal => PortalPrompt(frame, target),
@@ -229,7 +236,7 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
         {
             objectives |= 4;
         }
-        if (game.State.Item(TinyFarmIds.WildMint).Owner is not null)
+        if (game.State.Items.FirstOrDefault(item => item.Id == TinyFarmIds.WildMint)?.Owner is not null)
         {
             objectives |= 8;
         }
@@ -256,7 +263,7 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
             inventoryHash.ToHashCode(),
             game.State.Slice?.Health ?? 0,
             game.State.Slice?.LoopComplete ?? false,
-            game.Menus.CacheKey + game.CraftCacheKey + "|" + game.TitleSelection,
+            game.Menus.CacheKey + game.CraftCacheKey + game.ContainerCacheKey + "|" + game.TitleSelection,
             game.State.Equipment,
             game.SaveInProgress || game.LoadInProgress,
             game.MenuSaveAvailable);
@@ -264,7 +271,7 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
 
     private UiNode Build(TinyFarmFrame frame)
     {
-        if (game.Screen is TinyFarmScreen.Inventory or TinyFarmScreen.Stats or TinyFarmScreen.Crafting or TinyFarmScreen.Paused or TinyFarmScreen.Title)
+        if (game.Screen is TinyFarmScreen.Inventory or TinyFarmScreen.Stats or TinyFarmScreen.Crafting or TinyFarmScreen.Container or TinyFarmScreen.Paused or TinyFarmScreen.Title)
         {
             return TinyFarmMenuPresentation.Build(game);
         }

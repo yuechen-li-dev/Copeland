@@ -17,6 +17,13 @@ public sealed partial class TinyFarmGame
     public static readonly string[] TitleActions = ["new-game", "load", "quit"];
     public bool MenuSaveAvailable { get; private set; }
 
+    public void OpenPause()
+    {
+        Screen = TinyFarmScreen.Paused;
+        Menus.Confirmation = null;
+        MenuSaveAvailable = HasSave;
+    }
+
     public void OpenInventory(bool fromPause)
     {
         Menus.InventoryFromPause = fromPause;
@@ -56,6 +63,11 @@ public sealed partial class TinyFarmGame
             {
                 DispatchMenu(TitleActions[TitleSelection]);
             }
+            return;
+        }
+        if (Screen == TinyFarmScreen.Container)
+        {
+            HandleContainerInput(input);
             return;
         }
         if (Screen == TinyFarmScreen.Crafting)
@@ -145,6 +157,10 @@ public sealed partial class TinyFarmGame
         {
             Menus.SearchFocused = false;
         }
+        else if (Screen == TinyFarmScreen.Container && OpenContainer is ActorId chest)
+        {
+            Execute(new CloseContainerIntent(chest));
+        }
         else if (Screen == TinyFarmScreen.Stats)
         {
             Screen = Menus.StatsFromPause ? TinyFarmScreen.Paused : TinyFarmScreen.Playing;
@@ -194,6 +210,11 @@ public sealed partial class TinyFarmGame
                     ShouldQuit = true;
                     break;
             }
+            return;
+        }
+        if (Screen == TinyFarmScreen.Container)
+        {
+            HandleContainerAction(action);
             return;
         }
         if (Screen == TinyFarmScreen.Crafting)
