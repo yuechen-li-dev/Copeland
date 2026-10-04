@@ -1,6 +1,19 @@
 using TinyFarm.Core;
 using System.Diagnostics;
 
+if (args.Contains("--agent-authoring", StringComparer.Ordinal))
+{
+    string directory = Path.Combine(Environment.CurrentDirectory, "artifacts", "tinyfarm-agent-authoring");
+    int artifactIndex = Array.IndexOf(args, "--artifact-dir");
+    if (artifactIndex >= 0)
+    {
+        directory = RequiredOutputPath(args, artifactIndex, "--artifact-dir");
+    }
+    TinyFarmAgentInspector.WriteArtifacts(directory);
+    Console.WriteLine("TINYFARM_AGENT_AUTHORING_QUALIFIED " + directory);
+    return;
+}
+
 if (args.Contains("--m21", StringComparer.Ordinal))
 {
     string directory = Path.Combine(Environment.CurrentDirectory, "artifacts", "tiny-farm-m21");

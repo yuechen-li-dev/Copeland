@@ -29,6 +29,7 @@ public sealed class TinyFarmSession
     private IReadOnlyList<GameEvent> recentEvents;
     private readonly INavigationPlanner navigationPlanner;
     private readonly TinyFarmNpcSchedule.Runtime scheduleRuntime;
+    private readonly TinyFarmIdleAgentRuntime idleAgentRuntime = new();
     private readonly SceneCatalog simulationScenes;
     private readonly Dictionary<ActorId, NpcPathState> npcPaths = [];
     private readonly Dictionary<ActorId, SceneAnchorId> npcNavigationTargets = [];
@@ -82,6 +83,7 @@ public sealed class TinyFarmSession
     }
 
     public TinyFarmState State { get; private set; }
+    public int PassiveDominatusAgentCount => idleAgentRuntime.Count;
 
     public TinyFarmFieldRuntime Field { get; }
 
@@ -160,7 +162,8 @@ public sealed class TinyFarmSession
                 observationMinute,
                 Scenes,
                 definitions!.Schedules,
-                scheduleRuntime)
+                scheduleRuntime,
+                idleAgentRuntime)
             : [];
         if (evaluateNpcDecisions)
         {

@@ -942,7 +942,17 @@ internal sealed partial class TinyFarmWorldPresenter(
             double x = actor.Position.X / 1024.0;
             double y = actor.Position.Y / 1024.0;
             Native2DTint tint = actor.IsPlayer ? Native2DTint.White : new Native2DTint(1, 0.82f, 0.72f, 1);
-            if (sliceArt is not null && actor.Id != TinyFarmIds.Mara)
+            TinyFarmAgentSprite appearance = actor.Appearance?.OverworldSprite
+                ?? (actor.Id == TinyFarmIds.Mara ? TinyFarmAgentSprite.Mara : TinyFarmAgentSprite.Gardener);
+            double visualScale = (actor.Appearance?.ScalePercent ?? 100) / 100.0;
+            if (appearance == TinyFarmAgentSprite.ObjectMarker)
+            {
+                WorldSprite marker = Sprite("actor-" + actor.Id.Value, "well", new WorldPoint2(x, y),
+                    elapsed, WorldSpriteLayer.Actors, y, Native2DTint.White);
+                worldSpriteScratch.Add(marker with { Scale = visualScale });
+                continue;
+            }
+            if (sliceArt is not null && appearance == TinyFarmAgentSprite.Gardener)
             {
                 int row = actor.Facing switch
                 {
@@ -953,20 +963,20 @@ internal sealed partial class TinyFarmWorldPresenter(
                 };
                 bool moving = lastActorPositions.TryGetValue(actor.Id, out TinyFarmPoint previous) && previous != actor.Position;
                 lastActorPositions[actor.Id] = actor.Position;
-                if (game.State.Slice!.HurtTicks > 0 && game.State.Slice.Tick % 8 < 4)
+                if (actor.IsPlayer && game.State.Slice!.HurtTicks > 0 && game.State.Slice.Tick % 8 < 4)
                 {
                     tint = new Native2DTint(1, .62f, .48f, .85f);
                 }
-                int column = moving ? (int)(game.State.Slice!.Tick / 8 % 4) : 0;
+                int column = moving && actor.Appearance?.WalkingAnimation != false ? (int)(game.State.Slice!.Tick / 8 % 4) : 0;
                 worldSpriteScratch.Add(new WorldSprite(new WorldPresentationId("actor-" + actor.Id.Value),
                     new WorldPoint2(x, y), sliceArt.Gardener.Id, (row * 4 + column).ToString(), null,
-                    elapsed, false, 1, tint, WorldSpriteLayer.Actors, y, false));
+                    elapsed, false, visualScale, tint, WorldSpriteLayer.Actors, y, false));
                 continue;
             }
-            if (sliceArt is not null && actor.Id == TinyFarmIds.Mara)
+            if (sliceArt is not null && appearance == TinyFarmAgentSprite.Mara)
             {
                 worldSpriteScratch.Add(new WorldSprite(new WorldPresentationId("actor-" + actor.Id.Value),
-                    new WorldPoint2(x, y), sliceArt.Mara.Id, "full", null, elapsed, false, 1,
+                    new WorldPoint2(x, y), sliceArt.Mara.Id, "full", null, elapsed, false, visualScale,
                     Native2DTint.White, WorldSpriteLayer.Actors, y, false));
                 continue;
             }

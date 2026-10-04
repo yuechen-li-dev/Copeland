@@ -78,10 +78,10 @@ public static class TinyFarmSliceContent
     {
         TinyFarmState source = TinyFarmSupperStart.Create(definitions);
         FarmPlotId firstPlot = source.FarmPlots[0].Id;
-        return new TinyFarmState(
+        var initial = new TinyFarmState(
             TinyFarmState.SliceSaveVersion,
             480,
-            source.Actors.Select(PlaceNeighbour).ToArray(),
+            source.Actors,
             source.Items.Select(item => item.Id == TinyFarmIds.WildMint
                 ? item with
                 {
@@ -98,59 +98,26 @@ public static class TinyFarmSliceContent
             source.FarmPlots.Select(plot => plot.Id == firstPlot
                 ? plot with { Crop = new CropId("turnip"), PlantedDay = 1, GrowthStage = 1 }
                 : plot).ToArray(),
-            source.ActorScenes.Select(actor => PlaceNeighbourInScene(actor, definitions)).ToArray(),
+            source.ActorScenes,
             source.ActorEnergy,
             1,
             source.ForageNodes,
             source.Trees,
             definitions.Enemies.Select(enemy => new EnemyState(enemy.Id, enemy.MaxHealth)).ToArray(),
             TinyFarmSliceState.Start(definitions.Enemy(TinyFarmIds.DungeonSlime).SpawnPosition));
+        return TinyFarmAgentAuthoring.Compile(initial, definitions, OpeningCast(definitions));
     }
 
-    private static ActorState PlaceNeighbour(ActorState actor)
+    public static IReadOnlyList<TinyFarmAgentSpawn> OpeningCast(TinyFarmDefinitions definitions)
     {
-        if (actor.Id == TinyFarmIds.Mara)
-        {
-            return actor with { Location = TinyFarmIds.Farmhouse };
-        }
-        if (actor.Id == TinyFarmIds.Elias)
-        {
-            return actor with { Location = TinyFarmIds.Riverside };
-        }
-        if (actor.Id == TinyFarmIds.Sela)
-        {
-            return actor with { Location = TinyFarmIds.GeneralStore };
-        }
-        return actor;
-    }
-
-    private static ActorSceneState PlaceNeighbourInScene(ActorSceneState actor, TinyFarmDefinitions definitions)
-    {
-        if (actor.Actor == TinyFarmIds.Mara)
-        {
-            return actor with
-            {
-                Scene = TinyFarmSceneIds.Farm,
-                WorldPosition = ScenePosition.FromGrid(new GridPosition(6, 5)),
-                Facing = ActorFacing.Down
-            };
-        }
-        if (actor.Actor == TinyFarmIds.Elias)
-        {
-            return actor with
-            {
-                Scene = TinyFarmSceneIds.Riverside,
-                WorldPosition = definitions.Scenes.GetAnchor(TinyFarmAnchorIds.EliasRiversideBench).Position
-            };
-        }
-        if (actor.Actor == TinyFarmIds.Sela)
-        {
-            return actor with
-            {
-                Scene = TinyFarmSceneIds.GeneralStore,
-                WorldPosition = definitions.Scenes.GetAnchor(TinyFarmAnchorIds.StoreCounter).Position
-            };
-        }
-        return actor;
+        return
+        [
+            TinyFarmAgentSpawn.PlaceExisting(TinyFarmIds.Mara, "Mara", TinyFarmSceneIds.Farm,
+                ScenePosition.FromGrid(new GridPosition(6, 5)), location: TinyFarmIds.Farmhouse),
+            TinyFarmAgentSpawn.PlaceExisting(TinyFarmIds.Elias, "Elias", TinyFarmSceneIds.Riverside,
+                definitions.Scenes.GetAnchor(TinyFarmAnchorIds.EliasRiversideBench).Position),
+            TinyFarmAgentSpawn.PlaceExisting(TinyFarmIds.Sela, "Sela", TinyFarmSceneIds.GeneralStore,
+                definitions.Scenes.GetAnchor(TinyFarmAnchorIds.StoreCounter).Position)
+        ];
     }
 }

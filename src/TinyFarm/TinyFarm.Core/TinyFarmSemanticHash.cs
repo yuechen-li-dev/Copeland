@@ -20,6 +20,18 @@ public static class TinyFarmSemanticHash
 
         foreach (ActorState actor in state.Actors.OrderBy(actor => actor.Id.Value, StringComparer.Ordinal))
         {
+            if (actor.Agent is TinyFarmAgentState agent)
+            {
+                // Appearance is a presentation choice, not gameplay truth.
+                TinyFarmAgentState semantic = agent with
+                {
+                    Conditions = agent.Conditions.OrderBy(condition => condition, StringComparer.Ordinal).ToArray(),
+                    Appearance = new TinyFarmAgentAppearance(TinyFarmAgentSprite.Gardener)
+                };
+                string json = System.Text.Json.JsonSerializer.Serialize(semantic, TinyFarmAgentJsonContext.Default.TinyFarmAgentState);
+                canonical.Append("agent|").Append(actor.Id.Value).Append('|').Append(json.Length)
+                    .Append('|').Append(json).AppendLine();
+            }
             canonical.Append("actor|").Append(actor.Id.Value)
                 .Append('|').Append(actor.Name)
                 .Append('|').Append(actor.Location.Value)
@@ -38,6 +50,10 @@ public static class TinyFarmSemanticHash
                 .Append('|').Append(item.Price)
                 .Append('|').Append(item.Owner?.Value ?? "-")
                 .Append('|').Append(item.GroundLocation?.Value ?? "-");
+            if (item.EquipmentSlot is EquipmentSlot slot)
+            {
+                canonical.Append("|equipment-slot=").Append(slot);
+            }
             if (state.Version >= TinyFarmState.ItemActionSaveVersion)
             {
                 canonical.Append('|').Append(item.GroundScene?.Value ?? "-")

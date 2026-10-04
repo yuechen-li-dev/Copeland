@@ -21,29 +21,61 @@ public static class TinyFarmInventory
 {
     public static IReadOnlyList<TinyFarmInventoryRow> Project(TinyFarmState state, TinyFarmDefinitions definitions)
     {
+        return Project(state, definitions, TinyFarmIds.Player);
+    }
+
+    public static IReadOnlyList<TinyFarmInventoryRow> Project(TinyFarmState state, TinyFarmDefinitions definitions, ActorId owner)
+    {
         var rows = new List<TinyFarmInventoryRow>();
-        foreach (ItemId id in state.Actor(TinyFarmIds.Player).Inventory)
+        ActorState actor = state.Actor(owner);
+        foreach (ItemId id in actor.Inventory)
         {
             ItemState item = state.Item(id);
-            EquipmentSlot? slot = TinyFarmEquipmentRules.Slot(id);
+            EquipmentSlot? slot = TinyFarmEquipmentRules.Slot(state, id);
+            bool equipped = owner == TinyFarmIds.Player && TinyFarmEquipmentRules.IsEquipped(state, id);
+            if (actor.Agent is TinyFarmAgentState agent)
+            {
+                if (agent.Equipment.Weapon == id)
+                {
+                    slot = EquipmentSlot.Weapon;
+                    equipped = true;
+                }
+                if (agent.Equipment.Tool == id)
+                {
+                    slot = EquipmentSlot.Tool;
+                    equipped = true;
+                }
+            }
             InventoryCategory category = InventoryCategory.Keepsakes;
             string description = "A keepsake in your pockets. Nearby conversations handle gifts and delivery.";
             if (slot == EquipmentSlot.Weapon)
             {
                 category = InventoryCategory.Weapons;
-                description = "A trusty sword. Equip it to strike with J; each opening-slice hit deals 2 damage.";
+                description = id == TinyFarmIds.Sword
+                    ? "A trusty sword. Equip it to strike with J; each opening-slice hit deals 2 damage."
+                    : "An authored weapon. Its combat move is not configured in this opening slice.";
             }
             else if (slot == EquipmentSlot.Tool || id == TinyFarmIds.FishingRod)
             {
                 category = InventoryCategory.Tools;
-                description = id == TinyFarmIds.Axe
-                    ? "Equip this axe, select tool 3, then K beside a tree to gather firewood."
-                    : "A fishing rod. Fishing is outside this opening slice.";
+                if (id == TinyFarmIds.Axe)
+                {
+                    description = "Equip this axe, select tool 3, then K beside a tree to gather firewood.";
+                }
+                else if (id == TinyFarmIds.FishingRod)
+                {
+                    description = "A fishing rod. Fishing is outside this opening slice.";
+                }
+                else
+                {
+                    description = "An authored tool. Its gameplay use is not configured in this opening slice.";
+                }
             }
             rows.Add(new TinyFarmInventoryRow("item:" + id.Value, item.Name, category, 1, Math.Max(1, item.Price / 2),
-                description, id, null, slot, TinyFarmEquipmentRules.IsEquipped(state, id)));
+                owner == TinyFarmIds.Player ? description : "Owned by " + actor.Name + ".",
+                id, null, slot, equipped));
         }
-        foreach (InventoryStack stack in state.InventoryStacks.Where(stack => stack.Actor == TinyFarmIds.Player))
+        foreach (InventoryStack stack in state.InventoryStacks.Where(stack => stack.Actor == owner))
         {
             ItemDefinition definition = definitions.Item(stack.Product);
             InventoryCategory category = ProductCategory(definitions, stack.Product);

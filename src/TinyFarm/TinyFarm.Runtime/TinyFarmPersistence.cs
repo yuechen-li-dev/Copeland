@@ -192,7 +192,8 @@ public static class TinyFarmChunkedSaveCodec
             && state.Version != TinyFarmState.WoodcuttingSaveVersion
             && state.Version != TinyFarmState.DungeonCombatSaveVersion
             && state.Version != TinyFarmState.SliceSaveVersion
-            && state.Version != TinyFarmState.EquipmentSaveVersion)
+            && state.Version != TinyFarmState.EquipmentSaveVersion
+            && state.Version != TinyFarmState.AgentAuthoringSaveVersion)
         {
             throw new InvalidDataException($"Unsupported TinyFarm game save version {state.Version}.");
         }
@@ -216,6 +217,20 @@ public static class TinyFarmChunkedSaveCodec
 
         foreach (ActorState actor in state.Actors)
         {
+            if (actor.Agent is not null)
+            {
+                if (state.Version < TinyFarmState.AgentAuthoringSaveVersion)
+                {
+                    throw new InvalidDataException("Authored agents require save version 13 or later.");
+                }
+                TinyFarmAgentAuthoring.ValidateAgent(actor);
+                ValidateAgentEquipment(actor.Agent.Equipment.Weapon, EquipmentSlot.Weapon);
+                ValidateAgentEquipment(actor.Agent.Equipment.Tool, EquipmentSlot.Tool);
+                if (TinyFarmAgentPolicy.IsScheduled(actor))
+                {
+                    _ = definitions.Schedules.ForActor(actor.Id);
+                }
+            }
             if (!TinyFarmContent.Locations.Any(location => location.Id == actor.Location))
             {
                 throw new InvalidDataException($"Actor '{actor.Id}' references unknown location '{actor.Location}'.");
@@ -229,6 +244,11 @@ public static class TinyFarmChunkedSaveCodec
 
         foreach (ItemState item in state.Items)
         {
+            if (item.EquipmentSlot is not null && (state.Version < TinyFarmState.AgentAuthoringSaveVersion
+                || item.EquipmentSlot is not EquipmentSlot.Weapon and not EquipmentSlot.Tool))
+            {
+                throw new InvalidDataException($"Item '{item.Id}' has invalid authored equipment capability.");
+            }
             bool hasOwner = item.Owner is not null;
             bool isGrounded = item.GroundLocation is not null;
             if (hasOwner == isGrounded)
@@ -302,10 +322,18 @@ public static class TinyFarmChunkedSaveCodec
 
         void ValidateEquipmentItem(ItemId? item, EquipmentSlot slot)
         {
-            if (item is ItemId id && (TinyFarmEquipmentRules.Slot(id) != slot
+            if (item is ItemId id && (TinyFarmEquipmentRules.Slot(state, id) != slot
                 || !TinyFarmEquipmentRules.IsEquipped(state, id)))
             {
                 throw new InvalidDataException("Equipment slot disagrees with player ownership or item kind.");
+            }
+        }
+
+        void ValidateAgentEquipment(ItemId? item, EquipmentSlot slot)
+        {
+            if (item is ItemId id && TinyFarmEquipmentRules.Slot(state, id) != slot)
+            {
+                throw new InvalidDataException($"Authored equipment '{id}' has the wrong slot capability.");
             }
         }
 
@@ -453,6 +481,10 @@ public static class TinyFarmChunkedSaveCodec
 
     internal static string RuntimeVersionFor(int gameVersion)
     {
+        if (gameVersion >= TinyFarmState.AgentAuthoringSaveVersion)
+        {
+            return "tiny-farm-agents@13";
+        }
         if (gameVersion >= TinyFarmState.EquipmentSaveVersion)
         {
             return "tiny-farm-equipment@12";

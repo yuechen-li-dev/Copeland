@@ -11,6 +11,11 @@ public sealed record TinyFarmEquipment(ItemId? Weapon, ItemId? Tool);
 
 public static class TinyFarmEquipmentRules
 {
+    public static EquipmentSlot? Slot(TinyFarmState state, ItemId item)
+    {
+        return state.Items.SingleOrDefault(candidate => candidate.Id == item)?.EquipmentSlot ?? Slot(item);
+    }
+
     public static EquipmentSlot? Slot(ItemId item)
     {
         if (item == TinyFarmIds.Sword)
@@ -64,7 +69,7 @@ public sealed partial class TinyFarmResolver
             {
                 return Rejected(envelope, IntentReason.ItemNotOwned);
             }
-            if (TinyFarmEquipmentRules.Slot(item) != intent.Slot)
+            if (TinyFarmEquipmentRules.Slot(state, item) != intent.Slot)
             {
                 return Rejected(envelope, IntentReason.WrongTool);
             }
@@ -83,7 +88,7 @@ public sealed partial class TinyFarmResolver
             return NoOp(envelope, IntentReason.None);
         }
         state.Equipment = next;
-        state.Version = TinyFarmState.EquipmentSaveVersion;
+        state.Version = Math.Max(state.Version, TinyFarmState.EquipmentSaveVersion);
         return Accepted(envelope, new GameEvent(GameEventKind.EquipmentChanged, actor.Id, Item: intent.Item));
     }
 }

@@ -48,6 +48,11 @@ public static class TinyFarmSpatialQueries
         foreach (ActorSceneState other in state.ActorScenes.Where(candidate =>
                      candidate.Actor != actorId && candidate.Scene == actor.Scene))
         {
+            // Passive authored props are not conversations. Container interaction is a later reducer.
+            if (TinyFarmAgentPolicy.IsObject(state.Actor(other.Actor)))
+            {
+                continue;
+            }
             AddIfTargetable(
                 candidates,
                 actor,

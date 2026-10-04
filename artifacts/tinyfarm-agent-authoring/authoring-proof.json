@@ -1,0 +1,352 @@
+{
+  "outcome": "Success: typed agent authoring reaches the real world/session/save path",
+  "definitionIdentity": "tinyfarm-sleeping-spring-gate-a-v1;tiny-farm-content-m2-sha256:1b810de4e4d36f4781d1ab85936eeb2ee812ca206300609ebc61e1cd0ec7dbfe;m19-base-scenes:769aececd26ff05f2f9fbc2f9ae1bb008a11d49a793920bef4103c294bbc52cf;m19-base-schedules:dfdb6c08ca77144d2d697c4611e444b46b26da2518f97f772e9b9c7a10414ab0;m18-forage:b202feaec79a139730bcd59dab5f7c75345172950f812a16d1a9405125a72868;m19-stations:07e60730b7ae9c19e6ec35904b31fb0146b1850fe1b641ed1002c9102fb4287b;m19-recipes:eb606caedacd3073c6305048aec11ec1a02592ea8aed9e0a497fdd50f65ba2cd;m20-trees:56dc28c1f52d459a22f9131fbe83e107dae7944de23e0020936e36ce66bb4461;m21-scenes:abfec55be02f463e4d286fe5f3dd3cb9a6fd5dae275283e16079b839e7eb4ddf;m21-enemies:792da86c7e29d089e1af6ad8886cfa1a0af91fc72da88bb2e7c0618bd09967e5;agents=296ee54a033ebfbe6a4135d9ec1d2e648d66d4ac93311188590da70781b61353",
+  "saveVersion": 13,
+  "passiveDominatusAgents": 2,
+  "saveRoundTripQualified": true,
+  "reflectionSerializationDisabled": true,
+  "stateHash": "3ccf646965f5cdddb4abe36fd0ee78495d48d665bc672ecb8486413f0f4433ee",
+  "agents": [
+    {
+      "id": {
+        "value": "elias"
+      },
+      "name": "Elias",
+      "kind": "Character",
+      "control": "Schedule",
+      "scene": {
+        "value": "riverside"
+      },
+      "position": {
+        "xUnits": 3584,
+        "yUnits": 8704,
+        "tile": {
+          "x": 3,
+          "y": 8
+        }
+      },
+      "health": null,
+      "level": 1,
+      "conditions": [],
+      "inventory": [],
+      "equipment": {
+        "weapon": null,
+        "tool": null
+      },
+      "objectPose": null,
+      "appearance": {
+        "overworldSprite": "Gardener",
+        "conversationSprite": null,
+        "walkingAnimation": true,
+        "scalePercent": 100
+      },
+      "usesLegacyStateAdapter": true
+    },
+    {
+      "id": {
+        "value": "garden-cache"
+      },
+      "name": "Garden supply cache",
+      "kind": "Object",
+      "control": "Idle",
+      "scene": {
+        "value": "farm"
+      },
+      "position": {
+        "xUnits": 7680,
+        "yUnits": 7680,
+        "tile": {
+          "x": 7,
+          "y": 7
+        }
+      },
+      "health": null,
+      "level": 1,
+      "conditions": [],
+      "inventory": [
+        {
+          "key": "product:turnip-seed",
+          "name": "turnip seed",
+          "category": "Seeds",
+          "quantity": 3,
+          "value": 0,
+          "description": "Plant with tool 1 \u002B K beside an empty plot. E waters it; sleep at home to grow it.",
+          "item": null,
+          "product": {
+            "value": "turnip-seed"
+          },
+          "slot": null,
+          "equipped": false
+        }
+      ],
+      "equipment": {
+        "weapon": null,
+        "tool": null
+      },
+      "objectPose": "Closed",
+      "appearance": {
+        "overworldSprite": "ObjectMarker",
+        "conversationSprite": null,
+        "walkingAnimation": false,
+        "scalePercent": 100
+      },
+      "usesLegacyStateAdapter": false
+    },
+    {
+      "id": {
+        "value": "ivy"
+      },
+      "name": "Ivy",
+      "kind": "Character",
+      "control": "Idle",
+      "scene": {
+        "value": "farm"
+      },
+      "position": {
+        "xUnits": 8704,
+        "yUnits": 7680,
+        "tile": {
+          "x": 8,
+          "y": 7
+        }
+      },
+      "health": {
+        "current": 12,
+        "maximum": 12
+      },
+      "level": 2,
+      "conditions": [
+        "well-rested"
+      ],
+      "inventory": [
+        {
+          "key": "item:ivy.item.hoe",
+          "name": "Ivy\u0027s hoe",
+          "category": "Tools",
+          "quantity": 1,
+          "value": 2,
+          "description": "Owned by Ivy.",
+          "item": {
+            "value": "ivy.item.hoe"
+          },
+          "product": null,
+          "slot": "Tool",
+          "equipped": true
+        }
+      ],
+      "equipment": {
+        "weapon": null,
+        "tool": {
+          "value": "ivy.item.hoe"
+        }
+      },
+      "objectPose": null,
+      "appearance": {
+        "overworldSprite": "Gardener",
+        "conversationSprite": null,
+        "walkingAnimation": true,
+        "scalePercent": 110
+      },
+      "usesLegacyStateAdapter": false
+    },
+    {
+      "id": {
+        "value": "mara"
+      },
+      "name": "Mara",
+      "kind": "Character",
+      "control": "Schedule",
+      "scene": {
+        "value": "farm"
+      },
+      "position": {
+        "xUnits": 6656,
+        "yUnits": 5632,
+        "tile": {
+          "x": 6,
+          "y": 5
+        }
+      },
+      "health": null,
+      "level": 1,
+      "conditions": [],
+      "inventory": [
+        {
+          "key": "item:mara-letter",
+          "name": "sealed letter",
+          "category": "Keepsakes",
+          "quantity": 1,
+          "value": 1,
+          "description": "Owned by Mara.",
+          "item": {
+            "value": "mara-letter"
+          },
+          "product": null,
+          "slot": null,
+          "equipped": false
+        }
+      ],
+      "equipment": {
+        "weapon": null,
+        "tool": null
+      },
+      "objectPose": null,
+      "appearance": {
+        "overworldSprite": "Mara",
+        "conversationSprite": null,
+        "walkingAnimation": true,
+        "scalePercent": 100
+      },
+      "usesLegacyStateAdapter": true
+    },
+    {
+      "id": {
+        "value": "player"
+      },
+      "name": "You",
+      "kind": "Character",
+      "control": "Human",
+      "scene": {
+        "value": "farm"
+      },
+      "position": {
+        "xUnits": 6656,
+        "yUnits": 7680,
+        "tile": {
+          "x": 6,
+          "y": 7
+        }
+      },
+      "health": {
+        "current": 12,
+        "maximum": 12
+      },
+      "level": 1,
+      "conditions": [],
+      "inventory": [
+        {
+          "key": "item:axe",
+          "name": "Axe",
+          "category": "Tools",
+          "quantity": 1,
+          "value": 1,
+          "description": "Equip this axe, select tool 3, then K beside a tree to gather firewood.",
+          "item": {
+            "value": "axe"
+          },
+          "product": null,
+          "slot": "Tool",
+          "equipped": true
+        },
+        {
+          "key": "item:sword",
+          "name": "Sword",
+          "category": "Weapons",
+          "quantity": 1,
+          "value": 1,
+          "description": "A trusty sword. Equip it to strike with J; each opening-slice hit deals 2 damage.",
+          "item": {
+            "value": "sword"
+          },
+          "product": null,
+          "slot": "Weapon",
+          "equipped": true
+        },
+        {
+          "key": "product:turnip-seed",
+          "name": "turnip seed",
+          "category": "Seeds",
+          "quantity": 6,
+          "value": 0,
+          "description": "Plant with tool 1 \u002B K beside an empty plot. E waters it; sleep at home to grow it.",
+          "item": null,
+          "product": {
+            "value": "turnip-seed"
+          },
+          "slot": null,
+          "equipped": false
+        }
+      ],
+      "equipment": {
+        "weapon": {
+          "value": "sword"
+        },
+        "tool": {
+          "value": "axe"
+        }
+      },
+      "objectPose": null,
+      "appearance": {
+        "overworldSprite": "Gardener",
+        "conversationSprite": null,
+        "walkingAnimation": true,
+        "scalePercent": 100
+      },
+      "usesLegacyStateAdapter": true
+    },
+    {
+      "id": {
+        "value": "sela"
+      },
+      "name": "Sela",
+      "kind": "Character",
+      "control": "Schedule",
+      "scene": {
+        "value": "general-store"
+      },
+      "position": {
+        "xUnits": 5632,
+        "yUnits": 3584,
+        "tile": {
+          "x": 5,
+          "y": 3
+        }
+      },
+      "health": null,
+      "level": 1,
+      "conditions": [],
+      "inventory": [
+        {
+          "key": "item:store-apple",
+          "name": "red apple",
+          "category": "Keepsakes",
+          "quantity": 1,
+          "value": 1,
+          "description": "Owned by Sela.",
+          "item": {
+            "value": "store-apple"
+          },
+          "product": null,
+          "slot": null,
+          "equipped": false
+        },
+        {
+          "key": "item:fishing-rod",
+          "name": "fishing rod",
+          "category": "Tools",
+          "quantity": 1,
+          "value": 4,
+          "description": "Owned by Sela.",
+          "item": {
+            "value": "fishing-rod"
+          },
+          "product": null,
+          "slot": null,
+          "equipped": false
+        }
+      ],
+      "equipment": {
+        "weapon": null,
+        "tool": null
+      },
+      "objectPose": null,
+      "appearance": {
+        "overworldSprite": "Gardener",
+        "conversationSprite": null,
+        "walkingAnimation": true,
+        "scalePercent": 100
+      },
+      "usesLegacyStateAdapter": true
+    }
+  ]
+}

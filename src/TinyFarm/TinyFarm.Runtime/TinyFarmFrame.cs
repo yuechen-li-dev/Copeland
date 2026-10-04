@@ -25,7 +25,8 @@ public sealed record TinyFarmActorView(
     SceneAnchorId? SemanticTarget = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? Energy = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool IsResting = false,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TinyFarmScheduleRegime? Regime = null);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TinyFarmScheduleRegime? Regime = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TinyFarmAgentAppearance? Appearance = null);
 
 public sealed record TinyFarmItemView(
     ItemId Id,
@@ -209,7 +210,7 @@ public static class TinyFarmFrameProjector
                 int? energy = actor.IsPlayer || state.Version < TinyFarmState.EnergySaveVersion
                     ? null
                     : state.EnergyFor(actor.Id).Energy;
-                TinyFarmScheduleDecision? schedule = actor.IsPlayer
+                TinyFarmScheduleDecision? schedule = !TinyFarmAgentPolicy.IsScheduled(actor)
                     ? null
                     : TinyFarmNpcSchedule.Decide(
                         definitions.Schedules,
@@ -230,7 +231,8 @@ public static class TinyFarmFrameProjector
                     schedule?.SelectedAnchor,
                     energy,
                     energy is not null && state.EnergyFor(actor.Id).IsResting,
-                    state.Version >= TinyFarmState.EnergySaveVersion ? schedule?.Regime : null);
+                    state.Version >= TinyFarmState.EnergySaveVersion ? schedule?.Regime : null,
+                    actor.Agent?.Appearance);
             })
             .ToArray();
         TinyFarmSceneObjectView[] objects = scene.Layout

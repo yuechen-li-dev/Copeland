@@ -126,7 +126,8 @@ public static class TinyFarmNpcController
         int observationMinute,
         TinyFarmSceneCatalog scenes,
         TinyFarmScheduleCatalog schedules,
-        TinyFarmNpcSchedule.Runtime scheduleRuntime)
+        TinyFarmNpcSchedule.Runtime scheduleRuntime,
+        TinyFarmIdleAgentRuntime idleRuntime)
     {
         var envelopes = new List<IntentEnvelope>();
         long sequence = firstSequence;
@@ -135,6 +136,12 @@ public static class TinyFarmNpcController
                      .Where(candidate => !candidate.IsPlayer)
                      .OrderBy(candidate => candidate.Id.Value, StringComparer.Ordinal))
         {
+            if (!TinyFarmAgentPolicy.IsScheduled(actor))
+            {
+                envelopes.Add(new IntentEnvelope(actor.Id, idleRuntime.Decide(actor), state.Minute,
+                    sequence++, IntentSourceKind.Dominatus));
+                continue;
+            }
             SceneAnchorId? currentAnchor = CurrentAnchor(state, actor, scenes, schedules);
             int energy = state.Version >= TinyFarmState.EnergySaveVersion
                 ? state.EnergyFor(actor.Id).Energy

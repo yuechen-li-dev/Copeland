@@ -30,11 +30,11 @@ public sealed partial class TinyFarmGame
     private Task? pendingSave;
     private Task<LoadedSaveCandidate>? pendingLoad;
 
-    public TinyFarmGame(ISaveStore store, bool slice = false)
+    public TinyFarmGame(ISaveStore store, bool slice = false, TinyFarmAuthoredWorld? authored = null)
     {
         this.store = store;
-        Definitions = slice ? TinyFarmSliceContent.Load() : TinyFarmDefinitionLoader.LoadM21();
-        TinyFarmState initial = slice ? TinyFarmSliceContent.Start(Definitions) : TinyFarmSupperStart.Create(Definitions);
+        Definitions = authored?.Definitions ?? (slice ? TinyFarmSliceContent.Load() : TinyFarmDefinitionLoader.LoadM21());
+        TinyFarmState initial = authored?.State ?? (slice ? TinyFarmSliceContent.Start(Definitions) : TinyFarmSupperStart.Create(Definitions));
         Host = new TinyFarmSimulationHost(new TinyFarmSession(initial, Definitions), Definitions,
             rates: slice ? new TinyFarmSimulationRates(NormalRealSecondsPerGameMinute: 1) : null);
         Dialogue = new TinyFarmDialogueCoordinator(Host);

@@ -717,6 +717,11 @@ public sealed partial class TinyFarmResolver
             return Rejected(envelope, IntentReason.UnknownTarget);
         }
 
+        if (TinyFarmAgentPolicy.IsObject(target))
+        {
+            return Rejected(envelope, IntentReason.WrongTargetKind);
+        }
+
         if (target.Location != actor.Location || !ActorsAreNearWhenSpatial(state, actor.Id, target.Id))
         {
             return Rejected(envelope, IntentReason.TargetAbsent);
@@ -1280,6 +1285,10 @@ public sealed partial class TinyFarmResolver
             for (int index = 0; index < state.MutableActorEnergy.Count; index++)
             {
                 ActorEnergyState current = state.MutableActorEnergy[index];
+                if (TinyFarmAgentPolicy.IsObject(state.Actor(current.Actor)))
+                {
+                    continue;
+                }
                 state.MutableActorEnergy[index] = current with
                 {
                     Energy = TinyFarmEnergy.Advance(current.Energy, current.IsResting, intent.Minutes)
@@ -1564,6 +1573,22 @@ public sealed partial class TinyFarmResolver
         if (!state.TryGetActorIndex(replacement.Id, out int index))
         {
             throw new InvalidOperationException($"Unknown actor '{replacement.Id}'.");
+        }
+        if (replacement.Agent is TinyFarmAgentState agent)
+        {
+            replacement = replacement with
+            {
+                Agent = agent with
+                {
+                    Equipment = agent.Equipment with
+                    {
+                        Weapon = agent.Equipment.Weapon is ItemId equippedWeapon && replacement.Inventory.Contains(equippedWeapon)
+                            ? equippedWeapon : null,
+                        Tool = agent.Equipment.Tool is ItemId equippedTool && replacement.Inventory.Contains(equippedTool)
+                            ? equippedTool : null
+                    }
+                }
+            };
         }
         state.MutableActors[index] = replacement;
         if (replacement.IsPlayer && state.Equipment is TinyFarmEquipment equipment)

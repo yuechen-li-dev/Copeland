@@ -93,7 +93,8 @@ public sealed record CookingRecipeDefinition(
     int OutputCount);
 
 public sealed record LocationDefinition(LocationId Id, string Name, string Description, IReadOnlyList<LocationId> Exits);
-public sealed record ActorState(ActorId Id, string Name, LocationId Location, int Money, List<ItemId> Inventory, bool IsPlayer);
+public sealed record ActorState(ActorId Id, string Name, LocationId Location, int Money, List<ItemId> Inventory, bool IsPlayer,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TinyFarmAgentState? Agent = null);
 public sealed record ItemState(
     ItemId Id,
     string Name,
@@ -101,7 +102,8 @@ public sealed record ItemState(
     LocationId? GroundLocation,
     ActorId? Owner,
     SceneId? GroundScene = null,
-    ScenePosition? GroundPosition = null);
+    ScenePosition? GroundPosition = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] EquipmentSlot? EquipmentSlot = null);
 public sealed record ItemDefinition(ProductId Id, string Name, int BuyPrice, int SellPrice);
 public sealed record CropDefinition(CropId Id, ProductId SeedItemId, ProductId HarvestItemId, int GrowthDays, int WaterRequirement, int Yield);
 public sealed record InventoryStack(ActorId Actor, ProductId Product, int Count);
@@ -365,6 +367,7 @@ public sealed class TinyFarmState
     public const int DungeonCombatSaveVersion = 10;
     public const int SliceSaveVersion = 11;
     public const int EquipmentSaveVersion = 12;
+    public const int AgentAuthoringSaveVersion = 13;
 
     [JsonConstructor]
     public TinyFarmState(
@@ -477,7 +480,11 @@ public sealed class TinyFarmState
         return new TinyFarmState(
             Version,
             Minute,
-            Actors.Select(actor => actor with { Inventory = actor.Inventory.ToList() }).ToList(),
+            Actors.Select(actor => actor with
+            {
+                Inventory = actor.Inventory.ToList(),
+                Agent = actor.Agent is null ? null : actor.Agent with { Conditions = actor.Agent.Conditions.ToArray() }
+            }).ToList(),
             Items.ToList(),
             Facts.ToList(),
             Favor,

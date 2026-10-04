@@ -1,0 +1,9 @@
+{
+  "outcome": "Success: native spawned agents and application save/load",
+  "applicationCheckpointQualified": true,
+  "authoredAgentsProjected": true,
+  "reflectionSerializationDisabled": true,
+  "width": 1920,
+  "height": 1080,
+  "semanticHash": "ae7b7f23292ebd8ec089a79b877ffbfa53c322ea6b06c480465066c7810f883e"
+}

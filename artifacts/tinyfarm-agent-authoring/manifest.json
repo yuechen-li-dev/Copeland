@@ -1,0 +1,83 @@
+{
+  "task": "TinyFarm high-level character/object agent authoring",
+  "outcome": "Success for the bounded authoring pass",
+  "baseCommit": "bf4b93d4679299ee08f407023c648357e90ca64d",
+  "guide": "docs/research/tinyfarm-agent-authoring.md",
+  "report": "docs/milestones/tinyfarm-agent-authoring-report.md",
+  "sourceExample": "src/TinyFarm/TinyFarm.Runtime/TinyFarmAgentExamples.cs",
+  "sharedCharacterObjectAuthoringQualified": true,
+  "newInstanceOwnershipQualified": true,
+  "persistentDominatusIdleBrainsQualified": true,
+  "scheduledNewActorQualified": true,
+  "atomicValidationQualified": true,
+  "generatedSaveReplayQualified": true,
+  "legacyCompatibilityQualified": true,
+  "semanticStateIndependentOfAppearanceQualified": true,
+  "nativeVulkanQualified": true,
+  "nativeViewport": {
+    "width": 1920,
+    "height": 1080
+  },
+  "nativeStdout": "TINYFARM_AGENT_NATIVE_QUALIFIED ae7b7f23292ebd8ec089a79b877ffbfa53c322ea6b06c480465066c7810f883e",
+  "nativeStderrEmpty": true,
+  "reflectionSerializationDisabled": true,
+  "solutionBuild": {
+    "warnings": 0,
+    "errors": 0,
+    "sdk": "10.0.401",
+    "configuration": "Release",
+    "msbuildWorkers": 1
+  },
+  "tests": {
+    "tinyFarm": 380,
+    "spatial2D": 27,
+    "distinctSolutionTests": 407,
+    "newAuthoringTests": 7,
+    "focusedAuthoringAndInventoryWithReflectionDisabled": 18
+  },
+  "codeDiff": {
+    "modifiedFiles": 15,
+    "newFiles": 7,
+    "insertionsIncludingNewSources": 1043,
+    "deletions": 74,
+    "scope": "src and tests only"
+  },
+  "boundaries": [
+    "One human binding remains on the legacy player ID; possession and multiplayer not implemented.",
+    "Legacy player HP/combat/loadout retain existing owners; new authored stats persist but general NPC combat and condition effects are not implemented.",
+    "Conversation sprite is metadata; new portrait/dialogue dispatch not implemented.",
+    "Object marker reuses the existing well sprite; pose animation, container opening, loot UI and blocking footprint not implemented."
+  ],
+  "gameplayContentAddedToNormalCampaign": false,
+  "ecsIntroduced": false,
+  "runtimeReflectionRegistryIntroduced": false,
+  "approvedArtReplaced": false,
+  "artifacts": [
+    {
+      "name": ".gitignore",
+      "bytes": 8,
+      "sha256": "7d9fed7c2d3172f3904307a68eeb5e29d7d2d305f87dba2171951760e6a31cfd"
+    },
+    {
+      "name": "authored-agents-inventory.png",
+      "bytes": 844614,
+      "sha256": "d82c46da4c621c4ba9f72a12365fbadfaa3c820a9399eb4a5cef8d3a897c440a"
+    },
+    {
+      "name": "authored-agents-world.png",
+      "bytes": 4011008,
+      "sha256": "da493f5efd16c898cde6aa11797ea4f8d80535c4c9c538b6fc25041dcf4035cd"
+    },
+    {
+      "name": "authoring-proof.json",
+      "bytes": 9272,
+      "sha256": "e0b9cc32ac6945ac73597a6e8d5bd2716f97931c0acc99764048419b9ed9e2ee"
+    },
+    {
+      "name": "native-proof.json",
+      "bytes": 324,
+      "sha256": "811056f2a91b8a29ef17d063d4d92b7cc9c58cf03a65ca70558e354ceea81355"
+    }
+  ],
+  "applicationCheckpointQualified": true
+}
