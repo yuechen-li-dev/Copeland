@@ -18,6 +18,7 @@
     <Project Path="src/Aurelian/Aurelian.Runtime/Aurelian.Runtime.csproj" />
     <Project Path="src/Aurelian/Aurelian.Cli/Aurelian.Cli.csproj" />
     <Project Path="src/Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj" />
+    <Project Path="src/Copeland/Copeland.TS.Backend.Wgsl/Copeland.TS.Backend.Wgsl.csproj" />
     <Project Path="src/Aurelian/Aurelian.Simulation/Aurelian.Simulation.csproj" />
     <Project Path="src/Aurelian/Aurelian.Field2D/Aurelian.Field2D.csproj" />
     <Project Path="src/Aurelian/Aurelian.Spatial2D/Aurelian.Spatial2D.csproj" />

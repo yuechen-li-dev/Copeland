@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Copeland.TS.Backend.Wgsl</AssemblyName>
+    <RootNamespace>Copeland.TS.Gpu.Wgsl</RootNamespace>
+    <Description>Pure managed direct WGSL graphics backend for semantic VD-MIR.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Copeland.TS/Copeland.TS.csproj" />
+  </ItemGroup>
+</Project>

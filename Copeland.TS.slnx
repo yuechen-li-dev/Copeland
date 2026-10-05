@@ -5,6 +5,7 @@
     <Project Path="src/Copeland/Copeland.TS/Copeland.TS.csproj" />
     <Project Path="src/Copeland/Copeland.TS.Backend.CSharp/Copeland.TS.Backend.CSharp.csproj" />
     <Project Path="src/Copeland/Copeland.TS.Backend.JavaScript/Copeland.TS.Backend.JavaScript.csproj" />
+    <Project Path="src/Copeland/Copeland.TS.Backend.Wgsl/Copeland.TS.Backend.Wgsl.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Copeland/Copeland.TS.Tests/Copeland.TS.Tests.csproj" />

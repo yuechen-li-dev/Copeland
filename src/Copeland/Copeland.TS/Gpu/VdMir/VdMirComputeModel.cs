@@ -51,7 +51,9 @@ public sealed record VdMirStatement(
     bool Mutable = false,
     VdMirExpression? Expression = null,
     IReadOnlyList<VdMirStatement>? Body = null,
-    IReadOnlyList<VdMirStatement>? ElseBody = null);
+    IReadOnlyList<VdMirStatement>? ElseBody = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] VdMirStatement? Initializer = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] VdMirStatement? Increment = null);
 
 public sealed record VdMirFunction(
     string Name,

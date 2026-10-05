@@ -5,4 +5,5 @@ public sealed record DxcSpirvCompileRequest(
     string EntryPoint,
     string Profile,
     string SourceName,
-    IReadOnlyList<string>? AdditionalArguments = null);
+    IReadOnlyList<string>? AdditionalArguments = null,
+    string TargetEnvironment = "vulkan1.3");

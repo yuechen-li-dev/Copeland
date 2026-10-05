@@ -44,6 +44,7 @@ public static class CompiledGraphicsProgramExporter
             .ToArray();
 
         IReadOnlyList<CompiledPixelTarget> pixelTargets = graphics.PixelTargets
+            .Where(target => target.Target is not null)
             .OrderBy(target => target.Order)
             .Select(target => new CompiledPixelTarget(
                 target.Order,
@@ -91,7 +92,10 @@ public static class CompiledGraphicsProgramExporter
             vertexInputs,
             pixelTargets,
             resources,
-            material);
+            material,
+            graphics.PixelTargets.FirstOrDefault(target => target.Builtin == "frag_depth") is { } depth
+                ? new CompiledFragmentDepth(depth.Name, depth.Type, depth.Builtin!)
+                : null);
     }
 
     private static CompiledShaderStage ExportStage(VdMirGraphicsStageResult stage, CompiledShaderStageKind kind)

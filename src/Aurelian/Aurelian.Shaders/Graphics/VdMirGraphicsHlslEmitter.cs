@@ -83,6 +83,7 @@ public static class VdMirGraphicsHlslEmitter
                 "vertex_id" => "SV_VertexID",
                 "instance_id" => "SV_InstanceID",
                 "front_face" => "SV_IsFrontFace",
+                "frag_depth" => "SV_Depth",
                 not null => throw new InvalidOperationException($"Unsupported graphics builtin '{member.Builtin}'."),
                 null when member.Target is not null => $"SV_Target{member.Target.Value}",
                 null when member.Location is not null => $"TEXCOORD{member.Location.Value}",
@@ -112,6 +113,32 @@ public static class VdMirGraphicsHlslEmitter
         string prefix = new(' ', indentation * 4);
         switch (statement.Kind)
         {
+            case "assign":
+                builder.AppendLine($"{prefix}{statement.Name} = {EmitExpression(statement.Expression!, module)};");
+                break;
+            case "break":
+            case "discard":
+                builder.AppendLine($"{prefix}{statement.Kind};");
+                break;
+            case "for":
+                VdMirStatement initializer = statement.Initializer!;
+                VdMirStatement increment = statement.Increment!;
+                builder.AppendLine($"{prefix}for ({MapType(initializer.Type!, module)} {initializer.Name} = {EmitExpression(initializer.Expression!, module)}; {EmitExpression(statement.Expression!, module)}; {increment.Name} = {EmitExpression(increment.Expression!, module)})");
+                builder.AppendLine($"{prefix}{{");
+                foreach (VdMirStatement child in statement.Body ?? [])
+                {
+                    EmitStatement(builder, child, module, indentation + 1);
+                }
+                builder.AppendLine($"{prefix}}}");
+                break;
+            case "block":
+                builder.AppendLine($"{prefix}{{");
+                foreach (VdMirStatement child in statement.Body ?? [])
+                {
+                    EmitStatement(builder, child, module, indentation + 1);
+                }
+                builder.AppendLine($"{prefix}}}");
+                break;
             case "local":
                 builder.AppendLine($"{prefix}{MapType(statement.Type!, module)} {statement.Name} = {EmitExpression(statement.Expression!, module)};");
                 break;
@@ -169,6 +196,7 @@ public static class VdMirGraphicsHlslEmitter
             "field" => $"{EmitExpression(expression.Operands![0], module)}.{expression.Value}",
             "call" => $"{expression.Value}({string.Join(", ", expression.Operands!.Select(operand => EmitExpression(operand, module)))})",
             "binary" => $"({EmitExpression(expression.Operands![0], module)} {expression.Value} {EmitExpression(expression.Operands[1], module)})",
+            "unary" => $"({expression.Value}{EmitExpression(expression.Operands![0], module)})",
             "intrinsic" when expression.Value == "Sample2D" => $"{EmitExpression(expression.Operands![0], module)}.Sample({EmitExpression(expression.Operands[1], module)}, {EmitExpression(expression.Operands[2], module)})",
             "intrinsic" when expression.Value == "ConvertU32ToF32" => $"float({EmitExpression(expression.Operands![0], module)})",
             "intrinsic" when expression.Value is "Min" or "Max" or "Clamp" or "Abs" or "Sqrt" or "Floor" => $"{expression.Value!.ToLowerInvariant()}({string.Join(", ", expression.Operands!.Select(operand => EmitExpression(operand, module)))})",

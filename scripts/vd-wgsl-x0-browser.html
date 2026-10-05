@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>VD-WGSL-X0 direct compiler qualification</title>
+<style>
+body { background: #152029; color: #ecede9; font: 16px system-ui; margin: 24px; }
+main { display: flex; flex-wrap: wrap; gap: 16px; }
+canvas { width: 256px; height: 256px; border: 1px solid #58727f; }
+h2 { font-size: 16px; }
+pre { white-space: pre-wrap; font-size: 12px; }
+</style>
+<h1>Direct Visual TypeScript → WGSL</h1>
+<p>Copeland frontend and direct backend run in browser WASM. Native compilers are absent from this runtime.</p>
+<p id="comparison">Each pair: direct WGSL, then the retained precompiled DXC/Naga oracle.</p>
+<main></main>
+<pre id="status">Initializing browser compiler…</pre>
+<script type="module" src="bootstrap.js"></script>
+</html>

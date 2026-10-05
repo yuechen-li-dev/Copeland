@@ -52,6 +52,8 @@ public sealed record CompiledMaterialLayout(
     IReadOnlyList<CompiledGraphicsStage> Visibility,
     IReadOnlyList<CompiledMaterialField> Fields);
 
+public sealed record CompiledFragmentDepth(string Name, string PhysicalType, string Builtin);
+
 public sealed record CompiledGraphicsProgram(
     string FormatVersion,
     string Name,
@@ -62,7 +64,8 @@ public sealed record CompiledGraphicsProgram(
     IReadOnlyList<CompiledVertexInput> VertexInputs,
     IReadOnlyList<CompiledPixelTarget> PixelTargets,
     IReadOnlyList<CompiledGraphicsResource> Resources,
-    CompiledMaterialLayout? Material)
+    CompiledMaterialLayout? Material,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] CompiledFragmentDepth? FragmentDepth = null)
 {
     public const string CurrentFormatVersion = "aurelian.compiled-graphics-program/0";
 }

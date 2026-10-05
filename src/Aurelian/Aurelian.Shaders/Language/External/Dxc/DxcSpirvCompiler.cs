@@ -137,6 +137,10 @@ public static class DxcSpirvCompiler
     private static List<DxcToolDiagnostic> ValidateRequest(DxcSpirvCompileRequest request)
     {
         var diagnostics = new List<DxcToolDiagnostic>();
+        if (request.TargetEnvironment is not ("vulkan1.0" or "vulkan1.1" or "vulkan1.2" or "vulkan1.3"))
+        {
+            diagnostics.Add(new DxcToolDiagnostic("ASD1106", "Unsupported SPIR-V target environment."));
+        }
         if (string.IsNullOrWhiteSpace(request.SourceText))
         {
             diagnostics.Add(new DxcToolDiagnostic("ASD1101", "HLSL source text is required."));
@@ -165,7 +169,7 @@ public static class DxcSpirvCompiler
         var arguments = new List<string>
         {
             "-spirv",
-            "-fspv-target-env=vulkan1.3",
+            $"-fspv-target-env={request.TargetEnvironment}",
             "-HV",
             "2021",
             "-E",

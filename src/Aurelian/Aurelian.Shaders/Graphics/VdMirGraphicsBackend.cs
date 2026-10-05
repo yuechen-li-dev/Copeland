@@ -31,23 +31,23 @@ public sealed record VdMirGraphicsBackendResult(
 
 public static class VdMirGraphicsBackend
 {
-    public static VdMirGraphicsBackendResult Compile(VdMirGraphicsModule module)
+    public static VdMirGraphicsBackendResult Compile(VdMirGraphicsModule module, string targetEnvironment = "vulkan1.3")
     {
         string hlsl = VdMirGraphicsHlslEmitter.Emit(module);
         string hlslHash = Hash(Encoding.UTF8.GetBytes(hlsl));
         DxcExecutableResolution resolution = DxcExecutableResolver.Resolve();
         VdMirGraphicsEntryPoint vertex = module.EntryPoints.Single(entry => entry.Stage == VdMirGraphicsStage.Vertex);
         VdMirGraphicsEntryPoint pixel = module.EntryPoints.Single(entry => entry.Stage == VdMirGraphicsStage.Pixel);
-        VdMirGraphicsStageResult vertexResult = CompileStage(hlsl, vertex, "vs_6_0", resolution);
-        VdMirGraphicsStageResult pixelResult = CompileStage(hlsl, pixel, "ps_6_0", resolution);
+        VdMirGraphicsStageResult vertexResult = CompileStage(hlsl, vertex, "vs_6_0", resolution, targetEnvironment);
+        VdMirGraphicsStageResult pixelResult = CompileStage(hlsl, pixel, "ps_6_0", resolution, targetEnvironment);
         return new VdMirGraphicsBackendResult(hlsl, hlslHash, resolution.ExecutablePath, vertexResult, pixelResult);
     }
 
-    private static VdMirGraphicsStageResult CompileStage(string hlsl, VdMirGraphicsEntryPoint entry, string profile, DxcExecutableResolution resolution)
+    private static VdMirGraphicsStageResult CompileStage(string hlsl, VdMirGraphicsEntryPoint entry, string profile, DxcExecutableResolution resolution, string targetEnvironment)
     {
         Stopwatch dxcStopwatch = Stopwatch.StartNew();
         DxcSpirvCompileResult compilation = DxcSpirvCompiler.Compile(
-            new DxcSpirvCompileRequest(hlsl, entry.EmittedName, profile, $"{entry.EmittedName}.hlsl"),
+            new DxcSpirvCompileRequest(hlsl, entry.EmittedName, profile, $"{entry.EmittedName}.hlsl", TargetEnvironment: targetEnvironment),
             resolution);
         dxcStopwatch.Stop();
         bool validated = false;
@@ -58,7 +58,7 @@ public static class VdMirGraphicsBackend
         if (compilation.Success)
         {
             Stopwatch validationStopwatch = Stopwatch.StartNew();
-            (validated, validationOutput) = RunSpirvTool("spirv-val", compilation.SpirvBytes, ["--target-env", "vulkan1.3"]);
+            (validated, validationOutput) = RunSpirvTool("spirv-val", compilation.SpirvBytes, ["--target-env", targetEnvironment]);
             validationStopwatch.Stop();
             validationMilliseconds = validationStopwatch.Elapsed.TotalMilliseconds;
             Stopwatch disassemblyStopwatch = Stopwatch.StartNew();

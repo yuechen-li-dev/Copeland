@@ -38,6 +38,7 @@ public static class GpuGraphicsBinder
         private readonly List<VdMirGraphicsEntryPoint> _entries = [];
         private VdMirGraphicsProgram? _program;
         private VdMirGraphicsStage? _currentStage;
+        private bool _usesGraphicsM4;
 
         public Binder(GpuCompilationRequest request)
         {
@@ -271,7 +272,7 @@ public static class GpuGraphicsBinder
                 string? builtin = builtinAnnotation is null ? null : NameArgument(builtinAnnotation);
                 VdMirStreamRole role = bindingAnnotation is not null
                     ? VdMirStreamRole.Resource
-                    : builtinAnnotation is not null && builtin != "position"
+                    : builtinAnnotation is not null && builtin is not ("position" or "frag_depth")
                         ? VdMirStreamRole.Builtin
                         : VdMirStreamRole.StageValue;
                 roles.Add(role);
@@ -531,11 +532,19 @@ public static class GpuGraphicsBinder
                 {
                     Add("COPE-GPU-BUILTIN-0003", "SDSL-V4109", "builtin", $"Builtin '{builtin.Builtin}' is not valid in the bounded vertex input stream.", builtin.Source);
                 }
+                foreach (VdMirStreamMember builtin in output.Members.Where(member => member.Builtin is not null && member.Builtin != "position"))
+                {
+                    Add("COPE-GPU-BUILTIN-0003", "SDSL-V4109", "builtin", "Vertex output supports only the position builtin.", builtin.Source);
+                }
             }
             else
             {
                 foreach (VdMirStreamMember member in output.Members)
                 {
+                    if (member.Builtin == "frag_depth" && member.Type == "f32")
+                    {
+                        continue;
+                    }
                     if (member.Target is null || member.Type != "float4")
                     {
                         Add("COPE-GPU-TARGET-0003", "SDSL-V4108", "graphics-interface", "Pixel output members require a target and float4 type.", member.Source);
@@ -555,89 +564,134 @@ public static class GpuGraphicsBinder
                 Add("COPE-GPU-RECURSION-0001", "SDSL-V4201", "recursion", "Reachable GPU recursion is unsupported.", Span(source.Path, source.Syntax.Identifier));
                 return [];
             }
-            var result = new List<VdMirStatement>();
-            foreach (StatementSyntax statement in source.Syntax.Body.Statements)
-            {
-                if (statement is ReturnStatementSyntax returned && returned.Expression is not null)
-                {
-                    VdMirExpression expression = BindExpression(source.Path, returned.Expression, scope, returnType);
-                    if (expression.Type != returnType)
-                    {
-                        TypeMismatch(source.Path, returned.Expression, returnType, expression.Type);
-                    }
-                    result.Add(new VdMirStatement("return", Span(source.Path, returned), Expression: expression));
-                }
-                else if (statement is VariableDeclarationStatementSyntax local)
-                {
-                    string declaredType = BindType(source.Path, local.Type);
-                    VdMirExpression initializer = BindExpression(source.Path, local.Initializer, scope, declaredType);
-                    if (initializer.Type != declaredType)
-                    {
-                        TypeMismatch(source.Path, local.Initializer, declaredType, initializer.Type);
-                    }
-                    scope[local.Identifier.Text] = declaredType;
-                    result.Add(new VdMirStatement("local", Span(source.Path, local), local.Identifier.Text, declaredType, local.Keyword.Kind == SyntaxKind.VarKeyword, initializer));
-                }
-                else if (statement is ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax assignment }
-                    && assignment.Left is MemberAccessExpressionSyntax materialField)
-                {
-                    VdMirExpression target = BindExpression(source.Path, materialField.Target, scope);
-                    if (_materials.TryGetValue(target.Type, out VdMirMaterial? material))
-                    {
-                        Add(
-                            "COPE-GPU-MATERIAL-0005",
-                            "SDSL-V3701",
-                            "binding",
-                            $"Material field '{materialField.NameToken.Text}' is immutable shader input.",
-                            Span(source.Path, assignment.Left),
-                            [new VdMirRelatedSpan("Material is declared here.", material.Source)]);
-                    }
-                    else
-                    {
-                        Add("COPE-GPU-CLOSURE-0001", "SDSL-V4200", "host-only", "Reachable graphics assignment is unsupported.", Span(source.Path, assignment));
-                    }
-                }
-                else if (statement is IfStatementSyntax conditional)
-                {
-                    VdMirExpression condition = BindExpression(source.Path, conditional.Condition, scope, "bool");
-                    if (condition.Type != "bool")
-                    {
-                        TypeMismatch(source.Path, conditional.Condition, "bool", condition.Type);
-                    }
-                    IReadOnlyList<VdMirStatement> body = BindBranch(source.Path, conditional.ThenStatement, scope, returnType);
-                    IReadOnlyList<VdMirStatement> elseBody = conditional.ElseStatement is null
-                        ? []
-                        : BindBranch(source.Path, conditional.ElseStatement, scope, returnType);
-                    result.Add(new VdMirStatement("if", Span(source.Path, conditional), Expression: condition, Body: body, ElseBody: elseBody));
-                }
-                else
-                {
-                    Add("COPE-GPU-CLOSURE-0001", "SDSL-V4200", "host-only", $"Reachable '{statement.Kind}' has no graphics M2 semantics.", Span(source.Path, statement));
-                }
-            }
+            var result = BindStatementList(source.Path, source.Syntax.Body.Statements, scope, new HashSet<string>(StringComparer.Ordinal), returnType, 0);
             _activeFunctions.Remove(source.Syntax.Identifier.Text);
             return result;
         }
 
-        private IReadOnlyList<VdMirStatement> BindBranch(string path, StatementSyntax syntax, Dictionary<string, string> scope, string returnType)
+        private IReadOnlyList<VdMirStatement> BindStatementList(
+            string path, IReadOnlyList<StatementSyntax> statements, Dictionary<string, string> scope,
+            HashSet<string> mutable, string returnType, int loopDepth)
         {
-            IReadOnlyList<StatementSyntax> statements = syntax is BlockStatementSyntax block ? block.Statements : [syntax];
             var result = new List<VdMirStatement>();
             foreach (StatementSyntax statement in statements)
             {
-                if (statement is not ReturnStatementSyntax { Expression: not null } returned)
+                if (statement is ReturnStatementSyntax { Expression: not null } returned)
                 {
-                    Add("COPE-GPU-CLOSURE-0001", "SDSL-V4200", "host-only", "Bounded graphics branches support return statements only.", Span(path, statement));
-                    continue;
+                    VdMirExpression expression = BindExpression(path, returned.Expression, scope, returnType);
+                    if (expression.Type != returnType)
+                    {
+                        TypeMismatch(path, returned.Expression, returnType, expression.Type);
+                    }
+                    result.Add(new VdMirStatement("return", Span(path, returned), Expression: expression));
                 }
-                VdMirExpression expression = BindExpression(path, returned.Expression, scope, returnType);
-                if (expression.Type != returnType)
+                else if (statement is VariableDeclarationStatementSyntax local)
                 {
-                    TypeMismatch(path, returned.Expression, returnType, expression.Type);
+                    string declaredType = BindType(path, local.Type);
+                    VdMirExpression initializer = BindExpression(path, local.Initializer, scope, declaredType);
+                    if (initializer.Type != declaredType)
+                    {
+                        TypeMismatch(path, local.Initializer, declaredType, initializer.Type);
+                    }
+                    if (!scope.TryAdd(local.Identifier.Text, declaredType))
+                    {
+                        Add("COPE-GPU-SYMBOL-0001", "SDSL-V1509", "symbol", "GPU locals cannot shadow an existing name.", Span(path, local));
+                    }
+                    bool isMutable = local.Keyword.Kind == SyntaxKind.VarKeyword;
+                    if (isMutable)
+                    {
+                        mutable.Add(local.Identifier.Text);
+                    }
+                    result.Add(new VdMirStatement("local", Span(path, local), local.Identifier.Text, declaredType, isMutable, initializer));
                 }
-                result.Add(new VdMirStatement("return", Span(path, returned), Expression: expression));
+                else if (statement is ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax assignment })
+                {
+                    if (assignment.Left is NameExpressionSyntax name && scope.TryGetValue(name.IdentifierToken.Text, out string? type))
+                    {
+                        if (!mutable.Contains(name.IdentifierToken.Text))
+                        {
+                            Add("COPE-GPU-MUTATION-0001", "SDSL-V3701", "binding", "Assignment requires a mutable GPU local; loop counters are readonly in the body.", Span(path, assignment.Left));
+                        }
+                        VdMirExpression value = BindExpression(path, assignment.Right, scope, type);
+                        if (value.Type != type)
+                        {
+                            TypeMismatch(path, assignment.Right, type, value.Type);
+                        }
+                        result.Add(new VdMirStatement("assign", Span(path, assignment), name.IdentifierToken.Text, Expression: value));
+                    }
+                    else if (assignment.Left is MemberAccessExpressionSyntax field && _materials.TryGetValue(BindExpression(path, field.Target, scope).Type, out VdMirMaterial? material))
+                    {
+                        Add("COPE-GPU-MATERIAL-0005", "SDSL-V3701", "binding", "Material fields are immutable shader input.", Span(path, assignment.Left),
+                            [new VdMirRelatedSpan("Material is declared here.", material.Source)]);
+                    }
+                    else
+                    {
+                        Add("COPE-GPU-MUTATION-0001", "SDSL-V3701", "binding", "Assignment requires a mutable GPU local.", Span(path, assignment.Left));
+                    }
+                }
+                else if (statement is IfStatementSyntax conditional)
+                {
+                    VdMirExpression condition = BindExpression(path, conditional.Condition, scope, "bool");
+                    if (condition.Type != "bool")
+                    {
+                        TypeMismatch(path, conditional.Condition, "bool", condition.Type);
+                    }
+                    var body = BindBranch(path, conditional.ThenStatement, scope, mutable, returnType, loopDepth);
+                    var elseBody = conditional.ElseStatement is null ? [] : BindBranch(path, conditional.ElseStatement, scope, mutable, returnType, loopDepth);
+                    result.Add(new VdMirStatement("if", Span(path, conditional), Expression: condition, Body: body, ElseBody: elseBody));
+                }
+                else if (statement is ForStatementSyntax loop)
+                {
+                    // Canonical fixed u32 bounds prevent unbounded GPU work and counter overflow.
+                    if (loop.Initializer is not VariableDeclarationStatementSyntax initial
+                        || initial.Keyword.Kind != SyntaxKind.VarKeyword || BindType(path, initial.Type) != "u32"
+                        || initial.Initializer is not LiteralExpressionSyntax first || !uint.TryParse(first.LiteralToken.Text, out uint begin)
+                        || loop.Condition is not BinaryExpressionSyntax { Left: NameExpressionSyntax counter, Right: LiteralExpressionSyntax last } test
+                        || test.OperatorToken.Text != "<" || counter.IdentifierToken.Text != initial.Identifier.Text
+                        || !uint.TryParse(last.LiteralToken.Text, out uint end) || end < begin || end - begin > 4096
+                        || loop.Increment is not AssignmentExpressionSyntax { Left: NameExpressionSyntax incrementName, Right: BinaryExpressionSyntax { Left: NameExpressionSyntax incrementCounter, Right: LiteralExpressionSyntax step } update }
+                        || incrementName.IdentifierToken.Text != initial.Identifier.Text || incrementCounter.IdentifierToken.Text != initial.Identifier.Text
+                        || update.OperatorToken.Text != "+" || step.LiteralToken.Text != "1" || scope.ContainsKey(initial.Identifier.Text))
+                    {
+                        Add("COPE-GPU-LOOP-0001", "SDSL-V4200", "bounded-loop", "GPU for requires var i: u32 = literal; i < literal; i = i + 1, at most 4096 iterations and a fresh counter.", Span(path, loop));
+                        continue;
+                    }
+                    var loopScope = new Dictionary<string, string>(scope, StringComparer.Ordinal) { [initial.Identifier.Text] = "u32" };
+                    var initializer = new VdMirStatement("local", Span(path, initial), initial.Identifier.Text, "u32", true, BindExpression(path, initial.Initializer, scope));
+                    var increment = new VdMirStatement("assign", Span(path, loop.Increment), initial.Identifier.Text, Expression: BindExpression(path, update, loopScope));
+                    var body = BindBranch(path, loop.Body, loopScope, mutable, returnType, loopDepth + 1);
+                    result.Add(new VdMirStatement("for", Span(path, loop), Expression: BindExpression(path, test, loopScope), Body: body, Initializer: initializer, Increment: increment));
+                }
+                else if (statement is BreakStatementSyntax && loopDepth > 0)
+                {
+                    result.Add(new VdMirStatement("break", Span(path, statement)));
+                }
+                else if (statement is ExpressionStatementSyntax { Expression: CallExpressionSyntax { Target: NameExpressionSyntax discard } call }
+                    && discard.IdentifierToken.Text == "Discard" && call.Arguments.Count == 0 && _currentStage == VdMirGraphicsStage.Pixel)
+                {
+                    result.Add(new VdMirStatement("discard", Span(path, statement)));
+                }
+                else if (statement is BlockStatementSyntax block)
+                {
+                    // Preserve lexical scope in IR rather than flattening local declarations.
+                    result.Add(new VdMirStatement("block", Span(path, block),
+                        Body: BindBranch(path, block, scope, mutable, returnType, loopDepth)));
+                }
+                else
+                {
+                    Add("COPE-GPU-CLOSURE-0001", "SDSL-V4200", "host-only", $"Reachable '{statement.Kind}' has no graphics semantics.", Span(path, statement));
+                }
             }
             return result;
+        }
+
+        private IReadOnlyList<VdMirStatement> BindBranch(string path, StatementSyntax syntax, Dictionary<string, string> scope,
+            HashSet<string> mutable, string returnType, int loopDepth)
+        {
+            IReadOnlyList<StatementSyntax> statements = syntax is BlockStatementSyntax block ? block.Statements : [syntax];
+            _usesGraphicsM4 |= statements.Any(statement => statement is not ReturnStatementSyntax);
+            return BindStatementList(path, statements, new Dictionary<string, string>(scope, StringComparer.Ordinal),
+                new HashSet<string>(mutable, StringComparer.Ordinal), returnType, loopDepth);
         }
 
         private VdMirExpression BindExpression(string path, ExpressionSyntax syntax, Dictionary<string, string> scope, string? expected = null)
@@ -647,6 +701,11 @@ public static class GpuGraphicsBinder
                 case NameExpressionSyntax name when scope.TryGetValue(name.IdentifierToken.Text, out string? type):
                     return new VdMirExpression("name", type, Span(path, syntax), name.IdentifierToken.Text);
                 case LiteralExpressionSyntax literal:
+                    if (literal.LiteralToken.Text is "true" or "false")
+                    {
+                        _usesGraphicsM4 = true;
+                        return new VdMirExpression("literal", "bool", Span(path, literal), literal.LiteralToken.Text);
+                    }
                     return new VdMirExpression("literal", literal.LiteralToken.Text.Contains('.', StringComparison.Ordinal) ? "f32" : "u32", Span(path, literal), literal.LiteralToken.Text);
                 case ParenthesizedExpressionSyntax parenthesized:
                     return BindExpression(path, parenthesized.Expression, scope, expected);
@@ -673,10 +732,28 @@ public static class GpuGraphicsBinder
                     return BindCall(path, call, scope, expected);
                 case GenericCallExpressionSyntax call:
                     return BindGenericCall(path, call, scope);
+                case UnaryExpressionSyntax unary:
+                {
+                    VdMirExpression operand = BindExpression(path, unary.Operand, scope);
+                    if ((unary.OperatorToken.Text == "-" && operand.Type == "f32") || (unary.OperatorToken.Text == "!" && operand.Type == "bool"))
+                    {
+                        _usesGraphicsM4 = true;
+                        return new VdMirExpression("unary", operand.Type, Span(path, unary), unary.OperatorToken.Text, [operand]);
+                    }
+                    Add("COPE-GPU-OPERATOR-0001", "SDSL-V1503", "type", "Unsupported GPU unary operator or operand.", Span(path, unary));
+                    return Error(path, unary);
+                }
                 case BinaryExpressionSyntax binary:
                 {
                     VdMirExpression left = BindExpression(path, binary.Left, scope);
                     VdMirExpression right = BindExpression(path, binary.Right, scope);
+                    string operation = binary.OperatorToken.Text;
+                    if (left.Type == right.Type && ((left.Type is "f32" or "u32" && operation is "<" or "<=" or ">" or ">=" or "==" or "!=")
+                        || (left.Type == "bool" && operation is "&&" or "||" or "==" or "!=")))
+                    {
+                        _usesGraphicsM4 = true;
+                        return new VdMirExpression("binary", "bool", Span(path, binary), operation, [left, right]);
+                    }
                     if (binary.OperatorToken.Kind == SyntaxKind.StarToken && left.Type == right.Type && left.Type is "f32" or "float4")
                     {
                         return new VdMirExpression("binary", left.Type, Span(path, binary), "*", [left, right]);
@@ -915,7 +992,7 @@ public static class GpuGraphicsBinder
             return new VdMirGraphicsModule(
                 VdMirComputeModule.CurrentSchema,
                 VdMirComputeModule.CanonicalConformanceSchema,
-                _semanticSpaces.Count > 0 || _resources.Count > 0 || _materials.Count > 0 ? VdMirGraphicsModule.GraphicsM3FeatureLevel : VdMirGraphicsModule.GraphicsM2FeatureLevel,
+                GraphicsFeatureLevel(),
                 _request.Sources.Select(source => source.Path).Distinct(StringComparer.Ordinal).OrderBy(path => path, StringComparer.Ordinal).ToArray(),
                 _streams.Values.SelectMany(stream => stream.Members.Select(member => member.Type)).Concat(_materials.Keys).Concat(["f32", "float2", "float3", "float4"]).Distinct(StringComparer.Ordinal).OrderBy(type => type, StringComparer.Ordinal).ToArray(),
                 _semanticSpaces.Values.OrderBy(space => space.Name, StringComparer.Ordinal).ToArray(),
@@ -926,6 +1003,33 @@ public static class GpuGraphicsBinder
                 _program,
                 _diagnostics.OrderBy(diagnostic => diagnostic.PrimarySpan.File, StringComparer.Ordinal).ThenBy(diagnostic => diagnostic.PrimarySpan.Start).ThenBy(diagnostic => diagnostic.Code, StringComparer.Ordinal).ToArray());
         }
+
+        private bool UsesGraphicsM4()
+        {
+            if (_usesGraphicsM4 || _streams.Values.Any(stream => stream.Members.Any(member => member.Builtin == "frag_depth")))
+            {
+                return true;
+            }
+            return _functions.Values.Any(function => HasExtendedStatements(function.Statements));
+        }
+
+        private string GraphicsFeatureLevel()
+        {
+            if (UsesGraphicsM4())
+            {
+                return VdMirGraphicsModule.GraphicsM4FeatureLevel;
+            }
+            if (_semanticSpaces.Count > 0 || _resources.Count > 0 || _materials.Count > 0)
+            {
+                return VdMirGraphicsModule.GraphicsM3FeatureLevel;
+            }
+            return VdMirGraphicsModule.GraphicsM2FeatureLevel;
+        }
+
+        private static bool HasExtendedStatements(IReadOnlyList<VdMirStatement> statements)
+            => statements.Any(statement => statement.Kind is "for" or "assign" or "break" or "discard" or "block"
+                || statement.Body is not null && HasExtendedStatements(statement.Body)
+                || statement.ElseBody is not null && HasExtendedStatements(statement.ElseBody));
 
         private string BindType(string path, TypeSyntax? syntax)
         {
