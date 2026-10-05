@@ -1,0 +1,1 @@
+function run(): int[] { return batch [1] as value { for (let index: int = 0; index < 2; index++) { } return value; }; }

@@ -1,0 +1,25 @@
+{
+  "compilerBytesQualified": true,
+  "test": "CompilerPayloadFingerprintTests.Equal_version_size_and_timestamp_do_not_hide_repacked_compiler_bytes",
+  "method": "Two actual Roslyn-built assemblies: same name/version/size/timestamp, different method bytes; production payload-hash helper returns different fingerprints.",
+  "payloads": [
+    "MSBuild task",
+    "Copeland compiler",
+    "C# backend",
+    "MIR"
+  ],
+  "options": [
+    "root namespace",
+    "module name",
+    "project type transport",
+    "C# LangVersion",
+    "DefineConstants",
+    "Nullable"
+  ],
+  "sourceClosure": "Independent source text or sorted project source graph, authored C# text, package/npm contracts.",
+  "limits": [
+    "External CLR references retain path/size/timestamp identity.",
+    "TSON asset contents are not independently fingerprinted by the pre-existing task cache.",
+    "An end-to-end same-version repacked binary output rebuild was not executed; the production hash input was tested directly."
+  ]
+}

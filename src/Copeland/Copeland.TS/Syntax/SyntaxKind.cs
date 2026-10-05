@@ -34,6 +34,16 @@ public enum SyntaxKind
     AtToken,
 
     // Operators
+    PlusPlusToken,
+    MinusMinusToken,
+    PlusEqualsToken,
+    MinusEqualsToken,
+    StarEqualsToken,
+    SlashEqualsToken,
+    PercentEqualsToken,
+    CaretToken,
+    ShiftLeftToken,
+    ShiftRightToken,
     PlusToken,
     MinusToken,
     StarToken,

@@ -1,0 +1,1 @@
+[{"Id":"COPE-BIND-0001","Message":"Undefined function name.","Position":161,"Length":1,"SourcePath":null}]

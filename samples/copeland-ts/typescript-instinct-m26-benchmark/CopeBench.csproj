@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>CopeBench</RootNamespace>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <TieredPGO>true</TieredPGO>
+    <CopelandTaskAssembly>$(MSBuildThisFileDirectory)../../../src/Copeland/Copeland.TS.MSBuild/bin/Release/net10.0/Copeland.TS.MSBuild.dll</CopelandTaskAssembly>
+  </PropertyGroup>
+  <ItemGroup>
+    <CopelandCompile Include="Copeland/**/*.ts" />
+    <ProjectReference Include="../../../src/Copeland/Copeland.TS.Backend.CSharp/Copeland.TS.Backend.CSharp.csproj" />
+  </ItemGroup>
+  <Import Project="../../../src/Copeland/Copeland.TS.MSBuild/build/Copeland.TS.Sdk.targets" />
+</Project>

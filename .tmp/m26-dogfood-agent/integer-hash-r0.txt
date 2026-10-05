@@ -1,0 +1,1 @@
+[{"Id":"COPE-NUM-0006","Message":"Copeland int multiplication already wraps at 32 bits. Use ((hash ^ value) * (0x01000193)).","Position":118,"Length":4,"SourcePath":"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\integer-hash-r0.ts","SuggestedReplacement":"((hash ^ value) * (0x01000193))","RepairKind":"canonical-form"}]

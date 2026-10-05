@@ -1,0 +1,1 @@
+{"name":"closures","quick":false,"trials":[{"result":"997753","milliseconds":238.2019,"heapUsedDeltaBytes":180320},{"result":"997753","milliseconds":239.45749999999998,"heapUsedDeltaBytes":2360},{"result":"997753","milliseconds":240.8406,"heapUsedDeltaBytes":2248}],"peakWorkingSetBytes":41197568}

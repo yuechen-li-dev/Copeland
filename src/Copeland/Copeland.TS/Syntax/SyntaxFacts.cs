@@ -51,22 +51,23 @@ public static class SyntaxFacts
     public static int GetUnaryOperatorPrecedence(SyntaxKind kind)
         => kind switch
         {
-            SyntaxKind.BangToken or SyntaxKind.MinusToken => 8,
+            SyntaxKind.BangToken or SyntaxKind.MinusToken => 13,
             _ => 0,
         };
 
     public static int GetBinaryOperatorPrecedence(SyntaxKind kind)
         => kind switch
         {
-            SyntaxKind.StarToken or SyntaxKind.SlashToken or SyntaxKind.PercentToken => 7,
-            SyntaxKind.PlusToken or SyntaxKind.MinusToken => 6,
-            SyntaxKind.LessToken or SyntaxKind.LessOrEqualsToken or SyntaxKind.GreaterToken or SyntaxKind.GreaterOrEqualsToken => 5,
-            SyntaxKind.EqualsEqualsToken or SyntaxKind.BangEqualsToken or SyntaxKind.EqualsEqualsEqualsToken or SyntaxKind.BangEqualsEqualsToken => 4,
-            SyntaxKind.AmpersandAmpersandToken => 3,
-            SyntaxKind.PipePipeToken => 2,
-            // Pipeline binds after postfix application (calls, member access,
-            // propagation, and `with`) but before assignment. Its parser loop
-            // makes equal-precedence chains left associative.
+            SyntaxKind.StarToken or SyntaxKind.SlashToken or SyntaxKind.PercentToken => 12,
+            SyntaxKind.PlusToken or SyntaxKind.MinusToken => 11,
+            SyntaxKind.ShiftLeftToken or SyntaxKind.ShiftRightToken => 10,
+            SyntaxKind.LessToken or SyntaxKind.LessOrEqualsToken or SyntaxKind.GreaterToken or SyntaxKind.GreaterOrEqualsToken => 9,
+            SyntaxKind.EqualsEqualsToken or SyntaxKind.BangEqualsToken or SyntaxKind.EqualsEqualsEqualsToken or SyntaxKind.BangEqualsEqualsToken => 8,
+            SyntaxKind.AmpersandToken => 7,
+            SyntaxKind.CaretToken => 6,
+            SyntaxKind.PipeToken => 5,
+            SyntaxKind.AmpersandAmpersandToken => 4,
+            SyntaxKind.PipePipeToken => 3,
             SyntaxKind.PipeGreaterToken => 1,
             _ => 0,
         };
@@ -86,6 +87,16 @@ public static class SyntaxFacts
             SyntaxKind.SemicolonToken => ";",
             SyntaxKind.QuestionToken => "?",
             SyntaxKind.AtToken => "@",
+            SyntaxKind.PlusPlusToken => "++",
+            SyntaxKind.MinusMinusToken => "--",
+            SyntaxKind.PlusEqualsToken => "+=",
+            SyntaxKind.MinusEqualsToken => "-=",
+            SyntaxKind.StarEqualsToken => "*=",
+            SyntaxKind.SlashEqualsToken => "/=",
+            SyntaxKind.PercentEqualsToken => "%=",
+            SyntaxKind.CaretToken => "^",
+            SyntaxKind.ShiftLeftToken => "<<",
+            SyntaxKind.ShiftRightToken => ">>",
             SyntaxKind.PlusToken => "+",
             SyntaxKind.MinusToken => "-",
             SyntaxKind.StarToken => "*",

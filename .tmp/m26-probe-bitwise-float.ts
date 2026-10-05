@@ -1,0 +1,1 @@
+function run(): int { return 1.5 & 1; }

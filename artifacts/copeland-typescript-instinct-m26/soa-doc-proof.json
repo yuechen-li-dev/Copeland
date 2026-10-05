@@ -1,0 +1,7 @@
+{
+  "qualified": true,
+  "document": "docs/Copeland/language/typescript-instinct-m26.md",
+  "law": "Prefer scalar arrays/record-table columns for bulk kernels; no forced row materialization in column hot loops. Records remain values.",
+  "initializer": "MutableArray<Record> convenience is permitted, with no blanket warning or new AoS recommendation.",
+  "benchmarkLayout": "Original objects benchmark is matched row-array layout, not columnar throughput evidence."
+}

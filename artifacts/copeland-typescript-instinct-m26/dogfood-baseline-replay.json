@@ -1,0 +1,1410 @@
+{
+  "Milestone": "M26",
+  "Replay": "baseline",
+  "FreshContextProtocol": "Read only supplied snippet JSON and exact baseline compiler diagnostics. No language docs, compiler implementation, milestone report, or other agent transcripts were read. No current compiler was invoked.",
+  "Compiler": ".tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll",
+  "MaximumRepairAttemptsPerSnippet": 6,
+  "StopRule": "Stop at diagnostic acceptance or a concrete capability blocker before the maximum; diagnostic acceptance remains runtime-unverified.",
+  "Summary": {
+    "SnippetCount": 6,
+    "CompilerValidCount": 3,
+    "BlockedCount": 3,
+    "TotalRepairAttempts": 18,
+    "TotalCompilerInvocations": 24
+  },
+  "Cases": [
+    {
+      "Id": "csv",
+      "Input": "function parseCsvIntegers(text: string): int[] { return text.split(\",\").map(part => parseInt(part.trim(), 10)); }",
+      "InitialInputPreserved": true,
+      "RepairCount": 4,
+      "CompilerInvocations": 5,
+      "FinalStatus": "blocked",
+      "FinalSource": "using System;\nfunction parseCsvIntegers(text: string): int[] {\n    let count: int = 1;\n    for (let index: int = 0; index < text.length; index = index + 1) {\n        if (text[index] == \",\") {\n            count = count + 1;\n        }\n    }\n    const result: int[] = new int[count];\n    let outputIndex: int = 0;\n    let value: int = 0;\n    let sign: int = 1;\n    for (let index: int = 0; index < text.length; index = index + 1) {\n        const character = text[index];\n        if (character == \",\") {\n            result[outputIndex] = value * sign;\n            outputIndex = outputIndex + 1;\n            value = 0;\n            sign = 1;\n        } else if (character == \"-\") {\n            sign = -1;\n        } else if (character != \" \" && character != \"\\t\" && character != \"\\r\" && character != \"\\n\") {\n            value = value * 10 + Int32.Parse(character);\n        }\n    }\n    result[outputIndex] = value * sign;\n    return result;\n}",
+      "FinalSourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\csv\\attempt-4.ts",
+      "FinalDiagnosticCount": 8,
+      "Blocker": "No valid form found within four repair attempts. Receiver string split/trim are rejected; Regex reference metadata is unavailable; String.Split has no applicable static overload; new int[count] is not accepted by the parser. The latest manual-parser attempt is invalid and is not counted as repaired.",
+      "SemanticExecutionValidation": "Delegated to root through generated C# execution; this replay used only the baseline diagnose command.",
+      "Versions": [
+        {
+          "Attempt": 0,
+          "IsInitialInput": true,
+          "Source": "function parseCsvIntegers(text: string): int[] { return text.split(\",\").map(part => parseInt(part.trim(), 10)); }",
+          "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\csv\\attempt-0.ts",
+          "Command": "dotnet .tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll diagnose \"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\csv\\attempt-0.ts\"",
+          "ExitCode": 0,
+          "DiagnosticsRaw": "[{\"Id\":\"COPE-CALL-0021\",\"Message\":\"\\u0027split\\u0027 is not a method of \\u0027text\\u0027 of type \\u0027string\\u0027. Copeland values have no receiver methods; pass the value to a function or a CLR static API instead.\",\"Position\":61,\"Length\":5,\"SourcePath\":null},{\"Id\":\"COPE-CALL-0021\",\"Message\":\"\\u0027split\\u0027 is not a method of \\u0027text\\u0027 of type \\u0027string\\u0027. Copeland values have no receiver methods; pass the value to a function or a CLR static API instead.\",\"Position\":61,\"Length\":5,\"SourcePath\":null},{\"Id\":\"COPE-CALL-0021\",\"Message\":\"\\u0027split\\u0027 is not a method of \\u0027text\\u0027 of type \\u0027string\\u0027. Copeland values have no receiver methods; pass the value to a function or a CLR static API instead.\",\"Position\":61,\"Length\":5,\"SourcePath\":null},{\"Id\":\"COPE-CALL-0011\",\"Message\":\"Arrow parameter \\u0027part\\u0027 needs an explicit type or an exact contextual callable signature.\",\"Position\":76,\"Length\":4,\"SourcePath\":null},{\"Id\":\"COPE-BIND-0001\",\"Message\":\"Undefined function name.\",\"Position\":92,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-CALL-0004\",\"Message\":\"Cannot invoke non-callable value of type \\u0027error\\u0027.\",\"Position\":75,\"Length\":1,\"SourcePath\":null}]",
+          "Diagnostics": [
+            {
+              "Id": "COPE-CALL-0021",
+              "Message": "'split' is not a method of 'text' of type 'string'. Copeland values have no receiver methods; pass the value to a function or a CLR static API instead.",
+              "Position": 61,
+              "Length": 5,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-CALL-0021",
+              "Message": "'split' is not a method of 'text' of type 'string'. Copeland values have no receiver methods; pass the value to a function or a CLR static API instead.",
+              "Position": 61,
+              "Length": 5,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-CALL-0021",
+              "Message": "'split' is not a method of 'text' of type 'string'. Copeland values have no receiver methods; pass the value to a function or a CLR static API instead.",
+              "Position": 61,
+              "Length": 5,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-CALL-0011",
+              "Message": "Arrow parameter 'part' needs an explicit type or an exact contextual callable signature.",
+              "Position": 76,
+              "Length": 4,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-BIND-0001",
+              "Message": "Undefined function name.",
+              "Position": 92,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-CALL-0004",
+              "Message": "Cannot invoke non-callable value of type 'error'.",
+              "Position": 75,
+              "Length": 1,
+              "SourcePath": null
+            }
+          ],
+          "DiagnosticCount": 6,
+          "RepairRationale": "Exact supplied TypeScript input."
+        },
+        {
+          "Attempt": 1,
+          "IsInitialInput": false,
+          "Source": "import { Regex } from \"System.Text.RegularExpressions\";\nimport { Int32 } from \"System\";\nfunction parseCsvIntegers(text: string): int[] {\n    const parts = Regex.Split(text, \",\");\n    return batch parts as part {\n        const trimmed = Regex.Replace(part, \"^\\\\s+|\\\\s+$\", \"\");\n        return Int32.Parse(trimmed);\n    };\n}",
+          "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\csv\\attempt-1.ts",
+          "Command": "dotnet .tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll diagnose \"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\csv\\attempt-1.ts\"",
+          "ExitCode": 0,
+          "DiagnosticsRaw": "[{\"Id\":\"COPE-NPM-0001\",\"Message\":\"npm package \\u0027System.Text.RegularExpressions\\u0027 is unavailable in project configuration.\",\"Position\":22,\"Length\":32,\"SourcePath\":null},{\"Id\":\"COPE-NPM-0001\",\"Message\":\"npm package \\u0027System\\u0027 is unavailable in project configuration.\",\"Position\":78,\"Length\":8,\"SourcePath\":null},{\"Id\":\"COPE-BIND-0001\",\"Message\":\"Undefined name \\u0027Regex\\u0027.\",\"Position\":155,\"Length\":5,\"SourcePath\":null},{\"Id\":\"COPE-BIND-0001\",\"Message\":\"Undefined name \\u0027Regex\\u0027.\",\"Position\":155,\"Length\":5,\"SourcePath\":null},{\"Id\":\"COPE-ENUM-0010\",\"Message\":\"Expected enum type name.\",\"Position\":155,\"Length\":5,\"SourcePath\":null},{\"Id\":\"COPE-BATCH-0002\",\"Message\":\"Batch input must be a supported array, got \\u0027error\\u0027.\",\"Position\":190,\"Length\":5,\"SourcePath\":null}]",
+          "Diagnostics": [
+            {
+              "Id": "COPE-NPM-0001",
+              "Message": "npm package 'System.Text.RegularExpressions' is unavailable in project configuration.",
+              "Position": 22,
+              "Length": 32,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-NPM-0001",
+              "Message": "npm package 'System' is unavailable in project configuration.",
+              "Position": 78,
+              "Length": 8,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-BIND-0001",
+              "Message": "Undefined name 'Regex'.",
+              "Position": 155,
+              "Length": 5,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-BIND-0001",
+              "Message": "Undefined name 'Regex'.",
+              "Position": 155,
+              "Length": 5,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-ENUM-0010",
+              "Message": "Expected enum type name.",
+              "Position": 155,
+              "Length": 5,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-BATCH-0002",
+              "Message": "Batch input must be a supported array, got 'error'.",
+              "Position": 190,
+              "Length": 5,
+              "SourcePath": null
+            }
+          ],
+          "DiagnosticCount": 6,
+          "RepairRationale": "Try CLR regex static APIs for split and trim and Int32.Parse, retaining int[] return."
+        },
+        {
+          "Attempt": 2,
+          "IsInitialInput": false,
+          "Source": "using System;\nusing System.Text.RegularExpressions;\nfunction parseCsvIntegers(text: string): int[] {\n    const parts = Regex.Split(text, \",\");\n    return batch parts as part {\n        const trimmed = Regex.Replace(part, \"^\\\\s+|\\\\s+$\", \"\");\n        return Int32.Parse(trimmed);\n    };\n}",
+          "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\csv\\attempt-2.ts",
+          "Command": "dotnet .tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll diagnose \"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\csv\\attempt-2.ts\"",
+          "ExitCode": 0,
+          "DiagnosticsRaw": "[{\"Id\":\"COPE-CLR-0001\",\"Message\":\"CLR namespace or type \\u0027System.Text.RegularExpressions\\u0027 was not found in the supplied framework/reference metadata.\",\"Position\":20,\"Length\":6,\"SourcePath\":null},{\"Id\":\"COPE-BIND-0001\",\"Message\":\"Undefined name \\u0027Regex\\u0027.\",\"Position\":119,\"Length\":5,\"SourcePath\":null},{\"Id\":\"COPE-CLR-0001\",\"Message\":\"CLR type \\u0027Regex\\u0027 was not found in imported CLR namespaces or supplied references.\",\"Position\":119,\"Length\":5,\"SourcePath\":null},{\"Id\":\"COPE-BATCH-0002\",\"Message\":\"Batch input must be a supported array, got \\u0027error\\u0027.\",\"Position\":154,\"Length\":5,\"SourcePath\":null}]",
+          "Diagnostics": [
+            {
+              "Id": "COPE-CLR-0001",
+              "Message": "CLR namespace or type 'System.Text.RegularExpressions' was not found in the supplied framework/reference metadata.",
+              "Position": 20,
+              "Length": 6,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-BIND-0001",
+              "Message": "Undefined name 'Regex'.",
+              "Position": 119,
+              "Length": 5,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-CLR-0001",
+              "Message": "CLR type 'Regex' was not found in imported CLR namespaces or supplied references.",
+              "Position": 119,
+              "Length": 5,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-BATCH-0002",
+              "Message": "Batch input must be a supported array, got 'error'.",
+              "Position": 154,
+              "Length": 5,
+              "SourcePath": null
+            }
+          ],
+          "DiagnosticCount": 4,
+          "RepairRationale": "Compiler identified CLR using directives; replace npm import syntax with using."
+        },
+        {
+          "Attempt": 3,
+          "IsInitialInput": false,
+          "Source": "using System;\nfunction parseCsvIntegers(text: string): int[] {\n    const parts = String.Split(text, \",\");\n    return batch parts as part {\n        return Int32.Parse(String.Trim(part));\n    };\n}",
+          "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\csv\\attempt-3.ts",
+          "Command": "dotnet .tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll diagnose \"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\csv\\attempt-3.ts\"",
+          "ExitCode": 0,
+          "DiagnosticsRaw": "[{\"Id\":\"COPE-CLR-0005\",\"Message\":\"No applicable CLR overload for \\u0027System.String.Split\\u0027 with (string, string).\",\"Position\":93,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-BATCH-0002\",\"Message\":\"Batch input must be a supported array, got \\u0027error\\u0027.\",\"Position\":117,\"Length\":5,\"SourcePath\":null}]",
+          "Diagnostics": [
+            {
+              "Id": "COPE-CLR-0005",
+              "Message": "No applicable CLR overload for 'System.String.Split' with (string, string).",
+              "Position": 93,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-BATCH-0002",
+              "Message": "Batch input must be a supported array, got 'error'.",
+              "Position": 117,
+              "Length": 5,
+              "SourcePath": null
+            }
+          ],
+          "DiagnosticCount": 2,
+          "RepairRationale": "Regex metadata unavailable; test CLR String.Split and String.Trim as static value-taking calls."
+        },
+        {
+          "Attempt": 4,
+          "IsInitialInput": false,
+          "Source": "using System;\nfunction parseCsvIntegers(text: string): int[] {\n    let count: int = 1;\n    for (let index: int = 0; index < text.length; index = index + 1) {\n        if (text[index] == \",\") {\n            count = count + 1;\n        }\n    }\n    const result: int[] = new int[count];\n    let outputIndex: int = 0;\n    let value: int = 0;\n    let sign: int = 1;\n    for (let index: int = 0; index < text.length; index = index + 1) {\n        const character = text[index];\n        if (character == \",\") {\n            result[outputIndex] = value * sign;\n            outputIndex = outputIndex + 1;\n            value = 0;\n            sign = 1;\n        } else if (character == \"-\") {\n            sign = -1;\n        } else if (character != \" \" && character != \"\\t\" && character != \"\\r\" && character != \"\\n\") {\n            value = value * 10 + Int32.Parse(character);\n        }\n    }\n    result[outputIndex] = value * sign;\n    return result;\n}",
+          "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\csv\\attempt-4.ts",
+          "Command": "dotnet .tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll diagnose \"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\csv\\attempt-4.ts\"",
+          "ExitCode": 0,
+          "DiagnosticsRaw": "[{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027IdentifierToken\\u0027.\",\"Position\":269,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027(\\u0027.\",\"Position\":269,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0002\",\"Message\":\"Expected expression.\",\"Position\":269,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027)\\u0027.\",\"Position\":269,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027;\\u0027.\",\"Position\":269,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0002\",\"Message\":\"Expected expression.\",\"Position\":269,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027;\\u0027.\",\"Position\":269,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0001\",\"Message\":\"Unexpected token \\u0027IntKeyword\\u0027.\",\"Position\":269,\"Length\":3,\"SourcePath\":null}]",
+          "Diagnostics": [
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token 'IdentifierToken'.",
+              "Position": 269,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token '('.",
+              "Position": 269,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0002",
+              "Message": "Expected expression.",
+              "Position": 269,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token ')'.",
+              "Position": 269,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token ';'.",
+              "Position": 269,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0002",
+              "Message": "Expected expression.",
+              "Position": 269,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token ';'.",
+              "Position": 269,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0001",
+              "Message": "Unexpected token 'IntKeyword'.",
+              "Position": 269,
+              "Length": 3,
+              "SourcePath": null
+            }
+          ],
+          "DiagnosticCount": 8,
+          "RepairRationale": "Static String.Split unavailable; test a manual indexed parser and fixed-size array allocation."
+        }
+      ]
+    },
+    {
+      "Id": "counter-map",
+      "Input": "function countValues(values: string[]): Map<string, int> { const counts = new Map<string, int>(); for (const value of values) { const previous = counts.get(value) ?? 0; counts.set(value, previous + 1); } return counts; }",
+      "InitialInputPreserved": true,
+      "RepairCount": 2,
+      "CompilerInvocations": 3,
+      "FinalStatus": "blocked",
+      "FinalSource": "using Map = System.Collections.Generic.Dictionary;\nfunction countValues(values: string[]): Map<string, int> {\n    const counts: Map<string, int> = new Map();\n    for (const value of values) {\n        const previous: int = counts.get(value) ?? 0;\n        counts.set(value, previous + 1);\n    }\n    return counts;\n}",
+      "FinalSourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\counter-map\\attempt-2.ts",
+      "FinalDiagnosticCount": 6,
+      "Blocker": "No valid form found within two repair attempts while preserving the supplied Map<string, int> return. COPE-STATIC-0009 explicitly rejects Map as an unsupported generic structural type, and CLR alias syntax did not supply it. The returned map type was not erased or silently replaced.",
+      "SemanticExecutionValidation": "Delegated to root through generated C# execution; this replay used only the baseline diagnose command.",
+      "Versions": [
+        {
+          "Attempt": 0,
+          "IsInitialInput": true,
+          "Source": "function countValues(values: string[]): Map<string, int> { const counts = new Map<string, int>(); for (const value of values) { const previous = counts.get(value) ?? 0; counts.set(value, previous + 1); } return counts; }",
+          "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\counter-map\\attempt-0.ts",
+          "Command": "dotnet .tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll diagnose \"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\counter-map\\attempt-0.ts\"",
+          "ExitCode": 0,
+          "DiagnosticsRaw": "[{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027(\\u0027.\",\"Position\":81,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0002\",\"Message\":\"Expected expression.\",\"Position\":81,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0002\",\"Message\":\"Expected expression.\",\"Position\":82,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027)\\u0027.\",\"Position\":82,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027;\\u0027.\",\"Position\":82,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0002\",\"Message\":\"Expected expression.\",\"Position\":82,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027;\\u0027.\",\"Position\":82,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0001\",\"Message\":\"Unexpected token \\u0027StringKeyword\\u0027.\",\"Position\":82,\"Length\":6,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0002\",\"Message\":\"Expected expression.\",\"Position\":88,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027;\\u0027.\",\"Position\":88,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0001\",\"Message\":\"Unexpected token \\u0027CommaToken\\u0027.\",\"Position\":88,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0002\",\"Message\":\"Expected expression.\",\"Position\":90,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027;\\u0027.\",\"Position\":90,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0001\",\"Message\":\"Unexpected token \\u0027IntKeyword\\u0027.\",\"Position\":90,\"Length\":3,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0002\",\"Message\":\"Expected expression.\",\"Position\":93,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0002\",\"Message\":\"Expected expression.\",\"Position\":95,\"Length\":0,\"SourcePath\":null}]",
+          "Diagnostics": [
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token '('.",
+              "Position": 81,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0002",
+              "Message": "Expected expression.",
+              "Position": 81,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0002",
+              "Message": "Expected expression.",
+              "Position": 82,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token ')'.",
+              "Position": 82,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token ';'.",
+              "Position": 82,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0002",
+              "Message": "Expected expression.",
+              "Position": 82,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token ';'.",
+              "Position": 82,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0001",
+              "Message": "Unexpected token 'StringKeyword'.",
+              "Position": 82,
+              "Length": 6,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0002",
+              "Message": "Expected expression.",
+              "Position": 88,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token ';'.",
+              "Position": 88,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0001",
+              "Message": "Unexpected token 'CommaToken'.",
+              "Position": 88,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0002",
+              "Message": "Expected expression.",
+              "Position": 90,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token ';'.",
+              "Position": 90,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0001",
+              "Message": "Unexpected token 'IntKeyword'.",
+              "Position": 90,
+              "Length": 3,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0002",
+              "Message": "Expected expression.",
+              "Position": 93,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0002",
+              "Message": "Expected expression.",
+              "Position": 95,
+              "Length": 0,
+              "SourcePath": null
+            }
+          ],
+          "DiagnosticCount": 16,
+          "RepairRationale": "Exact supplied TypeScript input."
+        },
+        {
+          "Attempt": 1,
+          "IsInitialInput": false,
+          "Source": "function countValues(values: string[]): Map<string, int> {\n    const counts: Map<string, int> = new Map();\n    for (const value of values) {\n        const previous = get(counts, value) ?? 0;\n        set(counts, value, previous + 1);\n    }\n    return counts;\n}",
+          "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\counter-map\\attempt-1.ts",
+          "Command": "dotnet .tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll diagnose \"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\counter-map\\attempt-1.ts\"",
+          "ExitCode": 0,
+          "DiagnosticsRaw": "[{\"Id\":\"COPE-STATIC-0009\",\"Message\":\"Unsupported generic structural type \\u0027Map\\u0027.\",\"Position\":40,\"Length\":3,\"SourcePath\":null},{\"Id\":\"COPE-STATIC-0009\",\"Message\":\"Unsupported generic structural type \\u0027Map\\u0027.\",\"Position\":77,\"Length\":3,\"SourcePath\":null},{\"Id\":\"COPE-CLR-0001\",\"Message\":\"CLR constructor target was not found. CLR \\u0027using\\u0027 directives resolve only CLR namespaces and types.\",\"Position\":96,\"Length\":3,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0002\",\"Message\":\"Missing type annotation for variable \\u0027previous\\u0027.\",\"Position\":155,\"Length\":8,\"SourcePath\":null},{\"Id\":\"COPE-BIND-0001\",\"Message\":\"Undefined function name.\",\"Position\":169,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-OPTION-0006\",\"Message\":\"The left operand of \\u0027??\\u0027 must be Option\\u003CT\\u003E, got \\u0027error\\u0027.\",\"Position\":185,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-BIND-0001\",\"Message\":\"Undefined function name.\",\"Position\":202,\"Length\":1,\"SourcePath\":null}]",
+          "Diagnostics": [
+            {
+              "Id": "COPE-STATIC-0009",
+              "Message": "Unsupported generic structural type 'Map'.",
+              "Position": 40,
+              "Length": 3,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-STATIC-0009",
+              "Message": "Unsupported generic structural type 'Map'.",
+              "Position": 77,
+              "Length": 3,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-CLR-0001",
+              "Message": "CLR constructor target was not found. CLR 'using' directives resolve only CLR namespaces and types.",
+              "Position": 96,
+              "Length": 3,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0002",
+              "Message": "Missing type annotation for variable 'previous'.",
+              "Position": 155,
+              "Length": 8,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-BIND-0001",
+              "Message": "Undefined function name.",
+              "Position": 169,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-OPTION-0006",
+              "Message": "The left operand of '??' must be Option<T>, got 'error'.",
+              "Position": 185,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-BIND-0001",
+              "Message": "Undefined function name.",
+              "Position": 202,
+              "Length": 1,
+              "SourcePath": null
+            }
+          ],
+          "DiagnosticCount": 7,
+          "RepairRationale": "Move generic annotation to variable and try non-generic constructor plus free-function get/set."
+        },
+        {
+          "Attempt": 2,
+          "IsInitialInput": false,
+          "Source": "using Map = System.Collections.Generic.Dictionary;\nfunction countValues(values: string[]): Map<string, int> {\n    const counts: Map<string, int> = new Map();\n    for (const value of values) {\n        const previous: int = counts.get(value) ?? 0;\n        counts.set(value, previous + 1);\n    }\n    return counts;\n}",
+          "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\counter-map\\attempt-2.ts",
+          "Command": "dotnet .tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll diagnose \"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\counter-map\\attempt-2.ts\"",
+          "ExitCode": 0,
+          "DiagnosticsRaw": "[{\"Id\":\"COPE-STATIC-0009\",\"Message\":\"Unsupported generic structural type \\u0027Map\\u0027.\",\"Position\":91,\"Length\":3,\"SourcePath\":null},{\"Id\":\"COPE-STATIC-0009\",\"Message\":\"Unsupported generic structural type \\u0027Map\\u0027.\",\"Position\":128,\"Length\":3,\"SourcePath\":null},{\"Id\":\"COPE-CLR-0001\",\"Message\":\"CLR constructor target was not found. CLR \\u0027using\\u0027 directives resolve only CLR namespaces and types.\",\"Position\":147,\"Length\":3,\"SourcePath\":null},{\"Id\":\"COPE-OPTION-0006\",\"Message\":\"The left operand of \\u0027??\\u0027 must be Option\\u003CT\\u003E, got \\u0027error\\u0027.\",\"Position\":240,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-BIND-0001\",\"Message\":\"Undefined name \\u0027System\\u0027.\",\"Position\":12,\"Length\":6,\"SourcePath\":null},{\"Id\":\"COPE-CLR-0007\",\"Message\":\"Resource \\u0027using\\u0027 requires a CLR IDisposable value, got \\u0027error\\u0027.\",\"Position\":6,\"Length\":3,\"SourcePath\":null}]",
+          "Diagnostics": [
+            {
+              "Id": "COPE-STATIC-0009",
+              "Message": "Unsupported generic structural type 'Map'.",
+              "Position": 91,
+              "Length": 3,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-STATIC-0009",
+              "Message": "Unsupported generic structural type 'Map'.",
+              "Position": 128,
+              "Length": 3,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-CLR-0001",
+              "Message": "CLR constructor target was not found. CLR 'using' directives resolve only CLR namespaces and types.",
+              "Position": 147,
+              "Length": 3,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-OPTION-0006",
+              "Message": "The left operand of '??' must be Option<T>, got 'error'.",
+              "Position": 240,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-BIND-0001",
+              "Message": "Undefined name 'System'.",
+              "Position": 12,
+              "Length": 6,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-CLR-0007",
+              "Message": "Resource 'using' requires a CLR IDisposable value, got 'error'.",
+              "Position": 6,
+              "Length": 3,
+              "SourcePath": null
+            }
+          ],
+          "DiagnosticCount": 6,
+          "RepairRationale": "Test a CLR Dictionary alias while preserving Map<string, int> annotations. Alias is parsed as resource using and Map remains unsupported."
+        }
+      ]
+    },
+    {
+      "Id": "increment-loop",
+      "Input": "function sumRange(limit: int): int { let total: int = 0; for (let index: int = 0; index < limit; index++) { total += index; } return total; }",
+      "InitialInputPreserved": true,
+      "RepairCount": 1,
+      "CompilerInvocations": 2,
+      "FinalStatus": "compiler-valid-runtime-unverified",
+      "FinalSource": "function sumRange(limit: int): int {\n    let total: int = 0;\n    for (let index: int = 0; index < limit; index = index + 1) {\n        total = total + index;\n    }\n    return total;\n}",
+      "FinalSourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\increment-loop\\attempt-1.ts",
+      "FinalDiagnosticCount": 0,
+      "Blocker": null,
+      "SemanticExecutionValidation": "Delegated to root through generated C# execution; this replay used only the baseline diagnose command.",
+      "Versions": [
+        {
+          "Attempt": 0,
+          "IsInitialInput": true,
+          "Source": "function sumRange(limit: int): int { let total: int = 0; for (let index: int = 0; index < limit; index++) { total += index; } return total; }",
+          "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\increment-loop\\attempt-0.ts",
+          "Command": "dotnet .tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll diagnose \"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\increment-loop\\attempt-0.ts\"",
+          "ExitCode": 0,
+          "DiagnosticsRaw": "[{\"Id\":\"COPE-PARSE-0002\",\"Message\":\"Expected expression.\",\"Position\":103,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0002\",\"Message\":\"Expected expression.\",\"Position\":104,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0002\",\"Message\":\"Expected expression.\",\"Position\":115,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0005\",\"Message\":\"Invalid assignment target.\",\"Position\":114,\"Length\":1,\"SourcePath\":null}]",
+          "Diagnostics": [
+            {
+              "Id": "COPE-PARSE-0002",
+              "Message": "Expected expression.",
+              "Position": 103,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0002",
+              "Message": "Expected expression.",
+              "Position": 104,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0002",
+              "Message": "Expected expression.",
+              "Position": 115,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0005",
+              "Message": "Invalid assignment target.",
+              "Position": 114,
+              "Length": 1,
+              "SourcePath": null
+            }
+          ],
+          "DiagnosticCount": 4,
+          "RepairRationale": "Exact supplied TypeScript input."
+        },
+        {
+          "Attempt": 1,
+          "IsInitialInput": false,
+          "Source": "function sumRange(limit: int): int {\n    let total: int = 0;\n    for (let index: int = 0; index < limit; index = index + 1) {\n        total = total + index;\n    }\n    return total;\n}",
+          "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\increment-loop\\attempt-1.ts",
+          "Command": "dotnet .tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll diagnose \"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\increment-loop\\attempt-1.ts\"",
+          "ExitCode": 0,
+          "DiagnosticsRaw": "[]",
+          "Diagnostics": [],
+          "DiagnosticCount": 0,
+          "RepairRationale": "Replace increment and compound assignment with explicit arithmetic assignments."
+        }
+      ]
+    },
+    {
+      "Id": "batch-guard",
+      "Input": "function transformBatch(values: int[]): int[] { return batch values as item { if (item < 0) { return -item; } return item * 2; }; }",
+      "InitialInputPreserved": true,
+      "RepairCount": 2,
+      "CompilerInvocations": 3,
+      "FinalStatus": "compiler-valid-runtime-unverified",
+      "FinalSource": "function transformBatch(values: int[]): int[] {\n    return batch values as item {\n        return if (item < 0) { -item } else { item * 2 };\n    };\n}",
+      "FinalSourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\batch-guard\\attempt-2.ts",
+      "FinalDiagnosticCount": 0,
+      "Blocker": null,
+      "SemanticExecutionValidation": "Delegated to root through generated C# execution; this replay used only the baseline diagnose command.",
+      "Versions": [
+        {
+          "Attempt": 0,
+          "IsInitialInput": true,
+          "Source": "function transformBatch(values: int[]): int[] { return batch values as item { if (item < 0) { return -item; } return item * 2; }; }",
+          "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\batch-guard\\attempt-0.ts",
+          "Command": "dotnet .tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll diagnose \"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\batch-guard\\attempt-0.ts\"",
+          "ExitCode": 0,
+          "DiagnosticsRaw": "[{\"Id\":\"COPE-BATCH-0004\",\"Message\":\"A CTS-BATCH-M1 body may contain item-local declarations and expressions before its final return.\",\"Position\":76,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0003\",\"Message\":\"Type mismatch: expected \\u0027int[]\\u0027, got \\u0027int\\u0027.\",\"Position\":94,\"Length\":6,\"SourcePath\":null},{\"Id\":\"COPE-BATCH-0010\",\"Message\":\"This statement is not supported inside a batch body.\",\"Position\":55,\"Length\":5,\"SourcePath\":null}]",
+          "Diagnostics": [
+            {
+              "Id": "COPE-BATCH-0004",
+              "Message": "A CTS-BATCH-M1 body may contain item-local declarations and expressions before its final return.",
+              "Position": 76,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0003",
+              "Message": "Type mismatch: expected 'int[]', got 'int'.",
+              "Position": 94,
+              "Length": 6,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-BATCH-0010",
+              "Message": "This statement is not supported inside a batch body.",
+              "Position": 55,
+              "Length": 5,
+              "SourcePath": null
+            }
+          ],
+          "DiagnosticCount": 3,
+          "RepairRationale": "Exact supplied TypeScript input."
+        },
+        {
+          "Attempt": 1,
+          "IsInitialInput": false,
+          "Source": "function transformBatch(values: int[]): int[] {\n    return batch values as item {\n        return item < 0 ? -item : item * 2;\n    };\n}",
+          "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\batch-guard\\attempt-1.ts",
+          "Command": "dotnet .tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll diagnose \"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\batch-guard\\attempt-1.ts\"",
+          "ExitCode": 0,
+          "DiagnosticsRaw": "[{\"Id\":\"COPE-PROFILE-0007\",\"Message\":\"The ternary operator is not supported. Use if/else expressions.\",\"Position\":106,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027;\\u0027.\",\"Position\":114,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0002\",\"Message\":\"Expected expression.\",\"Position\":114,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027;\\u0027.\",\"Position\":114,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0001\",\"Message\":\"Unexpected token \\u0027ColonToken\\u0027.\",\"Position\":114,\"Length\":1,\"SourcePath\":null}]",
+          "Diagnostics": [
+            {
+              "Id": "COPE-PROFILE-0007",
+              "Message": "The ternary operator is not supported. Use if/else expressions.",
+              "Position": 106,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token ';'.",
+              "Position": 114,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0002",
+              "Message": "Expected expression.",
+              "Position": 114,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token ';'.",
+              "Position": 114,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0001",
+              "Message": "Unexpected token 'ColonToken'.",
+              "Position": 114,
+              "Length": 1,
+              "SourcePath": null
+            }
+          ],
+          "DiagnosticCount": 5,
+          "RepairRationale": "Keep the item transform and try one conditional expression as the final batch return."
+        },
+        {
+          "Attempt": 2,
+          "IsInitialInput": false,
+          "Source": "function transformBatch(values: int[]): int[] {\n    return batch values as item {\n        return if (item < 0) { -item } else { item * 2 };\n    };\n}",
+          "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\batch-guard\\attempt-2.ts",
+          "Command": "dotnet .tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll diagnose \"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\batch-guard\\attempt-2.ts\"",
+          "ExitCode": 0,
+          "DiagnosticsRaw": "[]",
+          "Diagnostics": [],
+          "DiagnosticCount": 0,
+          "RepairRationale": "Follow ternary diagnostic advice with an if/else expression."
+        }
+      ]
+    },
+    {
+      "Id": "growing-array",
+      "Input": "function collectEvenValues(values: int[]): int[] { const result: int[] = []; for (const value of values) { if (value % 2 === 0) { result.push(value); } } return result; }",
+      "InitialInputPreserved": true,
+      "RepairCount": 4,
+      "CompilerInvocations": 5,
+      "FinalStatus": "blocked",
+      "FinalSource": "using System;\nfunction collectEvenValues(values: int[]): int[] {\n    return Array.FindAll<int>(values, (value: int) => value % 2 == 0);\n}",
+      "FinalSourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\growing-array\\attempt-4.ts",
+      "FinalDiagnosticCount": 1,
+      "Blocker": "No valid form found within four repair attempts. push is undefined, CLR inferred Enumerable.Where/Array.FindAll have no applicable overload, and explicit member type arguments produce COPE-GENERIC-0004. The int[] result type was retained.",
+      "SemanticExecutionValidation": "Delegated to root through generated C# execution; this replay used only the baseline diagnose command.",
+      "Versions": [
+        {
+          "Attempt": 0,
+          "IsInitialInput": true,
+          "Source": "function collectEvenValues(values: int[]): int[] { const result: int[] = []; for (const value of values) { if (value % 2 === 0) { result.push(value); } } return result; }",
+          "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\growing-array\\attempt-0.ts",
+          "Command": "dotnet .tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll diagnose \"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\growing-array\\attempt-0.ts\"",
+          "ExitCode": 0,
+          "DiagnosticsRaw": "[{\"Id\":\"COPE-PROFILE-0009\",\"Message\":\"Strict equality spelling \\u0027===\\u0027 is reserved and not supported. Use typed \\u0027==\\u0027 equality.\",\"Position\":121,\"Length\":3,\"SourcePath\":null},{\"Id\":\"COPE-CALL-0021\",\"Message\":\"\\u0027push\\u0027 is not a method of \\u0027result\\u0027 of type \\u0027int[]\\u0027. Copeland values have no receiver methods; pass the value to a function or a CLR static API instead.\",\"Position\":137,\"Length\":4,\"SourcePath\":null}]",
+          "Diagnostics": [
+            {
+              "Id": "COPE-PROFILE-0009",
+              "Message": "Strict equality spelling '===' is reserved and not supported. Use typed '==' equality.",
+              "Position": 121,
+              "Length": 3,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-CALL-0021",
+              "Message": "'push' is not a method of 'result' of type 'int[]'. Copeland values have no receiver methods; pass the value to a function or a CLR static API instead.",
+              "Position": 137,
+              "Length": 4,
+              "SourcePath": null
+            }
+          ],
+          "DiagnosticCount": 2,
+          "RepairRationale": "Exact supplied TypeScript input."
+        },
+        {
+          "Attempt": 1,
+          "IsInitialInput": false,
+          "Source": "function collectEvenValues(values: int[]): int[] {\n    const result: int[] = [];\n    for (const value of values) {\n        if (value % 2 == 0) {\n            push(result, value);\n        }\n    }\n    return result;\n}",
+          "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\growing-array\\attempt-1.ts",
+          "Command": "dotnet .tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll diagnose \"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\growing-array\\attempt-1.ts\"",
+          "ExitCode": 0,
+          "DiagnosticsRaw": "[{\"Id\":\"COPE-BIND-0001\",\"Message\":\"Undefined function name.\",\"Position\":161,\"Length\":1,\"SourcePath\":null}]",
+          "Diagnostics": [
+            {
+              "Id": "COPE-BIND-0001",
+              "Message": "Undefined function name.",
+              "Position": 161,
+              "Length": 1,
+              "SourcePath": null
+            }
+          ],
+          "DiagnosticCount": 1,
+          "RepairRationale": "Follow equality diagnostic and replace receiver push with value-taking push function."
+        },
+        {
+          "Attempt": 2,
+          "IsInitialInput": false,
+          "Source": "using System.Linq;\nfunction collectEvenValues(values: int[]): int[] {\n    return Enumerable.ToArray(Enumerable.Where(values, (value: int) => value % 2 == 0));\n}",
+          "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\growing-array\\attempt-2.ts",
+          "Command": "dotnet .tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll diagnose \"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\growing-array\\attempt-2.ts\"",
+          "ExitCode": 0,
+          "DiagnosticsRaw": "[{\"Id\":\"COPE-CLR-0005\",\"Message\":\"No applicable CLR overload for \\u0027System.Linq.Enumerable.Where\\u0027 with (int[], (value: int) =\\u003E boolean).\",\"Position\":116,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-CLR-0005\",\"Message\":\"No applicable CLR overload for \\u0027System.Linq.Enumerable.ToArray\\u0027 with (error).\",\"Position\":99,\"Length\":1,\"SourcePath\":null}]",
+          "Diagnostics": [
+            {
+              "Id": "COPE-CLR-0005",
+              "Message": "No applicable CLR overload for 'System.Linq.Enumerable.Where' with (int[], (value: int) => boolean).",
+              "Position": 116,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-CLR-0005",
+              "Message": "No applicable CLR overload for 'System.Linq.Enumerable.ToArray' with (error).",
+              "Position": 99,
+              "Length": 1,
+              "SourcePath": null
+            }
+          ],
+          "DiagnosticCount": 2,
+          "RepairRationale": "Try a CLR static Enumerable.Where/ToArray filter retaining int[]."
+        },
+        {
+          "Attempt": 3,
+          "IsInitialInput": false,
+          "Source": "using System;\nfunction collectEvenValues(values: int[]): int[] {\n    return Array.FindAll(values, (value: int) => value % 2 == 0);\n}",
+          "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\growing-array\\attempt-3.ts",
+          "Command": "dotnet .tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll diagnose \"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\growing-array\\attempt-3.ts\"",
+          "ExitCode": 0,
+          "DiagnosticsRaw": "[{\"Id\":\"COPE-CLR-0005\",\"Message\":\"No applicable CLR overload for \\u0027System.Array.FindAll\\u0027 with (int[], (value: int) =\\u003E boolean).\",\"Position\":89,\"Length\":1,\"SourcePath\":null}]",
+          "Diagnostics": [
+            {
+              "Id": "COPE-CLR-0005",
+              "Message": "No applicable CLR overload for 'System.Array.FindAll' with (int[], (value: int) => boolean).",
+              "Position": 89,
+              "Length": 1,
+              "SourcePath": null
+            }
+          ],
+          "DiagnosticCount": 1,
+          "RepairRationale": "Try Array.FindAll static filter retaining int[]."
+        },
+        {
+          "Attempt": 4,
+          "IsInitialInput": false,
+          "Source": "using System;\nfunction collectEvenValues(values: int[]): int[] {\n    return Array.FindAll<int>(values, (value: int) => value % 2 == 0);\n}",
+          "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\growing-array\\attempt-4.ts",
+          "Command": "dotnet .tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll diagnose \"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\growing-array\\attempt-4.ts\"",
+          "ExitCode": 0,
+          "DiagnosticsRaw": "[{\"Id\":\"COPE-GENERIC-0004\",\"Message\":\"Explicit type arguments require a named function.\",\"Position\":89,\"Length\":1,\"SourcePath\":null}]",
+          "Diagnostics": [
+            {
+              "Id": "COPE-GENERIC-0004",
+              "Message": "Explicit type arguments require a named function.",
+              "Position": 89,
+              "Length": 1,
+              "SourcePath": null
+            }
+          ],
+          "DiagnosticCount": 1,
+          "RepairRationale": "Try explicit generic arguments following failed generic inference."
+        }
+      ]
+    },
+    {
+      "Id": "integer-hash",
+      "Input": "function hashIntegers(values: int[]): int { let hash: int = 0x811c9dc5 | 0; for (const value of values) { hash = Math.imul(hash ^ value, 0x01000193) | 0; } return hash; }",
+      "InitialInputPreserved": true,
+      "RepairCount": 5,
+      "CompilerInvocations": 6,
+      "FinalStatus": "compiler-valid-runtime-unverified",
+      "FinalSource": "function xorIntegers(left: int, right: int): int {\n    let leftRemaining: int = if (left < 0) { left + 2147483647 + 1 } else { left };\n    let rightRemaining: int = if (right < 0) { right + 2147483647 + 1 } else { right };\n    let place: int = 1;\n    let result: int = 0;\n    for (let bit: int = 0; bit < 31; bit = bit + 1) {\n        if (leftRemaining % 2 != rightRemaining % 2) {\n            result = result + place;\n        }\n        leftRemaining = leftRemaining / 2;\n        rightRemaining = rightRemaining / 2;\n        if (bit < 30) {\n            place = place * 2;\n        }\n    }\n    return if ((left < 0) != (right < 0)) { result - 2147483647 - 1 } else { result };\n}\nfunction hashIntegers(values: int[]): int {\n    let hash: int = -2128831035;\n    for (const value of values) {\n        hash = xorIntegers(hash, value) * 16777619;\n    }\n    return hash;\n}",
+      "FinalSourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\integer-hash\\attempt-5.ts",
+      "FinalDiagnosticCount": 0,
+      "Blocker": null,
+      "SemanticExecutionValidation": "Delegated to root through generated C# execution; this replay used only the baseline diagnose command.",
+      "Versions": [
+        {
+          "Attempt": 0,
+          "IsInitialInput": true,
+          "Source": "function hashIntegers(values: int[]): int { let hash: int = 0x811c9dc5 | 0; for (const value of values) { hash = Math.imul(hash ^ value, 0x01000193) | 0; } return hash; }",
+          "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\integer-hash\\attempt-0.ts",
+          "Command": "dotnet .tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll diagnose \"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\integer-hash\\attempt-0.ts\"",
+          "ExitCode": 0,
+          "DiagnosticsRaw": "[{\"Id\":\"COPE-LEX-0004\",\"Message\":\"Invalid number literal.\",\"Position\":60,\"Length\":10,\"SourcePath\":null},{\"Id\":\"COPE-LEX-0003\",\"Message\":\"Invalid character.\",\"Position\":128,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-LEX-0004\",\"Message\":\"Invalid number literal.\",\"Position\":137,\"Length\":10,\"SourcePath\":null},{\"Id\":\"COPE-UNION-0012\",\"Message\":\"\\u0027|\\u0027 is permitted only between alternatives in a compilation-unit nominal union declaration.\",\"Position\":71,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027)\\u0027.\",\"Position\":130,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027;\\u0027.\",\"Position\":130,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027;\\u0027.\",\"Position\":135,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0002\",\"Message\":\"Expected expression.\",\"Position\":135,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027;\\u0027.\",\"Position\":135,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0001\",\"Message\":\"Unexpected token \\u0027CommaToken\\u0027.\",\"Position\":135,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027;\\u0027.\",\"Position\":147,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0002\",\"Message\":\"Expected expression.\",\"Position\":147,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027;\\u0027.\",\"Position\":147,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0001\",\"Message\":\"Unexpected token \\u0027CloseParenToken\\u0027.\",\"Position\":147,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-PARSE-0002\",\"Message\":\"Expected expression.\",\"Position\":149,\"Length\":0,\"SourcePath\":null},{\"Id\":\"COPE-UNION-0012\",\"Message\":\"\\u0027|\\u0027 is permitted only between alternatives in a compilation-unit nominal union declaration.\",\"Position\":149,\"Length\":1,\"SourcePath\":null}]",
+          "Diagnostics": [
+            {
+              "Id": "COPE-LEX-0004",
+              "Message": "Invalid number literal.",
+              "Position": 60,
+              "Length": 10,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-LEX-0003",
+              "Message": "Invalid character.",
+              "Position": 128,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-LEX-0004",
+              "Message": "Invalid number literal.",
+              "Position": 137,
+              "Length": 10,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-UNION-0012",
+              "Message": "'|' is permitted only between alternatives in a compilation-unit nominal union declaration.",
+              "Position": 71,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token ')'.",
+              "Position": 130,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token ';'.",
+              "Position": 130,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token ';'.",
+              "Position": 135,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0002",
+              "Message": "Expected expression.",
+              "Position": 135,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token ';'.",
+              "Position": 135,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0001",
+              "Message": "Unexpected token 'CommaToken'.",
+              "Position": 135,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token ';'.",
+              "Position": 147,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0002",
+              "Message": "Expected expression.",
+              "Position": 147,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token ';'.",
+              "Position": 147,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0001",
+              "Message": "Unexpected token 'CloseParenToken'.",
+              "Position": 147,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-PARSE-0002",
+              "Message": "Expected expression.",
+              "Position": 149,
+              "Length": 0,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-UNION-0012",
+              "Message": "'|' is permitted only between alternatives in a compilation-unit nominal union declaration.",
+              "Position": 149,
+              "Length": 1,
+              "SourcePath": null
+            }
+          ],
+          "DiagnosticCount": 16,
+          "RepairRationale": "Exact supplied TypeScript input."
+        },
+        {
+          "Attempt": 1,
+          "IsInitialInput": false,
+          "Source": "import { Math } from \"System\";\nfunction hashIntegers(values: int[]): int {\n    let hash: int = -2128831035;\n    for (const value of values) {\n        hash = Math.imul(xor(hash, value), 16777619);\n    }\n    return hash;\n}",
+          "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\integer-hash\\attempt-1.ts",
+          "Command": "dotnet .tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll diagnose \"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\integer-hash\\attempt-1.ts\"",
+          "ExitCode": 0,
+          "DiagnosticsRaw": "[{\"Id\":\"COPE-NPM-0001\",\"Message\":\"npm package \\u0027System\\u0027 is unavailable in project configuration.\",\"Position\":21,\"Length\":8,\"SourcePath\":null},{\"Id\":\"COPE-BIND-0001\",\"Message\":\"Undefined name \\u0027Math\\u0027.\",\"Position\":157,\"Length\":4,\"SourcePath\":null},{\"Id\":\"COPE-BIND-0001\",\"Message\":\"Undefined name \\u0027Math\\u0027.\",\"Position\":157,\"Length\":4,\"SourcePath\":null},{\"Id\":\"COPE-ENUM-0010\",\"Message\":\"Expected enum type name.\",\"Position\":157,\"Length\":4,\"SourcePath\":null}]",
+          "Diagnostics": [
+            {
+              "Id": "COPE-NPM-0001",
+              "Message": "npm package 'System' is unavailable in project configuration.",
+              "Position": 21,
+              "Length": 8,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-BIND-0001",
+              "Message": "Undefined name 'Math'.",
+              "Position": 157,
+              "Length": 4,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-BIND-0001",
+              "Message": "Undefined name 'Math'.",
+              "Position": 157,
+              "Length": 4,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-ENUM-0010",
+              "Message": "Expected enum type name.",
+              "Position": 157,
+              "Length": 4,
+              "SourcePath": null
+            }
+          ],
+          "DiagnosticCount": 4,
+          "RepairRationale": "Replace hexadecimal literals with signed decimal constants and probe arithmetic API alternatives."
+        },
+        {
+          "Attempt": 2,
+          "IsInitialInput": false,
+          "Source": "using System;\nfunction xorIntegers(left: int, right: int): int {\n    let leftRemaining: long = if (left < 0) { left + 4294967296 } else { left };\n    let rightRemaining: long = if (right < 0) { right + 4294967296 } else { right };\n    let place: long = 1;\n    let result: long = 0;\n    for (let bit: int = 0; bit < 32; bit = bit + 1) {\n        if (leftRemaining % 2 != rightRemaining % 2) {\n            result = result + place;\n        }\n        leftRemaining = leftRemaining / 2;\n        rightRemaining = rightRemaining / 2;\n        place = place * 2;\n    }\n    return Convert.ToInt32(if (result > 2147483647) { result - 4294967296 } else { result });\n}\nfunction hashIntegers(values: int[]): int {\n    let hash: int = -2128831035;\n    for (const value of values) {\n        const product: long = xorIntegers(hash, value) * 16777619;\n        let wrapped: long = product % 4294967296;\n        if (wrapped < 0) {\n            wrapped = wrapped + 4294967296;\n        }\n        hash = Convert.ToInt32(if (wrapped > 2147483647) { wrapped - 4294967296 } else { wrapped });\n    }\n    return hash;\n}",
+          "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\integer-hash\\attempt-2.ts",
+          "Command": "dotnet .tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll diagnose \"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\integer-hash\\attempt-2.ts\"",
+          "ExitCode": 0,
+          "DiagnosticsRaw": "[{\"Id\":\"COPE-LEX-0004\",\"Message\":\"Invalid number literal.\",\"Position\":118,\"Length\":10,\"SourcePath\":null},{\"Id\":\"COPE-LEX-0004\",\"Message\":\"Invalid number literal.\",\"Position\":202,\"Length\":10,\"SourcePath\":null},{\"Id\":\"COPE-LEX-0004\",\"Message\":\"Invalid number literal.\",\"Position\":622,\"Length\":10,\"SourcePath\":null},{\"Id\":\"COPE-LEX-0004\",\"Message\":\"Invalid number literal.\",\"Position\":871,\"Length\":10,\"SourcePath\":null},{\"Id\":\"COPE-LEX-0004\",\"Message\":\"Invalid number literal.\",\"Position\":942,\"Length\":10,\"SourcePath\":null},{\"Id\":\"COPE-LEX-0004\",\"Message\":\"Invalid number literal.\",\"Position\":1033,\"Length\":10,\"SourcePath\":null}]",
+          "Diagnostics": [
+            {
+              "Id": "COPE-LEX-0004",
+              "Message": "Invalid number literal.",
+              "Position": 118,
+              "Length": 10,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-LEX-0004",
+              "Message": "Invalid number literal.",
+              "Position": 202,
+              "Length": 10,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-LEX-0004",
+              "Message": "Invalid number literal.",
+              "Position": 622,
+              "Length": 10,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-LEX-0004",
+              "Message": "Invalid number literal.",
+              "Position": 871,
+              "Length": 10,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-LEX-0004",
+              "Message": "Invalid number literal.",
+              "Position": 942,
+              "Length": 10,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-LEX-0004",
+              "Message": "Invalid number literal.",
+              "Position": 1033,
+              "Length": 10,
+              "SourcePath": null
+            }
+          ],
+          "DiagnosticCount": 6,
+          "RepairRationale": "Implement XOR and signed wrapping through integer arithmetic with a wider long intermediate."
+        },
+        {
+          "Attempt": 3,
+          "IsInitialInput": false,
+          "Source": "using System;\nfunction xorIntegers(left: int, right: int): int {\n    let leftRemaining: long = if (left < 0) { left + 4294967296L } else { left };\n    let rightRemaining: long = if (right < 0) { right + 4294967296L } else { right };\n    let place: long = 1;\n    let result: long = 0;\n    for (let bit: int = 0; bit < 32; bit = bit + 1) {\n        if (leftRemaining % 2 != rightRemaining % 2) {\n            result = result + place;\n        }\n        leftRemaining = leftRemaining / 2;\n        rightRemaining = rightRemaining / 2;\n        place = place * 2;\n    }\n    return Convert.ToInt32(if (result > 2147483647) { result - 4294967296L } else { result });\n}\nfunction hashIntegers(values: int[]): int {\n    let hash: int = -2128831035;\n    for (const value of values) {\n        const product: long = Convert.ToInt64(xorIntegers(hash, value)) * 16777619;\n        let wrapped: long = product % 4294967296L;\n        if (wrapped < 0) {\n            wrapped = wrapped + 4294967296L;\n        }\n        hash = Convert.ToInt32(if (wrapped > 2147483647) { wrapped - 4294967296L } else { wrapped });\n    }\n    return hash;\n}",
+          "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\integer-hash\\attempt-3.ts",
+          "Command": "dotnet .tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll diagnose \"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\integer-hash\\attempt-3.ts\"",
+          "ExitCode": 0,
+          "DiagnosticsRaw": "[{\"Id\":\"COPE-LEX-0004\",\"Message\":\"Invalid number literal.\",\"Position\":118,\"Length\":11,\"SourcePath\":null},{\"Id\":\"COPE-LEX-0004\",\"Message\":\"Invalid number literal.\",\"Position\":203,\"Length\":11,\"SourcePath\":null},{\"Id\":\"COPE-LEX-0004\",\"Message\":\"Invalid number literal.\",\"Position\":624,\"Length\":11,\"SourcePath\":null},{\"Id\":\"COPE-LEX-0004\",\"Message\":\"Invalid number literal.\",\"Position\":891,\"Length\":11,\"SourcePath\":null},{\"Id\":\"COPE-LEX-0004\",\"Message\":\"Invalid number literal.\",\"Position\":963,\"Length\":11,\"SourcePath\":null},{\"Id\":\"COPE-LEX-0004\",\"Message\":\"Invalid number literal.\",\"Position\":1055,\"Length\":11,\"SourcePath\":null}]",
+          "Diagnostics": [
+            {
+              "Id": "COPE-LEX-0004",
+              "Message": "Invalid number literal.",
+              "Position": 118,
+              "Length": 11,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-LEX-0004",
+              "Message": "Invalid number literal.",
+              "Position": 203,
+              "Length": 11,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-LEX-0004",
+              "Message": "Invalid number literal.",
+              "Position": 624,
+              "Length": 11,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-LEX-0004",
+              "Message": "Invalid number literal.",
+              "Position": 891,
+              "Length": 11,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-LEX-0004",
+              "Message": "Invalid number literal.",
+              "Position": 963,
+              "Length": 11,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-LEX-0004",
+              "Message": "Invalid number literal.",
+              "Position": 1055,
+              "Length": 11,
+              "SourcePath": null
+            }
+          ],
+          "DiagnosticCount": 6,
+          "RepairRationale": "Try long literal suffix and explicitly widen multiplication."
+        },
+        {
+          "Attempt": 4,
+          "IsInitialInput": false,
+          "Source": "using System;\nfunction xorIntegers(left: int, right: int): int {\r\n    const modulus: long = Convert.ToInt64(65536) * 65536;\n    let leftRemaining: long = if (left < 0) { left + modulus } else { left };\n    let rightRemaining: long = if (right < 0) { right + modulus } else { right };\n    let place: long = 1;\n    let result: long = 0;\n    for (let bit: int = 0; bit < 32; bit = bit + 1) {\n        if (leftRemaining % 2 != rightRemaining % 2) {\n            result = result + place;\n        }\n        leftRemaining = leftRemaining / 2;\n        rightRemaining = rightRemaining / 2;\n        place = place * 2;\n    }\n    return Convert.ToInt32(if (result > 2147483647) { result - modulus } else { result });\n}\nfunction hashIntegers(values: int[]): int {\r\n    const modulus: long = Convert.ToInt64(65536) * 65536;\n    let hash: int = -2128831035;\n    for (const value of values) {\n        const product: long = Convert.ToInt64(xorIntegers(hash, value)) * 16777619;\n        let wrapped: long = product % modulus;\n        if (wrapped < 0) {\n            wrapped = wrapped + modulus;\n        }\n        hash = Convert.ToInt32(if (wrapped > 2147483647) { wrapped - modulus } else { wrapped });\n    }\n    return hash;\n}",
+          "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\integer-hash\\attempt-4.ts",
+          "Command": "dotnet .tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll diagnose \"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\integer-hash\\attempt-4.ts\"",
+          "ExitCode": 0,
+          "DiagnosticsRaw": "[{\"Id\":\"COPE-BIND-0004\",\"Message\":\"Unknown type \\u0027long\\u0027.\",\"Position\":85,\"Length\":4,\"SourcePath\":null},{\"Id\":\"COPE-CLR-0007\",\"Message\":\"CLR return type for \\u0027System.Convert.ToInt64\\u0027 is not supported by CTS-CLR-M1.\",\"Position\":107,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0007\",\"Message\":\"Operator \\u0027*\\u0027 does not support operands of type \\u0027error\\u0027 and \\u0027int\\u0027.\",\"Position\":115,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-BIND-0004\",\"Message\":\"Unknown type \\u0027long\\u0027.\",\"Position\":147,\"Length\":4,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0007\",\"Message\":\"Operator \\u0027\\u002B\\u0027 does not support operands of type \\u0027int\\u0027 and \\u0027error\\u0027.\",\"Position\":175,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0018\",\"Message\":\"If expression branch type mismatch: expected \\u0027error\\u0027, got \\u0027int\\u0027.\",\"Position\":187,\"Length\":4,\"SourcePath\":null},{\"Id\":\"COPE-BIND-0004\",\"Message\":\"Unknown type \\u0027long\\u0027.\",\"Position\":226,\"Length\":4,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0007\",\"Message\":\"Operator \\u0027\\u002B\\u0027 does not support operands of type \\u0027int\\u0027 and \\u0027error\\u0027.\",\"Position\":256,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0018\",\"Message\":\"If expression branch type mismatch: expected \\u0027error\\u0027, got \\u0027int\\u0027.\",\"Position\":268,\"Length\":4,\"SourcePath\":null},{\"Id\":\"COPE-BIND-0004\",\"Message\":\"Unknown type \\u0027long\\u0027.\",\"Position\":299,\"Length\":4,\"SourcePath\":null},{\"Id\":\"COPE-BIND-0004\",\"Message\":\"Unknown type \\u0027long\\u0027.\",\"Position\":325,\"Length\":4,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0007\",\"Message\":\"Operator \\u0027%\\u0027 does not support operands of type \\u0027error\\u0027 and \\u0027int\\u0027.\",\"Position\":415,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0007\",\"Message\":\"Operator \\u0027%\\u0027 does not support operands of type \\u0027error\\u0027 and \\u0027int\\u0027.\",\"Position\":437,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0007\",\"Message\":\"Operator \\u0027!=\\u0027 does not support operands of type \\u0027error\\u0027 and \\u0027error\\u0027.\",\"Position\":419,\"Length\":2,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0007\",\"Message\":\"Operator \\u0027\\u002B\\u0027 does not support operands of type \\u0027error\\u0027 and \\u0027error\\u0027.\",\"Position\":472,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0007\",\"Message\":\"Operator \\u0027/\\u0027 does not support operands of type \\u0027error\\u0027 and \\u0027int\\u0027.\",\"Position\":529,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0007\",\"Message\":\"Operator \\u0027/\\u0027 does not support operands of type \\u0027error\\u0027 and \\u0027int\\u0027.\",\"Position\":574,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0007\",\"Message\":\"Operator \\u0027*\\u0027 does not support operands of type \\u0027error\\u0027 and \\u0027int\\u0027.\",\"Position\":601,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0007\",\"Message\":\"Operator \\u0027\\u003E\\u0027 does not support operands of type \\u0027error\\u0027 and \\u0027int\\u0027.\",\"Position\":650,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0017\",\"Message\":\"If expression condition must be \\u0027boolean\\u0027, got \\u0027error\\u0027.\",\"Position\":639,\"Length\":2,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0007\",\"Message\":\"Operator \\u0027-\\u0027 does not support operands of type \\u0027error\\u0027 and \\u0027error\\u0027.\",\"Position\":673,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-CLR-0005\",\"Message\":\"No applicable CLR overload for \\u0027System.Convert.ToInt32\\u0027 with (error).\",\"Position\":638,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-BIND-0004\",\"Message\":\"Unknown type \\u0027long\\u0027.\",\"Position\":769,\"Length\":4,\"SourcePath\":null},{\"Id\":\"COPE-CLR-0007\",\"Message\":\"CLR return type for \\u0027System.Convert.ToInt64\\u0027 is not supported by CTS-CLR-M1.\",\"Position\":791,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0007\",\"Message\":\"Operator \\u0027*\\u0027 does not support operands of type \\u0027error\\u0027 and \\u0027int\\u0027.\",\"Position\":799,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-BIND-0004\",\"Message\":\"Unknown type \\u0027long\\u0027.\",\"Position\":898,\"Length\":4,\"SourcePath\":null},{\"Id\":\"COPE-CLR-0007\",\"Message\":\"CLR return type for \\u0027System.Convert.ToInt64\\u0027 is not supported by CTS-CLR-M1.\",\"Position\":920,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0007\",\"Message\":\"Operator \\u0027*\\u0027 does not support operands of type \\u0027error\\u0027 and \\u0027int\\u0027.\",\"Position\":947,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-BIND-0004\",\"Message\":\"Unknown type \\u0027long\\u0027.\",\"Position\":980,\"Length\":4,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0007\",\"Message\":\"Operator \\u0027%\\u0027 does not support operands of type \\u0027error\\u0027 and \\u0027error\\u0027.\",\"Position\":995,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0007\",\"Message\":\"Operator \\u0027\\u003C\\u0027 does not support operands of type \\u0027error\\u0027 and \\u0027int\\u0027.\",\"Position\":1026,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0007\",\"Message\":\"Operator \\u0027\\u002B\\u0027 does not support operands of type \\u0027error\\u0027 and \\u0027error\\u0027.\",\"Position\":1063,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0007\",\"Message\":\"Operator \\u0027\\u003E\\u0027 does not support operands of type \\u0027error\\u0027 and \\u0027int\\u0027.\",\"Position\":1127,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0017\",\"Message\":\"If expression condition must be \\u0027boolean\\u0027, got \\u0027error\\u0027.\",\"Position\":1115,\"Length\":2,\"SourcePath\":null},{\"Id\":\"COPE-TYPE-0007\",\"Message\":\"Operator \\u0027-\\u0027 does not support operands of type \\u0027error\\u0027 and \\u0027error\\u0027.\",\"Position\":1151,\"Length\":1,\"SourcePath\":null},{\"Id\":\"COPE-CLR-0005\",\"Message\":\"No applicable CLR overload for \\u0027System.Convert.ToInt32\\u0027 with (error).\",\"Position\":1114,\"Length\":1,\"SourcePath\":null}]",
+          "Diagnostics": [
+            {
+              "Id": "COPE-BIND-0004",
+              "Message": "Unknown type 'long'.",
+              "Position": 85,
+              "Length": 4,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-CLR-0007",
+              "Message": "CLR return type for 'System.Convert.ToInt64' is not supported by CTS-CLR-M1.",
+              "Position": 107,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0007",
+              "Message": "Operator '*' does not support operands of type 'error' and 'int'.",
+              "Position": 115,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-BIND-0004",
+              "Message": "Unknown type 'long'.",
+              "Position": 147,
+              "Length": 4,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0007",
+              "Message": "Operator '+' does not support operands of type 'int' and 'error'.",
+              "Position": 175,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0018",
+              "Message": "If expression branch type mismatch: expected 'error', got 'int'.",
+              "Position": 187,
+              "Length": 4,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-BIND-0004",
+              "Message": "Unknown type 'long'.",
+              "Position": 226,
+              "Length": 4,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0007",
+              "Message": "Operator '+' does not support operands of type 'int' and 'error'.",
+              "Position": 256,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0018",
+              "Message": "If expression branch type mismatch: expected 'error', got 'int'.",
+              "Position": 268,
+              "Length": 4,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-BIND-0004",
+              "Message": "Unknown type 'long'.",
+              "Position": 299,
+              "Length": 4,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-BIND-0004",
+              "Message": "Unknown type 'long'.",
+              "Position": 325,
+              "Length": 4,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0007",
+              "Message": "Operator '%' does not support operands of type 'error' and 'int'.",
+              "Position": 415,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0007",
+              "Message": "Operator '%' does not support operands of type 'error' and 'int'.",
+              "Position": 437,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0007",
+              "Message": "Operator '!=' does not support operands of type 'error' and 'error'.",
+              "Position": 419,
+              "Length": 2,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0007",
+              "Message": "Operator '+' does not support operands of type 'error' and 'error'.",
+              "Position": 472,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0007",
+              "Message": "Operator '/' does not support operands of type 'error' and 'int'.",
+              "Position": 529,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0007",
+              "Message": "Operator '/' does not support operands of type 'error' and 'int'.",
+              "Position": 574,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0007",
+              "Message": "Operator '*' does not support operands of type 'error' and 'int'.",
+              "Position": 601,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0007",
+              "Message": "Operator '>' does not support operands of type 'error' and 'int'.",
+              "Position": 650,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0017",
+              "Message": "If expression condition must be 'boolean', got 'error'.",
+              "Position": 639,
+              "Length": 2,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0007",
+              "Message": "Operator '-' does not support operands of type 'error' and 'error'.",
+              "Position": 673,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-CLR-0005",
+              "Message": "No applicable CLR overload for 'System.Convert.ToInt32' with (error).",
+              "Position": 638,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-BIND-0004",
+              "Message": "Unknown type 'long'.",
+              "Position": 769,
+              "Length": 4,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-CLR-0007",
+              "Message": "CLR return type for 'System.Convert.ToInt64' is not supported by CTS-CLR-M1.",
+              "Position": 791,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0007",
+              "Message": "Operator '*' does not support operands of type 'error' and 'int'.",
+              "Position": 799,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-BIND-0004",
+              "Message": "Unknown type 'long'.",
+              "Position": 898,
+              "Length": 4,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-CLR-0007",
+              "Message": "CLR return type for 'System.Convert.ToInt64' is not supported by CTS-CLR-M1.",
+              "Position": 920,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0007",
+              "Message": "Operator '*' does not support operands of type 'error' and 'int'.",
+              "Position": 947,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-BIND-0004",
+              "Message": "Unknown type 'long'.",
+              "Position": 980,
+              "Length": 4,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0007",
+              "Message": "Operator '%' does not support operands of type 'error' and 'error'.",
+              "Position": 995,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0007",
+              "Message": "Operator '<' does not support operands of type 'error' and 'int'.",
+              "Position": 1026,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0007",
+              "Message": "Operator '+' does not support operands of type 'error' and 'error'.",
+              "Position": 1063,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0007",
+              "Message": "Operator '>' does not support operands of type 'error' and 'int'.",
+              "Position": 1127,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0017",
+              "Message": "If expression condition must be 'boolean', got 'error'.",
+              "Position": 1115,
+              "Length": 2,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-TYPE-0007",
+              "Message": "Operator '-' does not support operands of type 'error' and 'error'.",
+              "Position": 1151,
+              "Length": 1,
+              "SourcePath": null
+            },
+            {
+              "Id": "COPE-CLR-0005",
+              "Message": "No applicable CLR overload for 'System.Convert.ToInt32' with (error).",
+              "Position": 1114,
+              "Length": 1,
+              "SourcePath": null
+            }
+          ],
+          "DiagnosticCount": 36,
+          "RepairRationale": "Avoid out-of-range literal with computed long modulus; reveals unsupported long/ToInt64."
+        },
+        {
+          "Attempt": 5,
+          "IsInitialInput": false,
+          "Source": "function xorIntegers(left: int, right: int): int {\n    let leftRemaining: int = if (left < 0) { left + 2147483647 + 1 } else { left };\n    let rightRemaining: int = if (right < 0) { right + 2147483647 + 1 } else { right };\n    let place: int = 1;\n    let result: int = 0;\n    for (let bit: int = 0; bit < 31; bit = bit + 1) {\n        if (leftRemaining % 2 != rightRemaining % 2) {\n            result = result + place;\n        }\n        leftRemaining = leftRemaining / 2;\n        rightRemaining = rightRemaining / 2;\n        if (bit < 30) {\n            place = place * 2;\n        }\n    }\n    return if ((left < 0) != (right < 0)) { result - 2147483647 - 1 } else { result };\n}\nfunction hashIntegers(values: int[]): int {\n    let hash: int = -2128831035;\n    for (const value of values) {\n        hash = xorIntegers(hash, value) * 16777619;\n    }\n    return hash;\n}",
+          "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\integer-hash\\attempt-5.ts",
+          "Command": "dotnet .tmp/m26-baseline/tools/InstinctBaseline/bin/Debug/net10.0/InstinctBaseline.dll diagnose \"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-baseline-agent\\integer-hash\\attempt-5.ts\"",
+          "ExitCode": 0,
+          "DiagnosticsRaw": "[]",
+          "Diagnostics": [],
+          "DiagnosticCount": 0,
+          "RepairRationale": "Compute low 31 XOR bits using int arithmetic and recover sign bit; rely on native int multiplication wrapping, pending generated C# execution."
+        }
+      ]
+    }
+  ]
+}

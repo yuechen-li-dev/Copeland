@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Copeland.Profile</AssemblyName>
+    <RootNamespace>Copeland.Profile</RootNamespace>
+  </PropertyGroup>
+</Project>

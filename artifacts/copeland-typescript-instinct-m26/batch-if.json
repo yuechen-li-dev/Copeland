@@ -1,0 +1,52 @@
+{
+  "qualified": true,
+  "normalization": "Final single-return if/else or guard-return/fallback into existing MirIfExpression; bounded pure prefix statements reuse ordinary binding/emission.",
+  "cases": [
+    {
+      "Id": "conditional-expression",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "7",
+      "JavaScriptResult": "7"
+    },
+    {
+      "Id": "batch-guard",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "[2,0,6]",
+      "JavaScriptResult": "[2,0,6]"
+    },
+    {
+      "Id": "batch-if-else",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "[2,6]",
+      "JavaScriptResult": "[2,6]"
+    },
+    {
+      "Id": "typed-strict-equality",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "true",
+      "JavaScriptResult": "true"
+    },
+    {
+      "Id": "batch-loop-repair",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-BATCH-0010",
+          "Message": "This batch branch cannot return early or contain loops. Use return if (condition) { value } else { otherValue }, or call a pure helper function.",
+          "Position": 50,
+          "Length": 1,
+          "SourcePath": "batch-loop-repair.ts",
+          "SuggestedReplacement": "return if (condition) { value } else { otherValue };",
+          "RepairKind": "canonical-form"
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    }
+  ],
+  "unsupported": "General loops and early returns in batch bodies; use pure helpers or expression branches."
+}

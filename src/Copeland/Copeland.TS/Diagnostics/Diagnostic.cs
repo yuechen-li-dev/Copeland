@@ -5,4 +5,6 @@ public sealed record Diagnostic(
     string Message,
     int Position,
     int Length,
-    string? SourcePath = null);
+    string? SourcePath = null,
+    string? SuggestedReplacement = null,
+    string? RepairKind = null);

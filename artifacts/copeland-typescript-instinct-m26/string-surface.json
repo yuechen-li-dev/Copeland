@@ -1,0 +1,122 @@
+{
+  "qualified": true,
+  "owner": "typed MirNativeOperation calls, shared argument/type validation, native backend helpers",
+  "semantics": {
+    "Split": "Ordinal; retain empty fields; empty separator splits UTF-16 units.",
+    "IndexOf": "First ordinal UTF-16 offset or -1; empty needle at zero.",
+    "CodeAt": "UTF-16 int code unit; negative and upper indices trap.",
+    "Slice": "Two explicit int bounds; negative-from-end; clamp; end exclusive; reversed empty.",
+    "Join": "Ordered string[] plus separator."
+  },
+  "cases": [
+    {
+      "Id": "string-split",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "[\"\",\"a\",\"\",\"b\",\"\"]",
+      "JavaScriptResult": "[\"\",\"a\",\"\",\"b\",\"\"]"
+    },
+    {
+      "Id": "string-split-empty",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "[\"a\",\"b\"]",
+      "JavaScriptResult": "[\"a\",\"b\"]"
+    },
+    {
+      "Id": "string-index-ordinal",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "1",
+      "JavaScriptResult": "1"
+    },
+    {
+      "Id": "string-code-utf16",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "55357",
+      "JavaScriptResult": "55357"
+    },
+    {
+      "Id": "string-slice-negative",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "\"cde\"",
+      "JavaScriptResult": "\"cde\""
+    },
+    {
+      "Id": "string-slice-reversed",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "\"\"",
+      "JavaScriptResult": "\"\""
+    },
+    {
+      "Id": "string-join",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "\"a,b\"",
+      "JavaScriptResult": "\"a,b\""
+    },
+    {
+      "Id": "receiver-split",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-CALL-0021",
+          "Message": "'split' is not a receiver method of 'text' of type 'string'. Use String.Split(text, \",\").",
+          "Position": 67,
+          "Length": 5,
+          "SourcePath": "receiver-split.ts",
+          "SuggestedReplacement": "String.Split(text, \",\")",
+          "RepairKind": "canonical-form"
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "length-case",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-STRING-0001",
+          "Message": "string does not expose .Length. Use .length.",
+          "Position": 62,
+          "Length": 6,
+          "SourcePath": "length-case.ts",
+          "SuggestedReplacement": ".length",
+          "RepairKind": "canonical-form"
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "codeat-negative-trap",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "String index is out of bounds.",
+      "JavaScriptResult": "String index is out of bounds."
+    },
+    {
+      "Id": "codeat-upper-trap",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "String index is out of bounds.",
+      "JavaScriptResult": "String index is out of bounds."
+    },
+    {
+      "Id": "string-empty-delimiter-surrogates",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "112189",
+      "JavaScriptResult": "112189"
+    }
+  ],
+  "unqualified": [
+    "optional search positions",
+    "regex separators",
+    "locale rules"
+  ]
+}

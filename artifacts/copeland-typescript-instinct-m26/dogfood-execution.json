@@ -1,0 +1,47 @@
+{
+  "results": [
+    {
+      "Id": "dogfood-csv",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "[1,-2,3]",
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "dogfood-counter-map",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "{\u0022a\u0022:2,\u0022b\u0022:1}",
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "dogfood-increment-loop",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "45",
+      "JavaScriptResult": "45"
+    },
+    {
+      "Id": "dogfood-batch-guard",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "[2,0,6]",
+      "JavaScriptResult": "[2,0,6]"
+    },
+    {
+      "Id": "dogfood-growing-array",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "[-2,0,2]",
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "dogfood-integer-hash",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "1456420779",
+      "JavaScriptResult": "1456420779"
+    }
+  ],
+  "failures": []
+}

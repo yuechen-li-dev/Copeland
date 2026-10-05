@@ -1,0 +1,1 @@
+{"name":"fib","quick":false,"trials":[{"result":"13584083","milliseconds":46.3724,"allocatedBytes":120,"gcCollections":[0,0,0]},{"result":"13584083","milliseconds":46.7957,"allocatedBytes":120,"gcCollections":[0,0,0]},{"result":"13584083","milliseconds":46.4341,"allocatedBytes":120,"gcCollections":[0,0,0]}],"peakWorkingSetBytes":25919488}

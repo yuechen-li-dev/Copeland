@@ -1,0 +1,1 @@
+function transformBatch(values: int[]): int[] { return batch values as item { if (item < 0) { return -item; } return item * 2; }; }

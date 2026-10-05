@@ -1,0 +1,86 @@
+{
+  "namedLocalQualified": true,
+  "operators": [
+    "++",
+    "--",
+    "+=",
+    "-=",
+    "*=",
+    "/=",
+    "%="
+  ],
+  "postfixReturnsPrevious": true,
+  "computedStorageRequiresExplicitUpdate": true,
+  "immutableRecordsRequireWith": true,
+  "cases": [
+    {
+      "Id": "increment-postfix",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "34",
+      "JavaScriptResult": "34"
+    },
+    {
+      "Id": "decrement-postfix",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "32",
+      "JavaScriptResult": "32"
+    },
+    {
+      "Id": "compound-all",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "1",
+      "JavaScriptResult": "1"
+    },
+    {
+      "Id": "loop-increment",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "45",
+      "JavaScriptResult": "45"
+    },
+    {
+      "Id": "computed-compound",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-MUTATION-0001",
+          "Message": "Compound updates of computed storage are not yet supported. Bind the receiver and index to const locals, then assign array[index] = array[index] + value.",
+          "Position": 88,
+          "Length": 2,
+          "SourcePath": "computed-compound.ts",
+          "SuggestedReplacement": "Bind receiver and index once; use explicit indexed assignment.",
+          "RepairKind": "canonical-form"
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "prefix-increment",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "44",
+      "JavaScriptResult": "44"
+    },
+    {
+      "Id": "record-compound-repair",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-REC-0011",
+          "Message": "Cannot assign to immutable record field 'Counter.value'. Use counter with { value: replacementValue } to construct an updated value.",
+          "Position": 98,
+          "Length": 5,
+          "SourcePath": "record-compound-repair.ts",
+          "SuggestedReplacement": "counter with { value: replacementValue }",
+          "RepairKind": "canonical-form"
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+{"name":"arrays","quick":false,"trials":[{"result":"336296378656","milliseconds":618.8806,"allocatedBytes":53474824,"gcCollections":[8,8,8]},{"result":"336296378656","milliseconds":439.9766,"allocatedBytes":53472544,"gcCollections":[10,10,10]},{"result":"336296378656","milliseconds":440.9594,"allocatedBytes":53472544,"gcCollections":[10,10,10]}],"peakWorkingSetBytes":46608384}

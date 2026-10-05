@@ -1,0 +1,13 @@
+{
+  "type": "signed int32",
+  "addSubtractMultiplyNegate": "wrap modulo 2^32",
+  "division": "truncate toward zero; minimum/-1 wraps to minimum",
+  "remainder": "dividend sign; minimum%-1 is zero",
+  "zeroDivisor": "trap: Integer division by zero.",
+  "bitwise": "int operands only; signed result; arithmetic right shift; shift count masked to low 5 bits",
+  "conversion": "Explicit Int floor/ceil/round/truncate retains checked int32 range policy; no implicit widening.",
+  "literals": "Hex 1-8 digits is an int32 bit pattern; direct decimal unary minimum is accepted.",
+  "staticEvaluation": "Same int32 wrapping arithmetic in existing static evaluator.",
+  "hostIsolation": "C# checked host explicitly overridden at arithmetic operations; JS imul/int32 normalization.",
+  "namedWrappingOperations": "Not added because ordinary integer arithmetic wraps."
+}

@@ -101,9 +101,10 @@ public sealed class TableFeatureTests
         Assert.True(first.Success, string.Join(Environment.NewLine, first.Diagnostics));
         Assert.Equal(first.MirText, second.MirText);
         byte[] bytes = Encoding.UTF8.GetBytes(first.MirText!);
-        Assert.Equal(1661, bytes.Length);
+        Assert.Equal(1606, bytes.Length);
+        Assert.DoesNotContain("\r", first.MirText, StringComparison.Ordinal);
         Assert.Equal(
-            "62897D4142128179A9036545CBA4A0BDB4E3EB74ACF9D722E71E90A0EF93234F",
+            "CB293E99C3353216CE04AFD5703ADD331FA8A450AB4C5FDC8177DF9C97E4A144",
             Convert.ToHexString(SHA256.HashData(bytes)));
     }
 

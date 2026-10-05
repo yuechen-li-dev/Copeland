@@ -1,0 +1,681 @@
+{
+  "results": [
+    {
+      "Id": "string-split",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "[\u0022\u0022,\u0022a\u0022,\u0022\u0022,\u0022b\u0022,\u0022\u0022]",
+      "JavaScriptResult": "[\u0022\u0022,\u0022a\u0022,\u0022\u0022,\u0022b\u0022,\u0022\u0022]"
+    },
+    {
+      "Id": "string-split-empty",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "[\u0022a\u0022,\u0022b\u0022]",
+      "JavaScriptResult": "[\u0022a\u0022,\u0022b\u0022]"
+    },
+    {
+      "Id": "string-index-ordinal",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "1",
+      "JavaScriptResult": "1"
+    },
+    {
+      "Id": "string-code-utf16",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "55357",
+      "JavaScriptResult": "55357"
+    },
+    {
+      "Id": "string-slice-negative",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "\u0022cde\u0022",
+      "JavaScriptResult": "\u0022cde\u0022"
+    },
+    {
+      "Id": "string-slice-reversed",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "\u0022\u0022",
+      "JavaScriptResult": "\u0022\u0022"
+    },
+    {
+      "Id": "string-join",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "\u0022a,b\u0022",
+      "JavaScriptResult": "\u0022a,b\u0022"
+    },
+    {
+      "Id": "array-filled",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "[7,9,7]",
+      "JavaScriptResult": "[7,9,7]"
+    },
+    {
+      "Id": "array-string-filled",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "[\u0022x\u0022,\u0022x\u0022]",
+      "JavaScriptResult": "[\u0022x\u0022,\u0022x\u0022]"
+    },
+    {
+      "Id": "increment-postfix",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "34",
+      "JavaScriptResult": "34"
+    },
+    {
+      "Id": "decrement-postfix",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "32",
+      "JavaScriptResult": "32"
+    },
+    {
+      "Id": "compound-all",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "1",
+      "JavaScriptResult": "1"
+    },
+    {
+      "Id": "loop-increment",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "45",
+      "JavaScriptResult": "45"
+    },
+    {
+      "Id": "conditional-expression",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "7",
+      "JavaScriptResult": "7"
+    },
+    {
+      "Id": "batch-guard",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "[2,0,6]",
+      "JavaScriptResult": "[2,0,6]"
+    },
+    {
+      "Id": "batch-if-else",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "[2,6]",
+      "JavaScriptResult": "[2,6]"
+    },
+    {
+      "Id": "int-add-wrap",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "-2147483648",
+      "JavaScriptResult": "-2147483648"
+    },
+    {
+      "Id": "int-multiply-wrap",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "1",
+      "JavaScriptResult": "1"
+    },
+    {
+      "Id": "int-divide-wrap",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "-2147483648",
+      "JavaScriptResult": "-2147483648"
+    },
+    {
+      "Id": "int-remainder-min",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "0",
+      "JavaScriptResult": "0"
+    },
+    {
+      "Id": "int-remainder-sign",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "-1",
+      "JavaScriptResult": "-1"
+    },
+    {
+      "Id": "int-negate-wrap",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "-2147483648",
+      "JavaScriptResult": "-2147483648"
+    },
+    {
+      "Id": "bitwise-hash",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "1442875234",
+      "JavaScriptResult": "1442875234"
+    },
+    {
+      "Id": "bitwise-shift-mask",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "2",
+      "JavaScriptResult": "2"
+    },
+    {
+      "Id": "generic-identity",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "7",
+      "JavaScriptResult": "7"
+    },
+    {
+      "Id": "generic-clr-list",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "1",
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "static-property-chain",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "2",
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "closure-capture",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "7",
+      "JavaScriptResult": "7"
+    },
+    {
+      "Id": "record-value",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "5",
+      "JavaScriptResult": "5"
+    },
+    {
+      "Id": "receiver-split",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-CALL-0021",
+          "Message": "\u0027split\u0027 is not a receiver method of \u0027text\u0027 of type \u0027string\u0027. Use String.Split(text, \u0022,\u0022).",
+          "Position": 67,
+          "Length": 5,
+          "SourcePath": "receiver-split.ts",
+          "SuggestedReplacement": "String.Split(text, \u0022,\u0022)",
+          "RepairKind": "canonical-form"
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "length-case",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-STRING-0001",
+          "Message": "string does not expose .Length. Use .length.",
+          "Position": 62,
+          "Length": 6,
+          "SourcePath": "length-case.ts",
+          "SuggestedReplacement": ".length",
+          "RepairKind": "canonical-form"
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "unknown-receiver",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-BIND-0001",
+          "Message": "Undefined name \u0027Missing\u0027.",
+          "Position": 29,
+          "Length": 7,
+          "SourcePath": "unknown-receiver.ts",
+          "SuggestedReplacement": null,
+          "RepairKind": null
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "array-push",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-CALL-0021",
+          "Message": "\u0027push\u0027 is not a receiver method on \u0027int[]\u0027. Build a fixed MutableArray\u003CT\u003E(length), assign elements, then freeze(). For CLR-only growth use using System.Collections.Generic; new List\u003CT\u003E(); Add(value); ToArray(). Native growable lists are not yet supported.",
+          "Position": 56,
+          "Length": 4,
+          "SourcePath": "array-push.ts",
+          "SuggestedReplacement": "Build a fixed MutableArray\u003CT\u003E(length), assign elements, then freeze(). For CLR-only growth use using System.Collections.Generic; new List\u003CT\u003E(); Add(value); ToArray(). Native growable lists are not yet supported.",
+          "RepairKind": "canonical-form"
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "computed-compound",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-MUTATION-0001",
+          "Message": "Compound updates of computed storage are not yet supported. Bind the receiver and index to const locals, then assign array[index] = array[index] \u002B value.",
+          "Position": 88,
+          "Length": 2,
+          "SourcePath": "computed-compound.ts",
+          "SuggestedReplacement": "Bind receiver and index once; use explicit indexed assignment.",
+          "RepairKind": "canonical-form"
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "nullish-plain",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-OPTION-0006",
+          "Message": "The left operand of \u0027??\u0027 must be Option\u003CT\u003E, got \u0027int\u0027.",
+          "Position": 57,
+          "Length": 1,
+          "SourcePath": "nullish-plain.ts",
+          "SuggestedReplacement": null,
+          "RepairKind": null
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "implicit-capture-repair",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-CALL-0017",
+          "Message": "Implicit lexical capture of \u0027bias\u0027 is forbidden. Use \u0027capture { bias } ...\u0027 to snapshot it into an immutable callable environment.",
+          "Position": 84,
+          "Length": 4,
+          "SourcePath": "implicit-capture-repair.ts",
+          "SuggestedReplacement": null,
+          "RepairKind": null
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "prefix-increment",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "44",
+      "JavaScriptResult": "44"
+    },
+    {
+      "Id": "clr-dictionary-indexer",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "9",
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "Option-fallback",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "7",
+      "JavaScriptResult": "7"
+    },
+    {
+      "Id": "enum-match",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "1",
+      "JavaScriptResult": "1"
+    },
+    {
+      "Id": "native-map-gap",
+      "Outcome": "unsupported capability",
+      "Diagnostics": [
+        {
+          "Id": "COPE-COLLECTION-0001",
+          "Message": "Native MutableMap\u003CK, V\u003E is not yet supported. For CLR-only storage use \u0027using System.Collections.Generic;\u0027 and \u0027new Dictionary\u003CK, V\u003E()\u0027; use ContainsKey before indexed reads. Cross-backend Option-valued lookup and insertion-order iteration remain unsupported.",
+          "Position": 41,
+          "Length": 3,
+          "SourcePath": "native-map-gap.ts",
+          "SuggestedReplacement": "using System.Collections.Generic; new Dictionary\u003CK, V\u003E()",
+          "RepairKind": "unsupported-capability"
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "native-map-type-gap",
+      "Outcome": "unsupported capability",
+      "Diagnostics": [
+        {
+          "Id": "COPE-COLLECTION-0001",
+          "Message": "Native MutableMap\u003CK, V\u003E is not yet supported. For CLR-only storage use \u0027using System.Collections.Generic;\u0027 and \u0027new Dictionary\u003CK, V\u003E()\u0027; use ContainsKey before indexed reads. Cross-backend Option-valued lookup and insertion-order iteration remain unsupported.",
+          "Position": 36,
+          "Length": 3,
+          "SourcePath": "native-map-type-gap.ts",
+          "SuggestedReplacement": "using System.Collections.Generic; new Dictionary\u003CK, V\u003E()",
+          "RepairKind": "unsupported-capability"
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "any-repair",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-PROFILE-0012",
+          "Message": "any erases the type needed for deterministic layout. Use a concrete value type, a nominal record, or a generic \u003CT extends FieldRequirement\u003E.",
+          "Position": 35,
+          "Length": 3,
+          "SourcePath": "any-repair.ts",
+          "SuggestedReplacement": "a concrete value type, a nominal record, or a generic \u003CT extends FieldRequirement\u003E",
+          "RepairKind": "canonical-form"
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "null-repair",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-PROFILE-0005",
+          "Message": "Null is not supported in Browser TypeScript Profile v1. Use Option\u003CT\u003E with Some(value) or None.",
+          "Position": 37,
+          "Length": 4,
+          "SourcePath": "null-repair.ts",
+          "SuggestedReplacement": "Option\u003CT\u003E with Some(value) or None",
+          "RepairKind": "canonical-form"
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "undefined-repair",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-PROFILE-0011",
+          "Message": "undefined has no Copeland runtime meaning. Use Option\u003CT\u003E with Some(value) or None.",
+          "Position": 37,
+          "Length": 9,
+          "SourcePath": "undefined-repair.ts",
+          "SuggestedReplacement": "Option\u003CT\u003E with Some(value) or None",
+          "RepairKind": "canonical-form"
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "array-map",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-CALL-0021",
+          "Message": "\u0027map\u0027 is not a receiver method on \u0027int[]\u0027. Use batch values as item { return transform(item); } with a pure transform function and the receiver in place of values.",
+          "Position": 68,
+          "Length": 3,
+          "SourcePath": "array-map.ts",
+          "SuggestedReplacement": "Use batch values as item { return transform(item); } with a pure transform function and the receiver in place of values.",
+          "RepairKind": "canonical-form"
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "generic-array-inference",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "[7,9,7]",
+      "JavaScriptResult": "[7,9,7]"
+    },
+    {
+      "Id": "exponent-literal",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "125",
+      "JavaScriptResult": "125"
+    },
+    {
+      "Id": "hex-int-bit-pattern",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "-1",
+      "JavaScriptResult": "-1"
+    },
+    {
+      "Id": "imul-repair",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-NUM-0006",
+          "Message": "Copeland int multiplication already wraps at 32 bits. Use ((7) * (9)).",
+          "Position": 34,
+          "Length": 4,
+          "SourcePath": "imul-repair.ts",
+          "SuggestedReplacement": "((7) * (9))",
+          "RepairKind": "canonical-form"
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "typed-strict-equality",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "true",
+      "JavaScriptResult": "true"
+    },
+    {
+      "Id": "codeat-negative-trap",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "String index is out of bounds.",
+      "JavaScriptResult": "String index is out of bounds."
+    },
+    {
+      "Id": "codeat-upper-trap",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "String index is out of bounds.",
+      "JavaScriptResult": "String index is out of bounds."
+    },
+    {
+      "Id": "divide-zero-trap",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "Integer division by zero.",
+      "JavaScriptResult": "Integer division by zero."
+    },
+    {
+      "Id": "remainder-zero-trap",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "Integer division by zero.",
+      "JavaScriptResult": "Integer division by zero."
+    },
+    {
+      "Id": "array-filled-negative-trap",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "Copeland mutable array length cannot be negative. (Parameter \u0027length\u0027)",
+      "JavaScriptResult": "Copeland mutable array length cannot be negative."
+    },
+    {
+      "Id": "string-empty-delimiter-surrogates",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "112189",
+      "JavaScriptResult": "112189"
+    },
+    {
+      "Id": "int-negative-shift",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "-4",
+      "JavaScriptResult": "-4"
+    },
+    {
+      "Id": "record-initializer-immutable",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "14",
+      "JavaScriptResult": "14"
+    },
+    {
+      "Id": "clr-generic-signature",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "7",
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "template-hole-location",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-BIND-0001",
+          "Message": "Undefined name \u0027Missing\u0027.",
+          "Position": 41,
+          "Length": 7,
+          "SourcePath": "template-hole-location.ts",
+          "SuggestedReplacement": null,
+          "RepairKind": null
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "decimal-int-minimum",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "-2147483648",
+      "JavaScriptResult": "-2147483648"
+    },
+    {
+      "Id": "record-compound-repair",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-REC-0011",
+          "Message": "Cannot assign to immutable record field \u0027Counter.value\u0027. Use counter with { value: replacementValue } to construct an updated value.",
+          "Position": 98,
+          "Length": 5,
+          "SourcePath": "record-compound-repair.ts",
+          "SuggestedReplacement": "counter with { value: replacementValue }",
+          "RepairKind": "canonical-form"
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "malformed-generic",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-CLR-GENERIC-0002",
+          "Message": "\u0027int[]\u0027 has no admitted CLR generic type-argument mapping. Use int, float, string, boolean, or an imported CLR type.",
+          "Position": 75,
+          "Length": 4,
+          "SourcePath": "malformed-generic.ts",
+          "SuggestedReplacement": null,
+          "RepairKind": null
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "nested-template",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-BIND-0001",
+          "Message": "Undefined name \u0027Missing\u0027.",
+          "Position": 50,
+          "Length": 7,
+          "SourcePath": "nested-template.ts",
+          "SuggestedReplacement": null,
+          "RepairKind": null
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "batch-loop-repair",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-BATCH-0010",
+          "Message": "This batch branch cannot return early or contain loops. Use return if (condition) { value } else { otherValue }, or call a pure helper function.",
+          "Position": 50,
+          "Length": 1,
+          "SourcePath": "batch-loop-repair.ts",
+          "SuggestedReplacement": "return if (condition) { value } else { otherValue };",
+          "RepairKind": "canonical-form"
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "bitwise-float",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-TYPE-0007",
+          "Message": "Bitwise operands must both have type int; use an explicit Int conversion policy.",
+          "Position": 33,
+          "Length": 1,
+          "SourcePath": "bitwise-float.ts",
+          "SuggestedReplacement": null,
+          "RepairKind": null
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "clr-constructor-call",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "0",
+      "JavaScriptResult": null
+    }
+  ],
+  "failures": []
+}

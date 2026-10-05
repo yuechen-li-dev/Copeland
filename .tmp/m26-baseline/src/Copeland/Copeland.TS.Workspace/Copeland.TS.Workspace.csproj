@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Copeland.TS.Workspace</AssemblyName>
+    <RootNamespace>Copeland.Cli</RootNamespace>
+  </PropertyGroup>
+</Project>

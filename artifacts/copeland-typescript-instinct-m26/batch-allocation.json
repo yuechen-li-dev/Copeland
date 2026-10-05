@@ -1,0 +1,239 @@
+{
+  "lazyFailureStorage": true,
+  "allocationOwner": "One batch closure/delegate; allocate ConcurrentDictionary only upon failure, not per successful batch.",
+  "method": "GC.GetTotalAllocatedBytes(precise:true), includes reflection harness overhead.",
+  "current": [
+    {
+      "size": 1,
+      "body": "cheap",
+      "mode": "sequential",
+      "medianMilliseconds": 0.0001,
+      "medianAllocatedBytes": 224,
+      "checksum": 0
+    },
+    {
+      "size": 1,
+      "body": "cheap",
+      "mode": "parallel",
+      "medianMilliseconds": 0.0037,
+      "medianAllocatedBytes": 1992,
+      "checksum": 0
+    },
+    {
+      "size": 1,
+      "body": "costly",
+      "mode": "sequential",
+      "medianMilliseconds": 0.002,
+      "medianAllocatedBytes": 224,
+      "checksum": 562641396
+    },
+    {
+      "size": 1,
+      "body": "costly",
+      "mode": "parallel",
+      "medianMilliseconds": 0.0072,
+      "medianAllocatedBytes": 2232,
+      "checksum": 562641396
+    },
+    {
+      "size": 8,
+      "body": "cheap",
+      "mode": "sequential",
+      "medianMilliseconds": 0.0001,
+      "medianAllocatedBytes": 248,
+      "checksum": 56
+    },
+    {
+      "size": 8,
+      "body": "cheap",
+      "mode": "parallel",
+      "medianMilliseconds": 0.0024,
+      "medianAllocatedBytes": 2408,
+      "checksum": 56
+    },
+    {
+      "size": 8,
+      "body": "costly",
+      "mode": "sequential",
+      "medianMilliseconds": 0.0276,
+      "medianAllocatedBytes": 248,
+      "checksum": -3211828292
+    },
+    {
+      "size": 8,
+      "body": "costly",
+      "mode": "parallel",
+      "medianMilliseconds": 0.0199,
+      "medianAllocatedBytes": 3608,
+      "checksum": -3211828292
+    },
+    {
+      "size": 32,
+      "body": "cheap",
+      "mode": "sequential",
+      "medianMilliseconds": 0.0003,
+      "medianAllocatedBytes": 344,
+      "checksum": 992
+    },
+    {
+      "size": 32,
+      "body": "cheap",
+      "mode": "parallel",
+      "medianMilliseconds": 0.0032,
+      "medianAllocatedBytes": 3192,
+      "checksum": 992
+    },
+    {
+      "size": 32,
+      "body": "costly",
+      "mode": "sequential",
+      "medianMilliseconds": 0.0854,
+      "medianAllocatedBytes": 344,
+      "checksum": -1433792400
+    },
+    {
+      "size": 32,
+      "body": "costly",
+      "mode": "parallel",
+      "medianMilliseconds": 0.0415,
+      "medianAllocatedBytes": 5072,
+      "checksum": -1433792400
+    },
+    {
+      "size": 128,
+      "body": "cheap",
+      "mode": "sequential",
+      "medianMilliseconds": 0.0008,
+      "medianAllocatedBytes": 728,
+      "checksum": 16256
+    },
+    {
+      "size": 128,
+      "body": "cheap",
+      "mode": "parallel",
+      "medianMilliseconds": 0.0053,
+      "medianAllocatedBytes": 4104,
+      "checksum": 16256
+    },
+    {
+      "size": 128,
+      "body": "costly",
+      "mode": "sequential",
+      "medianMilliseconds": 0.3281,
+      "medianAllocatedBytes": 728,
+      "checksum": -7802431040
+    },
+    {
+      "size": 128,
+      "body": "costly",
+      "mode": "parallel",
+      "medianMilliseconds": 0.0707,
+      "medianAllocatedBytes": 6240,
+      "checksum": -7802431040
+    },
+    {
+      "size": 1024,
+      "body": "cheap",
+      "mode": "sequential",
+      "medianMilliseconds": 0.0099,
+      "medianAllocatedBytes": 4312,
+      "checksum": 1047552
+    },
+    {
+      "size": 1024,
+      "body": "cheap",
+      "mode": "parallel",
+      "medianMilliseconds": 0.0261,
+      "medianAllocatedBytes": 7952,
+      "checksum": 1047552
+    },
+    {
+      "size": 1024,
+      "body": "costly",
+      "mode": "sequential",
+      "medianMilliseconds": 2.6747,
+      "medianAllocatedBytes": 4312,
+      "checksum": 12289953280
+    },
+    {
+      "size": 1024,
+      "body": "costly",
+      "mode": "parallel",
+      "medianMilliseconds": 0.344,
+      "medianAllocatedBytes": 10584,
+      "checksum": 12289953280
+    },
+    {
+      "size": 16384,
+      "body": "cheap",
+      "mode": "sequential",
+      "medianMilliseconds": 0.0806,
+      "medianAllocatedBytes": 65752,
+      "checksum": 268419072
+    },
+    {
+      "size": 16384,
+      "body": "cheap",
+      "mode": "parallel",
+      "medianMilliseconds": 0.0898,
+      "medianAllocatedBytes": 71576,
+      "checksum": 268419072
+    },
+    {
+      "size": 16384,
+      "body": "costly",
+      "mode": "sequential",
+      "medianMilliseconds": 9.1448,
+      "medianAllocatedBytes": 65752,
+      "checksum": 14228971520
+    },
+    {
+      "size": 16384,
+      "body": "costly",
+      "mode": "parallel",
+      "medianMilliseconds": 0.7045,
+      "medianAllocatedBytes": 71720,
+      "checksum": 14228971520
+    }
+  ],
+  "baseline": [
+    {
+      "size": 1,
+      "milliseconds": 0.1548,
+      "allocatedBytes": 4656,
+      "checksum": 0
+    },
+    {
+      "size": 8,
+      "milliseconds": 0.0049,
+      "allocatedBytes": 3344,
+      "checksum": 56
+    },
+    {
+      "size": 32,
+      "milliseconds": 0.0042,
+      "allocatedBytes": 3888,
+      "checksum": 992
+    },
+    {
+      "size": 128,
+      "milliseconds": 0.0051,
+      "allocatedBytes": 4536,
+      "checksum": 16256
+    },
+    {
+      "size": 1024,
+      "milliseconds": 0.0136,
+      "allocatedBytes": 8888,
+      "checksum": 1047552
+    },
+    {
+      "size": 16384,
+      "milliseconds": 0.0543,
+      "allocatedBytes": 71504,
+      "checksum": 268419072
+    }
+  ],
+  "baselineLimits": "Baseline has one warmed measured trial per size, not a distribution. Large parallel allocations vary with worker scheduling.",
+  "failurePolicy": "Sequential stops at first failure; parallel selects lowest failing input index after work. Both report COPE-BATCH-FAILURE."
+}

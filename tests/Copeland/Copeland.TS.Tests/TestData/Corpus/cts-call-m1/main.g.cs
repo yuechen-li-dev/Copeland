@@ -49,7 +49,10 @@ public abstract record Failure
     {
     }
 
-    public sealed record Bad : Failure;
+    public sealed record Bad : Failure
+    {
+        internal static Bad __Singleton { get; } = new();
+    }
 
 }
 

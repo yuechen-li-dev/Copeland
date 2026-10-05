@@ -1,0 +1,1 @@
+[{"Id":"COPE-CALL-0021","Message":"\u0027split\u0027 is not a receiver method of \u0027text\u0027 of type \u0027string\u0027. Use String.Split(text, \u0022,\u0022).","Position":61,"Length":5,"SourcePath":"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\csv-r0.ts","SuggestedReplacement":"String.Split(text, \u0022,\u0022)","RepairKind":"canonical-form"}]

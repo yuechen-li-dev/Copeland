@@ -429,14 +429,14 @@ function use<T extends I0 & I1 & I2 & I3 & I4 & I5 & I6 & I7 & I8>(value: T): nu
     [Theory]
     [InlineData("===")]
     [InlineData("!==")]
-    public void Profile_Rejects_Strict_Equality_Spellings(string equalityOperator)
+    public void Strict_Equality_Spellings_use_the_same_typed_primitive_equality(string equalityOperator)
     {
         var tree = SyntaxTree.Parse($"function equal(left: number, right: number): boolean {{ return left {equalityOperator} right; }}");
         var bound = SemanticBinder.Bind(tree);
 
         Assert.DoesNotContain(tree.Diagnostics, diagnostic =>
             diagnostic.Id.StartsWith("COPE-PARSE", StringComparison.Ordinal));
-        Assert.Contains(bound.Diagnostics, diagnostic => diagnostic.Id == "COPE-PROFILE-0009");
+        Assert.Empty(bound.Diagnostics);
     }
 
     [Theory]

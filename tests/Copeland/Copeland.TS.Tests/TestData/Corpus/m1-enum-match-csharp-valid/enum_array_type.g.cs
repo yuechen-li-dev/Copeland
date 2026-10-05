@@ -9,9 +9,15 @@ public abstract record Choice
     {
     }
 
-    public sealed record A : Choice;
+    public sealed record A : Choice
+    {
+        internal static A __Singleton { get; } = new();
+    }
 
-    public sealed record B : Choice;
+    public sealed record B : Choice
+    {
+        internal static B __Singleton { get; } = new();
+    }
 
 }
 
@@ -19,7 +25,7 @@ public static class CopelandModule
 {
     public static Choice[] choices()
     {
-        Choice[] xs = new Choice[] { new Choice.A(), new Choice.B() };
+        Choice[] xs = new Choice[] { Choice.A.__Singleton, Choice.B.__Singleton };
         return xs;
     }
 

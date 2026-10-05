@@ -48,6 +48,8 @@ public static class JavaScriptBackend
     private const string InvalidDiagnosticId = "COPE-JS-0002";
     private static readonly AsyncLocal<Stack<EmittedExpression?>?> ContinueIncrements = new();
     private static readonly AsyncLocal<bool> ModuleFactoryEmission = new();
+    private static readonly AsyncLocal<bool> UsesNativeStrings = new();
+    private static readonly AsyncLocal<bool> UsesIntegerRuntime = new();
 
     public static string GetEnumFactoryName(string enumName, string caseName)
         => "__cope_enum_" + EncodeModuleIdentity(enumName) + "_" + EncodeModuleIdentity(caseName);
@@ -159,6 +161,10 @@ public static class JavaScriptBackend
         bool usesCapturedCallables = ProgramUsesCapturedCallables(program);
         bool usesSharedBrowserInteropRuntime = program.JavaScriptHostImports.Count > 0;
         bool usesAsync = program.Functions.Any(function => function.IsAsync || function.IsRemote);
+        bool previousNativeStrings = UsesNativeStrings.Value;
+        UsesNativeStrings.Value = false;
+        bool previousIntegerRuntime = UsesIntegerRuntime.Value;
+        UsesIntegerRuntime.Value = false;
         bool previousModuleFactoryEmission = ModuleFactoryEmission.Value;
         ModuleFactoryEmission.Value = effectiveOptions.EmitModuleFactories;
         try
@@ -242,6 +248,8 @@ public static class JavaScriptBackend
             EmitFlow(writer, flow);
         }
 
+        if (UsesNativeStrings.Value) NativeStringRuntime.Emit(writer);
+        if (UsesIntegerRuntime.Value) IntegerRuntime.Emit(writer);
         string sourceText = writer.ToString();
         if (effectiveOptions.Profile == JavaScriptEmissionProfile.Symbolic)
         {
@@ -253,6 +261,8 @@ public static class JavaScriptBackend
         finally
         {
             ModuleFactoryEmission.Value = previousModuleFactoryEmission;
+            UsesNativeStrings.Value = previousNativeStrings;
+            UsesIntegerRuntime.Value = previousIntegerRuntime;
         }
     }
 
@@ -402,9 +412,9 @@ public static class JavaScriptBackend
             MirLiteralExpression { Value: not null } literal => JavaScriptLiteralWriter.WriteNumber(literal.Value),
             MirUnitExpression => "null",
             MirVariableExpression variable => JavaScriptIdentifierEncoder.Encode(variable.Name),
-            MirUnaryExpression unary => "(" + unary.Operator + EmitFlowExpression(unary.Operand, fieldsById) + ")",
-            MirBinaryExpression binary => "(" + EmitFlowExpression(binary.Left, fieldsById) + " " + binary.Operator + " " + EmitFlowExpression(binary.Right, fieldsById) + ")",
-            MirCallExpression call => JavaScriptIdentifierEncoder.Encode(call.FunctionName)
+            MirUnaryExpression unary => UnaryText(unary, EmitFlowExpression(unary.Operand, fieldsById)),
+            MirBinaryExpression binary => BinaryText(binary, EmitFlowExpression(binary.Left, fieldsById), EmitFlowExpression(binary.Right, fieldsById)),
+            MirCallExpression call => (NativeCallName(call) ?? JavaScriptIdentifierEncoder.Encode(call.FunctionName))
                 + "(" + string.Join(", ", call.Arguments.Select(argument => EmitFlowExpression(argument, fieldsById))) + ")",
             MirRecordFieldAccessExpression access when access.Receiver is MirVariableExpression { Name: "board" }
                 => "board[" + JavaScriptLiteralWriter.WriteString(JavaScriptIdentifierEncoder.Encode(fieldsById[access.FieldId])) + "]",
@@ -684,7 +694,7 @@ public static class JavaScriptBackend
                     && binary.Type is MirType { Identifier: "string" }
                     && binary.Left.Type is MirType { Identifier: "string" }
                     && binary.Right.Type is MirType { Identifier: "string" };
-                bool isSupportedArithmetic = (binary.Operator is "+" or "-" or "*" or "/" or "%") && !isStringConcatenation;
+                bool isSupportedArithmetic = (binary.Operator is "+" or "-" or "*" or "/" or "%" or "&" or "|" or "^" or "<<" or ">>") && !isStringConcatenation;
                 bool isEquality = binary.Operator is "==" or "!=";
                 bool isLogical = binary.Operator is "&&" or "||";
                 bool isRelational = binary.Operator is "<" or "<=" or ">" or ">=";
@@ -1150,7 +1160,11 @@ public static class JavaScriptBackend
 
     private static void ValidateCall(MirCallExpression call, MirType functionReturnType, string context, IReadOnlyDictionary<string, MirFunction> functions, EnumCatalog catalog, List<JavaScriptDiagnostic> diagnostics)
     {
-        if (!functions.TryGetValue(call.FunctionName, out MirFunction? target))
+        if (call.NativeOperation is not null)
+        {
+            if (!MirNativeOperations.IsValid(call)) AddInvalid(diagnostics, "invalid native call signature");
+        }
+        else if (!functions.TryGetValue(call.FunctionName, out MirFunction? target))
         {
             AddInvalid(diagnostics, $"unknown call target '{call.FunctionName}' in {context}");
         }
@@ -3060,10 +3074,10 @@ public static class JavaScriptBackend
             MirUnitExpression => "null",
             MirVariableExpression variable => AsyncFrameVariableReference(variable.Name, names),
             MirAsyncFrameSlotExpression slot => AsyncFrameSlotReference(slot.SlotId),
-            MirAssignmentExpression assignment => $"{AsyncFrameVariableReference(assignment.Name, names)} = {EmitAsyncExpression(assignment.Expression, catalog, results, names)}",
-            MirBinaryExpression binary => $"({EmitAsyncExpression(binary.Left, catalog, results, names)} {binary.Operator} {EmitAsyncExpression(binary.Right, catalog, results, names)})",
-            MirUnaryExpression unary => $"({unary.Operator}{EmitAsyncExpression(unary.Operand, catalog, results, names)})",
-            MirCallExpression call => $"{JavaScriptIdentifierEncoder.Encode(call.FunctionName)}({string.Join(", ", call.Arguments.Select(argument => EmitAsyncExpression(argument, catalog, results, names)))})",
+            MirAssignmentExpression assignment => AsyncAssignmentText(assignment, AsyncFrameVariableReference(assignment.Name, names), EmitAsyncExpression(assignment.Expression, catalog, results, names)),
+            MirBinaryExpression binary => BinaryText(binary, EmitAsyncExpression(binary.Left, catalog, results, names), EmitAsyncExpression(binary.Right, catalog, results, names)),
+            MirUnaryExpression unary => UnaryText(unary, EmitAsyncExpression(unary.Operand, catalog, results, names)),
+            MirCallExpression call => $"{NativeCallName(call) ?? JavaScriptIdentifierEncoder.Encode(call.FunctionName)}({string.Join(", ", call.Arguments.Select(argument => EmitAsyncExpression(argument, catalog, results, names)))})",
             MirInvokeExpression invoke => EmitAsyncInvoke(invoke, catalog, results, names),
             MirRecordConstructionExpression construction => EmitAsyncRecordConstruction(construction, catalog, results, names),
             MirRecordFieldAccessExpression access => EmitAsyncRecordFieldAccess(access, catalog, results, names),
@@ -3778,7 +3792,9 @@ public static class JavaScriptBackend
         bool flowEnabled)
     {
         EmittedExpression operand = EmitExpression(unary.Operand, function, catalog, results, names, flowEnabled);
-        return new EmittedExpression(operand.Prelude, $"({unary.Operator}{operand.Value})");
+        string value = $"({unary.Operator}{operand.Value})";
+        if (unary.Type.Identifier == "int" && unary.Operator == "-") value = $"({value} | 0)";
+        return new EmittedExpression(operand.Prelude, value);
     }
 
     private static EmittedExpression EmitTsonEncode(
@@ -4369,7 +4385,7 @@ public static class JavaScriptBackend
         return CombineOrdered(
             [left, right],
             names,
-            values => $"({values[0]} {MapBinaryOperator(binary.Operator)} {values[1]})");
+            values => BinaryText(binary, values[0], values[1]));
     }
 
     private static EmittedExpression EmitLogicalBinary(
@@ -4404,7 +4420,48 @@ public static class JavaScriptBackend
     private static EmittedExpression EmitAssignment(MirAssignmentExpression assignment, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
         EmittedExpression value = EmitExpression(assignment.Expression, function, catalog, results, names, flowEnabled);
-        return new EmittedExpression(value.Prelude, $"({JavaScriptIdentifierEncoder.Encode(assignment.Name)} = {value.Value})");
+        string target = JavaScriptIdentifierEncoder.Encode(assignment.Name);
+        if (!assignment.ReturnsPreviousValue) return new EmittedExpression(value.Prelude, $"({target} = {value.Value})");
+        string previous = names.NextTemporary("previous_value");
+        var prelude = new List<EmittedLine> { new($"const {previous} = {target};", 0) };
+        prelude.AddRange(value.Prelude);
+        prelude.Add(new EmittedLine($"{target} = {value.Value};", 0));
+        return new EmittedExpression(prelude, previous);
+    }
+
+    private static string AsyncAssignmentText(MirAssignmentExpression assignment, string target, string value)
+    {
+        if (!assignment.ReturnsPreviousValue) return $"({target} = {value})";
+        return $"(() => {{ const previous = {target}; {target} = {value}; return previous; }})()";
+    }
+
+    private static string UnaryText(MirUnaryExpression unary, string operand)
+    {
+        string expression = $"({unary.Operator}{operand})";
+        return unary.Type.Identifier == "int" && unary.Operator == "-"
+            ? $"({expression} | 0)"
+            : expression;
+    }
+
+    private static string BinaryText(MirBinaryExpression binary, string left, string right)
+    {
+        string expression = $"({left} {MapBinaryOperator(binary.Operator)} {right})";
+        if (binary.Type.Identifier != "int") return expression;
+        if (binary.Operator == "*") return $"Math.imul({left}, {right})";
+        if (binary.Operator is "/" or "%")
+        {
+            UsesIntegerRuntime.Value = true;
+            string operation = binary.Operator == "/" ? "Divide" : "Remainder";
+            return $"__cope_int_{operation}({left}, {right})";
+        }
+        return binary.Operator is "+" or "-" ? $"({expression} | 0)" : expression;
+    }
+
+    private static string? NativeCallName(MirCallExpression call)
+    {
+        if (call.NativeOperation is null) return null;
+        UsesNativeStrings.Value = true;
+        return "__cope_native_" + call.NativeOperation.Value;
     }
 
     private static EmittedExpression EmitCall(MirCallExpression call, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
@@ -4413,7 +4470,7 @@ public static class JavaScriptBackend
         return CombineOrdered(
             emittedArguments,
             names,
-            values => $"{JavaScriptIdentifierEncoder.Encode(call.FunctionName)}({string.Join(", ", values)})");
+            values => $"{NativeCallName(call) ?? JavaScriptIdentifierEncoder.Encode(call.FunctionName)}({string.Join(", ", values)})");
     }
 
     private static EmittedExpression EmitInvoke(MirInvokeExpression invoke, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
@@ -4523,29 +4580,12 @@ public static class JavaScriptBackend
         EmittedExpression input = EmitExpression(batch.Input, function, catalog, results, names, flowEnabled);
         var bodyLines = new List<string>();
         string item = JavaScriptIdentifierEncoder.Encode(batch.Item.Name);
+        var bodyWriter = new JavaScriptTextWriter(new JavaScriptEmissionDocument(), names.Profile);
         foreach (MirStatement statement in batch.Body.PrefixStatements)
         {
-            switch (statement)
-            {
-                case MirVariableDeclarationStatement declaration:
-                {
-                    EmittedExpression initializer = EmitExpression(declaration.Initializer, function, catalog, results, names, flowEnabled);
-                    bodyLines.AddRange(initializer.Prelude.Select(line => line.Text));
-                    string keyword = declaration.Local.IsReadOnly ? "const" : "let";
-                    bodyLines.Add($"{keyword} {JavaScriptIdentifierEncoder.Encode(declaration.Local.Name)} = {initializer.Value};");
-                    break;
-                }
-                case MirExpressionStatement expression:
-                {
-                    EmittedExpression emitted = EmitExpression(expression.Expression, function, catalog, results, names, flowEnabled);
-                    bodyLines.AddRange(emitted.Prelude.Select(line => line.Text));
-                    bodyLines.Add(emitted.Value + ";");
-                    break;
-                }
-                default:
-                    throw new InvalidOperationException($"Validated JavaScript batch emission received unsupported statement {statement.GetType().Name}.");
-            }
+            EmitStatement(bodyWriter, statement, function, catalog, results, names, flowEnabled);
         }
+        bodyLines.AddRange(bodyWriter.ToString().Split('\n').Where(line => line.Length > 0));
 
         EmittedExpression value = EmitExpression(batch.Body.ValueExpression, function, catalog, results, names, flowEnabled);
         bodyLines.AddRange(value.Prelude.Select(line => line.Text));

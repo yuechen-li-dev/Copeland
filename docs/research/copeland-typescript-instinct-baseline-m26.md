@@ -1,0 +1,36 @@
+# Copeland TypeScript instinct baseline (M26)
+
+The source evidence is the supplied `Claude musing on Copeland TS.txt` and `copeland-bench-report.md`. They describe an author repeatedly discovering dialect rules through misleading or incomplete diagnostics, CLR detours for strings/containers, unresolved integer host policy, small-batch scheduling costs, and semantic identities rewritten after C# emission. The supplied `copebench_1.tar.gz` supplies the actual eight benchmark kernels and JavaScript twins. Its SHA-256 is `4A5EADD273B4229668EFB8C6EEE67F93A182C41C3A751A671EBB16B5013CBA2A`.
+
+The reproducible compiler baseline is commit `0bffd10afe0f9e5f3a5c1281e7713d799f5c0d3c`. Its compiler sources were archived into an isolated directory and built with SDK 10.0.401. This preserves the actual starting compiler rather than reconstructing its behavior from prose. The report's older performance numbers are context, not a controlled before/after timing baseline on this machine.
+
+| TS instinct | Current behavior at baseline | Useful to support? | If rejected, preferred repair | M26 action |
+| --- | --- | --- | --- | --- |
+| `text.Split(",")` / `.split(",")` | Receiver binding rejects normal method instincts; subsequent associated calls still need CLR detours. | Native operation yes; associated spelling retained. | `String.Split(text, ",")` | One receiver repair; typed native split on C#/JS. |
+| `String.IndexOf`, `CodeAt`, `Slice`, `Join` | No dedicated backend-neutral native operation contract. | Yes, bounded UTF-16/ordinal contract. | Associated function signatures. | Add typed MIR operations, shared validation, and both backend helpers. |
+| `text.Length` | Missing-member/category friction. | Retain canonical lowercase member. | `.length` | Dedicated string diagnostic and metadata. |
+| `i++`, `i--`, `+=`, `*=` | Parser/mutation spelling friction. | Yes; no coercion benefit from rejection. | Previously explicit arithmetic assignment. | Support named locals; retain exact computed-storage repair. |
+| `===`, `!==` | Deliberately rejected strict spellings. | Yes as typed aliases. | Existing typed equality law. | Remove pointless syntax divergence; keep equality domains. |
+| Structured branch inside `batch` | Prefix branches rejected even when pure. | Yes, bounded value branches. | Existing expression `if`, or pure helper. | Normalize final returns and accept bounded pure prefix branches. |
+| JS ternary | Rejected. | No additional value model needed. | `if (condition) { value } else { otherValue }` | Reuse existing expression conditional. |
+| Generic CLR `new List<int>()` | Generic type construction unavailable in the observed path. | Yes through existing CLR metadata authority. | Imported `List<int>()` or `new List<int>()`. | Close admitted CLR types and constructors; test both spellings. |
+| `Dictionary<string, int>` in a function signature | Generic/interop restrictions; current replay additionally exposed import-binding order. | Yes, CLR-only. | Import type before binding signatures. | Fix declaration order; verify unchanged agent source and indexers. |
+| `Map<string, int>` and `.get` | No native map. | Yes, but needs a shared semantic/storage owner. | CLR `Dictionary`, `ContainsKey`, indexed read. | State unsupported capability once; make CLR alternative usable; native map remains M27. |
+| Immutable array `.push` | Receiver method failure. | Growth useful; ordinary arrays do not gain native list behavior. | Fixed `MutableArray` and `freeze`; CLR `List<T>.Add` / `ToArray` for growth. | Explicit guidance; no native list qualification. |
+| `MutableArray<string>(n, value)` | Non-defaultable element construction missing. | Yes; immutable value initializer. | Two-argument constructor. | Initialize once, fill all slots, preserve freeze copy policy. |
+| `CultureInfo.InvariantCulture.CompareInfo` | Value/static-chain misclassification pressure. | Yes. | Resolve type, then static property, then value member. | Bind receiver once and retain reflected identity. |
+| `Missing.Case(...)` | Misleading enum construction category. | Reject actual unknown name. | Declare/import the receiver. | Stop at earliest unknown receiver; suppress dependent errors. |
+| Exponent numeric literals | The current baseline compiler already accepts the bounded numeric literal surface. | Preserve existing support. | Existing number/int distinction. | Lock exponent source/behavior in corpus; do not claim a newly added capability. |
+| Hex integer hash constants | Missing bounded hexadecimal int bit patterns. | Yes, int32. | Explicit int32 bit pattern and wrapping arithmetic. | Add hex literals, bitwise operators, and exact `Math.imul` repair. |
+| Overflowing integer arithmetic | C# host arithmetic and JavaScript numbers can diverge. | Explicit policy required. | Ordinary int32 operations wrap; explicit conversions retain checks. | Checked-host C#/Node runtime and trap parity fixtures. |
+| `null`, `undefined`, ordinary nullish fallback | No Copeland nullish runtime values; diagnostic guidance incomplete. | Retain Option difference. | `Option<T>`, `Some(value)`, `None`, supported `??` / `?.`. | Direct Option repairs; preserve existing typed absence rules. |
+| `any` | Rejected without a useful runtime type. | Keep rejection; layout depends on types. | Concrete type, nominal record, constrained generic. | One useful profile diagnostic. |
+| Record field mutation | Immutable record assignment rejected. | Keep value semantics. | `recordValue with { field: replacementValue }` | Add exact repair and lock single primary span. |
+| Generated namespace/module/carrier changes | MSBuild/query owners perform emitted-source replacement. | Structural selection required. | Backend emission options. | Remove semantic source rewrites; runtime identity/literal and architecture checks. |
+| Compiler repack with unchanged version/size/time | Weak compiler-payload fingerprint inputs. | Actual payload bytes needed. | SHA-256 of task/compiler/backend/MIR assemblies. | Production helper test with real equal-metadata/different-byte assemblies; explicit options included. |
+| Payload-less enum construction | C# allocates per use. | Cache immutable cases. | Generated singleton construction. | Runtime reference reuse; intentional golden repins. |
+| Small pure batches | Always parallel; eager failure dictionary allocation. | Adaptive scheduling yes. | Sequential small inputs, lazy failures. | Measure sizes 1–16384; conservative threshold 128 with documented cost tradeoff. |
+
+Exact per-fixture baseline diagnostics and spans are in [baseline-instinct-map.json](../../artifacts/copeland-typescript-instinct-m26/baseline-instinct-map.json). Failed dogfood sources are retained verbatim in the separate baseline and current transcripts. Acceptance snapshots do not imply execution: the final corpus and dogfood execution files provide that independent evidence.
+
+The governing decision is whether a divergence buys static semantics, deterministic policy, useful layout, compilation quality, or clearer agent reasoning. Keep valuable differences and explain the repair; remove syntax friction that buys nothing. The bounded native-map gap is a capability gap, not evidence that TypeScript intuition conflicts with Copeland's core semantics.

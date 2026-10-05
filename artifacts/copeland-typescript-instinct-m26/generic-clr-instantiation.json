@@ -1,0 +1,63 @@
+{
+  "qualified": true,
+  "clrOnly": true,
+  "forms": [
+    "using System.Collections.Generic; new List<int>()",
+    "List<int>()",
+    "new Dictionary<string, int>()"
+  ],
+  "cases": [
+    {
+      "Id": "generic-clr-list",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "1",
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "clr-dictionary-indexer",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "9",
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "clr-generic-signature",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "7",
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "malformed-generic",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-CLR-GENERIC-0002",
+          "Message": "'int[]' has no admitted CLR generic type-argument mapping. Use int, float, string, boolean, or an imported CLR type.",
+          "Position": 75,
+          "Length": 4,
+          "SourcePath": "malformed-generic.ts",
+          "SuggestedReplacement": null,
+          "RepairKind": null
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "clr-constructor-call",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "0",
+      "JavaScriptResult": null
+    }
+  ],
+  "authority": "Closed reflected CLR types, constructors, and property accessor MethodInfo identities.",
+  "fix": "Resolve CLR using directives before function signatures; preserve local declaration conflicts.",
+  "unsupported": [
+    "nested generic owners",
+    "type arguments without CLR mappings",
+    "CLR execution in JavaScript"
+  ]
+}

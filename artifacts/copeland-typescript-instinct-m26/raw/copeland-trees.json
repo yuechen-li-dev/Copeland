@@ -1,0 +1,1 @@
+{"name":"trees","quick":false,"trials":[{"result":"67283631","milliseconds":682.4733,"allocatedBytes":2153076864,"gcCollections":[129,28,1]},{"result":"67283631","milliseconds":600.8994,"allocatedBytes":2153076336,"gcCollections":[130,34,1]},{"result":"67283631","milliseconds":666.4269,"allocatedBytes":2153076336,"gcCollections":[130,34,1]}],"peakWorkingSetBytes":88133632}

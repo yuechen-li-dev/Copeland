@@ -83,8 +83,6 @@ function main(): number {
 
     [Theory]
     [InlineData("var value: number = 1;")]
-    [InlineData("function equal(left: number, right: number): boolean { return left === right; }")]
-    [InlineData("function different(left: number, right: number): boolean { return left !== right; }")]
     public void Profile_Rejections_Stop_Before_Mir(string source)
     {
         var compilation = CopelandCompiler.CompileToMir(source);

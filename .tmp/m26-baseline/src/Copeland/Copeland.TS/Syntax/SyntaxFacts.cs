@@ -1,0 +1,159 @@
+using System.Collections.Frozen;
+
+namespace Copeland.TS.Syntax;
+
+public static class SyntaxFacts
+{
+    private static readonly FrozenDictionary<string, SyntaxKind> KeywordKinds =
+        new Dictionary<string, SyntaxKind>(StringComparer.Ordinal)
+        {
+            ["const"] = SyntaxKind.ConstKeyword,
+            ["let"] = SyntaxKind.LetKeyword,
+            ["function"] = SyntaxKind.FunctionKeyword,
+            ["enum"] = SyntaxKind.EnumKeyword,
+            ["record"] = SyntaxKind.RecordKeyword,
+            ["layout"] = SyntaxKind.LayoutKeyword,
+            ["table"] = SyntaxKind.TableKeyword,
+            ["column"] = SyntaxKind.ColumnKeyword,
+            ["match"] = SyntaxKind.MatchKeyword,
+            ["switch"] = SyntaxKind.SwitchKeyword,
+            ["return"] = SyntaxKind.ReturnKeyword,
+            ["if"] = SyntaxKind.IfKeyword,
+            ["else"] = SyntaxKind.ElseKeyword,
+            ["while"] = SyntaxKind.WhileKeyword,
+            ["for"] = SyntaxKind.ForKeyword,
+            ["true"] = SyntaxKind.TrueKeyword,
+            ["false"] = SyntaxKind.FalseKeyword,
+            ["null"] = SyntaxKind.NullKeyword,
+            ["number"] = SyntaxKind.NumberKeyword,
+            ["int"] = SyntaxKind.IntKeyword,
+            ["float"] = SyntaxKind.FloatKeyword,
+            ["string"] = SyntaxKind.StringKeyword,
+            ["boolean"] = SyntaxKind.BooleanKeyword,
+            ["void"] = SyntaxKind.VoidKeyword,
+            ["var"] = SyntaxKind.VarKeyword,
+            ["with"] = SyntaxKind.WithKeyword,
+            ["try"] = SyntaxKind.TryKeyword,
+            ["except"] = SyntaxKind.ExceptKeyword,
+            ["break"] = SyntaxKind.BreakKeyword,
+            ["continue"] = SyntaxKind.ContinueKeyword,
+            ["async"] = SyntaxKind.AsyncKeyword,
+            ["await"] = SyntaxKind.AwaitKeyword,
+            ["yield"] = SyntaxKind.YieldKeyword,
+            ["static"] = SyntaxKind.StaticKeyword,
+            ["reflect"] = SyntaxKind.ReflectKeyword,
+            ["template"] = SyntaxKind.TemplateKeyword,
+        }.ToFrozenDictionary(StringComparer.Ordinal);
+
+    public static SyntaxKind GetKeywordKind(string text)
+        => KeywordKinds.GetValueOrDefault(text, SyntaxKind.IdentifierToken);
+
+    public static int GetUnaryOperatorPrecedence(SyntaxKind kind)
+        => kind switch
+        {
+            SyntaxKind.BangToken or SyntaxKind.MinusToken => 8,
+            _ => 0,
+        };
+
+    public static int GetBinaryOperatorPrecedence(SyntaxKind kind)
+        => kind switch
+        {
+            SyntaxKind.StarToken or SyntaxKind.SlashToken or SyntaxKind.PercentToken => 7,
+            SyntaxKind.PlusToken or SyntaxKind.MinusToken => 6,
+            SyntaxKind.LessToken or SyntaxKind.LessOrEqualsToken or SyntaxKind.GreaterToken or SyntaxKind.GreaterOrEqualsToken => 5,
+            SyntaxKind.EqualsEqualsToken or SyntaxKind.BangEqualsToken or SyntaxKind.EqualsEqualsEqualsToken or SyntaxKind.BangEqualsEqualsToken => 4,
+            SyntaxKind.AmpersandAmpersandToken => 3,
+            SyntaxKind.PipePipeToken => 2,
+            // Pipeline binds after postfix application (calls, member access,
+            // propagation, and `with`) but before assignment. Its parser loop
+            // makes equal-precedence chains left associative.
+            SyntaxKind.PipeGreaterToken => 1,
+            _ => 0,
+        };
+
+    public static string? GetText(SyntaxKind kind)
+        => kind switch
+        {
+            SyntaxKind.OpenParenToken => "(",
+            SyntaxKind.CloseParenToken => ")",
+            SyntaxKind.OpenBraceToken => "{",
+            SyntaxKind.CloseBraceToken => "}",
+            SyntaxKind.OpenBracketToken => "[",
+            SyntaxKind.CloseBracketToken => "]",
+            SyntaxKind.CommaToken => ",",
+            SyntaxKind.DotToken => ".",
+            SyntaxKind.ColonToken => ":",
+            SyntaxKind.SemicolonToken => ";",
+            SyntaxKind.QuestionToken => "?",
+            SyntaxKind.AtToken => "@",
+            SyntaxKind.PlusToken => "+",
+            SyntaxKind.MinusToken => "-",
+            SyntaxKind.StarToken => "*",
+            SyntaxKind.SlashToken => "/",
+            SyntaxKind.PercentToken => "%",
+            SyntaxKind.BangToken => "!",
+            SyntaxKind.EqualsToken => "=",
+            SyntaxKind.LessToken => "<",
+            SyntaxKind.LessOrEqualsToken => "<=",
+            SyntaxKind.GreaterToken => ">",
+            SyntaxKind.GreaterOrEqualsToken => ">=",
+            SyntaxKind.EqualsEqualsToken => "==",
+            SyntaxKind.BangEqualsToken => "!=",
+            SyntaxKind.EqualsEqualsEqualsToken => "===",
+            SyntaxKind.BangEqualsEqualsToken => "!==",
+            SyntaxKind.AmpersandAmpersandToken => "&&",
+            SyntaxKind.PipeToken => "|",
+            SyntaxKind.PipeGreaterToken => "|>",
+            SyntaxKind.PipePipeToken => "||",
+            SyntaxKind.ArrowToken => "=>",
+            SyntaxKind.ConstKeyword => "const",
+            SyntaxKind.LetKeyword => "let",
+            SyntaxKind.FunctionKeyword => "function",
+            SyntaxKind.EnumKeyword => "enum",
+            SyntaxKind.RecordKeyword => "record",
+            SyntaxKind.LayoutKeyword => "layout",
+            SyntaxKind.TableKeyword => "table",
+            SyntaxKind.ColumnKeyword => "column",
+            SyntaxKind.MatchKeyword => "match",
+            SyntaxKind.SwitchKeyword => "switch",
+            SyntaxKind.ReturnKeyword => "return",
+            SyntaxKind.IfKeyword => "if",
+            SyntaxKind.ElseKeyword => "else",
+            SyntaxKind.WhileKeyword => "while",
+            SyntaxKind.ForKeyword => "for",
+            SyntaxKind.TrueKeyword => "true",
+            SyntaxKind.FalseKeyword => "false",
+            SyntaxKind.NullKeyword => "null",
+            SyntaxKind.NumberKeyword => "number",
+            SyntaxKind.IntKeyword => "int",
+            SyntaxKind.FloatKeyword => "float",
+            SyntaxKind.StringKeyword => "string",
+            SyntaxKind.BooleanKeyword => "boolean",
+            SyntaxKind.VoidKeyword => "void",
+            SyntaxKind.VarKeyword => "var",
+            SyntaxKind.WithKeyword => "with",
+            SyntaxKind.TryKeyword => "try",
+            SyntaxKind.ExceptKeyword => "except",
+            SyntaxKind.BreakKeyword => "break",
+            SyntaxKind.ContinueKeyword => "continue",
+            SyntaxKind.AsyncKeyword => "async",
+            SyntaxKind.AwaitKeyword => "await",
+            SyntaxKind.YieldKeyword => "yield",
+            SyntaxKind.ClassKeyword => "class",
+            SyntaxKind.ConstructorKeyword => "constructor",
+            SyntaxKind.PublicKeyword => "public",
+            SyntaxKind.PrivateKeyword => "private",
+            SyntaxKind.ProtectedKeyword => "protected",
+            SyntaxKind.NewKeyword => "new",
+            SyntaxKind.ThisKeyword => "this",
+            SyntaxKind.SuperKeyword => "super",
+            SyntaxKind.ExtendsKeyword => "extends",
+            SyntaxKind.StaticKeyword => "static",
+            SyntaxKind.ReflectKeyword => "reflect",
+            SyntaxKind.TemplateKeyword => "template",
+            SyntaxKind.ReadonlyKeyword => "readonly",
+            SyntaxKind.GetKeyword => "get",
+            SyntaxKind.SetKeyword => "set",
+            _ => null,
+        };
+}

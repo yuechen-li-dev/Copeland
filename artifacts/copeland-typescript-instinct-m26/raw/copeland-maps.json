@@ -1,0 +1,1 @@
+{"name":"maps","quick":false,"trials":[{"result":"-1538607552","milliseconds":276.4291,"allocatedBytes":264275280,"gcCollections":[18,15,8]},{"result":"-1538607552","milliseconds":268.98,"allocatedBytes":264263624,"gcCollections":[19,13,8]},{"result":"-1538607552","milliseconds":278.5861,"allocatedBytes":264263520,"gcCollections":[19,14,8]}],"peakWorkingSetBytes":93708288}

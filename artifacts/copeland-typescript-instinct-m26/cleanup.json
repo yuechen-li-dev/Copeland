@@ -1,0 +1,7 @@
+{
+  "status": "blocked-by-automatic-approval-review",
+  "action": "Delete only M26-created repository-local scratch files and directories",
+  "reason": "blocked by policy",
+  "retainedUnder": ".tmp",
+  "userFilesRemoved": false
+}

@@ -714,7 +714,7 @@ public sealed class CliIntegrationTests
 
         var emissions = new[]
         {
-            (Emit: "mir", File: "main.cope", Length: 626, Hash: "D0C536F3951C1A1955F985FECF5DA2098D0DB4FC8760234CB53D94A34F79EB93"),
+            (Emit: "mir", File: "main.cope", Length: 602, Hash: "7D8233C236DF3B5F38DD1F5793346B51D5EE7A33D58E0054393D8E0408C6C595"),
             (Emit: "csharp", File: "main.g.cs", Length: 1085, Hash: "BCABF245706A41808844969864760D7C95E88CC4DB97D68989F0B0DB969549AF"),
             (Emit: "javascript", File: "main.g.js", Length: 2577, Hash: "6F670D0F21F0B27BD1CAE7898024FCD60C9DD912373FC6C464B71E83BF1DBF81"),
         };

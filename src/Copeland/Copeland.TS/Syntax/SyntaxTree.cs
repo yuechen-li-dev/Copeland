@@ -35,7 +35,9 @@ public sealed class SyntaxTree
     public static SyntaxTree Parse(string text, string? sourcePath)
     {
         SourceFileKind fileKind = SourceFileKindExtensions.FromSourcePath(sourcePath);
-        SyntaxTree tree = Parse(text, fileKind);
+        SyntaxTree parsed = Parse(text, fileKind);
+        var locatedDiagnostics = parsed.Diagnostics.Select(diagnostic => diagnostic with { SourcePath = sourcePath }).ToArray();
+        SyntaxTree tree = new(text, parsed.Root, parsed.Tokens, locatedDiagnostics);
 
         if (sourcePath is null || !sourcePath.EndsWith(".jsx", StringComparison.OrdinalIgnoreCase))
         {

@@ -1,0 +1,10 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Copeland",
+  "classifications": ["Copeland", "Workspace"],
+  "identity": "Copeland.TS.Workspace",
+  "name": "Copeland mixed TypeScript workspace",
+  "shortName": "copeland-workspace",
+  "sourceName": "Copeland.Workspace",
+  "preferNameDirectory": true
+}

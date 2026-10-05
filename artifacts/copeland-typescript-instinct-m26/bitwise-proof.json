@@ -1,0 +1,51 @@
+{
+  "qualified": true,
+  "cases": [
+    {
+      "Id": "bitwise-hash",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "1442875234",
+      "JavaScriptResult": "1442875234"
+    },
+    {
+      "Id": "bitwise-shift-mask",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "2",
+      "JavaScriptResult": "2"
+    },
+    {
+      "Id": "hex-int-bit-pattern",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "-1",
+      "JavaScriptResult": "-1"
+    },
+    {
+      "Id": "int-negative-shift",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "-4",
+      "JavaScriptResult": "-4"
+    },
+    {
+      "Id": "bitwise-float",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-TYPE-0007",
+          "Message": "Bitwise operands must both have type int; use an explicit Int conversion policy.",
+          "Position": 33,
+          "Length": 1,
+          "SourcePath": "bitwise-float.ts",
+          "SuggestedReplacement": null,
+          "RepairKind": null
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    }
+  ],
+  "policy": "int operands only; signed result; arithmetic right shift; shift count masked to low 5 bits"
+}

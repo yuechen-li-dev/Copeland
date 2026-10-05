@@ -1,0 +1,1 @@
+[{"Id":"COPE-CLR-0005","Message":"No applicable CLR overload for \u0027System.Linq.Enumerable.Where\u0027 with (int[], (value: int) =\u003E boolean).","Position":116,"Length":1,"SourcePath":null},{"Id":"COPE-CLR-0005","Message":"No applicable CLR overload for \u0027System.Linq.Enumerable.ToArray\u0027 with (error).","Position":99,"Length":1,"SourcePath":null}]

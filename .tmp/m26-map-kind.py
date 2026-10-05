@@ -1,0 +1,2 @@
+from pathlib import Path
+p=Path('src/Copeland/Copeland.TS/Semantics/Binder.cs');s=p.read_text().replace('if (_missingNativeMapReported) return;','if (_missingNativeMapReported)\n            {\n                return;\n            }').replace('"using System.Collections.Generic; new Dictionary<K, V>()");','"using System.Collections.Generic; new Dictionary<K, V>()", "unsupported-capability");');p.write_text(s,newline='\n')

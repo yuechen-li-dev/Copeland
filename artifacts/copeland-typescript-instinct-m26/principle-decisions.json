@@ -1,0 +1,70 @@
+{
+  "law": "Accept defined semantics, provide one primary exact repair, or state a missing capability with the closest supported alternative.",
+  "decisions": [
+    {
+      "instinct": "Named ++/-- and compound arithmetic",
+      "decision": "accept",
+      "rationale": "Typed mutation gains no safety from spelling out every addition."
+    },
+    {
+      "instinct": "=== and !==",
+      "decision": "accept aliases",
+      "rationale": "Existing typed equality already excludes coercion; add no identity domain."
+    },
+    {
+      "instinct": "Receiver string methods",
+      "decision": "repair",
+      "rationale": "Keep associated functions and name the exact native call."
+    },
+    {
+      "instinct": "new and generic CLR constructors",
+      "decision": "accept CLR-only",
+      "rationale": "Reuse reflected constructor/type authority, not a second runtime."
+    },
+    {
+      "instinct": "Pure structured batch branches",
+      "decision": "accept bounded",
+      "rationale": "Normalize into existing expression/value semantics."
+    },
+    {
+      "instinct": "Computed compound mutation",
+      "decision": "repair",
+      "rationale": "Bind receiver/index once and spell out the indexed update."
+    },
+    {
+      "instinct": "Immutable records and closed object values",
+      "decision": "retain",
+      "rationale": "Preserve value identity/layout; update through with."
+    },
+    {
+      "instinct": "Option rather than null/undefined",
+      "decision": "retain",
+      "rationale": "One explicit absence model with typed construction and access."
+    },
+    {
+      "instinct": "Explicit closure captures",
+      "decision": "retain",
+      "rationale": "Keep ownership visible; no implicit ambient capture."
+    },
+    {
+      "instinct": "any",
+      "decision": "repair",
+      "rationale": "Concrete values or constrained generics preserve layout and static authority."
+    },
+    {
+      "instinct": "Native mutable map/list",
+      "decision": "unsupported",
+      "rationale": "CLR alternatives exist; native ordered hash/Option semantics still require a shared owner."
+    },
+    {
+      "instinct": "int32 arithmetic",
+      "decision": "wrap",
+      "rationale": "Specify the same result in static evaluation, checked C# hosts, and JavaScript."
+    },
+    {
+      "instinct": "SoA/record-table layout",
+      "decision": "retain",
+      "rationale": "Scalar column hot loops need no forced row materialization."
+    }
+  ]
+}

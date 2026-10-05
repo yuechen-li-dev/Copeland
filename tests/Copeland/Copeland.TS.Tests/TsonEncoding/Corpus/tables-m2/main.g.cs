@@ -40,9 +40,15 @@ public abstract record TsonEncodeError
     {
     }
 
-    public sealed record InvalidUnicode : TsonEncodeError;
+    public sealed record InvalidUnicode : TsonEncodeError
+    {
+        internal static InvalidUnicode __Singleton { get; } = new();
+    }
 
-    public sealed record OutputLimitExceeded : TsonEncodeError;
+    public sealed record OutputLimitExceeded : TsonEncodeError
+    {
+        internal static OutputLimitExceeded __Singleton { get; } = new();
+    }
 
 }
 public abstract record TableBoundsError
@@ -62,7 +68,10 @@ public abstract record State
     {
     }
 
-    public sealed record Off : State;
+    public sealed record Off : State
+    {
+        internal static Off __Singleton { get; } = new();
+    }
 
     public sealed record Named(string label) : State;
 
@@ -357,7 +366,7 @@ public sealed class __CopeTable_t2
             new bool[] { true, false, true, false, true },
             new double[] { 0.0, -0.0, 1.5, global::System.BitConverter.UInt64BitsToDouble(0x7FF8000000000000UL), global::System.Double.NegativeInfinity },
             new __CopeRecord_r1[] { new __CopeRecord_r1("plain"), new __CopeRecord_r1("quote \" slash \\ newline\n"), new __CopeRecord_r1("雪"), new __CopeRecord_r1("😀"), new __CopeRecord_r1("𐐷") },
-            new State[] { new State.Off(), new State.Named("payload"), new State.Named("雪"), new State.Off(), new State.Named("array") },
+            new State[] { State.Off.__Singleton, new State.Named("payload"), new State.Named("雪"), State.Off.__Singleton, new State.Named("array") },
             new double[][][] { new double[][] {  }, new double[][] { new double[] { 1.0, 2.0 }, new double[] {  } }, new double[][] { new double[] {  }, new double[] { 0.0 } }, new double[][] { new double[] { global::System.Double.PositiveInfinity } }, new double[][] { new double[] { global::System.BitConverter.UInt64BitsToDouble(0x7FF8000000000000UL) } } }
         );
     }

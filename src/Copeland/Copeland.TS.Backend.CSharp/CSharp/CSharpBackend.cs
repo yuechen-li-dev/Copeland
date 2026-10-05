@@ -69,13 +69,15 @@ public static class CSharpBackend
 
     private static readonly AsyncLocal<CSharpEmissionState?> CurrentEmissionState = new();
     private static readonly AsyncLocal<string?> CurrentSourcePath = new();
-    private static readonly AsyncLocal<string?> CurrentModuleClassName = new();
+    private static readonly AsyncLocal<CSharpEmissionOptions?> CurrentOptions = new();
+    private static readonly AsyncLocal<bool> UsesNativeStrings = new();
+    private static readonly AsyncLocal<bool> UsesIntegerRuntime = new();
 
     /// <summary>The module class name used when no host-specific name is requested.</summary>
     public const string DefaultModuleClassName = "CopelandModule";
 
     public static CSharpCompilation Emit(MirProgram program)
-        => EmitCore(program, null, DefaultModuleClassName);
+        => Emit(program, new CSharpEmissionOptions());
 
     /// <summary>
     /// Emits the module class under <paramref name="moduleClassName"/>. Every
@@ -85,12 +87,25 @@ public static class CSharpBackend
     /// </summary>
     public static CSharpCompilation Emit(MirProgram program, string moduleClassName)
     {
-        if (!IsValidModuleClassName(moduleClassName))
-        {
-            throw new ArgumentException($"'{moduleClassName}' is not a valid C# module class name.", nameof(moduleClassName));
-        }
+        return Emit(program, new CSharpEmissionOptions { ModuleClassName = moduleClassName });
+    }
 
-        return EmitCore(program, null, moduleClassName);
+    public static CSharpCompilation Emit(MirProgram program, CSharpEmissionOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (!IsValidModuleClassName(options.ModuleClassName))
+        {
+            throw new ArgumentException("Invalid generated module class name.", nameof(options));
+        }
+        if (string.IsNullOrEmpty(options.Namespace) || !options.Namespace.Split('.').All(IsValidModuleClassName))
+        {
+            throw new ArgumentException("Invalid generated namespace.", nameof(options));
+        }
+        if (options.RecordCarrierScope is not null && !IsValidModuleClassName(options.RecordCarrierScope))
+        {
+            throw new ArgumentException("Invalid record carrier scope.", nameof(options));
+        }
+        return EmitCore(program, null, options);
     }
 
     private static bool IsValidModuleClassName(string name)
@@ -113,10 +128,13 @@ public static class CSharpBackend
             }
         }
 
-        return true;
+        return Microsoft.CodeAnalysis.CSharp.SyntaxFacts.GetKeywordKind(name) == Microsoft.CodeAnalysis.CSharp.SyntaxKind.None;
     }
 
-    private static string ModuleClassName => CurrentModuleClassName.Value ?? DefaultModuleClassName;
+    private static CSharpEmissionOptions EmissionOptions => CurrentOptions.Value ?? new CSharpEmissionOptions();
+    private static string ModuleClassName => EmissionOptions.ModuleClassName;
+    private static string FunctionAccessibility(MirFunction function)
+        => EmissionOptions.PublicFunctionNames is null || EmissionOptions.PublicFunctionNames.Contains(function.Name) ? "public" : "internal";
 
     /// <summary>
     /// Emits a root application and binds targetless tsonCall to the one
@@ -131,10 +149,10 @@ public static class CSharpBackend
             return new CSharpCompilation(string.Empty, [diagnostic!]);
         }
 
-        return EmitCore(program, ProgramUsesTsonTransport(program) ? contract : null, DefaultModuleClassName);
+        return EmitCore(program, ProgramUsesTsonTransport(program) ? contract : null, new CSharpEmissionOptions());
     }
 
-    private static CSharpCompilation EmitCore(MirProgram program, CSharpSidecarContract? sidecarContract, string moduleClassName)
+    private static CSharpCompilation EmitCore(MirProgram program, CSharpSidecarContract? sidecarContract, CSharpEmissionOptions options)
     {
         var diagnostics = MirValidator.Validate(program)
             .Select(diagnostic => new CSharpDiagnostic("COPE-CS-0002", $"Invalid MIR: {diagnostic.Message}"))
@@ -158,112 +176,126 @@ public static class CSharpBackend
         var writer = new CSharpTextWriter();
         string? previousSourcePath = CurrentSourcePath.Value;
         CurrentSourcePath.Value = program.CSharpSourcePath;
-        string? previousModuleClassName = CurrentModuleClassName.Value;
-        CurrentModuleClassName.Value = moduleClassName;
-        var enumNames = program.Enums.Select(@enum => @enum.Name).ToHashSet(StringComparer.Ordinal);
-        var recordsById = program.Records.ToDictionary(record => record.Id);
-        var tablesById = program.Tables.ToDictionary(table => table.Id);
-        var tsonTableIds = program.TsonEncodingPlans
-            .Where(plan => plan.TablePlan is not null)
-            .Select(plan => plan.TablePlan!.TableId)
-            .ToHashSet();
-        var usesResult = ProgramUsesResult(program) || program.Tables.Count > 0;
-        var usesUnwrap = ProgramUsesUnwrap(program);
-        var needsUnit = EnumerateTypes(program).Any(ContainsVoidResult);
-        var errorTypes = CollectErrorNominalTypes(program, enumNames);
-        var usesAsync = program.Functions.Any(function => function.IsAsync);
-        var usesGenerators = program.Functions.Any(function => function.IsGenerator);
-        var usesTsonTransport = ProgramUsesTsonTransport(program);
-        var usesSystemTextJson = ProgramUsesSystemTextJson(program);
-        var usesBatch = ProgramUsesBatch(program);
-        var usesArrayElementAccess = ProgramUsesArrayElementAccess(program);
-        var usesTableWith = program.Functions.Any(function => function.Body.Any(StatementUsesTableWith));
-        var usesTextDocuments = EnumerateTypes(program).Any(type => type.Identifier == "Document");
+        CSharpEmissionOptions? previousOptions = CurrentOptions.Value;
+        CurrentOptions.Value = options;
+        bool previousNativeStrings = UsesNativeStrings.Value;
+        UsesNativeStrings.Value = false;
+        bool previousIntegerRuntime = UsesIntegerRuntime.Value;
+        UsesIntegerRuntime.Value = false;
+        try
+        {
+            var enumNames = program.Enums.Select(@enum => @enum.Name).ToHashSet(StringComparer.Ordinal);
+            var recordsById = program.Records.ToDictionary(record => record.Id);
+            var tablesById = program.Tables.ToDictionary(table => table.Id);
+            var tsonTableIds = program.TsonEncodingPlans
+                .Where(plan => plan.TablePlan is not null)
+                .Select(plan => plan.TablePlan!.TableId)
+                .ToHashSet();
+            var usesResult = ProgramUsesResult(program) || program.Tables.Count > 0;
+            var usesUnwrap = ProgramUsesUnwrap(program);
+            var needsUnit = EnumerateTypes(program).Any(ContainsVoidResult);
+            var errorTypes = CollectErrorNominalTypes(program, enumNames);
+            var usesAsync = program.Functions.Any(function => function.IsAsync);
+            var usesGenerators = program.Functions.Any(function => function.IsGenerator);
+            var usesTsonTransport = ProgramUsesTsonTransport(program);
+            var usesSystemTextJson = ProgramUsesSystemTextJson(program);
+            var usesBatch = ProgramUsesBatch(program);
+            var usesArrayElementAccess = ProgramUsesArrayElementAccess(program);
+            var usesTableWith = program.Functions.Any(function => function.Body.Any(StatementUsesTableWith));
+            var usesTextDocuments = EnumerateTypes(program).Any(type => type.Identifier == "Document");
 
-        writer.WriteLine("// <auto-generated />"); writer.WriteLine("#nullable enable"); writer.WriteLine();
-        foreach (string @namespace in program.CSharpUsings)
-        {
-            writer.WriteLine($"using {@namespace};");
-        }
-        if (program.CSharpUsings.Count > 0)
-        {
-            writer.WriteLine();
-        }
-        writer.WriteLine("namespace Copeland.Generated;"); writer.WriteLine();
-        if (usesTextDocuments) EmitTextDocumentRuntime(writer);
-        if (needsUnit) EmitUnit(writer);
-        if (usesArrayElementAccess) EmitArraySupport(writer);
-        if (usesResult) EmitResult(writer);
-        if (usesAsync) EmitAsyncRuntime(writer);
-        if (usesGenerators) EmitGeneratorRuntime(writer);
-        if (usesTsonTransport) EmitTsonTransportRuntime(writer, sidecarContract);
-        foreach (var errorType in errorTypes) writer.WriteLine($"public readonly record struct {CSharpNameMangler.Mangle(errorType)};");
-        if (errorTypes.Count > 0) writer.WriteLine();
-        foreach (var record in program.Records) EmitRecord(writer, record, usesSystemTextJson);
-        if (program.Records.Count > 0) writer.WriteLine();
-        foreach (var mirEnum in program.Enums) EmitEnum(writer, mirEnum);
-        if (program.Enums.Count > 0) writer.WriteLine();
-        foreach (MirFlowDefinition flow in program.Flows)
-        {
-            EmitFlow(writer, flow, enumNames, diagnostics);
-            writer.WriteLine();
-        }
-        EmitCallableDelegates(writer, program);
-        EmitCapturedCallableEnvironments(writer, program);
-        if (program.Tables.Count > 0)
-        {
-            EmitColumnSupport(writer);
+            writer.WriteLine("// <auto-generated />"); writer.WriteLine("#nullable enable"); writer.WriteLine();
+            foreach (string @namespace in program.CSharpUsings)
+            {
+                writer.WriteLine($"using {@namespace};");
+            }
+            if (program.CSharpUsings.Count > 0)
+            {
+                writer.WriteLine();
+            }
+            writer.WriteLine($"namespace {EmissionOptions.Namespace};"); writer.WriteLine();
+            if (usesTextDocuments) EmitTextDocumentRuntime(writer);
+            if (needsUnit) EmitUnit(writer);
+            if (usesArrayElementAccess) EmitArraySupport(writer);
+            if (usesResult) EmitResult(writer);
+            if (usesAsync) EmitAsyncRuntime(writer);
+            if (usesGenerators) EmitGeneratorRuntime(writer);
+            if (usesTsonTransport) EmitTsonTransportRuntime(writer, sidecarContract);
+            foreach (var errorType in errorTypes) writer.WriteLine($"public readonly record struct {CSharpNameMangler.Mangle(errorType)};");
+            if (errorTypes.Count > 0) writer.WriteLine();
+            foreach (var record in program.Records) EmitRecord(writer, record, usesSystemTextJson);
+            if (program.Records.Count > 0) writer.WriteLine();
+            foreach (var mirEnum in program.Enums) EmitEnum(writer, mirEnum);
+            if (program.Enums.Count > 0) writer.WriteLine();
+            foreach (MirFlowDefinition flow in program.Flows)
+            {
+                EmitFlow(writer, flow, enumNames, diagnostics);
+                writer.WriteLine();
+            }
+            EmitCallableDelegates(writer, program);
+            EmitCapturedCallableEnvironments(writer, program);
+            if (program.Tables.Count > 0)
+            {
+                EmitColumnSupport(writer);
+                foreach (var table in program.Tables)
+                {
+                    EmitTable(writer, table, recordsById, tablesById, tsonTableIds.Contains(table.Id), usesTableWith, enumNames);
+                }
+            }
+            writer.WriteLine($"public static class {ModuleClassName}"); writer.WriteLine("{"); writer.Indent();
             foreach (var table in program.Tables)
             {
-                EmitTable(writer, table, recordsById, tablesById, tsonTableIds.Contains(table.Id), usesTableWith, enumNames);
+                string createExpression = table.DerivedPlan is null
+                    ? $"{TableTypeName(table.Id)}.Create()"
+                    : $"{TableTypeName(table.Id)}.Create({string.Join(", ", new[] { TableSingletonName(table.DerivedPlan.SourceTableId) }.Concat(table.DerivedPlan.Joins.Select(join => TableSingletonName(join.JoinedTableId))))})";
+                writer.WriteLine($"private static readonly {TableTypeName(table.Id)} {TableSingletonName(table.Id)} = {createExpression};");
+                if (program.ExecutableArtifacts.OfType<MirTableQueryArtifact>().Any(query => query.SourceRelationId == table.Id))
+                {
+                    writer.WriteLine($"internal static {TableTypeName(table.Id)} __CopelandQueryTable_{EncodeStableIdentity(table.Id.Value)} => {TableSingletonName(table.Id)};");
+                }
+                if (table.IsExported)
+                {
+                    writer.WriteLine($"public static {TableTypeName(table.Id)} {CSharpNameMangler.Mangle(table.Name)} => {TableSingletonName(table.Id)};");
+                }
             }
-        }
-        writer.WriteLine($"public static class {ModuleClassName}"); writer.WriteLine("{"); writer.Indent();
-        foreach (var table in program.Tables)
-        {
-            string createExpression = table.DerivedPlan is null
-                ? $"{TableTypeName(table.Id)}.Create()"
-                : $"{TableTypeName(table.Id)}.Create({string.Join(", ", new[] { TableSingletonName(table.DerivedPlan.SourceTableId) }.Concat(table.DerivedPlan.Joins.Select(join => TableSingletonName(join.JoinedTableId))))})";
-            writer.WriteLine($"private static readonly {TableTypeName(table.Id)} {TableSingletonName(table.Id)} = {createExpression};");
-            if (program.ExecutableArtifacts.OfType<MirTableQueryArtifact>().Any(query => query.SourceRelationId == table.Id))
+            if (program.Tables.Count > 0)
             {
-                writer.WriteLine($"internal static {TableTypeName(table.Id)} __CopelandQueryTable_{EncodeStableIdentity(table.Id.Value)} => {TableSingletonName(table.Id)};");
+                writer.WriteLine();
             }
-            if (table.IsExported)
+            if (usesUnwrap)
             {
-                writer.WriteLine($"public static {TableTypeName(table.Id)} {CSharpNameMangler.Mangle(table.Name)} => {TableSingletonName(table.Id)};");
+                EmitUnwrapPanic(writer);
             }
-        }
-        if (program.Tables.Count > 0)
-        {
-            writer.WriteLine();
-        }
-        if (usesUnwrap)
-        {
-            EmitUnwrapPanic(writer);
-        }
-        if (usesBatch)
-        {
-            EmitBatchTestSeam(writer);
-        }
-        if (program.TsonEncodingPlans.Count > 0)
-        {
-            EmitTsonEncodingRuntime(writer, program.TsonEncodingPlans, recordsById, usesTsonTransport);
-        }
-        foreach (var function in program.Functions)
-        {
-            if (function.IsAsync)
+            if (usesBatch)
             {
-                EmitAsyncFrame(writer, function);
+                EmitBatchTestSeam(writer);
             }
+            if (program.TsonEncodingPlans.Count > 0)
+            {
+                EmitTsonEncodingRuntime(writer, program.TsonEncodingPlans, recordsById, usesTsonTransport);
+            }
+            foreach (var function in program.Functions)
+            {
+                if (function.IsAsync)
+                {
+                    EmitAsyncFrame(writer, function);
+                }
+            }
+            foreach (var function in program.Functions) EmitFunction(writer, function, enumNames, recordsById, diagnostics);
+            if (UsesNativeStrings.Value) NativeStringRuntime.Emit(writer);
+            if (UsesIntegerRuntime.Value) IntegerRuntime.Emit(writer);
+            writer.Unindent(); writer.WriteLine("}");
+            return diagnostics.Count == 0
+                ? new CSharpCompilation(writer.ToString(), diagnostics, sidecarContract)
+                : new CSharpCompilation(string.Empty, diagnostics);
         }
-        foreach (var function in program.Functions) EmitFunction(writer, function, enumNames, recordsById, diagnostics);
-        writer.Unindent(); writer.WriteLine("}");
-        CurrentSourcePath.Value = previousSourcePath;
-        CurrentModuleClassName.Value = previousModuleClassName;
-        return diagnostics.Count == 0
-            ? new CSharpCompilation(writer.ToString(), diagnostics, sidecarContract)
-            : new CSharpCompilation(string.Empty, diagnostics);
+        finally
+        {
+            CurrentSourcePath.Value = previousSourcePath;
+            CurrentOptions.Value = previousOptions;
+            UsesNativeStrings.Value = previousNativeStrings;
+            UsesIntegerRuntime.Value = previousIntegerRuntime;
+        }
     }
 
     private static void EmitFlow(CSharpTextWriter writer, MirFlowDefinition flow, IReadOnlySet<string> enumNames, List<CSharpDiagnostic> diagnostics)
@@ -404,6 +436,7 @@ public static class CSharpBackend
         writer.WriteLine("// Private test seam: never reachable from authored Copeland code.");
         writer.WriteLine("private static global::System.Action? __cope_batch_item_entered_for_testing = null;");
         writer.WriteLine("private static int __cope_batch_max_degree_for_testing = 0;");
+        BatchRuntime.Emit(writer);
         writer.WriteLine();
     }
 
@@ -829,9 +862,19 @@ public static class CSharpBackend
         foreach (var @case in mirEnum.Cases)
         {
             var caseName = CSharpNameMangler.Mangle(@case.Name);
-            writer.WriteLine(@case.PayloadFields.Count == 0
-                ? $"public sealed record {caseName} : {enumName};"
-                : $"public sealed record {caseName}({string.Join(", ", @case.PayloadFields.Select(field => $"{MapType(field.Type)} {CSharpNameMangler.Mangle(field.Name)}"))}) : {enumName};");
+            if (@case.PayloadFields.Count == 0)
+            {
+                writer.WriteLine($"public sealed record {caseName} : {enumName}");
+                writer.WriteLine("{");
+                writer.Indent();
+                writer.WriteLine($"internal static {caseName} __Singleton {{ get; }} = new();");
+                writer.Unindent();
+                writer.WriteLine("}");
+            }
+            else
+            {
+                writer.WriteLine($"public sealed record {caseName}({string.Join(", ", @case.PayloadFields.Select(field => $"{MapType(field.Type)} {CSharpNameMangler.Mangle(field.Name)}"))}) : {enumName};");
+            }
             writer.WriteLine();
         }
         writer.Unindent(); writer.WriteLine("}");
@@ -1124,6 +1167,7 @@ public static class CSharpBackend
             MirTableLiteralConstant literal => CSharpLiteralWriter.Write(literal.Value),
             MirTableArrayConstant array => $"new {MapType(array.ArrayType.ElementType)}[] {{ {string.Join(", ", array.Elements.Select(element => EmitTableConstant(element, records)))} }}",
             MirTableRecordConstant record => EmitTableRecordConstant(record, records),
+            MirTableEnumConstant value when value.Payloads.Count == 0 => $"{CSharpNameMangler.Mangle(value.EnumName)}.{CSharpNameMangler.Mangle(value.CaseName)}.__Singleton",
             MirTableEnumConstant value => $"new {CSharpNameMangler.Mangle(value.EnumName)}.{CSharpNameMangler.Mangle(value.CaseName)}({string.Join(", ", value.Payloads.Select(payload => EmitTableConstant(payload, records)))})",
             MirTableResultConstant result => EmitTableResultConstant(result, records),
             _ => throw new InvalidOperationException($"Unsupported validated table constant {constant.GetType().Name}."),
@@ -1172,7 +1216,7 @@ public static class CSharpBackend
             return;
         }
         var returnType = MapType(function.ReturnType); var parameters = string.Join(", ", function.Parameters.Select(parameter => $"{MapType(parameter.Type)} {CSharpNameMangler.Mangle(parameter.Name)}"));
-        writer.WriteLine($"public static {returnType} {CSharpNameMangler.Mangle(function.Name)}({parameters})"); writer.WriteLine("{"); writer.Indent();
+        writer.WriteLine($"{FunctionAccessibility(function)} static {returnType} {CSharpNameMangler.Mangle(function.Name)}({parameters})"); writer.WriteLine("{"); writer.Indent();
         var tempIndex = 0;
         var previousState = CurrentEmissionState.Value;
         CurrentEmissionState.Value = new CSharpEmissionState(records);
@@ -1202,7 +1246,7 @@ public static class CSharpBackend
         string publicName = CSharpNameMangler.Mangle(function.Name);
         string rawName = "__cope_generator_" + publicName;
 
-        writer.WriteLine($"public static {returnType} {publicName}({parameters}) => new CopeGeneratorEnumerable<{elementType}>(() => {rawName}({arguments}).GetEnumerator());");
+        writer.WriteLine($"{FunctionAccessibility(function)} static {returnType} {publicName}({parameters}) => new CopeGeneratorEnumerable<{elementType}>(() => {rawName}({arguments}).GetEnumerator());");
         writer.WriteLine($"private static {returnType} {rawName}({parameters})");
         writer.WriteLine("{");
         writer.Indent();
@@ -1252,7 +1296,7 @@ public static class CSharpBackend
         string resultType = MapValueStorageType(function.ReturnType);
         string parameters = string.Join(", ", function.Parameters.Select(parameter => $"{MapType(parameter.Type)} {CSharpNameMangler.Mangle(parameter.Name)}"));
         string frameType = "__CopeAsyncFrame_" + CSharpNameMangler.Mangle(function.Name);
-        writer.WriteLine($"public static CopeAsync<{resultType}> {CSharpNameMangler.Mangle(function.Name)}({parameters})");
+        writer.WriteLine($"{FunctionAccessibility(function)} static CopeAsync<{resultType}> {CSharpNameMangler.Mangle(function.Name)}({parameters})");
         writer.WriteLine("{");
         writer.Indent();
         writer.WriteLine($"var frame = new {frameType}();");
@@ -1468,10 +1512,10 @@ public static class CSharpBackend
             MirUnitExpression => "CopeUnit.Value",
             MirVariableExpression variable => "frame." + CSharpNameMangler.Mangle(variable.Name),
             MirAsyncFrameSlotExpression slot => "frame.__" + slot.SlotId.Value,
-            MirAssignmentExpression assignment => $"frame.{CSharpNameMangler.Mangle(assignment.Name)} = {EmitAsyncExpression(assignment.Expression, function)}",
-            MirBinaryExpression binary => $"({EmitAsyncExpression(binary.Left, function)} {binary.Operator} {EmitAsyncExpression(binary.Right, function)})",
-            MirUnaryExpression unary => $"({unary.Operator}{EmitAsyncExpression(unary.Operand, function)})",
-            MirCallExpression call => $"{CSharpNameMangler.Mangle(call.FunctionName)}({string.Join(", ", call.Arguments.Select(argument => EmitAsyncExpression(argument, function)))})",
+            MirAssignmentExpression assignment => AssignmentText(assignment, "frame." + CSharpNameMangler.Mangle(assignment.Name), EmitAsyncExpression(assignment.Expression, function)),
+            MirBinaryExpression binary => BinaryText(binary, EmitAsyncExpression(binary.Left, function), EmitAsyncExpression(binary.Right, function)),
+            MirUnaryExpression unary => UnaryText(unary, EmitAsyncExpression(unary.Operand, function)),
+            MirCallExpression call => $"{NativeCallName(call) ?? CSharpNameMangler.Mangle(call.FunctionName)}({string.Join(", ", call.Arguments.Select(argument => EmitAsyncExpression(argument, function)))})",
             MirRecordConstructionExpression construction => EmitAsyncRecordConstruction(construction, function),
             MirRecordFieldAccessExpression access => $"({EmitAsyncExpression(access.Receiver, function)}).{RecordFieldName(access.FieldId)}",
             MirTsonTransportExpression transport => EmitAsyncTsonTransport(transport, function),
@@ -1520,7 +1564,7 @@ public static class CSharpBackend
 
     private static string EmitClrInvocation(MirClrInvocationExpression invocation, MirFunction function)
     {
-        string arguments = string.Join(", ", invocation.Arguments.Select(argument => EmitAsyncExpression(argument, function)));
+        string[] arguments = invocation.Arguments.Select(argument => EmitAsyncExpression(argument, function)).ToArray();
         return EmitClrInvocationCore(invocation.Member, invocation.Receiver is null ? null : EmitAsyncExpression(invocation.Receiver, function), arguments);
     }
 
@@ -1529,7 +1573,7 @@ public static class CSharpBackend
 
     private static string EmitClrInvocation(CSharpTextWriter writer, MirClrInvocationExpression invocation, MirFunction function, IReadOnlySet<string> enumNames, ref int tempIndex, List<CSharpDiagnostic> diagnostics)
     {
-        string arguments = string.Join(", ", EmitArguments(invocation.Arguments, writer, function, enumNames, ref tempIndex, diagnostics));
+        string[] arguments = EmitArguments(invocation.Arguments, writer, function, enumNames, ref tempIndex, diagnostics).ToArray();
         string? receiver = invocation.Receiver is null ? null : EmitExpression(writer, invocation.Receiver, function, enumNames, ref tempIndex, diagnostics);
         return EmitClrInvocationCore(invocation.Member, receiver, arguments);
     }
@@ -1540,18 +1584,21 @@ public static class CSharpBackend
         return EmitClrPropertyCore(property.Property, receiver);
     }
 
-    private static string EmitClrInvocationCore(MirClrMemberIdentity member, string? receiver, string arguments)
+    private static string EmitClrInvocationCore(MirClrMemberIdentity member, string? receiver, IReadOnlyList<string> argumentValues)
     {
-        string declaringType = "global::" + member.DeclaringType;
+        string arguments = string.Join(", ", argumentValues);
+        string declaringType = member.DeclaringTypeIdentity is null ? "global::" + member.DeclaringType : MapClrType(member.DeclaringTypeIdentity);
         if (member.IsConstructor) return $"new {declaringType}({arguments})";
         string target = member.IsStatic ? declaringType : receiver ?? throw new InvalidOperationException("CLR instance invocation has no receiver.");
+        if (member.IsIndexerGetter) return $"({target})[{string.Join(", ", argumentValues)}]";
+        if (member.IsIndexerSetter) return $"({target})[{string.Join(", ", argumentValues.Take(argumentValues.Count - 1))}] = {argumentValues[^1]}";
         string genericSuffix = member.GenericArguments.Count == 0 ? string.Empty : "<" + string.Join(", ", member.GenericArguments.Select(MapType)) + ">";
         return $"{target}.{member.MemberName}{genericSuffix}({arguments})";
     }
 
     private static string EmitClrPropertyCore(MirClrMemberIdentity property, string? receiver)
     {
-        string target = property.IsStatic ? "global::" + property.DeclaringType : receiver ?? throw new InvalidOperationException("CLR instance property has no receiver.");
+        string target = property.IsStatic ? (property.DeclaringTypeIdentity is null ? "global::" + property.DeclaringType : MapClrType(property.DeclaringTypeIdentity)) : receiver ?? throw new InvalidOperationException("CLR instance property has no receiver.");
         return $"{target}.{property.MemberName}";
     }
 
@@ -1794,8 +1841,8 @@ public static class CSharpBackend
             MirTextDocumentExpression document => EmitTextDocument(writer, document, function, enumNames, ref tempIndex, diagnostics),
             MirUnitExpression => "CopeUnit.Value",
             MirVariableExpression variable => CSharpNameMangler.Mangle(variable.Name),
-            MirAssignmentExpression assignment => $"{CSharpNameMangler.Mangle(assignment.Name)} = {EmitExpression(writer, assignment.Expression, function, enumNames, ref tempIndex, diagnostics)}",
-            MirUnaryExpression unary => unary.Operator + ParenthesizeAssignmentOperand(unary.Operand, EmitExpression(writer, unary.Operand, function, enumNames, ref tempIndex, diagnostics)),
+            MirAssignmentExpression assignment => AssignmentText(assignment, CSharpNameMangler.Mangle(assignment.Name), EmitExpression(writer, assignment.Expression, function, enumNames, ref tempIndex, diagnostics)),
+            MirUnaryExpression unary => UnaryText(unary, ParenthesizeAssignmentOperand(unary.Operand, EmitExpression(writer, unary.Operand, function, enumNames, ref tempIndex, diagnostics))),
             MirBinaryExpression binary => EmitBinary(writer, binary, function, enumNames, ref tempIndex, diagnostics),
             MirNumericConversionExpression conversion => EmitNumericConversion(writer, conversion, function, enumNames, ref tempIndex, diagnostics),
             MirCallExpression call => EmitCall(writer, call, function, enumNames, ref tempIndex, diagnostics),
@@ -1806,12 +1853,12 @@ public static class CSharpBackend
             MirInvokeExpression invoke => EmitInvokeExpression(writer, invoke, function, enumNames, ref tempIndex, diagnostics),
             MirArrayExpression array => $"new {MapType(array.Type)} {{ {string.Join(", ", EmitArguments(array.Elements, writer, function, enumNames, ref tempIndex, diagnostics))} }}",
             MirArrayLengthExpression length => $"{ParenthesizeAssignmentOperand(length.Receiver, EmitExpression(writer, length.Receiver, function, enumNames, ref tempIndex, diagnostics))}.Length",
-            MirArrayElementAccessExpression access => $"CopeArray.Get({EmitExpression(writer, access.Receiver, function, enumNames, ref tempIndex, diagnostics)}, checked((int){EmitExpression(writer, access.Index, function, enumNames, ref tempIndex, diagnostics)}))",
+            MirArrayElementAccessExpression access => $"CopeArray.Get({EmitExpression(writer, access.Receiver, function, enumNames, ref tempIndex, diagnostics)}, {EmitExpression(writer, access.Index, function, enumNames, ref tempIndex, diagnostics)})",
             MirArrayIterableExpression iterable => EmitExpression(writer, iterable.Receiver, function, enumNames, ref tempIndex, diagnostics),
-            MirMutableArrayConstructionExpression construction => $"CopeArray.Create<{MapType(construction.MutableArrayType.ElementType)}>(checked((int){EmitExpression(writer, construction.Length, function, enumNames, ref tempIndex, diagnostics)}))",
+            MirMutableArrayConstructionExpression construction => $"CopeArray.Create<{MapType(construction.MutableArrayType.ElementType)}>({EmitExpression(writer, construction.Length, function, enumNames, ref tempIndex, diagnostics)})",
             MirMutableArrayLengthExpression length => $"{ParenthesizeAssignmentOperand(length.Receiver, EmitExpression(writer, length.Receiver, function, enumNames, ref tempIndex, diagnostics))}.Length",
-            MirMutableArrayElementAccessExpression access => $"CopeArray.Get({EmitExpression(writer, access.Receiver, function, enumNames, ref tempIndex, diagnostics)}, checked((int){EmitExpression(writer, access.Index, function, enumNames, ref tempIndex, diagnostics)}))",
-            MirMutableArrayElementAssignmentExpression assignment => $"CopeArray.Set({EmitExpression(writer, assignment.Receiver, function, enumNames, ref tempIndex, diagnostics)}, checked((int){EmitExpression(writer, assignment.Index, function, enumNames, ref tempIndex, diagnostics)}), {EmitExpression(writer, assignment.Value, function, enumNames, ref tempIndex, diagnostics)})",
+            MirMutableArrayElementAccessExpression access => $"CopeArray.Get({EmitExpression(writer, access.Receiver, function, enumNames, ref tempIndex, diagnostics)}, {EmitExpression(writer, access.Index, function, enumNames, ref tempIndex, diagnostics)})",
+            MirMutableArrayElementAssignmentExpression assignment => $"CopeArray.Set({EmitExpression(writer, assignment.Receiver, function, enumNames, ref tempIndex, diagnostics)}, {EmitExpression(writer, assignment.Index, function, enumNames, ref tempIndex, diagnostics)}, {EmitExpression(writer, assignment.Value, function, enumNames, ref tempIndex, diagnostics)})",
             MirMutableArrayIterableExpression iterable => EmitExpression(writer, iterable.Receiver, function, enumNames, ref tempIndex, diagnostics),
             MirMutableArrayFreezeExpression freeze => $"({MapType(freeze.ArrayType)}){EmitExpression(writer, freeze.Receiver, function, enumNames, ref tempIndex, diagnostics)}.Clone()",
             MirBatchExpression batch => EmitBatchExpression(writer, batch, function, enumNames, ref tempIndex, diagnostics),
@@ -1828,7 +1875,9 @@ public static class CSharpBackend
             MirTableWhereExpression where => EmitExpression(writer, where.Source, function, enumNames, ref tempIndex, diagnostics),
             MirTableSelectExpression select => EmitTableSelect(writer, select, function, enumNames, ref tempIndex, diagnostics),
             MirTableAggregateExpression aggregate => EmitTableAggregate(writer, aggregate, function, enumNames, ref tempIndex, diagnostics),
-            MirEnumValueExpression value => $"new {CSharpNameMangler.Mangle(value.EnumName)}.{CSharpNameMangler.Mangle(value.CaseName)}({string.Join(", ", EmitArguments(value.Arguments, writer, function, enumNames, ref tempIndex, diagnostics))})",
+            MirEnumValueExpression value => value.Arguments.Count == 0
+                ? $"{CSharpNameMangler.Mangle(value.EnumName)}.{CSharpNameMangler.Mangle(value.CaseName)}.__Singleton"
+                : $"new {CSharpNameMangler.Mangle(value.EnumName)}.{CSharpNameMangler.Mangle(value.CaseName)}({string.Join(", ", EmitArguments(value.Arguments, writer, function, enumNames, ref tempIndex, diagnostics))})",
             MirMatchExpression match => EmitEnumMatch(writer, match, function, enumNames, ref tempIndex, diagnostics),
             MirIfExpression conditional => EmitIfExpression(writer, conditional, function, enumNames, ref tempIndex, diagnostics),
             MirTsonEncodeExpression encode => $"{TsonEncodeMethodName(encode.PlanId)}({EmitExpression(writer, encode.Operand, function, enumNames, ref tempIndex, diagnostics)})",
@@ -1841,6 +1890,40 @@ public static class CSharpBackend
             _ => UnsupportedExpression(expression, diagnostics)
         };
 
+    private static string UnaryText(MirUnaryExpression unary, string operand)
+    {
+        string value = $"({unary.Operator}{operand})";
+        return unary.Type.Identifier == "int" && unary.Operator == "-" ? $"unchecked({value})" : value;
+    }
+
+    private static string AssignmentText(MirAssignmentExpression assignment, string target, string value)
+    {
+        if (!assignment.ReturnsPreviousValue) return target + " = " + value;
+        UsesIntegerRuntime.Value = true;
+        return $"__cope_AssignPrevious(ref {target}, {value})";
+    }
+
+    private static string BinaryText(MirBinaryExpression binary, string left, string right, bool flow = false)
+    {
+        string expression = $"({left} {binary.Operator} {right})";
+        if (binary.Type.Identifier != "int") return expression;
+        if (binary.Operator is "/" or "%")
+        {
+            UsesIntegerRuntime.Value = true;
+            string operation = binary.Operator == "/" ? "Divide" : "Remainder";
+            string owner = flow ? ModuleClassName + "." : string.Empty;
+            return $"{owner}__cope_int_{operation}({left}, {right})";
+        }
+        return binary.Operator is "+" or "-" or "*" ? $"unchecked({expression})" : expression;
+    }
+
+    private static string? NativeCallName(MirCallExpression call)
+    {
+        if (call.NativeOperation is null) return null;
+        UsesNativeStrings.Value = true;
+        return "__cope_native_" + call.NativeOperation.Value;
+    }
+
     private static string EmitCall(
         CSharpTextWriter writer,
         MirCallExpression call,
@@ -1850,7 +1933,7 @@ public static class CSharpBackend
         List<CSharpDiagnostic> diagnostics)
     {
         string owner = function.Name == "<flow>" ? ModuleClassName + "." : string.Empty;
-        string functionName = CSharpNameMangler.Mangle(call.FunctionName);
+        string functionName = NativeCallName(call) ?? CSharpNameMangler.Mangle(call.FunctionName);
         string arguments = string.Join(", ", EmitArguments(
             call.Arguments,
             writer,
@@ -2048,82 +2131,18 @@ public static class CSharpBackend
         int batchId = tempIndex++;
         string input = "__cope_batch_input_" + batchId;
         string output = "__cope_batch_output_" + batchId;
-        string failures = "__cope_batch_failures_" + batchId;
-        string options = "__cope_batch_options_" + batchId;
-        string index = "__cope_batch_index_" + batchId;
-        string itemName = CSharpNameMangler.Mangle(batch.Item.Name);
-        string inputType = MapType(batch.Input.Type);
-        string outputType = MapType(batch.ArrayType.ElementType);
-
-        writer.WriteLine($"{inputType} {input} = {EmitExpression(writer, batch.Input, function, enumNames, ref tempIndex, diagnostics)};");
-        writer.WriteLine($"{outputType}[] {output} = new {outputType}[{input}.Length];");
-        writer.WriteLine($"var {failures} = new global::System.Collections.Concurrent.ConcurrentDictionary<int, global::System.Exception>();");
-        writer.WriteLine($"var {options} = new global::System.Threading.Tasks.ParallelOptions();");
-        writer.WriteLine("if (__cope_batch_max_degree_for_testing > 0)");
+        writer.WriteLine($"{MapType(batch.Input.Type)} {input} = {EmitExpression(writer, batch.Input, function, enumNames, ref tempIndex, diagnostics)};");
+        writer.WriteLine($"{MapType(batch.ArrayType)} {output} = __cope_batch_map({input}, {CSharpNameMangler.Mangle(batch.Item.Name)} =>");
         writer.WriteLine("{");
         writer.Indent();
-        writer.WriteLine($"{options}.MaxDegreeOfParallelism = __cope_batch_max_degree_for_testing;");
-        writer.Unindent();
-        writer.WriteLine("}");
-        writer.WriteLine($"global::System.Threading.Tasks.Parallel.For(0, {input}.Length, {options}, {index} =>");
-        writer.WriteLine("{");
-        writer.Indent();
-        writer.WriteLine("try");
-        writer.WriteLine("{");
-        writer.Indent();
-        writer.WriteLine("__cope_batch_item_entered_for_testing?.Invoke();");
-        writer.WriteLine($"{MapValueStorageType(batch.Item.Type)} {itemName} = {input}[{index}];");
         foreach (MirStatement statement in batch.Body.PrefixStatements)
         {
-            EmitBatchBodyStatement(writer, statement, function, enumNames, ref tempIndex, diagnostics);
+            EmitStatement(writer, statement, function, enumNames, ref tempIndex, diagnostics);
         }
-        writer.WriteLine($"{output}[{index}] = {EmitExpression(writer, batch.Body.ValueExpression, function, enumNames, ref tempIndex, diagnostics)};");
-        writer.Unindent();
-        writer.WriteLine("}");
-        writer.WriteLine("catch (global::System.Exception exception)");
-        writer.WriteLine("{");
-        writer.Indent();
-        writer.WriteLine($"{failures}.TryAdd({index}, exception);");
-        writer.Unindent();
-        writer.WriteLine("}");
+        writer.WriteLine($"return {EmitExpression(writer, batch.Body.ValueExpression, function, enumNames, ref tempIndex, diagnostics)};");
         writer.Unindent();
         writer.WriteLine("});");
-        writer.WriteLine($"if (!{failures}.IsEmpty)");
-        writer.WriteLine("{");
-        writer.Indent();
-        writer.WriteLine("var __cope_batch_failure_index = int.MaxValue;");
-        writer.WriteLine($"foreach (int __cope_batch_candidate in {failures}.Keys)");
-        writer.WriteLine("{");
-        writer.Indent();
-        writer.WriteLine("if (__cope_batch_candidate < __cope_batch_failure_index) __cope_batch_failure_index = __cope_batch_candidate;");
-        writer.Unindent();
-        writer.WriteLine("}");
-        writer.WriteLine($"throw new global::System.InvalidOperationException($\"COPE-BATCH-FAILURE index {{__cope_batch_failure_index}}\", {failures}[__cope_batch_failure_index]);");
-        writer.Unindent();
-        writer.WriteLine("}");
         return output;
-    }
-
-    private static void EmitBatchBodyStatement(
-        CSharpTextWriter writer,
-        MirStatement statement,
-        MirFunction function,
-        IReadOnlySet<string> enumNames,
-        ref int tempIndex,
-        List<CSharpDiagnostic> diagnostics)
-    {
-        switch (statement)
-        {
-            case MirVariableDeclarationStatement declaration:
-                writer.WriteLine($"{MapValueStorageType(declaration.Local.Type)} {CSharpNameMangler.Mangle(declaration.Local.Name)} = {EmitExpression(writer, declaration.Initializer, function, enumNames, ref tempIndex, diagnostics)};");
-                break;
-            case MirExpressionStatement expression:
-                writer.WriteLine($"{EmitExpression(writer, expression.Expression, function, enumNames, ref tempIndex, diagnostics)};");
-                break;
-            default:
-                diagnostics.Add(new CSharpDiagnostic("COPE-CS-BATCH-0001", $"Unsupported batch body statement: {statement.GetType().Name}"));
-                break;
-        }
     }
 
     private static string EmitCallableConstruction(
@@ -2248,7 +2267,7 @@ public static class CSharpBackend
         {
             string simpleLeft = ParenthesizeAssignmentOperand(binary.Left, EmitExpression(writer, binary.Left, function, enumNames, ref tempIndex, diagnostics));
             string simpleRight = ParenthesizeAssignmentOperand(binary.Right, EmitExpression(writer, binary.Right, function, enumNames, ref tempIndex, diagnostics));
-            return $"({simpleLeft} {binaryOperator} {simpleRight})";
+            return BinaryText(binary, simpleLeft, simpleRight, function.Name == "<flow>");
         }
 
         string left = ParenthesizeAssignmentOperand(binary.Left, EmitExpression(writer, binary.Left, function, enumNames, ref tempIndex, diagnostics));
@@ -2257,7 +2276,7 @@ public static class CSharpBackend
         string right = ParenthesizeAssignmentOperand(binary.Right, EmitExpression(writer, binary.Right, function, enumNames, ref tempIndex, diagnostics));
         string rightTemporary = $"__cope_operand_{tempIndex++}";
         writer.WriteLine($"var {rightTemporary} = {right};");
-        return $"({leftTemporary} {binaryOperator} {rightTemporary})";
+        return BinaryText(binary, leftTemporary, rightTemporary, function.Name == "<flow>");
     }
 
     private static string EmitStatementfulLogicalBinary(
@@ -3343,7 +3362,14 @@ public static class CSharpBackend
 
         return arrays;
     }
-    private static string MapType(MirType type) => type switch { MirType { Identifier: "int" } => "int", MirType { Identifier: "float" or "number" } => "double", MirType { Identifier: "string" } => "string", MirType { Identifier: "boolean" } => "bool", MirType { Identifier: "void" } => "void", MirType { Identifier: "Document" } => "TextDocument", MirClrType clr => "global::" + clr.MetadataName, MirArrayType array => MapType(array.ElementType) + "[]", MirMutableArrayType array => MapType(array.ElementType) + "[]", MirResultType result => $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>", MirAsyncType async => $"CopeAsync<{MapValueStorageType(async.EventualType)}>", MirIterableType iterable => $"global::System.Collections.Generic.IEnumerable<{MapValueStorageType(iterable.ElementType)}>", MirCallableType callable => CallableDelegateName(callable), MirRecordType record => RecordTypeName(record.RecordTypeId), MirTableType table => TableTypeName(table.TableId), MirTableRowType row => TableRowTypeName(row.RowTypeId), MirColumnType column => $"CopeColumn<{MapType(column.ElementType)}>", MirType named => CSharpNameMangler.Mangle(named.Identifier), _ => throw new InvalidOperationException("Unknown structured MIR type.") };
+    private static string MapClrType(MirClrType type)
+    {
+        if (type.TypeArguments.Count == 0) return "global::" + type.MetadataName;
+        string definition = type.MetadataName[..type.MetadataName.IndexOf('`')];
+        return "global::" + definition + "<" + string.Join(", ", type.TypeArguments.Select(MapType)) + ">";
+    }
+
+    private static string MapType(MirType type) => type switch { MirType { Identifier: "int" } => "int", MirType { Identifier: "float" or "number" } => "double", MirType { Identifier: "string" } => "string", MirType { Identifier: "boolean" } => "bool", MirType { Identifier: "void" } => "void", MirType { Identifier: "Document" } => "TextDocument", MirClrType clr => MapClrType(clr), MirArrayType array => MapType(array.ElementType) + "[]", MirMutableArrayType array => MapType(array.ElementType) + "[]", MirResultType result => $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>", MirAsyncType async => $"CopeAsync<{MapValueStorageType(async.EventualType)}>", MirIterableType iterable => $"global::System.Collections.Generic.IEnumerable<{MapValueStorageType(iterable.ElementType)}>", MirCallableType callable => CallableDelegateName(callable), MirRecordType record => RecordTypeName(record.RecordTypeId), MirTableType table => TableTypeName(table.TableId), MirTableRowType row => TableRowTypeName(row.RowTypeId), MirColumnType column => $"CopeColumn<{MapType(column.ElementType)}>", MirType named => CSharpNameMangler.Mangle(named.Identifier), _ => throw new InvalidOperationException("Unknown structured MIR type.") };
 
     private static string EmitTextDocument(
         CSharpTextWriter writer,
@@ -3790,7 +3816,7 @@ public static class CSharpBackend
     }
 
     private static string RecordTypeName(MirRecordTypeId id)
-        => "__CopeRecord_" + EncodeStableIdentity(id.Value);
+        => "__CopeRecord_" + (EmissionOptions.RecordCarrierScope is null ? string.Empty : EmissionOptions.RecordCarrierScope + "_") + EncodeStableIdentity(id.Value);
 
     private static string RecordFieldName(MirRecordFieldId id)
         => "__field_" + EncodeStableIdentity(id.Value);

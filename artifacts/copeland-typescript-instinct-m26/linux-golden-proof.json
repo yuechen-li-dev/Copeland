@@ -1,0 +1,19 @@
+{
+  "canonicalLfQualifiedOnWindows": true,
+  "linuxExecutionQualified": false,
+  "owner": "MirTextWriter.ToText normalizes CRLF to LF for every caller.",
+  "pins": [
+    {
+      "test": "TableFeatureTests",
+      "bytes": 1606,
+      "sha256": "CB293E99C3353216CE04AFD5703ADD331FA8A450AB4C5FDC8177DF9C97E4A144"
+    },
+    {
+      "test": "CliIntegrationTests.Inferred_generic_cli_emission_is_repeatable_executable_and_preserves_stale_artifacts",
+      "bytes": 602,
+      "sha256": "7D8233C236DF3B5F38DD1F5793346B51D5EE7A33D58E0054393D8E0408C6C595"
+    }
+  ],
+  "platformSpecificExpectedValues": false,
+  "limits": "Canonical byte pins pass here; no Linux process was executed in this Windows session."
+}

@@ -824,7 +824,7 @@ public sealed class Parser
                 SyntaxToken colon = Match(SyntaxKind.ColonToken);
                 TypeSyntax type = ParseTypeSyntax();
                 SyntaxToken? equals = Current.Kind == SyntaxKind.EqualsToken ? NextToken() : null;
-                ExpressionSyntax? defaultValue = equals is null ? null : ParseBinaryExpression(5);
+                ExpressionSyntax? defaultValue = equals is null ? null : ParseBinaryExpression(9);
                 parameters.Add(new TemplateParameterSyntax(staticKeyword, parameterName, colon, type, equals, defaultValue));
             }
             else
@@ -2627,9 +2627,10 @@ public sealed class Parser
             _ = ParseBinaryExpression();
         }
 
-        if (Current.Kind == SyntaxKind.EqualsToken)
+        if (Current.Kind is SyntaxKind.EqualsToken or SyntaxKind.PlusEqualsToken or SyntaxKind.MinusEqualsToken
+            or SyntaxKind.StarEqualsToken or SyntaxKind.SlashEqualsToken or SyntaxKind.PercentEqualsToken)
         {
-            var equalsToken = Match(SyntaxKind.EqualsToken);
+            var equalsToken = NextToken();
             if (left is not NameExpressionSyntax and not MemberAccessExpressionSyntax and not IndexExpressionSyntax)
             {
                 _diagnostics.Report("COPE-PARSE-0005", "Invalid assignment target.", left is MissingExpressionSyntax ? equalsToken.Position : equalsToken.Position - 1, 1);
@@ -2660,27 +2661,47 @@ public sealed class Parser
     {
         ExpressionSyntax left;
 
-        var unaryPrecedence = SyntaxFacts.GetUnaryOperatorPrecedence(Current.Kind);
-        if (unaryPrecedence != 0 && unaryPrecedence >= parentPrecedence)
+        if (Current.Kind is SyntaxKind.PlusPlusToken or SyntaxKind.MinusMinusToken)
         {
-            var operatorToken = NextToken();
-            var operand = ParseBinaryExpression(unaryPrecedence);
-            left = new UnaryExpressionSyntax(operatorToken, operand);
+            SyntaxToken update = NextToken();
+            ExpressionSyntax target = ParsePostfixExpression();
+            SyntaxKind arithmetic = update.Kind == SyntaxKind.PlusPlusToken ? SyntaxKind.PlusToken : SyntaxKind.MinusToken;
+            var operation = new SyntaxToken(arithmetic, update.Position, arithmetic == SyntaxKind.PlusToken ? "+" : "-", null);
+            var one = new LiteralExpressionSyntax(new SyntaxToken(SyntaxKind.NumberToken, update.Position, "1", 1));
+            left = new AssignmentExpressionSyntax(target, update, new BinaryExpressionSyntax(target, operation, one));
         }
         else
         {
-            left = ParsePostfixExpression();
+            var unaryPrecedence = SyntaxFacts.GetUnaryOperatorPrecedence(Current.Kind);
+            if (unaryPrecedence != 0 && unaryPrecedence >= parentPrecedence)
+            {
+                var operatorToken = NextToken();
+                var operand = ParseBinaryExpression(unaryPrecedence);
+                left = new UnaryExpressionSyntax(operatorToken, operand);
+            }
+            else
+            {
+                left = ParsePostfixExpression();
+            }
         }
 
         while (true)
         {
-            var precedence = SyntaxFacts.GetBinaryOperatorPrecedence(Current.Kind);
+            SyntaxKind operatorKind = Current.Kind;
+            bool isShift = parentPrecedence != 9 && Current.Kind == Peek(1).Kind && Current.Kind is SyntaxKind.LessToken or SyntaxKind.GreaterToken;
+            if (isShift) operatorKind = Current.Kind == SyntaxKind.LessToken ? SyntaxKind.ShiftLeftToken : SyntaxKind.ShiftRightToken;
+            var precedence = SyntaxFacts.GetBinaryOperatorPrecedence(operatorKind);
             if (precedence == 0 || precedence <= parentPrecedence)
             {
                 break;
             }
 
             var operatorToken = NextToken();
+            if (isShift)
+            {
+                SyntaxToken second = NextToken();
+                operatorToken = new SyntaxToken(operatorKind, operatorToken.Position, operatorToken.Text + second.Text, null);
+            }
             var right = ParseBinaryExpression(precedence);
             left = new BinaryExpressionSyntax(left, operatorToken, right);
         }
@@ -2750,6 +2771,18 @@ public sealed class Parser
                 continue;
             }
 
+            if (Current.Kind is SyntaxKind.PlusPlusToken or SyntaxKind.MinusMinusToken)
+            {
+                SyntaxToken update = NextToken();
+                SyntaxKind arithmetic = update.Kind == SyntaxKind.PlusPlusToken ? SyntaxKind.PlusToken : SyntaxKind.MinusToken;
+                var one = new LiteralExpressionSyntax(new SyntaxToken(SyntaxKind.NumberToken, update.Position, "1", 1));
+                var operation = new SyntaxToken(arithmetic, update.Position, arithmetic == SyntaxKind.PlusToken ? "+" : "-", null);
+                expression = new AssignmentExpressionSyntax(expression, update, new BinaryExpressionSyntax(expression, operation, one))
+                {
+                    ReturnsPreviousValue = true,
+                };
+                continue;
+            }
             if (Current.Kind == SyntaxKind.BangToken)
             {
                 expression = new UnwrapExpressionSyntax(expression, Match(SyntaxKind.BangToken));
@@ -2886,7 +2919,7 @@ public sealed class Parser
                 // '>' terminates the specialization list rather than acting as
                 // a comparison operator. The bounded static language currently
                 // needs only primary/member/object values and string '+'.
-                staticArguments.Add(new TemplateInstantiationArgumentSyntax(name, colon, ParseBinaryExpression(5)));
+                staticArguments.Add(new TemplateInstantiationArgumentSyntax(name, colon, ParseBinaryExpression(9)));
             }
             else
             {
@@ -3091,14 +3124,25 @@ public sealed class Parser
             target = new MemberAccessExpressionSyntax(target, dot, Match(SyntaxKind.IdentifierToken));
         }
 
-        CallExpressionSyntax call = ParseCallExpression(target);
+        IReadOnlyList<TypeSyntax> typeArguments = [];
+        CallExpressionSyntax call;
+        if (Current.Kind == SyntaxKind.LessToken)
+        {
+            var generic = (GenericCallExpressionSyntax)ParseGenericFunctionExpression(target);
+            typeArguments = generic.TypeArguments;
+            call = new CallExpressionSyntax(target, generic.OpenParenToken, generic.Arguments, generic.CommaTokens, generic.CloseParenToken);
+        }
+        else
+        {
+            call = ParseCallExpression(target);
+        }
         return new NewExpressionSyntax(
             keyword,
             target,
             call.OpenParenToken,
             call.Arguments,
             call.CommaTokens,
-            call.CloseParenToken);
+            call.CloseParenToken) { TypeArguments = typeArguments };
     }
 
     private bool IsArrowExpressionAhead()

@@ -71,9 +71,15 @@ public abstract record TsonEncodeError
     {
     }
 
-    public sealed record InvalidUnicode : TsonEncodeError;
+    public sealed record InvalidUnicode : TsonEncodeError
+    {
+        internal static InvalidUnicode __Singleton { get; } = new();
+    }
 
-    public sealed record OutputLimitExceeded : TsonEncodeError;
+    public sealed record OutputLimitExceeded : TsonEncodeError
+    {
+        internal static OutputLimitExceeded __Singleton { get; } = new();
+    }
 
 }
 public abstract record Signal
@@ -82,7 +88,10 @@ public abstract record Signal
     {
     }
 
-    public sealed record Idle : Signal;
+    public sealed record Idle : Signal
+    {
+        internal static Idle __Singleton { get; } = new();
+    }
 
     public sealed record Text(string value) : Signal;
 
@@ -438,7 +447,7 @@ public static class CopelandModule
         var __cope_record_init_7 = "second";
         var __cope_argument_8 = new __CopeRecord_r1(__cope_record_init_7);
         var __cope_record_init_9 = new __CopeRecord_r1[] { __cope_argument_6, __cope_argument_8 };
-        var __cope_argument_10 = new Signal.Idle();
+        var __cope_argument_10 = Signal.Idle.__Singleton;
         var __cope_argument_11 = new Signal.Text("payload");
         var __cope_record_init_12 = "nested record";
         var __cope_argument_13 = new __CopeRecord_r1(__cope_record_init_12);

@@ -25,7 +25,7 @@ public sealed class CallableCorpusTests
         Assert.Equal(NormalizeNewlines(File.ReadAllText(Path.Combine(directory, "main.sym.js"))), NormalizeNewlines(JavaScriptBackend.Emit(mir.Program, new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Symbolic }).SourceText!));
 
         AssertArtifact(directory, "main.cope", 2056, "1598D5EC6CF78C9743A72EBAC1D0EA85F5676487251C6FE57230CABE78343F4B");
-        AssertArtifact(directory, "main.g.cs", 5062, "0C1FB55CFCC47E9E05BE677C53E38D9FA3C61AF3A32C3411E5C44E4C7326BA2A");
+        AssertArtifact(directory, "main.g.cs", 5131, "4CB52B6FB36C7FDF847B40F1569D937A75494CC53057260AAEA88604EBAE20E2");
         AssertArtifact(directory, "main.g.js", 9996, "C8E51A4ACBD05F13466B5AD53BFF4F521007B51677BBED1D450EEDEDE4F29F96");
         AssertArtifact(directory, "main.sym.js", 8491, "DD3B74099671F583A268D3EE8E0293813551FD8877AC8A869EE3164B1FB7C7AE");
     }

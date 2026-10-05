@@ -1,0 +1,1 @@
+{"name":"nbody","quick":false,"trials":[{"result":"-0.169077842","milliseconds":694.8385,"heapUsedDeltaBytes":178320},{"result":"-0.169077842","milliseconds":696.252,"heapUsedDeltaBytes":20240},{"result":"-0.169077842","milliseconds":699.0525999999998,"heapUsedDeltaBytes":13256}],"peakWorkingSetBytes":43978752}

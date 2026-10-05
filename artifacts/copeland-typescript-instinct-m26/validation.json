@@ -1,0 +1,21 @@
+{
+  "commands": [
+    "dotnet build Copeland.slnx -m:1",
+    "dotnet test Copeland.slnx -m:1",
+    "dotnet build tools/copeland-typescript-instinct-m26/InstinctProof.csproj -c Release -m:1",
+    "dotnet InstinctProof.dll <corpus> <results>",
+    "pwsh -File tools/copeland-typescript-instinct-m26/run-benchmarks.ps1"
+  ],
+  "solutionTestCount": 1960,
+  "solutionTestAssemblies": 8,
+  "failures": 0,
+  "instinctCases": 68,
+  "instinctCompileCases": 48,
+  "instinctRepairCases": 18,
+  "instinctUnsupportedCases": 2,
+  "checkedCsharpExecution": true,
+  "javascriptProfiles": [
+    "Production",
+    "Symbolic"
+  ]
+}

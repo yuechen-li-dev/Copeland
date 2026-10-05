@@ -1,0 +1,1 @@
+[{"Id":"COPE-CLR-0005","Message":"No applicable CLR overload for \u0027System.String.Split\u0027 with (string, string).","Position":93,"Length":1,"SourcePath":null},{"Id":"COPE-BATCH-0002","Message":"Batch input must be a supported array, got \u0027error\u0027.","Position":117,"Length":5,"SourcePath":null}]

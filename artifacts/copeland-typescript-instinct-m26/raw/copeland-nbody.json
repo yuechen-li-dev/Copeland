@@ -1,0 +1,1 @@
+{"name":"nbody","quick":false,"trials":[{"result":"-0.169077842","milliseconds":698.2184,"allocatedBytes":2352,"gcCollections":[0,0,0]},{"result":"-0.169077842","milliseconds":504.2325,"allocatedBytes":648,"gcCollections":[0,0,0]},{"result":"-0.169077842","milliseconds":503.8442,"allocatedBytes":648,"gcCollections":[0,0,0]}],"peakWorkingSetBytes":27815936}

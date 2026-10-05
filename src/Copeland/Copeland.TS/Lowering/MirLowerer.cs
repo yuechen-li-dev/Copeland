@@ -624,7 +624,7 @@ public static class MirLowerer
                     }),
                 MirAssignmentExpression assignment => LowerExpression(
                     assignment.Expression,
-                    value => continuation(new MirAssignmentExpression(assignment.Name, value, assignment.Type))),
+                    value => continuation(assignment with { Expression = value })),
                 MirUnaryExpression unary => LowerExpression(
                     unary.Operand,
                     value => continuation(new MirUnaryExpression(unary.Operator, value, unary.Type))),
@@ -633,7 +633,7 @@ public static class MirLowerer
                     binary.Right,
                     right => continuation(new MirBinaryExpression(binary.Operator, left, right, binary.Type)))),
                 MirCallExpression call => LowerArguments(call.Arguments, 0, [], arguments =>
-                    continuation(new MirCallExpression(call.FunctionName, arguments, call.Type))),
+                    continuation(call with { Arguments = arguments })),
                 MirTsonTransportExpression transport => LowerExpression(transport.Operation, operation =>
                     LowerExpression(transport.Request, request => continuation(new MirTsonTransportExpression(
                         operation,
@@ -1143,7 +1143,7 @@ public static class MirLowerer
             BoundStaticExpression { EvaluatedExpression: not null } staticExpression => LowerExpression(staticExpression.EvaluatedExpression),
             BoundStaticExpression => throw new InvalidOperationException("Static expression reached MIR before post-static evaluation."),
             BoundVariableExpression v => new MirVariableExpression(v.Variable.Name, ToMirType(v.Type)),
-            BoundAssignmentExpression a => new MirAssignmentExpression(a.Variable.Name, LowerExpression(a.Expression), ToMirType(a.Type)),
+            BoundAssignmentExpression a => new MirAssignmentExpression(a.Variable.Name, LowerExpression(a.Expression), ToMirType(a.Type)) { ReturnsPreviousValue = a.ReturnsPreviousValue },
             BoundUnaryExpression u => new MirUnaryExpression(OperatorName(u.OperatorKind), LowerExpression(u.Operand), ToMirType(u.Type)),
             BoundAwaitExpression a => new MirAwaitExpression(LowerExpression(a.Operand), ToMirType(a.Type)),
             BoundBinaryExpression b => new MirBinaryExpression(OperatorName(b.OperatorKind), LowerExpression(b.Left), LowerExpression(b.Right), ToMirType(b.Type)),
@@ -1160,7 +1160,7 @@ public static class MirLowerer
                 },
                 LowerExpression(conversion.Operand),
                 ToMirType(conversion.Type)),
-            BoundCallExpression c => new MirCallExpression(c.Function.EmissionName, c.Arguments.Select(LowerExpression).ToArray(), ToMirType(c.Type)),
+            BoundCallExpression c => new MirCallExpression(c.Function.EmissionName, c.Arguments.Select(LowerExpression).ToArray(), ToMirType(c.Type)) { NativeOperation = c.Function.NativeOperation },
             BoundFunctionReferenceExpression reference => new MirFunctionReferenceExpression(reference.Function.EmissionName, (MirCallableType)ToMirType(reference.Type)),
             BoundCallableConstructionExpression construction => new MirCallableConstructionExpression(
                 construction.Code.EmissionName,
@@ -1397,7 +1397,7 @@ public static class MirLowerer
         CallableTypeSymbol callable => new MirCallableType(callable.Parameters.Select(parameter => new MirCallableParameter(parameter.Name, ToMirType(parameter.Type))).ToArray(), ToMirType(callable.ReturnType)),
         RecordTypeSymbol record => new MirRecordType(ToMirRecordTypeId(record.Id), record.EmissionName),
         EnumTypeSymbol @enum => new MirNamedType(@enum.EmissionName),
-        ClrTypeSymbol clr => new MirClrType(clr.AssemblyIdentity, clr.Namespace, clr.MetadataName),
+        ClrTypeSymbol clr => LowerClrType(clr.RuntimeType),
         TableTypeSymbol table => new MirTableType(new MirTableId(table.Id.ToString()), table.Name),
         TableRowTypeSymbol row => new MirTableRowType(row.TableId + ".row", row.Name),
         ColumnTypeSymbol column => new MirColumnType(ToMirType(column.ElementType)),
@@ -1416,7 +1416,12 @@ public static class MirLowerer
             member is System.Reflection.ConstructorInfo,
             member.GetParameters().Select(parameter => ToMirTypeFromRuntimeType(parameter.ParameterType)).ToArray(),
             ToMirType(resultType),
-            genericArguments.Select(ToMirType).ToArray());
+            genericArguments.Select(ToMirType).ToArray())
+        {
+            DeclaringTypeIdentity = LowerClrType(declaringType),
+            IsIndexerGetter = declaringType.GetProperties().Any(property => property.GetIndexParameters().Length > 0 && property.GetMethod == member),
+            IsIndexerSetter = declaringType.GetProperties().Any(property => property.GetIndexParameters().Length > 0 && property.SetMethod == member),
+        };
     }
 
     private static MirClrMemberIdentity LowerClrMemberIdentity(System.Reflection.PropertyInfo property, IReadOnlyList<TypeSymbol> genericArguments, TypeSymbol resultType)
@@ -1431,7 +1436,7 @@ public static class MirLowerer
             false,
             [],
             ToMirType(resultType),
-            genericArguments.Select(ToMirType).ToArray());
+            genericArguments.Select(ToMirType).ToArray()) { DeclaringTypeIdentity = LowerClrType(declaringType) };
     }
 
     private static MirType ToMirTypeFromRuntimeType(Type type)
@@ -1442,7 +1447,17 @@ public static class MirLowerer
         if (type == typeof(int)) return new MirNamedType("int");
         if (type == typeof(double)) return new MirNamedType("float");
         if (type.IsArray && type.GetArrayRank() == 1) return new MirArrayType(ToMirTypeFromRuntimeType(type.GetElementType()!));
-        return new MirClrType(type.Assembly.FullName ?? type.Assembly.GetName().Name ?? "<unknown>", type.Namespace ?? string.Empty, type.FullName?.Replace('+', '.') ?? type.Name);
+        return LowerClrType(type);
+    }
+
+    private static MirClrType LowerClrType(Type type)
+    {
+        Type definition = type.IsGenericType ? type.GetGenericTypeDefinition() : type;
+        return new MirClrType(type.Assembly.FullName ?? type.Assembly.GetName().Name ?? "<unknown>",
+            type.Namespace ?? string.Empty, definition.FullName?.Replace('+', '.') ?? definition.Name)
+        {
+            TypeArguments = type.IsGenericType ? type.GetGenericArguments().Select(ToMirTypeFromRuntimeType).ToArray() : [],
+        };
     }
 
     private static MirRecordTypeId ToMirRecordTypeId(RecordTypeId id) => new(id.ToString());
@@ -1451,6 +1466,11 @@ public static class MirLowerer
 
     private static string OperatorName(SyntaxKind kind) => kind switch
     {
+        SyntaxKind.AmpersandToken => "&",
+        SyntaxKind.PipeToken => "|",
+        SyntaxKind.CaretToken => "^",
+        SyntaxKind.ShiftLeftToken => "<<",
+        SyntaxKind.ShiftRightToken => ">>",
         SyntaxKind.PlusToken => "+",
         SyntaxKind.MinusToken => "-",
         SyntaxKind.StarToken => "*",

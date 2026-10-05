@@ -1,0 +1,50 @@
+[
+  {
+    "Id": "dogfood-csv",
+    "Category": "dogfood execution",
+    "Input": "using System;\n\nfunction parseCsvItem(part: string): int {\n    return Int32.Parse(part);\n}\n\nfunction parseCsvIntegers(text: string): int[] {\n    const parts = String.Split(text, \",\");\n    return batch parts as part {\n        return parseCsvItem(part);\n    };\n}\n\nfunction run(): int[] { return parseCsvIntegers(\"1, -2, 3\"); }",
+    "Outcome": "compile",
+    "ExpectedJson": "[1,-2,3]",
+    "ClrOnly": true
+  },
+  {
+    "Id": "dogfood-counter-map",
+    "Category": "dogfood execution",
+    "Input": "using System.Collections.Generic;\n\nfunction countValues(values: string[]): Dictionary<string, int> {\n    const counts = new Dictionary<string, int>();\n\n    for (const value of values) {\n        let previous: int = 0;\n        if (counts.ContainsKey(value)) {\n            previous = counts[value];\n        }\n        counts[value] = previous + 1;\n    }\n\n    return counts;\n}\n\nfunction run(): Dictionary<string, int> { return countValues([\"a\", \"b\", \"a\"]); }",
+    "Outcome": "compile",
+    "ExpectedJson": "{\"a\":2,\"b\":1}",
+    "ClrOnly": true
+  },
+  {
+    "Id": "dogfood-increment-loop",
+    "Category": "dogfood execution",
+    "Input": "function sumRange(limit: int): int { let total: int = 0; for (let index: int = 0; index < limit; index++) { total += index; } return total; }\nfunction run(): int { return sumRange(10); }",
+    "Outcome": "compile",
+    "ExpectedJson": "45",
+    "ClrOnly": false
+  },
+  {
+    "Id": "dogfood-batch-guard",
+    "Category": "dogfood execution",
+    "Input": "function transformBatch(values: int[]): int[] { return batch values as item { if (item < 0) { return -item; } return item * 2; }; }\nfunction run(): int[] { return transformBatch([-2, 0, 3]); }",
+    "Outcome": "compile",
+    "ExpectedJson": "[2,0,6]",
+    "ClrOnly": false
+  },
+  {
+    "Id": "dogfood-growing-array",
+    "Category": "dogfood execution",
+    "Input": "using System.Collections.Generic;\n\nfunction collectEvenValues(values: int[]): int[] {\n    const result = new List<int>();\n\n    for (const value of values) {\n        if (value % 2 === 0) {\n            result.Add(value);\n        }\n    }\n\n    return result.ToArray();\n}\n\nfunction run(): int[] { return collectEvenValues([-2, -1, 0, 1, 2]); }",
+    "Outcome": "compile",
+    "ExpectedJson": "[-2,0,2]",
+    "ClrOnly": true
+  },
+  {
+    "Id": "dogfood-integer-hash",
+    "Category": "dogfood execution",
+    "Input": "function hashIntegers(values: int[]): int {\n    let hash: int = 0x811c9dc5 | 0;\n\n    for (const value of values) {\n        hash = ((hash ^ value) * (0x01000193)) | 0;\n    }\n\n    return hash;\n}\n\nfunction run(): int { return hashIntegers([1, 2, 3]); }",
+    "Outcome": "compile",
+    "ExpectedJson": "1456420779",
+    "ClrOnly": false
+  }
+]

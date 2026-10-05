@@ -1,0 +1,1 @@
+{"name":"strings","quick":false,"trials":[{"result":"21777520","milliseconds":151.1762,"heapUsedDeltaBytes":38838048},{"result":"21777520","milliseconds":131.4925,"heapUsedDeltaBytes":13101432},{"result":"21777520","milliseconds":130.7278,"heapUsedDeltaBytes":-13173408}],"peakWorkingSetBytes":175427584}

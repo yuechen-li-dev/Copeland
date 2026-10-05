@@ -1,0 +1,367 @@
+[
+  {
+    "Id": "csv",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-CALL-0021",
+        "Message": "\u0027split\u0027 is not a method of \u0027text\u0027 of type \u0027string\u0027. Copeland values have no receiver methods; pass the value to a function or a CLR static API instead.",
+        "Position": 61,
+        "Length": 5,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-CALL-0021",
+        "Message": "\u0027split\u0027 is not a method of \u0027text\u0027 of type \u0027string\u0027. Copeland values have no receiver methods; pass the value to a function or a CLR static API instead.",
+        "Position": 61,
+        "Length": 5,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-CALL-0021",
+        "Message": "\u0027split\u0027 is not a method of \u0027text\u0027 of type \u0027string\u0027. Copeland values have no receiver methods; pass the value to a function or a CLR static API instead.",
+        "Position": 61,
+        "Length": 5,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-CALL-0011",
+        "Message": "Arrow parameter \u0027part\u0027 needs an explicit type or an exact contextual callable signature.",
+        "Position": 76,
+        "Length": 4,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined function name.",
+        "Position": 92,
+        "Length": 1,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-CALL-0004",
+        "Message": "Cannot invoke non-callable value of type \u0027error\u0027.",
+        "Position": 75,
+        "Length": 1,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "counter-map",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027(\u0027.",
+        "Position": 81,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 81,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 82,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027)\u0027.",
+        "Position": 82,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 82,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 82,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 82,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0001",
+        "Message": "Unexpected token \u0027StringKeyword\u0027.",
+        "Position": 82,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 88,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 88,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0001",
+        "Message": "Unexpected token \u0027CommaToken\u0027.",
+        "Position": 88,
+        "Length": 1,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 90,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 90,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0001",
+        "Message": "Unexpected token \u0027IntKeyword\u0027.",
+        "Position": 90,
+        "Length": 3,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 93,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 95,
+        "Length": 0,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "increment-loop",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 103,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 104,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 115,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0005",
+        "Message": "Invalid assignment target.",
+        "Position": 114,
+        "Length": 1,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "batch-guard",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-BATCH-0004",
+        "Message": "A CTS-BATCH-M1 body may contain item-local declarations and expressions before its final return.",
+        "Position": 76,
+        "Length": 1,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-TYPE-0003",
+        "Message": "Type mismatch: expected \u0027int[]\u0027, got \u0027int\u0027.",
+        "Position": 94,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-BATCH-0010",
+        "Message": "This statement is not supported inside a batch body.",
+        "Position": 55,
+        "Length": 5,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "growing-array",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-PROFILE-0009",
+        "Message": "Strict equality spelling \u0027===\u0027 is reserved and not supported. Use typed \u0027==\u0027 equality.",
+        "Position": 121,
+        "Length": 3,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-CALL-0021",
+        "Message": "\u0027push\u0027 is not a method of \u0027result\u0027 of type \u0027int[]\u0027. Copeland values have no receiver methods; pass the value to a function or a CLR static API instead.",
+        "Position": 137,
+        "Length": 4,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "integer-hash",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-LEX-0004",
+        "Message": "Invalid number literal.",
+        "Position": 60,
+        "Length": 10,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-LEX-0003",
+        "Message": "Invalid character.",
+        "Position": 128,
+        "Length": 1,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-LEX-0004",
+        "Message": "Invalid number literal.",
+        "Position": 137,
+        "Length": 10,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-UNION-0012",
+        "Message": "\u0027|\u0027 is permitted only between alternatives in a compilation-unit nominal union declaration.",
+        "Position": 71,
+        "Length": 1,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027)\u0027.",
+        "Position": 130,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 130,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 135,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 135,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 135,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0001",
+        "Message": "Unexpected token \u0027CommaToken\u0027.",
+        "Position": 135,
+        "Length": 1,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 147,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 147,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 147,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0001",
+        "Message": "Unexpected token \u0027CloseParenToken\u0027.",
+        "Position": 147,
+        "Length": 1,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 149,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-UNION-0012",
+        "Message": "\u0027|\u0027 is permitted only between alternatives in a compilation-unit nominal union declaration.",
+        "Position": 149,
+        "Length": 1,
+        "SourcePath": null
+      }
+    ]
+  }
+]

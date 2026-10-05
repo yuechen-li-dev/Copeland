@@ -1,0 +1,1844 @@
+[
+  {
+    "Id": "string-split",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027String\u0027.",
+        "Position": 34,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027String\u0027.",
+        "Position": 34,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-ENUM-0010",
+        "Message": "Expected enum type name.",
+        "Position": 34,
+        "Length": 6,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "string-split-empty",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027String\u0027.",
+        "Position": 34,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027String\u0027.",
+        "Position": 34,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-ENUM-0010",
+        "Message": "Expected enum type name.",
+        "Position": 34,
+        "Length": 6,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "string-index-ordinal",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027String\u0027.",
+        "Position": 29,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027String\u0027.",
+        "Position": 29,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-ENUM-0010",
+        "Message": "Expected enum type name.",
+        "Position": 29,
+        "Length": 6,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "string-code-utf16",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027String\u0027.",
+        "Position": 29,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027String\u0027.",
+        "Position": 29,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-ENUM-0010",
+        "Message": "Expected enum type name.",
+        "Position": 29,
+        "Length": 6,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "string-slice-negative",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027String\u0027.",
+        "Position": 32,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027String\u0027.",
+        "Position": 32,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-ENUM-0010",
+        "Message": "Expected enum type name.",
+        "Position": 32,
+        "Length": 6,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "string-slice-reversed",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027String\u0027.",
+        "Position": 32,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027String\u0027.",
+        "Position": 32,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-ENUM-0010",
+        "Message": "Expected enum type name.",
+        "Position": 32,
+        "Length": 6,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "string-join",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027String\u0027.",
+        "Position": 32,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027String\u0027.",
+        "Position": 32,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-ENUM-0010",
+        "Message": "Expected enum type name.",
+        "Position": 32,
+        "Length": 6,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "array-filled",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-ARRAY-0005",
+        "Message": "MutableArray\u003CT\u003E(length) expects one element type and one int length.",
+        "Position": 53,
+        "Length": 12,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "array-string-filled",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-ARRAY-0005",
+        "Message": "MutableArray\u003CT\u003E(length) expects one element type and one int length.",
+        "Position": 34,
+        "Length": 12,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-ARRAY-0005",
+        "Message": "MutableArray\u003CT\u003E(length) expects one element type and one int length.",
+        "Position": 34,
+        "Length": 12,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-ARRAY-0005",
+        "Message": "MutableArray\u003CT\u003E(length) expects one element type and one int length.",
+        "Position": 34,
+        "Length": 12,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-CALL-0004",
+        "Message": "Cannot invoke non-callable value of type \u0027error\u0027.",
+        "Position": 69,
+        "Length": 1,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "increment-postfix",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 70,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 71,
+        "Length": 0,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "decrement-postfix",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 71,
+        "Length": 0,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "compound-all",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 49,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0005",
+        "Message": "Invalid assignment target.",
+        "Position": 48,
+        "Length": 1,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 61,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0005",
+        "Message": "Invalid assignment target.",
+        "Position": 60,
+        "Length": 1,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 73,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0005",
+        "Message": "Invalid assignment target.",
+        "Position": 72,
+        "Length": 1,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 85,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0005",
+        "Message": "Invalid assignment target.",
+        "Position": 84,
+        "Length": 1,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 97,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0005",
+        "Message": "Invalid assignment target.",
+        "Position": 96,
+        "Length": 1,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "loop-increment",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 73,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 74,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 85,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0005",
+        "Message": "Invalid assignment target.",
+        "Position": 84,
+        "Length": 1,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "conditional-expression",
+    "Success": true,
+    "Diagnostics": []
+  },
+  {
+    "Id": "batch-guard",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-BATCH-0004",
+        "Message": "A CTS-BATCH-M1 body may contain item-local declarations and expressions before its final return.",
+        "Position": 56,
+        "Length": 1,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-TYPE-0003",
+        "Message": "Type mismatch: expected \u0027int[]\u0027, got \u0027int\u0027.",
+        "Position": 74,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-BATCH-0010",
+        "Message": "This statement is not supported inside a batch body.",
+        "Position": 31,
+        "Length": 5,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "batch-if-else",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-BATCH-0004",
+        "Message": "A batch body must end with exactly one value-producing \u0027return\u0027 statement.",
+        "Position": 53,
+        "Length": 1,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "int-add-wrap",
+    "Success": true,
+    "Diagnostics": []
+  },
+  {
+    "Id": "int-multiply-wrap",
+    "Success": true,
+    "Diagnostics": []
+  },
+  {
+    "Id": "int-divide-wrap",
+    "Success": true,
+    "Diagnostics": []
+  },
+  {
+    "Id": "int-remainder-min",
+    "Success": true,
+    "Diagnostics": []
+  },
+  {
+    "Id": "int-remainder-sign",
+    "Success": true,
+    "Diagnostics": []
+  },
+  {
+    "Id": "int-negate-wrap",
+    "Success": true,
+    "Diagnostics": []
+  },
+  {
+    "Id": "bitwise-hash",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-LEX-0003",
+        "Message": "Invalid character.",
+        "Position": 34,
+        "Length": 1,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027)\u0027.",
+        "Position": 36,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 36,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 38,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 38,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 38,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0001",
+        "Message": "Unexpected token \u0027CloseParenToken\u0027.",
+        "Position": 38,
+        "Length": 1,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 40,
+        "Length": 0,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "bitwise-shift-mask",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 33,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-UNION-0012",
+        "Message": "\u0027|\u0027 is permitted only between alternatives in a compilation-unit nominal union declaration.",
+        "Position": 39,
+        "Length": 1,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 45,
+        "Length": 0,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "generic-identity",
+    "Success": true,
+    "Diagnostics": []
+  },
+  {
+    "Id": "generic-clr-list",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027(\u0027.",
+        "Position": 90,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 90,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 91,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027)\u0027.",
+        "Position": 91,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 91,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 91,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 91,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0001",
+        "Message": "Unexpected token \u0027IntKeyword\u0027.",
+        "Position": 91,
+        "Length": 3,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 94,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 96,
+        "Length": 0,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "static-property-chain",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-CLR-0001",
+        "Message": "CLR type \u0027CultureInfo.InvariantCulture.CompareInfo\u0027 was not found in imported CLR namespaces or supplied references.",
+        "Position": 57,
+        "Length": 11,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "closure-capture",
+    "Success": true,
+    "Diagnostics": []
+  },
+  {
+    "Id": "record-value",
+    "Success": true,
+    "Diagnostics": []
+  },
+  {
+    "Id": "receiver-split",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-CALL-0021",
+        "Message": "\u0027split\u0027 is not a method of \u0027text\u0027 of type \u0027string\u0027. Copeland values have no receiver methods; pass the value to a function or a CLR static API instead.",
+        "Position": 67,
+        "Length": 5,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "length-case",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-STRING-0001",
+        "Message": "String values support only the \u0027length\u0027 property; \u0027Length\u0027 is not available.",
+        "Position": 62,
+        "Length": 6,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "unknown-receiver",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027Missing\u0027.",
+        "Position": 29,
+        "Length": 7,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027Missing\u0027.",
+        "Position": 29,
+        "Length": 7,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-ENUM-0010",
+        "Message": "Expected enum type name.",
+        "Position": 29,
+        "Length": 7,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "array-push",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-CALL-0021",
+        "Message": "\u0027push\u0027 is not a method of \u0027values\u0027 of type \u0027int[]\u0027. Copeland values have no receiver methods; pass the value to a function or a CLR static API instead.",
+        "Position": 56,
+        "Length": 4,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "computed-compound",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 89,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0005",
+        "Message": "Invalid assignment target.",
+        "Position": 88,
+        "Length": 1,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "nullish-plain",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-OPTION-0006",
+        "Message": "The left operand of \u0027??\u0027 must be Option\u003CT\u003E, got \u0027int\u0027.",
+        "Position": 57,
+        "Length": 1,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "implicit-capture-repair",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-CALL-0017",
+        "Message": "Implicit lexical capture of \u0027bias\u0027 is forbidden. Use \u0027capture { bias } ...\u0027 to snapshot it into an immutable callable environment.",
+        "Position": 84,
+        "Length": 4,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027bias\u0027.",
+        "Position": 84,
+        "Length": 4,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-TYPE-0007",
+        "Message": "Operator \u0027\u002B\u0027 does not support operands of type \u0027int\u0027 and \u0027error\u0027.",
+        "Position": 82,
+        "Length": 1,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "prefix-increment",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 63,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 64,
+        "Length": 0,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "clr-dictionary-indexer",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027(\u0027.",
+        "Position": 110,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 110,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 111,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027)\u0027.",
+        "Position": 111,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 111,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 111,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 111,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0001",
+        "Message": "Unexpected token \u0027StringKeyword\u0027.",
+        "Position": 111,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 117,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 117,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0001",
+        "Message": "Unexpected token \u0027CommaToken\u0027.",
+        "Position": 117,
+        "Length": 1,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 119,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 119,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0001",
+        "Message": "Unexpected token \u0027IntKeyword\u0027.",
+        "Position": 119,
+        "Length": 3,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 122,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 124,
+        "Length": 0,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "Option-fallback",
+    "Success": true,
+    "Diagnostics": []
+  },
+  {
+    "Id": "enum-match",
+    "Success": true,
+    "Diagnostics": []
+  },
+  {
+    "Id": "native-map-gap",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027(\u0027.",
+        "Position": 44,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 44,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 45,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027)\u0027.",
+        "Position": 45,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 45,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 45,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 45,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0001",
+        "Message": "Unexpected token \u0027StringKeyword\u0027.",
+        "Position": 45,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 51,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 51,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0001",
+        "Message": "Unexpected token \u0027CommaToken\u0027.",
+        "Position": 51,
+        "Length": 1,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 53,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 53,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0001",
+        "Message": "Unexpected token \u0027IntKeyword\u0027.",
+        "Position": 53,
+        "Length": 3,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 56,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 58,
+        "Length": 0,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "native-map-type-gap",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027(\u0027.",
+        "Position": 62,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 62,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 63,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027)\u0027.",
+        "Position": 63,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 63,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 63,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 63,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0001",
+        "Message": "Unexpected token \u0027StringKeyword\u0027.",
+        "Position": 63,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 69,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 69,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0001",
+        "Message": "Unexpected token \u0027CommaToken\u0027.",
+        "Position": 69,
+        "Length": 1,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 71,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 71,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0001",
+        "Message": "Unexpected token \u0027IntKeyword\u0027.",
+        "Position": 71,
+        "Length": 3,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 74,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 76,
+        "Length": 0,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "any-repair",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-BIND-0004",
+        "Message": "Unknown type \u0027any\u0027.",
+        "Position": 35,
+        "Length": 3,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "null-repair",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-PROFILE-0005",
+        "Message": "Null is not supported in Browser TypeScript Profile v1. Use fallible functions or an explicit option type when available.",
+        "Position": 37,
+        "Length": 4,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "undefined-repair",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027undefined\u0027.",
+        "Position": 37,
+        "Length": 9,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "array-map",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-CALL-0021",
+        "Message": "\u0027map\u0027 is not a method of \u0027values\u0027 of type \u0027int[]\u0027. Copeland values have no receiver methods; pass the value to a function or a CLR static API instead.",
+        "Position": 68,
+        "Length": 3,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "generic-array-inference",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-TYPE-0002",
+        "Message": "Missing type annotation for variable \u0027a\u0027.",
+        "Position": 30,
+        "Length": 1,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-ARRAY-0005",
+        "Message": "MutableArray\u003CT\u003E(length) expects one element type and one int length.",
+        "Position": 34,
+        "Length": 12,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-TABLE-0016",
+        "Message": "Table columns and table rows are immutable.",
+        "Position": 64,
+        "Length": 1,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "exponent-literal",
+    "Success": true,
+    "Diagnostics": []
+  },
+  {
+    "Id": "hex-int-bit-pattern",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-LEX-0004",
+        "Message": "Invalid number literal.",
+        "Position": 29,
+        "Length": 10,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "imul-repair",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027Math\u0027.",
+        "Position": 29,
+        "Length": 4,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027Math\u0027.",
+        "Position": 29,
+        "Length": 4,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-ENUM-0010",
+        "Message": "Expected enum type name.",
+        "Position": 29,
+        "Length": 4,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "typed-strict-equality",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-PROFILE-0009",
+        "Message": "Strict equality spelling \u0027===\u0027 is reserved and not supported. Use typed \u0027==\u0027 equality.",
+        "Position": 35,
+        "Length": 3,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PROFILE-0009",
+        "Message": "Strict equality spelling \u0027!==\u0027 is reserved and not supported. Use typed \u0027!=\u0027 equality.",
+        "Position": 46,
+        "Length": 3,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-TYPE-0007",
+        "Message": "Operator \u0027\u0026\u0026\u0027 does not support operands of type \u0027error\u0027 and \u0027error\u0027.",
+        "Position": 41,
+        "Length": 2,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "codeat-negative-trap",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027String\u0027.",
+        "Position": 29,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027String\u0027.",
+        "Position": 29,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-ENUM-0010",
+        "Message": "Expected enum type name.",
+        "Position": 29,
+        "Length": 6,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "codeat-upper-trap",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027String\u0027.",
+        "Position": 29,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027String\u0027.",
+        "Position": 29,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-ENUM-0010",
+        "Message": "Expected enum type name.",
+        "Position": 29,
+        "Length": 6,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "divide-zero-trap",
+    "Success": true,
+    "Diagnostics": []
+  },
+  {
+    "Id": "remainder-zero-trap",
+    "Success": true,
+    "Diagnostics": []
+  },
+  {
+    "Id": "array-filled-negative-trap",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-ARRAY-0005",
+        "Message": "MutableArray\u003CT\u003E(length) expects one element type and one int length.",
+        "Position": 71,
+        "Length": 12,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-ARRAY-0005",
+        "Message": "MutableArray\u003CT\u003E(length) expects one element type and one int length.",
+        "Position": 71,
+        "Length": 12,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-ARRAY-0005",
+        "Message": "MutableArray\u003CT\u003E(length) expects one element type and one int length.",
+        "Position": 71,
+        "Length": 12,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-CALL-0004",
+        "Message": "Cannot invoke non-callable value of type \u0027error\u0027.",
+        "Position": 110,
+        "Length": 1,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "string-empty-delimiter-surrogates",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027String\u0027.",
+        "Position": 46,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027String\u0027.",
+        "Position": 46,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-ENUM-0010",
+        "Message": "Expected enum type name.",
+        "Position": 46,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027String\u0027.",
+        "Position": 77,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027String\u0027.",
+        "Position": 77,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-ENUM-0010",
+        "Message": "Expected enum type name.",
+        "Position": 77,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027String\u0027.",
+        "Position": 106,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027String\u0027.",
+        "Position": 106,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-ENUM-0010",
+        "Message": "Expected enum type name.",
+        "Position": 106,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-TYPE-0007",
+        "Message": "Operator \u0027\u002B\u0027 does not support operands of type \u0027error\u0027 and \u0027error\u0027.",
+        "Position": 104,
+        "Length": 1,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "int-negative-shift",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 33,
+        "Length": 0,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "record-initializer-immutable",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-ARRAY-0005",
+        "Message": "MutableArray\u003CT\u003E(length) expects one element type and one int length.",
+        "Position": 85,
+        "Length": 12,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "clr-generic-signature",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027(\u0027.",
+        "Position": 106,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 106,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 107,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027)\u0027.",
+        "Position": 107,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 107,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 107,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 107,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0001",
+        "Message": "Unexpected token \u0027StringKeyword\u0027.",
+        "Position": 107,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 113,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 113,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0001",
+        "Message": "Unexpected token \u0027CommaToken\u0027.",
+        "Position": 113,
+        "Length": 1,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 115,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 115,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0001",
+        "Message": "Unexpected token \u0027IntKeyword\u0027.",
+        "Position": 115,
+        "Length": 3,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 118,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 120,
+        "Length": 0,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "template-hole-location",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027Missing\u0027.",
+        "Position": 41,
+        "Length": 7,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-NUM-0004",
+        "Message": "Cannot interpolate value of type \u0027error\u0027 as a canonical string. String.From supports string, boolean, int, and float.",
+        "Position": 32,
+        "Length": 18,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "decimal-int-minimum",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-LEX-0004",
+        "Message": "Invalid number literal.",
+        "Position": 30,
+        "Length": 10,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "record-compound-repair",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 105,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0005",
+        "Message": "Invalid assignment target.",
+        "Position": 104,
+        "Length": 1,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "malformed-generic",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027(\u0027.",
+        "Position": 79,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 79,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 80,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027)\u0027.",
+        "Position": 80,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 80,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 80,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 80,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0001",
+        "Message": "Unexpected token \u0027IntKeyword\u0027.",
+        "Position": 80,
+        "Length": 3,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 87,
+        "Length": 0,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "nested-template",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-BIND-0001",
+        "Message": "Undefined name \u0027Missing\u0027.",
+        "Position": 50,
+        "Length": 7,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-NUM-0004",
+        "Message": "Cannot interpolate value of type \u0027error\u0027 as a canonical string. String.From supports string, boolean, int, and float.",
+        "Position": 41,
+        "Length": 18,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "batch-loop-repair",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 94,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 95,
+        "Length": 0,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "bitwise-float",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 33,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0002",
+        "Message": "Expected expression.",
+        "Position": 33,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0004",
+        "Message": "Expected token \u0027;\u0027.",
+        "Position": 33,
+        "Length": 0,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-PARSE-0001",
+        "Message": "Unexpected token \u0027AmpersandToken\u0027.",
+        "Position": 33,
+        "Length": 1,
+        "SourcePath": null
+      }
+    ]
+  },
+  {
+    "Id": "clr-constructor-call",
+    "Success": false,
+    "Diagnostics": [
+      {
+        "Id": "COPE-TYPE-0002",
+        "Message": "Missing type annotation for variable \u0027values\u0027.",
+        "Position": 62,
+        "Length": 6,
+        "SourcePath": null
+      },
+      {
+        "Id": "COPE-GENERIC-0004",
+        "Message": "Explicit type arguments require a named function.",
+        "Position": 75,
+        "Length": 1,
+        "SourcePath": null
+      }
+    ]
+  }
+]

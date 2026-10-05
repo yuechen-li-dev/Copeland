@@ -1,0 +1,1 @@
+{"name":"sieve","quick":false,"trials":[{"result":"1270607","milliseconds":192.777,"allocatedBytes":100000736,"gcCollections":[2,2,2]},{"result":"1270607","milliseconds":170.9494,"allocatedBytes":100000208,"gcCollections":[3,3,3]},{"result":"1270607","milliseconds":162.1477,"allocatedBytes":100000232,"gcCollections":[2,2,2]}],"peakWorkingSetBytes":86261760}

@@ -1,0 +1,143 @@
+{
+  "qualified": true,
+  "csharpHostChecked": true,
+  "javascriptProfiles": [
+    "Production",
+    "Symbolic"
+  ],
+  "cases": [
+    {
+      "Id": "int-add-wrap",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "-2147483648",
+      "JavaScriptResult": "-2147483648"
+    },
+    {
+      "Id": "int-multiply-wrap",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "1",
+      "JavaScriptResult": "1"
+    },
+    {
+      "Id": "int-divide-wrap",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "-2147483648",
+      "JavaScriptResult": "-2147483648"
+    },
+    {
+      "Id": "int-remainder-min",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "0",
+      "JavaScriptResult": "0"
+    },
+    {
+      "Id": "int-remainder-sign",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "-1",
+      "JavaScriptResult": "-1"
+    },
+    {
+      "Id": "int-negate-wrap",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "-2147483648",
+      "JavaScriptResult": "-2147483648"
+    },
+    {
+      "Id": "bitwise-hash",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "1442875234",
+      "JavaScriptResult": "1442875234"
+    },
+    {
+      "Id": "bitwise-shift-mask",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "2",
+      "JavaScriptResult": "2"
+    },
+    {
+      "Id": "exponent-literal",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "125",
+      "JavaScriptResult": "125"
+    },
+    {
+      "Id": "hex-int-bit-pattern",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "-1",
+      "JavaScriptResult": "-1"
+    },
+    {
+      "Id": "imul-repair",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-NUM-0006",
+          "Message": "Copeland int multiplication already wraps at 32 bits. Use ((7) * (9)).",
+          "Position": 34,
+          "Length": 4,
+          "SourcePath": "imul-repair.ts",
+          "SuggestedReplacement": "((7) * (9))",
+          "RepairKind": "canonical-form"
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "divide-zero-trap",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "Integer division by zero.",
+      "JavaScriptResult": "Integer division by zero."
+    },
+    {
+      "Id": "remainder-zero-trap",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "Integer division by zero.",
+      "JavaScriptResult": "Integer division by zero."
+    },
+    {
+      "Id": "int-negative-shift",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "-4",
+      "JavaScriptResult": "-4"
+    },
+    {
+      "Id": "decimal-int-minimum",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "-2147483648",
+      "JavaScriptResult": "-2147483648"
+    },
+    {
+      "Id": "bitwise-float",
+      "Outcome": "repair",
+      "Diagnostics": [
+        {
+          "Id": "COPE-TYPE-0007",
+          "Message": "Bitwise operands must both have type int; use an explicit Int conversion policy.",
+          "Position": 33,
+          "Length": 1,
+          "SourcePath": "bitwise-float.ts",
+          "SuggestedReplacement": null,
+          "RepairKind": null
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    }
+  ],
+  "limits": "Bounded corpus; does not prove every possible arithmetic expression or host exception class identity."
+}

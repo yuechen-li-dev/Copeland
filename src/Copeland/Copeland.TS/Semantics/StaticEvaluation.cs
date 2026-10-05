@@ -459,9 +459,10 @@ internal sealed class StaticEvaluator
                 return environment.Get(variable.Variable);
             case BoundAssignmentExpression assignment:
             {
+                StaticValue? previous = assignment.ReturnsPreviousValue ? environment.Get(assignment.Variable) : null;
                 StaticValue value = EvaluateExpression(assignment.Expression, environment);
                 environment.Set(assignment.Variable, value);
-                return value;
+                return previous ?? value;
             }
             case BoundUnaryExpression unary:
                 return EvaluateUnary(unary, environment);
@@ -579,8 +580,13 @@ internal sealed class StaticEvaluator
                 SyntaxKind.PlusToken => unchecked(leftInteger + rightInteger),
                 SyntaxKind.MinusToken => unchecked(leftInteger - rightInteger),
                 SyntaxKind.StarToken => unchecked(leftInteger * rightInteger),
-                SyntaxKind.SlashToken => leftInteger / rightInteger,
-                SyntaxKind.PercentToken => leftInteger % rightInteger,
+                SyntaxKind.SlashToken => unchecked((int)((long)leftInteger / rightInteger)),
+                SyntaxKind.PercentToken => (int)((long)leftInteger % rightInteger),
+                SyntaxKind.AmpersandToken => leftInteger & rightInteger,
+                SyntaxKind.PipeToken => leftInteger | rightInteger,
+                SyntaxKind.CaretToken => leftInteger ^ rightInteger,
+                SyntaxKind.ShiftLeftToken => leftInteger << rightInteger,
+                SyntaxKind.ShiftRightToken => leftInteger >> rightInteger,
                 SyntaxKind.LessToken => leftInteger < rightInteger,
                 SyntaxKind.LessOrEqualsToken => leftInteger <= rightInteger,
                 SyntaxKind.GreaterToken => leftInteger > rightInteger,

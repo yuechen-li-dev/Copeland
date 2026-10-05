@@ -1,0 +1,42 @@
+{
+  "qualified": true,
+  "owner": "Typed int index/length emission omits redundant checked((int)) casts; genuine numeric conversions retain checks.",
+  "cases": [
+    {
+      "Id": "array-filled",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "[7,9,7]",
+      "JavaScriptResult": "[7,9,7]"
+    },
+    {
+      "Id": "array-string-filled",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "[\"x\",\"x\"]",
+      "JavaScriptResult": "[\"x\",\"x\"]"
+    },
+    {
+      "Id": "generic-array-inference",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "[7,9,7]",
+      "JavaScriptResult": "[7,9,7]"
+    },
+    {
+      "Id": "array-filled-negative-trap",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "Copeland mutable array length cannot be negative. (Parameter 'length')",
+      "JavaScriptResult": "Copeland mutable array length cannot be negative."
+    },
+    {
+      "Id": "record-initializer-immutable",
+      "Outcome": "compile",
+      "Diagnostics": [],
+      "CSharpResult": "14",
+      "JavaScriptResult": "14"
+    }
+  ],
+  "limits": "The arrays benchmark rerun is aggregate evidence; no JIT disassembly or isolated bounds-check elimination speedup was proved. Existing backend bounds policy is retained."
+}

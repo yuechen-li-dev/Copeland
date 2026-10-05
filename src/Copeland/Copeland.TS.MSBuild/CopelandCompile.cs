@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.RegularExpressions;
 using Copeland.TS.Backend.CSharp;
 using Copeland.TS.Compiler;
 using Copeland.TS.Mir;
@@ -62,7 +61,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
             string summary = rootCause.Message.Replace('\r', ' ').Replace('\n', ' ');
             if (summary.Length > 500)
             {
-                summary = summary[..500] + "…";
+                summary = summary[..500] + "â€¦";
             }
 
             Log.LogError(
@@ -185,7 +184,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
             activePaths.Add(mirPath);
             activePaths.Add(stampPath);
 
-            string fingerprint = CreateFingerprint(sourcePath, effectiveReferences, packageContracts, npmContracts, authoredCSharpSources, RootNamespace, moduleName, projectTypes);
+            string fingerprint = CreateFingerprint(sourcePath, effectiveReferences, packageContracts, npmContracts, authoredCSharpSources, RootNamespace, moduleName, projectTypes, LangVersion, DefineConstants, Nullable);
             if (!IsCurrent(stampPath, outputPath, mirPath, fingerprint))
             {
                 if (!Compile(sourcePath, projectDirectory, effectiveReferences, packageContracts, npmContracts, projectTypes, RootNamespace, moduleName, outputPath, mirPath))
@@ -219,7 +218,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         string outputPath = Path.Combine(generatedDirectory, graphArtifactName + ".g.cs");
         string mirPath = Path.Combine(generatedDirectory, graphArtifactName + ".cope");
         string stampPath = Path.Combine(generatedDirectory, graphArtifactName + ".stamp");
-        string fingerprint = CreateProjectFingerprint(sources, references, packageContracts, npmContracts, authoredCSharpSources, rootNamespace, graphArtifactName, projectTypes);
+        string fingerprint = CreateProjectFingerprint(sources, references, packageContracts, npmContracts, authoredCSharpSources, rootNamespace, graphArtifactName, projectTypes, LangVersion, DefineConstants, Nullable);
 
         if (!IsCurrent(stampPath, outputPath, mirPath, fingerprint))
         {
@@ -254,7 +253,13 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
             string publicModuleName = sources.Any(source => string.Equals(Path.GetFileNameWithoutExtension(source.LogicalPath), "Main", StringComparison.OrdinalIgnoreCase))
                 ? "Main"
                 : graphArtifactName;
-            CSharpCompilation emitted = CSharpBackend.Emit(project.Compilation!.MirCompilation!.Program!, publicModuleName);
+            CSharpCompilation emitted = CSharpBackend.Emit(project.Compilation!.MirCompilation!.Program!, new CSharpEmissionOptions
+            {
+                ModuleClassName = publicModuleName,
+                Namespace = NormalizeNamespace(rootNamespace) + ".Copeland",
+                RecordCarrierScope = graphArtifactName,
+                PublicFunctionNames = project.MirProjectGraph!.Modules.SelectMany(module => module.Exports.Select(export => export.RuntimeName ?? export.Name)).ToHashSet(StringComparer.Ordinal),
+            });
             if (emitted.Diagnostics.Count > 0)
             {
                 foreach (CSharpDiagnostic diagnostic in emitted.Diagnostics)
@@ -265,11 +270,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
                 return false;
             }
 
-            string generatedNamespace = NormalizeNamespace(rootNamespace) + ".Copeland";
-            string generatedSource = emitted.SourceText
-                .Replace("namespace Copeland.Generated;", "namespace " + generatedNamespace + ";", StringComparison.Ordinal);
-            generatedSource = ScopeProjectFunctionAccessibility(generatedSource, project.MirProjectGraph!, publicModuleName);
-            generatedSource = ScopeRecordCarrierNames(generatedSource, graphArtifactName);
+            string generatedSource = emitted.SourceText;
             WriteIfChanged(outputPath, generatedSource);
             WriteIfChanged(mirPath, project.Compilation.MirText!);
             File.WriteAllText(stampPath, fingerprint, new UTF8Encoding(false));
@@ -327,7 +328,12 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
             return false;
         }
 
-        CSharpCompilation emitted = CSharpBackend.Emit(compilation.MirCompilation!.Program!, moduleName);
+        CSharpCompilation emitted = CSharpBackend.Emit(compilation.MirCompilation!.Program!, new CSharpEmissionOptions
+        {
+            ModuleClassName = moduleName,
+            Namespace = NormalizeNamespace(rootNamespace) + ".Copeland",
+            RecordCarrierScope = moduleName,
+        });
         if (emitted.Diagnostics.Count > 0)
         {
             foreach (CSharpDiagnostic diagnostic in emitted.Diagnostics)
@@ -338,10 +344,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
             return false;
         }
 
-        string generatedNamespace = NormalizeNamespace(rootNamespace) + ".Copeland";
-        string generatedSource = emitted.SourceText
-            .Replace("namespace Copeland.Generated;", "namespace " + generatedNamespace + ";", StringComparison.Ordinal);
-        generatedSource = ScopeRecordCarrierNames(generatedSource, moduleName);
+        string generatedSource = emitted.SourceText;
 
         WriteIfChanged(outputPath, generatedSource);
         WriteIfChanged(mirPath, compilation.MirText!);
@@ -362,54 +365,6 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         if (unknownType is null) return true;
         Log.LogError("COPE-MSBUILD-0008", "", "", ProjectDirectory, 0, 0, 0, 0, $"Unknown Copeland project type '{unknownType}'. Supported types are TextDocuments, ReactComponents, and FlowAuthoring.");
         return false;
-    }
-
-    private static string ScopeRecordCarrierNames(string generatedSource, string moduleName)
-    {
-        return Regex.Replace(
-            generatedSource,
-            @"__CopeRecord_(?<recordId>[A-Za-z0-9_]+)",
-            match => "__CopeRecord_" + moduleName + "_" + match.Groups["recordId"].Value);
-    }
-
-    private static string ScopeProjectFunctionAccessibility(string generatedSource, MirProjectGraph graph, string moduleClassName)
-    {
-        var exportedFunctions = graph.Modules
-            .SelectMany(module => module.Exports.Select(export => export.Name))
-            .ToHashSet(StringComparer.Ordinal);
-        string classMarker = "public static class " + moduleClassName;
-        int classStart = generatedSource.IndexOf(classMarker, StringComparison.Ordinal);
-        if (classStart < 0)
-        {
-            return generatedSource;
-        }
-
-        int openBrace = generatedSource.IndexOf('{', classStart);
-        if (openBrace < 0)
-        {
-            return generatedSource;
-        }
-
-        int depth = 0;
-        int classEnd = openBrace;
-        for (; classEnd < generatedSource.Length; classEnd += 1)
-        {
-            if (generatedSource[classEnd] == '{') depth += 1;
-            else if (generatedSource[classEnd] == '}' && --depth == 0)
-            {
-                classEnd += 1;
-                break;
-            }
-        }
-
-        string classSource = generatedSource[classStart..classEnd];
-        string scopedClassSource = Regex.Replace(
-            classSource,
-            @"public static (?<returnType>[A-Za-z0-9_:.<>,?\[\]\s]+) (?<name>[A-Za-z_][A-Za-z0-9_]*)\(",
-            match => exportedFunctions.Contains(match.Groups["name"].Value)
-                ? match.Value
-                : "internal static " + match.Groups["returnType"].Value + " " + match.Groups["name"].Value + "(");
-        return generatedSource[..classStart] + scopedClassSource + generatedSource[classEnd..];
     }
 
     private static IReadOnlyDictionary<string, string> CreateModuleNames(IReadOnlyList<string> sourcePaths)
@@ -510,9 +465,15 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         IReadOnlyList<string> authoredCSharpSources,
         string rootNamespace,
         string moduleName,
-        CopelandProjectTypeSet projectTypes)
+        CopelandProjectTypeSet projectTypes,
+        string langVersion,
+        string defineConstants,
+        string nullable)
     {
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        Append(hash, langVersion);
+        Append(hash, defineConstants);
+        Append(hash, nullable);
         Append(hash, File.ReadAllText(sourcePath));
         Append(hash, rootNamespace);
         Append(hash, moduleName);
@@ -520,6 +481,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         AppendCompilerPayloadFingerprint(hash, typeof(CopelandCompile).Assembly);
         AppendCompilerPayloadFingerprint(hash, typeof(CopelandCompiler).Assembly);
         AppendCompilerPayloadFingerprint(hash, typeof(CSharpBackend).Assembly);
+        AppendCompilerPayloadFingerprint(hash, typeof(MirProgram).Assembly);
         foreach (CopelandClrReference reference in references)
         {
             if (reference.AssemblyPath is not null)
@@ -551,9 +513,15 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         IReadOnlyList<string> authoredCSharpSources,
         string rootNamespace,
         string moduleName,
-        CopelandProjectTypeSet projectTypes)
+        CopelandProjectTypeSet projectTypes,
+        string langVersion,
+        string defineConstants,
+        string nullable)
     {
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        Append(hash, langVersion);
+        Append(hash, defineConstants);
+        Append(hash, nullable);
         foreach (CopelandProjectSource source in sources.OrderBy(source => source.LogicalPath, StringComparer.OrdinalIgnoreCase))
         {
             Append(hash, source.LogicalPath);
@@ -565,6 +533,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         AppendCompilerPayloadFingerprint(hash, typeof(CopelandCompile).Assembly);
         AppendCompilerPayloadFingerprint(hash, typeof(CopelandCompiler).Assembly);
         AppendCompilerPayloadFingerprint(hash, typeof(CSharpBackend).Assembly);
+        AppendCompilerPayloadFingerprint(hash, typeof(MirProgram).Assembly);
         foreach (CopelandClrReference reference in references)
         {
             if (reference.AssemblyPath is null) continue;
@@ -585,18 +554,18 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
 
     private static void AppendCompilerPayloadFingerprint(IncrementalHash hash, System.Reflection.Assembly assembly)
     {
-        Append(hash, assembly.GetName().Name ?? "unknown");
-        Append(hash, assembly.GetName().Version?.ToString() ?? "unknown");
+        AppendCompilerPayloadIdentityAndBytes(hash, assembly.GetName(), assembly.Location);
+    }
 
-        string assemblyPath = assembly.Location;
+    private static void AppendCompilerPayloadIdentityAndBytes(IncrementalHash hash, System.Reflection.AssemblyName identity, string assemblyPath)
+    {
+        Append(hash, identity.Name ?? "unknown");
+        Append(hash, identity.Version?.ToString() ?? "unknown");
         if (!File.Exists(assemblyPath))
         {
             return;
         }
-
-        var assemblyFile = new FileInfo(assemblyPath);
-        Append(hash, assemblyFile.Length.ToString(System.Globalization.CultureInfo.InvariantCulture));
-        Append(hash, assemblyFile.LastWriteTimeUtc.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        hash.AppendData(SHA256.HashData(File.ReadAllBytes(assemblyPath)));
     }
 
     private static bool IsCurrent(string stampPath, string outputPath, string mirPath, string fingerprint)

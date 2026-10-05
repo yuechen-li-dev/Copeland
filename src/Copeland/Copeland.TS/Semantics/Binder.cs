@@ -127,6 +127,7 @@ public static class Binder
         private TextDocumentCompilation _textDocumentCompilation = new([], []);
         private readonly Dictionary<int, BoundTextDocument> _textDocumentsByRootStart = [];
         private readonly Scope _global = new(null);
+        private bool _missingNativeMapReported;
         private Scope _scope = null!;
         private FunctionSymbol? _currentFunction;
         private ClassTypeSymbol? _currentClass;
@@ -228,10 +229,10 @@ public static class Binder
             PredeclareLayerSets(_tree.Root);
             PredeclareLayoutTypes(_tree.Root);
             PredeclareLayouts(_tree.Root);
+            BindClrUsingDirectives(_tree.Root);
             ResolveAliases();
             BindInterfaceBodies(_tree.Root);
             PredeclareFunctions(_tree.Root);
-            BindClrUsingDirectives(_tree.Root);
             BindCopelandPackageImports(_tree.Root);
             BindNpmImports(_tree.Root);
             BindJavaScriptHostImports(_tree.Root);
@@ -5874,13 +5875,14 @@ public static class Binder
                 Report(id, message, v.Identifier);
             }
             bool inferCallableReference = v.Type is null
-                && v.Initializer is NameExpressionSyntax or GenericFunctionReferenceExpressionSyntax or CallExpressionSyntax or ArrowExpressionSyntax or CaptureExpressionSyntax;
+                && v.Initializer is NameExpressionSyntax or GenericFunctionReferenceExpressionSyntax or CallExpressionSyntax or GenericCallExpressionSyntax or NewExpressionSyntax or ArrowExpressionSyntax or CaptureExpressionSyntax;
             bool inferArrowLocal = v.Type is null && _arrowBodyDepth > 0;
+            bool inferCoalesce = v.Type is null && v.Initializer is CoalesceExpressionSyntax;
             bool inferNumericLiteral = v.Type is null && v.Initializer is LiteralExpressionSyntax;
             bool inferObjectLiteral = v.Type is null && v.Initializer is ObjectLiteralExpressionSyntax;
             bool inferWithValue = v.Type is null && v.Initializer is WithExpressionSyntax;
             bool inferRecordValue = inferObjectLiteral || inferWithValue;
-            bool inferInitializer = inferCallableReference || inferArrowLocal || inferNumericLiteral || inferRecordValue;
+            bool inferInitializer = inferCallableReference || inferArrowLocal || inferNumericLiteral || inferRecordValue || inferCoalesce;
             var type = inferInitializer
                 ? PrimitiveTypeSymbol.Error
                 : BindType(v.Type, v.Identifier, "COPE-TYPE-0002", "variable");
@@ -5894,7 +5896,9 @@ public static class Binder
             }
             else
             {
-                init = BindExpression(v.Initializer, inferInitializer ? null : type);
+                init = type == PrimitiveTypeSymbol.Error && !inferInitializer && v.Type is not null
+                    ? new BoundErrorExpression()
+                    : BindExpression(v.Initializer, inferInitializer ? null : type);
             }
             if (inferInitializer)
             {
@@ -7125,6 +7129,12 @@ public static class Binder
             }
             if (!_scope.TryLookup(n.IdentifierToken.Text, out var symbol) || symbol is null)
             {
+                if (n.IdentifierToken.Text == "undefined")
+                {
+                    ReportRepair("COPE-PROFILE-0011", "undefined has no Copeland runtime meaning. Use Option<T> with Some(value) or None.", n.IdentifierToken, "Option<T> with Some(value) or None");
+                    return new BoundErrorExpression();
+                }
+
                 if (_aliases.ContainsKey(n.IdentifierToken.Text))
                 {
                     Report(
@@ -7188,8 +7198,63 @@ public static class Binder
             => _tree.Tokens.FirstOrDefault(token => string.Equals(token.Text, symbol.Name, StringComparison.Ordinal))
                 ?? new SyntaxToken(SyntaxKind.IdentifierToken, 0, symbol.Name, null);
 
+        private static bool IsBatchPrefixStatement(StatementSyntax statement)
+            => statement switch
+            {
+                VariableDeclarationStatementSyntax or ExpressionStatementSyntax => true,
+                BlockStatementSyntax block => block.Statements.All(IsBatchPrefixStatement),
+                IfStatementSyntax conditional => IsBatchPrefixStatement(conditional.ThenStatement)
+                    && (conditional.ElseStatement is null || IsBatchPrefixStatement(conditional.ElseStatement)),
+                _ => false,
+            };
+
+        private static BatchExpressionSyntax NormalizeBatchReturns(BatchExpressionSyntax batch)
+        {
+            ReturnStatementSyntax? SingleReturn(StatementSyntax? statement)
+                => statement switch
+                {
+                    ReturnStatementSyntax returned when returned.Expression is not null => returned,
+                    BlockStatementSyntax { Statements.Count: 1 } block => SingleReturn(block.Statements[0]),
+                    _ => null,
+                };
+            var statements = batch.Body.Statements.ToList();
+            if (statements.Count == 0)
+            {
+                return batch;
+            }
+            int branchIndex = statements.Count - 1;
+            ReturnStatementSyntax? fallback = null;
+            if (statements[^1] is ReturnStatementSyntax returned && statements.Count > 1)
+            {
+                fallback = returned;
+                branchIndex--;
+            }
+            if (statements[branchIndex] is not IfStatementSyntax branch)
+            {
+                return batch;
+            }
+            ReturnStatementSyntax? thenReturn = SingleReturn(branch.ThenStatement);
+            ReturnStatementSyntax? elseReturn = SingleReturn(branch.ElseStatement);
+            if (branch.ElseStatement is null)
+            {
+                elseReturn = fallback;
+            }
+            if (thenReturn?.Expression is null || elseReturn?.Expression is null)
+            {
+                return batch;
+            }
+            var conditional = new IfExpressionSyntax(branch.IfKeyword, branch.Condition,
+                batch.Body.OpenBraceToken, thenReturn.Expression, batch.Body.CloseBraceToken,
+                branch.ElseKeyword ?? branch.IfKeyword, batch.Body.OpenBraceToken, elseReturn.Expression, batch.Body.CloseBraceToken);
+            statements.RemoveRange(branchIndex, statements.Count - branchIndex);
+            statements.Add(thenReturn with { Expression = conditional });
+            return batch with { Body = batch.Body with { Statements = statements } };
+        }
+
         private BoundExpression BindBatch(BatchExpressionSyntax batch)
         {
+            batch = NormalizeBatchReturns(batch);
+
             BoundExpression input = BindExpression(batch.Input);
             if (input.Type is not ArrayTypeSymbol inputArray)
             {
@@ -7214,9 +7279,15 @@ public static class Binder
                 return new BoundErrorExpression();
             }
 
-            if (batch.Body.Statements.Take(batch.Body.Statements.Count - 1).Any(statement => statement is not VariableDeclarationStatementSyntax and not ExpressionStatementSyntax))
+            foreach (StatementSyntax statement in batch.Body.Statements.Take(batch.Body.Statements.Count - 1))
             {
-                Report("COPE-BATCH-0004", "A CTS-BATCH-M1 body may contain item-local declarations and expressions before its final return.", batch.Body.OpenBraceToken);
+                if (!IsBatchPrefixStatement(statement))
+                {
+                    SyntaxToken anchor = statement is IfStatementSyntax conditional ? conditional.IfKeyword : batch.Body.OpenBraceToken;
+                    ReportRepair("COPE-BATCH-0010", "This batch branch cannot return early or contain loops. Use return if (condition) { value } else { otherValue }, or call a pure helper function.", anchor,
+                        "return if (condition) { value } else { otherValue };" );
+                    return new BoundErrorExpression();
+                }
             }
 
             Scope previousScope = _scope;
@@ -7300,6 +7371,14 @@ public static class Binder
                     break;
                 case BoundExpressionStatement expression:
                     ValidateBatchBodyEffects(expression.Expression, anchor);
+                    break;
+                case BoundBlockStatement block:
+                    foreach (BoundStatement child in block.Statements) ValidateBatchStatementEffects(child, anchor);
+                    break;
+                case BoundIfStatement conditional:
+                    ValidateBatchBodyEffects(conditional.Condition, anchor);
+                    ValidateBatchStatementEffects(conditional.ThenStatement, anchor);
+                    if (conditional.ElseStatement is not null) ValidateBatchStatementEffects(conditional.ElseStatement, anchor);
                     break;
                 default:
                     Report("COPE-BATCH-0010", "This statement is not supported inside a batch body.", anchor);
@@ -7569,6 +7648,7 @@ public static class Binder
                     && visited.Add(name.IdentifierToken.Text))
                 {
                     Report("COPE-CALL-0017", $"Implicit lexical capture of '{name.IdentifierToken.Text}' is forbidden. Use 'capture {{ {name.IdentifierToken.Text} }} ...' to snapshot it into an immutable callable environment.", name.IdentifierToken);
+                    _scope.TryDeclare(new VariableSymbol(name.IdentifierToken.Text, PrimitiveTypeSymbol.Error, true));
                 }
 
                 if (current is SyntaxNode node)
@@ -7605,7 +7685,13 @@ public static class Binder
 
         private BoundExpression BindUnary(UnaryExpressionSyntax u)
         {
+            if (u.OperatorToken.Kind == SyntaxKind.MinusToken
+                && u.Operand is LiteralExpressionSyntax { LiteralToken.Value: MinimumIntMagnitudeTokenValue })
+            {
+                return new BoundLiteralExpression(int.MinValue, PrimitiveTypeSymbol.Int);
+            }
             var op = u.OperatorToken.Kind; var operand = BindExpression(u.Operand);
+            if (operand.Type == PrimitiveTypeSymbol.Error) return new BoundErrorExpression();
             if (op == SyntaxKind.MinusToken && TypeFacts.IsNumeric(operand.Type)) return new BoundUnaryExpression(op, operand, operand.Type);
             if (op == SyntaxKind.BangToken && operand.Type == PrimitiveTypeSymbol.Boolean) return new BoundUnaryExpression(op, operand, PrimitiveTypeSymbol.Boolean);
             Report("COPE-TYPE-0006", $"Invalid unary operand for '{u.OperatorToken.Text}'.", u.OperatorToken);
@@ -7620,6 +7706,9 @@ public static class Binder
             }
 
             var l = BindExpression(b.Left); var r = BindExpression(b.Right); var op = b.OperatorToken.Kind;
+            if (op == SyntaxKind.EqualsEqualsEqualsToken) op = SyntaxKind.EqualsEqualsToken;
+            if (op == SyntaxKind.BangEqualsEqualsToken) op = SyntaxKind.BangEqualsToken;
+            if (l.Type == PrimitiveTypeSymbol.Error || r.Type == PrimitiveTypeSymbol.Error) return new BoundErrorExpression();
             if (TypeFacts.IsFloat(l.Type) && r is BoundLiteralExpression { Value: int } integerLiteral)
             {
                 r = new BoundLiteralExpression(Convert.ToDouble(integerLiteral.Value, System.Globalization.CultureInfo.InvariantCulture), l.Type);
@@ -7658,6 +7747,12 @@ public static class Binder
                 Report("COPE-REC-0016", "Record equality is not supported.", b.OperatorToken);
                 return new BoundErrorExpression();
             }
+            if (op is SyntaxKind.AmpersandToken or SyntaxKind.PipeToken or SyntaxKind.CaretToken or SyntaxKind.ShiftLeftToken or SyntaxKind.ShiftRightToken)
+            {
+                if (TypeFacts.IsInt(l.Type) && TypeFacts.IsInt(r.Type)) return new BoundBinaryExpression(l, op, r, PrimitiveTypeSymbol.Int);
+                Report("COPE-TYPE-0007", "Bitwise operands must both have type int; use an explicit Int conversion policy.", b.OperatorToken);
+                return new BoundErrorExpression();
+            }
             if (TypeFacts.IsNumeric(l.Type) && TypeFacts.IsNumeric(r.Type)
                 && op is SyntaxKind.PlusToken or SyntaxKind.MinusToken or SyntaxKind.StarToken or SyntaxKind.SlashToken or SyntaxKind.PercentToken)
             {
@@ -7679,11 +7774,6 @@ public static class Binder
             {
                 if (l.Type == PrimitiveTypeSymbol.Boolean && r.Type == PrimitiveTypeSymbol.Boolean) return new BoundBinaryExpression(l, op, r, PrimitiveTypeSymbol.Boolean);
             }
-            if (op is SyntaxKind.EqualsEqualsEqualsToken or SyntaxKind.BangEqualsEqualsToken)
-            {
-                Report("COPE-PROFILE-0009", $"Strict equality spelling '{b.OperatorToken.Text}' is reserved and not supported. Use typed '{(op == SyntaxKind.EqualsEqualsEqualsToken ? "==" : "!=")}' equality.", b.OperatorToken);
-                return new BoundErrorExpression();
-            }
             if (op is SyntaxKind.EqualsEqualsToken or SyntaxKind.BangEqualsToken)
             {
                 if (l.Type == r.Type && IsPrimitiveEqualityType(l.Type))
@@ -7704,9 +7794,29 @@ public static class Binder
 
         private BoundExpression BindAssignment(AssignmentExpressionSyntax a)
         {
+            if (a.EqualsToken.Kind != SyntaxKind.EqualsToken && a.Left is not NameExpressionSyntax)
+            {
+                // Ordinary assignment still owns immutable member and array diagnostics.
+                if (a.Left is IndexExpressionSyntax index && BindExpression(index.Target).Type is MutableArrayTypeSymbol)
+                {
+                    ReportRepair("COPE-MUTATION-0001", "Compound updates of computed storage are not yet supported. Bind the receiver and index to const locals, then assign array[index] = array[index] + value.", a.EqualsToken,
+                        "Bind receiver and index once; use explicit indexed assignment.");
+                    return new BoundErrorExpression();
+                }
+            }
+
             if (a.Left is IndexExpressionSyntax indexed)
             {
                 var receiver = BindExpression(indexed.Target);
+                if (receiver.Type is ClrTypeSymbol clrIndexer)
+                {
+                    if (a.EqualsToken.Kind != SyntaxKind.EqualsToken)
+                    {
+                        ReportRepair("COPE-MUTATION-0001", "Compound CLR indexer updates require explicit indexed assignment with receiver and index bound once.", a.EqualsToken, "Bind receiver and index once; use explicit indexed assignment.");
+                        return new BoundErrorExpression();
+                    }
+                    return BindClrIndexer(clrIndexer, receiver, indexed, a.Right);
+                }
                 var boundIndex = BindExpression(indexed.Index);
                 if (receiver.Type is MutableArrayTypeSymbol mutableArray)
                 {
@@ -7756,7 +7866,8 @@ public static class Binder
                     }
                     else
                     {
-                        Report("COPE-REC-0011", $"Cannot assign to immutable record field '{recordType.Name}.{field.Name}'.", member.NameToken);
+                        string replacement = $"{AuthoredText(member.Target)} with {{ {field.Name}: replacementValue }}";
+                        ReportRepair("COPE-REC-0011", $"Cannot assign to immutable record field '{recordType.Name}.{field.Name}'. Use {replacement} to construct an updated value.", member.NameToken, replacement);
                     }
                     return new BoundErrorExpression();
                 }
@@ -7786,7 +7897,21 @@ public static class Binder
                 return new BoundErrorExpression();
             }
             if (variable.IsReadOnly) Report("COPE-BIND-0003", $"Cannot assign to const variable '{variable.Name}'.", n.IdentifierToken);
-            var expr = BindExpression(a.Right, variable.Type);
+            ExpressionSyntax valueSyntax = a.Right;
+            if (a.EqualsToken.Kind is SyntaxKind.PlusEqualsToken or SyntaxKind.MinusEqualsToken or SyntaxKind.StarEqualsToken or SyntaxKind.SlashEqualsToken or SyntaxKind.PercentEqualsToken)
+            {
+                SyntaxKind operation = a.EqualsToken.Kind switch
+                {
+                    SyntaxKind.PlusEqualsToken => SyntaxKind.PlusToken,
+                    SyntaxKind.MinusEqualsToken => SyntaxKind.MinusToken,
+                    SyntaxKind.StarEqualsToken => SyntaxKind.StarToken,
+                    SyntaxKind.SlashEqualsToken => SyntaxKind.SlashToken,
+                    _ => SyntaxKind.PercentToken,
+                };
+                var token = new SyntaxToken(operation, a.EqualsToken.Position, SyntaxFacts.GetText(operation)!, null);
+                valueSyntax = new BinaryExpressionSyntax(a.Left, token, a.Right);
+            }
+            var expr = BindExpression(valueSyntax, variable.Type);
             if (!IsAssignable(variable.Type, expr.Type))
             {
                 ReportTypeMismatch(
@@ -7796,7 +7921,7 @@ public static class Binder
                     a.EqualsToken,
                     variable.AuthoredAliasName);
             }
-            return new BoundAssignmentExpression(variable, expr);
+            return new BoundAssignmentExpression(variable, expr) { ReturnsPreviousValue = a.ReturnsPreviousValue };
         }
 
         private BoundExpression BindCall(CallExpressionSyntax c, TypeSymbol? contextualType)
@@ -7888,6 +8013,21 @@ public static class Binder
                 Report("COPE-DOC-RENDER-0001", "Canonical plain Text requires the bounded React createElement import.", textTarget.IdentifierToken);
                 return new BoundErrorExpression();
             }
+            if (c.Target is MemberAccessExpressionSyntax { Target: NameExpressionSyntax { IdentifierToken.Text: "Math" }, NameToken.Text: "imul" } multiply
+                && !_scope.TryLookup("Math", out _))
+            {
+                string replacement = c.Arguments.Count == 2
+                    ? $"(({AuthoredText(c.Arguments[0])}) * ({AuthoredText(c.Arguments[1])}))"
+                    : "left * right";
+                ReportRepair("COPE-NUM-0006", $"Copeland int multiplication already wraps at 32 bits. Use {replacement}.", multiply.NameToken, replacement);
+                return new BoundErrorExpression();
+            }
+
+            if (TryBindNativeStringCall(c, out BoundExpression? nativeString))
+            {
+                return nativeString!;
+            }
+
             if (TryBindNumericConversion(c, out BoundExpression? conversion))
             {
                 return conversion!;
@@ -7937,41 +8077,25 @@ public static class Binder
                 {
                     return BindColumnAggregateCall(c, tableMember, columnAccess);
                 }
-            }
-
-            if (c.Target is MemberAccessExpressionSyntax unresolvedClrMember
-                && _clrNamespaces.Count > 0
-                && TryGetQualifiedName(unresolvedClrMember.Target, out string unresolvedClrName, out SyntaxToken unresolvedClrAnchor)
-                && !_scope.TryLookup(unresolvedClrName.Split('.')[0], out _)
-                && !_classTypes.ContainsKey(unresolvedClrName.Split('.')[0])
-                && !_enumTypes.ContainsKey(unresolvedClrName.Split('.')[0]))
-            {
-                Report("COPE-CLR-0001", $"CLR type '{unresolvedClrName}' was not found in imported CLR namespaces or supplied references.", unresolvedClrAnchor);
-                return new BoundErrorExpression();
-            }
-
-            if (c.Target is MemberAccessExpressionSyntax instanceMember)
-            {
-                if (instanceMember.Target is not NameExpressionSyntax instanceTargetName
-                    || (!_classTypes.ContainsKey(instanceTargetName.IdentifierToken.Text)
-                        && !_enumTypes.ContainsKey(instanceTargetName.IdentifierToken.Text)))
+                if (tableReceiver.Type == PrimitiveTypeSymbol.Error)
                 {
-                    BoundExpression receiver = BindExpression(instanceMember.Target);
-                    if (receiver.Type is MutableArrayTypeSymbol mutableArray
-                        && instanceMember.NameToken.Text == "freeze")
-                    {
-                        if (c.Arguments.Count != 0)
-                        {
-                            Report("COPE-ARRAY-0007", "MutableArray.freeze() does not accept arguments.", c.OpenParenToken);
-                            return new BoundErrorExpression();
-                        }
-                        return new BoundMutableArrayFreezeExpression(receiver, new ArrayTypeSymbol(mutableArray.ElementType));
-                    }
-                    if (receiver.Type is ClrTypeSymbol clrReceiver)
-                    {
-                        return BindClrMethodCall(c, clrReceiver.RuntimeType, receiver, instanceMember.NameToken);
-                    }
+                    return new BoundErrorExpression();
                 }
+                if (tableReceiver.Type is MutableArrayTypeSymbol mutableArray && tableMember.NameToken.Text == "freeze")
+                {
+                    if (c.Arguments.Count != 0)
+                    {
+                        Report("COPE-ARRAY-0007", "MutableArray.freeze() does not accept arguments.", c.OpenParenToken);
+                        return new BoundErrorExpression();
+                    }
+                    return new BoundMutableArrayFreezeExpression(tableReceiver, new ArrayTypeSymbol(mutableArray.ElementType));
+                }
+                if (tableReceiver.Type is ClrTypeSymbol clrReceiver)
+                {
+                    return BindClrMethodCall(c, clrReceiver.RuntimeType, tableReceiver, tableMember.NameToken);
+                }
+                ReportReceiverCall(c, tableMember, tableReceiver.Type);
+                return new BoundErrorExpression();
             }
 
             if (c.Target is NameExpressionSyntax tsonEncodeName
@@ -8411,6 +8535,7 @@ public static class Binder
 
         private BoundExpression BindStringConversion(BoundExpression operand, SyntaxToken anchor, bool interpolation)
         {
+            if (operand.Type == PrimitiveTypeSymbol.Error) return new BoundErrorExpression();
             if (operand.Type == PrimitiveTypeSymbol.String)
             {
                 return operand;
@@ -8454,8 +8579,25 @@ public static class Binder
             return new BoundNumericConversionExpression(kind, operand, PrimitiveTypeSymbol.Int);
         }
 
+        private void ReportMissingNativeMap(SyntaxToken anchor)
+        {
+            if (_missingNativeMapReported)
+            {
+                return;
+            }
+            _missingNativeMapReported = true;
+            ReportRepair("COPE-COLLECTION-0001", "Native MutableMap<K, V> is not yet supported. For CLR-only storage use 'using System.Collections.Generic;' and 'new Dictionary<K, V>()'; use ContainsKey before indexed reads. Cross-backend Option-valued lookup and insertion-order iteration remain unsupported.", anchor,
+                "using System.Collections.Generic; new Dictionary<K, V>()", "unsupported-capability");
+        }
+
         private BoundExpression BindNew(NewExpressionSyntax expression)
         {
+            if (expression.Target is NameExpressionSyntax { IdentifierToken.Text: "Map" or "MutableMap" } map)
+            {
+                ReportMissingNativeMap(map.IdentifierToken);
+                return new BoundErrorExpression();
+            }
+
             if (expression.Target is NameExpressionSyntax name
                 && _classTypes.ContainsKey(name.IdentifierToken.Text))
             {
@@ -8466,7 +8608,13 @@ public static class Binder
                 return new BoundErrorExpression();
             }
 
-            if (!TryResolveClrTypeReference(expression.Target, out Type? type))
+            Type? type = null;
+            if (expression.TypeArguments.Count > 0 && expression.Target is NameExpressionSyntax genericName)
+            {
+                type = CloseGenericClrType(genericName.IdentifierToken, expression.TypeArguments);
+                if (type is null) return new BoundErrorExpression();
+            }
+            else if (!TryResolveClrTypeReference(expression.Target, out type))
             {
                 Report("COPE-CLR-0001", "CLR constructor target was not found. CLR 'using' directives resolve only CLR namespaces and types.", expression.NewKeyword);
                 return new BoundErrorExpression();
@@ -8752,7 +8900,8 @@ public static class Binder
                 || _tableTypes.ContainsKey(name)
                 || _aliases.ContainsKey(name)
                 || _interfaces.ContainsKey(name)
-                || _global.TryLookup(name, out _);
+                || _global.TryLookup(name, out _)
+                || _tree.Root.Members.OfType<FunctionDeclarationSyntax>().Any(function => function.Identifier.Text == name);
 
         private bool TryResolveClrTypeReference(ExpressionSyntax syntax, out Type? type)
         {
@@ -9879,15 +10028,23 @@ public static class Binder
 
         private BoundExpression BindGenericCall(GenericCallExpressionSyntax call, TypeSymbol? contextualType)
         {
+            if (call.Target is NameExpressionSyntax clrName && IsImportedGenericClrName(clrName.IdentifierToken.Text))
+            {
+                Type? closed = CloseGenericClrType(clrName.IdentifierToken, call.TypeArguments);
+                if (closed is null) return new BoundErrorExpression();
+                return BindClrInvocation(call.Arguments, call.OpenParenToken,
+                    closed.GetConstructors().Where(_clrResolver.IsMemberVisible), null, closed.FullName ?? closed.Name);
+            }
+
             if (call.Target is NameExpressionSyntax { IdentifierToken.Text: "MutableArray" } mutableArrayName)
             {
-                if (call.TypeArguments.Count != 1 || call.Arguments.Count != 1)
+                if (call.TypeArguments.Count != 1 || call.Arguments.Count is not 1 and not 2)
                 {
-                    Report("COPE-ARRAY-0005", "MutableArray<T>(length) expects one element type and one int length.", mutableArrayName.IdentifierToken);
+                    Report("COPE-ARRAY-0005", "MutableArray<T>(length[, initializer]) expects one element type, an int length, and optionally an immutable initializer value.", mutableArrayName.IdentifierToken);
                     return new BoundErrorExpression();
                 }
                 TypeSymbol elementType = BindType(call.TypeArguments[0], call.LessToken, "COPE-ARRAY-0005", "mutable array element");
-                if (!TypeFacts.IsNumeric(elementType) && elementType != PrimitiveTypeSymbol.Boolean)
+                if (call.Arguments.Count == 1 && !TypeFacts.IsNumeric(elementType) && elementType != PrimitiveTypeSymbol.Boolean)
                 {
                     Report("COPE-ARRAY-0008", $"MutableArray<{elementType.Name}> has no null-less default value. M0 fixed-length storage supports int, float/number, and boolean elements.", call.LessToken);
                     return new BoundErrorExpression();
@@ -9904,7 +10061,27 @@ public static class Binder
                     Report("COPE-ARRAY-0006", "MutableArray length cannot be negative.", call.OpenParenToken);
                     return new BoundErrorExpression();
                 }
-                return new BoundMutableArrayConstructionExpression(length, new MutableArrayTypeSymbol(elementType));
+                var arrayType = new MutableArrayTypeSymbol(elementType);
+                if (call.Arguments.Count == 2)
+                {
+                    if (!IsBatchPortableType(elementType) || elementType is ArrayTypeSymbol)
+                    {
+                        Report("COPE-ARRAY-0008", "MutableArray initializer elements must be primitive values, strings, or immutable records. Use columnar arrays for computational storage.", call.LessToken);
+                        return new BoundErrorExpression();
+                    }
+                    BoundExpression initializer = BindExpression(call.Arguments[1], elementType);
+                    if (!IsAssignable(elementType, initializer.Type))
+                    {
+                        ReportTypeMismatch("COPE-TYPE-0005", elementType, initializer.Type, InferenceAnchor(call.Arguments[1]));
+                        return new BoundErrorExpression();
+                    }
+                    var filledArrayFunction = new FunctionSymbol("MutableArray", [new ParameterSymbol("length", PrimitiveTypeSymbol.Int), new ParameterSymbol("initializer", elementType)], arrayType)
+                    {
+                        NativeOperation = Copeland.TS.Mir.MirNativeOperation.MutableArrayFilled,
+                    };
+                    return new BoundCallExpression(filledArrayFunction, [length, initializer]);
+                }
+                return new BoundMutableArrayConstructionExpression(length, arrayType);
             }
             if (call.Target is NameExpressionSyntax transportName
                 && transportName.IdentifierToken.Text == "tsonCall")
@@ -10725,7 +10902,7 @@ public static class Binder
                     staticExpression.Anchor,
                     RewriteExpression(staticExpression.Expression)),
                 BoundVariableExpression variable => new BoundVariableExpression(RewriteVariable(variable.Variable)),
-                BoundAssignmentExpression assignment => new BoundAssignmentExpression(RewriteVariable(assignment.Variable), RewriteExpression(assignment.Expression)),
+                BoundAssignmentExpression assignment => new BoundAssignmentExpression(RewriteVariable(assignment.Variable), RewriteExpression(assignment.Expression)) { ReturnsPreviousValue = assignment.ReturnsPreviousValue },
                 BoundUnaryExpression unary => new BoundUnaryExpression(unary.OperatorKind, RewriteExpression(unary.Operand), SubstituteType(unary.Type, substitutions)),
                 BoundBinaryExpression binary => new BoundBinaryExpression(RewriteExpression(binary.Left), binary.OperatorKind, RewriteExpression(binary.Right), SubstituteType(binary.Type, substitutions)),
                 BoundCallExpression call => new BoundCallExpression(call.Function, call.Arguments.Select(RewriteExpression).ToArray()),
@@ -12077,7 +12254,14 @@ public static class Binder
                     return new BoundArrayLengthExpression(receiver);
                 }
 
-                Report("COPE-STRING-0001", $"String values support only the 'length' property; '{m.NameToken.Text}' is not available.", m.NameToken);
+                if (m.NameToken.Text == "Length")
+                {
+                    ReportRepair("COPE-STRING-0001", "string does not expose .Length. Use .length.", m.NameToken, ".length");
+                }
+                else
+                {
+                    Report("COPE-STRING-0001", $"String values support only the 'length' property; '{m.NameToken.Text}' is not available.", m.NameToken);
+                }
                 return new BoundErrorExpression();
             }
             if (receiver.Type is ArrayTypeSymbol)
@@ -12246,6 +12430,7 @@ public static class Binder
         private BoundExpression BindCoalesce(CoalesceExpressionSyntax syntax, TypeSymbol? contextualType)
         {
             BoundExpression left = BindExpression(syntax.Left);
+            if (left.Type == PrimitiveTypeSymbol.Error) return new BoundErrorExpression();
             if (left.Type is not OptionTypeSymbol option)
             {
                 Report("COPE-OPTION-0006", $"The left operand of '??' must be Option<T>, got '{left.Type.Name}'.", syntax.FirstQuestionToken);
@@ -12344,6 +12529,8 @@ public static class Binder
         private BoundExpression BindIndex(IndexExpressionSyntax index)
         {
             var receiver = BindExpression(index.Target);
+            if (receiver.Type is ClrTypeSymbol clrIndexer) return BindClrIndexer(clrIndexer, receiver, index, null);
+            if (receiver.Type == PrimitiveTypeSymbol.Error) return new BoundErrorExpression();
             var boundIndex = BindExpression(index.Index);
             if (receiver.Type is ArrayTypeSymbol array)
             {
@@ -12392,6 +12579,17 @@ public static class Binder
                 ColumnTypeSymbol column => new BoundColumnElementAccessExpression(receiver, boundIndex, new ResultTypeSymbol(column.ElementType, errorType)),
                 _ => ReportInvalidIndex(index)
             };
+        }
+
+        private BoundExpression BindClrIndexer(ClrTypeSymbol owner, BoundExpression receiver, IndexExpressionSyntax index, ExpressionSyntax? assignedValue)
+        {
+            IEnumerable<MethodBase> accessors = owner.RuntimeType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(property => property.GetIndexParameters().Length > 0)
+                .Select(property => assignedValue is null ? property.GetMethod : property.SetMethod)
+                .OfType<MethodBase>()
+                .Where(_clrResolver.IsMemberVisible);
+            IReadOnlyList<ExpressionSyntax> arguments = assignedValue is null ? [index.Index] : [index.Index, assignedValue];
+            return BindClrInvocation(arguments, index.OpenBracketToken, accessors, receiver, owner.Name + " indexer");
         }
 
         private BoundExpression ReportInvalidIndex(IndexExpressionSyntax index)
@@ -12590,7 +12788,7 @@ public static class Binder
                         ? BindSpanType(generic, anchor, missingId, missingPrefix)
                     : generic.Identifier.Text == "Option"
                         ? BindOptionType(generic, anchor, missingId, missingPrefix)
-                        : BindStructuralProjection(generic, anchor, missingId, missingPrefix),
+                        : BindGenericClrOrStructuralType(generic, anchor, missingId, missingPrefix),
                 LiteralTypeSyntax literal => ReportInvalidLiteralType(literal.LiteralToken),
                 AsyncTypeSyntax a => new AsyncTypeSymbol(BindType(a.EventualType, anchor, missingId, missingPrefix)),
                 IterableTypeSyntax i => new IterableTypeSymbol(BindType(i.ElementType, anchor, missingId, missingPrefix)),
@@ -12602,6 +12800,78 @@ public static class Binder
                 IdentifierTypeSyntax i => ResolveIdentifierType(i),
                 _ => PrimitiveTypeSymbol.Error
             };
+        }
+
+        private bool IsImportedGenericClrName(string name)
+            => _clrImportedTypes.Keys.Any(key => key.StartsWith(name + "`", StringComparison.Ordinal));
+
+        private TypeSymbol BindGenericClrOrStructuralType(GenericTypeSyntax syntax, SyntaxToken anchor, string missingId, string missingPrefix)
+        {
+            if (syntax.Identifier.Text is "Map" or "MutableMap")
+            {
+                ReportMissingNativeMap(syntax.Identifier);
+                return PrimitiveTypeSymbol.Error;
+            }
+
+            if (!IsImportedGenericClrName(syntax.Identifier.Text)) return BindStructuralProjection(syntax, anchor, missingId, missingPrefix);
+            Type? closed = CloseGenericClrType(syntax.Identifier, syntax.TypeArguments);
+            return closed is null ? PrimitiveTypeSymbol.Error : new ClrTypeSymbol(closed);
+        }
+
+        private Type? CloseGenericClrType(SyntaxToken name, IReadOnlyList<TypeSyntax> typeArguments)
+        {
+            if (!_clrImportedTypes.TryGetValue(name.Text + "`" + typeArguments.Count, out List<Type>? candidates))
+            {
+                Report("COPE-CLR-GENERIC-0001", $"CLR generic type '{name.Text}' does not accept {typeArguments.Count} type arguments.", name);
+                return null;
+            }
+            if (candidates.Count != 1)
+            {
+                Report("COPE-CLR-0002", $"CLR generic type '{name.Text}' is ambiguous across imports.", name);
+                return null;
+            }
+            var runtimeArguments = new List<Type>();
+            foreach (TypeSyntax argumentSyntax in typeArguments)
+            {
+                TypeSymbol argument = BindType(argumentSyntax, name, "COPE-CLR-GENERIC-0002", "CLR type argument");
+                if (argument == PrimitiveTypeSymbol.Error) return null;
+                Type? runtime = argument switch
+                {
+                    ClrTypeSymbol clr => clr.RuntimeType,
+                    PrimitiveTypeSymbol primitive when TypeFacts.IsInt(primitive) => typeof(int),
+                    PrimitiveTypeSymbol primitive when TypeFacts.IsFloat(primitive) => typeof(double),
+                    PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.String => typeof(string),
+                    PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.Boolean => typeof(bool),
+                    _ => null,
+                };
+                if (runtime is null)
+                {
+                    Report("COPE-CLR-GENERIC-0002", $"'{argument.Name}' has no admitted CLR generic type-argument mapping. Use int, float, string, boolean, or an imported CLR type.", name);
+                    return null;
+                }
+                runtimeArguments.Add(runtime);
+            }
+            Type definition = candidates[0];
+            if (definition.IsNested)
+            {
+                Report("COPE-CLR-GENERIC-0003", "Nested CLR generic owners are not yet supported. Use a non-nested imported CLR collection type.", name);
+                return null;
+            }
+            try
+            {
+                Type closed = definition.MakeGenericType(runtimeArguments.ToArray());
+                if (!_clrResolver.IsTypeVisible(closed))
+                {
+                    Report("COPE-CLR-0004", $"CLR generic type '{name.Text}' is inaccessible.", name);
+                    return null;
+                }
+                return closed;
+            }
+            catch (ArgumentException)
+            {
+                Report("COPE-CLR-GENERIC-0002", $"Type arguments do not satisfy the CLR constraints of '{name.Text}'. Use arguments satisfying its declared CLR constraints.", name);
+                return null;
+            }
         }
 
         private TypeSymbol BindMutableArrayType(GenericTypeSyntax syntax, SyntaxToken anchor, string missingId, string missingPrefix)
@@ -12875,7 +13145,7 @@ public static class Binder
 
         private BoundExpression BindNullLiteral(LiteralExpressionSyntax l)
         {
-            Report("COPE-PROFILE-0005", "Null is not supported in Browser TypeScript Profile v1. Use fallible functions or an explicit option type when available.", l.LiteralToken);
+            ReportRepair("COPE-PROFILE-0005", "Null is not supported in Browser TypeScript Profile v1. Use Option<T> with Some(value) or None.", l.LiteralToken, "Option<T> with Some(value) or None");
             return new BoundErrorExpression();
         }
 
@@ -12907,6 +13177,12 @@ public static class Binder
 
         private TypeSymbol ResolveIdentifierType(IdentifierTypeSyntax i)
         {
+            if (i.Identifier.Text == "any")
+            {
+                ReportRepair("COPE-PROFILE-0012", "any erases the type needed for deterministic layout. Use a concrete value type, a nominal record, or a generic <T extends FieldRequirement>.", i.Identifier, "a concrete value type, a nominal record, or a generic <T extends FieldRequirement>");
+                return PrimitiveTypeSymbol.Error;
+            }
+
             if (i.Identifier.Text == ArtifactTypeSymbol.ProjectTree.Name) return ArtifactTypeSymbol.ProjectTree;
             if (i.Identifier.Text == ArtifactTypeSymbol.FileArtifact.Name) return ArtifactTypeSymbol.FileArtifact;
             if (i.Identifier.Text == ArtifactTypeSymbol.DirectoryArtifact.Name) return ArtifactTypeSymbol.DirectoryArtifact;
@@ -12977,6 +13253,125 @@ public static class Binder
         // not a receiver call and not an enum case. Without this check the call
         // fell through to enum construction and reported COPE-ENUM-0010 against
         // the variable, which names neither the value nor the missing method.
+        private bool TryBindNativeStringCall(CallExpressionSyntax call, out BoundExpression? result)
+        {
+            result = null;
+            if (call.Target is not MemberAccessExpressionSyntax
+                { Target: NameExpressionSyntax { IdentifierToken.Text: "String" } } member
+                || _scope.TryLookup("String", out _))
+            {
+                return false;
+            }
+            Copeland.TS.Mir.MirNativeOperation? operation = member.NameToken.Text switch
+            {
+                "Split" => Copeland.TS.Mir.MirNativeOperation.StringSplit,
+                "IndexOf" => Copeland.TS.Mir.MirNativeOperation.StringIndexOf,
+                "CodeAt" => Copeland.TS.Mir.MirNativeOperation.StringCodeAt,
+                "Slice" => Copeland.TS.Mir.MirNativeOperation.StringSlice,
+                "Join" => Copeland.TS.Mir.MirNativeOperation.StringJoin,
+                _ => null,
+            };
+            if (operation is null)
+            {
+                return false;
+            }
+            var signature = Copeland.TS.Mir.MirNativeOperations.Signature(operation.Value);
+            TypeSymbol Project(Copeland.TS.Mir.MirType type)
+            {
+                if (type is Copeland.TS.Mir.MirArrayType)
+                {
+                    return new ArrayTypeSymbol(PrimitiveTypeSymbol.String);
+                }
+                return type.Name == "int" ? PrimitiveTypeSymbol.Int : PrimitiveTypeSymbol.String;
+            }
+            if (call.Arguments.Count != signature.Parameters.Count)
+            {
+                Report("COPE-STRING-0002", $"String.{member.NameToken.Text} expects {signature.Parameters.Count} arguments.", member.NameToken);
+                result = new BoundErrorExpression();
+                return true;
+            }
+            var parameters = signature.Parameters.Select((type, index) => new ParameterSymbol("argument" + index, Project(type))).ToArray();
+            var arguments = new List<BoundExpression>();
+            bool failed = false;
+            for (int index = 0; index < parameters.Length; index++)
+            {
+                BoundExpression argument = BindExpression(call.Arguments[index], parameters[index].Type);
+                arguments.Add(argument);
+                if (argument.Type == PrimitiveTypeSymbol.Error)
+                {
+                    failed = true;
+                }
+                else if (!IsAssignable(parameters[index].Type, argument.Type))
+                {
+                    ReportTypeMismatch("COPE-TYPE-0005", parameters[index].Type, argument.Type, InferenceAnchor(call.Arguments[index]));
+                    failed = true;
+                }
+            }
+            var function = new FunctionSymbol("String." + member.NameToken.Text, parameters, Project(signature.Result))
+            {
+                NativeOperation = operation,
+            };
+            result = failed ? new BoundErrorExpression() : new BoundCallExpression(function, arguments);
+            return true;
+        }
+
+        private string AuthoredText(SyntaxNode node)
+        {
+            IEnumerable<SyntaxToken> Tokens(object current)
+            {
+                if (current is SyntaxToken token)
+                {
+                    yield return token;
+                }
+                else
+                {
+                    foreach (object child in ((SyntaxNode)current).GetChildren())
+                    {
+                        foreach (SyntaxToken nested in Tokens(child)) yield return nested;
+                    }
+                }
+            }
+            SyntaxToken[] tokens = Tokens(node).ToArray();
+            int start = tokens.Min(token => token.Position);
+            int end = tokens.Max(token => token.Position + token.Text.Length);
+            return _tree.Text[start..end];
+        }
+
+        private void ReportReceiverCall(CallExpressionSyntax call, MemberAccessExpressionSyntax member, TypeSymbol receiverType)
+        {
+            string method = member.NameToken.Text;
+            string? nativeMethod = method switch
+            {
+                "split" or "Split" => "Split",
+                "indexOf" or "IndexOf" => "IndexOf",
+                "charCodeAt" or "codeAt" or "CodeAt" => "CodeAt",
+                "slice" or "Slice" => "Slice",
+                _ => null,
+            };
+            if (receiverType == PrimitiveTypeSymbol.String && nativeMethod is not null)
+            {
+                string arguments = string.Join(", ", call.Arguments.Select(AuthoredText));
+                if (nativeMethod == "Slice" && call.Arguments.Count == 1)
+                {
+                    arguments += $", {AuthoredText(member.Target)}.length";
+                }
+                string replacement = $"String.{nativeMethod}({AuthoredText(member.Target)}{(arguments.Length == 0 ? "" : ", " + arguments)})";
+                ReportRepair("COPE-CALL-0021", $"'{method}' is not a receiver method of '{AuthoredText(member.Target)}' of type 'string'. Use {replacement}.", member.NameToken, replacement);
+                return;
+            }
+            string repair = receiverType is ArrayTypeSymbol && method == "map"
+                ? "Use batch values as item { return transform(item); } with a pure transform function and the receiver in place of values."
+                : receiverType is ArrayTypeSymbol && method == "push"
+                ? "Build a fixed MutableArray<T>(length), assign elements, then freeze(). For CLR-only growth use using System.Collections.Generic; new List<T>(); Add(value); ToArray(). Native growable lists are not yet supported."
+                : "Pass the value to a Copeland function.";
+            ReportRepair("COPE-CALL-0021", $"'{method}' is not a receiver method on '{receiverType.Name}'. {repair}", member.NameToken, repair);
+        }
+
+        private void ReportRepair(string id, string message, SyntaxToken token, string replacement, string repairKind = "canonical-form")
+        {
+            _diagnostics.Report(id, message, token.Position, token.Text.Length, _sourcePath, suggestedReplacement: replacement, repairKind: repairKind);
+        }
+
         private bool TryReportValueMemberCall(MemberAccessExpressionSyntax member, NameExpressionSyntax receiverName)
         {
             if (!_scope.TryLookup(receiverName.IdentifierToken.Text, out Symbol? symbol))
@@ -13016,7 +13411,7 @@ public static class Binder
                     return new BoundErrorExpression();
                 }
 
-                Report("COPE-ENUM-0010", "Expected enum type name.", enumName.IdentifierToken);
+                Report("COPE-BIND-0001", $"Undefined name '{enumName.IdentifierToken.Text}'.", enumName.IdentifierToken);
                 return new BoundErrorExpression();
             }
             var @case = enumType.Cases.FirstOrDefault(c => c.Name == member.NameToken.Text);
@@ -13308,7 +13703,7 @@ public static class Binder
             _ => throw new InvalidOperationException("No anchor token for expression kind.")
         };
 
-        private void Report(string id, string msg, SyntaxToken at) => _diagnostics.Report(id, msg, at.Position, at.Text.Length);
+        private void Report(string id, string msg, SyntaxToken at) => _diagnostics.Report(id, msg, at.Position, at.Text.Length, _sourcePath);
 
         private void ValidateRemoteFunction(FunctionDeclarationSyntax declaration, FunctionSymbol function)
         {

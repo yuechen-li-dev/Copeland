@@ -1,0 +1,80 @@
+{
+  "definition": "One compiler invocation following a failed authoring attempt; successful-source verification reruns are excluded.",
+  "rows": [
+    {
+      "id": "csv",
+      "baselineRepairTurns": 4,
+      "baselineStatus": "blocked",
+      "afterLlmRepairAttempts": 5,
+      "baselineExecutionQualified": false,
+      "afterCompilerFixRetry": 0,
+      "afterExecuted": true
+    },
+    {
+      "id": "counter-map",
+      "baselineRepairTurns": 2,
+      "baselineStatus": "blocked",
+      "afterLlmRepairAttempts": 3,
+      "baselineExecutionQualified": false,
+      "afterCompilerFixRetry": 1,
+      "afterExecuted": true
+    },
+    {
+      "id": "increment-loop",
+      "baselineRepairTurns": 1,
+      "baselineStatus": "compiler-valid-runtime-unverified",
+      "afterLlmRepairAttempts": 0,
+      "baselineExecutionQualified": true,
+      "afterCompilerFixRetry": 0,
+      "afterExecuted": true
+    },
+    {
+      "id": "batch-guard",
+      "baselineRepairTurns": 2,
+      "baselineStatus": "compiler-valid-runtime-unverified",
+      "afterLlmRepairAttempts": 0,
+      "baselineExecutionQualified": true,
+      "afterCompilerFixRetry": 0,
+      "afterExecuted": true
+    },
+    {
+      "id": "growing-array",
+      "baselineRepairTurns": 4,
+      "baselineStatus": "blocked",
+      "afterLlmRepairAttempts": 1,
+      "baselineExecutionQualified": false,
+      "afterCompilerFixRetry": 0,
+      "afterExecuted": true
+    },
+    {
+      "id": "integer-hash",
+      "baselineRepairTurns": 5,
+      "baselineStatus": "compiler-valid-runtime-unverified",
+      "afterLlmRepairAttempts": 1,
+      "baselineExecutionQualified": true,
+      "afterCompilerFixRetry": 0,
+      "afterExecuted": true
+    }
+  ],
+  "baseline": {
+    "repairTurns": 18,
+    "completedAndExecuted": 3,
+    "blocked": 3
+  },
+  "after": {
+    "llmRepairAttempts": 10,
+    "compilerFixRetry": 1,
+    "repairTurns": 11,
+    "completedAndExecuted": 6
+  },
+  "comparableCompletedSubset": {
+    "ids": [
+      "increment-loop",
+      "batch-guard",
+      "integer-hash"
+    ],
+    "baselineRepairTurns": 8,
+    "afterRepairTurns": 1
+  },
+  "limits": "Totals have different completion rates; baseline blocked snippets are not treated as successful repairs. A CLR declaration-order compiler fix was required during replay. Root development probes are not LLM authoring turns."
+}

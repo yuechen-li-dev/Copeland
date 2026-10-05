@@ -1,0 +1,1 @@
+[{"Id":"COPE-CLR-0005","Message":"No applicable CLR overload for \u0027System.Array.FindAll\u0027 with (int[], (value: int) =\u003E boolean).","Position":89,"Length":1,"SourcePath":null}]

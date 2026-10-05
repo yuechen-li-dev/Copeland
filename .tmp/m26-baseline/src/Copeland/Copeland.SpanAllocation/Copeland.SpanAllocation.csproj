@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Copeland.SpanAllocation</AssemblyName>
+    <RootNamespace>Copeland.SpanAllocation</RootNamespace>
+  </PropertyGroup>
+</Project>

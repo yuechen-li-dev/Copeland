@@ -543,7 +543,8 @@ public record MirType(string Identifier)
 public sealed record MirNamedType(string Identifier) : MirType(Identifier);
 public sealed record MirClrType(string AssemblyIdentity, string Namespace, string MetadataName) : MirType(MetadataName)
 {
-    public override string Name => MetadataName;
+    public IReadOnlyList<MirType> TypeArguments { get; init; } = [];
+    public override string Name => TypeArguments.Count == 0 ? MetadataName : MetadataName + "<" + string.Join(", ", TypeArguments.Select(argument => argument.Name)) + ">";
 }
 public sealed record MirRecordType(MirRecordTypeId RecordTypeId, string DisplayName) : MirType(RecordTypeId.Value)
 {
@@ -588,6 +589,10 @@ public static class MirTypeFacts
             (MirTableRowType leftRow, MirTableRowType rightRow) => leftRow.RowTypeId == rightRow.RowTypeId,
             (MirColumnType leftColumn, MirColumnType rightColumn) => AreEquivalent(leftColumn.ElementType, rightColumn.ElementType),
             (MirRecordType, _) or (_, MirRecordType) => false,
+            (MirClrType leftClr, MirClrType rightClr) => leftClr.AssemblyIdentity == rightClr.AssemblyIdentity
+                && leftClr.MetadataName == rightClr.MetadataName
+                && leftClr.TypeArguments.Count == rightClr.TypeArguments.Count
+                && leftClr.TypeArguments.Zip(rightClr.TypeArguments).All(pair => AreEquivalent(pair.First, pair.Second)),
             (MirCallableType leftCallable, MirCallableType rightCallable) => leftCallable.Parameters.Count == rightCallable.Parameters.Count
                 && leftCallable.Parameters.Zip(rightCallable.Parameters).All(pair => AreEquivalent(pair.First.Type, pair.Second.Type))
                 && AreEquivalent(leftCallable.ReturnType, rightCallable.ReturnType),
@@ -628,13 +633,19 @@ public abstract record MirExpression(MirType Type);
 public sealed record MirLiteralExpression(object? Value, MirType Type) : MirExpression(Type);
 public sealed record MirUnitExpression() : MirExpression(new MirNamedType("void"));
 public sealed record MirVariableExpression(string Name, MirType Type) : MirExpression(Type);
-public sealed record MirAssignmentExpression(string Name, MirExpression Expression, MirType Type) : MirExpression(Type);
+public sealed record MirAssignmentExpression(string Name, MirExpression Expression, MirType Type) : MirExpression(Type)
+{
+    public bool ReturnsPreviousValue { get; init; }
+}
 public sealed record MirUnaryExpression(string Operator, MirExpression Operand, MirType Type) : MirExpression(Type);
 public sealed record MirAwaitExpression(MirExpression Operand, MirType Type) : MirExpression(Type);
 public sealed record MirBinaryExpression(string Operator, MirExpression Left, MirExpression Right, MirType Type) : MirExpression(Type);
 public enum MirNumericConversionKind { StringFrom, IntToFloat, IntFloor, IntCeil, IntRound, IntTruncate }
 public sealed record MirNumericConversionExpression(MirNumericConversionKind Kind, MirExpression Operand, MirType Type) : MirExpression(Type);
-public sealed record MirCallExpression(string FunctionName, IReadOnlyList<MirExpression> Arguments, MirType Type) : MirExpression(Type);
+public sealed record MirCallExpression(string FunctionName, IReadOnlyList<MirExpression> Arguments, MirType Type) : MirExpression(Type)
+{
+    public MirNativeOperation? NativeOperation { get; init; }
+}
 public sealed record MirFunctionReferenceExpression(string FunctionName, MirCallableType CallableType) : MirExpression(CallableType);
 public sealed record MirCallableConstructionExpression(string CodeFunctionName, IReadOnlyList<MirExpression> Captures, MirCallableType CallableType) : MirExpression(CallableType);
 public sealed record MirInvokeExpression(MirExpression Callee, IReadOnlyList<MirExpression> Arguments, MirType Type) : MirExpression(Type);
@@ -784,7 +795,12 @@ public sealed record MirClrMemberIdentity(
     bool IsConstructor,
     IReadOnlyList<MirType> ParameterTypes,
     MirType ResultType,
-    IReadOnlyList<MirType> GenericArguments);
+    IReadOnlyList<MirType> GenericArguments)
+{
+    public MirClrType? DeclaringTypeIdentity { get; init; }
+    public bool IsIndexerGetter { get; init; }
+    public bool IsIndexerSetter { get; init; }
+}
 public sealed record MirClrInvocationExpression(
     MirClrMemberIdentity Member,
     MirExpression? Receiver,

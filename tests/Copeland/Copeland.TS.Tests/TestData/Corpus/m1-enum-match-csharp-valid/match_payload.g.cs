@@ -9,7 +9,10 @@ public abstract record Shape
     {
     }
 
-    public sealed record Point : Shape;
+    public sealed record Point : Shape
+    {
+        internal static Point __Singleton { get; } = new();
+    }
 
     public sealed record Circle(double radius) : Shape;
 

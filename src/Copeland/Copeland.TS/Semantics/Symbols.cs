@@ -44,6 +44,7 @@ public sealed class FunctionSymbol(
     public string StableIdentity { get; } = stableIdentity ?? name;
     /// <summary>Backend-neutral callable spelling selected after project binding. It never changes source lookup identity.</summary>
     public string EmissionName { get; internal set; } = name;
+    public Copeland.TS.Mir.MirNativeOperation? NativeOperation { get; internal set; }
     public bool IsFallible => ReturnType is ResultTypeSymbol;
     public bool IsAsync { get; } = isAsync;
     public bool IsGenerator { get; } = isGenerator;

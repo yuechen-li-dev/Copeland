@@ -88,7 +88,7 @@ function run(text: string): int {
     }
 
     [Fact]
-    public void Method_call_on_an_undefined_name_still_reports_the_enum_diagnostic()
+    public void Method_call_on_an_undefined_name_reports_the_earliest_unknown_name()
     {
         var compilation = CopelandCompiler.CompileToMir("""
 function run(): int {
@@ -96,7 +96,9 @@ function run(): int {
 }
 """, new CopelandCompilationOptions { SourcePath = "missing.ts" });
 
-        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-ENUM-0010");
+        var diagnostic = Assert.Single(compilation.Diagnostics);
+        Assert.Equal("COPE-BIND-0001", diagnostic.Id);
+        Assert.Contains("Missing", diagnostic.Message, StringComparison.Ordinal);
         Assert.DoesNotContain(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-CALL-0021");
     }
 

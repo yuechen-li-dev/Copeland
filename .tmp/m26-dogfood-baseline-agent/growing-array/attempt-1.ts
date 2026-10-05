@@ -1,0 +1,9 @@
+function collectEvenValues(values: int[]): int[] {
+    const result: int[] = [];
+    for (const value of values) {
+        if (value % 2 == 0) {
+            push(result, value);
+        }
+    }
+    return result;
+}

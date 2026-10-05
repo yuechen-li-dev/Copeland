@@ -1,0 +1,1 @@
+{"name":"strings","quick":false,"trials":[{"result":"21777520","milliseconds":274.132,"allocatedBytes":361228704,"gcCollections":[33,32,18]},{"result":"21777520","milliseconds":239.61,"allocatedBytes":361197248,"gcCollections":[35,35,19]},{"result":"21777520","milliseconds":354.5149,"allocatedBytes":361199144,"gcCollections":[36,36,20]}],"peakWorkingSetBytes":78168064}

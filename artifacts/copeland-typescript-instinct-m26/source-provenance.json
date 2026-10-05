@@ -1,0 +1,62 @@
+{
+  "originalKernels": [
+    {
+      "name": "Arrays.ts",
+      "originalSha256": "0C0638B796DEC681B1C2EAEF4BAB8CC5042A8F50D92284B663AE389A9E94D6AB",
+      "currentSha256": "0C0638B796DEC681B1C2EAEF4BAB8CC5042A8F50D92284B663AE389A9E94D6AB",
+      "unchanged": true
+    },
+    {
+      "name": "Bench.ts",
+      "originalSha256": "DB084A76E00693B336F67BCFE4AC1BAA96BF74BA2A3DB1BDBF048436410BADF8",
+      "currentSha256": "46B19ADFA341ED5C0C5A159765D34CD0916D827A27CA9DB292340CA0D18AF43A",
+      "unchanged": false
+    },
+    {
+      "name": "Closures.ts",
+      "originalSha256": "63D307CCE4A0AC8B48EA380FC792B7EFBA355DA97AF122FFBBD74290B3994115",
+      "currentSha256": "63D307CCE4A0AC8B48EA380FC792B7EFBA355DA97AF122FFBBD74290B3994115",
+      "unchanged": true
+    },
+    {
+      "name": "Fib.ts",
+      "originalSha256": "24B82E10A022B733981380F4EAC29492A2F6B41A98F0C9702CD94D973342CD8D",
+      "currentSha256": "24B82E10A022B733981380F4EAC29492A2F6B41A98F0C9702CD94D973342CD8D",
+      "unchanged": true
+    },
+    {
+      "name": "NBody.ts",
+      "originalSha256": "544A5D0E609BE5A919A979705358EB9603944C00AFC9BA79D16A88571095EBCF",
+      "currentSha256": "544A5D0E609BE5A919A979705358EB9603944C00AFC9BA79D16A88571095EBCF",
+      "unchanged": true
+    },
+    {
+      "name": "Objects.ts",
+      "originalSha256": "C1D10AEEE50C37E3B972F3966EBED3E633FCFF2326BA13FD68C41530F97439D1",
+      "currentSha256": "C1D10AEEE50C37E3B972F3966EBED3E633FCFF2326BA13FD68C41530F97439D1",
+      "unchanged": true
+    },
+    {
+      "name": "Sieve.ts",
+      "originalSha256": "853D20EA86E8554955D276F2AC2B0392A6742CBB5545CE8D7B33D954F27011EC",
+      "currentSha256": "853D20EA86E8554955D276F2AC2B0392A6742CBB5545CE8D7B33D954F27011EC",
+      "unchanged": true
+    },
+    {
+      "name": "Strings.ts",
+      "originalSha256": "96BB16BDC704C4B37B3B98F35A03FDA1E654CA61A7638D0471C2977A4E99D69E",
+      "currentSha256": "96BB16BDC704C4B37B3B98F35A03FDA1E654CA61A7638D0471C2977A4E99D69E",
+      "unchanged": true
+    },
+    {
+      "name": "Trees.ts",
+      "originalSha256": "CF9EAE67A47D66C9DFFCC4DA6ADCB9F464E79E9C7AA532E44740B6EC34C3971B",
+      "currentSha256": "CF9EAE67A47D66C9DFFCC4DA6ADCB9F464E79E9C7AA532E44740B6EC34C3971B",
+      "unchanged": true
+    }
+  ],
+  "entryGraphChange": "Bench.ts adds native strings and maps imports/exports; the original eight kernels are byte-identical to the archive.",
+  "javaScriptOriginalAlgorithmPrefixByteIdentical": true,
+  "javaScriptOriginalAlgorithmPrefixSha256": "A4F45CB1FC7092CC1C5243F409E8CBF5077CB6FDA3A81281C4ADE273ADCBCAD5",
+  "javaScriptChange": "Only the run telemetry host is replaced; native string and map twins are appended."
+}

@@ -1,0 +1,1 @@
+{"name":"fib","quick":false,"trials":[{"result":"13584083","milliseconds":91.1285,"heapUsedDeltaBytes":170448},{"result":"13584083","milliseconds":91.0457,"heapUsedDeltaBytes":624},{"result":"13584083","milliseconds":91.29119999999998,"heapUsedDeltaBytes":512}],"peakWorkingSetBytes":40652800}

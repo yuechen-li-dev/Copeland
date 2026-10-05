@@ -24,6 +24,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="../../../tools/copeland-typescript-instinct-m26/CorpusRunner.cs" Link="InstinctCorpus/CorpusRunner.cs" />
+    <Compile Include="../../../tools/copeland-typescript-instinct-m26/RuntimeProof.cs" Link="InstinctCorpus/RuntimeProof.cs" />
+    <None Include="TypeScriptInstinctCorpus/**/*" CopyToOutputDirectory="PreserveNewest" />
     <Compile Remove="TestData/**/*.cs" />
     <Compile Remove="TsonEncoding/**/*.cs" />
     <Compile Remove="TsonAssets/**/*.cs" />

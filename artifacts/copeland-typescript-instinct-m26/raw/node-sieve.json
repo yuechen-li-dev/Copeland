@@ -1,0 +1,1 @@
+{"name":"sieve","quick":false,"trials":[{"result":"1270607","milliseconds":290.3396,"heapUsedDeltaBytes":-140264},{"result":"1270607","milliseconds":231.67719999999997,"heapUsedDeltaBytes":-7224},{"result":"1270607","milliseconds":214.43679999999995,"heapUsedDeltaBytes":-3288}],"peakWorkingSetBytes":142692352}

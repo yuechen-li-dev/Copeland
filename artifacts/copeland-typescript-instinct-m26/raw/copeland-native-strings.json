@@ -1,0 +1,1 @@
+{"name":"native-strings","quick":false,"trials":[{"result":"21777520","milliseconds":412.4287,"allocatedBytes":323953520,"gcCollections":[29,28,17]},{"result":"21777520","milliseconds":432.227,"allocatedBytes":323763264,"gcCollections":[29,27,15]},{"result":"21777520","milliseconds":361.3303,"allocatedBytes":323907288,"gcCollections":[28,26,15]}],"peakWorkingSetBytes":91705344}

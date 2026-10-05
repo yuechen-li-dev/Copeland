@@ -175,7 +175,7 @@ public static class MirTextWriter
                 WriteStatement(sb, stmt, 1);
         }
 
-        return sb.ToString();
+        return sb.ToString().Replace("\r\n", "\n", StringComparison.Ordinal);
     }
 
     private static void WriteStatement(StringBuilder sb, MirStatement stmt, int indent)

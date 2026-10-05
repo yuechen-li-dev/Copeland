@@ -1772,6 +1772,8 @@ public sealed record BinaryExpressionSyntax(ExpressionSyntax Left, SyntaxToken O
 
 public sealed record AssignmentExpressionSyntax(ExpressionSyntax Left, SyntaxToken EqualsToken, ExpressionSyntax Right) : ExpressionSyntax
 {
+    public bool ReturnsPreviousValue { get; init; }
+
     public override SyntaxKind Kind => SyntaxKind.AssignmentExpression;
 
     public override IEnumerable<object> GetChildren()
@@ -1818,6 +1820,7 @@ public sealed record NewExpressionSyntax(
     IReadOnlyList<SyntaxToken> CommaTokens,
     SyntaxToken CloseParenToken) : ExpressionSyntax
 {
+    public IReadOnlyList<TypeSyntax> TypeArguments { get; init; } = [];
     public override SyntaxKind Kind => SyntaxKind.NewExpression;
 
     public override IEnumerable<object> GetChildren()

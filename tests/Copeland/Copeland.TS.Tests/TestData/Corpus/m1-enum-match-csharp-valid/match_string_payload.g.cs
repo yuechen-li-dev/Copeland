@@ -9,7 +9,10 @@ public abstract record Status
     {
     }
 
-    public sealed record Idle : Status;
+    public sealed record Idle : Status
+    {
+        internal static Idle __Singleton { get; } = new();
+    }
 
     public sealed record Loaded(string name) : Status;
 

@@ -1,0 +1,11 @@
+{
+  "result": "namespace Copeland.Generated; __CopeRecord_",
+  "Namespace": "Instinct.Custom",
+  "ModuleClassName": "SelectedModule",
+  "RecordCarrierScope": "SelectedScope",
+  "hiddenFunctionIsInternal": true,
+  "architectureGate": "InstinctArchitectureTests.Identity_owners_cannot_rewrite_emitted_source_with_replace_or_regex",
+  "queryOwnerRuntimeTest": "InstinctArchitectureTests.Query_materialization_uses_the_selected_namespace_and_module_owner",
+  "taskOwner": "CSharpEmissionOptions chosen before emission, including carrier scope and function export visibility.",
+  "allowedTransforms": "MSBuild exception newline cleanup, C# literal/path escaping, explicit-code block newline normalization, and pre-emission stable identity encoding are nonsemantic emitted-source rewrites."
+}

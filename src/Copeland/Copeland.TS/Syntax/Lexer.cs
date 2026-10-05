@@ -100,23 +100,32 @@ public sealed class Lexer
                 case '@':
                     return SingleCharToken(SyntaxKind.AtToken);
                 case '+':
+                    if (Peek(1) == '=') return DoubleCharToken(SyntaxKind.PlusEqualsToken);
+                    if (Peek(1) == '+') return DoubleCharToken(SyntaxKind.PlusPlusToken);
                     return SingleCharToken(SyntaxKind.PlusToken);
                 case '-':
+                    if (Peek(1) == '=') return DoubleCharToken(SyntaxKind.MinusEqualsToken);
+                    if (Peek(1) == '-') return DoubleCharToken(SyntaxKind.MinusMinusToken);
                     if (Peek(1) == '>')
                     {
                         return DoubleCharToken(SyntaxKind.ArrowToken);
                     }
                     return SingleCharToken(SyntaxKind.MinusToken);
                 case '*':
+                    if (Peek(1) == '=') return DoubleCharToken(SyntaxKind.StarEqualsToken);
                     return SingleCharToken(SyntaxKind.StarToken);
                 case '%':
+                    if (Peek(1) == '=') return DoubleCharToken(SyntaxKind.PercentEqualsToken);
                     return SingleCharToken(SyntaxKind.PercentToken);
                 case '/':
+                    if (Peek(1) == '=') return DoubleCharToken(SyntaxKind.SlashEqualsToken);
                     return SingleCharToken(SyntaxKind.SlashToken);
                 case '<':
                     return MatchOrSingle('=', SyntaxKind.LessOrEqualsToken, SyntaxKind.LessToken);
                 case '>':
                     return MatchOrSingle('=', SyntaxKind.GreaterOrEqualsToken, SyntaxKind.GreaterToken);
+                case '^':
+                    return SingleCharToken(SyntaxKind.CaretToken);
                 case '&':
                     if (Peek(1) == '&')
                     {
@@ -187,6 +196,21 @@ public sealed class Lexer
     private SyntaxToken LexNumber()
     {
         var start = _position;
+        if (Current == '0' && Peek(1) is 'x' or 'X')
+        {
+            _position += 2;
+            int digitsStart = _position;
+            while (char.IsAsciiLetterOrDigit(Current)) _position++;
+            string radixText = _text[start.._position];
+            if (_position - digitsStart is >= 1 and <= 8
+                && uint.TryParse(_text[digitsStart.._position], System.Globalization.NumberStyles.AllowHexSpecifier, System.Globalization.CultureInfo.InvariantCulture, out uint bits))
+            {
+                return new SyntaxToken(SyntaxKind.NumberToken, start, radixText, unchecked((int)bits));
+            }
+            _diagnostics.Report("COPE-LEX-0004", "Hexadecimal int literals must contain one to eight hex digits (a signed 32-bit bit pattern).", start, radixText.Length);
+            return new SyntaxToken(SyntaxKind.NumberToken, start, radixText, null);
+        }
+
         while (char.IsAsciiDigit(Current))
         {
             _position++;
@@ -255,12 +279,17 @@ public sealed class Lexer
         }
 
         var text = numericText;
-        object? value = !parsed
-            ? null
-            : hasDecimalPoint
-                ? (object)floatValue
-                : intValue;
-        if (!parsed)
+        object? value = null;
+        if (parsed)
+        {
+            value = hasDecimalPoint ? (object)floatValue : intValue;
+        }
+        else if (numericText == "2147483648")
+        {
+            // Only unary minus may consume this magnitude as the minimum int.
+            value = new MinimumIntMagnitudeTokenValue();
+        }
+        if (!parsed && value is null)
         {
             _diagnostics.Report("COPE-LEX-0004", "Invalid number literal.", start, text.Length);
         }
@@ -431,3 +460,6 @@ public sealed class Lexer
 
 /// <summary>Raw dimensional literal syntax retained for semantic profiles.</summary>
 public sealed record LengthLiteralTokenValue(double Value, string Unit);
+
+/// <summary>The magnitude of int.MinValue is legal only directly after unary minus.</summary>
+public sealed record MinimumIntMagnitudeTokenValue;

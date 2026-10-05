@@ -1,0 +1,15 @@
+{
+  "protocol": "Fresh-context initial author; separate baseline and current diagnostic-only repair contexts. No language docs or compiler source read by repair agents; max six attempts each.",
+  "inputs": "llm-dogfood-inputs.json",
+  "baselineTranscript": "dogfood-baseline-replay.json",
+  "afterTranscript": "dogfood-replay.json",
+  "execution": "dogfood-execution.json",
+  "initialCompilerAcceptedBefore": 0,
+  "initialCompilerAcceptedAfter": 2,
+  "afterExecuted": 6,
+  "afterPortableExecuted": 3,
+  "afterClrOnlyExecuted": 3,
+  "baselineExecuted": 3,
+  "selfContainedOneDiagnosticRepairGoalFullyMet": false,
+  "limits": "CSV required five repairs and uses CLR Int32.Parse on complete decimal fields; arbitrary parseInt prefix/trimming semantics are unqualified. Native maps/lists are still absent; current map success required the compiler import-order fix. Replay failures remain in the transcript."
+}

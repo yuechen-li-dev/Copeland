@@ -1,0 +1,1 @@
+[{"Id":"COPE-TYPE-0002","Message":"Missing type annotation for function return \u0027countValues\u0027.","Position":44,"Length":11,"SourcePath":"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r2.ts","SuggestedReplacement":null,"RepairKind":null}]

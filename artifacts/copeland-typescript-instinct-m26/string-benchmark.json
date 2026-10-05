@@ -1,0 +1,37 @@
+{
+  "originalClrDetour": {
+    "name": "strings",
+    "checksum": "21777520",
+    "checksumParity": true,
+    "clrBestMilliseconds": 239.61,
+    "nodeBestMilliseconds": 130.7278,
+    "clrBestAllocatedBytes": 361197248,
+    "clrBestGcCollections": [
+      35,
+      35,
+      19
+    ],
+    "nodeBestHeapUsedDeltaBytes": -13173408,
+    "clrPeakWorkingSetBytes": 78168064,
+    "nodePeakWorkingSetBytes": 175427584
+  },
+  "native": {
+    "name": "native-strings",
+    "checksum": "21777520",
+    "checksumParity": true,
+    "clrBestMilliseconds": 361.3303,
+    "nodeBestMilliseconds": 128.0479,
+    "clrBestAllocatedBytes": 323907288,
+    "clrBestGcCollections": [
+      28,
+      26,
+      15
+    ],
+    "nodeBestHeapUsedDeltaBytes": 47904400,
+    "clrPeakWorkingSetBytes": 91705344,
+    "nodePeakWorkingSetBytes": 179859456
+  },
+  "nativeAllocationReductionFraction": 0.10323987850538663,
+  "nativeSpeedupClaim": false,
+  "interpretation": "Native strings remove interop syntax/metadata dependence and reduce measured allocation, but this kernel is slower on CLR. Do not infer a universal speedup."
+}

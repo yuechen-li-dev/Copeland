@@ -42,7 +42,10 @@ public abstract record State
     {
     }
 
-    public sealed record Off : State;
+    public sealed record Off : State
+    {
+        internal static Off __Singleton { get; } = new();
+    }
 
     public sealed record On(double value) : State;
 
@@ -59,7 +62,7 @@ public static class CopelandModule
         var __cope_record_init_4 = "second";
         var __cope_argument_5 = new __CopeRecord_r1(__cope_record_init_4);
         var __cope_record_init_6 = new __CopeRecord_r1[] { __cope_argument_3, __cope_argument_5 };
-        var __cope_record_init_7 = new State[] { new State.Off(), new State.On(3.0) };
+        var __cope_record_init_7 = new State[] { State.Off.__Singleton, new State.On(3.0) };
         var __cope_record_init_8 = new double[][] { new double[] {  }, new double[] { 1.0, 2.0 } };
         __CopeRecord_r2 batch = new __CopeRecord_r2(__cope_record_init_0, __cope_record_init_1, __cope_record_init_6, __cope_record_init_7, __cope_record_init_8);
         return batch;

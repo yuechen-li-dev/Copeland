@@ -86,8 +86,10 @@ currently accepted forms.
 ## Non-goals that are easy to assume incorrectly
 
 Copeland TS is not general TypeScript. `any`, `var`, `null`, ordinary
-`undefined`, ternary expressions, optional chaining, strict-equality spellings,
+`undefined`, ternary expressions, JavaScript nullish chaining,
 general object literals, prototype behavior, arbitrary JavaScript execution,
 and TypeScript structural typing are not product semantics. React and Custom
 Elements are demonstrated renderer boundaries; Vue, Svelte, Lit, Blazor, SSR,
 hydration, and browser effect execution are not implemented features.
+
+M26 accepts typed strict-equality aliases, named increment/compound assignment, native string associated functions, and bounded batch branches. See [TypeScript instincts](typescript-instinct-m26.md) for precise numeric, collection, and repair policies.

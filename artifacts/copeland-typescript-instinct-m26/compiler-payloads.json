@@ -1,0 +1,14 @@
+{
+  "configuration": "Release",
+  "benchmarkPayloadSha256": {
+    "src/Copeland/Copeland.TS/bin/Release/net10.0/Copeland.TS.dll": "D55693A8E12D0D843278008D7A35A970B3A25334DA963CE1CAF991C5E03548CD",
+    "src/Copeland/Copeland.TS.Mir/bin/Release/net10.0/Copeland.TS.Mir.dll": "84521F2BE4270A9C5D95231AA0A32175602549759073D14A8054FDD3516B1DEF",
+    "src/Copeland/Copeland.TS.Backend.CSharp/bin/Release/net10.0/Copeland.TS.Backend.CSharp.dll": "0F858F8C95BC5AB7AE8749D70EA9D1DA7EF08E822151C26F41B99EB423E8C333",
+    "src/Copeland/Copeland.TS.MSBuild/bin/Release/net10.0/Copeland.TS.MSBuild.dll": "A1BA0AA32CD282978736C266035547AD484E7AB4B3564DD83D143FAC48CB567A"
+  },
+  "executedPayloadSha256": {
+    "samples/copeland-ts/typescript-instinct-m26-benchmark/bin/Release/net10.0/CopeBench.dll": "145EE2FB43D6DFCEC5F15C7EE69515872688F3C7EFA52F54AD398E02CF2F372A",
+    "tools/copeland-typescript-instinct-m26/bin/Release/net10.0/InstinctProof.dll": "2BCD862410C719C042958B64963DBEBE28AC58283950122F2774D3AFC62459A0",
+    "src/Copeland/Copeland.TS.Backend.JavaScript/bin/Release/net10.0/Copeland.TS.Backend.JavaScript.dll": "3F2A3EDF6A7D9701C2A09B3C44C2287B6FE01FBA5B93E9F32CD49938F393E95F"
+  }
+}

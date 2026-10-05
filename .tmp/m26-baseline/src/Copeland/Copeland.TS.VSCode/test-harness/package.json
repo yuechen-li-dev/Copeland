@@ -1,0 +1,11 @@
+{
+  "name": "copeland-package-smoke-harness",
+  "displayName": "Copeland package smoke harness",
+  "version": "0.0.0",
+  "publisher": "copeland-tests",
+  "engines": {
+    "vscode": "^1.99.0"
+  },
+  "main": "./extension.js",
+  "activationEvents": []
+}

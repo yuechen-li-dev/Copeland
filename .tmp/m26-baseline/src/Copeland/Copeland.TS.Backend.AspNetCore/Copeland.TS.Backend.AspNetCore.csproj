@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Copeland.TS.Backend.AspNetCore</AssemblyName>
+    <RootNamespace>Copeland.TS.Backend.AspNetCore</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Copeland.TS.Mir/Copeland.TS.Mir.csproj" />
+    <ProjectReference Include="../Copeland.TS.Backend.CSharp/Copeland.TS.Backend.CSharp.csproj" />
+  </ItemGroup>
+</Project>

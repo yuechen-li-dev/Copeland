@@ -56,9 +56,15 @@ public abstract record TsonEncodeError
     {
     }
 
-    public sealed record InvalidUnicode : TsonEncodeError;
+    public sealed record InvalidUnicode : TsonEncodeError
+    {
+        internal static InvalidUnicode __Singleton { get; } = new();
+    }
 
-    public sealed record OutputLimitExceeded : TsonEncodeError;
+    public sealed record OutputLimitExceeded : TsonEncodeError
+    {
+        internal static OutputLimitExceeded __Singleton { get; } = new();
+    }
 
 }
 public abstract record Mode
@@ -67,7 +73,10 @@ public abstract record Mode
     {
     }
 
-    public sealed record Off : Mode;
+    public sealed record Off : Mode
+    {
+        internal static Off __Singleton { get; } = new();
+    }
 
     public sealed record Named(__CopeRecord_r1 detail) : Mode;
 

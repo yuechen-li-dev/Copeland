@@ -1,0 +1,38 @@
+[
+  {
+    "Id": "csv",
+    "Category": "fresh-context dogfood",
+    "Input": "function parseCsvIntegers(text: string): int[] { return text.split(\",\").map(part => parseInt(part.trim(), 10)); }",
+    "Outcome": "snapshot"
+  },
+  {
+    "Id": "counter-map",
+    "Category": "fresh-context dogfood",
+    "Input": "function countValues(values: string[]): Map<string, int> { const counts = new Map<string, int>(); for (const value of values) { const previous = counts.get(value) ?? 0; counts.set(value, previous + 1); } return counts; }",
+    "Outcome": "snapshot"
+  },
+  {
+    "Id": "increment-loop",
+    "Category": "fresh-context dogfood",
+    "Input": "function sumRange(limit: int): int { let total: int = 0; for (let index: int = 0; index < limit; index++) { total += index; } return total; }",
+    "Outcome": "snapshot"
+  },
+  {
+    "Id": "batch-guard",
+    "Category": "fresh-context dogfood",
+    "Input": "function transformBatch(values: int[]): int[] { return batch values as item { if (item < 0) { return -item; } return item * 2; }; }",
+    "Outcome": "snapshot"
+  },
+  {
+    "Id": "growing-array",
+    "Category": "fresh-context dogfood",
+    "Input": "function collectEvenValues(values: int[]): int[] { const result: int[] = []; for (const value of values) { if (value % 2 === 0) { result.push(value); } } return result; }",
+    "Outcome": "snapshot"
+  },
+  {
+    "Id": "integer-hash",
+    "Category": "fresh-context dogfood",
+    "Input": "function hashIntegers(values: int[]): int { let hash: int = 0x811c9dc5 | 0; for (const value of values) { hash = Math.imul(hash ^ value, 0x01000193) | 0; } return hash; }",
+    "Outcome": "snapshot"
+  }
+]

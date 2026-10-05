@@ -1,0 +1,43 @@
+{
+  "nativeQualified": false,
+  "exactMissingSeam": "No typed native map MIR/storage owner defines key equality/hashing, ordered iteration, mutation, and Option lookup for both backends.",
+  "diagnostic": "COPE-COLLECTION-0001",
+  "alternative": "CLR Dictionary<K,V>; ContainsKey then indexed read; no portable ordering/Option claim.",
+  "cases": [
+    {
+      "Id": "native-map-gap",
+      "Outcome": "unsupported capability",
+      "Diagnostics": [
+        {
+          "Id": "COPE-COLLECTION-0001",
+          "Message": "Native MutableMap<K, V> is not yet supported. For CLR-only storage use 'using System.Collections.Generic;' and 'new Dictionary<K, V>()'; use ContainsKey before indexed reads. Cross-backend Option-valued lookup and insertion-order iteration remain unsupported.",
+          "Position": 41,
+          "Length": 3,
+          "SourcePath": "native-map-gap.ts",
+          "SuggestedReplacement": "using System.Collections.Generic; new Dictionary<K, V>()",
+          "RepairKind": "unsupported-capability"
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    },
+    {
+      "Id": "native-map-type-gap",
+      "Outcome": "unsupported capability",
+      "Diagnostics": [
+        {
+          "Id": "COPE-COLLECTION-0001",
+          "Message": "Native MutableMap<K, V> is not yet supported. For CLR-only storage use 'using System.Collections.Generic;' and 'new Dictionary<K, V>()'; use ContainsKey before indexed reads. Cross-backend Option-valued lookup and insertion-order iteration remain unsupported.",
+          "Position": 36,
+          "Length": 3,
+          "SourcePath": "native-map-type-gap.ts",
+          "SuggestedReplacement": "using System.Collections.Generic; new Dictionary<K, V>()",
+          "RepairKind": "unsupported-capability"
+        }
+      ],
+      "CSharpResult": null,
+      "JavaScriptResult": null
+    }
+  ],
+  "nextMilestone": "M27: scalar-key ordered hash storage and typed native operations shared by MIR/C#/JS, including deletion/reinsertion ordering and Option-valued lookup."
+}

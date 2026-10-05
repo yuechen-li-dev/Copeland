@@ -1,0 +1,1 @@
+{"name":"closures","quick":false,"trials":[{"result":"997753","milliseconds":240.0066,"allocatedBytes":1680,"gcCollections":[0,0,0]},{"result":"997753","milliseconds":238.7796,"allocatedBytes":1680,"gcCollections":[0,0,0]},{"result":"997753","milliseconds":237.8353,"allocatedBytes":1680,"gcCollections":[0,0,0]}],"peakWorkingSetBytes":26103808}

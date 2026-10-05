@@ -1,0 +1,811 @@
+{
+  "processorCount": 16,
+  "rows": [
+    {
+      "size": 1,
+      "body": "cheap",
+      "mode": "sequential",
+      "samples": [
+        {
+          "milliseconds": 0.0011,
+          "allocatedBytes": 312,
+          "checksum": 0
+        },
+        {
+          "milliseconds": 0.0007,
+          "allocatedBytes": 224,
+          "checksum": 0
+        },
+        {
+          "milliseconds": 0.0001,
+          "allocatedBytes": 224,
+          "checksum": 0
+        },
+        {
+          "milliseconds": 0,
+          "allocatedBytes": 224,
+          "checksum": 0
+        },
+        {
+          "milliseconds": 0,
+          "allocatedBytes": 224,
+          "checksum": 0
+        }
+      ]
+    },
+    {
+      "size": 1,
+      "body": "cheap",
+      "mode": "parallel",
+      "samples": [
+        {
+          "milliseconds": 0.0159,
+          "allocatedBytes": 2056,
+          "checksum": 0
+        },
+        {
+          "milliseconds": 0.0016,
+          "allocatedBytes": 1992,
+          "checksum": 0
+        },
+        {
+          "milliseconds": 0.0066,
+          "allocatedBytes": 1992,
+          "checksum": 0
+        },
+        {
+          "milliseconds": 0.0037,
+          "allocatedBytes": 1992,
+          "checksum": 0
+        },
+        {
+          "milliseconds": 0.0016,
+          "allocatedBytes": 1992,
+          "checksum": 0
+        }
+      ]
+    },
+    {
+      "size": 1,
+      "body": "costly",
+      "mode": "sequential",
+      "samples": [
+        {
+          "milliseconds": 0.0021,
+          "allocatedBytes": 224,
+          "checksum": 562641396
+        },
+        {
+          "milliseconds": 0.002,
+          "allocatedBytes": 224,
+          "checksum": 562641396
+        },
+        {
+          "milliseconds": 0.002,
+          "allocatedBytes": 224,
+          "checksum": 562641396
+        },
+        {
+          "milliseconds": 0.002,
+          "allocatedBytes": 224,
+          "checksum": 562641396
+        },
+        {
+          "milliseconds": 0.0027,
+          "allocatedBytes": 224,
+          "checksum": 562641396
+        }
+      ]
+    },
+    {
+      "size": 1,
+      "body": "costly",
+      "mode": "parallel",
+      "samples": [
+        {
+          "milliseconds": 0.0076,
+          "allocatedBytes": 2232,
+          "checksum": 562641396
+        },
+        {
+          "milliseconds": 0.008,
+          "allocatedBytes": 2232,
+          "checksum": 562641396
+        },
+        {
+          "milliseconds": 0.007,
+          "allocatedBytes": 2232,
+          "checksum": 562641396
+        },
+        {
+          "milliseconds": 0.0072,
+          "allocatedBytes": 2232,
+          "checksum": 562641396
+        },
+        {
+          "milliseconds": 0.0072,
+          "allocatedBytes": 2232,
+          "checksum": 562641396
+        }
+      ]
+    },
+    {
+      "size": 8,
+      "body": "cheap",
+      "mode": "sequential",
+      "samples": [
+        {
+          "milliseconds": 0.0001,
+          "allocatedBytes": 248,
+          "checksum": 56
+        },
+        {
+          "milliseconds": 0.0002,
+          "allocatedBytes": 248,
+          "checksum": 56
+        },
+        {
+          "milliseconds": 0.0001,
+          "allocatedBytes": 248,
+          "checksum": 56
+        },
+        {
+          "milliseconds": 0.0001,
+          "allocatedBytes": 248,
+          "checksum": 56
+        },
+        {
+          "milliseconds": 0.0002,
+          "allocatedBytes": 248,
+          "checksum": 56
+        }
+      ]
+    },
+    {
+      "size": 8,
+      "body": "cheap",
+      "mode": "parallel",
+      "samples": [
+        {
+          "milliseconds": 0.0031,
+          "allocatedBytes": 2408,
+          "checksum": 56
+        },
+        {
+          "milliseconds": 0.0023,
+          "allocatedBytes": 2408,
+          "checksum": 56
+        },
+        {
+          "milliseconds": 0.0022,
+          "allocatedBytes": 2408,
+          "checksum": 56
+        },
+        {
+          "milliseconds": 0.0033,
+          "allocatedBytes": 2408,
+          "checksum": 56
+        },
+        {
+          "milliseconds": 0.0024,
+          "allocatedBytes": 2408,
+          "checksum": 56
+        }
+      ]
+    },
+    {
+      "size": 8,
+      "body": "costly",
+      "mode": "sequential",
+      "samples": [
+        {
+          "milliseconds": 0.0276,
+          "allocatedBytes": 248,
+          "checksum": -3211828292
+        },
+        {
+          "milliseconds": 0.0279,
+          "allocatedBytes": 248,
+          "checksum": -3211828292
+        },
+        {
+          "milliseconds": 0.028,
+          "allocatedBytes": 248,
+          "checksum": -3211828292
+        },
+        {
+          "milliseconds": 0.0247,
+          "allocatedBytes": 248,
+          "checksum": -3211828292
+        },
+        {
+          "milliseconds": 0.0237,
+          "allocatedBytes": 248,
+          "checksum": -3211828292
+        }
+      ]
+    },
+    {
+      "size": 8,
+      "body": "costly",
+      "mode": "parallel",
+      "samples": [
+        {
+          "milliseconds": 0.0199,
+          "allocatedBytes": 3608,
+          "checksum": -3211828292
+        },
+        {
+          "milliseconds": 0.1359,
+          "allocatedBytes": 3808,
+          "checksum": -3211828292
+        },
+        {
+          "milliseconds": 0.0351,
+          "allocatedBytes": 3968,
+          "checksum": -3211828292
+        },
+        {
+          "milliseconds": 0.0176,
+          "allocatedBytes": 3128,
+          "checksum": -3211828292
+        },
+        {
+          "milliseconds": 0.0147,
+          "allocatedBytes": 3368,
+          "checksum": -3211828292
+        }
+      ]
+    },
+    {
+      "size": 32,
+      "body": "cheap",
+      "mode": "sequential",
+      "samples": [
+        {
+          "milliseconds": 0.0003,
+          "allocatedBytes": 344,
+          "checksum": 992
+        },
+        {
+          "milliseconds": 0.0003,
+          "allocatedBytes": 344,
+          "checksum": 992
+        },
+        {
+          "milliseconds": 0.0002,
+          "allocatedBytes": 344,
+          "checksum": 992
+        },
+        {
+          "milliseconds": 0.0003,
+          "allocatedBytes": 344,
+          "checksum": 992
+        },
+        {
+          "milliseconds": 0.0003,
+          "allocatedBytes": 344,
+          "checksum": 992
+        }
+      ]
+    },
+    {
+      "size": 32,
+      "body": "cheap",
+      "mode": "parallel",
+      "samples": [
+        {
+          "milliseconds": 0.0034,
+          "allocatedBytes": 2952,
+          "checksum": 992
+        },
+        {
+          "milliseconds": 0.0052,
+          "allocatedBytes": 3456,
+          "checksum": 992
+        },
+        {
+          "milliseconds": 0.0032,
+          "allocatedBytes": 2952,
+          "checksum": 992
+        },
+        {
+          "milliseconds": 0.0023,
+          "allocatedBytes": 3456,
+          "checksum": 992
+        },
+        {
+          "milliseconds": 0.0032,
+          "allocatedBytes": 3192,
+          "checksum": 992
+        }
+      ]
+    },
+    {
+      "size": 32,
+      "body": "costly",
+      "mode": "sequential",
+      "samples": [
+        {
+          "milliseconds": 0.0875,
+          "allocatedBytes": 344,
+          "checksum": -1433792400
+        },
+        {
+          "milliseconds": 0.0851,
+          "allocatedBytes": 344,
+          "checksum": -1433792400
+        },
+        {
+          "milliseconds": 0.0842,
+          "allocatedBytes": 344,
+          "checksum": -1433792400
+        },
+        {
+          "milliseconds": 0.0854,
+          "allocatedBytes": 344,
+          "checksum": -1433792400
+        },
+        {
+          "milliseconds": 0.0854,
+          "allocatedBytes": 344,
+          "checksum": -1433792400
+        }
+      ]
+    },
+    {
+      "size": 32,
+      "body": "costly",
+      "mode": "parallel",
+      "samples": [
+        {
+          "milliseconds": 0.1023,
+          "allocatedBytes": 4832,
+          "checksum": -1433792400
+        },
+        {
+          "milliseconds": 0.0415,
+          "allocatedBytes": 5488,
+          "checksum": -1433792400
+        },
+        {
+          "milliseconds": 0.0305,
+          "allocatedBytes": 4872,
+          "checksum": -1433792400
+        },
+        {
+          "milliseconds": 0.0929,
+          "allocatedBytes": 5072,
+          "checksum": -1433792400
+        },
+        {
+          "milliseconds": 0.0408,
+          "allocatedBytes": 5496,
+          "checksum": -1433792400
+        }
+      ]
+    },
+    {
+      "size": 128,
+      "body": "cheap",
+      "mode": "sequential",
+      "samples": [
+        {
+          "milliseconds": 0.0008,
+          "allocatedBytes": 728,
+          "checksum": 16256
+        },
+        {
+          "milliseconds": 0.0007,
+          "allocatedBytes": 728,
+          "checksum": 16256
+        },
+        {
+          "milliseconds": 0.0008,
+          "allocatedBytes": 728,
+          "checksum": 16256
+        },
+        {
+          "milliseconds": 0.0007,
+          "allocatedBytes": 728,
+          "checksum": 16256
+        },
+        {
+          "milliseconds": 0.0029,
+          "allocatedBytes": 728,
+          "checksum": 16256
+        }
+      ]
+    },
+    {
+      "size": 128,
+      "body": "cheap",
+      "mode": "parallel",
+      "samples": [
+        {
+          "milliseconds": 0.0041,
+          "allocatedBytes": 3816,
+          "checksum": 16256
+        },
+        {
+          "milliseconds": 0.0064,
+          "allocatedBytes": 4104,
+          "checksum": 16256
+        },
+        {
+          "milliseconds": 0.005,
+          "allocatedBytes": 4104,
+          "checksum": 16256
+        },
+        {
+          "milliseconds": 0.0053,
+          "allocatedBytes": 4104,
+          "checksum": 16256
+        },
+        {
+          "milliseconds": 0.0078,
+          "allocatedBytes": 4344,
+          "checksum": 16256
+        }
+      ]
+    },
+    {
+      "size": 128,
+      "body": "costly",
+      "mode": "sequential",
+      "samples": [
+        {
+          "milliseconds": 0.328,
+          "allocatedBytes": 728,
+          "checksum": -7802431040
+        },
+        {
+          "milliseconds": 0.3338,
+          "allocatedBytes": 728,
+          "checksum": -7802431040
+        },
+        {
+          "milliseconds": 0.3281,
+          "allocatedBytes": 728,
+          "checksum": -7802431040
+        },
+        {
+          "milliseconds": 0.3284,
+          "allocatedBytes": 728,
+          "checksum": -7802431040
+        },
+        {
+          "milliseconds": 0.3276,
+          "allocatedBytes": 728,
+          "checksum": -7802431040
+        }
+      ]
+    },
+    {
+      "size": 128,
+      "body": "costly",
+      "mode": "parallel",
+      "samples": [
+        {
+          "milliseconds": 0.0978,
+          "allocatedBytes": 7408,
+          "checksum": -7802431040
+        },
+        {
+          "milliseconds": 0.0717,
+          "allocatedBytes": 6216,
+          "checksum": -7802431040
+        },
+        {
+          "milliseconds": 0.0707,
+          "allocatedBytes": 6264,
+          "checksum": -7802431040
+        },
+        {
+          "milliseconds": 0.0662,
+          "allocatedBytes": 6240,
+          "checksum": -7802431040
+        },
+        {
+          "milliseconds": 0.0695,
+          "allocatedBytes": 6216,
+          "checksum": -7802431040
+        }
+      ]
+    },
+    {
+      "size": 1024,
+      "body": "cheap",
+      "mode": "sequential",
+      "samples": [
+        {
+          "milliseconds": 0.0075,
+          "allocatedBytes": 4312,
+          "checksum": 1047552
+        },
+        {
+          "milliseconds": 0.0054,
+          "allocatedBytes": 4312,
+          "checksum": 1047552
+        },
+        {
+          "milliseconds": 0.0099,
+          "allocatedBytes": 4312,
+          "checksum": 1047552
+        },
+        {
+          "milliseconds": 0.0156,
+          "allocatedBytes": 4312,
+          "checksum": 1047552
+        },
+        {
+          "milliseconds": 0.0125,
+          "allocatedBytes": 4312,
+          "checksum": 1047552
+        }
+      ]
+    },
+    {
+      "size": 1024,
+      "body": "cheap",
+      "mode": "parallel",
+      "samples": [
+        {
+          "milliseconds": 0.1034,
+          "allocatedBytes": 10024,
+          "checksum": 1047552
+        },
+        {
+          "milliseconds": 0.0283,
+          "allocatedBytes": 9040,
+          "checksum": 1047552
+        },
+        {
+          "milliseconds": 0.0242,
+          "allocatedBytes": 7904,
+          "checksum": 1047552
+        },
+        {
+          "milliseconds": 0.0247,
+          "allocatedBytes": 7952,
+          "checksum": 1047552
+        },
+        {
+          "milliseconds": 0.0261,
+          "allocatedBytes": 7904,
+          "checksum": 1047552
+        }
+      ]
+    },
+    {
+      "size": 1024,
+      "body": "costly",
+      "mode": "sequential",
+      "samples": [
+        {
+          "milliseconds": 2.6823,
+          "allocatedBytes": 4312,
+          "checksum": 12289953280
+        },
+        {
+          "milliseconds": 2.6821,
+          "allocatedBytes": 4312,
+          "checksum": 12289953280
+        },
+        {
+          "milliseconds": 2.6745,
+          "allocatedBytes": 4312,
+          "checksum": 12289953280
+        },
+        {
+          "milliseconds": 2.6747,
+          "allocatedBytes": 4312,
+          "checksum": 12289953280
+        },
+        {
+          "milliseconds": 2.6641,
+          "allocatedBytes": 4312,
+          "checksum": 12289953280
+        }
+      ]
+    },
+    {
+      "size": 1024,
+      "body": "costly",
+      "mode": "parallel",
+      "samples": [
+        {
+          "milliseconds": 0.3661,
+          "allocatedBytes": 10280,
+          "checksum": 12289953280
+        },
+        {
+          "milliseconds": 0.3689,
+          "allocatedBytes": 10584,
+          "checksum": 12289953280
+        },
+        {
+          "milliseconds": 0.3423,
+          "allocatedBytes": 10584,
+          "checksum": 12289953280
+        },
+        {
+          "milliseconds": 0.344,
+          "allocatedBytes": 10584,
+          "checksum": 12289953280
+        },
+        {
+          "milliseconds": 0.3422,
+          "allocatedBytes": 10584,
+          "checksum": 12289953280
+        }
+      ]
+    },
+    {
+      "size": 16384,
+      "body": "cheap",
+      "mode": "sequential",
+      "samples": [
+        {
+          "milliseconds": 0.0806,
+          "allocatedBytes": 65752,
+          "checksum": 268419072
+        },
+        {
+          "milliseconds": 0.0826,
+          "allocatedBytes": 65752,
+          "checksum": 268419072
+        },
+        {
+          "milliseconds": 0.0786,
+          "allocatedBytes": 65752,
+          "checksum": 268419072
+        },
+        {
+          "milliseconds": 0.0804,
+          "allocatedBytes": 65752,
+          "checksum": 268419072
+        },
+        {
+          "milliseconds": 0.0807,
+          "allocatedBytes": 65752,
+          "checksum": 268419072
+        }
+      ]
+    },
+    {
+      "size": 16384,
+      "body": "cheap",
+      "mode": "parallel",
+      "samples": [
+        {
+          "milliseconds": 0.1178,
+          "allocatedBytes": 71960,
+          "checksum": 268419072
+        },
+        {
+          "milliseconds": 0.0902,
+          "allocatedBytes": 70904,
+          "checksum": 268419072
+        },
+        {
+          "milliseconds": 0.0898,
+          "allocatedBytes": 71048,
+          "checksum": 268419072
+        },
+        {
+          "milliseconds": 0.0757,
+          "allocatedBytes": 71624,
+          "checksum": 268419072
+        },
+        {
+          "milliseconds": 0.0724,
+          "allocatedBytes": 71576,
+          "checksum": 268419072
+        }
+      ]
+    },
+    {
+      "size": 16384,
+      "body": "costly",
+      "mode": "sequential",
+      "samples": [
+        {
+          "milliseconds": 43.0636,
+          "allocatedBytes": 65752,
+          "checksum": 14228971520
+        },
+        {
+          "milliseconds": 24.3434,
+          "allocatedBytes": 65752,
+          "checksum": 14228971520
+        },
+        {
+          "milliseconds": 9.1448,
+          "allocatedBytes": 65752,
+          "checksum": 14228971520
+        },
+        {
+          "milliseconds": 9.0775,
+          "allocatedBytes": 65752,
+          "checksum": 14228971520
+        },
+        {
+          "milliseconds": 8.9505,
+          "allocatedBytes": 65752,
+          "checksum": 14228971520
+        }
+      ]
+    },
+    {
+      "size": 16384,
+      "body": "costly",
+      "mode": "parallel",
+      "samples": [
+        {
+          "milliseconds": 0.7016,
+          "allocatedBytes": 71720,
+          "checksum": 14228971520
+        },
+        {
+          "milliseconds": 0.707,
+          "allocatedBytes": 71720,
+          "checksum": 14228971520
+        },
+        {
+          "milliseconds": 0.7027,
+          "allocatedBytes": 71720,
+          "checksum": 14228971520
+        },
+        {
+          "milliseconds": 0.7045,
+          "allocatedBytes": 71720,
+          "checksum": 14228971520
+        },
+        {
+          "milliseconds": 0.8709,
+          "allocatedBytes": 71720,
+          "checksum": 14228971520
+        }
+      ]
+    }
+  ],
+  "baseline": [
+    {
+      "size": 1,
+      "milliseconds": 0.1548,
+      "allocatedBytes": 4656,
+      "checksum": 0
+    },
+    {
+      "size": 8,
+      "milliseconds": 0.0049,
+      "allocatedBytes": 3344,
+      "checksum": 56
+    },
+    {
+      "size": 32,
+      "milliseconds": 0.0042,
+      "allocatedBytes": 3888,
+      "checksum": 992
+    },
+    {
+      "size": 128,
+      "milliseconds": 0.0051,
+      "allocatedBytes": 4536,
+      "checksum": 16256
+    },
+    {
+      "size": 1024,
+      "milliseconds": 0.0136,
+      "allocatedBytes": 8888,
+      "checksum": 1047552
+    },
+    {
+      "size": 16384,
+      "milliseconds": 0.0543,
+      "allocatedBytes": 71504,
+      "checksum": 268419072
+    }
+  ]
+}

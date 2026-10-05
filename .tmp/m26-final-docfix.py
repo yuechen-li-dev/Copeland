@@ -1,0 +1,8 @@
+from pathlib import Path
+import re
+p=Path('docs/Copeland/language/copeland-ts-language-profile.md');s=p.read_text(encoding='utf-8');s=s.replace('binder accepts same-type primitive `==`/`!=`, emits `COPE-PROFILE-0009` for strict spellings, and rejects unsupported/cross-type comparisons;','binder accepts same-type primitive `==`/`!=` and M26 `===`/`!==` aliases, and rejects unsupported/cross-type comparisons;')
+s=s.replace('rejects [strict-equality](../../../tests/Copeland/Copeland.TS.Tests/Language/Invalid/equality/strict-equality.cl-invalid.ts), [strict-inequality](../../../tests/Copeland/Copeland.TS.Tests/Language/Invalid/equality/strict-inequality.cl-invalid.ts), and [cross-type-equality]','accepts [strict-equality](../../../tests/Copeland/Copeland.TS.Tests/Language/Valid/equality/strict-equality.cl-valid.ts) and [strict-inequality](../../../tests/Copeland/Copeland.TS.Tests/Language/Valid/equality/strict-inequality.cl-valid.ts); rejects [cross-type-equality]')
+s=s.replace('| strict spelling and unsupported families |','| unsupported comparison families |');p.write_text(s,encoding='utf-8',newline='\n')
+p=Path('docs/milestones/copeland-typescript-instinct-corpus-m26-report.md');s=p.read_text(encoding='utf-8').replace('Native allocation falls about 11%;','Native allocation falls about 10%;');p.write_text(s,encoding='utf-8',newline='\n')
+a=Path('.tmp/m26-benchmark/cb/js/twin.mjs').read_text(encoding='utf-8');b=Path('samples/copeland-ts/typescript-instinct-m26-benchmark/js/twin.mjs').read_text(encoding='utf-8');print('original JavaScript prefix unchanged:',a[:a.index('function run(')]==b[:b.index('function run(')])
+print('JS algorithm names', re.findall(r'function (\w+)',a))

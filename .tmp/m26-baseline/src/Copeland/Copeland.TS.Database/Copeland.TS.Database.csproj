@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Copeland.TS.Database</AssemblyName>
+    <RootNamespace>Copeland.TS.Database</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Copeland.TS/Copeland.TS.csproj" />
+    <ProjectReference Include="../Copeland.TS.Mir/Copeland.TS.Mir.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,42 @@
+{
+  "name": "@copeland/tscl",
+  "version": "0.1.0-preview.1",
+  "description": "Project-local launcher for Copeland TS on .NET 10.",
+  "license": "GPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yuechen-li-dev/Copeland.git"
+  },
+  "homepage": "https://github.com/yuechen-li-dev/Copeland",
+  "bugs": "https://github.com/yuechen-li-dev/Copeland/issues",
+  "keywords": [
+    "copeland",
+    "typescript",
+    "tsx",
+    "dotnet",
+    "compiler"
+  ],
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "bin": {
+    "tscl": "bin/tscl.js"
+  },
+  "files": [
+    "bin/",
+    "payload/",
+    "LICENSE",
+    "README.md",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "preview"
+  }
+}

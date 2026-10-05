@@ -1,0 +1,579 @@
+[
+  {
+    "Id": "string-split",
+    "Category": "strings",
+    "Input": "function run(): string[] { return String.Split(\",a,,b,\", \",\"); }",
+    "Outcome": "compile",
+    "ExpectedJson": "[\"\",\"a\",\"\",\"b\",\"\"]",
+    "ClrOnly": false
+  },
+  {
+    "Id": "string-split-empty",
+    "Category": "strings",
+    "Input": "function run(): string[] { return String.Split(\"ab\", \"\"); }",
+    "Outcome": "compile",
+    "ExpectedJson": "[\"a\",\"b\"]",
+    "ClrOnly": false
+  },
+  {
+    "Id": "string-index-ordinal",
+    "Category": "strings",
+    "Input": "function run(): int { return String.IndexOf(\"abcd\", \"bc\"); }",
+    "Outcome": "compile",
+    "ExpectedJson": "1",
+    "ClrOnly": false
+  },
+  {
+    "Id": "string-code-utf16",
+    "Category": "strings",
+    "Input": "function run(): int { return String.CodeAt(\"\ud83d\ude00\", 0); }",
+    "Outcome": "compile",
+    "ExpectedJson": "55357",
+    "ClrOnly": false
+  },
+  {
+    "Id": "string-slice-negative",
+    "Category": "strings",
+    "Input": "function run(): string { return String.Slice(\"abcdef\", -4, -1); }",
+    "Outcome": "compile",
+    "ExpectedJson": "\"cde\"",
+    "ClrOnly": false
+  },
+  {
+    "Id": "string-slice-reversed",
+    "Category": "strings",
+    "Input": "function run(): string { return String.Slice(\"abc\", 2, 1); }",
+    "Outcome": "compile",
+    "ExpectedJson": "\"\"",
+    "ClrOnly": false
+  },
+  {
+    "Id": "string-join",
+    "Category": "strings",
+    "Input": "function run(): string { return String.Join([\"a\", \"b\"], \",\"); }",
+    "Outcome": "compile",
+    "ExpectedJson": "\"a,b\"",
+    "ClrOnly": false
+  },
+  {
+    "Id": "array-filled",
+    "Category": "collections",
+    "Input": "function run(): int[] { const a: MutableArray<int> = MutableArray<int>(3, 7); a[1] = 9; return a.freeze(); }",
+    "Outcome": "compile",
+    "ExpectedJson": "[7,9,7]",
+    "ClrOnly": false
+  },
+  {
+    "Id": "array-string-filled",
+    "Category": "collections",
+    "Input": "function run(): string[] { return MutableArray<string>(2, \"x\").freeze(); }",
+    "Outcome": "compile",
+    "ExpectedJson": "[\"x\",\"x\"]",
+    "ClrOnly": false
+  },
+  {
+    "Id": "increment-postfix",
+    "Category": "loops",
+    "Input": "function run(): int { let value: int = 3; const previous: int = value++; return previous * 10 + value; }",
+    "Outcome": "compile",
+    "ExpectedJson": "34",
+    "ClrOnly": false
+  },
+  {
+    "Id": "decrement-postfix",
+    "Category": "loops",
+    "Input": "function run(): int { let value: int = 3; const previous: int = value--; return previous * 10 + value; }",
+    "Outcome": "compile",
+    "ExpectedJson": "32",
+    "ClrOnly": false
+  },
+  {
+    "Id": "compound-all",
+    "Category": "mutation",
+    "Input": "function run(): int { let value: int = 4; value += 3; value *= 2; value -= 2; value /= 3; value %= 3; return value; }",
+    "Outcome": "compile",
+    "ExpectedJson": "1",
+    "ClrOnly": false
+  },
+  {
+    "Id": "loop-increment",
+    "Category": "loops",
+    "Input": "function run(): int { let total: int = 0; for (let i: int = 0; i < 10; i++) { total += i; } return total; }",
+    "Outcome": "compile",
+    "ExpectedJson": "45",
+    "ClrOnly": false
+  },
+  {
+    "Id": "conditional-expression",
+    "Category": "conditionals",
+    "Input": "function run(): int { return if (true) { 7 } else { 9 }; }",
+    "Outcome": "compile",
+    "ExpectedJson": "7",
+    "ClrOnly": false
+  },
+  {
+    "Id": "batch-guard",
+    "Category": "batch",
+    "Input": "function run(): int[] { return batch [-2, 0, 3] as item { if (item < 0) { return -item; } return item * 2; }; }",
+    "Outcome": "compile",
+    "ExpectedJson": "[2,0,6]",
+    "ClrOnly": false
+  },
+  {
+    "Id": "batch-if-else",
+    "Category": "batch",
+    "Input": "function run(): int[] { return batch [-2, 3] as item { if (item < 0) { return -item; } else { return item * 2; } }; }",
+    "Outcome": "compile",
+    "ExpectedJson": "[2,6]",
+    "ClrOnly": false
+  },
+  {
+    "Id": "int-add-wrap",
+    "Category": "numeric",
+    "Input": "function run(): int { return 2147483647 + 1; }",
+    "Outcome": "compile",
+    "ExpectedJson": "-2147483648",
+    "ClrOnly": false
+  },
+  {
+    "Id": "int-multiply-wrap",
+    "Category": "numeric",
+    "Input": "function run(): int { return 2147483647 * 2147483647; }",
+    "Outcome": "compile",
+    "ExpectedJson": "1",
+    "ClrOnly": false
+  },
+  {
+    "Id": "int-divide-wrap",
+    "Category": "numeric",
+    "Input": "function run(): int { const min: int = -2147483647 - 1; return min / -1; }",
+    "Outcome": "compile",
+    "ExpectedJson": "-2147483648",
+    "ClrOnly": false
+  },
+  {
+    "Id": "int-remainder-min",
+    "Category": "numeric",
+    "Input": "function run(): int { const min: int = -2147483647 - 1; return min % -1; }",
+    "Outcome": "compile",
+    "ExpectedJson": "0",
+    "ClrOnly": false
+  },
+  {
+    "Id": "int-remainder-sign",
+    "Category": "numeric",
+    "Input": "function run(): int { return -7 % 3; }",
+    "Outcome": "compile",
+    "ExpectedJson": "-1",
+    "ClrOnly": false
+  },
+  {
+    "Id": "int-negate-wrap",
+    "Category": "numeric",
+    "Input": "function run(): int { const min: int = -2147483647 - 1; return -min; }",
+    "Outcome": "compile",
+    "ExpectedJson": "-2147483648",
+    "ClrOnly": false
+  },
+  {
+    "Id": "bitwise-hash",
+    "Category": "numeric",
+    "Input": "function run(): int { return (123 ^ 45) * 16777619; }",
+    "Outcome": "compile",
+    "ExpectedJson": "1442875234",
+    "ClrOnly": false
+  },
+  {
+    "Id": "bitwise-shift-mask",
+    "Category": "numeric",
+    "Input": "function run(): int { return (1 << 33) | (8 >> 2); }",
+    "Outcome": "compile",
+    "ExpectedJson": "2",
+    "ClrOnly": false
+  },
+  {
+    "Id": "generic-identity",
+    "Category": "generics",
+    "Input": "function identity<T>(value: T): T { return value; } function run(): int { return identity<int>(7); }",
+    "Outcome": "compile",
+    "ExpectedJson": "7",
+    "ClrOnly": false
+  },
+  {
+    "Id": "generic-clr-list",
+    "Category": "interop",
+    "Input": "using System.Collections.Generic; function run(): int { const values: List<int> = new List<int>(); values.Add(7); return values.Count; }",
+    "Outcome": "compile",
+    "ExpectedJson": "1",
+    "ClrOnly": true
+  },
+  {
+    "Id": "static-property-chain",
+    "Category": "static",
+    "Input": "using System.Globalization; function run(): int { return CultureInfo.InvariantCulture.CompareInfo.IndexOf(\"abcdef\", \"cd\"); }",
+    "Outcome": "compile",
+    "ExpectedJson": "2",
+    "ClrOnly": true
+  },
+  {
+    "Id": "closure-capture",
+    "Category": "closures",
+    "Input": "function run(): int { const bias: int = 2; const add = capture { bias } (value: int): int => value + bias; return add(5); }",
+    "Outcome": "compile",
+    "ExpectedJson": "7",
+    "ClrOnly": false
+  },
+  {
+    "Id": "record-value",
+    "Category": "records",
+    "Input": "record Pair { left: int; right: int; } function run(): int { const p: Pair = { left: 2, right: 3 }; return p.left + p.right; }",
+    "Outcome": "compile",
+    "ExpectedJson": "5",
+    "ClrOnly": false
+  },
+  {
+    "Id": "receiver-split",
+    "Category": "strings",
+    "Input": "function run(): string[] { const text: string = \"a,b\"; return text.split(\",\"); }",
+    "Outcome": "repair",
+    "PrimaryCode": "COPE-CALL-0021",
+    "Anchor": "split",
+    "Repair": "String.Split(text, \",\")"
+  },
+  {
+    "Id": "length-case",
+    "Category": "strings",
+    "Input": "function run(): int { const text: string = \"abc\"; return text.Length; }",
+    "Outcome": "repair",
+    "PrimaryCode": "COPE-STRING-0001",
+    "Anchor": "Length",
+    "Repair": ".length"
+  },
+  {
+    "Id": "unknown-receiver",
+    "Category": "diagnostics",
+    "Input": "function run(): int { return Missing.Case(); }",
+    "Outcome": "repair",
+    "PrimaryCode": "COPE-BIND-0001",
+    "Anchor": "Missing",
+    "Repair": "Undefined name"
+  },
+  {
+    "Id": "array-push",
+    "Category": "collections",
+    "Input": "function run(): int { const values: int[] = [1]; values.push(2); return 0; }",
+    "Outcome": "repair",
+    "PrimaryCode": "COPE-CALL-0021",
+    "Anchor": "push",
+    "Repair": "MutableArray<T>(length)"
+  },
+  {
+    "Id": "computed-compound",
+    "Category": "mutation",
+    "Input": "function run(): int { const values: MutableArray<int> = MutableArray<int>(2); values[0] += 1; return values[0]; }",
+    "Outcome": "repair",
+    "PrimaryCode": "COPE-MUTATION-0001",
+    "Anchor": "+=",
+    "Repair": "const locals"
+  },
+  {
+    "Id": "nullish-plain",
+    "Category": "Option",
+    "Input": "function run(): int { const value: int = 1; return value ?? 0; }",
+    "Outcome": "repair",
+    "PrimaryCode": "COPE-OPTION-0006",
+    "Anchor": "?",
+    "Repair": "Option<T>"
+  },
+  {
+    "Id": "implicit-capture-repair",
+    "Category": "closures",
+    "Input": "function run(): int { const bias: int = 2; const add = (value: int): int => value + bias; return add(5); }",
+    "Outcome": "repair",
+    "PrimaryCode": "COPE-CALL-0017",
+    "Anchor": "bias",
+    "Repair": "capture { bias }",
+    "AnchorOccurrence": 2
+  },
+  {
+    "Id": "prefix-increment",
+    "Category": "mutation",
+    "Input": "function run(): int { let value: int = 3; const current: int = ++value; return current * 10 + value; }",
+    "Outcome": "compile",
+    "ExpectedJson": "44"
+  },
+  {
+    "Id": "clr-dictionary-indexer",
+    "Category": "interop",
+    "Input": "using System.Collections.Generic; function run(): int { const values: Dictionary<string, int> = new Dictionary<string, int>(); values[\"a\"] = 7; values[\"a\"] = values[\"a\"] + 2; return values[\"a\"]; }",
+    "Outcome": "compile",
+    "ExpectedJson": "9",
+    "ClrOnly": true
+  },
+  {
+    "Id": "Option-fallback",
+    "Category": "Option",
+    "Input": "function run(): int { const value: Option<int> = None; return value ?? 7; }",
+    "Outcome": "compile",
+    "ExpectedJson": "7"
+  },
+  {
+    "Id": "enum-match",
+    "Category": "enums",
+    "Input": "enum Flag { On, Off } function run(): int { const value: Flag = Flag.On; return match value { On => 1, Off => 0 }; }",
+    "Outcome": "compile",
+    "ExpectedJson": "1"
+  },
+  {
+    "Id": "native-map-gap",
+    "Category": "collections",
+    "Input": "function run(): int { const counts = new Map<string, int>(); return counts.size; }",
+    "Outcome": "unsupported capability",
+    "PrimaryCode": "COPE-COLLECTION-0001",
+    "Anchor": "Map",
+    "Repair": "new Dictionary<K, V>()",
+    "AnchorOccurrence": 1
+  },
+  {
+    "Id": "native-map-type-gap",
+    "Category": "collections",
+    "Input": "function run(): int { const counts: Map<string, int> = new Map<string, int>(); return counts.size; }",
+    "Outcome": "unsupported capability",
+    "PrimaryCode": "COPE-COLLECTION-0001",
+    "Anchor": "Map",
+    "Repair": "new Dictionary<K, V>()",
+    "AnchorOccurrence": 1
+  },
+  {
+    "Id": "any-repair",
+    "Category": "records",
+    "Input": "function run(): int { const value: any = 1; return value; }",
+    "Outcome": "repair",
+    "PrimaryCode": "COPE-PROFILE-0012",
+    "Anchor": "any",
+    "Repair": "concrete value type",
+    "AnchorOccurrence": 1
+  },
+  {
+    "Id": "null-repair",
+    "Category": "Option",
+    "Input": "function run(): Option<int> { return null; }",
+    "Outcome": "repair",
+    "PrimaryCode": "COPE-PROFILE-0005",
+    "Anchor": "null",
+    "Repair": "Option<T> with Some(value) or None",
+    "AnchorOccurrence": 1
+  },
+  {
+    "Id": "undefined-repair",
+    "Category": "Option",
+    "Input": "function run(): Option<int> { return undefined; }",
+    "Outcome": "repair",
+    "PrimaryCode": "COPE-PROFILE-0011",
+    "Anchor": "undefined",
+    "Repair": "Option<T> with Some(value) or None",
+    "AnchorOccurrence": 1
+  },
+  {
+    "Id": "array-map",
+    "Category": "arrays",
+    "Input": "function run(): int[] { const values: int[] = [1, 2]; return values.map((item: int): int => item * 2); }",
+    "Outcome": "repair",
+    "PrimaryCode": "COPE-CALL-0021",
+    "Anchor": "map",
+    "Repair": "batch values as item",
+    "AnchorOccurrence": 1
+  },
+  {
+    "Id": "generic-array-inference",
+    "Category": "arrays",
+    "Input": "function run(): int[] { const a = MutableArray<int>(3, 7); a[1] = 9; return a.freeze(); }",
+    "Outcome": "compile",
+    "ExpectedJson": "[7,9,7]"
+  },
+  {
+    "Id": "exponent-literal",
+    "Category": "numeric literals",
+    "Input": "function run(): float { return 1.25e2; }",
+    "Outcome": "compile",
+    "ExpectedJson": "125"
+  },
+  {
+    "Id": "hex-int-bit-pattern",
+    "Category": "numeric literals",
+    "Input": "function run(): int { return 0xffffffff; }",
+    "Outcome": "compile",
+    "ExpectedJson": "-1"
+  },
+  {
+    "Id": "imul-repair",
+    "Category": "numeric",
+    "Input": "function run(): int { return Math.imul(7, 9); }",
+    "Outcome": "repair",
+    "PrimaryCode": "COPE-NUM-0006",
+    "Anchor": "imul",
+    "Repair": "((7) * (9))"
+  },
+  {
+    "Id": "typed-strict-equality",
+    "Category": "conditionals",
+    "Input": "function run(): boolean { return 7 === 7 && 7 !== 9; }",
+    "Outcome": "compile",
+    "ExpectedJson": "true"
+  },
+  {
+    "Id": "codeat-negative-trap",
+    "Category": "strings",
+    "Input": "function run(): int { return String.CodeAt(\"a\", -1); }",
+    "Outcome": "compile",
+    "ExpectedJson": null,
+    "ExpectedFailure": "String index is out of bounds.",
+    "ClrOnly": false
+  },
+  {
+    "Id": "codeat-upper-trap",
+    "Category": "strings",
+    "Input": "function run(): int { return String.CodeAt(\"a\", 1); }",
+    "Outcome": "compile",
+    "ExpectedJson": null,
+    "ExpectedFailure": "String index is out of bounds.",
+    "ClrOnly": false
+  },
+  {
+    "Id": "divide-zero-trap",
+    "Category": "numeric",
+    "Input": "function run(): int { return 7 / 0; }",
+    "Outcome": "compile",
+    "ExpectedJson": null,
+    "ExpectedFailure": "Integer division by zero.",
+    "ClrOnly": false
+  },
+  {
+    "Id": "remainder-zero-trap",
+    "Category": "numeric",
+    "Input": "function run(): int { return 7 % 0; }",
+    "Outcome": "compile",
+    "ExpectedJson": null,
+    "ExpectedFailure": "Integer division by zero.",
+    "ClrOnly": false
+  },
+  {
+    "Id": "array-filled-negative-trap",
+    "Category": "arrays",
+    "Input": "function negative(): int { return -1; } function run(): int[] { return MutableArray<int>(negative(), 7).freeze(); }",
+    "Outcome": "compile",
+    "ExpectedJson": null,
+    "ExpectedFailure": "Copeland mutable array length cannot be negative.",
+    "ClrOnly": false
+  },
+  {
+    "Id": "string-empty-delimiter-surrogates",
+    "Category": "strings",
+    "Input": "function run(): int { const parts: string[] = String.Split(\"\ud83d\ude00\", \"\"); return String.CodeAt(parts[0], 0) + String.CodeAt(parts[1], 0); }",
+    "Outcome": "compile",
+    "ExpectedJson": "112189",
+    "ExpectedFailure": null,
+    "ClrOnly": false
+  },
+  {
+    "Id": "int-negative-shift",
+    "Category": "numeric",
+    "Input": "function run(): int { return -8 >> 1; }",
+    "Outcome": "compile",
+    "ExpectedJson": "-4",
+    "ExpectedFailure": null,
+    "ClrOnly": false
+  },
+  {
+    "Id": "record-initializer-immutable",
+    "Category": "arrays",
+    "Input": "record Pair { value: int; } function run(): int { const values: MutableArray<Pair> = MutableArray<Pair>(2, { value: 7 }); return values[0].value + values[1].value; }",
+    "Outcome": "compile",
+    "ExpectedJson": "14",
+    "ExpectedFailure": null,
+    "ClrOnly": false
+  },
+  {
+    "Id": "clr-generic-signature",
+    "Category": "interop",
+    "Input": "using System.Collections.Generic; function make(): Dictionary<string, int> { const values = new Dictionary<string, int>(); values[\"a\"] = 7; return values; } function run(): int { return make()[\"a\"]; }",
+    "Outcome": "compile",
+    "ExpectedJson": "7",
+    "ExpectedFailure": null,
+    "ClrOnly": true
+  },
+  {
+    "Id": "template-hole-location",
+    "Category": "diagnostics",
+    "Input": "function run(): string { return `value=${Missing}`; }",
+    "Outcome": "repair",
+    "PrimaryCode": "COPE-BIND-0001",
+    "Anchor": "Missing",
+    "Repair": "Undefined name"
+  },
+  {
+    "Id": "decimal-int-minimum",
+    "Category": "numeric literals",
+    "Input": "function run(): int { return -2147483648 / -1; }",
+    "Outcome": "compile",
+    "ExpectedJson": "-2147483648"
+  },
+  {
+    "Id": "record-compound-repair",
+    "Category": "records",
+    "Input": "record Counter { value: int; } function run(): int { let counter: Counter = { value: 1 }; counter.value += 2; return counter.value; }",
+    "Outcome": "repair",
+    "PrimaryCode": "COPE-REC-0011",
+    "Anchor": "value",
+    "AnchorOccurrence": 3,
+    "Repair": "counter with { value: replacementValue }"
+  },
+  {
+    "Id": "malformed-generic",
+    "Category": "generics",
+    "Input": "using System.Collections.Generic; function run(): int { const values = new List<int[]>(); return 0; }",
+    "Outcome": "repair",
+    "PrimaryCode": "COPE-CLR-GENERIC-0002",
+    "Anchor": "List",
+    "Repair": "Use int, float, string, boolean, or an imported CLR type.",
+    "AnchorOccurrence": 1
+  },
+  {
+    "Id": "nested-template",
+    "Category": "diagnostics",
+    "Input": "function run(): string { return `outer=${`inner=${Missing}`}`; }",
+    "Outcome": "repair",
+    "PrimaryCode": "COPE-BIND-0001",
+    "Anchor": "Missing",
+    "Repair": "Undefined name",
+    "AnchorOccurrence": 1
+  },
+  {
+    "Id": "batch-loop-repair",
+    "Category": "batch",
+    "Input": "function run(): int[] { return batch [1] as value { for (let index: int = 0; index < 2; index++) { } return value; }; }",
+    "Outcome": "repair",
+    "PrimaryCode": "COPE-BATCH-0010",
+    "Anchor": "{",
+    "Repair": "return if (condition) { value } else { otherValue }",
+    "AnchorOccurrence": 2
+  },
+  {
+    "Id": "bitwise-float",
+    "Category": "numeric",
+    "Input": "function run(): int { return 1.5 & 1; }",
+    "Outcome": "repair",
+    "PrimaryCode": "COPE-TYPE-0007",
+    "Anchor": "&",
+    "Repair": "use an explicit Int conversion policy",
+    "AnchorOccurrence": 1
+  },
+  {
+    "Id": "clr-constructor-call",
+    "Category": "interop",
+    "Input": "using System.Collections.Generic; function run(): int { const values = List<int>(); return values.Count; }",
+    "Outcome": "compile",
+    "ExpectedJson": "0",
+    "ClrOnly": true
+  }
+]

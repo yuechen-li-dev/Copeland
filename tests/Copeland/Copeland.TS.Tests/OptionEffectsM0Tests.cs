@@ -93,7 +93,7 @@ public sealed class OptionEffectsM0Tests
     [InlineData("function bad(value: string): string { return value ?? \"x\"; }", "COPE-OPTION-0006")]
     [InlineData("function bad(): string { return Some(\"x\"); }", "COPE-OPTION-0002")]
     [InlineData("function bad(): Option<string> { return null; }", "COPE-PROFILE-0005")]
-    [InlineData("function bad(): Option<string> { return undefined; }", "COPE-BIND-0001")]
+    [InlineData("function bad(): Option<string> { return undefined; }", "COPE-PROFILE-0011")]
     public void Option_rejects_host_nullability_and_uncontextual_sugar(string source, string diagnosticId)
     {
         var compilation = CopelandCompiler.CompileToMir(source);

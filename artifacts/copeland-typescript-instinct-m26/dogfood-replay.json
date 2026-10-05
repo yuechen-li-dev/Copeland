@@ -1,0 +1,545 @@
+{
+  "task": "M26 fresh-context LLM TypeScript instinct dogfood",
+  "compilerCommand": "dotnet tools/copeland-typescript-instinct-m26/bin/Release/net10.0/InstinctProof.dll diagnose <absolute .ts path>",
+  "policy": "No language documentation or compiler source inspected. Maximum six repair rounds per snippet. Compiler success is not execution qualification.",
+  "originalSnapshotPath": "artifacts/copeland-typescript-instinct-m26/llm-dogfood-inputs.json",
+  "results": [
+    {
+      "id": "csv",
+      "initialSource": "function parseCsvIntegers(text: string): int[] { return text.split(\",\").map(part => parseInt(part.trim(), 10)); }",
+      "outcome": "compiles",
+      "repairRounds": 5,
+      "finalVersionRound": 5,
+      "finalSource": "using System;\n\nfunction parseCsvItem(part: string): int {\n    return Int32.Parse(part);\n}\n\nfunction parseCsvIntegers(text: string): int[] {\n    const parts = String.Split(text, \",\");\n    return batch parts as part {\n        return parseCsvItem(part);\n    };\n}\n",
+      "finalDiagnostics": [],
+      "sourceVersions": [
+        {
+          "round": 0,
+          "sourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\csv-r0.ts",
+          "source": "function parseCsvIntegers(text: string): int[] { return text.split(\",\").map(part => parseInt(part.trim(), 10)); }",
+          "rawDiagnostics": "[{\"Id\":\"COPE-CALL-0021\",\"Message\":\"\\u0027split\\u0027 is not a receiver method of \\u0027text\\u0027 of type \\u0027string\\u0027. Use String.Split(text, \\u0022,\\u0022).\",\"Position\":61,\"Length\":5,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\csv-r0.ts\",\"SuggestedReplacement\":\"String.Split(text, \\u0022,\\u0022)\",\"RepairKind\":\"canonical-form\"}]\r\n",
+          "diagnostics": [
+            {
+              "Id": "COPE-CALL-0021",
+              "Message": "'split' is not a receiver method of 'text' of type 'string'. Use String.Split(text, \",\").",
+              "Position": 61,
+              "Length": 5,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\csv-r0.ts",
+              "SuggestedReplacement": "String.Split(text, \",\")",
+              "RepairKind": "canonical-form"
+            }
+          ],
+          "repairReason": "Original snapshot."
+        },
+        {
+          "round": 1,
+          "sourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\csv-r1.ts",
+          "source": "function parseCsvIntegers(text: string): int[] {\n    return String.Split(text, \",\").map(part => parseInt(part.trim(), 10));\n}\n",
+          "rawDiagnostics": "[{\"Id\":\"COPE-CALL-0021\",\"Message\":\"\\u0027map\\u0027 is not a receiver method on \\u0027string[]\\u0027. Use batch values as item { return transform(item); } with a pure transform function and the receiver in place of values.\",\"Position\":84,\"Length\":3,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\csv-r1.ts\",\"SuggestedReplacement\":\"Use batch values as item { return transform(item); } with a pure transform function and the receiver in place of values.\",\"RepairKind\":\"canonical-form\"}]\r\n",
+          "diagnostics": [
+            {
+              "Id": "COPE-CALL-0021",
+              "Message": "'map' is not a receiver method on 'string[]'. Use batch values as item { return transform(item); } with a pure transform function and the receiver in place of values.",
+              "Position": 84,
+              "Length": 3,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\csv-r1.ts",
+              "SuggestedReplacement": "Use batch values as item { return transform(item); } with a pure transform function and the receiver in place of values.",
+              "RepairKind": "canonical-form"
+            }
+          ],
+          "repairReason": "Use the split canonical replacement."
+        },
+        {
+          "round": 2,
+          "sourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\csv-r2.ts",
+          "source": "function parseCsvItem(part: string): int {\n    return parseInt(part.trim(), 10);\n}\n\nfunction parseCsvIntegers(text: string): int[] {\n    const parts = String.Split(text, \",\");\n    return batch parts as part {\n        return parseCsvItem(part);\n    };\n}\n",
+          "rawDiagnostics": "[{\"Id\":\"COPE-BIND-0001\",\"Message\":\"Undefined function name.\",\"Position\":62,\"Length\":1,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\csv-r2.ts\",\"SuggestedReplacement\":null,\"RepairKind\":null}]\r\n",
+          "diagnostics": [
+            {
+              "Id": "COPE-BIND-0001",
+              "Message": "Undefined function name.",
+              "Position": 62,
+              "Length": 1,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\csv-r2.ts",
+              "SuggestedReplacement": null,
+              "RepairKind": null
+            }
+          ],
+          "repairReason": "Use batch with a pure Copeland transform function for map."
+        },
+        {
+          "round": 3,
+          "sourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\csv-r3.ts",
+          "source": "using System;\n\nfunction parseCsvItem(part: string): int {\n    return Int32.Parse(String.Trim(part));\n}\n\nfunction parseCsvIntegers(text: string): int[] {\n    const parts = String.Split(text, \",\");\n    return batch parts as part {\n        return parseCsvItem(part);\n    };\n}\n",
+          "rawDiagnostics": "[{\"Id\":\"COPE-CLR-0005\",\"Message\":\"No applicable CLR overload for \\u0027System.String.Trim\\u0027 with (string).\",\"Position\":92,\"Length\":1,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\csv-r3.ts\",\"SuggestedReplacement\":null,\"RepairKind\":null},{\"Id\":\"COPE-CLR-0005\",\"Message\":\"No applicable CLR overload for \\u0027System.Int32.Parse\\u0027 with (error).\",\"Position\":80,\"Length\":1,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\csv-r3.ts\",\"SuggestedReplacement\":null,\"RepairKind\":null}]\r\n",
+          "diagnostics": [
+            {
+              "Id": "COPE-CLR-0005",
+              "Message": "No applicable CLR overload for 'System.String.Trim' with (string).",
+              "Position": 92,
+              "Length": 1,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\csv-r3.ts",
+              "SuggestedReplacement": null,
+              "RepairKind": null
+            },
+            {
+              "Id": "COPE-CLR-0005",
+              "Message": "No applicable CLR overload for 'System.Int32.Parse' with (error).",
+              "Position": 80,
+              "Length": 1,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\csv-r3.ts",
+              "SuggestedReplacement": null,
+              "RepairKind": null
+            }
+          ],
+          "repairReason": "Undefined parseInt: try CLR Int32.Parse and a static trim call."
+        },
+        {
+          "round": 4,
+          "sourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\csv-r4.ts",
+          "source": "using System;\n\nfunction parseCsvItem(part: string): int {\n    return Int32.Parse(part.Trim());\n}\n\nfunction parseCsvIntegers(text: string): int[] {\n    const parts = String.Split(text, \",\");\n    return batch parts as part {\n        return parseCsvItem(part);\n    };\n}\n",
+          "rawDiagnostics": "[{\"Id\":\"COPE-CALL-0021\",\"Message\":\"\\u0027Trim\\u0027 is not a receiver method on \\u0027string\\u0027. Pass the value to a Copeland function.\",\"Position\":86,\"Length\":4,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\csv-r4.ts\",\"SuggestedReplacement\":\"Pass the value to a Copeland function.\",\"RepairKind\":\"canonical-form\"},{\"Id\":\"COPE-CLR-0005\",\"Message\":\"No applicable CLR overload for \\u0027System.Int32.Parse\\u0027 with (error).\",\"Position\":80,\"Length\":1,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\csv-r4.ts\",\"SuggestedReplacement\":null,\"RepairKind\":null}]\r\n",
+          "diagnostics": [
+            {
+              "Id": "COPE-CALL-0021",
+              "Message": "'Trim' is not a receiver method on 'string'. Pass the value to a Copeland function.",
+              "Position": 86,
+              "Length": 4,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\csv-r4.ts",
+              "SuggestedReplacement": "Pass the value to a Copeland function.",
+              "RepairKind": "canonical-form"
+            },
+            {
+              "Id": "COPE-CLR-0005",
+              "Message": "No applicable CLR overload for 'System.Int32.Parse' with (error).",
+              "Position": 80,
+              "Length": 1,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\csv-r4.ts",
+              "SuggestedReplacement": null,
+              "RepairKind": null
+            }
+          ],
+          "repairReason": "No static CLR Trim overload: try the ordinary CLR instance Trim call."
+        },
+        {
+          "round": 5,
+          "sourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\csv-r5.ts",
+          "source": "using System;\n\nfunction parseCsvItem(part: string): int {\n    return Int32.Parse(part);\n}\n\nfunction parseCsvIntegers(text: string): int[] {\n    const parts = String.Split(text, \",\");\n    return batch parts as part {\n        return parseCsvItem(part);\n    };\n}\n",
+          "rawDiagnostics": "[]\r\n",
+          "diagnostics": [],
+          "repairReason": "Int32.Parse accepts whitespace around decimal integer tokens, making a separate trim unnecessary."
+        }
+      ],
+      "remainingBlockers": [],
+      "notes": [
+        "The repaired parser handles valid comma-delimited decimal integers, including whitespace and negative values. Malformed numeric-prefix parseInt inputs, empty fields, NaN, and JavaScript overflow behavior are not qualified by this repair."
+      ],
+      "finalCompilerRerun": {
+        "sourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\csv-r5.ts",
+        "source": "using System;\n\nfunction parseCsvItem(part: string): int {\n    return Int32.Parse(part);\n}\n\nfunction parseCsvIntegers(text: string): int[] {\n    const parts = String.Split(text, \",\");\n    return batch parts as part {\n        return parseCsvItem(part);\n    };\n}\n",
+        "rawDiagnostics": "[]\r\n",
+        "diagnostics": [],
+        "countsAsLlmRepair": false,
+        "reason": "Root fixed CLR import binding order before function signature binding and rebuilt the Release proof tool; rerun every final source against the current DLL."
+      }
+    },
+    {
+      "id": "counter-map",
+      "initialSource": "function countValues(values: string[]): Map<string, int> { const counts = new Map<string, int>(); for (const value of values) { const previous = counts.get(value) ?? 0; counts.set(value, previous + 1); } return counts; }",
+      "outcome": "compiles",
+      "repairRounds": 3,
+      "finalVersionRound": 1,
+      "finalSource": "using System.Collections.Generic;\n\nfunction countValues(values: string[]): Dictionary<string, int> {\n    const counts = new Dictionary<string, int>();\n\n    for (const value of values) {\n        let previous: int = 0;\n        if (counts.ContainsKey(value)) {\n            previous = counts[value];\n        }\n        counts[value] = previous + 1;\n    }\n\n    return counts;\n}\n",
+      "finalDiagnostics": [],
+      "sourceVersions": [
+        {
+          "round": 0,
+          "sourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r0.ts",
+          "source": "function countValues(values: string[]): Map<string, int> { const counts = new Map<string, int>(); for (const value of values) { const previous = counts.get(value) ?? 0; counts.set(value, previous + 1); } return counts; }",
+          "rawDiagnostics": "[{\"Id\":\"COPE-COLLECTION-0001\",\"Message\":\"Native MutableMap\\u003CK, V\\u003E is not yet supported. For CLR-only storage use \\u0027using System.Collections.Generic;\\u0027 and \\u0027new Dictionary\\u003CK, V\\u003E()\\u0027; use ContainsKey before indexed reads. Cross-backend Option-valued lookup and insertion-order iteration remain unsupported.\",\"Position\":40,\"Length\":3,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\counter-map-r0.ts\",\"SuggestedReplacement\":\"using System.Collections.Generic; new Dictionary\\u003CK, V\\u003E()\",\"RepairKind\":\"canonical-form\"}]\r\n",
+          "diagnostics": [
+            {
+              "Id": "COPE-COLLECTION-0001",
+              "Message": "Native MutableMap<K, V> is not yet supported. For CLR-only storage use 'using System.Collections.Generic;' and 'new Dictionary<K, V>()'; use ContainsKey before indexed reads. Cross-backend Option-valued lookup and insertion-order iteration remain unsupported.",
+              "Position": 40,
+              "Length": 3,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r0.ts",
+              "SuggestedReplacement": "using System.Collections.Generic; new Dictionary<K, V>()",
+              "RepairKind": "canonical-form"
+            }
+          ],
+          "repairReason": "Original snapshot."
+        },
+        {
+          "round": 1,
+          "sourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r1.ts",
+          "source": "using System.Collections.Generic;\n\nfunction countValues(values: string[]): Dictionary<string, int> {\n    const counts = new Dictionary<string, int>();\n\n    for (const value of values) {\n        let previous: int = 0;\n        if (counts.ContainsKey(value)) {\n            previous = counts[value];\n        }\n        counts[value] = previous + 1;\n    }\n\n    return counts;\n}\n",
+          "rawDiagnostics": "[{\"Id\":\"COPE-STATIC-0009\",\"Message\":\"Unsupported generic structural type \\u0027Dictionary\\u0027.\",\"Position\":75,\"Length\":10,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\counter-map-r1.ts\",\"SuggestedReplacement\":null,\"RepairKind\":null}]\r\n",
+          "diagnostics": [
+            {
+              "Id": "COPE-STATIC-0009",
+              "Message": "Unsupported generic structural type 'Dictionary'.",
+              "Position": 75,
+              "Length": 10,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r1.ts",
+              "SuggestedReplacement": null,
+              "RepairKind": null
+            }
+          ],
+          "repairReason": "Apply explicit CLR Dictionary guidance, guard reads with ContainsKey, and use indexed writes."
+        },
+        {
+          "round": 2,
+          "sourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r2.ts",
+          "source": "using System.Collections.Generic;\n\nfunction countValues(values: string[]) {\n    const counts = new Dictionary<string, int>();\n\n    for (const value of values) {\n        let previous: int = 0;\n        if (counts.ContainsKey(value)) {\n            previous = counts[value];\n        }\n        counts[value] = previous + 1;\n    }\n\n    return counts;\n}\n",
+          "rawDiagnostics": "[{\"Id\":\"COPE-TYPE-0002\",\"Message\":\"Missing type annotation for function return \\u0027countValues\\u0027.\",\"Position\":44,\"Length\":11,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\counter-map-r2.ts\",\"SuggestedReplacement\":null,\"RepairKind\":null}]\r\n",
+          "diagnostics": [
+            {
+              "Id": "COPE-TYPE-0002",
+              "Message": "Missing type annotation for function return 'countValues'.",
+              "Position": 44,
+              "Length": 11,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r2.ts",
+              "SuggestedReplacement": null,
+              "RepairKind": null
+            }
+          ],
+          "repairReason": "Unsupported generic return annotation: try inferred return while preserving Dictionary construction and operations."
+        },
+        {
+          "round": 3,
+          "sourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r3.ts",
+          "source": "using System.Collections.Generic;\n\nfunction countValues(values: string[]): System.Collections.Generic.Dictionary<string, int> {\n    const counts = new Dictionary<string, int>();\n\n    for (const value of values) {\n        let previous: int = 0;\n        if (counts.ContainsKey(value)) {\n            previous = counts[value];\n        }\n        counts[value] = previous + 1;\n    }\n\n    return counts;\n}\n",
+          "rawDiagnostics": "[{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027{\\u0027.\",\"Position\":93,\"Length\":0,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\counter-map-r3.ts\",\"SuggestedReplacement\":null,\"RepairKind\":null},{\"Id\":\"COPE-PARSE-0002\",\"Message\":\"Expected expression.\",\"Position\":93,\"Length\":0,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\counter-map-r3.ts\",\"SuggestedReplacement\":null,\"RepairKind\":null},{\"Id\":\"COPE-PARSE-0002\",\"Message\":\"Expected expression.\",\"Position\":113,\"Length\":0,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\counter-map-r3.ts\",\"SuggestedReplacement\":null,\"RepairKind\":null},{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027;\\u0027.\",\"Position\":113,\"Length\":0,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\counter-map-r3.ts\",\"SuggestedReplacement\":null,\"RepairKind\":null},{\"Id\":\"COPE-PARSE-0002\",\"Message\":\"Expected expression.\",\"Position\":113,\"Length\":0,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\counter-map-r3.ts\",\"SuggestedReplacement\":null,\"RepairKind\":null},{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027;\\u0027.\",\"Position\":113,\"Length\":0,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\counter-map-r3.ts\",\"SuggestedReplacement\":null,\"RepairKind\":null},{\"Id\":\"COPE-PARSE-0001\",\"Message\":\"Unexpected token \\u0027StringKeyword\\u0027.\",\"Position\":113,\"Length\":6,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\counter-map-r3.ts\",\"SuggestedReplacement\":null,\"RepairKind\":null},{\"Id\":\"COPE-PARSE-0002\",\"Message\":\"Expected expression.\",\"Position\":119,\"Length\":0,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\counter-map-r3.ts\",\"SuggestedReplacement\":null,\"RepairKind\":null},{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027;\\u0027.\",\"Position\":119,\"Length\":0,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\counter-map-r3.ts\",\"SuggestedReplacement\":null,\"RepairKind\":null},{\"Id\":\"COPE-PARSE-0001\",\"Message\":\"Unexpected token \\u0027CommaToken\\u0027.\",\"Position\":119,\"Length\":1,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\counter-map-r3.ts\",\"SuggestedReplacement\":null,\"RepairKind\":null},{\"Id\":\"COPE-PARSE-0002\",\"Message\":\"Expected expression.\",\"Position\":121,\"Length\":0,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\counter-map-r3.ts\",\"SuggestedReplacement\":null,\"RepairKind\":null},{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027;\\u0027.\",\"Position\":121,\"Length\":0,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\counter-map-r3.ts\",\"SuggestedReplacement\":null,\"RepairKind\":null},{\"Id\":\"COPE-PARSE-0001\",\"Message\":\"Unexpected token \\u0027IntKeyword\\u0027.\",\"Position\":121,\"Length\":3,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\counter-map-r3.ts\",\"SuggestedReplacement\":null,\"RepairKind\":null},{\"Id\":\"COPE-PARSE-0002\",\"Message\":\"Expected expression.\",\"Position\":124,\"Length\":0,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\counter-map-r3.ts\",\"SuggestedReplacement\":null,\"RepairKind\":null},{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027IdentifierToken\\u0027.\",\"Position\":132,\"Length\":0,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\counter-map-r3.ts\",\"SuggestedReplacement\":null,\"RepairKind\":null},{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027}\\u0027.\",\"Position\":132,\"Length\":0,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\counter-map-r3.ts\",\"SuggestedReplacement\":null,\"RepairKind\":null},{\"Id\":\"COPE-PARSE-0004\",\"Message\":\"Expected token \\u0027;\\u0027.\",\"Position\":132,\"Length\":0,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\counter-map-r3.ts\",\"SuggestedReplacement\":null,\"RepairKind\":null}]\r\n",
+          "diagnostics": [
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token '{'.",
+              "Position": 93,
+              "Length": 0,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r3.ts",
+              "SuggestedReplacement": null,
+              "RepairKind": null
+            },
+            {
+              "Id": "COPE-PARSE-0002",
+              "Message": "Expected expression.",
+              "Position": 93,
+              "Length": 0,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r3.ts",
+              "SuggestedReplacement": null,
+              "RepairKind": null
+            },
+            {
+              "Id": "COPE-PARSE-0002",
+              "Message": "Expected expression.",
+              "Position": 113,
+              "Length": 0,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r3.ts",
+              "SuggestedReplacement": null,
+              "RepairKind": null
+            },
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token ';'.",
+              "Position": 113,
+              "Length": 0,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r3.ts",
+              "SuggestedReplacement": null,
+              "RepairKind": null
+            },
+            {
+              "Id": "COPE-PARSE-0002",
+              "Message": "Expected expression.",
+              "Position": 113,
+              "Length": 0,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r3.ts",
+              "SuggestedReplacement": null,
+              "RepairKind": null
+            },
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token ';'.",
+              "Position": 113,
+              "Length": 0,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r3.ts",
+              "SuggestedReplacement": null,
+              "RepairKind": null
+            },
+            {
+              "Id": "COPE-PARSE-0001",
+              "Message": "Unexpected token 'StringKeyword'.",
+              "Position": 113,
+              "Length": 6,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r3.ts",
+              "SuggestedReplacement": null,
+              "RepairKind": null
+            },
+            {
+              "Id": "COPE-PARSE-0002",
+              "Message": "Expected expression.",
+              "Position": 119,
+              "Length": 0,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r3.ts",
+              "SuggestedReplacement": null,
+              "RepairKind": null
+            },
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token ';'.",
+              "Position": 119,
+              "Length": 0,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r3.ts",
+              "SuggestedReplacement": null,
+              "RepairKind": null
+            },
+            {
+              "Id": "COPE-PARSE-0001",
+              "Message": "Unexpected token 'CommaToken'.",
+              "Position": 119,
+              "Length": 1,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r3.ts",
+              "SuggestedReplacement": null,
+              "RepairKind": null
+            },
+            {
+              "Id": "COPE-PARSE-0002",
+              "Message": "Expected expression.",
+              "Position": 121,
+              "Length": 0,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r3.ts",
+              "SuggestedReplacement": null,
+              "RepairKind": null
+            },
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token ';'.",
+              "Position": 121,
+              "Length": 0,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r3.ts",
+              "SuggestedReplacement": null,
+              "RepairKind": null
+            },
+            {
+              "Id": "COPE-PARSE-0001",
+              "Message": "Unexpected token 'IntKeyword'.",
+              "Position": 121,
+              "Length": 3,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r3.ts",
+              "SuggestedReplacement": null,
+              "RepairKind": null
+            },
+            {
+              "Id": "COPE-PARSE-0002",
+              "Message": "Expected expression.",
+              "Position": 124,
+              "Length": 0,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r3.ts",
+              "SuggestedReplacement": null,
+              "RepairKind": null
+            },
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token 'IdentifierToken'.",
+              "Position": 132,
+              "Length": 0,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r3.ts",
+              "SuggestedReplacement": null,
+              "RepairKind": null
+            },
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token '}'.",
+              "Position": 132,
+              "Length": 0,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r3.ts",
+              "SuggestedReplacement": null,
+              "RepairKind": null
+            },
+            {
+              "Id": "COPE-PARSE-0004",
+              "Message": "Expected token ';'.",
+              "Position": 132,
+              "Length": 0,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r3.ts",
+              "SuggestedReplacement": null,
+              "RepairKind": null
+            }
+          ],
+          "repairReason": "Missing return annotation: try the fully qualified CLR generic return type."
+        }
+      ],
+      "remainingBlockers": [],
+      "notes": [
+        "Rounds 1, 2 and 3 failed before an owner-seam compiler fix: root reports CLR imports were bound after function signatures. The unchanged typed Dictionary source from round 1 compiles after that fix. The compiler edit is not counted as an LLM repair; all prior sources and exact diagnostics remain retained.",
+        "Three LLM repair alternatives were attempted; the final successful source is the first repair."
+      ],
+      "finalCompilerRerun": {
+        "sourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r1.ts",
+        "source": "using System.Collections.Generic;\n\nfunction countValues(values: string[]): Dictionary<string, int> {\n    const counts = new Dictionary<string, int>();\n\n    for (const value of values) {\n        let previous: int = 0;\n        if (counts.ContainsKey(value)) {\n            previous = counts[value];\n        }\n        counts[value] = previous + 1;\n    }\n\n    return counts;\n}\n",
+        "rawDiagnostics": "[]\r\n",
+        "diagnostics": [],
+        "countsAsLlmRepair": false,
+        "reason": "Root fixed CLR import binding order before function signature binding and rebuilt the Release proof tool; rerun every final source against the current DLL."
+      }
+    },
+    {
+      "id": "increment-loop",
+      "initialSource": "function sumRange(limit: int): int { let total: int = 0; for (let index: int = 0; index < limit; index++) { total += index; } return total; }",
+      "outcome": "compiles",
+      "repairRounds": 0,
+      "finalVersionRound": 0,
+      "finalSource": "function sumRange(limit: int): int { let total: int = 0; for (let index: int = 0; index < limit; index++) { total += index; } return total; }",
+      "finalDiagnostics": [],
+      "sourceVersions": [
+        {
+          "round": 0,
+          "sourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\increment-loop-r0.ts",
+          "source": "function sumRange(limit: int): int { let total: int = 0; for (let index: int = 0; index < limit; index++) { total += index; } return total; }",
+          "rawDiagnostics": "[]\r\n",
+          "diagnostics": [],
+          "repairReason": "Original snapshot."
+        }
+      ],
+      "remainingBlockers": [],
+      "notes": [],
+      "finalCompilerRerun": {
+        "sourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\increment-loop-r0.ts",
+        "source": "function sumRange(limit: int): int { let total: int = 0; for (let index: int = 0; index < limit; index++) { total += index; } return total; }",
+        "rawDiagnostics": "[]\r\n",
+        "diagnostics": [],
+        "countsAsLlmRepair": false,
+        "reason": "Root fixed CLR import binding order before function signature binding and rebuilt the Release proof tool; rerun every final source against the current DLL."
+      }
+    },
+    {
+      "id": "batch-guard",
+      "initialSource": "function transformBatch(values: int[]): int[] { return batch values as item { if (item < 0) { return -item; } return item * 2; }; }",
+      "outcome": "compiles",
+      "repairRounds": 0,
+      "finalVersionRound": 0,
+      "finalSource": "function transformBatch(values: int[]): int[] { return batch values as item { if (item < 0) { return -item; } return item * 2; }; }",
+      "finalDiagnostics": [],
+      "sourceVersions": [
+        {
+          "round": 0,
+          "sourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\batch-guard-r0.ts",
+          "source": "function transformBatch(values: int[]): int[] { return batch values as item { if (item < 0) { return -item; } return item * 2; }; }",
+          "rawDiagnostics": "[]\r\n",
+          "diagnostics": [],
+          "repairReason": "Original snapshot."
+        }
+      ],
+      "remainingBlockers": [],
+      "notes": [],
+      "finalCompilerRerun": {
+        "sourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\batch-guard-r0.ts",
+        "source": "function transformBatch(values: int[]): int[] { return batch values as item { if (item < 0) { return -item; } return item * 2; }; }",
+        "rawDiagnostics": "[]\r\n",
+        "diagnostics": [],
+        "countsAsLlmRepair": false,
+        "reason": "Root fixed CLR import binding order before function signature binding and rebuilt the Release proof tool; rerun every final source against the current DLL."
+      }
+    },
+    {
+      "id": "growing-array",
+      "initialSource": "function collectEvenValues(values: int[]): int[] { const result: int[] = []; for (const value of values) { if (value % 2 === 0) { result.push(value); } } return result; }",
+      "outcome": "compiles",
+      "repairRounds": 1,
+      "finalVersionRound": 1,
+      "finalSource": "using System.Collections.Generic;\n\nfunction collectEvenValues(values: int[]): int[] {\n    const result = new List<int>();\n\n    for (const value of values) {\n        if (value % 2 === 0) {\n            result.Add(value);\n        }\n    }\n\n    return result.ToArray();\n}\n",
+      "finalDiagnostics": [],
+      "sourceVersions": [
+        {
+          "round": 0,
+          "sourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\growing-array-r0.ts",
+          "source": "function collectEvenValues(values: int[]): int[] { const result: int[] = []; for (const value of values) { if (value % 2 === 0) { result.push(value); } } return result; }",
+          "rawDiagnostics": "[{\"Id\":\"COPE-CALL-0021\",\"Message\":\"\\u0027push\\u0027 is not a receiver method on \\u0027int[]\\u0027. Build a fixed MutableArray\\u003CT\\u003E(length), assign elements, then freeze(); growable native lists are not yet supported.\",\"Position\":137,\"Length\":4,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\growing-array-r0.ts\",\"SuggestedReplacement\":\"Build a fixed MutableArray\\u003CT\\u003E(length), assign elements, then freeze(); growable native lists are not yet supported.\",\"RepairKind\":\"canonical-form\"}]\r\n",
+          "diagnostics": [
+            {
+              "Id": "COPE-CALL-0021",
+              "Message": "'push' is not a receiver method on 'int[]'. Build a fixed MutableArray<T>(length), assign elements, then freeze(); growable native lists are not yet supported.",
+              "Position": 137,
+              "Length": 4,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\growing-array-r0.ts",
+              "SuggestedReplacement": "Build a fixed MutableArray<T>(length), assign elements, then freeze(); growable native lists are not yet supported.",
+              "RepairKind": "canonical-form"
+            }
+          ],
+          "repairReason": "Original snapshot."
+        },
+        {
+          "round": 1,
+          "sourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\growing-array-r1.ts",
+          "source": "using System.Collections.Generic;\n\nfunction collectEvenValues(values: int[]): int[] {\n    const result = new List<int>();\n\n    for (const value of values) {\n        if (value % 2 === 0) {\n            result.Add(value);\n        }\n    }\n\n    return result.ToArray();\n}\n",
+          "rawDiagnostics": "[]\r\n",
+          "diagnostics": [],
+          "repairReason": "Native growable lists unavailable: use CLR List<int>, Add, and ToArray, preserving dynamic append semantics."
+        }
+      ],
+      "remainingBlockers": [],
+      "notes": [],
+      "finalCompilerRerun": {
+        "sourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\growing-array-r1.ts",
+        "source": "using System.Collections.Generic;\n\nfunction collectEvenValues(values: int[]): int[] {\n    const result = new List<int>();\n\n    for (const value of values) {\n        if (value % 2 === 0) {\n            result.Add(value);\n        }\n    }\n\n    return result.ToArray();\n}\n",
+        "rawDiagnostics": "[]\r\n",
+        "diagnostics": [],
+        "countsAsLlmRepair": false,
+        "reason": "Root fixed CLR import binding order before function signature binding and rebuilt the Release proof tool; rerun every final source against the current DLL."
+      }
+    },
+    {
+      "id": "integer-hash",
+      "initialSource": "function hashIntegers(values: int[]): int { let hash: int = 0x811c9dc5 | 0; for (const value of values) { hash = Math.imul(hash ^ value, 0x01000193) | 0; } return hash; }",
+      "outcome": "compiles",
+      "repairRounds": 1,
+      "finalVersionRound": 1,
+      "finalSource": "function hashIntegers(values: int[]): int {\n    let hash: int = 0x811c9dc5 | 0;\n\n    for (const value of values) {\n        hash = ((hash ^ value) * (0x01000193)) | 0;\n    }\n\n    return hash;\n}\n",
+      "finalDiagnostics": [],
+      "sourceVersions": [
+        {
+          "round": 0,
+          "sourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\integer-hash-r0.ts",
+          "source": "function hashIntegers(values: int[]): int { let hash: int = 0x811c9dc5 | 0; for (const value of values) { hash = Math.imul(hash ^ value, 0x01000193) | 0; } return hash; }",
+          "rawDiagnostics": "[{\"Id\":\"COPE-NUM-0006\",\"Message\":\"Copeland int multiplication already wraps at 32 bits. Use ((hash ^ value) * (0x01000193)).\",\"Position\":118,\"Length\":4,\"SourcePath\":\"C:\\\\Users\\\\yuech\\\\source\\\\repos\\\\Copeland\\\\.tmp\\\\m26-dogfood-agent\\\\integer-hash-r0.ts\",\"SuggestedReplacement\":\"((hash ^ value) * (0x01000193))\",\"RepairKind\":\"canonical-form\"}]\r\n",
+          "diagnostics": [
+            {
+              "Id": "COPE-NUM-0006",
+              "Message": "Copeland int multiplication already wraps at 32 bits. Use ((hash ^ value) * (0x01000193)).",
+              "Position": 118,
+              "Length": 4,
+              "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\integer-hash-r0.ts",
+              "SuggestedReplacement": "((hash ^ value) * (0x01000193))",
+              "RepairKind": "canonical-form"
+            }
+          ],
+          "repairReason": "Original snapshot."
+        },
+        {
+          "round": 1,
+          "sourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\integer-hash-r1.ts",
+          "source": "function hashIntegers(values: int[]): int {\n    let hash: int = 0x811c9dc5 | 0;\n\n    for (const value of values) {\n        hash = ((hash ^ value) * (0x01000193)) | 0;\n    }\n\n    return hash;\n}\n",
+          "rawDiagnostics": "[]\r\n",
+          "diagnostics": [],
+          "repairReason": "Apply compiler guidance that int multiplication wraps at 32 bits instead of Math.imul."
+        }
+      ],
+      "remainingBlockers": [],
+      "notes": [],
+      "finalCompilerRerun": {
+        "sourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\integer-hash-r1.ts",
+        "source": "function hashIntegers(values: int[]): int {\n    let hash: int = 0x811c9dc5 | 0;\n\n    for (const value of values) {\n        hash = ((hash ^ value) * (0x01000193)) | 0;\n    }\n\n    return hash;\n}\n",
+        "rawDiagnostics": "[]\r\n",
+        "diagnostics": [],
+        "countsAsLlmRepair": false,
+        "reason": "Root fixed CLR import binding order before function signature binding and rebuilt the Release proof tool; rerun every final source against the current DLL."
+      }
+    }
+  ],
+  "compilerChange": {
+    "reportedBy": "root",
+    "change": "CLR imports now bound before function signatures",
+    "llmRepairRound": false,
+    "historicalDiagnosticsRetained": true
+  }
+}

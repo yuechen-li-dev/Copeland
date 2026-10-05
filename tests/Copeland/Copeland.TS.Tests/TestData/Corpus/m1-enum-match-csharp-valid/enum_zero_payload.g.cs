@@ -9,7 +9,10 @@ public abstract record Choice
     {
     }
 
-    public sealed record A : Choice;
+    public sealed record A : Choice
+    {
+        internal static A __Singleton { get; } = new();
+    }
 
 }
 
@@ -17,7 +20,7 @@ public static class CopelandModule
 {
     public static Choice make()
     {
-        return new Choice.A();
+        return Choice.A.__Singleton;
     }
 
 }

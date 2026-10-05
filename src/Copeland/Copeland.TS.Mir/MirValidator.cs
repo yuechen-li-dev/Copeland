@@ -539,6 +539,11 @@ public static class MirValidator
                 ValidateCallableExpression(unary.Operand, functions, diagnostics);
                 return;
             case MirBinaryExpression binary:
+                if (binary.Operator is "&" or "|" or "^" or "<<" or ">>"
+                    && (binary.Type.Identifier != "int" || binary.Left.Type.Identifier != "int" || binary.Right.Type.Identifier != "int"))
+                {
+                    diagnostics.Add(new MirValidationDiagnostic("Bitwise operations require int operands and result."));
+                }
                 ValidateCallableExpression(binary.Left, functions, diagnostics);
                 ValidateCallableExpression(binary.Right, functions, diagnostics);
                 return;
@@ -546,6 +551,10 @@ public static class MirValidator
                 ValidateCallableExpression(conversion.Operand, functions, diagnostics);
                 return;
             case MirCallExpression call:
+                if (call.NativeOperation is not null && !MirNativeOperations.IsValid(call))
+                {
+                    diagnostics.Add(new MirValidationDiagnostic("Native call does not match its typed signature."));
+                }
                 foreach (var argument in call.Arguments) ValidateCallableExpression(argument, functions, diagnostics);
                 return;
             case MirArrayExpression array:

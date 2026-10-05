@@ -1,0 +1,22 @@
+{
+  "expressibleClrAlternative": true,
+  "nativeMapQualified": false,
+  "algorithm": "100000 string keys, ten insert/read/update/remove rounds; equal result in CLR Dictionary and JS Map twins.",
+  "result": {
+    "name": "maps",
+    "checksum": "-1538607552",
+    "checksumParity": true,
+    "clrBestMilliseconds": 268.98,
+    "nodeBestMilliseconds": 207.3091,
+    "clrBestAllocatedBytes": 264263624,
+    "clrBestGcCollections": [
+      19,
+      13,
+      8
+    ],
+    "nodeBestHeapUsedDeltaBytes": -49480672,
+    "clrPeakWorkingSetBytes": 93708288,
+    "nodePeakWorkingSetBytes": 185483264
+  },
+  "keyPolicy": "String ordinal content in this benchmark only; do not infer native key equality, hash, or iteration semantics."
+}

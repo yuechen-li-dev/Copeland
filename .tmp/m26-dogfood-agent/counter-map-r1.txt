@@ -1,0 +1,1 @@
+[{"Id":"COPE-STATIC-0009","Message":"Unsupported generic structural type \u0027Dictionary\u0027.","Position":75,"Length":10,"SourcePath":"C:\\Users\\yuech\\source\\repos\\Copeland\\.tmp\\m26-dogfood-agent\\counter-map-r1.ts","SuggestedReplacement":null,"RepairKind":null}]

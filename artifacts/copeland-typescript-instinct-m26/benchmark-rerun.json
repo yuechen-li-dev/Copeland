@@ -1,0 +1,180 @@
+{
+  "method": "Full-size original same-algorithm/data-layout twins; three timed trials per isolated process, best trial reported; Release net10 task path and Node.",
+  "environment": {
+    "os": "Windows",
+    "dotnetSdk": "10.0.401",
+    "node": "26.2.0",
+    "logicalProcessors": 16
+  },
+  "archiveSha256": "4A5EADD273B4229668EFB8C6EEE67F93A182C41C3A751A671EBB16B5013CBA2A",
+  "rows": [
+    {
+      "name": "fib",
+      "checksum": "13584083",
+      "checksumParity": true,
+      "clrBestMilliseconds": 46.3724,
+      "nodeBestMilliseconds": 91.0457,
+      "clrBestAllocatedBytes": 120,
+      "clrBestGcCollections": [
+        0,
+        0,
+        0
+      ],
+      "nodeBestHeapUsedDeltaBytes": 624,
+      "clrPeakWorkingSetBytes": 25919488,
+      "nodePeakWorkingSetBytes": 40652800
+    },
+    {
+      "name": "nbody",
+      "checksum": "-0.169077842",
+      "checksumParity": true,
+      "clrBestMilliseconds": 503.8442,
+      "nodeBestMilliseconds": 694.8385,
+      "clrBestAllocatedBytes": 648,
+      "clrBestGcCollections": [
+        0,
+        0,
+        0
+      ],
+      "nodeBestHeapUsedDeltaBytes": 178320,
+      "clrPeakWorkingSetBytes": 27815936,
+      "nodePeakWorkingSetBytes": 43978752
+    },
+    {
+      "name": "trees",
+      "checksum": "67283631",
+      "checksumParity": true,
+      "clrBestMilliseconds": 600.8994,
+      "nodeBestMilliseconds": 615.5935,
+      "clrBestAllocatedBytes": 2153076336,
+      "clrBestGcCollections": [
+        130,
+        34,
+        1
+      ],
+      "nodeBestHeapUsedDeltaBytes": 50475568,
+      "clrPeakWorkingSetBytes": 88133632,
+      "nodePeakWorkingSetBytes": 165011456
+    },
+    {
+      "name": "sieve",
+      "checksum": "1270607",
+      "checksumParity": true,
+      "clrBestMilliseconds": 162.1477,
+      "nodeBestMilliseconds": 214.43679999999995,
+      "clrBestAllocatedBytes": 100000232,
+      "clrBestGcCollections": [
+        2,
+        2,
+        2
+      ],
+      "nodeBestHeapUsedDeltaBytes": -3288,
+      "clrPeakWorkingSetBytes": 86261760,
+      "nodePeakWorkingSetBytes": 142692352
+    },
+    {
+      "name": "arrays",
+      "checksum": "336296378656",
+      "checksumParity": true,
+      "clrBestMilliseconds": 439.9766,
+      "nodeBestMilliseconds": 694.7567999999999,
+      "clrBestAllocatedBytes": 53472544,
+      "clrBestGcCollections": [
+        10,
+        10,
+        10
+      ],
+      "nodeBestHeapUsedDeltaBytes": 29568,
+      "clrPeakWorkingSetBytes": 46608384,
+      "nodePeakWorkingSetBytes": 118521856
+    },
+    {
+      "name": "strings",
+      "checksum": "21777520",
+      "checksumParity": true,
+      "clrBestMilliseconds": 239.61,
+      "nodeBestMilliseconds": 130.7278,
+      "clrBestAllocatedBytes": 361197248,
+      "clrBestGcCollections": [
+        35,
+        35,
+        19
+      ],
+      "nodeBestHeapUsedDeltaBytes": -13173408,
+      "clrPeakWorkingSetBytes": 78168064,
+      "nodePeakWorkingSetBytes": 175427584
+    },
+    {
+      "name": "objects",
+      "checksum": "749992500000",
+      "checksumParity": true,
+      "clrBestMilliseconds": 48.1596,
+      "nodeBestMilliseconds": 172.2334,
+      "clrBestAllocatedBytes": 481851096,
+      "clrBestGcCollections": [
+        25,
+        25,
+        25
+      ],
+      "nodeBestHeapUsedDeltaBytes": 46986224,
+      "clrPeakWorkingSetBytes": 52330496,
+      "nodePeakWorkingSetBytes": 279719936
+    },
+    {
+      "name": "closures",
+      "checksum": "997753",
+      "checksumParity": true,
+      "clrBestMilliseconds": 237.8353,
+      "nodeBestMilliseconds": 238.2019,
+      "clrBestAllocatedBytes": 1680,
+      "clrBestGcCollections": [
+        0,
+        0,
+        0
+      ],
+      "nodeBestHeapUsedDeltaBytes": 180320,
+      "clrPeakWorkingSetBytes": 26103808,
+      "nodePeakWorkingSetBytes": 41197568
+    },
+    {
+      "name": "native-strings",
+      "checksum": "21777520",
+      "checksumParity": true,
+      "clrBestMilliseconds": 361.3303,
+      "nodeBestMilliseconds": 128.0479,
+      "clrBestAllocatedBytes": 323907288,
+      "clrBestGcCollections": [
+        28,
+        26,
+        15
+      ],
+      "nodeBestHeapUsedDeltaBytes": 47904400,
+      "clrPeakWorkingSetBytes": 91705344,
+      "nodePeakWorkingSetBytes": 179859456
+    },
+    {
+      "name": "maps",
+      "checksum": "-1538607552",
+      "checksumParity": true,
+      "clrBestMilliseconds": 268.98,
+      "nodeBestMilliseconds": 207.3091,
+      "clrBestAllocatedBytes": 264263624,
+      "clrBestGcCollections": [
+        19,
+        13,
+        8
+      ],
+      "nodeBestHeapUsedDeltaBytes": -49480672,
+      "clrPeakWorkingSetBytes": 93708288,
+      "nodePeakWorkingSetBytes": 185483264
+    }
+  ],
+  "limits": [
+    "Single-process kernels; not a universal language ranking.",
+    "CLR allocation is total GC allocation; Node heap delta is retained heap change and may be negative, not allocation parity.",
+    "Node GC counts unavailable; process peak working set includes startup and all trials.",
+    "No separate untimed warmup; best-of-three retains tiering and GC noise.",
+    "Maps use CLR Dictionary versus JS Map, not native Copeland map backend parity.",
+    "Arrays results do not isolate the codegen cleanup from all M26 changes."
+  ]
+}
