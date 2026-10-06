@@ -81,7 +81,7 @@ internal sealed class WgslGraphicsPreparation
         {
             functions.Add(PrepareEntry(entry));
         }
-        return new WgslPreparedModule(_structures, resources, functions);
+        return new WgslPreparedModule(_structures, resources, functions, new Dictionary<string, string>(_functions));
     }
 
     private void ValidateStage(string name, VdMirGraphicsStage stage, HashSet<string> visited)

@@ -2826,6 +2826,10 @@ public sealed class Parser
 
     private ExpressionSyntax ParsePrimaryExpression()
     {
+        if (Current.Text == "when" && Peek(1).Text == "utility")
+        {
+            return ParseWhenUtilityExpression();
+        }
         if (_allowsTsXml && Current.Kind == SyntaxKind.LessToken)
         {
             return ParseTsXmlExpression();
@@ -2868,6 +2872,35 @@ public sealed class Parser
             SyntaxKind.TryKeyword => ParseTryExceptExpression(),
             _ => ParseMissingExpression(),
         };
+    }
+
+    private WhenUtilityExpressionSyntax ParseWhenUtilityExpression()
+    {
+        var whenToken = NextToken();
+        var utilityToken = NextToken();
+        var open = Match(SyntaxKind.OpenBraceToken);
+        var cases = new List<UtilityCaseSyntax>();
+        while (Current.Text == "case")
+        {
+            var caseToken = NextToken();
+            var value = ParseExpression();
+            var guardToken = MatchContextualWord("when");
+            var condition = ParseExpression();
+            var scoreToken = MatchContextualWord("score");
+            var score = ParseExpression();
+            cases.Add(new UtilityCaseSyntax(caseToken, value, guardToken, condition, scoreToken, score));
+        }
+        var elseToken = Match(SyntaxKind.ElseKeyword);
+        var fallback = ParseExpression();
+        var close = Match(SyntaxKind.CloseBraceToken);
+        return new WhenUtilityExpressionSyntax(whenToken, utilityToken, open, cases, elseToken, fallback, close);
+    }
+
+    private SyntaxToken MatchContextualWord(string word)
+    {
+        if (Current.Text == word) return NextToken();
+        _diagnostics.Report("COPE-PARSE-UTILITY-0001", $"Expected '{word}' in utility case.", Current.Position, Math.Max(1, Current.Text.Length));
+        return MissingToken(SyntaxKind.IdentifierToken, Current.Position);
     }
 
     private StaticExpressionSyntax ParseStaticExpression()

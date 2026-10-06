@@ -6421,6 +6421,7 @@ public static class Binder
                 MatchExpressionSyntax m => BindMatch(m, contextualType),
                 TsXmlElementExpressionSyntax element => BindTsXml(element),
                 TsXmlFragmentExpressionSyntax fragment => BindTsXml(fragment),
+                WhenUtilityExpressionSyntax utility => BindGpuOnlyUtility(utility),
                 UnsupportedExpressionSyntax u => BindUnsupportedClassExpression(u),
                 _ => new BoundErrorExpression()
             };
@@ -7065,6 +7066,12 @@ public static class Binder
             }
 
             return new BoundAwaitExpression(operand, asyncType.EventualType);
+        }
+
+        private BoundExpression BindGpuOnlyUtility(WhenUtilityExpressionSyntax expression)
+        {
+            Report("COPE-UTILITY-PROFILE-0001", "One-shot when utility currently requires the graphics GPU profile; host and compute utility are not admitted.", expression.WhenToken);
+            return new BoundErrorExpression();
         }
 
         private BoundExpression BindUnsupportedClassExpression(UnsupportedExpressionSyntax expression)

@@ -248,6 +248,8 @@ public enum SyntaxKind
     TryValueBlock,
     MatchArm,
     MatchPattern,
+    WhenUtilityExpression,
+    UtilityCase,
     MissingExpression,
     UnsupportedExpression,
 }

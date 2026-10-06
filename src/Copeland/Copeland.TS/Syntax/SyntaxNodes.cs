@@ -2913,3 +2913,38 @@ public sealed record TsXmlElementChildSyntax(TsXmlExpressionSyntax Element) : Ts
         yield return Element;
     }
 }
+
+/// <summary>One-shot guarded utility choice. GPU scores are explicitly u32.</summary>
+public sealed record WhenUtilityExpressionSyntax(
+    SyntaxToken WhenToken, SyntaxToken UtilityToken, SyntaxToken OpenBrace,
+    IReadOnlyList<UtilityCaseSyntax> Cases, SyntaxToken ElseToken,
+    ExpressionSyntax Fallback, SyntaxToken CloseBrace) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.WhenUtilityExpression;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return WhenToken;
+        yield return UtilityToken;
+        yield return OpenBrace;
+        foreach (var candidate in Cases) yield return candidate;
+        yield return ElseToken;
+        yield return Fallback;
+        yield return CloseBrace;
+    }
+}
+
+public sealed record UtilityCaseSyntax(
+    SyntaxToken CaseToken, ExpressionSyntax Value, SyntaxToken WhenToken,
+    ExpressionSyntax Condition, SyntaxToken ScoreToken, ExpressionSyntax Score) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.UtilityCase;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return CaseToken;
+        yield return Value;
+        yield return WhenToken;
+        yield return Condition;
+        yield return ScoreToken;
+        yield return Score;
+    }
+}

@@ -12,7 +12,11 @@ public sealed record WgslGraphicsProgram(
     string SemanticHash,
     VdMirGraphicsProgram Semantics,
     IReadOnlyList<WgslSourceMapping> SourceMappings,
-    double GenerationMilliseconds);
+    double GenerationMilliseconds)
+{
+    /// <summary>Compiler-owned source/helper symbol names for static shader composition.</summary>
+    public IReadOnlyDictionary<string, string> FunctionNames { get; init; } = new Dictionary<string, string>();
+}
 
 public sealed record WgslGraphicsResult(WgslGraphicsProgram? Program, IReadOnlyList<VdMirDiagnostic> Diagnostics)
 {
@@ -47,7 +51,10 @@ public static class WgslGraphicsBackend
             var emitted = WgslGraphicsEmitter.Emit(prepared);
             return new WgslGraphicsResult(new WgslGraphicsProgram(emitted.Code, "vd_vertex", "vd_fragment",
                 WgslSemanticIdentity.Hash(module), module.GraphicsProgram!,
-                emitted.Mappings, timer.Elapsed.TotalMilliseconds), []);
+                emitted.Mappings, timer.Elapsed.TotalMilliseconds)
+                {
+                    FunctionNames = prepared.FunctionNames,
+                }, []);
         }
         catch (WgslPreparationException error)
         {
@@ -69,4 +76,4 @@ internal sealed record WgslStructure(string Name, IReadOnlyList<WgslField> Field
 internal sealed record WgslResource(string Name, string Type, int Group, int Binding, bool Uniform);
 internal sealed record WgslFunction(VdMirFunction Function, VdMirGraphicsStage? Stage = null);
 internal sealed record WgslPreparedModule(IReadOnlyList<WgslStructure> Structures,
-    IReadOnlyList<WgslResource> Resources, IReadOnlyList<WgslFunction> Functions);
+    IReadOnlyList<WgslResource> Resources, IReadOnlyList<WgslFunction> Functions, IReadOnlyDictionary<string, string> FunctionNames);
