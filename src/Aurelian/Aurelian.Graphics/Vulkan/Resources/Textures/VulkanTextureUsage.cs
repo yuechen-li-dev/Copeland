@@ -8,4 +8,5 @@ public enum VulkanTextureUsage
     ColorAttachment = 1 << 1,
     TransferSource = 1 << 2,
     TransferDestination = 1 << 3,
+    DepthAttachment = 1 << 4,
 }

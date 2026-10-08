@@ -6,4 +6,5 @@ public enum VulkanTextureFormat
     Bgra8Unorm,
     Rgba8Srgb,
     Bgra8Srgb,
+    D32Float,
 }

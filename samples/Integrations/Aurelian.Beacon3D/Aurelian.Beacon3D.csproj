@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Silk.NET.Input" />
+    <PackageReference Include="Silk.NET.Windowing" />
+    <PackageReference Include="SkiaSharp" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj" />
+    <ProjectReference Include="../../../src/Copeland/Copeland.TS/Copeland.TS.csproj" />
+    <ProjectReference Include="../../../src/Integrations/InputMan.Aurelian/InputMan.Aurelian.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/Solid3D.v.ts" Link="Assets/Solid3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

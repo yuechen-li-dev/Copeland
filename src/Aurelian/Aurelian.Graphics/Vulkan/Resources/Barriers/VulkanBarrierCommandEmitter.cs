@@ -1,5 +1,6 @@
 using Aurelian.Graphics.Vulkan.Commanding;
 using Aurelian.Graphics.Vulkan.Device;
+using Aurelian.Graphics.Vulkan.Resources.Textures;
 using Silk.NET.Vulkan;
 using NativeBuffer = Silk.NET.Vulkan.Buffer;
 
@@ -80,7 +81,8 @@ public static unsafe class VulkanBarrierCommandEmitter
                 .Select(static barrier => CreateBufferBarrier(barrier.Buffer.NativeBuffer, barrier.Plan))
                 .ToArray();
             ImageMemoryBarrier[] nativeImageBarriers = textureBarriers
-                .Select(static barrier => CreateImageBarrier(barrier.Texture.NativeImage, barrier.Plan))
+                .Select(static barrier => CreateImageBarrier(barrier.Texture.NativeImage, barrier.Plan,
+                    barrier.Texture.Format == VulkanTextureFormat.D32Float ? ImageAspectFlags.DepthBit : ImageAspectFlags.ColorBit))
                 .Concat(presentationTargetBarriers.Select(static barrier => CreateImageBarrier(barrier.Target.NativeImage, barrier.Plan)))
                 .ToArray();
 
@@ -331,7 +333,10 @@ public static unsafe class VulkanBarrierCommandEmitter
             Size = plan.SizeBytes,
         };
 
-    private static ImageMemoryBarrier CreateImageBarrier(Image image, VulkanBarrierPlan plan)
+    private static ImageMemoryBarrier CreateImageBarrier(
+        Image image,
+        VulkanBarrierPlan plan,
+        ImageAspectFlags aspect = ImageAspectFlags.ColorBit)
         => new()
         {
             SType = StructureType.ImageMemoryBarrier,
@@ -343,7 +348,7 @@ public static unsafe class VulkanBarrierCommandEmitter
             DstQueueFamilyIndex = QueueFamilyIgnored,
             Image = image,
             SubresourceRange = new ImageSubresourceRange(
-                ImageAspectFlags.ColorBit,
+                aspect,
                 plan.BaseMipLevel,
                 plan.LevelCount,
                 plan.BaseArrayLayer,

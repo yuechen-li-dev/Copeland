@@ -213,8 +213,13 @@ public static class GpuGraphicsBinder
                     && fields[4].Type == "f32"
                     && fields[5].Name == "temporalPhase"
                     && fields[5].Type == "f32";
+                bool isCameraMaterial = fields.Count == 4
+                    && fields[0].Name == "clipX" && fields[0].Type == "float4"
+                    && fields[1].Name == "clipY" && fields[1].Type == "float4"
+                    && fields[2].Name == "clipZ" && fields[2].Type == "float4"
+                    && fields[3].Name == "clipW" && fields[3].Type == "float4";
                 if (!isForwardMaterial && !isMsdfTextMaterial && !isAnalyticShapeMaterial
-                    && !isSoftShockwaveMaterial && !isSemanticFogMaterial)
+                    && !isSoftShockwaveMaterial && !isSemanticFogMaterial && !isCameraMaterial)
                 {
                     Add(
                         "COPE-GPU-MATERIAL-0003",

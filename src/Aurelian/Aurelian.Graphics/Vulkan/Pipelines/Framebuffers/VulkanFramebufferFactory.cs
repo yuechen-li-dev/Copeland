@@ -27,6 +27,12 @@ public static unsafe class VulkanFramebufferFactory
 
         AurelianVulkanTexture attachment = descriptor.ColorAttachments[0];
         ImageView imageView = attachment.NativeImageView!.Value;
+        ImageView* imageViews = stackalloc ImageView[2];
+        imageViews[0] = imageView;
+        if (descriptor.DepthAttachment is { } depth)
+        {
+            imageViews[1] = depth.NativeImageView!.Value;
+        }
         Framebuffer framebuffer = default;
         Vk vk = plant.Vk;
         Silk.NET.Vulkan.Device device = plant.Device;
@@ -37,8 +43,8 @@ public static unsafe class VulkanFramebufferFactory
             {
                 SType = StructureType.FramebufferCreateInfo,
                 RenderPass = renderPass.NativeRenderPass,
-                AttachmentCount = 1,
-                PAttachments = &imageView,
+                AttachmentCount = descriptor.DepthAttachment is null ? 1u : 2u,
+                PAttachments = imageViews,
                 Width = descriptor.Width,
                 Height = descriptor.Height,
                 Layers = 1,
@@ -115,6 +121,26 @@ public static unsafe class VulkanFramebufferFactory
         }
 
         IReadOnlyList<AurelianVulkanTexture>? attachments = descriptor.ColorAttachments;
+        if ((renderPass.Descriptor.DepthAttachment is null) != (descriptor.DepthAttachment is null))
+        {
+            diagnostics.Add(Diagnostic(
+                VulkanFramebufferDiagnosticCodes.RenderPassAttachmentMismatch,
+                "Framebuffer and render pass must agree on the presence of a depth attachment.",
+                plantId));
+        }
+        if (descriptor.DepthAttachment is { } depth)
+        {
+            if (depth.IsDisposed || depth.NativeImageView is not { Handle: not 0 }
+                || depth.PlantId != plantId || depth.Width != descriptor.Width || depth.Height != descriptor.Height
+                || depth.Format != renderPass.Descriptor.DepthAttachment?.Format
+                || (depth.Usage & VulkanTextureUsage.DepthAttachment) == 0)
+            {
+                diagnostics.Add(Diagnostic(
+                    VulkanFramebufferDiagnosticCodes.RenderPassAttachmentMismatch,
+                    "Depth attachment must be live, have a view, and match plant, extent, depth usage, and render pass format.",
+                    plantId));
+            }
+        }
         if (attachments is null || attachments.Count == 0)
         {
             diagnostics.Add(Diagnostic(

@@ -28,7 +28,9 @@ public sealed unsafe class VulkanRenderPassCommandEncoder
 
         try
         {
-            ClearValue clearValue = ToNative(request.ClearColor);
+            ClearValue* clearValues = stackalloc ClearValue[2];
+            clearValues[0] = ToNative(request.ClearColor);
+            clearValues[1] = new ClearValue { DepthStencil = new ClearDepthStencilValue(1, 0) };
             RenderPassBeginInfo beginInfo = new()
             {
                 SType = StructureType.RenderPassBeginInfo,
@@ -37,8 +39,8 @@ public sealed unsafe class VulkanRenderPassCommandEncoder
                 RenderArea = new Rect2D(
                     new Offset2D(0, 0),
                     new Extent2D(request.Framebuffer.Width, request.Framebuffer.Height)),
-                ClearValueCount = 1,
-                PClearValues = &clearValue,
+                ClearValueCount = request.RenderPass.Descriptor.DepthAttachment is null ? 1u : 2u,
+                PClearValues = clearValues,
             };
 
             plant.Vk.CmdBeginRenderPass(commandBuffer.CommandBuffer, &beginInfo, SubpassContents.Inline);
@@ -102,6 +104,11 @@ public sealed unsafe class VulkanRenderPassCommandEncoder
         {
             VulkanRenderPassAttachmentDescriptor attachment = active.RenderPass.Descriptor.ColorAttachments[i];
             active.Framebuffer.Descriptor.ColorAttachments[i].LayoutTracker.TryMarkCurrentLayout(0, 0, attachment.FinalLayout);
+        }
+        if (active.RenderPass.Descriptor.DepthAttachment is { } depth
+            && active.Framebuffer.Descriptor.DepthAttachment is { } depthTexture)
+        {
+            depthTexture.LayoutTracker.TryMarkCurrentLayout(0, 0, depth.FinalLayout);
         }
     }
 

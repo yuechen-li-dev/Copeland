@@ -89,3 +89,8 @@ src/Copeland/Copeland.TS.VSCode/dist/
 src/Copeland/Copeland.TS.VSCode/.vscode-test/
 src/Copeland/Copeland.TS.VSCode/*.vsix
 src/Copeland/Copeland.TS.VSCode/test-workspaces/output/
+
+# Local qualification tooling and raw test runner output; retain the Beacon3D proof and captures.
+artifacts/aurelian-beacon3d/toolchain/
+artifacts/aurelian-beacon3d/test-results/
+artifacts/aurelian-beacon3d/copeland-test-results/

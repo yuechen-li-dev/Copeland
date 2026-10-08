@@ -57,11 +57,35 @@ public static unsafe class VulkanRenderPassFactory
                 Layout = ImageLayout.ColorAttachmentOptimal,
             };
 
+            AttachmentDescription* attachments = stackalloc AttachmentDescription[2];
+            attachments[0] = attachmentDescription;
+            bool hasDepth = descriptor.DepthAttachment is not null;
+            if (descriptor.DepthAttachment is { } depth)
+            {
+                attachments[1] = new AttachmentDescription
+                {
+                    Format = Format.D32Sfloat,
+                    Samples = SampleCountFlags.Count1Bit,
+                    LoadOp = MapLoadOp(depth.LoadOp),
+                    StoreOp = MapStoreOp(depth.StoreOp),
+                    StencilLoadOp = AttachmentLoadOp.DontCare,
+                    StencilStoreOp = AttachmentStoreOp.DontCare,
+                    InitialLayout = MapRenderPassLayout(depth.InitialLayout),
+                    FinalLayout = ImageLayout.DepthStencilAttachmentOptimal,
+                };
+            }
+            AttachmentReference depthReference = new()
+            {
+                Attachment = 1,
+                Layout = ImageLayout.DepthStencilAttachmentOptimal,
+            };
+
             SubpassDescription subpassDescription = new()
             {
                 PipelineBindPoint = PipelineBindPoint.Graphics,
                 ColorAttachmentCount = 1,
                 PColorAttachments = &colorAttachmentReference,
+                PDepthStencilAttachment = hasDepth ? &depthReference : null,
             };
 
             SubpassDependency dependencyIn = new()
@@ -86,6 +110,17 @@ public static unsafe class VulkanRenderPassFactory
                 DependencyFlags = DependencyFlags.ByRegionBit,
             };
 
+            if (hasDepth)
+            {
+                PipelineStageFlags depthStages = PipelineStageFlags.EarlyFragmentTestsBit | PipelineStageFlags.LateFragmentTestsBit;
+                dependencyIn.SrcStageMask |= depthStages;
+                dependencyIn.DstStageMask |= depthStages;
+                dependencyIn.SrcAccessMask |= AccessFlags.DepthStencilAttachmentWriteBit;
+                dependencyIn.DstAccessMask |= AccessFlags.DepthStencilAttachmentReadBit | AccessFlags.DepthStencilAttachmentWriteBit;
+                dependencyOut.SrcStageMask |= depthStages;
+                dependencyOut.SrcAccessMask |= AccessFlags.DepthStencilAttachmentWriteBit;
+            }
+
             SubpassDependency* dependencies = stackalloc SubpassDependency[2];
             dependencies[0] = dependencyIn;
             dependencies[1] = dependencyOut;
@@ -93,8 +128,8 @@ public static unsafe class VulkanRenderPassFactory
             RenderPassCreateInfo createInfo = new()
             {
                 SType = StructureType.RenderPassCreateInfo,
-                AttachmentCount = 1,
-                PAttachments = &attachmentDescription,
+                AttachmentCount = hasDepth ? 2u : 1u,
+                PAttachments = attachments,
                 SubpassCount = 1,
                 PSubpasses = &subpassDescription,
                 DependencyCount = 2,
@@ -160,7 +195,7 @@ public static unsafe class VulkanRenderPassFactory
 
         foreach (VulkanRenderPassAttachmentDescriptor attachment in descriptor.ColorAttachments)
         {
-            if (!Enum.IsDefined(attachment.Format))
+            if (!Enum.IsDefined(attachment.Format) || attachment.Format == VulkanTextureFormat.D32Float)
             {
                 diagnostics.Add(new VulkanRenderPassDiagnostic(
                     VulkanRenderPassDiagnosticCodes.UnsupportedAttachmentFormat,
@@ -188,6 +223,22 @@ public static unsafe class VulkanRenderPassFactory
                     $"Unsupported color attachment final layout '{attachment.FinalLayout}' for render pass M0.",
                     plantId,
                     attachment.Name));
+            }
+        }
+
+        if (descriptor.DepthAttachment is { } depth)
+        {
+            if (depth.Format != VulkanTextureFormat.D32Float
+                || depth.InitialLayout is not (VulkanResourceLayout.Undefined or VulkanResourceLayout.DepthStencilAttachment)
+                || depth.FinalLayout != VulkanResourceLayout.DepthStencilAttachment
+                || (depth.LoadOp == VulkanAttachmentLoadOp.Load && depth.InitialLayout == VulkanResourceLayout.Undefined))
+            {
+                diagnostics.Add(new VulkanRenderPassDiagnostic(
+                    VulkanRenderPassDiagnosticCodes.UnsupportedAttachmentFormat,
+                    VulkanRenderPassDiagnosticSeverity.Error,
+                    "Depth attachment requires D32Float, Undefined or DepthStencilAttachment initial layout, and DepthStencilAttachment final layout; Load requires preserved depth.",
+                    plantId,
+                    depth.Name));
             }
         }
     }

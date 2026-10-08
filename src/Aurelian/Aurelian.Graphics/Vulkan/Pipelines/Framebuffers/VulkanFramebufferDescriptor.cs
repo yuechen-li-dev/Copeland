@@ -5,4 +5,5 @@ namespace Aurelian.Graphics.Vulkan.Pipelines.Framebuffers;
 public sealed record VulkanFramebufferDescriptor(
     uint Width,
     uint Height,
-    IReadOnlyList<AurelianVulkanTexture> ColorAttachments);
+    IReadOnlyList<AurelianVulkanTexture> ColorAttachments,
+    AurelianVulkanTexture? DepthAttachment = null);

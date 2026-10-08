@@ -183,6 +183,16 @@ public static unsafe class VulkanGraphicsPipelineFactory
                     PDynamicStates = dynamicStates,
                 };
 
+                PipelineDepthStencilStateCreateInfo depthState = new()
+                {
+                    SType = StructureType.PipelineDepthStencilStateCreateInfo,
+                    DepthTestEnable = descriptor.EnableDepthTest,
+                    DepthWriteEnable = descriptor.EnableDepthWrite,
+                    DepthCompareOp = CompareOp.Less,
+                    DepthBoundsTestEnable = false,
+                    StencilTestEnable = false,
+                };
+
                 GraphicsPipelineCreateInfo pipelineCreateInfo = new()
                 {
                     SType = StructureType.GraphicsPipelineCreateInfo,
@@ -193,7 +203,7 @@ public static unsafe class VulkanGraphicsPipelineFactory
                     PViewportState = &viewportState,
                     PRasterizationState = &rasterizationState,
                     PMultisampleState = &multisampleState,
-                    PDepthStencilState = null,
+                    PDepthStencilState = renderPass.Descriptor.DepthAttachment is null ? null : &depthState,
                     PColorBlendState = &colorBlendState,
                     PDynamicState = &dynamicState,
                     Layout = pipelineLayout,
@@ -411,11 +421,12 @@ public static unsafe class VulkanGraphicsPipelineFactory
             }
         }
 
-        if (descriptor.EnableDepthTest || descriptor.EnableDepthWrite)
+        if ((descriptor.EnableDepthTest || descriptor.EnableDepthWrite)
+            && renderPass?.Descriptor.DepthAttachment is null)
         {
             diagnostics.Add(Diagnostic(
                 VulkanGraphicsPipelineDiagnosticCodes.UnsupportedDepthState,
-                "Graphics pipeline M0 rejects depth test/write until depth render pass attachments are implemented.",
+                "Depth test/write requires a render pass with a depth attachment.",
                 plantId));
         }
 

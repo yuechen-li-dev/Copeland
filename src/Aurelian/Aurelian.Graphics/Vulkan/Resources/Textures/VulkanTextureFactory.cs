@@ -126,7 +126,7 @@ public static unsafe class VulkanTextureFactory
                     ViewType = plan.ArrayLayers == 1 ? ImageViewType.Type2D : ImageViewType.Type2DArray,
                     Format = nativeFormat,
                     SubresourceRange = new ImageSubresourceRange(
-                        ImageAspectFlags.ColorBit,
+                        plan.Format == VulkanTextureFormat.D32Float ? ImageAspectFlags.DepthBit : ImageAspectFlags.ColorBit,
                         0,
                         plan.MipLevels,
                         0,
@@ -242,6 +242,17 @@ public static unsafe class VulkanTextureFactory
                 plan));
         }
 
+        bool depthFormat = plan.Format == VulkanTextureFormat.D32Float;
+        bool depthUsage = (plan.Usage & VulkanTextureUsage.DepthAttachment) != 0;
+        if (depthFormat != depthUsage || (depthFormat && plan.Usage != VulkanTextureUsage.DepthAttachment))
+        {
+            diagnostics.Add(Diagnostic(
+                VulkanTextureDiagnosticCodes.UnsupportedFormat,
+                VulkanTextureDiagnosticSeverity.Error,
+                "D32Float requires exclusive DepthAttachment usage; color formats cannot use DepthAttachment.",
+                plan));
+        }
+
         if (plan.MemoryUsage == VulkanMemoryUsage.Unknown)
         {
             diagnostics.Add(Diagnostic(
@@ -277,12 +288,17 @@ public static unsafe class VulkanTextureFactory
             VulkanTextureFormat.Bgra8Unorm => Format.B8G8R8A8Unorm,
             VulkanTextureFormat.Rgba8Srgb => Format.R8G8B8A8Srgb,
             VulkanTextureFormat.Bgra8Srgb => Format.B8G8R8A8Srgb,
+            VulkanTextureFormat.D32Float => Format.D32Sfloat,
             _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported Vulkan texture format."),
         };
 
     private static ImageUsageFlags MapUsage(VulkanTextureUsage usage)
     {
         ImageUsageFlags flags = 0;
+        if ((usage & VulkanTextureUsage.DepthAttachment) != 0)
+        {
+            flags |= ImageUsageFlags.DepthStencilAttachmentBit;
+        }
         if ((usage & VulkanTextureUsage.ShaderResource) != 0)
         {
             flags |= ImageUsageFlags.SampledBit;
@@ -307,7 +323,7 @@ public static unsafe class VulkanTextureFactory
     }
 
     private static bool ShouldCreateDefaultImageView(VulkanTextureUsage usage)
-        => (usage & (VulkanTextureUsage.ShaderResource | VulkanTextureUsage.ColorAttachment)) != 0;
+        => (usage & (VulkanTextureUsage.ShaderResource | VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.DepthAttachment)) != 0;
 
     private static VulkanTextureDiagnosticSeverity MapSeverity(VulkanMemoryAllocatorDiagnosticSeverity severity)
         => severity switch

@@ -122,6 +122,15 @@ public sealed unsafe class VulkanNativeFrameTarget : IDisposable
         }
     }
 
+    internal void ValidateExternalPass(AurelianVulkanPlant candidatePlant)
+    {
+        ValidateCompatibility(candidatePlant, Width, Height);
+        if (frameActive)
+        {
+            throw new InvalidOperationException("An external pass cannot run during an active compositor frame.");
+        }
+    }
+
     internal (byte[] Pixels, string Hash, double Milliseconds) Capture()
     {
         ThrowIfDisposed();

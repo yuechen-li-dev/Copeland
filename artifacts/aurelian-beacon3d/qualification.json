@@ -1,0 +1,45 @@
+{
+  "outcome": "Success",
+  "aurelianSolutionBuild": {
+    "configuration": "Release",
+    "log": "build.log",
+    "warnings": 0,
+    "errors": 0
+  },
+  "aurelianSolutionTests": {
+    "suites": 23,
+    "failed": 0,
+    "skipped": 0,
+    "log": "tests.log",
+    "passed": 830
+  },
+  "copelandCompilerTests": {
+    "failed": 0,
+    "skipped": 0,
+    "log": "copeland-tests.log",
+    "passed": 1394
+  },
+  "finalGameTests": {
+    "failed": 0,
+    "log": "game-tests.log",
+    "passed": 10
+  },
+  "nativeProof": {
+    "artifact": "proof.json",
+    "visibleWindowRun": true,
+    "beaconsCollected": 3,
+    "framesPresented": 1302,
+    "log": "native-run.log",
+    "won": true,
+    "device": "NVIDIA GeForce RTX 3070"
+  },
+  "naga": {
+    "reason": "Existing WebGPU toolchain test requires Naga",
+    "environmentVariable": "AURELIAN_NAGA",
+    "scope": "repository-local qualification tool",
+    "version": "30.0.1"
+  },
+  "manualKeyboardPlay": "Awaiting human play; InputMan bindings, focus reset, action edges and scripted physical-key gameplay were tested",
+  "executableSha256": "b69074d6b0c2b35780dab2678b0e00b65e088b206e9558f2934e971d55005b28",
+  "shaderSourceSha256": "cb51ef3e50127222ffabfeb1f9bbfee174d1673af41398050b84c457ec7594ff"
+}
