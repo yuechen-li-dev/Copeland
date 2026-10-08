@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Explicit world-unit 3D queries and kinematic character movement.</Description>
+  </PropertyGroup>
+</Project>

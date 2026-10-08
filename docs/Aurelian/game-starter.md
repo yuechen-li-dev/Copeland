@@ -26,7 +26,7 @@ GameStarter.Run("my-game",
 
 This starts a geometric training range with a title menu, pause menu, settings, a character agent, object targets, collision, mouse look, jump, hitscan gun, magazine/reload state and switchable first/third-person views. `V` switches views without replacing the actor or gun. `WASD` moves, mouse looks, left click fires, `R` reloads, Space jumps, Escape pauses. Menus support InputMan keyboard navigation and actual rendered-button hit testing.
 
-Run the checked-in example with `starter.cmd`. Its project has one runtime reference and a short entry point. `TrainingRange.cs` shows [document scene composition](scene-composition.md): one checkpoint fragment instantiated twice and a target customized with `with`. Engine shaders, fonts and their licenses ship transitively; the published starter resolves its own built-in assets without finding the checkout.
+Run the checked-in example with `starter.cmd`. Its short entry point selects either the geometric range or the baked Aetheris room. `TrainingRange.cs` shows [document scene composition](scene-composition.md): one checkpoint fragment instantiated twice and a target customized with `with`. Engine shaders, fonts and their licenses ship transitively; the published starter resolves its own built-in assets without finding the checkout.
 
 ## Concepts compose; presets only select concepts
 
@@ -63,9 +63,9 @@ GameStarter.Run("my-range", GamePresets.ThirdPersonShooter, args,
 
 The training range is a small starter world. Custom game domain state needs its own explicitly captured snapshot and validation. `GameSaveSlots<TSnapshot>` accepts a game's source-generated `JsonTypeInfo<TSnapshot>` and validator; it does not discover fields or silently include state added by event handlers.
 
-`GameStarter.Run` and `Create` also accept `sceneDocument: SceneGroup`. The starter accepts one root `player` with `StarterPlayerDefinition`, targets with `StarterTargetDefinition`, decorative box/triangle geometry and explicit solid boxes. Target health is saved in canonical instance-ID order. Scene transforms, geometry and explicit definition identities participate in Deliverance's compatibility identity. Switching to an authored document changes that identity; incompatible older slots fail before changing live state.
+`GameStarter.Run` and `Create` also accept `sceneDocument: SceneGroup`. The starter accepts one root `player` with `StarterPlayerDefinition`, targets with `StarterTargetDefinition`, decorative box/triangle geometry and explicit solid boxes or indexed meshes. Target health is saved in canonical instance-ID order. Scene transforms, geometry, collision roles and explicit definition identities participate in Deliverance's compatibility identity. Switching to an authored document changes that identity; incompatible older slots fail before changing live state.
 
-The starter's existing collision and hitscan rules support translated and positively scaled axis-aligned boxes. Rotated decorative geometry renders normally; rotated solid boxes or target colliders fail with a diagnostic. Other game state types, dynamic spawning and richer physics need application-owned rules and snapshots; the starter does not silently save arbitrary agents added through its inspection-facing `Scene` property.
+The starter and Beacon use `Aurelian.Spatial3D` for rays, capsule sweeps, grounded movement, slopes, sliding, ceilings and collision filtering. Rotated and nonuniformly scaled authored solids use their actual affine frames. Floors are explicit solids; leaving their boundaries causes falling. `StarterGame.SpatialWorld` and `LastMovement` expose query geometry and contact facts for inspection. Other game state types, dynamic spawning and richer physics need application-owned rules and snapshots; the starter does not silently save arbitrary agents added through its inspection-facing `Scene` property.
 
 ## Shared owners and persistence
 
@@ -78,6 +78,9 @@ The starter's existing collision and hitscan rules support translated and positi
 | Cameras | `Aurelian.Runtime.Camera3D` |
 | Magazine/reload state | `Aurelian.Combat.ReloadableGun`, also consumed by Beacon |
 | Primitive geometry | `PrimitiveGeometry3D`, also consumed by Beacon |
+| Raycasts, overlaps, sweeps and character movement | Pure `Aurelian.Spatial3D`, projected from document collision by `SceneSpatial3D` |
+| Optional hardware rays | `Aurelian.Spatial3D.Vulkan` on the existing Vulkan plant; compiler-owned `RayQuery.v.ts` |
+| Aetheris room assets | Build-time `Aurelian.AetherisBake`; source-generated `Aurelian.Aetheris` runtime loader |
 | Vulkan device, target, renderer and presenter lifetime | `NativeGameGraphics`, extracted from Beacon |
 | Menus and retained native text | Existing `Aurelian.GameMenus` and Machina |
 | Built-in shader/font resources | `GameAssets`; default fonts now live in `Aurelian.Assets/Defaults/Fonts` |
@@ -106,10 +109,53 @@ Native scripts use Vulkan and can capture pixels; both modes advance the same `S
 
 `--launch-smoke` exercises four frames through the interactive `AurelianGameHost` path and exits. `--visible` shows script/smoke windows. `--output` controls evidence output and `--save-root` isolates persistence.
 
+## Aetheris room and Vulkan ray queries
+
+```powershell
+.\starter.cmd --aetheris-room --gpu-rays
+
+.\starter.cmd --aetheris-room --gpu-rays --playtest-script Games/Starter/Playtests/room-proof.json `
+    --output artifacts/room-native --save-root artifacts/room-native/saves
+
+dotnet run --project tools/Aurelian.AetherisBake -c Release -- bake `
+    ../Aetheris/fixtures/Canonical/Scene/room.firmament `
+    Games/Starter/Aurelian.Starter/Assets/room.aurelian.json --solid-prefix RoomProof.hall
+```
+
+The bake uses Aetheris's existing Firmament scene compiler. Indexed definitions, occurrence paths, source hash, available face identities and explicit solid selections survive into the asset. The occurrence frame converts millimetres/Z up to metres/Y up once. The ordinary game loader requires no CAD repository or CAD runtime. The optional bake project references the adjacent Aetheris checkout, overridable with `-p:AetherisRepository=...`, and is excluded from the ordinary engine solution.
+
+`--gpu-rays` enables retained BLAS/TLAS and inline ray traversal on the same Vulkan device used for rendering. Unsupported hardware reports a diagnostic and uses CPU rays. Headless execution uses CPU queries. `GameRayQueries.Create` compiles the reusable `.v.ts` through Copeland's binder, VD-MIR, Aurelian HLSL/DXC and SPIR-V validation. `RayQueryTraceClosest` is a statement-only compiler intrinsic; acceleration structures cannot escape into ordinary local storage or helper parameters. The native adapter owns upload, synchronized submission, readback and disposal. `RaycastBatch` amortizes this work across rays; a single shooting ray still incurs synchronous readback and is not expected to outperform the CPU. Geometry is retained and static; rebuild a backend after changing colliders.
+
+Capsule sweeps and character movement remain deterministic CPU calculations. Hardware rays do not directly provide a shape sweep. The pure `ISpatialQueryWorld3D` interface lets another collision representation provide the same contact facts without changing the motor or agent state ownership.
+
+```csharp
+using System.Numerics;
+using Aurelian.NativeComposition;
+using Aurelian.Spatial3D;
+
+SpatialWorld3D queries = SceneSpatial3D.Build(plan);
+var motor = new CharacterMotor3D(new(MaximumSlopeDegrees: 45));
+CharacterState3D state = new(player.State, verticalVelocity);
+CharacterMove3D moved = motor.Step(queries, state, horizontalVelocity, jumpPressed, 1f / 60);
+player.State = moved.State.Feet;
+verticalVelocity = moved.State.VerticalVelocity;
+
+SpatialHit3D? hit = queries.Raycast(new Ray3D(eye, unitAim, 80));
+SpatialHit3D? obstruction = queries.Sweep(Capsule3D.Sphere(cameraAnchor, 0.15f), cameraOffset);
+```
+
+The application owns `plan`, typed player state, velocities, input and cadence in this example. `QueryFilter3D` requires both included-layer and query-layer/solid-mask intersections. Contact normals come from collision geometry, independently of interpolated visual normals. Query worlds are immutable: rebuild from authored facts when static geometry changes. No reflection, component discovery or hidden actor updates participate in these calls.
+
+BRep is valuable as authored truth and provenance. The room's rectangular boundary panels are marked `planar-exact`: their triangles preserve the original surfaces and openings, with no curved-surface approximation. Other definitions are marked `triangle-approximation`; baking them as collision requires explicit `--allow-mesh-approximation`. This is a declared surface approximation, not general exact BRep collision. The GPU path also supports exact analytic sphere intersections through procedural AABBs, following Oct's SDSL-V implementation. General trimmed BRep ray intersection, capsule contact and continuous sweeps require additional Aetheris query capability; its existing primitive rays and bounded closest-point helpers do not yet provide that complete contract.
+
+The current spatial evidence is [aurelian-spatial3d/manifest.json](../../artifacts/aurelian-spatial3d/manifest.json). The native proof compares 4,096 room rays with CPU provenance and distances, checks full-width symmetric layer masks and stable ties, and traverses the authored doorway while blocking its solid wall. Local timing includes upload/readback for ten batches and is evidence for this fixture and device only.
+
+The GPU reports hardware-admitted triangle provenance. At a shared triangle edge, hardware can select a different adjacent triangle from the CPU's inclusive intersection convention. The dedicated boundary proof checks collider, distance and geometric normal agreement; it does not promise identical primitive/face selection on an ambiguous boundary. Interior coincident candidates are ordered canonically. Game logic should use semantic collider ownership, rather than depend on an incidental triangle index.
+
 ## Qualification and current bounds
 
 The qualification record is [aurelian-game-starter-m0/manifest.json](../../artifacts/aurelian-game-starter-m0/manifest.json). The published starter was run from `C:\Windows\Temp`; native/headless final observations agree. Native proof covers gun hits/reload, both views, movement, mouse deltas, Deliverance save/load, menu settings and replay. Beacon's existing full FPS/win proof and the moved TinyFarm/Sunkill native paths are also checked.
 
-The starter currently has a fixed 960x600 Vulkan window, a geometric scene, simple horizontal box collision and a follow camera. It does not supply general rigid-body/vehicle physics, camera obstruction avoidance, imported models, rigs, shadows or a generic texture streaming system. Built-in text uses the existing bounded ASCII font atlas. Audio uses the existing platform backend and reports fallback to null output if no device is available; scripted proof qualifies audio state, not audible output quality. This is a framework-dependent .NET 10 published build, not a qualified standalone installer.
+The starter currently has a fixed 960x600 Vulkan window, authored 3D collision and a follow camera. It does not supply general rigid-body/vehicle physics, step climbing, camera obstruction avoidance, Blender/FBX import, rigs, shadows or a generic texture streaming system. Initially embedded capsules fail closed with an explicit overlap rather than teleporting out of geometry. Iteration-limited sweeps stop conservatively and expose the status. Built-in text uses the existing bounded ASCII font atlas. Audio uses the existing platform backend and reports fallback to null output if no device is available; scripted proof qualifies audio state, not audible output quality. This is a framework-dependent .NET 10 published build, not a qualified standalone installer.
 
 The existing dependency-boundary checker still reports seven pre-existing violations. Their references were verified against the original Git HEAD in [boundary-baseline.json](../../artifacts/aurelian-game-starter-m0/boundary-baseline.json); this change adds a production-to-`Games` prohibition without suppressing those findings.

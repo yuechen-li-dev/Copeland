@@ -10,6 +10,7 @@ using Aurelian.Graphics.Vulkan.Native3D;
 using Aurelian.NativeComposition;
 using Aurelian.Runtime;
 using Aurelian.Simulation;
+using Aurelian.Spatial3D;
 using Aurelian.World.Agents;
 using Aurelian.World.Scenes;
 using Deliverance.Core.Storage;
@@ -21,7 +22,9 @@ public sealed class StarterGame : IDisposable
 {
     private readonly StarterOptions options;
     private readonly StarterObject[] objects;
-    private readonly StarterObject[] solidGeometry;
+    private readonly SpatialWorld3D spatialWorld;
+    private readonly CharacterMotor3D motor = new();
+    private IRayQueryWorld3D rayQueries = null!;
     private readonly ScenePlan scenePlan;
     private SceneInstance scene = null!;
     private readonly GameMenuNavigation navigation = new();
@@ -70,8 +73,17 @@ public sealed class StarterGame : IDisposable
             new("target-right", new(3, 1, -4), new(0.8f, 1, 0.8f))]).OrderBy(item => item.Id, StringComparer.Ordinal).ToArray();
         scenePlan = SceneCompiler.Compile(sceneDocument ?? StarterScenes.TrainingRange(authoredObjects));
         objects = ReadTargets(scenePlan);
-        solidGeometry = scenePlan.Boxes.Where(box => box.Collision == SceneCollision.Solid)
-            .Select(box => CollisionBox(box.Id, box.WorldTransform, box.HalfSize, 1)).ToArray();
+        var targetColliders = new List<Collider3D>();
+        foreach (PlacedSceneAgent declaration in scenePlan.Agents)
+        {
+            if (declaration.Node is SceneAgentNode<int> { Definition: StarterTargetDefinition target })
+            {
+                targetColliders.Add(new(declaration.Placement.Id, CollisionMesh3D.Box(target.HalfSize),
+                    declaration.Placement.WorldTransform, SemanticOwnerId: declaration.Placement.Id));
+            }
+        }
+        spatialWorld = SceneSpatial3D.Build(scenePlan, targetColliders);
+        rayQueries = spatialWorld;
         ValidateObjects();
         gun = new(this.options.Gun);
         var normalized = this.options with { Gun = gun.Configuration, Objects = objects };
@@ -101,6 +113,14 @@ public sealed class StarterGame : IDisposable
     public string Id { get; }
     public GameDefinition Definition { get; }
     public string Identity { get; }
+    public SpatialWorld3D SpatialWorld => spatialWorld;
+    public CharacterMove3D? LastMovement { get; private set; }
+    /// <summary>Borrow a backend for this immutable world; its caller owns disposal before the Vulkan plant.</summary>
+    public void UseRayQueries(IRayQueryWorld3D backend)
+    {
+        ArgumentNullException.ThrowIfNull(backend);
+        rayQueries = backend;
+    }
     public GameControls Controls { get; private set; }
     public AurelianAudioRuntime Audio { get; }
     public GameSaveSlots<StarterSnapshot> Saves { get; }
@@ -174,6 +194,7 @@ public sealed class StarterGame : IDisposable
             {
                 Step(commands with { Jump = pendingJump, Reload = pendingReload, Fire = pendingFire || commands.Fire }, 1f / 60);
                 pendingJump = pendingReload = pendingFire = false;
+        LastMovement = null;
             }
         }
         Audio.Update(elapsed);
@@ -297,6 +318,7 @@ public sealed class StarterGame : IDisposable
         pendingJump = snapshot.PendingJump;
         pendingReload = snapshot.PendingReload;
         pendingFire = snapshot.PendingFire;
+        LastMovement = null;
         PersistenceError = null;
     }
 
@@ -336,52 +358,26 @@ public sealed class StarterGame : IDisposable
         yaw = MathF.IEEERemainder(yaw + commands.Turn * seconds * 1.8f, MathF.Tau);
         pitch = Math.Clamp(pitch + commands.Look * seconds * 1.2f, -1.3f, 1.3f);
         bool control = Definition.Has(View == CameraView.FirstPerson ? GameConcept.FirstPersonControl : GameConcept.ThirdPersonControl);
+        Vector3 movement = Vector3.Zero;
         if (control)
         {
-            Vector3 movement = new Vector3(MathF.Sin(yaw), 0, -MathF.Cos(yaw)) * commands.Forward +
+            movement = new Vector3(MathF.Sin(yaw), 0, -MathF.Cos(yaw)) * commands.Forward +
                 new Vector3(MathF.Cos(yaw), 0, MathF.Sin(yaw)) * commands.Strafe;
             if (movement.LengthSquared() > 1)
             {
                 movement = Vector3.Normalize(movement);
             }
-            Vector3 next = position + movement * (seconds * options.MovementSpeed);
-            if (CanStand(next))
-            {
-                position = next;
-            }
-            if (commands.Jump && position.Y == 0)
-            {
-                verticalVelocity = 5;
-            }
         }
-        verticalVelocity -= seconds * 12;
-        position = new(position.X, MathF.Max(0, position.Y + verticalVelocity * seconds), position.Z);
-        if (position.Y == 0)
-        {
-            verticalVelocity = 0;
-        }
+        LastMovement = motor.Step(spatialWorld, new(position, verticalVelocity), movement * options.MovementSpeed,
+            control && commands.Jump, seconds);
+        position = LastMovement.State.Feet;
+        verticalVelocity = LastMovement.State.VerticalVelocity;
         if (Definition.Has(GameConcept.ReloadableGuns) && gun.Step(commands.Fire, commands.Reload, seconds))
         {
             Vector3 origin = position + Vector3.UnitY * 1.6f;
             Vector3 direction = Camera3D.Direction(yaw, pitch);
-            int hit = -1;
-            float closest = float.MaxValue;
-            foreach (StarterObject obstacle in solidGeometry)
-            {
-                if (RayBox(origin, direction, obstacle) is { } distance)
-                {
-                    closest = MathF.Min(closest, distance);
-                }
-            }
-            for (int index = 0; index < objects.Length; index++)
-            {
-                float? distance = RayBox(origin, direction, objects[index]);
-                if (distance is { } value && value < closest)
-                {
-                    closest = value;
-                    hit = index;
-                }
-            }
+            SpatialHit3D? contact = rayQueries.Raycast(new(origin, direction, 80));
+            int hit = contact is null ? -1 : Array.FindIndex(objects, item => item.Id == contact.Value.ColliderId);
             if (hit >= 0 && agents[hit].State > 0)
             {
                 agents[hit].State--;
@@ -392,31 +388,7 @@ public sealed class StarterGame : IDisposable
         }
     }
 
-    private bool CanStand(Vector3 next) => MathF.Abs(next.X) <= 11.5f && MathF.Abs(next.Z) <= 11.5f &&
-        !objects.Concat(solidGeometry).Any(item => MathF.Abs(next.X - item.Position.X) < item.HalfSize.X + 0.3f &&
-            MathF.Abs(next.Z - item.Position.Z) < item.HalfSize.Z + 0.3f);
-
-    private static float? RayBox(Vector3 origin, Vector3 direction, StarterObject item)
-    {
-        Vector3 min = item.Position.ToVector() - item.HalfSize.ToVector();
-        Vector3 max = item.Position.ToVector() + item.HalfSize.ToVector();
-        float near = 0;
-        float far = 80;
-        for (int axis = 0; axis < 3; axis++)
-        {
-            if (MathF.Abs(direction[axis]) < 0.00001f)
-            {
-                if (origin[axis] < min[axis] || origin[axis] > max[axis]) return null;
-                continue;
-            }
-            float a = (min[axis] - origin[axis]) / direction[axis];
-            float b = (max[axis] - origin[axis]) / direction[axis];
-            near = MathF.Max(near, MathF.Min(a, b));
-            far = MathF.Min(far, MathF.Max(a, b));
-            if (far < near) return null;
-        }
-        return near;
-    }
+    private bool CanStand(Vector3 next) => spatialWorld.Overlap(Capsule3D.AtFeet(next)).IsEmpty;
 
     private void ResetWorld()
     {
@@ -431,6 +403,7 @@ public sealed class StarterGame : IDisposable
         gun.Restore(new(gun.Configuration.Capacity, 0, 0, 0));
         scheduler = NewScheduler();
         pendingJump = pendingReload = pendingFire = false;
+        LastMovement = null;
     }
 
     private void ValidateObjects()
@@ -442,9 +415,9 @@ public sealed class StarterGame : IDisposable
             throw new ArgumentException("Starter objects need unique ids, finite geometry, positive sizes and health.");
         }
         Vector3 spawn = scenePlan.Agents.Single(agent => agent.Placement.Id == "player").Placement.Position;
-        if (spawn.Y != 0 || !CanStand(spawn))
+        if (!CanStand(spawn))
         {
-            throw new ArgumentException("Starter player spawn must be on the ground, inside the range and clear of collision.");
+            throw new ArgumentException("Starter player spawn must be clear of collision.");
         }
     }
 
@@ -473,20 +446,19 @@ public sealed class StarterGame : IDisposable
 
     private static StarterObject CollisionBox(string id, Matrix4x4 transform, Vector3 halfSize, int health)
     {
-        if (transform.M12 != 0 || transform.M13 != 0 || transform.M21 != 0 || transform.M23 != 0
-            || transform.M31 != 0 || transform.M32 != 0 || transform.M11 <= 0 || transform.M22 <= 0 || transform.M33 <= 0)
-        {
-            throw new InvalidDataException("The starter's box collision supports translation and positive axis-aligned scaling. Rotated visuals may use Collision.None.");
-        }
+        Vector3 extent = new(
+            MathF.Abs(transform.M11) * halfSize.X + MathF.Abs(transform.M21) * halfSize.Y + MathF.Abs(transform.M31) * halfSize.Z,
+            MathF.Abs(transform.M12) * halfSize.X + MathF.Abs(transform.M22) * halfSize.Y + MathF.Abs(transform.M32) * halfSize.Z,
+            MathF.Abs(transform.M13) * halfSize.X + MathF.Abs(transform.M23) * halfSize.Y + MathF.Abs(transform.M33) * halfSize.Z);
         return new(id, Point3.From(transform.Translation),
-            Point3.From(halfSize * new Vector3(transform.M11, transform.M22, transform.M33)), health);
+            Point3.From(extent), health);
     }
 
     private void ValidateSnapshot(StarterSnapshot snapshot)
     {
-        if (snapshot.Position is null || !snapshot.Position.IsFinite || !CanStand(snapshot.Position.ToVector()) || snapshot.Position.Y < 0 || snapshot.Position.Y > 2 ||
+        if (snapshot.Position is null || !snapshot.Position.IsFinite || !CanStand(snapshot.Position.ToVector()) ||
             !float.IsFinite(snapshot.Yaw) || !float.IsFinite(snapshot.Pitch) || MathF.Abs(snapshot.Pitch) > 1.3f ||
-            !float.IsFinite(snapshot.VerticalVelocity) || MathF.Abs(snapshot.VerticalVelocity) > 6 ||
+            !float.IsFinite(snapshot.VerticalVelocity) ||
             !double.IsFinite(snapshot.Time) || snapshot.Time < 0 || !Enum.IsDefined(snapshot.View) ||
             !Definition.Has(snapshot.View == CameraView.FirstPerson ? GameConcept.FirstPersonCamera : GameConcept.ThirdPersonCamera) ||
             snapshot.ObjectHealth is null || snapshot.ObjectHealth.Count != objects.Length ||
@@ -514,6 +486,7 @@ public sealed class StarterGame : IDisposable
         Screen = next;
         navigation.Reset();
         pendingJump = pendingReload = pendingFire = false;
+        LastMovement = null;
         Controls.Adapter.OnFocusChanged(false);
         Controls.Adapter.OnFocusChanged(true);
     }

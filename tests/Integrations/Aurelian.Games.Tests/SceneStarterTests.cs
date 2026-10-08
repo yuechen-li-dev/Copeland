@@ -59,16 +59,16 @@ public sealed class SceneStarterTests
     }
 
     [Fact]
-    public void RotatedSolidBoxesFailExplicitlyInsteadOfUsingIncorrectCollision()
+    public void RotatedSolidBoxesUseTheirAuthoredFrameForQueries()
     {
         var document = Document();
         var wall = Scene.Box("wall", Vector3.One, Vector4.One, collision: SceneCollision.Solid) with
         {
             Transform = new(new(4, 1, 5), Quaternion.CreateFromAxisAngle(Vector3.UnitY, 0.5f), Vector3.One),
         };
-        Assert.Contains("axis-aligned", Assert.Throws<InvalidDataException>(() =>
-            GameStarter.Create("scene-test", GamePresets.FirstPersonShooter,
-                sceneDocument: document with { Children = document.Children.Add(wall) })).Message);
+        using var solid = GameStarter.Create("scene-test", GamePresets.FirstPersonShooter,
+            sceneDocument: document with { Children = document.Children.Add(wall) });
+        Assert.Equal("wall", solid.SpatialWorld.Raycast(new(new(4, 1, 8), -Vector3.UnitZ, 10))!.Value.ColliderId);
         using var decorative = GameStarter.Create("scene-test", GamePresets.FirstPersonShooter,
             sceneDocument: document with { Children = document.Children.Add(wall with { Collision = SceneCollision.None }) });
         Assert.NotEmpty(decorative.BuildScene());
@@ -132,7 +132,7 @@ public sealed class SceneStarterTests
             Array.Reverse(actors);
         }
         return Scene.World("arena",
-            [Scene.Box("floor", new(24, 0.2f, 24), Vector4.One, at: new(0, -0.1f, 0)), .. actors]);
+            [Scene.Box("floor", new(24, 0.2f, 24), Vector4.One, at: new(0, -0.1f, 0), collision: SceneCollision.Solid), .. actors]);
     }
 
     private static string Json(StarterSnapshot snapshot)

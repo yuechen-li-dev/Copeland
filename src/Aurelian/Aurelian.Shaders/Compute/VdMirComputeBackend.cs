@@ -16,7 +16,10 @@ public sealed record VdMirComputeBackendResult(
     IReadOnlyList<string> DxcArguments,
     bool SpirvValidated,
     string SpirvValidationOutput,
-    string? SpirvDisassembly);
+    string? SpirvDisassembly)
+{
+    public string DxcOutput { get; init; } = "";
+}
 
 public static class VdMirComputeBackend
 {
@@ -28,7 +31,7 @@ public static class VdMirComputeBackend
             new DxcSpirvCompileRequest(
                 hlsl,
                 module.EntryPoint!.EmittedName,
-                "cs_6_0",
+                module.FeatureLevel == "compute.rayquery.m2" ? "cs_6_5" : "cs_6_0",
                 Path.GetFileNameWithoutExtension(module.EntryPoint.Source.File) + ".hlsl"),
             resolution);
 
@@ -52,7 +55,11 @@ public static class VdMirComputeBackend
             compilation.Arguments,
             validated,
             validationOutput,
-            disassembly);
+            disassembly)
+        {
+            DxcOutput = compilation.StandardOutput + Environment.NewLine + compilation.StandardError
+                + Environment.NewLine + string.Join("; ", compilation.Diagnostics.Select(diagnostic => diagnostic.Message)),
+        };
     }
 
     private static (bool Success, string Output) RunSpirvTool(

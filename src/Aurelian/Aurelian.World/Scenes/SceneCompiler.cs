@@ -6,8 +6,21 @@ using System.Text;
 namespace Aurelian.World.Scenes;
 
 public sealed record PlacedSceneBox(string Id, Matrix4x4 WorldTransform, Vector3 HalfSize,
-    Vector4 Color, SceneCollision Collision);
-public sealed record PlacedSceneMesh(string Id, Matrix4x4 WorldTransform, ImmutableArray<SceneVertex> Vertices);
+    Vector4 Color, SceneCollision Collision)
+{
+    public uint CollisionLayer { get; init; } = 1;
+    public uint CollisionMask { get; init; } = uint.MaxValue;
+}
+public sealed record PlacedSceneMesh(string Id, Matrix4x4 WorldTransform, ImmutableArray<SceneVertex> Vertices)
+{
+    public ImmutableArray<int> Indices { get; init; } = [];
+    public SceneCollision Collision { get; init; }
+    public uint CollisionLayer { get; init; } = 1;
+    public uint CollisionMask { get; init; } = uint.MaxValue;
+    public bool ClosedCollision { get; init; }
+    public string? SourceIdentity { get; init; }
+    public ImmutableArray<string?> TriangleFaces { get; init; } = [];
+}
 public sealed record PlacedSceneAgent(SceneAgentNode Node, ScenePlacement Placement);
 
 public sealed class ScenePlan
@@ -35,7 +48,7 @@ public sealed class ScenePlan
     {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
-        writer.Write("aurelian.scene.v1");
+        writer.Write("aurelian.scene.v2");
         writer.Write(Id);
         writer.Write(Identities.Length);
         foreach (string id in Identities)
@@ -50,12 +63,23 @@ public sealed class ScenePlan
             WriteVector(writer, box.HalfSize);
             WriteColor(writer, box.Color);
             writer.Write((int)box.Collision);
+            writer.Write(box.CollisionLayer);
+            writer.Write(box.CollisionMask);
         }
         writer.Write(Meshes.Length);
         foreach (PlacedSceneMesh mesh in Meshes)
         {
             writer.Write(mesh.Id);
             WriteMatrix(writer, mesh.WorldTransform);
+            writer.Write((int)mesh.Collision);
+            writer.Write(mesh.CollisionLayer);
+            writer.Write(mesh.CollisionMask);
+            writer.Write(mesh.ClosedCollision);
+            writer.Write(mesh.SourceIdentity ?? "");
+            writer.Write(mesh.Indices.Length);
+            foreach (int index in mesh.Indices) writer.Write(index);
+            writer.Write(mesh.TriangleFaces.Length);
+            foreach (string? face in mesh.TriangleFaces) writer.Write(face ?? "");
             writer.Write(mesh.Vertices.Length);
             foreach (SceneVertex vertex in mesh.Vertices)
             {
@@ -166,15 +190,28 @@ public static class SceneCompiler
                         break;
                     case SceneBox box:
                         if (!SceneTransform.Finite(box.HalfSize) || box.HalfSize.X <= 0
-                            || box.HalfSize.Y <= 0 || box.HalfSize.Z <= 0 || !Enum.IsDefined(box.Collision))
+                            || box.HalfSize.Y <= 0 || box.HalfSize.Z <= 0 || !Enum.IsDefined(box.Collision)
+                            || box.CollisionLayer == 0)
                         {
                             throw new InvalidDataException($"Invalid box geometry or collision declaration at '{id}'.");
                         }
                         ValidateColor(box.Color);
-                        Boxes.Add(new(id, world, box.HalfSize, box.Color, box.Collision));
+                        Boxes.Add(new(id, world, box.HalfSize, box.Color, box.Collision)
+                        {
+                            CollisionLayer = box.CollisionLayer,
+                            CollisionMask = box.CollisionMask,
+                        });
                         break;
                     case SceneMesh mesh:
-                        if (mesh.Vertices.IsDefaultOrEmpty || mesh.Vertices.Length % 3 != 0)
+                        if (mesh.Indices.IsDefault || mesh.TriangleFaces.IsDefault)
+                        {
+                            throw new InvalidDataException($"Mesh '{id}' has uninitialized index or face collections.");
+                        }
+                        int triangleWords = mesh.Indices.IsEmpty ? mesh.Vertices.Length : mesh.Indices.Length;
+                        if (mesh.Vertices.IsDefaultOrEmpty || triangleWords == 0 || triangleWords % 3 != 0
+                            || mesh.Indices.Any(index => index < 0 || index >= mesh.Vertices.Length)
+                            || !Enum.IsDefined(mesh.Collision) || mesh.CollisionLayer == 0
+                            || (!mesh.TriangleFaces.IsEmpty && mesh.TriangleFaces.Length != triangleWords / 3))
                         {
                             throw new InvalidDataException($"Mesh '{id}' needs complete triangles.");
                         }
@@ -187,7 +224,16 @@ public static class SceneCompiler
                             }
                             ValidateColor(vertex.Color);
                         }
-                        Meshes.Add(new(id, world, mesh.Vertices));
+                        Meshes.Add(new(id, world, mesh.Vertices)
+                        {
+                            Indices = mesh.Indices,
+                            Collision = mesh.Collision,
+                            CollisionLayer = mesh.CollisionLayer,
+                            CollisionMask = mesh.CollisionMask,
+                            ClosedCollision = mesh.ClosedCollision,
+                            SourceIdentity = mesh.SourceIdentity,
+                            TriangleFaces = mesh.TriangleFaces,
+                        });
                         break;
                     case SceneAgentNode agent:
                         var placement = new ScenePlacement(id, agent.Name, world);

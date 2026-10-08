@@ -69,7 +69,7 @@ public static unsafe class VulkanBufferFactory
                 requirements.MemoryTypeBits,
                 plan.MemoryUsage,
                 plan.DebugName,
-                plan.MapOnCreate));
+                plan.MapOnCreate, (plan.Usage & VulkanBufferUsage.ShaderDeviceAddress) != 0));
 
             if (!allocationResult.Success)
             {
@@ -178,6 +178,9 @@ public static unsafe class VulkanBufferFactory
     private static BufferUsageFlags MapUsage(VulkanBufferUsage usage)
     {
         BufferUsageFlags flags = 0;
+        if ((usage & VulkanBufferUsage.ShaderDeviceAddress) != 0) flags |= BufferUsageFlags.ShaderDeviceAddressBit;
+        if ((usage & VulkanBufferUsage.AccelerationStructureStorage) != 0) flags |= BufferUsageFlags.AccelerationStructureStorageBitKhr;
+        if ((usage & VulkanBufferUsage.AccelerationStructureInput) != 0) flags |= BufferUsageFlags.AccelerationStructureBuildInputReadOnlyBitKhr;
         if ((usage & VulkanBufferUsage.Vertex) != 0)
         {
             flags |= BufferUsageFlags.VertexBufferBit;

@@ -93,6 +93,11 @@ public static class GpuComputeBinder
 
                 foreach (FunctionDeclarationSyntax function in tree.Root.Members.OfType<FunctionDeclarationSyntax>())
                 {
+                    if (function.Identifier.Text == "RayQueryTraceClosest")
+                    {
+                        AddDiagnostic("COPE-GPU-RAYQUERY-0003", "SDSL-V4213", "ray-query",
+                            "RayQueryTraceClosest is a compiler-owned command and cannot be redefined.", Span(source.Path, function.Identifier));
+                    }
                     if (!_functions.TryAdd(function.Identifier.Text, new FunctionSource(source.Path, function)))
                     {
                         AddDiagnostic(
@@ -161,7 +166,7 @@ public static class GpuComputeBinder
                     continue;
                 }
 
-                if (type == "storage-buffer<f32>" && binding is not null)
+                if ((type == "storage-buffer<f32>" || type == "acceleration_structure") && binding is not null)
                 {
                     int? bindingIndex = SingleIntegerArgument(binding);
                     VdMirResourceAccess? access = parameter.AccessToken?.Text switch
@@ -170,7 +175,8 @@ public static class GpuComputeBinder
                         "readwrite" => VdMirResourceAccess.Readwrite,
                         _ => null,
                     };
-                    if (bindingIndex is null || bindingIndex < 0 || access is null)
+                    if (bindingIndex is null || bindingIndex < 0 || access is null
+                        || (type == "acceleration_structure" && access != VdMirResourceAccess.Readonly))
                     {
                         AddDiagnostic(
                             "COPE-GPU-RESOURCE-0001",
@@ -183,7 +189,7 @@ public static class GpuComputeBinder
 
                     var resource = new VdMirResource(
                         parameter.Identifier.Text,
-                        "f32",
+                        type == "acceleration_structure" ? "acceleration_structure" : "f32",
                         access.Value,
                         0,
                         bindingIndex.Value,
@@ -275,6 +281,11 @@ public static class GpuComputeBinder
                     case VariableDeclarationStatementSyntax local:
                     {
                         string declaredType = BindType(path, local.Type, local.Identifier);
+                        if (declaredType == "acceleration_structure")
+                        {
+                            AddDiagnostic("COPE-GPU-RAYQUERY-0002", "SDSL-V4213", "ray-query",
+                                "Acceleration structures are bound readonly resources, not copyable local values.", Span(path, local));
+                        }
                         VdMirExpression initializer = BindExpression(path, local.Initializer, scope);
                         if (declaredType != initializer.Type)
                         {
@@ -316,6 +327,13 @@ public static class GpuComputeBinder
                         break;
                     }
                     case ExpressionStatementSyntax expressionStatement:
+                        if (expressionStatement.Expression is CallExpressionSyntax queryCall
+                            && queryCall.Target is NameExpressionSyntax queryName
+                            && queryName.IdentifierToken.Text == "RayQueryTraceClosest")
+                        {
+                            result.Add(BindRayQuery(path, queryCall, scope));
+                            break;
+                        }
                         result.Add(new VdMirStatement(
                             "expression",
                             Span(path, expressionStatement),
@@ -432,6 +450,12 @@ public static class GpuComputeBinder
 
         private VdMirExpression BindCall(string path, CallExpressionSyntax call, Dictionary<string, ValueBinding> scope)
         {
+            if (call.Target is NameExpressionSyntax queryName && queryName.IdentifierToken.Text == "RayQueryTraceClosest")
+            {
+                AddDiagnostic("COPE-GPU-RAYQUERY-0002", "SDSL-V4213", "ray-query",
+                    "RayQueryTraceClosest is statement-only; opaque mutable query state cannot escape as a value.", Span(path, call));
+                return ErrorExpression(path, call);
+            }
             if (call.Target is not NameExpressionSyntax name || !_functions.TryGetValue(name.IdentifierToken.Text, out FunctionSource? function))
             {
                 AddHostOnly(path, call, "host or unresolved call");
@@ -439,6 +463,12 @@ public static class GpuComputeBinder
             }
 
             string returnType = BindType(function.Path, function.Syntax.ReturnType, function.Syntax.Identifier);
+            if (returnType == "acceleration_structure" || function.Syntax.Parameters.Any(parameter =>
+                BindType(function.Path, parameter.Type, parameter.Identifier) == "acceleration_structure"))
+            {
+                AddDiagnostic("COPE-GPU-RAYQUERY-0002", "SDSL-V4213", "ray-query",
+                    "Acceleration structures cannot escape through a helper ABI.", Span(path, call));
+            }
             var arguments = call.Arguments.Select(argument => BindExpression(path, argument, scope)).ToArray();
             if (function.Syntax.Parameters.Count != arguments.Length)
             {
@@ -477,6 +507,33 @@ public static class GpuComputeBinder
             }
 
             return new VdMirExpression("call", returnType, Span(path, call), function.Syntax.Identifier.Text, arguments);
+        }
+
+        // Port of Oct's SDSL-V4211/4212/4213 stateful command boundary. The query
+        // cannot be copied, returned, stored, or invoked through a helper ABI.
+        private VdMirStatement BindRayQuery(string path, CallExpressionSyntax call, Dictionary<string, ValueBinding> scope)
+        {
+            var arguments = call.Arguments.Select(argument => BindExpression(path, argument, scope)).ToArray();
+            bool valid = arguments.Length == 6;
+            VdMirResourceAccess[] access = [VdMirResourceAccess.Readonly, VdMirResourceAccess.Readonly,
+                VdMirResourceAccess.Readonly, VdMirResourceAccess.Readwrite, VdMirResourceAccess.Readonly];
+            for (int index = 0; index < Math.Min(5, arguments.Length); index++)
+            {
+                string expected = index == 0 ? "acceleration_structure" : "storage-buffer<f32>";
+                bool resourceValid = call.Arguments[index] is NameExpressionSyntax name
+                    && scope.TryGetValue(name.IdentifierToken.Text, out ValueBinding? value)
+                    && value.Resource is { } resource && resource.Access == access[index]
+                    && arguments[index].Type == expected;
+                valid &= resourceValid;
+            }
+            valid &= arguments.Length == 6 && arguments[5].Type == "u32";
+            if (!valid)
+            {
+                AddDiagnostic("COPE-GPU-RAYQUERY-0001", "SDSL-V4211", "ray-query",
+                    "RayQueryTraceClosest requires readonly acceleration_structure, readonly sphere/ray/triangle buffers, readwrite output and a u32 dispatch index.", Span(path, call));
+            }
+            return new VdMirStatement("ray-query", Span(path, call),
+                Expression: new VdMirExpression("intrinsic", "void", Span(path, call), "RayQueryTraceClosest", arguments));
         }
 
         private VdMirExpression BindBinary(string path, BinaryExpressionSyntax binary, Dictionary<string, ValueBinding> scope)
@@ -530,7 +587,7 @@ public static class GpuComputeBinder
         {
             string? result = type switch
             {
-                IdentifierTypeSyntax identifier when identifier.Identifier.Text is "f32" or "u32" or "bool" or "uint3" => identifier.Identifier.Text,
+                IdentifierTypeSyntax identifier when identifier.Identifier.Text is "f32" or "u32" or "bool" or "uint3" or "acceleration_structure" => identifier.Identifier.Text,
                 PredefinedTypeSyntax predefined when predefined.Keyword.Kind == SyntaxKind.VoidKeyword => "void",
                 IdentifierTypeSyntax identifier when identifier.Identifier.Text == "void" => "void",
                 GenericTypeSyntax generic when generic.Identifier.Text == "StorageBuffer"
@@ -590,7 +647,7 @@ public static class GpuComputeBinder
             return new VdMirComputeModule(
                 VdMirComputeModule.CurrentSchema,
                 VdMirComputeModule.CanonicalConformanceSchema,
-                VdMirComputeModule.ComputeM1FeatureLevel,
+                _resources.Any(resource => resource.ElementType == "acceleration_structure") ? "compute.rayquery.m2" : VdMirComputeModule.ComputeM1FeatureLevel,
                 _request.Sources.Select(source => source.Path).Distinct(StringComparer.Ordinal).OrderBy(path => path, StringComparer.Ordinal).ToArray(),
                 types,
                 _resources.OrderBy(resource => resource.Set).ThenBy(resource => resource.Binding).ThenBy(resource => resource.Name, StringComparer.Ordinal).ToArray(),

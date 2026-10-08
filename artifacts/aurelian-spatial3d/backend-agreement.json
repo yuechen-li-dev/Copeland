@@ -1,0 +1,7 @@
+{
+  "outcome": "Success",
+  "finalByteIdentical": true,
+  "sha256": "b3e2e038904dab7dd564d21c524e2f2c2e1743dc22926e603015f74cad9424f2",
+  "cpu": "room-headless/final.json",
+  "gpu": "room-native/final.json"
+}

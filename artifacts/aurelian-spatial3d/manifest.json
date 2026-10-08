@@ -1,0 +1,369 @@
+{
+  "schema": "aurelian.spatial3d.qualification.v1",
+  "outcome": "Success",
+  "capabilities": [
+    "authored indexed collision",
+    "BVH rays",
+    "capsule and sphere overlap/sweep",
+    "bounded sweep and slide",
+    "grounded movement, slopes, ceilings, jump and falling",
+    "symmetric uint32 collision filters",
+    "optional retained Vulkan ray queries",
+    "build-time Aetheris room bake"
+  ],
+  "ownership": {
+    "queries": "Aurelian.Spatial3D",
+    "movementState": "game-owned typed agents and existing cadence",
+    "assets": "Aetheris source and explicitly selected collision roles",
+    "compiler": "Copeland binder -> VD-MIR -> Aurelian HLSL/DXC/SPIR-V",
+    "vulkan": "existing Aurelian plant, allocator and submission",
+    "saves": "Deliverance"
+  },
+  "build": {
+    "command": "dotnet build Aurelian.slnx -c Release -m:1 --nologo -v:q",
+    "exitCode": 0
+  },
+  "tests": {
+    "aurelian": {
+      "passed": 909,
+      "failed": 0,
+      "skipped": 0,
+      "results": [
+        {
+          "assembly": "Aurelian.Beacon3D.Tests.dll",
+          "passed": 25,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131744.trx"
+        },
+        {
+          "assembly": "Sunkill.Tests.dll",
+          "passed": 27,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131745.trx"
+        },
+        {
+          "assembly": "Aurelian.Actuation.Tests.dll",
+          "passed": 54,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131746.trx"
+        },
+        {
+          "assembly": "Aurelian.Assets.Tests.dll",
+          "passed": 23,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131747.trx"
+        },
+        {
+          "assembly": "Aurelian.AssetTool.Tests.dll",
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131748.trx"
+        },
+        {
+          "assembly": "Aurelian.Audio.Tests.dll",
+          "passed": 15,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131749.trx"
+        },
+        {
+          "assembly": "Aurelian.Cli.Tests.dll",
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131750.trx"
+        },
+        {
+          "assembly": "Aurelian.Composition.Tests.dll",
+          "passed": 10,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131751.trx"
+        },
+        {
+          "assembly": "Aurelian.Core.Tests.dll",
+          "passed": 60,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131752.trx"
+        },
+        {
+          "assembly": "Aurelian.Effects2D.Tests.dll",
+          "passed": 14,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131753.trx"
+        },
+        {
+          "assembly": "Aurelian.GameHost.Tests.dll",
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131754.trx"
+        },
+        {
+          "assembly": "Aurelian.Graphics.Tests.dll",
+          "passed": 272,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131807.trx"
+        },
+        {
+          "assembly": "Aurelian.Rendering.Contracts.Tests.dll",
+          "passed": 35,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131808.trx"
+        },
+        {
+          "assembly": "Aurelian.Rendering.Null.Tests.dll",
+          "passed": 6,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131809.trx"
+        },
+        {
+          "assembly": "Aurelian.Rendering.Raster.Tests.dll",
+          "passed": 19,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131810.trx"
+        },
+        {
+          "assembly": "Aurelian.Runtime.Tests.dll",
+          "passed": 41,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131811.trx"
+        },
+        {
+          "assembly": "Aurelian.Shaders.Tests.dll",
+          "passed": 157,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131812.trx"
+        },
+        {
+          "assembly": "Aurelian.Simulation.Tests.dll",
+          "passed": 14,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131813.trx"
+        },
+        {
+          "assembly": "Aurelian.Spatial2D.Tests.dll",
+          "passed": 27,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131814.trx"
+        },
+        {
+          "assembly": "Aurelian.Spatial3D.Tests.dll",
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131815.trx"
+        },
+        {
+          "assembly": "Aurelian.Strategy.Tests.dll",
+          "passed": 9,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131816.trx"
+        },
+        {
+          "assembly": "Aurelian.World.Tests.dll",
+          "passed": 37,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131817.trx"
+        },
+        {
+          "assembly": "Aurelian.GameMenus.Tests.dll",
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131818.trx"
+        },
+        {
+          "assembly": "Aurelian.Games.Tests.dll",
+          "passed": 24,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131819.trx"
+        },
+        {
+          "assembly": "Aurelian.GameWorld2D.Tests.dll",
+          "passed": 11,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131820.trx"
+        },
+        {
+          "assembly": "Aurelian.Profile.Graphics.Tests.dll",
+          "passed": 4,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/tests-qualified/qualified_net10.0_20261008131821.trx"
+        }
+      ]
+    },
+    "copelandTS": {
+      "passed": 1394,
+      "failed": 0,
+      "skipped": 0,
+      "results": [
+        {
+          "assembly": "Copeland.TS.Tests.dll",
+          "passed": 1394,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/compiler-tests-final/final_net10.0_20261008131122.trx"
+        }
+      ]
+    },
+    "sourceGeneratedAssetAndSaves": {
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0,
+      "results": [
+        {
+          "assembly": "Aurelian.Games.Tests.dll",
+          "passed": 24,
+          "failed": 0,
+          "skipped": 0,
+          "trx": "artifacts/aurelian-spatial3d/reflection-disabled-tests/reflection-disabled_net10.0_20261008131945.trx"
+        }
+      ]
+    },
+    "finalAffectedPackageChecks": [
+      {
+        "trx": "artifacts/aurelian-spatial3d/readability-checks/filter-default_net10.0_20261008132227.trx",
+        "passed": 8
+      },
+      {
+        "trx": "artifacts/aurelian-spatial3d/readability-checks/readability_net10.0_20261008132042.trx",
+        "passed": 8
+      },
+      {
+        "trx": "artifacts/aurelian-spatial3d/readability-checks/readability_net10.0_20261008132045.trx",
+        "passed": 157
+      }
+    ]
+  },
+  "room": {
+    "source": "../Aetheris/fixtures/Canonical/Scene/room.firmament",
+    "sourceSha256": "FD740146E4A8E243C463AC1A43B72F39DFC77667D022A98DA438B0154B1C1896",
+    "asset": "Games/Starter/Aurelian.Starter/Assets/room.aurelian.json",
+    "assetSha256": "1821d5b3e39f8d7944a2af9ce62a642ce74ed98efff01654c51f7948a446e1e9",
+    "rebakeByteIdentical": true,
+    "definitions": 11,
+    "occurrences": 17,
+    "solidOccurrences": 17,
+    "triangles": 204,
+    "representation": "planar-exact rectangular boundaries; no curved surface approximation",
+    "nativeGpuAndHeadlessCpuFinalByteIdentical": true,
+    "finalSha256": "b3e2e038904dab7dd564d21c524e2f2c2e1743dc22926e603015f74cad9424f2",
+    "nativeFinal": "room-native/final.json",
+    "headlessFinal": "room-headless/final.json",
+    "gpuDispatches": 8,
+    "assertions": [
+      "hits 3",
+      "jump and landing",
+      "wall blocking",
+      "Deliverance save/load",
+      "input replay rewind",
+      "mouse look and view switching"
+    ],
+    "captures": [
+      "room-native/room-first-person.png",
+      "room-native/room-third-person.png"
+    ],
+    "interactiveHostSmokeFrames": 4
+  },
+  "hardware": {
+    "Device": "NVIDIA GeForce RTX 3070",
+    "SourceSha256": "FD740146E4A8E243C463AC1A43B72F39DFC77667D022A98DA438B0154B1C1896",
+    "ColliderCount": 17,
+    "RayCount": 4096,
+    "Mismatches": 0,
+    "ShaderSha256": "717cc55b710384ba0fe1185a82eaeec339550d9f6ac00f6b8cc09330c1c8903b",
+    "BlasAddress": 146604032,
+    "TlasAddress": 127401984,
+    "DispatchCount": 12,
+    "CpuMilliseconds": 237.1862,
+    "GpuMilliseconds": 30.6047,
+    "DoorwayExitZ": -1.0000019,
+    "WallBlocked": true,
+    "AnalyticSpherePassed": true,
+    "FullWidthFilteringAndStableTiesPassed": true,
+    "ValidationLayers": [
+      "VK_LAYER_KHRONOS_validation"
+    ],
+    "SharedTriangleEdgeSurfaceAgreementPassed": true
+  },
+  "hardwareProof": "native-proof/proof.json",
+  "timingScope": "10 batches of 4096 room rays; scalar CPU versus batched GPU including upload/readback; warm static acceleration structures; single-ray speedup and general scene performance are unqualified",
+  "beacon": {
+    "proof": "beacon-native/proof.json",
+    "waves": 3,
+    "kills": 9,
+    "collected": 3,
+    "won": true,
+    "framesPresented": 3681,
+    "rayQueryExtensionEnabled": true
+  },
+  "vulkanValidation": {
+    "layers": [
+      "VK_LAYER_KHRONOS_validation"
+    ],
+    "checkedLogs": [
+      "room-native/run.log",
+      "beacon-native/run.log",
+      "native-proof/run.log",
+      "host-smoke.log"
+    ],
+    "reportedValidationErrors": 0,
+    "scope": "process logs inspected for Validation Error and VUID; not a debug-callback counter"
+  },
+  "reuse": {
+    "oct": [
+      "internal/prometheus/native/reactor_vulkan_ray_query.c",
+      "internal/prometheus/native/reactor_vulkan_ray_query_raw_hit_spirv.hlsl",
+      "internal/prometheus/shaders/sdslv/production/rayquery/ray_query_raw_hit.sdslv",
+      "internal/sdslv/emit/hlsl/hlsl.go"
+    ],
+    "aetheris": [
+      "FirmamentSceneSession/CompiledScene.Display",
+      "BrepPicker triangle intersection",
+      "Reconstruction/TriangleBvh closest point"
+    ]
+  },
+  "dependencyBoundaries": {
+    "newViolations": 0,
+    "preExistingViolations": 7,
+    "baseline": "artifacts/aurelian-game-starter-m0/boundary-baseline.json"
+  },
+  "limits": [
+    "General trimmed BRep rays/capsule contact/sweeps are not implemented. The representation-neutral query interface preserves that path.",
+    "Curved/trimmed mesh collision needs explicit --allow-mesh-approximation; it is a surface approximation, not exact BRep.",
+    "GPU shared triangle edges can select a different adjacent primitive/face than CPU; the dedicated edge proof checks semantic collider, distance and normal.",
+    "GPU worlds are static; collider changes require an explicit rebuild. Native games opt in with --gpu-rays; unsupported hardware uses CPU.",
+    "Character sweeps run on CPU. No rigid-body/vehicle solver, step climbing, camera obstruction policy, or arbitrary depenetration was added."
+  ],
+  "validationCommands": [
+    "dotnet build Aurelian.slnx -c Release -m:1 --nologo -v:q",
+    "AURELIAN_NAGA=<repo toolchain>/naga.exe; dotnet test Aurelian.slnx -c Release --no-build -m:1",
+    "dotnet test tests/Copeland/Copeland.TS.Tests/Copeland.TS.Tests.csproj -c Release -m:1",
+    "dotnet test tests/Integrations/Aurelian.Games.Tests/Aurelian.Games.Tests.csproj -c Release -m:1 -p:JsonSerializerIsReflectionEnabledByDefault=false",
+    "dotnet run --project tools/Aurelian.Spatial3DProof -c Release -- Games/Starter/Aurelian.Starter/Assets/room.aurelian.json artifacts/aurelian-spatial3d/native-proof",
+    "starter.cmd --aetheris-room --gpu-rays --playtest-script Games/Starter/Playtests/room-proof.json --output artifacts/aurelian-spatial3d/room-native --save-root artifacts/aurelian-spatial3d/room-native-saves",
+    "dotnet Games/Beacon3D/Aurelian.Beacon3D/bin/Release/net10.0/Aurelian.Beacon3D.dll --proof --gpu-rays --output artifacts/aurelian-spatial3d/beacon-native",
+    "starter.cmd --aetheris-room --gpu-rays --launch-smoke"
+  ]
+}

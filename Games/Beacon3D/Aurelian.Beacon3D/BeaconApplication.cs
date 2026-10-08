@@ -1,4 +1,5 @@
 using Aurelian.GameMenus;
+using Aurelian.Spatial3D;
 
 namespace Aurelian.Beacon3D;
 
@@ -16,7 +17,15 @@ public enum BeaconScreen
 public sealed class BeaconApplication(int traceCapacity = 0) : IDisposable
 {
     private readonly GameMenuNavigation navigation = new();
+    private IRayQueryWorld3D? rayQueries;
     private BeaconScreen returnScreen = BeaconScreen.Title;
+
+    public void UseRayQueries(IRayQueryWorld3D backend)
+    {
+        ArgumentNullException.ThrowIfNull(backend);
+        rayQueries = backend;
+        Game.UseRayQueries(backend);
+    }
 
     public BeaconGame Game { get; private set; } = new(traceCapacity: traceCapacity);
     public BeaconScreen Screen { get; private set; } = BeaconScreen.Title;
@@ -90,6 +99,7 @@ public sealed class BeaconApplication(int traceCapacity = 0) : IDisposable
             case "restart":
                 Game.Dispose();
                 Game = new BeaconGame(traceCapacity: traceCapacity);
+                if (rayQueries is not null) Game.UseRayQueries(rayQueries);
                 SetScreen(BeaconScreen.Playing);
                 break;
             case "resume":

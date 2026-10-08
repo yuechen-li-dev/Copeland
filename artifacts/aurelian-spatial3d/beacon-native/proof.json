@@ -1,0 +1,124 @@
+{
+  "schema": "aurelian.beacon3d.proof.v1",
+  "outcome": "Success",
+  "gpu": {
+    "PlantId": {
+      "Value": 0
+    },
+    "PhysicalDeviceName": "NVIDIA GeForce RTX 3070",
+    "DeviceType": "DiscreteGpu",
+    "ApiVersion": 4211017,
+    "DriverVersion": 2500395008,
+    "VendorId": 4318,
+    "DeviceId": 9352,
+    "QueueFamilyIndex": 0,
+    "TimelineSemaphores": true,
+    "EnabledInstanceExtensions": [
+      "VK_KHR_surface",
+      "VK_KHR_win32_surface",
+      "VK_EXT_debug_utils"
+    ],
+    "EnabledDeviceExtensions": [
+      "VK_KHR_acceleration_structure",
+      "VK_KHR_ray_query",
+      "VK_KHR_deferred_host_operations",
+      "VK_KHR_swapchain"
+    ],
+    "EnabledValidationLayers": [
+      "VK_LAYER_KHRONOS_validation"
+    ]
+  },
+  "camera": "GPU world-to-clip rows; perspective; near=0.1, far=80; Vulkan depth [0,1]",
+  "depthFormat": "D32_SFLOAT",
+  "depthProof": {
+    "orderIndependentWithDepth": true,
+    "orderDependentWithoutDepth": true,
+    "nearOccludesFar": true,
+    "cameraUniformChangesPixels": true,
+    "greenPixels": 99856,
+    "redPixels": 18384,
+    "enabledHash": "235f9fd70733245a5826cab76f523e5944fed218bae8ab9f67ce8e7cba579ad2",
+    "disabledHash": "4d0d78242e6c34377e2d60ab05031b7c5c4083c3dc4a324e01256491262123fa",
+    "movedCameraHash": "1f9632cac0c73b79c8074c8172218a33548580a67f2ff014ece4b8c39873ffb8"
+  },
+  "fpsProof": {
+    "accumulatedMouseDeltas": true,
+    "mouseDeltaConsumedOnce": true,
+    "nativeCaptureTransitions": true,
+    "WavesCleared": 3,
+    "Kills": 9,
+    "Shots": 24,
+    "Health": 100,
+    "AgentTicks": 3543,
+    "ActiveCreatureBrains": 0,
+    "ticks": 2376,
+    "characterAgents": 1,
+    "objectAgents": 3,
+    "creatureAgents": 4
+  },
+  "menuProof": {
+    "bootedToTitle": true,
+    "inputManNavigation": true,
+    "renderedButtonPointerActivation": true,
+    "mismatchedReleaseCancelled": true,
+    "controlsReturnsToOrigin": true,
+    "gameStateFrozenInMenus": true,
+    "focusLossCancelsPointer": true,
+    "confirmDoesNotLeakIntoJump": true,
+    "retainedFontUploads": 3,
+    "titleHash": "20212e5f23638eff5e342c5e82919afbface05047c97dbc1c316f06ee00a3d4d",
+    "pauseHash": "d036108b4b038ee241db0924a787e318f857ed7bf37bab8b0d74c80598603cfe"
+  },
+  "repeatedInitialFrame": true,
+  "framesPresented": 3681,
+  "captureCount": 10,
+  "gameTimeSeconds": 61.349236,
+  "collected": 3,
+  "Won": true,
+  "inputAuthority": "InputMan bindings via AurelianInputAdapter; scripted physical key snapshots and native SilkInputBridge use the same path",
+  "trace": [
+    {
+      "tick": 251,
+      "x": -6.9775825,
+      "z": 4.066748,
+      "collected": 1,
+      "Won": false,
+      "PixelSha256": "9cb3c0c0c9753d658f7a2053f260d4bc7ecd39de2d930f99d27cb3f1a4d8c386"
+    },
+    {
+      "tick": 565,
+      "x": -0.4647708,
+      "z": -7.984701,
+      "collected": 2,
+      "Won": false,
+      "PixelSha256": "26001515c1d709716b577da650bef4db68e2972ce8ee0276f6028ecb05bce468"
+    },
+    {
+      "tick": 930,
+      "x": 6.99923,
+      "z": 0.54546285,
+      "collected": 3,
+      "Won": false,
+      "PixelSha256": "0676f597d4807c1d3533cc6279c6206e798819043e89827df8a5b3fefb410268"
+    },
+    {
+      "tick": 1300,
+      "x": 1.1343064,
+      "z": -9.832409,
+      "collected": 3,
+      "Won": true,
+      "PixelSha256": "8de3f1ee19071f2dcd9725f02baf7ea3d3e6487bc2d9e98134c502ae87ce028b"
+    }
+  ],
+  "shader": {
+    "VdMirSha256": "f3ee0ba71126c19ad06913ecaab4863030383049de5a53bc4eb8d0aea4dfa03f",
+    "HlslSha256": "b5b0c12d37aa22b8e5aa2fb258ea0a7708d9d5528d873a6878d250db9b52875b",
+    "SpirvSha256": "317f9ba9a9fbbf80ba23e5e1e6f2735e8340af82e902efb0e3366cf4d145ed0f",
+    "pixelSpirvSha256": "87fed603416c195b3fae263e9888926e412fb0ae27858f85aad0284a763eeb9f"
+  },
+  "validationLayers": [
+    "VK_LAYER_KHRONOS_validation"
+  ],
+  "validationNote": "Layer availability is recorded; this sample does not count debug-messenger callbacks. Vulkan results and pixel assertions are enforced.",
+  "boundaries": "Geometric FPS with InputMan mouse deltas and authored agents; fixed-size window. No mesh import, shadows, animation rigs, or general 3D physics engine."
+}

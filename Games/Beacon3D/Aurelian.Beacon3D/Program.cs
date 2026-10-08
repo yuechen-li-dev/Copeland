@@ -65,7 +65,11 @@ window.Initialize();
 using IInputContext input = window.CreateInput();
 using var controls = new BeaconControls();
 using var app = new BeaconApplication();
-using var graphics = new NativeGameGraphics(window, "Beacon Run", visible);
+bool gpuRays = args.Contains("--gpu-rays", StringComparer.Ordinal);
+using var graphics = new NativeGameGraphics(window, "Beacon Run", visible, enableRayQueries: gpuRays);
+using var rayQueries = gpuRays && graphics.Plant.Facts.EnabledDeviceExtensions.Contains("VK_KHR_ray_query", StringComparer.Ordinal)
+    ? GameRayQueries.Create(graphics.Plant, app.Game.SpatialWorld) : null;
+if (rayQueries is not null) app.UseRayQueries(rayQueries);
 var font = graphics.Font;
 var menuView = new GameMenuView(font);
 var hud = new BeaconHud(font);
@@ -98,6 +102,7 @@ if (playtesting)
     using var playtestTarget = new BeaconPlaytestTarget(new GameMenuView(font), (int)target.Width, (int)target.Height,
         (application, capturePath) =>
         {
+            if (rayQueries is not null) application.UseRayQueries(rayQueries);
             window.DoEvents();
             Require(!window.IsClosing, "Playtest window closed before completion.");
             Native3DFrameResult frame = RenderGame(application, capturePath is not null);

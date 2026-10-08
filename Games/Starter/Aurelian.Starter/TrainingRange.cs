@@ -12,7 +12,7 @@ internal static class TrainingRange
 
         return Scene.World("training-range",
         [
-            Scene.Box("floor", new Vector3(24, 0.2f, 24), new(0.2f, 0.3f, 0.35f, 1), at: new(0, -0.1f, 0)),
+            Scene.Box("floor", new Vector3(24, 0.2f, 24), new(0.2f, 0.3f, 0.35f, 1), at: new(0, -0.1f, 0), collision: SceneCollision.Solid),
             Scene.Agent("player", new StarterPlayerDefinition(), at: new(0, 0, 7), name: "Player"),
             Scene.Instance("left", checkpoint, at: new(-3, 0, -4)),
             Scene.Instance("right", checkpoint, at: new(3, 0, -4)),

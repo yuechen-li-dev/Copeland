@@ -158,6 +158,20 @@ public static unsafe class VulkanPlantInitializer
             }
 
             List<string> enabledDeviceExtensions = [];
+            if (options.EnableRayQueries)
+            {
+                string[] required = ["VK_KHR_acceleration_structure", "VK_KHR_ray_query", "VK_KHR_deferred_host_operations"];
+                if (selected.ApiVersion < Vk.Version13 || required.Any(extension =>
+                    !IsDeviceExtensionAvailable(vk, selected.PhysicalDevice, extension)) || !QueryRayQueries(vk, selected.PhysicalDevice))
+                {
+                    vk.DestroyInstance(instance, (AllocationCallbacks*)null);
+                    vk.Dispose();
+                    return ResultWith(VulkanInitStatus.Unavailable, diagnostics,
+                        VulkanInitDiagnosticCodes.RequiredExtensionMissing, VulkanInitDiagnosticSeverity.Error,
+                        "Optional hardware ray queries require Vulkan 1.3, buffer device address, acceleration structure and ray query features.", plantId);
+                }
+                enabledDeviceExtensions.AddRange(required);
+            }
             if (options.EnablePresentation)
             {
                 if (!IsDeviceExtensionAvailable(vk, selected.PhysicalDevice, KhrSwapchain.ExtensionName))
@@ -319,12 +333,30 @@ public static unsafe class VulkanPlantInitializer
             SType = StructureType.PhysicalDeviceTimelineSemaphoreFeatures,
             TimelineSemaphore = options.RequireTimelineSemaphores && selected.TimelineSemaphores,
         };
+        PhysicalDeviceRayQueryFeaturesKHR rayFeatures = new()
+        {
+            SType = StructureType.PhysicalDeviceRayQueryFeaturesKhr,
+            RayQuery = true,
+        };
+        PhysicalDeviceAccelerationStructureFeaturesKHR accelerationFeatures = new()
+        {
+            SType = StructureType.PhysicalDeviceAccelerationStructureFeaturesKhr,
+            AccelerationStructure = true,
+            PNext = &rayFeatures,
+        };
+        PhysicalDeviceBufferDeviceAddressFeatures addressFeatures = new()
+        {
+            SType = StructureType.PhysicalDeviceBufferDeviceAddressFeatures,
+            BufferDeviceAddress = true,
+            PNext = &accelerationFeatures,
+        };
+        if (options.EnableRayQueries) timelineFeatures.PNext = &addressFeatures;
 
         using var extensionNames = SilkMarshal.StringArrayToMemory(enabledDeviceExtensions, NativeStringEncoding.UTF8);
         DeviceCreateInfo createInfo = new()
         {
             SType = StructureType.DeviceCreateInfo,
-            PNext = options.RequireTimelineSemaphores ? &timelineFeatures : null,
+            PNext = options.RequireTimelineSemaphores ? &timelineFeatures : options.EnableRayQueries ? &addressFeatures : null,
             QueueCreateInfoCount = 1,
             PQueueCreateInfos = &queueCreateInfo,
             EnabledExtensionCount = (uint)enabledDeviceExtensions.Count,
@@ -332,6 +364,24 @@ public static unsafe class VulkanPlantInitializer
         };
 
         return vk.CreateDevice(selected.PhysicalDevice, &createInfo, null, out device);
+    }
+
+    private static bool QueryRayQueries(Vk vk, PhysicalDevice physicalDevice)
+    {
+        PhysicalDeviceRayQueryFeaturesKHR ray = new() { SType = StructureType.PhysicalDeviceRayQueryFeaturesKhr };
+        PhysicalDeviceAccelerationStructureFeaturesKHR acceleration = new()
+        {
+            SType = StructureType.PhysicalDeviceAccelerationStructureFeaturesKhr,
+            PNext = &ray,
+        };
+        PhysicalDeviceBufferDeviceAddressFeatures address = new()
+        {
+            SType = StructureType.PhysicalDeviceBufferDeviceAddressFeatures,
+            PNext = &acceleration,
+        };
+        PhysicalDeviceFeatures2 features = new() { SType = StructureType.PhysicalDeviceFeatures2, PNext = &address };
+        vk.GetPhysicalDeviceFeatures2(physicalDevice, &features);
+        return address.BufferDeviceAddress && acceleration.AccelerationStructure && ray.RayQuery;
     }
 
 

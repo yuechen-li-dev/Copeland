@@ -113,9 +113,15 @@ public sealed unsafe class RawVulkanMemoryAllocator : IVulkanMemoryAllocator
                 return new VulkanAllocationResult(VulkanMemoryAllocatorStatus.Rejected, null, diagnostics);
             }
 
+            MemoryAllocateFlagsInfo flags = new()
+            {
+                SType = StructureType.MemoryAllocateFlagsInfo,
+                Flags = MemoryAllocateFlags.DeviceAddressBit,
+            };
             MemoryAllocateInfo allocateInfo = new()
             {
                 SType = StructureType.MemoryAllocateInfo,
+                PNext = request.DeviceAddress ? &flags : null,
                 AllocationSize = request.SizeBytes,
                 MemoryTypeIndex = memoryTypeIndex,
             };

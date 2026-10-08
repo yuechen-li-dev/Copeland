@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AetherisRepository Condition="'$(AetherisRepository)' == ''">$(MSBuildThisFileDirectory)../../../Aetheris</AetherisRepository>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(AetherisRepository)/Aetheris.Kernel.Firmament/Aetheris.Kernel.Firmament.csproj" />
+    <ProjectReference Include="../../src/Integrations/Aurelian.Aetheris/Aurelian.Aetheris.csproj" />
+  </ItemGroup>
+</Project>

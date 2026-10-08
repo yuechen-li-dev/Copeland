@@ -1,4 +1,5 @@
 using Aurelian.Combat;
+using Aurelian.Spatial3D;
 using System.Numerics;
 using Aurelian.World.Agents;
 using Aurelian.Runtime.Inspection;
@@ -70,7 +71,7 @@ public sealed partial class BeaconGame
     private void SetPlayerPosition(Vector2 position)
     {
         var player = agents["runner"];
-        player.State = player.State with { Position = new(position.X, 0, position.Y) };
+        player.State = player.State with { Position = new(position.X, Height, position.Y) };
     }
 
     private void Collect(int index)
@@ -182,7 +183,8 @@ public sealed partial class BeaconGame
             Vector3 segment = end - bolt.Position;
             float length = segment.Length();
             Vector3 direction = segment / length;
-            float nearest = WorldHit(bolt.Position, direction, length);
+            float nearest = (rayQueries ?? SpatialWorld).Raycast(new(bolt.Position, direction, length))?.Distance
+                ?? float.PositiveInfinity;
             GameAgent<BeaconAgentState>? victim = null;
             foreach (var creature in Creatures.Where(agent => agent.State.Health > 0))
             {
@@ -216,72 +218,11 @@ public sealed partial class BeaconGame
 
     public static float RaySphere(Vector3 origin, Vector3 direction, Vector3 center, float radius)
     {
-        Vector3 offset = origin - center;
-        float b = Vector3.Dot(offset, direction);
-        float c = offset.LengthSquared() - radius * radius;
-        if (c <= 0)
-        {
-            return 0;
-        }
-        float discriminant = b * b - c;
-        if (discriminant < 0)
-        {
-            return float.PositiveInfinity;
-        }
-        float distance = -b - MathF.Sqrt(discriminant);
-        return distance >= 0 ? distance : float.PositiveInfinity;
+        return SpatialWorld3D.RaySphere(origin, direction, center, radius);
     }
 
     public static float WorldHit(Vector3 origin, Vector3 direction, float maximum)
     {
-        float result = float.PositiveInfinity;
-        foreach (ArenaPillar pillar in Pillars)
-        {
-            Vector3 minimum = new(pillar.Center.X - pillar.HalfSize.X, 0, pillar.Center.Y - pillar.HalfSize.Y);
-            Vector3 maximumPoint = new(pillar.Center.X + pillar.HalfSize.X, pillar.Height, pillar.Center.Y + pillar.HalfSize.Y);
-            result = MathF.Min(result, RayBox(origin, direction, minimum, maximumPoint));
-            Vector3 capMinimum = new(minimum.X - 0.15f, pillar.Height, minimum.Z - 0.15f);
-            Vector3 capMaximum = new(maximumPoint.X + 0.15f, pillar.Height + 0.16f, maximumPoint.Z + 0.15f);
-            result = MathF.Min(result, RayBox(origin, direction, capMinimum, capMaximum));
-        }
-        if (direction.Y < 0)
-        {
-            result = MathF.Min(result, -origin.Y / direction.Y);
-        }
-        Vector3 end = origin + direction * maximum;
-        if (MathF.Abs(end.X) > 11 || MathF.Abs(end.Z) > 11)
-        {
-            // Boundary crossing terminates a bolt even above the low arena wall.
-            result = MathF.Min(result, maximum);
-        }
-        return result;
-    }
-
-    private static float RayBox(Vector3 origin, Vector3 direction, Vector3 minimum, Vector3 maximum)
-    {
-        float near = 0;
-        float far = float.PositiveInfinity;
-        for (int axis = 0; axis < 3; axis++)
-        {
-            float component = direction[axis];
-            if (MathF.Abs(component) < 0.00001f)
-            {
-                if (origin[axis] < minimum[axis] || origin[axis] > maximum[axis])
-                {
-                    return float.PositiveInfinity;
-                }
-                continue;
-            }
-            float a = (minimum[axis] - origin[axis]) / component;
-            float b = (maximum[axis] - origin[axis]) / component;
-            near = MathF.Max(near, MathF.Min(a, b));
-            far = MathF.Min(far, MathF.Max(a, b));
-            if (near > far)
-            {
-                return float.PositiveInfinity;
-            }
-        }
-        return near;
+        return ArenaQueries.Value.Raycast(new(origin, direction, maximum))?.Distance ?? float.PositiveInfinity;
     }
 }
-

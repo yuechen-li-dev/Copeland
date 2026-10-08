@@ -125,3 +125,15 @@ artifacts/scene-composition-m0/starter-native/
 artifacts/scene-composition-m0/**/trace.jsonl
 artifacts/scene-composition-m0/**/*.log
 artifacts/scene-composition-m0/**/solid3d.hlsl
+
+# Shared 3D qualification: retain summaries, shaders and captures, excluding local runner data.
+artifacts/aurelian-spatial3d/tests*/
+artifacts/aurelian-spatial3d/compiler-tests*/
+artifacts/aurelian-spatial3d/reflection-disabled-tests/
+artifacts/aurelian-spatial3d/readability-checks/
+artifacts/aurelian-spatial3d/room-*-saves/
+artifacts/aurelian-spatial3d/**/trace.jsonl
+artifacts/aurelian-spatial3d/**/inputs.json
+artifacts/aurelian-spatial3d/**/script.json
+artifacts/aurelian-spatial3d/**/*.log
+artifacts/aurelian-spatial3d/room-rebaked.json

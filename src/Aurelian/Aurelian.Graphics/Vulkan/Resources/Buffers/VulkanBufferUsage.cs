@@ -10,4 +10,7 @@ public enum VulkanBufferUsage
     Storage = 1 << 3,
     TransferSource = 1 << 4,
     TransferDestination = 1 << 5,
+    ShaderDeviceAddress = 1 << 6,
+    AccelerationStructureStorage = 1 << 7,
+    AccelerationStructureInput = 1 << 8,
 }

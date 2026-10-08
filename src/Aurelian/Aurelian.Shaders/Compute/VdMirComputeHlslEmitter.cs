@@ -14,16 +14,30 @@ public static class VdMirComputeHlslEmitter
         }
 
         var builder = new StringBuilder();
-        builder.AppendLine("// Generated from canonical VD-MIR compute.m1. Do not edit.");
+        builder.AppendLine($"// Generated from canonical VD-MIR {module.FeatureLevel}. Do not edit.");
         builder.AppendLine();
         foreach (VdMirResource resource in module.Resources)
         {
-            string resourceType = resource.Access == VdMirResourceAccess.Readonly
-                ? "StructuredBuffer<float>"
-                : "RWStructuredBuffer<float>";
+            string resourceType;
+            if (resource.ElementType == "acceleration_structure")
+            {
+                resourceType = "RaytracingAccelerationStructure";
+            }
+            else if (resource.Access == VdMirResourceAccess.Readonly)
+            {
+                resourceType = "StructuredBuffer<float>";
+            }
+            else
+            {
+                resourceType = "RWStructuredBuffer<float>";
+            }
             builder.AppendLine($"[[vk::binding({resource.Binding}, {resource.Set})]] {resourceType} {resource.Name};");
         }
         if (module.Resources.Count > 0) builder.AppendLine();
+        if (module.FeatureLevel == "compute.rayquery.m2")
+        {
+            builder.AppendLine(RayQueryHlslEmitter.Helper);
+        }
 
         foreach (VdMirFunction function in module.Functions.Where(function => function.Name != module.EntryPoint.Name))
         {
@@ -71,6 +85,9 @@ public static class VdMirComputeHlslEmitter
             }
             case "expression":
                 builder.AppendLine($"{prefix}{EmitExpression(statement.Expression!)};");
+                break;
+            case "ray-query":
+                builder.AppendLine($"{prefix}AurelianTraceClosest({string.Join(", ", statement.Expression!.Operands!.Select(EmitExpression))});");
                 break;
             case "if":
                 builder.AppendLine($"{prefix}if ({EmitExpression(statement.Expression!)})");

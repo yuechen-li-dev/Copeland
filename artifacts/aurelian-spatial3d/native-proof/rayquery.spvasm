@@ -1,0 +1,439 @@
+; SPIR-V
+; Version: 1.6
+; Generator: Google spiregg; 0
+; Bound: 326
+; Schema: 0
+               OpCapability RayQueryKHR
+               OpCapability Shader
+               OpExtension "SPV_KHR_ray_query"
+          %1 = OpExtInstImport "GLSL.std.450"
+               OpMemoryModel Logical GLSL450
+               OpEntryPoint GLCompute %RayQueryMain "RayQueryMain" %gl_GlobalInvocationID %Scene %Spheres %Rays %Hits %Triangles
+               OpExecutionMode %RayQueryMain LocalSize 64 1 1
+               OpSource HLSL 650
+               OpName %accelerationStructureNV "accelerationStructureNV"
+               OpName %Scene "Scene"
+               OpName %type_StructuredBuffer_float "type.StructuredBuffer.float"
+               OpName %Spheres "Spheres"
+               OpName %Rays "Rays"
+               OpName %type_RWStructuredBuffer_float "type.RWStructuredBuffer.float"
+               OpName %Hits "Hits"
+               OpName %Triangles "Triangles"
+               OpName %RayQueryMain "RayQueryMain"
+               OpName %rayQueryKHR "rayQueryKHR"
+               OpDecorate %gl_GlobalInvocationID BuiltIn GlobalInvocationId
+               OpDecorate %Scene DescriptorSet 0
+               OpDecorate %Scene Binding 0
+               OpDecorate %Spheres DescriptorSet 0
+               OpDecorate %Spheres Binding 1
+               OpDecorate %Rays DescriptorSet 0
+               OpDecorate %Rays Binding 2
+               OpDecorate %Hits DescriptorSet 0
+               OpDecorate %Hits Binding 3
+               OpDecorate %Triangles DescriptorSet 0
+               OpDecorate %Triangles Binding 4
+               OpDecorate %_runtimearr_float ArrayStride 4
+               OpMemberDecorate %type_StructuredBuffer_float 0 Offset 0
+               OpMemberDecorate %type_StructuredBuffer_float 0 NonWritable
+               OpDecorate %type_StructuredBuffer_float Block
+               OpMemberDecorate %type_RWStructuredBuffer_float 0 Offset 0
+               OpDecorate %type_RWStructuredBuffer_float Block
+        %int = OpTypeInt 32 1
+      %int_0 = OpConstant %int 0
+       %uint = OpTypeInt 32 0
+     %uint_0 = OpConstant %uint 0
+     %uint_4 = OpConstant %uint 4
+    %uint_12 = OpConstant %uint 12
+     %uint_1 = OpConstant %uint 1
+     %uint_2 = OpConstant %uint 2
+     %uint_3 = OpConstant %uint 3
+     %uint_5 = OpConstant %uint 5
+     %uint_6 = OpConstant %uint 6
+     %uint_7 = OpConstant %uint 7
+     %uint_8 = OpConstant %uint 8
+     %uint_9 = OpConstant %uint 9
+   %uint_255 = OpConstant %uint 255
+%uint_4294967295 = OpConstant %uint 4294967295
+      %float = OpTypeFloat 32
+    %float_0 = OpConstant %float 0
+    %v2float = OpTypeVector %float 2
+         %33 = OpConstantComposite %v2float %float_0 %float_0
+    %v3float = OpTypeVector %float 3
+         %35 = OpConstantComposite %v3float %float_0 %float_0 %float_0
+    %uint_10 = OpConstant %uint 10
+       %bool = OpTypeBool
+       %true = OpConstantTrue %bool
+%float_9_99999975en06 = OpConstant %float 9.99999975e-06
+      %false = OpConstantFalse %bool
+    %uint_16 = OpConstant %uint 16
+    %uint_11 = OpConstant %uint 11
+    %uint_13 = OpConstant %uint 13
+    %uint_14 = OpConstant %uint 14
+    %uint_15 = OpConstant %uint 15
+%accelerationStructureNV = OpTypeAccelerationStructureKHR
+%_ptr_UniformConstant_accelerationStructureNV = OpTypePointer UniformConstant %accelerationStructureNV
+%_runtimearr_float = OpTypeRuntimeArray %float
+%type_StructuredBuffer_float = OpTypeStruct %_runtimearr_float
+%_ptr_StorageBuffer_type_StructuredBuffer_float = OpTypePointer StorageBuffer %type_StructuredBuffer_float
+%type_RWStructuredBuffer_float = OpTypeStruct %_runtimearr_float
+%_ptr_StorageBuffer_type_RWStructuredBuffer_float = OpTypePointer StorageBuffer %type_RWStructuredBuffer_float
+     %v3uint = OpTypeVector %uint 3
+%_ptr_Input_v3uint = OpTypePointer Input %v3uint
+       %void = OpTypeVoid
+         %52 = OpTypeFunction %void
+%rayQueryKHR = OpTypeRayQueryKHR
+%_ptr_Function_rayQueryKHR = OpTypePointer Function %rayQueryKHR
+%_ptr_StorageBuffer_float = OpTypePointer StorageBuffer %float
+      %Scene = OpVariable %_ptr_UniformConstant_accelerationStructureNV UniformConstant
+    %Spheres = OpVariable %_ptr_StorageBuffer_type_StructuredBuffer_float StorageBuffer
+       %Rays = OpVariable %_ptr_StorageBuffer_type_StructuredBuffer_float StorageBuffer
+       %Hits = OpVariable %_ptr_StorageBuffer_type_RWStructuredBuffer_float StorageBuffer
+  %Triangles = OpVariable %_ptr_StorageBuffer_type_StructuredBuffer_float StorageBuffer
+%gl_GlobalInvocationID = OpVariable %_ptr_Input_v3uint Input
+   %float_n1 = OpConstant %float -1
+%_ptr_Input_uint = OpTypePointer Input %uint
+     %v2bool = OpTypeVector %bool 2
+%RayQueryMain = OpFunction %void None %52
+         %58 = OpLabel
+         %59 = OpVariable %_ptr_Function_rayQueryKHR Function
+         %60 = OpLoad %accelerationStructureNV %Scene
+         %61 = OpAccessChain %_ptr_Input_uint %gl_GlobalInvocationID %int_0
+         %62 = OpLoad %uint %61
+               OpSelectionMerge %63 None
+               OpSwitch %uint_0 %64
+         %64 = OpLabel
+         %65 = OpAccessChain %_ptr_StorageBuffer_float %Rays %int_0 %uint_0
+         %66 = OpLoad %float %65
+         %67 = OpBitcast %uint %66
+         %68 = OpUGreaterThanEqual %bool %62 %67
+               OpSelectionMerge %69 None
+               OpBranchConditional %68 %70 %69
+         %70 = OpLabel
+               OpBranch %63
+         %69 = OpLabel
+         %71 = OpIMul %uint %62 %uint_12
+         %72 = OpIAdd %uint %uint_4 %71
+         %73 = OpAccessChain %_ptr_StorageBuffer_float %Rays %int_0 %72
+         %74 = OpLoad %float %73
+         %75 = OpIAdd %uint %71 %uint_5
+         %76 = OpAccessChain %_ptr_StorageBuffer_float %Rays %int_0 %75
+         %77 = OpLoad %float %76
+         %78 = OpIAdd %uint %71 %uint_6
+         %79 = OpAccessChain %_ptr_StorageBuffer_float %Rays %int_0 %78
+         %80 = OpLoad %float %79
+         %81 = OpCompositeConstruct %v3float %74 %77 %80
+         %82 = OpIAdd %uint %71 %uint_7
+         %83 = OpAccessChain %_ptr_StorageBuffer_float %Rays %int_0 %82
+         %84 = OpLoad %float %83
+         %85 = OpIAdd %uint %71 %uint_8
+         %86 = OpAccessChain %_ptr_StorageBuffer_float %Rays %int_0 %85
+         %87 = OpLoad %float %86
+         %88 = OpIAdd %uint %71 %uint_9
+         %89 = OpAccessChain %_ptr_StorageBuffer_float %Rays %int_0 %88
+         %90 = OpLoad %float %89
+         %91 = OpIAdd %uint %71 %uint_10
+         %92 = OpAccessChain %_ptr_StorageBuffer_float %Rays %int_0 %91
+         %93 = OpLoad %float %92
+         %94 = OpCompositeConstruct %v3float %87 %90 %93
+         %95 = OpIAdd %uint %71 %uint_11
+         %96 = OpAccessChain %_ptr_StorageBuffer_float %Rays %int_0 %95
+         %97 = OpLoad %float %96
+         %98 = OpIAdd %uint %71 %uint_12
+         %99 = OpAccessChain %_ptr_StorageBuffer_float %Rays %int_0 %98
+        %100 = OpLoad %float %99
+        %101 = OpBitcast %uint %100
+        %102 = OpIAdd %uint %71 %uint_13
+        %103 = OpAccessChain %_ptr_StorageBuffer_float %Rays %int_0 %102
+        %104 = OpLoad %float %103
+        %105 = OpBitcast %uint %104
+               OpRayQueryInitializeKHR %59 %60 %uint_2 %uint_255 %81 %84 %94 %97
+               OpBranch %106
+        %106 = OpLabel
+        %107 = OpPhi %v3float %35 %69 %108 %109
+        %110 = OpPhi %v2float %33 %69 %111 %109
+        %112 = OpPhi %float %97 %69 %113 %109
+        %114 = OpPhi %uint %uint_4294967295 %69 %115 %109
+        %116 = OpPhi %uint %uint_0 %69 %117 %109
+        %118 = OpRayQueryProceedKHR %bool %59
+               OpLoopMerge %119 %109 None
+               OpBranchConditional %118 %120 %119
+        %120 = OpLabel
+        %121 = OpRayQueryGetIntersectionPrimitiveIndexKHR %uint %59 %uint_0
+        %122 = OpRayQueryGetIntersectionTypeKHR %uint %59 %uint_0
+        %123 = OpIEqual %bool %122 %uint_0
+               OpSelectionMerge %124 None
+               OpBranchConditional %123 %125 %126
+        %125 = OpLabel
+        %127 = OpIMul %uint %121 %uint_12
+        %128 = OpAccessChain %_ptr_StorageBuffer_float %Triangles %int_0 %127
+        %129 = OpLoad %float %128
+        %130 = OpIAdd %uint %127 %uint_1
+        %131 = OpAccessChain %_ptr_StorageBuffer_float %Triangles %int_0 %130
+        %132 = OpLoad %float %131
+        %133 = OpIAdd %uint %127 %uint_2
+        %134 = OpAccessChain %_ptr_StorageBuffer_float %Triangles %int_0 %133
+        %135 = OpLoad %float %134
+        %136 = OpCompositeConstruct %v3float %129 %132 %135
+        %137 = OpIAdd %uint %127 %uint_4
+        %138 = OpAccessChain %_ptr_StorageBuffer_float %Triangles %int_0 %137
+        %139 = OpLoad %float %138
+        %140 = OpIAdd %uint %127 %uint_5
+        %141 = OpAccessChain %_ptr_StorageBuffer_float %Triangles %int_0 %140
+        %142 = OpLoad %float %141
+        %143 = OpIAdd %uint %127 %uint_6
+        %144 = OpAccessChain %_ptr_StorageBuffer_float %Triangles %int_0 %143
+        %145 = OpLoad %float %144
+        %146 = OpCompositeConstruct %v3float %139 %142 %145
+        %147 = OpIAdd %uint %127 %uint_8
+        %148 = OpAccessChain %_ptr_StorageBuffer_float %Triangles %int_0 %147
+        %149 = OpLoad %float %148
+        %150 = OpIAdd %uint %127 %uint_9
+        %151 = OpAccessChain %_ptr_StorageBuffer_float %Triangles %int_0 %150
+        %152 = OpLoad %float %151
+        %153 = OpIAdd %uint %127 %uint_10
+        %154 = OpAccessChain %_ptr_StorageBuffer_float %Triangles %int_0 %153
+        %155 = OpLoad %float %154
+        %156 = OpCompositeConstruct %v3float %149 %152 %155
+        %157 = OpRayQueryGetIntersectionTKHR %float %59 %uint_0
+        %158 = OpIAdd %uint %127 %uint_3
+        %159 = OpAccessChain %_ptr_StorageBuffer_float %Triangles %int_0 %158
+        %160 = OpLoad %float %159
+        %161 = OpBitcast %uint %160
+        %162 = OpIAdd %uint %127 %uint_7
+        %163 = OpAccessChain %_ptr_StorageBuffer_float %Triangles %int_0 %162
+        %164 = OpLoad %float %163
+        %165 = OpBitcast %uint %164
+        %166 = OpFSub %v3float %146 %136
+        %167 = OpFSub %v3float %156 %136
+        %168 = OpExtInst %v3float %1 Cross %166 %167
+        %169 = OpExtInst %v3float %1 Normalize %168
+        %170 = OpRayQueryGetIntersectionBarycentricsKHR %v2float %59 %uint_0
+               OpBranch %124
+        %126 = OpLabel
+        %171 = OpIMul %uint %121 %uint_8
+        %172 = OpAccessChain %_ptr_StorageBuffer_float %Spheres %int_0 %171
+        %173 = OpLoad %float %172
+        %174 = OpIAdd %uint %171 %uint_1
+        %175 = OpAccessChain %_ptr_StorageBuffer_float %Spheres %int_0 %174
+        %176 = OpLoad %float %175
+        %177 = OpIAdd %uint %171 %uint_2
+        %178 = OpAccessChain %_ptr_StorageBuffer_float %Spheres %int_0 %177
+        %179 = OpLoad %float %178
+        %180 = OpCompositeConstruct %v3float %173 %176 %179
+        %181 = OpIAdd %uint %171 %uint_3
+        %182 = OpAccessChain %_ptr_StorageBuffer_float %Spheres %int_0 %181
+        %183 = OpLoad %float %182
+        %184 = OpFSub %v3float %81 %180
+        %185 = OpDot %float %184 %94
+        %186 = OpDot %float %184 %184
+        %187 = OpFMul %float %183 %183
+        %188 = OpFSub %float %186 %187
+        %189 = OpFMul %float %185 %185
+        %190 = OpFSub %float %189 %188
+        %191 = OpFOrdLessThan %bool %190 %float_0
+               OpSelectionMerge %192 None
+               OpBranchConditional %191 %193 %192
+        %193 = OpLabel
+               OpBranch %109
+        %192 = OpLabel
+        %194 = OpExtInst %float %1 Sqrt %190
+        %195 = OpFNegate %float %185
+        %196 = OpFSub %float %195 %194
+        %197 = OpFOrdGreaterThanEqual %bool %196 %84
+               OpSelectionMerge %198 None
+               OpBranchConditional %197 %199 %200
+        %199 = OpLabel
+               OpBranch %198
+        %200 = OpLabel
+        %201 = OpFSub %float %194 %185
+               OpBranch %198
+        %198 = OpLabel
+        %202 = OpPhi %float %196 %199 %201 %200
+        %203 = OpIAdd %uint %171 %uint_4
+        %204 = OpAccessChain %_ptr_StorageBuffer_float %Spheres %int_0 %203
+        %205 = OpLoad %float %204
+        %206 = OpBitcast %uint %205
+        %207 = OpIAdd %uint %171 %uint_5
+        %208 = OpAccessChain %_ptr_StorageBuffer_float %Spheres %int_0 %207
+        %209 = OpLoad %float %208
+        %210 = OpBitcast %uint %209
+        %211 = OpVectorTimesScalar %v3float %94 %202
+        %212 = OpFAdd %v3float %81 %211
+        %213 = OpFSub %v3float %212 %180
+        %214 = OpExtInst %v3float %1 Normalize %213
+               OpBranch %124
+        %124 = OpLabel
+        %215 = OpPhi %v3float %169 %125 %214 %198
+        %216 = OpPhi %v2float %170 %125 %33 %198
+        %217 = OpPhi %float %157 %125 %202 %198
+        %218 = OpPhi %uint %165 %125 %210 %198
+        %219 = OpPhi %uint %161 %125 %206 %198
+        %220 = OpSelect %uint %123 %uint_1 %uint_2
+        %221 = OpBitwiseAnd %uint %101 %219
+        %222 = OpINotEqual %bool %221 %uint_0
+               OpSelectionMerge %223 None
+               OpBranchConditional %222 %224 %223
+        %224 = OpLabel
+        %225 = OpBitwiseAnd %uint %105 %218
+        %226 = OpIEqual %bool %225 %uint_0
+               OpBranch %223
+        %223 = OpLabel
+        %227 = OpPhi %bool %true %124 %226 %224
+        %228 = OpLogicalNot %bool %227
+               OpSelectionMerge %229 None
+               OpBranchConditional %228 %230 %229
+        %230 = OpLabel
+        %231 = OpFOrdLessThan %bool %217 %84
+               OpBranch %229
+        %229 = OpLabel
+        %232 = OpPhi %bool %true %223 %231 %230
+        %233 = OpLogicalNot %bool %232
+               OpSelectionMerge %234 None
+               OpBranchConditional %233 %235 %234
+        %235 = OpLabel
+        %236 = OpFOrdGreaterThan %bool %217 %97
+               OpBranch %234
+        %234 = OpLabel
+        %237 = OpPhi %bool %true %229 %236 %235
+               OpSelectionMerge %238 None
+               OpBranchConditional %237 %239 %238
+        %239 = OpLabel
+               OpBranch %109
+        %238 = OpLabel
+        %240 = OpINotEqual %bool %116 %uint_0
+               OpSelectionMerge %241 None
+               OpBranchConditional %240 %242 %241
+        %242 = OpLabel
+        %243 = OpFSub %float %112 %float_9_99999975en06
+        %244 = OpFOrdLessThan %bool %217 %243
+               OpBranch %241
+        %241 = OpLabel
+        %245 = OpPhi %bool %true %238 %244 %242
+        %246 = OpLogicalNot %bool %245
+               OpSelectionMerge %247 None
+               OpBranchConditional %246 %248 %247
+        %248 = OpLabel
+        %249 = OpFSub %float %217 %112
+        %250 = OpExtInst %float %1 FAbs %249
+        %251 = OpFOrdLessThanEqual %bool %250 %float_9_99999975en06
+               OpSelectionMerge %252 None
+               OpBranchConditional %251 %253 %252
+        %253 = OpLabel
+        %254 = OpUGreaterThanEqual %bool %220 %116
+               OpSelectionMerge %255 None
+               OpBranchConditional %254 %256 %255
+        %256 = OpLabel
+        %257 = OpIEqual %bool %220 %116
+               OpSelectionMerge %258 None
+               OpBranchConditional %257 %259 %258
+        %259 = OpLabel
+        %260 = OpULessThan %bool %121 %114
+               OpBranch %258
+        %258 = OpLabel
+        %261 = OpPhi %bool %false %256 %260 %259
+               OpBranch %255
+        %255 = OpLabel
+        %262 = OpPhi %bool %true %253 %261 %258
+               OpBranch %252
+        %252 = OpLabel
+        %263 = OpPhi %bool %false %248 %262 %255
+               OpBranch %247
+        %247 = OpLabel
+        %264 = OpPhi %bool %true %241 %263 %252
+               OpSelectionMerge %265 None
+               OpBranchConditional %264 %266 %265
+        %266 = OpLabel
+        %267 = OpDot %float %215 %94
+        %268 = OpFOrdGreaterThan %bool %267 %float_0
+               OpSelectionMerge %269 None
+               OpBranchConditional %268 %270 %271
+        %270 = OpLabel
+        %272 = OpFNegate %v3float %215
+               OpBranch %269
+        %271 = OpLabel
+               OpBranch %269
+        %269 = OpLabel
+        %273 = OpPhi %v3float %272 %270 %215 %271
+               OpBranch %265
+        %265 = OpLabel
+        %274 = OpPhi %v3float %107 %247 %273 %269
+        %275 = OpCompositeConstruct %v2bool %264 %264
+        %276 = OpSelect %v2float %275 %216 %110
+        %277 = OpSelect %float %264 %217 %112
+        %278 = OpSelect %uint %264 %121 %114
+        %279 = OpSelect %uint %264 %220 %116
+               OpBranch %109
+        %109 = OpLabel
+        %108 = OpPhi %v3float %107 %193 %107 %239 %274 %265
+        %111 = OpPhi %v2float %110 %193 %110 %239 %276 %265
+        %113 = OpPhi %float %112 %193 %112 %239 %277 %265
+        %115 = OpPhi %uint %114 %193 %114 %239 %278 %265
+        %117 = OpPhi %uint %116 %193 %116 %239 %279 %265
+               OpBranch %106
+        %119 = OpLabel
+        %280 = OpIMul %uint %62 %uint_16
+        %281 = OpBitcast %float %116
+        %282 = OpAccessChain %_ptr_StorageBuffer_float %Hits %int_0 %280
+               OpStore %282 %281
+        %283 = OpBitcast %float %114
+        %284 = OpIAdd %uint %280 %uint_1
+        %285 = OpAccessChain %_ptr_StorageBuffer_float %Hits %int_0 %284
+               OpStore %285 %283
+        %286 = OpIAdd %uint %280 %uint_2
+        %287 = OpAccessChain %_ptr_StorageBuffer_float %Hits %int_0 %286
+               OpStore %287 %float_0
+        %288 = OpIAdd %uint %280 %uint_3
+        %289 = OpAccessChain %_ptr_StorageBuffer_float %Hits %int_0 %288
+               OpStore %289 %float_0
+        %290 = OpIEqual %bool %116 %uint_0
+        %291 = OpSelect %float %290 %float_n1 %112
+        %292 = OpIAdd %uint %280 %uint_4
+        %293 = OpAccessChain %_ptr_StorageBuffer_float %Hits %int_0 %292
+               OpStore %293 %291
+        %294 = OpCompositeExtract %float %110 0
+        %295 = OpIAdd %uint %280 %uint_5
+        %296 = OpAccessChain %_ptr_StorageBuffer_float %Hits %int_0 %295
+               OpStore %296 %294
+        %297 = OpCompositeExtract %float %110 1
+        %298 = OpIAdd %uint %280 %uint_6
+        %299 = OpAccessChain %_ptr_StorageBuffer_float %Hits %int_0 %298
+               OpStore %299 %297
+        %300 = OpIAdd %uint %280 %uint_7
+        %301 = OpAccessChain %_ptr_StorageBuffer_float %Hits %int_0 %300
+               OpStore %301 %float_0
+        %302 = OpVectorTimesScalar %v3float %94 %112
+        %303 = OpFAdd %v3float %81 %302
+        %304 = OpCompositeExtract %float %303 0
+        %305 = OpIAdd %uint %280 %uint_8
+        %306 = OpAccessChain %_ptr_StorageBuffer_float %Hits %int_0 %305
+               OpStore %306 %304
+        %307 = OpCompositeExtract %float %303 1
+        %308 = OpIAdd %uint %280 %uint_9
+        %309 = OpAccessChain %_ptr_StorageBuffer_float %Hits %int_0 %308
+               OpStore %309 %307
+        %310 = OpCompositeExtract %float %303 2
+        %311 = OpIAdd %uint %280 %uint_10
+        %312 = OpAccessChain %_ptr_StorageBuffer_float %Hits %int_0 %311
+               OpStore %312 %310
+        %313 = OpIAdd %uint %280 %uint_11
+        %314 = OpAccessChain %_ptr_StorageBuffer_float %Hits %int_0 %313
+               OpStore %314 %float_0
+        %315 = OpCompositeExtract %float %107 0
+        %316 = OpIAdd %uint %280 %uint_12
+        %317 = OpAccessChain %_ptr_StorageBuffer_float %Hits %int_0 %316
+               OpStore %317 %315
+        %318 = OpCompositeExtract %float %107 1
+        %319 = OpIAdd %uint %280 %uint_13
+        %320 = OpAccessChain %_ptr_StorageBuffer_float %Hits %int_0 %319
+               OpStore %320 %318
+        %321 = OpCompositeExtract %float %107 2
+        %322 = OpIAdd %uint %280 %uint_14
+        %323 = OpAccessChain %_ptr_StorageBuffer_float %Hits %int_0 %322
+               OpStore %323 %321
+        %324 = OpIAdd %uint %280 %uint_15
+        %325 = OpAccessChain %_ptr_StorageBuffer_float %Hits %int_0 %324
+               OpStore %325 %float_0
+               OpBranch %63
+         %63 = OpLabel
+               OpReturn
+               OpFunctionEnd

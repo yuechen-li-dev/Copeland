@@ -19,14 +19,22 @@ public sealed class NativeGameGraphics : IDisposable
 {
     private readonly Stack<IDisposable> owned = new();
 
-    public NativeGameGraphics(IWindow window, string title, bool visible, GameAssets? assets = null)
+    public NativeGameGraphics(IWindow window, string title, bool visible, GameAssets? assets = null, bool enableRayQueries = false)
     {
         assets ??= new();
         try
         {
             var initialized = VulkanPlantInitializer.CreatePlant(PlantId.Zero, new VulkanPlantOptions(
                 EnableValidation: true, ApplicationName: title, EnablePresentation: true,
-                RequiredPresentationInstanceExtensions: ReadRequiredExtensions(window)));
+                RequiredPresentationInstanceExtensions: ReadRequiredExtensions(window), EnableRayQueries: enableRayQueries));
+            if (!initialized.Success && enableRayQueries)
+            {
+                Console.Error.WriteLine("Hardware ray queries unavailable; using CPU queries: "
+                    + string.Join("; ", initialized.Diagnostics.Select(item => item.Message)));
+                initialized = VulkanPlantInitializer.CreatePlant(PlantId.Zero, new VulkanPlantOptions(
+                    EnableValidation: true, ApplicationName: title, EnablePresentation: true,
+                    RequiredPresentationInstanceExtensions: ReadRequiredExtensions(window)));
+            }
             if (!initialized.Success)
             {
                 throw new InvalidOperationException(string.Join("; ", initialized.Diagnostics.Select(item => item.Message)));

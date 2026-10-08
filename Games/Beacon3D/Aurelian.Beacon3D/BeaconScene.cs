@@ -21,7 +21,8 @@ internal static class BeaconScene
                 AddQuad(floor, new(x, 0, z), new(x + 2, 0, z), new(x + 2, 0, z + 2), new(x, 0, z + 2), Vector3.UnitY, color);
             }
         }
-        children.Add(Scene.Mesh("floor", floor.Select(vertex => new SceneVertex(vertex.Position, vertex.Normal, vertex.Color))));
+        children.Add(Scene.Mesh("floor", floor.Select(vertex => new SceneVertex(vertex.Position, vertex.Normal, vertex.Color)))
+            with { Collision = SceneCollision.Solid });
         Vector4 wallColor = new(0.35f, 0.46f, 0.51f, 1);
         var sideWall = Scene.Group("side-wall",
             [Scene.Box("body", new(0.8f, 1, 23.6f), wallColor, collision: SceneCollision.Solid)]);
@@ -39,7 +40,7 @@ internal static class BeaconScene
                 Scene.Box("body", new(pillar.HalfSize.X * 2, pillar.Height, pillar.HalfSize.Y * 2),
                     new(0.48f, 0.59f, 0.62f, 1), at: new(0, pillar.Height / 2, 0), collision: SceneCollision.Solid),
                 Scene.Box("cap", new(pillar.HalfSize.X * 2 + 0.3f, 0.16f, pillar.HalfSize.Y * 2 + 0.3f),
-                    new(0.81f, 0.64f, 0.35f, 1), at: new(0, pillar.Height + 0.08f, 0)),
+                    new(0.81f, 0.64f, 0.35f, 1), at: new(0, pillar.Height + 0.08f, 0), collision: SceneCollision.Solid),
             ], at: new(pillar.Center.X, 0, pillar.Center.Y)));
         }
         return Scene.World("beacon-arena", children);

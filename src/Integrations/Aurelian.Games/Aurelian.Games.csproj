@@ -4,6 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Aurelian.NativeComposition/Aurelian.NativeComposition.csproj" />
+    <ProjectReference Include="../Aurelian.Spatial3D.Vulkan/Aurelian.Spatial3D.Vulkan.csproj" />
     <ProjectReference Include="../Aurelian.GameSaves/Aurelian.GameSaves.csproj" />
     <ProjectReference Include="../Aurelian.GameMenus/Aurelian.GameMenus.csproj" />
     <ProjectReference Include="../Aurelian.GameHost.Silk/Aurelian.GameHost.Silk.csproj" />
@@ -14,6 +15,7 @@
     <ProjectReference Include="../../Aurelian/Aurelian.Combat/Aurelian.Combat.csproj" />
     <PackageReference Include="SkiaSharp" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/Solid3D.v.ts" LogicalName="Aurelian.Games.Solid3D.v.ts" />
+    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/RayQuery.v.ts" LogicalName="Aurelian.Games.RayQuery.v.ts" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/AnalyticShape2D.v.ts" LogicalName="Aurelian.Games.AnalyticShape2D.v.ts" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/MsdfText.v.ts" LogicalName="Aurelian.Games.MsdfText.v.ts" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Assets/Defaults/Fonts/CrimsonText-Regular.ttf" LogicalName="Aurelian.Games.CrimsonText-Regular.ttf" />

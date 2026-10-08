@@ -17,7 +17,7 @@ var checkpoint = Scene.Group("checkpoint",
 
 var document = Scene.World("training-range",
 [
-    Scene.Box("floor", new(24, 0.2f, 24), new(0.2f, 0.3f, 0.35f, 1), at: new(0, -0.1f, 0)),
+    Scene.Box("floor", new(24, 0.2f, 24), new(0.2f, 0.3f, 0.35f, 1), at: new(0, -0.1f, 0), collision: SceneCollision.Solid),
     Scene.Agent("player", new StarterPlayerDefinition(), at: new(0, 0, 7)),
     Scene.Instance("left", checkpoint, at: new(-3, 0, -4)),
     Scene.Instance("right", checkpoint, at: new(3, 0, -4)),
@@ -29,7 +29,7 @@ GameStarter.Run("my-game", GamePresets.FirstPersonShooter, args, sceneDocument: 
 
 The resulting agents are `player`, `left.target`, `right.target` and `captain`. The fragment definition's root label does not introduce an additional namespace; its transform does apply. The world root is metadata rather than an instance prefix. Every nested group and instance contributes a path segment. Segments use ASCII letters, digits, hyphens or underscores; dots separate segments and cannot appear inside them. Duplicate identities fail during compilation.
 
-`Scene.Box` takes full dimensions, while its compiled fact exposes half sizes. Box collision is explicit and defaults to `None`. `Scene.Mesh` takes immutable triangle vertices with positions, unit normals and finite colors. Authoring helpers copy input collections into `ImmutableArray` values.
+`Scene.Box` takes full dimensions, while its compiled fact exposes half sizes. Collision is explicit and defaults to `None`. `Scene.Mesh` takes immutable vertices with positions, unit normals and finite colors, with optional indexed topology, collision layer/mask, closed-solid declaration and source/face identities. An empty index list retains the original consecutive-triangle convention. Closed collision validates consistently oriented manifold edges. Authoring helpers copy input collections into `ImmutableArray` values.
 
 Transforms use metres and Y up, with local scale followed by rotation and translation. Child transforms compose with their parent; full affine matrices preserve nested rotation and nonuniform scaling, including resulting shear. Positive scales and unit quaternions are required. Singular, mirrored, nonfinite or overflowing transforms fail explicitly. The graphics adapter applies inverse-transpose normal transforms.
 
@@ -93,4 +93,6 @@ Unmount disposes activation leases and current disposable domain states. Immutab
 
 Existing Dominatus policy checkpoints remain policy checkpoints. Exact game rewind continues through the existing input replay path. Scene composition does not make arbitrary application effects or external save writes transactional.
 
-This first C# implementation covers document groups, fragment instances, boxes, triangle meshes, typed agent factories and explicit lifecycle. The starter and Beacon Run consume it. `SceneCollision` is an authored fact consumed by application collision rules, not a new physics engine. TinyFarm's existing semantic navigation/collision/occlusion compiler remains its owner; its scene migration and a Copeland TS frontend are follow-up work. Cameras and controls continue to use the existing composed game concepts and camera API.
+This C# implementation covers document groups, fragment instances, boxes, indexed meshes, typed agent factories and explicit lifecycle. The starter and Beacon Run consume it. `SceneCollision` is an authored fact projected into the shared `Aurelian.Spatial3D` query world by `SceneSpatial3D`; visuals do not silently become collision. Queries return contact facts and accepted displacement; games retain typed state and their existing cadence. Optional Vulkan rays use the same transformed geometry and provenance. See [the game starter](game-starter.md#aetheris-room-and-vulkan-ray-queries) for Aetheris baking, representation boundaries and hardware admission.
+
+TinyFarm's existing semantic navigation/collision/occlusion compiler remains its owner; its scene migration and a Copeland TS scene frontend are follow-up work. Cameras and controls continue to use the existing composed game concepts and camera API.

@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Integrations/Aurelian.Aetheris/Aurelian.Aetheris.csproj" />
+    <ProjectReference Include="../../src/Integrations/Aurelian.NativeComposition/Aurelian.NativeComposition.csproj" />
+    <ProjectReference Include="../../src/Integrations/Aurelian.Spatial3D.Vulkan/Aurelian.Spatial3D.Vulkan.csproj" />
+    <ProjectReference Include="../../src/Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj" />
+    <Content Include="../../src/Aurelian/Aurelian.Shaders/Assets/RayQuery.v.ts" Link="Assets/RayQuery.v.ts" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

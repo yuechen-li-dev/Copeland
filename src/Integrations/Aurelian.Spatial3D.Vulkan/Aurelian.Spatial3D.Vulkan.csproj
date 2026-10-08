@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../Aurelian/Aurelian.Spatial3D/Aurelian.Spatial3D.csproj" />
+    <ProjectReference Include="../../Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />
+  </ItemGroup>
+</Project>

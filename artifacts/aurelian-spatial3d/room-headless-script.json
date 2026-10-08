@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "steps": [
+    {
+      "kind": "click-action",
+      "text": "start"
+    },
+    {
+      "kind": "mouse-hold",
+      "text": "Primary",
+      "seconds": 0.6
+    },
+    {
+      "kind": "command",
+      "command": "assert hits 3"
+    },
+    {
+      "kind": "hold",
+      "keys": [
+        "Space"
+      ],
+      "seconds": 0.1
+    },
+    {
+      "kind": "wait",
+      "seconds": 1.0
+    },
+    {
+      "kind": "hold",
+      "keys": [
+        "A"
+      ],
+      "seconds": 1.6
+    },
+    {
+      "kind": "hold",
+      "keys": [
+        "W"
+      ],
+      "seconds": 1.6
+    },
+    {
+      "kind": "checkpoint",
+      "text": "room-walk"
+    },
+    {
+      "kind": "command",
+      "command": "mark room-walk"
+    },
+    {
+      "kind": "command",
+      "command": "save room-proof"
+    },
+    {
+      "kind": "hold",
+      "keys": [
+        "D"
+      ],
+      "seconds": 0.2
+    },
+    {
+      "kind": "command",
+      "command": "load room-proof"
+    },
+    {
+      "kind": "command",
+      "command": "assert-mark room-walk"
+    },
+    {
+      "kind": "rewind",
+      "text": "room-walk"
+    },
+    {
+      "kind": "command",
+      "command": "assert-mark room-walk"
+    },
+    {
+      "kind": "hold",
+      "keys": [
+        "D"
+      ],
+      "seconds": 1.6
+    },
+    {
+      "kind": "hold",
+      "keys": [
+        "S"
+      ],
+      "seconds": 1.1
+    },
+    {
+      "kind": "mouse-delta",
+      "x": -999.2,
+      "y": 60
+    },
+    {
+      "kind": "tap",
+      "keys": [
+        "V"
+      ],
+      "seconds": 0
+    }
+  ]
+}

@@ -17,9 +17,22 @@ public abstract record SceneNode(string Id)
 
 public sealed record SceneGroup(string Id, ImmutableArray<SceneNode> Children) : SceneNode(Id);
 public sealed record SceneInstanceNode(string Id, SceneGroup Fragment) : SceneNode(Id);
-public sealed record SceneBox(string Id, Vector3 HalfSize, Vector4 Color, SceneCollision Collision) : SceneNode(Id);
+public sealed record SceneBox(string Id, Vector3 HalfSize, Vector4 Color, SceneCollision Collision) : SceneNode(Id)
+{
+    public uint CollisionLayer { get; init; } = 1;
+    public uint CollisionMask { get; init; } = uint.MaxValue;
+}
 public readonly record struct SceneVertex(Vector3 Position, Vector3 Normal, Vector4 Color);
-public sealed record SceneMesh(string Id, ImmutableArray<SceneVertex> Vertices) : SceneNode(Id);
+public sealed record SceneMesh(string Id, ImmutableArray<SceneVertex> Vertices) : SceneNode(Id)
+{
+    public ImmutableArray<int> Indices { get; init; } = [];
+    public SceneCollision Collision { get; init; }
+    public uint CollisionLayer { get; init; } = 1;
+    public uint CollisionMask { get; init; } = uint.MaxValue;
+    public bool ClosedCollision { get; init; }
+    public string? SourceIdentity { get; init; }
+    public ImmutableArray<string?> TriangleFaces { get; init; } = [];
+}
 
 public abstract record SceneAgentNode(string Id, string Name) : SceneNode(Id)
 {

@@ -1,0 +1,21 @@
+{
+  "Device": "NVIDIA GeForce RTX 3070",
+  "SourceSha256": "FD740146E4A8E243C463AC1A43B72F39DFC77667D022A98DA438B0154B1C1896",
+  "ColliderCount": 17,
+  "RayCount": 4096,
+  "Mismatches": 0,
+  "ShaderSha256": "717cc55b710384ba0fe1185a82eaeec339550d9f6ac00f6b8cc09330c1c8903b",
+  "BlasAddress": 146604032,
+  "TlasAddress": 127401984,
+  "DispatchCount": 12,
+  "CpuMilliseconds": 237.1862,
+  "GpuMilliseconds": 30.6047,
+  "DoorwayExitZ": -1.0000019,
+  "WallBlocked": true,
+  "AnalyticSpherePassed": true,
+  "FullWidthFilteringAndStableTiesPassed": true,
+  "ValidationLayers": [
+    "VK_LAYER_KHRONOS_validation"
+  ],
+  "SharedTriangleEdgeSurfaceAgreementPassed": true
+}

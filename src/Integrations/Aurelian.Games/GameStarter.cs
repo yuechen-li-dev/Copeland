@@ -11,6 +11,7 @@ using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Aurelian.World.Scenes;
+using Aurelian.Spatial3D.Vulkan;
 
 namespace Aurelian.Games;
 
@@ -59,13 +60,22 @@ public static class GameStarter
         using IWindow window = Window.Create(windowOptions);
         window.Initialize();
         using IInputContext input = window.CreateInput();
-        using var graphics = new NativeGameGraphics(window, options.Title, visible);
+        bool gpuRays = args.Contains("--gpu-rays", StringComparer.Ordinal);
+        using var graphics = new NativeGameGraphics(window, options.Title, visible, enableRayQueries: gpuRays);
+        using VulkanSpatialRayQueries3D? rayQueries = gpuRays
+            && graphics.Plant.Facts.EnabledDeviceExtensions.Contains("VK_KHR_ray_query", StringComparer.Ordinal)
+            ? GameRayQueries.Create(graphics.Plant, game.SpatialWorld) : null;
+        if (rayQueries is not null)
+        {
+            game.UseRayQueries(rayQueries);
+        }
         var menus = new GameMenuView(graphics.Font);
         using var session = new NativeSession(game, window, input, graphics, menus, manageFocus: !playtest);
-        Console.WriteLine($"AURELIAN_GAME_READY id={id} gpu={graphics.Plant.Facts.PhysicalDeviceName}");
+        Console.WriteLine($"AURELIAN_GAME_READY id={id} gpu={graphics.Plant.Facts.PhysicalDeviceName} rays={(rayQueries is null ? "CPU" : "Vulkan")}");
         if (playtest)
         {
             RunPlaytest(new StarterPlaytestTarget(game, menus, session.CaptureOrPresent), script, output);
+            Console.WriteLine($"AURELIAN_RAY_QUERY_DISPATCHES count={rayQueries?.DispatchCount ?? 0}");
             return;
         }
         using var host = new AurelianGameHost(new SilkGameWindowAdapter(window), session, session, session, id);
@@ -183,7 +193,6 @@ public static class GameStarter
             if (disposed) return;
             disposed = true;
             captured.Dispose();
-            graphics.Dispose();
         }
     }
 }

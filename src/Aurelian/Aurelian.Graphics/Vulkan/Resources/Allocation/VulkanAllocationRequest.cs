@@ -8,4 +8,5 @@ public sealed record VulkanAllocationRequest(
     uint MemoryTypeBits,
     VulkanMemoryUsage Usage,
     string DebugName,
-    bool MapOnCreate = false);
+    bool MapOnCreate = false,
+    bool DeviceAddress = false);

@@ -6,4 +6,5 @@ public sealed record VulkanPlantOptions(
     string ApplicationName = "Aurelian",
     string EngineName = "Aurelian",
     bool EnablePresentation = false,
-    IReadOnlyList<string>? RequiredPresentationInstanceExtensions = null);
+    IReadOnlyList<string>? RequiredPresentationInstanceExtensions = null,
+    bool EnableRayQueries = false);

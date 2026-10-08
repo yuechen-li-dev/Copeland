@@ -1,4 +1,7 @@
 using System.Numerics;
+using Aurelian.Spatial3D;
+using Aurelian.NativeComposition;
+using Aurelian.World.Scenes;
 
 namespace Aurelian.Beacon3D;
 
@@ -20,6 +23,17 @@ public sealed partial class BeaconGame : IDisposable
     public static Vector2 Exit { get; } = new(0, -10);
 
     private float verticalVelocity;
+    private readonly CharacterMotor3D motor = new();
+    private static readonly Lazy<SpatialWorld3D> ArenaQueries = new(() =>
+        SceneSpatial3D.Build(SceneCompiler.Compile(BeaconScene.Arena())));
+    private IRayQueryWorld3D? rayQueries;
+    public SpatialWorld3D SpatialWorld => ArenaQueries.Value;
+    public void UseRayQueries(IRayQueryWorld3D backend)
+    {
+        ArgumentNullException.ThrowIfNull(backend);
+        rayQueries = backend;
+    }
+    public CharacterMove3D? LastMovement { get; private set; }
 
     public Vector2 Position
     {
@@ -32,7 +46,7 @@ public sealed partial class BeaconGame : IDisposable
     }
     public float Yaw { get; private set; }
     public float Pitch { get; private set; } = -0.08f;
-    public float Height { get; private set; }
+    public float Height => agents["runner"].State.Position.Y;
     public float Time { get; private set; }
     public int CollectedCount => BeaconPositions.Select((_, index) => IsCollected(index)).Count(value => value);
     public bool Won { get; private set; }
@@ -75,28 +89,10 @@ public sealed partial class BeaconGame : IDisposable
         {
             movement = Vector2.Normalize(movement);
         }
-        Vector2 next = Position + movement * (4 * seconds);
-        // Axis separation gives sliding without allowing diagonal penetration.
-        Vector2 xStep = new(next.X, Position.Y);
-        if (CanStand(xStep))
-        {
-            Position = xStep;
-        }
-        Vector2 zStep = new(Position.X, next.Y);
-        if (CanStand(zStep))
-        {
-            Position = zStep;
-        }
-        if (input.Jump && Height == 0)
-        {
-            verticalVelocity = 5;
-        }
-        verticalVelocity -= 12 * seconds;
-        Height = MathF.Max(0, Height + verticalVelocity * seconds);
-        if (Height == 0)
-        {
-            verticalVelocity = 0;
-        }
+        LastMovement = motor.Step(SpatialWorld, new(agents["runner"].State.Position, verticalVelocity),
+            new Vector3(movement.X, 0, movement.Y) * 4, input.Jump, seconds);
+        agents["runner"].State = agents["runner"].State with { Position = LastMovement.State.Feet };
+        verticalVelocity = LastMovement.State.VerticalVelocity;
         for (int index = 0; index < BeaconPositions.Count; index++)
         {
             if (Vector2.Distance(Position, BeaconPosition(index)) < 1.1f)
@@ -118,19 +114,7 @@ public sealed partial class BeaconGame : IDisposable
 
     public static bool CanStand(Vector2 position, float radius = 0.3f)
     {
-        if (MathF.Abs(position.X) > 10.7f || MathF.Abs(position.Y) > 10.7f)
-        {
-            return false;
-        }
-        foreach (ArenaPillar pillar in Pillars)
-        {
-            Vector2 closest = Vector2.Clamp(position, pillar.Center - pillar.HalfSize, pillar.Center + pillar.HalfSize);
-            if (Vector2.DistanceSquared(position, closest) < radius * radius)
-            {
-                return false;
-            }
-        }
-        return true;
+        return ArenaQueries.Value.Overlap(Capsule3D.AtFeet(new(position.X, 0, position.Y), radius, 1.4f)).IsEmpty;
     }
 
     public void Dispose()

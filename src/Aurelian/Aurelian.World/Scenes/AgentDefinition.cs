@@ -55,7 +55,8 @@ public abstract class SceneAgent : IDisposable
         if (!ReferenceEquals(body, lastBody))
         {
             ScenePlan candidate = SceneCompiler.Compile(body);
-            if (candidate.Agents.Length != 0 || candidate.Boxes.Any(box => box.Collision != SceneCollision.None))
+            if (candidate.Agents.Length != 0 || candidate.Boxes.Any(box => box.Collision != SceneCollision.None)
+                || candidate.Meshes.Any(mesh => mesh.Collision != SceneCollision.None))
             {
                 throw new InvalidDataException($"Agent '{Id}' presentation cannot spawn agents or define collision.");
             }

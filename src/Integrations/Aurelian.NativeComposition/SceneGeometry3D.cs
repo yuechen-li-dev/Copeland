@@ -23,7 +23,10 @@ public static class SceneGeometry3D
         foreach (PlacedSceneMesh mesh in frame.Meshes)
         {
             var normalTransform = NormalTransform(mesh.WorldTransform);
-            foreach (SceneVertex vertex in mesh.Vertices)
+            IEnumerable<SceneVertex> vertices = mesh.Indices.IsEmpty
+                ? mesh.Vertices
+                : mesh.Indices.Select(index => mesh.Vertices[index]);
+            foreach (SceneVertex vertex in vertices)
             {
                 result.Add(Transform(new(vertex.Position, vertex.Normal, vertex.Color),
                     mesh.WorldTransform, normalTransform));
