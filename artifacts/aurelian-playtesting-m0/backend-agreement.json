@@ -1,0 +1,375 @@
+{
+  "schema": "aurelian.playtesting.backend-agreement.v1",
+  "beacon": [
+    {
+      "step": 0,
+      "kind": "command",
+      "screen": "Title",
+      "semanticHash": "825EFE7EAD757D4DBC6D6A8B8C19D46DEB1629E71D47698E97DAC3F214329E8C",
+      "policyHash": "B54881970AE57CD52D67FA2AE2ADD5ABC6248DBC9AA2C6EA7EAC4D9542679355",
+      "agrees": true
+    },
+    {
+      "step": 1,
+      "kind": "click-action",
+      "screen": "Playing",
+      "semanticHash": "825EFE7EAD757D4DBC6D6A8B8C19D46DEB1629E71D47698E97DAC3F214329E8C",
+      "policyHash": "B54881970AE57CD52D67FA2AE2ADD5ABC6248DBC9AA2C6EA7EAC4D9542679355",
+      "agrees": true
+    },
+    {
+      "step": 2,
+      "kind": "wait",
+      "screen": "Playing",
+      "semanticHash": "8A93146EBC50B60D1635AF4ECB603D4F6465B31A1F253F9D5ACBA16E20293FFA",
+      "policyHash": "1D34DE53248D0348FBCB23051F5508C27AA8EE800A47EC678550333CFEDEB8E3",
+      "agrees": true
+    },
+    {
+      "step": 3,
+      "kind": "command",
+      "screen": "Playing",
+      "semanticHash": "8A93146EBC50B60D1635AF4ECB603D4F6465B31A1F253F9D5ACBA16E20293FFA",
+      "policyHash": "1D34DE53248D0348FBCB23051F5508C27AA8EE800A47EC678550333CFEDEB8E3",
+      "agrees": true
+    },
+    {
+      "step": 4,
+      "kind": "press",
+      "screen": "Playing",
+      "semanticHash": "8A93146EBC50B60D1635AF4ECB603D4F6465B31A1F253F9D5ACBA16E20293FFA",
+      "policyHash": "1D34DE53248D0348FBCB23051F5508C27AA8EE800A47EC678550333CFEDEB8E3",
+      "agrees": true
+    },
+    {
+      "step": 5,
+      "kind": "command",
+      "screen": "Playing",
+      "semanticHash": "8A93146EBC50B60D1635AF4ECB603D4F6465B31A1F253F9D5ACBA16E20293FFA",
+      "policyHash": "1D34DE53248D0348FBCB23051F5508C27AA8EE800A47EC678550333CFEDEB8E3",
+      "agrees": true
+    },
+    {
+      "step": 6,
+      "kind": "checkpoint",
+      "screen": "Playing",
+      "semanticHash": "8A93146EBC50B60D1635AF4ECB603D4F6465B31A1F253F9D5ACBA16E20293FFA",
+      "policyHash": "1D34DE53248D0348FBCB23051F5508C27AA8EE800A47EC678550333CFEDEB8E3",
+      "agrees": true
+    },
+    {
+      "step": 7,
+      "kind": "mouse-delta",
+      "screen": "Playing",
+      "semanticHash": "8A93146EBC50B60D1635AF4ECB603D4F6465B31A1F253F9D5ACBA16E20293FFA",
+      "policyHash": "1D34DE53248D0348FBCB23051F5508C27AA8EE800A47EC678550333CFEDEB8E3",
+      "agrees": true
+    },
+    {
+      "step": 8,
+      "kind": "mouse-hold",
+      "screen": "Playing",
+      "semanticHash": "A808182E07ED9EEC05932FF83F82405665226AF29BBDE3CA6036F3D0C8AACF0B",
+      "policyHash": "680421AFC60AE00505E877D192CE3B601353F90B3790D139BC9867C7C11ED74C",
+      "agrees": true
+    },
+    {
+      "step": 9,
+      "kind": "wait",
+      "screen": "Playing",
+      "semanticHash": "0E4786B37AFEE7E1FF51D20265B60CFA6E21D24D0387211FB730712BD7A4EB69",
+      "policyHash": "84D3E1F43B1D0D0F0B1A3DD6FAD1CC902F9A0A3667AAB79D8CC5C46DC8F91476",
+      "agrees": true
+    },
+    {
+      "step": 10,
+      "kind": "rewind",
+      "screen": "Playing",
+      "semanticHash": "8A93146EBC50B60D1635AF4ECB603D4F6465B31A1F253F9D5ACBA16E20293FFA",
+      "policyHash": "1D34DE53248D0348FBCB23051F5508C27AA8EE800A47EC678550333CFEDEB8E3",
+      "agrees": true
+    },
+    {
+      "step": 11,
+      "kind": "command",
+      "screen": "Playing",
+      "semanticHash": "8A93146EBC50B60D1635AF4ECB603D4F6465B31A1F253F9D5ACBA16E20293FFA",
+      "policyHash": "1D34DE53248D0348FBCB23051F5508C27AA8EE800A47EC678550333CFEDEB8E3",
+      "agrees": true
+    },
+    {
+      "step": 12,
+      "kind": "mouse-delta",
+      "screen": "Playing",
+      "semanticHash": "8A93146EBC50B60D1635AF4ECB603D4F6465B31A1F253F9D5ACBA16E20293FFA",
+      "policyHash": "1D34DE53248D0348FBCB23051F5508C27AA8EE800A47EC678550333CFEDEB8E3",
+      "agrees": true
+    },
+    {
+      "step": 13,
+      "kind": "mouse-hold",
+      "screen": "Playing",
+      "semanticHash": "A808182E07ED9EEC05932FF83F82405665226AF29BBDE3CA6036F3D0C8AACF0B",
+      "policyHash": "680421AFC60AE00505E877D192CE3B601353F90B3790D139BC9867C7C11ED74C",
+      "agrees": true
+    },
+    {
+      "step": 14,
+      "kind": "wait",
+      "screen": "Playing",
+      "semanticHash": "0E4786B37AFEE7E1FF51D20265B60CFA6E21D24D0387211FB730712BD7A4EB69",
+      "policyHash": "84D3E1F43B1D0D0F0B1A3DD6FAD1CC902F9A0A3667AAB79D8CC5C46DC8F91476",
+      "agrees": true
+    },
+    {
+      "step": 15,
+      "kind": "release",
+      "screen": "Playing",
+      "semanticHash": "0E4786B37AFEE7E1FF51D20265B60CFA6E21D24D0387211FB730712BD7A4EB69",
+      "policyHash": "84D3E1F43B1D0D0F0B1A3DD6FAD1CC902F9A0A3667AAB79D8CC5C46DC8F91476",
+      "agrees": true
+    },
+    {
+      "step": 16,
+      "kind": "command",
+      "screen": "Playing",
+      "semanticHash": "0E4786B37AFEE7E1FF51D20265B60CFA6E21D24D0387211FB730712BD7A4EB69",
+      "policyHash": "84D3E1F43B1D0D0F0B1A3DD6FAD1CC902F9A0A3667AAB79D8CC5C46DC8F91476",
+      "agrees": true
+    },
+    {
+      "step": 17,
+      "kind": "command",
+      "screen": "Playing",
+      "semanticHash": "0E4786B37AFEE7E1FF51D20265B60CFA6E21D24D0387211FB730712BD7A4EB69",
+      "policyHash": "84D3E1F43B1D0D0F0B1A3DD6FAD1CC902F9A0A3667AAB79D8CC5C46DC8F91476",
+      "agrees": true
+    },
+    {
+      "step": 18,
+      "kind": "tap",
+      "screen": "Paused",
+      "semanticHash": "0E4786B37AFEE7E1FF51D20265B60CFA6E21D24D0387211FB730712BD7A4EB69",
+      "policyHash": "84D3E1F43B1D0D0F0B1A3DD6FAD1CC902F9A0A3667AAB79D8CC5C46DC8F91476",
+      "agrees": true
+    },
+    {
+      "step": 19,
+      "kind": "wait",
+      "screen": "Paused",
+      "semanticHash": "0E4786B37AFEE7E1FF51D20265B60CFA6E21D24D0387211FB730712BD7A4EB69",
+      "policyHash": "84D3E1F43B1D0D0F0B1A3DD6FAD1CC902F9A0A3667AAB79D8CC5C46DC8F91476",
+      "agrees": true
+    },
+    {
+      "step": 20,
+      "kind": "click-action",
+      "screen": "Playing",
+      "semanticHash": "0E4786B37AFEE7E1FF51D20265B60CFA6E21D24D0387211FB730712BD7A4EB69",
+      "policyHash": "84D3E1F43B1D0D0F0B1A3DD6FAD1CC902F9A0A3667AAB79D8CC5C46DC8F91476",
+      "agrees": true
+    },
+    {
+      "step": 21,
+      "kind": "command",
+      "screen": "Playing",
+      "semanticHash": "0E4786B37AFEE7E1FF51D20265B60CFA6E21D24D0387211FB730712BD7A4EB69",
+      "policyHash": "84D3E1F43B1D0D0F0B1A3DD6FAD1CC902F9A0A3667AAB79D8CC5C46DC8F91476",
+      "agrees": true
+    }
+  ],
+  "tinyfarm": [
+    {
+      "step": 0,
+      "kind": "click-action",
+      "semanticHash": "b33b8791a24536942ee86f799d626b1d0b2a42583f736412e35a4394906db3c1",
+      "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "screen": "Playing",
+      "agrees": true
+    },
+    {
+      "step": 1,
+      "kind": "command",
+      "semanticHash": "b33b8791a24536942ee86f799d626b1d0b2a42583f736412e35a4394906db3c1",
+      "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "screen": "Playing",
+      "agrees": true
+    },
+    {
+      "step": 2,
+      "kind": "hold",
+      "semanticHash": "9e99e294fd33c427e5feff4682e8ba5c0c3f9e2205675762c2af4198fa241ec6",
+      "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "screen": "Playing",
+      "agrees": true
+    },
+    {
+      "step": 3,
+      "kind": "hold",
+      "semanticHash": "65fb5fa358d4329fecfabe5b415291b296c0d6803d2648a97c5a7d3b1f8de588",
+      "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "screen": "Playing",
+      "agrees": true
+    },
+    {
+      "step": 4,
+      "kind": "command",
+      "semanticHash": "65fb5fa358d4329fecfabe5b415291b296c0d6803d2648a97c5a7d3b1f8de588",
+      "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "screen": "Inventory",
+      "agrees": true
+    },
+    {
+      "step": 5,
+      "kind": "command",
+      "semanticHash": "65fb5fa358d4329fecfabe5b415291b296c0d6803d2648a97c5a7d3b1f8de588",
+      "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "screen": "Inventory",
+      "agrees": true
+    },
+    {
+      "step": 6,
+      "kind": "click-action",
+      "semanticHash": "65fb5fa358d4329fecfabe5b415291b296c0d6803d2648a97c5a7d3b1f8de588",
+      "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "screen": "Inventory",
+      "agrees": true
+    },
+    {
+      "step": 7,
+      "kind": "text",
+      "semanticHash": "65fb5fa358d4329fecfabe5b415291b296c0d6803d2648a97c5a7d3b1f8de588",
+      "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "screen": "Inventory",
+      "agrees": true
+    },
+    {
+      "step": 8,
+      "kind": "hold",
+      "semanticHash": "65fb5fa358d4329fecfabe5b415291b296c0d6803d2648a97c5a7d3b1f8de588",
+      "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "screen": "Inventory",
+      "agrees": true
+    },
+    {
+      "step": 9,
+      "kind": "command",
+      "semanticHash": "65fb5fa358d4329fecfabe5b415291b296c0d6803d2648a97c5a7d3b1f8de588",
+      "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "screen": "Inventory",
+      "agrees": true
+    },
+    {
+      "step": 10,
+      "kind": "command",
+      "semanticHash": "65fb5fa358d4329fecfabe5b415291b296c0d6803d2648a97c5a7d3b1f8de588",
+      "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "screen": "Inventory",
+      "agrees": true
+    },
+    {
+      "step": 11,
+      "kind": "tap",
+      "semanticHash": "65fb5fa358d4329fecfabe5b415291b296c0d6803d2648a97c5a7d3b1f8de588",
+      "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "screen": "Inventory",
+      "agrees": true
+    },
+    {
+      "step": 12,
+      "kind": "click-action",
+      "semanticHash": "65fb5fa358d4329fecfabe5b415291b296c0d6803d2648a97c5a7d3b1f8de588",
+      "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "screen": "Playing",
+      "agrees": true
+    },
+    {
+      "step": 13,
+      "kind": "command",
+      "semanticHash": "65fb5fa358d4329fecfabe5b415291b296c0d6803d2648a97c5a7d3b1f8de588",
+      "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "screen": "Playing",
+      "agrees": true
+    },
+    {
+      "step": 14,
+      "kind": "command",
+      "semanticHash": "65fb5fa358d4329fecfabe5b415291b296c0d6803d2648a97c5a7d3b1f8de588",
+      "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "screen": "Playing",
+      "agrees": true
+    },
+    {
+      "step": 15,
+      "kind": "hold",
+      "semanticHash": "10020bc8acf4c126b6a3551bfdc7002571a5c71da8c3ded43088440131b6ad9b",
+      "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "screen": "Playing",
+      "agrees": true
+    },
+    {
+      "step": 16,
+      "kind": "command",
+      "semanticHash": "65fb5fa358d4329fecfabe5b415291b296c0d6803d2648a97c5a7d3b1f8de588",
+      "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "screen": "Playing",
+      "agrees": true
+    },
+    {
+      "step": 17,
+      "kind": "command",
+      "semanticHash": "65fb5fa358d4329fecfabe5b415291b296c0d6803d2648a97c5a7d3b1f8de588",
+      "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "screen": "Playing",
+      "agrees": true
+    },
+    {
+      "step": 18,
+      "kind": "resize",
+      "semanticHash": "65fb5fa358d4329fecfabe5b415291b296c0d6803d2648a97c5a7d3b1f8de588",
+      "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "screen": "Playing",
+      "agrees": true
+    },
+    {
+      "step": 19,
+      "kind": "command",
+      "semanticHash": "65fb5fa358d4329fecfabe5b415291b296c0d6803d2648a97c5a7d3b1f8de588",
+      "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "screen": "Playing",
+      "agrees": true
+    },
+    {
+      "step": 20,
+      "kind": "focus",
+      "semanticHash": "65fb5fa358d4329fecfabe5b415291b296c0d6803d2648a97c5a7d3b1f8de588",
+      "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "screen": "Playing",
+      "agrees": true
+    },
+    {
+      "step": 21,
+      "kind": "hold",
+      "semanticHash": "65fb5fa358d4329fecfabe5b415291b296c0d6803d2648a97c5a7d3b1f8de588",
+      "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "screen": "Playing",
+      "agrees": true
+    },
+    {
+      "step": 22,
+      "kind": "focus",
+      "semanticHash": "65fb5fa358d4329fecfabe5b415291b296c0d6803d2648a97c5a7d3b1f8de588",
+      "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "screen": "Playing",
+      "agrees": true
+    },
+    {
+      "step": 23,
+      "kind": "command",
+      "semanticHash": "65fb5fa358d4329fecfabe5b415291b296c0d6803d2648a97c5a7d3b1f8de588",
+      "fieldHash": "008d69406c0ac113ba853e011b48c14e391c08237f47a133dabe45bf9b761b3e",
+      "screen": "Playing",
+      "agrees": true
+    }
+  ]
+}

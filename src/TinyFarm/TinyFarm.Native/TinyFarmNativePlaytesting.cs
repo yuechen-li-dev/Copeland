@@ -1,9 +1,11 @@
+using Aurelian.Playtesting;
 using Aurelian.Composition;
 using Aurelian.GameHost;
 using InputMan.Aurelian;
 using Silk.NET.Maths;
 using TinyFarm.InputMan;
 using TinyFarm.Playtesting;
+using PlaytestConsole = TinyFarm.Playtesting.PlaytestConsole;
 
 namespace TinyFarm.Native;
 
@@ -55,7 +57,9 @@ internal static class TinyFarmNativePlaytesting
 
         public override void Frame(TimeSpan elapsed)
         {
+            EnableInspection();
             if (!host.RunFrame(elapsed)) throw new InvalidOperationException("Native window closed during playtest.");
+            EnableInspection();
         }
 
         public override void Focus(bool focused)

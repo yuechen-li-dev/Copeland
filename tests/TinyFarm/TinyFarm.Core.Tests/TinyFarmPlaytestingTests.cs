@@ -1,3 +1,4 @@
+using Aurelian.Playtesting;
 using System.Text.Json;
 using Deliverance.Core.Storage;
 using InputMan.Aurelian;
@@ -16,9 +17,9 @@ public sealed class TinyFarmPlaytestingTests
         public PlaytestTarget Target { get; }
         public PlaytestRunner Runner { get; }
 
-        public Fixture()
+        public Fixture(bool slice = true)
         {
-            var game = new TinyFarmGame(new FileSaveStore(Path.Combine(Directory, "saves")), slice: true, crafting: true, shipping: true);
+            var game = new TinyFarmGame(new FileSaveStore(Path.Combine(Directory, "saves")), slice: slice, crafting: slice, shipping: slice);
             Target = new PlaytestTarget(game, new AurelianInputAdapter(new InputManEngine(GameControls.CreateProfile(true))));
             Runner = new PlaytestRunner(Target, Directory);
         }
@@ -39,6 +40,19 @@ public sealed class TinyFarmPlaytestingTests
         PlaytestObservation after = fixture.Runner.Execute(new("click", X: button.X, Y: button.Y));
         Assert.Equal("Playing", after.Screen);
         Assert.Equal(before.SemanticHash, after.SemanticHash);
+    }
+
+    [Fact]
+    public void SharedInspectorReadsExistingScheduleBrainsWithoutChangingGameState()
+    {
+        using var fixture = new Fixture(slice: false);
+        fixture.Runner.ExecuteLine("new game");
+        fixture.Runner.ExecuteLine("wait 2");
+        PlaytestObservation observation = fixture.Runner.ExecuteLine("inspect brains");
+        Assert.Contains(observation.Brains.SelectMany(inspection => inspection.Agents), agent => agent.ActivePath.Length > 0);
+        Assert.Contains(observation.Brains.SelectMany(inspection => inspection.Trace), entry => entry.Decision is not null);
+        Assert.Contains(observation.Brains.SelectMany(inspection => inspection.Agents).SelectMany(agent => agent.Blackboard), value => !value.CheckpointSupported);
+        Assert.Equal(observation.SemanticHash, fixture.Target.Observe().SemanticHash);
     }
 
     [Fact]
@@ -119,11 +133,11 @@ public sealed class TinyFarmPlaytestingTests
     [Fact]
     public void SeededFuzzReplaysIdenticalWorldAndField()
     {
-        PlaytestScript script = PlaytestScripts.Fuzz(25, 100);
+        PlaytestScript script = TinyFarmPlaytestProfiles.Fuzz(25, 100);
         using var first = new Fixture();
         using var second = new Fixture();
         first.Runner.Run(script);
-        second.Runner.Run(PlaytestScripts.Fuzz(25, 100));
+        second.Runner.Run(TinyFarmPlaytestProfiles.Fuzz(25, 100));
         PlaytestObservation a = first.Target.Observe();
         PlaytestObservation b = second.Target.Observe();
         Assert.Equal(a.SemanticHash, b.SemanticHash);

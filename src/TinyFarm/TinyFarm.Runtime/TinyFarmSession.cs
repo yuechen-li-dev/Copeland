@@ -1,6 +1,7 @@
 using Aurelian.Simulation;
 using Aurelian.Combat;
 using Aurelian.Spatial2D;
+using Aurelian.Runtime.Inspection;
 
 namespace TinyFarm.Core;
 
@@ -84,6 +85,22 @@ public sealed class TinyFarmSession
 
     public TinyFarmState State { get; private set; }
     public int PassiveDominatusAgentCount => idleAgentRuntime.Count;
+
+    public void EnableAgentInspection(int traceCapacity = 512)
+    {
+        if (traceCapacity < 0 || traceCapacity > 100000)
+        {
+            throw new ArgumentOutOfRangeException(nameof(traceCapacity));
+        }
+        scheduleRuntime.EnableInspection(traceCapacity);
+        idleAgentRuntime.EnableInspection(traceCapacity);
+    }
+
+    /// <summary>Reads existing brains only. Inspection never creates agents or evaluates decisions.</summary>
+    public AgentInspection[] InspectAgents()
+    {
+        return [.. scheduleRuntime.Inspect(), idleAgentRuntime.Inspect()];
+    }
 
     public TinyFarmFieldRuntime Field { get; }
 

@@ -19,6 +19,12 @@ public sealed class AurelianRuntimePublicBoundaryM5cTests
         "Aurelian.Runtime.Dominatus.CompositorPolicyDominatus.RunOnceAsync",
         "Aurelian.Runtime.Dominatus.IAurelianDominatusWorldRunner.RunTickAsync",
         "Aurelian.Runtime.Dominatus.SequentialAurelianDominatusWorldRunner.RunTickAsync",
+        "Aurelian.Runtime.Dominatus.Inspection.AurelianAgentRuntime.Add",
+        "Aurelian.Runtime.Dominatus.Inspection.AurelianAgentRuntime.Agent",
+        "Aurelian.Runtime.Dominatus.Inspection.DominatusInspector.Attach",
+        "Aurelian.Runtime.Dominatus.Inspection.AurelianPolicyCheckpoint..ctor",
+        "Aurelian.Runtime.Dominatus.Inspection.AurelianPolicyCheckpoint.Deconstruct",
+        "Aurelian.Runtime.Dominatus.Inspection.AurelianPolicyCheckpoint.Kernel",
     };
 
     [Fact]

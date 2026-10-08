@@ -1,4 +1,6 @@
 using System.Runtime.CompilerServices;
+using Aurelian.Runtime.Inspection;
+using Aurelian.Runtime.Dominatus.Inspection;
 using Aurelian.Simulation;
 using System.Collections.Concurrent;
 using Dominatus.Core;
@@ -476,6 +478,7 @@ public static partial class TinyFarmNpcSchedule
     {
         private readonly TinyFarmScheduleCatalog _catalog;
         private readonly ConcurrentDictionary<ActorId, ActorScheduleRuntime> _actors = new();
+        private int inspectionCapacity;
 
         internal Runtime(TinyFarmScheduleCatalog catalog)
         {
@@ -483,6 +486,21 @@ public static partial class TinyFarmNpcSchedule
         }
 
         internal TinyFarmScheduleCatalog Catalog => _catalog;
+
+        internal void EnableInspection(int capacity)
+        {
+            inspectionCapacity = capacity;
+            foreach (ActorScheduleRuntime actor in _actors.Values)
+            {
+                actor.EnableInspection(capacity);
+            }
+        }
+
+        internal AgentInspection[] Inspect()
+        {
+            return _actors.OrderBy(pair => pair.Key.Value, StringComparer.Ordinal)
+                .Select(pair => pair.Value.Inspect()).ToArray();
+        }
 
         internal SceneAnchorId Decide(
             ActorId actor,
@@ -493,8 +511,8 @@ public static partial class TinyFarmNpcSchedule
         {
             ActorScheduleRuntime runtime = _actors.GetOrAdd(
                 actor,
-                static (actorId, catalog) => new ActorScheduleRuntime(actorId, catalog),
-                _catalog);
+                static (actorId, owner) => new ActorScheduleRuntime(actorId, owner._catalog, owner.inspectionCapacity),
+                this);
             return runtime.Decide(window, currentAnchor, energy, expectedAnchor);
         }
     }
@@ -508,12 +526,32 @@ public static partial class TinyFarmNpcSchedule
         private readonly object _gate = new();
         private readonly EnergyObservation _energy = new();
         private SceneAnchorId? _lastExpectedAnchor;
+        private DominatusInspector inspector;
 
-        public ActorScheduleRuntime(ActorId actor, TinyFarmScheduleCatalog catalog)
+        public ActorScheduleRuntime(ActorId actor, TinyFarmScheduleCatalog catalog, int inspectionCapacity)
         {
             _actor = actor;
             _catalog = catalog;
+            inspector = new DominatusInspector(inspectionCapacity);
             ResetAgent();
+        }
+
+        public void EnableInspection(int capacity)
+        {
+            lock (_gate)
+            {
+                inspector.Detach(_actor.Value);
+                inspector = new DominatusInspector(capacity);
+                inspector.Attach(_actor.Value, _agent);
+            }
+        }
+
+        public AgentInspection Inspect()
+        {
+            lock (_gate)
+            {
+                return inspector.Observe();
+            }
         }
 
         public SceneAnchorId Decide(
@@ -557,11 +595,13 @@ public static partial class TinyFarmNpcSchedule
 
         private void ResetAgent()
         {
+            inspector.Detach(_actor.Value);
             _world = new AiWorld();
             _agent = new AiAgent(Definition.CreateBrain());
             _agent.Bb.Set(ScheduleCatalog, _catalog);
             _agent.Bb.Set(Energy, _energy);
             _world.Add(_agent);
+            inspector.Attach(_actor.Value, _agent);
         }
     }
 

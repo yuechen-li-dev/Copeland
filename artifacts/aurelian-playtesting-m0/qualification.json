@@ -1,0 +1,224 @@
+{
+  "schema": "aurelian.playtesting.qualification.v1",
+  "outcome": "Success",
+  "date": "2026-10-08",
+  "baseCommit": "2711f23b65a95d690adff1b824535357bdc0380e",
+  "sources": [
+    {
+      "path": ".gitignore",
+      "sha256": "264404F5847FA9A92D11FEFD4941B3C498AD8CEE7931AF474C1D46A9063ED55B"
+    },
+    {
+      "path": "Aurelian.slnx",
+      "sha256": "462174985298D2FC2EECFEF3B31078C10FA3E8185425892ED05435907E5458D8"
+    },
+    {
+      "path": "docs/Aurelian/architecture/aurelian-runtime-dominatus-boundary-jtf-m5c.md",
+      "sha256": "339ED81AB7A60387DD1926AA983E5863C8AC11B69FADCB3FC3A92EC66D950007"
+    },
+    {
+      "path": "docs/Aurelian/aurelian-playtesting-inspection.md",
+      "sha256": "72AE37B53F3E5CDFBF2A9635F880BBB065908AF2C80F5B10149F7D70EEB49CF0"
+    },
+    {
+      "path": "samples/Integrations/Aurelian.Beacon3D/Aurelian.Beacon3D.csproj",
+      "sha256": "720EAD2F88447E4F602D1EDCF3D1BEC5D4D7E4C014F39C3F175CBCABDA504E9C"
+    },
+    {
+      "path": "samples/Integrations/Aurelian.Beacon3D/BeaconApplication.cs",
+      "sha256": "E947BC01895015FDC2113C724828D52DC9B733B9591B507A249ADBBCBAB54CD3"
+    },
+    {
+      "path": "samples/Integrations/Aurelian.Beacon3D/BeaconCombat.cs",
+      "sha256": "D6C268EC25D09CA46DFF0FC202958FBFC1674AAD9FCAE64BB2C7DBF66700CA7E"
+    },
+    {
+      "path": "samples/Integrations/Aurelian.Beacon3D/BeaconCreatureBrain.cs",
+      "sha256": "F8DC631AD4E9AEBF623E7385ED5B6052C71E31400F4E9CFAE50CE0403D6F0389"
+    },
+    {
+      "path": "samples/Integrations/Aurelian.Beacon3D/BeaconFingerprint.cs",
+      "sha256": "01DB6AA2DA92D4A45D83F78E4E74999B049A18076BBC3780A570A040F923410D"
+    },
+    {
+      "path": "samples/Integrations/Aurelian.Beacon3D/BeaconPlaytesting.cs",
+      "sha256": "71DAD7D923CA678AAA5B0B43743275717C160400B7E61ED6BF07D6CAEDCD931C"
+    },
+    {
+      "path": "samples/Integrations/Aurelian.Beacon3D/Playtests/inspection.json",
+      "sha256": "E964F5C664B7DBCFBC44B6E7860BCD13E3771B012E6D4CD98D13D5DF2A00E6A7"
+    },
+    {
+      "path": "samples/Integrations/Aurelian.Beacon3D/Program.cs",
+      "sha256": "E344E97FF131BF2E63266B76F7613F4E60562E49E61195FA82FED266A7FEB1ED"
+    },
+    {
+      "path": "samples/Integrations/Aurelian.Beacon3D/README.md",
+      "sha256": "1E2933E33CB11539E1969B55AF5B3C0B3B8642583E680D4488CB7F843A350272"
+    },
+    {
+      "path": "src/Aurelian/Aurelian.Runtime/Dominatus/Inspection/AurelianAgentRuntime.cs",
+      "sha256": "0ADE939377D4DD3848A1F11D86740C6C465ACBCA02A1CD6D1931001A506EA61B"
+    },
+    {
+      "path": "src/Aurelian/Aurelian.Runtime/Dominatus/Inspection/DominatusInspector.cs",
+      "sha256": "86AD20DF97B1FD8146C594F8EB4DE0342C894A94B326EB806CE4A64FB595DB5B"
+    },
+    {
+      "path": "src/Aurelian/Aurelian.Runtime/Inspection/AgentInspection.cs",
+      "sha256": "2DE6DDDFD5EF00C0FD13F04C42471B590273A587FC606F20C249A55C87A2B47B"
+    },
+    {
+      "path": "src/Integrations/Aurelian.Playtesting/Aurelian.Playtesting.csproj",
+      "sha256": "9BC18A9B5568069B6A64140A75FFC42B291B8BF44E8D3A202D6DCF6464D6DDBB"
+    },
+    {
+      "path": "src/Integrations/Aurelian.Playtesting/IPlaytestTarget.cs",
+      "sha256": "B0F17459B8E926700FF649845EF6BF89DD7B1A5C358A7726CE83CCB6A14CA867"
+    },
+    {
+      "path": "src/Integrations/Aurelian.Playtesting/PlaytestConsole.cs",
+      "sha256": "E8A8F31BC25476BBB328005823A7D41747C120CC15CB0D246F1C6B83B67BF026"
+    },
+    {
+      "path": "src/Integrations/Aurelian.Playtesting/PlaytestRunner.cs",
+      "sha256": "D2F1246DA1E5D4DF0E24DBA73E3DBACE49ADBC38D06B2FF77F91C66FB15A8A6D"
+    },
+    {
+      "path": "src/Integrations/Aurelian.Playtesting/PlaytestScript.cs",
+      "sha256": "CAA44AFE3DB9569FF2172546C17FD82BD58A2AE3FA677F756D4C6C5F1F3B6543"
+    },
+    {
+      "path": "src/TinyFarm/TinyFarm.Cli/Program.cs",
+      "sha256": "9BB873095400E3BACF36A18F214A3FA4B4E6535F8742DBE7A17FD729350EF643"
+    },
+    {
+      "path": "src/TinyFarm/TinyFarm.Native/TinyFarmNativePlaytesting.cs",
+      "sha256": "93CED9549FAD24A156412FB58B2934564D0A174FD2A881C1C9C5D34E51A053FF"
+    },
+    {
+      "path": "src/TinyFarm/TinyFarm.Playtesting/PlaytestConsole.cs",
+      "sha256": "9E2D71C658D5F144F615A2A84C0674848396D266C6A3B765FD77EE16B6F9321B"
+    },
+    {
+      "path": "src/TinyFarm/TinyFarm.Playtesting/PlaytestRunner.cs",
+      "sha256": "0D4D8FF30FA0F7B51AC9B96A287A2A6FA6BB01F528BA0366ED52E1BAEA1835C0"
+    },
+    {
+      "path": "src/TinyFarm/TinyFarm.Playtesting/PlaytestScript.cs",
+      "sha256": "AA612BEEB99390C783A6F65F76E2B27F8F777644FC6851669731920465FD6277"
+    },
+    {
+      "path": "src/TinyFarm/TinyFarm.Playtesting/PlaytestTarget.cs",
+      "sha256": "858677317569FA93CED607D47CF9391131D7C800350D9407928EA0CDC071645D"
+    },
+    {
+      "path": "src/TinyFarm/TinyFarm.Playtesting/TinyFarm.Playtesting.csproj",
+      "sha256": "2A361CABA26A0ABC811646BDB9DC3BBD3383C4F9725E19B65924D5A55CA1C456"
+    },
+    {
+      "path": "src/TinyFarm/TinyFarm.Playtesting/TinyFarmPlaytestProfiles.cs",
+      "sha256": "67DA3FAC0FC8E5E0C9115B8DC5790A2DEC7AAC35A71D496780AFDCAFD2902F73"
+    },
+    {
+      "path": "src/TinyFarm/TinyFarm.Runtime/TinyFarmIdleAgentFlow.cs",
+      "sha256": "F1D21A4547CB3A92A3E5BFF7CCAB35DB8AEC486B900C8438091BA4B6AE0098E3"
+    },
+    {
+      "path": "src/TinyFarm/TinyFarm.Runtime/TinyFarmNpcSchedule.cs",
+      "sha256": "16CA94705AC2048B87E162847C13F3131988BA9FDB0880148D5AFD18ED5DE1B0"
+    },
+    {
+      "path": "src/TinyFarm/TinyFarm.Runtime/TinyFarmSession.cs",
+      "sha256": "5A1D786047D046E171A0C1E86F7D166E102AF13671B2E8A5FA414DEFAF6AE3A9"
+    },
+    {
+      "path": "tests/Aurelian/Aurelian.Runtime.Tests/AgentInspectionTests.cs",
+      "sha256": "60A1DD73340CF7D757A7EABE76AA98D957E2146F16466974928BB143FD2FAEA3"
+    },
+    {
+      "path": "tests/Aurelian/Aurelian.Runtime.Tests/AurelianRuntimePublicBoundaryM5cTests.cs",
+      "sha256": "095EBAC9E0E18DBF3C06C583A032D2E900344C4FC4CFA57704A4D434EB1DE1EB"
+    },
+    {
+      "path": "tests/Integrations/Aurelian.Beacon3D.Tests/BeaconPlaytestingTests.cs",
+      "sha256": "998547C0A61826A406C5E5475D1B2E35B603A9421B168794361BEBA47D242F0C"
+    },
+    {
+      "path": "tests/TinyFarm/TinyFarm.Core.Tests/TinyFarmPlaytestingTests.cs",
+      "sha256": "9915F6A471986EC3F001D97095FC52C7D7CDB9839EBECFF2551FC4B09E2E42BC"
+    }
+  ],
+  "builds": {
+    "tinyfarm": "Release Success",
+    "aurelian": "Release Success"
+  },
+  "tests": [
+    {
+      "suite": "qualified-aurelian",
+      "passed": 857,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "qualified-tinyfarm",
+      "passed": 477,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "no-reflection-beacon",
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "no-reflection-tinyfarm",
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "beacon": {
+    "semanticHash": "0E4786B37AFEE7E1FF51D20265B60CFA6E21D24D0387211FB730712BD7A4EB69",
+    "policyHash": "84D3E1F43B1D0D0F0B1A3DD6FAD1CC902F9A0A3667AAB79D8CC5C46DC8F91476",
+    "kernelEvents": 484,
+    "blackboardChanges": 120,
+    "stepsCompared": 22,
+    "utilityReports": 236,
+    "gpu": "NVIDIA GeForce RTX 3070",
+    "rewindOriginMatches": true,
+    "captures": [
+      "native/title.png",
+      "native/arena.png"
+    ],
+    "replayedBranchMatches": true
+  },
+  "tinyfarm": {
+    "matchedFields": [
+      "semanticHash",
+      "fieldHash",
+      "screen",
+      "scene",
+      "x",
+      "y",
+      "minute"
+    ],
+    "stepsCompared": 24
+  },
+  "nativeFps": {
+    "health": 100,
+    "kills": 9,
+    "shots": 24,
+    "outcome": "Success",
+    "wavesCleared": 3
+  },
+  "stdin": {
+    "validJsonObservations": 7
+  },
+  "limits": [
+    "Input replay requires deterministic reset and replay-safe domain commands.",
+    "Native policy checkpoints cold-enter nodes; they do not restore game state or exact coroutine instructions.",
+    "Unknown blackboard objects remain opaque; unsupported checkpoint values fail explicitly."
+  ]
+}

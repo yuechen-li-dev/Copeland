@@ -1,12 +1,13 @@
 using System.Numerics;
 using Aurelian.World.Agents;
+using Aurelian.Runtime.Inspection;
 
 namespace Aurelian.Beacon3D;
 
 public sealed partial class BeaconGame
 {
     private readonly Dictionary<string, GameAgent<BeaconAgentState>> agents = new(StringComparer.Ordinal);
-    private BeaconCreatureBrains brains = new();
+    private readonly BeaconCreatureBrains brains;
     private readonly List<BeaconBolt> bolts = [];
     private readonly bool combat;
     private float nextWave = 1.5f;
@@ -14,9 +15,10 @@ public sealed partial class BeaconGame
     private float reloadRemaining;
     private float hurtRemaining;
 
-    public BeaconGame(bool combat = true)
+    public BeaconGame(bool combat = true, int traceCapacity = 0)
     {
         this.combat = combat;
+        brains = new BeaconCreatureBrains(traceCapacity);
         var spawns = new List<AgentSpawn<Vector3>>
         {
             new("runner", "Runner", new(0, 0, 9), BeaconAgents.Player),
@@ -44,6 +46,7 @@ public sealed partial class BeaconGame
     public bool GateOpen => CollectedCount == 3 && (!combat || WavesCleared == 3);
     public long AgentTicks { get; private set; }
     public int ActiveCreatureBrains => brains.Count;
+    public AgentInspection InspectBrains() => brains.Inspect();
     public string CombatStatus => Reloading ? "RELOADING" : Ammo == 0 ? "R TO RELOAD" : "LMB FIRE / R RELOAD";
 
     private void AddAgents(IEnumerable<GameAgent<BeaconAgentState>> authored)
@@ -125,7 +128,6 @@ public sealed partial class BeaconGame
         {
             agents.Remove(id);
         }
-        brains = new BeaconCreatureBrains();
         Vector2[] points = [new(-8, -8), new(8, -8), new(-8, 8), new(8, 8)];
         var declarations = new List<AgentSpawn<Vector3>>();
         for (int index = 0; index < Wave + 1; index++)

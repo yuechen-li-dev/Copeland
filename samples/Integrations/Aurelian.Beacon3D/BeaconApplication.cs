@@ -13,12 +13,12 @@ public enum BeaconScreen
 }
 
 /// <summary>Game-owned actions and transitions; the engine supplies menu presentation and navigation.</summary>
-public sealed class BeaconApplication
+public sealed class BeaconApplication(int traceCapacity = 0)
 {
     private readonly GameMenuNavigation navigation = new();
     private BeaconScreen returnScreen = BeaconScreen.Title;
 
-    public BeaconGame Game { get; private set; } = new();
+    public BeaconGame Game { get; private set; } = new(traceCapacity: traceCapacity);
     public BeaconScreen Screen { get; private set; } = BeaconScreen.Title;
     public int SelectedIndex => navigation.SelectedIndex;
     public bool ExitRequested { get; private set; }
@@ -52,7 +52,10 @@ public sealed class BeaconApplication
                 SetScreen(BeaconScreen.Paused);
                 return;
             }
-            Game.Step(commands.Movement, seconds);
+            if (seconds > 0)
+            {
+                Game.Step(commands.Movement, seconds);
+            }
             if (Game.Dead)
             {
                 SetScreen(BeaconScreen.Lost);
@@ -85,7 +88,7 @@ public sealed class BeaconApplication
         {
             case "new-game":
             case "restart":
-                Game = new BeaconGame();
+                Game = new BeaconGame(traceCapacity: traceCapacity);
                 SetScreen(BeaconScreen.Playing);
                 break;
             case "resume":

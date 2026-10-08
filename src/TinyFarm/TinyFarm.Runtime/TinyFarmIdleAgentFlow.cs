@@ -3,6 +3,8 @@ using Dominatus.Core.Nodes;
 using Dominatus.Core.Nodes.Steps;
 using Dominatus.Core.Runtime;
 using Dominatus.OptFlow;
+using Aurelian.Runtime.Inspection;
+using Aurelian.Runtime.Dominatus.Inspection;
 
 namespace TinyFarm.Core;
 
@@ -26,6 +28,22 @@ public static partial class TinyFarmIdleAgentFlow
 internal sealed class TinyFarmIdleAgentRuntime
 {
     private readonly Dictionary<ActorId, (AiWorld World, AiAgent Agent)> agents = [];
+    private DominatusInspector inspector = new();
+
+    public void EnableInspection(int capacity)
+    {
+        foreach (ActorId id in agents.Keys)
+        {
+            inspector.Detach(id.Value);
+        }
+        inspector = new DominatusInspector(capacity);
+        foreach (var pair in agents)
+        {
+            inspector.Attach(pair.Key.Value, pair.Value.Agent);
+        }
+    }
+
+    public AgentInspection Inspect() => inspector.Observe();
 
     public GameIntent Decide(ActorState actor)
     {
@@ -36,6 +54,7 @@ internal sealed class TinyFarmIdleAgentRuntime
             world.Add(agent);
             runtime = (world, agent);
             agents.Add(actor.Id, runtime);
+            inspector.Attach(actor.Id.Value, agent);
         }
         runtime.Agent.Tick(runtime.World);
         if (runtime.Agent.Brain.GetActivePath().Count == 0)

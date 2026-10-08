@@ -94,6 +94,22 @@ this sample. Automated keyboard/mouse state injection proves the InputMan/game p
 human mouse feel and difficulty remain manual checks. Validation-layer availability is recorded without
 claiming a counted debug-messenger error total.
 
+## Playtesting and inspection
+
+Beacon consumes the shared `Aurelian.Playtesting` runner extracted from TinyFarm.
+Its named creature runtime exposes live Dominatus paths, blackboards, native utility
+reports, child returns, and bounded change/trace history. JSON scripts and stdin
+drive the same InputMan bindings and application/menu code in headless or Vulkan mode.
+
+```powershell
+dotnet run --project samples/Integrations/Aurelian.Beacon3D -c Release -- --headless --playtest-script samples/Integrations/Aurelian.Beacon3D/Playtests/inspection.json --output artifacts/beacon-inspection
+```
+
+Omit `--headless` for native rendering, add `--visible` to watch, or use
+`--playtest-stdio` for commands such as `mouse-delta 80 -20`, `checkpoint encounter`,
+`inspect brains`, and `rewind encounter`. See [the shared kit guide](../../../docs/Aurelian/aurelian-playtesting-inspection.md)
+for API reuse, artifacts, exact replay and native policy checkpoint boundaries.
+
 ## Validation
 
 ```powershell

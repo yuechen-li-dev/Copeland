@@ -12,14 +12,6 @@ public static class PlaytestConsole
 
     public static void Shell(PlaytestRunner runner)
     {
-        string? line;
-        while ((line = Console.ReadLine()) is not null)
-        {
-            if (line.Trim() == "exit") break;
-            if (string.IsNullOrWhiteSpace(line)) continue;
-            PlaytestObservation observation = runner.ExecuteLine(line);
-            Print(observation);
-            if (observation.Quit) break;
-        }
+        Aurelian.Playtesting.PlaytestConsole.Shell(runner);
     }
 }

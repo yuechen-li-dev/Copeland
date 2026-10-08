@@ -1,4 +1,6 @@
 using System.Globalization;
+using Aurelian.Playtesting;
+using Aurelian.Runtime.Inspection;
 using Aurelian.Composition;
 using Aurelian.GameHost;
 using InputMan.Aurelian;
@@ -21,11 +23,11 @@ public sealed record PlaytestObservation(string Backend, string Screen, string S
     bool HudVisible, string Search, bool SearchFocused, string[] ActionMaps,
     PlaytestProduct[] Products, PlaytestItem[] Items, PlaytestMenuTarget[] Targets,
     int Width, int Height, bool Quit, int AcceptedActions, int RejectedActions,
-    int Health, int Spirit, int SpiritMaximum, PlaytestAgent[] Agents);
+    int Health, int Spirit, int SpiritMaximum, PlaytestAgent[] Agents, AgentInspection[] Brains);
 public sealed record PlaytestTrace(int Index, PlaytestStep Step, PlaytestObservation? Observation, string? Error);
 
 /// <summary>Owned input injection: no SendInput, global hooks, or process-external mouse control.</summary>
-public class PlaytestTarget : IDisposable
+public class PlaytestTarget : IPlaytestTarget<PlaytestObservation>, IDisposable
 {
     private readonly TinyFarmNativeUi ui;
     private readonly Queue<LayerInputEvent> events = new();
@@ -33,12 +35,14 @@ public class PlaytestTarget : IDisposable
     private ulong sequence;
     private TimeSpan total;
     private LayerPoint pointer;
+    private TinyFarmSession? inspectedSession;
     protected readonly TinyFarmGame Game;
     protected readonly AurelianInputAdapter Input;
     public int Width { get; protected set; }
     public int Height { get; protected set; }
     public bool Focused { get; protected set; } = true;
     public virtual string Backend => "headless-inputman-machina";
+    public bool Quit => Game.ShouldQuit;
 
     public PlaytestTarget(TinyFarmGame game, AurelianInputAdapter input, int width = 1920, int height = 1080)
     {
@@ -48,6 +52,7 @@ public class PlaytestTarget : IDisposable
         Height = height;
         ui = new TinyFarmNativeUi(game);
         Input.SetContexts(Game.Contexts);
+        EnableInspection();
     }
 
     public virtual void Queue(LayerInputEvent value) => events.Enqueue(value);
@@ -92,6 +97,7 @@ public class PlaytestTarget : IDisposable
 
     public virtual void Frame(TimeSpan elapsed)
     {
+        EnableInspection();
         total += elapsed;
         Input.BeginFrame(new AurelianHostFrame(++sequence, elapsed, total));
         TinyFarmInputPump.Step(Game, Input, elapsed, Focused, () =>
@@ -102,6 +108,16 @@ public class PlaytestTarget : IDisposable
             }
         });
         Game.PendingAudio.Clear();
+        EnableInspection();
+    }
+
+    protected void EnableInspection()
+    {
+        if (!ReferenceEquals(inspectedSession, Game.Host.Session))
+        {
+            inspectedSession = Game.Host.Session;
+            inspectedSession.EnableAgentInspection();
+        }
     }
 
     private PointerPoint ToMenuPoint(LayerPoint point)
@@ -158,7 +174,8 @@ public class PlaytestTarget : IDisposable
         string[] words = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (words.Length == 0) throw new FormatException("Command is empty.");
         string verb = words[0].ToLowerInvariant();
-        if (command.Equals("inspect", StringComparison.OrdinalIgnoreCase)) return;
+        if (command.Equals("inspect", StringComparison.OrdinalIgnoreCase)
+            || command.Equals("inspect brains", StringComparison.OrdinalIgnoreCase)) return;
         if (command.Equals("new game", StringComparison.OrdinalIgnoreCase)) Game.Start();
         else if (command.Equals("open inventory", StringComparison.OrdinalIgnoreCase)) Game.OpenInventory(false);
         else if (command.Equals("open stats", StringComparison.OrdinalIgnoreCase)) Game.OpenStats(false);
@@ -250,6 +267,7 @@ public class PlaytestTarget : IDisposable
 
     public PlaytestObservation Observe()
     {
+        EnableInspection();
         ActorSceneState player = Game.State.ActorScene(TinyFarmIds.Player);
         PlaytestMenuTarget[] targets = [];
         if (Game.CapturesGameplay && !Game.Dialogue.IsActive)
@@ -280,7 +298,7 @@ public class PlaytestTarget : IDisposable
                     actor.Agent?.Kind.ToString(), actor.Agent?.Control.ToString(), actor.Agent?.ObjectPose?.ToString(),
                     actor.Agent?.Conditions.ToArray() ?? [], actor.Agent?.Container?.LastCollectionDay,
                     actor.Agent?.Container?.LastCollectionCoins);
-            }).ToArray());
+            }).ToArray(), Game.Host.Session.InspectAgents());
     }
 
     public virtual void Dispose() => Input.Dispose();

@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Integrations/Aurelian.Playtesting/Aurelian.Playtesting.csproj" />
     <Project Path="src/Integrations/Aurelian.GameMenus/Aurelian.GameMenus.csproj" />
     <Project Path="src/Aurelian/Aurelian.Strategy/Aurelian.Strategy.csproj" />
     <Project Path="src/Aurelian/Aurelian.Composition/Aurelian.Composition.csproj" />

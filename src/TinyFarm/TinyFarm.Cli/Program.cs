@@ -1,3 +1,5 @@
+using Aurelian.Playtesting;
+using PlaytestConsole = TinyFarm.Playtesting.PlaytestConsole;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
@@ -51,7 +53,7 @@ internal static class Program
             }
             else if (positional[0] == "fuzz")
             {
-                script = PlaytestScripts.Fuzz(uint.Parse(Option(args, "--seed") ?? "1", CultureInfo.InvariantCulture),
+                script = TinyFarmPlaytestProfiles.Fuzz(uint.Parse(Option(args, "--seed") ?? "1", CultureInfo.InvariantCulture),
                     int.Parse(Option(args, "--steps") ?? "100", CultureInfo.InvariantCulture));
             }
             else script = new PlaytestScript(1, [new("command", Command: string.Join(' ', positional))]);

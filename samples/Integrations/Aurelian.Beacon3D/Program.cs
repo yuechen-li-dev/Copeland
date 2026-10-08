@@ -5,6 +5,7 @@ using System.Text.Json;
 using Aurelian.Beacon3D;
 using Aurelian.Composition;
 using Aurelian.GameMenus;
+using Aurelian.Playtesting;
 using Aurelian.Machina;
 using Aurelian.Graphics.Plants;
 using Aurelian.Graphics.Vulkan.Device;
@@ -28,9 +29,21 @@ const int Width = 960;
 const int Height = 600;
 const float StepSeconds = 1f / 60;
 bool proof = args.Contains("--proof", StringComparer.Ordinal);
-bool visible = !proof || args.Contains("--visible", StringComparer.Ordinal);
+string? playtestScript = GetOption(args, "--playtest-script");
+bool playtestStdio = args.Contains("--playtest-stdio", StringComparer.Ordinal);
+bool playtesting = playtestScript is not null || playtestStdio;
+bool visible = !(proof || playtesting) || args.Contains("--visible", StringComparer.Ordinal);
 string output = Path.GetFullPath(GetOption(args, "--output") ?? "artifacts/aurelian-beacon3d");
 Directory.CreateDirectory(output);
+
+if (args.Contains("--headless", StringComparer.Ordinal))
+{
+    Require(playtesting, "--headless requires --playtest-script or --playtest-stdio.");
+    var headlessFont = AurelianNativeUiFont.Create(Path.Combine(AppContext.BaseDirectory, "Assets"));
+    using var headlessTarget = new BeaconPlaytestTarget(new GameMenuView(headlessFont));
+    RunPlaytest(headlessTarget);
+    return;
+}
 
 string source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Assets", "Solid3D.v.ts"));
 var module = GpuGraphicsBinder.Compile(new GpuCompilationRequest([new GpuSourceFile("Solid3D.v.ts", source)]));
@@ -95,7 +108,23 @@ ulong frames = 0;
 int captures = 0;
 Console.WriteLine($"BEACON3D_READY gpu={plant.Facts.PhysicalDeviceName} extent={target.Width}x{target.Height}");
 
-if (proof)
+if (playtesting)
+{
+    using var playtestTarget = new BeaconPlaytestTarget(new GameMenuView(font), (int)target.Width, (int)target.Height,
+        (application, capturePath) =>
+        {
+            window.DoEvents();
+            Require(!window.IsClosing, "Playtest window closed before completion.");
+            Native3DFrameResult frame = RenderGame(application, capturePath is not null);
+            presenter.Present(++frames);
+            if (capturePath is not null)
+            {
+                WritePng(capturePath, (int)target.Width, (int)target.Height, frame.Pixels!);
+            }
+        });
+    RunPlaytest(playtestTarget);
+}
+else if (proof)
 {
     object depthProof = ProveDepth(renderer, target, plant, program, clear, output);
     object menuProof = ProveMenus();
@@ -205,16 +234,36 @@ else
 
 Native3DFrameResult RenderApplication(bool capture = false)
 {
-    BeaconGame current = app.Game;
+    return RenderGame(app, capture);
+}
+
+Native3DFrameResult RenderGame(BeaconApplication application, bool capture)
+{
+    BeaconGame current = application.Game;
     var world = renderer.Render(BeaconScene.Build(current), current.Camera((float)target.Width / target.Height),
         clear, capture: false);
-    if (app.Menu is { } menu)
+    if (application.Menu is { } menu)
     {
-        var overlay = menuPresenter.Render(menuView, menu, app.SelectedIndex, capture);
+        var overlay = menuPresenter.Render(menuView, menu, application.SelectedIndex, capture);
         return new Native3DFrameResult(world.TriangleCount, overlay.Pixels, overlay.PixelSha256);
     }
     var hudFrame = menuPresenter.RenderPrepared(hud.Prepare(current), capture);
     return new Native3DFrameResult(world.TriangleCount, hudFrame.Pixels, hudFrame.PixelSha256);
+}
+
+void RunPlaytest(BeaconPlaytestTarget playtestTarget)
+{
+    using var runner = new PlaytestRunner<BeaconPlaytestObservation>(playtestTarget, output,
+        BeaconPlaytestJsonContext.Default.BeaconPlaytestObservation);
+    if (playtestScript is not null)
+    {
+        runner.Run(PlaytestScripts.Read(playtestScript));
+        runner.Print(playtestTarget.Observe());
+    }
+    else
+    {
+        PlaytestConsole.Shell(runner);
+    }
 }
 
 void RouteMenuEvent(LayerInputEvent inputEvent)

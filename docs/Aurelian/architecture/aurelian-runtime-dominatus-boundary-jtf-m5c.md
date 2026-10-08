@@ -85,3 +85,13 @@ The former public `AurelianRuntimeSessionOptions`, session `World`/`ActuatorHost
 The separately stabilized deterministic-transition API remains deferred. M5c neither updates Dominatus packages nor consumes local packages/source, changes transition tables, introduces a runtime adapter, or migrates UI local state. Machina Push/Pop component lifecycle work also remains deferred.
 
 With the M5a authoring audit, M5b ownership consolidation, and this M5c public-boundary proof, JTF-M5 is complete.
+
+## Subsequent playtesting inspection extension
+
+The [shared playtesting kit](../aurelian-playtesting-inspection.md) adds an explicit
+`Aurelian.Runtime.Dominatus.Inspection` surface for named brain registration,
+attachment of native trace sinks, and native policy checkpoint access. The six
+kernel-exposing symbols are individually added to the compiled allowlist; no
+namespace-wide exemption is introduced. Ordinary observation records remain in
+`Aurelian.Runtime.Inspection` with Aurelian-owned data. The ordinary session,
+compositor, Core and Machina boundary checks continue to pass.

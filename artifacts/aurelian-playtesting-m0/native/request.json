@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "steps": [
+    {
+      "path": "title.png",
+      "kind": "capture"
+    },
+    {
+      "kind": "command",
+      "command": "assert screen Title"
+    },
+    {
+      "kind": "click-action",
+      "text": "new-game"
+    },
+    {
+      "kind": "wait",
+      "seconds": 2
+    },
+    {
+      "kind": "command",
+      "command": "assert wave 1"
+    },
+    {
+      "kind": "press",
+      "keys": [
+        "w"
+      ]
+    },
+    {
+      "kind": "command",
+      "command": "mark origin"
+    },
+    {
+      "kind": "checkpoint",
+      "text": "origin"
+    },
+    {
+      "kind": "mouse-delta",
+      "x": 80,
+      "y": -20
+    },
+    {
+      "kind": "mouse-hold",
+      "text": "primary",
+      "seconds": 0.3
+    },
+    {
+      "kind": "wait",
+      "seconds": 0.2
+    },
+    {
+      "kind": "rewind",
+      "text": "origin"
+    },
+    {
+      "kind": "command",
+      "command": "assert unchanged origin"
+    },
+    {
+      "kind": "mouse-delta",
+      "x": 80,
+      "y": -20
+    },
+    {
+      "kind": "mouse-hold",
+      "text": "primary",
+      "seconds": 0.3
+    },
+    {
+      "kind": "wait",
+      "seconds": 0.2
+    },
+    {
+      "kind": "release",
+      "keys": [
+        "w"
+      ]
+    },
+    {
+      "kind": "command",
+      "command": "inspect brains"
+    },
+    {
+      "kind": "command",
+      "command": "mark paused"
+    },
+    {
+      "kind": "tap",
+      "keys": [
+        "escape"
+      ]
+    },
+    {
+      "kind": "wait",
+      "seconds": 0.5
+    },
+    {
+      "kind": "click-action",
+      "text": "resume"
+    },
+    {
+      "kind": "command",
+      "command": "assert unchanged paused"
+    },
+    {
+      "path": "arena.png",
+      "kind": "capture"
+    }
+  ]
+}

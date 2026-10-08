@@ -96,3 +96,11 @@ artifacts/aurelian-beacon3d/test-results/
 artifacts/aurelian-beacon3d/copeland-test-results/
 artifacts/aurelian-game-menus-m0/test-results/
 artifacts/aurelian-beacon-fps-m0/test-results/
+artifacts/aurelian-playtesting-m0/test-results/
+artifacts/aurelian-playtesting-m0/**/trace.jsonl
+artifacts/aurelian-playtesting-m0/**/*.log
+artifacts/aurelian-playtesting-m0/**/saves/
+artifacts/aurelian-playtesting-m0/**/solid3d.hlsl
+artifacts/aurelian-playtesting-m0/beacon-regression/*.png
+artifacts/aurelian-playtesting-m0/headless/final.json
+artifacts/aurelian-playtesting-m0/stdin/final.json
