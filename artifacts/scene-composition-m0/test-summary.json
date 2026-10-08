@@ -1,0 +1,20 @@
+{
+  "aurelian": {
+    "passed": 893.0,
+    "failed": 0.0,
+    "skipped": 0.0,
+    "projects": 25
+  },
+  "tinyfarm": {
+    "passed": 477.0,
+    "failed": 0.0,
+    "skipped": 0.0,
+    "projects": 2
+  },
+  "reflectionDisabledStarter": {
+    "passed": 21.0,
+    "failed": 0.0,
+    "skipped": 0.0,
+    "projects": 1
+  }
+}

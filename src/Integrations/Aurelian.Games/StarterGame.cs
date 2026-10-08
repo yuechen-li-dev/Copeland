@@ -7,9 +7,11 @@ using Aurelian.Combat;
 using Aurelian.GameMenus;
 using Aurelian.GameSaves;
 using Aurelian.Graphics.Vulkan.Native3D;
+using Aurelian.NativeComposition;
 using Aurelian.Runtime;
 using Aurelian.Simulation;
 using Aurelian.World.Agents;
+using Aurelian.World.Scenes;
 using Deliverance.Core.Storage;
 
 namespace Aurelian.Games;
@@ -19,17 +21,18 @@ public sealed class StarterGame : IDisposable
 {
     private readonly StarterOptions options;
     private readonly StarterObject[] objects;
+    private readonly StarterObject[] solidGeometry;
+    private readonly ScenePlan scenePlan;
+    private SceneInstance scene = null!;
     private readonly GameMenuNavigation navigation = new();
     private readonly AudioResourceScope audioResources = new();
     private CadenceScheduler scheduler = NewScheduler();
-    private IReadOnlyList<GameAgent<int>> agents = [];
-    private GameAgent<Vector3> player = AgentAuthoring.Create(
-        new AgentSpawn<Vector3>("player", "Player", new(0, 0, 7), AgentTemplate.Character("starter.player", AgentControl.Human)),
-        _ => { }, spawn => spawn.Placement);
+    private IReadOnlyList<SceneAgent<int>> agents = [];
+    private SceneAgent<Vector3> player = null!;
     private Vector3 position
     {
         get => player.State;
-        set => player = player with { State = value };
+        set => player.State = value;
     }
     private float yaw;
     private float pitch;
@@ -45,7 +48,7 @@ public sealed class StarterGame : IDisposable
     private ulong audioEventSequence;
 
     public StarterGame(string id, GameDefinition definition, StarterOptions? options = null,
-        string? saveDirectory = null, IAudioOutputBackend? audioBackend = null)
+        string? saveDirectory = null, IAudioOutputBackend? audioBackend = null, SceneGroup? sceneDocument = null)
     {
         if (string.IsNullOrWhiteSpace(id) || id.Any(character => !char.IsAsciiLetterOrDigit(character) && character != '-'))
         {
@@ -58,13 +61,22 @@ public sealed class StarterGame : IDisposable
         {
             throw new ArgumentException("Starter title and positive movement speed are required.");
         }
-        objects = (this.options.Objects ?? [new("target-left", new(-3, 1, -4), new(0.8f, 1, 0.8f)),
+        if (sceneDocument is not null && this.options.Objects is not null)
+        {
+            throw new ArgumentException("Supply either a scene document or legacy starter objects.");
+        }
+        StarterObject[] authoredObjects = (this.options.Objects ?? [new("target-left", new(-3, 1, -4), new(0.8f, 1, 0.8f)),
             new("target-center", new(0, 1, -6), new(0.8f, 1, 0.8f)),
             new("target-right", new(3, 1, -4), new(0.8f, 1, 0.8f))]).OrderBy(item => item.Id, StringComparer.Ordinal).ToArray();
+        scenePlan = SceneCompiler.Compile(sceneDocument ?? StarterScenes.TrainingRange(authoredObjects));
+        objects = ReadTargets(scenePlan);
+        solidGeometry = scenePlan.Boxes.Where(box => box.Collision == SceneCollision.Solid)
+            .Select(box => CollisionBox(box.Id, box.WorldTransform, box.HalfSize, 1)).ToArray();
         ValidateObjects();
         gun = new(this.options.Gun);
         var normalized = this.options with { Gun = gun.Configuration, Objects = objects };
-        string identity = definition.Identity + JsonSerializer.Serialize(normalized, StarterJsonContext.Default.StarterOptions);
+        string identity = definition.Identity + scenePlan.ContentIdentity
+            + JsonSerializer.Serialize(normalized, StarterJsonContext.Default.StarterOptions);
         Identity = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity)));
         Controls = new();
         Audio = new AurelianAudioRuntime(audioResources, audioBackend ?? new NullAudioOutputBackend());
@@ -99,8 +111,9 @@ public sealed class StarterGame : IDisposable
     public CameraView View { get; private set; }
     public float Volume { get; private set; } = 1;
     public string? PersistenceError { get; private set; }
-    public IReadOnlyList<GameAgent<int>> Agents => agents;
-    public GameAgent<Vector3> Player => player;
+    public IReadOnlyList<GameAgent<int>> Agents => agents.Select(agent => agent.Agent).ToArray();
+    public GameAgent<Vector3> Player => player.Agent;
+    public SceneInstance Scene => scene;
     public event Action<StarterGame>? ShotFired;
 
     public GameMenuPage? Menu => Screen switch
@@ -274,7 +287,10 @@ public sealed class StarterGame : IDisposable
         time = snapshot.Time;
         View = snapshot.View;
         gun.Restore(snapshot.Gun);
-        agents = agents.Select((agent, index) => agent with { State = snapshot.ObjectHealth[index] }).ToArray();
+        for (int index = 0; index < agents.Count; index++)
+        {
+            agents[index].State = snapshot.ObjectHealth[index];
+        }
         SetVolume(snapshot.Volume);
         scheduler = NewScheduler();
         scheduler.RestoreAccumulators(snapshot.Cadence);
@@ -299,26 +315,19 @@ public sealed class StarterGame : IDisposable
 
     public Native3DVertex[] BuildScene()
     {
-        var vertices = new List<Native3DVertex>();
-        PrimitiveGeometry3D.AddBox(vertices, new(0, -0.1f, 0), new(12, 0.1f, 12), new(0.2f, 0.3f, 0.35f, 1));
-        for (int index = 0; index < objects.Length; index++)
-        {
-            StarterObject item = objects[index];
-            Vector4 color = agents[index].State > 0 ? new(0.9f, 0.3f, 0.15f, 1) : new(0.2f, 0.55f, 0.3f, 1);
-            PrimitiveGeometry3D.AddBox(vertices, item.Position.ToVector(), item.HalfSize.ToVector(), color);
-        }
-        if (View == CameraView.ThirdPerson)
-        {
-            PrimitiveGeometry3D.AddBox(vertices, position + new Vector3(0, 0.8f, 0), new(0.3f, 0.8f, 0.3f), new(0.2f, 0.7f, 0.9f, 1));
-        }
+        SceneFrame frame = scene.Project(agent => agent.Id != "player" || View == CameraView.ThirdPerson);
         if (Definition.Has(GameConcept.ReloadableGuns))
         {
             Vector3 aim = Camera3D.Direction(yaw, pitch);
             Vector3 right = Vector3.Normalize(Vector3.Cross(aim, Vector3.UnitY));
             Vector3 muzzle = position + Vector3.UnitY * 1.6f + aim * 0.6f + right * 0.22f - Vector3.UnitY * 0.22f;
-            PrimitiveGeometry3D.AddBox(vertices, muzzle, new(0.08f, 0.08f, 0.18f), new(0.3f, 0.6f, 0.7f, 1));
+            frame = frame with
+            {
+                Boxes = frame.Boxes.Add(new("view.gun", Matrix4x4.CreateTranslation(muzzle),
+                    new(0.08f, 0.08f, 0.18f), new(0.3f, 0.6f, 0.7f, 1), SceneCollision.None)),
+            };
         }
-        return vertices.ToArray();
+        return SceneGeometry3D.Build(frame);
     }
 
     private void Step(GameCommands commands, float seconds)
@@ -357,6 +366,13 @@ public sealed class StarterGame : IDisposable
             Vector3 direction = Camera3D.Direction(yaw, pitch);
             int hit = -1;
             float closest = float.MaxValue;
+            foreach (StarterObject obstacle in solidGeometry)
+            {
+                if (RayBox(origin, direction, obstacle) is { } distance)
+                {
+                    closest = MathF.Min(closest, distance);
+                }
+            }
             for (int index = 0; index < objects.Length; index++)
             {
                 float? distance = RayBox(origin, direction, objects[index]);
@@ -368,7 +384,7 @@ public sealed class StarterGame : IDisposable
             }
             if (hit >= 0 && agents[hit].State > 0)
             {
-                agents = agents.Select((agent, index) => index == hit ? agent with { State = agent.State - 1 } : agent).ToArray();
+                agents[hit].State--;
             }
             // Presentation event identity stays unique when a save restores an earlier game tick.
             Audio.Play(new(new($"shot-{++audioEventSequence}"), new("shot"), AudioBusId.Sfx));
@@ -377,7 +393,7 @@ public sealed class StarterGame : IDisposable
     }
 
     private bool CanStand(Vector3 next) => MathF.Abs(next.X) <= 11.5f && MathF.Abs(next.Z) <= 11.5f &&
-        !objects.Any(item => MathF.Abs(next.X - item.Position.X) < item.HalfSize.X + 0.3f &&
+        !objects.Concat(solidGeometry).Any(item => MathF.Abs(next.X - item.Position.X) < item.HalfSize.X + 0.3f &&
             MathF.Abs(next.Z - item.Position.Z) < item.HalfSize.Z + 0.3f);
 
     private static float? RayBox(Vector3 origin, Vector3 direction, StarterObject item)
@@ -404,13 +420,15 @@ public sealed class StarterGame : IDisposable
 
     private void ResetWorld()
     {
-        position = new(0, 0, 7);
+        SceneInstance candidate = scenePlan.Mount();
+        scene?.Dispose();
+        scene = candidate;
+        player = scene.Agent<Vector3>("player");
+        agents = objects.Select(item => scene.Agent<int>(item.Id)).ToArray();
         yaw = pitch = verticalVelocity = 0;
         time = 0;
         View = Definition.Has(GameConcept.FirstPersonCamera) ? CameraView.FirstPerson : CameraView.ThirdPerson;
         gun.Restore(new(gun.Configuration.Capacity, 0, 0, 0));
-        agents = AgentAuthoring.CreateBatch(objects.Select(item => new AgentSpawn<Point3>(item.Id, item.Id, item.Position,
-            AgentTemplate.Object("starter.target"))), [], _ => { }, spawn => objects.Single(item => item.Id == spawn.Id).Health);
         scheduler = NewScheduler();
         pendingJump = pendingReload = pendingFire = false;
     }
@@ -423,7 +441,45 @@ public sealed class StarterGame : IDisposable
         {
             throw new ArgumentException("Starter objects need unique ids, finite geometry, positive sizes and health.");
         }
-        if (!CanStand(new(0, 0, 7))) throw new ArgumentException("Starter objects overlap the player spawn.");
+        Vector3 spawn = scenePlan.Agents.Single(agent => agent.Placement.Id == "player").Placement.Position;
+        if (spawn.Y != 0 || !CanStand(spawn))
+        {
+            throw new ArgumentException("Starter player spawn must be on the ground, inside the range and clear of collision.");
+        }
+    }
+
+    private static StarterObject[] ReadTargets(ScenePlan plan)
+    {
+        if (plan.Agents.Count(agent => agent.Placement.Id == "player"
+            && agent.Node is SceneAgentNode<Vector3> { Definition: StarterPlayerDefinition }) != 1)
+        {
+            throw new InvalidDataException("Starter scenes need one root 'player' using StarterPlayerDefinition.");
+        }
+        var result = new List<StarterObject>();
+        foreach (PlacedSceneAgent declaration in plan.Agents)
+        {
+            if (declaration.Placement.Id == "player")
+            {
+                continue;
+            }
+            if (declaration.Node is not SceneAgentNode<int> { Definition: StarterTargetDefinition target })
+            {
+                throw new InvalidDataException("Starter snapshots support StarterPlayerDefinition and StarterTargetDefinition; custom games own other state schemas.");
+            }
+            result.Add(CollisionBox(declaration.Placement.Id, declaration.Placement.WorldTransform, target.HalfSize, target.Health));
+        }
+        return result.ToArray();
+    }
+
+    private static StarterObject CollisionBox(string id, Matrix4x4 transform, Vector3 halfSize, int health)
+    {
+        if (transform.M12 != 0 || transform.M13 != 0 || transform.M21 != 0 || transform.M23 != 0
+            || transform.M31 != 0 || transform.M32 != 0 || transform.M11 <= 0 || transform.M22 <= 0 || transform.M33 <= 0)
+        {
+            throw new InvalidDataException("The starter's box collision supports translation and positive axis-aligned scaling. Rotated visuals may use Collision.None.");
+        }
+        return new(id, Point3.From(transform.Translation),
+            Point3.From(halfSize * new Vector3(transform.M11, transform.M22, transform.M33)), health);
     }
 
     private void ValidateSnapshot(StarterSnapshot snapshot)
@@ -482,6 +538,7 @@ public sealed class StarterGame : IDisposable
     {
         if (disposed) return;
         disposed = true;
+        scene.Dispose();
         Controls.Dispose();
         Audio.Dispose();
         audioResources.Dispose();

@@ -13,7 +13,7 @@ public enum BeaconScreen
 }
 
 /// <summary>Game-owned actions and transitions; the engine supplies menu presentation and navigation.</summary>
-public sealed class BeaconApplication(int traceCapacity = 0)
+public sealed class BeaconApplication(int traceCapacity = 0) : IDisposable
 {
     private readonly GameMenuNavigation navigation = new();
     private BeaconScreen returnScreen = BeaconScreen.Title;
@@ -88,6 +88,7 @@ public sealed class BeaconApplication(int traceCapacity = 0)
         {
             case "new-game":
             case "restart":
+                Game.Dispose();
                 Game = new BeaconGame(traceCapacity: traceCapacity);
                 SetScreen(BeaconScreen.Playing);
                 break;
@@ -138,5 +139,10 @@ public sealed class BeaconApplication(int traceCapacity = 0)
         {
             navigation.Update(menu.Entries, default);
         }
+    }
+
+    public void Dispose()
+    {
+        Game.Dispose();
     }
 }

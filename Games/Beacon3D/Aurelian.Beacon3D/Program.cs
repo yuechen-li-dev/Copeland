@@ -64,7 +64,7 @@ using IWindow window = Window.Create(options);
 window.Initialize();
 using IInputContext input = window.CreateInput();
 using var controls = new BeaconControls();
-var app = new BeaconApplication();
+using var app = new BeaconApplication();
 using var graphics = new NativeGameGraphics(window, "Beacon Run", visible);
 var font = graphics.Font;
 var menuView = new GameMenuView(font);

@@ -1,0 +1,121 @@
+{
+  "schema": "aurelian.beacon3d.proof.v1",
+  "outcome": "Success",
+  "gpu": {
+    "PlantId": {
+      "Value": 0
+    },
+    "PhysicalDeviceName": "NVIDIA GeForce RTX 3070",
+    "DeviceType": "DiscreteGpu",
+    "ApiVersion": 4211017,
+    "DriverVersion": 2500395008,
+    "VendorId": 4318,
+    "DeviceId": 9352,
+    "QueueFamilyIndex": 0,
+    "TimelineSemaphores": true,
+    "EnabledInstanceExtensions": [
+      "VK_KHR_surface",
+      "VK_KHR_win32_surface",
+      "VK_EXT_debug_utils"
+    ],
+    "EnabledDeviceExtensions": [
+      "VK_KHR_swapchain"
+    ],
+    "EnabledValidationLayers": [
+      "VK_LAYER_KHRONOS_validation"
+    ]
+  },
+  "camera": "GPU world-to-clip rows; perspective; near=0.1, far=80; Vulkan depth [0,1]",
+  "depthFormat": "D32_SFLOAT",
+  "depthProof": {
+    "orderIndependentWithDepth": true,
+    "orderDependentWithoutDepth": true,
+    "nearOccludesFar": true,
+    "cameraUniformChangesPixels": true,
+    "greenPixels": 99856,
+    "redPixels": 18384,
+    "enabledHash": "235f9fd70733245a5826cab76f523e5944fed218bae8ab9f67ce8e7cba579ad2",
+    "disabledHash": "4d0d78242e6c34377e2d60ab05031b7c5c4083c3dc4a324e01256491262123fa",
+    "movedCameraHash": "1f9632cac0c73b79c8074c8172218a33548580a67f2ff014ece4b8c39873ffb8"
+  },
+  "fpsProof": {
+    "accumulatedMouseDeltas": true,
+    "mouseDeltaConsumedOnce": true,
+    "nativeCaptureTransitions": true,
+    "WavesCleared": 3,
+    "Kills": 9,
+    "Shots": 24,
+    "Health": 100,
+    "AgentTicks": 3543,
+    "ActiveCreatureBrains": 0,
+    "ticks": 2376,
+    "characterAgents": 1,
+    "objectAgents": 3,
+    "creatureAgents": 4
+  },
+  "menuProof": {
+    "bootedToTitle": true,
+    "inputManNavigation": true,
+    "renderedButtonPointerActivation": true,
+    "mismatchedReleaseCancelled": true,
+    "controlsReturnsToOrigin": true,
+    "gameStateFrozenInMenus": true,
+    "focusLossCancelsPointer": true,
+    "confirmDoesNotLeakIntoJump": true,
+    "retainedFontUploads": 3,
+    "titleHash": "20212e5f23638eff5e342c5e82919afbface05047c97dbc1c316f06ee00a3d4d",
+    "pauseHash": "d036108b4b038ee241db0924a787e318f857ed7bf37bab8b0d74c80598603cfe"
+  },
+  "repeatedInitialFrame": true,
+  "framesPresented": 3681,
+  "captureCount": 10,
+  "gameTimeSeconds": 61.349236,
+  "collected": 3,
+  "Won": true,
+  "inputAuthority": "InputMan bindings via AurelianInputAdapter; scripted physical key snapshots and native SilkInputBridge use the same path",
+  "trace": [
+    {
+      "tick": 251,
+      "x": -6.9775805,
+      "z": 4.0667467,
+      "collected": 1,
+      "Won": false,
+      "PixelSha256": "ac02a2042a35a111c7ef8f1b10ea19661784109ee5d6c2b8448903f77acd00da"
+    },
+    {
+      "tick": 565,
+      "x": -0.46476698,
+      "z": -7.9847035,
+      "collected": 2,
+      "Won": false,
+      "PixelSha256": "26001515c1d709716b577da650bef4db68e2972ce8ee0276f6028ecb05bce468"
+    },
+    {
+      "tick": 930,
+      "x": 6.999237,
+      "z": 0.54546094,
+      "collected": 3,
+      "Won": false,
+      "PixelSha256": "915a4ce2b98de0b84ef2fd502b3771b70ebaa5aa1ae57271a4515f2a0b4b9cd8"
+    },
+    {
+      "tick": 1300,
+      "x": 1.1343122,
+      "z": -9.832417,
+      "collected": 3,
+      "Won": true,
+      "PixelSha256": "e640ad27bb34d6d0b8af4d327703c878a3b0a8d55097af596caeb722a5dd32b0"
+    }
+  ],
+  "shader": {
+    "VdMirSha256": "f3ee0ba71126c19ad06913ecaab4863030383049de5a53bc4eb8d0aea4dfa03f",
+    "HlslSha256": "b5b0c12d37aa22b8e5aa2fb258ea0a7708d9d5528d873a6878d250db9b52875b",
+    "SpirvSha256": "317f9ba9a9fbbf80ba23e5e1e6f2735e8340af82e902efb0e3366cf4d145ed0f",
+    "pixelSpirvSha256": "87fed603416c195b3fae263e9888926e412fb0ae27858f85aad0284a763eeb9f"
+  },
+  "validationLayers": [
+    "VK_LAYER_KHRONOS_validation"
+  ],
+  "validationNote": "Layer availability is recorded; this sample does not count debug-messenger callbacks. Vulkan results and pixel assertions are enforced.",
+  "boundaries": "Geometric FPS with InputMan mouse deltas and authored agents; fixed-size window. No mesh import, shadows, animation rigs, or general 3D physics engine."
+}

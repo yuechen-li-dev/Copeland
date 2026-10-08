@@ -224,6 +224,7 @@ public sealed class BeaconPlaytestTarget : IPlaytestTarget<BeaconPlaytestObserva
     {
         controls.Dispose();
         controls = new BeaconControls();
+        Application.Dispose();
         Application = new BeaconApplication(traceCapacity: 4096);
         pending = default;
         focused = true;
@@ -239,6 +240,7 @@ public sealed class BeaconPlaytestTarget : IPlaytestTarget<BeaconPlaytestObserva
         if (!disposed)
         {
             disposed = true;
+            Application.Dispose();
             controls.Dispose();
         }
     }

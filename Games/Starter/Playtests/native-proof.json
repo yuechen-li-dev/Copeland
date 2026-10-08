@@ -6,7 +6,7 @@
     { "kind": "command", "command": "assert view FirstPerson" },
     { "kind": "capture", "path": "first-person.png" },
     { "kind": "mouse-hold", "text": "Primary", "seconds": 0.6 },
-    { "kind": "command", "command": "assert hits 3" },
+    { "kind": "command", "command": "assert hits 4" },
     { "kind": "tap", "keys": ["R"], "seconds": 0.05 },
     { "kind": "wait", "seconds": 1.2 },
     { "kind": "command", "command": "assert ammo 12" },

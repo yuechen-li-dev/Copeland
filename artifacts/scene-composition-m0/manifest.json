@@ -1,0 +1,69 @@
+{
+  "schema": "aurelian.scene-composition.proof.v1",
+  "outcome": "Success",
+  "implementation": {
+    "authoring": "Aurelian.World.Scenes",
+    "graphics": "Aurelian.NativeComposition.SceneGeometry3D",
+    "policies": "Aurelian.Runtime.Dominatus.Inspection.ScenePolicyBinding",
+    "examples": [
+      "Games/Starter/Aurelian.Starter/TrainingRange.cs",
+      "Games/Beacon3D/Aurelian.Beacon3D/BeaconScene.cs"
+    ]
+  },
+  "validation": {
+    "fullAurelianBuild": "dotnet build Aurelian.slnx -c Release -m:1 --no-restore",
+    "buildWarnings": 0,
+    "buildErrors": 0,
+    "tests": "test-summary.json",
+    "aurelianPassed": 893,
+    "tinyfarmPassed": 477,
+    "starterReflectionDisabledPassed": 21,
+    "testFailures": 0,
+    "testSkips": 0,
+    "shaderTool": "Repository-pinned naga selected through AURELIAN_NAGA; initial missing-PATH failure resolved",
+    "diffCheck": "git diff --check"
+  },
+  "coveredContracts": [
+    "Reusable fragment namespaces and independent mutable agent state across instances and mounts",
+    "Ordinary with customization creates independent runtime state",
+    "Nested translation, rotation, nonuniform scale and inverse-transpose normals",
+    "Complete document validation before state or policy factories",
+    "Mount and spawn rollback, explicit despawn and unmount",
+    "Cleanup continues after failures and preserves lease/state diagnostics",
+    "Projection reads live state without resetting placement or health",
+    "Presentation cannot create agents or declare gameplay collision",
+    "Scoped Dominatus traces, fresh policy instances and owned activation leases",
+    "Deliverance roundtrip preserves independently named target health across declaration reordering",
+    "Explicit solid scene geometry blocks starter movement and hitscan"
+  ],
+  "native": {
+    "gpu": "NVIDIA GeForce RTX 3070",
+    "starterScript": "Games/Starter/Playtests/native-proof.json",
+    "starterOutput": "starter-native-final",
+    "starterHeadlessOutput": "starter-headless-final",
+    "starterExactBackendAgreement": true,
+    "beaconProof": "beacon-native/proof.json",
+    "beaconFrames": 3681,
+    "beaconWavesCleared": 3,
+    "beaconKills": 9,
+    "beaconWon": true,
+    "inspectionNative": "beacon-inspection-native/final.json",
+    "inspectionHeadless": "beacon-inspection-headless/final.json",
+    "inspectionGameplayAndPolicyAgreement": true,
+    "agreement": "backend-agreement.json"
+  },
+  "dependencyBoundaries": {
+    "checkerPasses": false,
+    "existingViolations": 7,
+    "newViolations": 0,
+    "evidence": "boundary-baseline.json"
+  },
+  "limits": [
+    "C# frontend first; Copeland TS frontend and TinyFarm scene migration remain follow-up work",
+    "Scene collision is an authored fact consumed by existing game rules, not a new physics engine",
+    "Starter solid/target collision supports translated and positively scaled axis-aligned boxes",
+    "Custom game state and dynamic topology require explicit application-owned snapshots",
+    "Definition identity is an explicit author contract; closures and arbitrary state are not reflected",
+    "Native scripts exercise Vulkan and InputMan paths, not a manual desktop play session"
+  ]
+}

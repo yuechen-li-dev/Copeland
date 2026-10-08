@@ -8,7 +8,7 @@ public readonly record struct BeaconInput(float Forward, float Strafe, float Tur
 public readonly record struct ArenaPillar(Vector2 Center, Vector2 HalfSize, float Height);
 
 /// <summary>Game-owned state and collision; independent of Vulkan, pixels, and window input.</summary>
-public sealed partial class BeaconGame
+public sealed partial class BeaconGame : IDisposable
 {
     public static IReadOnlyList<Vector2> BeaconPositions { get; } = Array.AsReadOnly<Vector2>(
         [new(-7, 3), new(6, 1), new(0, -7)]);
@@ -131,6 +131,11 @@ public sealed partial class BeaconGame
             }
         }
         return true;
+    }
+
+    public void Dispose()
+    {
+        scene.Dispose();
     }
 }
 

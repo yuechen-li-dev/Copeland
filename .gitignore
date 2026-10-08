@@ -116,3 +116,12 @@ artifacts/aurelian-game-starter-m0/headless/
 artifacts/aurelian-game-starter-m0/native-final/
 artifacts/aurelian-game-starter-m0/headless-final/
 artifacts/aurelian-game-starter-m0/strategy-native/*.png
+
+# Scene composition qualification: retain summaries/captures, omit local saves and replay journals.
+artifacts/scene-composition-m0/saves-*/
+artifacts/scene-composition-m0/starter-headless-initial/
+artifacts/scene-composition-m0/starter-headless/
+artifacts/scene-composition-m0/starter-native/
+artifacts/scene-composition-m0/**/trace.jsonl
+artifacts/scene-composition-m0/**/*.log
+artifacts/scene-composition-m0/**/solid3d.hlsl

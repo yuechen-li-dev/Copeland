@@ -1,35 +1,53 @@
 using static Aurelian.Graphics.Vulkan.Native3D.PrimitiveGeometry3D;
 using System.Numerics;
 using Aurelian.Graphics.Vulkan.Native3D;
+using Aurelian.NativeComposition;
+using Aurelian.World.Scenes;
 
 namespace Aurelian.Beacon3D;
 
 internal static class BeaconScene
 {
-    public static Native3DVertex[] Build(BeaconGame game)
+    public static SceneGroup Arena()
     {
-        var vertices = new List<Native3DVertex>();
+        var children = new List<SceneNode>();
+        var floor = new List<Native3DVertex>();
         for (int x = -11; x < 11; x += 2)
         {
             for (int z = -11; z < 11; z += 2)
             {
                 bool alternate = ((x + z) / 2) % 2 == 0;
                 Vector4 color = alternate ? new(0.18f, 0.26f, 0.30f, 1) : new(0.22f, 0.31f, 0.34f, 1);
-                AddQuad(vertices, new(x, 0, z), new(x + 2, 0, z), new(x + 2, 0, z + 2), new(x, 0, z + 2), Vector3.UnitY, color);
+                AddQuad(floor, new(x, 0, z), new(x + 2, 0, z), new(x + 2, 0, z + 2), new(x, 0, z + 2), Vector3.UnitY, color);
             }
         }
+        children.Add(Scene.Mesh("floor", floor.Select(vertex => new SceneVertex(vertex.Position, vertex.Normal, vertex.Color))));
         Vector4 wallColor = new(0.35f, 0.46f, 0.51f, 1);
-        AddBox(vertices, new(-11.4f, 0.5f, 0), new(0.4f, 0.5f, 11.8f), wallColor);
-        AddBox(vertices, new(11.4f, 0.5f, 0), new(0.4f, 0.5f, 11.8f), wallColor);
-        AddBox(vertices, new(0, 0.5f, -11.4f), new(11, 0.5f, 0.4f), wallColor);
-        AddBox(vertices, new(0, 0.5f, 11.4f), new(11, 0.5f, 0.4f), wallColor);
-        foreach (ArenaPillar pillar in BeaconGame.Pillars)
+        var sideWall = Scene.Group("side-wall",
+            [Scene.Box("body", new(0.8f, 1, 23.6f), wallColor, collision: SceneCollision.Solid)]);
+        var endWall = Scene.Group("end-wall",
+            [Scene.Box("body", new(22, 1, 0.8f), wallColor, collision: SceneCollision.Solid)]);
+        children.Add(Scene.Instance("west", sideWall, at: new(-11.4f, 0.5f, 0)));
+        children.Add(Scene.Instance("east", sideWall, at: new(11.4f, 0.5f, 0)));
+        children.Add(Scene.Instance("north", endWall, at: new(0, 0.5f, -11.4f)));
+        children.Add(Scene.Instance("south", endWall, at: new(0, 0.5f, 11.4f)));
+        for (int index = 0; index < BeaconGame.Pillars.Count; index++)
         {
-            AddBox(vertices, new(pillar.Center.X, pillar.Height / 2, pillar.Center.Y),
-                new(pillar.HalfSize.X, pillar.Height / 2, pillar.HalfSize.Y), new(0.48f, 0.59f, 0.62f, 1));
-            AddBox(vertices, new(pillar.Center.X, pillar.Height + 0.08f, pillar.Center.Y),
-                new(pillar.HalfSize.X + 0.15f, 0.08f, pillar.HalfSize.Y + 0.15f), new(0.81f, 0.64f, 0.35f, 1));
+            ArenaPillar pillar = BeaconGame.Pillars[index];
+            children.Add(Scene.Group($"pillar-{index}",
+            [
+                Scene.Box("body", new(pillar.HalfSize.X * 2, pillar.Height, pillar.HalfSize.Y * 2),
+                    new(0.48f, 0.59f, 0.62f, 1), at: new(0, pillar.Height / 2, 0), collision: SceneCollision.Solid),
+                Scene.Box("cap", new(pillar.HalfSize.X * 2 + 0.3f, 0.16f, pillar.HalfSize.Y * 2 + 0.3f),
+                    new(0.81f, 0.64f, 0.35f, 1), at: new(0, pillar.Height + 0.08f, 0)),
+            ], at: new(pillar.Center.X, 0, pillar.Center.Y)));
         }
+        return Scene.World("beacon-arena", children);
+    }
+
+    public static Native3DVertex[] Build(BeaconGame game)
+    {
+        var vertices = new List<Native3DVertex>(SceneGeometry3D.Build(game.Scene.Project()));
         for (int index = 0; index < BeaconGame.BeaconPositions.Count; index++)
         {
             Vector2 point = game.BeaconPosition(index);

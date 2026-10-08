@@ -1,0 +1,12 @@
+{
+  "starterExactFinalJson": true,
+  "beaconGameplay": true,
+  "beaconPolicy": true,
+  "semanticHash": "0E4786B37AFEE7E1FF51D20265B60CFA6E21D24D0387211FB730712BD7A4EB69",
+  "policyHash": "84D3E1F43B1D0D0F0B1A3DD6FAD1CC902F9A0A3667AAB79D8CC5C46DC8F91476",
+  "namedPolicies": [
+    "creature-1-0",
+    "creature-1-1"
+  ],
+  "traceEntries": 484
+}

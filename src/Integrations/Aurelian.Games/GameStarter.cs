@@ -10,17 +10,21 @@ using Machina.Runtime.Input;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
+using Aurelian.World.Scenes;
 
 namespace Aurelian.Games;
 
 public static class GameStarter
 {
     public static StarterGame Create(string id, IEnumerable<GameConcept> concepts, StarterOptions? options = null,
-        string? saveDirectory = null) => new(id, new GameDefinition(concepts), options, saveDirectory);
+        string? saveDirectory = null, SceneGroup? sceneDocument = null)
+    {
+        return new(id, new GameDefinition(concepts), options, saveDirectory, sceneDocument: sceneDocument);
+    }
 
     /// <summary>One explicit bootstrap for native, scripted native and deterministic headless execution.</summary>
     public static void Run(string id, IEnumerable<GameConcept> concepts, string[] args, StarterOptions? options = null,
-        Action<StarterGame>? configure = null)
+        Action<StarterGame>? configure = null, SceneGroup? sceneDocument = null)
     {
         GameDefinition definition = new(concepts);
         options ??= new();
@@ -38,7 +42,7 @@ public static class GameStarter
             if (NAudioOutputBackend.TryCreate(out NAudioOutputBackend? nativeAudio, out string? error)) backend = nativeAudio!;
             else Console.Error.WriteLine("Audio device unavailable; using null output: " + error);
         }
-        using var game = new StarterGame(id, definition, options, Option(args, "--save-root"), backend);
+        using var game = new StarterGame(id, definition, options, Option(args, "--save-root"), backend, sceneDocument);
         configure?.Invoke(game);
         if (headless)
         {

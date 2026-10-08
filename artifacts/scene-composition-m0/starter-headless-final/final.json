@@ -1,0 +1,19 @@
+{
+  "Screen": "playing",
+  "Position": {
+    "X": 0,
+    "Y": 0,
+    "Z": 5.6500034,
+    "IsFinite": true
+  },
+  "Yaw": 0.19999999,
+  "Pitch": -0.049999997,
+  "View": 1,
+  "Ammo": 12,
+  "Reloading": false,
+  "Shots": 4,
+  "Hits": 4,
+  "Time": 2.150000112131238,
+  "DefinitionIdentity": "4415A8D77C759DA8F5F0FCE3759DE5F9373FD4CF15ECD64A5846D3A21089DBA0",
+  "PersistenceError": null
+}

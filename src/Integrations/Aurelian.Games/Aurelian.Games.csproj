@@ -3,6 +3,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../Aurelian.NativeComposition/Aurelian.NativeComposition.csproj" />
     <ProjectReference Include="../Aurelian.GameSaves/Aurelian.GameSaves.csproj" />
     <ProjectReference Include="../Aurelian.GameMenus/Aurelian.GameMenus.csproj" />
     <ProjectReference Include="../Aurelian.GameHost.Silk/Aurelian.GameHost.Silk.csproj" />

@@ -2,12 +2,16 @@ using Aurelian.Combat;
 using System.Numerics;
 using Aurelian.World.Agents;
 using Aurelian.Runtime.Inspection;
+using Aurelian.World.Scenes;
+using SceneDocument = Aurelian.World.Scenes.Scene;
 
 namespace Aurelian.Beacon3D;
 
 public sealed partial class BeaconGame
 {
-    private readonly Dictionary<string, GameAgent<BeaconAgentState>> agents = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, SceneAgent<BeaconAgentState>> agents = new(StringComparer.Ordinal);
+    private readonly SceneInstance scene;
+    private readonly BeaconAgentDefinition creatureDefinition;
     private readonly BeaconCreatureBrains brains;
     private readonly List<BeaconBolt> bolts = [];
     private readonly bool combat;
@@ -19,19 +23,33 @@ public sealed partial class BeaconGame
     {
         this.combat = combat;
         brains = new BeaconCreatureBrains(traceCapacity);
-        var spawns = new List<AgentSpawn<Vector3>>
+        creatureDefinition = new(BeaconAgents.Creature, 2)
         {
-            new("runner", "Runner", new(0, 0, 9), BeaconAgents.Player),
+            PolicyIdentity = "beacon.creature.v1",
+            AttachPolicy = brains.Bind,
+        };
+        var nodes = new List<SceneNode>
+        {
+            SceneDocument.Agent("runner", new BeaconAgentDefinition(BeaconAgents.Player, 100), at: new(0, 0, 9), name: "Runner"),
         };
         for (int index = 0; index < BeaconPositions.Count; index++)
         {
             Vector2 point = BeaconPositions[index];
-            spawns.Add(new($"beacon-{index}", "Beacon", new(point.X, 0, point.Y), BeaconAgents.Beacon));
+            nodes.Add(SceneDocument.Agent($"beacon-{index}", new BeaconAgentDefinition(BeaconAgents.Beacon, 0),
+                at: new(point.X, 0, point.Y), name: "Beacon"));
         }
-        AddAgents(BeaconAgents.Create(spawns, []));
+        var document = BeaconScene.Arena();
+        document = document with { Children = document.Children.AddRange(nodes) };
+        scene = SceneCompiler.Compile(document).Mount();
+        foreach (SceneAgent agent in scene.Agents)
+        {
+            agents.Add(agent.Id, scene.Agent<BeaconAgentState>(agent.Id));
+        }
     }
 
-    public IReadOnlyList<GameAgent<BeaconAgentState>> Agents => agents.Values.OrderBy(agent => agent.Id, StringComparer.Ordinal).ToArray();
+    public IReadOnlyList<GameAgent<BeaconAgentState>> Agents => agents.Values
+        .OrderBy(agent => agent.Id, StringComparer.Ordinal).Select(agent => agent.Agent).ToArray();
+    public SceneInstance Scene => scene;
     public IReadOnlyList<GameAgent<BeaconAgentState>> Creatures => Agents.Where(agent => agent.Template.Kind == AgentKind.Creature).ToArray();
     public IReadOnlyList<BeaconBolt> Bolts => bolts.AsReadOnly();
     public int Health => agents["runner"].State.Health;
@@ -49,25 +67,17 @@ public sealed partial class BeaconGame
     public AgentInspection InspectBrains() => brains.Inspect();
     public string CombatStatus => Reloading ? "RELOADING" : Ammo == 0 ? "R TO RELOAD" : "LMB FIRE / R RELOAD";
 
-    private void AddAgents(IEnumerable<GameAgent<BeaconAgentState>> authored)
-    {
-        foreach (var agent in authored)
-        {
-            agents.Add(agent.Id, agent);
-        }
-    }
-
     private void SetPlayerPosition(Vector2 position)
     {
         var player = agents["runner"];
-        agents["runner"] = player with { State = player.State with { Position = new(position.X, 0, position.Y) } };
+        player.State = player.State with { Position = new(position.X, 0, position.Y) };
     }
 
     private void Collect(int index)
     {
         string id = $"beacon-{index}";
         var agent = agents[id];
-        agents[id] = agent with { State = agent.State with { Collected = true } };
+        agent.State = agent.State with { Collected = true };
     }
 
     private void StepCombat(BeaconInput input, float seconds)
@@ -110,20 +120,16 @@ public sealed partial class BeaconGame
         Wave++;
         foreach (string id in Creatures.Select(agent => agent.Id))
         {
+            scene.Despawn(id);
             agents.Remove(id);
         }
         Vector2[] points = [new(-8, -8), new(8, -8), new(-8, 8), new(8, 8)];
-        var declarations = new List<AgentSpawn<Vector3>>();
         for (int index = 0; index < Wave + 1; index++)
         {
             Vector2 point = points[index];
-            declarations.Add(new($"creature-{Wave}-{index}", "Stalker", new(point.X, 0, point.Y), BeaconAgents.Creature));
-        }
-        var authored = BeaconAgents.Create(declarations, agents.Keys);
-        AddAgents(authored);
-        foreach (var agent in authored)
-        {
-            brains.Add(agent.Id);
+            string id = $"creature-{Wave}-{index}";
+            var agent = scene.Spawn(id, creatureDefinition, SceneTransform.At(new(point.X, 0, point.Y)), "Stalker");
+            agents.Add(id, agent);
         }
     }
 
@@ -136,7 +142,7 @@ public sealed partial class BeaconGame
         if (intent == CreatureIntent.Attack && delta.Length() < 1.25f && Height < 0.8f && cooldown == 0)
         {
             var player = agents["runner"];
-            agents["runner"] = player with { State = player.State with { Health = Math.Max(0, Health - 10) } };
+            player.State = player.State with { Health = Math.Max(0, Health - 10) };
             cooldown = 0.8f;
             hurtRemaining = 0.2f;
         }
@@ -164,7 +170,7 @@ public sealed partial class BeaconGame
                 }
             }
         }
-        agents[creature.Id] = creature with { State = state with { Position = new(position.X, 0, position.Y), Cooldown = cooldown } };
+        agents[creature.Id].State = state with { Position = new(position.X, 0, position.Y), Cooldown = cooldown };
     }
 
     private void StepBolts(float seconds)
@@ -190,7 +196,7 @@ public sealed partial class BeaconGame
             if (victim is not null)
             {
                 int health = Math.Max(0, victim.State.Health - 1);
-                agents[victim.Id] = victim with { State = victim.State with { Health = health } };
+                agents[victim.Id].State = victim.State with { Health = health };
                 if (health == 0)
                 {
                     Kills++;

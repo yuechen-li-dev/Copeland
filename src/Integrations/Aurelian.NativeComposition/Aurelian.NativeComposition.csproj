@@ -5,6 +5,7 @@
     <RootNamespace>Aurelian.NativeComposition</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../Aurelian/Aurelian.World/Aurelian.World.csproj" />
     <ProjectReference Include="../../Aurelian/Aurelian.Composition/Aurelian.Composition.csproj" />
     <ProjectReference Include="../../Aurelian/Aurelian.GameHost/Aurelian.GameHost.csproj" />
     <ProjectReference Include="../../Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />

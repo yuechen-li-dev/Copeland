@@ -20,7 +20,7 @@
     },
     {
       "kind": "command",
-      "command": "assert hits 3"
+      "command": "assert hits 4"
     },
     {
       "kind": "tap",

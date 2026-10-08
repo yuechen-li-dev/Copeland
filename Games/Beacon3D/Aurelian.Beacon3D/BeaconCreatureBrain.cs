@@ -7,6 +7,7 @@ using Dominatus.Core.Nodes;
 using Dominatus.Core.Nodes.Steps;
 using Dominatus.Core.Runtime;
 using Dominatus.OptFlow;
+using Aurelian.World.Scenes;
 
 namespace Aurelian.Beacon3D;
 
@@ -66,6 +67,11 @@ public sealed class BeaconCreatureBrains(int traceCapacity = 0)
     public void Add(string id)
     {
         runtime.Add(id, BeaconCreatureFlow.Definition.CreateBrain());
+    }
+
+    public IDisposable Bind(SceneAgent<BeaconAgentState> agent)
+    {
+        return ScenePolicyBinding.Bind(agent, runtime, BeaconCreatureFlow.Definition.CreateBrain);
     }
 
     public void Observe(string id, float distance)

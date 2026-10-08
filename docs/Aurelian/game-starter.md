@@ -26,7 +26,7 @@ GameStarter.Run("my-game",
 
 This starts a geometric training range with a title menu, pause menu, settings, a character agent, object targets, collision, mouse look, jump, hitscan gun, magazine/reload state and switchable first/third-person views. `V` switches views without replacing the actor or gun. `WASD` moves, mouse looks, left click fires, `R` reloads, Space jumps, Escape pauses. Menus support InputMan keyboard navigation and actual rendered-button hit testing.
 
-Run the checked-in example with `starter.cmd`. Its project has one runtime reference and a four-line entry point. Engine shaders, fonts and their licenses ship transitively; the published starter resolves its own built-in assets without finding the checkout.
+Run the checked-in example with `starter.cmd`. Its project has one runtime reference and a short entry point. `TrainingRange.cs` shows [document scene composition](scene-composition.md): one checkpoint fragment instantiated twice and a target customized with `with`. Engine shaders, fonts and their licenses ship transitively; the published starter resolves its own built-in assets without finding the checkout.
 
 ## Concepts compose; presets only select concepts
 
@@ -62,6 +62,10 @@ GameStarter.Run("my-range", GamePresets.ThirdPersonShooter, args,
 `GameStarter.Create` creates the same application without a window, for tests or application-owned hosting. `StarterGame` exposes typed commands, snapshots, authored agents, camera matrices, scene geometry, settings and events. Snapshot validation checks geometry, fragment compatibility, weapon state, keybindings and cadence phase before replacing live state. Target identities are deterministic regardless of declaration order.
 
 The training range is a small starter world. Custom game domain state needs its own explicitly captured snapshot and validation. `GameSaveSlots<TSnapshot>` accepts a game's source-generated `JsonTypeInfo<TSnapshot>` and validator; it does not discover fields or silently include state added by event handlers.
+
+`GameStarter.Run` and `Create` also accept `sceneDocument: SceneGroup`. The starter accepts one root `player` with `StarterPlayerDefinition`, targets with `StarterTargetDefinition`, decorative box/triangle geometry and explicit solid boxes. Target health is saved in canonical instance-ID order. Scene transforms, geometry and explicit definition identities participate in Deliverance's compatibility identity. Switching to an authored document changes that identity; incompatible older slots fail before changing live state.
+
+The starter's existing collision and hitscan rules support translated and positively scaled axis-aligned boxes. Rotated decorative geometry renders normally; rotated solid boxes or target colliders fail with a diagnostic. Other game state types, dynamic spawning and richer physics need application-owned rules and snapshots; the starter does not silently save arbitrary agents added through its inspection-facing `Scene` property.
 
 ## Shared owners and persistence
 

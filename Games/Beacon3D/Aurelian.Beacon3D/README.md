@@ -75,7 +75,11 @@ The [engine-owned agent authoring path](../../../docs/Aurelian/games/agent-autho
 creates the player character, beacon objects, and creature agents. Positions, health,
 and collection facts live in their typed game state. Persistent Dominatus creature
 brains receive observations and emit intents; the game resolver changes state.
-`BeaconScene` builds world-space triangle geometry from those facts. The camera is a
+The [document scene API](../../../docs/Aurelian/scene-composition.md) now mounts the
+player and beacon definitions, instances reusable arena wall fragments, and spawns
+creatures with activation leases on the existing inspected Dominatus runner.
+Restart, replay reset and unmount dispose the previous scene and its policies.
+`BeaconScene` projects static document geometry and dynamic game-owned visuals. The camera is a
 right-handed perspective transform with near/far 0.1/80 and depth [0,1]. The GPU applies
 the transform and directional lighting in `Solid3D.v.ts`, compiled by the existing
 Copeland GPU binder → VD-MIR → Aurelian HLSL/DXC → SPIR-V path.

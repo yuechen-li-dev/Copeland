@@ -35,6 +35,10 @@ public sealed class AurelianAgentRuntime
         {
             throw new InvalidOperationException($"Agent '{id}' is already registered.");
         }
+        if (agents.Values.Any(agent => ReferenceEquals(agent.Brain, brain)))
+        {
+            throw new InvalidOperationException("Each agent needs a fresh Dominatus brain instance.");
+        }
         var agent = new AiAgent(brain);
         agent.BbTracker.JournalEnabled = journalEnabled;
         world.Add(agent);
@@ -44,6 +48,14 @@ public sealed class AurelianAgentRuntime
     }
 
     public AiAgent Agent(string id) => agents[id];
+
+    internal void RemoveIfOwned(string id, AiAgent expected)
+    {
+        if (agents.TryGetValue(id, out AiAgent? actual) && ReferenceEquals(actual, expected))
+        {
+            Remove(id);
+        }
+    }
 
     public void Remove(string id)
     {

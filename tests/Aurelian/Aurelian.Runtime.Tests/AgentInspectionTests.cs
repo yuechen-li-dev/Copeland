@@ -8,11 +8,63 @@ using Dominatus.Core.Nodes.Steps;
 using Dominatus.Core.Trace;
 using Dominatus.Core.Runtime;
 using Xunit;
+using System.Numerics;
+using Aurelian.World.Agents;
+using Aurelian.World.Scenes;
 
 namespace Aurelian.Runtime.Tests;
 
 public sealed class AgentInspectionTests
 {
+    [Fact]
+    public void SceneInstancesBindIndependentBrainsAndUnmountRemovesTheirInspectionEntries()
+    {
+        var runtime = new AurelianAgentRuntime(64);
+        var definition = new ScenePolicyDefinition(runtime, Brain);
+        var fragment = Scene.Group("post", [Scene.Agent("guard", definition)]);
+        using var scene = SceneCompiler.Compile(Scene.World("arena",
+            [Scene.Instance("north", fragment), Scene.Instance("south", fragment)])).Mount();
+        var key = new BbKey<int>("health");
+        runtime.Agent("north.guard").Bb.Set(key, 7);
+        runtime.Tick(TimeSpan.FromSeconds(0.1));
+        Assert.Equal(7, runtime.Agent("north.guard").Bb.GetOrDefault(key, 0));
+        Assert.Equal(0, runtime.Agent("south.guard").Bb.GetOrDefault(key, 0));
+        Assert.NotSame(runtime.Agent("north.guard").Brain, runtime.Agent("south.guard").Brain);
+        Assert.Equal(new[] { "north.guard", "south.guard" }, runtime.Inspector.Observe().Agents.Select(agent => agent.Id));
+        Assert.NotEmpty(runtime.Inspector.Observe().Trace);
+        scene.Despawn("north.guard");
+        Assert.Equal(1, runtime.Count);
+        scene.Dispose();
+        Assert.Equal(0, runtime.Count);
+        Assert.Empty(runtime.Inspector.Observe().Agents);
+    }
+
+    [Fact]
+    public void ReusingALiveBrainFailsAndRollsBackTheWholeMount()
+    {
+        var runtime = new AurelianAgentRuntime();
+        HfsmInstance shared = Brain();
+        var definition = new ScenePolicyDefinition(runtime, () => shared);
+        var plan = SceneCompiler.Compile(Scene.World("arena",
+            [Scene.Agent("a", definition), Scene.Agent("b", definition)]));
+        Assert.Contains("fresh", Assert.Throws<InvalidOperationException>(() => plan.Mount()).Message);
+        Assert.Equal(0, runtime.Count);
+    }
+
+    [Fact]
+    public void SceneLeaseDoesNotRemoveAReplacementPolicyOwnedByAnotherCaller()
+    {
+        var runtime = new AurelianAgentRuntime();
+        var definition = new ScenePolicyDefinition(runtime, Brain);
+        var scene = SceneCompiler.Compile(Scene.World("arena", [Scene.Agent("guard", definition)])).Mount();
+        runtime.Remove("guard");
+        var replacement = runtime.Add("guard", Brain());
+        scene.Dispose();
+        Assert.Same(replacement, runtime.Agent("guard"));
+        Assert.Equal(1, runtime.Count);
+        runtime.Remove("guard");
+    }
+
     [Fact]
     public void KernelTraceIsBoundedAndPriorSinkRemainsAttached()
     {
@@ -84,6 +136,14 @@ public sealed class AgentInspectionTests
         var graph = new HfsmGraph { Root = StateId.Of("idle") };
         graph.Add(graph.Root, Idle);
         return new HfsmInstance(graph);
+    }
+
+    private sealed record ScenePolicyDefinition(AurelianAgentRuntime Runtime, Func<HfsmInstance> Factory)
+        : AgentDefinition<Vector3>(AgentTemplate.Creature("test.guard"))
+    {
+        public override string Identity => "test.guard.v1";
+        public override Vector3 CreateState(ScenePlacement placement) => placement.Position;
+        public override IDisposable Activate(SceneAgent<Vector3> agent) => ScenePolicyBinding.Bind(agent, Runtime, Factory);
     }
 
     private static IEnumerator<AiStep> Idle(AiCtx context)
