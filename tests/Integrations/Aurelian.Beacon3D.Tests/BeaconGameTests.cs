@@ -43,7 +43,7 @@ public sealed class BeaconGameTests
     }
 
     [Fact]
-    public void InputManDrivesGameMovementLookAndQuit()
+    public void InputManDrivesGameMovementLookAndPause()
     {
         using var controls = new BeaconControls();
         var game = new BeaconGame();
@@ -59,7 +59,7 @@ public sealed class BeaconGameTests
         Assert.True(game.Yaw > 0);
         Assert.True(game.Pitch > -0.08f);
         controls.Adapter.RecordButton(Controls.Key(KeyboardKey.Escape), true);
-        Assert.True(controls.Tick(1f / 60).Quit);
+        Assert.True(controls.Tick(1f / 60).Pause);
     }
 
     [Fact]

@@ -13,11 +13,18 @@ a Vulkan-capable GPU/driver, and the repository's existing DXC shader toolchain.
 | Up / Down arrows | Look up / down |
 | Space | Jump on press |
 | R | Restart on press |
-| Escape | Quit |
+| Escape | Pause / resume; back in menus |
+| Up / Down in menus | Select an enabled entry |
+| Enter / Space in menus | Confirm |
+| Mouse click in menus | Activate a button |
 
 The title bar displays the objective, collected count, and win message. The window is
 fixed at 960×600. InputMan owns action maps, held axes, action edges, and focus reset;
 the existing `SilkInputBridge` translates native events into `AurelianInputAdapter`.
+
+The game starts at a title menu and provides pause, controls, and completion menus.
+These use the [Aurelian game menu template](../../../docs/Aurelian/games/game-menu-template.md).
+Menus freeze simulation and render native analytic shapes/MSDF text over the 3D scene.
 
 ## Reproduce the proof
 
@@ -32,6 +39,11 @@ to completion, renders each step, and presents it through a Vulkan swapchain. It
 does not teleport the player or mutate collection state. Captures, hashes, shader
 source output, device facts, and the collection trace are written to
 `artifacts/aurelian-beacon3d/`. Use `--output <directory>` for another destination.
+
+Before the playthrough, the proof checks title/controls/pause navigation, frozen game
+state, matching mouse presses/releases, focus cancellation, InputMan context isolation,
+and repeated-frame pixel/font-upload stability. Menu captures and results are recorded
+alongside the depth and completion witnesses.
 
 The independent depth witness renders intersecting screen projections of two solid
 cubes. It requires identical pixels in opposite submission orders with depth enabled,

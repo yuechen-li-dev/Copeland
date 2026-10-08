@@ -1,4 +1,5 @@
 using InputMan.Aurelian;
+using Aurelian.Composition;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
 
@@ -10,16 +11,23 @@ internal sealed class BeaconNativeInput : IDisposable
     private readonly IWindow window;
     private readonly AurelianInputAdapter adapter;
     private readonly SilkInputBridge bridge;
+    private readonly Action? cancelPointer;
     private bool disposed;
 
-    public BeaconNativeInput(IWindow window, IInputContext context, AurelianInputAdapter adapter, bool manageFocus)
+    public BeaconNativeInput(IWindow window, IInputContext context, AurelianInputAdapter adapter, bool manageFocus,
+        Action<LayerInputEvent>? routeInput = null, Action? cancelPointer = null)
     {
         this.window = window;
         this.adapter = adapter;
-        bridge = new SilkInputBridge(context, adapter);
+        this.cancelPointer = cancelPointer;
+        bridge = new SilkInputBridge(context, adapter, input =>
+        {
+            routeInput?.Invoke(input);
+            return new LayerInputRoutingResult(false, null, null, null, []);
+        });
         if (manageFocus)
         {
-            window.FocusChanged += adapter.OnFocusChanged;
+            window.FocusChanged += OnFocusChanged;
         }
     }
 
@@ -30,7 +38,16 @@ internal sealed class BeaconNativeInput : IDisposable
             return;
         }
         disposed = true;
-        window.FocusChanged -= adapter.OnFocusChanged;
+        window.FocusChanged -= OnFocusChanged;
         bridge.Dispose();
+    }
+
+    private void OnFocusChanged(bool focused)
+    {
+        adapter.OnFocusChanged(focused);
+        if (!focused)
+        {
+            cancelPointer?.Invoke();
+        }
     }
 }

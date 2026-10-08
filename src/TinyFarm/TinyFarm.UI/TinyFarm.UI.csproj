@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <ProjectReference Include="../../Integrations/Aurelian.GameMenus/Aurelian.GameMenus.csproj" />
     <ProjectReference Include="../TinyFarm.InputMan/TinyFarm.InputMan.csproj" />
     <ProjectReference Include="../../Integrations/InputMan.Aurelian/InputMan.Aurelian.csproj" />
     <ProjectReference Include="../../Integrations/Aurelian.GameWorld2D/Aurelian.GameWorld2D.csproj" />

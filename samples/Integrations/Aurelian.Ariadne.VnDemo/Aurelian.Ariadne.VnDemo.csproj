@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../../src/Integrations/Aurelian.GameMenus/Aurelian.GameMenus.csproj" />
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />

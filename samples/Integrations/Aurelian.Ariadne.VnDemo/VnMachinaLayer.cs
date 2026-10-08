@@ -1,4 +1,5 @@
 using Aurelian.Composition;
+using Aurelian.GameMenus;
 using Aurelian.Machina;
 using Aurelian.Rendering.Raster;
 using Ariadne.OptFlow.Presentation;
@@ -317,18 +318,14 @@ public sealed class VnMachinaLayer : IAurelianLayer
                 height: 34),
         };
 
-        for (int index = 0; index < presentation.MenuEntries.Count; index++)
-        {
-            RenMenuEntry entry = presentation.MenuEntries[index];
-            bool selected = index == presentation.SelectedItem;
-            children.Add(UI.Anchor(
-                MenuButton(entry, selected),
-                id: $"entry-{index}-slot",
-                left: 92,
-                top: 224 + (index * 72),
-                width: 570,
-                height: 56));
-        }
+        GameMenuTemplate.AddButtons(children,
+            presentation.MenuEntries.Select(entry => new GameMenuEntry(entry.Id, entry.Label)).ToArray(),
+            presentation.SelectedItem,
+            new GameMenuButtonLayout(92, 224, 570, ButtonIdPrefix: "entry-", ActionPrefix: "ren.entry."),
+            new GameMenuButtonStyle(
+                Background: 0x171923E8, SelectedBackground: 0xA6421FF4,
+                Foreground: 0xFFF8EBFF, Border: 0x6D6257FF, SelectedBorder: 0xFFD072FF,
+                HorizontalPadding: 0, MarkSelection: true));
 
         children.Add(UI.Anchor(
             UI.Text(
@@ -457,15 +454,6 @@ public sealed class VnMachinaLayer : IAurelianLayer
             width: Width,
             height: Height,
             children: children);
-    }
-
-    private static UiNode MenuButton(RenMenuEntry entry, bool selected)
-    {
-        return StandardUI.Button(
-            $"{(selected ? "*" : " ")} {entry.Label}",
-            id: $"entry-{entry.Id}",
-            action: UiAction.Named($"ren.entry.{entry.Id}"),
-            style: ButtonStyle(selected, 570, 56, TextAlignX.Left));
     }
 
     private static StandardButtonStyle ButtonStyle(

@@ -3,6 +3,9 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using Aurelian.Beacon3D;
+using Aurelian.Composition;
+using Aurelian.GameMenus;
+using Aurelian.Machina;
 using Aurelian.Graphics.Plants;
 using Aurelian.Graphics.Vulkan.Device;
 using Aurelian.Graphics.Vulkan.Native2D;
@@ -14,6 +17,7 @@ using Aurelian.Shaders.Graphics;
 using Copeland.TS.Gpu;
 using Copeland.TS.Gpu.VdMir;
 using InputMan.Core;
+using Machina.Runtime.Input;
 using Silk.NET.Core.Native;
 using Silk.NET.Input;
 using Silk.NET.Maths;
@@ -37,7 +41,7 @@ File.WriteAllText(Path.Combine(output, "solid3d.hlsl"), backend.Hlsl);
 
 WindowOptions options = WindowOptions.DefaultVulkan;
 options.Size = new Vector2D<int>(Width, Height);
-options.Title = "BEACON RUN | Aurelian Vulkan 3D | WASD move, arrows look, Space jump, R restart, Esc quit";
+options.Title = "BEACON RUN | Aurelian Vulkan 3D | Menu: arrows + Enter or click";
 options.IsVisible = visible;
 options.WindowBorder = WindowBorder.Fixed;
 options.VSync = true;
@@ -45,7 +49,16 @@ using IWindow window = Window.Create(options);
 window.Initialize();
 using IInputContext input = window.CreateInput();
 using var controls = new BeaconControls();
-using var nativeInput = new BeaconNativeInput(window, input, controls.Adapter, manageFocus: !proof);
+var app = new BeaconApplication();
+var font = AurelianNativeUiFont.Create(Path.Combine(AppContext.BaseDirectory, "Assets"));
+var menuView = new GameMenuView(font);
+var menuEvents = new Queue<LayerInputEvent>();
+using var nativeInput = new BeaconNativeInput(window, input, controls.Adapter, manageFocus: !proof,
+    routeInput: menuEvents.Enqueue, cancelPointer: () =>
+    {
+        menuEvents.Clear();
+        menuView.CancelPointer();
+    });
 var init = VulkanPlantInitializer.CreatePlant(PlantId.Zero, new VulkanPlantOptions(
     EnableValidation: true, ApplicationName: "Beacon Run", EnablePresentation: true,
     RequiredPresentationInstanceExtensions: ReadRequiredExtensions(window)));
@@ -67,8 +80,10 @@ VulkanTextureFormat format = swapchain.Facts.SelectedFormat switch
 using var target = new VulkanNativeFrameTarget(plant, swapchain.Facts.Width, swapchain.Facts.Height, format);
 using var renderer = new VulkanSolid3DRenderer(plant, program, target);
 using var presenter = new VulkanNativeSwapchainPresenter(plant, target, swapchain);
+using var menuPresenter = new GameMenuNativePresenter(plant, target,
+    CompileAsset("AnalyticShape2D.v.ts"), CompileAsset("MsdfText.v.ts"), font);
 var clear = new NativeFrameClearColor(0.055f, 0.095f, 0.15f, 1);
-var game = new BeaconGame();
+var game = app.Game;
 ulong frames = 0;
 int captures = 0;
 Console.WriteLine($"BEACON3D_READY gpu={plant.Facts.PhysicalDeviceName} extent={target.Width}x{target.Height}");
@@ -76,6 +91,8 @@ Console.WriteLine($"BEACON3D_READY gpu={plant.Facts.PhysicalDeviceName} extent={
 if (proof)
 {
     object depthProof = ProveDepth(renderer, target, plant, program, clear, output);
+    object menuProof = ProveMenus();
+    game = app.Game;
     Native3DFrameResult initial = renderer.Render(BeaconScene.Build(game), game.Camera((float)target.Width / target.Height), clear, capture: true);
     SavePng("start.png", initial);
     Native3DFrameResult repeat = renderer.Render(BeaconScene.Build(game), game.Camera((float)target.Width / target.Height), clear, capture: true);
@@ -102,9 +119,9 @@ if (proof)
         controls.Adapter.RecordButton(Controls.Key(KeyboardKey.ArrowRight), yawError > 0.02f);
         controls.Adapter.RecordButton(Controls.Key(KeyboardKey.ArrowLeft), yawError < -0.02f);
         controls.Adapter.RecordButton(Controls.Key(KeyboardKey.Space), tick == 5);
-        game.Step(controls.Tick(StepSeconds).Movement, StepSeconds);
+        app.Update(controls.Tick(StepSeconds, menuActive: app.Menu is not null), StepSeconds);
         bool capture = game.CollectedCount != previousCollected || game.Won;
-        Native3DFrameResult frame = renderer.Render(BeaconScene.Build(game), game.Camera((float)target.Width / target.Height), clear, capture);
+        Native3DFrameResult frame = RenderApplication(capture);
         presenter.Present(++frames);
         if (capture)
         {
@@ -122,6 +139,7 @@ if (proof)
         camera = "GPU world-to-clip rows; perspective; near=0.1, far=80; Vulkan depth [0,1]",
         depthFormat = "D32_SFLOAT",
         depthProof,
+        menuProof,
         repeatedInitialFrame = initial.PixelSha256 == repeat.PixelSha256,
         framesPresented = frames,
         captureCount = captures,
@@ -145,34 +163,159 @@ else
     while (!window.IsClosing)
     {
         window.DoEvents();
+        while (menuEvents.TryDequeue(out LayerInputEvent? menuEvent))
+        {
+            RouteMenuEvent(menuEvent);
+        }
         double now = stopwatch.Elapsed.TotalSeconds;
         accumulator += Math.Min(now - previous, 0.1);
         previous = now;
         while (accumulator >= StepSeconds)
         {
-            BeaconCommands commands = controls.Tick(StepSeconds);
-            if (commands.Quit)
+            app.Update(controls.Tick(StepSeconds, menuActive: app.Menu is not null), StepSeconds);
+            if (app.ExitRequested)
             {
                 window.Close();
                 break;
             }
-            if (commands.Restart)
-            {
-                game = new BeaconGame();
-            }
-            game.Step(commands.Movement, StepSeconds);
             accumulator -= StepSeconds;
         }
         if (window.IsClosing)
         {
             break;
         }
-        renderer.Render(BeaconScene.Build(game), game.Camera((float)target.Width / target.Height), clear);
+        RenderApplication();
         presenter.Present(++frames);
-        window.Title = game.Won
-            ? $"BEACON RUN | YOU WIN! {game.Time:F1}s | R restart, Esc quit"
-            : $"BEACON RUN | {game.CollectedCount}/3 beacons — then enter the gate | WASD move, arrows look, Space jump, R restart, Esc quit";
+        window.Title = app.Menu is not null
+            ? $"BEACON RUN | {app.Screen} | Arrows + Enter or click; ESC back"
+            : $"BEACON RUN | {app.Game.CollectedCount}/3 beacons | WASD move, arrows look, Space jump, R restart, ESC pause";
     }
+}
+
+Native3DFrameResult RenderApplication(bool capture = false)
+{
+    BeaconGame current = app.Game;
+    var world = renderer.Render(BeaconScene.Build(current), current.Camera((float)target.Width / target.Height),
+        clear, capture: capture && app.Menu is null);
+    if (app.Menu is { } menu)
+    {
+        var overlay = menuPresenter.Render(menuView, menu, app.SelectedIndex, capture);
+        return new Native3DFrameResult(world.TriangleCount, overlay.Pixels, overlay.PixelSha256);
+    }
+    return world;
+}
+
+void RouteMenuEvent(LayerInputEvent inputEvent)
+{
+    if (app.Menu is not { } menu)
+    {
+        menuView.CancelPointer();
+        return;
+    }
+    if (inputEvent is LayerPointerButtonChanged { Button: LayerPointerButton.Primary } pointer)
+    {
+        string? action = menuView.Pointer(menu, app.SelectedIndex,
+            new PointerPoint(pointer.Position.X, pointer.Position.Y), pointer.IsPressed, (int)target.Width, (int)target.Height);
+        if (action is not null)
+        {
+            app.Activate(action);
+        }
+    }
+}
+
+void AdvanceApplication()
+{
+    app.Update(controls.Tick(StepSeconds, menuActive: app.Menu is not null), StepSeconds);
+}
+
+void Press(KeyboardKey key)
+{
+    controls.Adapter.RecordButton(Controls.Key(key), true);
+    AdvanceApplication();
+    controls.Adapter.RecordButton(Controls.Key(key), false);
+    AdvanceApplication();
+}
+
+object ProveMenus()
+{
+    Require(app.Screen == BeaconScreen.Title, "The game did not boot into the title menu.");
+    var title = RenderApplication(capture: true);
+    SavePng("menu-title.png", title);
+    presenter.Present(++frames);
+    int uploads = menuPresenter.FontUploads;
+    controls.Adapter.RecordButton(Controls.Key(KeyboardKey.W), true);
+    controls.Adapter.RecordButton(Controls.Key(KeyboardKey.R), true);
+    for (int tick = 0; tick < 60; tick++)
+    {
+        AdvanceApplication();
+    }
+    controls.Adapter.RecordButton(Controls.Key(KeyboardKey.W), false);
+    controls.Adapter.RecordButton(Controls.Key(KeyboardKey.R), false);
+    Require(app.Game.Time == 0 && app.Game.Position == new Vector2(0, 9), "Gameplay input leaked through the title menu.");
+    Press(KeyboardKey.ArrowDown);
+    Press(KeyboardKey.Enter);
+    Require(app.Screen == BeaconScreen.Controls, "InputMan navigation did not open Controls.");
+    SavePng("menu-controls.png", RenderApplication(capture: true));
+    presenter.Present(++frames);
+    Press(KeyboardKey.Escape);
+    Require(app.Screen == BeaconScreen.Title, "Controls did not return to its originating screen.");
+    PointerPoint start = menuView.ActionCenter(app.Menu!, app.SelectedIndex, "new-game", (int)target.Width, (int)target.Height);
+    var point = new LayerPoint(start.X, start.Y);
+    RouteMenuEvent(new LayerPointerButtonChanged(point, LayerPointerButton.Primary, true));
+    RouteMenuEvent(new LayerPointerButtonChanged(new LayerPoint(1, 1), LayerPointerButton.Primary, false));
+    Require(app.Screen == BeaconScreen.Title, "Releasing outside the pressed button activated Start.");
+    RouteMenuEvent(new LayerPointerButtonChanged(point, LayerPointerButton.Primary, true));
+    RouteMenuEvent(new LayerPointerButtonChanged(point, LayerPointerButton.Primary, false));
+    Require(app.Screen == BeaconScreen.Playing, "Clicking the rendered Start button did not start the game.");
+    Press(KeyboardKey.Escape);
+    Require(app.Screen == BeaconScreen.Paused, "Escape did not pause gameplay.");
+    float pausedTime = app.Game.Time;
+    Vector2 pausedPosition = app.Game.Position;
+    controls.Adapter.RecordButton(Controls.Key(KeyboardKey.W), true);
+    for (int tick = 0; tick < 60; tick++)
+    {
+        AdvanceApplication();
+    }
+    controls.Adapter.RecordButton(Controls.Key(KeyboardKey.W), false);
+    Require(app.Game.Time == pausedTime && app.Game.Position == pausedPosition, "Pause did not freeze game state.");
+    var paused = RenderApplication(capture: true);
+    SavePng("menu-paused.png", paused);
+    presenter.Present(++frames);
+    var repeated = RenderApplication(capture: true);
+    Require(paused.PixelSha256 == repeated.PixelSha256, "An unchanged pause menu is not repeatable.");
+    Require(menuPresenter.FontUploads == uploads, "Menu navigation reuploaded font textures.");
+    PointerPoint restart = menuView.ActionCenter(app.Menu!, app.SelectedIndex, "restart", (int)target.Width, (int)target.Height);
+    var restartPoint = new LayerPoint(restart.X, restart.Y);
+    RouteMenuEvent(new LayerPointerButtonChanged(restartPoint, LayerPointerButton.Primary, true));
+    controls.Adapter.OnFocusChanged(false);
+    menuView.CancelPointer();
+    controls.Adapter.OnFocusChanged(true);
+    RouteMenuEvent(new LayerPointerButtonChanged(restartPoint, LayerPointerButton.Primary, false));
+    Require(app.Screen == BeaconScreen.Paused, "Focus loss retained a stale pointer press.");
+    Press(KeyboardKey.Space);
+    Require(app.Screen == BeaconScreen.Playing && app.Game.Height == 0, "Resume failed or menu confirm leaked into Jump.");
+    return new
+    {
+        bootedToTitle = true,
+        inputManNavigation = true,
+        renderedButtonPointerActivation = true,
+        mismatchedReleaseCancelled = true,
+        controlsReturnsToOrigin = true,
+        gameStateFrozenInMenus = true,
+        focusLossCancelsPointer = true,
+        confirmDoesNotLeakIntoJump = true,
+        retainedFontUploads = uploads,
+        titleHash = title.PixelSha256,
+        pauseHash = paused.PixelSha256,
+    };
+}
+
+CompiledGraphicsProgram CompileAsset(string name)
+{
+    string shader = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Assets", name));
+    var shaderModule = GpuGraphicsBinder.Compile(new GpuCompilationRequest([new GpuSourceFile(name, shader)]));
+    Require(shaderModule.Success, string.Join("; ", shaderModule.Diagnostics.Select(item => item.Message)));
+    return CompiledGraphicsProgramExporter.Export(shaderModule, VdMirGraphicsBackend.Compile(shaderModule));
 }
 
 void SavePng(string name, Native3DFrameResult frame)

@@ -96,7 +96,7 @@ public sealed unsafe class VulkanNativeFrameTarget : IDisposable
 
     internal AurelianVulkanTexture Texture { get; }
 
-    public VulkanNativeFrameSession BeginFrame(NativeFrameClearColor clearColor)
+    public VulkanNativeFrameSession BeginFrame(NativeFrameClearColor clearColor, bool preserveContents = false)
     {
         ThrowIfDisposed();
         ValidateClearColor(clearColor);
@@ -104,8 +104,12 @@ public sealed unsafe class VulkanNativeFrameTarget : IDisposable
         {
             throw new InvalidOperationException("A native frame is already active for this target.");
         }
+        if (preserveContents && Texture.LayoutTracker.Get(0, 0) != VulkanResourceLayout.TransferSource)
+        {
+            throw new InvalidOperationException("Preserving a native target requires a completed pass in TransferSource layout.");
+        }
         frameActive = true;
-        return new VulkanNativeFrameSession(this, clearColor);
+        return new VulkanNativeFrameSession(this, clearColor, preserveContents);
     }
 
     internal void ValidateCompatibility(AurelianVulkanPlant candidatePlant, uint width, uint height)
@@ -264,13 +268,15 @@ public sealed class VulkanNativeFrameSession : IDisposable
 {
     private readonly VulkanNativeFrameTarget target;
     private readonly VulkanColorClearValue clearColor;
+    private readonly bool preserveContents;
     private readonly List<Native2DPassResult> passes = [];
     private bool completed;
 
-    internal VulkanNativeFrameSession(VulkanNativeFrameTarget target, NativeFrameClearColor clearColor)
+    internal VulkanNativeFrameSession(VulkanNativeFrameTarget target, NativeFrameClearColor clearColor, bool preserveContents)
     {
         this.target = target;
         this.clearColor = target.PrepareClearColor(clearColor);
+        this.preserveContents = preserveContents;
     }
 
     public uint Width => target.Width;
@@ -295,7 +301,7 @@ public sealed class VulkanNativeFrameSession : IDisposable
         try
         {
             submit(renderer);
-            Native2DPassResult result = renderer.EndShared2D(clear: passes.Count == 0, clearColor);
+            Native2DPassResult result = renderer.EndShared2D(clear: passes.Count == 0 && !preserveContents, clearColor);
             passes.Add(result);
             return result;
         }

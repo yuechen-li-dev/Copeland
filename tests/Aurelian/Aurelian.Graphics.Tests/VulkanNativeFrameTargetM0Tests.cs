@@ -9,6 +9,19 @@ namespace Aurelian.Graphics.Tests;
 public sealed class VulkanNativeFrameTargetM0Tests
 {
     [Fact]
+    public void PreserveContentsRejectsAnUninitializedTarget()
+    {
+        WithPlant(plant =>
+        {
+            using var target = new VulkanNativeFrameTarget(plant, 32, 32);
+            var error = Assert.Throws<InvalidOperationException>(() =>
+                target.BeginFrame(NativeFrameClearColor.Transparent, preserveContents: true));
+            Assert.Contains("completed pass", error.Message);
+            using var frame = target.BeginFrame(NativeFrameClearColor.Transparent);
+        });
+    }
+
+    [Fact]
     public void BeginFrameRejectsInvalidClearColor()
     {
         WithPlant(plant =>

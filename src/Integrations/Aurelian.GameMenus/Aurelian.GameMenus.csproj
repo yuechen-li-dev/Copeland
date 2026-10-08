@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../InputMan.Aurelian/InputMan.Aurelian.csproj" />
+    <ProjectReference Include="../Aurelian.Machina.Graphics/Aurelian.Machina.Graphics.csproj" />
+    <ProjectReference Include="../../Machina.UI/Machina.Pipeline/Machina.Pipeline.csproj" />
+    <ProjectReference Include="../../Machina.UI/Machina.Standard/Machina.Standard.csproj" />
+  </ItemGroup>
+</Project>

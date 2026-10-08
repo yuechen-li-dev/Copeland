@@ -1,4 +1,5 @@
 using Machina.Core.Actions;
+using Aurelian.GameMenus;
 using Machina.Core.Authoring;
 using Machina.Core.Nodes;
 using Machina.Core.Styling;
@@ -206,12 +207,18 @@ internal static partial class TinyFarmMenuPresentation
         else
         {
             string[] labels = ["Resume", "Inventory & Equipment", "Agent properties", "Save checkpoint", "Load checkpoint", "Quit"];
+            var entries = new List<GameMenuEntry>();
             for (int index = 0; index < labels.Length; index++)
             {
                 bool disabled = busy || TinyFarmGame.PauseActions[index] == "load" && !game.MenuSaveAvailable;
-                Button(nodes, TinyFarmGame.PauseActions[index], labels[index], 338, 217 + index * 44, 604,
-                    selected: game.Menus.PauseSelection == index, disabled: disabled);
+                entries.Add(new GameMenuEntry(TinyFarmGame.PauseActions[index], labels[index], disabled));
             }
+            GameMenuTemplate.AddButtons(nodes, entries, game.Menus.PauseSelection,
+                new GameMenuButtonLayout(338, 217, 604, Height: 34, RowSpacing: 44),
+                new GameMenuButtonStyle(Background: 0x29473FFF, SelectedBackground: 0x4A6655FF,
+                    Foreground: Gold, DisabledForeground: 0x8A9B8EFF, Border: 0x83978480,
+                    SelectedBorder: 0x83978480, SelectedBorderWidth: 1, CornerRadius: 0,
+                    HorizontalPadding: 0, Alignment: TextAlignX.Center));
             string checkpoint = game.MenuSaveAvailable ? "Checkpoint available" : "No checkpoint yet / Save to create one";
             Label(nodes, "checkpoint", checkpoint + "  /  one local save slot", 338, 496, 604);
         }
