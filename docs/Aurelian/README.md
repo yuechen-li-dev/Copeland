@@ -17,6 +17,7 @@ Aurelian owns the engine lifecycle, world and game-object models, actuation, fra
 - [Aurelian solution](../../Aurelian.slnx)
 - [Beacon Run native Vulkan 3D game and proof](../../samples/Integrations/Aurelian.Beacon3D/README.md)
 - [Reusable Aurelian game menu template](games/game-menu-template.md)
+- [Character, object, and creature agent authoring](games/agent-authoring.md)
 - [Current JTF-M0 topology and ownership](../architecture/jtf-m0-topology-and-ownership.md)
 
 The physical move in JTF-M0 does not perform the deferred semantic migrations listed in the current doctrine.

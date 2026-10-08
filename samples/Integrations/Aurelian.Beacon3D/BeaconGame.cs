@@ -2,12 +2,13 @@ using System.Numerics;
 
 namespace Aurelian.Beacon3D;
 
-public readonly record struct BeaconInput(float Forward, float Strafe, float Turn, float Look, bool Jump = false);
+public readonly record struct BeaconInput(float Forward, float Strafe, float Turn, float Look, bool Jump = false,
+    float MouseYaw = 0, float MousePitch = 0, bool Fire = false, bool Reload = false);
 
 public readonly record struct ArenaPillar(Vector2 Center, Vector2 HalfSize, float Height);
 
 /// <summary>Game-owned state and collision; independent of Vulkan, pixels, and window input.</summary>
-public sealed class BeaconGame
+public sealed partial class BeaconGame
 {
     public static IReadOnlyList<Vector2> BeaconPositions { get; } = Array.AsReadOnly<Vector2>(
         [new(-7, 3), new(6, 1), new(0, -7)]);
@@ -18,19 +19,32 @@ public sealed class BeaconGame
 
     public static Vector2 Exit { get; } = new(0, -10);
 
-    private readonly bool[] collected = new bool[BeaconPositions.Count];
     private float verticalVelocity;
 
-    public Vector2 Position { get; private set; } = new(0, 9);
+    public Vector2 Position
+    {
+        get
+        {
+            Vector3 point = agents["runner"].State.Position;
+            return new Vector2(point.X, point.Z);
+        }
+        private set => SetPlayerPosition(value);
+    }
     public float Yaw { get; private set; }
     public float Pitch { get; private set; } = -0.08f;
     public float Height { get; private set; }
     public float Time { get; private set; }
-    public int CollectedCount => collected.Count(value => value);
+    public int CollectedCount => BeaconPositions.Select((_, index) => IsCollected(index)).Count(value => value);
     public bool Won { get; private set; }
     public Vector3 Eye => new(Position.X, 1.6f + Height, Position.Y);
 
-    public bool IsCollected(int index) => collected[index];
+    public bool IsCollected(int index) => agents[$"beacon-{index}"].State.Collected;
+    public Vector2 BeaconPosition(int index)
+    {
+        Vector3 point = agents[$"beacon-{index}"].State.Position;
+        return new Vector2(point.X, point.Z);
+    }
+    public Vector3 Direction => new(MathF.Sin(Yaw) * MathF.Cos(Pitch), MathF.Sin(Pitch), -MathF.Cos(Yaw) * MathF.Cos(Pitch));
 
     public void Step(BeaconInput input, float seconds)
     {
@@ -43,13 +57,17 @@ public sealed class BeaconGame
         {
             throw new ArgumentOutOfRangeException(nameof(input));
         }
-        if (Won)
+        if (!float.IsFinite(input.MouseYaw) || !float.IsFinite(input.MousePitch))
+        {
+            throw new ArgumentOutOfRangeException(nameof(input));
+        }
+        if (Won || Dead)
         {
             return;
         }
         Time += seconds;
-        Yaw = MathF.IEEERemainder(Yaw + input.Turn * 2.4f * seconds, MathF.Tau);
-        Pitch = Math.Clamp(Pitch + input.Look * 1.4f * seconds, -0.9f, 0.9f);
+        Yaw = MathF.IEEERemainder(Yaw + input.Turn * 2.4f * seconds + input.MouseYaw, MathF.Tau);
+        Pitch = Math.Clamp(Pitch + input.Look * 1.4f * seconds + input.MousePitch, -1.3f, 1.3f);
         Vector2 forward = new(MathF.Sin(Yaw), -MathF.Cos(Yaw));
         Vector2 right = new(MathF.Cos(Yaw), MathF.Sin(Yaw));
         Vector2 movement = forward * input.Forward + right * input.Strafe;
@@ -79,30 +97,31 @@ public sealed class BeaconGame
         {
             verticalVelocity = 0;
         }
-        for (int index = 0; index < collected.Length; index++)
+        for (int index = 0; index < BeaconPositions.Count; index++)
         {
-            if (Vector2.Distance(Position, BeaconPositions[index]) < 1.1f)
+            if (Vector2.Distance(Position, BeaconPosition(index)) < 1.1f)
             {
-                collected[index] = true;
+                Collect(index);
             }
         }
-        Won = CollectedCount == collected.Length && Vector2.Distance(Position, Exit) < 1.2f;
+        if (combat)
+        {
+            StepCombat(input, seconds);
+        }
+        Won = !Dead && GateOpen && Vector2.Distance(Position, Exit) < 1.2f;
     }
 
     public Matrix4x4 Camera(float aspectRatio)
     {
-        Vector3 direction = new(
-            MathF.Sin(Yaw) * MathF.Cos(Pitch), MathF.Sin(Pitch), -MathF.Cos(Yaw) * MathF.Cos(Pitch));
-        Matrix4x4 view = Matrix4x4.CreateLookAt(Eye, Eye + direction, Vector3.UnitY);
+        Matrix4x4 view = Matrix4x4.CreateLookAt(Eye, Eye + Direction, Vector3.UnitY);
         Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 3, aspectRatio, 0.1f, 80);
         // System.Numerics is right-handed with depth [0,1]. Vulkan's positive viewport points Y down.
         projection.M22 = -projection.M22;
         return view * projection;
     }
 
-    private static bool CanStand(Vector2 position)
+    public static bool CanStand(Vector2 position, float radius = 0.3f)
     {
-        const float radius = 0.3f;
         if (MathF.Abs(position.X) > 10.7f || MathF.Abs(position.Y) > 10.7f)
         {
             return false;

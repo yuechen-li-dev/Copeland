@@ -1,3 +1,5 @@
+using Aurelian.World.Agents;
+
 namespace TinyFarm.Core;
 
 public sealed record TinyFarmAgentItemSeed(string Key, string Name, int Price = 0,
@@ -80,7 +82,7 @@ public static class TinyFarmAgentAuthoring
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(definitions);
         ArgumentNullException.ThrowIfNull(declarations);
-        TinyFarmAgentSpawn[] spawns = declarations.OrderBy(spawn => spawn.Id.Value, StringComparer.Ordinal).ToArray();
+        TinyFarmAgentSpawn[] spawns = AgentAuthoring.OrderDeclarations(declarations, spawn => spawn.Id.Value).ToArray();
         var windows = definitions.Schedules.Windows.ToList();
         foreach (TinyFarmAgentSpawn spawn in spawns)
         {
@@ -124,11 +126,7 @@ public static class TinyFarmAgentAuthoring
         {
             throw new InvalidDataException("Agent authoring requires a complete version-10 or later world.");
         }
-        TinyFarmAgentSpawn[] spawns = declarations.OrderBy(spawn => spawn.Id.Value, StringComparer.Ordinal).ToArray();
-        if (spawns.Select(spawn => spawn.Id).Distinct().Count() != spawns.Length)
-        {
-            throw new InvalidDataException("Agent authoring contains duplicate instance IDs.");
-        }
+        TinyFarmAgentSpawn[] spawns = AgentAuthoring.OrderDeclarations(declarations, spawn => spawn.Id.Value).ToArray();
         TinyFarmState copy = source.DeepCopy();
         var actors = copy.Actors.ToList();
         var placements = copy.ActorScenes.ToList();
@@ -198,9 +196,11 @@ public static class TinyFarmAgentAuthoring
                     tool = item;
                 }
             }
-            var data = new TinyFarmAgentState(template.Id, template.Kind, template.Control, template.Health,
-                template.Level, template.Conditions.OrderBy(value => value, StringComparer.Ordinal).ToArray(),
-                new TinyFarmEquipment(weapon, tool), template.ObjectPose, template.Appearance, template.Container);
+            var data = AgentAuthoring.Create(
+                new AgentSpawn<ScenePosition>(spawn.Id.Value, spawn.Name, spawn.Position, EngineTemplate(template)),
+                _ => { }, _ => new TinyFarmAgentState(template.Id, template.Kind, template.Control, template.Health,
+                    template.Level, template.Conditions.OrderBy(value => value, StringComparer.Ordinal).ToArray(),
+                    new TinyFarmEquipment(weapon, tool), template.ObjectPose, template.Appearance, template.Container)).State;
             actors.Add(new ActorState(spawn.Id, spawn.Name, location, template.Money, owned,
                 template.Control == TinyFarmAgentControl.Human, data, template.Rpg?.Copy()));
             placements.Add(placement);
@@ -232,6 +232,10 @@ public static class TinyFarmAgentAuthoring
     {
         TinyFarmAgentState agent = actor.Agent!;
         ValidateIdentity(agent.TemplateId, "template ID");
+        if (agent.Health is { } health)
+        {
+            AgentAuthoring.ValidateHealth(health.Current, health.Maximum);
+        }
         if (agent.Kind is < TinyFarmAgentKind.Character or > TinyFarmAgentKind.Object
             || agent.Control is < TinyFarmAgentControl.Human or > TinyFarmAgentControl.Idle
             || agent.Level < 1 || agent.Conditions is null || agent.Equipment is null || agent.Appearance is null
@@ -291,6 +295,7 @@ public static class TinyFarmAgentAuthoring
                 throw Invalid(spawn, $"has unknown product '{seed.Product}' or a non-positive stack");
             }
         }
+        AgentAuthoring.ValidateTemplate(EngineTemplate(template));
         var data = new TinyFarmAgentState(template.Id, template.Kind, template.Control, template.Health,
             template.Level, template.Conditions, new TinyFarmEquipment(null, null), template.ObjectPose, template.Appearance, template.Container);
         ValidateAgent(new ActorState(spawn.Id, spawn.Name, TinyFarmIds.Farmhouse, template.Money, [],
@@ -315,11 +320,19 @@ public static class TinyFarmAgentAuthoring
 
     private static void ValidateIdentity(string value, string label)
     {
-        if (string.IsNullOrWhiteSpace(value) || value.Any(character =>
-            !char.IsAsciiLetterOrDigit(character) && character is not '-' and not '_' and not '.'))
-        {
-            throw new InvalidDataException($"Agent {label} must use ASCII letters, digits, dot, underscore or hyphen.");
-        }
+        AgentAuthoring.ValidateIdentity(value, label);
+    }
+
+    private static AgentTemplate EngineTemplate(TinyFarmAgentTemplate template)
+    {
+        return new AgentTemplate(template.Id,
+            template.Kind == TinyFarmAgentKind.Object ? AgentKind.Object : AgentKind.Character,
+            template.Control switch
+            {
+                TinyFarmAgentControl.Human => AgentControl.Human,
+                TinyFarmAgentControl.Schedule => AgentControl.Autonomous,
+                _ => AgentControl.Passive,
+            });
     }
 
     private static InvalidDataException Invalid(TinyFarmAgentSpawn spawn, string reason)

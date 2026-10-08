@@ -31,7 +31,7 @@ internal static class BeaconScene
         }
         for (int index = 0; index < BeaconGame.BeaconPositions.Count; index++)
         {
-            Vector2 point = BeaconGame.BeaconPositions[index];
+            Vector2 point = game.BeaconPosition(index);
             Vector4 color = game.IsCollected(index) ? new(0.16f, 0.35f, 0.33f, 1) : new(1, 0.65f, 0.16f, 1);
             AddBox(vertices, new(point.X, 0.12f, point.Y), new(0.65f, 0.12f, 0.65f), color);
             if (!game.IsCollected(index))
@@ -39,7 +39,41 @@ internal static class BeaconScene
                 AddDiamond(vertices, new(point.X, 1.5f + 0.15f * MathF.Sin(game.Time * 2), point.Y), game.Time, color);
             }
         }
-        Vector4 gateColor = game.CollectedCount == 3 ? new(0.25f, 1, 0.65f, 1) : new(0.37f, 0.49f, 0.57f, 1);
+        foreach (var creature in game.Creatures)
+        {
+            Vector3 point = creature.State.Position;
+            if (creature.State.Health == 0)
+            {
+                AddBox(vertices, point + new Vector3(0, 0.12f, 0), new(0.5f, 0.12f, 0.5f), new(0.25f, 0.16f, 0.22f, 1));
+                continue;
+            }
+            float bob = MathF.Sin(game.Time * 7 + point.X) * 0.08f;
+            AddBox(vertices, point + new Vector3(0, 0.7f + bob, 0), new(0.45f, 0.6f, 0.45f), new(0.8f, 0.19f, 0.29f, 1));
+            AddDiamond(vertices, point + new Vector3(0, 1.5f + bob, 0), game.Time * 0.5f, new(1, 0.38f, 0.25f, 1));
+            Vector2 toward = game.Position - new Vector2(point.X, point.Z);
+            if (toward.LengthSquared() > 0)
+            {
+                toward = Vector2.Normalize(toward);
+            }
+            AddBox(vertices, point + new Vector3(toward.X * 0.48f, 1.25f + bob, toward.Y * 0.48f),
+                new(0.12f, 0.12f, 0.12f), new(1, 0.85f, 0.3f, 1));
+        }
+        foreach (BeaconBolt bolt in game.Bolts)
+        {
+            AddBox(vertices, bolt.Position, new(0.06f, 0.06f, 0.06f), new(0.4f, 1, 1, 1));
+        }
+        if (!game.Won && !game.Dead)
+        {
+            Vector3 right = Vector3.Normalize(Vector3.Cross(game.Direction, Vector3.UnitY));
+            Vector3 up = Vector3.Normalize(Vector3.Cross(right, game.Direction));
+            Vector3 gun = game.Eye + game.Direction * 0.62f + right * 0.24f - up * 0.22f;
+            AddViewBox(vertices, gun, right, up, game.Direction, new(0.075f, 0.075f, 0.14f), new(0.3f, 0.55f, 0.6f, 1));
+            if (game.Bolts.Count > 0 && game.Bolts[^1].Life > 1.45f)
+            {
+                AddDiamond(vertices, gun + game.Direction * 0.18f, game.Time, new(0.7f, 1, 1, 1), 0.12f);
+            }
+        }
+        Vector4 gateColor = game.GateOpen ? new(0.25f, 1, 0.65f, 1) : new(0.37f, 0.49f, 0.57f, 1);
         AddBox(vertices, new(-1.4f, 1.5f, -10), new(0.2f, 1.5f, 0.25f), gateColor);
         AddBox(vertices, new(1.4f, 1.5f, -10), new(0.2f, 1.5f, 0.25f), gateColor);
         AddBox(vertices, new(0, 3, -10), new(1.6f, 0.2f, 0.25f), gateColor);
@@ -59,15 +93,28 @@ internal static class BeaconScene
         AddQuad(vertices, new(min.X, min.Y, max.Z), new(max.X, min.Y, max.Z), new(max.X, max.Y, max.Z), new(min.X, max.Y, max.Z), Vector3.UnitZ, color);
     }
 
-    private static void AddDiamond(List<Native3DVertex> vertices, Vector3 center, float rotation, Vector4 color)
+    private static void AddViewBox(List<Native3DVertex> vertices, Vector3 center, Vector3 right, Vector3 up,
+        Vector3 forward, Vector3 halfSize, Vector4 color)
     {
-        Vector3 top = center + Vector3.UnitY * 0.7f;
-        Vector3 bottom = center - Vector3.UnitY * 0.7f;
+        var local = new List<Native3DVertex>();
+        AddBox(local, Vector3.Zero, halfSize, color);
+        foreach (Native3DVertex vertex in local)
+        {
+            Vector3 position = center + right * vertex.Position.X + up * vertex.Position.Y + forward * vertex.Position.Z;
+            Vector3 normal = right * vertex.Normal.X + up * vertex.Normal.Y + forward * vertex.Normal.Z;
+            vertices.Add(new Native3DVertex(position, normal, vertex.Color));
+        }
+    }
+
+    private static void AddDiamond(List<Native3DVertex> vertices, Vector3 center, float rotation, Vector4 color, float scale = 1)
+    {
+        Vector3 top = center + Vector3.UnitY * (0.7f * scale);
+        Vector3 bottom = center - Vector3.UnitY * (0.7f * scale);
         for (int side = 0; side < 4; side++)
         {
             float angle = rotation + side * MathF.PI / 2;
-            Vector3 a = center + new Vector3(MathF.Cos(angle), 0, MathF.Sin(angle)) * 0.45f;
-            Vector3 b = center + new Vector3(MathF.Cos(angle + MathF.PI / 2), 0, MathF.Sin(angle + MathF.PI / 2)) * 0.45f;
+            Vector3 a = center + new Vector3(MathF.Cos(angle), 0, MathF.Sin(angle)) * (0.45f * scale);
+            Vector3 b = center + new Vector3(MathF.Cos(angle + MathF.PI / 2), 0, MathF.Sin(angle + MathF.PI / 2)) * (0.45f * scale);
             AddTriangle(vertices, top, b, a, Vector3.Normalize(Vector3.Cross(b - top, a - top)), color);
             AddTriangle(vertices, bottom, a, b, Vector3.Normalize(Vector3.Cross(a - bottom, b - bottom)), color);
         }

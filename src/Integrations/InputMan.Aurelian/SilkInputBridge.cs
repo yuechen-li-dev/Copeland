@@ -45,6 +45,12 @@ public sealed class SilkInputBridge : IDisposable
         pointerPositions.Clear();
     }
 
+    /// <summary>Discards the cursor baseline when capture or focus changes.</summary>
+    public void ResetPointerTracking()
+    {
+        pointerPositions.Clear();
+    }
+
     private void OnConnectionChanged(IInputDevice device, bool connected)
     {
         switch (device)

@@ -52,12 +52,19 @@ using var controls = new BeaconControls();
 var app = new BeaconApplication();
 var font = AurelianNativeUiFont.Create(Path.Combine(AppContext.BaseDirectory, "Assets"));
 var menuView = new GameMenuView(font);
+var hud = new BeaconHud(font);
 var menuEvents = new Queue<LayerInputEvent>();
 using var nativeInput = new BeaconNativeInput(window, input, controls.Adapter, manageFocus: !proof,
     routeInput: menuEvents.Enqueue, cancelPointer: () =>
     {
         menuEvents.Clear();
         menuView.CancelPointer();
+    }, focusLost: () =>
+    {
+        if (app.Screen == BeaconScreen.Playing)
+        {
+            app.Update(new BeaconCommands(default, true), StepSeconds);
+        }
     });
 var init = VulkanPlantInitializer.CreatePlant(PlantId.Zero, new VulkanPlantOptions(
     EnableValidation: true, ApplicationName: "Beacon Run", EnablePresentation: true,
@@ -93,6 +100,7 @@ if (proof)
     object depthProof = ProveDepth(renderer, target, plant, program, clear, output);
     object menuProof = ProveMenus();
     game = app.Game;
+    object fpsProof = ProveFps();
     Native3DFrameResult initial = renderer.Render(BeaconScene.Build(game), game.Camera((float)target.Width / target.Height), clear, capture: true);
     SavePng("start.png", initial);
     Native3DFrameResult repeat = renderer.Render(BeaconScene.Build(game), game.Camera((float)target.Width / target.Height), clear, capture: true);
@@ -139,6 +147,7 @@ if (proof)
         camera = "GPU world-to-clip rows; perspective; near=0.1, far=80; Vulkan depth [0,1]",
         depthFormat = "D32_SFLOAT",
         depthProof,
+        fpsProof,
         menuProof,
         repeatedInitialFrame = initial.PixelSha256 == repeat.PixelSha256,
         framesPresented = frames,
@@ -151,7 +160,7 @@ if (proof)
         shader = new { program.VdMirSha256, backend.HlslSha256, backend.Vertex.SpirvSha256, pixelSpirvSha256 = backend.Pixel.SpirvSha256 },
         validationLayers = plant.Facts.EnabledValidationLayers,
         validationNote = "Layer availability is recorded; this sample does not count debug-messenger callbacks. Vulkan results and pixel assertions are enforced.",
-        boundaries = "Opaque untextured triangle lists and keyboard input; fixed-size window. No general mesh assets, shadows, animation rigs, or 3D physics engine.",
+        boundaries = "Geometric FPS with InputMan mouse deltas and authored agents; fixed-size window. No mesh import, shadows, animation rigs, or general 3D physics engine.",
     }, new JsonSerializerOptions { WriteIndented = true }) + Environment.NewLine);
     Console.WriteLine($"BEACON3D_PROOF_PASSED frames={frames} collected=3 won=true artifacts={output}");
 }
@@ -167,6 +176,7 @@ else
         {
             RouteMenuEvent(menuEvent);
         }
+        nativeInput.SetGameplayCapture(app.Screen == BeaconScreen.Playing);
         double now = stopwatch.Elapsed.TotalSeconds;
         accumulator += Math.Min(now - previous, 0.1);
         previous = now;
@@ -180,6 +190,7 @@ else
             }
             accumulator -= StepSeconds;
         }
+        nativeInput.SetGameplayCapture(app.Screen == BeaconScreen.Playing);
         if (window.IsClosing)
         {
             break;
@@ -188,7 +199,7 @@ else
         presenter.Present(++frames);
         window.Title = app.Menu is not null
             ? $"BEACON RUN | {app.Screen} | Arrows + Enter or click; ESC back"
-            : $"BEACON RUN | {app.Game.CollectedCount}/3 beacons | WASD move, arrows look, Space jump, R restart, ESC pause";
+            : $"BEACON RUN | Wave {app.Game.Wave}/3 | Health {app.Game.Health} | Mouse aim, LMB fire, R reload, ESC pause";
     }
 }
 
@@ -196,13 +207,14 @@ Native3DFrameResult RenderApplication(bool capture = false)
 {
     BeaconGame current = app.Game;
     var world = renderer.Render(BeaconScene.Build(current), current.Camera((float)target.Width / target.Height),
-        clear, capture: capture && app.Menu is null);
+        clear, capture: false);
     if (app.Menu is { } menu)
     {
         var overlay = menuPresenter.Render(menuView, menu, app.SelectedIndex, capture);
         return new Native3DFrameResult(world.TriangleCount, overlay.Pixels, overlay.PixelSha256);
     }
-    return world;
+    var hudFrame = menuPresenter.RenderPrepared(hud.Prepare(current), capture);
+    return new Native3DFrameResult(world.TriangleCount, hudFrame.Pixels, hudFrame.PixelSha256);
 }
 
 void RouteMenuEvent(LayerInputEvent inputEvent)
@@ -234,6 +246,65 @@ void Press(KeyboardKey key)
     AdvanceApplication();
     controls.Adapter.RecordButton(Controls.Key(key), false);
     AdvanceApplication();
+}
+
+object ProveFps()
+{
+    var current = app.Game;
+    float yaw = current.Yaw;
+    controls.Adapter.RecordAxis(Controls.Mouse(MouseAxis.DeltaX), 20);
+    controls.Adapter.RecordAxis(Controls.Mouse(MouseAxis.DeltaX), 30);
+    AdvanceApplication();
+    Require(MathF.Abs(current.Yaw - yaw - 50 * BeaconControls.MouseSensitivity) < 0.00001f,
+        "InputMan did not accumulate mouse motion before the tick.");
+    float after = current.Yaw;
+    AdvanceApplication();
+    Require(current.Yaw == after, "Mouse delta was replayed on a later tick.");
+    nativeInput.SetGameplayCapture(true);
+    nativeInput.SetGameplayCapture(false);
+    bool capturedFight = false;
+    int ticks = 0;
+    for (; ticks < 18000 && current.WavesCleared < 3 && !current.Dead; ticks++)
+    {
+        window.DoEvents();
+        Require(!window.IsClosing, "FPS proof window closed before completion.");
+        BeaconProofDriver.Fight(current, controls);
+        AdvanceApplication();
+        bool capture = !capturedFight && current.Shots > 0 && current.Bolts.Count > 0;
+        var frame = RenderApplication(capture);
+        presenter.Present(++frames);
+        if (capture)
+        {
+            SavePng("fps-combat.png", frame);
+            capturedFight = true;
+        }
+    }
+    controls.Adapter.RecordButton(Controls.Mouse(InputMan.Core.MouseButton.Primary), false);
+    controls.Adapter.RecordButton(Controls.Key(KeyboardKey.R), false);
+    Require(!current.Dead && current.WavesCleared == 3 && current.Kills == 9,
+        $"FPS proof failed: health={current.Health}, waves={current.WavesCleared}, kills={current.Kills}, shots={current.Shots}.");
+    Require(current.AgentTicks > 0 && current.ActiveCreatureBrains == 0 && current.Shots >= 18 && capturedFight,
+        "Combat did not exercise live agent decisions and projectile rendering.");
+    // Restore the route camera using mouse input, without writing camera state.
+    BeaconProofDriver.Aim(current, controls, current.Eye + new Vector3(0, -0.08f, -1));
+    AdvanceApplication();
+    SavePng("fps-cleared.png", RenderApplication(capture: true));
+    return new
+    {
+        accumulatedMouseDeltas = true,
+        mouseDeltaConsumedOnce = true,
+        nativeCaptureTransitions = true,
+        current.WavesCleared,
+        current.Kills,
+        current.Shots,
+        current.Health,
+        current.AgentTicks,
+        current.ActiveCreatureBrains,
+        ticks,
+        characterAgents = current.Agents.Count(agent => agent.Template.Kind == Aurelian.World.Agents.AgentKind.Character),
+        objectAgents = current.Agents.Count(agent => agent.Template.Kind == Aurelian.World.Agents.AgentKind.Object),
+        creatureAgents = current.Creatures.Count,
+    };
 }
 
 object ProveMenus()

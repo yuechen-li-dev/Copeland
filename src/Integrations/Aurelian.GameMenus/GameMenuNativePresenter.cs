@@ -43,10 +43,16 @@ public sealed class GameMenuNativePresenter : IDisposable
     public VulkanNativeFrameResult Render(GameMenuView view, GameMenuPage page, int selectedIndex, bool capture = false)
     {
         var prepared = view.Prepare(page, selectedIndex, (int)target.Width, (int)target.Height);
-        if (!ReferenceEquals(previousFrame, prepared.PresentationFrame))
+        return RenderPrepared(prepared.PresentationFrame, capture);
+    }
+
+    /// <summary>Also supports basic HUDs composed of the same native shapes and text.</summary>
+    public VulkanNativeFrameResult RenderPrepared(MachinaPresentationFrame presentation, bool capture = false)
+    {
+        if (!ReferenceEquals(previousFrame, presentation))
         {
-            Realize(prepared.PresentationFrame);
-            previousFrame = prepared.PresentationFrame;
+            Realize(presentation);
+            previousFrame = presentation;
         }
         using var frame = target.BeginFrame(NativeFrameClearColor.Transparent, preserveContents: true);
         frame.Present(shapes, renderer =>

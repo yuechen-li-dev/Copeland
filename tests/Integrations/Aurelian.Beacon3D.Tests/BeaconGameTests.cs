@@ -19,11 +19,11 @@ public sealed class BeaconGameTests
         var first = controls.Tick(1f / 60);
         Assert.Equal(1, first.Movement.Forward);
         Assert.True(first.Movement.Jump);
-        Assert.True(first.Restart);
+        Assert.True(first.Movement.Reload);
         var held = controls.Tick(1f / 60);
         Assert.Equal(1, held.Movement.Forward);
         Assert.False(held.Movement.Jump);
-        Assert.False(held.Restart);
+        Assert.False(held.Movement.Reload);
         controls.Adapter.RecordButton(Controls.Key(KeyboardKey.S), true);
         Assert.Equal(0, controls.Tick(1f / 60).Movement.Forward);
     }
@@ -46,7 +46,7 @@ public sealed class BeaconGameTests
     public void InputManDrivesGameMovementLookAndPause()
     {
         using var controls = new BeaconControls();
-        var game = new BeaconGame();
+        var game = new BeaconGame(combat: false);
         controls.Adapter.RecordButton(Controls.Key(KeyboardKey.W), true);
         controls.Adapter.RecordButton(Controls.Key(KeyboardKey.ArrowRight), true);
         controls.Adapter.RecordButton(Controls.Key(KeyboardKey.ArrowUp), true);
@@ -65,7 +65,7 @@ public sealed class BeaconGameTests
     [Fact]
     public void WalkingIntoPillarStopsAtPlayerRadius()
     {
-        var game = new BeaconGame();
+        var game = new BeaconGame(combat: false);
         Walk(game, new BeaconInput(1, 0, 0, 0), 600);
         Assert.InRange(game.Position.Y, 5.299f, 5.37f);
         Assert.Equal(0, game.CollectedCount);
@@ -74,7 +74,7 @@ public sealed class BeaconGameTests
     [Fact]
     public void ArenaBoundaryStopsPlayer()
     {
-        var game = new BeaconGame();
+        var game = new BeaconGame(combat: false);
         Walk(game, new BeaconInput(0, 1, 0, 0), 600);
         Assert.InRange(game.Position.X, 10.6f, 10.7f);
     }
@@ -82,8 +82,8 @@ public sealed class BeaconGameTests
     [Fact]
     public void DiagonalMovementHasSameSpeedAsStraightMovement()
     {
-        var straight = new BeaconGame();
-        var diagonal = new BeaconGame();
+        var straight = new BeaconGame(combat: false);
+        var diagonal = new BeaconGame(combat: false);
         Vector2 start = straight.Position;
         Walk(straight, new BeaconInput(1, 0, 0, 0), 30);
         Walk(diagonal, new BeaconInput(1, 1, 0, 0), 30);
@@ -93,7 +93,7 @@ public sealed class BeaconGameTests
     [Fact]
     public void JumpRaisesEyeThenLands()
     {
-        var game = new BeaconGame();
+        var game = new BeaconGame(combat: false);
         game.Step(new BeaconInput(0, 0, 0, 0, Jump: true), 1f / 60);
         Assert.True(game.Eye.Y > 1.6f);
         Walk(game, default, 120);
@@ -104,7 +104,7 @@ public sealed class BeaconGameTests
     [Fact]
     public void BeaconCollectsOnceAndDoesNotUnlockExitAlone()
     {
-        var game = new BeaconGame();
+        var game = new BeaconGame(combat: false);
         Walk(game, new BeaconInput(0, -1, 0, 0), 105);
         Walk(game, new BeaconInput(1, 0, 0, 0), 90);
         Assert.Equal(1, game.CollectedCount);
@@ -117,7 +117,7 @@ public sealed class BeaconGameTests
     [Fact]
     public void PerspectiveUsesVulkanDepthAndShrinksDistantObjects()
     {
-        var game = new BeaconGame();
+        var game = new BeaconGame(combat: false);
         Matrix4x4 camera = game.Camera(1.6f);
         Vector3 direction = new(0, MathF.Sin(game.Pitch), -MathF.Cos(game.Pitch));
         Vector4 near = Vector4.Transform(new Vector4(game.Eye + direction * 0.1f, 1), camera);

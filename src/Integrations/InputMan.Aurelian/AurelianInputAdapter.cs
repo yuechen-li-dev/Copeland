@@ -31,6 +31,10 @@ public sealed class AurelianInputAdapter : IAurelianHostInput
     public void RecordButton(ControlKey control, bool down)
     {
         ThrowIfDisposed();
+        if (!focused)
+        {
+            return;
+        }
         if (control.Device == DeviceKind.Gamepad && !connectedGamepads.Contains(control.DeviceIndex)) return;
         buttons[control] = down;
     }
@@ -39,8 +43,12 @@ public sealed class AurelianInputAdapter : IAurelianHostInput
     {
         ThrowIfDisposed();
         if (!float.IsFinite(value)) throw new ArgumentOutOfRangeException(nameof(value));
+        if (!focused)
+        {
+            return;
+        }
         if (control.Device == DeviceKind.Gamepad && !connectedGamepads.Contains(control.DeviceIndex)) return;
-        axes[control] = value;
+        axes[control] = IsDeltaAxis(control) ? axes.GetValueOrDefault(control) + value : value;
     }
 
     public void ConnectGamepad(byte deviceIndex)
@@ -82,6 +90,15 @@ public sealed class AurelianInputAdapter : IAurelianHostInput
             engine.ResetOnFocusLoss();
         }
         focused = isFocused;
+    }
+
+    public void ClearPointerDeltas()
+    {
+        ThrowIfDisposed();
+        foreach (ControlKey control in axes.Keys.Where(IsDeltaAxis).ToArray())
+        {
+            axes[control] = 0;
+        }
     }
 
     public LayerInputEvent ToLayerEvent(KeyboardKey key, bool pressed, bool repeat = false)

@@ -11,11 +11,11 @@ public sealed class BeaconApplicationTests
         var app = new BeaconApplication();
         Assert.Equal(BeaconScreen.Title, app.Screen);
         app.Activate("new-game");
-        app.Update(new(new(1, 0, 0, 0), false, false), 1f / 60);
-        app.Update(new(default, false, true), 0.1f);
+        app.Update(new(new(1, 0, 0, 0), false), 1f / 60);
+        app.Update(new(default, true), 0.1f);
         var position = app.Game.Position;
         float time = app.Game.Time;
-        app.Update(new(new(1, 0, 0, 0), true, false), 1);
+        app.Update(new(new(1, 0, 0, 0, Reload: true), false), 1);
         Assert.Equal(position, app.Game.Position);
         Assert.Equal(time, app.Game.Time);
         app.Activate("controls");
@@ -37,7 +37,7 @@ public sealed class BeaconApplicationTests
         Assert.Equal(BeaconScreen.Title, app.Screen);
         app.Activate("new-game");
         var old = app.Game;
-        app.Update(new(default, false, true), 0.1f);
+        app.Update(new(default, true), 0.1f);
         app.Activate("restart");
         Assert.NotSame(old, app.Game);
         Assert.Equal(0, app.Game.Time);
@@ -55,7 +55,7 @@ public sealed class BeaconApplicationTests
         Assert.True(menu.Menu.Confirm);
         Assert.Equal(0, menu.Movement.Forward);
         Assert.False(menu.Movement.Jump);
-        Assert.False(menu.Restart);
+        Assert.False(menu.Movement.Reload);
         Assert.False(controls.Tick(1f / 60, menuActive: true).Menu.Confirm);
         Assert.False(controls.Tick(1f / 60).Movement.Jump);
     }

@@ -63,6 +63,10 @@ MSDF glyphs. It retains layout, geometry, and font atlas uploads across unchange
 frames. Dispose the presenter before the target and Vulkan plant. For a menu-only
 application, clear/render the background target before presenting the menu.
 
+`RenderPrepared(MachinaPresentationFrame)` can present a basic HUD using the same
+native shape/text operations. Beacon Run uses it for its crosshair, objective, health,
+and ammunition. It retains the same explicit operation boundary as the menu template.
+
 The default page supports up to four entries on surfaces at least 640 by 600, with
 ASCII text and the supplied font sizes. It is a basic menu template, with no scrolling,
 localization, save format, or arbitrary UI operation support. Unsupported native

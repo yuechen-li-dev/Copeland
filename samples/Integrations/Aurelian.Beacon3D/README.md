@@ -1,6 +1,7 @@
-# Beacon Run — native Vulkan 3D proof
+# Beacon Run — geometric arena FPS
 
-A small first-person game: collect the three gold beacons, then enter the gate.
+Survive three waves of stalkers, collect three gold beacons, then enter the green gate.
+The arena uses placeholder boxes and diamonds to exercise engine capabilities.
 
 From the Copeland root, run `beacon3d.cmd` (or double-click it). Requires the .NET 10 SDK,
 a Vulkan-capable GPU/driver, and the repository's existing DXC shader toolchain.
@@ -11,8 +12,10 @@ a Vulkan-capable GPU/driver, and the repository's existing DXC shader toolchain.
 | A / D | Strafe |
 | Left / Right arrows | Turn |
 | Up / Down arrows | Look up / down |
+| Mouse movement | Aim (captured during play) |
+| Left mouse button | Fire bolts while held |
 | Space | Jump on press |
-| R | Restart on press |
+| R | Reload the 12-bolt magazine |
 | Escape | Pause / resume; back in menus |
 | Up / Down in menus | Select an enabled entry |
 | Enter / Space in menus | Confirm |
@@ -25,6 +28,8 @@ the existing `SilkInputBridge` translates native events into `AurelianInputAdapt
 The game starts at a title menu and provides pause, controls, and completion menus.
 These use the [Aurelian game menu template](../../../docs/Aurelian/games/game-menu-template.md).
 Menus freeze simulation and render native analytic shapes/MSDF text over the 3D scene.
+Escape releases the cursor. Losing focus pauses the game and clears pending input;
+returning to the window leaves the menu open. The pause menu provides Restart.
 
 ## Reproduce the proof
 
@@ -45,6 +50,13 @@ state, matching mouse presses/releases, focus cancellation, InputMan context iso
 and repeated-frame pixel/font-upload stability. Menu captures and results are recorded
 alongside the depth and completion witnesses.
 
+The FPS proof then injects mouse motion and held firing through InputMan, clears all
+three waves, and completes the beacon route. It checks accumulated mouse events and
+one-tick delta consumption, executes native cursor capture transitions, and records
+living-creature brain ticks, kills, shots, health, and combat captures. It changes no gameplay
+state directly. Use `--output artifacts/aurelian-beacon-fps-m0` to reproduce the FPS
+qualification independently of the earlier 3D/menu witnesses.
+
 The independent depth witness renders intersecting screen projections of two solid
 cubes. It requires identical pixels in opposite submission orders with depth enabled,
 and different pixels with depth disabled. The near green cube must cover the red cube
@@ -54,6 +66,15 @@ must change the pixels without changing the world vertices.
 ## Implementation boundary
 
 `BeaconGame` owns movement, collision, jumping, collection, and the win condition.
+It also owns projectile collision, reloads, damage, and wave progression. Bolts use
+swept segment/sphere tests and stop at pillar bodies/caps, the floor, or arena bounds.
+Stalkers chase using local collision-checked steering and attack with a cooldown.
+The native HUD displays health, ammo, wave progress, kills, and objectives.
+
+The [engine-owned agent authoring path](../../../docs/Aurelian/games/agent-authoring.md)
+creates the player character, beacon objects, and creature agents. Positions, health,
+and collection facts live in their typed game state. Persistent Dominatus creature
+brains receive observations and emit intents; the game resolver changes state.
 `BeaconScene` builds world-space triangle geometry from those facts. The camera is a
 right-handed perspective transform with near/far 0.1/80 and depth [0,1]. The GPU applies
 the transform and directional lighting in `Solid3D.v.ts`, compiled by the existing
@@ -66,10 +87,11 @@ native color target, and swapchain presenter. Each frame clears depth to 1 and u
 LESS depth test/write. The existing 2D paths keep their color-only descriptors.
 
 This qualifies opaque untextured triangle rendering, GPU perspective, occlusion,
-camera movement, native presentation, and a playable loop. Mesh import, textured
+camera movement, native presentation, InputMan mouse aim, authored agents, combat,
+and a playable loop. Mesh import, textured
 materials, shadows, skeletal animation, resize, and general 3D physics are outside
-this sample. Automated key injection proves the InputMan/game path; human keyboard
-play is a separate manual check. Validation-layer availability is recorded without
+this sample. Automated keyboard/mouse state injection proves the InputMan/game path;
+human mouse feel and difficulty remain manual checks. Validation-layer availability is recorded without
 claiming a counted debug-messenger error total.
 
 ## Validation
