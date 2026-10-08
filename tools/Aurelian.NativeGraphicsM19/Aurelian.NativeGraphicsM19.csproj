@@ -10,6 +10,6 @@
     <ProjectReference Include="../../src/Aurelian/Aurelian.Strategy/Aurelian.Strategy.csproj" />
     <ProjectReference Include="../../src/Integrations/Aurelian.Profile.Graphics/Aurelian.Profile.Graphics.csproj" />
     <ProjectReference Include="../../src/Copeland/Copeland.TS/Copeland.TS.csproj" />
-    <ProjectReference Include="../../samples/Integrations/Aurelian.StrategyDemo/Aurelian.StrategyDemo.csproj" />
+    <ProjectReference Include="../../Games/Strategy/Aurelian.StrategyDemo/Aurelian.StrategyDemo.csproj" />
   </ItemGroup>
 </Project>

@@ -10,10 +10,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="Generate\StandaloneWebM0.Generate.csproj" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\..\..\src\Copeland\Copeland.Cli\Copeland.Cli.csproj" ReferenceOutputAssembly="false" />
-    <Compile Remove="Generate\**\*.cs" />
-    <Compile Remove="standalone-web\**\*.cs" />
+    <ProjectReference Include="Generate/StandaloneWebM0.Generate.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../../../src/Copeland/Copeland.Cli/Copeland.Cli.csproj" ReferenceOutputAssembly="false" />
+    <Compile Remove="Generate/**/*.cs" />
+    <Compile Remove="standalone-web/**/*.cs" />
   </ItemGroup>
 
   <Target Name="CopelandClearPreviousStandaloneAssets" BeforeTargets="CopelandBuildStandaloneFrontend">

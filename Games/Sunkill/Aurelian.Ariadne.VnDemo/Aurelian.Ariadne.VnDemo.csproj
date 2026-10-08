@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Aurelian.Ariadne.VnDemo</AssemblyName>
+    <RootNamespace>Aurelian.Ariadne.VnDemo</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Integrations/Aurelian.GameMenus/Aurelian.GameMenus.csproj" />
+    <PackageReference Include="SkiaSharp" />
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <ProjectReference Include="../../../../Dominatus/src/Ariadne.OptFlow/Ariadne.OptFlow.csproj" />
+    <ProjectReference Include="../../../../Dominatus/src/Dominatus.Core/Dominatus.Core.csproj" />
+    <ProjectReference Include="../../../../Dominatus/src/Dominatus.OptFlow/Dominatus.OptFlow.csproj" />
+    <ProjectReference Include="../../../../Dominatus/src/Dominatus.SpriteForge/Dominatus.SpriteForge.csproj" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Composition/Aurelian.Composition.csproj" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Audio/Aurelian.Audio.csproj" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Rendering.Raster/Aurelian.Rendering.Raster.csproj" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.GameWorld2D/Aurelian.GameWorld2D.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Machina/Aurelian.Machina.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Machina.Graphics/Aurelian.Machina.Graphics.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.NativeComposition/Aurelian.NativeComposition.csproj" />
+    <ProjectReference Include="../../../src/Integrations/InputMan.Aurelian/InputMan.Aurelian.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Core/Machina.Core.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Layout/Machina.Layout.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Pipeline/Machina.Pipeline.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Runtime/Machina.Runtime.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Standard/Machina.Standard.csproj" />
+    <ProjectReference Include="../../../../Deliverance/src/Deliverance.Core/Deliverance.Core.csproj" />
+    <ProjectReference Include="../../../src/Copeland/Copeland.TS/Copeland.TS.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets/*.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets/*.toml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets/*.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Assets/*.obj.ts" />
+    <None Include="manifest.tsx" />
+  </ItemGroup>
+</Project>

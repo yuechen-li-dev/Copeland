@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "steps": [
+    {
+      "kind": "click-action",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": "start",
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "tap",
+      "keys": [
+        "v"
+      ],
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "save stdin-slot",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "mark saved",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "hold",
+      "keys": [
+        "w"
+      ],
+      "seconds": 0.2,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "load stdin-slot",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "assert-mark saved",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    }
+  ],
+  "seed": null
+}

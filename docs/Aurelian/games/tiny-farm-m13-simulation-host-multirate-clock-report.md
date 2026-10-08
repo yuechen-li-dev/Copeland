@@ -57,7 +57,7 @@ MonoGame owns one `TinyFarmSimulationHost`. `Update(GameTime)` routes elapsed ti
 The headless control surface is:
 
 ```powershell
-dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -- --m13-control
+dotnet run --project Games/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -- --m13-control
 play
 host-ms 5000
 fast-forward

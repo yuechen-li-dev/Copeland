@@ -54,7 +54,7 @@ Structured inspection exposes actor, integer Energy, `isResting`, regime, select
 The runner also provides a deterministic, renderer-free control surface for M12:
 
 ```powershell
-dotnet run --project src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -- --m12-control
+dotnet run --project Games/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj -- --m12-control
 scenario low-open
 inspect
 wait 10

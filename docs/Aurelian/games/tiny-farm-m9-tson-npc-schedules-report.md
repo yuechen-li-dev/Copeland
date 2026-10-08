@@ -2,7 +2,7 @@
 
 ## Outcome
 
-**Outcome A — TSON cleanly becomes NPC schedule-content authority.** The eleven M8 rows now exist only in `src/TinyFarm/TinyFarm.Runtime/Content/tiny-farm-npc-schedules.obj.ts`. The existing generated Dominatus OptFlow remains the schedule-selection authority and produces the exact M8 decision, anchor, navigation, handoff, state, result, event, and projection hashes.
+**Outcome A — TSON cleanly becomes NPC schedule-content authority.** The eleven M8 rows now exist only in `Games/TinyFarm/TinyFarm.Runtime/Content/tiny-farm-npc-schedules.obj.ts`. The existing generated Dominatus OptFlow remains the schedule-selection authority and produces the exact M8 decision, anchor, navigation, handoff, state, result, event, and projection hashes.
 
 ## Authority inventory and boundary
 

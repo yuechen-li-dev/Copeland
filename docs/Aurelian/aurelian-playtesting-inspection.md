@@ -120,9 +120,9 @@ menu, inventory and agent fields, and add `brains`.
 ## Run Beacon
 
 ```powershell
-dotnet build samples/Integrations/Aurelian.Beacon3D -c Release -m:1
-$beacon = 'samples/Integrations/Aurelian.Beacon3D/bin/Release/net10.0/Aurelian.Beacon3D.dll'
-$script = 'samples/Integrations/Aurelian.Beacon3D/Playtests/inspection.json'
+dotnet build Games/Beacon3D/Aurelian.Beacon3D -c Release -m:1
+$beacon = 'Games/Beacon3D/Aurelian.Beacon3D/bin/Release/net10.0/Aurelian.Beacon3D.dll'
+$script = 'Games/Beacon3D/Aurelian.Beacon3D/Playtests/inspection.json'
 dotnet $beacon --headless --playtest-script $script --output artifacts/beacon-inspection-headless
 dotnet $beacon --playtest-script $script --output artifacts/beacon-inspection-native
 dotnet $beacon --headless --playtest-stdio --output artifacts/beacon-inspection-shell

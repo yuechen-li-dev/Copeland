@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../../../Deliverance/src/Deliverance.Core/Deliverance.Core.csproj" />
+  </ItemGroup>
+</Project>

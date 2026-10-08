@@ -38,10 +38,10 @@ internal static class Program
         string outputDirectory = ResolveOutputDirectory(args, repositoryRoot);
         string fontPath = Path.Combine(
             repositoryRoot,
-            "tests",
-            "Machina.UI",
-            "Machina.Fonts.Tests",
-            "Fixtures",
+            "src",
+            "Aurelian",
+            "Aurelian.Assets",
+            "Defaults",
             "Fonts",
             "CrimsonText-Regular.ttf");
         Directory.CreateDirectory(outputDirectory);

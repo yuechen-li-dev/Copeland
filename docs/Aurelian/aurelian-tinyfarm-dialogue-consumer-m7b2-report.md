@@ -217,7 +217,7 @@ shows world + portrait + lower-third composition.
 - `03-save-restored.png`: exact pending choice reconstructed from semantic state;
 - `04-conditional.png`: accepted mint consequence result.
 
-The optional portrait is `src/TinyFarm/TinyFarm.MonoGame/Assets/mara-dialogue.png`.
+The optional portrait is `Games/TinyFarm/TinyFarm.MonoGame/Assets/mara-dialogue.png`.
 It was produced with the built-in image generator as an original transparent,
 chest-up cozy pixel-art farmer; no text, logo, background, anime/VN styling, or voice
 asset was requested.

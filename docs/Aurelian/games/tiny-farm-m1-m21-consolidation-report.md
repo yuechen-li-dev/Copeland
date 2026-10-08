@@ -312,7 +312,7 @@ Validation on 2026-09-03 used .NET SDK 10.0.400:
 | `dotnet test Machina.UI.slnx -m:1 --nologo` | 673 passed across 8 assemblies |
 | `dotnet test Machina.UI.Slow.slnx -m:1 --nologo` | 308 passed across 2 assemblies |
 | `dotnet test JointTaskForce.slnx -m:1 --nologo` | 3,178 passed across 27 assemblies |
-| `dotnet build src/TinyFarm/TinyFarm.MonoGame/TinyFarm.MonoGame.csproj --nologo` | succeeded, 0 warnings, 0 errors |
+| `dotnet build Games/TinyFarm/TinyFarm.MonoGame/TinyFarm.MonoGame.csproj --nologo` | succeeded, 0 warnings, 0 errors |
 | TinyFarm runner `--m13` through `--m21` to isolated temporary directories | every proof Outcome A; five files each |
 | canonical M2 proof/save/replay/inspection run | Outcome A; repeated/result/event and all six reload points exact |
 | checkpoint artifact budget | 5 files, 9,352 bytes total, all below 256 KiB; passed |

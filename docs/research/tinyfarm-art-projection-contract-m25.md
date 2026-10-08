@@ -10,6 +10,6 @@ TinyFarm uses a **north-up, fixed three-quarter orthographic art convention**, n
 
 The current native game still uses its existing 2D semantic ground projection. The nominal elevation constrains **authored sprite appearance**, not a claim that the native camera has acquired a new 3D view matrix. Semantic coordinates, collision, navigation, and save/replay authority remain unchanged. M24's independent fixed-camera experiment remains available; converting all ground projection mathematics is outside M25.
 
-The farmhouse control guide is `src/TinyFarm/TinyFarm.Native/Assets/M25/farmhouse-three-quarter-guide.svg`. It specifies the silhouette, eave, ridge, chimney cap, front windows, and door direction before painterly generation. The earlier roof-plan guide and generated roof-plan asset are retained as rejected perspective studies, not the chosen convention.
+The farmhouse control guide is `Games/TinyFarm/TinyFarm.Native/Assets/M25/farmhouse-three-quarter-guide.svg`. It specifies the silhouette, eave, ridge, chimney cap, front windows, and door direction before painterly generation. The earlier roof-plan guide and generated roof-plan asset are retained as rejected perspective studies, not the chosen convention.
 
 Fresh asset workflow: draw the guide in this convention, render the guide, use it as the geometry authority and approved M24 art as material reference, inspect the generated perspective, verify actual RGBA transparency, then verify the asset in the native world before selecting it.

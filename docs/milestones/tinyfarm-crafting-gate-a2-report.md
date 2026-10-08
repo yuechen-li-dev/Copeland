@@ -58,8 +58,8 @@ Validation:
 Reproduce the native qualification:
 
 ```powershell
-dotnet build src/TinyFarm/TinyFarm.Native/TinyFarm.Native.csproj -c Release -m:1 -p:JsonSerializerIsReflectionEnabledByDefault=false
-dotnet src/TinyFarm/TinyFarm.Native/bin/Release/net10.0-windows/TinyFarm.Native.dll --crafting-proof
+dotnet build Games/TinyFarm/TinyFarm.Native/TinyFarm.Native.csproj -c Release -m:1 -p:JsonSerializerIsReflectionEnabledByDefault=false
+dotnet Games/TinyFarm/TinyFarm.Native/bin/Release/net10.0-windows/TinyFarm.Native.dll --crafting-proof
 ```
 
 ## Deliberate boundaries

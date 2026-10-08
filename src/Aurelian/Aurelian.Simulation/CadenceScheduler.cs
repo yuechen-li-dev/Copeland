@@ -5,6 +5,7 @@ namespace Aurelian.Simulation;
 
 public readonly record struct CadenceId
 {
+    [System.Text.Json.Serialization.JsonConstructor]
     public CadenceId(string value)
     {
         Value = string.IsNullOrWhiteSpace(value)
@@ -203,6 +204,30 @@ public sealed class CadenceScheduler
         return SnapshotAccumulators();
     }
 
+    /// <summary>Validates the entire checkpoint before replacing scheduler phase.</summary>
+    public void RestoreAccumulators(IReadOnlyList<CadenceAccumulatorFact> facts)
+    {
+        ArgumentNullException.ThrowIfNull(facts);
+        if (facts.Count != cadences.Length)
+        {
+            throw new InvalidDataException("Cadence checkpoint count does not match the scheduler.");
+        }
+        for (int index = 0; index < facts.Count; index++)
+        {
+            CadenceAccumulatorFact expected = cadences[index].Snapshot();
+            CadenceAccumulatorFact fact = facts[index];
+            if (fact.Cadence != expected.Cadence || fact.ScaledPeriod != expected.ScaledPeriod ||
+                fact.ScaledRemainder < 0 || fact.ScaledRemainder >= fact.ScaledPeriod || fact.ProducedTicks < 0)
+            {
+                throw new InvalidDataException("Cadence checkpoint identity, period or phase is invalid.");
+            }
+        }
+        for (int index = 0; index < facts.Count; index++)
+        {
+            cadences[index].Restore(facts[index]);
+        }
+    }
+
     private CadenceAccumulatorFact[] SnapshotAccumulators()
     {
         return cadences.Select(item => item.Snapshot()).ToArray();
@@ -257,6 +282,12 @@ public sealed class CadenceScheduler
         public CadenceAccumulatorFact Snapshot()
         {
             return new CadenceAccumulatorFact(definition.Id, scaledRemainder, scaledPeriod, producedTicks);
+        }
+
+        public void Restore(CadenceAccumulatorFact fact)
+        {
+            scaledRemainder = fact.ScaledRemainder;
+            producedTicks = fact.ProducedTicks;
         }
 
         public void Reset()

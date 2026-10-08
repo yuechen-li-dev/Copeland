@@ -6,6 +6,6 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="System.Drawing.Common" />
-    <ProjectReference Include="../../src/TinyFarm/TinyFarm.Runtime/TinyFarm.Runtime.csproj" />
+    <ProjectReference Include="../../Games/TinyFarm/TinyFarm.Runtime/TinyFarm.Runtime.csproj" />
   </ItemGroup>
 </Project>

@@ -41,8 +41,8 @@ An additional full-suite reflection-disabled audit exposed **27 older proof test
 Reproduce the native walkthrough after building:
 
 ```powershell
-dotnet build src/TinyFarm/TinyFarm.Native/TinyFarm.Native.csproj -c Release -m:1 -p:JsonSerializerIsReflectionEnabledByDefault=false
-dotnet src/TinyFarm/TinyFarm.Native/bin/Release/net10.0-windows/TinyFarm.Native.dll --container-proof
+dotnet build Games/TinyFarm/TinyFarm.Native/TinyFarm.Native.csproj -c Release -m:1 -p:JsonSerializerIsReflectionEnabledByDefault=false
+dotnet Games/TinyFarm/TinyFarm.Native/bin/Release/net10.0-windows/TinyFarm.Native.dll --container-proof
 ```
 
 Launch normally with `Play-TinyFarm.cmd` to play the A3 loop. No separate executable is needed.

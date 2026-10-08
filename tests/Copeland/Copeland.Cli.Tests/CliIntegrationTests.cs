@@ -15,8 +15,8 @@ public sealed class CliIntegrationTests
         using var temp = new TempDir();
         string manifest = System.IO.Path.Combine(
             GetRepoRoot(),
-            "samples",
-            "Integrations",
+            "Games",
+            "Sunkill",
             "Aurelian.Ariadne.VnDemo",
             "manifest.tsx");
 

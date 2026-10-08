@@ -76,7 +76,7 @@ Require(prepared.Lowering.Actions.Count >= 2, "Settings and Play are not real ac
 
 (CompiledGraphicsProgram msdfProgram, VdMirGraphicsBackendResult msdfBackend) = CompileShader(root, "src/Aurelian/Aurelian.Shaders/Assets/MsdfText.v.ts");
 (CompiledGraphicsProgram analyticProgram, VdMirGraphicsBackendResult analyticBackend) = CompileShader(root, "src/Aurelian/Aurelian.Shaders/Assets/AnalyticShape2D.v.ts");
-string fontPath = Path.Combine(root, "tests", "Machina.UI", "Machina.Fonts.Tests", "Fixtures", "Fonts", "CrimsonText-Regular.ttf");
+string fontPath = Path.Combine(root, "src", "Aurelian", "Aurelian.Assets", "Defaults", "Fonts", "CrimsonText-Regular.ttf");
 MachinaTextOperation[] msdfTextOperations = prepared.PresentationFrame.Operations
     .OfType<MachinaTextOperation>()
     .Where(static operation => operation.SourceId is "heading" or "settings-msdf-label")

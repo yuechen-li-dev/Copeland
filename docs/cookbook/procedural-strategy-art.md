@@ -1,6 +1,6 @@
 # Author a strategy asset with existing Profile composition
 
-The M18 toolkit is a working **proof pack**, not a new compiler or production GPU asset format. Source lives in `samples/Integrations/Aurelian.StrategyDemo/Assets`. `StrategyArt.ts` provides ordinary typed functions; each `*.profile.tsx` supplies a composition. The sample compiles the toolkit and each asset together through `ProfileTsxCompiler.CompileComposition`.
+The M18 toolkit is a working **proof pack**, not a new compiler or production GPU asset format. Source lives in `Games/Strategy/Aurelian.StrategyDemo/Assets`. `StrategyArt.ts` provides ordinary typed functions; each `*.profile.tsx` supplies a composition. The sample compiles the toolkit and each asset together through `ProfileTsxCompiler.CompileComposition`.
 
 For a palette variant, the existing ranger source is a small example:
 
@@ -20,7 +20,7 @@ The existing primitive vocabulary includes closed polygons, ellipses, circles an
 To add an asset, place its readable Profile source beside the other assets, reuse the toolkit functions, then run:
 
 ```powershell
-dotnet run --project samples/Integrations/Aurelian.StrategyDemo -c Release -- --proof
+dotnet run --project Games/Strategy/Aurelian.StrategyDemo -c Release -- --proof
 ```
 
 The content glob copies the file, `StrategyAssets` discovers it without a registry edit, and canonical compilation failures are fatal. Inspect `vector-asset-pack.png` and `vector-asset-hashes.json` under `artifacts/aurelian-rts-pearl-mining-m18`. The asset pack uses the same cached paths as world and portrait rendering. Adding discovery/preview alone does not create a building rule: application definitions still own cost, footprint, selection and behavior.

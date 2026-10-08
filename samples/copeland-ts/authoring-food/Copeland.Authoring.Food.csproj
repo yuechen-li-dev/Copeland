@@ -9,11 +9,11 @@
   <ItemGroup>
     <ProjectReference Include="../../../src/Copeland/Copeland.TS.MSBuild/Copeland.TS.MSBuild.csproj"
                       ReferenceOutputAssembly="false" />
-    <CopelandCompile Include="Copeland\RecipeBook.ts" />
-    <CopelandCompile Include="Copeland\Planning.ts" />
-    <CopelandCompile Include="Copeland\PantryFlow.ts" />
-    <CopelandCompile Include="Copeland\Main.ts" />
-    <Compile Remove="Copeland.Authoring.Food.Tests\**\*.cs" />
+    <CopelandCompile Include="Copeland/RecipeBook.ts" />
+    <CopelandCompile Include="Copeland/Planning.ts" />
+    <CopelandCompile Include="Copeland/PantryFlow.ts" />
+    <CopelandCompile Include="Copeland/Main.ts" />
+    <Compile Remove="Copeland.Authoring.Food.Tests/**/*.cs" />
   </ItemGroup>
 
   <Import Project="../../../src/Copeland/Copeland.TS.MSBuild/build/Copeland.TS.Sdk.targets" />

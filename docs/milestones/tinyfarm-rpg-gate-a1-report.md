@@ -68,7 +68,7 @@ The native proof drives the real window/input/host/render path. It opens C, type
 Reproduce:
 
 ```powershell
-dotnet run --project src/TinyFarm/TinyFarm.Native/TinyFarm.Native.csproj -c Release -p:JsonSerializerIsReflectionEnabledByDefault=false -- --stats-proof
+dotnet run --project Games/TinyFarm/TinyFarm.Native/TinyFarm.Native.csproj -c Release -p:JsonSerializerIsReflectionEnabledByDefault=false -- --stats-proof
 ```
 
 Evidence: [native proof](../../artifacts/tinyfarm-rpg-gate-a1/native-proof.json), [manifest](../../artifacts/tinyfarm-rpg-gate-a1/manifest.json), and eleven native screenshots in that directory. The 1080p stats, 1440p skills, and non-16:9 captures were inspected for readable text, table bounds, and scalable layout.

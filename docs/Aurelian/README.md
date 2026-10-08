@@ -3,6 +3,8 @@
 Aurelian owns the engine lifecycle, world and game-object models, actuation, frame coordination, renderer-neutral contracts, renderer backends, assets, shader-domain behavior, and engine-runtime Dominatus integration.
 
 - [Current architecture](architecture/)
+- [Composable C# game starter and Deliverance save slots](game-starter.md)
+- [Consolidated games](../../Games/README.md)
 - [Aurelian engine architecture v1](aurelian-engine-architecture-v1.md)
 - [Cross-repository SDSL-V semantic port audit](sdsl-v-cross-repo-audit.md)
 - [Copeland SDSL-V GPU profile](../Copeland/sdsl-v-gpu-profile.md)
@@ -15,7 +17,7 @@ Aurelian owns the engine lifecycle, world and game-object models, actuation, fra
 - [Dominatus 1.0 provenance](../audits/MARIONETTE_AURELIAN_M1_PROVENANCE.md)
 - [Historical migration and audit records](history/)
 - [Aurelian solution](../../Aurelian.slnx)
-- [Beacon Run native Vulkan 3D game and proof](../../samples/Integrations/Aurelian.Beacon3D/README.md)
+- [Beacon Run native Vulkan 3D game and proof](../../Games/Beacon3D/Aurelian.Beacon3D/README.md)
 - [Reusable Aurelian game menu template](games/game-menu-template.md)
 - [Character, object, and creature agent authoring](games/agent-authoring.md)
 - [Current JTF-M0 topology and ownership](../architecture/jtf-m0-topology-and-ownership.md)

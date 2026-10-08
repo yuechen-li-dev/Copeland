@@ -7,6 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Update="wwwroot\**\*" CopyToOutputDirectory="Always" />
+    <Content Update="wwwroot/**/*" CopyToOutputDirectory="Always" />
   </ItemGroup>
 </Project>

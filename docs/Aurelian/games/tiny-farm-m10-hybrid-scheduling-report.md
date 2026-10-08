@@ -45,10 +45,10 @@ Validation requires unique stable window IDs, known actors, valid half-open boun
 The real CLI successfully executed these production queries with zero diagnostics:
 
 ```powershell
-dotnet run --project src/Copeland/Copeland.Cli/Copeland.Cli.csproj -- table query src/TinyFarm/TinyFarm.Runtime/Content/tiny-farm-npc-schedules.obj.ts NpcSchedules --where 'day == Day(6)' --format json
-dotnet run --project src/Copeland/Copeland.Cli/Copeland.Cli.csproj -- table query src/TinyFarm/TinyFarm.Runtime/Content/tiny-farm-npc-schedules.obj.ts NpcSchedules --where 'day == ScheduleDay.Day(6)' --format json
-dotnet run --project src/Copeland/Copeland.Cli/Copeland.Cli.csproj -- table query src/TinyFarm/TinyFarm.Runtime/Content/tiny-farm-npc-schedules.obj.ts NpcSchedules --where 'regime == Required' --format json
-dotnet run --project src/Copeland/Copeland.Cli/Copeland.Cli.csproj -- table query src/TinyFarm/TinyFarm.Runtime/Content/tiny-farm-npc-schedules.obj.ts NpcSchedules --where 'regime == Open' --format json
+dotnet run --project src/Copeland/Copeland.Cli/Copeland.Cli.csproj -- table query Games/TinyFarm/TinyFarm.Runtime/Content/tiny-farm-npc-schedules.obj.ts NpcSchedules --where 'day == Day(6)' --format json
+dotnet run --project src/Copeland/Copeland.Cli/Copeland.Cli.csproj -- table query Games/TinyFarm/TinyFarm.Runtime/Content/tiny-farm-npc-schedules.obj.ts NpcSchedules --where 'day == ScheduleDay.Day(6)' --format json
+dotnet run --project src/Copeland/Copeland.Cli/Copeland.Cli.csproj -- table query Games/TinyFarm/TinyFarm.Runtime/Content/tiny-farm-npc-schedules.obj.ts NpcSchedules --where 'regime == Required' --format json
+dotnet run --project src/Copeland/Copeland.Cli/Copeland.Cli.csproj -- table query Games/TinyFarm/TinyFarm.Runtime/Content/tiny-farm-npc-schedules.obj.ts NpcSchedules --where 'regime == Open' --format json
 ```
 
 `Day(6)` returns exactly `mara.day6-store`; Required returns 11 rows; Open returns only `mara.free-evening`. The existing TSON reader/canonical-printer roundtrip preserves the nominal enum case and payload, as covered by the INFRA-M10A compiler regression and production load/query proof.

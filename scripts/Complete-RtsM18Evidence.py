@@ -115,8 +115,8 @@ def complete(log_directory):
     }
     write("fresh-art-extension.json", extension)
 
-    sample = source_files("samples/Integrations/Aurelian.StrategyDemo", {".cs"})
-    art = source_files("samples/Integrations/Aurelian.StrategyDemo/Assets", {".ts", ".tsx"})
+    sample = source_files("Games/Strategy/Aurelian.StrategyDemo", {".cs"})
+    art = source_files("Games/Strategy/Aurelian.StrategyDemo/Assets", {".ts", ".tsx"})
     shared = source_files("src/Aurelian/Aurelian.Strategy", {".cs"}) + [
         ROOT / "src/Integrations/Aurelian.GameWorld2D/IsometricProjection.cs",
         ROOT / "src/Integrations/Aurelian.Machina/StrategyHudProfile.cs",

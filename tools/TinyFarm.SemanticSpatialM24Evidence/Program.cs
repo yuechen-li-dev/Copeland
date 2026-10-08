@@ -10,7 +10,7 @@ using TinyFarm.Core;
 
 string root = FindRoot();
 string output = Path.Combine(root, "artifacts", "tinyfarm-semantic-spatial-art-m24");
-string assets = Path.Combine(root, "src", "TinyFarm", "TinyFarm.Native", "Assets", "M24");
+string assets = Path.Combine(root, "Games", "TinyFarm", "TinyFarm.Native", "Assets", "M24");
 Directory.CreateDirectory(output);
 SemanticWorldScene scene = TinyFarmSemanticSpatialScene.Create();
 

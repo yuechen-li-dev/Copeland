@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="templates\**\*" Pack="true" PackagePath="content" />
+    <Content Include="templates/**/*" Pack="true" PackagePath="content" />
     <None Include="README.md" Pack="true" PackagePath="" />
   </ItemGroup>
 </Project>

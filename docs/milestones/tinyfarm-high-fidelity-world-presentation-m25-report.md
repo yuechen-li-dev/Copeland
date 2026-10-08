@@ -123,11 +123,11 @@ Reproduce from the Copeland root, in this order (1080p last writes shared summar
 dotnet build TinyFarm.slnx -c Release -m:1
 dotnet test TinyFarm.slnx -c Release -m:1 --no-build
 dotnet test ../InputMan/InputMan.slnx -c Release -m:1
-dotnet run --project src/TinyFarm/TinyFarm.Native -c Release --no-build -- --window-smoke
-dotnet run --project src/TinyFarm/TinyFarm.Native -c Release --no-build -- --m25-proof --m25-baseline
-dotnet run --project src/TinyFarm/TinyFarm.Native -c Release --no-build -- --m25-proof --width 1280 --height 720
-dotnet run --project src/TinyFarm/TinyFarm.Native -c Release --no-build -- --m25-proof --width 2560 --height 1440
-dotnet run --project src/TinyFarm/TinyFarm.Native -c Release --no-build -- --m25-proof --width 1920 --height 1080
+dotnet run --project Games/TinyFarm/TinyFarm.Native -c Release --no-build -- --window-smoke
+dotnet run --project Games/TinyFarm/TinyFarm.Native -c Release --no-build -- --m25-proof --m25-baseline
+dotnet run --project Games/TinyFarm/TinyFarm.Native -c Release --no-build -- --m25-proof --width 1280 --height 720
+dotnet run --project Games/TinyFarm/TinyFarm.Native -c Release --no-build -- --m25-proof --width 2560 --height 1440
+dotnet run --project Games/TinyFarm/TinyFarm.Native -c Release --no-build -- --m25-proof --width 1920 --height 1080
 python tools/tinyfarm-presentation-m25-evidence.py
 ```
 

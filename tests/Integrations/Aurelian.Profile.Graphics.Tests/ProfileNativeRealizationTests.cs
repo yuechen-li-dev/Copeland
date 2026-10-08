@@ -11,7 +11,7 @@ public sealed class ProfileNativeRealizationTests
     public void M18AssetCompilesToOrderedNativeDrawPlan()
     {
         string root = RepositoryRoot();
-        string assetDirectory = Path.Combine(root, "samples", "Integrations", "Aurelian.StrategyDemo", "Assets");
+        string assetDirectory = Path.Combine(root, "Games", "Strategy", "Aurelian.StrategyDemo", "Assets");
         string sourcePath = Path.Combine(assetDirectory, "hq.profile.tsx");
         string source = File.ReadAllText(Path.Combine(assetDirectory, "StrategyArt.ts"))
             + "\n"

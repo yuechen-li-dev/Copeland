@@ -24,7 +24,7 @@ string output = Path.Combine(root, "artifacts", "aurelian-profile-derivative-rec
 Directory.CreateDirectory(output);
 int zoom = ParseZoom(args);
 string[] requestedAssets = ParseAssets(args);
-string assetDirectory = Path.Combine(root, "samples", "Integrations", "Aurelian.StrategyDemo", "Assets");
+string assetDirectory = Path.Combine(root, "Games", "Strategy", "Aurelian.StrategyDemo", "Assets");
 string toolkit = File.ReadAllText(Path.Combine(assetDirectory, "StrategyArt.ts"));
 
 var resources = new Dictionary<string, ProfileNativeCompositionResource>(StringComparer.Ordinal);

@@ -13,13 +13,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\TestSupport\TableMirValidationCases.cs" Link="TestSupport\TableMirValidationCases.cs" />
+    <Compile Include="../TestSupport/TableMirValidationCases.cs" Link="TestSupport\TableMirValidationCases.cs" />
     <ProjectReference Include="../../../src/Copeland/Copeland.TS/Copeland.TS.csproj" />
     <ProjectReference Include="../../../src/Copeland/Copeland.TS.Mir/Copeland.TS.Mir.csproj" />
     <ProjectReference Include="../../../src/Copeland/Copeland.TS.Backend.JavaScript/Copeland.TS.Backend.JavaScript.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="TestData\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="TestData/**/*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

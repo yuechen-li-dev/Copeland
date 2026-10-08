@@ -166,7 +166,7 @@ internal static class SpriteCardsM17Proof
         string root = FindRepositoryRoot();
         string output = Path.GetFullPath(outputDirectory);
         Directory.CreateDirectory(output);
-        string assetRoot = Path.Combine(root, "samples", "Integrations", "Aurelian.Ariadne.VnDemo", "Assets");
+        string assetRoot = Path.Combine(root, "Games", "Sunkill", "Aurelian.Ariadne.VnDemo", "Assets");
         string sourcePath = Path.Combine(assetRoot, "sunkill-dialogue-panel.obj.ts");
         string[] authoritativePaths =
         [
@@ -208,8 +208,8 @@ internal static class SpriteCardsM17Proof
 
             string executable = Path.Combine(
                 root,
-                "samples",
-                "Integrations",
+                "Games",
+                "Sunkill",
                 "Aurelian.Ariadne.VnDemo",
                 "bin",
                 "Debug",
@@ -577,8 +577,8 @@ internal static class SpriteCardsM17Proof
         {
             string sourceDirectory = Path.Combine(
                 root,
-                "samples",
-                "Integrations",
+                "Games",
+                "Sunkill",
                 "Aurelian.Ariadne.VnDemo",
                 "Assets");
             string directory = Path.Combine(Path.GetTempPath(), "oblivion-m17-proof-" + Guid.NewGuid().ToString("N"));

@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Assets\assets.toml" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="Assets\Shaders\SmokeTriangle\**\*.*" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets/assets.toml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets/Shaders/SmokeTriangle/**/*.*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

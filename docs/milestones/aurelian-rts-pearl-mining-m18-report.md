@@ -100,7 +100,7 @@ The profile accepts four resources/actions/objectives, stable node IDs, selectio
 
 ## 25. Integrated Aurelian proof
 
-Run `dotnet run --project samples/Integrations/Aurelian.StrategyDemo -c Release` for a native playable window. The default path is the presenter; `--proof` is supplementary. `--launch-smoke` reached a visible window and three rendered frames and exited successfully. `native-launch-frame.png` is the application's framebuffer export, not an OS screenshot. Physical adapter → InputMan → selection/group/focus and minimap isolation are automated separately.
+Run `dotnet run --project Games/Strategy/Aurelian.StrategyDemo -c Release` for a native playable window. The default path is the presenter; `--proof` is supplementary. `--launch-smoke` reached a visible window and three rendered frames and exited successfully. `native-launch-frame.png` is the application's framebuffer export, not an OS screenshot. Physical adapter → InputMan → selection/group/focus and minimap isolation are automated separately.
 
 The 60-second semantic scenario completes gathering and a lodge and produces a worker. `deterministic-proof.json` records its hash, replay hash, cadence partitions and assertions. The sample has a target marker rather than an enemy AI, decorative water/trees rather than a terrain movement engine, and collision-aware straight movement rather than navigation planning. These limits are surfaced in the API documentation.
 

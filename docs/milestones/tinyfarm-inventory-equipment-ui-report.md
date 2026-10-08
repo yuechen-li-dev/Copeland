@@ -59,8 +59,8 @@ Each measurement contains 120 host frames including submission/presentation and 
 Reproduce the reflection-disabled native evidence from the repository:
 
 ```powershell
-dotnet build src/TinyFarm/TinyFarm.Native/TinyFarm.Native.csproj -c Release -m:1 -nodeReuse:false -p:JsonSerializerIsReflectionEnabledByDefault=false
-& .\src\TinyFarm\TinyFarm.Native\bin\Release\net10.0-windows\TinyFarm.Native.exe --menus-proof
+dotnet build Games/TinyFarm/TinyFarm.Native/TinyFarm.Native.csproj -c Release -m:1 -nodeReuse:false -p:JsonSerializerIsReflectionEnabledByDefault=false
+& .\Games\TinyFarm\TinyFarm.Native\bin\Release\net10.0-windows\TinyFarm.Native.exe --menus-proof
 ```
 
 The final command exits zero and prints `TINYFARM_MENUS_NATIVE_QUALIFIED`. The generated proof also asserts reflection serialization is disabled. The capture dimensions and performance values are from the final run; the proof's final viewport is 1600x1000 after the resize checks.

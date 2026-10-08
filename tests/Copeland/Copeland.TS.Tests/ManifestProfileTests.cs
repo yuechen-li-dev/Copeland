@@ -12,7 +12,7 @@ public sealed class ManifestProfileTests
     public void Loads_Asset_Graph_And_Emits_A_Deterministic_Generated_Projection()
     {
         string root = RepositoryRoot();
-        string sampleRoot = Path.Combine(root, "samples", "Integrations", "Aurelian.Ariadne.VnDemo");
+        string sampleRoot = Path.Combine(root, "Games", "Sunkill", "Aurelian.Ariadne.VnDemo");
 
         ManifestProjectLoadResult result = CopelandProject.LoadRootManifest(sampleRoot);
 

@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Playtesting/Aurelian.Playtesting.csproj" />
+    <ProjectReference Include="../TinyFarm.UI/TinyFarm.UI.csproj" />
+  </ItemGroup>
+</Project>

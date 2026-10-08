@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="../Machina.Fonts.Tests/Fixtures/Fonts/CrimsonText-Regular.ttf"
+    <Content Include="../../../src/Aurelian/Aurelian.Assets/Defaults/Fonts/CrimsonText-Regular.ttf"
              Link="Fixtures/Fonts/CrimsonText-Regular.ttf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

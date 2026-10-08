@@ -13,7 +13,7 @@
     <PackageReference Include="SkiaSharp" />
   </ItemGroup>
   <ItemGroup>
-    <AvaloniaResource Include="../../../tests/Machina.UI/Machina.Fonts.Tests/Fixtures/Fonts/CrimsonText-Regular.ttf">
+    <AvaloniaResource Include="../../Aurelian/Aurelian.Assets/Defaults/Fonts/CrimsonText-Regular.ttf">
       <Link>Assets/CrimsonText-Regular.ttf</Link>
     </AvaloniaResource>
   </ItemGroup>

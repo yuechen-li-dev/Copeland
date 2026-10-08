@@ -62,7 +62,7 @@ Require(analyticPrimitives.Any(primitive => primitive.Kind == MachinaAnalyticSha
 Machina.Presentation.PositionedTextOperation msdfHeading = prepared.PresentationFrame.Operations
     .OfType<Machina.Presentation.PositionedTextOperation>()
     .Single(operation => operation.SourceId == "heading");
-string fontPath = Path.Combine(root, "tests", "Machina.UI", "Machina.Fonts.Tests", "Fixtures", "Fonts", "CrimsonText-Regular.ttf");
+string fontPath = Path.Combine(root, "src", "Aurelian", "Aurelian.Assets", "Defaults", "Fonts", "CrimsonText-Regular.ttf");
 AtlasBundle msdfAtlas = await BuildAtlasAsync(fontPath, 32, [msdfHeading.Text]);
 (CompiledGraphicsProgram msdfProgram, VdMirGraphicsBackendResult msdfBackend) = CompileMsdfShader(root);
 

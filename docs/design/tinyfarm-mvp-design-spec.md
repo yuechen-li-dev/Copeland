@@ -349,11 +349,11 @@ The highest risk is consistent animated art, followed by combat feel. Existing i
 
 Primary local sources inspected:
 
-- [Player-facing README](../../src/TinyFarm/README.md), [native application](../../src/TinyFarm/TinyFarm.Native/Program.cs), and [game policy](../../src/TinyFarm/TinyFarm.InputMan/TinyFarmGame.cs).
-- [Supper start](../../src/TinyFarm/TinyFarm.Runtime/TinyFarmSupperStart.cs), [objective law](../../src/TinyFarm/TinyFarm.Core/TinyFarmSupper.cs), and [existing walkthrough](../../src/TinyFarm/TinyFarm.InputMan/TinyFarmWalkthrough.cs).
-- [Resolver](../../src/TinyFarm/TinyFarm.Core/TinyFarmResolver.cs), [world models](../../src/TinyFarm/TinyFarm.Core/WorldModel.cs), [combat moves](../../src/TinyFarm/TinyFarm.Core/TinyFarmCombatMoves.cs), and [host cadence](../../src/TinyFarm/TinyFarm.Runtime/TinyFarmSimulationHost.cs).
-- Content under [runtime Content](../../src/TinyFarm/TinyFarm.Runtime/Content), particularly M18 forage, M19 cooking, M20 products/trees, M21 enemies/scenes, and authored NPC schedules.
-- [Native renderer](../../src/TinyFarm/TinyFarm.Native/TinyFarmNativeRenderer.cs), [UI](../../src/TinyFarm/TinyFarm.Native/TinyFarmNativeUi.cs), [input profile](../../src/TinyFarm/TinyFarm.InputMan/GameControls.cs), and [audio projection](../../src/TinyFarm/TinyFarm.Runtime/TinyFarmAudioProjector.cs).
+- [Player-facing README](../../Games/TinyFarm/README.md), [native application](../../Games/TinyFarm/TinyFarm.Native/Program.cs), and [game policy](../../Games/TinyFarm/TinyFarm.InputMan/TinyFarmGame.cs).
+- [Supper start](../../Games/TinyFarm/TinyFarm.Runtime/TinyFarmSupperStart.cs), [objective law](../../Games/TinyFarm/TinyFarm.Core/TinyFarmSupper.cs), and [existing walkthrough](../../Games/TinyFarm/TinyFarm.InputMan/TinyFarmWalkthrough.cs).
+- [Resolver](../../Games/TinyFarm/TinyFarm.Core/TinyFarmResolver.cs), [world models](../../Games/TinyFarm/TinyFarm.Core/WorldModel.cs), [combat moves](../../Games/TinyFarm/TinyFarm.Core/TinyFarmCombatMoves.cs), and [host cadence](../../Games/TinyFarm/TinyFarm.Runtime/TinyFarmSimulationHost.cs).
+- Content under [runtime Content](../../Games/TinyFarm/TinyFarm.Runtime/Content), particularly M18 forage, M19 cooking, M20 products/trees, M21 enemies/scenes, and authored NPC schedules.
+- [Native renderer](../../Games/TinyFarm/TinyFarm.Native/TinyFarmNativeRenderer.cs), [UI](../../Games/TinyFarm/TinyFarm.Native/TinyFarmNativeUi.cs), [input profile](../../Games/TinyFarm/TinyFarm.InputMan/GameControls.cs), and [audio projection](../../Games/TinyFarm/TinyFarm.Runtime/TinyFarmAudioProjector.cs).
 - [M25 report](../milestones/tinyfarm-high-fidelity-world-presentation-m25-report.md), [projection convention](../research/tinyfarm-art-projection-contract-m25.md), and [visual defect ledger](../research/tinyfarm-visual-defect-ledger-m25.md).
 
 No gameplay code or assets were changed for this proposal. Existing memory helped locate the M24/M25 foundations; present-tense findings above were checked against this checkout. Historical test counts and captures are not treated as fresh October play qualification.

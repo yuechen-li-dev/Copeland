@@ -16,13 +16,13 @@ Classification:
 Normal command:
 
 ```powershell
-dotnet run --project samples/Integrations/Aurelian.StrategyDemo -c Release
+dotnet run --project Games/Strategy/Aurelian.StrategyDemo -c Release
 ```
 
 Compatibility command:
 
 ```powershell
-dotnet run --project samples/Integrations/Aurelian.StrategyDemo -c Release -- --compatibility-avalonia
+dotnet run --project Games/Strategy/Aurelian.StrategyDemo -c Release -- --compatibility-avalonia
 ```
 
 The policy is demotion by ownership, not a purge. The compatibility implementation remains available while the semantic center is Profile/Machina/Aurelian/Vulkan.

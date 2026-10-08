@@ -1,0 +1,37 @@
+[
+  {
+    "project": "src/Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj",
+    "reference": "../../Copeland/Copeland.TS/Copeland.TS.csproj",
+    "presentInOriginalHead": true
+  },
+  {
+    "project": "src/Machina.UI/Machina.Fonts/Machina.Fonts.csproj",
+    "reference": "../../Copeland/Copeland.Profile/Copeland.Profile.csproj",
+    "presentInOriginalHead": true
+  },
+  {
+    "project": "src/Machina.UI/Machina.Presentation/Machina.Presentation.csproj",
+    "reference": "../../Copeland/Copeland.SpanAllocation/Copeland.SpanAllocation.csproj",
+    "presentInOriginalHead": true
+  },
+  {
+    "project": "tests/Aurelian/Aurelian.Audio.Tests/Aurelian.Audio.Tests.csproj",
+    "reference": "../../../src/Integrations/Aurelian.Audio.NAudio/Aurelian.Audio.NAudio.csproj",
+    "presentInOriginalHead": true
+  },
+  {
+    "project": "tests/Aurelian/Aurelian.Audio.Tests/Aurelian.Audio.Tests.csproj",
+    "reference": "../../../src/Integrations/Dominatus.Audio.Aurelian/Dominatus.Audio.Aurelian.csproj",
+    "presentInOriginalHead": true
+  },
+  {
+    "project": "tests/Aurelian/Aurelian.Effects2D.Tests/Aurelian.Effects2D.Tests.csproj",
+    "reference": "../../../src/Integrations/Aurelian.Effects2D.Graphics/Aurelian.Effects2D.Graphics.csproj",
+    "presentInOriginalHead": true
+  },
+  {
+    "project": "tests/Aurelian/Aurelian.GameHost.Tests/Aurelian.GameHost.Tests.csproj",
+    "reference": "../../../src/Integrations/InputMan.Aurelian/InputMan.Aurelian.csproj",
+    "presentInOriginalHead": true
+  }
+]

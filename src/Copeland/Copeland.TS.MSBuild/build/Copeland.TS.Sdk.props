@@ -15,7 +15,7 @@
     <Reference Include="Copeland.TS.Backend.CSharp"
                HintPath="$(MSBuildThisFileDirectory)..\tools\net10.0\Copeland.TS.Backend.CSharp.dll"
                Private="true" />
-    <CopelandTest Include="**\*.tsxtest" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)" />
+    <CopelandTest Include="**/*.tsxtest" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)" />
   </ItemGroup>
 
   <ItemGroup>

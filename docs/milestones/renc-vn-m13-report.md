@@ -19,8 +19,8 @@ Launch:
 Qualification:
 
 ```powershell
-dotnet run --project samples/Integrations/Aurelian.Ariadne.VnDemo/Aurelian.Ariadne.VnDemo.csproj -- --proof
-dotnet test tests/Integrations/Sunkill.Tests/Sunkill.Tests.csproj
+dotnet run --project Games/Sunkill/Aurelian.Ariadne.VnDemo/Aurelian.Ariadne.VnDemo.csproj -- --proof
+dotnet test Games/Sunkill/Sunkill.Tests/Sunkill.Tests.csproj
 ```
 
 ## 2. Existing stack audit
@@ -261,10 +261,10 @@ framework was added.
 A fresh-context agent was asked to change the title subtitle and add one setting.
 It located the narrow edit set without being told implementation files:
 
-- `samples/Integrations/Aurelian.Ariadne.VnDemo/RenApp.cs`
-- `samples/Integrations/Aurelian.Ariadne.VnDemo/RenSettings.cs`
-- `tests/Integrations/Sunkill.Tests/SunkillM13Tests.cs`
-- optionally `samples/Integrations/Aurelian.Ariadne.VnDemo/Program.cs` for proof evidence
+- `Games/Sunkill/Aurelian.Ariadne.VnDemo/RenApp.cs`
+- `Games/Sunkill/Aurelian.Ariadne.VnDemo/RenSettings.cs`
+- `Games/Sunkill/Sunkill.Tests/SunkillM13Tests.cs`
+- optionally `Games/Sunkill/Aurelian.Ariadne.VnDemo/Program.cs` for proof evidence
 
 It found that `VnMachinaLayer` already projects menu-entry labels and therefore
 did not require generic renderer, persistence, InputMan, Ariadne, or Dominatus

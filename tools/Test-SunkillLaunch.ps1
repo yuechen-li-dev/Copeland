@@ -4,8 +4,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
-$projectPath = Join-Path $repositoryRoot "samples/Integrations/Aurelian.Ariadne.VnDemo/Aurelian.Ariadne.VnDemo.csproj"
-$executablePath = Join-Path $repositoryRoot "samples/Integrations/Aurelian.Ariadne.VnDemo/bin/Debug/net10.0/Aurelian.Ariadne.VnDemo.exe"
+$projectPath = Join-Path $repositoryRoot "Games/Sunkill/Aurelian.Ariadne.VnDemo/Aurelian.Ariadne.VnDemo.csproj"
+$executablePath = Join-Path $repositoryRoot "Games/Sunkill/Aurelian.Ariadne.VnDemo/bin/Debug/net10.0/Aurelian.Ariadne.VnDemo.exe"
 $existingMsBuildProcesses = @(
     Get-Process -Name MSBuild -ErrorAction SilentlyContinue |
         Select-Object -ExpandProperty Id

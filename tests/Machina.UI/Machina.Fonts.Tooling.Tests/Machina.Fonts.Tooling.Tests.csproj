@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="../Machina.Fonts.Tests/Fixtures/Fonts/**">
+    <Content Include="../../../src/Aurelian/Aurelian.Assets/Defaults/Fonts/**">
       <Link>Fixtures/Fonts/%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

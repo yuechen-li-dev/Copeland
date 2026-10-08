@@ -60,8 +60,8 @@ public sealed class ObjectAssetsM15Tests
     {
         string sourcePath = Path.Combine(
             RepositoryRoot(),
-            "samples",
-            "Integrations",
+            "Games",
+            "Sunkill",
             "Aurelian.Ariadne.VnDemo",
             "Assets",
             "sunkill-dialogue-panel.obj.ts");

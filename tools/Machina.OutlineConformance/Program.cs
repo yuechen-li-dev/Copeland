@@ -21,7 +21,7 @@ internal static class Program
         string root = FindRepositoryRoot();
         string output = ResolveOutputDirectory(args, root);
         string local = Path.Combine(Path.GetTempPath(), "machina-outline-conformance-m1");
-        string fontPath = Path.Combine(root, "tests", "Machina.UI", "Machina.Fonts.Tests", "Fixtures", "Fonts", "CrimsonText-Regular.ttf");
+        string fontPath = Path.Combine(root, "src", "Aurelian", "Aurelian.Assets", "Defaults", "Fonts", "CrimsonText-Regular.ttf");
         Directory.CreateDirectory(output);
         Directory.CreateDirectory(local);
 

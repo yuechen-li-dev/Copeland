@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Silk.NET.Windowing" />
+    <ProjectReference Include="../InputMan.Aurelian/InputMan.Aurelian.csproj" />
     <ProjectReference Include="../../Aurelian/Aurelian.GameHost/Aurelian.GameHost.csproj" />
   </ItemGroup>
 </Project>

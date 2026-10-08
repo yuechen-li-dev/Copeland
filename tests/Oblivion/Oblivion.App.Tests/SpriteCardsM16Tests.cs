@@ -197,8 +197,8 @@ public sealed class SpriteCardsM16Tests
             string root = FindRepositoryRoot();
             string sourceDirectory = Path.Combine(
                 root,
-                "samples",
-                "Integrations",
+                "Games",
+                "Sunkill",
                 "Aurelian.Ariadne.VnDemo",
                 "Assets");
             string temporaryDirectory = Path.Combine(Path.GetTempPath(), "oblivion-sprite-cards-" + Guid.NewGuid().ToString("N"));

@@ -12,6 +12,6 @@
     <ProjectReference Include="../../src/Copeland/Copeland.TS/Copeland.TS.csproj" />
     <ProjectReference Include="../../src/Copeland/Copeland.TS.Mir/Copeland.TS.Mir.csproj" />
     <ProjectReference Include="../../src/Copeland/Copeland.TS.Backend.CSharp/Copeland.TS.Backend.CSharp.csproj" />
-    <ProjectReference Include="../../src/TinyFarm/TinyFarm.Core/TinyFarm.Core.csproj" />
+    <ProjectReference Include="../../Games/TinyFarm/TinyFarm.Core/TinyFarm.Core.csproj" />
   </ItemGroup>
 </Project>

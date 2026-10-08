@@ -14,7 +14,7 @@ from PIL import Image, ImageChops, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "artifacts/tinyfarm-high-fidelity-presentation-m25"
-ASSETS = ROOT / "src/TinyFarm/TinyFarm.Native/Assets"
+ASSETS = ROOT / "Games/TinyFarm/TinyFarm.Native/Assets"
 POLICY = (ASSETS.parent / "TinyFarmPainterlyPolicy.cs").read_text()
 
 
@@ -216,7 +216,7 @@ write("visual-defect-ledger.json", {"outcome": "B", "defects": defects,
 provenance = {
     "selectedAsset": image_facts(ASSETS / "M25/farmhouse-three-quarter.png"),
     "geometryGuide": image_facts(ASSETS / "M25/farmhouse-three-quarter-guide.png"),
-    "vectorGuide": "src/TinyFarm/TinyFarm.Native/Assets/M25/farmhouse-three-quarter-guide.svg",
+    "vectorGuide": "Games/TinyFarm/TinyFarm.Native/Assets/M25/farmhouse-three-quarter-guide.svg",
     "materialReference": image_facts(ASSETS / "M24/farmhouse.png"),
     "approvedConvention": "Nominal 45 degree elevation, north-up, zero yaw, parallel projection; prominent roof plus shallow south facade",
     "source": "Built-in image_gen, guide-constrained paint-over followed by generated RGBA extraction",

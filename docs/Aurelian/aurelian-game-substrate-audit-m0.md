@@ -61,7 +61,7 @@ Letters apply to the named capability, not every possible feature in its categor
 
 ## 3. Concrete pressure test
 
-Source: `tests/TinyFarm/TinyFarm.Core.Tests/GameSubstrateAuditM0Tests.cs`.
+Source: `Games/TinyFarm/TinyFarm.Core.Tests/GameSubstrateAuditM0Tests.cs`.
 
 The probe uses M21 content/state, places initial player/Mara fixture data in Farm, then uses **only `TinyFarmResolver.Resolve` for gameplay**. It accepts an `InteractIntent` and verifies a Mara conversation, rejects movement into `farm-tree` without changing semantic hash, accepts a small move away, projects both actors, follows the player, animates a nearby authored world object with two presentation frames, and composites the existing Machina HUD/hotbar through `MachinaPresentationTranslator` and the real Aurelian CPU raster renderer. A compositor key event produces a typed slot-selection DTO. The test verifies repeatable raster output, different animation pixels, and no gameplay mutation from rendering.
 
@@ -199,7 +199,7 @@ Reproduce the integrated artifact (PowerShell from repository root):
 
 ```powershell
 $env:AURELIAN_GAME_AUDIT_OUTPUT = Join-Path $PWD 'artifacts/aurelian-game-substrate-audit-m0'
-dotnet test tests/TinyFarm/TinyFarm.Core.Tests --filter FullyQualifiedName~GameSubstrateAuditM0Tests --nologo -v minimal
+dotnet test Games/TinyFarm/TinyFarm.Core.Tests --filter FullyQualifiedName~GameSubstrateAuditM0Tests --nologo -v minimal
 ```
 
 Retained artifacts: `artifacts/aurelian-game-substrate-audit-m0/probe.json`, inspected `scene-0.png` / `scene-1.png`, `validation.json` and the SpriteForge failure log. The test reproduces JSON and PPM files only when the output environment variable is set; bulky PPM intermediates are not retained. Existing native golden artifacts remain unchanged in `artifacts/aurelian-native-2d-quad-m1`; incidental timing changes from the rerun were discarded. Detailed command logs for this run are under `.tmp/game-audit-*.log`.
@@ -211,19 +211,19 @@ All paths below are repository-relative unless explicitly marked standalone; the
 | Area | Primary source |
 |---|---|
 | Architecture | `docs/Aurelian/aurelian-engine-architecture-v1.md` |
-| Time | `src/TinyFarm/TinyFarm.Runtime/TinyFarmSimulationHost.cs`, `FixedMovementStepper.cs`; `src/Aurelian/Aurelian.World/WorldClock.cs` |
-| Scene/collision | `src/TinyFarm/TinyFarm.Core/SceneModel.cs`, `TinyFarmResolver.cs` (`ResolveSpatialMoveCore`) |
-| Camera/world extraction | `src/Aurelian/Aurelian.Rendering.Contracts/Snapshots/RenderCamera2D.cs`; `src/Aurelian/Aurelian.Runtime/Rendering/WorldRenderSnapshotExtractor.cs`; `src/TinyFarm/TinyFarm.MonoGame/TinyFarmGame.cs` |
+| Time | `Games/TinyFarm/TinyFarm.Runtime/TinyFarmSimulationHost.cs`, `FixedMovementStepper.cs`; `src/Aurelian/Aurelian.World/WorldClock.cs` |
+| Scene/collision | `Games/TinyFarm/TinyFarm.Core/SceneModel.cs`, `TinyFarmResolver.cs` (`ResolveSpatialMoveCore`) |
+| Camera/world extraction | `src/Aurelian/Aurelian.Rendering.Contracts/Snapshots/RenderCamera2D.cs`; `src/Aurelian/Aurelian.Runtime/Rendering/WorldRenderSnapshotExtractor.cs`; `Games/TinyFarm/TinyFarm.MonoGame/TinyFarmGame.cs` |
 | GPU boundary | `src/Aurelian/Aurelian.Graphics/Vulkan/Native2D/Native2DContracts.cs`, `VulkanOrderedQuadRenderer.cs`, `Native2DSubmissionValidator.cs` |
-| World projection units | `src/TinyFarm/TinyFarm.Runtime/TinyFarmFrame.cs` |
-| Input/UI | `src/Aurelian/Aurelian.Composition/InputContracts.cs`; `src/TinyFarm/TinyFarm.Presentation/TinyFarmMachinaUiLayer.cs`; `src/TinyFarm/TinyFarm.Runtime/TinyFarmHumanController.cs` |
-| Interaction | `src/TinyFarm/TinyFarm.Core/TinyFarmSpatialQueries.cs` |
+| World projection units | `Games/TinyFarm/TinyFarm.Runtime/TinyFarmFrame.cs` |
+| Input/UI | `src/Aurelian/Aurelian.Composition/InputContracts.cs`; `Games/TinyFarm/TinyFarm.Presentation/TinyFarmMachinaUiLayer.cs`; `Games/TinyFarm/TinyFarm.Runtime/TinyFarmHumanController.cs` |
+| Interaction | `Games/TinyFarm/TinyFarm.Core/TinyFarmSpatialQueries.cs` |
 | Game assets | `src/Aurelian/Aurelian.Assets/AssetPipeline.cs`; `../Dominatus/src/Dominatus.SpriteForge/SpriteForgeAtlas.cs`, `SpriteForgeResolver.cs` |
 | Effects | `src/Aurelian/Aurelian.Shaders/Assets/AnalyticShape2D.v.ts`, `MsdfText.v.ts`; native quad proof compiler path |
-| Persistence/replay | `src/TinyFarm/TinyFarm.Runtime/TinyFarmPersistence.cs`, `TinyFarmSession.cs`; `../Dominatus/src/Dominatus.Core/Persistence/ReplayDriver.cs`, `SaveFile.cs` |
-| Nav/schedule | `src/TinyFarm/TinyFarm.Runtime/TinyFarmNavigation.cs`, `TinyFarmNpcSchedule.cs`, `Content/tiny-farm-npc-schedules.obj.ts` |
+| Persistence/replay | `Games/TinyFarm/TinyFarm.Runtime/TinyFarmPersistence.cs`, `TinyFarmSession.cs`; `../Dominatus/src/Dominatus.Core/Persistence/ReplayDriver.cs`, `SaveFile.cs` |
+| Nav/schedule | `Games/TinyFarm/TinyFarm.Runtime/TinyFarmNavigation.cs`, `TinyFarmNpcSchedule.cs`, `Content/tiny-farm-npc-schedules.obj.ts` |
 | Dialogue/audio | `../Dominatus/src/Ariadne.OptFlow/DiagSteps.cs`; `../Dominatus/src/Ariadne.Console/Scripts/DemoDialogue.cs`; `../Dominatus/src/Dominatus.Actuators.Audio/AudioModels.cs` |
 | Host | `samples/Integrations/Aurelian.VisibleTriangle/Program.cs`; `src/Aurelian/Aurelian.Core/Engine/Frames`; `src/Aurelian/Aurelian.Runtime/Sessions` |
-| Regression evidence | `tests/TinyFarm/TinyFarm.Core.Tests/TinyFarmM5Tests.cs`, M13–M21 tests and compositor tests; `tools/Aurelian.Native2DQuadM1` |
+| Regression evidence | `Games/TinyFarm/TinyFarm.Core.Tests/TinyFarmM5Tests.cs`, M13–M21 tests and compositor tests; `tools/Aurelian.Native2DQuadM1` |
 
 **Exact next milestone: AURELIAN-GAME-HOST-INPUT-M2.** The native world and Machina UI now compose directly in one ordered target; the remaining bounded seam is host/window, swapchain target, normalized keyboard/gamepad input, UI capture/focus-loss behavior and deterministic shutdown.

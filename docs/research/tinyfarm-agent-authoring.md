@@ -2,7 +2,7 @@
 
 Use a reusable **template** for defaults, a **spawn declaration** for identity and placement, and `TinyFarmAgentAuthoring.Build` to validate and materialize the world. These are ordinary typed C# records. There is no new DSL, ECS, reflection-based registry or second inventory system.
 
-Start with `src/TinyFarm/TinyFarm.Runtime/TinyFarmAgentExamples.cs` for an executable example. The file is a development fixture, not extra campaign content.
+Start with `Games/TinyFarm/TinyFarm.Runtime/TinyFarmAgentExamples.cs` for an executable example. The file is a development fixture, not extra campaign content.
 
 ## Create a character and an object
 
@@ -96,8 +96,8 @@ It uses a separate development save directory under `artifacts/tinyfarm-agent-au
 
 ```powershell
 dotnet build TinyFarm.slnx -c Release -m:1 -nodeReuse:false -p:JsonSerializerIsReflectionEnabledByDefault=false
-& .\src\TinyFarm\TinyFarm.Runner\bin\Release\net10.0\TinyFarm.Runner.exe --agent-authoring
-& .\src\TinyFarm\TinyFarm.Native\bin\Release\net10.0-windows\TinyFarm.Native.exe --agents-proof
+& .\Games\TinyFarm\TinyFarm.Runner\bin\Release\net10.0\TinyFarm.Runner.exe --agent-authoring
+& .\Games\TinyFarm\TinyFarm.Native\bin\Release\net10.0-windows\TinyFarm.Native.exe --agents-proof
 ```
 
 The headless command also accepts `--artifact-dir <path>`. Evidence lives in `artifacts/tinyfarm-agent-authoring`: agent inspection, save round-trip proof and actual Vulkan captures of the spawned agents and unchanged player inventory UI.

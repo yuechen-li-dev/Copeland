@@ -30,7 +30,7 @@ int[] sizes = [16, 32, 64, 96, 128];
 string root = FindRepositoryRoot();
 string artifactRoot = Path.Combine(root, "artifacts", "aurelian-native-msdf-text-m2");
 Directory.CreateDirectory(artifactRoot);
-string fontPath = Path.Combine(root, "tests", "Machina.UI", "Machina.Fonts.Tests", "Fixtures", "Fonts", "CrimsonText-Regular.ttf");
+string fontPath = Path.Combine(root, "src", "Aurelian", "Aurelian.Assets", "Defaults", "Fonts", "CrimsonText-Regular.ttf");
 string fontHash = Sha256(File.ReadAllBytes(fontPath));
 
 Stopwatch shaderWatch = Stopwatch.StartNew();

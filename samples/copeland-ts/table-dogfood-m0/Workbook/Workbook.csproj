@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\src\Copeland\Copeland.TS.MSBuild\Copeland.TS.MSBuild.csproj"
+    <ProjectReference Include="../../../../src/Copeland/Copeland.TS.MSBuild/Copeland.TS.MSBuild.csproj"
                       ReferenceOutputAssembly="false" />
     <CopelandCompile Include="Workbook.ts" />
   </ItemGroup>

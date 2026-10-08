@@ -134,7 +134,7 @@ Total: **4,558 passing solution test executions**, plus native executable proofs
 
 ## Deliverables and next milestone
 
-Player guide: `src/TinyFarm/README.md`. Double-click launcher: `Play-TinyFarm.cmd`. Canonical client: `src/TinyFarm/TinyFarm.Native`.
+Player guide: `Games/TinyFarm/README.md`. Double-click launcher: `Play-TinyFarm.cmd`. Canonical client: `Games/TinyFarm/TinyFarm.Native`.
 
 `artifacts/aurelian-full-game-slice-m9/` contains the five required JSON files and seven native screenshots:
 

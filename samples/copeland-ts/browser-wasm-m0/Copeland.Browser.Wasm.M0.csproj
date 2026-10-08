@@ -12,7 +12,7 @@
   <Import Project="../../../src/Copeland/Copeland.TS.MSBuild/build/Copeland.TS.Sdk.props" />
 
   <ItemGroup>
-    <CopelandCompile Include="Copeland\**\*.ts" />
+    <CopelandCompile Include="Copeland/**/*.ts" />
   </ItemGroup>
 
   <Import Project="../../../src/Copeland/Copeland.TS.MSBuild/build/Copeland.TS.Sdk.targets" />

@@ -12,13 +12,13 @@ From the repository root:
 
 ```powershell
 .\tinyfarm.cmd open inventory
-.\tinyfarm.cmd run examples/tinyfarm/playtest-input.json --output artifacts/my-playtest
-.\tinyfarm.cmd run examples/tinyfarm/playtest-native.json --native --output artifacts/my-native-playtest
+.\tinyfarm.cmd run Games/TinyFarm/Examples/playtest-input.json --output artifacts/my-playtest
+.\tinyfarm.cmd run Games/TinyFarm/Examples/playtest-native.json --native --output artifacts/my-native-playtest
 .\tinyfarm.cmd fuzz --seed 25 --steps 100 --output artifacts/my-fuzz
 .\tinyfarm.cmd shell --native --output artifacts/my-session
 ```
 
-For agents, invoke the built `src/TinyFarm/TinyFarm.Cli/bin/Release/net10.0/TinyFarm.Cli.dll` with `dotnet` to avoid rebuilding for every command. The wrapper builds when needed. Native mode requires the Release TinyFarm.Native build and a working Vulkan device. Its window is hidden by default; `--visible` shows the owned instance.
+For agents, invoke the built `Games/TinyFarm/TinyFarm.Cli/bin/Release/net10.0/TinyFarm.Cli.dll` with `dotnet` to avoid rebuilding for every command. The wrapper builds when needed. Native mode requires the Release TinyFarm.Native build and a working Vulkan device. Its window is hidden by default; `--visible` shows the owned instance.
 
 ## Persistent sessions
 
@@ -93,4 +93,4 @@ Each run writes `script.json`, `trace.jsonl` (step index, input, resulting obser
 
 Headless mode qualifies simulation, InputMan, and Machina hit testing; it does not render pixels. Native mode uses the real Aurelian host, Vulkan renderer, and framebuffer capture. Playtest focus is explicit and injectable so a hidden owned window can run reproducibly. This does not prove desktop OS focus acquisition. Visible runs may receive human input; use hidden runs for reproducible automation. The kit launches its own instance; it does not attach to an already-running game or emulate operating-system key repeat. Semantic commands intentionally provide direct application operations; use raw input/click steps to qualify controls and hit testing.
 
-See the checked-in input, native, and container examples under `examples/tinyfarm/`.
+See the checked-in input, native, and container examples under `Games/TinyFarm/Examples/`.

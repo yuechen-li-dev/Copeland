@@ -7,7 +7,7 @@
     <ProjectReference Include="../../src/Aurelian/Aurelian.Core/Aurelian.Core.csproj" />
     <ProjectReference Include="../../src/Aurelian/Aurelian.Rendering.Null/Aurelian.Rendering.Null.csproj" />
     <ProjectReference Include="../../src/Aurelian/Aurelian.Rendering.Raster/Aurelian.Rendering.Raster.csproj" />
-    <ProjectReference Include="../../src/TinyFarm/TinyFarm.Core/TinyFarm.Core.csproj" />
-    <ProjectReference Include="../../src/TinyFarm/TinyFarm.Runtime/TinyFarm.Runtime.csproj" />
+    <ProjectReference Include="../../Games/TinyFarm/TinyFarm.Core/TinyFarm.Core.csproj" />
+    <ProjectReference Include="../../Games/TinyFarm/TinyFarm.Runtime/TinyFarm.Runtime.csproj" />
   </ItemGroup>
 </Project>

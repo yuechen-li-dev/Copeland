@@ -104,3 +104,15 @@ artifacts/aurelian-playtesting-m0/**/solid3d.hlsl
 artifacts/aurelian-playtesting-m0/beacon-regression/*.png
 artifacts/aurelian-playtesting-m0/headless/final.json
 artifacts/aurelian-playtesting-m0/stdin/final.json
+artifacts/aurelian-game-starter-m0/test-results/
+artifacts/aurelian-game-starter-m0/**/trace.jsonl
+artifacts/aurelian-game-starter-m0/**/saves/
+artifacts/aurelian-game-starter-m0/**/solid3d.hlsl
+artifacts/aurelian-game-starter-m0/**/*.log
+artifacts/aurelian-game-starter-m0/beacon-regression/*.png
+artifacts/aurelian-game-starter-m0/published/
+artifacts/aurelian-game-starter-m0/native/
+artifacts/aurelian-game-starter-m0/headless/
+artifacts/aurelian-game-starter-m0/native-final/
+artifacts/aurelian-game-starter-m0/headless-final/
+artifacts/aurelian-game-starter-m0/strategy-native/*.png

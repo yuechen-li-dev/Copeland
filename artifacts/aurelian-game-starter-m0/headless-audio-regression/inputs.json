@@ -1,0 +1,181 @@
+{
+  "schemaVersion": 1,
+  "steps": [
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "assert screen title",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "click-action",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": "start",
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "assert view FirstPerson",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "mouse-hold",
+      "keys": null,
+      "seconds": 0.6,
+      "x": 0.5,
+      "y": 0.5,
+      "text": "Primary",
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "assert hits 3",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "tap",
+      "keys": [
+        "R"
+      ],
+      "seconds": 0.05,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "wait",
+      "keys": null,
+      "seconds": 1.2,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "assert ammo 12",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "tap",
+      "keys": [
+        "V"
+      ],
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "assert view ThirdPerson",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "hold",
+      "keys": [
+        "W"
+      ],
+      "seconds": 0.3,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "mouse-delta",
+      "keys": null,
+      "seconds": 0,
+      "x": 80,
+      "y": 20,
+      "text": null,
+      "command": null,
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    },
+    {
+      "kind": "command",
+      "keys": null,
+      "seconds": 0,
+      "x": 0.5,
+      "y": 0.5,
+      "text": null,
+      "command": "assert-mark saved",
+      "path": null,
+      "width": 1920,
+      "height": 1080,
+      "focused": true
+    }
+  ],
+  "seed": null
+}

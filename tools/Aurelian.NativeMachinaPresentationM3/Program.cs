@@ -44,7 +44,7 @@ string artifactRoot = Path.Combine(root, "artifacts", "aurelian-native-machina-p
 string visualRoot = Path.Combine(root, "artifacts", "aurelian-native-machina-presentation-m3-visual");
 Directory.CreateDirectory(artifactRoot);
 Directory.CreateDirectory(visualRoot);
-string fontPath = Path.Combine(root, "tests", "Machina.UI", "Machina.Fonts.Tests", "Fixtures", "Fonts", "CrimsonText-Regular.ttf");
+string fontPath = Path.Combine(root, "src", "Aurelian", "Aurelian.Assets", "Defaults", "Fonts", "CrimsonText-Regular.ttf");
 
 MachinaPreparedPresentation prepared = new MachinaPresentationPipeline().Prepare(BuildUi(), Width, Height);
 PositionedTextOperation[] originalText = prepared.PresentationFrame.Operations.OfType<PositionedTextOperation>().ToArray();

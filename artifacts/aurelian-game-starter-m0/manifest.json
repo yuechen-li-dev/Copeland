@@ -1,0 +1,132 @@
+{
+  "schema": "aurelian.game-starter.proof.v1",
+  "outcome": "Success",
+  "games": [
+    "Games/Sunkill",
+    "Games/Beacon3D",
+    "Games/Strategy",
+    "Games/TinyFarm"
+  ],
+  "starter": "Games/Starter/Aurelian.Starter",
+  "fragments": [
+    "ThreeDimensional",
+    "FirstPersonCamera",
+    "FirstPersonControl",
+    "ThirdPersonCamera",
+    "ThirdPersonControl",
+    "ReloadableGuns"
+  ],
+  "presetsAreFragmentCompositions": true,
+  "defaultPersistence": "Deliverance game slots and separate preferences slot",
+  "kernelCheckpointIsNotGameSave": true,
+  "noRuntimeComponentDiscovery": true,
+  "starterProjectReferences": 1,
+  "starterProgramLines": 4,
+  "publishedFramework": "net10.0 framework-dependent",
+  "publishedNativeWorkingDirectory": "C:\\Windows\\Temp",
+  "gpu": "NVIDIA GeForce RTX 3070",
+  "nativeScriptSteps": 31,
+  "nativeHeadlessObservationsEqual": true,
+  "observation": {
+    "Screen": "playing",
+    "Position": {
+      "X": 0,
+      "Y": 0,
+      "Z": 5.6500034,
+      "IsFinite": true
+    },
+    "Yaw": 0.19999999,
+    "Pitch": -0.049999997,
+    "View": 1,
+    "Ammo": 12,
+    "Reloading": false,
+    "Shots": 4,
+    "Hits": 3,
+    "Time": 2.150000112131238,
+    "DefinitionIdentity": "FD24854CB0A95C26AD73427E946FCABD1CC1D08EBADE12BC6ACF0B2B8811CD15",
+    "PersistenceError": null
+  },
+  "interactiveHostSmoke": "AURELIAN_GAME_HOST_SMOKE_PASSED frames=4",
+  "builds": [
+    "Aurelian.slnx via final test builds",
+    "TinyFarm.slnx",
+    "JointTaskForce.slnx",
+    "JointTaskForce.Integration.slnx",
+    "published Aurelian.Starter"
+  ],
+  "tests": {
+    "starterReflectionDisabled": {
+      "passed": 16,
+      "failed": 0
+    },
+    "aurelian": {
+      "passed": 873.0,
+      "failed": 0.0
+    },
+    "fonts": {
+      "passed": 305,
+      "failed": 0
+    },
+    "tinyFarm": {
+      "passed": 477,
+      "failed": 0
+    }
+  },
+  "existingGameNativeChecks": {
+    "strategy": "MOSSWARD_NATIVE_VULKAN_READY frames=4 inspector=verified",
+    "sunkill": "SUNKILL_LAUNCH_READY screen=MainMenu notice=READY",
+    "beacon": {
+      "waves": 3,
+      "health": 100,
+      "kills": 9,
+      "shots": 24,
+      "won": true
+    },
+    "tinyFarm": "Moved CLI/native executable completed existing playtest-input.json"
+  },
+  "projectReferences": "All repository project references resolve",
+  "dependencyBoundaryChecker": {
+    "evidence": "boundary-baseline.json",
+    "count": 7,
+    "verifiedAgainstOriginalHead": true,
+    "newProductionToGamesProhibition": true,
+    "outcome": "Existing failures"
+  },
+  "captures": [
+    {
+      "path": "native-audio-regression/first-person.png",
+      "sha256": "7088B2AB2A902CB821BB658F732ECA9E0812D2BC8916D9650D6F11EE92E33C42"
+    },
+    {
+      "path": "native-audio-regression/pause.png",
+      "sha256": "5683ECB5A256F6F871322F99DAFB512A6D9FC706ACA1ECDAA5891AC9EC318667"
+    },
+    {
+      "path": "native-audio-regression/restored.png",
+      "sha256": "2919D924948E63FBE9781D7852754E0E0461CA2D2EB6165C27EDD9884B8CD098"
+    },
+    {
+      "path": "native-audio-regression/settings.png",
+      "sha256": "2B6F3DDC0FC9D060C19B9D5C3A021B3EFD628DE98B19F8955067AB1FA9CD30CD"
+    },
+    {
+      "path": "native-audio-regression/third-person.png",
+      "sha256": "2C8A4B1702B05F2F95536B1382B56BF1FF1384698558E8EFC757A20E56468F65"
+    }
+  ],
+  "limits": [
+    "Fixed-size native starter surface",
+    "Current starter library is 3D FPS/TPS",
+    "Simple box collision and follow camera; no general vehicle/rigid-body physics or camera obstruction",
+    "Built-in bounded ASCII atlas",
+    "Scripted audio state qualified; audible output quality not qualified",
+    "Input-prefix replay does not roll back external save files",
+    "Existing games retain specialized applications and save schemas"
+  ],
+  "stdinSession": "Shared shell passed start/view/save/mark/move/load/assert-mark",
+  "audioLoadRegression": "Restoring an earlier game tick does not suppress the next sound cue",
+  "finalObservationPaths": [
+    "native-audio-regression/final.json",
+    "headless-audio-regression/final.json"
+  ]
+}

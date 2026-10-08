@@ -58,7 +58,7 @@ Require(uiShapes.Length >= 2, "Machina UI did not produce the expected analytic 
 PositionedTextOperation statusText = prepared.PresentationFrame.Operations
     .OfType<PositionedTextOperation>()
     .Single(operation => operation.SourceId == "status-text");
-string fontPath = Path.Combine(root, "tests", "Machina.UI", "Machina.Fonts.Tests", "Fixtures", "Fonts", "CrimsonText-Regular.ttf");
+string fontPath = Path.Combine(root, "src", "Aurelian", "Aurelian.Assets", "Defaults", "Fonts", "CrimsonText-Regular.ttf");
 AtlasBundle atlas = await BuildAtlasAsync(fontPath, 28, [statusText.Text]);
 DistanceFieldTextLayoutResult textLayout = await LayoutForOperationAsync(atlas, statusText, Width, Height);
 var qualifiedText = new PositionedTextOperation(

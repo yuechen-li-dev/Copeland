@@ -10,7 +10,7 @@ The stuck intro had a native focus bug: normal windows initialized `focused` to 
 
 ## Art and viewport behavior
 
-The generated painting is `src/TinyFarm/TinyFarm.Native/Assets/GateA/title-sleeping-spring.png` (1672 × 941). SHA-256 and prompt provenance are in `artifacts/tinyfarm-title-menu/art-provenance.json`. It is uploaded through the existing painterly resource scope and uses linear filtering. UI text and buttons are separate from the painting.
+The generated painting is `Games/TinyFarm/TinyFarm.Native/Assets/GateA/title-sleeping-spring.png` (1672 × 941). SHA-256 and prompt provenance are in `artifacts/tinyfarm-title-menu/art-provenance.json`. It is uploaded through the existing painterly resource scope and uses linear filtering. UI text and buttons are separate from the painting.
 
 The title painting covers the physical framebuffer using centered, aspect-preserving UV cropping. The menu uses the existing scalable 1280 × 720 logical UI layout. Modal dimming is a zero-radius rectangle covering the actual framebuffer, independent of that fitted UI canvas. This removes the uncovered strip and rounded dimmer corners at larger and non-16:9 sizes. The pause panel itself keeps its existing layout.
 
@@ -27,10 +27,10 @@ The title painting covers the physical framebuffer using centered, aspect-preser
 Native proof commands, from repository root:
 
 ```powershell
-dotnet src/TinyFarm/TinyFarm.Native/bin/Release/net10.0-windows/TinyFarm.Native.dll --title-proof
-dotnet src/TinyFarm/TinyFarm.Native/bin/Release/net10.0-windows/TinyFarm.Native.dll --title-proof --title-keyboard
-dotnet src/TinyFarm/TinyFarm.Native/bin/Release/net10.0-windows/TinyFarm.Native.dll --title-proof --title-load
-dotnet src/TinyFarm/TinyFarm.Native/bin/Release/net10.0-windows/TinyFarm.Native.dll --title-proof --title-quit
+dotnet Games/TinyFarm/TinyFarm.Native/bin/Release/net10.0-windows/TinyFarm.Native.dll --title-proof
+dotnet Games/TinyFarm/TinyFarm.Native/bin/Release/net10.0-windows/TinyFarm.Native.dll --title-proof --title-keyboard
+dotnet Games/TinyFarm/TinyFarm.Native/bin/Release/net10.0-windows/TinyFarm.Native.dll --title-proof --title-load
+dotnet Games/TinyFarm/TinyFarm.Native/bin/Release/net10.0-windows/TinyFarm.Native.dll --title-proof --title-quit
 ```
 
 The first command creates an isolated proof checkpoint for the Load command. Captures temporarily hide window decorations to reach exact framebuffer dimensions; normal launches retain their ordinary window. Proof input is injected into the existing portable host queues and real Machina hit-testing path; OS event delivery itself is not automated by this proof.

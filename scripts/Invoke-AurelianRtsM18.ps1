@@ -36,11 +36,11 @@ try {
         }
     }
 
-    dotnet run --project samples/Integrations/Aurelian.StrategyDemo -c Release --no-build -- --proof
+    dotnet run --project Games/Strategy/Aurelian.StrategyDemo -c Release --no-build -- --proof
     if ($LASTEXITCODE -ne 0) {
         throw 'Strategy semantic/render proof failed.'
     }
-    dotnet run --project samples/Integrations/Aurelian.StrategyDemo -c Release --no-build -- --launch-smoke
+    dotnet run --project Games/Strategy/Aurelian.StrategyDemo -c Release --no-build -- --launch-smoke
     if ($LASTEXITCODE -ne 0) {
         throw 'Native strategy launch failed.'
     }

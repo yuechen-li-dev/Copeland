@@ -6,7 +6,7 @@
 
 ## 2–5. Backend, ownership, and dependencies
 
-The implementation choice is **`MONOGAME_TEMPORARY_PROJECTION`**. Current Aurelian rendering is still a Vulkan/visible-triangle and low-level mechanism path rather than a comfortable 2D tile/text host. Completing texture, sprite, and text presentation there would make M3 a renderer milestone. The repository already has proven MonoGame samples, so the smallest credible application leaf is `src/TinyFarm/TinyFarm.MonoGame`.
+The implementation choice is **`MONOGAME_TEMPORARY_PROJECTION`**. Current Aurelian rendering is still a Vulkan/visible-triangle and low-level mechanism path rather than a comfortable 2D tile/text host. Completing texture, sprite, and text presentation there would make M3 a renderer milestone. The repository already has proven MonoGame samples, so the smallest credible application leaf is `Games/TinyFarm/TinyFarm.MonoGame`.
 
 ```text
 TinyFarm.Core
@@ -69,13 +69,13 @@ Nine M3 tests cover frame parity, crop/product projection, projection determinis
 Launch the game:
 
 ```powershell
-dotnet run --project src/TinyFarm/TinyFarm.MonoGame/TinyFarm.MonoGame.csproj
+dotnet run --project Games/TinyFarm/TinyFarm.MonoGame/TinyFarm.MonoGame.csproj
 ```
 
 Run the LLM controller:
 
 ```powershell
-dotnet run --project src/TinyFarm/TinyFarm.MonoGame/TinyFarm.MonoGame.csproj -- --llm-control
+dotnet run --project Games/TinyFarm/TinyFarm.MonoGame/TinyFarm.MonoGame.csproj -- --llm-control
 ```
 
 Example stdin commands are `inspect`, `move general-store`, `wait 60`, `buy-product turnip-seed`, `save`, and `load`. Each response is one JSON line.

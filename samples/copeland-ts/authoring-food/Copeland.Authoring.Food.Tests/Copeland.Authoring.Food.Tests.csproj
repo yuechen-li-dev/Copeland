@@ -12,6 +12,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Copeland.Authoring.Food.csproj" />
+    <ProjectReference Include="../Copeland.Authoring.Food.csproj" />
   </ItemGroup>
 </Project>

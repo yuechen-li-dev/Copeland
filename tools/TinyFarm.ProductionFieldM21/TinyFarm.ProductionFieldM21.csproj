@@ -10,7 +10,7 @@
     <ProjectReference Include="../../src/Aurelian/Aurelian.Field2D/Aurelian.Field2D.csproj" />
     <ProjectReference Include="../../src/Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj" />
     <ProjectReference Include="../../src/Copeland/Copeland.TS/Copeland.TS.csproj" />
-    <ProjectReference Include="../../src/Integrations/TinyFarm.Oblivion/TinyFarm.Oblivion.csproj" />
-    <ProjectReference Include="../../src/TinyFarm/TinyFarm.Runtime/TinyFarm.Runtime.csproj" />
+    <ProjectReference Include="../../Games/TinyFarm/TinyFarm.Oblivion/TinyFarm.Oblivion.csproj" />
+    <ProjectReference Include="../../Games/TinyFarm/TinyFarm.Runtime/TinyFarm.Runtime.csproj" />
   </ItemGroup>
 </Project>

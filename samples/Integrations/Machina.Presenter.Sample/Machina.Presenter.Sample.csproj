@@ -31,11 +31,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="..\..\tests\Machina.UI\Machina.Fonts.Tests\Fixtures\Fonts\**\*">
+    <Content Include="../../tests/Machina.UI/Machina.Fonts.Tests/Fixtures/Fonts/**/*">
       <Link>Fixtures\Fonts\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="..\..\..\src\Oblivion\Oblivion.App\OblivionSampleWorkspace\**\*">
+    <Content Include="../../../src/Oblivion/Oblivion.App/OblivionSampleWorkspace/**/*">
       <Link>OblivionSampleWorkspace\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

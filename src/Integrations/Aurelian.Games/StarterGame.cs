@@ -1,0 +1,490 @@
+using System.Numerics;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using Aurelian.Audio;
+using Aurelian.Combat;
+using Aurelian.GameMenus;
+using Aurelian.GameSaves;
+using Aurelian.Graphics.Vulkan.Native3D;
+using Aurelian.Runtime;
+using Aurelian.Simulation;
+using Aurelian.World.Agents;
+using Deliverance.Core.Storage;
+
+namespace Aurelian.Games;
+
+/// <summary>A small customizable geometric starter. Domain snapshots are explicit; the host does no discovery.</summary>
+public sealed class StarterGame : IDisposable
+{
+    private readonly StarterOptions options;
+    private readonly StarterObject[] objects;
+    private readonly GameMenuNavigation navigation = new();
+    private readonly AudioResourceScope audioResources = new();
+    private CadenceScheduler scheduler = NewScheduler();
+    private IReadOnlyList<GameAgent<int>> agents = [];
+    private GameAgent<Vector3> player = AgentAuthoring.Create(
+        new AgentSpawn<Vector3>("player", "Player", new(0, 0, 7), AgentTemplate.Character("starter.player", AgentControl.Human)),
+        _ => { }, spawn => spawn.Placement);
+    private Vector3 position
+    {
+        get => player.State;
+        set => player = player with { State = value };
+    }
+    private float yaw;
+    private float pitch;
+    private float verticalVelocity;
+    private double time;
+    private string returnScreen = "title";
+    private readonly ReloadableGun gun;
+    private readonly GameSaveSlots<GameSettings> settings;
+    private bool disposed;
+    private bool pendingJump;
+    private bool pendingReload;
+    private bool pendingFire;
+    private ulong audioEventSequence;
+
+    public StarterGame(string id, GameDefinition definition, StarterOptions? options = null,
+        string? saveDirectory = null, IAudioOutputBackend? audioBackend = null)
+    {
+        if (string.IsNullOrWhiteSpace(id) || id.Any(character => !char.IsAsciiLetterOrDigit(character) && character != '-'))
+        {
+            throw new ArgumentException("Game id must use ASCII letters, digits or hyphens.", nameof(id));
+        }
+        Id = id;
+        Definition = definition;
+        this.options = options ?? new();
+        if (string.IsNullOrWhiteSpace(this.options.Title) || !float.IsFinite(this.options.MovementSpeed) || this.options.MovementSpeed <= 0)
+        {
+            throw new ArgumentException("Starter title and positive movement speed are required.");
+        }
+        objects = (this.options.Objects ?? [new("target-left", new(-3, 1, -4), new(0.8f, 1, 0.8f)),
+            new("target-center", new(0, 1, -6), new(0.8f, 1, 0.8f)),
+            new("target-right", new(3, 1, -4), new(0.8f, 1, 0.8f))]).OrderBy(item => item.Id, StringComparer.Ordinal).ToArray();
+        ValidateObjects();
+        gun = new(this.options.Gun);
+        var normalized = this.options with { Gun = gun.Configuration, Objects = objects };
+        string identity = definition.Identity + JsonSerializer.Serialize(normalized, StarterJsonContext.Default.StarterOptions);
+        Identity = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity)));
+        Controls = new();
+        Audio = new AurelianAudioRuntime(audioResources, audioBackend ?? new NullAudioOutputBackend());
+        float[] samples = new float[2400];
+        for (int index = 0; index < samples.Length; index++)
+        {
+            samples[index] = MathF.Sin(index * MathF.Tau * 440 / 48000) * 0.2f * (1 - (float)index / samples.Length);
+        }
+        audioResources.Add(new(new("shot"), "starter-shot-v1", 48000, 1, samples.Length, samples));
+        string savesRoot = saveDirectory ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), id, "saves");
+        Saves = new GameSaveSlots<StarterSnapshot>(id, Identity, new FileSaveStore(savesRoot),
+            StarterJsonContext.Default.StarterSnapshot, ValidateSnapshot);
+        settings = new GameSaveSlots<GameSettings>(id, "aurelian.settings.v1", new FileSaveStore(Path.Combine(savesRoot, "config")),
+            StarterJsonContext.Default.GameSettings, ValidateSettings);
+        ResetWorld();
+        if (settings.ExistsAsync("preferences").GetAwaiter().GetResult())
+        {
+            Persist(LoadSettingsAsync);
+        }
+    }
+
+    public string Id { get; }
+    public GameDefinition Definition { get; }
+    public string Identity { get; }
+    public GameControls Controls { get; private set; }
+    public AurelianAudioRuntime Audio { get; }
+    public GameSaveSlots<StarterSnapshot> Saves { get; }
+    public string Screen { get; private set; } = "title";
+    public bool Playing => Screen == "playing";
+    public bool Quit { get; private set; }
+    public int SelectedIndex => navigation.SelectedIndex;
+    public CameraView View { get; private set; }
+    public float Volume { get; private set; } = 1;
+    public string? PersistenceError { get; private set; }
+    public IReadOnlyList<GameAgent<int>> Agents => agents;
+    public GameAgent<Vector3> Player => player;
+    public event Action<StarterGame>? ShotFired;
+
+    public GameMenuPage? Menu => Screen switch
+    {
+        "title" => new("starter.title", options.Title, PersistenceError is null ? "A TRAINING RANGE FOR YOUR NEXT GAME" : "SAVED DATA COULD NOT BE LOADED",
+            [new("start", "Start"), new("load", "Load slot 1"), new("settings", "Settings / controls"), new("quit", "Quit")]),
+        "pause" => new("starter.pause", "PAUSED", PersistenceError is null ? "Your progress waits while this menu is open." : "Save / load failed. Your current game is still here.",
+            [new("resume", "Resume"), new("save", "Save slot 1"), new("load", "Load slot 1"), new("settings", "Settings / controls")]),
+        "settings" => new("starter.settings", "SETTINGS", $"WASD MOVE / MOUSE LOOK / LMB FIRE / R RELOAD / V VIEW",
+            [new("sensitivity", $"Mouse sensitivity: {Controls.Keys.MouseSensitivity:F4}"),
+             new("volume", $"Volume: {Volume:F1}"), new("title", "Main menu"), new("back", "Back")]),
+        _ => null,
+    };
+
+    public void Advance(TimeSpan elapsed)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        if (elapsed < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(elapsed));
+        }
+        GameCommands commands = Controls.Tick((float)elapsed.TotalSeconds, !Playing);
+        if (Playing && commands.Pause)
+        {
+            ChangeScreen("pause");
+        }
+        else if (!Playing)
+        {
+            if (commands.Menu.Back)
+            {
+                if (Screen == "title")
+                {
+                    Quit = true;
+                }
+                else
+                {
+                    ChangeScreen(Screen == "settings" ? returnScreen : "playing");
+                }
+            }
+            else if (Menu is { } menu && navigation.Update(menu.Entries, commands.Menu) is { } action)
+            {
+                Activate(action);
+            }
+        }
+        if (Playing)
+        {
+            pendingJump |= commands.Jump;
+            pendingReload |= commands.Reload;
+            pendingFire |= commands.Fire;
+            yaw = MathF.IEEERemainder(yaw + commands.MouseYaw, MathF.Tau);
+            pitch = Math.Clamp(pitch + commands.MousePitch, -1.3f, 1.3f);
+            if (commands.SwitchView && Definition.Has(GameConcept.FirstPersonCamera) && Definition.Has(GameConcept.ThirdPersonCamera))
+            {
+                View = View == CameraView.FirstPerson ? CameraView.ThirdPerson : CameraView.FirstPerson;
+            }
+            CadenceAdvanceResult advance = scheduler.Advance(elapsed, SimulationExecutionRate.Normal);
+            foreach (DueWorkFact tick in advance.DueWork)
+            {
+                Step(commands with { Jump = pendingJump, Reload = pendingReload, Fire = pendingFire || commands.Fire }, 1f / 60);
+                pendingJump = pendingReload = pendingFire = false;
+            }
+        }
+        Audio.Update(elapsed);
+    }
+
+    public void Activate(string action)
+    {
+        if (Menu is not { } menu || !menu.Entries.Any(entry => entry.Id == action && !entry.Disabled))
+        {
+            return;
+        }
+        switch (action)
+        {
+            case "start":
+                ResetWorld();
+                ChangeScreen("playing");
+                break;
+            case "resume":
+                ChangeScreen("playing");
+                break;
+            case "settings":
+                returnScreen = Screen;
+                ChangeScreen("settings");
+                break;
+            case "back":
+                ChangeScreen(returnScreen);
+                break;
+            case "title":
+                ChangeScreen("title");
+                break;
+            case "quit":
+                Quit = true;
+                break;
+            case "sensitivity":
+                Rebind(Controls.Keys with { MouseSensitivity = Controls.Keys.MouseSensitivity < 0.005f ? 0.005f : 0.0025f });
+                Persist(SaveSettingsAsync);
+                break;
+            case "volume":
+                SetVolume(Volume > 0 ? 0 : 1);
+                Persist(SaveSettingsAsync);
+                break;
+            case "save":
+                Persist(() => SaveAsync("slot-1"));
+                break;
+            case "load":
+                Persist(LoadDefaultSlotAsync);
+                break;
+        }
+    }
+
+    public void Pause()
+    {
+        if (Playing)
+        {
+            ChangeScreen("pause");
+        }
+        Controls.Adapter.OnFocusChanged(false);
+    }
+
+    public void Rebind(GameKeyBindings keys)
+    {
+        Controls.Rebind(keys);
+    }
+
+    public void SetVolume(float volume)
+    {
+        if (!float.IsFinite(volume) || volume < 0 || volume > 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(volume));
+        }
+        Volume = volume;
+        Audio.SetBusVolume(AudioBusId.Master, volume);
+    }
+
+    public StarterSnapshot Capture() => new(Point3.From(position), yaw, pitch, verticalVelocity, time, View,
+        gun.State, agents.Select(agent => agent.State).ToArray(), Controls.Keys, Volume,
+        scheduler.InspectAccumulators(), pendingJump, pendingReload, pendingFire);
+
+    public Task SaveAsync(string slot, CancellationToken cancellation = default) => Saves.SaveAsync(slot, Capture(), cancellation);
+
+    public Task SaveSettingsAsync() => settings.SaveAsync("preferences", new(Controls.Keys, Volume));
+
+    public async Task LoadSettingsAsync()
+    {
+        GameSettings candidate = await settings.LoadAsync("preferences");
+        Rebind(candidate.Keys);
+        SetVolume(candidate.Volume);
+    }
+
+    private async Task LoadDefaultSlotAsync()
+    {
+        await LoadAsync("slot-1");
+        ChangeScreen("playing");
+    }
+
+    public async Task LoadAsync(string slot, CancellationToken cancellation = default)
+    {
+        StarterSnapshot snapshot = await Saves.LoadAsync(slot, cancellation);
+        Restore(snapshot);
+    }
+
+    public void Restore(StarterSnapshot snapshot)
+    {
+        ValidateSnapshot(snapshot);
+        // The whole candidate has already passed validation before any live state is replaced.
+        Rebind(snapshot.Keys);
+        position = snapshot.Position.ToVector();
+        yaw = snapshot.Yaw;
+        pitch = snapshot.Pitch;
+        verticalVelocity = snapshot.VerticalVelocity;
+        time = snapshot.Time;
+        View = snapshot.View;
+        gun.Restore(snapshot.Gun);
+        agents = agents.Select((agent, index) => agent with { State = snapshot.ObjectHealth[index] }).ToArray();
+        SetVolume(snapshot.Volume);
+        scheduler = NewScheduler();
+        scheduler.RestoreAccumulators(snapshot.Cadence);
+        pendingJump = snapshot.PendingJump;
+        pendingReload = snapshot.PendingReload;
+        pendingFire = snapshot.PendingFire;
+        PersistenceError = null;
+    }
+
+    public void ReturnToTitle()
+    {
+        Quit = false;
+        returnScreen = "title";
+        ChangeScreen("title");
+    }
+
+    public StarterObservation Observe() => new(Screen, Point3.From(position), yaw, pitch, View,
+        gun.State.Ammo, gun.State.ReloadRemaining > 0, gun.State.Shots,
+        objects.Select((item, index) => item.Health - agents[index].State).Sum(), time, Identity, PersistenceError);
+
+    public Matrix4x4 Camera(float aspect) => Camera3D.Matrix(Camera3D.Eye(position, yaw, pitch, View), Camera3D.Direction(yaw, pitch), aspect);
+
+    public Native3DVertex[] BuildScene()
+    {
+        var vertices = new List<Native3DVertex>();
+        PrimitiveGeometry3D.AddBox(vertices, new(0, -0.1f, 0), new(12, 0.1f, 12), new(0.2f, 0.3f, 0.35f, 1));
+        for (int index = 0; index < objects.Length; index++)
+        {
+            StarterObject item = objects[index];
+            Vector4 color = agents[index].State > 0 ? new(0.9f, 0.3f, 0.15f, 1) : new(0.2f, 0.55f, 0.3f, 1);
+            PrimitiveGeometry3D.AddBox(vertices, item.Position.ToVector(), item.HalfSize.ToVector(), color);
+        }
+        if (View == CameraView.ThirdPerson)
+        {
+            PrimitiveGeometry3D.AddBox(vertices, position + new Vector3(0, 0.8f, 0), new(0.3f, 0.8f, 0.3f), new(0.2f, 0.7f, 0.9f, 1));
+        }
+        if (Definition.Has(GameConcept.ReloadableGuns))
+        {
+            Vector3 aim = Camera3D.Direction(yaw, pitch);
+            Vector3 right = Vector3.Normalize(Vector3.Cross(aim, Vector3.UnitY));
+            Vector3 muzzle = position + Vector3.UnitY * 1.6f + aim * 0.6f + right * 0.22f - Vector3.UnitY * 0.22f;
+            PrimitiveGeometry3D.AddBox(vertices, muzzle, new(0.08f, 0.08f, 0.18f), new(0.3f, 0.6f, 0.7f, 1));
+        }
+        return vertices.ToArray();
+    }
+
+    private void Step(GameCommands commands, float seconds)
+    {
+        time += seconds;
+        yaw = MathF.IEEERemainder(yaw + commands.Turn * seconds * 1.8f, MathF.Tau);
+        pitch = Math.Clamp(pitch + commands.Look * seconds * 1.2f, -1.3f, 1.3f);
+        bool control = Definition.Has(View == CameraView.FirstPerson ? GameConcept.FirstPersonControl : GameConcept.ThirdPersonControl);
+        if (control)
+        {
+            Vector3 movement = new Vector3(MathF.Sin(yaw), 0, -MathF.Cos(yaw)) * commands.Forward +
+                new Vector3(MathF.Cos(yaw), 0, MathF.Sin(yaw)) * commands.Strafe;
+            if (movement.LengthSquared() > 1)
+            {
+                movement = Vector3.Normalize(movement);
+            }
+            Vector3 next = position + movement * (seconds * options.MovementSpeed);
+            if (CanStand(next))
+            {
+                position = next;
+            }
+            if (commands.Jump && position.Y == 0)
+            {
+                verticalVelocity = 5;
+            }
+        }
+        verticalVelocity -= seconds * 12;
+        position = new(position.X, MathF.Max(0, position.Y + verticalVelocity * seconds), position.Z);
+        if (position.Y == 0)
+        {
+            verticalVelocity = 0;
+        }
+        if (Definition.Has(GameConcept.ReloadableGuns) && gun.Step(commands.Fire, commands.Reload, seconds))
+        {
+            Vector3 origin = position + Vector3.UnitY * 1.6f;
+            Vector3 direction = Camera3D.Direction(yaw, pitch);
+            int hit = -1;
+            float closest = float.MaxValue;
+            for (int index = 0; index < objects.Length; index++)
+            {
+                float? distance = RayBox(origin, direction, objects[index]);
+                if (distance is { } value && value < closest)
+                {
+                    closest = value;
+                    hit = index;
+                }
+            }
+            if (hit >= 0 && agents[hit].State > 0)
+            {
+                agents = agents.Select((agent, index) => index == hit ? agent with { State = agent.State - 1 } : agent).ToArray();
+            }
+            // Presentation event identity stays unique when a save restores an earlier game tick.
+            Audio.Play(new(new($"shot-{++audioEventSequence}"), new("shot"), AudioBusId.Sfx));
+            ShotFired?.Invoke(this);
+        }
+    }
+
+    private bool CanStand(Vector3 next) => MathF.Abs(next.X) <= 11.5f && MathF.Abs(next.Z) <= 11.5f &&
+        !objects.Any(item => MathF.Abs(next.X - item.Position.X) < item.HalfSize.X + 0.3f &&
+            MathF.Abs(next.Z - item.Position.Z) < item.HalfSize.Z + 0.3f);
+
+    private static float? RayBox(Vector3 origin, Vector3 direction, StarterObject item)
+    {
+        Vector3 min = item.Position.ToVector() - item.HalfSize.ToVector();
+        Vector3 max = item.Position.ToVector() + item.HalfSize.ToVector();
+        float near = 0;
+        float far = 80;
+        for (int axis = 0; axis < 3; axis++)
+        {
+            if (MathF.Abs(direction[axis]) < 0.00001f)
+            {
+                if (origin[axis] < min[axis] || origin[axis] > max[axis]) return null;
+                continue;
+            }
+            float a = (min[axis] - origin[axis]) / direction[axis];
+            float b = (max[axis] - origin[axis]) / direction[axis];
+            near = MathF.Max(near, MathF.Min(a, b));
+            far = MathF.Min(far, MathF.Max(a, b));
+            if (far < near) return null;
+        }
+        return near;
+    }
+
+    private void ResetWorld()
+    {
+        position = new(0, 0, 7);
+        yaw = pitch = verticalVelocity = 0;
+        time = 0;
+        View = Definition.Has(GameConcept.FirstPersonCamera) ? CameraView.FirstPerson : CameraView.ThirdPerson;
+        gun.Restore(new(gun.Configuration.Capacity, 0, 0, 0));
+        agents = AgentAuthoring.CreateBatch(objects.Select(item => new AgentSpawn<Point3>(item.Id, item.Id, item.Position,
+            AgentTemplate.Object("starter.target"))), [], _ => { }, spawn => objects.Single(item => item.Id == spawn.Id).Health);
+        scheduler = NewScheduler();
+        pendingJump = pendingReload = pendingFire = false;
+    }
+
+    private void ValidateObjects()
+    {
+        if (objects.Select(item => item.Id).Distinct(StringComparer.Ordinal).Count() != objects.Length ||
+            objects.Any(item => string.IsNullOrWhiteSpace(item.Id) || !item.Position.IsFinite || !item.HalfSize.IsFinite ||
+                item.HalfSize.X <= 0 || item.HalfSize.Y <= 0 || item.HalfSize.Z <= 0 || item.Health <= 0))
+        {
+            throw new ArgumentException("Starter objects need unique ids, finite geometry, positive sizes and health.");
+        }
+        if (!CanStand(new(0, 0, 7))) throw new ArgumentException("Starter objects overlap the player spawn.");
+    }
+
+    private void ValidateSnapshot(StarterSnapshot snapshot)
+    {
+        if (snapshot.Position is null || !snapshot.Position.IsFinite || !CanStand(snapshot.Position.ToVector()) || snapshot.Position.Y < 0 || snapshot.Position.Y > 2 ||
+            !float.IsFinite(snapshot.Yaw) || !float.IsFinite(snapshot.Pitch) || MathF.Abs(snapshot.Pitch) > 1.3f ||
+            !float.IsFinite(snapshot.VerticalVelocity) || MathF.Abs(snapshot.VerticalVelocity) > 6 ||
+            !double.IsFinite(snapshot.Time) || snapshot.Time < 0 || !Enum.IsDefined(snapshot.View) ||
+            !Definition.Has(snapshot.View == CameraView.FirstPerson ? GameConcept.FirstPersonCamera : GameConcept.ThirdPersonCamera) ||
+            snapshot.ObjectHealth is null || snapshot.ObjectHealth.Count != objects.Length ||
+            snapshot.ObjectHealth.Where((health, index) => health < 0 || health > objects[index].Health).Any() ||
+            snapshot.Gun is null || snapshot.Keys is null || !float.IsFinite(snapshot.Volume) || snapshot.Volume < 0 || snapshot.Volume > 1)
+        {
+            throw new InvalidDataException("Invalid starter state; the live game has not been changed.");
+        }
+        gun.Validate(snapshot.Gun);
+        GameControls.Validate(snapshot.Keys);
+        NewScheduler().RestoreAccumulators(snapshot.Cadence);
+    }
+
+    private static void ValidateSettings(GameSettings candidate)
+    {
+        if (candidate.Keys is null || !float.IsFinite(candidate.Volume) || candidate.Volume < 0 || candidate.Volume > 1)
+        {
+            throw new InvalidDataException("Invalid game preferences.");
+        }
+        GameControls.Validate(candidate.Keys);
+    }
+
+    private void ChangeScreen(string next)
+    {
+        Screen = next;
+        navigation.Reset();
+        pendingJump = pendingReload = pendingFire = false;
+        Controls.Adapter.OnFocusChanged(false);
+        Controls.Adapter.OnFocusChanged(true);
+    }
+
+    private void Persist(Func<Task> operation)
+    {
+        try
+        {
+            operation().GetAwaiter().GetResult();
+            PersistenceError = null;
+        }
+        catch (Exception exception) when (exception is IOException or Deliverance.Core.DeliveranceException or JsonException or ArgumentException)
+        {
+            PersistenceError = exception.Message;
+            Console.Error.WriteLine("Game persistence failed: " + exception.Message);
+        }
+    }
+
+    private static CadenceScheduler NewScheduler() => new([new(new("gameplay"), RationalRate.PerSecond(60), 0)], TimeSpan.FromSeconds(0.1));
+
+    public void Dispose()
+    {
+        if (disposed) return;
+        disposed = true;
+        Controls.Dispose();
+        Audio.Dispose();
+        audioResources.Dispose();
+    }
+}
+

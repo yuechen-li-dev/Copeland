@@ -7,6 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Workbook\Workbook.csproj" />
+    <ProjectReference Include="../Workbook/Workbook.csproj" />
   </ItemGroup>
 </Project>

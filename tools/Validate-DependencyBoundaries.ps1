@@ -542,8 +542,8 @@ foreach ($projectFile in $projects) {
         $targetRelativePath = Get-RepositoryRelativePath $targetPath
         $targetSubsystem = Get-Subsystem $targetRelativePath
 
-        if ($targetRelativePath.StartsWith("samples/")) {
-            $violations.Add("$projectPath references sample project $targetRelativePath.")
+        if ($targetRelativePath.StartsWith("samples/") -or $targetRelativePath.StartsWith("Games/")) {
+            $violations.Add("$projectPath references sample or game project $targetRelativePath.")
             continue
         }
 

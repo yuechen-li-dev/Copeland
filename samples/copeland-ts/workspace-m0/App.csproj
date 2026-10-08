@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Copeland\Copeland.TS.MSBuild\Copeland.TS.MSBuild.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../../../src/Copeland/Copeland.TS.MSBuild/Copeland.TS.MSBuild.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <Import Project="obj\copeland\workspace\tscl-files.generated.props" Condition="Exists('obj\copeland\workspace\tscl-files.generated.props')" />

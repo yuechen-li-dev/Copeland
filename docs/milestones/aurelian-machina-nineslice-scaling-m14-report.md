@@ -158,10 +158,10 @@ Final unstaged worktree diff, including new proof artifacts: Copeland has 32 fil
 ## Qualification commands
 
 ```powershell
-dotnet test tests/Integrations/Sunkill.Tests/Sunkill.Tests.csproj -m:1 -nodeReuse:false -p:UseSharedCompilation=false
+dotnet test Games/Sunkill/Sunkill.Tests/Sunkill.Tests.csproj -m:1 -nodeReuse:false -p:UseSharedCompilation=false
 dotnet test Aurelian.slnx -m:1 -nodeReuse:false -p:UseSharedCompilation=false
 pwsh ./tools/Test-SunkillLaunch.ps1
-dotnet run --project samples/Integrations/Aurelian.Ariadne.VnDemo/Aurelian.Ariadne.VnDemo.csproj -- --m14-proof
+dotnet run --project Games/Sunkill/Aurelian.Ariadne.VnDemo/Aurelian.Ariadne.VnDemo.csproj -- --m14-proof
 
 cd ../Dominatus
 dotnet test tests/Dominatus.Assets.Toml.Tests/Dominatus.Assets.Toml.Tests.csproj -m:1 -nodeReuse:false -p:UseSharedCompilation=false

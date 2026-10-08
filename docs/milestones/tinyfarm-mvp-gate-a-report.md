@@ -7,10 +7,10 @@ The normal native launch now presents a coherent opening route with diagonal mov
 ## Launch and review
 
 ```powershell
-dotnet run --project src/TinyFarm/TinyFarm.Native -c Release
+dotnet run --project Games/TinyFarm/TinyFarm.Native -c Release
 ```
 
-Alternatively double-click `Play-TinyFarm.cmd`. Enter begins; N continues. WASD moves, E interacts, J swings, Space dodges, 1 then K plants, R eats broth, I opens pockets/plans, Escape pauses. F saves, N loads. F9 hides the HUD, F10 toggles the independent inspector, F11 captures a clean frame. [Player instructions](../../src/TinyFarm/README.md) cover persistence and reproduction commands.
+Alternatively double-click `Play-TinyFarm.cmd`. Enter begins; N continues. WASD moves, E interacts, J swings, Space dodges, 1 then K plants, R eats broth, I opens pockets/plans, Escape pauses. F saves, N loads. F9 hides the HUD, F10 toggles the independent inspector, F11 captures a clean frame. [Player instructions](../../Games/TinyFarm/README.md) cover persistence and reproduction commands.
 
 Review evidence:
 
@@ -51,7 +51,7 @@ Slice state and planted provenance are persisted in save version 11 and particip
 
 ## Art, spatial authority and presentation
 
-The approved elevated orthographic farmhouse, M24 tree and meadow are reused. Six new generated sources supply the gardener, slime, Mara, props, floors and turnip. Exact prompts, actual dimensions, file hashes, source filenames and review status are recorded in [asset provenance](../../src/TinyFarm/TinyFarm.Native/Assets/GateA/provenance.json). These selected outputs are pinned, but are **pending human art approval**. No source PNG was edited or assumed to match its requested aspect ratio.
+The approved elevated orthographic farmhouse, M24 tree and meadow are reused. Six new generated sources supply the gardener, slime, Mara, props, floors and turnip. Exact prompts, actual dimensions, file hashes, source filenames and review status are recorded in [asset provenance](../../Games/TinyFarm/TinyFarm.Native/Assets/GateA/provenance.json). These selected outputs are pinned, but are **pending human art approval**. No source PNG was edited or assumed to match its requested aspect ratio.
 
 Two reusable Aurelian tools were added:
 

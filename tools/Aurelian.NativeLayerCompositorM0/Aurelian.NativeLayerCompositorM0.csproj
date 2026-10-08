@@ -14,7 +14,7 @@
     <ProjectReference Include="../../src/Integrations/Aurelian.Machina.Graphics/Aurelian.Machina.Graphics.csproj" />
     <ProjectReference Include="../../src/Integrations/Aurelian.NativeComposition/Aurelian.NativeComposition.csproj" />
     <ProjectReference Include="../../src/Integrations/InputMan.Aurelian/InputMan.Aurelian.csproj" />
-    <ProjectReference Include="../../src/TinyFarm/TinyFarm.InputMan/TinyFarm.InputMan.csproj" />
+    <ProjectReference Include="../../Games/TinyFarm/TinyFarm.InputMan/TinyFarm.InputMan.csproj" />
     <ProjectReference Include="../../../InputMan/src/InputMan.Toml/InputMan.Toml.csproj" />
     <ProjectReference Include="../../src/Machina.UI/Machina.Fonts/Machina.Fonts.csproj" />
     <ProjectReference Include="../../src/Machina.UI/Machina.Pipeline/Machina.Pipeline.csproj" />

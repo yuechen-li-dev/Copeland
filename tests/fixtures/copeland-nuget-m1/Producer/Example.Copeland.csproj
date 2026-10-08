@@ -10,10 +10,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\src\Copeland\Copeland.TS.MSBuild\Copeland.TS.MSBuild.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../../../../src/Copeland/Copeland.TS.MSBuild/Copeland.TS.MSBuild.csproj" ReferenceOutputAssembly="false" />
     <CopelandCompile Include="Parser.ts" />
-    <None Include="copeland\contract.v1.json" Pack="true" PackagePath="copeland\" />
-    <None Include="buildTransitive\Example.Copeland.targets" Pack="true" PackagePath="buildTransitive\" />
+    <None Include="copeland/contract.v1.json" Pack="true" PackagePath="copeland\" />
+    <None Include="buildTransitive/Example.Copeland.targets" Pack="true" PackagePath="buildTransitive\" />
     <None Include="README.md" Pack="true" PackagePath="" />
   </ItemGroup>
 

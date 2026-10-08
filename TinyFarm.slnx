@@ -1,24 +1,24 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/TinyFarm/TinyFarm.UI/TinyFarm.UI.csproj" />
-    <Project Path="src/TinyFarm/TinyFarm.Playtesting/TinyFarm.Playtesting.csproj" />
-    <Project Path="src/TinyFarm/TinyFarm.Cli/TinyFarm.Cli.csproj" />
+    <Project Path="Games/TinyFarm/TinyFarm.UI/TinyFarm.UI.csproj" />
+    <Project Path="Games/TinyFarm/TinyFarm.Playtesting/TinyFarm.Playtesting.csproj" />
+    <Project Path="Games/TinyFarm/TinyFarm.Cli/TinyFarm.Cli.csproj" />
     <Project Path="src/Aurelian/Aurelian.Audio/Aurelian.Audio.csproj" />
     <Project Path="src/Aurelian/Aurelian.Combat/Aurelian.Combat.csproj" />
     <Project Path="src/Aurelian/Aurelian.Field2D/Aurelian.Field2D.csproj" />
     <Project Path="src/Aurelian/Aurelian.Effects2D/Aurelian.Effects2D.csproj" />
     <Project Path="src/Aurelian/Aurelian.Spatial2D/Aurelian.Spatial2D.csproj" />
-    <Project Path="src/TinyFarm/TinyFarm.Core/TinyFarm.Core.csproj" />
-    <Project Path="src/TinyFarm/TinyFarm.Runtime/TinyFarm.Runtime.csproj" />
-    <Project Path="src/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj" />
-  <Project Path="src/TinyFarm/TinyFarm.Native/TinyFarm.Native.csproj" />
-  <Project Path="src/TinyFarm/TinyFarm.MonoGame/TinyFarm.MonoGame.csproj" />
-  <Project Path="src/TinyFarm/TinyFarm.InputMan/TinyFarm.InputMan.csproj" />
-    <Project Path="src/TinyFarm/TinyFarm.Presentation/TinyFarm.Presentation.csproj" />
-    <Project Path="src/Integrations/TinyFarm.Oblivion/TinyFarm.Oblivion.csproj" />
+    <Project Path="Games/TinyFarm/TinyFarm.Core/TinyFarm.Core.csproj" />
+    <Project Path="Games/TinyFarm/TinyFarm.Runtime/TinyFarm.Runtime.csproj" />
+    <Project Path="Games/TinyFarm/TinyFarm.Runner/TinyFarm.Runner.csproj" />
+  <Project Path="Games/TinyFarm/TinyFarm.Native/TinyFarm.Native.csproj" />
+  <Project Path="Games/TinyFarm/TinyFarm.MonoGame/TinyFarm.MonoGame.csproj" />
+  <Project Path="Games/TinyFarm/TinyFarm.InputMan/TinyFarm.InputMan.csproj" />
+    <Project Path="Games/TinyFarm/TinyFarm.Presentation/TinyFarm.Presentation.csproj" />
+    <Project Path="Games/TinyFarm/TinyFarm.Oblivion/TinyFarm.Oblivion.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Aurelian/Aurelian.Spatial2D.Tests/Aurelian.Spatial2D.Tests.csproj" />
-    <Project Path="tests/TinyFarm/TinyFarm.Core.Tests/TinyFarm.Core.Tests.csproj" />
+    <Project Path="Games/TinyFarm/TinyFarm.Core.Tests/TinyFarm.Core.Tests.csproj" />
   </Folder>
 </Solution>

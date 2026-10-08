@@ -81,10 +81,10 @@ This proves identical route graph, anchor catalog, DotRecast navigation evidence
 Existing tooling works without changes:
 
 ```powershell
-dotnet run --project src/Copeland/Copeland.Cli/Copeland.Cli.csproj -- table list src/TinyFarm/TinyFarm.Runtime/Content/tiny-farm-scene-anchors.obj.ts --format json
-dotnet run --project src/Copeland/Copeland.Cli/Copeland.Cli.csproj -- table query src/TinyFarm/TinyFarm.Runtime/Content/tiny-farm-scene-routes.obj.ts SceneRoutes --where 'targetScene == "town"' --select 'routeId, sourceScene, targetAnchor' --format json
-dotnet run --project src/Copeland/Copeland.Cli/Copeland.Cli.csproj -- table query src/TinyFarm/TinyFarm.Runtime/Content/tiny-farm-scene-objects.obj.ts SceneObjects --where 'sceneId == "farm" && blocksMovement == true' --select 'objectId, kind, label' --format json
-dotnet run --project src/Copeland/Copeland.Cli/Copeland.Cli.csproj -- table validate src/TinyFarm/TinyFarm.Runtime/Content/tiny-farm-scenes.obj.ts --format json
+dotnet run --project src/Copeland/Copeland.Cli/Copeland.Cli.csproj -- table list Games/TinyFarm/TinyFarm.Runtime/Content/tiny-farm-scene-anchors.obj.ts --format json
+dotnet run --project src/Copeland/Copeland.Cli/Copeland.Cli.csproj -- table query Games/TinyFarm/TinyFarm.Runtime/Content/tiny-farm-scene-routes.obj.ts SceneRoutes --where 'targetScene == "town"' --select 'routeId, sourceScene, targetAnchor' --format json
+dotnet run --project src/Copeland/Copeland.Cli/Copeland.Cli.csproj -- table query Games/TinyFarm/TinyFarm.Runtime/Content/tiny-farm-scene-objects.obj.ts SceneObjects --where 'sceneId == "farm" && blocksMovement == true' --select 'objectId, kind, label' --format json
+dotnet run --project src/Copeland/Copeland.Cli/Copeland.Cli.csproj -- table validate Games/TinyFarm/TinyFarm.Runtime/Content/tiny-farm-scenes.obj.ts --format json
 ```
 
 The bounded agent questions are direct table queries: `general-store.counter` is tile `(5,3)`; routes entering Town are `overworld-town` and `store-town`; blocking Farm objects are `farmhouse` and `fence`; General Store objects are `shelves`, `shop-counter`, and `store-exit`.

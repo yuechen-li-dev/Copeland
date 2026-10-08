@@ -20,7 +20,7 @@ Use `MachinaPresentationPipeline.Prepare(ui, width, height, loweringOptions)` wh
 From the repository root, run:
 
 ```powershell
-dotnet run --project samples/Integrations/Aurelian.StrategyDemo -c Release
+dotnet run --project Games/Strategy/Aurelian.StrategyDemo -c Release
 ```
 
 The default command opens **Mossward**, a usable Avalonia window with four initial units, a crystal and wood loop, an objective, one constructible lodge, reserved production, visibility and a semantic minimap. It uses a native CPU-rendered bitmap presentation. This is not a Vulkan or large-army qualification.
@@ -38,8 +38,8 @@ Movement is a swept straight segment. If a building blocks it, the unit stops wi
 ## Proofs
 
 ```powershell
-dotnet run --project samples/Integrations/Aurelian.StrategyDemo -c Release -- --proof
-dotnet run --project samples/Integrations/Aurelian.StrategyDemo -c Release -- --launch-smoke
+dotnet run --project Games/Strategy/Aurelian.StrategyDemo -c Release -- --proof
+dotnet run --project Games/Strategy/Aurelian.StrategyDemo -c Release -- --launch-smoke
 dotnet test tests/Aurelian/Aurelian.Strategy.Tests -c Release
 ```
 

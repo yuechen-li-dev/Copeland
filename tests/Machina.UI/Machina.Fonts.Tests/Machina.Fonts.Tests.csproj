@@ -27,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Fixtures\\Fonts\\**\\*">
+    <Content Include="../../../src/Aurelian/Aurelian.Assets/Defaults/Fonts/**/*" Link="Fixtures/Fonts/%(RecursiveDir)%(Filename)%(Extension)">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

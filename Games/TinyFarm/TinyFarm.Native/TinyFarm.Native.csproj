@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseSystemDrawing>true</UseSystemDrawing>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../TinyFarm.Playtesting/TinyFarm.Playtesting.csproj" />
+    <ProjectReference Include="../TinyFarm.UI/TinyFarm.UI.csproj" />
+    <Compile Remove="TinyFarmNativeUi.cs;TinyFarmMenuPresentation.cs;TinyFarmTitlePresentation.cs;TinyFarmContainerPresentation.cs;TinyFarmCraftingPresentation.cs;TinyFarmStatsScrollbar.cs;TinyFarmPresentationLayout.cs" />
+    <Content Include="Assets/GateA/*.png" CopyToOutputDirectory="PreserveNewest" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.GameHost/Aurelian.GameHost.csproj" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.NativeComposition/Aurelian.NativeComposition.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Profile.Graphics/Aurelian.Profile.Graphics.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.GameWorld2D/Aurelian.GameWorld2D.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Machina/Aurelian.Machina.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Machina.Graphics/Aurelian.Machina.Graphics.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Effects2D.Graphics/Aurelian.Effects2D.Graphics.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Audio.NAudio/Aurelian.Audio.NAudio.csproj" />
+    <ProjectReference Include="../../../src/Integrations/InputMan.Aurelian/InputMan.Aurelian.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Pipeline/Machina.Pipeline.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Standard/Machina.Standard.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Fonts/Machina.Fonts.csproj" />
+    <ProjectReference Include="../../../src/Copeland/Copeland.TS/Copeland.TS.csproj" />
+    <ProjectReference Include="../TinyFarm.InputMan/TinyFarm.InputMan.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Silk.NET.Input" />
+    <PackageReference Include="Silk.NET.Windowing" />
+    <Content Include="../TinyFarm.MonoGame/Assets/mara-dialogue.png" Link="Assets/mara-dialogue.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets/M11/tinyfarm-sprite-atlas-source.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets/M19/*.profile.tsx" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets/M25/farmhouse-three-quarter.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets/M24/*.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../src/Aurelian/Aurelian.Assets/Defaults/Fonts/SpaceMono-Regular.ttf" Link="Assets/SpaceMono-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -27,7 +27,7 @@ const int Height = 800;
 string root = FindRepositoryRoot();
 string output = Path.Combine(root, "artifacts", "aurelian-native-graphics-m19");
 Directory.CreateDirectory(output);
-string assetsDirectory = Path.Combine(root, "samples", "Integrations", "Aurelian.StrategyDemo", "Assets");
+string assetsDirectory = Path.Combine(root, "Games", "Strategy", "Aurelian.StrategyDemo", "Assets");
 string toolkit = File.ReadAllText(Path.Combine(assetsDirectory, "StrategyArt.ts"));
 
 var compileMetrics = new List<object>();
@@ -242,7 +242,7 @@ long stressAllocatedBytes = GC.GetAllocatedBytesForCurrentThread() - stressAlloc
 int uploadsAfterStrategy = cache.UploadCount;
 
 ProfileNativeCompositionResource tinyFarmTree = CompileStandalone(
-    Path.Combine(root, "src", "TinyFarm", "TinyFarm.Native", "Assets", "M19", "mossward-tree.profile.tsx"));
+    Path.Combine(root, "Games", "TinyFarm", "TinyFarm.Native", "Assets", "M19", "mossward-tree.profile.tsx"));
 cache.Warm(tinyFarmTree);
 VulkanNativeFrameResult tinyFarmFrame = RenderTinyFarm(target, shapes, profiles, cache, tinyFarmTree);
 PngWriter.Write(Path.Combine(output, "tinyfarm-second-consumer.png"), Width, Height, tinyFarmFrame.Pixels!);
@@ -656,7 +656,7 @@ static object MeasureSkiaParity(
     cache.Submit(resource, instance);
     Native2DPassResult native = renderer.End2D(captureReadback: true);
 
-    using var reference = new StrategyAssets(Path.Combine(root, "samples", "Integrations", "Aurelian.StrategyDemo", "Assets"));
+    using var reference = new StrategyAssets(Path.Combine(root, "Games", "Strategy", "Aurelian.StrategyDemo", "Assets"));
     using var bitmap = new SKBitmap(new SKImageInfo(size, size, SKColorType.Rgba8888, SKAlphaType.Unpremul));
     using (var canvas = new SKCanvas(bitmap))
     {

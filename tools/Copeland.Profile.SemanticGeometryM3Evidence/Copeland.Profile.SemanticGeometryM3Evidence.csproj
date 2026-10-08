@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Copeland\Copeland.Profile\Copeland.Profile.csproj" />
-    <ProjectReference Include="..\..\src\Copeland\Copeland.TS\Copeland.TS.csproj" />
+    <ProjectReference Include="../../src/Copeland/Copeland.Profile/Copeland.Profile.csproj" />
+    <ProjectReference Include="../../src/Copeland/Copeland.TS/Copeland.TS.csproj" />
   </ItemGroup>
 </Project>

@@ -29,7 +29,7 @@ The declaration is authoring input. It does not become another inventory or posi
 
 The native development fixture adds Ivy with an independently owned hoe, level and condition, plus a supply-cache object owning three seeds. It reuses approved Gardener art and the existing well sprite as a static object marker. These instances are not added to normal campaign content. `Play-TinyFarm.cmd --agent-authoring` opens that fixture with a separate development save directory.
 
-The practical authoring guide is `docs/research/tinyfarm-agent-authoring.md`; the executable sample is `src/TinyFarm/TinyFarm.Runtime/TinyFarmAgentExamples.cs`. Another instance requires a template/spawn declaration rather than changes to renderer identity switches, inventory arrays, energy rows and placement arrays.
+The practical authoring guide is `docs/research/tinyfarm-agent-authoring.md`; the executable sample is `Games/TinyFarm/TinyFarm.Runtime/TinyFarmAgentExamples.cs`. Another instance requires a template/spawn declaration rather than changes to renderer identity switches, inventory arrays, energy rows and placement arrays.
 
 ## Validation and compatibility
 

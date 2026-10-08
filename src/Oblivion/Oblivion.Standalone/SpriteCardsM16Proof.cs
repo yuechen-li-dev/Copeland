@@ -24,8 +24,8 @@ internal static class SpriteCardsM16Proof
         Directory.CreateDirectory(output);
         string sourcePath = Path.Combine(
             root,
-            "samples",
-            "Integrations",
+            "Games",
+            "Sunkill",
             "Aurelian.Ariadne.VnDemo",
             "Assets",
             "sunkill-dialogue-panel.obj.ts");

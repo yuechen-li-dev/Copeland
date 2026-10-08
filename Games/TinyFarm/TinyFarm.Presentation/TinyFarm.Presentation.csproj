@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>TinyFarm.Presentation</AssemblyName>
+    <RootNamespace>TinyFarm.Presentation</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../TinyFarm.Core/TinyFarm.Core.csproj" />
+    <ProjectReference Include="../TinyFarm.Runtime/TinyFarm.Runtime.csproj" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Composition/Aurelian.Composition.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Core/Machina.Core.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Pipeline/Machina.Pipeline.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Presentation/Machina.Presentation.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Runtime/Machina.Runtime.csproj" />
+  </ItemGroup>
+</Project>
