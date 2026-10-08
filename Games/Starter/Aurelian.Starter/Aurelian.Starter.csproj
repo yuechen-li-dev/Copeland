@@ -6,5 +6,7 @@
     <ProjectReference Include="../../../src/Integrations/Aurelian.Games/Aurelian.Games.csproj" />
     <ProjectReference Include="../../../src/Integrations/Aurelian.Aetheris/Aurelian.Aetheris.csproj" />
     <Content Include="Assets/room.aurelian.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets/assets.toml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets/Models/*.glb" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

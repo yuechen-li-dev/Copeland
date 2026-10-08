@@ -335,7 +335,11 @@ public sealed class StarterGame : IDisposable
 
     public Matrix4x4 Camera(float aspect) => Camera3D.Matrix(Camera3D.Eye(position, yaw, pitch, View), Camera3D.Direction(yaw, pitch), aspect);
 
-    public Native3DVertex[] BuildScene()
+    public Vector3 CameraEye => Camera3D.Eye(position, yaw, pitch, View);
+    public Native3DVertex[] BuildScene() => SceneGeometry3D.Build(BuildSceneFrame());
+    public Native3DScene BuildRenderScene() => SceneGeometry3D.BuildScene(BuildSceneFrame());
+
+    private SceneFrame BuildSceneFrame()
     {
         SceneFrame frame = scene.Project(agent => agent.Id != "player" || View == CameraView.ThirdPerson);
         if (Definition.Has(GameConcept.ReloadableGuns))
@@ -349,7 +353,7 @@ public sealed class StarterGame : IDisposable
                     new(0.08f, 0.08f, 0.18f), new(0.3f, 0.6f, 0.7f, 1), SceneCollision.None)),
             };
         }
-        return SceneGeometry3D.Build(frame);
+        return frame;
     }
 
     private void Step(GameCommands commands, float seconds)

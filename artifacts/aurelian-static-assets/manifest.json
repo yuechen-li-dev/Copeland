@@ -1,0 +1,105 @@
+{
+  "Outcome": "Success",
+  "Gpu": "NVIDIA GeForce RTX 3070",
+  "Importer": "aurelian.glb.static.v1/sharpgltf-1.0.7",
+  "OriginalIdentity": "e1be6a343876a79903e6c0f452bc0bc0c15cd90de10286b7d879ab167d806423",
+  "ReplacementIdentity": "4d9d9a853795e4616af527b43ba63d2628cc5bbea00ea2d52100c2cbc18025c9",
+  "PrimitiveDefinitions": 2,
+  "MaterialSlots": [
+    "panel",
+    "frame"
+  ],
+  "Instances": [
+    "left",
+    "right"
+  ],
+  "UnmodifiedInstanceChangedPixels": 0,
+  "OverriddenInstanceChangedPixels": 6131,
+  "OverrideHash": "c0aa400aaa2efddbd4fd072b8ac2868ee50e91b8e9291909fc0f7d5615053b60",
+  "ReplacementHash": "13a127d7b43d93c753931f9eeec9c70c2be693e36a843b0d556359b772856b2b",
+  "RetainedHash": "13a127d7b43d93c753931f9eeec9c70c2be693e36a843b0d556359b772856b2b",
+  "Channels": [
+    {
+      "Name": "metallic",
+      "ChangedPixels": 11907,
+      "PixelHash": "bb3ab99732db2e1af327dcbe362f755ceff2ac867a27b4993be2c3018757f153"
+    },
+    {
+      "Name": "roughness",
+      "ChangedPixels": 11907,
+      "PixelHash": "892d13f5b808529985c8546f455ba3d9b17a6f20744a3e93b81dbf4b374517fa"
+    },
+    {
+      "Name": "emissive",
+      "ChangedPixels": 12262,
+      "PixelHash": "998d33ef184a94c505066bf2a2512cf1a82016ca0272a7bb6268bc26f1fa5a51"
+    },
+    {
+      "Name": "occlusion",
+      "ChangedPixels": 12262,
+      "PixelHash": "570ac88d4c6a7f3ad40268d6974a1d14e9d1d8958bdc5876164879ad2fbc5a18"
+    },
+    {
+      "Name": "normal",
+      "ChangedPixels": 12262,
+      "PixelHash": "cc8a7db085bc48f5c56be8ad2677ae2070e76345c06ec7ed7cbfe671fe6a9f50"
+    },
+    {
+      "Name": "unlit",
+      "ChangedPixels": 12262,
+      "PixelHash": "f46f26ddb1e07352a7f70cc4e485a6a4492427eb35514be529f7deb71a84281f"
+    },
+    {
+      "Name": "mask",
+      "ChangedPixels": 12262,
+      "PixelHash": "93ab4f4202e643bfa782d272ce2708f0e86991d92b795af8912de65090092b9f"
+    },
+    {
+      "Name": "metallic-roughness-texture",
+      "ChangedPixels": 11907,
+      "PixelHash": "892d13f5b808529985c8546f455ba3d9b17a6f20744a3e93b81dbf4b374517fa"
+    },
+    {
+      "Name": "emissive-texture",
+      "ChangedPixels": 12262,
+      "PixelHash": "215e6f53202cd71269d13ca95c4641dfe11dadb0c9e697eb2944fa7ea84aedbc"
+    },
+    {
+      "Name": "imported-normal-map",
+      "ChangedPixels": 12262,
+      "PixelHash": "bceed07d84d4d30d27ff119428ecc237fdf1af872f69165155c241792b342ab4"
+    }
+  ],
+  "SlotLossDiagnostics": [
+    {
+      "Code": "AA3103",
+      "Severity": "warning",
+      "Message": "Mipmapped sampler uses the base level in static.v1; mip generation is not yet qualified.",
+      "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\aurelian-static-assets\\working\\Models/crate.glb",
+      "Line": 1,
+      "Column": 1,
+      "Fatal": false
+    },
+    {
+      "Code": "AA3205",
+      "Severity": "error",
+      "Message": "Replacement retained the previous model: Replacement loses material slot \u0027frame\u0027; rename or remap explicitly.",
+      "SourcePath": "Models/crate.glb",
+      "Line": 1,
+      "Column": 1,
+      "Fatal": true
+    }
+  ],
+  "BrokenDiagnostics": [
+    {
+      "Code": "AA3102",
+      "Severity": "error",
+      "Message": "Expected a complete glTF 2.0 GLB container.",
+      "SourcePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\aurelian-static-assets\\working\\Models/crate.glb",
+      "Line": 1,
+      "Column": 1,
+      "Fatal": true
+    }
+  ],
+  "PlacementAndAgentsRetained": true
+}

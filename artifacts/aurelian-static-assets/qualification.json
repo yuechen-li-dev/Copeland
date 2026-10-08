@@ -1,0 +1,238 @@
+{
+  "outcome": "Success",
+  "sdk": "10.0.401",
+  "build": {
+    "command": "dotnet build Aurelian.slnx -c Release -m:1",
+    "success": true,
+    "errors": 0,
+    "warnings": 14,
+    "warningOrigin": "Existing ThirdParty/Machina.Typography.OpenFont CS0649 fields"
+  },
+  "aurelian": {
+    "passed": 933,
+    "failed": 0,
+    "skipped": 0,
+    "assemblies": [
+      {
+        "assembly": "Aurelian.Beacon3D.Tests.dll",
+        "passed": 25,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Sunkill.Tests.dll",
+        "passed": 27,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.Actuation.Tests.dll",
+        "passed": 54,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.Assets.Tests.dll",
+        "passed": 43,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.AssetTool.Tests.dll",
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.Audio.Tests.dll",
+        "passed": 15,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.Cli.Tests.dll",
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.Composition.Tests.dll",
+        "passed": 10,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.Core.Tests.dll",
+        "passed": 60,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.Effects2D.Tests.dll",
+        "passed": 14,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.GameHost.Tests.dll",
+        "passed": 8,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.Graphics.Tests.dll",
+        "passed": 272,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.Rendering.Contracts.Tests.dll",
+        "passed": 35,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.Rendering.Null.Tests.dll",
+        "passed": 6,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.Rendering.Raster.Tests.dll",
+        "passed": 19,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.Runtime.Tests.dll",
+        "passed": 41,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.Shaders.Tests.dll",
+        "passed": 158,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.Simulation.Tests.dll",
+        "passed": 14,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.Spatial2D.Tests.dll",
+        "passed": 27,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.Spatial3D.Tests.dll",
+        "passed": 8,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.Strategy.Tests.dll",
+        "passed": 9,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.World.Tests.dll",
+        "passed": 37,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.GameMenus.Tests.dll",
+        "passed": 5,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.Games.Tests.dll",
+        "passed": 27,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.GameWorld2D.Tests.dll",
+        "passed": 11,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.Profile.Graphics.Tests.dll",
+        "passed": 4,
+        "failed": 0,
+        "skipped": 0
+      }
+    ]
+  },
+  "compiler": {
+    "passed": 1394,
+    "failed": 0,
+    "skipped": 0,
+    "assemblies": [
+      {
+        "assembly": "Copeland.TS.Tests.dll",
+        "passed": 1394,
+        "failed": 0,
+        "skipped": 0
+      }
+    ]
+  },
+  "reflectionDisabled": {
+    "passed": 70,
+    "failed": 0,
+    "skipped": 0,
+    "assemblies": [
+      {
+        "assembly": "Aurelian.Assets.Tests.dll",
+        "passed": 43,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "assembly": "Aurelian.Games.Tests.dll",
+        "passed": 27,
+        "failed": 0,
+        "skipped": 0
+      }
+    ]
+  },
+  "nativeProof": "manifest.json",
+  "starterPlaytest": {
+    "success": true,
+    "script": "Games/Starter/Playtests/native-proof.json",
+    "final": "starter-native/final.json",
+    "validated": [
+      "first/third person",
+      "shoot/reload",
+      "menus/settings",
+      "Deliverance save/load",
+      "rewind",
+      "textured GLB draws"
+    ]
+  },
+  "deliveryBuild": {
+    "success": true,
+    "models": 1,
+    "warnings": [
+      "AA3103: base-level sampling for requested mip filter"
+    ]
+  },
+  "dependencyBoundaries": {
+    "newViolations": 0,
+    "existingViolations": 7,
+    "baseline": "../aurelian-game-starter-m0/boundary-baseline.json"
+  },
+  "limits": [
+    "static triangles and embedded PNG/JPEG",
+    "no animation, BLEND or texture transforms",
+    "base-level textures; mip generation deferred",
+    "CPU world-space triangle expansion; hardware instancing deferred"
+  ]
+}

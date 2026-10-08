@@ -1,12 +1,42 @@
 using System.Numerics;
 using Aurelian.Graphics.Vulkan.Native3D;
 using Aurelian.World.Scenes;
+using Aurelian.Rendering.Contracts.Models;
 
 namespace Aurelian.NativeComposition;
 
 /// <summary>Projects semantic scene geometry into the existing native 3D renderer's vertices.</summary>
 public static class SceneGeometry3D
 {
+    public static Native3DScene BuildScene(SceneFrame frame)
+    {
+        var batches = new List<NativeModel3DBatch>();
+        foreach (PlacedSceneModel instance in frame.Models)
+        {
+            StaticModel asset = instance.Asset.Current;
+            foreach (ModelOccurrence occurrence in asset.Occurrences)
+            {
+                Matrix4x4 world = occurrence.Transform * instance.WorldTransform;
+                Matrix4x4 normals = NormalTransform(world);
+                ModelPrimitive primitive = occurrence.Primitive;
+                var vertices = new NativeModel3DVertex[primitive.Indices.Length];
+                for (int index = 0; index < vertices.Length; index++)
+                {
+                    ModelVertex vertex = primitive.Vertices[primitive.Indices[index]];
+                    Vector3 normal = Vector3.Normalize(Vector3.TransformNormal(vertex.Normal, normals));
+                    Vector3 tangent = Vector3.TransformNormal(new(vertex.Tangent.X, vertex.Tangent.Y, vertex.Tangent.Z), world);
+                    tangent = Vector3.Normalize(tangent - normal * Vector3.Dot(normal, tangent));
+                    vertices[index] = new(Vector3.Transform(vertex.Position, world), normal, vertex.Color, vertex.Uv,
+                        new(tangent, vertex.Tangent.W));
+                }
+                ModelMaterial material = instance.Materials.TryGetValue(primitive.Material.Slot, out ModelMaterial? customized)
+                    ? customized : primitive.Material;
+                batches.Add(new(vertices, material));
+            }
+        }
+        return new(Build(frame), batches);
+    }
+
     public static Native3DVertex[] Build(SceneFrame frame)
     {
         var result = new List<Native3DVertex>();

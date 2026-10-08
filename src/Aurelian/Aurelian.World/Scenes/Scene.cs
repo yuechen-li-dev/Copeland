@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Numerics;
 using Aurelian.World.Agents;
+using Aurelian.Rendering.Contracts.Models;
 
 namespace Aurelian.World.Scenes;
 
@@ -17,6 +18,10 @@ public abstract record SceneNode(string Id)
 
 public sealed record SceneGroup(string Id, ImmutableArray<SceneNode> Children) : SceneNode(Id);
 public sealed record SceneInstanceNode(string Id, SceneGroup Fragment) : SceneNode(Id);
+public sealed record SceneModel(string Id, ModelSlot Asset) : SceneNode(Id)
+{
+    public ImmutableDictionary<string, ModelMaterial> Materials { get; init; } = ImmutableDictionary<string, ModelMaterial>.Empty;
+}
 public sealed record SceneBox(string Id, Vector3 HalfSize, Vector4 Color, SceneCollision Collision) : SceneNode(Id)
 {
     public uint CollisionLayer { get; init; } = 1;
@@ -71,6 +76,11 @@ public sealed record SceneAgentNode<TState>(string Id, string Name, AgentDefinit
 /// <summary>Ordinary immutable authoring; all helpers copy child collections.</summary>
 public static class Scene
 {
+    public static SceneModel Model(string id, ModelSlot asset, Vector3? at = null)
+    {
+        return new(id, asset) { Transform = SceneTransform.At(at ?? Vector3.Zero) };
+    }
+
     public static SceneGroup World(string id, IEnumerable<SceneNode> children)
     {
         return Group(id, children);

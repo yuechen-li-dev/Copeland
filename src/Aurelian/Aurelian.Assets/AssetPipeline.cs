@@ -11,6 +11,7 @@ public sealed class AssetManifest
     public List<AssetShaderReference> ShaderReferences { get; } = [];
     public List<ShaderSpecializationRecord> Specializations { get; } = [];
     public List<ShaderEffectRecord> Effects { get; } = [];
+    public List<Models.ModelAssetRecord> Models { get; } = [];
 }
 
 public sealed record ShaderAssetRecord(string Id, string Source, string Entry, string Backend, string Profile);
@@ -113,6 +114,32 @@ public static class AssetManifestParser
             }
         }
 
+        if (table.TryGetValue("models", out var models))
+        {
+            if (models is not TomlTableArray modelTables)
+            {
+                assetDiagnostics.Add(new("AA3201", "error", "Models must use repeated [[models]] tables.", manifestPath));
+            }
+            else
+            {
+                foreach (TomlTable item in modelTables.OfType<TomlTable>())
+                {
+                    foreach (string key in item.Keys.Where(key => key is not "id" and not "path" and not "scale"))
+                        assetDiagnostics.Add(new("AA3201", "error", $"Unsupported model import setting '{key}'.", manifestPath));
+                    float scale = 1;
+                    if (item.TryGetValue("scale", out var authoredScale)
+                        && !float.TryParse(Convert.ToString(authoredScale, System.Globalization.CultureInfo.InvariantCulture),
+                            System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out scale))
+                    {
+                        assetDiagnostics.Add(new("AA3202", "error", "Model scale must be a number.", manifestPath));
+                    }
+                    manifest.Models.Add(new(
+                        item.TryGetValue("id", out var modelId) ? modelId?.ToString() ?? "" : "",
+                        item.TryGetValue("path", out var modelPath) ? modelPath?.ToString() ?? "" : "",
+                        new(scale)));
+                }
+            }
+        }
         return (manifest, assetDiagnostics);
     }
 }
@@ -150,6 +177,7 @@ public static class AssetManifestValidator
         foreach (var dup in manifest.Specializations.GroupBy(x => (x.Shader, x.Name)).Where(g => g.Count() > 1)) diags.Add(new(AssetDiagnosticCodes.LegacyDuplicateSpecialization, "error", $"Duplicate specialization '{dup.Key.Name}' for shader '{dup.Key.Shader}'.", manifestPath));
 
         diags.AddRange(ValidateShaderReferences(manifest.ShaderReferences, manifestPath));
+        diags.AddRange(Models.ModelAssetCatalog.Validate(manifest, manifestPath));
 
         return diags;
     }

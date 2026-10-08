@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Numerics;
+using Aurelian.Rendering.Contracts.Models;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -21,18 +22,21 @@ public sealed record PlacedSceneMesh(string Id, Matrix4x4 WorldTransform, Immuta
     public string? SourceIdentity { get; init; }
     public ImmutableArray<string?> TriangleFaces { get; init; } = [];
 }
+public sealed record PlacedSceneModel(string Id, Matrix4x4 WorldTransform, ModelSlot Asset,
+    string InitialContentIdentity, ImmutableDictionary<string, ModelMaterial> Materials);
 public sealed record PlacedSceneAgent(SceneAgentNode Node, ScenePlacement Placement);
 
 public sealed class ScenePlan
 {
     private string? contentIdentity;
     internal ScenePlan(string id, IEnumerable<string> identities, IEnumerable<PlacedSceneBox> boxes,
-        IEnumerable<PlacedSceneMesh> meshes, IEnumerable<PlacedSceneAgent> agents)
+        IEnumerable<PlacedSceneMesh> meshes, IEnumerable<PlacedSceneAgent> agents, IEnumerable<PlacedSceneModel> models)
     {
         Id = id;
         Identities = identities.Order(StringComparer.Ordinal).ToImmutableArray();
         Boxes = boxes.ToImmutableArray();
         Meshes = meshes.ToImmutableArray();
+        Models = models.ToImmutableArray();
         Agents = agents.OrderBy(agent => agent.Placement.Id, StringComparer.Ordinal).ToImmutableArray();
     }
 
@@ -41,6 +45,7 @@ public sealed class ScenePlan
     public ImmutableArray<string> Identities { get; }
     public ImmutableArray<PlacedSceneBox> Boxes { get; }
     public ImmutableArray<PlacedSceneMesh> Meshes { get; }
+    public ImmutableArray<PlacedSceneModel> Models { get; }
     public ImmutableArray<PlacedSceneAgent> Agents { get; }
     public SceneInstance Mount() => SceneInstance.Mount(this);
 
@@ -48,7 +53,7 @@ public sealed class ScenePlan
     {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
-        writer.Write("aurelian.scene.v2");
+        writer.Write(Models.IsEmpty ? "aurelian.scene.v2" : "aurelian.scene.v3");
         writer.Write(Id);
         writer.Write(Identities.Length);
         foreach (string id in Identities)
@@ -86,6 +91,46 @@ public sealed class ScenePlan
                 WriteVector(writer, vertex.Position);
                 WriteVector(writer, vertex.Normal);
                 WriteColor(writer, vertex.Color);
+            }
+        }
+        if (!Models.IsEmpty)
+        {
+            writer.Write(Models.Length);
+            foreach (PlacedSceneModel model in Models)
+            {
+                writer.Write(model.Id);
+                WriteMatrix(writer, model.WorldTransform);
+                writer.Write(model.Asset.Id);
+                writer.Write(model.InitialContentIdentity);
+                writer.Write(model.Materials.Count);
+                foreach (var pair in model.Materials.OrderBy(item => item.Key, StringComparer.Ordinal))
+                {
+                    writer.Write(pair.Key);
+                    ModelMaterial material = pair.Value;
+                    WriteColor(writer, material.BaseColor);
+                    writer.Write(material.Metallic);
+                    writer.Write(material.Roughness);
+                    WriteVector(writer, material.Emissive);
+                    writer.Write(material.NormalScale);
+                    writer.Write(material.OcclusionStrength);
+                    writer.Write(material.Unlit);
+                    writer.Write(material.DoubleSided);
+                    writer.Write(material.AlphaMask);
+                    writer.Write(material.AlphaCutoff);
+                    foreach (ModelTextureBinding? binding in material.Textures())
+                    {
+                        writer.Write(binding is not null);
+                        if (binding is null) continue;
+                        writer.Write(binding.Texture.Identity);
+                        writer.Write(binding.Texture.Width);
+                        writer.Write(binding.Texture.Height);
+                        writer.Write(SHA256.HashData(binding.Texture.Rgba.AsSpan()));
+                        writer.Write(binding.Sampler.LinearMin);
+                        writer.Write(binding.Sampler.LinearMag);
+                        writer.Write((int)binding.Sampler.WrapU);
+                        writer.Write((int)binding.Sampler.WrapV);
+                    }
+                }
             }
         }
         writer.Write(Agents.Length);
@@ -140,7 +185,7 @@ public static class SceneCompiler
         var compiler = new Compilation();
         ValidateSegment(document.Id);
         compiler.Children(document.Children, "", document.Transform.Matrix(), 0);
-        return new ScenePlan(document.Id, compiler.Identities, compiler.Boxes, compiler.Meshes, compiler.Agents);
+        return new ScenePlan(document.Id, compiler.Identities, compiler.Boxes, compiler.Meshes, compiler.Agents, compiler.Models);
     }
 
     internal static void ValidateSegment(string id)
@@ -157,6 +202,7 @@ public static class SceneCompiler
         public HashSet<string> Identities { get; } = new(StringComparer.Ordinal);
         public List<PlacedSceneBox> Boxes { get; } = [];
         public List<PlacedSceneMesh> Meshes { get; } = [];
+        public List<PlacedSceneModel> Models { get; } = [];
         public List<PlacedSceneAgent> Agents { get; } = [];
 
         public void Children(ImmutableArray<SceneNode> children, string prefix, Matrix4x4 parent, int depth)
@@ -234,6 +280,22 @@ public static class SceneCompiler
                             SourceIdentity = mesh.SourceIdentity,
                             TriangleFaces = mesh.TriangleFaces,
                         });
+                        break;
+                    case SceneModel model:
+                        ArgumentNullException.ThrowIfNull(model.Asset);
+                        StaticModel asset = model.Asset.Current;
+                        var slots = asset.Occurrences.Select(item => item.Primitive.Material.Slot).ToHashSet(StringComparer.Ordinal);
+                        foreach (var pair in model.Materials)
+                        {
+                            if (!slots.Contains(pair.Key) || pair.Value.Slot != pair.Key)
+                                throw new InvalidDataException($"Model '{id}' has an unknown or mismatched material override '{pair.Key}'.");
+                            foreach (ModelPrimitive primitive in asset.Occurrences.Select(item => item.Primitive)
+                                .Where(item => item.Material.Slot == pair.Key))
+                            {
+                                primitive.ValidateMaterial(pair.Value);
+                            }
+                        }
+                        Models.Add(new(id, world, model.Asset, asset.ContentIdentity, model.Materials));
                         break;
                     case SceneAgentNode agent:
                         var placement = new ScenePlacement(id, agent.Name, world);

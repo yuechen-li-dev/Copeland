@@ -58,7 +58,8 @@ public sealed class NativeGameGraphics : IDisposable
                 _ => throw new NotSupportedException("Unsupported swapchain format: " + Swapchain.Facts.SelectedFormat),
             };
             Target = Own(new VulkanNativeFrameTarget(Plant, Swapchain.Facts.Width, Swapchain.Facts.Height, format));
-            Renderer = Own(new VulkanSolid3DRenderer(Plant, assets.Shader("Solid3D.v.ts"), Target));
+            Renderer = Own(new VulkanSolid3DRenderer(Plant, assets.Shader("Solid3D.v.ts"), Target,
+                modelProgram: assets.Shader("StaticModel3D.v.ts")));
             Presenter = Own(new VulkanNativeSwapchainPresenter(Plant, Target, Swapchain));
             Font = AurelianNativeUiFont.Create(assets.FontDirectory());
             Menus = Own(new GameMenuNativePresenter(Plant, Target,
@@ -82,6 +83,9 @@ public sealed class NativeGameGraphics : IDisposable
 
     public Native3DFrameResult Render(Native3DVertex[] vertices, Matrix4x4 camera, bool capture = false) =>
         Renderer.Render(vertices, camera, Clear, capture);
+
+    public Native3DFrameResult Render(Native3DScene scene, Matrix4x4 camera, Vector3 eye, bool capture = false) =>
+        Renderer.Render(scene, camera, eye, Clear, capture);
 
     public static void WritePng(string path, int width, int height, byte[] pixels)
     {

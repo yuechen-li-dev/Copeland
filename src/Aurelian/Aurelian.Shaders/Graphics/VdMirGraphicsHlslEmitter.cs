@@ -47,6 +47,11 @@ public static class VdMirGraphicsHlslEmitter
         HashSet<string> entryNames = module.EntryPoints.Select(entry => entry.Name).ToHashSet(StringComparer.Ordinal);
         foreach (VdMirFunction function in module.Functions.Where(function => !entryNames.Contains(function.Name)))
         {
+            builder.AppendLine(FunctionSignature(function, module) + ";");
+        }
+        builder.AppendLine();
+        foreach (VdMirFunction function in module.Functions.Where(function => !entryNames.Contains(function.Name)))
+        {
             EmitFunction(builder, function, module);
             builder.AppendLine();
         }
@@ -94,12 +99,17 @@ public static class VdMirGraphicsHlslEmitter
         builder.AppendLine("};");
     }
 
-    private static void EmitFunction(StringBuilder builder, VdMirFunction function, VdMirGraphicsModule module)
+    private static string FunctionSignature(VdMirFunction function, VdMirGraphicsModule module)
     {
         string parameters = string.Join(", ", function.Parameters
             .Where(parameter => module.Streams.All(stream => stream.Name != parameter.Type || stream.Role != VdMirStreamRole.Resource))
             .Select(parameter => $"{MapType(parameter.Type, module)} {parameter.Name}"));
-        builder.AppendLine($"{MapType(function.ReturnType, module)} {function.Name}({parameters})");
+        return $"{MapType(function.ReturnType, module)} {function.Name}({parameters})";
+    }
+
+    private static void EmitFunction(StringBuilder builder, VdMirFunction function, VdMirGraphicsModule module)
+    {
+        builder.AppendLine(FunctionSignature(function, module));
         builder.AppendLine("{");
         foreach (VdMirStatement statement in function.Statements)
         {

@@ -12,5 +12,6 @@
   <ItemGroup>
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj" />
     <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/RayQuery.v.ts" Link="Assets/RayQuery.v.ts" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/StaticModel3D.v.ts" Link="Assets/StaticModel3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

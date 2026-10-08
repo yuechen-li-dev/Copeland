@@ -13,3 +13,5 @@ Games own their rules, authored agents, content, save schemas and proof scenario
 Each game's tests live alongside its application. TinyFarm's CLI, playtesting adapter, Oblivion adapter and example scripts also live under its game directory. Project names and public namespaces are preserved.
 
 See the [starter API guide](../docs/Aurelian/game-starter.md) for a small C# entry point, concept composition, customization and automated playtesting.
+
+Use `starter.cmd --asset-demo` for the textured GLB example. The [static asset guide](../docs/Aurelian/static-assets.md) covers Blender authoring, materials, instances, delivery and explicit replacement.

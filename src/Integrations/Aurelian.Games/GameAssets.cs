@@ -24,7 +24,15 @@ public sealed class GameAssets
         {
             throw new InvalidOperationException(string.Join("; ", module.Diagnostics.Select(item => item.Message)));
         }
-        CompiledGraphicsProgram program = CompiledGraphicsProgramExporter.Export(module, VdMirGraphicsBackend.Compile(module));
+        // Core graphics needs no optional Vulkan 1.3 demote feature; MASK lowers to the core discard instruction.
+        var backend = VdMirGraphicsBackend.Compile(module, targetEnvironment: "vulkan1.2");
+        if (!backend.Vertex.SpirvValidated || !backend.Pixel.SpirvValidated)
+        {
+            throw new InvalidOperationException($"Shader '{name}' failed validation: "
+                + backend.Vertex.DxcOutput + backend.Vertex.SpirvValidationOutput
+                + backend.Pixel.DxcOutput + backend.Pixel.SpirvValidationOutput);
+        }
+        CompiledGraphicsProgram program = CompiledGraphicsProgramExporter.Export(module, backend);
         programs.Add(name, program);
         return program;
     }

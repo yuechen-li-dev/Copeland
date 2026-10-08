@@ -16,6 +16,7 @@ using Aurelian.Graphics.Vulkan.Resources.Buffers;
 using Aurelian.Graphics.Vulkan.Resources.Textures;
 using Aurelian.Graphics.Vulkan.Sync;
 using Aurelian.Rendering.Contracts.Shaders;
+using Aurelian.Rendering.Contracts.Models;
 using Silk.NET.Vulkan;
 
 namespace Aurelian.Graphics.Vulkan.Native3D;
@@ -43,13 +44,15 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
     private readonly DescriptorSetLayout setLayout;
     private readonly DescriptorPool descriptorPool;
     private readonly DescriptorSet descriptorSet;
+    private readonly VulkanModel3DBatches? modelRenderer;
     private bool disposed;
 
     public VulkanSolid3DRenderer(
         AurelianVulkanPlant plant,
         CompiledGraphicsProgram program,
         VulkanNativeFrameTarget target,
-        bool enableDepth = true)
+        bool enableDepth = true,
+        CompiledGraphicsProgram? modelProgram = null)
     {
         ArgumentNullException.ThrowIfNull(plant);
         ArgumentNullException.ThrowIfNull(program);
@@ -101,6 +104,8 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
             camera = VulkanNativeForwardTexturedRenderer.CreateMappedBuffer(
                 plant, allocator, 64, VulkanBufferUsage.Uniform, VulkanMemoryUsage.CpuToGpu, "solid3d.camera");
             (descriptorPool, descriptorSet) = CreateCameraDescriptor();
+            if (modelProgram is not null)
+                modelRenderer = new(plant, allocator, commandPool, fences, renderPass, modelProgram);
         }
         catch
         {
@@ -109,15 +114,31 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         }
     }
 
+    public void Prepare(StaticModel model)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        if (modelRenderer is null) throw new InvalidOperationException("StaticModel3D shader was not configured.");
+        modelRenderer.Prepare(model);
+    }
+
+    public Native3DFrameResult Render(Native3DScene scene, Matrix4x4 worldToClip, Vector3 eye,
+        NativeFrameClearColor clearColor, bool capture = false)
+    {
+        return Render(scene.Geometry, worldToClip, clearColor, capture, scene.Models, eye);
+    }
+
     public Native3DFrameResult Render(
         ReadOnlySpan<Native3DVertex> geometry,
         Matrix4x4 worldToClip,
         NativeFrameClearColor clearColor,
-        bool capture = false)
+        bool capture = false,
+        IReadOnlyList<NativeModel3DBatch>? models = null,
+        Vector3 eye = default)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         target.ValidateExternalPass(plant);
-        if (geometry.IsEmpty || geometry.Length % 3 != 0 || geometry.Length > MaximumVertices)
+        models ??= [];
+        if ((geometry.IsEmpty && models.Count == 0) || geometry.Length % 3 != 0 || geometry.Length > MaximumVertices)
         {
             throw new ArgumentException("Geometry must contain 1..65536 vertices in complete triangles.", nameof(geometry));
         }
@@ -144,8 +165,13 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         {
             throw new ArgumentOutOfRangeException(nameof(clearColor));
         }
-        Require(vertices.Write(MemoryMarshal.AsBytes(geometry)).Success, "Vertex upload failed.");
+        if (!geometry.IsEmpty) Require(vertices.Write(MemoryMarshal.AsBytes(geometry)).Success, "Vertex upload failed.");
         Require(camera.Write(MemoryMarshal.AsBytes(cameraRows.AsSpan())).Success, "Camera upload failed.");
+        if (models.Count > 0)
+        {
+            if (modelRenderer is null) throw new InvalidOperationException("StaticModel3D shader was not configured.");
+        }
+        modelRenderer?.Upload(models, worldToClip, eye);
         VulkanCommandBufferLease command = commandPool.Rent(fences.CommandListFence.LastKnownCompletedValue);
         Require(command.Begin().Success, "3D command begin failed.");
         var encoder = new VulkanRenderPassCommandEncoder();
@@ -155,11 +181,15 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         DescriptorSet set = descriptorSet;
         plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Graphics,
             pipeline.NativePipelineLayout, 0, 1, &set, 0, null);
-        var draw = new VulkanDrawCommandEncoder().DrawVertices(plant, command, begin.Scope!.Value,
-            new VulkanDrawVerticesRequest(pipeline, vertices, (uint)geometry.Length, 0,
-                VulkanViewportScissor.FromFramebuffer(framebuffer)));
-        Require(draw.Success, string.Join("; ", draw.Diagnostics.Select(item => item.Message)));
-        Require(encoder.End(plant, command, begin.Scope.Value).Success, "3D render pass end failed.");
+        if (!geometry.IsEmpty)
+        {
+            var draw = new VulkanDrawCommandEncoder().DrawVertices(plant, command, begin.Scope!.Value,
+                new VulkanDrawVerticesRequest(pipeline, vertices, (uint)geometry.Length, 0,
+                    VulkanViewportScissor.FromFramebuffer(framebuffer)));
+            Require(draw.Success, string.Join("; ", draw.Diagnostics.Select(item => item.Message)));
+        }
+        if (models.Count > 0) modelRenderer!.Draw(command, begin.Scope!.Value, framebuffer, models);
+        Require(encoder.End(plant, command, begin.Scope!.Value).Success, "3D render pass end failed.");
         Require(command.End().Success, "3D command end failed.");
         var submit = submitter.Submit(new VulkanCommandSubmitRequest(command,
             WaitForCompletion: true, TimeoutNanoseconds: 5_000_000_000, DebugName: "solid3d.draw"));
@@ -167,9 +197,9 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         if (capture)
         {
             var readback = target.Capture();
-            return new Native3DFrameResult(geometry.Length / 3, readback.Pixels, readback.Hash);
+            return new Native3DFrameResult((geometry.Length + models.Sum(item => item.Vertices.Length)) / 3, readback.Pixels, readback.Hash);
         }
-        return new Native3DFrameResult(geometry.Length / 3, null, null);
+        return new Native3DFrameResult((geometry.Length + models.Sum(item => item.Vertices.Length)) / 3, null, null);
     }
 
     private (DescriptorPool Pool, DescriptorSet Set) CreateCameraDescriptor()
@@ -247,6 +277,7 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         }
         disposed = true;
         _ = plant.Vk.DeviceWaitIdle(plant.Device);
+        modelRenderer?.Dispose();
         pipeline?.Dispose();
         if (descriptorPool.Handle != 0)
         {

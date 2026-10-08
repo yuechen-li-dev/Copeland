@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Integrations/Aurelian.Games/Aurelian.Games.csproj" />
+    <Content Include="../../src/Aurelian/Aurelian.Shaders/Assets/StaticModel3D.v.ts" Link="StaticModel3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

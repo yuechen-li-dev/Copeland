@@ -180,7 +180,7 @@ public static class GameStarter
 
         private void Render(string? path)
         {
-            graphics.Render(game.BuildScene(), game.Camera((float)graphics.Target.Width / graphics.Target.Height));
+            graphics.Render(game.BuildRenderScene(), game.Camera((float)graphics.Target.Width / graphics.Target.Height), game.CameraEye);
             var frame = game.Menu is { } menu
                 ? graphics.Menus.Render(menus, menu, game.SelectedIndex, capture: path is not null)
                 : graphics.Menus.RenderPrepared(hud.Prepare(game), capture: path is not null);

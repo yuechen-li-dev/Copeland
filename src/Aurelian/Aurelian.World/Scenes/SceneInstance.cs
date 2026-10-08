@@ -2,7 +2,10 @@ using System.Collections.Immutable;
 
 namespace Aurelian.World.Scenes;
 
-public sealed record SceneFrame(ImmutableArray<PlacedSceneBox> Boxes, ImmutableArray<PlacedSceneMesh> Meshes);
+public sealed record SceneFrame(ImmutableArray<PlacedSceneBox> Boxes, ImmutableArray<PlacedSceneMesh> Meshes)
+{
+    public ImmutableArray<PlacedSceneModel> Models { get; init; } = [];
+}
 
 /// <summary>Explicit mount/spawn/despawn ownership. Rendering never reinitializes simulation state.</summary>
 public sealed class SceneInstance : IDisposable
@@ -115,6 +118,7 @@ public sealed class SceneInstance : IDisposable
         ObjectDisposedException.ThrowIf(disposed, this);
         var boxes = Plan.Boxes.ToBuilder();
         var meshes = Plan.Meshes.ToBuilder();
+        var models = Plan.Models.ToBuilder();
         foreach (SceneAgent agent in Agents)
         {
             if (visible is not null && !visible(agent))
@@ -133,6 +137,12 @@ public sealed class SceneInstance : IDisposable
                 SceneTransform.ValidateMatrix(world);
                 boxes.Add(box with { Id = agent.Id + "." + box.Id, WorldTransform = world });
             }
+            foreach (PlacedSceneModel model in visual.Models)
+            {
+                var world = model.WorldTransform * transform;
+                SceneTransform.ValidateMatrix(world);
+                models.Add(model with { Id = agent.Id + "." + model.Id, WorldTransform = world });
+            }
             foreach (PlacedSceneMesh mesh in visual.Meshes)
             {
                 var world = mesh.WorldTransform * transform;
@@ -140,7 +150,7 @@ public sealed class SceneInstance : IDisposable
                 meshes.Add(mesh with { Id = agent.Id + "." + mesh.Id, WorldTransform = world });
             }
         }
-        return new(boxes.ToImmutable(), meshes.ToImmutable());
+        return new(boxes.ToImmutable(), meshes.ToImmutable()) { Models = models.ToImmutable() };
     }
 
     public void Dispose()

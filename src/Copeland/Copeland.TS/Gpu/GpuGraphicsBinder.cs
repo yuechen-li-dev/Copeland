@@ -218,8 +218,12 @@ public static class GpuGraphicsBinder
                     && fields[1].Name == "clipY" && fields[1].Type == "float4"
                     && fields[2].Name == "clipZ" && fields[2].Type == "float4"
                     && fields[3].Name == "clipW" && fields[3].Type == "float4";
+                string[] modelFields = ["clipX", "clipY", "clipZ", "clipW", "eye", "baseColor", "factors", "emissiveAlpha", "flags"];
+                bool isStaticModelMaterial = fields.Count == modelFields.Length
+                    && fields.Select(field => field.Name).SequenceEqual(modelFields)
+                    && fields.All(field => field.Type == "float4");
                 if (!isForwardMaterial && !isMsdfTextMaterial && !isAnalyticShapeMaterial
-                    && !isSoftShockwaveMaterial && !isSemanticFogMaterial && !isCameraMaterial)
+                    && !isSoftShockwaveMaterial && !isSemanticFogMaterial && !isCameraMaterial && !isStaticModelMaterial)
                 {
                     Add(
                         "COPE-GPU-MATERIAL-0003",

@@ -137,3 +137,19 @@ artifacts/aurelian-spatial3d/**/inputs.json
 artifacts/aurelian-spatial3d/**/script.json
 artifacts/aurelian-spatial3d/**/*.log
 artifacts/aurelian-spatial3d/room-rebaked.json
+
+# Static GLB qualification retains evidence and captures, excluding temporary deliveries and runner data.
+artifacts/aurelian-static-assets/**/working/
+artifacts/aurelian-static-assets/**/saves/
+artifacts/aurelian-static-assets/tests/
+artifacts/aurelian-static-assets/full-tests/
+artifacts/aurelian-static-assets/final-tests/
+artifacts/aurelian-static-assets/closeout-tests/
+artifacts/aurelian-static-assets/compiler-tests/
+artifacts/aurelian-static-assets/reflection-disabled-tests/
+artifacts/aurelian-static-assets/delivery/
+artifacts/aurelian-static-assets/**/*.log
+artifacts/aurelian-static-assets/**/trace.jsonl
+artifacts/aurelian-static-assets/**/inputs.json
+artifacts/aurelian-static-assets/**/script.json
+Games/Starter/Aurelian.Starter/Assets/Models/*.blend1

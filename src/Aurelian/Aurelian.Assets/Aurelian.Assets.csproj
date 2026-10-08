@@ -8,6 +8,8 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Tomlyn" />
+    <PackageReference Include="SharpGLTF.Core" />
+    <PackageReference Include="SkiaSharp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />

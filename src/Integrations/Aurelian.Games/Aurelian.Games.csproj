@@ -11,10 +11,12 @@
     <ProjectReference Include="../Aurelian.Playtesting/Aurelian.Playtesting.csproj" />
     <ProjectReference Include="../Aurelian.Audio.NAudio/Aurelian.Audio.NAudio.csproj" />
     <ProjectReference Include="../../Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj" />
+    <ProjectReference Include="../../Aurelian/Aurelian.Assets/Aurelian.Assets.csproj" />
     <ProjectReference Include="../../Aurelian/Aurelian.Runtime/Aurelian.Runtime.csproj" />
     <ProjectReference Include="../../Aurelian/Aurelian.Combat/Aurelian.Combat.csproj" />
     <PackageReference Include="SkiaSharp" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/Solid3D.v.ts" LogicalName="Aurelian.Games.Solid3D.v.ts" />
+    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/StaticModel3D.v.ts" LogicalName="Aurelian.Games.StaticModel3D.v.ts" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/RayQuery.v.ts" LogicalName="Aurelian.Games.RayQuery.v.ts" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/AnalyticShape2D.v.ts" LogicalName="Aurelian.Games.AnalyticShape2D.v.ts" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/MsdfText.v.ts" LogicalName="Aurelian.Games.MsdfText.v.ts" />

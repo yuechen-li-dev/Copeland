@@ -1,0 +1,4 @@
+[[models]]
+id = "starter.crate"
+path = "Models/crate.glb"
+scale = 1.0

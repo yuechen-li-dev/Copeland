@@ -9,5 +9,6 @@
     <ProjectReference Include="../../../src/Integrations/Aurelian.Games/Aurelian.Games.csproj" />
     <ProjectReference Include="../../../src/Integrations/Aurelian.Aetheris/Aurelian.Aetheris.csproj" />
     <Content Include="../../../Games/Starter/Aurelian.Starter/Assets/room.aurelian.json" Link="Assets/room.aurelian.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../Games/Starter/Aurelian.Starter/Assets/Models/*.glb" Link="Assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

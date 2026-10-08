@@ -11,5 +11,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Assets/Aurelian.Assets.csproj" />
+    <Content Include="../../../Games/Starter/Aurelian.Starter/Assets/Models/*.glb" Link="Assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

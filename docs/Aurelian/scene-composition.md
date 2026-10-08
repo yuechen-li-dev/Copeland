@@ -2,6 +2,8 @@
 
 A scene is an immutable document of named nodes. Groups establish local transforms and instance namespaces. Fragments can be reused without sharing live state. Ordinary C# records and `with` customize an agent's configuration; mounting the document creates its runtime instances.
 
+`Scene.Model` places a retained static model asset with named material overrides. See the [GLB asset workflow](static-assets.md) for texture/material rendering and explicit replacement. Model nodes are presentation only; collision remains explicitly authored.
+
 `Aurelian.World.Scenes` owns the portable authoring, compiler, typed state handles and explicit lifecycle. It requires neither graphics nor Dominatus. `Aurelian.NativeComposition.SceneGeometry3D` projects box and triangle facts through the existing native geometry/renderer path. `Aurelian.Runtime.Dominatus.Inspection.ScenePolicyBinding` attaches policy instances to the existing inspected Dominatus world; it introduces no additional clock or scheduler.
 
 ## Author a game scene
