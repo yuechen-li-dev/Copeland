@@ -1,5 +1,6 @@
 using Aurelian.GameMenus;
 using Aurelian.Spatial3D;
+using Aurelian.Games;
 
 namespace Aurelian.Beacon3D;
 
@@ -14,7 +15,7 @@ public enum BeaconScreen
 }
 
 /// <summary>Game-owned actions and transitions; the engine supplies menu presentation and navigation.</summary>
-public sealed class BeaconApplication(int traceCapacity = 0) : IDisposable
+public sealed class BeaconApplication(int traceCapacity = 0, HumanoidPlayerOptions? humanoid = null) : IDisposable
 {
     private readonly GameMenuNavigation navigation = new();
     private IRayQueryWorld3D? rayQueries;
@@ -27,7 +28,7 @@ public sealed class BeaconApplication(int traceCapacity = 0) : IDisposable
         Game.UseRayQueries(backend);
     }
 
-    public BeaconGame Game { get; private set; } = new(traceCapacity: traceCapacity);
+    public BeaconGame Game { get; private set; } = new(traceCapacity: traceCapacity, humanoid: humanoid);
     public BeaconScreen Screen { get; private set; } = BeaconScreen.Title;
     public int SelectedIndex => navigation.SelectedIndex;
     public bool ExitRequested { get; private set; }
@@ -61,9 +62,10 @@ public sealed class BeaconApplication(int traceCapacity = 0) : IDisposable
                 SetScreen(BeaconScreen.Paused);
                 return;
             }
+            if (commands.Movement.SwitchView) Game.ToggleView();
             if (seconds > 0)
             {
-                Game.Step(commands.Movement, seconds);
+                Game.Step(commands.Movement with { SwitchView = false }, seconds);
             }
             if (Game.Dead)
             {
@@ -98,7 +100,7 @@ public sealed class BeaconApplication(int traceCapacity = 0) : IDisposable
             case "new-game":
             case "restart":
                 Game.Dispose();
-                Game = new BeaconGame(traceCapacity: traceCapacity);
+                Game = new BeaconGame(traceCapacity: traceCapacity, humanoid: humanoid);
                 if (rayQueries is not null) Game.UseRayQueries(rayQueries);
                 SetScreen(BeaconScreen.Playing);
                 break;

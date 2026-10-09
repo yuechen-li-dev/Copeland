@@ -12,20 +12,21 @@ using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Aurelian.World.Scenes;
 using Aurelian.Spatial3D.Vulkan;
+using Aurelian.Runtime;
 
 namespace Aurelian.Games;
 
 public static class GameStarter
 {
     public static StarterGame Create(string id, IEnumerable<GameConcept> concepts, StarterOptions? options = null,
-        string? saveDirectory = null, SceneGroup? sceneDocument = null)
+        string? saveDirectory = null, SceneGroup? sceneDocument = null, HumanoidPlayerOptions? humanoid = null)
     {
-        return new(id, new GameDefinition(concepts), options, saveDirectory, sceneDocument: sceneDocument);
+        return new(id, new GameDefinition(concepts), options, saveDirectory, sceneDocument: sceneDocument, humanoid: humanoid);
     }
 
     /// <summary>One explicit bootstrap for native, scripted native and deterministic headless execution.</summary>
     public static void Run(string id, IEnumerable<GameConcept> concepts, string[] args, StarterOptions? options = null,
-        Action<StarterGame>? configure = null, SceneGroup? sceneDocument = null)
+        Action<StarterGame>? configure = null, SceneGroup? sceneDocument = null, HumanoidPlayerOptions? humanoid = null)
     {
         GameDefinition definition = new(concepts);
         options ??= new();
@@ -43,7 +44,7 @@ public static class GameStarter
             if (NAudioOutputBackend.TryCreate(out NAudioOutputBackend? nativeAudio, out string? error)) backend = nativeAudio!;
             else Console.Error.WriteLine("Audio device unavailable; using null output: " + error);
         }
-        using var game = new StarterGame(id, definition, options, Option(args, "--save-root"), backend, sceneDocument);
+        using var game = new StarterGame(id, definition, options, Option(args, "--save-root"), backend, sceneDocument, humanoid);
         configure?.Invoke(game);
         if (headless)
         {
@@ -76,6 +77,7 @@ public static class GameStarter
         {
             RunPlaytest(new StarterPlaytestTarget(game, menus, session.CaptureOrPresent), script, output);
             Console.WriteLine($"AURELIAN_RAY_QUERY_DISPATCHES count={rayQueries?.DispatchCount ?? 0}");
+            Console.WriteLine($"AURELIAN_HUMANOID_GPU_DISPATCHES count={session.CharacterDispatches}");
             return;
         }
         using var host = new AurelianGameHost(new SilkGameWindowAdapter(window), session, session, session, id);
@@ -120,9 +122,11 @@ public static class GameStarter
         private readonly GameMenuView menus;
         private readonly StarterHud hud;
         private readonly CapturedGameInput captured;
+        private readonly HumanoidGamePresenter? humanoid;
         private readonly Queue<LayerInputEvent> events = new();
         private bool disposed;
         private ulong sequence;
+        public int CharacterDispatches => humanoid?.DispatchCount ?? 0;
 
         public NativeSession(StarterGame game, IWindow window, IInputContext input, NativeGameGraphics graphics,
             GameMenuView menus, bool manageFocus)
@@ -132,6 +136,10 @@ public static class GameStarter
             this.graphics = graphics;
             this.menus = menus;
             hud = new(graphics.Font);
+            if (game.HumanoidOptions is { } options)
+            {
+                humanoid = new(graphics.Plant, options);
+            }
             captured = new CapturedGameInput(window, input, game.Controls.Adapter, manageFocus,
                 events.Enqueue, () => { events.Clear(); menus.CancelPointer(); }, game.Pause);
         }
@@ -180,7 +188,11 @@ public static class GameStarter
 
         private void Render(string? path)
         {
-            graphics.Render(game.BuildRenderScene(), game.Camera((float)graphics.Target.Width / graphics.Target.Height), game.CameraEye);
+            var character = game.HumanoidPlayer;
+            var gpuGeometry = character is null ? null : humanoid!.Present(game.CharacterPose!, character.WorldTransform,
+                game.View == CameraView.ThirdPerson);
+            graphics.Render(game.BuildRenderScene(), game.Camera((float)graphics.Target.Width / graphics.Target.Height),
+                game.CameraEye, gpuGeometry: gpuGeometry);
             var frame = game.Menu is { } menu
                 ? graphics.Menus.Render(menus, menu, game.SelectedIndex, capture: path is not null)
                 : graphics.Menus.RenderPrepared(hud.Prepare(game), capture: path is not null);
@@ -193,6 +205,7 @@ public static class GameStarter
             if (disposed) return;
             disposed = true;
             captured.Dispose();
+            humanoid?.Dispose();
         }
     }
 }

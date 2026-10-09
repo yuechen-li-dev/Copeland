@@ -20,6 +20,7 @@ artifacts/m*/
 artifacts/derived/
 artifacts/local/vd-wgsl-x0/
 artifacts/local/character-animation*/
+artifacts/local/playable-humanoid*
 artifacts/character-animation/
 artifacts/canonical-playback/
 artifacts/repo-hygiene/playback-validation/

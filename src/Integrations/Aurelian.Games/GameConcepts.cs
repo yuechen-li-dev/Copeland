@@ -11,6 +11,7 @@ public enum GameConcept
     ThirdPersonCamera,
     ThirdPersonControl,
     ReloadableGuns,
+    HumanoidPresentation,
 }
 
 /// <summary>Presets use exactly the same composition path as hand-written fragments.</summary>

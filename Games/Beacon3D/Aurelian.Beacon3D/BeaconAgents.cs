@@ -1,10 +1,12 @@
 using System.Numerics;
 using Aurelian.World.Agents;
 using Aurelian.World.Scenes;
+using Aurelian.Humanoid;
 
 namespace Aurelian.Beacon3D;
 
-public sealed record BeaconAgentState(Vector3 Position, int Health, bool Collected = false, float Cooldown = 0);
+public sealed record BeaconAgentState(Vector3 Position, int Health, bool Collected = false, float Cooldown = 0,
+    CharacterAnimationState? Animation = null);
 public sealed record BeaconBolt(Vector3 Position, Vector3 Velocity, float Life);
 
 public sealed record BeaconAgentDefinition(AgentTemplate AgentTemplate, int MaximumHealth)
@@ -12,8 +14,9 @@ public sealed record BeaconAgentDefinition(AgentTemplate AgentTemplate, int Maxi
 {
     public string PolicyIdentity { get; init; } = "none";
     public Func<SceneAgent<BeaconAgentState>, IDisposable?>? AttachPolicy { get; init; }
+    public CharacterAnimationState? InitialAnimation { get; init; }
     public override string Identity => $"{Template.Id}.v1:{MaximumHealth}:{PolicyIdentity}";
-    public override BeaconAgentState CreateState(ScenePlacement placement) => new(placement.Position, MaximumHealth);
+    public override BeaconAgentState CreateState(ScenePlacement placement) => new(placement.Position, MaximumHealth, Animation: InitialAnimation);
     public override Matrix4x4 WorldTransform(BeaconAgentState state, ScenePlacement placement) => placement.At(state.Position);
 
     public override void ValidatePlacement(ScenePlacement placement)

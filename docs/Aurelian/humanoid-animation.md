@@ -52,8 +52,65 @@ time and the current transition source. Position and heading can be customized
 with ordinary `with` assignment. Scene placement initializes both position and
 yaw. This profile admits upright rigid placements; scaling and tilted placements
 fail rather than being silently discarded. Animation state is a typed application
-record; full save/rewind capture of that record must be supplied by the game.
-The inspection trace alone is not a complete animation-state snapshot.
+record. The game starter captures that record and the presentation policy through
+Deliverance. The inspection trace alone is not a complete animation-state snapshot.
+
+## Playable character fragment
+
+Compose humanoid presentation with the starter's movement, cameras, guns, menus
+and saves. Reference `Aurelian.Games` and load the explicit body before opening
+the window:
+
+```csharp
+var humanoid = HumanoidPlayerOptions.Load(bodyPath) with
+{
+    Attachments = [HumanoidPlayerOptions.PlaceholderWeapon()],
+    // Animations = myAnimationSet,
+};
+GameStarter.Run("my-game",
+    [.. GamePresets.FirstPersonShooter,
+        GameConcept.ThirdPersonCamera,
+        GameConcept.ThirdPersonControl,
+        GameConcept.HumanoidPresentation],
+    args, humanoid: humanoid);
+```
+
+The same human-controlled scene agent owns position, heading and animation.
+Collision-resolved horizontal speed and grounded state feed its Dominatus policy;
+aiming takes priority while moving. Camera changes preserve the actor's state.
+First-person view hides the body; third-person view draws the retained GPU body.
+Paused menus stop movement and animation. Airborne movement currently uses Idle;
+dedicated jump and landing clips can follow.
+
+Attachments name an anatomical joint and carry immutable scene geometry plus an
+offset in bone-local metres. They follow the solved joint and actor placement.
+Attachment content cannot contain agents or collision. The default profile is
+unarmed; these applications explicitly add the placeholder wrist-mounted weapon.
+This is a rigid visual mount, without grip IK.
+
+Assign `Animations` to replace clips. Every authored key is checked by Aetheris
+before startup. Body revision, clip contents and attachments participate in save
+compatibility, including changed keys with unchanged clip names.
+
+Starter snapshots include clip phase, interrupted blend source and the Dominatus
+policy checkpoint. This particular policy uses steady actions with no timers or
+commitments, so its cold checkpoint resumes the same presentation. This does not
+make arbitrary coroutine checkpoints exact; use shared input replay for general
+rewind.
+
+Run from the repository root:
+
+```powershell
+.\humanoid-starter.cmd
+.\humanoid-starter.cmd --playtest-script Games/Starter/Playtests/humanoid-proof.json --output artifacts/local/playable-humanoid-starter --save-root artifacts/local/playable-humanoid-starter/saves
+.\beacon3d.cmd --humanoid ../Aetheris/artifacts/local/humanoid-production/antonia.gameplay-body.json --playtest-script Games/Beacon3D/humanoid-proof.json --output artifacts/local/playable-humanoid-beacon
+```
+
+The starter proof exercises collision, jumping, camera switching, pause,
+Deliverance restoration and input replay with native Vulkan captures. Beacon
+uses its existing player agent and the same policy, clips, attachments and GPU
+presenter. Its proof covers view changes, pause and input replay; Beacon does
+not acquire save slots from this integration.
 
 ## Author clips
 
@@ -103,7 +160,11 @@ test, and these cases do not qualify arbitrary new clips.
 The lab also offers `--launch-smoke` to verify native swapchain presentation.
 It does not prove foot planting, root motion, movement collision, facial/finger
 animation, retargeting, clothing, textures or arbitrary twist combinations.
-Walking is intentionally in place; a game supplies its existing movement state.
+The basic lab walking is intentionally in place; a game supplies its existing
+movement state. The optional game locomotion bank adds root travel and foot IK;
+see [locomotion status and reproduction](humanoid-locomotion.md). Its current
+Mixamo bank has separate, dense surface qualification for the corrected body;
+acceptance of new clips still requires running that proof.
 
 Run the integration unit tests with:
 

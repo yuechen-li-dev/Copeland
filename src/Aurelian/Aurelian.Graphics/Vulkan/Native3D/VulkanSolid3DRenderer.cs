@@ -123,9 +123,9 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
     }
 
     public Native3DFrameResult Render(Native3DScene scene, Matrix4x4 worldToClip, Vector3 eye,
-        NativeFrameClearColor clearColor, bool capture = false)
+        NativeFrameClearColor clearColor, bool capture = false, NativeGpuGeometry3D? gpuGeometry = null)
     {
-        return Render(scene.Geometry, worldToClip, clearColor, capture, scene.Models, eye);
+        return Render(scene.Geometry, worldToClip, clearColor, capture, scene.Models, eye, gpuGeometry);
     }
 
     public Native3DFrameResult Render(

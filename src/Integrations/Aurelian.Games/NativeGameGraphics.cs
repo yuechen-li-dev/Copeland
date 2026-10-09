@@ -84,8 +84,9 @@ public sealed class NativeGameGraphics : IDisposable
     public Native3DFrameResult Render(Native3DVertex[] vertices, Matrix4x4 camera, bool capture = false) =>
         Renderer.Render(vertices, camera, Clear, capture);
 
-    public Native3DFrameResult Render(Native3DScene scene, Matrix4x4 camera, Vector3 eye, bool capture = false) =>
-        Renderer.Render(scene, camera, eye, Clear, capture);
+    public Native3DFrameResult Render(Native3DScene scene, Matrix4x4 camera, Vector3 eye, bool capture = false,
+        NativeGpuGeometry3D? gpuGeometry = null) =>
+        Renderer.Render(scene, camera, eye, Clear, capture, gpuGeometry);
 
     public static void WritePng(string path, int width, int height, byte[] pixels)
     {

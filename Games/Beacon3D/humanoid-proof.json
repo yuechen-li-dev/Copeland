@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "steps": [
+    { "kind": "click-action", "text": "new-game" },
+    { "kind": "tap", "keys": ["V"], "seconds": 0 },
+    { "kind": "command", "command": "assert view ThirdPerson" },
+    { "kind": "wait", "seconds": 0.05 },
+    { "kind": "command", "command": "assert motion Idle" },
+    { "kind": "capture", "path": "beacon-idle.png" },
+    { "kind": "hold", "keys": ["W"], "seconds": 0.1 },
+    { "kind": "command", "command": "assert motion Walk" },
+    { "kind": "capture", "path": "beacon-walk.png" },
+    { "kind": "command", "command": "mark walking" },
+    { "kind": "checkpoint", "text": "walking" },
+    { "kind": "mouse-hold", "text": "Primary", "seconds": 0.15 },
+    { "kind": "command", "command": "assert motion Aim" },
+    { "kind": "capture", "path": "beacon-aim.png" },
+    { "kind": "tap", "keys": ["Escape"], "seconds": 0 },
+    { "kind": "command", "command": "mark paused" },
+    { "kind": "wait", "seconds": 0.1 },
+    { "kind": "command", "command": "assert unchanged paused" },
+    { "kind": "click-action", "text": "resume" },
+    { "kind": "rewind", "text": "walking" },
+    { "kind": "command", "command": "assert unchanged walking" },
+    { "kind": "capture", "path": "beacon-replayed.png" },
+    { "kind": "tap", "keys": ["V"], "seconds": 0 },
+    { "kind": "command", "command": "assert view FirstPerson" },
+    { "kind": "capture", "path": "beacon-first-person.png" }
+  ]
+}

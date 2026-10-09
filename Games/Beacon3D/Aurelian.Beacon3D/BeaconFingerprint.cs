@@ -1,5 +1,7 @@
 using System.Numerics;
 using System.Security.Cryptography;
+using System.Text.Json;
+using Aurelian.Humanoid;
 
 namespace Aurelian.Beacon3D;
 
@@ -12,6 +14,8 @@ public sealed partial class BeaconGame
         using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
         {
             writer.Write(combat);
+            writer.Write((int)View);
+            writer.Write(HumanoidOptions?.Identity ?? "geometric");
             writer.Write(verticalVelocity);
             writer.Write(Yaw);
             writer.Write(Pitch);
@@ -37,6 +41,22 @@ public sealed partial class BeaconGame
                 writer.Write(agent.State.Health);
                 writer.Write(agent.State.Collected);
                 writer.Write(agent.State.Cooldown);
+                writer.Write(agent.State.Animation is not null);
+                if (agent.State.Animation is { } animation)
+                {
+                    writer.Write((int)animation.Motion);
+                    writer.Write(animation.ClipSeconds);
+                    writer.Write(animation.TransitionSeconds);
+                    writer.Write(animation.TransitionFrom.Length);
+                    foreach (var joint in animation.TransitionFrom)
+                    {
+                        writer.Write((int)joint.Joint);
+                        writer.Write(joint.FlexionDegrees);
+                        writer.Write(joint.AbductionDegrees);
+                        writer.Write(joint.TwistDegrees);
+                    }
+                    writer.Write(JsonSerializer.Serialize(animation.Locomotion, HumanoidLocomotionJson.Default.HumanoidLocomotionState));
+                }
             }
             writer.Write(bolts.Count);
             foreach (var bolt in bolts)

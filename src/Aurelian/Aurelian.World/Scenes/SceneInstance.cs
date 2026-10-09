@@ -1,10 +1,27 @@
 using System.Collections.Immutable;
+using System.Numerics;
 
 namespace Aurelian.World.Scenes;
 
 public sealed record SceneFrame(ImmutableArray<PlacedSceneBox> Boxes, ImmutableArray<PlacedSceneMesh> Meshes)
 {
     public ImmutableArray<PlacedSceneModel> Models { get; init; } = [];
+
+    public SceneFrame Transformed(Matrix4x4 transform, string prefix)
+    {
+        SceneTransform.ValidateMatrix(transform);
+        ArgumentException.ThrowIfNullOrWhiteSpace(prefix);
+        return new(
+            Boxes.Select(box => box with { Id = prefix + "." + box.Id, WorldTransform = box.WorldTransform * transform }).ToImmutableArray(),
+            Meshes.Select(mesh => mesh with { Id = prefix + "." + mesh.Id, WorldTransform = mesh.WorldTransform * transform }).ToImmutableArray())
+        {
+            Models = Models.Select(model => model with
+            {
+                Id = prefix + "." + model.Id,
+                WorldTransform = model.WorldTransform * transform,
+            }).ToImmutableArray(),
+        };
+    }
 }
 
 /// <summary>Explicit mount/spawn/despawn ownership. Rendering never reinitializes simulation state.</summary>

@@ -8,11 +8,11 @@ public sealed record GameKeyBindings(
     KeyboardKey Forward = KeyboardKey.W, KeyboardKey Backward = KeyboardKey.S,
     KeyboardKey Left = KeyboardKey.A, KeyboardKey Right = KeyboardKey.D,
     KeyboardKey Jump = KeyboardKey.Space, KeyboardKey Reload = KeyboardKey.R,
-    KeyboardKey SwitchView = KeyboardKey.V, float MouseSensitivity = 0.0025f);
+    KeyboardKey SwitchView = KeyboardKey.V, float MouseSensitivity = 0.0025f, KeyboardKey Sprint = KeyboardKey.LeftShift);
 
 public readonly record struct GameCommands(float Forward, float Strafe, float Turn, float Look,
     bool Jump, float MouseYaw, float MousePitch, bool Fire, bool Reload, bool SwitchView,
-    bool Pause, GameMenuInput Menu);
+    bool Pause, GameMenuInput Menu, bool Sprint = false);
 
 /// <summary>Shared 3D bindings. Silk only supplies physical events to InputMan.</summary>
 public sealed class GameControls : IDisposable
@@ -22,6 +22,7 @@ public sealed class GameControls : IDisposable
     private static readonly AxisId Strafe = new("Strafe");
     private static readonly AxisId Turn = new("Turn");
     private static readonly AxisId Look = new("Look");
+    private static readonly AxisId Sprint = new("Sprint");
     private static readonly AxisId MouseYaw = new("MouseYaw");
     private static readonly AxisId MousePitch = new("MousePitch");
     private static readonly ActionId Jump = new("Jump");
@@ -62,6 +63,7 @@ public sealed class GameControls : IDisposable
             Bind.ButtonAxis(Controls.Key(keys.Backward), Forward, -1),
             Bind.ButtonAxis(Controls.Key(keys.Right), Strafe, 1),
             Bind.ButtonAxis(Controls.Key(keys.Left), Strafe, -1),
+            Bind.ButtonAxis(Controls.Key(keys.Sprint), Sprint, 1),
             Bind.ButtonAxis(Controls.Key(KeyboardKey.ArrowRight), Turn, 1),
             Bind.ButtonAxis(Controls.Key(KeyboardKey.ArrowLeft), Turn, -1),
             Bind.ButtonAxis(Controls.Key(KeyboardKey.ArrowUp), Look, 1),
@@ -80,7 +82,7 @@ public sealed class GameControls : IDisposable
 
     public static void Validate(GameKeyBindings keys)
     {
-        KeyboardKey[] values = [keys.Forward, keys.Backward, keys.Left, keys.Right, keys.Jump, keys.Reload, keys.SwitchView];
+        KeyboardKey[] values = [keys.Forward, keys.Backward, keys.Left, keys.Right, keys.Jump, keys.Reload, keys.SwitchView, keys.Sprint];
         if (values.Any(key => !Enum.IsDefined(key) || key == KeyboardKey.Unknown) || values.Distinct().Count() != values.Length ||
             values.Any(key => key is KeyboardKey.Escape or KeyboardKey.ArrowUp or KeyboardKey.ArrowDown or KeyboardKey.ArrowLeft or KeyboardKey.ArrowRight) ||
             !float.IsFinite(keys.MouseSensitivity) || keys.MouseSensitivity is <= 0 or > 1)
@@ -98,7 +100,7 @@ public sealed class GameControls : IDisposable
         InputFrame frame = Adapter.CurrentFrame;
         return new(frame.GetAxis(Forward), frame.GetAxis(Strafe), frame.GetAxis(Turn), frame.GetAxis(Look),
             frame.WasPressed(Jump), frame.GetAxis(MouseYaw), frame.GetAxis(MousePitch), frame.IsDown(Fire),
-            frame.WasPressed(Reload), frame.WasPressed(SwitchView), frame.WasPressed(Pause), GameMenuBindings.Read(frame));
+            frame.WasPressed(Reload), frame.WasPressed(SwitchView), frame.WasPressed(Pause), GameMenuBindings.Read(frame), frame.GetAxis(Sprint) > 0);
     }
 
     public void Dispose() => Adapter.Dispose();

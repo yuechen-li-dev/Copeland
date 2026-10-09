@@ -49,6 +49,10 @@ internal static class BeaconScene
     public static Native3DVertex[] Build(BeaconGame game)
     {
         var vertices = new List<Native3DVertex>(SceneGeometry3D.Build(game.Scene.Project()));
+        if (game.HumanoidOptions is { } humanoid)
+        {
+            vertices.AddRange(SceneGeometry3D.Build(humanoid.Attach(game.CharacterPose!, game.CharacterWorld)));
+        }
         for (int index = 0; index < BeaconGame.BeaconPositions.Count; index++)
         {
             Vector2 point = game.BeaconPosition(index);
@@ -82,7 +86,7 @@ internal static class BeaconScene
         {
             AddBox(vertices, bolt.Position, new(0.06f, 0.06f, 0.06f), new(0.4f, 1, 1, 1));
         }
-        if (!game.Won && !game.Dead)
+        if (!game.Won && !game.Dead && game.HumanoidOptions is null)
         {
             Vector3 right = Vector3.Normalize(Vector3.Cross(game.Direction, Vector3.UnitY));
             Vector3 up = Vector3.Normalize(Vector3.Cross(right, game.Direction));

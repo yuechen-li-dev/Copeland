@@ -3,6 +3,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../Aurelian.Humanoid/Aurelian.Humanoid.csproj" />
     <ProjectReference Include="../Aurelian.NativeComposition/Aurelian.NativeComposition.csproj" />
     <ProjectReference Include="../Aurelian.Spatial3D.Vulkan/Aurelian.Spatial3D.Vulkan.csproj" />
     <ProjectReference Include="../Aurelian.GameSaves/Aurelian.GameSaves.csproj" />
@@ -16,6 +17,7 @@
     <ProjectReference Include="../../Aurelian/Aurelian.Combat/Aurelian.Combat.csproj" />
     <PackageReference Include="SkiaSharp" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/Solid3D.v.ts" LogicalName="Aurelian.Games.Solid3D.v.ts" />
+    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/HumanoidSkinning.v.ts" LogicalName="Aurelian.Games.HumanoidSkinning.v.ts" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/StaticModel3D.v.ts" LogicalName="Aurelian.Games.StaticModel3D.v.ts" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/RayQuery.v.ts" LogicalName="Aurelian.Games.RayQuery.v.ts" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/AnalyticShape2D.v.ts" LogicalName="Aurelian.Games.AnalyticShape2D.v.ts" />

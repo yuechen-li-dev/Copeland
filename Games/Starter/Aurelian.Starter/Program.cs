@@ -4,8 +4,35 @@ using Aurelian.World.Scenes;
 using System.Numerics;
 using System.Collections.Immutable;
 using Aurelian.Assets.Models;
+using Aurelian.Humanoid;
 
 SceneGroup document = TrainingRange.Create();
+HumanoidPlayerOptions? humanoid = null;
+int bodyOption = Array.IndexOf(args, "--humanoid");
+if (bodyOption < 0 && args.Contains("--locomotion", StringComparer.Ordinal))
+{
+    throw new ArgumentException("--locomotion requires --humanoid.");
+}
+if (bodyOption >= 0)
+{
+    if (bodyOption + 1 >= args.Length || args[bodyOption + 1].StartsWith("--", StringComparison.Ordinal))
+    {
+        throw new ArgumentException("--humanoid requires a gameplay body path.");
+    }
+    humanoid = HumanoidPlayerOptions.Load(args[bodyOption + 1]) with
+    {
+        Attachments = [HumanoidPlayerOptions.PlaceholderWeapon()],
+    };
+    int locomotionOption = Array.IndexOf(args, "--locomotion");
+    if (locomotionOption >= 0)
+    {
+        if (locomotionOption + 1 >= args.Length || args[locomotionOption + 1].StartsWith("--", StringComparison.Ordinal))
+        {
+            throw new ArgumentException("--locomotion requires a baked animation path.");
+        }
+        humanoid = humanoid with { Locomotion = HumanoidLocomotionBank.Load(args[locomotionOption + 1], humanoid.Body) };
+    }
+}
 if (args.Contains("--asset-demo", StringComparer.Ordinal))
 {
     var assets = ModelAssetCatalog.Load(Path.Combine(AppContext.BaseDirectory, "Assets", "assets.toml"));
@@ -37,6 +64,7 @@ if (args.Contains("--aetheris-room", StringComparer.Ordinal))
 }
 
 GameStarter.Run("aurelian-starter",
-    [.. GamePresets.FirstPersonShooter, GameConcept.ThirdPersonCamera, GameConcept.ThirdPersonControl],
+    [.. GamePresets.FirstPersonShooter, GameConcept.ThirdPersonCamera, GameConcept.ThirdPersonControl,
+        .. (humanoid is null ? Array.Empty<GameConcept>() : new[] { GameConcept.HumanoidPresentation })],
     args, new StarterOptions(Title: "AURELIAN | COMPOSABLE STARTER"),
-    sceneDocument: document);
+    sceneDocument: document, humanoid: humanoid);

@@ -17,7 +17,7 @@ public sealed class BeaconControls : IDisposable
     {
         GameCommands command = controls.Tick(seconds, menuActive);
         return new BeaconCommands(new BeaconInput(command.Forward, command.Strafe, command.Turn,
-            command.Look, command.Jump, command.MouseYaw, command.MousePitch, command.Fire, command.Reload),
+            command.Look, command.Jump, command.MouseYaw, command.MousePitch, command.Fire, command.Reload, command.SwitchView, command.Sprint),
             command.Pause, command.Menu);
     }
 

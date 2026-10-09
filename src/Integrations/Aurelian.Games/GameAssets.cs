@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using Aurelian.Rendering.Contracts.Shaders;
 using Aurelian.Shaders.Graphics;
+using Aurelian.Shaders.Compute;
 using Copeland.TS.Gpu;
 using Copeland.TS.Gpu.VdMir;
 
@@ -10,6 +11,29 @@ namespace Aurelian.Games;
 public sealed class GameAssets
 {
     private readonly Dictionary<string, CompiledGraphicsProgram> programs = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, byte[]> computePrograms = new(StringComparer.Ordinal);
+
+    public byte[] ComputeShader(string name)
+    {
+        if (computePrograms.TryGetValue(name, out var cached))
+        {
+            return cached;
+        }
+        using var stream = Open(name);
+        using var reader = new StreamReader(stream);
+        var module = GpuComputeBinder.Compile(new([new(name, reader.ReadToEnd())]));
+        if (!module.Success)
+        {
+            throw new InvalidDataException(string.Join("; ", module.Diagnostics.Select(item => item.Message)));
+        }
+        var compiled = VdMirComputeBackend.Compile(module);
+        if (!compiled.SpirvValidated || compiled.Spirv.Length == 0)
+        {
+            throw new InvalidDataException(compiled.DxcOutput + compiled.SpirvValidationOutput);
+        }
+        computePrograms.Add(name, compiled.Spirv);
+        return compiled.Spirv;
+    }
 
     public CompiledGraphicsProgram Shader(string name)
     {

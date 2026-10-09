@@ -5,6 +5,9 @@ using Aurelian.World.Agents;
 using Aurelian.Runtime.Inspection;
 using Aurelian.World.Scenes;
 using SceneDocument = Aurelian.World.Scenes.Scene;
+using Aurelian.Games;
+using Aurelian.Humanoid;
+using Aurelian.Runtime.Dominatus.Inspection;
 
 namespace Aurelian.Beacon3D;
 
@@ -19,10 +22,29 @@ public sealed partial class BeaconGame
     private float nextWave = 1.5f;
     private readonly ReloadableGun gun = new();
     private float hurtRemaining;
+    public HumanoidPlayerOptions? HumanoidOptions { get; }
+    public AurelianAgentRuntime? PresentationPolicies { get; }
+    private readonly HumanoidCharacterDefinition? humanoidDefinition;
+    private readonly HumanoidLocomotion? locomotion;
 
-    public BeaconGame(bool combat = true, int traceCapacity = 0)
+    public BeaconGame(bool combat = true, int traceCapacity = 0, HumanoidPlayerOptions? humanoid = null)
     {
         this.combat = combat;
+        humanoid?.Validate();
+        HumanoidOptions = humanoid;
+        var playerDefinition = new BeaconAgentDefinition(BeaconAgents.Player, 100);
+        if (humanoid is not null)
+        {
+            PresentationPolicies = new AurelianAgentRuntime(Math.Max(traceCapacity, 512));
+            humanoidDefinition = new(humanoid.Body, PresentationPolicies, humanoid.Animations) { Locomotion = humanoid.Locomotion };
+            locomotion = humanoid.Locomotion is null ? null : new(humanoid.Body, humanoid.Locomotion);
+            playerDefinition = playerDefinition with
+            {
+                InitialAnimation = humanoid.Animations.Initial with { Locomotion = humanoid.Locomotion?.Initial },
+                PolicyIdentity = "humanoid:" + humanoid.Identity,
+                AttachPolicy = agent => ScenePolicyBinding.Bind(agent, PresentationPolicies, CharacterPresentationFlow.Definition.CreateBrain),
+            };
+        }
         brains = new BeaconCreatureBrains(traceCapacity);
         creatureDefinition = new(BeaconAgents.Creature, 2)
         {
@@ -31,7 +53,7 @@ public sealed partial class BeaconGame
         };
         var nodes = new List<SceneNode>
         {
-            SceneDocument.Agent("runner", new BeaconAgentDefinition(BeaconAgents.Player, 100), at: new(0, 0, 9), name: "Runner"),
+            SceneDocument.Agent("runner", playerDefinition, at: new(0, 0, 9), name: "Runner"),
         };
         for (int index = 0; index < BeaconPositions.Count; index++)
         {

@@ -11,6 +11,10 @@ Games own their rules, authored agents, content, save schemas and proof scenario
 | Composable starter | `Starter/Aurelian.Starter` | `starter.cmd` |
 | Character animation lab | `CharacterLab/Aurelian.CharacterLab` | `characterlab.cmd` |
 
+Use `humanoid-starter.cmd` for the playable humanoid variant of the starter.
+The [character guide](../docs/Aurelian/humanoid-animation.md) covers replaceable
+clips, named joint attachments, GPU presentation and full starter save/replay.
+
 Each game's tests live alongside its application. TinyFarm's CLI, playtesting adapter, Oblivion adapter and example scripts also live under its game directory. Project names and public namespaces are preserved.
 
 See the [starter API guide](../docs/Aurelian/game-starter.md) for a small C# entry point, concept composition, customization and automated playtesting.

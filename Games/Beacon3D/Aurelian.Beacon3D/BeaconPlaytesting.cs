@@ -7,13 +7,14 @@ using Aurelian.Playtesting;
 using Aurelian.Runtime.Inspection;
 using InputMan.Core;
 using Machina.Runtime.Input;
+using Aurelian.Games;
 
 namespace Aurelian.Beacon3D;
 
 public sealed record BeaconPlaytestObservation(string Backend, string Screen, bool Quit, bool Focused,
     float Time, float X, float Z, float Yaw, float Pitch, float Height, int Health, int Ammo,
     int Wave, int Kills, int Shots, long AgentTicks, string SemanticHash, string PolicyHash,
-    AgentInspection Brains);
+    AgentInspection Brains, string? Motion = null, string View = "FirstPerson", AgentInspection? CharacterPolicy = null);
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, WriteIndented = true)]
 [JsonSerializable(typeof(BeaconPlaytestObservation))]
@@ -35,11 +36,14 @@ public sealed class BeaconPlaytestTarget : IPlaytestTarget<BeaconPlaytestObserva
     private bool focused = true;
     private bool pointerPressed;
     private bool disposed;
+    private readonly HumanoidPlayerOptions? humanoid;
 
     public BeaconPlaytestTarget(GameMenuView menus, int width = 960, int height = 600,
-        Action<BeaconApplication, string?>? present = null)
+        Action<BeaconApplication, string?>? present = null, HumanoidPlayerOptions? humanoid = null)
     {
         this.menus = menus;
+        this.humanoid = humanoid;
+        Application = new(traceCapacity: 4096, humanoid: humanoid);
         this.width = width;
         this.height = height;
         initialWidth = width;
@@ -48,7 +52,7 @@ public sealed class BeaconPlaytestTarget : IPlaytestTarget<BeaconPlaytestObserva
         backend = present is null ? "headless-inputman" : "native-vulkan-inputman";
     }
 
-    public BeaconApplication Application { get; private set; } = new(traceCapacity: 4096);
+    public BeaconApplication Application { get; private set; }
     public bool Quit => Application.ExitRequested;
 
     public void Key(KeyboardKey key, bool down)
@@ -195,6 +199,8 @@ public sealed class BeaconPlaytestTarget : IPlaytestTarget<BeaconPlaytestObserva
             "unchanged" => marks.TryGetValue(words[2], out string? hash) && hash == ReplayHash(),
             "wave" => Application.Game.Wave == int.Parse(words[2], CultureInfo.InvariantCulture),
             "shots" => Application.Game.Shots == int.Parse(words[2], CultureInfo.InvariantCulture),
+            "view" => Application.Game.View.ToString() == words[2],
+            "motion" => Application.Game.Agents.Single(agent => agent.Id == "runner").State.Animation?.Motion.ToString() == words[2],
             _ => false,
         };
         if (!valid)
@@ -206,7 +212,9 @@ public sealed class BeaconPlaytestTarget : IPlaytestTarget<BeaconPlaytestObserva
     private string ReplayHash()
     {
         BeaconPlaytestObservation observation = Observe();
-        return Application.Screen + ":" + observation.SemanticHash + ":" + observation.PolicyHash;
+        string character = observation.CharacterPolicy is null ? "none" : JsonSerializer.Serialize(
+            observation.CharacterPolicy, AgentInspectionJsonContext.Default.AgentInspection);
+        return Application.Screen + ":" + observation.SemanticHash + ":" + observation.PolicyHash + ":" + character;
     }
 
     public BeaconPlaytestObservation Observe()
@@ -217,7 +225,9 @@ public sealed class BeaconPlaytestTarget : IPlaytestTarget<BeaconPlaytestObserva
         return new BeaconPlaytestObservation(backend, Application.Screen.ToString(), Quit, focused,
             game.Time, game.Position.X, game.Position.Y, game.Yaw, game.Pitch, game.Height,
             game.Health, game.Ammo, game.Wave, game.Kills, game.Shots, game.AgentTicks,
-            game.SemanticHash(), Convert.ToHexString(SHA256.HashData(policy)), brains);
+            game.SemanticHash(), Convert.ToHexString(SHA256.HashData(policy)), brains,
+            game.Agents.Single(agent => agent.Id == "runner").State.Animation?.Motion.ToString(), game.View.ToString(),
+            game.PresentationPolicies?.Inspector.Observe());
     }
 
     public void ResetForReplay()
@@ -225,7 +235,7 @@ public sealed class BeaconPlaytestTarget : IPlaytestTarget<BeaconPlaytestObserva
         controls.Dispose();
         controls = new BeaconControls();
         Application.Dispose();
-        Application = new BeaconApplication(traceCapacity: 4096);
+        Application = new BeaconApplication(traceCapacity: 4096, humanoid: humanoid);
         pending = default;
         focused = true;
         pointerPressed = false;

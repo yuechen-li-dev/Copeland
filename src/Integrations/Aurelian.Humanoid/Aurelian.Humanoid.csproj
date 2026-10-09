@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="../../Aurelian/Aurelian.Runtime/Aurelian.Runtime.csproj" />
+    <ProjectReference Include="../../Aurelian/Aurelian.Spatial3D/Aurelian.Spatial3D.csproj" />
     <ProjectReference Include="../../Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />
     <ProjectReference Include="../../../../Aetheris/Aetheris.Humanoid/Aetheris.Humanoid.csproj" />
     <ProjectReference Include="../../../../Dominatus/src/Dominatus.OptFlow/Dominatus.OptFlow.csproj" />

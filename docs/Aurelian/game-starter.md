@@ -34,6 +34,13 @@ Run the checked-in example with `starter.cmd`. Its short entry point selects eit
 
 Fragment order and duplicate declarations do not change a definition's identity. A control fragment requires its matching camera; a camera can be used without movement controls. Invalid or unsupported declarations fail before creating a native window. Adding both cameras automatically enables view switching; controls apply to the active view.
 
+Add `GameConcept.HumanoidPresentation` and pass `humanoid: HumanoidPlayerOptions.Load(bodyPath)`
+to replace the geometric player with a typed humanoid actor using the same movement
+and camera fragments. Run `humanoid-starter.cmd` for the example. The
+[character guide](humanoid-animation.md) covers replaceable clips, named joint
+attachments, GPU skinning and Deliverance snapshots. This variant exposes
+`StarterGame.HumanoidPlayer`; the geometric variant exposes `StarterGame.Player`.
+
 The currently executable fragment library covers this 3D FPS/TPS foundation. Driving, top-down controls, VN presentation and farming/strategy starter fragments are additional library work. The existing Sunkill, TinyFarm and Mossward games retain their specialized applications, rendering adapters and domain save schemas. Their folder consolidation does not turn their entire rule sets into engine modules.
 
 ## Customize through ordinary typed code

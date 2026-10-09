@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Collections.Immutable;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -14,6 +15,9 @@ using Aurelian.Spatial3D;
 using Aurelian.World.Agents;
 using Aurelian.World.Scenes;
 using Deliverance.Core.Storage;
+using Aetheris.Humanoid;
+using Aurelian.Humanoid;
+using Aurelian.Runtime.Dominatus.Inspection;
 
 namespace Aurelian.Games;
 
@@ -26,6 +30,12 @@ public sealed class StarterGame : IDisposable
     private readonly CharacterMotor3D motor = new();
     private IRayQueryWorld3D rayQueries = null!;
     private readonly ScenePlan scenePlan;
+    private readonly SceneGroup document;
+    private readonly HumanoidPlayerOptions? humanoid;
+    private readonly HumanoidLocomotion? locomotion;
+    private AurelianAgentRuntime? policies;
+    private HumanoidCharacterDefinition? humanoidDefinition;
+    private SceneAgent<HumanoidCharacterState>? humanoidPlayer;
     private SceneInstance scene = null!;
     private readonly GameMenuNavigation navigation = new();
     private readonly AudioResourceScope audioResources = new();
@@ -34,8 +44,18 @@ public sealed class StarterGame : IDisposable
     private SceneAgent<Vector3> player = null!;
     private Vector3 position
     {
-        get => player.State;
-        set => player.State = value;
+        get => humanoidPlayer?.State.Position ?? player.State;
+        set
+        {
+            if (humanoidPlayer is not null)
+            {
+                humanoidPlayer.State = humanoidPlayer.State with { Position = value };
+            }
+            else
+            {
+                player.State = value;
+            }
+        }
     }
     private float yaw;
     private float pitch;
@@ -51,7 +71,8 @@ public sealed class StarterGame : IDisposable
     private ulong audioEventSequence;
 
     public StarterGame(string id, GameDefinition definition, StarterOptions? options = null,
-        string? saveDirectory = null, IAudioOutputBackend? audioBackend = null, SceneGroup? sceneDocument = null)
+        string? saveDirectory = null, IAudioOutputBackend? audioBackend = null, SceneGroup? sceneDocument = null,
+        HumanoidPlayerOptions? humanoid = null)
     {
         if (string.IsNullOrWhiteSpace(id) || id.Any(character => !char.IsAsciiLetterOrDigit(character) && character != '-'))
         {
@@ -59,6 +80,13 @@ public sealed class StarterGame : IDisposable
         }
         Id = id;
         Definition = definition;
+        if (definition.Has(GameConcept.HumanoidPresentation) != (humanoid is not null))
+        {
+            throw new ArgumentException("HumanoidPresentation requires explicit HumanoidPlayerOptions, and options require the concept.");
+        }
+        humanoid?.Validate();
+        this.humanoid = humanoid;
+        locomotion = humanoid?.Locomotion is null ? null : new(humanoid.Body, humanoid.Locomotion);
         this.options = options ?? new();
         if (string.IsNullOrWhiteSpace(this.options.Title) || !float.IsFinite(this.options.MovementSpeed) || this.options.MovementSpeed <= 0)
         {
@@ -71,7 +99,8 @@ public sealed class StarterGame : IDisposable
         StarterObject[] authoredObjects = (this.options.Objects ?? [new("target-left", new(-3, 1, -4), new(0.8f, 1, 0.8f)),
             new("target-center", new(0, 1, -6), new(0.8f, 1, 0.8f)),
             new("target-right", new(3, 1, -4), new(0.8f, 1, 0.8f))]).OrderBy(item => item.Id, StringComparer.Ordinal).ToArray();
-        scenePlan = SceneCompiler.Compile(sceneDocument ?? StarterScenes.TrainingRange(authoredObjects));
+        document = sceneDocument ?? StarterScenes.TrainingRange(authoredObjects);
+        scenePlan = SceneCompiler.Compile(document);
         objects = ReadTargets(scenePlan);
         var targetColliders = new List<Collider3D>();
         foreach (PlacedSceneAgent declaration in scenePlan.Agents)
@@ -87,7 +116,7 @@ public sealed class StarterGame : IDisposable
         ValidateObjects();
         gun = new(this.options.Gun);
         var normalized = this.options with { Gun = gun.Configuration, Objects = objects };
-        string identity = definition.Identity + scenePlan.ContentIdentity
+        string identity = definition.Identity + scenePlan.ContentIdentity + humanoid?.Identity
             + JsonSerializer.Serialize(normalized, StarterJsonContext.Default.StarterOptions);
         Identity = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity)));
         Controls = new();
@@ -132,7 +161,12 @@ public sealed class StarterGame : IDisposable
     public float Volume { get; private set; } = 1;
     public string? PersistenceError { get; private set; }
     public IReadOnlyList<GameAgent<int>> Agents => agents.Select(agent => agent.Agent).ToArray();
-    public GameAgent<Vector3> Player => player.Agent;
+    public GameAgent<Vector3> Player => humanoidPlayer is null ? player.Agent
+        : throw new InvalidOperationException("This player uses HumanoidPlayer's typed state.");
+    public SceneAgent<HumanoidCharacterState>? HumanoidPlayer => humanoidPlayer;
+    public HumanoidPlayerOptions? HumanoidOptions => humanoid;
+    public AurelianAgentRuntime? PresentationPolicies => policies;
+    public SolvedHumanoidPose? CharacterPose => humanoidPlayer is null ? null : humanoidDefinition!.Pose(humanoidPlayer);
     public SceneInstance Scene => scene;
     public event Action<StarterGame>? ShotFired;
 
@@ -194,7 +228,6 @@ public sealed class StarterGame : IDisposable
             {
                 Step(commands with { Jump = pendingJump, Reload = pendingReload, Fire = pendingFire || commands.Fire }, 1f / 60);
                 pendingJump = pendingReload = pendingFire = false;
-        LastMovement = null;
             }
         }
         Audio.Update(elapsed);
@@ -271,7 +304,8 @@ public sealed class StarterGame : IDisposable
 
     public StarterSnapshot Capture() => new(Point3.From(position), yaw, pitch, verticalVelocity, time, View,
         gun.State, agents.Select(agent => agent.State).ToArray(), Controls.Keys, Volume,
-        scheduler.InspectAccumulators(), pendingJump, pendingReload, pendingFire);
+        scheduler.InspectAccumulators(), pendingJump, pendingReload, pendingFire,
+        humanoidPlayer is null ? null : new(humanoidPlayer.State.Animation, policies!.CapturePolicyCheckpoint()));
 
     public Task SaveAsync(string slot, CancellationToken cancellation = default) => Saves.SaveAsync(slot, Capture(), cancellation);
 
@@ -299,10 +333,18 @@ public sealed class StarterGame : IDisposable
     public void Restore(StarterSnapshot snapshot)
     {
         ValidateSnapshot(snapshot);
+        if (humanoid is not null)
+        {
+            ReplaceHumanoidWorld(snapshot.Humanoid);
+        }
         // The whole candidate has already passed validation before any live state is replaced.
         Rebind(snapshot.Keys);
         position = snapshot.Position.ToVector();
         yaw = snapshot.Yaw;
+        if (humanoidPlayer is not null)
+        {
+            humanoidPlayer.State = humanoidPlayer.State with { Heading = -yaw, Animation = snapshot.Humanoid!.Animation };
+        }
         pitch = snapshot.Pitch;
         verticalVelocity = snapshot.VerticalVelocity;
         time = snapshot.Time;
@@ -331,7 +373,9 @@ public sealed class StarterGame : IDisposable
 
     public StarterObservation Observe() => new(Screen, Point3.From(position), yaw, pitch, View,
         gun.State.Ammo, gun.State.ReloadRemaining > 0, gun.State.Shots,
-        objects.Select((item, index) => item.Health - agents[index].State).Sum(), time, Identity, PersistenceError);
+        objects.Select((item, index) => item.Health - agents[index].State).Sum(), time, Identity, PersistenceError,
+        humanoidPlayer?.State.Animation.Motion.ToString(), humanoidPlayer?.State.Animation.ClipSeconds,
+        humanoidPlayer?.State.Animation.Locomotion?.Gait);
 
     public Matrix4x4 Camera(float aspect) => Camera3D.Matrix(Camera3D.Eye(position, yaw, pitch, View), Camera3D.Direction(yaw, pitch), aspect);
 
@@ -342,7 +386,17 @@ public sealed class StarterGame : IDisposable
     private SceneFrame BuildSceneFrame()
     {
         SceneFrame frame = scene.Project(agent => agent.Id != "player" || View == CameraView.ThirdPerson);
-        if (Definition.Has(GameConcept.ReloadableGuns))
+        if (humanoidPlayer is not null)
+        {
+            SceneFrame equipment = humanoid!.Attach(CharacterPose!, humanoidPlayer.WorldTransform);
+            frame = frame with
+            {
+                Boxes = frame.Boxes.AddRange(equipment.Boxes),
+                Meshes = frame.Meshes.AddRange(equipment.Meshes),
+                Models = frame.Models.AddRange(equipment.Models),
+            };
+        }
+        else if (Definition.Has(GameConcept.ReloadableGuns))
         {
             Vector3 aim = Camera3D.Direction(yaw, pitch);
             Vector3 right = Vector3.Normalize(Vector3.Cross(aim, Vector3.UnitY));
@@ -372,10 +426,37 @@ public sealed class StarterGame : IDisposable
                 movement = Vector3.Normalize(movement);
             }
         }
-        LastMovement = motor.Step(spatialWorld, new(position, verticalVelocity), movement * options.MovementSpeed,
+        Vector3 previousPosition = position;
+        float requestedSpeed = humanoid?.Locomotion is null || commands.Sprint ? options.MovementSpeed : options.MovementSpeed * .4f;
+        Vector3 velocity = movement * requestedSpeed;
+        HumanoidRootMotionRequest? root = null;
+        if (humanoid?.Locomotion is { } bank)
+        {
+            root = bank.Request(humanoidPlayer!.State.Animation.Locomotion!, velocity, seconds);
+            velocity = root.Displacement / seconds;
+        }
+        LastMovement = motor.Step(spatialWorld, new(position, verticalVelocity), velocity,
             control && commands.Jump, seconds);
         position = LastMovement.State.Feet;
         verticalVelocity = LastMovement.State.VerticalVelocity;
+        if (humanoidPlayer is not null)
+        {
+            Vector3 acceptedVelocity = (position - previousPosition) / seconds;
+            float speed = new Vector2(acceptedVelocity.X, acceptedVelocity.Z).Length();
+            humanoidPlayer.State = humanoidPlayer.State with { Heading = -yaw };
+            humanoidDefinition!.Observe(humanoidPlayer, new(speed, commands.Fire, LastMovement.Grounded));
+            policies!.Tick(TimeSpan.FromSeconds(seconds));
+            humanoidDefinition.Advance(humanoidPlayer, seconds);
+            if (root is not null)
+            {
+                var animation = humanoidPlayer.State.Animation;
+                var aimPose = humanoid!.Body.Solve("aim-layer", humanoid.Animations.Sample(animation)).Pose!;
+                var next = locomotion!.Advance(animation.Locomotion!, root, position - previousPosition, LastMovement.Grounded,
+                    humanoidPlayer.WorldTransform, rayQueries, commands.Fire, aimPose, seconds);
+                humanoidPlayer.State = humanoidPlayer.State with { Animation = animation with { Locomotion = next } };
+                humanoidDefinition.ObserveLocomotion(humanoidPlayer.Id, next);
+            }
+        }
         if (Definition.Has(GameConcept.ReloadableGuns) && gun.Step(commands.Fire, commands.Reload, seconds))
         {
             Vector3 origin = position + Vector3.UnitY * 1.6f;
@@ -396,18 +477,80 @@ public sealed class StarterGame : IDisposable
 
     private void ResetWorld()
     {
-        SceneInstance candidate = scenePlan.Mount();
-        scene?.Dispose();
-        scene = candidate;
-        player = scene.Agent<Vector3>("player");
-        agents = objects.Select(item => scene.Agent<int>(item.Id)).ToArray();
-        yaw = pitch = verticalVelocity = 0;
+        if (humanoid is null)
+        {
+            SceneInstance candidate = scenePlan.Mount();
+            scene?.Dispose();
+            scene = candidate;
+            player = scene.Agent<Vector3>("player");
+            agents = objects.Select(item => scene.Agent<int>(item.Id)).ToArray();
+        }
+        else
+        {
+            ReplaceHumanoidWorld(null);
+        }
+        yaw = humanoidPlayer is null ? 0 : -humanoidPlayer.State.Heading;
+        pitch = verticalVelocity = 0;
         time = 0;
         View = Definition.Has(GameConcept.FirstPersonCamera) ? CameraView.FirstPerson : CameraView.ThirdPerson;
         gun.Restore(new(gun.Configuration.Capacity, 0, 0, 0));
         scheduler = NewScheduler();
         pendingJump = pendingReload = pendingFire = false;
         LastMovement = null;
+    }
+
+    private void ReplaceHumanoidWorld(StarterHumanoidSnapshot? saved)
+    {
+        var candidatePolicies = new AurelianAgentRuntime(512);
+        var candidateDefinition = new HumanoidCharacterDefinition(humanoid!.Body, candidatePolicies, humanoid.Animations)
+        {
+            Template = AgentTemplate.Character("starter.player", AgentControl.Human),
+            Locomotion = humanoid.Locomotion,
+        };
+        var children = ImmutableArray.CreateBuilder<SceneNode>();
+        foreach (SceneNode node in document.Children)
+        {
+            if (node is SceneAgentNode<Vector3> { Id: "player" } playerNode)
+            {
+                children.Add(new SceneAgentNode<HumanoidCharacterState>(playerNode.Id, playerNode.Name, candidateDefinition)
+                {
+                    Transform = playerNode.Transform,
+                });
+            }
+            else
+            {
+                children.Add(node);
+            }
+        }
+        SceneGroup candidateDocument = document with { Children = children.ToImmutable() };
+        SceneInstance candidate = SceneCompiler.Compile(candidateDocument).Mount();
+        try
+        {
+            if (saved is not null)
+            {
+                candidatePolicies.RestorePolicyCheckpoint(saved.Policy);
+                candidateDefinition.ValidatePolicyState("player", saved.Animation);
+                candidate.Agent<HumanoidCharacterState>("player").State =
+                    candidate.Agent<HumanoidCharacterState>("player").State with { Animation = saved.Animation };
+            }
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or KeyNotFoundException or
+            ArgumentException or FormatException or NotSupportedException)
+        {
+            candidate.Dispose();
+            throw new InvalidDataException("Invalid humanoid policy snapshot; the live game has not been changed.", exception);
+        }
+        catch
+        {
+            candidate.Dispose();
+            throw;
+        }
+        scene?.Dispose();
+        scene = candidate;
+        policies = candidatePolicies;
+        humanoidDefinition = candidateDefinition;
+        humanoidPlayer = scene.Agent<HumanoidCharacterState>("player");
+        agents = objects.Select(item => scene.Agent<int>(item.Id)).ToArray();
     }
 
     private void ValidateObjects()
@@ -472,6 +615,31 @@ public sealed class StarterGame : IDisposable
             throw new InvalidDataException("Invalid starter state; the live game has not been changed.");
         }
         gun.Validate(snapshot.Gun);
+        if ((snapshot.Humanoid is not null) != (humanoid is not null))
+        {
+            throw new InvalidDataException("Snapshot humanoid composition does not match this game.");
+        }
+        if (snapshot.Humanoid is { } character)
+        {
+            humanoid!.Animations.ValidateState(character.Animation);
+            if ((character.Animation.Locomotion is not null) != (humanoid.Locomotion is not null))
+            {
+                throw new InvalidDataException("Snapshot locomotion composition does not match the game.");
+            }
+            if (character.Animation.Locomotion is { } locomotionState)
+            {
+                humanoid.Locomotion!.ValidateState(humanoid.Body, locomotionState);
+            }
+            var transition = humanoid.Body.Solve("saved-transition", character.Animation.TransitionFrom);
+            var sampled = humanoid.Body.Solve("saved-animation", humanoid.Animations.Sample(character.Animation));
+            if (!transition.IsSolved || !sampled.IsSolved || character.Policy is null ||
+                character.Policy.Kernel is null || character.Policy.Agents is null ||
+                character.Policy.Kernel.Agents is null || character.Policy.Kernel.Agents.Any(agent =>
+                    agent is null || agent.ActiveStatePath is null || agent.BlackboardBlob is null || agent.EventCursorBlob is null))
+            {
+                throw new InvalidDataException("Snapshot contains an invalid humanoid pose or policy.");
+            }
+        }
         GameControls.Validate(snapshot.Keys);
         NewScheduler().RestoreAccumulators(snapshot.Cadence);
     }

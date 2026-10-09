@@ -1,9 +1,11 @@
 using System.Collections.Immutable;
+using System.Security.Cryptography;
+using System.Text;
 using Aetheris.Humanoid;
 
 namespace Aurelian.Humanoid;
 
-public enum CharacterMotion { Idle, Walk, Aim }
+public enum CharacterMotion { Idle, Walk, Aim, Run }
 public sealed record HumanoidKeyframe(double Seconds, ImmutableArray<AnatomicalJointRequest> Joints);
 
 /// <summary>Explicit absolute anatomical channels; no reflection, bone-name discovery or mesh mutation.</summary>
@@ -40,6 +42,7 @@ public sealed class HumanoidAnimationClip
     public string Id { get; }
     public double Duration { get; }
     public bool Loop { get; }
+    public ImmutableArray<HumanoidKeyframe> Keys => keys;
 
     public ImmutableArray<AnatomicalJointRequest> Sample(double seconds)
     {
@@ -76,7 +79,10 @@ public sealed class HumanoidAnimationClip
 }
 
 public sealed record CharacterAnimationState(CharacterMotion Motion, double ClipSeconds,
-    double TransitionSeconds, ImmutableArray<AnatomicalJointRequest> TransitionFrom);
+    double TransitionSeconds, ImmutableArray<AnatomicalJointRequest> TransitionFrom)
+{
+    public HumanoidLocomotionState? Locomotion { get; init; }
+}
 
 /// <summary>Reusable clip fragments. Callers may replace individual clips with ordinary C# authoring.</summary>
 public sealed class HumanoidAnimationSet
@@ -87,12 +93,58 @@ public sealed class HumanoidAnimationSet
         clips = new Dictionary<CharacterMotion, HumanoidAnimationClip>
         {
             [CharacterMotion.Idle] = idle, [CharacterMotion.Walk] = walk, [CharacterMotion.Aim] = aim,
+            [CharacterMotion.Run] = walk,
         };
         foreach (var clip in clips.Values)
             _ = HumanoidAnimationClip.Blend(idle.Sample(0), clip.Sample(0), 0);
     }
 
     public CharacterAnimationState Initial => new(CharacterMotion.Idle, 0, .2, clips[CharacterMotion.Idle].Sample(0));
+
+    public string Identity => ComputeIdentity();
+    public ImmutableArray<HumanoidAnimationClip> Clips => clips.OrderBy(pair => pair.Key)
+        .Select(pair => pair.Value).ToImmutableArray();
+
+    private string ComputeIdentity()
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        foreach (var pair in clips.OrderBy(pair => pair.Key))
+        {
+            writer.Write((int)pair.Key);
+            writer.Write(pair.Value.Id);
+            writer.Write(pair.Value.Duration);
+            writer.Write(pair.Value.Loop);
+            writer.Write(pair.Value.Keys.Length);
+            foreach (var key in pair.Value.Keys)
+            {
+                writer.Write(key.Seconds);
+                writer.Write(key.Joints.Length);
+                foreach (var joint in key.Joints)
+                {
+                    writer.Write((int)joint.Joint);
+                    writer.Write(joint.FlexionDegrees);
+                    writer.Write(joint.AbductionDegrees);
+                    writer.Write(joint.TwistDegrees);
+                }
+            }
+        }
+        writer.Flush();
+        return Convert.ToHexString(SHA256.HashData(stream.ToArray()));
+    }
+
+    public void ValidateState(CharacterAnimationState state)
+    {
+        if (state is null || !Enum.IsDefined(state.Motion) || !double.IsFinite(state.ClipSeconds) ||
+            state.ClipSeconds < 0 || state.ClipSeconds > clips[state.Motion].Duration ||
+            !double.IsFinite(state.TransitionSeconds) || state.TransitionSeconds < 0 || state.TransitionSeconds > .2 ||
+            state.TransitionFrom.IsDefault || state.TransitionFrom.Any(joint =>
+                !double.IsFinite(joint.FlexionDegrees) || !double.IsFinite(joint.AbductionDegrees) || !double.IsFinite(joint.TwistDegrees)))
+        {
+            throw new InvalidDataException("Invalid humanoid animation state.");
+        }
+        _ = Sample(state);
+    }
 
     public CharacterAnimationState Advance(CharacterAnimationState state, CharacterMotion motion,
         double seconds, float speed)
@@ -101,7 +153,7 @@ public sealed class HumanoidAnimationSet
             throw new ArgumentOutOfRangeException(nameof(seconds));
         if (seconds == 0) return state;
         if (state.Motion != motion)
-            state = new(motion, 0, 0, Sample(state));
+            state = new CharacterAnimationState(motion, 0, 0, Sample(state)) { Locomotion = state.Locomotion };
         double rate = motion == CharacterMotion.Walk ? Math.Clamp(speed / .8, .25, 2.5) : 1;
         double time = state.ClipSeconds + seconds * rate;
         var clip = clips[motion];

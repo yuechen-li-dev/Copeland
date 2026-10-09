@@ -2,11 +2,14 @@ using System.Numerics;
 using Aurelian.Spatial3D;
 using Aurelian.NativeComposition;
 using Aurelian.World.Scenes;
+using Aetheris.Humanoid;
+using Aurelian.Runtime;
+using Aurelian.Humanoid;
 
 namespace Aurelian.Beacon3D;
 
 public readonly record struct BeaconInput(float Forward, float Strafe, float Turn, float Look, bool Jump = false,
-    float MouseYaw = 0, float MousePitch = 0, bool Fire = false, bool Reload = false);
+    float MouseYaw = 0, float MousePitch = 0, bool Fire = false, bool Reload = false, bool SwitchView = false, bool Sprint = false);
 
 public readonly record struct ArenaPillar(Vector2 Center, Vector2 HalfSize, float Height);
 
@@ -51,6 +54,11 @@ public sealed partial class BeaconGame : IDisposable
     public int CollectedCount => BeaconPositions.Select((_, index) => IsCollected(index)).Count(value => value);
     public bool Won { get; private set; }
     public Vector3 Eye => new(Position.X, 1.6f + Height, Position.Y);
+    public CameraView View { get; private set; } = CameraView.FirstPerson;
+    public Vector3 CameraEye => Camera3D.Eye(agents["runner"].State.Position, Yaw, Pitch, View);
+    public Matrix4x4 CharacterWorld => Matrix4x4.CreateRotationY(-Yaw) * Matrix4x4.CreateTranslation(agents["runner"].State.Position);
+    public SolvedHumanoidPose? CharacterPose => humanoidDefinition?.Pose("runner", agents["runner"].State.Animation!);
+    public void ToggleView() => View = View == CameraView.FirstPerson ? CameraView.ThirdPerson : CameraView.FirstPerson;
 
     public bool IsCollected(int index) => agents[$"beacon-{index}"].State.Collected;
     public Vector2 BeaconPosition(int index)
@@ -80,6 +88,7 @@ public sealed partial class BeaconGame : IDisposable
             return;
         }
         Time += seconds;
+        if (input.SwitchView) ToggleView();
         Yaw = MathF.IEEERemainder(Yaw + input.Turn * 2.4f * seconds + input.MouseYaw, MathF.Tau);
         Pitch = Math.Clamp(Pitch + input.Look * 1.4f * seconds + input.MousePitch, -1.3f, 1.3f);
         Vector2 forward = new(MathF.Sin(Yaw), -MathF.Cos(Yaw));
@@ -89,10 +98,39 @@ public sealed partial class BeaconGame : IDisposable
         {
             movement = Vector2.Normalize(movement);
         }
-        LastMovement = motor.Step(SpatialWorld, new(agents["runner"].State.Position, verticalVelocity),
-            new Vector3(movement.X, 0, movement.Y) * 4, input.Jump, seconds);
+        Vector3 previousPosition = agents["runner"].State.Position;
+        float requestedSpeed = HumanoidOptions?.Locomotion is null || input.Sprint ? 4 : 1.6f;
+        Vector3 velocity = new Vector3(movement.X, 0, movement.Y) * requestedSpeed;
+        HumanoidRootMotionRequest? root = null;
+        if (HumanoidOptions?.Locomotion is { } bank)
+        {
+            root = bank.Request(agents["runner"].State.Animation!.Locomotion!, velocity, seconds);
+            velocity = root.Displacement / seconds;
+        }
+        LastMovement = motor.Step(SpatialWorld, new(previousPosition, verticalVelocity),
+            velocity, input.Jump, seconds);
         agents["runner"].State = agents["runner"].State with { Position = LastMovement.State.Feet };
         verticalVelocity = LastMovement.State.VerticalVelocity;
+        if (humanoidDefinition is not null)
+        {
+            Vector3 acceptedVelocity = (LastMovement.State.Feet - previousPosition) / seconds;
+            float speed = new Vector2(acceptedVelocity.X, acceptedVelocity.Z).Length();
+            humanoidDefinition.Observe("runner", new(speed, input.Fire, LastMovement.Grounded));
+            PresentationPolicies!.Tick(TimeSpan.FromSeconds(seconds));
+            agents["runner"].State = agents["runner"].State with
+            {
+                Animation = humanoidDefinition.Advance("runner", agents["runner"].State.Animation!, seconds),
+            };
+            if (root is not null)
+            {
+                var animation = agents["runner"].State.Animation!;
+                var aimPose = HumanoidOptions!.Body.Solve("aim-layer", HumanoidOptions.Animations.Sample(animation)).Pose!;
+                var next = locomotion!.Advance(animation.Locomotion!, root, LastMovement.State.Feet - previousPosition,
+                    LastMovement.Grounded, CharacterWorld, rayQueries ?? SpatialWorld, input.Fire, aimPose, seconds);
+                agents["runner"].State = agents["runner"].State with { Animation = animation with { Locomotion = next } };
+                humanoidDefinition.ObserveLocomotion("runner", next);
+            }
+        }
         for (int index = 0; index < BeaconPositions.Count; index++)
         {
             if (Vector2.Distance(Position, BeaconPosition(index)) < 1.1f)
@@ -109,7 +147,7 @@ public sealed partial class BeaconGame : IDisposable
 
     public Matrix4x4 Camera(float aspectRatio)
     {
-        return Aurelian.Runtime.Camera3D.Matrix(Eye, Direction, aspectRatio);
+        return Camera3D.Matrix(CameraEye, Direction, aspectRatio);
     }
 
     public static bool CanStand(Vector2 position, float radius = 0.3f)

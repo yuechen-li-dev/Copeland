@@ -1,4 +1,5 @@
 using Aurelian.Games;
+using Aurelian.Humanoid;
 using Aurelian.GameHost.Silk;
 using System.Diagnostics;
 using System.Numerics;
@@ -36,13 +37,24 @@ bool playtestStdio = args.Contains("--playtest-stdio", StringComparer.Ordinal);
 bool playtesting = playtestScript is not null || playtestStdio;
 bool visible = !(proof || playtesting) || args.Contains("--visible", StringComparer.Ordinal);
 string output = Path.GetFullPath(GetOption(args, "--output") ?? "artifacts/aurelian-beacon3d");
+string? bodyPath = GetOption(args, "--humanoid");
+HumanoidPlayerOptions? humanoid = bodyPath is null ? null : HumanoidPlayerOptions.Load(bodyPath) with
+{
+    Attachments = [HumanoidPlayerOptions.PlaceholderWeapon()],
+};
+string? locomotionPath = GetOption(args, "--locomotion");
+if (locomotionPath is not null)
+{
+    if (humanoid is null) throw new ArgumentException("--locomotion requires --humanoid.");
+    humanoid = humanoid with { Locomotion = HumanoidLocomotionBank.Load(locomotionPath, humanoid.Body) };
+}
 Directory.CreateDirectory(output);
 
 if (args.Contains("--headless", StringComparer.Ordinal))
 {
     Require(playtesting, "--headless requires --playtest-script or --playtest-stdio.");
     var headlessFont = AurelianNativeUiFont.Create(Path.Combine(AppContext.BaseDirectory, "Assets"));
-    using var headlessTarget = new BeaconPlaytestTarget(new GameMenuView(headlessFont));
+    using var headlessTarget = new BeaconPlaytestTarget(new GameMenuView(headlessFont), humanoid: humanoid);
     RunPlaytest(headlessTarget);
     return;
 }
@@ -64,9 +76,10 @@ using IWindow window = Window.Create(options);
 window.Initialize();
 using IInputContext input = window.CreateInput();
 using var controls = new BeaconControls();
-using var app = new BeaconApplication();
+using var app = new BeaconApplication(humanoid: humanoid);
 bool gpuRays = args.Contains("--gpu-rays", StringComparer.Ordinal);
 using var graphics = new NativeGameGraphics(window, "Beacon Run", visible, enableRayQueries: gpuRays);
+using var characterPresenter = humanoid is null ? null : new HumanoidGamePresenter(graphics.Plant, humanoid);
 using var rayQueries = gpuRays && graphics.Plant.Facts.EnabledDeviceExtensions.Contains("VK_KHR_ray_query", StringComparer.Ordinal)
     ? GameRayQueries.Create(graphics.Plant, app.Game.SpatialWorld) : null;
 if (rayQueries is not null) app.UseRayQueries(rayQueries);
@@ -111,7 +124,7 @@ if (playtesting)
             {
                 WritePng(capturePath, (int)target.Width, (int)target.Height, frame.Pixels!);
             }
-        });
+        }, humanoid: humanoid);
     RunPlaytest(playtestTarget);
 }
 else if (proof)
@@ -230,8 +243,10 @@ Native3DFrameResult RenderApplication(bool capture = false)
 Native3DFrameResult RenderGame(BeaconApplication application, bool capture)
 {
     BeaconGame current = application.Game;
+    var gpuGeometry = characterPresenter?.Present(current.CharacterPose!, current.CharacterWorld,
+        current.View == Aurelian.Runtime.CameraView.ThirdPerson);
     var world = renderer.Render(BeaconScene.Build(current), current.Camera((float)target.Width / target.Height),
-        clear, capture: false);
+        clear, capture: false, gpuGeometry: gpuGeometry);
     if (application.Menu is { } menu)
     {
         var overlay = menuPresenter.Render(menuView, menu, application.SelectedIndex, capture);

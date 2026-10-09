@@ -16,6 +16,7 @@ a Vulkan-capable GPU/driver, and the repository's existing DXC shader toolchain.
 | Left mouse button | Fire bolts while held |
 | Space | Jump on press |
 | R | Reload the 12-bolt magazine |
+| V | Switch first / third-person camera |
 | Escape | Pause / resume; back in menus |
 | Up / Down in menus | Select an enabled entry |
 | Enter / Space in menus | Confirm |
@@ -30,6 +31,19 @@ These use the [Aurelian game menu template](../../../docs/Aurelian/games/game-me
 Menus freeze simulation and render native analytic shapes/MSDF text over the 3D scene.
 Escape releases the cursor. Losing focus pauses the game and clears pending input;
 returning to the window leaves the menu open. The pause menu provides Restart.
+
+## Optional humanoid player
+
+Pass `--humanoid <antonia.gameplay-body.json>` to use the shared playable character
+presentation with the existing runner agent. Press V for third-person view.
+The sample explicitly mounts a geometric weapon to the right wrist. The body
+uses GPU skinning, with basic Idle, Walk and Aim clips. See the
+[shared guide](../../../docs/Aurelian/humanoid-animation.md) for replacing clips,
+attaching geometry and the checkpoint boundary.
+
+```powershell
+.\beacon3d.cmd --humanoid ../Aetheris/artifacts/local/humanoid-production/antonia.gameplay-body.json --playtest-script Games/Beacon3D/humanoid-proof.json --output artifacts/local/playable-humanoid-beacon
+```
 
 ## Reproduce the proof
 
@@ -92,9 +106,9 @@ LESS depth test/write. The existing 2D paths keep their color-only descriptors.
 
 This qualifies opaque untextured triangle rendering, GPU perspective, occlusion,
 camera movement, native presentation, InputMan mouse aim, authored agents, combat,
-and a playable loop. Mesh import, textured
-materials, shadows, skeletal animation, resize, and general 3D physics are outside
-this sample. Automated keyboard/mouse state injection proves the InputMan/game path;
+and a playable loop. The optional humanoid proof separately qualifies basic
+skeletal animation. Mesh import, textured materials, shadows, resize, and general
+3D physics are outside this sample. Automated keyboard/mouse state injection proves the InputMan/game path;
 human mouse feel and difficulty remain manual checks. Validation-layer availability is recorded without
 claiming a counted debug-messenger error total.
 

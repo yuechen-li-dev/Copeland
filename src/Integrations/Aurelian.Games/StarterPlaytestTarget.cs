@@ -114,6 +114,8 @@ public sealed class StarterPlaytestTarget : IPlaytestTarget<StarterObservation>,
                 "ammo" => state.Ammo.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 "shots" => state.Shots.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 "hits" => state.Hits.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                "motion" => state.Motion ?? "None",
+                "gait" => state.Gait?.ToString() ?? "None",
                 _ => throw new ArgumentException("Unknown assertion field: " + words[1]),
             };
             if (value != words[2]) throw new InvalidOperationException($"Expected {words[1]}={words[2]}, observed {value}.");
