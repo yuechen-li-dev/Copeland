@@ -17,6 +17,7 @@
     <ProjectReference Include="../../Aurelian/Aurelian.Combat/Aurelian.Combat.csproj" />
     <PackageReference Include="SkiaSharp" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/Lighting3D.v.ts" LogicalName="Aurelian.Games.Lighting3D.v.ts" />
+    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/ShadowDistanceField.v.ts" LogicalName="Aurelian.Games.ShadowDistanceField.v.ts" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/Shadow3D.v.ts" LogicalName="Aurelian.Games.Shadow3D.v.ts" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/ToneMap3D.v.ts" LogicalName="Aurelian.Games.ToneMap3D.v.ts" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/Solid3D.v.ts" LogicalName="Aurelian.Games.Solid3D.v.ts" />

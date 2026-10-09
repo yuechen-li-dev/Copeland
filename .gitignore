@@ -160,3 +160,12 @@ Games/Starter/Aurelian.Starter/Assets/Models/*.blend1
 
 # Local generics compiler, backend and native qualification output.
 artifacts/local/vts-generics/
+
+# Shadow research: retain captures, source contours and evidence; regenerate verbose compiler IR.
+artifacts/local/shadow-distance/
+artifacts/aurelian-shadow-distance/*.vdmir.json
+artifacts/aurelian-shadow-distance/*-lit.png
+artifacts/aurelian-shadow-distance/*-dark.png
+artifacts/aurelian-shadow-distance/lit-*.png
+artifacts/aurelian-shadow-distance/dark-*.png
+artifacts/aurelian-shadow-distance/msdf64-repeat.png

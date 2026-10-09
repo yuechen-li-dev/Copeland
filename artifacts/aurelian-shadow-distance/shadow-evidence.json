@@ -1,0 +1,402 @@
+{
+  "Accepted": true,
+  "Device": "NVIDIA GeForce RTX 3070",
+  "Scope": "Static opaque directional caster onto a known planar Y=0 receiver; fixed sun and geometry",
+  "ProductionDefaultsChanged": false,
+  "ImageSize": 512,
+  "ReferenceSupersampling": 4,
+  "Encoding": "Linear RGBA8 UNORM upload; RGB signed distance; contour 0.5; median \u002B fwidth",
+  "SourceGeometryHash": "2a1a90b53fc43319c9993c55ab1ca45e7d8010a7f058c25d2f9ea56dd7d0b2d0",
+  "FieldHash": "b62e4889cc7a8378117cd9733f879effd2630cebf3a260f0e57116a006c458ab",
+  "FieldBounds": {
+    "MinX": -1.7150993117255435,
+    "MinY": 1.857142857142863,
+    "MaxX": 96.57061497398874,
+    "MaxY": 100.14285714285714,
+    "Width": 98.28571428571428,
+    "Height": 98.28571428571428
+  },
+  "RepeatIdentical": true,
+  "BakeTimes": [
+    {
+      "Size": 64,
+      "BakeMilliseconds": 77.6882,
+      "TextureBytes": 16384
+    },
+    {
+      "Size": 32,
+      "BakeMilliseconds": 11.4202,
+      "TextureBytes": 4096
+    },
+    {
+      "Size": 128,
+      "BakeMilliseconds": 125.364,
+      "TextureBytes": 65536
+    }
+  ],
+  "Scores": [
+    {
+      "Name": "raster64-pcf",
+      "MeanCoverageError": 0.0556806271603492,
+      "SilhouetteMismatchPixels": 5247,
+      "ThinBarCenterCoverage": [
+        0.7111111111111105,
+        0.383838383838384,
+        0.1818181818181817,
+        0.09090909090909086
+      ],
+      "PixelSha256": "6096B89A6D96304D83C64D484966F6FB994F3E31D42647CB0ECCE75F4DDF51FD",
+      "GpuPassTimes": [
+        {
+          "Pass": "directional-shadow",
+          "Milliseconds": 0.03776
+        },
+        {
+          "Pass": "linear-lighting",
+          "Milliseconds": 0.12953599999999998
+        },
+        {
+          "Pass": "tone-map-output",
+          "Milliseconds": 0.049152
+        }
+      ]
+    },
+    {
+      "Name": "sdf64",
+      "MeanCoverageError": 0.007718106166793269,
+      "SilhouetteMismatchPixels": 1663,
+      "ThinBarCenterCoverage": [
+        1,
+        1,
+        0.3058080808080808,
+        0.07222222222222222
+      ],
+      "PixelSha256": "E746DEE1A2F37DB95C9AA9CB7AA811BE27D98C171D8B2B590BB6B7FD9EA9452A",
+      "GpuPassTimes": [
+        {
+          "Pass": "directional-shadow",
+          "Milliseconds": 0.033824
+        },
+        {
+          "Pass": "linear-lighting",
+          "Milliseconds": 0.12185599999999999
+        },
+        {
+          "Pass": "tone-map-output",
+          "Milliseconds": 0.04608
+        }
+      ]
+    },
+    {
+      "Name": "msdf64",
+      "MeanCoverageError": 0.006763337431595045,
+      "SilhouetteMismatchPixels": 1497,
+      "ThinBarCenterCoverage": [
+        1,
+        1,
+        0.3058080808080808,
+        0.07222222222222222
+      ],
+      "PixelSha256": "5B4B852668FAA68079579DA021F1D1FB91B2CFD84A879563FCCD11AEA7F86267",
+      "GpuPassTimes": [
+        {
+          "Pass": "directional-shadow",
+          "Milliseconds": 0.032672
+        },
+        {
+          "Pass": "linear-lighting",
+          "Milliseconds": 0.100352
+        },
+        {
+          "Pass": "tone-map-output",
+          "Milliseconds": 0.04608
+        }
+      ]
+    },
+    {
+      "Name": "depth1024-pcf",
+      "MeanCoverageError": 0.043464190719566344,
+      "SilhouetteMismatchPixels": 3827,
+      "ThinBarCenterCoverage": [
+        1,
+        0.932828282828283,
+        0.5505050505050503,
+        0.27272727272727254
+      ],
+      "PixelSha256": "507EEB8FF9EAC2166A6BB94788B5E4F9860ACC07F676C5EC954A9C97CBA05528",
+      "GpuPassTimes": [
+        {
+          "Pass": "directional-shadow",
+          "Milliseconds": 0.050559999999999994
+        },
+        {
+          "Pass": "linear-lighting",
+          "Milliseconds": 0.09779199999999999
+        },
+        {
+          "Pass": "tone-map-output",
+          "Milliseconds": 0.045568
+        }
+      ]
+    },
+    {
+      "Name": "msdf32",
+      "MeanCoverageError": 0.016223491879815942,
+      "SilhouetteMismatchPixels": 3217,
+      "ThinBarCenterCoverage": [
+        1,
+        0.2767676767676768,
+        0.14065656565656567,
+        0
+      ],
+      "PixelSha256": "D572409752E505D8A577FB42D3F649B5D65933BE47E883A9A2CCD0E0647F914C",
+      "GpuPassTimes": [
+        {
+          "Pass": "directional-shadow",
+          "Milliseconds": 0.030767999999999997
+        },
+        {
+          "Pass": "linear-lighting",
+          "Milliseconds": 0.098304
+        },
+        {
+          "Pass": "tone-map-output",
+          "Milliseconds": 0.04608
+        }
+      ]
+    },
+    {
+      "Name": "msdf128",
+      "MeanCoverageError": 0.004425376621080667,
+      "SilhouetteMismatchPixels": 1089,
+      "ThinBarCenterCoverage": [
+        1,
+        1,
+        1,
+        0.40883838383838383
+      ],
+      "PixelSha256": "EA5CFDCE7C2A19A41571C63E63738BB059056340E4950BC4ECC9B97C5255D320",
+      "GpuPassTimes": [
+        {
+          "Pass": "directional-shadow",
+          "Milliseconds": 0.032208
+        },
+        {
+          "Pass": "linear-lighting",
+          "Milliseconds": 0.1024
+        },
+        {
+          "Pass": "tone-map-output",
+          "Milliseconds": 0.04608
+        }
+      ]
+    }
+  ],
+  "SubpixelCameraChecks": [
+    {
+      "WorldShift": -0.008,
+      "Msdf": {
+        "Name": "msdf64-minus",
+        "MeanCoverageError": 0.004025709444338773,
+        "SilhouetteMismatchPixels": 643,
+        "ThinBarCenterCoverage": [
+          1,
+          1,
+          0.3621212121212122,
+          0.06262626262626263
+        ],
+        "PixelSha256": "C667FC7D2BBC6FF5BA6B8066CB5563694206C276526D99EDFA118361CC35375C",
+        "GpuPassTimes": [
+          {
+            "Pass": "directional-shadow",
+            "Milliseconds": 0.032352
+          },
+          {
+            "Pass": "linear-lighting",
+            "Milliseconds": 0.108032
+          },
+          {
+            "Pass": "tone-map-output",
+            "Milliseconds": 0.04096
+          }
+        ]
+      },
+      "Raster": {
+        "Name": "raster64-minus",
+        "MeanCoverageError": 0.053209166873369074,
+        "SilhouetteMismatchPixels": 4451,
+        "ThinBarCenterCoverage": [
+          0.7111111111111105,
+          0.383838383838384,
+          0.1818181818181817,
+          0.09090909090909086
+        ],
+        "PixelSha256": "C17FE953AFB31AFE12912E8848CDE61DBE92F2674D122AF462015F59BECEFAD8",
+        "GpuPassTimes": [
+          {
+            "Pass": "directional-shadow",
+            "Milliseconds": 0.033519999999999994
+          },
+          {
+            "Pass": "linear-lighting",
+            "Milliseconds": 0.119808
+          },
+          {
+            "Pass": "tone-map-output",
+            "Milliseconds": 0.041472
+          }
+        ]
+      }
+    },
+    {
+      "WorldShift": 0.008,
+      "Msdf": {
+        "Name": "msdf64-plus",
+        "MeanCoverageError": 0.007757194630702834,
+        "SilhouetteMismatchPixels": 1515,
+        "ThinBarCenterCoverage": [
+          1,
+          1,
+          0.3047979797979798,
+          0.08106060606060604
+        ],
+        "PixelSha256": "BB5253F0F3BC3AC1CD760744FCB7E9A3150DE9B9DBBBAE8C82ED5621DA9F13F0",
+        "GpuPassTimes": [
+          {
+            "Pass": "directional-shadow",
+            "Milliseconds": 0.033152
+          },
+          {
+            "Pass": "linear-lighting",
+            "Milliseconds": 0.11776
+          },
+          {
+            "Pass": "tone-map-output",
+            "Milliseconds": 0.047616000000000006
+          }
+        ]
+      },
+      "Raster": {
+        "Name": "raster64-plus",
+        "MeanCoverageError": 0.05664297251410062,
+        "SilhouetteMismatchPixels": 5269,
+        "ThinBarCenterCoverage": [
+          0.7111111111111105,
+          0.383838383838384,
+          0.1818181818181817,
+          0.09090909090909086
+        ],
+        "PixelSha256": "B1DA8CEBD705003166C5E8F4ABE6440989A157FC02E8F69F963CB4A0EB315D4E",
+        "GpuPassTimes": [
+          {
+            "Pass": "directional-shadow",
+            "Milliseconds": 0.033024
+          },
+          {
+            "Pass": "linear-lighting",
+            "Milliseconds": 0.10649600000000001
+          },
+          {
+            "Pass": "tone-map-output",
+            "Milliseconds": 0.04608
+          }
+        ]
+      }
+    }
+  ],
+  "ObliqueCheck": {
+    "Msdf": {
+      "Name": "oblique-msdf64",
+      "MeanCoverageError": 0.018616738278927954,
+      "SilhouetteMismatchPixels": 1501,
+      "ThinBarCenterCoverage": [
+        1,
+        1,
+        0.2846938775510204,
+        0.06632653061224489
+      ],
+      "PixelSha256": "06FEC77EF85B32DD90F4276A3DC5AAD30C8126AB2B8CDB4FA8D6544D912F82D9",
+      "GpuPassTimes": [
+        {
+          "Pass": "directional-shadow",
+          "Milliseconds": 0.034064
+        },
+        {
+          "Pass": "linear-lighting",
+          "Milliseconds": 0.08755199999999999
+        },
+        {
+          "Pass": "tone-map-output",
+          "Milliseconds": 0.047104
+        }
+      ]
+    },
+    "Raster": {
+      "Name": "oblique-raster64",
+      "MeanCoverageError": 0.054952494664209386,
+      "SilhouetteMismatchPixels": 2738,
+      "ThinBarCenterCoverage": [
+        0.7178839202035074,
+        0.3927632627558993,
+        0.1938775510204083,
+        0.0926020408163265
+      ],
+      "PixelSha256": "0A9A4372E06F7794EEAB905E9D12B81E241BEE1C61F44B79E58B98C645B6D581",
+      "GpuPassTimes": [
+        {
+          "Pass": "directional-shadow",
+          "Milliseconds": 0.032816
+        },
+        {
+          "Pass": "linear-lighting",
+          "Milliseconds": 0.083456
+        },
+        {
+          "Pass": "tone-map-output",
+          "Milliseconds": 0.04096
+        }
+      ]
+    }
+  },
+  "Metric": "Mean absolute displayed RGB shadow-contrast error normalized by local lit-minus-shadowed contrast; not linear visibility",
+  "NegativeOverlapSpecimen": {
+    "Name": "invalid-overlap-msdf64",
+    "MeanCoverageError": 0.02449532258601494,
+    "SilhouetteMismatchPixels": 4602,
+    "ThinBarCenterCoverage": [
+      1,
+      1,
+      0.3371212121212121,
+      0.17045454545454547
+    ],
+    "PixelSha256": "DE5A6B8302CC1FDAE8F21BAF44B8EFD8977A47819A3C8E849E4E47F62F28A900",
+    "GpuPassTimes": [
+      {
+        "Pass": "directional-shadow",
+        "Milliseconds": 0.011216
+      },
+      {
+        "Pass": "linear-lighting",
+        "Milliseconds": 0.029696
+      },
+      {
+        "Pass": "tone-map-output",
+        "Milliseconds": 0.023039999999999998
+      }
+    ]
+  },
+  "ThinBarWidthsInSourceUnits": [
+    3.6,
+    1.8,
+    0.9,
+    0.45
+  ],
+  "Limits": [
+    "No arbitrary mesh silhouette extraction, dynamic field updates, layered depth or nonplanar receivers",
+    "Overlapping projected contours must be unioned before field generation; negative specimen retained",
+    "Cannot recover a contour from detail already discarded by a raster shadow map",
+    "Subtexel thin features and close edges can still disappear or change topology",
+    "CPU bake timing includes both SDF and MSDF generation; GPU timestamps are medians of eight warmed frames",
+    "The harness retains the existing depth-map allocation even for field modes; field-byte counts are not total VRAM savings"
+  ]
+}

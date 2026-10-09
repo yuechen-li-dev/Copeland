@@ -5,6 +5,9 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Integrations/Aurelian.Games/Aurelian.Games.csproj" />
     <ProjectReference Include="../../src/Copeland/Copeland.TS.Backend.Wgsl/Copeland.TS.Backend.Wgsl.csproj" />
+    <ProjectReference Include="../../src/Machina.UI/Machina.Fonts/Machina.Fonts.csproj" />
     <Content Include="Assets/*.v.ts" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../src/Aurelian/Aurelian.Shaders/Assets/ShadowDistanceField.v.ts" Link="Assets/ShadowDistanceField.v.ts" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../src/Aurelian/Aurelian.Shaders/Assets/Lighting3D.v.ts" Link="Assets/Lighting3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,24 @@
+{
+  "EndState": "Success - bounded research experiment",
+  "AurelianBuild": {
+    "Command": "dotnet build Aurelian.slnx -c Release -m:1",
+    "Warnings": 14,
+    "Errors": 0
+  },
+  "AurelianTests": {
+    "Command": "dotnet test Aurelian.slnx -c Release -m:1 --no-build",
+    "Skipped": 0,
+    "Passed": 970,
+    "Failed": 0
+  },
+  "NativeExperiment": {
+    "Command": "dotnet run --project tools/Aurelian.GraphicsProof -c Release -- --shadow-experiment",
+    "Marker": "AURELIAN_SHADOW_DISTANCE_EXPERIMENT_PASSED",
+    "Device": "NVIDIA GeForce RTX 3070"
+  },
+  "NativeRegression": {
+    "Command": "dotnet run --project tools/Aurelian.GraphicsProof -c Release --no-build -- --output artifacts/local/graphics-starter/shadow-regression",
+    "Marker": "AURELIAN_GRAPHICS_STARTER_PROOF_PASSED"
+  },
+  "BrowserExecution": "Not part of this Vulkan experiment"
+}

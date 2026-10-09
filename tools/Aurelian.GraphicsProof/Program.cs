@@ -20,7 +20,15 @@ using Silk.NET.Maths;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
 
-string output = Path.GetFullPath(Option("--output") ?? "artifacts/local/graphics-starter");
+string defaultOutput = args.Contains("--shadow-experiment", StringComparer.Ordinal)
+    ? "artifacts/aurelian-shadow-distance"
+    : "artifacts/local/graphics-starter";
+string output = Path.GetFullPath(Option("--output") ?? defaultOutput);
+if (args.Contains("--shadow-experiment", StringComparer.Ordinal))
+{
+    ShadowDistanceExperiment.Run(output);
+    return;
+}
 if (args.Contains("--language-proof", StringComparer.Ordinal) || args.Contains("--shape-proof", StringComparer.Ordinal)
     || args.Contains("--generic-proof", StringComparer.Ordinal))
 {

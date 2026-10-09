@@ -130,3 +130,8 @@ dotnet run --project tools/Aurelian.GraphicsProof -c Release -- --launch-smoke
 
 Antialiasing, texture mip generation/anisotropy, environment maps, local lights,
 cascaded shadows, ray-query shadows, AO, bloom and fog are follow-up capabilities.
+
+A bounded [receiver-space MSDF shadow experiment](shadow-distance-experiment.md)
+now compares baked distance fields with raster/PCF and the default depth-shadow path.
+It qualifies static planar contour reconstruction, including explicit overlap and
+thin-feature failure specimens. It does not change these production defaults.
