@@ -52,6 +52,7 @@
     <Project Path="Games/Sunkill/Sunkill.Tests/Sunkill.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/">
+    <Project Path="tools/Aurelian.GraphicsProof/Aurelian.GraphicsProof.csproj" />
     <Project Path="tools/Aurelian.RuntimeSoakM22/Aurelian.RuntimeSoakM22.csproj" />
     <Project Path="tools/Aurelian.NativeGraphicsM19/Aurelian.NativeGraphicsM19.csproj" />
     <Project Path="tools/Hollowflux.PearlMiningM20/Hollowflux.PearlMiningM20.csproj" />

@@ -43,7 +43,14 @@ public sealed class GameAssets
         }
         using Stream stream = Open(name);
         using var reader = new StreamReader(stream);
-        var module = GpuGraphicsBinder.Compile(new GpuCompilationRequest([new GpuSourceFile(name, reader.ReadToEnd())]));
+        var sources = new List<GpuSourceFile> { new(name, reader.ReadToEnd()) };
+        if (name is "Solid3D.v.ts" or "StaticModel3D.v.ts")
+        {
+            using Stream lightingStream = Open("Lighting3D.v.ts");
+            using var lightingReader = new StreamReader(lightingStream);
+            sources.Add(new("Lighting3D.v.ts", lightingReader.ReadToEnd()));
+        }
+        var module = GpuGraphicsBinder.Compile(new GpuCompilationRequest(sources));
         if (!module.Success)
         {
             throw new InvalidOperationException(string.Join("; ", module.Diagnostics.Select(item => item.Message)));

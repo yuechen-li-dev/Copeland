@@ -60,7 +60,9 @@ if (args.Contains("--headless", StringComparer.Ordinal))
 }
 
 string source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Assets", "Solid3D.v.ts"));
-var module = GpuGraphicsBinder.Compile(new GpuCompilationRequest([new GpuSourceFile("Solid3D.v.ts", source)]));
+string lightingSource = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Assets", "Lighting3D.v.ts"));
+var module = GpuGraphicsBinder.Compile(new GpuCompilationRequest([
+    new GpuSourceFile("Solid3D.v.ts", source), new GpuSourceFile("Lighting3D.v.ts", lightingSource)]));
 Require(module.Success, string.Join(Environment.NewLine, module.Diagnostics.Select(item => item.Message)));
 VdMirGraphicsBackendResult backend = VdMirGraphicsBackend.Compile(module);
 CompiledGraphicsProgram program = CompiledGraphicsProgramExporter.Export(module, backend);
@@ -102,6 +104,10 @@ using var nativeInput = new CapturedGameInput(window, input, controls.Adapter, m
 var plant = graphics.Plant;
 var target = graphics.Target;
 var renderer = graphics.Renderer;
+if (args.Contains("--basic-graphics", StringComparer.Ordinal))
+{
+    graphics.Settings = Aurelian.Rendering.Contracts.Models.Graphics3DSettings.Basic;
+}
 var presenter = graphics.Presenter;
 var menuPresenter = graphics.Menus;
 var clear = new NativeFrameClearColor(0.055f, 0.095f, 0.15f, 1);
@@ -192,7 +198,7 @@ else if (proof)
         shader = new { program.VdMirSha256, backend.HlslSha256, backend.Vertex.SpirvSha256, pixelSpirvSha256 = backend.Pixel.SpirvSha256 },
         validationLayers = plant.Facts.EnabledValidationLayers,
         validationNote = "Layer availability is recorded; this sample does not count debug-messenger callbacks. Vulkan results and pixel assertions are enforced.",
-        boundaries = "Geometric FPS with InputMan mouse deltas and authored agents; fixed-size window. No mesh import, shadows, animation rigs, or general 3D physics engine.",
+        boundaries = "Fixed-size geometric FPS with InputMan and authored agents. Shared Vulkan PBR, HDR, directional shadows and optional GPU-skinned characters. Raster shadows; no cascades or ray-traced lighting.",
     }, new JsonSerializerOptions { WriteIndented = true }) + Environment.NewLine);
     Console.WriteLine($"BEACON3D_PROOF_PASSED frames={frames} collected=3 won=true artifacts={output}");
 }
@@ -246,14 +252,14 @@ Native3DFrameResult RenderGame(BeaconApplication application, bool capture)
     var gpuGeometry = characterPresenter?.Present(current.CharacterPose!, current.CharacterWorld,
         current.View == Aurelian.Runtime.CameraView.ThirdPerson);
     var world = renderer.Render(BeaconScene.Build(current), current.Camera((float)target.Width / target.Height),
-        clear, capture: false, gpuGeometry: gpuGeometry);
+        clear, capture: false, gpuGeometry: gpuGeometry, eye: current.CameraEye);
     if (application.Menu is { } menu)
     {
         var overlay = menuPresenter.Render(menuView, menu, application.SelectedIndex, capture);
-        return new Native3DFrameResult(world.TriangleCount, overlay.Pixels, overlay.PixelSha256);
+        return new Native3DFrameResult(world.TriangleCount, overlay.Pixels, overlay.PixelSha256) { GpuPassTimes = world.GpuPassTimes };
     }
     var hudFrame = menuPresenter.RenderPrepared(hud.Prepare(current), capture);
-    return new Native3DFrameResult(world.TriangleCount, hudFrame.Pixels, hudFrame.PixelSha256);
+    return new Native3DFrameResult(world.TriangleCount, hudFrame.Pixels, hudFrame.PixelSha256) { GpuPassTimes = world.GpuPassTimes };
 }
 
 void RunPlaytest(BeaconPlaytestTarget playtestTarget)

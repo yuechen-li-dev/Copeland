@@ -109,6 +109,11 @@ public static unsafe class VulkanRenderPassFactory
                 DstAccessMask = AccessFlags.MemoryReadBit,
                 DependencyFlags = DependencyFlags.ByRegionBit,
             };
+            if (attachment.FinalLayout == VulkanResourceLayout.ShaderResourceFragment)
+            {
+                dependencyOut.DstStageMask = PipelineStageFlags.FragmentShaderBit;
+                dependencyOut.DstAccessMask = AccessFlags.ShaderReadBit;
+            }
 
             if (hasDepth)
             {
@@ -290,6 +295,8 @@ public static unsafe class VulkanRenderPassFactory
             VulkanTextureFormat.Bgra8Unorm => Format.B8G8R8A8Unorm,
             VulkanTextureFormat.Rgba8Srgb => Format.R8G8B8A8Srgb,
             VulkanTextureFormat.Bgra8Srgb => Format.B8G8R8A8Srgb,
+            VulkanTextureFormat.Rgba16Float => Format.R16G16B16A16Sfloat,
+            VulkanTextureFormat.R32Float => Format.R32Sfloat,
             _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported Vulkan texture format."),
         };
 }

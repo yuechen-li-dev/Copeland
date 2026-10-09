@@ -59,7 +59,8 @@ public sealed class NativeGameGraphics : IDisposable
             };
             Target = Own(new VulkanNativeFrameTarget(Plant, Swapchain.Facts.Width, Swapchain.Facts.Height, format));
             Renderer = Own(new VulkanSolid3DRenderer(Plant, assets.Shader("Solid3D.v.ts"), Target,
-                modelProgram: assets.Shader("StaticModel3D.v.ts")));
+                modelProgram: assets.Shader("StaticModel3D.v.ts"), shadowProgram: assets.Shader("Shadow3D.v.ts"),
+                outputProgram: assets.Shader("ToneMap3D.v.ts")));
             Presenter = Own(new VulkanNativeSwapchainPresenter(Plant, Target, Swapchain));
             Font = AurelianNativeUiFont.Create(assets.FontDirectory());
             Menus = Own(new GameMenuNativePresenter(Plant, Target,
@@ -79,6 +80,16 @@ public sealed class NativeGameGraphics : IDisposable
     public VulkanNativeSwapchainPresenter Presenter { get; }
     public AurelianNativeUiFont Font { get; }
     public GameMenuNativePresenter Menus { get; }
+    public Aurelian.Rendering.Contracts.Models.Graphics3DSettings Settings
+    {
+        get => Renderer.Settings;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            value.Validate();
+            Renderer.Settings = value;
+        }
+    }
     public NativeFrameClearColor Clear { get; set; } = new(0.055f, 0.095f, 0.15f, 1);
 
     public Native3DFrameResult Render(Native3DVertex[] vertices, Matrix4x4 camera, bool capture = false) =>

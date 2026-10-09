@@ -223,8 +223,17 @@ public static class GpuGraphicsBinder
                 bool isStaticModelMaterial = fields.Count == modelFields.Length
                     && fields.Select(field => field.Name).SequenceEqual(modelFields)
                     && fields.All(field => field.Type == "float4");
+                string[] sceneCameraFields = ["clipX", "clipY", "clipZ", "clipW", "light", "eye", "sun", "sky", "ground", "surface",
+                    "shadowX", "shadowY", "shadowZ", "shadowW", "shadowParameters"];
+                string[] sceneModelFields = [.. modelFields, "light", "sun", "sky", "ground",
+                    "shadowX", "shadowY", "shadowZ", "shadowW", "shadowParameters"];
+                bool isSceneLightingMaterial = fields.All(field => field.Type == "float4")
+                    && (fields.Select(field => field.Name).SequenceEqual(sceneCameraFields)
+                        || fields.Select(field => field.Name).SequenceEqual(sceneModelFields));
+                bool isOutputMaterial = fields.Count == 1 && fields[0].Name == "parameters" && fields[0].Type == "float4";
                 if (!isForwardMaterial && !isMsdfTextMaterial && !isAnalyticShapeMaterial
-                    && !isSoftShockwaveMaterial && !isSemanticFogMaterial && !isCameraMaterial && !isStaticModelMaterial)
+                    && !isSoftShockwaveMaterial && !isSemanticFogMaterial && !isCameraMaterial && !isStaticModelMaterial
+                    && !isSceneLightingMaterial && !isOutputMaterial)
                 {
                     Add(
                         "COPE-GPU-MATERIAL-0003",
@@ -923,7 +932,7 @@ public static class GpuGraphicsBinder
                 }
                 return new VdMirExpression("intrinsic", elementType ?? "error", Span(path, call), "Sample2D", arguments);
             }
-            if (target is "Min" or "Max")
+            if (target is "Min" or "Max" or "Pow")
             {
                 if (arguments.Length != 2 || arguments.Any(argument => argument.Type != "f32"))
                 {

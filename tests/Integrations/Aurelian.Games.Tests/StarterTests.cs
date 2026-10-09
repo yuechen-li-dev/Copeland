@@ -11,6 +11,24 @@ namespace Aurelian.Games.Tests;
 
 public sealed class StarterTests
 {
+    [Fact]
+    public async Task GraphicsQualityChangesPreserveSimulationIdentityAndSaveCompatibility()
+    {
+        string directory = TemporaryDirectory();
+        using var original = GameStarter.Create("graphics-save", GamePresets.FirstPersonShooter, saveDirectory: directory);
+        original.Activate("start");
+        await original.SaveAsync("graphics");
+        var options = new StarterOptions
+        {
+            Graphics = Aurelian.Rendering.Contracts.Models.Graphics3DSettings.Basic with { Exposure = .5f },
+        };
+        using var changed = GameStarter.Create("graphics-save", GamePresets.FirstPersonShooter, options, saveDirectory: directory);
+        Assert.Equal(original.Identity, changed.Identity);
+        await changed.LoadAsync("graphics");
+        Assert.Equal(original.Capture().Position, changed.Capture().Position);
+        Assert.Equal(original.Capture().Gun, changed.Capture().Gun);
+    }
+
     private static readonly TimeSpan Tick = TimeSpan.FromTicks(166667);
     private static GameConcept[] BothViews => [.. GamePresets.FirstPersonShooter, GameConcept.ThirdPersonCamera, GameConcept.ThirdPersonControl];
 

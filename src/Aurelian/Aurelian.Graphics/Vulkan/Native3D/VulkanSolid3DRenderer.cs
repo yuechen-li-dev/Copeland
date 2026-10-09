@@ -28,7 +28,7 @@ namespace Aurelian.Graphics.Vulkan.Native3D;
 public sealed unsafe class VulkanSolid3DRenderer : IDisposable
 {
     private const int VertexStride = 40;
-    private const int CameraBytes = 80;
+    private const int CameraBytes = 240;
     private const int MaximumVertices = 65_536;
     private readonly AurelianVulkanPlant plant;
     private readonly VulkanNativeFrameTarget target;
@@ -46,20 +46,35 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
     private readonly DescriptorPool descriptorPool;
     private readonly DescriptorSet descriptorSet;
     private readonly VulkanModel3DBatches? modelRenderer;
+    private readonly AurelianVulkanTexture? hdr;
+    private readonly AurelianVulkanTexture shadowMap;
+    private readonly Sampler shadowSampler;
+    private readonly Vulkan3DPass? shadowPass;
+    private readonly Vulkan3DPass? outputPass;
+    private readonly AurelianVulkanBuffer? outputVertices;
+    private readonly Vulkan3DGpuTimings? gpuTimings;
     private bool disposed;
+
+    public Graphics3DSettings Settings { get; set; } = Graphics3DSettings.Default;
 
     public VulkanSolid3DRenderer(
         AurelianVulkanPlant plant,
         CompiledGraphicsProgram program,
         VulkanNativeFrameTarget target,
         bool enableDepth = true,
-        CompiledGraphicsProgram? modelProgram = null)
+        CompiledGraphicsProgram? modelProgram = null,
+        CompiledGraphicsProgram? shadowProgram = null,
+        CompiledGraphicsProgram? outputProgram = null)
     {
         ArgumentNullException.ThrowIfNull(plant);
         ArgumentNullException.ThrowIfNull(program);
         ArgumentNullException.ThrowIfNull(target);
         target.ValidateExternalPass(plant);
         ValidateProgram(program);
+        if ((shadowProgram is null) != (outputProgram is null))
+        {
+            throw new ArgumentException("The modern 3D path requires both shadow and output shaders.");
+        }
         this.plant = plant;
         this.target = target;
         allocator = new RawVulkanMemoryAllocator(plant);
@@ -68,20 +83,49 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         submitter = new VulkanCommandSubmitter(plant, commandPool, fences);
         try
         {
+            if (outputProgram is not null)
+            {
+                ValidateModernFormats();
+                gpuTimings = new(plant);
+                hdr = VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, target.Width, target.Height,
+                    VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.ShaderResource | VulkanTextureUsage.TransferSource,
+                    VulkanMemoryUsage.GpuOnly, "solid3d.hdr", VulkanTextureFormat.Rgba16Float);
+                shadowMap = VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, Lighting3DUniforms.ShadowSize, Lighting3DUniforms.ShadowSize,
+                    VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.ShaderResource | VulkanTextureUsage.TransferSource,
+                    VulkanMemoryUsage.GpuOnly, "solid3d.shadow", VulkanTextureFormat.R32Float);
+                shadowPass = new(plant, allocator, shadowProgram!, shadowMap, Lighting3DUniforms.ShadowSize, Lighting3DUniforms.ShadowSize, true);
+                outputPass = new(plant, allocator, outputProgram, target.Texture, target.Width, target.Height, false, hdr);
+                outputVertices = VulkanNativeForwardTexturedRenderer.CreateMappedBuffer(plant, allocator, 24,
+                    VulkanBufferUsage.Vertex, VulkanMemoryUsage.CpuToGpu, "solid3d.output-triangle");
+                float[] triangle = [-1, -1, 3, -1, -1, 3];
+                Require(outputVertices.Write(MemoryMarshal.AsBytes(triangle.AsSpan())).Success, "Output triangle upload failed.");
+            }
+            else
+            {
+                Settings = Graphics3DSettings.Basic;
+                shadowMap = VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, 1, 1,
+                    VulkanTextureUsage.ShaderResource | VulkanTextureUsage.TransferDestination, VulkanMemoryUsage.GpuOnly,
+                    "solid3d.no-shadow");
+                using var uploader = new Aurelian.Graphics.Vulkan.Resources.Uploads.VulkanTextureUploader(plant, allocator, commandPool, fences);
+                Require(uploader.Upload(new(shadowMap, new byte[] { 255, 255, 255, 255 }, "solid3d.no-shadow")).Success,
+                    "Fallback shadow texture upload failed.");
+            }
+            shadowSampler = Vulkan3DPass.CreateSampler(plant, Filter.Nearest);
             depth = VulkanNativeForwardTexturedRenderer.CreateTexture(
                 plant, allocator, target.Width, target.Height,
                 VulkanTextureUsage.DepthAttachment, VulkanMemoryUsage.GpuOnly, "solid3d.depth", VulkanTextureFormat.D32Float);
             var passResult = VulkanRenderPassFactory.Create(plant, new VulkanRenderPassDescriptor(
                 [new VulkanRenderPassAttachmentDescriptor(
-                    "solid3d.color", target.TextureFormat, VulkanAttachmentLoadOp.Clear,
-                    VulkanAttachmentStoreOp.Store, VulkanResourceLayout.Undefined, VulkanResourceLayout.TransferSource)],
+                    "solid3d.color", hdr?.Format ?? target.TextureFormat, VulkanAttachmentLoadOp.Clear,
+                    VulkanAttachmentStoreOp.Store, VulkanResourceLayout.Undefined,
+                    hdr is null ? VulkanResourceLayout.TransferSource : VulkanResourceLayout.ShaderResourceFragment)],
                 new VulkanRenderPassAttachmentDescriptor(
                     "solid3d.depth", VulkanTextureFormat.D32Float, VulkanAttachmentLoadOp.Clear,
                     VulkanAttachmentStoreOp.DontCare, VulkanResourceLayout.Undefined, VulkanResourceLayout.DepthStencilAttachment)));
             Require(passResult.Success, string.Join("; ", passResult.Diagnostics.Select(item => item.Message)));
             renderPass = passResult.RenderPass!;
             var framebufferResult = VulkanFramebufferFactory.Create(plant, renderPass,
-                new VulkanFramebufferDescriptor(target.Width, target.Height, [target.Texture], depth));
+                new VulkanFramebufferDescriptor(target.Width, target.Height, [hdr ?? target.Texture], depth));
             Require(framebufferResult.Success, string.Join("; ", framebufferResult.Diagnostics.Select(item => item.Message)));
             framebuffer = framebufferResult.Framebuffer!;
             setLayout = VulkanNativeForwardTexturedRenderer.CreateDescriptorSetLayout(plant, program);
@@ -106,7 +150,7 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
                 plant, allocator, CameraBytes, VulkanBufferUsage.Uniform, VulkanMemoryUsage.CpuToGpu, "solid3d.camera");
             (descriptorPool, descriptorSet) = CreateCameraDescriptor();
             if (modelProgram is not null)
-                modelRenderer = new(plant, allocator, commandPool, fences, renderPass, modelProgram);
+                modelRenderer = new(plant, allocator, commandPool, fences, renderPass, modelProgram, shadowMap, shadowSampler);
         }
         catch
         {
@@ -146,7 +190,21 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
             throw new ArgumentException("Geometry must contain 1..65536 vertices in complete triangles.", nameof(geometry));
         }
         gpuGeometry?.Validate(plant);
-        Vector3 light = lightDirection ?? new Vector3(.36f, .80f, .48f);
+        Graphics3DSettings settings = Settings ?? throw new InvalidOperationException("3D settings are required.");
+        if (lightDirection is not null)
+        {
+            settings = settings with { SunDirection = lightDirection.Value };
+        }
+        settings.Validate();
+        if (outputPass is null && (settings.Shadows || settings.ToneMapping || settings.Exposure != 1))
+        {
+            throw new InvalidOperationException("Shadows, tone mapping and exposure require the Shadow3D and ToneMap3D shaders at renderer creation.");
+        }
+        if (!Finite(eye))
+        {
+            throw new ArgumentException("Camera eye must be finite.", nameof(eye));
+        }
+        Vector3 light = Vector3.Normalize(settings.SunDirection);
         if (!Finite(light) || light.LengthSquared() < .000001f || light.LengthSquared() > 1.0001f)
         {
             throw new ArgumentException("Light direction must be finite, nonzero and have length at most one.", nameof(lightDirection));
@@ -158,13 +216,16 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
                 throw new ArgumentException("3D vertices must be finite.", nameof(geometry));
             }
         }
+        Matrix4x4 shadowCamera = Lighting3DUniforms.ShadowCamera(settings, eye);
+        float[] lighting = Lighting3DUniforms.Scene(settings, shadowCamera, shadowPass is not null);
         float[] cameraRows =
         [
-            worldToClip.M11, worldToClip.M21, worldToClip.M31, worldToClip.M41,
-            worldToClip.M12, worldToClip.M22, worldToClip.M32, worldToClip.M42,
-            worldToClip.M13, worldToClip.M23, worldToClip.M33, worldToClip.M43,
-            worldToClip.M14, worldToClip.M24, worldToClip.M34, worldToClip.M44,
-            light.X, light.Y, light.Z, .28f,
+            .. Lighting3DUniforms.Rows(worldToClip),
+            .. lighting[..4],
+            eye.X, eye.Y, eye.Z, 1,
+            .. lighting[4..16],
+            settings.SolidRoughness, settings.SolidMetallic, settings.SolidPbr ? 1 : 0, 0,
+            .. lighting[16..],
         ];
         if (cameraRows.Any(value => !float.IsFinite(value)))
         {
@@ -181,12 +242,38 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         {
             if (modelRenderer is null) throw new InvalidOperationException("StaticModel3D shader was not configured.");
         }
-        modelRenderer?.Upload(models, worldToClip, eye);
+        modelRenderer?.Upload(models, worldToClip, eye, lighting);
         VulkanCommandBufferLease command = commandPool.Rent(fences.CommandListFence.LastKnownCompletedValue);
         Require(command.Begin().Success, "3D command begin failed.");
+        gpuTimings?.Reset(command);
+        gpuTimings?.Mark(command, 0);
         var encoder = new VulkanRenderPassCommandEncoder();
+        if (shadowPass is not null)
+        {
+            shadowPass.Upload(Lighting3DUniforms.Rows(shadowCamera));
+            var shadowBegin = encoder.Begin(plant, command, new(shadowPass.Pass, shadowPass.Framebuffer, new(1, 1, 1, 1)));
+            Require(shadowBegin.Success, "Shadow pass begin failed.");
+            if (settings.Shadows)
+            {
+                if (!geometry.IsEmpty)
+                {
+                    shadowPass.Draw(command, shadowBegin.Scope!.Value, vertices, (uint)geometry.Length);
+                }
+                if (gpuGeometry is not null)
+                {
+                    shadowPass.Draw(command, shadowBegin.Scope!.Value, gpuGeometry.Buffer, gpuGeometry.VertexCount);
+                }
+                modelRenderer?.DrawShadows(command, shadowBegin.Scope!.Value, shadowPass, models);
+            }
+            Require(encoder.End(plant, command, shadowBegin.Scope!.Value).Success, "Shadow pass end failed.");
+            Vulkan3DPass.SampleAfterRendering(plant, command, shadowMap);
+        }
+        gpuTimings?.Mark(command, 1);
+        gpuTimings?.Mark(command, 2);
         var begin = encoder.Begin(plant, command, new VulkanRenderPassBeginRequest(
-            renderPass, framebuffer, target.PrepareClearColor(clearColor)));
+            renderPass, framebuffer, hdr is null ? target.PrepareClearColor(clearColor)
+                : new VulkanColorClearValue(NativeSrgbTransfer.Decode(clearColor.Red), NativeSrgbTransfer.Decode(clearColor.Green),
+                    NativeSrgbTransfer.Decode(clearColor.Blue), clearColor.Alpha)));
         Require(begin.Success, "3D render pass begin failed.");
         DescriptorSet set = descriptorSet;
         plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Graphics,
@@ -210,83 +297,85 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
             Require(draw.Success, string.Join("; ", draw.Diagnostics.Select(item => item.Message)));
         }
         Require(encoder.End(plant, command, begin.Scope!.Value).Success, "3D render pass end failed.");
+        gpuTimings?.Mark(command, 3);
+        gpuTimings?.Mark(command, 4);
+        if (outputPass is not null)
+        {
+            Vulkan3DPass.SampleAfterRendering(plant, command, hdr!);
+            bool encodeSrgb = target.TextureFormat is not (VulkanTextureFormat.Rgba8Srgb or VulkanTextureFormat.Bgra8Srgb);
+            outputPass.Upload([settings.Exposure, settings.ToneMapping ? 1 : 0, encodeSrgb ? 1 : 0, 0]);
+            var outputBegin = encoder.Begin(plant, command, new(outputPass.Pass, outputPass.Framebuffer, new(0, 0, 0, 1)));
+            Require(outputBegin.Success, "Tone mapping pass begin failed.");
+            outputPass.Draw(command, outputBegin.Scope!.Value, outputVertices!, 3);
+            Require(encoder.End(plant, command, outputBegin.Scope!.Value).Success, "Tone mapping pass end failed.");
+        }
+        gpuTimings?.Mark(command, 5);
         Require(command.End().Success, "3D command end failed.");
         var submit = submitter.Submit(new VulkanCommandSubmitRequest(command,
             WaitForCompletion: true, TimeoutNanoseconds: 5_000_000_000, DebugName: "solid3d.draw"));
         Require(submit.Success, string.Join("; ", submit.Diagnostics.Select(item => item.Message)));
+        IReadOnlyList<Native3DGpuPassTime> times = gpuTimings?.Read() ?? [];
         int triangleCount = (geometry.Length + models.Sum(item => item.Vertices.Length) + (int)(gpuGeometry?.VertexCount ?? 0)) / 3;
         if (capture)
         {
             var readback = target.Capture();
-            return new Native3DFrameResult(triangleCount, readback.Pixels, readback.Hash);
+            return new Native3DFrameResult(triangleCount, readback.Pixels, readback.Hash) { GpuPassTimes = times };
         }
-        return new Native3DFrameResult(triangleCount, null, null);
+        return new Native3DFrameResult(triangleCount, null, null) { GpuPassTimes = times };
     }
 
     private (DescriptorPool Pool, DescriptorSet Set) CreateCameraDescriptor()
     {
-        DescriptorPoolSize poolSize = new(DescriptorType.UniformBuffer, 1);
-        DescriptorPoolCreateInfo poolInfo = new()
+        var descriptor = Vulkan3DPass.AllocateSet(plant, setLayout, camera, 1);
+        Vulkan3DPass.WriteImage(plant, descriptor.Set, 1, shadowMap, shadowSampler);
+        return descriptor;
+    }
+
+    private void ValidateModernFormats()
+    {
+        var required = new (Format Format, FormatFeatureFlags Features)[]
         {
-            SType = StructureType.DescriptorPoolCreateInfo,
-            MaxSets = 1,
-            PoolSizeCount = 1,
-            PPoolSizes = &poolSize,
+            (Format.R16G16B16A16Sfloat, FormatFeatureFlags.ColorAttachmentBit | FormatFeatureFlags.SampledImageBit | FormatFeatureFlags.SampledImageFilterLinearBit),
+            (Format.R32Sfloat, FormatFeatureFlags.ColorAttachmentBit | FormatFeatureFlags.SampledImageBit),
         };
-        Require(plant.Vk.CreateDescriptorPool(plant.Device, &poolInfo, null, out DescriptorPool pool) == Result.Success,
-            "Camera descriptor pool creation failed.");
-        try
+        foreach (var format in required)
         {
-            DescriptorSetLayout layout = setLayout;
-            DescriptorSetAllocateInfo info = new()
+            plant.Vk.GetPhysicalDeviceFormatProperties(plant.PhysicalDevice, format.Format, out FormatProperties properties);
+            if ((properties.OptimalTilingFeatures & format.Features) != format.Features)
             {
-                SType = StructureType.DescriptorSetAllocateInfo,
-                DescriptorPool = pool,
-                DescriptorSetCount = 1,
-                PSetLayouts = &layout,
-            };
-            Require(plant.Vk.AllocateDescriptorSets(plant.Device, &info, out DescriptorSet set) == Result.Success,
-                "Camera descriptor allocation failed.");
-            DescriptorBufferInfo buffer = new(camera.NativeBuffer, 0, CameraBytes);
-            WriteDescriptorSet write = new()
-            {
-                SType = StructureType.WriteDescriptorSet,
-                DstSet = set,
-                DstBinding = 0,
-                DescriptorType = DescriptorType.UniformBuffer,
-                DescriptorCount = 1,
-                PBufferInfo = &buffer,
-            };
-            plant.Vk.UpdateDescriptorSets(plant.Device, 1, &write, 0, null);
-            return (pool, set);
-        }
-        catch
-        {
-            plant.Vk.DestroyDescriptorPool(plant.Device, pool, null);
-            throw;
+                throw new NotSupportedException($"Modern 3D rendering requires {format.Features} for {format.Format} on {plant.Facts.PhysicalDeviceName}.");
+            }
         }
     }
 
     private static void ValidateProgram(CompiledGraphicsProgram program)
     {
         CompiledVertexInput[] inputs = program.VertexInputs.OrderBy(input => input.Order).ToArray();
-        string[] expectedFields = ["clipX", "clipY", "clipZ", "clipW", "light"];
+        string[] expectedFields = ["clipX", "clipY", "clipZ", "clipW", "light", "eye", "sun", "sky", "ground", "surface",
+            "shadowX", "shadowY", "shadowZ", "shadowW", "shadowParameters"];
         bool valid = inputs.Length == 3
             && inputs[0].Location == 0 && inputs[0].PhysicalType == "float3"
             && inputs[1].Location == 1 && inputs[1].PhysicalType == "float3"
             && inputs[2].Location == 2 && inputs[2].PhysicalType == "float4"
-            && program.Resources.Count == 1
+            && program.Resources.Count == 3
             && program.Resources[0].Set == 0 && program.Resources[0].Binding == 0
             && program.Resources[0].Kind == CompiledGraphicsResourceKind.UniformBuffer
-            && program.Resources[0].Visibility.SequenceEqual([CompiledGraphicsStage.Vertex])
+            && program.Resources[0].Visibility.Order().SequenceEqual(new[] { CompiledGraphicsStage.Vertex, CompiledGraphicsStage.Fragment }.Order())
             && program.Material is { Size: CameraBytes } material
-            && material.Fields.Count == 5
+            && material.Fields.Count == 15
             && material.Fields.Select(field => field.Name).SequenceEqual(expectedFields)
             && material.Fields.All(field => field.PhysicalType == "float4")
-            && material.Fields.Select(field => field.Offset).SequenceEqual([0, 16, 32, 48, 64]);
+            && material.Fields.Select(field => field.Offset).SequenceEqual(Enumerable.Range(0, 15).Select(index => index * 16));
         if (!valid)
         {
-            throw new ArgumentException("Solid3D requires position/normal/color and the 80-byte vertex-visible camera/light at set 0 binding 0.", nameof(program));
+            throw new ArgumentException("Solid3D requires position/normal/color, the 240-byte scene uniform and shadow texture/sampler.", nameof(program));
+        }
+        CompiledGraphicsResource[] sampled = program.Resources.Where(item => item.Binding != 0).OrderBy(item => item.Binding).ToArray();
+        if (sampled[0].Binding != 1 || sampled[0].Set != 0 || sampled[0].Kind != CompiledGraphicsResourceKind.Texture2D
+            || sampled[1].Binding != 2 || sampled[1].Set != 0 || sampled[1].Kind != CompiledGraphicsResourceKind.Sampler
+            || sampled.Any(item => !item.Visibility.SequenceEqual([CompiledGraphicsStage.Fragment])))
+        {
+            throw new ArgumentException("Solid3D shadow texture/sampler must be fragment-visible bindings 1 and 2.", nameof(program));
         }
     }
 
@@ -298,7 +387,11 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         }
         disposed = true;
         _ = plant.Vk.DeviceWaitIdle(plant.Device);
+        gpuTimings?.Dispose();
         modelRenderer?.Dispose();
+        outputPass?.Dispose();
+        shadowPass?.Dispose();
+        outputVertices?.Dispose();
         pipeline?.Dispose();
         if (descriptorPool.Handle != 0)
         {
@@ -313,6 +406,12 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         framebuffer?.Dispose();
         renderPass?.Dispose();
         depth?.Dispose();
+        hdr?.Dispose();
+        shadowMap?.Dispose();
+        if (shadowSampler.Handle != 0)
+        {
+            plant.Vk.DestroySampler(plant.Device, shadowSampler, null);
+        }
         submitter.Dispose();
         commandPool.Dispose();
         fences.Dispose();

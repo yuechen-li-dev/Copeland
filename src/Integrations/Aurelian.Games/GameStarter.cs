@@ -63,6 +63,8 @@ public static class GameStarter
         using IInputContext input = window.CreateInput();
         bool gpuRays = args.Contains("--gpu-rays", StringComparer.Ordinal);
         using var graphics = new NativeGameGraphics(window, options.Title, visible, enableRayQueries: gpuRays);
+        graphics.Settings = args.Contains("--basic-graphics", StringComparer.Ordinal)
+            ? Aurelian.Rendering.Contracts.Models.Graphics3DSettings.Basic : options.Graphics;
         using VulkanSpatialRayQueries3D? rayQueries = gpuRays
             && graphics.Plant.Facts.EnabledDeviceExtensions.Contains("VK_KHR_ray_query", StringComparer.Ordinal)
             ? GameRayQueries.Create(graphics.Plant, game.SpatialWorld) : null;

@@ -13,4 +13,7 @@ public readonly record struct NativeModel3DVertex(Vector3 Position, Vector3 Norm
 public sealed record NativeModel3DBatch(NativeModel3DVertex[] Vertices, ModelMaterial Material);
 public sealed record Native3DScene(Native3DVertex[] Geometry, IReadOnlyList<NativeModel3DBatch> Models);
 
-public sealed record Native3DFrameResult(int TriangleCount, byte[]? Pixels, string? PixelSha256);
+public sealed record Native3DFrameResult(int TriangleCount, byte[]? Pixels, string? PixelSha256)
+{
+    public IReadOnlyList<Native3DGpuPassTime> GpuPassTimes { get; init; } = [];
+}

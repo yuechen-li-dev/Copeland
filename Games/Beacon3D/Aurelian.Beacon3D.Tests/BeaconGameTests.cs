@@ -130,15 +130,15 @@ public sealed class BeaconGameTests
     }
 
     [Fact]
-    public void SolidShaderBindsVertexCameraRowsWithExactPacking()
+    public void SolidShaderBindsSharedSceneLightingWithExactPacking()
     {
         string source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Assets", "Solid3D.v.ts"));
         var module = Compile(source);
         Assert.True(module.Success, string.Join("; ", module.Diagnostics.Select(item => item.Message)));
         var material = Assert.Single(module.Materials);
-        Assert.Equal(80, material.Size);
-        Assert.Equal([0, 16, 32, 48, 64], material.Fields.Select(field => field.Offset));
-        Assert.Equal([VdMirGraphicsStage.Vertex], material.Visibility);
+        Assert.Equal(240, material.Size);
+        Assert.Equal(Enumerable.Range(0, 15).Select(index => index * 16), material.Fields.Select(field => field.Offset));
+        Assert.Equal([VdMirGraphicsStage.Vertex, VdMirGraphicsStage.Pixel], material.Visibility.Order());
         Assert.Equal(["float3", "float3", "float4"], module.GraphicsProgram!.VertexInputs.Select(input => input.PhysicalType));
         var invalid = Compile(source.Replace("clipW: float4", "clipW: float3", StringComparison.Ordinal));
         Assert.False(invalid.Success);
@@ -147,7 +147,9 @@ public sealed class BeaconGameTests
 
     private static VdMirGraphicsModule Compile(string source)
     {
-        return GpuGraphicsBinder.Compile(new GpuCompilationRequest([new GpuSourceFile("Solid3D.v.ts", source)]));
+        string lighting = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Assets", "Lighting3D.v.ts"));
+        return GpuGraphicsBinder.Compile(new GpuCompilationRequest([
+            new GpuSourceFile("Solid3D.v.ts", source), new GpuSourceFile("Lighting3D.v.ts", lighting)]));
     }
 
     private static void Walk(BeaconGame game, BeaconInput input, int ticks)

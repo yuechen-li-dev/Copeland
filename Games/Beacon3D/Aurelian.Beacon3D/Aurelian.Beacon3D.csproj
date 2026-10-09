@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/Solid3D.v.ts" Link="Assets/Solid3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/Lighting3D.v.ts" Link="Assets/Lighting3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/AnalyticShape2D.v.ts" Link="Assets/AnalyticShape2D.v.ts" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/MsdfText.v.ts" Link="Assets/MsdfText.v.ts" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../src/Aurelian/Aurelian.Assets/Defaults/Fonts/CrimsonText-Regular.ttf" Link="Assets/CrimsonText-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
