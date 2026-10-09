@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
+    <Description>Optional Aurelian lighting adapter for AGPL Aetheris fields. See NOTICE.md for combined-build terms.</Description>
+    <RestoreAdditionalProjectSources Condition="'$(AetherisPackageFeed)' != ''">$(RestoreAdditionalProjectSources);$(AetherisPackageFeed)</RestoreAdditionalProjectSources>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Aetheris.Fields" VersionOverride="2.0.0-preview.3" />
+    <ProjectReference Include="../../Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj" />
+    <EmbeddedResource Include="Assets/*.v.ts" />
+    <EmbeddedResource Include="licenses/AGPL-3.0.txt" LogicalName="Aurelian.Lighting.Aetheris.AGPL-3.0.txt" />
+    <EmbeddedResource Include="../../../LICENSE" LogicalName="Aurelian.Lighting.Aetheris.GPL-3.0.txt" />
+    <None Include="licenses/AGPL-3.0.txt" Pack="true" PackagePath="licenses/" />
+    <None Include="../../../LICENSE" Pack="true" PackagePath="licenses/GPL/" />
+    <None Include="NOTICE.md" Pack="true" PackagePath="/" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

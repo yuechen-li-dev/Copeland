@@ -20,10 +20,21 @@ using Silk.NET.Maths;
 using Silk.NET.Input;
 using Silk.NET.Windowing;
 
-string defaultOutput = args.Contains("--shadow-experiment", StringComparer.Ordinal)
-    ? "artifacts/aurelian-shadow-distance"
-    : "artifacts/local/graphics-starter";
+string defaultOutput = "artifacts/local/graphics-starter";
+if (args.Contains("--shadow-experiment", StringComparer.Ordinal))
+{
+    defaultOutput = "artifacts/aurelian-shadow-distance";
+}
+if (args.Contains("--field-lighting", StringComparer.Ordinal))
+{
+    defaultOutput = "artifacts/local/aetheris-field-lighting";
+}
 string output = Path.GetFullPath(Option("--output") ?? defaultOutput);
+if (args.Contains("--field-lighting", StringComparer.Ordinal))
+{
+    FieldLightingExperiment.Run(output);
+    return;
+}
 if (args.Contains("--shadow-experiment", StringComparer.Ordinal))
 {
     ShadowDistanceExperiment.Run(output);

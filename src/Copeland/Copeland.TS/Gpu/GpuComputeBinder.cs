@@ -100,7 +100,7 @@ public static class GpuComputeBinder
             {
                 foreach (FunctionDeclarationSyntax function in tree.Root.Members.OfType<FunctionDeclarationSyntax>())
                 {
-                    if (function.Identifier.Text is "Sqrt" or "U32")
+                    if (function.Identifier.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp")
                     {
                         AddDiagnostic("COPE-GPU-SYMBOL-0001", "SDSL-V1509", "symbol",
                             $"{function.Identifier.Text} is a compiler-owned intrinsic and cannot be redefined.",
@@ -474,6 +474,18 @@ public static class GpuComputeBinder
             }
             switch (expression)
             {
+                case UnaryExpressionSyntax unary:
+                {
+                    VdMirExpression operand = BindExpression(path, unary.Operand, scope);
+                    if (unary.OperatorToken.Text is "+" or "-" && operand.Type == "f32"
+                        || unary.OperatorToken.Text == "!" && operand.Type == "bool")
+                    {
+                        return new VdMirExpression("unary", operand.Type, Span(path, unary), unary.OperatorToken.Text, [operand]);
+                    }
+                    AddDiagnostic("COPE-GPU-OPERATOR-0001", "SDSL-V1503", "type",
+                        "Compute unary +/- requires f32; ! requires bool.", Span(path, unary));
+                    return ErrorExpression(path, unary);
+                }
                 case GenericCallExpressionSyntax call when call.Target is NameExpressionSyntax genericName:
                 {
                     var generic = _generics.Call(path, genericName.IdentifierToken.Text, call.TypeArguments, call.Arguments,
@@ -686,14 +698,20 @@ public static class GpuComputeBinder
             }
 
             if (call.Target is NameExpressionSyntax intrinsic &&
-                intrinsic.IdentifierToken.Text is "Sqrt" or "U32")
+                intrinsic.IdentifierToken.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp")
             {
                 var operands = call.Arguments.Select(argument => BindExpression(path, argument, scope)).ToArray();
                 string intrinsicName = intrinsic.IdentifierToken.Text;
-                if (operands.Length != 1 || operands[0].Type != "f32")
+                int expectedArity = intrinsicName switch
+                {
+                    "Min" or "Max" => 2,
+                    "Clamp" => 3,
+                    _ => 1,
+                };
+                if (operands.Length != expectedArity || operands.Any(operand => operand.Type != "f32"))
                 {
                     AddDiagnostic("COPE-GPU-CALL-0001", "SDSL-V1503", "call",
-                        $"{intrinsicName} requires one f32 operand.", Span(path, call));
+                        $"{intrinsicName} requires {expectedArity} f32 operand(s).", Span(path, call));
                     return ErrorExpression(path, call);
                 }
                 return new VdMirExpression("call", intrinsicName == "U32" ? "u32" : "f32",
@@ -804,10 +822,12 @@ public static class GpuComputeBinder
                 return tensor;
             }
             bool numeric = left.Type == right.Type && left.Type is "f32" or "u32";
+            bool boolean = left.Type == "bool" && right.Type == "bool";
             string? resultType = binary.OperatorToken.Text switch
             {
                 "+" or "-" or "*" or "/" when numeric => left.Type,
                 "<" or "<=" or ">" or ">=" or "==" or "!=" when numeric => "bool",
+                "&&" or "||" or "==" or "!=" when boolean => "bool",
                 _ => null,
             };
             if (resultType is null)

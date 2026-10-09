@@ -159,6 +159,7 @@ artifacts/aurelian-static-assets/**/script.json
 Games/Starter/Aurelian.Starter/Assets/Models/*.blend1
 
 # Local generics compiler, backend and native qualification output.
+artifacts/local/
 artifacts/local/vts-generics/
 
 # Shadow research: retain captures, source contours and evidence; regenerate verbose compiler IR.
