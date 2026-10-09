@@ -13,6 +13,11 @@ internal static class WgslSemanticIdentity
     {
         var canonical = module with
         {
+            ValueTypes = module.ValueTypes?.Select(value => value with
+            {
+                Source = Empty,
+                Fields = value.Fields.Select(field => field with { Source = Empty }).ToArray(),
+            }).ToArray(),
             SourceFiles = [],
             Enums = module.Enums?.Select(enumeration => enumeration with
             {

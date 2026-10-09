@@ -2343,7 +2343,7 @@ public sealed class Parser
             SyntaxKind.IdentifierToken when Current.Text == "Async" => ParseAsyncTypeSyntax(),
             SyntaxKind.IdentifierToken when Current.Text == "Iterable" => ParseIterableTypeSyntax(),
             SyntaxKind.IdentifierToken => ParseIdentifierOrQualifiedRowType(),
-            SyntaxKind.StringToken => new LiteralTypeSyntax(NextToken()),
+            SyntaxKind.StringToken or SyntaxKind.NumberToken => new LiteralTypeSyntax(NextToken()),
             SyntaxKind.OpenBraceToken => ParseStructuralObjectType(),
             SyntaxKind.ColumnKeyword => new ColumnTypeSyntax(NextToken(), ParsePostfixTypeSyntax()),
             SyntaxKind.OpenParenToken when IsCallableTypeAhead()

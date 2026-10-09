@@ -33,6 +33,10 @@ internal sealed class WgslGraphicsPreparation
                 _types.Add(variant.PayloadType, $"vd_s{typeId++}");
             }
         }
+        foreach (var value in module.ValueTypes ?? [])
+        {
+            _types.Add(value.Name, $"vd_s{typeId++}");
+        }
         for (int index = 0; index < module.Functions.Count; index++)
         {
             _functions.Add(module.Functions[index].Name, $"vd_f{index}");
@@ -45,6 +49,18 @@ internal sealed class WgslGraphicsPreparation
 
     public WgslPreparedModule Prepare()
     {
+        foreach (var value in _module.ValueTypes ?? [])
+        {
+            var fields = new List<WgslField>();
+            for (int index = 0; index < value.Fields.Count; index++)
+            {
+                VdMirValueField field = value.Fields[index];
+                int end = index + 1 < value.Fields.Count ? value.Fields[index + 1].Offset : value.Size;
+                fields.Add(new WgslField(MemberName(index), Type(field.PhysicalType ?? field.Type, field.Source),
+                    Alignment: index == 0 ? value.Alignment : field.Alignment, Size: end - field.Offset));
+            }
+            _structures.Add(new WgslStructure(_types[value.Name], fields));
+        }
         foreach (var enumeration in _module.Enums ?? [])
         {
             foreach (var variant in enumeration.Cases.Where(item => item.Payload.Count > 0))
@@ -356,6 +372,12 @@ internal sealed class WgslGraphicsPreparation
                 }
                 else
                 {
+                    var record = _module.ValueTypes?.FirstOrDefault(item => item.Name == ownerType);
+                    if (record is not null)
+                    {
+                        value = MemberName(record.Fields.ToList().FindIndex(field => field.Name == value));
+                        break;
+                    }
                     IReadOnlyList<VdMirEnumField>? fields = _module.Enums?.FirstOrDefault(item => item.Name == ownerType)?.CarrierFields;
                     fields ??= _module.Enums?.SelectMany(item => item.Cases).FirstOrDefault(item => item.PayloadType == ownerType)?.Payload;
                     if (fields is not null)
@@ -395,6 +417,12 @@ internal sealed class WgslGraphicsPreparation
 
     private string Type(string type, VdMirSourceSpan source)
     {
+        var valueField = _module.ValueTypes?.SelectMany(value => value.Fields)
+            .FirstOrDefault(field => field.Type == type && field.PhysicalType is not null);
+        if (valueField is not null)
+        {
+            return Type(valueField.PhysicalType!, source);
+        }
         if (_types.TryGetValue(type, out string? mapped))
         {
             return mapped;

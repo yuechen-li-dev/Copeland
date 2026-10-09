@@ -18,6 +18,7 @@ public static class VdMirGraphicsHlslEmitter
         builder.AppendLine($"// Generated from canonical VD-MIR {module.FeatureLevel}. Do not edit.");
         builder.AppendLine();
         VdMirEnumHlslEmitter.Emit(builder, module.Enums);
+        VdMirValueHlslEmitter.Emit(builder, module.ValueTypes);
         foreach (VdMirSemanticSpace space in module.SemanticSpaces)
         {
             builder.AppendLine($"// semantic space {space.Name} physically lowers to {space.PhysicalType}");
@@ -191,7 +192,7 @@ public static class VdMirGraphicsHlslEmitter
     private static void EmitObjectReturn(StringBuilder builder, VdMirExpression expression, VdMirGraphicsModule module, int indentation)
     {
         string prefix = new(' ', indentation * 4);
-        builder.AppendLine($"{prefix}{MapType(expression.Type, module)} result;");
+        builder.AppendLine($"{prefix}{MapType(expression.Type, module)} result = ({MapType(expression.Type, module)})0;");
         for (int index = 0; index < expression.Operands!.Count; index++)
         {
             builder.AppendLine($"{prefix}result.{expression.MemberNames![index]} = {EmitExpression(expression.Operands[index], module)};");
@@ -224,6 +225,12 @@ public static class VdMirGraphicsHlslEmitter
 
     private static string MapType(string type, VdMirGraphicsModule module)
     {
+        VdMirValueField? valueField = module.ValueTypes?.SelectMany(value => value.Fields)
+            .FirstOrDefault(field => field.Type == type && field.PhysicalType is not null);
+        if (valueField is not null)
+        {
+            return MapType(valueField.PhysicalType!, module);
+        }
         if (type == "Sampler")
         {
             return "SamplerState";
@@ -251,10 +258,15 @@ public static class VdMirGraphicsHlslEmitter
     {
         builder.AppendLine($"struct {material.Name}");
         builder.AppendLine("{");
+        int offset = 0;
+        int padding = 0;
         foreach (VdMirMaterialField field in material.Fields.OrderBy(field => field.Order))
         {
+            VdMirValueHlslEmitter.Pad(builder, ref offset, field.Offset, ref padding);
             builder.AppendLine($"    {MapType(field.Type, module)} {field.Name}; // offset {field.Offset}, size {field.Size}, align {field.Alignment}");
+            offset += field.Size;
         }
+        VdMirValueHlslEmitter.Pad(builder, ref offset, material.Size, ref padding);
         builder.AppendLine("};");
     }
 

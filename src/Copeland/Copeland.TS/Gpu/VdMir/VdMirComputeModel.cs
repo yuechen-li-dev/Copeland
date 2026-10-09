@@ -70,6 +70,12 @@ public sealed record VdMirEnumCase(string Name, uint Tag, string PayloadType, IR
 public sealed record VdMirEnum(string Name, IReadOnlyList<VdMirEnumCase> Cases,
     IReadOnlyList<VdMirEnumField> CarrierFields, VdMirSourceSpan Source);
 
+public sealed record VdMirValueField(string Name, string Type, int Offset, int Size, int Alignment, VdMirSourceSpan Source,
+    string? PhysicalType = null);
+
+public sealed record VdMirValueType(string Name, string Kind, string? ElementType, IReadOnlyList<int> Shape,
+    IReadOnlyList<VdMirValueField> Fields, int Size, int Alignment, string StorageOrder, VdMirSourceSpan Source);
+
 public sealed record VdMirComputeEntryPoint(
     string Name,
     string EmittedName,
@@ -98,6 +104,9 @@ public sealed record VdMirComputeModule(
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<VdMirEnum>? Enums { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<VdMirValueType>? ValueTypes { get; init; }
 }
 
 public enum CopelandCompilerProfile

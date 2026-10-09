@@ -5,6 +5,8 @@
 The compute M1 subset and graphics M2–M4 paths are implemented. The October
 2026 [Visual TypeScript language foundation](../Aurelian/visual-typescript-language-port.md)
 adds bounded named modules, scalar `static`, and local payload enums/matches.
+The [fixed values pass](../Aurelian/visual-typescript-fixed-values.md) adds
+records, general material packing, fixed arrays/ndarrays and bounded tensor math.
 SDSL-V semantics remain owned by Oct's
 canonical language specification and conformance corpus. Copeland supplies a
 second frontend through its GPU binders; the deferred

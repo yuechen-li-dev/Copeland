@@ -31,6 +31,34 @@ public sealed class VisualTypeScriptLanguageTests
         Assert.True(backend.Pixel.SpirvValidated, backend.Pixel.DxcOutput + backend.Pixel.SpirvValidationOutput);
     }
 
+    [Fact]
+    public void Fixed_records_arrays_and_tensor_operations_compile_to_validated_compute_spirv()
+    {
+        var module = GpuComputeBinder.Compile(new(Sources("ShapeCompute.v.ts")));
+        Assert.True(module.Success, string.Join("; ", module.Diagnostics.Select(item => item.Message)));
+        Assert.NotEmpty(module.ValueTypes!);
+        var backend = VdMirComputeBackend.Compile(module);
+        Assert.True(backend.SpirvValidated, backend.DxcOutput + backend.SpirvValidationOutput);
+    }
+
+    [Fact]
+    public void Nested_materials_keep_certified_offsets_in_spirv()
+    {
+        var module = GpuGraphicsBinder.Compile(new(Sources("ShapeGraphics.v.ts")));
+        Assert.True(module.Success, string.Join("; ", module.Diagnostics.Select(item => item.Message)));
+        VdMirMaterial material = Assert.Single(module.Materials);
+        Assert.Equal(96, material.Size);
+        Assert.Equal(new[] { 0, 16, 64, 80 }, material.Fields.Select(field => field.Offset));
+        var parameters = Assert.Single(module.ValueTypes!, type => type.Name == "Parameters");
+        Assert.Equal(new[] { 0, 16, 32 }, parameters.Fields.Select(field => field.Offset));
+        var backend = VdMirGraphicsBackend.Compile(module, "vulkan1.2");
+        Assert.True(backend.Vertex.SpirvValidated, backend.Vertex.DxcOutput + backend.Vertex.SpirvValidationOutput);
+        Assert.True(backend.Pixel.SpirvValidated, backend.Pixel.DxcOutput + backend.Pixel.SpirvValidationOutput);
+        Assert.Contains("Offset 16", backend.Pixel.SpirvDisassembly);
+        Assert.Contains("Offset 64", backend.Pixel.SpirvDisassembly);
+        Assert.Contains("Offset 80", backend.Pixel.SpirvDisassembly);
+    }
+
     private static IReadOnlyList<GpuSourceFile> Sources(string root)
     {
         return GpuSourceLoader.Load(root, name =>

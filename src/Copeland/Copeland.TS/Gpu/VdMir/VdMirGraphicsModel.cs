@@ -135,4 +135,7 @@ public sealed record VdMirGraphicsModule(
 
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<VdMirEnum>? Enums { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<VdMirValueType>? ValueTypes { get; init; }
 }

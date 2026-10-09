@@ -142,7 +142,9 @@ public sealed class BeaconGameTests
         Assert.Equal(["float3", "float3", "float4"], module.GraphicsProgram!.VertexInputs.Select(input => input.PhysicalType));
         var invalid = Compile(source.Replace("clipW: float4", "clipW: float3", StringComparison.Ordinal));
         Assert.False(invalid.Success);
-        Assert.Contains(invalid.Diagnostics, item => item.Code == "COPE-GPU-MATERIAL-0003");
+        Assert.Contains(invalid.Diagnostics, item =>
+            item.Code == "COPE-GPU-TYPE-0002" &&
+            item.Message.Contains("Expected 'float4', got 'float3'", StringComparison.Ordinal));
     }
 
     private static VdMirGraphicsModule Compile(string source)

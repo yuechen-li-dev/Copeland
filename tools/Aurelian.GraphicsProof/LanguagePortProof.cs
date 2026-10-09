@@ -11,12 +11,12 @@ using Copeland.TS.Gpu.Wgsl;
 
 internal static class LanguagePortProof
 {
-    public static void Run(string output)
+    public static void Run(string output, bool shapes = false)
     {
         Directory.CreateDirectory(output);
         string evidencePath = Path.Combine(output, "language-evidence.json");
         File.WriteAllText(evidencePath, "{\"accepted\":false}");
-        var compute = GpuComputeBinder.Compile(new(Sources("LanguagePortCompute.v.ts")));
+        var compute = GpuComputeBinder.Compile(new(Sources(shapes ? "ShapeCompute.v.ts" : "LanguagePortCompute.v.ts")));
         Require(compute.Success, Diagnostics(compute.Diagnostics));
         var backend = VdMirComputeBackend.Compile(compute);
         Require(backend.SpirvValidated && backend.Spirv.Length > 0, backend.DxcOutput + backend.SpirvValidationOutput);
@@ -25,11 +25,14 @@ internal static class LanguagePortProof
         File.WriteAllText(Path.Combine(output, "language-compute.hlsl"), backend.Hlsl);
         File.WriteAllBytes(Path.Combine(output, "language-compute.spv"), backend.Spirv);
 
-        var graphics = GpuGraphicsBinder.Compile(new(Sources("LanguagePortGraphics.v.ts")));
+        var graphics = GpuGraphicsBinder.Compile(new(Sources(shapes ? "ShapeGraphics.v.ts" : "LanguagePortGraphics.v.ts")));
         Require(graphics.Success, Diagnostics(graphics.Diagnostics));
         var graphicsBackend = VdMirGraphicsBackend.Compile(graphics, "vulkan1.2");
         Require(graphicsBackend.Vertex.SpirvValidated && graphicsBackend.Pixel.SpirvValidated,
             graphicsBackend.Vertex.DxcOutput + graphicsBackend.Pixel.DxcOutput);
+        File.WriteAllText(Path.Combine(output, "language-graphics.vdmir.json"), VdMirJson.Serialize(graphics));
+        File.WriteAllText(Path.Combine(output, "language-graphics.hlsl"), graphicsBackend.Hlsl);
+        File.WriteAllBytes(Path.Combine(output, "language-graphics.spv"), graphicsBackend.Pixel.Spirv);
         var wgsl = WgslGraphicsBackend.Lower(graphics);
         Require(wgsl.Success, Diagnostics(wgsl.Diagnostics));
         string wgslPath = Path.Combine(output, "language-graphics.wgsl");
@@ -41,7 +44,7 @@ internal static class LanguagePortProof
         Require(initialized.Success, string.Join("; ", initialized.Diagnostics.Select(item => item.Message)));
         using var plant = initialized.Plant!;
         float[] input = [-4, 0, 1, 4, 16];
-        float[] expected = [0, 0, .25f, 1, 4];
+        float[] expected = shapes ? [34, 58, 62, 107, 467] : [0, 0, .25f, 1, 4];
         using var kernel = new VulkanScalarComputeProbe(plant, backend.Spirv, compute.EntryPoint!.EmittedName, input);
         float[] actual = kernel.Execute();
         Require(actual.SequenceEqual(expected), "GPU payload/static results differ: " + string.Join(", ", actual));
@@ -59,8 +62,10 @@ internal static class LanguagePortProof
             GraphicsSpirvValidated = true,
             DirectWgslValidated = true,
             StaticOnlyHelperErased = true,
+            FixedShapesAndRecords = shapes,
         }, new JsonSerializerOptions { WriteIndented = true }));
-        Console.WriteLine("AURELIAN_VTS_LANGUAGE_PROOF_PASSED " + plant.Facts.PhysicalDeviceName);
+        string label = shapes ? "AURELIAN_VTS_SHAPE_PROOF_PASSED " : "AURELIAN_VTS_LANGUAGE_PROOF_PASSED ";
+        Console.WriteLine(label + plant.Facts.PhysicalDeviceName);
     }
 
     private static IReadOnlyList<GpuSourceFile> Sources(string root)

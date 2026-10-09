@@ -27,6 +27,7 @@ public static class GpuComputeBinder
         private GpuModuleGraph _modules = null!;
         private GpuConstants _constants = null!;
         private GpuEnums _enums = null!;
+        private GpuValues _values = null!;
         private int _matchSequence;
         private readonly List<VdMirDiagnostic> _diagnostics = [];
         private readonly Dictionary<string, FunctionSource> _functions = new(StringComparer.Ordinal);
@@ -55,6 +56,7 @@ public static class GpuComputeBinder
             }
 
             ParseSources();
+            _values = new GpuValues(_modules, (code, message, span) => AddDiagnostic(code, "SDSL-V4114", "value-storage", message, span));
             _enums = new GpuEnums(_modules,
                 (path, type) => BindType(path, type, new SyntaxToken(SyntaxKind.IdentifierToken, 0, string.Empty, null)),
                 (code, message, span) => AddDiagnostic(code, "SDSL-V4200", "payload-enum", message, span));
@@ -291,7 +293,7 @@ public static class GpuComputeBinder
                             AddDiagnostic("COPE-GPU-RAYQUERY-0002", "SDSL-V4213", "ray-query",
                                 "Acceleration structures are bound readonly resources, not copyable local values.", Span(path, local));
                         }
-                        VdMirExpression initializer = BindExpression(path, local.Initializer, scope);
+                        VdMirExpression initializer = BindExpression(path, local.Initializer, scope, declaredType);
                         if (declaredType != initializer.Type)
                         {
                             TypeMismatch(path, local.Initializer, declaredType, initializer.Type);
@@ -309,8 +311,22 @@ public static class GpuComputeBinder
                     }
                     case ExpressionStatementSyntax expressionStatement when expressionStatement.Expression is AssignmentExpressionSyntax assignment:
                     {
+                        if (assignment.Left is IndexExpressionSyntax { Target: NameExpressionSyntax arrayName } indexed
+                            && scope.TryGetValue(arrayName.IdentifierToken.Text, out ValueBinding? arrayBinding) && _values.Find(arrayBinding.Type) is not null)
+                        {
+                            if (!arrayBinding.Mutable)
+                            {
+                                AddDiagnostic("COPE-GPU-MUTATION-0001", "SDSL-V3701", "binding", "Indexed writes require a var binding.", Span(path, indexed));
+                            }
+                            var subject = new VdMirExpression("name", arrayBinding.Type, Span(path, indexed), arrayName.IdentifierToken.Text);
+                            var coordinate = BindExpression(path, indexed.Index, scope);
+                            var assigned = BindExpression(path, assignment.Right, scope, _values.Find(arrayBinding.Type)!.ElementType);
+                            VdMirExpression replacement = _values.Write(subject, [coordinate], assigned, AddEnumFunction, Span(path, assignment)) ?? ValueOperationError(path, assignment);
+                            result.Add(new("assign", Span(path, assignment), Expression: new("assignment", subject.Type, Span(path, assignment), Operands: [subject, replacement])));
+                            break;
+                        }
                         VdMirExpression target = BindExpression(path, assignment.Left, scope);
-                        VdMirExpression value = BindExpression(path, assignment.Right, scope);
+                        VdMirExpression value = BindExpression(path, assignment.Right, scope, target.Type);
                         if (!IsMutableTarget(assignment.Left, scope))
                         {
                             AddDiagnostic(
@@ -332,6 +348,25 @@ public static class GpuComputeBinder
                         break;
                     }
                     case ExpressionStatementSyntax expressionStatement:
+                        if (expressionStatement.Expression is CallExpressionSyntax { Target: MemberAccessExpressionSyntax { Target: NameExpressionSyntax setTarget, NameToken.Text: "set" } } update)
+                        {
+                            if (!scope.TryGetValue(setTarget.IdentifierToken.Text, out ValueBinding? binding) || _values.Find(binding.Type) is not { } valueType
+                                || update.Arguments.Count != valueType.Shape.Count + 1)
+                            {
+                                ValueOperationError(path, update);
+                                break;
+                            }
+                            if (!binding.Mutable)
+                            {
+                                AddDiagnostic("COPE-GPU-MUTATION-0001", "SDSL-V3701", "binding", "set requires a var binding.", Span(path, update));
+                            }
+                            var subject = new VdMirExpression("name", binding.Type, Span(path, setTarget), setTarget.IdentifierToken.Text);
+                            var indices = update.Arguments.SkipLast(1).Select(argument => BindExpression(path, argument, scope)).ToArray();
+                            var assigned = BindExpression(path, update.Arguments[^1], scope, valueType.ElementType);
+                            var replacement = _values.Write(subject, indices, assigned, AddEnumFunction, Span(path, update)) ?? ValueOperationError(path, update);
+                            result.Add(new("assign", Span(path, update), Expression: new("assignment", subject.Type, Span(path, update), Operands: [subject, replacement])));
+                            break;
+                        }
                         if (expressionStatement.Expression is CallExpressionSyntax queryCall
                             && queryCall.Target is NameExpressionSyntax queryName
                             && queryName.IdentifierToken.Text == "RayQueryTraceClosest")
@@ -380,7 +415,7 @@ public static class GpuComputeBinder
                     {
                         VdMirExpression? value = returnStatement.Expression is null
                             ? null
-                            : BindExpression(path, returnStatement.Expression, scope);
+                            : BindExpression(path, returnStatement.Expression, scope, returnType);
                         string actual = value?.Type ?? "void";
                         if (actual != returnType) TypeMismatch(path, returnStatement, returnType, actual);
                         result.Add(new VdMirStatement("return", Span(path, returnStatement), Expression: value));
@@ -420,8 +455,17 @@ public static class GpuComputeBinder
         private VdMirExpression BindExpression(
             string path,
             ExpressionSyntax expression,
-            Dictionary<string, ValueBinding> scope)
+            Dictionary<string, ValueBinding> scope, string? expected = null)
         {
+            if (expected is not null && expression is ObjectLiteralExpressionSyntax or ArrayLiteralExpressionSyntax)
+            {
+                VdMirExpression? initialized = _values.BindLiteral(expected, expression,
+                    (value, type) => BindExpression(path, value, scope, type), AddEnumFunction, Span(path, expression));
+                if (initialized is not null)
+                {
+                    return initialized;
+                }
+            }
             switch (expression)
             {
                 case NameExpressionSyntax name:
@@ -465,7 +509,7 @@ public static class GpuComputeBinder
                 case LiteralExpressionSyntax literal:
                     return BindLiteral(path, literal);
                 case ParenthesizedExpressionSyntax parenthesized:
-                    return BindExpression(path, parenthesized.Expression, scope);
+                    return BindExpression(path, parenthesized.Expression, scope, expected);
                 case MemberAccessExpressionSyntax member:
                 {
                     if (member.Target is NameExpressionSyntax qualifier && !scope.ContainsKey(qualifier.IdentifierToken.Text))
@@ -477,6 +521,16 @@ public static class GpuComputeBinder
                         }
                     }
                     VdMirExpression target = BindExpression(path, member.Target, scope);
+                    VdMirExpression? query = _values.Query(target, member.NameToken.Text, AddEnumFunction, Span(path, member));
+                    if (query is not null)
+                    {
+                        return query;
+                    }
+                    string? recordField = _values.MemberType(target.Type, member.NameToken.Text);
+                    if (recordField is not null)
+                    {
+                        return new("field", recordField, Span(path, member), member.NameToken.Text, [target]);
+                    }
                     if (target.Type == "uint3" && member.NameToken.Text is "x" or "y" or "z")
                     {
                         return new VdMirExpression("field", "u32", Span(path, member), member.NameToken.Text, [target]);
@@ -493,6 +547,11 @@ public static class GpuComputeBinder
                 {
                     VdMirExpression target = BindExpression(path, index.Target, scope);
                     VdMirExpression subscript = BindExpression(path, index.Index, scope);
+                    VdMirExpression? shaped = _values.Read(target, [subscript], AddEnumFunction, Span(path, index));
+                    if (shaped is not null)
+                    {
+                        return shaped;
+                    }
                     if (target.Type != "storage-buffer<f32>" || subscript.Type != "u32")
                     {
                         AddDiagnostic("COPE-GPU-INDEX-0001", "SDSL-V1503", "indexing", "Compute M1 indexing requires StorageBuffer<f32>[u32].", Span(path, index));
@@ -502,6 +561,9 @@ public static class GpuComputeBinder
                 }
                 case BinaryExpressionSyntax binary:
                     return BindBinary(path, binary, scope);
+                case WithExpressionSyntax updated:
+                    return _values.UpdateRecord(BindExpression(path, updated.Source, scope), updated,
+                        (value, type) => BindExpression(path, value, scope, type), AddEnumFunction, Span(path, updated));
                 case CallExpressionSyntax call:
                     return BindCall(path, call, scope);
                 case NewExpressionSyntax allocation:
@@ -511,6 +573,12 @@ public static class GpuComputeBinder
                     AddHostOnly(path, expression, expression.Kind.ToString());
                     return ErrorExpression(path, expression);
             }
+        }
+
+        private VdMirExpression ValueOperationError(string path, SyntaxNode syntax)
+        {
+            AddDiagnostic("COPE-GPU-VALUE-0006", "SDSL-V1503", "value-operation", "Operation requires an admitted shaped value or tensor with the correct rank.", Span(path, syntax));
+            return ErrorExpression(path, syntax);
         }
 
         private VdMirExpression? BindConstant(string path, string name)
@@ -548,6 +616,16 @@ public static class GpuComputeBinder
 
         private VdMirExpression BindCall(string path, CallExpressionSyntax call, Dictionary<string, ValueBinding> scope)
         {
+            if (call.Target is MemberAccessExpressionSyntax { NameToken.Text: "at" } access)
+            {
+                return _values.Read(BindExpression(path, access.Target, scope), call.Arguments.Select(argument => BindExpression(path, argument, scope)).ToArray(), AddEnumFunction, Span(path, call))
+                    ?? ValueOperationError(path, call);
+            }
+            if (call.Target is NameExpressionSyntax { IdentifierToken.Text: "Dot" or "MatMul" } math)
+            {
+                return _values.Math(math.IdentifierToken.Text, call.Arguments.Select(argument => BindExpression(path, argument, scope)).ToArray(), AddEnumFunction, Span(path, call))
+                    ?? ValueOperationError(path, call);
+            }
             if (call.Target is MemberAccessExpressionSyntax variant
                 && variant.Target is NameExpressionSyntax qualifier && !scope.ContainsKey(qualifier.IdentifierToken.Text))
             {
@@ -592,7 +670,10 @@ public static class GpuComputeBinder
                 AddDiagnostic("COPE-GPU-RAYQUERY-0002", "SDSL-V4213", "ray-query",
                     "Acceleration structures cannot escape through a helper ABI.", Span(path, call));
             }
-            var arguments = call.Arguments.Select(argument => BindExpression(path, argument, scope)).ToArray();
+            var arguments = call.Arguments.Select((argument, index) => BindExpression(path, argument, scope,
+                index < function.Syntax.Parameters.Count
+                    ? BindType(function.Path, function.Syntax.Parameters[index].Type, function.Syntax.Parameters[index].Identifier)
+                    : null)).ToArray();
             if (function.Syntax.Parameters.Count != arguments.Length)
             {
                 AddDiagnostic("COPE-GPU-CALL-0001", "SDSL-V1503", "call", $"Function '{_modules.Declare(function.Path, function.Syntax.Identifier.Text)}' expects {function.Syntax.Parameters.Count} argument(s).", Span(path, call));
@@ -663,6 +744,11 @@ public static class GpuComputeBinder
         {
             VdMirExpression left = BindExpression(path, binary.Left, scope);
             VdMirExpression right = BindExpression(path, binary.Right, scope);
+            VdMirExpression? tensor = _values.Math(binary.OperatorToken.Text, [left, right], AddEnumFunction, Span(path, binary));
+            if (tensor is not null)
+            {
+                return tensor;
+            }
             bool numeric = left.Type == right.Type && left.Type is "f32" or "u32";
             string? resultType = binary.OperatorToken.Text switch
             {
@@ -706,6 +792,11 @@ public static class GpuComputeBinder
 
         private string BindType(string path, TypeSyntax? type, SyntaxToken anchor)
         {
+            string? value = _values?.BindType(path, type, (sourcePath, field) => BindType(sourcePath, field, anchor));
+            if (value is not null)
+            {
+                return value;
+            }
             string? result = type switch
             {
                 IdentifierTypeSyntax identifier when _enums is not null && _enums.Contains(_modules.Resolve(path, identifier.Identifier.Text)) => _modules.Resolve(path, identifier.Identifier.Text),
@@ -778,6 +869,7 @@ public static class GpuComputeBinder
                 _diagnostics.OrderBy(diagnostic => diagnostic.PrimarySpan.File, StringComparer.Ordinal).ThenBy(diagnostic => diagnostic.PrimarySpan.Start).ThenBy(diagnostic => diagnostic.Code, StringComparer.Ordinal).ToArray())
             {
                 Enums = _enums is null || _enums.Definitions.Count == 0 ? null : _enums.Definitions,
+                ValueTypes = _values is null || _values.Definitions.Count == 0 ? null : _values.Definitions,
             };
         }
 

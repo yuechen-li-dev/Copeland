@@ -152,8 +152,9 @@ repository's previously qualified toolchain. No tool is downloaded.
 The scalar Vulkan probe is a qualification utility with exactly two scalar
 storage buffers; production compute runners keep their existing contracts.
 Naga validation is shader validation, not browser/WebGPU execution evidence.
-General records/layouts, arrays, closed generics, and intrinsic catalogue
-expansion remain separate future language passes.
+The subsequent [fixed values pass](visual-typescript-fixed-values.md) adds
+bounded value records, material layouts, arrays and tensor operations. Closed
+generics and intrinsic catalogue expansion remain separate future passes.
 
 ## Qualified results, 2026-10-09
 

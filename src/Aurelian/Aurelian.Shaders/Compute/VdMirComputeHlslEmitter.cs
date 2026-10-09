@@ -18,6 +18,7 @@ public static class VdMirComputeHlslEmitter
         builder.AppendLine($"// Generated from canonical VD-MIR {module.FeatureLevel}. Do not edit.");
         builder.AppendLine();
         VdMirEnumHlslEmitter.Emit(builder, module.Enums);
+        VdMirValueHlslEmitter.Emit(builder, module.ValueTypes);
         foreach (VdMirResource resource in module.Resources)
         {
             string resourceType;
@@ -125,7 +126,7 @@ public static class VdMirComputeHlslEmitter
             case "return":
                 if (statement.Expression is { Kind: "object" } value)
                 {
-                    builder.AppendLine($"{prefix}{MapType(value.Type, module)} result;");
+                    builder.AppendLine($"{prefix}{MapType(value.Type, module)} result = ({MapType(value.Type, module)})0;");
                     for (int index = 0; index < value.Operands!.Count; index++)
                     {
                         builder.AppendLine($"{prefix}result.{value.MemberNames![index]} = {EmitExpression(value.Operands[index])};");
@@ -177,6 +178,7 @@ public static class VdMirComputeHlslEmitter
         "u32" => "uint",
         "f32" => "float",
         "uint3" => "uint3",
+        _ when (module.ValueTypes ?? []).Any(value => value.Name == type) => type,
         _ when (module.Enums ?? []).Any(enumeration => enumeration.Name == type || enumeration.Cases.Any(variant => variant.PayloadType == type)) => type,
         _ => throw new InvalidOperationException($"Unsupported compute type '{type}'."),
     };
