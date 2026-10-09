@@ -28,6 +28,7 @@ namespace Aurelian.Graphics.Vulkan.Native3D;
 public sealed unsafe class VulkanSolid3DRenderer : IDisposable
 {
     private const int VertexStride = 40;
+    private const int CameraBytes = 80;
     private const int MaximumVertices = 65_536;
     private readonly AurelianVulkanPlant plant;
     private readonly VulkanNativeFrameTarget target;
@@ -102,7 +103,7 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
                 plant, allocator, MaximumVertices * VertexStride, VulkanBufferUsage.Vertex,
                 VulkanMemoryUsage.CpuToGpu, "solid3d.vertices");
             camera = VulkanNativeForwardTexturedRenderer.CreateMappedBuffer(
-                plant, allocator, 64, VulkanBufferUsage.Uniform, VulkanMemoryUsage.CpuToGpu, "solid3d.camera");
+                plant, allocator, CameraBytes, VulkanBufferUsage.Uniform, VulkanMemoryUsage.CpuToGpu, "solid3d.camera");
             (descriptorPool, descriptorSet) = CreateCameraDescriptor();
             if (modelProgram is not null)
                 modelRenderer = new(plant, allocator, commandPool, fences, renderPass, modelProgram);
@@ -133,14 +134,22 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         NativeFrameClearColor clearColor,
         bool capture = false,
         IReadOnlyList<NativeModel3DBatch>? models = null,
-        Vector3 eye = default)
+        Vector3 eye = default,
+        NativeGpuGeometry3D? gpuGeometry = null,
+        Vector3? lightDirection = null)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         target.ValidateExternalPass(plant);
         models ??= [];
-        if ((geometry.IsEmpty && models.Count == 0) || geometry.Length % 3 != 0 || geometry.Length > MaximumVertices)
+        if ((geometry.IsEmpty && models.Count == 0 && gpuGeometry is null) || geometry.Length % 3 != 0 || geometry.Length > MaximumVertices)
         {
             throw new ArgumentException("Geometry must contain 1..65536 vertices in complete triangles.", nameof(geometry));
+        }
+        gpuGeometry?.Validate(plant);
+        Vector3 light = lightDirection ?? new Vector3(.36f, .80f, .48f);
+        if (!Finite(light) || light.LengthSquared() < .000001f || light.LengthSquared() > 1.0001f)
+        {
+            throw new ArgumentException("Light direction must be finite, nonzero and have length at most one.", nameof(lightDirection));
         }
         foreach (Native3DVertex vertex in geometry)
         {
@@ -155,6 +164,7 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
             worldToClip.M12, worldToClip.M22, worldToClip.M32, worldToClip.M42,
             worldToClip.M13, worldToClip.M23, worldToClip.M33, worldToClip.M43,
             worldToClip.M14, worldToClip.M24, worldToClip.M34, worldToClip.M44,
+            light.X, light.Y, light.Z, .28f,
         ];
         if (cameraRows.Any(value => !float.IsFinite(value)))
         {
@@ -189,17 +199,28 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
             Require(draw.Success, string.Join("; ", draw.Diagnostics.Select(item => item.Message)));
         }
         if (models.Count > 0) modelRenderer!.Draw(command, begin.Scope!.Value, framebuffer, models);
+        if (gpuGeometry is not null)
+        {
+            DescriptorSet cameraSet = descriptorSet;
+            plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Graphics,
+                pipeline.NativePipelineLayout, 0, 1, &cameraSet, 0, null);
+            var draw = new VulkanDrawCommandEncoder().DrawVertices(plant, command, begin.Scope!.Value,
+                new VulkanDrawVerticesRequest(pipeline, gpuGeometry.Buffer, gpuGeometry.VertexCount, 0,
+                    VulkanViewportScissor.FromFramebuffer(framebuffer)));
+            Require(draw.Success, string.Join("; ", draw.Diagnostics.Select(item => item.Message)));
+        }
         Require(encoder.End(plant, command, begin.Scope!.Value).Success, "3D render pass end failed.");
         Require(command.End().Success, "3D command end failed.");
         var submit = submitter.Submit(new VulkanCommandSubmitRequest(command,
             WaitForCompletion: true, TimeoutNanoseconds: 5_000_000_000, DebugName: "solid3d.draw"));
         Require(submit.Success, string.Join("; ", submit.Diagnostics.Select(item => item.Message)));
+        int triangleCount = (geometry.Length + models.Sum(item => item.Vertices.Length) + (int)(gpuGeometry?.VertexCount ?? 0)) / 3;
         if (capture)
         {
             var readback = target.Capture();
-            return new Native3DFrameResult((geometry.Length + models.Sum(item => item.Vertices.Length)) / 3, readback.Pixels, readback.Hash);
+            return new Native3DFrameResult(triangleCount, readback.Pixels, readback.Hash);
         }
-        return new Native3DFrameResult((geometry.Length + models.Sum(item => item.Vertices.Length)) / 3, null, null);
+        return new Native3DFrameResult(triangleCount, null, null);
     }
 
     private (DescriptorPool Pool, DescriptorSet Set) CreateCameraDescriptor()
@@ -226,7 +247,7 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
             };
             Require(plant.Vk.AllocateDescriptorSets(plant.Device, &info, out DescriptorSet set) == Result.Success,
                 "Camera descriptor allocation failed.");
-            DescriptorBufferInfo buffer = new(camera.NativeBuffer, 0, 64);
+            DescriptorBufferInfo buffer = new(camera.NativeBuffer, 0, CameraBytes);
             WriteDescriptorSet write = new()
             {
                 SType = StructureType.WriteDescriptorSet,
@@ -249,7 +270,7 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
     private static void ValidateProgram(CompiledGraphicsProgram program)
     {
         CompiledVertexInput[] inputs = program.VertexInputs.OrderBy(input => input.Order).ToArray();
-        string[] expectedFields = ["clipX", "clipY", "clipZ", "clipW"];
+        string[] expectedFields = ["clipX", "clipY", "clipZ", "clipW", "light"];
         bool valid = inputs.Length == 3
             && inputs[0].Location == 0 && inputs[0].PhysicalType == "float3"
             && inputs[1].Location == 1 && inputs[1].PhysicalType == "float3"
@@ -258,14 +279,14 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
             && program.Resources[0].Set == 0 && program.Resources[0].Binding == 0
             && program.Resources[0].Kind == CompiledGraphicsResourceKind.UniformBuffer
             && program.Resources[0].Visibility.SequenceEqual([CompiledGraphicsStage.Vertex])
-            && program.Material is { Size: 64 } material
-            && material.Fields.Count == 4
+            && program.Material is { Size: CameraBytes } material
+            && material.Fields.Count == 5
             && material.Fields.Select(field => field.Name).SequenceEqual(expectedFields)
             && material.Fields.All(field => field.PhysicalType == "float4")
-            && material.Fields.Select(field => field.Offset).SequenceEqual([0, 16, 32, 48]);
+            && material.Fields.Select(field => field.Offset).SequenceEqual([0, 16, 32, 48, 64]);
         if (!valid)
         {
-            throw new ArgumentException("Solid3D requires position/normal/color and the 64-byte vertex-visible camera at set 0 binding 0.", nameof(program));
+            throw new ArgumentException("Solid3D requires position/normal/color and the 80-byte vertex-visible camera/light at set 0 binding 0.", nameof(program));
         }
     }
 

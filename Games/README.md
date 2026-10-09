@@ -9,6 +9,7 @@ Games own their rules, authored agents, content, save schemas and proof scenario
 | Mossward strategy | `Strategy/Aurelian.StrategyDemo` | `dotnet run --project Games/Strategy/Aurelian.StrategyDemo -c Release` |
 | TinyFarm | `TinyFarm/TinyFarm.Native` | `Play-TinyFarm.cmd` |
 | Composable starter | `Starter/Aurelian.Starter` | `starter.cmd` |
+| Character animation lab | `CharacterLab/Aurelian.CharacterLab` | `characterlab.cmd` |
 
 Each game's tests live alongside its application. TinyFarm's CLI, playtesting adapter, Oblivion adapter and example scripts also live under its game directory. Project names and public namespaces are preserved.
 

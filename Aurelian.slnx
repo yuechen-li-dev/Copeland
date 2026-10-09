@@ -32,6 +32,7 @@
     <Project Path="src/Integrations/Aurelian.GameSaves/Aurelian.GameSaves.csproj" />
     <Project Path="src/Integrations/Aurelian.GameWorld2D/Aurelian.GameWorld2D.csproj" />
     <Project Path="src/Integrations/Aurelian.Effects2D.Graphics/Aurelian.Effects2D.Graphics.csproj" />
+    <Project Path="src/Integrations/Aurelian.Humanoid/Aurelian.Humanoid.csproj" />
     <Project Path="src/Integrations/Aurelian.NativeComposition/Aurelian.NativeComposition.csproj" />
     <Project Path="src/Integrations/Aurelian.Profile.Graphics/Aurelian.Profile.Graphics.csproj" />
     <Project Path="src/Integrations/Aurelian.GameHost.Silk/Aurelian.GameHost.Silk.csproj" />
@@ -41,6 +42,7 @@
     <Project Path="../Deliverance/src/Deliverance.Core/Deliverance.Core.csproj" />
   </Folder>
   <Folder Name="/Games/">
+    <Project Path="Games/CharacterLab/Aurelian.CharacterLab/Aurelian.CharacterLab.csproj" />
     <Project Path="Games/Starter/Aurelian.Starter/Aurelian.Starter.csproj" />
     <Project Path="Games/TinyFarm/TinyFarm.InputMan/TinyFarm.InputMan.csproj" />
     <Project Path="Games/Beacon3D/Aurelian.Beacon3D/Aurelian.Beacon3D.csproj" />
@@ -78,6 +80,7 @@
     <Project Path="tests/Aurelian/Aurelian.World.Tests/Aurelian.World.Tests.csproj" />
     <Project Path="tests/Integrations/Aurelian.Games.Tests/Aurelian.Games.Tests.csproj" />
     <Project Path="tests/Integrations/Aurelian.GameWorld2D.Tests/Aurelian.GameWorld2D.Tests.csproj" />
+    <Project Path="tests/Integrations/Aurelian.Humanoid.Tests/Aurelian.Humanoid.Tests.csproj" />
     <Project Path="tests/Integrations/Aurelian.Profile.Graphics.Tests/Aurelian.Profile.Graphics.Tests.csproj" />
   </Folder>
 </Solution>

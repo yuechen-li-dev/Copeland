@@ -213,7 +213,8 @@ public static class GpuGraphicsBinder
                     && fields[4].Type == "f32"
                     && fields[5].Name == "temporalPhase"
                     && fields[5].Type == "f32";
-                bool isCameraMaterial = fields.Count == 4
+                bool isCameraMaterial = (fields.Count == 4 ||
+                        (fields.Count == 5 && fields[4].Name == "light" && fields[4].Type == "float4"))
                     && fields[0].Name == "clipX" && fields[0].Type == "float4"
                     && fields[1].Name == "clipY" && fields[1].Type == "float4"
                     && fields[2].Name == "clipZ" && fields[2].Type == "float4"

@@ -10,6 +10,36 @@ namespace Copeland.TS.Tests;
 public sealed class GpuComputeBinderM1Tests
 {
     [Fact]
+    public void ScalarSkinningArithmeticAndConversionsBindWithoutHostCalls()
+    {
+        var module = Compile("""
+            @compute
+            @numthreads(64, 1, 1)
+            function Skin(@builtin(dispatchThreadId) thread: uint3,
+                @binding(0) readonly Input: StorageBuffer<f32>,
+                @binding(1) readwrite Output: StorageBuffer<f32>): void {
+                const index: u32 = U32(Input[thread.x]) * 8;
+                const length: f32 = Sqrt(Input[index] * Input[index] + 1.0);
+                if (thread.x >= 2) { return; }
+                Output[thread.x] = (length - 1.0) / 2.0;
+                return;
+            }
+            """, "skinning.v.ts");
+        Assert.True(module.Success, Diagnostics(module));
+    }
+
+    [Theory]
+    [InlineData("Sqrt(true)")]
+    [InlineData("U32(2)")]
+    [InlineData("Sqrt(1.0, 2.0)")]
+    public void ScalarIntrinsicsRejectWrongOperandTypesAndArity(string expression)
+    {
+        var module = Compile(ComputeSource.Replace("Input[index] + 1.0", expression, StringComparison.Ordinal), "bad.v.ts");
+        Assert.False(module.Success);
+        Assert.Contains(module.Diagnostics, item => item.Code == "COPE-GPU-CALL-0001");
+    }
+
+    [Fact]
     public void GeneratedComputeJsonPreservesTheExistingExporterBytes()
     {
         VdMirComputeModule module = Compile(ComputeSource, "compute.v.ts");
@@ -160,6 +190,16 @@ public sealed class GpuComputeBinderM1Tests
 
     private static VdMirComputeModule Compile(string source, string path)
         => GpuComputeBinder.Compile(new GpuCompilationRequest([new GpuSourceFile(path, source)]));
+
+    [Theory]
+    [InlineData("Sqrt")]
+    [InlineData("U32")]
+    public void ComputeIntrinsicsCannotBeRedefined(string intrinsic)
+    {
+        string source = $"function {intrinsic}(value: f32): f32 {{ return value; }}\n" + ComputeSource;
+        Assert.Contains(Compile(source, "intrinsic.v.ts").Diagnostics,
+            diagnostic => diagnostic.Code == "COPE-GPU-SYMBOL-0001");
+    }
 
     private static string Diagnostics(VdMirComputeModule module)
         => string.Join(Environment.NewLine, module.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}"));

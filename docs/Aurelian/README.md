@@ -6,6 +6,7 @@ Aurelian owns the engine lifecycle, world and game-object models, actuation, fra
 - [Composable C# game starter and Deliverance save slots](game-starter.md)
 - [Document scenes, reusable fragments and typed agent definitions](scene-composition.md)
 - [Blender/GLB static assets, typed materials and explicit replacement](static-assets.md)
+- [Agent-driven humanoid clips and Vulkan compute skinning](humanoid-animation.md)
 - [Consolidated games](../../Games/README.md)
 - [Aurelian engine architecture v1](aurelian-engine-architecture-v1.md)
 - [Cross-repository SDSL-V semantic port audit](sdsl-v-cross-repo-audit.md)

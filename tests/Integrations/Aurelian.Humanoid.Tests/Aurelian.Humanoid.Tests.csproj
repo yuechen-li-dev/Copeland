@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsPackable>false</IsPackable></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Humanoid/Aurelian.Humanoid.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Games/Aurelian.Games.csproj" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+</Project>

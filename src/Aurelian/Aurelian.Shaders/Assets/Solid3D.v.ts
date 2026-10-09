@@ -11,6 +11,7 @@ record CameraMaterial {
     clipY: float4;
     clipZ: float4;
     clipW: float4;
+    light: float4;
 }
 
 stream VertexInput {
@@ -45,8 +46,8 @@ function ProjectRow(row: float4, p: WorldPosition3): f32 {
 
 @vertex
 function VertexMain(input: VertexInput, resources: CameraResources): SolidVaryings {
-    const light: f32 = 0.28 + 0.72 * Max(
-        input.normal.x * 0.36 + input.normal.y * 0.80 + input.normal.z * 0.48,
+    const light: f32 = resources.camera.light.w + (1.0 - resources.camera.light.w) * Max(
+        input.normal.x * resources.camera.light.x + input.normal.y * resources.camera.light.y + input.normal.z * resources.camera.light.z,
         0.0);
     return {
         position: float4(

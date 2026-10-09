@@ -93,6 +93,12 @@ public static class GpuComputeBinder
 
                 foreach (FunctionDeclarationSyntax function in tree.Root.Members.OfType<FunctionDeclarationSyntax>())
                 {
+                    if (function.Identifier.Text is "Sqrt" or "U32")
+                    {
+                        AddDiagnostic("COPE-GPU-SYMBOL-0001", "SDSL-V1509", "symbol",
+                            $"{function.Identifier.Text} is a compiler-owned intrinsic and cannot be redefined.",
+                            Span(source.Path, function.Identifier));
+                    }
                     if (function.Identifier.Text == "RayQueryTraceClosest")
                     {
                         AddDiagnostic("COPE-GPU-RAYQUERY-0003", "SDSL-V4213", "ray-query",
@@ -450,6 +456,20 @@ public static class GpuComputeBinder
 
         private VdMirExpression BindCall(string path, CallExpressionSyntax call, Dictionary<string, ValueBinding> scope)
         {
+            if (call.Target is NameExpressionSyntax intrinsic &&
+                intrinsic.IdentifierToken.Text is "Sqrt" or "U32")
+            {
+                var operands = call.Arguments.Select(argument => BindExpression(path, argument, scope)).ToArray();
+                string intrinsicName = intrinsic.IdentifierToken.Text;
+                if (operands.Length != 1 || operands[0].Type != "f32")
+                {
+                    AddDiagnostic("COPE-GPU-CALL-0001", "SDSL-V1503", "call",
+                        $"{intrinsicName} requires one f32 operand.", Span(path, call));
+                    return ErrorExpression(path, call);
+                }
+                return new VdMirExpression("call", intrinsicName == "U32" ? "u32" : "f32",
+                    Span(path, call), intrinsicName, operands);
+            }
             if (call.Target is NameExpressionSyntax queryName && queryName.IdentifierToken.Text == "RayQueryTraceClosest")
             {
                 AddDiagnostic("COPE-GPU-RAYQUERY-0002", "SDSL-V4213", "ray-query",
@@ -540,11 +560,11 @@ public static class GpuComputeBinder
         {
             VdMirExpression left = BindExpression(path, binary.Left, scope);
             VdMirExpression right = BindExpression(path, binary.Right, scope);
-            string? resultType = binary.OperatorToken.Kind switch
+            bool numeric = left.Type == right.Type && left.Type is "f32" or "u32";
+            string? resultType = binary.OperatorToken.Text switch
             {
-                SyntaxKind.PlusToken when left.Type == "f32" && right.Type == "f32" => "f32",
-                SyntaxKind.PlusToken when left.Type == "u32" && right.Type == "u32" => "u32",
-                SyntaxKind.LessToken when left.Type == right.Type && left.Type is "f32" or "u32" => "bool",
+                "+" or "-" or "*" or "/" when numeric => left.Type,
+                "<" or "<=" or ">" or ">=" or "==" or "!=" when numeric => "bool",
                 _ => null,
             };
             if (resultType is null)

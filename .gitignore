@@ -19,6 +19,8 @@ artifacts/m*/
 !artifacts/machina-text-conformance-m0/*.json
 artifacts/derived/
 artifacts/local/vd-wgsl-x0/
+artifacts/local/character-animation*/
+artifacts/character-animation/
 artifacts/canonical-playback/
 artifacts/repo-hygiene/playback-validation/
 artifacts/copeland-msbuild-package/

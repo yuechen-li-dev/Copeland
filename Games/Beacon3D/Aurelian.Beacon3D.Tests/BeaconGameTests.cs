@@ -136,8 +136,8 @@ public sealed class BeaconGameTests
         var module = Compile(source);
         Assert.True(module.Success, string.Join("; ", module.Diagnostics.Select(item => item.Message)));
         var material = Assert.Single(module.Materials);
-        Assert.Equal(64, material.Size);
-        Assert.Equal([0, 16, 32, 48], material.Fields.Select(field => field.Offset));
+        Assert.Equal(80, material.Size);
+        Assert.Equal([0, 16, 32, 48, 64], material.Fields.Select(field => field.Offset));
         Assert.Equal([VdMirGraphicsStage.Vertex], material.Visibility);
         Assert.Equal(["float3", "float3", "float4"], module.GraphicsProgram!.VertexInputs.Select(input => input.PhysicalType));
         var invalid = Compile(source.Replace("clipW: float4", "clipW: float3", StringComparison.Ordinal));

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../Aurelian/Aurelian.Runtime/Aurelian.Runtime.csproj" />
+    <ProjectReference Include="../../Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />
+    <ProjectReference Include="../../../../Aetheris/Aetheris.Humanoid/Aetheris.Humanoid.csproj" />
+    <ProjectReference Include="../../../../Dominatus/src/Dominatus.OptFlow/Dominatus.OptFlow.csproj" />
+    <ProjectReference Include="../../../../Dominatus/src/Dominatus.OptFlow.Generators/Dominatus.OptFlow.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+  </ItemGroup>
+</Project>
