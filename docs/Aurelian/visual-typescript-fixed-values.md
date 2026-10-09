@@ -123,8 +123,9 @@ validates the matching WGSL declaration.
 - Matrix products at most 4,096 scalar products.
 - Inline records at most 256 fields, 64 KiB, and 64 dependency levels.
 - Tensor arithmetic currently uses `f32`; no dynamic extents, borrowed resource
-  views, slicing, arbitrary strides, symbolic Einstein notation, generic
-  specialization, or aggregate static evaluation is added.
+  views, slicing, arbitrary strides, or symbolic Einstein notation is added.
+  The subsequent [generics pass](visual-typescript-generics.md) adds typed
+  specialization of symbolic extents and static evaluation of closed aggregates.
 - `while` remains rejected. The pass introduces no runtime loop requirement.
 
 These are named diagnostics, not fallback allocations or backend source patches.

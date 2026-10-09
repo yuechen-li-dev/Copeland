@@ -33,7 +33,6 @@ public sealed class GenericDiagnosticInventoryTests
         yield return Case("COPE-INFER-0006", BuildStepLimitSource());
         yield return Case("COPE-INFER-0007", BuildEvidenceLimitSource());
         yield return Case("COPE-GENERIC-0005", "function value(input: number): number { return input; } const answer: number = value<number>(1);");
-        yield return Case("COPE-GENERIC-0006", "function inner<T>(value: T): T { return value; } function outer<U>(value: U): U { return inner<U>(value); }");
         yield return Case("COPE-GENERIC-0007", "function identity<T>(value: T): T { return value; } const answer: number = identity<number, string>(1);");
         yield return Case("COPE-GENERIC-0008", "interface Positioned { x: number; } function identity<T>(value: T): T { return value; } const answer: number = identity<Positioned>(1);");
         yield return Case("COPE-GENERIC-0009", BuildTotalInstantiationLimitSource());

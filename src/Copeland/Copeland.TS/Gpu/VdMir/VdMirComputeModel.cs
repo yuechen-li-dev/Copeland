@@ -6,6 +6,16 @@ public sealed record VdMirSourceSpan(string File, int Start, int Length);
 
 public sealed record VdMirRelatedSpan(string Message, VdMirSourceSpan Span);
 
+public sealed record VdMirGenericSpecialization(
+    string Identity,
+    string Declaration,
+    string Function,
+    IReadOnlyList<string> TypeArguments,
+    IReadOnlyList<string> StaticArguments,
+    VdMirSourceSpan CallSource,
+    VdMirSourceSpan DeclarationSource,
+    int BodyBindings);
+
 public sealed record VdMirDiagnostic(
     string Code,
     string CanonicalCode,
@@ -107,6 +117,10 @@ public sealed record VdMirComputeModule(
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<VdMirValueType>? ValueTypes { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<VdMirGenericSpecialization>? GenericSpecializations { get; init; }
+
 }
 
 public enum CopelandCompilerProfile

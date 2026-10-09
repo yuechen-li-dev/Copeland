@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 namespace Copeland.TS.Gpu.VdMir;
 
 public enum VdMirGraphicsStage
@@ -138,4 +139,8 @@ public sealed record VdMirGraphicsModule(
 
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<VdMirValueType>? ValueTypes { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<VdMirGenericSpecialization>? GenericSpecializations { get; init; }
+
 }

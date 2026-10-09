@@ -321,6 +321,8 @@ public sealed record TypeAliasDeclarationSyntax(
     SyntaxToken SemicolonToken,
     IReadOnlyList<AnnotationSyntax>? Annotations = null) : MemberSyntax
 {
+    public GenericParameterListSyntax? GenericParameters { get; init; }
+
     public override SyntaxKind Kind => SyntaxKind.TypeAliasDeclaration;
 
     public override IEnumerable<object> GetChildren()
@@ -329,8 +331,13 @@ public sealed record TypeAliasDeclarationSyntax(
         {
             yield return annotation;
         }
+        if (GenericParameters?.TemplateKeyword is not null)
+        {
+            yield return GenericParameters;
+        }
         yield return TypeKeyword;
         yield return Identifier;
+        if (GenericParameters is { TemplateKeyword: null }) yield return GenericParameters;
         foreach (var token in TypeParameterTokens)
         {
             yield return token;
@@ -415,12 +422,19 @@ public sealed record InterfaceDeclarationSyntax(
     SyntaxToken CloseBraceToken,
     IReadOnlyList<AnnotationSyntax>? Annotations = null) : MemberSyntax
 {
+    public GenericParameterListSyntax? GenericParameters { get; init; }
+
     public override SyntaxKind Kind => SyntaxKind.InterfaceDeclaration;
     public override IEnumerable<object> GetChildren()
     {
         foreach (AnnotationSyntax annotation in Annotations ?? []) yield return annotation;
+        if (GenericParameters?.TemplateKeyword is not null)
+        {
+            yield return GenericParameters;
+        }
         yield return InterfaceKeyword;
         yield return Identifier;
+        if (GenericParameters is { TemplateKeyword: null }) yield return GenericParameters;
         yield return OpenBraceToken;
         foreach (var field in Fields) yield return field;
         yield return CloseBraceToken;
@@ -434,7 +448,8 @@ public sealed record TypeParameterSyntax(
     IReadOnlyList<SyntaxToken> RequirementNames,
     IReadOnlyList<SyntaxToken> AmpersandTokens,
     SyntaxToken? EqualsToken = null,
-    TypeSyntax? DefaultType = null) : SyntaxNode
+    TypeSyntax? DefaultType = null,
+    IReadOnlyList<TypeSyntax>? RequirementTypes = null) : SyntaxNode
 {
     public override SyntaxKind Kind => SyntaxKind.TypeParameter;
     public override IEnumerable<object> GetChildren()
@@ -442,10 +457,21 @@ public sealed record TypeParameterSyntax(
         if (TypeKeyword is not null) yield return TypeKeyword;
         yield return Identifier;
         if (ExtendsKeyword is not null) yield return ExtendsKeyword;
-        for (var i = 0; i < RequirementNames.Count; i++)
+        if (RequirementTypes is not null)
         {
-            if (i > 0) yield return AmpersandTokens[i - 1];
-            yield return RequirementNames[i];
+            for (int index = 0; index < RequirementTypes.Count; index++)
+            {
+                if (index > 0) yield return AmpersandTokens[index - 1];
+                yield return RequirementTypes[index];
+            }
+        }
+        else
+        {
+            for (var i = 0; i < RequirementNames.Count; i++)
+            {
+                if (i > 0) yield return AmpersandTokens[i - 1];
+                yield return RequirementNames[i];
+            }
         }
         if (EqualsToken is not null) yield return EqualsToken;
         if (DefaultType is not null) yield return DefaultType;
@@ -590,6 +616,8 @@ public sealed record FunctionDeclarationSyntax(
     BlockStatementSyntax Body,
     IReadOnlyList<AnnotationSyntax>? Annotations = null) : MemberSyntax
 {
+    public GenericParameterListSyntax? GenericParameters { get; init; }
+
     public override SyntaxKind Kind => SyntaxKind.FunctionDeclaration;
 
     public override IEnumerable<object> GetChildren()
@@ -597,16 +625,27 @@ public sealed record FunctionDeclarationSyntax(
         foreach (AnnotationSyntax annotation in Annotations ?? []) yield return annotation;
         if (RemoteKeyword is not null) yield return RemoteKeyword;
         if (AsyncKeyword is not null) yield return AsyncKeyword;
+        if (GenericParameters?.TemplateKeyword is not null)
+        {
+            yield return GenericParameters;
+        }
         yield return FunctionKeyword;
         if (GeneratorStarToken is not null) yield return GeneratorStarToken;
         yield return Identifier;
-        if (LessToken is not null) yield return LessToken;
-        for (var i = 0; i < TypeParameters.Count; i++)
+        if (GenericParameters is { TemplateKeyword: null })
         {
-            if (i > 0) yield return TypeParameterCommas[i - 1];
-            yield return TypeParameters[i];
+            yield return GenericParameters;
         }
-        if (GreaterToken is not null) yield return GreaterToken;
+        else if (GenericParameters is null)
+        {
+            if (LessToken is not null) yield return LessToken;
+            for (var i = 0; i < TypeParameters.Count; i++)
+            {
+                if (i > 0) yield return TypeParameterCommas[i - 1];
+                yield return TypeParameters[i];
+            }
+            if (GreaterToken is not null) yield return GreaterToken;
+        }
         yield return OpenParenToken;
 
         for (var i = 0; i < Parameters.Count; i++)
@@ -2083,6 +2122,8 @@ public sealed record RecordDeclarationSyntax(
     SyntaxToken CloseBraceToken,
     IReadOnlyList<AnnotationSyntax>? Annotations = null) : MemberSyntax
 {
+    public GenericParameterListSyntax? GenericParameters { get; init; }
+
     public override SyntaxKind Kind => SyntaxKind.RecordDeclaration;
 
     public override IEnumerable<object> GetChildren()
@@ -2092,8 +2133,13 @@ public sealed record RecordDeclarationSyntax(
         {
             yield return ConstKeyword;
         }
+        if (GenericParameters?.TemplateKeyword is not null)
+        {
+            yield return GenericParameters;
+        }
         yield return RecordKeyword;
         yield return Identifier;
+        if (GenericParameters is { TemplateKeyword: null }) yield return GenericParameters;
         yield return OpenBraceToken;
         foreach (var field in Fields)
         {

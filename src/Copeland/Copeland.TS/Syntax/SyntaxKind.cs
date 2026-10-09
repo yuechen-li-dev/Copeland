@@ -250,6 +250,8 @@ public enum SyntaxKind
     MatchPattern,
     WhenUtilityExpression,
     UtilityCase,
+    GenericParameterList,
+    GenericValueArgument,
     MissingExpression,
     UnsupportedExpression,
 }

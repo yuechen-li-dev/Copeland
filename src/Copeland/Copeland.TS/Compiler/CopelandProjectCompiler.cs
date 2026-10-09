@@ -775,6 +775,13 @@ public static class CopelandProjectCompiler
                 continue;
             }
 
+            if (kind == "template" && nameIndex > 0
+                && tokens[nameIndex - 1].Text is "function" or "record" or "type" or "interface")
+            {
+                // The declaration keyword is visited separately. The prefix only supplies parameters.
+                continue;
+            }
+
             declarations.Add(new ProjectDeclaration(tokens[nameIndex].Text, kind));
         }
         return declarations;
@@ -796,6 +803,9 @@ public static class CopelandProjectCompiler
             }
             else if (tokens[index].Kind == SyntaxKind.GreaterToken && --depth == 0)
             {
+                int declaration = index + 1;
+                if (declaration < tokens.Count && tokens[declaration].Text is "function" or "record" or "type" or "interface")
+                    return declaration + 1;
                 return index + 1;
             }
         }

@@ -18,6 +18,12 @@ separate C++-style `concept` keyword or constraint ontology.
 
 ## Declaration and instantiation
 
+The [shared generics syntax](../Aurelian/visual-typescript-generics.md) also accepts
+`template<type T, static N: int>` as a prefix on functions, records, aliases, and
+interfaces. Its equivalent shorthand places the parameter list after the name.
+Those declarations share typed specialization; construction templates below
+retain their explicit compile-time `instantiate` consumer.
+
 The canonical declaration places type and static value parameters in one
 angle-bracket list. Type parameters precede static parameters.
 

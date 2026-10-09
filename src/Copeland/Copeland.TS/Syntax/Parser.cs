@@ -505,23 +505,9 @@ public sealed class Parser
         }
 
         var typeParameterTokens = new List<SyntaxToken>();
-        if (Current.Kind == SyntaxKind.LessToken)
-        {
-            ReportAliasSyntax("Generic type aliases are not supported.", Current, "COPE-ALIAS-0002");
-            while (Current.Kind is not SyntaxKind.GreaterToken
-                   and not SyntaxKind.EqualsToken
-                   and not SyntaxKind.SemicolonToken
-                   and not SyntaxKind.EndOfFileToken)
-            {
-                typeParameterTokens.Add(NextToken());
-            }
-
-            if (Current.Kind == SyntaxKind.GreaterToken)
-            {
-                typeParameterTokens.Add(NextToken());
-            }
-        }
-
+        GenericParameterListSyntax? genericParameters = Current.Kind == SyntaxKind.LessToken
+            ? ParseGenericParameters(null)
+            : null;
         SyntaxToken equalsToken;
         if (Current.Kind == SyntaxKind.EqualsToken)
         {
@@ -587,7 +573,7 @@ public sealed class Parser
             targetType,
             unsupportedTokens,
             semicolonToken,
-            annotations);
+            annotations) { GenericParameters = genericParameters };
     }
 
     private NominalUnionDeclarationSyntax ParseNominalUnionDeclaration(
@@ -723,35 +709,13 @@ public sealed class Parser
         var functionKeyword = Match(SyntaxKind.FunctionKeyword);
         SyntaxToken? generatorStarToken = Current.Kind == SyntaxKind.StarToken ? NextToken() : null;
         var identifier = Match(SyntaxKind.IdentifierToken);
-        SyntaxToken? lessToken = null;
-        SyntaxToken? greaterToken = null;
-        var typeParameters = new List<TypeParameterSyntax>();
-        var typeParameterCommas = new List<SyntaxToken>();
-        if (Current.Kind == SyntaxKind.LessToken)
-        {
-            lessToken = NextToken();
-            while (Current.Kind is not SyntaxKind.GreaterToken and not SyntaxKind.EndOfFileToken)
-            {
-                var parameterName = Match(SyntaxKind.IdentifierToken);
-                SyntaxToken? extendsKeyword = null;
-                var requirementNames = new List<SyntaxToken>();
-                var ampersands = new List<SyntaxToken>();
-                if (Current.Kind == SyntaxKind.IdentifierToken && Current.Text == "extends")
-                {
-                    extendsKeyword = NextToken();
-                    requirementNames.Add(Match(SyntaxKind.IdentifierToken));
-                    while (Current.Kind == SyntaxKind.AmpersandToken)
-                    {
-                        ampersands.Add(NextToken());
-                        requirementNames.Add(Match(SyntaxKind.IdentifierToken));
-                    }
-                }
-                typeParameters.Add(new TypeParameterSyntax(null, parameterName, extendsKeyword, requirementNames, ampersands));
-                if (Current.Kind != SyntaxKind.CommaToken) break;
-                typeParameterCommas.Add(NextToken());
-            }
-            greaterToken = Match(SyntaxKind.GreaterToken);
-        }
+        GenericParameterListSyntax? genericParameters = Current.Kind == SyntaxKind.LessToken
+            ? ParseGenericParameters(null)
+            : null;
+        SyntaxToken? lessToken = genericParameters?.LessToken;
+        SyntaxToken? greaterToken = genericParameters?.GreaterToken;
+        IReadOnlyList<TypeParameterSyntax> typeParameters = genericParameters?.Types ?? [];
+        IReadOnlyList<SyntaxToken> typeParameterCommas = genericParameters?.Commas ?? [];
         var openParenToken = Match(SyntaxKind.OpenParenToken);
 
         var parameters = new List<ParameterSyntax>();
@@ -794,10 +758,87 @@ public sealed class Parser
             returnType = ParseTypeSyntax();
         }
         var body = ParseBlockStatement();
-        return new FunctionDeclarationSyntax(remoteKeyword, asyncKeyword, functionKeyword, generatorStarToken, identifier, lessToken, typeParameters, typeParameterCommas, greaterToken, openParenToken, parameters, commas, closeParenToken, returnTypeColonToken, returnType, body, annotations);
+        return new FunctionDeclarationSyntax(remoteKeyword, asyncKeyword, functionKeyword, generatorStarToken, identifier, lessToken, typeParameters, typeParameterCommas, greaterToken, openParenToken, parameters, commas, closeParenToken, returnTypeColonToken, returnType, body, annotations) { GenericParameters = genericParameters };
     }
 
-    private TemplateDeclarationSyntax ParseTemplateDeclaration()
+    private GenericParameterListSyntax ParseGenericParameters(SyntaxToken? templateKeyword)
+    {
+        SyntaxToken less = Match(SyntaxKind.LessToken);
+        var types = new List<TypeParameterSyntax>();
+        var values = new List<TemplateParameterSyntax>();
+        var commas = new List<SyntaxToken>();
+        while (Current.Kind is not SyntaxKind.GreaterToken and not SyntaxKind.EndOfFileToken)
+        {
+            if (Current.Kind == SyntaxKind.StaticKeyword)
+            {
+                SyntaxToken keyword = NextToken();
+                SyntaxToken name = Match(SyntaxKind.IdentifierToken);
+                SyntaxToken colon = Match(SyntaxKind.ColonToken);
+                TypeSyntax type = ParseTypeSyntax();
+                SyntaxToken? equals = Current.Kind == SyntaxKind.EqualsToken ? NextToken() : null;
+                ExpressionSyntax? value = equals is null ? null : ParseBinaryExpression(9);
+                values.Add(new(keyword, name, colon, type, equals, value));
+            }
+            else
+            {
+                SyntaxToken? keyword = IsWord(Current, "type") ? NextToken() : null;
+                if (templateKeyword is not null && keyword is null)
+                {
+                    _diagnostics.Report("COPE-TEMPLATE-0012", "Explicit template type parameters require 'type'.", Current.Position, Math.Max(1, Current.Text.Length));
+                }
+                if (values.Count > 0)
+                {
+                    _diagnostics.Report("COPE-TEMPLATE-0013", "Type parameters must precede static parameters.", Current.Position, Math.Max(1, Current.Text.Length));
+                }
+                SyntaxToken name = Match(SyntaxKind.IdentifierToken);
+                SyntaxToken? extends = IsWord(Current, "extends") ? NextToken() : null;
+                var requirements = new List<TypeSyntax>();
+                var names = new List<SyntaxToken>();
+                var ampersands = new List<SyntaxToken>();
+                if (extends is not null)
+                {
+                    do
+                    {
+                        if (requirements.Count > 0) ampersands.Add(NextToken());
+                        TypeSyntax requirement = ParseTypeSyntax();
+                        requirements.Add(requirement);
+                        if (requirement is IdentifierTypeSyntax identifier) names.Add(identifier.Identifier);
+                        else if (requirement is GenericTypeSyntax generic) names.Add(generic.Identifier);
+                    }
+                    while (Current.Kind == SyntaxKind.AmpersandToken);
+                }
+                SyntaxToken? equals = Current.Kind == SyntaxKind.EqualsToken ? NextToken() : null;
+                TypeSyntax? defaultType = equals is null ? null : ParseTypeSyntax();
+                types.Add(new(keyword, name, extends, names, ampersands, equals, defaultType, requirements));
+            }
+            if (Current.Kind != SyntaxKind.CommaToken) break;
+            commas.Add(NextToken());
+        }
+        return new(templateKeyword, less, types, values, commas, Match(SyntaxKind.GreaterToken));
+    }
+
+    private TypeSyntax ParseGenericArgument()
+    {
+        if (Current.Kind == SyntaxKind.IdentifierToken && Peek(1).Kind == SyntaxKind.ColonToken)
+        {
+            SyntaxToken name = NextToken();
+            SyntaxToken colon = NextToken();
+            return new GenericValueArgumentTypeSyntax(name, colon, ParseBinaryExpression(9));
+        }
+        if (Current.Kind is SyntaxKind.TrueKeyword or SyntaxKind.FalseKeyword
+            || Current.Kind == SyntaxKind.OpenParenToken && Peek(1).Kind == SyntaxKind.NumberToken)
+        {
+            return new GenericValueArgumentTypeSyntax(null, null, ParseBinaryExpression(9));
+        }
+        if (Current.Kind == SyntaxKind.OpenParenToken && Peek(1).Kind == SyntaxKind.IdentifierToken
+            && Peek(2).Kind is SyntaxKind.PlusToken or SyntaxKind.MinusToken or SyntaxKind.StarToken or SyntaxKind.SlashToken)
+        {
+            return new GenericValueArgumentTypeSyntax(null, null, ParseBinaryExpression(9));
+        }
+        return ParseTypeSyntax();
+    }
+
+    private MemberSyntax ParseTemplateDeclaration()
     {
         SyntaxToken templateKeyword = Match(SyntaxKind.TemplateKeyword);
         if (Current.Kind != SyntaxKind.LessToken)
@@ -810,64 +851,29 @@ public sealed class Parser
             return ParseLegacyTemplateDeclaration(templateKeyword);
         }
 
-        SyntaxToken lessToken = Match(SyntaxKind.LessToken);
-        var typeParameters = new List<TypeParameterSyntax>();
-        var parameters = new List<TemplateParameterSyntax>();
-        var commas = new List<SyntaxToken>();
-        bool sawStaticParameter = false;
-        while (Current.Kind is not SyntaxKind.GreaterToken and not SyntaxKind.EndOfFileToken)
+        GenericParameterListSyntax parameters = ParseGenericParameters(templateKeyword);
+        if (Current.Kind == SyntaxKind.FunctionKeyword)
         {
-            if (Current.Kind == SyntaxKind.StaticKeyword)
-            {
-                sawStaticParameter = true;
-                SyntaxToken staticKeyword = NextToken();
-                SyntaxToken parameterName = Match(SyntaxKind.IdentifierToken);
-                SyntaxToken colon = Match(SyntaxKind.ColonToken);
-                TypeSyntax type = ParseTypeSyntax();
-                SyntaxToken? equals = Current.Kind == SyntaxKind.EqualsToken ? NextToken() : null;
-                ExpressionSyntax? defaultValue = equals is null ? null : ParseBinaryExpression(9);
-                parameters.Add(new TemplateParameterSyntax(staticKeyword, parameterName, colon, type, equals, defaultValue));
-            }
-            else
-            {
-                SyntaxToken typeKeyword = Current.Kind == SyntaxKind.IdentifierToken && Current.Text == "type"
-                    ? NextToken()
-                    : Match(SyntaxKind.IdentifierToken);
-                if (typeKeyword.Text != "type")
-                {
-                    _diagnostics.Report("COPE-TEMPLATE-0012", "Template type parameters must begin with the 'type' keyword.", typeKeyword.Position, Math.Max(1, typeKeyword.Text.Length));
-                }
-                if (sawStaticParameter)
-                {
-                    _diagnostics.Report("COPE-TEMPLATE-0013", "Type parameters must precede static value parameters.", typeKeyword.Position, Math.Max(1, typeKeyword.Text.Length));
-                }
-                SyntaxToken parameterName = Match(SyntaxKind.IdentifierToken);
-                SyntaxToken? extendsKeyword = null;
-                var requirementNames = new List<SyntaxToken>();
-                var ampersands = new List<SyntaxToken>();
-                if (IsWord(Current, "extends"))
-                {
-                    extendsKeyword = NextToken();
-                    requirementNames.Add(Match(SyntaxKind.IdentifierToken));
-                    while (Current.Kind == SyntaxKind.AmpersandToken)
-                    {
-                        ampersands.Add(NextToken());
-                        requirementNames.Add(Match(SyntaxKind.IdentifierToken));
-                    }
-                }
-                SyntaxToken? equals = Current.Kind == SyntaxKind.EqualsToken ? NextToken() : null;
-                TypeSyntax? defaultType = equals is null ? null : ParseTypeSyntax();
-                typeParameters.Add(new TypeParameterSyntax(typeKeyword, parameterName, extendsKeyword, requirementNames, ampersands, equals, defaultType));
-            }
-            if (Current.Kind != SyntaxKind.CommaToken) break;
-            commas.Add(NextToken());
+            var function = ParseFunctionDeclaration();
+            return function with { TypeParameters = parameters.Types, GenericParameters = parameters };
         }
-        SyntaxToken greaterToken = Match(SyntaxKind.GreaterToken);
+        if (Current.Kind == SyntaxKind.RecordKeyword)
+        {
+            return ParseRecordDeclaration(null) with { GenericParameters = parameters };
+        }
+        if (IsWord(Current, "type"))
+        {
+            return (TypeAliasDeclarationSyntax)ParseTypeDeclaration() with { GenericParameters = parameters };
+        }
+        if (IsWord(Current, "interface"))
+        {
+            return ParseInterfaceDeclaration() with { GenericParameters = parameters };
+        }
         SyntaxToken identifier = Match(SyntaxKind.IdentifierToken);
         SyntaxToken returnTypeColon = Match(SyntaxKind.ColonToken);
         TypeSyntax returnType = ParseTypeSyntax();
         BlockStatementSyntax body = ParseBlockStatement();
-        return new TemplateDeclarationSyntax(templateKeyword, lessToken, typeParameters, parameters, commas, greaterToken, identifier, returnTypeColon, returnType, body);
+        return new TemplateDeclarationSyntax(templateKeyword, parameters.LessToken, parameters.Types, parameters.Values, parameters.Commas, parameters.GreaterToken, identifier, returnTypeColon, returnType, body);
     }
 
     private TemplateDeclarationSyntax ParseLegacyTemplateDeclaration(SyntaxToken templateKeyword)
@@ -1430,6 +1436,9 @@ public sealed class Parser
     {
         var interfaceKeyword = NextToken();
         var identifier = Match(SyntaxKind.IdentifierToken);
+        GenericParameterListSyntax? genericParameters = Current.Kind == SyntaxKind.LessToken
+            ? ParseGenericParameters(null)
+            : null;
         var openBrace = Match(SyntaxKind.OpenBraceToken);
         var fields = new List<InterfaceFieldSyntax>();
         while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
@@ -1462,7 +1471,7 @@ public sealed class Parser
             var semicolon = hasTerminator ? NextToken() : MissingToken(SyntaxKind.SemicolonToken, Current.Position);
             fields.Add(new InterfaceFieldSyntax(fieldIdentifier, colon, type, unsupported, semicolon, hasType, hasTerminator, fieldAnnotations));
         }
-        return new InterfaceDeclarationSyntax(interfaceKeyword, identifier, openBrace, fields, Match(SyntaxKind.CloseBraceToken), annotations);
+        return new InterfaceDeclarationSyntax(interfaceKeyword, identifier, openBrace, fields, Match(SyntaxKind.CloseBraceToken), annotations) { GenericParameters = genericParameters };
     }
 
     private EnumDeclarationSyntax ParseEnumDeclaration()
@@ -1927,6 +1936,9 @@ public sealed class Parser
     {
         var recordKeyword = Match(SyntaxKind.RecordKeyword);
         var identifier = Match(SyntaxKind.IdentifierToken);
+        GenericParameterListSyntax? genericParameters = Current.Kind == SyntaxKind.LessToken
+            ? ParseGenericParameters(null)
+            : null;
         var openBraceToken = Match(SyntaxKind.OpenBraceToken);
         var fields = new List<RecordFieldSyntax>();
 
@@ -1965,7 +1977,7 @@ public sealed class Parser
         }
 
         var closeBraceToken = Match(SyntaxKind.CloseBraceToken);
-        return new RecordDeclarationSyntax(constKeyword, recordKeyword, identifier, openBraceToken, fields, closeBraceToken, annotations);
+        return new RecordDeclarationSyntax(constKeyword, recordKeyword, identifier, openBraceToken, fields, closeBraceToken, annotations) { GenericParameters = genericParameters };
     }
 
     private ClassDeclarationSyntax ParseClassDeclaration()
@@ -2437,7 +2449,7 @@ public sealed class Parser
             var commas = new List<SyntaxToken>();
             while (Current.Kind is not SyntaxKind.GreaterToken and not SyntaxKind.EndOfFileToken)
             {
-                arguments.Add(ParseTypeSyntax());
+                arguments.Add(ParseGenericArgument());
                 if (Current.Kind != SyntaxKind.CommaToken) break;
                 commas.Add(NextToken());
             }
@@ -3302,12 +3314,14 @@ public sealed class Parser
         if (Current.Kind != SyntaxKind.LessToken) return false;
         var position = _position + 1;
         var depth = 0;
+        var angleDepth = 1;
         while (position < _tokens.Length)
         {
             var token = _tokens[position];
             if (token.Kind is SyntaxKind.OpenParenToken or SyntaxKind.OpenBracketToken) depth++;
             else if (token.Kind is SyntaxKind.CloseParenToken or SyntaxKind.CloseBracketToken) depth--;
-            else if (token.Kind == SyntaxKind.GreaterToken && depth == 0)
+            else if (token.Kind == SyntaxKind.LessToken && depth == 0) angleDepth++;
+            else if (token.Kind == SyntaxKind.GreaterToken && depth == 0 && --angleDepth == 0)
             {
                 SyntaxKind next = position + 1 < _tokens.Length ? _tokens[position + 1].Kind : SyntaxKind.EndOfFileToken;
                 return next is SyntaxKind.OpenParenToken or SyntaxKind.SemicolonToken or SyntaxKind.CommaToken or SyntaxKind.CloseParenToken or SyntaxKind.CloseBraceToken or SyntaxKind.EqualsToken;
@@ -3325,7 +3339,7 @@ public sealed class Parser
         var typeCommas = new List<SyntaxToken>();
         while (Current.Kind is not SyntaxKind.GreaterToken and not SyntaxKind.EndOfFileToken)
         {
-            typeArguments.Add(ParseTypeSyntax());
+            typeArguments.Add(ParseGenericArgument());
             if (Current.Kind != SyntaxKind.CommaToken) break;
             typeCommas.Add(NextToken());
         }

@@ -258,6 +258,10 @@ public readonly record struct RecordFieldId(RecordTypeId RecordTypeId, int Ordin
 
 public class RecordTypeSymbol(string name, RecordTypeId id, string? stableIdentity = null) : TypeSymbol
 {
+    public IReadOnlyList<TypeParameterSymbol> TypeParameters { get; internal set; } = [];
+    public RecordTypeSymbol? GenericDefinition { get; internal set; }
+    public IReadOnlyList<TypeSymbol> GenericArguments { get; internal set; } = [];
+
     private readonly List<RecordFieldSymbol> _fields = [];
 
     public override string Name { get; } = name;
@@ -348,8 +352,9 @@ public sealed class ColumnTypeSymbol(TypeSymbol elementType) : TypeSymbol
     public override string Name => "column " + TypeText.FormatResultComponent(ElementType);
 }
 
-public sealed class TypeParameterTypeSymbol(string name, int ordinal) : TypeSymbol
+public sealed class TypeParameterTypeSymbol(string name, int ordinal, string? stableIdentity = null) : TypeSymbol
 {
+    public string StableIdentity { get; } = stableIdentity ?? name + ":" + ordinal;
     public int Ordinal { get; } = ordinal;
     public override string Name { get; } = name;
 }

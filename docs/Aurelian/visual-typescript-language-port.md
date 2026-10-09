@@ -154,7 +154,8 @@ storage buffers; production compute runners keep their existing contracts.
 Naga validation is shader validation, not browser/WebGPU execution evidence.
 The subsequent [fixed values pass](visual-typescript-fixed-values.md) adds
 bounded value records, material layouts, arrays and tensor operations. Closed
-generics and intrinsic catalogue expansion remain separate future passes.
+generics are covered by the subsequent [generics pass](visual-typescript-generics.md).
+Further intrinsic catalogue expansion remains separate work.
 
 ## Qualified results, 2026-10-09
 

@@ -159,6 +159,7 @@ public static class VdMirComputeHlslEmitter
             "field" => $"{EmitExpression(expression.Operands![0])}.{expression.Value}",
             "index" => $"{EmitExpression(expression.Operands![0])}[{EmitExpression(expression.Operands[1])}]",
             "binary" => $"({EmitExpression(expression.Operands![0])} {expression.Value} {EmitExpression(expression.Operands[1])})",
+            "intrinsic" when expression.Value == "ConvertU32ToF32" => $"float({EmitExpression(expression.Operands![0])})",
             "call" => $"{CallName(expression.Value!)}({string.Join(", ", expression.Operands!.Select(EmitExpression))})",
             _ => throw new InvalidOperationException($"Unsupported compute expression '{expression.Kind}'."),
         };

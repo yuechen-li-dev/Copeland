@@ -224,6 +224,8 @@ internal sealed class GpuModuleGraph
         RecordDeclarationSyntax record => record.Identifier,
         EnumDeclarationSyntax enumeration => enumeration.Identifier,
         TypeAliasDeclarationSyntax alias => alias.Identifier,
+        InterfaceDeclarationSyntax requirement => requirement.Identifier,
+        TemplateDeclarationSyntax template => template.Identifier,
         GlobalStatementMemberSyntax { Statement: VariableDeclarationStatementSyntax value } => value.Identifier,
         _ => null,
     };

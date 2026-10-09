@@ -11,21 +11,33 @@ using Copeland.TS.Gpu.Wgsl;
 
 internal static class LanguagePortProof
 {
-    public static void Run(string output, bool shapes = false)
+    public static void Run(string output, bool shapes = false, bool generics = false)
     {
         Directory.CreateDirectory(output);
         string evidencePath = Path.Combine(output, "language-evidence.json");
         File.WriteAllText(evidencePath, "{\"accepted\":false}");
-        var compute = GpuComputeBinder.Compile(new(Sources(shapes ? "ShapeCompute.v.ts" : "LanguagePortCompute.v.ts")));
+        string computeSource = generics ? "GenericCompute.v.ts" : shapes ? "ShapeCompute.v.ts" : "LanguagePortCompute.v.ts";
+        var compute = GpuComputeBinder.Compile(new(Sources(computeSource)));
         Require(compute.Success, Diagnostics(compute.Diagnostics));
         var backend = VdMirComputeBackend.Compile(compute);
         Require(backend.SpirvValidated && backend.Spirv.Length > 0, backend.DxcOutput + backend.SpirvValidationOutput);
         Require(!compute.Functions.Any(function => function.Name.EndsWith("_Square", StringComparison.Ordinal)), "Static-only helper survived runtime closure.");
+        if (generics)
+        {
+            var specializations = compute.GenericSpecializations!;
+            var staticOnly = specializations.Where(item => item.Declaration.EndsWith("_Build", StringComparison.Ordinal)
+                || item.Declaration.EndsWith("_Samples", StringComparison.Ordinal)).ToArray();
+            Require(staticOnly.Length == 2, "Both aggregate construction specializations must be traced.");
+            Require(!compute.Functions.Any(function => staticOnly.Any(item => item.Function == function.Name)),
+                "Compile-time aggregate constructors survived runtime closure.");
+            Require(specializations.All(item => item.BodyBindings == 1), "An open body was rebound during specialization.");
+        }
         File.WriteAllText(Path.Combine(output, "language-compute.vdmir.json"), VdMirJson.Serialize(compute));
         File.WriteAllText(Path.Combine(output, "language-compute.hlsl"), backend.Hlsl);
         File.WriteAllBytes(Path.Combine(output, "language-compute.spv"), backend.Spirv);
 
-        var graphics = GpuGraphicsBinder.Compile(new(Sources(shapes ? "ShapeGraphics.v.ts" : "LanguagePortGraphics.v.ts")));
+        string graphicsSource = generics ? "GenericGraphics.v.ts" : shapes ? "ShapeGraphics.v.ts" : "LanguagePortGraphics.v.ts";
+        var graphics = GpuGraphicsBinder.Compile(new(Sources(graphicsSource)));
         Require(graphics.Success, Diagnostics(graphics.Diagnostics));
         var graphicsBackend = VdMirGraphicsBackend.Compile(graphics, "vulkan1.2");
         Require(graphicsBackend.Vertex.SpirvValidated && graphicsBackend.Pixel.SpirvValidated,
@@ -44,7 +56,7 @@ internal static class LanguagePortProof
         Require(initialized.Success, string.Join("; ", initialized.Diagnostics.Select(item => item.Message)));
         using var plant = initialized.Plant!;
         float[] input = [-4, 0, 1, 4, 16];
-        float[] expected = shapes ? [34, 58, 62, 107, 467] : [0, 0, .25f, 1, 4];
+        float[] expected = generics ? [7, 23, 27, 39, 87] : shapes ? [34, 58, 62, 107, 467] : [0, 0, .25f, 1, 4];
         using var kernel = new VulkanScalarComputeProbe(plant, backend.Spirv, compute.EntryPoint!.EmittedName, input);
         float[] actual = kernel.Execute();
         Require(actual.SequenceEqual(expected), "GPU payload/static results differ: " + string.Join(", ", actual));
@@ -62,9 +74,10 @@ internal static class LanguagePortProof
             GraphicsSpirvValidated = true,
             DirectWgslValidated = true,
             StaticOnlyHelperErased = true,
-            FixedShapesAndRecords = shapes,
+            FixedShapesAndRecords = shapes || generics,
+            GenericSpecializations = generics ? compute.GenericSpecializations : null,
         }, new JsonSerializerOptions { WriteIndented = true }));
-        string label = shapes ? "AURELIAN_VTS_SHAPE_PROOF_PASSED " : "AURELIAN_VTS_LANGUAGE_PROOF_PASSED ";
+        string label = generics ? "AURELIAN_VTS_GENERIC_PROOF_PASSED " : shapes ? "AURELIAN_VTS_SHAPE_PROOF_PASSED " : "AURELIAN_VTS_LANGUAGE_PROOF_PASSED ";
         Console.WriteLine(label + plant.Facts.PhysicalDeviceName);
     }
 

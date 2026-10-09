@@ -29,6 +29,7 @@ public static class GpuGraphicsBinder
         private GpuConstants _constants = null!;
         private GpuEnums _enums = null!;
         private GpuValues _values = null!;
+        private GpuGenericFunctions _generics = null!;
         private int _matchSequence;
         private readonly List<VdMirDiagnostic> _diagnostics = [];
         private readonly Dictionary<string, StreamSource> _streamSources = new(StringComparer.Ordinal);
@@ -62,6 +63,11 @@ public static class GpuGraphicsBinder
 
             ParseSources();
             _values = new GpuValues(_modules, (code, message, span) => Add(code, "SDSL-V4114", "value-storage", message, span), PhysicalType);
+            _generics = new GpuGenericFunctions(_modules, _values,
+                (code, message, span) => Add(code, "SDSL-V4113", "generic", message, span),
+                (path, type) => BindType(path, type), BindOpenGeneric, AddEnumFunction, () => _functions.Values);
+            _values.BindStaticExpression = (path, expression) => BindExpression(path, expression, new(StringComparer.Ordinal));
+            _values.StaticFunctions = () => _functions.Values;
             _enums = new GpuEnums(_modules,
                 (path, type) => BindType(path, type),
                 (code, message, span) => Add(code, "SDSL-V4200", "payload-enum", message, span));
@@ -410,7 +416,7 @@ public static class GpuGraphicsBinder
 
         private void BindEntry(FunctionSource source, VdMirGraphicsStage stage)
         {
-            if (source.Syntax.TypeParameters.Count > 0)
+            if (source.Syntax.TypeParameters.Count > 0 || source.Syntax.GenericParameters?.Values.Count > 0)
             {
                 Add("COPE-GPU-MATERIALIZATION-0001", "SDSL-V4113", "materialization", "Graphics entries must be concrete.", Span(source.Path, source.Syntax.Identifier));
             }
@@ -728,6 +734,8 @@ public static class GpuGraphicsBinder
                 case NameExpressionSyntax name when scope.TryGetValue(name.IdentifierToken.Text, out string? type):
                     return new VdMirExpression("name", type, Span(path, syntax), name.IdentifierToken.Text);
                 case NameExpressionSyntax name:
+                    VdMirExpression? parameter = _values.StaticParameter(name.IdentifierToken.Text);
+                    if (parameter is not null) return parameter;
                     VdMirExpression? constant = BindConstant(path, name.IdentifierToken.Text);
                     if (constant is not null)
                     {
@@ -746,6 +754,8 @@ public static class GpuGraphicsBinder
                         helperName, scope,
                         (expression, armScope) => BindExpression(path, expression, armScope, expected),
                         AddEnumFunction, (code, message, span) => Add(code, "SDSL-V4200", "payload-match", message, span));
+                case TemplateInstantiationExpressionSyntax instantiated:
+                    return _generics.Instantiate(path, instantiated, (value, type) => BindExpression(path, value, scope, type));
                 case StaticExpressionSyntax evaluated:
                     try
                     {
@@ -754,7 +764,9 @@ public static class GpuGraphicsBinder
                         {
                             return value;
                         }
-                        return GpuStaticEvaluation.Fold(value, _functions.Values) with { Source = Span(path, evaluated) };
+                        if (_generics.BindingOpen) return new("generic-fold", value.Type, Span(path, evaluated), Operands: [value]);
+                        return GpuStaticEvaluation.Fold(value, _functions.Values, _values.Definitions,
+                            aggregate => _values.EmbedStatic(aggregate, AddEnumFunction)) with { Source = Span(path, evaluated) };
                     }
                     catch (StaticEvaluationException exception)
                     {
@@ -994,8 +1006,19 @@ public static class GpuGraphicsBinder
             return new VdMirExpression("object", stream.Name, Span(path, literal), stream.Name, values, names);
         }
 
+        private VdMirFunction BindOpenGeneric(string path, FunctionDeclarationSyntax syntax)
+        {
+            var scope = syntax.Parameters.ToDictionary(parameter => parameter.Identifier.Text,
+                parameter => BindType(path, parameter.Type), StringComparer.Ordinal);
+            string result = BindType(path, syntax.ReturnType);
+            var statements = BindStatements(new(path, syntax), scope, result);
+            return new(_modules.Declare(path, syntax.Identifier.Text), syntax.Parameters.Select(parameter =>
+                new VdMirParameter(parameter.Identifier.Text, scope[parameter.Identifier.Text], null, Span(path, parameter))).ToArray(), result, statements, Span(path, syntax));
+        }
+
         private void AddEnumFunction(VdMirFunction function)
         {
+            if (_generics.Capture(function)) return;
             if (!_functions.TryAdd(function.Name, function))
             {
                 Add("COPE-GPU-SYMBOL-0002", "SDSL-V1509", "symbol", "A declaration collides with a compiler-generated enum helper.", function.Source);
@@ -1004,6 +1027,12 @@ public static class GpuGraphicsBinder
 
         private VdMirExpression BindCall(string path, CallExpressionSyntax call, Dictionary<string, string> scope, string? expected)
         {
+            if (call.Target is NameExpressionSyntax genericName)
+            {
+                VdMirExpression? generic = _generics.Call(path, genericName.IdentifierToken.Text, null, call.Arguments,
+                    (argument, type) => BindExpression(path, argument, scope, type), Span(path, call));
+                if (generic is not null) return generic;
+            }
             if (call.Target is MemberAccessExpressionSyntax { NameToken.Text: "at" } access)
             {
                 return _values.Read(BindExpression(path, access.Target, scope), call.Arguments.Select(argument => BindExpression(path, argument, scope)).ToArray(), AddEnumFunction, Span(path, call)) ?? ValueOperationError(path, call);
@@ -1121,7 +1150,12 @@ public static class GpuGraphicsBinder
                 Add("COPE-GPU-CALL-0001", "SDSL-V4200", "host-only", $"Call '{target}' is not a closed GPU helper.", Span(path, call));
                 return Error(path, call);
             }
-            string returnType = BindType(helper.Path, helper.Syntax.ReturnType);
+            string HelperType(TypeSyntax? type)
+            {
+                using var context = _values.Enter(GpuValues.Empty);
+                return BindType(helper.Path, type);
+            }
+            string returnType = HelperType(helper.Syntax.ReturnType);
             if (arguments.Length != helper.Syntax.Parameters.Count)
             {
                 Add("COPE-GPU-CALL-0002", "SDSL-V1503", "call", $"Function '{target}' expects {helper.Syntax.Parameters.Count} argument(s).", Span(path, call));
@@ -1130,7 +1164,7 @@ public static class GpuGraphicsBinder
             for (int index = 0; index < helper.Syntax.Parameters.Count; index++)
             {
                 ParameterSyntax parameter = helper.Syntax.Parameters[index];
-                string parameterType = BindType(helper.Path, parameter.Type);
+                string parameterType = HelperType(parameter.Type);
                 helperScope[parameter.Identifier.Text] = parameterType;
                 if (index < arguments.Length && arguments[index].Type != parameterType)
                 {
@@ -1139,6 +1173,7 @@ public static class GpuGraphicsBinder
             }
             if (!_functions.ContainsKey(target))
             {
+                using var closedContext = _generics.EnterClosedBinding();
                 IReadOnlyList<VdMirStatement> statements = BindStatements(helper, helperScope, returnType);
                 _functions[target] = new VdMirFunction(target, helper.Syntax.Parameters.Select(parameter => new VdMirParameter(parameter.Identifier.Text, BindType(helper.Path, parameter.Type), null, Span(helper.Path, parameter))).ToArray(), returnType, statements, Span(helper.Path, helper.Syntax));
             }
@@ -1147,6 +1182,12 @@ public static class GpuGraphicsBinder
 
         private VdMirExpression BindGenericCall(string path, GenericCallExpressionSyntax call, Dictionary<string, string> scope)
         {
+            if (call.Target is NameExpressionSyntax genericName)
+            {
+                VdMirExpression? generic = _generics.Call(path, genericName.IdentifierToken.Text, call.TypeArguments, call.Arguments,
+                    (argument, type) => BindExpression(path, argument, scope, type), Span(path, call));
+                if (generic is not null) return generic;
+            }
             VdMirExpression[] arguments = call.Arguments.Select(argument => BindExpression(path, argument, scope)).ToArray();
             bool isCanonicalConvert = call.Target is NameExpressionSyntax { IdentifierToken.Text: "Convert" }
                 && call.TypeArguments.Count == 1
@@ -1224,6 +1265,7 @@ public static class GpuGraphicsBinder
             {
                 Enums = _enums is null || _enums.Definitions.Count == 0 ? null : _enums.Definitions,
                 ValueTypes = _values is null || _values.Definitions.Count == 0 ? null : _values.Definitions,
+                GenericSpecializations = _generics is null || _generics.Traces.Count == 0 ? null : _generics.Traces,
             };
         }
 

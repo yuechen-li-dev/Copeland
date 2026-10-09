@@ -8,7 +8,6 @@ public sealed class TypeAliasDiagnosticInventoryTests
     public static IEnumerable<object[]> Cases()
     {
         yield return Case("COPE-ALIAS-0001", "type Missing = ;");
-        yield return Case("COPE-ALIAS-0002", "type Box<T> = T[];");
         yield return Case("COPE-ALIAS-0003", "type Name = number; type Name = string;");
         yield return Case("COPE-ALIAS-0004", "type Name = Missing;");
         yield return Case("COPE-ALIAS-0005", "type A = B; type B = A;");

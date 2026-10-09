@@ -284,6 +284,8 @@ public sealed class RequirementFieldSymbol(string name, TypeSymbol type, int ord
 
 public sealed class InterfaceSymbol(string name, int declarationIdentity) : Symbol(name)
 {
+    public IReadOnlyList<TypeParameterSymbol> TypeParameters { get; internal set; } = [];
+
     private readonly List<RequirementFieldSymbol> _fields = [];
     public int DeclarationIdentity { get; } = declarationIdentity;
     public IReadOnlyList<RequirementFieldSymbol> Fields => _fields;
@@ -299,11 +301,16 @@ public sealed class RequirementSet(IReadOnlyList<InterfaceSymbol> interfaces, IR
 public sealed class TypeParameterSymbol(string name, TypeParameterTypeSymbol type, RequirementSet requirements) : Symbol(name)
 {
     public TypeParameterTypeSymbol Type { get; } = type;
-    public RequirementSet Requirements { get; } = requirements;
+    public RequirementSet Requirements { get; internal set; } = requirements;
+    public TypeSymbol? DefaultType { get; internal set; }
+    public Copeland.TS.Syntax.TypeSyntax? DefaultTypeSyntax { get; internal set; }
+    public TypeSymbol? StaticType { get; internal set; }
+    public Copeland.TS.Syntax.ExpressionSyntax? StaticDefault { get; internal set; }
 }
 
 public sealed class TypeAliasSymbol(string name) : Symbol(name)
 {
+    public IReadOnlyList<TypeParameterSymbol> TypeParameters { get; internal set; } = [];
     public TypeSymbol CanonicalType { get; internal set; } = PrimitiveTypeSymbol.Error;
     public bool IsResolved { get; internal set; }
 }

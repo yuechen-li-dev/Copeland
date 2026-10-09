@@ -7,7 +7,7 @@ using Copeland.TS.Syntax;
 namespace Copeland.TS.Gpu;
 
 /// <summary>Fixed value storage, shape and layout authority shared by both GPU binders.</summary>
-internal sealed class GpuValues
+internal sealed partial class GpuValues
 {
     private readonly GpuModuleGraph modules;
     private readonly Action<string, string, VdMirSourceSpan> error;
@@ -45,10 +45,15 @@ internal sealed class GpuValues
 
     // Dependency order is preserved: a record always follows its field types.
     public IReadOnlyList<VdMirValueType> Definitions => types.Values.ToArray();
-    public VdMirValueType? Find(string type) => types.GetValueOrDefault(type);
+    public VdMirValueType? Find(string type) => types.GetValueOrDefault(type) ?? openValues.GetValueOrDefault(type);
 
     public string? BindType(string path, TypeSyntax? syntax, Func<string, TypeSyntax, string> bindOther)
     {
+        string? genericType = BindGenericType(path, syntax, bindOther);
+        if (genericType is not null)
+        {
+            return genericType;
+        }
         if (active.Count >= 64 && syntax is not null)
         {
             return Fail("COPE-GPU-VALUE-0002", "Inline storage type dependencies exceed the 64-level budget.", Span(path, syntax)).Type;
@@ -66,6 +71,7 @@ internal sealed class GpuValues
                 {
                     return Fail("COPE-GPU-VALUE-0001", "Recursive type aliases cannot describe finite storage.", Span(path, syntax)).Type;
                 }
+                using var aliasContext = Enter(Empty);
                 target = BindType(alias.Path, alias.Syntax.TargetType, bindOther) ?? bindOther(alias.Path, alias.Syntax.TargetType);
                 active.Remove(identity);
                 aliasTargets[identity] = target;
@@ -85,6 +91,7 @@ internal sealed class GpuValues
             }
             var fields = new List<(string Name, string Type, VdMirSourceSpan Source)>();
             var seen = new HashSet<string>(StringComparer.Ordinal);
+            using var recordContext = Enter(Empty);
             foreach (RecordFieldSyntax field in source.Syntax.Fields)
             {
                 if (!seen.Add(field.Identifier.Text) || field.Identifier.Text.StartsWith("Vts", StringComparison.Ordinal))
@@ -203,7 +210,8 @@ internal sealed class GpuValues
         };
     }
 
-    public string? MemberType(string type, string member) => Find(type)?.Fields.FirstOrDefault(field => field.Name == member)?.Type;
+    public string? MemberType(string type, string member) => Find(type)?.Fields.FirstOrDefault(field => field.Name == member)?.Type
+        ?? parameterFields.GetValueOrDefault(type)?.GetValueOrDefault(member);
 
     public bool ContainsBoolean(string type)
     {
@@ -213,6 +221,10 @@ internal sealed class GpuValues
     public VdMirExpression UpdateRecord(VdMirExpression subject, WithExpressionSyntax syntax,
         Func<ExpressionSyntax, string, VdMirExpression> bind, Action<VdMirFunction> addFunction, VdMirSourceSpan span)
     {
+        if (IsOpen(subject.Type))
+        {
+            return BindOpenWith(subject, syntax, bind, span);
+        }
         if (Find(subject.Type) is not { Kind: "record" } type)
         {
             return Fail("COPE-GPU-VALUE-0006", "with requires an admitted value record.", span);
@@ -250,6 +262,10 @@ internal sealed class GpuValues
     public VdMirExpression? BindLiteral(string expected, ExpressionSyntax syntax,
         Func<ExpressionSyntax, string, VdMirExpression> bind, Action<VdMirFunction> addFunction, VdMirSourceSpan span)
     {
+        if (IsOpen(expected))
+        {
+            return BindOpenLiteral(expected, syntax, bind, span);
+        }
         VdMirValueType? type = Find(expected);
         if (type is null)
         {
@@ -311,9 +327,20 @@ internal sealed class GpuValues
         return new("call", type.Name, span, helper, values);
     }
 
+    public VdMirExpression EmbedStatic(VdMirExpression value, Action<VdMirFunction> addFunction)
+    {
+        VdMirValueType type = Find(value.Type)
+            ?? throw Semantics.StaticEvaluationException.Unsupported("Static value has no closed storage definition.");
+        return Construct(type, value.Operands!, addFunction, value.Source, value.MemberNames);
+    }
+
     public VdMirExpression? Read(VdMirExpression subject, IReadOnlyList<VdMirExpression> indices,
         Action<VdMirFunction> addFunction, VdMirSourceSpan span)
     {
+        if (IsOpen(subject.Type))
+        {
+            return BindOpenRead(subject, indices, span);
+        }
         VdMirValueType? type = Find(subject.Type);
         if (type is null || type.Kind == "record")
         {
@@ -340,6 +367,10 @@ internal sealed class GpuValues
     public VdMirExpression? Write(VdMirExpression subject, IReadOnlyList<VdMirExpression> indices, VdMirExpression value,
         Action<VdMirFunction> addFunction, VdMirSourceSpan span)
     {
+        if (IsOpen(subject.Type))
+        {
+            return BindOpenWrite(subject, indices, value, span);
+        }
         VdMirValueType? type = Find(subject.Type);
         if (type is null || type.Kind == "record")
         {
@@ -405,6 +436,10 @@ internal sealed class GpuValues
     public VdMirExpression? Math(string operation, IReadOnlyList<VdMirExpression> arguments,
         Action<VdMirFunction> addFunction, VdMirSourceSpan span)
     {
+        if (arguments.Any(argument => IsOpen(argument.Type)))
+        {
+            return BindOpenMath(operation, arguments, span);
+        }
         if (arguments.Count != 2 || Find(arguments[0].Type) is not { Kind: "tensor" } left
             || Find(arguments[1].Type) is not { Kind: "tensor" } right)
         {
@@ -453,6 +488,10 @@ internal sealed class GpuValues
 
     public VdMirExpression? Query(VdMirExpression subject, string name, Action<VdMirFunction> addFunction, VdMirSourceSpan span)
     {
+        if (IsOpen(subject.Type))
+        {
+            return BindOpenQuery(subject, name, span);
+        }
         VdMirValueType? type = Find(subject.Type);
         if (type is null || type.Kind == "record")
         {

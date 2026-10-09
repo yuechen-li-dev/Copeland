@@ -28,6 +28,7 @@ public static class GpuComputeBinder
         private GpuConstants _constants = null!;
         private GpuEnums _enums = null!;
         private GpuValues _values = null!;
+        private GpuGenericFunctions _generics = null!;
         private int _matchSequence;
         private readonly List<VdMirDiagnostic> _diagnostics = [];
         private readonly Dictionary<string, FunctionSource> _functions = new(StringComparer.Ordinal);
@@ -57,6 +58,11 @@ public static class GpuComputeBinder
 
             ParseSources();
             _values = new GpuValues(_modules, (code, message, span) => AddDiagnostic(code, "SDSL-V4114", "value-storage", message, span));
+            _generics = new GpuGenericFunctions(_modules, _values,
+                (code, message, span) => AddDiagnostic(code, "SDSL-V4113", "generic", message, span),
+                (path, type) => BindType(path, type, new SyntaxToken(SyntaxKind.IdentifierToken, 0, "", null)), BindOpenGeneric, AddEnumFunction, () => _boundFunctions);
+            _values.BindStaticExpression = (path, expression) => BindExpression(path, expression, new(StringComparer.Ordinal));
+            _values.StaticFunctions = () => _boundFunctions;
             _enums = new GpuEnums(_modules,
                 (path, type) => BindType(path, type, new SyntaxToken(SyntaxKind.IdentifierToken, 0, string.Empty, null)),
                 (code, message, span) => AddDiagnostic(code, "SDSL-V4200", "payload-enum", message, span));
@@ -131,7 +137,7 @@ public static class GpuComputeBinder
                     "Compute M1 entries must return void.",
                     Span(entry.Path, entry.Syntax.ReturnType ?? (SyntaxNode)new IdentifierTypeSyntax(entry.Syntax.Identifier)));
             }
-            if (entry.Syntax.TypeParameters.Count > 0)
+            if (entry.Syntax.TypeParameters.Count > 0 || entry.Syntax.GenericParameters?.Values.Count > 0)
             {
                 AddDiagnostic(
                     "COPE-GPU-MATERIALIZATION-0001",
@@ -468,11 +474,32 @@ public static class GpuComputeBinder
             }
             switch (expression)
             {
+                case GenericCallExpressionSyntax call when call.Target is NameExpressionSyntax genericName:
+                {
+                    var generic = _generics.Call(path, genericName.IdentifierToken.Text, call.TypeArguments, call.Arguments,
+                        (argument, type) => BindExpression(path, argument, scope, type), Span(path, call));
+                    if (generic is not null)
+                    {
+                        return generic;
+                    }
+                    if (genericName.IdentifierToken.Text == "Convert" && call.TypeArguments is [IdentifierTypeSyntax { Identifier.Text: "f32" }]
+                        && call.Arguments.Count == 1)
+                    {
+                        var value = BindExpression(path, call.Arguments[0], scope);
+                        if (value.Type == "u32")
+                        {
+                            return new("intrinsic", "f32", Span(path, call), "ConvertU32ToF32", [value]);
+                        }
+                    }
+                    return ValueOperationError(path, call);
+                }
                 case NameExpressionSyntax name:
                     if (scope.TryGetValue(name.IdentifierToken.Text, out ValueBinding? binding))
                     {
                         return new VdMirExpression("name", binding.Type, Span(path, expression), name.IdentifierToken.Text);
                     }
+                    VdMirExpression? parameter = _values.StaticParameter(name.IdentifierToken.Text);
+                    if (parameter is not null) return parameter;
                     VdMirExpression? constant = BindConstant(path, name.IdentifierToken.Text);
                     if (constant is not null)
                     {
@@ -491,6 +518,8 @@ public static class GpuComputeBinder
                         helperName, scope.ToDictionary(item => item.Key, item => item.Value.Type, StringComparer.Ordinal),
                         (expression, armScope) => BindExpression(path, expression, armScope.ToDictionary(item => item.Key, item => new ValueBinding(item.Value, false, null, false), StringComparer.Ordinal)),
                         AddEnumFunction, (code, message, span) => AddDiagnostic(code, "SDSL-V4200", "payload-match", message, span));
+                case TemplateInstantiationExpressionSyntax instantiated:
+                    return _generics.Instantiate(path, instantiated, (value, type) => BindExpression(path, value, scope, type));
                 case StaticExpressionSyntax evaluated:
                     try
                     {
@@ -499,7 +528,9 @@ public static class GpuComputeBinder
                         {
                             return value;
                         }
-                        return GpuStaticEvaluation.Fold(value, _boundFunctions) with { Source = Span(path, evaluated) };
+                        if (_generics.BindingOpen) return new("generic-fold", value.Type, Span(path, evaluated), Operands: [value]);
+                        return GpuStaticEvaluation.Fold(value, _boundFunctions, _values.Definitions,
+                            aggregate => _values.EmbedStatic(aggregate, AddEnumFunction)) with { Source = Span(path, evaluated) };
                     }
                     catch (StaticEvaluationException exception)
                     {
@@ -603,8 +634,19 @@ public static class GpuComputeBinder
             }
         }
 
+        private VdMirFunction BindOpenGeneric(string path, FunctionDeclarationSyntax syntax)
+        {
+            var scope = syntax.Parameters.ToDictionary(parameter => parameter.Identifier.Text,
+                parameter => new ValueBinding(BindType(path, parameter.Type, parameter.Identifier), false, null, false), StringComparer.Ordinal);
+            string result = BindType(path, syntax.ReturnType, syntax.Identifier);
+            var statements = BindFunctionBody(new(path, syntax), scope, result);
+            return new(_modules.Declare(path, syntax.Identifier.Text), syntax.Parameters.Select(parameter =>
+                new VdMirParameter(parameter.Identifier.Text, scope[parameter.Identifier.Text].Type, null, Span(path, parameter))).ToArray(), result, statements, Span(path, syntax));
+        }
+
         private void AddEnumFunction(VdMirFunction function)
         {
+            if (_generics.Capture(function)) return;
             if (_boundFunctions.Any(existing => existing.Name == function.Name))
             {
                 AddDiagnostic("COPE-GPU-SYMBOL-0002", "SDSL-V1509", "symbol", "A declaration collides with a compiler-generated enum helper.", function.Source);
@@ -616,6 +658,12 @@ public static class GpuComputeBinder
 
         private VdMirExpression BindCall(string path, CallExpressionSyntax call, Dictionary<string, ValueBinding> scope)
         {
+            if (call.Target is NameExpressionSyntax genericName)
+            {
+                VdMirExpression? generic = _generics.Call(path, genericName.IdentifierToken.Text, null, call.Arguments,
+                    (argument, type) => BindExpression(path, argument, scope, type), Span(path, call));
+                if (generic is not null) return generic;
+            }
             if (call.Target is MemberAccessExpressionSyntax { NameToken.Text: "at" } access)
             {
                 return _values.Read(BindExpression(path, access.Target, scope), call.Arguments.Select(argument => BindExpression(path, argument, scope)).ToArray(), AddEnumFunction, Span(path, call))
@@ -663,16 +711,21 @@ public static class GpuComputeBinder
                 return ErrorExpression(path, call);
             }
 
-            string returnType = BindType(function.Path, function.Syntax.ReturnType, function.Syntax.Identifier);
+            string HelperType(TypeSyntax? type, SyntaxToken token)
+            {
+                using var context = _values.Enter(GpuValues.Empty);
+                return BindType(function.Path, type, token);
+            }
+            string returnType = HelperType(function.Syntax.ReturnType, function.Syntax.Identifier);
             if (returnType == "acceleration_structure" || function.Syntax.Parameters.Any(parameter =>
-                BindType(function.Path, parameter.Type, parameter.Identifier) == "acceleration_structure"))
+                HelperType(parameter.Type, parameter.Identifier) == "acceleration_structure"))
             {
                 AddDiagnostic("COPE-GPU-RAYQUERY-0002", "SDSL-V4213", "ray-query",
                     "Acceleration structures cannot escape through a helper ABI.", Span(path, call));
             }
             var arguments = call.Arguments.Select((argument, index) => BindExpression(path, argument, scope,
                 index < function.Syntax.Parameters.Count
-                    ? BindType(function.Path, function.Syntax.Parameters[index].Type, function.Syntax.Parameters[index].Identifier)
+                    ? HelperType(function.Syntax.Parameters[index].Type, function.Syntax.Parameters[index].Identifier)
                     : null)).ToArray();
             if (function.Syntax.Parameters.Count != arguments.Length)
             {
@@ -683,7 +736,7 @@ public static class GpuComputeBinder
             for (int index = 0; index < function.Syntax.Parameters.Count; index++)
             {
                 ParameterSyntax parameter = function.Syntax.Parameters[index];
-                string parameterType = BindType(function.Path, parameter.Type, parameter.Identifier);
+                string parameterType = HelperType(parameter.Type, parameter.Identifier);
                 helperScope[parameter.Identifier.Text] = new ValueBinding(parameterType, false, null, false);
                 if (index < arguments.Length && arguments[index].Type != parameterType)
                 {
@@ -693,6 +746,7 @@ public static class GpuComputeBinder
 
             if (!_completedFunctions.Contains(_modules.Declare(function.Path, function.Syntax.Identifier.Text)))
             {
+                using var closedContext = _generics.EnterClosedBinding();
                 IReadOnlyList<VdMirStatement> statements = BindFunctionBody(function, helperScope, returnType);
                 if (!_completedFunctions.Contains(_modules.Declare(function.Path, function.Syntax.Identifier.Text)))
                 {
@@ -870,6 +924,7 @@ public static class GpuComputeBinder
             {
                 Enums = _enums is null || _enums.Definitions.Count == 0 ? null : _enums.Definitions,
                 ValueTypes = _values is null || _values.Definitions.Count == 0 ? null : _values.Definitions,
+                GenericSpecializations = _generics is null || _generics.Traces.Count == 0 ? null : _generics.Traces,
             };
         }
 

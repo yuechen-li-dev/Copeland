@@ -157,3 +157,6 @@ artifacts/aurelian-static-assets/**/trace.jsonl
 artifacts/aurelian-static-assets/**/inputs.json
 artifacts/aurelian-static-assets/**/script.json
 Games/Starter/Aurelian.Starter/Assets/Models/*.blend1
+
+# Local generics compiler, backend and native qualification output.
+artifacts/local/vts-generics/

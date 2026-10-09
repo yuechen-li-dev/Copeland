@@ -11,6 +11,47 @@ namespace Copeland.TS.Backend.CSharp.Tests.Runtime;
 public sealed class GenericBackendParityTests
 {
     [Fact]
+    public async Task Template_syntax_and_static_arguments_execute_through_host_backends()
+    {
+        const string source = """
+            interface HasValue<T> { value: T; }
+            template<type T>
+            record Box { value: T; }
+            type Boxes<T> = Box<T>[];
+            template<type T = int, static Count: int = 2>
+            function Make(value: T): Box<T> { return { value: value }; }
+            function Read<T extends HasValue<int>>(value: T): int { return value.value; }
+            function Forward<T extends HasValue<int>>(value: T): int { return Read(value); }
+            function Add<static Amount: int = 2>(value: int): int { return value + Amount; }
+            function Sum<static N: int = 2, static M: int = (N + 1)>(v: int): int { return v + N + M; }
+            function ForwardStatic<static N: int>(v: int): int { return Sum<N, (N + 1)>(v); }
+            function Choose<static Enabled: boolean>(v: int): int { if (Enabled) { return v; } return 0; }
+            function mainDefaults(): int { return Sum(4) + ForwardStatic<2>(4) + Choose<true>(4); }
+            record Preferred<U = Scalar> { value: U; }
+            function mainAliasDefault(): int { const value: Preferred = { value: 8 }; return value.value; }
+            type Scalar = int;
+            function main(): int {
+                const box: Box<int> = { value: 7 };
+                const values: Boxes<int> = [box];
+                return Forward(box) + Read(Make<int>(values[0].value)) + Add<Amount: 3>(7);
+            }
+            """;
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        var javascript = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+        var csharp = CSharpBackend.Emit(compilation.MirCompilation.Program!);
+        Assert.True(javascript.Success, string.Join(Environment.NewLine, javascript.Diagnostics));
+        Assert.Empty(csharp.Diagnostics);
+        var generated = RoslynCompileHelper.CompileGeneratedSource(csharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+        Assert.Equal(24, GeneratedModuleInvoker.Invoke(generated.Assembly!, "main"));
+        Assert.Equal(22, GeneratedModuleInvoker.Invoke(generated.Assembly!, "mainDefaults"));
+        Assert.Equal(8, GeneratedModuleInvoker.Invoke(generated.Assembly!, "mainAliasDefault"));
+        var node = await RunNodeAsync(javascript.SourceText + "\nconsole.log(main() + '|' + mainDefaults() + '|' + mainAliasDefault());\n");
+        Assert.Equal("24|22|8\n", node.StdOut);
+    }
+
+    [Fact]
     public async Task Closed_generic_matrix_has_csharp_node_parity_and_reuses_specializations()
     {
         const string source = """

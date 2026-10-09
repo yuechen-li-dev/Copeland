@@ -7,7 +7,7 @@ using Copeland.TS.Syntax;
 namespace Copeland.TS.Gpu;
 
 /// <summary>
-/// Adapts certified scalar shader IR to the ordinary bounded static evaluator.
+/// Adapts certified shader value IR to the ordinary bounded static evaluator.
 /// This is representation conversion, not another interpreter or host compiler.
 /// </summary>
 internal sealed class GpuStaticEvaluation
@@ -16,24 +16,40 @@ internal sealed class GpuStaticEvaluation
     private readonly Dictionary<string, FunctionSymbol> symbols = new(StringComparer.Ordinal);
     private readonly Dictionary<string, BoundFunctionDeclaration> functions = new(StringComparer.Ordinal);
     private readonly HashSet<string> active = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, VdMirValueType> valueTypes;
+    private readonly Dictionary<string, RecordTypeSymbol> recordTypes = new(StringComparer.Ordinal);
     private static readonly TypeSymbol F32 = new ScalarType("f32");
     private static readonly TypeSymbol U32 = new ScalarType("u32");
 
-    private GpuStaticEvaluation(IEnumerable<VdMirFunction> functions)
+    private GpuStaticEvaluation(IEnumerable<VdMirFunction> functions, IEnumerable<VdMirValueType>? valueTypes)
     {
         sources = functions.ToDictionary(function => function.Name, StringComparer.Ordinal);
+        this.valueTypes = (valueTypes ?? []).ToDictionary(type => type.Name, StringComparer.Ordinal);
     }
 
-    public static VdMirExpression Fold(VdMirExpression expression, IEnumerable<VdMirFunction> functions)
+    public static VdMirExpression Fold(VdMirExpression expression, IEnumerable<VdMirFunction> functions,
+        IEnumerable<VdMirValueType>? valueTypes = null, Func<VdMirExpression, VdMirExpression>? embedAggregate = null)
     {
-        var adapter = new GpuStaticEvaluation(functions);
+        var adapter = new GpuStaticEvaluation(functions, valueTypes);
         BoundExpression bound = adapter.Expression(expression, new(StringComparer.Ordinal));
         BoundFunctionDeclaration[] declarations = adapter.functions.Values.ToArray();
         var evaluator = new StaticEvaluator(declarations, FunctionEffectClassifier.Classify(declarations), StaticEvaluationLimits.M1);
         StaticValue result = evaluator.Evaluate(bound);
+        return adapter.Embed(result, expression.Source, embedAggregate);
+    }
+
+    private VdMirExpression Embed(StaticValue result, VdMirSourceSpan source,
+        Func<VdMirExpression, VdMirExpression>? embedAggregate)
+    {
+        if (result is StaticRecordValue record && embedAggregate is not null)
+        {
+            var values = record.RecordType.Fields.Select(field => Embed(record.Fields[field], source, embedAggregate)).ToArray();
+            return embedAggregate(new("object", record.Type.Name, source, record.Type.Name,
+                values, record.RecordType.Fields.Select(field => field.Name).ToArray()));
+        }
         if (result is not StaticPrimitiveValue value)
         {
-            throw StaticEvaluationException.Unsupported("This GPU static slice embeds scalar values only.");
+            throw StaticEvaluationException.Unsupported("Static GPU results require scalars or finite value records/shapes.");
         }
         string text = value.Value switch
         {
@@ -42,7 +58,8 @@ internal sealed class GpuStaticEvaluation
             bool boolean => boolean ? "true" : "false",
             _ => throw StaticEvaluationException.Failure("Static GPU result must be a finite f32, u32 or bool."),
         };
-        return new("literal", expression.Type, expression.Source, text);
+        string type = value.Type == PrimitiveTypeSymbol.Boolean ? "bool" : value.Type.Name;
+        return new("literal", type, source, text);
     }
 
     private static string FloatLiteral(float value)
@@ -79,6 +96,12 @@ internal sealed class GpuStaticEvaluation
             case "call":
                 FunctionSymbol function = Function(expression.Value!);
                 return new BoundCallExpression(function, operands.Select(operand => Expression(operand, scope)).ToArray());
+            case "object" when type is RecordTypeSymbol record:
+                return new BoundRecordConstructionExpression(record, record.Fields.Select((field, index) =>
+                    new BoundRecordFieldInitializer(field, Expression(operands[index], scope))).ToArray());
+            case "field" when Type(operands[0].Type) is RecordTypeSymbol receiver:
+                return new BoundRecordFieldAccessExpression(Expression(operands[0], scope), receiver,
+                    receiver.Fields.Single(field => field.Name == expression.Value));
             default:
                 throw StaticEvaluationException.Ineligible($"Static scalar closure contains '{expression.Kind}' ({expression.Value}); resources and GPU intrinsics require runtime execution.");
         }
@@ -163,13 +186,24 @@ internal sealed class GpuStaticEvaluation
         return new BoundBlockStatement(result);
     }
 
-    private static TypeSymbol Type(string type) => type switch
+    private TypeSymbol Type(string type)
     {
-        "f32" => F32,
-        "u32" => U32,
-        "bool" => PrimitiveTypeSymbol.Boolean,
-        _ => throw StaticEvaluationException.Unsupported($"GPU static scalar closure cannot represent '{type}'."),
-    };
+        if (type == "f32") return F32;
+        if (type == "u32") return U32;
+        if (type == "bool") return PrimitiveTypeSymbol.Boolean;
+        if (recordTypes.TryGetValue(type, out var existing)) return existing;
+        if (!valueTypes.TryGetValue(type, out var definition))
+        {
+            throw StaticEvaluationException.Unsupported($"GPU static value closure cannot represent '{type}'.");
+        }
+        var record = new RecordTypeSymbol(type, new(recordTypes.Count), type);
+        recordTypes.Add(type, record);
+        foreach (var field in definition.Fields)
+        {
+            record.AddField(new(field.Name, new(record.Id, record.Fields.Count), Type(field.Type), true));
+        }
+        return record;
+    }
 
     private static SyntaxKind Operator(string operation) => operation switch
     {

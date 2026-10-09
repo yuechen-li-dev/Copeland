@@ -13,7 +13,7 @@ using System.Text;
 
 namespace Copeland.TS.Semantics;
 
-public static class Binder
+public static partial class Binder
 {
     public static BoundCompilation Bind(SyntaxTree tree)
     {
@@ -73,7 +73,7 @@ public static class Binder
         }
     }
 
-    private sealed class BinderImpl(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandJavaScriptHostContractResolver hostResolver, CopelandClrMetadataResolver clrResolver, CopelandPackageContractMap packageContracts, CopelandPackageBackend packageBackend, CopelandProjectTypeSet projectTypes, string? sourcePath, string? moduleIdentity, BoundModuleImports? imports)
+    private sealed partial class BinderImpl(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandJavaScriptHostContractResolver hostResolver, CopelandClrMetadataResolver clrResolver, CopelandPackageContractMap packageContracts, CopelandPackageBackend packageBackend, CopelandProjectTypeSet projectTypes, string? sourcePath, string? moduleIdentity, BoundModuleImports? imports)
     {
         private sealed class BatchBindingContext
         {
@@ -230,13 +230,16 @@ public static class Binder
             PredeclareLayoutTypes(_tree.Root);
             PredeclareLayouts(_tree.Root);
             BindClrUsingDirectives(_tree.Root);
+            InitializeGenericDeclarations();
             ResolveAliases();
             BindInterfaceBodies(_tree.Root);
+            RefreshHostDeclarationRequirements();
             PredeclareFunctions(_tree.Root);
             BindCopelandPackageImports(_tree.Root);
             BindNpmImports(_tree.Root);
             BindJavaScriptHostImports(_tree.Root);
             BindRecordBodies(_tree.Root);
+            RefreshHostRecords();
             PredeclareTemplates(_tree.Root);
             BindClassFields(_tree.Root);
             PredeclareClassMembers(_tree.Root);
@@ -248,7 +251,7 @@ public static class Binder
             BindLayoutBindings(_tree.Root);
             BindStreamBindings(_tree.Root);
             ValidateRecordCycles();
-            foreach (var generic in _tree.Root.Members.OfType<FunctionDeclarationSyntax>().Where(function => function.TypeParameters.Count > 0))
+            foreach (var generic in _tree.Root.Members.OfType<FunctionDeclarationSyntax>().Where(function => function.TypeParameters.Count > 0 || function.GenericParameters?.Values.Count > 0))
             {
                 _genericBodies[(FunctionSymbol)_globalLookup(generic.Identifier.Text)!] = BindFunction(generic);
             }
@@ -266,10 +269,10 @@ public static class Binder
             }
             foreach (var m in _tree.Root.Members)
             {
-                if (m is FunctionDeclarationSyntax f && f.TypeParameters.Count == 0) _functions.Add(BindFunction(f));
+                if (m is FunctionDeclarationSyntax f && f.TypeParameters.Count == 0 && (f.GenericParameters?.Values.Count ?? 0) == 0) _functions.Add(BindFunction(f));
                 else if (m is EnumDeclarationSyntax e && e.Identifier.Text != "TableBoundsError" && _enumTypes.TryGetValue(e.Identifier.Text, out var enumType)) _enums.Add(new BoundEnumDeclaration(enumType));
                 else if (m is NominalUnionDeclarationSyntax union && _enumTypes.TryGetValue(union.Identifier.Text, out var unionType)) _enums.Add(new BoundEnumDeclaration(unionType));
-                else if (m is RecordDeclarationSyntax r && _recordTypes.TryGetValue(r.Identifier.Text, out var recordType)) _records.Add(new BoundRecordDeclaration(recordType));
+                else if (m is RecordDeclarationSyntax r && r.GenericParameters is null && _recordTypes.TryGetValue(r.Identifier.Text, out var recordType)) _records.Add(new BoundRecordDeclaration(recordType));
                 else if (m is ClassDeclarationSyntax c && _classTypes.TryGetValue(c.Identifier.Text, out var classType)) _records.Add(new BoundRecordDeclaration(classType));
             }
             BindFlows(_tree.Root);
@@ -954,6 +957,7 @@ public static class Binder
                 {
                     Report("COPE-INTERFACE-0001", "Interfaces must declare at least one field.", declaration.Identifier);
                 }
+                using var genericContext = EnterHostParameters(@interface.TypeParameters);
                 var names = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var field in declaration.Fields)
                 {
@@ -969,7 +973,7 @@ public static class Binder
                     var type = field.HasExplicitType
                         ? BindType(field.Type, field.Identifier, "COPE-INTERFACE-0004", "interface field")
                         : PrimitiveTypeSymbol.Error;
-                    if (type is TypeParameterTypeSymbol || type == PrimitiveTypeSymbol.Void)
+                    if (type == PrimitiveTypeSymbol.Void)
                     {
                         Report("COPE-INTERFACE-0004", $"Interface field '{field.Identifier.Text}' has an illegal type '{type.Name}'.", field.Identifier);
                     }
@@ -1080,16 +1084,37 @@ public static class Binder
         {
             var dependencies = new List<TypeAliasSymbol>();
             var pending = new Stack<TypeSyntax>();
+            var visited = new HashSet<TypeSyntax>(ReferenceEqualityComparer.Instance);
             pending.Push(root);
 
             while (pending.Count > 0)
             {
                 TypeSyntax type = pending.Pop();
+                if (!visited.Add(type))
+                {
+                    continue;
+                }
                 switch (type)
                 {
                     case IdentifierTypeSyntax identifier
                         when _aliases.TryGetValue(identifier.Identifier.Text, out var alias):
                         dependencies.Add(alias);
+                        foreach (var parameter in alias.TypeParameters)
+                        {
+                            if (parameter.DefaultTypeSyntax is { } defaultType)
+                            {
+                                pending.Push(defaultType);
+                            }
+                        }
+                        break;
+                    case IdentifierTypeSyntax identifier when _recordTypes.TryGetValue(identifier.Identifier.Text, out var record):
+                        foreach (var parameter in record.TypeParameters)
+                        {
+                            if (parameter.DefaultTypeSyntax is { } defaultType)
+                            {
+                                pending.Push(defaultType);
+                            }
+                        }
                         break;
                     case QualifiedRowTypeSyntax qualified
                         when _aliases.TryGetValue(qualified.TableIdentifier.Text, out var alias):
@@ -1097,6 +1122,25 @@ public static class Binder
                         break;
                     case ArrayTypeSyntax array:
                         pending.Push(array.ElementType);
+                        break;
+                    case GenericTypeSyntax generic:
+                        if (_aliases.TryGetValue(generic.Identifier.Text, out var genericAlias))
+                        {
+                            dependencies.Add(genericAlias);
+                        }
+                        foreach (var argument in generic.TypeArguments)
+                        {
+                            pending.Push(argument);
+                        }
+                        IReadOnlyList<TypeParameterSymbol> parameters = _recordTypes.TryGetValue(generic.Identifier.Text, out var genericRecord)
+                            ? genericRecord.TypeParameters : genericAlias?.TypeParameters ?? [];
+                        foreach (var parameter in parameters.Skip(generic.TypeArguments.Count))
+                        {
+                            if (parameter.DefaultTypeSyntax is { } defaultType)
+                            {
+                                pending.Push(defaultType);
+                            }
+                        }
                         break;
                     case ColumnTypeSyntax column:
                         pending.Push(column.ElementType);
@@ -1215,6 +1259,7 @@ public static class Binder
         private void ResolveAliasTarget(TypeAliasSymbol alias)
         {
             TypeAliasDeclarationSyntax declaration = _aliasDeclarations[alias];
+            using var genericContext = EnterHostParameters(alias.TypeParameters);
             _currentAliasDeclaration = declaration;
             try
             {
@@ -2644,6 +2689,7 @@ public static class Binder
                     continue;
                 }
 
+                using var genericContext = EnterHostParameters(recordType.TypeParameters);
                 var names = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var fieldSyntax in declaration.Fields)
                 {
@@ -3222,26 +3268,7 @@ public static class Binder
                         m.Identifier);
                     continue;
                 }
-                var typeParameters = new List<TypeParameterSymbol>();
-                var typeParameterNames = new HashSet<string>(StringComparer.Ordinal);
-                if (m.TypeParameters.Count > MaxTypeParametersPerFunction)
-                {
-                    Report("COPE-GENERIC-0011", $"Generic function '{m.Identifier.Text}' exceeds the {MaxTypeParametersPerFunction} type-parameter limit.", m.Identifier);
-                }
-                for (var index = 0; index < m.TypeParameters.Count; index++)
-                {
-                    var syntax = m.TypeParameters[index];
-                    if (!typeParameterNames.Add(syntax.Identifier.Text))
-                    {
-                        Report("COPE-GENERIC-0001", $"Duplicate type parameter '{syntax.Identifier.Text}'.", syntax.Identifier);
-                    }
-                    if (_aliases.ContainsKey(syntax.Identifier.Text) || _recordTypes.ContainsKey(syntax.Identifier.Text) || _enumTypes.ContainsKey(syntax.Identifier.Text) || _tableTypes.ContainsKey(syntax.Identifier.Text) || _interfaces.ContainsKey(syntax.Identifier.Text))
-                    {
-                        Report("COPE-GENERIC-0002", $"Type parameter '{syntax.Identifier.Text}' cannot shadow a compilation-unit type declaration.", syntax.Identifier);
-                    }
-                    var requirements = BindRequirements(syntax);
-                    typeParameters.Add(new TypeParameterSymbol(syntax.Identifier.Text, new TypeParameterTypeSymbol(syntax.Identifier.Text, index), requirements));
-                }
+                var typeParameters = BindHostParameters(m.GenericParameters, m.TypeParameters, CreateFunctionStableIdentity(m.Identifier.Text));
                 _activeTypeParameters = CreateTypeParameterScope(typeParameters);
                 var ps = new List<ParameterSymbol>();
                 var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -6143,8 +6170,17 @@ public static class Binder
                     Report("COPE-REQUIREMENT-0002", $"Requirement '{@interface.Name}' is repeated.", operand);
                     continue;
                 }
+                IReadOnlyList<RequirementFieldSymbol> requiredFields = @interface.Fields;
+                TypeSyntax? application = syntax.RequirementTypes?.FirstOrDefault(type => type is GenericTypeSyntax generic && generic.Identifier.Text == operand.Text);
+                if (@interface.TypeParameters.Count > 0)
+                {
+                    var arguments = BindHostArguments(@interface.TypeParameters, application is GenericTypeSyntax generic ? generic.TypeArguments : [], operand);
+                    ValidateHostRequirements(@interface.TypeParameters, arguments, operand);
+                    var substitutions = HostSubstitutions(@interface.TypeParameters, arguments);
+                    requiredFields = @interface.Fields.Select(field => new RequirementFieldSymbol(field.Name, SubstituteType(field.Type, substitutions), field.Ordinal)).ToArray();
+                }
                 interfaces.Add(@interface);
-                foreach (var field in @interface.Fields)
+                foreach (var field in requiredFields)
                 {
                     var existing = fields.FirstOrDefault(candidate => candidate.Name == field.Name);
                     if (existing is null)
@@ -7124,6 +7160,10 @@ public static class Binder
 
         private BoundExpression BindName(NameExpressionSyntax n)
         {
+            if (_activeTypeParameters?.TryGetValue(n.IdentifierToken.Text, out var staticParameter) == true && staticParameter.StaticType is not null)
+            {
+                return new BoundGenericStaticExpression(staticParameter.Type, staticParameter.StaticType);
+            }
             if (n.IdentifierToken.Text == "tsonAsset")
             {
                 Report("COPE-TSON-ASSET-0001", "'tsonAsset' is a compiler intrinsic and cannot be used as a value.", n.IdentifierToken);
@@ -9788,16 +9828,11 @@ public static class Binder
 
         private BoundExpression BindInferredGenericCall(CallExpressionSyntax call, FunctionSymbol function)
         {
-            if (_currentFunction?.IsGeneric == true)
+            if (_currentFunction == function)
             {
-                string diagnosticId = _currentFunction.Name == function.Name ? "COPE-GENERIC-0014" : "COPE-GENERIC-0006";
-                string message = diagnosticId == "COPE-GENERIC-0014"
-                    ? $"Generic recursion through '{function.Name}' is not supported in CTS-TYPE-M1b."
-                    : "Generic-to-generic calls are not supported in CTS-TYPE-M1b.";
-                Report(diagnosticId, message, call.OpenParenToken);
+                Report("COPE-GENERIC-0014", "Generic recursion is unsupported.", call.OpenParenToken);
                 return new BoundErrorExpression();
             }
-
             if (call.Arguments.Count != function.Parameters.Count)
             {
                 Report("COPE-TYPE-0004", $"Argument count mismatch: expected {function.Parameters.Count}, got {call.Arguments.Count}.", call.OpenParenToken);
@@ -9823,6 +9858,18 @@ public static class Binder
                 failed |= !CollectInferenceEvidence(function.Parameters[index].Type, bound.Type, slots, InferenceAnchor(argument));
             }
 
+            foreach (InferenceSlot slot in slots.Where(slot => slot.Candidate is null))
+            {
+                if (slot.Parameter.DefaultType is { } defaultType)
+                {
+                    slot.AddEvidence(defaultType, call.OpenParenToken, this);
+                }
+                else if (slot.Parameter.StaticType is not null && slot.Parameter.StaticDefault is not null)
+                {
+                    int index = Array.IndexOf(slots, slot);
+                    slot.AddEvidence(BindHostStaticDefault(function.TypeParameters, slots.Select(item => item.Candidate).ToArray(), index, call.OpenParenToken), call.OpenParenToken, this);
+                }
+            }
             var unresolved = slots.Where(slot => slot.Candidate is null).ToArray();
             if (unresolved.Length > 0)
             {
@@ -9876,12 +9923,29 @@ public static class Binder
 
             for (var index = 0; index < typeArguments.Length; index++)
             {
-                if (!Satisfies(function.TypeParameters[index].Requirements, typeArguments[index], call.OpenParenToken))
+                if (!Satisfies(SubstituteHostRequirements(function.TypeParameters[index].Requirements, HostSubstitutions(function.TypeParameters, typeArguments)), typeArguments[index], call.OpenParenToken))
                 {
                     return new BoundErrorExpression();
                 }
             }
 
+            if (_currentFunction?.IsGeneric == true)
+            {
+                var map = HostSubstitutions(function.TypeParameters, typeArguments);
+                foreach (int index in deferred)
+                {
+                    arguments[index] = BindExpression(call.Arguments[index], SubstituteType(function.Parameters[index].Type, map));
+                }
+                for (int index = 0; index < arguments.Length; index++)
+                {
+                    TypeSymbol expected = SubstituteType(function.Parameters[index].Type, map);
+                    if (!IsAssignable(expected, arguments[index].Type))
+                    {
+                        ReportTypeMismatch("COPE-TYPE-0005", expected, arguments[index].Type, InferenceAnchor(call.Arguments[index]));
+                    }
+                }
+                return new BoundOpenGenericCallExpression(function, typeArguments, arguments, SubstituteType(function.ReturnType, map), call.OpenParenToken);
+            }
             BoundFunctionDeclaration specialization = GetOrCreateClosedInstantiation(function, typeArguments, call.OpenParenToken);
             if (specialization.Symbol.Name == "<error>") return new BoundErrorExpression();
 
@@ -9975,6 +10039,11 @@ public static class Binder
 
                 switch (item.Pattern, item.Actual)
                 {
+                    case (RecordTypeSymbol { GenericDefinition: not null } expected, RecordTypeSymbol { GenericDefinition: not null } received)
+                        when ReferenceEquals(expected.GenericDefinition, received.GenericDefinition):
+                        for (int index = expected.GenericArguments.Count - 1; index >= 0; index--)
+                            worklist.Push((expected.GenericArguments[index], received.GenericArguments[index], item.Depth + 1));
+                        break;
                     case (ArrayTypeSymbol expected, ArrayTypeSymbol received):
                         worklist.Push((expected.ElementType, received.ElementType, item.Depth + 1));
                         break;
@@ -10136,20 +10205,9 @@ public static class Binder
                 Report("COPE-GENERIC-0005", $"Function '{function.Name}' does not accept type arguments.", call.LessToken);
                 return new BoundErrorExpression();
             }
-            if (_currentFunction?.IsGeneric == true)
+            if (_currentFunction == function)
             {
-                string diagnosticId = _currentFunction.Name == function.Name
-                    ? "COPE-GENERIC-0014"
-                    : "COPE-GENERIC-0006";
-                string message = diagnosticId == "COPE-GENERIC-0014"
-                    ? $"Generic recursion through '{function.Name}' is not supported in CTS-TYPE-M1b."
-                    : "Generic-to-generic calls are not supported in CTS-TYPE-M1b.";
-                Report(diagnosticId, message, call.LessToken);
-                return new BoundErrorExpression();
-            }
-            if (call.TypeArguments.Count != function.TypeParameters.Count)
-            {
-                Report("COPE-GENERIC-0007", $"Generic function '{function.Name}' expects {function.TypeParameters.Count} type arguments, got {call.TypeArguments.Count}.", call.LessToken);
+                Report("COPE-GENERIC-0014", "Generic recursion is unsupported.", call.LessToken);
                 return new BoundErrorExpression();
             }
             if (call.TypeArguments.Any(argument => argument is IdentifierTypeSyntax identifier && _interfaces.ContainsKey(identifier.Identifier.Text)))
@@ -10161,10 +10219,10 @@ public static class Binder
 
                 return new BoundErrorExpression();
             }
-            var typeArguments = call.TypeArguments.Select(argument => BindType(argument, call.LessToken, "COPE-GENERIC-0008", "type argument")).ToArray();
-            if (typeArguments.Any(IsOpenOrIllegalTypeArgument))
+            var typeArguments = BindHostArguments(function.TypeParameters, call.TypeArguments, call.LessToken);
+            if (_currentFunction?.IsGeneric != true && typeArguments.Any(IsOpenOrIllegalTypeArgument))
             {
-                Report("COPE-GENERIC-0008", "Generic type arguments must be closed value types; interfaces and open type parameters are not allowed.", call.LessToken);
+                Report("COPE-GENERIC-0008", "Generic type arguments must be closed value types.", call.LessToken);
                 return new BoundErrorExpression();
             }
             try
@@ -10181,10 +10239,14 @@ public static class Binder
             }
             for (var index = 0; index < typeArguments.Length; index++)
             {
-                if (!Satisfies(function.TypeParameters[index].Requirements, typeArguments[index], call.LessToken))
+                if (!Satisfies(SubstituteHostRequirements(function.TypeParameters[index].Requirements, HostSubstitutions(function.TypeParameters, typeArguments)), typeArguments[index], call.LessToken))
                 {
                     return new BoundErrorExpression();
                 }
+            }
+            if (_currentFunction?.IsGeneric == true)
+            {
+                return BindHostOpenCall(function, typeArguments, call.Arguments, call.LessToken);
             }
             var specialization = GetOrCreateClosedInstantiation(function, typeArguments, call.LessToken);
             var arguments = call.Arguments.Select((argument, index) => BindExpression(argument, index < specialization.Symbol.Parameters.Count ? specialization.Symbol.Parameters[index].Type : null)).ToArray();
@@ -10350,15 +10412,7 @@ public static class Binder
                 Report("COPE-GENERIC-0005", $"Function '{function.Name}' does not accept type arguments.", reference.LessToken);
                 return new BoundErrorExpression();
             }
-            if (reference.TypeArguments.Count != function.TypeParameters.Count)
-            {
-                Report("COPE-GENERIC-0007", $"Generic function '{function.Name}' expects {function.TypeParameters.Count} type arguments, got {reference.TypeArguments.Count}.", reference.LessToken);
-                return new BoundErrorExpression();
-            }
-
-            var typeArguments = reference.TypeArguments
-                .Select(argument => BindType(argument, reference.LessToken, "COPE-GENERIC-0008", "type argument"))
-                .ToArray();
+            var typeArguments = BindHostArguments(function.TypeParameters, reference.TypeArguments, reference.LessToken);
             if (typeArguments.Any(IsOpenOrIllegalTypeArgument))
             {
                 Report("COPE-GENERIC-0008", "Generic type arguments must be closed value types; interfaces and open type parameters are not allowed.", reference.LessToken);
@@ -10375,7 +10429,8 @@ public static class Binder
             }
             for (var index = 0; index < typeArguments.Length; index++)
             {
-                if (!Satisfies(function.TypeParameters[index].Requirements, typeArguments[index], reference.LessToken)) return new BoundErrorExpression();
+                if (!Satisfies(SubstituteHostRequirements(function.TypeParameters[index].Requirements,
+                    HostSubstitutions(function.TypeParameters, typeArguments)), typeArguments[index], reference.LessToken)) return new BoundErrorExpression();
             }
 
             var specialization = GetOrCreateClosedInstantiation(function, typeArguments, reference.LessToken);
@@ -10515,6 +10570,8 @@ public static class Binder
             return type switch
             {
                 TypeParameterTypeSymbol => true,
+                StaticExpressionArgumentTypeSymbol => true,
+                RecordTypeSymbol record => record.GenericArguments.Any(IsOpenOrIllegalTypeArgument),
                 ArrayTypeSymbol array => IsOpenOrIllegalTypeArgument(array.ElementType),
                 MutableArrayTypeSymbol array => IsOpenOrIllegalTypeArgument(array.ElementType),
                 SpanTypeSymbol span => IsOpenOrIllegalTypeArgument(span.ElementType),
@@ -10552,6 +10609,11 @@ public static class Binder
                 Report("COPE-GENERIC-0010", $"Generic function '{generic.Name}' is not available for closed instantiation.", anchor);
                 return new BoundFunctionDeclaration(new FunctionSymbol("<error>", [], PrimitiveTypeSymbol.Error), new BoundBlockStatement([]));
             }
+            if (!_activeGenericSpecializations.Add(generic))
+            {
+                Report("COPE-GENERIC-0014", "Recursive generic specialization: " + generic.Name, anchor);
+                return new(new FunctionSymbol("<error>", [], PrimitiveTypeSymbol.Error), new([]));
+            }
             var substitutions = generic.TypeParameters
                 .Select((parameter, index) => (Open: (TypeSymbol)parameter.Type, Closed: typeArguments[index]))
                 .ToDictionary(pair => pair.Open, pair => pair.Closed);
@@ -10565,8 +10627,9 @@ public static class Binder
                 SubstituteType(generic.ReturnType, substitutions),
                 generic.AuthoredReturnAliasName,
                 identity);
-            var rewriter = new ClosedInstantiationRewriter(substitutions);
+            var rewriter = new ClosedInstantiationRewriter(this, substitutions);
             var specialized = new BoundFunctionDeclaration(specializedSymbol, rewriter.RewriteBlock(openBody.Body));
+            _activeGenericSpecializations.Remove(generic);
             _closedInstantiations.Add(identity, specialized);
             _closedInstantiationCounts[generic] = _closedInstantiationCounts.TryGetValue(generic, out perGenericCount)
                 ? perGenericCount + 1
@@ -10607,6 +10670,9 @@ public static class Binder
 
             return type switch
             {
+                StaticArgumentTypeSymbol value => "static:" + ClosedTypeIdentity(value.ValueType, depthRemaining - 1) + ":" + value.CanonicalValue,
+                StaticExpressionArgumentTypeSymbol plan => "static-plan:" + plan.ValueType.Name + ":" + plan.Identity,
+                TypeParameterTypeSymbol parameter => "parameter:" + parameter.StableIdentity,
                 PrimitiveTypeSymbol primitive => "primitive:" + primitive.Name,
                 ErrorNominalTypeSymbol error => "error:" + error.Name,
                 EnumTypeSymbol @enum => "enum:" + (@enum.StableIdentity ?? @enum.Name),
@@ -10867,11 +10933,13 @@ public static class Binder
             return builder.ToString();
         }
 
-        private static TypeSymbol SubstituteType(TypeSymbol type, IReadOnlyDictionary<TypeSymbol, TypeSymbol> substitutions)
+        private TypeSymbol SubstituteType(TypeSymbol type, IReadOnlyDictionary<TypeSymbol, TypeSymbol> substitutions)
         {
             if (substitutions.TryGetValue(type, out var replacement)) return replacement;
             return type switch
             {
+                StaticExpressionArgumentTypeSymbol plan => CloseHostStaticArgument(plan, substitutions),
+                RecordTypeSymbol { GenericDefinition: not null } record => CloseHostRecord(record.GenericDefinition, record.GenericArguments.Select(argument => SubstituteType(argument, substitutions)).ToArray()),
                 ArrayTypeSymbol array => new ArrayTypeSymbol(SubstituteType(array.ElementType, substitutions)),
                 MutableArrayTypeSymbol array => new MutableArrayTypeSymbol(SubstituteType(array.ElementType, substitutions)),
                 SpanTypeSymbol span => new SpanTypeSymbol(SubstituteType(span.ElementType, substitutions)),
@@ -10883,8 +10951,9 @@ public static class Binder
             };
         }
 
-        private sealed class ClosedInstantiationRewriter(IReadOnlyDictionary<TypeSymbol, TypeSymbol> substitutions)
+        private sealed class ClosedInstantiationRewriter(BinderImpl owner, IReadOnlyDictionary<TypeSymbol, TypeSymbol> substitutions)
         {
+            private TypeSymbol SubstituteType(TypeSymbol type, IReadOnlyDictionary<TypeSymbol, TypeSymbol> map) => owner.SubstituteType(type, map);
             public BoundBlockStatement RewriteBlock(BoundBlockStatement block)
                 => new(block.Statements.Select(RewriteStatement).ToArray());
 
@@ -10902,8 +10971,10 @@ public static class Binder
                 _ => statement
             };
 
-            private BoundExpression RewriteExpression(BoundExpression expression) => expression switch
+            public BoundExpression RewriteExpression(BoundExpression expression) => expression switch
             {
+                BoundGenericStaticExpression value => owner.CloseStaticValue(value, substitutions),
+                BoundOpenGenericCallExpression call => owner.CloseOpenGenericCall(call, substitutions, call.Arguments.Select(RewriteExpression).ToArray()),
                 BoundLiteralExpression literal => new BoundLiteralExpression(literal.Value, SubstituteType(literal.Type, substitutions)),
                 BoundStaticExpression staticExpression => new BoundStaticExpression(
                     staticExpression.Anchor,
@@ -10933,7 +11004,7 @@ public static class Binder
                 BoundArrayElementAccessExpression access => new BoundArrayElementAccessExpression(RewriteExpression(access.Receiver), RewriteExpression(access.Index), (ArrayTypeSymbol)SubstituteType(access.ArrayType, substitutions)),
                 BoundArrayIterableExpression iterable => new BoundArrayIterableExpression(RewriteExpression(iterable.Receiver), (IterableTypeSymbol)SubstituteType(iterable.Type, substitutions)),
                 BoundRequirementFieldAccessExpression requirement => RewriteRequirementAccess(requirement),
-                BoundRecordFieldAccessExpression access => new BoundRecordFieldAccessExpression(RewriteExpression(access.Receiver), access.RecordType, access.Field),
+                BoundRecordFieldAccessExpression access => owner.CloseRecordAccess(access, RewriteExpression(access.Receiver), substitutions),
                 BoundTableRowFieldAccessExpression access => new BoundTableRowFieldAccessExpression(RewriteExpression(access.Receiver), access.RowType, access.Field),
                 BoundTableReferenceExpression table => table,
                 BoundTableColumnAccessExpression access => new BoundTableColumnAccessExpression(RewriteExpression(access.Receiver), access.TableType, access.Column),
@@ -10947,8 +11018,8 @@ public static class Binder
                             replacement.Column,
                             (BoundArrayExpression)RewriteExpression(replacement.Value)))
                         .ToArray()),
-                BoundRecordConstructionExpression construction => new BoundRecordConstructionExpression(construction.RecordType, construction.Initializers.Select(field => new BoundRecordFieldInitializer(field.Field, RewriteExpression(field.Value))).ToArray()),
-                BoundRecordWithExpression withExpression => new BoundRecordWithExpression(RewriteExpression(withExpression.Source), withExpression.RecordType, withExpression.Replacements.Select(field => new BoundRecordFieldInitializer(field.Field, RewriteExpression(field.Value))).ToArray()),
+                BoundRecordConstructionExpression construction => owner.CloseRecordConstruction(construction.RecordType, construction.Initializers.Select(field => new BoundRecordFieldInitializer(field.Field, RewriteExpression(field.Value))).ToArray(), substitutions),
+                BoundRecordWithExpression withExpression => owner.CloseRecordWith(RewriteExpression(withExpression.Source), withExpression.RecordType, withExpression.Replacements.Select(field => new BoundRecordFieldInitializer(field.Field, RewriteExpression(field.Value))).ToArray(), substitutions),
                 BoundIfExpression conditional => new BoundIfExpression(RewriteExpression(conditional.Condition), RewriteExpression(conditional.ThenExpression), RewriteExpression(conditional.ElseExpression), SubstituteType(conditional.Type, substitutions)),
                 BoundMatchExpression match => new BoundMatchExpression(RewriteExpression(match.Scrutinee), match.EnumType, match.Arms.Select(arm => new BoundMatchArm(arm.Case, arm.PayloadVariables.Select(RewriteVariable).ToArray(), RewriteExpression(arm.Expression))).ToArray(), SubstituteType(match.Type, substitutions)),
                 BoundResultMatchExpression match => new BoundResultMatchExpression(RewriteExpression(match.Scrutinee), RewriteVariable(match.OkVariable), RewriteExpression(match.OkExpression), RewriteVariable(match.ErrVariable), RewriteExpression(match.ErrExpression), SubstituteType(match.Type, substitutions)),
@@ -12819,6 +12890,8 @@ public static class Binder
 
         private TypeSymbol BindGenericClrOrStructuralType(GenericTypeSyntax syntax, SyntaxToken anchor, string missingId, string missingPrefix)
         {
+            TypeSymbol? authored = BindAuthoredGenericType(syntax);
+            if (authored is not null) return authored;
             if (syntax.Identifier.Text is "Map" or "MutableMap")
             {
                 ReportMissingNativeMap(syntax.Identifier);
@@ -13165,7 +13238,7 @@ public static class Binder
         {
             return type switch
             {
-                IdentifierTypeSyntax i when _activeTypeParameters is not null && _activeTypeParameters.TryGetValue(i.Identifier.Text, out var typeParameter) => typeParameter.Type,
+                IdentifierTypeSyntax i when _activeTypeParameters is not null && _activeTypeParameters.TryGetValue(i.Identifier.Text, out var typeParameter) => HostParameterType(typeParameter, i.Identifier),
                 IdentifierTypeSyntax i when _aliases.TryGetValue(i.Identifier.Text, out var alias) => alias.CanonicalType,
                 IdentifierTypeSyntax i when _enumTypes.TryGetValue(i.Identifier.Text, out var enumType) => enumType,
                 IdentifierTypeSyntax i when _recordTypes.TryGetValue(i.Identifier.Text, out var recordType) => recordType,
@@ -13189,6 +13262,18 @@ public static class Binder
 
         private TypeSymbol ResolveIdentifierType(IdentifierTypeSyntax i)
         {
+            if (_aliases.TryGetValue(i.Identifier.Text, out var genericAlias) && genericAlias.TypeParameters.Count > 0)
+            {
+                var arguments = BindHostArguments(genericAlias.TypeParameters, [], i.Identifier);
+                ValidateHostRequirements(genericAlias.TypeParameters, arguments, i.Identifier);
+                return SubstituteType(genericAlias.CanonicalType, HostSubstitutions(genericAlias.TypeParameters, arguments));
+            }
+            if (_recordTypes.TryGetValue(i.Identifier.Text, out var genericRecord) && genericRecord.TypeParameters.Count > 0)
+            {
+                var arguments = BindHostArguments(genericRecord.TypeParameters, [], i.Identifier);
+                ValidateHostRequirements(genericRecord.TypeParameters, arguments, i.Identifier);
+                return CloseHostRecord(genericRecord, arguments);
+            }
             if (i.Identifier.Text == "any")
             {
                 ReportRepair("COPE-PROFILE-0012", "any erases the type needed for deterministic layout. Use a concrete value type, a nominal record, or a generic <T extends FieldRequirement>.", i.Identifier, "a concrete value type, a nominal record, or a generic <T extends FieldRequirement>");
@@ -13222,7 +13307,7 @@ public static class Binder
             if (_aliases.TryGetValue(i.Identifier.Text, out var alias))
                 return alias.CanonicalType;
             if (_activeTypeParameters is not null && _activeTypeParameters.TryGetValue(i.Identifier.Text, out var typeParameter))
-                return typeParameter.Type;
+                return HostParameterType(typeParameter, i.Identifier);
             if (_interfaces.ContainsKey(i.Identifier.Text))
             {
                 Report(
