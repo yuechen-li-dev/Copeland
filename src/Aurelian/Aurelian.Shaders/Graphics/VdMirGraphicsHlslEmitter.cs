@@ -1,5 +1,6 @@
 using System.Text;
 using Copeland.TS.Gpu.VdMir;
+using Aurelian.Shaders.Language.VdMir.Emission.Hlsl;
 
 namespace Aurelian.Shaders.Graphics;
 
@@ -16,6 +17,7 @@ public static class VdMirGraphicsHlslEmitter
         var builder = new StringBuilder();
         builder.AppendLine($"// Generated from canonical VD-MIR {module.FeatureLevel}. Do not edit.");
         builder.AppendLine();
+        VdMirEnumHlslEmitter.Emit(builder, module.Enums);
         foreach (VdMirSemanticSpace space in module.SemanticSpaces)
         {
             builder.AppendLine($"// semantic space {space.Name} physically lowers to {space.PhysicalType}");
@@ -204,7 +206,7 @@ public static class VdMirGraphicsHlslEmitter
             "name" or "literal" => expression.Value!,
             "field" when IsResourceRoot(expression.Operands![0], module) => expression.Value!,
             "field" => $"{EmitExpression(expression.Operands![0], module)}.{expression.Value}",
-            "call" => $"{expression.Value}({string.Join(", ", expression.Operands!.Select(operand => EmitExpression(operand, module)))})",
+            "call" => $"{expression.Value}({string.Join(", ", expression.Operands!.Where(operand => !IsResourceRoot(operand, module)).Select(operand => EmitExpression(operand, module)))})",
             "binary" => $"({EmitExpression(expression.Operands![0], module)} {expression.Value} {EmitExpression(expression.Operands[1], module)})",
             "unary" => $"({expression.Value}{EmitExpression(expression.Operands![0], module)})",
             "intrinsic" when expression.Value == "Sample2D" => $"{EmitExpression(expression.Operands![0], module)}.Sample({EmitExpression(expression.Operands[1], module)}, {EmitExpression(expression.Operands[2], module)})",

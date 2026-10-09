@@ -309,7 +309,8 @@ public sealed class Parser
             || IsWord(next, "interface")
             || IsWord(next, "flow")
             || IsClassWord(next, "class")
-            || (next.Kind == SyntaxKind.ConstKeyword && Peek(2).Kind == SyntaxKind.RecordKeyword);
+            || next.Kind == SyntaxKind.ConstKeyword
+            || IsWord(next, "stream");
     }
 
     private FlowDeclarationSyntax ParseFlowDeclaration()
@@ -3507,6 +3508,14 @@ public sealed class Parser
     private MatchPatternSyntax ParseMatchPattern()
     {
         var caseIdentifier = Match(SyntaxKind.IdentifierToken);
+        SyntaxToken? enumQualifier = null;
+        SyntaxToken? qualifierDot = null;
+        if (Current.Kind == SyntaxKind.DotToken)
+        {
+            enumQualifier = caseIdentifier;
+            qualifierDot = NextToken();
+            caseIdentifier = Match(SyntaxKind.IdentifierToken);
+        }
         SyntaxToken? openParen = null;
         var payloadIdentifiers = new List<SyntaxToken>();
         var commas = new List<SyntaxToken>();
@@ -3528,7 +3537,7 @@ public sealed class Parser
             closeParen = Match(SyntaxKind.CloseParenToken);
         }
 
-        return new MatchPatternSyntax(caseIdentifier, openParen, payloadIdentifiers, commas, closeParen);
+        return new MatchPatternSyntax(caseIdentifier, openParen, payloadIdentifiers, commas, closeParen, enumQualifier, qualifierDot);
     }
 
     private TsXmlExpressionSyntax ParseTsXmlExpression()

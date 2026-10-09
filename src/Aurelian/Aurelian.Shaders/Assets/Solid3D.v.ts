@@ -1,3 +1,5 @@
+import { Unit, Sub3, ShadowVisibility, Dot3, Scale3, Mul3, DirectLight, HemisphereLight, Add3 } from "./Lighting3D";
+
 @space(world.position)
 type WorldPosition3 = float3;
 @space(clip.position)
@@ -56,9 +58,21 @@ function VertexMain(input: VertexInput, resources: CameraResources): SolidVaryin
         ProjectRow(resources.camera.clipZ, input.position), ProjectRow(resources.camera.clipW, input.position)),
         color: color, world: float3(input.position.x, input.position.y, input.position.z), normal: input.normal };
 }
+enum LightingChoice { Basic(color: float4), Pbr }
+function ChooseLighting(enabled: f32, color: float4): LightingChoice {
+    if (enabled < 0.5) {
+        return LightingChoice.Basic(color);
+    }
+    return LightingChoice.Pbr;
+}
 @pixel
 function PixelMain(input: SolidVaryings, resources: CameraResources, shadows: SolidShadowResources): SolidOutput {
-    if (resources.camera.surface.z < 0.5) { return { color: input.color }; }
+    return { color: match ChooseLighting(resources.camera.surface.z, input.color) {
+        LightingChoice.Basic(payload) => payload.color,
+        LightingChoice.Pbr => ShadeSolid(input, resources, shadows),
+    } };
+}
+function ShadeSolid(input: SolidVaryings, resources: CameraResources, shadows: SolidShadowResources): float4 {
     const normal: float3 = Unit(input.normal);
     const light: float3 = Unit(float3(resources.camera.light.x, resources.camera.light.y, resources.camera.light.z));
     const view: float3 = Unit(Sub3(float3(resources.camera.eye.x, resources.camera.eye.y, resources.camera.eye.z), input.world));
@@ -72,5 +86,5 @@ function PixelMain(input: SolidVaryings, resources: CameraResources, shadows: So
     const ambient: float3 = HemisphereLight(base, normal, view, float3(resources.camera.sky.x, resources.camera.sky.y, resources.camera.sky.z),
         float3(resources.camera.ground.x, resources.camera.ground.y, resources.camera.ground.z), resources.camera.surface.y, resources.camera.surface.x);
     const lit: float3 = Add3(direct, ambient);
-    return { color: float4(lit.x, lit.y, lit.z, 1.0) };
+    return float4(lit.x, lit.y, lit.z, 1.0);
 }

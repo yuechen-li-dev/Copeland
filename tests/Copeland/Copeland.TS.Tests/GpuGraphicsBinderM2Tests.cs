@@ -159,7 +159,7 @@ public sealed class GpuGraphicsBinderM2Tests
         ]));
 
         Assert.True(module.Success, Diagnostics(module));
-        Assert.Single(module.Functions, function => function.Name == "PassUv");
+        Assert.Single(module.Functions, function => function.Source.File == "shared.ts" && function.Name.EndsWith("_PassUv", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -14,6 +14,16 @@ internal static class WgslSemanticIdentity
         var canonical = module with
         {
             SourceFiles = [],
+            Enums = module.Enums?.Select(enumeration => enumeration with
+            {
+                Source = Empty,
+                CarrierFields = enumeration.CarrierFields.Select(field => field with { Source = Empty }).ToArray(),
+                Cases = enumeration.Cases.Select(variant => variant with
+                {
+                    Source = Empty,
+                    Payload = variant.Payload.Select(field => field with { Source = Empty }).ToArray(),
+                }).ToArray(),
+            }).ToArray(),
             SemanticSpaces = module.SemanticSpaces.Select(space => space with { Source = Empty }).ToArray(),
             Streams = module.Streams.Select(stream => stream with
             {

@@ -1,3 +1,5 @@
+import { Unit, Sub3, ShadowVisibility, Dot3, Scale3, Mul3, DirectLight, HemisphereLight, Add3, Cross3 } from "./Lighting3D";
+
 @space(world.position)
 type WorldPosition3 = float3;
 @space(clip.position)

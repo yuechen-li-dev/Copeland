@@ -541,6 +541,7 @@ internal sealed class StaticEvaluator
         {
             SyntaxKind.MinusToken when operand.Value is int integer => unchecked(-integer),
             SyntaxKind.MinusToken when operand.Value is double number => -number,
+            SyntaxKind.MinusToken when operand.Value is float number => -number,
             SyntaxKind.BangToken when operand.Value is bool boolean => !boolean,
             _ => throw StaticEvaluationException.Failure("Invalid unary operation during static evaluation."),
         };
@@ -573,6 +574,43 @@ internal sealed class StaticEvaluator
 
     private static object EvaluatePrimitiveBinary(object? left, SyntaxKind operation, object? right)
     {
+        // GPU scalar values use the same bounded evaluator and control flow,
+        // retaining binary32 rounding and unsigned shader arithmetic.
+        if (left is float leftFloat && right is float rightFloat)
+        {
+            return operation switch
+            {
+                SyntaxKind.PlusToken => leftFloat + rightFloat,
+                SyntaxKind.MinusToken => leftFloat - rightFloat,
+                SyntaxKind.StarToken => leftFloat * rightFloat,
+                SyntaxKind.SlashToken => leftFloat / rightFloat,
+                SyntaxKind.LessToken => leftFloat < rightFloat,
+                SyntaxKind.LessOrEqualsToken => leftFloat <= rightFloat,
+                SyntaxKind.GreaterToken => leftFloat > rightFloat,
+                SyntaxKind.GreaterOrEqualsToken => leftFloat >= rightFloat,
+                SyntaxKind.EqualsEqualsToken => leftFloat == rightFloat,
+                SyntaxKind.BangEqualsToken => leftFloat != rightFloat,
+                _ => throw StaticEvaluationException.Failure("Invalid binary32 static operation."),
+            };
+        }
+        if (left is uint leftUnsigned && right is uint rightUnsigned)
+        {
+            return operation switch
+            {
+                SyntaxKind.PlusToken => unchecked(leftUnsigned + rightUnsigned),
+                SyntaxKind.MinusToken => unchecked(leftUnsigned - rightUnsigned),
+                SyntaxKind.StarToken => unchecked(leftUnsigned * rightUnsigned),
+                SyntaxKind.SlashToken => leftUnsigned / rightUnsigned,
+                SyntaxKind.PercentToken => leftUnsigned % rightUnsigned,
+                SyntaxKind.LessToken => leftUnsigned < rightUnsigned,
+                SyntaxKind.LessOrEqualsToken => leftUnsigned <= rightUnsigned,
+                SyntaxKind.GreaterToken => leftUnsigned > rightUnsigned,
+                SyntaxKind.GreaterOrEqualsToken => leftUnsigned >= rightUnsigned,
+                SyntaxKind.EqualsEqualsToken => leftUnsigned == rightUnsigned,
+                SyntaxKind.BangEqualsToken => leftUnsigned != rightUnsigned,
+                _ => throw StaticEvaluationException.Failure("Invalid unsigned static operation."),
+            };
+        }
         if (left is int leftInteger && right is int rightInteger)
         {
             return operation switch

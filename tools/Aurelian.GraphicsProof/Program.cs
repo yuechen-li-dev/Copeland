@@ -21,6 +21,11 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 
 string output = Path.GetFullPath(Option("--output") ?? "artifacts/local/graphics-starter");
+if (args.Contains("--language-proof", StringComparer.Ordinal))
+{
+    LanguagePortProof.Run(output);
+    return;
+}
 string assetDirectory = Path.GetFullPath(Option("--assets") ?? "Games/Starter/Aurelian.Starter/Assets");
 Directory.CreateDirectory(output);
 var assets = new GameAssets();

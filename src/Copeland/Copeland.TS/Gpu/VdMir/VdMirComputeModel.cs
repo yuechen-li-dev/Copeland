@@ -62,6 +62,14 @@ public sealed record VdMirFunction(
     IReadOnlyList<VdMirStatement> Statements,
     VdMirSourceSpan Source);
 
+/// <summary>Local value carrier. No resource-buffer ABI is implied.</summary>
+public sealed record VdMirEnumField(string Name, string Type, VdMirSourceSpan Source);
+
+public sealed record VdMirEnumCase(string Name, uint Tag, string PayloadType, IReadOnlyList<VdMirEnumField> Payload, VdMirSourceSpan Source);
+
+public sealed record VdMirEnum(string Name, IReadOnlyList<VdMirEnumCase> Cases,
+    IReadOnlyList<VdMirEnumField> CarrierFields, VdMirSourceSpan Source);
+
 public sealed record VdMirComputeEntryPoint(
     string Name,
     string EmittedName,
@@ -87,6 +95,9 @@ public sealed record VdMirComputeModule(
     public const string ComputeM1FeatureLevel = "compute.m1";
 
     public bool Success => EntryPoint is not null && Diagnostics.Count == 0;
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<VdMirEnum>? Enums { get; init; }
 }
 
 public enum CopelandCompilerProfile

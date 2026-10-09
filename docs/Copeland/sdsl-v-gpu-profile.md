@@ -2,9 +2,12 @@
 
 ## Status
 
-The compute M1 subset is implemented. SDSL-V semantics remain owned by Oct's
+The compute M1 subset and graphics M2–M4 paths are implemented. The October
+2026 [Visual TypeScript language foundation](../Aurelian/visual-typescript-language-port.md)
+adds bounded named modules, scalar `static`, and local payload enums/matches.
+SDSL-V semantics remain owned by Oct's
 canonical language specification and conformance corpus. Copeland supplies a
-second frontend through `GpuComputeBinder`; graphics stages and the deferred
+second frontend through its GPU binders; the deferred
 features below remain profile decisions only.
 
 ## Selection and source files
@@ -27,8 +30,8 @@ Allowed after the relevant port slice implements them:
 - value records with certified SDSL layout;
 - initialized immutable `let` and initialized mutable `var` locals;
 - typed arithmetic/comparison/boolean operations and compiler-known intrinsics;
-- structured conditionals, bounded/profile-legal loops, break/continue and
-  return;
+- structured conditionals, bounded/profile-legal loops and return; `while` is
+  rejected and no new `break`/`continue` support is planned for Visual TypeScript;
 - explicit resource and local mutation permitted by access/mutability law;
 - closed, specialized generic functions and compile-time-erased interfaces;
 - explicit immutable captures used only as specialization inputs.
@@ -54,9 +57,9 @@ template evaluator is the only compile-time engine. `reflect` remains
 compile-time observation and may later expose typed SDSL layout/binding/stage
 facts; no runtime shader reflection is added.
 
-Payload enums require the canonical SDSL tag/payload layout before GPU runtime
-admission. Therefore the language decision is SUPPORTED and the implementation
-gate is DEFER. `Option<T>` follows that explicit tagged representation.
+Local payload enums now have typed tag/payload metadata and exhaustive qualified
+`match` lowering. External storage/material/stage ABI and nested sums remain
+deferred. `Option<T>` still requires a separately certified tagged representation.
 `Result<T,E>` shader-runtime semantics are UNSUPPORTED because SDSL-V removed
 fallibility; a domain status payload enum remains available after layout support.
 

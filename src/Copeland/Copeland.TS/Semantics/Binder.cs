@@ -12048,6 +12048,11 @@ public static class Binder
 
             foreach (var arm in match.Arms)
             {
+                if (arm.Pattern.EnumQualifier is { } qualifier
+                    && (!_enumTypes.TryGetValue(qualifier.Text, out var qualifiedType) || qualifiedType != enumType))
+                {
+                    Report("COPE-MATCH-0002", "Qualified match case must belong to the subject enum.", qualifier);
+                }
                 var caseName = arm.Pattern.CaseIdentifier.Text;
                 var enumCase = enumType.Cases.FirstOrDefault(c => c.Name == caseName);
                 if (enumCase is null)

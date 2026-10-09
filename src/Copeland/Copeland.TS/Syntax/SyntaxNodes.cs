@@ -2548,12 +2548,19 @@ public sealed record MatchPatternSyntax(
     SyntaxToken? OpenParenToken,
     IReadOnlyList<SyntaxToken> PayloadIdentifiers,
     IReadOnlyList<SyntaxToken> CommaTokens,
-    SyntaxToken? CloseParenToken) : SyntaxNode
+    SyntaxToken? CloseParenToken,
+    SyntaxToken? EnumQualifier = null,
+    SyntaxToken? QualifierDot = null) : SyntaxNode
 {
     public override SyntaxKind Kind => SyntaxKind.MatchPattern;
 
     public override IEnumerable<object> GetChildren()
     {
+        if (EnumQualifier is not null)
+        {
+            yield return EnumQualifier;
+            yield return QualifierDot!;
+        }
         yield return CaseIdentifier;
         if (OpenParenToken is not null)
         {

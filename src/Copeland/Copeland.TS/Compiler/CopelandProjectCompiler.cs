@@ -674,6 +674,11 @@ public static class CopelandProjectCompiler
         };
     }
 
+    internal static IReadOnlyList<SourceImport> ReadSourceImports(CopelandProjectSource source)
+        => ReadImports(source).Select(import => new SourceImport(import.Specifier, import.Bindings, import.Position, import.Length)).ToArray();
+
+    internal sealed record SourceImport(string Specifier, IReadOnlyList<ProjectImportBinding> Bindings, int Position, int Length);
+
     private static IReadOnlyList<ProjectImport> ReadImports(CopelandProjectSource source)
     {
         SyntaxTree tree = SyntaxTree.Parse(EmbeddedSourceBlockScanner.MaskBodies(source.SourceText), source.LogicalPath);
@@ -706,7 +711,7 @@ public static class CopelandProjectCompiler
         }).ToArray();
     }
 
-    private static IReadOnlySet<string> ReadExports(CopelandProjectSource source)
+    internal static IReadOnlySet<string> ReadExports(CopelandProjectSource source)
     {
         SyntaxTree tree = SyntaxTree.ParseTokens(EmbeddedSourceBlockScanner.MaskBodies(source.SourceText));
         var exports = new HashSet<string>(StringComparer.Ordinal);
@@ -727,6 +732,7 @@ public static class CopelandProjectCompiler
                 "layers" when index + 2 < tokens.Length => index + 2,
                 _ when tokens[index + 1].Kind is SyntaxKind.EnumKeyword or SyntaxKind.RecordKeyword => index + 2,
                 "const" when index + 3 < tokens.Length && tokens[index + 2].Kind == SyntaxKind.RecordKeyword => index + 3,
+                "const" or "stream" when index + 2 < tokens.Length => index + 2,
                 _ => -1,
             };
             if (nameIndex >= 0 && nameIndex < tokens.Length && tokens[nameIndex].Kind == SyntaxKind.IdentifierToken)
@@ -851,7 +857,7 @@ public static class CopelandProjectCompiler
         public ProjectModule? Target { get; set; }
     }
 
-    private sealed record ProjectImportBinding(string ExportedName, string LocalName, int Position, int Length);
+    internal sealed record ProjectImportBinding(string ExportedName, string LocalName, int Position, int Length);
     private sealed record ProjectDeclaration(string Name, string Kind);
     private sealed record TextReplacement(int Start, int Length, string Replacement);
 }

@@ -19,9 +19,7 @@ public sealed class GameAssets
         {
             return cached;
         }
-        using var stream = Open(name);
-        using var reader = new StreamReader(stream);
-        var module = GpuComputeBinder.Compile(new([new(name, reader.ReadToEnd())]));
+        var module = GpuComputeBinder.Compile(new(GpuSourceLoader.Load(name, ReadShaderSource)));
         if (!module.Success)
         {
             throw new InvalidDataException(string.Join("; ", module.Diagnostics.Select(item => item.Message)));
@@ -41,15 +39,7 @@ public sealed class GameAssets
         {
             return cached;
         }
-        using Stream stream = Open(name);
-        using var reader = new StreamReader(stream);
-        var sources = new List<GpuSourceFile> { new(name, reader.ReadToEnd()) };
-        if (name is "Solid3D.v.ts" or "StaticModel3D.v.ts")
-        {
-            using Stream lightingStream = Open("Lighting3D.v.ts");
-            using var lightingReader = new StreamReader(lightingStream);
-            sources.Add(new("Lighting3D.v.ts", lightingReader.ReadToEnd()));
-        }
+        IReadOnlyList<GpuSourceFile> sources = GpuSourceLoader.Load(name, ReadShaderSource);
         var module = GpuGraphicsBinder.Compile(new GpuCompilationRequest(sources));
         if (!module.Success)
         {
@@ -95,4 +85,15 @@ public sealed class GameAssets
 
     private static Stream Open(string name) => typeof(GameAssets).Assembly.GetManifestResourceStream("Aurelian.Games." + name)
         ?? throw new FileNotFoundException($"Built-in game asset '{name}' is unavailable.");
+
+    private static string? ReadShaderSource(string name)
+    {
+        using Stream? stream = typeof(GameAssets).Assembly.GetManifestResourceStream("Aurelian.Games." + name);
+        if (stream is null)
+        {
+            return null;
+        }
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
+    }
 }

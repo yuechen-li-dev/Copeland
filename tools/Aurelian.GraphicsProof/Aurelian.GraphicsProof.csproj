@@ -4,5 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Integrations/Aurelian.Games/Aurelian.Games.csproj" />
+    <ProjectReference Include="../../src/Copeland/Copeland.TS.Backend.Wgsl/Copeland.TS.Backend.Wgsl.csproj" />
+    <Content Include="Assets/*.v.ts" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

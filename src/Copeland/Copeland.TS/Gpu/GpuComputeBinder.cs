@@ -1,5 +1,6 @@
 using Copeland.TS.Gpu.VdMir;
 using Copeland.TS.Syntax;
+using Copeland.TS.Semantics;
 
 namespace Copeland.TS.Gpu;
 
@@ -23,6 +24,10 @@ public static class GpuComputeBinder
         };
 
         private readonly GpuCompilationRequest _request;
+        private GpuModuleGraph _modules = null!;
+        private GpuConstants _constants = null!;
+        private GpuEnums _enums = null!;
+        private int _matchSequence;
         private readonly List<VdMirDiagnostic> _diagnostics = [];
         private readonly Dictionary<string, FunctionSource> _functions = new(StringComparer.Ordinal);
         private readonly List<VdMirResource> _resources = [];
@@ -50,6 +55,9 @@ public static class GpuComputeBinder
             }
 
             ParseSources();
+            _enums = new GpuEnums(_modules,
+                (path, type) => BindType(path, type, new SyntaxToken(SyntaxKind.IdentifierToken, 0, string.Empty, null)),
+                (code, message, span) => AddDiagnostic(code, "SDSL-V4200", "payload-enum", message, span));
             FunctionSource[] entries = _functions.Values
                 .Where(item => HasAnnotation(item.Syntax.Annotations, "compute"))
                 .OrderBy(item => item.Path, StringComparer.Ordinal)
@@ -78,19 +86,10 @@ public static class GpuComputeBinder
 
         private void ParseSources()
         {
-            foreach (GpuSourceFile source in _request.Sources.OrderBy(item => item.Path, StringComparer.Ordinal))
+            _modules = new GpuModuleGraph(_request, _diagnostics);
+            _constants = new GpuConstants(_modules);
+            foreach ((GpuSourceFile source, SyntaxTree tree) in _modules.Sources)
             {
-                SyntaxTree tree = SyntaxTree.Parse(source.Source, source.Path);
-                foreach (Copeland.TS.Diagnostics.Diagnostic diagnostic in tree.Diagnostics)
-                {
-                    AddDiagnostic(
-                        diagnostic.Id,
-                        "SDSL-V1000",
-                        "syntax",
-                        diagnostic.Message,
-                        new VdMirSourceSpan(source.Path, diagnostic.Position, diagnostic.Length));
-                }
-
                 foreach (FunctionDeclarationSyntax function in tree.Root.Members.OfType<FunctionDeclarationSyntax>())
                 {
                     if (function.Identifier.Text is "Sqrt" or "U32")
@@ -104,7 +103,7 @@ public static class GpuComputeBinder
                         AddDiagnostic("COPE-GPU-RAYQUERY-0003", "SDSL-V4213", "ray-query",
                             "RayQueryTraceClosest is a compiler-owned command and cannot be redefined.", Span(source.Path, function.Identifier));
                     }
-                    if (!_functions.TryAdd(function.Identifier.Text, new FunctionSource(source.Path, function)))
+                    if (!_functions.TryAdd(_modules.Declare(source.Path, function.Identifier.Text), new FunctionSource(source.Path, function)))
                     {
                         AddDiagnostic(
                             "COPE-GPU-SYMBOL-0001",
@@ -231,20 +230,20 @@ public static class GpuComputeBinder
 
             IReadOnlyList<VdMirStatement> statements = BindFunctionBody(entry, scope, "void");
             _entryPoint = new VdMirComputeEntryPoint(
-                entry.Syntax.Identifier.Text,
-                entry.Syntax.Identifier.Text,
+                _modules.Declare(entry.Path, entry.Syntax.Identifier.Text),
+                _modules.Declare(entry.Path, entry.Syntax.Identifier.Text),
                 dimensions[0],
                 dimensions[1],
                 dimensions[2],
                 builtins,
                 Span(entry.Path, entry.Syntax));
             _boundFunctions.Add(new VdMirFunction(
-                entry.Syntax.Identifier.Text,
+                _modules.Declare(entry.Path, entry.Syntax.Identifier.Text),
                 builtins,
                 "void",
                 statements,
                 Span(entry.Path, entry.Syntax)));
-            _completedFunctions.Add(entry.Syntax.Identifier.Text);
+            _completedFunctions.Add(_modules.Declare(entry.Path, entry.Syntax.Identifier.Text));
         }
 
         private IReadOnlyList<VdMirStatement> BindFunctionBody(
@@ -252,13 +251,13 @@ public static class GpuComputeBinder
             Dictionary<string, ValueBinding> scope,
             string returnType)
         {
-            if (!_activeFunctions.Add(function.Syntax.Identifier.Text))
+            if (!_activeFunctions.Add(_modules.Declare(function.Path, function.Syntax.Identifier.Text)))
             {
                 AddDiagnostic(
                     "COPE-GPU-RECURSION-0001",
                     "SDSL-V4201",
                     "recursion",
-                    $"Reachable recursion through '{function.Syntax.Identifier.Text}' is deferred in compute M1.",
+                    $"Reachable recursion through '{_modules.Declare(function.Path, function.Syntax.Identifier.Text)}' is deferred in compute M1.",
                     Span(function.Path, function.Syntax.Identifier));
                 return [];
             }
@@ -269,7 +268,7 @@ public static class GpuComputeBinder
             }
 
             var statements = BindStatements(function.Path, function.Syntax.Body.Statements, scope, returnType);
-            _activeFunctions.Remove(function.Syntax.Identifier.Text);
+            _activeFunctions.Remove(_modules.Declare(function.Path, function.Syntax.Identifier.Text));
             return statements;
         }
 
@@ -345,6 +344,22 @@ public static class GpuComputeBinder
                             Span(path, expressionStatement),
                             Expression: BindExpression(path, expressionStatement.Expression, scope)));
                         break;
+                    case StaticIfStatementSyntax conditional:
+                    {
+                        var request = new StaticExpressionSyntax(conditional.StaticKeyword, conditional.Condition);
+                        VdMirExpression condition = BindExpression(path, request, scope);
+                        if (condition is not { Kind: "literal", Type: "bool" })
+                        {
+                            AddDiagnostic("COPE-GPU-STATIC-0001", "SDSL-V4200", "static-control", "Static if requires a compile-time bool.", Span(path, conditional));
+                            break;
+                        }
+                        StatementSyntax? selected = condition.Value == "true" ? conditional.ThenStatement : conditional.ElseStatement;
+                        if (selected is not null)
+                        {
+                            result.Add(new("block", Span(path, conditional), Body: BindNestedStatement(path, selected, scope, returnType)));
+                        }
+                        break;
+                    }
                     case IfStatementSyntax conditional:
                     {
                         VdMirExpression condition = BindExpression(path, conditional.Condition, scope);
@@ -414,18 +429,62 @@ public static class GpuComputeBinder
                     {
                         return new VdMirExpression("name", binding.Type, Span(path, expression), name.IdentifierToken.Text);
                     }
+                    VdMirExpression? constant = BindConstant(path, name.IdentifierToken.Text);
+                    if (constant is not null)
+                    {
+                        return constant with { Source = Span(path, name) };
+                    }
                     AddDiagnostic("COPE-GPU-NAME-0001", "SDSL-V1501", "name", $"Unknown GPU value '{name.IdentifierToken.Text}'.", Span(path, name.IdentifierToken));
                     return ErrorExpression(path, expression);
+                case MatchExpressionSyntax match:
+                    string helperName;
+                    do
+                    {
+                        helperName = "VtsMatch" + _matchSequence++;
+                    }
+                    while (_functions.ContainsKey(helperName));
+                    return GpuEnumMatch.Bind(path, match, BindExpression(path, match.Expression, scope), _enums,
+                        helperName, scope.ToDictionary(item => item.Key, item => item.Value.Type, StringComparer.Ordinal),
+                        (expression, armScope) => BindExpression(path, expression, armScope.ToDictionary(item => item.Key, item => new ValueBinding(item.Value, false, null, false), StringComparer.Ordinal)),
+                        AddEnumFunction, (code, message, span) => AddDiagnostic(code, "SDSL-V4200", "payload-match", message, span));
+                case StaticExpressionSyntax evaluated:
+                    try
+                    {
+                        VdMirExpression value = BindExpression(path, evaluated.Expression, scope);
+                        if (value.Type == "error")
+                        {
+                            return value;
+                        }
+                        return GpuStaticEvaluation.Fold(value, _boundFunctions) with { Source = Span(path, evaluated) };
+                    }
+                    catch (StaticEvaluationException exception)
+                    {
+                        AddDiagnostic(exception.DiagnosticId, "SDSL-V4200", "static-evaluation", exception.Message, Span(path, evaluated));
+                        return ErrorExpression(path, evaluated);
+                    }
                 case LiteralExpressionSyntax literal:
                     return BindLiteral(path, literal);
                 case ParenthesizedExpressionSyntax parenthesized:
                     return BindExpression(path, parenthesized.Expression, scope);
                 case MemberAccessExpressionSyntax member:
                 {
+                    if (member.Target is NameExpressionSyntax qualifier && !scope.ContainsKey(qualifier.IdentifierToken.Text))
+                    {
+                        VdMirExpression? constructed = _enums.Construct(path, member, [], AddEnumFunction);
+                        if (constructed is not null)
+                        {
+                            return constructed;
+                        }
+                    }
                     VdMirExpression target = BindExpression(path, member.Target, scope);
                     if (target.Type == "uint3" && member.NameToken.Text is "x" or "y" or "z")
                     {
                         return new VdMirExpression("field", "u32", Span(path, member), member.NameToken.Text, [target]);
+                    }
+                    string? payloadType = _enums.MemberType(target.Type, member.NameToken.Text);
+                    if (payloadType is not null)
+                    {
+                        return new("field", payloadType, Span(path, member), member.NameToken.Text, [target]);
                     }
                     AddDiagnostic("COPE-GPU-MEMBER-0001", "SDSL-V1502", "member", $"Member '{member.NameToken.Text}' is not available on '{target.Type}'.", Span(path, member.NameToken));
                     return ErrorExpression(path, expression);
@@ -454,8 +513,52 @@ public static class GpuComputeBinder
             }
         }
 
+        private VdMirExpression? BindConstant(string path, string name)
+        {
+            try
+            {
+                return _constants.Bind(path, name, (sourcePath, declaration) =>
+                {
+                    string type = BindType(sourcePath, declaration.Type, declaration.Identifier);
+                    VdMirExpression value = BindExpression(sourcePath, declaration.Initializer, new(StringComparer.Ordinal));
+                    if (value.Type != type)
+                    {
+                        TypeMismatch(sourcePath, declaration.Initializer, type, value.Type);
+                    }
+                    return value;
+                }, () => _boundFunctions);
+            }
+            catch (StaticEvaluationException exception)
+            {
+                AddDiagnostic(exception.DiagnosticId, "SDSL-V4200", "static-evaluation", exception.Message, new(path, 0, 1));
+                return new("error", "error", new(path, 0, 1));
+            }
+        }
+
+        private void AddEnumFunction(VdMirFunction function)
+        {
+            if (_boundFunctions.Any(existing => existing.Name == function.Name))
+            {
+                AddDiagnostic("COPE-GPU-SYMBOL-0002", "SDSL-V1509", "symbol", "A declaration collides with a compiler-generated enum helper.", function.Source);
+                return;
+            }
+            _boundFunctions.Add(function);
+            _completedFunctions.Add(function.Name);
+        }
+
         private VdMirExpression BindCall(string path, CallExpressionSyntax call, Dictionary<string, ValueBinding> scope)
         {
+            if (call.Target is MemberAccessExpressionSyntax variant
+                && variant.Target is NameExpressionSyntax qualifier && !scope.ContainsKey(qualifier.IdentifierToken.Text))
+            {
+                VdMirExpression[] payload = call.Arguments.Select(argument => BindExpression(path, argument, scope)).ToArray();
+                VdMirExpression? constructed = _enums.Construct(path, variant, payload, AddEnumFunction);
+                if (constructed is not null)
+                {
+                    return constructed;
+                }
+            }
+
             if (call.Target is NameExpressionSyntax intrinsic &&
                 intrinsic.IdentifierToken.Text is "Sqrt" or "U32")
             {
@@ -476,7 +579,7 @@ public static class GpuComputeBinder
                     "RayQueryTraceClosest is statement-only; opaque mutable query state cannot escape as a value.", Span(path, call));
                 return ErrorExpression(path, call);
             }
-            if (call.Target is not NameExpressionSyntax name || !_functions.TryGetValue(name.IdentifierToken.Text, out FunctionSource? function))
+            if (call.Target is not NameExpressionSyntax name || !_functions.TryGetValue(_modules.Resolve(path, name.IdentifierToken.Text), out FunctionSource? function))
             {
                 AddHostOnly(path, call, "host or unresolved call");
                 return ErrorExpression(path, call);
@@ -492,7 +595,7 @@ public static class GpuComputeBinder
             var arguments = call.Arguments.Select(argument => BindExpression(path, argument, scope)).ToArray();
             if (function.Syntax.Parameters.Count != arguments.Length)
             {
-                AddDiagnostic("COPE-GPU-CALL-0001", "SDSL-V1503", "call", $"Function '{function.Syntax.Identifier.Text}' expects {function.Syntax.Parameters.Count} argument(s).", Span(path, call));
+                AddDiagnostic("COPE-GPU-CALL-0001", "SDSL-V1503", "call", $"Function '{_modules.Declare(function.Path, function.Syntax.Identifier.Text)}' expects {function.Syntax.Parameters.Count} argument(s).", Span(path, call));
             }
 
             var helperScope = new Dictionary<string, ValueBinding>(StringComparer.Ordinal);
@@ -507,13 +610,13 @@ public static class GpuComputeBinder
                 }
             }
 
-            if (!_completedFunctions.Contains(function.Syntax.Identifier.Text))
+            if (!_completedFunctions.Contains(_modules.Declare(function.Path, function.Syntax.Identifier.Text)))
             {
                 IReadOnlyList<VdMirStatement> statements = BindFunctionBody(function, helperScope, returnType);
-                if (!_completedFunctions.Contains(function.Syntax.Identifier.Text))
+                if (!_completedFunctions.Contains(_modules.Declare(function.Path, function.Syntax.Identifier.Text)))
                 {
                     _boundFunctions.Add(new VdMirFunction(
-                        function.Syntax.Identifier.Text,
+                        _modules.Declare(function.Path, function.Syntax.Identifier.Text),
                         function.Syntax.Parameters.Select(parameter => new VdMirParameter(
                             parameter.Identifier.Text,
                             BindType(function.Path, parameter.Type, parameter.Identifier),
@@ -522,11 +625,11 @@ public static class GpuComputeBinder
                         returnType,
                         statements,
                         Span(function.Path, function.Syntax)));
-                    _completedFunctions.Add(function.Syntax.Identifier.Text);
+                    _completedFunctions.Add(_modules.Declare(function.Path, function.Syntax.Identifier.Text));
                 }
             }
 
-            return new VdMirExpression("call", returnType, Span(path, call), function.Syntax.Identifier.Text, arguments);
+            return new VdMirExpression("call", returnType, Span(path, call), _modules.Declare(function.Path, function.Syntax.Identifier.Text), arguments);
         }
 
         // Port of Oct's SDSL-V4211/4212/4213 stateful command boundary. The query
@@ -578,15 +681,13 @@ public static class GpuComputeBinder
 
         private VdMirExpression BindLiteral(string path, LiteralExpressionSyntax literal)
         {
-            string type = literal.LiteralToken.Kind switch
+            VdMirExpression? value = GpuScalarLiterals.Bind(path, literal);
+            if (value is not null)
             {
-                SyntaxKind.TrueKeyword or SyntaxKind.FalseKeyword => "bool",
-                SyntaxKind.NumberToken when literal.LiteralToken.Text.Contains('.', StringComparison.Ordinal) => "f32",
-                SyntaxKind.NumberToken => "u32",
-                _ => "error",
-            };
-            if (type == "error") AddHostOnly(path, literal, "non-GPU literal");
-            return new VdMirExpression("literal", type, Span(path, literal), literal.LiteralToken.Text);
+                return value;
+            }
+            AddDiagnostic("COPE-GPU-LITERAL-0001", "SDSL-V1503", "literal", "GPU literals require finite f32, u32 or bool values.", Span(path, literal));
+            return ErrorExpression(path, literal);
         }
 
         private bool IsMutableTarget(ExpressionSyntax target, IReadOnlyDictionary<string, ValueBinding> scope)
@@ -607,6 +708,7 @@ public static class GpuComputeBinder
         {
             string? result = type switch
             {
+                IdentifierTypeSyntax identifier when _enums is not null && _enums.Contains(_modules.Resolve(path, identifier.Identifier.Text)) => _modules.Resolve(path, identifier.Identifier.Text),
                 IdentifierTypeSyntax identifier when identifier.Identifier.Text is "f32" or "u32" or "bool" or "uint3" or "acceleration_structure" => identifier.Identifier.Text,
                 PredefinedTypeSyntax predefined when predefined.Keyword.Kind == SyntaxKind.VoidKeyword => "void",
                 IdentifierTypeSyntax identifier when identifier.Identifier.Text == "void" => "void",
@@ -671,9 +773,12 @@ public static class GpuComputeBinder
                 _request.Sources.Select(source => source.Path).Distinct(StringComparer.Ordinal).OrderBy(path => path, StringComparer.Ordinal).ToArray(),
                 types,
                 _resources.OrderBy(resource => resource.Set).ThenBy(resource => resource.Binding).ThenBy(resource => resource.Name, StringComparer.Ordinal).ToArray(),
-                _boundFunctions.OrderBy(function => function.Name == _entryPoint?.Name ? 1 : 0).ThenBy(function => function.Name, StringComparer.Ordinal).ToArray(),
+                GpuReachability.Functions(_entryPoint is null ? [] : [_entryPoint.Name], _boundFunctions),
                 _entryPoint,
-                _diagnostics.OrderBy(diagnostic => diagnostic.PrimarySpan.File, StringComparer.Ordinal).ThenBy(diagnostic => diagnostic.PrimarySpan.Start).ThenBy(diagnostic => diagnostic.Code, StringComparer.Ordinal).ToArray());
+                _diagnostics.OrderBy(diagnostic => diagnostic.PrimarySpan.File, StringComparer.Ordinal).ThenBy(diagnostic => diagnostic.PrimarySpan.Start).ThenBy(diagnostic => diagnostic.Code, StringComparer.Ordinal).ToArray())
+            {
+                Enums = _enums is null || _enums.Definitions.Count == 0 ? null : _enums.Definitions,
+            };
         }
 
         private static Dictionary<string, ValueBinding> CloneScope(Dictionary<string, ValueBinding> source)

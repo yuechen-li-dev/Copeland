@@ -132,4 +132,7 @@ public sealed record VdMirGraphicsModule(
     public const string GraphicsM4FeatureLevel = "graphics.m4";
 
     public bool Success => GraphicsProgram is not null && Diagnostics.Count == 0;
+
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<VdMirEnum>? Enums { get; init; }
 }

@@ -157,7 +157,8 @@ public sealed class GpuComputeBinderM1Tests
             new GpuSourceFile("shared.ts", shared),
             new GpuSourceFile("compute.v.ts", safeEntry),
         ]));
-        string unsafeEntry = safeEntry.Replace("AddOne(Input[index])", "HostOnly(Input[index])", StringComparison.Ordinal);
+        string unsafeEntry = safeEntry.Replace("{ AddOne }", "{ AddOne, HostOnly }", StringComparison.Ordinal)
+            .Replace("AddOne(Input[index])", "HostOnly(Input[index])", StringComparison.Ordinal);
         VdMirComputeModule unsafeModule = GpuComputeBinder.Compile(new GpuCompilationRequest([
             new GpuSourceFile("shared.ts", shared),
             new GpuSourceFile("compute.v.ts", unsafeEntry),

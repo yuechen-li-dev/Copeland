@@ -25,6 +25,14 @@ internal sealed class WgslGraphicsPreparation
         {
             _types.Add(material.Name, $"vd_s{typeId++}");
         }
+        foreach (var enumeration in module.Enums ?? [])
+        {
+            _types.Add(enumeration.Name, $"vd_s{typeId++}");
+            foreach (var variant in enumeration.Cases.Where(item => item.Payload.Count > 0))
+            {
+                _types.Add(variant.PayloadType, $"vd_s{typeId++}");
+            }
+        }
         for (int index = 0; index < module.Functions.Count; index++)
         {
             _functions.Add(module.Functions[index].Name, $"vd_f{index}");
@@ -37,6 +45,16 @@ internal sealed class WgslGraphicsPreparation
 
     public WgslPreparedModule Prepare()
     {
+        foreach (var enumeration in _module.Enums ?? [])
+        {
+            foreach (var variant in enumeration.Cases.Where(item => item.Payload.Count > 0))
+            {
+                _structures.Add(new WgslStructure(_types[variant.PayloadType], variant.Payload
+                    .Select((field, index) => new WgslField(MemberName(index), Type(field.Type, field.Source))).ToArray()));
+            }
+            _structures.Add(new WgslStructure(_types[enumeration.Name], enumeration.CarrierFields
+                .Select((field, index) => new WgslField(MemberName(index), Type(field.Type, field.Source))).ToArray()));
+        }
         foreach (var entry in _module.EntryPoints)
         {
             ValidateStage(entry.Name, entry.Stage, new HashSet<string>(StringComparer.Ordinal));
@@ -335,6 +353,16 @@ internal sealed class WgslGraphicsPreparation
                 else if (material is not null)
                 {
                     value = MemberName(material.Fields.Single(field => field.Name == value).Order);
+                }
+                else
+                {
+                    IReadOnlyList<VdMirEnumField>? fields = _module.Enums?.FirstOrDefault(item => item.Name == ownerType)?.CarrierFields;
+                    fields ??= _module.Enums?.SelectMany(item => item.Cases).FirstOrDefault(item => item.PayloadType == ownerType)?.Payload;
+                    if (fields is not null)
+                    {
+                        int index = fields.ToList().FindIndex(field => field.Name == value);
+                        value = MemberName(index);
+                    }
                 }
                 break;
             case "object":
