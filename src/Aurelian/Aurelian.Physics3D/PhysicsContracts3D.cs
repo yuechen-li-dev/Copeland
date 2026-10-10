@@ -173,6 +173,10 @@ public interface IPhysicsWorld3D : IDisposable
     void AddBody(PhysicsBody3D body);
     bool RemoveBody(string id);
     PhysicsBodyState3D GetBody(string id);
+    /// <summary>Immutable registration data. Use GetBody for current solver pose and velocity.</summary>
+    PhysicsBody3D GetBodyDescription(string id);
+    bool TryGetBody(string id, out PhysicsBodyState3D? body);
+    ISpatialQueryWorld3D CreateQueryWorld(params string[] excludedBodyIds);
     void SetMotion(string id, PhysicsPose3D pose, PhysicsVelocity3D velocity);
     void ApplyImpulse(string id, Vector3 impulse, Vector3 worldOffset = default);
     void AddJoint(PhysicsJoint3D joint);

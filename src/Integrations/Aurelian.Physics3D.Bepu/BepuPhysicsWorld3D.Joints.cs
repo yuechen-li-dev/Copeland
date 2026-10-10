@@ -40,6 +40,14 @@ public sealed partial class BepuPhysicsWorld3D
         ConstraintHandle handle;
         switch (joint)
         {
+            case PhysicsJoint3D.Fixed weld:
+                handle = simulation.Solver.Add(a, b, new Weld
+                {
+                    LocalOffset = weld.OffsetBInA,
+                    LocalOrientation = weld.OrientationBInA,
+                    SpringSettings = spring,
+                });
+                break;
             case PhysicsJoint3D.BallSocket socket:
                 handle = simulation.Solver.Add(a, b, new BallSocket
                 {

@@ -35,22 +35,23 @@ public sealed class CharacterMotor3D
     }
 
     public CharacterMove3D Step(ISpatialQueryWorld3D world, CharacterState3D state, Vector3 horizontalVelocity,
-        bool jump, float seconds, QueryFilter3D? filter = null)
+        bool jump, float seconds, QueryFilter3D? filter = null, float jumpVelocityOffset = 0)
     {
         SpatialMath3D.RequireFinite(state.Feet);
         SpatialMath3D.RequireFinite(horizontalVelocity);
-        if (!float.IsFinite(state.VerticalVelocity) || !float.IsFinite(seconds) || seconds <= 0 || seconds > 0.05f
+        if (!float.IsFinite(state.VerticalVelocity) || !float.IsFinite(jumpVelocityOffset)
+            || !float.IsFinite(seconds) || seconds <= 0 || seconds > 0.05f
             || MathF.Abs(horizontalVelocity.Y) > 1e-6f)
         {
             throw new ArgumentException("Motor steps need finite horizontal velocity and a positive timestep of at most 50 ms.");
         }
-        SpatialHit3D? ground = Ground(world, state.Feet, filter);
+        SpatialHit3D? ground = ProbeGround(world, state.Feet, filter);
         bool grounded = ground is { Normal.Y: var y } && y >= groundNormalY && state.VerticalVelocity <= 0;
         float vertical = grounded ? 0 : state.VerticalVelocity;
         Vector3 velocity = horizontalVelocity;
         if (grounded && jump)
         {
-            vertical = Options.JumpSpeed;
+            vertical = Options.JumpSpeed + jumpVelocityOffset;
             grounded = false;
         }
         if (grounded)
@@ -67,7 +68,7 @@ public sealed class CharacterMotor3D
         MoveResult3D move = world.SweepAndSlide(capsule, velocity * seconds, filter, minimumGroundNormalY: groundNormalY);
         Vector3 feet = state.Feet + move.AcceptedDisplacement;
         if (vertical > 0 && move.Contacts.Any(contact => contact.Normal.Y < -0.1f)) vertical = 0;
-        SpatialHit3D? landed = vertical <= 0 && !move.InitiallyOverlapping ? Ground(world, feet, filter) : null;
+        SpatialHit3D? landed = vertical <= 0 && !move.InitiallyOverlapping ? ProbeGround(world, feet, filter) : null;
         grounded = landed is { Normal.Y: var landedY } && landedY >= groundNormalY;
         if (grounded)
         {
@@ -82,8 +83,10 @@ public sealed class CharacterMotor3D
             grounded ? landed!.Value.ColliderId : null, move);
     }
 
-    private SpatialHit3D? Ground(ISpatialQueryWorld3D world, Vector3 feet, QueryFilter3D? filter)
+    public SpatialHit3D? ProbeGround(ISpatialQueryWorld3D world, Vector3 feet, QueryFilter3D? filter = null)
     {
+        ArgumentNullException.ThrowIfNull(world);
+        SpatialMath3D.RequireFinite(feet);
         Capsule3D raised = Capsule3D.AtFeet(feet + Vector3.UnitY * 0.001f, Options.Radius, Options.Height);
         return world.Sweep(raised, -Vector3.UnitY * (Options.GroundSnap + 0.001f), filter);
     }

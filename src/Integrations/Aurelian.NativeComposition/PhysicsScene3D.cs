@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Numerics;
 using Aurelian.Physics3D;
 using Aurelian.Spatial3D;
@@ -43,21 +44,11 @@ public sealed record PhysicsAgentDefinition3D(IPhysicsWorld3D World, PhysicsBody
     {
         Body.Validate();
         Matrix4x4 matrix = Body.Pose.Matrix * placement.WorldTransform;
-        Vector3 x = new(matrix.M11, matrix.M12, matrix.M13);
-        Vector3 y = new(matrix.M21, matrix.M22, matrix.M23);
-        Vector3 z = new(matrix.M31, matrix.M32, matrix.M33);
-        if (MathF.Abs(x.LengthSquared() - 1) > .0001f || MathF.Abs(y.LengthSquared() - 1) > .0001f
-            || MathF.Abs(z.LengthSquared() - 1) > .0001f || MathF.Abs(Vector3.Dot(x, y)) > .0001f
-            || MathF.Abs(Vector3.Dot(x, z)) > .0001f || MathF.Abs(Vector3.Dot(y, z)) > .0001f)
-        {
-            throw new NotSupportedException("AUR-PHYSICS-002: Physics agents require rigid placement; author dimensions in the shape and visual.");
-        }
-        var orientation = Quaternion.Normalize(Quaternion.CreateFromRotationMatrix(matrix));
         return Body with
         {
             Id = placement.Id,
             SemanticOwnerId = placement.Id,
-            Pose = new(matrix.Translation, orientation),
+            Pose = PhysicsRigidPlacement3D.From(matrix),
         };
     }
 }
@@ -119,6 +110,24 @@ public static class PhysicsScene3D
                 && ReferenceEquals(definition.World, world))
             {
                 bodyAgent.State = world.GetBody(agent.Id);
+            }
+            else if (agent is SceneAgent<PhysicsAssemblyState3D> assemblyAgent
+                && assemblyAgent.Definition is PhysicsAssemblyAgentDefinition3D assemblyDefinition
+                && ReferenceEquals(assemblyDefinition.World, world))
+            {
+                var previous = assemblyAgent.State;
+                assemblyAgent.State = previous with
+                {
+                    Snapshot = new(world.Backend, world.Tick,
+                        previous.Snapshot.Bodies.Select(body => world.GetBody(body.Id)).ToImmutableArray()),
+                };
+            }
+            else if (agent is SceneAgent<PhysicsCharacterState3D> characterAgent
+                && characterAgent.Definition is PhysicsCharacterAgentDefinition3D characterDefinition
+                && ReferenceEquals(characterDefinition.World, world)
+                && characterAgent.State.Tick != world.Tick)
+            {
+                throw new InvalidOperationException($"AUR-CHARACTER-004: Move character '{agent.Id}' after Step and before Publish.");
             }
         }
     }

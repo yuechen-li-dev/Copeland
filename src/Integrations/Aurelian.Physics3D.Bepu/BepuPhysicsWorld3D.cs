@@ -157,6 +157,19 @@ public sealed partial class BepuPhysicsWorld3D : IPhysicsWorld3D
         body.UpdateBounds();
     }
 
+    public bool TryGetBody(string id, out PhysicsBodyState3D? body)
+    {
+        RequireLive();
+        body = entries.ContainsKey(id) ? GetBody(id) : null;
+        return body is not null;
+    }
+
+    public PhysicsBody3D GetBodyDescription(string id)
+    {
+        RequireLive();
+        return entries[id].Description;
+    }
+
     public void ApplyImpulse(string id, Vector3 impulse, Vector3 worldOffset = default)
     {
         RequireLive();

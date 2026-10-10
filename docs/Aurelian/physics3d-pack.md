@@ -74,7 +74,7 @@ so their spatial error grows with speed. Detection does not make soft contact
 response perfectly rigid. The lab preserves cases where swept CCD still fails
 the penetration budget. See BEPU's [CCD documentation](https://github.com/bepu/bepuphysics2/blob/v2.4.0/Documentation/ContinuousCollisionDetection.md).
 
-`PhysicsJoint3D` describes ball sockets, center distance limits, hinges and angular
+`PhysicsJoint3D` describes fixed welds, ball sockets, center distance limits, hinges and angular
 motors without leaking BEPU constraint handles. Anchors and axes are body-local;
 axes must be unit vectors. A spring has an explicit frequency and damping ratio.
 At least one endpoint must be dynamic, and both endpoints must be mobile bodies:
@@ -82,6 +82,9 @@ use a kinematic body for a fixed joint anchor. Angular motor target velocity is
 the relative velocity of A minus B along A's axis. For a stationary A, positive
 target rotates B in the negative direction.
 The motor's `MaximumTorque` is in newton-metres; `TargetVelocity` is in radians per second.
+
+For named attachment frames, reusable `PhysicsInterface3D<T>` assemblies and live
+character/platform coupling, see [physics composition](physics3d-composition.md).
 
 ```csharp
 physics.AddJoint(new PhysicsJoint3D.BallSocket(

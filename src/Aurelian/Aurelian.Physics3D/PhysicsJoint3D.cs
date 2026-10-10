@@ -30,6 +30,8 @@ public abstract record PhysicsJoint3D(string Id, string BodyA, string BodyB)
         Vector3 AxisA, Vector3 AxisB) : PhysicsJoint3D(JointId, A, B);
     public sealed record AngularMotor(string JointId, string A, string B, Vector3 AxisA,
         float TargetVelocity, float MaximumTorque, float Softness = .0001f) : PhysicsJoint3D(JointId, A, B);
+    public sealed record Fixed(string JointId, string A, string B, Vector3 OffsetBInA,
+        Quaternion OrientationBInA) : PhysicsJoint3D(JointId, A, B);
 
     public void Validate()
     {
@@ -43,6 +45,9 @@ public abstract record PhysicsJoint3D(string Id, string BodyA, string BodyB)
         Spring.Validate();
         switch (this)
         {
+            case Fixed weld:
+                new PhysicsPose3D(weld.OffsetBInA, weld.OrientationBInA).Validate();
+                break;
             case BallSocket socket:
                 PhysicsValidation3D.Finite(socket.AnchorA);
                 PhysicsValidation3D.Finite(socket.AnchorB);
