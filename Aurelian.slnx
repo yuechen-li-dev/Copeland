@@ -1,5 +1,7 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Aurelian/Aurelian.Cloth3D/Aurelian.Cloth3D.csproj" />
+    <Project Path="src/Integrations/Aurelian.Cloth3D.Vulkan/Aurelian.Cloth3D.Vulkan.csproj" />
     <Project Path="src/Aurelian/Aurelian.Physics3D/Aurelian.Physics3D.csproj" />
     <Project Path="src/Integrations/Aurelian.Physics3D.Bepu/Aurelian.Physics3D.Bepu.csproj" />
     <Project Path="src/Integrations/Aurelian.Lighting.Aetheris/Aurelian.Lighting.Aetheris.csproj" />
@@ -61,6 +63,7 @@
     <Project Path="tools/Hollowflux.PearlMiningM20/Hollowflux.PearlMiningM20.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Aurelian/Aurelian.Cloth3D.Tests/Aurelian.Cloth3D.Tests.csproj" />
     <Project Path="tests/Integrations/Aurelian.Physics3D.Bepu.Tests/Aurelian.Physics3D.Bepu.Tests.csproj" />
     <Project Path="tests/Integrations/Aurelian.Lighting.Aetheris.Tests/Aurelian.Lighting.Aetheris.Tests.csproj" />
     <Project Path="tests/Integrations/Aurelian.GameMenus.Tests/Aurelian.GameMenus.Tests.csproj" />

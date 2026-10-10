@@ -21,6 +21,11 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 
 string defaultOutput = "artifacts/local/graphics-starter";
+if (args.Contains("--cloth-foundation", StringComparer.Ordinal))
+{
+    ClothFoundationProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/cloth-foundation"));
+    return;
+}
 if (args.Contains("--physics-composition", StringComparer.Ordinal))
 {
     PhysicsCompositionProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/physics-composition"));

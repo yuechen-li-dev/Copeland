@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsPackable>false</IsPackable></PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Cloth3D/Aurelian.Cloth3D.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.NativeComposition/Aurelian.NativeComposition.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Cloth3D.Vulkan/Aurelian.Cloth3D.Vulkan.csproj" />
+  </ItemGroup>
+</Project>

@@ -5,6 +5,8 @@ Aurelian owns the engine lifecycle, world and game-object models, actuation, fra
 - [Current architecture](architecture/)
 - [Composable C# game starter and Deliverance save slots](game-starter.md)
 - [Document scenes, reusable fragments and typed agent definitions](scene-composition.md)
+- [Reusable cloth objects, CPU/Vulkan XPBD and native qualification](cloth3d-foundation.md)
+- [Cloth research review: SIGGRAPH 2025/2026 and next experiments](cloth3d-research-2025-2026.md)
 - [Blender/GLB static assets, typed materials and explicit replacement](static-assets.md)
 - [HDR environment compilation, GPU AO, tiled local lights and perspective TAA tuning](surface-graphics-pack.md)
 - [Agent-driven humanoid clips and Vulkan compute skinning](humanoid-animation.md)

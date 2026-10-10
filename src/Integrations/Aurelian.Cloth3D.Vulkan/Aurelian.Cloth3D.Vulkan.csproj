@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AllowUnsafeBlocks>true</AllowUnsafeBlocks></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../Aurelian/Aurelian.Cloth3D/Aurelian.Cloth3D.csproj" />
+    <ProjectReference Include="../../Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />
+    <ProjectReference Include="../../Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj" />
+    <Content Include="../../Aurelian/Aurelian.Shaders/Assets/Cloth3D.v.ts" Link="Assets/Cloth3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

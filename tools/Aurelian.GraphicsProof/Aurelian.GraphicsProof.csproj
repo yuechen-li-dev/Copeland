@@ -3,6 +3,7 @@
     <OutputType>Exe</OutputType>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/Integrations/Aurelian.Cloth3D.Vulkan/Aurelian.Cloth3D.Vulkan.csproj" />
     <ProjectReference Include="../../src/Integrations/Aurelian.Physics3D.Bepu/Aurelian.Physics3D.Bepu.csproj" />
     <ProjectReference Include="../../src/Integrations/Aurelian.Lighting.Aetheris/Aurelian.Lighting.Aetheris.csproj" />
     <ProjectReference Include="../../src/Integrations/Aurelian.Games/Aurelian.Games.csproj" />
