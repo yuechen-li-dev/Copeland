@@ -1,0 +1,5 @@
+TemporalPolicy.v.ts is adapted from Aetheris fixtures/three-telos/temporal-policy.v.ts.
+Original SHA256: cbddf22eef666ff1ec1e3d536032551b73372ed7732b891cb95541adc549a696
+The adapted policy and compiled shaders incorporating it retain the AGPL-3.0 license.
+See Aetheris-AGPL-3.0.txt. The repository root license is unchanged.
+Source is supplied in Assets/TemporalPolicy.v.ts by the runtime package.

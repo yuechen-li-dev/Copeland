@@ -85,7 +85,8 @@ public sealed class NativeGameGraphics : IDisposable
             Target = Own(new VulkanNativeFrameTarget(Plant, Swapchain.Facts.Width, Swapchain.Facts.Height, format));
             Renderer = Own(new VulkanSolid3DRenderer(Plant, assets.Shader("Solid3D.v.ts"), Target,
                 modelProgram: assets.Shader("StaticModel3D.v.ts"), shadowProgram: assets.Shader("Shadow3D.v.ts"),
-                outputProgram: assets.Shader("ToneMap3D.v.ts")));
+                outputProgram: assets.Shader("ToneMap3D.v.ts"), temporalProgram: assets.Shader("TemporalResolve3D.v.ts"),
+                bloomProgram: assets.Shader("Bloom3D.v.ts")));
             Presenter = Own(new VulkanNativeSwapchainPresenter(Plant, Target, Swapchain));
             Font = AurelianNativeUiFont.Create(assets.FontDirectory());
             Menus = Own(new GameMenuNativePresenter(Plant, Target,

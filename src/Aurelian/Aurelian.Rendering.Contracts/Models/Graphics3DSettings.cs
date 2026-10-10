@@ -3,11 +3,22 @@ using System.Numerics;
 namespace Aurelian.Rendering.Contracts.Models;
 
 /// <summary>Scene lighting and output policy. Colors and intensities are linear; exposure is a multiplier.</summary>
+public enum AntiAliasing3D
+{
+    None,
+    Temporal,
+}
+
 public sealed record Graphics3DSettings
 {
     public static Graphics3DSettings Default { get; } = new();
-    public static Graphics3DSettings Basic { get; } = new() { SolidPbr = false, Shadows = false, ToneMapping = false };
+    public static Graphics3DSettings Basic { get; } = new() { SolidPbr = false, Shadows = false, ToneMapping = false, AntiAliasing = AntiAliasing3D.None, BloomIntensity = 0 };
 
+    public AntiAliasing3D AntiAliasing { get; init; } = AntiAliasing3D.Temporal;
+    public float TemporalHistoryWeight { get; init; } = .875f;
+    public float BloomIntensity { get; init; } = .08f;
+    public float BloomThreshold { get; init; } = 1;
+    public float BloomKnee { get; init; } = .5f;
     public bool SolidPbr { get; init; } = true;
     public bool Shadows { get; init; } = true;
     public bool ToneMapping { get; init; } = true;
@@ -24,7 +35,9 @@ public sealed record Graphics3DSettings
 
     public void Validate()
     {
-        if (!Finite(SunDirection) || !float.IsFinite(SunDirection.LengthSquared()) || SunDirection.LengthSquared() < .000001f
+        if (!Enum.IsDefined(AntiAliasing) || !Range(TemporalHistoryWeight, 0, .95f) || !Range(BloomIntensity, 0, 1)
+            || !Range(BloomThreshold, 0, 10000) || !Range(BloomKnee, 0, 10000)
+            || !Finite(SunDirection) || !float.IsFinite(SunDirection.LengthSquared()) || SunDirection.LengthSquared() < .000001f
             || !Color(SunColor) || !Color(SkyAmbient) || !Color(GroundAmbient)
             || !Range(SunIntensity, 0, 100_000) || !Range(Exposure, .001f, 1_000)
             || !Range(SolidRoughness, .045f, 1) || !Range(SolidMetallic, 0, 1)

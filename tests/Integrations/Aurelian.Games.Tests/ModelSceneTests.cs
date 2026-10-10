@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Numerics;
 using Aurelian.Assets.Models;
+using Aurelian.NativeComposition;
 using Aurelian.Rendering.Contracts.Models;
 using Aurelian.World.Scenes;
 using Xunit;
@@ -11,6 +12,24 @@ public sealed class ModelSceneTests
 {
     private static StaticModel Load(string filename) => GlbModelImporter.Load("crate",
         Path.Combine(AppContext.BaseDirectory, "Assets", filename)).Model!;
+
+    [Fact]
+    public void PrimitiveMaterialUsesTheSharedModelPathAndParticipatesInSceneIdentity()
+    {
+        var material = new ModelMaterial("lamp") { Emissive = new(8, 3, 1), Metallic = 0 };
+        SceneBox box = Scene.Box("lamp", Vector3.One, Vector4.One, collision: SceneCollision.Solid) with { Material = material };
+        ScenePlan plan = SceneCompiler.Compile(Scene.World("room", [box]));
+        using var scene = plan.Mount();
+        var frame = SceneGeometry3D.BuildScene(scene.Project());
+        Assert.Empty(frame.Geometry);
+        Assert.Single(frame.Models);
+        Assert.Same(material, frame.Models[0].Material);
+        Assert.Equal(36, frame.Models[0].Vertices.Length);
+        Assert.Equal(SceneCollision.Solid, scene.Project().Boxes[0].Collision);
+        var changed = SceneCompiler.Compile(Scene.World("room", [box with { Material = material with { Emissive = new(9, 3, 1) } }]));
+        Assert.NotEqual(plan.ContentIdentity, changed.ContentIdentity);
+        Assert.NotEqual(plan.ContentIdentity, SceneCompiler.Compile(Scene.World("room", [box with { Material = null }])).ContentIdentity);
+    }
 
     [Fact]
     public void ModelInstancesShareAssetDefinitionsAndKeepIndependentMaterialOverrides()

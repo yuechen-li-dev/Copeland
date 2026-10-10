@@ -76,7 +76,7 @@ public sealed unsafe class VulkanSkinning3D : IDisposable
             palette = Buffer((ulong)jointCount * 32, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
             pose = Buffer(19 * 4, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
             // Host-visible output allows explicit qualification reads. Normal presentation never reads it.
-            var output = Buffer((ulong)vertexCount * 40, VulkanBufferUsage.Storage | VulkanBufferUsage.Vertex,
+            var output = Buffer((ulong)vertexCount * 40, VulkanBufferUsage.Storage | VulkanBufferUsage.Vertex | VulkanBufferUsage.TransferSource,
                 VulkanMemoryUsage.GpuToCpu);
             Geometry = new(output, (uint)vertexCount);
             CreatePipeline(spirv, [source, palette, pose, output]);
@@ -152,42 +152,80 @@ public sealed unsafe class VulkanSkinning3D : IDisposable
         DescriptorSetLayoutBinding* bindings = stackalloc DescriptorSetLayoutBinding[4];
         for (uint index = 0; index < 4; index++)
             bindings[index] = new(index, DescriptorType.StorageBuffer, 1, ShaderStageFlags.ComputeBit);
-        var layout = new DescriptorSetLayoutCreateInfo { SType = StructureType.DescriptorSetLayoutCreateInfo,
-            BindingCount = 4, PBindings = bindings };
+        var layout = new DescriptorSetLayoutCreateInfo
+        {
+            SType = StructureType.DescriptorSetLayoutCreateInfo,
+            BindingCount = 4,
+            PBindings = bindings
+        };
         fixed (DescriptorSetLayout* value = &setLayout) Check(plant.Vk.CreateDescriptorSetLayout(plant.Device, &layout, null, value));
         var size = new DescriptorPoolSize(DescriptorType.StorageBuffer, 4);
-        var pool = new DescriptorPoolCreateInfo { SType = StructureType.DescriptorPoolCreateInfo,
-            MaxSets = 1, PoolSizeCount = 1, PPoolSizes = &size };
+        var pool = new DescriptorPoolCreateInfo
+        {
+            SType = StructureType.DescriptorPoolCreateInfo,
+            MaxSets = 1,
+            PoolSizeCount = 1,
+            PPoolSizes = &size
+        };
         fixed (DescriptorPool* value = &descriptorPool) Check(plant.Vk.CreateDescriptorPool(plant.Device, &pool, null, value));
         DescriptorSetLayout descriptorLayout = setLayout;
-        var allocate = new DescriptorSetAllocateInfo { SType = StructureType.DescriptorSetAllocateInfo,
-            DescriptorPool = descriptorPool, DescriptorSetCount = 1, PSetLayouts = &descriptorLayout };
+        var allocate = new DescriptorSetAllocateInfo
+        {
+            SType = StructureType.DescriptorSetAllocateInfo,
+            DescriptorPool = descriptorPool,
+            DescriptorSetCount = 1,
+            PSetLayouts = &descriptorLayout
+        };
         fixed (DescriptorSet* value = &descriptorSet) Check(plant.Vk.AllocateDescriptorSets(plant.Device, &allocate, value));
         DescriptorBufferInfo* infos = stackalloc DescriptorBufferInfo[4];
         WriteDescriptorSet* writes = stackalloc WriteDescriptorSet[4];
         for (int index = 0; index < 4; index++)
         {
             infos[index] = new(resources[index].NativeBuffer, 0, resources[index].SizeBytes);
-            writes[index] = new() { SType = StructureType.WriteDescriptorSet, DstSet = descriptorSet,
-                DstBinding = (uint)index, DescriptorCount = 1, DescriptorType = DescriptorType.StorageBuffer, PBufferInfo = &infos[index] };
+            writes[index] = new()
+            {
+                SType = StructureType.WriteDescriptorSet,
+                DstSet = descriptorSet,
+                DstBinding = (uint)index,
+                DescriptorCount = 1,
+                DescriptorType = DescriptorType.StorageBuffer,
+                PBufferInfo = &infos[index]
+            };
         }
         plant.Vk.UpdateDescriptorSets(plant.Device, 4, writes, 0, null);
-        var layoutInfo = new PipelineLayoutCreateInfo { SType = StructureType.PipelineLayoutCreateInfo,
-            SetLayoutCount = 1, PSetLayouts = &descriptorLayout };
+        var layoutInfo = new PipelineLayoutCreateInfo
+        {
+            SType = StructureType.PipelineLayoutCreateInfo,
+            SetLayoutCount = 1,
+            PSetLayouts = &descriptorLayout
+        };
         fixed (PipelineLayout* value = &pipelineLayout) Check(plant.Vk.CreatePipelineLayout(plant.Device, &layoutInfo, null, value));
         ShaderModule module;
         fixed (byte* bytes = spirv)
         {
-            var moduleInfo = new ShaderModuleCreateInfo { SType = StructureType.ShaderModuleCreateInfo,
-                CodeSize = (nuint)spirv.Length, PCode = (uint*)bytes };
+            var moduleInfo = new ShaderModuleCreateInfo
+            {
+                SType = StructureType.ShaderModuleCreateInfo,
+                CodeSize = (nuint)spirv.Length,
+                PCode = (uint*)bytes
+            };
             Check(plant.Vk.CreateShaderModule(plant.Device, &moduleInfo, null, &module));
         }
         nint entry = SilkMarshal.StringToPtr("SkinMain");
         try
         {
-            var create = new ComputePipelineCreateInfo { SType = StructureType.ComputePipelineCreateInfo,
-                Layout = pipelineLayout, Stage = new() { SType = StructureType.PipelineShaderStageCreateInfo,
-                    Stage = ShaderStageFlags.ComputeBit, Module = module, PName = (byte*)entry } };
+            var create = new ComputePipelineCreateInfo
+            {
+                SType = StructureType.ComputePipelineCreateInfo,
+                Layout = pipelineLayout,
+                Stage = new()
+                {
+                    SType = StructureType.PipelineShaderStageCreateInfo,
+                    Stage = ShaderStageFlags.ComputeBit,
+                    Module = module,
+                    PName = (byte*)entry
+                }
+            };
             fixed (Pipeline* value = &pipeline) Check(plant.Vk.CreateComputePipelines(plant.Device, default, 1, &create, null, value));
         }
         finally
@@ -209,8 +247,12 @@ public sealed unsafe class VulkanSkinning3D : IDisposable
     private void Barrier(CommandBuffer command, AccessFlags source, AccessFlags destination,
         PipelineStageFlags sourceStage, PipelineStageFlags destinationStage)
     {
-        var barrier = new MemoryBarrier { SType = StructureType.MemoryBarrier,
-            SrcAccessMask = source, DstAccessMask = destination };
+        var barrier = new MemoryBarrier
+        {
+            SType = StructureType.MemoryBarrier,
+            SrcAccessMask = source,
+            DstAccessMask = destination
+        };
         plant.Vk.CmdPipelineBarrier(command, sourceStage, destinationStage, 0, 1, &barrier, 0, null, 0, null);
     }
 

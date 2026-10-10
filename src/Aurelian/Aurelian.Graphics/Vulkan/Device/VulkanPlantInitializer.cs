@@ -353,9 +353,12 @@ public static unsafe class VulkanPlantInitializer
         if (options.EnableRayQueries) timelineFeatures.PNext = &addressFeatures;
 
         using var extensionNames = SilkMarshal.StringArrayToMemory(enabledDeviceExtensions, NativeStringEncoding.UTF8);
+        vk.GetPhysicalDeviceFeatures(selected.PhysicalDevice, out PhysicalDeviceFeatures supportedFeatures);
+        PhysicalDeviceFeatures enabledFeatures = new() { SamplerAnisotropy = supportedFeatures.SamplerAnisotropy };
         DeviceCreateInfo createInfo = new()
         {
             SType = StructureType.DeviceCreateInfo,
+            PEnabledFeatures = &enabledFeatures,
             PNext = options.RequireTimelineSemaphores ? &timelineFeatures : options.EnableRayQueries ? &addressFeatures : null,
             QueueCreateInfoCount = 1,
             PQueueCreateInfos = &queueCreateInfo,

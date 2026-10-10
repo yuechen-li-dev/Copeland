@@ -6,4 +6,8 @@ namespace Aurelian.Graphics.Vulkan.Commanding.RenderPasses;
 public sealed record VulkanRenderPassBeginRequest(
     AurelianVulkanRenderPass RenderPass,
     AurelianVulkanFramebuffer Framebuffer,
-    VulkanColorClearValue ClearColor);
+    VulkanColorClearValue ClearColor)
+{
+    /// <summary>Optional clears for targets after target zero, in attachment order.</summary>
+    public IReadOnlyList<VulkanColorClearValue> AdditionalClearColors { get; init; } = [];
+}

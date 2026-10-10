@@ -318,7 +318,7 @@ internal static class LightingCompilationExperiment
             using var target = new VulkanNativeFrameTarget(plant, PreviewSize, PreviewSize);
             using var renderer = new VulkanSolid3DRenderer(plant, program, target,
                 shadowProgram: assets.Shader("Shadow3D.v.ts"), outputProgram: assets.Shader("ToneMap3D.v.ts"));
-            renderer.Settings = Graphics3DSettings.Default with { SunDirection = sun, SkyAmbient = new(.08f), GroundAmbient = new(.02f) };
+            renderer.Settings = Graphics3DSettings.Default with { AntiAliasing = AntiAliasing3D.None, BloomIntensity = 0, SunDirection = sun, SkyAmbient = new(.08f), GroundAmbient = new(.02f) };
             var camera = Camera3D.Matrix(new(7, 6, 9), Vector3.Normalize(new Vector3(0, 1, 0) - new Vector3(7, 6, 9)), 1);
             var frame = renderer.Render(room.Display, camera, new(7, 6, 9), new(.08f, .09f, .1f, 1), capture: true);
             NativeGameGraphics.WritePng(Path.Combine(output, "room-direct.png"), PreviewSize, PreviewSize, frame.Pixels!);

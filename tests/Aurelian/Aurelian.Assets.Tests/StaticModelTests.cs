@@ -41,6 +41,25 @@ public sealed class StaticModelTests
     }
 
     [Fact]
+    public void EmissiveStrengthImportsHdrRadianceInsteadOfClampingToUnitColor()
+    {
+        using var files = new TemporaryAssets();
+        byte[] model = Mutate(File.ReadAllBytes(Asset("crate.glb")), json =>
+        {
+            json["extensionsUsed"] = new JsonArray("KHR_materials_emissive_strength");
+            json["materials"]![0]!["emissiveFactor"] = new JsonArray(.5, .25, .125);
+            json["materials"]![0]!["extensions"] = new JsonObject
+            {
+                ["KHR_materials_emissive_strength"] = new JsonObject { ["emissiveStrength"] = 8 },
+            };
+        });
+        File.WriteAllBytes(files.ModelPath, model);
+        var result = GlbModelImporter.Load("crate", files.ModelPath);
+        Assert.True(result.Success, ModelAssetCatalog.Describe(result.Diagnostics));
+        Assert.Contains(result.Model!.Occurrences, occurrence => occurrence.Primitive.Material.Emissive == new Vector3(4, 2, 1));
+    }
+
+    [Fact]
     public void ContentIdentityIncludesImportSettingsAndIsIndependentOfPathAndStableId()
     {
         var first = GlbModelImporter.Load("first", Asset("crate.glb")).Model!;

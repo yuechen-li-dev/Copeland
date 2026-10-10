@@ -1,4 +1,5 @@
-import { Unit, Sub3, ShadowVisibility, Dot3, Scale3, Mul3, DirectLight, HemisphereLight, Add3 } from "./Lighting3D";
+import { TemporalProjection } from "./TemporalGeometry";
+import { Unit, Sub3, ShadowVisibility, Dot3, Scale3, Mul3, DirectLight, HemisphereLight, Add3, LimitRadiance } from "./Lighting3D";
 import { CompiledDiffuse } from "./CompiledDiffuseLighting";
 
 @space(world.position)
@@ -24,8 +25,13 @@ record CameraMaterial {
     shadowZ: float4;
     shadowW: float4;
     shadowParameters: float4;
+    previousX: float4;
+    previousY: float4;
+    previousZ: float4;
+    previousW: float4;
 }
 stream VertexInput {
+    @location(3) previousPosition: WorldPosition3;
     @location(0) position: WorldPosition3;
     @location(1) normal: float3;
     @location(2) color: float4;
@@ -44,8 +50,10 @@ stream SolidVaryings {
     @location(0) color: float4;
     @location(1) world: float3;
     @location(2) normal: float3;
+    @location(3) currentClip: float4;
+    @location(4) previousClip: float4;
 }
-stream SolidOutput { @target(0) color: float4; }
+stream SolidOutput { @target(0) color: float4; @target(1) motion: float4; }
 function ProjectRow(row: float4, p: WorldPosition3): f32 {
     return row.x * p.x + row.y * p.y + row.z * p.z + row.w;
 }
@@ -59,6 +67,10 @@ function VertexMain(input: VertexInput, resources: CameraResources): SolidVaryin
     }
     return { position: float4(ProjectRow(resources.camera.clipX, input.position), ProjectRow(resources.camera.clipY, input.position),
         ProjectRow(resources.camera.clipZ, input.position), ProjectRow(resources.camera.clipW, input.position)),
+        currentClip: float4(ProjectRow(resources.camera.clipX, input.position), ProjectRow(resources.camera.clipY, input.position),
+            ProjectRow(resources.camera.clipZ, input.position), ProjectRow(resources.camera.clipW, input.position)),
+        previousClip: float4(ProjectRow(resources.camera.previousX, input.previousPosition), ProjectRow(resources.camera.previousY, input.previousPosition),
+            ProjectRow(resources.camera.previousZ, input.previousPosition), ProjectRow(resources.camera.previousW, input.previousPosition)),
         color: color, world: float3(input.position.x, input.position.y, input.position.z), normal: input.normal };
 }
 enum LightingChoice { Basic(color: float4), Pbr }
@@ -70,10 +82,11 @@ function ChooseLighting(enabled: f32, color: float4): LightingChoice {
 }
 @pixel
 function PixelMain(input: SolidVaryings, resources: CameraResources, shadows: SolidShadowResources): SolidOutput {
-    return { color: match ChooseLighting(resources.camera.surface.z, input.color) {
+    const lit: float4 = match ChooseLighting(resources.camera.surface.z, input.color) {
         LightingChoice.Basic(payload) => payload.color,
         LightingChoice.Pbr => ShadeSolid(input, resources, shadows),
-    } };
+    };
+    return { color: LimitRadiance(lit), motion: TemporalProjection(input.currentClip, input.previousClip) };
 }
 function ShadeSolid(input: SolidVaryings, resources: CameraResources, shadows: SolidShadowResources): float4 {
     const normal: float3 = Unit(input.normal);

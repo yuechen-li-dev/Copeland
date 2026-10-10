@@ -71,6 +71,8 @@ internal static class FieldLightingExperiment
         Vector3 opposite = Vector3.Normalize(new Vector3(-.5f, 1, -.65f));
         Graphics3DSettings settings = Graphics3DSettings.Default with
         {
+            AntiAliasing = AntiAliasing3D.None,
+            BloomIntensity = 0,
             SunDirection = sun,
             SunColor = Vector3.One,
             SunIntensity = 2,
@@ -127,8 +129,11 @@ internal static class FieldLightingExperiment
             MovedSourceHash = movingField.Program.StructuralHash,
             FieldSourceLicense = field.Program.SourceLicense,
             AssemblyHashes = new[] { typeof(AetherisLightField), typeof(SdfNode), typeof(BrepBody), typeof(GpuGraphicsBinder) }
-                .Select(type => new { Name = type.Assembly.GetName().Name,
-                    Sha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(type.Assembly.Location))).ToLowerInvariant() }),
+                .Select(type => new
+                {
+                    Name = type.Assembly.GetName().Name,
+                    Sha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(type.Assembly.Location))).ToLowerInvariant()
+                }),
             ShaderCompiler = "Visual TypeScript -> canonical VD-MIR -> DXC SPIR-V, spirv-val",
             GeometryAuthority = "Aetheris primitives/CSG; display tessellation and independent analytic BRep ray queries",
             Units = "Source mm Z-up; game metres Y-up, (x,y,z) -> (1000x,-1000z,1000y)",

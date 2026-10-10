@@ -16,6 +16,12 @@
     <ProjectReference Include="../../Aurelian/Aurelian.Runtime/Aurelian.Runtime.csproj" />
     <ProjectReference Include="../../Aurelian/Aurelian.Combat/Aurelian.Combat.csproj" />
     <PackageReference Include="SkiaSharp" />
+    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/TemporalGeometry.v.ts" LogicalName="Aurelian.Games.TemporalGeometry.v.ts" />
+    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/TemporalPolicy.v.ts" LogicalName="Aurelian.Games.TemporalPolicy.v.ts" />
+    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/TemporalResolve3D.v.ts" LogicalName="Aurelian.Games.TemporalResolve3D.v.ts" />
+    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/Bloom3D.v.ts" LogicalName="Aurelian.Games.Bloom3D.v.ts" />
+    <Content Include="../../Aurelian/Aurelian.Shaders/Assets/Licenses/*" Link="Licenses/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../Aurelian/Aurelian.Shaders/Assets/Temporal*.v.ts" Link="Assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/Lighting3D.v.ts" LogicalName="Aurelian.Games.Lighting3D.v.ts" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/CompiledDiffuseLighting.v.ts" LogicalName="Aurelian.Games.CompiledDiffuseLighting.v.ts" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/ShadowDistanceField.v.ts" LogicalName="Aurelian.Games.ShadowDistanceField.v.ts" />

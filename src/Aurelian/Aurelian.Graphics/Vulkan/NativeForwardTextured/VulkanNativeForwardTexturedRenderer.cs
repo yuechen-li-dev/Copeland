@@ -474,7 +474,8 @@ public static unsafe class VulkanNativeForwardTexturedRenderer
         VulkanTextureUsage usage,
         VulkanMemoryUsage memoryUsage,
         string debugName,
-        VulkanTextureFormat format = VulkanTextureFormat.Rgba8Unorm)
+        VulkanTextureFormat format = VulkanTextureFormat.Rgba8Unorm,
+        uint mipLevels = 1)
     {
         VulkanTextureCreateResult result = VulkanTextureFactory.Create(
             plant,
@@ -487,7 +488,7 @@ public static unsafe class VulkanNativeForwardTexturedRenderer
                 usage,
                 memoryUsage,
                 VulkanResourceLayout.Undefined,
-                DebugName: debugName));
+                MipLevels: mipLevels, DebugName: debugName));
         Require(result.Success, $"Texture creation failed for {debugName}", result.Diagnostics.Select(item => $"{item.Code}: {item.Message}"));
         return result.Texture!;
     }

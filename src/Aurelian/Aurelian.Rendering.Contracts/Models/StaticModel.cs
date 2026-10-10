@@ -38,8 +38,9 @@ public sealed record ModelMaterial(string Slot)
     public void Validate()
     {
         float[] unit = [BaseColor.X, BaseColor.Y, BaseColor.Z, BaseColor.W, Metallic,
-            Roughness, Emissive.X, Emissive.Y, Emissive.Z, OcclusionStrength, AlphaCutoff];
+            Roughness, OcclusionStrength, AlphaCutoff];
         if (string.IsNullOrWhiteSpace(Slot) || unit.Any(value => !float.IsFinite(value) || value < 0 || value > 1)
+            || new[] { Emissive.X, Emissive.Y, Emissive.Z }.Any(value => !float.IsFinite(value) || value < 0 || value > 60000)
             || !float.IsFinite(NormalScale) || NormalScale < 0)
         {
             throw new InvalidDataException($"Invalid material factors for slot '{Slot}'.");

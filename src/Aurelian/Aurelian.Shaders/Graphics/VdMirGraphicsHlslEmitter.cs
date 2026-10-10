@@ -97,7 +97,8 @@ public static class VdMirGraphicsHlslEmitter
                 null when member.Location is not null => $"TEXCOORD{member.Location.Value}",
                 _ => throw new InvalidOperationException($"Stream member '{stream.Name}.{member.Name}' has no backend interface identity."),
             };
-            builder.AppendLine($"    {modifier}{MapType(member.Type, module)} {member.Name} : {semantic};");
+            string location = member.Location is { } explicitLocation ? $"[[vk::location({explicitLocation})]] " : string.Empty;
+            builder.AppendLine($"    {location}{modifier}{MapType(member.Type, module)} {member.Name} : {semantic};");
         }
         builder.AppendLine("};");
     }
@@ -192,12 +193,13 @@ public static class VdMirGraphicsHlslEmitter
     private static void EmitObjectReturn(StringBuilder builder, VdMirExpression expression, VdMirGraphicsModule module, int indentation)
     {
         string prefix = new(' ', indentation * 4);
-        builder.AppendLine($"{prefix}{MapType(expression.Type, module)} result = ({MapType(expression.Type, module)})0;");
+        string temporary = GeneratedName("copelandReturn", module);
+        builder.AppendLine($"{prefix}{MapType(expression.Type, module)} {temporary} = ({MapType(expression.Type, module)})0;");
         for (int index = 0; index < expression.Operands!.Count; index++)
         {
-            builder.AppendLine($"{prefix}result.{expression.MemberNames![index]} = {EmitExpression(expression.Operands[index], module)};");
+            builder.AppendLine($"{prefix}{temporary}.{expression.MemberNames![index]} = {EmitExpression(expression.Operands[index], module)};");
         }
-        builder.AppendLine($"{prefix}return result;");
+        builder.AppendLine($"{prefix}return {temporary};");
     }
 
     private static string EmitExpression(VdMirExpression expression, VdMirGraphicsModule module)
@@ -205,7 +207,7 @@ public static class VdMirGraphicsHlslEmitter
         return expression.Kind switch
         {
             "name" or "literal" => expression.Value!,
-            "field" when IsResourceRoot(expression.Operands![0], module) => expression.Value!,
+            "field" when IsResourceRoot(expression.Operands![0], module) => ResourceName(expression.Value!, module),
             "field" => $"{EmitExpression(expression.Operands![0], module)}.{expression.Value}",
             "call" => $"{expression.Value}({string.Join(", ", expression.Operands!.Where(operand => !IsResourceRoot(operand, module)).Select(operand => EmitExpression(operand, module)))})",
             "binary" => $"({EmitExpression(expression.Operands![0], module)} {expression.Value} {EmitExpression(expression.Operands[1], module)})",
@@ -217,6 +219,39 @@ public static class VdMirGraphicsHlslEmitter
             "object" => throw new InvalidOperationException("Object values must be lowered into generated stream assignments."),
             _ => throw new InvalidOperationException($"Unsupported graphics expression '{expression.Kind}'."),
         };
+    }
+
+    // Resource streams disappear in HLSL, so their fields must not collide with
+    // ordinary local names. Generated return values need the same hygiene.
+    private static string ResourceName(string name, VdMirGraphicsModule module)
+    {
+        var resource = module.GraphicsProgram!.Resources.Single(item => item.Name == name);
+        return GeneratedName($"copelandResourceS{resource.Set}B{resource.Binding}_{name}", module);
+    }
+
+    private static string GeneratedName(string stem, VdMirGraphicsModule module)
+    {
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var function in module.Functions)
+        {
+            names.Add(function.Name);
+            foreach (var parameter in function.Parameters) names.Add(parameter.Name);
+            CollectNames(function.Statements, names);
+        }
+        string candidate = stem;
+        for (int suffix = 1; names.Contains(candidate); suffix++) candidate = stem + suffix;
+        return candidate;
+    }
+
+    private static void CollectNames(IEnumerable<VdMirStatement> statements, HashSet<string> names)
+    {
+        foreach (var statement in statements)
+        {
+            if (statement.Name is not null) names.Add(statement.Name);
+            if (statement.Body is not null) CollectNames(statement.Body, names);
+            if (statement.ElseBody is not null) CollectNames(statement.ElseBody, names);
+            if (statement.Initializer is not null) CollectNames([statement.Initializer], names);
+        }
     }
 
     private static bool IsResourceRoot(VdMirExpression expression, VdMirGraphicsModule module)
@@ -279,6 +314,6 @@ public static class VdMirGraphicsHlslEmitter
             VdMirGraphicsResourceKind.Material => $"ConstantBuffer<{resource.Type}>",
             _ => throw new InvalidOperationException($"Unsupported graphics resource '{resource.Kind}'."),
         };
-        builder.AppendLine($"[[vk::binding({resource.Binding}, {resource.Set})]] {declaration} {resource.Name};");
+        builder.AppendLine($"[[vk::binding({resource.Binding}, {resource.Set})]] {declaration} {ResourceName(resource.Name, module)};");
     }
 }

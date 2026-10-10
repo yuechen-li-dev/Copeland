@@ -128,8 +128,9 @@ dotnet test tests/Copeland/Copeland.TS.Tests -c Release -m:1
 dotnet run --project tools/Aurelian.GraphicsProof -c Release -- --launch-smoke
 ```
 
-Antialiasing, texture mip generation/anisotropy, environment maps, local lights,
-cascaded shadows, ray-query shadows, AO, bloom and fog are follow-up capabilities.
+[The temporal graphics pack](temporal-graphics-pack.md) now adds default TAA,
+HDR bloom/emission and GPU mip generation with anisotropic filtering. Environment
+maps, local lights, cascaded shadows, AO and fog remain follow-up capabilities.
 
 A bounded [receiver-space MSDF shadow experiment](shadow-distance-experiment.md)
 now compares baked distance fields with raster/PCF and the default depth-shadow path.

@@ -67,11 +67,12 @@ if (args.Contains("--headless", StringComparer.Ordinal))
     return;
 }
 
-string source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Assets", "Solid3D.v.ts"));
-string lightingSource = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Assets", "Lighting3D.v.ts"));
-var module = GpuGraphicsBinder.Compile(new GpuCompilationRequest([
-    new GpuSourceFile("Solid3D.v.ts", source), new GpuSourceFile("Lighting3D.v.ts", lightingSource),
-    new GpuSourceFile("CompiledDiffuseLighting.v.ts", File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Assets", "CompiledDiffuseLighting.v.ts")))]));
+var sources = GpuSourceLoader.Load("Solid3D.v.ts", name =>
+{
+    string path = Path.Combine(AppContext.BaseDirectory, "Assets", name);
+    return File.Exists(path) ? File.ReadAllText(path) : null;
+});
+var module = GpuGraphicsBinder.Compile(new GpuCompilationRequest(sources));
 Require(module.Success, string.Join(Environment.NewLine, module.Diagnostics.Select(item => item.Message)));
 VdMirGraphicsBackendResult backend = VdMirGraphicsBackend.Compile(module);
 CompiledGraphicsProgram program = CompiledGraphicsProgramExporter.Export(module, backend);
@@ -156,6 +157,10 @@ if (playtesting)
 }
 else if (proof)
 {
+    // These two oracles compare byte-exact frames. Temporal history has its own
+    // supersampled and moving-silhouette qualification in GraphicsProof.
+    var gameplayGraphics = renderer.Settings;
+    renderer.Settings = gameplayGraphics with { AntiAliasing = Aurelian.Rendering.Contracts.Models.AntiAliasing3D.None, BloomIntensity = 0 };
     object depthProof = ProveDepth(renderer, target, plant, program, clear, output);
     object menuProof = ProveMenus();
     game = app.Game;
@@ -164,6 +169,8 @@ else if (proof)
     SavePng("start.png", initial);
     Native3DFrameResult repeat = renderer.Render(BeaconScene.Build(game), game.Camera((float)target.Width / target.Height), clear, capture: true);
     Require(initial.PixelSha256 == repeat.PixelSha256, "Identical initial scene is not repeatable.");
+    renderer.Settings = gameplayGraphics;
+    renderer.ResetTemporalHistory();
     presenter.Present(++frames);
     Vector2[] route = [new(-7, 9), new(-7, 3), new(-7, -8), new(0, -8), new(0, -7), new(7, -8), new(7, 1), new(6, 1), new(7, -9), BeaconGame.Exit];
     int waypoint = 0;

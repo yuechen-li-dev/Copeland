@@ -26,12 +26,16 @@ public static unsafe class VulkanFramebufferFactory
         }
 
         AurelianVulkanTexture attachment = descriptor.ColorAttachments[0];
-        ImageView imageView = attachment.NativeImageView!.Value;
-        ImageView* imageViews = stackalloc ImageView[2];
-        imageViews[0] = imageView;
+        int colorCount = descriptor.ColorAttachments.Count;
+        int attachmentCount = colorCount + (descriptor.DepthAttachment is null ? 0 : 1);
+        ImageView* imageViews = stackalloc ImageView[attachmentCount];
+        for (int index = 0; index < colorCount; index++)
+        {
+            imageViews[index] = descriptor.ColorAttachments[index].NativeImageView!.Value;
+        }
         if (descriptor.DepthAttachment is { } depth)
         {
-            imageViews[1] = depth.NativeImageView!.Value;
+            imageViews[colorCount] = depth.NativeImageView!.Value;
         }
         Framebuffer framebuffer = default;
         Vk vk = plant.Vk;
@@ -43,7 +47,7 @@ public static unsafe class VulkanFramebufferFactory
             {
                 SType = StructureType.FramebufferCreateInfo,
                 RenderPass = renderPass.NativeRenderPass,
-                AttachmentCount = descriptor.DepthAttachment is null ? 1u : 2u,
+                AttachmentCount = (uint)attachmentCount,
                 PAttachments = imageViews,
                 Width = descriptor.Width,
                 Height = descriptor.Height,
@@ -145,85 +149,88 @@ public static unsafe class VulkanFramebufferFactory
         {
             diagnostics.Add(Diagnostic(
                 VulkanFramebufferDiagnosticCodes.NoColorAttachments,
-                "Framebuffer M0 requires exactly one color attachment.",
+                "Framebuffer requires at least one color attachment.",
                 plantId));
             return;
         }
 
-        if (attachments.Count > 1)
+        if (attachments.Count > 4)
         {
             diagnostics.Add(Diagnostic(
                 VulkanFramebufferDiagnosticCodes.MultipleColorAttachmentsUnsupported,
-                "Framebuffer M0 supports only one color attachment.",
+                "Framebuffer supports up to four color attachments.",
                 plantId));
         }
 
-        if (renderPass.Descriptor.ColorAttachments.Count != 1)
+        if (renderPass.Descriptor.ColorAttachments.Count != attachments.Count)
         {
             diagnostics.Add(Diagnostic(
                 VulkanFramebufferDiagnosticCodes.RenderPassAttachmentMismatch,
-                "Framebuffer M0 requires a render pass with exactly one color attachment.",
+                "Framebuffer and render pass must have the same color attachment count.",
                 plantId));
         }
 
-        AurelianVulkanTexture? attachment = attachments[0];
-        if (attachment is null)
+        for (int index = 0; index < attachments.Count; index++)
         {
-            diagnostics.Add(Diagnostic(
-                VulkanFramebufferDiagnosticCodes.AttachmentMissing,
-                "Framebuffer color attachment 0 must not be null.",
-                plantId));
-            return;
-        }
+            AurelianVulkanTexture? attachment = attachments[index];
+            if (attachment is null)
+            {
+                diagnostics.Add(Diagnostic(
+                    VulkanFramebufferDiagnosticCodes.AttachmentMissing,
+                    "Framebuffer color attachment 0 must not be null.",
+                    plantId));
+                return;
+            }
 
-        if (attachment.IsDisposed)
-        {
-            diagnostics.Add(Diagnostic(
-                VulkanFramebufferDiagnosticCodes.AttachmentDisposed,
-                "Framebuffer color attachment 0 is disposed.",
-                plantId));
-        }
+            if (attachment.IsDisposed)
+            {
+                diagnostics.Add(Diagnostic(
+                    VulkanFramebufferDiagnosticCodes.AttachmentDisposed,
+                    "Framebuffer color attachment 0 is disposed.",
+                    plantId));
+            }
 
-        if (attachment.PlantId != plantId)
-        {
-            diagnostics.Add(Diagnostic(
-                VulkanFramebufferDiagnosticCodes.PlantMismatch,
-                "Framebuffer color attachment 0 must belong to the target Vulkan plant.",
-                plantId));
-        }
+            if (attachment.PlantId != plantId)
+            {
+                diagnostics.Add(Diagnostic(
+                    VulkanFramebufferDiagnosticCodes.PlantMismatch,
+                    "Framebuffer color attachment 0 must belong to the target Vulkan plant.",
+                    plantId));
+            }
 
-        if (attachment.Width != descriptor.Width || attachment.Height != descriptor.Height)
-        {
-            diagnostics.Add(Diagnostic(
-                VulkanFramebufferDiagnosticCodes.AttachmentSizeMismatch,
-                "Framebuffer color attachment 0 dimensions must match the framebuffer descriptor.",
-                plantId));
-        }
+            if (attachment.Width != descriptor.Width || attachment.Height != descriptor.Height)
+            {
+                diagnostics.Add(Diagnostic(
+                    VulkanFramebufferDiagnosticCodes.AttachmentSizeMismatch,
+                    "Framebuffer color attachment 0 dimensions must match the framebuffer descriptor.",
+                    plantId));
+            }
 
-        if ((attachment.Usage & VulkanTextureUsage.ColorAttachment) == 0)
-        {
-            diagnostics.Add(Diagnostic(
-                VulkanFramebufferDiagnosticCodes.AttachmentMissingColorUsage,
-                "Framebuffer color attachment 0 must include ColorAttachment texture usage.",
-                plantId));
-        }
+            if ((attachment.Usage & VulkanTextureUsage.ColorAttachment) == 0)
+            {
+                diagnostics.Add(Diagnostic(
+                    VulkanFramebufferDiagnosticCodes.AttachmentMissingColorUsage,
+                    "Framebuffer color attachment 0 must include ColorAttachment texture usage.",
+                    plantId));
+            }
 
-        if (attachment.NativeImageView is not { Handle: not 0 })
-        {
-            diagnostics.Add(Diagnostic(
-                VulkanFramebufferDiagnosticCodes.AttachmentMissingImageView,
-                "Framebuffer color attachment 0 must have a native image view.",
-                plantId));
-        }
+            if (attachment.NativeImageView is not { Handle: not 0 })
+            {
+                diagnostics.Add(Diagnostic(
+                    VulkanFramebufferDiagnosticCodes.AttachmentMissingImageView,
+                    "Framebuffer color attachment 0 must have a native image view.",
+                    plantId));
+            }
 
-        if (renderPass.Descriptor.ColorAttachments.Count == 1
-            && renderPass.Descriptor.ColorAttachments[0].Format != attachment.Format)
-        {
-            diagnostics.Add(Diagnostic(
-                VulkanFramebufferDiagnosticCodes.RenderPassAttachmentMismatch,
-                "Framebuffer color attachment 0 format must match the render pass color attachment format.",
-                plantId,
-                renderPass.Descriptor.ColorAttachments[0].Name));
+            if (renderPass.Descriptor.ColorAttachments.Count > index
+                && renderPass.Descriptor.ColorAttachments[index].Format != attachment.Format)
+            {
+                diagnostics.Add(Diagnostic(
+                    VulkanFramebufferDiagnosticCodes.RenderPassAttachmentMismatch,
+                    "Framebuffer color attachment 0 format must match the render pass color attachment format.",
+                    plantId,
+                    renderPass.Descriptor.ColorAttachments[index].Name));
+            }
         }
     }
 

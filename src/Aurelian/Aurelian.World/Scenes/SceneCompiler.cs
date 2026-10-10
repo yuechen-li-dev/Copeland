@@ -3,19 +3,24 @@ using System.Numerics;
 using Aurelian.Rendering.Contracts.Models;
 using System.Security.Cryptography;
 using System.Text;
+using System.Runtime.InteropServices;
 
 namespace Aurelian.World.Scenes;
 
 public sealed record PlacedSceneBox(string Id, Matrix4x4 WorldTransform, Vector3 HalfSize,
     Vector4 Color, SceneCollision Collision)
 {
+    public ModelMaterial? Material { get; init; }
     public uint CollisionLayer { get; init; } = 1;
     public uint CollisionMask { get; init; } = uint.MaxValue;
 }
 public sealed record PlacedSceneMesh(string Id, Matrix4x4 WorldTransform, ImmutableArray<SceneVertex> Vertices)
 {
+    /// <summary>Retained vertex correspondence key, derived once from authored geometry.</summary>
+    public string? GeometryIdentity { get; init; }
     public ImmutableArray<int> Indices { get; init; } = [];
     public SceneCollision Collision { get; init; }
+    public ModelMaterial? Material { get; init; }
     public uint CollisionLayer { get; init; } = 1;
     public uint CollisionMask { get; init; } = uint.MaxValue;
     public bool ClosedCollision { get; init; }
@@ -53,7 +58,10 @@ public sealed class ScenePlan
     {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
-        writer.Write(Models.IsEmpty ? "aurelian.scene.v2" : "aurelian.scene.v3");
+        bool primitiveMaterials = Boxes.Any(box => box.Material is not null) || Meshes.Any(mesh => mesh.Material is not null);
+        string version = Models.IsEmpty ? "aurelian.scene.v2" : "aurelian.scene.v3";
+        if (primitiveMaterials) version = "aurelian.scene.v4";
+        writer.Write(version);
         writer.Write(Id);
         writer.Write(Identities.Length);
         foreach (string id in Identities)
@@ -67,6 +75,7 @@ public sealed class ScenePlan
             WriteMatrix(writer, box.WorldTransform);
             WriteVector(writer, box.HalfSize);
             WriteColor(writer, box.Color);
+            if (primitiveMaterials) WriteOptionalMaterial(writer, box.Material);
             writer.Write((int)box.Collision);
             writer.Write(box.CollisionLayer);
             writer.Write(box.CollisionMask);
@@ -75,6 +84,7 @@ public sealed class ScenePlan
         foreach (PlacedSceneMesh mesh in Meshes)
         {
             writer.Write(mesh.Id);
+            if (primitiveMaterials) WriteOptionalMaterial(writer, mesh.Material);
             WriteMatrix(writer, mesh.WorldTransform);
             writer.Write((int)mesh.Collision);
             writer.Write(mesh.CollisionLayer);
@@ -107,29 +117,7 @@ public sealed class ScenePlan
                 {
                     writer.Write(pair.Key);
                     ModelMaterial material = pair.Value;
-                    WriteColor(writer, material.BaseColor);
-                    writer.Write(material.Metallic);
-                    writer.Write(material.Roughness);
-                    WriteVector(writer, material.Emissive);
-                    writer.Write(material.NormalScale);
-                    writer.Write(material.OcclusionStrength);
-                    writer.Write(material.Unlit);
-                    writer.Write(material.DoubleSided);
-                    writer.Write(material.AlphaMask);
-                    writer.Write(material.AlphaCutoff);
-                    foreach (ModelTextureBinding? binding in material.Textures())
-                    {
-                        writer.Write(binding is not null);
-                        if (binding is null) continue;
-                        writer.Write(binding.Texture.Identity);
-                        writer.Write(binding.Texture.Width);
-                        writer.Write(binding.Texture.Height);
-                        writer.Write(SHA256.HashData(binding.Texture.Rgba.AsSpan()));
-                        writer.Write(binding.Sampler.LinearMin);
-                        writer.Write(binding.Sampler.LinearMag);
-                        writer.Write((int)binding.Sampler.WrapU);
-                        writer.Write((int)binding.Sampler.WrapV);
-                    }
+                    WriteMaterial(writer, material);
                 }
             }
         }
@@ -146,6 +134,41 @@ public sealed class ScenePlan
         }
         writer.Flush();
         return Convert.ToHexString(SHA256.HashData(stream.ToArray()));
+    }
+
+    private static void WriteMaterial(BinaryWriter writer, ModelMaterial material)
+    {
+        WriteColor(writer, material.BaseColor);
+        writer.Write(material.Metallic);
+        writer.Write(material.Roughness);
+        WriteVector(writer, material.Emissive);
+        writer.Write(material.NormalScale);
+        writer.Write(material.OcclusionStrength);
+        writer.Write(material.Unlit);
+        writer.Write(material.DoubleSided);
+        writer.Write(material.AlphaMask);
+        writer.Write(material.AlphaCutoff);
+        foreach (ModelTextureBinding? binding in material.Textures())
+        {
+            writer.Write(binding is not null);
+            if (binding is null) continue;
+            writer.Write(binding.Texture.Identity);
+            writer.Write(binding.Texture.Width);
+            writer.Write(binding.Texture.Height);
+            writer.Write(SHA256.HashData(binding.Texture.Rgba.AsSpan()));
+            writer.Write(binding.Sampler.LinearMin);
+            writer.Write(binding.Sampler.LinearMag);
+            writer.Write((int)binding.Sampler.WrapU);
+            writer.Write((int)binding.Sampler.WrapV);
+        }
+    }
+
+    private static void WriteOptionalMaterial(BinaryWriter writer, ModelMaterial? material)
+    {
+        writer.Write(material is not null);
+        if (material is null) return;
+        writer.Write(material.Slot);
+        WriteMaterial(writer, material);
     }
 
     private static void WriteMatrix(BinaryWriter writer, Matrix4x4 matrix)
@@ -179,6 +202,13 @@ public sealed class ScenePlan
 /// <summary>Validates the complete document before calling any state or policy factory.</summary>
 public static class SceneCompiler
 {
+    public static string ComputeGeometryIdentity(ImmutableArray<SceneVertex> vertices, ImmutableArray<int> indices)
+    {
+        string vertexKey = Convert.ToHexString(SHA256.HashData(MemoryMarshal.AsBytes(vertices.AsSpan())));
+        string indexKey = Convert.ToHexString(SHA256.HashData(MemoryMarshal.AsBytes(indices.AsSpan())));
+        return vertexKey + indexKey;
+    }
+
     public static ScenePlan Compile(SceneGroup document)
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -242,8 +272,10 @@ public static class SceneCompiler
                             throw new InvalidDataException($"Invalid box geometry or collision declaration at '{id}'.");
                         }
                         ValidateColor(box.Color);
+                        ValidatePrimitiveMaterial(box.Material);
                         Boxes.Add(new(id, world, box.HalfSize, box.Color, box.Collision)
                         {
+                            Material = box.Material,
                             CollisionLayer = box.CollisionLayer,
                             CollisionMask = box.CollisionMask,
                         });
@@ -253,6 +285,7 @@ public static class SceneCompiler
                         {
                             throw new InvalidDataException($"Mesh '{id}' has uninitialized index or face collections.");
                         }
+                        ValidatePrimitiveMaterial(mesh.Material);
                         int triangleWords = mesh.Indices.IsEmpty ? mesh.Vertices.Length : mesh.Indices.Length;
                         if (mesh.Vertices.IsDefaultOrEmpty || triangleWords == 0 || triangleWords % 3 != 0
                             || mesh.Indices.Any(index => index < 0 || index >= mesh.Vertices.Length)
@@ -272,6 +305,8 @@ public static class SceneCompiler
                         }
                         Meshes.Add(new(id, world, mesh.Vertices)
                         {
+                            GeometryIdentity = ComputeGeometryIdentity(mesh.Vertices, mesh.Indices),
+                            Material = mesh.Material,
                             Indices = mesh.Indices,
                             Collision = mesh.Collision,
                             CollisionLayer = mesh.CollisionLayer,
@@ -306,6 +341,13 @@ public static class SceneCompiler
                         throw new InvalidDataException($"Unsupported scene node at '{id}'.");
                 }
             }
+        }
+
+        private static void ValidatePrimitiveMaterial(ModelMaterial? material)
+        {
+            material?.Validate();
+            if (material?.NormalTexture is not null)
+                throw new InvalidDataException("Primitive normal maps require explicit UV/tangent geometry through Scene.Model.");
         }
 
         private static void ValidateColor(Vector4 color)

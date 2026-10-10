@@ -10,8 +10,15 @@ public readonly record struct Native3DVertex(Vector3 Position, Vector3 Normal, V
 
 [StructLayout(LayoutKind.Sequential)]
 public readonly record struct NativeModel3DVertex(Vector3 Position, Vector3 Normal, Vector4 Color, Vector2 Uv, Vector4 Tangent);
-public sealed record NativeModel3DBatch(NativeModel3DVertex[] Vertices, ModelMaterial Material);
-public sealed record Native3DScene(Native3DVertex[] Geometry, IReadOnlyList<NativeModel3DBatch> Models);
+public sealed record NativeModel3DBatch(NativeModel3DVertex[] Vertices, ModelMaterial Material)
+{
+    public string? TemporalIdentity { get; init; }
+}
+public sealed record Native3DScene(Native3DVertex[] Geometry, IReadOnlyList<NativeModel3DBatch> Models)
+{
+    /// <summary>Change when vertex correspondence changes; transforms and animation retain this key.</summary>
+    public string? TemporalRevision { get; init; }
+}
 
 public sealed record Native3DFrameResult(int TriangleCount, byte[]? Pixels, string? PixelSha256)
 {

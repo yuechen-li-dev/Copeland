@@ -28,9 +28,18 @@ public sealed unsafe class VulkanRenderPassCommandEncoder
 
         try
         {
-            ClearValue* clearValues = stackalloc ClearValue[2];
+            int colorCount = request.RenderPass.Descriptor.ColorAttachments.Count;
+            int clearCount = colorCount + (request.RenderPass.Descriptor.DepthAttachment is null ? 0 : 1);
+            ClearValue* clearValues = stackalloc ClearValue[clearCount];
             clearValues[0] = ToNative(request.ClearColor);
-            clearValues[1] = new ClearValue { DepthStencil = new ClearDepthStencilValue(1, 0) };
+            for (int index = 1; index < colorCount; index++)
+            {
+                VulkanColorClearValue color = index <= request.AdditionalClearColors.Count
+                    ? request.AdditionalClearColors[index - 1] : request.ClearColor;
+                clearValues[index] = ToNative(color);
+            }
+            if (clearCount > colorCount)
+                clearValues[colorCount] = new ClearValue { DepthStencil = new ClearDepthStencilValue(1, 0) };
             RenderPassBeginInfo beginInfo = new()
             {
                 SType = StructureType.RenderPassBeginInfo,
@@ -39,7 +48,7 @@ public sealed unsafe class VulkanRenderPassCommandEncoder
                 RenderArea = new Rect2D(
                     new Offset2D(0, 0),
                     new Extent2D(request.Framebuffer.Width, request.Framebuffer.Height)),
-                ClearValueCount = request.RenderPass.Descriptor.DepthAttachment is null ? 1u : 2u,
+                ClearValueCount = (uint)clearCount,
                 PClearValues = clearValues,
             };
 

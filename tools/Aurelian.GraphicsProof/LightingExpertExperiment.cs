@@ -285,6 +285,8 @@ internal static class LightingExpertExperiment
             shadowProgram: assets.Shader("Shadow3D.v.ts"), outputProgram: assets.Shader("ToneMap3D.v.ts"));
         renderer.Settings = Graphics3DSettings.Default with
         {
+            AntiAliasing = AntiAliasing3D.None,
+            BloomIntensity = 0,
             SunDirection = sun,
             SunIntensity = 1,
             SkyAmbient = new(lamp),

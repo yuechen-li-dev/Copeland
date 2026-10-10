@@ -136,10 +136,10 @@ public sealed class BeaconGameTests
         var module = Compile(source);
         Assert.True(module.Success, string.Join("; ", module.Diagnostics.Select(item => item.Message)));
         var material = Assert.Single(module.Materials);
-        Assert.Equal(240, material.Size);
-        Assert.Equal(Enumerable.Range(0, 15).Select(index => index * 16), material.Fields.Select(field => field.Offset));
+        Assert.Equal(304, material.Size);
+        Assert.Equal(Enumerable.Range(0, 19).Select(index => index * 16), material.Fields.Select(field => field.Offset));
         Assert.Equal([VdMirGraphicsStage.Vertex, VdMirGraphicsStage.Pixel], material.Visibility.Order());
-        Assert.Equal(["float3", "float3", "float4"], module.GraphicsProgram!.VertexInputs.Select(input => input.PhysicalType));
+        Assert.Equal(["float3", "float3", "float4", "float3"], module.GraphicsProgram!.VertexInputs.OrderBy(input => input.Location).Select(input => input.PhysicalType));
         var invalid = Compile(source.Replace("clipW: float4", "clipW: float3", StringComparison.Ordinal));
         Assert.False(invalid.Success);
         Assert.Contains(invalid.Diagnostics, item =>
@@ -153,7 +153,8 @@ public sealed class BeaconGameTests
         string compiledDiffuse = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Assets", "CompiledDiffuseLighting.v.ts"));
         return GpuGraphicsBinder.Compile(new GpuCompilationRequest([
             new GpuSourceFile("Solid3D.v.ts", source), new GpuSourceFile("Lighting3D.v.ts", lighting),
-            new GpuSourceFile("CompiledDiffuseLighting.v.ts", compiledDiffuse)]));
+            new GpuSourceFile("CompiledDiffuseLighting.v.ts", compiledDiffuse),
+            new GpuSourceFile("TemporalGeometry.v.ts", File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Assets", "TemporalGeometry.v.ts")))]));
     }
 
     private static void Walk(BeaconGame game, BeaconInput input, int ticks)

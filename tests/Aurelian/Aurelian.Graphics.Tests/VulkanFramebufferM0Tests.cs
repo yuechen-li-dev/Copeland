@@ -68,7 +68,7 @@ public sealed class VulkanFramebufferM0Tests
         });
 
     [Fact]
-    public void VulkanFramebufferFactory_CreateRejectsMultipleColorAttachments()
+    public void VulkanFramebufferFactory_CreateRejectsMismatchedColorAttachmentCount()
         => WithPlantResources((plant, _, renderPass, texture) =>
         {
             VulkanFramebufferCreateResult result = VulkanFramebufferFactory.Create(
@@ -78,7 +78,7 @@ public sealed class VulkanFramebufferM0Tests
 
             Assert.False(result.Success);
             Assert.Equal(VulkanFramebufferStatus.Rejected, result.Status);
-            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == VulkanFramebufferDiagnosticCodes.MultipleColorAttachmentsUnsupported);
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == VulkanFramebufferDiagnosticCodes.RenderPassAttachmentMismatch);
         });
 
     [Fact]

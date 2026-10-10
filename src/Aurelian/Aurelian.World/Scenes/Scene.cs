@@ -24,6 +24,7 @@ public sealed record SceneModel(string Id, ModelSlot Asset) : SceneNode(Id)
 }
 public sealed record SceneBox(string Id, Vector3 HalfSize, Vector4 Color, SceneCollision Collision) : SceneNode(Id)
 {
+    public ModelMaterial? Material { get; init; }
     public uint CollisionLayer { get; init; } = 1;
     public uint CollisionMask { get; init; } = uint.MaxValue;
 }
@@ -32,6 +33,7 @@ public sealed record SceneMesh(string Id, ImmutableArray<SceneVertex> Vertices) 
 {
     public ImmutableArray<int> Indices { get; init; } = [];
     public SceneCollision Collision { get; init; }
+    public ModelMaterial? Material { get; init; }
     public uint CollisionLayer { get; init; } = 1;
     public uint CollisionMask { get; init; } = uint.MaxValue;
     public bool ClosedCollision { get; init; }

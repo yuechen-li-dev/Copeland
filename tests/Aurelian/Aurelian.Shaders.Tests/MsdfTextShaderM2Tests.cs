@@ -20,7 +20,7 @@ public sealed class MsdfTextShaderM2Tests
         Assert.Equal(first.Vertex.SpirvSha256, second.Vertex.SpirvSha256);
         Assert.Equal(first.Pixel.SpirvSha256, second.Pixel.SpirvSha256);
         Assert.Contains("Median3", first.Hlsl, StringComparison.Ordinal);
-        Assert.Contains("atlas.Sample(linearSampler, input.uv)", first.Hlsl, StringComparison.Ordinal);
+        Assert.Contains("copelandResourceS0B0_atlas.Sample(copelandResourceS0B1_linearSampler, input.uv)", first.Hlsl, StringComparison.Ordinal);
         Assert.Contains("float pixelRange; // offset 16", first.Hlsl, StringComparison.Ordinal);
         Assert.Contains("float threshold; // offset 20", first.Hlsl, StringComparison.Ordinal);
         Assert.Contains("float fieldScale : TEXCOORD1", first.Hlsl, StringComparison.Ordinal);

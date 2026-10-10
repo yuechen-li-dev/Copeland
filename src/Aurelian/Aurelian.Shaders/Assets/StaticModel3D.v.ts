@@ -1,4 +1,5 @@
-import { Unit, Sub3, ShadowVisibility, Dot3, Scale3, Mul3, DirectLight, HemisphereLight, Add3, Cross3 } from "./Lighting3D";
+import { TemporalProjection } from "./TemporalGeometry";
+import { Unit, Sub3, ShadowVisibility, Dot3, Scale3, Mul3, DirectLight, HemisphereLight, Add3, Cross3, LimitRadiance } from "./Lighting3D";
 
 @space(world.position)
 type WorldPosition3 = float3;
@@ -26,9 +27,14 @@ record StaticModelMaterial {
     shadowZ: float4;
     shadowW: float4;
     shadowParameters: float4;
+    previousX: float4;
+    previousY: float4;
+    previousZ: float4;
+    previousW: float4;
 }
 
 stream VertexInput {
+    @location(5) previousPosition: WorldPosition3;
     @location(0) position: WorldPosition3;
     @location(1) normal: float3;
     @location(2) color: float4;
@@ -61,9 +67,11 @@ stream ModelVaryings {
     @location(2) color: float4;
     @location(3) uv: float2;
     @location(4) tangent: float4;
+    @location(5) currentClip: float4;
+    @location(6) previousClip: float4;
 }
 stream PixelBuiltins { @builtin(front_face) frontFace: bool; }
-stream ModelOutput { @target(0) color: float4; }
+stream ModelOutput { @target(0) color: float4; @target(1) motion: float4; }
 
 function Row(row: float4, p: WorldPosition3): f32 {
     return row.x * p.x + row.y * p.y + row.z * p.z + row.w;
@@ -73,6 +81,10 @@ function VertexMain(input: VertexInput, uniforms: MaterialResources): ModelVaryi
     return {
         position: float4(Row(uniforms.material.clipX, input.position), Row(uniforms.material.clipY, input.position),
             Row(uniforms.material.clipZ, input.position), Row(uniforms.material.clipW, input.position)),
+        currentClip: float4(Row(uniforms.material.clipX, input.position), Row(uniforms.material.clipY, input.position),
+            Row(uniforms.material.clipZ, input.position), Row(uniforms.material.clipW, input.position)),
+        previousClip: float4(Row(uniforms.material.previousX, input.previousPosition), Row(uniforms.material.previousY, input.previousPosition),
+            Row(uniforms.material.previousZ, input.previousPosition), Row(uniforms.material.previousW, input.previousPosition)),
         world: float3(input.position.x, input.position.y, input.position.z),
         normal: input.normal,
         color: input.color,
@@ -86,7 +98,13 @@ function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources:
     if (!builtins.frontFace && uniforms.material.flags.z < 0.5) { Discard(); }
     const base: float4 = Sample(resources.baseMap, resources.baseSampler, input.uv) * uniforms.material.baseColor * input.color;
     if (uniforms.material.flags.y > 0.5 && base.w < uniforms.material.emissiveAlpha.w) { Discard(); }
-    if (uniforms.material.flags.x > 0.5) { return { color: float4(base.x, base.y, base.z, 1.0) }; }
+    const emission: float4 = Sample(resources.emissiveMap, resources.emissiveSampler, input.uv);
+    const emitted: float3 = Mul3(float3(emission.x, emission.y, emission.z),
+        float3(uniforms.material.emissiveAlpha.x, uniforms.material.emissiveAlpha.y, uniforms.material.emissiveAlpha.z));
+    if (uniforms.material.flags.x > 0.5) {
+        const unlit: float3 = Add3(float3(base.x, base.y, base.z), emitted);
+        return { color: LimitRadiance(float4(unlit.x, unlit.y, unlit.z, 1.0)), motion: TemporalProjection(input.currentClip, input.previousClip) };
+    }
 
     const nt: float4 = Sample(resources.normalMap, resources.normalSampler, input.uv);
     const tangent: float3 = Unit(float3(input.tangent.x, input.tangent.y, input.tangent.z));
@@ -111,9 +129,6 @@ function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources:
     const ambient: float3 = Scale3(HemisphereLight(float3(base.x, base.y, base.z), normal, view,
         float3(uniforms.material.sky.x, uniforms.material.sky.y, uniforms.material.sky.z),
         float3(uniforms.material.ground.x, uniforms.material.ground.y, uniforms.material.ground.z), metallic, roughness), occlusion);
-    const emission: float4 = Sample(resources.emissiveMap, resources.emissiveSampler, input.uv);
-    const emitted: float3 = Mul3(float3(emission.x, emission.y, emission.z),
-        float3(uniforms.material.emissiveAlpha.x, uniforms.material.emissiveAlpha.y, uniforms.material.emissiveAlpha.z));
     const lit: float3 = Add3(Add3(direct, ambient), emitted);
-    return { color: float4(lit.x, lit.y, lit.z, 1.0) };
+    return { color: LimitRadiance(float4(lit.x, lit.y, lit.z, 1.0)), motion: TemporalProjection(input.currentClip, input.previousClip) };
 }

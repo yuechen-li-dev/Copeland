@@ -67,6 +67,11 @@ if (args.Contains("--language-proof", StringComparer.Ordinal) || args.Contains("
     LanguagePortProof.Run(output, args.Contains("--shape-proof", StringComparer.Ordinal), args.Contains("--generic-proof", StringComparer.Ordinal));
     return;
 }
+if (args.Contains("--temporal-graphics", StringComparer.Ordinal))
+{
+    TemporalGraphicsProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/temporal-graphics"));
+    return;
+}
 string assetDirectory = Path.GetFullPath(Option("--assets") ?? "Games/Starter/Aurelian.Starter/Assets");
 Directory.CreateDirectory(output);
 var assets = new GameAssets();
@@ -82,13 +87,21 @@ SceneGroup gallery = Scene.World("graphics-gallery",
     Scene.Box("beam", new(5.64f, .4f, .64f), new(.66f, .62f, .54f, 1), at: new(0, 3.6f, -1.8f)),
     Scene.Box("red-block", new(1.3f, 1.3f, 1.3f), new(.64f, .10f, .065f, 1), at: new(2.7f, .65f, 1.7f)),
     Scene.Model("textured-crate", crate, new(-2.4f, 0, 1.6f)),
+    Scene.Box("warm-strip", new(.055f, 2.5f, .055f), Vector4.One, at: new(-2.32f, 1.9f, -1.42f)) with
+    {
+        Material = new("warm-strip") { BaseColor = new(.01f, .01f, .01f, 1), Metallic = 0, Emissive = new(9, 3.5f, .7f) },
+    },
+    Scene.Box("cool-strip", new(.055f, 2.5f, .055f), Vector4.One, at: new(2.32f, 1.9f, -1.42f)) with
+    {
+        Material = new("cool-strip") { BaseColor = new(.01f, .01f, .01f, 1), Metallic = 0, Emissive = new(.4f, 5, 10) },
+    },
 ]);
 using var mounted = SceneCompiler.Compile(gallery).Mount();
 Native3DScene scene = SceneGeometry3D.BuildScene(mounted.Project());
 // Ordinary material overrides exercise the same textured path as game assets.
 ModelMaterial bronze = new("bronze") { BaseColor = new(.68f, .32f, .09f, 1), Metallic = 1, Roughness = .22f };
 ModelMaterial paint = new("paint") { BaseColor = new(.045f, .25f, .44f, 1), Metallic = 0, Roughness = .3f };
-ModelMaterial lamp = new("lamp") { BaseColor = new(.04f, .04f, .04f, 1), Metallic = 0, Emissive = new(1, .5f, .12f) };
+ModelMaterial lamp = new("lamp") { BaseColor = new(.04f, .04f, .04f, 1), Metallic = 0, Emissive = new(10, 5, 1.2f) };
 var batches = scene.Models.ToList();
 batches.Add(Sphere(new(-1.35f, .8f, -2.7f), .8f, bronze));
 batches.Add(Sphere(new(1.35f, .8f, -2.7f), .8f, paint));
@@ -132,15 +145,16 @@ Require(initialized.Success, string.Join("; ", initialized.Diagnostics.Select(it
 using var plant = initialized.Plant!;
 using var target = new VulkanNativeFrameTarget(plant, 1280, 800, VulkanTextureFormat.Rgba8Srgb);
 using var renderer = new VulkanSolid3DRenderer(plant, assets.Shader("Solid3D.v.ts"), target,
-    modelProgram: assets.Shader("StaticModel3D.v.ts"), shadowProgram: assets.Shader("Shadow3D.v.ts"), outputProgram: assets.Shader("ToneMap3D.v.ts"));
+    modelProgram: assets.Shader("StaticModel3D.v.ts"), shadowProgram: assets.Shader("Shadow3D.v.ts"), outputProgram: assets.Shader("ToneMap3D.v.ts"),
+    temporalProgram: assets.Shader("TemporalResolve3D.v.ts"), bloomProgram: assets.Shader("Bloom3D.v.ts"));
 using var gpu = CreateBody(plant);
 var captures = new List<object>();
 var basic = Capture("basic", Graphics3DSettings.Basic);
-var modern = Capture("modern", Graphics3DSettings.Default);
-var repeat = Capture("repeat", Graphics3DSettings.Default);
-var noShadow = Capture("no-shadows", Graphics3DSettings.Default with { Shadows = false });
-var exposure = Capture("low-exposure", Graphics3DSettings.Default with { Exposure = .35f });
-var opposite = Capture("opposite-sun", Graphics3DSettings.Default with { SunDirection = new(-.6f, .6f, -.5f) });
+var modern = Capture("modern", (Graphics3DSettings.Default with { AntiAliasing = AntiAliasing3D.None, BloomIntensity = 0 }));
+var repeat = Capture("repeat", (Graphics3DSettings.Default with { AntiAliasing = AntiAliasing3D.None, BloomIntensity = 0 }));
+var noShadow = Capture("no-shadows", Graphics3DSettings.Default with { AntiAliasing = AntiAliasing3D.None, BloomIntensity = 0, Shadows = false });
+var exposure = Capture("low-exposure", Graphics3DSettings.Default with { AntiAliasing = AntiAliasing3D.None, BloomIntensity = 0, Exposure = .35f });
+var opposite = Capture("opposite-sun", Graphics3DSettings.Default with { AntiAliasing = AntiAliasing3D.None, BloomIntensity = 0, SunDirection = new(-.6f, .6f, -.5f) });
 Require(modern.PixelSha256 == repeat.PixelSha256, "Identical scene settings did not reproduce identical pixels.");
 int shadowPixels = Changed(modern.Pixels!, noShadow.Pixels!);
 int exposurePixels = Changed(modern.Pixels!, exposure.Pixels!);
@@ -148,23 +162,23 @@ Require(Changed(basic.Pixels!, modern.Pixels!) > 10_000, "Modern lighting did no
 Require(shadowPixels > 1_000, "Shadow toggle did not affect enough visible pixels.");
 Require(exposurePixels > 10_000, "HDR exposure did not affect the scene.");
 Require(Changed(modern.Pixels!, opposite.Pixels!) > 10_000, "Scene sun direction was not configurable.");
-renderer.Settings = Graphics3DSettings.Default;
+renderer.Settings = (Graphics3DSettings.Default with { AntiAliasing = AntiAliasing3D.None, BloomIntensity = 0 });
 var receiverVertices = new List<Native3DVertex>();
 PrimitiveGeometry3D.AddBox(receiverVertices, new(0, -.1f, 0), new(8, .1f, 8), new(.38f, .42f, .46f, 1));
 var receiverOnly = new Native3DScene(receiverVertices.ToArray(), []);
 var receiverShadow = renderer.Render(receiverOnly, camera, eye, clear, capture: true);
-renderer.Settings = Graphics3DSettings.Default with { Shadows = false };
+renderer.Settings = Graphics3DSettings.Default with { AntiAliasing = AntiAliasing3D.None, BloomIntensity = 0, Shadows = false };
 var receiverNoShadow = renderer.Render(receiverOnly, camera, eye, clear, capture: true);
 int receiverAcne = Changed(receiverShadow.Pixels!, receiverNoShadow.Pixels!);
 NativeGameGraphics.WritePng(Path.Combine(output, "receiver-only.png"), 1280, 800, receiverShadow.Pixels!);
 Require(receiverAcne < 100, "Receiver-only floor self-shadowed " + receiverAcne + " pixels.");
 captures.Add(new { Name = "receiver-only", SelfShadowPixels = receiverAcne });
-renderer.Settings = Graphics3DSettings.Default;
+renderer.Settings = (Graphics3DSettings.Default with { AntiAliasing = AntiAliasing3D.None, BloomIntensity = 0 });
 var withoutBody = renderer.Render(scene, camera, eye, clear, capture: true);
 if (gpu is not null)
 {
     Require(Changed(withoutBody.Pixels!, modern.Pixels!) > 500, "GPU-skinned body was not visible.");
-    renderer.Settings = Graphics3DSettings.Default with { Shadows = false };
+    renderer.Settings = Graphics3DSettings.Default with { AntiAliasing = AntiAliasing3D.None, BloomIntensity = 0, Shadows = false };
     var withoutBodyOrShadows = renderer.Render(scene, camera, eye, clear, capture: true);
     int bodyShadowPixels = ChangedOutsideBody(modern.Pixels!, noShadow.Pixels!, withoutBody.Pixels!, withoutBodyOrShadows.Pixels!);
     Require(bodyShadowPixels > 50, "GPU-skinned geometry did not cast a visible shadow outside its silhouette.");
@@ -180,11 +194,26 @@ using (var unormRenderer = new VulkanSolid3DRenderer(plant, assets.Shader("Solid
     Require(maximumError <= 2, "sRGB and UNORM outputs disagree: " + maximumError);
     captures.Add(new { Name = "output-color-space", MaximumByteError = maximumError });
 }
+renderer.Settings = Graphics3DSettings.Default;
+for (int frame = 0; frame < 24; frame++) renderer.Render(scene, camera, eye, clear, gpuGeometry: gpu?.Geometry);
+var pack = Capture("taa-bloom", Graphics3DSettings.Default);
+renderer.Settings = Graphics3DSettings.Default with { BloomIntensity = 0 };
+for (int frame = 0; frame < 24; frame++) renderer.Render(scene, camera, eye, clear, gpuGeometry: gpu?.Geometry);
+var noBloom = Capture("taa-no-bloom", Graphics3DSettings.Default with { BloomIntensity = 0 });
+int bloomPixels = Changed(pack.Pixels!, noBloom.Pixels!);
+Require(bloomPixels > 100, "HDR bloom did not produce a visible halo.");
+captures.Add(new { Name = "bloom", ChangedPixels = bloomPixels });
 File.WriteAllText(Path.Combine(output, "evidence.json"), JsonSerializer.Serialize(new
 {
-    Accepted = true, Device = plant.Facts.PhysicalDeviceName, TriangleCount = modern.TriangleCount,
-    ShadowPixels = shadowPixels, ExposurePixels = exposurePixels, GpuSkinnedBody = gpu is not null,
-    HdrFormat = "R16G16B16A16_SFLOAT", ShadowFormat = "R32_SFLOAT", Captures = captures,
+    Accepted = true,
+    Device = plant.Facts.PhysicalDeviceName,
+    TriangleCount = modern.TriangleCount,
+    ShadowPixels = shadowPixels,
+    ExposurePixels = exposurePixels,
+    GpuSkinnedBody = gpu is not null,
+    HdrFormat = "R16G16B16A16_SFLOAT",
+    ShadowFormat = "R32_SFLOAT",
+    Captures = captures,
 }, new JsonSerializerOptions { WriteIndented = true }));
 Console.WriteLine("AURELIAN_GRAPHICS_STARTER_PROOF_PASSED " + plant.Facts.PhysicalDeviceName);
 
@@ -241,6 +270,8 @@ void View()
             window.Title = "Aurelian Graphics Gallery — " + (modern ? "modern" : "basic") + " — V compares, Esc closes";
         }
         graphics.Settings = modern ? Graphics3DSettings.Default : Graphics3DSettings.Basic;
+        if (smoke && modern)
+            graphics.Settings = graphics.Settings with { AntiAliasing = AntiAliasing3D.None, BloomIntensity = 0 };
         graphics.Clear = clear;
         var rendered = graphics.Render(scene, camera, eye, capture: smoke, gpuGeometry: character?.Geometry);
         graphics.Presenter.Present(++frame);

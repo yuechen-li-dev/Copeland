@@ -88,3 +88,9 @@ export function ShadowVisibility(map: Texture2D<float4>, sampler: Sampler, proje
         + ShadowTap(map, sampler, float2(u, v + t), z)
         + ShadowTap(map, sampler, float2(u + t, v + t), z)) / 9.0;
 }
+
+// Keep the linear FP16 attachment finite even with very bright authored lights.
+export function LimitRadiance(color: float4): float4 {
+    return float4(Clamp(color.x, 0.0, 60000.0), Clamp(color.y, 0.0, 60000.0),
+        Clamp(color.z, 0.0, 60000.0), color.w);
+}

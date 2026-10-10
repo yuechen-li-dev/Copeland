@@ -41,7 +41,7 @@ public sealed class VulkanRenderPassM0Tests
         });
 
     [Fact]
-    public void VulkanRenderPassFactory_CreateRejectsMultipleColorAttachments()
+    public void VulkanRenderPassFactory_CreateAcceptsMultipleColorAttachments()
         => WithPlant(plant =>
         {
             VulkanRenderPassCreateResult result = VulkanRenderPassFactory.Create(
@@ -51,9 +51,9 @@ public sealed class VulkanRenderPassM0Tests
                     ColorAttachment("Color1"),
                 ]));
 
-            Assert.False(result.Success);
-            Assert.Equal(VulkanRenderPassStatus.Rejected, result.Status);
-            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == VulkanRenderPassDiagnosticCodes.MultipleColorAttachmentsUnsupported);
+            Assert.True(result.Success, string.Join("; ", result.Diagnostics.Select(item => item.Message)));
+            using var pass = result.RenderPass!;
+            Assert.Equal(2, pass.Descriptor.ColorAttachments.Count);
         });
 
     [Fact]

@@ -162,12 +162,19 @@ public static unsafe class VulkanGraphicsPipelineFactory
                         | ColorComponentFlags.ABit,
                 };
 
+                int colorCount = renderPass.Descriptor.ColorAttachments.Count;
+                PipelineColorBlendAttachmentState* colorStates = stackalloc PipelineColorBlendAttachmentState[colorCount];
+                for (int index = 0; index < colorCount; index++)
+                {
+                    colorStates[index] = colorBlendAttachment;
+                }
+
                 PipelineColorBlendStateCreateInfo colorBlendState = new()
                 {
                     SType = StructureType.PipelineColorBlendStateCreateInfo,
                     LogicOpEnable = false,
-                    AttachmentCount = 1,
-                    PAttachments = &colorBlendAttachment,
+                    AttachmentCount = (uint)colorCount,
+                    PAttachments = colorStates,
                 };
 
                 DynamicState* dynamicStates = stackalloc DynamicState[2]

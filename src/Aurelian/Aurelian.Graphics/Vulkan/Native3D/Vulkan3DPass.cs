@@ -63,11 +63,12 @@ internal sealed unsafe class Vulkan3DPass : IDisposable
             int bytes = program.Material?.Size ?? throw new ArgumentException("3D pass requires a material uniform.", nameof(program));
             uniform = Own(VulkanNativeForwardTexturedRenderer.CreateMappedBuffer(plant, allocator, (ulong)bytes,
                 VulkanBufferUsage.Uniform, VulkanMemoryUsage.CpuToGpu, "3d.pass.uniform"));
-            (pool, set) = AllocateSet(plant, layout, uniform, sampled is null ? 0u : 1u);
+            (pool, set) = AllocateSet(plant, layout, uniform, sampled is null ? 0u : (uint)((program.Resources.Count - 1) / 2));
             if (sampled is not null)
             {
                 sampler = CreateSampler(plant, Filter.Linear);
                 WriteImage(plant, set, 1, sampled, sampler);
+                if (program.Resources.Count == 5) WriteImage(plant, set, 3, sampled, sampler);
             }
         }
         catch
@@ -90,22 +91,28 @@ internal sealed unsafe class Vulkan3DPass : IDisposable
             && material.Fields.Select(item => item.Offset).SequenceEqual(Enumerable.Range(0, fields.Length).Select(index => index * 16))
             && program.VertexInputs.Count == 1 && program.VertexInputs[0].Location == 0
             && program.VertexInputs[0].PhysicalType == (shadow ? "float3" : "float2")
-            && program.Resources.Count == (shadow ? 1 : 3) && sampled == !shadow;
+            && (shadow ? program.Resources.Count == 1 : program.Resources.Count is 3 or 5) && sampled == !shadow;
         foreach (var resource in program.Resources)
         {
             CompiledGraphicsResourceKind expected = resource.Binding switch
             {
                 0 => CompiledGraphicsResourceKind.UniformBuffer,
-                1 => CompiledGraphicsResourceKind.Texture2D,
+                1 or 3 => CompiledGraphicsResourceKind.Texture2D,
                 _ => CompiledGraphicsResourceKind.Sampler,
             };
-            valid &= resource.Set == 0 && resource.Binding >= 0 && resource.Binding < (shadow ? 1 : 3) && resource.Kind == expected
+            valid &= resource.Set == 0 && resource.Binding >= 0 && resource.Binding < program.Resources.Count && resource.Kind == expected
                 && resource.Visibility.SequenceEqual(shadow ? [CompiledGraphicsStage.Vertex] : [CompiledGraphicsStage.Fragment]);
         }
         if (!valid)
         {
             throw new ArgumentException("3D pass shader does not match its typed shadow/output resource contract.", nameof(program));
         }
+    }
+
+    public void SetOutputTextures(AurelianVulkanTexture source, AurelianVulkanTexture bloom)
+    {
+        WriteImage(plant, set, 1, source, sampler);
+        WriteImage(plant, set, 3, bloom, sampler);
     }
 
     public void Upload(ReadOnlySpan<float> values)
@@ -207,13 +214,21 @@ internal sealed unsafe class Vulkan3DPass : IDisposable
         WriteDescriptorSet* writes = stackalloc WriteDescriptorSet[2];
         writes[0] = new()
         {
-            SType = StructureType.WriteDescriptorSet, DstSet = set, DstBinding = binding,
-            DescriptorType = DescriptorType.SampledImage, DescriptorCount = 1, PImageInfo = &image,
+            SType = StructureType.WriteDescriptorSet,
+            DstSet = set,
+            DstBinding = binding,
+            DescriptorType = DescriptorType.SampledImage,
+            DescriptorCount = 1,
+            PImageInfo = &image,
         };
         writes[1] = new()
         {
-            SType = StructureType.WriteDescriptorSet, DstSet = set, DstBinding = binding + 1,
-            DescriptorType = DescriptorType.Sampler, DescriptorCount = 1, PImageInfo = &filter,
+            SType = StructureType.WriteDescriptorSet,
+            DstSet = set,
+            DstBinding = binding + 1,
+            DescriptorType = DescriptorType.Sampler,
+            DescriptorCount = 1,
+            PImageInfo = &filter,
         };
         plant.Vk.UpdateDescriptorSets(plant.Device, 2, writes, 0, null);
     }

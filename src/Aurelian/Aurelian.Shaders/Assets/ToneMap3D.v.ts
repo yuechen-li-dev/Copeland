@@ -8,6 +8,8 @@ stream OutputResources {
     @binding(0) output: OutputMaterial;
     @binding(1) hdr: Texture2D<float4>;
     @binding(2) hdrSampler: Sampler;
+    @binding(3) bloom: Texture2D<float4>;
+    @binding(4) bloomSampler: Sampler;
 }
 stream OutputInput { @location(0) position: float2; }
 stream OutputVaryings {
@@ -47,6 +49,10 @@ function VertexMain(input: OutputInput): OutputVaryings {
 @pixel
 function PixelMain(input: OutputVaryings, resources: OutputResources): OutputColor {
     const sampledColor: float4 = Sample(resources.hdr, resources.hdrSampler, input.uv);
-    return { color: float4(OutputChannel(sampledColor.x, resources.output.parameters), OutputChannel(sampledColor.y, resources.output.parameters),
-        OutputChannel(sampledColor.z, resources.output.parameters), 1.0) };
+    const glow: float4 = Sample(resources.bloom, resources.bloomSampler, input.uv);
+    const intensity: f32 = resources.output.parameters.w;
+    const combined: float4 = float4(sampledColor.x + glow.x * intensity, sampledColor.y + glow.y * intensity,
+        sampledColor.z + glow.z * intensity, 1.0);
+    return { color: float4(OutputChannel(combined.x, resources.output.parameters), OutputChannel(combined.y, resources.output.parameters),
+        OutputChannel(combined.z, resources.output.parameters), 1.0) };
 }

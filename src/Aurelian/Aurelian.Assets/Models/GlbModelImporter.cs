@@ -118,7 +118,7 @@ public static class GlbModelImporter
             if (!root.TryGetProperty(collection, out JsonElement extensions)) continue;
             foreach (JsonElement extension in extensions.EnumerateArray())
             {
-                if (extension.GetString() != "KHR_materials_unlit")
+                if (extension.GetString() is not ("KHR_materials_unlit" or "KHR_materials_emissive_strength"))
                     throw new InvalidDataException($"Unsupported GLB extension '{extension.GetString()}' in {collection}.");
             }
         }
@@ -137,7 +137,8 @@ public static class GlbModelImporter
             BaseColor = color?.Color ?? Vector4.One,
             Metallic = metal?.GetFactor("MetallicFactor") ?? 1,
             Roughness = metal?.GetFactor("RoughnessFactor") ?? 1,
-            Emissive = emissive is { } emission ? new(emission.Color.X, emission.Color.Y, emission.Color.Z) : Vector3.Zero,
+            Emissive = emissive is { } emission
+                ? new Vector3(emission.Color.X, emission.Color.Y, emission.Color.Z) * emission.GetFactor("EmissiveStrength") : Vector3.Zero,
             NormalScale = source.FindChannel("Normal")?.GetFactor("NormalScale") ?? 1,
             OcclusionStrength = source.FindChannel("Occlusion")?.GetFactor("OcclusionStrength") ?? 1,
             Unlit = source.Unlit,

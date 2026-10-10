@@ -13,12 +13,12 @@ public sealed class VdMirGraphicsBackendM3Tests
         VdMirGraphicsModule module = Compile();
         string hlsl = VdMirGraphicsHlslEmitter.Emit(module);
 
-        Assert.Contains("[[vk::binding(0, 0)]] Texture2D<float4> albedo;", hlsl, StringComparison.Ordinal);
-        Assert.Contains("[[vk::binding(1, 0)]] SamplerState linearSampler;", hlsl, StringComparison.Ordinal);
-        Assert.Contains("[[vk::binding(2, 0)]] ConstantBuffer<SurfaceMaterial> material;", hlsl, StringComparison.Ordinal);
+        Assert.Contains("[[vk::binding(0, 0)]] Texture2D<float4> copelandResourceS0B0_albedo;", hlsl, StringComparison.Ordinal);
+        Assert.Contains("[[vk::binding(1, 0)]] SamplerState copelandResourceS0B1_linearSampler;", hlsl, StringComparison.Ordinal);
+        Assert.Contains("[[vk::binding(2, 0)]] ConstantBuffer<SurfaceMaterial> copelandResourceS0B2_material;", hlsl, StringComparison.Ordinal);
         Assert.Contains("float4 tint; // offset 0, size 16, align 16", hlsl, StringComparison.Ordinal);
         Assert.Contains("float roughness; // offset 16, size 4, align 4", hlsl, StringComparison.Ordinal);
-        Assert.Contains("albedo.Sample(linearSampler, input.uv)", hlsl, StringComparison.Ordinal);
+        Assert.Contains("copelandResourceS0B0_albedo.Sample(copelandResourceS0B1_linearSampler, input.uv)", hlsl, StringComparison.Ordinal);
         Assert.DoesNotContain("ForwardResources resources", hlsl, StringComparison.Ordinal);
     }
 

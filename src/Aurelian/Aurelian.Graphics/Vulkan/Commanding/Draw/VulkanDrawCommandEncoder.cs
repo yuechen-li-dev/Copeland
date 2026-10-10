@@ -47,6 +47,11 @@ public sealed unsafe class VulkanDrawCommandEncoder
             plant.Vk.CmdSetScissor(commandBuffer.CommandBuffer, 0, 1, &scissor);
             plant.Vk.CmdBindPipeline(commandBuffer.CommandBuffer, PipelineBindPoint.Graphics, request.Pipeline.NativePipeline);
             plant.Vk.CmdBindVertexBuffers(commandBuffer.CommandBuffer, 0, 1, &vertexBuffer, &offset);
+            if (request.PreviousVertexBuffer is { } previous)
+            {
+                NativeBuffer previousBuffer = previous.NativeBuffer;
+                plant.Vk.CmdBindVertexBuffers(commandBuffer.CommandBuffer, 1, 1, &previousBuffer, &offset);
+            }
             plant.Vk.CmdDraw(commandBuffer.CommandBuffer, request.VertexCount, 1, request.FirstVertex, 0);
 
             return VulkanDrawCommandResult.Recorded(diagnostics);
@@ -171,6 +176,25 @@ public sealed unsafe class VulkanDrawCommandEncoder
                     "Draw vertices requires a buffer created with Vertex usage.",
                     plantId));
             }
+        }
+
+        var previousLayout = request.Pipeline?.Descriptor.VertexBuffers.SingleOrDefault(layout => layout.Binding == 1);
+        if (request.PreviousVertexBuffer is { } previous)
+        {
+            ulong endVertex = (ulong)request.FirstVertex + request.VertexCount;
+            bool invalid = previousLayout is null || previous.PlantId != plantId || previous.IsDisposed
+                || (previous.Usage & VulkanBufferUsage.Vertex) == 0
+                || (previousLayout is not null && previous.SizeBytes < endVertex * previousLayout.Stride);
+            if (invalid)
+            {
+                diagnostics.Add(Diagnostic(VulkanDrawCommandDiagnosticCodes.VertexBufferMissing,
+                    "Previous vertex stream requires binding one, a live buffer on this plant, and capacity for the requested vertices.", plantId));
+            }
+        }
+        else if (previousLayout is not null)
+        {
+            diagnostics.Add(Diagnostic(VulkanDrawCommandDiagnosticCodes.VertexBufferMissing,
+                "This pipeline requires a previous-position vertex stream at binding one.", plantId));
         }
 
         if (request.VertexCount == 0)

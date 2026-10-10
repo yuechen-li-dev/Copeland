@@ -37,6 +37,8 @@ internal static class ShadowDistanceExperiment
     private static readonly ModelTexture Black = SolidTexture(0);
     private static readonly Graphics3DSettings Settings = Graphics3DSettings.Default with
     {
+        AntiAliasing = AntiAliasing3D.None,
+        BloomIntensity = 0,
         SunDirection = Sun,
         SunIntensity = 1.5f,
         SunColor = Vector3.One,

@@ -39,30 +39,29 @@ public static unsafe class VulkanRenderPassFactory
 
         try
         {
-            AttachmentDescription attachmentDescription = new()
+            int colorCount = descriptor.ColorAttachments.Count;
+            AttachmentDescription* attachments = stackalloc AttachmentDescription[colorCount + 1];
+            AttachmentReference* colorReferences = stackalloc AttachmentReference[colorCount];
+            for (int index = 0; index < colorCount; index++)
             {
-                Format = MapFormat(attachment.Format),
-                Samples = SampleCountFlags.Count1Bit,
-                LoadOp = MapLoadOp(attachment.LoadOp),
-                StoreOp = MapStoreOp(attachment.StoreOp),
-                StencilLoadOp = AttachmentLoadOp.DontCare,
-                StencilStoreOp = AttachmentStoreOp.DontCare,
-                InitialLayout = MapRenderPassLayout(attachment.InitialLayout),
-                FinalLayout = MapRenderPassLayout(attachment.FinalLayout),
-            };
-
-            AttachmentReference colorAttachmentReference = new()
-            {
-                Attachment = 0,
-                Layout = ImageLayout.ColorAttachmentOptimal,
-            };
-
-            AttachmentDescription* attachments = stackalloc AttachmentDescription[2];
-            attachments[0] = attachmentDescription;
+                VulkanRenderPassAttachmentDescriptor color = descriptor.ColorAttachments[index];
+                attachments[index] = new AttachmentDescription
+                {
+                    Format = MapFormat(color.Format),
+                    Samples = SampleCountFlags.Count1Bit,
+                    LoadOp = MapLoadOp(color.LoadOp),
+                    StoreOp = MapStoreOp(color.StoreOp),
+                    StencilLoadOp = AttachmentLoadOp.DontCare,
+                    StencilStoreOp = AttachmentStoreOp.DontCare,
+                    InitialLayout = MapRenderPassLayout(color.InitialLayout),
+                    FinalLayout = MapRenderPassLayout(color.FinalLayout),
+                };
+                colorReferences[index] = new((uint)index, ImageLayout.ColorAttachmentOptimal);
+            }
             bool hasDepth = descriptor.DepthAttachment is not null;
             if (descriptor.DepthAttachment is { } depth)
             {
-                attachments[1] = new AttachmentDescription
+                attachments[colorCount] = new AttachmentDescription
                 {
                     Format = Format.D32Sfloat,
                     Samples = SampleCountFlags.Count1Bit,
@@ -76,15 +75,15 @@ public static unsafe class VulkanRenderPassFactory
             }
             AttachmentReference depthReference = new()
             {
-                Attachment = 1,
+                Attachment = (uint)colorCount,
                 Layout = ImageLayout.DepthStencilAttachmentOptimal,
             };
 
             SubpassDescription subpassDescription = new()
             {
                 PipelineBindPoint = PipelineBindPoint.Graphics,
-                ColorAttachmentCount = 1,
-                PColorAttachments = &colorAttachmentReference,
+                ColorAttachmentCount = (uint)colorCount,
+                PColorAttachments = colorReferences,
                 PDepthStencilAttachment = hasDepth ? &depthReference : null,
             };
 
@@ -109,7 +108,7 @@ public static unsafe class VulkanRenderPassFactory
                 DstAccessMask = AccessFlags.MemoryReadBit,
                 DependencyFlags = DependencyFlags.ByRegionBit,
             };
-            if (attachment.FinalLayout == VulkanResourceLayout.ShaderResourceFragment)
+            if (descriptor.ColorAttachments.Any(color => color.FinalLayout == VulkanResourceLayout.ShaderResourceFragment))
             {
                 dependencyOut.DstStageMask = PipelineStageFlags.FragmentShaderBit;
                 dependencyOut.DstAccessMask = AccessFlags.ShaderReadBit;
@@ -133,7 +132,7 @@ public static unsafe class VulkanRenderPassFactory
             RenderPassCreateInfo createInfo = new()
             {
                 SType = StructureType.RenderPassCreateInfo,
-                AttachmentCount = hasDepth ? 2u : 1u,
+                AttachmentCount = (uint)(colorCount + (hasDepth ? 1 : 0)),
                 PAttachments = attachments,
                 SubpassCount = 1,
                 PSubpasses = &subpassDescription,
@@ -184,17 +183,17 @@ public static unsafe class VulkanRenderPassFactory
             diagnostics.Add(new VulkanRenderPassDiagnostic(
                 VulkanRenderPassDiagnosticCodes.NoColorAttachments,
                 VulkanRenderPassDiagnosticSeverity.Error,
-                "Render pass M0 requires exactly one color attachment.",
+                "Render pass requires at least one color attachment.",
                 plantId));
             return;
         }
 
-        if (descriptor.ColorAttachments.Count > 1)
+        if (descriptor.ColorAttachments.Count > 4)
         {
             diagnostics.Add(new VulkanRenderPassDiagnostic(
                 VulkanRenderPassDiagnosticCodes.MultipleColorAttachmentsUnsupported,
                 VulkanRenderPassDiagnosticSeverity.Error,
-                "Render pass M0 supports one color attachment; multiple render targets are deferred.",
+                "Render pass supports up to four color attachments.",
                 plantId));
         }
 
@@ -296,6 +295,7 @@ public static unsafe class VulkanRenderPassFactory
             VulkanTextureFormat.Rgba8Srgb => Format.R8G8B8A8Srgb,
             VulkanTextureFormat.Bgra8Srgb => Format.B8G8R8A8Srgb,
             VulkanTextureFormat.Rgba16Float => Format.R16G16B16A16Sfloat,
+            VulkanTextureFormat.Rgba32Float => Format.R32G32B32A32Sfloat,
             VulkanTextureFormat.R32Float => Format.R32Sfloat,
             _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported Vulkan texture format."),
         };
