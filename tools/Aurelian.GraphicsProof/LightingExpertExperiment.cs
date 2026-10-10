@@ -36,7 +36,8 @@ internal static class LightingExpertExperiment
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     internal sealed record Accuracy(double Rmse, double MaximumError, double RelativeRmse);
 
-    public static void Run(string output, string? blender, bool reuseReference, bool localExperts = false)
+    public static void Run(string output, string? blender, bool reuseReference, bool localExperts = false,
+        bool constrainedExperts = false, bool continuousExperts = false, bool adaptiveExperts = false)
     {
         Directory.CreateDirectory(output);
         string evidencePath = Path.Combine(output, "expert-evidence.json");
@@ -44,6 +45,18 @@ internal static class LightingExpertExperiment
         if (localExperts)
         {
             File.WriteAllText(Path.Combine(output, "local-expert-evidence.json"), "{\"accepted\":false}");
+        }
+        if (constrainedExperts)
+        {
+            File.WriteAllText(Path.Combine(output, "constrained-expert-evidence.json"), "{\"accepted\":false}");
+        }
+        if (continuousExperts)
+        {
+            File.WriteAllText(Path.Combine(output, "continuous-expert-evidence.json"), "{\"accepted\":false}");
+        }
+        if (adaptiveExperts)
+        {
+            File.WriteAllText(Path.Combine(output, "adaptive-expert-evidence.json"), "{\"accepted\":false}");
         }
         var room = LightingCompilationExperiment.BuildRoom();
         Vector3 sun = Vector3.Normalize(new Vector3(.6f, 1, .4f));
@@ -64,7 +77,7 @@ internal static class LightingExpertExperiment
                 Emission = new[] { body.Declaration.Emission.X, body.Declaration.Emission.Y, body.Declaration.Emission.Z },
             }),
         }, JsonOptions));
-        RunBlender(blender, fixturePath, output, decoderPath, reuseReference, localExperts);
+        RunBlender(blender, fixturePath, output, decoderPath, reuseReference, localExperts, constrainedExperts, continuousExperts, adaptiveExperts);
         byte[] artifact = File.ReadAllBytes(Path.Combine(output, "loaded-expert.json"));
         string decoderKey = Hash(File.ReadAllBytes(decoderPath));
         SceneLightingExpert expert = SceneLightingExpert.Load(artifact, sceneKey, decoderKey);
@@ -207,6 +220,18 @@ internal static class LightingExpertExperiment
         {
             LocalLightingExpertExperiment.Run(output, room, plant, expert, weightsSource, reference, repeat, mask);
         }
+        if (constrainedExperts)
+        {
+            ConstrainedLightingExpertExperiment.Run(output, room, plant, expert, weightsSource, reference, repeat, mask);
+        }
+        if (continuousExperts)
+        {
+            ContinuousLightingExpertExperiment.Run(output, room, plant, expert, weightsSource, reference, repeat, mask);
+        }
+        if (adaptiveExperts)
+        {
+            ContinuousLightingExpertExperiment.Run(output, room, plant, expert, weightsSource, reference, repeat, mask, adaptive: true);
+        }
 
         VulkanLightingBake Inference(LightingExpertRepresentation representation, int basis, int size)
         {
@@ -321,16 +346,24 @@ internal static class LightingExpertExperiment
     }
 
     internal static CompiledGraphicsProgram Compile(string root, string weights, string output,
-        string? choice = null, string? localWeights = null)
+        string? choice = null, string? localWeights = null, string? continuousWeights = null, string? sceneDecoder = null)
     {
         var sources = GpuSourceLoader.Load(root, name =>
         {
             if (name == "SceneExpert.v.ts")
             {
-                string decoder = localWeights is null ? "ExpertDecoder" : "LocalExpertDecoder";
+                string decoder = sceneDecoder ?? (localWeights is null ? "ExpertDecoder" : "LocalExpertDecoder");
+                if (continuousWeights is not null && sceneDecoder is null)
+                {
+                    decoder = "ContinuousExpertDecoder";
+                }
                 return "import { PredictLighting } from \"./" + decoder + "\";\n"
                     + "export function SceneLighting(p: float2, mode: f32, sun: f32, lamp: f32): float3 {\n"
                     + "    return PredictLighting(p, mode, sun, lamp);\n}\n";
+            }
+            if (name == "ContinuousExpertWeights.v.ts")
+            {
+                return continuousWeights;
             }
             if (name == "LocalExpertWeights.v.ts")
             {
@@ -463,15 +496,17 @@ internal static class LightingExpertExperiment
         -2.7f + (index % TestSize + .5f) * 5.4f / TestSize,
         -2.7f + (index / TestSize + .5f) * 5.4f / TestSize);
 
-    internal static Accuracy Compare(float[] expected, float[] actual, bool[] mask)
+    internal static Accuracy Compare(float[] expected, float[] actual, bool[] mask, int channelsPerReceiver = 6)
     {
+        Require(channelsPerReceiver > 0 && expected.Length == actual.Length
+            && expected.Length == mask.Length * channelsPerReceiver, "Measurement packing/extent mismatch.");
         double squared = 0;
         double energy = 0;
         double maximum = 0;
         int count = 0;
         for (int index = 0; index < expected.Length; index++)
         {
-            if (!mask[index / 6])
+            if (!mask[index / channelsPerReceiver])
             {
                 continue;
             }
@@ -543,7 +578,8 @@ internal static class LightingExpertExperiment
         File.WriteAllBytes(Path.Combine(output, fileName), encoded.ToArray());
     }
 
-    private static void RunBlender(string? executable, string fixture, string output, string decoder, bool reuse, bool localExperts)
+    private static void RunBlender(string? executable, string fixture, string output, string decoder, bool reuse,
+        bool localExperts, bool constrainedExperts, bool continuousExperts, bool adaptiveExperts)
     {
         executable ??= "C:/Program Files/Blender Foundation/Blender 5.2/blender.exe";
         if (!File.Exists(executable))
@@ -571,6 +607,21 @@ internal static class LightingExpertExperiment
         {
             start.ArgumentList.Add("--local-decoder");
             start.ArgumentList.Add(Path.GetFullPath("tools/Aurelian.GraphicsProof/Assets/LocalExpertDecoder.v.ts"));
+        }
+        if (constrainedExperts)
+        {
+            start.ArgumentList.Add("--constraints");
+            start.ArgumentList.Add(Path.GetFullPath("tools/Aurelian.GraphicsProof/Assets/LightingFitContract.json"));
+        }
+        if (continuousExperts)
+        {
+            start.ArgumentList.Add("--continuous-contract");
+            start.ArgumentList.Add(Path.GetFullPath("tools/Aurelian.GraphicsProof/Assets/ContinuousFitContract.json"));
+        }
+        if (adaptiveExperts)
+        {
+            start.ArgumentList.Add("--adaptive-contract");
+            start.ArgumentList.Add(Path.GetFullPath("tools/Aurelian.GraphicsProof/Assets/AdaptiveFitContract.json"));
         }
         Console.WriteLine("Running installed Blender/Cycles/OpenUSD; reference output is captured in blender.log.");
         using var process = Process.Start(start) ?? throw new InvalidOperationException("Blender did not start.");

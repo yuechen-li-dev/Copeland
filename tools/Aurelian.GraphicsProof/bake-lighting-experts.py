@@ -284,7 +284,16 @@ def main():
     parser.add_argument("--decoder", required=True)
     parser.add_argument("--reuse", action="store_true")
     parser.add_argument("--local-decoder")
+    parser.add_argument("--constraints")
+    parser.add_argument("--continuous-contract")
+    parser.add_argument("--adaptive-contract")
     args = parser.parse_args(sys.argv[sys.argv.index("--") + 1:])
+    if args.constraints and not args.local_decoder:
+        parser.error("--constraints requires --local-decoder")
+    if args.continuous_contract and not args.constraints:
+        parser.error("--continuous-contract requires --constraints")
+    if args.adaptive_contract and not args.continuous_contract:
+        parser.error("--adaptive-contract requires --continuous-contract")
     output = Path(args.output)
     fixture = json.loads(Path(args.fixture).read_text(encoding="utf-8"))
     scene_path = output / "room.usda"
@@ -325,6 +334,15 @@ def main():
         sys.path.insert(0, str(Path(__file__).parent))
         from local_lighting_experts import fit_and_save
         fit_and_save(stage, output, args.local_decoder, fixture["SceneKey"])
+        if args.constraints:
+            from constrained_lighting_experts import compile_and_save
+            compile_and_save(output, args.constraints)
+        if args.continuous_contract:
+            from continuous_lighting_experts import compile_and_save as compile_continuous
+            compile_continuous(output, args.continuous_contract)
+        if args.adaptive_contract:
+            from adaptive_lighting_experts import compile_and_save as compile_adaptive
+            compile_adaptive(output, args.adaptive_contract)
     print("AURELIAN_USD_EXPERT_ROUNDTRIP_PASSED", flush=True)
 
 

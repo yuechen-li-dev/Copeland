@@ -1,0 +1,18 @@
+{
+  "schema": "aurelian.continuous-fit-contract/1",
+  "name": "room.floor.fixed-budget-boundary-refinement",
+  "receiver": "floor",
+  "continuity": "C0",
+  "domain": "visible floor, Y=0, X/Z in [-2.7,2.7] metres",
+  "basis": "unit sun indirect RGB; unit lamp direct-plus-indirect RGB",
+  "ridge": 0.000001,
+  "numericBudgetBytes": 3772,
+  "interiorEdgeSplits": 6,
+  "randomSeed": 419,
+  "profiles": [
+    { "name": "baseline", "boundaryDegree": 2, "interiorBubble": false, "refinement": "none" },
+    { "name": "longest", "boundaryDegree": 2, "interiorBubble": false, "refinement": "longest-edge" },
+    { "name": "random", "boundaryDegree": 2, "interiorBubble": false, "refinement": "seeded-random" },
+    { "name": "residual", "boundaryDegree": 2, "interiorBubble": false, "refinement": "training-residual" }
+  ]
+}

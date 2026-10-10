@@ -1,0 +1,15 @@
+{
+  "schema": "aurelian.continuous-fit-contract/1",
+  "name": "room.floor.shared-boundary-interior",
+  "receiver": "floor",
+  "continuity": "C0",
+  "domain": "visible floor, Y=0, X/Z in [-2.7,2.7] metres",
+  "basis": "unit sun indirect RGB; unit lamp direct-plus-indirect RGB",
+  "ridge": 0.000001,
+  "profiles": [
+    { "name": "linear", "boundaryDegree": 1, "interiorBubble": false },
+    { "name": "linear-bubble", "boundaryDegree": 1, "interiorBubble": true },
+    { "name": "quadratic", "boundaryDegree": 2, "interiorBubble": false },
+    { "name": "quadratic-bubble", "boundaryDegree": 2, "interiorBubble": true }
+  ]
+}

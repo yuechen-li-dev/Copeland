@@ -159,7 +159,7 @@ internal static class LocalLightingExpertExperiment
         Console.WriteLine("AURELIAN_LOCAL_LIGHTING_EXPERTS_PASSED " + plant.Facts.PhysicalDeviceName);
     }
 
-    private static float[] Predict(SceneLocalLightingExpert expert, LightingExpertRepresentation representation)
+    internal static float[] Predict(SceneLocalLightingExpert expert, LightingExpertRepresentation representation)
     {
         var result = new float[TestSize * TestSize * 6];
         for (int pixel = 0; pixel < TestSize * TestSize; pixel++)
@@ -180,7 +180,7 @@ internal static class LocalLightingExpertExperiment
         _ => LightingExpertExperiment.PayloadBytes(representation),
     };
 
-    private static bool[] BoundaryMask(LightingCompilationExperiment.Room room, bool[] visible)
+    internal static bool[] BoundaryMask(LightingCompilationExperiment.Room room, bool[] visible)
     {
         var block = room.Bodies.Single(body => body.Declaration.Id == "blue-block");
         var occluderRoom = room with { Bodies = [block] };
@@ -226,7 +226,7 @@ internal static class LocalLightingExpertExperiment
         }
     }
 
-    private static object SeamProbe(SceneLocalLightingExpert expert, LightingCompilationExperiment.Room room)
+    internal static object SeamProbe(SceneLocalLightingExpert expert, LightingCompilationExperiment.Room room)
     {
         float[] planes = expert.Coefficients("planes");
         double maximum = 0;
@@ -263,7 +263,7 @@ internal static class LocalLightingExpertExperiment
             Scope = "Decoder jump diagnostic, not comparison with independently baked 1mm reference samples" };
     }
 
-    private static void WriteError(string output, string name, float[] reference, float[] prediction, bool[] visible)
+    internal static void WriteError(string output, string name, float[] reference, float[] prediction, bool[] visible)
     {
         var pixels = new byte[TestSize * TestSize * 4];
         for (int pixel = 0; pixel < visible.Length; pixel++)
@@ -305,7 +305,7 @@ internal static class LocalLightingExpertExperiment
         NativeGameGraphics.WritePng(Path.Combine(output, "boundary-mask.png"), TestSize, TestSize, mask);
     }
 
-    private static string GenerateWeights(SceneLocalLightingExpert expert)
+    internal static string GenerateWeights(SceneLocalLightingExpert expert)
     {
         var source = new StringBuilder("// Generated from native-reloaded USD; validated routing and coefficients.\n");
         source.AppendLine("import { Add3, Scale3 } from \"./Lighting3D\";");

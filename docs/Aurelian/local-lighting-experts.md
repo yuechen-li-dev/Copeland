@@ -7,6 +7,10 @@ in the real USD → Visual TypeScript → Vulkan path. Independent hard partitio
 still introduce seams. The result supports the research direction, not production
 lighting quality or generalization to arbitrary scenes.
 
+The [authored continuity experiment](constrained-lighting-experts.md) now measures
+soft and exact C0 constraints on this same model. It removes artificial value
+jumps at a measurable accuracy cost, without changing the runtime decoder.
+
 ## Reproduce
 
 From the repository root:

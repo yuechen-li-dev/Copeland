@@ -1,0 +1,12 @@
+{
+  "schema": "aurelian.lighting-fit-contract/1",
+  "name": "room.floor.diffuse-continuity",
+  "receiver": "floor",
+  "domain": "visible floor, Y=0, X/Z in [-2.7,2.7] metres",
+  "basis": "unit sun indirect RGB; unit lamp direct-plus-indirect RGB",
+  "degree": 3,
+  "continuity": "C0",
+  "discontinuousSeams": [],
+  "softPenalty": 10.0,
+  "assumption": "Fixed diffuse floor and finite area emitter: radiance is continuous across artificial partition edges. Geometry coverage is excluded from training and evaluation."
+}
