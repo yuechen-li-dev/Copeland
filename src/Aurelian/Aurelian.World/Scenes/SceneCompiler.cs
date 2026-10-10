@@ -60,7 +60,7 @@ public sealed class ScenePlan
         using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
         bool primitiveMaterials = Boxes.Any(box => box.Material is not null) || Meshes.Any(mesh => mesh.Material is not null);
         string version = Models.IsEmpty ? "aurelian.scene.v2" : "aurelian.scene.v3";
-        if (primitiveMaterials) version = "aurelian.scene.v4";
+        if (primitiveMaterials || !Models.IsEmpty) version = "aurelian.scene.v5";
         writer.Write(version);
         writer.Write(Id);
         writer.Write(Identities.Length);
@@ -148,6 +148,11 @@ public sealed class ScenePlan
         writer.Write(material.DoubleSided);
         writer.Write(material.AlphaMask);
         writer.Write(material.AlphaBlend);
+        writer.Write(material.Transmission);
+        writer.Write(material.IndexOfRefraction);
+        writer.Write(material.Thickness);
+        WriteVector(writer, material.AttenuationColor);
+        writer.Write(material.AttenuationDistance);
         writer.Write(material.SubsurfaceStrength);
         writer.Write(material.SubsurfaceColor.X);
         writer.Write(material.SubsurfaceColor.Y);

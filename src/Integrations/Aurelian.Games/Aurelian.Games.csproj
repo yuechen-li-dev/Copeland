@@ -38,6 +38,8 @@
     <Content Include="../../Aurelian/Aurelian.Assets/Defaults/Fonts/*.LICENSE.txt" Link="Licenses/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/Volume*.v.ts" LogicalName="Aurelian.Games.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/Refract*.v.ts" LogicalName="Aurelian.Games.%(Filename)%(Extension)" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/Diffuse*.v.ts" LogicalName="Aurelian.Games.%(Filename)%(Extension)" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/SurfaceLighting.v.ts" LogicalName="Aurelian.Games.SurfaceLighting.v.ts" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/SurfaceSolid3D.v.ts" LogicalName="Aurelian.Games.SurfaceSolid3D.v.ts" />

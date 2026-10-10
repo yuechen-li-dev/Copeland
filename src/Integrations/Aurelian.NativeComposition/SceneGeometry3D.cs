@@ -49,7 +49,15 @@ public static class SceneGeometry3D
             batches.Add(MaterialBatch(mesh.Id, local.Select(vertex => new Native3DVertex(vertex.Position, vertex.Normal, vertex.Color)),
                 mesh.WorldTransform, mesh.Material!));
         }
-        return new(Build(frame, includeMaterialGeometry: false), batches) { TemporalRevision = revision };
+        string lightingRevision = revision
+            + string.Join("|", frame.Boxes.Select(box => box.Id + ":" + box.WorldTransform))
+            + string.Join("|", frame.Meshes.Select(mesh => mesh.Id + ":" + mesh.WorldTransform))
+            + string.Join("|", frame.Models.Select(model => model.Id + ":" + model.WorldTransform));
+        return new(Build(frame, includeMaterialGeometry: false), batches)
+        {
+            TemporalRevision = revision,
+            LightingRevision = lightingRevision,
+        };
     }
 
     public static Native3DVertex[] Build(SceneFrame frame) => Build(frame, includeMaterialGeometry: true);

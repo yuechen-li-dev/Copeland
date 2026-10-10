@@ -28,12 +28,18 @@ export function Fresnel(f0: f32, vh: f32): f32 {
 export function Geometry(n: f32, k: f32): f32 {
     return n / (n * (1.0 - k) + k);
 }
-export function Channel(base: f32, metallic: f32, vh: f32, specular: f32): f32 {
-    const f0: f32 = 0.04 * (1.0 - metallic) + base * metallic;
+export function ChannelResponse(base: f32, metallic: f32, vh: f32, specular: f32, dielectric: f32): f32 {
+    if (dielectric == 0.0 && metallic == 0.0) {
+        return base / 3.14159265;
+    }
+    const f0: f32 = dielectric * (1.0 - metallic) + base * metallic;
     const f: f32 = Fresnel(f0, vh);
     return (1.0 - f) * (1.0 - metallic) * base / 3.14159265 + f * specular;
 }
-export function DirectLight(base: float3, normal: float3, view: float3, light: float3, metallic: f32, roughness: f32): float3 {
+export function Channel(base: f32, metallic: f32, vh: f32, specular: f32): f32 {
+    return ChannelResponse(base, metallic, vh, specular, 0.04);
+}
+export function DirectLightResponse(base: float3, normal: float3, view: float3, light: float3, metallic: f32, roughness: f32, dielectric: f32): float3 {
     const half: float3 = Unit(Add3(light, view));
     const nl: f32 = Max(Dot3(normal, light), 0.0);
     const nv: f32 = Max(Dot3(normal, view), 0.0001);
@@ -45,8 +51,11 @@ export function DirectLight(base: float3, normal: float3, view: float3, light: f
     const distribution: f32 = a2 / Max(Pi * denominator * denominator, 0.000001);
     const k: f32 = (roughness + 1.0) * (roughness + 1.0) / 8.0;
     const specular: f32 = distribution * Geometry(nv, k) * Geometry(nl, k) / Max(4.0 * nv * nl, 0.0001);
-    return Scale3(float3(Channel(base.x, metallic, vh, specular), Channel(base.y, metallic, vh, specular),
-        Channel(base.z, metallic, vh, specular)), nl);
+    return Scale3(float3(ChannelResponse(base.x, metallic, vh, specular, dielectric), ChannelResponse(base.y, metallic, vh, specular, dielectric),
+        ChannelResponse(base.z, metallic, vh, specular, dielectric)), nl);
+}
+export function DirectLight(base: float3, normal: float3, view: float3, light: float3, metallic: f32, roughness: f32): float3 {
+    return DirectLightResponse(base, normal, view, light, metallic, roughness, 0.04);
 }
 // The diffuse term is kept separate so subsurface diffusion cannot blur specular highlights.
 export function DirectDiffuse(base: float3, normal: float3, view: float3, light: float3, metallic: f32): float3 {
@@ -56,18 +65,24 @@ export function DirectDiffuse(base: float3, normal: float3, view: float3, light:
     return Scale3(float3(Channel(base.x, metallic, vh, 0.0), Channel(base.y, metallic, vh, 0.0),
         Channel(base.z, metallic, vh, 0.0)), nl);
 }
-export function HemisphereLight(base: float3, normal: float3, view: float3, sky: float3, ground: float3, metallic: f32, roughness: f32): float3 {
+export function HemisphereResponse(base: float3, normal: float3, view: float3, sky: float3, ground: float3, metallic: f32, roughness: f32, dielectric: f32): float3 {
     const blend: f32 = Clamp(normal.y * 0.5 + 0.5, 0.0, 1.0);
     const ambient: float3 = Add3(Scale3(sky, blend), Scale3(ground, 1.0 - blend));
     const diffuse: float3 = Scale3(Mul3(base, ambient), 1.0 - metallic);
+    if (dielectric == 0.0 && metallic == 0.0) {
+        return diffuse;
+    }
     // A bounded procedural environment approximation. Textured, prefiltered IBL can replace this later.
     const nv: f32 = Max(Dot3(normal, view), 0.0);
     const reflected: float3 = Sub3(Scale3(normal, 2.0 * nv), view);
     const specularBlend: f32 = Clamp((reflected.y * (1.0 - roughness) + normal.y * roughness) * 0.5 + 0.5, 0.0, 1.0);
     const environment: float3 = Add3(Scale3(sky, specularBlend), Scale3(ground, 1.0 - specularBlend));
-    const fresnel: float3 = float3(Fresnel(0.04 * (1.0 - metallic) + base.x * metallic, nv),
-        Fresnel(0.04 * (1.0 - metallic) + base.y * metallic, nv), Fresnel(0.04 * (1.0 - metallic) + base.z * metallic, nv));
+    const fresnel: float3 = float3(Fresnel(dielectric * (1.0 - metallic) + base.x * metallic, nv),
+        Fresnel(dielectric * (1.0 - metallic) + base.y * metallic, nv), Fresnel(dielectric * (1.0 - metallic) + base.z * metallic, nv));
     return Add3(diffuse, Mul3(environment, fresnel));
+}
+export function HemisphereLight(base: float3, normal: float3, view: float3, sky: float3, ground: float3, metallic: f32, roughness: f32): float3 {
+    return HemisphereResponse(base, normal, view, sky, ground, metallic, roughness, 0.04);
 }
 export function ShadowTap(map: Texture2D<float4>, sampler: Sampler, uv: float2, depth: f32): f32 {
     const stored: float4 = Sample(map, sampler, uv);

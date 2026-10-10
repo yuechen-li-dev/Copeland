@@ -29,6 +29,13 @@ public sealed record ModelMaterial(string Slot)
     public bool DoubleSided { get; init; }
     public bool AlphaMask { get; init; }
     public bool AlphaBlend { get; init; }
+    public float Transmission { get; init; }
+    public float IndexOfRefraction { get; init; } = 1.5f;
+    /// <summary>World metres, after importing occurrence scale. Zero is a thin sheet.</summary>
+    public float Thickness { get; init; }
+    public Vector3 AttenuationColor { get; init; } = Vector3.One;
+    /// <summary>World metres; zero explicitly means no volume absorption.</summary>
+    public float AttenuationDistance { get; init; }
     public float SubsurfaceStrength { get; init; }
     public Vector3 SubsurfaceColor { get; init; } = new(1, .35f, .15f);
     public float SubsurfaceRadius { get; init; } = .02f;
@@ -41,13 +48,22 @@ public sealed record ModelMaterial(string Slot)
 
     public void Validate()
     {
+        if (Transmission == 0 && IndexOfRefraction != 1.5f)
+        {
+            throw new InvalidDataException($"AUR-REFRACT-003: Non-default opaque IOR is not supported in slot '{Slot}'; authored IOR currently requires transmission.");
+        }
         float[] unit = [BaseColor.X, BaseColor.Y, BaseColor.Z, BaseColor.W, Metallic,
             Roughness, OcclusionStrength, AlphaCutoff, SubsurfaceStrength,
-            SubsurfaceColor.X, SubsurfaceColor.Y, SubsurfaceColor.Z];
+            SubsurfaceColor.X, SubsurfaceColor.Y, SubsurfaceColor.Z, Transmission,
+            AttenuationColor.X, AttenuationColor.Y, AttenuationColor.Z];
         if (string.IsNullOrWhiteSpace(Slot) || unit.Any(value => !float.IsFinite(value) || value < 0 || value > 1)
             || new[] { Emissive.X, Emissive.Y, Emissive.Z }.Any(value => !float.IsFinite(value) || value < 0 || value > 60000)
             || !float.IsFinite(NormalScale) || NormalScale < 0
             || AlphaBlend && AlphaMask
+            || !float.IsFinite(IndexOfRefraction) || IndexOfRefraction < 1 || IndexOfRefraction > 3
+            || !float.IsFinite(Thickness) || Thickness < 0 || Thickness > 100
+            || !float.IsFinite(AttenuationDistance) || AttenuationDistance < 0 || AttenuationDistance > 100000
+            || Transmission > 0 && (Metallic != 0 || AlphaBlend || AlphaMask || Unlit || SubsurfaceStrength > 0)
             || !float.IsFinite(SubsurfaceRadius) || SubsurfaceRadius < .0001f || SubsurfaceRadius > 1
             || SubsurfaceStrength > 0 && (Metallic != 0 || AlphaBlend || Unlit))
         {

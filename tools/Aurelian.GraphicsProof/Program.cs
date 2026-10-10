@@ -21,6 +21,11 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 
 string defaultOutput = "artifacts/local/graphics-starter";
+if (args.Contains("--transmission-graphics", StringComparer.Ordinal))
+{
+    TransmissionGraphicsProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/transmission-graphics"));
+    return;
+}
 if (args.Contains("--live-diffuse", StringComparer.Ordinal))
 {
     LiveDiffuseExperiment.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/live-diffuse"));

@@ -7,6 +7,27 @@ namespace Aurelian.Rendering.Contracts.Tests;
 public sealed class SurfaceLightingContractsTests
 {
     [Fact]
+    public void TransmissionAndVolumeContractsRejectAmbiguousTransport()
+    {
+        var glass = new ModelMaterial("glass") { Metallic = 0, Transmission = 1, Thickness = .2f };
+        glass.Validate();
+        Assert.Throws<InvalidDataException>(() => (glass with { AlphaBlend = true }).Validate());
+        Assert.Throws<InvalidDataException>(() => (glass with { AlphaMask = true }).Validate());
+        Assert.Throws<InvalidDataException>(() => (glass with { Metallic = 1 }).Validate());
+        Assert.Throws<InvalidDataException>(() => (glass with { SubsurfaceStrength = 1 }).Validate());
+        Assert.Throws<InvalidDataException>(() => (glass with { IndexOfRefraction = float.NaN }).Validate());
+        Assert.Throws<InvalidDataException>(() => (glass with { Thickness = -1 }).Validate());
+        Assert.Throws<InvalidDataException>(() => (glass with { AttenuationDistance = float.PositiveInfinity }).Validate());
+        var opaqueIor = Assert.Throws<InvalidDataException>(() => new ModelMaterial("opaque-ior")
+        { Metallic = 0, IndexOfRefraction = 1.3f }.Validate());
+        Assert.Contains("AUR-REFRACT-003", opaqueIor.Message);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new VolumetricLighting3D { DepthSlices = 128 }.Validate());
+        Assert.Throws<ArgumentOutOfRangeException>(() => new VolumetricLighting3D { Anisotropy = 1 }.Validate());
+        Assert.Throws<ArgumentOutOfRangeException>(() => new VolumetricLighting3D { ScatteringAlbedo = new(2) }.Validate());
+        Assert.Throws<ArgumentException>(() => new FogRegion3D(Vector3.One, Vector3.Zero).Validate());
+    }
+
+    [Fact]
     public void PresentationMaterialsRejectAmbiguousOrNonphysicalCombinations()
     {
         ModelMaterial skin = new("skin") { Metallic = 0, SubsurfaceStrength = .8f };

@@ -34,6 +34,8 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
     private readonly bool surfaceOnly;
     private readonly VulkanSurfaceLighting3D? surfaceLighting;
     private readonly VulkanTransparency3D? transparency;
+    private VulkanRefraction3D? refraction;
+    private readonly Func<VulkanRefraction3D>? refractionFactory;
     private const int MaximumVertices = 65_536;
     private readonly AurelianVulkanPlant plant;
     private readonly VulkanNativeFrameTarget target;
@@ -61,6 +63,7 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
     private Native3DVertex[] previousGeometry = [];
     private Matrix4x4 previousClip;
     private Graphics3DSettings? previousSettings;
+    private string? previousLightingRevision;
     private float previousStaticEmissionIntensity;
     private string? previousRevision;
     private bool resetHistory = true;
@@ -136,7 +139,7 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
             {
                 ValidateModernFormats();
                 gpuTimings = new(plant, ["directional-shadow", "linear-lighting", "temporal-resolve", "bloom", "tone-map-output",
-                    .. surfaceOnly ? new[] { "ambient-occlusion", "local-light-culling", "surface-lighting", "local-shadows", "subsurface-diffusion", "height-fog", "transparency" } : []]);
+                    .. surfaceOnly ? new[] { "ambient-occlusion", "local-light-culling", "surface-lighting", "local-shadows", "subsurface-diffusion", "atmosphere", "transparency", "refraction" } : []]);
                 hdr = VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, target.Width, target.Height,
                     VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.ShaderResource | VulkanTextureUsage.TransferSource,
                     VulkanMemoryUsage.GpuOnly, "solid3d.hdr", VulkanTextureFormat.Rgba16Float);
@@ -238,6 +241,9 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
             if (surfacePrograms?.TransparentModel is not null && surfacePrograms.TransparencyResolve is not null)
                 transparency = new(plant, allocator, commandPool, fences, surfacePrograms,
                     target.Width, target.Height, shadowMap, shadowSampler);
+            if (surfacePrograms?.RefractiveModel is not null && surfacePrograms.RefractionResolve is not null)
+                refractionFactory = () => new(plant, allocator, commandPool, fences, surfacePrograms,
+                    target.Width, target.Height, shadowMap, shadowSampler);
         }
         catch
         {
@@ -252,15 +258,19 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         if (modelRenderer is null) throw new InvalidOperationException("StaticModel3D shader was not configured.");
         if (model.Occurrences.Any(item => item.Primitive.Material.AlphaBlend) && transparency is null)
             throw new NotSupportedException("Blend materials require the transparent model and resolve programs.");
+        if (model.Occurrences.Any(item => item.Primitive.Material.Transmission > 0))
+            EnsureRefraction();
         surfaceLighting?.ValidatePresentation(Settings, model.Occurrences.Any(item => item.Primitive.Material.SubsurfaceStrength > 0));
         modelRenderer.Prepare(model);
         transparency?.Prepare(model);
+        refraction?.Prepare(model);
     }
 
     public Native3DFrameResult Render(Native3DScene scene, Matrix4x4 worldToClip, Vector3 eye,
         NativeFrameClearColor clearColor, bool capture = false, NativeGpuGeometry3D? gpuGeometry = null)
     {
-        return Render(scene.Geometry, worldToClip, clearColor, capture, scene.Models, eye, gpuGeometry, temporalRevision: scene.TemporalRevision);
+        return Render(scene.Geometry, worldToClip, clearColor, capture, scene.Models, eye, gpuGeometry,
+            temporalRevision: scene.TemporalRevision, lightingRevision: scene.LightingRevision);
     }
 
     public Native3DFrameResult Render(
@@ -272,7 +282,8 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         Vector3 eye = default,
         NativeGpuGeometry3D? gpuGeometry = null,
         Vector3? lightDirection = null,
-        string? temporalRevision = null)
+        string? temporalRevision = null,
+        string? lightingRevision = null)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         target.ValidateExternalPass(plant);
@@ -309,6 +320,8 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         bool correspondenceChanged = !modelKeys.SequenceEqual(previousModels) || previousGeometry.Length != geometry.Length || previousRevision != temporalRevision
             || previousSettings != settings || previousStaticEmissionIntensity != StaticEmissionIntensity
             || lastGpuSource != gpuGeometry?.Buffer;
+        if (settings.Volumetrics.Enabled && previousLightingRevision != lightingRevision)
+            correspondenceChanged = true;
         if (!float.IsFinite(StaticEmissionIntensity) || StaticEmissionIntensity < 0)
             throw new ArgumentOutOfRangeException(nameof(StaticEmissionIntensity));
         bool useDiffuse = diffusePublished && diffuseAsset is not null && settings.SolidPbr
@@ -353,6 +366,9 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         }
         if (Lighting3DUniforms.Rows(worldToClip).Any(value => !float.IsFinite(value)))
             throw new ArgumentException("Camera transform must be finite.", nameof(worldToClip));
+        bool orthographic = worldToClip.M14 == 0 && worldToClip.M24 == 0 && worldToClip.M34 == 0;
+        if (orthographic && (settings.Volumetrics.Enabled || models.Any(batch => batch.Material.Transmission > 0)))
+            throw new NotSupportedException("AUR-TRANSPORT-002: Froxel lighting and refraction currently require a perspective camera.");
         if (models.Count > 0 && modelRenderer is null)
             throw new InvalidOperationException("StaticModel3D shader was not configured.");
         if (surfaceLighting is null && (Environment is not null || ReflectionProbe is not null || LocalLights.Count > 0
@@ -417,9 +433,12 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         }
         modelRenderer?.Upload(models, worldToClip, eye, lighting, previousClip, resetHistory);
         bool hasTransparency = models.Any(batch => batch.Material.AlphaBlend);
+        bool hasRefraction = models.Any(batch => batch.Material.Transmission > 0);
+        if (hasRefraction)
+            EnsureRefraction();
         bool hasSubsurface = models.Any(batch => batch.Material.SubsurfaceStrength > 0);
-        if (surfaceLighting is null && settings.Fog.Density > 0)
-            throw new NotSupportedException("Height fog requires the shared surface renderer.");
+        if (surfaceLighting is null && (settings.Fog.Density > 0 || settings.Volumetrics.Enabled))
+            throw new NotSupportedException("Atmosphere rendering requires the shared surface renderer.");
         surfaceLighting?.ValidatePresentation(settings, hasSubsurface);
         if (hasTransparency)
         {
@@ -538,6 +557,14 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
             resolved = surfaceLighting.Record(command, outputVertices!, hdr!, motion!, shadowMap, diffuseData,
                 worldToClip, inverse, eye, settings, surfaceUniforms, useDiffuse, gpuTimings, cascades!, hasSubsurface);
         }
+        if (surfaceOnly) gpuTimings?.Mark(command, 24);
+        if (hasRefraction && settings.SurfaceDebugView == SurfaceDebugView3D.Shaded)
+        {
+            resolved = refraction!.Record(command, outputVertices!, models, worldToClip, eye, lighting,
+                surfaceLighting!.TransparentUniforms(cascades!, settings, target.Width, target.Height),
+                surfaceLighting.TransparentInputs(shadowMap, motion!), surfaceLighting.UnfoggedOutput!, resolved!);
+        }
+        if (surfaceOnly) gpuTimings?.Mark(command, 25);
         if (surfaceOnly) gpuTimings?.Mark(command, 22);
         if (hasTransparency && settings.SurfaceDebugView == SurfaceDebugView3D.Shaded)
         {
@@ -583,6 +610,7 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         previousSettings = settings;
         previousStaticEmissionIntensity = StaticEmissionIntensity;
         previousRevision = temporalRevision;
+        previousLightingRevision = lightingRevision;
         lastGpuSource = gpuGeometry?.Buffer;
         resetHistory = false;
         IReadOnlyList<Native3DGpuPassTime> times = gpuTimings?.Read() ?? [];
@@ -600,6 +628,13 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
     {
         temporal?.Reset();
         resetHistory = true;
+    }
+
+    private void EnsureRefraction()
+    {
+        if (surfaceLighting is null || refractionFactory is null)
+            throw new NotSupportedException("Refractive materials require the shared surface renderer and refractive model/resolve programs.");
+        refraction ??= refractionFactory();
     }
 
     private void CopyPreviousGpu(VulkanCommandBufferLease command, NativeGpuGeometry3D geometry)
@@ -749,6 +784,7 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         motion?.Dispose();
         gpuTimings?.Dispose();
         transparency?.Dispose();
+        refraction?.Dispose();
         modelRenderer?.Dispose();
         outputPass?.Dispose();
         shadowPass?.Dispose();

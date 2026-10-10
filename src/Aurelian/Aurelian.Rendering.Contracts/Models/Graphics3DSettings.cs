@@ -48,15 +48,20 @@ public sealed record Graphics3DSettings
     public float ShadowCasterPadding { get; init; } = 30;
     public float ShadowWorldBias { get; init; } = .015f;
     public HeightFog3D Fog { get; init; } = new();
+    public VolumetricLighting3D Volumetrics { get; init; } = new();
+    public float RefractionTraceDistance { get; init; } = 64;
 
     public void Validate()
     {
         ArgumentNullException.ThrowIfNull(Fog);
         Fog.Validate();
+        ArgumentNullException.ThrowIfNull(Volumetrics);
+        Volumetrics.Validate();
         if (!Enum.IsDefined(AntiAliasing) || !Enum.IsDefined(SurfaceDebugView)
             || !Range(TemporalHistoryWeight, 0, .95f) || !Range(BloomIntensity, 0, 1)
             || !Range(AmbientOcclusionStrength, 0, 2) || !Range(AmbientOcclusionRadius, .01f, 10)
             || !Range(EnvironmentIntensity, 0, 100)
+            || !Range(RefractionTraceDistance, 1, 1000)
             || LocalShadowBudget is < 0 or > 2
             || !Range(BloomThreshold, 0, 10000) || !Range(BloomKnee, 0, 10000)
             || !Finite(SunDirection) || !float.IsFinite(SunDirection.LengthSquared()) || SunDirection.LengthSquared() < .000001f

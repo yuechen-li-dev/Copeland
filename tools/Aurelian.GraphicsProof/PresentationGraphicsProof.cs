@@ -223,7 +223,13 @@ internal static class PresentationGraphicsProof
         Native3DFrameResult result = new(0, null, null);
         for (int frame = 0; frame < 32; frame++) result = renderer.Render(combined, camera, eye, clear, frame == 31);
         Save("combined", result.Pixels!);
-        Require(result.GpuPassTimes.Count == 12, "GPU pass timings did not qualify all enabled presentation stages.");
+        string[] expectedPasses = ["directional-shadow", "linear-lighting", "temporal-resolve", "bloom", "tone-map-output",
+            "ambient-occlusion", "local-light-culling", "surface-lighting", "local-shadows", "subsurface-diffusion",
+            "atmosphere", "transparency", "refraction"];
+        Require(result.GpuPassTimes.Count == expectedPasses.Length
+            && result.GpuPassTimes.Select(time => time.Pass).ToHashSet().SetEquals(expectedPasses)
+            && result.GpuPassTimes.All(time => double.IsFinite(time.Milliseconds) && time.Milliseconds >= 0),
+            "GPU pass timings did not qualify all named presentation stages.");
         File.WriteAllText(evidencePath, JsonSerializer.Serialize(new
         {
             Accepted = true,

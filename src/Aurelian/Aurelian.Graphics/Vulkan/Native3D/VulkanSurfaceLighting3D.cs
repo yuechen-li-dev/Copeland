@@ -34,6 +34,8 @@ internal sealed class VulkanSurfaceLighting3D : IDisposable
     private readonly AurelianVulkanTexture[] cascadeMaps = new AurelianVulkanTexture[2];
     private readonly Vulkan3DPass[] cascadePasses = new Vulkan3DPass[2];
     private readonly VulkanPostProcess3D? fogPass;
+    private readonly VulkanVolumeLighting3D? volumeLighting;
+    public AurelianVulkanTexture? UnfoggedOutput { get; private set; }
     private readonly VulkanPostProcess3D? diffusionHorizontal;
     private readonly VulkanPostProcess3D? diffusionVertical;
     private readonly VulkanPostProcess3D? diffusionMerge;
@@ -83,10 +85,13 @@ internal sealed class VulkanSurfaceLighting3D : IDisposable
                 cascadePasses[index] = Own(new Vulkan3DPass(plant, allocator, shadowProgram, cascadeMaps[index],
                     Lighting3DUniforms.ShadowSize, Lighting3DUniforms.ShadowSize, true));
             }
-            if (programs.HeightFog is not null)
+            if (programs.HeightFog is not null || programs.VolumeResolve is not null)
             {
                 fogOutput = Image(width, height, "surface.fog", VulkanTextureFormat.Rgba16Float);
-                fogPass = Own(new VulkanPostProcess3D(plant, allocator, programs.HeightFog, fogOutput, 2, Filter.Nearest));
+                if (programs.HeightFog is not null)
+                    fogPass = Own(new VulkanPostProcess3D(plant, allocator, programs.HeightFog, fogOutput, 2, Filter.Nearest));
+                if (programs.VolumeInject is not null && programs.VolumeIntegrate is not null && programs.VolumeResolve is not null)
+                    volumeLighting = Own(new VulkanVolumeLighting3D(plant, allocator, programs, fogOutput));
             }
             if (programs.SubsurfaceDiffuse is not null && programs.SubsurfaceMerge is not null)
             {
@@ -125,7 +130,15 @@ internal sealed class VulkanSurfaceLighting3D : IDisposable
 
     public AurelianVulkanTexture[] TransparentInputs(AurelianVulkanTexture shadow, AurelianVulkanTexture motion)
     {
-        return [shadow, environment ?? fallback, motion, lightData, cascadeMaps[0], cascadeMaps[1], spotMaps[0], spotMaps[1]];
+        return [shadow, environment ?? fallback, motion, lightData, cascadeMaps[0], cascadeMaps[1], spotMaps[0], spotMaps[1],
+            VolumeTexture];
+    }
+
+    public AurelianVulkanTexture VolumeTexture => volumeLighting?.Integrated ?? fallback;
+
+    public float[] VolumeParameters(Graphics3DSettings settings)
+    {
+        return volumeLighting?.Parameters(settings) ?? [1, 1, 1, 0, .1f, 1, 1, 1];
     }
 
     public float[] TransparentUniforms(DirectionalShadowCascades3D cascades, Graphics3DSettings settings, uint width, uint height)
@@ -133,8 +146,8 @@ internal sealed class VulkanSurfaceLighting3D : IDisposable
         return [.. CascadeUniforms(cascades), priorLights.Length, environment is null ? 0 : 1, settings.EnvironmentIntensity, 0,
             probe?.Position.X ?? 0, probe?.Position.Y ?? 0, probe?.Position.Z ?? 0, 0,
             probe?.HalfSize.X ?? 1, probe?.HalfSize.Y ?? 1, probe?.HalfSize.Z ?? 1, probe is null ? 0 : 1,
-            .. FogUniforms(settings.Fog), 1f / width, 1f / height, 0, 0,
-            .. Lighting3DUniforms.Rows(spotCameras[0]), .. Lighting3DUniforms.Rows(spotCameras[1])];
+            .. FogUniforms(settings.Fog), 1f / width, 1f / height, settings.RefractionTraceDistance, 0,
+            .. Lighting3DUniforms.Rows(spotCameras[0]), .. Lighting3DUniforms.Rows(spotCameras[1]), .. VolumeParameters(settings)];
     }
 
     private static float[] CascadeUniforms(DirectionalShadowCascades3D cascades)
@@ -157,7 +170,10 @@ internal sealed class VulkanSurfaceLighting3D : IDisposable
     {
         if (settings.SurfaceDebugView != SurfaceDebugView3D.Shaded)
             return;
-        if (settings.Fog.Density > 0 && fogPass is null)
+        if (settings.Volumetrics.Enabled && volumeLighting is null)
+            throw new InvalidOperationException("Volumetric lighting requires injection, integration and resolve programs.");
+        volumeLighting?.Prepare(settings);
+        if (settings.Fog.Density > 0 && !settings.Volumetrics.Enabled && fogPass is null)
             throw new InvalidOperationException("Fog requires the HeightFog3D program.");
         if (subsurface && diffusionMerge is null)
             throw new InvalidOperationException("Subsurface materials require the diffuse diffusion and merge programs.");
@@ -207,6 +223,9 @@ internal sealed class VulkanSurfaceLighting3D : IDisposable
         }
         if (!lights.SequenceEqual(priorLights))
         {
+            // The lighting change has no matching surface motion vector.
+            // Invalidate retained shading, including atmospheric in-scattering.
+            changed = true;
             Array.Clear(packedLights);
             ShadowCount = 0;
             for (int index = 0; index < lights.Count; index++)
@@ -310,14 +329,20 @@ internal sealed class VulkanSurfaceLighting3D : IDisposable
             resolved = subsurfaceOutput!;
         }
         timings?.Mark(command, 19);
+        UnfoggedOutput = resolved;
         timings?.Mark(command, 20);
         if (settings.SurfaceDebugView == SurfaceDebugView3D.Shaded && settings.Fog.Density > 0)
         {
-            if (fogPass is null)
-                throw new InvalidOperationException("Fog requires the HeightFog3D program.");
-
-            fogPass.Configure([.. inverseRows, eye.X, eye.Y, eye.Z, 1, .. FogUniforms(settings.Fog)], resolved, motion);
-            fogPass.Record(command, triangle);
+            if (settings.Volumetrics.Enabled)
+            {
+                volumeLighting!.Record(command, triangle, resolved, motion, inverse, eye, settings, lighting,
+                    TransparentUniforms(cascades, settings, surface.Width, surface.Height), TransparentInputs(shadow, motion));
+            }
+            else
+            {
+                fogPass!.Configure([.. inverseRows, eye.X, eye.Y, eye.Z, 1, .. FogUniforms(settings.Fog)], resolved, motion);
+                fogPass.Record(command, triangle);
+            }
             resolved = fogOutput!;
         }
         timings?.Mark(command, 21);

@@ -14,6 +14,36 @@ public sealed class ModelSceneTests
         Path.Combine(AppContext.BaseDirectory, "Assets", filename)).Model!;
 
     [Fact]
+    public void MovingShadowCastersChangeLightingRevisionAndPreserveVertexCorrespondence()
+    {
+        SceneBox box = Scene.Box("caster", Vector3.One, Vector4.One);
+        using var firstScene = SceneCompiler.Compile(Scene.World("room", [box])).Mount();
+        using var secondScene = SceneCompiler.Compile(Scene.World("room", [box with
+        {
+            Transform = SceneTransform.At(Vector3.UnitX),
+        }])).Mount();
+        var first = SceneGeometry3D.BuildScene(firstScene.Project());
+        var second = SceneGeometry3D.BuildScene(secondScene.Project());
+        Assert.Equal(first.TemporalRevision, second.TemporalRevision);
+        Assert.NotEqual(first.LightingRevision, second.LightingRevision);
+    }
+
+    [Fact]
+    public void AuthoredOpticalPropertiesParticipateInSceneContentIdentity()
+    {
+        var glass = new ModelMaterial("glass") { Metallic = 0, Transmission = 1, Thickness = .1f };
+        SceneBox pane = Scene.Box("pane", Vector3.One, Vector4.One) with { Material = glass };
+        string initial = SceneCompiler.Compile(Scene.World("room", [pane])).ContentIdentity;
+        ModelMaterial[] changes = [glass with { Thickness = .2f }, glass with { Transmission = .8f },
+            glass with { IndexOfRefraction = 1.3f }, glass with { AttenuationColor = new(.4f), AttenuationDistance = 1 }];
+        foreach (ModelMaterial changed in changes)
+        {
+            string identity = SceneCompiler.Compile(Scene.World("room", [pane with { Material = changed }])).ContentIdentity;
+            Assert.NotEqual(initial, identity);
+        }
+    }
+
+    [Fact]
     public void PrimitiveMaterialUsesTheSharedModelPathAndParticipatesInSceneIdentity()
     {
         var material = new ModelMaterial("lamp") { Emissive = new(8, 3, 1), Metallic = 0 };

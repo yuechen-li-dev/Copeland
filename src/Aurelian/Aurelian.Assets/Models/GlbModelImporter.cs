@@ -19,7 +19,7 @@ public sealed record ModelImportResult(StaticModel? Model, IReadOnlyList<AssetDi
 /// <summary>SharpGLTF owns accessors, sparse data and container validation. This adapter owns Aurelian's static profile.</summary>
 public static class GlbModelImporter
 {
-    public const string Version = "aurelian.glb.static.v1/sharpgltf-1.0.7";
+    public const string Version = "aurelian.glb.static.v2/sharpgltf-1.0.7";
     private const int MaximumBytes = 128 * 1024 * 1024;
 
     public static ModelImportResult Load(string id, string path, ModelImportSettings? settings = null)
@@ -45,7 +45,7 @@ public static class GlbModelImporter
             {
                 string slot = material.Name ?? $"material-{material.LogicalIndex}";
                 if (!slots.Add(slot)) throw new InvalidDataException($"Duplicate material name '{slot}'; use unique stable names.");
-                materials.Add(material, ReadMaterial(material, slot, images, diagnostics, path));
+                materials.Add(material, ReadMaterial(material, slot, images, diagnostics, path, settings.Scale));
             }
             var primitives = new Dictionary<MeshPrimitive, ModelPrimitive>();
             var occurrences = new List<ModelOccurrence>();
@@ -63,8 +63,27 @@ public static class GlbModelImporter
                             imported = ReadPrimitive(primitive, material);
                             primitives.Add(primitive, imported);
                         }
-                        occurrences.Add(new($"node-{node.LogicalIndex}/{imported.Id}", imported,
-                            node.WorldMatrix * Matrix4x4.CreateScale(settings.Scale)));
+                        Matrix4x4 transform = node.WorldMatrix * Matrix4x4.CreateScale(settings.Scale);
+                        ModelPrimitive occurrencePrimitive = imported;
+                        if (imported.Material.Thickness > 0)
+                        {
+                            float x = Vector3.TransformNormal(Vector3.UnitX, transform).Length();
+                            float y = Vector3.TransformNormal(Vector3.UnitY, transform).Length();
+                            float z = Vector3.TransformNormal(Vector3.UnitZ, transform).Length();
+                            if (MathF.Abs(x - y) > x * .0001f || MathF.Abs(x - z) > x * .0001f
+                                || MathF.Abs(Vector3.Dot(Vector3.TransformNormal(Vector3.UnitX, transform),
+                                    Vector3.TransformNormal(Vector3.UnitY, transform))) > x * x * .0001f
+                                || MathF.Abs(Vector3.Dot(Vector3.TransformNormal(Vector3.UnitX, transform),
+                                    Vector3.TransformNormal(Vector3.UnitZ, transform))) > x * x * .0001f
+                                || MathF.Abs(Vector3.Dot(Vector3.TransformNormal(Vector3.UnitY, transform),
+                                    Vector3.TransformNormal(Vector3.UnitZ, transform))) > x * x * .0001f)
+                                throw new InvalidDataException("AA3110: Volume thickness currently requires uniform occurrence scale without shear.");
+                            occurrencePrimitive = imported with
+                            {
+                                Material = imported.Material with { Thickness = imported.Material.Thickness * x },
+                            };
+                        }
+                        occurrences.Add(new($"node-{node.LogicalIndex}/{imported.Id}", occurrencePrimitive, transform));
                     }
                 }
                 foreach (Node child in node.VisualChildren) Visit(child, depth + 1);
@@ -118,18 +137,36 @@ public static class GlbModelImporter
             if (!root.TryGetProperty(collection, out JsonElement extensions)) continue;
             foreach (JsonElement extension in extensions.EnumerateArray())
             {
-                if (extension.GetString() is not ("KHR_materials_unlit" or "KHR_materials_emissive_strength"))
+                if (extension.GetString() is not ("KHR_materials_unlit" or "KHR_materials_emissive_strength"
+                    or "KHR_materials_transmission" or "KHR_materials_volume" or "KHR_materials_ior"))
                     throw new InvalidDataException($"Unsupported GLB extension '{extension.GetString()}' in {collection}.");
+            }
+        }
+        if (root.TryGetProperty("materials", out JsonElement materialList))
+        {
+            foreach (JsonElement material in materialList.EnumerateArray())
+            {
+                if (!material.TryGetProperty("extensions", out JsonElement extensions))
+                    continue;
+                if (extensions.TryGetProperty("KHR_materials_transmission", out JsonElement transmission)
+                    && transmission.TryGetProperty("transmissionTexture", out _)
+                    || extensions.TryGetProperty("KHR_materials_volume", out JsonElement volume)
+                    && volume.TryGetProperty("thicknessTexture", out _))
+                    throw new InvalidDataException("AA3111: Transmission and volume thickness textures are not supported; author constant factors for this profile.");
             }
         }
     }
 
     private static ModelMaterial ReadMaterial(Material source, string slot, Dictionary<int, ModelTexture> images,
-        List<AssetDiagnostic> diagnostics, string path)
+        List<AssetDiagnostic> diagnostics, string path, float importScale)
     {
         MaterialChannel? color = source.FindChannel("BaseColor");
         MaterialChannel? metal = source.FindChannel("MetallicRoughness");
         MaterialChannel? emissive = source.FindChannel("Emissive");
+        MaterialChannel? transmission = source.FindChannel("Transmission");
+        MaterialChannel? thickness = source.FindChannel("VolumeThickness");
+        MaterialChannel? attenuation = source.FindChannel("VolumeAttenuation");
+        float attenuationDistance = attenuation?.GetFactor("AttenuationDistance") ?? float.MaxValue;
         return new ModelMaterial(slot)
         {
             BaseColor = color?.Color ?? Vector4.One,
@@ -144,6 +181,11 @@ public static class GlbModelImporter
             AlphaMask = source.Alpha == AlphaMode.MASK,
             AlphaBlend = source.Alpha == AlphaMode.BLEND,
             AlphaCutoff = source.AlphaCutoff,
+            Transmission = transmission?.GetFactor("TransmissionFactor") ?? 0,
+            IndexOfRefraction = source.IndexOfRefraction,
+            Thickness = thickness?.GetFactor("ThicknessFactor") ?? 0,
+            AttenuationColor = attenuation is { } absorption ? new Vector3(absorption.Color.X, absorption.Color.Y, absorption.Color.Z) : Vector3.One,
+            AttenuationDistance = attenuationDistance == float.MaxValue || float.IsPositiveInfinity(attenuationDistance) ? 0 : attenuationDistance * importScale,
             BaseColorTexture = ReadTexture(color, images, diagnostics, path),
             MetallicRoughnessTexture = ReadTexture(metal, images, diagnostics, path),
             NormalTexture = ReadTexture(source.FindChannel("Normal"), images, diagnostics, path),

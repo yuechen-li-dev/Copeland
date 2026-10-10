@@ -68,8 +68,8 @@ Height fog analytically integrates exponential height extinction over the
 eye-to-surface segment, including a stable horizontal-ray limit. It runs on linear
 HDR after scattering, before transparency. Translucent fragments integrate their
 own distance using the same shader helper. The background uses `MaximumDistance`.
-This is single-scattering atmospheric depth, with an authored incident color;
-volumetric light shafts and shadowed participating media are not implemented.
+This analytic mode uses an authored incident color. The optional shadowed froxel
+mode and glass transport are described in [the transmission pack](transmission-graphics-pack.md).
 
 Translucency uses a separate, retained weighted blended OIT pass. Two RGBA32F
 attachments accumulate weighted premultiplied radiance and logarithmic revealage
@@ -83,8 +83,8 @@ unjittered reconstruction prevents stale surface correspondence from producing
 color trails. Opaque pixels keep their ordinary temporal accumulation.
 
 Weighted blending is an approximation for overlapping layers; it does not reproduce
-sorted alpha colors exactly. Physical refraction, `KHR_materials_transmission`,
-volumes and colored absorption are not admitted. Transparent coverage has no
+sorted alpha colors exactly. Refractive materials use the transmission pack's
+separate nearest-surface pass. Transparent coverage has no
 temporal accumulation yet, so animated subpixel translucent edges can shimmer.
 Translucent draws share the existing one-million-vertex frame bound.
 

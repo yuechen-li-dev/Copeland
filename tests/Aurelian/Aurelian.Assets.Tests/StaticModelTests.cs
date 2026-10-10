@@ -3,6 +3,7 @@ using System.Numerics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aurelian.Assets.Models;
+using Aurelian.Rendering.Contracts.Models;
 using Xunit;
 
 namespace Aurelian.Assets.Tests;
@@ -10,6 +11,84 @@ namespace Aurelian.Assets.Tests;
 public sealed class StaticModelTests
 {
     private static string Asset(string name) => Path.Combine(AppContext.BaseDirectory, "Assets", name);
+
+    [Fact]
+    public void TransmissionVolumeAndIorImportWithExplicitWorldUnits()
+    {
+        using var files = new TemporaryAssets();
+        byte[] source = Mutate(File.ReadAllBytes(Asset("crate.glb")), json =>
+        {
+            AddOptics(json);
+            foreach (JsonObject node in json["nodes"]!.AsArray().OfType<JsonObject>())
+            {
+                if (node.ContainsKey("mesh"))
+                    node["scale"] = new JsonArray(3, 3, 3);
+            }
+        });
+        File.WriteAllBytes(files.ModelPath, source);
+        var result = GlbModelImporter.Load("glass", files.ModelPath, new(2));
+        Assert.True(result.Success, ModelAssetCatalog.Describe(result.Diagnostics));
+        ModelMaterial material = result.Model!.Occurrences.First(item => item.Primitive.Material.Slot == "panel").Primitive.Material;
+        Assert.Equal(.8f, material.Transmission, 5);
+        Assert.Equal(1.4f, material.IndexOfRefraction, 5);
+        Assert.Equal(1.2f, material.Thickness, 5);
+        Assert.Equal(1f, material.AttenuationDistance, 5);
+        Assert.Equal(new Vector3(.2f, .6f, .9f), material.AttenuationColor);
+        Assert.False(material.AlphaBlend);
+    }
+
+    [Theory]
+    [InlineData("transmissionTexture", "KHR_materials_transmission")]
+    [InlineData("thicknessTexture", "KHR_materials_volume")]
+    public void UnsupportedOpticsTexturesHaveAnExplicitDiagnostic(string texture, string extension)
+    {
+        using var files = new TemporaryAssets();
+        byte[] source = Mutate(File.ReadAllBytes(Asset("crate.glb")), json =>
+        {
+            AddOptics(json);
+            json["materials"]![0]!["extensions"]![extension]![texture] = new JsonObject { ["index"] = 0 };
+        });
+        File.WriteAllBytes(files.ModelPath, source);
+        var result = GlbModelImporter.Load("glass", files.ModelPath);
+        Assert.False(result.Success);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("AA3111", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void NonuniformVolumeScaleIsRejectedInsteadOfGuessingThickness()
+    {
+        using var files = new TemporaryAssets();
+        byte[] source = Mutate(File.ReadAllBytes(Asset("crate.glb")), json =>
+        {
+            AddOptics(json);
+            foreach (JsonObject node in json["nodes"]!.AsArray().OfType<JsonObject>())
+            {
+                if (node.ContainsKey("mesh"))
+                    node["scale"] = new JsonArray(1, 2, 1);
+            }
+        });
+        File.WriteAllBytes(files.ModelPath, source);
+        var result = GlbModelImporter.Load("glass", files.ModelPath);
+        Assert.False(result.Success);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("AA3110", StringComparison.Ordinal));
+    }
+
+    private static void AddOptics(JsonObject json)
+    {
+        json["extensionsUsed"] = new JsonArray("KHR_materials_transmission", "KHR_materials_volume", "KHR_materials_ior");
+        json["materials"]![0]!["pbrMetallicRoughness"]!["metallicFactor"] = 0;
+        json["materials"]![0]!["extensions"] = new JsonObject
+        {
+            ["KHR_materials_transmission"] = new JsonObject { ["transmissionFactor"] = .8 },
+            ["KHR_materials_volume"] = new JsonObject
+            {
+                ["thicknessFactor"] = .2,
+                ["attenuationDistance"] = .5,
+                ["attenuationColor"] = new JsonArray(.2, .6, .9),
+            },
+            ["KHR_materials_ior"] = new JsonObject { ["ior"] = 1.4 },
+        };
+    }
 
     [Fact]
     public void BlenderGlbRetainsIndexedPrimitivesTextureAndNamedMaterialSlots()

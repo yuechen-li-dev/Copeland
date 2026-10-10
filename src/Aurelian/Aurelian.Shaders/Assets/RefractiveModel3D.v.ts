@@ -1,7 +1,7 @@
-import { EnvironmentResponse, BoxReflection, ConeAttenuation } from "./SurfaceLighting";
+import { EnvironmentSurfaceResponse, BoxReflection, ConeAttenuation, WorldAt, PrefilteredEnvironment, EncodeOcta } from "./SurfaceLighting";
 import { VolumeAt, ComposeVolume } from "./VolumeLighting";
 import { Fogged } from "./HeightFog";
-import { Unit, Sub3, ShadowVisibility, PlaneShadowVisibility, Dot3, Scale3, Mul3, DirectLight, HemisphereLight, Add3, Cross3, LimitRadiance } from "./Lighting3D";
+import { Unit, Sub3, ShadowVisibility, PlaneShadowVisibility, Dot3, Scale3, Mul3, DirectLightResponse, HemisphereResponse, Add3, Cross3, LimitRadiance } from "./Lighting3D";
 
 @space(world.position)
 type WorldPosition3 = float3;
@@ -56,6 +56,12 @@ record StaticModelMaterial {
     spotBW: float4;
     volumeGrid: float4;
     volumeDepth: float4;
+    refraction: float4;
+    absorption: float4;
+    inverseX: float4;
+    inverseY: float4;
+    inverseZ: float4;
+    inverseW: float4;
 }
 
 stream VertexInput {
@@ -98,6 +104,8 @@ stream Resources {
     @binding(26) spotBSampler: Sampler;
     @binding(27) volume: Texture2D<float4>;
     @binding(28) volumeSampler: Sampler;
+    @binding(29) scene: Texture2D<float4>;
+    @binding(30) sceneSampler: Sampler;
 }
 
 stream ModelVaryings {
@@ -173,20 +181,25 @@ function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources:
     const view: float3 = Unit(Sub3(eye, p));
     const light: float3 = Unit(float3(uniforms.material.light.x, uniforms.material.light.y, uniforms.material.light.z));
     const sun: float3 = float3(uniforms.material.sun.x, uniforms.material.sun.y, uniforms.material.sun.z);
-    const rgb: float3 = float3(base.x, base.y, base.z);
+    const ior: f32 = uniforms.material.refraction.y;
+    const iorRatio: f32 = (ior - 1.0) / (ior + 1.0);
+    const f0: f32 = iorRatio * iorRatio;
+    const transmissionRoughness: f32 = roughness * Clamp(ior * 2.0 - 2.0, 0.0, 1.0);
+    const transmissionFactor: f32 = uniforms.material.refraction.x;
+    const rgb: float3 = Scale3(float3(base.x, base.y, base.z), 1.0 - transmissionFactor);
     var lit: float3 = Add3(rgb, emitted);
     if (uniforms.material.flags.x < 0.5) {
         const visibility: f32 = DirectionalVisibility(resources, uniforms, p, normal);
-        var direct: float3 = Scale3(Mul3(DirectLight(rgb, normal, view, light, metallic, roughness), sun),
+        var direct: float3 = Scale3(Mul3(DirectLightResponse(rgb, normal, view, light, metallic, roughness, f0), sun),
             uniforms.material.sun.w * visibility);
-        var ambient: float3 = HemisphereLight(rgb, normal, view,
+        var ambient: float3 = HemisphereResponse(rgb, normal, view,
             float3(uniforms.material.sky.x, uniforms.material.sky.y, uniforms.material.sky.z),
-            float3(uniforms.material.ground.x, uniforms.material.ground.y, uniforms.material.ground.z), metallic, roughness);
+            float3(uniforms.material.ground.x, uniforms.material.ground.y, uniforms.material.ground.z), metallic, roughness, f0);
         if (uniforms.material.environmentParameters.y > 0.5) {
             const reflected: float3 = BoxReflection(p, Sub3(Scale3(normal, 2.0 * Max(Dot3(normal, view), 0.0)), view),
                 uniforms.material.probePosition, uniforms.material.probeBounds);
-            ambient = Scale3(EnvironmentResponse(resources.environment, resources.environmentSampler, rgb, normal, reflected,
-                Max(Dot3(normal, view), 0.0001), metallic, roughness), uniforms.material.environmentParameters.z);
+            ambient = Scale3(EnvironmentSurfaceResponse(resources.environment, resources.environmentSampler, rgb, normal, reflected,
+                Max(Dot3(normal, view), 0.0001), metallic, roughness, f0), uniforms.material.environmentParameters.z);
         }
         for (var index: u32 = 0; index < 32; index = index + 1) {
             if (Convert<f32>(index) < uniforms.material.environmentParameters.x) {
@@ -205,28 +218,117 @@ function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources:
                     if (config.z > 0.5) {
                         attenuation = attenuation * LocalShadow(resources, uniforms, config.z, p, Max(Dot3(normal, direction), 0.0));
                     }
-                    direct = Add3(direct, Scale3(Mul3(DirectLight(rgb, normal, view, direction, metallic, roughness),
+                    direct = Add3(direct, Scale3(Mul3(DirectLightResponse(rgb, normal, view, direction, metallic, roughness, f0),
                         float3(color.x, color.y, color.z)), color.w * attenuation));
                 }
             }
         }
         lit = Add3(Add3(direct, Scale3(ambient, occlusion)), emitted);
     }
+    const nv: f32 = Max(Dot3(normal, view), 0.00001);
+    const eta: f32 = 1.0 / ior;
+    const cosine: f32 = Sqrt(Max(1.0 - eta * eta * (1.0 - nv * nv), 0.0));
+    const incident: float3 = Scale3(view, -1.0);
+    const refracted: float3 = Unit(Add3(Scale3(incident, eta), Scale3(normal, eta * nv - cosine)));
+    // Authored thickness models a parallel slab. Thin sheets have zero offset.
+    const path: f32 = uniforms.material.refraction.z / Max(cosine, 0.05);
+    const exitPoint: float3 = Add3(p, Scale3(refracted, path));
+    var transmitted: float3 = float3(0.0, 0.0, 0.0);
+    if (uniforms.material.environmentParameters.y > 0.5) {
+        transmitted = Scale3(PrefilteredEnvironment(resources.environment, resources.environmentSampler,
+            EncodeOcta(incident), transmissionRoughness), uniforms.material.environmentParameters.z);
+    }
+    var found: bool = false;
+    var hitUv: float2 = uv;
+    var hitPoint: float3 = Add3(exitPoint, Scale3(incident, uniforms.material.fogColor.w));
+    var previousDistance: f32 = 0.0;
+    // Fixed world-length march; no unbounded loops or CPU/GPU readback.
+    for (var step: u32 = 0; step < 64; step = step + 1) {
+        if (!found) {
+            const fraction: f32 = (Convert<f32>(step) + 1.0) / 64.0;
+            const distance: f32 = fraction * fraction * uniforms.material.surfaceTexels.z;
+            const samplePoint: float3 = Add3(exitPoint, Scale3(incident, distance));
+            const divisor: f32 = Row(uniforms.material.clipW, samplePoint);
+            if (divisor > 0.00001) {
+                const coordinate: float2 = float2(Row(uniforms.material.clipX, samplePoint) / divisor * 0.5 + 0.5,
+                    Row(uniforms.material.clipY, samplePoint) / divisor * 0.5 + 0.5);
+                if (coordinate.x >= 0.0 && coordinate.x <= 1.0 && coordinate.y >= 0.0 && coordinate.y <= 1.0) {
+                    const background: float4 = Sample(resources.motion, resources.motionSampler, coordinate);
+                    if (background.w < 1.0) {
+                        const world: float3 = WorldAt(coordinate, background.w, uniforms.material.inverseX,
+                            uniforms.material.inverseY, uniforms.material.inverseZ, uniforms.material.inverseW);
+                        const separation: f32 = Dot3(Sub3(samplePoint, world), incident);
+                        const tolerance: f32 = Max(distance - previousDistance, 0.02);
+                        // Reject a foreground occluder instead of pulling its color through glass.
+                        if (separation >= 0.0 && separation <= tolerance * 1.5
+                            && Dot3(Sub3(world, p), incident) > path * 0.5) {
+                            found = true;
+                            hitUv = coordinate;
+                            hitPoint = world;
+                        }
+                    }
+                }
+            }
+            previousDistance = distance;
+        }
+    }
+    if (found) {
+        const color: float4 = Sample(resources.scene, resources.sceneSampler, hitUv);
+        transmitted = float3(color.x, color.y, color.z);
+        var sum: float3 = transmitted;
+        var count: f32 = 1.0;
+        const radius: f32 = transmissionRoughness * transmissionRoughness * 24.0;
+        for (var tap: u32 = 0; tap < 4; tap = tap + 1) {
+            var offset: float2 = float2(radius * uniforms.material.surfaceTexels.x, 0.0);
+            if (tap == 1) { offset = float2(-radius * uniforms.material.surfaceTexels.x, 0.0); }
+            else if (tap == 2) { offset = float2(0.0, radius * uniforms.material.surfaceTexels.y); }
+            else if (tap == 3) { offset = float2(0.0, -radius * uniforms.material.surfaceTexels.y); }
+            const coordinate: float2 = float2(hitUv.x + offset.x, hitUv.y + offset.y);
+            const depth: float4 = Sample(resources.motion, resources.motionSampler, coordinate);
+            if (coordinate.x >= 0.0 && coordinate.x <= 1.0 && coordinate.y >= 0.0 && coordinate.y <= 1.0 && depth.w < 1.0) {
+                const world: float3 = WorldAt(coordinate, depth.w, uniforms.material.inverseX,
+                    uniforms.material.inverseY, uniforms.material.inverseZ, uniforms.material.inverseW);
+                if (Dot3(Sub3(world, p), incident) > path * 0.5 && Abs(Dot3(Sub3(world, hitPoint), incident)) < 0.5) {
+                    const sampleColor: float4 = Sample(resources.scene, resources.sceneSampler, coordinate);
+                    sum = Add3(sum, float3(sampleColor.x, sampleColor.y, sampleColor.z));
+                    count = count + 1.0;
+                }
+            }
+        }
+        transmitted = Scale3(sum, 1.0 / count);
+    }
     if (uniforms.material.volumeGrid.w > 0.5) {
-        const fogDelta: float3 = Sub3(p, eye);
-        lit = ComposeVolume(lit, VolumeAt(resources.volume, resources.volumeSampler, uv,
-            Sqrt(Dot3(fogDelta, fogDelta)), uniforms.material.volumeGrid, uniforms.material.volumeDepth));
+        const backDelta: float3 = Sub3(hitPoint, eye);
+        const exitDelta: float3 = Sub3(exitPoint, eye);
+        const back: float4 = VolumeAt(resources.volume, resources.volumeSampler, hitUv, Sqrt(Dot3(backDelta, backDelta)),
+            uniforms.material.volumeGrid, uniforms.material.volumeDepth);
+        const front: float4 = VolumeAt(resources.volume, resources.volumeSampler, hitUv, Sqrt(Dot3(exitDelta, exitDelta)),
+            uniforms.material.volumeGrid, uniforms.material.volumeDepth);
+        const scale: f32 = 1.0 / Max(front.w, 0.00001);
+        transmitted = ComposeVolume(transmitted, float4(Max(back.x - front.x, 0.0) * scale,
+            Max(back.y - front.y, 0.0) * scale, Max(back.z - front.z, 0.0) * scale, Clamp(back.w * scale, 0.0, 1.0)));
+    } else {
+        transmitted = Fogged(transmitted, hitPoint, exitPoint, uniforms.material.fogParameters, uniforms.material.fogColor);
+    }
+    const absorption: float4 = uniforms.material.absorption;
+    if (absorption.w > 0.0) {
+        transmitted = Mul3(transmitted, float3(Pow(Max(absorption.x, 0.000001), path / absorption.w),
+            Pow(Max(absorption.y, 0.000001), path / absorption.w), Pow(Max(absorption.z, 0.000001), path / absorption.w)));
+    }
+    transmitted = Mul3(transmitted, float3(base.x, base.y, base.z));
+    var fresnel: f32 = f0 + (1.0 - f0) * Pow(1.0 - nv, 5.0);
+    if (ior == 1.0) { fresnel = 0.0; }
+    lit = Add3(lit, Scale3(transmitted, transmissionFactor * (1.0 - fresnel)));
+    if (uniforms.material.volumeGrid.w > 0.5) {
+        const frontDelta: float3 = Sub3(p, eye);
+        lit = ComposeVolume(lit, VolumeAt(resources.volume, resources.volumeSampler, uv, Sqrt(Dot3(frontDelta, frontDelta)),
+            uniforms.material.volumeGrid, uniforms.material.volumeDepth));
     } else {
         lit = Fogged(lit, p, eye, uniforms.material.fogParameters, uniforms.material.fogColor);
     }
-    const distance: float3 = Sub3(p, eye);
-    const alpha: f32 = Clamp(base.w, 0.0, 1.0);
-    const weight: f32 = Max(alpha, 0.001) / (1.0 + Dot3(distance, distance) * 0.02);
     const bounded: float4 = LimitRadiance(float4(lit.x, lit.y, lit.z, 1.0));
-    return {
-        color: float4(bounded.x * alpha * weight, bounded.y * alpha * weight, bounded.z * alpha * weight, alpha * weight),
-        optical: float4(-Log(Max(1.0 - alpha, 0.000001)), 0.0, 0.0, 0.0),
-    };
+    return { color: bounded, optical: float4(1.0, 0.0, 0.0, 0.0) };
+
 }
 
 function NearVisibility(resources: Resources, uniforms: MaterialResources, p: float3, normal: float3): f32 {

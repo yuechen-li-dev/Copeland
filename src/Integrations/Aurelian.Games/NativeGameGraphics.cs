@@ -109,6 +109,11 @@ public sealed class NativeGameGraphics : IDisposable
                     assets.Shader("AmbientDenoise3D.v.ts"), assets.Shader("LightTiles3D.v.ts"))
                 {
                     HeightFog = assets.Shader("HeightFog3D.v.ts"),
+                    VolumeInject = assets.Shader("VolumeInject3D.v.ts"),
+                    VolumeIntegrate = assets.Shader("VolumeIntegrate3D.v.ts"),
+                    VolumeResolve = assets.Shader("VolumeResolve3D.v.ts"),
+                    RefractiveModel = assets.Shader("RefractiveModel3D.v.ts"),
+                    RefractionResolve = assets.Shader("RefractionResolve3D.v.ts"),
                     SubsurfaceDiffuse = assets.Shader("SubsurfaceDiffuse3D.v.ts"),
                     SubsurfaceMerge = assets.Shader("SubsurfaceMerge3D.v.ts"),
                     TransparentModel = assets.Shader("TransparentModel3D.v.ts"),
