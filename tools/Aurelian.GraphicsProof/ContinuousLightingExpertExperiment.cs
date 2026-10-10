@@ -25,12 +25,12 @@ internal static class ContinuousLightingExpertExperiment
         using var contract = JsonDocument.Parse(File.ReadAllBytes(contractPath));
         string[] profiles = contract.RootElement.GetProperty("profiles").EnumerateArray()
             .Select(profile => profile.GetProperty("name").GetString()!).ToArray();
-        string compilerKey = Hash(File.ReadAllBytes("tools/Aurelian.GraphicsProof/continuous_lighting_experts.py")
-            .Concat(File.ReadAllBytes("tools/Aurelian.GraphicsProof/constrained_lighting_experts.py"))
-            .Concat(File.ReadAllBytes("tools/Aurelian.GraphicsProof/local_lighting_experts.py")).ToArray());
+        string compilerKey = Hash(File.ReadAllBytes("src/Aurelian/Aurelian.Assets/Lighting/Authoring/continuous_lighting_experts.py")
+            .Concat(File.ReadAllBytes("src/Aurelian/Aurelian.Assets/Lighting/Authoring/constrained_lighting_experts.py"))
+            .Concat(File.ReadAllBytes("src/Aurelian/Aurelian.Assets/Lighting/Authoring/local_lighting_experts.py")).ToArray());
         if (adaptive)
         {
-            compilerKey = Hash(File.ReadAllBytes("tools/Aurelian.GraphicsProof/adaptive_lighting_experts.py")
+            compilerKey = Hash(File.ReadAllBytes("src/Aurelian/Aurelian.Assets/Lighting/Authoring/adaptive_lighting_experts.py")
                 .Concat(Convert.FromHexString(compilerKey)).ToArray());
         }
         string trainingKey = Hash(File.ReadAllBytes(Path.Combine(output, "training.bin")));

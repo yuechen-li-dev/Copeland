@@ -31,7 +31,8 @@ using SkiaSharp;
 const int Width = 960;
 const int Height = 600;
 const float StepSeconds = 1f / 60;
-bool proof = args.Contains("--proof", StringComparer.Ordinal);
+bool lightingProof = args.Contains("--lighting-proof", StringComparer.Ordinal);
+bool proof = args.Contains("--proof", StringComparer.Ordinal) || lightingProof;
 string? playtestScript = GetOption(args, "--playtest-script");
 bool playtestStdio = args.Contains("--playtest-stdio", StringComparer.Ordinal);
 bool playtesting = playtestScript is not null || playtestStdio;
@@ -49,6 +50,13 @@ if (locomotionPath is not null)
     humanoid = humanoid with { Locomotion = HumanoidLocomotionBank.Load(locomotionPath, humanoid.Body) };
 }
 Directory.CreateDirectory(output);
+if (args.Contains("--build-lighting", StringComparer.Ordinal))
+{
+    string artifact = BeaconLighting.Build(output, GetOption(args, "--blender")
+        ?? @"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe");
+    Console.WriteLine("BEACON_LIGHTING_COMPILED " + artifact);
+    return;
+}
 
 if (args.Contains("--headless", StringComparer.Ordinal))
 {
@@ -62,7 +70,8 @@ if (args.Contains("--headless", StringComparer.Ordinal))
 string source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Assets", "Solid3D.v.ts"));
 string lightingSource = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Assets", "Lighting3D.v.ts"));
 var module = GpuGraphicsBinder.Compile(new GpuCompilationRequest([
-    new GpuSourceFile("Solid3D.v.ts", source), new GpuSourceFile("Lighting3D.v.ts", lightingSource)]));
+    new GpuSourceFile("Solid3D.v.ts", source), new GpuSourceFile("Lighting3D.v.ts", lightingSource),
+    new GpuSourceFile("CompiledDiffuseLighting.v.ts", File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Assets", "CompiledDiffuseLighting.v.ts")))]));
 Require(module.Success, string.Join(Environment.NewLine, module.Diagnostics.Select(item => item.Message)));
 VdMirGraphicsBackendResult backend = VdMirGraphicsBackend.Compile(module);
 CompiledGraphicsProgram program = CompiledGraphicsProgramExporter.Export(module, backend);
@@ -104,6 +113,18 @@ using var nativeInput = new CapturedGameInput(window, input, controls.Adapter, m
 var plant = graphics.Plant;
 var target = graphics.Target;
 var renderer = graphics.Renderer;
+string? lightingPath = GetOption(args, "--lighting");
+if (lightingPath is not null)
+{
+    bool loaded = graphics.LoadLighting(lightingPath, BeaconLighting.Recipe().ContentKey);
+    Console.WriteLine("BEACON_LIGHTING " + (loaded ? "Ready" : graphics.LightingDiagnostic));
+}
+if (lightingProof)
+{
+    BeaconLightingProof.Run(graphics, app.Game, lightingPath
+        ?? throw new ArgumentException("--lighting-proof requires --lighting."), output);
+    return;
+}
 if (args.Contains("--basic-graphics", StringComparer.Ordinal))
 {
     graphics.Settings = Aurelian.Rendering.Contracts.Models.Graphics3DSettings.Basic;

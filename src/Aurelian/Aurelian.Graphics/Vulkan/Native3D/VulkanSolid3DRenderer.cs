@@ -17,6 +17,7 @@ using Aurelian.Graphics.Vulkan.Resources.Textures;
 using Aurelian.Graphics.Vulkan.Sync;
 using Aurelian.Rendering.Contracts.Shaders;
 using Aurelian.Rendering.Contracts.Models;
+using Aurelian.Rendering.Contracts.Lighting;
 using Silk.NET.Vulkan;
 
 namespace Aurelian.Graphics.Vulkan.Native3D;
@@ -54,6 +55,12 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
     private readonly AurelianVulkanBuffer? outputVertices;
     private readonly Vulkan3DGpuTimings? gpuTimings;
     private bool disposed;
+    private readonly bool supportsDiffuseData;
+    private AurelianVulkanTexture? diffuseData;
+    private StaticDiffuseLighting? diffuseAsset;
+    private bool diffusePublished;
+    public float StaticEmissionIntensity { get; set; } = 1;
+    public string? StaticDiffuseFallbackReason { get; private set; } = "NoPublishedLightingAsset";
 
     public Graphics3DSettings Settings { get; set; } = Graphics3DSettings.Default;
 
@@ -71,6 +78,7 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         ArgumentNullException.ThrowIfNull(target);
         target.ValidateExternalPass(plant);
         ValidateProgram(program);
+        supportsDiffuseData = program.Resources.Count == 5;
         if ((shadowProgram is null) != (outputProgram is null))
         {
             throw new ArgumentException("The modern 3D path requires both shadow and output shaders.");
@@ -196,6 +204,23 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
             settings = settings with { SunDirection = lightDirection.Value };
         }
         settings.Validate();
+        if (!float.IsFinite(StaticEmissionIntensity) || StaticEmissionIntensity < 0)
+            throw new ArgumentOutOfRangeException(nameof(StaticEmissionIntensity));
+        bool useDiffuse = diffusePublished && diffuseAsset is not null && settings.SolidPbr
+            && settings.SolidMetallic == 0
+            && Vector3.Distance(Vector3.Normalize(settings.SunDirection), diffuseAsset.SunDirection) < .00001f;
+        if (useDiffuse)
+        {
+            StaticDiffuseFallbackReason = null;
+        }
+        else if (diffusePublished)
+        {
+            StaticDiffuseFallbackReason = "UnsupportedMaterialOrChangedSunDirection";
+        }
+        else
+        {
+            StaticDiffuseFallbackReason = "NoPublishedLightingAsset";
+        }
         if (outputPass is null && (settings.Shadows || settings.ToneMapping || settings.Exposure != 1))
         {
             throw new InvalidOperationException("Shadows, tone mapping and exposure require the Shadow3D and ToneMap3D shaders at renderer creation.");
@@ -224,9 +249,10 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
             .. lighting[..4],
             eye.X, eye.Y, eye.Z, 1,
             .. lighting[4..16],
-            settings.SolidRoughness, settings.SolidMetallic, settings.SolidPbr ? 1 : 0, 0,
+            settings.SolidRoughness, settings.SolidMetallic, settings.SolidPbr ? 1 : 0, useDiffuse ? 1 : 0,
             .. lighting[16..],
         ];
+        cameraRows[31] = StaticEmissionIntensity;
         if (cameraRows.Any(value => !float.IsFinite(value)))
         {
             throw new ArgumentException("Camera transform must be finite.", nameof(worldToClip));
@@ -326,10 +352,45 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
 
     private (DescriptorPool Pool, DescriptorSet Set) CreateCameraDescriptor()
     {
-        var descriptor = Vulkan3DPass.AllocateSet(plant, setLayout, camera, 1);
+        var descriptor = Vulkan3DPass.AllocateSet(plant, setLayout, camera, supportsDiffuseData ? 2u : 1u);
         Vulkan3DPass.WriteImage(plant, descriptor.Set, 1, shadowMap, shadowSampler);
+        if (supportsDiffuseData) Vulkan3DPass.WriteImage(plant, descriptor.Set, 3, shadowMap, shadowSampler);
         return descriptor;
     }
+
+    /// <summary>Upload completes before returning. Publication remains the controller's decision.</summary>
+    public ulong UploadStaticDiffuseLighting(StaticDiffuseLighting asset)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        if (!supportsDiffuseData) throw new NotSupportedException("Solid shader has no compiled diffuse resource bindings.");
+        plant.Vk.GetPhysicalDeviceFormatProperties(plant.PhysicalDevice, Format.R32G32B32A32Sfloat, out var properties);
+        if ((properties.OptimalTilingFeatures & FormatFeatureFlags.SampledImageBit) == 0)
+            throw new NotSupportedException("Device cannot sample RGBA32F lighting data.");
+        float[] data = asset.TextureData();
+        var replacement = VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, 32, (uint)(data.Length / 128),
+            VulkanTextureUsage.ShaderResource | VulkanTextureUsage.TransferDestination, VulkanMemoryUsage.GpuOnly,
+            "solid3d.compiled-diffuse", VulkanTextureFormat.Rgba32Float);
+        try
+        {
+            using var uploader = new Aurelian.Graphics.Vulkan.Resources.Uploads.VulkanTextureUploader(plant, allocator, commandPool, fences);
+            var uploaded = uploader.Upload(new(replacement, MemoryMarshal.AsBytes(data.AsSpan()).ToArray(), "compiled-diffuse"));
+            Require(uploaded.Success, string.Join("; ", uploaded.Diagnostics.Select(item => item.Message)));
+            // Render and uploader wait for their submissions. No previous draw can retain this descriptor/image.
+            Vulkan3DPass.WriteImage(plant, descriptorSet, 3, replacement, shadowSampler);
+            diffuseData?.Dispose();
+            diffuseData = replacement;
+            diffuseAsset = asset;
+            diffusePublished = false;
+            return uploaded.SignalFenceValue!.Value;
+        }
+        catch
+        {
+            replacement.Dispose();
+            throw;
+        }
+    }
+
+    public void PublishStaticDiffuseLighting(bool published) => diffusePublished = published && diffuseAsset is not null;
 
     private void ValidateModernFormats()
     {
@@ -357,7 +418,7 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
             && inputs[0].Location == 0 && inputs[0].PhysicalType == "float3"
             && inputs[1].Location == 1 && inputs[1].PhysicalType == "float3"
             && inputs[2].Location == 2 && inputs[2].PhysicalType == "float4"
-            && program.Resources.Count == 3
+            && program.Resources.Count is 3 or 5
             && program.Resources[0].Set == 0 && program.Resources[0].Binding == 0
             && program.Resources[0].Kind == CompiledGraphicsResourceKind.UniformBuffer
             && program.Resources[0].Visibility.Order().SequenceEqual(new[] { CompiledGraphicsStage.Vertex, CompiledGraphicsStage.Fragment }.Order())
@@ -377,6 +438,9 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         {
             throw new ArgumentException("Solid3D shadow texture/sampler must be fragment-visible bindings 1 and 2.", nameof(program));
         }
+        if (sampled.Length == 4 && (sampled[2].Binding != 3 || sampled[2].Set != 0 || sampled[2].Kind != CompiledGraphicsResourceKind.Texture2D
+            || sampled[3].Binding != 4 || sampled[3].Set != 0 || sampled[3].Kind != CompiledGraphicsResourceKind.Sampler))
+            throw new ArgumentException("Compiled diffuse texture/sampler require bindings 3 and 4.", nameof(program));
     }
 
     public void Dispose()
@@ -407,6 +471,7 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         renderPass?.Dispose();
         depth?.Dispose();
         hdr?.Dispose();
+        diffuseData?.Dispose();
         shadowMap?.Dispose();
         if (shadowSampler.Handle != 0)
         {

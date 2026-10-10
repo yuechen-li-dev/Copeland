@@ -21,8 +21,8 @@ internal static class ConstrainedLightingExpertExperiment
     {
         string contractPath = Path.GetFullPath("tools/Aurelian.GraphicsProof/Assets/LightingFitContract.json");
         string contractKey = Hash(File.ReadAllBytes(contractPath));
-        string compilerKey = Hash(File.ReadAllBytes("tools/Aurelian.GraphicsProof/constrained_lighting_experts.py")
-            .Concat(File.ReadAllBytes("tools/Aurelian.GraphicsProof/local_lighting_experts.py")).ToArray());
+        string compilerKey = Hash(File.ReadAllBytes("src/Aurelian/Aurelian.Assets/Lighting/Authoring/constrained_lighting_experts.py")
+            .Concat(File.ReadAllBytes("src/Aurelian/Aurelian.Assets/Lighting/Authoring/local_lighting_experts.py")).ToArray());
         string trainingKey = Hash(File.ReadAllBytes(Path.Combine(output, "training.bin")));
         string decoderKey = Hash(File.ReadAllBytes("tools/Aurelian.GraphicsProof/Assets/LocalExpertDecoder.v.ts"));
         SceneLocalLightingExpert original = SceneLocalLightingExpert.Load(

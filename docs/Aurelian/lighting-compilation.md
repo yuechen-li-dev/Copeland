@@ -1,5 +1,10 @@
 # Lighting compilation foundations
 
+The subsequent [compiled diffuse lighting slice](compiled-diffuse-lighting.md)
+promotes shared receiver meshes, optional Cycles/USD authoring, validated assets
+and a stable uploaded-data decoder into the ordinary native game path. The
+contracts and controller below remain the owners of policy/publication.
+
 The follow-up [scene lighting expert experiment](scene-lighting-experts.md)
 combines native OpenUSD artifacts, Cycles reference integration and deterministic
 Vulkan decoders with measured Dominatus selection.

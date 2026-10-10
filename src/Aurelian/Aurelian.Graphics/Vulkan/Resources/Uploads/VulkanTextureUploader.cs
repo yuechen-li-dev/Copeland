@@ -14,7 +14,6 @@ namespace Aurelian.Graphics.Vulkan.Resources.Uploads;
 public sealed unsafe class VulkanTextureUploader : IDisposable
 {
     private const ulong UploadWaitTimeoutNanoseconds = 5_000_000_000UL;
-    private const uint M0BytesPerPixel = 4;
 
     private readonly AurelianVulkanPlant plant;
     private readonly IVulkanMemoryAllocator allocator;
@@ -283,15 +282,15 @@ public sealed unsafe class VulkanTextureUploader : IDisposable
                 request.DebugName));
         }
 
-        if (!IsSupportedM0Format(request.Destination.Format))
+        if (!IsSupportedFormat(request.Destination.Format))
         {
             diagnostics.Add(Diagnostic(
                 VulkanTextureUploadDiagnosticCodes.UnsupportedTextureFormat,
-                "Texture upload M0 supports only RGBA-like four-byte color formats.",
+                "Texture upload supports RGBA-like byte formats and RGBA32F data textures.",
                 request.DebugName));
         }
 
-        if (!TryGetExpectedUploadSize(request.Destination.Width, request.Destination.Height, out ulong expectedSize)
+        if (!TryGetExpectedUploadSize(request.Destination.Width, request.Destination.Height, request.Destination.Format, out ulong expectedSize)
             || (ulong)request.RgbaBytes.Length != expectedSize)
         {
             string expected = expectedSize == 0 ? "a representable whole-texture size" : $"expected whole-texture size {expectedSize} bytes";
@@ -380,19 +379,21 @@ public sealed unsafe class VulkanTextureUploader : IDisposable
     private VulkanTextureUploadDiagnostic Diagnostic(string code, string message, string? debugName)
         => new(code, message, PlantId, string.IsNullOrWhiteSpace(debugName) ? null : debugName);
 
-    private static bool IsSupportedM0Format(VulkanTextureFormat format)
-        => format is VulkanTextureFormat.Rgba8Unorm or VulkanTextureFormat.Bgra8Unorm or VulkanTextureFormat.Rgba8Srgb or VulkanTextureFormat.Bgra8Srgb;
+    private static bool IsSupportedFormat(VulkanTextureFormat format)
+        => format is VulkanTextureFormat.Rgba8Unorm or VulkanTextureFormat.Bgra8Unorm or VulkanTextureFormat.Rgba8Srgb
+            or VulkanTextureFormat.Bgra8Srgb or VulkanTextureFormat.Rgba32Float;
 
-    private static bool TryGetExpectedUploadSize(uint width, uint height, out ulong sizeBytes)
+    private static bool TryGetExpectedUploadSize(uint width, uint height, VulkanTextureFormat format, out ulong sizeBytes)
     {
+        uint bytesPerPixel = format == VulkanTextureFormat.Rgba32Float ? 16u : 4u;
         ulong pixels = (ulong)width * height;
-        if (pixels > ulong.MaxValue / M0BytesPerPixel)
+        if (pixels > ulong.MaxValue / bytesPerPixel)
         {
             sizeBytes = 0;
             return false;
         }
 
-        sizeBytes = pixels * M0BytesPerPixel;
+        sizeBytes = pixels * bytesPerPixel;
         return true;
     }
 

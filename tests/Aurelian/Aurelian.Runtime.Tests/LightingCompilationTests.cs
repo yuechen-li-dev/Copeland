@@ -12,6 +12,28 @@ public sealed class LightingCompilationTests
     private static readonly LightingScheduleBudget Budget = new(1000, 10);
 
     [Fact]
+    public void Explicit_invalidation_withdraws_immediately_and_requires_a_new_target_before_resubmission()
+    {
+        var submissions = new List<LightingBakeTicket>();
+        var controller = Controller(submissions);
+        controller.SetTarget(Plan());
+        controller.Tick([Plant], [], Budget);
+        var previous = Assert.Single(submissions);
+        controller.Tick([Plant], [new(previous, true, true, 1)], Budget);
+        controller.Invalidate("floor", "StaticMaterialChanged");
+        Assert.Null(controller.Observe("floor").Published);
+        for (int tick = 0; tick < 3; tick++)
+            controller.Tick([Plant], [new(previous, true, true, 1)], Budget);
+        Assert.Single(submissions);
+        Assert.Equal("StaticMaterialChanged", controller.Observe("floor").Reason);
+        controller.SetTarget(Plan());
+        controller.Tick([Plant], [], Budget);
+        Assert.Equal(2, submissions.Count);
+        Assert.True(submissions[1].Generation > previous.Generation);
+        Assert.Null(controller.Observe("floor").Published);
+    }
+
+    [Fact]
     public void Baked_dependencies_change_keys_and_runtime_coefficients_do_not()
     {
         LightingCompilation first = Plan();

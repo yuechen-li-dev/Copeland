@@ -2,6 +2,8 @@ import sys
 import unittest
 
 sys.dont_write_bytecode = True
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src/Aurelian/Aurelian.Assets/Lighting/Authoring"))
 
 import numpy as np
 

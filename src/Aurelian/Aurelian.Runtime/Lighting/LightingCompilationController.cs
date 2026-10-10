@@ -49,8 +49,9 @@ public sealed class LightingCompilationController
         ArgumentNullException.ThrowIfNull(compilation);
         if (jobs.TryGetValue(compilation.Id, out Job? existing))
         {
-            if (existing.Compilation.ContentKey != compilation.ContentKey)
+            if (existing.Invalidated || existing.Compilation.ContentKey != compilation.ContentKey)
             {
+                existing.Invalidated = false;
                 existing.Compilation = compilation;
                 existing.Generation++;
                 existing.Published = null;
@@ -105,6 +106,19 @@ public sealed class LightingCompilationController
             job.Agent.Bb.GetOrDefault(ReasonKey, "NotTicked"), job.Published);
     }
 
+    /// <summary>Withdraw immediately when the host knows that static inputs or asset validity changed.</summary>
+    public void Invalidate(string id, string reason)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        Job job = jobs[id];
+        job.Invalidated = true;
+        job.Generation++;
+        job.Published = null;
+        job.Agent!.Bb.Set(GenerationKey, job.Generation);
+        job.Agent.Bb.Set(ReasonKey, reason);
+        job.InvalidationReason = reason;
+    }
+
     private IEnumerator<AiStep> Run(Job job, string phase, AiCtx context)
     {
         while (true)
@@ -124,6 +138,12 @@ public sealed class LightingCompilationController
 
     private string Update(Job job, string phase, AiCtx context)
     {
+        if (job.Invalidated)
+        {
+            job.Pending = null;
+            context.Agent.Bb.Set(ReasonKey, job.InvalidationReason);
+            return "Dirty";
+        }
         if (phase != "Dirty" && job.SubmittedGeneration != job.Generation)
         {
             job.Pending = null;
@@ -208,6 +228,8 @@ public sealed class LightingCompilationController
         public long SubmittedGeneration { get; set; }
         public LightingBakeTicket? Pending { get; set; }
         public LightingBakeTicket? Published { get; set; }
+        public bool Invalidated { get; set; }
+        public string InvalidationReason { get; set; } = "StaticInputsChanged";
         public global::Dominatus.Core.Runtime.AiAgent? Agent { get; set; }
     }
 }

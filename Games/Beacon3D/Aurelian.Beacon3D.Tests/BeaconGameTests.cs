@@ -150,8 +150,10 @@ public sealed class BeaconGameTests
     private static VdMirGraphicsModule Compile(string source)
     {
         string lighting = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Assets", "Lighting3D.v.ts"));
+        string compiledDiffuse = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Assets", "CompiledDiffuseLighting.v.ts"));
         return GpuGraphicsBinder.Compile(new GpuCompilationRequest([
-            new GpuSourceFile("Solid3D.v.ts", source), new GpuSourceFile("Lighting3D.v.ts", lighting)]));
+            new GpuSourceFile("Solid3D.v.ts", source), new GpuSourceFile("Lighting3D.v.ts", lighting),
+            new GpuSourceFile("CompiledDiffuseLighting.v.ts", compiledDiffuse)]));
     }
 
     private static void Walk(BeaconGame game, BeaconInput input, int ticks)

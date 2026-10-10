@@ -14,6 +14,7 @@
     <Content Include="../../../tools/Aurelian.GraphicsProof/Assets/*.v.ts" Link="Assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/RayQuery.v.ts" Link="Assets/RayQuery.v.ts" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/Lighting3D.v.ts" Link="Assets/Lighting3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/CompiledDiffuseLighting.v.ts" Link="Assets/CompiledDiffuseLighting.v.ts" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/ShadowDistanceField.v.ts" Link="Assets/ShadowDistanceField.v.ts" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/Solid3D.v.ts" Link="Assets/Solid3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/Shadow3D.v.ts" Link="Assets/Shadow3D.v.ts" CopyToOutputDirectory="PreserveNewest" />

@@ -54,6 +54,11 @@ def convex_hull(points):
 def geometry_planes(bodies):
     occluder = body_bounds(bodies, "blue-block")
     lamp = body_bounds(bodies, "lamp")
+    return box_projection_planes(occluder, lamp)
+
+
+def box_projection_planes(occluder, lamp):
+    """Candidate split planes from explicit bounds in the canonical receiver domain."""
     cuts = []
 
     def add(a, b, c):

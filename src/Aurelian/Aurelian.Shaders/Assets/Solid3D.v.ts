@@ -1,4 +1,5 @@
 import { Unit, Sub3, ShadowVisibility, Dot3, Scale3, Mul3, DirectLight, HemisphereLight, Add3 } from "./Lighting3D";
+import { CompiledDiffuse } from "./CompiledDiffuseLighting";
 
 @space(world.position)
 type WorldPosition3 = float3;
@@ -35,6 +36,8 @@ stream CameraResources {
 stream SolidShadowResources {
     @binding(1) shadowMap: Texture2D<float4>;
     @binding(2) shadowSampler: Sampler;
+    @binding(3) diffuseData: Texture2D<float4>;
+    @binding(4) diffuseSampler: Sampler;
 }
 stream SolidVaryings {
     @builtin(position) position: ClipPosition4;
@@ -81,6 +84,18 @@ function ShadeSolid(input: SolidVaryings, resources: CameraResources, shadows: S
     const visibility: f32 = ShadowVisibility(shadows.shadowMap, shadows.shadowSampler, projected,
         resources.camera.shadowParameters, Max(Dot3(normal, light), 0.0));
     const base: float3 = float3(input.color.x, input.color.y, input.color.z);
+    // surface.w enables a validated static receiver; sky.w is the static-emitter basis coefficient.
+    if (resources.camera.surface.w > 0.5 && resources.camera.surface.y == 0.0) {
+        let response: float4 = CompiledDiffuse(shadows.diffuseData, shadows.diffuseSampler, input.world, normal,
+            resources.camera.sun.w, resources.camera.sky.w, float3(resources.camera.sun.x, resources.camera.sun.y, resources.camera.sun.z));
+        if (response.w > 0.5) {
+            let sunlight: float3 = Scale3(Mul3(base, float3(resources.camera.sun.x, resources.camera.sun.y, resources.camera.sun.z)),
+                Max(Dot3(normal, light), 0.0) * resources.camera.sun.w * visibility / 3.14159265);
+            let baked: float3 = Mul3(base, float3(response.x, response.y, response.z));
+            let radiance: float3 = Add3(sunlight, baked);
+            return float4(radiance.x, radiance.y, radiance.z, 1.0);
+        }
+    }
     const direct: float3 = Scale3(Mul3(DirectLight(base, normal, view, light, resources.camera.surface.y, resources.camera.surface.x),
         float3(resources.camera.sun.x, resources.camera.sun.y, resources.camera.sun.z)), resources.camera.sun.w * visibility);
     const ambient: float3 = HemisphereLight(base, normal, view, float3(resources.camera.sky.x, resources.camera.sky.y, resources.camera.sky.z),

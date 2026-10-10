@@ -10,6 +10,8 @@ namespace Aurelian.Games;
 /// <summary>Explicit built-in assets and compiled-program cache; no repository paths at runtime.</summary>
 public sealed class GameAssets
 {
+    public Aurelian.Rendering.Contracts.Lighting.StaticDiffuseLighting Lighting(string path, string sceneKey) =>
+        Aurelian.Assets.Lighting.StaticDiffuseLightingAsset.Load(path, sceneKey);
     private readonly Dictionary<string, CompiledGraphicsProgram> programs = new(StringComparer.Ordinal);
     private readonly Dictionary<string, byte[]> computePrograms = new(StringComparer.Ordinal);
 

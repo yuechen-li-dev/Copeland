@@ -43,6 +43,7 @@ internal static class BeaconScene
                     new(0.81f, 0.64f, 0.35f, 1), at: new(0, pillar.Height + 0.08f, 0), collision: SceneCollision.Solid),
             ], at: new(pillar.Center.X, 0, pillar.Center.Y)));
         }
+        children.Add(Scene.Box("lamp", new(3, .12f, 1.5f), new(1, .8f, .45f, 1), at: new(.5f, 6, -3)));
         return Scene.World("beacon-arena", children);
     }
 

@@ -15,4 +15,7 @@
     <ProjectReference Include="../Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />
     <ProjectReference Include="../Aurelian.Shaders/Aurelian.Shaders.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Lighting/Authoring/*.py" LogicalName="Aurelian.Lighting.Authoring.%(Filename)%(Extension)" />
+  </ItemGroup>
 </Project>

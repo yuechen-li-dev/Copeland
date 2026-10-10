@@ -8,7 +8,7 @@ namespace Aurelian.Shaders.Tests;
 public sealed class GraphicsStarterShaderTests
 {
     [Theory]
-    [InlineData("Solid3D.v.ts", 240, 3)]
+    [InlineData("Solid3D.v.ts", 240, 5)]
     [InlineData("Shadow3D.v.ts", 64, 1)]
     [InlineData("ToneMap3D.v.ts", 16, 3)]
     public void StarterPassesCompileToValidatedSpirvWithTheirResourceContracts(string name, int uniformBytes, int resourceCount)
@@ -17,6 +17,12 @@ public sealed class GraphicsStarterShaderTests
         if (name == "Solid3D.v.ts")
         {
             sources.Add(Read("Lighting3D.v.ts"));
+            sources.Add(Read("CompiledDiffuseLighting.v.ts"));
+        }
+        foreach (var source in sources)
+        {
+            var syntax = Copeland.TS.Syntax.SyntaxTree.Parse(source.Source, source.Path);
+            Assert.True(syntax.Diagnostics.Count == 0, string.Join("; ", syntax.Diagnostics.Select(item => item.Message + " at " + item.Position)));
         }
         var module = GpuGraphicsBinder.Compile(new(sources));
         Assert.True(module.Success, string.Join("; ", module.Diagnostics.Select(item => item.Message)));

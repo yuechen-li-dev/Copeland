@@ -8,6 +8,7 @@ Aurelian owns the engine lifecycle, world and game-object models, actuation, fra
 - [Blender/GLB static assets, typed materials and explicit replacement](static-assets.md)
 - [Agent-driven humanoid clips and Vulkan compute skinning](humanoid-animation.md)
 - [Lighting compilation contracts, controller and Vulkan cache experiments](lighting-compilation.md)
+- [Engine-owned compiled diffuse assets, authoring and native game loading](compiled-diffuse-lighting.md)
 - [OpenUSD scene lighting experts and measured Dominatus selection](scene-lighting-experts.md)
 - [Geometry-guided local lighting experts and boundary/seam measurements](local-lighting-experts.md)
 - [Authored continuity constraints, native USD compilation and measured accuracy tradeoffs](constrained-lighting-experts.md)

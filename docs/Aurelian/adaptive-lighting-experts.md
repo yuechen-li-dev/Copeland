@@ -1,5 +1,10 @@
 # Fixed-budget adaptive lighting receiver refinement
 
+The [compiled diffuse lighting slice](compiled-diffuse-lighting.md) now owns the
+shared numerical implementation under `Aurelian.Assets/Lighting/Authoring` and
+the shared CPU mesh contract. This research harness continues to import that
+implementation for its controlled comparisons.
+
 The [shared-boundary experiment](continuous-lighting-experts.md) found that
 quadratic boundary values supplied most of the improvement. This follow-up
 spends a fixed numeric payload on conforming edge refinement, chosen from
