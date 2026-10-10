@@ -21,7 +21,8 @@ record StaticModelMaterial {
     light: float4;
     sun: float4;
     sky: float4;
-    ground: float4;
+    // RGB diffusion weight, world-space support radius. Shared lighting owns ambient radiance.
+    subsurfaceProfile: float4;
     shadowX: float4;
     shadowY: float4;
     shadowZ: float4;
@@ -74,6 +75,7 @@ stream ModelOutput {
     @target(1) motion: float4;
     @target(2) normal: float4;
     @target(3) emission: float4;
+    @target(4) subsurface: float4;
 }
 
 function Row(row: float4, p: WorldPosition3): f32 {
@@ -130,5 +132,6 @@ function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources:
         motion: TemporalProjection(input.currentClip, input.previousClip),
         normal: float4(normal.x, normal.y, normal.z, metallic),
         emission: float4(emitted.x, emitted.y, emitted.z, occlusion),
+        subsurface: uniforms.material.subsurfaceProfile,
     };
 }

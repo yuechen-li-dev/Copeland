@@ -21,6 +21,11 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 
 string defaultOutput = "artifacts/local/graphics-starter";
+if (args.Contains("--presentation-graphics", StringComparer.Ordinal))
+{
+    PresentationGraphicsProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/presentation-graphics"));
+    return;
+}
 if (args.Contains("--compile-environment", StringComparer.Ordinal))
 {
     string hdr = Option("--hdr") ?? throw new ArgumentException("--compile-environment requires --hdr <source.hdr>.");

@@ -181,7 +181,14 @@ internal static class PerspectiveTemporalProof
                 outputProgram: assets.Shader("ToneMap3D.v.ts"),
                 temporalProgram: temporalEnabled ? assets.Shader("TemporalResolve3D.v.ts") : null,
                 surfacePrograms: new(assets.Shader("SurfaceResolve3D.v.ts"), assets.Shader("AmbientOcclusion3D.v.ts"),
-                    assets.Shader("AmbientDenoise3D.v.ts"), assets.Shader("LightTiles3D.v.ts")));
+                    assets.Shader("AmbientDenoise3D.v.ts"), assets.Shader("LightTiles3D.v.ts"))
+                {
+                    HeightFog = assets.Shader("HeightFog3D.v.ts"),
+                    SubsurfaceDiffuse = assets.Shader("SubsurfaceDiffuse3D.v.ts"),
+                    SubsurfaceMerge = assets.Shader("SubsurfaceMerge3D.v.ts"),
+                    TransparentModel = assets.Shader("TransparentModel3D.v.ts"),
+                    TransparencyResolve = assets.Shader("TransparencyResolve3D.v.ts"),
+                });
         }
     }
 

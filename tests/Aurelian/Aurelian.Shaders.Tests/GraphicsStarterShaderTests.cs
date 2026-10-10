@@ -15,7 +15,12 @@ public sealed class GraphicsStarterShaderTests
     [InlineData("Bloom3D.v.ts", 32, 5)]
     [InlineData("SurfaceSolid3D.v.ts", 304, 1)]
     [InlineData("SurfaceModel3D.v.ts", 352, 11)]
-    [InlineData("SurfaceResolve3D.v.ts", 448, 25)]
+    [InlineData("SurfaceResolve3D.v.ts", 624, 31)]
+    [InlineData("HeightFog3D.v.ts", 112, 5)]
+    [InlineData("SubsurfaceDiffuse3D.v.ts", 80, 9)]
+    [InlineData("SubsurfaceMerge3D.v.ts", 16, 9)]
+    [InlineData("TransparencyResolve3D.v.ts", 16, 7)]
+    [InlineData("TransparentModel3D.v.ts", 688, 27)]
     [InlineData("AmbientOcclusion3D.v.ts", 80, 5)]
     [InlineData("AmbientDenoise3D.v.ts", 96, 5)]
     [InlineData("LightTiles3D.v.ts", 80, 3)]
@@ -53,6 +58,20 @@ public sealed class GraphicsStarterShaderTests
         var module = GpuGraphicsBinder.Compile(new([source with
         {
             Source = source.Source.Replace("Pow(x, 1.0 / 2.4)", "Pow(float2(x, x), 1.0 / 2.4)", StringComparison.Ordinal),
+        }]));
+        Assert.False(module.Success);
+        Assert.Contains(module.Diagnostics, item => item.Code == "COPE-GPU-MATH-0001");
+    }
+
+    [Theory]
+    [InlineData("Exp")]
+    [InlineData("Log")]
+    public void ExtinctionIntrinsicsRejectVectorArguments(string intrinsic)
+    {
+        GpuSourceFile source = Read("TransparencyResolve3D.v.ts");
+        var module = GpuGraphicsBinder.Compile(new([source with
+        {
+            Source = source.Source.Replace("Exp(-optical.x)", $"{intrinsic}(float2(optical.x, optical.x))", StringComparison.Ordinal),
         }]));
         Assert.False(module.Success);
         Assert.Contains(module.Diagnostics, item => item.Code == "COPE-GPU-MATH-0001");

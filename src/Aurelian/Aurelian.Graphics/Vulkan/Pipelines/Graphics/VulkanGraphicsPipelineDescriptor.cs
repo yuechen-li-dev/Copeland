@@ -6,4 +6,7 @@ public sealed record VulkanGraphicsPipelineDescriptor(
     IReadOnlyList<VulkanVertexAttributeDescriptor> VertexAttributes,
     bool EnableDepthTest = false,
     bool EnableDepthWrite = false,
-    bool EnableStraightAlphaBlend = false);
+    bool EnableStraightAlphaBlend = false)
+{
+    public bool EnableAdditiveBlend { get; init; }
+}

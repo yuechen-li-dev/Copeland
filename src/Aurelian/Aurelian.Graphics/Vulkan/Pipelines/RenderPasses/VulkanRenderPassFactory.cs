@@ -18,6 +18,21 @@ public static unsafe class VulkanRenderPassFactory
         PlantId plantId = plant.Context.Id;
         List<VulkanRenderPassDiagnostic> diagnostics = [];
         Validate(plantId, descriptor, diagnostics);
+        if (descriptor.ColorAttachments is null)
+        {
+            return new VulkanRenderPassCreateResult(VulkanRenderPassStatus.Rejected, null, diagnostics);
+        }
+        if (plant.Device.Handle != 0)
+        {
+            plant.Vk.GetPhysicalDeviceProperties(plant.PhysicalDevice, out PhysicalDeviceProperties properties);
+            if (descriptor.ColorAttachments.Count > properties.Limits.MaxColorAttachments)
+            {
+                diagnostics.Add(new VulkanRenderPassDiagnostic(
+                    VulkanRenderPassDiagnosticCodes.MultipleColorAttachmentsUnsupported,
+                    VulkanRenderPassDiagnosticSeverity.Error,
+                    $"Device supports at most {properties.Limits.MaxColorAttachments} color attachments.", plantId));
+            }
+        }
         if (plant.Device.Handle == 0)
         {
             diagnostics.Add(new VulkanRenderPassDiagnostic(
@@ -188,12 +203,12 @@ public static unsafe class VulkanRenderPassFactory
             return;
         }
 
-        if (descriptor.ColorAttachments.Count > 4)
+        if (descriptor.ColorAttachments.Count > 8)
         {
             diagnostics.Add(new VulkanRenderPassDiagnostic(
                 VulkanRenderPassDiagnosticCodes.MultipleColorAttachmentsUnsupported,
                 VulkanRenderPassDiagnosticSeverity.Error,
-                "Render pass supports up to four color attachments.",
+                "Render pass supports up to eight color attachments.",
                 plantId));
         }
 

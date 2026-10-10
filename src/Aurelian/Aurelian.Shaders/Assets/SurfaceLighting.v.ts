@@ -51,6 +51,13 @@ export function EnvironmentResponse(map: Texture2D<float4>, sampler: Sampler, ba
         (1.0 - energy.y) * (1.0 - metallic), (1.0 - energy.z) * (1.0 - metallic));
     return Add3(Mul3(Mul3(base, diffuse), kd), Mul3(specular, energy));
 }
+export function EnvironmentDiffuse(map: Texture2D<float4>, sampler: Sampler, base: float3,
+    normal: float3, nv: f32, roughness: f32): float3 {
+    const diffuse: float3 = Band(map, sampler, EncodeOcta(normal), 6.0);
+    const dfg: float3 = Band(map, sampler, float2(nv, roughness), 7.0);
+    const energy: f32 = 0.04 * dfg.x + dfg.y;
+    return Scale3(Mul3(base, diffuse), 1.0 - energy);
+}
 export function WorldAt(uv: float2, depth: f32, x: float4, y: float4, z: float4, w: float4): float3 {
     const p: float4 = float4(uv.x * 2.0 - 1.0, uv.y * 2.0 - 1.0, depth, 1.0);
     const divisor: f32 = w.x * p.x + w.y * p.y + w.z * p.z + w.w;

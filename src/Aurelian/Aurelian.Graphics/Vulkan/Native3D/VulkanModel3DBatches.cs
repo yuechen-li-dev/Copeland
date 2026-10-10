@@ -40,8 +40,13 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
     private readonly bool temporal;
     private readonly int uniformBytes;
     private readonly bool surfaceOnly;
+    private readonly bool transparent;
+    private readonly int resourceCount;
+    private AurelianVulkanTexture[] additionalInputs = [];
+    private float[] additionalUniforms = [];
     private readonly AurelianVulkanTexture shadowMap;
     private readonly Sampler shadowSampler;
+    private readonly Sampler? environmentSampler;
     private bool disposed;
     private static readonly ModelSampler DefaultSampler = new();
     private static readonly ModelTexture White = new("builtin-white", 1, 1, ImmutableArray.Create<byte>(255, 255, 255, 255));
@@ -50,11 +55,14 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
     private sealed record Surface(AurelianVulkanBuffer Uniform, DescriptorPool Pool, DescriptorSet Set);
 
     public VulkanModel3DBatches(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
-        VulkanCommandBufferPool pool, VulkanFenceBundle fences, AurelianVulkanRenderPass pass, CompiledGraphicsProgram program, AurelianVulkanTexture shadowMap, Sampler shadowSampler)
+        VulkanCommandBufferPool pool, VulkanFenceBundle fences, AurelianVulkanRenderPass pass, CompiledGraphicsProgram program,
+        AurelianVulkanTexture shadowMap, Sampler shadowSampler, bool weightedTransparency = false)
     {
-        Validate(program);
+        Validate(program, weightedTransparency);
         temporal = program.VertexInputs.Count == 6;
-        surfaceOnly = program.PixelTargets.Count == 4;
+        surfaceOnly = program.PixelTargets.Count == 5;
+        transparent = weightedTransparency;
+        resourceCount = program.Resources.Count;
         uniformBytes = program.Material!.Size;
         this.plant = plant;
         this.allocator = allocator;
@@ -65,15 +73,17 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
         this.fences = fences;
         try
         {
+            if (transparent)
+                environmentSampler = Vulkan3DPass.CreateSampler(plant, Filter.Linear);
             layout = VulkanNativeForwardTexturedRenderer.CreateDescriptorSetLayout(plant, program);
             var descriptor = VulkanCompiledGraphicsPipelineDescriptorFactory.CreateDescriptor(program.Shaders,
                 temporal ? [new(0, 64), new(1, 64)] : [new VulkanVertexBufferLayoutDescriptor(0, 64)],
                 [new(0, 0, VulkanVertexAttributeFormat.Float3, 0), new(1, 0, VulkanVertexAttributeFormat.Float3, 12),
                     new(2, 0, VulkanVertexAttributeFormat.Float4, 24), new(3, 0, VulkanVertexAttributeFormat.Float2, 40),
                     new(4, 0, VulkanVertexAttributeFormat.Float4, 48),
-                    .. temporal ? new VulkanVertexAttributeDescriptor[] { new(5, 1, VulkanVertexAttributeFormat.Float3, 0) } : []], enableDepthTest: true, enableDepthWrite: true);
+                    .. temporal ? new VulkanVertexAttributeDescriptor[] { new(5, 1, VulkanVertexAttributeFormat.Float3, 0) } : []], enableDepthTest: !transparent, enableDepthWrite: !transparent);
             Require(descriptor.Success, "Static model pipeline descriptor rejected.");
-            var result = VulkanGraphicsPipelineFactory.Create(plant, pass, descriptor.Descriptor!, [layout]);
+            var result = VulkanGraphicsPipelineFactory.Create(plant, pass, descriptor.Descriptor! with { EnableAdditiveBlend = transparent }, [layout]);
             Require(result.Success, string.Join("; ", result.Diagnostics.Select(item => item.Message)));
             pipeline = result.Pipeline!;
         }
@@ -84,10 +94,23 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
         }
     }
 
+    public void ConfigureTransparency(float[] values, AurelianVulkanTexture[] inputs)
+    {
+        if (!transparent || values.Length != 100 || inputs.Length != 8)
+            throw new ArgumentException("Transparent frame uniforms must match the shared surface lighting ABI.");
+        additionalUniforms = values;
+        additionalInputs = inputs;
+    }
+
     public void Prepare(StaticModel model)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
-        foreach (ModelMaterial material in model.Occurrences.Select(item => item.Primitive.Material).Distinct()) GetSurface(material);
+        foreach (ModelMaterial material in model.Occurrences.Select(item => item.Primitive.Material).Distinct())
+        {
+            if (surfaceOnly && material.AlphaBlend || transparent && !material.AlphaBlend)
+                continue;
+            GetSurface(material);
+        }
     }
 
     public void Upload(IReadOnlyList<NativeModel3DBatch> batches, Matrix4x4 clip, Vector3 eye, float[] lighting, Matrix4x4 previousClip, bool resetHistory)
@@ -117,7 +140,23 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
                 m.Metallic, m.Roughness, m.NormalTexture is null ? 0 : m.NormalScale, m.OcclusionStrength,
                 m.Emissive.X, m.Emissive.Y, m.Emissive.Z, m.AlphaCutoff,
                 m.Unlit ? 1 : 0, m.AlphaMask ? 1 : 0, m.DoubleSided ? 1 : 0, 0, .. lighting,
-                .. temporal ? Lighting3DUniforms.Rows(previousClip) : []];
+                .. temporal ? Lighting3DUniforms.Rows(previousClip) : [], .. additionalUniforms];
+            if (surfaceOnly)
+            {
+                // SurfaceModel has an explicit profile in the same packed slot
+                // that forward-only shaders use for ground ambient radiance.
+                data[48] = m.SubsurfaceColor.X * m.SubsurfaceStrength;
+                data[49] = m.SubsurfaceColor.Y * m.SubsurfaceStrength;
+                data[50] = m.SubsurfaceColor.Z * m.SubsurfaceStrength;
+                data[51] = m.SubsurfaceStrength > 0 ? m.SubsurfaceRadius : 0;
+            }
+            if (!surfaceOnly && !transparent && (m.AlphaBlend || m.SubsurfaceStrength > 0))
+                throw new InvalidOperationException("Blend and subsurface materials require the shared surface renderer.");
+            if (transparent)
+            {
+                for (int index = 0; index < additionalInputs.Length; index++)
+                    Vulkan3DPass.WriteImage(plant, surface.Set, (uint)(11 + index * 2), additionalInputs[index], index == 1 ? environmentSampler!.Value : shadowSampler);
+            }
             if (data.Any(value => !float.IsFinite(value))) throw new InvalidDataException("Model camera and factors must be finite.");
             Require(surface.Uniform.Write(MemoryMarshal.AsBytes(data.AsSpan())).Success, "Model uniform upload failed.");
         }
@@ -155,6 +194,11 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
         uint first = 0;
         foreach (NativeModel3DBatch batch in batches)
         {
+            if (batch.Material.AlphaBlend != transparent)
+            {
+                first += (uint)batch.Vertices.Length;
+                continue;
+            }
             DescriptorSet set = surfaces[batch.Material].Set;
             plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Graphics,
                 pipeline.NativePipelineLayout, 0, 1, &set, 0, null);
@@ -173,7 +217,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
         foreach (NativeModel3DBatch batch in batches)
         {
             // Cutout silhouettes need a material-aware shadow shader; do not cast an incorrect solid shadow.
-            if (!batch.Material.AlphaMask)
+            if (!batch.Material.AlphaMask && !batch.Material.AlphaBlend)
             {
                 pass.Draw(command, scope, vertices!, (uint)batch.Vertices.Length, model: true, first: first);
             }
@@ -185,6 +229,8 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
     {
         if (surfaces.TryGetValue(material, out Surface? found)) return found;
         material.Validate();
+        if (!surfaceOnly && !transparent && (material.AlphaBlend || material.SubsurfaceStrength > 0))
+            throw new NotSupportedException("Blend and subsurface materials require the shared surface renderer.");
         ModelTextureBinding?[] channels = material.Textures().ToArray();
         var images = new AurelianVulkanTexture[5];
         var filters = new Sampler[5];
@@ -227,8 +273,8 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
             DescriptorPoolSize* sizes = stackalloc DescriptorPoolSize[3]
             {
                 new(DescriptorType.UniformBuffer, 1),
-                new(DescriptorType.SampledImage, 6),
-                new(DescriptorType.Sampler, 6),
+                new(DescriptorType.SampledImage, (uint)((resourceCount - 1) / 2)),
+                new(DescriptorType.Sampler, (uint)((resourceCount - 1) / 2)),
             };
             DescriptorPoolCreateInfo info = new()
             {
@@ -283,7 +329,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
                 };
                 plant.Vk.UpdateDescriptorSets(plant.Device, 2, writes, 0, null);
             }
-            if (!surfaceOnly)
+            if (!surfaceOnly && !transparent)
             {
                 Vulkan3DPass.WriteImage(plant, set, 11, shadowMap, shadowSampler);
             }
@@ -364,10 +410,11 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
         _ => SamplerAddressMode.Repeat,
     };
 
-    private static void Validate(CompiledGraphicsProgram program)
+    private static void Validate(CompiledGraphicsProgram program, bool transparent)
     {
         string[] fields = ["clipX", "clipY", "clipZ", "clipW", "eye", "baseColor", "factors", "emissiveAlpha", "flags", "light", "sun", "sky", "ground",
             "shadowX", "shadowY", "shadowZ", "shadowW", "shadowParameters"];
+        if (program.PixelTargets.Count == 5) fields[12] = "subsurfaceProfile";
         string[] inputs = ["float3", "float3", "float4", "float2", "float4"];
         bool temporal = program.VertexInputs.Count == 6;
         if (temporal)
@@ -375,13 +422,21 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
             fields = [.. fields, "previousX", "previousY", "previousZ", "previousW"];
             inputs = [.. inputs, "float3"];
         }
+        if (transparent)
+        {
+            fields = [.. fields, "cascadeMidX", "cascadeMidY", "cascadeMidZ", "cascadeMidW",
+                "cascadeFarX", "cascadeFarY", "cascadeFarZ", "cascadeFarW", "cascadeEnds", "cascadeForward", "cascadeBias",
+                "environmentParameters", "probePosition", "probeBounds", "fogParameters", "fogColor", "surfaceTexels",
+                "spotAX", "spotAY", "spotAZ", "spotAW", "spotBX", "spotBY", "spotBZ", "spotBW"];
+        }
         bool valid = program.Material is { Binding: 0, Set: 0 } material && material.Size == fields.Length * 16
+            && (transparent ? program.PixelTargets.Count == 2 : program.PixelTargets.Count is 1 or 2 or 5)
             && material.Fields.Select(item => item.Name).SequenceEqual(fields)
             && material.Fields.All(item => item.PhysicalType == "float4")
             && material.Fields.Select(item => item.Offset).SequenceEqual(Enumerable.Range(0, fields.Length).Select(index => index * 16))
             && program.VertexInputs.OrderBy(item => item.Location).Select(item => item.PhysicalType).SequenceEqual(inputs)
             && program.VertexInputs.Select(item => item.Location).Order().SequenceEqual(Enumerable.Range(0, inputs.Length))
-            && program.Resources.Count == (program.PixelTargets.Count == 4 ? 11 : 13);
+            && program.Resources.Count == (transparent ? 27 : program.PixelTargets.Count == 5 ? 11 : 13);
         foreach (CompiledGraphicsResource resource in program.Resources)
         {
             CompiledGraphicsResourceKind kind = CompiledGraphicsResourceKind.Sampler;
@@ -389,13 +444,21 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
                 kind = CompiledGraphicsResourceKind.UniformBuffer;
             else if (resource.Binding % 2 == 1)
                 kind = CompiledGraphicsResourceKind.Texture2D;
-            valid &= resource.Set == 0 && resource.Binding is >= 0 and <= 12 && resource.Kind == kind;
+            valid &= resource.Set == 0 && resource.Binding >= 0 && resource.Binding < program.Resources.Count && resource.Kind == kind;
             CompiledGraphicsStage[] visibility = resource.Binding == 0
                 ? [CompiledGraphicsStage.Vertex, CompiledGraphicsStage.Fragment] : [CompiledGraphicsStage.Fragment];
             valid &= resource.Visibility.Order().SequenceEqual(visibility.Order());
         }
         valid &= program.Resources.Select(item => item.Binding).Order().SequenceEqual(Enumerable.Range(0, program.Resources.Count));
-        if (!valid) throw new ArgumentException("StaticModel3D requires packed material uniforms, matching vertex streams and contiguous material bindings (eleven for surfaces, thirteen for forward lighting).", nameof(program));
+        if (!valid)
+        {
+            string actualFields = string.Join(", ", program.Material?.Fields.Select(field => field.Name) ?? []);
+            string actualResources = string.Join(", ", program.Resources.Select(resource =>
+                $"{resource.Binding}:{resource.Kind}:{string.Join('/', resource.Visibility)}"));
+            string actualInputs = string.Join(", ", program.VertexInputs.Select(input => $"{input.Location}:{input.PhysicalType}"));
+            throw new ArgumentException($"Model shader ABI mismatch: {program.Material?.Size} bytes; fields [{actualFields}]; "
+                + $"inputs [{actualInputs}]; resources [{actualResources}]. Expected packed material uniforms and contiguous bindings.", nameof(program));
+        }
     }
 
     public void Dispose()
@@ -403,6 +466,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
         if (disposed) return;
         disposed = true;
         pipeline?.Dispose();
+        if (environmentSampler.HasValue) plant.Vk.DestroySampler(plant.Device, environmentSampler.Value, null);
         foreach (Surface surface in surfaces.Values)
         {
             plant.Vk.DestroyDescriptorPool(plant.Device, surface.Pool, null);

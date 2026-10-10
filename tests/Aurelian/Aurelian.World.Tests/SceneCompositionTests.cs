@@ -8,6 +8,23 @@ namespace Aurelian.World.Tests;
 public sealed class SceneCompositionTests
 {
     [Fact]
+    public void PresentationMaterialChangesInvalidateSceneIdentity()
+    {
+        var material = new Aurelian.Rendering.Contracts.Models.ModelMaterial("wax") { Metallic = 0 };
+        string Identity(Aurelian.Rendering.Contracts.Models.ModelMaterial value)
+        {
+            return SceneCompiler.Compile(Scene.World("room", [
+                Scene.Box("object", Vector3.One, Vector4.One) with { Material = value },
+            ])).ContentIdentity;
+        }
+        string original = Identity(material);
+        Assert.NotEqual(original, Identity(material with { AlphaBlend = true }));
+        Assert.NotEqual(original, Identity(material with { SubsurfaceStrength = .5f }));
+        Assert.NotEqual(original, Identity(material with { SubsurfaceRadius = .1f }));
+        Assert.NotEqual(original, Identity(material with { SubsurfaceColor = new(.4f) }));
+    }
+
+    [Fact]
     public void ReusedFragmentsCreateScopedIdentitiesAndIndependentMutableState()
     {
         var definition = new TestDefinition(4);

@@ -154,11 +154,11 @@ public static unsafe class VulkanFramebufferFactory
             return;
         }
 
-        if (attachments.Count > 4)
+        if (attachments.Count > 8)
         {
             diagnostics.Add(Diagnostic(
                 VulkanFramebufferDiagnosticCodes.MultipleColorAttachmentsUnsupported,
-                "Framebuffer supports up to four color attachments.",
+                "Framebuffer supports up to eight color attachments.",
                 plantId));
         }
 

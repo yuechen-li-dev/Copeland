@@ -9,6 +9,12 @@ public enum AntiAliasing3D
     Temporal,
 }
 
+public enum SurfaceDebugView3D
+{
+    Shaded,
+    AmbientOcclusion,
+}
+
 public sealed record Graphics3DSettings
 {
     public static Graphics3DSettings Default { get; } = new();
@@ -21,6 +27,7 @@ public sealed record Graphics3DSettings
     public float BloomKnee { get; init; } = .5f;
     public float AmbientOcclusionStrength { get; init; }
     public float AmbientOcclusionRadius { get; init; } = .8f;
+    public SurfaceDebugView3D SurfaceDebugView { get; init; }
     public float EnvironmentIntensity { get; init; } = 1;
     public bool LocalLightCulling { get; init; } = true;
     public int LocalShadowBudget { get; init; } = 2;
@@ -37,10 +44,17 @@ public sealed record Graphics3DSettings
     public float SolidMetallic { get; init; }
     public float ShadowRadius { get; init; } = 24;
     public float ShadowBias { get; init; } = .0008f;
+    public float ShadowDistance { get; init; } = 100;
+    public float ShadowCasterPadding { get; init; } = 30;
+    public float ShadowWorldBias { get; init; } = .015f;
+    public HeightFog3D Fog { get; init; } = new();
 
     public void Validate()
     {
-        if (!Enum.IsDefined(AntiAliasing) || !Range(TemporalHistoryWeight, 0, .95f) || !Range(BloomIntensity, 0, 1)
+        ArgumentNullException.ThrowIfNull(Fog);
+        Fog.Validate();
+        if (!Enum.IsDefined(AntiAliasing) || !Enum.IsDefined(SurfaceDebugView)
+            || !Range(TemporalHistoryWeight, 0, .95f) || !Range(BloomIntensity, 0, 1)
             || !Range(AmbientOcclusionStrength, 0, 2) || !Range(AmbientOcclusionRadius, .01f, 10)
             || !Range(EnvironmentIntensity, 0, 100)
             || LocalShadowBudget is < 0 or > 2
@@ -49,7 +63,8 @@ public sealed record Graphics3DSettings
             || !Color(SunColor) || !Color(SkyAmbient) || !Color(GroundAmbient)
             || !Range(SunIntensity, 0, 100_000) || !Range(Exposure, .001f, 1_000)
             || !Range(SolidRoughness, .045f, 1) || !Range(SolidMetallic, 0, 1)
-            || !Range(ShadowRadius, 1, 1_000) || !Range(ShadowBias, 0, .05f))
+            || !Range(ShadowDistance, 1, 10000) || !Range(ShadowCasterPadding, 1, 1000)
+            || !Range(ShadowWorldBias, 0, 1) || !Range(ShadowRadius, 1, 1_000) || !Range(ShadowBias, 0, .05f))
         {
             throw new ArgumentOutOfRangeException(nameof(Graphics3DSettings), "Lighting, exposure and shadow settings must be finite and within their supported ranges.");
         }

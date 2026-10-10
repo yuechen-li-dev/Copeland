@@ -80,6 +80,24 @@ public sealed class StaticModelTests
         Assert.Equal(0.75f * scale, result.Model!.Occurrences[0].Transform.Translation.Y, 6);
     }
 
+    [Fact]
+    public void BlendMaterialsRetainStandardBaseColorAlpha()
+    {
+        using var files = new TemporaryAssets();
+        byte[] source = File.ReadAllBytes(Asset("crate.glb"));
+        byte[] blend = Mutate(source, json =>
+        {
+            json["materials"]![0]!["alphaMode"] = "BLEND";
+            json["materials"]![0]!["pbrMetallicRoughness"]!["baseColorFactor"] = new JsonArray(.2, .4, .8, .35);
+        });
+        File.WriteAllBytes(files.ModelPath, blend);
+        var result = GlbModelImporter.Load("crate", files.ModelPath);
+        Assert.True(result.Success, ModelAssetCatalog.Describe(result.Diagnostics));
+        var material = result.Model!.Occurrences.Select(item => item.Primitive.Material).First(item => item.AlphaBlend);
+        Assert.False(material.AlphaMask);
+        Assert.Equal(.35f, material.BaseColor.W, 6);
+    }
+
     [Theory]
     [InlineData("extension", "Unsupported GLB extension")]
     [InlineData("external", "embedded buffers and images")]
@@ -87,7 +105,6 @@ public sealed class StaticModelTests
     [InlineData("normals", "NORMAL accessor")]
     [InlineData("uv", "TEXCOORD_0 accessor")]
     [InlineData("tangents", "TANGENT accessor")]
-    [InlineData("blend", "BLEND")]
     [InlineData("primitive", "triangle primitives")]
     [InlineData("material-name", "Duplicate material name")]
     [InlineData("transform", "positive affine transform")]
@@ -109,7 +126,6 @@ public sealed class StaticModelTests
                     primitive["attributes"]!.AsObject().Remove("TANGENT");
                     json["materials"]![0]!["normalTexture"] = new JsonObject { ["index"] = 0 };
                     break;
-                case "blend": json["materials"]![0]!["alphaMode"] = "BLEND"; break;
                 case "primitive": primitive["mode"] = 1; break;
                 case "material-name": json["materials"]![1]!["name"] = "panel"; break;
                 case "transform": json["nodes"]![0]!["scale"] = new JsonArray(-1, 1, 1); break;

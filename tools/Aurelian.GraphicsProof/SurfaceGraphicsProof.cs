@@ -61,7 +61,14 @@ internal static class SurfaceGraphicsProof
             outputProgram: assets.Shader("ToneMap3D.v.ts"), temporalProgram: assets.Shader("TemporalResolve3D.v.ts"),
             bloomProgram: assets.Shader("Bloom3D.v.ts"),
             surfacePrograms: new(assets.Shader("SurfaceResolve3D.v.ts"), assets.Shader("AmbientOcclusion3D.v.ts"),
-                assets.Shader("AmbientDenoise3D.v.ts"), assets.Shader("LightTiles3D.v.ts")));
+                assets.Shader("AmbientDenoise3D.v.ts"), assets.Shader("LightTiles3D.v.ts"))
+            {
+                HeightFog = assets.Shader("HeightFog3D.v.ts"),
+                SubsurfaceDiffuse = assets.Shader("SubsurfaceDiffuse3D.v.ts"),
+                SubsurfaceMerge = assets.Shader("SubsurfaceMerge3D.v.ts"),
+                TransparentModel = assets.Shader("TransparentModel3D.v.ts"),
+                TransparencyResolve = assets.Shader("TransparencyResolve3D.v.ts"),
+            });
         Vector3 eye = new(6, 4.2f, 8);
         Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(.85f, 1.5f, .1f, 60);
         projection.M22 *= -1;
@@ -185,7 +192,13 @@ internal static class SurfaceGraphicsProof
         }
         Require(rejectedBudget, "Local shadow requests exceeded the declared budget without a diagnostic.");
         renderer.LocalLights = [renderer.LocalLights[0], renderer.LocalLights[1]];
-        renderer.Settings = settings with { AmbientOcclusionStrength = 1.25f, AntiAliasing = AntiAliasing3D.Temporal, BloomIntensity = .08f };
+        renderer.Settings = settings with
+        {
+            AmbientOcclusionStrength = 1,
+            AmbientOcclusionRadius = .5f,
+            AntiAliasing = AntiAliasing3D.Temporal,
+            BloomIntensity = .08f,
+        };
         Native3DFrameResult result = default!;
         var warmedTimings = new List<Native3DGpuPassTime>();
         for (int frame = 0; frame < 32; frame++)
@@ -197,6 +210,30 @@ internal static class SurfaceGraphicsProof
             }
         }
         NativeGameGraphics.WritePng(Path.Combine(output, "combined.png"), (int)target.Width, (int)target.Height, result.Pixels!);
+        Graphics3DSettings presentationSettings = renderer.Settings;
+        renderer.Settings = presentationSettings with { AmbientOcclusionStrength = 0 };
+        WarmedCapture("combined-no-ao");
+        renderer.Settings = presentationSettings with
+        {
+            SurfaceDebugView = SurfaceDebugView3D.AmbientOcclusion,
+        };
+        byte[] aoOnly = Capture("ao-only");
+        renderer.Settings = renderer.Settings with { Exposure = 8, BloomIntensity = 1, ToneMapping = true };
+        Require(aoOnly.SequenceEqual(Capture("ao-only-high-exposure")), "AO inspection was modified by presentation settings.");
+        var seamProfile = new[] { .05f, .15f, .3f, .5f, .75f }.Select(distance => new
+        {
+            DistanceFromWallMetres = distance,
+            Visibility = FloorVisibility(aoOnly, distance),
+        }).ToArray();
+        Require(seamProfile[0].Visibility is > .65 and < .95, "Wall-floor AO lost its contact or returned the over-dark band.");
+        Require(seamProfile[3].Visibility > .99, "Contact AO spread a muddy band beyond its scene radius.");
+        renderer.Settings = renderer.Settings with { AmbientOcclusionStrength = 1.25f, AmbientOcclusionRadius = .8f };
+        byte[] normalizedLargeRadius = Capture("ao-only-original-settings");
+        double normalizedNearVisibility = FloorVisibility(normalizedLargeRadius, .05f);
+        renderer.Settings = renderer.Settings with { AmbientOcclusionStrength = 0 };
+        byte[] disabledAo = Capture("ao-only-disabled");
+        Require(FloorVisibility(disabledAo, .05f) > .999, "Disabled AO did not report full visibility.");
+        renderer.Settings = presentationSettings;
         Require(Changed(baseline, ibl) > 500 && aoChanged > 100 && localChanged > 500, "A requested lighting capability did not visibly affect the native scene.");
         File.WriteAllText(evidence, JsonSerializer.Serialize(new
         {
@@ -215,6 +252,9 @@ internal static class SurfaceGraphicsProof
             SecondSpotShadowChangedPixels = secondShadowChanged,
             ShadowBudgetRejected = rejectedBudget,
             PerspectiveEdgeErrorReduction = perspectiveImprovement,
+            WallFloorAoProfile = seamProfile,
+            OriginalSettingsContactVisibility = normalizedNearVisibility,
+            AoDebugIgnoresPostProcessing = true,
             EnvironmentArtifact = environment.ContentKey,
             GpuPassTimes = warmedTimings.GroupBy(time => time.Pass).Select(group => new
             {
@@ -230,9 +270,34 @@ internal static class SurfaceGraphicsProof
             NativeGameGraphics.WritePng(Path.Combine(output, name + ".png"), (int)target.Width, (int)target.Height, pixels);
             return pixels;
         }
+
+        void WarmedCapture(string name)
+        {
+            Native3DFrameResult frameResult = default!;
+            for (int frame = 0; frame < 32; frame++)
+            {
+                frameResult = renderer.Render(scene, camera, eye, clear, frame == 31);
+            }
+            NativeGameGraphics.WritePng(Path.Combine(output, name + ".png"), (int)target.Width, (int)target.Height, frameResult.Pixels!);
+        }
+
+        double FloorVisibility(byte[] visibilityPixels, float distance)
+        {
+            double total = 0;
+            const int samples = 32;
+            for (int sample = 0; sample < samples; sample++)
+            {
+                Vector4 clip = Vector4.Transform(new Vector4(2.5f + sample * 2f / (samples - 1), 0, -3.925f + distance, 1), camera);
+                int x = Math.Clamp((int)((clip.X / clip.W * .5f + .5f) * target.Width), 0, (int)target.Width - 1);
+                int y = Math.Clamp((int)((clip.Y / clip.W * .5f + .5f) * target.Height), 0, (int)target.Height - 1);
+                float value = visibilityPixels[(y * (int)target.Width + x) * 4] / 255f;
+                total += value <= .04045f ? value / 12.92f : MathF.Pow((value + .055f) / 1.055f, 2.4f);
+            }
+            return total / samples;
+        }
     }
 
-    private static float[] Studio()
+    internal static float[] Studio()
     {
         float[] result = new float[128 * 64 * 4];
         for (int y = 0; y < 64; y++)

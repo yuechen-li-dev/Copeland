@@ -149,12 +149,12 @@ public static unsafe class VulkanGraphicsPipelineFactory
 
                 PipelineColorBlendAttachmentState colorBlendAttachment = new()
                 {
-                    BlendEnable = descriptor.EnableStraightAlphaBlend,
-                    SrcColorBlendFactor = BlendFactor.SrcAlpha,
-                    DstColorBlendFactor = BlendFactor.OneMinusSrcAlpha,
+                    BlendEnable = descriptor.EnableStraightAlphaBlend || descriptor.EnableAdditiveBlend,
+                    SrcColorBlendFactor = descriptor.EnableAdditiveBlend ? BlendFactor.One : BlendFactor.SrcAlpha,
+                    DstColorBlendFactor = descriptor.EnableAdditiveBlend ? BlendFactor.One : BlendFactor.OneMinusSrcAlpha,
                     ColorBlendOp = BlendOp.Add,
                     SrcAlphaBlendFactor = BlendFactor.One,
-                    DstAlphaBlendFactor = BlendFactor.OneMinusSrcAlpha,
+                    DstAlphaBlendFactor = descriptor.EnableAdditiveBlend ? BlendFactor.One : BlendFactor.OneMinusSrcAlpha,
                     AlphaBlendOp = BlendOp.Add,
                     ColorWriteMask = ColorComponentFlags.RBit
                         | ColorComponentFlags.GBit
@@ -326,6 +326,11 @@ public static unsafe class VulkanGraphicsPipelineFactory
         VulkanGraphicsPipelineDescriptor descriptor,
         List<VulkanGraphicsPipelineDiagnostic> diagnostics)
     {
+        if (descriptor.EnableAdditiveBlend && descriptor.EnableStraightAlphaBlend)
+        {
+            diagnostics.Add(Diagnostic(VulkanGraphicsPipelineDiagnosticCodes.AmbiguousBlendState,
+                "Choose one explicit blend equation: additive accumulation or straight alpha.", plantId));
+        }
         if (renderPass is null)
         {
             diagnostics.Add(Diagnostic(

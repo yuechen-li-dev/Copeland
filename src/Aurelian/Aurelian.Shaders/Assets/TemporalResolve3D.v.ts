@@ -52,6 +52,14 @@ function PixelMain(input: Varyings, resources: TemporalResources): Output {
     const parameters: float4 = resources.temporal.parameters;
     const current: float4 = Sample(resources.current, resources.currentSampler, input.uv);
     const motion: float4 = Sample(resources.motion, resources.motionSampler, input.uv);
+    // OIT coverage has no opaque-surface motion correspondence. Reconstruct
+    // this pixel immediately and mark its history depth invalid, so removing
+    // or moving translucent geometry cannot leave a retained color trail.
+    if (current.w < 0.99999) {
+        const reactive: float4 = ReconstructCurrent(resources, float2(input.uv.x + resources.temporal.reconstruction.x,
+            input.uv.y + resources.temporal.reconstruction.y));
+        return { color: float4(reactive.x, reactive.y, reactive.z, -1.0) };
+    }
     if (parameters.z < 0.5) {
         return { color: float4(current.x, current.y, current.z, motion.w) };
     }

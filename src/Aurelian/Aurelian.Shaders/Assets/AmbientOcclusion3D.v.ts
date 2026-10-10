@@ -70,12 +70,15 @@ function PixelMain(input: Varyings, resources: Resources): Output {
                     const squared: f32 = Dot3(delta, delta);
                     const falloff: f32 = Max(1.0 - squared / (radius * radius), 0.0);
                     const elevation: f32 = Max(Dot3(normal, delta) / Sqrt(Max(squared, 0.000001)) - 0.08, 0.0);
-                    horizon = Max(horizon, elevation * falloff);
+                    // Cosine-weighted blocked energy scales with sin(horizon)^2.
+                    // A linear elevation over-darkens shallow, distant contacts.
+                    horizon = Max(horizon, elevation * elevation * falloff);
                 }
             }
         }
         occlusion = occlusion + horizon;
     }
-    const visibility: f32 = Clamp(1.0 - occlusion * resources.material.parameters.w / 4.0, 0.1, 1.0);
+    // Average all eight azimuth samples once. Dividing by four doubled AO.
+    const visibility: f32 = Clamp(1.0 - occlusion * resources.material.parameters.w / 8.0, 0.0, 1.0);
     return { color: float4(visibility, depth.w, 0.0, 1.0) };
 }

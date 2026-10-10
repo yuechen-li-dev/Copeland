@@ -48,6 +48,14 @@ export function DirectLight(base: float3, normal: float3, view: float3, light: f
     return Scale3(float3(Channel(base.x, metallic, vh, specular), Channel(base.y, metallic, vh, specular),
         Channel(base.z, metallic, vh, specular)), nl);
 }
+// The diffuse term is kept separate so subsurface diffusion cannot blur specular highlights.
+export function DirectDiffuse(base: float3, normal: float3, view: float3, light: float3, metallic: f32): float3 {
+    const half: float3 = Unit(Add3(light, view));
+    const vh: f32 = Max(Dot3(view, half), 0.0);
+    const nl: f32 = Max(Dot3(normal, light), 0.0);
+    return Scale3(float3(Channel(base.x, metallic, vh, 0.0), Channel(base.y, metallic, vh, 0.0),
+        Channel(base.z, metallic, vh, 0.0)), nl);
+}
 export function HemisphereLight(base: float3, normal: float3, view: float3, sky: float3, ground: float3, metallic: f32, roughness: f32): float3 {
     const blend: f32 = Clamp(normal.y * 0.5 + 0.5, 0.0, 1.0);
     const ambient: float3 = Add3(Scale3(sky, blend), Scale3(ground, 1.0 - blend));
@@ -87,6 +95,49 @@ export function ShadowVisibility(map: Texture2D<float4>, sampler: Sampler, proje
         + ShadowTap(map, sampler, float2(u - t, v + t), z)
         + ShadowTap(map, sampler, float2(u, v + t), z)
         + ShadowTap(map, sampler, float2(u + t, v + t), z)) / 9.0;
+}
+
+function PlaneShadowTap(map: Texture2D<float4>, sampler: Sampler, uv: float2,
+    origin: float2, gradient: float2, depth: f32, texel: f32): f32 {
+    if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+        return 1.0;
+    }
+    // Nearest shadow texels contain depth at their centers, not at the
+    // receiver's arbitrary UV. Compare the extrapolated receiver plane there.
+    const center: float2 = float2((Floor(uv.x / texel) + 0.5) * texel,
+        (Floor(uv.y / texel) + 0.5) * texel);
+    const expected: f32 = depth + (center.x - origin.x) * gradient.x * 2.0
+        + (center.y - origin.y) * gradient.y * 2.0;
+    return ShadowTap(map, sampler, uv, expected);
+}
+
+export function PlaneShadowVisibility(map: Texture2D<float4>, sampler: Sampler,
+    projected: float3, parameters: float4, normal: float3, x: float4, y: float4, z: float4): f32 {
+    if (parameters.x < 0.5 || projected.x < -1.0 || projected.x > 1.0 || projected.y < -1.0 || projected.y > 1.0
+        || projected.z < 0.0 || projected.z > 1.0) {
+        return 1.0;
+    }
+    const rowX: float3 = float3(x.x, x.y, x.z);
+    const rowY: float3 = float3(y.x, y.y, y.z);
+    const rowZ: float3 = float3(z.x, z.y, z.z);
+    const denominator: f32 = Dot3(normal, rowZ);
+    if (Abs(denominator) < 0.000001) {
+        return ShadowVisibility(map, sampler, projected, parameters, 0.0);
+    }
+    const gradient: float2 = float2(-Dot3(normal, rowX) * Dot3(rowZ, rowZ) / (denominator * Dot3(rowX, rowX)),
+        -Dot3(normal, rowY) * Dot3(rowZ, rowZ) / (denominator * Dot3(rowY, rowY)));
+    const origin: float2 = float2(projected.x * 0.5 + 0.5, projected.y * 0.5 + 0.5);
+    const t: f32 = parameters.z;
+    const depth: f32 = projected.z - parameters.y;
+    return (PlaneShadowTap(map, sampler, float2(origin.x - t, origin.y - t), origin, gradient, depth, t)
+        + PlaneShadowTap(map, sampler, float2(origin.x, origin.y - t), origin, gradient, depth, t)
+        + PlaneShadowTap(map, sampler, float2(origin.x + t, origin.y - t), origin, gradient, depth, t)
+        + PlaneShadowTap(map, sampler, float2(origin.x - t, origin.y), origin, gradient, depth, t)
+        + PlaneShadowTap(map, sampler, origin, origin, gradient, depth, t)
+        + PlaneShadowTap(map, sampler, float2(origin.x + t, origin.y), origin, gradient, depth, t)
+        + PlaneShadowTap(map, sampler, float2(origin.x - t, origin.y + t), origin, gradient, depth, t)
+        + PlaneShadowTap(map, sampler, float2(origin.x, origin.y + t), origin, gradient, depth, t)
+        + PlaneShadowTap(map, sampler, float2(origin.x + t, origin.y + t), origin, gradient, depth, t)) / 9.0;
 }
 
 // Keep the linear FP16 attachment finite even with very bright authored lights.

@@ -147,6 +147,12 @@ public sealed class ScenePlan
         writer.Write(material.Unlit);
         writer.Write(material.DoubleSided);
         writer.Write(material.AlphaMask);
+        writer.Write(material.AlphaBlend);
+        writer.Write(material.SubsurfaceStrength);
+        writer.Write(material.SubsurfaceColor.X);
+        writer.Write(material.SubsurfaceColor.Y);
+        writer.Write(material.SubsurfaceColor.Z);
+        writer.Write(material.SubsurfaceRadius);
         writer.Write(material.AlphaCutoff);
         foreach (ModelTextureBinding? binding in material.Textures())
         {

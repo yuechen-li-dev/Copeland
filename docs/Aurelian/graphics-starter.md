@@ -130,7 +130,9 @@ dotnet run --project tools/Aurelian.GraphicsProof -c Release -- --launch-smoke
 
 [The temporal graphics pack](temporal-graphics-pack.md) now adds default TAA,
 HDR bloom/emission and GPU mip generation with anisotropic filtering. Environment
-maps, local lights, cascaded shadows, AO and fog remain follow-up capabilities.
+maps, local lights and AO are covered by the [surface pack](surface-graphics-pack.md).
+Cascaded shadows, height fog, translucency and material diffusion are covered by
+the [presentation pack](presentation-graphics-pack.md).
 
 A bounded [receiver-space MSDF shadow experiment](shadow-distance-experiment.md)
 now compares baked distance fields with raster/PCF and the default depth-shadow path.

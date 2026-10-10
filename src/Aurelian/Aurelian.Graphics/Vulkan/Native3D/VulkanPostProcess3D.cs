@@ -32,19 +32,25 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
     private bool disposed;
 
     public VulkanPostProcess3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
-        CompiledGraphicsProgram program, AurelianVulkanTexture output, int inputCount, Filter filter = Filter.Linear)
+        CompiledGraphicsProgram program, AurelianVulkanTexture output, int inputCount, Filter filter = Filter.Linear, AurelianVulkanTexture? secondOutput = null)
     {
         this.plant = plant;
         this.inputCount = inputCount;
         Validate(program, inputCount);
+        if (program.PixelTargets.Count != (secondOutput is null ? 1 : 2))
+            throw new ArgumentException("Fullscreen outputs must match the compiled target count.");
         try
         {
-            var pass = VulkanRenderPassFactory.Create(plant, new([
-                new("post.color", output.Format, VulkanAttachmentLoadOp.Clear, VulkanAttachmentStoreOp.Store,
-                    VulkanResourceLayout.Undefined, VulkanResourceLayout.ShaderResourceFragment)]));
+            AurelianVulkanTexture[] outputs = secondOutput is null ? [output] : [output, secondOutput];
+            if (outputs.Any(texture => texture.Width != output.Width || texture.Height != output.Height))
+                throw new ArgumentException("Fullscreen targets must have matching dimensions.");
+            var attachments = outputs.Select(texture => new VulkanRenderPassAttachmentDescriptor(
+                "post.color", texture.Format, VulkanAttachmentLoadOp.Clear, VulkanAttachmentStoreOp.Store,
+                VulkanResourceLayout.Undefined, VulkanResourceLayout.ShaderResourceFragment)).ToArray();
+            var pass = VulkanRenderPassFactory.Create(plant, new(attachments));
             Require(pass.Success, string.Join("; ", pass.Diagnostics.Select(item => item.Message)));
             Pass = Own(pass.RenderPass!);
-            var framebuffer = VulkanFramebufferFactory.Create(plant, Pass, new(output.Width, output.Height, [output]));
+            var framebuffer = VulkanFramebufferFactory.Create(plant, Pass, new(output.Width, output.Height, outputs));
             Require(framebuffer.Success, string.Join("; ", framebuffer.Diagnostics.Select(item => item.Message)));
             Framebuffer = Own(framebuffer.Framebuffer!);
             layout = VulkanNativeForwardTexturedRenderer.CreateDescriptorSetLayout(plant, program);
@@ -77,7 +83,7 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
         Require(uniform.Write(MemoryMarshal.AsBytes(values.AsSpan())).Success, "Fullscreen uniform upload failed.");
         for (int index = 0; index < inputs.Length; index++)
         {
-            if (inputs[index] == Framebuffer.Descriptor.ColorAttachments[0])
+            if (Framebuffer.Descriptor.ColorAttachments.Contains(inputs[index]))
                 throw new InvalidOperationException("A fullscreen pass cannot sample its own render target.");
             Vulkan3DPass.WriteImage(plant, set, (uint)(1 + index * 2), inputs[index], sampler);
         }
@@ -86,7 +92,11 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
     public void Record(VulkanCommandBufferLease command, AurelianVulkanBuffer triangle)
     {
         var encoder = new VulkanRenderPassCommandEncoder();
-        var begin = encoder.Begin(plant, command, new(Pass, Framebuffer, new(0, 0, 0, 1)));
+        var begin = encoder.Begin(plant, command, new(Pass, Framebuffer, new(0, 0, 0, 0))
+        {
+            AdditionalClearColors = Framebuffer.Descriptor.ColorAttachments.Skip(1)
+                .Select(_ => new VulkanColorClearValue(0, 0, 0, 0)).ToArray(),
+        });
         Require(begin.Success, "Fullscreen pass begin failed.");
         DescriptorSet descriptor = set;
         plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Graphics,
@@ -99,7 +109,7 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
 
     public void SetLinearInput(int index, AurelianVulkanTexture texture)
     {
-        if (index < 0 || index >= inputCount || texture == Framebuffer.Descriptor.ColorAttachments[0])
+        if (index < 0 || index >= inputCount || Framebuffer.Descriptor.ColorAttachments.Contains(texture))
         {
             throw new ArgumentException("Linear fullscreen input must be an admitted input distinct from the output.");
         }
@@ -108,7 +118,7 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
 
     private static void Validate(CompiledGraphicsProgram program, int count)
     {
-        bool valid = count is >= 1 and <= 12 && program.Material is { Set: 0, Binding: 0 } material
+        bool valid = count is >= 1 and <= 16 && program.Material is { Set: 0, Binding: 0 } material
             && material.Size == material.Fields.Count * 16
             && material.Fields.All(field => field.PhysicalType == "float4")
             && material.Fields.Select(field => field.Offset).SequenceEqual(Enumerable.Range(0, material.Fields.Count).Select(index => index * 16))

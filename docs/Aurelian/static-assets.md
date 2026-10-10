@@ -1,6 +1,6 @@
 # Static 3D assets
 
-The default workflow is **Blender source → self-contained glTF 2.0 GLB → `assets.toml` → typed scene instance**. Keep `.blend` files and source textures editable. Export GLBs for the game; no Blender installation is required to load or play them. Aetheris STEP/BRep remains CAD authority, and the existing Aetheris scene adapter remains available. Neither GLB nor its triangles replace CAD topology or automatically become collision.
+The default workflow is **Blender source â†’ self-contained glTF 2.0 GLB â†’ `assets.toml` â†’ typed scene instance**. Keep `.blend` files and source textures editable. Export GLBs for the game; no Blender installation is required to load or play them. Aetheris STEP/BRep remains CAD authority, and the existing Aetheris scene adapter remains available. Neither GLB nor its triangles replace CAD topology or automatically become collision.
 
 The exchange conventions come from the [glTF 2.0 specification](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html). [SharpGLTF](https://github.com/vpenades/SharpGLTF) owns container/accessor decoding behind Aurelian's adapter; its object model never becomes the game's scene or agent API.
 
@@ -91,14 +91,14 @@ Scene identity records the initial imported content, placement and material over
 | Normal map | Linear RGB; exported tangent frame and normal scale |
 | Emissive | Linear RGB factor; texture sampled as sRGB |
 | Occlusion | Linear texture R and strength, applied to ambient lighting |
-| Surface flags | OPAQUE, MASK/cutoff, double-sided, `KHR_materials_unlit` |
+| Surface flags | OPAQUE, MASK/cutoff, BLEND/coverage, double-sided, `KHR_materials_unlit` |
 | Lighting | One directional light, GGX/Schlick direct shading and simple ambient; no IBL, shadows or Blender render equivalence |
 | Samplers | Independent nearest/linear min/mag and repeat/clamp/mirror addressing per channel |
 | Mips | Base level only; requested mip filtering reports warning `AA3103` |
 
-Textures use UV0 with no texture transform. Animation, skins, morphs, non-triangle primitives, BLEND, other glTF extensions, external/data URIs and alternative texture encodings are rejected with actionable diagnostics. This is a bounded glTF profile, not a full glTF renderer. Import budgets are 128 MiB source, 256 MiB decoded textures, 8192-pixel texture dimensions and one million triangle-list vertices per model; native model draws also have a one-million-vertex frame budget.
+Textures use UV0 with no texture transform. Animation, skins, morphs, non-triangle primitives, other glTF extensions, external/data URIs and alternative texture encodings are rejected with actionable diagnostics. This is a bounded glTF profile, not a full glTF renderer. Import budgets are 128 MiB source, 256 MiB decoded textures, 8192-pixel texture dimensions and one million triangle-list vertices per model; native model draws also have a one-million-vertex frame budget.
 
-Rendering goes through `StaticModel3D.v.ts` → Copeland GPU binder → VD-MIR → Aurelian HLSL/DXC/SPIR-V. The qualified ABI is a 144-byte material, five vertex attributes and eleven descriptor bindings. Native game graphics uses the Vulkan 1.2 shader target so MASK uses core `OpKill` without requiring Vulkan 1.3's optional demote feature. GPU ray queries retain their existing separate path.
+Rendering goes through `StaticModel3D.v.ts` â†’ Copeland GPU binder â†’ VD-MIR â†’ Aurelian HLSL/DXC/SPIR-V. The qualified ABI is a 144-byte material, five vertex attributes and eleven descriptor bindings. Native game graphics uses the Vulkan 1.2 shader target so MASK uses core `OpKill` without requiring Vulkan 1.3's optional demote feature. GPU ray queries retain their existing separate path.
 
 ## Delivery and proof
 
@@ -111,3 +111,5 @@ dotnet run --project tools/Aurelian.AssetProof -c Release -- Games/Starter/Aurel
 The asset tool validates models alongside existing shaders, writes delivery GLBs and source-generated `.import.json` evidence, and emits `models.toml` for loading that delivery. This packages an exchange artifact; it does not export arbitrary runtime scenes or reconstruct `.blend` sources.
 
 The [Blender authoring script](../../tools/Aurelian.AssetProof/create-fixture.py) produces the editable crate source, base/replacement GLBs, a slot-loss specimen and an imported normal-map specimen. The [native proof manifest](../../artifacts/aurelian-static-assets/manifest.json) records real RTX 3070 rendering, independent instance overrides, material-channel pixel effects, replacement diagnostics and exact retention after failure. The executable also checks backface winding and solid/model depth occlusion. Starter playtesting exercises the actual window/presentation path with menus, controls, save/load and rewind.
+
+BLEND uses the shared renderer's [weighted transparency path](presentation-graphics-pack.md). Transmission/refraction extensions remain unsupported; translucency does not imply physical glass.

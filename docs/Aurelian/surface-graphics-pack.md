@@ -40,7 +40,7 @@ var options = new StarterOptions(Title: "My Game")
     {
         EnvironmentIntensity = 1,
         AmbientOcclusionStrength = 1,
-        AmbientOcclusionRadius = .8f,
+        AmbientOcclusionRadius = .5f,
         LocalShadowBudget = 2,
     },
     LocalLights =
@@ -76,8 +76,10 @@ remain outside this pack.
 
 ## GPU execution and limits
 
-The scene writes four shared attachments: base/roughness, previous UV/depth and
-current depth, world normal/metallic, and emission/material occlusion. A retained
+The scene writes five shared attachments: base/roughness, previous UV/depth and
+current depth, world normal/metallic, emission/material occlusion, and an explicit
+subsurface profile. See [the presentation pack](presentation-graphics-pack.md)
+for cascades, fog, weighted transparency and diffuse-only scattering. A retained
 surface pass evaluates directional and local GGX lighting, environment response
 and the existing validated compiled diffuse asset. TAA, HDR bloom, tone mapping
 and the existing menu/HUD compositor follow. The compositor keeps UI out of history.
@@ -91,6 +93,26 @@ radiance, including compiled diffuse; direct light and emission are unchanged.
 AO defaults to strength zero and skips its expensive sampling when disabled.
 It is a bounded screen-space approximation, not a full XeGTAO/CACAO port; offscreen
 occluders and thickness reconstruction are not available.
+
+AO now averages its eight direction samples by eight and weights the horizon
+with squared elevation, a tangent-horizon cosine-weight approximation. The earlier
+divide-by-four and linear weighting produced an overly dark, broad wall-floor band.
+This is still the bounded horizon implementation described above, not the full
+view-slice integration from [the GTAO paper](https://www.activision.com/cdn/research/PracticalRealtimeStrategiesTRfinal.pdf).
+For the studio witness, strength 1 and a 0.5-metre radius keep AO near contacts.
+The engine's configurable default radius remains 0.8 metres and AO remains opt-in.
+
+Set `Graphics3DSettings.SurfaceDebugView = SurfaceDebugView3D.AmbientOcclusion`
+to inspect filtered, upsampled screen-space visibility. White means unoccluded;
+the view automatically bypasses exposure, tone mapping, bloom and TAA. It excludes
+material AO, light shadows and reflections. The surface proof also captures
+`combined-no-ao.png`, `ao-only.png` and `ao-only-original-settings.png`.
+The October 9 tuning witness increased wall-floor visibility at 5 cm from 0.416
+to 0.789 with the same original strength/radius, isolating the shader correction.
+With the scene's tuned settings, visibility is 0.852 at 5 cm, 0.976 at 30 cm and
+1.0 at 50 cm. Native gates retain contact darkening, reject darkening outside the
+radius, require disabled AO to return white, and verify that high exposure/bloom
+cannot alter the AO inspection output.
 
 GPU tiles conservatively project light influence spheres into 16-pixel cells.
 Each cell stores four exact eight-bit mask words in RGBA32F. The supported contract

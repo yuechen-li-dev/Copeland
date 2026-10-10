@@ -106,7 +106,14 @@ public sealed class NativeGameGraphics : IDisposable
                 outputProgram: assets.Shader("ToneMap3D.v.ts"), temporalProgram: assets.Shader("TemporalResolve3D.v.ts"),
                 bloomProgram: assets.Shader("Bloom3D.v.ts"),
                 surfacePrograms: new(assets.Shader("SurfaceResolve3D.v.ts"), assets.Shader("AmbientOcclusion3D.v.ts"),
-                    assets.Shader("AmbientDenoise3D.v.ts"), assets.Shader("LightTiles3D.v.ts"))));
+                    assets.Shader("AmbientDenoise3D.v.ts"), assets.Shader("LightTiles3D.v.ts"))
+                {
+                    HeightFog = assets.Shader("HeightFog3D.v.ts"),
+                    SubsurfaceDiffuse = assets.Shader("SubsurfaceDiffuse3D.v.ts"),
+                    SubsurfaceMerge = assets.Shader("SubsurfaceMerge3D.v.ts"),
+                    TransparentModel = assets.Shader("TransparentModel3D.v.ts"),
+                    TransparencyResolve = assets.Shader("TransparencyResolve3D.v.ts"),
+                }));
             Presenter = Own(new VulkanNativeSwapchainPresenter(Plant, Target, Swapchain));
             Font = AurelianNativeUiFont.Create(assets.FontDirectory());
             Menus = Own(new GameMenuNativePresenter(Plant, Target,

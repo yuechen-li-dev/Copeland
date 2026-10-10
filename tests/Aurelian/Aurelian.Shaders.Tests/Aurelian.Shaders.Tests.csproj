@@ -28,6 +28,12 @@
     <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/SurfaceSolid3D.v.ts" Link="Assets/SurfaceSolid3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/SurfaceModel3D.v.ts" Link="Assets/SurfaceModel3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/SurfaceResolve3D.v.ts" Link="Assets/SurfaceResolve3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/HeightFog.v.ts" Link="Assets/HeightFog.v.ts" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/HeightFog3D.v.ts" Link="Assets/HeightFog3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/SubsurfaceDiffuse3D.v.ts" Link="Assets/SubsurfaceDiffuse3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/SubsurfaceMerge3D.v.ts" Link="Assets/SubsurfaceMerge3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/TransparencyResolve3D.v.ts" Link="Assets/TransparencyResolve3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/TransparentModel3D.v.ts" Link="Assets/TransparentModel3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/AmbientOcclusion3D.v.ts" Link="Assets/AmbientOcclusion3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/AmbientDenoise3D.v.ts" Link="Assets/AmbientDenoise3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/LightTiles3D.v.ts" Link="Assets/LightTiles3D.v.ts" CopyToOutputDirectory="PreserveNewest" />

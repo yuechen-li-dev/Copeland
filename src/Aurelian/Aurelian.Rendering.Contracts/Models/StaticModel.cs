@@ -28,6 +28,10 @@ public sealed record ModelMaterial(string Slot)
     public bool Unlit { get; init; }
     public bool DoubleSided { get; init; }
     public bool AlphaMask { get; init; }
+    public bool AlphaBlend { get; init; }
+    public float SubsurfaceStrength { get; init; }
+    public Vector3 SubsurfaceColor { get; init; } = new(1, .35f, .15f);
+    public float SubsurfaceRadius { get; init; } = .02f;
     public float AlphaCutoff { get; init; } = 0.5f;
     public ModelTextureBinding? BaseColorTexture { get; init; }
     public ModelTextureBinding? MetallicRoughnessTexture { get; init; }
@@ -38,10 +42,14 @@ public sealed record ModelMaterial(string Slot)
     public void Validate()
     {
         float[] unit = [BaseColor.X, BaseColor.Y, BaseColor.Z, BaseColor.W, Metallic,
-            Roughness, OcclusionStrength, AlphaCutoff];
+            Roughness, OcclusionStrength, AlphaCutoff, SubsurfaceStrength,
+            SubsurfaceColor.X, SubsurfaceColor.Y, SubsurfaceColor.Z];
         if (string.IsNullOrWhiteSpace(Slot) || unit.Any(value => !float.IsFinite(value) || value < 0 || value > 1)
             || new[] { Emissive.X, Emissive.Y, Emissive.Z }.Any(value => !float.IsFinite(value) || value < 0 || value > 60000)
-            || !float.IsFinite(NormalScale) || NormalScale < 0)
+            || !float.IsFinite(NormalScale) || NormalScale < 0
+            || AlphaBlend && AlphaMask
+            || !float.IsFinite(SubsurfaceRadius) || SubsurfaceRadius < .0001f || SubsurfaceRadius > 1
+            || SubsurfaceStrength > 0 && (Metallic != 0 || AlphaBlend || Unlit))
         {
             throw new InvalidDataException($"Invalid material factors for slot '{Slot}'.");
         }

@@ -42,6 +42,12 @@
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/SurfaceSolid3D.v.ts" LogicalName="Aurelian.Games.SurfaceSolid3D.v.ts" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/SurfaceModel3D.v.ts" LogicalName="Aurelian.Games.SurfaceModel3D.v.ts" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/SurfaceResolve3D.v.ts" LogicalName="Aurelian.Games.SurfaceResolve3D.v.ts" />
+    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/HeightFog.v.ts" LogicalName="Aurelian.Games.HeightFog.v.ts" />
+    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/HeightFog3D.v.ts" LogicalName="Aurelian.Games.HeightFog3D.v.ts" />
+    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/SubsurfaceDiffuse3D.v.ts" LogicalName="Aurelian.Games.SubsurfaceDiffuse3D.v.ts" />
+    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/SubsurfaceMerge3D.v.ts" LogicalName="Aurelian.Games.SubsurfaceMerge3D.v.ts" />
+    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/TransparencyResolve3D.v.ts" LogicalName="Aurelian.Games.TransparencyResolve3D.v.ts" />
+    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/TransparentModel3D.v.ts" LogicalName="Aurelian.Games.TransparentModel3D.v.ts" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/AmbientOcclusion3D.v.ts" LogicalName="Aurelian.Games.AmbientOcclusion3D.v.ts" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/AmbientDenoise3D.v.ts" LogicalName="Aurelian.Games.AmbientDenoise3D.v.ts" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/LightTiles3D.v.ts" LogicalName="Aurelian.Games.LightTiles3D.v.ts" />

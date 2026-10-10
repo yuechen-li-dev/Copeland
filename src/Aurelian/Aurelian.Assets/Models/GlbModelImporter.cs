@@ -127,8 +127,6 @@ public static class GlbModelImporter
     private static ModelMaterial ReadMaterial(Material source, string slot, Dictionary<int, ModelTexture> images,
         List<AssetDiagnostic> diagnostics, string path)
     {
-        if (source.Alpha == AlphaMode.BLEND)
-            throw new InvalidDataException($"Slot '{slot}' uses BLEND; this profile supports OPAQUE and MASK.");
         MaterialChannel? color = source.FindChannel("BaseColor");
         MaterialChannel? metal = source.FindChannel("MetallicRoughness");
         MaterialChannel? emissive = source.FindChannel("Emissive");
@@ -144,6 +142,7 @@ public static class GlbModelImporter
             Unlit = source.Unlit,
             DoubleSided = source.DoubleSided,
             AlphaMask = source.Alpha == AlphaMode.MASK,
+            AlphaBlend = source.Alpha == AlphaMode.BLEND,
             AlphaCutoff = source.AlphaCutoff,
             BaseColorTexture = ReadTexture(color, images, diagnostics, path),
             MetallicRoughnessTexture = ReadTexture(metal, images, diagnostics, path),

@@ -1107,7 +1107,7 @@ public static class GpuGraphicsBinder
                 }
                 return new VdMirExpression("intrinsic", "f32", Span(path, call), "Clamp", arguments);
             }
-            if (target is "Abs" or "Sqrt" or "Floor" or "Sin" or "Cos" or "Acos")
+            if (target is "Abs" or "Sqrt" or "Floor" or "Sin" or "Cos" or "Acos" or "Exp" or "Log")
             {
                 if (arguments.Length != 1 || arguments[0].Type != "f32")
                 {
