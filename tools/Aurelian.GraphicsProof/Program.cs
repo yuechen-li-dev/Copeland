@@ -30,6 +30,12 @@ if (args.Contains("--field-lighting", StringComparer.Ordinal))
     defaultOutput = "artifacts/local/aetheris-field-lighting";
 }
 string output = Path.GetFullPath(Option("--output") ?? defaultOutput);
+if (args.Contains("--lighting-compilation", StringComparer.Ordinal))
+{
+    output = Path.GetFullPath(Option("--output") ?? "artifacts/local/lighting-compilation");
+    LightingCompilationExperiment.Run(output);
+    return;
+}
 if (args.Contains("--field-lighting", StringComparer.Ordinal))
 {
     FieldLightingExperiment.Run(output);

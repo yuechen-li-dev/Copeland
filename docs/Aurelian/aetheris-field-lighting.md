@@ -10,6 +10,11 @@ It does not implement diffuse GI, reflections, clipmaps, radiance caches or
 temporal reconstruction. Vulkan executes the field shader on the GPU; it does
 not use ray-tracing hardware for these analytic sphere-tracing steps.
 
+The subsequent [lighting compilation milestone](lighting-compilation.md) adds
+nonblocking retained GPU batches, a Dominatus controller and bounded static
+diffuse/reflection experiments. The first-milestone limits and measurements below
+describe this original per-pixel direct-light path.
+
 ## Owners and dependencies
 
 ```mermaid

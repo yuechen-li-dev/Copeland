@@ -6,18 +6,24 @@ namespace Aurelian.Graphics.Vulkan.Native3D;
 
 public sealed record Native3DGpuPassTime(string Pass, double Milliseconds);
 
-/// <summary>Timestamp measurements for the three sequential 3D passes; excludes CPU upload and readback.</summary>
+/// <summary>Timestamp measurements for named sequential GPU passes; excludes CPU upload and readback.</summary>
 internal sealed unsafe class Vulkan3DGpuTimings : IDisposable
 {
     private readonly AurelianVulkanPlant plant;
     private readonly QueryPool pool;
     private readonly float period;
     private readonly uint validBits;
+    private readonly string[] names;
     private bool disposed;
 
-    public Vulkan3DGpuTimings(AurelianVulkanPlant plant)
+    public Vulkan3DGpuTimings(AurelianVulkanPlant plant, IReadOnlyList<string>? passNames = null)
     {
         this.plant = plant;
+        names = passNames?.ToArray() ?? ["directional-shadow", "linear-lighting", "tone-map-output"];
+        if (names.Length is < 1 or > 16 || names.Any(string.IsNullOrWhiteSpace))
+        {
+            throw new ArgumentException("GPU timing requires between one and sixteen named passes.", nameof(passNames));
+        }
         plant.Vk.GetPhysicalDeviceProperties(plant.PhysicalDevice, out PhysicalDeviceProperties properties);
         period = properties.Limits.TimestampPeriod;
         uint count = 0;
@@ -36,7 +42,7 @@ internal sealed unsafe class Vulkan3DGpuTimings : IDisposable
         {
             SType = StructureType.QueryPoolCreateInfo,
             QueryType = QueryType.Timestamp,
-            QueryCount = 6,
+            QueryCount = (uint)names.Length * 2,
         };
         if (plant.Vk.CreateQueryPool(plant.Device, &info, null, out pool) != Result.Success)
         {
@@ -48,7 +54,7 @@ internal sealed unsafe class Vulkan3DGpuTimings : IDisposable
     {
         if (pool.Handle != 0)
         {
-            plant.Vk.CmdResetQueryPool(command.CommandBuffer, pool, 0, 6);
+            plant.Vk.CmdResetQueryPool(command.CommandBuffer, pool, 0, (uint)names.Length * 2);
         }
     }
 
@@ -67,13 +73,13 @@ internal sealed unsafe class Vulkan3DGpuTimings : IDisposable
         {
             return [];
         }
-        ulong* values = stackalloc ulong[6];
-        Result result = plant.Vk.GetQueryPoolResults(plant.Device, pool, 0, 6, 48, values, 8, QueryResultFlags.Result64Bit);
+        uint queryCount = (uint)names.Length * 2;
+        ulong* values = stackalloc ulong[(int)queryCount];
+        Result result = plant.Vk.GetQueryPoolResults(plant.Device, pool, 0, queryCount, queryCount * 8, values, 8, QueryResultFlags.Result64Bit);
         if (result != Result.Success)
         {
             throw new InvalidOperationException("Completed 3D GPU timestamps were unavailable: " + result);
         }
-        string[] names = ["directional-shadow", "linear-lighting", "tone-map-output"];
         ulong mask = validBits >= 64 ? ulong.MaxValue : (1UL << (int)validBits) - 1;
         var timings = new List<Native3DGpuPassTime>();
         for (int index = 0; index < names.Length; index++)

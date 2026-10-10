@@ -7,23 +7,31 @@ import { TraceBudget } from "./FieldTraceBudget";
 // 0.5mm hit tolerance and 0.05mm numerical margin are qualified by the proof,
 // not a general guarantee for all f32 geometry and grazing rays.
 export function TraceField(origin: float3, direction: float3, maximum: f32, budget: u32): float4 {
+    return TraceFieldWithTolerance(origin, direction, maximum, budget, 0.0005);
+}
+
+// Radiance hits can demand tighter contact than binary shadow visibility. The step
+// margin stays below both admitted tolerances; exhaustion still remains unresolved.
+export function TraceFieldWithTolerance(origin: float3, direction: float3, maximum: f32, budget: u32, tolerance: f32): float4 {
     var status: f32 = 0.0;
     var travel: f32 = 0.0;
     var visibility: f32 = 1.0;
     var evaluations: f32 = 0.0;
     const directionLengthSquared: f32 = direction.x * direction.x + direction.y * direction.y + direction.z * direction.z;
-    if (Abs(directionLengthSquared - 1.0) > 0.0001) {
+    if (!(Abs(directionLengthSquared - 1.0) <= 0.0001)
+        || !(tolerance >= 0.0001 && tolerance <= 0.0005)
+        || !(maximum > 0.0 && maximum <= 48.0)) {
         return float4(0.0, 0.0, 0.0, 0.0);
     }
     for (var step: u32 = 0; step < 256; step = step + 1) {
         if (status == 0.0 && step < budget) {
             const samplePosition: float3 = Add3(origin, Scale3(direction, travel));
-            if (maximum <= 0.0 || maximum > 48.0 || Abs(samplePosition.x) > 64.0 || Abs(samplePosition.y) > 64.0 || Abs(samplePosition.z) > 64.0) {
+            if (!(Abs(samplePosition.x) <= 64.0 && Abs(samplePosition.y) <= 64.0 && Abs(samplePosition.z) <= 64.0)) {
                 return float4(0.0, travel, 0.0, evaluations);
             }
             const distance: f32 = FieldWorld(samplePosition);
             evaluations = evaluations + 1.0;
-            if (distance <= 0.0005) {
+            if (distance <= tolerance) {
                 status = 1.0;
                 visibility = 0.0;
             } else {
