@@ -1,5 +1,5 @@
 import { Unit, ShadowVisibility, Dot3, Add3, Scale3 } from "./Lighting3D";
-import { PredictLighting } from "./ExpertDecoder";
+import { SceneLighting } from "./SceneExpert";
 import { ExpertChoice } from "./ExpertChoice";
 
 @space(world.position)
@@ -72,7 +72,7 @@ function PixelMain(input: Varyings, resources: Resources, shadows: Shadows): Out
     // The experimental host supplies lamp's linear coefficient in camera.sky.x.
     // Only the declared visible receiver uses the expert; other surfaces retain direct lighting.
     if (normal.y > 0.9 && Abs(input.world.y) < 0.001 && Abs(input.world.x) <= 2.7 && Abs(input.world.z) <= 2.7) {
-        radiance = Add3(radiance, PredictLighting(float2(input.world.x / 2.7, input.world.z / 2.7),
+        radiance = Add3(radiance, SceneLighting(float2(input.world.x / 2.7, input.world.z / 2.7),
             ExpertChoice(), resources.camera.sun.w, resources.camera.sky.x));
     }
     return { color: float4(radiance.x, radiance.y, radiance.z, 1.0) };

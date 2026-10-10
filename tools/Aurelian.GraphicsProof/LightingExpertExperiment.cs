@@ -34,13 +34,17 @@ internal static class LightingExpertExperiment
     private const int TestSize = 64;
     private const int TimingSize = 256;
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
-    private sealed record Accuracy(double Rmse, double MaximumError, double RelativeRmse);
+    internal sealed record Accuracy(double Rmse, double MaximumError, double RelativeRmse);
 
-    public static void Run(string output, string? blender, bool reuseReference)
+    public static void Run(string output, string? blender, bool reuseReference, bool localExperts = false)
     {
         Directory.CreateDirectory(output);
         string evidencePath = Path.Combine(output, "expert-evidence.json");
         File.WriteAllText(evidencePath, "{\"accepted\":false}");
+        if (localExperts)
+        {
+            File.WriteAllText(Path.Combine(output, "local-expert-evidence.json"), "{\"accepted\":false}");
+        }
         var room = LightingCompilationExperiment.BuildRoom();
         Vector3 sun = Vector3.Normalize(new Vector3(.6f, 1, .4f));
         string sceneKey = Hash(Encoding.UTF8.GetBytes(room.Lighting.Field.Program.StructuralHash + "|"
@@ -60,7 +64,7 @@ internal static class LightingExpertExperiment
                 Emission = new[] { body.Declaration.Emission.X, body.Declaration.Emission.Y, body.Declaration.Emission.Z },
             }),
         }, JsonOptions));
-        RunBlender(blender, fixturePath, output, decoderPath, reuseReference);
+        RunBlender(blender, fixturePath, output, decoderPath, reuseReference, localExperts);
         byte[] artifact = File.ReadAllBytes(Path.Combine(output, "loaded-expert.json"));
         string decoderKey = Hash(File.ReadAllBytes(decoderPath));
         SceneLightingExpert expert = SceneLightingExpert.Load(artifact, sceneKey, decoderKey);
@@ -85,7 +89,11 @@ internal static class LightingExpertExperiment
         string weightsSource = GenerateWeights(expert);
         File.WriteAllText(Path.Combine(output, "ExpertWeights.v.ts"), weightsSource);
         CompiledGraphicsProgram probe = Compile("ExpertProbe.v.ts", weightsSource, output);
-        foreach (LightingExpertRepresentation representation in Enum.GetValues<LightingExpertRepresentation>())
+        foreach (LightingExpertRepresentation representation in new[]
+        {
+            LightingExpertRepresentation.Polynomial, LightingExpertRepresentation.CoarseGrid,
+            LightingExpertRepresentation.Neural, LightingExpertRepresentation.Hybrid,
+        })
         {
             float[] expected = Predict(expert, representation);
             float[] actual = new float[reference.Length];
@@ -195,17 +203,38 @@ internal static class LightingExpertExperiment
             },
         }, JsonOptions));
         Console.WriteLine("AURELIAN_LIGHTING_EXPERTS_PASSED " + plant.Facts.PhysicalDeviceName);
+        if (localExperts)
+        {
+            LocalLightingExpertExperiment.Run(output, room, plant, expert, weightsSource, reference, repeat, mask);
+        }
 
         VulkanLightingBake Inference(LightingExpertRepresentation representation, int basis, int size)
         {
-            float[] parameters = new float[24];
-            parameters[12] = (int)representation;
-            parameters[16] = basis == 1 ? 0 : 1;
-            parameters[17] = basis == 0 ? 0 : 1;
-            var plan = new LightingCompilation("expert." + representation, LightingArtifactKind.DiffuseTransfer,
-                new(sceneKey, expert.WeightsKey, "fixed-sun-and-lamp", VulkanLightingBake.ParameterIdentity(parameters),
-                    LightingProgramIdentity.Compute(probe)), size, size, 1, 1, linearLightResponse: true);
-            var batch = new VulkanLightingBake(plant, plan, probe, parameters);
+            return Infer(plant, probe, sceneKey, expert.WeightsKey, representation, basis, size);
+        }
+
+        byte[] CaptureRoom(LightingExpertRepresentation representation, Vector3 eye, string name, float lamp)
+        {
+            string choice = "export function ExpertChoice(): f32 {\n    return "
+                + ((int)representation).ToString(CultureInfo.InvariantCulture) + ".0;\n}\n";
+            CompiledGraphicsProgram shader = Compile("ExpertSolid3D.v.ts", weightsSource, output, choice);
+            return RenderRoom(output, room, plant, shader, sun, eye, name, lamp);
+        }
+    }
+
+    internal static VulkanLightingBake Infer(AurelianVulkanPlant plant, CompiledGraphicsProgram shader,
+        string sceneKey, string weightsKey, LightingExpertRepresentation representation, int basis, int size)
+    {
+        float[] parameters = new float[24];
+        parameters[12] = (int)representation;
+        parameters[16] = basis == 1 ? 0 : 1;
+        parameters[17] = basis == 0 ? 0 : 1;
+        var plan = new LightingCompilation("expert." + representation, LightingArtifactKind.DiffuseTransfer,
+            new(sceneKey, weightsKey, "fixed-sun-and-lamp", VulkanLightingBake.ParameterIdentity(parameters),
+                LightingProgramIdentity.Compute(shader)), size, size, 1, 1, linearLightResponse: true);
+        var batch = new VulkanLightingBake(plant, plan, shader, parameters);
+        try
+        {
             batch.Submit(1);
             var timeout = Stopwatch.StartNew();
             while (!batch.IsComplete())
@@ -215,35 +244,38 @@ internal static class LightingExpertExperiment
             }
             return batch;
         }
-
-        byte[] CaptureRoom(LightingExpertRepresentation representation, Vector3 eye, string name, float lamp)
+        catch
         {
-            string choice = "export function ExpertChoice(): f32 {\n    return "
-                + ((int)representation).ToString(CultureInfo.InvariantCulture) + ".0;\n}\n";
-            CompiledGraphicsProgram shader = Compile("ExpertSolid3D.v.ts", weightsSource, output, choice);
-            var assets = new GameAssets();
-            using var target = new VulkanNativeFrameTarget(plant, 512, 512);
-            using var renderer = new VulkanSolid3DRenderer(plant, shader, target,
-                shadowProgram: assets.Shader("Shadow3D.v.ts"), outputProgram: assets.Shader("ToneMap3D.v.ts"));
-            renderer.Settings = Graphics3DSettings.Default with
-            {
-                SunDirection = sun,
-                SunIntensity = 1,
-                SkyAmbient = new(lamp),
-                GroundAmbient = Vector3.Zero,
-            };
-            Matrix4x4 camera = Camera3D.Matrix(eye, Vector3.Normalize(new Vector3(0, 1, 0) - eye), 1);
-            var first = renderer.Render(room.Display, camera, eye, new(.02f, .025f, .03f, 1), capture: true);
-            var repeatFrame = renderer.Render(room.Display, camera, eye, new(.02f, .025f, .03f, 1), capture: true);
-            Require(first.PixelSha256 == repeatFrame.PixelSha256, "Repeated mesh inference changed pixels.");
-            NativeGameGraphics.WritePng(Path.Combine(output, name + ".png"), 512, 512, first.Pixels!);
-            return first.Pixels!;
+            batch.Dispose();
+            throw;
         }
     }
 
-    private static LightingExpertQualification SelectWithDominatus(
+    internal static byte[] RenderRoom(string output, LightingCompilationExperiment.Room room,
+        AurelianVulkanPlant plant, CompiledGraphicsProgram shader, Vector3 sun, Vector3 eye, string name, float lamp)
+    {
+        var assets = new GameAssets();
+        using var target = new VulkanNativeFrameTarget(plant, 512, 512);
+        using var renderer = new VulkanSolid3DRenderer(plant, shader, target,
+            shadowProgram: assets.Shader("Shadow3D.v.ts"), outputProgram: assets.Shader("ToneMap3D.v.ts"));
+        renderer.Settings = Graphics3DSettings.Default with
+        {
+            SunDirection = sun,
+            SunIntensity = 1,
+            SkyAmbient = new(lamp),
+            GroundAmbient = Vector3.Zero,
+        };
+        Matrix4x4 camera = Camera3D.Matrix(eye, Vector3.Normalize(new Vector3(0, 1, 0) - eye), 1);
+        var first = renderer.Render(room.Display, camera, eye, new(.02f, .025f, .03f, 1), capture: true);
+        var repeatFrame = renderer.Render(room.Display, camera, eye, new(.02f, .025f, .03f, 1), capture: true);
+        Require(first.PixelSha256 == repeatFrame.PixelSha256, "Repeated mesh inference changed pixels.");
+        NativeGameGraphics.WritePng(Path.Combine(output, name + ".png"), 512, 512, first.Pixels!);
+        return first.Pixels!;
+    }
+
+    internal static LightingExpertQualification SelectWithDominatus(
         IReadOnlyList<LightingExpertQualification> candidates, string sceneKey, double threshold,
-        LightingExpertQualification expected, string output)
+        LightingExpertQualification expected, string output, string inspectionName = "expert-inspection.json")
     {
         IReadOnlyList<LightingExpertQualification> eligible = SceneLightingExpert.Admit(candidates, sceneKey, threshold);
         var runtime = new AurelianAgentRuntime(256);
@@ -269,7 +301,7 @@ internal static class LightingExpertExperiment
         {
             runtime.Tick(TimeSpan.FromSeconds(1.0 / 60));
         }
-        File.WriteAllText(Path.Combine(output, "expert-inspection.json"), JsonSerializer.Serialize(runtime.Inspector.Observe(), JsonOptions));
+        File.WriteAllText(Path.Combine(output, inspectionName), JsonSerializer.Serialize(runtime.Inspector.Observe(), JsonOptions));
         Require(agent.Bb.GetOrDefault(selectedKey, "") == expected.Representation.ToString(),
             "Kernel utility disagrees with qualified cost selection: " + agent.Bb.GetOrDefault(selectedKey, "not-entered"));
         return expected;
@@ -288,10 +320,22 @@ internal static class LightingExpertExperiment
         }
     }
 
-    private static CompiledGraphicsProgram Compile(string root, string weights, string output, string? choice = null)
+    internal static CompiledGraphicsProgram Compile(string root, string weights, string output,
+        string? choice = null, string? localWeights = null)
     {
         var sources = GpuSourceLoader.Load(root, name =>
         {
+            if (name == "SceneExpert.v.ts")
+            {
+                string decoder = localWeights is null ? "ExpertDecoder" : "LocalExpertDecoder";
+                return "import { PredictLighting } from \"./" + decoder + "\";\n"
+                    + "export function SceneLighting(p: float2, mode: f32, sun: f32, lamp: f32): float3 {\n"
+                    + "    return PredictLighting(p, mode, sun, lamp);\n}\n";
+            }
+            if (name == "LocalExpertWeights.v.ts")
+            {
+                return localWeights;
+            }
             if (name == "ExpertWeights.v.ts")
             {
                 return weights;
@@ -391,7 +435,7 @@ internal static class LightingExpertExperiment
         }
     }
 
-    private static bool[] ReceiverMask(LightingCompilationExperiment.Room room)
+    internal static bool[] ReceiverMask(LightingCompilationExperiment.Room room)
     {
         var mask = new bool[TestSize * TestSize];
         for (int index = 0; index < mask.Length; index++)
@@ -402,7 +446,7 @@ internal static class LightingExpertExperiment
         return mask;
     }
 
-    private static float[] Predict(SceneLightingExpert expert, LightingExpertRepresentation representation)
+    internal static float[] Predict(SceneLightingExpert expert, LightingExpertRepresentation representation)
     {
         var result = new float[TestSize * TestSize * 6];
         for (int index = 0; index < TestSize * TestSize; index++)
@@ -415,11 +459,11 @@ internal static class LightingExpertExperiment
         return result;
     }
 
-    private static Vector2 Position(int index) => new(
+    internal static Vector2 Position(int index) => new(
         -2.7f + (index % TestSize + .5f) * 5.4f / TestSize,
         -2.7f + (index / TestSize + .5f) * 5.4f / TestSize);
 
-    private static Accuracy Compare(float[] expected, float[] actual, bool[] mask)
+    internal static Accuracy Compare(float[] expected, float[] actual, bool[] mask)
     {
         double squared = 0;
         double energy = 0;
@@ -441,12 +485,13 @@ internal static class LightingExpertExperiment
         return new(Math.Sqrt(squared / count), maximum, Math.Sqrt(squared / Math.Max(energy, 1e-20)));
     }
 
-    private static int PayloadBytes(LightingExpertRepresentation representation) => representation switch
+    internal static int PayloadBytes(LightingExpertRepresentation representation) => representation switch
     {
         LightingExpertRepresentation.Polynomial => 36 * 4,
         LightingExpertRepresentation.CoarseGrid => 216 * 4,
         LightingExpertRepresentation.Neural => (96 + 192) * 4,
-        _ => (96 + 192 + 216) * 4,
+        LightingExpertRepresentation.Hybrid => (96 + 192 + 216) * 4,
+        _ => throw new ArgumentOutOfRangeException(nameof(representation)),
     };
 
     private static float[] Read(string path, int count)
@@ -458,7 +503,7 @@ internal static class LightingExpertExperiment
         return values;
     }
 
-    private static void WritePreview(string output, string name, float[] values, bool[] mask)
+    internal static void WritePreview(string output, string name, float[] values, bool[] mask)
     {
         byte[] pixels = new byte[TestSize * TestSize * 4];
         for (int pixel = 0; pixel < TestSize * TestSize; pixel++)
@@ -478,9 +523,9 @@ internal static class LightingExpertExperiment
         NativeGameGraphics.WritePng(Path.Combine(output, name + ".png"), TestSize, TestSize, pixels);
     }
 
-    private static void Sheet(string output)
+    internal static void Sheet(string output, string fileName = "comparison.png", string[]? names = null)
     {
-        string[] names = ["cycles-reference", "polynomial", "coarsegrid", "neural", "hybrid", "room-view-a", "room-view-b", "room-lamp-off"];
+        names ??= ["cycles-reference", "polynomial", "coarsegrid", "neural", "hybrid", "room-view-a", "room-view-b", "room-lamp-off"];
         const int tile = 384;
         using var bitmap = new SKBitmap(tile * 4, (tile + 32) * 2);
         using var canvas = new SKCanvas(bitmap);
@@ -495,10 +540,10 @@ internal static class LightingExpertExperiment
             canvas.DrawBitmap(image, new SKRect(x, y + 32, x + tile, y + 32 + tile));
         }
         using var encoded = bitmap.Encode(SKEncodedImageFormat.Png, 100);
-        File.WriteAllBytes(Path.Combine(output, "comparison.png"), encoded.ToArray());
+        File.WriteAllBytes(Path.Combine(output, fileName), encoded.ToArray());
     }
 
-    private static void RunBlender(string? executable, string fixture, string output, string decoder, bool reuse)
+    private static void RunBlender(string? executable, string fixture, string output, string decoder, bool reuse, bool localExperts)
     {
         executable ??= "C:/Program Files/Blender Foundation/Blender 5.2/blender.exe";
         if (!File.Exists(executable))
@@ -522,6 +567,11 @@ internal static class LightingExpertExperiment
         {
             start.ArgumentList.Add("--reuse");
         }
+        if (localExperts)
+        {
+            start.ArgumentList.Add("--local-decoder");
+            start.ArgumentList.Add(Path.GetFullPath("tools/Aurelian.GraphicsProof/Assets/LocalExpertDecoder.v.ts"));
+        }
         Console.WriteLine("Running installed Blender/Cycles/OpenUSD; reference output is captured in blender.log.");
         using var process = Process.Start(start) ?? throw new InvalidOperationException("Blender did not start.");
         Task<string> stdout = process.StandardOutput.ReadToEndAsync();
@@ -539,7 +589,7 @@ internal static class LightingExpertExperiment
 
     private static string Hash(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
 
-    private static int ChangedPixels(byte[] first, byte[] second)
+    internal static int ChangedPixels(byte[] first, byte[] second)
     {
         int changed = 0;
         for (int index = 0; index < first.Length; index += 4)
@@ -578,7 +628,7 @@ internal static class LightingExpertExperiment
         throw new InvalidOperationException("Invalid-only candidate set was selected.");
     }
 
-    private static void Require(bool condition, string message)
+    internal static void Require(bool condition, string message)
     {
         if (!condition)
         {

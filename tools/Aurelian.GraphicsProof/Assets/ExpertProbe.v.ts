@@ -1,4 +1,4 @@
-import { PredictLighting } from "./ExpertDecoder";
+import { SceneLighting } from "./SceneExpert";
 
 @space(clip.position)
 type ClipPosition4 = float4;
@@ -35,6 +35,6 @@ function VertexMain(input: Input): Varyings {
 @pixel
 function PixelMain(input: Varyings, resources: Resources): Output {
     let normalized: float2 = float2(input.uv.x * 2.0 - 1.0, input.uv.y * 2.0 - 1.0);
-    let radiance: float3 = PredictLighting(normalized, resources.bake.parameters.x, resources.bake.light.x, resources.bake.light.y);
+    let radiance: float3 = SceneLighting(normalized, resources.bake.parameters.x, resources.bake.light.x, resources.bake.light.y);
     return { color: float4(radiance.x, radiance.y, radiance.z, 1.0) };
 }

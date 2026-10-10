@@ -283,6 +283,7 @@ def main():
     parser.add_argument("--output", required=True)
     parser.add_argument("--decoder", required=True)
     parser.add_argument("--reuse", action="store_true")
+    parser.add_argument("--local-decoder")
     args = parser.parse_args(sys.argv[sys.argv.index("--") + 1:])
     output = Path(args.output)
     fixture = json.loads(Path(args.fixture).read_text(encoding="utf-8"))
@@ -319,6 +320,11 @@ def main():
     decoder_key = hashlib.sha256(Path(args.decoder).read_bytes()).hexdigest()
     manifest = save_artifact(scene_path, output / "lighting.usda", fixture, arrays, decoder_key)
     (output / "loaded-expert.json").write_text(json.dumps(manifest, indent=2))
+    if args.local_decoder:
+        sys.dont_write_bytecode = True
+        sys.path.insert(0, str(Path(__file__).parent))
+        from local_lighting_experts import fit_and_save
+        fit_and_save(stage, output, args.local_decoder, fixture["SceneKey"])
     print("AURELIAN_USD_EXPERT_ROUNDTRIP_PASSED", flush=True)
 
 

@@ -41,6 +41,7 @@ public sealed class SceneLightingExpertTests
         Assert.Throws<ArgumentOutOfRangeException>(() => expert.Evaluate(new(3, 0), LightingExpertRepresentation.Neural));
         Assert.Throws<ArgumentOutOfRangeException>(() => expert.Evaluate(new(float.NaN, 0), LightingExpertRepresentation.Neural));
         Assert.Throws<ArgumentOutOfRangeException>(() => expert.Evaluate(Vector2.Zero, LightingExpertRepresentation.Neural, -1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => expert.Evaluate(Vector2.Zero, LightingExpertRepresentation.GeometryLocal));
     }
 
     [Fact]

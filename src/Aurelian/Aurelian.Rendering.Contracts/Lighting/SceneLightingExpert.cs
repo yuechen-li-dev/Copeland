@@ -11,6 +11,9 @@ public enum LightingExpertRepresentation
     CoarseGrid,
     Neural,
     Hybrid,
+    GeometryLocal,
+    UniformLocal,
+    MatchedGrid,
 }
 
 public sealed record LightingExpertQualification(
@@ -94,7 +97,8 @@ public sealed class SceneLightingExpert
 
     public Vector3 Evaluate(Vector2 position, LightingExpertRepresentation representation, float sun = 1, float lamp = 1)
     {
-        if (!Enum.IsDefined(representation) || !float.IsFinite(position.X) || !float.IsFinite(position.Y)
+        if (representation is < LightingExpertRepresentation.Polynomial or > LightingExpertRepresentation.Hybrid
+            || !float.IsFinite(position.X) || !float.IsFinite(position.Y)
             || Math.Abs(position.X) > 2.7f || Math.Abs(position.Y) > 2.7f
             || !float.IsFinite(sun) || !float.IsFinite(lamp) || sun < 0 || lamp < 0)
         {

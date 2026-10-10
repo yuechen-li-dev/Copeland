@@ -29,7 +29,7 @@ internal static class LightingCompilationExperiment
     private const int PreviewSize = 512;
     internal sealed record Body(BrepBody Brep, Vector3 Position, AetherisLightingBody Declaration);
     internal sealed record Room(Body[] Bodies, AetherisLightingScene Lighting, Native3DScene Display);
-    private sealed record Hit(Body Body, Vector3 Point, Vector3 Normal, double Distance);
+    internal sealed record Hit(Body Body, Vector3 Point, Vector3 Normal, double Distance);
 
     public static void Run(string output)
     {
@@ -501,7 +501,7 @@ internal static class LightingCompilationExperiment
                 Math.Max(Math.Abs(expected.Y - values[offset + 1]), Math.Abs(expected.Z - values[offset + 2])));
     }
 
-    private static Hit? Closest(Room room, Vector3 origin, Vector3 direction)
+    internal static Hit? Closest(Room room, Vector3 origin, Vector3 direction)
     {
         Hit? nearest = null;
         foreach (Body body in room.Bodies)

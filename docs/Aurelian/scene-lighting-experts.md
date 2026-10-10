@@ -1,5 +1,9 @@
 # Scene lighting experts: bounded experiment
 
+The follow-up [geometry-guided local expert study](local-lighting-experts.md)
+tests the partition idea below through the same native path and measures both
+boundary accuracy and remaining seams.
+
 This combines compiled light transport with a saved deterministic expert. OpenUSD
 carries the source scene, decoder identity and learned coefficients. Aurelian
 validates it, specializes a Visual TypeScript decoder and executes it on Vulkan.
