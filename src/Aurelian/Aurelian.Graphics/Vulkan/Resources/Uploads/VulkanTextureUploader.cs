@@ -286,7 +286,7 @@ public sealed unsafe class VulkanTextureUploader : IDisposable
         {
             diagnostics.Add(Diagnostic(
                 VulkanTextureUploadDiagnosticCodes.UnsupportedTextureFormat,
-                "Texture upload supports RGBA-like byte formats and RGBA32F data textures.",
+                "Texture upload supports RGBA-like byte formats, R32F and RGBA32F data textures.",
                 request.DebugName));
         }
 
@@ -381,7 +381,7 @@ public sealed unsafe class VulkanTextureUploader : IDisposable
 
     private static bool IsSupportedFormat(VulkanTextureFormat format)
         => format is VulkanTextureFormat.Rgba8Unorm or VulkanTextureFormat.Bgra8Unorm or VulkanTextureFormat.Rgba8Srgb
-            or VulkanTextureFormat.Bgra8Srgb or VulkanTextureFormat.Rgba32Float;
+            or VulkanTextureFormat.Bgra8Srgb or VulkanTextureFormat.Rgba32Float or VulkanTextureFormat.R32Float;
 
     private static bool TryGetExpectedUploadSize(uint width, uint height, VulkanTextureFormat format, out ulong sizeBytes)
     {

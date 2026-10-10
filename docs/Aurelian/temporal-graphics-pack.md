@@ -118,6 +118,11 @@ coverage quality, dynamic-shadow history behavior, or multi-device performance.
 AO, prefiltered environment lighting, transparency and subsurface scattering are
 separate subsequent capabilities.
 
+The [surface graphics pack](surface-graphics-pack.md) now provides AO and
+prefiltered environment lighting, and corrects perspective silhouette detection.
+Its native coverage witness and moving-edge regressions qualify the updated
+resolve separately from the historical measurements above.
+
 ## Aetheris provenance
 
 `TemporalPolicy.v.ts` adapts Aetheris's

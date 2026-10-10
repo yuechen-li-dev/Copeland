@@ -19,6 +19,11 @@ public sealed record Graphics3DSettings
     public float BloomIntensity { get; init; } = .08f;
     public float BloomThreshold { get; init; } = 1;
     public float BloomKnee { get; init; } = .5f;
+    public float AmbientOcclusionStrength { get; init; }
+    public float AmbientOcclusionRadius { get; init; } = .8f;
+    public float EnvironmentIntensity { get; init; } = 1;
+    public bool LocalLightCulling { get; init; } = true;
+    public int LocalShadowBudget { get; init; } = 2;
     public bool SolidPbr { get; init; } = true;
     public bool Shadows { get; init; } = true;
     public bool ToneMapping { get; init; } = true;
@@ -36,6 +41,9 @@ public sealed record Graphics3DSettings
     public void Validate()
     {
         if (!Enum.IsDefined(AntiAliasing) || !Range(TemporalHistoryWeight, 0, .95f) || !Range(BloomIntensity, 0, 1)
+            || !Range(AmbientOcclusionStrength, 0, 2) || !Range(AmbientOcclusionRadius, .01f, 10)
+            || !Range(EnvironmentIntensity, 0, 100)
+            || LocalShadowBudget is < 0 or > 2
             || !Range(BloomThreshold, 0, 10000) || !Range(BloomKnee, 0, 10000)
             || !Finite(SunDirection) || !float.IsFinite(SunDirection.LengthSquared()) || SunDirection.LengthSquared() < .000001f
             || !Color(SunColor) || !Color(SkyAmbient) || !Color(GroundAmbient)

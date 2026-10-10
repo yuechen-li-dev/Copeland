@@ -25,6 +25,7 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
     private readonly DescriptorPool pool;
     private readonly DescriptorSet set;
     private readonly Sampler sampler;
+    private readonly Sampler linearSampler;
     private readonly AurelianVulkanBuffer uniform;
     private readonly AurelianVulkanGraphicsPipeline pipeline;
     private readonly int inputCount;
@@ -57,6 +58,7 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
                 (ulong)program.Material!.Size, VulkanBufferUsage.Uniform, VulkanMemoryUsage.CpuToGpu, "post.uniform"));
             (pool, set) = Vulkan3DPass.AllocateSet(plant, layout, uniform, (uint)inputCount);
             sampler = Vulkan3DPass.CreateSampler(plant, filter);
+            linearSampler = Vulkan3DPass.CreateSampler(plant, Filter.Linear);
         }
         catch
         {
@@ -95,9 +97,18 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
         Require(encoder.End(plant, command, begin.Scope.Value).Success, "Fullscreen pass end failed.");
     }
 
+    public void SetLinearInput(int index, AurelianVulkanTexture texture)
+    {
+        if (index < 0 || index >= inputCount || texture == Framebuffer.Descriptor.ColorAttachments[0])
+        {
+            throw new ArgumentException("Linear fullscreen input must be an admitted input distinct from the output.");
+        }
+        Vulkan3DPass.WriteImage(plant, set, (uint)(1 + index * 2), texture, linearSampler);
+    }
+
     private static void Validate(CompiledGraphicsProgram program, int count)
     {
-        bool valid = count is >= 1 and <= 8 && program.Material is { Set: 0, Binding: 0 } material
+        bool valid = count is >= 1 and <= 12 && program.Material is { Set: 0, Binding: 0 } material
             && material.Size == material.Fields.Count * 16
             && material.Fields.All(field => field.PhysicalType == "float4")
             && material.Fields.Select(field => field.Offset).SequenceEqual(Enumerable.Range(0, material.Fields.Count).Select(index => index * 16))
@@ -127,6 +138,7 @@ internal sealed unsafe class VulkanPostProcess3D : IDisposable
         disposed = true;
         if (pool.Handle != 0) plant.Vk.DestroyDescriptorPool(plant.Device, pool, null);
         if (sampler.Handle != 0) plant.Vk.DestroySampler(plant.Device, sampler, null);
+        if (linearSampler.Handle != 0) plant.Vk.DestroySampler(plant.Device, linearSampler, null);
         while (owned.TryPop(out var resource)) resource.Dispose();
         if (layout.Handle != 0) plant.Vk.DestroyDescriptorSetLayout(plant.Device, layout, null);
     }

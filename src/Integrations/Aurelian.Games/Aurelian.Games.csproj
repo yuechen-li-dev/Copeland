@@ -37,4 +37,14 @@
     <EmbeddedResource Include="../../Aurelian/Aurelian.Assets/Defaults/Fonts/SpaceMono-Regular.ttf" LogicalName="Aurelian.Games.SpaceMono-Regular.ttf" />
     <Content Include="../../Aurelian/Aurelian.Assets/Defaults/Fonts/*.LICENSE.txt" Link="Licenses/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/SurfaceLighting.v.ts" LogicalName="Aurelian.Games.SurfaceLighting.v.ts" />
+    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/SurfaceSolid3D.v.ts" LogicalName="Aurelian.Games.SurfaceSolid3D.v.ts" />
+    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/SurfaceModel3D.v.ts" LogicalName="Aurelian.Games.SurfaceModel3D.v.ts" />
+    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/SurfaceResolve3D.v.ts" LogicalName="Aurelian.Games.SurfaceResolve3D.v.ts" />
+    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/AmbientOcclusion3D.v.ts" LogicalName="Aurelian.Games.AmbientOcclusion3D.v.ts" />
+    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/AmbientDenoise3D.v.ts" LogicalName="Aurelian.Games.AmbientDenoise3D.v.ts" />
+    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/LightTiles3D.v.ts" LogicalName="Aurelian.Games.LightTiles3D.v.ts" />
+    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/EnvironmentCompile3D.v.ts" LogicalName="Aurelian.Games.EnvironmentCompile3D.v.ts" />
+  </ItemGroup>
 </Project>

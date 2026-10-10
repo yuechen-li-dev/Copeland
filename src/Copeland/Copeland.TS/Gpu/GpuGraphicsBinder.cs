@@ -1089,7 +1089,7 @@ public static class GpuGraphicsBinder
                 }
                 return new VdMirExpression("intrinsic", elementType ?? "error", Span(path, call), "Sample2D", arguments);
             }
-            if (target is "Min" or "Max" or "Pow")
+            if (target is "Min" or "Max" or "Pow" or "Atan2")
             {
                 if (arguments.Length != 2 || arguments.Any(argument => argument.Type != "f32"))
                 {
@@ -1107,7 +1107,7 @@ public static class GpuGraphicsBinder
                 }
                 return new VdMirExpression("intrinsic", "f32", Span(path, call), "Clamp", arguments);
             }
-            if (target is "Abs" or "Sqrt" or "Floor")
+            if (target is "Abs" or "Sqrt" or "Floor" or "Sin" or "Cos" or "Acos")
             {
                 if (arguments.Length != 1 || arguments[0].Type != "f32")
                 {

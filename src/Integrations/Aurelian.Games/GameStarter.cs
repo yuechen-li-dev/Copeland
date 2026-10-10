@@ -65,6 +65,12 @@ public static class GameStarter
         using var graphics = new NativeGameGraphics(window, options.Title, visible, enableRayQueries: gpuRays);
         graphics.Settings = args.Contains("--basic-graphics", StringComparer.Ordinal)
             ? Aurelian.Rendering.Contracts.Models.Graphics3DSettings.Basic : options.Graphics;
+        if (options.EnvironmentAsset is not null)
+        {
+            graphics.Environment = new GameAssets().LoadEnvironment(options.EnvironmentAsset);
+        }
+        graphics.ReflectionProbe = options.ReflectionProbe;
+        graphics.LocalLights = options.LocalLights;
         using VulkanSpatialRayQueries3D? rayQueries = gpuRays
             && graphics.Plant.Facts.EnabledDeviceExtensions.Contains("VK_KHR_ray_query", StringComparer.Ordinal)
             ? GameRayQueries.Create(graphics.Plant, game.SpatialWorld) : null;

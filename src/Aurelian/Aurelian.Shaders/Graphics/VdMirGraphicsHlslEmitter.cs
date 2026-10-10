@@ -107,7 +107,7 @@ public static class VdMirGraphicsHlslEmitter
     {
         string parameters = string.Join(", ", function.Parameters
             .Where(parameter => module.Streams.All(stream => stream.Name != parameter.Type || stream.Role != VdMirStreamRole.Resource))
-            .Select(parameter => $"{MapType(parameter.Type, module)} {parameter.Name}"));
+            .Select(parameter => $"{MapType(parameter.Type, module)} {LocalName(parameter.Name, module)}"));
         return $"{MapType(function.ReturnType, module)} {function.Name}({parameters})";
     }
 
@@ -128,7 +128,7 @@ public static class VdMirGraphicsHlslEmitter
         switch (statement.Kind)
         {
             case "assign":
-                builder.AppendLine($"{prefix}{statement.Name} = {EmitExpression(statement.Expression!, module)};");
+                builder.AppendLine($"{prefix}{LocalName(statement.Name!, module)} = {EmitExpression(statement.Expression!, module)};");
                 break;
             case "break":
             case "discard":
@@ -137,7 +137,7 @@ public static class VdMirGraphicsHlslEmitter
             case "for":
                 VdMirStatement initializer = statement.Initializer!;
                 VdMirStatement increment = statement.Increment!;
-                builder.AppendLine($"{prefix}for ({MapType(initializer.Type!, module)} {initializer.Name} = {EmitExpression(initializer.Expression!, module)}; {EmitExpression(statement.Expression!, module)}; {increment.Name} = {EmitExpression(increment.Expression!, module)})");
+                builder.AppendLine($"{prefix}for ({MapType(initializer.Type!, module)} {LocalName(initializer.Name!, module)} = {EmitExpression(initializer.Expression!, module)}; {EmitExpression(statement.Expression!, module)}; {LocalName(increment.Name!, module)} = {EmitExpression(increment.Expression!, module)})");
                 builder.AppendLine($"{prefix}{{");
                 foreach (VdMirStatement child in statement.Body ?? [])
                 {
@@ -154,7 +154,7 @@ public static class VdMirGraphicsHlslEmitter
                 builder.AppendLine($"{prefix}}}");
                 break;
             case "local":
-                builder.AppendLine($"{prefix}{MapType(statement.Type!, module)} {statement.Name} = {EmitExpression(statement.Expression!, module)};");
+                builder.AppendLine($"{prefix}{MapType(statement.Type!, module)} {LocalName(statement.Name!, module)} = {EmitExpression(statement.Expression!, module)};");
                 break;
             case "return":
                 if (statement.Expression!.Kind == "object")
@@ -206,7 +206,8 @@ public static class VdMirGraphicsHlslEmitter
     {
         return expression.Kind switch
         {
-            "name" or "literal" => expression.Value!,
+            "name" => LocalName(expression.Value!, module),
+            "literal" => expression.Value!,
             "field" when IsResourceRoot(expression.Operands![0], module) => ResourceName(expression.Value!, module),
             "field" => $"{EmitExpression(expression.Operands![0], module)}.{expression.Value}",
             "call" => $"{expression.Value}({string.Join(", ", expression.Operands!.Where(operand => !IsResourceRoot(operand, module)).Select(operand => EmitExpression(operand, module)))})",
@@ -214,7 +215,7 @@ public static class VdMirGraphicsHlslEmitter
             "unary" => $"({expression.Value}{EmitExpression(expression.Operands![0], module)})",
             "intrinsic" when expression.Value == "Sample2D" => $"{EmitExpression(expression.Operands![0], module)}.Sample({EmitExpression(expression.Operands[1], module)}, {EmitExpression(expression.Operands[2], module)})",
             "intrinsic" when expression.Value == "ConvertU32ToF32" => $"float({EmitExpression(expression.Operands![0], module)})",
-            "intrinsic" when expression.Value is "Min" or "Max" or "Clamp" or "Abs" or "Sqrt" or "Floor" or "Pow" => $"{expression.Value!.ToLowerInvariant()}({string.Join(", ", expression.Operands!.Select(operand => EmitExpression(operand, module)))})",
+            "intrinsic" when expression.Value is "Min" or "Max" or "Clamp" or "Abs" or "Sqrt" or "Floor" or "Pow" or "Sin" or "Cos" or "Acos" or "Atan2" => $"{expression.Value!.ToLowerInvariant()}({string.Join(", ", expression.Operands!.Select(operand => EmitExpression(operand, module)))})",
             "intrinsic" when expression.Value == "Fwidth" => $"fwidth({EmitExpression(expression.Operands![0], module)})",
             "object" => throw new InvalidOperationException("Object values must be lowered into generated stream assignments."),
             _ => throw new InvalidOperationException($"Unsupported graphics expression '{expression.Kind}'."),
@@ -223,6 +224,16 @@ public static class VdMirGraphicsHlslEmitter
 
     // Resource streams disappear in HLSL, so their fields must not collide with
     // ordinary local names. Generated return values need the same hygiene.
+    private static string LocalName(string name, VdMirGraphicsModule module)
+    {
+        // HLSL primitive modifiers are ordinary identifiers in Visual TypeScript.
+        if (name is "point" or "line" or "triangle" or "lineadj" or "triangleadj")
+        {
+            return GeneratedName("copeland_" + name, module);
+        }
+        return name;
+    }
+
     private static string ResourceName(string name, VdMirGraphicsModule module)
     {
         var resource = module.GraphicsProgram!.Resources.Single(item => item.Name == name);

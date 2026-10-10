@@ -1,4 +1,5 @@
 using System.Numerics;
+using Aurelian.Rendering.Contracts.Models;
 using System.Runtime.InteropServices;
 using Aurelian.GameMenus;
 using Aurelian.Graphics.Plants;
@@ -20,6 +21,23 @@ namespace Aurelian.Games;
 /// <summary>Shared fixed-surface Vulkan graphics lifetime, used by games and the starter host.</summary>
 public sealed class NativeGameGraphics : IDisposable
 {
+    public EnvironmentLighting? Environment
+    {
+        get => Renderer.Environment;
+        set => Renderer.Environment = value;
+    }
+
+    public IReadOnlyList<LocalLight3D> LocalLights
+    {
+        get => Renderer.LocalLights;
+        set => Renderer.LocalLights = value;
+    }
+
+    public ReflectionProbe3D? ReflectionProbe
+    {
+        get => Renderer.ReflectionProbe;
+        set => Renderer.ReflectionProbe = value;
+    }
     private readonly Stack<IDisposable> owned = new();
     private readonly GameAssets assets;
     private readonly LightingCompilationController lighting;
@@ -36,7 +54,7 @@ public sealed class NativeGameGraphics : IDisposable
     {
         assets ??= new();
         this.assets = assets;
-        lightingShaderKey = LightingProgramIdentity.Compute(assets.Shader("Solid3D.v.ts"));
+        lightingShaderKey = LightingProgramIdentity.Compute(assets.Shader("SurfaceSolid3D.v.ts"));
         lighting = new LightingCompilationController(request =>
         {
             var watch = System.Diagnostics.Stopwatch.StartNew();
@@ -83,10 +101,12 @@ public sealed class NativeGameGraphics : IDisposable
                 _ => throw new NotSupportedException("Unsupported swapchain format: " + Swapchain.Facts.SelectedFormat),
             };
             Target = Own(new VulkanNativeFrameTarget(Plant, Swapchain.Facts.Width, Swapchain.Facts.Height, format));
-            Renderer = Own(new VulkanSolid3DRenderer(Plant, assets.Shader("Solid3D.v.ts"), Target,
-                modelProgram: assets.Shader("StaticModel3D.v.ts"), shadowProgram: assets.Shader("Shadow3D.v.ts"),
+            Renderer = Own(new VulkanSolid3DRenderer(Plant, assets.Shader("SurfaceSolid3D.v.ts"), Target,
+                modelProgram: assets.Shader("SurfaceModel3D.v.ts"), shadowProgram: assets.Shader("Shadow3D.v.ts"),
                 outputProgram: assets.Shader("ToneMap3D.v.ts"), temporalProgram: assets.Shader("TemporalResolve3D.v.ts"),
-                bloomProgram: assets.Shader("Bloom3D.v.ts")));
+                bloomProgram: assets.Shader("Bloom3D.v.ts"),
+                surfacePrograms: new(assets.Shader("SurfaceResolve3D.v.ts"), assets.Shader("AmbientOcclusion3D.v.ts"),
+                    assets.Shader("AmbientDenoise3D.v.ts"), assets.Shader("LightTiles3D.v.ts"))));
             Presenter = Own(new VulkanNativeSwapchainPresenter(Plant, Target, Swapchain));
             Font = AurelianNativeUiFont.Create(assets.FontDirectory());
             Menus = Own(new GameMenuNativePresenter(Plant, Target,

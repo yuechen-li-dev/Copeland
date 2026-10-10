@@ -13,6 +13,13 @@ public sealed class GraphicsStarterShaderTests
     [InlineData("ToneMap3D.v.ts", 16, 5)]
     [InlineData("TemporalResolve3D.v.ts", 48, 7)]
     [InlineData("Bloom3D.v.ts", 32, 5)]
+    [InlineData("SurfaceSolid3D.v.ts", 304, 1)]
+    [InlineData("SurfaceModel3D.v.ts", 352, 11)]
+    [InlineData("SurfaceResolve3D.v.ts", 448, 25)]
+    [InlineData("AmbientOcclusion3D.v.ts", 80, 5)]
+    [InlineData("AmbientDenoise3D.v.ts", 96, 5)]
+    [InlineData("LightTiles3D.v.ts", 80, 3)]
+    [InlineData("EnvironmentCompile3D.v.ts", 16, 3)]
     public void StarterPassesCompileToValidatedSpirvWithTheirResourceContracts(string name, int uniformBytes, int resourceCount)
     {
         var sources = GpuSourceLoader.Load(name, path =>

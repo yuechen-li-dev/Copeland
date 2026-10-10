@@ -27,5 +27,7 @@ function VertexMain(input: ShadowInput, resources: ShadowResources): ShadowVaryi
 }
 @pixel
 function PixelMain(input: ShadowVaryings): ShadowOutput {
-    return { color: float4(input.depth, input.depth, input.depth, 1.0) };
+    // Fragment position contains post-divide Vulkan depth for both perspective
+    // spot lights and the existing orthographic directional light.
+    return { color: float4(input.position.z, input.position.z, input.position.z, 1.0) };
 }

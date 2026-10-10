@@ -26,6 +26,12 @@ public sealed record StarterOptions(
     // Visual quality is excluded from simulation identity and save compatibility.
     [JsonIgnore]
     public Graphics3DSettings Graphics { get; init; } = Graphics3DSettings.Default;
+    [JsonIgnore]
+    public string? EnvironmentAsset { get; init; }
+    [JsonIgnore]
+    public ReflectionProbe3D? ReflectionProbe { get; init; }
+    [JsonIgnore]
+    public IReadOnlyList<LocalLight3D> LocalLights { get; init; } = [];
 }
 public sealed record StarterSnapshot(Point3 Position, float Yaw, float Pitch, float VerticalVelocity,
     double Time, CameraView View, GunSnapshot Gun, IReadOnlyList<int> ObjectHealth, GameKeyBindings Keys, float Volume,

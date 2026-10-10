@@ -70,6 +70,8 @@ function PixelMain(input: Varyings, resources: TemporalResources): Output {
     var minimumDepth: f32 = motion.w;
     var maximumDepth: f32 = motion.w;
     var coverageMotion: f32 = 0.0;
+    var slopeX: f32 = 1.0;
+    var slopeY: f32 = 1.0;
     for (var y: u32 = 0; y < 3; y = y + 1) {
         for (var x: u32 = 0; x < 3; x = x + 1) {
             const uv: float2 = float2(input.uv.x + (Convert<f32>(x) - 1.0) * parameters.x,
@@ -80,6 +82,15 @@ function PixelMain(input: Varyings, resources: TemporalResources): Output {
             maximum = Maximum(maximum, neighbor);
             minimumDepth = Min(minimumDepth, depth.w);
             maximumDepth = Max(maximumDepth, depth.w);
+            // Use the gentler side of each axis to estimate the current surface
+            // slope. Quad derivatives can include the silhouette itself and
+            // therefore erase the very discontinuity we need to recognize.
+            if (y == 1 && x != 1) {
+                slopeX = Min(slopeX, Abs(depth.w - motion.w));
+            }
+            if (x == 1 && y != 1) {
+                slopeY = Min(slopeY, Abs(depth.w - motion.w));
+            }
             if (depth.w < 1.0) {
                 const dx: f32 = (depth.x - uv.x - resources.temporal.jitter.x) / parameters.x;
                 const dy: f32 = (depth.y - uv.y - resources.temporal.jitter.y) / parameters.y;
@@ -95,7 +106,8 @@ function PixelMain(input: Varyings, resources: TemporalResources): Output {
     const movement: float2 = float2((previousUv.x - input.uv.x) / parameters.x,
         (previousUv.y - input.uv.y) / parameters.y);
     const speed: f32 = Max(Abs(movement.x), Abs(movement.y));
-    const edge: f32 = Clamp((maximumDepth - minimumDepth - 2.0 * Min(Fwidth(motion.w), 0.002)) * 10000.0, 0.0, 1.0);
+    const surfaceSlope: f32 = slopeX + slopeY;
+    const edge: f32 = Clamp((maximumDepth - minimumDepth - 2.0 * surfaceSlope - 0.00002) * 10000.0, 0.0, 1.0);
     // A moving silhouette is reactive: previous coverage is no longer evidence
     // for the newly exposed background, even when its stored depth is background.
     if (edge > 0.2 && coverageMotion > 0.05) {
@@ -103,7 +115,7 @@ function PixelMain(input: Varyings, resources: TemporalResources): Output {
             input.uv.y + resources.temporal.reconstruction.y));
         return { color: float4(reactive.x, reactive.y, reactive.z, motion.w) };
     }
-    const tolerance: f32 = Max(0.00002, Min(Fwidth(motion.w) * 2.0, 0.002));
+    const tolerance: f32 = Max(0.00002, Min(surfaceSlope * 2.0, 0.002));
     var accumulated: float4 = float4(0.0, 0.0, 0.0, 0.0);
     var total: f32 = 0.0;
     for (var y: u32 = 0; y < 2; y = y + 1) {

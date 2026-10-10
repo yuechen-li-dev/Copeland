@@ -21,6 +21,24 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 
 string defaultOutput = "artifacts/local/graphics-starter";
+if (args.Contains("--compile-environment", StringComparer.Ordinal))
+{
+    string hdr = Option("--hdr") ?? throw new ArgumentException("--compile-environment requires --hdr <source.hdr>.");
+    string artifact = Path.GetFullPath(Option("--output") ?? "artifacts/local/environment.aenv");
+    Directory.CreateDirectory(Path.GetDirectoryName(artifact)!);
+    var initialization = VulkanPlantInitializer.CreatePlant(PlantId.Zero,
+        new VulkanPlantOptions(EnableValidation: true, ApplicationName: "Aurelian environment authoring"));
+    Require(initialization.Success, string.Join("; ", initialization.Diagnostics.Select(item => item.Message)));
+    using var authoringPlant = initialization.Plant!;
+    var environment = new GameAssets().CompileEnvironment(authoringPlant, hdr, artifact);
+    Console.WriteLine($"AURELIAN_ENVIRONMENT_COMPILED {environment.ContentKey} {artifact}");
+    return;
+}
+if (args.Contains("--surface-graphics", StringComparer.Ordinal))
+{
+    SurfaceGraphicsProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/surface-graphics"), Option("--hdr"));
+    return;
+}
 if (args.Contains("--shadow-experiment", StringComparer.Ordinal))
 {
     defaultOutput = "artifacts/aurelian-shadow-distance";

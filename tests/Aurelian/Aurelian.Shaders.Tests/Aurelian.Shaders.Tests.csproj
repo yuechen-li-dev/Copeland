@@ -23,4 +23,14 @@
     <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/Temporal*.v.ts" Link="Assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/Bloom3D.v.ts" Link="Assets/Bloom3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/SurfaceLighting.v.ts" Link="Assets/SurfaceLighting.v.ts" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/SurfaceSolid3D.v.ts" Link="Assets/SurfaceSolid3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/SurfaceModel3D.v.ts" Link="Assets/SurfaceModel3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/SurfaceResolve3D.v.ts" Link="Assets/SurfaceResolve3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/AmbientOcclusion3D.v.ts" Link="Assets/AmbientOcclusion3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/AmbientDenoise3D.v.ts" Link="Assets/AmbientDenoise3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/LightTiles3D.v.ts" Link="Assets/LightTiles3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/EnvironmentCompile3D.v.ts" Link="Assets/EnvironmentCompile3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

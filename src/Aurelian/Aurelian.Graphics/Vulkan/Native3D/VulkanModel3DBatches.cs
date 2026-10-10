@@ -39,6 +39,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
     private string[] previousIdentities = [];
     private readonly bool temporal;
     private readonly int uniformBytes;
+    private readonly bool surfaceOnly;
     private readonly AurelianVulkanTexture shadowMap;
     private readonly Sampler shadowSampler;
     private bool disposed;
@@ -53,6 +54,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
     {
         Validate(program);
         temporal = program.VertexInputs.Count == 6;
+        surfaceOnly = program.PixelTargets.Count == 4;
         uniformBytes = program.Material!.Size;
         this.plant = plant;
         this.allocator = allocator;
@@ -281,7 +283,10 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
                 };
                 plant.Vk.UpdateDescriptorSets(plant.Device, 2, writes, 0, null);
             }
-            Vulkan3DPass.WriteImage(plant, set, 11, shadowMap, shadowSampler);
+            if (!surfaceOnly)
+            {
+                Vulkan3DPass.WriteImage(plant, set, 11, shadowMap, shadowSampler);
+            }
             var surface = new Surface(uniform, pool, set);
             surfaces.Add(material, surface);
             return surface;
@@ -376,7 +381,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
             && material.Fields.Select(item => item.Offset).SequenceEqual(Enumerable.Range(0, fields.Length).Select(index => index * 16))
             && program.VertexInputs.OrderBy(item => item.Location).Select(item => item.PhysicalType).SequenceEqual(inputs)
             && program.VertexInputs.Select(item => item.Location).Order().SequenceEqual(Enumerable.Range(0, inputs.Length))
-            && program.Resources.Count == 13;
+            && program.Resources.Count == (program.PixelTargets.Count == 4 ? 11 : 13);
         foreach (CompiledGraphicsResource resource in program.Resources)
         {
             CompiledGraphicsResourceKind kind = CompiledGraphicsResourceKind.Sampler;
@@ -389,8 +394,8 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
                 ? [CompiledGraphicsStage.Vertex, CompiledGraphicsStage.Fragment] : [CompiledGraphicsStage.Fragment];
             valid &= resource.Visibility.Order().SequenceEqual(visibility.Order());
         }
-        valid &= program.Resources.Select(item => item.Binding).Order().SequenceEqual(Enumerable.Range(0, 13));
-        if (!valid) throw new ArgumentException("StaticModel3D requires packed material uniforms (288 bytes, or 352 with previous positions), matching vertex streams and thirteen bindings.", nameof(program));
+        valid &= program.Resources.Select(item => item.Binding).Order().SequenceEqual(Enumerable.Range(0, program.Resources.Count));
+        if (!valid) throw new ArgumentException("StaticModel3D requires packed material uniforms, matching vertex streams and contiguous material bindings (eleven for surfaces, thirteen for forward lighting).", nameof(program));
     }
 
     public void Dispose()

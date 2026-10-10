@@ -10,6 +10,21 @@ namespace Aurelian.Games;
 /// <summary>Explicit built-in assets and compiled-program cache; no repository paths at runtime.</summary>
 public sealed class GameAssets
 {
+    /// <summary>Authoring operation: import HDR, integrate on the supplied GPU and save once.</summary>
+    public Aurelian.Rendering.Contracts.Models.EnvironmentLighting CompileEnvironment(
+        Aurelian.Graphics.Vulkan.Device.AurelianVulkanPlant plant, string hdrPath, string artifactPath)
+    {
+        var source = Aurelian.Assets.Lighting.RadianceEnvironmentImporter.Load(hdrPath);
+        var environment = Aurelian.Graphics.Vulkan.Native3D.VulkanEnvironmentCompiler.Compile(
+            plant, Shader("EnvironmentCompile3D.v.ts"), source.Width, source.Height, source.Rgba.AsSpan());
+        Aurelian.Assets.Lighting.EnvironmentLightingAsset.Save(artifactPath, environment);
+        return environment;
+    }
+
+    public Aurelian.Rendering.Contracts.Models.EnvironmentLighting LoadEnvironment(string path)
+    {
+        return Aurelian.Assets.Lighting.EnvironmentLightingAsset.Load(path);
+    }
     public Aurelian.Rendering.Contracts.Lighting.StaticDiffuseLighting Lighting(string path, string sceneKey) =>
         Aurelian.Assets.Lighting.StaticDiffuseLightingAsset.Load(path, sceneKey);
     private readonly Dictionary<string, CompiledGraphicsProgram> programs = new(StringComparer.Ordinal);
