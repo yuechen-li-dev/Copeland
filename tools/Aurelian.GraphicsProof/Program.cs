@@ -21,6 +21,12 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 
 string defaultOutput = "artifacts/local/graphics-starter";
+if (args.Contains("--physics-lab", StringComparer.Ordinal))
+{
+    PhysicsQualificationLab.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/physics-lab"),
+        Option("--case"), args.Contains("--headless", StringComparer.Ordinal));
+    return;
+}
 if (args.Contains("--physics", StringComparer.Ordinal))
 {
     PhysicsProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/physics"));

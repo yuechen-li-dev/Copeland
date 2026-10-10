@@ -191,6 +191,8 @@ public sealed class BepuPhysicsWorld3DTests
         var definition = new PhysicsAgentDefinition3D(world, Ball("prototype", Vector3.Zero),
             Scene.Group("body", [Scene.Box("visual", Vector3.One, Vector4.One)]), "body/v1");
         Assert.NotEqual(definition.Identity, (definition with { Body = definition.Body with { Mass = 2 } }).Identity);
+        Assert.NotEqual(definition.Identity, (definition with { Body = definition.Body with { Continuity = PhysicsContinuity3D.Continuous } }).Identity);
+        Assert.NotEqual(definition.Identity, (definition with { Body = definition.Body with { MinimumSweepSeconds = .000001f } }).Identity);
         Assert.NotEqual(definition.Identity, (definition with { Body = definition.Body with { Shape = new PhysicsShape3D.Box(Vector3.One) } }).Identity);
         SceneAgent<PhysicsBodyState3D> agent = scene.Spawn("ball", definition, SceneTransform.At(new(0, 4, 0)));
         PhysicsBodyState3D initial = agent.State;
@@ -219,7 +221,7 @@ public sealed class BepuPhysicsWorld3DTests
     {
         using var world = new BepuPhysicsWorld3D();
         world.AddBody(Ball("ball", Vector3.Zero));
-        Assert.Throws<InvalidOperationException>(() => Task.Run(() => world.ApplyImpulse("ball", Vector3.One)).GetAwaiter().GetResult());
+        Assert.IsType<InvalidOperationException>(PhysicsTestThreads.RunOffOwnerThread(() => world.ApplyImpulse("ball", Vector3.One)));
         Assert.Equal(default, world.GetBody("ball").Velocity);
     }
 

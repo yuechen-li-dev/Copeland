@@ -12,7 +12,7 @@ using BepuUtilities.Memory;
 namespace Aurelian.Physics3D.Bepu;
 
 /// <summary>Optional CPU backend. No BEPU handles or mutable simulation objects escape this owner.</summary>
-public sealed class BepuPhysicsWorld3D : IPhysicsWorld3D
+public sealed partial class BepuPhysicsWorld3D : IPhysicsWorld3D
 {
     private sealed record Entry(PhysicsBody3D Description, TypedIndex Shape, int Handle);
 
@@ -49,6 +49,20 @@ public sealed class BepuPhysicsWorld3D : IPhysicsWorld3D
     public PhysicsWorldOptions3D Options { get; }
     public long Tick { get; private set; }
     public int BodyCount => entries.Count;
+    /// <summary>Main pool reservation only; excludes dispatcher worker pools and managed allocations.</summary>
+    public long ReservedMainPoolBytes
+    {
+        get
+        {
+            RequireLive();
+            long reserved = 0;
+            for (int power = 0; power <= SpanHelper.MaximumSpanSizePower; power++)
+            {
+                reserved += pool.GetCapacityForPower(power);
+            }
+            return reserved;
+        }
+    }
 
     public void AddBody(PhysicsBody3D body)
     {
@@ -61,16 +75,17 @@ public sealed class BepuPhysicsWorld3D : IPhysicsWorld3D
         }
         TypedIndex shape = AddShape(body.Shape, body.Mass, out BodyInertia inertia);
         var pose = new RigidPose(body.Pose.Position, body.Pose.Orientation);
+        ContinuousDetection continuity = Continuity(body);
         int handle;
         if (body.MotionType == PhysicsMotionType3D.Static)
         {
-            handle = simulation.Statics.Add(new StaticDescription(pose, shape)).Value;
+            handle = simulation.Statics.Add(new StaticDescription(pose, shape, continuity)).Value;
             staticBodies.Add(handle, body);
         }
         else
         {
             var velocity = new BodyVelocity(body.Velocity.Linear, body.Velocity.Angular);
-            var collidable = new CollidableDescription(shape, .1f);
+            var collidable = new CollidableDescription(shape, body.MaximumSpeculativeMargin, continuity);
             var activity = new BodyActivityDescription(Options.EnableSleeping ? .01f : -1);
             BodyDescription description;
             if (body.MotionType == PhysicsMotionType3D.Dynamic)
@@ -90,10 +105,17 @@ public sealed class BepuPhysicsWorld3D : IPhysicsWorld3D
     public bool RemoveBody(string id)
     {
         RequireLive();
-        if (!entries.Remove(id, out Entry? entry))
+        if (!entries.TryGetValue(id, out Entry? entry))
         {
             return false;
         }
+        foreach (string jointId in joints.Values.Where(joint => joint.Description.BodyA == id
+            || joint.Description.BodyB == id).Select(joint => joint.Description.Id).ToArray())
+        {
+            RemoveJoint(jointId);
+        }
+        excludedPairs.RemoveWhere(pair => pair.BodyA == id || pair.BodyB == id);
+        entries.Remove(id);
         if (entry.Description.MotionType == PhysicsMotionType3D.Static)
         {
             simulation.Statics.Remove(new StaticHandle(entry.Handle));
@@ -261,6 +283,9 @@ public sealed class BepuPhysicsWorld3D : IPhysicsWorld3D
         dispatcher?.Dispose();
         pool.Clear();
         entries.Clear();
+        joints.Clear();
+        excludedPairs.Clear();
+        jointExclusions.Clear();
         mobileBodies.Clear();
         staticBodies.Clear();
         combinedContacts.Clear();
@@ -294,7 +319,9 @@ public sealed class BepuPhysicsWorld3D : IPhysicsWorld3D
             }
             PhysicsBody3D first = owner.Describe(a);
             PhysicsBody3D second = owner.Describe(b);
-            return (first.Layer & second.Mask) != 0 && (second.Layer & first.Mask) != 0;
+            PhysicsContactPair3D pair = CanonicalPair(first.Id, second.Id);
+            return (first.Layer & second.Mask) != 0 && (second.Layer & first.Mask) != 0
+                && !owner.excludedPairs.Contains(pair) && !owner.jointExclusions.ContainsKey(pair);
         }
 
         public bool AllowContactGeneration(int workerIndex, CollidablePair pair, int childIndexA, int childIndexB)
@@ -311,8 +338,8 @@ public sealed class BepuPhysicsWorld3D : IPhysicsWorld3D
             pairMaterial = new PairMaterialProperties
             {
                 FrictionCoefficient = MathF.Sqrt(first.Friction) * MathF.Sqrt(second.Friction),
-                MaximumRecoveryVelocity = 2,
-                SpringSettings = new SpringSettings(30, 1),
+                MaximumRecoveryVelocity = owner.Options.MaximumRecoveryVelocity,
+                SpringSettings = new SpringSettings(owner.Options.ContactSpring.Frequency, owner.Options.ContactSpring.DampingRatio),
             };
             if (owner.Options.CollectContacts)
             {

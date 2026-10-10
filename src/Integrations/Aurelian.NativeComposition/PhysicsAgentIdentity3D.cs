@@ -13,7 +13,7 @@ internal static class PhysicsAgentIdentity3D
         ArgumentException.ThrowIfNullOrWhiteSpace(definition.DefinitionId);
         using var bytes = new MemoryStream();
         using var writer = new BinaryWriter(bytes, Encoding.UTF8, leaveOpen: true);
-        writer.Write("aurelian.physics-agent.v1");
+        writer.Write("aurelian.physics-agent.v2");
         writer.Write(definition.DefinitionId);
         writer.Write(definition.Template.Id);
         writer.Write((int)definition.Template.Kind);
@@ -26,6 +26,10 @@ internal static class PhysicsAgentIdentity3D
         writer.Write(body.Friction);
         writer.Write(body.Layer);
         writer.Write(body.Mask);
+        writer.Write((int)body.Continuity);
+        writer.Write(body.MaximumSpeculativeMargin);
+        writer.Write(body.MinimumSweepSeconds);
+        writer.Write(body.SweepConvergenceSeconds);
         WriteVector(writer, body.Pose.Position);
         writer.Write(body.Pose.Orientation.X);
         writer.Write(body.Pose.Orientation.Y);
@@ -43,6 +47,9 @@ internal static class PhysicsAgentIdentity3D
         writer.Write(options.Substeps);
         writer.Write(options.CollectContacts);
         writer.Write(options.EnableSleeping);
+        writer.Write(options.ContactSpring.Frequency);
+        writer.Write(options.ContactSpring.DampingRatio);
+        writer.Write(options.MaximumRecoveryVelocity);
         writer.Flush();
         return Convert.ToHexString(SHA256.HashData(bytes.GetBuffer().AsSpan(0, checked((int)bytes.Length))));
     }

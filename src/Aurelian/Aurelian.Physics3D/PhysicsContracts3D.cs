@@ -11,6 +11,13 @@ public enum PhysicsMotionType3D
     Dynamic,
 }
 
+public enum PhysicsContinuity3D
+{
+    Discrete,
+    Passive,
+    Continuous,
+}
+
 /// <summary>Metres, kilograms and seconds. Capsule length excludes its spherical caps.</summary>
 public abstract record PhysicsShape3D
 {
@@ -83,6 +90,10 @@ public sealed record PhysicsBody3D(string Id, PhysicsShape3D Shape, PhysicsPose3
     public uint Layer { get; init; } = 1;
     public uint Mask { get; init; } = uint.MaxValue;
     public string? SemanticOwnerId { get; init; }
+    public PhysicsContinuity3D Continuity { get; init; } = PhysicsContinuity3D.Passive;
+    public float MaximumSpeculativeMargin { get; init; } = .1f;
+    public float MinimumSweepSeconds { get; init; } = .0001f;
+    public float SweepConvergenceSeconds { get; init; } = .0001f;
 
     public void Validate()
     {
@@ -96,6 +107,12 @@ public sealed record PhysicsBody3D(string Id, PhysicsShape3D Shape, PhysicsPose3
         Pose.Validate();
         Velocity.Validate();
         PhysicsValidation3D.Positive(Mass, nameof(Mass));
+        if (!Enum.IsDefined(Continuity) || !float.IsFinite(MaximumSpeculativeMargin) || MaximumSpeculativeMargin < 0)
+        {
+            throw new ArgumentException("Physics continuity and speculative margin must be valid.");
+        }
+        PhysicsValidation3D.Positive(MinimumSweepSeconds, nameof(MinimumSweepSeconds));
+        PhysicsValidation3D.Positive(SweepConvergenceSeconds, nameof(SweepConvergenceSeconds));
         if (!float.IsFinite(Friction) || Friction < 0)
         {
             throw new ArgumentOutOfRangeException(nameof(Friction));
@@ -116,11 +133,15 @@ public sealed record PhysicsWorldOptions3D
     public int Substeps { get; init; } = 1;
     public bool CollectContacts { get; init; } = true;
     public bool EnableSleeping { get; init; } = true;
+    public PhysicsSpring3D ContactSpring { get; init; } = new();
+    public float MaximumRecoveryVelocity { get; init; } = 2;
 
     public void Validate()
     {
         PhysicsValidation3D.Finite(Gravity);
         PhysicsValidation3D.Positive(FixedDeltaSeconds, nameof(FixedDeltaSeconds));
+        ContactSpring.Validate();
+        PhysicsValidation3D.Positive(MaximumRecoveryVelocity, nameof(MaximumRecoveryVelocity));
         if (FixedDeltaSeconds > .1f || WorkerCount < 1 || WorkerCount > 64
             || SolverIterations < 1 || SolverIterations > 64 || Substeps < 1 || Substeps > 32)
         {
@@ -148,11 +169,16 @@ public interface IPhysicsWorld3D : IDisposable
     PhysicsWorldOptions3D Options { get; }
     long Tick { get; }
     int BodyCount { get; }
+    int JointCount { get; }
     void AddBody(PhysicsBody3D body);
     bool RemoveBody(string id);
     PhysicsBodyState3D GetBody(string id);
     void SetMotion(string id, PhysicsPose3D pose, PhysicsVelocity3D velocity);
     void ApplyImpulse(string id, Vector3 impulse, Vector3 worldOffset = default);
+    void AddJoint(PhysicsJoint3D joint);
+    bool RemoveJoint(string id);
+    ImmutableArray<PhysicsJoint3D> CaptureJoints();
+    void SetCollisionEnabled(string bodyA, string bodyB, bool enabled);
     PhysicsStepResult3D Step(PhysicsStepRequest3D request);
     PhysicsSnapshot3D CaptureSnapshot();
     PhysicsRayHit3D? Raycast(Ray3D ray, QueryFilter3D? filter = null);

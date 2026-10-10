@@ -59,9 +59,49 @@ Physics collision filtering requires both bodies' layer/mask pairs to agree.
 Impulse offsets are world-space offsets from the body's centre; velocities are
 world-space vectors. `SetMotion` wakes a body and updates its query bounds.
 
-Friction is per body and combined geometrically. Contact springs use frequency
-30 Hz, damping ratio 1 and maximum recovery velocity 2 m/s. Restitution is not
-exposed as an artificial independent coefficient. Sleeping is enabled by default.
+Friction is per body and combined geometrically. Contact springs default to
+30 Hz, damping ratio 1 and maximum recovery velocity 2 m/s, configurable through
+`PhysicsWorldOptions3D.ContactSpring` and `MaximumRecoveryVelocity`. Restitution
+is not exposed as an artificial independent coefficient. Sleeping is enabled by default.
+
+## CCD and constraints
+
+Bodies select `PhysicsContinuity3D.Discrete`, `Passive` or `Continuous`.
+The default remains `Passive` with a 10 cm maximum speculative margin.
+`Continuous` enables BEPU's swept collision detection; `MinimumSweepSeconds`
+and `SweepConvergenceSeconds` default to 0.0001 seconds. These are time tolerances,
+so their spatial error grows with speed. Detection does not make soft contact
+response perfectly rigid. The lab preserves cases where swept CCD still fails
+the penetration budget. See BEPU's [CCD documentation](https://github.com/bepu/bepuphysics2/blob/v2.4.0/Documentation/ContinuousCollisionDetection.md).
+
+`PhysicsJoint3D` describes ball sockets, center distance limits, hinges and angular
+motors without leaking BEPU constraint handles. Anchors and axes are body-local;
+axes must be unit vectors. A spring has an explicit frequency and damping ratio.
+At least one endpoint must be dynamic, and both endpoints must be mobile bodies:
+use a kinematic body for a fixed joint anchor. Angular motor target velocity is
+the relative velocity of A minus B along A's axis. For a stationary A, positive
+target rotates B in the negative direction.
+The motor's `MaximumTorque` is in newton-metres; `TargetVelocity` is in radians per second.
+
+```csharp
+physics.AddJoint(new PhysicsJoint3D.BallSocket(
+    "hanging-crate", "anchor", "crate", Vector3.Zero, Vector3.UnitY)
+{
+    Spring = new(60, 1),
+});
+physics.AddJoint(new PhysicsJoint3D.AngularMotor(
+    "drive", "anchor", "crate", Vector3.UnitY, 2, 100));
+var authoredConstraints = physics.CaptureJoints();
+physics.RemoveJoint("drive");
+```
+
+Connected collision is disabled by default (`CollideConnected = false`). Multiple
+constraints on a pair retain that exclusion until the last excluding constraint
+is removed. `SetCollisionEnabled(a, b, false)` adds an independent pair exclusion;
+enabling that pair does not override a joint exclusion or collision layer/mask.
+Removing a body removes its attached constraints and explicit exclusions before
+releasing its handle. Reusing an author ID does not inherit exclusions.
+`CaptureJoints` returns sorted authored descriptions, not solver warm-start state.
 
 ## Scene agents and cadence
 
@@ -131,10 +171,10 @@ Exact rewind requires replaying ordered commands from a fresh world or a future
 qualified backend checkpoint seam. No automatic Deliverance save participant or
 Dominatus solver-cache rewind is claimed.
 
-This slice does not wrap joints, compound/convex hull creation, sensors, ragdolls,
-CCD, BRep dynamics, GPU simulation or a dynamic character controller. Fast thin
-collisions can require smaller fixed steps/substeps; the underlying default uses
-discrete/speculative contacts. Dynamic/kinematic triangle meshes fail explicitly
+This slice does not wrap compound/convex hull creation, sensors, ragdoll authoring,
+BRep dynamics, GPU simulation or a dynamic character controller. Fast thin
+collisions require an explicitly qualified detection/contact profile; the default
+uses passive/speculative contacts. Dynamic/kinematic triangle meshes fail explicitly
 with `AUR-PHYSICS-001`. Existing character movement remains independent; dynamic
 body/character pushing is not inferred from two separate collision worlds.
 
@@ -180,3 +220,11 @@ allocated approximately 66 KB per step, including immutable contact output.
 The complete Aurelian solution passed 1,085 tests, including 14 new backend and
 agent-integration tests; the native proof passed with Vulkan validation enabled.
 Local evidence is written to `artifacts/local/physics/evidence.json`.
+
+The follow-up [physics qualification lab](physics3d-qualification-lab.md) adds
+stress profiles, direct-BEPU controls, moving platforms, constraint/lifecycle
+checks and one experimental cloth specimen. Run it with `--physics-lab`; select
+a case with `--case ccd` (or `stacks`, `rotation`, `platform`, `joints`, `lifecycle`,
+`sleep`, `replay`, `cloth`). `--headless` skips Vulkan captures. Its completed
+experiment retains intentionally failed profiles; completion is not universal
+physics certification.
