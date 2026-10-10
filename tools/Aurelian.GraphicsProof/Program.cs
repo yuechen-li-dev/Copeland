@@ -21,6 +21,11 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 
 string defaultOutput = "artifacts/local/graphics-starter";
+if (args.Contains("--physics", StringComparer.Ordinal))
+{
+    PhysicsProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/physics"));
+    return;
+}
 if (args.Contains("--transmission-graphics", StringComparer.Ordinal))
 {
     TransmissionGraphicsProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/transmission-graphics"));

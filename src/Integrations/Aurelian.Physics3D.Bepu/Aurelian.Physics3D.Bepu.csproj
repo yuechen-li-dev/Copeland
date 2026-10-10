@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="BepuPhysics" />
+    <ProjectReference Include="../../Aurelian/Aurelian.Physics3D/Aurelian.Physics3D.csproj" />
+  </ItemGroup>
+</Project>
