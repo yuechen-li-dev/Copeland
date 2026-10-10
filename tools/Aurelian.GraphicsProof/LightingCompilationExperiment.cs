@@ -27,8 +27,8 @@ internal static class LightingCompilationExperiment
 {
     private const int Size = 128;
     private const int PreviewSize = 512;
-    private sealed record Body(BrepBody Brep, Vector3 Position, AetherisLightingBody Declaration);
-    private sealed record Room(Body[] Bodies, AetherisLightingScene Lighting, Native3DScene Display);
+    internal sealed record Body(BrepBody Brep, Vector3 Position, AetherisLightingBody Declaration);
+    internal sealed record Room(Body[] Bodies, AetherisLightingScene Lighting, Native3DScene Display);
     private sealed record Hit(Body Body, Vector3 Point, Vector3 Normal, double Distance);
 
     public static void Run(string output)
@@ -325,7 +325,7 @@ internal static class LightingCompilationExperiment
         }
     }
 
-    private static Room BuildRoom(float shift = 0, bool emission = true)
+    internal static Room BuildRoom(float shift = 0, bool emission = true)
     {
         var bodies = new List<Body>();
         AddBox("floor", new(6, .2f, 6), new(0, -.1f, 0), new(.6f), Vector3.Zero);
@@ -337,18 +337,7 @@ internal static class LightingCompilationExperiment
         var vertices = new List<Native3DVertex>();
         foreach (Body body in bodies)
         {
-            var mesh = BrepDisplayTessellator.Tessellate(body.Brep, DisplayTessellationOptions.Default);
-            Require(mesh.IsSuccess, "Aetheris room tessellation failed.");
-            foreach (DisplayFaceMeshPatch patch in mesh.Value.FacePatches)
-            {
-                foreach (int index in patch.TriangleIndices)
-                {
-                    Point3D point = patch.Positions[index];
-                    Vector3D normal = patch.Normals[index];
-                    vertices.Add(new(new Vector3((float)point.X, (float)point.Z, -(float)point.Y) * .001f + body.Position,
-                        new((float)normal.X, (float)normal.Z, -(float)normal.Y), new(body.Declaration.Albedo, 1)));
-                }
-            }
+            vertices.AddRange(Geometry(body));
         }
         return new(bodies.ToArray(), source, new(vertices.ToArray(), []));
 
@@ -360,6 +349,24 @@ internal static class LightingCompilationExperiment
             bodies.Add(new(BrepPrimitives.CreateBox(size.X * 1000, size.Z * 1000, size.Y * 1000).Value, position,
                 new(id, placed, albedo, emitted)));
         }
+    }
+
+    internal static Native3DVertex[] Geometry(Body body)
+    {
+        var mesh = BrepDisplayTessellator.Tessellate(body.Brep, DisplayTessellationOptions.Default);
+        Require(mesh.IsSuccess, "Aetheris room tessellation failed.");
+        var vertices = new List<Native3DVertex>();
+        foreach (DisplayFaceMeshPatch patch in mesh.Value.FacePatches)
+        {
+            foreach (int index in patch.TriangleIndices)
+            {
+                Point3D point = patch.Positions[index];
+                Vector3D normal = patch.Normals[index];
+                vertices.Add(new(new Vector3((float)point.X, (float)point.Z, -(float)point.Y) * .001f + body.Position,
+                    new((float)normal.X, (float)normal.Z, -(float)normal.Y), new(body.Declaration.Albedo, 1)));
+            }
+        }
+        return vertices.ToArray();
     }
 
     private static int VerifyShadow(Room room, float[] values, Vector3 direction)

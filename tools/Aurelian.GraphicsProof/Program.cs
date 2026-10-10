@@ -30,6 +30,12 @@ if (args.Contains("--field-lighting", StringComparer.Ordinal))
     defaultOutput = "artifacts/local/aetheris-field-lighting";
 }
 string output = Path.GetFullPath(Option("--output") ?? defaultOutput);
+if (args.Contains("--lighting-experts", StringComparer.Ordinal))
+{
+    output = Path.GetFullPath(Option("--output") ?? "artifacts/local/lighting-experts");
+    LightingExpertExperiment.Run(output, Option("--blender"), args.Contains("--reuse-reference", StringComparer.Ordinal));
+    return;
+}
 if (args.Contains("--lighting-compilation", StringComparer.Ordinal))
 {
     output = Path.GetFullPath(Option("--output") ?? "artifacts/local/lighting-compilation");

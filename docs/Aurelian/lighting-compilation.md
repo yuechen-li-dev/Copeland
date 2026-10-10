@@ -1,5 +1,9 @@
 # Lighting compilation foundations
 
+The follow-up [scene lighting expert experiment](scene-lighting-experts.md)
+combines native OpenUSD artifacts, Cycles reference integration and deterministic
+Vulkan decoders with measured Dominatus selection.
+
 This milestone treats a lighting artifact as the compilation of an explicitly
 declared scene domain. It qualifies retained GPU work, typed dependency identities,
 Dominatus policy and bounded experiments. It does not enable GI/reflections in

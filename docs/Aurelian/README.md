@@ -8,6 +8,7 @@ Aurelian owns the engine lifecycle, world and game-object models, actuation, fra
 - [Blender/GLB static assets, typed materials and explicit replacement](static-assets.md)
 - [Agent-driven humanoid clips and Vulkan compute skinning](humanoid-animation.md)
 - [Lighting compilation contracts, controller and Vulkan cache experiments](lighting-compilation.md)
+- [OpenUSD scene lighting experts and measured Dominatus selection](scene-lighting-experts.md)
 - [Consolidated games](../../Games/README.md)
 - [Aurelian engine architecture v1](aurelian-engine-architecture-v1.md)
 - [Cross-repository SDSL-V semantic port audit](sdsl-v-cross-repo-audit.md)
