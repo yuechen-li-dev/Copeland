@@ -25,6 +25,12 @@ public sealed class GraphicsStarterShaderTests
     [InlineData("AmbientDenoise3D.v.ts", 96, 5)]
     [InlineData("LightTiles3D.v.ts", 80, 3)]
     [InlineData("EnvironmentCompile3D.v.ts", 16, 3)]
+    [InlineData("DiffuseCache3D.v.ts", 128, 7)]
+    [InlineData("DiffuseProbes3D.v.ts", 128, 11)]
+    [InlineData("DiffuseProbeQuery3D.v.ts", 128, 9)]
+    [InlineData("DiffuseProbeView3D.v.ts", 128, 13)]
+    [InlineData("DiffuseRefitQuery3D.v.ts", 128, 5)]
+    [InlineData("DiffuseProbeConnections3D.v.ts", 128, 3)]
     public void StarterPassesCompileToValidatedSpirvWithTheirResourceContracts(string name, int uniformBytes, int resourceCount)
     {
         var sources = GpuSourceLoader.Load(name, path =>

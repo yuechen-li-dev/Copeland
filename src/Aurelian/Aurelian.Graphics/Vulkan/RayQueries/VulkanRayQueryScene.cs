@@ -5,6 +5,10 @@ using Aurelian.Graphics.Vulkan.Commanding.Submit;
 using Aurelian.Graphics.Vulkan.Device;
 using Aurelian.Graphics.Vulkan.Resources.Allocation;
 using Aurelian.Graphics.Vulkan.Resources.Buffers;
+using Aurelian.Graphics.Vulkan.Resources.Textures;
+using Aurelian.Graphics.Vulkan.Resources.Barriers;
+using Aurelian.Graphics.Vulkan.NativeForwardTextured;
+using Aurelian.Graphics.Vulkan.Native3D;
 using Aurelian.Graphics.Vulkan.Sync;
 using Silk.NET.Core.Native;
 using Silk.NET.Vulkan;
@@ -40,10 +44,13 @@ public sealed unsafe class VulkanRayQueryScene : IDisposable
     private PipelineLayout pipelineLayout;
     private Pipeline pipeline;
     private bool disposed;
+    private AurelianVulkanTexture? hitTexture;
+    private Vulkan3DGpuTimings? timings;
 
     public ulong BottomLevelAddress { get; private set; }
     public ulong TopLevelAddress { get; private set; }
     public int DispatchCount { get; private set; }
+    public double LastGpuMilliseconds { get; private set; }
 
     public VulkanRayQueryScene(AurelianVulkanPlant plant, byte[] spirv,
         IReadOnlyList<RayQueryTriangle> triangles, IReadOnlyList<RayQuerySphere>? spheres = null, int capacity = 4096)
@@ -178,8 +185,9 @@ public sealed unsafe class VulkanRayQueryScene : IDisposable
             };
             TopLevelAddress = Build(AccelerationStructureTypeKHR.TopLevelKhr, instanceGeometry, (uint)instances.Count);
             rays = Buffer((ulong)(4 + capacity * 12) * 4, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
-            hits = Buffer((ulong)capacity * 64, VulkanBufferUsage.Storage, VulkanMemoryUsage.GpuToCpu);
+            hits = Buffer((ulong)((capacity + 3) / 4) * 256, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferSource, VulkanMemoryUsage.GpuToCpu);
             CreatePipeline(spirv, structures[^1], sphereData, vertices);
+            timings = new(plant, ["ray-query-hit-packets"]);
         }
         catch
         {
@@ -192,9 +200,52 @@ public sealed unsafe class VulkanRayQueryScene : IDisposable
     {
         lock (gate)
         {
+            TraceBatch(requests, copyToTexture: false);
+            if (requests.Count == 0)
+            {
+                return [];
+            }
+            float[] data = MemoryMarshal.Cast<byte, float>(hits.ReadBytes(requests.Count * 64)).ToArray();
+            var result = new RayQueryHit[requests.Count];
+            for (int index = 0; index < result.Length; index++)
+            {
+                int offset = index * 16;
+                result[index] = new(BitConverter.SingleToUInt32Bits(data[offset]), BitConverter.SingleToUInt32Bits(data[offset + 1]),
+                    data[offset + 4], new(data[offset + 8], data[offset + 9], data[offset + 10]),
+                    new(data[offset + 12], data[offset + 13], data[offset + 14]), new(data[offset + 5], data[offset + 6]));
+            }
+            return result;
+        }
+    }
+
+    /// <summary>Four RGBA32F texels per hit, four hits per row (16 texels wide). Only requested hits are valid.
+    /// No readback. The retained texture is replaced in place by the next synchronous batch.</summary>
+    public AurelianVulkanTexture TraceTexture(IReadOnlyList<RayQueryRequest> requests)
+    {
+        lock (gate)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            if (requests.Count == 0)
+            {
+                throw new ArgumentException("A texture query needs at least one ray.", nameof(requests));
+            }
+            plant.Vk.GetPhysicalDeviceProperties(plant.PhysicalDevice, out var properties);
+            if ((capacity + 3) / 4 > properties.Limits.MaxImageDimension2D)
+            {
+                throw new NotSupportedException("Ray packet texture height exceeds this plant's image limit.");
+            }
+            TraceBatch(requests, copyToTexture: true);
+            return hitTexture!;
+        }
+    }
+
+    private void TraceBatch(IReadOnlyList<RayQueryRequest> requests, bool copyToTexture)
+    {
+        lock (gate)
+        {
             ObjectDisposedException.ThrowIf(disposed, this);
             if (requests.Count > capacity) throw new ArgumentOutOfRangeException(nameof(requests));
-            if (requests.Count == 0) return [];
+            if (requests.Count == 0) return;
             float[] words = new float[4 + requests.Count * 12];
             words[0] = Bits((uint)requests.Count);
             for (int index = 0; index < requests.Count; index++)
@@ -214,24 +265,52 @@ public sealed unsafe class VulkanRayQueryScene : IDisposable
             }
             Write(rays, words);
             VulkanCommandBufferLease command = Begin();
+            timings!.Reset(command);
+            timings.Mark(command, 0);
             plant.Vk.CmdBindPipeline(command.CommandBuffer, PipelineBindPoint.Compute, pipeline);
             DescriptorSet set = descriptorSet;
             plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Compute, pipelineLayout, 0, 1, &set, 0, null);
             plant.Vk.CmdDispatch(command.CommandBuffer, ((uint)requests.Count + 63) / 64, 1, 1);
-            Barrier(command.CommandBuffer, AccessFlags.ShaderWriteBit, AccessFlags.HostReadBit,
-                PipelineStageFlags.ComputeShaderBit, PipelineStageFlags.HostBit);
-            Submit(command);
-            DispatchCount++;
-            float[] data = MemoryMarshal.Cast<byte, float>(hits.ReadBytes(requests.Count * 64)).ToArray();
-            var result = new RayQueryHit[requests.Count];
-            for (int index = 0; index < result.Length; index++)
+            if (copyToTexture)
             {
-                int offset = index * 16;
-                result[index] = new(BitConverter.SingleToUInt32Bits(data[offset]), BitConverter.SingleToUInt32Bits(data[offset + 1]),
-                    data[offset + 4], new(data[offset + 8], data[offset + 9], data[offset + 10]),
-                    new(data[offset + 12], data[offset + 13], data[offset + 14]), new(data[offset + 5], data[offset + 6]));
+                hitTexture ??= VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, 16, (uint)((capacity + 3) / 4),
+                    VulkanTextureUsage.TransferDestination | VulkanTextureUsage.ShaderResource,
+                    VulkanMemoryUsage.GpuOnly, "rayquery.hits", VulkanTextureFormat.Rgba32Float);
+                Barrier(command.CommandBuffer, AccessFlags.ShaderWriteBit, AccessFlags.TransferReadBit,
+                    PipelineStageFlags.ComputeShaderBit, PipelineStageFlags.TransferBit);
+                TransitionHitTexture(command, VulkanResourceLayout.TransferDestination);
+                BufferImageCopy region = new()
+                {
+                    ImageSubresource = new(ImageAspectFlags.ColorBit, 0, 0, 1),
+                    ImageExtent = new(16, (uint)((requests.Count + 3) / 4), 1),
+                };
+                plant.Vk.CmdCopyBufferToImage(command.CommandBuffer, hits.NativeBuffer, hitTexture.NativeImage,
+                    ImageLayout.TransferDstOptimal, 1, &region);
+                TransitionHitTexture(command, VulkanResourceLayout.ShaderResourceFragment);
             }
-            return result;
+            else
+            {
+                Barrier(command.CommandBuffer, AccessFlags.ShaderWriteBit, AccessFlags.HostReadBit,
+                    PipelineStageFlags.ComputeShaderBit, PipelineStageFlags.HostBit);
+            }
+            timings.Mark(command, 1);
+            Submit(command);
+            LastGpuMilliseconds = timings.Read().Sum(time => time.Milliseconds);
+            DispatchCount++;
+        }
+    }
+
+    private void TransitionHitTexture(VulkanCommandBufferLease command, VulkanResourceLayout layout)
+    {
+        var transition = hitTexture!.LayoutTracker.Transition("rayquery.hits", 0, 0, layout);
+        if (!transition.Success)
+        {
+            throw new InvalidOperationException("Ray hit texture transition failed.");
+        }
+        if (transition.Plan is not null
+            && !VulkanBarrierCommandEmitter.EmitTextureBarriers(plant, command, [new(hitTexture, transition.Plan)]).Success)
+        {
+            throw new InvalidOperationException("Ray hit texture barrier failed.");
         }
     }
 
@@ -420,6 +499,8 @@ public sealed unsafe class VulkanRayQueryScene : IDisposable
             if (descriptorPool.Handle != 0) plant.Vk.DestroyDescriptorPool(plant.Device, descriptorPool, null);
             if (setLayout.Handle != 0) plant.Vk.DestroyDescriptorSetLayout(plant.Device, setLayout, null);
             foreach (var structure in structures.AsEnumerable().Reverse()) acceleration.DestroyAccelerationStructure(plant.Device, structure, null);
+            hitTexture?.Dispose();
+            timings?.Dispose();
             foreach (var buffer in buffers.AsEnumerable().Reverse()) buffer.Dispose();
             submitter.Dispose();
             commands.Dispose();

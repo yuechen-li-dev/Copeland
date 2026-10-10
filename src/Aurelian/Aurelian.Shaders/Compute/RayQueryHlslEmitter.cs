@@ -33,6 +33,7 @@ internal static class RayQueryHlslEmitter
             uint bestKind = 0u;
             float2 barycentrics = float2(0.0f, 0.0f);
             float3 normal = float3(0.0f, 0.0f, 0.0f);
+            float frontFacing = 0.0f;
             // Do not commit while selecting candidates: this admits all equal-distance
             // candidates and makes stable primitive ordering independent of hardware traversal.
             while (query.Proceed()) {
@@ -79,13 +80,16 @@ internal static class RayQueryHlslEmitter
                     bestKind = kind;
                     barycentrics = candidateBary;
                     normal = dot(candidateNormal, ray.Direction) > 0.0f ? -candidateNormal : candidateNormal;
+                    frontFacing = dot(candidateNormal, ray.Direction) > 0.0f ? -1.0f : 1.0f;
                 }
             }
             uint output = index * 16u;
             hits[output] = asfloat(bestKind);
             hits[output + 1u] = asfloat(bestPrimitive);
-            hits[output + 2u] = 0.0f;
-            hits[output + 3u] = 0.0f;
+            // Numeric mirrors allow graphics shaders to consume the same packet
+            // through an RGBA32F texture without interpreting uint bit patterns.
+            hits[output + 2u] = float(bestKind);
+            hits[output + 3u] = bestKind == 0u ? -1.0f : float(bestPrimitive);
             hits[output + 4u] = bestKind == 0u ? -1.0f : bestT;
             hits[output + 5u] = barycentrics.x;
             hits[output + 6u] = barycentrics.y;
@@ -98,7 +102,7 @@ internal static class RayQueryHlslEmitter
             hits[output + 12u] = normal.x;
             hits[output + 13u] = normal.y;
             hits[output + 14u] = normal.z;
-            hits[output + 15u] = 0.0f;
+            hits[output + 15u] = frontFacing;
         }
         """;
 }
