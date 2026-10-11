@@ -104,7 +104,7 @@ public static partial class GpuComputeBinder
             {
                 foreach (FunctionDeclarationSyntax function in tree.Root.Members.OfType<FunctionDeclarationSyntax>())
                 {
-                    if (function.Identifier.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp" or "Log")
+                    if (function.Identifier.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp" or "Log" or "Atan2")
                     {
                         AddDiagnostic("COPE-GPU-SYMBOL-0001", "SDSL-V1509", "symbol",
                             $"{function.Identifier.Text} is a compiler-owned intrinsic and cannot be redefined.",
@@ -780,13 +780,13 @@ public static partial class GpuComputeBinder
             }
 
             if (call.Target is NameExpressionSyntax intrinsic &&
-                intrinsic.IdentifierToken.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp" or "Log")
+                intrinsic.IdentifierToken.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp" or "Log" or "Atan2")
             {
                 var operands = call.Arguments.Select(argument => BindExpression(path, argument, scope)).ToArray();
                 string intrinsicName = intrinsic.IdentifierToken.Text;
                 int expectedArity = intrinsicName switch
                 {
-                    "Min" or "Max" => 2,
+                    "Min" or "Max" or "Atan2" => 2,
                     "Clamp" => 3,
                     _ => 1,
                 };

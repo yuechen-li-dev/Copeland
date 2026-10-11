@@ -203,6 +203,7 @@ public static partial class VdMirComputeHlslEmitter
         "Cross" => "cross",
         "Length" => "length",
         "Normalize" => "normalize",
+        "Atan2" => "atan2",
         _ => name,
     };
 

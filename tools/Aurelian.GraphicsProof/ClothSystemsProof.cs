@@ -68,6 +68,49 @@ internal static class ClothSystemsProof
                 }).ToImmutableArray(),
             }, _ => { });
         Write(output, "bending-solver.json", bendingSolver);
+        var regionalDefinition = ClothDefinition3D.Grid("regional-compliance", 5, 5, new(1, 1), Vector3.Zero) with
+        {
+            Material = new() { BendCompliance = .0001f },
+            MaterialRegions = [new("upper-band", Enumerable.Range(0, 15).ToImmutableArray(), .25f, 4)],
+        };
+        var regional = Verify(plant, spirv, regionalDefinition, 8,
+            new() { Substeps = 2, Iterations = 8, Gravity = Vector3.Zero }, new(), snapshot => snapshot with
+            {
+                Positions = snapshot.Positions.Select(position => position with
+                {
+                    Y = .05f * MathF.Sin(position.X * 4) * MathF.Cos(position.Z * 3),
+                }).ToImmutableArray(),
+            }, _ => { });
+        Write(output, "regional-compliance.json", regional);
+        var quadDefinition = ClothQuadSurface3D.Grid("quad-membrane", 5, 5, new(1, 1), Vector3.Zero) with
+        {
+            Material = new() { WarpCompliance = .001f, WeftCompliance = .004f,
+                DiagonalCompliance = .002f, BendCompliance = .01f },
+        };
+        ClothSnapshot3D DeformSurface(ClothSnapshot3D snapshot)
+        {
+            return snapshot with
+            {
+                Positions = snapshot.Positions.Select(position => new Vector3(position.X * 1.1f,
+                    position.Y + .05f * MathF.Sin(position.X * 4) * MathF.Cos(position.Z * 3),
+                    position.Z)).ToImmutableArray(),
+            };
+        }
+        var quadMembrane = Verify(plant, spirv, quadDefinition, 8,
+            new() { Substeps = 2, Iterations = 8, Gravity = Vector3.Zero }, new(), DeformSurface, _ => { });
+        Write(output, "quad-membrane.json", quadMembrane);
+        var curvedDefinition = quadDefinition with
+        {
+            Id = "quad-curved-rest",
+            Positions = quadDefinition.Positions.Select(position => position with
+            {
+                Y = .1f * MathF.Sin(position.X * MathF.PI),
+            }).ToImmutableArray(),
+            Surface = quadDefinition.Surface! with { Rest = ClothSurfaceRest3D.FittedSurface },
+        };
+        var quadCurved = Verify(plant, spirv, curvedDefinition, 8,
+            new() { Substeps = 2, Iterations = 8, Gravity = Vector3.Zero }, new(), DeformSurface, _ => { });
+        Write(output, "quad-curved.json", quadCurved);
         var stitched = Layers() with
         {
             OffsetContact = false,
@@ -124,6 +167,9 @@ internal static class ClothSystemsProof
             BendingSolver = bendingSolver,
             Drape = drape,
             WeightedStitches = seams,
+            RegionalCompliance = regional,
+            QuadMembrane = quadMembrane,
+            QuadCurvedRest = quadCurved,
             AcceleratedBroadphaseQualified = false,
             FrictionQualified = false,
             AvbdClothBackendQualified = false,

@@ -32,6 +32,8 @@ public sealed class GpuComputeBinderM1Tests
     [InlineData("Sqrt(true)")]
     [InlineData("U32(2)")]
     [InlineData("Sqrt(1.0, 2.0)")]
+    [InlineData("Atan2(1.0)")]
+    [InlineData("Atan2(1.0, true)")]
     public void ScalarIntrinsicsRejectWrongOperandTypesAndArity(string expression)
     {
         var module = Compile(ComputeSource.Replace("Input[index] + 1.0", expression, StringComparison.Ordinal), "bad.v.ts");

@@ -12,6 +12,36 @@ namespace Aurelian.Cloth3D.Tests;
 public sealed class ClothFoundationTests
 {
     [Fact]
+    public void RefinedPresentationUsesTheRealSceneProjectionWithoutSteppingOrChangingPhysics()
+    {
+        var plan = Sheet(3).Compile();
+        var original = new ClothAgentDefinition3D(plan);
+        var refined = original.WithPresentation(2);
+        Assert.NotEqual(original.Identity, refined.Identity);
+        using var scene = SceneCompiler.Compile(Scene.World("refined-cloth",
+            [Scene.Agent("dress", refined, new(4, 0, 0))])).Mount();
+        var agent = scene.Agent<ClothSnapshot3D>("dress");
+        var before = agent.State;
+        var mesh = Assert.Single(scene.Project().Meshes);
+        Assert.Equal(9, agent.State.Positions.Length);
+        Assert.Equal(plan.Definition.Indices.Length * 16, mesh.Indices.Length);
+        Assert.True(mesh.Vertices.Length > agent.State.Positions.Length);
+        Assert.Equal(refined.Identity, mesh.SourceIdentity);
+        Assert.True(before.Positions.SequenceEqual(agent.State.Positions));
+        Assert.Equal(0, agent.State.Tick);
+        Assert.Equal(before.Positions[0], mesh.Vertices[0].Position);
+        Assert.All(mesh.Vertices, vertex => Assert.InRange(MathF.Abs(vertex.Normal.Length() - 1), 0, 1e-5f));
+        refined.Advance(agent, new(), new());
+        Assert.Equal(1, agent.State.Tick);
+        Assert.Equal(9, agent.State.Positions.Length);
+        Assert.Equal(mesh.Vertices.Length, Assert.Single(scene.Project().Meshes).Vertices.Length);
+        var wrongPlan = Sheet(4).Compile();
+        using var wrongSolver = new ClothSolver3D(wrongPlan);
+        Assert.Throws<ArgumentException>(() => ClothPresentation3D.Mesh(wrongPlan,
+            wrongSolver.Capture(), refined.Material, refined.Presentation));
+    }
+
+    [Fact]
     public void Gpu_header_rejects_temporary_guides_instead_of_dropping_constraints()
     {
         var plan = Sheet().Compile();
@@ -280,6 +310,33 @@ public sealed class ClothFoundationTests
         using var initialScene = SceneCompiler.Compile(Scene.World("world",
             [Scene.Agent("arranged", arranged)])).Mount();
         Assert.True(definition.InitialPositions.SequenceEqual(initialScene.Agent<ClothSnapshot3D>("arranged").State.Positions));
+    }
+
+    [Fact]
+    public void CurvedQuadGarmentRetainsRestMetricAcrossArtifactAxesAndAgentPlacement()
+    {
+        var patch = ClothQuadSurface3D.Grid("curved-agent", 4, 4, new(1, 1), Vector3.Zero);
+        var definition = patch with
+        {
+            Positions = patch.Positions.Select(point => point with { Y = .1f * MathF.Sin(point.X * 3) }).ToImmutableArray(),
+            Surface = patch.Surface! with { Rest = ClothSurfaceRest3D.FittedSurface },
+            Material = new() { WarpCompliance = .001f, WeftCompliance = .004f,
+                DiagonalCompliance = .002f, BendCompliance = .01f },
+        };
+        var plan = definition.Compile();
+        var artifact = new ClothGarmentArtifact3D(plan, null, new string('a', 64), "surface/curved-agent");
+        var agentDefinition = ClothAgentDefinition3D.FromGarment(artifact);
+        using var scene = SceneCompiler.Compile(Scene.World("world",
+            [Scene.Agent("garment", agentDefinition, new(4, 2, -1))])).Mount();
+        var agent = scene.Agent<ClothSnapshot3D>("garment");
+        var initial = agent.State;
+        Assert.All(plan.Constraints, constraint =>
+            Assert.InRange(Math.Abs(ClothSurfaceMechanics3D.Evaluate(constraint, initial.Positions).Residual), 0, .0001f));
+        agentDefinition.Advance(agent, new() { Gravity = Vector3.Zero, Substeps = 2, Iterations = 8 }, new());
+        Assert.InRange(initial.Positions.Zip(agent.State.Positions, Vector3.Distance).Max(), 0, .0001f);
+        long tick = agent.State.Tick;
+        scene.Project();
+        Assert.Equal(tick, agent.State.Tick);
     }
 
     [Fact]

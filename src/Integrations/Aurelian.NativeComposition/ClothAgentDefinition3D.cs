@@ -13,6 +13,12 @@ public sealed record ClothAgentDefinition3D(CompiledCloth3D Cloth)
     : AgentDefinition<ClothSnapshot3D>(AgentTemplate.Object("cloth"))
 {
     public ClothSnapshot3D? InitialState { get; init; }
+    public ClothPresentationBinding3D? Presentation { get; init; }
+
+    public ClothAgentDefinition3D WithPresentation(int levels = 2)
+    {
+        return this with { Presentation = ClothPresentationBinding3D.Compile(Cloth, levels) };
+    }
 
     public static ClothAgentDefinition3D FromGarment(ClothGarmentArtifact3D garment)
     {
@@ -38,11 +44,25 @@ public sealed record ClothAgentDefinition3D(CompiledCloth3D Cloth)
         BaseColor = new(.035f, .35f, .55f, 1), Roughness = .9f, DoubleSided = true,
     };
 
-    public override string Identity => Cloth.ContentKey;
+    public override string Identity
+    {
+        get
+        {
+            if (Presentation is null)
+            {
+                return Cloth.ContentKey;
+            }
+            return Cloth.ContentKey + "/presentation-loop-v1/" + Presentation.Levels;
+        }
+    }
 
     public override void ValidatePlacement(ScenePlacement placement)
     {
         PhysicsRigidPlacement3D.From(placement.WorldTransform);
+        if (Presentation is not null && Presentation.SourceContentKey != Cloth.ContentKey)
+        {
+            throw new ArgumentException("Cloth presentation belongs to another simulation topology.");
+        }
     }
 
     public override ClothSnapshot3D CreateState(ScenePlacement placement)
@@ -91,22 +111,41 @@ public sealed record ClothAgentDefinition3D(CompiledCloth3D Cloth)
 
     public override Matrix4x4 WorldTransform(ClothSnapshot3D state, ScenePlacement placement) => Matrix4x4.Identity;
 
-    public override SceneGroup Present(ClothSnapshot3D state) => Scene.Group("cloth-body", [ClothPresentation3D.Mesh(Cloth, state, Material)]);
+    public override SceneGroup Present(ClothSnapshot3D state)
+    {
+        return Scene.Group("cloth-body", [ClothPresentation3D.Mesh(Cloth, state, Material, Presentation)]);
+    }
 }
 
 public static class ClothPresentation3D
 {
-    public static SceneMesh Mesh(CompiledCloth3D plan, ClothSnapshot3D snapshot, ModelMaterial material)
+    public static SceneMesh Mesh(CompiledCloth3D plan, ClothSnapshot3D snapshot, ModelMaterial material,
+        ClothPresentationBinding3D? presentation = null)
     {
         ClothState3D.ValidateSnapshot(plan, snapshot);
-        var normals = new Vector3[snapshot.Positions.Length];
+        var positions = snapshot.Positions;
         var indices = plan.Definition.Indices;
+        var coordinates = plan.Definition.Coordinates;
+        string identity = plan.ContentKey;
+        if (presentation is not null)
+        {
+            if (presentation.SourceContentKey != plan.ContentKey)
+            {
+                throw new ArgumentException("Cloth presentation belongs to another simulation topology.");
+            }
+            var refined = presentation.Evaluate(snapshot);
+            positions = refined.Positions;
+            indices = refined.Indices;
+            coordinates = presentation.Coordinates;
+            identity += "/presentation-loop-v1/" + presentation.Levels;
+        }
+        var normals = new Vector3[positions.Length];
         for (int triangle = 0; triangle < indices.Length; triangle += 3)
         {
             int a = indices[triangle];
             int b = indices[triangle + 1];
             int c = indices[triangle + 2];
-            Vector3 normal = Vector3.Cross(snapshot.Positions[b] - snapshot.Positions[a], snapshot.Positions[c] - snapshot.Positions[a]);
+            Vector3 normal = Vector3.Cross(positions[b] - positions[a], positions[c] - positions[a]);
             normals[a] += normal;
             normals[b] += normal;
             normals[c] += normal;
@@ -115,15 +154,15 @@ public static class ClothPresentation3D
         for (int vertex = 0; vertex < normals.Length; vertex++)
         {
             Vector3 normal = normals[vertex].LengthSquared() > 1e-12f ? Vector3.Normalize(normals[vertex]) : Vector3.UnitY;
-            Vector2 uv = plan.Definition.Coordinates[vertex];
+            Vector2 uv = coordinates[vertex];
             bool stripe = ((int)MathF.Floor(uv.X * 6) + (int)MathF.Floor(uv.Y * 6)) % 2 == 0;
             Vector4 color = stripe ? Vector4.One : new(.65f, .75f, .8f, 1);
-            vertices.Add(new(snapshot.Positions[vertex], normal, color));
+            vertices.Add(new(positions[vertex], normal, color));
         }
         return new("cloth", vertices.MoveToImmutable())
         {
             Indices = indices,
-            SourceIdentity = plan.ContentKey,
+            SourceIdentity = identity,
             Material = material,
         };
     }

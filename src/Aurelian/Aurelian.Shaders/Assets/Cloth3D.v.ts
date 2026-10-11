@@ -47,7 +47,8 @@ record ClothStencil {
     restLength: f32;
     compliance: f32;
     weights: f32;
-    reserved: Array<f32, 3>;
+    transverse: f32;
+    reserved: Array<f32, 2>;
     arity: f32;
 }
 enum ClothPhase {
@@ -575,6 +576,119 @@ function VertexContact(header: ClothHeader,
 
 }
 
+// Authoritative Q1 material constraints and quad-edge rest-angle hinges.
+// The compiler supplies grain-aligned Gauss derivatives and inverse area stiffness.
+enum SurfaceKind {
+    Warp,
+    Weft,
+    Shear,
+    Bend,
+}
+function SurfaceKindAt(value: u32): SurfaceKind {
+    if (value == 6) { return SurfaceKind.Warp; }
+    if (value == 7) { return SurfaceKind.Weft; }
+    if (value == 8) { return SurfaceKind.Shear; }
+    return SurfaceKind.Bend;
+}
+function SurfaceAngle(a: float3, b: float3, c: float3, d: float3): f32 {
+    let edge = Normalize(b - a);
+    let first = Normalize(Cross(b - a, c - a));
+    let second = Normalize(Cross(d - a, b - a));
+    return Atan2(Dot(edge, Cross(first, second)), Dot(first, second));
+}
+function WrapSurfaceAngle(value: f32): f32 {
+    if (value > 3.141592653589793) { return value - 6.283185307179586; }
+    if (value < -3.141592653589793) { return value + 6.283185307179586; }
+    return value;
+}
+export function SurfaceConstraint(readonly Source: StorageBuffer<f32>,
+    header: ClothHeader, readwrite State: StorageBuffer<f32>, index: u32,
+    stencil: ClothStencil): void {
+    let entries = U32(stencil.weights);
+    let transverse = U32(stencil.transverse);
+    let count = U32(stencil.arity);
+    let zero = float3(0.0, 0.0, 0.0);
+    var positions: Array<float3, 6> = [zero, zero, zero, zero, zero, zero];
+    var gradients: Array<float3, 6> = [zero, zero, zero, zero, zero, zero];
+    var masses: Array<f32, 6> = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+    static for (let local of Indices<6>()) {
+        if (local < count) {
+            let vertex = U32(Source[entries + local * 2]);
+            let particle = Load<ClothParticle>(State, vertex * WordCount<ClothParticle>());
+            positions[local] = particle.position;
+            masses[local] = particle.inverseMass;
+        }
+    }
+    let kind = SurfaceKindAt(U32(stencil.kind));
+    var residual: f32 = 0.0;
+    if (kind == SurfaceKind.Bend) {
+        let a = positions[0];
+        let b = positions[1];
+        let c = (positions[2] + positions[3]) * 0.5;
+        let d = (positions[4] + positions[5]) * 0.5;
+        let edge = b - a;
+        let first = Cross(edge, c - a);
+        let second = Cross(d - a, edge);
+        let length = Length(edge);
+        if (length < 0.00000001 || Dot(first, first) < 0.0000000000000001
+            || Dot(second, second) < 0.0000000000000001) {
+            return;
+        }
+        let gc = first * (-length / Dot(first, first));
+        let gd = second * (-length / Dot(second, second));
+        let tc = Dot(c - a, edge) / Dot(edge, edge);
+        let td = Dot(d - a, edge) / Dot(edge, edge);
+        gradients[0] = gc * (tc - 1.0) + gd * (td - 1.0);
+        gradients[1] = gc * (-tc) + gd * (-td);
+        gradients[2] = gc * 0.5;
+        gradients[3] = gc * 0.5;
+        gradients[4] = gd * 0.5;
+        gradients[5] = gd * 0.5;
+        residual = WrapSurfaceAngle(SurfaceAngle(a, b, c, d) - stencil.restLength);
+    } else {
+        var u: float3 = zero;
+        var v: float3 = zero;
+        static for (let local of Indices<4>()) {
+            u = u + positions[local] * Source[entries + local * 2 + 1];
+            v = v + positions[local] * Source[transverse + local];
+        }
+        match kind {
+            case SurfaceKind.Warp => { residual = (Dot(u, u) - 1.0) * 0.5; }
+            case SurfaceKind.Weft => { residual = (Dot(v, v) - 1.0) * 0.5; }
+            case SurfaceKind.Shear => { residual = Dot(u, v); }
+            case SurfaceKind.Bend => { return; }
+        }
+        static for (let local of Indices<4>()) {
+            let wu = Source[entries + local * 2 + 1];
+            let wv = Source[transverse + local];
+            match kind {
+                case SurfaceKind.Warp => { gradients[local] = u * wu; }
+                case SurfaceKind.Weft => { gradients[local] = v * wv; }
+                case SurfaceKind.Shear => { gradients[local] = v * wu + u * wv; }
+                case SurfaceKind.Bend => { return; }
+            }
+        }
+    }
+    var movable: f32 = 0.0;
+    static for (let local of Indices<6>()) {
+        movable = movable + masses[local] * Dot(gradients[local], gradients[local]);
+    }
+    if (movable <= 0.00000000000000000001) { return; }
+    let multiplier = U32(header.vertexCount) * WordCount<ClothParticle>() + index * 3;
+    var previous = Load<float3>(State, multiplier);
+    if (header.reset > 0.5) { previous = zero; }
+    let alpha = stencil.compliance / (header.step * header.step);
+    let delta = (-residual - alpha * previous.x) / (movable + alpha);
+    static for (let local of Indices<6>()) {
+        if (local < count) {
+            let vertex = U32(Source[entries + local * 2]);
+            let corrected = positions[local] + gradients[local] * (masses[local] * delta);
+            Store<float3>(State, vertex * WordCount<ClothParticle>(), corrected);
+        }
+    }
+    Store<float3>(State, multiplier, previous + float3(delta, 0.0, 0.0));
+}
+
 function Constraint(readonly Source: StorageBuffer<f32>,
     header: ClothHeader,
     readwrite State: StorageBuffer<f32>,
@@ -586,6 +700,10 @@ function Constraint(readonly Source: StorageBuffer<f32>,
     let radius = header.sphereRadius + header.halfThickness;
     const index: u32 = U32(header.start) + item;
     let stencil = Load<ClothStencil>(Source, index * WordCount<ClothStencil>());
+    if (phase == ClothPhase.Constraints && U32(stencil.kind) >= 6) {
+        SurfaceConstraint(Source, header, State, index, stencil);
+        return;
+    }
     const a: u32 = U32(stencil.a);
     const b: u32 = U32(stencil.b);
     const c: u32 = U32(stencil.c);
