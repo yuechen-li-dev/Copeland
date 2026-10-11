@@ -1,7 +1,7 @@
 import { KernelParameters } from "./KernelMath";
 
 // Portable tree reduction instead of assuming a particular subgroup width.
-// mode 0 = sum, 1 = maximum, 2 = stable softmax. Width is bounded to 1024.
+// mode 0 = sum, 1 = maximum, 2 = stable softmax. Width is bounded to 8192.
 @compute
 @numthreads(64, 1, 1)
 function ReductionMain(@builtin(groupId) group: uint3,
@@ -15,7 +15,7 @@ function ReductionMain(@builtin(groupId) group: uint3,
     let base = group.x * p.columns;
     var maximum: f32 = -3.402823466e38;
     var sum: f32 = 0.0;
-    static for (let block of Indices<16>()) {
+    static for (let block of Indices<128>()) {
         let columnIndex = lane + block * 64;
         if (columnIndex < p.columns) {
             let value = Input[base + columnIndex];
@@ -36,7 +36,7 @@ function ReductionMain(@builtin(groupId) group: uint3,
     WorkgroupBarrier();
     if (p.mode == 2) {
         sum = 0.0;
-        static for (let block of Indices<16>()) {
+        static for (let block of Indices<128>()) {
             let columnIndex = lane + block * 64;
             if (columnIndex < p.columns) {
                 sum = sum + Exp(Input[base + columnIndex] - rowMaximum);
@@ -54,7 +54,7 @@ function ReductionMain(@builtin(groupId) group: uint3,
     }
     if (p.mode == 2) {
         let denominator = Shared[0];
-        static for (let block of Indices<16>()) {
+        static for (let block of Indices<128>()) {
             let columnIndex = lane + block * 64;
             if (columnIndex < p.columns) {
                 Output[base + columnIndex] = Exp(Input[base + columnIndex] - rowMaximum) / denominator;

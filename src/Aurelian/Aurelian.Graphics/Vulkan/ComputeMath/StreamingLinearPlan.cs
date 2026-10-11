@@ -16,7 +16,7 @@ public sealed class StreamingLinearPlan
 
     public StreamingLinearPlan(int inputWidth, int outputWidth, int tileRows)
     {
-        ComputeMathBatch.Require(inputWidth is > 0 and <= 4096 && outputWidth is > 0 and <= 65536
+        ComputeMathBatch.Require(inputWidth is > 0 and <= 8192 && outputWidth is > 0 and <= 65536
             && tileRows > 0 && tileRows <= outputWidth && (long)tileRows * (inputWidth + 1) <= 1048576
             && tileRows <= 4096, "Streaming linear dimensions or weight tile exceed the bounded tensor contract.");
         InputWidth = inputWidth;

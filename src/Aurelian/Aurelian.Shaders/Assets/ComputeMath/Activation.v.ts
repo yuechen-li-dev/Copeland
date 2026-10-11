@@ -1,6 +1,6 @@
-import { KernelParameters, Silu, Gelu } from "./KernelMath";
+import { KernelParameters, Silu, Gelu, GeluErf } from "./KernelMath";
 
-enum Activation { Silu, Gelu, SiluGate, Residual, Bias, Invalid }
+enum Activation { Silu, Gelu, SiluGate, Residual, Bias, GeluErf, Invalid }
 
 function Decode(mode: u32): Activation {
     if (mode == 0) {
@@ -18,6 +18,9 @@ function Decode(mode: u32): Activation {
     if (mode == 4) {
         return Activation.Bias;
     }
+    if (mode == 5) {
+        return Activation.GeluErf;
+    }
     return Activation.Invalid;
 }
 
@@ -29,7 +32,7 @@ function ActivationMain(@builtin(dispatchThreadId) thread: uint3,
     @binding(2) readwrite Output: StorageBuffer<f32>,
     @binding(3) readonly Parameters: StorageBuffer<KernelParameters>): void {
     let p = Parameters[0];
-    let index = thread.x;
+    let index = thread.x + thread.y * p.stride;
     if (index >= p.rows * p.columns) {
         return;
     }
@@ -40,6 +43,7 @@ function ActivationMain(@builtin(dispatchThreadId) thread: uint3,
         case Activation.SiluGate => { Output[index] = Silu(value) * Auxiliary[index]; }
         case Activation.Residual => { Output[index] = value + Auxiliary[index]; }
         case Activation.Bias => { Output[index] = value + Auxiliary[index % p.columns]; }
+        case Activation.GeluErf => { Output[index] = GeluErf(value); }
         case Activation.Invalid => { Output[index] = value; }
     }
 }

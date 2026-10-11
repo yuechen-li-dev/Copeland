@@ -4,19 +4,26 @@ The built-in ComputeMath family ports the useful core of Oct Prometheus into
 real Visual TypeScript sources. The current pack has two deliberately distinct
 matrix paths: portable tiled **FP32 SGEMM** and optional hardware **FP16-input,
 FP32-accumulator cooperative matmul**. The latter is explicit because it changes
-input precision. No model weights, model loaders or external runtime are added.
+input precision. No model weights or external inference runtime are embedded.
 
 | Operation | Contract |
 | --- | --- |
 | `Multiply` | Row-major A[M,K] × B[K,N], optional transposed B[N,K], alpha/beta, masked tails; K ≤ 4096 |
 | `MultiplyCooperative` | KHR subgroup 16×16×16 tuple; packed FP16 A/B, FP32 C; M/N/K multiples of 16; K ≤ 4096 |
-| `ReduceRows` | FP32 sum, maximum and max-subtracted stable softmax; width ≤ 1024 |
-| `Normalize` | RMSNorm or two-pass centered LayerNorm, gamma/beta and positive epsilon; width ≤ 1024 |
+| `ReduceRows` | FP32 sum, maximum and max-subtracted stable softmax; width ≤ 8192 |
+| `Normalize` | RMSNorm or two-pass centered LayerNorm, gamma/beta and positive epsilon; width ≤ 8192 |
 | `Activate` | Stable SiLU, tanh-approximate GELU, SiLU gate, residual addition and channel bias |
 | `RotatePositions` | Half-split or interleaved RoPE with explicit position offset and theta |
 | `Fft` | Batched complex32 radix-2; power-of-two lengths 1–65536; forward unnormalized, inverse normalized once |
 | `Convolve` | Single-image NHWC cross-correlation, symmetric zero padding and stride; explicit im2col scratch then SGEMM |
 | `Attention` | QKᵀ/√D, optional causal mask, stable softmax and PV; ≤ 1024 keys, explicit score/probability scratch |
+| `AttentionTiled` | Noncausal 128-wide interleaved heads, ≤4096 keys, exact query tiles of 1–64 rows; FP32 scores/probabilities and BF16-rounded output |
+| `LinearStreamed` | Selected output-row weight tiles with bias; input width ≤8192, one weight tile ≤1,048,576 values |
+| `RoundBFloat16` / `AddBFloat16` | Explicit round-to-nearest-even BF16 represented in FP32 buffers; rounded addition |
+| `Gather` / `ScatterRounded` | Checked rectangular copies; scatter rounds to BF16 and preserves unselected destination regions |
+| `NormalizeHeadsBFloat16` | 128-wide L2 head normalization, length clamped at 1e-12, per-channel gamma, BF16 result; ≤65535 heads per dispatch |
+| `Rope3D` | 128-wide heads, explicit lattice resolution/first token, XYZ frequencies and identity padding; BF16 result |
+| `ModulateBFloat16` / `AppendGate` / `GatedResidualBFloat16` | Explicit shift/scale modulation and packed branch-plus-gate residual with BF16 tensor boundaries |
 
 Convolution uses the conventional ML cross-correlation ordering, without
 flipping the kernel. Weights are [kernelY*kernelX*inputChannels,outputChannels];
@@ -56,8 +63,12 @@ the engine timestamp mechanism and excludes upload, compilation, submission
 overhead and readback. The owner is synchronous and used from one application
 thread; it does not add a policy scheduler, queue, thread or background service.
 
-Tensors permit 1–4096 rows, 1–65536 columns and at most 1,048,576 logical
-elements. Each operation applies tighter shape and aliasing checks. FFT stores
+Tensors permit 1–4096 rows, 1–65536 columns and by default at most 1,048,576 logical
+elements. A caller may explicitly raise `maximumTensorElements` on the owner up
+to 67,108,864; each allocation also checks the device's storage-buffer range.
+The larger budget alone does not qualify arbitrary shapes for every kernel.
+Activation and tensor-map dispatches use two dimensions beyond 65535 workgroups.
+Each operation applies tighter shape and aliasing checks. FFT stores
 interleaved real/imaginary FP32 words and uses two distinct output/scratch
 allocations. Readonly inputs must be uploaded or produced before execution;
 allocations are not implicitly initialized. SGEMM beta=0 avoids reading a
@@ -173,6 +184,11 @@ The [TRELLIS.2 learned-module experiment](trellis2-vulkan-experiment.md) adds
 bounded safetensors row ingress, `StreamingLinearPlan`, `LinearStreamed` and a
 twelfth ComputeMath source, `StreamingLinear.v.ts`. It qualifies real checkpoint
 timestep/shared-conditioning modules with explicit output-row weight reuse.
-Full-model inference remains unqualified; wider reductions, online attention,
-activation views and sparse 3D kernels are the next seams. FFT-based field filters or Gaussian density
+The subsequent block experiment adds BF16 rounding, wide reductions, 3D RoPE,
+head normalization and query-tiled attention. It materializes scores for one
+query tile/head, rather than using an online softmax over key tiles. Full-model
+inference remains unqualified. The [complete DINO image encoder experiment](trellis2-image-encoder-experiment.md)
+adds FP32/64-wide attention with query tails, prefix-aware 2D RoPE, FP32 scaled
+residuals and erf GELU. Image encoding and a full-lattice single block now run;
+the complete flow/sampler and dense Conv3D decoder remain. FFT-based field filters or Gaussian density
 filtering can use this pack; integrating them into a fire solver is separate work.

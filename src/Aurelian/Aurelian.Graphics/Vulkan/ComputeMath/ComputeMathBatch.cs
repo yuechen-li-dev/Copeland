@@ -4,7 +4,7 @@ namespace Aurelian.Graphics.Vulkan.ComputeMath;
 
 public enum RowReduction { Sum, Maximum, Softmax }
 public enum Normalization { RmsNorm, LayerNorm }
-public enum TensorActivation { Silu, Gelu, SiluGate, Residual, Bias }
+public enum TensorActivation { Silu, Gelu, SiluGate, Residual, Bias, GeluErf }
 public enum RopeLayout { HalfSplit, Interleaved }
 
 [StructLayout(LayoutKind.Sequential)]
@@ -21,7 +21,7 @@ internal sealed record ComputeMathDispatch(string Shader, GpuTensor Input, GpuTe
 
 /// <summary>A bounded dispatch plan with immutable shape-checked steps.
 /// Execute it on its owning VulkanComputeMath; intermediate tensors never require readback.</summary>
-public sealed class ComputeMathBatch
+public sealed partial class ComputeMathBatch
 {
     internal VulkanComputeMath Owner { get; }
     internal List<ComputeMathDispatch> Dispatches { get; } = [];
@@ -76,9 +76,9 @@ public sealed class ComputeMathBatch
     public void ReduceRows(GpuTensor input, GpuTensor output, RowReduction operation = RowReduction.Softmax)
     {
         Check(input, output);
-        Require(Enum.IsDefined(operation) && input.Columns <= 1024 && output.Rows == input.Rows
+        Require(Enum.IsDefined(operation) && input.Columns <= 8192 && output.Rows == input.Rows
             && output.Columns == (operation == RowReduction.Softmax ? input.Columns : 1),
-            "Row reductions require width <= 1024; sum/max return [rows,1], softmax preserves shape.");
+            "Row reductions require width <= 8192; sum/max return [rows,1], softmax preserves shape.");
         Require(!ReferenceEquals(input, output), "Row reduction output must have its own allocation.");
         Add([new("RowReduction.v.ts", input, input, output, new()
         {
@@ -90,10 +90,10 @@ public sealed class ComputeMathBatch
         Normalization operation = Normalization.RmsNorm, float epsilon = 1e-5f)
     {
         Check(input, gammaBeta, output);
-        Require(Enum.IsDefined(operation) && input.Columns <= 1024 && SameShape(input, output)
+        Require(Enum.IsDefined(operation) && input.Columns <= 8192 && SameShape(input, output)
             && gammaBeta.Elements == input.Columns * (operation == Normalization.LayerNorm ? 2 : 1)
             && float.IsFinite(epsilon) && epsilon > 0,
-            "Normalization needs width <= 1024, matching output, positive epsilon and gamma (plus beta for LayerNorm).");
+            "Normalization needs width <= 8192, matching output, positive epsilon and gamma (plus beta for LayerNorm).");
         Require(!ReferenceEquals(output, gammaBeta), "Normalization output cannot overwrite its weights.");
         Add([new("Normalization.v.ts", input, gammaBeta, output, new()
         {
@@ -117,7 +117,8 @@ public sealed class ComputeMathBatch
         Add([new("Activation.v.ts", input, auxiliary, output, new()
         {
             Rows = (uint)input.Rows, Columns = (uint)input.Columns, Mode = (uint)operation,
-        }, Groups(input.Elements, 64))]);
+            Stride = Math.Min(Groups(input.Elements, 64), 65535) * 64,
+        }, Math.Min(Groups(input.Elements, 64), 65535), (Groups(input.Elements, 64) + 65534) / 65535)]);
     }
 
     public void RotatePositions(GpuTensor input, GpuTensor output, int positionOffset = 0,

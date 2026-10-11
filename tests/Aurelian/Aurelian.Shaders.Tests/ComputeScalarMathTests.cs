@@ -7,6 +7,25 @@ namespace Aurelian.Shaders.Tests;
 
 public sealed class ComputeScalarMathTests
 {
+    [Fact]
+    public void ScalarBitcastEmitsReinterpretationAndValidSpirv()
+    {
+        const string source = """
+            @compute @numthreads(1, 1, 1)
+            function Main(@builtin(dispatchThreadId) thread: uint3,
+                @binding(0) readwrite Output: StorageBuffer<f32>): void {
+                Output[thread.x] = Bitcast<f32>(Bitcast<u32>(Output[thread.x]) & (65535 << 16));
+            }
+            """;
+        var module = GpuComputeBinder.Compile(new([new GpuSourceFile("bitcast.v.ts", source)]));
+        Assert.True(module.Success, string.Join("; ", module.Diagnostics));
+        string hlsl = VdMirComputeHlslEmitter.Emit(module);
+        Assert.Contains("asuint", hlsl);
+        Assert.Contains("asfloat", hlsl);
+        var backend = VdMirComputeBackend.Compile(module);
+        Assert.True(backend.SpirvValidated, backend.DxcOutput);
+    }
+
     [Theory]
     [InlineData("Log(Input[thread.x])", true)]
     [InlineData("Log(1)", false)]

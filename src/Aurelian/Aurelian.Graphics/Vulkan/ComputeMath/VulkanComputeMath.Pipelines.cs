@@ -11,6 +11,8 @@ public sealed unsafe partial class VulkanComputeMath
     private static readonly IReadOnlyDictionary<string, string> Entries = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["Sgemm.v.ts"] = "SgemmMain",
+        ["TensorMap.v.ts"] = "TensorMapMain",
+        ["HeadNormalize.v.ts"] = "HeadNormalizeMain",
         ["StreamingLinear.v.ts"] = "StreamingLinearMain",
         ["CooperativeSgemm.v.ts"] = "CooperativeSgemmMain",
         ["RowReduction.v.ts"] = "ReductionMain",

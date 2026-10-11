@@ -21,6 +21,41 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 
 string defaultOutput = "artifacts/local/graphics-starter";
+if (args.Contains("--trellis2-block-scale", StringComparer.Ordinal))
+{
+    Trellis2BlockScaleProof.Run(Path.GetFullPath(Option("--weights-dir") ?? "artifacts/local/trellis2/block/input"),
+        Path.GetFullPath(Option("--features-dir") ?? throw new ArgumentException("--trellis2-block-scale requires --features-dir.")),
+        Path.GetFullPath(Option("--output") ?? "artifacts/local/trellis2/occupancy/block-scale"));
+    return;
+}
+if (args.Contains("--dinov3-encode", StringComparer.Ordinal))
+{
+    DinoV3EncoderProof.Run(Path.GetFullPath(Option("--weights-dir")
+        ?? throw new ArgumentException("--dinov3-encode requires --weights-dir containing the three DINOv3 files.")),
+        Path.GetFullPath(Option("--image") ?? throw new ArgumentException("--dinov3-encode requires a transparent --image.")),
+        Path.GetFullPath(Option("--output") ?? "artifacts/local/trellis2/dinov3/encoder"));
+    return;
+}
+if (args.Contains("--dinov3-patch", StringComparer.Ordinal))
+{
+    DinoV3PatchProof.Run(Path.GetFullPath(Option("--weights-dir")
+        ?? throw new ArgumentException("--dinov3-patch requires --weights-dir containing all three DINOv3 files.")),
+        Path.GetFullPath(Option("--output") ?? "artifacts/local/trellis2/dinov3/qualification"));
+    return;
+}
+if (args.Contains("--trellis2-block", StringComparer.Ordinal))
+{
+    Trellis2BlockProof.Run(Path.GetFullPath(Option("--weights-dir") ?? "artifacts/local/trellis2/block/input"),
+        Path.GetFullPath(Option("--output") ?? "artifacts/local/trellis2/block/qualification"),
+        int.Parse(Option("--tokens") ?? "16", System.Globalization.CultureInfo.InvariantCulture),
+        float.Parse(Option("--timestep") ?? "500", System.Globalization.CultureInfo.InvariantCulture));
+    return;
+}
+if (args.Contains("--trellis2-fetch-block", StringComparer.Ordinal))
+{
+    await Trellis2BlockWeights.Fetch(Path.GetFullPath(Option("--output") ?? "artifacts/local/trellis2/block/input"));
+    return;
+}
 if (args.Contains("--trellis2-timestep", StringComparer.Ordinal))
 {
     Trellis2TimestepProof.Run(Path.GetFullPath(Option("--weights-dir") ?? "artifacts/local/trellis2/input"),

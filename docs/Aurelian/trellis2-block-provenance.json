@@ -1,0 +1,344 @@
+{
+  "ModelRevision": "af44b45f2e35a493886929c6d786e563ec68364d",
+  "Checkpoint": "https://huggingface.co/microsoft/TRELLIS.2-4B/resolve/af44b45f2e35a493886929c6d786e563ec68364d/ckpts/ss_flow_img_dit_1_3B_64_bf16.safetensors",
+  "CheckpointBytes": 2584426920,
+  "HeaderSha256": "eadcc6c616db95eab21996aa2da2e835b959f0784b22a370bc5dd9269190eed4",
+  "SubsetSha256": "8c632653814501e2dbe9490d879e425ca3de42c1fd81c38ddaa6fe506bd63fff",
+  "SelectedWeightBytes": 118856704,
+  "Tensors": [
+    {
+      "Name": "adaLN_modulation.1.bias",
+      "Sha256": "4d34e12b0646c82d01b892b4951e6dc0ab3a7cc6f3564a2fb0d9cadc449c9fa9",
+      "SourceOffsets": [
+        0,
+        18432
+      ],
+      "Shape": [
+        9216
+      ]
+    },
+    {
+      "Name": "adaLN_modulation.1.weight",
+      "Sha256": "73c7b8b3a9427a53275c81f9167d5da47e63e4e197e09ab3e5cd4c16fc5eb740",
+      "SourceOffsets": [
+        18432,
+        28329984
+      ],
+      "Shape": [
+        9216,
+        1536
+      ]
+    },
+    {
+      "Name": "blocks.0.cross_attn.k_rms_norm.gamma",
+      "Sha256": "4275dbba8c29a9c5608e68d6f9ff7138a864bf577eadbc312d85a70d100deee8",
+      "SourceOffsets": [
+        28329984,
+        28333056
+      ],
+      "Shape": [
+        12,
+        128
+      ]
+    },
+    {
+      "Name": "blocks.0.cross_attn.q_rms_norm.gamma",
+      "Sha256": "d49bd148569c44f79fd0a29267b5db5f555dd9169cbfc02079d793e6e9f101bc",
+      "SourceOffsets": [
+        28333056,
+        28336128
+      ],
+      "Shape": [
+        12,
+        128
+      ]
+    },
+    {
+      "Name": "blocks.0.cross_attn.to_kv.bias",
+      "Sha256": "27630861390db154fa809b1cbe135347c042940f2672e40765e4b693477ac1c6",
+      "SourceOffsets": [
+        28336128,
+        28342272
+      ],
+      "Shape": [
+        3072
+      ]
+    },
+    {
+      "Name": "blocks.0.cross_attn.to_kv.weight",
+      "Sha256": "52c87d9b8f369cd587164ab79f7ae669b58499221704df2cf884626ce5b3362d",
+      "SourceOffsets": [
+        28342272,
+        34633728
+      ],
+      "Shape": [
+        3072,
+        1024
+      ]
+    },
+    {
+      "Name": "blocks.0.cross_attn.to_out.bias",
+      "Sha256": "51bff1298309a1da767c79ddfaf7b9b35015627839b1fb70b760a9cd16596bf0",
+      "SourceOffsets": [
+        34633728,
+        34636800
+      ],
+      "Shape": [
+        1536
+      ]
+    },
+    {
+      "Name": "blocks.0.cross_attn.to_out.weight",
+      "Sha256": "ffe458489e48c6612b0cb541b6fe50bce972e28c5ff395114ef5b0f0b2e64fb2",
+      "SourceOffsets": [
+        34636800,
+        39355392
+      ],
+      "Shape": [
+        1536,
+        1536
+      ]
+    },
+    {
+      "Name": "blocks.0.cross_attn.to_q.bias",
+      "Sha256": "c5b0f3874687d48394be9bc405faf9f3f05d433de0ad1184b6a667c0140d79e2",
+      "SourceOffsets": [
+        39355392,
+        39358464
+      ],
+      "Shape": [
+        1536
+      ]
+    },
+    {
+      "Name": "blocks.0.cross_attn.to_q.weight",
+      "Sha256": "73d582854ecc5bdaace6381b39718d565257c0dab701512e4ef83b1d26b3d4ee",
+      "SourceOffsets": [
+        39358464,
+        44077056
+      ],
+      "Shape": [
+        1536,
+        1536
+      ]
+    },
+    {
+      "Name": "blocks.0.mlp.mlp.0.bias",
+      "Sha256": "14946ad01786be90057863a1b564f9166d9001dacb6d5ba411dd50697abd4c78",
+      "SourceOffsets": [
+        44077056,
+        44093440
+      ],
+      "Shape": [
+        8192
+      ]
+    },
+    {
+      "Name": "blocks.0.mlp.mlp.0.weight",
+      "Sha256": "f070a49885574fb7264ec4b4637ba0022e4cd02c2e4b4da45f21f5d782cd911a",
+      "SourceOffsets": [
+        44093440,
+        69259264
+      ],
+      "Shape": [
+        8192,
+        1536
+      ]
+    },
+    {
+      "Name": "blocks.0.mlp.mlp.2.bias",
+      "Sha256": "a9dd70beb78ada40d96ec59cd3667a180b2d6216874d04dda2f01dc4f1d81cc4",
+      "SourceOffsets": [
+        69259264,
+        69262336
+      ],
+      "Shape": [
+        1536
+      ]
+    },
+    {
+      "Name": "blocks.0.mlp.mlp.2.weight",
+      "Sha256": "f83c3b28a942abe31073444f6c350e20f43951d67a448eadb068070f16eb68ef",
+      "SourceOffsets": [
+        69262336,
+        94428160
+      ],
+      "Shape": [
+        1536,
+        8192
+      ]
+    },
+    {
+      "Name": "blocks.0.modulation",
+      "Sha256": "2ed7646aa227c5f2bf09a9f742ad65f0c9fa8ae819e083ac598a112bac780c3f",
+      "SourceOffsets": [
+        94428160,
+        94446592
+      ],
+      "Shape": [
+        9216
+      ]
+    },
+    {
+      "Name": "blocks.0.norm2.bias",
+      "Sha256": "755e448e204edf46f7ae46e1eee769a1dc314e5c9273c4fc803da705319df080",
+      "SourceOffsets": [
+        94446592,
+        94449664
+      ],
+      "Shape": [
+        1536
+      ]
+    },
+    {
+      "Name": "blocks.0.norm2.weight",
+      "Sha256": "ff96d188c497ae3ba50da7cf111e139d33f20aafd912589271fa05589b8056b5",
+      "SourceOffsets": [
+        94449664,
+        94452736
+      ],
+      "Shape": [
+        1536
+      ]
+    },
+    {
+      "Name": "blocks.0.self_attn.k_rms_norm.gamma",
+      "Sha256": "086e16e3c7a4e33a2a4b433a5f109f2641ffd7b48f59a366514c88faa0ab5ed1",
+      "SourceOffsets": [
+        94452736,
+        94455808
+      ],
+      "Shape": [
+        12,
+        128
+      ]
+    },
+    {
+      "Name": "blocks.0.self_attn.q_rms_norm.gamma",
+      "Sha256": "94b27d6f8cf0e970901ea58c549160004e4f90c919c10fe0642519467a84bc52",
+      "SourceOffsets": [
+        94455808,
+        94458880
+      ],
+      "Shape": [
+        12,
+        128
+      ]
+    },
+    {
+      "Name": "blocks.0.self_attn.to_out.bias",
+      "Sha256": "47887fd8b7792de97cc0ddd6c3a23e3c342ab3002e4bea15c18a7a8341ee9565",
+      "SourceOffsets": [
+        94458880,
+        94461952
+      ],
+      "Shape": [
+        1536
+      ]
+    },
+    {
+      "Name": "blocks.0.self_attn.to_out.weight",
+      "Sha256": "18767f1aff7a63616f8489870e313b03767a34af778514a4d14bf12c41819f54",
+      "SourceOffsets": [
+        94461952,
+        99180544
+      ],
+      "Shape": [
+        1536,
+        1536
+      ]
+    },
+    {
+      "Name": "blocks.0.self_attn.to_qkv.bias",
+      "Sha256": "dae4b1ce3d1ad557d29612acc7b0845cde2145e6c94a5e3d7cd77fabc23628be",
+      "SourceOffsets": [
+        99180544,
+        99189760
+      ],
+      "Shape": [
+        4608
+      ]
+    },
+    {
+      "Name": "blocks.0.self_attn.to_qkv.weight",
+      "Sha256": "1e658af481c08668f7c7c878a299f3eacaa037fdf2a6dc1795b9abd247faa324",
+      "SourceOffsets": [
+        99189760,
+        113345536
+      ],
+      "Shape": [
+        4608,
+        1536
+      ]
+    },
+    {
+      "Name": "t_embedder.mlp.0.bias",
+      "Sha256": "fbd5cffa700a30e79ac7ee9ae84e8f8b83d88ce74fcd9c5dbb99a5d9e7c820b4",
+      "SourceOffsets": [
+        2578848784,
+        2578851856
+      ],
+      "Shape": [
+        1536
+      ]
+    },
+    {
+      "Name": "t_embedder.mlp.0.weight",
+      "Sha256": "b3f3e03a768c18f7aae9d91c7b012fa78c720165ea53ea729e261b2d2ebd2d16",
+      "SourceOffsets": [
+        2578851856,
+        2579638288
+      ],
+      "Shape": [
+        1536,
+        256
+      ]
+    },
+    {
+      "Name": "t_embedder.mlp.2.bias",
+      "Sha256": "0936ce39bec6c21521c581f220b3d36eb079ea0e8411498eeb8e92a17d168778",
+      "SourceOffsets": [
+        2579638288,
+        2579641360
+      ],
+      "Shape": [
+        1536
+      ]
+    },
+    {
+      "Name": "t_embedder.mlp.2.weight",
+      "Sha256": "ad5426238431b20cb8bd630bbb992e19d64229ce00e3031d65f6f7411b822095",
+      "SourceOffsets": [
+        2579641360,
+        2584359952
+      ],
+      "Shape": [
+        1536,
+        1536
+      ]
+    }
+  ],
+  "SourceRevision": "75fbf0183001ed9876c8dbb35de6b68552ee08bd",
+  "SourceFiles": [
+    {
+      "File": "trellis2/modules/attention/modules.py",
+      "Url": "https://raw.githubusercontent.com/microsoft/TRELLIS.2/75fbf0183001ed9876c8dbb35de6b68552ee08bd/trellis2/modules/attention/modules.py",
+      "Sha256": "c055ef95e997233dbec331a3d505a066c52817998726ed2a766d2936790eb65a"
+    },
+    {
+      "File": "trellis2/modules/attention/rope.py",
+      "Url": "https://raw.githubusercontent.com/microsoft/TRELLIS.2/75fbf0183001ed9876c8dbb35de6b68552ee08bd/trellis2/modules/attention/rope.py",
+      "Sha256": "e3e2a18ea810d090d2766512576398ae21e4e8948bb1097674bd4bafe08197bb"
+    },
+    {
+      "File": "trellis2/modules/transformer/blocks.py",
+      "Url": "https://raw.githubusercontent.com/microsoft/TRELLIS.2/75fbf0183001ed9876c8dbb35de6b68552ee08bd/trellis2/modules/transformer/blocks.py",
+      "Sha256": "2b313c1c5d523231f5dcdc00f86d530033087bb6539de378e75261b3ccb2dfbf"
+    },
+    {
+      "File": "trellis2/modules/transformer/modulated.py",
+      "Url": "https://raw.githubusercontent.com/microsoft/TRELLIS.2/75fbf0183001ed9876c8dbb35de6b68552ee08bd/trellis2/modules/transformer/modulated.py",
+      "Sha256": "11fc0179bb68eac6898b0d5c1e73fbdf9012e160c99e77d8ac6a9df6c2e25f83"
+    }
+  ]
+}

@@ -98,6 +98,22 @@ public sealed class SafeTensorFile : IDisposable
         return Read(tensor, (long)firstRow * tensor.Shape[1], (long)rowCount * tensor.Shape[1]);
     }
 
+    /// <summary>Read contiguous outer-axis slices from a rank 1–4 tensor in its
+    /// stored C order. Inner axes are flattened, without transposition. Useful
+    /// for selected convolution output channels and learned token tensors.</summary>
+    public float[] ReadSlices(string name, int firstSlice, int sliceCount)
+    {
+        var tensor = Get(name);
+        Require(firstSlice >= 0 && sliceCount > 0 && (long)firstSlice + sliceCount <= tensor.Shape[0],
+            "Outer-axis slice range is invalid: " + name);
+        long sliceElements = 1;
+        foreach (int dimension in tensor.Shape.Skip(1))
+        {
+            sliceElements = checked(sliceElements * dimension);
+        }
+        return Read(tensor, firstSlice * sliceElements, sliceCount * sliceElements);
+    }
+
     private SafeTensorInfo Get(string name)
     {
         ObjectDisposedException.ThrowIf(disposed, this);

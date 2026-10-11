@@ -1,9 +1,15 @@
-TRELLIS.2 timestep/shared-conditioning reference adapter
+TRELLIS.2 timestep/shared-conditioning and learned-block reference adapters
 
 Architecture and reference equations adapted from Microsoft TRELLIS.2:
 https://github.com/microsoft/TRELLIS.2
 Source revision: 75fbf0183001ed9876c8dbb35de6b68552ee08bd
 trellis2/models/sparse_structure_flow.py (TimestepEmbedder and shared AdaLN)
+trellis2/modules/attention/modules.py (head normalization and attention layout)
+trellis2/modules/attention/rope.py (3D rotary positions)
+trellis2/modules/transformer/blocks.py (feed-forward network)
+trellis2/modules/transformer/modulated.py (cross block and BF16 tensor boundaries)
+trellis2/modules/image_feature_extractor.py (DINOv3 features, plain final LayerNorm)
+trellis2/pipelines/trellis2_image_to_3d.py (transparent image crop and composite)
 Model: https://huggingface.co/microsoft/TRELLIS.2-4B
 Model revision: af44b45f2e35a493886929c6d786e563ec68364d
 Code and model card declare MIT. Checkpoint weights are local research artifacts,
@@ -31,3 +37,19 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE
+
+DINOv3 reference graph equations
+
+Hugging Face Transformers v4.56.0:
+https://github.com/huggingface/transformers/blob/v4.56.0/src/transformers/models/dinov3_vit/modeling_dinov3_vit.py
+Copyright 2025 Meta Platforms, Inc. and affiliates and the HuggingFace Inc. team.
+Licensed under the Apache License, Version 2.0. The C# graph and NumPy oracle are
+separate readable implementations of the documented inference equations.
+See Transformers-APACHE-2.0.txt for the source project's license text.
+
+The Meta DINOv3 weights retain their own DINOv3 license/access terms:
+https://huggingface.co/facebook/dinov3-vitl16-pretrain-lvd1689m
+They are supplied locally by the user and are not redistributed with this code.
+Generated test input is a local built-in imagegen artifact, not a model asset
+bundled with Aurelian. NumPy/Pillow are optional offline validation dependencies;
+the C#/Vulkan encoder never invokes them.

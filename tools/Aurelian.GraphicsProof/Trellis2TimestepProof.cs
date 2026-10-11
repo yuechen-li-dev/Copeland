@@ -129,7 +129,7 @@ internal static class Trellis2TimestepProof
             WeightProvenance = source,
             Measurements = measurements,
             RejectedDenoiserContracts = readiness,
-            NextBlocker = "4096-token, 12-head attention with 1536-channel normalization, 8192-channel FFN, 3D RoPE and AdaLN; current pack is bounded to 1024-key attention/norm and K<=4096. Sparse 3D decoders and image conditioning are also absent.",
+            NextBlocker = "This conditioning-only proof does not exercise denoiser blocks. See --trellis2-block for wide normalization, 8192-input FFN, tiled attention, 3D RoPE and BF16 torso qualification. Full 4096-token/30-block sampling, image encoding and sparse 3D decoders remain unqualified.",
         }, new JsonSerializerOptions { WriteIndented = true }));
 
         string CheckedFile(string fileName, string hashProperty)
@@ -149,7 +149,7 @@ internal static class Trellis2TimestepProof
         using var channels = math.CreateTensor(1, 1536);
         using var gammaBeta = math.CreateTensor(1, 3072);
         using var normalized = math.CreateTensor(1, 1536);
-        Capture("1536-channel LayerNorm", () => math.CreateBatch().Normalize(channels, gammaBeta, normalized, Normalization.LayerNorm));
+        math.CreateBatch().Normalize(channels, gammaBeta, normalized, Normalization.LayerNorm);
         using var query = math.CreateTensor(16, 128);
         using var key = math.CreateTensor(4096, 128);
         using var value = math.CreateTensor(4096, 128);
@@ -159,7 +159,7 @@ internal static class Trellis2TimestepProof
         Capture("4096-key attention, one query tile/head", () => math.CreateBatch().Attention(query, key, value,
             scores, probabilities, attentionOutput, causal: false));
         Capture("Full 4096x4096 score matrix", () => math.CreateTensor(4096, 4096));
-        Capture("8192-input FFN projection", () => new StreamingLinearPlan(8192, 1536, 16));
+        _ = new StreamingLinearPlan(8192, 1536, 16);
         return diagnostics.AsReadOnly();
 
         void Capture(string name, Action action)

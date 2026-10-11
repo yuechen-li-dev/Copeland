@@ -6,6 +6,16 @@ namespace Aurelian.Graphics.Tests;
 public sealed class StreamingLinearPlanTests
 {
     [Fact]
+    public void WideFeedForwardProjectionUsesTheEntireBoundedDispatchBudget()
+    {
+        var plan = new StreamingLinearPlan(8192, 1536, 64);
+        Assert.Equal(512, plan.DispatchesPerTile);
+        Assert.Equal(2097408ul, plan.WeightBufferBytes);
+        Assert.Equal(24, plan.Tiles.Count);
+        Assert.Equal(new LinearWeightTile(1472, 64), plan.Tiles[^1]);
+    }
+
+    [Fact]
     public void ScheduleCoversEveryOutputExactlyOnceIncludingATail()
     {
         var plan = new StreamingLinearPlan(1536, 9216, 250);
@@ -19,7 +29,7 @@ public sealed class StreamingLinearPlanTests
 
     [Theory]
     [InlineData(0, 1536, 16)]
-    [InlineData(4097, 1536, 16)]
+    [InlineData(8193, 1536, 16)]
     [InlineData(1536, 0, 16)]
     [InlineData(1536, 65537, 16)]
     [InlineData(1536, 1536, 0)]

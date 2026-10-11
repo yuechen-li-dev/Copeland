@@ -1,5 +1,12 @@
 # TRELLIS.2 on Aurelian Vulkan: learned conditioning experiment
 
+This records the original conditioning milestone and its initial limits. The
+subsequent [learned-block and local DINOv3 qualification](trellis2-block-experiment.md)
+removes several blockers listed below; use that document for current scope.
+The [complete real-image DINO encoder and full-lattice probe](trellis2-image-encoder-experiment.md)
+are the latest qualification. They remove the image-encoder blocker; occupancy
+generation remains incomplete.
+
 Status: **meaningful progression**, not image-to-3D generation. A real learned
 subgraph from Microsoft's checkpoint now executes on the existing Aurelian
 Vulkan plant on the local 8 GiB RTX 3070. No generated mesh, image encoder,
@@ -63,7 +70,7 @@ var execution = math.LinearStreamed(input, output, plan, tile =>
 });
 ```
 
-Current limits: input width <=4096, one weight tile <=1,048,576 values,
+Limits at this initial milestone: input width <=4096, one weight tile <=1,048,576 values,
 full input/output tensors within the existing tensor shape limits, and K slices
 within the owner's dispatch budget. Shape/alias/budget errors reject before
 upload. A provider failure releases the temporary GPU weight buffer; outputs
@@ -109,7 +116,7 @@ model will run fast. Smaller allocations increase submissions and can lose much
 more time than they save memory. Future scheduling must cover activations and
 attention workspaces as well as weights.
 
-## Audit and next exact blocker
+## Initial audit and next exact blocker (historical)
 
 Upstream advertises Linux/CUDA and at least 24 GB; its pipeline already has a
 `low_vram` mode that moves entire models between CPU and GPU. Our opportunity is

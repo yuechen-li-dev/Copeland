@@ -2,8 +2,8 @@
 
 ## Ownership
 
-The production library contains 62 Visual TypeScript sources in 13 families:
-36 graphics entries, 15 compute entries and 11 imported helper modules.
+The production library contains 65 Visual TypeScript sources in 13 families:
+36 graphics entries, 17 compute entries and 12 imported helper modules.
 Source files live under `src/Aurelian/Aurelian.Shaders/Assets/<Family>/`.
 This organization preserves their bytes, flat compiler module IDs and existing
 game shader names.
@@ -25,6 +25,13 @@ license notices. Project-reference application outputs receive flat source
 copies and notices; the NuGet archive retains the grouped authoring sources.
 The compiler's generated SPIR-V and browser WGSL paths require their own backend
 qualification; this consolidation qualifies the Vulkan path.
+
+The [complete real-image DINO encoder experiment](trellis2-image-encoder-experiment.md)
+qualifies FP32 attention with 64-wide heads/query tails, prefix-aware 2D RoPE,
+scaled residuals and erf GELU through the built-in compute sources. The same
+plant also executes one full-lattice TRELLIS block with actual image features.
+The full flow/sampler and dense occupancy decoder remain unimplemented; this
+does not qualify image-to-mesh generation.
 
 ## Authoring and consumption
 

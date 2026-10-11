@@ -9,6 +9,28 @@ namespace Aurelian.Assets.Tests;
 public sealed class SafeTensorFileTests
 {
     [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    public void OuterSlicesPreserveStoredAxisOrderAndRejectInvalidRanges(int rank)
+    {
+        int[] shape = Enumerable.Repeat(2, rank).ToArray();
+        int count = 1 << rank;
+        float[] values = Enumerable.Range(0, count).Select(index => (float)index).ToArray();
+        byte[] data = values.SelectMany(BitConverter.GetBytes).ToArray();
+        string header = JsonSerializer.Serialize(new { w = new { dtype = "F32", shape, data_offsets = new[] { 0, data.Length } } });
+        WithFile(header, data, path =>
+        {
+            using var file = new SafeTensorFile(path);
+            Assert.Equal(values.Skip(count / 2), file.ReadSlices("w", 1, 1));
+            AssertNamed(() => file.ReadSlices("w", -1, 1));
+            AssertNamed(() => file.ReadSlices("w", 0, 0));
+            AssertNamed(() => file.ReadSlices("w", 1, 2));
+        });
+    }
+
+    [Theory]
     [InlineData("F32")]
     [InlineData("F16")]
     [InlineData("BF16")]
@@ -96,6 +118,7 @@ public sealed class SafeTensorFileTests
             using var file = new SafeTensorFile(path);
             Assert.Equal(1024, file.ReadRows("w", 1024, 1).Length);
             AssertNamed(() => file.ReadRows("w", 0, 1025));
+            AssertNamed(() => file.ReadSlices("w", 0, 1025));
         });
     }
 

@@ -14,7 +14,7 @@ function NormalizationMain(@builtin(groupId) group: uint3,
     let p = Parameters[0];
     let base = group.x * p.columns;
     var sum: f32 = 0.0;
-    static for (let block of Indices<16>()) {
+    static for (let block of Indices<128>()) {
         let columnIndex = lane + block * 64;
         if (columnIndex < p.columns) {
             sum = sum + Input[base + columnIndex];
@@ -34,7 +34,7 @@ function NormalizationMain(@builtin(groupId) group: uint3,
         mean = Sum[0] / Convert<f32>(p.columns);
     }
     var squares: f32 = 0.0;
-    static for (let block of Indices<16>()) {
+    static for (let block of Indices<128>()) {
         let columnIndex = lane + block * 64;
         if (columnIndex < p.columns) {
             let centered = Input[base + columnIndex] - mean;
@@ -51,7 +51,7 @@ function NormalizationMain(@builtin(groupId) group: uint3,
         WorkgroupBarrier();
     }
     let inverse = 1.0 / Sqrt(Squares[0] / Convert<f32>(p.columns) + p.epsilon);
-    static for (let block of Indices<16>()) {
+    static for (let block of Indices<128>()) {
         let columnIndex = lane + block * 64;
         if (columnIndex < p.columns) {
             var bias: f32 = 0.0;

@@ -120,7 +120,9 @@ internal static class ComputeMathProof
                 TensorActivation.Gelu => (float)(.5 * value * (1 + Math.Tanh(.7978845608 * (value + .044715 * value * value * value)))),
                 TensorActivation.SiluGate => Silu(value) * auxiliaryValues[index],
                 TensorActivation.Residual => value + auxiliaryValues[index],
-                _ => value + auxiliaryValues[index % 5],
+                TensorActivation.Bias => value + auxiliaryValues[index % 5],
+                TensorActivation.GeluErf => Trellis2KernelProof.GeluErfReference(value),
+                _ => throw new ArgumentOutOfRangeException(nameof(operation)),
             }).ToArray();
             Check("activation-" + operation, batch, result, expected);
         }
@@ -260,7 +262,7 @@ internal static class ComputeMathProof
         }
 
         ExpectRejected(() => math.CreateBatch().Multiply(a, b, a));
-        ExpectRejected(() => math.CreateBatch().ReduceRows(Tensor(1, 1025), Tensor(1, 1025)));
+        ExpectRejected(() => math.CreateBatch().ReduceRows(Tensor(1, 8193), Tensor(1, 8193)));
         ExpectRejected(() => math.CreateBatch().Fft(Tensor(1, 3, format: GpuTensorFormat.Complex32), longResult, longScratch));
         var dead = Tensor(1, 1);
         dead.Dispose();

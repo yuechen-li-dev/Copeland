@@ -35,20 +35,24 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
 
     private sealed record DispatchSlot(DescriptorSet Set, AurelianVulkanBuffer Parameters);
     public int MaximumDispatches { get; }
+    public int MaximumTensorElements { get; }
     public int ReadbackCount { get; private set; }
     /// <summary>Owned buffer allocations including transfer staging and dispatch parameters.
     /// Excludes opaque driver allocations, pipelines and other plant users.</summary>
     public VulkanMemoryAllocatorTelemetry MemoryTelemetry => allocator.Telemetry;
     public bool CooperativeMatrixEnabled => plant.Facts.CooperativeMatrixEnabled;
 
-    public VulkanComputeMath(AurelianVulkanPlant plant, Func<string, byte[]> compile, int maximumDispatches = 512)
+    public VulkanComputeMath(AurelianVulkanPlant plant, Func<string, byte[]> compile, int maximumDispatches = 512,
+        int maximumTensorElements = 1048576)
     {
         ArgumentNullException.ThrowIfNull(plant);
         ArgumentNullException.ThrowIfNull(compile);
         ComputeMathBatch.Require(maximumDispatches is >= 1 and <= 512, "Dispatch budget must be 1–512.");
+        ComputeMathBatch.Require(maximumTensorElements is > 0 and <= 67108864, "Explicit tensor budget must be 1–67108864 elements.");
         this.plant = plant;
         this.compile = compile;
         MaximumDispatches = maximumDispatches;
+        MaximumTensorElements = maximumTensorElements;
         allocator = new(plant);
         fences = VulkanFenceBundle.Create(plant);
         commands = VulkanCommandBufferPool.Create(plant);
@@ -70,8 +74,8 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         ComputeMathBatch.Require(rows is > 0 and <= 4096 && columns is > 0 and <= 65536
-            && (long)rows * columns <= 1048576 && Enum.IsDefined(format),
-            "Tensor dimensions must be positive, rows <= 4096, columns <= 65536 and elements <= 1048576.");
+            && (long)rows * columns <= MaximumTensorElements && Enum.IsDefined(format),
+            "Tensor dimensions must be positive, rows <= 4096, columns <= 65536 and elements within the explicit owner budget.");
         ulong elements = (ulong)rows * (ulong)columns;
         ulong bytes = format switch
         {
@@ -79,6 +83,8 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
             GpuTensorFormat.PackedFloat16 => (elements + 1) / 2 * 4,
             _ => elements * 4,
         };
+        plant.Vk.GetPhysicalDeviceProperties(plant.PhysicalDevice, out var properties);
+        ComputeMathBatch.Require(bytes <= properties.Limits.MaxStorageBufferRange, "Tensor exceeds this device's storage-buffer range.");
         var buffer = Buffer(bytes, VulkanBufferUsage.Storage | VulkanBufferUsage.TransferSource
             | VulkanBufferUsage.TransferDestination, VulkanMemoryUsage.GpuOnly);
         var tensor = new GpuTensor(this, buffer, rows, columns, format);

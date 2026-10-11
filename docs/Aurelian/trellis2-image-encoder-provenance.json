@@ -1,0 +1,58 @@
+{
+  "Status": "Meaningful progression; complete image encoder, full-lattice block probe; no occupancy generation",
+  "Image": {
+    "Sha256": "fce529707d4121879e6d9726b8e3921c93d5efa942bfa22a572105566f322475",
+    "Mode": "built-in imagegen",
+    "Prompt": "artifacts/local/trellis2/occupancy/input/imagegen-prompt.txt",
+    "Input": "artifacts/local/trellis2/occupancy/input/terracotta-pot.png"
+  },
+  "Dino": {
+    "ReferenceSourceLicense": "Apache-2.0",
+    "ReferenceSource": "https://github.com/huggingface/transformers/blob/v4.56.0/src/transformers/models/dinov3_vit/modeling_dinov3_vit.py",
+    "Model": "facebook/dinov3-vitl16-pretrain-lvd1689m",
+    "Oracle": "tools/trellis2/dinov3_reference.py",
+    "ReferenceEvidence": "artifacts/local/trellis2/occupancy/dinov3/reference-evidence.json",
+    "WeightSha256": "dcb2e45127cccbf1601e5f42fef165eea275c8e5213197e8dcf3f48822718179",
+    "WeightLicense": "DINOv3 license, independently applicable; local supplied weights, no redistribution",
+    "Revision": "ea8dc2863c51be0a264bab82070e3e8836b02d51",
+    "EncoderEvidence": "artifacts/local/trellis2/occupancy/dinov3/evidence.json"
+  },
+  "Trellis": {
+    "FullLatticeEvidence": "artifacts/local/trellis2/occupancy/block-scale-query64/evidence.json",
+    "CodeRevision": "75fbf0183001ed9876c8dbb35de6b68552ee08bd",
+    "ExtractorSource": "https://github.com/microsoft/TRELLIS.2/blob/75fbf0183001ed9876c8dbb35de6b68552ee08bd/trellis2/modules/image_feature_extractor.py",
+    "PipelineSource": "https://github.com/microsoft/TRELLIS.2/blob/75fbf0183001ed9876c8dbb35de6b68552ee08bd/trellis2/pipelines/trellis2_image_to_3d.py",
+    "TileComparison": "artifacts/local/trellis2/occupancy/block-scale-query64/tile-comparison.json",
+    "ModelRevision": "af44b45f2e35a493886929c6d786e563ec68364d",
+    "CodeLicense": "MIT",
+    "Model": "microsoft/TRELLIS.2-4B"
+  },
+  "DecoderAudit": {
+    "ConfigUrl": "https://huggingface.co/microsoft/TRELLIS-image-large/resolve/25e0d31ffbebe4b5a97464dd851910efc3002d96/ckpts/ss_dec_conv3d_16l8_fp16.json",
+    "Model": "microsoft/TRELLIS-image-large",
+    "AuditOnly": true,
+    "ConfigSha256": "646781293f1cda74720de85d1cef50a957fb4aebd9a4bd014e454e32f2330ac5",
+    "CodeRevision": "442aa1e1afb9014e80681d3bf604e8d728a86ee7",
+    "MissingCapabilities": [
+      "rank-5 Conv3D checkpoint ingress",
+      "dense Conv3D",
+      "3D pixel shuffle",
+      "full 30-block flow graph",
+      "Euler/CFG sampler"
+    ],
+    "WeightsDownloaded": false,
+    "CodeSha256": "d32e4490b2f5356b72229ee7c8fb25702238b4f0877c49f1cae15ddc9ca615bc",
+    "CodeUrl": "https://github.com/microsoft/TRELLIS/blob/442aa1e1afb9014e80681d3bf604e8d728a86ee7/trellis/models/sparse_structure_vae.py",
+    "ModelRevision": "25e0d31ffbebe4b5a97464dd851910efc3002d96"
+  },
+  "Validation": {
+    "NativeLog": "artifacts/local/trellis2/occupancy/compute-regression.log",
+    "AurelianTestLog": "artifacts/local/trellis2/occupancy/aurelian-tests.log",
+    "KernelAndBlockRegression": "artifacts/local/trellis2/occupancy/block-regression/evidence.json",
+    "CopelandTestLog": "artifacts/local/trellis2/occupancy/copeland-tests.log",
+    "CopelandTypeScriptTests": 1511,
+    "NativeComputeNumericalSpecimens": 55,
+    "AurelianTests": 1342,
+    "AurelianBuild": "artifacts/local/trellis2/occupancy/aurelian-build.log"
+  }
+}

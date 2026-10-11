@@ -10,6 +10,31 @@ namespace Copeland.TS.Tests;
 public sealed class GpuComputeBinderM1Tests
 {
     [Fact]
+    public void ScalarBitcastPreservesTypedIntrinsicRatherThanNumericConversion()
+    {
+        var module = Compile(ComputeSource.Replace("Input[index] + 1.0",
+            "Bitcast<f32>(Bitcast<u32>(Input[index]))", StringComparison.Ordinal), "bitcast.v.ts");
+        Assert.True(module.Success, Diagnostics(module));
+        string json = VdMirJson.Serialize(module);
+        Assert.Contains("Bitcast", json);
+        Assert.DoesNotContain("Convert", json);
+    }
+
+    [Theory]
+    [InlineData("Bitcast<f32>(Input[index])")]
+    [InlineData("Bitcast<u32>(1)")]
+    [InlineData("Bitcast<f32>(true)")]
+    [InlineData("Bitcast<float2>(Input[index])")]
+    [InlineData("Bitcast<u32>(Input[index], Input[index])")]
+    [InlineData("Bitcast<u32>()")]
+    public void ScalarBitcastRejectsUnsupportedTypesAndArity(string expression)
+    {
+        var module = Compile(ComputeSource.Replace("Input[index] + 1.0", expression, StringComparison.Ordinal), "invalid-bitcast.v.ts");
+        Assert.False(module.Success);
+        Assert.Contains(module.Diagnostics, item => item.Code == "COPE-GPU-BITCAST-0001");
+    }
+
+    [Fact]
     public void ScalarSkinningArithmeticAndConversionsBindWithoutHostCalls()
     {
         var module = Compile("""

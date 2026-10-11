@@ -108,7 +108,7 @@ public static partial class GpuComputeBinder
             {
                 foreach (FunctionDeclarationSyntax function in tree.Root.Members.OfType<FunctionDeclarationSyntax>())
                 {
-                    if (function.Identifier.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp" or "Log" or "Atan2" or "Floor" or "Exp" or "Sin" or "Cos" or "Pow" or "WorkgroupBarrier" or "CooperativeMatMul")
+                    if (function.Identifier.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp" or "Log" or "Atan2" or "Floor" or "Exp" or "Sin" or "Cos" or "Pow" or "Bitcast" or "WorkgroupBarrier" or "CooperativeMatMul")
                     {
                         AddDiagnostic("COPE-GPU-SYMBOL-0001", "SDSL-V1509", "symbol",
                             $"{function.Identifier.Text} is a compiler-owned intrinsic and cannot be redefined.",
@@ -594,6 +594,21 @@ public static partial class GpuComputeBinder
                 }
                 case GenericCallExpressionSyntax call when call.Target is NameExpressionSyntax genericName:
                 {
+                    if (genericName.IdentifierToken.Text == "Bitcast")
+                    {
+                        if (call.TypeArguments is [IdentifierTypeSyntax bitType] && call.Arguments.Count == 1)
+                        {
+                            string targetType = bitType.Identifier.Text;
+                            var operand = BindExpression(path, call.Arguments[0], scope);
+                            if (targetType == "f32" && operand.Type == "u32" || targetType == "u32" && operand.Type == "f32")
+                            {
+                                return new("intrinsic", targetType, Span(path, call), "Bitcast", [operand]);
+                            }
+                        }
+                        AddDiagnostic("COPE-GPU-BITCAST-0001", "SDSL-V1503", "type",
+                            "Bitcast<T> requires exactly one scalar f32/u32 operand and the opposite 32-bit scalar target type.", Span(path, call));
+                        return ErrorExpression(path, call);
+                    }
                     var transfer = BindTransfer(path, call, scope, allowStore: false);
                     if (transfer is not null)
                     {
