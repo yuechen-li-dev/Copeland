@@ -37,6 +37,19 @@ state.
   current syntax guide. Older `language/`, `architecture/`, and `reviews/`
   documents are decision or evidence records unless this overview links to them.
 
+## Conditional authoring
+
+`else if` is legal in both Copeland TS and Visual TypeScript. A chain with five
+or more conditional branches emits `COPE-STYLE-0001`, recommending `switch` or
+`match`. Count the opening `if` and its direct `else if` continuations; a final
+unconditional `else` does not count. Short chains remain ordinary source.
+
+This is authoring advice, not a legality check. The parser exposes it separately
+as `SyntaxTree.Warnings`; GPU modules expose it as `Warnings`. The language
+server publishes severity 2, allowing editors to show a yellow warning without
+preventing lowering. One warning points to the opening `if`, and analysis runs
+on authored syntax before flow expansion. No automatic rewrite changes behavior.
+
 ## Important boundaries
 
 Parsing can vary by source frontend (`.ts`, `.tsx`, layout/CSV-shaped input,

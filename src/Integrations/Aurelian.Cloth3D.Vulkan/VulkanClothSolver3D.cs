@@ -84,9 +84,17 @@ public sealed unsafe class VulkanClothSolver3D : IClothSolver3D
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         ClothState3D.ValidateStep(Plan, options, contacts);
+        if (Plan.ContactTopology is not null)
+        {
+            // Host qualification precedes GPU distance queries and bound reductions.
+            // There are no host readbacks inside the solver iteration tape.
+            ClothOffsetContact3D.ValidateInitial(Plan, Capture(), contacts);
+        }
         int trianglePasses = contacts.SphereCenter.HasValue ? data.Triangles.Length : 0;
+        int refreshPasses = Plan.ContactTopology is null ? 0 : 2 + data.OffsetReductions.Length;
         int dispatches = 1 + options.Substeps * (2 + options.Iterations *
-            (data.Constraints.Length + options.ContactIterations * (1 + trianglePasses)));
+            (data.Constraints.Length + options.ContactIterations * (1 + trianglePasses + data.OffsetColors.Length))
+            + refreshPasses * (1 + options.Iterations));
         if (dispatches > HeaderCapacity)
         {
             throw new NotSupportedException("AUR-CLOTH-002: Vulkan baseline supports at most 4096 dispatches per tick; reduce the explicit solve budget.");
@@ -104,9 +112,11 @@ public sealed unsafe class VulkanClothSolver3D : IClothSolver3D
         for (int substep = 0; substep < options.Substeps; substep++)
         {
             float fraction = (substep + 1f) / options.Substeps;
+            RefreshBounds(fraction);
             Dispatch(new(ClothPhase3D.Predict, 0, vertices), fraction);
             for (int iteration = 0; iteration < options.Iterations; iteration++)
             {
+                RefreshBounds(fraction);
                 foreach (var color in data.Constraints)
                 {
                     Dispatch(color with { ResetLambda = iteration == 0 }, fraction);
@@ -121,6 +131,10 @@ public sealed unsafe class VulkanClothSolver3D : IClothSolver3D
                             Dispatch(color, fraction);
                         }
                     }
+                    foreach (var color in data.OffsetColors)
+                    {
+                        Dispatch(color with { ResetLambda = iteration == 0 && contact == 0 }, fraction);
+                    }
                 }
             }
             Dispatch(new(ClothPhase3D.Velocity, 0, vertices), fraction);
@@ -131,6 +145,20 @@ public sealed unsafe class VulkanClothSolver3D : IClothSolver3D
         var submitted = submitter.Submit(new(command, DebugName: "cloth-xpbd"));
         Require(submitted.Success, string.Join("; ", submitted.Diagnostics.Select(item => item.Message)));
         Tick++;
+
+        void RefreshBounds(float fraction)
+        {
+            if (Plan.ContactTopology is not { } topology)
+            {
+                return;
+            }
+            Dispatch(new(ClothPhase3D.OffsetDistances, 0, topology.Pairs.Length), fraction);
+            foreach (var reduction in data.OffsetReductions)
+            {
+                Dispatch(reduction, fraction);
+            }
+            Dispatch(new(ClothPhase3D.OffsetBounds, 0, vertices), fraction);
+        }
 
         void Dispatch(ClothDispatch3D dispatch, float fraction)
         {
@@ -164,6 +192,11 @@ public sealed unsafe class VulkanClothSolver3D : IClothSolver3D
     public void Restore(ClothSnapshot3D snapshot)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
+        ClothState3D.ValidateSnapshot(Plan, snapshot);
+        if (Plan.ContactTopology is not null)
+        {
+            ClothOffsetContact3D.ValidateInitial(Plan, snapshot, new());
+        }
         Write(state, data.State(snapshot));
         Tick = snapshot.Tick;
     }

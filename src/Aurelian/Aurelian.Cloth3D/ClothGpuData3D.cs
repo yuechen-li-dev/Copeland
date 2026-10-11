@@ -3,7 +3,7 @@ using System.Numerics;
 
 namespace Aurelian.Cloth3D;
 
-// These explicit values are the version 1 scalar header ABI.
+// Stable scalar phase codes, extended by the version 2 contact tape.
 public enum ClothPhase3D
 {
     Predict = 0,
@@ -12,23 +12,35 @@ public enum ClothPhase3D
     TriangleContact = 3,
     Velocity = 4,
     CapturePins = 5,
+    OffsetDistances = 6,
+    OffsetReduce = 7,
+    OffsetBounds = 8,
+    OffsetContacts = 9,
 }
 
 public readonly record struct ClothDispatch3D(ClothPhase3D Phase, int Start, int Count, bool ResetLambda = false);
 
-/// <summary>Version 1 scalar storage ABI: 16 floats/vertex, then 3 multiplier floats/constraint;
-/// 12 floats/source stencil; 32 floats/dispatch header. All integer values are exact f32 integers.</summary>
+/// <summary>Version 2 scalar storage ABI: 16 floats/vertex, then 3 multiplier floats/constraint;
+/// 12-float stencil headers plus variable vertex/weight pairs; 32 floats/dispatch header.</summary>
 public sealed class ClothGpuData3D
 {
     public CompiledCloth3D Plan { get; }
     public float[] Source { get; }
     public ImmutableArray<ClothDispatch3D> Constraints { get; }
     public ImmutableArray<ClothDispatch3D> Triangles { get; }
+    public ImmutableArray<ClothDispatch3D> OffsetColors { get; }
+    public ImmutableArray<ClothDispatch3D> OffsetReductions { get; }
+    public int ContactSourceOffset { get; }
+    public int AnchorOffset => Plan.Definition.Positions.Length * 16 + Plan.Constraints.Length * 3;
+    public int DistanceOffset => AnchorOffset + Plan.Definition.Positions.Length * 4;
+    public int ContactLambdaOffset => DistanceOffset + (Plan.ContactTopology?.Pairs.Length ?? 0)
+        + (Plan.ContactTopology?.ReductionNodes.Length ?? 0);
 
     public ClothGpuData3D(CompiledCloth3D plan)
     {
         Plan = plan;
-        Source = new float[(plan.Constraints.Length + plan.Definition.Indices.Length / 3) * 12];
+        int stencilOffset = (plan.Constraints.Length + plan.Definition.Indices.Length / 3) * 12;
+        Source = new float[stencilOffset + plan.Constraints.Sum(constraint => constraint.Vertices.Length * 2)];
         var constraints = ImmutableArray.CreateBuilder<ClothDispatch3D>();
         var triangles = ImmutableArray.CreateBuilder<ClothDispatch3D>();
         int index = 0;
@@ -40,15 +52,18 @@ public sealed class ClothGpuData3D
                 var constraint = plan.Constraints[original];
                 int offset = index++ * 12;
                 Source[offset] = (int)constraint.Kind;
-                for (int local = 0; local < constraint.Vertices.Length; local++)
+                for (int local = 0; local < Math.Min(4, constraint.Vertices.Length); local++)
                 {
                     Source[offset + 1 + local] = constraint.Vertices[local];
                 }
                 Source[offset + 5] = constraint.RestLength;
                 Source[offset + 6] = constraint.Compliance;
-                for (int local = 0; local < constraint.Weights.Length; local++)
+                Source[offset + 7] = stencilOffset;
+                Source[offset + 11] = constraint.Vertices.Length;
+                for (int local = 0; local < constraint.Vertices.Length; local++)
                 {
-                    Source[offset + 7 + local] = constraint.Weights[local];
+                    Source[stencilOffset++] = constraint.Vertices[local];
+                    Source[stencilOffset++] = constraint.Weights.IsEmpty ? 0 : constraint.Weights[local];
                 }
             }
         }
@@ -67,12 +82,77 @@ public sealed class ClothGpuData3D
         }
         Constraints = constraints.ToImmutable();
         Triangles = triangles.ToImmutable();
+        var source = Source.ToList();
+        var contactColors = ImmutableArray.CreateBuilder<ClothDispatch3D>();
+        var reductions = ImmutableArray.CreateBuilder<ClothDispatch3D>();
+        if (plan.ContactTopology is { } topology)
+        {
+            ContactSourceOffset = source.Count;
+            source.AddRange(new float[8]);
+            int table = ContactSourceOffset;
+            source[table] = source.Count;
+            foreach (var edge in topology.Edges)
+            {
+                source.AddRange(new float[] { edge.A, edge.B, edge.Opposite.Length,
+                    edge.Opposite[0], edge.Opposite.Length == 2 ? edge.Opposite[1] : 0 });
+            }
+            source[table + 1] = source.Count;
+            int vertexTable = source.Count;
+            source.AddRange(new float[plan.Definition.Positions.Length * 4]);
+            for (int vertex = 0; vertex < plan.Definition.Positions.Length; vertex++)
+            {
+                source[vertexTable + vertex * 4] = source.Count;
+                source[vertexTable + vertex * 4 + 1] = topology.Neighbors[vertex].Length;
+                source.AddRange(topology.Neighbors[vertex].Select(index => (float)index));
+                source[vertexTable + vertex * 4 + 2] = source.Count;
+                source[vertexTable + vertex * 4 + 3] = topology.IncidentFaces[vertex].Length;
+                source.AddRange(topology.IncidentFaces[vertex].Select(index => (float)index));
+            }
+            source[table + 2] = source.Count;
+            source.AddRange(plan.Definition.Indices.Select(index => (float)index));
+            source[table + 3] = source.Count;
+            foreach (var pair in topology.Pairs)
+            {
+                source.Add((int)pair.Kind);
+                source.Add(pair.Vertices.Length);
+                for (int local = 0; local < 4; local++)
+                {
+                    source.Add(local < pair.Vertices.Length ? pair.Vertices[local] : 0);
+                }
+                source.Add(pair.Feature);
+                source.Add(0);
+            }
+            source[table + 4] = source.Count;
+            foreach (var node in topology.ReductionNodes)
+            {
+                source.Add(node.Left);
+                source.Add(node.Right);
+            }
+            source[table + 5] = source.Count;
+            source.AddRange(topology.Roots.Select(index => (float)index));
+            source[table + 6] = source.Count;
+            foreach (var level in topology.ReductionLevels)
+            {
+                reductions.Add(new(ClothPhase3D.OffsetReduce, source.Count, level.Length));
+                source.AddRange(level.Select(index => (float)index));
+            }
+            source[table + 7] = source.Count;
+            foreach (var color in topology.Colors)
+            {
+                contactColors.Add(new(ClothPhase3D.OffsetContacts, source.Count, color.Length));
+                source.AddRange(color.Select(index => (float)index));
+            }
+        }
+        OffsetColors = contactColors.ToImmutable();
+        OffsetReductions = reductions.ToImmutable();
+        Source = source.ToArray();
     }
 
     public float[] State(ClothSnapshot3D snapshot)
     {
         ClothState3D.ValidateSnapshot(Plan, snapshot);
-        float[] state = new float[Plan.Definition.Positions.Length * 16 + Plan.Constraints.Length * 3];
+        float[] state = new float[Plan.ContactTopology is null ? AnchorOffset
+            : ContactLambdaOffset + Plan.ContactTopology.Pairs.Length];
         for (int vertex = 0; vertex < snapshot.Positions.Length; vertex++)
         {
             int offset = vertex * 16;
@@ -135,6 +215,18 @@ public sealed class ClothGpuData3D
             header[17] = 1;
             WriteVector(header, 18, sphere);
             header[21] = contacts.SphereRadius;
+        }
+        if (Plan.ContactTopology is { } topology)
+        {
+            header[22] = topology.Pairs.Length;
+            header[23] = ContactSourceOffset;
+            header[24] = AnchorOffset;
+            header[25] = DistanceOffset;
+            header[26] = ContactLambdaOffset;
+            header[27] = Plan.Definition.Material.Thickness;
+            header[28] = options.ContactSafetyFactor;
+            header[29] = options.OffsetContactCompliance;
+            header[30] = 1;
         }
         return header;
     }

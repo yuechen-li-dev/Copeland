@@ -1286,6 +1286,7 @@ public static class GpuGraphicsBinder
                 Enums = _enums is null || _enums.Definitions.Count == 0 ? null : _enums.Definitions,
                 ValueTypes = _values is null || _values.Definitions.Count == 0 ? null : _values.Definitions,
                 GenericSpecializations = _generics is null || _generics.Traces.Count == 0 ? null : _generics.Traces,
+                Warnings = _modules is null || _modules.Warnings.Count == 0 ? null : _modules.Warnings,
             };
         }
 

@@ -42,7 +42,7 @@ public sealed class ClothFoundationTests
         }
         var unpinned = (Sheet() with { Pins = [] }).Compile();
         Assert.InRange(unpinned.InverseMasses.Sum(inverse => 1 / inverse), .79999f, .80001f);
-        Assert.Contains(plan.Constraints, constraint => constraint.Kind == ClothConstraintKind3D.FlatBend);
+        Assert.Contains(plan.Constraints, constraint => constraint.Kind == ClothConstraintKind3D.VertexBend);
     }
 
     [Fact]
@@ -107,6 +107,40 @@ public sealed class ClothFoundationTests
         solver.Restore(folded);
         solver.Step(new() { Gravity = Vector3.Zero, Substeps = 8, Iterations = 4 }, new());
         Assert.True(ClothState3D.Measure(plan, solver.Capture(), new()).BendEnergy < before);
+    }
+
+    [Fact]
+    public void Fine_rotated_planar_patterns_are_not_misclassified_as_shaped_rest()
+    {
+        var definition = ClothDefinition3D.Grid("rotated-flat", 129, 33, new(MathF.PI, 1), Vector3.Zero);
+        var rotation = Matrix4x4.CreateRotationY(MathF.PI / 4);
+        definition = definition with
+        {
+            Positions = definition.Positions.Select(position => Vector3.Transform(position, rotation)).ToImmutableArray(),
+        };
+        var plan = definition.Compile();
+        using var solver = new ClothSolver3D(plan);
+        float residualEnergy = ClothState3D.Measure(plan, solver.Capture(), new()).BendEnergy;
+        Assert.InRange(residualEnergy, 0, .0001f);
+    }
+
+    [Fact]
+    public void Folded_back_overlapping_hinges_are_not_flat_rest_patterns()
+    {
+        var definition = ClothDefinition3D.Grid("folded-back", 2, 2, new(1, 1), Vector3.Zero) with
+        {
+            BendingModel = ClothBendingModel3D.QuadraticHinge,
+        };
+        var hinge = definition.Compile().Constraints.Single(constraint => constraint.Kind == ClothConstraintKind3D.FlatBend);
+        Vector3 origin = definition.Positions[hinge.Vertices[0]];
+        Vector3 axis = Vector3.Normalize(definition.Positions[hinge.Vertices[1]] - origin);
+        int opposite = hinge.Vertices[3];
+        Vector3 folded = origin + Vector3.Transform(definition.Positions[opposite] - origin,
+            Matrix4x4.CreateFromAxisAngle(axis, MathF.PI));
+        Assert.Throws<NotSupportedException>(() => (definition with
+        {
+            Positions = definition.Positions.SetItem(opposite, folded),
+        }).Compile());
     }
 
     [Fact]

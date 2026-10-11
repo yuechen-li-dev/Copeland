@@ -8,6 +8,35 @@ namespace Aurelian.Shaders.Tests;
 public sealed class ComputeScalarMathTests
 {
     [Theory]
+    [InlineData("Log(Input[thread.x])", true)]
+    [InlineData("Log(1)", false)]
+    [InlineData("Log(1.0, 2.0)", false)]
+    public void Logarithm_lowers_for_barrier_potentials_and_rejects_invalid_operands(string expression, bool admitted)
+    {
+        string source = $$"""
+            @compute @numthreads(1, 1, 1)
+            function Main(@builtin(dispatchThreadId) thread: uint3,
+                @binding(0) readonly Input: StorageBuffer<f32>,
+                @binding(1) readwrite Output: StorageBuffer<f32>): void {
+                const point: f32 = {{expression}};
+                Output[thread.x] = point;
+            }
+            """;
+        var module = GpuComputeBinder.Compile(new([new GpuSourceFile("log.v.ts", source)]));
+        Assert.Equal(admitted, module.Success);
+        if (admitted)
+        {
+            var backend = VdMirComputeBackend.Compile(module);
+            Assert.True(backend.SpirvValidated, backend.DxcOutput);
+            Assert.Contains("log(Input[thread.x])", VdMirComputeHlslEmitter.Emit(module));
+        }
+        else
+        {
+            Assert.Contains(module.Diagnostics, item => item.Code == "COPE-GPU-CALL-0001");
+        }
+    }
+
+    [Theory]
     [InlineData("Clamp(Max(Abs(-Input[thread.x]), 0.0), 0.0, 1.0)", true)]
     [InlineData("Abs(1)", false)]
     [InlineData("Min(1.0)", false)]

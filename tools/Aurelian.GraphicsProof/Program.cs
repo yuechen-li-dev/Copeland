@@ -21,6 +21,22 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 
 string defaultOutput = "artifacts/local/graphics-starter";
+if (args.Contains("--compute-refactor", StringComparer.Ordinal))
+{
+    ComputeRefactorProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/vts-compute-values/qualification"),
+        Path.GetFullPath(Option("--baseline-dir") ?? "artifacts/local/vts-compute-values"));
+    return;
+}
+if (args.Contains("--cloth-systems", StringComparer.Ordinal))
+{
+    ClothSystemsProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/cloth-systems"));
+    return;
+}
+if (args.Contains("--cloth-research", StringComparer.Ordinal))
+{
+    ClothResearchProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/cloth-research-probes"));
+    return;
+}
 if (args.Contains("--flow-proof", StringComparer.Ordinal))
 {
     FlowExecutionProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/vts-flow"),

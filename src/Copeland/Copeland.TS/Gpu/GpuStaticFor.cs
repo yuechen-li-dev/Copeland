@@ -37,6 +37,20 @@ internal sealed class GpuStaticFor
         try
         {
             ExpressionSyntax iterable = loop.Iterable;
+            if (iterable is GenericCallExpressionSyntax { Target: NameExpressionSyntax { IdentifierToken.Text: "Indices" } } indices)
+            {
+                if (indices.Arguments.Count != 0 || indices.TypeArguments is not [LiteralTypeSyntax { LiteralToken.Value: int extent }]
+                    || extent is < 0 or > 256)
+                {
+                    throw StaticEvaluationException.Unsupported("Indices<N>() requires one literal extent from 0 through 256 and no runtime arguments.");
+                }
+                iterable = new ArrayLiteralExpressionSyntax(
+                    new(SyntaxKind.OpenBracketToken, loop.Identifier.Position, "[", null),
+                    Enumerable.Range(0, extent).Select(index => (ExpressionSyntax)new LiteralExpressionSyntax(
+                        new(SyntaxKind.NumberToken, loop.Identifier.Position, index.ToString(System.Globalization.CultureInfo.InvariantCulture), index))).ToArray(),
+                    Enumerable.Range(0, Math.Max(0, extent - 1)).Select(_ => new SyntaxToken(SyntaxKind.CommaToken, loop.Identifier.Position, ",", null)).ToArray(),
+                    new(SyntaxKind.CloseBracketToken, loop.Identifier.Position, "]", null));
+            }
             while (iterable is ParenthesizedExpressionSyntax parenthesized)
             {
                 iterable = parenthesized.Expression;

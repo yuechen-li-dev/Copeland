@@ -11,6 +11,8 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj" />
+    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/HumanoidSkinning.v.ts" Link="Assets/HumanoidSkinning.v.ts" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/Cloth3D.v.ts" Link="Assets/Cloth3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../tools/Aurelian.GraphicsProof/Assets/*.v.ts" Link="Assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/RayQuery.v.ts" Link="Assets/RayQuery.v.ts" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/Lighting3D.v.ts" Link="Assets/Lighting3D.v.ts" CopyToOutputDirectory="PreserveNewest" />

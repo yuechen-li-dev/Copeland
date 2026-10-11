@@ -96,7 +96,8 @@ internal static class GpuEnumMatch
         FindNames(statements, usedNames);
         var needed = parameters.Select((parameter, index) => (parameter, index))
             .Where(item => item.index == 0 || usedNames.Contains(item.parameter.Name)).ToArray();
-        foreach (var item in needed.Where(item => item.parameter.Type is "storage-buffer<f32>" or "acceleration_structure"))
+        foreach (var item in needed.Where(item => item.parameter.Type.StartsWith("storage-buffer<", StringComparison.Ordinal)
+            || item.parameter.Type == "acceleration_structure"))
         {
             error("COPE-GPU-MATCH-0006", "Read storage values before matching; opaque resources cannot be captured into the local match helper ABI.", source);
         }

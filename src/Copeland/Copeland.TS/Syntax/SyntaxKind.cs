@@ -234,6 +234,7 @@ public enum SyntaxKind
     ObjectProperty,
     WithExpression,
     MatchExpression,
+    RuntimeMatchStatement,
     IfExpression,
     TryExceptExpression,
     BatchExpression,

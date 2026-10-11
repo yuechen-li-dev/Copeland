@@ -5,6 +5,12 @@ using System.Text;
 
 namespace Aurelian.Cloth3D;
 
+public enum ClothBendingModel3D
+{
+    BoundaryCorrectedVertex,
+    QuadraticHinge,
+}
+
 /// <summary>Metres, kilograms and seconds. Link compliance is an authoring control,
 /// not a measured continuum fabric modulus. Diagonal links approximate shear.</summary>
 public sealed record ClothMaterial3D
@@ -22,6 +28,9 @@ public sealed record ClothDefinition3D(string Id, ImmutableArray<Vector3> Positi
 {
     public ClothMaterial3D Material { get; init; } = new();
     public ImmutableArray<int> Pins { get; init; } = [];
+    public ClothBendingModel3D BendingModel { get; init; } = ClothBendingModel3D.BoundaryCorrectedVertex;
+    /// <summary>Opt-in exhaustive offset self-contact foundation. The discrete control stays available.</summary>
+    public bool OffsetContact { get; init; }
 
     /// <summary>A flat pattern in XZ. Coordinates retain the material warp/weft axes.</summary>
     public static ClothDefinition3D Grid(string id, int columns, int rows, Vector2 size, Vector3 origin)
@@ -54,7 +63,7 @@ public sealed record ClothDefinition3D(string Id, ImmutableArray<Vector3> Positi
     public CompiledCloth3D Compile() => ClothCompiler3D.Compile(this);
 }
 
-public enum ClothConstraintKind3D { Warp, Weft, Diagonal, FlatBend }
+public enum ClothConstraintKind3D { Warp, Weft, Diagonal, FlatBend, VertexBend }
 
 public sealed record ClothConstraint3D(ClothConstraintKind3D Kind, ImmutableArray<int> Vertices,
     ImmutableArray<float> Weights, float RestLength, float Compliance);
@@ -68,6 +77,7 @@ public sealed class CompiledCloth3D
     public ImmutableArray<ClothConstraint3D> Constraints { get; }
     public ImmutableArray<ImmutableArray<int>> ConstraintColors { get; }
     public ImmutableArray<ImmutableArray<int>> TriangleColors { get; }
+    public ClothContactTopology3D? ContactTopology { get; }
 
     internal CompiledCloth3D(string contentKey, ClothDefinition3D definition,
         ImmutableArray<float> inverseMasses, ImmutableArray<ClothConstraint3D> constraints,
@@ -80,6 +90,7 @@ public sealed class CompiledCloth3D
         Constraints = constraints;
         ConstraintColors = constraintColors;
         TriangleColors = triangleColors;
+        ContactTopology = definition.OffsetContact ? ClothContactTopology3D.Compile(definition) : null;
     }
 }
 
@@ -93,6 +104,10 @@ internal static class ClothCompiler3D
         var indices = definition.Indices;
         var material = definition.Material;
         ArgumentNullException.ThrowIfNull(material);
+        if (!Enum.IsDefined(definition.BendingModel))
+        {
+            throw new ArgumentException("Unknown cloth bending model.");
+        }
         if (positions.IsDefault || positions.Length is < 3 or > 65536 || definition.Coordinates.IsDefault
             || positions.Length != definition.Coordinates.Length || indices.IsDefaultOrEmpty || indices.Length % 3 != 0)
         {
@@ -194,8 +209,16 @@ internal static class ClothCompiler3D
             constraints.Add(new(kind, [edge.A, edge.B], [], Vector3.Distance(positions[edge.A], positions[edge.B]), compliance));
             if (opposite.Count == 2)
             {
-                constraints.Add(Bend(edge.A, edge.B, opposite[0], opposite[1]));
+                var hinge = Bend(edge.A, edge.B, opposite[0], opposite[1]);
+                if (definition.BendingModel == ClothBendingModel3D.QuadraticHinge)
+                {
+                    constraints.Add(hinge);
+                }
             }
+        }
+        if (definition.BendingModel == ClothBendingModel3D.BoundaryCorrectedVertex)
+        {
+            constraints.AddRange(ClothVertexBending3D.Compile(definition));
         }
         var pinned = definition.Pins.ToHashSet();
         var inverseMasses = masses.Select((mass, index) => pinned.Contains(index) ? 0 : 1 / mass).ToImmutableArray();
@@ -239,8 +262,13 @@ internal static class ClothCompiler3D
             {
                 throw new ArgumentException("Numerically ill-conditioned cloth rest hinge.");
             }
-            Vector3 curvature = pa * weights[0] + pb * weights[1] + pc * weights[2] + pd * weights[3];
-            if (curvature.Length() > .0001f)
+            // Classify rest planarity geometrically. The weighted residual scales with
+            // inverse edge length and can suffer cancellation even on a planar mesh.
+            Vector3 normal1 = Vector3.Cross(pb - pa, pc - pa) / doubleArea1;
+            Vector3 normal2 = Vector3.Cross(pb - pa, pd - pa) / doubleArea2;
+            // Opposite vertices must lie on opposite sides of the shared edge.
+            // Parallel normals alone would also admit a fully folded-back, overlapping hinge.
+            if ((normal1 + normal2).Length() > .0001f)
             {
                 throw new NotSupportedException("AUR-CLOTH-001: The quadratic baseline requires locally flat rest hinges; shaped garments need a rest-curvature model.");
             }
@@ -251,7 +279,9 @@ internal static class ClothCompiler3D
         {
             using var bytes = new MemoryStream();
             using var writer = new BinaryWriter(bytes, Encoding.UTF8, true);
-            writer.Write("cloth/flat-xpbd/v1");
+            writer.Write("cloth/flat-xpbd/v2");
+            writer.Write((int)definition.BendingModel);
+            writer.Write(definition.OffsetContact);
             writer.Write(definition.Id);
             writer.Write(positions.Length);
             foreach (Vector3 p in positions)
@@ -286,7 +316,7 @@ internal static class ClothCompiler3D
         }
     }
 
-    private static ImmutableArray<ImmutableArray<int>> Color(IEnumerable<ImmutableArray<int>> stencils)
+    internal static ImmutableArray<ImmutableArray<int>> Color(IEnumerable<ImmutableArray<int>> stencils)
     {
         var vertices = new List<HashSet<int>>();
         var colors = new List<List<int>>();

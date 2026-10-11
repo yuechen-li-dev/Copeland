@@ -1637,6 +1637,7 @@ public sealed class Parser
             SyntaxKind.IdentifierToken when IsComponentEventHandlerStart() => ParseComponentEventHandler(),
             SyntaxKind.ConstKeyword or SyntaxKind.LetKeyword or SyntaxKind.VarKeyword => ParseVariableDeclarationStatement(requireSemicolon: true),
             SyntaxKind.IfKeyword => ParseIfStatement(),
+            SyntaxKind.MatchKeyword or SyntaxKind.SwitchKeyword when IsBlockMatchAhead() => ParseRuntimeMatchStatement(),
             SyntaxKind.WhileKeyword => ParseWhileStatement(),
             SyntaxKind.ForKeyword => ParseForStatement(),
             SyntaxKind.ReturnKeyword => ParseReturnStatement(),
@@ -1832,6 +1833,66 @@ public sealed class Parser
             arms.Add(new StaticMatchArmSyntax(pattern, arrow, statement, comma, caseKeyword));
         }
         return new StaticMatchStatementSyntax(staticKeyword, matchKeyword, expression, openBrace, arms, Match(SyntaxKind.CloseBraceToken));
+    }
+
+    private bool IsBlockMatchAhead()
+    {
+        int braceDepth = 0;
+        int parenthesisDepth = 0;
+        for (int offset = 1; Peek(offset).Kind is not SyntaxKind.EndOfFileToken; offset++)
+        {
+            SyntaxKind kind = Peek(offset).Kind;
+            if (kind == SyntaxKind.OpenParenToken)
+            {
+                parenthesisDepth++;
+            }
+            else if (kind == SyntaxKind.CloseParenToken)
+            {
+                parenthesisDepth--;
+            }
+            else if (kind == SyntaxKind.OpenBraceToken)
+            {
+                braceDepth++;
+            }
+            else if (kind == SyntaxKind.CloseBraceToken)
+            {
+                if (braceDepth == 0)
+                {
+                    return false;
+                }
+                braceDepth--;
+            }
+            if (kind == SyntaxKind.ArrowToken && braceDepth == 1 && parenthesisDepth == 0)
+            {
+                // An expression arm can return a record literal. Its first field
+                // is followed by a colon; a statement block cannot start that way.
+                return Peek(offset + 1).Kind == SyntaxKind.OpenBraceToken
+                    && Peek(offset + 3).Kind != SyntaxKind.ColonToken;
+            }
+            if (kind == SyntaxKind.SemicolonToken && parenthesisDepth == 0)
+            {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private RuntimeMatchStatementSyntax ParseRuntimeMatchStatement()
+    {
+        SyntaxToken keyword = NextToken();
+        ExpressionSyntax expression = ParseExpression();
+        SyntaxToken openBrace = Match(SyntaxKind.OpenBraceToken);
+        var arms = new List<StaticMatchArmSyntax>();
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            SyntaxToken? caseKeyword = IsCasePrefix() ? NextToken() : null;
+            MatchPatternSyntax pattern = ParseMatchPattern();
+            SyntaxToken arrow = Match(SyntaxKind.ArrowToken);
+            StatementSyntax body = ParseBlockStatement();
+            SyntaxToken? comma = Current.Kind == SyntaxKind.CommaToken ? NextToken() : null;
+            arms.Add(new(pattern, arrow, body, comma, caseKeyword));
+        }
+        return new(keyword, expression, openBrace, arms, Match(SyntaxKind.CloseBraceToken));
     }
 
     private CSharpBlockStatementSyntax ParseCSharpBlockStatement()

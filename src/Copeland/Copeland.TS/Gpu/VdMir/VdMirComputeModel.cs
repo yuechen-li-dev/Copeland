@@ -54,7 +54,16 @@ public sealed record VdMirParameter(
     string Name,
     string Type,
     string? Builtin,
-    VdMirSourceSpan Source);
+    VdMirSourceSpan Source)
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public VdMirResourceAccess? Access { get; init; }
+}
+
+public sealed record VdMirStorageField(string Path, string Type, int Offset);
+
+/// <summary>Packed 32-bit storage words. This law is independent of uniform/register layout.</summary>
+public sealed record VdMirStorageLayout(string Type, int Stride, IReadOnlyList<VdMirStorageField> Fields);
 
 public sealed record VdMirExpression(
     string Kind,
@@ -128,6 +137,12 @@ public sealed record VdMirComputeModule(
     public const string ComputeM1FeatureLevel = "compute.m1";
 
     public bool Success => EntryPoint is not null && Diagnostics.Count == 0;
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<VdMirDiagnostic>? Warnings { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<VdMirStorageLayout>? StorageLayouts { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<VdMirEnum>? Enums { get; init; }

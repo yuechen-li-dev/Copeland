@@ -134,6 +134,9 @@ public sealed record VdMirGraphicsModule(
 
     public bool Success => GraphicsProgram is not null && Diagnostics.Count == 0;
 
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<VdMirDiagnostic>? Warnings { get; init; }
+
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<VdMirEnum>? Enums { get; init; }
 

@@ -54,11 +54,19 @@ controls; other edges get diagonal compliance. This is not a calibrated continuu
 strain model. Mass is rest triangle area times areal density, distributed to the
 three vertices. Thickness supplies a half-thickness contact offset.
 
-Bending uses a four-vertex cotangent quadratic hinge with a flat rest shape.
-The parameter controls its vector residual potential, independently of the link
-compliances. `BendEnergy` in diagnostics is the **unscaled geometric residual
-energy**, not joules or a certificate of correct shell behavior. Tight folds,
-triangulation dependence and mesh refinement still require research qualification.
+Bending now defaults to boundary-corrected vertex bending, with a flat rest shape.
+`BendingModel = ClothBendingModel3D.QuadraticHinge` explicitly selects the original
+four-vertex cotangent control. The parameter controls the vector residual
+potential, independently of link compliances. `BendEnergy` is the **unscaled
+geometric residual energy**, not joules or a calibrated shell certificate. See
+[the implemented bending/contact systems](cloth3d-offset-systems.md) for the
+refinement comparisons and current limitations.
+
+The [follow-up verification probes](cloth3d-research-probes.md) now measure large
+orientation/refinement bias and weak restoring moment near folded-back hinges.
+The original hinge control remains useful for comparisons; it is not a calibrated
+continuum shell model. Flat-rest admission checks opposing geometric normals,
+avoiding the former cancellation-based rejection of fine rotated planar patterns.
 
 ## Explicit solver ownership
 
@@ -75,7 +83,7 @@ publish `agent.State = solver.Capture()` when inspection/presentation needs it.
 Unmount/dispose the retained solver through ordinary application ownership.
 
 `Capture` and `Restore` carry positions, velocities, pin targets, tick and a
-content identity covering topology/material/pins. Foreign, truncated or nonfinite
+content identity covering topology/material/pins/bending/contact mode. Foreign, truncated or nonfinite
 snapshots fail before mutation. Substep multipliers are reset rather than warm
 started, so snapshots need no hidden solver cache. CPU replay is deterministic;
 the native proof checks exact GPU replay on the same device/backend. No
@@ -105,9 +113,11 @@ storage, automatic backend selection, or a multi-GPU schedule. The bounded runne
 rejects more than 4096 dispatches per tick as `AUR-CLOTH-002` before mutation;
 reduce the authored solve budget for this baseline.
 
-Visual TS compute currently uses an explicit `Vec3` value record and scalar
-storage ABI. The graphics-only `float3` spelling and storage-buffer helper ABI
-are not used here. All GPU code lives in the real `.v.ts` asset.
+Visual TS compute uses native `float3` values, typed packed headers and
+`Load<T>`/`Store<T>` transfers over its compatible scalar transport. Phase
+dispatch uses exhaustive statement match and ordinary resource helpers. See
+[compute values and storage](visual-typescript-compute-values.md) for layout,
+access and bounds contracts. All GPU code lives in the real `.v.ts` asset.
 
 ## Contact contract
 
@@ -123,10 +133,15 @@ old particle fixture. Iterative contact remains discrete and finite-budget:
 conflicting pins/obstacles, extreme motion and later corrections may leave error.
 `Measure` evaluates actual closest-triangle sphere penetration, not centroids.
 
-There is no self-contact, swept collision, friction model, arbitrary collider mesh,
-seam/garment importer, tearing, hair, two-way rigid coupling, or shaped-rest shell
-model yet. A test deliberately demonstrates high-speed tunneling through a sphere
-with clear endpoints; endpoint clearance is not a collision-free trajectory claim.
+The discrete control still has a deliberate high-speed sphere-tunneling witness.
+Set `OffsetContact = true` to opt into the new bounded self-contact and
+clearance-limited motion foundation on CPU or Vulkan. It covers face/edge/vertex
+contacts and edge pairs, including moving pins and the predictor; see
+[its contract and native proof](cloth3d-offset-systems.md). It currently caps
+exhaustive topology at 128 vertices and requires a valid initial state.
+
+There is no friction model, arbitrary collider mesh, seam/garment importer,
+tearing, hair, two-way rigid coupling, or shaped-rest shell model yet.
 
 ## Run the real proof
 
@@ -158,7 +173,13 @@ iteration count both changed during tuning, so that result is **not** an isolate
 bending-method comparison. `transfer-header-baseline` preserves the slower GPU
 header-update implementation's measurements with the tuned physical parameters.
 
-## Final qualification, 2026-10-10
+## Initial hinge-control qualification, 2026-10-10
+
+This section records the original four-vertex bending run, before the new default
+and ABI v2. Its material/timing numbers are historical controls, not new-default
+certification. The current systems proof and validation are documented
+[separately](cloth3d-offset-systems.md). The `--cloth-foundation` runner follows
+the current default when rerun.
 
 Full `Aurelian.slnx` build: zero warnings/errors in the final incremental build.
 All 1,133 tests across 30 projects passed, including 13 cloth checks. The Release
@@ -168,7 +189,7 @@ enabled. Native PNGs were inspected; the tuned cloth visibly folds around the
 sphere and its moving supports follow the pin state.
 
 Identical controls for all three resolutions: 60 Hz, 8 substeps, 4 constraint
-iterations, 2 contact iterations, default material. Values below are from the
+iterations, 2 contact iterations, then-default material and hinge bending. Values below are from the
 final native run, excluding the first 20 timing samples.
 
 | Vertices | Peak stretch GPU / CPU | Peak GPU surface penetration | CPU step p95 | Vulkan record/submit/wait p95 | Snapshot readback p95 | CPU/GPU position difference: tick 12 / tick 180 |

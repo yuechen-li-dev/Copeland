@@ -15,15 +15,21 @@ internal sealed class GpuModuleGraph
     private readonly Dictionary<string, Module> modules = new(StringComparer.Ordinal);
     private readonly List<VdMirDiagnostic> diagnostics;
     private readonly bool scoped;
+    public IReadOnlyList<VdMirDiagnostic> Warnings { get; }
 
     public GpuModuleGraph(GpuCompilationRequest request, List<VdMirDiagnostic> diagnostics)
     {
         this.diagnostics = diagnostics;
+        var warnings = new List<VdMirDiagnostic>();
         foreach (GpuSourceFile source in request.Sources.OrderBy(source => source.Path, StringComparer.Ordinal))
         {
             string path = Normalize(source.Path);
             var projectSource = new CopelandProjectSource(path, source.Path, source.Source);
-            SyntaxTree tree = SyntaxTree.Parse(source.Source, source.Path).ExpandExecutionFlows(gpu: true);
+            SyntaxTree authored = SyntaxTree.Parse(source.Source, source.Path);
+            warnings.AddRange(authored.Warnings.Select(warning => new VdMirDiagnostic(
+                warning.Id, warning.Id, "style", warning.Message,
+                new(source.Path, warning.Position, warning.Length), [])));
+            SyntaxTree tree = authored.ExpandExecutionFlows(gpu: true);
             var module = new Module(source, tree, CopelandProjectCompiler.ReadSourceImports(projectSource),
                 CopelandProjectCompiler.ReadExports(projectSource));
             if (!modules.TryAdd(path, module))
@@ -37,6 +43,7 @@ internal sealed class GpuModuleGraph
             }
         }
         scoped = modules.Values.Any(module => module.Imports.Count > 0 || module.Exports.Count > 0);
+        Warnings = warnings;
         foreach (Module module in modules.Values)
         {
             foreach (MemberSyntax member in module.Tree.Root.Members)

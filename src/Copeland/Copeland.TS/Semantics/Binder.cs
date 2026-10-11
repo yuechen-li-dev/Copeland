@@ -5521,6 +5521,7 @@ public static partial class Binder
             CSharpBlockStatementSyntax c => BindCSharpBlock(c),
             ExpressionStatementSyntax e => BindExpressionStatement(e),
             IfStatementSyntax i => BindIf(i),
+            RuntimeMatchStatementSyntax match => RejectGpuStatementMatch(match),
             WhileStatementSyntax w => BindWhile(w),
             ForStatementSyntax f => BindFor(f),
             ForOfStatementSyntax f => BindForOf(f),
@@ -5532,6 +5533,12 @@ public static partial class Binder
             NestedTableDeclarationStatementSyntax nested => BindNestedTable(nested),
             _ => new BoundExpressionStatement(new BoundErrorExpression())
         };
+
+        private BoundStatement RejectGpuStatementMatch(RuntimeMatchStatementSyntax match)
+        {
+            Report("COPE-MATCH-0008", "Block-arm statement match currently requires the Visual TypeScript compute profile; host code can use expression match.", match.MatchKeyword);
+            return new BoundExpressionStatement(new BoundErrorExpression());
+        }
 
         private BoundStatement BindComponentState(ComponentStateDeclarationStatementSyntax declaration)
         {

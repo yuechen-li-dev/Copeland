@@ -4,7 +4,7 @@ using Aurelian.Shaders.Language.VdMir.Emission.Hlsl;
 
 namespace Aurelian.Shaders.Compute;
 
-public static class VdMirComputeHlslEmitter
+public static partial class VdMirComputeHlslEmitter
 {
     public static string Emit(VdMirComputeModule module)
     {
@@ -27,11 +27,11 @@ public static class VdMirComputeHlslEmitter
             }
             else if (resource.Access == VdMirResourceAccess.Readonly)
             {
-                resourceType = "StructuredBuffer<float>";
+                resourceType = ResourceType(resource.ElementType, VdMirResourceAccess.Readonly);
             }
             else
             {
-                resourceType = "RWStructuredBuffer<float>";
+                resourceType = ResourceType(resource.ElementType, VdMirResourceAccess.Readwrite);
             }
             builder.AppendLine($"[[vk::binding({resource.Binding}, {resource.Set})]] {resourceType} {resource.Name};");
         }
@@ -39,18 +39,20 @@ public static class VdMirComputeHlslEmitter
         {
             builder.AppendLine();
         }
+        EmitStorageLoads(builder, module);
         if (module.FeatureLevel == "compute.rayquery.m2")
         {
             builder.AppendLine(RayQueryHlslEmitter.Helper);
         }
 
-        foreach (VdMirFunction function in module.Functions.Where(function => function.Name != module.EntryPoint.Name))
+        IReadOnlyList<VdMirFunction> functions = ResourceVariants(module);
+        foreach (VdMirFunction function in functions.Where(function => function.Name != module.EntryPoint.Name))
         {
             string parameters = string.Join(", ", function.Parameters.Select(parameter =>
-                MapType(parameter.Type, module) + " " + parameter.Name));
+                ParameterType(parameter, module) + " " + LocalName(parameter.Name)));
             builder.AppendLine($"{MapType(function.ReturnType, module)} {function.Name}({parameters});");
         }
-        foreach (VdMirFunction function in module.Functions.Where(function => function.Name != module.EntryPoint.Name))
+        foreach (VdMirFunction function in functions.Where(function => function.Name != module.EntryPoint.Name))
         {
             EmitFunction(builder, function, null, module);
             builder.AppendLine();
@@ -72,7 +74,7 @@ public static class VdMirComputeHlslEmitter
                 null => string.Empty,
                 _ => throw new InvalidOperationException($"Unsupported compute builtin '{parameter.Builtin}'."),
             };
-            return $"{MapType(parameter.Type, module)} {parameter.Name}{semantic}";
+            return $"{ParameterType(parameter, module)} {LocalName(parameter.Name)}{semantic}";
         }));
         builder.AppendLine($"{MapType(function.ReturnType, module)} {function.Name}({parameters})");
         builder.AppendLine("{");
@@ -88,8 +90,29 @@ public static class VdMirComputeHlslEmitter
         string prefix = new(' ', indentation * 4);
         switch (statement.Kind)
         {
+            case "switch":
+                builder.AppendLine($"{prefix}switch ({EmitExpression(statement.Expression!)})");
+                builder.AppendLine(prefix + "{");
+                foreach (var arm in statement.Body ?? [])
+                {
+                    builder.AppendLine(arm.Kind == "default"
+                        ? prefix + "    default:"
+                        : $"{prefix}    case {arm.Name}u:");
+                    builder.AppendLine(prefix + "    {");
+                    foreach (var child in arm.Body ?? [])
+                    {
+                        EmitStatement(builder, child, indentation + 2, module);
+                    }
+                    builder.AppendLine(prefix + "        break;");
+                    builder.AppendLine(prefix + "    }");
+                }
+                builder.AppendLine(prefix + "}");
+                break;
+            case "storage-store":
+                EmitStorageStore(builder, statement, indentation, module);
+                break;
             case "local":
-                builder.AppendLine($"{prefix}{MapType(statement.Type!, module)} {statement.Name} = {EmitExpression(statement.Expression!)};");
+                builder.AppendLine($"{prefix}{MapType(statement.Type!, module)} {LocalName(statement.Name!)} = {EmitExpression(statement.Expression!)};");
                 break;
             case "assign":
             {
@@ -154,9 +177,11 @@ public static class VdMirComputeHlslEmitter
     {
         return expression.Kind switch
         {
-            "name" or "literal" => expression.Value!,
+            "name" => LocalName(expression.Value!),
+            "literal" => expression.Value!,
             "field" => $"{EmitExpression(expression.Operands![0])}.{expression.Value}",
             "index" => $"{EmitExpression(expression.Operands![0])}[{EmitExpression(expression.Operands[1])}]",
+            "storage-load" => $"__vts_load_{(expression.Value == "word" ? "word_" : "")}{expression.Type}({EmitExpression(expression.Operands![0])}, {EmitExpression(expression.Operands[1])})",
             "binary" => $"({EmitExpression(expression.Operands![0])} {expression.Value} {EmitExpression(expression.Operands[1])})",
             "unary" => $"({expression.Value}{EmitExpression(expression.Operands![0])})",
             "intrinsic" when expression.Value == "ConvertU32ToF32" => $"float({EmitExpression(expression.Operands![0])})",
@@ -168,13 +193,29 @@ public static class VdMirComputeHlslEmitter
     private static string CallName(string name) => name switch
     {
         "Sqrt" => "sqrt",
+        "Log" => "log",
         "Abs" => "abs",
         "Min" => "min",
         "Max" => "max",
         "Clamp" => "clamp",
         "U32" => "uint",
+        "Dot" => "dot",
+        "Cross" => "cross",
+        "Length" => "length",
+        "Normalize" => "normalize",
         _ => name,
     };
+
+    private static string LocalName(string name)
+    {
+        if (name is "point" or "line" or "triangle" or "lineadj" or "triangleadj"
+            or "dot" or "cross" or "length" or "normalize" or "sqrt" or "log"
+            or "abs" or "min" or "max" or "clamp")
+        {
+            return "__vts_local_" + name;
+        }
+        return name;
+    }
 
     private static string MapType(string type, VdMirComputeModule module) => type switch
     {
@@ -183,6 +224,7 @@ public static class VdMirComputeHlslEmitter
         "u32" => "uint",
         "f32" => "float",
         "uint3" => "uint3",
+        "float2" or "float3" or "float4" => type,
         _ when (module.ValueTypes ?? []).Any(value => value.Name == type) => type,
         _ when (module.Enums ?? []).Any(enumeration => enumeration.Name == type || enumeration.Cases.Any(variant => variant.PayloadType == type)) => type,
         _ => throw new InvalidOperationException($"Unsupported compute type '{type}'."),

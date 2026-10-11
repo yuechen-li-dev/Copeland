@@ -8,6 +8,48 @@ namespace Copeland.Cli.Tests;
 
 public sealed class LanguageServerProtocolTests
 {
+    [Theory]
+    [InlineData("Chain.ts")]
+    [InlineData("Chain.v.ts")]
+    public void Long_else_if_advice_is_published_as_an_editor_warning(string fileName)
+    {
+        using var workspace = new TempWorkspace();
+        const string text = """
+            export function Main(value: number): number {
+                if (value == 0) { return 0; }
+                else if (value == 1) { return 1; }
+                else if (value == 2) { return 2; }
+                else if (value == 3) { return 3; }
+                else if (value == 4) { return 4; }
+                else { return 5; }
+            }
+            """;
+        string source = workspace.Write("src/copeland/" + fileName, text);
+        workspace.Write("obj/copeland/workspace/editor-ownership.generated.json", $$"""
+            { "schemaVersion": 1, "files": [
+                { "path": "src/copeland/{{fileName}}", "owner": "tscl" }
+            ] }
+            """);
+        workspace.Write("App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\" />");
+        workspace.Write("tsconfig.tsx", """
+            import { defineTypeScriptWorkspace } from "copeland/workspace";
+            export default defineTypeScriptWorkspace({
+                ownership: "partial",
+                tscl: { project: "./App.csproj", include: ["src/copeland/**"] }
+            });
+            """);
+        using var client = new LspClient();
+        string uri = VsCodeFileUri(source);
+        client.Request(1, "initialize", new { initializationOptions = new { workspaceRoot = workspace.Path } });
+        client.Notify("textDocument/didOpen", new { textDocument = new { uri, version = 1, text } });
+        var diagnostics = client.ReadNotification("textDocument/publishDiagnostics")
+            .GetProperty("params").GetProperty("diagnostics").EnumerateArray().ToArray();
+        var warning = Assert.Single(diagnostics, item => item.GetProperty("code").GetString() == "COPE-STYLE-0001");
+        Assert.Equal(2, warning.GetProperty("severity").GetInt32());
+        Assert.Contains("switch/match", warning.GetProperty("message").GetString());
+        Assert.Equal(1, warning.GetProperty("range").GetProperty("start").GetProperty("line").GetInt32());
+    }
+
     [Fact]
     public void Language_server_uses_standalone_context_when_TSPack_is_absent()
     {

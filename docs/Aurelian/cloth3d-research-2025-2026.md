@@ -4,6 +4,11 @@ Reviewed 2026-10-10. This is a bounded research review and working baseline, not
 a reproduction of the papers' performance results. Both 2026 papers below have
 SIGGRAPH 2026 publications; their earlier preprints are not separate 2025 results.
 
+Follow-up: [OGC/AVBD/Better Bending probes](cloth3d-research-probes.md) adds actual
+stencil refinement/fold measurements, an exact-solution CPU/Vulkan mechanism
+comparison with XPBD, an analytic contact-bound check and a rest-planarity repair.
+Its results prioritize bending/contact work while retaining XPBD as the baseline.
+
 ## What the audit found
 
 `PhysicsClothSpecimen` in GraphicsProof is a useful BEPU particle/link control.
@@ -38,6 +43,11 @@ error. The flat-rest quadratic hinge follows the cotangent energy described in
 the [PBD survey, section 5.2](https://matthias-research.github.io/pages/publications/EG2015PBD.pdf):
 `E = 1/2 |sum(k_i x_i)|²`. We solve the vector residual directly, so the elastic
 potential is quadratic rather than the square of an already-quadratic energy.
+
+The follow-up now implements boundary-corrected vertex bending and an opt-in
+OGC-inspired offset-contact foundation in the existing CPU/Vulkan XPBD paths.
+See [the implementation contract and native proof](cloth3d-offset-systems.md).
+The original hinge and discrete-contact results below remain historical controls.
 
 ## Code and ownership boundaries
 

@@ -49,6 +49,12 @@ unreachable host declarations can be supplied without diagnostics.
 
 ## Bindings and static operations
 
+`else if` is supported. Five or more conditional branches in one chain produce
+the shared, nonblocking `COPE-STYLE-0001` authoring warning recommending
+`switch`/`match`. A final `else` does not count. Both graphics and compute modules
+carry warnings separately from legality diagnostics; see
+[conditional authoring](../Copeland/language/overview.md#conditional-authoring).
+
 Visual TypeScript uses WGSL-style local mutability:
 
 ```typescript
@@ -156,6 +162,12 @@ The subsequent [fixed values pass](visual-typescript-fixed-values.md) adds
 bounded value records, material layouts, arrays and tensor operations. Closed
 generics are covered by the subsequent [generics pass](visual-typescript-generics.md).
 Further intrinsic catalogue expansion remains separate work.
+
+The [compute values and storage pass](visual-typescript-compute-values.md)
+adds native compute vectors, typed packed buffers, qualified resource helpers,
+block-arm exhaustive dispatch and finite `Indices<N>()` static iteration.
+Expression matches retain their resource-capture boundary; compute statement
+matches operate directly in the enclosing resource scope.
 
 ## Qualified results, 2026-10-09
 

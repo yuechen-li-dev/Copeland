@@ -91,7 +91,8 @@ internal sealed class CopelandWorkspace
         if (_loadError is not null) return [DiagnosticObject(_loadError, "CTS-LSP-OWNERSHIP", 1, document!.Text, 0, 1)];
         if (IsWorkspaceManifest(document!.Path)) return WorkspaceManifestDiagnostics(document.Text);
         IReadOnlyList<Diagnostic> projectDiagnostics = Compile(document).Diagnostics;
-        IReadOnlyList<Diagnostic> syntaxDiagnostics = SyntaxTree.Parse(document.Text, document.Path).Diagnostics;
+        SyntaxTree syntax = SyntaxTree.Parse(document.Text, document.Path);
+        IReadOnlyList<Diagnostic> syntaxDiagnostics = syntax.Diagnostics;
         IReadOnlyList<Diagnostic> layoutDiagnostics = LayoutDataCompiler.Compile(document.Text, document.Path).Diagnostics;
         return projectDiagnostics
             .Concat(syntaxDiagnostics)
@@ -101,6 +102,8 @@ internal sealed class CopelandWorkspace
             .OrderBy(diagnostic => diagnostic.Position)
             .ThenBy(diagnostic => diagnostic.Id, StringComparer.Ordinal)
             .Select(diagnostic => DiagnosticObject(diagnostic.Message, diagnostic.Id, 1, document.Text, diagnostic.Position, diagnostic.Length))
+            .Concat(syntax.Warnings.Select(warning => DiagnosticObject(warning.Message, warning.Id, 2,
+                document.Text, warning.Position, warning.Length)))
             .ToArray();
     }
 

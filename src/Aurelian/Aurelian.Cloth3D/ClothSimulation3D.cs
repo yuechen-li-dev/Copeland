@@ -12,13 +12,17 @@ public sealed record ClothStepOptions3D
     public int ContactIterations { get; init; } = 2;
     public Vector3 Gravity { get; init; } = new(0, -9.81f, 0);
     public float VelocityDamping { get; init; } = 1.5f;
+    public float ContactSafetyFactor { get; init; } = .4f;
+    public float OffsetContactCompliance { get; init; } = .000001f;
 
     public void Validate()
     {
         ClothValidation3D.Finite(Gravity);
         if (!float.IsFinite(DeltaSeconds) || DeltaSeconds is < .00001f or > .1f
             || Substeps is < 1 or > 64 || Iterations is < 1 or > 64 || ContactIterations is < 1 or > 32
-            || !float.IsFinite(VelocityDamping) || VelocityDamping < 0)
+            || !float.IsFinite(VelocityDamping) || VelocityDamping < 0
+            || !float.IsFinite(ContactSafetyFactor) || ContactSafetyFactor <= 0 || ContactSafetyFactor >= .5f
+            || !float.IsFinite(OffsetContactCompliance) || OffsetContactCompliance < 0)
         {
             throw new ArgumentException("Invalid bounded cloth step options.");
         }
@@ -63,7 +67,13 @@ public sealed record ClothSnapshot3D(string ContentKey, long Tick, ImmutableArra
     ImmutableArray<Vector3> Velocities, ImmutableArray<Vector3> PinTargets);
 
 public sealed record ClothMetrics3D(float MaximumStretch, float MaximumPinError,
-    float MaximumSurfacePenetration, float BendEnergy, bool Finite);
+    float MaximumSurfacePenetration, float BendEnergy, bool Finite)
+{
+    public ClothOffsetMetrics3D? OffsetContact { get; init; }
+}
+
+public sealed record ClothOffsetMetrics3D(float MinimumFeatureClearance,
+    float MaximumActiveOffsetOverlap, int ActivePairs);
 
 public interface IClothSolver3D : IDisposable
 {
@@ -85,6 +95,9 @@ public sealed class ClothSolver3D : IClothSolver3D
     private readonly Vector3[] targets;
     private readonly Vector3[] pinStarts;
     private readonly Vector3[] lambda;
+    private readonly Vector3[] contactAnchor;
+    private float[]? contactBounds;
+    private readonly float[] contactLambda;
 
     public CompiledCloth3D Plan { get; }
     public long Tick { get; private set; }
@@ -99,6 +112,8 @@ public sealed class ClothSolver3D : IClothSolver3D
         targets = positions.ToArray();
         pinStarts = new Vector3[positions.Length];
         lambda = new Vector3[plan.Constraints.Length];
+        contactAnchor = new Vector3[positions.Length];
+        contactLambda = new float[plan.ContactTopology?.Pairs.Length ?? 0];
     }
 
     public void SetPin(int vertex, Vector3 target)
@@ -110,12 +125,18 @@ public sealed class ClothSolver3D : IClothSolver3D
     public void Step(ClothStepOptions3D options, ClothContacts3D contacts)
     {
         ClothState3D.ValidateStep(Plan, options, contacts);
+        if (Plan.ContactTopology is not null)
+        {
+            ClothOffsetContact3D.ValidateInitial(Plan, Capture(), contacts);
+        }
         float h = options.DeltaSeconds / options.Substeps;
         float damping = MathF.Exp(-options.VelocityDamping * h);
         positions.CopyTo(pinStarts, 0);
         for (int substep = 0; substep < options.Substeps; substep++)
         {
             Array.Clear(lambda);
+            Array.Clear(contactLambda);
+            RefreshBounds(options, contacts);
             float fraction = (substep + 1f) / options.Substeps;
             for (int vertex = 0; vertex < positions.Length; vertex++)
             {
@@ -130,8 +151,10 @@ public sealed class ClothSolver3D : IClothSolver3D
                     positions[vertex] += velocities[vertex] * h;
                 }
             }
+            LimitPositions();
             for (int iteration = 0; iteration < options.Iterations; iteration++)
             {
+                RefreshBounds(options, contacts);
                 foreach (var color in Plan.ConstraintColors)
                 {
                     foreach (int index in color)
@@ -142,6 +165,7 @@ public sealed class ClothSolver3D : IClothSolver3D
                 for (int contact = 0; contact < options.ContactIterations; contact++)
                 {
                     ProjectContacts(contacts);
+                    ProjectOffsetContacts(options, h);
                 }
             }
             for (int vertex = 0; vertex < positions.Length; vertex++)
@@ -152,11 +176,80 @@ public sealed class ClothSolver3D : IClothSolver3D
         Tick++;
     }
 
+    private void RefreshBounds(ClothStepOptions3D options, ClothContacts3D contacts)
+    {
+        if (Plan.ContactTopology is null)
+        {
+            return;
+        }
+        positions.CopyTo(contactAnchor, 0);
+        contactBounds = ClothOffsetContact3D.Bounds(Plan, contactAnchor, contacts, options.ContactSafetyFactor);
+    }
+
+    private void LimitPositions()
+    {
+        if (contactBounds is null)
+        {
+            return;
+        }
+        for (int vertex = 0; vertex < positions.Length; vertex++)
+        {
+            positions[vertex] = ClothOffsetContact3D.Clip(positions[vertex], contactAnchor[vertex], contactBounds[vertex]);
+        }
+    }
+
+    private void Move(int vertex, Vector3 correction)
+    {
+        Vector3 proposed = positions[vertex] + correction;
+        positions[vertex] = contactBounds is null ? proposed
+            : ClothOffsetContact3D.Clip(proposed, contactAnchor[vertex], contactBounds[vertex]);
+    }
+
+    private void ProjectOffsetContacts(ClothStepOptions3D options, float h)
+    {
+        if (Plan.ContactTopology is not { } topology)
+        {
+            return;
+        }
+        float alpha = options.OffsetContactCompliance / (h * h);
+        foreach (var color in topology.Colors)
+        {
+            foreach (int index in color)
+            {
+                var pair = topology.Pairs[index];
+                var query = ClothOffsetContact3D.Query(topology, pair, positions);
+                if (!query.Active || query.Distance >= Plan.Definition.Material.Thickness)
+                {
+                    contactLambda[index] = 0;
+                    continue;
+                }
+                Vector2 potential = ClothOffsetContact3D.Potential(query.Distance, Plan.Definition.Material.Thickness);
+                float movable = 0;
+                for (int local = 0; local < pair.Vertices.Length; local++)
+                {
+                    float weight = query.Weights[local] * potential.Y;
+                    movable += Plan.InverseMasses[pair.Vertices[local]] * weight * weight;
+                }
+                if (movable <= 1e-20f)
+                {
+                    continue;
+                }
+                float increment = (-potential.X - alpha * contactLambda[index]) / (movable + alpha);
+                contactLambda[index] += increment;
+                for (int local = 0; local < pair.Vertices.Length; local++)
+                {
+                    int vertex = pair.Vertices[local];
+                    Move(vertex, query.Normal * (Plan.InverseMasses[vertex] * query.Weights[local] * potential.Y * increment));
+                }
+            }
+        }
+    }
+
     private void ProjectConstraint(int index, float h)
     {
         var constraint = Plan.Constraints[index];
         float alpha = constraint.Compliance / (h * h);
-        if (constraint.Kind != ClothConstraintKind3D.FlatBend)
+        if (constraint.Kind is not (ClothConstraintKind3D.FlatBend or ClothConstraintKind3D.VertexBend))
         {
             int a = constraint.Vertices[0];
             int b = constraint.Vertices[1];
@@ -171,14 +264,14 @@ public sealed class ClothSolver3D : IClothSolver3D
             float delta = (-(length - constraint.RestLength) - alpha * lambda[index].X) / (wa + wb + alpha);
             lambda[index].X += delta;
             Vector3 correction = difference * (delta / length);
-            positions[a] += correction * wa;
-            positions[b] -= correction * wb;
+            Move(a, correction * wa);
+            Move(b, -correction * wb);
             return;
         }
         Vector3 curvature = Vector3.Zero;
         float denominator = alpha;
         float movable = 0;
-        for (int local = 0; local < 4; local++)
+        for (int local = 0; local < constraint.Vertices.Length; local++)
         {
             int vertex = constraint.Vertices[local];
             float weight = constraint.Weights[local];
@@ -193,10 +286,10 @@ public sealed class ClothSolver3D : IClothSolver3D
         }
         Vector3 increment = (-curvature - alpha * lambda[index]) / denominator;
         lambda[index] += increment;
-        for (int local = 0; local < 4; local++)
+        for (int local = 0; local < constraint.Vertices.Length; local++)
         {
             int vertex = constraint.Vertices[local];
-            positions[vertex] += increment * (Plan.InverseMasses[vertex] * constraint.Weights[local]);
+            Move(vertex, increment * (Plan.InverseMasses[vertex] * constraint.Weights[local]));
         }
     }
 
@@ -214,7 +307,7 @@ public sealed class ClothSolver3D : IClothSolver3D
                 float gap = Vector3.Dot(normal, positions[vertex]) - contacts.PlaneOffset - thickness;
                 if (gap < 0)
                 {
-                    positions[vertex] -= normal * gap;
+                    Move(vertex, -normal * gap);
                 }
             }
             if (contacts.SphereCenter is { } center)
@@ -225,7 +318,7 @@ public sealed class ClothSolver3D : IClothSolver3D
                 if (distance < radius)
                 {
                     Vector3 outward = distance > 1e-10f ? delta / distance : Vector3.UnitY;
-                    positions[vertex] = center + outward * radius;
+                    Move(vertex, center + outward * radius - positions[vertex]);
                 }
             }
         }
@@ -258,9 +351,9 @@ public sealed class ClothSolver3D : IClothSolver3D
                 }
                 Vector3 normal = distance > 1e-10f ? delta / distance : Vector3.UnitY;
                 Vector3 correction = normal * (penetration / denominator);
-                positions[a] += correction * (Plan.InverseMasses[a] * barycentric.X);
-                positions[b] += correction * (Plan.InverseMasses[b] * barycentric.Y);
-                positions[c] += correction * (Plan.InverseMasses[c] * barycentric.Z);
+                Move(a, correction * (Plan.InverseMasses[a] * barycentric.X));
+                Move(b, correction * (Plan.InverseMasses[b] * barycentric.Y));
+                Move(c, correction * (Plan.InverseMasses[c] * barycentric.Z));
             }
         }
     }
@@ -271,6 +364,10 @@ public sealed class ClothSolver3D : IClothSolver3D
     public void Restore(ClothSnapshot3D snapshot)
     {
         ClothState3D.ValidateSnapshot(Plan, snapshot);
+        if (Plan.ContactTopology is not null)
+        {
+            ClothOffsetContact3D.ValidateInitial(Plan, snapshot, new());
+        }
         snapshot.Positions.CopyTo(positions);
         snapshot.Velocities.CopyTo(velocities);
         snapshot.PinTargets.CopyTo(targets);
@@ -292,6 +389,10 @@ public static class ClothState3D
         if (plan.Constraints.Any(constraint => !float.IsFinite(constraint.Compliance / (h * h))))
         {
             throw new ArgumentException("Cloth compliance and timestep exceed finite solver arithmetic.");
+        }
+        if (!float.IsFinite(options.OffsetContactCompliance / (h * h)))
+        {
+            throw new ArgumentException("Offset contact compliance exceeds finite solver arithmetic.");
         }
     }
 
@@ -339,7 +440,7 @@ public static class ClothState3D
         float bending = 0;
         foreach (var constraint in plan.Constraints)
         {
-            if (constraint.Kind != ClothConstraintKind3D.FlatBend)
+            if (constraint.Kind is not (ClothConstraintKind3D.FlatBend or ClothConstraintKind3D.VertexBend))
             {
                 float length = Vector3.Distance(positions[constraint.Vertices[0]], positions[constraint.Vertices[1]]);
                 stretch = MathF.Max(stretch, length / constraint.RestLength - 1);
@@ -347,7 +448,7 @@ public static class ClothState3D
             else
             {
                 Vector3 curvature = Vector3.Zero;
-                for (int local = 0; local < 4; local++)
+                for (int local = 0; local < constraint.Vertices.Length; local++)
                 {
                     curvature += positions[constraint.Vertices[local]] * constraint.Weights[local];
                 }
@@ -378,6 +479,28 @@ public static class ClothState3D
                 penetration = MathF.Max(penetration, contacts.SphereRadius + halfThickness - Vector3.Distance(sphere, closest.Point));
             }
         }
-        return new(stretch, pinError, penetration, bending, float.IsFinite(stretch) && float.IsFinite(bending));
+        ClothOffsetMetrics3D? offsetMetrics = null;
+        if (plan.ContactTopology is { } topology)
+        {
+            float clearance = 1e6f;
+            float overlap = 0;
+            int active = 0;
+            foreach (var pair in topology.Pairs)
+            {
+                var query = ClothOffsetContact3D.Query(topology, pair, positions);
+                if (pair.Kind is ClothContactFeature3D.Face or ClothContactFeature3D.EdgePair)
+                {
+                    clearance = MathF.Min(clearance, query.Distance);
+                }
+                if (query.Active && query.Distance < plan.Definition.Material.Thickness)
+                {
+                    overlap = MathF.Max(overlap, plan.Definition.Material.Thickness - query.Distance);
+                    active++;
+                }
+            }
+            offsetMetrics = new(clearance, overlap, active);
+        }
+        return new(stretch, pinError, penetration, bending,
+            float.IsFinite(stretch) && float.IsFinite(bending)) { OffsetContact = offsetMetrics };
     }
 }

@@ -19,6 +19,8 @@ public sealed class SyntaxTree
     public IReadOnlyList<SyntaxToken> Tokens { get; }
 
     public IReadOnlyList<Diagnostic> Diagnostics { get; }
+    /// <summary>Non-blocking authoring advice, kept separate from syntax errors.</summary>
+    public IReadOnlyList<Diagnostic> Warnings => AuthoringWarnings.Analyze(Root);
 
     internal SyntaxTree ExpandExecutionFlows(bool gpu = false)
     {

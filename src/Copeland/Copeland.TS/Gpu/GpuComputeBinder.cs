@@ -4,7 +4,7 @@ using Copeland.TS.Semantics;
 
 namespace Copeland.TS.Gpu;
 
-public static class GpuComputeBinder
+public static partial class GpuComputeBinder
 {
     public static VdMirComputeModule Compile(GpuCompilationRequest request)
     {
@@ -13,7 +13,7 @@ public static class GpuComputeBinder
         return binder.Bind();
     }
 
-    private sealed class Binder
+    private sealed partial class Binder
     {
         private static readonly HashSet<string> KnownAnnotations = new(StringComparer.Ordinal)
         {
@@ -104,7 +104,7 @@ public static class GpuComputeBinder
             {
                 foreach (FunctionDeclarationSyntax function in tree.Root.Members.OfType<FunctionDeclarationSyntax>())
                 {
-                    if (function.Identifier.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp")
+                    if (function.Identifier.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp" or "Log")
                     {
                         AddDiagnostic("COPE-GPU-SYMBOL-0001", "SDSL-V1509", "symbol",
                             $"{function.Identifier.Text} is a compiler-owned intrinsic and cannot be redefined.",
@@ -114,6 +114,12 @@ public static class GpuComputeBinder
                     {
                         AddDiagnostic("COPE-GPU-RAYQUERY-0003", "SDSL-V4213", "ray-query",
                             "RayQueryTraceClosest is a compiler-owned command and cannot be redefined.", Span(source.Path, function.Identifier));
+                    }
+                    if (function.Identifier.Text is "float2" or "float3" or "float4" or "Dot" or "Cross"
+                        or "Length" or "Normalize" or "Load" or "Store" or "WordCount" or "Indices")
+                    {
+                        AddDiagnostic("COPE-GPU-SYMBOL-0001", "SDSL-V1509", "symbol",
+                            "This name is a compiler-owned compute operation.", Span(source.Path, function.Identifier));
                     }
                     if (!_functions.TryAdd(_modules.Declare(source.Path, function.Identifier.Text), new FunctionSource(source.Path, function)))
                     {
@@ -183,7 +189,7 @@ public static class GpuComputeBinder
                     continue;
                 }
 
-                if ((type == "storage-buffer<f32>" || type == "acceleration_structure") && binding is not null)
+                if ((IsBuffer(type) || type == "acceleration_structure") && binding is not null)
                 {
                     int? bindingIndex = SingleIntegerArgument(binding);
                     VdMirResourceAccess? access = parameter.AccessToken?.Text switch
@@ -206,7 +212,7 @@ public static class GpuComputeBinder
 
                     var resource = new VdMirResource(
                         parameter.Identifier.Text,
-                        type == "acceleration_structure" ? "acceleration_structure" : "f32",
+                        type == "acceleration_structure" ? "acceleration_structure" : BufferElement(type),
                         access.Value,
                         0,
                         bindingIndex.Value,
@@ -308,6 +314,11 @@ public static class GpuComputeBinder
                         string? explicitType = local.Type is null ? null : BindType(path, local.Type, local.Identifier);
                         VdMirExpression initializer = BindExpression(path, local.Initializer, scope, explicitType);
                         string declaredType = explicitType ?? initializer.Type;
+                        if (IsBuffer(declaredType) || declaredType == "void")
+                        {
+                            AddDiagnostic("COPE-GPU-STORAGE-0002", "SDSL-V3703", "storage",
+                                "Opaque resources and commands cannot be stored as local values.", Span(path, local));
+                        }
                         if (declaredType == "acceleration_structure")
                         {
                             AddDiagnostic("COPE-GPU-RAYQUERY-0002", "SDSL-V4213", "ray-query",
@@ -356,6 +367,25 @@ public static class GpuComputeBinder
                                 Span(path, assignment.Left));
                         }
                         if (target.Type != value.Type) TypeMismatch(path, assignment.Right, target.Type, value.Type);
+                        if (TryStorageTarget(target, out var storage, out string fieldPath))
+                        {
+                            if (!storageLayouts.TryGetValue(storage.Type, out var layout))
+                            {
+                                AddDiagnostic("COPE-GPU-STORAGE-0001", "SDSL-V4114", "storage",
+                                    "Storage writes require a certified transport layout.", Span(path, assignment));
+                                break;
+                            }
+                            if (fieldPath.Length > 0 && !layout.Fields.Any(field => field.Path == fieldPath
+                                || field.Path.StartsWith(fieldPath + ".", StringComparison.Ordinal)))
+                            {
+                                AddDiagnostic("COPE-GPU-STORAGE-0002", "SDSL-V3703", "storage",
+                                    "Storage writes require a declared field or one vector lane; multi-lane swizzles are read-only.", Span(path, assignment));
+                            }
+                            result.Add(new("storage-store", Span(path, assignment), Name: fieldPath,
+                                Expression: new("storage-assignment", value.Type, Span(path, assignment),
+                                    BufferElement(storage.Operands![0].Type), [storage.Operands[0], storage.Operands[1], value])));
+                            break;
+                        }
                         result.Add(new VdMirStatement(
                             "assign",
                             Span(path, expressionStatement),
@@ -367,6 +397,15 @@ public static class GpuComputeBinder
                         break;
                     }
                     case ExpressionStatementSyntax expressionStatement:
+                        if (expressionStatement.Expression is GenericCallExpressionSyntax { Target: NameExpressionSyntax { IdentifierToken.Text: "Store" } } store)
+                        {
+                            var transferred = BindTransfer(path, store, scope, allowStore: true);
+                            if (transferred is not null)
+                            {
+                                result.Add(new("storage-store", Span(path, store), Name: "", Expression: transferred));
+                            }
+                            break;
+                        }
                         if (expressionStatement.Expression is CallExpressionSyntax { Target: MemberAccessExpressionSyntax { Target: NameExpressionSyntax setTarget, NameToken.Text: "set" } } update)
                         {
                             if (!scope.TryGetValue(setTarget.IdentifierToken.Text, out ValueBinding? binding) || _values.Find(binding.Type) is not { } valueType
@@ -430,6 +469,9 @@ public static class GpuComputeBinder
                             ElseBody: elseBody));
                         break;
                     }
+                    case RuntimeMatchStatementSyntax match:
+                        result.Add(BindStatementMatch(path, match, scope, returnType));
+                        break;
                     case ReturnStatementSyntax returnStatement:
                     {
                         VdMirExpression? value = returnStatement.Expression is null
@@ -497,7 +539,7 @@ public static class GpuComputeBinder
                 case UnaryExpressionSyntax unary:
                 {
                     VdMirExpression operand = BindExpression(path, unary.Operand, scope);
-                    if (unary.OperatorToken.Text is "+" or "-" && operand.Type == "f32"
+                    if (unary.OperatorToken.Text is "+" or "-" && (operand.Type == "f32" || VectorWidth(operand.Type) > 0)
                         || unary.OperatorToken.Text == "!" && operand.Type == "bool")
                     {
                         return new VdMirExpression("unary", operand.Type, Span(path, unary), unary.OperatorToken.Text, [operand]);
@@ -508,6 +550,11 @@ public static class GpuComputeBinder
                 }
                 case GenericCallExpressionSyntax call when call.Target is NameExpressionSyntax genericName:
                 {
+                    var transfer = BindTransfer(path, call, scope, allowStore: false);
+                    if (transfer is not null)
+                    {
+                        return transfer;
+                    }
                     var generic = _generics.Call(path, genericName.IdentifierToken.Text, call.TypeArguments, call.Arguments,
                         (argument, type) => BindExpression(path, argument, scope, type), Span(path, call));
                     if (generic is not null)
@@ -584,6 +631,13 @@ public static class GpuComputeBinder
                         }
                     }
                     VdMirExpression target = BindExpression(path, member.Target, scope);
+                    int vectorWidth = VectorWidth(target.Type);
+                    if (vectorWidth > 0 && member.NameToken.Text.Length is >= 1 and <= 4
+                        && member.NameToken.Text.All(lane => "xyzw"[..vectorWidth].Contains(lane)))
+                    {
+                        string vectorType = member.NameToken.Text.Length == 1 ? "f32" : "float" + member.NameToken.Text.Length;
+                        return new("field", vectorType, Span(path, member), member.NameToken.Text, [target]);
+                    }
                     VdMirExpression? query = _values.Query(target, member.NameToken.Text, AddEnumFunction, Span(path, member));
                     if (query is not null)
                     {
@@ -615,12 +669,14 @@ public static class GpuComputeBinder
                     {
                         return shaped;
                     }
-                    if (target.Type != "storage-buffer<f32>" || subscript.Type != "u32")
+                    if (!IsBuffer(target.Type) || subscript.Type != "u32")
                     {
-                        AddDiagnostic("COPE-GPU-INDEX-0001", "SDSL-V1503", "indexing", "Compute M1 indexing requires StorageBuffer<f32>[u32].", Span(path, index));
+                        AddDiagnostic("COPE-GPU-INDEX-0001", "SDSL-V1503", "indexing", "Storage indexing requires StorageBuffer<T>[u32].", Span(path, index));
                         return ErrorExpression(path, expression);
                     }
-                    return new VdMirExpression("index", "f32", Span(path, index), Operands: [target, subscript]);
+                    string element = BufferElement(target.Type);
+                    return new VdMirExpression(element is "f32" or "u32" ? "index" : "storage-load",
+                        element, Span(path, index), Operands: [target, subscript]);
                 }
                 case BinaryExpressionSyntax binary:
                     return BindBinary(path, binary, scope);
@@ -691,6 +747,11 @@ public static class GpuComputeBinder
 
         private VdMirExpression BindCall(string path, CallExpressionSyntax call, Dictionary<string, ValueBinding> scope)
         {
+            VdMirExpression? native = BindNativeCall(path, call, scope);
+            if (native is not null)
+            {
+                return native;
+            }
             if (call.Target is NameExpressionSyntax genericName)
             {
                 VdMirExpression? generic = _generics.Call(path, genericName.IdentifierToken.Text, null, call.Arguments,
@@ -719,7 +780,7 @@ public static class GpuComputeBinder
             }
 
             if (call.Target is NameExpressionSyntax intrinsic &&
-                intrinsic.IdentifierToken.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp")
+                intrinsic.IdentifierToken.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp" or "Log")
             {
                 var operands = call.Arguments.Select(argument => BindExpression(path, argument, scope)).ToArray();
                 string intrinsicName = intrinsic.IdentifierToken.Text;
@@ -756,6 +817,11 @@ public static class GpuComputeBinder
                 return BindType(function.Path, type, token);
             }
             string returnType = HelperType(function.Syntax.ReturnType, function.Syntax.Identifier);
+            if (IsBuffer(returnType))
+            {
+                AddDiagnostic("COPE-GPU-STORAGE-0002", "SDSL-V3703", "storage",
+                    "Resources cannot be returned or stored as values.", Span(path, call));
+            }
             if (returnType == "acceleration_structure" || function.Syntax.Parameters.Any(parameter =>
                 HelperType(parameter.Type, parameter.Identifier) == "acceleration_structure"))
             {
@@ -776,7 +842,26 @@ public static class GpuComputeBinder
             {
                 ParameterSyntax parameter = function.Syntax.Parameters[index];
                 string parameterType = HelperType(parameter.Type, parameter.Identifier);
-                helperScope[parameter.Identifier.Text] = new ValueBinding(parameterType, false, null, false);
+                VdMirResource? helperResource = null;
+                if (!IsBuffer(parameterType) && parameter.AccessToken is not null)
+                {
+                    AddDiagnostic("COPE-GPU-STORAGE-0002", "SDSL-V3703", "storage",
+                        "Resource access qualifiers require a storage buffer parameter.", Span(function.Path, parameter));
+                }
+                if (IsBuffer(parameterType))
+                {
+                    var helperAccess = parameter.AccessToken?.Text == "readwrite" ? VdMirResourceAccess.Readwrite : VdMirResourceAccess.Readonly;
+                    VdMirResource? argumentResource = index < call.Arguments.Count ? ResourceArgument(call.Arguments[index], scope) : null;
+                    if (parameter.AccessToken?.Text is not ("readonly" or "readwrite") || argumentResource is null
+                        || (helperAccess == VdMirResourceAccess.Readwrite && argumentResource.Access != VdMirResourceAccess.Readwrite))
+                    {
+                        AddDiagnostic("COPE-GPU-STORAGE-0002", "SDSL-V3703", "storage",
+                            "Resource helpers require explicit readonly/readwrite and a compatible bound resource argument.", Span(path, call));
+                    }
+                    helperResource = new(parameter.Identifier.Text, BufferElement(parameterType), helperAccess, 0, 0,
+                        Span(function.Path, parameter), Span(function.Path, parameter));
+                }
+                helperScope[parameter.Identifier.Text] = new ValueBinding(parameterType, false, helperResource, false);
                 if (index < arguments.Length && arguments[index].Type != parameterType)
                 {
                     TypeMismatch(path, call.Arguments[index], parameterType, arguments[index].Type);
@@ -795,7 +880,15 @@ public static class GpuComputeBinder
                             parameter.Identifier.Text,
                             BindType(function.Path, parameter.Type, parameter.Identifier),
                             null,
-                            Span(function.Path, parameter))).ToArray(),
+                            Span(function.Path, parameter))
+                            {
+                                Access = parameter.AccessToken?.Text switch
+                                {
+                                    "readonly" => VdMirResourceAccess.Readonly,
+                                    "readwrite" => VdMirResourceAccess.Readwrite,
+                                    _ => null,
+                                },
+                            }).ToArray(),
                         returnType,
                         statements,
                         Span(function.Path, function.Syntax)));
@@ -837,6 +930,27 @@ public static class GpuComputeBinder
         {
             VdMirExpression left = BindExpression(path, binary.Left, scope);
             VdMirExpression right = BindExpression(path, binary.Right, scope);
+            if (VectorWidth(left.Type) > 0 || VectorWidth(right.Type) > 0)
+            {
+                string? vectorResult = binary.OperatorToken.Text switch
+                {
+                    "+" or "-" or "*" or "/" when left.Type == right.Type => left.Type,
+                    "*" or "/" when VectorWidth(left.Type) > 0 && right.Type == "f32" => left.Type,
+                    "*" when left.Type == "f32" && VectorWidth(right.Type) > 0 => right.Type,
+                    _ => null,
+                };
+                if (vectorResult is not null)
+                {
+                    return new("binary", vectorResult, Span(path, binary), binary.OperatorToken.Text, [left, right]);
+                }
+            }
+            if (left.Type == right.Type && _enums.Find(left.Type) is { } enumeration
+                && enumeration.Cases.All(variant => variant.Payload.Count == 0)
+                && binary.OperatorToken.Text is "==" or "!=")
+            {
+                return new("binary", "bool", Span(path, binary), binary.OperatorToken.Text,
+                    [new("field", "u32", left.Source, "tag", [left]), new("field", "u32", right.Source, "tag", [right])]);
+            }
             VdMirExpression? tensor = _values.Math(binary.OperatorToken.Text, [left, right], AddEnumFunction, Span(path, binary));
             if (tensor is not null)
             {
@@ -873,6 +987,10 @@ public static class GpuComputeBinder
 
         private bool IsMutableTarget(ExpressionSyntax target, IReadOnlyDictionary<string, ValueBinding> scope)
         {
+            if (target is MemberAccessExpressionSyntax field)
+            {
+                return IsMutableTarget(field.Target, scope) && field.Target is not NameExpressionSyntax;
+            }
             if (target is NameExpressionSyntax name && scope.TryGetValue(name.IdentifierToken.Text, out ValueBinding? binding))
             {
                 return binding.Mutable;
@@ -895,12 +1013,12 @@ public static class GpuComputeBinder
             string? result = type switch
             {
                 IdentifierTypeSyntax identifier when _enums is not null && _enums.Contains(_modules.Resolve(path, identifier.Identifier.Text)) => _modules.Resolve(path, identifier.Identifier.Text),
-                IdentifierTypeSyntax identifier when identifier.Identifier.Text is "f32" or "u32" or "bool" or "uint3" or "acceleration_structure" => identifier.Identifier.Text,
+                IdentifierTypeSyntax identifier when identifier.Identifier.Text is "f32" or "u32" or "bool" or "uint3"
+                    or "float2" or "float3" or "float4" or "acceleration_structure" => identifier.Identifier.Text,
                 PredefinedTypeSyntax predefined when predefined.Keyword.Kind == SyntaxKind.VoidKeyword => "void",
                 IdentifierTypeSyntax identifier when identifier.Identifier.Text == "void" => "void",
-                GenericTypeSyntax generic when generic.Identifier.Text == "StorageBuffer"
-                    && generic.TypeArguments.Count == 1
-                    && BindType(path, generic.TypeArguments[0], generic.Identifier) == "f32" => "storage-buffer<f32>",
+                GenericTypeSyntax generic when generic.Identifier.Text == "StorageBuffer" && generic.TypeArguments.Count == 1
+                    => BindStorageType(path, generic),
                 _ => null,
             };
             if (result is null)
@@ -968,6 +1086,10 @@ public static class GpuComputeBinder
                 ValueTypes = _values is null || _values.Definitions.Count == 0 ? null : _values.Definitions,
                 GenericSpecializations = _generics is null || _generics.Traces.Count == 0 ? null : _generics.Traces,
                 FlowTapes = tapes.Length == 0 ? null : tapes,
+                Warnings = _modules is null || _modules.Warnings.Count == 0 ? null : _modules.Warnings,
+                StorageLayouts = !explicitStorageTransfer && storageLayouts.Keys.All(type => type is "f32" or "u32")
+                    ? null
+                    : storageLayouts.Values.ToArray(),
             };
         }
 
