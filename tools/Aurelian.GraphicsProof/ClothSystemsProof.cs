@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using System.Numerics;
 using System.Text.Json;
-using Aurelian.Cloth3D;
+using Aetheris.Cloth3D;
 using Aurelian.Cloth3D.Vulkan;
 using Aurelian.Graphics.Plants;
 using Aurelian.Graphics.Vulkan.Device;
@@ -68,6 +68,32 @@ internal static class ClothSystemsProof
                 }).ToImmutableArray(),
             }, _ => { });
         Write(output, "bending-solver.json", bendingSolver);
+        var stitched = Layers() with
+        {
+            OffsetContact = false,
+            InitialPositions = Layers().Positions.Select((position, index) =>
+                index < 4 ? position + new Vector3(0, .1f, 0) : position).ToImmutableArray(),
+            Stitches =
+            [
+                new("sample-a", [0, 1, 4, 5], [.3f, .7f, -.3f, -.7f]),
+                new("sample-b", [2, 3, 6, 7], [.6f, .4f, -.6f, -.4f]),
+            ],
+        };
+        var seams = Verify(plant, spirv, stitched, 16,
+            new() { Gravity = Vector3.Zero, Substeps = 2, Iterations = 8, StitchComplianceScale = 10 },
+            new(), snapshot => snapshot, snapshot =>
+            {
+                foreach (var stitch in stitched.Stitches)
+                {
+                    var gap = Vector3.Zero;
+                    for (int i = 0; i < stitch.Vertices.Length; i++)
+                    {
+                        gap += snapshot.Positions[stitch.Vertices[i]] * stitch.Weights[i];
+                    }
+                    Require(gap.Length() < .001f, "Weighted GPU stitch did not close.");
+                }
+            });
+        Write(output, "stitches.json", seams);
         float minimumDrapeHeight = 2.6f;
         var drape = Verify(plant, spirv,
             ClothDefinition3D.Grid("drape", 17, 17, new(3, 3), new(-1.5f, 2.6f, -1.5f)) with
@@ -97,6 +123,7 @@ internal static class ClothSystemsProof
             EdgePairs = strips,
             BendingSolver = bendingSolver,
             Drape = drape,
+            WeightedStitches = seams,
             AcceleratedBroadphaseQualified = false,
             FrictionQualified = false,
             AvbdClothBackendQualified = false,

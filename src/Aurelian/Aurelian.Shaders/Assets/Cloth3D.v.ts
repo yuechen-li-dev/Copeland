@@ -24,7 +24,7 @@ record ClothHeader {
     safety: f32;
     contactCompliance: f32;
     offsetEnabled: f32;
-    reserved: f32;
+    stitchComplianceScale: f32;
 }
 record ClothParticle {
     position: float3;
@@ -637,9 +637,13 @@ function Constraint(readonly Source: StorageBuffer<f32>,
         {
             previous = float3(0.0, 0.0, 0.0);
         }
-        const alpha: f32 = stencil.compliance / (h * h);
+        var compliance: f32 = stencil.compliance;
+        if (U32(stencil.kind) == 5) {
+            compliance = compliance * header.stitchComplianceScale;
+        }
+        const alpha: f32 = compliance / (h * h);
         var increment: float3 = float3(0.0, 0.0, 0.0);
-        if (U32(stencil.kind) == 3 || U32(stencil.kind) == 4) {
+        if (U32(stencil.kind) == 3 || U32(stencil.kind) == 4 || U32(stencil.kind) == 5) {
             const entries: u32 = U32(stencil.weights);
             const count: u32 = U32(stencil.arity);
             var curvature: float3 = float3(0.0, 0.0, 0.0);

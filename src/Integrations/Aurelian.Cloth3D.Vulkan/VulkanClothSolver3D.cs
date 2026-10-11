@@ -1,3 +1,4 @@
+using Aetheris.Cloth3D;
 using System.Runtime.InteropServices;
 using Aurelian.Graphics.Vulkan.Commanding;
 using Aurelian.Graphics.Vulkan.Commanding.Submit;
@@ -84,6 +85,10 @@ public sealed unsafe class VulkanClothSolver3D : IClothSolver3D
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         ClothState3D.ValidateStep(Plan, options, contacts);
+        if (contacts.BodySurface is not null)
+        {
+            throw new NotSupportedException("AUR-CLOTH-004: Triangle body contact is currently qualified on the shared CPU backend only.");
+        }
         if (Plan.ContactTopology is not null)
         {
             // Host qualification precedes GPU distance queries and bound reductions.

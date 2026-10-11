@@ -1,3 +1,4 @@
+using Aetheris.Cloth3D;
 using System.Collections.Immutable;
 using System.Numerics;
 using Aurelian.Cloth3D.Vulkan;
@@ -233,6 +234,38 @@ public sealed class ClothFoundationTests
         Assert.InRange(right.State.Positions[0].X - left.State.Positions[0].X, 3.99999f, 4.00001f);
         scene.Project();
         Assert.Equal(1, left.State.Tick);
+    }
+
+    [Fact]
+    public void GarmentAgentsRetainArrangementSnapshotAndRigidPlacement()
+    {
+        var definition = Sheet(3) with
+        {
+            InitialPositions = Sheet(3).Positions.Select(point => point + new Vector3(0, 0, 2)).ToImmutableArray(),
+        };
+        var plan = definition.Compile();
+        using var solver = new ClothSolver3D(plan);
+        solver.Step(new() { Gravity = Vector3.Zero }, new());
+        var snapshot = solver.Capture();
+        var artifact = new ClothGarmentArtifact3D(plan, snapshot, new string('a', 64), "test.firmament");
+        var agent = ClothAgentDefinition3D.FromGarment(artifact);
+        using var scene = SceneCompiler.Compile(Scene.World("world",
+            [Scene.Agent("garment", agent, new(4, 0, 0))])).Mount();
+        var state = scene.Agent<ClothSnapshot3D>("garment").State;
+        Assert.Equal(snapshot.Tick, state.Tick);
+        for (int vertex = 0; vertex < state.Positions.Length; vertex++)
+        {
+            var position = snapshot.Positions[vertex];
+            var velocity = snapshot.Velocities[vertex];
+            var target = snapshot.PinTargets[vertex];
+            Assert.Equal(new Vector3(position.X + 4, position.Z, -position.Y), state.Positions[vertex]);
+            Assert.Equal(new Vector3(velocity.X, velocity.Z, -velocity.Y), state.Velocities[vertex]);
+            Assert.Equal(new Vector3(target.X + 4, target.Z, -target.Y), state.PinTargets[vertex]);
+        }
+        var arranged = new ClothAgentDefinition3D(plan);
+        using var initialScene = SceneCompiler.Compile(Scene.World("world",
+            [Scene.Agent("arranged", arranged)])).Mount();
+        Assert.True(definition.InitialPositions.SequenceEqual(initialScene.Agent<ClothSnapshot3D>("arranged").State.Positions));
     }
 
     [Fact]

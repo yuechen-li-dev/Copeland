@@ -5,6 +5,14 @@ the same data/schedule, intended for correctness comparison and GPU experiments.
 BEPU continues to own rigid bodies. See [the research review](cloth3d-research-2025-2026.md)
 for the 2025/2026 shortlist and the next contact/material/solver experiments.
 
+The shared definition, compiler and CPU solver now live in Aetheris's
+`Aetheris.Cloth3D` project so Firmament garment authoring uses the same system.
+Import `Aetheris.Cloth3D`; Aurelian retains its Vulkan backend and scene agents.
+`ClothGarmentArtifact3D.Load` and `ClothAgentDefinition3D.FromGarment` consume a
+retained Firmament garment directly. The agent converts Z up to Aurelian's Y up
+and retains the baked state. Static triangle-body contact currently uses CPU;
+the Vulkan backend rejects that unsupported contact input explicitly.
+
 ## Author a cloth object
 
 ```csharp

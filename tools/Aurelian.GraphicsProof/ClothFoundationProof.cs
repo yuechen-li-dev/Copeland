@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Numerics;
 using System.Text.Json;
-using Aurelian.Cloth3D;
+using Aetheris.Cloth3D;
 using Aurelian.Cloth3D.Vulkan;
 using Aurelian.Games;
 using Aurelian.Graphics.Plants;

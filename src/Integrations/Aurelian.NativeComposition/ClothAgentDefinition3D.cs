@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 using System.Numerics;
-using Aurelian.Cloth3D;
+using Aetheris.Cloth3D;
 using Aurelian.Rendering.Contracts.Models;
 using Aurelian.World.Agents;
 using Aurelian.World.Scenes;
@@ -12,6 +12,27 @@ namespace Aurelian.NativeComposition;
 public sealed record ClothAgentDefinition3D(CompiledCloth3D Cloth)
     : AgentDefinition<ClothSnapshot3D>(AgentTemplate.Object("cloth"))
 {
+    public ClothSnapshot3D? InitialState { get; init; }
+
+    public static ClothAgentDefinition3D FromGarment(ClothGarmentArtifact3D garment)
+    {
+        ArgumentNullException.ThrowIfNull(garment);
+        using var solver = garment.CreateSolver();
+        var source = solver.Capture();
+        // Firmament artifacts use Z up; Aurelian scenes use Y up.
+        return new(garment.Cloth)
+        {
+            InitialState = source with
+            {
+                Positions = source.Positions.Select(ToWorldAxes).ToImmutableArray(),
+                Velocities = source.Velocities.Select(ToWorldAxes).ToImmutableArray(),
+                PinTargets = source.PinTargets.Select(ToWorldAxes).ToImmutableArray(),
+            },
+        };
+
+        static Vector3 ToWorldAxes(Vector3 value) => new(value.X, value.Z, -value.Y);
+    }
+
     public ModelMaterial Material { get; init; } = new("cloth")
     {
         BaseColor = new(.035f, .35f, .55f, 1), Roughness = .9f, DoubleSided = true,
@@ -26,9 +47,26 @@ public sealed record ClothAgentDefinition3D(CompiledCloth3D Cloth)
 
     public override ClothSnapshot3D CreateState(ScenePlacement placement)
     {
-        var positions = Cloth.Definition.Positions.Select(position => Vector3.Transform(position, placement.WorldTransform)).ToImmutableArray();
-        return new(Cloth.ContentKey, 0, positions,
-            Enumerable.Repeat(Vector3.Zero, positions.Length).ToImmutableArray(), positions);
+        ClothSnapshot3D initial;
+        if (InitialState is not null)
+        {
+            ClothState3D.ValidateSnapshot(Cloth, InitialState);
+            initial = InitialState;
+        }
+        else
+        {
+            using var solver = new ClothSolver3D(Cloth);
+            initial = solver.Capture();
+        }
+        return initial with
+        {
+            Positions = initial.Positions.Select(position =>
+                Vector3.Transform(position, placement.WorldTransform)).ToImmutableArray(),
+            Velocities = initial.Velocities.Select(velocity =>
+                Vector3.TransformNormal(velocity, placement.WorldTransform)).ToImmutableArray(),
+            PinTargets = initial.PinTargets.Select(position =>
+                Vector3.Transform(position, placement.WorldTransform)).ToImmutableArray(),
+        };
     }
 
     public void Advance(SceneAgent<ClothSnapshot3D> agent, ClothStepOptions3D options, ClothContacts3D contacts,

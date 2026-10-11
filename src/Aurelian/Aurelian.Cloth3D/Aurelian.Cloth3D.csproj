@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <!-- Compatibility project dependency; solver authority is now Aetheris.Cloth3D. -->
   <ItemGroup>
-    <ProjectReference Include="../Aurelian.Spatial3D/Aurelian.Spatial3D.csproj" />
+    <ProjectReference Include="../../../../Aetheris/Aetheris.Cloth3D/Aetheris.Cloth3D.csproj" />
   </ItemGroup>
 </Project>

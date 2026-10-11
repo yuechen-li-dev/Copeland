@@ -8,7 +8,7 @@ No external solver code or dependencies were imported.
 ## Authoring and admission
 
 ```csharp
-using Aurelian.Cloth3D;
+using Aetheris.Cloth3D;
 using System.Numerics;
 
 var plan = (ClothDefinition3D.Grid(

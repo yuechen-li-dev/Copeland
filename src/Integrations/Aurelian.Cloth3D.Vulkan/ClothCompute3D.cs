@@ -1,3 +1,4 @@
+using Aetheris.Cloth3D;
 using Aurelian.Shaders.Compute;
 using Copeland.TS.Gpu;
 using Copeland.TS.Gpu.VdMir;
