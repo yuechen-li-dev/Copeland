@@ -21,6 +21,18 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 
 string defaultOutput = "artifacts/local/graphics-starter";
+if (args.Contains("--trellis2-timestep", StringComparer.Ordinal))
+{
+    Trellis2TimestepProof.Run(Path.GetFullPath(Option("--weights-dir") ?? "artifacts/local/trellis2/input"),
+        Path.GetFullPath(Option("--output") ?? "artifacts/local/trellis2/qualification"));
+    return;
+}
+if (args.Contains("--compute-math", StringComparer.Ordinal))
+{
+    ComputeMathProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/compute-math"),
+        cooperative: !args.Contains("--disable-cooperative", StringComparer.Ordinal));
+    return;
+}
 if (args.Contains("--particles-graphics", StringComparer.Ordinal))
 {
     ParticlesGraphicsProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/gpu-vfx"));

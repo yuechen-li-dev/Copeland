@@ -5,6 +5,8 @@ their explicit catalog, and the adapted Aetheris temporal policy. The combined
 bundle is offered under AGPL-3.0-only. The temporal adaptation's provenance and
 license text are supplied in `licenses/Aetheris-Temporal-NOTICE.txt` and
 `licenses/Aetheris-AGPL-3.0.txt`. Existing source attribution remains applicable.
+The ComputeMath family adapts Oct Prometheus algorithms; its source paths and
+license boundary are recorded in `licenses/Prometheus-NOTICE.txt`.
 
 The compiler assembly `Aurelian.Shaders` remains independent of this bundle;
 applications select the bundle by referencing `Aurelian.Shaders.Builtins`.

@@ -65,6 +65,8 @@ public sealed record VdMirStorageField(string Path, string Type, int Offset);
 /// <summary>Packed 32-bit storage words. This law is independent of uniform/register layout.</summary>
 public sealed record VdMirStorageLayout(string Type, int Stride, IReadOnlyList<VdMirStorageField> Fields);
 
+public sealed record VdMirWorkgroupArray(string Name, string ElementType, int Count, VdMirSourceSpan Source);
+
 public sealed record VdMirExpression(
     string Kind,
     string Type,
@@ -155,6 +157,9 @@ public sealed record VdMirComputeModule(
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<VdMirFlowTape>? FlowTapes { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<VdMirWorkgroupArray>? WorkgroupArrays { get; init; }
 
 }
 

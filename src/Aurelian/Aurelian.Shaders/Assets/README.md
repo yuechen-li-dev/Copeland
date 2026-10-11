@@ -9,6 +9,7 @@ catalog is `../../Aurelian.Shaders.Builtins/Library/BuiltinShaderLibrary.cs`.
 | Ui2D | 3 | Analytic shapes, text, profile rendering |
 | Effects2D | 3 | Fluid, fog, shockwave presentation |
 | Effects3D | 2 | GPU particle generation and weighted billboard rendering |
+| ComputeMath | 12 | SGEMM/cooperative matrices, streamed affine layers, FFT, reductions, normalization, transformer primitives and im2col |
 | Surfaces | 8 | Geometry, material resolve, subsurface diffusion |
 | Lighting | 5 | Shared BRDF, environment compilation, light tiles, AO |
 | Shadows | 2 | Directional shadows and distance-field helpers |

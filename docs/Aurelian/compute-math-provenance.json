@@ -1,0 +1,48 @@
+{
+  "SourceRepository": "https://github.com/yuechen-li-dev/oct",
+  "Revision": "62b02c79e4519ea8066a4b7d6cecfdb3149ca1f0",
+  "SourceLicense": "GPL-3.0",
+  "Date": "2026-10-11",
+  "Sources": [
+    {
+      "Path": "internal/prometheus/shaders/sdslv/production/sgemm/sgemm_tile16x16_shared_fp32.sdslv",
+      "SHA256": "406C20C030B02FB418E40C25DFB932ADB9EFD78E73432BD7540631F30F20B69F"
+    },
+    {
+      "Path": "internal/prometheus/shaders/sdslv/experimental/sgemm/cooperative/sgemm_cooperative_f16_f32_m16n16k16.sdslv",
+      "SHA256": "872EF19ABEB1D9A0F894FA238BD5E6B8EC1D9B8762A3E47EF5C3756AECB0B3B4"
+    },
+    {
+      "Path": "internal/prometheus/shaders/sdslv/experimental/sgemm/cooperative/sgemm_cooperative_f16_f32_m16n16k16.hlsl",
+      "SHA256": "09E171FA3415951BED2D4C2EFCF2797B2EDB04D0318EA1A08F45BA8DFDE2551C"
+    },
+    {
+      "Path": "internal/prometheus/shaders/sdslv/production/fft/radix2_bit_reverse.sdslv",
+      "SHA256": "55E0A80AF7153A7FDF61AEAFBE943B982817B09D02EF83299879D27A4DA77C2D"
+    },
+    {
+      "Path": "internal/prometheus/shaders/sdslv/production/fft/radix2_butterfly.sdslv",
+      "SHA256": "90BC28B601FFA331C8587004854F790ECEEE4D4475D39CA95347DC4B041F54AB"
+    },
+    {
+      "Path": "internal/prometheus/shaders/sdslv/production/reduction/softmax_fused.sdslv",
+      "SHA256": "89339DB28528523BE17316367F48FCF1CAC8FC6DC4FCEACEA4E1C30D13CE0CFC"
+    },
+    {
+      "Path": "internal/prometheus/shaders/sdslv/experimental/transformer/rmsnorm_reduce.sdslv",
+      "SHA256": "937CDC8E4ADC6D79D5B629A71BF9D3825F34297685849F9A2DD80D6D2E6909F3"
+    },
+    {
+      "Path": "internal/prometheus/shaders/sdslv/experimental/transformer/silu_gate.sdslv",
+      "SHA256": "4EF651B948505B08E91489A32960884E085E3EE422E31B92C91881E7B93A738E"
+    },
+    {
+      "Path": "internal/prometheus/shaders/sdslv/production/gemma4e2b/rope_half_split.sdslv",
+      "SHA256": "8F40A6376B05039D73AAD81C98E555920823AA8FF94B2D12F783724F9C6A793E"
+    },
+    {
+      "Path": "internal/prometheus/native/m40a_cooperative_matrix_probe.c",
+      "SHA256": "309B84FD04FB0287A23670B8B8EE46057C51F325EF2C3DE69BE49BFBF490CB04"
+    }
+  ]
+}

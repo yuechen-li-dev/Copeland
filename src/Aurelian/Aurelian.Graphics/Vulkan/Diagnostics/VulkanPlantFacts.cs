@@ -14,4 +14,8 @@ public sealed record VulkanPlantFacts(
     bool TimelineSemaphores,
     IReadOnlyList<string> EnabledInstanceExtensions,
     IReadOnlyList<string> EnabledDeviceExtensions,
-    IReadOnlyList<string> EnabledValidationLayers);
+    IReadOnlyList<string> EnabledValidationLayers)
+{
+    public bool CooperativeMatrixEnabled { get; init; }
+    public string CooperativeMatrixDiagnostic { get; init; } = "NotRequested";
+}

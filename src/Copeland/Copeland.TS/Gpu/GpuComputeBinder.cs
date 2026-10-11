@@ -21,6 +21,7 @@ public static partial class GpuComputeBinder
             "numthreads",
             "binding",
             "builtin",
+            "workgroup",
         };
 
         private readonly GpuCompilationRequest _request;
@@ -33,6 +34,8 @@ public static partial class GpuComputeBinder
         private readonly List<VdMirDiagnostic> _diagnostics = [];
         private readonly Dictionary<string, FunctionSource> _functions = new(StringComparer.Ordinal);
         private readonly List<VdMirResource> _resources = [];
+        private readonly List<VdMirWorkgroupArray> _workgroupArrays = [];
+        private readonly Dictionary<string, string> _builtinSemantics = new(StringComparer.Ordinal);
         private readonly List<VdMirFunction> _boundFunctions = [];
         private readonly HashSet<string> _completedFunctions = new(StringComparer.Ordinal);
         private readonly HashSet<string> _activeFunctions = new(StringComparer.Ordinal);
@@ -91,6 +94,7 @@ public static partial class GpuComputeBinder
             else
             {
                 BindEntry(entries[0]);
+                ValidateWorkgroupSynchronization();
             }
 
             return CreateModule();
@@ -104,7 +108,7 @@ public static partial class GpuComputeBinder
             {
                 foreach (FunctionDeclarationSyntax function in tree.Root.Members.OfType<FunctionDeclarationSyntax>())
                 {
-                    if (function.Identifier.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp" or "Log" or "Atan2" or "Floor")
+                    if (function.Identifier.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp" or "Log" or "Atan2" or "Floor" or "Exp" or "Sin" or "Cos" or "Pow" or "WorkgroupBarrier" or "CooperativeMatMul")
                     {
                         AddDiagnostic("COPE-GPU-SYMBOL-0001", "SDSL-V1509", "symbol",
                             $"{function.Identifier.Text} is a compiler-owned intrinsic and cannot be redefined.",
@@ -164,27 +168,48 @@ public static partial class GpuComputeBinder
 
             foreach (ParameterSyntax parameter in entry.Syntax.Parameters)
             {
+                if (scope.ContainsKey(parameter.Identifier.Text))
+                {
+                    AddDiagnostic("COPE-GPU-PARAMETER-0001", "SDSL-V4102", "entry-parameter",
+                        "Compute entry parameter names must be unique.", Span(entry.Path, parameter));
+                    continue;
+                }
                 ValidateAnnotations(entry.Path, parameter.Annotations);
                 string type = BindType(entry.Path, parameter.Type, parameter.Identifier);
                 AnnotationSyntax? builtin = FindAnnotation(parameter.Annotations, "builtin");
                 AnnotationSyntax? binding = FindAnnotation(parameter.Annotations, "binding");
 
+                if (FindAnnotation(parameter.Annotations, "workgroup") is { } workgroup)
+                {
+                    BindWorkgroupParameter(entry.Path, parameter, type, workgroup, scope);
+                    continue;
+                }
+
                 if (builtin is not null)
                 {
                     string? builtinName = SingleNameArgument(builtin);
-                    if (builtinName != "dispatchThreadId" || type != "uint3")
+                    string? semantic = builtinName switch
+                    {
+                        "dispatchThreadId" when type == "uint3" => "dispatch_thread_id",
+                        "groupId" when type == "uint3" => "group_id",
+                        "groupThreadId" when type == "uint3" => "group_thread_id",
+                        "groupIndex" when type == "u32" => "group_index",
+                        _ => null,
+                    };
+                    if (semantic is null)
                     {
                         AddDiagnostic(
                             "COPE-GPU-BUILTIN-0001",
                             builtinName == "dispatchThreadId" ? "SDSL-V4110" : "SDSL-V4109",
                             "builtin",
-                            "Compute M1 supports only @builtin(dispatchThreadId) on uint3.",
+                            "Compute builtins require uint3 dispatchThreadId/groupId/groupThreadId or u32 groupIndex.",
                             Span(entry.Path, builtin.NameToken));
                         continue;
                     }
 
-                    var parameterIr = new VdMirParameter(parameter.Identifier.Text, type, "dispatch_thread_id", Span(entry.Path, parameter));
+                    var parameterIr = new VdMirParameter(parameter.Identifier.Text, type, semantic, Span(entry.Path, parameter));
                     builtins.Add(parameterIr);
+                    _builtinSemantics[parameter.Identifier.Text] = semantic;
                     scope[parameter.Identifier.Text] = new ValueBinding(type, false, null, true);
                     continue;
                 }
@@ -247,6 +272,11 @@ public static partial class GpuComputeBinder
             }
 
             IReadOnlyList<VdMirStatement> statements = BindFunctionBody(entry, scope, "void");
+            if (statements.Any(statement => statement.Kind == "cooperative-matmul")
+                && !dimensions.SequenceEqual([32, 1, 1]))
+            {
+                AddWorkgroupDiagnostic(entry.Path, entry.Syntax, "CooperativeMatMul requires exactly one 32-lane subgroup: @numthreads(32, 1, 1).");
+            }
             _entryPoint = new VdMirComputeEntryPoint(
                 _modules.Declare(entry.Path, entry.Syntax.Identifier.Text),
                 _modules.Declare(entry.Path, entry.Syntax.Identifier.Text),
@@ -314,7 +344,7 @@ public static partial class GpuComputeBinder
                         string? explicitType = local.Type is null ? null : BindType(path, local.Type, local.Identifier);
                         VdMirExpression initializer = BindExpression(path, local.Initializer, scope, explicitType);
                         string declaredType = explicitType ?? initializer.Type;
-                        if (IsBuffer(declaredType) || declaredType == "void")
+                        if (IsBuffer(declaredType) || IsWorkgroupArray(declaredType) || declaredType == "void")
                         {
                             AddDiagnostic("COPE-GPU-STORAGE-0002", "SDSL-V3703", "storage",
                                 "Opaque resources and commands cannot be stored as local values.", Span(path, local));
@@ -397,6 +427,20 @@ public static partial class GpuComputeBinder
                         break;
                     }
                     case ExpressionStatementSyntax expressionStatement:
+                        if (expressionStatement.Expression is CallExpressionSyntax { Target: NameExpressionSyntax { IdentifierToken.Text: "CooperativeMatMul" } } cooperative)
+                        {
+                            result.Add(BindCooperativeMatMul(path, cooperative, scope));
+                            break;
+                        }
+                        if (expressionStatement.Expression is CallExpressionSyntax { Target: NameExpressionSyntax { IdentifierToken.Text: "WorkgroupBarrier" } } barrier)
+                        {
+                            if (barrier.Arguments.Count != 0)
+                            {
+                                AddWorkgroupDiagnostic(path, barrier, "WorkgroupBarrier takes no arguments.");
+                            }
+                            result.Add(new("workgroup-barrier", Span(path, barrier)));
+                            break;
+                        }
                         if (expressionStatement.Expression is GenericCallExpressionSyntax { Target: NameExpressionSyntax { IdentifierToken.Text: "Store" } } store)
                         {
                             var transferred = BindTransfer(path, store, scope, allowStore: true);
@@ -664,6 +708,15 @@ public static partial class GpuComputeBinder
                 {
                     VdMirExpression target = BindExpression(path, index.Target, scope);
                     VdMirExpression subscript = BindExpression(path, index.Index, scope);
+                    if (IsWorkgroupArray(target.Type) && subscript.Type == "u32")
+                    {
+                        if (subscript.Kind == "literal" && uint.TryParse(subscript.Value?.TrimEnd('u'), out uint coordinate)
+                            && coordinate >= int.Parse(target.Type.Split(':')[2], System.Globalization.CultureInfo.InvariantCulture))
+                        {
+                            AddWorkgroupDiagnostic(path, index, "Literal shared-memory indices must stay within the declared extent.");
+                        }
+                        return new("index", target.Type.Split(':')[1], Span(path, index), Operands: [target, subscript]);
+                    }
                     VdMirExpression? shaped = _values.Read(target, [subscript], AddEnumFunction, Span(path, index));
                     if (shaped is not null)
                     {
@@ -780,13 +833,13 @@ public static partial class GpuComputeBinder
             }
 
             if (call.Target is NameExpressionSyntax intrinsic &&
-                intrinsic.IdentifierToken.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp" or "Log" or "Atan2" or "Floor")
+                intrinsic.IdentifierToken.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp" or "Log" or "Atan2" or "Floor" or "Exp" or "Sin" or "Cos" or "Pow")
             {
                 var operands = call.Arguments.Select(argument => BindExpression(path, argument, scope)).ToArray();
                 string intrinsicName = intrinsic.IdentifierToken.Text;
                 int expectedArity = intrinsicName switch
                 {
-                    "Min" or "Max" or "Atan2" => 2,
+                    "Min" or "Max" or "Atan2" or "Pow" => 2,
                     "Clamp" => 3,
                     _ => 1,
                 };
@@ -827,6 +880,11 @@ public static partial class GpuComputeBinder
             {
                 AddDiagnostic("COPE-GPU-RAYQUERY-0002", "SDSL-V4213", "ray-query",
                     "Acceleration structures cannot escape through a helper ABI.", Span(path, call));
+            }
+            if (IsWorkgroupArray(returnType) || function.Syntax.Parameters.Any(parameter =>
+                IsWorkgroupArray(HelperType(parameter.Type, parameter.Identifier))))
+            {
+                AddWorkgroupDiagnostic(path, call, "Workgroup arrays belong to the compute entry and cannot escape through helper parameters or return values.");
             }
             var arguments = call.Arguments.Select((argument, index) => BindExpression(path, argument, scope,
                 index < function.Syntax.Parameters.Count
@@ -999,7 +1057,8 @@ public static partial class GpuComputeBinder
             if (target is IndexExpressionSyntax index && index.Target is NameExpressionSyntax resourceName
                 && scope.TryGetValue(resourceName.IdentifierToken.Text, out ValueBinding? resource))
             {
-                return resource.Resource?.Access == VdMirResourceAccess.Readwrite;
+                return resource.Resource?.Access == VdMirResourceAccess.Readwrite
+                    || IsWorkgroupArray(resource.Type) && resource.Mutable;
             }
             return false;
         }
@@ -1020,6 +1079,8 @@ public static partial class GpuComputeBinder
                 IdentifierTypeSyntax identifier when identifier.Identifier.Text == "void" => "void",
                 GenericTypeSyntax generic when generic.Identifier.Text == "StorageBuffer" && generic.TypeArguments.Count == 1
                     => BindStorageType(path, generic),
+                GenericTypeSyntax generic when generic.Identifier.Text == "WorkgroupArray"
+                    => BindWorkgroupType(path, generic),
                 _ => null,
             };
             if (result is null)
@@ -1075,7 +1136,9 @@ public static partial class GpuComputeBinder
             return new VdMirComputeModule(
                 VdMirComputeModule.CurrentSchema,
                 VdMirComputeModule.CanonicalConformanceSchema,
-                _resources.Any(resource => resource.ElementType == "acceleration_structure") ? "compute.rayquery.m2" : VdMirComputeModule.ComputeM1FeatureLevel,
+                _boundFunctions.Any(function => function.Statements.Any(statement => statement.Kind == "cooperative-matmul"))
+                    ? "compute.cooperative.m1"
+                    : _resources.Any(resource => resource.ElementType == "acceleration_structure") ? "compute.rayquery.m2" : VdMirComputeModule.ComputeM1FeatureLevel,
                 _request.Sources.Select(source => source.Path).Distinct(StringComparer.Ordinal).OrderBy(path => path, StringComparer.Ordinal).ToArray(),
                 types,
                 _resources.OrderBy(resource => resource.Set).ThenBy(resource => resource.Binding).ThenBy(resource => resource.Name, StringComparer.Ordinal).ToArray(),
@@ -1087,6 +1150,7 @@ public static partial class GpuComputeBinder
                 ValueTypes = _values is null || _values.Definitions.Count == 0 ? null : _values.Definitions,
                 GenericSpecializations = _generics is null || _generics.Traces.Count == 0 ? null : _generics.Traces,
                 FlowTapes = tapes.Length == 0 ? null : tapes,
+                WorkgroupArrays = _workgroupArrays.Count == 0 ? null : _workgroupArrays,
                 Warnings = _modules is null || _modules.Warnings.Count == 0 ? null : _modules.Warnings,
                 StorageLayouts = !explicitStorageTransfer && storageLayouts.Keys.All(type => type is "f32" or "u32")
                     ? null

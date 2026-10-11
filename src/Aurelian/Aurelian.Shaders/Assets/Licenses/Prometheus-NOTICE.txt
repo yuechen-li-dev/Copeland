@@ -1,0 +1,37 @@
+Aurelian ComputeMath provenance
+
+The ComputeMath Visual TypeScript kernels and the compiler's cooperative-matrix
+intrinsic are adaptations of algorithms and contracts in our Oct Prometheus
+SDSL-V implementation. Oct repository revision inspected:
+62b02c79e4519ea8066a4b7d6cecfdb3149ca1f0 (2026-10-11 local checkout).
+Local source changes, if any, are represented by the source hashes in
+docs/Aurelian/compute-math-provenance.json.
+
+Source paths beneath internal/prometheus/shaders/sdslv/:
+  production/sgemm/sgemm_tile16x16_shared_fp32.sdslv
+  experimental/sgemm/cooperative/sgemm_cooperative_f16_f32_m16n16k16.sdslv
+  experimental/sgemm/cooperative/sgemm_cooperative_f16_f32_m16n16k16.hlsl
+  production/fft/radix2_bit_reverse.sdslv
+  production/fft/radix2_butterfly.sdslv
+  production/reduction/softmax_fused.sdslv
+  experimental/transformer/rmsnorm_reduce.sdslv
+  experimental/transformer/silu_gate.sdslv
+  production/gemma4e2b/rope_half_split.sdslv
+
+The cooperative capability gate also follows
+internal/prometheus/native/m40a_cooperative_matrix_probe.c.
+
+Original source repository: https://github.com/yuechen-li-dev/oct
+Oct is licensed under GNU GPL version 3; the Copeland repository LICENSE
+supplies the same license text. Preserve applicable original notices.
+The compiler adaptation remains in Copeland's GPL compiler boundary. The
+built-in source bundle combines these kernels with its existing adapted
+Aetheris temporal policy and remains offered under AGPL-3.0-only.
+
+Aurelian changes: immutable typed parameter transport; fixed shared-memory
+arrays and checked synchronization; portable tree reductions instead of
+subgroup-width assumptions; explicit 16-element FP32 K dispatches; bounded
+device-resident plans; symmetric NHWC im2col; host-validated optional KHR
+cooperative tuple with packed-half ingress; independent native CPU oracles.
+The Prometheus reactor, batch policy engine, model weights and model loaders
+are not copied or linked.

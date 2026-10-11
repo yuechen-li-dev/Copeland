@@ -8,6 +8,9 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Direct3D.DXC" GeneratePathProperty="true" />
+    <EmbeddedResource Include="Compute/CooperativeMatrix.hlsl" LogicalName="Aurelian.Shaders.CooperativeMatrix.hlsl" />
+    <None Update="Compute/CooperativeMatrix.hlsl" Pack="true" PackagePath="sources/" />
+    <None Include="Assets/Licenses/Prometheus-NOTICE.txt" Pack="true" PackagePath="licenses/" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />

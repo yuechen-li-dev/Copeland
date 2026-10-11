@@ -18,6 +18,10 @@ public static partial class VdMirComputeHlslEmitter
         builder.AppendLine($"// Generated from canonical VD-MIR {module.FeatureLevel}. Do not edit.");
         builder.AppendLine();
         VdMirAggregateHlslEmitter.Emit(builder, module.Enums, module.ValueTypes);
+        foreach (var shared in module.WorkgroupArrays ?? [])
+        {
+            builder.AppendLine($"groupshared {MapType(shared.ElementType, module)} {LocalName(shared.Name)}[{shared.Count}];");
+        }
         foreach (VdMirResource resource in module.Resources)
         {
             string resourceType;
@@ -40,6 +44,13 @@ public static partial class VdMirComputeHlslEmitter
             builder.AppendLine();
         }
         EmitStorageLoads(builder, module);
+        if (module.FeatureLevel == "compute.cooperative.m1")
+        {
+            using var stream = typeof(VdMirComputeHlslEmitter).Assembly.GetManifestResourceStream("Aurelian.Shaders.CooperativeMatrix.hlsl")
+                ?? throw new InvalidOperationException("Cooperative matrix intrinsic source is missing.");
+            using var reader = new StreamReader(stream);
+            builder.AppendLine(reader.ReadToEnd());
+        }
         if (module.FeatureLevel == "compute.rayquery.m2")
         {
             builder.AppendLine(RayQueryHlslEmitter.Helper);
@@ -71,6 +82,9 @@ public static partial class VdMirComputeHlslEmitter
             string semantic = parameter.Builtin switch
             {
                 "dispatch_thread_id" => " : SV_DispatchThreadID",
+                "group_id" => " : SV_GroupID",
+                "group_thread_id" => " : SV_GroupThreadID",
+                "group_index" => " : SV_GroupIndex",
                 null => string.Empty,
                 _ => throw new InvalidOperationException($"Unsupported compute builtin '{parameter.Builtin}'."),
             };
@@ -90,6 +104,12 @@ public static partial class VdMirComputeHlslEmitter
         string prefix = new(' ', indentation * 4);
         switch (statement.Kind)
         {
+            case "cooperative-matmul":
+                EmitCooperativeMatMul(builder, statement, indentation);
+                break;
+            case "workgroup-barrier":
+                builder.AppendLine(prefix + "GroupMemoryBarrierWithGroupSync();");
+                break;
             case "switch":
                 builder.AppendLine($"{prefix}switch ({EmitExpression(statement.Expression!)})");
                 builder.AppendLine(prefix + "{");
@@ -194,6 +214,10 @@ public static partial class VdMirComputeHlslEmitter
     {
         "Sqrt" => "sqrt",
         "Floor" => "floor",
+        "Exp" => "exp",
+        "Sin" => "sin",
+        "Cos" => "cos",
+        "Pow" => "pow",
         "Log" => "log",
         "Abs" => "abs",
         "Min" => "min",

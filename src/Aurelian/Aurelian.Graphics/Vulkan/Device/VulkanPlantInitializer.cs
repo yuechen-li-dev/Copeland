@@ -11,7 +11,7 @@ using Silk.NET.Windowing;
 
 namespace Aurelian.Graphics.Vulkan.Device;
 
-public static unsafe class VulkanPlantInitializer
+public static unsafe partial class VulkanPlantInitializer
 {
     private const string ValidationLayerName = "VK_LAYER_KHRONOS_validation";
     private const string DebugUtilsExtensionName = "VK_EXT_debug_utils";
@@ -158,6 +158,13 @@ public static unsafe class VulkanPlantInitializer
             }
 
             List<string> enabledDeviceExtensions = [];
+            string cooperativeDiagnostic = "NotRequested";
+            bool cooperativeEnabled = options.EnableCooperativeMatrices
+                && QueryCooperativeMatrices(vk, instance, selected.PhysicalDevice, selected.ApiVersion, out cooperativeDiagnostic);
+            if (cooperativeEnabled)
+            {
+                enabledDeviceExtensions.Add("VK_KHR_cooperative_matrix");
+            }
             if (options.EnableRayQueries)
             {
                 string[] required = ["VK_KHR_acceleration_structure", "VK_KHR_ray_query", "VK_KHR_deferred_host_operations"];
@@ -190,7 +197,7 @@ public static unsafe class VulkanPlantInitializer
                 enabledDeviceExtensions.Add(KhrSwapchain.ExtensionName);
             }
 
-            Result deviceResult = CreateLogicalDevice(vk, selected, options, enabledDeviceExtensions, out device);
+            Result deviceResult = CreateLogicalDevice(vk, selected, options, enabledDeviceExtensions, cooperativeEnabled, out device);
             if (deviceResult != Result.Success)
             {
                 vk.DestroyInstance(instance, (AllocationCallbacks*)null);
@@ -223,7 +230,11 @@ public static unsafe class VulkanPlantInitializer
                 selected.TimelineSemaphores,
                 enabledInstanceExtensions.ToArray(),
                 enabledDeviceExtensions.ToArray(),
-                enabledLayers.ToArray());
+                enabledLayers.ToArray())
+            {
+                CooperativeMatrixEnabled = cooperativeEnabled,
+                CooperativeMatrixDiagnostic = cooperativeDiagnostic,
+            };
 
             diagnostics.Add(new VulkanInitDiagnostic(
                 VulkanInitDiagnosticCodes.DeviceSelected,
@@ -317,6 +328,7 @@ public static unsafe class VulkanPlantInitializer
         SelectedPhysicalDevice selected,
         VulkanPlantOptions options,
         IReadOnlyList<string> enabledDeviceExtensions,
+        bool cooperativeEnabled,
         out Silk.NET.Vulkan.Device device)
     {
         float priority = 1.0f;
@@ -350,7 +362,37 @@ public static unsafe class VulkanPlantInitializer
             BufferDeviceAddress = true,
             PNext = &accelerationFeatures,
         };
-        if (options.EnableRayQueries) timelineFeatures.PNext = &addressFeatures;
+        PhysicalDeviceCooperativeMatrixFeaturesKHR cooperativeFeatures = new()
+        {
+            SType = StructureType.PhysicalDeviceCooperativeMatrixFeaturesKhr,
+            CooperativeMatrix = cooperativeEnabled,
+        };
+        PhysicalDeviceShaderFloat16Int8Features float16Features = new()
+        {
+            SType = StructureType.PhysicalDeviceShaderFloat16Int8Features,
+            ShaderFloat16 = cooperativeEnabled, PNext = &cooperativeFeatures,
+        };
+        PhysicalDeviceVulkanMemoryModelFeatures memoryModelFeatures = new()
+        {
+            SType = StructureType.PhysicalDeviceVulkanMemoryModelFeatures,
+            VulkanMemoryModel = cooperativeEnabled, PNext = &float16Features,
+        };
+        PhysicalDeviceSubgroupSizeControlFeatures subgroupFeatures = new()
+        {
+            SType = StructureType.PhysicalDeviceSubgroupSizeControlFeatures,
+            ComputeFullSubgroups = cooperativeEnabled, PNext = &memoryModelFeatures,
+        };
+        void* featureChain = options.EnableRayQueries ? &addressFeatures : null;
+        if (cooperativeEnabled)
+        {
+            cooperativeFeatures.PNext = featureChain;
+            featureChain = &subgroupFeatures;
+        }
+        if (options.RequireTimelineSemaphores)
+        {
+            timelineFeatures.PNext = featureChain;
+            featureChain = &timelineFeatures;
+        }
 
         using var extensionNames = SilkMarshal.StringArrayToMemory(enabledDeviceExtensions, NativeStringEncoding.UTF8);
         vk.GetPhysicalDeviceFeatures(selected.PhysicalDevice, out PhysicalDeviceFeatures supportedFeatures);
@@ -359,7 +401,7 @@ public static unsafe class VulkanPlantInitializer
         {
             SType = StructureType.DeviceCreateInfo,
             PEnabledFeatures = &enabledFeatures,
-            PNext = options.RequireTimelineSemaphores ? &timelineFeatures : options.EnableRayQueries ? &addressFeatures : null,
+            PNext = featureChain,
             QueueCreateInfoCount = 1,
             PQueueCreateInfos = &queueCreateInfo,
             EnabledExtensionCount = (uint)enabledDeviceExtensions.Count,

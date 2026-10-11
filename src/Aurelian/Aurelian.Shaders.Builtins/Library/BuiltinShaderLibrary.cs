@@ -8,6 +8,7 @@ public enum ShaderFamily
     Ui2D,
     Effects2D,
     Effects3D,
+    ComputeMath,
     Surfaces,
     Lighting,
     Shadows,
@@ -98,6 +99,18 @@ public static class BuiltinShaderLibrary
         new("HumanoidSkinning.v.ts", ShaderFamily.Deformation, ShaderSourceKind.Compute),
         new("Cloth3D.v.ts", ShaderFamily.Deformation, ShaderSourceKind.Compute),
         new("RayQuery.v.ts", ShaderFamily.Queries, ShaderSourceKind.Compute),
+        new("KernelMath.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Module),
+        new("Sgemm.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
+        new("StreamingLinear.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
+        new("CooperativeSgemm.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
+        new("RowReduction.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
+        new("Normalization.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
+        new("Activation.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
+        new("Rope.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
+        new("FftBitReverse.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
+        new("FftButterfly.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
+        new("Im2Col.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
+        new("AttentionMask.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
     ]);
 
     private static readonly IReadOnlyDictionary<string, BuiltinShaderSource> ByName =

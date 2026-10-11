@@ -3,6 +3,7 @@
 Aurelian owns the engine lifecycle, world and game-object models, actuation, frame coordination, renderer-neutral contracts, renderer backends, assets, shader-domain behavior, and engine-runtime Dominatus integration.
 
 - [Current architecture](architecture/)
+- [TRELLIS.2 Vulkan learned-module experiment and full-pipeline gaps](trellis2-vulkan-experiment.md)
 - [Composable C# game starter and Deliverance save slots](game-starter.md)
 - [Document scenes, reusable fragments and typed agent definitions](scene-composition.md)
 - [Reusable cloth objects, CPU/Vulkan XPBD and native qualification](cloth3d-foundation.md)
@@ -11,6 +12,7 @@ Aurelian owns the engine lifecycle, world and game-object models, actuation, fra
 - [HDR environment compilation, GPU AO, tiled local lights and perspective TAA tuning](surface-graphics-pack.md)
 - [Organized shader library, ownership and next VFX pack](shader-library-and-vfx-roadmap.md)
 - [GPU fire, smoke and sparks: bounded emitters and native qualification](gpu-vfx-foundation.md)
+- [GPU compute math: Prometheus SGEMM, FFT and transformer primitives](compute-math-pack.md)
 - [Agent-driven humanoid clips and Vulkan compute skinning](humanoid-animation.md)
 - [Lighting compilation contracts, controller and Vulkan cache experiments](lighting-compilation.md)
 - [Engine-owned compiled diffuse assets, authoring and native game loading](compiled-diffuse-lighting.md)

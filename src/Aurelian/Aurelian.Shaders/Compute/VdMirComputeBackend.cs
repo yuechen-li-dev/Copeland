@@ -31,8 +31,10 @@ public static class VdMirComputeBackend
             new DxcSpirvCompileRequest(
                 hlsl,
                 module.EntryPoint!.EmittedName,
-                module.FeatureLevel == "compute.rayquery.m2" ? "cs_6_5" : "cs_6_0",
-                Path.GetFileNameWithoutExtension(module.EntryPoint.Source.File) + ".hlsl"),
+                module.FeatureLevel == "compute.cooperative.m1" ? "cs_6_9" : module.FeatureLevel == "compute.rayquery.m2" ? "cs_6_5" : "cs_6_0",
+                Path.GetFileNameWithoutExtension(module.EntryPoint.Source.File) + ".hlsl",
+                AdditionalArguments: module.FeatureLevel == "compute.cooperative.m1"
+                    ? ["-fspv-use-vulkan-memory-model", "-enable-16bit-types"] : null),
             resolution);
 
         bool validated = false;

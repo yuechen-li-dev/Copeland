@@ -2,15 +2,15 @@
 
 ## Ownership
 
-The production library contains 50 Visual TypeScript sources in 12 families:
-36 graphics entries, four compute entries and ten imported helper modules.
+The production library contains 62 Visual TypeScript sources in 13 families:
+36 graphics entries, 15 compute entries and 11 imported helper modules.
 Source files live under `src/Aurelian/Aurelian.Shaders/Assets/<Family>/`.
 This organization preserves their bytes, flat compiler module IDs and existing
 game shader names.
 
 | Owner | Responsibility |
 | --- | --- |
-| `Aurelian.Shaders` | Compiler and backend; no built-in shader resources |
+| `Aurelian.Shaders` | Compiler and backend; intrinsic lowering helpers, no built-in Visual TypeScript sources |
 | `Aurelian.Shaders.Builtins` | Explicit source catalog, embedding, source copies and notices |
 | `Aurelian.Games.GameAssets` | Compiled program cache and game-facing convenience API |
 | Rendering contracts / Vulkan renderer | Typed pass inputs, resource lifetime, dispatch and scheduling |
@@ -128,7 +128,7 @@ dotnet run --project tools/Aurelian.GraphicsProof -c Release --no-build -- --tra
 dotnet run --project tools/Aurelian.GraphicsProof -c Release --no-build -- --temporal-graphics --output artifacts/local/shader-library/temporal
 ```
 
-The catalog tests compile all 40 entry points through the real binder, DXC and
+The catalog tests compile all 51 entry points through the real binder, DXC and
 SPIR-V validation, inspect the packaged resource inventory and exercise the game
 cache. Native proofs separately exercise rendering and image-quality checks.
 Local qualification logs and captures are under `artifacts/local/shader-library`.

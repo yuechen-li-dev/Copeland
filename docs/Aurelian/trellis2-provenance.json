@@ -1,0 +1,108 @@
+{
+  "ModelRevision": "af44b45f2e35a493886929c6d786e563ec68364d",
+  "SourceRevision": "75fbf0183001ed9876c8dbb35de6b68552ee08bd",
+  "Checkpoint": "https://huggingface.co/microsoft/TRELLIS.2-4B/resolve/af44b45f2e35a493886929c6d786e563ec68364d/ckpts/ss_flow_img_dit_1_3B_64_bf16.safetensors",
+  "CheckpointBytes": 2584426920,
+  "CheckpointHeaderSha256": "eadcc6c616db95eab21996aa2da2e835b959f0784b22a370bc5dd9269190eed4",
+  "SubsetSha256": "b9ce86b9558e9d242389ef0600df240d5cfc11e36f2308ca6f3ed32133ecd187",
+  "SelectedWeightBytes": 33841152,
+  "Tensors": [
+    {
+      "name": "t_embedder.mlp.0.weight",
+      "shape": [
+        1536,
+        256
+      ],
+      "checkpointDataOffsets": [
+        2578851856,
+        2579638288
+      ],
+      "sha256": "b3f3e03a768c18f7aae9d91c7b012fa78c720165ea53ea729e261b2d2ebd2d16",
+      "bytes": 786432
+    },
+    {
+      "name": "t_embedder.mlp.0.bias",
+      "shape": [
+        1536
+      ],
+      "checkpointDataOffsets": [
+        2578848784,
+        2578851856
+      ],
+      "sha256": "fbd5cffa700a30e79ac7ee9ae84e8f8b83d88ce74fcd9c5dbb99a5d9e7c820b4",
+      "bytes": 3072
+    },
+    {
+      "name": "t_embedder.mlp.2.weight",
+      "shape": [
+        1536,
+        1536
+      ],
+      "checkpointDataOffsets": [
+        2579641360,
+        2584359952
+      ],
+      "sha256": "ad5426238431b20cb8bd630bbb992e19d64229ce00e3031d65f6f7411b822095",
+      "bytes": 4718592
+    },
+    {
+      "name": "t_embedder.mlp.2.bias",
+      "shape": [
+        1536
+      ],
+      "checkpointDataOffsets": [
+        2579638288,
+        2579641360
+      ],
+      "sha256": "0936ce39bec6c21521c581f220b3d36eb079ea0e8411498eeb8e92a17d168778",
+      "bytes": 3072
+    },
+    {
+      "name": "adaLN_modulation.1.weight",
+      "shape": [
+        9216,
+        1536
+      ],
+      "checkpointDataOffsets": [
+        18432,
+        28329984
+      ],
+      "sha256": "73c7b8b3a9427a53275c81f9167d5da47e63e4e197e09ab3e5cd4c16fc5eb740",
+      "bytes": 28311552
+    },
+    {
+      "name": "adaLN_modulation.1.bias",
+      "shape": [
+        9216
+      ],
+      "checkpointDataOffsets": [
+        0,
+        18432
+      ],
+      "sha256": "4d34e12b0646c82d01b892b4951e6dc0ab3a7cc6f3564a2fb0d9cadc449c9fa9",
+      "bytes": 18432
+    }
+  ],
+  "SourceFiles": [
+    {
+      "File": "sparse_structure_flow.py",
+      "Sha256": "52182c80687e6544d97fc0fcbede738503623376ba29349004d7cc796c6b8efa"
+    },
+    {
+      "File": "trellis2_image_to_3d.py",
+      "Sha256": "e2addfca672354284b23d1541a8f49228d5a727d49220fcb8512cca2cdd38ce9"
+    },
+    {
+      "File": "model.json",
+      "Sha256": "6cdfb636854f60ffcadd8c49244169cd449f34c5ccdb55b5ff7c04678f9c399e"
+    },
+    {
+      "File": "pipeline.json",
+      "Sha256": "222c359ab1ed9bc6735a640a34f95d47f8681b9bc4aaa101bfb80274676253c6"
+    },
+    {
+      "File": "TRELLIS-LICENSE.txt",
+      "Sha256": "d9a1b1e30d633d5732ea18e3cba9538d293ebc53e1a9e4e96ab739e0c5c4f1cb"
+    }
+  ]
+}

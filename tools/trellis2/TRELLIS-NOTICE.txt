@@ -1,0 +1,33 @@
+TRELLIS.2 timestep/shared-conditioning reference adapter
+
+Architecture and reference equations adapted from Microsoft TRELLIS.2:
+https://github.com/microsoft/TRELLIS.2
+Source revision: 75fbf0183001ed9876c8dbb35de6b68552ee08bd
+trellis2/models/sparse_structure_flow.py (TimestepEmbedder and shared AdaLN)
+Model: https://huggingface.co/microsoft/TRELLIS.2-4B
+Model revision: af44b45f2e35a493886929c6d786e563ec68364d
+Code and model card declare MIT. Checkpoint weights are local research artifacts,
+not embedded in Aurelian assemblies/packages or committed to the repository.
+Other upstream pipeline dependencies have their own terms and are not included.
+
+MIT License
+
+Copyright (c) Microsoft Corporation.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE
