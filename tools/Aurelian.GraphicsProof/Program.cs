@@ -29,7 +29,8 @@ if (args.Contains("--compute-refactor", StringComparer.Ordinal))
 }
 if (args.Contains("--cloth-systems", StringComparer.Ordinal))
 {
-    ClothSystemsProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/cloth-systems"));
+    ClothSystemsProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/cloth-systems"),
+        Option("--garment"));
     return;
 }
 if (args.Contains("--cloth-research", StringComparer.Ordinal))

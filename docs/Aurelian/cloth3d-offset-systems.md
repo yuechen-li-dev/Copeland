@@ -159,3 +159,27 @@ Snapshot content identity includes bending model and contact mode. The source
 and state transport is ABI v2; compile the matching shader. Old snapshots and
 old SPIR-V are not interchangeable with the new plan. Garment panel/seam
 authoring is the next milestone, before stress testing large garments.
+
+## Retained spline garment probe
+
+`--cloth-systems` also accepts `--garment <artifact.json>` for a fitted quad
+garment authored in Aetheris. It uses the ordinary runtime artifact loader and
+`ClothAgentDefinition3D.FromGarment`, including Z-up to Y-up conversion, then
+compares eight additional gravity steps on CPU and Vulkan. Finite state,
+stretch, attachment error, agreement and same-device rewind are checked through
+the existing proof path. It performs no body-surface contact on GPU.
+
+```powershell
+dotnet run --project tools/Aurelian.GraphicsProof -c Release -- `
+  --cloth-systems --garment `
+  ../Aetheris/artifacts/local/garment/spline-tube-top/garment.json `
+  --output artifacts/local/garment-spline-gpu
+```
+
+The local Anatolia spline tube top has 624 vertices and 576 material quads.
+Its retained settled state passed this probe on the RTX 3070 with maximum
+CPU/GPU position difference 0.00289 mm and exact GPU rewind. Its separate
+stationary-body fitting/contact qualification is documented in Aetheris's
+`docs/public/firmament/garment-spline-experiment.md`. Fitted rest, permanent
+lower-band support, absent friction and unqualified animated-body/self-contact
+remain explicit; this probe does not certify the earlier panel dress.

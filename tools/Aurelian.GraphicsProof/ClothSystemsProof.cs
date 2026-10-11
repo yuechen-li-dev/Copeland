@@ -5,10 +5,11 @@ using Aetheris.Cloth3D;
 using Aurelian.Cloth3D.Vulkan;
 using Aurelian.Graphics.Plants;
 using Aurelian.Graphics.Vulkan.Device;
+using Aurelian.NativeComposition;
 
 internal static class ClothSystemsProof
 {
-    public static void Run(string output)
+    public static void Run(string output, string? garmentPath = null)
     {
         Directory.CreateDirectory(output);
         Write(output, "evidence.json", new { Accepted = false });
@@ -111,6 +112,29 @@ internal static class ClothSystemsProof
         var quadCurved = Verify(plant, spirv, curvedDefinition, 8,
             new() { Substeps = 2, Iterations = 8, Gravity = Vector3.Zero }, new(), DeformSurface, _ => { });
         Write(output, "quad-curved.json", quadCurved);
+        object? garmentEvidence = null;
+        if (garmentPath is not null)
+        {
+            var artifact = ClothGarmentArtifact3D.Load(Path.GetFullPath(garmentPath));
+            var agent = ClothAgentDefinition3D.FromGarment(artifact);
+            Require(agent.Cloth.Definition.Surface?.Rest == ClothSurfaceRest3D.FittedSurface,
+                "Garment probe requires fitted quad rest.");
+            var garment = Verify(plant, spirv, agent.Cloth.Definition, 8,
+                new() { Substeps = 2, Iterations = 8, Gravity = new(0, -9.81f, 0) }, new(),
+                _ => agent.InitialState!, snapshot =>
+                {
+                    var metrics = ClothState3D.Measure(agent.Cloth, snapshot, new());
+                    Require(metrics.Finite && metrics.MaximumStretch < .15f && metrics.MaximumPinError < .0001f,
+                        "Retained garment failed finite/stretch/pin checks after world-axis conversion.");
+                });
+            garmentEvidence = new
+            {
+                artifact.SourceHash, artifact.SourceIdentity, artifact.Cloth.ContentKey,
+                WorldAxes = "Y up", garment,
+                BodyContactQualified = false,
+            };
+            Write(output, "garment.json", garmentEvidence);
+        }
         var stitched = Layers() with
         {
             OffsetContact = false,
@@ -170,6 +194,7 @@ internal static class ClothSystemsProof
             RegionalCompliance = regional,
             QuadMembrane = quadMembrane,
             QuadCurvedRest = quadCurved,
+            RetainedGarment = garmentEvidence,
             AcceleratedBroadphaseQualified = false,
             FrictionQualified = false,
             AvbdClothBackendQualified = false,
