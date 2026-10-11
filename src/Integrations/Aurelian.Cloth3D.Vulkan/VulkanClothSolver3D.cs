@@ -85,6 +85,10 @@ public sealed unsafe class VulkanClothSolver3D : IClothSolver3D
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         ClothState3D.ValidateStep(Plan, options, contacts);
+        if (!contacts.Guides.IsEmpty)
+        {
+            throw new NotSupportedException("AUR-CLOTH-005: Temporary fitting guides currently require the CPU solver.");
+        }
         if (contacts.BodySurface is not null)
         {
             throw new NotSupportedException("AUR-CLOTH-004: Triangle body contact is currently qualified on the shared CPU backend only.");

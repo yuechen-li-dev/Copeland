@@ -12,6 +12,20 @@ namespace Aurelian.Cloth3D.Tests;
 public sealed class ClothFoundationTests
 {
     [Fact]
+    public void Gpu_header_rejects_temporary_guides_instead_of_dropping_constraints()
+    {
+        var plan = Sheet().Compile();
+        var contacts = new ClothContacts3D
+        {
+            Guides = [new("collar", [9], Vector3.UnitY, 2, .000001f)],
+        };
+        ClothState3D.ValidateStep(plan, new(), contacts);
+        var error = Assert.Throws<NotSupportedException>(() => new ClothGpuData3D(plan).Header(
+            new(), contacts, new(ClothPhase3D.Predict, 0, 1), 1));
+        Assert.Contains("AUR-CLOTH-005", error.Message);
+    }
+
+    [Fact]
     public void Named_phases_preserve_the_scalar_header_and_reject_invalid_tags()
     {
         var data = new ClothGpuData3D(Sheet().Compile());
