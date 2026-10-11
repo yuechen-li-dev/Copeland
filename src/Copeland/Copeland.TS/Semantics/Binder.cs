@@ -112,7 +112,7 @@ public static partial class Binder
         private readonly Stack<BatchBindingContext> _batchContexts = [];
         private readonly Stack<ComponentCaptureContext> _componentCaptureContexts = [];
         private readonly Dictionary<FunctionSymbol, IReadOnlyList<BoundExpression>> _localPresentationCaptureArguments = [];
-        private readonly SyntaxTree _tree = tree;
+        private readonly SyntaxTree _tree = tree.ExpandExecutionFlows();
         private readonly CopelandAssetResolver? _assetResolver = assetResolver;
         private readonly CopelandNpmContractResolver _npmResolver = npmResolver;
         private readonly CopelandJavaScriptHostContractResolver _hostResolver = hostResolver;
@@ -5056,6 +5056,11 @@ public static partial class Binder
 
         private void BindFlow(FlowDeclarationSyntax declaration)
         {
+            if (declaration.HasExecution)
+            {
+                BindExecutionFlow(declaration);
+                return;
+            }
             string flowName = declaration.Identifier.Text;
             TypeSymbol declaredResult = declaration.ResultType is null
                 ? PrimitiveTypeSymbol.Void

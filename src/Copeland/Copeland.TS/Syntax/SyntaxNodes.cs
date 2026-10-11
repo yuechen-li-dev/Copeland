@@ -1394,13 +1394,20 @@ public sealed record FlowDeclarationSyntax(
     IReadOnlyList<FlowStateSyntax> States,
     SyntaxToken CloseBraceToken) : MemberSyntax
 {
+    public IReadOnlyList<ParameterSyntax> Parameters { get; init; } = [];
+    public SyntaxToken? StackCapacityToken { get; init; }
+    public bool IsExecution { get; init; }
+    public FlowTapePlan? TapePlan { get; init; }
+    public bool HasExecution => IsExecution || Parameters.Count > 0 || StackCapacityToken is not null || States.Any(state => state.Body is not null || state.Parameters.Count > 0);
     public override SyntaxKind Kind => SyntaxKind.FlowDeclaration;
     public override IEnumerable<object> GetChildren()
     {
         yield return FlowKeyword; yield return Identifier;
+        foreach (var parameter in Parameters) yield return parameter;
         if (ResultArrowToken is not null) yield return ResultArrowToken;
         if (ResultType is not null) yield return ResultType;
         yield return OpenBraceToken;
+        if (StackCapacityToken is not null) yield return StackCapacityToken;
         if (Board is not null) yield return Board;
         foreach (var @event in Events) yield return @event;
         foreach (var state in States) yield return state;
@@ -1446,14 +1453,18 @@ public sealed record FlowEventSyntax(SyntaxToken EventKeyword, SyntaxToken Ident
 
 public sealed record FlowStateSyntax(SyntaxToken StateKeyword, SyntaxToken Identifier, SyntaxToken? InitialKeyword, SyntaxToken OpenBraceToken, IReadOnlyList<FlowTransitionSyntax> Transitions, FlowTerminalSyntax? Terminal, SyntaxToken CloseBraceToken) : SyntaxNode
 {
+    public IReadOnlyList<ParameterSyntax> Parameters { get; init; } = [];
+    public BlockStatementSyntax? Body { get; init; }
     public override SyntaxKind Kind => SyntaxKind.FlowState;
     public override IEnumerable<object> GetChildren()
     {
         yield return StateKeyword; yield return Identifier;
+        foreach (var parameter in Parameters) yield return parameter;
         if (InitialKeyword is not null) yield return InitialKeyword;
         yield return OpenBraceToken;
         foreach (var transition in Transitions) yield return transition;
         if (Terminal is not null) yield return Terminal;
+        if (Body is not null) yield return Body;
         yield return CloseBraceToken;
     }
 }
@@ -1479,6 +1490,25 @@ public sealed record FlowTerminalSyntax(SyntaxToken Keyword, ExpressionSyntax? E
 {
     public override SyntaxKind Kind => Keyword.Text == "finish" ? SyntaxKind.FlowFinish : SyntaxKind.FlowFail;
     public override IEnumerable<object> GetChildren() { yield return Keyword; if (Expression is not null) yield return Expression; yield return SemicolonToken; }
+}
+
+public sealed record FlowControlStatementSyntax(
+    SyntaxToken Keyword,
+    ExpressionSyntax? Value,
+    SyntaxToken? SuccessTarget,
+    SyntaxToken? FailureTarget,
+    SyntaxToken SemicolonToken) : StatementSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.FlowControlStatement;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Keyword;
+        if (Value is not null) yield return Value;
+        if (SuccessTarget is not null) yield return SuccessTarget;
+        if (FailureTarget is not null) yield return FailureTarget;
+        yield return SemicolonToken;
+    }
 }
 
 public sealed record CSharpBlockStatementSyntax(
@@ -1596,11 +1626,13 @@ public sealed record StaticMatchArmSyntax(
     MatchPatternSyntax Pattern,
     SyntaxToken ArrowToken,
     StatementSyntax Statement,
-    SyntaxToken? CommaToken) : SyntaxNode
+    SyntaxToken? CommaToken,
+    SyntaxToken? CaseKeyword = null) : SyntaxNode
 {
     public override SyntaxKind Kind => SyntaxKind.StaticMatchArm;
     public override IEnumerable<object> GetChildren()
     {
+        if (CaseKeyword is not null) yield return CaseKeyword;
         yield return Pattern;
         yield return ArrowToken;
         yield return Statement;
@@ -2634,12 +2666,14 @@ public sealed record MatchArmSyntax(
     MatchPatternSyntax Pattern,
     SyntaxToken ArrowToken,
     ExpressionSyntax Expression,
-    SyntaxToken? CommaToken) : SyntaxNode
+    SyntaxToken? CommaToken,
+    SyntaxToken? CaseKeyword = null) : SyntaxNode
 {
     public override SyntaxKind Kind => SyntaxKind.MatchArm;
 
     public override IEnumerable<object> GetChildren()
     {
+        if (CaseKeyword is not null) yield return CaseKeyword;
         yield return Pattern;
         yield return ArrowToken;
         yield return Expression;

@@ -30,27 +30,27 @@ function Prefilter(color: float4, settings: float4): float4 {
     const contribution: f32 = Max(brightness - settings.z, soft * soft / (4.0 * knee)) / Max(brightness, 0.00001);
     return color * float4(contribution, contribution, contribution, 0.0);
 }
+function TentWeight(dx: f32, dy: f32): f32 {
+    // The authored offsets are exactly -1, 0, 1; squaring gives their absolute value.
+    return (2.0 - dx * dx) * (2.0 - dy * dy);
+}
 @pixel
 function PixelMain(input: Varyings, resources: Resources): Output {
     const filter: float4 = resources.bloom.filter;
     var sum: float4 = float4(0.0, 0.0, 0.0, 0.0);
-    var total: f32 = 0.0;
     // Separable tent footprint in one pass: broad highlights survive downsampling.
-    for (var y: u32 = 0; y < 3; y = y + 1) {
-        for (var x: u32 = 0; x < 3; x = x + 1) {
-            const dx: f32 = Convert<f32>(x) - 1.0;
-            const dy: f32 = Convert<f32>(y) - 1.0;
-            const weight: f32 = (2.0 - Abs(dx)) * (2.0 - Abs(dy));
+    static for (let dy of [-1.0, 0.0, 1.0]) {
+        static for (let dx of [-1.0, 0.0, 1.0]) {
+            const weight: f32 = static TentWeight(dx, dy);
             var color: float4 = Sample(resources.source, resources.sourceSampler,
                 float2(input.uv.x + dx * filter.x, input.uv.y + dy * filter.y));
             if (resources.bloom.operation.x > 0.5) { color = Prefilter(color, filter); }
             sum = Add4(sum, color * float4(weight, weight, weight, weight));
-            total = total + weight;
         }
     }
     const low: float4 = Sample(resources.lower, resources.lowerSampler, input.uv);
     const addition: f32 = resources.bloom.operation.y;
-    const result: float4 = Add4(Divide4(sum, total), low * float4(addition, addition, addition, 0.0));
+    const result: float4 = Add4(Divide4(sum, 16.0), low * float4(addition, addition, addition, 0.0));
     return { color: float4(result.x, result.y, result.z, 1.0) };
 }
 

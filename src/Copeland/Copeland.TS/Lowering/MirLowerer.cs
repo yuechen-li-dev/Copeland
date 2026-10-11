@@ -32,7 +32,7 @@ public static class MirLowerer
     public static MirProgram LowerProgram(BoundProgram program)
     {
         var enums = program.Enums.Select(LowerEnum).ToArray();
-        IReadOnlySet<RecordTypeId> flowBoardIds = program.Flows.Select(flow => flow.BoardType.Id).ToHashSet();
+        IReadOnlySet<RecordTypeId> flowBoardIds = program.Flows.Where(flow => flow.Execution is null).Select(flow => flow.BoardType.Id).ToHashSet();
         var records = program.Records.Select(declaration =>
         {
             MirRecordDefinition record = LowerRecord(declaration);
@@ -107,7 +107,18 @@ public static class MirLowerer
                     state.Terminal.Expression is null ? null : LowerExpression(state.Terminal.Expression)))).ToArray(),
             flow.InitialState,
             ToMirType(flow.ResultType),
-            flow.FailureType is null ? null : ToMirType(flow.FailureType));
+            flow.FailureType is null ? null : ToMirType(flow.FailureType))
+        {
+            Execution = flow.Execution is null ? null : new MirFlowExecutionPlan(
+                (MirRecordType)ToMirType(flow.Execution.FrameType),
+                flow.Execution.StartFunction,
+                flow.Execution.StepFunction,
+                flow.Execution.Parameters.Select(parameter => new MirParameter(parameter.Name, ToMirType(parameter.Type))).ToArray(),
+                flow.Execution.Functions.Select(LowerFunction).ToArray(),
+                flow.Execution.States.Select(state => new MirFlowExecutionState(state.Name, state.BodyFunction,
+                    state.EntryParameters.Select(parameter => new MirParameter(parameter.Name, ToMirType(parameter.Type))).ToArray(),
+                    state.Controls.Select(control => new MirFlowExecutionControl(control.Kind, control.SuccessTarget, control.FailureTarget, control.ChildFlow)).ToArray())).ToArray()),
+        };
 
     private static MirTsonEncodingPlan LowerTsonEncodingPlan(BoundTsonEncodingPlan plan)
     {

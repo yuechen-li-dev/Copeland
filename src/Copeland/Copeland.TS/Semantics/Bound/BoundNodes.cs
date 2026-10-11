@@ -1359,7 +1359,29 @@ public sealed class BoundFlowDefinition(
     public TypeSymbol ResultType { get; } = resultType;
     public TypeSymbol? FailureType { get; } = failureType;
     public FlowSourceCorrelation Source { get; } = source;
+    public BoundFlowExecutionPlan? Execution { get; init; }
 }
+
+public sealed record BoundFlowExecutionPlan(
+    RecordTypeSymbol FrameType,
+    string StartFunction,
+    string StepFunction,
+    IReadOnlyList<ParameterSymbol> Parameters,
+    IReadOnlyList<BoundFunctionDeclaration> Functions,
+    IReadOnlyList<BoundFlowExecutionState> States);
+
+public sealed record BoundFlowExecutionState(
+    string Name,
+    string BodyFunction,
+    IReadOnlyList<ParameterSymbol> EntryParameters,
+    IReadOnlyList<BoundFlowExecutionControl> Controls);
+
+public sealed record BoundFlowExecutionControl(
+    string Kind,
+    string? SuccessTarget,
+    string? FailureTarget,
+    string? ChildFlow,
+    FlowSourceCorrelation Source);
 
 public sealed class BoundFlowBoardField(RecordFieldSymbol field, BoundExpression initializer) : BoundNode
 {

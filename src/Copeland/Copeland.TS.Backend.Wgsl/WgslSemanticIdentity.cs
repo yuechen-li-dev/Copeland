@@ -22,10 +22,12 @@ internal static class WgslSemanticIdentity
             Enums = module.Enums?.Select(enumeration => enumeration with
             {
                 Source = Empty,
+                CarrierLayout = enumeration.CarrierLayout is null ? null : Layout(enumeration.CarrierLayout),
                 CarrierFields = enumeration.CarrierFields.Select(field => field with { Source = Empty }).ToArray(),
                 Cases = enumeration.Cases.Select(variant => variant with
                 {
                     Source = Empty,
+                    PayloadLayout = variant.PayloadLayout is null ? null : Layout(variant.PayloadLayout),
                     Payload = variant.Payload.Select(field => field with { Source = Empty }).ToArray(),
                 }).ToArray(),
             }).ToArray(),
@@ -55,6 +57,12 @@ internal static class WgslSemanticIdentity
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(WgslGraphicsBackend.CompatibilityVersion + "\n" + canonicalJson)))
             .ToLowerInvariant();
     }
+
+    private static VdMirValueType Layout(VdMirValueType value) => value with
+    {
+        Source = Empty,
+        Fields = value.Fields.Select(field => field with { Source = Empty }).ToArray(),
+    };
 
     private static VdMirStreamMember Member(VdMirStreamMember member) => member with { Source = Empty, MetadataSource = null };
     private static VdMirMaterial Material(VdMirMaterial material) => material with

@@ -12,6 +12,7 @@ internal sealed partial class GpuValues
     private readonly GpuModuleGraph modules;
     private readonly Action<string, string, VdMirSourceSpan> error;
     private readonly Func<string, string> physicalType;
+    private readonly Func<string, (int Size, int Alignment)?>? externalLayout;
     private readonly Dictionary<string, (string Path, RecordDeclarationSyntax Syntax)> records = new(StringComparer.Ordinal);
     private readonly Dictionary<string, VdMirValueType> types = new(StringComparer.Ordinal);
     private readonly Dictionary<string, (string Path, TypeAliasDeclarationSyntax Syntax)> aliases = new(StringComparer.Ordinal);
@@ -19,11 +20,14 @@ internal sealed partial class GpuValues
     private readonly HashSet<string> active = new(StringComparer.Ordinal);
     private int helperSequence;
 
-    public GpuValues(GpuModuleGraph modules, Action<string, string, VdMirSourceSpan> error, Func<string, string>? physicalType = null)
+    public GpuValues(GpuModuleGraph modules, Action<string, string, VdMirSourceSpan> error,
+        Func<string, string>? physicalType = null,
+        Func<string, (int Size, int Alignment)?>? externalLayout = null)
     {
         this.modules = modules;
         this.error = error;
         this.physicalType = physicalType ?? (type => type);
+        this.externalLayout = externalLayout;
         foreach ((GpuSourceFile source, SyntaxTree tree) in modules.Sources)
         {
             foreach (RecordDeclarationSyntax record in tree.Root.Members.OfType<RecordDeclarationSyntax>())
@@ -45,6 +49,8 @@ internal sealed partial class GpuValues
 
     // Dependency order is preserved: a record always follows its field types.
     public IReadOnlyList<VdMirValueType> Definitions => types.Values.ToArray();
+    internal Func<IEnumerable<VdMirValueType>> StaticExtraDefinitions { get; set; } = () => [];
+    public IEnumerable<VdMirValueType> StaticDefinitions => Definitions.Concat(StaticExtraDefinitions());
     public VdMirValueType? Find(string type) => types.GetValueOrDefault(type) ?? openValues.GetValueOrDefault(type);
 
     public string? BindType(string path, TypeSyntax? syntax, Func<string, TypeSyntax, string> bindOther)
@@ -170,7 +176,7 @@ internal sealed partial class GpuValues
             (int size, int alignment) = Layout(field.Type);
             if (size <= 0 || size > 65536)
             {
-                error("COPE-GPU-VALUE-0002", "Inline fields require certified finite storage within the 64 KiB budget; resources and enums are excluded.", field.Source);
+                error("COPE-GPU-VALUE-0002", "Inline fields require certified finite storage within the 64 KiB budget; resources and uncertified types are excluded.", field.Source);
                 continue;
             }
             offset = Align(offset, alignment);
@@ -196,6 +202,7 @@ internal sealed partial class GpuValues
 
     public (int Size, int Alignment) Layout(string type)
     {
+        if (externalLayout?.Invoke(type) is { } external) return external;
         if (types.TryGetValue(type, out VdMirValueType? value))
         {
             return (value.Size, value.Alignment);
@@ -329,7 +336,7 @@ internal sealed partial class GpuValues
 
     public VdMirExpression EmbedStatic(VdMirExpression value, Action<VdMirFunction> addFunction)
     {
-        VdMirValueType type = Find(value.Type)
+        VdMirValueType type = Find(value.Type) ?? StaticExtraDefinitions().FirstOrDefault(type => type.Name == value.Type)
             ?? throw Semantics.StaticEvaluationException.Unsupported("Static value has no closed storage definition.");
         return Construct(type, value.Operands!, addFunction, value.Source, value.MemberNames);
     }
@@ -522,9 +529,9 @@ internal sealed partial class GpuValues
         return new("call", result.Type, span, helper, [subject]);
     }
 
-    private VdMirExpression Zero(string type, VdMirSourceSpan span, Action<VdMirFunction> addFunction)
+    public VdMirExpression Zero(string type, VdMirSourceSpan span, Action<VdMirFunction> addFunction)
     {
-        if (Find(type) is { } aggregate)
+        if ((Find(type) ?? StaticExtraDefinitions().FirstOrDefault(definition => definition.Name == type)) is { } aggregate)
         {
             return Construct(aggregate, aggregate.Fields.Select(field => Zero(field.Type, span, addFunction)).ToArray(), addFunction, span);
         }

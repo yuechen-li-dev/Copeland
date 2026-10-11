@@ -24,6 +24,17 @@ public sealed record VdMirDiagnostic(
     VdMirSourceSpan PrimarySpan,
     IReadOnlyList<VdMirRelatedSpan> RelatedSpans);
 
+public sealed record VdMirFlowTapeState(
+    int Position,
+    string State,
+    string Fragment,
+    string Path,
+    string? ParentPath,
+    VdMirSourceSpan Source,
+    VdMirSourceSpan? CompositionSite);
+
+public sealed record VdMirFlowTape(string Flow, string FrameType, string StateType, IReadOnlyList<VdMirFlowTapeState> States);
+
 public enum VdMirResourceAccess
 {
     Readonly,
@@ -75,10 +86,16 @@ public sealed record VdMirFunction(
 /// <summary>Local value carrier. No resource-buffer ABI is implied.</summary>
 public sealed record VdMirEnumField(string Name, string Type, VdMirSourceSpan Source);
 
-public sealed record VdMirEnumCase(string Name, uint Tag, string PayloadType, IReadOnlyList<VdMirEnumField> Payload, VdMirSourceSpan Source);
+public sealed record VdMirEnumCase(string Name, uint Tag, string PayloadType, IReadOnlyList<VdMirEnumField> Payload, VdMirSourceSpan Source)
+{
+    public VdMirValueType? PayloadLayout { get; init; }
+}
 
 public sealed record VdMirEnum(string Name, IReadOnlyList<VdMirEnumCase> Cases,
-    IReadOnlyList<VdMirEnumField> CarrierFields, VdMirSourceSpan Source);
+    IReadOnlyList<VdMirEnumField> CarrierFields, VdMirSourceSpan Source)
+{
+    public VdMirValueType? CarrierLayout { get; init; }
+}
 
 public sealed record VdMirValueField(string Name, string Type, int Offset, int Size, int Alignment, VdMirSourceSpan Source,
     string? PhysicalType = null);
@@ -120,6 +137,9 @@ public sealed record VdMirComputeModule(
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<VdMirGenericSpecialization>? GenericSpecializations { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<VdMirFlowTape>? FlowTapes { get; init; }
 
 }
 

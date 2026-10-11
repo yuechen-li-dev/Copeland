@@ -62,7 +62,8 @@ public static class GpuGraphicsBinder
             }
 
             ParseSources();
-            _values = new GpuValues(_modules, (code, message, span) => Add(code, "SDSL-V4114", "value-storage", message, span), PhysicalType);
+            _values = new GpuValues(_modules, (code, message, span) => Add(code, "SDSL-V4114", "value-storage", message, span), PhysicalType,
+                externalLayout: type => _enums?.Layout(type));
             _generics = new GpuGenericFunctions(_modules, _values,
                 (code, message, span) => Add(code, "SDSL-V4113", "generic", message, span),
                 (path, type) => BindType(path, type), BindOpenGeneric, AddEnumFunction, () => _functions.Values);
@@ -70,7 +71,9 @@ public static class GpuGraphicsBinder
             _values.StaticFunctions = () => _functions.Values;
             _enums = new GpuEnums(_modules,
                 (path, type) => BindType(path, type),
-                (code, message, span) => Add(code, "SDSL-V4200", "payload-enum", message, span));
+                (code, message, span) => Add(code, "SDSL-V4200", "payload-enum", message, span), _values);
+            _enums.BindDefinitions();
+            _values.StaticExtraDefinitions = () => _enums.StaticLayouts;
             BindSemanticSpaces();
             BindMaterials();
             foreach (StreamSource stream in _streamSources.Values.OrderBy(item => item.Path, StringComparer.Ordinal).ThenBy(item => item.Syntax.Identifier.Position))
@@ -89,6 +92,11 @@ public static class GpuGraphicsBinder
             _constants = new GpuConstants(_modules);
             foreach ((GpuSourceFile source, SyntaxTree tree) in _modules.Sources)
             {
+                foreach (FlowDeclarationSyntax flow in tree.Root.Members.OfType<FlowDeclarationSyntax>().Where(flow => flow.HasExecution))
+                {
+                    Add("COPE-GPU-FLOW-0001", "SDSL-V4200", "execution-flow",
+                        "Execution FLOW is currently a compute capability; move its explicit step into a compute entry.", Span(source.Path, flow.Identifier));
+                }
                 foreach (ShaderStreamDeclarationSyntax stream in tree.Root.Members.OfType<ShaderStreamDeclarationSyntax>())
                 {
                     if (!_streamSources.TryAdd(_modules.Declare(source.Path, stream.Identifier.Text), new StreamSource(source.Path, stream)))
@@ -541,6 +549,8 @@ public static class GpuGraphicsBinder
             return result;
         }
 
+        private readonly GpuStaticFor _staticFor = new();
+
         private IReadOnlyList<VdMirStatement> BindStatementList(
             string path, IReadOnlyList<StatementSyntax> statements, Dictionary<string, string> scope,
             HashSet<string> mutable, string returnType, int loopDepth)
@@ -636,6 +646,15 @@ public static class GpuGraphicsBinder
                     {
                         Add("COPE-GPU-MUTATION-0001", "SDSL-V3701", "binding", "Assignment requires a mutable GPU local.", Span(path, assignment.Left));
                     }
+                }
+                else if (statement is StaticForStatementSyntax staticLoop)
+                {
+                    result.AddRange(_staticFor.Expand(staticLoop, Span(path, staticLoop), _values,
+                        scope.ContainsKey(staticLoop.Identifier.Text),
+                        expression => BindExpression(path, expression, scope),
+                        () => _functions.Values,
+                        () => BindBranch(path, staticLoop.Body, scope, mutable, returnType, loopDepth),
+                        (code, message, span) => Add(code, "SDSL-V4200", "static-control", message, span)));
                 }
                 else if (statement is StaticIfStatementSyntax staticConditional)
                 {
@@ -765,7 +784,7 @@ public static class GpuGraphicsBinder
                             return value;
                         }
                         if (_generics.BindingOpen) return new("generic-fold", value.Type, Span(path, evaluated), Operands: [value]);
-                        return GpuStaticEvaluation.Fold(value, _functions.Values, _values.Definitions,
+                        return GpuStaticEvaluation.Fold(value, _functions.Values, _values.StaticDefinitions,
                             aggregate => _values.EmbedStatic(aggregate, AddEnumFunction)) with { Source = Span(path, evaluated) };
                     }
                     catch (StaticEvaluationException exception)
@@ -895,6 +914,7 @@ public static class GpuGraphicsBinder
             {
                 return _constants.Bind(path, name, (sourcePath, declaration) =>
                 {
+                    using var context = _values.Enter(GpuValues.Empty);
                     string type = BindType(sourcePath, declaration.Type);
                     VdMirExpression value = BindExpression(sourcePath, declaration.Initializer, new(StringComparer.Ordinal), type);
                     if (value.Type != type)
@@ -902,7 +922,7 @@ public static class GpuGraphicsBinder
                         TypeMismatch(sourcePath, declaration.Initializer, type, value.Type);
                     }
                     return value;
-                }, () => _functions.Values);
+                }, () => _functions.Values, _values, AddEnumFunction);
             }
             catch (StaticEvaluationException exception)
             {

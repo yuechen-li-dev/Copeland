@@ -127,7 +127,24 @@ public sealed class MirFlowDefinition(
     public string InitialState { get; } = initialState;
     public MirType ResultType { get; } = resultType;
     public MirType? FailureType { get; } = failureType;
+    public MirFlowExecutionPlan? Execution { get; init; }
 }
+
+public sealed record MirFlowExecutionPlan(
+    MirRecordType FrameType,
+    string StartFunction,
+    string StepFunction,
+    IReadOnlyList<MirParameter> Parameters,
+    IReadOnlyList<MirFunction> Functions,
+    IReadOnlyList<MirFlowExecutionState> States);
+
+public sealed record MirFlowExecutionState(
+    string Name,
+    string BodyFunction,
+    IReadOnlyList<MirParameter> EntryParameters,
+    IReadOnlyList<MirFlowExecutionControl> Controls);
+
+public sealed record MirFlowExecutionControl(string Kind, string? SuccessTarget, string? FailureTarget, string? ChildFlow);
 
 public sealed class MirFlowBoardField(MirRecordFieldId id, string name, MirType type, MirExpression initializer)
 {

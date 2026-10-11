@@ -28,7 +28,9 @@ internal sealed class GpuConstants
 
     public VdMirExpression? Bind(string path, string name,
         Func<string, VariableDeclarationStatementSyntax, VdMirExpression> bind,
-        Func<IEnumerable<VdMirFunction>> functions)
+        Func<IEnumerable<VdMirFunction>> functions,
+        GpuValues storage,
+        Action<VdMirFunction> addFunction)
     {
         string identity = modules.Resolve(path, name);
         if (values.TryGetValue(identity, out VdMirExpression? value))
@@ -49,7 +51,8 @@ internal sealed class GpuConstants
         }
         try
         {
-            value = GpuStaticEvaluation.Fold(bind(source.Path, source.Syntax), functions());
+            value = GpuStaticEvaluation.Fold(bind(source.Path, source.Syntax), functions(), storage.StaticDefinitions,
+                aggregate => storage.EmbedStatic(aggregate, addFunction));
             values.Add(identity, value);
             return value;
         }

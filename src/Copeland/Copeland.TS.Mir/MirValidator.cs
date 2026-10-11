@@ -27,6 +27,7 @@ public static class MirValidator
         ValidateCSharpBlockModel(program, diagnostics);
         ValidateTsonEncodingModel(program, diagnostics);
         ValidateGeneratorModel(program, diagnostics);
+        ValidateExecutionFlowModel(program, diagnostics);
         foreach (var function in program.Functions)
         {
             var handlerIds = new HashSet<MirHandlerId>();
@@ -37,6 +38,49 @@ public static class MirValidator
         MirSuspensionAutomatonValidator.Validate(program, diagnostics);
 
         return diagnostics;
+    }
+
+    private static void ValidateExecutionFlowModel(MirProgram program, List<MirValidationDiagnostic> diagnostics)
+    {
+        var functions = program.Functions.GroupBy(function => function.Name, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+        foreach (MirFlowDefinition flow in program.Flows)
+        {
+            if (flow.Execution is not { } plan) continue;
+            if (!functions.TryGetValue(plan.StartFunction, out MirFunction? start)
+                || !functions.TryGetValue(plan.StepFunction, out MirFunction? step))
+            {
+                diagnostics.Add(new($"execution flow '{flow.Name}' references an absent start/step function."));
+                continue;
+            }
+            if (!MirTypeFacts.AreEquivalent(start.ReturnType, plan.FrameType)
+                || !MirTypeFacts.AreEquivalent(step.ReturnType, plan.FrameType)
+                || step.Parameters.Count != 1
+                || !MirTypeFacts.AreEquivalent(step.Parameters[0].Type, plan.FrameType)
+                || start.Parameters.Count != plan.Parameters.Count
+                || !start.Parameters.Select(parameter => parameter.Type).Zip(plan.Parameters.Select(parameter => parameter.Type), MirTypeFacts.AreEquivalent).All(equal => equal))
+            {
+                diagnostics.Add(new($"execution flow '{flow.Name}' has an incompatible frame interface."));
+            }
+            foreach (MirFlowExecutionState state in plan.States)
+            {
+                if (!functions.TryGetValue(state.BodyFunction, out MirFunction? body)
+                    || !MirTypeFacts.AreEquivalent(body.ReturnType, plan.FrameType))
+                {
+                    diagnostics.Add(new($"execution state '{flow.Name}.{state.Name}' references an incompatible body function."));
+                }
+                foreach (MirFlowExecutionControl control in state.Controls)
+                {
+                    if (control.Kind is not ("transition" or "yield" or "finish" or "fail" or "push")
+                        || control.SuccessTarget is not null && !plan.States.Any(target => target.Name == control.SuccessTarget)
+                        || control.FailureTarget is not null && !plan.States.Any(target => target.Name == control.FailureTarget)
+                        || control.Kind == "push" && !program.Flows.Any(child => child.Name == control.ChildFlow))
+                    {
+                        diagnostics.Add(new($"execution state '{flow.Name}.{state.Name}' has an invalid control edge."));
+                    }
+                }
+            }
+        }
     }
 
     private static void ValidateExecutableArtifacts(MirProgram program, List<MirValidationDiagnostic> diagnostics)

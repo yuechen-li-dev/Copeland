@@ -3,6 +3,67 @@ record Vec3 {
     y: f32;
     z: f32;
 }
+enum ClothPhase {
+    Predict,
+    Constraints,
+    VertexContact,
+    TriangleContact,
+    Velocity,
+    CapturePins,
+    Invalid,
+}
+// Decode the scalar transport once. Runtime decisions use the typed phase.
+function DecodePhase(value: f32): ClothPhase {
+    if (value == 0.0) {
+        return ClothPhase.Predict;
+    }
+    if (value == 1.0) {
+        return ClothPhase.Constraints;
+    }
+    if (value == 2.0) {
+        return ClothPhase.VertexContact;
+    }
+    if (value == 3.0) {
+        return ClothPhase.TriangleContact;
+    }
+    if (value == 4.0) {
+        return ClothPhase.Velocity;
+    }
+    if (value == 5.0) {
+        return ClothPhase.CapturePins;
+    }
+    return ClothPhase.Invalid;
+}
+record PhaseSelection {
+    valid: bool;
+    predict: bool;
+    vertexContact: bool;
+    triangleContact: bool;
+    velocity: bool;
+    capturePins: bool;
+}
+function Selection(valid: bool, predict: bool, vertexContact: bool, triangleContact: bool,
+    velocity: bool, capturePins: bool): PhaseSelection {
+    return {
+        valid: valid,
+        predict: predict,
+        vertexContact: vertexContact,
+        triangleContact: triangleContact,
+        velocity: velocity,
+        capturePins: capturePins,
+    };
+}
+function SelectPhase(phase: ClothPhase): PhaseSelection {
+    return match phase {
+        case ClothPhase.Predict => Selection(true, true, false, false, false, false),
+        case ClothPhase.Constraints => Selection(true, false, false, false, false, false),
+        case ClothPhase.VertexContact => Selection(true, false, true, false, false, false),
+        case ClothPhase.TriangleContact => Selection(true, false, false, true, false, false),
+        case ClothPhase.Velocity => Selection(true, false, false, false, true, false),
+        case ClothPhase.CapturePins => Selection(true, false, false, false, false, true),
+        case ClothPhase.Invalid => Selection(false, false, false, false, false, false),
+    };
+}
 function V(x: f32, y: f32, z: f32): Vec3 {
     return { x: x, y: y, z: z };
 }
@@ -46,9 +107,9 @@ function ProjectSphere(position: Vec3, center: Vec3, radius: f32): Vec3 {
 }
 function ProjectContact(position: Vec3, contact: ContactShape): Vec3 {
     return match contact {
-        ContactShape.None => position,
-        ContactShape.Plane(payload) => ProjectPlane(position, V(payload.nx, payload.ny, payload.nz), payload.offset),
-        ContactShape.Sphere(payload) => ProjectSphere(position, V(payload.x, payload.y, payload.z), payload.radius),
+        case ContactShape.None => position,
+        case ContactShape.Plane(payload) => ProjectPlane(position, V(payload.nx, payload.ny, payload.nz), payload.offset),
+        case ContactShape.Sphere(payload) => ProjectSphere(position, V(payload.x, payload.y, payload.z), payload.radius),
     };
 }
 function SegmentBary(p: Vec3, a: Vec3, b: Vec3, wa: Vec3, wb: Vec3): Vec3 {
@@ -129,16 +190,19 @@ function Main(@builtin(dispatchThreadId) thread: uint3,
     {
         return;
     }
-    const phase: u32 = U32(Header[0]);
+    const phase: PhaseSelection = SelectPhase(DecodePhase(Header[0]));
+    if (!phase.valid) {
+        return;
+    }
     const o: u32 = thread.x * 16;
     const h: f32 = Header[4];
-    if (phase == 5) {
+    if (phase.capturePins) {
         State[o + 13] = State[o];
         State[o + 14] = State[o + 1];
         State[o + 15] = State[o + 2];
         return;
     }
-    if (phase == 0) {
+    if (phase.predict) {
         State[o + 3] = State[o];
         State[o + 4] = State[o + 1];
         State[o + 5] = State[o + 2];
@@ -156,7 +220,7 @@ function Main(@builtin(dispatchThreadId) thread: uint3,
         }
         return;
     }
-    if (phase == 4) {
+    if (phase.velocity) {
         const damping: f32 = Header[8] / h;
         State[o + 6] = (State[o] - State[o + 3]) * damping;
         State[o + 7] = (State[o + 1] - State[o + 4]) * damping;
@@ -165,7 +229,7 @@ function Main(@builtin(dispatchThreadId) thread: uint3,
     }
     const sphere: Vec3 = V(Header[18], Header[19], Header[20]);
     const radius: f32 = Header[21] + Header[11];
-    if (phase == 2) {
+    if (phase.vertexContact) {
         if (State[o + 9] == 0.0)
         {
             return;
@@ -197,17 +261,17 @@ function Main(@builtin(dispatchThreadId) thread: uint3,
     var pb: Vec3 = V(State[b * 16], State[b * 16 + 1], State[b * 16 + 2]);
     var pc: Vec3 = V(0.0, 0.0, 0.0);
     var pd: Vec3 = V(0.0, 0.0, 0.0);
-    if (phase == 3 || U32(Source[s]) == 3) {
+    if (phase.triangleContact || U32(Source[s]) == 3) {
         pc = V(State[c * 16], State[c * 16 + 1], State[c * 16 + 2]);
     }
-    if (phase != 3 && U32(Source[s]) == 3) {
+    if (!phase.triangleContact && U32(Source[s]) == 3) {
         pd = V(State[d * 16], State[d * 16 + 1], State[d * 16 + 2]);
     }
     const wa: f32 = State[a * 16 + 9];
     const wb: f32 = State[b * 16 + 9];
     const wc: f32 = State[c * 16 + 9];
     const wd: f32 = State[d * 16 + 9];
-    if (phase == 3) {
+    if (phase.triangleContact) {
         const bary: Vec3 = ClosestBary(sphere, pa, pb, pc);
         const closest: Vec3 = Add(Add(Scale(pa, bary.x), Scale(pb, bary.y)), Scale(pc, bary.z));
         const difference: Vec3 = Sub(closest, sphere);

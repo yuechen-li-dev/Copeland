@@ -20,6 +20,14 @@ public sealed class SyntaxTree
 
     public IReadOnlyList<Diagnostic> Diagnostics { get; }
 
+    internal SyntaxTree ExpandExecutionFlows(bool gpu = false)
+    {
+        var diagnostics = Diagnostics.ToList();
+        var projection = new FlowExecutionProjection(Root, diagnostics, gpu);
+        CompilationUnitSyntax expanded = projection.Expand(Root);
+        return new SyntaxTree(Text, expanded, Tokens, diagnostics);
+    }
+
     public static SyntaxTree Parse(string text)
         => Parse(text, SourceFileKind.TypeScript);
 

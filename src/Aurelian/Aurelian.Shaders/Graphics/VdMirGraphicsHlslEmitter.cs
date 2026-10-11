@@ -17,8 +17,7 @@ public static class VdMirGraphicsHlslEmitter
         var builder = new StringBuilder();
         builder.AppendLine($"// Generated from canonical VD-MIR {module.FeatureLevel}. Do not edit.");
         builder.AppendLine();
-        VdMirEnumHlslEmitter.Emit(builder, module.Enums);
-        VdMirValueHlslEmitter.Emit(builder, module.ValueTypes);
+        VdMirAggregateHlslEmitter.Emit(builder, module.Enums, module.ValueTypes);
         foreach (VdMirSemanticSpace space in module.SemanticSpaces)
         {
             builder.AppendLine($"// semantic space {space.Name} physically lowers to {space.PhysicalType}");

@@ -10,6 +10,20 @@ namespace Aurelian.Cloth3D.Tests;
 
 public sealed class ClothFoundationTests
 {
+    [Fact]
+    public void Named_phases_preserve_the_scalar_header_and_reject_invalid_tags()
+    {
+        var data = new ClothGpuData3D(Sheet().Compile());
+        foreach (ClothPhase3D phase in Enum.GetValues<ClothPhase3D>())
+        {
+            float[] header = data.Header(new(), new(), new(phase, 0, 1), 0);
+            Assert.Equal((float)(int)phase, header[0]);
+        }
+        Assert.Equal(ClothPhase3D.Constraints, data.Constraints[0].Phase);
+        Assert.Equal(ClothPhase3D.TriangleContact, data.Triangles[0].Phase);
+        Assert.Throws<ArgumentOutOfRangeException>(() => data.Header(new(), new(), new((ClothPhase3D)99, 0, 1), 0));
+    }
+
     private static ClothDefinition3D Sheet(int side = 9) => ClothDefinition3D.Grid("test", side, side, new(2, 2), new(-1, 2, -1)) with { Pins = [0, side - 1] };
 
     [Fact]

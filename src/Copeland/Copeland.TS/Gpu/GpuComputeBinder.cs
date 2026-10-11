@@ -57,7 +57,8 @@ public static class GpuComputeBinder
             }
 
             ParseSources();
-            _values = new GpuValues(_modules, (code, message, span) => AddDiagnostic(code, "SDSL-V4114", "value-storage", message, span));
+            _values = new GpuValues(_modules, (code, message, span) => AddDiagnostic(code, "SDSL-V4114", "value-storage", message, span),
+                externalLayout: type => _enums?.Layout(type));
             _generics = new GpuGenericFunctions(_modules, _values,
                 (code, message, span) => AddDiagnostic(code, "SDSL-V4113", "generic", message, span),
                 (path, type) => BindType(path, type, new SyntaxToken(SyntaxKind.IdentifierToken, 0, "", null)), BindOpenGeneric, AddEnumFunction, () => _boundFunctions);
@@ -65,7 +66,10 @@ public static class GpuComputeBinder
             _values.StaticFunctions = () => _boundFunctions;
             _enums = new GpuEnums(_modules,
                 (path, type) => BindType(path, type, new SyntaxToken(SyntaxKind.IdentifierToken, 0, string.Empty, null)),
-                (code, message, span) => AddDiagnostic(code, "SDSL-V4200", "payload-enum", message, span));
+                (code, message, span) => AddDiagnostic(code, "SDSL-V4200", "payload-enum", message, span), _values);
+            _enums.BindDefinitions();
+            _values.StaticExtraDefinitions = () => _enums.StaticLayouts;
+            BindTapeContracts();
             FunctionSource[] entries = _functions.Values
                 .Where(item => HasAnnotation(item.Syntax.Annotations, "compute"))
                 .OrderBy(item => item.Path, StringComparer.Ordinal)
@@ -291,15 +295,24 @@ public static class GpuComputeBinder
             {
                 switch (statement)
                 {
+                    case StaticForStatementSyntax loop:
+                        result.AddRange(_staticFor.Expand(loop, Span(path, loop), _values,
+                            scope.ContainsKey(loop.Identifier.Text),
+                            expression => BindExpression(path, expression, scope),
+                            () => _boundFunctions,
+                            () => BindNestedStatement(path, loop.Body, scope, returnType),
+                            (code, message, span) => AddDiagnostic(code, "SDSL-V4200", "static-control", message, span)));
+                        break;
                     case VariableDeclarationStatementSyntax local:
                     {
-                        string declaredType = BindType(path, local.Type, local.Identifier);
+                        string? explicitType = local.Type is null ? null : BindType(path, local.Type, local.Identifier);
+                        VdMirExpression initializer = BindExpression(path, local.Initializer, scope, explicitType);
+                        string declaredType = explicitType ?? initializer.Type;
                         if (declaredType == "acceleration_structure")
                         {
                             AddDiagnostic("COPE-GPU-RAYQUERY-0002", "SDSL-V4213", "ray-query",
                                 "Acceleration structures are bound readonly resources, not copyable local values.", Span(path, local));
                         }
-                        VdMirExpression initializer = BindExpression(path, local.Initializer, scope, declaredType);
                         if (declaredType != initializer.Type)
                         {
                             TypeMismatch(path, local.Initializer, declaredType, initializer.Type);
@@ -474,6 +487,13 @@ public static class GpuComputeBinder
             }
             switch (expression)
             {
+                case GeneratedZeroExpressionSyntax zero:
+                    string zeroType = BindType(path, zero.Type, new SyntaxToken(SyntaxKind.IdentifierToken, Span(path, zero).Start, "zero", null));
+                    return _values.Zero(zeroType, Span(path, zero), AddEnumFunction);
+                case GeneratedEnumTagExpressionSyntax tag:
+                    VdMirExpression subject = BindExpression(path, tag.Subject, scope);
+                    if (_enums.Find(subject.Type) is null) return ErrorExpression(path, tag);
+                    return new("field", "u32", Span(path, tag), "tag", [subject]);
                 case UnaryExpressionSyntax unary:
                 {
                     VdMirExpression operand = BindExpression(path, unary.Operand, scope);
@@ -541,7 +561,7 @@ public static class GpuComputeBinder
                             return value;
                         }
                         if (_generics.BindingOpen) return new("generic-fold", value.Type, Span(path, evaluated), Operands: [value]);
-                        return GpuStaticEvaluation.Fold(value, _boundFunctions, _values.Definitions,
+                        return GpuStaticEvaluation.Fold(value, _boundFunctions, _values.StaticDefinitions,
                             aggregate => _values.EmbedStatic(aggregate, AddEnumFunction)) with { Source = Span(path, evaluated) };
                     }
                     catch (StaticEvaluationException exception)
@@ -630,14 +650,15 @@ public static class GpuComputeBinder
             {
                 return _constants.Bind(path, name, (sourcePath, declaration) =>
                 {
+                    using var context = _values.Enter(GpuValues.Empty);
                     string type = BindType(sourcePath, declaration.Type, declaration.Identifier);
-                    VdMirExpression value = BindExpression(sourcePath, declaration.Initializer, new(StringComparer.Ordinal));
+                    VdMirExpression value = BindExpression(sourcePath, declaration.Initializer, new(StringComparer.Ordinal), type);
                     if (value.Type != type)
                     {
                         TypeMismatch(sourcePath, declaration.Initializer, type, value.Type);
                     }
                     return value;
-                }, () => _boundFunctions);
+                }, () => _boundFunctions, _values, AddEnumFunction);
             }
             catch (StaticEvaluationException exception)
             {
@@ -919,6 +940,7 @@ public static class GpuComputeBinder
 
         private VdMirComputeModule CreateModule()
         {
+            VdMirFlowTape[] tapes = CreateTapeMetadata();
             string[] types = _resources.Select(resource => resource.ElementType)
                 .Concat(_boundFunctions.SelectMany(function => function.Parameters.Select(parameter => parameter.Type)))
                 .Concat(_boundFunctions.Select(function => function.ReturnType))
@@ -945,7 +967,42 @@ public static class GpuComputeBinder
                 Enums = _enums is null || _enums.Definitions.Count == 0 ? null : _enums.Definitions,
                 ValueTypes = _values is null || _values.Definitions.Count == 0 ? null : _values.Definitions,
                 GenericSpecializations = _generics is null || _generics.Traces.Count == 0 ? null : _generics.Traces,
+                FlowTapes = tapes.Length == 0 ? null : tapes,
             };
+        }
+
+        private VdMirFlowTape[] CreateTapeMetadata()
+        {
+            if (_modules is null)
+            {
+                return [];
+            }
+            var tapes = new List<VdMirFlowTape>();
+            foreach (var source in _modules.Sources)
+            {
+                string path = source.Source.Path;
+                foreach (FlowDeclarationSyntax flow in source.Tree.Root.Members.OfType<FlowDeclarationSyntax>())
+                {
+                    if (flow.TapePlan is not { } plan)
+                    {
+                        continue;
+                    }
+                    var states = plan.States.Select(state => new VdMirFlowTapeState(
+                        state.Position,
+                        state.State,
+                        state.Fragment,
+                        state.Path,
+                        state.ParentPath,
+                        Span(path, state.AuthoredState),
+                        state.CompositionSite is null ? null : Span(path, state.CompositionSite))).ToArray();
+                    tapes.Add(new VdMirFlowTape(
+                        _modules.Declare(path, flow.Identifier.Text),
+                        _modules.Declare(path, plan.FrameType),
+                        _modules.Declare(path, plan.StateType),
+                        states));
+                }
+            }
+            return tapes.ToArray();
         }
 
         private static Dictionary<string, ValueBinding> CloneScope(Dictionary<string, ValueBinding> source)
@@ -1020,6 +1077,48 @@ public static class GpuComputeBinder
         }
 
         private sealed record FunctionSource(string Path, FunctionDeclarationSyntax Syntax);
+
+        private readonly GpuStaticFor _staticFor = new();
+
+        private void BindTapeContracts()
+        {
+            foreach (var source in _modules.Sources)
+            {
+                var declarations = source.Tree.Root.Members.OfType<FlowDeclarationSyntax>()
+                    .GroupBy(flow => flow.Identifier.Text, StringComparer.Ordinal)
+                    .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+                foreach (FlowDeclarationSyntax parent in declarations.Values.Where(flow => flow.TapePlan is not null))
+                {
+                    foreach (FlowControlStatementSyntax control in parent.States.SelectMany(state => FlowExecutionProjection.Controls(FlowExecutionProjection.StateBody(state))))
+                    {
+                        if (control is not { Keyword.Text: "run", Value: CallExpressionSyntax { Target: NameExpressionSyntax childName } })
+                        {
+                            continue;
+                        }
+                        FlowDeclarationSyntax child = declarations[childName.IdentifierToken.Text];
+                        TypeSyntax? result = child.ResultType is ResultTypeSyntax fallible ? fallible.SuccessType : child.ResultType;
+                        Check(control.SuccessTarget, result);
+                        Check(control.FailureTarget, (child.ResultType as ResultTypeSyntax)?.ErrorType);
+
+                        void Check(SyntaxToken? target, TypeSyntax? payload)
+                        {
+                            FlowStateSyntax? state = parent.States.FirstOrDefault(state => state.Identifier.Text == target?.Text);
+                            if (payload is null || state?.Parameters.Count != 1)
+                            {
+                                return;
+                            }
+                            ParameterSyntax parameter = state.Parameters[0];
+                            string expected = BindType(source.Source.Path, payload, child.Identifier);
+                            string actual = BindType(source.Source.Path, parameter.Type, parameter.Identifier);
+                            if (expected != actual)
+                            {
+                                TypeMismatch(source.Source.Path, parameter.Type!, expected, actual);
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         private sealed record ValueBinding(
             string Type,

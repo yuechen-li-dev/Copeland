@@ -51,10 +51,10 @@ function PixelMain(input: Varyings, resources: Resources): Output {
     const n: float4 = Sample(resources.normal, resources.normalSampler, input.uv);
     var total: f32 = 0.0;
     var sum: f32 = 0.0;
-    for (var y: u32 = 0; y < 3; y = y + 1) {
-        for (var x: u32 = 0; x < 3; x = x + 1) {
-            const uv: float2 = float2(input.uv.x + (Convert<f32>(x) - 1.0) * resources.material.parameters.x,
-                input.uv.y + (Convert<f32>(y) - 1.0) * resources.material.parameters.y);
+    static for (let dy of [-1.0, 0.0, 1.0]) {
+        static for (let dx of [-1.0, 0.0, 1.0]) {
+            const uv: float2 = float2(input.uv.x + dx * resources.material.parameters.x,
+                input.uv.y + dy * resources.material.parameters.y);
             const tap: float4 = Sample(resources.ao, resources.aoSampler, uv);
             if (tap.y < 1.0) {
                 const neighbor: float4 = Sample(resources.normal, resources.normalSampler, uv);

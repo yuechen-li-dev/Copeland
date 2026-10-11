@@ -69,6 +69,7 @@ public static class MirFlowSemanticHash
             .Where(property => property.GetIndexParameters().Length == 0)
             .Where(property => !(value is MirCallExpression { NativeOperation: null } && property.Name == nameof(MirCallExpression.NativeOperation)))
             .Where(property => !(value is MirAssignmentExpression { ReturnsPreviousValue: false } && property.Name == nameof(MirAssignmentExpression.ReturnsPreviousValue)))
+            .Where(property => !(value is MirFlowDefinition { Execution: null } && property.Name == nameof(MirFlowDefinition.Execution)))
             .OrderBy(property => property.Name, StringComparer.Ordinal)
             .ToArray();
         for (int index = 0; index < properties.Length; index++)

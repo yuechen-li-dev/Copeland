@@ -23,7 +23,7 @@ internal sealed class GpuModuleGraph
         {
             string path = Normalize(source.Path);
             var projectSource = new CopelandProjectSource(path, source.Path, source.Source);
-            SyntaxTree tree = SyntaxTree.Parse(source.Source, source.Path);
+            SyntaxTree tree = SyntaxTree.Parse(source.Source, source.Path).ExpandExecutionFlows(gpu: true);
             var module = new Module(source, tree, CopelandProjectCompiler.ReadSourceImports(projectSource),
                 CopelandProjectCompiler.ReadExports(projectSource));
             if (!modules.TryAdd(path, module))
@@ -219,6 +219,7 @@ internal sealed class GpuModuleGraph
 
     private static SyntaxToken? DeclarationName(MemberSyntax member) => member switch
     {
+        FlowDeclarationSyntax flow => flow.Identifier,
         FunctionDeclarationSyntax function => function.Identifier,
         ShaderStreamDeclarationSyntax stream => stream.Identifier,
         RecordDeclarationSyntax record => record.Identifier,

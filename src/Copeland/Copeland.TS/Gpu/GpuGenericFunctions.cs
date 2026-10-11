@@ -137,7 +137,7 @@ internal sealed class GpuGenericFunctions
 
         try
         {
-            return GpuStaticEvaluation.Fold(call, functions(), values.Definitions, aggregate => values.EmbedStatic(aggregate, add));
+            return GpuStaticEvaluation.Fold(call, functions(), values.StaticDefinitions, aggregate => values.EmbedStatic(aggregate, add));
         }
         catch (Semantics.StaticEvaluationException exception)
         {
@@ -424,7 +424,7 @@ internal sealed class GpuGenericFunctions
         {
             try
             {
-                return GpuStaticEvaluation.Fold(result.Operands![0], functions(), values.Definitions, aggregate => values.EmbedStatic(aggregate, add));
+                return GpuStaticEvaluation.Fold(result.Operands![0], functions(), values.StaticDefinitions, aggregate => values.EmbedStatic(aggregate, add));
             }
             catch (Semantics.StaticEvaluationException exception)
             {

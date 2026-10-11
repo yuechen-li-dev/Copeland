@@ -51,6 +51,15 @@ internal sealed partial class GpuValues
 
     public static Environment Empty => new(new Dictionary<string, string>(), new Dictionary<string, VdMirExpression>());
 
+    public IDisposable EnterStaticValue(string name, VdMirExpression value)
+    {
+        var values = new Dictionary<string, VdMirExpression>(valueEnvironment, StringComparer.Ordinal)
+        {
+            [name] = value
+        };
+        return Enter(new Environment(typeEnvironment, values));
+    }
+
     public bool IsOpen(string type) => parameterFields.ContainsKey(type) || openValues.ContainsKey(type);
     public VdMirExpression? StaticParameter(string name) => valueEnvironment.GetValueOrDefault(name);
     public bool IsOpen(VdMirExpression value) => value.Kind == "generic-static" || (value.Operands ?? []).Any(IsOpen);

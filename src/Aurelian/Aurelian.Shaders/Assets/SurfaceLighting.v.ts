@@ -95,18 +95,18 @@ function WordFor(index: u32): MaskWord {
 }
 export function AddMaskBit(mask: float4, index: u32, value: f32): float4 {
     return match WordFor(index) {
-        MaskWord.X => float4(mask.x + value, mask.y, mask.z, mask.w),
-        MaskWord.Y => float4(mask.x, mask.y + value, mask.z, mask.w),
-        MaskWord.Z => float4(mask.x, mask.y, mask.z + value, mask.w),
-        MaskWord.W => float4(mask.x, mask.y, mask.z, mask.w + value),
+        case MaskWord.X => float4(mask.x + value, mask.y, mask.z, mask.w),
+        case MaskWord.Y => float4(mask.x, mask.y + value, mask.z, mask.w),
+        case MaskWord.Z => float4(mask.x, mask.y, mask.z + value, mask.w),
+        case MaskWord.W => float4(mask.x, mask.y, mask.z, mask.w + value),
     };
 }
 export function MaskAllows(mask: float4, index: u32): bool {
     const value: f32 = match WordFor(index) {
-        MaskWord.X => mask.x,
-        MaskWord.Y => mask.y,
-        MaskWord.Z => mask.z,
-        MaskWord.W => mask.w,
+        case MaskWord.X => mask.x,
+        case MaskWord.Y => mask.y,
+        case MaskWord.Z => mask.z,
+        case MaskWord.W => mask.w,
     };
     const shifted: f32 = Floor(value / Pow(2.0, (Convert<f32>(index) - Floor(Convert<f32>(index) / 8.0) * 8.0)));
     return shifted - Floor(shifted / 2.0) * 2.0 > 0.5;
@@ -150,7 +150,7 @@ function SpotFade(cosine: f32, inner: f32, outer: f32): f32 {
 }
 export function ConeAttenuation(direction: float3, cone: float4, config: float4): f32 {
     return match LocalSourceFor(direction, cone, config) {
-        LocalSource.Point => 1.0,
-        LocalSource.Spot(payload) => SpotFade(payload.cosine, payload.inner, payload.outer),
+        case LocalSource.Point => 1.0,
+        case LocalSource.Spot(payload) => SpotFade(payload.cosine, payload.inner, payload.outer),
     };
 }

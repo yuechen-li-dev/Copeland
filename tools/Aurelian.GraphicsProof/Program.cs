@@ -21,6 +21,12 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 
 string defaultOutput = "artifacts/local/graphics-starter";
+if (args.Contains("--flow-proof", StringComparer.Ordinal))
+{
+    FlowExecutionProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/vts-flow"),
+        args.Contains("--flow-nested-experiment", StringComparer.Ordinal));
+    return;
+}
 if (args.Contains("--cloth-foundation", StringComparer.Ordinal))
 {
     ClothFoundationProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/cloth-foundation"));

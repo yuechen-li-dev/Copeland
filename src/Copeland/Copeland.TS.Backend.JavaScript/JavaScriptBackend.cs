@@ -303,6 +303,16 @@ public static class JavaScriptBackend
 
     private static void EmitFlow(JavaScriptTextWriter writer, MirFlowDefinition flow)
     {
+        if (flow.Execution is { } execution)
+        {
+            writer.WriteLine($"const {JavaScriptIdentifierEncoder.Encode(flow.Name)} = Object.freeze({{");
+            writer.Indent();
+            writer.WriteLine($"start: {JavaScriptIdentifierEncoder.Encode(execution.StartFunction)},");
+            writer.WriteLine($"step: {JavaScriptIdentifierEncoder.Encode(execution.StepFunction)},");
+            writer.Unindent();
+            writer.WriteLine("});");
+            return;
+        }
         string flowName = JavaScriptIdentifierEncoder.Encode(flow.Name);
         var fieldsById = flow.BoardFields.ToDictionary(field => field.Id, field => field.Name);
         writer.WriteLine($"const {flowName} = Object.freeze({{");

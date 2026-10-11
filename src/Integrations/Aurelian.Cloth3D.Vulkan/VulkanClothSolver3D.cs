@@ -98,13 +98,13 @@ public sealed unsafe class VulkanClothSolver3D : IClothSolver3D
             PipelineStageFlags.HostBit | PipelineStageFlags.ComputeShaderBit, PipelineStageFlags.ComputeShaderBit);
         plant.Vk.CmdBindPipeline(command.CommandBuffer, PipelineBindPoint.Compute, pipeline);
         int headerIndex = 0;
-        float[] headerValues = data.Header(options, contacts, new(0, 0, 0), 0);
+        float[] headerValues = data.Header(options, contacts, new(ClothPhase3D.Predict, 0, 0), 0);
         int vertices = Plan.Definition.Positions.Length;
-        Dispatch(new(5, 0, vertices), 0);
+        Dispatch(new(ClothPhase3D.CapturePins, 0, vertices), 0);
         for (int substep = 0; substep < options.Substeps; substep++)
         {
             float fraction = (substep + 1f) / options.Substeps;
-            Dispatch(new(0, 0, vertices), fraction);
+            Dispatch(new(ClothPhase3D.Predict, 0, vertices), fraction);
             for (int iteration = 0; iteration < options.Iterations; iteration++)
             {
                 foreach (var color in data.Constraints)
@@ -113,7 +113,7 @@ public sealed unsafe class VulkanClothSolver3D : IClothSolver3D
                 }
                 for (int contact = 0; contact < options.ContactIterations; contact++)
                 {
-                    Dispatch(new(2, 0, vertices), fraction);
+                    Dispatch(new(ClothPhase3D.VertexContact, 0, vertices), fraction);
                     if (contacts.SphereCenter.HasValue)
                     {
                         foreach (var color in data.Triangles)
@@ -123,7 +123,7 @@ public sealed unsafe class VulkanClothSolver3D : IClothSolver3D
                     }
                 }
             }
-            Dispatch(new(4, 0, vertices), fraction);
+            Dispatch(new(ClothPhase3D.Velocity, 0, vertices), fraction);
         }
         Barrier(command.CommandBuffer, AccessFlags.ShaderWriteBit, AccessFlags.HostReadBit,
             PipelineStageFlags.ComputeShaderBit, PipelineStageFlags.HostBit);
@@ -134,7 +134,7 @@ public sealed unsafe class VulkanClothSolver3D : IClothSolver3D
 
         void Dispatch(ClothDispatch3D dispatch, float fraction)
         {
-            headerValues[0] = dispatch.Phase;
+            headerValues[0] = (int)dispatch.Phase;
             headerValues[1] = dispatch.Count;
             headerValues[2] = dispatch.Start;
             headerValues[9] = dispatch.ResetLambda ? 1 : 0;

@@ -3,7 +3,18 @@ using System.Numerics;
 
 namespace Aurelian.Cloth3D;
 
-public readonly record struct ClothDispatch3D(int Phase, int Start, int Count, bool ResetLambda = false);
+// These explicit values are the version 1 scalar header ABI.
+public enum ClothPhase3D
+{
+    Predict = 0,
+    Constraints = 1,
+    VertexContact = 2,
+    TriangleContact = 3,
+    Velocity = 4,
+    CapturePins = 5,
+}
+
+public readonly record struct ClothDispatch3D(ClothPhase3D Phase, int Start, int Count, bool ResetLambda = false);
 
 /// <summary>Version 1 scalar storage ABI: 16 floats/vertex, then 3 multiplier floats/constraint;
 /// 12 floats/source stencil; 32 floats/dispatch header. All integer values are exact f32 integers.</summary>
@@ -23,7 +34,7 @@ public sealed class ClothGpuData3D
         int index = 0;
         foreach (var color in plan.ConstraintColors)
         {
-            constraints.Add(new(1, index, color.Length));
+            constraints.Add(new(ClothPhase3D.Constraints, index, color.Length));
             foreach (int original in color)
             {
                 var constraint = plan.Constraints[original];
@@ -43,7 +54,7 @@ public sealed class ClothGpuData3D
         }
         foreach (var color in plan.TriangleColors)
         {
-            triangles.Add(new(3, index, color.Length));
+            triangles.Add(new(ClothPhase3D.TriangleContact, index, color.Length));
             foreach (int triangle in color)
             {
                 int offset = index++ * 12;
@@ -99,7 +110,11 @@ public sealed class ClothGpuData3D
     {
         float h = options.DeltaSeconds / options.Substeps;
         float[] header = new float[32];
-        header[0] = dispatch.Phase;
+        if (!Enum.IsDefined(dispatch.Phase))
+        {
+            throw new ArgumentOutOfRangeException(nameof(dispatch));
+        }
+        header[0] = (int)dispatch.Phase;
         header[1] = dispatch.Count;
         header[2] = dispatch.Start;
         header[3] = Plan.Definition.Positions.Length;

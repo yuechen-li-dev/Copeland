@@ -300,6 +300,20 @@ public static class CSharpBackend
 
     private static void EmitFlow(CSharpTextWriter writer, MirFlowDefinition flow, IReadOnlySet<string> enumNames, List<CSharpDiagnostic> diagnostics)
     {
+        if (flow.Execution is { } execution)
+        {
+            string frameType = MapValueStorageType(execution.FrameType);
+            string parameters = string.Join(", ", execution.Parameters.Select(parameter => MapValueStorageType(parameter.Type) + " " + CSharpNameMangler.Mangle(parameter.Name)));
+            string arguments = string.Join(", ", execution.Parameters.Select(parameter => CSharpNameMangler.Mangle(parameter.Name)));
+            writer.WriteLine($"public static class {CSharpNameMangler.Mangle(flow.Name)}");
+            writer.WriteLine("{");
+            writer.Indent();
+            writer.WriteLine($"public static {frameType} Start({parameters}) => {ModuleClassName}.{CSharpNameMangler.Mangle(execution.StartFunction)}({arguments});");
+            writer.WriteLine($"public static {frameType} Step({frameType} frame) => {ModuleClassName}.{CSharpNameMangler.Mangle(execution.StepFunction)}(frame);");
+            writer.Unindent();
+            writer.WriteLine("}");
+            return;
+        }
         string flowName = CSharpNameMangler.Mangle(flow.Name);
         string boardType = RecordTypeName(flow.BoardType.RecordTypeId);
         string resultType = flowName + "TransitionResult";

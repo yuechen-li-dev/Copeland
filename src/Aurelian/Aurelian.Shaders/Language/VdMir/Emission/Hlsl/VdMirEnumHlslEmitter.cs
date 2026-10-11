@@ -11,9 +11,17 @@ internal static class VdMirEnumHlslEmitter
         {
             foreach (VdMirEnumCase variant in enumeration.Cases.Where(item => item.Payload.Count > 0))
             {
-                Structure(builder, variant.PayloadType, variant.Payload);
+                if (variant.PayloadLayout is { } payload)
+                {
+                    VdMirValueHlslEmitter.Emit(builder, [payload]);
+                }
+                else Structure(builder, variant.PayloadType, variant.Payload);
             }
-            Structure(builder, enumeration.Name, enumeration.CarrierFields);
+            if (enumeration.CarrierLayout is { } carrier)
+            {
+                VdMirValueHlslEmitter.Emit(builder, [carrier]);
+            }
+            else Structure(builder, enumeration.Name, enumeration.CarrierFields);
         }
     }
 

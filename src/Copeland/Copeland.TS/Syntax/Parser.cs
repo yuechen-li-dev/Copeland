@@ -4,6 +4,7 @@ namespace Copeland.TS.Syntax;
 
 public sealed class Parser
 {
+    private int _flowStateDepth;
     private readonly string _text;
     private readonly SyntaxToken[] _tokens;
     private readonly IReadOnlyList<Diagnostic> _lexerDiagnostics;
@@ -317,12 +318,15 @@ public sealed class Parser
     {
         SyntaxToken flowKeyword = NextToken();
         SyntaxToken identifier = Match(SyntaxKind.IdentifierToken);
+        bool explicitExecution = Current.Kind == SyntaxKind.OpenParenToken;
+        IReadOnlyList<ParameterSyntax> parameters = ParseFlowParameters();
         SyntaxToken? resultArrow = Current.Kind == SyntaxKind.ArrowToken ? NextToken() : null;
         TypeSyntax? resultType = resultArrow is null ? null : ParseTypeSyntax();
         SyntaxToken openBrace = Match(SyntaxKind.OpenBraceToken);
         FlowBoardSyntax? board = null;
         var events = new List<FlowEventSyntax>();
         var states = new List<FlowStateSyntax>();
+        SyntaxToken? capacity = null;
         while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
         {
             SyntaxToken start = Current;
@@ -333,10 +337,42 @@ public sealed class Parser
             }
             else if (IsWord(Current, "event")) events.Add(ParseFlowEvent());
             else if (IsWord(Current, "state")) states.Add(ParseFlowState());
+            else if (IsWord(Current, "stack"))
+            {
+                NextToken();
+                if (capacity is not null)
+                {
+                    _diagnostics.Report("COPE-FLOW-0032", "Declare stack capacity once.", Current.Position, Current.Text.Length);
+                }
+                capacity = Match(SyntaxKind.NumberToken);
+                Match(SyntaxKind.SemicolonToken);
+            }
             else { ReportUnexpectedToken(Current); NextToken(); }
             if (Current == start) NextToken();
         }
-        return new FlowDeclarationSyntax(flowKeyword, identifier, resultArrow, resultType, openBrace, board, events, states, Match(SyntaxKind.CloseBraceToken));
+        return new FlowDeclarationSyntax(flowKeyword, identifier, resultArrow, resultType, openBrace, board, events, states, Match(SyntaxKind.CloseBraceToken))
+        {
+            Parameters = parameters,
+            StackCapacityToken = capacity,
+            IsExecution = explicitExecution,
+        };
+    }
+
+    private IReadOnlyList<ParameterSyntax> ParseFlowParameters()
+    {
+        var parameters = new List<ParameterSyntax>();
+        if (Current.Kind != SyntaxKind.OpenParenToken) return parameters;
+        NextToken();
+        while (Current.Kind is not SyntaxKind.CloseParenToken and not SyntaxKind.EndOfFileToken)
+        {
+            var name = Match(SyntaxKind.IdentifierToken);
+            var colon = Match(SyntaxKind.ColonToken);
+            parameters.Add(new ParameterSyntax(name, colon, ParseTypeSyntax()));
+            if (Current.Kind != SyntaxKind.CommaToken) break;
+            NextToken();
+        }
+        Match(SyntaxKind.CloseParenToken);
+        return parameters;
     }
 
     private FlowBoardSyntax ParseFlowBoard()
@@ -380,22 +416,63 @@ public sealed class Parser
     {
         SyntaxToken stateKeyword = NextToken();
         SyntaxToken identifier = Match(SyntaxKind.IdentifierToken);
+        IReadOnlyList<ParameterSyntax> parameters = ParseFlowParameters();
         SyntaxToken? initial = IsWord(Current, "initial") ? NextToken() : null;
         SyntaxToken openBrace = Match(SyntaxKind.OpenBraceToken);
         var transitions = new List<FlowTransitionSyntax>();
         FlowTerminalSyntax? terminal = null;
+        var statements = new List<StatementSyntax>();
+        _flowStateDepth++;
         while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
         {
+            int startPosition = _position;
             if (IsWord(Current, "on")) transitions.Add(ParseFlowTransition());
             else if (IsWord(Current, "finish") || IsWord(Current, "fail"))
             {
                 SyntaxToken keyword = NextToken();
                 ExpressionSyntax? expression = Current.Kind == SyntaxKind.SemicolonToken ? null : ParseExpression();
                 terminal = new FlowTerminalSyntax(keyword, expression, Match(SyntaxKind.SemicolonToken));
+                statements.Add(new FlowControlStatementSyntax(keyword, expression, null, null, terminal.SemicolonToken));
             }
-            else { ReportUnexpectedToken(Current); NextToken(); }
+            else statements.Add(ParseStatement());
+            if (_position == startPosition) NextToken();
         }
-        return new FlowStateSyntax(stateKeyword, identifier, initial, openBrace, transitions, terminal, Match(SyntaxKind.CloseBraceToken));
+        var closeBrace = Match(SyntaxKind.CloseBraceToken);
+        _flowStateDepth--;
+        bool ordinaryBody = statements.Count > 1 || statements.Any(statement => statement is not FlowControlStatementSyntax { Keyword.Text: "finish" or "fail" });
+        return new FlowStateSyntax(stateKeyword, identifier, initial, openBrace, transitions, terminal, closeBrace)
+        {
+            Parameters = parameters,
+            Body = ordinaryBody ? new BlockStatementSyntax(openBrace, statements, closeBrace) : null,
+        };
+    }
+
+    private FlowControlStatementSyntax ParseFlowControl()
+    {
+        SyntaxToken keyword = NextToken();
+        ExpressionSyntax? value = null;
+        SyntaxToken? success = null;
+        SyntaxToken? failure = null;
+        if (keyword.Text == "transition")
+        {
+            success = Match(SyntaxKind.IdentifierToken);
+        }
+        else if (keyword.Text is "push" or "run")
+        {
+            value = ParseExpression();
+            Match(SyntaxKind.ArrowToken);
+            success = Match(SyntaxKind.IdentifierToken);
+            if (Current.Kind == SyntaxKind.BangToken)
+            {
+                NextToken();
+                failure = Match(SyntaxKind.IdentifierToken);
+            }
+        }
+        else if (Current.Kind != SyntaxKind.SemicolonToken)
+        {
+            value = ParseExpression();
+        }
+        return new FlowControlStatementSyntax(keyword, value, success, failure, Match(SyntaxKind.SemicolonToken));
     }
 
     private FlowTransitionSyntax ParseFlowTransition()
@@ -1551,6 +1628,7 @@ public sealed class Parser
     private StatementSyntax ParseStatement()
         => Current.Kind switch
         {
+            SyntaxKind.IdentifierToken when _flowStateDepth > 0 && Current.Text is "transition" or "push" or "run" or "finish" or "fail" => ParseFlowControl(),
             SyntaxKind.StaticKeyword when Peek(1).Kind is SyntaxKind.IfKeyword or SyntaxKind.ForKeyword or SyntaxKind.MatchKeyword or SyntaxKind.SwitchKeyword => ParseStaticStatement(),
             SyntaxKind.OpenBraceToken => ParseBlockStatement(),
             SyntaxKind.LayoutKeyword => new LocalPresentationDeclarationStatementSyntax(ParseLayoutDeclaration(), null),
@@ -1725,6 +1803,10 @@ public sealed class Parser
         SyntaxToken openParen = Match(SyntaxKind.OpenParenToken);
         SyntaxToken declarationKeyword = Current.Kind is SyntaxKind.ConstKeyword or SyntaxKind.LetKeyword ? NextToken() : Match(SyntaxKind.ConstKeyword);
         SyntaxToken identifier = Match(SyntaxKind.IdentifierToken);
+        if (!IsWord(Current, "of"))
+        {
+            _diagnostics.Report("COPE-STATIC-0006", "Static for iterates values: use 'of', not property-key iteration with 'in'.", Current.Position, Current.Text.Length);
+        }
         SyntaxToken ofKeyword = IsWord(Current, "of") ? NextToken() : Match(SyntaxKind.IdentifierToken);
         ExpressionSyntax iterable = ParseExpression();
         SyntaxToken closeParen = Match(SyntaxKind.CloseParenToken);
@@ -1740,13 +1822,14 @@ public sealed class Parser
         var arms = new List<StaticMatchArmSyntax>();
         while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
         {
+            SyntaxToken? caseKeyword = IsCasePrefix() ? NextToken() : null;
             MatchPatternSyntax pattern = Current.Kind is SyntaxKind.TrueKeyword or SyntaxKind.FalseKeyword or SyntaxKind.StringToken or SyntaxKind.NumberToken
                 ? new MatchPatternSyntax(NextToken(), null, [], [], null)
                 : ParseMatchPattern();
             SyntaxToken arrow = Match(SyntaxKind.ArrowToken);
             StatementSyntax statement = ParseStatement();
             SyntaxToken? comma = Current.Kind == SyntaxKind.CommaToken ? NextToken() : null;
-            arms.Add(new StaticMatchArmSyntax(pattern, arrow, statement, comma));
+            arms.Add(new StaticMatchArmSyntax(pattern, arrow, statement, comma, caseKeyword));
         }
         return new StaticMatchStatementSyntax(staticKeyword, matchKeyword, expression, openBrace, arms, Match(SyntaxKind.CloseBraceToken));
     }
@@ -2198,6 +2281,13 @@ public sealed class Parser
         }
         _diagnostics.Report("COPE-CLASS-0001", $"Expected '{text}' in class declaration.", Current.Position, Math.Max(1, Current.Text.Length));
         return MissingToken(SyntaxKind.IdentifierToken, Current.Position);
+    }
+
+    private bool IsCasePrefix()
+    {
+        // `case` remains a legal variant name in existing sources.
+        return IsWord(Current, "case")
+            && Peek(1).Kind is not (SyntaxKind.ArrowToken or SyntaxKind.OpenParenToken or SyntaxKind.DotToken);
     }
 
     private TableDeclarationSyntax ParseTableDeclaration(bool isExported = false)
@@ -3507,6 +3597,7 @@ public sealed class Parser
 
     private MatchArmSyntax ParseMatchArm()
     {
+        SyntaxToken? caseKeyword = IsCasePrefix() ? NextToken() : null;
         var pattern = ParseMatchPattern();
         var arrow = Match(SyntaxKind.ArrowToken);
         var expression = ParseExpression();
@@ -3516,7 +3607,7 @@ public sealed class Parser
             comma = Match(SyntaxKind.CommaToken);
         }
 
-        return new MatchArmSyntax(pattern, arrow, expression, comma);
+        return new MatchArmSyntax(pattern, arrow, expression, comma, caseKeyword);
     }
 
     private MatchPatternSyntax ParseMatchPattern()
