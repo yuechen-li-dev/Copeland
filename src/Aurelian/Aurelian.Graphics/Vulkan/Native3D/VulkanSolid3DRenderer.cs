@@ -87,6 +87,10 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
     public ReflectionProbe3D? ReflectionProbe { get; set; }
     public IReadOnlyList<LocalLight3D> LocalLights { get; set; } = [];
 
+    /// <summary>Caller-owned pool; its lifetime must enclose renderer use.</summary>
+    public VulkanParticles3D? ParticleSystem { get; set; }
+    public IReadOnlyList<ParticleEmitter3D> ParticleEmitters { get; set; } = [];
+
     public Graphics3DSettings Settings { get; set; } = Graphics3DSettings.Default;
 
     public VulkanSolid3DRenderer(
@@ -139,7 +143,7 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
             {
                 ValidateModernFormats();
                 gpuTimings = new(plant, ["directional-shadow", "linear-lighting", "temporal-resolve", "bloom", "tone-map-output",
-                    .. surfaceOnly ? new[] { "ambient-occlusion", "local-light-culling", "surface-lighting", "local-shadows", "subsurface-diffusion", "atmosphere", "transparency", "refraction" } : []]);
+                    .. surfaceOnly ? new[] { "ambient-occlusion", "local-light-culling", "surface-lighting", "local-shadows", "subsurface-diffusion", "atmosphere", "transparency", "refraction", "particles-update" } : []]);
                 hdr = VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator, target.Width, target.Height,
                     VulkanTextureUsage.ColorAttachment | VulkanTextureUsage.ShaderResource | VulkanTextureUsage.TransferSource,
                     VulkanMemoryUsage.GpuOnly, "solid3d.hdr", VulkanTextureFormat.Rgba16Float);
@@ -432,7 +436,20 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
             if (modelRenderer is null) throw new InvalidOperationException("StaticModel3D shader was not configured.");
         }
         modelRenderer?.Upload(models, worldToClip, eye, lighting, previousClip, resetHistory);
-        bool hasTransparency = models.Any(batch => batch.Material.AlphaBlend);
+        bool hasParticles = ParticleEmitters.Count > 0;
+        if (hasParticles)
+        {
+            if (ParticleSystem is null || transparency is null || surfaceLighting is null)
+            {
+                throw new InvalidOperationException("AUR-VFX-008: Emitters require a particle pool and surface transparency programs.");
+            }
+        }
+        if (ParticleSystem is not null)
+        {
+            ParticleSystem.ValidatePlant(plant);
+            ParticleSystem.Configure(ParticleEmitters, worldToClip);
+        }
+        bool hasTransparency = hasParticles || models.Any(batch => batch.Material.AlphaBlend);
         bool hasRefraction = models.Any(batch => batch.Material.Transmission > 0);
         if (hasRefraction)
             EnsureRefraction();
@@ -447,10 +464,18 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
             transparency.Prepare(models, worldToClip, eye, lighting, previousClip,
                 surfaceLighting.TransparentUniforms(cascades!, settings, target.Width, target.Height),
                 surfaceLighting.TransparentInputs(shadowMap, motion!));
+            transparency.PrepareParticles(hasParticles ? ParticleSystem : null, worldToClip, eye, settings,
+                motion!, surfaceLighting.VolumeTexture, surfaceLighting.VolumeParameters(settings));
         }
         VulkanCommandBufferLease command = commandPool.Rent(fences.CommandListFence.LastKnownCompletedValue);
         Require(command.Begin().Success, "3D command begin failed.");
         gpuTimings?.Reset(command);
+        if (surfaceOnly)
+        {
+            gpuTimings?.Mark(command, 26);
+            if (hasParticles) { ParticleSystem!.Record(command); }
+            gpuTimings?.Mark(command, 27);
+        }
         gpuTimings?.Mark(command, 0);
         var encoder = new VulkanRenderPassCommandEncoder();
         if (shadowPass is not null)
@@ -615,6 +640,10 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         resetHistory = false;
         IReadOnlyList<Native3DGpuPassTime> times = gpuTimings?.Read() ?? [];
         int triangleCount = (geometry.Length + models.Sum(item => item.Vertices.Length) + (int)(gpuGeometry?.VertexCount ?? 0)) / 3;
+        if (hasParticles)
+        {
+            triangleCount += (int)ParticleSystem!.VertexCount / 3;
+        }
         if (capture)
         {
             var readback = target.Capture();

@@ -38,6 +38,23 @@ public sealed class NativeGameGraphics : IDisposable
         get => Renderer.ReflectionProbe;
         set => Renderer.ReflectionProbe = value;
     }
+
+    /// <summary>Agent-owned visual snapshots. Allocate the default GPU pool on first use.</summary>
+    public IReadOnlyList<ParticleEmitter3D> ParticleEmitters
+    {
+        get => Renderer.ParticleEmitters;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            if (value.Count > 0 && Renderer.ParticleSystem is null)
+            {
+                Renderer.ParticleSystem = Own(new VulkanParticles3D(Plant, assets.ComputeShader("Particles3D.v.ts")));
+            }
+            Renderer.ParticleEmitters = value;
+        }
+    }
+
+    public ParticleBudget3D? ParticleBudget => Renderer.ParticleSystem?.Inspection;
     private readonly Stack<IDisposable> owned = new();
     private readonly GameAssets assets;
     private readonly LightingCompilationController lighting;
@@ -118,6 +135,7 @@ public sealed class NativeGameGraphics : IDisposable
                     SubsurfaceMerge = assets.Shader("SubsurfaceMerge3D.v.ts"),
                     TransparentModel = assets.Shader("TransparentModel3D.v.ts"),
                     TransparencyResolve = assets.Shader("TransparencyResolve3D.v.ts"),
+                    ParticleBillboards = assets.Shader("ParticleBillboard3D.v.ts"),
                 }));
             Presenter = Own(new VulkanNativeSwapchainPresenter(Plant, Target, Swapchain));
             Font = AurelianNativeUiFont.Create(assets.FontDirectory());

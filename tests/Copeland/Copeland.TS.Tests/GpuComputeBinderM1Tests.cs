@@ -197,6 +197,7 @@ public sealed class GpuComputeBinderM1Tests
     [Theory]
     [InlineData("Sqrt")]
     [InlineData("U32")]
+    [InlineData("Floor")]
     public void ComputeIntrinsicsCannotBeRedefined(string intrinsic)
     {
         string source = $"function {intrinsic}(value: f32): f32 {{ return value; }}\n" + ComputeSource;
@@ -206,6 +207,27 @@ public sealed class GpuComputeBinderM1Tests
 
     private static string Diagnostics(VdMirComputeModule module)
         => string.Join(Environment.NewLine, module.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}"));
+
+    [Theory]
+    [InlineData("%")]
+    [InlineData("&")]
+    [InlineData("|")]
+    [InlineData("^")]
+    [InlineData("<<")]
+    [InlineData(">>")]
+    public void IntegerOperationsRejectFloatingPointOperands(string operation)
+    {
+        string source = $$"""
+            @compute @numthreads(1, 1, 1)
+            function Main(@builtin(dispatchThreadId) thread: uint3,
+                @binding(0) readwrite Output: StorageBuffer<f32>): void {
+                Output[thread.x] = 1.0 {{operation}} 2.0;
+            }
+            """;
+        var module = Compile(source, "invalid-integer.v.ts");
+        Assert.False(module.Success);
+        Assert.Contains(module.Diagnostics, diagnostic => diagnostic.Code == "COPE-GPU-OPERATOR-0001");
+    }
 
     private static string NormalizeSourcePath(string json)
         => json.Replace("compute.v.ts", "compute.ts", StringComparison.Ordinal);

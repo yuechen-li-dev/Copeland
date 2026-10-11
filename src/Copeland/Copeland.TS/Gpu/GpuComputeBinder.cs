@@ -104,7 +104,7 @@ public static partial class GpuComputeBinder
             {
                 foreach (FunctionDeclarationSyntax function in tree.Root.Members.OfType<FunctionDeclarationSyntax>())
                 {
-                    if (function.Identifier.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp" or "Log" or "Atan2")
+                    if (function.Identifier.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp" or "Log" or "Atan2" or "Floor")
                     {
                         AddDiagnostic("COPE-GPU-SYMBOL-0001", "SDSL-V1509", "symbol",
                             $"{function.Identifier.Text} is a compiler-owned intrinsic and cannot be redefined.",
@@ -780,7 +780,7 @@ public static partial class GpuComputeBinder
             }
 
             if (call.Target is NameExpressionSyntax intrinsic &&
-                intrinsic.IdentifierToken.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp" or "Log" or "Atan2")
+                intrinsic.IdentifierToken.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp" or "Log" or "Atan2" or "Floor")
             {
                 var operands = call.Arguments.Select(argument => BindExpression(path, argument, scope)).ToArray();
                 string intrinsicName = intrinsic.IdentifierToken.Text;
@@ -961,6 +961,7 @@ public static partial class GpuComputeBinder
             string? resultType = binary.OperatorToken.Text switch
             {
                 "+" or "-" or "*" or "/" when numeric => left.Type,
+                "%" or "&" or "|" or "^" or "<<" or ">>" when left.Type == "u32" && right.Type == "u32" => "u32",
                 "<" or "<=" or ">" or ">=" or "==" or "!=" when numeric => "bool",
                 "&&" or "||" or "==" or "!=" when boolean => "bool",
                 _ => null,

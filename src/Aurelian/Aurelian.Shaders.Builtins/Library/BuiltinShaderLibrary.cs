@@ -7,6 +7,7 @@ public enum ShaderFamily
 {
     Ui2D,
     Effects2D,
+    Effects3D,
     Surfaces,
     Lighting,
     Shadows,
@@ -44,6 +45,9 @@ public static class BuiltinShaderLibrary
         new("ReactiveFluid2D.v.ts", ShaderFamily.Effects2D, ShaderSourceKind.Graphics),
         new("SemanticFog.v.ts", ShaderFamily.Effects2D, ShaderSourceKind.Graphics),
         new("SoftShockwave.v.ts", ShaderFamily.Effects2D, ShaderSourceKind.Graphics),
+
+        new("Particles3D.v.ts", ShaderFamily.Effects3D, ShaderSourceKind.Compute),
+        new("ParticleBillboard3D.v.ts", ShaderFamily.Effects3D, ShaderSourceKind.Graphics),
 
         new("Solid3D.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Graphics),
         new("StaticModel3D.v.ts", ShaderFamily.Surfaces, ShaderSourceKind.Graphics),

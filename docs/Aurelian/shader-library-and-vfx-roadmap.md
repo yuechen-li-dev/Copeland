@@ -2,8 +2,8 @@
 
 ## Ownership
 
-The production library contains 48 Visual TypeScript sources in 11 families:
-35 graphics entries, three compute entries and ten imported helper modules.
+The production library contains 50 Visual TypeScript sources in 12 families:
+36 graphics entries, four compute entries and ten imported helper modules.
 Source files live under `src/Aurelian/Aurelian.Shaders/Assets/<Family>/`.
 This organization preserves their bytes, flat compiler module IDs and existing
 game shader names.
@@ -65,8 +65,10 @@ volumetric shafts, transparency, refraction and subsurface diffusion also have
 renderer paths. Those are foundations with bounded tests, not a claim of parity
 with production engines across arbitrary scenes or hardware.
 
-The audit found reusable emitters and particles in **Effects2D**, but no reusable
-3D particle/ribbon/mesh VFX or decal path. `Graphics3DSettings` exposes manual
+The initial audit found reusable emitters and particles in **Effects2D**. The
+[GPU VFX foundation](gpu-vfx-foundation.md) now supplies 3D billboard particles
+for fire, smoke and sparks. Ribbons, mesh particles and decals remain future
+work. `Graphics3DSettings` exposes manual
 exposure and Shaded/AmbientOcclusion debug views; automatic exposure is another
 gap. `ModelMaterial` has no authored clearcoat, anisotropy or fabric sheen.
 Existing Vulkan timestamps already measure named passes. Extend them to new
@@ -74,7 +76,8 @@ passes instead of creating another profiler.
 
 ## Recommended implementation order
 
-These are proposals, not features shipped by this consolidation.
+This table describes the full proposed packs. Pack 1 now has a bounded billboard
+foundation; the remaining items are not all shipped capabilities.
 
 | Pack | Concrete capability | Qualification |
 | --- | --- | --- |
@@ -125,12 +128,12 @@ dotnet run --project tools/Aurelian.GraphicsProof -c Release --no-build -- --tra
 dotnet run --project tools/Aurelian.GraphicsProof -c Release --no-build -- --temporal-graphics --output artifacts/local/shader-library/temporal
 ```
 
-The catalog tests compile all 38 entry points through the real binder, DXC and
+The catalog tests compile all 40 entry points through the real binder, DXC and
 SPIR-V validation, inspect the packaged resource inventory and exercise the game
 cache. Native proofs separately exercise rendering and image-quality checks.
 Local qualification logs and captures are under `artifacts/local/shader-library`.
 
-Qualification on 2026-10-11: the Release Aurelian solution build passed, and all
+Initial consolidation qualification on 2026-10-11: the Release Aurelian solution build passed, and all
 1,262 tests across 30 test assemblies passed with no skips. All 48 moved shader
 files retained their SHA-256 hashes; the NuGet archive's 48 source files matched
 those hashes and included the catalog source and license notices. Surface,

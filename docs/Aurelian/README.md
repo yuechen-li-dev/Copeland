@@ -10,6 +10,7 @@ Aurelian owns the engine lifecycle, world and game-object models, actuation, fra
 - [Blender/GLB static assets, typed materials and explicit replacement](static-assets.md)
 - [HDR environment compilation, GPU AO, tiled local lights and perspective TAA tuning](surface-graphics-pack.md)
 - [Organized shader library, ownership and next VFX pack](shader-library-and-vfx-roadmap.md)
+- [GPU fire, smoke and sparks: bounded emitters and native qualification](gpu-vfx-foundation.md)
 - [Agent-driven humanoid clips and Vulkan compute skinning](humanoid-animation.md)
 - [Lighting compilation contracts, controller and Vulkan cache experiments](lighting-compilation.md)
 - [Engine-owned compiled diffuse assets, authoring and native game loading](compiled-diffuse-lighting.md)

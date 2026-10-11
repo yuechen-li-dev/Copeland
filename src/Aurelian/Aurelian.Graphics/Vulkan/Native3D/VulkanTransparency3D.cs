@@ -24,6 +24,8 @@ internal sealed class VulkanTransparency3D : IDisposable
     private readonly AurelianVulkanFramebuffer framebuffer;
     private readonly VulkanPostProcess3D resolvePass;
     private readonly VulkanModel3DBatches models;
+    private readonly VulkanParticleBillboards3D? particleDraw;
+    private VulkanParticles3D? particles;
     private readonly AurelianVulkanTexture accumulation;
     private readonly AurelianVulkanTexture optical;
     private readonly AurelianVulkanTexture output;
@@ -54,6 +56,10 @@ internal sealed class VulkanTransparency3D : IDisposable
             models = Own(new VulkanModel3DBatches(plant, allocator, commands, fences, accumulationPass,
                 programs.TransparentModel!, shadow, sampler, weightedTransparency: true));
             resolvePass = Own(new VulkanPostProcess3D(plant, allocator, programs.TransparencyResolve!, output, 3, Filter.Nearest));
+            if (programs.ParticleBillboards is not null)
+            {
+                particleDraw = Own(new VulkanParticleBillboards3D(plant, allocator, accumulationPass, programs.ParticleBillboards));
+            }
         }
         catch
         {
@@ -82,6 +88,20 @@ internal sealed class VulkanTransparency3D : IDisposable
         models.Prepare(model);
     }
 
+    public void PrepareParticles(VulkanParticles3D? source, Matrix4x4 clip, Vector3 eye,
+        Graphics3DSettings settings, AurelianVulkanTexture motion,
+        AurelianVulkanTexture volume, float[] volumeParameters)
+    {
+        particles = source;
+        if (source is null) { return; }
+        if (particleDraw is null)
+        {
+            throw new InvalidOperationException("AUR-VFX-008: Configure ParticleBillboards in the surface program pack.");
+        }
+        particleDraw.Configure(clip, eye, settings, framebuffer.Descriptor.Width, framebuffer.Descriptor.Height,
+            motion, volume, volumeParameters);
+    }
+
     public AurelianVulkanTexture Record(VulkanCommandBufferLease command, AurelianVulkanBuffer triangle,
         AurelianVulkanTexture scene)
     {
@@ -93,6 +113,7 @@ internal sealed class VulkanTransparency3D : IDisposable
         if (!begin.Success)
             throw new InvalidOperationException("Weighted transparency accumulation begin failed.");
         models.Draw(command, begin.Scope!.Value, framebuffer, batches);
+        if (particles is not null) { particleDraw!.Draw(command, begin.Scope.Value, framebuffer, particles); }
         if (!encoder.End(plant, command, begin.Scope.Value).Success)
             throw new InvalidOperationException("Weighted transparency accumulation end failed.");
         resolvePass.Configure([0, 0, 0, 0], scene, accumulation, optical);

@@ -13,6 +13,7 @@ public sealed record SurfaceLightingPrograms(
     public CompiledGraphicsProgram? SubsurfaceMerge { get; init; }
     public CompiledGraphicsProgram? TransparentModel { get; init; }
     public CompiledGraphicsProgram? TransparencyResolve { get; init; }
+    public CompiledGraphicsProgram? ParticleBillboards { get; init; }
     public CompiledGraphicsProgram? VolumeInject { get; init; }
     public CompiledGraphicsProgram? VolumeIntegrate { get; init; }
     public CompiledGraphicsProgram? VolumeResolve { get; init; }

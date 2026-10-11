@@ -193,6 +193,7 @@ public static partial class VdMirComputeHlslEmitter
     private static string CallName(string name) => name switch
     {
         "Sqrt" => "sqrt",
+        "Floor" => "floor",
         "Log" => "log",
         "Abs" => "abs",
         "Min" => "min",

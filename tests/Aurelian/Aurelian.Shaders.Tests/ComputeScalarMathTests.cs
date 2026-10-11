@@ -37,6 +37,54 @@ public sealed class ComputeScalarMathTests
     }
 
     [Theory]
+    [InlineData("Floor(-1.25)", true)]
+    [InlineData("Floor(1)", false)]
+    [InlineData("Floor(1.0, 2.0)", false)]
+    public void FloorCompilesThroughDxcAndChecksOperands(string expression, bool admitted)
+    {
+        string source = $$"""
+            @compute @numthreads(1, 1, 1)
+            function Main(@builtin(dispatchThreadId) thread: uint3,
+                @binding(0) readwrite Output: StorageBuffer<f32>): void {
+                Output[thread.x] = {{expression}};
+            }
+            """;
+        var module = GpuComputeBinder.Compile(new([new GpuSourceFile("floor.v.ts", source)]));
+        Assert.Equal(admitted, module.Success);
+        if (admitted)
+        {
+            Assert.True(VdMirComputeBackend.Compile(module).SpirvValidated);
+        }
+        else
+        {
+            Assert.Contains(module.Diagnostics, diagnostic => diagnostic.Code == "COPE-GPU-CALL-0001");
+        }
+    }
+
+    [Theory]
+    [InlineData("%")]
+    [InlineData("&")]
+    [InlineData("|")]
+    [InlineData("^")]
+    [InlineData("<<")]
+    [InlineData(">>")]
+    public void UnsignedIntegerOperationsCompileThroughDxc(string operation)
+    {
+        string source = $$"""
+            @compute @numthreads(1, 1, 1)
+            function Main(@builtin(dispatchThreadId) thread: uint3,
+                @binding(0) readonly Input: StorageBuffer<u32>,
+                @binding(1) readwrite Output: StorageBuffer<u32>): void {
+                Output[thread.x] = Input[thread.x] {{operation}} 3;
+            }
+            """;
+        var module = GpuComputeBinder.Compile(new([new GpuSourceFile("integer.v.ts", source)]));
+        Assert.True(module.Success, string.Join("; ", module.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        var backend = VdMirComputeBackend.Compile(module);
+        Assert.True(backend.SpirvValidated, backend.DxcOutput + backend.SpirvValidationOutput);
+    }
+
+    [Theory]
     [InlineData("Clamp(Max(Abs(-Input[thread.x]), 0.0), 0.0, 1.0)", true)]
     [InlineData("Abs(1)", false)]
     [InlineData("Min(1.0)", false)]

@@ -21,6 +21,11 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 
 string defaultOutput = "artifacts/local/graphics-starter";
+if (args.Contains("--particles-graphics", StringComparer.Ordinal))
+{
+    ParticlesGraphicsProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/gpu-vfx"));
+    return;
+}
 if (args.Contains("--compute-refactor", StringComparer.Ordinal))
 {
     ComputeRefactorProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/vts-compute-values/qualification"),
