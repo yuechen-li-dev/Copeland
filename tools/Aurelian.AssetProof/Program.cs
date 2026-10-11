@@ -12,6 +12,7 @@ using Aurelian.Graphics.Vulkan.Resources.Textures;
 using Aurelian.NativeComposition;
 using Aurelian.Rendering.Contracts.Models;
 using Aurelian.Shaders.Graphics;
+using Aurelian.Shaders.Library;
 using Aurelian.World.Scenes;
 using Copeland.TS.Gpu;
 
@@ -53,9 +54,7 @@ SceneAgent<Vector3> player = game.Scene.Agent<Vector3>("player");
 string[] instanceIds = frame.Models.Select(item => item.Id).ToArray();
 Matrix4x4[] placements = frame.Models.Select(item => item.WorldTransform).ToArray();
 
-string shaderSource = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "StaticModel3D.v.ts"));
-var module = GpuGraphicsBinder.Compile(new([new("StaticModel3D.v.ts", shaderSource),
-    new("Lighting3D.v.ts", File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Lighting3D.v.ts")))]));
+var module = GpuGraphicsBinder.Compile(new(BuiltinShaderLibrary.LoadSources("StaticModel3D.v.ts")));
 Require(module.Success, string.Join("; ", module.Diagnostics.Select(item => item.Message)));
 var backend = VdMirGraphicsBackend.Compile(module, "vulkan1.2");
 var shader = CompiledGraphicsProgramExporter.Export(module, backend);

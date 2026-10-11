@@ -29,7 +29,7 @@ public sealed class MsdfTextShaderM2Tests
 
     internal static VdMirGraphicsModule Compile()
     {
-        const string sourceName = "src/Aurelian/Aurelian.Shaders/Assets/MsdfText.v.ts";
+        const string sourceName = "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/MsdfText.v.ts";
         string source = File.ReadAllText(Path.Combine(RepositoryRoot(), sourceName.Replace('/', Path.DirectorySeparatorChar)))
             .Replace("\r\n", "\n", StringComparison.Ordinal);
         VdMirGraphicsModule module = GpuGraphicsBinder.Compile(

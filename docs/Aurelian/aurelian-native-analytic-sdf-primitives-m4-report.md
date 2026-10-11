@@ -50,7 +50,7 @@ Standard Badge the pill law. Application semantics do not mention SDF.
 
 ## Shader and material
 
-Production source is `src/Aurelian/Aurelian.Shaders/Assets/AnalyticShape2D.v.ts`.
+Production source is `src/Aurelian/Aurelian.Shaders/Assets/Ui2D/AnalyticShape2D.v.ts`.
 The compiler profile gained only scalar `Abs(f32)` and `Sqrt(f32)` intrinsics. It emits
 one 64-byte set-0/binding-0 uniform material:
 

@@ -41,8 +41,8 @@ foreach (string asset in requestedAssets)
     resources.Add(asset, native.Resource!);
 }
 
-CompiledGraphicsProgram fixedProgram = CompileShader(root, "src/Aurelian/Aurelian.Shaders/Assets/MsdfText.v.ts");
-CompiledGraphicsProgram derivativeProgram = CompileShader(root, "src/Aurelian/Aurelian.Shaders/Assets/ProfileMsdf.v.ts");
+CompiledGraphicsProgram fixedProgram = CompileShader(root, "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/MsdfText.v.ts");
+CompiledGraphicsProgram derivativeProgram = CompileShader(root, "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/ProfileMsdf.v.ts");
 VulkanInitResult init = VulkanPlantInitializer.CreatePlant(
     PlantId.Zero,
     new VulkanPlantOptions(EnableValidation: true, ApplicationName: "Aurelian.NativeSpriteEdgeDiagnosticsM19B"));

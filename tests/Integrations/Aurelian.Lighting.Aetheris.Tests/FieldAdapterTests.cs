@@ -35,13 +35,7 @@ public sealed class FieldAdapterTests
             new("lamp", new SdfTransformNode(new SdfSphereNode(200), Transform3D.CreateTranslation(new(2000, 0, 0))),
                 Vector3.One, new(4, 2, 1)),
         ]);
-        string directory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,
-            "../../../../../../src/Aurelian/Aurelian.Shaders/Assets"));
-        var sources = scene.Sources("FieldBake3D.v.ts", name =>
-        {
-            string path = Path.Combine(directory, name);
-            return File.Exists(path) ? File.ReadAllText(path) : null;
-        });
+        var sources = scene.Sources("FieldBake3D.v.ts", Aurelian.Shaders.Library.BuiltinShaderLibrary.TryRead);
         var module = GpuGraphicsBinder.Compile(new(sources));
         Assert.True(module.Success, string.Join("; ", module.Diagnostics.Select(item => item.Message)));
         string hlsl = VdMirGraphicsHlslEmitter.Emit(module);

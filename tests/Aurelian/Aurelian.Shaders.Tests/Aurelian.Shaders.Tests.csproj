@@ -10,38 +10,8 @@
     <PackageReference Include="xunit.runner.visualstudio" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Shaders.Builtins/Aurelian.Shaders.Builtins.csproj" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/HumanoidSkinning.v.ts" Link="Assets/HumanoidSkinning.v.ts" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/Cloth3D.v.ts" Link="Assets/Cloth3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../tools/Aurelian.GraphicsProof/Assets/*.v.ts" Link="Assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/RayQuery.v.ts" Link="Assets/RayQuery.v.ts" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/Lighting3D.v.ts" Link="Assets/Lighting3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/CompiledDiffuseLighting.v.ts" Link="Assets/CompiledDiffuseLighting.v.ts" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/ShadowDistanceField.v.ts" Link="Assets/ShadowDistanceField.v.ts" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/Solid3D.v.ts" Link="Assets/Solid3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/Shadow3D.v.ts" Link="Assets/Shadow3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/ToneMap3D.v.ts" Link="Assets/ToneMap3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/StaticModel3D.v.ts" Link="Assets/StaticModel3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/Temporal*.v.ts" Link="Assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/Bloom3D.v.ts" Link="Assets/Bloom3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/Volume*.v.ts" Link="Assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/Refract*.v.ts" Link="Assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/Diffuse*.v.ts" Link="Assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/SurfaceLighting.v.ts" Link="Assets/SurfaceLighting.v.ts" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/SurfaceSolid3D.v.ts" Link="Assets/SurfaceSolid3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/SurfaceModel3D.v.ts" Link="Assets/SurfaceModel3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/SurfaceResolve3D.v.ts" Link="Assets/SurfaceResolve3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/HeightFog.v.ts" Link="Assets/HeightFog.v.ts" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/HeightFog3D.v.ts" Link="Assets/HeightFog3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/SubsurfaceDiffuse3D.v.ts" Link="Assets/SubsurfaceDiffuse3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/SubsurfaceMerge3D.v.ts" Link="Assets/SubsurfaceMerge3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/TransparencyResolve3D.v.ts" Link="Assets/TransparencyResolve3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/TransparentModel3D.v.ts" Link="Assets/TransparentModel3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/AmbientOcclusion3D.v.ts" Link="Assets/AmbientOcclusion3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/AmbientDenoise3D.v.ts" Link="Assets/AmbientDenoise3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/LightTiles3D.v.ts" Link="Assets/LightTiles3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/EnvironmentCompile3D.v.ts" Link="Assets/EnvironmentCompile3D.v.ts" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

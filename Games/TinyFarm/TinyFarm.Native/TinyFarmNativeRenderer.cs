@@ -103,13 +103,13 @@ internal sealed class TinyFarmNativeRenderer : IAurelianHostCompositor
         VulkanTextureFormat targetFormat = ParseSwapchainFormat(swapchain.Facts.SelectedFormat);
         Layout = Layout with { Width = (int)swapchain.Facts.Width, Height = (int)swapchain.Facts.Height };
         compositor = new NativeLayerCompositor(plant, Layout.Width, Layout.Height, format: targetFormat);
-        CompiledGraphicsProgram analytic = Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/AnalyticShape2D.v.ts");
-        CompiledGraphicsProgram shockwave = Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/SoftShockwave.v.ts");
-        CompiledGraphicsProgram msdf = Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/MsdfText.v.ts");
-        CompiledGraphicsProgram profileMsdf = Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/ProfileMsdf.v.ts");
+        CompiledGraphicsProgram analytic = Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/AnalyticShape2D.v.ts");
+        CompiledGraphicsProgram shockwave = Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/Effects2D/SoftShockwave.v.ts");
+        CompiledGraphicsProgram msdf = Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/MsdfText.v.ts");
+        CompiledGraphicsProgram profileMsdf = Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/ProfileMsdf.v.ts");
         CompiledGraphicsProgram texture = Compile(root, "samples/Aurelian/ForwardTexturedM3.v.ts");
         CompiledGraphicsProgram field = Compile(root, legacy
-            ? "src/Aurelian/Aurelian.Shaders/Assets/ReactiveFluid2D.v.ts"
+            ? "src/Aurelian/Aurelian.Shaders/Assets/Effects2D/ReactiveFluid2D.v.ts"
             : "Games/TinyFarm/TinyFarm.Native/Assets/M25/PainterlyWater.v.ts");
         string spriteAtlasPath = Path.Combine(AppContext.BaseDirectory, "Assets", "M11", "tinyfarm-sprite-atlas-source.png");
         TinyFarmSpriteAtlas spriteAtlas = TinyFarmSpriteAtlas.Load(spriteAtlasPath);

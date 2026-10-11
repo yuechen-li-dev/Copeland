@@ -47,7 +47,7 @@ public sealed class SoftShockwaveShaderM8Tests
 
     private static (string Source, VdMirGraphicsModule Module, VdMirGraphicsBackendResult Backend) Compile()
     {
-        const string sourceName = "src/Aurelian/Aurelian.Shaders/Assets/SoftShockwave.v.ts";
+        const string sourceName = "src/Aurelian/Aurelian.Shaders/Assets/Effects2D/SoftShockwave.v.ts";
         string source = File.ReadAllText(Path.Combine(RepositoryRoot(), sourceName.Replace('/', Path.DirectorySeparatorChar)))
             .Replace("\r\n", "\n", StringComparison.Ordinal);
         VdMirGraphicsModule module = GpuGraphicsBinder.Compile(

@@ -11,7 +11,7 @@ public sealed class SemanticFogShaderM19Tests
     public void VisualTsFogCompilesThroughVdMirToValidatedSpirv()
     {
         string root = RepositoryRoot();
-        const string relativePath = "src/Aurelian/Aurelian.Shaders/Assets/SemanticFog.v.ts";
+        const string relativePath = "src/Aurelian/Aurelian.Shaders/Assets/Effects2D/SemanticFog.v.ts";
         string source = File.ReadAllText(Path.Combine(root, relativePath)).Replace("\r\n", "\n", StringComparison.Ordinal);
 
         VdMirGraphicsModule module = GpuGraphicsBinder.Compile(

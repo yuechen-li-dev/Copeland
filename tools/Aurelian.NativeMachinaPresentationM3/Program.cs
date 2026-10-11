@@ -529,7 +529,7 @@ static byte[] EncodeRgba8(GeneratedFieldAtlasPage page)
 
 static (CompiledGraphicsProgram Program, VdMirGraphicsBackendResult Backend) CompileShader(string repositoryRoot)
 {
-    const string sourceName = "src/Aurelian/Aurelian.Shaders/Assets/MsdfText.v.ts";
+    const string sourceName = "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/MsdfText.v.ts";
     string sourcePath = Path.Combine(repositoryRoot, sourceName.Replace('/', Path.DirectorySeparatorChar));
     string source = File.ReadAllText(sourcePath).Replace("\r\n", "\n", StringComparison.Ordinal);
     VdMirGraphicsModule module = GpuGraphicsBinder.Compile(new GpuCompilationRequest([new GpuSourceFile(sourceName, source)]));

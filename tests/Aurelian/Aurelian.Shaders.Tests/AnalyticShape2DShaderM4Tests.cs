@@ -28,7 +28,7 @@ public sealed class AnalyticShape2DShaderM4Tests
 
     private static VdMirGraphicsModule Compile()
     {
-        const string sourceName = "src/Aurelian/Aurelian.Shaders/Assets/AnalyticShape2D.v.ts";
+        const string sourceName = "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/AnalyticShape2D.v.ts";
         string source = File.ReadAllText(Path.Combine(RepositoryRoot(), sourceName.Replace('/', Path.DirectorySeparatorChar)))
             .Replace("\r\n", "\n", StringComparison.Ordinal);
         VdMirGraphicsModule module = GpuGraphicsBinder.Compile(

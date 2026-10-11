@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Explicit catalog and source bundle for Aurelian's built-in Visual TypeScript shaders, including the AGPL temporal policy.</Description>
+    <PackageLicenseExpression>AGPL-3.0-only</PackageLicenseExpression>
+    <PackageReadmeFile>licenses/NOTICE.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Aurelian.Shaders/Aurelian.Shaders.csproj" />
+    <EmbeddedResource Include="../Aurelian.Shaders/Assets/**/*.v.ts" LogicalName="Aurelian.Shaders.Sources.%(Filename)%(Extension)" />
+    <!-- Stable module IDs also serve existing file-based proofs and source overrides. -->
+    <Content Include="../Aurelian.Shaders/Assets/**/*.v.ts" Link="Assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Pack="true" PackagePath="sources/Assets/" />
+    <Content Include="../Aurelian.Shaders/Assets/Licenses/*" Link="Licenses/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Pack="true" PackagePath="licenses/" />
+    <None Include="Library/**/*.cs" Pack="true" PackagePath="sources/Library/" />
+    <None Include="../../../LICENSE" Pack="true" PackagePath="licenses/" />
+    <None Update="NOTICE.md" Pack="true" PackagePath="licenses/" />
+    <None Include="Aurelian.Shaders.Builtins.csproj" Pack="true" PackagePath="sources/" />
+  </ItemGroup>
+</Project>

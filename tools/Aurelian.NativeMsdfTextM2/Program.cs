@@ -238,7 +238,7 @@ string msdfManifestHash = HashFile(Path.Combine(root, "artifacts", "machina-msdf
 
 WriteJson(Path.Combine(artifactRoot, "shader.json"), new
 {
-    source = "src/Aurelian/Aurelian.Shaders/Assets/MsdfText.v.ts",
+    source = "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/MsdfText.v.ts",
     compileMilliseconds = shaderWatch.Elapsed.TotalMilliseconds,
     vdMirSha256 = program.VdMirSha256,
     hlslSha256 = backend.HlslSha256,
@@ -506,7 +506,7 @@ static ParityReport Compare(string text, int size, byte[] gpu, RgbaImage cpu, Ma
 
 static (CompiledGraphicsProgram Program, VdMirGraphicsBackendResult Backend) CompileShader(string root)
 {
-    const string sourceName = "src/Aurelian/Aurelian.Shaders/Assets/MsdfText.v.ts";
+    const string sourceName = "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/MsdfText.v.ts";
     string source = File.ReadAllText(Path.Combine(root, sourceName.Replace('/', Path.DirectorySeparatorChar))).Replace("\r\n", "\n", StringComparison.Ordinal);
     VdMirGraphicsModule module = GpuGraphicsBinder.Compile(new GpuCompilationRequest([new GpuSourceFile(sourceName, source)]));
     Require(module.Success, "MsdfText VD-MIR compile failed: " + string.Join("; ", module.Diagnostics.Select(item => item.Message)));

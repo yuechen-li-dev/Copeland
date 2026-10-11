@@ -219,7 +219,7 @@ All paths below are repository-relative unless explicitly marked standalone; the
 | Input/UI | `src/Aurelian/Aurelian.Composition/InputContracts.cs`; `Games/TinyFarm/TinyFarm.Presentation/TinyFarmMachinaUiLayer.cs`; `Games/TinyFarm/TinyFarm.Runtime/TinyFarmHumanController.cs` |
 | Interaction | `Games/TinyFarm/TinyFarm.Core/TinyFarmSpatialQueries.cs` |
 | Game assets | `src/Aurelian/Aurelian.Assets/AssetPipeline.cs`; `../Dominatus/src/Dominatus.SpriteForge/SpriteForgeAtlas.cs`, `SpriteForgeResolver.cs` |
-| Effects | `src/Aurelian/Aurelian.Shaders/Assets/AnalyticShape2D.v.ts`, `MsdfText.v.ts`; native quad proof compiler path |
+| Effects | `src/Aurelian/Aurelian.Shaders/Assets/Ui2D/AnalyticShape2D.v.ts`, `MsdfText.v.ts`; native quad proof compiler path |
 | Persistence/replay | `Games/TinyFarm/TinyFarm.Runtime/TinyFarmPersistence.cs`, `TinyFarmSession.cs`; `../Dominatus/src/Dominatus.Core/Persistence/ReplayDriver.cs`, `SaveFile.cs` |
 | Nav/schedule | `Games/TinyFarm/TinyFarm.Runtime/TinyFarmNavigation.cs`, `TinyFarmNpcSchedule.cs`, `Content/tiny-farm-npc-schedules.obj.ts` |
 | Dialogue/audio | `../Dominatus/src/Ariadne.OptFlow/DiagSteps.cs`; `../Dominatus/src/Ariadne.Console/Scripts/DemoDialogue.cs`; `../Dominatus/src/Dominatus.Actuators.Audio/AudioModels.cs` |

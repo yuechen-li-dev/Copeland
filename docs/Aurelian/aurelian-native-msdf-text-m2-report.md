@@ -51,7 +51,7 @@ same texel-center mapping as the CPU reference.
 
 ## Shader and native realization
 
-The production source is `src/Aurelian/Aurelian.Shaders/Assets/MsdfText.v.ts`. It
+The production source is `src/Aurelian/Aurelian.Shaders/Assets/Ui2D/MsdfText.v.ts`. It
 samples RGB, reconstructs the median distance, applies the existing scale-aware
 smooth coverage law around threshold 0.5, multiplies coverage into straight-alpha run
 color, and outputs one target. There is no handwritten HLSL fallback.

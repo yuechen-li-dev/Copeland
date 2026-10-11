@@ -414,22 +414,22 @@ internal sealed class StrategyNativeRenderer : IDisposable
         target = new VulkanNativeFrameTarget(plant, Width, Height, ParseSwapchainFormat(swapchain.Facts.SelectedFormat));
         shapes = new VulkanOrderedQuadRenderer(
             plant,
-            Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/AnalyticShape2D.v.ts"),
+            Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/AnalyticShape2D.v.ts"),
             target,
             Native2DPipelineOptions.AnalyticShape2D);
         profiles = new VulkanOrderedQuadRenderer(
             plant,
-            Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/ProfileMsdf.v.ts"),
+            Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/ProfileMsdf.v.ts"),
             target,
             Native2DPipelineOptions.ProfileMsdf);
         text = new VulkanOrderedQuadRenderer(
             plant,
-            Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/MsdfText.v.ts"),
+            Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/MsdfText.v.ts"),
             target,
             Native2DPipelineOptions.MsdfText);
         fog = new VulkanOrderedQuadRenderer(
             plant,
-            Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/SemanticFog.v.ts"),
+            Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/Effects2D/SemanticFog.v.ts"),
             target,
             Native2DPipelineOptions.SemanticFog);
         profileCache = new ProfileNativeRealizationCache(profiles, 32);

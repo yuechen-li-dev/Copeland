@@ -3,6 +3,5 @@
   <ItemGroup>
     <ProjectReference Include="../../../src/Integrations/Aurelian.Humanoid/Aurelian.Humanoid.csproj" />
     <ProjectReference Include="../../../src/Integrations/Aurelian.Games/Aurelian.Games.csproj" />
-    <Content Include="../../../src/Aurelian/Aurelian.Shaders/Assets/HumanoidSkinning.v.ts" Link="Assets/HumanoidSkinning.v.ts" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

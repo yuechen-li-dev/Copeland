@@ -52,7 +52,7 @@ Screen-space values pass through unchanged. Painter order is world ground/tiles,
 
 ## Visual TypeScript shader proof
 
-Canonical source: `src/Aurelian/Aurelian.Shaders/Assets/SoftShockwave.v.ts`. Its ordinary typed material contains `color`, `age`, `lifetime`, `radius`, `thickness`, `intensity`, and `seed`. The only extracted shader helper is the proven `SoftRing` radial mask. The compiler is a frontend only: no browser, React, or runtime JavaScript is present.
+Canonical source: `src/Aurelian/Aurelian.Shaders/Assets/Effects2D/SoftShockwave.v.ts`. Its ordinary typed material contains `color`, `age`, `lifetime`, `radius`, `thickness`, `intensity`, and `seed`. The only extracted shader helper is the proven `SoftRing` radial mask. The compiler is a frontend only: no browser, React, or runtime JavaScript is present.
 
 The evidence tool compiled:
 

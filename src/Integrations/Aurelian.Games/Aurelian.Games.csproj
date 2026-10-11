@@ -3,6 +3,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../Aurelian/Aurelian.Shaders.Builtins/Aurelian.Shaders.Builtins.csproj" />
     <ProjectReference Include="../Aurelian.Humanoid/Aurelian.Humanoid.csproj" />
     <ProjectReference Include="../Aurelian.NativeComposition/Aurelian.NativeComposition.csproj" />
     <ProjectReference Include="../Aurelian.Spatial3D.Vulkan/Aurelian.Spatial3D.Vulkan.csproj" />
@@ -16,44 +17,8 @@
     <ProjectReference Include="../../Aurelian/Aurelian.Runtime/Aurelian.Runtime.csproj" />
     <ProjectReference Include="../../Aurelian/Aurelian.Combat/Aurelian.Combat.csproj" />
     <PackageReference Include="SkiaSharp" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/TemporalGeometry.v.ts" LogicalName="Aurelian.Games.TemporalGeometry.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/TemporalPolicy.v.ts" LogicalName="Aurelian.Games.TemporalPolicy.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/TemporalResolve3D.v.ts" LogicalName="Aurelian.Games.TemporalResolve3D.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/Bloom3D.v.ts" LogicalName="Aurelian.Games.Bloom3D.v.ts" />
-    <Content Include="../../Aurelian/Aurelian.Shaders/Assets/Licenses/*" Link="Licenses/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="../../Aurelian/Aurelian.Shaders/Assets/Temporal*.v.ts" Link="Assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/Lighting3D.v.ts" LogicalName="Aurelian.Games.Lighting3D.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/CompiledDiffuseLighting.v.ts" LogicalName="Aurelian.Games.CompiledDiffuseLighting.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/ShadowDistanceField.v.ts" LogicalName="Aurelian.Games.ShadowDistanceField.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/Shadow3D.v.ts" LogicalName="Aurelian.Games.Shadow3D.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/ToneMap3D.v.ts" LogicalName="Aurelian.Games.ToneMap3D.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/Solid3D.v.ts" LogicalName="Aurelian.Games.Solid3D.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/HumanoidSkinning.v.ts" LogicalName="Aurelian.Games.HumanoidSkinning.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/StaticModel3D.v.ts" LogicalName="Aurelian.Games.StaticModel3D.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/RayQuery.v.ts" LogicalName="Aurelian.Games.RayQuery.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/AnalyticShape2D.v.ts" LogicalName="Aurelian.Games.AnalyticShape2D.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/MsdfText.v.ts" LogicalName="Aurelian.Games.MsdfText.v.ts" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Assets/Defaults/Fonts/CrimsonText-Regular.ttf" LogicalName="Aurelian.Games.CrimsonText-Regular.ttf" />
     <EmbeddedResource Include="../../Aurelian/Aurelian.Assets/Defaults/Fonts/SpaceMono-Regular.ttf" LogicalName="Aurelian.Games.SpaceMono-Regular.ttf" />
     <Content Include="../../Aurelian/Aurelian.Assets/Defaults/Fonts/*.LICENSE.txt" Link="Licenses/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/Volume*.v.ts" LogicalName="Aurelian.Games.%(Filename)%(Extension)" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/Refract*.v.ts" LogicalName="Aurelian.Games.%(Filename)%(Extension)" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/Diffuse*.v.ts" LogicalName="Aurelian.Games.%(Filename)%(Extension)" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/SurfaceLighting.v.ts" LogicalName="Aurelian.Games.SurfaceLighting.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/SurfaceSolid3D.v.ts" LogicalName="Aurelian.Games.SurfaceSolid3D.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/SurfaceModel3D.v.ts" LogicalName="Aurelian.Games.SurfaceModel3D.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/SurfaceResolve3D.v.ts" LogicalName="Aurelian.Games.SurfaceResolve3D.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/HeightFog.v.ts" LogicalName="Aurelian.Games.HeightFog.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/HeightFog3D.v.ts" LogicalName="Aurelian.Games.HeightFog3D.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/SubsurfaceDiffuse3D.v.ts" LogicalName="Aurelian.Games.SubsurfaceDiffuse3D.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/SubsurfaceMerge3D.v.ts" LogicalName="Aurelian.Games.SubsurfaceMerge3D.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/TransparencyResolve3D.v.ts" LogicalName="Aurelian.Games.TransparencyResolve3D.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/TransparentModel3D.v.ts" LogicalName="Aurelian.Games.TransparentModel3D.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/AmbientOcclusion3D.v.ts" LogicalName="Aurelian.Games.AmbientOcclusion3D.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/AmbientDenoise3D.v.ts" LogicalName="Aurelian.Games.AmbientDenoise3D.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/LightTiles3D.v.ts" LogicalName="Aurelian.Games.LightTiles3D.v.ts" />
-    <EmbeddedResource Include="../../Aurelian/Aurelian.Shaders/Assets/EnvironmentCompile3D.v.ts" LogicalName="Aurelian.Games.EnvironmentCompile3D.v.ts" />
   </ItemGroup>
 </Project>

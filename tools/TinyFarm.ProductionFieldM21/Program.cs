@@ -140,7 +140,7 @@ Write("legacy-save-migration.json", new
     verifiedBy = "SchemaV2SaveRegeneratesDeterministicDefaultField",
 });
 
-string shaderPath = Path.Combine(repositoryRoot, "src", "Aurelian", "Aurelian.Shaders", "Assets", "ReactiveFluid2D.v.ts");
+string shaderPath = Path.Combine(repositoryRoot, "src", "Aurelian", "Aurelian.Shaders", "Assets", "Effects2D", "ReactiveFluid2D.v.ts");
 string shaderSource = File.ReadAllText(shaderPath);
 VdMirGraphicsModule module = GpuGraphicsBinder.Compile(
     new GpuCompilationRequest([new GpuSourceFile("ReactiveFluid2D.v.ts", shaderSource)]));

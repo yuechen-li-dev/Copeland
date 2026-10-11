@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using Aurelian.Rendering.Contracts.Shaders;
 using Aurelian.Shaders.Graphics;
 using Aurelian.Shaders.Compute;
+using Aurelian.Shaders.Library;
 using Copeland.TS.Gpu;
 using Copeland.TS.Gpu.VdMir;
 
@@ -32,11 +33,12 @@ public sealed class GameAssets
 
     public byte[] ComputeShader(string name)
     {
+        BuiltinShaderLibrary.RequireKind(name, ShaderSourceKind.Compute);
         if (computePrograms.TryGetValue(name, out var cached))
         {
             return cached;
         }
-        var module = GpuComputeBinder.Compile(new(GpuSourceLoader.Load(name, ReadShaderSource)));
+        var module = GpuComputeBinder.Compile(new(BuiltinShaderLibrary.LoadSources(name)));
         if (!module.Success)
         {
             throw new InvalidDataException(string.Join("; ", module.Diagnostics.Select(item => item.Message)));
@@ -52,11 +54,12 @@ public sealed class GameAssets
 
     public CompiledGraphicsProgram Shader(string name)
     {
+        BuiltinShaderLibrary.RequireKind(name, ShaderSourceKind.Graphics);
         if (programs.TryGetValue(name, out CompiledGraphicsProgram? cached))
         {
             return cached;
         }
-        IReadOnlyList<GpuSourceFile> sources = GpuSourceLoader.Load(name, ReadShaderSource);
+        IReadOnlyList<GpuSourceFile> sources = BuiltinShaderLibrary.LoadSources(name);
         var module = GpuGraphicsBinder.Compile(new GpuCompilationRequest(sources));
         if (!module.Success)
         {
@@ -103,14 +106,4 @@ public sealed class GameAssets
     private static Stream Open(string name) => typeof(GameAssets).Assembly.GetManifestResourceStream("Aurelian.Games." + name)
         ?? throw new FileNotFoundException($"Built-in game asset '{name}' is unavailable.");
 
-    private static string? ReadShaderSource(string name)
-    {
-        using Stream? stream = typeof(GameAssets).Assembly.GetManifestResourceStream("Aurelian.Games." + name);
-        if (stream is null)
-        {
-            return null;
-        }
-        using var reader = new StreamReader(stream);
-        return reader.ReadToEnd();
-    }
 }

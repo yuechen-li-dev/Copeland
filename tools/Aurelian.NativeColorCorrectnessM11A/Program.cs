@@ -22,7 +22,7 @@ string root = FindRepositoryRoot();
 string output = Path.Combine(root, "artifacts", "aurelian-native-color-correctness-m11a");
 Directory.CreateDirectory(output);
 
-CompiledGraphicsProgram analyticProgram = Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/AnalyticShape2D.v.ts");
+CompiledGraphicsProgram analyticProgram = Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/AnalyticShape2D.v.ts");
 CompiledGraphicsProgram texturedProgram = Compile(root, "samples/Aurelian/ForwardTexturedM3.v.ts");
 VulkanInitResult init = VulkanPlantInitializer.CreatePlant(
     PlantId.Zero,

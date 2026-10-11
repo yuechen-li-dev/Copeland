@@ -136,7 +136,7 @@ WritePng(twoXScreenshot, Width * 2, Height * 2, twoXShowcase);
 
 WriteJson(Path.Combine(artifactRoot, "shader.json"), new
 {
-    source = "src/Aurelian/Aurelian.Shaders/Assets/AnalyticShape2D.v.ts",
+    source = "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/AnalyticShape2D.v.ts",
     vdMirSha256 = program.VdMirSha256,
     backend.HlslSha256,
     vertexSpirvSha256 = backend.Vertex.SpirvSha256,
@@ -146,7 +146,7 @@ WriteJson(Path.Combine(artifactRoot, "shader.json"), new
     material = program.Material,
     msdfHeading = new
     {
-        source = "src/Aurelian/Aurelian.Shaders/Assets/MsdfText.v.ts",
+        source = "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/MsdfText.v.ts",
         msdfProgram.VdMirSha256,
         msdfBackend.HlslSha256,
         vertexSpirvSha256 = msdfBackend.Vertex.SpirvSha256,
@@ -652,7 +652,7 @@ static byte[] EncodeRgba8(GeneratedFieldAtlasPage page)
 
 static (CompiledGraphicsProgram Program, VdMirGraphicsBackendResult Backend) CompileMsdfShader(string repositoryRoot)
 {
-    const string sourceName = "src/Aurelian/Aurelian.Shaders/Assets/MsdfText.v.ts";
+    const string sourceName = "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/MsdfText.v.ts";
     string sourcePath = Path.Combine(repositoryRoot, sourceName.Replace('/', Path.DirectorySeparatorChar));
     string source = File.ReadAllText(sourcePath).Replace("\r\n", "\n", StringComparison.Ordinal);
     VdMirGraphicsModule module = GpuGraphicsBinder.Compile(
@@ -841,7 +841,7 @@ static int CountNativeTextPixels(byte[] source)
 
 static (CompiledGraphicsProgram, VdMirGraphicsModule, VdMirGraphicsBackendResult) CompileShader(string root)
 {
-    const string sourceName = "src/Aurelian/Aurelian.Shaders/Assets/AnalyticShape2D.v.ts";
+    const string sourceName = "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/AnalyticShape2D.v.ts";
     string source = File.ReadAllText(Path.Combine(root, sourceName.Replace('/', Path.DirectorySeparatorChar))).Replace("\r\n", "\n");
     VdMirGraphicsModule module = GpuGraphicsBinder.Compile(new GpuCompilationRequest([new GpuSourceFile(sourceName, source)]));
     Require(module.Success, string.Join("; ", module.Diagnostics.Select(item => item.Message)));

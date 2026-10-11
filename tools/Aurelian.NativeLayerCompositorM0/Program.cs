@@ -44,8 +44,8 @@ string artifactRoot = Path.Combine(root, "artifacts", "aurelian-native-layer-com
 Directory.CreateDirectory(artifactRoot);
 
 CompiledGraphicsProgram worldProgram = CompileShader(root, "samples/Aurelian/ForwardTexturedM3.v.ts");
-CompiledGraphicsProgram analyticProgram = CompileShader(root, "src/Aurelian/Aurelian.Shaders/Assets/AnalyticShape2D.v.ts");
-CompiledGraphicsProgram msdfProgram = CompileShader(root, "src/Aurelian/Aurelian.Shaders/Assets/MsdfText.v.ts");
+CompiledGraphicsProgram analyticProgram = CompileShader(root, "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/AnalyticShape2D.v.ts");
+CompiledGraphicsProgram msdfProgram = CompileShader(root, "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/MsdfText.v.ts");
 
 MachinaPreparedPresentation prepared = new MachinaPresentationPipeline().Prepare(BuildUi(), Width, Height);
 NativeAnalyticShapeSubmission[] uiShapes = prepared.PresentationFrame.Operations

@@ -41,8 +41,8 @@ internal static class Program
             ?? Path.Combine(repositoryRoot, "artifacts", "aurelian-game-effects-emitters-m8"));
         Directory.CreateDirectory(output);
 
-        ShaderEvidence shockwave = Compile(repositoryRoot, "src/Aurelian/Aurelian.Shaders/Assets/SoftShockwave.v.ts");
-        ShaderEvidence analytic = Compile(repositoryRoot, "src/Aurelian/Aurelian.Shaders/Assets/AnalyticShape2D.v.ts");
+        ShaderEvidence shockwave = Compile(repositoryRoot, "src/Aurelian/Aurelian.Shaders/Assets/Effects2D/SoftShockwave.v.ts");
+        ShaderEvidence analytic = Compile(repositoryRoot, "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/AnalyticShape2D.v.ts");
         TinyFarmProof tinyFarm = RunTinyFarmProof();
         PerformanceEvidence performance = MeasurePerformance();
         EffectCatalog catalog = EffectCatalog.CreateSmallGameDefaults();

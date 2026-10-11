@@ -11,7 +11,7 @@ public sealed class ProfileMsdfShaderM19CTests
     public void Profile_shader_lowers_screen_derivative_coverage_to_valid_spirv()
     {
         string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", ".."));
-        const string sourceName = "src/Aurelian/Aurelian.Shaders/Assets/ProfileMsdf.v.ts";
+        const string sourceName = "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/ProfileMsdf.v.ts";
         string source = File.ReadAllText(Path.Combine(root, sourceName.Replace('/', Path.DirectorySeparatorChar)))
             .Replace("\r\n", "\n", StringComparison.Ordinal);
 

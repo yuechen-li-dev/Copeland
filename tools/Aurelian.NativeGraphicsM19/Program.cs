@@ -77,16 +77,16 @@ if (previewIndex >= 0)
 
 (CompiledGraphicsProgram msdfProgram, VdMirGraphicsBackendResult msdfBackend) = CompileShader(
     root,
-    "src/Aurelian/Aurelian.Shaders/Assets/MsdfText.v.ts");
+    "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/MsdfText.v.ts");
 (CompiledGraphicsProgram profileMsdfProgram, _) = CompileShader(
     root,
-    "src/Aurelian/Aurelian.Shaders/Assets/ProfileMsdf.v.ts");
+    "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/ProfileMsdf.v.ts");
 (CompiledGraphicsProgram fogProgram, VdMirGraphicsBackendResult fogBackend) = CompileShader(
     root,
-    "src/Aurelian/Aurelian.Shaders/Assets/SemanticFog.v.ts");
+    "src/Aurelian/Aurelian.Shaders/Assets/Effects2D/SemanticFog.v.ts");
 (CompiledGraphicsProgram analyticProgram, _) = CompileShader(
     root,
-    "src/Aurelian/Aurelian.Shaders/Assets/AnalyticShape2D.v.ts");
+    "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/AnalyticShape2D.v.ts");
 
 VulkanInitResult init = VulkanPlantInitializer.CreatePlant(
     PlantId.Zero,
@@ -274,7 +274,7 @@ WriteJson(Path.Combine(output, "fog-semantic-projection.json"), new
 });
 WriteJson(Path.Combine(output, "fog-shader-proof.json"), new
 {
-    source = "src/Aurelian/Aurelian.Shaders/Assets/SemanticFog.v.ts",
+    source = "src/Aurelian/Aurelian.Shaders/Assets/Effects2D/SemanticFog.v.ts",
     path = "Visual TypeScript -> VD-MIR -> HLSL -> DXC -> SPIR-V -> Vulkan",
     vertexSpirvValidated = fogBackend.Vertex.SpirvValidated,
     pixelSpirvValidated = fogBackend.Pixel.SpirvValidated,
