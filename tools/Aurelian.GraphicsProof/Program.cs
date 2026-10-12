@@ -21,6 +21,11 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 
 string defaultOutput = "artifacts/local/graphics-starter";
+if (args.Contains("--water-graphics", StringComparer.Ordinal))
+{
+    WaterGraphicsProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/water-graphics"));
+    return;
+}
 if (args.Contains("--trellis2-finalize", StringComparer.Ordinal))
 {
     string weightsDirectory = Path.GetFullPath(Option("--weights-dir") ?? "artifacts/local/trellis2/shape/weights");

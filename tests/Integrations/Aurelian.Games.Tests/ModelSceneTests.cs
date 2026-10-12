@@ -10,6 +10,25 @@ namespace Aurelian.Games.Tests;
 
 public sealed class ModelSceneTests
 {
+    [Fact]
+    public void WaterPatchHasUpwardIndexedGeometryAndProfileOwnedIdentity()
+    {
+        var profile = new WaterSurface3D();
+        var patch = WaterSurfaceMesh3D.Create("water", new(4, 3), profile, 4, 3);
+        Assert.Equal(20, patch.Vertices.Length);
+        Assert.Equal(72, patch.Indices.Length);
+        for (int first = 0; first < patch.Indices.Length; first += 3)
+        {
+            Vector3 a = patch.Vertices[patch.Indices[first]].Position;
+            Vector3 b = patch.Vertices[patch.Indices[first + 1]].Position;
+            Vector3 c = patch.Vertices[patch.Indices[first + 2]].Position;
+            Assert.True(Vector3.Cross(b - a, c - a).Y > 0);
+        }
+        string initial = SceneCompiler.Compile(Scene.World("pond", [patch])).ContentIdentity;
+        var changed = patch with { Material = patch.Material! with { Water = profile with { FoamWidth = .2f } } };
+        Assert.NotEqual(initial, SceneCompiler.Compile(Scene.World("pond", [changed])).ContentIdentity);
+        Assert.Throws<ArgumentException>(() => WaterSurfaceMesh3D.Create("invalid", new(-1, 2)));
+    }
     private static StaticModel Load(string filename) => GlbModelImporter.Load("crate",
         Path.Combine(AppContext.BaseDirectory, "Assets", filename)).Model!;
 

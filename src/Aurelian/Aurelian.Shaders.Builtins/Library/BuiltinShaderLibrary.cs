@@ -89,6 +89,7 @@ public static class BuiltinShaderLibrary
         new("TransparencyResolve3D.v.ts", ShaderFamily.Transparency, ShaderSourceKind.Graphics),
         new("RefractiveModel3D.v.ts", ShaderFamily.Transparency, ShaderSourceKind.Graphics),
         new("RefractionResolve3D.v.ts", ShaderFamily.Transparency, ShaderSourceKind.Graphics),
+        new("WaterGeometry.v.ts", ShaderFamily.Transparency, ShaderSourceKind.Module),
 
         new("Bloom3D.v.ts", ShaderFamily.PostProcessing, ShaderSourceKind.Graphics),
         new("TemporalGeometry.v.ts", ShaderFamily.PostProcessing, ShaderSourceKind.Module),

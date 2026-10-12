@@ -172,6 +172,27 @@ public sealed class ScenePlan
             writer.Write((int)binding.Sampler.WrapU);
             writer.Write((int)binding.Sampler.WrapV);
         }
+        if (material.Water is { } water)
+        {
+            writer.Write("Aurelian.Water.v1");
+            writer.Write((int)water.DebugView);
+            writer.Write(water.DetailAmplitude);
+            writer.Write(water.DetailWavelength);
+            writer.Write(water.FoamWidth);
+            writer.Write(water.FoamStrength);
+            writer.Write(water.MaximumDepth);
+            WriteVector(writer, water.DeepColor);
+            writer.Write(water.Waves.Length);
+            foreach (var wave in water.Waves)
+            {
+                writer.Write(wave.Direction.X);
+                writer.Write(wave.Direction.Y);
+                writer.Write(wave.Amplitude);
+                writer.Write(wave.Wavelength);
+                writer.Write(wave.Speed);
+                writer.Write(wave.Steepness);
+            }
+        }
     }
 
     private static void WriteOptionalMaterial(BinaryWriter writer, ModelMaterial? material)

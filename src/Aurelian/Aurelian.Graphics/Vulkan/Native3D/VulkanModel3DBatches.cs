@@ -98,7 +98,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
 
     public void ConfigureTransparency(float[] values, AurelianVulkanTexture[] inputs)
     {
-        if (!transparent && !refractive || values.Length != (refractive ? 124 : 108) || inputs.Length != (refractive ? 10 : 9))
+        if (!transparent && !refractive || values.Length != (refractive ? 224 : 108) || inputs.Length != (refractive ? 11 : 9))
             throw new ArgumentException("Transparent frame uniforms must match the shared surface lighting ABI.");
         additionalUniforms = values;
         additionalInputs = inputs;
@@ -147,7 +147,11 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
                 .. refractive ? additionalUniforms[..108] : additionalUniforms,
                 .. refractive ? new float[] { m.Transmission, m.IndexOfRefraction, m.Thickness, 0,
                     m.AttenuationColor.X, m.AttenuationColor.Y, m.AttenuationColor.Z, m.AttenuationDistance } : [],
-                .. refractive ? additionalUniforms[108..] : []];
+                .. refractive ? additionalUniforms[108..124] : [],
+                .. refractive ? Water3DUniforms.Profile(m.Water) : [],
+                .. refractive ? additionalUniforms[124..160] : [],
+                .. refractive ? Water3DUniforms.Waves(m.Water) : [],
+                .. refractive ? additionalUniforms[160..] : []];
             if (surfaceOnly)
             {
                 // SurfaceModel has an explicit profile in the same packed slot
@@ -162,7 +166,7 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
             if (transparent || refractive)
             {
                 for (int index = 0; index < additionalInputs.Length; index++)
-                    Vulkan3DPass.WriteImage(plant, surface.Set, (uint)(11 + index * 2), additionalInputs[index], index is 1 or 8 or 9 ? environmentSampler!.Value : shadowSampler);
+                    Vulkan3DPass.WriteImage(plant, surface.Set, (uint)(11 + index * 2), additionalInputs[index], index is 1 or 8 or 9 or 10 ? environmentSampler!.Value : shadowSampler);
             }
             if (data.Any(value => !float.IsFinite(value))) throw new InvalidDataException("Model camera and factors must be finite.");
             Require(surface.Uniform.Write(MemoryMarshal.AsBytes(data.AsSpan())).Success, "Model uniform upload failed.");
@@ -437,16 +441,21 @@ internal sealed unsafe class VulkanModel3DBatches : IDisposable
                 "environmentParameters", "probePosition", "probeBounds", "fogParameters", "fogColor", "surfaceTexels",
                 "spotAX", "spotAY", "spotAZ", "spotAW", "spotBX", "spotBY", "spotBZ", "spotBW", "volumeGrid", "volumeDepth"];
             if (refractive)
-                fields = [.. fields, "refraction", "absorption", "inverseX", "inverseY", "inverseZ", "inverseW"];
+                fields = [.. fields, "refraction", "absorption", "inverseX", "inverseY", "inverseZ", "inverseW",
+                    "waterProfile", "waterFoam", "waterDeep", "waterTime",
+                    "waterPreviousX", "waterPreviousY", "waterPreviousZ", "waterPreviousW",
+                    "waterReflectionX", "waterReflectionY", "waterReflectionZ", "waterReflectionW",
+                    .. Enumerable.Range(0, 4).SelectMany(index => new[] { $"wave{index}", $"wave{index}Behavior" }),
+                    .. Enumerable.Range(0, 8).SelectMany(index => new[] { $"impulse{index}", $"impulse{index}Behavior" })];
         }
         bool valid = program.Material is { Binding: 0, Set: 0 } material && material.Size == fields.Length * 16
-            && (transparent || refractive ? program.PixelTargets.Count == 2 : program.PixelTargets.Count is 1 or 2 or 5)
+            && (refractive ? program.PixelTargets.Count == 3 : transparent ? program.PixelTargets.Count == 2 : program.PixelTargets.Count is 1 or 2 or 5)
             && material.Fields.Select(item => item.Name).SequenceEqual(fields)
             && material.Fields.All(item => item.PhysicalType == "float4")
             && material.Fields.Select(item => item.Offset).SequenceEqual(Enumerable.Range(0, fields.Length).Select(index => index * 16))
             && program.VertexInputs.OrderBy(item => item.Location).Select(item => item.PhysicalType).SequenceEqual(inputs)
             && program.VertexInputs.Select(item => item.Location).Order().SequenceEqual(Enumerable.Range(0, inputs.Length))
-            && program.Resources.Count == (refractive ? 31 : transparent ? 29 : program.PixelTargets.Count == 5 ? 11 : 13);
+            && program.Resources.Count == (refractive ? 33 : transparent ? 29 : program.PixelTargets.Count == 5 ? 11 : 13);
         foreach (CompiledGraphicsResource resource in program.Resources)
         {
             CompiledGraphicsResourceKind kind = CompiledGraphicsResourceKind.Sampler;

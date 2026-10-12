@@ -1,5 +1,10 @@
 # Refraction and shadowed volumetric lighting
 
+The shared refractive pass now also has an explicit [pond/pool water profile](water-graphics-pack.md).
+Glass retains the slab transport described here; water uses scene depth and a
+separate temporal history. The current compiled refraction ABI includes the water
+uniforms, reflection input and motion attachment.
+
 The shared surface renderer supports GPU-resident shadowed fog and a separate
 refractive material pass. Both are available through `NativeGameGraphics`; games
 author settings and materials using the existing records and scene composition.

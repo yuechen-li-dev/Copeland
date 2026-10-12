@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 using Aurelian.Graphics.Vulkan.Commanding;
 using Aurelian.Graphics.Vulkan.Commanding.Draw;
@@ -36,6 +37,12 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
     private readonly VulkanTransparency3D? transparency;
     private VulkanRefraction3D? refraction;
     private readonly Func<VulkanRefraction3D>? refractionFactory;
+    private readonly Func<PlanarWaterReflection3D, VulkanPlanarWaterReflection>? waterReflectionFactory;
+    private VulkanPlanarWaterReflection? waterReflection;
+    private float previousWaterTime;
+    private bool previousWaterReflection;
+    private ImmutableArray<WaterImpulse3D> previousWaterImpulses = [];
+    internal AurelianVulkanTexture UnfoggedReflectionOutput => surfaceLighting!.UnfoggedOutput!;
     private const int MaximumVertices = 65_536;
     private readonly AurelianVulkanPlant plant;
     private readonly VulkanNativeFrameTarget target;
@@ -248,6 +255,11 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
             if (surfacePrograms?.RefractiveModel is not null && surfacePrograms.RefractionResolve is not null)
                 refractionFactory = () => new(plant, allocator, commandPool, fences, surfacePrograms,
                     target.Width, target.Height, shadowMap, shadowSampler);
+            if (surfaceOnly && surfacePrograms is not null && modelProgram is not null)
+            {
+                waterReflectionFactory = configuration => new(plant, target.Width, target.Height,
+                    configuration, program, modelProgram, shadowProgram, outputProgram, surfacePrograms);
+            }
         }
         catch
         {
@@ -273,11 +285,76 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
     public Native3DFrameResult Render(Native3DScene scene, Matrix4x4 worldToClip, Vector3 eye,
         NativeFrameClearColor clearColor, bool capture = false, NativeGpuGeometry3D? gpuGeometry = null)
     {
-        return Render(scene.Geometry, worldToClip, clearColor, capture, scene.Models, eye, gpuGeometry,
-            temporalRevision: scene.TemporalRevision, lightingRevision: scene.LightingRevision);
+        ObjectDisposedException.ThrowIf(disposed, this);
+        ArgumentNullException.ThrowIfNull(scene);
+        if (scene.Geometry.Length % 3 != 0 || scene.Models.Any(batch => batch.Vertices.Length == 0 || batch.Vertices.Length % 3 != 0))
+        {
+            throw new ArgumentException("Scene batches must contain complete triangles.", nameof(scene));
+        }
+        scene.WaterFrame.Validate();
+        scene.WaterReflection?.Validate();
+        var waterBatches = scene.Models.Where(batch => batch.Material.Water is not null).ToArray();
+        ValidateWater(waterBatches, eye);
+        if (scene.WaterReflection is { } configuration)
+        {
+            if (gpuGeometry is not null || waterBatches.Length == 0 || waterBatches.Any(batch =>
+                Math.Abs(batch.Vertices[0].Position.Y - configuration.Height) > .0001f))
+            {
+                throw new NotSupportedException("AUR-WATER-010: One planar reflection supports coplanar water patches and CPU-authored scene batches.");
+            }
+            if (waterReflectionFactory is null)
+            {
+                throw new NotSupportedException("Planar water reflection requires the shared surface renderer.");
+            }
+            if (waterReflection?.Configuration != configuration)
+            {
+                waterReflection?.Dispose();
+                waterReflection = null;
+                waterReflection = waterReflectionFactory(configuration);
+                ResetTemporalHistory();
+            }
+            waterReflection.Render(scene, worldToClip, eye, clearColor, Settings, Environment, ReflectionProbe, LocalLights);
+        }
+        return RenderCore(scene.Geometry, worldToClip, clearColor, capture, scene.Models, eye, gpuGeometry,
+            temporalRevision: scene.TemporalRevision, lightingRevision: scene.LightingRevision,
+            waterFrame: scene.WaterFrame, useWaterReflection: scene.WaterReflection is not null);
     }
 
-    public Native3DFrameResult Render(
+    private static void ValidateWater(IReadOnlyList<NativeModel3DBatch> batches, Vector3 eye)
+    {
+        foreach (var batch in batches)
+        {
+            if (batch.Material.Water is null)
+            {
+                continue;
+            }
+            batch.Material.Validate();
+            if (batch.Vertices.Length == 0 || batch.Vertices.Length % 3 != 0)
+            {
+                throw new InvalidDataException("AUR-WATER-008: Water requires complete base triangles.");
+            }
+            if (batch.Vertices.Any(vertex => vertex.Normal.Y < .999f)
+                || batch.Vertices.Any(vertex => Math.Abs(vertex.Position.Y - batch.Vertices[0].Position.Y) > .0001f))
+            {
+                throw new InvalidDataException("AUR-WATER-008: Water needs a horizontal tessellated base patch with upward normals.");
+            }
+            if (eye.Y <= batch.Vertices[0].Position.Y)
+            {
+                throw new NotSupportedException("AUR-WATER-009: This water profile requires the camera above water.");
+            }
+        }
+    }
+
+    public Native3DFrameResult Render(ReadOnlySpan<Native3DVertex> geometry, Matrix4x4 worldToClip,
+        NativeFrameClearColor clearColor, bool capture = false, IReadOnlyList<NativeModel3DBatch>? models = null,
+        Vector3 eye = default, NativeGpuGeometry3D? gpuGeometry = null, Vector3? lightDirection = null,
+        string? temporalRevision = null, string? lightingRevision = null, WaterFrame3D? waterFrame = null)
+    {
+        return RenderCore(geometry, worldToClip, clearColor, capture, models, eye, gpuGeometry,
+            lightDirection, temporalRevision, lightingRevision, waterFrame);
+    }
+
+    private Native3DFrameResult RenderCore(
         ReadOnlySpan<Native3DVertex> geometry,
         Matrix4x4 worldToClip,
         NativeFrameClearColor clearColor,
@@ -287,11 +364,24 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         NativeGpuGeometry3D? gpuGeometry = null,
         Vector3? lightDirection = null,
         string? temporalRevision = null,
-        string? lightingRevision = null)
+        string? lightingRevision = null,
+        WaterFrame3D? waterFrame = null,
+        bool useWaterReflection = false)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         target.ValidateExternalPass(plant);
         models ??= [];
+        waterFrame ??= new();
+        waterFrame.Validate();
+        ValidateWater(models, eye);
+        bool changedPastImpulses = previousWaterImpulses.Any(impulse =>
+            impulse.StartedAt < previousWaterTime && previousWaterTime < impulse.StartedAt + impulse.Lifetime
+            && !waterFrame.Impulses.Contains(impulse))
+            || waterFrame.Impulses.Any(impulse => impulse.StartedAt < previousWaterTime && !previousWaterImpulses.Contains(impulse));
+        if (waterFrame.Time < previousWaterTime || useWaterReflection != previousWaterReflection || changedPastImpulses)
+        {
+            ResetTemporalHistory();
+        }
         if ((geometry.IsEmpty && models.Count == 0 && gpuGeometry is null) || geometry.Length % 3 != 0 || geometry.Length > MaximumVertices)
         {
             throw new ArgumentException("Geometry must contain 1..65536 vertices in complete triangles.", nameof(geometry));
@@ -587,7 +677,10 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         {
             resolved = refraction!.Record(command, outputVertices!, models, worldToClip, eye, lighting,
                 surfaceLighting!.TransparentUniforms(cascades!, settings, target.Width, target.Height),
-                surfaceLighting.TransparentInputs(shadowMap, motion!), surfaceLighting.UnfoggedOutput!, resolved!);
+                surfaceLighting.TransparentInputs(shadowMap, motion!), surfaceLighting.UnfoggedOutput!, resolved!,
+                waterFrame, resetHistory ? waterFrame.Time : previousWaterTime, previousClip, logicalCamera,
+                resetHistory, useTemporal, settings.TemporalHistoryWeight,
+                useWaterReflection ? waterReflection!.Color : null, waterReflection?.Clip ?? Matrix4x4.Identity);
         }
         if (surfaceOnly) gpuTimings?.Mark(command, 25);
         if (surfaceOnly) gpuTimings?.Mark(command, 22);
@@ -632,6 +725,9 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         }
         previousModels = modelKeys;
         previousClip = worldToClip;
+        previousWaterTime = waterFrame.Time;
+        previousWaterReflection = useWaterReflection;
+        previousWaterImpulses = waterFrame.Impulses;
         previousSettings = settings;
         previousStaticEmissionIntensity = StaticEmissionIntensity;
         previousRevision = temporalRevision;
@@ -639,6 +735,10 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         lastGpuSource = gpuGeometry?.Buffer;
         resetHistory = false;
         IReadOnlyList<Native3DGpuPassTime> times = gpuTimings?.Read() ?? [];
+        if (useWaterReflection)
+        {
+            times = [.. times, new("water-reflection", waterReflection!.GpuMilliseconds)];
+        }
         int triangleCount = (geometry.Length + models.Sum(item => item.Vertices.Length) + (int)(gpuGeometry?.VertexCount ?? 0)) / 3;
         if (hasParticles)
         {
@@ -814,6 +914,7 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
         gpuTimings?.Dispose();
         transparency?.Dispose();
         refraction?.Dispose();
+        waterReflection?.Dispose();
         modelRenderer?.Dispose();
         outputPass?.Dispose();
         shadowPass?.Dispose();

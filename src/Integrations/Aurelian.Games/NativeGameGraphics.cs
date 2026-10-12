@@ -131,6 +131,7 @@ public sealed class NativeGameGraphics : IDisposable
                     VolumeResolve = assets.Shader("VolumeResolve3D.v.ts"),
                     RefractiveModel = assets.Shader("RefractiveModel3D.v.ts"),
                     RefractionResolve = assets.Shader("RefractionResolve3D.v.ts"),
+                    WaterTemporal = assets.Shader("TemporalResolve3D.v.ts"),
                     SubsurfaceDiffuse = assets.Shader("SubsurfaceDiffuse3D.v.ts"),
                     SubsurfaceMerge = assets.Shader("SubsurfaceMerge3D.v.ts"),
                     TransparentModel = assets.Shader("TransparentModel3D.v.ts"),

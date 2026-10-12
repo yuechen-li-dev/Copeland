@@ -21,7 +21,7 @@ public sealed class GraphicsStarterShaderTests
     [InlineData("SubsurfaceMerge3D.v.ts", 16, 9)]
     [InlineData("TransparencyResolve3D.v.ts", 16, 7)]
     [InlineData("TransparentModel3D.v.ts", 720, 29)]
-    [InlineData("RefractiveModel3D.v.ts", 816, 31)]
+    [InlineData("RefractiveModel3D.v.ts", 1392, 33)]
     [InlineData("RefractionResolve3D.v.ts", 16, 7)]
     [InlineData("VolumeInject3D.v.ts", 624, 13)]
     [InlineData("VolumeIntegrate3D.v.ts", 32, 3)]

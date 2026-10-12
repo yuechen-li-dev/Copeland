@@ -2,11 +2,15 @@
 
 ## Ownership
 
-The production library contains 65 Visual TypeScript sources in 13 families:
-36 graphics entries, 17 compute entries and 12 imported helper modules.
+The production library contains 79 Visual TypeScript sources in 13 families:
+36 graphics entries, 29 compute entries and 14 imported helper modules.
 Source files live under `src/Aurelian/Aurelian.Shaders/Assets/<Family>/`.
 This organization preserves their bytes, flat compiler module IDs and existing
 game shader names.
+
+The [pond/pool water pack](water-graphics-pack.md) extends shared refractive
+rendering with `WaterGeometry.v.ts`, explicit water profiles, motion history and
+budgeted planar reflection. The shader remains an engine-owned source capability.
 
 | Owner | Responsibility |
 | --- | --- |

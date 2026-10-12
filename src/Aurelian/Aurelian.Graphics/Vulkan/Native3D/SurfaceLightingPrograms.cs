@@ -19,4 +19,5 @@ public sealed record SurfaceLightingPrograms(
     public CompiledGraphicsProgram? VolumeResolve { get; init; }
     public CompiledGraphicsProgram? RefractiveModel { get; init; }
     public CompiledGraphicsProgram? RefractionResolve { get; init; }
+    public CompiledGraphicsProgram? WaterTemporal { get; init; }
 }

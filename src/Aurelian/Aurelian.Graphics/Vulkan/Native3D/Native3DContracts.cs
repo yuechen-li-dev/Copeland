@@ -20,6 +20,8 @@ public sealed record Native3DScene(Native3DVertex[] Geometry, IReadOnlyList<Nati
     public string? TemporalRevision { get; init; }
     /// <summary>Change when opaque shadow casters move or deform. Scene composition supplies transforms automatically.</summary>
     public string? LightingRevision { get; init; }
+    public WaterFrame3D WaterFrame { get; init; } = new();
+    public PlanarWaterReflection3D? WaterReflection { get; init; }
 }
 
 public sealed record Native3DFrameResult(int TriangleCount, byte[]? Pixels, string? PixelSha256)

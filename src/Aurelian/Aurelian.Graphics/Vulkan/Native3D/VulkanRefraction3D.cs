@@ -27,6 +27,8 @@ internal sealed class VulkanRefraction3D : IDisposable
     private readonly AurelianVulkanTexture radiance;
     private readonly AurelianVulkanTexture coverage;
     private readonly AurelianVulkanTexture output;
+    private readonly AurelianVulkanTexture motion;
+    private readonly VulkanTemporal3D? waterTemporal;
     private NativeModel3DBatch[] batches = [];
 
     public VulkanRefraction3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
@@ -39,7 +41,8 @@ internal sealed class VulkanRefraction3D : IDisposable
             radiance = Image("refraction.radiance", VulkanTextureFormat.Rgba16Float);
             coverage = Image("refraction.coverage", VulkanTextureFormat.Rgba8Unorm);
             output = Image("refraction.output", VulkanTextureFormat.Rgba16Float);
-            var attachments = new[] { radiance, coverage }.Select(texture =>
+            motion = Image("refraction.motion", VulkanTextureFormat.Rgba32Float);
+            var attachments = new[] { radiance, coverage, motion }.Select(texture =>
                 new VulkanRenderPassAttachmentDescriptor("refraction.surface", texture.Format,
                     VulkanAttachmentLoadOp.Clear, VulkanAttachmentStoreOp.Store,
                     VulkanResourceLayout.Undefined, VulkanResourceLayout.ShaderResourceFragment)).ToArray();
@@ -51,12 +54,16 @@ internal sealed class VulkanRefraction3D : IDisposable
             AurelianVulkanTexture depth = Own(VulkanNativeForwardTexturedRenderer.CreateTexture(plant, allocator,
                 width, height, VulkanTextureUsage.DepthAttachment, VulkanMemoryUsage.GpuOnly,
                 "refraction.depth", VulkanTextureFormat.D32Float));
-            var createdFramebuffer = VulkanFramebufferFactory.Create(plant, pass, new(width, height, [radiance, coverage], depth));
+            var createdFramebuffer = VulkanFramebufferFactory.Create(plant, pass, new(width, height, [radiance, coverage, motion], depth));
             Require(createdFramebuffer.Success, "Refractive framebuffer creation failed.");
             framebuffer = Own(createdFramebuffer.Framebuffer!);
             models = Own(new VulkanModel3DBatches(plant, allocator, commands, fences, pass,
                 programs.RefractiveModel!, shadow, sampler, refraction: true));
             resolve = Own(new VulkanPostProcess3D(plant, allocator, programs.RefractionResolve!, output, 3, Filter.Nearest));
+            if (programs.WaterTemporal is not null)
+            {
+                waterTemporal = Own(new VulkanTemporal3D(plant, allocator, commands, fences, programs.WaterTemporal, width, height));
+            }
         }
         catch
         {
@@ -79,21 +86,44 @@ internal sealed class VulkanRefraction3D : IDisposable
 
     public AurelianVulkanTexture Record(VulkanCommandBufferLease command, AurelianVulkanBuffer triangle,
         IReadOnlyList<NativeModel3DBatch> source, Matrix4x4 clip, Vector3 eye, float[] lighting,
-        float[] frame, AurelianVulkanTexture[] inputs, AurelianVulkanTexture unfogged, AurelianVulkanTexture background)
+        float[] frame, AurelianVulkanTexture[] inputs, AurelianVulkanTexture unfogged, AurelianVulkanTexture background,
+        WaterFrame3D waterFrame, float previousTime, Matrix4x4 previousClip, Matrix4x4 logicalClip,
+        bool resetHistory, bool temporal, float historyWeight,
+        AurelianVulkanTexture? reflection, Matrix4x4 reflectionClip)
     {
         Matrix4x4.Invert(clip, out Matrix4x4 inverse);
         batches = source.Where(batch => batch.Material.Transmission > 0).ToArray();
-        models.ConfigureTransparency([.. frame, .. Lighting3DUniforms.Rows(inverse)], [.. inputs, unfogged]);
+        models.ConfigureTransparency([.. frame, .. Lighting3DUniforms.Rows(inverse),
+            .. Water3DUniforms.Frame(waterFrame, previousTime, previousClip, reflectionClip, reflection is not null)],
+            [.. inputs, unfogged, reflection ?? unfogged]);
         models.Upload(batches, clip, eye, lighting, clip, true);
         var encoder = new VulkanRenderPassCommandEncoder();
         var begin = encoder.Begin(plant, command, new(pass, framebuffer, new(0, 0, 0, 0))
         {
-            AdditionalClearColors = [new(0, 0, 0, 0)],
+            AdditionalClearColors = [new(0, 0, 0, 0), new(0, 0, 0, 1)],
         });
         Require(begin.Success, "Refractive surface pass begin failed.");
         models.Draw(command, begin.Scope!.Value, framebuffer, batches);
         Require(encoder.End(plant, command, begin.Scope.Value).Success, "Refractive surface pass end failed.");
-        resolve.Configure([0, 0, 0, 0], background, radiance, coverage);
+        AurelianVulkanTexture color = radiance;
+        if (batches.Any(batch => batch.Material.Water is not null) && temporal)
+        {
+            if (waterTemporal is null)
+            {
+                throw new NotSupportedException("AUR-WATER-006: Temporal water requires the shared temporal shader.");
+            }
+            if (resetHistory)
+            {
+                waterTemporal.Reset();
+            }
+            waterTemporal.Begin(logicalClip);
+            color = waterTemporal.Resolve(command, triangle, radiance, motion, historyWeight);
+        }
+        else
+        {
+            waterTemporal?.Reset();
+        }
+        resolve.Configure([0, 0, 0, 0], background, color, coverage);
         resolve.Record(command, triangle);
         return output;
     }

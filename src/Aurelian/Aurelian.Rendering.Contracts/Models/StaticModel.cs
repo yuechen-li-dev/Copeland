@@ -36,6 +36,7 @@ public sealed record ModelMaterial(string Slot)
     public Vector3 AttenuationColor { get; init; } = Vector3.One;
     /// <summary>World metres; zero explicitly means no volume absorption.</summary>
     public float AttenuationDistance { get; init; }
+    public WaterSurface3D? Water { get; init; }
     public float SubsurfaceStrength { get; init; }
     public Vector3 SubsurfaceColor { get; init; } = new(1, .35f, .15f);
     public float SubsurfaceRadius { get; init; } = .02f;
@@ -48,6 +49,11 @@ public sealed record ModelMaterial(string Slot)
 
     public void Validate()
     {
+        Water?.Validate();
+        if (Water is not null && (Transmission != 1 || Thickness != 0 || DoubleSided))
+        {
+            throw new InvalidDataException("AUR-WATER-005: Water requires full transmission, zero slab thickness and an above-water surface.");
+        }
         if (Transmission == 0 && IndexOfRefraction != 1.5f)
         {
             throw new InvalidDataException($"AUR-REFRACT-003: Non-default opaque IOR is not supported in slot '{Slot}'; authored IOR currently requires transmission.");
