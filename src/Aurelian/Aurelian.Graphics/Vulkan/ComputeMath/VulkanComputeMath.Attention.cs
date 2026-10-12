@@ -24,9 +24,9 @@ public sealed unsafe partial class VulkanComputeMath
         ComputeMathBatch.Require(headWidth is 64 or 128 && query.Columns % headWidth == 0
             && key.Columns == query.Columns && value.Rows == key.Rows && value.Columns == key.Columns
             && output.Rows == query.Rows && output.Columns == query.Columns && key.Rows <= 8192
-            && queryTileRows is > 0 and <= 64
+            && queryTileRows is > 0 and <= 256
             && !ReferenceEquals(output, query) && !ReferenceEquals(output, key) && !ReferenceEquals(output, value),
-            "Tiled attention needs 64/128-wide heads, compatible independent FP32 storage, <=8192 keys and query tiles of 1–64 rows.");
+            "Tiled attention needs 64/128-wide heads, compatible independent FP32 storage, <=8192 keys and query tiles of 1–256 rows.");
         int dispatchesPerQuery = 1 + (headWidth + ComputeMathBatch.MatrixKChunk - 1) / ComputeMathBatch.MatrixKChunk
             + 1 + (key.Rows + ComputeMathBatch.MatrixKChunk - 1) / ComputeMathBatch.MatrixKChunk + 1;
         ComputeMathBatch.Require(dispatchesPerQuery <= MaximumDispatches, "Attention tile exceeds the owner's dispatch budget.");
@@ -52,17 +52,17 @@ public sealed unsafe partial class VulkanComputeMath
         bool timed = true;
         int queriesPerBatch = MaximumDispatches / dispatchesPerQuery;
         int queryTiles = (query.Rows + fullRows - 1) / fullRows;
-        int batchesPerHead = 1 + (queryTiles + queriesPerBatch - 1) / queriesPerBatch;
+        int firstBatchQueries = (MaximumDispatches - 2) / dispatchesPerQuery;
+        int remainingQueries = Math.Max(0, queryTiles - firstBatchQueries);
+        int batchesPerHead = 1 + (remainingQueries + queriesPerBatch - 1) / queriesPerBatch;
         using var ring = StreamController is { } controller
             ? new SubmissionRing(this, controller, new(batchesPerHead * (query.Columns / headWidth), MaximumDispatches, 0))
             : null;
         for (int head = 0; head < query.Columns / headWidth; head++)
         {
-            var keys = CreateBatch();
-            keys.Gather(key, k, firstColumn: head * headWidth);
-            keys.Gather(value, v, firstColumn: head * headWidth);
-            ExecuteBatch(keys);
             var batch = CreateBatch();
+            batch.Gather(key, k, firstColumn: head * headWidth);
+            batch.Gather(value, v, firstColumn: head * headWidth);
             for (int firstRow = 0; firstRow < query.Rows; firstRow += fullRows)
             {
                 if (batch.DispatchCount + dispatchesPerQuery > MaximumDispatches)

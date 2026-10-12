@@ -1,5 +1,10 @@
 # TRELLIS.2 sparse shape stage on C#/Vulkan
 
+The former decoder row-limit boundary is now resolved by the
+[complete mesh/material experiment](trellis2-mesh-material-experiment.md).
+The prefix measurements and historical boundaries below remain scoped to that
+earlier experiment.
+
 This continues the learned occupancy experiment with the pinned 512 shape SLat
 flow and the first resolution of the learned mesh decoder. CPU code owns sparse
 coordinates, neighborhoods and subdivision mappings. Learned arithmetic remains

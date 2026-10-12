@@ -26,7 +26,7 @@ public sealed unsafe partial class VulkanComputeMath
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(loadWeights);
         ComputeMathBatch.Require(input.Columns == plan.InputWidth && output.Columns == plan.OutputWidth
-            && input.Rows == output.Rows && !ReferenceEquals(input, output),
+            && input.Rows == output.Rows && input.Rows <= 1048560 && !ReferenceEquals(input, output),
             "Streaming linear input/output must match its schedule and use separate allocations.");
         ComputeMathBatch.Require(plan.DispatchesPerTile <= MaximumDispatches, "Weight tile exceeds the owner's dispatch budget.");
         if (StreamController is { } controller)

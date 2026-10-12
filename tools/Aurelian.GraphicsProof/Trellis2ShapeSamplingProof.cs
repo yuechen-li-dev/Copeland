@@ -119,7 +119,7 @@ internal static class Trellis2ShapeSamplingProof
                 IndependentFullSamplerQualified = false,
                 InheritedQualificationLimit = "Occupancy final-step velocity comparison was 1.130% RMS versus the retained 1% bound; occupancy topology unchanged",
                 Stages = schedule.Measurements, Sampler = sampler.Measurements,
-                NextBlocker = "Learned sparse ConvNeXt decoder and subdivision/channel-to-spatial topology refinement",
+                NextCommand = "--trellis2-finalize executes the learned mesh decoder, material flow, guided material decoder and GLB import/render proof",
             }, new JsonSerializerOptions { WriteIndented = true }));
             Console.WriteLine($"Full shape sampler completed in {timer.Elapsed.TotalSeconds:F1} s: {tokens}x32, {sampler.ModelEvaluations} model evaluations");
             Console.WriteLine("AURELIAN_TRELLIS2_SHAPE_SAMPLED");

@@ -2,15 +2,39 @@ using Aurelian.Assets.Tensors;
 using Aurelian.Graphics.Vulkan.ComputeMath;
 
 internal sealed class Trellis2FlowModel(VulkanComputeMath math, SafeTensorFile weights, GpuTensor? coordinates = null,
-    Action<int, GpuTensor>? inspectBlock = null)
+    Action<int, GpuTensor>? inspectBlock = null, float[]? concatenatedConditioning = null)
 {
     public int Tokens => coordinates?.Rows ?? 4096;
-    public int InputChannels => coordinates is null ? 8 : 32;
+    public int InputChannels => weights.Tensors["input_layer.weight"].Shape[1];
+    public int SampleChannels => weights.Tensors["out_layer.weight"].Shape[0];
     public IEnumerable<Trellis2ComputeStage> Evaluate(float[] sample, GpuTensor context,
         float timestep, string label, Action<float[]> complete)
     {
         using var input = math.CreateTensor(Tokens, InputChannels);
-        math.Upload(input, sample);
+        if (sample.Length != Tokens * SampleChannels)
+        {
+            throw new InvalidDataException("Flow sample does not match the learned output channels.");
+        }
+        if (InputChannels == SampleChannels)
+        {
+            math.Upload(input, sample);
+        }
+        else
+        {
+            int conditionChannels = InputChannels - SampleChannels;
+            if (concatenatedConditioning is null || concatenatedConditioning.Length != Tokens * conditionChannels)
+            {
+                throw new InvalidDataException("AUR-TRELLIS-MATERIAL-001: Shape-conditioned flow requires explicit matching concatenated features.");
+            }
+            var values = new float[input.Elements];
+            for (int row = 0; row < Tokens; row++)
+            {
+                Array.Copy(sample, row * SampleChannels, values, row * InputChannels, SampleChannels);
+                Array.Copy(concatenatedConditioning, row * conditionChannels, values,
+                    row * InputChannels + SampleChannels, conditionChannels);
+            }
+            math.Upload(input, values);
+        }
         var shared = new Trellis2BlockGraph(math, weights);
         GpuTensor? hidden = null;
         GpuTensor? modulation = null;

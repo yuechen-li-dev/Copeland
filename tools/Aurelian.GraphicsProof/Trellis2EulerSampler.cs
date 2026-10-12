@@ -1,7 +1,8 @@
 using System.Runtime.InteropServices;
 using Aurelian.Graphics.Vulkan.ComputeMath;
 
-internal sealed class Trellis2EulerSampler(Trellis2FlowModel model, double timeRescale = 5, float guidanceRescale = .7f)
+internal sealed class Trellis2EulerSampler(Trellis2FlowModel model, double timeRescale = 5, float guidanceRescale = .7f,
+    bool unityGuidance = false)
 {
     public float[]? Result { get; private set; }
     public int ModelEvaluations { get; private set; }
@@ -12,13 +13,13 @@ internal sealed class Trellis2EulerSampler(Trellis2FlowModel model, double timeR
     public IEnumerable<Trellis2ComputeStage> Sample(GpuTensor positiveContext, GpuTensor negativeContext,
         string outputDirectory, uint seed)
     {
-        float[] sample = Noise(seed, model.Tokens, model.InputChannels, tokenMajorNoise: model.InputChannels == 32);
+        float[] sample = Noise(seed, model.Tokens, model.SampleChannels, tokenMajorNoise: model.SampleChannels == 32);
         File.WriteAllBytes(Path.Combine(outputDirectory, "noise.f32"), MemoryMarshal.AsBytes(sample.AsSpan()).ToArray());
         for (int step = 0; step < Steps; step++)
         {
             double time = Time(step, timeRescale);
             double previous = Time(step + 1, timeRescale);
-            bool guided = time >= .6 && time <= 1;
+            bool guided = !unityGuidance && time >= .6 && time <= 1;
             float[]? positive = null;
             float[]? negative = null;
             foreach (var stage in model.Evaluate(sample, positiveContext, (float)(time * 1000),

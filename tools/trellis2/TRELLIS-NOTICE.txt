@@ -18,12 +18,15 @@ trellis2/models/structured_latent_flow.py (512 shape SLat flow)
 trellis2/modules/sparse/transformer/modulated.py (sparse transformer boundaries)
 trellis2/modules/sparse/attention/modules.py and rope.py (sparse coordinate attention)
 trellis2/models/sc_vaes/sparse_unet_vae.py (sparse ConvNeXt and subdivision prediction)
+trellis2/models/sc_vaes/fdg_vae.py (seven-channel mesh interpretation)
+o-voxel/o_voxel/convert/flexible_dual_grid.py (dual-grid edge neighborhoods and learned diagonal selection)
+trellis2/pipelines/trellis2_image_to_3d.py (shape-conditioned texture flow, guided texture decoder and PBR channel layout)
 trellis2/modules/sparse/spatial/spatial2channel.py (sparse child/channel ordering)
 trellis2/modules/sparse/conv/conv_flex_gemm.py (O/kernel-X/Y/Z/channel weight layout)
 The adapters implement these equations in C#/Vulkan and independent NumPy
 qualification tools. FlexGEMM/CUDA binaries and third-party build dependencies
-are not installed or included. Learned mesh extraction and material stages are
-not yet implemented. Shape/decoder checkpoints remain local and unredistributed.
+are not installed or included. Learned mesh extraction and shape-conditioned
+material stages execute through C#/Vulkan. Checkpoints remain local and unredistributed.
 Model: https://huggingface.co/microsoft/TRELLIS.2-4B
 Model revision: af44b45f2e35a493886929c6d786e563ec68364d
 Code and model card declare MIT. Checkpoint weights are local research artifacts,

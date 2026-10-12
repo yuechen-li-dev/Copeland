@@ -10,7 +10,8 @@ using Aurelian.Graphics.Vulkan.Device;
 
 internal static class Trellis2ThroughputProof
 {
-    public static void Run(string weightsDirectory, string featuresDirectory, string sampleDirectory, string output, bool cooperative = false)
+    public static void Run(string weightsDirectory, string featuresDirectory, string sampleDirectory, string output,
+        bool cooperative = false, bool compareAttentionTiles = false)
     {
         Directory.CreateDirectory(output);
         File.WriteAllText(Path.Combine(output, "evidence.json"), "{\"Accepted\":false}");
@@ -50,11 +51,14 @@ internal static class Trellis2ThroughputProof
         using var hidden = shared.Affine(input, "input_layer", rounded: true);
         using var modulation = shared.Conditioning(1000);
         using var controller = new Trellis2ComputeFeedforward();
+        math.StreamController = compareAttentionTiles ? controller : null;
+        math.AttentionQueryTileRows = compareAttentionTiles ? 64 : 256;
         // First run warms every pipeline on the exact motivating shape.
         using (var warm = new Trellis2BlockGraph(math, weights).Run(hidden, context, modulation, coordinates))
         {
         }
         math.StreamController = controller;
+        math.AttentionQueryTileRows = 256;
         math.UseCooperativeLinear = cooperative;
         using (var warm = new Trellis2BlockGraph(math, weights).Run(hidden, context, modulation, coordinates))
         {
@@ -78,7 +82,9 @@ internal static class Trellis2ThroughputProof
         File.WriteAllText(Path.Combine(output, "evidence.json"), JsonSerializer.Serialize(new
         {
             Accepted = improved,
-            Scope = $"Actual first shape transformer block, {positions.Length} irregular tokens; alternating warmed baseline and staged trials",
+            Scope = compareAttentionTiles
+                ? $"Actual first shape transformer block, {positions.Length} irregular tokens; alternating warmed 64/256 query tiles with staged FP32 affines in both runs"
+                : $"Actual first shape transformer block, {positions.Length} irregular tokens; alternating warmed baseline and staged trials",
             WeightSha256 = Trellis2ShapeWeights.FlowHash,
             FeatureSha256 = featureHash,
             NoiseSha256 = Hash(noiseBytes),
@@ -94,6 +100,9 @@ internal static class Trellis2ThroughputProof
             Measurements = measurements,
             Feedforward = controller.Evidence,
             FullSamplerMeasured = false,
+            CompareAttentionTiles = compareAttentionTiles,
+            BaselineAttentionQueryTileRows = compareAttentionTiles ? 64 : 256,
+            StagedAttentionQueryTileRows = 256,
         }, new JsonSerializerOptions { WriteIndented = true }));
         Console.WriteLine($"Throughput: {baseline:F1} -> {staged:F1} ms, {baseline / staged:F3}x, bit-exact={bitExact}, RMS={maximumRelativeRms:P5}");
         if (!improved)
@@ -103,7 +112,8 @@ internal static class Trellis2ThroughputProof
 
         void RunBlock(bool staged, int trial)
         {
-            math.StreamController = staged ? controller : null;
+            math.StreamController = staged || compareAttentionTiles ? controller : null;
+            math.AttentionQueryTileRows = compareAttentionTiles && !staged ? 64 : 256;
             math.UseCooperativeLinear = staged && cooperative;
             var graph = new Trellis2BlockGraph(math, weights);
             var timer = Stopwatch.StartNew();
@@ -132,7 +142,9 @@ internal static class Trellis2ThroughputProof
                 throw new InvalidDataException($"AUR-TRELLIS-PERF-002: Transformer parity failed: identical={identical}, RMS={relativeRms:P5}.");
             }
             (staged ? stagedTimes : baselineTimes).Add(milliseconds);
-            measurements.Add(new { Staged = staged, Trial = trial, Milliseconds = milliseconds, RelativeRms = relativeRms, BitExact = identical, Operations = graph.Measurements });
+            measurements.Add(new { Staged = staged, ControllerEnabled = staged || compareAttentionTiles,
+                AttentionQueryTileRows = math.AttentionQueryTileRows, Trial = trial, Milliseconds = milliseconds,
+                RelativeRms = relativeRms, BitExact = identical, Operations = graph.Measurements });
             Console.WriteLine($"Trial {trial}, staged={staged}: {milliseconds:F1} ms, RMS={relativeRms:P5}, identical={identical}");
         }
     }

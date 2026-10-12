@@ -1,5 +1,8 @@
 # TRELLIS.2 compute feedforward and throughput experiment
 
+The subsequent [attention tile pass](trellis2-attention-throughput-experiment.md)
+reduces queue/dispatch overhead while retaining byte-identical FP32 results.
+
 The real pot's 5,870-token transformer block runs faster with Dominatus-directed
 submission lookahead. The default preserves FP32 arithmetic and the existing
 BF16 boundaries. A complete positive 30-block prediction reproduces the

@@ -76,9 +76,7 @@ internal static class Trellis2ShapeDecoderProof
                 }
                 Trellis2OccupancyPreview.Render(plant, assets, SparseVoxelGrid.FromLogits(occupied, 64), output);
             }
-            string nextBlocker = children.Topology.Coordinates.Length > 8192
-                ? $"AUR-TRELLIS-DECODER-002: First learned subdivision needs {children.Topology.Coordinates.Length} feature rows; current matrix owner supports 8192. Implement paged sparse features/gathers before the next decoder stage."
-                : "Later decoder stages, sparse channel-to-spatial feature gather and dual-grid mesh extraction remain unimplemented.";
+            const string nextCommand = "--trellis2-decode-mesh executes all remaining learned decoder stages and dual-grid extraction; this command qualifies only the first-resolution prefix.";
             File.WriteAllText(evidencePath, JsonSerializer.Serialize(new
             {
                 Accepted = true, MeshDecoded = false, FullGenerationQualified = false,
@@ -93,10 +91,10 @@ internal static class Trellis2ShapeDecoderProof
                 Readbacks = math.ReadbackCount,
                 ReadbackScope = "Subdivision logits and explicit final-stage features for offline qualification; no internal layer readbacks",
                 IndependentStageReferenceQualified = false,
-                NextBlocker = nextBlocker, Stages = schedule.Measurements, Convolutions = graph.Measurements,
+                NextCommand = nextCommand, Stages = schedule.Measurements, Convolutions = graph.Measurements,
             }, new JsonSerializerOptions { WriteIndented = true }));
             Console.WriteLine($"Decoder prefix: {topology.Coordinates.Length} parents -> {children.Topology.Coordinates.Length} learned children, {milliseconds / 1000:F1} s");
-            Console.WriteLine(nextBlocker);
+            Console.WriteLine(nextCommand);
             Console.WriteLine("AURELIAN_TRELLIS2_DECODER_STAGE_EXECUTED");
         }
         finally

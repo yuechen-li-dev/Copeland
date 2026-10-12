@@ -41,4 +41,26 @@ public sealed partial class ComputeMathBatch
         parameters.Stride = groupsX * 64;
         Add([new(shader, input, auxiliary, output, parameters, groupsX, (groups + 65534) / 65535)]);
     }
+
+    /// <summary>Gather selected eight-way children from channel-major parent
+    /// rows. Mapping stores parent row and XYZ child slot (X is the low bit).
+    /// Repeat expands each source channel for the residual skip branch.</summary>
+    public void SparseChannelToSpatial(GpuTensor input, GpuTensor mapping, GpuTensor output,
+        int firstChild = 0, int? childCount = null, int firstParent = 0)
+    {
+        Check(input, output);
+        Owner.Validate(mapping, GpuTensorFormat.UInt32);
+        int count = childCount ?? output.Rows;
+        Require(input.Columns % 8 == 0 && output.Columns % (input.Columns / 8) == 0
+            && mapping.Rows == output.Rows && mapping.Columns == 2
+            && count > 0 && firstChild >= 0 && (long)firstChild + count <= output.Rows
+            && firstParent >= 0 && !ReferenceEquals(input, output),
+            "Sparse channel-to-spatial needs typed parent/slot mapping, eight channel groups and an independent valid child range.");
+        SparseMap("SparseChannelToSpatial.v.ts", input, mapping, output, new()
+        {
+            Rows = (uint)count, Columns = (uint)output.Columns, Inner = (uint)input.Columns,
+            Offset = (uint)firstParent, Padding = (uint)firstChild, Height = (uint)input.Rows,
+            Width = (uint)(output.Columns / (input.Columns / 8)),
+        });
+    }
 }

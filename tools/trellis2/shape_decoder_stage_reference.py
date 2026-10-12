@@ -18,7 +18,7 @@ os.environ.setdefault("OPENBLAS_NUM_THREADS", "8")
 import numpy as np
 
 
-def weights_from_file(path):
+def weights_from_file(path, expected_count=292):
     with path.open("rb") as stream:
         length = struct.unpack("<Q", stream.read(8))[0]
         header = json.loads(stream.read(length))
@@ -26,7 +26,7 @@ def weights_from_file(path):
     for name, item in header.items():
         dtype = {"F16": "<f2", "F32": "<f4"}[item["dtype"]]
         weights[name] = np.memmap(path, dtype=dtype, mode="r", offset=8 + length + item["data_offsets"][0], shape=tuple(item["shape"]))
-    if len(weights) != 292:
+    if len(weights) != expected_count:
         raise ValueError("Unexpected learned decoder inventory")
     return weights
 

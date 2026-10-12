@@ -2,14 +2,16 @@ namespace Aurelian.Graphics.Vulkan.ComputeMath;
 
 public sealed partial class ComputeMathBatch
 {
-    public void CopyElements(GpuTensor input, GpuTensor output, int destinationOffset = 0)
+    public void CopyElements(GpuTensor input, GpuTensor output, int destinationOffset = 0, int sourceOffset = 0, int? count = null)
     {
         Check(input, output);
-        Require(destinationOffset >= 0 && (long)destinationOffset + input.Elements <= output.Elements
+        int elements = count ?? input.Elements;
+        Require(elements > 0 && sourceOffset >= 0 && (long)sourceOffset + elements <= input.Elements
+            && destinationOffset >= 0 && (long)destinationOffset + elements <= output.Elements
             && !ReferenceEquals(input, output), "Flat copies require independent buffers and a valid destination range.");
         VolumeMap(input, output, new()
         {
-            Rows = (uint)input.Rows, Columns = (uint)input.Columns, Mode = 3, Offset = (uint)destinationOffset,
+            Rows = 1, Columns = (uint)elements, Mode = 3, Offset = (uint)destinationOffset, Padding = (uint)sourceOffset,
         });
     }
 

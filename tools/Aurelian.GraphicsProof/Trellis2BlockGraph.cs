@@ -85,7 +85,7 @@ internal sealed class Trellis2BlockGraph(VulkanComputeMath math, SafeTensorFile 
             }
         });
         using var attention = math.CreateTensor(input.Rows, Channels);
-        var result = math.AttentionTiled(qr, kr, v, attention, queryTileRows: Math.Min(64, input.Rows));
+        var result = math.AttentionTiled(qr, kr, v, attention, queryTileRows: Math.Min(math.AttentionQueryTileRows, input.Rows));
         Measurements.Add(new { Operation = "self-attention", Result = result });
         Console.WriteLine($"self-attention: {result.Submissions} submissions, {result.GpuMilliseconds:F2} ms GPU");
         return Affine(attention, prefix + ".self_attn.to_out", rounded: true);
@@ -105,7 +105,7 @@ internal sealed class Trellis2BlockGraph(VulkanComputeMath math, SafeTensorFile 
             batch.NormalizeHeadsBFloat16(k, kGamma, k);
         });
         using var attention = math.CreateTensor(input.Rows, Channels);
-        var result = math.AttentionTiled(q, k, v, attention, queryTileRows: Math.Min(64, input.Rows));
+        var result = math.AttentionTiled(q, k, v, attention, queryTileRows: Math.Min(math.AttentionQueryTileRows, input.Rows));
         Measurements.Add(new { Operation = "cross-attention", Result = result });
         return Affine(attention, prefix + ".cross_attn.to_out", rounded: true);
     }

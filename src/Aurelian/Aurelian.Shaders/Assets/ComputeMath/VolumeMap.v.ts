@@ -54,7 +54,7 @@ function VolumeMapMain(@builtin(dispatchThreadId) thread: uint3,
             Output[index] = Input[sourceVoxel * p.inner * 8 + channelIndex * 8 + offset];
         }
         case VolumeOperation.Copy => {
-            Output[index + p.offset] = Input[index];
+            Output[index + p.offset] = Input[index + p.padding];
         }
         case VolumeOperation.Invalid => { }
     }

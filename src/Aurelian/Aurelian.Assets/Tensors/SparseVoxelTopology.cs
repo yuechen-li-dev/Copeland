@@ -9,6 +9,7 @@ public sealed record SparseVoxelSubdivision(SparseVoxelTopology Topology,
 /// allocation. Input row order is preserved, including learned subdivisions.</summary>
 public sealed class SparseVoxelTopology
 {
+    public const int MaximumRows = 4194304;
     public int Resolution { get; }
     public ImmutableArray<VoxelCoordinate> Coordinates { get; }
     public ImmutableArray<int> Neighbors27 { get; }
@@ -30,11 +31,11 @@ public sealed class SparseVoxelTopology
         var indices = new Dictionary<VoxelCoordinate, int>();
         foreach (VoxelCoordinate coordinate in coordinates)
         {
-            if (rows.Count == 1048576 || coordinate.X < 0 || coordinate.X >= resolution
+            if (rows.Count == MaximumRows || coordinate.X < 0 || coordinate.X >= resolution
                 || coordinate.Y < 0 || coordinate.Y >= resolution || coordinate.Z < 0 || coordinate.Z >= resolution
                 || !indices.TryAdd(coordinate, rows.Count))
             {
-                throw Stop("Coordinates must be unique, in range, and contain at most 1048576 rows.");
+                throw Stop("Coordinates must be unique, in range, and contain at most 4194304 rows.");
             }
             rows.Add(coordinate);
         }
@@ -80,9 +81,9 @@ public sealed class SparseVoxelTopology
                 }
                 if (logit > 0)
                 {
-                    if (children.Count == 1048576)
+                    if (children.Count == MaximumRows)
                     {
-                        throw Stop("Subdivision exceeds 1048576 output rows.");
+                        throw Stop("Subdivision exceeds 4194304 output rows.");
                     }
                     children.Add(new(parent.X * 2 + (slot & 1), parent.Y * 2 + (slot >> 1 & 1), parent.Z * 2 + (slot >> 2 & 1)));
                     parents.Add(row);

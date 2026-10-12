@@ -15,6 +15,7 @@ public sealed unsafe partial class VulkanComputeMath
         ["VolumeMap.v.ts"] = "VolumeMapMain",
         ["CoordinateRope.v.ts"] = "CoordinateRopeMain",
         ["SparseColumns.v.ts"] = "SparseColumnsMain",
+        ["SparseChannelToSpatial.v.ts"] = "SparseChannelToSpatialMain",
         ["HeadNormalize.v.ts"] = "HeadNormalizeMain",
         ["StreamingLinear.v.ts"] = "StreamingLinearMain",
         ["CooperativeSgemm.v.ts"] = "CooperativeSgemmMain",

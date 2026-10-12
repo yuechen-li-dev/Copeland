@@ -96,11 +96,12 @@ public sealed partial class ComputeMathBatch
             && float.IsFinite(epsilon) && epsilon > 0,
             "Normalization needs width <= 8192, matching output, positive epsilon and gamma (plus beta for LayerNorm).");
         Require(!ReferenceEquals(output, gammaBeta), "Normalization output cannot overwrite its weights.");
+        uint groupsX = (uint)Math.Min(input.Rows, 4096);
         Add([new("Normalization.v.ts", input, gammaBeta, output, new()
         {
             Rows = (uint)input.Rows, Columns = (uint)input.Columns, Mode = (uint)operation,
-            Epsilon = epsilon, Height = (uint)input.Rows,
-        }, (uint)input.Rows)]);
+            Epsilon = epsilon, Height = groupsX,
+        }, groupsX, ((uint)input.Rows + groupsX - 1) / groupsX)]);
     }
 
     public void Activate(GpuTensor input, GpuTensor output, TensorActivation operation, GpuTensor? auxiliary = null)
@@ -228,6 +229,8 @@ public sealed partial class ComputeMathBatch
     {
         var steps = source.ToArray();
         Require(Dispatches.Count + steps.Length <= Owner.MaximumDispatches, "Batch exceeds its declared dispatch budget.");
+        Require(steps.All(step => step.GroupsX is > 0 and <= 65535 && step.GroupsY is > 0 and <= 65535),
+            "Dispatch dimensions exceed the portable Vulkan workgroup range; tile the operation.");
         Dispatches.AddRange(steps);
     }
 

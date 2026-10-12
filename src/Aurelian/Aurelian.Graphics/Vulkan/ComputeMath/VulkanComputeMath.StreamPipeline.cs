@@ -9,7 +9,7 @@ public sealed unsafe partial class VulkanComputeMath
         StreamingLinearPlan plan, Func<LinearWeightTile, float[]> loadWeights, IComputeStreamController controller)
     {
         bool cooperative = UseCooperativeLinear && CooperativeMatrixEnabled
-            && input.Rows >= 16 && plan.InputWidth % 16 == 0
+            && input.Rows is >= 16 and <= 8192 && plan.InputWidth % 16 == 0
             && (plan.InputWidth <= 4096 || plan.InputWidth == 8192) && plan.TileRows % 16 == 0;
         int inner = Math.Min(plan.InputWidth, 4096);
         var packedInputs = new List<GpuTensor>();

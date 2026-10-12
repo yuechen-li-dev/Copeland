@@ -45,6 +45,10 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
     /// <summary>Opt-in FP16 inputs with FP32 cooperative accumulation. Requires
     /// numerical qualification for the model; small/unaligned affines retain FP32.</summary>
     public bool UseCooperativeLinear { get; set; }
+    /// <summary>Preferred model attention query tile. Larger tiles amortize queue
+    /// and barrier overhead without changing per-query arithmetic. AttentionTiled
+    /// validates the value and keeps its explicit scratch allocation budget.</summary>
+    public int AttentionQueryTileRows { get; set; } = 256;
 
     public VulkanComputeMath(AurelianVulkanPlant plant, Func<string, byte[]> compile, int maximumDispatches = 512,
         int maximumTensorElements = 1048576)
@@ -52,7 +56,7 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
         ArgumentNullException.ThrowIfNull(plant);
         ArgumentNullException.ThrowIfNull(compile);
         ComputeMathBatch.Require(maximumDispatches is >= 1 and <= 512, "Dispatch budget must be 1–512.");
-        ComputeMathBatch.Require(maximumTensorElements is > 0 and <= 67108864, "Explicit tensor budget must be 1–67108864 elements.");
+        ComputeMathBatch.Require(maximumTensorElements is > 0 and <= 134217728, "Explicit tensor budget must be 1–134217728 elements.");
         this.plant = plant;
         this.compile = compile;
         MaximumDispatches = maximumDispatches;
@@ -76,10 +80,27 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
 
     public GpuTensor CreateTensor(int rows, int columns, GpuTensorFormat format = GpuTensorFormat.Float32)
     {
-        ObjectDisposedException.ThrowIf(disposed, this);
         ComputeMathBatch.Require(rows is > 0 and <= 8192 && columns is > 0 and <= 65536
             && (long)rows * columns <= MaximumTensorElements && Enum.IsDefined(format),
             "Tensor dimensions must be positive, rows <= 8192, columns <= 65536 and elements within the explicit owner budget.");
+        return AllocateTensor(rows, columns, format);
+    }
+
+    /// <summary>Resident sparse feature or topology rows. Attention retains its
+    /// own token bounds; sparse callers tile matrix work and expanded features.
+    /// Every allocation still observes the owner budget and device buffer range.</summary>
+    public GpuTensor CreateSparseTensor(int rows, int columns, GpuTensorFormat format = GpuTensorFormat.Float32)
+    {
+        ComputeMathBatch.Require(rows is > 0 and <= 4194304 && columns is > 0 and <= 4096
+            && (long)rows * columns <= MaximumTensorElements
+            && format is GpuTensorFormat.Float32 or GpuTensorFormat.UInt32,
+            "Sparse tensors require 1..4194304 rows, 1..4096 columns, FP32/UInt32 and the explicit element budget.");
+        return AllocateTensor(rows, columns, format);
+    }
+
+    private GpuTensor AllocateTensor(int rows, int columns, GpuTensorFormat format)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
         ulong elements = (ulong)rows * (ulong)columns;
         ulong bytes = format switch
         {

@@ -21,6 +21,48 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 
 string defaultOutput = "artifacts/local/graphics-starter";
+if (args.Contains("--trellis2-finalize", StringComparer.Ordinal))
+{
+    string weightsDirectory = Path.GetFullPath(Option("--weights-dir") ?? "artifacts/local/trellis2/shape/weights");
+    string shapeDirectory = Path.GetFullPath(Option("--sample-dir") ?? "artifacts/local/trellis2/shape/sampled");
+    string featuresDirectory = Path.GetFullPath(Option("--features-dir") ?? "artifacts/local/trellis2/occupancy/dinov3");
+    string outputDirectory = Path.GetFullPath(Option("--output") ?? "artifacts/local/trellis2/completed");
+    await Trellis2MaterialWeights.Fetch(weightsDirectory);
+    string meshDirectory = Path.Combine(outputDirectory, "mesh");
+    string materialSampleDirectory = Path.Combine(outputDirectory, "material-sampled");
+    Trellis2MeshDecoderProof.Run(weightsDirectory, shapeDirectory, meshDirectory);
+    Trellis2MaterialSamplingProof.Run(weightsDirectory, featuresDirectory, shapeDirectory, materialSampleDirectory);
+    Trellis2MaterialDecoderProof.Run(weightsDirectory, materialSampleDirectory, meshDirectory, Path.Combine(outputDirectory, "asset"));
+    return;
+}
+if (args.Contains("--trellis2-decode-material", StringComparer.Ordinal))
+{
+    Trellis2MaterialDecoderProof.Run(Path.GetFullPath(Option("--weights-dir") ?? "artifacts/local/trellis2/shape/weights"),
+        Path.GetFullPath(Option("--sample-dir") ?? "artifacts/local/trellis2/material/sampled"),
+        Path.GetFullPath(Option("--mesh-dir") ?? "artifacts/local/trellis2/shape/decoded-mesh"),
+        Path.GetFullPath(Option("--output") ?? "artifacts/local/trellis2/material/decoded"));
+    return;
+}
+if (args.Contains("--trellis2-sample-material", StringComparer.Ordinal))
+{
+    Trellis2MaterialSamplingProof.Run(Path.GetFullPath(Option("--weights-dir") ?? "artifacts/local/trellis2/shape/weights"),
+        Path.GetFullPath(Option("--features-dir") ?? "artifacts/local/trellis2/occupancy/dinov3"),
+        Path.GetFullPath(Option("--sample-dir") ?? "artifacts/local/trellis2/shape/sampled"),
+        Path.GetFullPath(Option("--output") ?? "artifacts/local/trellis2/material/sampled"));
+    return;
+}
+if (args.Contains("--trellis2-fetch-material", StringComparer.Ordinal))
+{
+    await Trellis2MaterialWeights.Fetch(Path.GetFullPath(Option("--output") ?? "artifacts/local/trellis2/shape/weights"));
+    return;
+}
+if (args.Contains("--trellis2-decode-mesh", StringComparer.Ordinal))
+{
+    Trellis2MeshDecoderProof.Run(Path.GetFullPath(Option("--weights-dir") ?? "artifacts/local/trellis2/shape/weights"),
+        Path.GetFullPath(Option("--sample-dir") ?? "artifacts/local/trellis2/shape/sampled"),
+        Path.GetFullPath(Option("--output") ?? "artifacts/local/trellis2/shape/decoded-mesh"));
+    return;
+}
 if (args.Contains("--trellis2-stream-kernels", StringComparer.Ordinal))
 {
     Trellis2StreamProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/trellis2/shape/stream-kernels"));
@@ -32,7 +74,8 @@ if (args.Contains("--trellis2-throughput", StringComparer.Ordinal))
         Path.GetFullPath(Option("--features-dir") ?? "artifacts/local/trellis2/occupancy/dinov3"),
         Path.GetFullPath(Option("--sample-dir") ?? "artifacts/local/trellis2/shape/sampled"),
         Path.GetFullPath(Option("--output") ?? "artifacts/local/trellis2/shape/throughput"),
-        args.Contains("--cooperative", StringComparer.Ordinal));
+        args.Contains("--cooperative", StringComparer.Ordinal),
+        args.Contains("--compare-attention-tiles", StringComparer.Ordinal));
     return;
 }
 if (args.Contains("--trellis2-shape-flow-probe", StringComparer.Ordinal))

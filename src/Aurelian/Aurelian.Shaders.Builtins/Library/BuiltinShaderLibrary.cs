@@ -105,6 +105,7 @@ public static class BuiltinShaderLibrary
         new("VolumeMap.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
         new("CoordinateRope.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
         new("SparseColumns.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
+        new("SparseChannelToSpatial.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
         new("TensorMap.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
         new("HeadNormalize.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
         new("Sgemm.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
