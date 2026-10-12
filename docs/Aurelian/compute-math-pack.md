@@ -1,5 +1,9 @@
 # GPU compute math foundation
 
+For standalone model execution, shared weight bindings and Dominatus scheduling,
+use the [inference foundation](inference-runtime.md). Games and inference share
+the same compute shader cache and Vulkan resource owner.
+
 The built-in ComputeMath family ports the useful core of Oct Prometheus into
 real Visual TypeScript sources. The current pack has two deliberately distinct
 matrix paths: portable tiled **FP32 SGEMM** and optional hardware **FP16-input,

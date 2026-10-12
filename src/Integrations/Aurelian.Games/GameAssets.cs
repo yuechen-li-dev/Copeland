@@ -1,7 +1,6 @@
 using System.Security.Cryptography;
 using Aurelian.Rendering.Contracts.Shaders;
 using Aurelian.Shaders.Graphics;
-using Aurelian.Shaders.Compute;
 using Aurelian.Shaders.Library;
 using Copeland.TS.Gpu;
 using Copeland.TS.Gpu.VdMir;
@@ -29,27 +28,11 @@ public sealed class GameAssets
     public Aurelian.Rendering.Contracts.Lighting.StaticDiffuseLighting Lighting(string path, string sceneKey) =>
         Aurelian.Assets.Lighting.StaticDiffuseLightingAsset.Load(path, sceneKey);
     private readonly Dictionary<string, CompiledGraphicsProgram> programs = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, byte[]> computePrograms = new(StringComparer.Ordinal);
+    private readonly BuiltinComputeShaderCache computePrograms = new();
 
     public byte[] ComputeShader(string name)
     {
-        BuiltinShaderLibrary.RequireKind(name, ShaderSourceKind.Compute);
-        if (computePrograms.TryGetValue(name, out var cached))
-        {
-            return cached;
-        }
-        var module = GpuComputeBinder.Compile(new(BuiltinShaderLibrary.LoadSources(name)));
-        if (!module.Success)
-        {
-            throw new InvalidDataException(string.Join("; ", module.Diagnostics.Select(item => item.Message)));
-        }
-        var compiled = VdMirComputeBackend.Compile(module);
-        if (!compiled.SpirvValidated || compiled.Spirv.Length == 0)
-        {
-            throw new InvalidDataException(compiled.DxcOutput + compiled.SpirvValidationOutput);
-        }
-        computePrograms.Add(name, compiled.Spirv);
-        return compiled.Spirv;
+        return computePrograms.Get(name);
     }
 
     public CompiledGraphicsProgram Shader(string name)

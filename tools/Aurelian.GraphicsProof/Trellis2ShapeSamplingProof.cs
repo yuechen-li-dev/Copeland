@@ -69,7 +69,7 @@ internal static class Trellis2ShapeSamplingProof
         using var plant = initialization.Plant!;
         var assets = new GameAssets();
         using var math = new VulkanComputeMath(plant, assets.ComputeShader, maximumTensorElements: 67108864);
-        using var feedforward = new Trellis2ComputeFeedforward();
+        using var feedforward = new DominatusComputeFeedforward();
         math.StreamController = feedforward;
         math.UseCooperativeLinear = cooperative;
         using var coordinates = math.CreateTensor(tokens, 3);
@@ -83,7 +83,7 @@ internal static class Trellis2ShapeSamplingProof
         math.Execute(batch);
         var model = new Trellis2FlowModel(math, weights, coordinates);
         var sampler = new Trellis2EulerSampler(model, timeRescale: 3, guidanceRescale: .5f);
-        var schedule = new Trellis2ComputeSchedule("trellis.shape");
+        var schedule = new DominatusComputeSchedule("trellis.shape") { Observe = InferenceProofLog.Write };
         var timer = Stopwatch.StartNew();
         try
         {

@@ -47,7 +47,7 @@ internal static class Trellis2ShapeDecoderProof
         var assets = new GameAssets();
         using var math = new VulkanComputeMath(plant, assets.ComputeShader, maximumTensorElements: 67108864);
         var graph = new Trellis2SparseDecoderStage(math, weights);
-        var schedule = new Trellis2ComputeSchedule("trellis.shape.decoder");
+        var schedule = new DominatusComputeSchedule("trellis.shape.decoder") { Observe = InferenceProofLog.Write };
         var timer = Stopwatch.StartNew();
         try
         {

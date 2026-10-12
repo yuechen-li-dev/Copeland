@@ -1,13 +1,18 @@
+using Aurelian.Inference;
 using Aurelian.Assets.Tensors;
 using Aurelian.Graphics.Vulkan.ComputeMath;
 
-internal sealed class Trellis2FlowModel(VulkanComputeMath math, SafeTensorFile weights, GpuTensor? coordinates = null,
+namespace Aurelian.Inference.Trellis2;
+
+public sealed class Trellis2FlowModel(VulkanComputeMath math, SafeTensorFile weights, GpuTensor? coordinates = null,
     Action<int, GpuTensor>? inspectBlock = null, float[]? concatenatedConditioning = null)
 {
+    public Action<string>? Log { get; set; }
+
     public int Tokens => coordinates?.Rows ?? 4096;
     public int InputChannels => weights.Tensors["input_layer.weight"].Shape[1];
     public int SampleChannels => weights.Tensors["out_layer.weight"].Shape[0];
-    public IEnumerable<Trellis2ComputeStage> Evaluate(float[] sample, GpuTensor context,
+    public IEnumerable<ComputeStage> Evaluate(float[] sample, GpuTensor context,
         float timestep, string label, Action<float[]> complete)
     {
         using var input = math.CreateTensor(Tokens, InputChannels);
@@ -35,7 +40,7 @@ internal sealed class Trellis2FlowModel(VulkanComputeMath math, SafeTensorFile w
             }
             math.Upload(input, values);
         }
-        var shared = new Trellis2BlockGraph(math, weights);
+        var shared = new Trellis2BlockGraph(math, weights) { Log = Log };
         GpuTensor? hidden = null;
         GpuTensor? modulation = null;
         try
@@ -50,7 +55,7 @@ internal sealed class Trellis2FlowModel(VulkanComputeMath math, SafeTensorFile w
                 int block = index;
                 yield return new(label + $".block.{block}", () =>
                 {
-                    var graph = new Trellis2BlockGraph(math, weights, block);
+                    var graph = new Trellis2BlockGraph(math, weights, block) { Log = Log };
                     GpuTensor next = graph.Run(hidden!, context, modulation!, coordinates);
                     hidden!.Dispose();
                     hidden = next;

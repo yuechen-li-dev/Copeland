@@ -50,7 +50,7 @@ internal static class Trellis2ThroughputProof
         var shared = new Trellis2BlockGraph(math, weights);
         using var hidden = shared.Affine(input, "input_layer", rounded: true);
         using var modulation = shared.Conditioning(1000);
-        using var controller = new Trellis2ComputeFeedforward();
+        using var controller = new DominatusComputeFeedforward();
         math.StreamController = compareAttentionTiles ? controller : null;
         math.AttentionQueryTileRows = compareAttentionTiles ? 64 : 256;
         // First run warms every pipeline on the exact motivating shape.

@@ -1,18 +1,23 @@
+using Aurelian.Inference;
 using Aurelian.Assets.Tensors;
 using Aurelian.Graphics.Vulkan.ComputeMath;
 
+namespace Aurelian.Inference.Trellis2;
+
 /// <summary>Pinned learned sparse decoder. Expanded MLP and convolution rows
 /// are tiled; CPU work owns topology, never learned feature arithmetic.</summary>
-internal sealed class Trellis2SparseDecoderStage(VulkanComputeMath math, SafeTensorFile weights,
+public sealed class Trellis2SparseDecoderStage(VulkanComputeMath math, SafeTensorFile weights,
     string identity = "shape.decoder")
 {
+    public Action<string>? Log { get; set; }
+
     public float[]? Features { get; private set; }
     public float[]? SubdivisionLogits { get; private set; }
     public List<object> Measurements { get; } = [];
     public SparseVoxelTopology? FinalTopology { get; private set; }
     public List<SparseVoxelSubdivision> Subdivisions { get; } = [];
 
-    public IEnumerable<Trellis2ComputeStage> DecodeComplete(float[] latent, SparseVoxelTopology topology,
+    public IEnumerable<ComputeStage> DecodeComplete(float[] latent, SparseVoxelTopology topology,
         IReadOnlyList<SparseVoxelSubdivision>? guides = null)
     {
         if (latent.Length != topology.Coordinates.Length * 32 || !latent.All(float.IsFinite))
@@ -68,7 +73,7 @@ internal sealed class Trellis2SparseDecoderStage(VulkanComputeMath math, SafeTen
                         hidden!.Dispose();
                         hidden = next;
                         topology = subdivision.Topology;
-                        Console.WriteLine($"Learned grid {topology.Resolution}: {hidden.Rows} rows x {hidden.Columns}");
+                        Log?.Invoke($"Learned grid {topology.Resolution}: {hidden.Rows} rows x {hidden.Columns}");
                     });
                 }
             }
@@ -131,7 +136,7 @@ internal sealed class Trellis2SparseDecoderStage(VulkanComputeMath math, SafeTen
         }
     }
 
-    public IEnumerable<Trellis2ComputeStage> Decode(float[] latent, SparseVoxelTopology topology)
+    public IEnumerable<ComputeStage> Decode(float[] latent, SparseVoxelTopology topology)
     {
         int rows = topology.Coordinates.Length;
         if (rows is < 1 or > 8192 || latent.Length != rows * 32 || !latent.All(float.IsFinite))
@@ -238,13 +243,13 @@ internal sealed class Trellis2SparseDecoderStage(VulkanComputeMath math, SafeTen
         var output = math.CreateSparseTensor(input.Rows, channels);
         try
         {
-            var graph = new Trellis2BlockGraph(math, weights);
+            var layers = new VulkanModelLayers(math, weights);
             for (int first = 0; first < input.Rows; first += 8192)
             {
                 int rows = Math.Min(8192, input.Rows - first);
                 using var page = math.CreateTensor(rows, input.Columns);
                 Execute(batch => batch.CopyElements(input, page, sourceOffset: first * input.Columns, count: page.Elements));
-                using var result = graph.Affine(page, prefix, rounded: false);
+                using var result = layers.Linear(page, prefix + ".weight", prefix + ".bias", maximumTileRows: input.Columns > 4096 ? 64 : 256);
                 Execute(batch =>
                 {
                     if (rounded)
@@ -343,9 +348,9 @@ internal sealed class Trellis2SparseDecoderStage(VulkanComputeMath math, SafeTen
         }
         int channels = shape[0];
         int inner = input.Columns * 27;
-        int weightTile = Math.Min(32, channels);
-        var plan = new StreamingLinearPlan(inner, channels, weightTile);
-        float[] bias = weights.ReadVector(prefix + ".bias");
+        var binding = new CheckpointLinearLayer(weights, prefix + ".weight", prefix + ".bias", flattenInnerAxes: true);
+        var plan = binding.Plan(Math.Min(32, channels));
+        var load = binding.TileLoader(plan);
         double? gpuMilliseconds = 0;
         int dispatches = 0;
         for (int first = 0; first < input.Rows; first += 2048)
@@ -354,17 +359,7 @@ internal sealed class Trellis2SparseDecoderStage(VulkanComputeMath math, SafeTen
             using var columns = math.CreateTensor(rows, inner);
             using var tileOutput = math.CreateTensor(rows, channels);
             Execute(batch => batch.SparseColumns(input, neighbors, columns, first));
-            var result = math.LinearStreamed(columns, tileOutput, plan, tile =>
-            {
-                float[] selected = weights.ReadSlices(prefix + ".weight", tile.FirstOutput, tile.OutputCount);
-                var packed = new float[plan.TileRows * (inner + 1)];
-                for (int row = 0; row < tile.OutputCount; row++)
-                {
-                    Array.Copy(selected, row * inner, packed, row * (inner + 1), inner);
-                    packed[row * (inner + 1) + inner] = bias[tile.FirstOutput + row];
-                }
-                return packed;
-            });
+            var result = math.LinearStreamed(columns, tileOutput, plan, load);
             gpuMilliseconds += result.GpuMilliseconds;
             dispatches += result.Dispatches;
             Execute(batch =>
@@ -374,7 +369,7 @@ internal sealed class Trellis2SparseDecoderStage(VulkanComputeMath math, SafeTen
             consume(tileOutput, first);
         }
         Measurements.Add(new { Operation = prefix, Dispatches = dispatches, LinearGpuMilliseconds = gpuMilliseconds });
-        Console.WriteLine($"{prefix}: {input.Rows} x {channels}, {gpuMilliseconds:F1} ms matrix GPU");
+        Log?.Invoke($"{prefix}: {input.Rows} x {channels}, {gpuMilliseconds:F1} ms matrix GPU");
     }
 
     private void Execute(Action<ComputeMathBatch> write)

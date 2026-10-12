@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../Aurelian/Aurelian.Inference/Aurelian.Inference.csproj" />
+    <ProjectReference Include="../../Aurelian/Aurelian.Runtime/Aurelian.Runtime.csproj" />
+  </ItemGroup>
+</Project>

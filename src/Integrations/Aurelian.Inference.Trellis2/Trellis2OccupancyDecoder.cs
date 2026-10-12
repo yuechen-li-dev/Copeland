@@ -1,15 +1,20 @@
+using Aurelian.Inference;
 using Aurelian.Assets.Tensors;
 using Aurelian.Graphics.Vulkan.ComputeMath;
+
+namespace Aurelian.Inference.Trellis2;
 
 /// <summary>The pinned dense occupancy VAE. All learned arithmetic stays on
 /// Vulkan; CPU work selects checkpoint tiles and receives the final logits.
 /// Storage is voxel-major XYZ/channel, with explicit logical volume dimensions.</summary>
-internal sealed class Trellis2OccupancyDecoder(VulkanComputeMath math, SafeTensorFile weights)
+public sealed class Trellis2OccupancyDecoder(VulkanComputeMath math, SafeTensorFile weights)
 {
+    public Action<string>? Log { get; set; }
+
     public List<object> Measurements { get; } = [];
     public float[]? Result { get; private set; }
 
-    public IEnumerable<Trellis2ComputeStage> Decode(float[] latent)
+    public IEnumerable<ComputeStage> Decode(float[] latent)
     {
         if (latent.Length != 4096 * 8 || !latent.All(float.IsFinite))
         {
@@ -110,9 +115,9 @@ internal sealed class Trellis2OccupancyDecoder(VulkanComputeMath math, SafeTenso
         int outputChannels = shape[0];
         int voxels = resolution * resolution * resolution;
         int inner = channels * 27;
-        int weightTile = Math.Min(outputChannels, inner > 8192 ? 64 : 128);
-        var plan = new StreamingLinearPlan(inner, outputChannels, weightTile);
-        float[] bias = weights.ReadVector(prefix + ".bias");
+        var binding = new CheckpointLinearLayer(weights, prefix + ".weight", prefix + ".bias", flattenInnerAxes: true);
+        var plan = binding.Plan(Math.Min(outputChannels, inner > 8192 ? 64 : 128));
+        var load = binding.TileLoader(plan);
         var output = Volume(resolution, outputChannels);
         double? milliseconds = 0;
         int dispatches = 0;
@@ -124,17 +129,7 @@ internal sealed class Trellis2OccupancyDecoder(VulkanComputeMath math, SafeTenso
                 using var columns = math.CreateTensor(count, inner);
                 using var tileOutput = math.CreateTensor(count, outputChannels);
                 Execute(batch => batch.VolumeColumns(input, columns, resolution, channels, firstVoxel));
-                var result = math.LinearStreamed(columns, tileOutput, plan, tile =>
-                {
-                    float[] selected = weights.ReadSlices(prefix + ".weight", tile.FirstOutput, tile.OutputCount);
-                    var packed = new float[plan.TileRows * (inner + 1)];
-                    for (int row = 0; row < tile.OutputCount; row++)
-                    {
-                        Array.Copy(selected, row * inner, packed, row * (inner + 1), inner);
-                        packed[row * (inner + 1) + inner] = bias[tile.FirstOutput + row];
-                    }
-                    return packed;
-                });
+                var result = math.LinearStreamed(columns, tileOutput, plan, load);
                 milliseconds += result.GpuMilliseconds;
                 dispatches += result.Dispatches;
                 Execute(batch =>
@@ -148,7 +143,7 @@ internal sealed class Trellis2OccupancyDecoder(VulkanComputeMath math, SafeTenso
             }
             Measurements.Add(new { Operation = prefix, Resolution = resolution, channels, outputChannels,
                 Dispatches = dispatches, LinearGpuMilliseconds = milliseconds });
-            Console.WriteLine($"{prefix}: {resolution}^3, {channels}->{outputChannels}, {milliseconds:F2} ms matrix GPU");
+            Log?.Invoke($"{prefix}: {resolution}^3, {channels}->{outputChannels}, {milliseconds:F2} ms matrix GPU");
             return output;
         }
         catch

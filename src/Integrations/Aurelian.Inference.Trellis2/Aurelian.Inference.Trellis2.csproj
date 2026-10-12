@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Explicit pinned TRELLIS.2 and DINOv3 model graphs over Aurelian inference.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../Aurelian/Aurelian.Inference/Aurelian.Inference.csproj" />
+    <Content Include="NOTICE.txt" CopyToOutputDirectory="PreserveNewest" Pack="true" PackagePath="licenses/" />
+    <Content Include="Transformers-APACHE-2.0.txt" CopyToOutputDirectory="PreserveNewest" Pack="true" PackagePath="licenses/" />
+  </ItemGroup>
+</Project>

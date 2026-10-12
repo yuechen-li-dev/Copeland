@@ -5,19 +5,21 @@ using System.Text.Json;
 namespace Aurelian.Assets.Tensors;
 
 public sealed record SafeTensorInfo(string Name, string DataType, IReadOnlyList<int> Shape,
-    long Offset, long ByteLength);
+    long Offset, long ByteLength) : CheckpointTensorInfo(Name, DataType, Shape);
 
 /// <summary>Bounded local safetensors ingress. Reads selected rows, never deserializes
 /// executable objects or loads an entire checkpoint. Supports F32, F16 and BF16.</summary>
-public sealed class SafeTensorFile : IDisposable
+public sealed class SafeTensorFile : ICheckpointWeights, IDisposable
 {
     private const int MaximumHeaderBytes = 4 * 1024 * 1024;
     private const int MaximumReadElements = 1048576;
     private readonly FileStream stream;
     private readonly long dataStart;
     private bool disposed;
+    private readonly IReadOnlyDictionary<string, CheckpointTensorInfo> checkpointTensors;
 
     public IReadOnlyDictionary<string, SafeTensorInfo> Tensors { get; }
+    IReadOnlyDictionary<string, CheckpointTensorInfo> ICheckpointWeights.Tensors => checkpointTensors;
 
     public SafeTensorFile(string path)
     {
@@ -71,6 +73,8 @@ public sealed class SafeTensorFile : IDisposable
             }
             Require(previousEnd == stream.Length - dataStart, "Unindexed bytes at end of checkpoint.");
             Tensors = new ReadOnlyDictionary<string, SafeTensorInfo>(tensors);
+            checkpointTensors = new ReadOnlyDictionary<string, CheckpointTensorInfo>(
+                tensors.ToDictionary(item => item.Key, item => (CheckpointTensorInfo)item.Value, StringComparer.Ordinal));
         }
         catch (Exception exception)
         {

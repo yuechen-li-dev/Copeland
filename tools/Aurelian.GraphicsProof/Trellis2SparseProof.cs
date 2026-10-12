@@ -20,7 +20,7 @@ internal static class Trellis2SparseProof
         using var plant = initialization.Plant!;
         var assets = new GameAssets();
         using var math = new VulkanComputeMath(plant, assets.ComputeShader, maximumTensorElements: 67108864);
-        using var feedforward = new Trellis2ComputeFeedforward();
+        using var feedforward = new DominatusComputeFeedforward();
         math.StreamController = staged ? feedforward : null;
         var checks = new List<object>();
         float[] positions = [31, 3, 21, 0, 4, 0, 12, 30, 1, 2, 1, 31];

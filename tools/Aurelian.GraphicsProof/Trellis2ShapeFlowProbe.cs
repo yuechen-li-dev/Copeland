@@ -31,7 +31,7 @@ internal static class Trellis2ShapeFlowProbe
         using var plant = initialization.Plant!;
         var assets = new GameAssets();
         using var math = new VulkanComputeMath(plant, assets.ComputeShader, maximumTensorElements: 67108864);
-        using var feedforward = new Trellis2ComputeFeedforward();
+        using var feedforward = new DominatusComputeFeedforward();
         staged |= cooperative;
         math.StreamController = staged ? feedforward : null;
         math.UseCooperativeLinear = cooperative;
@@ -66,7 +66,7 @@ internal static class Trellis2ShapeFlowProbe
             }
         });
         float[]? velocity = null;
-        var schedule = new Trellis2ComputeSchedule("trellis.shape.diagnostic");
+        var schedule = new DominatusComputeSchedule("trellis.shape.diagnostic") { Observe = InferenceProofLog.Write };
         schedule.Run(graph.Evaluate(sample, context, 1000, "shape.diagnostic", result => velocity = result));
         File.WriteAllBytes(Path.Combine(output, prefix + "-velocity.f32"), MemoryMarshal.AsBytes(velocity!.AsSpan()).ToArray());
         File.WriteAllText(Path.Combine(output, "diagnostic-evidence.json"), JsonSerializer.Serialize(new

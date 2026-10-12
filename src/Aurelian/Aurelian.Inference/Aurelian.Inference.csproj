@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Explicit checkpoint bindings, Vulkan model layers and bounded inference sessions.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Aurelian.Assets/Aurelian.Assets.csproj" />
+    <ProjectReference Include="../Aurelian.Graphics/Aurelian.Graphics.csproj" />
+    <ProjectReference Include="../Aurelian.Shaders.Builtins/Aurelian.Shaders.Builtins.csproj" />
+  </ItemGroup>
+</Project>

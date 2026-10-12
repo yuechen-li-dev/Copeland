@@ -10,7 +10,7 @@ internal sealed class Trellis2EulerSampler(Trellis2FlowModel model, double timeR
     public const int Steps = 12;
     public const float SigmaMinimum = 1e-5f;
 
-    public IEnumerable<Trellis2ComputeStage> Sample(GpuTensor positiveContext, GpuTensor negativeContext,
+    public IEnumerable<ComputeStage> Sample(GpuTensor positiveContext, GpuTensor negativeContext,
         string outputDirectory, uint seed)
     {
         float[] sample = Noise(seed, model.Tokens, model.SampleChannels, tokenMajorNoise: model.SampleChannels == 32);

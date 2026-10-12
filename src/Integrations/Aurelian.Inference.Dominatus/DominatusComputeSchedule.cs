@@ -1,33 +1,51 @@
+using Aurelian.Inference;
 using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 using Aurelian.Runtime.Dominatus.Inspection;
-using Dominatus.Core;
-using Dominatus.Core.Blackboard;
-using Dominatus.Core.Hfsm;
-using Dominatus.Core.Nodes;
-using Dominatus.Core.Nodes.Steps;
-using Dominatus.Core.Runtime;
+using global::Dominatus.Core;
+using global::Dominatus.Core.Blackboard;
+using global::Dominatus.Core.Hfsm;
+using global::Dominatus.Core.Nodes;
+using global::Dominatus.Core.Nodes.Steps;
+using global::Dominatus.Core.Runtime;
 
-internal sealed record Trellis2ComputeStage(string Name, Action Execute);
+namespace Aurelian.Inference.Dominatus;
 
 /// <summary>Host-ticked Dominatus coroutine, not a second state-machine runner.
 /// A stage completes synchronously on the owning Vulkan plant before the next
 /// tick. Blackboard/trace contain identities and costs, never native buffers.</summary>
-internal sealed class Trellis2ComputeSchedule(string identity = "trellis.occupancy")
+public sealed class DominatusComputeSchedule(string identity = "inference.compute", int maximumStages = 4096) : IComputeSchedule
 {
-    private static readonly BbKey<string> StageKey = new("trellis.stage");
-    private static readonly BbKey<int> CompletedKey = new("trellis.completedStages");
-    private static readonly BbKey<double> CostKey = new("trellis.lastStageMilliseconds");
-    private static readonly BbKey<string> ErrorKey = new("trellis.failure");
+    private static readonly BbKey<string> StageKey = new("compute.stage");
+    private static readonly BbKey<int> CompletedKey = new("compute.completedStages");
+    private static readonly BbKey<double> CostKey = new("compute.lastStageMilliseconds");
+    private static readonly BbKey<string> ErrorKey = new("compute.failure");
     private readonly AurelianAgentRuntime runtime = new(traceCapacity: 8192);
     private long tick;
     private bool completed;
     private object? inspection;
     private ExceptionDispatchInfo? failure;
-    public List<object> Measurements { get; } = [];
+    private readonly List<ComputeStageMeasurement> measurements = [];
+    public IReadOnlyList<ComputeStageMeasurement> Measurements => measurements.AsReadOnly();
+    public Action<ComputeStageMeasurement>? Observe { get; set; }
 
-    public void Run(IEnumerable<Trellis2ComputeStage> stages)
+    public void Run(IEnumerable<ComputeStage> stages, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(stages);
+        ArgumentException.ThrowIfNullOrWhiteSpace(identity);
+        if (maximumStages < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maximumStages));
+        }
+        if (runtime.Count != 0)
+        {
+            throw new InvalidOperationException("AUR-INFERENCE-SCHEDULE-001: A compute schedule cannot run reentrantly.");
+        }
+        completed = false;
+        failure = null;
+        inspection = null;
+        measurements.Clear();
+        using var enumerator = stages.GetEnumerator();
         var root = StateId.Of(identity + ".execute");
         var graph = new HfsmGraph { Root = root };
         graph.Add(root, Execute);
@@ -36,6 +54,7 @@ internal sealed class Trellis2ComputeSchedule(string identity = "trellis.occupan
         {
             while (!completed)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 tick++;
                 runtime.Tick(TimeSpan.FromSeconds(1.0 / 60));
             }
@@ -44,15 +63,14 @@ internal sealed class Trellis2ComputeSchedule(string identity = "trellis.occupan
         finally
         {
             inspection = runtime.Inspector.Observe();
-            // Cancels/disposes the kernel-owned iterator, including partially
-            // evaluated graphs if a stage throws. Resource owners do the cleanup.
+            // Remove the kernel coroutine before the host-owned model iterator
+            // unwinds. Its using scope releases partially evaluated model tensors.
             runtime.Remove(identity);
         }
 
         IEnumerator<AiStep> Execute(AiCtx context)
         {
             int count = 0;
-            using var enumerator = stages.GetEnumerator();
             while (true)
             {
                 try
@@ -61,15 +79,21 @@ internal sealed class Trellis2ComputeSchedule(string identity = "trellis.occupan
                     {
                         break;
                     }
-                    Trellis2ComputeStage stage = enumerator.Current;
+                    ComputeStage stage = enumerator.Current;
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (count == maximumStages || stage is null || string.IsNullOrWhiteSpace(stage.Name) || stage.Execute is null)
+                    {
+                        throw new InvalidOperationException("AUR-INFERENCE-SCHEDULE-001: Stage count exceeds its budget or stage identity/action is invalid.");
+                    }
                     context.Agent.Bb.Set(StageKey, stage.Name);
                     var timer = Stopwatch.StartNew();
                     stage.Execute();
                     double milliseconds = timer.Elapsed.TotalMilliseconds;
                     context.Agent.Bb.Set(CostKey, milliseconds);
                     context.Agent.Bb.Set(CompletedKey, ++count);
-                    Measurements.Add(new { stage.Name, Milliseconds = milliseconds });
-                    Console.WriteLine($"Stage {count}: {stage.Name}, {milliseconds:F1} ms");
+                    var measurement = new ComputeStageMeasurement(stage.Name, milliseconds);
+                    measurements.Add(measurement);
+                    Observe?.Invoke(measurement);
                 }
                 catch (Exception exception)
                 {
@@ -89,7 +113,7 @@ internal sealed class Trellis2ComputeSchedule(string identity = "trellis.occupan
                 yield return new Fail(failure.SourceException.Message);
                 yield break;
             }
-            yield return new Steady("OccupancyExecutionComplete");
+            yield return new Steady("ComputeExecutionComplete");
         }
     }
 

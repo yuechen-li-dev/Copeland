@@ -46,10 +46,10 @@ internal static class Trellis2MeshDecoderProof
         using var plant = initialization.Plant!;
         var assets = new GameAssets();
         using var math = new VulkanComputeMath(plant, assets.ComputeShader, maximumTensorElements: 134217728);
-        using var feedforward = new Trellis2ComputeFeedforward();
+        using var feedforward = new DominatusComputeFeedforward();
         math.StreamController = feedforward;
         var graph = new Trellis2SparseDecoderStage(math, weights);
-        var schedule = new Trellis2ComputeSchedule("trellis.shape.mesh");
+        var schedule = new DominatusComputeSchedule("trellis.shape.mesh") { Observe = InferenceProofLog.Write };
         var timer = Stopwatch.StartNew();
         try
         {

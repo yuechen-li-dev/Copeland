@@ -16,7 +16,7 @@ internal static class Trellis2StreamProof
         Require(initialization.Success, "Vulkan plant creation failed.");
         using var plant = initialization.Plant!;
         using var math = new VulkanComputeMath(plant, new GameAssets().ComputeShader, maximumTensorElements: 67108864);
-        using var controller = new Trellis2ComputeFeedforward();
+        using var controller = new DominatusComputeFeedforward();
         var measurements = new List<object>();
         CheckLinear(17, 35, 41, 16, false);
         CheckLinear(513, 128, 80, 32, false);

@@ -1,18 +1,20 @@
 using System.Diagnostics;
 using Aurelian.Graphics.Vulkan.ComputeMath;
 using Aurelian.Runtime.Dominatus.Inspection;
-using Dominatus.Core;
-using Dominatus.Core.Blackboard;
-using Dominatus.Core.Hfsm;
-using Dominatus.Core.Nodes;
-using Dominatus.Core.Nodes.Steps;
-using Dominatus.Core.Runtime;
+using global::Dominatus.Core;
+using global::Dominatus.Core.Blackboard;
+using global::Dominatus.Core.Hfsm;
+using global::Dominatus.Core.Nodes;
+using global::Dominatus.Core.Nodes.Steps;
+using global::Dominatus.Core.Runtime;
+
+namespace Aurelian.Inference.Dominatus;
 
 /// <summary>Dominatus owns the feedforward plan and shadow timeline. Physical
 /// buffer leases are released exclusively by the compute owner's Vulkan fence.</summary>
-internal sealed class Trellis2ComputeFeedforward : IComputeStreamController, IDisposable
+public sealed class DominatusComputeFeedforward : IComputeStreamController, IDisposable
 {
-    private const string Identity = "trellis.compute.feedforward";
+    private const string Identity = "inference.compute.feedforward";
     private static readonly StateId Planning = StateId.Of(Identity + ".plan");
     private static readonly StateId Feeding = StateId.Of(Identity + ".feed");
     private static readonly BbKey<int> DepthKey = new("compute.lookaheadDepth");
@@ -35,6 +37,7 @@ internal sealed class Trellis2ComputeFeedforward : IComputeStreamController, IDi
     private long submissions;
     private long completions;
     private long droppedMeasurements;
+    private bool disposed;
     public object Evidence => new
     {
         Plans = plans,
@@ -45,7 +48,7 @@ internal sealed class Trellis2ComputeFeedforward : IComputeStreamController, IDi
         PredictionScope = "Host-observed completion includes harvest delay; predictions never authorize physical slot reuse",
     };
 
-    public Trellis2ComputeFeedforward()
+    public DominatusComputeFeedforward()
     {
         var graph = new HfsmGraph { Root = Planning };
         graph.Add(Planning, PlanStage);
@@ -55,6 +58,12 @@ internal sealed class Trellis2ComputeFeedforward : IComputeStreamController, IDi
 
     public int Plan(ComputeStreamForecast next)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        ArgumentNullException.ThrowIfNull(next);
+        if (next.BatchCount < 1 || next.DispatchesPerBatch < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(next));
+        }
         forecast = next;
         Advance();
         return runtime.Agent(Identity).Bb.GetOrDefault(DepthKey, 1);
@@ -62,6 +71,8 @@ internal sealed class Trellis2ComputeFeedforward : IComputeStreamController, IDi
 
     public void Observe(ComputeStreamObservation next)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        ArgumentNullException.ThrowIfNull(next);
         observation = next;
         Advance();
     }
@@ -75,7 +86,7 @@ internal sealed class Trellis2ComputeFeedforward : IComputeStreamController, IDi
         }
         if (handled != revision)
         {
-            throw new InvalidOperationException("AUR-TRELLIS-FEED-001: Dominatus did not consume the compute event.");
+            throw new InvalidOperationException("AUR-INFERENCE-FEED-001: Dominatus did not consume the compute event.");
         }
     }
 
@@ -153,6 +164,11 @@ internal sealed class Trellis2ComputeFeedforward : IComputeStreamController, IDi
 
     public void Dispose()
     {
+        if (disposed)
+        {
+            return;
+        }
+        disposed = true;
         inspection = runtime.Inspector.Observe();
         runtime.Remove(Identity);
     }

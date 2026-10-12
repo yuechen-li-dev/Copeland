@@ -78,7 +78,7 @@ internal static class Trellis2MaterialSamplingProof
             throw new ArgumentOutOfRangeException(nameof(attentionQueryTileRows), "Material query tile must be 1..256 rows.");
         }
         math.AttentionQueryTileRows = attentionQueryTileRows;
-        using var feedforward = new Trellis2ComputeFeedforward();
+        using var feedforward = new DominatusComputeFeedforward();
         math.StreamController = feedforward;
         using var position = math.CreateTensor(coordinates.Length, 3);
         math.Upload(position, coordinates.SelectMany(value => new float[] { value.X, value.Y, value.Z }).ToArray());
@@ -89,7 +89,7 @@ internal static class Trellis2MaterialSamplingProof
         math.Execute(batch);
         var model = new Trellis2FlowModel(math, weights, position, concatenatedConditioning: condition);
         var sampler = new Trellis2EulerSampler(model, timeRescale: 3, guidanceRescale: 0, unityGuidance: true);
-        var schedule = new Trellis2ComputeSchedule("trellis.material");
+        var schedule = new DominatusComputeSchedule("trellis.material") { Observe = InferenceProofLog.Write };
         var timer = Stopwatch.StartNew();
         try
         {

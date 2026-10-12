@@ -1,11 +1,16 @@
+using Aurelian.Inference;
 using Aurelian.Assets.Tensors;
 using Aurelian.Graphics.Vulkan.ComputeMath;
+
+namespace Aurelian.Inference.Trellis2;
 
 /// <summary>The pinned DINOv3 ViT-L/16 inference graph used by TRELLIS.2.
 /// Host code streams checkpoint rows; all learned arithmetic stays on Vulkan.
 /// TRELLIS uses non-affine final LayerNorm, not the model's learned norm.</summary>
-internal sealed class DinoV3Encoder(VulkanComputeMath math, SafeTensorFile weights)
+public sealed class DinoV3Encoder(VulkanComputeMath math, SafeTensorFile weights)
 {
+    public Action<string>? Log { get; set; }
+
     public const int Channels = 1024;
     public const int PrefixTokens = 5;
     public List<object> Measurements { get; } = [];
@@ -34,7 +39,7 @@ internal sealed class DinoV3Encoder(VulkanComputeMath math, SafeTensorFile weigh
                 GpuTensor next = Layer(hidden, grid, layer);
                 hidden.Dispose();
                 hidden = next;
-                Console.WriteLine($"DINO layer {layer + 1}/24: {timer.Elapsed.TotalSeconds:F2} s");
+                Log?.Invoke($"DINO layer {layer + 1}/24: {timer.Elapsed.TotalSeconds:F2} s");
             }
             return Normalize(hidden, null);
         }
@@ -73,43 +78,14 @@ internal sealed class DinoV3Encoder(VulkanComputeMath math, SafeTensorFile weigh
 
     private GpuTensor Affine(GpuTensor input, string prefix, bool slices = false)
     {
-        string name = prefix + ".weight";
-        var info = weights.Tensors[name];
-        int columns = info.Shape[0];
-        int inner = info.Shape.Skip(1).Aggregate(1, (a, b) => checked(a * b));
-        if (inner != input.Columns || (!slices && info.Shape.Count != 2))
-        {
-            throw new InvalidDataException("DINO checkpoint affine shape mismatch: " + name);
-        }
-        float[] bias = weights.Tensors.ContainsKey(prefix + ".bias")
-            ? weights.ReadVector(prefix + ".bias") : new float[columns];
-        var output = math.CreateTensor(input.Rows, columns);
-        // Selected reads are <=1M values and only one weight tile is resident.
         int tileRows = input.Columns == 4096 ? 128 : 256;
-        var plan = new StreamingLinearPlan(input.Columns, columns, tileRows);
-        try
+        string? bias = weights.Tensors.ContainsKey(prefix + ".bias") ? prefix + ".bias" : null;
+        var layers = new VulkanModelLayers(math, weights);
+        return layers.Linear(input, prefix + ".weight", bias, flattenInnerAxes: slices,
+            maximumTileRows: tileRows, observe: measurement =>
         {
-            var result = math.LinearStreamed(input, output, plan, tile =>
-            {
-                float[] selected = slices
-                    ? weights.ReadSlices(name, tile.FirstOutput, tile.OutputCount)
-                    : weights.ReadRows(name, tile.FirstOutput, tile.OutputCount);
-                var packed = new float[plan.TileRows * (input.Columns + 1)];
-                for (int row = 0; row < tile.OutputCount; row++)
-                {
-                    Array.Copy(selected, row * input.Columns, packed, row * (input.Columns + 1), input.Columns);
-                    packed[row * (input.Columns + 1) + input.Columns] = bias[tile.FirstOutput + row];
-                }
-                return packed;
-            });
-            Measurements.Add(new { Operation = prefix, Result = result });
-            return output;
-        }
-        catch
-        {
-            output.Dispose();
-            throw;
-        }
+            Measurements.Add(new { Operation = prefix, Result = measurement.Execution });
+        });
     }
 
     private GpuTensor Normalize(GpuTensor input, string? prefix)

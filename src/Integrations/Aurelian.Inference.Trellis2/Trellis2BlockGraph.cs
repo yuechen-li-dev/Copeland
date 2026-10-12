@@ -1,10 +1,15 @@
+using Aurelian.Inference;
 using Aurelian.Assets.Tensors;
 using Aurelian.Graphics.Vulkan.ComputeMath;
 
+namespace Aurelian.Inference.Trellis2;
+
 /// <summary>Explicit research graph for the pinned sparse-structure block. Runtime
 /// execution is C#/Vulkan. No Python, Torch, CUDA, ONNX or external process calls.</summary>
-internal sealed class Trellis2BlockGraph(VulkanComputeMath math, SafeTensorFile weights, int blockIndex = 0)
+public sealed class Trellis2BlockGraph(VulkanComputeMath math, SafeTensorFile weights, int blockIndex = 0)
 {
+    public Action<string>? Log { get; set; }
+
     public const int Channels = 1536;
     private readonly string prefix = $"blocks.{blockIndex}";
     public readonly List<object> Measurements = [];
@@ -87,7 +92,7 @@ internal sealed class Trellis2BlockGraph(VulkanComputeMath math, SafeTensorFile 
         using var attention = math.CreateTensor(input.Rows, Channels);
         var result = math.AttentionTiled(qr, kr, v, attention, queryTileRows: Math.Min(math.AttentionQueryTileRows, input.Rows));
         Measurements.Add(new { Operation = "self-attention", Result = result });
-        Console.WriteLine($"self-attention: {result.Submissions} submissions, {result.GpuMilliseconds:F2} ms GPU");
+        Log?.Invoke($"self-attention: {result.Submissions} submissions, {result.GpuMilliseconds:F2} ms GPU");
         return Affine(attention, prefix + ".self_attn.to_out", rounded: true);
     }
 
@@ -112,35 +117,15 @@ internal sealed class Trellis2BlockGraph(VulkanComputeMath math, SafeTensorFile 
 
     public GpuTensor Affine(GpuTensor input, string prefix, bool rounded)
     {
-        var shape = weights.Tensors[prefix + ".weight"].Shape;
-        if (shape.Count != 2 || shape[1] != input.Columns)
-        {
-            throw new InvalidDataException("Checkpoint affine shape mismatch: " + prefix);
-        }
-        var output = math.CreateTensor(input.Rows, shape[0]);
-        float[] bias = Small(prefix + ".bias");
         int maximumTileRows = input.Columns > 4096 ? 64 : 256;
-        maximumTileRows = Math.Min(maximumTileRows, 1048576 / (input.Columns + 1));
-        int tileRows = Math.Min(shape[0], maximumTileRows);
-        var plan = new StreamingLinearPlan(input.Columns, shape[0], tileRows);
-        var result = math.LinearStreamed(input, output, plan, tile =>
+        var layers = new VulkanModelLayers(math, weights);
+        return layers.Linear(input, prefix + ".weight", prefix + ".bias",
+            rounded ? TensorRounding.BFloat16 : TensorRounding.Float32,
+            maximumTileRows: maximumTileRows, observe: measurement =>
         {
-            var selected = weights.ReadRows(prefix + ".weight", tile.FirstOutput, tile.OutputCount);
-            var values = new float[plan.TileRows * (input.Columns + 1)];
-            for (int row = 0; row < tile.OutputCount; row++)
-            {
-                Array.Copy(selected, row * input.Columns, values, row * (input.Columns + 1), input.Columns);
-                values[row * (input.Columns + 1) + input.Columns] = bias[tile.FirstOutput + row];
-            }
-            return values;
+            Measurements.Add(new { Operation = prefix, Result = measurement.Execution });
+            Log?.Invoke($"{prefix}: {measurement.Execution.Dispatches} dispatches, {measurement.Execution.GpuMilliseconds:F2} ms GPU");
         });
-        if (rounded)
-        {
-            Execute(batch => batch.RoundBFloat16(output, output));
-        }
-        Measurements.Add(new { Operation = prefix, Result = result });
-        Console.WriteLine($"{prefix}: {result.Dispatches} dispatches, {result.GpuMilliseconds:F2} ms GPU");
-        return output;
     }
 
     private GpuTensor Normalize(GpuTensor input, string? affinePrefix = null)

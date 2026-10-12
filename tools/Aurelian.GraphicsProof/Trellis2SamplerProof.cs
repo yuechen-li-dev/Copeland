@@ -52,7 +52,7 @@ internal static class Trellis2SamplerProof
         Reject(() => Trellis2EulerSampler.Guided([1, 1], [1, 1], [1, 1], 1));
         bool disposed = false;
         var failure = new InvalidOperationException("Intentional schedule failure");
-        var schedule = new Trellis2ComputeSchedule();
+        var schedule = new DominatusComputeSchedule() { Observe = InferenceProofLog.Write };
         try
         {
             schedule.Run(FailingStages());
@@ -75,7 +75,7 @@ internal static class Trellis2SamplerProof
         }, new JsonSerializerOptions { WriteIndented = true }));
         Console.WriteLine("AURELIAN_TRELLIS2_SAMPLER_MATH_PASSED");
 
-        IEnumerable<Trellis2ComputeStage> FailingStages()
+        IEnumerable<ComputeStage> FailingStages()
         {
             try
             {
