@@ -7,6 +7,7 @@ public enum GpuTensorFormat
     Float32,
     Complex32,
     PackedFloat16,
+    UInt32,
 }
 
 /// <summary>Caller-visible GPU-resident allocation; shape and representation are explicit.</summary>

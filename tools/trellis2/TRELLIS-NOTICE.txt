@@ -10,11 +10,34 @@ trellis2/modules/transformer/blocks.py (feed-forward network)
 trellis2/modules/transformer/modulated.py (cross block and BF16 tensor boundaries)
 trellis2/modules/image_feature_extractor.py (DINOv3 features, plain final LayerNorm)
 trellis2/pipelines/trellis2_image_to_3d.py (transparent image crop and composite)
+trellis2/pipelines/samplers/flow_euler.py (12-step Euler and time rescaling)
+trellis2/pipelines/samplers/classifier_free_guidance_mixin.py (CFG clean-state rescale)
+trellis2/pipelines/samplers/guidance_interval_mixin.py (conditional guidance interval)
+trellis2/utils/render_utils.py (Z-up camera convention)
+trellis2/models/structured_latent_flow.py (512 shape SLat flow)
+trellis2/modules/sparse/transformer/modulated.py (sparse transformer boundaries)
+trellis2/modules/sparse/attention/modules.py and rope.py (sparse coordinate attention)
+trellis2/models/sc_vaes/sparse_unet_vae.py (sparse ConvNeXt and subdivision prediction)
+trellis2/modules/sparse/spatial/spatial2channel.py (sparse child/channel ordering)
+trellis2/modules/sparse/conv/conv_flex_gemm.py (O/kernel-X/Y/Z/channel weight layout)
+The adapters implement these equations in C#/Vulkan and independent NumPy
+qualification tools. FlexGEMM/CUDA binaries and third-party build dependencies
+are not installed or included. Learned mesh extraction and material stages are
+not yet implemented. Shape/decoder checkpoints remain local and unredistributed.
 Model: https://huggingface.co/microsoft/TRELLIS.2-4B
 Model revision: af44b45f2e35a493886929c6d786e563ec68364d
 Code and model card declare MIT. Checkpoint weights are local research artifacts,
 not embedded in Aurelian assemblies/packages or committed to the repository.
 Other upstream pipeline dependencies have their own terms and are not included.
+
+Occupancy decoder equations/layout adapted from Microsoft TRELLIS (MIT):
+https://github.com/microsoft/TRELLIS
+Source revision: 442aa1e1afb9014e80681d3bf604e8d728a86ee7
+trellis/models/sparse_structure_vae.py (dense VAE and FP16 torso boundaries)
+trellis/modules/norm.py (channel LayerNorm)
+trellis/modules/spatial.py (3D pixel shuffle)
+Checkpoint: microsoft/TRELLIS-image-large, revision
+25e0d31ffbebe4b5a97464dd851910efc3002d96. Local weights are not redistributed.
 
 MIT License
 

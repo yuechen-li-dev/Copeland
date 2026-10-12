@@ -12,9 +12,14 @@ public sealed unsafe partial class VulkanComputeMath
     {
         ["Sgemm.v.ts"] = "SgemmMain",
         ["TensorMap.v.ts"] = "TensorMapMain",
+        ["VolumeMap.v.ts"] = "VolumeMapMain",
+        ["CoordinateRope.v.ts"] = "CoordinateRopeMain",
+        ["SparseColumns.v.ts"] = "SparseColumnsMain",
         ["HeadNormalize.v.ts"] = "HeadNormalizeMain",
         ["StreamingLinear.v.ts"] = "StreamingLinearMain",
         ["CooperativeSgemm.v.ts"] = "CooperativeSgemmMain",
+        ["PackMatrixHalf.v.ts"] = "PackMatrixHalfMain",
+        ["LinearEpilogue.v.ts"] = "LinearEpilogueMain",
         ["RowReduction.v.ts"] = "ReductionMain",
         ["Normalization.v.ts"] = "NormalizationMain",
         ["Activation.v.ts"] = "ActivationMain",
@@ -61,12 +66,12 @@ public sealed unsafe partial class VulkanComputeMath
         }
     }
 
-    private DispatchSlot CreateSlot()
+    private DispatchSlot CreateSlot(DescriptorPool? pool = null)
     {
         var descriptorLayout = setLayout;
         var allocation = new DescriptorSetAllocateInfo
         {
-            SType = StructureType.DescriptorSetAllocateInfo, DescriptorPool = descriptorPool,
+            SType = StructureType.DescriptorSetAllocateInfo, DescriptorPool = pool ?? descriptorPool,
             DescriptorSetCount = 1, PSetLayouts = &descriptorLayout,
         };
         DescriptorSet set;

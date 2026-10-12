@@ -123,9 +123,14 @@ public sealed partial class ComputeMathBatch
     {
         Check(input, gamma, output);
         Require(SameShape(input, output) && input.Columns % 128 == 0 && gamma.Elements == input.Columns
-            && input.Elements / 128 <= 65535 && !ReferenceEquals(gamma, output),
-            "Head normalization needs 128-wide heads, one gamma per channel and <=65535 heads per dispatch.");
-        Add([new("HeadNormalize.v.ts", input, gamma, output, new() { Rows = (uint)input.Rows, Columns = (uint)input.Columns }, (uint)input.Elements / 128)]);
+            && !ReferenceEquals(gamma, output),
+            "Head normalization needs 128-wide heads and one gamma per channel.");
+        uint heads = (uint)input.Elements / 128;
+        uint groupsX = heads <= 65535 ? heads : 4096;
+        Add([new("HeadNormalize.v.ts", input, gamma, output, new()
+        {
+            Rows = (uint)input.Rows, Columns = (uint)input.Columns, Height = groupsX,
+        }, groupsX, (heads + groupsX - 1) / groupsX)]);
     }
 
     private void Map(GpuTensor input, GpuTensor auxiliary, GpuTensor output, uint operation, KernelParameters parameters)

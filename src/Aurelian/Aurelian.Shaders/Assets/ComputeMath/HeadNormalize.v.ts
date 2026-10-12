@@ -13,8 +13,11 @@ function HeadNormalizeMain(@builtin(groupId) group: uint3,
     @binding(2) readwrite Output: StorageBuffer<f32>,
     @binding(3) readonly Parameters: StorageBuffer<KernelParameters>): void {
     let p = Parameters[0];
-    let index = group.x * 128 + lane;
-    let value = Input[index];
+    let index = (group.x + group.y * p.height) * 128 + lane;
+    var value: f32 = 0.0;
+    if (index < p.rows * p.columns) {
+        value = Input[index];
+    }
     Squares[lane] = value * value;
     WorkgroupBarrier();
     static for (let stage of Indices<7>()) {
@@ -25,5 +28,7 @@ function HeadNormalizeMain(@builtin(groupId) group: uint3,
         WorkgroupBarrier();
     }
     let denominator = Max(Sqrt(Squares[0]), 0.000000000001);
-    Output[index] = BFloat16(value / denominator * Gamma[index % p.columns] * Sqrt(128.0));
+    if (index < p.rows * p.columns) {
+        Output[index] = BFloat16(value / denominator * Gamma[index % p.columns] * Sqrt(128.0));
+    }
 }

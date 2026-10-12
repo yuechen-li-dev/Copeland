@@ -58,12 +58,12 @@ internal sealed unsafe class Vulkan3DGpuTimings : IDisposable
         }
     }
 
-    public void Mark(VulkanCommandBufferLease command, uint index)
+    public void Mark(VulkanCommandBufferLease command, uint index, PipelineStageFlags? stage = null)
     {
         if (pool.Handle != 0)
         {
             plant.Vk.CmdWriteTimestamp(command.CommandBuffer,
-                index % 2 == 0 ? PipelineStageFlags.TopOfPipeBit : PipelineStageFlags.BottomOfPipeBit, pool, index);
+                stage ?? (index % 2 == 0 ? PipelineStageFlags.TopOfPipeBit : PipelineStageFlags.BottomOfPipeBit), pool, index);
         }
     }
 

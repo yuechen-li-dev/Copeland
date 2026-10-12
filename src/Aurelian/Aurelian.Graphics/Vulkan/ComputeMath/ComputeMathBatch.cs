@@ -23,6 +23,7 @@ internal sealed record ComputeMathDispatch(string Shader, GpuTensor Input, GpuTe
 /// Execute it on its owning VulkanComputeMath; intermediate tensors never require readback.</summary>
 public sealed partial class ComputeMathBatch
 {
+    internal const int MatrixKChunk = 128;
     internal VulkanComputeMath Owner { get; }
     internal List<ComputeMathDispatch> Dispatches { get; } = [];
     public int DispatchCount => Dispatches.Count;
@@ -58,11 +59,11 @@ public sealed partial class ComputeMathBatch
         int columns = transposeB ? b.Rows : b.Columns;
         int inner = transposeB ? b.Columns : b.Rows;
         Require(a.Columns == inner && output.Rows == a.Rows && output.Columns == columns
-            && a.Columns <= 4096 && float.IsFinite(alpha) && float.IsFinite(beta),
-            "SGEMM requires A[M,K], B[K,N] (or transposed B[N,K]), C[M,N], K <= 4096 and finite scales.");
+            && a.Columns <= 8192 && float.IsFinite(alpha) && float.IsFinite(beta),
+            "SGEMM requires A[M,K], B[K,N] (or transposed B[N,K]), C[M,N], K <= 8192 and finite scales.");
         Require(!ReferenceEquals(output, a) && !ReferenceEquals(output, b), "SGEMM output cannot alias either input.");
         var steps = new List<ComputeMathDispatch>();
-        for (int offset = 0; offset < inner; offset += 16)
+        for (int offset = 0; offset < inner; offset += MatrixKChunk)
         {
             steps.Add(new("Sgemm.v.ts", a, b, output, new()
             {
@@ -97,7 +98,8 @@ public sealed partial class ComputeMathBatch
         Require(!ReferenceEquals(output, gammaBeta), "Normalization output cannot overwrite its weights.");
         Add([new("Normalization.v.ts", input, gammaBeta, output, new()
         {
-            Rows = (uint)input.Rows, Columns = (uint)input.Columns, Mode = (uint)operation, Epsilon = epsilon,
+            Rows = (uint)input.Rows, Columns = (uint)input.Columns, Mode = (uint)operation,
+            Epsilon = epsilon, Height = (uint)input.Rows,
         }, (uint)input.Rows)]);
     }
 

@@ -41,6 +41,10 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
     /// Excludes opaque driver allocations, pipelines and other plant users.</summary>
     public VulkanMemoryAllocatorTelemetry MemoryTelemetry => allocator.Telemetry;
     public bool CooperativeMatrixEnabled => plant.Facts.CooperativeMatrixEnabled;
+    public IComputeStreamController? StreamController { get; set; }
+    /// <summary>Opt-in FP16 inputs with FP32 cooperative accumulation. Requires
+    /// numerical qualification for the model; small/unaligned affines retain FP32.</summary>
+    public bool UseCooperativeLinear { get; set; }
 
     public VulkanComputeMath(AurelianVulkanPlant plant, Func<string, byte[]> compile, int maximumDispatches = 512,
         int maximumTensorElements = 1048576)
@@ -73,9 +77,9 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
     public GpuTensor CreateTensor(int rows, int columns, GpuTensorFormat format = GpuTensorFormat.Float32)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
-        ComputeMathBatch.Require(rows is > 0 and <= 4096 && columns is > 0 and <= 65536
+        ComputeMathBatch.Require(rows is > 0 and <= 8192 && columns is > 0 and <= 65536
             && (long)rows * columns <= MaximumTensorElements && Enum.IsDefined(format),
-            "Tensor dimensions must be positive, rows <= 4096, columns <= 65536 and elements within the explicit owner budget.");
+            "Tensor dimensions must be positive, rows <= 8192, columns <= 65536 and elements within the explicit owner budget.");
         ulong elements = (ulong)rows * (ulong)columns;
         ulong bytes = format switch
         {
@@ -95,6 +99,7 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
     public void Upload(GpuTensor tensor, ReadOnlySpan<float> values)
     {
         Validate(tensor, tensor.Format);
+        ComputeMathBatch.Require(tensor.Format != GpuTensorFormat.UInt32, "Unsigned tensors require UploadUInt32, without float reinterpretation.");
         int count = tensor.Format == GpuTensorFormat.Complex32 ? tensor.Elements * 2 : tensor.Elements;
         ComputeMathBatch.Require(values.Length == count, "Upload length must match the tensor representation.");
         foreach (float value in values)
@@ -125,6 +130,14 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         return new(this);
+    }
+
+    public void UploadUInt32(GpuTensor tensor, ReadOnlySpan<uint> values)
+    {
+        Validate(tensor, GpuTensorFormat.UInt32);
+        ComputeMathBatch.Require(values.Length == tensor.Elements, "Unsigned upload length must match the tensor shape.");
+        var result = uploader.Upload(new(tensor.Buffer, MemoryMarshal.AsBytes(values).ToArray(), DebugName: "compute-math.upload-u32"));
+        Require(result.Success, string.Join("; ", result.Diagnostics.Select(item => item.Message)));
     }
 
     public ComputeMathResult Execute(ComputeMathBatch batch)
@@ -174,7 +187,8 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
     public float[] Read(GpuTensor tensor)
     {
         Validate(tensor, tensor.Format);
-        ComputeMathBatch.Require(tensor.Format != GpuTensorFormat.PackedFloat16, "Read returns FP32 or interleaved complex32 values, not packed half words.");
+        ComputeMathBatch.Require(tensor.Format is GpuTensorFormat.Float32 or GpuTensorFormat.Complex32,
+            "Read returns FP32 or interleaved complex32 values, not packed half or unsigned words.");
         using var staging = Buffer(tensor.Buffer.SizeBytes, VulkanBufferUsage.TransferDestination, VulkanMemoryUsage.GpuToCpu);
         var command = commands.Rent(fences.CommandListFence.LastKnownCompletedValue);
         Require(command.Begin().Success, "Compute readback begin failed.");

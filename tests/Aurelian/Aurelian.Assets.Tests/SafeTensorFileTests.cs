@@ -13,6 +13,7 @@ public sealed class SafeTensorFileTests
     [InlineData(2)]
     [InlineData(3)]
     [InlineData(4)]
+    [InlineData(5)]
     public void OuterSlicesPreserveStoredAxisOrderAndRejectInvalidRanges(int rank)
     {
         int[] shape = Enumerable.Repeat(2, rank).ToArray();
@@ -78,6 +79,7 @@ public sealed class SafeTensorFileTests
     [InlineData("{\"w\":{\"dtype\":\"F32\",\"shape\":[1],\"data_offsets\":[0,8]}}")]
     [InlineData("{\"w\":{\"dtype\":\"F32\",\"shape\":[1],\"data_offsets\":[4,8]}}")]
     [InlineData("{\"w\":{\"dtype\":\"I32\",\"shape\":[1],\"data_offsets\":[0,4]}}")]
+    [InlineData("{\"w\":{\"dtype\":\"F32\",\"shape\":[1,1,1,1,1,1],\"data_offsets\":[0,4]}}")]
     [InlineData("{\"w\":{\"dtype\":\"F32\",\"shape\":[2147483647,2147483647,2147483647],\"data_offsets\":[0,4]}}")]
     [InlineData("{\"w\":{\"dtype\":\"F32\",\"shape\":[1],\"data_offsets\":[0,4]},\"b\":{\"dtype\":\"F32\",\"shape\":[1],\"data_offsets\":[0,4]}}")]
     [InlineData("{\"__metadata__\":{\"code\":42},\"w\":{\"dtype\":\"F32\",\"shape\":[1],\"data_offsets\":[0,4]}}")]
@@ -106,6 +108,24 @@ public sealed class SafeTensorFileTests
             AssertNamed(() => new SafeTensorFile(path));
             File.WriteAllBytes(path, new byte[3]);
             AssertNamed(() => new SafeTensorFile(path));
+        });
+    }
+
+    [Fact]
+    public void FiniteSelectedReadsDoNotAllocatePerElementDiagnostics()
+    {
+        const int elements = 32 * 1024;
+        const string header = """{"w":{"dtype":"BF16","shape":[32,1024],"data_offsets":[0,65536]}}""";
+        WithFile(header, new byte[elements * 2], path =>
+        {
+            using var file = new SafeTensorFile(path);
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            float[] values = file.ReadRows("w", 0, 32);
+            long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+            Assert.Equal(elements, values.Length);
+            // Permit payload/value arrays and generous fixed call overhead. An
+            // eagerly constructed diagnostic per value exceeds this by far.
+            Assert.InRange(allocated, 0, elements * 8L + 65536);
         });
     }
 

@@ -12,11 +12,12 @@ function NormalizationMain(@builtin(groupId) group: uint3,
     @binding(2) readwrite Output: StorageBuffer<f32>,
     @binding(3) readonly Parameters: StorageBuffer<KernelParameters>): void {
     let p = Parameters[0];
-    let base = group.x * p.columns;
+    let row = group.x + group.y * p.height;
+    let base = row * p.columns;
     var sum: f32 = 0.0;
     static for (let block of Indices<128>()) {
         let columnIndex = lane + block * 64;
-        if (columnIndex < p.columns) {
+        if (columnIndex < p.columns && row < p.rows) {
             sum = sum + Input[base + columnIndex];
         }
     }
@@ -36,7 +37,7 @@ function NormalizationMain(@builtin(groupId) group: uint3,
     var squares: f32 = 0.0;
     static for (let block of Indices<128>()) {
         let columnIndex = lane + block * 64;
-        if (columnIndex < p.columns) {
+        if (columnIndex < p.columns && row < p.rows) {
             let centered = Input[base + columnIndex] - mean;
             squares = squares + centered * centered;
         }
@@ -53,7 +54,7 @@ function NormalizationMain(@builtin(groupId) group: uint3,
     let inverse = 1.0 / Sqrt(Squares[0] / Convert<f32>(p.columns) + p.epsilon);
     static for (let block of Indices<128>()) {
         let columnIndex = lane + block * 64;
-        if (columnIndex < p.columns) {
+        if (columnIndex < p.columns && row < p.rows) {
             var bias: f32 = 0.0;
             if (p.mode == 1) {
                 bias = Auxiliary[p.columns + columnIndex];

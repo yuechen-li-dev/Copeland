@@ -50,8 +50,8 @@ public sealed class SafeTensorFile : IDisposable
                 string type = value.GetProperty("dtype").GetString() ?? "";
                 int bytesPerElement = ElementBytes(type);
                 int[] shape = value.GetProperty("shape").EnumerateArray().Select(item => item.GetInt32()).ToArray();
-                Require(shape.Length is >= 1 and <= 4 && shape.All(dimension => dimension > 0),
-                    "Only positive rank 1–4 tensors are supported: " + property.Name);
+                Require(shape.Length is >= 1 and <= 5 && shape.All(dimension => dimension > 0),
+                    "Only positive rank 1–5 tensors are supported: " + property.Name);
                 long elements = 1;
                 foreach (int dimension in shape)
                 {
@@ -98,7 +98,7 @@ public sealed class SafeTensorFile : IDisposable
         return Read(tensor, (long)firstRow * tensor.Shape[1], (long)rowCount * tensor.Shape[1]);
     }
 
-    /// <summary>Read contiguous outer-axis slices from a rank 1–4 tensor in its
+    /// <summary>Read contiguous outer-axis slices from a rank 1–5 tensor in its
     /// stored C order. Inner axes are flattened, without transposition. Useful
     /// for selected convolution output channels and learned token tensors.</summary>
     public float[] ReadSlices(string name, int firstSlice, int sliceCount)
@@ -139,7 +139,13 @@ public sealed class SafeTensorFile : IDisposable
                 "BF16" => BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadUInt16LittleEndian(word) << 16),
                 _ => throw new InvalidDataException("AUR-TENSOR-001: Unsupported encoding."),
             };
-            Require(float.IsFinite(values[index]), "Nonfinite tensor value: " + tensor.Name);
+            if (!float.IsFinite(values[index]))
+            {
+                // Keep diagnostics on the cold path: a transformer reads billions
+                // of finite weights, and eager message concatenation allocates once
+                // per element even when the check succeeds.
+                Require(false, "Nonfinite tensor value: " + tensor.Name);
+            }
         }
         return values;
     }

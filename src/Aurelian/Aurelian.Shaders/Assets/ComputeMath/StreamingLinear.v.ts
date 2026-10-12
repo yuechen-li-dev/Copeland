@@ -16,22 +16,25 @@ function StreamingLinearMain(@builtin(groupId) group: uint3,
     let p = Parameters[0];
     let row = group.x * 16 + local.x;
     let columnIndex = group.y * 16 + local.y;
-    let aColumn = p.offset + local.y;
-    let bRow = p.offset + local.x;
-    var a: f32 = 0.0;
-    var b: f32 = 0.0;
-    if (row < p.rows && aColumn < p.inner) {
-        a = Input[row * p.inner + aColumn];
-    }
-    if (columnIndex < p.columns && bRow < p.inner) {
-        b = Weights[columnIndex * (p.inner + 1) + bRow];
-    }
-    TileA[local.x * 16 + local.y] = a;
-    TileB[local.x * 16 + local.y] = b;
-    WorkgroupBarrier();
     var sum: f32 = 0.0;
-    static for (let k of Indices<16>()) {
-        sum = sum + TileA[local.x * 16 + k] * TileB[k * 16 + local.y];
+    static for (let tile of Indices<8>()) {
+        let aColumn = p.offset + tile * 16 + local.y;
+        let bRow = p.offset + tile * 16 + local.x;
+        var a: f32 = 0.0;
+        var b: f32 = 0.0;
+        if (row < p.rows && aColumn < p.inner) {
+            a = Input[row * p.inner + aColumn];
+        }
+        if (columnIndex < p.columns && bRow < p.inner) {
+            b = Weights[columnIndex * (p.inner + 1) + bRow];
+        }
+        TileA[local.x * 16 + local.y] = a;
+        TileB[local.x * 16 + local.y] = b;
+        WorkgroupBarrier();
+        static for (let k of Indices<16>()) {
+            sum = sum + TileA[local.x * 16 + k] * TileB[k * 16 + local.y];
+        }
+        WorkgroupBarrier();
     }
     if (row < p.rows && columnIndex < p.columns) {
         let index = row * p.width + p.height + columnIndex;
@@ -40,7 +43,7 @@ function StreamingLinearMain(@builtin(groupId) group: uint3,
         } else {
             Output[index] = Output[index] + sum;
         }
-        if (p.offset + 16 >= p.inner) {
+        if (p.offset + 128 >= p.inner) {
             Output[index] = Output[index] + Weights[columnIndex * (p.inner + 1) + p.inner];
         }
     }

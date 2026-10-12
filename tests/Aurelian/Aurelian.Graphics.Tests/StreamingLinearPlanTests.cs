@@ -6,10 +6,28 @@ namespace Aurelian.Graphics.Tests;
 public sealed class StreamingLinearPlanTests
 {
     [Fact]
-    public void WideFeedForwardProjectionUsesTheEntireBoundedDispatchBudget()
+    public void SparseDecoder1024ChannelKernelRetainsBoundedSelectedReads()
+    {
+        var plan = new StreamingLinearPlan(1024 * 27, 1024, 32);
+        Assert.Equal(216, plan.DispatchesPerTile);
+        Assert.Equal(3539072ul, plan.WeightBufferBytes);
+        Assert.Equal(32, plan.Tiles.Count);
+    }
+    [Fact]
+    public void DecoderConv3DUsesBoundedRankFiveWeightTiles()
+    {
+        var plan = new StreamingLinearPlan(512 * 27, 1024, 64);
+        Assert.Equal(108, plan.DispatchesPerTile);
+        Assert.Equal(3539200ul, plan.WeightBufferBytes);
+        Assert.Equal(16, plan.Tiles.Count);
+        Assert.Equal(new LinearWeightTile(960, 64), plan.Tiles[^1]);
+    }
+
+    [Fact]
+    public void WideFeedForwardProjectionGroupsEightKTilesPerDispatch()
     {
         var plan = new StreamingLinearPlan(8192, 1536, 64);
-        Assert.Equal(512, plan.DispatchesPerTile);
+        Assert.Equal(64, plan.DispatchesPerTile);
         Assert.Equal(2097408ul, plan.WeightBufferBytes);
         Assert.Equal(24, plan.Tiles.Count);
         Assert.Equal(new LinearWeightTile(1472, 64), plan.Tiles[^1]);
@@ -19,7 +37,7 @@ public sealed class StreamingLinearPlanTests
     public void ScheduleCoversEveryOutputExactlyOnceIncludingATail()
     {
         var plan = new StreamingLinearPlan(1536, 9216, 250);
-        Assert.Equal(96, plan.DispatchesPerTile);
+        Assert.Equal(12, plan.DispatchesPerTile);
         Assert.Equal(1537000ul, plan.WeightBufferBytes);
         Assert.Equal(56659968ul, plan.ExpandedFullWeightBytes);
         Assert.Equal(37, plan.Tiles.Count);
@@ -29,7 +47,7 @@ public sealed class StreamingLinearPlanTests
 
     [Theory]
     [InlineData(0, 1536, 16)]
-    [InlineData(8193, 1536, 16)]
+    [InlineData(32769, 1536, 16)]
     [InlineData(1536, 0, 16)]
     [InlineData(1536, 65537, 16)]
     [InlineData(1536, 1536, 0)]

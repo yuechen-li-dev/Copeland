@@ -64,6 +64,7 @@ internal static class DinoV3EncoderProof
             Model = "facebook/dinov3-vitl16-pretrain-lvd1689m",
             CheckpointRevision = "ea8dc2863c51be0a264bab82070e3e8836b02d51",
             ImageSha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(imagePath))).ToLowerInvariant(),
+            FeatureSha256 = Convert.ToHexString(SHA256.HashData(MemoryMarshal.AsBytes(actual.AsSpan()))).ToLowerInvariant(),
             ImageSize = 512,
             Tokens = features.Rows,
             Channels = features.Columns,
@@ -79,7 +80,7 @@ internal static class DinoV3EncoderProof
             PeakOwnedAllocationBytes = math.MemoryTelemetry.HighWaterLiveBytes,
             MemoryScope = "Owned Vulkan buffers including staging/parameters; not total process VRAM",
             Measurements = graph.Measurements,
-            NextBlocker = "Complete 30-block 4096-token sparse-structure flow model, Euler/CFG sampler and dense Conv3D occupancy decoder",
+            NextStage = "Sparse-structure flow and dense occupancy decoder, available through --trellis2-occupancy",
         }, new JsonSerializerOptions { WriteIndented = true }));
         Console.WriteLine($"DINO full encoder: {features.Rows}x{features.Columns}, {timer.Elapsed.TotalSeconds:F2} s, peak {math.MemoryTelemetry.HighWaterLiveBytes:N0} bytes");
         if (!valid)

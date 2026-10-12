@@ -268,8 +268,8 @@ internal static class ComputeMathProof
         dead.Dispose();
         ExpectRejected(() => math.CreateBatch().Activate(dead, Tensor(1, 1), TensorActivation.Silu));
         using var tiny = new VulkanComputeMath(plant, assets.ComputeShader, maximumDispatches: 1);
-        var tinyA = tiny.CreateTensor(1, 32);
-        var tinyB = tiny.CreateTensor(32, 1);
+        var tinyA = tiny.CreateTensor(1, 129);
+        var tinyB = tiny.CreateTensor(129, 1);
         var tinyC = tiny.CreateTensor(1, 1);
         var tooLarge = tiny.CreateBatch();
         ExpectRejected(() => tooLarge.Multiply(tinyA, tinyB, tinyC));

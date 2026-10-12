@@ -1,7 +1,11 @@
 namespace Aurelian.Graphics.Vulkan.ComputeMath;
 
 public sealed record TiledAttentionResult(int Submissions, int Dispatches, double? GpuMilliseconds,
-    ulong ScratchBytes, int QueryTileRows);
+    ulong ScratchBytes, int QueryTileRows)
+{
+    public int MaximumInFlight { get; init; } = 1;
+    public int CompletionWaits { get; init; }
+}
 
 public sealed unsafe partial class VulkanComputeMath
 {
@@ -19,11 +23,12 @@ public sealed unsafe partial class VulkanComputeMath
         Validate(output, GpuTensorFormat.Float32);
         ComputeMathBatch.Require(headWidth is 64 or 128 && query.Columns % headWidth == 0
             && key.Columns == query.Columns && value.Rows == key.Rows && value.Columns == key.Columns
-            && output.Rows == query.Rows && output.Columns == query.Columns && key.Rows <= 4096
+            && output.Rows == query.Rows && output.Columns == query.Columns && key.Rows <= 8192
             && queryTileRows is > 0 and <= 64
             && !ReferenceEquals(output, query) && !ReferenceEquals(output, key) && !ReferenceEquals(output, value),
-            "Tiled attention needs 64/128-wide heads, compatible independent FP32 storage, <=4096 keys and query tiles of 1–64 rows.");
-        int dispatchesPerQuery = 1 + (headWidth + 15) / 16 + 1 + (key.Rows + 15) / 16 + 1;
+            "Tiled attention needs 64/128-wide heads, compatible independent FP32 storage, <=8192 keys and query tiles of 1–64 rows.");
+        int dispatchesPerQuery = 1 + (headWidth + ComputeMathBatch.MatrixKChunk - 1) / ComputeMathBatch.MatrixKChunk
+            + 1 + (key.Rows + ComputeMathBatch.MatrixKChunk - 1) / ComputeMathBatch.MatrixKChunk + 1;
         ComputeMathBatch.Require(dispatchesPerQuery <= MaximumDispatches, "Attention tile exceeds the owner's dispatch budget.");
         using var k = CreateTensor(key.Rows, headWidth);
         using var v = CreateTensor(key.Rows, headWidth);
@@ -45,20 +50,31 @@ public sealed unsafe partial class VulkanComputeMath
         int submissions = 0;
         double milliseconds = 0;
         bool timed = true;
+        int queriesPerBatch = MaximumDispatches / dispatchesPerQuery;
+        int queryTiles = (query.Rows + fullRows - 1) / fullRows;
+        int batchesPerHead = 1 + (queryTiles + queriesPerBatch - 1) / queriesPerBatch;
+        using var ring = StreamController is { } controller
+            ? new SubmissionRing(this, controller, new(batchesPerHead * (query.Columns / headWidth), MaximumDispatches, 0))
+            : null;
         for (int head = 0; head < query.Columns / headWidth; head++)
         {
             var keys = CreateBatch();
             keys.Gather(key, k, firstColumn: head * headWidth);
             keys.Gather(value, v, firstColumn: head * headWidth);
-            Record(Execute(keys));
+            ExecuteBatch(keys);
+            var batch = CreateBatch();
             for (int firstRow = 0; firstRow < query.Rows; firstRow += fullRows)
             {
+                if (batch.DispatchCount + dispatchesPerQuery > MaximumDispatches)
+                {
+                    ExecuteBatch(batch);
+                    batch = CreateBatch();
+                }
                 bool tail = query.Rows - firstRow < fullRows;
                 GpuTensor tileQuery = tail ? tailQuery! : q;
                 GpuTensor tileScores = tail ? tailScores! : scores;
                 GpuTensor tileProbabilities = tail ? tailProbabilities! : probabilities;
                 GpuTensor tileResult = tail ? tailResult! : result;
-                var batch = CreateBatch();
                 batch.Gather(query, tileQuery, firstRow, head * headWidth);
                 batch.Multiply(tileQuery, k, tileScores, 1 / MathF.Sqrt(headWidth), transposeB: true);
                 batch.ReduceRows(tileScores, tileProbabilities);
@@ -71,10 +87,37 @@ public sealed unsafe partial class VulkanComputeMath
                 {
                     batch.Scatter(tileResult, output, firstRow, head * headWidth);
                 }
+            }
+            if (batch.DispatchCount > 0)
+            {
+                ExecuteBatch(batch);
+            }
+        }
+        if (ring is not null)
+        {
+            ring.Drain();
+            submissions = ring.Submissions;
+            dispatches = ring.Dispatches;
+            milliseconds = ring.GpuMilliseconds ?? 0;
+            timed = ring.GpuMilliseconds is not null;
+        }
+        return new(submissions, dispatches, timed ? milliseconds : null, scratch, queryTileRows)
+        {
+            MaximumInFlight = ring?.MaximumInFlight ?? 1,
+            CompletionWaits = ring?.CompletionWaits ?? submissions,
+        };
+
+        void ExecuteBatch(ComputeMathBatch batch)
+        {
+            if (ring is not null)
+            {
+                ring.Submit(batch);
+            }
+            else
+            {
                 Record(Execute(batch));
             }
         }
-        return new(submissions, dispatches, timed ? milliseconds : null, scratch, queryTileRows);
 
         void Record(ComputeMathResult execution)
         {
