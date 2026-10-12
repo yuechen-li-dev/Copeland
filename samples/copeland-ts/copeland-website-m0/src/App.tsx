@@ -67,7 +67,7 @@ function DialogHost(): ReactNode {
 }
 
 function FeatureCardContent(props: FeatureCardProps): ReactNode {
-    return <article className="feature-card">
+    return <article className="feature-card" tabIndex={0}>
         <span className="feature-card-icon">{props.icon}</span>
         {RendererBoundaryBadge()}
         <h2>{props.title}</h2>
@@ -81,6 +81,7 @@ function FeatureCard(props: FeatureCardProps): ReactNode {
     stream Surface<0px, 0px> {
         width: fill;
         height: fill;
+        overflow: scrollY;
         content: FeatureCardContent(props) { width: fill; height: fill; }
     }
 

@@ -1,0 +1,17 @@
+{
+  "milestone": "CTS-REACT-UI-STABILIZATION-M1",
+  "success": true,
+  "diagnostics": {
+    "console": [],
+    "page": [],
+    "request": []
+  },
+  "profiles": [
+    "desktop",
+    "tablet",
+    "mobile"
+  ],
+  "source": "samples/copeland-ts/copeland-website-m0/browser-proof.mjs",
+  "details": "Component state, renderer attachment, locality, teardown/recovery, and profile geometry checks passed",
+  "evidenceSha256": "23cfe62f4a61fc206d283f5502b52e52fdefc93b233a123a1edcbe09f0b38526"
+}

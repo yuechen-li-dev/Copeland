@@ -1,0 +1,846 @@
+[lock]
+format = 1
+
+[[package]]
+ID = 'npm:@babel/runtime@7.29.10'
+Name = '@babel/runtime'
+Version = '7.29.10'
+Source = 'npm'
+Integrity = 'sha512-NpugTzbKgGrNe45Ui32cN8vCFFMxVtP/9rtfwv0nP5FRDAjvYBxJcLVpYA9mr1jxP6cnIT7x9LUzuDTbWYYNRA=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:178671999a0973c5165e5cec57f49ff4d9dd055523962763a771af6bc7e439b1'
+
+[[package]]
+ID = 'npm:@base-ui-components/react@1.0.0-rc.0'
+Name = '@base-ui-components/react'
+Version = '1.0.0-rc.0'
+Source = 'npm'
+Integrity = 'sha512-9lhUFbJcbXvc9KulLev1WTFxS/alJRBWDH/ibKSQaNvmDwMFS2gKp1sTeeldYSfKuS/KC1w2MZutc0wHu2hRHQ=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:fd48911d202eb7ae13e7d56888fff503f3e9037c5e4e7991536429fafd7d9931'
+
+[[package]]
+ID = 'npm:@base-ui-components/utils@0.2.2'
+Name = '@base-ui-components/utils'
+Version = '0.2.2'
+Source = 'npm'
+Integrity = 'sha512-rNJCD6TFy3OSRDKVHJDzLpxO3esTV1/drRtWNUpe7rCpPN9HZVHUCuP+6rdDYDGWfXnQHbqi05xOyRP2iZAlkw=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:d36486d55dd00295d634fc1d7a37650b1e97a93a567689d2ba37d6614d5472df'
+
+[[package]]
+ID = 'npm:@floating-ui/core@1.8.0'
+Name = '@floating-ui/core'
+Version = '1.8.0'
+Source = 'npm'
+Integrity = 'sha512-0CIZ5itps/8x7BG8dEIhs53BvCUH2PCoogtakwRTut+Arm58sJooJ0AuZhLw2HJYIR5cMLNPBSS728sPho2khQ=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:c86371bdb19948a71591d36f23ec33d2b54e06503bd5c2e00a2dbbfa389622fd'
+
+[[package]]
+ID = 'npm:@floating-ui/dom@1.8.0'
+Name = '@floating-ui/dom'
+Version = '1.8.0'
+Source = 'npm'
+Integrity = 'sha512-yXSrzeHZBTZadLOlfyhCkJHNeLJnHRnRInwdZ40L7ZiaAtrBwoYlsDrX3v5zB1Utk7CLfzcOVnVVWoXEky7Ceg=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:b9511cc8fd8898c7c67143ff8dd93a3d427108632c801a546ae72ab1df3cd6a5'
+
+[[package]]
+ID = 'npm:@floating-ui/react-dom@2.1.9'
+Name = '@floating-ui/react-dom'
+Version = '2.1.9'
+Source = 'npm'
+Integrity = 'sha512-JDjEFGCpImxDCA7JJKviA0M9+RtmJdj0m/NVU5IMgBK+AmZouAQQ7/+2GLH0GXXY0YMw9oXPB8hKdbPYg5QLYg=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:c60ae5915affc398222f7c24350069f2e4a3a18dd2ef641bc45ad6e0d4148739'
+
+[[package]]
+ID = 'npm:@floating-ui/utils@0.2.12'
+Name = '@floating-ui/utils'
+Version = '0.2.12'
+Source = 'npm'
+Integrity = 'sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:fe0800a3de3d9c819bf63e525bf26080ce692969dda400c715780141a187928f'
+
+[[package]]
+ID = 'npm:react-dom@19.2.7'
+Name = 'react-dom'
+Version = '19.2.7'
+Source = 'npm'
+Integrity = 'sha512-t0BRVXvbiE/o20Hfw669rLbMCDWtYZLvmJigy2f0MxsXF+71pxhR3xOkspmsO8h3ZlNzyibAmtCa3l4lYKk6gQ=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:e47bae602149b38b90b452c89e53d2d60639fee09361d90374983a6aac62739e'
+
+[[package]]
+ID = 'npm:react@19.2.7'
+Name = 'react'
+Version = '19.2.7'
+Source = 'npm'
+Integrity = 'sha512-HNe9WslTbXmFK8o8cmwgAeJFSBvt1bPdHCVKtaaV+WlAN36mpT4hcRpwbf3fY56ar2oIXzsBpOAiIRHAdY0OlQ=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:d0065884db7670ffb89046826995cf0d7754a31653d23908532e52671bf83d7d'
+
+[[package]]
+ID = 'npm:reselect@5.3.0'
+Name = 'reselect'
+Version = '5.3.0'
+Source = 'npm'
+Integrity = 'sha512-XGoLeRAVzUTcJ1qkxPQhDJyIZ5d6zzZD9nT7AEZOaaU9UbWclhycElmhO+VD5bFeLuzhPBaOV2oXC8uG35ZSpg=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:ea86f81f20f5706799f436090d4e77e8bd6c16c85917b0553d0be4f6685b30a1'
+
+[[package.capability]]
+kind = 'lifecycleScript'
+script = 'prepack'
+command = 'yarn build'
+
+[[package]]
+ID = 'npm:scheduler@0.27.0'
+Name = 'scheduler'
+Version = '0.27.0'
+Source = 'npm'
+Integrity = 'sha512-eNv+WrVbKu1f3vbYJT/xtiF5syA5HPIMtf9IgY/nKg0sWqzAUEvqY/xm7OcZc/qafLx/iO9FgOmeSAp4v5ti/Q=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:ab26ce35ce4032f04b78cfc5bbb4cfe13358e9fe7a5433a8aa6315c3debc5095'
+
+[[package]]
+ID = 'npm:tabbable@6.5.0'
+Name = 'tabbable'
+Version = '6.5.0'
+Source = 'npm'
+Integrity = 'sha512-wieBHXygIm7OyQOu5hQlkk62/WyCFYGlWg7L6/ZCUZwx0o398Zkn4pVmMyfYhfMG8kGrj/Krt8eIk6UKC6VzwA=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:4f017b2a4cf6395505f6cc5182a7053230e15afe27d6135c7e86794cd9c3e7f7'
+
+[[package.capability]]
+kind = 'lifecycleScript'
+script = 'prepare'
+command = 'npm run build'
+
+[[package.capability]]
+kind = 'lifecycleScript'
+script = 'prepublishOnly'
+command = 'npm run test && npm run build'
+
+[[package]]
+ID = 'npm:use-sync-external-store@1.7.0'
+Name = 'use-sync-external-store'
+Version = '1.7.0'
+Source = 'npm'
+Integrity = 'sha512-6L+EeigHMQhdaIPNIFUKwfWJSwWFQ8gJbJ2DLOs5sDIegTwR9fRxvnM3uciHKjIZhFz+KAv2emhWMRvDmMcY8A=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:4f62a44660396a55417322fb0c71c14413b784192e4cd18acfec6bdf3157e359'
+
+[[package]]
+ID = 'path:runtime#317f4c51a2b89da2b42d490eb5df2eff48b48642fafeedba33fd9c012739b52f'
+Name = '@copeland/browser-v1'
+Version = '0.1.0'
+Source = 'path'
+Integrity = ''
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = 'runtime'
+Workspace = ''
+Hash = 'sha256:317f4c51a2b89da2b42d490eb5df2eff48b48642fafeedba33fd9c012739b52f'
+
+[[module_instance]]
+ID = 'npm:@babel/runtime@7.29.10#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+PackageID = 'npm:@babel/runtime@7.29.10'
+PeerContextID = 'peer-context:sha256:b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+
+[[module_instance]]
+ID = 'npm:@base-ui-components/react@1.0.0-rc.0#peers=e6564e08ea8c1dd56d29058ffa2a5207f74ca7e547241567e2aea43b19a4005f'
+PackageID = 'npm:@base-ui-components/react@1.0.0-rc.0'
+PeerContextID = 'peer-context:sha256:e6564e08ea8c1dd56d29058ffa2a5207f74ca7e547241567e2aea43b19a4005f'
+
+[[module_instance.peer]]
+Reference = '@types/react'
+Source = 'npm'
+Name = '@types/react'
+State = 'absent'
+Optional = true
+
+[[module_instance.peer]]
+Reference = 'react'
+Source = 'npm'
+Name = 'react'
+RealizationID = 'npm:react@19.2.7'
+InstanceID = 'npm:react@19.2.7#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+State = 'present'
+
+[[module_instance.peer]]
+Reference = 'react-dom'
+Source = 'npm'
+Name = 'react-dom'
+RealizationID = 'npm:react-dom@19.2.7'
+InstanceID = 'npm:react-dom@19.2.7#peers=a800cb0191e0ebf565f3013c1ea3dc0774c32b092609b977d19a34a0088e75d7'
+State = 'present'
+
+[[module_instance.dependency]]
+Reference = '@babel/runtime'
+Kind = 'runtime'
+InstanceID = 'npm:@babel/runtime@7.29.10#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+
+[[module_instance.dependency]]
+Reference = '@base-ui-components/utils'
+Kind = 'runtime'
+InstanceID = 'npm:@base-ui-components/utils@0.2.2#peers=e6564e08ea8c1dd56d29058ffa2a5207f74ca7e547241567e2aea43b19a4005f'
+
+[[module_instance.dependency]]
+Reference = '@floating-ui/react-dom'
+Kind = 'runtime'
+InstanceID = 'npm:@floating-ui/react-dom@2.1.9#peers=bbfa18090f3cb1e64adbe9a3ab32a51beb440d832c059b23a8de8b9d11129b16'
+
+[[module_instance.dependency]]
+Reference = '@floating-ui/utils'
+Kind = 'runtime'
+InstanceID = 'npm:@floating-ui/utils@0.2.12#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+
+[[module_instance.dependency]]
+Reference = 'reselect'
+Kind = 'runtime'
+InstanceID = 'npm:reselect@5.3.0#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+
+[[module_instance.dependency]]
+Reference = 'tabbable'
+Kind = 'runtime'
+InstanceID = 'npm:tabbable@6.5.0#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+
+[[module_instance.dependency]]
+Reference = 'use-sync-external-store'
+Kind = 'runtime'
+InstanceID = 'npm:use-sync-external-store@1.7.0#peers=a800cb0191e0ebf565f3013c1ea3dc0774c32b092609b977d19a34a0088e75d7'
+
+[[module_instance]]
+ID = 'npm:@base-ui-components/utils@0.2.2#peers=e6564e08ea8c1dd56d29058ffa2a5207f74ca7e547241567e2aea43b19a4005f'
+PackageID = 'npm:@base-ui-components/utils@0.2.2'
+PeerContextID = 'peer-context:sha256:e6564e08ea8c1dd56d29058ffa2a5207f74ca7e547241567e2aea43b19a4005f'
+
+[[module_instance.peer]]
+Reference = '@types/react'
+Source = 'npm'
+Name = '@types/react'
+State = 'absent'
+Optional = true
+
+[[module_instance.peer]]
+Reference = 'react'
+Source = 'npm'
+Name = 'react'
+RealizationID = 'npm:react@19.2.7'
+InstanceID = 'npm:react@19.2.7#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+State = 'present'
+
+[[module_instance.peer]]
+Reference = 'react-dom'
+Source = 'npm'
+Name = 'react-dom'
+RealizationID = 'npm:react-dom@19.2.7'
+InstanceID = 'npm:react-dom@19.2.7#peers=a800cb0191e0ebf565f3013c1ea3dc0774c32b092609b977d19a34a0088e75d7'
+State = 'present'
+
+[[module_instance.dependency]]
+Reference = '@babel/runtime'
+Kind = 'runtime'
+InstanceID = 'npm:@babel/runtime@7.29.10#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+
+[[module_instance.dependency]]
+Reference = '@floating-ui/utils'
+Kind = 'runtime'
+InstanceID = 'npm:@floating-ui/utils@0.2.12#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+
+[[module_instance.dependency]]
+Reference = 'reselect'
+Kind = 'runtime'
+InstanceID = 'npm:reselect@5.3.0#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+
+[[module_instance.dependency]]
+Reference = 'use-sync-external-store'
+Kind = 'runtime'
+InstanceID = 'npm:use-sync-external-store@1.7.0#peers=a800cb0191e0ebf565f3013c1ea3dc0774c32b092609b977d19a34a0088e75d7'
+
+[[module_instance]]
+ID = 'npm:@floating-ui/core@1.8.0#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+PackageID = 'npm:@floating-ui/core@1.8.0'
+PeerContextID = 'peer-context:sha256:b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+
+[[module_instance.dependency]]
+Reference = '@floating-ui/utils'
+Kind = 'runtime'
+InstanceID = 'npm:@floating-ui/utils@0.2.12#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+
+[[module_instance]]
+ID = 'npm:@floating-ui/dom@1.8.0#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+PackageID = 'npm:@floating-ui/dom@1.8.0'
+PeerContextID = 'peer-context:sha256:b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+
+[[module_instance.dependency]]
+Reference = '@floating-ui/core'
+Kind = 'runtime'
+InstanceID = 'npm:@floating-ui/core@1.8.0#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+
+[[module_instance.dependency]]
+Reference = '@floating-ui/utils'
+Kind = 'runtime'
+InstanceID = 'npm:@floating-ui/utils@0.2.12#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+
+[[module_instance]]
+ID = 'npm:@floating-ui/react-dom@2.1.9#peers=bbfa18090f3cb1e64adbe9a3ab32a51beb440d832c059b23a8de8b9d11129b16'
+PackageID = 'npm:@floating-ui/react-dom@2.1.9'
+PeerContextID = 'peer-context:sha256:bbfa18090f3cb1e64adbe9a3ab32a51beb440d832c059b23a8de8b9d11129b16'
+
+[[module_instance.peer]]
+Reference = 'react'
+Source = 'npm'
+Name = 'react'
+RealizationID = 'npm:react@19.2.7'
+InstanceID = 'npm:react@19.2.7#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+State = 'present'
+
+[[module_instance.peer]]
+Reference = 'react-dom'
+Source = 'npm'
+Name = 'react-dom'
+RealizationID = 'npm:react-dom@19.2.7'
+InstanceID = 'npm:react-dom@19.2.7#peers=a800cb0191e0ebf565f3013c1ea3dc0774c32b092609b977d19a34a0088e75d7'
+State = 'present'
+
+[[module_instance.dependency]]
+Reference = '@floating-ui/dom'
+Kind = 'runtime'
+InstanceID = 'npm:@floating-ui/dom@1.8.0#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+
+[[module_instance]]
+ID = 'npm:@floating-ui/utils@0.2.12#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+PackageID = 'npm:@floating-ui/utils@0.2.12'
+PeerContextID = 'peer-context:sha256:b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+
+[[module_instance]]
+ID = 'npm:react-dom@19.2.7#peers=a800cb0191e0ebf565f3013c1ea3dc0774c32b092609b977d19a34a0088e75d7'
+PackageID = 'npm:react-dom@19.2.7'
+PeerContextID = 'peer-context:sha256:a800cb0191e0ebf565f3013c1ea3dc0774c32b092609b977d19a34a0088e75d7'
+
+[[module_instance.peer]]
+Reference = 'react'
+Source = 'npm'
+Name = 'react'
+RealizationID = 'npm:react@19.2.7'
+InstanceID = 'npm:react@19.2.7#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+State = 'present'
+
+[[module_instance.dependency]]
+Reference = 'scheduler'
+Kind = 'runtime'
+InstanceID = 'npm:scheduler@0.27.0#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+
+[[module_instance]]
+ID = 'npm:react@19.2.7#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+PackageID = 'npm:react@19.2.7'
+PeerContextID = 'peer-context:sha256:b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+
+[[module_instance]]
+ID = 'npm:reselect@5.3.0#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+PackageID = 'npm:reselect@5.3.0'
+PeerContextID = 'peer-context:sha256:b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+
+[[module_instance]]
+ID = 'npm:scheduler@0.27.0#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+PackageID = 'npm:scheduler@0.27.0'
+PeerContextID = 'peer-context:sha256:b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+
+[[module_instance]]
+ID = 'npm:tabbable@6.5.0#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+PackageID = 'npm:tabbable@6.5.0'
+PeerContextID = 'peer-context:sha256:b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+
+[[module_instance]]
+ID = 'npm:use-sync-external-store@1.7.0#peers=a800cb0191e0ebf565f3013c1ea3dc0774c32b092609b977d19a34a0088e75d7'
+PackageID = 'npm:use-sync-external-store@1.7.0'
+PeerContextID = 'peer-context:sha256:a800cb0191e0ebf565f3013c1ea3dc0774c32b092609b977d19a34a0088e75d7'
+
+[[module_instance.peer]]
+Reference = 'react'
+Source = 'npm'
+Name = 'react'
+RealizationID = 'npm:react@19.2.7'
+InstanceID = 'npm:react@19.2.7#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+State = 'present'
+
+[[module_instance]]
+ID = 'path:runtime#317f4c51a2b89da2b42d490eb5df2eff48b48642fafeedba33fd9c012739b52f#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+PackageID = 'path:runtime#317f4c51a2b89da2b42d490eb5df2eff48b48642fafeedba33fd9c012739b52f'
+PeerContextID = 'peer-context:sha256:b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+
+[[root_module_instance]]
+From = 'copeland-react-friction-m0:target:browser'
+Reference = '@base-ui-components/react'
+Kind = 'runtime'
+InstanceID = 'npm:@base-ui-components/react@1.0.0-rc.0#peers=e6564e08ea8c1dd56d29058ffa2a5207f74ca7e547241567e2aea43b19a4005f'
+
+[[root_module_instance]]
+From = 'copeland-react-friction-m0:target:browser'
+Reference = '@copeland/browser-v1'
+Kind = 'runtime'
+InstanceID = 'path:runtime#317f4c51a2b89da2b42d490eb5df2eff48b48642fafeedba33fd9c012739b52f#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+
+[[root_module_instance]]
+From = 'copeland-react-friction-m0:target:browser'
+Reference = 'react'
+Kind = 'runtime'
+InstanceID = 'npm:react@19.2.7#peers=b47b56855796ee10dd4f3e88cf5a62ab27bfcf3a7c95d8e6ed07031ec1e1b88e'
+
+[[root_module_instance]]
+From = 'copeland-react-friction-m0:target:browser'
+Reference = 'react-dom'
+Kind = 'runtime'
+InstanceID = 'npm:react-dom@19.2.7#peers=a800cb0191e0ebf565f3013c1ea3dc0774c32b092609b977d19a34a0088e75d7'
+
+[[edge]]
+From = 'copeland-react-friction-m0:target:browser'
+To = 'npm:@base-ui-components/react@1.0.0-rc.0'
+Kind = 'runtime'
+Optional = false
+Reference = '@base-ui-components/react'
+
+[[edge]]
+From = 'copeland-react-friction-m0:target:browser'
+To = 'npm:react-dom@19.2.7'
+Kind = 'runtime'
+Optional = false
+Reference = 'react-dom'
+
+[[edge]]
+From = 'copeland-react-friction-m0:target:browser'
+To = 'npm:react@19.2.7'
+Kind = 'runtime'
+Optional = false
+Reference = 'react'
+
+[[edge]]
+From = 'copeland-react-friction-m0:target:browser'
+To = 'path:runtime#317f4c51a2b89da2b42d490eb5df2eff48b48642fafeedba33fd9c012739b52f'
+Kind = 'runtime'
+Optional = false
+Reference = '@copeland/browser-v1'
+
+[[edge]]
+From = 'npm:@base-ui-components/react@1.0.0-rc.0'
+To = 'npm:@babel/runtime@7.29.10'
+Kind = 'runtime'
+Optional = false
+Reference = '@babel/runtime'
+
+[[edge]]
+From = 'npm:@base-ui-components/react@1.0.0-rc.0'
+To = 'npm:@base-ui-components/utils@0.2.2'
+Kind = 'runtime'
+Optional = false
+Reference = '@base-ui-components/utils'
+
+[[edge]]
+From = 'npm:@base-ui-components/react@1.0.0-rc.0'
+To = 'npm:@floating-ui/react-dom@2.1.9'
+Kind = 'runtime'
+Optional = false
+Reference = '@floating-ui/react-dom'
+
+[[edge]]
+From = 'npm:@base-ui-components/react@1.0.0-rc.0'
+To = 'npm:@floating-ui/utils@0.2.12'
+Kind = 'runtime'
+Optional = false
+Reference = '@floating-ui/utils'
+
+[[edge]]
+From = 'npm:@base-ui-components/react@1.0.0-rc.0'
+To = 'npm:reselect@5.3.0'
+Kind = 'runtime'
+Optional = false
+Reference = 'reselect'
+
+[[edge]]
+From = 'npm:@base-ui-components/react@1.0.0-rc.0'
+To = 'npm:tabbable@6.5.0'
+Kind = 'runtime'
+Optional = false
+Reference = 'tabbable'
+
+[[edge]]
+From = 'npm:@base-ui-components/react@1.0.0-rc.0'
+To = 'npm:use-sync-external-store@1.7.0'
+Kind = 'runtime'
+Optional = false
+Reference = 'use-sync-external-store'
+
+[[edge]]
+From = 'npm:@base-ui-components/utils@0.2.2'
+To = 'npm:@babel/runtime@7.29.10'
+Kind = 'runtime'
+Optional = false
+Reference = '@babel/runtime'
+
+[[edge]]
+From = 'npm:@base-ui-components/utils@0.2.2'
+To = 'npm:@floating-ui/utils@0.2.12'
+Kind = 'runtime'
+Optional = false
+Reference = '@floating-ui/utils'
+
+[[edge]]
+From = 'npm:@base-ui-components/utils@0.2.2'
+To = 'npm:reselect@5.3.0'
+Kind = 'runtime'
+Optional = false
+Reference = 'reselect'
+
+[[edge]]
+From = 'npm:@base-ui-components/utils@0.2.2'
+To = 'npm:use-sync-external-store@1.7.0'
+Kind = 'runtime'
+Optional = false
+Reference = 'use-sync-external-store'
+
+[[edge]]
+From = 'npm:@floating-ui/core@1.8.0'
+To = 'npm:@floating-ui/utils@0.2.12'
+Kind = 'runtime'
+Optional = false
+Reference = '@floating-ui/utils'
+
+[[edge]]
+From = 'npm:@floating-ui/dom@1.8.0'
+To = 'npm:@floating-ui/core@1.8.0'
+Kind = 'runtime'
+Optional = false
+Reference = '@floating-ui/core'
+
+[[edge]]
+From = 'npm:@floating-ui/dom@1.8.0'
+To = 'npm:@floating-ui/utils@0.2.12'
+Kind = 'runtime'
+Optional = false
+Reference = '@floating-ui/utils'
+
+[[edge]]
+From = 'npm:@floating-ui/react-dom@2.1.9'
+To = 'npm:@floating-ui/dom@1.8.0'
+Kind = 'runtime'
+Optional = false
+Reference = '@floating-ui/dom'
+
+[[edge]]
+From = 'npm:react-dom@19.2.7'
+To = 'npm:scheduler@0.27.0'
+Kind = 'runtime'
+Optional = false
+Reference = 'scheduler'
+
+[[requirement]]
+ID = 'direct:copeland-react-friction-m0:target:browser:@base-ui-components/react:000000'
+Scope = 'workspace'
+TargetSource = 'npm'
+TargetName = '@base-ui-components/react'
+Reference = '@base-ui-components/react'
+Constraint = '1.0.0-rc.0'
+Kind = 'project-explicit'
+RequiringPackage = 'copeland-react-friction-m0'
+PackageID = ''
+DependencyKey = '@base-ui-components/react'
+OriginSource = 'manifest'
+Order = 0
+Optional = false
+Controlling = true
+ShadowedBy = ''
+Status = 'controlling'
+SelectedVersion = '1.0.0-rc.0'
+
+[[requirement]]
+ID = 'peer:npm:@base-ui-components/react@1.0.0-rc.0:@types/react:000003'
+Scope = 'workspace'
+TargetSource = 'npm'
+TargetName = '@types/react'
+Reference = '@types/react'
+Constraint = '^17 || ^18 || ^19'
+Kind = 'peer'
+RequiringPackage = ''
+PackageID = 'npm:@base-ui-components/react@1.0.0-rc.0'
+DependencyKey = '@types/react'
+OriginSource = 'registry-metadata'
+Order = 3
+Optional = true
+Controlling = false
+ShadowedBy = 'peer:npm:@base-ui-components/utils@0.2.2:@types/react:000007'
+Status = 'optional-unsatisfied'
+SelectedVersion = ''
+
+[[requirement]]
+ID = 'peer:npm:@base-ui-components/utils@0.2.2:@types/react:000007'
+Scope = 'workspace'
+TargetSource = 'npm'
+TargetName = '@types/react'
+Reference = '@types/react'
+Constraint = '^17 || ^18 || ^19'
+Kind = 'peer'
+RequiringPackage = ''
+PackageID = 'npm:@base-ui-components/utils@0.2.2'
+DependencyKey = '@types/react'
+OriginSource = 'registry-metadata'
+Order = 7
+Optional = true
+Controlling = true
+ShadowedBy = ''
+Status = 'optional-unsatisfied'
+SelectedVersion = ''
+
+[[requirement]]
+ID = 'direct:copeland-react-friction-m0:target:browser:react:000001'
+Scope = 'workspace'
+TargetSource = 'npm'
+TargetName = 'react'
+Reference = 'react'
+Constraint = '19.2.7'
+Kind = 'project-explicit'
+RequiringPackage = 'copeland-react-friction-m0'
+PackageID = ''
+DependencyKey = 'react'
+OriginSource = 'manifest'
+Order = 1
+Optional = false
+Controlling = true
+ShadowedBy = ''
+Status = 'controlling'
+SelectedVersion = '19.2.7'
+
+[[requirement]]
+ID = 'peer:npm:@base-ui-components/react@1.0.0-rc.0:react:000004'
+Scope = 'workspace'
+TargetSource = 'npm'
+TargetName = 'react'
+Reference = 'react'
+Constraint = '^17 || ^18 || ^19'
+Kind = 'peer'
+RequiringPackage = ''
+PackageID = 'npm:@base-ui-components/react@1.0.0-rc.0'
+DependencyKey = 'react'
+OriginSource = 'registry-metadata'
+Order = 4
+Optional = false
+Controlling = false
+ShadowedBy = 'peer:npm:react-dom@19.2.7:react:000006'
+Status = 'shadowed-compatible'
+SelectedVersion = '19.2.7'
+
+[[requirement]]
+ID = 'peer:npm:react-dom@19.2.7:react:000006'
+Scope = 'workspace'
+TargetSource = 'npm'
+TargetName = 'react'
+Reference = 'react'
+Constraint = '^19.2.7'
+Kind = 'peer'
+RequiringPackage = ''
+PackageID = 'npm:react-dom@19.2.7'
+DependencyKey = 'react'
+OriginSource = 'registry-metadata'
+Order = 6
+Optional = false
+Controlling = false
+ShadowedBy = 'peer:npm:@base-ui-components/utils@0.2.2:react:000008'
+Status = 'shadowed-compatible'
+SelectedVersion = '19.2.7'
+
+[[requirement]]
+ID = 'peer:npm:@base-ui-components/utils@0.2.2:react:000008'
+Scope = 'workspace'
+TargetSource = 'npm'
+TargetName = 'react'
+Reference = 'react'
+Constraint = '^17 || ^18 || ^19'
+Kind = 'peer'
+RequiringPackage = ''
+PackageID = 'npm:@base-ui-components/utils@0.2.2'
+DependencyKey = 'react'
+OriginSource = 'registry-metadata'
+Order = 8
+Optional = false
+Controlling = false
+ShadowedBy = 'peer:npm:@floating-ui/react-dom@2.1.9:react:000010'
+Status = 'shadowed-compatible'
+SelectedVersion = '19.2.7'
+
+[[requirement]]
+ID = 'peer:npm:@floating-ui/react-dom@2.1.9:react:000010'
+Scope = 'workspace'
+TargetSource = 'npm'
+TargetName = 'react'
+Reference = 'react'
+Constraint = '>=16.8.0'
+Kind = 'peer'
+RequiringPackage = ''
+PackageID = 'npm:@floating-ui/react-dom@2.1.9'
+DependencyKey = 'react'
+OriginSource = 'registry-metadata'
+Order = 10
+Optional = false
+Controlling = false
+ShadowedBy = 'peer:npm:use-sync-external-store@1.7.0:react:000012'
+Status = 'shadowed-compatible'
+SelectedVersion = '19.2.7'
+
+[[requirement]]
+ID = 'peer:npm:use-sync-external-store@1.7.0:react:000012'
+Scope = 'workspace'
+TargetSource = 'npm'
+TargetName = 'react'
+Reference = 'react'
+Constraint = '^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0'
+Kind = 'peer'
+RequiringPackage = ''
+PackageID = 'npm:use-sync-external-store@1.7.0'
+DependencyKey = 'react'
+OriginSource = 'registry-metadata'
+Order = 12
+Optional = false
+Controlling = false
+ShadowedBy = 'direct:copeland-react-friction-m0:target:browser:react:000001'
+Status = 'shadowed-compatible'
+SelectedVersion = '19.2.7'
+
+[[requirement]]
+ID = 'direct:copeland-react-friction-m0:target:browser:react-dom:000002'
+Scope = 'workspace'
+TargetSource = 'npm'
+TargetName = 'react-dom'
+Reference = 'react-dom'
+Constraint = '19.2.7'
+Kind = 'project-explicit'
+RequiringPackage = 'copeland-react-friction-m0'
+PackageID = ''
+DependencyKey = 'react-dom'
+OriginSource = 'manifest'
+Order = 2
+Optional = false
+Controlling = true
+ShadowedBy = ''
+Status = 'controlling'
+SelectedVersion = '19.2.7'
+
+[[requirement]]
+ID = 'peer:npm:@base-ui-components/react@1.0.0-rc.0:react-dom:000005'
+Scope = 'workspace'
+TargetSource = 'npm'
+TargetName = 'react-dom'
+Reference = 'react-dom'
+Constraint = '^17 || ^18 || ^19'
+Kind = 'peer'
+RequiringPackage = ''
+PackageID = 'npm:@base-ui-components/react@1.0.0-rc.0'
+DependencyKey = 'react-dom'
+OriginSource = 'registry-metadata'
+Order = 5
+Optional = false
+Controlling = false
+ShadowedBy = 'peer:npm:@base-ui-components/utils@0.2.2:react-dom:000009'
+Status = 'shadowed-compatible'
+SelectedVersion = '19.2.7'
+
+[[requirement]]
+ID = 'peer:npm:@base-ui-components/utils@0.2.2:react-dom:000009'
+Scope = 'workspace'
+TargetSource = 'npm'
+TargetName = 'react-dom'
+Reference = 'react-dom'
+Constraint = '^17 || ^18 || ^19'
+Kind = 'peer'
+RequiringPackage = ''
+PackageID = 'npm:@base-ui-components/utils@0.2.2'
+DependencyKey = 'react-dom'
+OriginSource = 'registry-metadata'
+Order = 9
+Optional = false
+Controlling = false
+ShadowedBy = 'peer:npm:@floating-ui/react-dom@2.1.9:react-dom:000011'
+Status = 'shadowed-compatible'
+SelectedVersion = '19.2.7'
+
+[[requirement]]
+ID = 'peer:npm:@floating-ui/react-dom@2.1.9:react-dom:000011'
+Scope = 'workspace'
+TargetSource = 'npm'
+TargetName = 'react-dom'
+Reference = 'react-dom'
+Constraint = '>=16.8.0'
+Kind = 'peer'
+RequiringPackage = ''
+PackageID = 'npm:@floating-ui/react-dom@2.1.9'
+DependencyKey = 'react-dom'
+OriginSource = 'registry-metadata'
+Order = 11
+Optional = false
+Controlling = false
+ShadowedBy = 'direct:copeland-react-friction-m0:target:browser:react-dom:000002'
+Status = 'shadowed-compatible'
+SelectedVersion = '19.2.7'
+
+[[target]]
+Package = 'copeland-react-friction-m0'
+Name = 'browser'
+Export = '.'
+Entry = 'src/Main.ts'
+Runtime = 'dist/browser/main.js'
+Types = 'dist/browser/main.d.ts'

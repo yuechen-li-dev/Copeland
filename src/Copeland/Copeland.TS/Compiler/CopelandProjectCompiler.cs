@@ -330,7 +330,9 @@ public static class CopelandProjectCompiler
                 .Where(import => import.Target is not null)
                 .SelectMany(import => import.Bindings.Select(binding => binding.LocalName))
                 .ToHashSet(StringComparer.Ordinal);
-            SyntaxToken[] tokens = SyntaxTree.ParseTokens(EmbeddedSourceBlockScanner.MaskBodies(module.Source.SourceText)).Tokens.ToArray();
+            string visibleSource = EmbeddedSourceBlockScanner.MaskBodies(module.Source.SourceText);
+            SyntaxToken[] tokens = SyntaxTree.ParseTokens(visibleSource).Tokens.ToArray();
+            IReadOnlySet<int> enumPatternIdentifiers = EnumPatternIdentifierPositions(SyntaxTree.Parse(visibleSource).Root);
             foreach (var pair in functions)
             {
                 ProjectModule[] foreignOwners = pair.Value
@@ -349,6 +351,7 @@ public static class CopelandProjectCompiler
                     if (token.Kind != SyntaxKind.IdentifierToken
                         || token.Text != pair.Key
                         || tokens[index + 1].Kind != SyntaxKind.OpenParenToken
+                        || enumPatternIdentifiers.Contains(token.Position)
                         || index > 0 && tokens[index - 1].Kind is SyntaxKind.DotToken or SyntaxKind.FunctionKeyword)
                     {
                         continue;
@@ -402,6 +405,33 @@ public static class CopelandProjectCompiler
                 }
             }
         }
+    }
+
+    private static IReadOnlySet<int> EnumPatternIdentifierPositions(SyntaxNode root)
+    {
+        var positions = new HashSet<int>();
+        var pending = new Stack<SyntaxNode>();
+        pending.Push(root);
+        while (pending.Count > 0)
+        {
+            SyntaxNode node = pending.Pop();
+            if (node is EnumCaseSyntax enumCase)
+            {
+                positions.Add(enumCase.Identifier.Position);
+            }
+            else if (node is MatchPatternSyntax pattern)
+            {
+                positions.Add(pattern.CaseIdentifier.Position);
+            }
+            foreach (object child in node.GetChildren())
+            {
+                if (child is SyntaxNode syntax)
+                {
+                    pending.Push(syntax);
+                }
+            }
+        }
+        return positions;
     }
 
     private static IReadOnlyList<ProjectModule> OrderModules(IReadOnlyList<ProjectModule> modules)

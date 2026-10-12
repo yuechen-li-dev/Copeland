@@ -1,0 +1,242 @@
+{
+  "milestone": "CTS-REACT-UI-STABILIZATION-M1",
+  "source": "samples/copeland-ts/copeland-website-m0",
+  "build": "current TSPack managed target with repository Copeland.Cli",
+  "browser": {
+    "channel": "msedge",
+    "version": "153.0.4234.48"
+  },
+  "sourceHashes": {
+    "src/App.tsx": "f7bbf3709b93e05d618f08e604f03dac02d3b5f1737b5ac406d8b8320ea1f41b",
+    "styles.css": "13ceb6348070d94dc6985d72c57dd30875fea2d63e32e9dd3638fe4f9636fe19",
+    "tsconfig.tsx": "24c05f0441d1c2a58b5f40b6f6dc36c59fd66c38dbd9b6167d2788facfac7bfe",
+    "manifest.tsx": "a16853373811f4be1d557c86e4b9907712fa7637894b072f9f30976f2d38bb8f",
+    "dist/browser/src/App.js": "1962db6c9f24be6aef0b4d1af262b32c3bfcee3494e0eacc1e9e33fb360802a7",
+    "dist/browser/generated/layouts.css": "b3fa970803b6644e028bfdeb5c299ebce7a749f58cc923f2c16d6ded5acdcf49"
+  },
+  "diagnostics": [],
+  "observations": [
+    {
+      "width": 1440,
+      "phase": "keyboard-readable-card",
+      "title": "Typed browser ↔ CLR",
+      "scrollTop": 0,
+      "scrollExtent": 0,
+      "tailVisible": true,
+      "overflowY": "auto"
+    },
+    {
+      "width": 1440,
+      "phase": "keyboard-readable-card",
+      "title": "React without lock-in",
+      "scrollTop": 0,
+      "scrollExtent": 0,
+      "tailVisible": true,
+      "overflowY": "auto"
+    },
+    {
+      "width": 1440,
+      "phase": "keyboard-readable-card",
+      "title": "Static templates",
+      "scrollTop": 0,
+      "scrollExtent": 0,
+      "tailVisible": true,
+      "overflowY": "auto"
+    },
+    {
+      "width": 1440,
+      "phase": "keyboard-readable-card",
+      "title": "Inspectable tables",
+      "scrollTop": 0,
+      "scrollExtent": 0,
+      "tailVisible": true,
+      "overflowY": "auto"
+    },
+    {
+      "width": 1440,
+      "phase": "original-authored-copy",
+      "cards": [
+        {
+          "title": "Typed browser ↔ CLR",
+          "frameHeight": 228,
+          "overflowPolicy": "visible",
+          "contentBottom": 168.5,
+          "hiddenTextPixels": 0,
+          "clipped": false
+        },
+        {
+          "title": "React without lock-in",
+          "frameHeight": 228,
+          "overflowPolicy": "visible",
+          "contentBottom": 135.5,
+          "hiddenTextPixels": 0,
+          "clipped": false
+        },
+        {
+          "title": "Static templates",
+          "frameHeight": 228,
+          "overflowPolicy": "visible",
+          "contentBottom": 135.5,
+          "hiddenTextPixels": 0,
+          "clipped": false
+        },
+        {
+          "title": "Inspectable tables",
+          "frameHeight": 228,
+          "overflowPolicy": "visible",
+          "contentBottom": 135.5,
+          "hiddenTextPixels": 0,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "phase": "keyboard-readable-card",
+      "title": "Typed browser ↔ CLR",
+      "scrollTop": 67,
+      "scrollExtent": 67,
+      "tailVisible": true,
+      "overflowY": "auto"
+    },
+    {
+      "width": 768,
+      "phase": "keyboard-readable-card",
+      "title": "React without lock-in",
+      "scrollTop": 34,
+      "scrollExtent": 34,
+      "tailVisible": true,
+      "overflowY": "auto"
+    },
+    {
+      "width": 768,
+      "phase": "keyboard-readable-card",
+      "title": "Static templates",
+      "scrollTop": 34,
+      "scrollExtent": 34,
+      "tailVisible": true,
+      "overflowY": "auto"
+    },
+    {
+      "width": 768,
+      "phase": "keyboard-readable-card",
+      "title": "Inspectable tables",
+      "scrollTop": 34,
+      "scrollExtent": 34,
+      "tailVisible": true,
+      "overflowY": "auto"
+    },
+    {
+      "width": 768,
+      "phase": "original-authored-copy",
+      "cards": [
+        {
+          "title": "Typed browser ↔ CLR",
+          "frameHeight": 194,
+          "overflowPolicy": "visible",
+          "contentBottom": 168.5,
+          "hiddenTextPixels": 0,
+          "clipped": false
+        },
+        {
+          "title": "React without lock-in",
+          "frameHeight": 161,
+          "overflowPolicy": "visible",
+          "contentBottom": 135.5,
+          "hiddenTextPixels": 0,
+          "clipped": false
+        },
+        {
+          "title": "Static templates",
+          "frameHeight": 161,
+          "overflowPolicy": "visible",
+          "contentBottom": 135.5,
+          "hiddenTextPixels": 0,
+          "clipped": false
+        },
+        {
+          "title": "Inspectable tables",
+          "frameHeight": 161,
+          "overflowPolicy": "visible",
+          "contentBottom": 135.5,
+          "hiddenTextPixels": 0,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "phase": "keyboard-readable-card",
+      "title": "Typed browser ↔ CLR",
+      "scrollTop": 48,
+      "scrollExtent": 48,
+      "tailVisible": true,
+      "overflowY": "auto"
+    },
+    {
+      "width": 390,
+      "phase": "keyboard-readable-card",
+      "title": "React without lock-in",
+      "scrollTop": 21,
+      "scrollExtent": 21,
+      "tailVisible": true,
+      "overflowY": "auto"
+    },
+    {
+      "width": 390,
+      "phase": "keyboard-readable-card",
+      "title": "Static templates",
+      "scrollTop": 21,
+      "scrollExtent": 21,
+      "tailVisible": true,
+      "overflowY": "auto"
+    },
+    {
+      "width": 390,
+      "phase": "keyboard-readable-card",
+      "title": "Inspectable tables",
+      "scrollTop": 21,
+      "scrollExtent": 21,
+      "tailVisible": true,
+      "overflowY": "auto"
+    },
+    {
+      "width": 390,
+      "phase": "original-authored-copy",
+      "cards": [
+        {
+          "title": "Typed browser ↔ CLR",
+          "frameHeight": 163,
+          "overflowPolicy": "visible",
+          "contentBottom": 143.5,
+          "hiddenTextPixels": 0,
+          "clipped": false
+        },
+        {
+          "title": "React without lock-in",
+          "frameHeight": 136,
+          "overflowPolicy": "visible",
+          "contentBottom": 116.5,
+          "hiddenTextPixels": 0,
+          "clipped": false
+        },
+        {
+          "title": "Static templates",
+          "frameHeight": 136,
+          "overflowPolicy": "visible",
+          "contentBottom": 116.5,
+          "hiddenTextPixels": 0,
+          "clipped": false
+        },
+        {
+          "title": "Inspectable tables",
+          "frameHeight": 136,
+          "overflowPolicy": "visible",
+          "contentBottom": 116.5,
+          "hiddenTextPixels": 0,
+          "clipped": false
+        }
+      ]
+    }
+  ]
+}

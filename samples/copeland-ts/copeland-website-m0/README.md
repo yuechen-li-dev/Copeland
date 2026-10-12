@@ -1,5 +1,14 @@
 # Copeland website — lexical component capsule M1 dogfood
 
+The compiler-owned `tsconfig.tsx` now declares this sample's browser target for
+the current TSPack managed build path. The independent
+[React friction regression](../../../docs/Copeland/reviews/cts-react-friction-m0.md)
+established paragraph clipping at tablet and mobile widths. The
+[stabilization round](../../../docs/Copeland/reviews/cts-react-ui-stabilization-m1.md)
+declares a Machina `scrollY` surface for each bounded card and qualifies full
+paragraph access with keyboard scrolling. Card rectangle containment alone
+does not establish readable text.
+
 `src/App.tsx` contains ordinary typed render functions and three explicit
 stream roots: `CopelandDesktop`, `CopelandTablet`, and `CopelandMobile`.
 `FeatureCard(props)` and `Hero(profile)` each declare a private local
@@ -19,7 +28,8 @@ The compiler projects component definitions, stream-attached instances,
 immutable renderer attachment plans, private local presentations, and lexical
 captures. Parent placement stays a neutral generated host; private stream
 wrappers flatten in browser realization so the parent sees only the assigned
-host geometry. `Main.ts` mounts the application through a host-attachment plan;
+host geometry when they carry no independent layout policy. Card streams retain
+their physical scroll surface. `Main.ts` mounts the application through a host-attachment plan;
 the React root remains adapter-private. The generated browser host separately
 mounts the Custom Element badge into a Copeland/Machina renderer host through
 `attachRenderer`, updates its label through `updateRenderer`, and releases

@@ -1,6 +1,9 @@
 using Copeland.TS.Compiler;
 using Copeland.TS.MachinaSource;
 using Copeland.TS.Semantics.Bound;
+using Copeland.TS.Mir.Machina;
+using System.Globalization;
+using System.Text;
 
 namespace Copeland.TS.Backend.JavaScript;
 
@@ -16,7 +19,7 @@ public static class LayoutJavaScriptProjectEmitter
     {
         var files = new Dictionary<string, string>(baseEmission.Files, StringComparer.Ordinal);
         var diagnostics = new List<JavaScriptDiagnostic>(baseEmission.Diagnostics);
-        var css = new System.Text.StringBuilder();
+        var css = new StringBuilder();
         var exportedNames = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (CopelandProjectModuleCompilation module in modules.OrderBy(module => module.LogicalPath, StringComparer.Ordinal))
@@ -28,7 +31,21 @@ public static class LayoutJavaScriptProjectEmitter
                     .OrderBy(binding => binding.Layout.StableIdentity, StringComparer.Ordinal);
             foreach (BoundLayoutBinding privatePresentation in privatePresentations)
             {
-                AppendPrivatePresentationCss(css, privatePresentation);
+                var presentationCss = new StringBuilder();
+                try
+                {
+                    AppendPrivatePresentationCss(presentationCss, privatePresentation);
+                    css.Append(presentationCss);
+                }
+                catch (MachinaLayoutException exception)
+                {
+                    diagnostics.Add(new JavaScriptDiagnostic(exception.Code, exception.Message));
+                }
+                catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)
+                {
+                    diagnostics.Add(new JavaScriptDiagnostic("COPE-LAYOUT-EMIT-0002",
+                        $"Could not project private layout '{privatePresentation.Layout.Name}': {exception.Message}"));
+                }
             }
 
             IEnumerable<BoundLayoutDeclaration> layouts = module.BoundCompilation is null
@@ -87,7 +104,7 @@ public static class LayoutJavaScriptProjectEmitter
             return;
         }
 
-        AppendNode(binding.Realization.Root, isRoot: true);
+        AppendNode(binding.Realization.Root, parentKind: null);
 
         void AppendTransparentHost(BoundLayoutNode node)
         {
@@ -104,7 +121,7 @@ public static class LayoutJavaScriptProjectEmitter
             }
         }
 
-        void AppendNode(BoundLayoutNode node, bool isRoot)
+        void AppendNode(BoundLayoutNode node, LayoutNodeKind? parentKind)
         {
             if (!binding.Realization.ClassesByNode.TryGetValue(node.Name, out string? className))
             {
@@ -113,8 +130,15 @@ public static class LayoutJavaScriptProjectEmitter
 
             css.Append('.').Append(className).Append(" {\n")
                 .Append("  box-sizing: border-box;\n");
-            AppendDimension("width");
-            AppendDimension("height");
+            string? mainAxis = parentKind switch
+            {
+                LayoutNodeKind.Row => "width",
+                LayoutNodeKind.Column => "height",
+                _ => null
+            };
+            AppendDimension("width", mainAxis);
+            AppendDimension("height", mainAxis);
+            css.Append("  min-width: 0;\n  min-height: 0;\n");
             switch (node.Kind)
             {
                 case LayoutNodeKind.Row:
@@ -132,29 +156,49 @@ public static class LayoutJavaScriptProjectEmitter
                 case LayoutNodeKind.Overlay:
                     css.Append("  position: relative;\n");
                     break;
-                case LayoutNodeKind.Slot:
-                    if (!isRoot)
-                    {
-                        css.Append("  min-width: 0;\n  min-height: 0;\n");
-                    }
-                    break;
             }
+            if (node.Kind is LayoutNodeKind.Row or LayoutNodeKind.Column or LayoutNodeKind.Grid)
+            {
+                css.Append("  gap: ").Append(LayoutLengthCss(node.Gap)).Append(";\n");
+            }
+            MachinaBrowserLowerer.AppendStyleDeclarations(node.Style, css);
+            if (node.Padding != MachinaInsets.None)
+            {
+                css.Append("  padding: ").Append(Format(node.Padding.Top)).Append("px ")
+                    .Append(Format(node.Padding.Right)).Append("px ")
+                    .Append(Format(node.Padding.Bottom)).Append("px ")
+                    .Append(Format(node.Padding.Left)).Append("px;\n");
+            }
+            css.Append("  overflow-x: ").Append(OverflowCss(node.ResolvedOverflow.X)).Append(";\n")
+                .Append("  overflow-y: ").Append(OverflowCss(node.ResolvedOverflow.Y)).Append(";\n");
             css.Append("}\n\n");
 
             foreach (BoundLayoutNode child in node.Children)
             {
-                AppendNode(child, isRoot: false);
+                AppendNode(child, node.Kind);
             }
 
-            void AppendDimension(string name)
+            void AppendDimension(string name, string? mainAxis)
             {
                 BoundLayoutDimension dimension = node.Dimensions.GetValueOrDefault(name)
                     ?? new BoundLayoutDimension(LayoutDimensionKind.Fill);
+                if (name == mainAxis)
+                {
+                    string flex = dimension.Kind switch
+                    {
+                        LayoutDimensionKind.Fill => "1 1 0px",
+                        LayoutDimensionKind.Fit => "0 0 auto",
+                        LayoutDimensionKind.Fixed => "0 0 " + LayoutLengthCss(dimension.Length!.Value),
+                        _ => throw new InvalidOperationException("Unknown layout dimension.")
+                    };
+                    css.Append("  flex: ").Append(flex).Append(";\n");
+                }
                 string value = dimension.Kind switch
                 {
+                    LayoutDimensionKind.Fill when name == mainAxis => "auto",
                     LayoutDimensionKind.Fill => "100%",
                     LayoutDimensionKind.Fit => "auto",
-                    LayoutDimensionKind.Fixed => dimension.Length!.Value.Px.ToString(System.Globalization.CultureInfo.InvariantCulture) + "px",
+                    LayoutDimensionKind.Fixed => LayoutLengthCss(dimension.Length!.Value),
                     _ => throw new InvalidOperationException("Unknown layout dimension."),
                 };
                 css.Append("  ").Append(name).Append(": ").Append(value).Append(";\n");
@@ -167,7 +211,52 @@ public static class LayoutJavaScriptProjectEmitter
            && node.Children.Count == 1
            && node.Children[0].Kind == LayoutNodeKind.Slot
            && node.Dimensions.Values.All(dimension => dimension.Kind == LayoutDimensionKind.Fill)
-           && node.Children[0].Dimensions.Values.All(dimension => dimension.Kind == LayoutDimensionKind.Fill);
+           && node.Children[0].Dimensions.Values.All(dimension => dimension.Kind == LayoutDimensionKind.Fill)
+           && IsTransparentBox(node)
+           && IsTransparentBox(node.Children[0]);
+
+    private static bool IsTransparentBox(BoundLayoutNode node)
+    {
+        return node.Padding == MachinaInsets.None
+            && node.Gap == MachinaLength.Pixels(0)
+            && node.Style == MachinaStyle.Empty
+            && node.ResolvedOverflow == BoundBoxOverflowPolicy.Visible
+            && node.Positions.Count == 0
+            && node.TextFit is null
+            && node.ResolvedPaint == BoundPaintProperties.Default;
+    }
+
+    private static string Format(double value)
+    {
+        return value.ToString("0.################", CultureInfo.InvariantCulture);
+    }
+
+    private static string LayoutLengthCss(MachinaLength length)
+    {
+        if (length.Ui == 0)
+        {
+            return Format(length.Px) + "px";
+        }
+        string percent = Format(length.Ui * 100) + "%";
+        if (length.Px == 0)
+        {
+            return percent;
+        }
+        string sign = length.Px < 0 ? " - " : " + ";
+        return "calc(" + percent + sign + Format(Math.Abs(length.Px)) + "px)";
+    }
+
+    private static string OverflowCss(LayoutOverflowAxis axis)
+    {
+        return axis switch
+        {
+            LayoutOverflowAxis.Visible => "visible",
+            LayoutOverflowAxis.Clip => "hidden",
+            LayoutOverflowAxis.Auto => "auto",
+            LayoutOverflowAxis.Scroll => "scroll",
+            _ => throw new InvalidOperationException("Unknown overflow axis.")
+        };
+    }
 
     private static string ToJavaScript(string typeScript)
         => typeScript.Replace(" as const", string.Empty, StringComparison.Ordinal);

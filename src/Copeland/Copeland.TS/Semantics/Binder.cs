@@ -6731,12 +6731,26 @@ public static partial class Binder
                     continue;
                 }
 
+                if (isIntrinsic && propertyName is "onChange" or "onInput")
+                {
+                    ReportRepair(
+                        "COPE-REACT-0017",
+                        $"Native React '{propertyName}' event objects are outside the current intrinsic contract. Use a contracted Input component with onValueChange: (string) => void, or an explicit typed browser adapter.",
+                        attribute.NameToken,
+                        "a contracted Input component with onValueChange: (string) => void",
+                        "unsupported-capability");
+                    continue;
+                }
+
                 TypeSymbol expectedType = componentProperty?.Type
                     ?? (propertyName == "onClick" ? new CallableTypeSymbol([], PrimitiveTypeSymbol.Void) : PrimitiveTypeSymbol.String);
                 BoundExpression value = attribute.ExpressionValue is not null
                     ? BindExpression(attribute.ExpressionValue, expectedType)
                     : new BoundLiteralExpression(attribute.StringValueToken!.Value, PrimitiveTypeSymbol.String);
-                if (!IsAssignable(expectedType, value.Type))
+                bool isIntegerIntrinsic = isIntrinsic
+                    && propertyName is "key" or "tabIndex"
+                    && value.Type == PrimitiveTypeSymbol.Int;
+                if (!isIntegerIntrinsic && !IsAssignable(expectedType, value.Type))
                 {
                     ReportTypeMismatch("COPE-REACT-0014", expectedType, value.Type, attribute.NameToken);
                 }
@@ -6910,8 +6924,12 @@ public static partial class Binder
             {
                 switch (child)
                 {
-                    case TsXmlTextSyntax text when !string.IsNullOrWhiteSpace(text.TextToken.Text):
-                        result.Add(new BoundLiteralExpression(text.TextToken.Text.Trim(), PrimitiveTypeSymbol.String));
+                    case TsXmlTextSyntax text:
+                        string normalizedText = NormalizeReactChildText(text.TextToken.Text);
+                        if (normalizedText.Length > 0)
+                        {
+                            result.Add(new BoundLiteralExpression(normalizedText, PrimitiveTypeSymbol.String));
+                        }
                         break;
                     case TsXmlExpressionChildSyntax expression:
                     {
@@ -6929,6 +6947,34 @@ public static partial class Binder
                 }
             }
             return result;
+        }
+
+        private static string NormalizeReactChildText(string text)
+        {
+            string[] lines = text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n').Split('\n');
+            var normalized = new System.Text.StringBuilder();
+            for (int index = 0; index < lines.Length; index++)
+            {
+                string line = lines[index].Replace('\t', ' ');
+                if (index > 0)
+                {
+                    line = line.TrimStart(' ');
+                }
+                if (index < lines.Length - 1)
+                {
+                    line = line.TrimEnd(' ');
+                }
+                if (line.Length == 0)
+                {
+                    continue;
+                }
+                if (normalized.Length > 0)
+                {
+                    normalized.Append(' ');
+                }
+                normalized.Append(line);
+            }
+            return normalized.ToString();
         }
 
         private IReadOnlyList<BoundExpression> BindTextDocumentChildren(IReadOnlyList<TsXmlChildSyntax> children, string createElementBinding)
@@ -7057,6 +7103,9 @@ public static partial class Binder
                 or "aside"
                 or "br"
                 or "button"
+                or "label"
+                or "ul"
+                or "li"
                 or "code"
                 or "div"
                 or "footer"
@@ -7065,6 +7114,7 @@ public static partial class Binder
                 or "h3"
                 or "header"
                 or "i"
+                or "input"
                 or "main"
                 or "nav"
                 or "p"
@@ -7704,6 +7754,7 @@ public static partial class Binder
                     && !parameterNames.Contains(name.IdentifierToken.Text)
                     && outerScope.TryLookup(name.IdentifierToken.Text, out var symbol)
                     && symbol is VariableSymbol or ParameterSymbol
+                    && !IsStaticEnumDeclaration(name.IdentifierToken.Text, symbol)
                     && visited.Add(name.IdentifierToken.Text))
                 {
                     Report("COPE-CALL-0017", $"Implicit lexical capture of '{name.IdentifierToken.Text}' is forbidden. Use 'capture {{ {name.IdentifierToken.Text} }} ...' to snapshot it into an immutable callable environment.", name.IdentifierToken);
@@ -7715,6 +7766,15 @@ public static partial class Binder
                     foreach (object child in node.GetChildren()) work.Push(child);
                 }
             }
+        }
+
+        private bool IsStaticEnumDeclaration(string name, Symbol symbol)
+        {
+            return symbol is VariableSymbol variable
+                && _enumTypes.TryGetValue(name, out EnumTypeSymbol? enumType)
+                && ReferenceEquals(variable.Type, enumType)
+                && _global.TryLookup(name, out Symbol? declaration)
+                && ReferenceEquals(symbol, declaration);
         }
 
         private static string GetCaptureName(BoundExpression capture, int index)

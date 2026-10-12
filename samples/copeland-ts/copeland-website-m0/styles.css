@@ -84,7 +84,8 @@ a { color: inherit; }
 .language-example { display: flex; height: 100%; align-items: center; justify-content: center; gap: 20px; color: #cbb6ff; font-family: ui-monospace, Consolas, monospace; font-size: 14px; font-weight: 750; white-space: nowrap; }
 .language-example .arrow { color: var(--cyan); }
 .m-stream-collection-CopelandDesktop-featureGrid, .m-stream-collection-CopelandTablet-featureGrid, .m-stream-collection-CopelandMobile-featureGrid { padding: 16px; }
-.feature-card { position: relative; height: 100%; padding: 22px; overflow: hidden; border: 1px solid var(--border); border-radius: 15px; background: linear-gradient(145deg, rgb(28 36 72 / 80%), rgb(10 13 29 / 92%)); }
+.feature-card { position: relative; min-height: 100%; padding: 22px; border: 1px solid var(--border); border-radius: 15px; background: linear-gradient(145deg, rgb(28 36 72 / 80%), rgb(10 13 29 / 92%)); }
+.feature-card:focus-visible { outline: 2px solid var(--cyan); outline-offset: -3px; }
 .feature-card > span { display: block; color: var(--cyan); font-family: ui-monospace, Consolas, monospace; font-size: 28px; text-shadow: 0 0 15px rgb(75 219 255 / 60%); }
 .feature-card h2 { margin: 14px 0 7px; font-size: 17px; letter-spacing: -.03em; }
 .feature-card p { margin: 0; color: var(--secondary); font-size: 13px; line-height: 1.5; }

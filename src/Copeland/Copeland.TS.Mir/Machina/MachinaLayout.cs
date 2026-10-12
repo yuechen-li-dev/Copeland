@@ -961,6 +961,13 @@ public static class MachinaBrowserLowerer
     private static void WriteStyleRule(MachinaStyle style, string className, StringBuilder css)
     {
         css.Append('.').Append(className).Append(" {\n");
+        AppendStyleDeclarations(style, css);
+        css.Append("}\n\n");
+    }
+
+    /// <summary>Projects the same bound style facts for fixed and host-flow layouts.</summary>
+    public static void AppendStyleDeclarations(MachinaStyle style, StringBuilder css)
+    {
         if (style.Box?.Padding is double padding)
         {
             css.Append("  padding: ").Append(MachinaLength.Format(padding)).Append("px;\n");
@@ -1009,7 +1016,6 @@ public static class MachinaBrowserLowerer
         {
             css.Append("  box-shadow: ").Append(shadow).Append(";\n");
         }
-        css.Append("}\n\n");
     }
 
     private static string ToStaticCssLength(MachinaLength value, string fieldName)

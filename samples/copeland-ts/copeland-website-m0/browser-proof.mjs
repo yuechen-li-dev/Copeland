@@ -16,7 +16,7 @@ let browser;
 
 try {
   await waitForServer();
-  browser = await chromium.launch();
+  browser = await chromium.launch({ channel: process.env.FRICTION_BROWSER_CHANNEL });
   await mkdir(artifactDirectory, { recursive: true });
 
   for (const profile of [
@@ -424,7 +424,15 @@ function snapshot(layout) {
   const architecture = requireElement(`[data-machina-layout='${layout}'][data-machina-box='architecture']`);
   const footer = requireElement(`[data-machina-layout='${layout}'][data-machina-box='footer']`);
   const featureGrid = box("featureGrid");
-  const featureCards = Array.from(document.querySelectorAll(`[data-machina-layout='${layout}'][data-machina-box='featureGrid'] .feature-card`)).map(rectangle);
+  const featureCards = Array.from(document.querySelectorAll(`[data-machina-layout='${layout}'][data-machina-box='featureGrid'] .feature-card`)).map(card => {
+    // The assigned card frame is its declared scroll surface. Content may be
+    // taller and remains reachable inside that frame.
+    let host = card.parentElement;
+    while (host && !["auto", "scroll"].includes(getComputedStyle(host).overflowY)) {
+      host = host.parentElement;
+    }
+    return rectangle(host ?? card);
+  });
   const customElement = document.querySelector(`[data-machina-layout='${layout}'][data-machina-box='featureGrid'] copeland-renderer-badge`);
   return {
     root: box("root"), page: { ...rectangle(page), scrollHeight: page.scrollHeight, clientHeight: page.clientHeight, scrollTop: page.scrollTop }, content: box("content"), hero: rectangle(heroHost), heroTitle: rectangle(heroTitleHost), heroActions: rectangle(heroActionsHost), featureGrid, featureCards, heroTitleTarget: { ...rectangle(titleTarget), scrollWidth: titleTarget.scrollWidth, clientWidth: titleTarget.clientWidth }, heroActionsContent: rectangle(actionsContent), codeBadge: { ...rectangle(code), scrollWidth: code.scrollWidth, clientWidth: code.clientWidth }, footer: box("footer"), document: { scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }, semantics: { heroHeading: heroTitleHost.querySelector("h1") !== null, strong: document.querySelector("strong") !== null, link: footer.querySelector("a[href='#architecture']") !== null, list: architecture.querySelector("ul > li") !== null, code: code.querySelector("pre") !== null, customElement: customElement instanceof HTMLElement && customElement.hasAttribute("data-copeland-attachment") && customElement.shadowRoot?.querySelector("span")?.textContent?.startsWith("Custom Elements work") === true }

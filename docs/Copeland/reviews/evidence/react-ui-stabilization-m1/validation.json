@@ -1,0 +1,69 @@
+{
+  "date": "2026-10-12",
+  "commands": [
+    "dotnet build Copeland.slnx -m:1 -v:minimal",
+    "dotnet test Copeland.slnx --no-build -m:1 --logger 'trx;LogFilePrefix=ui-stabilization-m1-closeout' --results-directory artifacts/validation/ui-stabilization-m1-closeout"
+  ],
+  "build": "passed with zero warnings and errors",
+  "suites": [
+    {
+      "assembly": "Copeland.Authoring.Food.Tests.dll",
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "assembly": "Copeland.Cli.Tests.dll",
+      "total": 80,
+      "passed": 80,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "assembly": "Copeland.Markdown.Tests.dll",
+      "total": 35,
+      "passed": 35,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "assembly": "Copeland.TS.Backend.CSharp.Tests.dll",
+      "total": 261,
+      "passed": 261,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "assembly": "Copeland.TS.Backend.JavaScript.Tests.dll",
+      "total": 208,
+      "passed": 208,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "assembly": "Copeland.TS.Database.Tests.dll",
+      "total": 11,
+      "passed": 11,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "assembly": "Copeland.TS.MSBuild.Tests.dll",
+      "total": 13,
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "assembly": "Copeland.TS.Tests.dll",
+      "total": 1516,
+      "passed": 1516,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "passed": 2127,
+  "failed": 0,
+  "skipped": 0
+}

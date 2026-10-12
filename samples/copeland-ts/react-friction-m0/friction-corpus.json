@@ -1,0 +1,63 @@
+{
+  "cases": [
+    {
+      "name": "native-list-and-label",
+      "expected": "accept",
+      "sources": [{ "path": "Main.tsx", "text": "import { createElement } from \"react\"; export function Main(): ReactNode { return <section><label htmlFor=\"query\">Query</label><ul><li>One</li><li>Two</li></ul></section>; }" }]
+    },
+    {
+      "name": "intrinsic-onchange-string-callback",
+      "expected": "reject",
+      "diagnostic": "COPE-REACT-0014",
+      "sources": [{ "path": "Main.tsx", "text": "import { createElement } from \"react\"; export function Main(): ReactNode { return <input value=\"\" onChange={(value: string) => {}} />; }" }]
+    },
+    {
+      "name": "numeric-key",
+      "expected": "reject",
+      "diagnostic": "COPE-REACT-0014",
+      "sources": [{ "path": "Main.tsx", "text": "import { createElement } from \"react\"; export function Main(): ReactNode { return <span key={1}>One</span>; }" }]
+    },
+    {
+      "name": "array-of-react-children",
+      "expected": "reject",
+      "diagnostic": "COPE-REACT-0007",
+      "sources": [{ "path": "Main.tsx", "text": "import { createElement } from \"react\"; export function Main(): ReactNode { const children: ReactNode[] = [<span>One</span>, <span>Two</span>]; return <div>{children}</div>; }" }]
+    },
+    {
+      "name": "dynamic-stream-collection",
+      "expected": "reject",
+      "diagnostic": "COPE-STREAM-0008",
+      "sources": [{ "path": "Main.tsx", "text": "import { createElement } from \"react\"; export function Main(items: ReactNode[]): ReactNode { stream Surface<0px, 0px> { width: fill; height: fit; grid results: items { columns: 2; } } return Surface(); }" }]
+    },
+    {
+      "name": "runtime-root-width",
+      "expected": "reject",
+      "diagnostic": "COPE-LAYOUT-DIMENSION-0001",
+      "sources": [{ "path": "Main.tsx", "text": "import { createElement } from \"react\"; export function Main(width: int): ReactNode { stream Surface<0px, 0px> { width: width; height: fit; content: <span>Content</span> { height: fit; } } return Surface(); }" }]
+    },
+    {
+      "name": "local-fit-and-gap",
+      "expected": "accept",
+      "sources": [{ "path": "Main.tsx", "text": "import { createElement } from \"react\"; export function Main(): ReactNode { stream Surface<0px, 0px> { width: fill; height: fit; gap: 12px; padding: 16px; first: <span>First</span> { height: fit; } second: <span>Second</span> { height: fit; } } return Surface(); }" }]
+    },
+    {
+      "name": "interpolated-text-spacing",
+      "expected": "accept",
+      "sources": [{ "path": "Main.tsx", "text": "import { createElement } from \"react\"; export function Main(name: string): ReactNode { return <p>Workspace: {name}</p>; }" }]
+    },
+    {
+      "name": "separate-layout-and-binding",
+      "expected": "accept",
+      "sources": [{ "path": "Main.tsx", "text": "import { createElement } from \"react\"; layout type Reading { column root { slot heading; slot body; } } layout Page<0px, 0px> satisfies Reading { width: 800px; height: 600px; column root { slot heading { height: 64px; } slot body { height: fill; } } } function Heading(): ReactNode { return <h1>Heading</h1>; } function Body(): ReactNode { return <p>Body</p>; } bind Page { heading: Heading(); body: Body(); } export function Main(): ReactNode { return PageBinding(); }" }]
+    },
+    {
+      "name": "captured-imported-event-constructor",
+      "expected": "reject",
+      "diagnostic": "COPE-CALL-0017",
+      "sources": [
+        { "path": "Events.ts", "text": "export enum Event { Choose(id: int) }" },
+        { "path": "Main.tsx", "text": "import { createElement } from \"react\"; import { Event } from \"./Events\"; export function Main(send: (event: Event) => void): ReactNode { return <button onClick={capture { send } () => send(Event.Choose(1))}>Choose</button>; }" }
+      ]
+    }
+  ]
+}

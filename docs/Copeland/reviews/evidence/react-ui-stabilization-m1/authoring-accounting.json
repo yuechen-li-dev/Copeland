@@ -1,0 +1,26 @@
+{
+  "interpretation": "Source accounting for these authored specimens; not a timed usability study or a universal complexity measure.",
+  "sharedContent": "src/Content.ts is imported verbatim by both implementations",
+  "copeland": {
+    "appLines": 193,
+    "stateLines": 53,
+    "mainLines": 14,
+    "totalApplicationLines": 260,
+    "explicitCaptures": 20,
+    "eventAdapterFunctions": 0,
+    "localStreams": 5,
+    "manifestLines": 73,
+    "distinctIssueArrangements": 2,
+    "issueListBindingSites": 2,
+    "issueDetailBindingSites": 2,
+    "insertedCollection": "Bounded fourth row selected by state; no general dynamic collection capability"
+  },
+  "typescript": {
+    "totalApplicationLines": 175,
+    "explicitCaptures": 0,
+    "eventAdapterFunctions": 0,
+    "issueListBindingSites": 1,
+    "issueDetailBindingSites": 1,
+    "insertedCollection": "Derived array filtered and mapped with stable issue keys"
+  }
+}

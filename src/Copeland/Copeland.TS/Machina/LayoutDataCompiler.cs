@@ -655,6 +655,11 @@ public static class LayoutDataCompiler
             if (origin is null) return null;
 
             ValidateProperties(declaration.Properties, null);
+            IReadOnlyDictionary<string, BoundLayoutDimension> rootDimensions = BindDimensions(declaration.Properties);
+            IReadOnlyDictionary<string, MachinaLength> rootPositions = BindPositions(declaration.Properties);
+            MachinaInsets rootPadding = Padding(declaration.Properties);
+            MachinaStyle rootStyle = Style(declaration.Properties);
+            BoundBoxOverflowPolicy? rootOverflow = Overflow(declaration.Properties);
             BoundLayerSet layerSet = ResolveLayerSet(declaration.Properties, declaration.Identifier, name);
             var slots = new Dictionary<string, BoundLayoutNode>(StringComparer.Ordinal);
             BoundLayoutNode[] children = BindStreamChildren(declaration.Nodes, declaration.Tables, slots, LayoutNodeKind.Column, layerSet, name, layerSet.Layers[0]);
@@ -665,11 +670,11 @@ public static class LayoutDataCompiler
             {
                 children[0] = children[0] with
                 {
-                    Dimensions = BindDimensions(declaration.Properties),
-                    Positions = BindPositions(declaration.Properties),
-                    Padding = Padding(declaration.Properties),
-                    Style = Style(declaration.Properties),
-                    Overflow = Overflow(declaration.Properties),
+                    Dimensions = rootDimensions,
+                    Positions = rootPositions,
+                    Padding = rootPadding,
+                    Style = rootStyle,
+                    Overflow = rootOverflow,
                 };
             }
             BoundLayoutNode[] rootChildren;
@@ -682,23 +687,23 @@ public static class LayoutDataCompiler
                 var implicitRoot = new BoundLayoutNode(
                     "root",
                     LayoutNodeKind.Column,
-                    BindDimensions(declaration.Properties),
-                    BindPositions(declaration.Properties),
+                    rootDimensions,
+                    rootPositions,
                     Gap(declaration.Properties),
                     null,
-                    Padding(declaration.Properties),
-                    Style(declaration.Properties),
+                    rootPadding,
+                    rootStyle,
                     children,
                     Span(declaration),
                     BoundPaintProperties.Default,
-                    Overflow: Overflow(declaration.Properties));
+                    Overflow: rootOverflow);
                 rootChildren = [implicitRoot];
             }
             var root = new BoundLayoutNode(
                 name,
                 LayoutNodeKind.Overlay,
-                BindDimensions(declaration.Properties),
-                BindPositions(declaration.Properties),
+                rootDimensions,
+                rootPositions,
                 MachinaLength.Pixels(0),
                 null,
                 MachinaInsets.None,
@@ -706,7 +711,7 @@ public static class LayoutDataCompiler
                 rootChildren,
                 Span(declaration),
                 BoundPaintProperties.Default,
-                Overflow: Overflow(declaration.Properties));
+                Overflow: rootOverflow);
             var layout = new BoundLayoutDeclaration(name, null, origin, root, slots, LayerSet: layerSet);
             layout = ApplyRelativeDerivations(layout);
 

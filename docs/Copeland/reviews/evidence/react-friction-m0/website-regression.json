@@ -1,0 +1,134 @@
+{
+  "milestone": "CTS-REACT-FRICTION-M0",
+  "source": "samples/copeland-ts/copeland-website-m0",
+  "build": "current TSPack managed target with repository Copeland.Cli",
+  "browser": {
+    "channel": "msedge",
+    "version": "153.0.4234.48"
+  },
+  "sourceHashes": {
+    "src/App.tsx": "a0a3eeadbf1c74f7b76e8fb030b1d10ab2f3a81507a87209a4fd42e099158295",
+    "styles.css": "c93ae137eb022c85baa24f313989d992d18a3c20b8c6e42d6ddbc3f1f9542f42",
+    "tsconfig.tsx": "24c05f0441d1c2a58b5f40b6f6dc36c59fd66c38dbd9b6167d2788facfac7bfe",
+    "manifest.tsx": "a16853373811f4be1d557c86e4b9907712fa7637894b072f9f30976f2d38bb8f",
+    "dist/browser/src/App.js": "398b01f00ca06941b826a7ac35984cc4f25f0d9534c0727bee6f0c32b24cbe09",
+    "dist/browser/generated/layouts.css": "18ff27cf1891e1bd98d9527000f06b15fce537582febc79cf865b1ae4f8cd36f"
+  },
+  "diagnostics": [],
+  "observations": [
+    {
+      "width": 1440,
+      "phase": "original-authored-copy",
+      "cards": [
+        {
+          "title": "Typed browser ↔ CLR",
+          "frameHeight": 228,
+          "overflowPolicy": "hidden",
+          "contentBottom": 168.5,
+          "hiddenTextPixels": 0,
+          "clipped": false
+        },
+        {
+          "title": "React without lock-in",
+          "frameHeight": 228,
+          "overflowPolicy": "hidden",
+          "contentBottom": 135.5,
+          "hiddenTextPixels": 0,
+          "clipped": false
+        },
+        {
+          "title": "Static templates",
+          "frameHeight": 228,
+          "overflowPolicy": "hidden",
+          "contentBottom": 135.5,
+          "hiddenTextPixels": 0,
+          "clipped": false
+        },
+        {
+          "title": "Inspectable tables",
+          "frameHeight": 228,
+          "overflowPolicy": "hidden",
+          "contentBottom": 135.5,
+          "hiddenTextPixels": 0,
+          "clipped": false
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "phase": "original-authored-copy",
+      "cards": [
+        {
+          "title": "Typed browser ↔ CLR",
+          "frameHeight": 127,
+          "overflowPolicy": "hidden",
+          "contentBottom": 168.5,
+          "hiddenTextPixels": 41.5,
+          "clipped": true
+        },
+        {
+          "title": "React without lock-in",
+          "frameHeight": 127,
+          "overflowPolicy": "hidden",
+          "contentBottom": 135.5,
+          "hiddenTextPixels": 8.5,
+          "clipped": true
+        },
+        {
+          "title": "Static templates",
+          "frameHeight": 127,
+          "overflowPolicy": "hidden",
+          "contentBottom": 135.5,
+          "hiddenTextPixels": 8.5,
+          "clipped": true
+        },
+        {
+          "title": "Inspectable tables",
+          "frameHeight": 127,
+          "overflowPolicy": "hidden",
+          "contentBottom": 135.5,
+          "hiddenTextPixels": 8.5,
+          "clipped": true
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "phase": "original-authored-copy",
+      "cards": [
+        {
+          "title": "Typed browser ↔ CLR",
+          "frameHeight": 115,
+          "overflowPolicy": "hidden",
+          "contentBottom": 143.5,
+          "hiddenTextPixels": 28.5,
+          "clipped": true
+        },
+        {
+          "title": "React without lock-in",
+          "frameHeight": 115,
+          "overflowPolicy": "hidden",
+          "contentBottom": 116.5,
+          "hiddenTextPixels": 1.5,
+          "clipped": true
+        },
+        {
+          "title": "Static templates",
+          "frameHeight": 115,
+          "overflowPolicy": "hidden",
+          "contentBottom": 116.5,
+          "hiddenTextPixels": 1.5,
+          "clipped": true
+        },
+        {
+          "title": "Inspectable tables",
+          "frameHeight": 115,
+          "overflowPolicy": "hidden",
+          "contentBottom": 116.5,
+          "hiddenTextPixels": 1.5,
+          "clipped": true
+        }
+      ]
+    }
+  ]
+}
