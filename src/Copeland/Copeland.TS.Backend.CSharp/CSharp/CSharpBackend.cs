@@ -282,6 +282,10 @@ public static class CSharpBackend
                 }
             }
             foreach (var function in program.Functions) EmitFunction(writer, function, enumNames, recordsById, diagnostics);
+            foreach (MirModuleValue value in program.ModuleValues)
+            {
+                writer.WriteLine($"private static readonly {MapType(value.Type)} {CSharpNameMangler.Mangle(value.Name)} = {CSharpNameMangler.Mangle(value.InitializerFunction)}();");
+            }
             if (UsesNativeStrings.Value) NativeStringRuntime.Emit(writer);
             if (UsesIntegerRuntime.Value) IntegerRuntime.Emit(writer);
             writer.Unindent(); writer.WriteLine("}");

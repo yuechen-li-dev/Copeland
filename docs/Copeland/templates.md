@@ -190,3 +190,29 @@ metadata contains `name`, `payloadCount`, and declaration-ordered
 introduces no runtime reflection or NativeAOT metadata requirement. See
 [semantic reflection](semantic-reflection-viz-m0.md), [Diagram IR](diagram-ir-viz-m0.md),
 and the [Mermaid backend](diagram-mermaid-backend-viz-m0.md).
+
+## Spatial layout templates (M4)
+
+The template prefix also constructs compiler-owned spatial data:
+
+```ts
+template<static gap: Length = 12px>
+layout Reading<0px, 0px> {
+    width: fill;
+    height: fit;
+    column root {
+        gap: gap;
+        slot body { height: fit; }
+    }
+}
+
+layout Article = instantiate Reading<>;
+layout Dense = Article with { root.gap: 8px; };
+```
+
+Static configuration and finite node selection use the shared typed evaluator;
+instances and immutable variants use the existing spatial validator. Derived
+layouts inherit their origin unless explicitly overridden. Concrete bodies keep
+an explicit coordinate pair. Layout results are consumed before runtime MIR.
+See [the layout-template review](reviews/cts-react-ui-layout-templates-m4.md)
+for imports, configurations, exact contracts, evidence, and current boundaries.

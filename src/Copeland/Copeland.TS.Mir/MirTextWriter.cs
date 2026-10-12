@@ -8,6 +8,11 @@ public static class MirTextWriter
     {
         var sb = new StringBuilder();
         sb.AppendLine("module");
+        foreach (MirModuleValue value in program.ModuleValues)
+        {
+            sb.Append("module-value ").Append(value.Name).Append(": ").Append(value.Type.Name)
+                .Append(" initialize ").Append(value.InitializerFunction).AppendLine();
+        }
 
         foreach (MirNpmImport import in program.NpmImports.OrderBy(item => item.PackageName, StringComparer.Ordinal).ThenBy(item => item.ExportName, StringComparer.Ordinal).ThenBy(item => item.LocalBinding, StringComparer.Ordinal))
         {

@@ -71,6 +71,8 @@ public sealed class TemplateSymbol(
     public TypeSymbol ReturnType { get; } = returnType;
     public string StableIdentity { get; } = stableIdentity;
     public string ResultTypeDisplayName { get; } = authoredResultTypeName ?? returnType.Name;
+    public Bound.BoundTemplateDeclaration? Declaration { get; internal set; }
+    public IReadOnlyList<Bound.BoundFunctionDeclaration> StaticFunctions { get; internal set; } = [];
     public IReadOnlyList<TypeParameterSymbol> TypeParameters { get; internal set; } = [];
     public IReadOnlyList<TypeSymbol?> TypeParameterDefaults { get; internal set; } = [];
 }

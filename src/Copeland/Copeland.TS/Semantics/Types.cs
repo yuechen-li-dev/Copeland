@@ -286,6 +286,7 @@ public sealed class ClassTypeSymbol(string name, RecordTypeId id, string? stable
     : RecordTypeSymbol(name, id, stableIdentity)
 {
     private readonly List<FunctionSymbol> _associatedFunctions = [];
+    private readonly List<ContributionStreamSymbol> _contributionStreams = [];
 
     public FunctionSymbol? Constructor { get; private set; }
     public IReadOnlyList<FunctionSymbol> AssociatedFunctions => _associatedFunctions;
@@ -296,7 +297,16 @@ public sealed class ClassTypeSymbol(string name, RecordTypeId id, string? stable
 
     public FunctionSymbol? FindAssociatedFunction(string name)
         => _associatedFunctions.FirstOrDefault(function => function.MemberName == name);
+
+    public IReadOnlyList<ContributionStreamSymbol> ContributionStreams => _contributionStreams;
+    public void AddContributionStream(ContributionStreamSymbol stream) => _contributionStreams.Add(stream);
+    public ContributionStreamSymbol? FindContributionStream(string name)
+        => _contributionStreams.FirstOrDefault(stream => stream.Name == name);
 }
+
+/// <summary>Compiler-owned singular UI channels carried by the ordinary immutable record representation.</summary>
+public sealed class ContributionStreamTypeSymbol(string name, RecordTypeId id, string stableIdentity)
+    : RecordTypeSymbol(name, id, stableIdentity);
 
 public readonly record struct TableTypeId(int Value) { public override string ToString() => $"t{Value}"; }
 public readonly record struct TableColumnId(TableTypeId TableTypeId, int Ordinal) { public override string ToString() => $"{TableTypeId}.c{Ordinal}"; }

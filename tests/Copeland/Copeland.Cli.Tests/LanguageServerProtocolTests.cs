@@ -255,6 +255,23 @@ public sealed class LanguageServerProtocolTests
         client.Notify("textDocument/didChange", new { textDocument = new { uri = sourceUri, version = 2 }, contentChanges = new[] { new { text = invalidOverlay } } });
         JsonElement invalidDiagnostics = client.ReadNotification("textDocument/publishDiagnostics");
         Assert.Contains(invalidDiagnostics.GetProperty("params").GetProperty("diagnostics").EnumerateArray(), diagnostic => diagnostic.GetProperty("code").GetString() == "COPE-STREAM-0001");
+
+        const string contributionSource = "import { createElement } from \"react\"; function Hero(): ReactNode { return createElement(); } stream Content { hero: Hero(); } layout Site<0px, 0px> { width: 320px; height: 180px; column root { slot hero { height: fill; } } } export function App(): ReactNode { stream Local { hero: Content.hero; } return bind Site using Local; }";
+        client.Notify("textDocument/didChange", new { textDocument = new { uri = sourceUri, version = 3 }, contentChanges = new[] { new { text = contributionSource } } });
+        JsonElement contributionDiagnostics = client.ReadNotification("textDocument/publishDiagnostics");
+        Assert.Empty(contributionDiagnostics.GetProperty("params").GetProperty("diagnostics").EnumerateArray());
+        JsonElement contributionHover = client.Request(3, "textDocument/hover", new
+        {
+            textDocument = new { uri = sourceUri },
+            position = new { line = 0, character = contributionSource.IndexOf("Content", StringComparison.Ordinal) + 1 },
+        });
+        Assert.Contains("immutable module value", contributionHover.GetProperty("contents").GetProperty("value").GetString());
+        JsonElement contributionCompletion = client.Request(4, "textDocument/completion", new
+        {
+            textDocument = new { uri = sourceUri },
+            position = new { line = 0, character = contributionSource.LastIndexOf("Local", StringComparison.Ordinal) + 1 },
+        });
+        Assert.Contains(contributionCompletion.GetProperty("items").EnumerateArray(), item => item.GetProperty("label").GetString() == "Local");
     }
 
     [Fact]

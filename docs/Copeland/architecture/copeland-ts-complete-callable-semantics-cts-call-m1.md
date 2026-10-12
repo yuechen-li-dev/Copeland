@@ -14,6 +14,13 @@ Arrows support zero, one, or parenthesized typed parameters, exact contextual pa
 
 Lexical capture is never implicit. A read of an outer runtime binding must appear in `capture { name, ... }`. The capture list names only outer lexical values, rejects duplicates and non-runtime declarations, has a 16-binding limit, and snapshots each binding at construction. Captured bindings are immutable within lifted code. A later `let` rebind does not affect the already-created callable.
 
+[CTS-REACT-UI-GRAMMAR-M3](../reviews/cts-react-ui-grammar-m3.md) extends the list
+with named initializers: `capture { send, query: state.queryDraft } () => ...`.
+Each initializer resolves in the surrounding scope, evaluates once in authored
+order, and supplies an immutable named slot. Earlier entries are not an
+initializer scope. Public callable signatures and environment value semantics
+are unchanged; aliases do not introduce shared mutable cells or deep copying.
+
 The compilation-unit global-declaration model is deliberately distinct from lexical capture. Declaration-owned global values, including record-table singletons, remain approved global reads under the existing language model; they are not hidden environment cells. Function declarations remain code identities, not capture candidates. Any value introduced by a function, block, pattern, loop, or arrow is lexical and must be captured explicitly before an arrow may read it.
 
 Named functions and explicitly closed generic specializations are callable values. Open generic values remain rejected. Generic inference treats callable values as exact atomic candidates; it does not infer through callable positions.

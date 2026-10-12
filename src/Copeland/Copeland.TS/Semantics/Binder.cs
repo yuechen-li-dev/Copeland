@@ -243,6 +243,7 @@ public static partial class Binder
             PredeclareTemplates(_tree.Root);
             BindClassFields(_tree.Root);
             PredeclareClassMembers(_tree.Root);
+            PredeclareContributionStreams(_tree.Root);
             BindEnumBodies(_tree.Root);
             BindNominalUnionBodies(_tree.Root);
             BindTableBodies(_tree.Root);
@@ -250,6 +251,7 @@ public static partial class Binder
             BindLayouts();
             BindLayoutBindings(_tree.Root);
             BindStreamBindings(_tree.Root);
+            BindModuleContributionStreams();
             ValidateRecordCycles();
             foreach (var generic in _tree.Root.Members.OfType<FunctionDeclarationSyntax>().Where(function => function.TypeParameters.Count > 0 || function.GenericParameters?.Values.Count > 0))
             {
@@ -269,11 +271,16 @@ public static partial class Binder
             }
             foreach (var m in _tree.Root.Members)
             {
-                if (m is FunctionDeclarationSyntax f && f.TypeParameters.Count == 0 && (f.GenericParameters?.Values.Count ?? 0) == 0) _functions.Add(BindFunction(f));
+                if (m is FunctionDeclarationSyntax f && f.TypeParameters.Count == 0 && (f.GenericParameters?.Values.Count ?? 0) == 0
+                    && !_functions.Any(function => ReferenceEquals(function.Symbol, _globalLookup(f.Identifier.Text)))) _functions.Add(BindFunction(f));
                 else if (m is EnumDeclarationSyntax e && e.Identifier.Text != "TableBoundsError" && _enumTypes.TryGetValue(e.Identifier.Text, out var enumType)) _enums.Add(new BoundEnumDeclaration(enumType));
                 else if (m is NominalUnionDeclarationSyntax union && _enumTypes.TryGetValue(union.Identifier.Text, out var unionType)) _enums.Add(new BoundEnumDeclaration(unionType));
                 else if (m is RecordDeclarationSyntax r && r.GenericParameters is null && _recordTypes.TryGetValue(r.Identifier.Text, out var recordType)) _records.Add(new BoundRecordDeclaration(recordType));
                 else if (m is ClassDeclarationSyntax c && _classTypes.TryGetValue(c.Identifier.Text, out var classType)) _records.Add(new BoundRecordDeclaration(classType));
+            }
+            if (_records.Any(record => record.RecordType.Fields.Any(field => field.Type is LengthTypeSymbol)))
+            {
+                EnsureLengthRecord();
             }
             BindFlows(_tree.Root);
             foreach (GlobalStatementMemberSyntax global in _tree.Root.Members
@@ -316,6 +323,11 @@ public static partial class Binder
                     _componentInstances,
                     _hostAttachments,
                     _semanticCallSites);
+            program.ModuleStreams = _moduleStreams.OrderBy(item => item.Syntax.Identifier.Position).Select(item => item.Symbol).ToArray();
+            foreach (BoundTemplateDeclaration template in _templates)
+            {
+                template.Symbol.StaticFunctions = program.Functions;
+            }
             ValidateFlowUpdateEffects(program.FunctionEffects);
             return new BoundCompilation(
                 _tree,
@@ -394,7 +406,7 @@ public static partial class Binder
                 {
                     BoundLayoutNode hostNode = FindLayoutNode(binding.Layout.BoundLayout!.Root, entry.Slot.Name)
                         ?? throw new InvalidOperationException($"Binding host '{entry.Slot.Name}' is absent from layout '{binding.Layout.Name}'.");
-                    AddInstance(entry.Component, entry.Slot.SemanticPath, hostNode, entry.Syntax.SlotIdentifier.Position);
+                    AddInstance(entry.AuthoredComponent, entry.Slot.SemanticPath, hostNode, entry.Syntax.SlotIdentifier.Position);
                 }
 
                 foreach (BoundStreamCollection collection in binding.Collections)
@@ -2868,8 +2880,8 @@ public static partial class Binder
                 }
             }
 
-            LayoutDataCompilation compilation = LayoutDataCompiler.Bind(_tree, _sourcePath ?? "<memory>", imported, importedTypes, importedLayerSets);
-            foreach (Diagnostic diagnostic in compilation.Diagnostics.Where(diagnostic => diagnostic.Id.StartsWith("COPE-LAYOUT-", StringComparison.Ordinal) || diagnostic.Id.StartsWith("COPE-STREAM-", StringComparison.Ordinal)))
+            LayoutDataCompilation compilation = LayoutDataCompiler.Bind(_tree, _sourcePath ?? "<memory>", imported, importedTypes, importedLayerSets, EvaluateLayoutInitializer);
+            foreach (Diagnostic diagnostic in compilation.Diagnostics.Where(diagnostic => ! _tree.Diagnostics.Contains(diagnostic)))
             {
                 if (diagnostic.Id == "COPE-LAYOUT-TYPE-0009"
                     && TryReportNonLayoutContractUse(diagnostic.Position))
@@ -3460,7 +3472,9 @@ public static partial class Binder
                     Report("COPE-BIND-0002", $"Duplicate declaration '{symbol.Name}'.", syntax.Identifier);
                     continue;
                 }
-                _templates.Add(new BoundTemplateDeclaration(symbol, syntax));
+                var declaration = new BoundTemplateDeclaration(symbol, syntax);
+                symbol.Declaration = declaration;
+                _templates.Add(declaration);
             }
         }
 
@@ -3503,6 +3517,8 @@ public static partial class Binder
                     parameters.Add(boundParameter);
                 }
 
+                bool previousLayoutMode = _bindingLayoutValues;
+                _bindingLayoutValues = declaration.Syntax.LayoutBody is not null;
                 var defaults = new List<BoundTemplateValue?>();
                 for (int index = 0; index < declaration.Syntax.Parameters.Count; index++)
                 {
@@ -3522,6 +3538,7 @@ public static partial class Binder
 
                 declaration.Parameters = parameters;
                 declaration.ParameterDefaults = defaults;
+                _bindingLayoutValues = previousLayoutMode;
                 _activeTypeParameters = previousParameters;
                 _scope = previousScope;
             }
@@ -3538,7 +3555,13 @@ public static partial class Binder
                 {
                     _scope.TryDeclare(parameter);
                 }
-                declaration.Plan = BindTemplateBlock(declaration.Syntax.Body);
+                bool previousLayoutMode = _bindingLayoutValues;
+                _bindingLayoutValues = declaration.Syntax.LayoutBody is not null;
+                declaration.Plan = declaration.Syntax.LayoutBody is { } layoutBody
+                    ? new BoundTemplateBlock(layoutBody.LayoutKeyword,
+                        [new BoundTemplateReturn(layoutBody.LayoutKeyword, BindLayoutConstruction(layoutBody))])
+                    : BindTemplateBlock(declaration.Syntax.Body);
+                _bindingLayoutValues = previousLayoutMode;
                 _activeTemplateResultType = previousTemplateResultType;
                 _activeTypeParameters = previousParameters;
                 _scope = previousScope;
@@ -3674,6 +3697,10 @@ public static partial class Binder
 
         private BoundTemplateValue BindTemplateValue(ExpressionSyntax syntax, TypeSymbol? contextualType = null)
         {
+            if (_bindingLayoutValues)
+            {
+                return BindLayoutStaticValue(syntax, contextualType);
+            }
             switch (syntax)
             {
                 case LiteralExpressionSyntax literal:
@@ -4020,7 +4047,7 @@ public static partial class Binder
             var supplied = new Dictionary<string, BoundTemplateValue>(StringComparer.Ordinal);
             foreach (TemplateInstantiationArgumentSyntax argument in syntax.StaticArguments)
             {
-                if (!supplied.TryAdd(argument.Identifier.Text, BindTemplateValue(argument.Value)))
+                if (!supplied.TryAdd(argument.Identifier.Text, BindTemplateValue(argument.Value, template.Parameters.FirstOrDefault(parameter => parameter.Name == argument.Identifier.Text)?.Type)))
                 {
                     Report("COPE-TEMPLATE-0002", $"Duplicate static argument '{argument.Identifier.Text}'.", argument.Identifier);
                 }
@@ -4031,13 +4058,16 @@ public static partial class Binder
                 Report("COPE-TEMPLATE-0002", $"Template '{template.Name}' has no static parameter named '{unknown}'.", argument.Identifier);
             }
 
-            BoundTemplateDeclaration? declaration = _templates.FirstOrDefault(candidate => ReferenceEquals(candidate.Symbol, template));
+            BoundTemplateDeclaration? declaration = template.Declaration;
             var values = new List<BoundTemplateValue>();
             for (int index = 0; index < template.Parameters.Count; index++)
             {
                 ParameterSymbol parameter = template.Parameters[index];
-                BoundTemplateValue? value = supplied.GetValueOrDefault(parameter.Name)
-                    ?? declaration?.ParameterDefaults.ElementAtOrDefault(index);
+                BoundTemplateValue? value = supplied.GetValueOrDefault(parameter.Name);
+                if (value is null && declaration?.ParameterDefaults.ElementAtOrDefault(index) is { } defaultValue)
+                {
+                    value = new BoundTemplateDefaultArgument(defaultValue);
+                }
                 if (value is null)
                 {
                     Report("COPE-TEMPLATE-0002", $"Missing required static parameter '{parameter.Name}' for template '{template.Name}'.", syntax.LessToken);
@@ -5514,6 +5544,7 @@ public static partial class Binder
         {
             BlockStatementSyntax b => BindBlock(b),
             LocalPresentationDeclarationStatementSyntax presentation => BindLocalPresentation(presentation),
+            LocalContributionStreamStatementSyntax stream => BindLocalContributionStream(stream),
             VariableDeclarationStatementSyntax v => BindVariable(v),
             ComponentStateDeclarationStatementSyntax state => BindComponentState(state),
             ComponentEventHandlerStatementSyntax handler => BindComponentEventHandler(handler),
@@ -5914,7 +5945,7 @@ public static partial class Binder
                 Report(id, message, v.Identifier);
             }
             bool inferCallableReference = v.Type is null
-                && v.Initializer is NameExpressionSyntax or GenericFunctionReferenceExpressionSyntax or CallExpressionSyntax or GenericCallExpressionSyntax or NewExpressionSyntax or ArrowExpressionSyntax or CaptureExpressionSyntax;
+                && v.Initializer is NameExpressionSyntax or GenericFunctionReferenceExpressionSyntax or CallExpressionSyntax or GenericCallExpressionSyntax or NewExpressionSyntax or ArrowExpressionSyntax or CaptureExpressionSyntax or ContributionBindingExpressionSyntax;
             bool inferArrowLocal = v.Type is null && _arrowBodyDepth > 0;
             bool inferCoalesce = v.Type is null && v.Initializer is CoalesceExpressionSyntax;
             bool inferNumericLiteral = v.Type is null && v.Initializer is LiteralExpressionSyntax;
@@ -6458,6 +6489,7 @@ public static partial class Binder
                 GenericFunctionReferenceExpressionSyntax reference => BindGenericFunctionReference(reference),
                 ArrowExpressionSyntax arrow => BindArrow(arrow, contextualType, []),
                 CaptureExpressionSyntax capture => BindCapture(capture, contextualType),
+                ContributionBindingExpressionSyntax binding => BindContributionBinding(binding),
                 ArrayLiteralExpressionSyntax a => BindArray(a, contextualType),
                 ObjectLiteralExpressionSyntax o => BindObject(o, contextualType),
                 MemberAccessExpressionSyntax m => BindMember(m),
@@ -7222,6 +7254,11 @@ public static partial class Binder
 
         private BoundExpression BindName(NameExpressionSyntax n)
         {
+            if (_bindingLayoutValues && !_scope.TryLookup(n.IdentifierToken.Text, out _)
+                && TryBindLayoutConstant(n.IdentifierToken, out BoundExpression? constant))
+            {
+                return constant!;
+            }
             if (_activeTypeParameters?.TryGetValue(n.IdentifierToken.Text, out var staticParameter) == true && staticParameter.StaticType is not null)
             {
                 return new BoundGenericStaticExpression(staticParameter.Type, staticParameter.StaticType);
@@ -7260,6 +7297,7 @@ public static partial class Binder
             RecordComponentPresentationCapture(symbol);
             return symbol switch
             {
+                ContributionStreamSymbol stream => CreateDirectCall(stream.Accessor, [], n.IdentifierToken),
                 ClassValueSymbol classValue => ReportClassValueUse(classValue, n.IdentifierToken),
                 VariableSymbol v when v.Type is TableTypeSymbol table && _tableSingletonVariables.Contains(v) => new BoundTableReferenceExpression(table),
                 VariableSymbol v => new BoundVariableExpression(v),
@@ -7592,11 +7630,25 @@ public static partial class Binder
             }
             var names = new HashSet<string>(StringComparer.Ordinal);
             var captures = new List<BoundExpression>();
-            foreach (var identifier in capture.Identifiers)
+            var captureNames = new List<string>();
+            foreach (CaptureEntrySyntax entry in capture.Entries)
             {
+                SyntaxToken identifier = entry.Identifier;
                 if (!names.Add(identifier.Text))
                 {
                     Report("COPE-CALL-0012", $"Capture '{identifier.Text}' is listed more than once.", identifier);
+                    continue;
+                }
+
+                if (entry.Initializer is not null)
+                {
+                    BoundExpression value = BindExpression(entry.Initializer);
+                    if (value.Type == PrimitiveTypeSymbol.Void)
+                    {
+                        Report("COPE-CALL-0013", $"Capture '{identifier.Text}' requires a runtime value; its initializer returns void.", identifier);
+                    }
+                    captures.Add(value);
+                    captureNames.Add(identifier.Text);
                     continue;
                 }
 
@@ -7607,12 +7659,17 @@ public static partial class Binder
                 }
 
                 captures.Add(BindName(new NameExpressionSyntax(identifier)));
+                captureNames.Add(identifier.Text);
             }
 
-            return BindArrow(capture.Arrow, contextualType, captures);
+            return BindArrow(capture.Arrow, contextualType, captures, captureNames);
         }
 
-        private BoundExpression BindArrow(ArrowExpressionSyntax arrow, TypeSymbol? contextualType, IReadOnlyList<BoundExpression> captures)
+        private BoundExpression BindArrow(
+            ArrowExpressionSyntax arrow,
+            TypeSymbol? contextualType,
+            IReadOnlyList<BoundExpression> captures,
+            IReadOnlyList<string>? captureNames = null)
         {
             if (++_callableExpressionDepth > MaxCallableExpressionNesting)
             {
@@ -7682,7 +7739,7 @@ public static partial class Binder
 
                 string name = "__cope_arrow_" + _nextLiftedCallableId++.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 var captureParameters = captures.Select((capture, index) =>
-                    new ParameterSymbol(GetCaptureName(capture, index), capture.Type, isCaptured: true)).ToArray();
+                    new ParameterSymbol(captureNames?[index] ?? GetCaptureName(capture, index), capture.Type, isCaptured: true)).ToArray();
                 var codeParameters = captureParameters.Concat(parameters).ToArray();
                 var bindingFunction = new FunctionSymbol(name, codeParameters, returnType, stableIdentity: "callable-arrow:" + name);
                 var previousScope = _scope;
@@ -7790,6 +7847,16 @@ public static partial class Binder
 
         private BoundExpression BindLiteral(LiteralExpressionSyntax l)
         {
+            if (l.LiteralToken.Value is LengthLiteralTokenValue length)
+            {
+                EnsureLengthRecord();
+                LengthTypeSymbol type = LengthTypeSymbol.Instance;
+                return new BoundRecordConstructionExpression(type,
+                [
+                    new BoundRecordFieldInitializer(type.Fields[0], new BoundLiteralExpression(length.Value, PrimitiveTypeSymbol.Number)),
+                    new BoundRecordFieldInitializer(type.Fields[1], new BoundLiteralExpression(length.Unit, PrimitiveTypeSymbol.String))
+                ]);
+            }
             var k = l.LiteralToken.Kind;
             return k switch
             {
@@ -7811,6 +7878,15 @@ public static partial class Binder
             }
             var op = u.OperatorToken.Kind; var operand = BindExpression(u.Operand);
             if (operand.Type == PrimitiveTypeSymbol.Error) return new BoundErrorExpression();
+            if (op == SyntaxKind.MinusToken && _bindingLayoutValues && operand.Type is LengthTypeSymbol lengthType)
+            {
+                return new BoundRecordConstructionExpression(lengthType,
+                [
+                    new BoundRecordFieldInitializer(lengthType.Fields[0], new BoundUnaryExpression(op,
+                        new BoundRecordFieldAccessExpression(operand, lengthType, lengthType.Fields[0]), PrimitiveTypeSymbol.Number)),
+                    new BoundRecordFieldInitializer(lengthType.Fields[1], new BoundRecordFieldAccessExpression(operand, lengthType, lengthType.Fields[1]))
+                ]);
+            }
             if (op == SyntaxKind.MinusToken && TypeFacts.IsNumeric(operand.Type)) return new BoundUnaryExpression(op, operand, operand.Type);
             if (op == SyntaxKind.BangToken && operand.Type == PrimitiveTypeSymbol.Boolean) return new BoundUnaryExpression(op, operand, PrimitiveTypeSymbol.Boolean);
             Report("COPE-TYPE-0006", $"Invalid unary operand for '{u.OperatorToken.Text}'.", u.OperatorToken);
@@ -8159,7 +8235,9 @@ public static partial class Binder
             }
 
             if (_projectTypes == CopelandProjectTypeSet.ReactComponents
-                && c.Target is MemberAccessExpressionSyntax reactMember)
+                && c.Target is MemberAccessExpressionSyntax reactMember
+                && (reactMember.Target is not NameExpressionSyntax reactTarget
+                    || !_classTypes.ContainsKey(reactTarget.IdentifierToken.Text)))
             {
                 BoundExpression receiver = BindExpression(reactMember.Target);
                 if (receiver.Type == ReactRootTypeSymbol.Instance)
@@ -12364,6 +12442,15 @@ public static partial class Binder
             if (m.Target is NameExpressionSyntax className
                 && _classTypes.TryGetValue(className.IdentifierToken.Text, out var classType))
             {
+                if (classType.FindContributionStream(m.NameToken.Text) is ContributionStreamSymbol stream)
+                {
+                    if (!CanAccessClassMember(classType, stream.IsPublic))
+                    {
+                        Report("COPE-CLASS-0009", $"Private contribution stream '{classType.Name}.{stream.Name}' is accessible only from code owned by '{classType.Name}'.", m.NameToken);
+                        return new BoundErrorExpression();
+                    }
+                    return CreateDirectCall(stream.Accessor, [], m.NameToken);
+                }
                 FunctionSymbol? function = classType.FindAssociatedFunction(m.NameToken.Text);
                 if (function is null)
                 {
@@ -13334,6 +13421,11 @@ public static partial class Binder
 
         private TypeSymbol ResolveIdentifierType(IdentifierTypeSyntax i)
         {
+            if (i.Identifier.Text == "Length")
+            {
+                return LengthTypeSymbol.Instance;
+            }
+            if (i.Identifier.Text == "Layout") return LayoutValueTypeSymbol.Instance;
             if (_aliases.TryGetValue(i.Identifier.Text, out var genericAlias) && genericAlias.TypeParameters.Count > 0)
             {
                 var arguments = BindHostArguments(genericAlias.TypeParameters, [], i.Identifier);

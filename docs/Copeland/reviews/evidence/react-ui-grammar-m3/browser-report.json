@@ -1,0 +1,3435 @@
+{
+  "milestone": "CTS-REACT-UI-GRAMMAR-M3",
+  "status": "qualified-corpus-with-known-failures",
+  "browser": {
+    "channel": "msedge",
+    "version": "153.0.4234.48"
+  },
+  "diagnostics": [],
+  "sourceHashes": {
+    "src/App.tsx": "8303eeebd7072bf849d5ffb91dbead4b4a612ac7260f24571548995885d34b0a",
+    "src/State.ts": "27bd8d7d02a1d9354801265992435f47b66037c8ca6aa89d32652c189ef69a79",
+    "src/Main.ts": "d0967c19b78a648abc007c0f0ff9844d3eea18e473ada17277a2ead49c718247",
+    "src/Content.ts": "7eef23e5022f39392e6e7facfe9b123016cfdc7202363c1751eb4d662fcd96eb",
+    "baseline/App.tsx": "222ca0b59f7aaf38c03bfadc286c46b87bab56518c56e0f1f4d5fc34d0f98211",
+    "styles.css": "382f839f94d76d2707bebe84bd23f5457c93339aa040b2a4b082453985778e6e",
+    "manifest.tsx": "408e91c5af2dab921f7e70be03f48b5e9b6d369f4b384aa15a432651fb9882cf",
+    "tsconfig.tsx": "d2657a3a3d22468295b6476051ae056d27b4cdfc300ed280d27380631b8e9b99",
+    "ts-lock.toml": "0f83169d51d625100c0cab807906bbc568325411c6208bd071864ef53dd09a39",
+    "dist/browser/main.js": "680a3e5ec7f29be20ca6ee36991cd386b9159a4c83c0a1c9e25e33a74ddd4a6d",
+    "dist/browser/generated/layouts.css": "56b6e8a4a52a69463542e1e8f02b48ba8b50488e3057d643ae048f4297e0ebf8",
+    "dist/baseline/app.js": "97a310bcc16ef4bfa6baa7405eab1e91db78eb8408876e1e21684dc8055331d5"
+  },
+  "parity": {
+    "copeland-short": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation.",
+    "copeland-long": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+    "typescript-short": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation.",
+    "typescript-long": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable."
+  },
+  "observations": [
+    {
+      "implementation": "copeland",
+      "scenario": "article-short",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "A field guide to dependable interfaces",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 120,
+        "y": 337.09375,
+        "width": 1040,
+        "height": 473.765625,
+        "bottom": 810.859375,
+        "right": 1160
+      },
+      "articleHost": {
+        "x": 120,
+        "y": 337.09375,
+        "width": 1040,
+        "height": 473.765625,
+        "bottom": 810.859375,
+        "right": 1160
+      },
+      "notes": {
+        "x": 120,
+        "y": 822.859375,
+        "width": 1040,
+        "height": 155.5,
+        "bottom": 978.359375,
+        "right": 1160
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": 12,
+      "articlePadding": "16px",
+      "codeScroll": {
+        "scrollWidth": 990,
+        "clientWidth": 990
+      }
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "article-long",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "A field guide to dependable interfaces",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 120,
+        "y": 337.09375,
+        "width": 1040,
+        "height": 550.546875,
+        "bottom": 887.640625,
+        "right": 1160
+      },
+      "articleHost": {
+        "x": 120,
+        "y": 337.09375,
+        "width": 1040,
+        "height": 550.546875,
+        "bottom": 887.640625,
+        "right": 1160
+      },
+      "notes": {
+        "x": 120,
+        "y": 899.640625,
+        "width": 1040,
+        "height": 155.5,
+        "bottom": 1055.140625,
+        "right": 1160
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": 12,
+      "articlePadding": "16px",
+      "codeScroll": {
+        "scrollWidth": 990,
+        "clientWidth": 990
+      }
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "article-text-200-percent",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "A field guide to dependable interfaces",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 120,
+        "y": 686.71875,
+        "width": 1040,
+        "height": 1284.6875,
+        "bottom": 1971.40625,
+        "right": 1160
+      },
+      "articleHost": {
+        "x": 120,
+        "y": 686.71875,
+        "width": 1040,
+        "height": 1284.6875,
+        "bottom": 1971.40625,
+        "right": 1160
+      },
+      "notes": {
+        "x": 120,
+        "y": 1983.40625,
+        "width": 1040,
+        "height": 312.21875,
+        "bottom": 2295.625,
+        "right": 1160
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": 12,
+      "articlePadding": "16px",
+      "codeScroll": {
+        "scrollWidth": 1915,
+        "clientWidth": 990
+      }
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "article-fallback-font",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "A field guide to dependable interfaces",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 120,
+        "y": 324.5,
+        "width": 1040,
+        "height": 490.578125,
+        "bottom": 815.078125,
+        "right": 1160
+      },
+      "articleHost": {
+        "x": 120,
+        "y": 324.5,
+        "width": 1040,
+        "height": 490.578125,
+        "bottom": 815.078125,
+        "right": 1160
+      },
+      "notes": {
+        "x": 120,
+        "y": 827.078125,
+        "width": 1040,
+        "height": 147.703125,
+        "bottom": 974.78125,
+        "right": 1160
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": 12,
+      "articlePadding": "16px",
+      "codeScroll": {
+        "scrollWidth": 990,
+        "clientWidth": 990
+      }
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "issues-wide",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "Issue triage",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Incoming issues",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keyboard focus returns to the wrong control",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Reproduce this with real content and a narrow viewport. Retain the current selection while updating the list. The detail pane must remain readable and the next action must stay reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": null,
+      "articleHost": null,
+      "notes": null,
+      "list": {
+        "x": 104,
+        "y": 311.421875,
+        "width": 300,
+        "height": 438.65625,
+        "bottom": 750.078125,
+        "right": 404
+      },
+      "detail": {
+        "x": 404,
+        "y": 311.421875,
+        "width": 772,
+        "height": 409.515625,
+        "bottom": 720.9375,
+        "right": 1176
+      },
+      "articleGap": null,
+      "articlePadding": null,
+      "codeScroll": null
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "requested-sidebar-width",
+      "width": 1280,
+      "declared": 300,
+      "actual": 300
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "resize-preserves-selection",
+      "from": 1280,
+      "through": 390,
+      "restored": 1280
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "issues-changed-arrangement",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "Issue triage",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Incoming issues",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keyboard focus returns to the wrong control",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Reproduce this with real content and a narrow viewport. Retain the current selection while updating the list. The detail pane must remain readable and the next action must stay reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": null,
+      "articleHost": null,
+      "notes": null,
+      "list": {
+        "x": 104,
+        "y": 311.421875,
+        "width": 1072,
+        "height": 336.28125,
+        "bottom": 647.703125,
+        "right": 1176
+      },
+      "detail": {
+        "x": 104,
+        "y": 647.703125,
+        "width": 1072,
+        "height": 383.921875,
+        "bottom": 1031.625,
+        "right": 1176
+      },
+      "articleGap": null,
+      "articlePadding": null,
+      "codeScroll": null
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "issue-interactions",
+      "width": 1280,
+      "search": true,
+      "empty": true,
+      "loading": true,
+      "retry": true,
+      "selectionRetained": true,
+      "insertion": true
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "settings-validation",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "Workspace settings",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Workspace identity",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Enter a workspace name before saving. This deliberately long validation message must wrap without covering the control below it.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Before saving",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Use a name your collaborators can recognize. Validation should stay beside the control it explains.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": null,
+      "articleHost": null,
+      "notes": null,
+      "list": null,
+      "detail": null,
+      "articleGap": null,
+      "articlePadding": null,
+      "codeScroll": null
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "settings-interactions",
+      "width": 1280,
+      "validation": true,
+      "controlledInput": true,
+      "save": true,
+      "dialog": true,
+      "escape": true,
+      "reopen": true,
+      "focusReturn": true
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "assigned-height-overflow",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "Assigned-height overflow specimen",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 104,
+        "y": 203.328125,
+        "width": 1072,
+        "height": 550.546875,
+        "bottom": 753.875,
+        "right": 1176
+      },
+      "articleHost": {
+        "x": 104,
+        "y": 203.328125,
+        "width": 1072,
+        "height": 180,
+        "bottom": 383.328125,
+        "right": 1176
+      },
+      "notes": {
+        "x": 104,
+        "y": 383.328125,
+        "width": 1072,
+        "height": 155.5,
+        "bottom": 538.828125,
+        "right": 1176
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": null,
+      "articlePadding": null,
+      "codeScroll": {
+        "scrollWidth": 1022,
+        "clientWidth": 1022
+      }
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "known-failure",
+      "width": 1280,
+      "cause": "180px assigned prose height",
+      "contentBottom": 753.875,
+      "followingTop": 383.328125,
+      "overlap": 370.546875
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "article-short",
+      "width": 768,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "A field guide to dependable interfaces",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 40,
+        "y": 337.09375,
+        "width": 688,
+        "height": 499.359375,
+        "bottom": 836.453125,
+        "right": 728
+      },
+      "articleHost": {
+        "x": 40,
+        "y": 337.09375,
+        "width": 688,
+        "height": 499.359375,
+        "bottom": 836.453125,
+        "right": 728
+      },
+      "notes": {
+        "x": 40,
+        "y": 848.453125,
+        "width": 688,
+        "height": 155.5,
+        "bottom": 1003.953125,
+        "right": 728
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": 12,
+      "articlePadding": "16px",
+      "codeScroll": {
+        "scrollWidth": 797,
+        "clientWidth": 638
+      }
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "article-long",
+      "width": 768,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "A field guide to dependable interfaces",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 40,
+        "y": 337.09375,
+        "width": 688,
+        "height": 627.328125,
+        "bottom": 964.421875,
+        "right": 728
+      },
+      "articleHost": {
+        "x": 40,
+        "y": 337.09375,
+        "width": 688,
+        "height": 627.328125,
+        "bottom": 964.421875,
+        "right": 728
+      },
+      "notes": {
+        "x": 40,
+        "y": 976.421875,
+        "width": 688,
+        "height": 155.5,
+        "bottom": 1131.921875,
+        "right": 728
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": 12,
+      "articlePadding": "16px",
+      "codeScroll": {
+        "scrollWidth": 797,
+        "clientWidth": 638
+      }
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "article-text-200-percent",
+      "width": 768,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "A field guide to dependable interfaces",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 40,
+        "y": 817.203125,
+        "width": 688,
+        "height": 1591.8125,
+        "bottom": 2409.015625,
+        "right": 728
+      },
+      "articleHost": {
+        "x": 40,
+        "y": 817.203125,
+        "width": 688,
+        "height": 1591.8125,
+        "bottom": 2409.015625,
+        "right": 728
+      },
+      "notes": {
+        "x": 40,
+        "y": 2421.015625,
+        "width": 688,
+        "height": 312.21875,
+        "bottom": 2733.234375,
+        "right": 728
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": 12,
+      "articlePadding": "16px",
+      "codeScroll": {
+        "scrollWidth": 1915,
+        "clientWidth": 638
+      }
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "article-fallback-font",
+      "width": 768,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "A field guide to dependable interfaces",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 40,
+        "y": 364.140625,
+        "width": 688,
+        "height": 552.96875,
+        "bottom": 917.109375,
+        "right": 728
+      },
+      "articleHost": {
+        "x": 40,
+        "y": 364.140625,
+        "width": 688,
+        "height": 552.96875,
+        "bottom": 917.109375,
+        "right": 728
+      },
+      "notes": {
+        "x": 40,
+        "y": 929.109375,
+        "width": 688,
+        "height": 147.703125,
+        "bottom": 1076.8125,
+        "right": 728
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": 12,
+      "articlePadding": "16px",
+      "codeScroll": {
+        "scrollWidth": 797,
+        "clientWidth": 638
+      }
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "issues-wide",
+      "width": 768,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "Issue triage",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Incoming issues",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keyboard focus returns to the wrong control",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Reproduce this with real content and a narrow viewport. Retain the current selection while updating the list. The detail pane must remain readable and the next action must stay reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": null,
+      "articleHost": null,
+      "notes": null,
+      "list": {
+        "x": 24,
+        "y": 363.015625,
+        "width": 300,
+        "height": 438.65625,
+        "bottom": 801.671875,
+        "right": 324
+      },
+      "detail": {
+        "x": 324,
+        "y": 363.015625,
+        "width": 420,
+        "height": 642.328125,
+        "bottom": 1005.34375,
+        "right": 744
+      },
+      "articleGap": null,
+      "articlePadding": null,
+      "codeScroll": null
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "requested-sidebar-width",
+      "width": 768,
+      "declared": 300,
+      "actual": 300
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "issues-changed-arrangement",
+      "width": 768,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "Issue triage",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Incoming issues",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keyboard focus returns to the wrong control",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Reproduce this with real content and a narrow viewport. Retain the current selection while updating the list. The detail pane must remain readable and the next action must stay reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": null,
+      "articleHost": null,
+      "notes": null,
+      "list": {
+        "x": 24,
+        "y": 363.015625,
+        "width": 720,
+        "height": 336.28125,
+        "bottom": 699.296875,
+        "right": 744
+      },
+      "detail": {
+        "x": 24,
+        "y": 699.296875,
+        "width": 720,
+        "height": 460.703125,
+        "bottom": 1160,
+        "right": 744
+      },
+      "articleGap": null,
+      "articlePadding": null,
+      "codeScroll": null
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "issue-interactions",
+      "width": 768,
+      "search": true,
+      "empty": true,
+      "loading": true,
+      "retry": true,
+      "selectionRetained": true,
+      "insertion": true
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "settings-validation",
+      "width": 768,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "Workspace settings",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Workspace identity",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Enter a workspace name before saving. This deliberately long validation message must wrap without covering the control below it.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Before saving",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Use a name your collaborators can recognize. Validation should stay beside the control it explains.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": null,
+      "articleHost": null,
+      "notes": null,
+      "list": null,
+      "detail": null,
+      "articleGap": null,
+      "articlePadding": null,
+      "codeScroll": null
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "settings-interactions",
+      "width": 768,
+      "validation": true,
+      "controlledInput": true,
+      "save": true,
+      "dialog": true,
+      "escape": true,
+      "reopen": true,
+      "focusReturn": true
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "assigned-height-overflow",
+      "width": 768,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "Assigned-height overflow specimen",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 24,
+        "y": 203.328125,
+        "width": 720,
+        "height": 627.328125,
+        "bottom": 830.65625,
+        "right": 744
+      },
+      "articleHost": {
+        "x": 24,
+        "y": 203.328125,
+        "width": 720,
+        "height": 180,
+        "bottom": 383.328125,
+        "right": 744
+      },
+      "notes": {
+        "x": 24,
+        "y": 383.328125,
+        "width": 720,
+        "height": 155.5,
+        "bottom": 538.828125,
+        "right": 744
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": null,
+      "articlePadding": null,
+      "codeScroll": {
+        "scrollWidth": 797,
+        "clientWidth": 670
+      }
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "known-failure",
+      "width": 768,
+      "cause": "180px assigned prose height",
+      "contentBottom": 830.65625,
+      "followingTop": 383.328125,
+      "overlap": 447.328125
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "article-short",
+      "width": 390,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "A field guide to dependable interfaces",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 28,
+        "y": 473.5625,
+        "width": 334,
+        "height": 611.328125,
+        "bottom": 1084.890625,
+        "right": 362
+      },
+      "articleHost": {
+        "x": 28,
+        "y": 473.5625,
+        "width": 334,
+        "height": 611.328125,
+        "bottom": 1084.890625,
+        "right": 362
+      },
+      "notes": {
+        "x": 28,
+        "y": 1096.890625,
+        "width": 334,
+        "height": 190.6875,
+        "bottom": 1287.578125,
+        "right": 362
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": 12,
+      "articlePadding": "16px",
+      "codeScroll": {
+        "scrollWidth": 797,
+        "clientWidth": 300
+      }
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "article-long",
+      "width": 390,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "A field guide to dependable interfaces",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 28,
+        "y": 473.5625,
+        "width": 334,
+        "height": 867.265625,
+        "bottom": 1340.828125,
+        "right": 362
+      },
+      "articleHost": {
+        "x": 28,
+        "y": 473.5625,
+        "width": 334,
+        "height": 867.265625,
+        "bottom": 1340.828125,
+        "right": 362
+      },
+      "notes": {
+        "x": 28,
+        "y": 1352.828125,
+        "width": 334,
+        "height": 190.6875,
+        "bottom": 1543.515625,
+        "right": 362
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": 12,
+      "articlePadding": "16px",
+      "codeScroll": {
+        "scrollWidth": 797,
+        "clientWidth": 300
+      }
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "article-text-200-percent",
+      "width": 390,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "A field guide to dependable interfaces",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 28,
+        "y": 1299.84375,
+        "width": 334,
+        "height": 3075.15625,
+        "bottom": 4375,
+        "right": 362
+      },
+      "articleHost": {
+        "x": 28,
+        "y": 1299.84375,
+        "width": 334,
+        "height": 3075.15625,
+        "bottom": 4375,
+        "right": 362
+      },
+      "notes": {
+        "x": 28,
+        "y": 4387,
+        "width": 334,
+        "height": 505.9375,
+        "bottom": 4892.9375,
+        "right": 362
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": 12,
+      "articlePadding": "16px",
+      "codeScroll": {
+        "scrollWidth": 1915,
+        "clientWidth": 300
+      }
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "article-fallback-font",
+      "width": 390,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "A field guide to dependable interfaces",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 28,
+        "y": 451.375,
+        "width": 334,
+        "height": 752.203125,
+        "bottom": 1203.578125,
+        "right": 362
+      },
+      "articleHost": {
+        "x": 28,
+        "y": 451.375,
+        "width": 334,
+        "height": 752.203125,
+        "bottom": 1203.578125,
+        "right": 362
+      },
+      "notes": {
+        "x": 28,
+        "y": 1215.578125,
+        "width": 334,
+        "height": 173.296875,
+        "bottom": 1388.875,
+        "right": 362
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": 12,
+      "articlePadding": "16px",
+      "codeScroll": {
+        "scrollWidth": 797,
+        "clientWidth": 300
+      }
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "issues-wide",
+      "width": 390,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "Issue triage",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Incoming issues",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keyboard focus returns to the wrong control",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Reproduce this with real content and a narrow viewport. Retain the current selection while updating the list. The detail pane must remain readable and the next action must stay reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": null,
+      "articleHost": null,
+      "notes": null,
+      "list": {
+        "x": 12,
+        "y": 497.796875,
+        "width": 366,
+        "height": 371.46875,
+        "bottom": 869.265625,
+        "right": 378
+      },
+      "detail": {
+        "x": 12,
+        "y": 869.265625,
+        "width": 366,
+        "height": 703.109375,
+        "bottom": 1572.375,
+        "right": 378
+      },
+      "articleGap": null,
+      "articlePadding": null,
+      "codeScroll": null
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "requested-sidebar-width",
+      "width": 390,
+      "declared": 300,
+      "actual": 366
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "issues-changed-arrangement",
+      "width": 390,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "Issue triage",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Incoming issues",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keyboard focus returns to the wrong control",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Reproduce this with real content and a narrow viewport. Retain the current selection while updating the list. The detail pane must remain readable and the next action must stay reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": null,
+      "articleHost": null,
+      "notes": null,
+      "list": {
+        "x": 12,
+        "y": 497.796875,
+        "width": 366,
+        "height": 371.46875,
+        "bottom": 869.265625,
+        "right": 378
+      },
+      "detail": {
+        "x": 12,
+        "y": 869.265625,
+        "width": 366,
+        "height": 703.109375,
+        "bottom": 1572.375,
+        "right": 378
+      },
+      "articleGap": null,
+      "articlePadding": null,
+      "codeScroll": null
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "issue-interactions",
+      "width": 390,
+      "search": true,
+      "empty": true,
+      "loading": true,
+      "retry": true,
+      "selectionRetained": true,
+      "insertion": true
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "settings-validation",
+      "width": 390,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "Workspace settings",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Workspace identity",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Enter a workspace name before saving. This deliberately long validation message must wrap without covering the control below it.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Before saving",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Use a name your collaborators can recognize. Validation should stay beside the control it explains.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": null,
+      "articleHost": null,
+      "notes": null,
+      "list": null,
+      "detail": null,
+      "articleGap": null,
+      "articlePadding": null,
+      "codeScroll": null
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "settings-interactions",
+      "width": 390,
+      "validation": true,
+      "controlledInput": true,
+      "save": true,
+      "dialog": true,
+      "escape": true,
+      "reopen": true,
+      "focusReturn": true
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "assigned-height-overflow",
+      "width": 390,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "Assigned-height overflow specimen",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 12,
+        "y": 316.15625,
+        "width": 366,
+        "height": 816.078125,
+        "bottom": 1132.234375,
+        "right": 378
+      },
+      "articleHost": {
+        "x": 12,
+        "y": 316.15625,
+        "width": 366,
+        "height": 180,
+        "bottom": 496.15625,
+        "right": 378
+      },
+      "notes": {
+        "x": 12,
+        "y": 496.15625,
+        "width": 366,
+        "height": 165.09375,
+        "bottom": 661.25,
+        "right": 378
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": null,
+      "articlePadding": null,
+      "codeScroll": {
+        "scrollWidth": 797,
+        "clientWidth": 332
+      }
+    },
+    {
+      "implementation": "copeland",
+      "scenario": "known-failure",
+      "width": 390,
+      "cause": "180px assigned prose height",
+      "contentBottom": 1132.234375,
+      "followingTop": 496.15625,
+      "overlap": 636.078125
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "article-short",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "A field guide to dependable interfaces",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 120,
+        "y": 337.09375,
+        "width": 1040,
+        "height": 473.765625,
+        "bottom": 810.859375,
+        "right": 1160
+      },
+      "articleHost": {
+        "x": 104,
+        "y": 99.59375,
+        "width": 1072,
+        "height": 894.765625,
+        "bottom": 994.359375,
+        "right": 1176
+      },
+      "notes": {
+        "x": 120,
+        "y": 822.859375,
+        "width": 1040,
+        "height": 155.5,
+        "bottom": 978.359375,
+        "right": 1160
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": 12,
+      "articlePadding": "16px",
+      "codeScroll": {
+        "scrollWidth": 990,
+        "clientWidth": 990
+      }
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "article-long",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "A field guide to dependable interfaces",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 120,
+        "y": 337.09375,
+        "width": 1040,
+        "height": 550.546875,
+        "bottom": 887.640625,
+        "right": 1160
+      },
+      "articleHost": {
+        "x": 104,
+        "y": 99.59375,
+        "width": 1072,
+        "height": 971.546875,
+        "bottom": 1071.140625,
+        "right": 1176
+      },
+      "notes": {
+        "x": 120,
+        "y": 899.640625,
+        "width": 1040,
+        "height": 155.5,
+        "bottom": 1055.140625,
+        "right": 1160
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": 12,
+      "articlePadding": "16px",
+      "codeScroll": {
+        "scrollWidth": 990,
+        "clientWidth": 990
+      }
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "article-text-200-percent",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "A field guide to dependable interfaces",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 120,
+        "y": 686.71875,
+        "width": 1040,
+        "height": 1284.6875,
+        "bottom": 1971.40625,
+        "right": 1160
+      },
+      "articleHost": {
+        "x": 104,
+        "y": 210.375,
+        "width": 1072,
+        "height": 2101.25,
+        "bottom": 2311.625,
+        "right": 1176
+      },
+      "notes": {
+        "x": 120,
+        "y": 1983.40625,
+        "width": 1040,
+        "height": 312.21875,
+        "bottom": 2295.625,
+        "right": 1160
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": 12,
+      "articlePadding": "16px",
+      "codeScroll": {
+        "scrollWidth": 1915,
+        "clientWidth": 990
+      }
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "article-fallback-font",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "A field guide to dependable interfaces",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 120,
+        "y": 324.5,
+        "width": 1040,
+        "height": 490.578125,
+        "bottom": 815.078125,
+        "right": 1160
+      },
+      "articleHost": {
+        "x": 104,
+        "y": 94.796875,
+        "width": 1072,
+        "height": 895.984375,
+        "bottom": 990.78125,
+        "right": 1176
+      },
+      "notes": {
+        "x": 120,
+        "y": 827.078125,
+        "width": 1040,
+        "height": 147.703125,
+        "bottom": 974.78125,
+        "right": 1160
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": 12,
+      "articlePadding": "16px",
+      "codeScroll": {
+        "scrollWidth": 990,
+        "clientWidth": 990
+      }
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "issues-wide",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "Issue triage",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Incoming issues",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keyboard focus returns to the wrong control",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Reproduce this with real content and a narrow viewport. Retain the current selection while updating the list. The detail pane must remain readable and the next action must stay reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": null,
+      "articleHost": null,
+      "notes": null,
+      "list": {
+        "x": 104,
+        "y": 311.421875,
+        "width": 300,
+        "height": 438.65625,
+        "bottom": 750.078125,
+        "right": 404
+      },
+      "detail": {
+        "x": 404,
+        "y": 311.421875,
+        "width": 772,
+        "height": 438.65625,
+        "bottom": 750.078125,
+        "right": 1176
+      },
+      "articleGap": null,
+      "articlePadding": null,
+      "codeScroll": null
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "requested-sidebar-width",
+      "width": 1280,
+      "declared": 300,
+      "actual": 300
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "resize-preserves-selection",
+      "from": 1280,
+      "through": 390,
+      "restored": 1280
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "issues-changed-arrangement",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "Issue triage",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Incoming issues",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keyboard focus returns to the wrong control",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Reproduce this with real content and a narrow viewport. Retain the current selection while updating the list. The detail pane must remain readable and the next action must stay reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": null,
+      "articleHost": null,
+      "notes": null,
+      "list": {
+        "x": 104,
+        "y": 311.421875,
+        "width": 1072,
+        "height": 336.28125,
+        "bottom": 647.703125,
+        "right": 1176
+      },
+      "detail": {
+        "x": 104,
+        "y": 647.703125,
+        "width": 1072,
+        "height": 383.921875,
+        "bottom": 1031.625,
+        "right": 1176
+      },
+      "articleGap": null,
+      "articlePadding": null,
+      "codeScroll": null
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "issue-interactions",
+      "width": 1280,
+      "search": true,
+      "empty": true,
+      "loading": true,
+      "retry": true,
+      "selectionRetained": true,
+      "insertion": true
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "settings-validation",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "Workspace settings",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Workspace identity",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Enter a workspace name before saving. This deliberately long validation message must wrap without covering the control below it.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Before saving",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Use a name your collaborators can recognize. Validation should stay beside the control it explains.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": null,
+      "articleHost": null,
+      "notes": null,
+      "list": null,
+      "detail": null,
+      "articleGap": null,
+      "articlePadding": null,
+      "codeScroll": null
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "settings-interactions",
+      "width": 1280,
+      "validation": true,
+      "controlledInput": true,
+      "save": true,
+      "dialog": true,
+      "escape": true,
+      "reopen": true,
+      "focusReturn": true
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "assigned-height-overflow",
+      "width": 1280,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "Assigned-height overflow specimen",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 104,
+        "y": 203.328125,
+        "width": 1072,
+        "height": 550.546875,
+        "bottom": 753.875,
+        "right": 1176
+      },
+      "articleHost": {
+        "x": 104,
+        "y": 203.328125,
+        "width": 1072,
+        "height": 180,
+        "bottom": 383.328125,
+        "right": 1176
+      },
+      "notes": {
+        "x": 104,
+        "y": 383.328125,
+        "width": 1072,
+        "height": 155.5,
+        "bottom": 538.828125,
+        "right": 1176
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": null,
+      "articlePadding": null,
+      "codeScroll": {
+        "scrollWidth": 1022,
+        "clientWidth": 1022
+      }
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "known-failure",
+      "width": 1280,
+      "cause": "180px assigned prose height",
+      "contentBottom": 753.875,
+      "followingTop": 383.328125,
+      "overlap": 370.546875
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "article-short",
+      "width": 768,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "A field guide to dependable interfaces",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 40,
+        "y": 337.09375,
+        "width": 688,
+        "height": 499.359375,
+        "bottom": 836.453125,
+        "right": 728
+      },
+      "articleHost": {
+        "x": 24,
+        "y": 99.59375,
+        "width": 720,
+        "height": 920.359375,
+        "bottom": 1019.953125,
+        "right": 744
+      },
+      "notes": {
+        "x": 40,
+        "y": 848.453125,
+        "width": 688,
+        "height": 155.5,
+        "bottom": 1003.953125,
+        "right": 728
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": 12,
+      "articlePadding": "16px",
+      "codeScroll": {
+        "scrollWidth": 797,
+        "clientWidth": 638
+      }
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "article-long",
+      "width": 768,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "A field guide to dependable interfaces",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 40,
+        "y": 337.09375,
+        "width": 688,
+        "height": 627.328125,
+        "bottom": 964.421875,
+        "right": 728
+      },
+      "articleHost": {
+        "x": 24,
+        "y": 99.59375,
+        "width": 720,
+        "height": 1048.328125,
+        "bottom": 1147.921875,
+        "right": 744
+      },
+      "notes": {
+        "x": 40,
+        "y": 976.421875,
+        "width": 688,
+        "height": 155.5,
+        "bottom": 1131.921875,
+        "right": 728
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": 12,
+      "articlePadding": "16px",
+      "codeScroll": {
+        "scrollWidth": 797,
+        "clientWidth": 638
+      }
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "article-text-200-percent",
+      "width": 768,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "A field guide to dependable interfaces",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 40,
+        "y": 817.203125,
+        "width": 688,
+        "height": 1591.8125,
+        "bottom": 2409.015625,
+        "right": 728
+      },
+      "articleHost": {
+        "x": 24,
+        "y": 210.375,
+        "width": 720,
+        "height": 2538.859375,
+        "bottom": 2749.234375,
+        "right": 744
+      },
+      "notes": {
+        "x": 40,
+        "y": 2421.015625,
+        "width": 688,
+        "height": 312.21875,
+        "bottom": 2733.234375,
+        "right": 728
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": 12,
+      "articlePadding": "16px",
+      "codeScroll": {
+        "scrollWidth": 1915,
+        "clientWidth": 638
+      }
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "article-fallback-font",
+      "width": 768,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "A field guide to dependable interfaces",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 40,
+        "y": 364.140625,
+        "width": 688,
+        "height": 552.96875,
+        "bottom": 917.109375,
+        "right": 728
+      },
+      "articleHost": {
+        "x": 24,
+        "y": 94.796875,
+        "width": 720,
+        "height": 998.015625,
+        "bottom": 1092.8125,
+        "right": 744
+      },
+      "notes": {
+        "x": 40,
+        "y": 929.109375,
+        "width": 688,
+        "height": 147.703125,
+        "bottom": 1076.8125,
+        "right": 728
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": 12,
+      "articlePadding": "16px",
+      "codeScroll": {
+        "scrollWidth": 797,
+        "clientWidth": 638
+      }
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "issues-wide",
+      "width": 768,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "Issue triage",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Incoming issues",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keyboard focus returns to the wrong control",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Reproduce this with real content and a narrow viewport. Retain the current selection while updating the list. The detail pane must remain readable and the next action must stay reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": null,
+      "articleHost": null,
+      "notes": null,
+      "list": {
+        "x": 24,
+        "y": 363.015625,
+        "width": 300,
+        "height": 642.328125,
+        "bottom": 1005.34375,
+        "right": 324
+      },
+      "detail": {
+        "x": 324,
+        "y": 363.015625,
+        "width": 420,
+        "height": 642.328125,
+        "bottom": 1005.34375,
+        "right": 744
+      },
+      "articleGap": null,
+      "articlePadding": null,
+      "codeScroll": null
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "requested-sidebar-width",
+      "width": 768,
+      "declared": 300,
+      "actual": 300
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "issues-changed-arrangement",
+      "width": 768,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "Issue triage",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Incoming issues",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keyboard focus returns to the wrong control",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Reproduce this with real content and a narrow viewport. Retain the current selection while updating the list. The detail pane must remain readable and the next action must stay reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": null,
+      "articleHost": null,
+      "notes": null,
+      "list": {
+        "x": 24,
+        "y": 363.015625,
+        "width": 720,
+        "height": 336.28125,
+        "bottom": 699.296875,
+        "right": 744
+      },
+      "detail": {
+        "x": 24,
+        "y": 699.296875,
+        "width": 720,
+        "height": 460.703125,
+        "bottom": 1160,
+        "right": 744
+      },
+      "articleGap": null,
+      "articlePadding": null,
+      "codeScroll": null
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "issue-interactions",
+      "width": 768,
+      "search": true,
+      "empty": true,
+      "loading": true,
+      "retry": true,
+      "selectionRetained": true,
+      "insertion": true
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "settings-validation",
+      "width": 768,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "Workspace settings",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Workspace identity",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Enter a workspace name before saving. This deliberately long validation message must wrap without covering the control below it.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Before saving",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Use a name your collaborators can recognize. Validation should stay beside the control it explains.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": null,
+      "articleHost": null,
+      "notes": null,
+      "list": null,
+      "detail": null,
+      "articleGap": null,
+      "articlePadding": null,
+      "codeScroll": null
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "settings-interactions",
+      "width": 768,
+      "validation": true,
+      "controlledInput": true,
+      "save": true,
+      "dialog": true,
+      "escape": true,
+      "reopen": true,
+      "focusReturn": true
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "assigned-height-overflow",
+      "width": 768,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "Assigned-height overflow specimen",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 24,
+        "y": 203.328125,
+        "width": 720,
+        "height": 627.328125,
+        "bottom": 830.65625,
+        "right": 744
+      },
+      "articleHost": {
+        "x": 24,
+        "y": 203.328125,
+        "width": 720,
+        "height": 180,
+        "bottom": 383.328125,
+        "right": 744
+      },
+      "notes": {
+        "x": 24,
+        "y": 383.328125,
+        "width": 720,
+        "height": 155.5,
+        "bottom": 538.828125,
+        "right": 744
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": null,
+      "articlePadding": null,
+      "codeScroll": {
+        "scrollWidth": 797,
+        "clientWidth": 670
+      }
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "known-failure",
+      "width": 768,
+      "cause": "180px assigned prose height",
+      "contentBottom": 830.65625,
+      "followingTop": 383.328125,
+      "overlap": 447.328125
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "article-short",
+      "width": 390,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "A field guide to dependable interfaces",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 28,
+        "y": 533.15625,
+        "width": 334,
+        "height": 611.328125,
+        "bottom": 1144.484375,
+        "right": 362
+      },
+      "articleHost": {
+        "x": 12,
+        "y": 206.78125,
+        "width": 366,
+        "height": 1156.390625,
+        "bottom": 1363.171875,
+        "right": 378
+      },
+      "notes": {
+        "x": 28,
+        "y": 1156.484375,
+        "width": 334,
+        "height": 190.6875,
+        "bottom": 1347.171875,
+        "right": 362
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": 12,
+      "articlePadding": "16px",
+      "codeScroll": {
+        "scrollWidth": 797,
+        "clientWidth": 300
+      }
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "article-long",
+      "width": 390,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "A field guide to dependable interfaces",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 28,
+        "y": 533.15625,
+        "width": 334,
+        "height": 867.265625,
+        "bottom": 1400.421875,
+        "right": 362
+      },
+      "articleHost": {
+        "x": 12,
+        "y": 206.78125,
+        "width": 366,
+        "height": 1412.328125,
+        "bottom": 1619.109375,
+        "right": 378
+      },
+      "notes": {
+        "x": 28,
+        "y": 1412.421875,
+        "width": 334,
+        "height": 190.6875,
+        "bottom": 1603.109375,
+        "right": 362
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": 12,
+      "articlePadding": "16px",
+      "codeScroll": {
+        "scrollWidth": 797,
+        "clientWidth": 300
+      }
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "article-text-200-percent",
+      "width": 390,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "A field guide to dependable interfaces",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 28,
+        "y": 1273.84375,
+        "width": 334,
+        "height": 3075.15625,
+        "bottom": 4349,
+        "right": 362
+      },
+      "articleHost": {
+        "x": 12,
+        "y": 342.75,
+        "width": 366,
+        "height": 4540.1875,
+        "bottom": 4882.9375,
+        "right": 378
+      },
+      "notes": {
+        "x": 28,
+        "y": 4361,
+        "width": 334,
+        "height": 505.9375,
+        "bottom": 4866.9375,
+        "right": 362
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": 12,
+      "articlePadding": "16px",
+      "codeScroll": {
+        "scrollWidth": 1915,
+        "clientWidth": 300
+      }
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "article-fallback-font",
+      "width": 390,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "A field guide to dependable interfaces",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 28,
+        "y": 451.375,
+        "width": 334,
+        "height": 752.203125,
+        "bottom": 1203.578125,
+        "right": 362
+      },
+      "articleHost": {
+        "x": 12,
+        "y": 137.59375,
+        "width": 366,
+        "height": 1267.28125,
+        "bottom": 1404.875,
+        "right": 378
+      },
+      "notes": {
+        "x": 28,
+        "y": 1215.578125,
+        "width": 334,
+        "height": 173.296875,
+        "bottom": 1388.875,
+        "right": 362
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": 12,
+      "articlePadding": "16px",
+      "codeScroll": {
+        "scrollWidth": 797,
+        "clientWidth": 300
+      }
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "issues-wide",
+      "width": 390,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "Issue triage",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Incoming issues",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keyboard focus returns to the wrong control",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Reproduce this with real content and a narrow viewport. Retain the current selection while updating the list. The detail pane must remain readable and the next action must stay reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": null,
+      "articleHost": null,
+      "notes": null,
+      "list": {
+        "x": 12,
+        "y": 557.390625,
+        "width": 366,
+        "height": 371.46875,
+        "bottom": 928.859375,
+        "right": 378
+      },
+      "detail": {
+        "x": 12,
+        "y": 928.859375,
+        "width": 366,
+        "height": 703.109375,
+        "bottom": 1631.96875,
+        "right": 378
+      },
+      "articleGap": null,
+      "articlePadding": null,
+      "codeScroll": null
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "requested-sidebar-width",
+      "width": 390,
+      "declared": 300,
+      "actual": 366
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "issues-changed-arrangement",
+      "width": 390,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "Issue triage",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Incoming issues",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keyboard focus returns to the wrong control",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Reproduce this with real content and a narrow viewport. Retain the current selection while updating the list. The detail pane must remain readable and the next action must stay reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": null,
+      "articleHost": null,
+      "notes": null,
+      "list": {
+        "x": 12,
+        "y": 557.390625,
+        "width": 366,
+        "height": 371.46875,
+        "bottom": 928.859375,
+        "right": 378
+      },
+      "detail": {
+        "x": 12,
+        "y": 928.859375,
+        "width": 366,
+        "height": 703.109375,
+        "bottom": 1631.96875,
+        "right": 378
+      },
+      "articleGap": null,
+      "articlePadding": null,
+      "codeScroll": null
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "issue-interactions",
+      "width": 390,
+      "search": true,
+      "empty": true,
+      "loading": true,
+      "retry": true,
+      "selectionRetained": true,
+      "insertion": true
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "settings-validation",
+      "width": 390,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "Workspace settings",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Workspace identity",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Enter a workspace name before saving. This deliberately long validation message must wrap without covering the control below it.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Before saving",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Use a name your collaborators can recognize. Validation should stay beside the control it explains.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": null,
+      "articleHost": null,
+      "notes": null,
+      "list": null,
+      "detail": null,
+      "articleGap": null,
+      "articlePadding": null,
+      "codeScroll": null
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "settings-interactions",
+      "width": 390,
+      "validation": true,
+      "controlledInput": true,
+      "save": true,
+      "dialog": true,
+      "escape": true,
+      "reopen": true,
+      "focusReturn": true
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "assigned-height-overflow",
+      "width": 390,
+      "horizontalOverflow": false,
+      "prose": [
+        {
+          "text": "Assigned-height overflow specimen",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Keep the explanation intact",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable.",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Identifiers and code",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "compiler_owned_binding_identity_0123456789_abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "Supporting notes",
+          "widthOverflow": false,
+          "clipped": false
+        },
+        {
+          "text": "The same paragraph component is reused in the detail pane and the overflow specimen.",
+          "widthOverflow": false,
+          "clipped": false
+        }
+      ],
+      "article": {
+        "x": 12,
+        "y": 375.75,
+        "width": 366,
+        "height": 816.078125,
+        "bottom": 1191.828125,
+        "right": 378
+      },
+      "articleHost": {
+        "x": 12,
+        "y": 375.75,
+        "width": 366,
+        "height": 180,
+        "bottom": 555.75,
+        "right": 378
+      },
+      "notes": {
+        "x": 12,
+        "y": 555.75,
+        "width": 366,
+        "height": 165.09375,
+        "bottom": 720.84375,
+        "right": 378
+      },
+      "list": null,
+      "detail": null,
+      "articleGap": null,
+      "articlePadding": null,
+      "codeScroll": {
+        "scrollWidth": 797,
+        "clientWidth": 332
+      }
+    },
+    {
+      "implementation": "typescript",
+      "scenario": "known-failure",
+      "width": 390,
+      "cause": "180px assigned prose height",
+      "contentBottom": 1191.828125,
+      "followingTop": 555.75,
+      "overlap": 636.078125
+    }
+  ]
+}

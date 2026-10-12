@@ -4,6 +4,18 @@ import { Input } from "@base-ui-components/react/input";
 import { AppEvent, AppState } from "./State";
 import { ArticleTitle, ShortCopy, LongCopy, LongToken, IssueOne, IssueTwo, IssueThree, IssueExtra, IssueDescription, ValidationMessage } from "./Content";
 
+import { Arrangement, Reading, TwoPane } from "./Layouts";
+
+layout ArticleReading = instantiate Reading<> with { root.padding: 16px; };
+
+stream ArticleChrome {
+    heading: ArticleHeading();
+    notes: Notes();
+}
+
+layout IssueWideLayout = instantiate TwoPane<sidebarWidth: 300px>;
+layout IssueStackedLayout = instantiate TwoPane<arrangement: Arrangement.Vertical>;
+
 function Copy(state: AppState): string {
     if (state.longCopy) {
         return LongCopy();
@@ -43,16 +55,12 @@ function Notes(): ReactNode {
 }
 
 function ArticlePage(state: AppState): ReactNode {
-    stream ArticleSurface<0px, 0px> {
-        width: fill;
-        height: fit;
-        gap: 12px;
-        padding: 16px;
-        heading: ArticleHeading() { height: fit; }
-        body: ArticleBody(state) { height: fit; }
-        notes: Notes() { height: fit; }
+    stream ArticleContent {
+        heading: ArticleChrome.heading;
+        body: ArticleBody(state);
+        notes: ArticleChrome.notes;
     }
-    return ArticleSurface();
+    return bind ArticleReading using ArticleContent;
 }
 
 function IssueRow(state: AppState, send: (event: AppEvent) => void, id: int, title: string): ReactNode {
@@ -103,28 +111,15 @@ function IssueDetail(state: AppState): ReactNode {
     </article>;
 }
 
-function IssueWide(state: AppState, send: (event: AppEvent) => void): ReactNode {
-    stream IssueSurface<0px, 0px> {
-        width: fill;
-        height: fit;
-        row root {
-            width: fill;
-            height: fit;
-            list: IssueList(state, send) { width: 300px; height: fit; }
-            detail: IssueDetail(state) { width: fill; height: fit; }
-        }
+function IssueBody(state: AppState, send: (event: AppEvent) => void): ReactNode {
+    stream IssueContent {
+        list: IssueList(state, send);
+        detail: IssueDetail(state);
     }
-    return IssueSurface();
-}
-
-function IssueStacked(state: AppState, send: (event: AppEvent) => void): ReactNode {
-    stream IssueSurface<0px, 0px> {
-        width: fill;
-        height: fit;
-        list: IssueList(state, send) { height: fit; }
-        detail: IssueDetail(state) { height: fit; }
+    if (state.stacked || state.narrow) {
+        return bind IssueStackedLayout using IssueContent;
     }
-    return IssueSurface();
+    return bind IssueWideLayout using IssueContent;
 }
 
 function IssuesPage(state: AppState, send: (event: AppEvent) => void): ReactNode {
@@ -132,14 +127,14 @@ function IssuesPage(state: AppState, send: (event: AppEvent) => void): ReactNode
         <header className="panel"><h1>Issue triage</h1>
             <label htmlFor="search">Search issue titles</label>
             <Input id="search" type="search" value={state.queryDraft} onValueChange={capture { send } (value: string) => send(AppEvent.SetQueryDraft(value))} />
-            <button onClick={capture { send, state } () => send(AppEvent.Search(state.queryDraft))}>Search</button>
+            <button onClick={capture { send, query: state.queryDraft } () => send(AppEvent.Search(query))}>Search</button>
             <button onClick={capture { send } () => send(AppEvent.InsertIssue)}>Insert issue</button>
             <button onClick={capture { send } () => send(AppEvent.ToggleArrangement)}>Change arrangement</button>
             <button onClick={capture { send } () => send(AppEvent.SetStatus(1))}>Show loading</button>
             <button onClick={capture { send } () => send(AppEvent.SetStatus(2))}>Show error</button>
             <button onClick={capture { send } () => send(AppEvent.SetStatus(0))}>Show ready</button>
         </header>
-        {if state.stacked || state.narrow { IssueStacked(state, send) } else { IssueWide(state, send) }}
+        {IssueBody(state, send)}
     </section>;
 }
 
@@ -148,7 +143,7 @@ function SettingsFields(state: AppState, send: (event: AppEvent) => void): React
         <h2>Workspace identity</h2>
         <label htmlFor="workspace-name">Workspace name</label>
         <Input id="workspace-name" type="text" value={state.nameDraft} onValueChange={capture { send } (value: string) => send(AppEvent.SetNameDraft(value))} />
-        <button onClick={capture { send, state } () => send(AppEvent.Save(state.nameDraft))}>Save workspace</button>
+        <button onClick={capture { send, name: state.nameDraft } () => send(AppEvent.Save(name))}>Save workspace</button>
         {if state.validation { <p role="alert" className="readable">{ValidationMessage()}</p> } else { <span></span> }}
         {if state.saved { <p role="status">Saved workspace: {state.name}</p> } else { <span></span> }}
         <button onClick={capture { send } () => send(AppEvent.SetDialog(true))}>Review settings</button>

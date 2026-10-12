@@ -59,6 +59,7 @@ public sealed class BoundProgram
     public IReadOnlyList<BoundEnumDeclaration> Enums { get; }
     public IReadOnlyList<BoundRecordDeclaration> Records { get; }
     public IReadOnlyList<BoundStatement> GlobalStatements { get; }
+    public IReadOnlyList<ContributionStreamSymbol> ModuleStreams { get; internal set; } = [];
     public IReadOnlyList<BoundTableDefinition> Tables { get; }
     public IReadOnlyList<BoundTsonEncodingPlan> TsonEncodingPlans { get; }
     public IReadOnlyList<BoundNpmImport> NpmImports { get; }
@@ -867,7 +868,8 @@ public sealed class BoundLayoutBinding(
     IReadOnlyList<BoundLayoutBindingEntry> entries,
     IReadOnlyList<BoundStreamCollection>? collections = null,
     IReadOnlyList<BoundComponentCapture>? captures = null,
-    FunctionSymbol? owningComponent = null) : BoundNode
+    FunctionSymbol? owningComponent = null,
+    bool isContributionBinding = false) : BoundNode
 {
     public LayoutSymbol Layout { get; } = layout;
     public LayoutTypeSymbol Contract { get; } = contract;
@@ -880,6 +882,7 @@ public sealed class BoundLayoutBinding(
     public IReadOnlyList<BoundComponentCapture> Captures { get; } = captures ?? [];
     public FunctionSymbol? OwningComponent { get; } = owningComponent;
     public bool IsPrivate => OwningComponent is not null;
+    public bool IsContributionBinding { get; } = isContributionBinding;
 }
 
 /// <summary>Bounded ordered content attached to one named structural region.
@@ -910,11 +913,13 @@ public sealed class BoundLayoutReactRealization(
 public sealed class BoundLayoutBindingEntry(
     LayoutSlotSymbol slot,
     LayoutBindingEntrySyntax syntax,
-    BoundExpression component) : BoundNode
+    BoundExpression component,
+    BoundExpression? authoredComponent = null) : BoundNode
 {
     public LayoutSlotSymbol Slot { get; } = slot;
     public LayoutBindingEntrySyntax Syntax { get; } = syntax;
     public BoundExpression Component { get; } = component;
+    public BoundExpression AuthoredComponent { get; } = authoredComponent ?? component;
 }
 
 /// <summary>

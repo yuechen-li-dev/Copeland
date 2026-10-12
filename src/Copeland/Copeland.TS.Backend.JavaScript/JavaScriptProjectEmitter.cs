@@ -22,6 +22,7 @@ public static class JavaScriptProjectEmitter
         JavaScriptCompilation aggregate = JavaScriptBackend.Emit(graph.AggregateProgram, effectiveOptions with
         {
             EmitModuleFactories = true,
+            EmitModuleInitializers = false,
             BoundaryFunctionNames = boundaryFunctions,
         });
         if (!aggregate.Success)
@@ -89,6 +90,11 @@ public static class JavaScriptProjectEmitter
             source = StripFunctions(source, importedHelpers);
             source = StripExternalImports(source);
             lines.Add(source.TrimEnd());
+            IReadOnlySet<string> ownedFunctions = module.Functions.Select(function => function.Name).ToHashSet(StringComparer.Ordinal);
+            foreach (MirModuleValue value in graph.AggregateProgram.ModuleValues.Where(value => ownedFunctions.Contains(value.InitializerFunction)))
+            {
+                lines.Add($"const {JavaScriptIdentifierEncoder.Encode(value.Name)} = {JavaScriptIdentifierEncoder.Encode(value.InitializerFunction)}();");
+            }
             if (exports.Length > 0)
             {
                 lines.Add($"export {{ {string.Join(", ", exports.Select(export => export.RuntimeName == export.Name ? export.Name : export.RuntimeName + " as " + export.Name))} }};");

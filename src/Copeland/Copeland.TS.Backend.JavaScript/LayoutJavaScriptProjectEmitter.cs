@@ -21,16 +21,20 @@ public static class LayoutJavaScriptProjectEmitter
         var diagnostics = new List<JavaScriptDiagnostic>(baseEmission.Diagnostics);
         var css = new StringBuilder();
         var exportedNames = new HashSet<string>(StringComparer.Ordinal);
+        var projectedPresentations = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (CopelandProjectModuleCompilation module in modules.OrderBy(module => module.LogicalPath, StringComparer.Ordinal))
         {
             IEnumerable<BoundLayoutBinding> privatePresentations = module.BoundCompilation is null
                 ? Enumerable.Empty<BoundLayoutBinding>()
                 : module.BoundCompilation.Program.LayoutBindings
-                    .Where(binding => binding.IsPrivate)
+                    .Where(binding => binding.IsContributionBinding
+                        ? !HasFixedRoot(binding.Layout.BoundLayout!)
+                        : binding.IsPrivate)
                     .OrderBy(binding => binding.Layout.StableIdentity, StringComparer.Ordinal);
             foreach (BoundLayoutBinding privatePresentation in privatePresentations)
             {
+                if (!projectedPresentations.Add(privatePresentation.Layout.StableIdentity)) continue;
                 var presentationCss = new StringBuilder();
                 try
                 {
@@ -98,7 +102,9 @@ public static class LayoutJavaScriptProjectEmitter
 
     private static void AppendPrivatePresentationCss(System.Text.StringBuilder css, BoundLayoutBinding binding)
     {
-        if (IsTransparentSingleContentHost(binding.Realization.Root))
+        bool offsetOrigin = binding.IsContributionBinding
+            && (binding.Layout.BoundLayout!.Origin.X.Value != 0 || binding.Layout.BoundLayout.Origin.Y.Value != 0);
+        if (IsTransparentSingleContentHost(binding.Realization.Root) && !offsetOrigin)
         {
             AppendTransparentHost(binding.Realization.Root);
             return;
@@ -130,6 +136,13 @@ public static class LayoutJavaScriptProjectEmitter
 
             css.Append('.').Append(className).Append(" {\n")
                 .Append("  box-sizing: border-box;\n");
+            if (parentKind is null && offsetOrigin)
+            {
+                BoundLayoutOrigin origin = binding.Layout.BoundLayout!.Origin;
+                css.Append("  position: relative;\n")
+                    .Append("  left: ").Append(LayoutDataCompiler.CssCoordinate(origin.X)).Append(";\n")
+                    .Append("  top: ").Append(LayoutDataCompiler.CssCoordinate(origin.Y)).Append(";\n");
+            }
             string? mainAxis = parentKind switch
             {
                 LayoutNodeKind.Row => "width",

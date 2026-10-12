@@ -2,15 +2,18 @@ param(
     [switch]$RefreshLock,
     [switch]$FullValidation,
     [switch]$Stabilization = $true,
+    [switch]$Grammar = $true,
+    [switch]$LayoutTemplates = $true,
     [string]$BrowserChannel = 'msedge'
 )
 
 $ErrorActionPreference = 'Stop'
 $fixtureRoot = $PSScriptRoot
 $repositoryRoot = (Resolve-Path (Join-Path $fixtureRoot '../../..')).Path
-$evidenceName = if ($Stabilization) { 'react-ui-stabilization-m1' } else { 'react-friction-m0' }
-$corpusName = if ($Stabilization) { 'stabilization-corpus.json' } else { 'friction-corpus.json' }
+$evidenceName = if ($LayoutTemplates) { 'react-ui-layout-templates-m4' } elseif ($Grammar) { 'react-ui-grammar-m3' } elseif ($Stabilization) { 'react-ui-stabilization-m1' } else { 'react-friction-m0' }
+$corpusName = if ($LayoutTemplates) { 'layout-templates-corpus.json' } elseif ($Grammar) { 'grammar-corpus.json' } elseif ($Stabilization) { 'stabilization-corpus.json' } else { 'friction-corpus.json' }
 $evidenceRoot = Join-Path $repositoryRoot "docs/Copeland/reviews/evidence/$evidenceName"
+New-Item -ItemType Directory -Path $evidenceRoot -Force | Out-Null
 
 function Invoke-Checked {
     param([string]$Executable, [string[]]$Arguments)
@@ -38,15 +41,18 @@ Invoke-Checked 'dotnet' @('run', '--project', (Join-Path $fixtureRoot 'tooling/c
 
 $previousBrowserChannel = $env:FRICTION_BROWSER_CHANNEL
 $previousStabilization = $env:FRICTION_STABILIZATION
+$previousEvidenceName = $env:FRICTION_EVIDENCE_NAME
 try {
     $env:FRICTION_BROWSER_CHANNEL = $BrowserChannel
     $env:FRICTION_STABILIZATION = if ($Stabilization) { '1' } else { '0' }
+    $env:FRICTION_EVIDENCE_NAME = $evidenceName
     Invoke-Checked 'node' @((Join-Path $fixtureRoot 'tooling/qualify.ts'))
     Invoke-Checked 'node' @((Join-Path $fixtureRoot 'tooling/website-regression.ts'))
     Invoke-Checked 'node' @((Join-Path $fixtureRoot 'tooling/analyze.ts'))
 } finally {
     $env:FRICTION_BROWSER_CHANNEL = $previousBrowserChannel
     $env:FRICTION_STABILIZATION = $previousStabilization
+    $env:FRICTION_EVIDENCE_NAME = $previousEvidenceName
 }
 
 if ($FullValidation) {

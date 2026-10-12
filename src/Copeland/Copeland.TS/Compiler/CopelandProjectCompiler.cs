@@ -538,10 +538,21 @@ public static class CopelandProjectCompiler
         return new BoundModuleImports(declarations, aliases, interfaces, genericBodies);
     }
 
+    private static IReadOnlyList<MirRecordDefinition> CombineRecords(IReadOnlyList<MirProgram> programs)
+    {
+        // Length is one compiler-owned carrier, shared by all modules. Authored
+        // duplicate identities remain visible to MIR validation.
+        string lengthIdentity = LengthTypeSymbol.Instance.Id.ToString();
+        return programs.SelectMany(program => program.Records)
+            .GroupBy(record => record.Id.Value)
+            .SelectMany(group => group.Key == lengthIdentity ? group.Take(1) : group)
+            .ToArray();
+    }
+
     private static MirProgram CombinePrograms(IReadOnlyList<MirProgram> programs)
         => new(
             CombineEnums(programs),
-            programs.SelectMany(program => program.Records).ToArray(),
+            CombineRecords(programs),
             programs.SelectMany(program => program.Tables).ToArray(),
             programs.SelectMany(program => program.TsonEncodingPlans).ToArray(),
             programs.SelectMany(program => program.NpmImports)
@@ -553,7 +564,10 @@ public static class CopelandProjectCompiler
             null,
             programs.SelectMany(program => program.Flows).ToArray(),
             programs.SelectMany(program => program.JavaScriptHostImports).ToArray(),
-            programs.SelectMany(program => program.PackageImports).ToArray());
+            programs.SelectMany(program => program.PackageImports).ToArray())
+        {
+            ModuleValues = programs.SelectMany(program => program.ModuleValues).ToArray(),
+        };
 
     private static IReadOnlyList<MirEnum> CombineEnums(IReadOnlyList<MirProgram> programs)
     {
@@ -698,6 +712,7 @@ public static class CopelandProjectCompiler
         return symbol switch
         {
             FunctionSymbol function => function.EmissionName,
+            ContributionStreamSymbol stream => stream.Accessor.EmissionName,
             VariableSymbol { Type: RecordTypeSymbol record } => record.Id.ToString(),
             VariableSymbol { Type: EnumTypeSymbol @enum } => @enum.EmissionName,
             _ => null,
@@ -812,7 +827,16 @@ public static class CopelandProjectCompiler
                 continue;
             }
 
+            if (kind == "layout" && index > 0 && tokens[index - 1].Kind == SyntaxKind.GreaterToken)
+            {
+                continue;
+            }
             declarations.Add(new ProjectDeclaration(tokens[nameIndex].Text, kind));
+        }
+        SyntaxTree tree = SyntaxTree.Parse(source.SourceText, source.SourcePath);
+        foreach (ContributionStreamDeclarationSyntax stream in tree.Root.Members.OfType<ContributionStreamDeclarationSyntax>())
+        {
+            declarations.Add(new ProjectDeclaration(stream.Identifier.Text, "stream"));
         }
         return declarations;
     }
@@ -834,6 +858,10 @@ public static class CopelandProjectCompiler
             else if (tokens[index].Kind == SyntaxKind.GreaterToken && --depth == 0)
             {
                 int declaration = index + 1;
+                if (declaration < tokens.Count && tokens[declaration].Kind == SyntaxKind.LayoutKeyword)
+                {
+                    return LayoutNameIndex(tokens, declaration + 1);
+                }
                 if (declaration < tokens.Count && tokens[declaration].Text is "function" or "record" or "type" or "interface")
                     return declaration + 1;
                 return index + 1;

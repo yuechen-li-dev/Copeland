@@ -51,10 +51,14 @@ public sealed class MirProgram
     public IReadOnlyList<MirFlowDefinition> Flows { get; }
     /// <summary>Compiler-owned executable artifacts materialized by bounded backend hosts.</summary>
     public IReadOnlyList<MirExecutableArtifact> ExecutableArtifacts { get; }
+    /// <summary>Ordered immutable module storage, initialized through ordinary typed MIR functions.</summary>
+    public IReadOnlyList<MirModuleValue> ModuleValues { get; init; } = [];
 
     public MirProgram WithExecutableArtifact(MirExecutableArtifact artifact)
-        => new(Enums, Records, Tables, TsonEncodingPlans, NpmImports, Functions, CSharpUsings, CSharpSourcePath, Flows, JavaScriptHostImports, PackageImports, ExecutableArtifacts.Append(artifact).ToArray());
+        => new(Enums, Records, Tables, TsonEncodingPlans, NpmImports, Functions, CSharpUsings, CSharpSourcePath, Flows, JavaScriptHostImports, PackageImports, ExecutableArtifacts.Append(artifact).ToArray()) { ModuleValues = ModuleValues };
 }
+
+public sealed record MirModuleValue(string Name, MirType Type, string InitializerFunction);
 
 public abstract class MirExecutableArtifact(string stableId)
 {

@@ -10,9 +10,21 @@ const { chromium } = require("playwright") as typeof import("../baseline/node_mo
 type Page = import("../baseline/node_modules/playwright/index.js").Page;
 const root = fileURLToPath(new URL("../", import.meta.url));
 const stabilization = process.env.FRICTION_STABILIZATION === "1";
-const evidenceName = stabilization ? "react-ui-stabilization-m1" : "react-friction-m0";
+const evidenceName = process.env.FRICTION_EVIDENCE_NAME ?? (stabilization ? "react-ui-stabilization-m1" : "react-friction-m0");
+let milestone = stabilization ? "CTS-REACT-UI-STABILIZATION-M1" : "CTS-REACT-FRICTION-M0";
+if (evidenceName === "react-ui-grammar-m3") {
+    milestone = "CTS-REACT-UI-GRAMMAR-M3";
+}
+if (evidenceName === "react-ui-layout-templates-m4") {
+    milestone = "CTS-REACT-UI-LAYOUT-TEMPLATES-M4";
+}
 const evidenceDirectory = fileURLToPath(new URL(`../../../../docs/Copeland/reviews/evidence/${evidenceName}/`, import.meta.url));
-const screenshotDirectory = stabilization ? `${root}/artifacts/stabilization/screenshots` : `${root}/artifacts/screenshots`;
+let screenshotDirectory = `${root}/artifacts/screenshots`;
+if (process.env.FRICTION_EVIDENCE_NAME) {
+    screenshotDirectory = `${root}/artifacts/${evidenceName}/screenshots`;
+} else if (stabilization) {
+    screenshotDirectory = `${root}/artifacts/stabilization/screenshots`;
+}
 const server = await startServer();
 let browser: import("../baseline/node_modules/playwright/index.js").Browser | undefined;
 const diagnostics: string[] = [];
@@ -212,11 +224,11 @@ try {
     assert.equal(parity["copeland-long"], parity["typescript-long"]);
     assert.deepEqual(diagnostics, []);
     const sourceHashes: Record<string, string> = {};
-    for (const path of ["src/App.tsx", "src/State.ts", "src/Main.ts", "src/Content.ts", "baseline/App.tsx", "styles.css", "manifest.tsx", "tsconfig.tsx", "ts-lock.toml", "dist/browser/main.js", "dist/browser/generated/layouts.css", "dist/baseline/app.js"]) {
+    for (const path of ["src/App.tsx", "src/Layouts.ts", "src/State.ts", "src/Main.ts", "src/Content.ts", "baseline/App.tsx", "styles.css", "manifest.tsx", "tsconfig.tsx", "ts-lock.toml", "dist/browser/main.js", "dist/browser/generated/layouts.css", "dist/baseline/app.js"]) {
         sourceHashes[path] = createHash("sha256").update(await readFile(`${root}/${path}`)).digest("hex");
     }
     const report = {
-        milestone: stabilization ? "CTS-REACT-UI-STABILIZATION-M1" : "CTS-REACT-FRICTION-M0",
+        milestone,
         status: "qualified-corpus-with-known-failures",
         browser: { channel: process.env.FRICTION_BROWSER_CHANNEL ?? "chromium", version: browser.version() },
         diagnostics, sourceHashes, parity, observations

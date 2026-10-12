@@ -34,7 +34,7 @@ public sealed record TemplateTypedValue(TypeSymbol Type, object? Value, string D
 /// Evaluates only the explicitly supported structural subset. It has no callback
 /// into the CLR, JavaScript, filesystem, process, clock, or environment.
 /// </summary>
-public static class TemplateCompiler
+public static partial class TemplateCompiler
 {
     /// <summary>Evaluates declarations already discovered and type-bound by the ordinary compiler.</summary>
     public static TemplateEvaluationResult Evaluate(BoundCompilation boundCompilation, string? entryName = null)
@@ -136,6 +136,8 @@ public static class TemplateCompiler
         {
             case null:
                 return "null";
+            case Copeland.TS.MachinaSource.BoundLayoutDeclaration layout:
+                return DescribeLayoutValue(layout);
             case StaticPrimitiveValue primitive:
                 return primitive.Type.Name
                     + ":"
@@ -607,7 +609,7 @@ public static class TemplateCompiler
     /// Mechanical evaluator for compiler-bound template plans. It deliberately
     /// has no syntax, name-resolution, or type-binding dependency.
     /// </summary>
-    private sealed class BoundPlanEvaluator
+    private sealed partial class BoundPlanEvaluator
     {
         private readonly IReadOnlyDictionary<TemplateSymbol, BoundTemplateDeclaration> _templates;
         private readonly IReadOnlyDictionary<string, IReadOnlyList<BoundSemanticCallSite>> _callSitesByCaller;
@@ -629,15 +631,22 @@ public static class TemplateCompiler
         public BoundPlanEvaluator(
             IReadOnlyList<BoundCompilation> boundCompilations,
             IReadOnlyList<BoundTemplateDeclaration> templates,
-            List<Diagnostic> diagnostics)
+            List<Diagnostic> diagnostics,
+            IReadOnlyList<BoundFunctionDeclaration>? earlyFunctions = null)
         {
             _templates = templates.ToDictionary(template => template.Symbol);
-            BoundFunctionDeclaration[] functions = boundCompilations
+            BoundFunctionDeclaration[] functions = earlyFunctions?.ToArray() ?? boundCompilations
                 .SelectMany(compilation => compilation.Program.Functions)
                 .ToArray();
             IReadOnlyDictionary<FunctionSymbol, FunctionEffectSummary> summaries = boundCompilations
                 .SelectMany(compilation => compilation.Program.FunctionEffects)
                 .ToDictionary(pair => pair.Key, pair => pair.Value);
+            if (earlyFunctions is not null)
+            {
+                functions = functions.Concat(templates.SelectMany(template => template.Symbol.StaticFunctions))
+                    .DistinctBy(function => function.Symbol).ToArray();
+                summaries = FunctionEffectClassifier.Classify(functions);
+            }
             _ordinaryEvaluator = new StaticEvaluator(functions, summaries, StaticEvaluationLimits.M1);
             _callSitesByCaller = boundCompilations
                 .SelectMany(compilation => compilation.Program.SemanticCallSites)
@@ -833,6 +842,8 @@ public static class TemplateCompiler
         {
             switch (value)
             {
+                case BoundTemplateLayoutConstruction layout:
+                    return EvaluateLayout(layout, context);
                 case BoundTemplateLiteral literal:
                     return literal.Value;
                 case BoundTemplateLocalReference local:
@@ -930,12 +941,21 @@ public static class TemplateCompiler
 
         private object? EvaluateInvocation(BoundTemplateInvocation invocation, BoundEvaluationContext context)
         {
-            if (!_templates.TryGetValue(invocation.Template, out BoundTemplateDeclaration? target))
+            if (!_templates.TryGetValue(invocation.Template, out BoundTemplateDeclaration? target)
+                && (target = invocation.Template.Declaration) is null)
             {
                 Report("COPE-TEMPLATE-0003", $"Resolved template '{invocation.Template.Name}' is unavailable to this evaluation plan.", invocation.Anchor);
                 return null;
             }
-            object?[] values = invocation.Arguments.Select(argument => EvaluateValue(argument, context)).ToArray();
+            var defaultContext = new BoundEvaluationContext(context.TypeArguments);
+            var values = new object?[invocation.Arguments.Count];
+            for (int index = 0; index < values.Length; index++)
+            {
+                BoundTemplateValue argument = invocation.Arguments[index];
+                values[index] = argument is BoundTemplateDefaultArgument defaultArgument
+                    ? EvaluateValue(defaultArgument.Value, defaultContext) : EvaluateValue(argument, context);
+                defaultContext.Values[target.Parameters[index]] = values[index];
+            }
             TypeSymbol[] typeArguments = invocation.TypeArguments
                 .Select(type => ResolveTypeArgument(type, context.TypeArguments))
                 .ToArray();
@@ -1499,10 +1519,10 @@ public static class TemplateCompiler
         private static bool MatchesPrimitiveStaticArgument(TypeSymbol expected, object? value)
             => expected switch
             {
-                PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.String => value is string,
-                PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.Boolean => value is bool,
-                PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.Int => value is int,
-                PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.Float || primitive == PrimitiveTypeSymbol.Number => value is double or float or int,
+                PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.String => Unwrap(value) is string,
+                PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.Boolean => Unwrap(value) is bool,
+                PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.Int => Unwrap(value) is int,
+                PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.Float || primitive == PrimitiveTypeSymbol.Number => Unwrap(value) is double or float or int,
                 _ => true,
             };
 
@@ -1575,6 +1595,17 @@ public static class TemplateCompiler
             }
         }
 
+        private static void VisitLayoutNodes(IReadOnlyList<BoundLayoutNodePlan> nodes, List<Diagnostic> diagnostics)
+        {
+            foreach (BoundLayoutNodePlan node in nodes)
+            {
+                if (node.Condition is not null) VisitValue(node.Condition, diagnostics);
+                foreach (BoundLayoutPropertyPlan property in node.Properties) VisitValue(property.Value, diagnostics);
+                VisitLayoutNodes(node.Children, diagnostics);
+                VisitLayoutNodes(node.ElseChildren ?? [], diagnostics);
+            }
+        }
+
         private static void VisitValue(BoundTemplateValue value, List<Diagnostic> diagnostics)
         {
             if (value.Type == PrimitiveTypeSymbol.Error)
@@ -1583,6 +1614,15 @@ public static class TemplateCompiler
             }
             switch (value)
             {
+                case BoundTemplateDefaultArgument defaultArgument:
+                    VisitValue(defaultArgument.Value, diagnostics);
+                    break;
+                case BoundTemplateLayoutConstruction layout:
+                    VisitValue(layout.X, diagnostics);
+                    VisitValue(layout.Y, diagnostics);
+                    foreach (BoundLayoutPropertyPlan property in layout.Properties) VisitValue(property.Value, diagnostics);
+                    VisitLayoutNodes(layout.Nodes, diagnostics);
+                    break;
                 case BoundTemplateReflection reflection:
                     VisitValue(reflection.Value, diagnostics);
                     break;

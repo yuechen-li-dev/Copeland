@@ -29,6 +29,7 @@ public sealed record JavaScriptEmissionOptions
     public JavaScriptEmissionProfile Profile { get; init; } = JavaScriptEmissionProfile.Diagnostic;
     public JavaScriptRuntimeTarget RuntimeTarget { get; init; } = JavaScriptRuntimeTarget.Node;
     public bool EmitModuleFactories { get; init; }
+    public bool EmitModuleInitializers { get; init; } = true;
     public IReadOnlySet<string> BoundaryFunctionNames { get; init; } = new HashSet<string>(StringComparer.Ordinal);
     public IReadOnlyDictionary<string, string> RemoteOperationRoutes { get; init; } = new Dictionary<string, string>(StringComparer.Ordinal);
     public string BridgeBaseUrlBinding { get; init; } = "__copelandBridgeBaseUrl";

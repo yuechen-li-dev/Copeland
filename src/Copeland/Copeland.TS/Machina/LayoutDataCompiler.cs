@@ -113,7 +113,8 @@ public sealed record BoundLayoutTypeNode(
     MachinaSourceSpan Source);
 public sealed record BoundLayoutTypeDeclaration(string Name, BoundLayoutTypeNode Root);
 public sealed record InferredLayoutShape(string Name, LayoutNodeKind Kind, int? Columns, IReadOnlyList<InferredLayoutShape> Children);
-public sealed record BoundLayoutSatisfaction(string ContractName, bool IsSatisfied, InferredLayoutShape InferredShape);
+public sealed record BoundLayoutSatisfaction(string ContractName, bool IsSatisfied, InferredLayoutShape InferredShape,
+    BoundLayoutTypeDeclaration? BoundContract = null);
 public sealed record BoundLayoutDeclaration(
     string Name,
     string? Profile,
@@ -200,14 +201,15 @@ public static class LayoutDataCompiler
         string sourcePath,
         IReadOnlyDictionary<string, BoundLayoutDeclaration>? importedLayouts = null,
         IReadOnlyDictionary<string, BoundLayoutTypeDeclaration>? importedLayoutTypes = null,
-        IReadOnlyDictionary<string, BoundLayerSet>? importedLayerSets = null)
+        IReadOnlyDictionary<string, BoundLayerSet>? importedLayerSets = null,
+        Func<LayoutDeclarationSyntax, BoundLayoutDeclaration?>? constructLayout = null)
     {
         var binder = new Binder(
             tree,
             sourcePath,
             importedLayouts ?? new Dictionary<string, BoundLayoutDeclaration>(StringComparer.Ordinal),
             importedLayoutTypes ?? new Dictionary<string, BoundLayoutTypeDeclaration>(StringComparer.Ordinal),
-            importedLayerSets ?? new Dictionary<string, BoundLayerSet>(StringComparer.Ordinal));
+            importedLayerSets ?? new Dictionary<string, BoundLayerSet>(StringComparer.Ordinal), constructLayout: constructLayout);
         IReadOnlyDictionary<string, BoundLayoutDeclaration> layouts = binder.Bind();
         return new LayoutDataCompilation(tree, tree.Diagnostics.Concat(binder.Diagnostics).ToArray(), layouts, binder.LayoutTypes, binder.LayerSets);
     }
@@ -233,6 +235,24 @@ public static class LayoutDataCompiler
             declarations);
         IReadOnlyDictionary<string, BoundLayoutDeclaration> layouts = binder.Bind();
         return new LayoutDataCompilation(tree, binder.Diagnostics.ToArray(), layouts, binder.LayoutTypes, binder.LayerSets);
+    }
+
+    public static BoundLayoutDeclaration? BindConstruction(LayoutConstruction construction, string sourcePath,
+        out IReadOnlyList<Diagnostic> diagnostics, BoundLayoutTypeDeclaration? contract = null)
+    {
+        var types = new Dictionary<string, BoundLayoutTypeDeclaration>(StringComparer.Ordinal);
+        if (contract is not null) types.Add(contract.Name, contract);
+        var binder = new Binder(null, sourcePath, new Dictionary<string, BoundLayoutDeclaration>(), types,
+            new Dictionary<string, BoundLayerSet>());
+        binder.Bind();
+        BoundLayoutDeclaration? layout = binder.BindConstruction(construction);
+        if (layout is not null)
+        {
+            layout = binder.ApplyRelativeDerivations(layout);
+            if (construction.Contract is not null) layout = binder.CheckSatisfaction(construction.Identifier.Text, construction.Contract, layout);
+        }
+        diagnostics = binder.Diagnostics;
+        return layout;
     }
 
     public static NormalizedLayoutGraph Normalize(BoundLayoutDeclaration layout)
@@ -440,7 +460,7 @@ public static class LayoutDataCompiler
         return css[..ruleStart] + replacement + css[(ruleEnd + 2)..];
     }
 
-    private static string CssCoordinate(BoundLayoutCoordinate coordinate)
+    public static string CssCoordinate(BoundLayoutCoordinate coordinate)
     {
         string value = coordinate.Value.ToString("0.################", System.Globalization.CultureInfo.InvariantCulture);
         return coordinate.Unit == LayoutCoordinateUnit.Px
@@ -448,7 +468,7 @@ public static class LayoutDataCompiler
             : "calc(var(--machina-ui, 1px) * " + value + ")";
     }
 
-    private static BoundLayoutNode ProjectionRoot(BoundLayoutNode layoutRoot)
+    public static BoundLayoutNode ProjectionRoot(BoundLayoutNode layoutRoot)
     {
         if (layoutRoot.Children.Count == 0) return layoutRoot;
         if (layoutRoot.Children.Count == 1)
@@ -550,24 +570,27 @@ public static class LayoutDataCompiler
         private readonly List<Diagnostic> _diagnostics = [];
         private readonly string _sourcePath;
         private int _relativeDerivationOrder;
+        private readonly Func<LayoutDeclarationSyntax, BoundLayoutDeclaration?>? _constructLayout;
 
         private readonly IReadOnlyDictionary<string, BoundLayoutDeclaration> _importedLayouts;
         private readonly IReadOnlyDictionary<string, BoundLayoutTypeDeclaration> _importedLayoutTypes;
         private readonly IReadOnlyDictionary<string, BoundLayerSet> _importedLayerSets;
 
         public Binder(
-            SyntaxTree tree,
+            SyntaxTree? tree,
             string sourcePath,
             IReadOnlyDictionary<string, BoundLayoutDeclaration> importedLayouts,
             IReadOnlyDictionary<string, BoundLayoutTypeDeclaration> importedLayoutTypes,
             IReadOnlyDictionary<string, BoundLayerSet> importedLayerSets,
-            IReadOnlyList<MemberSyntax>? declarations = null)
+            IReadOnlyList<MemberSyntax>? declarations = null,
+            Func<LayoutDeclarationSyntax, BoundLayoutDeclaration?>? constructLayout = null)
         {
             _sourcePath = sourcePath;
+            _constructLayout = constructLayout;
             _importedLayouts = importedLayouts;
             _importedLayoutTypes = importedLayoutTypes;
             _importedLayerSets = importedLayerSets;
-            IEnumerable<MemberSyntax> members = declarations ?? tree.Root.Members;
+            IEnumerable<MemberSyntax> members = declarations ?? tree?.Root.Members ?? [];
             foreach (LayerSetDeclarationSyntax layerSet in members.OfType<LayerSetDeclarationSyntax>())
             {
                 if (!_layerSyntax.TryAdd(layerSet.Identifier.Text, layerSet))
@@ -1030,80 +1053,132 @@ public static class LayoutDataCompiler
                 Report("COPE-LAYOUT-COMPOSE-0001", $"Layout composition is recursive at '{name}'.", declaration.Identifier);
                 return null;
             }
-            if (declaration.Profile is not null && !string.Equals(declaration.Profile.Text, "page", StringComparison.Ordinal))
+            BoundLayoutDeclaration? result = null;
+            try
             {
-                Report("COPE-LAYOUT-PROFILE-0001", $"Layout profile '{declaration.Profile.Text}' is not supported in M0.", declaration.Profile);
-            }
-
-            BoundLayoutOrigin? origin = BindOrigin(declaration);
-            if (origin is null)
-            {
-                _binding.Remove(name);
-                return null;
-            }
-
-            BoundLayerSet declaredLayerSet = ResolveLayerSet(declaration.Properties.Count > 0 ? declaration.Properties : declaration.CompositionProperties, declaration.Identifier, name);
-            BoundLayoutDeclaration? result;
-            if (declaration.ComposedLayout is not null)
-            {
-                if (_syntax.TryGetValue(declaration.ComposedLayout.Text, out LayoutDeclarationSyntax? baseSyntax))
+                if (declaration.Initializer is not null || declaration.ComposedLayout is not null)
                 {
-                    if (BindDeclaration(baseSyntax) is BoundLayoutDeclaration basis)
+                    BoundLayoutDeclaration? basis = null;
+                    if (declaration.Initializer is not null)
                     {
-                        BoundLayoutNode root = ApplyOverrides(basis.Root, declaration.CompositionProperties);
-                        BoundLayoutNode composedRoot = root with { Name = name };
-                        if (declaration.CompositionProperties.Any(property => property.Identifier.Text == "layers")
-                            && !string.Equals(basis.ResolvedLayerSet.StableIdentity, declaredLayerSet.StableIdentity, StringComparison.Ordinal))
+                        basis = _constructLayout?.Invoke(declaration);
+                        if (_constructLayout is null)
                         {
-                            Report("COPE-LAYOUT-LAYER-0006", $"Composed layout '{name}' cannot replace layer set '{basis.ResolvedLayerSet.Name}' with '{declaredLayerSet.Name}'. Nested composition stays in its containing layer space.", declaration.Identifier);
+                            Report("COPE-LAYOUT-TEMPLATE-0001", "Layout templates require the ordinary Copeland project compiler.", declaration.Identifier);
                         }
-                        result = new BoundLayoutDeclaration(name, declaration.Profile?.Text, origin, composedRoot, CollectSlots(composedRoot), LayerSet: basis.ResolvedLayerSet);
                     }
-                    else result = null;
-                }
-                else if (_importedLayouts.TryGetValue(declaration.ComposedLayout.Text, out BoundLayoutDeclaration? imported))
-                {
-                    BoundLayoutNode root = ApplyOverrides(imported.Root, declaration.CompositionProperties);
-                    BoundLayoutNode composedRoot = root with { Name = name };
-                    if (declaration.CompositionProperties.Any(property => property.Identifier.Text == "layers")
-                        && !string.Equals(imported.ResolvedLayerSet.StableIdentity, declaredLayerSet.StableIdentity, StringComparison.Ordinal))
+                    else if (_syntax.TryGetValue(declaration.ComposedLayout!.Text, out LayoutDeclarationSyntax? local))
                     {
-                        Report("COPE-LAYOUT-LAYER-0006", $"Composed layout '{name}' cannot replace layer set '{imported.ResolvedLayerSet.Name}' with '{declaredLayerSet.Name}'. Nested composition stays in its containing layer space.", declaration.Identifier);
+                        basis = BindDeclaration(local);
                     }
-                    result = new BoundLayoutDeclaration(name, declaration.Profile?.Text, origin, composedRoot, CollectSlots(composedRoot), LayerSet: imported.ResolvedLayerSet);
+                    else if (!_importedLayouts.TryGetValue(declaration.ComposedLayout!.Text, out basis))
+                    {
+                        Report("COPE-LAYOUT-COMPOSE-0002", $"Composed layout '{declaration.ComposedLayout.Text}' was not found.", declaration.ComposedLayout);
+                    }
+                    if (basis is null) return null;
+                    BoundLayoutOrigin? origin = declaration.Origin is null ? basis.Origin : BindOrigin(declaration);
+                    if (origin is null) return null;
+                    LayoutPropertyData[] replacements = ReadProperties(declaration.CompositionProperties);
+                    if (Has(replacements, "layers"))
+                    {
+                        BoundLayerSet layers = ResolveLayerSet(replacements, declaration.Identifier, name);
+                        if (layers.StableIdentity != basis.ResolvedLayerSet.StableIdentity)
+                        {
+                            Report("COPE-LAYOUT-LAYER-0006", $"Composed layout '{name}' cannot replace layer set '{basis.ResolvedLayerSet.Name}'.", declaration.Identifier);
+                        }
+                    }
+                    BoundLayoutNode root = ApplyComposition(basis.Root, replacements, basis.ResolvedLayerSet, name);
+                    root = root with { Name = name };
+                    result = basis with { Name = name, Origin = origin, Root = root, Slots = CollectSlots(root) };
+                    ValidateClosedNodes(root, null);
+                    if (basis.Satisfaction is not null)
+                    {
+                        var contract = declaration.Identifier with { Text = basis.Satisfaction.ContractName };
+                        result = basis.Satisfaction.BoundContract is { } boundContract
+                            ? CheckSatisfaction(result, boundContract)
+                            : CheckSatisfaction(name, contract, result);
+                    }
                 }
                 else
                 {
-                    Report("COPE-LAYOUT-COMPOSE-0002", $"Composed layout '{declaration.ComposedLayout.Text}' was not found.", declaration.ComposedLayout);
-                    result = null;
+                    BoundLayoutOrigin? origin = BindOrigin(declaration);
+                    if (origin is null) return null;
+                    var construction = new LayoutConstruction(declaration.Identifier, declaration.Profile?.Text,
+                        new LayoutValue(declaration.Identifier, origin.X), new LayoutValue(declaration.Identifier, origin.Y),
+                        ReadProperties(declaration.Properties), declaration.Nodes.Select(ReadNode).ToArray(), declaration.ContractIdentifier);
+                    result = BindConstruction(construction);
                 }
+                if (result is not null)
+                {
+                    result = ApplyRelativeDerivations(result);
+                    if (declaration.ContractIdentifier is not null)
+                    {
+                        result = CheckSatisfaction(declaration, result);
+                    }
+                    _layouts.Add(name, result);
+                }
+                return result;
             }
-            else
+            finally
             {
-                var slots = new Dictionary<string, BoundLayoutNode>(StringComparer.Ordinal);
-                ValidateProperties(declaration.Properties, null);
-                BoundLayoutNode root = new(name, LayoutNodeKind.Overlay, BindDimensions(declaration.Properties), BindPositions(declaration.Properties), Gap(declaration.Properties), null, Padding(declaration.Properties), Style(declaration.Properties), declaration.Nodes.Select(node => BindNode(node, slots, null, declaredLayerSet, name, declaredLayerSet.Layers[0])).Where(node => node is not null).Cast<BoundLayoutNode>().ToArray(), Span(declaration), new BoundPaintProperties(declaredLayerSet.Layers[0], 0), Overflow: Overflow(declaration.Properties));
-                if (root.Children.Count != 1) slots[name] = root;
-                result = new BoundLayoutDeclaration(name, declaration.Profile?.Text, origin, root, slots, LayerSet: declaredLayerSet);
+                _binding.Remove(name);
             }
+        }
 
-            _binding.Remove(name);
-            if (result is not null)
+        public BoundLayoutDeclaration? BindConstruction(LayoutConstruction construction)
+        {
+            if (construction.Profile is not null && construction.Profile != "page")
             {
-                result = ApplyRelativeDerivations(result);
+                Report("COPE-LAYOUT-PROFILE-0001", $"Layout profile '{construction.Profile}' is not supported.", construction.Identifier);
             }
-            if (result is not null && declaration.ContractIdentifier is not null)
+            BoundLayoutCoordinate? x = ClosedCoordinate(construction.X);
+            BoundLayoutCoordinate? y = ClosedCoordinate(construction.Y);
+            if (x is null || y is null) return null;
+            string name = construction.Identifier.Text;
+            BoundLayerSet layers = ResolveLayerSet(construction.Properties, construction.Identifier, name);
+            ValidateProperties(construction.Properties, null);
+            var slots = new Dictionary<string, BoundLayoutNode>(StringComparer.Ordinal);
+            BoundLayoutNode[] children = construction.Nodes
+                .Select(node => BindNode(node, slots, null, layers, name, layers.Layers[0]))
+                .Where(node => node is not null).Cast<BoundLayoutNode>().ToArray();
+            var root = new BoundLayoutNode(name, LayoutNodeKind.Overlay, BindDimensions(construction.Properties),
+                BindPositions(construction.Properties), Gap(construction.Properties), null, Padding(construction.Properties),
+                Style(construction.Properties), children, Span(construction.Identifier), new BoundPaintProperties(layers.Layers[0], 0),
+                Overflow: Overflow(construction.Properties));
+            if (children.Length != 1) slots[name] = root;
+            return new BoundLayoutDeclaration(name, construction.Profile, new BoundLayoutOrigin(x, y), root, slots, LayerSet: layers);
+        }
+
+        private BoundLayoutCoordinate? ClosedCoordinate(LayoutValue value)
+        {
+            if (value.Scalar is BoundLayoutCoordinate coordinate) return coordinate;
+            if (value.Scalar is MachinaLength length)
             {
-                result = CheckSatisfaction(declaration, result);
+                LayoutCoordinateUnit unit = length.LiteralUnit == MachinaLengthLiteralUnit.Ui ? LayoutCoordinateUnit.Ui : LayoutCoordinateUnit.Px;
+                return new BoundLayoutCoordinate(unit == LayoutCoordinateUnit.Px ? length.Px : length.Ui, unit);
             }
-            if (result is not null) _layouts.Add(name, result);
-            return result;
+            Report("COPE-LAYOUT-ORIGIN-0002", "A layout origin requires a static px or ui coordinate.", value.Anchor);
+            return null;
+        }
+
+        private void ValidateClosedNodes(BoundLayoutNode node, LayoutNodeKind? parent, bool wrapper = true)
+        {
+            if (node.Kind == LayoutNodeKind.Anchor) ValidateAnchor(node, new SyntaxToken(SyntaxKind.IdentifierToken, node.Source.Start, node.Name, null));
+            if (parent is LayoutNodeKind.Anchor or LayoutNodeKind.Overlay && node.Kind != LayoutNodeKind.Anchor
+                && (!HasFrameWriter(node, "width") || !HasFrameWriter(node, "height")))
+            {
+                Report("COPE-LAYOUT-FRAME-0002", $"'{node.Name}' requires fixed width and height inside {parent.Value.ToString().ToLowerInvariant()} composition.", node.Source);
+            }
+            foreach (BoundLayoutNode child in node.Children)
+            {
+                ValidateClosedNodes(child, wrapper ? null : node.Kind, false);
+            }
         }
 
         private BoundLayoutDeclaration CheckSatisfaction(LayoutDeclarationSyntax declaration, BoundLayoutDeclaration layout)
             => CheckSatisfaction(declaration.Identifier.Text, declaration.ContractIdentifier!, layout);
 
-        private BoundLayoutDeclaration CheckSatisfaction(string layoutName, SyntaxToken contractIdentifier, BoundLayoutDeclaration layout)
+        public BoundLayoutDeclaration CheckSatisfaction(string layoutName, SyntaxToken contractIdentifier, BoundLayoutDeclaration layout)
         {
             string contractName = contractIdentifier.Text;
             if (!_layoutTypes.TryGetValue(contractName, out BoundLayoutTypeDeclaration? contract)
@@ -1113,8 +1188,13 @@ public static class LayoutDataCompiler
                 return layout with { Satisfaction = new BoundLayoutSatisfaction(contractName, false, InferShape(layout.Root)) };
             }
 
+            return CheckSatisfaction(layout, contract);
+        }
+
+        public BoundLayoutDeclaration CheckSatisfaction(BoundLayoutDeclaration layout, BoundLayoutTypeDeclaration contract)
+        {
             bool satisfied = CompareNodes(layout.Name, contract.Name, layout.Root, contract.Root, layout.Name);
-            return layout with { Satisfaction = new BoundLayoutSatisfaction(contract.Name, satisfied, InferShape(layout.Root)) };
+            return layout with { Satisfaction = new BoundLayoutSatisfaction(contract.Name, satisfied, InferShape(layout.Root), contract) };
         }
 
         private bool CompareNodes(string layoutName, string contractName, BoundLayoutNode actual, BoundLayoutTypeNode expected, string path)
@@ -1204,7 +1284,21 @@ public static class LayoutDataCompiler
             return null;
         }
 
-        private BoundLayoutNode? BindNode(LayoutNodeSyntax syntax, Dictionary<string, BoundLayoutNode> slots, LayoutNodeKind? parentKind, BoundLayerSet layerSet, string layoutName, string inheritedLayer)
+        private BoundLayoutNode? BindNode(LayoutNodeSyntax syntax, Dictionary<string, BoundLayoutNode> slots,
+            LayoutNodeKind? parentKind, BoundLayerSet layerSet, string layoutName, string inheritedLayer)
+            => BindNode(ReadNode(syntax), slots, parentKind, layerSet, layoutName, inheritedLayer);
+
+        private LayoutNodeData ReadNode(LayoutNodeSyntax syntax)
+        {
+            if (syntax.Conditional is not null)
+            {
+                Report("COPE-LAYOUT-TEMPLATE-0001", "Static layout branches belong in a layout template.", syntax.KindToken);
+            }
+            return new LayoutNodeData(syntax.KindToken, syntax.Identifier, ReadProperties(syntax.Properties),
+                syntax.Children.Select(ReadNode).ToArray(), BindRelativeDerivations(syntax.Identifier.Text, syntax.RelativeDerivations));
+        }
+
+        private BoundLayoutNode? BindNode(LayoutNodeData syntax, Dictionary<string, BoundLayoutNode> slots, LayoutNodeKind? parentKind, BoundLayerSet layerSet, string layoutName, string inheritedLayer)
         {
             if (!Enum.TryParse(syntax.KindToken.Text, true, out LayoutNodeKind kind))
             {
@@ -1218,7 +1312,7 @@ public static class LayoutDataCompiler
             if (kind == LayoutNodeKind.Grid && Columns(syntax.Properties) is null) Report("COPE-LAYOUT-GRID-0001", "A grid requires a positive integer 'columns' property.", syntax.Identifier);
             BoundPaintProperties paint = BindPaint(syntax.Properties, layerSet, layoutName, inheritedLayer);
             var children = syntax.Children.Select(child => BindNode(child, slots, kind, layerSet, layoutName, paint.Layer)).Where(child => child is not null).Cast<BoundLayoutNode>().ToArray();
-            var node = new BoundLayoutNode(name, kind, BindDimensions(syntax.Properties), BindPositions(syntax.Properties), Gap(syntax.Properties), Columns(syntax.Properties), Padding(syntax.Properties), Style(syntax.Properties), children, Span(syntax), paint, BindRelativeDerivations(name, syntax.RelativeDerivations), Overflow(syntax.Properties), TextFit(syntax.Properties, kind));
+            var node = new BoundLayoutNode(name, kind, BindDimensions(syntax.Properties), BindPositions(syntax.Properties), Gap(syntax.Properties), Columns(syntax.Properties), Padding(syntax.Properties), Style(syntax.Properties), children, Span(syntax.Identifier), paint, syntax.RelativeDerivations, Overflow(syntax.Properties), TextFit(syntax.Properties, kind));
             if (parentKind is LayoutNodeKind.Anchor or LayoutNodeKind.Overlay && kind != LayoutNodeKind.Anchor && (!HasFrameWriter(node, "width") || !HasFrameWriter(node, "height")))
             {
                 Report("COPE-LAYOUT-FRAME-0002", $"'{name}' requires fixed width and height inside {parentKind.Value.ToString().ToLowerInvariant()} composition.", syntax.Identifier);
@@ -1317,7 +1411,7 @@ public static class LayoutDataCompiler
             return new BoundRelativeDerivationSpec(targetBox, transform, sourceToken.Text, length, _relativeDerivationOrder++, source);
         }
 
-        private BoundLayoutDeclaration ApplyRelativeDerivations(BoundLayoutDeclaration layout)
+        public BoundLayoutDeclaration ApplyRelativeDerivations(BoundLayoutDeclaration layout)
         {
             var nodes = new Dictionary<string, BoundLayoutNode>(StringComparer.Ordinal);
             var parents = new Dictionary<string, LayoutNodeKind?>(StringComparer.Ordinal);
@@ -1605,13 +1699,195 @@ public static class LayoutDataCompiler
             _ => [],
         };
 
-        private BoundLayoutNode ApplyOverrides(BoundLayoutNode root, IReadOnlyList<LayoutPropertySyntax> properties)
+        private LayoutPropertyData[] ReadProperties(IReadOnlyList<LayoutPropertySyntax> properties)
+            => properties.Select(property => new LayoutPropertyData(property.Identifier, ReadValue(property.Value))).ToArray();
+
+        private LayoutValue ReadValue(ExpressionSyntax expression)
+        {
+            SyntaxToken anchor = FirstToken(expression);
+            if (expression is NameExpressionSyntax name)
+            {
+                return new LayoutValue(anchor, Keyword: name.IdentifierToken.Text);
+            }
+            if (expression is ObjectLiteralExpressionSyntax record)
+            {
+                var fields = new Dictionary<string, LayoutValue>(StringComparer.Ordinal);
+                foreach (ObjectPropertySyntax property in record.Properties)
+                {
+                    if (!fields.TryAdd(property.NameToken.Text, ReadValue(property.ValueExpression)))
+                    {
+                        Report("COPE-LAYOUT-PROPERTY-0001", $"Field '{property.NameToken.Text}' is declared more than once.", property.NameToken);
+                    }
+                }
+                return new LayoutValue(anchor, Fields: fields);
+            }
+            if (expression is LiteralExpressionSyntax literal)
+            {
+                object? value = literal.LiteralToken.Value;
+                if (value is LengthLiteralTokenValue length)
+                {
+                    try
+                    {
+                        value = length.Unit == "px" ? MachinaLength.Pixels(length.Value) : MachinaLength.Normalized(length.Value);
+                    }
+                    catch (MachinaLayoutException exception)
+                    {
+                        Report(exception.Code, exception.Message, anchor);
+                        value = null;
+                    }
+                }
+                return new LayoutValue(anchor, value);
+            }
+            if (expression is UnaryExpressionSyntax { OperatorToken.Kind: SyntaxKind.MinusToken } unary)
+            {
+                LayoutValue operand = ReadValue(unary.Operand);
+                return operand.Scalar switch
+                {
+                    MachinaLength length => new LayoutValue(anchor, -length),
+                    int integer => new LayoutValue(anchor, -integer),
+                    _ => new LayoutValue(anchor)
+                };
+            }
+            if (expression is BinaryExpressionSyntax binary && binary.OperatorToken.Kind is SyntaxKind.PlusToken or SyntaxKind.MinusToken)
+            {
+                LayoutValue left = ReadValue(binary.Left);
+                LayoutValue right = ReadValue(binary.Right);
+                if (left.Scalar is MachinaLength leftLength && right.Scalar is MachinaLength rightLength)
+                {
+                    try
+                    {
+                        return new LayoutValue(anchor, binary.OperatorToken.Kind == SyntaxKind.PlusToken
+                            ? leftLength + rightLength : leftLength - rightLength);
+                    }
+                    catch (MachinaLayoutException exception)
+                    {
+                        Report(exception.Code, exception.Message, anchor);
+                    }
+                }
+            }
+            return new LayoutValue(anchor);
+        }
+
+        private MachinaLength? Length(ExpressionSyntax value) => Length(ReadValue(value));
+        private static bool TryStaticInteger(ExpressionSyntax value, out int integer)
+        {
+            if (value is LiteralExpressionSyntax { LiteralToken.Value: int number })
+            {
+                integer = number;
+                return true;
+            }
+            if (value is UnaryExpressionSyntax { OperatorToken.Kind: SyntaxKind.MinusToken,
+                Operand: LiteralExpressionSyntax { LiteralToken.Value: int negative } })
+            {
+                integer = -negative;
+                return true;
+            }
+            integer = 0;
+            return false;
+        }
+
+private void ValidateProperties(IReadOnlyList<LayoutPropertySyntax> properties, LayoutNodeKind? kind)
+            => ValidateProperties(ReadProperties(properties), kind);
+
+private IReadOnlyDictionary<string, BoundLayoutDimension> BindDimensions(IReadOnlyList<LayoutPropertySyntax> properties)
+            => BindDimensions(ReadProperties(properties));
+
+private BoundLayerSet ResolveLayerSet(IReadOnlyList<LayoutPropertySyntax> properties, SyntaxToken token, string layoutName)
+            => ResolveLayerSet(ReadProperties(properties), token, layoutName);
+
+private BoundPaintProperties BindPaint(IReadOnlyList<LayoutPropertySyntax> properties, BoundLayerSet layerSet, string layoutName, string inheritedLayer)
+            => BindPaint(ReadProperties(properties), layerSet, layoutName, inheritedLayer);
+
+private IReadOnlyDictionary<string, MachinaLength> BindPositions(IReadOnlyList<LayoutPropertySyntax> properties)
+            => BindPositions(ReadProperties(properties));
+
+private BoundBoxOverflowPolicy? Overflow(IReadOnlyList<LayoutPropertySyntax> properties)
+            => Overflow(ReadProperties(properties));
+
+private BoundTextFitPolicy? TextFit(IReadOnlyList<LayoutPropertySyntax> properties, LayoutNodeKind kind)
+            => TextFit(ReadProperties(properties), kind);
+
+private MachinaLength Gap(IReadOnlyList<LayoutPropertySyntax> properties)
+            => Gap(ReadProperties(properties));
+
+private int? Columns(IReadOnlyList<LayoutPropertySyntax> properties)
+            => Columns(ReadProperties(properties));
+
+private MachinaInsets Padding(IReadOnlyList<LayoutPropertySyntax> properties)
+            => Padding(ReadProperties(properties));
+
+private MachinaStyle Style(IReadOnlyList<LayoutPropertySyntax> properties)
+            => Style(ReadProperties(properties));
+
+        private BoundLayoutNode ApplyComposition(BoundLayoutNode root, IReadOnlyList<LayoutPropertyData> replacements,
+            BoundLayerSet layerSet, string layoutName)
+        {
+            var paths = new HashSet<string>(StringComparer.Ordinal);
+            foreach (LayoutPropertyData replacement in replacements)
+            {
+                string path = replacement.Identifier.Text;
+                if (!paths.Add(path) || paths.Any(other => other != path
+                    && (other.StartsWith(path + ".", StringComparison.Ordinal)
+                        || path.StartsWith(other + ".", StringComparison.Ordinal))))
+                {
+                    Report("COPE-LAYOUT-WITH-0001", $"Layout replacement '{path}' overlaps another replacement.", replacement.Identifier);
+                    return root;
+                }
+            }
+            foreach (IGrouping<string, LayoutPropertyData> group in replacements.GroupBy(property =>
+                property.Identifier.Text.Contains('.') ? property.Identifier.Text[..property.Identifier.Text.LastIndexOf('.')] : string.Empty))
+            {
+                string[] members = group.Key.Length == 0 ? [] : group.Key.Split('.');
+                LayoutPropertyData[] properties = group.Select(property => property with
+                {
+                    Identifier = property.Identifier with { Text = property.Identifier.Text.Split('.').Last() }
+                }).ToArray();
+                bool found = false;
+                root = Update(root, 0);
+                if (!found)
+                {
+                    Report("COPE-LAYOUT-WITH-0002", $"Layout '{layoutName}' has no node at '{group.Key}'.", group.First().Identifier);
+                }
+
+                BoundLayoutNode Update(BoundLayoutNode node, int index)
+                {
+                    if (index == members.Length)
+                    {
+                        found = true;
+                        ValidateProperties(properties, members.Length == 0 ? null : node.Kind);
+                        return ApplyOverrides(node, properties);
+                    }
+                    return node with
+                    {
+                        Children = node.Children.Select(child => child.Name == members[index]
+                            ? Update(child, index + 1) : child).ToArray()
+                    };
+                }
+            }
+            return root;
+        }
+
+        private BoundLayoutNode ApplyOverrides(BoundLayoutNode root, IReadOnlyList<LayoutPropertyData> properties)
         {
             var dimensions = root.Dimensions.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
             foreach ((string key, BoundLayoutDimension value) in BindDimensions(properties)) dimensions[key] = value;
+            var positions = root.Positions.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+            foreach ((string key, MachinaLength value) in BindPositions(properties)) positions[key] = value;
+            int? columns = Has(properties, "columns") ? Columns(properties) : root.Columns;
+            if (root.Kind == LayoutNodeKind.Grid && columns is null)
+            {
+                Report("COPE-LAYOUT-GRID-0001", "A grid requires a positive integer 'columns' property.", properties[0].Identifier);
+            }
+            if (properties.Any(property => property.Identifier.Text is "layer" or "z"
+                or "fontSize" or "minFontSize" or "lines" or "wrap" or "textFit" or "textFallback"))
+            {
+                Report("COPE-LAYOUT-WITH-0003", "Paint and text policy replacement is not supported by this layout variant slice. Configure these in the template.", properties[0].Identifier);
+            }
             return root with
             {
                 Dimensions = dimensions,
+                Positions = positions,
+                Columns = columns,
                 Gap = Has(properties, "gap") ? Gap(properties) : root.Gap,
                 Padding = Has(properties, "padding") ? Padding(properties) : root.Padding,
                 Style = Has(properties, "style") ? Style(properties) : root.Style,
@@ -1641,10 +1917,10 @@ public static class LayoutDataCompiler
             => HasFixedDimension(node, field)
                 || (node.RelativeDerivationSpecs ?? []).Any(spec => FieldsWritten(spec.Transform).Contains(field, StringComparer.Ordinal));
 
-        private void ValidateProperties(IReadOnlyList<LayoutPropertySyntax> properties, LayoutNodeKind? kind)
+        private void ValidateProperties(IReadOnlyList<LayoutPropertyData> properties, LayoutNodeKind? kind)
         {
             var names = new HashSet<string>(StringComparer.Ordinal);
-            foreach (LayoutPropertySyntax property in properties)
+            foreach (LayoutPropertyData property in properties)
             {
                 if (!names.Add(property.Identifier.Text))
                 {
@@ -1672,24 +1948,24 @@ public static class LayoutDataCompiler
             return slots;
             void Add(BoundLayoutNode node)
             {
-                slots.Add(node.Name, node);
+                slots.TryAdd(node.Name, node);
                 foreach (BoundLayoutNode child in node.Children) Add(child);
             }
         }
 
-        private IReadOnlyDictionary<string, BoundLayoutDimension> BindDimensions(IReadOnlyList<LayoutPropertySyntax> properties)
+        private IReadOnlyDictionary<string, BoundLayoutDimension> BindDimensions(IReadOnlyList<LayoutPropertyData> properties)
         {
             var result = new Dictionary<string, BoundLayoutDimension>(StringComparer.Ordinal);
-            foreach (LayoutPropertySyntax property in properties.Where(property => property.Identifier.Text is "width" or "height"))
+            foreach (LayoutPropertyData property in properties.Where(property => property.Identifier.Text is "width" or "height"))
             {
                 BoundLayoutDimension? dimension = Dimension(property.Value);
                 if (dimension is not null) result[property.Identifier.Text] = dimension;
             }
-            if (Property(properties, "frame")?.Value is ObjectLiteralExpressionSyntax frame)
+            if (Property(properties, "frame")?.Value is { Fields: not null } frame)
             {
                 foreach (string name in new[] { "width", "height" })
                 {
-                    if (ObjectProperty(frame, name) is ExpressionSyntax value && Dimension(value) is BoundLayoutDimension dimension)
+                    if (ObjectProperty(frame, name) is LayoutValue value && Dimension(value) is BoundLayoutDimension dimension)
                     {
                         result[name] = dimension;
                     }
@@ -1698,32 +1974,32 @@ public static class LayoutDataCompiler
             return result;
         }
 
-        private BoundLayerSet ResolveLayerSet(IReadOnlyList<LayoutPropertySyntax> properties, SyntaxToken token, string layoutName)
+        private BoundLayerSet ResolveLayerSet(IReadOnlyList<LayoutPropertyData> properties, SyntaxToken token, string layoutName)
         {
-            LayoutPropertySyntax? property = Property(properties, "layers");
+            LayoutPropertyData? property = Property(properties, "layers");
             if (property is null) return BoundLayerSet.Default;
-            if (property.Value is not NameExpressionSyntax name)
+            if (property.Value is not { Keyword: not null } name)
             {
                 Report("COPE-LAYOUT-LAYER-0007", $"Layout '{layoutName}' must name a declared semantic layer set in 'layers:'.", property.Identifier);
                 return BoundLayerSet.Default;
             }
-            if (_layerSets.TryGetValue(name.IdentifierToken.Text, out BoundLayerSet? local)) return local;
-            if (_importedLayerSets.TryGetValue(name.IdentifierToken.Text, out BoundLayerSet? imported)) return imported;
-            Report("COPE-LAYOUT-LAYER-0008", $"Layout '{layoutName}' uses unknown semantic layer set '{name.IdentifierToken.Text}'.", name.IdentifierToken);
+            if (_layerSets.TryGetValue(name.Keyword, out BoundLayerSet? local)) return local;
+            if (_importedLayerSets.TryGetValue(name.Keyword, out BoundLayerSet? imported)) return imported;
+            Report("COPE-LAYOUT-LAYER-0008", $"Layout '{layoutName}' uses unknown semantic layer set '{name.Keyword}'.", name.Anchor);
             return BoundLayerSet.Default;
         }
 
-        private BoundPaintProperties BindPaint(IReadOnlyList<LayoutPropertySyntax> properties, BoundLayerSet layerSet, string layoutName, string inheritedLayer)
+        private BoundPaintProperties BindPaint(IReadOnlyList<LayoutPropertyData> properties, BoundLayerSet layerSet, string layoutName, string inheritedLayer)
         {
             string layer = inheritedLayer;
             if (Property(properties, "layer") is { } layerProperty)
             {
-                if (layerProperty.Value is NameExpressionSyntax name)
+                if (layerProperty.Value is { Keyword: not null } name)
                 {
-                    layer = name.IdentifierToken.Text;
+                    layer = name.Keyword;
                     if (layerSet.RankOf(layer) < 0)
                     {
-                        Report("COPE-LAYOUT-LAYER-0001", $"Layout '{layoutName}' names unknown semantic layer '{layer}' in layer set '{layerSet.Name}'.", name.IdentifierToken);
+                        Report("COPE-LAYOUT-LAYER-0001", $"Layout '{layoutName}' names unknown semantic layer '{layer}' in layer set '{layerSet.Name}'.", name.Anchor);
                         layer = layerSet.Layers[0];
                     }
                 }
@@ -1752,36 +2028,31 @@ public static class LayoutDataCompiler
             return new BoundPaintProperties(layer, z);
         }
 
-        private static bool TryStaticInteger(ExpressionSyntax expression, out int value)
+        private static bool TryStaticInteger(LayoutValue expression, out int value)
         {
-            if (expression is LiteralExpressionSyntax { LiteralToken.Value: int integer })
+            if (expression is { Scalar: int integer })
             {
                 value = integer;
-                return true;
-            }
-            if (expression is UnaryExpressionSyntax { OperatorToken.Kind: SyntaxKind.MinusToken, Operand: LiteralExpressionSyntax { LiteralToken.Value: int negativeInteger } })
-            {
-                value = -negativeInteger;
                 return true;
             }
             value = 0;
             return false;
         }
 
-        private IReadOnlyDictionary<string, MachinaLength> BindPositions(IReadOnlyList<LayoutPropertySyntax> properties)
+        private IReadOnlyDictionary<string, MachinaLength> BindPositions(IReadOnlyList<LayoutPropertyData> properties)
         {
             var result = new Dictionary<string, MachinaLength>(StringComparer.Ordinal);
-            foreach (LayoutPropertySyntax property in properties.Where(property => property.Identifier.Text is "x" or "y" or "left" or "right" or "top" or "bottom"))
+            foreach (LayoutPropertyData property in properties.Where(property => property.Identifier.Text is "x" or "y" or "left" or "right" or "top" or "bottom"))
             {
                 MachinaLength? value = Length(property.Value);
                 if (value is not null) result[property.Identifier.Text] = value.Value;
             }
             foreach (string recordName in new[] { "position", "frame" })
             {
-                if (Property(properties, recordName)?.Value is not ObjectLiteralExpressionSyntax record) continue;
+                if (Property(properties, recordName)?.Value is not { Fields: not null } record) continue;
                 foreach (string name in new[] { "x", "y", "left", "right", "top", "bottom" })
                 {
-                    if (ObjectProperty(record, name) is ExpressionSyntax value && Length(value) is MachinaLength length)
+                    if (ObjectProperty(record, name) is LayoutValue value && Length(value) is MachinaLength length)
                     {
                         result[name] = length;
                     }
@@ -1790,21 +2061,21 @@ public static class LayoutDataCompiler
             return result;
         }
 
-        private BoundLayoutDimension? Dimension(ExpressionSyntax expression)
+        private BoundLayoutDimension? Dimension(LayoutValue expression)
         {
-            if (expression is NameExpressionSyntax name && name.IdentifierToken.Text == "fill") return new BoundLayoutDimension(LayoutDimensionKind.Fill);
-            if (expression is NameExpressionSyntax fit && fit.IdentifierToken.Text == "fit") return new BoundLayoutDimension(LayoutDimensionKind.Fit);
+            if (expression is { Keyword: not null } name && name.Keyword == "fill") return new BoundLayoutDimension(LayoutDimensionKind.Fill);
+            if (expression is { Keyword: not null } fit && fit.Keyword == "fit") return new BoundLayoutDimension(LayoutDimensionKind.Fit);
             MachinaLength? length = Length(expression);
-            if (length is not null) return new BoundLayoutDimension(LayoutDimensionKind.Fixed, length);
-            Report("COPE-LAYOUT-DIMENSION-0001", "A layout dimension must be a length, 'fill', or 'fit'.", FirstToken(expression));
+            if (length is not null && !IsNegative(length.Value)) return new BoundLayoutDimension(LayoutDimensionKind.Fixed, length);
+            Report("COPE-LAYOUT-DIMENSION-0001", "A layout dimension must be a length, 'fill', or 'fit'.", expression.Anchor);
             return null;
         }
 
-        private BoundBoxOverflowPolicy? Overflow(IReadOnlyList<LayoutPropertySyntax> properties)
+        private BoundBoxOverflowPolicy? Overflow(IReadOnlyList<LayoutPropertyData> properties)
         {
-            LayoutPropertySyntax? property = Property(properties, "overflow");
+            LayoutPropertyData? property = Property(properties, "overflow");
             if (property is null) return null;
-            if (property.Value is not NameExpressionSyntax name || !Enum.TryParse(name.IdentifierToken.Text, true, out LayoutOverflowPolicy policy))
+            if (property.Value is not { Keyword: not null } name || !Enum.TryParse(name.Keyword, true, out LayoutOverflowPolicy policy))
             {
                 Report("COPE-LAYOUT-OVERFLOW-0001", "Overflow must be one of: visible, clip, auto, scroll, scrollX, scrollY.", property.Identifier);
                 return BoundBoxOverflowPolicy.Visible;
@@ -1822,24 +2093,24 @@ public static class LayoutDataCompiler
             };
         }
 
-        private BoundTextFitPolicy? TextFit(IReadOnlyList<LayoutPropertySyntax> properties, LayoutNodeKind kind)
+        private BoundTextFitPolicy? TextFit(IReadOnlyList<LayoutPropertyData> properties, LayoutNodeKind kind)
         {
             string[] names = ["fontSize", "minFontSize", "lines", "wrap", "textFit", "textFallback"];
             if (!properties.Any(property => names.Contains(property.Identifier.Text, StringComparer.Ordinal))) return null;
             if (kind != LayoutNodeKind.Slot)
             {
-                LayoutPropertySyntax property = properties.First(property => names.Contains(property.Identifier.Text, StringComparer.Ordinal));
+                LayoutPropertyData property = properties.First(property => names.Contains(property.Identifier.Text, StringComparer.Ordinal));
                 Report("COPE-TEXT-FIT-0001", "Text fitting is valid only on a declared text slot, never a structural or mixed-content box.", property.Identifier);
                 return null;
             }
 
-            LayoutPropertySyntax? fontSize = Property(properties, "fontSize");
-            LayoutPropertySyntax? minimum = Property(properties, "minFontSize");
-            LayoutPropertySyntax? lines = Property(properties, "lines");
-            LayoutPropertySyntax? fit = Property(properties, "textFit");
+            LayoutPropertyData? fontSize = Property(properties, "fontSize");
+            LayoutPropertyData? minimum = Property(properties, "minFontSize");
+            LayoutPropertyData? lines = Property(properties, "lines");
+            LayoutPropertyData? fit = Property(properties, "textFit");
             if (fontSize is null || minimum is null || lines is null || fit is null)
             {
-                LayoutPropertySyntax source = fontSize ?? minimum ?? lines ?? fit ?? properties[0];
+                LayoutPropertyData source = fontSize ?? minimum ?? lines ?? fit ?? properties[0];
                 Report("COPE-TEXT-FIT-0002", "A text-fit slot requires fontSize, minFontSize, lines, and textFit.", source.Identifier);
                 return null;
             }
@@ -1861,20 +2132,20 @@ public static class LayoutDataCompiler
                 Report("COPE-TEXT-FIT-0005", "lines must be a positive static integer.", lines.Identifier);
                 return null;
             }
-            if (fit.Value is not NameExpressionSyntax fitName || !Enum.TryParse(fitName.IdentifierToken.Text, true, out TextFitMode fitMode))
+            if (fit.Value is not { Keyword: not null } fitName || !Enum.TryParse(fitName.Keyword, true, out TextFitMode fitMode))
             {
                 Report("COPE-TEXT-FIT-0006", "textFit must be one of: none, scaleDown.", fit.Identifier);
                 return null;
             }
 
             TextWrapMode wrapMode = TextWrapMode.Wrap;
-            if (Property(properties, "wrap") is { } wrap && (wrap.Value is not NameExpressionSyntax wrapName || !Enum.TryParse(wrapName.IdentifierToken.Text, true, out wrapMode)))
+            if (Property(properties, "wrap") is { } wrap && (wrap.Value is not { Keyword: not null } wrapName || !Enum.TryParse(wrapName.Keyword, true, out wrapMode)))
             {
                 Report("COPE-TEXT-FIT-0007", "wrap must be one of: wrap, noWrap.", wrap.Identifier);
                 return null;
             }
             TextOverflowFallback fallback = TextOverflowFallback.Clip;
-            if (Property(properties, "textFallback") is { } fallbackProperty && (fallbackProperty.Value is not NameExpressionSyntax fallbackName || !Enum.TryParse(fallbackName.IdentifierToken.Text, true, out fallback)))
+            if (Property(properties, "textFallback") is { } fallbackProperty && (fallbackProperty.Value is not { Keyword: not null } fallbackName || !Enum.TryParse(fallbackName.Keyword, true, out fallback)))
             {
                 Report("COPE-TEXT-FIT-0008", "textFallback must be one of: clip, ellipsis, overflow.", fallbackProperty.Identifier);
                 return null;
@@ -1884,65 +2155,113 @@ public static class LayoutDataCompiler
                 Report("COPE-TEXT-FIT-0009", "textFit: none requires minFontSize to equal fontSize.", fit.Identifier);
                 return null;
             }
-            return new BoundTextFitPolicy(preferred.Value, min.Value, maximumLines, wrapMode, fitMode, fallback, Span(fit));
+            return new BoundTextFitPolicy(preferred.Value, min.Value, maximumLines, wrapMode, fitMode, fallback, Span(fit.Identifier));
         }
 
-        private MachinaLength Gap(IReadOnlyList<LayoutPropertySyntax> properties)
-            => Property(properties, "gap") is { } property && Length(property.Value) is MachinaLength value ? value : MachinaLength.Pixels(0);
+        private MachinaLength Gap(IReadOnlyList<LayoutPropertyData> properties)
+            => NonnegativeLength(properties, "gap") ?? MachinaLength.Pixels(0);
 
-        private int? Columns(IReadOnlyList<LayoutPropertySyntax> properties)
+        private MachinaLength? NonnegativeLength(IReadOnlyList<LayoutPropertyData> properties, string name)
         {
-            LayoutPropertySyntax? property = Property(properties, "columns");
-            if (property?.Value is LiteralExpressionSyntax { LiteralToken.Value: int value } && value > 0) return value;
+            LayoutPropertyData? property = Property(properties, name);
+            if (property is null) return null;
+            MachinaLength? length = Length(property.Value);
+            if (length is null || IsNegative(length.Value))
+            {
+                Report("COPE-LAYOUT-DIMENSION-0001", $"'{name}' requires a nonnegative unit-bearing length.", property.Identifier);
+                return null;
+            }
+            return length;
+        }
+
+        private int? Columns(IReadOnlyList<LayoutPropertyData> properties)
+        {
+            LayoutPropertyData? property = Property(properties, "columns");
+            if (property?.Value is { Scalar: int value } && value > 0) return value;
             return null;
         }
 
-        private MachinaInsets Padding(IReadOnlyList<LayoutPropertySyntax> properties)
-            => Property(properties, "padding") is { } property && Length(property.Value) is MachinaLength value ? MachinaInsets.All(value.Px) : MachinaInsets.None;
-
-        private MachinaStyle Style(IReadOnlyList<LayoutPropertySyntax> properties)
+        private MachinaInsets Padding(IReadOnlyList<LayoutPropertyData> properties)
         {
-            LayoutPropertySyntax? property = Property(properties, "style");
-            if (property is null) return MachinaStyle.Empty;
-            if (property.Value is not ObjectLiteralExpressionSyntax style)
+            MachinaLength? value = NonnegativeLength(properties, "padding");
+            if (value is null) return MachinaInsets.None;
+            if (value.Value.Ui != 0 || value.Value.LiteralUnit == MachinaLengthLiteralUnit.Ui)
             {
-                Report("COPE-LAYOUT-STYLE-0001", "Layout style must be an immutable record literal in M0.", property.Identifier);
-                return MachinaStyle.Empty;
+                Report("COPE-LAYOUT-DIMENSION-0001", "Padding currently requires a px length. Use a px configuration value.", Property(properties, "padding")!.Identifier);
+                return MachinaInsets.None;
             }
-            Dictionary<string, ExpressionSyntax> values = style.Properties.ToDictionary(property => property.NameToken.Text, property => property.ValueExpression, StringComparer.Ordinal);
-            string? fill = String(values.GetValueOrDefault("fill"));
-            MachinaSurfaceStyle? surface = fill is null ? null : new MachinaSurfaceStyle(Fill: fill);
-            MachinaBorderStyle? border = values.GetValueOrDefault("border") is ObjectLiteralExpressionSyntax borderRecord
-                ? new MachinaBorderStyle(ObjectProperty(borderRecord, "width") is ExpressionSyntax width ? Length(width) : null, String(ObjectProperty(borderRecord, "color")), String(ObjectProperty(borderRecord, "style")))
-                : null;
-            return surface is null && border is null ? MachinaStyle.Empty : new MachinaStyle(Surface: surface, Border: border);
+            return MachinaInsets.All(value.Value.Px);
         }
 
-        private MachinaLength? Length(ExpressionSyntax expression)
+        private MachinaStyle Style(IReadOnlyList<LayoutPropertyData> properties)
         {
-            try
+            LayoutPropertyData? property = Property(properties, "style");
+            if (property is null) return MachinaStyle.Empty;
+            if (property.Value.Fields is not { } values)
             {
-                return expression switch
-                {
-                    LiteralExpressionSyntax { LiteralToken.Value: LengthLiteralTokenValue length } => length.Unit == "px" ? MachinaLength.Pixels(length.Value) : MachinaLength.Normalized(length.Value),
-                    UnaryExpressionSyntax { OperatorToken.Kind: SyntaxKind.MinusToken } unary when Length(unary.Operand) is MachinaLength value => -value,
-                    BinaryExpressionSyntax { OperatorToken.Kind: SyntaxKind.PlusToken } binary when Length(binary.Left) is MachinaLength left && Length(binary.Right) is MachinaLength right => left + right,
-                    BinaryExpressionSyntax { OperatorToken.Kind: SyntaxKind.MinusToken } binary when Length(binary.Left) is MachinaLength left && Length(binary.Right) is MachinaLength right => left - right,
-                    _ => null,
-                };
+                Report("COPE-LAYOUT-STYLE-0001", "Layout style must be an immutable record.", property.Identifier);
+                return MachinaStyle.Empty;
             }
-            catch (MachinaLayoutException exception)
+            foreach (string field in values.Keys)
             {
-                Report(exception.Code, exception.Message, FirstToken(expression));
+                if (field is not ("fill" or "border"))
+                {
+                    Report("COPE-LAYOUT-STYLE-0001", $"Layout style has no supported field '{field}'. Use fill or border.", values[field].Anchor);
+                }
+            }
+            string? fill = ReadString(values, "fill");
+            MachinaSurfaceStyle? surface = fill is null ? null : new MachinaSurfaceStyle(Fill: fill);
+            MachinaBorderStyle? border = null;
+            if (values.TryGetValue("border", out LayoutValue? borderValue))
+            {
+                if (borderValue.Fields is not { } fields)
+                {
+                    Report("COPE-LAYOUT-STYLE-0001", "Border style requires an immutable record with width, color, or style.", borderValue.Anchor);
+                }
+                else
+                {
+                    foreach (string field in fields.Keys)
+                    {
+                        if (field is not ("width" or "color" or "style"))
+                        {
+                            Report("COPE-LAYOUT-STYLE-0001", $"Border style has no field '{field}'.", fields[field].Anchor);
+                        }
+                    }
+                    MachinaLength? width = null;
+                    if (fields.TryGetValue("width", out LayoutValue? widthValue))
+                    {
+                        width = Length(widthValue);
+                        if (width is null || IsNegative(width.Value))
+                        {
+                            Report("COPE-LAYOUT-STYLE-0001", "Border width requires a nonnegative unit-bearing length.", widthValue.Anchor);
+                        }
+                    }
+                    border = new MachinaBorderStyle(width, ReadString(fields, "color"), ReadString(fields, "style"));
+                }
+            }
+            return surface is null && border is null ? MachinaStyle.Empty : new MachinaStyle(Surface: surface, Border: border);
+
+            string? ReadString(IReadOnlyDictionary<string, LayoutValue> fields, string name)
+            {
+                if (!fields.TryGetValue(name, out LayoutValue? value)) return null;
+                if (value.Scalar is string text) return text;
+                Report("COPE-LAYOUT-STYLE-0001", $"Style field '{name}' requires a string.", value.Anchor);
                 return null;
             }
         }
 
-        private static LayoutPropertySyntax? Property(IReadOnlyList<LayoutPropertySyntax> properties, string name)
+        private MachinaLength? Length(LayoutValue value)
+        {
+            return value.Scalar as MachinaLength?;
+        }
+
+        private static LayoutPropertyData? Property(IReadOnlyList<LayoutPropertyData> properties, string name)
             => properties.LastOrDefault(property => property.Identifier.Text == name);
-        private static bool Has(IReadOnlyList<LayoutPropertySyntax> properties, string name) => Property(properties, name) is not null;
-        private static ExpressionSyntax? ObjectProperty(ObjectLiteralExpressionSyntax expression, string name) => expression.Properties.FirstOrDefault(property => property.NameToken.Text == name)?.ValueExpression;
-        private static string? String(ExpressionSyntax? expression) => expression is LiteralExpressionSyntax { LiteralToken.Value: string value } ? value : null;
+        private static bool Has(IReadOnlyList<LayoutPropertyData> properties, string name) => Property(properties, name) is not null;
+        private static LayoutValue? ObjectProperty(LayoutValue expression, string name) => expression.Fields?.GetValueOrDefault(name);
+        private static string? String(LayoutValue? expression) => expression is { Scalar: string value } ? value : null;
+        private static ExpressionSyntax? ObjectProperty(ObjectLiteralExpressionSyntax expression, string name)
+            => expression.Properties.FirstOrDefault(property => property.NameToken.Text == name)?.ValueExpression;
         private MachinaSourceSpan Span(SyntaxNode node) { SyntaxToken token = FirstToken(node); return Span(token); }
         private MachinaSourceSpan Span(SyntaxToken token) => new(_sourcePath, token.Position, Math.Max(1, token.Text.Length));
         private static SyntaxToken FirstToken(SyntaxNode node) => node.GetChildren().OfType<SyntaxToken>().FirstOrDefault() ?? new SyntaxToken(SyntaxKind.BadToken, 0, string.Empty, null);

@@ -258,4 +258,9 @@ public enum SyntaxKind
     GenericValueArgument,
     MissingExpression,
     UnsupportedExpression,
+    CaptureEntry,
+    ContributionStreamDeclaration,
+    LocalContributionStreamStatement,
+    ClassContributionStream,
+    ContributionBindingExpression,
 }

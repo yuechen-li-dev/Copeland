@@ -26,7 +26,27 @@ public static class MirLowerer
             return new MirCompilation(null, bound.Diagnostics.Concat(staticDiagnostics).ToArray());
         }
 
-        return new MirCompilation(LowerProgram(bound.Program), bound.Diagnostics);
+        MirProgram program = LowerProgram(bound.Program);
+        IReadOnlyList<MirValidationDiagnostic> moduleDiagnostics = MirModuleValueValidator.Validate(program);
+        if (moduleDiagnostics.Count > 0)
+        {
+            return new MirCompilation(null, bound.Diagnostics.Concat(moduleDiagnostics.Select(diagnostic =>
+            {
+                ContributionStreamSymbol? owner = bound.Program.ModuleStreams.FirstOrDefault(stream =>
+                    diagnostic.Message.Contains(stream.Storage.Name, StringComparison.Ordinal));
+                string message = diagnostic.Message;
+                foreach (ContributionStreamSymbol stream in bound.Program.ModuleStreams)
+                {
+                    string name = stream.ClassOwner is null ? stream.Name : stream.ClassOwner.Name + "." + stream.Name;
+                    message = message.Replace(stream.Storage.Name, name, StringComparison.Ordinal)
+                        .Replace(stream.Initializer.EmissionName, name + " initializer", StringComparison.Ordinal)
+                        .Replace(stream.Accessor.EmissionName, name + " reader", StringComparison.Ordinal);
+                }
+                return new Copeland.TS.Diagnostics.Diagnostic("COPE-STREAM-CONTENT-0007", message,
+                    owner?.Anchor?.Position ?? 0, Math.Max(1, owner?.Anchor?.Text.Length ?? 1));
+            })).ToArray());
+        }
+        return new MirCompilation(program, bound.Diagnostics);
     }
 
     public static MirProgram LowerProgram(BoundProgram program)
@@ -75,7 +95,11 @@ public static class MirLowerer
             import.Function.Method.Name,
             import.Function.Name)).ToArray();
         MirFlowDefinition[] flows = program.Flows.Select(LowerFlow).ToArray();
-        return new MirProgram(enums, records, tables, tsonEncodingPlans, npmImports, functions, program.CSharpUsings, program.CSharpSourcePath, flows, javaScriptHostImports, packageImports);
+        return new MirProgram(enums, records, tables, tsonEncodingPlans, npmImports, functions, program.CSharpUsings, program.CSharpSourcePath, flows, javaScriptHostImports, packageImports)
+        {
+            ModuleValues = program.ModuleStreams.Select(stream => new MirModuleValue(
+                stream.Storage.Name, ToMirType(stream.Type), stream.Initializer.EmissionName)).ToArray(),
+        };
     }
 
     private static MirFlowDefinition LowerFlow(BoundFlowDefinition flow)

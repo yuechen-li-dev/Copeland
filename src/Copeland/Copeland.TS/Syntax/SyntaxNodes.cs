@@ -685,6 +685,8 @@ public sealed record TemplateDeclarationSyntax(
     TypeSyntax ReturnType,
     BlockStatementSyntax Body) : MemberSyntax
 {
+    public LayoutDeclarationSyntax? LayoutBody { get; init; }
+
     public override SyntaxKind Kind => SyntaxKind.TemplateDeclaration;
 
     public override IEnumerable<object> GetChildren()
@@ -703,10 +705,17 @@ public sealed record TemplateDeclarationSyntax(
             yield return Parameters[index];
         }
         yield return GreaterToken;
-        yield return Identifier;
-        yield return ReturnTypeColonToken;
-        yield return ReturnType;
-        yield return Body;
+        if (LayoutBody is not null)
+        {
+            yield return LayoutBody;
+        }
+        else
+        {
+            yield return Identifier;
+            yield return ReturnTypeColonToken;
+            yield return ReturnType;
+            yield return Body;
+        }
     }
 }
 
@@ -791,6 +800,8 @@ public sealed record LayoutDeclarationSyntax(
     IReadOnlyList<LayoutNodeSyntax> Nodes,
     SyntaxToken CloseBraceToken) : MemberSyntax
 {
+    public ExpressionSyntax? Initializer { get; init; }
+
     public override SyntaxKind Kind => SyntaxKind.LayoutDeclaration;
 
     public override IEnumerable<object> GetChildren()
@@ -802,7 +813,8 @@ public sealed record LayoutDeclarationSyntax(
         if (SatisfiesKeyword is not null) yield return SatisfiesKeyword;
         if (ContractIdentifier is not null) yield return ContractIdentifier;
         if (EqualsToken is not null) yield return EqualsToken;
-        if (ComposedLayout is not null) yield return ComposedLayout;
+        if (Initializer is not null) yield return Initializer;
+        else if (ComposedLayout is not null) yield return ComposedLayout;
         if (WithKeyword is not null) yield return WithKeyword;
         foreach (LayoutPropertySyntax property in CompositionProperties) yield return property;
         yield return OpenBraceToken;
@@ -1076,10 +1088,17 @@ public sealed record LayoutNodeSyntax(
     SyntaxToken? CloseBraceToken,
     IReadOnlyList<LayoutRelativeDerivationSyntax>? RelativeDerivations = null) : SyntaxNode
 {
+    public LayoutConditionalSyntax? Conditional { get; init; }
+
     public override SyntaxKind Kind => SyntaxKind.LayoutNode;
 
     public override IEnumerable<object> GetChildren()
     {
+        if (Conditional is not null)
+        {
+            yield return Conditional;
+            yield break;
+        }
         yield return KindToken;
         yield return Identifier;
         if (SemicolonToken is not null) yield return SemicolonToken;
@@ -2772,23 +2791,39 @@ public sealed record ArrowExpressionSyntax(
 public sealed record CaptureExpressionSyntax(
     SyntaxToken CaptureKeyword,
     SyntaxToken OpenBraceToken,
-    IReadOnlyList<SyntaxToken> Identifiers,
+    IReadOnlyList<CaptureEntrySyntax> Entries,
     IReadOnlyList<SyntaxToken> CommaTokens,
     SyntaxToken CloseBraceToken,
     ArrowExpressionSyntax Arrow) : ExpressionSyntax
 {
     public override SyntaxKind Kind => SyntaxKind.CaptureExpression;
+    public IReadOnlyList<SyntaxToken> Identifiers => Entries.Select(entry => entry.Identifier).ToArray();
     public override IEnumerable<object> GetChildren()
     {
         yield return CaptureKeyword;
         yield return OpenBraceToken;
-        for (var index = 0; index < Identifiers.Count; index++)
+        for (var index = 0; index < Entries.Count; index++)
         {
             if (index > 0) yield return CommaTokens[index - 1];
-            yield return Identifiers[index];
+            yield return Entries[index];
         }
         yield return CloseBraceToken;
         yield return Arrow;
+    }
+}
+
+public sealed record CaptureEntrySyntax(
+    SyntaxToken Identifier,
+    SyntaxToken? ColonToken,
+    ExpressionSyntax? Initializer) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.CaptureEntry;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Identifier;
+        if (ColonToken is not null) yield return ColonToken;
+        if (Initializer is not null) yield return Initializer;
     }
 }
 

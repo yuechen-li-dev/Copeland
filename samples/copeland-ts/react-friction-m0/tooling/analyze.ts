@@ -2,9 +2,10 @@ import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-const evidenceName = process.env.FRICTION_STABILIZATION === "1" ? "react-ui-stabilization-m1" : "react-friction-m0";
+const evidenceName = process.env.FRICTION_EVIDENCE_NAME ?? (process.env.FRICTION_STABILIZATION === "1" ? "react-ui-stabilization-m1" : "react-friction-m0");
 const reportRoot = fileURLToPath(new URL(`../../../../docs/Copeland/reviews/evidence/${evidenceName}/`, import.meta.url));
 const app = await readFile(`${root}/src/App.tsx`, "utf8");
+const layouts = await readFile(`${root}/src/Layouts.ts`, "utf8");
 const state = await readFile(`${root}/src/State.ts`, "utf8");
 const main = await readFile(`${root}/src/Main.ts`, "utf8");
 const baseline = await readFile(`${root}/baseline/App.tsx`, "utf8");
@@ -19,12 +20,17 @@ const report = {
     sharedContent: "src/Content.ts is imported verbatim by both implementations",
     copeland: {
         appLines: sourceLines(app),
+        reusableLayoutLines: sourceLines(layouts),
         stateLines: sourceLines(state),
         mainLines: sourceLines(main),
-        totalApplicationLines: sourceLines(app) + sourceLines(state) + sourceLines(main),
+        totalApplicationLines: sourceLines(app) + sourceLines(state) + sourceLines(main) + sourceLines(layouts),
         explicitCaptures: (app.match(/capture \{/g) ?? []).length + (main.match(/capture \{/g) ?? []).length,
         eventAdapterFunctions: (app.match(/function Send\w+\(/g) ?? []).length,
         localStreams: (app.match(/stream \w+</g) ?? []).length,
+        contributionStreams: (app.match(/stream \w+ \{/g) ?? []).length,
+        expressionBindings: (app.match(/bind \w+ using /g) ?? []).length,
+        layoutSpecializations: (app.match(/instantiate /g) ?? []).length,
+        layoutVariants: (app.match(/with \{ root\./g) ?? []).length,
         manifestLines: sourceLines(manifest),
         distinctIssueArrangements: 2,
         issueListBindingSites: (app.match(/list: IssueList/g) ?? []).length,

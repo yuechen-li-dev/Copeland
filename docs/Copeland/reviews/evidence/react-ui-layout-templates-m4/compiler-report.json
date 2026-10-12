@@ -1,0 +1,361 @@
+{
+  "milestone": "CTS-REACT-UI-LAYOUT-TEMPLATES-M4",
+  "compilerAssemblySha256": "eee7c9413f21467b5a8b2cf67bec84289ab02a3c5f770736c2353780a86f3646",
+  "corpusSha256": "c8ce25b57da13b6fb9fe39f1fa6d0d87d081d56fef74a7b4657caac27f99d454",
+  "expectationsMatched": true,
+  "results": [
+    {
+      "name": "native-list-and-label",
+      "accepted": true,
+      "expectationMatched": true,
+      "diagnostics": [],
+      "javascript": {
+        "Main.js": "import { createElement } from \u0022react\u0022;\r\n\u0022use strict\u0022;\r\n\r\nfunction Main() {\r\n    return createElement(\u0022section\u0022, null, createElement(\u0022label\u0022, { htmlFor: \u0022query\u0022 }, \u0022Query\u0022), createElement(\u0022ul\u0022, null, createElement(\u0022li\u0022, null, \u0022One\u0022), createElement(\u0022li\u0022, null, \u0022Two\u0022)));\r\n}\r\nexport { Main };\r\n"
+      },
+      "css": null
+    },
+    {
+      "name": "intrinsic-onchange-string-callback",
+      "accepted": false,
+      "expectationMatched": true,
+      "diagnostics": [
+        {
+          "code": "COPE-REACT-0017",
+          "message": "Native React \u0027onChange\u0027 event objects are outside the current intrinsic contract. Use a contracted Input component with onValueChange: (string) =\u003E void, or an explicit typed browser adapter.",
+          "repairKind": "unsupported-capability",
+          "suggestedReplacement": "a contracted Input component with onValueChange: (string) =\u003E void"
+        }
+      ],
+      "javascript": null,
+      "css": null
+    },
+    {
+      "name": "numeric-key",
+      "accepted": true,
+      "expectationMatched": true,
+      "diagnostics": [],
+      "javascript": {
+        "Main.js": "import { createElement } from \u0022react\u0022;\r\n\u0022use strict\u0022;\r\n\r\nfunction Main() {\r\n    return createElement(\u0022span\u0022, { key: 1 }, \u0022One\u0022);\r\n}\r\nexport { Main };\r\n"
+      },
+      "css": null
+    },
+    {
+      "name": "array-of-react-children",
+      "accepted": false,
+      "expectationMatched": true,
+      "diagnostics": [
+        {
+          "code": "COPE-REACT-0007",
+          "message": "React TS-XML child expressions must be string, numeric, or ReactNode values; got \u0027ReactNode[]\u0027.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        }
+      ],
+      "javascript": null,
+      "css": null
+    },
+    {
+      "name": "dynamic-stream-collection",
+      "accepted": false,
+      "expectationMatched": true,
+      "diagnostics": [
+        {
+          "code": "COPE-STREAM-0008",
+          "message": "Structural stream region \u0027results\u0027 cannot bind content directly in M0; add a named singular child region.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        }
+      ],
+      "javascript": null,
+      "css": null
+    },
+    {
+      "name": "runtime-root-width",
+      "accepted": false,
+      "expectationMatched": true,
+      "diagnostics": [
+        {
+          "code": "COPE-LAYOUT-DIMENSION-0001",
+          "message": "A layout dimension must be a length, \u0027fill\u0027, or \u0027fit\u0027.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        }
+      ],
+      "javascript": null,
+      "css": null
+    },
+    {
+      "name": "local-fit-and-gap",
+      "accepted": true,
+      "expectationMatched": true,
+      "diagnostics": [],
+      "javascript": {
+        "Main.js": "import { createElement } from \u0022react\u0022;\r\n\u0022use strict\u0022;\r\n\r\nfunction Main() {\r\n    return __cope_component_Main_Surface();\r\n}\r\n\r\nfunction __cope_component_Main_Surface() {\r\n    return createElement(\u0022div\u0022, { className: \u0022m-component-function_module_Main_tsx_Main__presentation__Surface-root_root_0\u0022, \u0022data-machina-box\u0022: \u0022root\u0022, \u0022data-machina-layout\u0022: \u0022Surface\u0022, \u0022data-machina-overflow\u0022: \u0022visible\u0022 }, createElement(\u0022div\u0022, { className: \u0022m-component-function_module_Main_tsx_Main__presentation__Surface-root_root_0_first_0\u0022, \u0022data-machina-box\u0022: \u0022first\u0022, \u0022data-machina-layout\u0022: \u0022Surface\u0022, \u0022data-machina-overflow\u0022: \u0022visible\u0022 }, createElement(\u0022span\u0022, null, \u0022First\u0022)), createElement(\u0022div\u0022, { className: \u0022m-component-function_module_Main_tsx_Main__presentation__Surface-root_root_0_second_1\u0022, \u0022data-machina-box\u0022: \u0022second\u0022, \u0022data-machina-layout\u0022: \u0022Surface\u0022, \u0022data-machina-overflow\u0022: \u0022visible\u0022 }, createElement(\u0022span\u0022, null, \u0022Second\u0022)));\r\n}\r\nexport { Main };\r\n"
+      },
+      "css": ".m-component-function_module_Main_tsx_Main__presentation__Surface-root_root_0 {\n  box-sizing: border-box;\n  width: 100%;\n  height: auto;\n  min-width: 0;\n  min-height: 0;\n  display: flex;\n  flex-direction: column;\n  gap: 12px;\n  padding: 16px 16px 16px 16px;\n  overflow-x: visible;\n  overflow-y: visible;\n}\n\n.m-component-function_module_Main_tsx_Main__presentation__Surface-root_root_0_first_0 {\n  box-sizing: border-box;\n  width: 100%;\n  flex: 0 0 auto;\n  height: auto;\n  min-width: 0;\n  min-height: 0;\n  overflow-x: visible;\n  overflow-y: visible;\n}\n\n.m-component-function_module_Main_tsx_Main__presentation__Surface-root_root_0_second_1 {\n  box-sizing: border-box;\n  width: 100%;\n  flex: 0 0 auto;\n  height: auto;\n  min-width: 0;\n  min-height: 0;\n  overflow-x: visible;\n  overflow-y: visible;\n}\n\n"
+    },
+    {
+      "name": "interpolated-text-spacing",
+      "accepted": true,
+      "expectationMatched": true,
+      "diagnostics": [],
+      "javascript": {
+        "Main.js": "import { createElement } from \u0022react\u0022;\r\n\u0022use strict\u0022;\r\n\r\nfunction Main(name) {\r\n    return createElement(\u0022p\u0022, null, \u0022Workspace: \u0022, name);\r\n}\r\nexport { Main };\r\n"
+      },
+      "css": null
+    },
+    {
+      "name": "separate-layout-and-binding",
+      "accepted": true,
+      "expectationMatched": true,
+      "diagnostics": [],
+      "javascript": {
+        "Main.js": "import { createElement } from \u0022react\u0022;\r\n\u0022use strict\u0022;\r\n\r\nfunction Heading() {\r\n    return createElement(\u0022h1\u0022, null, \u0022Heading\u0022);\r\n}\r\n\r\nfunction Body() {\r\n    return createElement(\u0022p\u0022, null, \u0022Body\u0022);\r\n}\r\n\r\nfunction Main() {\r\n    return PageBinding();\r\n}\r\n\r\nfunction PageBinding() {\r\n    return createElement(\u0022div\u0022, { className: \u0022m-node m-frame-Page-root-0 m-style-a55dc521fe99\u0022, \u0022data-machina-box\u0022: \u0022root\u0022, \u0022data-machina-layout\u0022: \u0022Page\u0022, \u0022data-machina-overflow\u0022: \u0022visible\u0022 }, createElement(\u0022div\u0022, { className: \u0022m-node m-frame-Page-root-0-0 m-style-a55dc521fe99\u0022, \u0022data-machina-box\u0022: \u0022heading\u0022, \u0022data-machina-layout\u0022: \u0022Page\u0022, \u0022data-machina-overflow\u0022: \u0022visible\u0022 }, Heading()), createElement(\u0022div\u0022, { className: \u0022m-node m-frame-Page-root-0-1 m-style-a55dc521fe99\u0022, \u0022data-machina-box\u0022: \u0022body\u0022, \u0022data-machina-layout\u0022: \u0022Page\u0022, \u0022data-machina-overflow\u0022: \u0022visible\u0022 }, Body()));\r\n}\r\nexport { Main };\r\n",
+        "generated/layouts/Main_tsx-Page.js": "export const Page = Object.freeze({\n  \u0022body\u0022: Object.freeze({ className: \u0022m-node m-frame-Page-root-0-1 m-style-a55dc521fe99\u0022 }),\n  \u0022heading\u0022: Object.freeze({ className: \u0022m-node m-frame-Page-root-0-0 m-style-a55dc521fe99\u0022 }),\n  \u0022root\u0022: Object.freeze({ className: \u0022m-node m-frame-Page-root-0 m-style-a55dc521fe99\u0022 }),\n});\n"
+      },
+      "css": "/* Main.tsx :: Page */\n/* Generated by Copeland Machina. Edit Copeland source, not this CSS. */\n\n.m-style-a55dc521fe99 {\n}\n\n\n.m-frame-Page-root {\n  position: relative;\n  width: 800px;\n  height: 600px;\n  box-sizing: border-box;\n}\n\n.m-frame-Page-root-0 {\n  position: absolute;\n  left: 0px;\n  top: 0px;\n  width: 800px;\n  height: 600px;\n  box-sizing: border-box;\n}\n\n.m-frame-Page-root-0-0 {\n  position: absolute;\n  left: 0px;\n  top: 0px;\n  width: 800px;\n  height: 64px;\n  box-sizing: border-box;\n}\n\n.m-frame-Page-root-0-1 {\n  position: absolute;\n  left: 0px;\n  top: 64px;\n  width: 800px;\n  height: 536px;\n  box-sizing: border-box;\n}\n\n\n/* Copeland deterministic paint order: layer rank, local z, then DOM authored order. */\n.m-frame-Page-root-0 {\n  z-index: 5;\n  isolation: isolate;\n}\n\n.m-frame-Page-root-0-0 {\n  z-index: 5;\n}\n\n.m-frame-Page-root-0-1 {\n  z-index: 5;\n}\n\n\n/* Copeland explicit overflow policy. */\n.m-frame-Page-root-0 {\n  overflow-x: visible;\n  overflow-y: visible;\n}\n\n.m-frame-Page-root-0-0 {\n  overflow-x: visible;\n  overflow-y: visible;\n}\n\n.m-frame-Page-root-0-1 {\n  overflow-x: visible;\n  overflow-y: visible;\n}\n\n\n"
+    },
+    {
+      "name": "captured-imported-event-constructor",
+      "accepted": true,
+      "expectationMatched": true,
+      "diagnostics": [],
+      "javascript": {
+        "Events.js": "\u0022use strict\u0022;\r\n\r\nconst __cope_callable_instances = new WeakSet();\r\nconst __cope_callable_signatures = new WeakMap();\r\nconst __cope_callable_codes = new WeakMap();\r\nconst __cope_callable_host_carriers = new WeakMap();\r\nfunction __cope_callable_ref(signature, code) {\r\n    const carrier = Object.create(null);\r\n    __cope_callable_signatures.set(carrier, signature);\r\n    __cope_callable_codes.set(carrier, code);\r\n    __cope_callable_instances.add(carrier);\r\n    return Object.freeze(carrier);\r\n}\r\nfunction __cope_callable_host(signature, hostCallable) {\r\n    if (typeof hostCallable !== \u0022function\u0022) throw new Error(\u0022COPE-PANIC-CALLABLE: host returned a non-callable value\u0022);\r\n    return __cope_callable_ref(signature, (...argumentsInOrder) =\u003E hostCallable(...argumentsInOrder));\r\n}\r\nfunction __cope_callable_host_retained(signature, hostCallable) {\r\n    if (typeof hostCallable !== \u0022function\u0022) throw new Error(\u0022COPE-PANIC-CALLABLE: host supplied a non-callable callback argument\u0022);\r\n    let bySignature = __cope_callable_host_carriers.get(hostCallable);\r\n    if (bySignature === undefined) {\r\n        bySignature = new Map();\r\n        __cope_callable_host_carriers.set(hostCallable, bySignature);\r\n    }\r\n    let carrier = bySignature.get(signature);\r\n    if (carrier === undefined) {\r\n        carrier = __cope_callable_host(signature, hostCallable);\r\n        bySignature.set(signature, carrier);\r\n    }\r\n    return carrier;\r\n}\r\nfunction __cope_callable_invoke(carrier, signature, argumentsInOrder) {\r\n    if (!__cope_callable_instances.has(carrier) || __cope_callable_signatures.get(carrier) !== signature) throw new Error(\u0022COPE-PANIC-CALLABLE: invalid callable\u0022);\r\n    const code = __cope_callable_codes.get(carrier);\r\n    return code(...argumentsInOrder);\r\n}\r\n\r\nfunction __cope_m3_panic_0() {\r\n    throw new Error(\u0022Copeland JavaScript backend invariant failure.\u0022);\r\n}\r\n\r\nfunction __cope_m3_make_1(type, tag, payload) {\r\n    const value = Object.freeze(Object.assign(Object.create(null), { $type: type, $tag: tag, $payload: Object.freeze(payload) }));\r\n    if (type === __cope_m3_type_2) __cope_m3_instances_3.add(value);\r\n    return value;\r\n}\r\n\r\nconst __cope_m3_type_2 = Object.freeze(Object.create(null));\r\nconst __cope_m3_instances_3 = new WeakSet();\r\n\r\nfunction __cope_enum_004500760065006e0074_00430068006f006f00730065(payload0) {\r\n    return __cope_m3_make_1(__cope_m3_type_2, \u0022Choose\u0022, [payload0]);\r\n}\r\n\r\nfunction __cope_m3_validate_4(value) {\r\n    if (typeof value !== \u0022object\u0022 || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_instances_3.has(value) || !Object.prototype.hasOwnProperty.call(value, \u0022$type\u0022) || !Object.prototype.hasOwnProperty.call(value, \u0022$tag\u0022) || !Object.prototype.hasOwnProperty.call(value, \u0022$payload\u0022) || value.$type !== __cope_m3_type_2 || typeof value.$tag !== \u0022string\u0022 || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload)) {\r\n        __cope_m3_panic_0();\r\n    }\r\n    switch (value.$tag) {\r\n        case \u0022Choose\u0022:\r\n            if (value.$payload.length !== 1) {\r\n                __cope_m3_panic_0();\r\n            }\r\n            if (!Object.prototype.hasOwnProperty.call(value.$payload, 0) || !(typeof value.$payload[0] === \u0022number\u0022)) {\r\n                __cope_m3_panic_0();\r\n            }\r\n            return;\r\n        default:\r\n            __cope_m3_panic_0();\r\n    }\r\n}\r\nexport { __cope_enum_004500760065006e0074_00430068006f006f00730065 };\r\n",
+        "Main.js": "import { createElement } from \u0022react\u0022;\r\nimport { __cope_enum_004500760065006e0074_00430068006f006f00730065 } from \u0022./Events.js\u0022;\r\n\u0022use strict\u0022;\r\n\r\nconst __cope_callable_instances = new WeakSet();\r\nconst __cope_callable_signatures = new WeakMap();\r\nconst __cope_callable_codes = new WeakMap();\r\nconst __cope_callable_host_carriers = new WeakMap();\r\nfunction __cope_callable_ref(signature, code) {\r\n    const carrier = Object.create(null);\r\n    __cope_callable_signatures.set(carrier, signature);\r\n    __cope_callable_codes.set(carrier, code);\r\n    __cope_callable_instances.add(carrier);\r\n    return Object.freeze(carrier);\r\n}\r\nfunction __cope_callable_host(signature, hostCallable) {\r\n    if (typeof hostCallable !== \u0022function\u0022) throw new Error(\u0022COPE-PANIC-CALLABLE: host returned a non-callable value\u0022);\r\n    return __cope_callable_ref(signature, (...argumentsInOrder) =\u003E hostCallable(...argumentsInOrder));\r\n}\r\nfunction __cope_callable_host_retained(signature, hostCallable) {\r\n    if (typeof hostCallable !== \u0022function\u0022) throw new Error(\u0022COPE-PANIC-CALLABLE: host supplied a non-callable callback argument\u0022);\r\n    let bySignature = __cope_callable_host_carriers.get(hostCallable);\r\n    if (bySignature === undefined) {\r\n        bySignature = new Map();\r\n        __cope_callable_host_carriers.set(hostCallable, bySignature);\r\n    }\r\n    let carrier = bySignature.get(signature);\r\n    if (carrier === undefined) {\r\n        carrier = __cope_callable_host(signature, hostCallable);\r\n        bySignature.set(signature, carrier);\r\n    }\r\n    return carrier;\r\n}\r\nfunction __cope_callable_invoke(carrier, signature, argumentsInOrder) {\r\n    if (!__cope_callable_instances.has(carrier) || __cope_callable_signatures.get(carrier) !== signature) throw new Error(\u0022COPE-PANIC-CALLABLE: invalid callable\u0022);\r\n    const code = __cope_callable_codes.get(carrier);\r\n    return code(...argumentsInOrder);\r\n}\r\n\r\nfunction __cope_m3_panic_0() {\r\n    throw new Error(\u0022Copeland JavaScript backend invariant failure.\u0022);\r\n}\r\n\r\nfunction __cope_m3_make_1(type, tag, payload) {\r\n    const value = Object.freeze(Object.assign(Object.create(null), { $type: type, $tag: tag, $payload: Object.freeze(payload) }));\r\n    if (type === __cope_m3_type_2) __cope_m3_instances_3.add(value);\r\n    return value;\r\n}\r\n\r\nconst __cope_m3_type_2 = Object.freeze(Object.create(null));\r\nconst __cope_m3_instances_3 = new WeakSet();\r\n\r\n\r\n\r\nfunction __cope_m3_validate_4(value) {\r\n    if (typeof value !== \u0022object\u0022 || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_instances_3.has(value) || !Object.prototype.hasOwnProperty.call(value, \u0022$type\u0022) || !Object.prototype.hasOwnProperty.call(value, \u0022$tag\u0022) || !Object.prototype.hasOwnProperty.call(value, \u0022$payload\u0022) || value.$type !== __cope_m3_type_2 || typeof value.$tag !== \u0022string\u0022 || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload)) {\r\n        __cope_m3_panic_0();\r\n    }\r\n    switch (value.$tag) {\r\n        case \u0022Choose\u0022:\r\n            if (value.$payload.length !== 1) {\r\n                __cope_m3_panic_0();\r\n            }\r\n            if (!Object.prototype.hasOwnProperty.call(value.$payload, 0) || !(typeof value.$payload[0] === \u0022number\u0022)) {\r\n                __cope_m3_panic_0();\r\n            }\r\n            return;\r\n        default:\r\n            __cope_m3_panic_0();\r\n    }\r\n}\r\n\r\nfunction __cope_Main_tsx___cope_arrow_0(send) {\r\n    return __cope_callable_invoke(send, \u0022(named:Event)-\u003Enamed:void\u0022, [__cope_enum_004500760065006e0074_00430068006f006f00730065(1)]);\r\n}\r\n\r\nfunction Main(send) {\r\n    return createElement(\u0022button\u0022, { onClick: () =\u003E __cope_callable_invoke(__cope_callable_capture(\u0022()-\u003Enamed:void\u0022, __cope_Main_tsx___cope_arrow_0, [send]), \u0022()-\u003Enamed:void\u0022, []) }, \u0022Choose\u0022);\r\n}\r\nexport { Main };\r\n"
+      },
+      "css": null
+    },
+    {
+      "name": "named-capture-expression",
+      "accepted": true,
+      "expectationMatched": true,
+      "diagnostics": [],
+      "javascript": {
+        "Main.js": "\u0022use strict\u0022;\r\n\r\nconst __cope_callable_instances = new WeakSet();\r\nconst __cope_callable_signatures = new WeakMap();\r\nconst __cope_callable_codes = new WeakMap();\r\nconst __cope_callable_host_carriers = new WeakMap();\r\nconst __cope_callable_environments = new WeakMap();\r\nconst __cope_callable_environment_instances = new WeakSet();\r\nconst __cope_callable_environment_values = new WeakMap();\r\nfunction __cope_callable_ref(signature, code) {\r\n    const carrier = Object.create(null);\r\n    __cope_callable_signatures.set(carrier, signature);\r\n    __cope_callable_codes.set(carrier, code);\r\n    __cope_callable_instances.add(carrier);\r\n    return Object.freeze(carrier);\r\n}\r\nfunction __cope_callable_host(signature, hostCallable) {\r\n    if (typeof hostCallable !== \u0022function\u0022) throw new Error(\u0022COPE-PANIC-CALLABLE: host returned a non-callable value\u0022);\r\n    return __cope_callable_ref(signature, (...argumentsInOrder) =\u003E hostCallable(...argumentsInOrder));\r\n}\r\nfunction __cope_callable_host_retained(signature, hostCallable) {\r\n    if (typeof hostCallable !== \u0022function\u0022) throw new Error(\u0022COPE-PANIC-CALLABLE: host supplied a non-callable callback argument\u0022);\r\n    let bySignature = __cope_callable_host_carriers.get(hostCallable);\r\n    if (bySignature === undefined) {\r\n        bySignature = new Map();\r\n        __cope_callable_host_carriers.set(hostCallable, bySignature);\r\n    }\r\n    let carrier = bySignature.get(signature);\r\n    if (carrier === undefined) {\r\n        carrier = __cope_callable_host(signature, hostCallable);\r\n        bySignature.set(signature, carrier);\r\n    }\r\n    return carrier;\r\n}\r\nfunction __cope_callable_capture(signature, code, values) {\r\n    const environment = Object.create(null);\r\n    __cope_callable_environment_values.set(environment, Object.freeze(values.slice()));\r\n    __cope_callable_environment_instances.add(environment);\r\n    Object.freeze(environment);\r\n    const carrier = Object.create(null);\r\n    __cope_callable_signatures.set(carrier, signature);\r\n    __cope_callable_codes.set(carrier, code);\r\n    __cope_callable_environments.set(carrier, environment);\r\n    __cope_callable_instances.add(carrier);\r\n    return Object.freeze(carrier);\r\n}\r\nfunction __cope_callable_invoke(carrier, signature, argumentsInOrder) {\r\n    if (!__cope_callable_instances.has(carrier) || __cope_callable_signatures.get(carrier) !== signature) throw new Error(\u0022COPE-PANIC-CALLABLE: invalid callable\u0022);\r\n    const code = __cope_callable_codes.get(carrier);\r\n    const environment = __cope_callable_environments.get(carrier);\r\n    if (environment === undefined) return code(...argumentsInOrder);\r\n    if (!__cope_callable_environment_instances.has(environment)) throw new Error(\u0022COPE-PANIC-CALLABLE: invalid environment\u0022);\r\n    return code(...__cope_callable_environment_values.get(environment), ...argumentsInOrder);\r\n}\r\n\r\nfunction __cope_Main_tsx___cope_arrow_0(value) {\r\n    return value;\r\n}\r\n\r\nfunction main() {\r\n    const source = 7;\r\n    const f = __cope_callable_capture(\u0022()-\u003Enamed:number\u0022, __cope_Main_tsx___cope_arrow_0, [(source \u002B 1)]);\r\n    return __cope_callable_invoke(f, \u0022()-\u003Enamed:number\u0022, []);\r\n}\r\n"
+      },
+      "css": null
+    },
+    {
+      "name": "module-contribution-stream",
+      "accepted": true,
+      "expectationMatched": true,
+      "diagnostics": [],
+      "javascript": {
+        "Main.js": "import { createElement } from \u0022react\u0022;\r\n\u0022use strict\u0022;\r\n\r\nfunction __cope_m3_panic_0() {\r\n    throw new Error(\u0022Copeland JavaScript backend invariant failure.\u0022);\r\n}\r\n\r\n\r\nconst __cope_m3_record_registry_key = Symbol.for(\u0022copeland.ts.record-registry.v1\u0022);\r\nlet __cope_m3_record_registry = globalThis[__cope_m3_record_registry_key];\r\nif (__cope_m3_record_registry === undefined) {\r\n    __cope_m3_record_registry = new Map();\r\n    Object.defineProperty(globalThis, __cope_m3_record_registry_key, { value: __cope_m3_record_registry, writable: false, enumerable: false, configurable: false });\r\n}\r\nfunction __cope_m3_record_registration(id) {\r\n    let registration = __cope_m3_record_registry.get(id);\r\n    if (registration === undefined) {\r\n        registration = { type: Symbol.for(\u0022copeland.ts.record.\u0022 \u002B id), instances: new WeakSet(), fields: new Map() };\r\n        __cope_m3_record_registry.set(id, registration);\r\n    }\r\n    return registration;\r\n}\r\nfunction __cope_m3_record_field(registration, id) {\r\n    let field = registration.fields.get(id);\r\n    if (field === undefined) {\r\n        field = Symbol(id);\r\n        registration.fields.set(id, field);\r\n    }\r\n    return field;\r\n}\r\n\r\nconst __cope_m3_record_registration_r221387001 = __cope_m3_record_registration(\u0022r221387001\u0022);\r\nconst __cope_m3_record_type_r221387001_1 = __cope_m3_record_registration_r221387001.type;\r\nconst __cope_m3_record_instances_r221387001_2 = __cope_m3_record_registration_r221387001.instances;\r\nconst __cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_5 = __cope_m3_record_field(__cope_m3_record_registration_r221387001, \u0022r221387001.f0\u0022);\r\n\r\nfunction __cope_m3_record_make_r221387001_3(field0) {\r\n    const value = Object.create(null);\r\n    Object.defineProperties(value, {\r\n        [__cope_m3_record_type_r221387001_1]: { value: __cope_m3_record_type_r221387001_1, writable: false, enumerable: false, configurable: false },\r\n        [__cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_5]: { value: field0, writable: false, enumerable: false, configurable: false },\r\n    });\r\n    Object.freeze(value);\r\n    __cope_m3_record_instances_r221387001_2.add(value);\r\n    return value;\r\n}\r\n\r\nfunction __cope_m3_record_require_r221387001_4(value) {\r\n    if (typeof value !== \u0022object\u0022 || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_record_instances_r221387001_2.has(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_type_r221387001_1) || value[__cope_m3_record_type_r221387001_1] !== __cope_m3_record_type_r221387001_1 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_5)) {\r\n        __cope_m3_panic_0();\r\n    }\r\n}\r\n\r\nfunction __cope_record_0072003200320031003300380037003000300031(field0) {\r\n    return __cope_m3_record_make_r221387001_3(field0);\r\n}\r\n\r\nfunction __cope_stream_Main_tsx__contribution__Content_initialize() {\r\n    const __cope_m3_record_init_6 = createElement(\u0022span\u0022, null, \u0022Body\u0022);\r\n    return __cope_record_0072003200320031003300380037003000300031(__cope_m3_record_init_6);\r\n}\r\n\r\nfunction __cope_stream_Main_tsx__contribution__Content_read() {\r\n    return __cope_stream_Main_tsx__contribution__Content_value;\r\n}\r\n\r\nfunction Main() {\r\n    return __cope_bind_function_module_Main_tsx_Main__bind__0(__cope_stream_Main_tsx__contribution__Content_read());\r\n}\r\n\r\nfunction __cope_bind_function_module_Main_tsx_Main__bind__0(__contributions) {\r\n    const __cope_m3_record_receiver_7 = __contributions;\r\n    __cope_m3_record_require_r221387001_4(__cope_m3_record_receiver_7);\r\n    return createElement(\u0022div\u0022, { className: \u0022m-component-Main_tsx__layout__Page-root_root_0\u0022, \u0022data-machina-box\u0022: \u0022root\u0022, \u0022data-machina-layout\u0022: \u0022Page\u0022, \u0022data-machina-overflow\u0022: \u0022visible\u0022 }, createElement(\u0022div\u0022, { className: \u0022m-component-Main_tsx__layout__Page-root_root_0_body_0\u0022, \u0022data-machina-box\u0022: \u0022body\u0022, \u0022data-machina-layout\u0022: \u0022Page\u0022, \u0022data-machina-overflow\u0022: \u0022visible\u0022 }, __cope_m3_record_receiver_7[__cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_5]));\r\n}\r\nconst __cope_stream_Main_tsx__contribution__Content_value = __cope_stream_Main_tsx__contribution__Content_initialize();\r\nexport { __cope_stream_Main_tsx__contribution__Content_read as Content, Main };\r\n"
+      },
+      "css": ".m-component-Main_tsx__layout__Page-root_root_0 {\n  box-sizing: border-box;\n  width: 100%;\n  height: auto;\n  min-width: 0;\n  min-height: 0;\n  display: flex;\n  flex-direction: column;\n  gap: 0px;\n  overflow-x: visible;\n  overflow-y: visible;\n}\n\n.m-component-Main_tsx__layout__Page-root_root_0_body_0 {\n  box-sizing: border-box;\n  width: 100%;\n  flex: 0 0 auto;\n  height: auto;\n  min-width: 0;\n  min-height: 0;\n  overflow-x: visible;\n  overflow-y: visible;\n}\n\n"
+    },
+    {
+      "name": "local-contribution-stream",
+      "accepted": true,
+      "expectationMatched": true,
+      "diagnostics": [],
+      "javascript": {
+        "Main.js": "import { createElement } from \u0022react\u0022;\r\n\u0022use strict\u0022;\r\n\r\nfunction __cope_m3_panic_0() {\r\n    throw new Error(\u0022Copeland JavaScript backend invariant failure.\u0022);\r\n}\r\n\r\n\r\nconst __cope_m3_record_type_r221387001_1 = Symbol(\u0022r221387001\u0022);\r\nconst __cope_m3_record_instances_r221387001_2 = new WeakSet();\r\nconst __cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_5 = Symbol(\u0022r221387001.f0\u0022);\r\n\r\nfunction __cope_m3_record_make_r221387001_3(field0) {\r\n    const value = Object.create(null);\r\n    Object.defineProperties(value, {\r\n        [__cope_m3_record_type_r221387001_1]: { value: __cope_m3_record_type_r221387001_1, writable: false, enumerable: false, configurable: false },\r\n        [__cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_5]: { value: field0, writable: false, enumerable: false, configurable: false },\r\n    });\r\n    Object.freeze(value);\r\n    __cope_m3_record_instances_r221387001_2.add(value);\r\n    return value;\r\n}\r\n\r\nfunction __cope_m3_record_require_r221387001_4(value) {\r\n    if (typeof value !== \u0022object\u0022 || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_record_instances_r221387001_2.has(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_type_r221387001_1) || value[__cope_m3_record_type_r221387001_1] !== __cope_m3_record_type_r221387001_1 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_5)) {\r\n        __cope_m3_panic_0();\r\n    }\r\n}\r\n\r\nfunction __cope_record_0072003200320031003300380037003000300031(field0) {\r\n    return __cope_m3_record_make_r221387001_3(field0);\r\n}\r\n\r\nfunction Main(text) {\r\n    const __cope_m3_record_init_6 = createElement(\u0022span\u0022, null, text);\r\n    const Content = __cope_record_0072003200320031003300380037003000300031(__cope_m3_record_init_6);\r\n    return __cope_bind_function_module_Main_tsx_Main__bind__0(Content);\r\n}\r\n\r\nfunction __cope_bind_function_module_Main_tsx_Main__bind__0(__contributions) {\r\n    const __cope_m3_record_receiver_7 = __contributions;\r\n    __cope_m3_record_require_r221387001_4(__cope_m3_record_receiver_7);\r\n    return createElement(\u0022div\u0022, { className: \u0022m-component-Main_tsx__layout__Page-root_root_0\u0022, \u0022data-machina-box\u0022: \u0022root\u0022, \u0022data-machina-layout\u0022: \u0022Page\u0022, \u0022data-machina-overflow\u0022: \u0022visible\u0022 }, createElement(\u0022div\u0022, { className: \u0022m-component-Main_tsx__layout__Page-root_root_0_body_0\u0022, \u0022data-machina-box\u0022: \u0022body\u0022, \u0022data-machina-layout\u0022: \u0022Page\u0022, \u0022data-machina-overflow\u0022: \u0022visible\u0022 }, __cope_m3_record_receiver_7[__cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_5]));\r\n}\r\nexport { Main };\r\n"
+      },
+      "css": ".m-component-Main_tsx__layout__Page-root_root_0 {\n  box-sizing: border-box;\n  width: 100%;\n  height: auto;\n  min-width: 0;\n  min-height: 0;\n  display: flex;\n  flex-direction: column;\n  gap: 0px;\n  overflow-x: visible;\n  overflow-y: visible;\n}\n\n.m-component-Main_tsx__layout__Page-root_root_0_body_0 {\n  box-sizing: border-box;\n  width: 100%;\n  flex: 0 0 auto;\n  height: auto;\n  min-width: 0;\n  min-height: 0;\n  overflow-x: visible;\n  overflow-y: visible;\n}\n\n"
+    },
+    {
+      "name": "class-contribution-stream",
+      "accepted": true,
+      "expectationMatched": true,
+      "diagnostics": [],
+      "javascript": {
+        "Main.js": "import { createElement } from \u0022react\u0022;\r\n\u0022use strict\u0022;\r\n\r\nfunction __cope_m3_panic_0() {\r\n    throw new Error(\u0022Copeland JavaScript backend invariant failure.\u0022);\r\n}\r\n\r\n\r\nconst __cope_m3_record_registry_key = Symbol.for(\u0022copeland.ts.record-registry.v1\u0022);\r\nlet __cope_m3_record_registry = globalThis[__cope_m3_record_registry_key];\r\nif (__cope_m3_record_registry === undefined) {\r\n    __cope_m3_record_registry = new Map();\r\n    Object.defineProperty(globalThis, __cope_m3_record_registry_key, { value: __cope_m3_record_registry, writable: false, enumerable: false, configurable: false });\r\n}\r\nfunction __cope_m3_record_registration(id) {\r\n    let registration = __cope_m3_record_registry.get(id);\r\n    if (registration === undefined) {\r\n        registration = { type: Symbol.for(\u0022copeland.ts.record.\u0022 \u002B id), instances: new WeakSet(), fields: new Map() };\r\n        __cope_m3_record_registry.set(id, registration);\r\n    }\r\n    return registration;\r\n}\r\nfunction __cope_m3_record_field(registration, id) {\r\n    let field = registration.fields.get(id);\r\n    if (field === undefined) {\r\n        field = Symbol(id);\r\n        registration.fields.set(id, field);\r\n    }\r\n    return field;\r\n}\r\n\r\nconst __cope_m3_record_registration_r221387002 = __cope_m3_record_registration(\u0022r221387002\u0022);\r\nconst __cope_m3_record_type_r221387002_1 = __cope_m3_record_registration_r221387002.type;\r\nconst __cope_m3_record_instances_r221387002_2 = __cope_m3_record_registration_r221387002.instances;\r\nconst __cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660030_5 = __cope_m3_record_field(__cope_m3_record_registration_r221387002, \u0022r221387002.f0\u0022);\r\n\r\nfunction __cope_m3_record_make_r221387002_3(field0) {\r\n    const value = Object.create(null);\r\n    Object.defineProperties(value, {\r\n        [__cope_m3_record_type_r221387002_1]: { value: __cope_m3_record_type_r221387002_1, writable: false, enumerable: false, configurable: false },\r\n        [__cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660030_5]: { value: field0, writable: false, enumerable: false, configurable: false },\r\n    });\r\n    Object.freeze(value);\r\n    __cope_m3_record_instances_r221387002_2.add(value);\r\n    return value;\r\n}\r\n\r\nfunction __cope_m3_record_require_r221387002_4(value) {\r\n    if (typeof value !== \u0022object\u0022 || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_record_instances_r221387002_2.has(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_type_r221387002_1) || value[__cope_m3_record_type_r221387002_1] !== __cope_m3_record_type_r221387002_1 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660030_5)) {\r\n        __cope_m3_panic_0();\r\n    }\r\n}\r\n\r\nfunction __cope_record_0072003200320031003300380037003000300032(field0) {\r\n    return __cope_m3_record_make_r221387002_3(field0);\r\n}\r\n\r\nconst __cope_m3_record_registration_r221387001 = __cope_m3_record_registration(\u0022r221387001\u0022);\r\nconst __cope_m3_record_type_r221387001_6 = __cope_m3_record_registration_r221387001.type;\r\nconst __cope_m3_record_instances_r221387001_7 = __cope_m3_record_registration_r221387001.instances;\r\nconst __cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_10 = __cope_m3_record_field(__cope_m3_record_registration_r221387001, \u0022r221387001.f0\u0022);\r\n\r\nfunction __cope_m3_record_make_r221387001_8(field0) {\r\n    const value = Object.create(null);\r\n    Object.defineProperties(value, {\r\n        [__cope_m3_record_type_r221387001_6]: { value: __cope_m3_record_type_r221387001_6, writable: false, enumerable: false, configurable: false },\r\n        [__cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_10]: { value: field0, writable: false, enumerable: false, configurable: false },\r\n    });\r\n    Object.freeze(value);\r\n    __cope_m3_record_instances_r221387001_7.add(value);\r\n    return value;\r\n}\r\n\r\nfunction __cope_record_0072003200320031003300380037003000300031(field0) {\r\n    return __cope_m3_record_make_r221387001_8(field0);\r\n}\r\n\r\nfunction __cope_stream_Main_tsx__contribution__Theme__Content_initialize() {\r\n    const __cope_m3_record_init_11 = createElement(\u0022span\u0022, null, \u0022Body\u0022);\r\n    return __cope_record_0072003200320031003300380037003000300032(__cope_m3_record_init_11);\r\n}\r\n\r\nfunction __cope_stream_Main_tsx__contribution__Theme__Content_read() {\r\n    return __cope_stream_Main_tsx__contribution__Theme__Content_value;\r\n}\r\n\r\nfunction Theme__constructor() {\r\n    const __cope_m3_record_init_12 = 0;\r\n    return __cope_record_0072003200320031003300380037003000300031(__cope_m3_record_init_12);\r\n}\r\n\r\nfunction Main() {\r\n    return __cope_bind_function_module_Main_tsx_Main__bind__0(__cope_stream_Main_tsx__contribution__Theme__Content_read());\r\n}\r\n\r\nfunction __cope_bind_function_module_Main_tsx_Main__bind__0(__contributions) {\r\n    const __cope_m3_record_receiver_13 = __contributions;\r\n    __cope_m3_record_require_r221387002_4(__cope_m3_record_receiver_13);\r\n    return createElement(\u0022div\u0022, { className: \u0022m-component-Main_tsx__layout__Page-root_root_0\u0022, \u0022data-machina-box\u0022: \u0022root\u0022, \u0022data-machina-layout\u0022: \u0022Page\u0022, \u0022data-machina-overflow\u0022: \u0022visible\u0022 }, createElement(\u0022div\u0022, { className: \u0022m-component-Main_tsx__layout__Page-root_root_0_body_0\u0022, \u0022data-machina-box\u0022: \u0022body\u0022, \u0022data-machina-layout\u0022: \u0022Page\u0022, \u0022data-machina-overflow\u0022: \u0022visible\u0022 }, __cope_m3_record_receiver_13[__cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660030_5]));\r\n}\r\nconst __cope_stream_Main_tsx__contribution__Theme__Content_value = __cope_stream_Main_tsx__contribution__Theme__Content_initialize();\r\nexport { Main };\r\n"
+      },
+      "css": ".m-component-Main_tsx__layout__Page-root_root_0 {\n  box-sizing: border-box;\n  width: 100%;\n  height: auto;\n  min-width: 0;\n  min-height: 0;\n  display: flex;\n  flex-direction: column;\n  gap: 0px;\n  overflow-x: visible;\n  overflow-y: visible;\n}\n\n.m-component-Main_tsx__layout__Page-root_root_0_body_0 {\n  box-sizing: border-box;\n  width: 100%;\n  flex: 0 0 auto;\n  height: auto;\n  min-width: 0;\n  min-height: 0;\n  overflow-x: visible;\n  overflow-y: visible;\n}\n\n"
+    },
+    {
+      "name": "missing-contribution",
+      "accepted": false,
+      "expectationMatched": true,
+      "diagnostics": [
+        {
+          "code": "COPE-STREAM-CONTENT-0006",
+          "message": "Contribution stream is missing required channel \u0027Page.root.body\u0027.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        }
+      ],
+      "javascript": null,
+      "css": null
+    },
+    {
+      "name": "duplicate-contribution",
+      "accepted": false,
+      "expectationMatched": true,
+      "diagnostics": [
+        {
+          "code": "COPE-STREAM-CONTENT-0002",
+          "message": "Channel \u0027body\u0027 is declared more than once in stream \u0027Content\u0027.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        }
+      ],
+      "javascript": null,
+      "css": null
+    },
+    {
+      "name": "wrong-contribution-type",
+      "accepted": false,
+      "expectationMatched": true,
+      "diagnostics": [
+        {
+          "code": "COPE-STREAM-CONTENT-0003",
+          "message": "Channel \u0027Content.body\u0027 requires one ReactNode; got \u0027int\u0027.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        }
+      ],
+      "javascript": null,
+      "css": null
+    },
+    {
+      "name": "later-module-stream-read",
+      "accepted": false,
+      "expectationMatched": true,
+      "diagnostics": [
+        {
+          "code": "COPE-STREAM-CONTENT-0007",
+          "message": "Module value \u0027First\u0027 reads \u0027Later\u0027 before initialization through \u0027Later reader\u0027. Declare the dependency first or construct the stream locally.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        }
+      ],
+      "javascript": null,
+      "css": null
+    },
+    {
+      "name": "imported-layout-template-and-variant",
+      "accepted": true,
+      "expectationMatched": true,
+      "diagnostics": [],
+      "javascript": {
+        "Main.js": "import { createElement } from \u0022react\u0022;\r\n\u0022use strict\u0022;\r\n\r\nfunction __cope_m3_panic_0() {\r\n    throw new Error(\u0022Copeland JavaScript backend invariant failure.\u0022);\r\n}\r\n\r\n\r\nconst __cope_m3_record_type_r221387001_1 = Symbol(\u0022r221387001\u0022);\r\nconst __cope_m3_record_instances_r221387001_2 = new WeakSet();\r\nconst __cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_5 = Symbol(\u0022r221387001.f0\u0022);\r\n\r\nfunction __cope_m3_record_make_r221387001_3(field0) {\r\n    const value = Object.create(null);\r\n    Object.defineProperties(value, {\r\n        [__cope_m3_record_type_r221387001_1]: { value: __cope_m3_record_type_r221387001_1, writable: false, enumerable: false, configurable: false },\r\n        [__cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_5]: { value: field0, writable: false, enumerable: false, configurable: false },\r\n    });\r\n    Object.freeze(value);\r\n    __cope_m3_record_instances_r221387001_2.add(value);\r\n    return value;\r\n}\r\n\r\nfunction __cope_m3_record_require_r221387001_4(value) {\r\n    if (typeof value !== \u0022object\u0022 || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_record_instances_r221387001_2.has(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_type_r221387001_1) || value[__cope_m3_record_type_r221387001_1] !== __cope_m3_record_type_r221387001_1 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_5)) {\r\n        __cope_m3_panic_0();\r\n    }\r\n}\r\n\r\nfunction __cope_record_0072003200320031003300380037003000300031(field0) {\r\n    return __cope_m3_record_make_r221387001_3(field0);\r\n}\r\n\r\nfunction Main() {\r\n    const __cope_m3_record_init_6 = createElement(\u0022p\u0022, null, \u0022Template content\u0022);\r\n    const Content = __cope_record_0072003200320031003300380037003000300031(__cope_m3_record_init_6);\r\n    return __cope_bind_function_module_Main_tsx_Main__bind__0(Content);\r\n}\r\n\r\nfunction __cope_bind_function_module_Main_tsx_Main__bind__0(__contributions) {\r\n    const __cope_m3_record_receiver_7 = __contributions;\r\n    __cope_m3_record_require_r221387001_4(__cope_m3_record_receiver_7);\r\n    return createElement(\u0022div\u0022, { className: \u0022m-component-Main_tsx__layout__Page-root_root_0\u0022, \u0022data-machina-box\u0022: \u0022root\u0022, \u0022data-machina-layout\u0022: \u0022Page\u0022, \u0022data-machina-overflow\u0022: \u0022visible\u0022 }, createElement(\u0022div\u0022, { className: \u0022m-component-Main_tsx__layout__Page-root_root_0_body_0\u0022, \u0022data-machina-box\u0022: \u0022body\u0022, \u0022data-machina-layout\u0022: \u0022Page\u0022, \u0022data-machina-overflow\u0022: \u0022visible\u0022 }, __cope_m3_record_receiver_7[__cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_5]));\r\n}\r\nexport { Main };\r\n",
+        "Reading.js": "\u0022use strict\u0022;\r\n\r\nfunction __cope_m3_panic_0() {\r\n    throw new Error(\u0022Copeland JavaScript backend invariant failure.\u0022);\r\n}\r\n\r\n\r\nconst __cope_m3_record_type_r221387001_1 = Symbol(\u0022r221387001\u0022);\r\nconst __cope_m3_record_instances_r221387001_2 = new WeakSet();\r\nconst __cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_5 = Symbol(\u0022r221387001.f0\u0022);\r\n\r\nfunction __cope_m3_record_make_r221387001_3(field0) {\r\n    const value = Object.create(null);\r\n    Object.defineProperties(value, {\r\n        [__cope_m3_record_type_r221387001_1]: { value: __cope_m3_record_type_r221387001_1, writable: false, enumerable: false, configurable: false },\r\n        [__cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_5]: { value: field0, writable: false, enumerable: false, configurable: false },\r\n    });\r\n    Object.freeze(value);\r\n    __cope_m3_record_instances_r221387001_2.add(value);\r\n    return value;\r\n}\r\n\r\nfunction __cope_m3_record_require_r221387001_4(value) {\r\n    if (typeof value !== \u0022object\u0022 || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_record_instances_r221387001_2.has(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_type_r221387001_1) || value[__cope_m3_record_type_r221387001_1] !== __cope_m3_record_type_r221387001_1 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_5)) {\r\n        __cope_m3_panic_0();\r\n    }\r\n}\r\n\r\nfunction __cope_record_0072003200320031003300380037003000300031(field0) {\r\n    return __cope_m3_record_make_r221387001_3(field0);\r\n}\r\n"
+      },
+      "css": ".m-component-Main_tsx__layout__Page-root_root_0 {\n  box-sizing: border-box;\n  position: relative;\n  left: calc(var(--machina-ui, 1px) * 4);\n  top: calc(var(--machina-ui, 1px) * 2);\n  width: 100%;\n  height: auto;\n  min-width: 0;\n  min-height: 0;\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n  padding: 16px 16px 16px 16px;\n  overflow-x: visible;\n  overflow-y: visible;\n}\n\n.m-component-Main_tsx__layout__Page-root_root_0_body_0 {\n  box-sizing: border-box;\n  width: 100%;\n  flex: 0 0 auto;\n  height: auto;\n  min-width: 0;\n  min-height: 0;\n  overflow-x: visible;\n  overflow-y: visible;\n}\n\n"
+    },
+    {
+      "name": "unitless-layout-parameter",
+      "accepted": false,
+      "expectationMatched": true,
+      "diagnostics": [
+        {
+          "code": "COPE-STATIC-0007",
+          "message": "Static argument \u0027gap\u0027 must be \u0027Length\u0027, but received \u0027int\u0027.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        }
+      ],
+      "javascript": null,
+      "css": null
+    },
+    {
+      "name": "duplicate-layout-parameter",
+      "accepted": false,
+      "expectationMatched": true,
+      "diagnostics": [
+        {
+          "code": "COPE-TEMPLATE-0002",
+          "message": "Duplicate static argument \u0027gap\u0027.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        }
+      ],
+      "javascript": null,
+      "css": null
+    },
+    {
+      "name": "unknown-layout-parameter",
+      "accepted": false,
+      "expectationMatched": true,
+      "diagnostics": [
+        {
+          "code": "COPE-TEMPLATE-0002",
+          "message": "Template \u0027Reading\u0027 has no static parameter named \u0027padding\u0027.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        }
+      ],
+      "javascript": null,
+      "css": null
+    },
+    {
+      "name": "negative-layout-gap",
+      "accepted": false,
+      "expectationMatched": true,
+      "diagnostics": [
+        {
+          "code": "COPE-LAYOUT-DIMENSION-0001",
+          "message": "\u0027gap\u0027 requires a nonnegative unit-bearing length.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        }
+      ],
+      "javascript": null,
+      "css": null
+    },
+    {
+      "name": "out-of-range-layout-unit",
+      "accepted": false,
+      "expectationMatched": true,
+      "diagnostics": [
+        {
+          "code": "COPE-MACHINA-UI-0001",
+          "message": "A ui literal must be in the inclusive range [0, 1]; received 4.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        }
+      ],
+      "javascript": null,
+      "css": null
+    },
+    {
+      "name": "unknown-layout-path",
+      "accepted": false,
+      "expectationMatched": true,
+      "diagnostics": [
+        {
+          "code": "COPE-LAYOUT-WITH-0002",
+          "message": "Layout \u0027Variant\u0027 has no node at \u0027typo\u0027.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        }
+      ],
+      "javascript": null,
+      "css": null
+    },
+    {
+      "name": "duplicate-layout-path",
+      "accepted": false,
+      "expectationMatched": true,
+      "diagnostics": [
+        {
+          "code": "COPE-LAYOUT-WITH-0001",
+          "message": "Layout replacement \u0027root.gap\u0027 overlaps another replacement.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        }
+      ],
+      "javascript": null,
+      "css": null
+    },
+    {
+      "name": "topology-update-through-with",
+      "accepted": false,
+      "expectationMatched": true,
+      "diagnostics": [
+        {
+          "code": "COPE-LAYOUT-PROPERTY-0002",
+          "message": "Property \u0027kind\u0027 is not valid for this layout node.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        }
+      ],
+      "javascript": null,
+      "css": null
+    }
+  ]
+}

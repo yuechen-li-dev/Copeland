@@ -990,7 +990,18 @@ internal sealed class CopelandWorkspace
                     string typeParameters = string.Join(", ", template.TypeParameters.Select(parameter => "type " + parameter.Identifier.Text + (parameter.RequirementNames.Count == 0 ? string.Empty : " extends " + string.Join(" & ", parameter.RequirementNames.Select(requirement => requirement.Text)))));
                     string staticParameters = string.Join(", ", template.Parameters.Select(parameter => "static " + parameter.Identifier.Text + ": " + FormatType(parameter.Type)));
                     string parameters = string.Join(", ", new[] { typeParameters, staticParameters }.Where(part => part.Length > 0));
-                    yield return new DeclarationInfo(template.Identifier.Text, "template<" + parameters + "> " + template.Identifier.Text + ": " + FormatType(template.ReturnType), 12, template.Identifier.Position);
+                    string templateLabel = template.LayoutBody is null
+                        ? "template<" + parameters + "> " + template.Identifier.Text + ": " + FormatType(template.ReturnType)
+                        : "template<" + parameters + "> layout " + template.Identifier.Text;
+                    yield return new DeclarationInfo(template.Identifier.Text, templateLabel,
+                        template.LayoutBody is null ? 12 : 23, template.Identifier.Position);
+                    if (template.LayoutBody is { } layoutBody)
+                    {
+                        foreach (LayoutNodeSyntax node in layoutBody.Nodes)
+                        {
+                            foreach (DeclarationInfo slot in LayoutSlots(node, layoutBody.Identifier.Text)) yield return slot;
+                        }
+                    }
                     foreach (TypeParameterSyntax parameter in template.TypeParameters)
                     {
                         yield return new DeclarationInfo(parameter.Identifier.Text, "template type parameter " + parameter.Identifier.Text + (parameter.RequirementNames.Count == 0 ? string.Empty : " extends " + string.Join(" & ", parameter.RequirementNames.Select(requirement => requirement.Text))), 26, parameter.Identifier.Position);
@@ -1035,6 +1046,9 @@ internal sealed class CopelandWorkspace
                     {
                         foreach (DeclarationInfo region in StreamRegions(table, stream.Identifier.Text)) yield return region;
                     }
+                    break;
+                case ContributionStreamDeclarationSyntax stream:
+                    yield return new DeclarationInfo(stream.Identifier.Text, "stream " + stream.Identifier.Text + " (immutable contribution value)", 6, stream.Identifier.Position);
                     break;
                 case EnumDeclarationSyntax @enum:
                     yield return new DeclarationInfo(@enum.Identifier.Text, "enum " + @enum.Identifier.Text, 10, @enum.Identifier.Position);
@@ -1093,6 +1107,9 @@ internal sealed class CopelandWorkspace
         {
             case VariableDeclarationStatementSyntax variable:
                 yield return new DeclarationInfo(variable.Identifier.Text, "local value of " + functionName, 6, variable.Identifier.Position);
+                yield break;
+            case LocalContributionStreamStatementSyntax stream:
+                yield return new DeclarationInfo(stream.Declaration.Identifier.Text, "local contribution stream of " + functionName, 6, stream.Declaration.Identifier.Position);
                 yield break;
             case ComponentStateDeclarationStatementSyntax state:
                 yield return new DeclarationInfo(state.Identifier.Text, "immutable component state of " + functionName, 6, state.Identifier.Position);
@@ -1165,6 +1182,14 @@ internal sealed class CopelandWorkspace
     }
     private static IEnumerable<DeclarationInfo> LayoutSlots(LayoutNodeSyntax node, string layoutName)
     {
+        if (node.Conditional is { } conditional)
+        {
+            foreach (LayoutNodeSyntax branch in conditional.ThenNodes.Concat(conditional.ElseNodes))
+            {
+                foreach (DeclarationInfo slot in LayoutSlots(branch, layoutName)) yield return slot;
+            }
+            yield break;
+        }
         yield return new DeclarationInfo(node.Identifier.Text, node.KindToken.Text + " slot of " + layoutName, 7, node.Identifier.Position);
         foreach (LayoutNodeSyntax child in node.Children)
         {
@@ -1371,6 +1396,7 @@ internal sealed class CopelandWorkspace
         TextPresentationBinding Presentation);
     private static string Describe(Symbol symbol) => symbol switch
     {
+        ContributionStreamSymbol stream => "stream " + stream.Name + " { " + string.Join(", ", stream.Type.Fields.Select(field => field.Name + ": ReactNode")) + " }\nimmutable module value; initialized once",
         LayoutSymbol layout => "layout " + (layout.Profile is null ? string.Empty : layout.Profile + " ") + layout.Name,
         LayoutTypeSymbol layoutType => "layout type " + layoutType.Name,
         LayerSetSymbol layerSet => "layers " + layerSet.Name + " (declaration-ordered semantic paint layers)",

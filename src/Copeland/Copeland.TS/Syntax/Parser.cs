@@ -227,6 +227,7 @@ public sealed class Parser
             {
                 return ParseShaderStreamDeclaration();
             }
+            if (IsContributionStreamAhead()) return ParseContributionStreamDeclaration();
             return ParseStreamDeclaration();
         }
         if (Current.Kind == SyntaxKind.TemplateKeyword)
@@ -946,6 +947,15 @@ public sealed class Parser
         {
             return ParseInterfaceDeclaration() with { GenericParameters = parameters };
         }
+        if (Current.Kind == SyntaxKind.LayoutKeyword)
+        {
+            LayoutDeclarationSyntax layout = ParseLayoutDeclaration();
+            var resultType = new IdentifierTypeSyntax(layout.Identifier with { Text = "Layout" });
+            var layoutBody = new BlockStatementSyntax(layout.OpenBraceToken, [], layout.CloseBraceToken);
+            return new TemplateDeclarationSyntax(templateKeyword, parameters.LessToken,
+                parameters.Types, parameters.Values, parameters.Commas, parameters.GreaterToken,
+                layout.Identifier, layout.LayoutKeyword, resultType, layoutBody) { LayoutBody = layout };
+        }
         SyntaxToken identifier = Match(SyntaxKind.IdentifierToken);
         SyntaxToken returnTypeColon = Match(SyntaxKind.ColonToken);
         TypeSyntax returnType = ParseTypeSyntax();
@@ -987,7 +997,7 @@ public sealed class Parser
         }
 
         SyntaxToken identifier = MatchLayoutName();
-        LayoutOriginSyntax? origin = ParseLayoutOrigin(identifier);
+        LayoutOriginSyntax? origin = Current.Kind == SyntaxKind.EqualsToken ? null : ParseLayoutOrigin(identifier);
         SyntaxToken? satisfiesKeyword = null;
         SyntaxToken? contractIdentifier = null;
         if (IsWord(Current, "satisfies"))
@@ -1002,7 +1012,15 @@ public sealed class Parser
         if (Current.Kind == SyntaxKind.EqualsToken)
         {
             equalsToken = NextToken();
-            composedLayout = MatchLayoutName();
+            ExpressionSyntax? initializer = null;
+            if (IsWord(Current, "instantiate"))
+            {
+                initializer = ParseTemplateInstantiationExpression();
+            }
+            else
+            {
+                composedLayout = MatchLayoutName();
+            }
             if (Current.Kind == SyntaxKind.WithKeyword)
             {
                 withKeyword = NextToken();
@@ -1015,7 +1033,7 @@ public sealed class Parser
             {
                 _diagnostics.Report("COPE-LAYOUT-TYPE-0001", "A composed layout cannot declare 'satisfies' in M0; declare the contract on the concrete layout body.", satisfiesKeyword.Position, satisfiesKeyword.Text.Length);
             }
-            return new LayoutDeclarationSyntax(layoutKeyword, profile, identifier, origin, satisfiesKeyword, contractIdentifier, equalsToken, composedLayout, withKeyword, compositionProperties, MissingToken(SyntaxKind.OpenBraceToken, Current.Position), [], [], MissingToken(SyntaxKind.CloseBraceToken, Current.Position));
+            return new LayoutDeclarationSyntax(layoutKeyword, profile, identifier, origin, satisfiesKeyword, contractIdentifier, equalsToken, composedLayout, withKeyword, compositionProperties, MissingToken(SyntaxKind.OpenBraceToken, Current.Position), [], [], MissingToken(SyntaxKind.CloseBraceToken, Current.Position)) { Initializer = initializer };
         }
 
         SyntaxToken openBraceToken = Match(SyntaxKind.OpenBraceToken);
@@ -1024,7 +1042,8 @@ public sealed class Parser
         while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
         {
             SyntaxToken start = Current;
-            if (IsLayoutNodeKind(Current)) nodes.Add(ParseLayoutNode());
+            if (Current.Kind == SyntaxKind.StaticKeyword) nodes.Add(ParseLayoutConditional());
+            else if (IsLayoutNodeKind(Current)) nodes.Add(ParseLayoutNode());
             else if (IsLayoutNameToken(Current)) properties.Add(ParseLayoutProperty());
             else { ReportUnexpectedToken(Current); NextToken(); }
             if (Current == start) NextToken();
@@ -1147,6 +1166,49 @@ public sealed class Parser
         }
 
         return new StreamDeclarationSyntax(streamKeyword, identifier, origin, satisfiesKeyword, contractIdentifier, openBrace, properties, nodes, tables, Match(SyntaxKind.CloseBraceToken));
+    }
+
+    private bool IsContributionStreamAhead()
+    {
+        if (!IsWord(Current, "stream") || Peek(2).Kind != SyntaxKind.OpenBraceToken) return false;
+        // Preserve the targeted missing-origin repair for a geometry-bearing
+        // stream. Originless contribution streams contain named values only.
+        if (IsStreamStructuralKind(Peek(3)) && Peek(4).Kind != SyntaxKind.ColonToken) return false;
+        bool hasLength = Peek(5).Value is LengthLiteralTokenValue
+            || Peek(5).Kind == SyntaxKind.MinusToken && Peek(6).Value is LengthLiteralTokenValue;
+        bool hasSizingPolicy = Peek(5).Text is "fill" or "fit" && Peek(6).Kind != SyntaxKind.OpenParenToken;
+        if (IsLayoutPropertyName(Peek(3)) && Peek(4).Kind == SyntaxKind.ColonToken && (hasLength || hasSizingPolicy))
+        {
+            return false;
+        }
+        return true;
+    }
+
+    private ContributionStreamDeclarationSyntax ParseContributionStreamDeclaration()
+    {
+        SyntaxToken streamKeyword = NextToken();
+        SyntaxToken identifier = MatchLayoutName();
+        SyntaxToken openBrace = Match(SyntaxKind.OpenBraceToken);
+        var entries = new List<LayoutBindingEntrySyntax>();
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            SyntaxToken start = Current;
+            SyntaxToken name = MatchLayoutName();
+            SyntaxToken colon = Match(SyntaxKind.ColonToken);
+            ExpressionSyntax value = ParseExpression();
+            SyntaxToken? semicolon = Current.Kind == SyntaxKind.SemicolonToken ? NextToken() : null;
+            entries.Add(new LayoutBindingEntrySyntax(name, colon, value, semicolon));
+            if (Current == start) NextToken();
+        }
+        return new ContributionStreamDeclarationSyntax(streamKeyword, identifier, openBrace, entries, Match(SyntaxKind.CloseBraceToken));
+    }
+
+    private ContributionBindingExpressionSyntax ParseContributionBindingExpression()
+    {
+        SyntaxToken bindKeyword = NextToken();
+        SyntaxToken layout = MatchLayoutName();
+        SyntaxToken usingKeyword = NextToken();
+        return new ContributionBindingExpressionSyntax(bindKeyword, layout, usingKeyword, ParseExpression());
     }
 
     private ShaderStreamDeclarationSyntax ParseShaderStreamDeclaration()
@@ -1397,6 +1459,50 @@ public sealed class Parser
         return new MissingExpressionSyntax(MissingToken(SyntaxKind.NumberToken, Current.Position));
     }
 
+    private LayoutNodeSyntax ParseLayoutConditional()
+    {
+        SyntaxToken marker = Match(SyntaxKind.StaticKeyword);
+        Match(SyntaxKind.IfKeyword);
+        Match(SyntaxKind.OpenParenToken);
+        ExpressionSyntax condition = ParseExpression();
+        Match(SyntaxKind.CloseParenToken);
+        IReadOnlyList<LayoutNodeSyntax> thenNodes = ParseLayoutBranch();
+        IReadOnlyList<LayoutNodeSyntax> elseNodes = [];
+        if (Current.Kind == SyntaxKind.ElseKeyword)
+        {
+            NextToken();
+            elseNodes = ParseLayoutBranch();
+        }
+        return new LayoutNodeSyntax(marker, marker, null, null, [], [], null)
+        {
+            Conditional = new LayoutConditionalSyntax(marker, condition, thenNodes, elseNodes)
+        };
+    }
+
+    private IReadOnlyList<LayoutNodeSyntax> ParseLayoutBranch()
+    {
+        Match(SyntaxKind.OpenBraceToken);
+        var nodes = new List<LayoutNodeSyntax>();
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            if (Current.Kind == SyntaxKind.StaticKeyword)
+            {
+                nodes.Add(ParseLayoutConditional());
+            }
+            else if (IsLayoutNodeKind(Current))
+            {
+                nodes.Add(ParseLayoutNode());
+            }
+            else
+            {
+                ReportUnexpectedToken(Current);
+                NextToken();
+            }
+        }
+        Match(SyntaxKind.CloseBraceToken);
+        return nodes;
+    }
+
     private LayoutNodeSyntax ParseLayoutNode()
     {
         SyntaxToken kind = NextToken();
@@ -1412,7 +1518,8 @@ public sealed class Parser
         while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
         {
             SyntaxToken start = Current;
-            if (IsLayoutNodeKind(Current)) children.Add(ParseLayoutNode());
+            if (Current.Kind == SyntaxKind.StaticKeyword) children.Add(ParseLayoutConditional());
+            else if (IsLayoutNodeKind(Current)) children.Add(ParseLayoutNode());
             else if (IsLayoutNameToken(Current)) properties.Add(ParseLayoutProperty());
             else { ReportUnexpectedToken(Current); NextToken(); }
             if (Current == start) NextToken();
@@ -1462,6 +1569,12 @@ public sealed class Parser
     private LayoutPropertySyntax ParseLayoutProperty()
     {
         SyntaxToken identifier = NextToken();
+        while (Current.Kind == SyntaxKind.DotToken)
+        {
+            NextToken();
+            SyntaxToken member = MatchLayoutName();
+            identifier = identifier with { Text = identifier.Text + "." + member.Text };
+        }
         SyntaxToken colon = Match(SyntaxKind.ColonToken);
         ExpressionSyntax value = Current.Kind is SyntaxKind.SemicolonToken or SyntaxKind.CloseBraceToken
             ? new MissingExpressionSyntax(MissingToken(SyntaxKind.IdentifierToken, Current.Position))
@@ -1632,6 +1745,7 @@ public sealed class Parser
             SyntaxKind.StaticKeyword when Peek(1).Kind is SyntaxKind.IfKeyword or SyntaxKind.ForKeyword or SyntaxKind.MatchKeyword or SyntaxKind.SwitchKeyword => ParseStaticStatement(),
             SyntaxKind.OpenBraceToken => ParseBlockStatement(),
             SyntaxKind.LayoutKeyword => new LocalPresentationDeclarationStatementSyntax(ParseLayoutDeclaration(), null),
+            SyntaxKind.IdentifierToken when IsContributionStreamAhead() => new LocalContributionStreamStatementSyntax(ParseContributionStreamDeclaration()),
             SyntaxKind.IdentifierToken when IsWord(Current, "stream") => new LocalPresentationDeclarationStatementSyntax(null, ParseStreamDeclaration()),
             SyntaxKind.IdentifierToken when IsComponentStateDeclarationStart() => ParseComponentStateDeclaration(),
             SyntaxKind.IdentifierToken when IsComponentEventHandlerStart() => ParseComponentEventHandler(),
@@ -2189,6 +2303,11 @@ public sealed class Parser
         if (IsClassWord(Current, "constructor"))
         {
             return ParseClassConstructor(visibility, modifiers);
+        }
+
+        if (IsContributionStreamAhead())
+        {
+            return new ClassContributionStreamSyntax(visibility, modifiers, ParseContributionStreamDeclaration());
         }
 
         var identifier = Current.Kind == SyntaxKind.IdentifierToken
@@ -2990,6 +3109,10 @@ public sealed class Parser
 
     private ExpressionSyntax ParsePrimaryExpression()
     {
+        if (IsWord(Current, "bind") && IsLayoutNameToken(Peek(1)) && IsWord(Peek(2), "using"))
+        {
+            return ParseContributionBindingExpression();
+        }
         if (Current.Text == "when" && Peek(1).Text == "utility")
         {
             return ParseWhenUtilityExpression();
@@ -3363,11 +3486,14 @@ public sealed class Parser
     {
         var capture = NextToken();
         var open = Match(SyntaxKind.OpenBraceToken);
-        var identifiers = new List<SyntaxToken>();
+        var entries = new List<CaptureEntrySyntax>();
         var commas = new List<SyntaxToken>();
         while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
         {
-            identifiers.Add(Match(SyntaxKind.IdentifierToken));
+            SyntaxToken identifier = Match(SyntaxKind.IdentifierToken);
+            SyntaxToken? colon = Current.Kind == SyntaxKind.ColonToken ? NextToken() : null;
+            ExpressionSyntax? initializer = colon is null ? null : ParseExpression();
+            entries.Add(new CaptureEntrySyntax(identifier, colon, initializer));
             if (Current.Kind != SyntaxKind.CommaToken) break;
             commas.Add(NextToken());
         }
@@ -3375,11 +3501,11 @@ public sealed class Parser
         if (!IsArrowExpressionAhead() && !(Current.Kind == SyntaxKind.IdentifierToken && Peek(1).Kind == SyntaxKind.ArrowToken))
         {
             _diagnostics.Report("COPE-CALL-0010", "Expected an arrow expression after the capture list.", Current.Position, Math.Max(1, Current.Text.Length));
-            return new CaptureExpressionSyntax(capture, open, identifiers, commas, close,
+            return new CaptureExpressionSyntax(capture, open, entries, commas, close,
                 new ArrowExpressionSyntax(null, [], [], null, null, null, MissingToken(SyntaxKind.ArrowToken, Current.Position), new MissingExpressionSyntax(Current), null));
         }
         var arrow = Current.Kind == SyntaxKind.IdentifierToken ? ParseSingleParameterArrowExpression() : ParseArrowExpression();
-        return new CaptureExpressionSyntax(capture, open, identifiers, commas, close, arrow);
+        return new CaptureExpressionSyntax(capture, open, entries, commas, close, arrow);
     }
 
     private ArrowExpressionSyntax ParseSingleParameterArrowExpression()

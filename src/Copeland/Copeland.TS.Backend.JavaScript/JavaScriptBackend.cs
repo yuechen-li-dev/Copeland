@@ -159,7 +159,8 @@ public static class JavaScriptBackend
         bool usesTryExcept = ProgramUsesTryExcept(program);
         bool usesCallables = ProgramUsesCallables(program);
         bool usesCapturedCallables = ProgramUsesCapturedCallables(program);
-        bool usesSharedBrowserInteropRuntime = program.JavaScriptHostImports.Count > 0;
+        bool usesSharedBrowserInteropRuntime = program.JavaScriptHostImports.Count > 0
+            || effectiveOptions.EmitModuleFactories && program.ModuleValues.Count > 0;
         bool usesAsync = program.Functions.Any(function => function.IsAsync || function.IsRemote);
         bool previousNativeStrings = UsesNativeStrings.Value;
         UsesNativeStrings.Value = false;
@@ -248,6 +249,14 @@ public static class JavaScriptBackend
             EmitFlow(writer, flow);
         }
 
+        if (effectiveOptions.EmitModuleInitializers)
+        {
+            foreach (MirModuleValue value in program.ModuleValues)
+            {
+                writer.WriteLine($"const {JavaScriptIdentifierEncoder.Encode(value.Name)} = {JavaScriptIdentifierEncoder.Encode(value.InitializerFunction)}();");
+            }
+        }
+
         if (UsesNativeStrings.Value) NativeStringRuntime.Emit(writer);
         if (UsesIntegerRuntime.Value) IntegerRuntime.Emit(writer);
         string sourceText = writer.ToString();
@@ -298,7 +307,10 @@ public static class JavaScriptBackend
             program.CSharpSourcePath,
             program.Flows,
             program.JavaScriptHostImports,
-            program.PackageImports);
+            program.PackageImports)
+        {
+            ModuleValues = program.ModuleValues,
+        };
     }
 
     private static void EmitFlow(JavaScriptTextWriter writer, MirFlowDefinition flow)

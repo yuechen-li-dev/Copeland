@@ -7,6 +7,7 @@ public static class MirValidator
     public static IReadOnlyList<MirValidationDiagnostic> Validate(MirProgram program)
     {
         var diagnostics = new List<MirValidationDiagnostic>();
+        diagnostics.AddRange(MirModuleValueValidator.Validate(program));
         ValidateCallableModel(program, diagnostics);
         if (diagnostics.Count > 0)
         {

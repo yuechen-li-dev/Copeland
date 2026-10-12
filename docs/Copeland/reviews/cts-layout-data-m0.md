@@ -26,3 +26,8 @@ Recommended M1 is to integrate the normalized layout graph with the normal
 project compiler and generated Copeland React surface, extend layout-aware LSP
 semantic categories, and settle responsive/profile rules before reconsidering
 the current website sample.
+
+Layout templates, inherited origins for derived declarations, and named-node
+immutable variants are now delivered by
+[CTS-REACT-UI-LAYOUT-TEMPLATES-M4](cts-react-ui-layout-templates-m4.md).
+The boundaries above describe the original M0 milestone.

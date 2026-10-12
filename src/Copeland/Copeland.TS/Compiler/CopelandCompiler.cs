@@ -60,7 +60,7 @@ public static class CopelandCompiler
                             boundCompilation.TextDocuments);
                     }
                 }
-                if (boundCompilation.Program.Templates.Count > 0)
+                if (boundCompilation.Program.Templates.Any(template => template.Symbol.ReturnType != LayoutValueTypeSymbol.Instance))
                 {
                     if (effectiveOptions.TargetStage >= CopelandCompilationStage.Mir)
                     {

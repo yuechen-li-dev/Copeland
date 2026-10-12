@@ -1,5 +1,12 @@
 # CTS-STREAM-COMPOSITION-M0
 
+The origin-bearing composition below remains supported. The subsequent
+[UI grammar milestone](cts-react-ui-grammar-m3.md) also implements originless
+contribution values: `stream Content { slotName: View(); }`, combined with
+`bind Layout using Content` expressions. Contribution values may be declared at
+module/class scope or locally; their construction timing is explicit in that
+milestone's contract.
+
 `stream` is the ergonomic static composition surface for Machina layout. It
 combines named regions, their geometry, and their renderable content while
 lowering through the existing layout type, layout, binding, normalized graph,

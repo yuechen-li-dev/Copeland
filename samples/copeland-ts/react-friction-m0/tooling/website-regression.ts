@@ -9,7 +9,14 @@ const require = createRequire(new URL("../baseline/package.json", import.meta.ur
 const { chromium } = require("playwright") as typeof import("../baseline/node_modules/playwright/index.js");
 const websiteRoot = fileURLToPath(new URL("../../copeland-website-m0/", import.meta.url));
 const stabilization = process.env.FRICTION_STABILIZATION === "1";
-const evidenceName = stabilization ? "react-ui-stabilization-m1" : "react-friction-m0";
+const evidenceName = process.env.FRICTION_EVIDENCE_NAME ?? (stabilization ? "react-ui-stabilization-m1" : "react-friction-m0");
+let milestone = stabilization ? "CTS-REACT-UI-STABILIZATION-M1" : "CTS-REACT-FRICTION-M0";
+if (evidenceName === "react-ui-grammar-m3") {
+    milestone = "CTS-REACT-UI-GRAMMAR-M3";
+}
+if (evidenceName === "react-ui-layout-templates-m4") {
+    milestone = "CTS-REACT-UI-LAYOUT-TEMPLATES-M4";
+}
 const outputRoot = fileURLToPath(new URL(stabilization ? "../artifacts/stabilization/screenshots/" : "../artifacts/screenshots/", import.meta.url));
 const reportRoot = fileURLToPath(new URL(`../../../../docs/Copeland/reviews/evidence/${evidenceName}/`, import.meta.url));
 const server = await startServer(0, `${websiteRoot}/dist/browser`, {
@@ -93,7 +100,7 @@ try {
         sourceHashes[path] = createHash("sha256").update(await readFile(`${websiteRoot}/${path}`)).digest("hex");
     }
     await writeFile(`${reportRoot}/website-regression.json`, JSON.stringify({
-        milestone: stabilization ? "CTS-REACT-UI-STABILIZATION-M1" : "CTS-REACT-FRICTION-M0",
+        milestone,
         source: "samples/copeland-ts/copeland-website-m0",
         build: "current TSPack managed target with repository Copeland.Cli",
         browser: { channel: process.env.FRICTION_BROWSER_CHANNEL ?? "chromium", version: browser.version() },
