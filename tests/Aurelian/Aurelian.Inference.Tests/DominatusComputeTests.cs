@@ -105,4 +105,45 @@ public sealed class DominatusComputeTests
         controller.Dispose();
         Assert.Throws<ObjectDisposedException>(() => controller.Plan(new(2, 1, 0)));
     }
+
+    [Fact]
+    public void LargerAuthoredTransferBudgetAllowsTwoSlotsForDecoderWeights()
+    {
+        using var controller = new DominatusComputeFeedforward(64 * 1024 * 1024);
+        Assert.Equal(2, controller.Plan(new(100, 16, 37 * 1024 * 1024)));
+        Assert.Equal(1, controller.Plan(new(100, 16, 65 * 1024 * 1024)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new DominatusComputeFeedforward(0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new DominatusComputeFeedforward(129 * 1024 * 1024));
+    }
+
+    [Fact]
+    public void TransferAwarePredictionLearnsDelayWithoutTrainingOnHarvestLag()
+    {
+        var model = new ComputeCompletionPredictor();
+        model.Begin(0);
+        var warmup = model.Submit(0, 1000);
+        model.Complete(warmup, 100, 1000, 2, 3);
+        model.Begin(200);
+        var first = model.Submit(200, 2000);
+        var second = model.Submit(200, 1000);
+        Assert.Equal(202, first.ComputeOnlyFinish);
+        Assert.Equal(208, first.TransferAwareFinish);
+        Assert.Equal(213, second.TransferAwareFinish);
+        model.Complete(first, 208, 2000, 2, 6);
+        model.Complete(second, 213, 1000, 2, 3);
+        model.Begin(300);
+        Assert.Equal(305, model.Submit(300, 1000).TransferAwareFinish);
+    }
+
+    [Fact]
+    public void PlanningCannotEraseOutstandingCompletionEvidence()
+    {
+        using var controller = new DominatusComputeFeedforward();
+        controller.Plan(new(2, 1, 0));
+        controller.Observe(new(1, 0, false, 1, 0, null));
+        var error = Assert.Throws<InvalidOperationException>(() => controller.Plan(new(2, 1, 0)));
+        Assert.StartsWith("AUR-INFERENCE-FEED-002:", error.Message);
+        controller.Observe(new(1, 0, true, 0, 0, 1));
+        Assert.Equal(2, controller.Plan(new(2, 1, 0)));
+    }
 }

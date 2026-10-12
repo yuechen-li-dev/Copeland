@@ -10,6 +10,12 @@ public sealed unsafe partial class VulkanComputeMath
 {
     private static readonly IReadOnlyDictionary<string, string> Entries = new Dictionary<string, string>(StringComparer.Ordinal)
     {
+        ["QuantizedLinear.v.ts"] = "QuantizedLinearMain",
+        ["QuantizedGemv.v.ts"] = "QuantizedGemvMain",
+        ["DecoderNormalize.v.ts"] = "DecoderNormalizeMain",
+        ["DecoderRope.v.ts"] = "DecoderRopeMain",
+        ["DecoderScale.v.ts"] = "DecoderScaleMain",
+        ["GroupedAttention.v.ts"] = "GroupedAttentionMain",
         ["Sgemm.v.ts"] = "SgemmMain",
         ["TensorMap.v.ts"] = "TensorMapMain",
         ["VolumeMap.v.ts"] = "VolumeMapMain",

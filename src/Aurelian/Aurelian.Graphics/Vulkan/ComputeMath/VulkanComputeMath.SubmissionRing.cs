@@ -21,6 +21,7 @@ public sealed unsafe partial class VulkanComputeMath
             public ulong FenceValue { get; set; }
             public long Sequence { get; set; }
             public double PreparationMilliseconds { get; set; }
+            public ulong UploadBytes { get; set; }
 
             public void Dispose()
             {
@@ -41,6 +42,7 @@ public sealed unsafe partial class VulkanComputeMath
         private int outstanding;
         private int next;
         private double milliseconds;
+        private double transferMilliseconds;
         private bool timed = true;
         private bool disposed;
         public int Depth { get; }
@@ -49,8 +51,11 @@ public sealed unsafe partial class VulkanComputeMath
         public int CompletionWaits { get; private set; }
         public int Submissions { get; private set; }
         public int Dispatches { get; private set; }
+        public ulong LastSubmittedFenceValue { get; private set; }
+        public long UploadedBytes { get; private set; }
         public double PreparationMilliseconds { get; private set; }
         public double? GpuMilliseconds => timed ? milliseconds : null;
+        public double? TransferGpuMilliseconds => timed ? transferMilliseconds : null;
 
         public SubmissionRing(VulkanComputeMath owner, IComputeStreamController controller,
             ComputeStreamForecast forecast, StreamingLinearPlan? weights = null)
@@ -73,7 +78,7 @@ public sealed unsafe partial class VulkanComputeMath
             {
                 for (int index = 0; index < Depth; index++)
                 {
-                    var slot = new Slot { Timings = new(owner.plant, ["compute-stream"]) };
+                    var slot = new Slot { Timings = new(owner.plant, ["compute-stream", "compute-transfer"]) };
                     slots.Add(slot);
                     if (weights is not null)
                     {
@@ -96,11 +101,26 @@ public sealed unsafe partial class VulkanComputeMath
             return slots[next];
         }
 
-        public void Submit(ComputeMathBatch batch, double preparationMilliseconds = 0)
+        public void Submit(ComputeMathBatch batch, double preparationMilliseconds = 0,
+            GpuTensor? upload = null, ReadOnlyMemory<byte> bytes = default)
         {
             ComputeMathBatch.Require(ReferenceEquals(batch.Owner, owner) && batch.DispatchCount is > 0
                 && batch.DispatchCount <= owner.MaximumDispatches, "Stream needs a nonempty bounded batch from its owner.");
             var slot = Acquire();
+            if (upload is not null)
+            {
+                owner.Validate(upload, GpuTensorFormat.UInt32);
+                ComputeMathBatch.Require(bytes.Length == (long)upload.Elements * sizeof(uint),
+                    "Stream upload must match the complete packed tensor.");
+                if (slot.Staging is null || slot.Staging.SizeBytes < (ulong)bytes.Length)
+                {
+                    slot.Staging?.Dispose();
+                    slot.Staging = null;
+                    slot.Staging = owner.Buffer((ulong)bytes.Length,
+                        VulkanBufferUsage.TransferSource, VulkanMemoryUsage.CpuToGpu);
+                }
+                Require(slot.Staging.Write(bytes.Span).Success, "Stream packed staging write failed.");
+            }
             foreach (var dispatch in batch.Dispatches)
             {
                 owner.Validate(dispatch.Input, dispatch.Input.Format);
@@ -119,13 +139,27 @@ public sealed unsafe partial class VulkanComputeMath
             var command = owner.commands.Rent(owner.fences.CommandListFence.LastKnownCompletedValue);
             Require(command.Begin().Success, "Stream command begin failed.");
             slot.Timings.Reset(command);
-            if (slot.Staging is { } staging)
+            GpuTensor? copyDestination = upload ?? slot.Weights;
+            slot.UploadBytes = 0;
+            if (copyDestination is not null)
             {
-                owner.Barrier(command, AccessFlags.HostWriteBit, AccessFlags.TransferReadBit,
-                    PipelineStageFlags.HostBit, PipelineStageFlags.TransferBit);
-                var copy = new BufferCopy(0, 0, staging.SizeBytes);
-                owner.plant.Vk.CmdCopyBuffer(command.CommandBuffer, staging.NativeBuffer, slot.Weights!.Buffer.NativeBuffer, 1, &copy);
+                slot.UploadBytes = upload is not null ? (ulong)bytes.Length : slot.Staging!.SizeBytes;
             }
+            if (copyDestination is not null && slot.Staging is { } staging)
+            {
+                owner.Barrier(command, AccessFlags.HostWriteBit | AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
+                    AccessFlags.TransferReadBit | AccessFlags.TransferWriteBit,
+                    PipelineStageFlags.HostBit | PipelineStageFlags.ComputeShaderBit, PipelineStageFlags.TransferBit);
+                slot.Timings.Mark(command, 2, PipelineStageFlags.TransferBit);
+                ulong copyBytes = upload is not null ? (ulong)bytes.Length : staging.SizeBytes;
+                var copy = new BufferCopy(0, 0, copyBytes);
+                owner.plant.Vk.CmdCopyBuffer(command.CommandBuffer, staging.NativeBuffer, copyDestination.Buffer.NativeBuffer, 1, &copy);
+            }
+            else
+            {
+                slot.Timings.Mark(command, 2, PipelineStageFlags.TransferBit);
+            }
+            slot.Timings.Mark(command, 3, PipelineStageFlags.TransferBit);
             owner.Barrier(command, AccessFlags.HostWriteBit | AccessFlags.TransferWriteBit | AccessFlags.ShaderWriteBit,
                 AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
                 PipelineStageFlags.HostBit | PipelineStageFlags.TransferBit | PipelineStageFlags.ComputeShaderBit,
@@ -147,17 +181,22 @@ public sealed unsafe partial class VulkanComputeMath
             var submission = owner.submitter.Submit(new(command, WaitForCompletion: false, DebugName: "compute-math.stream"));
             // A submitted fence survives a possible command-retirement failure.
             slot.FenceValue = submission.SignalFenceValue ?? 0;
+            LastSubmittedFenceValue = Math.Max(LastSubmittedFenceValue, slot.FenceValue);
             Require(submission.Success && slot.FenceValue != 0, "Stream submission failed.");
             slot.Sequence = ++Submissions;
             slot.PreparationMilliseconds = preparationMilliseconds;
             Dispatches += batch.DispatchCount;
+            UploadedBytes += bytes.Length;
             PreparationMilliseconds += preparationMilliseconds;
             outstanding++;
             MaximumOutstanding = Math.Max(MaximumOutstanding, outstanding);
             Require(owner.fences.CommandListFence.QueryCompletedValue().Success, "Stream timeline query failed.");
             int inFlight = slots.Count(item => item.FenceValue > owner.fences.CommandListFence.LastKnownCompletedValue);
             MaximumInFlight = Math.Max(MaximumInFlight, inFlight);
-            controller.Observe(new(slot.Sequence, next, false, outstanding, preparationMilliseconds, null));
+            controller.Observe(new(slot.Sequence, next, false, outstanding, preparationMilliseconds, null)
+            {
+                UploadBytes = slot.UploadBytes,
+            });
             next = (next + 1) % Depth;
         }
 
@@ -183,7 +222,17 @@ public sealed unsafe partial class VulkanComputeMath
                 Require(owner.fences.CommandListFence.WaitForValue(slot.FenceValue, 30_000_000_000).Success,
                     "Stream completion wait failed.");
             }
-            double? cost = slot.Timings.Read().FirstOrDefault()?.Milliseconds;
+            var timings = slot.Timings.Read();
+            double? cost = timings.FirstOrDefault()?.Milliseconds;
+            double? transferCost = timings.Skip(1).FirstOrDefault()?.Milliseconds;
+            if (transferCost is { } transfer)
+            {
+                transferMilliseconds += transfer;
+            }
+            else
+            {
+                timed = false;
+            }
             if (cost is { } value)
             {
                 milliseconds += value;
@@ -194,7 +243,11 @@ public sealed unsafe partial class VulkanComputeMath
             }
             slot.FenceValue = 0;
             outstanding--;
-            controller.Observe(new(slot.Sequence, index, true, outstanding, slot.PreparationMilliseconds, cost));
+            controller.Observe(new(slot.Sequence, index, true, outstanding, slot.PreparationMilliseconds, cost)
+            {
+                UploadBytes = slot.UploadBytes,
+                TransferGpuMilliseconds = transferCost,
+            });
         }
 
         public void Dispose()

@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Explicit Gemma 4 12B Unified text graph on the shared Vulkan inference owner.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../Aurelian/Aurelian.Inference/Aurelian.Inference.csproj" />
+    <Content Include="NOTICE.md" CopyToOutputDirectory="PreserveNewest" Pack="true" PackagePath="licenses/" />
+    <Content Include="APACHE-2.0.txt" CopyToOutputDirectory="PreserveNewest" Pack="true" PackagePath="licenses/" />
+  </ItemGroup>
+</Project>

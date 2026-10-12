@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Integrations/Aurelian.Inference.Gemma4/Aurelian.Inference.Gemma4.csproj" />
+    <ProjectReference Include="../../src/Integrations/Aurelian.Inference.Dominatus/Aurelian.Inference.Dominatus.csproj" />
+  </ItemGroup>
+</Project>

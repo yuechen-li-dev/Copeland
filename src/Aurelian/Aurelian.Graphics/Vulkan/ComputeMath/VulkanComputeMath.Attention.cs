@@ -55,6 +55,11 @@ public sealed unsafe partial class VulkanComputeMath
         int firstBatchQueries = (MaximumDispatches - 2) / dispatchesPerQuery;
         int remainingQueries = Math.Max(0, queryTiles - firstBatchQueries);
         int batchesPerHead = 1 + (remainingQueries + queriesPerBatch - 1) / queriesPerBatch;
+        if (StreamController is not null)
+        {
+            // Preserve the outer scope's ownership before this composite ring.
+            queuedScope?.Flush();
+        }
         using var ring = StreamController is { } controller
             ? new SubmissionRing(this, controller, new(batchesPerHead * (query.Columns / headWidth), MaximumDispatches, 0))
             : null;

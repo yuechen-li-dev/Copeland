@@ -7,6 +7,7 @@
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Inference/Aurelian.Inference.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Inference.Gemma4/Aurelian.Inference.Gemma4.csproj" />
     <ProjectReference Include="../../../src/Integrations/Aurelian.Inference.Dominatus/Aurelian.Inference.Dominatus.csproj" />
   </ItemGroup>
 </Project>

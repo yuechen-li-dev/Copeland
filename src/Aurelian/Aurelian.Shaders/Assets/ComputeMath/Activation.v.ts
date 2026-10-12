@@ -1,6 +1,7 @@
 import { KernelParameters, Silu, Gelu, GeluErf } from "./KernelMath";
+import { BFloat16 } from "./BFloat16";
 
-enum Activation { Silu, Gelu, SiluGate, Residual, Bias, GeluErf, Invalid }
+enum Activation { Silu, Gelu, SiluGate, Residual, Bias, GeluErf, GeluGate, Invalid }
 
 function Decode(mode: u32): Activation {
     if (mode == 0) {
@@ -20,6 +21,9 @@ function Decode(mode: u32): Activation {
     }
     if (mode == 5) {
         return Activation.GeluErf;
+    }
+    if (mode == 6) {
+        return Activation.GeluGate;
     }
     return Activation.Invalid;
 }
@@ -44,6 +48,7 @@ function ActivationMain(@builtin(dispatchThreadId) thread: uint3,
         case Activation.Residual => { Output[index] = value + Auxiliary[index]; }
         case Activation.Bias => { Output[index] = value + Auxiliary[index % p.columns]; }
         case Activation.GeluErf => { Output[index] = GeluErf(value); }
+        case Activation.GeluGate => { Output[index] = BFloat16(BFloat16(Gelu(value)) * Auxiliary[index]); }
         case Activation.Invalid => { Output[index] = value; }
     }
 }

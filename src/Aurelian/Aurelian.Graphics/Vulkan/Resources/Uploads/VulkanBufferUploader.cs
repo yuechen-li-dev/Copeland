@@ -48,6 +48,13 @@ public sealed unsafe class VulkanBufferUploader : IDisposable
 
     public VulkanBufferUploadResult Upload(VulkanBufferUploadRequest request)
     {
+        return Upload(request, null);
+    }
+
+    // The compute owner may retain staging after this synchronous operation.
+    // Timeline completion (or queue idle on failure) precedes reuse by the caller.
+    internal VulkanBufferUploadResult Upload(VulkanBufferUploadRequest request, AurelianVulkanBuffer? reusableStaging)
+    {
         List<VulkanBufferUploadDiagnostic> diagnostics = [];
         if (disposed)
         {
@@ -59,6 +66,14 @@ public sealed unsafe class VulkanBufferUploader : IDisposable
         }
 
         Validate(request, diagnostics);
+        if (diagnostics.Count == 0 && reusableStaging is not null && (reusableStaging.IsDisposed
+            || reusableStaging.PlantId != PlantId || !reusableStaging.CanWrite
+            || (reusableStaging.Usage & VulkanBufferUsage.TransferSource) == 0
+            || reusableStaging.SizeBytes < (ulong)request.Data.Length))
+        {
+            diagnostics.Add(Diagnostic(VulkanBufferUploadDiagnosticCodes.StagingBufferCreationFailed,
+                "Reusable staging must be writable, live, large enough and owned by this plant.", request.DebugName));
+        }
         if (diagnostics.Count != 0)
         {
             return new VulkanBufferUploadResult(VulkanBufferUploadStatus.Rejected, null, diagnostics);
@@ -71,27 +86,34 @@ public sealed unsafe class VulkanBufferUploader : IDisposable
 
         try
         {
-            VulkanBufferCreateResult stagingResult = VulkanBufferFactory.Create(
-                plant,
-                allocator,
-                new VulkanBufferCreatePlan(
-                    PlantId,
-                    (ulong)request.Data.Length,
-                    VulkanBufferUsage.TransferSource,
-                    VulkanMemoryUsage.CpuToGpu,
-                    string.IsNullOrWhiteSpace(request.DebugName) ? "upload.staging" : $"{request.DebugName}.staging",
-                    MapOnCreate: true));
-
-            if (!stagingResult.Success)
+            if (reusableStaging is not null)
             {
-                diagnostics.Add(Diagnostic(
-                    VulkanBufferUploadDiagnosticCodes.StagingBufferCreationFailed,
-                    FormatStagingCreationFailure(stagingResult),
-                    request.DebugName));
-                return new VulkanBufferUploadResult(MapFailedStatus(stagingResult.Status), null, diagnostics);
+                staging = reusableStaging;
             }
+            else
+            {
+                VulkanBufferCreateResult stagingResult = VulkanBufferFactory.Create(
+                    plant,
+                    allocator,
+                    new VulkanBufferCreatePlan(
+                        PlantId,
+                        (ulong)request.Data.Length,
+                        VulkanBufferUsage.TransferSource,
+                        VulkanMemoryUsage.CpuToGpu,
+                        string.IsNullOrWhiteSpace(request.DebugName) ? "upload.staging" : $"{request.DebugName}.staging",
+                        MapOnCreate: true));
 
-            staging = stagingResult.Buffer!;
+                if (!stagingResult.Success)
+                {
+                    diagnostics.Add(Diagnostic(
+                        VulkanBufferUploadDiagnosticCodes.StagingBufferCreationFailed,
+                        FormatStagingCreationFailure(stagingResult),
+                        request.DebugName));
+                    return new VulkanBufferUploadResult(MapFailedStatus(stagingResult.Status), null, diagnostics);
+                }
+
+                staging = stagingResult.Buffer!;
+            }
             VulkanBufferWriteResult writeResult = staging.Write(request.Data.Span);
             if (!writeResult.Success)
             {
@@ -194,7 +216,10 @@ public sealed unsafe class VulkanBufferUploader : IDisposable
                 _ = lease.Reset();
             }
 
-            staging?.Dispose();
+            if (reusableStaging is null)
+            {
+                staging?.Dispose();
+            }
         }
     }
 

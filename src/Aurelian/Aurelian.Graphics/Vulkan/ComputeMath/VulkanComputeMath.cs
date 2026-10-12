@@ -32,6 +32,7 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
     private DescriptorPool descriptorPool;
     private PipelineLayout pipelineLayout;
     private bool disposed;
+    private AurelianVulkanBuffer? unsignedUploadStaging;
 
     private sealed record DispatchSlot(DescriptorSet Set, AurelianVulkanBuffer Parameters);
     public int MaximumDispatches { get; }
@@ -143,6 +144,7 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
         {
             bytes = MemoryMarshal.AsBytes(values).ToArray();
         }
+        queuedScope?.Flush();
         var result = uploader.Upload(new(tensor.Buffer, bytes, DebugName: "compute-math.upload"));
         Require(result.Success, string.Join("; ", result.Diagnostics.Select(item => item.Message)));
     }
@@ -157,15 +159,61 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
     {
         Validate(tensor, GpuTensorFormat.UInt32);
         ComputeMathBatch.Require(values.Length == tensor.Elements, "Unsigned upload length must match the tensor shape.");
+        queuedScope?.Flush();
         var result = uploader.Upload(new(tensor.Buffer, MemoryMarshal.AsBytes(values).ToArray(), DebugName: "compute-math.upload-u32"));
         Require(result.Success, string.Join("; ", result.Diagnostics.Select(item => item.Message)));
     }
 
+    /// <summary>Uploads an already packed UInt32 byte representation without a
+    /// second managed copy. The synchronous uploader has consumed the memory on return.</summary>
+    public void UploadUInt32Bytes(GpuTensor tensor, ReadOnlyMemory<byte> bytes)
+    {
+        Validate(tensor, GpuTensorFormat.UInt32);
+        ComputeMathBatch.Require(bytes.Length == (long)tensor.Elements * sizeof(uint),
+            "Packed unsigned upload length must match the tensor shape.");
+        queuedScope?.Flush();
+        var staging = UnsignedUploadBuffer(bytes.Length);
+        var result = uploader.Upload(new(tensor.Buffer, bytes, DebugName: "compute-math.upload-u32"), staging);
+        Require(result.Success, string.Join("; ", result.Diagnostics.Select(item => item.Message)));
+    }
+
+    private AurelianVulkanBuffer UnsignedUploadBuffer(int byteCount)
+    {
+        if (unsignedUploadStaging is null || unsignedUploadStaging.SizeBytes < (ulong)byteCount)
+        {
+            unsignedUploadStaging?.Dispose();
+            unsignedUploadStaging = null;
+            unsignedUploadStaging = Buffer((ulong)byteCount,
+                VulkanBufferUsage.TransferSource, VulkanMemoryUsage.CpuToGpu);
+        }
+        return unsignedUploadStaging;
+    }
+
     public ComputeMathResult Execute(ComputeMathBatch batch)
+    {
+        return ExecuteCore(batch, null, default);
+    }
+
+    /// <summary>Copies one packed tensor and executes its consumers in the same
+    /// submission. The supplied host memory is consumed before this method returns.</summary>
+    public ComputeMathResult ExecuteWithUInt32Upload(ComputeMathBatch batch,
+        GpuTensor destination, ReadOnlyMemory<byte> bytes)
+    {
+        Validate(destination, GpuTensorFormat.UInt32);
+        ComputeMathBatch.Require(bytes.Length == (long)destination.Elements * sizeof(uint),
+            "Packed upload length must match the tensor shape.");
+        return ExecuteCore(batch, destination, bytes);
+    }
+
+    private ComputeMathResult ExecuteCore(ComputeMathBatch batch, GpuTensor? upload, ReadOnlyMemory<byte> bytes)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         ComputeMathBatch.Require(ReferenceEquals(batch.Owner, this) && batch.DispatchCount > 0,
             "Execute requires a nonempty batch from this compute owner.");
+        if (queuedScope is not null)
+        {
+            return queuedScope.Submit(batch, upload, bytes);
+        }
         foreach (var dispatch in batch.Dispatches)
         {
             Validate(dispatch.Input, dispatch.Input.Format);
@@ -181,9 +229,22 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
         {
             Configure(slots[index], batch.Dispatches[index]);
         }
+        if (upload is not null)
+        {
+            Require(UnsignedUploadBuffer(bytes.Length).Write(bytes.Span).Success, "Packed upload staging write failed.");
+        }
         var command = commands.Rent(fences.CommandListFence.LastKnownCompletedValue);
         Require(command.Begin().Success, "Compute batch begin failed.");
         timings.Reset(command);
+        if (upload is not null)
+        {
+            Barrier(command, AccessFlags.HostWriteBit | AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
+                AccessFlags.TransferReadBit | AccessFlags.TransferWriteBit,
+                PipelineStageFlags.HostBit | PipelineStageFlags.ComputeShaderBit, PipelineStageFlags.TransferBit);
+            var copy = new BufferCopy(0, 0, (ulong)bytes.Length);
+            plant.Vk.CmdCopyBuffer(command.CommandBuffer, unsignedUploadStaging!.NativeBuffer,
+                upload.Buffer.NativeBuffer, 1, &copy);
+        }
         Barrier(command, AccessFlags.HostWriteBit | AccessFlags.ShaderWriteBit | AccessFlags.TransferWriteBit,
             AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
             PipelineStageFlags.HostBit | PipelineStageFlags.ComputeShaderBit | PipelineStageFlags.TransferBit,
@@ -210,6 +271,7 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
         Validate(tensor, tensor.Format);
         ComputeMathBatch.Require(tensor.Format is GpuTensorFormat.Float32 or GpuTensorFormat.Complex32,
             "Read returns FP32 or interleaved complex32 values, not packed half or unsigned words.");
+        queuedScope?.Flush();
         using var staging = Buffer(tensor.Buffer.SizeBytes, VulkanBufferUsage.TransferDestination, VulkanMemoryUsage.GpuToCpu);
         var command = commands.Rent(fences.CommandListFence.LastKnownCompletedValue);
         Require(command.Begin().Success, "Compute readback begin failed.");
@@ -232,6 +294,14 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
 
     internal void Release(GpuTensor tensor)
     {
+        if (queuedScope is not null)
+        {
+            queuedScope.Retire(tensor.Buffer);
+        }
+        else
+        {
+            tensor.Buffer.Dispose();
+        }
         if (!disposed)
         {
             tensors.Remove(tensor);
@@ -276,6 +346,7 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
         {
             return;
         }
+        queuedScope?.Dispose();
         disposed = true;
         _ = plant.Vk.DeviceWaitIdle(plant.Device);
         timings.Dispose();
@@ -304,6 +375,7 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
             tensor.Dispose();
         }
         uploader.Dispose();
+        unsignedUploadStaging?.Dispose();
         commands.Dispose();
         fences.Dispose();
         allocator.Dispose();

@@ -31,6 +31,8 @@ public sealed unsafe partial class VulkanComputeMath
         ComputeMathBatch.Require(plan.DispatchesPerTile <= MaximumDispatches, "Weight tile exceeds the owner's dispatch budget.");
         if (StreamController is { } controller)
         {
+            // This composite operation owns and drains its physical ring.
+            queuedScope?.Flush();
             return LinearPipelined(input, output, plan, loadWeights, controller);
         }
         using var weights = CreateTensor(plan.TileRows, plan.InputWidth + 1);

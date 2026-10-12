@@ -37,7 +37,6 @@ public sealed class GpuTensor : IDisposable
             return;
         }
         Disposed = true;
-        Buffer.Dispose();
         Owner.Release(this);
     }
 }

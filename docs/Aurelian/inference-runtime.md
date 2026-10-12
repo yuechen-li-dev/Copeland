@@ -66,6 +66,59 @@ The complete small example is `tools/Aurelian.InferenceProof/Program.cs`.
 
 ## Budgets, precision and lifetimes
 
+### Queued packed compute
+
+`VulkanComputeMath.ExecuteWithUInt32Upload` copies one packed tensor and dispatches
+its consumers in one submission. The default Q4 layer binding uses this path;
+`UseSeparateUploads` retains the synchronous reference for measurement. Host bytes
+are consumed before return, including when the caller reuses its upload scratch.
+
+`BeginQueuedScope(controller, forecast)` reuses the existing physical submission
+ring for ordered resident batches and packed transfers. The forecast authors an
+upper bound on submission count, dispatches per batch and upload bytes per slot.
+Scopes cannot nest. The controller chooses one to four slots; Dominatus currently
+chooses two when its authored transfer budget permits, otherwise one. Its default
+limit remains 4 MiB; the measured Gemma workload explicitly supplies 64 MiB.
+
+```csharp
+using var controller = new DominatusComputeFeedforward(64 * 1024 * 1024);
+using var queue = session.Compute.BeginQueuedScope(controller,
+    new ComputeStreamForecast(BatchCount: 100, DispatchesPerBatch: 16,
+        UploadBytes: 64 * 1024 * 1024));
+// Execute and ExecuteWithUInt32Upload enqueue ordered work here.
+// Dispose a tensor when its last consumer has been submitted.
+// Read, immediate Upload, Flush and scope disposal are completion boundaries.
+```
+
+A disposed tensor handle is immediately invalid. Its physical buffer is retired
+at the last submitted Vulkan timeline value; descriptors, staging and timing
+queries are immutable until slot completion. Host forecasts never authorize
+reuse. Scope metrics expose submissions, waits, actual in-flight depth, retired
+buffer peaks and separate GPU compute/copy costs. Per-call GPU cost is unavailable
+while queued; read it from harvested scope metrics. Combined submission wall time
+includes staging and copy work, so it cannot be compared to the older isolated
+upload/execute fields without accounting for that change.
+
+Existing streamed linear and tiled attention composite operations drain an outer
+scope before using their own bounded ring. They retain their own measurements;
+outer scope metrics cover only work submitted through that scope.
+
+Dominatus inspection also compares a compute-only completion model against a
+transfer-aware model trained from GPU timestamps. CPU harvest residuals remain
+diagnostic and do not train GPU costs. This Smith-style forward-model experiment
+has no closed-loop pacing authority: the real Gemma trials did not improve its
+host-observed prediction accuracy. Static bounded admission and fences ship as
+the scheduling policy. See the measured results in the Gemma document.
+
+Research inspiration: turbo-fieldfare's bounded slot ownership and host/GPU
+overlap, reviewed at commit `77e8f9c02ec5345f4d9b633961c938bbafefb757`
+([system design](https://github.com/drumih/turbo-fieldfare/blob/77e8f9c02ec5345f4d9b633961c938bbafefb757/docs/SYSTEM_DESIGN.md)).
+Its Swift/Metal MoE and unified-memory implementation is Apache-2.0; no code was
+copied. Aurelian retains its shared Vulkan owner and discrete-GPU transfer path.
+The control experiment follows the
+[Smith predictor forward-model idea](https://www.mathworks.com/help/control/ug/control-of-processes-with-long-dead-time-the-smith-predictor.html),
+without claiming a qualified classical Smith controller.
+
 `Create` owns a plant; `Attach` borrows an existing one. Both own their compute
 resources. Returned layer tensors belong to callers and support ordinary `using`.
 A layer failure releases its output, including observer exceptions after native
@@ -126,12 +179,18 @@ cleanup and restored memory budgets. Evidence is retained under ignored
 
 ## Current scope
 
+The first causal-language-model adapter now executes Gemma 4 12B Unified text
+generation with a bounded cache and local packed Q4 matrices. See
+[Gemma text inference](gemma4-text-inference.md) for the measured path and its
+explicit numerical, context and quality limits.
+
 This supports authored dense/sparse graphs over the current kernel pack and
 F32/F16/BF16 safetensors. It is not a universal importer or an already-qualified
-Llama runtime. GGUF/quantized kernels, tokenizers, embedding lookup, persistent KV
-caches and optimized causal generation still need bounded implementations and
-their own witnesses. New models provide explicit contracts/layouts, C# graph code
-and numerical fixtures while reusing the resource/scheduling owners.
+Llama runtime. The Q4B32 kernel, supported Gemma BPE profile, selected embedding
+lookup and bounded causal cache now have witnesses; GGUF, other quantized formats,
+other tokenizer profiles and fast general causal generation remain future work.
+New models provide explicit contracts/layouts, C# graph code and numerical fixtures
+while reusing the resource/scheduling owners.
 
 Extraction does not certify TRELLIS's full upstream sampler or repair its prototype
 mesh. Weights stay local and are not distributed. The existing shader-bundle license

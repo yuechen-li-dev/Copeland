@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Integrations/Aurelian.Inference.Gemma4/Aurelian.Inference.Gemma4.csproj" />
     <Project Path="src/Aurelian/Aurelian.Inference/Aurelian.Inference.csproj" />
     <Project Path="src/Integrations/Aurelian.Inference.Dominatus/Aurelian.Inference.Dominatus.csproj" />
     <Project Path="src/Integrations/Aurelian.Inference.Trellis2/Aurelian.Inference.Trellis2.csproj" />

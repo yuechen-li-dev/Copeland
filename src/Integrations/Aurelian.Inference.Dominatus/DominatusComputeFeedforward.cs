@@ -24,13 +24,12 @@ public sealed class DominatusComputeFeedforward : IComputeStreamController, IDis
     private static readonly BbKey<double> CorrectionKey = new("compute.completionErrorMilliseconds");
     private readonly AurelianAgentRuntime runtime = new(traceCapacity: 8192);
     private readonly Stopwatch clock = Stopwatch.StartNew();
-    private readonly Dictionary<long, double> predictions = [];
+    private readonly Dictionary<long, ComputeCompletionPrediction> predictions = [];
+    private readonly ComputeCompletionPredictor predictor = new();
     private ComputeStreamForecast? forecast;
     private ComputeStreamObservation? observation;
     private long revision;
     private long handled;
-    private double gpuMean;
-    private double shadowFinish;
     private int plans;
     private object? inspection;
     private readonly Queue<object> measurements = new();
@@ -38,6 +37,7 @@ public sealed class DominatusComputeFeedforward : IComputeStreamController, IDis
     private long completions;
     private long droppedMeasurements;
     private bool disposed;
+    private readonly ulong maximumTransferSlotBytes;
     public object Evidence => new
     {
         Plans = plans,
@@ -45,11 +45,17 @@ public sealed class DominatusComputeFeedforward : IComputeStreamController, IDis
         Completions = completions,
         DroppedMeasurements = droppedMeasurements,
         RecentMeasurements = measurements.ToArray(),
+        CompletionModel = predictor.Evidence,
         PredictionScope = "Host-observed completion includes harvest delay; predictions never authorize physical slot reuse",
     };
 
-    public DominatusComputeFeedforward()
+    public DominatusComputeFeedforward(ulong maximumTransferSlotBytes = 4 * 1024 * 1024)
     {
+        if (maximumTransferSlotBytes is 0 or > 128 * 1024 * 1024)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maximumTransferSlotBytes));
+        }
+        this.maximumTransferSlotBytes = maximumTransferSlotBytes;
         var graph = new HfsmGraph { Root = Planning };
         graph.Add(Planning, PlanStage);
         graph.Add(Feeding, FeedStage);
@@ -60,6 +66,10 @@ public sealed class DominatusComputeFeedforward : IComputeStreamController, IDis
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         ArgumentNullException.ThrowIfNull(next);
+        if (predictions.Count != 0)
+        {
+            throw new InvalidOperationException("AUR-INFERENCE-FEED-002: Complete the current queue before planning its successor.");
+        }
         if (next.BatchCount < 1 || next.DispatchesPerBatch < 1)
         {
             throw new ArgumentOutOfRangeException(nameof(next));
@@ -95,12 +105,13 @@ public sealed class DominatusComputeFeedforward : IComputeStreamController, IDis
         var next = forecast ?? throw new InvalidOperationException("Missing compute forecast.");
         // The complete affine tape is known in advance. Two physical slots keep
         // one submitted tile available while the host prepares its successor.
-        // Two device allocations plus two transfer allocations fit 16 MiB.
-        int depth = next.BatchCount > 1 && next.UploadBytes <= 4 * 1024 * 1024 ? 2 : 1;
+        // The caller authors the per-slot transfer budget for its workload.
+        // Two slots overlap host preparation; Vulkan fences authorize reuse.
+        int depth = next.BatchCount > 1 && next.UploadBytes <= maximumTransferSlotBytes ? 2 : 1;
         context.Agent.Bb.Set(DepthKey, depth);
         context.Agent.Bb.Set(OutstandingKey, 0);
         predictions.Clear();
-        shadowFinish = clock.Elapsed.TotalMilliseconds;
+        predictor.Begin(clock.Elapsed.TotalMilliseconds);
         forecast = null;
         handled = revision;
         Record(new { Plan = ++plans, Forecast = next, Depth = depth });
@@ -123,20 +134,17 @@ public sealed class DominatusComputeFeedforward : IComputeStreamController, IDis
                 if (!next.Completed)
                 {
                     submissions++;
-                    shadowFinish = Math.Max(now, shadowFinish) + gpuMean;
-                    predictions.Add(next.Sequence, shadowFinish);
-                    context.Agent.Bb.Set(PredictionKey, shadowFinish);
+                    var prediction = predictor.Submit(now, next.UploadBytes);
+                    predictions.Add(next.Sequence, prediction);
+                    context.Agent.Bb.Set(PredictionKey, prediction.TransferAwareFinish);
                 }
                 else
                 {
                     completions++;
-                    if (predictions.Remove(next.Sequence, out double prediction))
+                    if (predictions.Remove(next.Sequence, out var prediction))
                     {
-                        correction = now - prediction;
-                    }
-                    if (next.GpuMilliseconds is { } cost)
-                    {
-                        gpuMean = gpuMean == 0 ? cost : gpuMean * .8 + cost * .2;
+                        correction = predictor.Complete(prediction, now, next.UploadBytes,
+                            next.GpuMilliseconds, next.TransferGpuMilliseconds);
                     }
                     context.Agent.Bb.Set(CompletedKey, next.Sequence);
                     context.Agent.Bb.Set(CorrectionKey, correction);

@@ -4,7 +4,7 @@ namespace Aurelian.Graphics.Vulkan.ComputeMath;
 
 public enum RowReduction { Sum, Maximum, Softmax }
 public enum Normalization { RmsNorm, LayerNorm }
-public enum TensorActivation { Silu, Gelu, SiluGate, Residual, Bias, GeluErf }
+public enum TensorActivation { Silu, Gelu, SiluGate, Residual, Bias, GeluErf, GeluGate }
 public enum RopeLayout { HalfSplit, Interleaved }
 
 [StructLayout(LayoutKind.Sequential)]
@@ -109,7 +109,7 @@ public sealed partial class ComputeMathBatch
         auxiliary ??= input;
         Check(input, auxiliary, output);
         Require(Enum.IsDefined(operation) && SameShape(input, output), "Activation requires matching FP32 shapes and a defined operation.");
-        if (operation is TensorActivation.SiluGate or TensorActivation.Residual)
+        if (operation is TensorActivation.SiluGate or TensorActivation.Residual or TensorActivation.GeluGate)
         {
             Require(SameShape(input, auxiliary), "Gated/residual activation requires a same-shaped auxiliary tensor.");
         }
