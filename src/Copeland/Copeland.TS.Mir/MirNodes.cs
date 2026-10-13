@@ -764,7 +764,8 @@ public sealed record MirNpmImport(
     bool IsPromise,
     bool IsAvailableToJavaScript,
     bool IsAvailableToClrSidecar,
-    bool IsComponent = false);
+    bool IsComponent = false,
+    bool PresentationHost = false);
 public sealed record MirNpmCallExpression(
     string LocalBinding,
     string PackageName,

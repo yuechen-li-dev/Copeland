@@ -1,0 +1,93 @@
+{
+  "milestone": "CTS-MIXED-ISLANDS-M10",
+  "build": {
+    "warnings": 0,
+    "errors": 0
+  },
+  "tests": {
+    "passed": 2256,
+    "failed": 0,
+    "skipped": 0,
+    "suites": [
+      {
+        "assembly": "Copeland.Authoring.Food.Tests.dll",
+        "failed": 0,
+        "passed": 3,
+        "skipped": 0,
+        "total": 3
+      },
+      {
+        "assembly": "Copeland.Cli.Tests.dll",
+        "failed": 0,
+        "passed": 80,
+        "skipped": 0,
+        "total": 80
+      },
+      {
+        "assembly": "Copeland.Markdown.Tests.dll",
+        "failed": 0,
+        "passed": 35,
+        "skipped": 0,
+        "total": 35
+      },
+      {
+        "assembly": "Copeland.TS.Backend.CSharp.Tests.dll",
+        "failed": 0,
+        "passed": 273,
+        "skipped": 0,
+        "total": 273
+      },
+      {
+        "assembly": "Copeland.TS.Backend.JavaScript.Tests.dll",
+        "failed": 0,
+        "passed": 284,
+        "skipped": 0,
+        "total": 284
+      },
+      {
+        "assembly": "Copeland.TS.Database.Tests.dll",
+        "failed": 0,
+        "passed": 11,
+        "skipped": 0,
+        "total": 11
+      },
+      {
+        "assembly": "Copeland.TS.MSBuild.Tests.dll",
+        "failed": 0,
+        "passed": 13,
+        "skipped": 0,
+        "total": 13
+      },
+      {
+        "assembly": "Copeland.TS.Tests.dll",
+        "failed": 0,
+        "passed": 1557,
+        "skipped": 0,
+        "total": 1557
+      }
+    ]
+  },
+  "presentationBrowser": {
+    "observations": 270,
+    "errors": [],
+    "version": "153.0.4234.48"
+  },
+  "sharedSourceRegression": {
+    "observations": 192,
+    "errors": []
+  },
+  "hashes": {
+    "docs/Copeland/reviews/evidence/mixed-islands-m10/shared-source-regression/browser-report.json": "42fd910d43f3eac275cc0d4eca4b420da3a872f4f1e32ac19e0eb01376a036c5",
+    "samples/copeland-ts/mixed-islands-m10/src/Application.tsx": "b1af6f4d179f3b064c547134ae161cd5a8df2cfd3ea259a66a247f659d80c550",
+    "src/Copeland/Copeland.TS.Backend.JavaScript/Browser/PresentationIsland.ts": "744e6fc1cef5e58c9e38a9f49aa1370db9a1bd7bbdcf4975842c77e55697b150",
+    "artifacts/validation/mixed-islands-m10-build.log": "6a57939ba87c06ca5546f4a7c1ff6dd30e5b0e449c3f6c3db53acfe8ce682952",
+    "artifacts/validation/mixed-islands-m10-tests.log": "baad00939a680549ccb2278084772d23c7c0b0a623cd9dab1324481276f18400",
+    "docs/Copeland/reviews/evidence/mixed-islands-m10/browser-report.json": "76da5ed828f8c0fdc4210a97cf7fc2f2fe34d0e7d8b6a2c35ec8853fd982299c",
+    "docs/Copeland/reviews/evidence/mixed-islands-m10/compiler-report.json": "96fb85c8e4b51e97c74307d51f987d4d1d831b0ad5c20cb63543ae81dbf6d26a",
+    "samples/copeland-ts/mixed-islands-m10/package-lock.json": "a7d03a66736ebd4888ff7410e2629dec59ae9236e39c5f974a2de312a37581d6",
+    "samples/copeland-ts/react-friction-m0/dist/browser/packages/copeland-browser-v1/index.js": "ef5cb47ed5fe0fa0f40ebdcca3b638b553f4bc7b38c84f5d0d0575528fa5de0a",
+    "src/Copeland/Copeland.TS/bin/Debug/net10.0/Copeland.TS.dll": "1b43f539de0e8371908bf3687d0f6829d05b3e3ef43ad0e3012f153e2efef1b0",
+    "src/Copeland/Copeland.TS.Backend.JavaScript/bin/Debug/net10.0/Copeland.TS.Backend.JavaScript.dll": "77fcd72434250e0b8973e8dff759bcc1cc3151cf62d7297e36785835f05234fb"
+  },
+  "boundary": "Simultaneous React/Vue islands, including one shared state owner, under both qualified outer projections. Other frameworks, managed bridges, slots and subtree attachment settling remain unqualified."
+}

@@ -9653,7 +9653,8 @@ public static partial class Binder
                     members,
                     package.IsAvailableToJavaScript,
                     contract.Renderer,
-                    contract.DefaultSlot);
+                    contract.DefaultSlot,
+                    contract.PresentationHost);
                 if (_global.TryLookup(symbol.Name, out Symbol? existing))
                 {
                     if (existing is NpmComponentSymbol existingComponent

@@ -215,6 +215,11 @@ public static class JavaScriptBackend
             writer.WriteLine($"import {{ {specifier} }} from {JavaScriptLiteralWriter.WriteString(host.ModuleSpecifier)};");
         }
         writer.WriteLine("\"use strict\";");
+        foreach (MirNpmImport host in program.NpmImports.Where(import => import.PresentationHost))
+        {
+            string identity = host.PackageName + "/" + host.ExportName;
+            writer.WriteLine($"__cope_view_hosts.set({JavaScriptIdentifierEncoder.Encode(host.LocalBinding)}, {JavaScriptLiteralWriter.WriteString(identity)});");
+        }
         if (ComponentStateRuntime.IsRequired(program))
         {
             ComponentStateRuntime.Emit(writer, ComponentStateRuntime.IsVue(program), program.PresentationAdapter is not null);
@@ -5434,6 +5439,9 @@ public static class JavaScriptBackend
             MirPropagateExpression or MirUnwrapExpression or MirResultMatchExpression or MirTryExpression => true,
             MirUnaryExpression unary => ContainsControlFlow(unary.Operand),
             MirRecordConstructionExpression or MirRecordFieldAccessExpression or MirRecordWithExpression or MirTableWithExpression => true,
+            MirReactElementExpression element => ContainsControlFlow(element.ElementType)
+                || element.Properties.Any(property => ContainsControlFlow(property.Value))
+                || element.Children.Any(ContainsControlFlow),
             MirTableColumnAccessExpression or MirTableRowAccessExpression or MirColumnElementAccessExpression or MirTableRowFieldAccessExpression => true,
             MirBinaryExpression binary => ContainsControlFlow(binary.Left) || ContainsControlFlow(binary.Right),
             MirCallExpression call => call.Arguments.Any(ContainsControlFlow),

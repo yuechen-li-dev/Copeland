@@ -1,0 +1,2351 @@
+{
+  "milestone": "CTS-PRESENTATION-FRICTION-M9",
+  "browser": "153.0.4234.48",
+  "compiler": {
+    "milestone": "CTS-PRESENTATION-FRICTION-M9",
+    "sourceHashes": {
+      "src/Application.ts": "d3c2b0c9a2dd5e599b8de4115dcec7e1e7647be38f11df79af4d8c1edba8e7cd",
+      "src/Collections.ts": "91e5a338dacb019b5f947b8f560ee3d3f1d52cfa6cf0bea428ac2933411ced0b",
+      "src/Content.ts": "7eef23e5022f39392e6e7facfe9b123016cfdc7202363c1751eb4d662fcd96eb",
+      "src/Issues.ts": "86e06bc59d550e3224308d8360108cf5416196db485a1ac3d267522cee5438ae",
+      "src/IssuesPage.ts": "ac4c0e071906ada14ffae167818b2c0599eacc3705851db9a734a702b7ec99a9",
+      "src/Layouts.ts": "65c8a7c639ea677258c0d64822c578d9df96e3286da93c1f1f82f9176196e8d4",
+      "src/Lifecycle.tsx": "abae5f9782f734b7fc388703190dc537d58085f7e1b2f2698ee6f873c997028a",
+      "src/State.ts": "3adfa9466e6656a3ac8cf98f9897a73d7184799408bc3cc91f187166f2b7b310",
+      "src/UI.tsx": "cf2b3a2e98f4966c2e6f3815ff083654ac9ec86402e804cab9dce2d01a995c63"
+    },
+    "results": [
+      {
+        "adapter": "react",
+        "profile": "Diagnostic",
+        "files": {
+          "src/Application.js": "e7e5918aac16aaf61961f3ed195ca0846b70344ff531c3c8f5f72cd0c286944d",
+          "src/Collections.js": "d6c1592d4d8dc77b298285c53ae34d8836b900a47a88094df81e7f04dd32e075",
+          "src/Content.js": "f157bf88d590e883a4504842d82ed5aa1478373b83bb920a9f20c86bbc4bd6e4",
+          "src/Issues.js": "a36cad8177a2ed5787eece1164fa20f5c18998b9189df1f1ba7fd9bac280c739",
+          "src/IssuesPage.js": "53de94ead9860087f7cf96b79a17cb587b791173abe48e6648180aca6f5fd5d8",
+          "src/Layouts.js": "55ebb820d88f11ddd140c1305d106330dc1205b45841e2755da0d74cea40b94e",
+          "src/Lifecycle.js": "2a01c46832db848cee987b5e0f10477139420aa21324d1d8f57948a9ea962f3b",
+          "src/State.js": "9a440f31d99caccd810f13d8348b45f7554cd6137efc81f26d41fcedf7138aa3",
+          "src/UI.js": "4767ba9dd946e0e1f69f5caa6319b42c5c12bf74dab6920d0ecaac63ffec9dd3",
+          "generated/layouts.css": "9f7ca90d0e39278dbc918139424efcc656281d79e79cee757f4dd7a11e0b3205"
+        }
+      },
+      {
+        "adapter": "react",
+        "profile": "Symbolic",
+        "files": {
+          "src/Application.js": "7e46daf189afc97471841550fa5dbac1da528eafc751c6a3c5c9ebe3d676d644",
+          "src/Collections.js": "c91e227833246f6afec98b7a4910a1cbd100e85239ab030b7e3e6cf6a6d3785f",
+          "src/Content.js": "969778bff76e6051e316cc620bf8d489e5a56d024453373688fe45aa4cf27cf3",
+          "src/Issues.js": "e8eab68ee7976d6b73e89ba819cf35ee7ad234baf1cdba9a0d0e989898130b04",
+          "src/IssuesPage.js": "2675048679bbda71e1b5cca4c90243f81fa2620881af9c8cfded5ffb037c98c1",
+          "src/Layouts.js": "dbe30312dfa3af045524dc2c37eb7a90e17cd7cc42fb4abef4b17559aafc1f42",
+          "src/Lifecycle.js": "b5445eaec4af161fdec004d8ac950cf6004d408118d301bd3d3884841678b81d",
+          "src/State.js": "2aaf725ea55021ac4403dcfbc24867b0b728d019fb8cbad522f9a8a7307bb48c",
+          "src/UI.js": "5fc32d2a573679f3db63eaf3f786581a9582200fbdfe733aee08ffa8d3c0c93e",
+          "generated/layouts.css": "9f7ca90d0e39278dbc918139424efcc656281d79e79cee757f4dd7a11e0b3205"
+        }
+      },
+      {
+        "adapter": "react",
+        "profile": "Production",
+        "files": {
+          "src/Application.js": "cf33c1a5488d91ccc88306c03451ada6510fe1e19efa9ae78621518eab7ed23d",
+          "src/Collections.js": "fc69db0b0a379c35160af608c40e8aef5a941598275f6cc2499ae0c86ba85f7a",
+          "src/Content.js": "e43fa9b72137f83b07986912645466cbf8537689c6156fdde5be55dc3745194a",
+          "src/Issues.js": "9f3ecbbb99333c3315db7af125f8d876acec8418a201656fe0aa0302ca49d127",
+          "src/IssuesPage.js": "b1880460e919faad5551545752107a7879e1c84e9a817ffb6be89c0422fe637d",
+          "src/Layouts.js": "a82969b5ded97a364590f6438807e0d31c5f385d2d0199f3282610554f727a24",
+          "src/Lifecycle.js": "77167a6dec8badb5078932780b302b26c1248e76bc8b89e4e68baaf04eadb211",
+          "src/State.js": "fcac088d9be4f7121d66062db074e8a8c36276d1f7ead93965bb8851ef2a58bc",
+          "src/UI.js": "8413468bc33c9fb51cc6cfddf4dfd18f40b95a80b426e719aff94c54ea285223",
+          "generated/layouts.css": "9f7ca90d0e39278dbc918139424efcc656281d79e79cee757f4dd7a11e0b3205"
+        }
+      },
+      {
+        "adapter": "vue",
+        "profile": "Diagnostic",
+        "files": {
+          "src/Application.js": "b0d2970b15821fef42ed69281ac65073598fa29796784756befe9e02d411500b",
+          "src/Collections.js": "962c9a8461a2814c53a2a4b677536560dd93f08e097508972af8e7209e6298dd",
+          "src/Content.js": "ef3b20297063d7233d01149954a6034a4865845d813bdcd1e51d195c7e5ed459",
+          "src/Issues.js": "4f2f2d2f1c9d832f3173f8ff9241956738ab3e1aaa589dc1498f948976ac48fe",
+          "src/IssuesPage.js": "76611d8ed46092443956334ea4355cc6e23399cfdd198b1855d952487887df67",
+          "src/Layouts.js": "dded740c46fc498a2c70204e9784e0a2b066b96b1761a8ebda3e3d3b057aec57",
+          "src/Lifecycle.js": "5cda0661a1f45b9d60dabce300ed5ecbda02aa7b64a70d62e318c3b8a48d6589",
+          "src/State.js": "910cbbf4188f2835e3a2681acb8cd9f9205893a01b9c9e7fb12b02c6b228c271",
+          "src/UI.js": "c695cd54ae9089215a9f67975013f2f48479ec4bcecf22a6556b2f7e403a5427",
+          "generated/layouts.css": "9f7ca90d0e39278dbc918139424efcc656281d79e79cee757f4dd7a11e0b3205"
+        }
+      },
+      {
+        "adapter": "vue",
+        "profile": "Symbolic",
+        "files": {
+          "src/Application.js": "f86b1956b08386f36e9d6862438b59e14afa6c1b9e6723a6a8dbcf0accb63e33",
+          "src/Collections.js": "bc2b2075d9d2923f6e2f5629f200424fbfe09cb8557554eb2f5ae816b22813ee",
+          "src/Content.js": "63b7adb637567e7557aeff876bc8ecfdb991b95417aebd0a4f57eee332778bd1",
+          "src/Issues.js": "dc726cdca788efe2053ab251f134d1ca05292bfab6a08b17d9818a18988f016c",
+          "src/IssuesPage.js": "098ef4cbaf9308c1e1ac8cc4fef9a50577ea27fa0d757b27a10c1fb6f3bf33db",
+          "src/Layouts.js": "b9d8567e313a8aeaba1f48284052812adf28126e2a5648ee1f357f9f0d8be578",
+          "src/Lifecycle.js": "07123e5bbbded95c516140a9da03c5c674e58c3c6bdcf1021fbef42f5e93e965",
+          "src/State.js": "c33098a8ba10d77f4d71676c944501ca21687f19f59d6d0ecc53985f625223b7",
+          "src/UI.js": "b9b3a895187b470d16f98dfdfdeccd6778ae3e1d8db7979d834e8b11eb2f1efe",
+          "generated/layouts.css": "9f7ca90d0e39278dbc918139424efcc656281d79e79cee757f4dd7a11e0b3205"
+        }
+      },
+      {
+        "adapter": "vue",
+        "profile": "Production",
+        "files": {
+          "src/Application.js": "c0e89c7c69532e41d32fb30a8bf0be87a81557bbdef38b855477b13136bf04a4",
+          "src/Collections.js": "74f5475aaba90942320a49985809ca7194f32c1e96d77b9ace47e28aaaae0fdf",
+          "src/Content.js": "dbbd54e728fbdbfd7a840e92cdac2181083ee721481b0708e21ca32cc6a9564d",
+          "src/Issues.js": "99dc6cef7cccc6b0ea5bd09fd3ce2ee17b5c0c2b484e2c4a4f3889e7a2f0e86d",
+          "src/IssuesPage.js": "72b719caa9f78aaaa40e50e748b2464878568b7ada6ad2a0b909b3d76039f94b",
+          "src/Layouts.js": "a5278db63e90e97273d5f66cf5c70114b28de09cb1ad12bfe350afb94f06e049",
+          "src/Lifecycle.js": "dd86a5aa174ebd2532e038376813a3a70fc587afd705e64f994d1b3570d3762b",
+          "src/State.js": "729e2bc95a7cf248e1c96fef13e3d9bc935f1217404549fcf4e340d6b7d7b19f",
+          "src/UI.js": "e30e779d0a12ac0b41fe3a52872570d7fc8244838bb7c0241350469d0b046da8",
+          "generated/layouts.css": "9f7ca90d0e39278dbc918139424efcc656281d79e79cee757f4dd7a11e0b3205"
+        }
+      }
+    ]
+  },
+  "errors": [],
+  "observations": [
+    {
+      "name": "/baseline//1280/insert-selection",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 104,
+        "y": 339.015625,
+        "width": 300,
+        "bottom": 777.671875
+      },
+      "detail": {
+        "x": 404,
+        "y": 339.015625,
+        "width": 772,
+        "bottom": 777.671875
+      }
+    },
+    {
+      "name": "/baseline//1280/insert-selection/domain-parity",
+      "titles": [
+        "Text escapes the assigned region",
+        "Keyboard focus returns to the wrong control",
+        "Search loses its selection after a refresh",
+        "A newly inserted issue with a substantially longer title"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation."
+    },
+    {
+      "name": "/baseline//1280/live-resize",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 12,
+        "y": 457.796875,
+        "width": 366,
+        "bottom": 829.265625
+      },
+      "detail": {
+        "x": 12,
+        "y": 829.265625,
+        "width": 366,
+        "bottom": 1276.4375
+      }
+    },
+    {
+      "name": "/baseline//1280/long-copy",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 104,
+        "y": 339.015625,
+        "width": 300,
+        "bottom": 777.671875
+      },
+      "detail": {
+        "x": 404,
+        "y": 339.015625,
+        "width": 772,
+        "bottom": 777.671875
+      }
+    },
+    {
+      "name": "/baseline//1280/long-copy/domain-parity",
+      "titles": [
+        "A newly inserted issue with a substantially longer title",
+        "Search loses its selection after a refresh",
+        "Keyboard focus returns to the wrong control",
+        "Text escapes the assigned region"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable."
+    },
+    {
+      "name": "/baseline//1280/text-200-percent",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 104,
+        "y": 603.265625,
+        "width": 300,
+        "bottom": 1863.578125
+      },
+      "detail": {
+        "x": 404,
+        "y": 603.265625,
+        "width": 772,
+        "bottom": 1863.578125
+      }
+    },
+    {
+      "name": "/baseline//768/insert-selection",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 24,
+        "y": 390.609375,
+        "width": 300,
+        "bottom": 829.265625
+      },
+      "detail": {
+        "x": 324,
+        "y": 390.609375,
+        "width": 420,
+        "bottom": 829.265625
+      }
+    },
+    {
+      "name": "/baseline//768/insert-selection/domain-parity",
+      "titles": [
+        "Text escapes the assigned region",
+        "Keyboard focus returns to the wrong control",
+        "Search loses its selection after a refresh",
+        "A newly inserted issue with a substantially longer title"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation."
+    },
+    {
+      "name": "/baseline//768/live-resize",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 12,
+        "y": 457.796875,
+        "width": 366,
+        "bottom": 829.265625
+      },
+      "detail": {
+        "x": 12,
+        "y": 829.265625,
+        "width": 366,
+        "bottom": 1276.4375
+      }
+    },
+    {
+      "name": "/baseline//768/long-copy",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 24,
+        "y": 390.609375,
+        "width": 300,
+        "bottom": 1032.9375
+      },
+      "detail": {
+        "x": 324,
+        "y": 390.609375,
+        "width": 420,
+        "bottom": 1032.9375
+      }
+    },
+    {
+      "name": "/baseline//768/long-copy/domain-parity",
+      "titles": [
+        "A newly inserted issue with a substantially longer title",
+        "Search loses its selection after a refresh",
+        "Keyboard focus returns to the wrong control",
+        "Text escapes the assigned region"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable."
+    },
+    {
+      "name": "/baseline//768/text-200-percent",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 24,
+        "y": 672.453125,
+        "width": 300,
+        "bottom": 2859.109375
+      },
+      "detail": {
+        "x": 324,
+        "y": 672.453125,
+        "width": 420,
+        "bottom": 2859.109375
+      }
+    },
+    {
+      "name": "/baseline//390/insert-selection",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 12,
+        "y": 457.796875,
+        "width": 366,
+        "bottom": 829.265625
+      },
+      "detail": {
+        "x": 12,
+        "y": 829.265625,
+        "width": 366,
+        "bottom": 1276.4375
+      }
+    },
+    {
+      "name": "/baseline//390/insert-selection/domain-parity",
+      "titles": [
+        "Text escapes the assigned region",
+        "Keyboard focus returns to the wrong control",
+        "Search loses its selection after a refresh",
+        "A newly inserted issue with a substantially longer title"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation."
+    },
+    {
+      "name": "/baseline//390/live-resize",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 12,
+        "y": 457.796875,
+        "width": 366,
+        "bottom": 829.265625
+      },
+      "detail": {
+        "x": 12,
+        "y": 829.265625,
+        "width": 366,
+        "bottom": 1276.4375
+      }
+    },
+    {
+      "name": "/baseline//390/long-copy",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 12,
+        "y": 457.796875,
+        "width": 366,
+        "bottom": 829.265625
+      },
+      "detail": {
+        "x": 12,
+        "y": 829.265625,
+        "width": 366,
+        "bottom": 1532.375
+      }
+    },
+    {
+      "name": "/baseline//390/long-copy/domain-parity",
+      "titles": [
+        "A newly inserted issue with a substantially longer title",
+        "Search loses its selection after a refresh",
+        "Keyboard focus returns to the wrong control",
+        "Text escapes the assigned region"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable."
+    },
+    {
+      "name": "/baseline//390/text-200-percent",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 12,
+        "y": 1083.6875,
+        "width": 366,
+        "bottom": 1979.78125
+      },
+      "detail": {
+        "x": 12,
+        "y": 1979.78125,
+        "width": 366,
+        "bottom": 4355.1875
+      }
+    },
+    {
+      "name": "/react/diagnostic/application//1280/insert-selection",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 129,
+        "y": 395.84375,
+        "width": 250,
+        "bottom": 795.8125
+      },
+      "detail": {
+        "x": 441,
+        "y": 386.234375,
+        "width": 710,
+        "bottom": 703.484375
+      }
+    },
+    {
+      "name": "/react/diagnostic/application//1280/insert-selection/domain-parity",
+      "titles": [
+        "Text escapes the assigned region",
+        "Keyboard focus returns to the wrong control",
+        "Search loses its selection after a refresh",
+        "A newly inserted issue with a substantially longer title"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation."
+    },
+    {
+      "name": "/react/diagnostic/application//1280/Copeland-surface-style",
+      "style": {
+        "padding": "24px",
+        "fontSize": "18px",
+        "lineHeight": "28.8px",
+        "wrap": "anywhere",
+        "radius": "8px",
+        "fill": "rgb(255, 254, 251)"
+      }
+    },
+    {
+      "name": "/react/diagnostic/application//1280/live-resize",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1483.015625
+      }
+    },
+    {
+      "name": "/react/diagnostic/application//1280/long-copy",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 129,
+        "y": 395.84375,
+        "width": 250,
+        "bottom": 795.8125
+      },
+      "detail": {
+        "x": 441,
+        "y": 386.234375,
+        "width": 710,
+        "bottom": 847.46875
+      }
+    },
+    {
+      "name": "/react/diagnostic/application//1280/long-copy/domain-parity",
+      "titles": [
+        "A newly inserted issue with a substantially longer title",
+        "Search loses its selection after a refresh",
+        "Keyboard focus returns to the wrong control",
+        "Text escapes the assigned region"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable."
+    },
+    {
+      "name": "/react/diagnostic/application//1280/text-200-percent",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 129,
+        "y": 691.890625,
+        "width": 250,
+        "bottom": 1934.984375
+      },
+      "detail": {
+        "x": 441,
+        "y": 672.671875,
+        "width": 710,
+        "bottom": 2171.09375
+      }
+    },
+    {
+      "name": "/react/diagnostic/application//768/insert-selection",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 49,
+        "y": 447.4375,
+        "width": 250,
+        "bottom": 847.40625
+      },
+      "detail": {
+        "x": 361,
+        "y": 437.828125,
+        "width": 358,
+        "bottom": 913.453125
+      }
+    },
+    {
+      "name": "/react/diagnostic/application//768/insert-selection/domain-parity",
+      "titles": [
+        "Text escapes the assigned region",
+        "Keyboard focus returns to the wrong control",
+        "Search loses its selection after a refresh",
+        "A newly inserted issue with a substantially longer title"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation."
+    },
+    {
+      "name": "/react/diagnostic/application//768/Copeland-surface-style",
+      "style": {
+        "padding": "24px",
+        "fontSize": "18px",
+        "lineHeight": "28.8px",
+        "wrap": "anywhere",
+        "radius": "8px",
+        "fill": "rgb(255, 254, 251)"
+      }
+    },
+    {
+      "name": "/react/diagnostic/application//768/live-resize",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1483.015625
+      }
+    },
+    {
+      "name": "/react/diagnostic/application//768/long-copy",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 49,
+        "y": 447.4375,
+        "width": 250,
+        "bottom": 847.40625
+      },
+      "detail": {
+        "x": 361,
+        "y": 437.828125,
+        "width": 358,
+        "bottom": 1201.421875
+      }
+    },
+    {
+      "name": "/react/diagnostic/application//768/long-copy/domain-parity",
+      "titles": [
+        "A newly inserted issue with a substantially longer title",
+        "Search loses its selection after a refresh",
+        "Keyboard focus returns to the wrong control",
+        "Text escapes the assigned region"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable."
+    },
+    {
+      "name": "/react/diagnostic/application//768/text-200-percent",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 49,
+        "y": 761.078125,
+        "width": 250,
+        "bottom": 2004.171875
+      },
+      "detail": {
+        "x": 361,
+        "y": 741.859375,
+        "width": 358,
+        "bottom": 3564.9375
+      }
+    },
+    {
+      "name": "/react/diagnostic/application//390/insert-selection",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1483.015625
+      }
+    },
+    {
+      "name": "/react/diagnostic/application//390/insert-selection/domain-parity",
+      "titles": [
+        "Text escapes the assigned region",
+        "Keyboard focus returns to the wrong control",
+        "Search loses its selection after a refresh",
+        "A newly inserted issue with a substantially longer title"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation."
+    },
+    {
+      "name": "/react/diagnostic/application//390/Copeland-surface-style",
+      "style": {
+        "padding": "24px",
+        "fontSize": "18px",
+        "lineHeight": "28.8px",
+        "wrap": "anywhere",
+        "radius": "8px",
+        "fill": "rgb(255, 254, 251)"
+      }
+    },
+    {
+      "name": "/react/diagnostic/application//390/live-resize",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1483.015625
+      }
+    },
+    {
+      "name": "/react/diagnostic/application//390/long-copy",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1799.78125
+      }
+    },
+    {
+      "name": "/react/diagnostic/application//390/long-copy/domain-parity",
+      "titles": [
+        "A newly inserted issue with a substantially longer title",
+        "Search loses its selection after a refresh",
+        "Keyboard focus returns to the wrong control",
+        "Text escapes the assigned region"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable."
+    },
+    {
+      "name": "/react/diagnostic/application//390/text-200-percent",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 1195.40625,
+        "width": 316,
+        "bottom": 2208.125
+      },
+      "detail": {
+        "x": 37,
+        "y": 2313.71875,
+        "width": 316,
+        "bottom": 5683.9375
+      }
+    },
+    {
+      "name": "/react/symbolic/application//1280/insert-selection",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 129,
+        "y": 395.84375,
+        "width": 250,
+        "bottom": 795.8125
+      },
+      "detail": {
+        "x": 441,
+        "y": 386.234375,
+        "width": 710,
+        "bottom": 703.484375
+      }
+    },
+    {
+      "name": "/react/symbolic/application//1280/insert-selection/domain-parity",
+      "titles": [
+        "Text escapes the assigned region",
+        "Keyboard focus returns to the wrong control",
+        "Search loses its selection after a refresh",
+        "A newly inserted issue with a substantially longer title"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation."
+    },
+    {
+      "name": "/react/symbolic/application//1280/Copeland-surface-style",
+      "style": {
+        "padding": "24px",
+        "fontSize": "18px",
+        "lineHeight": "28.8px",
+        "wrap": "anywhere",
+        "radius": "8px",
+        "fill": "rgb(255, 254, 251)"
+      }
+    },
+    {
+      "name": "/react/symbolic/application//1280/live-resize",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1483.015625
+      }
+    },
+    {
+      "name": "/react/symbolic/application//1280/long-copy",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 129,
+        "y": 395.84375,
+        "width": 250,
+        "bottom": 795.8125
+      },
+      "detail": {
+        "x": 441,
+        "y": 386.234375,
+        "width": 710,
+        "bottom": 847.46875
+      }
+    },
+    {
+      "name": "/react/symbolic/application//1280/long-copy/domain-parity",
+      "titles": [
+        "A newly inserted issue with a substantially longer title",
+        "Search loses its selection after a refresh",
+        "Keyboard focus returns to the wrong control",
+        "Text escapes the assigned region"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable."
+    },
+    {
+      "name": "/react/symbolic/application//1280/text-200-percent",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 129,
+        "y": 691.890625,
+        "width": 250,
+        "bottom": 1934.984375
+      },
+      "detail": {
+        "x": 441,
+        "y": 672.671875,
+        "width": 710,
+        "bottom": 2171.09375
+      }
+    },
+    {
+      "name": "/react/symbolic/application//768/insert-selection",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 49,
+        "y": 447.4375,
+        "width": 250,
+        "bottom": 847.40625
+      },
+      "detail": {
+        "x": 361,
+        "y": 437.828125,
+        "width": 358,
+        "bottom": 913.453125
+      }
+    },
+    {
+      "name": "/react/symbolic/application//768/insert-selection/domain-parity",
+      "titles": [
+        "Text escapes the assigned region",
+        "Keyboard focus returns to the wrong control",
+        "Search loses its selection after a refresh",
+        "A newly inserted issue with a substantially longer title"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation."
+    },
+    {
+      "name": "/react/symbolic/application//768/Copeland-surface-style",
+      "style": {
+        "padding": "24px",
+        "fontSize": "18px",
+        "lineHeight": "28.8px",
+        "wrap": "anywhere",
+        "radius": "8px",
+        "fill": "rgb(255, 254, 251)"
+      }
+    },
+    {
+      "name": "/react/symbolic/application//768/live-resize",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1483.015625
+      }
+    },
+    {
+      "name": "/react/symbolic/application//768/long-copy",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 49,
+        "y": 447.4375,
+        "width": 250,
+        "bottom": 847.40625
+      },
+      "detail": {
+        "x": 361,
+        "y": 437.828125,
+        "width": 358,
+        "bottom": 1201.421875
+      }
+    },
+    {
+      "name": "/react/symbolic/application//768/long-copy/domain-parity",
+      "titles": [
+        "A newly inserted issue with a substantially longer title",
+        "Search loses its selection after a refresh",
+        "Keyboard focus returns to the wrong control",
+        "Text escapes the assigned region"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable."
+    },
+    {
+      "name": "/react/symbolic/application//768/text-200-percent",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 49,
+        "y": 761.078125,
+        "width": 250,
+        "bottom": 2004.171875
+      },
+      "detail": {
+        "x": 361,
+        "y": 741.859375,
+        "width": 358,
+        "bottom": 3564.9375
+      }
+    },
+    {
+      "name": "/react/symbolic/application//390/insert-selection",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1483.015625
+      }
+    },
+    {
+      "name": "/react/symbolic/application//390/insert-selection/domain-parity",
+      "titles": [
+        "Text escapes the assigned region",
+        "Keyboard focus returns to the wrong control",
+        "Search loses its selection after a refresh",
+        "A newly inserted issue with a substantially longer title"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation."
+    },
+    {
+      "name": "/react/symbolic/application//390/Copeland-surface-style",
+      "style": {
+        "padding": "24px",
+        "fontSize": "18px",
+        "lineHeight": "28.8px",
+        "wrap": "anywhere",
+        "radius": "8px",
+        "fill": "rgb(255, 254, 251)"
+      }
+    },
+    {
+      "name": "/react/symbolic/application//390/live-resize",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1483.015625
+      }
+    },
+    {
+      "name": "/react/symbolic/application//390/long-copy",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1799.78125
+      }
+    },
+    {
+      "name": "/react/symbolic/application//390/long-copy/domain-parity",
+      "titles": [
+        "A newly inserted issue with a substantially longer title",
+        "Search loses its selection after a refresh",
+        "Keyboard focus returns to the wrong control",
+        "Text escapes the assigned region"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable."
+    },
+    {
+      "name": "/react/symbolic/application//390/text-200-percent",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 1195.40625,
+        "width": 316,
+        "bottom": 2208.125
+      },
+      "detail": {
+        "x": 37,
+        "y": 2313.71875,
+        "width": 316,
+        "bottom": 5683.9375
+      }
+    },
+    {
+      "name": "/react/production/application//1280/insert-selection",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 129,
+        "y": 395.84375,
+        "width": 250,
+        "bottom": 795.8125
+      },
+      "detail": {
+        "x": 441,
+        "y": 386.234375,
+        "width": 710,
+        "bottom": 703.484375
+      }
+    },
+    {
+      "name": "/react/production/application//1280/insert-selection/domain-parity",
+      "titles": [
+        "Text escapes the assigned region",
+        "Keyboard focus returns to the wrong control",
+        "Search loses its selection after a refresh",
+        "A newly inserted issue with a substantially longer title"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation."
+    },
+    {
+      "name": "/react/production/application//1280/Copeland-surface-style",
+      "style": {
+        "padding": "24px",
+        "fontSize": "18px",
+        "lineHeight": "28.8px",
+        "wrap": "anywhere",
+        "radius": "8px",
+        "fill": "rgb(255, 254, 251)"
+      }
+    },
+    {
+      "name": "/react/production/application//1280/live-resize",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1483.015625
+      }
+    },
+    {
+      "name": "/react/production/application//1280/long-copy",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 129,
+        "y": 395.84375,
+        "width": 250,
+        "bottom": 795.8125
+      },
+      "detail": {
+        "x": 441,
+        "y": 386.234375,
+        "width": 710,
+        "bottom": 847.46875
+      }
+    },
+    {
+      "name": "/react/production/application//1280/long-copy/domain-parity",
+      "titles": [
+        "A newly inserted issue with a substantially longer title",
+        "Search loses its selection after a refresh",
+        "Keyboard focus returns to the wrong control",
+        "Text escapes the assigned region"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable."
+    },
+    {
+      "name": "/react/production/application//1280/text-200-percent",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 129,
+        "y": 691.890625,
+        "width": 250,
+        "bottom": 1934.984375
+      },
+      "detail": {
+        "x": 441,
+        "y": 672.671875,
+        "width": 710,
+        "bottom": 2171.09375
+      }
+    },
+    {
+      "name": "/react/production/application//768/insert-selection",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 49,
+        "y": 447.4375,
+        "width": 250,
+        "bottom": 847.40625
+      },
+      "detail": {
+        "x": 361,
+        "y": 437.828125,
+        "width": 358,
+        "bottom": 913.453125
+      }
+    },
+    {
+      "name": "/react/production/application//768/insert-selection/domain-parity",
+      "titles": [
+        "Text escapes the assigned region",
+        "Keyboard focus returns to the wrong control",
+        "Search loses its selection after a refresh",
+        "A newly inserted issue with a substantially longer title"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation."
+    },
+    {
+      "name": "/react/production/application//768/Copeland-surface-style",
+      "style": {
+        "padding": "24px",
+        "fontSize": "18px",
+        "lineHeight": "28.8px",
+        "wrap": "anywhere",
+        "radius": "8px",
+        "fill": "rgb(255, 254, 251)"
+      }
+    },
+    {
+      "name": "/react/production/application//768/live-resize",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1483.015625
+      }
+    },
+    {
+      "name": "/react/production/application//768/long-copy",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 49,
+        "y": 447.4375,
+        "width": 250,
+        "bottom": 847.40625
+      },
+      "detail": {
+        "x": 361,
+        "y": 437.828125,
+        "width": 358,
+        "bottom": 1201.421875
+      }
+    },
+    {
+      "name": "/react/production/application//768/long-copy/domain-parity",
+      "titles": [
+        "A newly inserted issue with a substantially longer title",
+        "Search loses its selection after a refresh",
+        "Keyboard focus returns to the wrong control",
+        "Text escapes the assigned region"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable."
+    },
+    {
+      "name": "/react/production/application//768/text-200-percent",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 49,
+        "y": 761.078125,
+        "width": 250,
+        "bottom": 2004.171875
+      },
+      "detail": {
+        "x": 361,
+        "y": 741.859375,
+        "width": 358,
+        "bottom": 3564.9375
+      }
+    },
+    {
+      "name": "/react/production/application//390/insert-selection",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1483.015625
+      }
+    },
+    {
+      "name": "/react/production/application//390/insert-selection/domain-parity",
+      "titles": [
+        "Text escapes the assigned region",
+        "Keyboard focus returns to the wrong control",
+        "Search loses its selection after a refresh",
+        "A newly inserted issue with a substantially longer title"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation."
+    },
+    {
+      "name": "/react/production/application//390/Copeland-surface-style",
+      "style": {
+        "padding": "24px",
+        "fontSize": "18px",
+        "lineHeight": "28.8px",
+        "wrap": "anywhere",
+        "radius": "8px",
+        "fill": "rgb(255, 254, 251)"
+      }
+    },
+    {
+      "name": "/react/production/application//390/live-resize",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1483.015625
+      }
+    },
+    {
+      "name": "/react/production/application//390/long-copy",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1799.78125
+      }
+    },
+    {
+      "name": "/react/production/application//390/long-copy/domain-parity",
+      "titles": [
+        "A newly inserted issue with a substantially longer title",
+        "Search loses its selection after a refresh",
+        "Keyboard focus returns to the wrong control",
+        "Text escapes the assigned region"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable."
+    },
+    {
+      "name": "/react/production/application//390/text-200-percent",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 1195.40625,
+        "width": 316,
+        "bottom": 2208.125
+      },
+      "detail": {
+        "x": 37,
+        "y": 2313.71875,
+        "width": 316,
+        "bottom": 5683.9375
+      }
+    },
+    {
+      "name": "/vue/diagnostic/application//1280/insert-selection",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 129,
+        "y": 395.84375,
+        "width": 250,
+        "bottom": 795.8125
+      },
+      "detail": {
+        "x": 441,
+        "y": 386.234375,
+        "width": 710,
+        "bottom": 703.484375
+      }
+    },
+    {
+      "name": "/vue/diagnostic/application//1280/insert-selection/domain-parity",
+      "titles": [
+        "Text escapes the assigned region",
+        "Keyboard focus returns to the wrong control",
+        "Search loses its selection after a refresh",
+        "A newly inserted issue with a substantially longer title"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation."
+    },
+    {
+      "name": "/vue/diagnostic/application//1280/Copeland-surface-style",
+      "style": {
+        "padding": "24px",
+        "fontSize": "18px",
+        "lineHeight": "28.8px",
+        "wrap": "anywhere",
+        "radius": "8px",
+        "fill": "rgb(255, 254, 251)"
+      }
+    },
+    {
+      "name": "/vue/diagnostic/application//1280/live-resize",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1483.015625
+      }
+    },
+    {
+      "name": "/vue/diagnostic/application//1280/long-copy",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 129,
+        "y": 395.84375,
+        "width": 250,
+        "bottom": 795.8125
+      },
+      "detail": {
+        "x": 441,
+        "y": 386.234375,
+        "width": 710,
+        "bottom": 847.46875
+      }
+    },
+    {
+      "name": "/vue/diagnostic/application//1280/long-copy/domain-parity",
+      "titles": [
+        "A newly inserted issue with a substantially longer title",
+        "Search loses its selection after a refresh",
+        "Keyboard focus returns to the wrong control",
+        "Text escapes the assigned region"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable."
+    },
+    {
+      "name": "/vue/diagnostic/application//1280/text-200-percent",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 129,
+        "y": 691.890625,
+        "width": 250,
+        "bottom": 1934.984375
+      },
+      "detail": {
+        "x": 441,
+        "y": 672.671875,
+        "width": 710,
+        "bottom": 2171.09375
+      }
+    },
+    {
+      "name": "/vue/diagnostic/application//768/insert-selection",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 49,
+        "y": 447.4375,
+        "width": 250,
+        "bottom": 847.40625
+      },
+      "detail": {
+        "x": 361,
+        "y": 437.828125,
+        "width": 358,
+        "bottom": 913.453125
+      }
+    },
+    {
+      "name": "/vue/diagnostic/application//768/insert-selection/domain-parity",
+      "titles": [
+        "Text escapes the assigned region",
+        "Keyboard focus returns to the wrong control",
+        "Search loses its selection after a refresh",
+        "A newly inserted issue with a substantially longer title"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation."
+    },
+    {
+      "name": "/vue/diagnostic/application//768/Copeland-surface-style",
+      "style": {
+        "padding": "24px",
+        "fontSize": "18px",
+        "lineHeight": "28.8px",
+        "wrap": "anywhere",
+        "radius": "8px",
+        "fill": "rgb(255, 254, 251)"
+      }
+    },
+    {
+      "name": "/vue/diagnostic/application//768/live-resize",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1483.015625
+      }
+    },
+    {
+      "name": "/vue/diagnostic/application//768/long-copy",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 49,
+        "y": 447.4375,
+        "width": 250,
+        "bottom": 847.40625
+      },
+      "detail": {
+        "x": 361,
+        "y": 437.828125,
+        "width": 358,
+        "bottom": 1201.421875
+      }
+    },
+    {
+      "name": "/vue/diagnostic/application//768/long-copy/domain-parity",
+      "titles": [
+        "A newly inserted issue with a substantially longer title",
+        "Search loses its selection after a refresh",
+        "Keyboard focus returns to the wrong control",
+        "Text escapes the assigned region"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable."
+    },
+    {
+      "name": "/vue/diagnostic/application//768/text-200-percent",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 49,
+        "y": 761.078125,
+        "width": 250,
+        "bottom": 2004.171875
+      },
+      "detail": {
+        "x": 361,
+        "y": 741.859375,
+        "width": 358,
+        "bottom": 3564.9375
+      }
+    },
+    {
+      "name": "/vue/diagnostic/application//390/insert-selection",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1483.015625
+      }
+    },
+    {
+      "name": "/vue/diagnostic/application//390/insert-selection/domain-parity",
+      "titles": [
+        "Text escapes the assigned region",
+        "Keyboard focus returns to the wrong control",
+        "Search loses its selection after a refresh",
+        "A newly inserted issue with a substantially longer title"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation."
+    },
+    {
+      "name": "/vue/diagnostic/application//390/Copeland-surface-style",
+      "style": {
+        "padding": "24px",
+        "fontSize": "18px",
+        "lineHeight": "28.8px",
+        "wrap": "anywhere",
+        "radius": "8px",
+        "fill": "rgb(255, 254, 251)"
+      }
+    },
+    {
+      "name": "/vue/diagnostic/application//390/live-resize",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1483.015625
+      }
+    },
+    {
+      "name": "/vue/diagnostic/application//390/long-copy",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1799.78125
+      }
+    },
+    {
+      "name": "/vue/diagnostic/application//390/long-copy/domain-parity",
+      "titles": [
+        "A newly inserted issue with a substantially longer title",
+        "Search loses its selection after a refresh",
+        "Keyboard focus returns to the wrong control",
+        "Text escapes the assigned region"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable."
+    },
+    {
+      "name": "/vue/diagnostic/application//390/text-200-percent",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 1195.40625,
+        "width": 316,
+        "bottom": 2208.125
+      },
+      "detail": {
+        "x": 37,
+        "y": 2313.71875,
+        "width": 316,
+        "bottom": 5683.9375
+      }
+    },
+    {
+      "name": "/vue/symbolic/application//1280/insert-selection",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 129,
+        "y": 395.84375,
+        "width": 250,
+        "bottom": 795.8125
+      },
+      "detail": {
+        "x": 441,
+        "y": 386.234375,
+        "width": 710,
+        "bottom": 703.484375
+      }
+    },
+    {
+      "name": "/vue/symbolic/application//1280/insert-selection/domain-parity",
+      "titles": [
+        "Text escapes the assigned region",
+        "Keyboard focus returns to the wrong control",
+        "Search loses its selection after a refresh",
+        "A newly inserted issue with a substantially longer title"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation."
+    },
+    {
+      "name": "/vue/symbolic/application//1280/Copeland-surface-style",
+      "style": {
+        "padding": "24px",
+        "fontSize": "18px",
+        "lineHeight": "28.8px",
+        "wrap": "anywhere",
+        "radius": "8px",
+        "fill": "rgb(255, 254, 251)"
+      }
+    },
+    {
+      "name": "/vue/symbolic/application//1280/live-resize",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1483.015625
+      }
+    },
+    {
+      "name": "/vue/symbolic/application//1280/long-copy",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 129,
+        "y": 395.84375,
+        "width": 250,
+        "bottom": 795.8125
+      },
+      "detail": {
+        "x": 441,
+        "y": 386.234375,
+        "width": 710,
+        "bottom": 847.46875
+      }
+    },
+    {
+      "name": "/vue/symbolic/application//1280/long-copy/domain-parity",
+      "titles": [
+        "A newly inserted issue with a substantially longer title",
+        "Search loses its selection after a refresh",
+        "Keyboard focus returns to the wrong control",
+        "Text escapes the assigned region"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable."
+    },
+    {
+      "name": "/vue/symbolic/application//1280/text-200-percent",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 129,
+        "y": 691.890625,
+        "width": 250,
+        "bottom": 1934.984375
+      },
+      "detail": {
+        "x": 441,
+        "y": 672.671875,
+        "width": 710,
+        "bottom": 2171.09375
+      }
+    },
+    {
+      "name": "/vue/symbolic/application//768/insert-selection",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 49,
+        "y": 447.4375,
+        "width": 250,
+        "bottom": 847.40625
+      },
+      "detail": {
+        "x": 361,
+        "y": 437.828125,
+        "width": 358,
+        "bottom": 913.453125
+      }
+    },
+    {
+      "name": "/vue/symbolic/application//768/insert-selection/domain-parity",
+      "titles": [
+        "Text escapes the assigned region",
+        "Keyboard focus returns to the wrong control",
+        "Search loses its selection after a refresh",
+        "A newly inserted issue with a substantially longer title"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation."
+    },
+    {
+      "name": "/vue/symbolic/application//768/Copeland-surface-style",
+      "style": {
+        "padding": "24px",
+        "fontSize": "18px",
+        "lineHeight": "28.8px",
+        "wrap": "anywhere",
+        "radius": "8px",
+        "fill": "rgb(255, 254, 251)"
+      }
+    },
+    {
+      "name": "/vue/symbolic/application//768/live-resize",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1483.015625
+      }
+    },
+    {
+      "name": "/vue/symbolic/application//768/long-copy",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 49,
+        "y": 447.4375,
+        "width": 250,
+        "bottom": 847.40625
+      },
+      "detail": {
+        "x": 361,
+        "y": 437.828125,
+        "width": 358,
+        "bottom": 1201.421875
+      }
+    },
+    {
+      "name": "/vue/symbolic/application//768/long-copy/domain-parity",
+      "titles": [
+        "A newly inserted issue with a substantially longer title",
+        "Search loses its selection after a refresh",
+        "Keyboard focus returns to the wrong control",
+        "Text escapes the assigned region"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable."
+    },
+    {
+      "name": "/vue/symbolic/application//768/text-200-percent",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 49,
+        "y": 761.078125,
+        "width": 250,
+        "bottom": 2004.171875
+      },
+      "detail": {
+        "x": 361,
+        "y": 741.859375,
+        "width": 358,
+        "bottom": 3564.9375
+      }
+    },
+    {
+      "name": "/vue/symbolic/application//390/insert-selection",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1483.015625
+      }
+    },
+    {
+      "name": "/vue/symbolic/application//390/insert-selection/domain-parity",
+      "titles": [
+        "Text escapes the assigned region",
+        "Keyboard focus returns to the wrong control",
+        "Search loses its selection after a refresh",
+        "A newly inserted issue with a substantially longer title"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation."
+    },
+    {
+      "name": "/vue/symbolic/application//390/Copeland-surface-style",
+      "style": {
+        "padding": "24px",
+        "fontSize": "18px",
+        "lineHeight": "28.8px",
+        "wrap": "anywhere",
+        "radius": "8px",
+        "fill": "rgb(255, 254, 251)"
+      }
+    },
+    {
+      "name": "/vue/symbolic/application//390/live-resize",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1483.015625
+      }
+    },
+    {
+      "name": "/vue/symbolic/application//390/long-copy",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1799.78125
+      }
+    },
+    {
+      "name": "/vue/symbolic/application//390/long-copy/domain-parity",
+      "titles": [
+        "A newly inserted issue with a substantially longer title",
+        "Search loses its selection after a refresh",
+        "Keyboard focus returns to the wrong control",
+        "Text escapes the assigned region"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable."
+    },
+    {
+      "name": "/vue/symbolic/application//390/text-200-percent",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 1195.40625,
+        "width": 316,
+        "bottom": 2208.125
+      },
+      "detail": {
+        "x": 37,
+        "y": 2313.71875,
+        "width": 316,
+        "bottom": 5683.9375
+      }
+    },
+    {
+      "name": "/vue/production/application//1280/insert-selection",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 129,
+        "y": 395.84375,
+        "width": 250,
+        "bottom": 795.8125
+      },
+      "detail": {
+        "x": 441,
+        "y": 386.234375,
+        "width": 710,
+        "bottom": 703.484375
+      }
+    },
+    {
+      "name": "/vue/production/application//1280/insert-selection/domain-parity",
+      "titles": [
+        "Text escapes the assigned region",
+        "Keyboard focus returns to the wrong control",
+        "Search loses its selection after a refresh",
+        "A newly inserted issue with a substantially longer title"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation."
+    },
+    {
+      "name": "/vue/production/application//1280/Copeland-surface-style",
+      "style": {
+        "padding": "24px",
+        "fontSize": "18px",
+        "lineHeight": "28.8px",
+        "wrap": "anywhere",
+        "radius": "8px",
+        "fill": "rgb(255, 254, 251)"
+      }
+    },
+    {
+      "name": "/vue/production/application//1280/live-resize",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1483.015625
+      }
+    },
+    {
+      "name": "/vue/production/application//1280/long-copy",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 129,
+        "y": 395.84375,
+        "width": 250,
+        "bottom": 795.8125
+      },
+      "detail": {
+        "x": 441,
+        "y": 386.234375,
+        "width": 710,
+        "bottom": 847.46875
+      }
+    },
+    {
+      "name": "/vue/production/application//1280/long-copy/domain-parity",
+      "titles": [
+        "A newly inserted issue with a substantially longer title",
+        "Search loses its selection after a refresh",
+        "Keyboard focus returns to the wrong control",
+        "Text escapes the assigned region"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable."
+    },
+    {
+      "name": "/vue/production/application//1280/text-200-percent",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 129,
+        "y": 691.890625,
+        "width": 250,
+        "bottom": 1934.984375
+      },
+      "detail": {
+        "x": 441,
+        "y": 672.671875,
+        "width": 710,
+        "bottom": 2171.09375
+      }
+    },
+    {
+      "name": "/vue/production/application//768/insert-selection",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 49,
+        "y": 447.4375,
+        "width": 250,
+        "bottom": 847.40625
+      },
+      "detail": {
+        "x": 361,
+        "y": 437.828125,
+        "width": 358,
+        "bottom": 913.453125
+      }
+    },
+    {
+      "name": "/vue/production/application//768/insert-selection/domain-parity",
+      "titles": [
+        "Text escapes the assigned region",
+        "Keyboard focus returns to the wrong control",
+        "Search loses its selection after a refresh",
+        "A newly inserted issue with a substantially longer title"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation."
+    },
+    {
+      "name": "/vue/production/application//768/Copeland-surface-style",
+      "style": {
+        "padding": "24px",
+        "fontSize": "18px",
+        "lineHeight": "28.8px",
+        "wrap": "anywhere",
+        "radius": "8px",
+        "fill": "rgb(255, 254, 251)"
+      }
+    },
+    {
+      "name": "/vue/production/application//768/live-resize",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1483.015625
+      }
+    },
+    {
+      "name": "/vue/production/application//768/long-copy",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 49,
+        "y": 447.4375,
+        "width": 250,
+        "bottom": 847.40625
+      },
+      "detail": {
+        "x": 361,
+        "y": 437.828125,
+        "width": 358,
+        "bottom": 1201.421875
+      }
+    },
+    {
+      "name": "/vue/production/application//768/long-copy/domain-parity",
+      "titles": [
+        "A newly inserted issue with a substantially longer title",
+        "Search loses its selection after a refresh",
+        "Keyboard focus returns to the wrong control",
+        "Text escapes the assigned region"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable."
+    },
+    {
+      "name": "/vue/production/application//768/text-200-percent",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 49,
+        "y": 761.078125,
+        "width": 250,
+        "bottom": 2004.171875
+      },
+      "detail": {
+        "x": 361,
+        "y": 741.859375,
+        "width": 358,
+        "bottom": 3564.9375
+      }
+    },
+    {
+      "name": "/vue/production/application//390/insert-selection",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1483.015625
+      }
+    },
+    {
+      "name": "/vue/production/application//390/insert-selection/domain-parity",
+      "titles": [
+        "Text escapes the assigned region",
+        "Keyboard focus returns to the wrong control",
+        "Search loses its selection after a refresh",
+        "A newly inserted issue with a substantially longer title"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation."
+    },
+    {
+      "name": "/vue/production/application//390/Copeland-surface-style",
+      "style": {
+        "padding": "24px",
+        "fontSize": "18px",
+        "lineHeight": "28.8px",
+        "wrap": "anywhere",
+        "radius": "8px",
+        "fill": "rgb(255, 254, 251)"
+      }
+    },
+    {
+      "name": "/vue/production/application//390/live-resize",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1483.015625
+      }
+    },
+    {
+      "name": "/vue/production/application//390/long-copy",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 514.625,
+        "width": 316,
+        "bottom": 885.796875
+      },
+      "detail": {
+        "x": 37,
+        "y": 978.59375,
+        "width": 316,
+        "bottom": 1799.78125
+      }
+    },
+    {
+      "name": "/vue/production/application//390/long-copy/domain-parity",
+      "titles": [
+        "A newly inserted issue with a substantially longer title",
+        "Search loses its selection after a refresh",
+        "Keyboard focus returns to the wrong control",
+        "Text escapes the assigned region"
+      ],
+      "selected": "2",
+      "description": "A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. A useful interface keeps the next action visible. Its content should remain readable when the window narrows, the font changes, or a colleague supplies a longer explanation. Translation, validation, and live updates all change how much space a paragraph needs. Clipping the last sentence can conceal the information that someone needs to make a decision. This final sentence must remain reachable."
+    },
+    {
+      "name": "/vue/production/application//390/text-200-percent",
+      "overflow": false,
+      "unreadable": false,
+      "list": {
+        "x": 37,
+        "y": 1195.40625,
+        "width": 316,
+        "bottom": 2208.125
+      },
+      "detail": {
+        "x": 37,
+        "y": 2313.71875,
+        "width": 316,
+        "bottom": 5683.9375
+      }
+    },
+    {
+      "name": "react/diagnostic/keyed-reorder"
+    },
+    {
+      "name": "react/diagnostic/presentation-focus"
+    },
+    {
+      "name": "react/diagnostic/typed-completion-real-http"
+    },
+    {
+      "name": "react/diagnostic/stale-search"
+    },
+    {
+      "name": "react/diagnostic/removed-key-fresh-owner"
+    },
+    {
+      "name": "react/diagnostic/typed-error"
+    },
+    {
+      "name": "react/diagnostic/retired-owner-completion-and-endpoint"
+    },
+    {
+      "name": "react/diagnostic/root-retires-subtree"
+    },
+    {
+      "name": "react/symbolic/keyed-reorder"
+    },
+    {
+      "name": "react/symbolic/presentation-focus"
+    },
+    {
+      "name": "react/symbolic/typed-completion-real-http"
+    },
+    {
+      "name": "react/symbolic/stale-search"
+    },
+    {
+      "name": "react/symbolic/removed-key-fresh-owner"
+    },
+    {
+      "name": "react/symbolic/typed-error"
+    },
+    {
+      "name": "react/symbolic/retired-owner-completion-and-endpoint"
+    },
+    {
+      "name": "react/symbolic/root-retires-subtree"
+    },
+    {
+      "name": "react/production/keyed-reorder"
+    },
+    {
+      "name": "react/production/presentation-focus"
+    },
+    {
+      "name": "react/production/typed-completion-real-http"
+    },
+    {
+      "name": "react/production/stale-search"
+    },
+    {
+      "name": "react/production/removed-key-fresh-owner"
+    },
+    {
+      "name": "react/production/typed-error"
+    },
+    {
+      "name": "react/production/retired-owner-completion-and-endpoint"
+    },
+    {
+      "name": "react/production/root-retires-subtree"
+    },
+    {
+      "name": "vue/diagnostic/keyed-reorder"
+    },
+    {
+      "name": "vue/diagnostic/presentation-focus"
+    },
+    {
+      "name": "vue/diagnostic/typed-completion-real-http"
+    },
+    {
+      "name": "vue/diagnostic/stale-search"
+    },
+    {
+      "name": "vue/diagnostic/removed-key-fresh-owner"
+    },
+    {
+      "name": "vue/diagnostic/typed-error"
+    },
+    {
+      "name": "vue/diagnostic/retired-owner-completion-and-endpoint"
+    },
+    {
+      "name": "vue/diagnostic/root-retires-subtree"
+    },
+    {
+      "name": "vue/symbolic/keyed-reorder"
+    },
+    {
+      "name": "vue/symbolic/presentation-focus"
+    },
+    {
+      "name": "vue/symbolic/typed-completion-real-http"
+    },
+    {
+      "name": "vue/symbolic/stale-search"
+    },
+    {
+      "name": "vue/symbolic/removed-key-fresh-owner"
+    },
+    {
+      "name": "vue/symbolic/typed-error"
+    },
+    {
+      "name": "vue/symbolic/retired-owner-completion-and-endpoint"
+    },
+    {
+      "name": "vue/symbolic/root-retires-subtree"
+    },
+    {
+      "name": "vue/production/keyed-reorder"
+    },
+    {
+      "name": "vue/production/presentation-focus"
+    },
+    {
+      "name": "vue/production/typed-completion-real-http"
+    },
+    {
+      "name": "vue/production/stale-search"
+    },
+    {
+      "name": "vue/production/removed-key-fresh-owner"
+    },
+    {
+      "name": "vue/production/typed-error"
+    },
+    {
+      "name": "vue/production/retired-owner-completion-and-endpoint"
+    },
+    {
+      "name": "vue/production/root-retires-subtree"
+    }
+  ]
+}

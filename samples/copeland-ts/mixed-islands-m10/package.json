@@ -1,0 +1,28 @@
+{
+  "name": "copeland-mixed-islands-m10",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit -p tsconfig.json",
+    "build": "node tooling/build.ts",
+    "qualify": "node tooling/qualify.ts",
+    "serve": "node tooling/server.ts"
+  },
+  "dependencies": {
+    "vue": "3.5.43",
+    "reka-ui": "2.11.0",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "@base-ui-components/react": "1.0.0-rc.0"
+  },
+  "devDependencies": {
+    "@vue/compiler-sfc": "3.5.43",
+    "vue-tsc": "3.3.13",
+    "typescript": "5.9.3",
+    "esbuild": "0.25.10",
+    "playwright": "1.56.1",
+    "@types/node": "24.10.0",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2"
+  }
+}

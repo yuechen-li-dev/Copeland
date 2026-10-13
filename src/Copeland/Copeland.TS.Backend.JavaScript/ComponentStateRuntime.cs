@@ -41,6 +41,12 @@ internal static class ComponentStateRuntime
                 if (node !== null && typeof node === "object") __cope_view_child_shapes.set(node, staticChildren);
                 return node;
             }
+            const __cope_view_hosts_key = Symbol.for("copeland.ts.presentation-hosts.v1");
+            let __cope_view_hosts = globalThis[__cope_view_hosts_key];
+            if (__cope_view_hosts === undefined) {
+                __cope_view_hosts = new WeakMap();
+                Object.defineProperty(globalThis, __cope_view_hosts_key, { value: __cope_view_hosts });
+            }
             """;
         foreach (string line in source.Split('\n')) writer.WriteLine(line.TrimEnd('\r'));
     }
@@ -74,6 +80,9 @@ internal static class ComponentStateRuntime
                 const listeners = new Set();
                 const batches = new Map();
                 let children = new Map();
+                let hosts = new Map();
+                let outerCommit = -1;
+                let acknowledged = -1;
                 let presenter = present;
                 let evaluating = false;
                 let staged;
@@ -132,6 +141,8 @@ internal static class ComponentStateRuntime
                         active = false;
                         for (const child of children.values()) retireChild(child);
                         children.clear();
+                        for (const host of hosts.values()) retireHost(host);
+                        hosts.clear();
                         for (const batch of batches.values()) {
                             for (const request of batch.requests) {
                                 if (request.status === "waiting") request.status = "cancelled";
@@ -145,12 +156,9 @@ internal static class ComponentStateRuntime
                         trace("OwnerRetired", snapshot.revision);
                     },
                     acknowledge: revision => {
-                        if (retired || !active) return;
-                        trace("PresentationCommitted", revision);
-                        const batch = batches.get(revision);
-                        if (batch === undefined) return;
-                        runPhase(batch, "StateCommitted");
-                        runPhase(batch, "PresentationCommitted");
+                        if (retired || !active || revision !== snapshot.revision) return;
+                        outerCommit = revision;
+                        acknowledgePresentation();
                     },
                     project: () => evaluate(snapshot.state).presentation,
                     dispatch: (event, payload) => {
@@ -188,25 +196,99 @@ internal static class ComponentStateRuntime
                     child.retired = true;
                     if (child.projection !== undefined) child.projection.destroy();
                 }
+                function retireHost(host) {
+                    if (host.retired) return;
+                    host.retired = true;
+                    host.connection = null;
+                    const release = host.release;
+                    host.release = undefined;
+                    release?.();
+                    trace("PresentationHostRetired", snapshot?.revision ?? 0, host.identity);
+                }
+                function acknowledgePresentation() {
+                    if (retired || !active || outerCommit !== snapshot.revision || acknowledged === outerCommit) return;
+                    for (const host of hosts.values()) {
+                        if (host.connection === null || host.acknowledged !== outerCommit) return;
+                    }
+                    acknowledged = outerCommit;
+                    trace("PresentationCommitted", outerCommit);
+                    const batch = batches.get(outerCommit);
+                    if (batch === undefined) return;
+                    runPhase(batch, "StateCommitted");
+                    runPhase(batch, "PresentationCommitted");
+                }
+                function hostTicket(host, revision) {
+                    return Object.freeze({
+                        identity: host.identity,
+                        generation: host.generation,
+                        revision,
+                        connect: release => {
+                            if (host.retired) throw new Error("COPE-VIEW-HOST-0103 Cannot connect a retired presentation host.");
+                            const connection = {};
+                            host.connection = connection;
+                            host.release = release;
+                            host.acknowledged = -1;
+                            const current = () => !retired && !host.retired
+                                && host.connection === connection && snapshot.revision === revision;
+                            return Object.freeze({
+                                current,
+                                acknowledge: () => {
+                                    if (!current()) return false;
+                                    host.acknowledged = revision;
+                                    trace("PresentationHostCommitted", revision, host.identity);
+                                    acknowledgePresentation();
+                                    return true;
+                                },
+                                release: () => {
+                                    if (host.connection !== connection) return;
+                                    host.connection = null;
+                                    host.release = undefined;
+                                    host.acknowledged = -1;
+                                },
+                            });
+                        },
+                    });
+                }
                 function adopt(candidate) {
                     for (const [key, previous] of children) {
                         if (candidate.children.get(key) !== previous) retireChild(previous);
                     }
                     children = candidate.children;
+                    for (const [key, previous] of hosts) {
+                        if (candidate.hosts.get(key) !== previous) retireHost(previous);
+                    }
+                    hosts = candidate.hosts;
                 }
-                function evaluate(state, render = presenter) {
+                function evaluate(state, render = presenter, revision = snapshot?.revision ?? 0) {
                     if (evaluating) throw new Error("Component presentation reentered its owner.");
                     evaluating = true;
                     const desired = new Map();
+                    const desiredHosts = new Map();
                     try {
                         const presentation = visit(render(state, projection.endpoints));
-                        return { presentation, children: desired };
+                        return { presentation, children: desired, hosts: desiredHosts };
                     } finally {
                         evaluating = false;
                     }
                     function visit(node) {
                         if (Array.isArray(node)) return node.map(visit);
                         if (node === null || typeof node !== "object" || node.props === undefined && node.children === undefined) return node;
+                        const hostDefinition = typeof __cope_view_hosts === "undefined" ? undefined : __cope_view_hosts.get(node.type);
+                        if (hostDefinition !== undefined) {
+                            if (typeof node.props.hostKey !== "string" || node.props.hostKey.length === 0) {
+                                throw new Error("COPE-VIEW-HOST-0002 Presentation hosts require a nonempty domain hostKey.");
+                            }
+                            const key = JSON.stringify([hostDefinition, node.props.hostKey]);
+                            if (desiredHosts.has(key)) throw new Error("COPE-VIEW-HOST-0003 Duplicate presentation host key " + key);
+                            let host = hosts.get(key);
+                            if (host === undefined || host.retired) {
+                                const generation = ++__cope_component_registry.generation;
+                                host = { identity: identity + "::host::" + key + "::" + generation,
+                                    generation, retired: false, connection: null, acknowledged: -1 };
+                            }
+                            desiredHosts.set(key, host);
+                            return __cope_component_clone(node, { key: host.identity, __cope_presentation: hostTicket(host, revision) });
+                        }
                         if (node.type?.__cope_owned_child === true) {
                             const slotKey = JSON.stringify([node.props.slot, node.props.domainKey]);
                             if (desired.has(slotKey)) {
@@ -329,7 +411,7 @@ internal static class ComponentStateRuntime
                             }
                             let candidate;
                             try {
-                                candidate = evaluate(next);
+                                candidate = evaluate(next, presenter, snapshot.revision + 1);
                             } catch (error) {
                                 throw new Error("COPE-COMPONENT-STATE-0102 " + String(error));
                             }

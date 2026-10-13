@@ -25,7 +25,7 @@ interface Observation {
 }
 const evidence = fileURLToPath(
     new URL(
-        "../../../../docs/Copeland/reviews/evidence/presentation-friction-m9/",
+        `../../../../docs/Copeland/reviews/evidence/${process.env.FRICTION_PRESENTATION_EVIDENCE_NAME ?? "presentation-friction-m9"}/`,
         import.meta.url,
     ),
 );

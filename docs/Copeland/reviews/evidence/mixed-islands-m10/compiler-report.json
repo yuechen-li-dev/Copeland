@@ -1,0 +1,54 @@
+{
+  "milestone": "CTS-MIXED-ISLANDS-M10",
+  "sourceHash": "b1af6f4d179f3b064c547134ae161cd5a8df2cfd3ea259a66a247f659d80c550",
+  "results": [
+    {
+      "adapter": "react",
+      "profile": "Diagnostic",
+      "hashes": {
+        "src/Application.js": "dda1642a540477a3615df28969ae3df58298ce389beb27602c9da2ee062028e5",
+        "generated/layouts.css": "5f6676a905153de2033b0b772ad5cb923fcc3804404477e2383f4771c7d8e35c"
+      }
+    },
+    {
+      "adapter": "react",
+      "profile": "Symbolic",
+      "hashes": {
+        "src/Application.js": "a7a2f61efab8aae510609b330107ac3cf4088bbdcb2335bc34424ca4218cf128",
+        "generated/layouts.css": "5f6676a905153de2033b0b772ad5cb923fcc3804404477e2383f4771c7d8e35c"
+      }
+    },
+    {
+      "adapter": "react",
+      "profile": "Production",
+      "hashes": {
+        "src/Application.js": "b9948872ce53e8c8e35ef7d4ef8f0cf588e1bbead321ace75324b009834affef",
+        "generated/layouts.css": "5f6676a905153de2033b0b772ad5cb923fcc3804404477e2383f4771c7d8e35c"
+      }
+    },
+    {
+      "adapter": "vue",
+      "profile": "Diagnostic",
+      "hashes": {
+        "src/Application.js": "96c91ca2284dfe741b9c84161a32fbdc13c0d94d35bdc6102292762f9e7d278c",
+        "generated/layouts.css": "5f6676a905153de2033b0b772ad5cb923fcc3804404477e2383f4771c7d8e35c"
+      }
+    },
+    {
+      "adapter": "vue",
+      "profile": "Symbolic",
+      "hashes": {
+        "src/Application.js": "f7963df0fdb59f182c6240e8e9d5e18965a2cfb4d13b62d0d400251bda7f802c",
+        "generated/layouts.css": "5f6676a905153de2033b0b772ad5cb923fcc3804404477e2383f4771c7d8e35c"
+      }
+    },
+    {
+      "adapter": "vue",
+      "profile": "Production",
+      "hashes": {
+        "src/Application.js": "a32aa26f79d66f4943fa17d54690c68078859e5d714ca2aad0e3ff221d52c3c3",
+        "generated/layouts.css": "5f6676a905153de2033b0b772ad5cb923fcc3804404477e2383f4771c7d8e35c"
+      }
+    }
+  ]
+}

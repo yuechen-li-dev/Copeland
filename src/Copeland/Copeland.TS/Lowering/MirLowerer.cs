@@ -92,7 +92,8 @@ public static class MirLowerer
                 false,
                 import.Component.IsAvailableToJavaScript,
                 false,
-                true))).ToArray();
+                true,
+                import.Component.PresentationHost))).ToArray();
         MirJavaScriptHostImport[] javaScriptHostImports = program.JavaScriptHostImports.Select(import => new MirJavaScriptHostImport(
             import.Function.ModuleSpecifier,
             import.Function.ExportName,

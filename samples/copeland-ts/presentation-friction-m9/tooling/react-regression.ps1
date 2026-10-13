@@ -1,10 +1,13 @@
-param([string]$BrowserChannel = 'msedge')
+param(
+    [string]$BrowserChannel = 'msedge',
+    [string]$EvidenceName = 'presentation-friction-m9/react-regression'
+)
 
 $ErrorActionPreference = 'Stop'
 $fixtureRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $repositoryRoot = (Resolve-Path (Join-Path $fixtureRoot '../../..')).Path
 $legacyRoot = Join-Path $fixtureRoot '../react-friction-m0'
-$evidenceName = 'presentation-friction-m9/react-regression'
+$evidenceName = $EvidenceName
 $evidenceRoot = Join-Path $repositoryRoot "docs/Copeland/reviews/evidence/$evidenceName"
 New-Item -ItemType Directory -Path $evidenceRoot -Force | Out-Null
 

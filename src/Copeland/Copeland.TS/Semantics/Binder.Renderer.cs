@@ -131,11 +131,43 @@ public static partial class Binder
 
         private bool ValidateComponentRenderer(NpmComponentSymbol component, SyntaxToken anchor)
         {
+            if (component.PresentationHost && (!IsCopelandPresentation
+                || component.DefaultSlot || component.Members.Count != 0
+                || !component.Properties.Any(property => property.Name == "hostKey"
+                    && property.Type == PrimitiveTypeSymbol.String && property.IsRequired)
+                || component.Properties.Any(property => property.Name == "children"
+                    || property.Name.StartsWith("__cope_", StringComparison.Ordinal)
+                    || ContainsPresentationValue(property.Type, new HashSet<TypeSymbol>()))))
+            {
+                Report("COPE-VIEW-HOST-0001",
+                    "Presentation hosts require CopelandViews, a required string hostKey, and data/event props without slots, compound members, renderer nodes, nested callbacks, or reserved __cope_ props.", anchor);
+                return false;
+            }
             string selected = PresentationAdapterIdentity;
             if (component.Renderer == selected) return true;
             Report("COPE-COMPONENT-RENDERER-0001",
                 $"Component '{component.Name}' declares renderer '{component.Renderer}', but this presentation uses '{selected}'. Select a matching component contract; crossing frameworks requires an explicit host boundary.", anchor);
             return false;
+        }
+
+        private static bool ContainsPresentationValue(TypeSymbol type, HashSet<TypeSymbol> visited, bool nested = false)
+        {
+            if (nested && type is CallableTypeSymbol) return true;
+            if (!visited.Add(type)) return false;
+            return type switch
+            {
+                ViewTypeSymbol or ReactNodeTypeSymbol or VueNodeTypeSymbol or ReactRootTypeSymbol => true,
+                ArrayTypeSymbol array => ContainsPresentationValue(array.ElementType, visited, true),
+                CallableTypeSymbol callable => nested || callable.ReturnType != PrimitiveTypeSymbol.Void
+                    || callable.Parameters.Any(parameter => ContainsPresentationValue(parameter.Type, visited, true)),
+                RecordTypeSymbol record => record.Fields.Any(field => ContainsPresentationValue(field.Type, visited, true)),
+                EnumTypeSymbol enumeration => enumeration.Cases.Any(@case =>
+                    @case.PayloadFields.Any(field => ContainsPresentationValue(field.Type, visited, true))),
+                ResultTypeSymbol result => ContainsPresentationValue(result.SuccessType, visited, true)
+                    || ContainsPresentationValue(result.ErrorType, visited, true),
+                AsyncTypeSymbol asyncType => ContainsPresentationValue(asyncType.EventualType, visited, true),
+                _ => false,
+            };
         }
     }
 }

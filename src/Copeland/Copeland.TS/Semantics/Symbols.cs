@@ -183,7 +183,8 @@ public sealed class NpmComponentSymbol : Symbol
         IReadOnlyList<NpmComponentMemberSymbol> members,
         bool isAvailableToJavaScript,
         string renderer = "react",
-        bool defaultSlot = false)
+        bool defaultSlot = false,
+        bool presentationHost = false)
         : base(name)
     {
         PackageName = packageName;
@@ -194,6 +195,7 @@ public sealed class NpmComponentSymbol : Symbol
         IsAvailableToJavaScript = isAvailableToJavaScript;
         Renderer = renderer;
         DefaultSlot = defaultSlot;
+        PresentationHost = presentationHost;
     }
 
     public string PackageName { get; }
@@ -203,6 +205,7 @@ public sealed class NpmComponentSymbol : Symbol
     public IReadOnlyList<NpmComponentMemberSymbol> Members { get; }
     public string Renderer { get; }
     public bool DefaultSlot { get; }
+    public bool PresentationHost { get; }
     public bool IsAvailableToJavaScript { get; }
 }
 

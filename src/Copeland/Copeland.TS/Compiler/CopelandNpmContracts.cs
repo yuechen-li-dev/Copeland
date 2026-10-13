@@ -39,7 +39,8 @@ public sealed record CopelandNpmComponentContract(
     IReadOnlyList<CopelandNpmComponentPropertyContract>? Properties = null,
     IReadOnlyList<CopelandNpmComponentMemberContract>? Members = null,
     string Renderer = "react",
-    bool DefaultSlot = false)
+    bool DefaultSlot = false,
+    bool PresentationHost = false)
 {
     public IReadOnlyList<CopelandNpmComponentPropertyContract> ComponentProperties { get; } = Properties ?? [];
     public IReadOnlyList<CopelandNpmComponentMemberContract> CompoundMembers { get; } = Members ?? [];
@@ -181,7 +182,8 @@ public static class CopelandNpmContractReader
                 ReadProperties(component, "properties").ToArray(),
                 ReadMembers(component).ToArray(),
                 OptionalString(component, "renderer") ?? "react",
-                OptionalBoolean(component, "defaultSlot", defaultValue: false));
+                OptionalBoolean(component, "defaultSlot", defaultValue: false),
+                OptionalBoolean(component, "presentationHost", defaultValue: false));
         }
     }
 
@@ -340,7 +342,8 @@ public static class CopelandNpmManifestProjection
                 ReadComponentProperties(component, "properties"),
                 ReadComponentMembers(component),
                 TryGetString(component, "renderer", out string? renderer) ? renderer! : "react",
-                TryGetBoolean(component, "defaultSlot", out bool slot) && slot));
+                TryGetBoolean(component, "defaultSlot", out bool slot) && slot,
+                TryGetBoolean(component, "presentationHost", out bool host) && host));
         }
 
         return result;
