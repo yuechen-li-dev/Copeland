@@ -551,7 +551,23 @@ public sealed record MirComponentEventEndpoint(
     string Name,
     string LocalName,
     string TransitionFunction,
-    MirCallableType CallableType);
+    MirCallableType CallableType,
+    IReadOnlyList<MirComponentEffect>? DeclaredEffects = null)
+{
+    public IReadOnlyList<MirComponentEffect> Effects => DeclaredEffects ?? [];
+}
+
+public sealed record MirComponentEffectArgument(string CaptureFunction, MirType Type);
+
+public sealed record MirComponentEffect(
+    string StableIdentity,
+    string Phase,
+    string ExecuteFunction,
+    IReadOnlyList<MirComponentEffectArgument> Arguments,
+    MirType ReturnType,
+    string? CompletionEvent,
+    IReadOnlyList<MirComponentEffectArgument> CompletionArguments,
+    MirType? CompletionResultType);
 
 public sealed class MirParameter(string name, MirType type) { public string Name { get; } = name; public MirType Type { get; } = type; }
 public sealed class MirLocal(string name, MirType type, bool isReadOnly) { public string Name { get; } = name; public MirType Type { get; } = type; public bool IsReadOnly { get; } = isReadOnly; }

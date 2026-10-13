@@ -168,6 +168,31 @@ public static class MirTextWriter
             sb.Append(function.IsAsync ? "async func " : function.IsGenerator ? "generator func " : "func ").Append(function.Name).Append('(');
             sb.Append(string.Join(", ", function.Parameters.Select(p => $"{p.Name}: {p.Type.Name}")));
             sb.Append(") -> ").Append(function.ReturnType.Name).AppendLine();
+            if (function.ComponentState is { } component)
+            {
+                sb.AppendLine($"component-owner {component.StableIdentity}");
+                sb.AppendLine($"  initial {component.InitializerFunction} present {component.PresentationFunction} host {component.HostFunction}");
+                foreach (MirComponentEventEndpoint endpoint in component.Endpoints)
+                {
+                    sb.AppendLine($"  on {endpoint.Name} transition {endpoint.TransitionFunction}");
+                    foreach (MirComponentEffect effect in endpoint.Effects)
+                    {
+                        sb.AppendLine($"    effect {effect.StableIdentity} after {effect.Phase} execute {effect.ExecuteFunction}");
+                        foreach (MirComponentEffectArgument argument in effect.Arguments)
+                        {
+                            sb.AppendLine($"      capture {argument.CaptureFunction}: {argument.Type.Name}");
+                        }
+                        if (effect.CompletionEvent is not null)
+                        {
+                            sb.AppendLine($"      complete {effect.CompletionEvent} result {effect.CompletionResultType?.Name ?? "void"}");
+                            foreach (MirComponentEffectArgument argument in effect.CompletionArguments)
+                            {
+                                sb.AppendLine($"        argument {argument.CaptureFunction}: {argument.Type.Name}");
+                            }
+                        }
+                    }
+                }
+            }
             if (function.Locals.Count > 0)
             {
                 sb.AppendLine("locals:");

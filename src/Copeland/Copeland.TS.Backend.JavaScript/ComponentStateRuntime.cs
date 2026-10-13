@@ -9,7 +9,7 @@ namespace Copeland.TS.Backend.JavaScript;
 /// </summary>
 internal static class ComponentStateRuntime
 {
-    internal const string ReactImport = "import { createElement as __cope_component_element, useId as __cope_component_id, useRef as __cope_component_ref, useSyncExternalStore as __cope_component_subscribe, useLayoutEffect as __cope_component_commit, useEffect as __cope_component_effect } from \"react\";";
+    internal const string ReactImport = "import { createElement as __cope_component_element, cloneElement as __cope_component_clone, useId as __cope_component_id, useRef as __cope_component_ref, useSyncExternalStore as __cope_component_subscribe, useLayoutEffect as __cope_component_commit, useEffect as __cope_component_effect } from \"react\";";
     internal const string FrameImport = "import { registerComponentFrames as __cope_component_register, dispatchComponentEvent as __cope_component_dispatch, destroyComponentFrame as __cope_component_destroy } from \"@copeland/browser-v1\";";
 
     internal static bool IsRequired(MirProgram program)
@@ -17,7 +17,7 @@ internal static class ComponentStateRuntime
             || program.JavaScriptHostImports.Any(IsProjectionImport);
 
     internal static bool IsProjectionImport(MirJavaScriptHostImport import)
-        => import.ModuleSpecifier == "@copeland/browser-v1" && import.ExportName == "presentViewport";
+        => import.ModuleSpecifier == "@copeland/browser-v1" && import.ExportName is "presentViewport" or "ownChild";
 
     internal static void Emit(JavaScriptTextWriter writer)
     {
@@ -25,21 +25,41 @@ internal static class ComponentStateRuntime
             const __cope_component_registry_key = Symbol.for("copeland.ts.react-projections.v1");
             let __cope_component_registry = globalThis[__cope_component_registry_key];
             if (__cope_component_registry === undefined) {
-                __cope_component_registry = { instances: new Map(), diagnostics: [] };
-                Object.defineProperty(globalThis, __cope_component_registry_key, {
-                    value: __cope_component_registry,
-                    writable: false,
-                    configurable: false,
+                __cope_component_registry = { instances: new Map(), diagnostics: [], generation: 0 };
+                Object.defineProperty(globalThis, __cope_component_registry_key, { value: __cope_component_registry });
+            }
+
+            function __cope_component_child_host(props) {
+                if (props.ownership === undefined) {
+                    throw new Error("COPE-COMPONENT-CHILD-0005 ownChild requires a canonical stateful parent presentation.");
+                }
+                return __cope_component_clone(props.node, { ownership: props.ownership });
+            }
+            __cope_component_child_host.__cope_owned_child = true;
+
+            function __cope_component_child(slot, key, node) {
+                if (typeof slot !== "string" || slot.length === 0 || typeof key !== "string" || key.length === 0) {
+                    throw new Error("COPE-COMPONENT-CHILD-0001 Child ownership requires a nonempty slot and domain key.");
+                }
+                if (node?.props?.__cope_component_definition === undefined) {
+                    throw new Error("COPE-COMPONENT-CHILD-0002 ownChild requires a direct stateful Copeland component.");
+                }
+                return __cope_component_element(__cope_component_child_host, {
+                    key: JSON.stringify([slot, key, node.props.__cope_component_definition]), slot, domainKey: key, node,
                 });
             }
 
-            function __cope_component_projection(identity, initial, present, createEndpoints, transitions) {
+            function __cope_component_projection(identity, definitionId, initial, present, createEndpoints, transitions, ownership) {
                 const listeners = new Set();
+                const batches = new Map();
+                let children = new Map();
                 let presenter = present;
                 let evaluating = false;
-                let pendingPresentation;
-                let pending = false;
+                let staged;
                 let active = false;
+                let registered = false;
+                let retired = false;
+                let leases = 0;
                 let snapshot;
                 const projection = {
                     identity,
@@ -47,26 +67,74 @@ internal static class ComponentStateRuntime
                     endpoints: null,
                     trace: [],
                     getSnapshot: () => snapshot,
-                    subscribe: (listener) => {
+                    getFrameDefinition: () => ({ ...definition, plans: [] }),
+                    subscribe: listener => {
                         listeners.add(listener);
                         return () => listeners.delete(listener);
                     },
-                    setPresenter: (next) => { presenter = next; },
-                    mount: () => {
+                    render: next => evaluate(snapshot.state, next),
+                    commitRender: (next, candidate, revision) => {
+                        if (retired || revision !== snapshot.revision) return;
+                        presenter = next;
+                        adopt(candidate);
+                    },
+                    ensureRegistered: () => {
+                        if (retired || ownership?.retired) {
+                            throw new Error("COPE-COMPONENT-STATE-0103 Cannot register a retired component owner.");
+                        }
+                        if (registered) return;
+                        if (ownership !== undefined) {
+                            ownership.parent.ensureRegistered();
+                            ownership.projection = projection;
+                        }
                         __cope_component_register([definition]);
-                        active = true;
+                        registered = true;
                         __cope_component_registry.instances.set(identity, projection);
                     },
-                    destroy: () => {
-                        active = false;
-                        __cope_component_destroy(identity);
-                        __cope_component_registry.instances.delete(identity);
+                    acquire: () => {
+                        projection.ensureRegistered();
+                        leases += 1;
+                        active = true;
                     },
-                    acknowledge: () => { trace("PresentationCommitted", snapshot.revision); },
-                    project: () => evaluate(snapshot.state),
+                    release: () => {
+                        leases -= 1;
+                        active = leases > 0;
+                        // In the qualified synchronous React profile, StrictMode reconnects
+                        // in this commit. Genuine removal retires at the microtask boundary.
+                        queueMicrotask(() => {
+                            if (leases === 0) projection.destroy();
+                        });
+                    },
+                    destroy: () => {
+                        if (retired) return;
+                        retired = true;
+                        active = false;
+                        for (const child of children.values()) retireChild(child);
+                        children.clear();
+                        for (const batch of batches.values()) {
+                            for (const request of batch.requests) {
+                                if (request.status === "waiting") request.status = "cancelled";
+                                if (request.operation?.cancel) request.operation.cancel();
+                            }
+                        }
+                        batches.clear();
+                        if (registered) __cope_component_destroy(identity);
+                        registered = false;
+                        __cope_component_registry.instances.delete(identity);
+                        trace("OwnerRetired", snapshot.revision);
+                    },
+                    acknowledge: revision => {
+                        if (retired || !active) return;
+                        trace("PresentationCommitted", revision);
+                        const batch = batches.get(revision);
+                        if (batch === undefined) return;
+                        runPhase(batch, "StateCommitted");
+                        runPhase(batch, "PresentationCommitted");
+                    },
+                    project: () => evaluate(snapshot.state).presentation,
                     dispatch: (event, payload) => {
-                        if (!active) {
-                            diagnose("COPE-COMPONENT-STATE-0103", event, "Event delivered to an unmounted component owner.");
+                        if (!active || retired || ownership?.retired) {
+                            diagnose("COPE-COMPONENT-STATE-0103", event, "Event delivered to a retired or detached component owner.");
                             return;
                         }
                         if (evaluating) {
@@ -75,21 +143,19 @@ internal static class ComponentStateRuntime
                         }
                         try {
                             __cope_component_dispatch(identity, event, payload);
+                            flushStateEffects();
                         } catch (error) {
                             const message = String(error);
                             let id = "COPE-COMPONENT-STATE-0101";
-                            if (message.includes("COPE-COMPONENT-STATE-0102")) {
-                                id = "COPE-COMPONENT-STATE-0102";
-                            } else if (message.includes("COPE-COMPONENT-STATE-0103")) {
-                                id = "COPE-COMPONENT-STATE-0103";
-                            }
+                            if (message.includes("COPE-COMPONENT-STATE-0102")) id = "COPE-COMPONENT-STATE-0102";
+                            if (message.includes("COPE-COMPONENT-STATE-0103")) id = "COPE-COMPONENT-STATE-0103";
                             diagnose(id, event, message);
                         }
                     },
                 };
-                function trace(kind, revision) {
-                    projection.trace.push(Object.freeze({ kind, revision }));
-                    if (projection.trace.length > 64) projection.trace.shift();
+                function trace(kind, revision, effect, detail) {
+                    projection.trace.push(Object.freeze({ kind, revision, effect, detail }));
+                    if (projection.trace.length > 128) projection.trace.shift();
                 }
                 function diagnose(id, event, message) {
                     __cope_component_registry.diagnostics.push(Object.freeze({
@@ -97,80 +163,224 @@ internal static class ComponentStateRuntime
                     }));
                     if (__cope_component_registry.diagnostics.length > 128) __cope_component_registry.diagnostics.shift();
                 }
-                function evaluate(state) {
+                function retireChild(child) {
+                    child.retired = true;
+                    if (child.projection !== undefined) child.projection.destroy();
+                }
+                function adopt(candidate) {
+                    for (const [key, previous] of children) {
+                        if (candidate.children.get(key) !== previous) retireChild(previous);
+                    }
+                    children = candidate.children;
+                }
+                function evaluate(state, render = presenter) {
                     if (evaluating) throw new Error("Component presentation reentered its owner.");
                     evaluating = true;
+                    const desired = new Map();
                     try {
-                        return presenter(state, projection.endpoints);
+                        const presentation = visit(render(state, projection.endpoints));
+                        return { presentation, children: desired };
                     } finally {
                         evaluating = false;
                     }
+                    function visit(node) {
+                        if (Array.isArray(node)) return node.map(visit);
+                        if (node === null || typeof node !== "object" || node.props === undefined) return node;
+                        if (node.type?.__cope_owned_child === true) {
+                            const slotKey = JSON.stringify([node.props.slot, node.props.domainKey]);
+                            if (desired.has(slotKey)) {
+                                throw new Error("COPE-COMPONENT-CHILD-0003 Duplicate child key in slot " + slotKey);
+                            }
+                            const childDefinition = node.props.node.props.__cope_component_definition;
+                            let child = children.get(slotKey);
+                            if (child === undefined || child.definition !== childDefinition || child.retired) {
+                                child = {
+                                    parent: projection, definition: childDefinition, retired: false,
+                                    identity: identity + "::child::" + slotKey + "::" + childDefinition + "::" + (++__cope_component_registry.generation),
+                                };
+                            }
+                            desired.set(slotKey, child);
+                            return __cope_component_clone(node, { ownership: child, key: child.identity });
+                        }
+                        if (node.props.children !== undefined) {
+                            return __cope_component_clone(node, { children: visit(node.props.children) });
+                        }
+                        if (node.props.__cope_component_definition !== undefined) {
+                            throw new Error("COPE-COMPONENT-CHILD-0004 Stateful children require ownChild(slot, key, Child(...)).");
+                        }
+                        return node;
+                    }
+                }
+                function settle(batch) {
+                    queueCompletions(batch);
+                    if (batch.requests.some(request => request.status === "waiting" || request.status === "running")) return;
+                    batches.delete(batch.revision);
+                }
+                function complete(batch, request, result) {
+                    if (retired || ownership?.retired) {
+                        request.status = "cancelled";
+                        trace("EffectCompletionDiscarded", batch.revision, request.identity, "Owner lifetime ended.");
+                        return;
+                    }
+                    request.status = "completed";
+                    trace("EffectCompleted", batch.revision, request.identity);
+                    request.result = result;
+                    settle(batch);
+                }
+                function queueCompletions(batch) {
+                    // A fast state effect must not replace the presentation before
+                    // this transition's later phases have started or been superseded.
+                    if (batch.requests.some(request => request.status === "waiting")) return;
+                    for (const request of batch.requests) {
+                        if (request.status !== "completed" || request.complete === undefined || request.completionQueued) continue;
+                        request.completionQueued = true;
+                        queueMicrotask(() => {
+                            if (retired || ownership?.retired) {
+                                trace("EffectCompletionDiscarded", batch.revision, request.identity, "Owner lifetime ended.");
+                                return;
+                            }
+                            try {
+                                const event = request.complete(request.result);
+                                projection.dispatch(event.event, event.payload);
+                            } catch (error) {
+                                diagnose("COPE-COMPONENT-EFFECT-0002", batch.event, "Effect completion failed: " + String(error));
+                            }
+                        });
+                    }
+                }
+                function failed(batch, request, message) {
+                    request.status = "failed";
+                    diagnose("COPE-COMPONENT-EFFECT-0002", batch.event, message);
+                    trace("EffectFailed", batch.revision, request.identity, message);
+                    settle(batch);
+                }
+                function runPhase(batch, phase) {
+                    if (retired || ownership?.retired) return;
+                    for (const request of batch.requests) {
+                        if (request.phase !== phase || request.status !== "waiting") continue;
+                        request.status = "running";
+                        trace("EffectStarted", batch.revision, request.identity, phase);
+                        try {
+                            const operation = request.start();
+                            request.operation = operation;
+                            if (operation !== null && typeof operation === "object" && typeof operation.subscribe === "function") {
+                                const success = () => complete(batch, request, operation.value);
+                                const cancelled = () => {
+                                    request.status = "cancelled";
+                                    trace("EffectCompletionDiscarded", batch.revision, request.identity, "Operation cancelled.");
+                                    settle(batch);
+                                };
+                                const failure = () => failed(batch, request, "Effect computation failed.");
+                                if (operation.subscribe(success, cancelled, failure, failure)) {
+                                    if (operation.cancelled) cancelled();
+                                    else if (operation.panicked || operation.transportFailed) failure();
+                                    else success();
+                                }
+                            } else {
+                                complete(batch, request, operation);
+                            }
+                        } catch (error) {
+                            failed(batch, request, "Effect failed to start: " + String(error));
+                        }
+                    }
+                    settle(batch);
+                }
+                function flushStateEffects() {
+                    for (const batch of [...batches.values()]) runPhase(batch, "StateCommitted");
                 }
                 const eventContracts = {};
-                for (const [name, transition] of Object.entries(transitions)) {
+                for (const [name, handler] of Object.entries(transitions)) {
                     eventContracts[name] = {
                         payload: "typed-copeland-arguments",
                         transition: (payload, currentState) => {
-                            if (!Array.isArray(payload) || payload.length !== transition.length - 1) {
+                            if (!Array.isArray(payload) || payload.length !== handler.transition.length - 1) {
                                 throw new Error("Typed component input requires an argument tuple of the declared arity.");
                             }
                             let next;
+                            let effects;
                             evaluating = true;
                             try {
-                                next = transition(currentState, ...payload);
+                                next = handler.transition(currentState, ...payload);
+                                effects = handler.prepare(currentState, ...payload);
                             } finally {
                                 evaluating = false;
                             }
+                            let candidate;
                             try {
-                                pendingPresentation = evaluate(next);
+                                candidate = evaluate(next);
                             } catch (error) {
                                 throw new Error("COPE-COMPONENT-STATE-0102 " + String(error));
                             }
-                            pending = true;
+                            staged = { candidate, effects, event: name };
                             return next;
                         },
                     };
                 }
                 projection.endpoints = Object.freeze(createEndpoints(projection));
                 const state = initial();
-                snapshot = Object.freeze({ state, presentation: evaluate(state), revision: 0 });
+                const candidate = evaluate(state);
+                adopt(candidate);
+                snapshot = Object.freeze({ state, presentation: candidate.presentation, revision: 0 });
                 const definition = {
                     componentInstanceId: identity,
-                    componentDefinitionId: identity.split("::react::")[0],
-                    parentComponentInstanceId: null,
+                    componentDefinitionId: definitionId,
+                    parentComponentInstanceId: ownership?.parent.identity ?? null,
                     stateIdentity: projection.stateIdentity,
                     attachmentIds: [],
                     eventContracts,
                     get initialState() { return snapshot.state; },
-                    project: (state) => {
-                        if (pending) {
-                            snapshot = Object.freeze({ state, presentation: pendingPresentation, revision: snapshot.revision + 1 });
-                            pending = false;
-                            pendingPresentation = undefined;
-                            trace("StateCommitted", snapshot.revision);
+                    project: state => {
+                        if (staged !== undefined) {
+                            const transaction = staged;
+                            staged = undefined;
+                            adopt(transaction.candidate);
+                            const revision = snapshot.revision + 1;
+                            snapshot = Object.freeze({ state, presentation: transaction.candidate.presentation, revision });
+                            for (const batch of [...batches.values()]) {
+                                for (const request of batch.requests) {
+                                    if (request.phase === "PresentationCommitted" && request.status === "waiting") {
+                                        request.status = "cancelled";
+                                        trace("EffectSuperseded", batch.revision, request.identity);
+                                    }
+                                }
+                                settle(batch);
+                            }
+                            const requests = transaction.effects.map(effect => ({ ...effect, status: "waiting" }));
+                            if (requests.length > 0) batches.set(revision, { revision, event: transaction.event, requests });
+                            trace("StateCommitted", revision);
                             for (const listener of listeners) listener();
+                            queueMicrotask(flushStateEffects);
                         }
-                        return [];
+                        return {
+                            plans: [],
+                            frames: [...children.values()]
+                                .filter(child => child.projection !== undefined && !child.retired)
+                                .map(child => child.projection.getFrameDefinition()),
+                        };
                     },
                 };
                 return projection;
             }
 
-            function __cope_component_project(definition, initial, present, createEndpoints, transitions) {
+            function __cope_component_project(definition, initial, present, createEndpoints, transitions, ownership) {
                 const id = __cope_component_id();
                 const owner = __cope_component_ref(null);
                 if (owner.current === null) {
-                    owner.current = __cope_component_projection(definition + "::react::" + id, initial, present, createEndpoints, transitions);
+                    const identity = ownership?.identity ?? definition + "::react::" + id + "::" + (++__cope_component_registry.generation);
+                    owner.current = __cope_component_projection(identity, definition, initial, present, createEndpoints, transitions, ownership);
                 }
                 const projection = owner.current;
-                projection.setPresenter(present);
                 const snapshot = __cope_component_subscribe(projection.subscribe, projection.getSnapshot, projection.getSnapshot);
+                const candidate = projection.render(present);
                 __cope_component_commit(() => {
-                    projection.mount();
-                    return () => projection.destroy();
+                    projection.acquire();
+                    return () => projection.release();
                 }, [projection]);
-                __cope_component_commit(() => { projection.acknowledge(); }, [projection, snapshot]);
-                return projection.project();
+                __cope_component_commit(() => {
+                    projection.commitRender(present, candidate, snapshot.revision);
+                    projection.acknowledge(snapshot.revision);
+                });
+                return candidate.presentation;
             }
 
             function __cope_component_viewport_host(props) {

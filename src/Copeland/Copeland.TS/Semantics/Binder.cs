@@ -583,6 +583,18 @@ public static partial class Binder
                     handler.Effects))
                 .ToArray();
             ValidateComponentEffectCompletions(transitions);
+            foreach (BoundComponentEffect effect in transitions.SelectMany(transition => transition.Effects))
+            {
+                if (function.Symbol.UsesComponentEndpoints)
+                {
+                    if (effect.IsDefaultPhase) effect.Phase = ComponentCompletionPhase.StateCommitted;
+                }
+                else if (effect.Invocation.Type != PrimitiveTypeSymbol.Void)
+                {
+                    Report("COPE-COMPONENT-EFFECT-0102", "Effect '" + effect.Invocation.Function.Name
+                        + "' must return void in the legacy component profile; use a React endpoint owner for typed results.", effect.Anchor);
+                }
+            }
             return new BoundComponentStateModel(declaration.State, declaration.Initializer, transitions);
         }
 
@@ -5696,18 +5708,28 @@ public static partial class Binder
                         continue;
                     }
 
-                    if (call.Type != PrimitiveTypeSymbol.Void)
-                    {
-                        Report("COPE-COMPONENT-EFFECT-0102", "Effect '" + call.Function.Name + "' must return void; completion events are declared separately.", effectSyntax.EffectKeyword);
-                    }
-
+                    TypeSymbol effectResult = call.Type is AsyncTypeSymbol asyncEffect ? asyncEffect.EventualType : call.Type;
                     BoundComponentEffectCompletion? completion = null;
                     if (effectSyntax.CompletionEventIdentifier is not null)
                     {
+                        Scope effectScope = _scope;
+                        _scope = new Scope(effectScope);
+                        ParameterSymbol? resultParameter = null;
+                        if (effectResult != PrimitiveTypeSymbol.Void)
+                        {
+                            if (parameters.Any(parameter => parameter.Name == "result") || _activeComponentState.Name == "result")
+                            {
+                                Report("COPE-COMPONENT-EFFECT-0108", "Rename the state or payload named 'result'; effect completion owns that typed binding.", effectSyntax.EffectKeyword);
+                            }
+                            resultParameter = new ParameterSymbol("result", effectResult);
+                            _scope.TryDeclare(resultParameter);
+                        }
                         completion = new BoundComponentEffectCompletion(
                             effectSyntax.CompletionEventIdentifier.Text,
                             effectSyntax.CompletionArguments.Select(argument => BindExpression(argument)).ToArray(),
-                            effectSyntax.CompletionEventIdentifier);
+                            effectSyntax.CompletionEventIdentifier,
+                            resultParameter);
+                        _scope = effectScope;
                     }
 
                     effects.Add(new BoundComponentEffect(
@@ -5719,7 +5741,8 @@ public static partial class Binder
                         phase,
                         call,
                         completion,
-                        effectSyntax.EffectKeyword));
+                        effectSyntax.EffectKeyword,
+                        effectSyntax.PhaseIdentifier is null));
                 }
 
                 var endpointType = new CallableTypeSymbol(
@@ -5746,7 +5769,9 @@ public static partial class Binder
         {
             if (effect.PhaseIdentifier is null)
             {
-                return ComponentCompletionPhase.PresentationCommitted;
+                return _currentFunction?.UsesComponentEndpoints == true
+                    ? ComponentCompletionPhase.StateCommitted
+                    : ComponentCompletionPhase.PresentationCommitted;
             }
 
             if (Enum.TryParse(effect.PhaseIdentifier.Text, ignoreCase: false, out ComponentCompletionPhase phase))
@@ -9844,6 +9869,11 @@ public static partial class Binder
                 return new BoundErrorExpression();
             }
 
+            if (_schemaIdentity is null)
+            {
+                Report("COPE-NPM-0010", "Declare a constant $schema string before using promise or transport npm functions so their typed wire records have a stable schema identity.", call.OpenParenToken);
+                return new BoundErrorExpression();
+            }
             RecordTypeSymbol argumentTupleType = GetOrCreateNpmTransportRecord("arguments", npm, npm.Parameters.Select(parameter => parameter.Type).ToArray());
             RecordTypeSymbol responseWrapperType = GetOrCreateNpmTransportRecord("response", npm, [npm.ResultType]);
             RecordTypeSymbol errorWrapperType = GetOrCreateNpmTransportRecord("error", npm, [npm.RemoteErrorType]);

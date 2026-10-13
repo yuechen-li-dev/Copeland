@@ -87,6 +87,47 @@ public static class MirValidator
                 {
                     diagnostics.Add(new($"component '{owner.Name}' endpoint '{endpoint.Name}' has an invalid typed transition interface."));
                 }
+                var effectIdentities = new HashSet<string>(StringComparer.Ordinal);
+                foreach (MirComponentEffect effect in endpoint.Effects)
+                {
+                    if (string.IsNullOrWhiteSpace(effect.StableIdentity) || !effectIdentities.Add(effect.StableIdentity)
+                        || effect.Phase is not ("StateCommitted" or "PresentationCommitted")
+                        || !functions.TryGetValue(effect.ExecuteFunction, out MirFunction? execute)
+                        || !Matches(execute, effect.Arguments.Select(argument => argument.Type).ToArray(), effect.ReturnType))
+                    {
+                        diagnostics.Add(new($"component '{owner.Name}' effect '{effect.StableIdentity}' has an invalid execution interface or phase."));
+                    }
+                    foreach (MirComponentEffectArgument argument in effect.Arguments)
+                    {
+                        if (!functions.TryGetValue(argument.CaptureFunction, out MirFunction? capture)
+                            || !Matches(capture, transitionInputs, argument.Type))
+                        {
+                            diagnostics.Add(new($"component '{owner.Name}' effect '{effect.StableIdentity}' has an invalid argument capture interface."));
+                        }
+                    }
+                    if (effect.CompletionEvent is not null)
+                    {
+                        MirComponentEventEndpoint? target = model.Endpoints.FirstOrDefault(candidate => candidate.Name == effect.CompletionEvent);
+                        MirType[] completionInputs = effect.CompletionResultType is null ? transitionInputs
+                            : transitionInputs.Append(effect.CompletionResultType).ToArray();
+                        MirType eventual = effect.ReturnType is MirAsyncType asyncType ? asyncType.EventualType : effect.ReturnType;
+                        if (target is null || target.CallableType.Parameters.Count != effect.CompletionArguments.Count
+                            || (effect.CompletionResultType is not null && !MirTypeFacts.AreEquivalent(eventual, effect.CompletionResultType))
+                            || (target is not null && !target.CallableType.Parameters.Select(parameter => parameter.Type)
+                                .Zip(effect.CompletionArguments.Select(argument => argument.Type), MirTypeFacts.AreEquivalent).All(equal => equal)))
+                        {
+                            diagnostics.Add(new($"component '{owner.Name}' effect '{effect.StableIdentity}' has an invalid typed completion interface."));
+                        }
+                        foreach (MirComponentEffectArgument argument in effect.CompletionArguments)
+                        {
+                            if (!functions.TryGetValue(argument.CaptureFunction, out MirFunction? capture)
+                                || !Matches(capture, completionInputs, argument.Type))
+                            {
+                                diagnostics.Add(new($"component '{owner.Name}' effect '{effect.StableIdentity}' has an invalid completion capture interface."));
+                            }
+                        }
+                    }
+                }
             }
         }
 

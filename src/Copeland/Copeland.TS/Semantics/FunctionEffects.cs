@@ -507,6 +507,14 @@ public static class FunctionEffectClassifier
                     VisitExpression(conversion.Operand);
                     return;
                 case BoundCallExpression call:
+                    if (_presentation && call.Function.UsesComponentEndpoints)
+                    {
+                        // Stateful React functions construct inert host elements.
+                        // Their initializer/transitions are qualified separately;
+                        // calling the constructor does not acquire a live frame.
+                        VisitExpressions(call.Arguments);
+                        return;
+                    }
                     if (call.Function.NativeOperation is not null)
                     {
                         VisitExpressions(call.Arguments);
@@ -550,7 +558,7 @@ public static class FunctionEffectClassifier
                 case BoundJavaScriptHostCallExpression host:
                     bool viewportProjection = _presentation
                         && host.Function.ModuleSpecifier == "@copeland/browser-v1"
-                        && host.Function.ExportName == "presentViewport";
+                        && host.Function.ExportName is "presentViewport" or "ownChild";
                     if (!viewportProjection) _info.SetRuntime(FunctionEffect.HostInterop, "JavaScript host call crosses the language boundary");
                     VisitExpressions(host.Arguments);
                     return;

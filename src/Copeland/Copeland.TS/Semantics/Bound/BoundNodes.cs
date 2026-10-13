@@ -229,11 +229,13 @@ public sealed class BoundComponentEffect(
     ComponentCompletionPhase phase,
     BoundCallExpression invocation,
     BoundComponentEffectCompletion? completion,
-    SyntaxToken anchor)
+    SyntaxToken anchor,
+    bool isDefaultPhase = false)
     : BoundNode
 {
     public string StableIdentity { get; } = stableIdentity;
-    public ComponentCompletionPhase Phase { get; } = phase;
+    public ComponentCompletionPhase Phase { get; internal set; } = phase;
+    public bool IsDefaultPhase { get; } = isDefaultPhase;
     public BoundCallExpression Invocation { get; } = invocation;
     public BoundComponentEffectCompletion? Completion { get; } = completion;
     public SyntaxToken Anchor { get; } = anchor;
@@ -242,12 +244,14 @@ public sealed class BoundComponentEffect(
 public sealed class BoundComponentEffectCompletion(
     string eventName,
     IReadOnlyList<BoundExpression> arguments,
-    SyntaxToken anchor)
+    SyntaxToken anchor,
+    ParameterSymbol? resultParameter = null)
     : BoundNode
 {
     public string EventName { get; } = eventName;
     public IReadOnlyList<BoundExpression> Arguments { get; } = arguments;
     public SyntaxToken Anchor { get; } = anchor;
+    public ParameterSymbol? ResultParameter { get; } = resultParameter;
 }
 
 /// <summary>

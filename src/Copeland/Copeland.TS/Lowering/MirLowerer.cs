@@ -363,7 +363,20 @@ public static class MirLowerer
                 handler.Name,
                 handler.Endpoint!.Name,
                 prefix + "_on_" + handler.Name,
-                (MirCallableType)ToMirType(handler.Endpoint.Type))).ToArray());
+                (MirCallableType)ToMirType(handler.Endpoint.Type),
+                handler.Effects.Select((effect, index) => LowerComponentEffect(effect,
+                    prefix + "_on_" + handler.Name + "_effect_" + index)).ToArray())).ToArray());
+    }
+
+    private static MirComponentEffect LowerComponentEffect(BoundComponentEffect effect, string prefix)
+    {
+        return new MirComponentEffect(effect.StableIdentity, effect.Phase.ToString(), prefix + "_execute",
+            effect.Invocation.Arguments.Select((argument, index) => new MirComponentEffectArgument(
+                prefix + "_argument_" + index, ToMirType(argument.Type))).ToArray(),
+            ToMirType(effect.Invocation.Type), effect.Completion?.EventName,
+            (effect.Completion?.Arguments ?? []).Select((argument, index) => new MirComponentEffectArgument(
+                prefix + "_completion_" + index, ToMirType(argument.Type))).ToArray(),
+            effect.Completion?.ResultParameter is { } result ? ToMirType(result.Type) : null);
     }
 
     private static IEnumerable<MirFunction> LowerComponentFunctions(BoundFunctionDeclaration function)
@@ -388,6 +401,36 @@ public static class MirLowerer
             yield return new MirFunction(endpoint.TransitionFunction,
                 new[] { stateParameter }.Concat(handler.Parameters.Select(parameter => new MirParameter(parameter.Name, ToMirType(parameter.Type)))).ToArray(),
                 stateParameter.Type, [], [new MirReturnStatement(LowerExpression(handler.NextState))]);
+            MirParameter[] captures = new[] { stateParameter }.Concat(handler.Parameters.Select(parameter =>
+                new MirParameter(parameter.Name, ToMirType(parameter.Type)))).ToArray();
+            for (int effectIndex = 0; effectIndex < handler.Effects.Count; effectIndex += 1)
+            {
+                BoundComponentEffect effect = handler.Effects[effectIndex];
+                MirComponentEffect metadata = endpoint.Effects[effectIndex];
+                MirParameter[] executeParameters = effect.Invocation.Arguments.Select((argument, index) =>
+                    new MirParameter("argument" + index, ToMirType(argument.Type))).ToArray();
+                yield return new MirFunction(metadata.ExecuteFunction, executeParameters, metadata.ReturnType, [],
+                    [new MirReturnStatement(new MirCallExpression(effect.Invocation.Function.EmissionName,
+                        executeParameters.Select(parameter => (MirExpression)new MirVariableExpression(parameter.Name, parameter.Type)).ToArray(),
+                        metadata.ReturnType))]);
+                for (int index = 0; index < metadata.Arguments.Count; index += 1)
+                {
+                    yield return new MirFunction(metadata.Arguments[index].CaptureFunction, captures, metadata.Arguments[index].Type, [],
+                        [new MirReturnStatement(LowerExpression(effect.Invocation.Arguments[index]))]);
+                }
+                if (effect.Completion is not null)
+                {
+                    MirParameter[] completionInputs = effect.Completion.ResultParameter is { } result
+                        ? captures.Append(new MirParameter(result.Name, ToMirType(result.Type))).ToArray()
+                        : captures;
+                    for (int index = 0; index < metadata.CompletionArguments.Count; index += 1)
+                    {
+                        yield return new MirFunction(metadata.CompletionArguments[index].CaptureFunction, completionInputs,
+                            metadata.CompletionArguments[index].Type, [],
+                            [new MirReturnStatement(LowerExpression(effect.Completion.Arguments[index]))]);
+                    }
+                }
+            }
         }
     }
 

@@ -347,7 +347,7 @@ public static class CopelandProjectCompiler
             string visibleSource = EmbeddedSourceBlockScanner.MaskBodies(module.Source.SourceText);
             SyntaxToken[] tokens = SyntaxTree.ParseTokens(visibleSource).Tokens.ToArray();
             CompilationUnitSyntax syntax = SyntaxTree.Parse(visibleSource).Root;
-            IReadOnlySet<int> enumPatternIdentifiers = EnumPatternIdentifierPositions(syntax);
+            IReadOnlySet<int> nonCallIdentifiers = NonCallIdentifierPositions(syntax);
             IReadOnlySet<int> genericParameterIdentifiers = GenericParameterIdentifierPositions(syntax);
             foreach (var pair in functions)
             {
@@ -367,7 +367,7 @@ public static class CopelandProjectCompiler
                     if (token.Kind != SyntaxKind.IdentifierToken
                         || token.Text != pair.Key
                         || tokens[index + 1].Kind != SyntaxKind.OpenParenToken
-                        || enumPatternIdentifiers.Contains(token.Position)
+                        || nonCallIdentifiers.Contains(token.Position)
                         || index > 0 && tokens[index - 1].Kind is SyntaxKind.DotToken or SyntaxKind.FunctionKeyword)
                     {
                         continue;
@@ -461,7 +461,7 @@ public static class CopelandProjectCompiler
         }
     }
 
-    private static IReadOnlySet<int> EnumPatternIdentifierPositions(SyntaxNode root)
+    private static IReadOnlySet<int> NonCallIdentifierPositions(SyntaxNode root)
     {
         var positions = new HashSet<int>();
         var pending = new Stack<SyntaxNode>();
@@ -476,6 +476,14 @@ public static class CopelandProjectCompiler
             else if (node is MatchPatternSyntax pattern)
             {
                 positions.Add(pattern.CaseIdentifier.Position);
+            }
+            else if (node is ComponentEventHandlerStatementSyntax handler)
+            {
+                positions.Add(handler.EventIdentifier.Position);
+            }
+            else if (node is ComponentEffectSyntax { CompletionEventIdentifier: not null } effect)
+            {
+                positions.Add(effect.CompletionEventIdentifier.Position);
             }
             foreach (object child in node.GetChildren())
             {

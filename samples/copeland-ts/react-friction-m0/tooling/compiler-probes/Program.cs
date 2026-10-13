@@ -34,6 +34,11 @@ foreach (JsonElement specimen in corpus.RootElement.GetProperty("cases").Enumera
         JavaScriptHostModules = [CopelandProjectHostContracts.Browser()],
         NpmPackages =
         [
+            new CopelandNpmPackageContract("@copeland/lifecycle-host", "0.1.0", [
+                new CopelandNpmFunctionContract("search", ["string"], "string", "string", IsPromise: true),
+                new CopelandNpmFunctionContract("saveDraft", ["string", "string"], "string", "string", IsPromise: true),
+                new CopelandNpmFunctionContract("focus", ["string"], "void"),
+            ]),
             new CopelandNpmPackageContract("react", "19.2.7",
                 [new CopelandNpmFunctionContract("createElement", [], "ReactNode")]),
             new CopelandNpmPackageContract("@base-ui-components/react/dialog", "1.0.0-rc.0", [],

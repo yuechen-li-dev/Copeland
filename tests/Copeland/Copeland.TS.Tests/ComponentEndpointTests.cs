@@ -121,17 +121,74 @@ public sealed class ComponentEndpointTests
     }
 
     [Fact]
-    public void Effects_remain_explicitly_unsupported_for_react_endpoints()
+    public void Attachment_settlement_requires_a_real_acknowledgement_contract()
     {
         CopelandProjectCompilation project = Compile("""
             function Persist(): void { }
             function Counter(): ReactNode {
                 state: int = 0;
-                on Add() => state + 1 effect Persist();
+                on Add() => state + 1 after AttachmentsSettled effect Persist();
                 return <button onClick={on.Add}>{state}</button>;
             }
             """);
         Assert.Contains(project.Diagnostics, diagnostic => diagnostic.Id == "COPE-COMPONENT-ON-0005");
+    }
+
+    [Fact]
+    public void Effects_capture_arguments_and_bind_typed_async_results()
+    {
+        CopelandProjectCompilation project = Compile("""
+            async function Fetch(value: int): int { return value; }
+            function Counter(): ReactNode {
+                state: int = 0;
+                on Loaded(request: int, value: int) => request + value;
+                on Load(value: int) => state + 1 effect Fetch(value) => Loaded(state, result);
+                return <button onClick={capture { load: on.Load } () => load(2)}>{state}</button>;
+            }
+            """);
+        Assert.True(project.Success, string.Join("\n", project.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        MirComponentStateModel model = project.MirProjectGraph!.AggregateProgram.Functions
+            .Single(function => function.Name == "Counter").ComponentState!;
+        MirComponentEffect effect = Assert.Single(model.Endpoints.Single(endpoint => endpoint.Name == "Load").Effects);
+        Assert.Equal("StateCommitted", effect.Phase);
+        Assert.Equal("Loaded", effect.CompletionEvent);
+        Assert.IsType<MirAsyncType>(effect.ReturnType);
+        Assert.Empty(MirValidator.Validate(project.MirProjectGraph.AggregateProgram));
+    }
+
+    [Fact]
+    public void Named_state_endpoint_owners_use_state_commit_effects_and_typed_results()
+    {
+        CopelandProjectCompilation project = Compile("""
+            function Next(): int { return 2; }
+            function Counter(): ReactNode {
+                state current: int = 0;
+                on Done(value: int) => value;
+                on Apply() => current + 1 effect Next() => Done(result);
+                return <button onClick={on.Apply}>{current}</button>;
+            }
+            """);
+        Assert.True(project.Success, string.Join("\n", project.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        MirComponentStateModel model = project.MirProjectGraph!.AggregateProgram.Functions
+            .Single(function => function.Name == "Counter").ComponentState!;
+        Assert.Equal("StateCommitted", Assert.Single(model.Endpoints.Single(endpoint => endpoint.Name == "Apply").Effects).Phase);
+        Assert.Contains("complete Done result int", MirTextWriter.Write(project.MirProjectGraph.AggregateProgram));
+    }
+
+    [Fact]
+    public void Effect_captures_cannot_run_external_work_before_commit()
+    {
+        CopelandProjectCompilation project = Compile("""
+            import { getViewportWidth } from "@copeland/browser-v1";
+            function Fetch(value: int): int { return value; }
+            function Counter(): ReactNode {
+                state: int = 0;
+                on Loaded(value: int) => value;
+                on Load() => state effect Fetch(getViewportWidth()) => Loaded(result);
+                return <button onClick={on.Load}>{state}</button>;
+            }
+            """);
+        Assert.Contains(project.Diagnostics, diagnostic => diagnostic.Id == "COPE-COMPONENT-EFFECT-0107");
     }
 
     [Fact]
@@ -240,6 +297,7 @@ public sealed class ComponentEndpointTests
             {
                 SourcePath = "Main.tsx",
                 TsXmlProfile = CopelandTsXmlProfile.ReactM0,
+                JavaScriptHostModules = [CopelandProjectHostContracts.Browser()],
                 NpmPackages = [new CopelandNpmPackageContract("react", "19.2.7",
                     [new CopelandNpmFunctionContract("createElement", [], "ReactNode")])],
             });
@@ -273,6 +331,7 @@ public sealed class ComponentEndpointTests
             new CopelandCompilationOptions
             {
                 TsXmlProfile = CopelandTsXmlProfile.ReactM0,
+                JavaScriptHostModules = [CopelandProjectHostContracts.Browser()],
                 NpmPackages = [new CopelandNpmPackageContract("react", "19.2.7",
                     [new CopelandNpmFunctionContract("createElement", [], "ReactNode")])],
             });

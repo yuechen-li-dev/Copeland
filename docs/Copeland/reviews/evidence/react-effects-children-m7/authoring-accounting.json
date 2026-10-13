@@ -1,0 +1,41 @@
+{
+  "interpretation": "Source accounting for these authored specimens; not a timed usability study or a universal complexity measure.",
+  "sharedContent": "src/Content.ts is imported verbatim by both implementations",
+  "copeland": {
+    "appLines": 117,
+    "reusableLayoutLines": 35,
+    "stateLines": 83,
+    "mainLines": 7,
+    "stateOwnerLines": 9,
+    "languageStateDeclarations": 1,
+    "languageInputHandlers": 1,
+    "issuePageLines": 92,
+    "issueDomainLines": 54,
+    "semanticUiLibraryLines": 127,
+    "collectionLibraryLines": 50,
+    "totalApplicationLines": 397,
+    "totalIncludingReusableLibraries": 574,
+    "explicitCaptures": 13,
+    "reusableLibraryCaptures": 4,
+    "issuePageIntrinsicHtmlTags": 0,
+    "eventAdapterFunctions": 0,
+    "localStreams": 2,
+    "contributionStreams": 3,
+    "expressionBindings": 3,
+    "layoutSpecializations": 3,
+    "layoutVariants": 1,
+    "manifestLines": 73,
+    "distinctIssueArrangements": 2,
+    "issueListBindingSites": 1,
+    "issueDetailBindingSites": 1,
+    "insertedCollection": "Runtime immutable row snapshots; keyed React children within one static layout channel"
+  },
+  "typescript": {
+    "totalApplicationLines": 194,
+    "explicitCaptures": 0,
+    "eventAdapterFunctions": 0,
+    "issueListBindingSites": 1,
+    "issueDetailBindingSites": 1,
+    "insertedCollection": "Derived array filtered and mapped with stable issue keys"
+  }
+}

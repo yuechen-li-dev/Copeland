@@ -95,7 +95,11 @@ typing is not available. No input DOM-reading bridge is retained.
 - `state-on-corpus.json`: fifty expectations, preserving the semantic UI corpus
   and adding real application compilation, state/endpoint diagnostics, and
   mounted FLOW/lifecycle specimens across Diagnostic, Symbolic, and Production.
-- `docs/Copeland/reviews/evidence/react-state-on-m6/`: current compiler, browser,
+- `lifecycle-corpus.json`: current 55 expectations, typed effects, explicit child ownership,
+  and cross-module probes in all three emission profiles.
+- `docs/Copeland/reviews/evidence/react-effects-children-m7/`: current validation,
+  twelve lifecycle observations per profile, screenshots, and regression evidence.
+- `docs/Copeland/reviews/evidence/react-state-on-m6/`: historical compiler, browser,
   lifecycle, source-accounting, original-website, and full .NET validation evidence.
 - `docs/Copeland/reviews/evidence/react-friction-m0/`: tracked browser,
   compiler, original-website, authoring-accounting, and validation baseline reports.
@@ -120,3 +124,25 @@ surfaces. The fixture's viewport state selects its existing compact layout
 below 600px. A manual arrangement toggle applies to the wider profiles.
 Live desktop/mobile resizing verifies that selection survives and the exact
 wide track returns when the viewport widens.
+
+## Effects and child ownership page
+
+The default runner now qualifies M7. To inspect its separate editable-results page
+following the build:
+
+```powershell
+node samples/copeland-ts/react-friction-m0/tooling/lifecycle.ts --serve
+```
+
+Open the printed URL. Edit both drafts, reverse the order, save, remove/restore
+blue, and search `one`, `none`, or `all`. Drafts survive reordering; removal ends a
+child lifetime. The sample HTTP service is deterministic and echoes saves rather
+than retaining them. Ctrl+C closes the foreground host.
+
+The application declares effects and typed result matching in
+`inputs/lifecycle-demo.tsx`. State ownership uses `ownChild(slot, key, Child(...))`.
+See [the M7 contract](../../../docs/Copeland/reviews/cts-react-effects-children-m7.md)
+for phase ordering, expected diagnostics, and the unqualified concurrency and
+attachment-settlement boundaries. M7 updates the state/on corpus to accept declared effects. Earlier M6 reports
+retain the historical rejection evidence; `lifecycle-corpus.json` qualifies the
+current phase and completion behavior.

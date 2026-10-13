@@ -16,6 +16,20 @@ export async function startServer(port = 0, artifactRoot = browserRoot, extraAss
     const server = createServer(async (request, response) => {
         try {
             const path = new URL(request.url ?? "/", "http://127.0.0.1").pathname;
+            if (path.startsWith("/lifecycle-api/")) {
+                const parameters = new URL(request.url!, "http://127.0.0.1").searchParams;
+                let value = "all";
+                if (path.endsWith("/save")) {
+                    value = parameters.get("draft") ?? "";
+                } else if (parameters.get("query") === "one") {
+                    value = "one";
+                } else if (parameters.get("query") === "none") {
+                    value = "none";
+                }
+                response.writeHead(200, { "Content-Type": "application/json" });
+                response.end(JSON.stringify({ ok: true, value }));
+                return;
+            }
             if (path === "/" || path === "/baseline/") {
                 let html = await readFile(resolve(normalizedArtifactRoot, "index.html"), "utf8");
                 if (path === "/baseline/") {

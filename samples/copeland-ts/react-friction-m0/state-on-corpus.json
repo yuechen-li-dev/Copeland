@@ -505,9 +505,8 @@
       ]
     },
     {
-      "name": "state-on-effect-boundary",
-      "expected": "reject",
-      "diagnostic": "COPE-COMPONENT-ON-0005",
+      "name": "state-on-declared-effect",
+      "expected": "accept",
       "sources": [
         {
           "path": "Probe.tsx",

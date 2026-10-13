@@ -45,10 +45,37 @@ public static class ComponentEndpointValidation
             }
             foreach (BoundComponentEventHandler handler in handlers)
             {
-                if (handler.Effects.Count > 0)
+                foreach (BoundComponentEffect effect in handler.Effects)
                 {
-                    diagnostics.Add(new Diagnostic("COPE-COMPONENT-ON-0005",
-                        "React endpoint effects require a presentation commit acknowledgement; this slice supports state-only handlers.", 0, 1));
+                    if (effect.Phase == ComponentCompletionPhase.AttachmentsSettled)
+                    {
+                        diagnostics.Add(new Diagnostic("COPE-COMPONENT-ON-0005",
+                            "React AttachmentsSettled requires declared attachment acknowledgements. Use StateCommitted or PresentationCommitted for this adapter.", 0, 1));
+                    }
+                    IEnumerable<BoundExpression> arguments = effect.Invocation.Arguments;
+                    if (effect.Completion is not null)
+                    {
+                        arguments = arguments.Concat(effect.Completion.Arguments);
+                    }
+                    foreach (BoundExpression argument in arguments)
+                    {
+                        var captureParameters = new[] { new ParameterSymbol(state.State.Name, state.State.Type) }
+                            .Concat(handler.Parameters).ToList();
+                        if (effect.Completion?.ResultParameter is { } resultParameter)
+                        {
+                            captureParameters.Add(resultParameter);
+                        }
+                        var capture = new BoundFunctionDeclaration(
+                            new FunctionSymbol(component.Symbol.Name + " effect capture", captureParameters, argument.Type,
+                                stableIdentity: effect.StableIdentity + "::capture"),
+                            new BoundBlockStatement([new BoundReturnStatement(argument)]));
+                        string? captureFailure = FunctionEffectClassifier.QualifyTransition(capture, projectFunctions);
+                        if (captureFailure is not null)
+                        {
+                            diagnostics.Add(new Diagnostic("COPE-COMPONENT-EFFECT-0107",
+                                "Effect arguments and completion arguments must be pure snapshots of state, event payload, and result. " + captureFailure, 0, 1));
+                        }
+                    }
                 }
                 if (handler.Parameters.Any(parameter => parameter.Name == state.State.Name))
                 {

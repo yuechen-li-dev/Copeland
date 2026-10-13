@@ -2877,7 +2877,7 @@ public static class JavaScriptBackend
         writer.WriteLine($"function {JavaScriptIdentifierEncoder.Encode(function.Name)}({parameters}) {{");
         writer.Indent();
         EmitBoundaryParameterValidation(writer, function, catalog, results, names, isBoundaryFunction);
-        writer.WriteLine($"return __cope_component_element({JavaScriptIdentifierEncoder.Encode(model.HostFunction)}, {{ inputs: [{parameters}] }});");
+        writer.WriteLine($"return __cope_component_element({JavaScriptIdentifierEncoder.Encode(model.HostFunction)}, {{ inputs: [{parameters}], __cope_component_definition: {JavaScriptLiteralWriter.WriteString(model.StableIdentity)} }});");
         writer.Unindent();
         writer.WriteLine("}");
         writer.WriteLine($"function {JavaScriptIdentifierEncoder.Encode(model.HostFunction)}(props) {{");
@@ -2906,10 +2906,41 @@ public static class JavaScriptBackend
         writer.Indent();
         foreach (MirComponentEventEndpoint endpoint in model.Endpoints)
         {
-            writer.WriteLine($"{JavaScriptLiteralWriter.WriteString(endpoint.Name)}: {JavaScriptIdentifierEncoder.Encode(endpoint.TransitionFunction)},");
+            writer.WriteLine($"{JavaScriptLiteralWriter.WriteString(endpoint.Name)}: {{ transition: {JavaScriptIdentifierEncoder.Encode(endpoint.TransitionFunction)},");
+            writer.Indent();
+            writer.WriteLine("prepare: (state, ...payload) => [");
+            writer.Indent();
+            foreach (MirComponentEffect effect in endpoint.Effects)
+            {
+                string arguments = string.Join(", ", effect.Arguments.Select(argument =>
+                    JavaScriptIdentifierEncoder.Encode(argument.CaptureFunction) + "(state, ...payload)"));
+                writer.WriteLine("(() => {");
+                writer.Indent();
+                writer.WriteLine($"const effectArguments = [{arguments}];");
+                writer.WriteLine("return {");
+                writer.Indent();
+                writer.WriteLine($"identity: {JavaScriptLiteralWriter.WriteString(effect.StableIdentity)},");
+                writer.WriteLine($"phase: {JavaScriptLiteralWriter.WriteString(effect.Phase)},");
+                writer.WriteLine($"start: () => {JavaScriptIdentifierEncoder.Encode(effect.ExecuteFunction)}(...effectArguments),");
+                if (effect.CompletionEvent is not null)
+                {
+                    string completionInputs = effect.CompletionResultType is null ? "state, ...payload" : "state, ...payload, result";
+                    string completionArguments = string.Join(", ", effect.CompletionArguments.Select(argument =>
+                        JavaScriptIdentifierEncoder.Encode(argument.CaptureFunction) + "(" + completionInputs + ")"));
+                    writer.WriteLine($"complete: result => ({{ event: {JavaScriptLiteralWriter.WriteString(effect.CompletionEvent)}, payload: Object.freeze([{completionArguments}]) }}),");
+                }
+                writer.Unindent();
+                writer.WriteLine("};");
+                writer.Unindent();
+                writer.WriteLine("})(),");
+            }
+            writer.Unindent();
+            writer.WriteLine("],");
+            writer.Unindent();
+            writer.WriteLine("},");
         }
         writer.Unindent();
-        writer.WriteLine("});");
+        writer.WriteLine("}, props.ownership);");
         writer.Unindent();
         writer.Unindent();
         writer.WriteLine("}");
@@ -3853,6 +3884,10 @@ public static class JavaScriptBackend
             if (host.ModuleSpecifier == "@copeland/browser-v1" && host.ExportName == "presentViewport")
             {
                 invocation = $"__cope_component_viewport({string.Join(", ", hostArguments)})";
+            }
+            else if (host.ModuleSpecifier == "@copeland/browser-v1" && host.ExportName == "ownChild")
+            {
+                invocation = $"__cope_component_child({string.Join(", ", hostArguments)})";
             }
             return host.Type is MirCallableType callable
                 ? $"__cope_callable_host({JavaScriptLiteralWriter.WriteString(CallableTypeIdentity(callable))}, {invocation})"
