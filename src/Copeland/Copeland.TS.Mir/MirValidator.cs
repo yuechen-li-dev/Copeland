@@ -55,9 +55,9 @@ public static class MirValidator
                 || functions.ContainsKey(model.HostFunction)
                 || !generatedHosts.Add(model.HostFunction)
                 || owner.IsAsync || owner.IsGenerator || owner.IsRemote
-                || owner.ReturnType.Name != "ReactNode")
+                || owner.ReturnType.Name is not "ReactNode" and not "VueNode" and not "View")
             {
-                diagnostics.Add(new($"component '{owner.Name}' has an invalid React owner identity or interface."));
+                diagnostics.Add(new($"component '{owner.Name}' has an invalid presentation owner identity or interface."));
             }
             if (!functions.TryGetValue(model.InitializerFunction, out MirFunction? initial)
                 || !functions.TryGetValue(model.PresentationFunction, out MirFunction? present))

@@ -2204,13 +2204,61 @@ private MachinaStyle Style(IReadOnlyList<LayoutPropertySyntax> properties)
             }
             foreach (string field in values.Keys)
             {
-                if (field is not ("fill" or "border"))
+                if (field is not ("fill" or "border" or "radius" or "text"))
                 {
-                    Report("COPE-LAYOUT-STYLE-0001", $"Layout style has no supported field '{field}'. Use fill or border.", values[field].Anchor);
+                    Report("COPE-LAYOUT-STYLE-0001", $"Layout style has no supported field '{field}'. Use fill, radius, border, or text.", values[field].Anchor);
                 }
             }
             string? fill = ReadString(values, "fill");
-            MachinaSurfaceStyle? surface = fill is null ? null : new MachinaSurfaceStyle(Fill: fill);
+            MachinaLength? radius = ReadPixelLength(values, "radius", allowZero: true);
+            MachinaSurfaceStyle? surface = fill is null && radius is null ? null : new MachinaSurfaceStyle(Fill: fill, Radius: radius);
+            MachinaTextStyle? textStyle = null;
+            if (values.TryGetValue("text", out LayoutValue? textValue))
+            {
+                if (textValue.Fields is not { } textFields)
+                {
+                    Report("COPE-LAYOUT-STYLE-0001", "Text style requires an immutable record.", textValue.Anchor);
+                }
+                else
+                {
+                    foreach (string field in textFields.Keys)
+                    {
+                        if (field is not ("color" or "size" or "weight" or "lineHeight" or "wrap"))
+                        {
+                            Report("COPE-LAYOUT-STYLE-0001", $"Text style has no field '{field}'.", textFields[field].Anchor);
+                        }
+                    }
+                    int? weight = null;
+                    if (textFields.TryGetValue("weight", out LayoutValue? weightValue))
+                    {
+                        if (weightValue.Scalar is int integer && integer is >= 1 and <= 1000) weight = integer;
+                        else Report("COPE-LAYOUT-STYLE-0001", "Text weight requires an integer in [1, 1000].", weightValue.Anchor);
+                    }
+                    double? lineHeight = null;
+                    if (textFields.TryGetValue("lineHeight", out LayoutValue? heightValue))
+                    {
+                        if (heightValue.Scalar is int or double)
+                        {
+                            double number = Convert.ToDouble(heightValue.Scalar, System.Globalization.CultureInfo.InvariantCulture);
+                            if (double.IsFinite(number) && number > 0) lineHeight = number;
+                        }
+                        if (lineHeight is null) Report("COPE-LAYOUT-STYLE-0001", "Text lineHeight requires a positive finite ratio.", heightValue.Anchor);
+                    }
+                    MachinaTextWrap? wrap = null;
+                    if (textFields.TryGetValue("wrap", out LayoutValue? wrapValue))
+                    {
+                        wrap = wrapValue.Scalar switch
+                        {
+                            "normal" => MachinaTextWrap.Normal,
+                            "anywhere" => MachinaTextWrap.Anywhere,
+                            _ => null,
+                        };
+                        if (wrap is null) Report("COPE-LAYOUT-STYLE-0001", "Text wrap requires \"normal\" or \"anywhere\".", wrapValue.Anchor);
+                    }
+                    textStyle = new MachinaTextStyle(ReadString(textFields, "color"),
+                        ReadPixelLength(textFields, "size", allowZero: false), weight, lineHeight, wrap);
+                }
+            }
             MachinaBorderStyle? border = null;
             if (values.TryGetValue("border", out LayoutValue? borderValue))
             {
@@ -2239,7 +2287,19 @@ private MachinaStyle Style(IReadOnlyList<LayoutPropertySyntax> properties)
                     border = new MachinaBorderStyle(width, ReadString(fields, "color"), ReadString(fields, "style"));
                 }
             }
-            return surface is null && border is null ? MachinaStyle.Empty : new MachinaStyle(Surface: surface, Border: border);
+            return surface is null && border is null && textStyle is null
+                ? MachinaStyle.Empty : new MachinaStyle(Surface: surface, Border: border, Text: textStyle);
+
+            MachinaLength? ReadPixelLength(IReadOnlyDictionary<string, LayoutValue> fields, string name, bool allowZero)
+            {
+                if (!fields.TryGetValue(name, out LayoutValue? value)) return null;
+                MachinaLength? length = Length(value);
+                if (length is not null && length.Value.Ui == 0
+                    && length.Value.LiteralUnit != MachinaLengthLiteralUnit.Ui
+                    && (allowZero ? length.Value.Px >= 0 : length.Value.Px > 0)) return length;
+                Report("COPE-LAYOUT-STYLE-0001", $"Style '{name}' requires a {(allowZero ? "nonnegative" : "positive")} px length.", value.Anchor);
+                return null;
+            }
 
             string? ReadString(IReadOnlyDictionary<string, LayoutValue> fields, string name)
             {

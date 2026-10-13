@@ -1,0 +1,86 @@
+{
+  "milestone": "CTS-PRESENTATION-FRICTION-M9",
+  "build": {
+    "warnings": 0,
+    "errors": 0
+  },
+  "tests": {
+    "passed": 2242,
+    "failed": 0,
+    "skipped": 0,
+    "suites": [
+      {
+        "assembly": "Copeland.Authoring.Food.Tests.dll",
+        "failed": 0,
+        "passed": 3,
+        "skipped": 0,
+        "total": 3
+      },
+      {
+        "assembly": "Copeland.Cli.Tests.dll",
+        "failed": 0,
+        "passed": 80,
+        "skipped": 0,
+        "total": 80
+      },
+      {
+        "assembly": "Copeland.Markdown.Tests.dll",
+        "failed": 0,
+        "passed": 35,
+        "skipped": 0,
+        "total": 35
+      },
+      {
+        "assembly": "Copeland.TS.Backend.CSharp.Tests.dll",
+        "failed": 0,
+        "passed": 273,
+        "skipped": 0,
+        "total": 273
+      },
+      {
+        "assembly": "Copeland.TS.Backend.JavaScript.Tests.dll",
+        "failed": 0,
+        "passed": 270,
+        "skipped": 0,
+        "total": 270
+      },
+      {
+        "assembly": "Copeland.TS.Database.Tests.dll",
+        "failed": 0,
+        "passed": 11,
+        "skipped": 0,
+        "total": 11
+      },
+      {
+        "assembly": "Copeland.TS.MSBuild.Tests.dll",
+        "failed": 0,
+        "passed": 13,
+        "skipped": 0,
+        "total": 13
+      },
+      {
+        "assembly": "Copeland.TS.Tests.dll",
+        "failed": 0,
+        "passed": 1557,
+        "skipped": 0,
+        "total": 1557
+      }
+    ]
+  },
+  "presentationBrowser": {
+    "observations": 192,
+    "errors": [],
+    "version": "153.0.4234.48"
+  },
+  "hashes": {
+    "artifacts/validation/presentation-friction-m9-build.log": "4670de7323c3a60a765e4a902a01a53d9d06a931dfb6c6402a70523ea88bd24a",
+    "artifacts/validation/presentation-friction-m9-tests.log": "ab081687dcbbae5d67a1bf5f0641d90765f73ced534e6487add8ace39a9d798d",
+    "docs/Copeland/reviews/evidence/presentation-friction-m9/browser-report.json": "a016ab9216d61fceeb7a497652aca8f4e1ec66c3caccc823b9e9a3ed07b0896d",
+    "docs/Copeland/reviews/evidence/presentation-friction-m9/compiler-report.json": "c6683b9b409e3f006e0978975da1e649ee086c113cbce8036d00eb26d0554b73",
+    "samples/copeland-ts/presentation-friction-m9/package-lock.json": "5f812ff95a4194afcf83af67deb0c5371d56d5c31ae52d41c7ece56b17046aea",
+    "samples/copeland-ts/react-friction-m0/dist/browser/packages/copeland-browser-v1/index.js": "ef5cb47ed5fe0fa0f40ebdcca3b638b553f4bc7b38c84f5d0d0575528fa5de0a",
+    "src/Copeland/Copeland.TS/bin/Debug/net10.0/Copeland.TS.dll": "9815bec6666ef9ac67677b0609d93150a02dd243ecef6b8b2ac8b71a0d76a500",
+    "src/Copeland/Copeland.TS.Backend.JavaScript/bin/Debug/net10.0/Copeland.TS.Backend.JavaScript.dll": "a12e058d4469a6ef40c789f76e7a5240bd1ae8c8320e521378d255f650b82cef"
+  },
+  "boundary": "One shared View source, React/Vue targets, typed controls and canonical ownership. Mixed-framework islands remain a separate host-boundary milestone."
+}

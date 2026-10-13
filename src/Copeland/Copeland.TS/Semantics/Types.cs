@@ -213,6 +213,22 @@ public sealed class OptionTypeSymbol : EnumTypeSymbol
     public EnumCaseSymbol SomeCase { get; }
 }
 
+/// <summary>Compiler-owned presentation, distinct from any framework's node value.</summary>
+public sealed class ViewTypeSymbol : TypeSymbol
+{
+    public static ViewTypeSymbol Instance { get; } = new();
+    private ViewTypeSymbol() { }
+    public override string Name => "View";
+}
+
+/// <summary>Opaque Vue presentation values owned by the Vue component profile.</summary>
+public sealed class VueNodeTypeSymbol : TypeSymbol
+{
+    public static VueNodeTypeSymbol Instance { get; } = new();
+    private VueNodeTypeSymbol() { }
+    public override string Name => "VueNode";
+}
+
 /// <summary>Opaque React values owned by the bounded React M0 profile.</summary>
 public sealed class ReactNodeTypeSymbol : TypeSymbol
 {

@@ -4046,7 +4046,7 @@ public sealed class Parser
 
     private TsXmlAttributeSyntax ParseTsXmlAttribute()
     {
-        SyntaxToken nameToken = MatchTsXmlName("Expected a TS-XML attribute name.");
+        SyntaxToken nameToken = MatchTsXmlName("Expected a TS-XML attribute name.", allowColon: true);
         if (Current.Kind != SyntaxKind.EqualsToken)
         {
             return new TsXmlAttributeSyntax(nameToken, null, null, null, null, null);
@@ -4128,28 +4128,30 @@ public sealed class Parser
         }
     }
 
-    private SyntaxToken MatchTsXmlName(string message)
+    private SyntaxToken MatchTsXmlName(string message, bool allowColon = false)
     {
         if (IsTsXmlName(Current))
         {
             SyntaxToken first = NextToken();
-            if (Current.Kind is not (SyntaxKind.DotToken or SyntaxKind.MinusToken))
+            if (Current.Kind is not (SyntaxKind.DotToken or SyntaxKind.MinusToken)
+                && !(allowColon && Current.Kind == SyntaxKind.ColonToken))
             {
                 return first;
             }
 
             var parts = new List<string> { first.Text };
-            while (Current.Kind is SyntaxKind.DotToken or SyntaxKind.MinusToken)
+            while (Current.Kind is SyntaxKind.DotToken or SyntaxKind.MinusToken
+                || allowColon && Current.Kind == SyntaxKind.ColonToken)
             {
                 SyntaxToken separator = NextToken();
                 if (!IsTsXmlName(Current))
                 {
-                    string separatorText = separator.Kind == SyntaxKind.DotToken ? "." : "-";
+                    string separatorText = separator.Text;
                     ReportTsXml("COPE-TSXML-0002", "Expected an identifier after '" + separatorText + "' in a TS-XML name.", Current);
                     break;
                 }
 
-                parts.Add(separator.Kind == SyntaxKind.DotToken ? "." : "-");
+                parts.Add(separator.Text);
                 parts.Add(NextToken().Text);
             }
 
@@ -4161,7 +4163,9 @@ public sealed class Parser
     }
 
     private static bool IsTsXmlName(SyntaxToken token)
-        => token.Kind == SyntaxKind.IdentifierToken;
+        => token.Kind == SyntaxKind.IdentifierToken
+            || token.Kind != SyntaxKind.EndOfFileToken
+                && SyntaxFacts.GetKeywordKind(token.Text) == token.Kind;
 
     private SyntaxToken MatchTsXml(SyntaxKind kind, string message)
     {

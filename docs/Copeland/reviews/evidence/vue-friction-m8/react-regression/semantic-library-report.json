@@ -1,0 +1,21 @@
+{
+  "milestone": "CTS-REACT-UI-SEMANTIC-API-M5",
+  "browser": "153.0.4234.48",
+  "sourceHashes": {
+    "Collections.ts": "91e5a338dacb019b5f947b8f560ee3d3f1d52cfa6cf0bea428ac2933411ced0b",
+    "UI.tsx": "9611b5a41232834c132f6cddfa5b45cd894d665e09e21c8ecca5f2e62b482006",
+    "Probe.ts": "2dae3284e7ce82274a817f018a6c6142915843fec92e8f2c8b04047681db2eb9"
+  },
+  "emittedHashes": {
+    "Collections.js": "20a7d964dcd89df2ad3d90fd308f62ff06dded0f770fc804d4c94ecf90f25083",
+    "Probe.js": "695cc5e41a36bb8b1b5626d6c03650a3d7b84b962d17237da0432784e51c4d8a",
+    "UI.js": "a0de4fa2b8fc7635ee66aacf37f025469869c9bd6d5108a64257299cfbb6dd92"
+  },
+  "observations": [
+    "Construction does not dispatch; activation converts and sends exactly once.",
+    "Duplicate identities are rejected before React reconciliation.",
+    "Empty identities are rejected without a positional fallback.",
+    "Optional action and cross-module enum event dispatch work through explicit capture."
+  ],
+  "diagnostics": []
+}

@@ -181,7 +181,9 @@ public sealed class NpmComponentSymbol : Symbol
         string exportName,
         IReadOnlyList<NpmComponentPropertySymbol> properties,
         IReadOnlyList<NpmComponentMemberSymbol> members,
-        bool isAvailableToJavaScript)
+        bool isAvailableToJavaScript,
+        string renderer = "react",
+        bool defaultSlot = false)
         : base(name)
     {
         PackageName = packageName;
@@ -190,6 +192,8 @@ public sealed class NpmComponentSymbol : Symbol
         Properties = properties;
         Members = members;
         IsAvailableToJavaScript = isAvailableToJavaScript;
+        Renderer = renderer;
+        DefaultSlot = defaultSlot;
     }
 
     public string PackageName { get; }
@@ -197,6 +201,8 @@ public sealed class NpmComponentSymbol : Symbol
     public string ExportName { get; }
     public IReadOnlyList<NpmComponentPropertySymbol> Properties { get; }
     public IReadOnlyList<NpmComponentMemberSymbol> Members { get; }
+    public string Renderer { get; }
+    public bool DefaultSlot { get; }
     public bool IsAvailableToJavaScript { get; }
 }
 
@@ -207,7 +213,8 @@ public sealed class NpmComponentMemberSymbol(
     string packageVersion,
     string exportName,
     IReadOnlyList<NpmComponentPropertySymbol> properties,
-    bool isAvailableToJavaScript) : Symbol(name)
+    bool isAvailableToJavaScript,
+    bool defaultSlot = false) : Symbol(name)
 {
     public string LocalBinding { get; } = localBinding;
     public string PackageName { get; } = packageName;
@@ -215,6 +222,7 @@ public sealed class NpmComponentMemberSymbol(
     public string ExportName { get; } = exportName;
     public IReadOnlyList<NpmComponentPropertySymbol> Properties { get; } = properties;
     public bool IsAvailableToJavaScript { get; } = isAvailableToJavaScript;
+    public bool DefaultSlot { get; } = defaultSlot;
 }
 
 public sealed record NpmComponentPropertySymbol(string Name, TypeSymbol Type, bool IsRequired);

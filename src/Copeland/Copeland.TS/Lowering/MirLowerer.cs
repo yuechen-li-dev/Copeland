@@ -109,6 +109,7 @@ public static class MirLowerer
         MirFlowDefinition[] flows = program.Flows.Select(LowerFlow).ToArray();
         return new MirProgram(enums, records, tables, tsonEncodingPlans, npmImports, functions, program.CSharpUsings, program.CSharpSourcePath, flows, javaScriptHostImports, packageImports)
         {
+            PresentationAdapter = program.PresentationAdapter,
             ModuleValues = program.ModuleStreams.Select(stream => new MirModuleValue(
                 stream.Storage.Name, ToMirType(stream.Type), stream.Initializer.EmissionName)).ToArray(),
         };
@@ -393,7 +394,7 @@ public static class MirLowerer
             .Where(statement => statement is not BoundComponentStateDeclaration and not BoundComponentEventHandler).ToArray(), locals);
         yield return new MirFunction(model.PresentationFunction,
             inputs.Concat([stateParameter]).Concat(model.Endpoints.Select(endpoint => new MirParameter(endpoint.LocalName, endpoint.CallableType))).ToArray(),
-            ToMirType(ReactNodeTypeSymbol.Instance), locals.Values.ToArray(), presentation);
+            ToMirType(function.Symbol.ReturnType), locals.Values.ToArray(), presentation);
 
         foreach (BoundComponentEventHandler handler in function.Body.Statements.OfType<BoundComponentEventHandler>())
         {
@@ -441,7 +442,7 @@ public static class MirLowerer
         return new MirFunction(
             binding.RuntimeFunction.EmissionName,
             binding.RuntimeFunction.Parameters.Select(parameter => new MirParameter(parameter.Name, ToMirType(parameter.Type))).ToArray(),
-            ToMirType(ReactNodeTypeSymbol.Instance),
+            ToMirType(binding.RuntimeFunction.ReturnType),
             [],
             [new MirReturnStatement(root)]);
     }
@@ -467,7 +468,7 @@ public static class MirLowerer
             : className + " " + CollectionClassName(binding.Layout.Name, node.Name);
         var properties = new List<MirReactProperty>
         {
-            new("className", new MirLiteralExpression(hostClassName, new MirType("string"))),
+            new(binding.RuntimeFunction.ReturnType is ViewTypeSymbol or VueNodeTypeSymbol ? "class" : "className", new MirLiteralExpression(hostClassName, new MirType("string"))),
             new("data-machina-layout", new MirLiteralExpression(binding.Layout.Name, new MirType("string"))),
             new("data-machina-box", new MirLiteralExpression(node.Name, new MirType("string"))),
             new("data-machina-overflow", new MirLiteralExpression(node.ResolvedOverflow.Policy.ToString().ToLowerInvariant(), new MirType("string"))),
@@ -487,7 +488,7 @@ public static class MirLowerer
             IsIntrinsic: true,
             properties,
             children,
-            ToMirType(ReactNodeTypeSymbol.Instance));
+            ToMirType(binding.RuntimeFunction.ReturnType));
     }
 
     private static string CollectionClassName(string layoutName, string regionName)

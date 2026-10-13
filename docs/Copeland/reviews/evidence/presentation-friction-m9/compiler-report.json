@@ -1,0 +1,112 @@
+{
+  "milestone": "CTS-PRESENTATION-FRICTION-M9",
+  "sourceHashes": {
+    "src/Application.ts": "d3c2b0c9a2dd5e599b8de4115dcec7e1e7647be38f11df79af4d8c1edba8e7cd",
+    "src/Collections.ts": "91e5a338dacb019b5f947b8f560ee3d3f1d52cfa6cf0bea428ac2933411ced0b",
+    "src/Content.ts": "7eef23e5022f39392e6e7facfe9b123016cfdc7202363c1751eb4d662fcd96eb",
+    "src/Issues.ts": "86e06bc59d550e3224308d8360108cf5416196db485a1ac3d267522cee5438ae",
+    "src/IssuesPage.ts": "ac4c0e071906ada14ffae167818b2c0599eacc3705851db9a734a702b7ec99a9",
+    "src/Layouts.ts": "65c8a7c639ea677258c0d64822c578d9df96e3286da93c1f1f82f9176196e8d4",
+    "src/Lifecycle.tsx": "abae5f9782f734b7fc388703190dc537d58085f7e1b2f2698ee6f873c997028a",
+    "src/State.ts": "3adfa9466e6656a3ac8cf98f9897a73d7184799408bc3cc91f187166f2b7b310",
+    "src/UI.tsx": "cf2b3a2e98f4966c2e6f3815ff083654ac9ec86402e804cab9dce2d01a995c63"
+  },
+  "results": [
+    {
+      "adapter": "react",
+      "profile": "Diagnostic",
+      "files": {
+        "src/Application.js": "6dadef4c2a5e6b89e57943cf86fa360e773ae9805de4d4f992bc42898a22cc8c",
+        "src/Collections.js": "fdc0d87f02ab28e3e1085296ab2fe6df0408e1ccd2a9d41e7280d25e454f4a59",
+        "src/Content.js": "8dfe306fe881f7c107ae19e4c60c9e101d681da2e4c04d9bdf33fb238d2c7c8e",
+        "src/Issues.js": "60ba4adec23e37faed5c4ddd26427faeaa124392bbeef4cbd36d03108e121ffa",
+        "src/IssuesPage.js": "04507e819cf82882429e37b9bcd792166e2fa8859b8f560bd4962d53b54b829f",
+        "src/Layouts.js": "b47ff3c8610de961302a8c5497829126f766489146ed07f918863a895dafbf09",
+        "src/Lifecycle.js": "305b21e7fd805ccab624a8f0084d2367f74b4c2878120b48a8ff4a14fffe5244",
+        "src/State.js": "06d0bb8905f83f57f5fcf071c67b1bdd361e100af5597309658ab8a0ee16aad9",
+        "src/UI.js": "9c371ba021c43c4efd15531a329f1f9a28ebc53d3f4cdae347711c35b0f0c8ee",
+        "generated/layouts.css": "9f7ca90d0e39278dbc918139424efcc656281d79e79cee757f4dd7a11e0b3205"
+      }
+    },
+    {
+      "adapter": "react",
+      "profile": "Symbolic",
+      "files": {
+        "src/Application.js": "4d6e8254f4d655104b426207c694a833faac2cf67f3558d8c589cfac0b51a2fe",
+        "src/Collections.js": "f1d2da7661aa730d27501fed65fe4f63fb73a3f617a0871f2bd107c4715248c2",
+        "src/Content.js": "710af3231e6dfb16be28b28cd6e19cbb8afbfd0fc41687b9f463becb0945082e",
+        "src/Issues.js": "4b501fb46d13752f1c58f234a675da9a504573ad807e90afde88a0ce4dcf1c15",
+        "src/IssuesPage.js": "7a7b6152b11ac3344df076d73c49cca3a7fde5e7a378992e8a0ceb346ad41dd2",
+        "src/Layouts.js": "7eba99d781c8e0fb1b48dbff59560bee1f63a5e068b0c9697c9b380d445b1e0f",
+        "src/Lifecycle.js": "2dec8940c684dcf5e06ee66ca28a9881f2b732edacf6a8ee06948e438aaa24c3",
+        "src/State.js": "1809cd5b3e0a330ecb8471cf7da7cae2ed005831816249207949929f498407ee",
+        "src/UI.js": "4e60a77da0760f374d7cfdd0003a107b8bf2fb28c4a0a3afa80f663682e2262e",
+        "generated/layouts.css": "9f7ca90d0e39278dbc918139424efcc656281d79e79cee757f4dd7a11e0b3205"
+      }
+    },
+    {
+      "adapter": "react",
+      "profile": "Production",
+      "files": {
+        "src/Application.js": "f43ef3d89fc422b31613ccf34cbbcb670d1b72974581bbe0e5af0204629be05c",
+        "src/Collections.js": "e7ff58d54754003d16b476da525baa3936ea4d6b3fd2ebf46835596d964b67a1",
+        "src/Content.js": "15fd1629a4e4025d2037a6830a44fcc57dc4a4e5a15ed00c084d323211b7bad7",
+        "src/Issues.js": "3678e19f164be176cf0a3d48a9cf843eb30f05f59cf9326ddf442b935bf8ce17",
+        "src/IssuesPage.js": "8313fdcf88d67e3d80fa85932d411bd29671f8f243f9e6a5fa8afa8dc1cc9d6e",
+        "src/Layouts.js": "e7443b328611adcaeb11248b156634e7858df4ae2e7f0ad14e2f8bf935b839ba",
+        "src/Lifecycle.js": "8750fb481a8967e65f920587f8dedc4ff9d74ce783974a9830d3abfd5758c22c",
+        "src/State.js": "acbf176122a5066113680cf9aab6a17fdfcffc827368b3cc4e07d366bad453e5",
+        "src/UI.js": "d3f55c7d203c50481431aadb6622340ea8f78a61bd93b5b021232593acdd7528",
+        "generated/layouts.css": "9f7ca90d0e39278dbc918139424efcc656281d79e79cee757f4dd7a11e0b3205"
+      }
+    },
+    {
+      "adapter": "vue",
+      "profile": "Diagnostic",
+      "files": {
+        "src/Application.js": "4171be55efa743b1f1c2354487710b95829ef210944607f384c26cf0aacc5e09",
+        "src/Collections.js": "070cec644ce4c17b1be2e0c7240dba31a422b77775b7be1cb8fb313953ff9f82",
+        "src/Content.js": "d16af62fe22dd3f3b5ebcf3bf2d8680854ee6c734413e2446feeb5a31da61df9",
+        "src/Issues.js": "4beaea931fd63d2469e9387d50729cb3876595196bc7265e6e20e47908d16619",
+        "src/IssuesPage.js": "836ca517a881b4d09967311e08d72ff6c83369ff30ed45a111fffddfd134fc47",
+        "src/Layouts.js": "d70c5b4cd00f60d2a78e22a3f6719e1d44054291ef3bc0ab4e5efbb85c782604",
+        "src/Lifecycle.js": "93da65821dae5b7ff2706d73375a948573487f57973115e2a659b86ff1d82e16",
+        "src/State.js": "898f53fb608a462c4920b1653738ed2db4dce6fae177f928299e3e2310d83f34",
+        "src/UI.js": "e73e4704e2b5035067d8d4673ddf69823159c40228afe28c00d9c2ecb13eef4b",
+        "generated/layouts.css": "9f7ca90d0e39278dbc918139424efcc656281d79e79cee757f4dd7a11e0b3205"
+      }
+    },
+    {
+      "adapter": "vue",
+      "profile": "Symbolic",
+      "files": {
+        "src/Application.js": "3a880f4493a797b86446f12a149f3864705335b7a5ec223061a894faa12e527e",
+        "src/Collections.js": "233a0208b6df7acf25fc103f88de186ba33d1a44cc5ea95e9ce862a60638ff85",
+        "src/Content.js": "6460b56365728590bc3c3971f5852bce4c5a4fc9ca43d5aa7fb8962498fef4b9",
+        "src/Issues.js": "f6dc32b93d79e2d9d97e5d2532a7b12e85c499e0066b12d0979a62eef9be5e86",
+        "src/IssuesPage.js": "700f6ccc8ed5c3252332e07875ec1a760a9bc1e8b167e5860a1282fa1b43100f",
+        "src/Layouts.js": "b55042a8169c34728a45e8a72bddfeff9e7214cd0844e89ae0663929eb99d89e",
+        "src/Lifecycle.js": "f23dddc43fbe71358e5ee13fd695e595c13968a5474e2835e75d889894da254b",
+        "src/State.js": "bd8b2b9c5760f4a92730ed6cd2d58c8e814127fc693f28be510a8ca48bfb8e3f",
+        "src/UI.js": "3ef32c29f0921b536e9c0c7368da13480aa4adf7252479212033bd1396dcb532",
+        "generated/layouts.css": "9f7ca90d0e39278dbc918139424efcc656281d79e79cee757f4dd7a11e0b3205"
+      }
+    },
+    {
+      "adapter": "vue",
+      "profile": "Production",
+      "files": {
+        "src/Application.js": "1ebbd9928e02fcaf51cbc56abdc8b0753fd44825aa433cf413548d7abd56f289",
+        "src/Collections.js": "c5fbdf925a601729c9eb1ef181251f71ff39d32a9274e6947aa05d8cfdcf1de5",
+        "src/Content.js": "dbf2a07092ebe40dbbc117570991185ad9266bf8f7dd3217023348f3de1d0487",
+        "src/Issues.js": "2218fa14b222550001cef1e433c747273c3834e3b663cd1426a9c330c076ecea",
+        "src/IssuesPage.js": "e942ab89242adabf1b1b0b0e46fa4f188bee34868fab454bd0bf974fedd0910f",
+        "src/Layouts.js": "ce095b8a69b96d26a2322f0bc5c08c62ff0c422d18b718719bb7b382f21994de",
+        "src/Lifecycle.js": "b6cbf12cdf81a683cf123831179d821a53698c3ac727db52300b28af7331709a",
+        "src/State.js": "20a11c6367841e2b6534ac2760e7202e365c9657e72dd2b0b991476604319832",
+        "src/UI.js": "06904cf69aaf107d503eb9f837ff6f3a7551fd994b5bfc37774235f4df04c213",
+        "generated/layouts.css": "9f7ca90d0e39278dbc918139424efcc656281d79e79cee757f4dd7a11e0b3205"
+      }
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "note": "Counts describe different ownership boundaries. UI projection and reusable data contracts count as supporting source, not free application code.",
+  "results": [
+    {
+      "file": "baseline/IssuesPage.vue",
+      "nonblankLines": 97,
+      "sha256": "3046d1558875ff74038821376e48cb063d06f13938e76230b09283daea8768cc"
+    },
+    {
+      "file": "src/Application.ts",
+      "nonblankLines": 9,
+      "sha256": "d3c2b0c9a2dd5e599b8de4115dcec7e1e7647be38f11df79af4d8c1edba8e7cd"
+    },
+    {
+      "file": "src/IssuesPage.ts",
+      "nonblankLines": 115,
+      "sha256": "ac4c0e071906ada14ffae167818b2c0599eacc3705851db9a734a702b7ec99a9"
+    },
+    {
+      "file": "src/State.ts",
+      "nonblankLines": 57,
+      "sha256": "3adfa9466e6656a3ac8cf98f9897a73d7184799408bc3cc91f187166f2b7b310"
+    },
+    {
+      "file": "src/UI.tsx",
+      "nonblankLines": 135,
+      "sha256": "cf2b3a2e98f4966c2e6f3815ff083654ac9ec86402e804cab9dce2d01a995c63"
+    },
+    {
+      "file": "src/Layouts.ts",
+      "nonblankLines": 35,
+      "sha256": "65c8a7c639ea677258c0d64822c578d9df96e3286da93c1f1f82f9176196e8d4"
+    },
+    {
+      "file": "src/Lifecycle.tsx",
+      "nonblankLines": 90,
+      "sha256": "abae5f9782f734b7fc388703190dc537d58085f7e1b2f2698ee6f873c997028a"
+    }
+  ]
+}

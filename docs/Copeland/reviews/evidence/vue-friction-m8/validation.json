@@ -1,0 +1,86 @@
+{
+  "milestone": "CTS-VUE-FRICTION-M8",
+  "build": {
+    "warnings": 0,
+    "errors": 0
+  },
+  "tests": {
+    "passed": 2225,
+    "failed": 0,
+    "skipped": 0,
+    "suites": [
+      {
+        "assembly": "Copeland.Authoring.Food.Tests.dll",
+        "failed": 0,
+        "passed": 3,
+        "skipped": 0,
+        "total": 3
+      },
+      {
+        "assembly": "Copeland.Cli.Tests.dll",
+        "failed": 0,
+        "passed": 80,
+        "skipped": 0,
+        "total": 80
+      },
+      {
+        "assembly": "Copeland.Markdown.Tests.dll",
+        "failed": 0,
+        "passed": 35,
+        "skipped": 0,
+        "total": 35
+      },
+      {
+        "assembly": "Copeland.TS.Backend.CSharp.Tests.dll",
+        "failed": 0,
+        "passed": 273,
+        "skipped": 0,
+        "total": 273
+      },
+      {
+        "assembly": "Copeland.TS.Backend.JavaScript.Tests.dll",
+        "failed": 0,
+        "passed": 254,
+        "skipped": 0,
+        "total": 254
+      },
+      {
+        "assembly": "Copeland.TS.Database.Tests.dll",
+        "failed": 0,
+        "passed": 11,
+        "skipped": 0,
+        "total": 11
+      },
+      {
+        "assembly": "Copeland.TS.MSBuild.Tests.dll",
+        "failed": 0,
+        "passed": 13,
+        "skipped": 0,
+        "total": 13
+      },
+      {
+        "assembly": "Copeland.TS.Tests.dll",
+        "failed": 0,
+        "passed": 1556,
+        "skipped": 0,
+        "total": 1556
+      }
+    ]
+  },
+  "vueBrowser": {
+    "observations": 96,
+    "errors": [],
+    "version": "153.0.4234.48"
+  },
+  "hashes": {
+    "artifacts/validation/vue-friction-m8-build.log": "53629b2079ab7fc76013e2b6195e32932600f16988ed81395e35c42dfe39a57f",
+    "artifacts/validation/vue-friction-m8-tests.log": "2604b7cd8e9c65b589a5440a8b9ac40a8c6ca0b48925fb45b6bdca369104765a",
+    "docs/Copeland/reviews/evidence/vue-friction-m8/browser-report.json": "50b34fe8b230dbd5706612a072ad66cdd49295c28c713c4515b2c1a00120c958",
+    "docs/Copeland/reviews/evidence/vue-friction-m8/compiler-report.json": "3f3d4b3f8acbd2033be87fad643e5b23e879631b7e42a33b5fa207d35764f850",
+    "samples/copeland-ts/vue-friction-m8/package-lock.json": "e0227f5610a3a70d1fa25501e43fd91ce2386ccd56ae7a8bb7f9bee23d16fce6",
+    "samples/copeland-ts/react-friction-m0/dist/browser/packages/copeland-browser-v1/index.js": "ef5cb47ed5fe0fa0f40ebdcca3b638b553f4bc7b38c84f5d0d0575528fa5de0a",
+    "src/Copeland/Copeland.TS/bin/Debug/net10.0/Copeland.TS.dll": "534bbffd565d964c1073b9969b4a8c09377acf5009030aaea70dc17a8ff99fdc",
+    "src/Copeland/Copeland.TS.Backend.JavaScript/bin/Debug/net10.0/Copeland.TS.Backend.JavaScript.dll": "893eca1cdfb1ded8b2a179732c52089294e04c8d40dd32900e1fce31916c2ddc"
+  },
+  "boundary": "Vue renderer and declared default-slot interop; one framework per target. Shared theme CSS and the sample HTTP service remain."
+}

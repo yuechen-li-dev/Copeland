@@ -38,7 +38,8 @@ public static class CopelandCompiler
                     new CopelandPackageContractMap(effectiveOptions.PackageContracts),
                     effectiveOptions.PackageBackend,
                     effectiveOptions.ProjectTypes,
-                    effectiveOptions.SourcePath);
+                    effectiveOptions.SourcePath,
+                    presentationAdapter: effectiveOptions.PresentationAdapter);
                 diagnostics.AddRange(boundCompilation.Diagnostics);
                 if (boundCompilation.Diagnostics.Count == 0)
                 {

@@ -1,0 +1,573 @@
+{
+  "milestone": "CTS-REACT-STATE-ON-M6",
+  "profile": "Symbolic",
+  "browser": "153.0.4234.48",
+  "sourceHashes": {
+    "Probe.tsx": "550855c486664c1c2515a9aa1632dc8c64e925256809dc5d9a9287123731a0d8"
+  },
+  "emittedHashes": {
+    "Probe.js": "4ba50b273988540fde58a663decce1a0a95d1ab5a2c815726295d1f41575d410"
+  },
+  "observations": [
+    "Two inputs in one browser turn read the latest committed state; independent owners remain isolated.",
+    "StrictMode effect replay and changed render inputs preserve the owner state instead of reinitializing it.",
+    "An explicitly captured state record remains the original immutable snapshot.",
+    "FLOW progresses exactly one explicit step per Tick, reaches completion, and remains completed.",
+    "Typed child push/pop retains success and failure continuations; bounded recursive overflow remains faulted.",
+    "Failed presentation and malformed typed payload leave canonical state and prior presentation unchanged.",
+    "Unmount destroys the canonical frame and invalidates retained endpoints; another owner continues and acknowledges React commit."
+  ],
+  "rollback": {
+    "unchanged": true,
+    "revision": 0,
+    "state": 0
+  },
+  "invalidPayload": "Error: COPE-COMPONENT-STATE-BROWSER-1007 component=function:module:Probe.tsx#Counter::react::_r_1_::2 state=function:module:Probe.tsx#Counter::react::_r_1_::2::state event=Add transition failed: Component input 'value' must have type 'int'.",
+  "invalidValues": [
+    "Error: COPE-COMPONENT-STATE-BROWSER-1007 component=function:module:Probe.tsx#List::react::_r_9_::10 state=function:module:Probe.tsx#List::react::_r_9_::10::state event=Set transition failed: Component input 'values' must have type 'int[]'.",
+    "Error: COPE-COMPONENT-STATE-BROWSER-1007 component=function:module:Probe.tsx#List::react::_r_9_::10 state=function:module:Probe.tsx#List::react::_r_9_::10::state event=Set transition failed: Component input 'values' must have type 'int[]'.",
+    "Error: COPE-COMPONENT-STATE-BROWSER-1007 component=function:module:Probe.tsx#List::react::_r_9_::10 state=function:module:Probe.tsx#List::react::_r_9_::10::state event=Set transition failed: Component input 'values' must have type 'int[]'.",
+    "Error: COPE-COMPONENT-STATE-BROWSER-1007 component=function:module:Probe.tsx#List::react::_r_9_::10 state=function:module:Probe.tsx#List::react::_r_9_::10::state event=Set transition failed: Component input 'values' must have type 'int[]'.",
+    "Error: COPE-COMPONENT-STATE-BROWSER-1007 component=function:module:Probe.tsx#List::react::_r_9_::10 state=function:module:Probe.tsx#List::react::_r_9_::10::state event=Set transition failed: Component input 'values' must have type 'int[]'."
+  ],
+  "lifecycle": {
+    "removed": true,
+    "diagnostics": [
+      {
+        "id": "COPE-COMPONENT-STATE-0102",
+        "componentInstanceId": "function:module:Probe.tsx#Checked::react::_r_4_::5",
+        "stateIdentity": "function:module:Probe.tsx#Checked::react::_r_4_::5::state",
+        "eventName": "Set",
+        "message": "Error: COPE-COMPONENT-STATE-BROWSER-1007 component=function:module:Probe.tsx#Checked::react::_r_4_::5 state=function:module:Probe.tsx#Checked::react::_r_4_::5::state event=Set transition failed: COPE-COMPONENT-STATE-0102 RangeError: Copeland array index is out of bounds."
+      },
+      {
+        "id": "COPE-COMPONENT-STATE-0103",
+        "componentInstanceId": "function:module:Probe.tsx#Counter::react::_r_1_::2",
+        "stateIdentity": "function:module:Probe.tsx#Counter::react::_r_1_::2::state",
+        "eventName": "Add",
+        "message": "Event delivered to a retired or detached component owner."
+      }
+    ],
+    "projectionTrace": [
+      {
+        "kind": "PresentationCommitted",
+        "revision": 0
+      },
+      {
+        "kind": "StateCommitted",
+        "revision": 1
+      },
+      {
+        "kind": "PresentationCommitted",
+        "revision": 1
+      }
+    ],
+    "canonicalTrace": [
+      {
+        "kind": "FrameRegistered",
+        "componentInstanceId": "function:module:src/Application.tsx#Application::react::_r_0_::1",
+        "stateIdentity": "function:module:src/Application.tsx#Application::react::_r_0_::1::state",
+        "attachmentId": null,
+        "eventName": null
+      },
+      {
+        "kind": "FrameRegistered",
+        "componentInstanceId": "function:module:Probe.tsx#Counter::react::_r_1_::2",
+        "stateIdentity": "function:module:Probe.tsx#Counter::react::_r_1_::2::state",
+        "attachmentId": null,
+        "eventName": null
+      },
+      {
+        "kind": "FrameRegistered",
+        "componentInstanceId": "function:module:Probe.tsx#Counter::react::_r_2_::3",
+        "stateIdentity": "function:module:Probe.tsx#Counter::react::_r_2_::3::state",
+        "attachmentId": null,
+        "eventName": null
+      },
+      {
+        "kind": "FrameRegistered",
+        "componentInstanceId": "function:module:Probe.tsx#Machine::react::_r_3_::4",
+        "stateIdentity": "function:module:Probe.tsx#Machine::react::_r_3_::4::state",
+        "attachmentId": null,
+        "eventName": null
+      },
+      {
+        "kind": "FrameRegistered",
+        "componentInstanceId": "function:module:Probe.tsx#Checked::react::_r_4_::5",
+        "stateIdentity": "function:module:Probe.tsx#Checked::react::_r_4_::5::state",
+        "attachmentId": null,
+        "eventName": null
+      },
+      {
+        "kind": "FrameRegistered",
+        "componentInstanceId": "function:module:Probe.tsx#StackMachine::react::_r_5_::6",
+        "stateIdentity": "function:module:Probe.tsx#StackMachine::react::_r_5_::6::state",
+        "attachmentId": null,
+        "eventName": null
+      },
+      {
+        "kind": "FrameRegistered",
+        "componentInstanceId": "function:module:Probe.tsx#StackMachine::react::_r_6_::7",
+        "stateIdentity": "function:module:Probe.tsx#StackMachine::react::_r_6_::7::state",
+        "attachmentId": null,
+        "eventName": null
+      },
+      {
+        "kind": "FrameRegistered",
+        "componentInstanceId": "function:module:Probe.tsx#OverflowMachine::react::_r_7_::8",
+        "stateIdentity": "function:module:Probe.tsx#OverflowMachine::react::_r_7_::8::state",
+        "attachmentId": null,
+        "eventName": null
+      },
+      {
+        "kind": "FrameRegistered",
+        "componentInstanceId": "function:module:Probe.tsx#ReadOnly::react::_r_8_::9",
+        "stateIdentity": "function:module:Probe.tsx#ReadOnly::react::_r_8_::9::state",
+        "attachmentId": null,
+        "eventName": null
+      },
+      {
+        "kind": "FrameRegistered",
+        "componentInstanceId": "function:module:Probe.tsx#List::react::_r_9_::10",
+        "stateIdentity": "function:module:Probe.tsx#List::react::_r_9_::10::state",
+        "attachmentId": null,
+        "eventName": null
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#Counter::react::_r_1_::2",
+        "stateIdentity": "function:module:Probe.tsx#Counter::react::_r_1_::2::state",
+        "attachmentId": null,
+        "eventName": "Add"
+      },
+      {
+        "kind": "StateReplaced",
+        "componentInstanceId": "function:module:Probe.tsx#Counter::react::_r_1_::2",
+        "stateIdentity": "function:module:Probe.tsx#Counter::react::_r_1_::2::state",
+        "attachmentId": null,
+        "eventName": "Add"
+      },
+      {
+        "kind": "PresentationRecomputed",
+        "componentInstanceId": "function:module:Probe.tsx#Counter::react::_r_1_::2",
+        "stateIdentity": "function:module:Probe.tsx#Counter::react::_r_1_::2::state",
+        "attachmentId": null,
+        "eventName": "Add"
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#Counter::react::_r_1_::2",
+        "stateIdentity": "function:module:Probe.tsx#Counter::react::_r_1_::2::state",
+        "attachmentId": null,
+        "eventName": "Add"
+      },
+      {
+        "kind": "StateReplaced",
+        "componentInstanceId": "function:module:Probe.tsx#Counter::react::_r_1_::2",
+        "stateIdentity": "function:module:Probe.tsx#Counter::react::_r_1_::2::state",
+        "attachmentId": null,
+        "eventName": "Add"
+      },
+      {
+        "kind": "PresentationRecomputed",
+        "componentInstanceId": "function:module:Probe.tsx#Counter::react::_r_1_::2",
+        "stateIdentity": "function:module:Probe.tsx#Counter::react::_r_1_::2::state",
+        "attachmentId": null,
+        "eventName": "Add"
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#Counter::react::_r_1_::2",
+        "stateIdentity": "function:module:Probe.tsx#Counter::react::_r_1_::2::state",
+        "attachmentId": null,
+        "eventName": "Restore"
+      },
+      {
+        "kind": "StateReplaced",
+        "componentInstanceId": "function:module:Probe.tsx#Counter::react::_r_1_::2",
+        "stateIdentity": "function:module:Probe.tsx#Counter::react::_r_1_::2::state",
+        "attachmentId": null,
+        "eventName": "Restore"
+      },
+      {
+        "kind": "PresentationRecomputed",
+        "componentInstanceId": "function:module:Probe.tsx#Counter::react::_r_1_::2",
+        "stateIdentity": "function:module:Probe.tsx#Counter::react::_r_1_::2::state",
+        "attachmentId": null,
+        "eventName": "Restore"
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#Machine::react::_r_3_::4",
+        "stateIdentity": "function:module:Probe.tsx#Machine::react::_r_3_::4::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "StateReplaced",
+        "componentInstanceId": "function:module:Probe.tsx#Machine::react::_r_3_::4",
+        "stateIdentity": "function:module:Probe.tsx#Machine::react::_r_3_::4::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "PresentationRecomputed",
+        "componentInstanceId": "function:module:Probe.tsx#Machine::react::_r_3_::4",
+        "stateIdentity": "function:module:Probe.tsx#Machine::react::_r_3_::4::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#Machine::react::_r_3_::4",
+        "stateIdentity": "function:module:Probe.tsx#Machine::react::_r_3_::4::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "StateReplaced",
+        "componentInstanceId": "function:module:Probe.tsx#Machine::react::_r_3_::4",
+        "stateIdentity": "function:module:Probe.tsx#Machine::react::_r_3_::4::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "PresentationRecomputed",
+        "componentInstanceId": "function:module:Probe.tsx#Machine::react::_r_3_::4",
+        "stateIdentity": "function:module:Probe.tsx#Machine::react::_r_3_::4::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#Machine::react::_r_3_::4",
+        "stateIdentity": "function:module:Probe.tsx#Machine::react::_r_3_::4::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "StateReplaced",
+        "componentInstanceId": "function:module:Probe.tsx#Machine::react::_r_3_::4",
+        "stateIdentity": "function:module:Probe.tsx#Machine::react::_r_3_::4::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "PresentationRecomputed",
+        "componentInstanceId": "function:module:Probe.tsx#Machine::react::_r_3_::4",
+        "stateIdentity": "function:module:Probe.tsx#Machine::react::_r_3_::4::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#Machine::react::_r_3_::4",
+        "stateIdentity": "function:module:Probe.tsx#Machine::react::_r_3_::4::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "StateReplaced",
+        "componentInstanceId": "function:module:Probe.tsx#Machine::react::_r_3_::4",
+        "stateIdentity": "function:module:Probe.tsx#Machine::react::_r_3_::4::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "PresentationRecomputed",
+        "componentInstanceId": "function:module:Probe.tsx#Machine::react::_r_3_::4",
+        "stateIdentity": "function:module:Probe.tsx#Machine::react::_r_3_::4::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#StackMachine::react::_r_5_::6",
+        "stateIdentity": "function:module:Probe.tsx#StackMachine::react::_r_5_::6::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "StateReplaced",
+        "componentInstanceId": "function:module:Probe.tsx#StackMachine::react::_r_5_::6",
+        "stateIdentity": "function:module:Probe.tsx#StackMachine::react::_r_5_::6::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "PresentationRecomputed",
+        "componentInstanceId": "function:module:Probe.tsx#StackMachine::react::_r_5_::6",
+        "stateIdentity": "function:module:Probe.tsx#StackMachine::react::_r_5_::6::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#StackMachine::react::_r_5_::6",
+        "stateIdentity": "function:module:Probe.tsx#StackMachine::react::_r_5_::6::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "StateReplaced",
+        "componentInstanceId": "function:module:Probe.tsx#StackMachine::react::_r_5_::6",
+        "stateIdentity": "function:module:Probe.tsx#StackMachine::react::_r_5_::6::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "PresentationRecomputed",
+        "componentInstanceId": "function:module:Probe.tsx#StackMachine::react::_r_5_::6",
+        "stateIdentity": "function:module:Probe.tsx#StackMachine::react::_r_5_::6::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#StackMachine::react::_r_5_::6",
+        "stateIdentity": "function:module:Probe.tsx#StackMachine::react::_r_5_::6::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "StateReplaced",
+        "componentInstanceId": "function:module:Probe.tsx#StackMachine::react::_r_5_::6",
+        "stateIdentity": "function:module:Probe.tsx#StackMachine::react::_r_5_::6::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "PresentationRecomputed",
+        "componentInstanceId": "function:module:Probe.tsx#StackMachine::react::_r_5_::6",
+        "stateIdentity": "function:module:Probe.tsx#StackMachine::react::_r_5_::6::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#StackMachine::react::_r_6_::7",
+        "stateIdentity": "function:module:Probe.tsx#StackMachine::react::_r_6_::7::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "StateReplaced",
+        "componentInstanceId": "function:module:Probe.tsx#StackMachine::react::_r_6_::7",
+        "stateIdentity": "function:module:Probe.tsx#StackMachine::react::_r_6_::7::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "PresentationRecomputed",
+        "componentInstanceId": "function:module:Probe.tsx#StackMachine::react::_r_6_::7",
+        "stateIdentity": "function:module:Probe.tsx#StackMachine::react::_r_6_::7::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#StackMachine::react::_r_6_::7",
+        "stateIdentity": "function:module:Probe.tsx#StackMachine::react::_r_6_::7::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "StateReplaced",
+        "componentInstanceId": "function:module:Probe.tsx#StackMachine::react::_r_6_::7",
+        "stateIdentity": "function:module:Probe.tsx#StackMachine::react::_r_6_::7::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "PresentationRecomputed",
+        "componentInstanceId": "function:module:Probe.tsx#StackMachine::react::_r_6_::7",
+        "stateIdentity": "function:module:Probe.tsx#StackMachine::react::_r_6_::7::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#StackMachine::react::_r_6_::7",
+        "stateIdentity": "function:module:Probe.tsx#StackMachine::react::_r_6_::7::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "StateReplaced",
+        "componentInstanceId": "function:module:Probe.tsx#StackMachine::react::_r_6_::7",
+        "stateIdentity": "function:module:Probe.tsx#StackMachine::react::_r_6_::7::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "PresentationRecomputed",
+        "componentInstanceId": "function:module:Probe.tsx#StackMachine::react::_r_6_::7",
+        "stateIdentity": "function:module:Probe.tsx#StackMachine::react::_r_6_::7::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#OverflowMachine::react::_r_7_::8",
+        "stateIdentity": "function:module:Probe.tsx#OverflowMachine::react::_r_7_::8::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "StateReplaced",
+        "componentInstanceId": "function:module:Probe.tsx#OverflowMachine::react::_r_7_::8",
+        "stateIdentity": "function:module:Probe.tsx#OverflowMachine::react::_r_7_::8::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "PresentationRecomputed",
+        "componentInstanceId": "function:module:Probe.tsx#OverflowMachine::react::_r_7_::8",
+        "stateIdentity": "function:module:Probe.tsx#OverflowMachine::react::_r_7_::8::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#OverflowMachine::react::_r_7_::8",
+        "stateIdentity": "function:module:Probe.tsx#OverflowMachine::react::_r_7_::8::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "StateReplaced",
+        "componentInstanceId": "function:module:Probe.tsx#OverflowMachine::react::_r_7_::8",
+        "stateIdentity": "function:module:Probe.tsx#OverflowMachine::react::_r_7_::8::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "PresentationRecomputed",
+        "componentInstanceId": "function:module:Probe.tsx#OverflowMachine::react::_r_7_::8",
+        "stateIdentity": "function:module:Probe.tsx#OverflowMachine::react::_r_7_::8::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#OverflowMachine::react::_r_7_::8",
+        "stateIdentity": "function:module:Probe.tsx#OverflowMachine::react::_r_7_::8::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "StateReplaced",
+        "componentInstanceId": "function:module:Probe.tsx#OverflowMachine::react::_r_7_::8",
+        "stateIdentity": "function:module:Probe.tsx#OverflowMachine::react::_r_7_::8::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "PresentationRecomputed",
+        "componentInstanceId": "function:module:Probe.tsx#OverflowMachine::react::_r_7_::8",
+        "stateIdentity": "function:module:Probe.tsx#OverflowMachine::react::_r_7_::8::state",
+        "attachmentId": null,
+        "eventName": "Tick"
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#Checked::react::_r_4_::5",
+        "stateIdentity": "function:module:Probe.tsx#Checked::react::_r_4_::5::state",
+        "attachmentId": null,
+        "eventName": "Set"
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#Counter::react::_r_1_::2",
+        "stateIdentity": "function:module:Probe.tsx#Counter::react::_r_1_::2::state",
+        "attachmentId": null,
+        "eventName": "Add"
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#List::react::_r_9_::10",
+        "stateIdentity": "function:module:Probe.tsx#List::react::_r_9_::10::state",
+        "attachmentId": null,
+        "eventName": "Set"
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#List::react::_r_9_::10",
+        "stateIdentity": "function:module:Probe.tsx#List::react::_r_9_::10::state",
+        "attachmentId": null,
+        "eventName": "Set"
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#List::react::_r_9_::10",
+        "stateIdentity": "function:module:Probe.tsx#List::react::_r_9_::10::state",
+        "attachmentId": null,
+        "eventName": "Set"
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#List::react::_r_9_::10",
+        "stateIdentity": "function:module:Probe.tsx#List::react::_r_9_::10::state",
+        "attachmentId": null,
+        "eventName": "Set"
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#List::react::_r_9_::10",
+        "stateIdentity": "function:module:Probe.tsx#List::react::_r_9_::10::state",
+        "attachmentId": null,
+        "eventName": "Set"
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#List::react::_r_9_::10",
+        "stateIdentity": "function:module:Probe.tsx#List::react::_r_9_::10::state",
+        "attachmentId": null,
+        "eventName": "Set"
+      },
+      {
+        "kind": "StateReplaced",
+        "componentInstanceId": "function:module:Probe.tsx#List::react::_r_9_::10",
+        "stateIdentity": "function:module:Probe.tsx#List::react::_r_9_::10::state",
+        "attachmentId": null,
+        "eventName": "Set"
+      },
+      {
+        "kind": "PresentationRecomputed",
+        "componentInstanceId": "function:module:Probe.tsx#List::react::_r_9_::10",
+        "stateIdentity": "function:module:Probe.tsx#List::react::_r_9_::10::state",
+        "attachmentId": null,
+        "eventName": "Set"
+      },
+      {
+        "kind": "EventDispatched",
+        "componentInstanceId": "function:module:Probe.tsx#Counter::react::_r_2_::3",
+        "stateIdentity": "function:module:Probe.tsx#Counter::react::_r_2_::3::state",
+        "attachmentId": null,
+        "eventName": "Add"
+      },
+      {
+        "kind": "StateReplaced",
+        "componentInstanceId": "function:module:Probe.tsx#Counter::react::_r_2_::3",
+        "stateIdentity": "function:module:Probe.tsx#Counter::react::_r_2_::3::state",
+        "attachmentId": null,
+        "eventName": "Add"
+      },
+      {
+        "kind": "PresentationRecomputed",
+        "componentInstanceId": "function:module:Probe.tsx#Counter::react::_r_2_::3",
+        "stateIdentity": "function:module:Probe.tsx#Counter::react::_r_2_::3::state",
+        "attachmentId": null,
+        "eventName": "Add"
+      },
+      {
+        "kind": "FrameDestroyed",
+        "componentInstanceId": "function:module:Probe.tsx#Counter::react::_r_1_::2",
+        "stateIdentity": "function:module:Probe.tsx#Counter::react::_r_1_::2::state",
+        "attachmentId": null,
+        "eventName": null
+      }
+    ]
+  },
+  "errors": []
+}

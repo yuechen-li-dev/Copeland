@@ -73,7 +73,7 @@ public static partial class Binder
                     Report("COPE-STREAM-CONTENT-0002", $"Channel '{entry.SlotIdentifier.Text}' is declared more than once in stream '{declaration.Identifier.Text}'.", entry.SlotIdentifier);
                     continue;
                 }
-                type.AddField(new RecordFieldSymbol(entry.SlotIdentifier.Text, new RecordFieldId(type.Id, type.Fields.Count), ReactNodeTypeSymbol.Instance));
+                type.AddField(new RecordFieldSymbol(entry.SlotIdentifier.Text, new RecordFieldId(type.Id, type.Fields.Count), PresentationNodeType));
             }
             _records.Add(new BoundRecordDeclaration(type));
             return type;
@@ -86,10 +86,10 @@ public static partial class Binder
             foreach (LayoutBindingEntrySyntax entry in syntax.Entries)
             {
                 if (!names.Add(entry.SlotIdentifier.Text)) continue;
-                BoundExpression value = BindExpression(entry.Value, ReactNodeTypeSymbol.Instance);
-                if (value.Type != ReactNodeTypeSymbol.Instance && value.Type != PrimitiveTypeSymbol.Error)
+                BoundExpression value = BindExpression(entry.Value, PresentationNodeType);
+                if (value.Type != PresentationNodeType && value.Type != PrimitiveTypeSymbol.Error)
                 {
-                    Report("COPE-STREAM-CONTENT-0003", $"Channel '{syntax.Identifier.Text}.{entry.SlotIdentifier.Text}' requires one ReactNode; got '{value.Type.Name}'.", entry.SlotIdentifier);
+                    Report("COPE-STREAM-CONTENT-0003", $"Channel '{syntax.Identifier.Text}.{entry.SlotIdentifier.Text}' requires one '{PresentationNodeType.Name}'; got '{value.Type.Name}'.", entry.SlotIdentifier);
                 }
                 RecordFieldSymbol field = type.Fields.Single(field => field.Name == entry.SlotIdentifier.Text);
                 values.Add(new BoundRecordFieldInitializer(field, value));
@@ -155,9 +155,9 @@ public static partial class Binder
                 Report("COPE-LAYOUT-BIND-0002", $"'{syntax.LayoutIdentifier.Text}' is not a concrete compiler-known layout.", syntax.LayoutIdentifier);
                 return new BoundErrorExpression();
             }
-            if (!_scope.TryLookup("createElement", out Symbol? react) || react is not NpmFunctionSymbol { PackageName: "react", ExportName: "createElement" } createElement)
+            if (!TryGetPresentationFactory(out NpmFunctionSymbol createElement))
             {
-                Report("COPE-LAYOUT-BIND-0010", $"Binding '{layout.Name}' requires the bounded React createElement import.", syntax.BindKeyword);
+                Report("COPE-LAYOUT-BIND-0010", $"Binding '{layout.Name}' requires the bounded '{PresentationFactoryName}' import.", syntax.BindKeyword);
                 return new BoundErrorExpression();
             }
 
@@ -208,7 +208,7 @@ public static partial class Binder
             }
             string identity = (_currentFunction?.StableIdentity ?? _moduleIdentity ?? "<global>") + "::bind::"
                 + _nextContributionBindingId++.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            var function = new FunctionSymbol("__cope_bind_" + SanitizeJavaScriptIdentifier(identity), [parameter], ReactNodeTypeSymbol.Instance, stableIdentity: identity);
+            var function = new FunctionSymbol("__cope_bind_" + SanitizeJavaScriptIdentifier(identity), [parameter], PresentationNodeType, stableIdentity: identity);
             bool fixedRoot = layout.BoundLayout.Root.Dimensions.TryGetValue("width", out BoundLayoutDimension? width)
                 && layout.BoundLayout.Root.Dimensions.TryGetValue("height", out BoundLayoutDimension? height)
                 && width.Kind == LayoutDimensionKind.Fixed && height.Kind == LayoutDimensionKind.Fixed;
@@ -228,7 +228,7 @@ public static partial class Binder
             var bindingSyntax = new LayoutBindingDeclarationSyntax(syntax.BindKeyword, syntax.LayoutIdentifier, syntax.BindKeyword, [], syntax.UsingKeyword);
             _layoutBindings.Add(new BoundLayoutBinding(layout, contract, bindingSyntax, function, createElement.Name,
                 new BoundLayoutReactRealization(root, classes), entries,
-                owningComponent: _currentFunction?.ReturnType == ReactNodeTypeSymbol.Instance ? _currentFunction : null,
+                owningComponent: _currentFunction?.ReturnType == PresentationNodeType ? _currentFunction : null,
                 isContributionBinding: true));
             return CreateDirectCall(function, [contributions], syntax.BindKeyword);
         }

@@ -213,7 +213,8 @@ public enum MachinaMeasurementDependency
 
 public sealed record MachinaBoxStyle(double? Padding = null);
 public sealed record MachinaSurfaceStyle(string? Fill = null, MachinaLength? Radius = null, double? Opacity = null);
-public sealed record MachinaTextStyle(string? Color = null, MachinaLength? Size = null, int? Weight = null, double? LineHeight = null);
+public enum MachinaTextWrap { Normal, Anywhere }
+public sealed record MachinaTextStyle(string? Color = null, MachinaLength? Size = null, int? Weight = null, double? LineHeight = null, MachinaTextWrap? Wrap = null);
 public sealed record MachinaBorderStyle(MachinaLength? Width = null, string? Color = null, string? Style = null);
 public sealed record MachinaEffectStyle(string? Shadow = null);
 
@@ -953,7 +954,7 @@ public static class MachinaBrowserLowerer
             style.Border?.Color ?? string.Empty,
             style.Border?.Style ?? string.Empty,
             style.Effect?.Shadow ?? string.Empty,
-        });
+        }) + (style.Text?.Wrap is MachinaTextWrap wrap ? "|wrap=" + wrap : string.Empty);
 
     private static string FormatNullable(double? value)
         => value?.ToString("0.################", CultureInfo.InvariantCulture) ?? string.Empty;
@@ -968,6 +969,10 @@ public static class MachinaBrowserLowerer
     /// <summary>Projects the same bound style facts for fixed and host-flow layouts.</summary>
     public static void AppendStyleDeclarations(MachinaStyle style, StringBuilder css)
     {
+        if (style.Text?.Wrap is MachinaTextWrap wrap)
+        {
+            css.Append("  overflow-wrap: ").Append(wrap == MachinaTextWrap.Anywhere ? "anywhere" : "normal").Append(";\n");
+        }
         if (style.Box?.Padding is double padding)
         {
             css.Append("  padding: ").Append(MachinaLength.Format(padding)).Append("px;\n");

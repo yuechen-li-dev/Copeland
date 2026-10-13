@@ -9,6 +9,28 @@ namespace Copeland.TS.Tests;
 public sealed class ProjectContextBoundaryTests
 {
     [Fact]
+    public void Copeland_View_adapter_round_trips_and_participates_in_context_identity()
+    {
+        using var project = new TemporaryProject();
+        string source = project.Write("src/Main.ts", "export function Main(): string { return \"ok\"; }");
+        var descriptor = new CopelandProjectContextDescriptor
+        {
+            ProjectRoot = project.Path,
+            JavaScriptRuntime = "browser",
+            TsXmlProfile = "CopelandViews",
+            PresentationAdapter = Copeland.TS.Mir.MirPresentationAdapter.React,
+            Sources = [new() { LogicalPath = "src/Main.ts", Path = source }],
+        };
+        string path = project.Write("context.json", JsonSerializer.Serialize(descriptor));
+        CopelandProjectContext react = CopelandProjectContext.Load(path);
+        Assert.Equal(CopelandProjectTypeSet.CopelandViews, react.Options.ProjectTypes);
+        Assert.Equal(descriptor.PresentationAdapter, react.Options.PresentationAdapter);
+        var vueDescriptor = descriptor with { PresentationAdapter = Copeland.TS.Mir.MirPresentationAdapter.Vue };
+        CopelandProjectContext vue = CopelandProjectContext.Create(path, vueDescriptor);
+        Assert.NotEqual(react.Fingerprint, vue.Fingerprint);
+    }
+
+    [Fact]
     public void Managed_context_uses_Copeland_config_for_internal_source_ownership()
     {
         using var project = new TemporaryProject();

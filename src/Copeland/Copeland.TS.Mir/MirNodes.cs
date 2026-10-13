@@ -39,6 +39,7 @@ public sealed class MirProgram
     }
 
     public IReadOnlyList<MirEnum> Enums { get; }
+    public MirPresentationAdapter? PresentationAdapter { get; init; }
     public IReadOnlyList<MirRecordDefinition> Records { get; }
     public IReadOnlyList<MirTableDefinition> Tables { get; }
     public IReadOnlyList<MirTsonEncodingPlan> TsonEncodingPlans { get; }
@@ -55,7 +56,7 @@ public sealed class MirProgram
     public IReadOnlyList<MirModuleValue> ModuleValues { get; init; } = [];
 
     public MirProgram WithExecutableArtifact(MirExecutableArtifact artifact)
-        => new(Enums, Records, Tables, TsonEncodingPlans, NpmImports, Functions, CSharpUsings, CSharpSourcePath, Flows, JavaScriptHostImports, PackageImports, ExecutableArtifacts.Append(artifact).ToArray()) { ModuleValues = ModuleValues };
+        => new(Enums, Records, Tables, TsonEncodingPlans, NpmImports, Functions, CSharpUsings, CSharpSourcePath, Flows, JavaScriptHostImports, PackageImports, ExecutableArtifacts.Append(artifact).ToArray()) { ModuleValues = ModuleValues, PresentationAdapter = PresentationAdapter };
 }
 
 public sealed record MirModuleValue(string Name, MirType Type, string InitializerFunction);

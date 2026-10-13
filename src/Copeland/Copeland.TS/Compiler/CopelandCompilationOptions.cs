@@ -16,6 +16,9 @@ public sealed class CopelandCompilationOptions
     /// </summary>
     public CopelandProjectTypeSet ProjectTypes { get; init; } = CopelandProjectTypeSet.None;
 
+    /// <summary>The explicit target adapter for compiler-owned View presentation.</summary>
+    public Copeland.TS.Mir.MirPresentationAdapter? PresentationAdapter { get; init; }
+
     /// <summary>
     /// Legacy test and host boundary. New callers must use <see cref="ProjectTypes"/>.
     /// This value is translated immediately and is not used by binding.
@@ -59,6 +62,8 @@ public enum CopelandTsXmlProfile
     ReactM0,
     TextDocumentsM0,
     FlowAuthoringM0,
+    VueM0 = 8,
+    CopelandViews = 16,
 }
 
 [Flags]
@@ -68,6 +73,8 @@ public enum CopelandProjectTypeSet
     ReactComponents = 1,
     TextDocuments = 2,
     FlowAuthoring = 4,
+    VueComponents = 8,
+    CopelandViews = 16,
 }
 
 public static class CopelandProjectTypes
@@ -78,6 +85,8 @@ public static class CopelandProjectTypes
         foreach (string name in names.Distinct(StringComparer.OrdinalIgnoreCase))
         {
             if (name.Equals("ReactComponents", StringComparison.OrdinalIgnoreCase)) result |= CopelandProjectTypeSet.ReactComponents;
+            else if (name.Equals("VueComponents", StringComparison.OrdinalIgnoreCase)) result |= CopelandProjectTypeSet.VueComponents;
+            else if (name.Equals("CopelandViews", StringComparison.OrdinalIgnoreCase)) result |= CopelandProjectTypeSet.CopelandViews;
             else if (name.Equals("TextDocuments", StringComparison.OrdinalIgnoreCase)) result |= CopelandProjectTypeSet.TextDocuments;
             else if (name.Equals("FlowAuthoring", StringComparison.OrdinalIgnoreCase)) result |= CopelandProjectTypeSet.FlowAuthoring;
             else
@@ -97,6 +106,8 @@ public static class CopelandProjectTypes
     public static IReadOnlyList<string> Names(CopelandProjectTypeSet types)
     {
         var names = new List<string>();
+        if (types.HasFlag(CopelandProjectTypeSet.CopelandViews)) names.Add("CopelandViews");
+        if (types.HasFlag(CopelandProjectTypeSet.VueComponents)) names.Add("VueComponents");
         if (types.HasFlag(CopelandProjectTypeSet.TextDocuments)) names.Add("TextDocuments");
         if (types.HasFlag(CopelandProjectTypeSet.ReactComponents)) names.Add("ReactComponents");
         if (types.HasFlag(CopelandProjectTypeSet.FlowAuthoring)) names.Add("FlowAuthoring");
@@ -109,6 +120,8 @@ public static class CopelandProjectTypes
         if (profile.HasFlag(CopelandTsXmlProfile.ReactM0)) types |= CopelandProjectTypeSet.ReactComponents;
         if (profile.HasFlag(CopelandTsXmlProfile.TextDocumentsM0)) types |= CopelandProjectTypeSet.TextDocuments;
         if (profile.HasFlag(CopelandTsXmlProfile.FlowAuthoringM0)) types |= CopelandProjectTypeSet.FlowAuthoring;
+        if (profile.HasFlag(CopelandTsXmlProfile.VueM0)) types |= CopelandProjectTypeSet.VueComponents;
+        if (profile.HasFlag(CopelandTsXmlProfile.CopelandViews)) types |= CopelandProjectTypeSet.CopelandViews;
         return types;
     }
 
@@ -118,6 +131,8 @@ public static class CopelandProjectTypes
         if (types.HasFlag(CopelandProjectTypeSet.ReactComponents)) profile |= CopelandTsXmlProfile.ReactM0;
         if (types.HasFlag(CopelandProjectTypeSet.TextDocuments)) profile |= CopelandTsXmlProfile.TextDocumentsM0;
         if (types.HasFlag(CopelandProjectTypeSet.FlowAuthoring)) profile |= CopelandTsXmlProfile.FlowAuthoringM0;
+        if (types.HasFlag(CopelandProjectTypeSet.VueComponents)) profile |= CopelandTsXmlProfile.VueM0;
+        if (types.HasFlag(CopelandProjectTypeSet.CopelandViews)) profile |= CopelandTsXmlProfile.CopelandViews;
         return profile;
     }
 }

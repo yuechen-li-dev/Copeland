@@ -3,7 +3,7 @@ using Copeland.TS.Semantics.Bound;
 
 namespace Copeland.TS.Semantics;
 
-/// <summary>Checks the bounded React endpoint slice against the existing effect authority.</summary>
+/// <summary>Checks the bounded component endpoint slice against the existing effect authority.</summary>
 public static class ComponentEndpointValidation
 {
     public static IReadOnlyList<Diagnostic> Validate(
@@ -23,14 +23,14 @@ public static class ComponentEndpointValidation
             if (states.Length != 1 || component.Symbol.IsGeneric || component.Symbol.IsAsync || component.Symbol.IsGenerator)
             {
                 diagnostics.Add(new Diagnostic("COPE-COMPONENT-ON-0003",
-                    "React endpoints require one top-level state declaration in an ordinary closed component function.", 0, 1));
+                    "Component endpoints require one top-level state declaration in an ordinary closed component function.", 0, 1));
                 continue;
             }
             BoundComponentStateDeclaration state = states[0];
             if (!IsImmutableState(state.State.Type, []))
             {
                 diagnostics.Add(new Diagnostic("COPE-COMPONENT-ON-0009",
-                    "React component state must be an immutable data snapshot. Freeze local construction arrays and store records, enums, or immutable arrays; keep mutable storage and host handles outside state.", 0, 1));
+                    "Component state must be an immutable data snapshot. Freeze local construction arrays and store records, enums, or immutable arrays; keep mutable storage and host handles outside state.", 0, 1));
             }
             BoundComponentEventHandler[] handlers = component.Body.Statements.OfType<BoundComponentEventHandler>().ToArray();
             var initializer = new BoundFunctionDeclaration(
@@ -50,7 +50,7 @@ public static class ComponentEndpointValidation
                     if (effect.Phase == ComponentCompletionPhase.AttachmentsSettled)
                     {
                         diagnostics.Add(new Diagnostic("COPE-COMPONENT-ON-0005",
-                            "React AttachmentsSettled requires declared attachment acknowledgements. Use StateCommitted or PresentationCommitted for this adapter.", 0, 1));
+                            "AttachmentsSettled requires declared attachment acknowledgements. Use StateCommitted or PresentationCommitted for this adapter.", 0, 1));
                     }
                     IEnumerable<BoundExpression> arguments = effect.Invocation.Arguments;
                     if (effect.Completion is not null)

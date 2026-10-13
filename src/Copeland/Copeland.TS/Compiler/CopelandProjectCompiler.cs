@@ -83,7 +83,7 @@ public static class CopelandProjectCompiler
                 continue;
             }
 
-            BoundCompilation bound = Binder.Bind(tree, null, npmResolver, hostResolver, clrResolver, packageContracts, options.PackageBackend, options.ProjectTypes, module.Source.SourcePath, module.LogicalPath, imports);
+            BoundCompilation bound = Binder.Bind(tree, null, npmResolver, hostResolver, clrResolver, packageContracts, options.PackageBackend, options.ProjectTypes, module.Source.SourcePath, module.LogicalPath, imports, options.PresentationAdapter);
             module.Bound = bound;
             diagnostics.AddRange(bound.Diagnostics.Select(diagnostic => diagnostic with { SourcePath = module.Source.SourcePath }));
         }
@@ -629,6 +629,7 @@ public static class CopelandProjectCompiler
             programs.SelectMany(program => program.PackageImports).ToArray())
         {
             ModuleValues = programs.SelectMany(program => program.ModuleValues).ToArray(),
+            PresentationAdapter = programs.Select(program => program.PresentationAdapter).FirstOrDefault(adapter => adapter is not null),
         };
 
     private static IReadOnlyList<MirEnum> CombineEnums(IReadOnlyList<MirProgram> programs)

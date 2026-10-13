@@ -1,0 +1,61 @@
+{
+  "milestone": "CTS-VUE-FRICTION-M8",
+  "sourceHashes": {
+    "src/Application.ts": "1b728f5d2ca5807078c5ee40520d2b27ebcdc55f1b7fa809bf4ac49eafc2077a",
+    "src/Collections.ts": "91e5a338dacb019b5f947b8f560ee3d3f1d52cfa6cf0bea428ac2933411ced0b",
+    "src/Content.ts": "7eef23e5022f39392e6e7facfe9b123016cfdc7202363c1751eb4d662fcd96eb",
+    "src/Issues.ts": "86e06bc59d550e3224308d8360108cf5416196db485a1ac3d267522cee5438ae",
+    "src/IssuesPage.ts": "0350cc5f6162dd24d422f45f4cc83aeef786205cf82ac3aff7737ee5d09babc0",
+    "src/Layouts.ts": "a4a8357d9c55249beb861a89118903c6660e8888bbde20b1ac9857d8c3490741",
+    "src/Lifecycle.tsx": "d6bf74888b1c7f2b936204ba694691fa3d70b80c6eb2cb56645e30f637fdc76b",
+    "src/State.ts": "3adfa9466e6656a3ac8cf98f9897a73d7184799408bc3cc91f187166f2b7b310",
+    "src/UI.tsx": "15c0448793d758a18d2c77aa337d86278187e2c8ff412fcbd6e3b28b20b431a0"
+  },
+  "results": [
+    {
+      "profile": "Diagnostic",
+      "files": {
+        "src/Application.js": "354cc1e9e390333eaddd863b61d28ca2d4574820e6effd7b864865c062e5152d",
+        "src/Collections.js": "8e1f77e01a6de60b801b45a705e112df7fdbb426b3577a332f1b8de439a3b4d4",
+        "src/Content.js": "7851ee0d325818eca0d7c9b8cf274b6b3deef0eef4a36213d4ef5cd170eaabd8",
+        "src/Issues.js": "eca3bc7ba22e5bf67802b0a67b9aa3662cba6258570104086b289da61ffad192",
+        "src/IssuesPage.js": "a509b97abb9ee82fd430b68cbc44481f658ceea376f826f1c06d6a6420d3ca33",
+        "src/Layouts.js": "74004d7e69afedd42e886aaded741812f046746e358420255052e95fd258e721",
+        "src/Lifecycle.js": "94d6c6f3a77d17a36fe29b98e80ce0aa37dcef3d27bf9825991da7a4eec55115",
+        "src/State.js": "e891307b015718d94023a7fc7f6f47307ace2d4fb950af5db8958cafb8d453c5",
+        "src/UI.js": "6b403cfbaa5aecb668c4ef11f38dc398ecb8f23bfc8c4ff668dc8e0c795ff5dd",
+        "generated/layouts.css": "6687658cc76d9a12dcf16cd1c0796947341fdb90db96122d139f776890f56e08"
+      }
+    },
+    {
+      "profile": "Symbolic",
+      "files": {
+        "src/Application.js": "f4a7b304c2a1fb0ecfd347fe55e9f434724d88a788d956c75024c203282efcb1",
+        "src/Collections.js": "2a32494832a3f6d6ffcbcc4a6a4335a84cc77a2f24a43c13165cd739832aa45b",
+        "src/Content.js": "bc4c0ae98658d3a6150fbaa3895c3f87947fb1b72c22ed5bd8c13881dbb7934a",
+        "src/Issues.js": "565bf89d081d8dc23ea32b400b60a608e2b0cb0f78dd70fb871b9f799f79c389",
+        "src/IssuesPage.js": "69025dd6129f6a4378a8b465d0f6ad7426c7222c11682fa2f805b32f276817f9",
+        "src/Layouts.js": "f769a9b5585fd01fc1eb3729a80d356e2a542db997459df52306405a0401046b",
+        "src/Lifecycle.js": "ad95cd38c38e4fbe6dae12aeaff20826120dac3a4681763e8330df2cab3d4af7",
+        "src/State.js": "63933366a836b0ada1a9036b64ec909f1e8f1199062ad71a1c10347993b5008a",
+        "src/UI.js": "ef3f4214f47906eb85e2fb069671907187747746b1179ea3ce08e3d57a091016",
+        "generated/layouts.css": "6687658cc76d9a12dcf16cd1c0796947341fdb90db96122d139f776890f56e08"
+      }
+    },
+    {
+      "profile": "Production",
+      "files": {
+        "src/Application.js": "d24eb47fa92b535368ec1758edffb4f2f01e7f4271781a88ac94ef453af11a29",
+        "src/Collections.js": "3c67475ccf7e70ce8e3c32bf3acf13f4a2f849beb85c6cee9ec0a6e82137be30",
+        "src/Content.js": "4e618f33eda84a9ecc09a3f263a2312cef09c41afebaefe102a55d0519c5e191",
+        "src/Issues.js": "665501d45dc6875ac852a53c44b79692e577a62a39ae82250d3df09a9db69a4b",
+        "src/IssuesPage.js": "6bd295235d50f37e4061e169ff446c973a7634f96698483ba2f973261142be16",
+        "src/Layouts.js": "f8a4eb3e30d8f105894698d104881cbb950122e3bd38250dc86f0131727d2b99",
+        "src/Lifecycle.js": "ca872ba6187ee1fd1426debac4d8be62dac332393e2493534371fb595e231491",
+        "src/State.js": "43998f7007ba8eef08bfc13d823469743253f2232935fe418264f1c16d15ce7c",
+        "src/UI.js": "8464a55adc709ec9dc337ecd29657904da71aafeb43fed39ebf2405bdcfdb373",
+        "generated/layouts.css": "6687658cc76d9a12dcf16cd1c0796947341fdb90db96122d139f776890f56e08"
+      }
+    }
+  ]
+}

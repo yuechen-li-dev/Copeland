@@ -325,6 +325,7 @@ public sealed class CopelandProjectContext
         {
             CopelandProjectTypeSet.None => null,
             CopelandProjectTypeSet.ReactComponents => "react-m0",
+            CopelandProjectTypeSet.VueComponents => "vue-m0",
             CopelandProjectTypeSet.TextDocuments => "text-m0",
             CopelandProjectTypeSet.ReactComponents | CopelandProjectTypeSet.TextDocuments => "react-m0+text-m0",
             _ => CopelandProjectTypes.ToTransport(types),
@@ -405,12 +406,14 @@ public sealed class CopelandProjectContext
             .OrderBy(contract => contract.PackageName, StringComparer.Ordinal)
             .Select(ToNpmContract));
         bool browser = string.Equals(descriptor.JavaScriptRuntime, "browser", StringComparison.Ordinal);
+        CopelandProjectTypeSet projectTypes = ParseDescriptorProjectTypes(descriptor.TsXmlProfile);
         var options = new CopelandCompilationOptions
         {
             ProjectRoot = projectRoot,
             NpmDependencies = npmDependencies,
-            JavaScriptHostModules = browser ? [CopelandProjectHostContracts.Browser()] : [],
-            ProjectTypes = ParseDescriptorProjectTypes(descriptor.TsXmlProfile),
+            JavaScriptHostModules = browser ? [CopelandProjectHostContracts.Browser(projectTypes)] : [],
+            ProjectTypes = projectTypes,
+            PresentationAdapter = descriptor.PresentationAdapter,
         };
         return new CopelandProjectContext(
             Path.GetFullPath(descriptorPath),
@@ -438,6 +441,7 @@ public sealed class CopelandProjectContext
         return value.ToLowerInvariant() switch
         {
             "react-m0" => CopelandProjectTypeSet.ReactComponents,
+            "vue-m0" => CopelandProjectTypeSet.VueComponents,
             "text-m0" => CopelandProjectTypeSet.TextDocuments,
             "react-m0+text-m0" or "text-m0+react-m0" => CopelandProjectTypeSet.ReactComponents | CopelandProjectTypeSet.TextDocuments,
             _ => CopelandProjectTypeSet.None,
@@ -504,8 +508,11 @@ public sealed class CopelandProjectContext
                 component.Members
                     .Select(member => new CopelandNpmComponentMemberContract(
                         member.Name,
-                        member.Properties.Select(ToNpmProperty).ToArray()))
-                    .ToArray()))
+                        member.Properties.Select(ToNpmProperty).ToArray(),
+                        member.DefaultSlot))
+                    .ToArray(),
+                component.Renderer,
+                component.DefaultSlot))
             .ToArray();
         return new CopelandNpmPackageContract(
             contract.PackageName,
@@ -526,6 +533,10 @@ public sealed class CopelandProjectContext
         var builder = new StringBuilder();
         builder.Append("runtime=").Append(descriptor.JavaScriptRuntime).Append('\n');
         builder.Append("tsx=").Append(CopelandProjectTypes.ToTransport(options.ProjectTypes)).Append('\n');
+        if (options.PresentationAdapter is not null)
+        {
+            builder.Append("presentation=").Append(JsonSerializer.Serialize(options.PresentationAdapter, JsonOptions)).Append('\n');
+        }
         foreach (CopelandProjectSource source in sources.OrderBy(source => source.LogicalPath, StringComparer.Ordinal))
         {
             builder.Append(source.LogicalPath)
@@ -557,6 +568,7 @@ public sealed class CopelandProjectContextException(string code, string message)
 
 public sealed record CopelandProjectContextDescriptor
 {
+    public Copeland.TS.Mir.MirPresentationAdapter? PresentationAdapter { get; init; }
     public string ProjectRoot { get; init; } = string.Empty;
     public List<CopelandProjectContextSource> Sources { get; init; } = [];
     public string JavaScriptRuntime { get; init; } = string.Empty;
@@ -602,6 +614,8 @@ public sealed record CopelandProjectContextNpmExport
 public sealed record CopelandProjectContextNpmComponent
 {
     public string Name { get; init; } = string.Empty;
+    public string Renderer { get; init; } = "react";
+    public bool DefaultSlot { get; init; }
     public List<CopelandProjectContextNpmProperty> Properties { get; init; } = [];
     public List<CopelandProjectContextNpmMember> Members { get; init; } = [];
 }
@@ -609,6 +623,7 @@ public sealed record CopelandProjectContextNpmComponent
 public sealed record CopelandProjectContextNpmMember
 {
     public string Name { get; init; } = string.Empty;
+    public bool DefaultSlot { get; init; }
     public List<CopelandProjectContextNpmProperty> Properties { get; init; } = [];
 }
 
@@ -760,8 +775,10 @@ public static class CopelandProjectContextResolver
 
 public static class CopelandProjectHostContracts
 {
-    public static CopelandJavaScriptHostModuleContract Browser()
+    public static CopelandJavaScriptHostModuleContract Browser(CopelandProjectTypeSet projectTypes = CopelandProjectTypeSet.ReactComponents)
     {
+        string nodeType = projectTypes.HasFlag(CopelandProjectTypeSet.CopelandViews) ? "View"
+            : projectTypes.HasFlag(CopelandProjectTypeSet.VueComponents) ? "VueNode" : "ReactNode";
         var state = new CopelandJavaScriptHostType.TypeParameter("State");
         var @event = new CopelandJavaScriptHostType.TypeParameter("Event");
         return new CopelandJavaScriptHostModuleContract("@copeland/browser-v1", [
@@ -773,9 +790,9 @@ public static class CopelandProjectHostContracts
             new CopelandJavaScriptHostFunctionContract("copyText", [CopelandJavaScriptHostType.String, new CopelandJavaScriptHostType.Callable([], CopelandJavaScriptHostType.Void), new CopelandJavaScriptHostType.Callable([], CopelandJavaScriptHostType.Void)], CopelandJavaScriptHostType.Void),
             new CopelandJavaScriptHostFunctionContract("getViewportWidth", [], CopelandJavaScriptHostType.Int),
             new CopelandJavaScriptHostFunctionContract("subscribeViewport", [new CopelandJavaScriptHostType.Callable([], CopelandJavaScriptHostType.Void)], new CopelandJavaScriptHostType.Callable([], CopelandJavaScriptHostType.Void)),
-            // Compiler-realized React projection over the host's existing input boundary.
-            new CopelandJavaScriptHostFunctionContract("presentViewport", [new CopelandJavaScriptHostType.Named("ReactNode"), new CopelandJavaScriptHostType.Callable([CopelandJavaScriptHostType.Int], CopelandJavaScriptHostType.Void)], new CopelandJavaScriptHostType.Named("ReactNode")),
-            new CopelandJavaScriptHostFunctionContract("ownChild", [CopelandJavaScriptHostType.String, CopelandJavaScriptHostType.String, new CopelandJavaScriptHostType.Named("ReactNode")], new CopelandJavaScriptHostType.Named("ReactNode")),
+            // Compiler-realized component projection over the host's existing input boundary.
+            new CopelandJavaScriptHostFunctionContract("presentViewport", [new CopelandJavaScriptHostType.Named(nodeType), new CopelandJavaScriptHostType.Callable([CopelandJavaScriptHostType.Int], CopelandJavaScriptHostType.Void)], new CopelandJavaScriptHostType.Named(nodeType)),
+            new CopelandJavaScriptHostFunctionContract("ownChild", [CopelandJavaScriptHostType.String, CopelandJavaScriptHostType.String, new CopelandJavaScriptHostType.Named(nodeType)], new CopelandJavaScriptHostType.Named(nodeType)),
             new CopelandJavaScriptHostFunctionContract("scheduleRendererAttachment", [new CopelandJavaScriptHostType.Callable([], CopelandJavaScriptHostType.Void)], CopelandJavaScriptHostType.Void),
             new CopelandJavaScriptHostFunctionContract("attachRenderer", [CopelandJavaScriptHostType.String, CopelandJavaScriptHostType.String, CopelandJavaScriptHostType.String, CopelandJavaScriptHostType.String, CopelandJavaScriptHostType.String, CopelandJavaScriptHostType.String], CopelandJavaScriptHostType.Void),
             new CopelandJavaScriptHostFunctionContract("updateRenderer", [CopelandJavaScriptHostType.String, CopelandJavaScriptHostType.String, CopelandJavaScriptHostType.String, CopelandJavaScriptHostType.String], CopelandJavaScriptHostType.Void),

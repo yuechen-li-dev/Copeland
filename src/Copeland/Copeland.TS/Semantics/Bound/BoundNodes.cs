@@ -55,6 +55,7 @@ public sealed class BoundProgram
         SemanticCallSites = semanticCallSites ?? [];
     }
     public IReadOnlyList<BoundFunctionDeclaration> Functions { get; }
+    public Copeland.TS.Mir.MirPresentationAdapter? PresentationAdapter { get; internal set; }
     internal bool ComponentEndpointsQualified { get; set; }
     public IReadOnlyDictionary<FunctionSymbol, FunctionEffectSummary> FunctionEffects { get; internal set; }
     public IReadOnlyList<BoundEnumDeclaration> Enums { get; }
@@ -271,6 +272,16 @@ public sealed record BoundComponentPresentation(
     ComponentHostCapabilities RequiredHostCapabilities,
     string PayloadContract)
 {
+    public static BoundComponentPresentation CopelandView(bool hasPrivateLayout)
+        => new(
+            hasPrivateLayout ? ComponentPresentationKind.PrivateLayout : ComponentPresentationKind.RendererPayload,
+            RendererAdapterIdentity.Copeland,
+            ComponentContentCapabilities.CopelandView,
+            ComponentHostCapabilities.FillAssignedBox | ComponentHostCapabilities.RendererAttachment |
+            ComponentHostCapabilities.StableMountPoint | ComponentHostCapabilities.ResolvedWidth |
+            ComponentHostCapabilities.ResolvedHeight,
+            hasPrivateLayout ? "private-layout/copeland-view" : "copeland-view");
+
     public static BoundComponentPresentation ReactBridge(bool hasPrivateLayout)
         => new(
             hasPrivateLayout ? ComponentPresentationKind.PrivateLayout : ComponentPresentationKind.RendererPayload,
@@ -294,10 +305,23 @@ public sealed record BoundComponentPresentation(
             ComponentHostCapabilities.ResolvedHeight,
             "custom-element-bridge");
 
+    public static BoundComponentPresentation VueBridge(bool hasPrivateLayout)
+        => new(
+            hasPrivateLayout ? ComponentPresentationKind.PrivateLayout : ComponentPresentationKind.RendererPayload,
+            RendererAdapterIdentity.Vue,
+            ComponentContentCapabilities.VueSubtree,
+            ComponentHostCapabilities.FillAssignedBox |
+            ComponentHostCapabilities.RendererAttachment |
+            ComponentHostCapabilities.StableMountPoint |
+            ComponentHostCapabilities.ResolvedWidth |
+            ComponentHostCapabilities.ResolvedHeight,
+            hasPrivateLayout ? "private-layout/vue-bridge" : "vue-node-bridge");
+
     public static BoundComponentPresentation ForeignBridge(RendererAdapterIdentity adapter)
         => adapter switch
         {
             RendererAdapterIdentity.React => ReactBridge(false),
+            RendererAdapterIdentity.Vue => VueBridge(false),
             RendererAdapterIdentity.CustomElement => CustomElementBridge(),
             RendererAdapterIdentity.NativeMachina => new(
                 ComponentPresentationKind.RendererPayload,
@@ -322,6 +346,8 @@ public enum RendererAdapterIdentity
     React,
     CustomElement,
     NativeMachina,
+    Vue,
+    Copeland,
 }
 
 [Flags]
@@ -337,6 +363,7 @@ public enum ComponentContentCapabilities
     CustomElement = 64,
     Canvas = 128,
     NativeMachina = 256,
+    CopelandView = 512,
 }
 
 /// <summary>One typed lexical value consumed by a component-private presentation.</summary>
@@ -436,6 +463,8 @@ public enum ComponentImplementationKind
     NativeMachina,
     React,
     ForeignRenderer,
+    Vue,
+    Copeland,
 }
 
 [Flags]
@@ -473,11 +502,23 @@ public static class RendererAdapterContracts
     public static RendererAdapterRegistry Default { get; } = new(
         [
             new(
+                RendererAdapterIdentity.Copeland,
+                ComponentContentCapabilities.CopelandView | ComponentContentCapabilities.SemanticText | ComponentContentCapabilities.InteractiveControls,
+                BoundComponentPresentation.CopelandView(false).RequiredHostCapabilities,
+                true,
+                ["copeland-view", "private-layout/copeland-view"]),
+            new(
                 RendererAdapterIdentity.React,
                 ComponentContentCapabilities.ReactSubtree | ComponentContentCapabilities.DocumentMir | ComponentContentCapabilities.SemanticText | ComponentContentCapabilities.InteractiveControls,
                 BoundComponentPresentation.ReactBridge(false).RequiredHostCapabilities,
                 true,
                 ["react-node-bridge", "private-layout/react-bridge"]),
+            new(
+                RendererAdapterIdentity.Vue,
+                ComponentContentCapabilities.VueSubtree | ComponentContentCapabilities.DocumentMir | ComponentContentCapabilities.SemanticText | ComponentContentCapabilities.InteractiveControls,
+                BoundComponentPresentation.VueBridge(false).RequiredHostCapabilities,
+                true,
+                ["vue-node-bridge", "private-layout/vue-bridge"]),
             new(
                 RendererAdapterIdentity.CustomElement,
                 ComponentContentCapabilities.CustomElement | ComponentContentCapabilities.InteractiveControls,
@@ -1642,14 +1683,15 @@ public sealed class BoundReactElementExpression(
     BoundExpression elementType,
     bool isIntrinsic,
     IReadOnlyList<BoundReactProperty> properties,
-    IReadOnlyList<BoundExpression> children) : BoundExpression
+    IReadOnlyList<BoundExpression> children,
+    TypeSymbol? nodeType = null) : BoundExpression
 {
     public string CreateElementBinding { get; } = createElementBinding;
     public BoundExpression ElementType { get; } = elementType;
     public bool IsIntrinsic { get; } = isIntrinsic;
     public IReadOnlyList<BoundReactProperty> Properties { get; } = properties;
     public IReadOnlyList<BoundExpression> Children { get; } = children;
-    public override TypeSymbol Type => ReactNodeTypeSymbol.Instance;
+    public override TypeSymbol Type => nodeType ?? ReactNodeTypeSymbol.Instance;
 }
 
 /// <summary>Canonical Text document value retained independently of any renderer.</summary>

@@ -44,7 +44,7 @@ public static class JavaScriptProjectEmitter
             if (module.Functions.Any(function => function.ComponentState is not null)
                 || module.JavaScriptHostImports.Any(ComponentStateRuntime.IsProjectionImport))
             {
-                lines.Add(ComponentStateRuntime.ReactImport);
+                lines.Add(ComponentStateRuntime.RendererImport(graph.AggregateProgram));
                 lines.Add(ComponentStateRuntime.FrameImport);
             }
             if (module.Functions.Any(function => function.IsRemote))

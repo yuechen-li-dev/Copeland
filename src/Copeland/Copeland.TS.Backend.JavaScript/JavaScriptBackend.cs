@@ -121,6 +121,12 @@ public static class JavaScriptBackend
         {
             return new JavaScriptCompilation(null, diagnostics);
         }
+        if (program.PresentationAdapter is { CommitProtocol: MirPresentationCommitProtocol.None }
+            && ComponentStateRuntime.IsRequired(program))
+        {
+            diagnostics.Add(new JavaScriptDiagnostic("COPE-VIEW-0004", "This View target requires a qualified lifecycle adapter for state, ownership, or viewport subscriptions."));
+            return new JavaScriptCompilation(null, diagnostics);
+        }
         if (program.Functions.Any(function => ContainsInlineCSharp(function.Body)))
         {
             diagnostics.Add(new JavaScriptDiagnostic("COPE-JS-CSHARP-0001", "Inline C# is available only on the CLR backend."));
@@ -141,7 +147,7 @@ public static class JavaScriptBackend
         }
         if (effectiveOptions.RuntimeTarget != JavaScriptRuntimeTarget.Browser && ComponentStateRuntime.IsRequired(program))
         {
-            diagnostics.Add(new JavaScriptDiagnostic("COPE-JS-COMPONENT-ON-0001", "React endpoints require the Browser JavaScript target and its canonical component-frame registry."));
+            diagnostics.Add(new JavaScriptDiagnostic("COPE-JS-COMPONENT-ON-0001", "Component endpoints require the Browser JavaScript target and its canonical component-frame registry."));
         }
         if (diagnostics.Count > 0)
         {
@@ -180,9 +186,13 @@ public static class JavaScriptBackend
             names.GeneratedDefinitions,
             effectiveOptions.EnableGeneratedDefinitionReachability,
             effectiveOptions.Profile);
+        if (program.PresentationAdapter is not null)
+        {
+            ComponentStateRuntime.EmitViewChildShapes(writer);
+        }
         if (ComponentStateRuntime.IsRequired(program))
         {
-            writer.WriteLine(ComponentStateRuntime.ReactImport);
+            writer.WriteLine(ComponentStateRuntime.RendererImport(program));
             writer.WriteLine(ComponentStateRuntime.FrameImport);
         }
         foreach (MirNpmImport npm in program.NpmImports.OrderBy(import => import.PackageName, StringComparer.Ordinal).ThenBy(import => import.ExportName, StringComparer.Ordinal).ThenBy(import => import.LocalBinding, StringComparer.Ordinal))
@@ -207,7 +217,7 @@ public static class JavaScriptBackend
         writer.WriteLine("\"use strict\";");
         if (ComponentStateRuntime.IsRequired(program))
         {
-            ComponentStateRuntime.Emit(writer);
+            ComponentStateRuntime.Emit(writer, ComponentStateRuntime.IsVue(program), program.PresentationAdapter is not null);
         }
 
         if (usesAsync)
@@ -1336,7 +1346,7 @@ public static class JavaScriptBackend
                 return;
             case MirType { Identifier: "void" } when allowVoid:
                 return;
-            case MirType { Identifier: "ReactNode" or "ReactRoot" or "ReactMountElement" }:
+            case MirType { Identifier: "View" or "ReactNode" or "VueNode" or "ReactRoot" or "ReactMountElement" }:
                 return;
             case MirType named when named is not MirArrayType and not MirResultType && catalog.ContainsEnum(named.Identifier):
                 return;
@@ -2877,7 +2887,13 @@ public static class JavaScriptBackend
         writer.WriteLine($"function {JavaScriptIdentifierEncoder.Encode(function.Name)}({parameters}) {{");
         writer.Indent();
         EmitBoundaryParameterValidation(writer, function, catalog, results, names, isBoundaryFunction);
-        writer.WriteLine($"return __cope_component_element({JavaScriptIdentifierEncoder.Encode(model.HostFunction)}, {{ inputs: [{parameters}], __cope_component_definition: {JavaScriptLiteralWriter.WriteString(model.StableIdentity)} }});");
+        string host = JavaScriptIdentifierEncoder.Encode(model.HostFunction);
+        if (function.ReturnType.Identifier == "VueNode"
+            || function.ReturnType.Identifier == "View" && names.PresentationAdapter?.CommitProtocol == MirPresentationCommitProtocol.VueComposition)
+        {
+            host = "__cope_component_vue_host(" + host + ")";
+        }
+        writer.WriteLine($"return __cope_component_element({host}, {{ inputs: [{parameters}], __cope_component_definition: {JavaScriptLiteralWriter.WriteString(model.StableIdentity)} }});");
         writer.Unindent();
         writer.WriteLine("}");
         writer.WriteLine($"function {JavaScriptIdentifierEncoder.Encode(model.HostFunction)}(props) {{");
@@ -3753,9 +3769,15 @@ public static class JavaScriptBackend
             string emittedValue = property.Value.Type is MirCallableType callable
                 ? EmitReactCallbackAdapter(value.Value, callable)
                 : value.Value;
-            string propertyName = JavaScriptIdentifierEncoder.IsValidGeneratedIdentifier(property.Name)
-                ? property.Name
-                : JavaScriptLiteralWriter.WriteString(property.Name);
+            string projectedName = property.Name;
+            if (element.Type.Identifier == "View" && element.IsIntrinsic && names.PresentationAdapter is { } adapter)
+            {
+                if (property.Name == "class") projectedName = adapter.ClassProperty;
+                if (property.Name == "for") projectedName = adapter.LabelForProperty;
+            }
+            string propertyName = JavaScriptIdentifierEncoder.IsValidGeneratedIdentifier(projectedName)
+                ? projectedName
+                : JavaScriptLiteralWriter.WriteString(projectedName);
             properties.Add(propertyName + ": " + emittedValue);
         }
 
@@ -3769,8 +3791,40 @@ public static class JavaScriptBackend
 
         string props = properties.Count == 0 ? "null" : "{ " + string.Join(", ", properties) + " }";
         string componentValue = element.IsIntrinsic ? elementType.Value : EmitReactComponentValue(element.ElementType, elementType.Value);
+        if (element.Type.Identifier == "VueNode"
+            || element.Type.Identifier == "View" && names.PresentationAdapter?.Children != MirPresentationChildren.Variadic)
+        {
+            string childArray = "[" + string.Join(", ", children) + "].flat()";
+            string childValue = childArray;
+            if (!element.IsIntrinsic && children.Count == 0
+                && (element.Type.Identifier == "VueNode" || names.PresentationAdapter?.Children == MirPresentationChildren.DefaultSlot))
+            {
+                childValue = "null";
+            }
+            else if (!element.IsIntrinsic && (element.Type.Identifier == "VueNode"
+                || names.PresentationAdapter?.Children == MirPresentationChildren.DefaultSlot))
+            {
+                string slotChildren = names.NextTemporary("vueSlotChildren");
+                prelude.Add(new EmittedLine("const " + slotChildren + " = " + childArray + ";", 0));
+                childValue = "{ default: Object.assign(() => " + slotChildren
+                    + ", { __cope_component_slot_children: " + slotChildren + " }) }";
+            }
+            string vueArguments = componentValue + ", " + props + ", " + childValue;
+            return RenderElement(vueArguments);
+        }
         string args = string.Join(", ", new[] { componentValue, props }.Concat(children));
-        return new EmittedExpression(prelude, JavaScriptIdentifierEncoder.Encode(element.CreateElementBinding) + "(" + args + ")");
+        return RenderElement(args);
+
+        EmittedExpression RenderElement(string arguments)
+        {
+            string node = JavaScriptIdentifierEncoder.Encode(element.CreateElementBinding) + "(" + arguments + ")";
+            if (element.Type.Identifier == "View")
+            {
+                bool fixedArguments = element.Children.Count != 1 || element.Children[0].Type is not MirArrayType;
+                node = "__cope_view_mark(" + node + ", " + (fixedArguments ? "true" : "false") + ")";
+            }
+            return new EmittedExpression(prelude, node);
+        }
     }
 
     private static string EmitReactComponentValue(MirExpression elementType, string value)
@@ -6220,6 +6274,7 @@ public static class JavaScriptBackend
     private sealed class GeneratedNames
     {
         public Dictionary<string, string>? AsyncFrameVariables { get; set; }
+        public MirPresentationAdapter? PresentationAdapter { get; private set; }
 
         private readonly Dictionary<EnumInfo, JavaScriptBindingReference> typeTokens;
         private readonly Dictionary<EnumInfo, JavaScriptBindingReference> enumInstances;
@@ -6683,6 +6738,7 @@ public static class JavaScriptBackend
                 functionScopes,
                 generatedDefinitions,
                 profile);
+            names.PresentationAdapter = program.PresentationAdapter;
             allocator.Validate();
             return names;
         }

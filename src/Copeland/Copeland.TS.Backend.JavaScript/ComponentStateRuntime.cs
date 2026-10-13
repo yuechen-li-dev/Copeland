@@ -3,13 +3,22 @@ using Copeland.TS.Mir;
 namespace Copeland.TS.Backend.JavaScript;
 
 /// <summary>
-/// React projection of the existing canonical browser component-frame registry.
+/// React and Vue projections of the canonical browser component-frame registry.
 /// The registry owns state and dispatch. This adapter retains only immutable
 /// presentation snapshots, subscriptions, and instance-bound typed endpoints.
 /// </summary>
 internal static class ComponentStateRuntime
 {
     internal const string ReactImport = "import { createElement as __cope_component_element, cloneElement as __cope_component_clone, useId as __cope_component_id, useRef as __cope_component_ref, useSyncExternalStore as __cope_component_subscribe, useLayoutEffect as __cope_component_commit, useEffect as __cope_component_effect } from \"react\";";
+    internal const string VueImport = "import { h as __cope_component_element, cloneVNode as __cope_component_clone, shallowRef as __cope_component_ref, onMounted as __cope_component_mounted, onUpdated as __cope_component_updated, onBeforeUnmount as __cope_component_unmount } from \"vue\";";
+
+    internal static bool IsVue(MirProgram program)
+        => program.PresentationAdapter?.CommitProtocol == MirPresentationCommitProtocol.VueComposition
+            || program.Functions.Any(function => function.ReturnType.Identifier == "VueNode");
+
+    internal static string RendererImport(MirProgram program)
+        => IsVue(program) ? VueImport : ReactImport;
+
     internal const string FrameImport = "import { registerComponentFrames as __cope_component_register, dispatchComponentEvent as __cope_component_dispatch, destroyComponentFrame as __cope_component_destroy } from \"@copeland/browser-v1\";";
 
     internal static bool IsRequired(MirProgram program)
@@ -19,24 +28,36 @@ internal static class ComponentStateRuntime
     internal static bool IsProjectionImport(MirJavaScriptHostImport import)
         => import.ModuleSpecifier == "@copeland/browser-v1" && import.ExportName is "presentViewport" or "ownChild";
 
-    internal static void Emit(JavaScriptTextWriter writer)
+    internal static void EmitViewChildShapes(JavaScriptTextWriter writer)
     {
         const string source = """
-            const __cope_component_registry_key = Symbol.for("copeland.ts.react-projections.v1");
+            const __cope_view_child_shapes_key = Symbol.for("copeland.ts.view-child-shapes.v1");
+            let __cope_view_child_shapes = globalThis[__cope_view_child_shapes_key];
+            if (__cope_view_child_shapes === undefined) {
+                __cope_view_child_shapes = new WeakMap();
+                Object.defineProperty(globalThis, __cope_view_child_shapes_key, { value: __cope_view_child_shapes });
+            }
+            function __cope_view_mark(node, staticChildren) {
+                if (node !== null && typeof node === "object") __cope_view_child_shapes.set(node, staticChildren);
+                return node;
+            }
+            """;
+        foreach (string line in source.Split('\n')) writer.WriteLine(line.TrimEnd('\r'));
+    }
+
+    internal static void Emit(JavaScriptTextWriter writer, bool vue = false, bool copelandView = false)
+    {
+        string registryKey = copelandView ? "copeland.ts.view-projections.v1"
+            : vue ? "copeland.ts.vue-projections.v1" : "copeland.ts.react-projections.v1";
+        writer.WriteLine($"const __cope_component_registry_key = Symbol.for({JavaScriptLiteralWriter.WriteString(registryKey)});");
+        const string registry = """
             let __cope_component_registry = globalThis[__cope_component_registry_key];
             if (__cope_component_registry === undefined) {
                 __cope_component_registry = { instances: new Map(), diagnostics: [], generation: 0 };
                 Object.defineProperty(globalThis, __cope_component_registry_key, { value: __cope_component_registry });
             }
-
-            function __cope_component_child_host(props) {
-                if (props.ownership === undefined) {
-                    throw new Error("COPE-COMPONENT-CHILD-0005 ownChild requires a canonical stateful parent presentation.");
-                }
-                return __cope_component_clone(props.node, { ownership: props.ownership });
-            }
-            __cope_component_child_host.__cope_owned_child = true;
-
+            """;
+        const string common = """
             function __cope_component_child(slot, key, node) {
                 if (typeof slot !== "string" || slot.length === 0 || typeof key !== "string" || key.length === 0) {
                     throw new Error("COPE-COMPONENT-CHILD-0001 Child ownership requires a nonempty slot and domain key.");
@@ -45,7 +66,7 @@ internal static class ComponentStateRuntime
                     throw new Error("COPE-COMPONENT-CHILD-0002 ownChild requires a direct stateful Copeland component.");
                 }
                 return __cope_component_element(__cope_component_child_host, {
-                    key: JSON.stringify([slot, key, node.props.__cope_component_definition]), slot, domainKey: key, node,
+                    key: JSON.stringify([slot, key, node.props?.__cope_component_definition]), slot, domainKey: key, node,
                 });
             }
 
@@ -185,13 +206,13 @@ internal static class ComponentStateRuntime
                     }
                     function visit(node) {
                         if (Array.isArray(node)) return node.map(visit);
-                        if (node === null || typeof node !== "object" || node.props === undefined) return node;
+                        if (node === null || typeof node !== "object" || node.props === undefined && node.children === undefined) return node;
                         if (node.type?.__cope_owned_child === true) {
                             const slotKey = JSON.stringify([node.props.slot, node.props.domainKey]);
                             if (desired.has(slotKey)) {
                                 throw new Error("COPE-COMPONENT-CHILD-0003 Duplicate child key in slot " + slotKey);
                             }
-                            const childDefinition = node.props.node.props.__cope_component_definition;
+                            const childDefinition = node.props.node.props?.__cope_component_definition;
                             let child = children.get(slotKey);
                             if (child === undefined || child.definition !== childDefinition || child.retired) {
                                 child = {
@@ -202,10 +223,11 @@ internal static class ComponentStateRuntime
                             desired.set(slotKey, child);
                             return __cope_component_clone(node, { ownership: child, key: child.identity });
                         }
-                        if (node.props.children !== undefined) {
-                            return __cope_component_clone(node, { children: visit(node.props.children) });
+                        const nodeChildren = __cope_component_children(node);
+                        if (nodeChildren !== undefined) {
+                            return __cope_component_with_children(node, visit(nodeChildren));
                         }
-                        if (node.props.__cope_component_definition !== undefined) {
+                        if (node.props?.__cope_component_definition !== undefined) {
                             throw new Error("COPE-COMPONENT-CHILD-0004 Stateful children require ownChild(slot, key, Child(...)).");
                         }
                         return node;
@@ -361,7 +383,28 @@ internal static class ComponentStateRuntime
                 };
                 return projection;
             }
+            """;
+        const string react = """
+            function __cope_component_child_host(props) {
+                if (props.ownership === undefined) {
+                    throw new Error("COPE-COMPONENT-CHILD-0005 ownChild requires a canonical stateful parent presentation.");
+                }
+                return __cope_component_clone(props.node, { ownership: props.ownership });
+            }
+            __cope_component_child_host.__cope_owned_child = true;
 
+
+            function __cope_component_children(node) {
+                return node.props.children;
+            }
+
+            function __cope_component_with_children(node, children) {
+                if (typeof __cope_view_child_shapes !== "undefined" && __cope_view_child_shapes.get(node) === true) {
+                    const values = Array.isArray(children) ? children : [children];
+                    return __cope_view_mark(__cope_component_clone(node, null, ...values), true);
+                }
+                return __cope_component_clone(node, { children });
+            }
             function __cope_component_project(definition, initial, present, createEndpoints, transitions, ownership) {
                 const id = __cope_component_id();
                 const owner = __cope_component_ref(null);
@@ -400,6 +443,105 @@ internal static class ComponentStateRuntime
                 return __cope_component_element(__cope_component_viewport_host, { onResize }, children);
             }
             """;
+        const string vueAdapter = """
+            const __cope_component_vue_hosts = new WeakMap();
+            function __cope_component_vue_host(setup) {
+                let component = __cope_component_vue_hosts.get(setup);
+                if (component === undefined) {
+                    component = {
+                        props: ["inputs", "ownership", "__cope_component_definition"],
+                        setup,
+                    };
+                    __cope_component_vue_hosts.set(setup, component);
+                }
+                return component;
+            }
+
+            const __cope_component_child_host = {
+                props: ["node", "ownership", "slot", "domainKey"],
+                __cope_owned_child: true,
+                setup(props) {
+                    return () => {
+                        if (props.ownership === undefined) {
+                            throw new Error("COPE-COMPONENT-CHILD-0005 ownChild requires a canonical stateful parent presentation.");
+                        }
+                        return __cope_component_clone(props.node, { ownership: props.ownership });
+                    };
+                },
+            };
+
+            function __cope_component_children(node) {
+                if (node.type === __cope_component_viewport_host) return node.props.children;
+                if (Array.isArray(node.children)) return node.children;
+                return node.children?.default?.__cope_component_slot_children;
+            }
+
+            function __cope_component_with_children(node, children) {
+                if (node.type === __cope_component_viewport_host) {
+                    return __cope_component_clone(node, { children });
+                }
+                const result = __cope_component_clone(node);
+                if (Array.isArray(node.children)) {
+                    result.children = children;
+                } else {
+                    const slot = () => children;
+                    slot.__cope_component_slot_children = children;
+                    result.children = { ...node.children, default: slot };
+                }
+                return result;
+            }
+
+            function __cope_component_project(definition, initial, present, createEndpoints, transitions, ownership) {
+                const identity = ownership?.identity ?? definition + "::vue::" + (++__cope_component_registry.generation);
+                const projection = __cope_component_projection(identity, definition, initial, present, createEndpoints, transitions, ownership);
+                const current = __cope_component_ref(projection.getSnapshot());
+                const unsubscribe = projection.subscribe(() => {
+                    current.value = projection.getSnapshot();
+                });
+                let rendered;
+                const acknowledge = () => {
+                    if (rendered === undefined) return;
+                    projection.commitRender(present, rendered.candidate, rendered.revision);
+                    projection.acknowledge(rendered.revision);
+                };
+                __cope_component_mounted(() => {
+                    projection.acquire();
+                    acknowledge();
+                });
+                __cope_component_updated(acknowledge);
+                __cope_component_unmount(() => {
+                    unsubscribe();
+                    projection.release();
+                });
+                return () => {
+                    const snapshot = current.value;
+                    const candidate = projection.render(present);
+                    rendered = { candidate, revision: snapshot.revision };
+                    return candidate.presentation;
+                };
+            }
+
+            const __cope_component_viewport_host = {
+                props: ["children", "onResize"],
+                setup(props) {
+                    const changed = () => props.onResize(window.innerWidth);
+                    __cope_component_mounted(() => {
+                        window.addEventListener("resize", changed, { passive: true });
+                        window.addEventListener("orientationchange", changed, { passive: true });
+                    });
+                    __cope_component_unmount(() => {
+                        window.removeEventListener("resize", changed);
+                        window.removeEventListener("orientationchange", changed);
+                    });
+                    return () => props.children;
+                },
+            };
+
+            function __cope_component_viewport(children, onResize) {
+                return __cope_component_element(__cope_component_viewport_host, { children, onResize });
+            }
+            """;
+        string source = registry + "\n" + (vue ? vueAdapter : react) + "\n" + common;
         foreach (string line in source.Split('\n'))
         {
             writer.WriteLine(line.TrimEnd('\r'));

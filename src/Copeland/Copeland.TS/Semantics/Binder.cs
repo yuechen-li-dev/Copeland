@@ -21,9 +21,9 @@ public static partial class Binder
         return impl.Bind();
     }
 
-    internal static BoundCompilation Bind(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandJavaScriptHostContractResolver hostResolver, CopelandClrMetadataResolver clrResolver, CopelandPackageContractMap packageContracts, CopelandPackageBackend packageBackend, CopelandProjectTypeSet projectTypes = CopelandProjectTypeSet.None, string? sourcePath = null, string? moduleIdentity = null, BoundModuleImports? imports = null)
+    internal static BoundCompilation Bind(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandJavaScriptHostContractResolver hostResolver, CopelandClrMetadataResolver clrResolver, CopelandPackageContractMap packageContracts, CopelandPackageBackend packageBackend, CopelandProjectTypeSet projectTypes = CopelandProjectTypeSet.None, string? sourcePath = null, string? moduleIdentity = null, BoundModuleImports? imports = null, Copeland.TS.Mir.MirPresentationAdapter? presentationAdapter = null)
     {
-        var impl = new BinderImpl(tree, assetResolver, npmResolver, hostResolver, clrResolver, packageContracts, packageBackend, projectTypes, sourcePath, moduleIdentity, imports);
+        var impl = new BinderImpl(tree, assetResolver, npmResolver, hostResolver, clrResolver, packageContracts, packageBackend, projectTypes, sourcePath, moduleIdentity, imports, presentationAdapter);
         return impl.Bind();
     }
 
@@ -73,7 +73,7 @@ public static partial class Binder
         }
     }
 
-    private sealed partial class BinderImpl(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandJavaScriptHostContractResolver hostResolver, CopelandClrMetadataResolver clrResolver, CopelandPackageContractMap packageContracts, CopelandPackageBackend packageBackend, CopelandProjectTypeSet projectTypes, string? sourcePath, string? moduleIdentity, BoundModuleImports? imports)
+    private sealed partial class BinderImpl(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandJavaScriptHostContractResolver hostResolver, CopelandClrMetadataResolver clrResolver, CopelandPackageContractMap packageContracts, CopelandPackageBackend packageBackend, CopelandProjectTypeSet projectTypes, string? sourcePath, string? moduleIdentity, BoundModuleImports? imports, Copeland.TS.Mir.MirPresentationAdapter? presentationAdapter = null)
     {
         private sealed class BatchBindingContext
         {
@@ -209,6 +209,13 @@ public static partial class Binder
 
         public BoundCompilation Bind()
         {
+            ValidatePresentationAdapter();
+            if (_projectTypes.HasFlag(CopelandProjectTypeSet.ReactComponents)
+                && _projectTypes.HasFlag(CopelandProjectTypeSet.VueComponents))
+            {
+                _diagnostics.Report("COPE-COMPONENT-RENDERER-0002",
+                    "Select one component renderer per project target. Mixed React/Vue ownership requires an explicit host boundary.", 0, 1, _sourcePath);
+            }
             _textDocumentCompilation = TextDocumentCompiler.Compile(_tree, _sourcePath ?? "<memory>");
             foreach (BoundTextDocument document in _textDocumentCompilation.Documents)
             {
@@ -337,6 +344,7 @@ public static partial class Binder
                     _hostAttachments,
                     _semanticCallSites);
             program.ModuleStreams = _moduleStreams.OrderBy(item => item.Syntax.Identifier.Position).Select(item => item.Symbol).ToArray();
+            program.PresentationAdapter = IsCopelandPresentation ? presentationAdapter : null;
             foreach (BoundTemplateDeclaration template in _templates)
             {
                 template.Symbol.StaticFunctions = program.Functions;
@@ -360,17 +368,31 @@ public static partial class Binder
             var definitionByFunction = new Dictionary<FunctionSymbol, BoundComponentDefinition>();
             var functionBySymbol = new Dictionary<FunctionSymbol, BoundFunctionDeclaration>();
             foreach (BoundFunctionDeclaration function in _functions
-                .Where(function => function.Symbol.ReturnType == ReactNodeTypeSymbol.Instance)
+                .Where(function => function.Symbol.ReturnType == PresentationNodeType)
                 .OrderBy(function => function.Symbol.StableIdentity, StringComparer.Ordinal))
             {
                 BoundLayoutBinding? localStream = FindReturnedStream(function.Body);
-                ComponentImplementationKind implementation = localStream is null
-                    ? ComponentImplementationKind.React
-                    : ComponentImplementationKind.NativeMachina;
-                BoundComponentPresentation presentation = TryGetExplicitForeignPresentation(function.Body)
-                    ?? (localStream is null && ReturnsCustomElement(function.Body)
-                        ? BoundComponentPresentation.CustomElementBridge()
-                        : BoundComponentPresentation.ReactBridge(localStream is not null));
+                ComponentImplementationKind implementation = ComponentImplementationKind.NativeMachina;
+                if (localStream is null)
+                {
+                    if (IsCopelandPresentation) implementation = ComponentImplementationKind.Copeland;
+                    else if (IsVuePresentation) implementation = ComponentImplementationKind.Vue;
+                    else implementation = ComponentImplementationKind.React;
+                }
+                BoundComponentPresentation? presentation = TryGetExplicitForeignPresentation(function.Body);
+                if (presentation is null)
+                {
+                    if (localStream is null && ReturnsCustomElement(function.Body))
+                    {
+                        presentation = BoundComponentPresentation.CustomElementBridge();
+                    }
+                    else
+                    {
+                        if (IsCopelandPresentation) presentation = BoundComponentPresentation.CopelandView(localStream is not null);
+                        else if (IsVuePresentation) presentation = BoundComponentPresentation.VueBridge(localStream is not null);
+                        else presentation = BoundComponentPresentation.ReactBridge(localStream is not null);
+                    }
+                }
                 AttachmentPlanPayload? payload = TryGetAttachmentPayload(function.Body, presentation);
                 BoundComponentStateModel? state = FindComponentState(function);
                 var definition = new BoundComponentDefinition(
@@ -2987,17 +3009,14 @@ public static partial class Binder
                 }
                 if (contract is null || layout.BoundLayout.Satisfaction is not { IsSatisfied: true }) continue;
 
-                if (!_scope.TryLookup("createElement", out Symbol? createElementSymbol)
-                    || createElementSymbol is not NpmFunctionSymbol createElement
-                    || createElement.PackageName != "react"
-                    || createElement.ExportName != "createElement")
+                if (!TryGetPresentationFactory(out NpmFunctionSymbol createElement))
                 {
-                    Report("COPE-STREAM-0009", $"Stream '{layout.Name}' requires the bounded React createElement import because declared layout boxes lower to React hosts.", syntax.Identifier);
+                    Report("COPE-STREAM-0009", $"Stream '{layout.Name}' requires the bounded '{PresentationFactoryName}' import because declared layout boxes lower to renderer hosts.", syntax.Identifier);
                     continue;
                 }
 
                 string runtimeName = layout.Name + "Stream";
-                var runtimeFunction = new FunctionSymbol(runtimeName, [], ReactNodeTypeSymbol.Instance, stableIdentity: layout.StableIdentity + "::stream");
+                var runtimeFunction = new FunctionSymbol(runtimeName, [], PresentationNodeType, stableIdentity: layout.StableIdentity + "::stream");
                 if (!_global.TryDeclare(runtimeFunction))
                 {
                     Report("COPE-STREAM-0010", $"Generated stream render value '{runtimeName}' conflicts with an existing declaration.", syntax.Identifier);
@@ -3020,14 +3039,14 @@ public static partial class Binder
                 foreach (StreamContentNode node in contentNodes)
                 {
                     if (!layout.Slots.TryGetValue(node.Identifier.Text, out LayoutSlotSymbol? slot)) continue;
-                    BoundExpression content = BindExpression(node.Content, ReactNodeTypeSymbol.Instance);
-                    if (content.Type != ReactNodeTypeSymbol.Instance)
+                    BoundExpression content = BindExpression(node.Content, PresentationNodeType);
+                    if (content.Type != PresentationNodeType)
                     {
                         string diagnosticId = node.Table is null ? "COPE-STREAM-0012" : "COPE-LAYOUT-TABLE-0014";
                         string location = node.Table is null
                             ? $"stream region '{slot.SemanticPath}'"
                             : $"row '{node.Identifier.Text}', column 'content' in CSV layout table '{node.Table.Identifier.Text}'";
-                        Report(diagnosticId, $"Content for {location} must be a renderable ReactNode expression; got '{content.Type.Name}'.", node.Identifier);
+                        Report(diagnosticId, $"Content for {location} must be a renderable '{PresentationNodeType.Name}' expression; got '{content.Type.Name}'.", node.Identifier);
                         continue;
                     }
                     var entrySyntax = new LayoutBindingEntrySyntax(node.Identifier, node.ColonToken ?? node.Identifier, node.Content, null);
@@ -3042,10 +3061,10 @@ public static partial class Binder
                     var items = new List<BoundExpression>();
                     for (int index = 0; index < literal.Elements.Count; index++)
                     {
-                        BoundExpression item = BindExpression(literal.Elements[index], ReactNodeTypeSymbol.Instance);
-                        if (item.Type != ReactNodeTypeSymbol.Instance)
+                        BoundExpression item = BindExpression(literal.Elements[index], PresentationNodeType);
+                        if (item.Type != PresentationNodeType)
                         {
-                            Report("COPE-STREAM-COLLECTION-0003", $"Item {index + 1} in stream region '{layout.Name}.{region.Name}' is not renderable. Expected ReactNode; received '{item.Type.Name}'.", node.Identifier);
+                            Report("COPE-STREAM-COLLECTION-0003", $"Item {index + 1} in stream region '{layout.Name}.{region.Name}' is not renderable. Expected '{PresentationNodeType.Name}'; received '{item.Type.Name}'.", node.Identifier);
                             continue;
                         }
                         items.Add(item);
@@ -3178,12 +3197,9 @@ public static partial class Binder
                     continue;
                 }
 
-                if (!_scope.TryLookup("createElement", out Symbol? createElementSymbol)
-                    || createElementSymbol is not NpmFunctionSymbol createElement
-                    || createElement.PackageName != "react"
-                    || createElement.ExportName != "createElement")
+                if (!TryGetPresentationFactory(out NpmFunctionSymbol createElement))
                 {
-                    Report("COPE-LAYOUT-BIND-0010", $"Binding '{layout.Name}' requires the bounded React createElement import because declared layout boxes lower to React hosts.", syntax.LayoutIdentifier);
+                    Report("COPE-LAYOUT-BIND-0010", $"Binding '{layout.Name}' requires the bounded '{PresentationFactoryName}' import because declared layout boxes lower to renderer hosts.", syntax.LayoutIdentifier);
                     continue;
                 }
 
@@ -3191,7 +3207,7 @@ public static partial class Binder
                 var runtimeFunction = new FunctionSymbol(
                     runtimeName,
                     [],
-                    ReactNodeTypeSymbol.Instance,
+                    PresentationNodeType,
                     stableIdentity: layout.StableIdentity + "::binding");
                 if (!_global.TryDeclare(runtimeFunction))
                 {
@@ -3234,10 +3250,10 @@ public static partial class Binder
                         continue;
                     }
 
-                    BoundExpression component = BindExpression(entry.Value, ReactNodeTypeSymbol.Instance);
-                    if (component.Type != ReactNodeTypeSymbol.Instance)
+                    BoundExpression component = BindExpression(entry.Value, PresentationNodeType);
+                    if (component.Type != PresentationNodeType)
                     {
-                        Report("COPE-LAYOUT-BIND-0008", $"Binding for '{slot.SemanticPath}' must be a renderable ReactNode component/view expression; got '{component.Type.Name}'.", entry.Value is NameExpressionSyntax name ? name.IdentifierToken : entry.SlotIdentifier);
+                        Report("COPE-LAYOUT-BIND-0008", $"Binding for '{slot.SemanticPath}' must be a renderable '{PresentationNodeType.Name}' component/view expression; got '{component.Type.Name}'.", entry.Value is NameExpressionSyntax name ? name.IdentifierToken : entry.SlotIdentifier);
                         continue;
                     }
 
@@ -5604,9 +5620,14 @@ public static partial class Binder
 
         private BoundStatement BindComponentState(ComponentStateDeclarationStatementSyntax declaration)
         {
-            if (_currentFunction?.ReturnType != ReactNodeTypeSymbol.Instance)
+            if (IsCopelandPresentation && presentationAdapter?.CommitProtocol == Copeland.TS.Mir.MirPresentationCommitProtocol.None)
             {
-                Report("COPE-COMPONENT-STATE-0001", "Component state is allowed only inside a ReactNode component function.", declaration.StateKeyword);
+                Report("COPE-VIEW-0004", "Stateful View requires an adapter with a qualified commit protocol. Declare a lifecycle-capable target; a stateless factory cannot acknowledge effects or retire owners.", declaration.StateKeyword);
+                return new BoundExpressionStatement(new BoundErrorExpression());
+            }
+            if (_currentFunction?.ReturnType != PresentationNodeType)
+            {
+                Report("COPE-COMPONENT-STATE-0001", $"Component state is allowed only inside a {PresentationNodeType.Name} component function.", declaration.StateKeyword);
                 return new BoundExpressionStatement(new BoundErrorExpression());
             }
 
@@ -5645,9 +5666,9 @@ public static partial class Binder
 
         private BoundStatement BindComponentEventHandler(ComponentEventHandlerStatementSyntax handler)
         {
-            if (_currentFunction?.ReturnType != ReactNodeTypeSymbol.Instance)
+            if (_currentFunction?.ReturnType != PresentationNodeType)
             {
-                Report("COPE-COMPONENT-STATE-0005", "Component event handlers are allowed only inside a ReactNode component function.", handler.OnKeyword);
+                Report("COPE-COMPONENT-STATE-0005", $"Component event handlers are allowed only inside a {PresentationNodeType.Name} component function.", handler.OnKeyword);
                 return new BoundExpressionStatement(new BoundErrorExpression());
             }
 
@@ -5785,10 +5806,10 @@ public static partial class Binder
 
         private BoundStatement BindLocalPresentation(LocalPresentationDeclarationStatementSyntax presentation)
         {
-            if (_currentFunction is null || _currentFunction.ReturnType != ReactNodeTypeSymbol.Instance)
+            if (_currentFunction is null || _currentFunction.ReturnType != PresentationNodeType)
             {
                 SyntaxToken anchor = presentation.Stream?.StreamKeyword ?? presentation.Layout!.LayoutKeyword;
-                Report("COPE-COMPONENT-CAPSULE-0001", "Local layout and stream declarations are supported only inside a ReactNode component function.", anchor);
+                Report("COPE-COMPONENT-CAPSULE-0001", $"Local layout and stream declarations are supported only inside a {PresentationNodeType.Name} component function.", anchor);
                 return new BoundExpressionStatement(new BoundErrorExpression());
             }
 
@@ -5837,10 +5858,10 @@ public static partial class Binder
                             continue;
                         }
 
-                        BoundExpression content = BindExpression(node.Content, ReactNodeTypeSymbol.Instance);
-                        if (content.Type != ReactNodeTypeSymbol.Instance)
+                        BoundExpression content = BindExpression(node.Content, PresentationNodeType);
+                        if (content.Type != PresentationNodeType)
                         {
-                            Report("COPE-STREAM-0012", $"Content for private stream region '{name}.{slot.SemanticPath}' must be a renderable ReactNode expression; got '{content.Type.Name}'.", node.Identifier);
+                            Report("COPE-STREAM-0012", $"Content for private stream region '{name}.{slot.SemanticPath}' must be a renderable '{PresentationNodeType.Name}' expression; got '{content.Type.Name}'.", node.Identifier);
                             continue;
                         }
 
@@ -5858,8 +5879,8 @@ public static partial class Binder
                         var items = new List<BoundExpression>();
                         foreach (ExpressionSyntax itemSyntax in itemsSyntax.Elements)
                         {
-                            BoundExpression item = BindExpression(itemSyntax, ReactNodeTypeSymbol.Instance);
-                            if (item.Type == ReactNodeTypeSymbol.Instance)
+                            BoundExpression item = BindExpression(itemSyntax, PresentationNodeType);
+                            if (item.Type == PresentationNodeType)
                             {
                                 items.Add(item);
                             }
@@ -5881,7 +5902,7 @@ public static partial class Binder
                     .OrderBy(capture => capture.StableIdentity, StringComparer.Ordinal)
                     .ToArray();
                 var parameters = captures.Select(capture => new ParameterSymbol(capture.Source.Name, capture.Type)).ToArray();
-                var runtimeFunction = new FunctionSymbol(name, parameters, ReactNodeTypeSymbol.Instance, stableIdentity: identity + "::runtime");
+                var runtimeFunction = new FunctionSymbol(name, parameters, PresentationNodeType, stableIdentity: identity + "::runtime");
                 runtimeFunction.EmissionName = "__cope_component_" + SanitizeJavaScriptIdentifier(_currentFunction.Name) + "_" + SanitizeJavaScriptIdentifier(name);
                 if (!_scope.TryDeclare(runtimeFunction))
                 {
@@ -5896,7 +5917,7 @@ public static partial class Binder
                     new LayoutTypeSymbol(name + "Shape", identity + "::shape", new BoundLayoutTypeDeclaration(name + "Shape", new BoundLayoutTypeNode(name, LayoutNodeKind.Overlay, null, [] , layout.BoundLayout.Root.Source))),
                     new LayoutBindingDeclarationSyntax(presentation.Stream?.StreamKeyword ?? presentation.Layout!.LayoutKeyword, presentation.Stream?.Identifier ?? presentation.Layout!.Identifier, presentation.Stream?.OpenBraceToken ?? presentation.Layout!.OpenBraceToken, [], presentation.Stream?.CloseBraceToken ?? presentation.Layout!.CloseBraceToken),
                     runtimeFunction,
-                    "createElement",
+                    PresentationFactoryName,
                     new BoundLayoutReactRealization(root, classes),
                     entries,
                     collections,
@@ -6648,7 +6669,7 @@ public static partial class Binder
                 return BindTextDocument(document, documentRoot);
             }
 
-            if (_projectTypes.HasFlag(CopelandProjectTypeSet.ReactComponents))
+            if (HasComponentPresentation)
             {
                 return expression switch
                 {
@@ -6666,7 +6687,7 @@ public static partial class Binder
             };
             Report(
                 "COPE-TSXML-0101",
-                "TS-XML syntax requires an enabled project type; select ReactComponents, TextDocuments, or FlowAuthoring in tsconfig.tsx.",
+                "TS-XML syntax requires an enabled project type; select ReactComponents, VueComponents, TextDocuments, or FlowAuthoring in tsconfig.tsx.",
                 token);
             return new BoundErrorExpression();
         }
@@ -6743,12 +6764,9 @@ public static partial class Binder
 
         private BoundExpression BindReactTsXmlElement(TsXmlElementExpressionSyntax element)
         {
-            if (!_scope.TryLookup("createElement", out Symbol? symbol)
-                || symbol is not NpmFunctionSymbol createElement
-                || createElement.PackageName != "react"
-                || createElement.ExportName != "createElement")
+            if (!TryGetPresentationFactory(out NpmFunctionSymbol createElement))
             {
-                Report("COPE-REACT-0001", "React TS-XML requires the bounded 'createElement' import from the materialized 'react' package.", element.NameToken);
+                Report("COPE-REACT-0001", $"TS-XML requires the bounded '{PresentationFactoryName}' import from the materialized '{PresentationPackage}' package.", element.NameToken);
                 return new BoundErrorExpression();
             }
 
@@ -6773,7 +6791,7 @@ public static partial class Binder
             {
                 if (!isTextDocumentElement && !IsSupportedReactIntrinsic(elementName))
                 {
-                    Report("COPE-REACT-0002", $"React TS-XML intrinsic '<{elementName}>' is not supported by the bounded React M0 profile.", element.NameToken);
+                    Report("COPE-REACT-0002", $"Component TS-XML intrinsic '<{elementName}>' is not supported by the bounded React M0 profile.", element.NameToken);
                 }
 
                 elementType = new BoundLiteralExpression(
@@ -6799,7 +6817,7 @@ public static partial class Binder
                 string propertyName = attribute.NameToken.Text;
                 if (!seenProperties.Add(propertyName))
                 {
-                    Report("COPE-REACT-0012", $"React TS-XML property '{propertyName}' is specified more than once on '<{elementName}>'.", attribute.NameToken);
+                    Report("COPE-REACT-0012", $"Component TS-XML property '{propertyName}' is specified more than once on '<{elementName}>'.", attribute.NameToken);
                     continue;
                 }
 
@@ -6814,13 +6832,13 @@ public static partial class Binder
                 NpmComponentPropertySymbol? componentProperty = componentProperties.FirstOrDefault(property => property.Name == propertyName);
                 if (!isIntrinsic && componentProperty is null)
                 {
-                    Report("COPE-REACT-0013", $"React component '<{elementName}>' has no contracted property '{propertyName}'.", attribute.NameToken);
+                    Report("COPE-REACT-0013", $"Component '<{elementName}>' has no contracted property '{propertyName}'.", attribute.NameToken);
                     continue;
                 }
 
                 if (attribute.ExpressionValue is null && attribute.StringValueToken is null)
                 {
-                    Report("COPE-REACT-0004", $"React TS-XML property '{propertyName}' requires a value.", attribute.NameToken);
+                    Report("COPE-REACT-0004", $"Component TS-XML property '{propertyName}' requires a value.", attribute.NameToken);
                     continue;
                 }
 
@@ -6828,7 +6846,7 @@ public static partial class Binder
                 {
                     ReportRepair(
                         "COPE-REACT-0017",
-                        $"Native React '{propertyName}' event objects are outside the current intrinsic contract. Use a contracted Input component with onValueChange: (string) => void, or an explicit typed browser adapter.",
+                        $"Native '{propertyName}' event objects are outside the current intrinsic contract. Use a contracted Input component with onValueChange: (string) => void, or an explicit typed browser adapter.",
                         attribute.NameToken,
                         "a contracted Input component with onValueChange: (string) => void",
                         "unsupported-capability");
@@ -6857,17 +6875,27 @@ public static partial class Binder
                 {
                     if (!seenProperties.Contains(required.Name) && !(required.Name == "children" && element.Children.Count > 0))
                     {
-                        Report("COPE-REACT-0015", $"React component '<{elementName}>' is missing required property '{required.Name}'.", element.NameToken);
+                        Report("COPE-REACT-0015", $"Component '<{elementName}>' is missing required property '{required.Name}'.", element.NameToken);
                     }
                 }
-                if (element.Children.Count > 0 && componentProperties.All(property => property.Name != "children"))
+                bool acceptsChildren = componentProperties.Any(property => property.Name == "children");
+                if (UsesDefaultSlots)
                 {
-                    Report("COPE-REACT-0016", $"React component '<{elementName}>' does not accept children in its selected contract.", element.NameToken);
+                    acceptsChildren = elementType switch
+                    {
+                        BoundNpmComponentValueExpression component => component.Component.DefaultSlot,
+                        BoundNpmComponentMemberExpression component => component.Component.DefaultSlot,
+                        _ => false,
+                    };
+                }
+                if (element.Children.Count > 0 && !acceptsChildren)
+                {
+                    Report("COPE-REACT-0016", $"Component '<{elementName}>' does not accept children in its selected contract.", element.NameToken);
                 }
             }
 
             IReadOnlyList<BoundExpression> children = BindReactChildren(element.Children);
-            return new BoundReactElementExpression(createElement.Name, elementType, isIntrinsic, properties, children);
+            return new BoundReactElementExpression(createElement.Name, elementType, isIntrinsic, properties, children, PresentationNodeType);
         }
 
         private BoundExpression BindCanonicalDocument(BoundTextDocument document, string createElementBinding)
@@ -6937,7 +6965,7 @@ public static partial class Binder
             return DocumentElement("span", null, [], createElementBinding);
         }
 
-        private static BoundExpression DocumentElement(
+        private BoundExpression DocumentElement(
             string name,
             string? className,
             IReadOnlyList<BoundExpression> children,
@@ -6958,7 +6986,8 @@ public static partial class Binder
                 new BoundLiteralExpression(name, PrimitiveTypeSymbol.String),
                 true,
                 properties,
-                children);
+                children,
+                PresentationNodeType);
         }
 
         private bool TryResolveReactComponent(string elementName, SyntaxToken anchor, out BoundExpression? component, out IReadOnlyList<NpmComponentPropertySymbol>? properties)
@@ -6968,6 +6997,7 @@ public static partial class Binder
             string[] parts = elementName.Split('.');
             if (parts.Length == 1 && _scope.TryLookup(parts[0], out Symbol? direct) && direct is NpmComponentSymbol directComponent)
             {
+                if (!ValidateComponentRenderer(directComponent, anchor)) return false;
                 if (!directComponent.IsAvailableToJavaScript)
                 {
                     Report("COPE-REACT-0017", $"React component '{elementName}' is unavailable for the JavaScript target.", anchor);
@@ -6983,10 +7013,11 @@ public static partial class Binder
                 && _scope.TryLookup(parts[0], out Symbol? namespaceSymbol)
                 && namespaceSymbol is NpmComponentSymbol namespaceComponent)
             {
+                if (!ValidateComponentRenderer(namespaceComponent, anchor)) return false;
                 NpmComponentMemberSymbol? member = namespaceComponent.Members.SingleOrDefault(candidate => candidate.Name == parts[1]);
                 if (member is null)
                 {
-                    Report("COPE-REACT-0010", $"React component namespace '{parts[0]}' has no contracted member '{parts[1]}'.", anchor);
+                    Report("COPE-REACT-0010", $"Component namespace '{parts[0]}' has no contracted member '{parts[1]}'.", anchor);
                     return false;
                 }
                 if (!member.IsAvailableToJavaScript)
@@ -7000,13 +7031,13 @@ public static partial class Binder
                 return true;
             }
 
-            Report("COPE-REACT-0008", $"Unknown React component '<{elementName}>'. Import a selected component contract before using it in TS-XML.", anchor);
+            Report("COPE-REACT-0008", $"Unknown component '<{elementName}>'. Import a selected component contract before using it in TS-XML.", anchor);
             return false;
         }
 
         private BoundExpression BindReactTsXmlFragment(TsXmlFragmentExpressionSyntax fragment)
         {
-            Report("COPE-REACT-0006", "React TS-XML fragments are outside the bounded React M0 profile.", fragment.LessToken);
+            Report("COPE-REACT-0006", "Component TS-XML fragments are outside the bounded React M0 profile.", fragment.LessToken);
             return new BoundErrorExpression();
         }
 
@@ -7029,7 +7060,7 @@ public static partial class Binder
                         BoundExpression value = BindExpression(expression.Expression);
                         if (!IsReactChild(value.Type))
                         {
-                            Report("COPE-REACT-0007", $"React TS-XML child expressions must be string, numeric, ReactNode, or ReactNode[] values; got '{value.Type.Name}'.", expression.OpenBraceToken);
+                            Report("COPE-REACT-0007", $"Component TS-XML child expressions must be string, numeric, {PresentationNodeType.Name}, or {PresentationNodeType.Name}[] values; got '{value.Type.Name}'.", expression.OpenBraceToken);
                         }
                         result.Add(value);
                         break;
@@ -7112,7 +7143,8 @@ public static partial class Binder
                     new BoundLiteralExpression(name, PrimitiveTypeSymbol.String),
                     true,
                     properties ?? [],
-                    children);
+                    children,
+                    PresentationNodeType);
 
             while (cursor < text.Length)
             {
@@ -7233,11 +7265,11 @@ public static partial class Binder
                 _ => "div",
             };
 
-        private static bool IsReactChild(TypeSymbol type)
+        private bool IsReactChild(TypeSymbol type)
             => type == PrimitiveTypeSymbol.String
                 || TypeFacts.IsNumeric(type)
-                || type == ReactNodeTypeSymbol.Instance
-                || type is ArrayTypeSymbol { ElementType: ReactNodeTypeSymbol };
+                || type == PresentationNodeType
+                || type is ArrayTypeSymbol array && array.ElementType == PresentationNodeType;
 
         private BoundExpression BindAwait(AwaitExpressionSyntax awaitExpression)
         {
@@ -8276,17 +8308,16 @@ public static partial class Binder
                 return new BoundErrorExpression();
             }
 
-            if (_projectTypes == CopelandProjectTypeSet.ReactComponents
+            if (HasComponentPresentation
                 && c.Target is NameExpressionSyntax { IdentifierToken.Text: "Text" } textTarget
                 && _textDocumentsByRootStart.TryGetValue(textTarget.IdentifierToken.Position, out BoundTextDocument? document)
                 && document.Document.Metadata.Provenance.SourceKind == DocumentSourceKind.TextPlain)
             {
-                if (_scope.TryLookup("createElement", out Symbol? createElementSymbol)
-                    && createElementSymbol is NpmFunctionSymbol { PackageName: "react", ExportName: "createElement" } createElement)
+                if (TryGetPresentationFactory(out NpmFunctionSymbol createElement))
                 {
                     return BindCanonicalDocument(document, createElement.Name);
                 }
-                Report("COPE-DOC-RENDER-0001", "Canonical plain Text requires the bounded React createElement import.", textTarget.IdentifierToken);
+                Report("COPE-DOC-RENDER-0001", "Canonical plain Text requires the bounded '{PresentationFactoryName}' import.", textTarget.IdentifierToken);
                 return new BoundErrorExpression();
             }
             if (c.Target is MemberAccessExpressionSyntax { Target: NameExpressionSyntax { IdentifierToken.Text: "Math" }, NameToken.Text: "imul" } multiply
@@ -8506,6 +8537,12 @@ public static partial class Binder
             }
 
             BoundExpression payload = BindExpression(call.Arguments[1], ReactNodeTypeSymbol.Instance);
+            if (adapter == RendererAdapterIdentity.Vue)
+            {
+                Report("COPE-COMPONENT-RENDERER-0001",
+                    "A Vue node cannot cross a React payload contract. Select VueComponents for direct Vue component interop; mixed-framework mounts require an explicit host boundary.", anchor);
+                return new BoundErrorExpression();
+            }
             BoundComponentPresentation presentation;
             try
             {
@@ -9604,7 +9641,8 @@ public static partial class Binder
                         package.Version,
                         contract.ExportName,
                         member.Properties.Select(property => new NpmComponentPropertySymbol(property.PropertyName, ResolveNpmType(property.TypeName, exportToken), property.IsRequired)).ToArray(),
-                        package.IsAvailableToJavaScript))
+                        package.IsAvailableToJavaScript,
+                        member.DefaultSlot))
                     .ToArray();
                 var symbol = new NpmComponentSymbol(
                     localToken.Text,
@@ -9613,7 +9651,9 @@ public static partial class Binder
                     contract.ExportName,
                     properties,
                     members,
-                    package.IsAvailableToJavaScript);
+                    package.IsAvailableToJavaScript,
+                    contract.Renderer,
+                    contract.DefaultSlot);
                 if (_global.TryLookup(symbol.Name, out Symbol? existing))
                 {
                     if (existing is NpmComponentSymbol existingComponent
@@ -9733,7 +9773,9 @@ public static partial class Binder
                 CopelandJavaScriptHostType.Primitive { Name: "string" } => PrimitiveTypeSymbol.String,
                 CopelandJavaScriptHostType.Primitive { Name: "void" } => PrimitiveTypeSymbol.Void,
                 CopelandJavaScriptHostType.Named { Name: "ReactMountElement" } when _projectTypes == CopelandProjectTypeSet.ReactComponents => ReactMountElementTypeSymbol.Instance,
-                CopelandJavaScriptHostType.Named { Name: "ReactNode" } when _projectTypes == CopelandProjectTypeSet.ReactComponents => ReactNodeTypeSymbol.Instance,
+                CopelandJavaScriptHostType.Named { Name: "VueNode" } when IsVuePresentation || IsCopelandPresentation => VueNodeTypeSymbol.Instance,
+                CopelandJavaScriptHostType.Named { Name: "View" } when IsCopelandPresentation => ViewTypeSymbol.Instance,
+                CopelandJavaScriptHostType.Named { Name: "ReactNode" } when _projectTypes == CopelandProjectTypeSet.ReactComponents || IsCopelandPresentation => ReactNodeTypeSymbol.Instance,
                 CopelandJavaScriptHostType.Callable callable => new CallableTypeSymbol(
                     callable.Parameters.Select((parameter, index) => new CallableParameterTypeSymbol("arg" + index, ResolveJavaScriptHostType(parameter, anchor, typeParameters))).ToArray(),
                     ResolveJavaScriptHostType(callable.ReturnType, anchor, typeParameters)),
@@ -9779,7 +9821,9 @@ public static partial class Binder
 
         private TypeSymbol ResolveNpmType(string name, SyntaxToken anchor)
         {
-            if (_projectTypes.HasFlag(CopelandProjectTypeSet.ReactComponents))
+            if ((IsVuePresentation || IsCopelandPresentation) && name == "VueNode") return VueNodeTypeSymbol.Instance;
+            if (IsCopelandPresentation && name == "View") return ViewTypeSymbol.Instance;
+            if (_projectTypes.HasFlag(CopelandProjectTypeSet.ReactComponents) || IsCopelandPresentation)
             {
                 if (name == "ReactNode") return ReactNodeTypeSymbol.Instance;
                 if (name == "ReactRoot") return ReactRootTypeSymbol.Instance;
@@ -10377,7 +10421,7 @@ public static partial class Binder
                 var arrayType = new MutableArrayTypeSymbol(elementType);
                 if (call.Arguments.Count == 2)
                 {
-                    bool isReactValue = elementType == ReactNodeTypeSymbol.Instance;
+                    bool isReactValue = elementType == PresentationNodeType;
                     bool isDeferred = _currentFunction?.IsGeneric == true && ContainsOpenTypeParameter(elementType);
                     if ((!IsBatchPortableType(elementType) || elementType is ArrayTypeSymbol) && !isReactValue && !isDeferred)
                     {
@@ -11357,7 +11401,8 @@ public static partial class Binder
                     RewriteExpression(element.ElementType),
                     element.IsIntrinsic,
                     properties,
-                    element.Children.Select(RewriteExpression).ToArray());
+                    element.Children.Select(RewriteExpression).ToArray(),
+                    element.Type);
             }
 
             private EnumCaseSymbol RewriteCase(EnumCaseSymbol value)
@@ -11389,7 +11434,7 @@ public static partial class Binder
                 if (operation == Copeland.TS.Mir.MirNativeOperation.MutableArrayFilled
                     && resultType is MutableArrayTypeSymbol array
                     && ((!IsBatchPortableType(array.ElementType) || array.ElementType is ArrayTypeSymbol)
-                        && array.ElementType != ReactNodeTypeSymbol.Instance))
+                        && array.ElementType != owner.PresentationNodeType))
                 {
                     owner.Report("COPE-ARRAY-0008", $"MutableArray initializer type '{array.ElementType.Name}' is not supported after specialization.", new SyntaxToken(SyntaxKind.IdentifierToken, 0, call.Function.Name, null));
                     return new BoundErrorExpression();
@@ -13715,7 +13760,9 @@ public static partial class Binder
             if (i.Identifier.Text == ArtifactTypeSymbol.DiagramNode.Name) return ArtifactTypeSymbol.DiagramNode;
             if (i.Identifier.Text == ArtifactTypeSymbol.DiagramEdge.Name) return ArtifactTypeSymbol.DiagramEdge;
             if (_projectTypes.HasFlag(CopelandProjectTypeSet.TextDocuments) && i.Identifier.Text == "Document") return DocumentTypeSymbol.Instance;
-            if (_projectTypes.HasFlag(CopelandProjectTypeSet.ReactComponents))
+            if ((IsVuePresentation || IsCopelandPresentation) && i.Identifier.Text == "VueNode") return VueNodeTypeSymbol.Instance;
+            if (IsCopelandPresentation && i.Identifier.Text == "View") return ViewTypeSymbol.Instance;
+            if (_projectTypes.HasFlag(CopelandProjectTypeSet.ReactComponents) || IsCopelandPresentation)
             {
                 if (i.Identifier.Text == "ReactNode") return ReactNodeTypeSymbol.Instance;
                 if (i.Identifier.Text == "ReactRoot") return ReactRootTypeSymbol.Instance;

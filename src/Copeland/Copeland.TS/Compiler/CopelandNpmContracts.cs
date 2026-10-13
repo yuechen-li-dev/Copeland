@@ -30,14 +30,16 @@ public sealed record CopelandNpmFunctionContract(
     bool IsPromise = false);
 
 /// <summary>
-/// A deliberately bounded projection of a React component export. This is not
+/// A deliberately bounded projection of a framework component export. This is not
 /// a TypeScript declaration model: it names only the component values and
 /// props selected by the package owner for this Copeland target.
 /// </summary>
 public sealed record CopelandNpmComponentContract(
     string ExportName,
     IReadOnlyList<CopelandNpmComponentPropertyContract>? Properties = null,
-    IReadOnlyList<CopelandNpmComponentMemberContract>? Members = null)
+    IReadOnlyList<CopelandNpmComponentMemberContract>? Members = null,
+    string Renderer = "react",
+    bool DefaultSlot = false)
 {
     public IReadOnlyList<CopelandNpmComponentPropertyContract> ComponentProperties { get; } = Properties ?? [];
     public IReadOnlyList<CopelandNpmComponentMemberContract> CompoundMembers { get; } = Members ?? [];
@@ -45,7 +47,8 @@ public sealed record CopelandNpmComponentContract(
 
 public sealed record CopelandNpmComponentMemberContract(
     string MemberName,
-    IReadOnlyList<CopelandNpmComponentPropertyContract> Properties);
+    IReadOnlyList<CopelandNpmComponentPropertyContract> Properties,
+    bool DefaultSlot = false);
 
 public sealed record CopelandNpmComponentPropertyContract(
     string PropertyName,
@@ -176,7 +179,9 @@ public static class CopelandNpmContractReader
             yield return new CopelandNpmComponentContract(
                 RequiredString(component, "name"),
                 ReadProperties(component, "properties").ToArray(),
-                ReadMembers(component).ToArray());
+                ReadMembers(component).ToArray(),
+                OptionalString(component, "renderer") ?? "react",
+                OptionalBoolean(component, "defaultSlot", defaultValue: false));
         }
     }
 
@@ -191,7 +196,8 @@ public static class CopelandNpmContractReader
         {
             yield return new CopelandNpmComponentMemberContract(
                 RequiredString(member, "name"),
-                ReadProperties(member, "properties").ToArray());
+                ReadProperties(member, "properties").ToArray(),
+                OptionalBoolean(member, "defaultSlot", defaultValue: false));
         }
     }
 
@@ -332,7 +338,9 @@ public static class CopelandNpmManifestProjection
             result.Add(new CopelandNpmComponentContract(
                 name!,
                 ReadComponentProperties(component, "properties"),
-                ReadComponentMembers(component)));
+                ReadComponentMembers(component),
+                TryGetString(component, "renderer", out string? renderer) ? renderer! : "react",
+                TryGetBoolean(component, "defaultSlot", out bool slot) && slot));
         }
 
         return result;
@@ -352,7 +360,8 @@ public static class CopelandNpmManifestProjection
             if (entry is ManifestValue.Object member
                 && TryGetString(member, "name", out string? name))
             {
-                result.Add(new CopelandNpmComponentMemberContract(name!, ReadComponentProperties(member, "properties")));
+                result.Add(new CopelandNpmComponentMemberContract(name!, ReadComponentProperties(member, "properties"),
+                    TryGetBoolean(member, "defaultSlot", out bool slot) && slot));
             }
         }
 
