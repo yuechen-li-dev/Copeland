@@ -6,10 +6,11 @@ import { ArticleTitle, ShortCopy, LongCopy, LongToken, IssueOne, IssueTwo, Issue
 type State = {
     page: number;
     longCopy: boolean;
-    inserted: boolean;
+    rows: Issue[];
+    nextIssueId: number;
     stacked: boolean;
     query: string;
-    selected: number;
+    selected: number | undefined;
     status: number;
     name: string;
     validation: boolean;
@@ -21,6 +22,8 @@ type Event =
     | { kind: "navigate"; page: number }
     | { kind: "copy" }
     | { kind: "insert" }
+    | { kind: "remove" }
+    | { kind: "reverse" }
     | { kind: "arrange" }
     | { kind: "search"; query: string }
     | { kind: "select"; selected: number }
@@ -29,7 +32,7 @@ type Event =
     | { kind: "dialog"; open: boolean };
 
 const initialState: State = {
-    page: 0, longCopy: false, inserted: false, stacked: false,
+    page: 0, longCopy: false, rows: issueData(), nextIssueId: 4, stacked: false,
     query: "", selected: 1, status: 0, name: "",
     validation: false, saved: false, dialogOpen: false
 };
@@ -38,7 +41,20 @@ function reduce(state: State, event: Event): State {
     switch (event.kind) {
         case "navigate": return { ...state, page: event.page };
         case "copy": return { ...state, longCopy: !state.longCopy };
-        case "insert": return { ...state, inserted: true };
+        case "insert": return {
+            ...state,
+            rows: [...state.rows, {
+                id: state.nextIssueId,
+                title: state.nextIssueId === 4 ? IssueExtra() : `${IssueExtra()} / ${state.nextIssueId}`,
+            }],
+            nextIssueId: state.nextIssueId + 1,
+        };
+        case "remove": return {
+            ...state,
+            rows: state.rows.filter(issue => issue.id !== state.selected),
+            selected: undefined,
+        };
+        case "reverse": return { ...state, rows: [...state.rows].reverse() };
         case "arrange": return { ...state, stacked: !state.stacked };
         case "search": return { ...state, query: event.query };
         case "select": return { ...state, selected: event.selected };
@@ -80,15 +96,14 @@ function Notes() {
     </aside>;
 }
 
-function issueData(inserted: boolean) {
+type Issue = { id: number; title: string };
+
+function issueData() {
     const issues = [
         { id: 1, title: IssueOne() },
         { id: 2, title: IssueTwo() },
         { id: 3, title: IssueThree() }
     ];
-    if (inserted) {
-        issues.push({ id: 4, title: IssueExtra() });
-    }
     return issues;
 }
 
@@ -99,19 +114,22 @@ function IssueList({ state, send }: Props) {
     if (state.status === 2) {
         return <section className="panel" role="alert">Could not load issues. <button onClick={() => send({ kind: "status", status: 0 })}>Retry</button></section>;
     }
-    const issues = issueData(state.inserted).filter(issue => issue.title.includes(state.query));
+    const issues = state.rows.filter(issue => issue.title.includes(state.query));
     if (issues.length === 0) {
         return <section className="panel" role="status">No matching issues.</section>;
     }
     return <section className="panel" aria-label="Issue list"><h2>Incoming issues</h2>
         <ul className="issue-list">{issues.map(issue =>
-            <li key={issue.id}><button data-issue={issue.id} onClick={() => send({ kind: "select", selected: issue.id })}>{issue.title}</button></li>
+            <li key={issue.id}><button data-choice={issue.id} aria-pressed={state.selected === issue.id} onClick={() => send({ kind: "select", selected: issue.id })}>{issue.title}</button></li>
         )}</ul>
     </section>;
 }
 
 function IssueDetail({ state }: { state: State }) {
-    const selected = issueData(true).find(issue => issue.id === state.selected)!;
+    const selected = state.rows.find(issue => issue.id === state.selected);
+    if (!selected) {
+        return <section className="panel" role="status">Select an issue to read its details.</section>;
+    }
     return <article className="panel reading" id="issue-detail">
         <p className="eyebrow">SELECTED ISSUE {state.selected}</p>
         <h2>{selected.title}</h2>
@@ -129,6 +147,8 @@ function IssuesPage({ state, send }: Props) {
             <input id="search" type="search" value={draft} onChange={event => setDraft(event.currentTarget.value)} />
             <button onClick={() => send({ kind: "search", query: draft })}>Search</button>
             <button onClick={() => send({ kind: "insert" })}>Insert issue</button>
+            <button onClick={() => send({ kind: "remove" })}>Remove selected issue</button>
+            <button onClick={() => send({ kind: "reverse" })}>Reverse issues</button>
             <button onClick={() => send({ kind: "arrange" })}>Change arrangement</button>
             <button onClick={() => send({ kind: "status", status: 1 })}>Show loading</button>
             <button onClick={() => send({ kind: "status", status: 2 })}>Show error</button>

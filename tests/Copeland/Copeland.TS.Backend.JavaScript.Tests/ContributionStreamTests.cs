@@ -260,6 +260,157 @@ public sealed class ContributionStreamTests
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
     }
 
+    [Theory]
+    [InlineData(JavaScriptEmissionProfile.Diagnostic)]
+    [InlineData(JavaScriptEmissionProfile.Symbolic)]
+    [InlineData(JavaScriptEmissionProfile.Production)]
+    public async Task Enum_and_option_values_keep_nominal_identity_across_emitted_modules(JavaScriptEmissionProfile profile)
+    {
+        CopelandProjectCompilation compilation = CopelandProjectCompiler.CompileToMir(
+        [
+            new CopelandProjectSource("State.ts", "State.ts", """
+                export enum Page { Reading, Choices }
+                export record State { page: Page; selected: Option<int>; }
+                export function Initial(): State { return { page: Page.Choices, selected: Some(42) }; }
+                """),
+            new CopelandProjectSource("Main.ts", "Main.ts", """
+                import { State, Initial } from "./State";
+                export function Main(): int {
+                    const state: State = Initial();
+                    const selected: int = match state.selected { Some(id) => id, None => 0 };
+                    return match state.page { Reading => 0, Choices => selected };
+                }
+                """)
+        ], Options());
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptProjectCompilation emitted = JavaScriptProjectEmitter.Emit(compilation.MirProjectGraph!,
+            new JavaScriptEmissionOptions { Profile = profile });
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        var files = new Dictionary<string, string>(emitted.Files) { ["package.json"] = "{\"type\":\"module\"}" };
+        Assert.Equal("42", await RunNode("import { Main } from './Main.js'; console.log(Main());", files));
+    }
+
+    [Theory]
+    [InlineData(JavaScriptEmissionProfile.Diagnostic)]
+    [InlineData(JavaScriptEmissionProfile.Symbolic)]
+    [InlineData(JavaScriptEmissionProfile.Production)]
+    public async Task Imported_collection_helpers_evaluate_callbacks_once_and_return_frozen_snapshots(JavaScriptEmissionProfile profile)
+    {
+        DirectoryInfo? directory = new(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Copeland.slnx")))
+        {
+            directory = directory.Parent;
+        }
+        Assert.NotNull(directory);
+        string collections = File.ReadAllText(Path.Combine(directory!.FullName,
+            "samples/copeland-ts/react-friction-m0/src/Collections.ts"));
+        CopelandProjectCompilation compilation = CopelandProjectCompiler.CompileToMir(
+        [
+            new CopelandProjectSource("Collections.ts", "Collections.ts", collections),
+            new CopelandProjectSource("Main.ts", "Main.ts", """
+                import { Map, Filter, Append, Reverse } from "./Collections";
+                export function Main(counts: MutableArray<int>): int[] {
+                    const source: int[] = [1, 2, 3];
+                    const mapped: int[] = Map<int, int>(source, capture { counts } (value: int) => {
+                        counts[0] = counts[0] + 1;
+                        return value * 2;
+                    });
+                    const filtered: int[] = Filter<int>(mapped, capture { counts } (value: int) => {
+                        counts[1] = counts[1] + 1;
+                        return value != 4;
+                    });
+                    const empty: int[] = Map<int, int>([], capture { counts } (value: int) => {
+                        counts[0] = counts[0] + 1;
+                        return value;
+                    });
+                    return Reverse<int>(Append<int>(filtered, 8));
+                }
+                """)
+        ], Options());
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptProjectCompilation emitted = JavaScriptProjectEmitter.Emit(compilation.MirProjectGraph!,
+            new JavaScriptEmissionOptions { Profile = profile });
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        var files = new Dictionary<string, string>(emitted.Files) { ["package.json"] = "{\"type\":\"module\"}" };
+        string output = await RunNode("""
+            import { Main } from './Main.js';
+            const counts = [0, 0];
+            const result = Main(counts);
+            console.log(JSON.stringify({ result, counts, frozen: Object.isFrozen(result) }));
+            """, files);
+        Assert.Equal("{\"result\":[8,6,2],\"counts\":[3,3],\"frozen\":true}", output);
+    }
+
+    [Fact]
+    public async Task Option_type_parameters_with_the_same_spelling_retain_their_generic_owner()
+    {
+        CopelandProjectCompilation compilation = Compile("""
+            function First<T>(value: T): Option<T> { return Some(value); }
+            function Second<T>(value: T): Option<T> { return Some(value); }
+            export function Main(): int {
+                const first: Option<int> = First<int>(41);
+                const second: Option<string> = Second<string>("yes");
+                const selectedNumber: int = match first { Some(value) => value, None => 0 };
+                const extra: int = match second { Some(value) => if value == "yes" { 1 } else { 0 }, None => 0 };
+                return selectedNumber + extra;
+            }
+            """);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptCompilation emitted = JavaScriptBackend.Emit(compilation.MirProjectGraph!.AggregateProgram);
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        Assert.Equal("42", await RunNode(RemoveReactImport(emitted.SourceText!) + "console.log(Main());"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Generic_parameter_shadowing_does_not_expose_private_module_types(bool outsideGenericScope)
+    {
+        string outside = outsideGenericScope ? "function Invalid(value: Item): int { return 0; }" : "";
+        CopelandProjectCompilation compilation = CopelandProjectCompiler.CompileToMir(
+        [
+            new CopelandProjectSource("Hidden.ts", "Hidden.ts", "record Item { id: int; }"),
+            new CopelandProjectSource("Main.ts", "Main.ts", """
+                export function Identity<Item>(value: Item): Item { return value; }
+                export function Main(): int { return Identity<int>(42); }
+                """ + outside)
+        ], Options());
+        if (outsideGenericScope)
+        {
+            Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-MODULE-0007");
+        }
+        else
+        {
+            Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        }
+    }
+
+    [Fact]
+    public void Imported_generic_external_binding_conflicts_receive_an_exact_repair()
+    {
+        var options = new CopelandCompilationOptions
+        {
+            TsXmlProfile = CopelandTsXmlProfile.ReactM0,
+            NpmPackages = Options().NpmPackages.Concat([
+                new CopelandNpmPackageContract("other", "1.0.0", [new CopelandNpmFunctionContract("createElement", [], "ReactNode")])
+            ]).ToArray(),
+        };
+        CopelandProjectCompilation compilation = CopelandProjectCompiler.CompileToMir(
+        [
+            new CopelandProjectSource("UI.tsx", "UI.tsx", """
+                import { createElement } from "react";
+                export function Label<T>(value: T): ReactNode { return <span>Label</span>; }
+                """),
+            new CopelandProjectSource("Main.tsx", "Main.tsx", """
+                import { createElement } from "other";
+                import { Label } from "./UI";
+                export function Main(): ReactNode { return Label<int>(42); }
+                """)
+        ], options);
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-GENERIC-0010"
+            && diagnostic.Message.Contains("Rename the conflicting external import", StringComparison.Ordinal));
+    }
+
     private static CopelandProjectCompilation Compile(string source)
         => CopelandProjectCompiler.CompileToMir(
             [new CopelandProjectSource("Main.tsx", "Main.tsx", "import { createElement } from \"react\";\n" + source)], Options());

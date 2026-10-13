@@ -1,17 +1,27 @@
-The current layout-template pass imports reusable Reading/TwoPane patterns from
-`src/Layouts.ts`, specializes them in `src/App.tsx`, and exercises a named-node
-`with` update. The default run writes `react-ui-layout-templates-m4` evidence.
-See [the M4 report](../../../docs/Copeland/reviews/cts-react-ui-layout-templates-m4.md)
-for the accepted grammar, source accounting, and explicit boundaries.
+The current state/input pass owns the React application in `src/Application.tsx`
+with `state: AppState` and typed `on Apply(event: AppEvent)` / `on.Apply`.
+The existing canonical browser frame registry owns input delivery and state;
+React subscribes to presentation snapshots. `src/Main.ts` only mounts the application.
+The default run writes `react-state-on-m6` evidence, including mounted lifecycle
+and FLOW probes in all three JavaScript profiles. See
+[the M6 report](../../../docs/Copeland/reviews/cts-react-state-on-m6.md).
+
+The semantic API authors issue triage in `src/IssuesPage.ts`
+through choice, notice, action, header, and reading records from `src/UI.tsx`.
+It contains no intrinsic HTML tags. Runtime immutable issue rows support repeated
+insertion, removal, filtering, and reorder; React owns keyed reconciliation.
+Existing layout templates and contribution streams still own arrangement.
+Focused callback/identity browser probes remain in the default run. See
+[the M5 report](../../../docs/Copeland/reviews/cts-react-ui-semantic-api-m5.md)
+for source accounting, validation, and supported boundaries.
 
 # CTS-REACT-FRICTION-M0
 
 The current fixture includes the
 [contribution stream and named capture grammar pass](../../../docs/Copeland/reviews/cts-react-ui-grammar-m3.md).
-`run.ps1` runs the grammar corpus by default and writes evidence to
-`react-ui-grammar-m3`. The M0 and
+The M0, grammar, layout-template, and
 [stabilization](../../../docs/Copeland/reviews/cts-react-ui-stabilization-m1.md)
-corpora and reports retain their historical results.
+corpora and reports retain their historical results. Current sources qualify M6.
 
 Three paired webpages exercise article reading, issue triage, and workspace
 settings. Copeland compiles through TSPack's current managed browser target.
@@ -82,6 +92,11 @@ typing is not available. No input DOM-reading bridge is retained.
   enum callbacks compile, while native input events produce one repair diagnostic.
 - `grammar-corpus.json`: eighteen probes, adding named capture expressions,
   module/local/class contribution streams, expression binding, and rejection cases.
+- `state-on-corpus.json`: fifty expectations, preserving the semantic UI corpus
+  and adding real application compilation, state/endpoint diagnostics, and
+  mounted FLOW/lifecycle specimens across Diagnostic, Symbolic, and Production.
+- `docs/Copeland/reviews/evidence/react-state-on-m6/`: current compiler, browser,
+  lifecycle, source-accounting, original-website, and full .NET validation evidence.
 - `docs/Copeland/reviews/evidence/react-friction-m0/`: tracked browser,
   compiler, original-website, authoring-accounting, and validation baseline reports.
 - `docs/Copeland/reviews/evidence/react-ui-stabilization-m1/`: stabilization evidence.

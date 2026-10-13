@@ -154,6 +154,11 @@ public static class CSharpBackend
 
     private static CSharpCompilation EmitCore(MirProgram program, CSharpSidecarContract? sidecarContract, CSharpEmissionOptions options)
     {
+        if (program.Functions.Any(function => function.ComponentState is not null))
+        {
+            return new CSharpCompilation(string.Empty,
+                [new CSharpDiagnostic("COPE-CS-COMPONENT-ON-0001", "Instance-bound React endpoints require the JavaScript React adapter.")]);
+        }
         var diagnostics = MirValidator.Validate(program)
             .Select(diagnostic => new CSharpDiagnostic("COPE-CS-0002", $"Invalid MIR: {diagnostic.Message}"))
             .ToList();

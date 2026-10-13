@@ -1,0 +1,14 @@
+{
+  "reactVersion": "19.2.7",
+  "observations": {
+    "ordinaryComponentCalls": [
+      0,
+      0
+    ],
+    "componentRuntimeExports": [
+      "Counter"
+    ],
+    "executionFlowResult": 42
+  },
+  "interpretation": "Node invokes the actual React createElement projection. Component state reinitializes on each direct call; there is no emitted event endpoint. This is emission evidence, not mounted React lifecycle qualification. Execution FLOW start/step returns the expected value."
+}

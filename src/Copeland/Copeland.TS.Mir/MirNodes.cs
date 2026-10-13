@@ -536,7 +536,22 @@ public sealed class MirFunction(
     public MirSuspensionAutomaton? SuspensionAutomaton { get; } = suspensionAutomaton;
     public IReadOnlyList<MirLocal> Locals { get; } = locals;
     public IReadOnlyList<MirStatement> Body { get; } = body;
+    /// <summary>Typed realization of the existing component state/transition facts.</summary>
+    public MirComponentStateModel? ComponentState { get; init; }
 }
+
+public sealed record MirComponentStateModel(
+    string StableIdentity,
+    string InitializerFunction,
+    string PresentationFunction,
+    string HostFunction,
+    IReadOnlyList<MirComponentEventEndpoint> Endpoints);
+
+public sealed record MirComponentEventEndpoint(
+    string Name,
+    string LocalName,
+    string TransitionFunction,
+    MirCallableType CallableType);
 
 public sealed class MirParameter(string name, MirType type) { public string Name { get; } = name; public MirType Type { get; } = type; }
 public sealed class MirLocal(string name, MirType type, bool isReadOnly) { public string Name { get; } = name; public MirType Type { get; } = type; public bool IsReadOnly { get; } = isReadOnly; }

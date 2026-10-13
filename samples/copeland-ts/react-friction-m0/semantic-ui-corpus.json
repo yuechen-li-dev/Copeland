@@ -1,0 +1,391 @@
+{
+  "milestone": "CTS-REACT-UI-SEMANTIC-API-M5",
+  "cases": [
+    {
+      "name": "native-list-and-label",
+      "expected": "accept",
+      "sources": [
+        {
+          "path": "Main.tsx",
+          "text": "import { createElement } from \"react\"; export function Main(): ReactNode { return <section><label htmlFor=\"query\">Query</label><ul><li>One</li><li>Two</li></ul></section>; }"
+        }
+      ]
+    },
+    {
+      "name": "intrinsic-onchange-string-callback",
+      "expected": "reject",
+      "diagnostic": "COPE-REACT-0017",
+      "sources": [
+        {
+          "path": "Main.tsx",
+          "text": "import { createElement } from \"react\"; export function Main(): ReactNode { return <input value=\"\" onChange={(value: string) => {}} />; }"
+        }
+      ]
+    },
+    {
+      "name": "numeric-key",
+      "expected": "accept",
+      "sources": [
+        {
+          "path": "Main.tsx",
+          "text": "import { createElement } from \"react\"; export function Main(): ReactNode { return <span key={1}>One</span>; }"
+        }
+      ]
+    },
+    {
+      "name": "array-of-react-children",
+      "expected": "accept",
+      "sources": [
+        {
+          "path": "Main.tsx",
+          "text": "import { createElement } from \"react\"; export function Main(): ReactNode { const children: ReactNode[] = [<span>One</span>, <span>Two</span>]; return <div>{children}</div>; }"
+        }
+      ]
+    },
+    {
+      "name": "dynamic-stream-collection",
+      "expected": "reject",
+      "diagnostic": "COPE-STREAM-0008",
+      "sources": [
+        {
+          "path": "Main.tsx",
+          "text": "import { createElement } from \"react\"; export function Main(items: ReactNode[]): ReactNode { stream Surface<0px, 0px> { width: fill; height: fit; grid results: items { columns: 2; } } return Surface(); }"
+        }
+      ]
+    },
+    {
+      "name": "runtime-root-width",
+      "expected": "reject",
+      "diagnostic": "COPE-LAYOUT-DIMENSION-0001",
+      "sources": [
+        {
+          "path": "Main.tsx",
+          "text": "import { createElement } from \"react\"; export function Main(width: int): ReactNode { stream Surface<0px, 0px> { width: width; height: fit; content: <span>Content</span> { height: fit; } } return Surface(); }"
+        }
+      ]
+    },
+    {
+      "name": "local-fit-and-gap",
+      "expected": "accept",
+      "sources": [
+        {
+          "path": "Main.tsx",
+          "text": "import { createElement } from \"react\"; export function Main(): ReactNode { stream Surface<0px, 0px> { width: fill; height: fit; gap: 12px; padding: 16px; first: <span>First</span> { height: fit; } second: <span>Second</span> { height: fit; } } return Surface(); }"
+        }
+      ]
+    },
+    {
+      "name": "interpolated-text-spacing",
+      "expected": "accept",
+      "sources": [
+        {
+          "path": "Main.tsx",
+          "text": "import { createElement } from \"react\"; export function Main(name: string): ReactNode { return <p>Workspace: {name}</p>; }"
+        }
+      ]
+    },
+    {
+      "name": "separate-layout-and-binding",
+      "expected": "accept",
+      "sources": [
+        {
+          "path": "Main.tsx",
+          "text": "import { createElement } from \"react\"; layout type Reading { column root { slot heading; slot body; } } layout Page<0px, 0px> satisfies Reading { width: 800px; height: 600px; column root { slot heading { height: 64px; } slot body { height: fill; } } } function Heading(): ReactNode { return <h1>Heading</h1>; } function Body(): ReactNode { return <p>Body</p>; } bind Page { heading: Heading(); body: Body(); } export function Main(): ReactNode { return PageBinding(); }"
+        }
+      ]
+    },
+    {
+      "name": "captured-imported-event-constructor",
+      "expected": "accept",
+      "sources": [
+        {
+          "path": "Events.ts",
+          "text": "export enum Event { Choose(id: int) }"
+        },
+        {
+          "path": "Main.tsx",
+          "text": "import { createElement } from \"react\"; import { Event } from \"./Events\"; export function Main(send: (event: Event) => void): ReactNode { return <button onClick={capture { send } () => send(Event.Choose(1))}>Choose</button>; }"
+        }
+      ]
+    },
+    {
+      "name": "named-capture-expression",
+      "expected": "accept",
+      "sources": [
+        {
+          "text": "function main(): number { const source: number = 7; const f = capture { value: source + 1 } () => value; return f(); }",
+          "path": "Main.tsx"
+        }
+      ]
+    },
+    {
+      "name": "module-contribution-stream",
+      "expected": "accept",
+      "sources": [
+        {
+          "text": "import { createElement } from \"react\"; layout Page<0px, 0px> { width: fill; height: fit; column root { slot body { height: fit; } } } export stream Content { body: <span>Body</span>; } export function Main(): ReactNode { return bind Page using Content; }",
+          "path": "Main.tsx"
+        }
+      ]
+    },
+    {
+      "name": "local-contribution-stream",
+      "expected": "accept",
+      "sources": [
+        {
+          "text": "import { createElement } from \"react\"; layout Page<0px, 0px> { width: fill; height: fit; column root { slot body { height: fit; } } } export function Main(text: string): ReactNode { stream Content { body: <span>{text}</span>; } return bind Page using Content; }",
+          "path": "Main.tsx"
+        }
+      ]
+    },
+    {
+      "name": "class-contribution-stream",
+      "expected": "accept",
+      "sources": [
+        {
+          "text": "import { createElement } from \"react\"; layout Page<0px, 0px> { width: fill; height: fit; column root { slot body { height: fit; } } } class Theme { count: int; constructor(): Theme { return { count: 0 }; } stream Content { body: <span>Body</span>; } } export function Main(): ReactNode { return bind Page using Theme.Content; }",
+          "path": "Main.tsx"
+        }
+      ]
+    },
+    {
+      "name": "missing-contribution",
+      "expected": "reject",
+      "sources": [
+        {
+          "text": "import { createElement } from \"react\"; layout Page<0px, 0px> { width: fill; height: fit; column root { slot body { height: fit; } } } stream Content {} export function Main(): ReactNode { return bind Page using Content; }",
+          "path": "Main.tsx"
+        }
+      ],
+      "diagnostic": "COPE-STREAM-CONTENT-0006"
+    },
+    {
+      "name": "duplicate-contribution",
+      "expected": "reject",
+      "sources": [
+        {
+          "text": "import { createElement } from \"react\"; layout Page<0px, 0px> { width: fill; height: fit; column root { slot body { height: fit; } } } stream Content { body: <span>Body</span>; body: <span>Again</span>; }",
+          "path": "Main.tsx"
+        }
+      ],
+      "diagnostic": "COPE-STREAM-CONTENT-0002"
+    },
+    {
+      "name": "wrong-contribution-type",
+      "expected": "reject",
+      "sources": [
+        {
+          "text": "import { createElement } from \"react\"; layout Page<0px, 0px> { width: fill; height: fit; column root { slot body { height: fit; } } } stream Content { body: 7; }",
+          "path": "Main.tsx"
+        }
+      ],
+      "diagnostic": "COPE-STREAM-CONTENT-0003"
+    },
+    {
+      "name": "later-module-stream-read",
+      "expected": "reject",
+      "sources": [
+        {
+          "text": "import { createElement } from \"react\"; layout Page<0px, 0px> { width: fill; height: fit; column root { slot body { height: fit; } } } function ReadLater(): ReactNode { return Later.body; } stream First { body: ReadLater(); } stream Later { body: <span>Body</span>; }",
+          "path": "Main.tsx"
+        }
+      ],
+      "diagnostic": "COPE-STREAM-CONTENT-0007"
+    },
+    {
+      "name": "imported-layout-template-and-variant",
+      "expected": "accept",
+      "sources": [
+        {
+          "path": "Reading.ts",
+          "text": "export template<static gap: Length = 12px>\nlayout Reading<4ui, 2ui> {\n    width: fill;\n    height: fit;\n    column root { gap: gap; slot body { height: fit; } }\n}\n"
+        },
+        {
+          "path": "Main.tsx",
+          "text": "import { Reading as ImportedReading } from \"./Reading\";\nimport { createElement } from \"react\";\nlayout Page = instantiate ImportedReading<gap: 8px> with { root.padding: 16px; };\nexport function Main(): ReactNode {\n    stream Content { body: <p>Template content</p>; }\n    return bind Page using Content;\n}\n"
+        }
+      ]
+    },
+    {
+      "name": "unitless-layout-parameter",
+      "expected": "reject",
+      "diagnostic": "COPE-STATIC-0007",
+      "sources": [
+        {
+          "path": "Main.ts",
+          "text": "export template<static gap: Length = 12px>\nlayout Reading<4ui, 2ui> {\n    width: fill;\n    height: fit;\n    column root { gap: gap; slot body { height: fit; } }\n}\nlayout Page = instantiate Reading<gap: 8>;\n"
+        }
+      ]
+    },
+    {
+      "name": "duplicate-layout-parameter",
+      "expected": "reject",
+      "diagnostic": "COPE-TEMPLATE-0002",
+      "sources": [
+        {
+          "path": "Main.ts",
+          "text": "export template<static gap: Length = 12px>\nlayout Reading<4ui, 2ui> {\n    width: fill;\n    height: fit;\n    column root { gap: gap; slot body { height: fit; } }\n}\nlayout Page = instantiate Reading<gap: 8px, gap: 12px>;\n"
+        }
+      ]
+    },
+    {
+      "name": "unknown-layout-parameter",
+      "expected": "reject",
+      "diagnostic": "COPE-TEMPLATE-0002",
+      "sources": [
+        {
+          "path": "Main.ts",
+          "text": "export template<static gap: Length = 12px>\nlayout Reading<4ui, 2ui> {\n    width: fill;\n    height: fit;\n    column root { gap: gap; slot body { height: fit; } }\n}\nlayout Page = instantiate Reading<padding: 12px>;\n"
+        }
+      ]
+    },
+    {
+      "name": "negative-layout-gap",
+      "expected": "reject",
+      "diagnostic": "COPE-LAYOUT-DIMENSION-0001",
+      "sources": [
+        {
+          "path": "Main.ts",
+          "text": "export template<static gap: Length = 12px>\nlayout Reading<4ui, 2ui> {\n    width: fill;\n    height: fit;\n    column root { gap: gap; slot body { height: fit; } }\n}\nlayout Page = instantiate Reading<gap: -1px>;\n"
+        }
+      ]
+    },
+    {
+      "name": "out-of-range-layout-unit",
+      "expected": "reject",
+      "diagnostic": "COPE-MACHINA-UI-0001",
+      "sources": [
+        {
+          "path": "Main.ts",
+          "text": "export template<static gap: Length = 12px>\nlayout Reading<4ui, 2ui> {\n    width: fill;\n    height: fit;\n    column root { gap: gap; slot body { height: fit; } }\n}\nlayout Page = instantiate Reading<gap: 4ui>;\n"
+        }
+      ]
+    },
+    {
+      "name": "unknown-layout-path",
+      "expected": "reject",
+      "diagnostic": "COPE-LAYOUT-WITH-0002",
+      "sources": [
+        {
+          "path": "Main.ts",
+          "text": "export template<static gap: Length = 12px>\nlayout Reading<4ui, 2ui> {\n    width: fill;\n    height: fit;\n    column root { gap: gap; slot body { height: fit; } }\n}\nlayout Base = instantiate Reading<>;\nlayout Variant = Base with { typo.gap: 8px; };\n"
+        }
+      ]
+    },
+    {
+      "name": "duplicate-layout-path",
+      "expected": "reject",
+      "diagnostic": "COPE-LAYOUT-WITH-0001",
+      "sources": [
+        {
+          "path": "Main.ts",
+          "text": "export template<static gap: Length = 12px>\nlayout Reading<4ui, 2ui> {\n    width: fill;\n    height: fit;\n    column root { gap: gap; slot body { height: fit; } }\n}\nlayout Base = instantiate Reading<>;\nlayout Variant = Base with { root.gap: 8px; root.gap: 12px; };\n"
+        }
+      ]
+    },
+    {
+      "name": "topology-update-through-with",
+      "expected": "reject",
+      "diagnostic": "COPE-LAYOUT-PROPERTY-0002",
+      "sources": [
+        {
+          "path": "Main.ts",
+          "text": "export template<static gap: Length = 12px>\nlayout Reading<4ui, 2ui> {\n    width: fill;\n    height: fit;\n    column root { gap: gap; slot body { height: fit; } }\n}\nlayout Base = instantiate Reading<>;\nlayout Variant = Base with { root.kind: \"column\"; };\n"
+        }
+      ]
+    },
+    {
+      "name": "runtime-react-children",
+      "expected": "accept",
+      "sources": [
+        {
+          "path": "Main.tsx",
+          "text": "import { createElement } from \"react\"; export function Main(children: ReactNode[]): ReactNode { return <div>{children}</div>; }"
+        }
+      ]
+    },
+    {
+      "name": "record-array-is-not-react-children",
+      "expected": "reject",
+      "sources": [
+        {
+          "path": "Main.tsx",
+          "text": "import { createElement } from \"react\"; record Item { id: int; } export function Main(items: Item[]): ReactNode { return <div>{items}</div>; }"
+        }
+      ],
+      "diagnostic": "COPE-REACT-0007"
+    },
+    {
+      "name": "nested-react-array-is-not-child",
+      "expected": "reject",
+      "sources": [
+        {
+          "path": "Main.tsx",
+          "text": "import { createElement } from \"react\"; export function Main(items: ReactNode[][]): ReactNode { return <div>{items}</div>; }"
+        }
+      ],
+      "diagnostic": "COPE-REACT-0007"
+    },
+    {
+      "name": "uninitialized-react-builder",
+      "expected": "reject",
+      "sources": [
+        {
+          "path": "Main.tsx",
+          "text": "import { createElement } from \"react\"; function Main(): ReactNode { const rows: MutableArray<ReactNode> = MutableArray<ReactNode>(3); return <div />; }"
+        }
+      ],
+      "diagnostic": "COPE-ARRAY-0008"
+    },
+    {
+      "name": "generic-collection-closed-invalid-type",
+      "expected": "reject",
+      "sources": [
+        {
+          "path": "Main.tsx",
+          "text": "function Build<T>(value: T): T[] { const result: MutableArray<T> = MutableArray<T>(1, value); return result.freeze(); } function Main(): void { const action: () => void = () => {}; Build<() => void>(action); }"
+        }
+      ],
+      "diagnostic": "COPE-ARRAY-0008"
+    },
+    {
+      "name": "missing-status-case",
+      "expected": "reject",
+      "sources": [
+        {
+          "path": "Main.tsx",
+          "text": "enum Status { Loading, Failed(message: string), Ready } function Main(status: Status): string { return match status { Loading => \"wait\", Ready => \"ready\" }; }"
+        }
+      ],
+      "diagnostic": "COPE-MATCH-0004"
+    },
+    {
+      "name": "option-match-context",
+      "expected": "accept",
+      "sources": [
+        {
+          "path": "Main.tsx",
+          "text": "function Main(value: Option<int>): Option<string> { return match value { Some(id) => Some(String.From(id)), None => None }; }"
+        }
+      ]
+    },
+    {
+      "name": "semantic-library-projection",
+      "expected": "accept",
+      "sources": [
+        {
+          "path": "Collections.ts",
+          "file": "src/Collections.ts"
+        },
+        {
+          "path": "UI.tsx",
+          "file": "src/UI.tsx"
+        },
+        {
+          "path": "Probe.ts",
+          "file": "inputs/semantic-ui-probe.ts"
+        }
+      ]
+    }
+  ]
+}

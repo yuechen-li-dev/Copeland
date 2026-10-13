@@ -1,0 +1,272 @@
+{
+  "milestone": "CTS-REACT-STATE-ON-AUDIT",
+  "compilerAssemblySha256": "74eb8b4c9132b6c360d703b799c45cc426a5d63a714e86705f4c0dd939a15c08",
+  "corpusSha256": "2d985ea5d0353053b277de56fde95ca7343c32811a754bcc335e654221ba30db",
+  "expectationsMatched": true,
+  "results": [
+    {
+      "name": "existing-component-state-and-on",
+      "accepted": true,
+      "expectationMatched": true,
+      "sourceHashes": {
+        "Main.tsx": "6d2fd4482edfb3d4143e53009768c0eae3d9a14d5fbba633ba17875aa27dc455"
+      },
+      "diagnostics": [],
+      "javascript": {
+        "Main.js": "import { createElement } from \u0022react\u0022;\r\n\u0022use strict\u0022;\r\n\r\nfunction Counter() {\r\n    const current = 0;\r\n    return createElement(\u0022span\u0022, null, current);\r\n}\r\nexport { Counter };\r\n"
+      },
+      "css": null
+    },
+    {
+      "name": "state-binding-can-be-named-state",
+      "accepted": true,
+      "expectationMatched": true,
+      "sourceHashes": {
+        "Main.tsx": "57997299b14a15882928be44501b9c8ddba97c40da41805b61e676c36812d06d"
+      },
+      "diagnostics": [],
+      "javascript": {
+        "Main.js": "import { createElement } from \u0022react\u0022;\r\n\u0022use strict\u0022;\r\n\r\nfunction __cope_m3_panic_0() {\r\n    throw new Error(\u0022Copeland JavaScript backend invariant failure.\u0022);\r\n}\r\n\r\n\r\nconst __cope_m3_record_registry_key = Symbol.for(\u0022copeland.ts.record-registry.v1\u0022);\r\nlet __cope_m3_record_registry = globalThis[__cope_m3_record_registry_key];\r\nif (__cope_m3_record_registry === undefined) {\r\n    __cope_m3_record_registry = new Map();\r\n    Object.defineProperty(globalThis, __cope_m3_record_registry_key, { value: __cope_m3_record_registry, writable: false, enumerable: false, configurable: false });\r\n}\r\nfunction __cope_m3_record_registration(id) {\r\n    let registration = __cope_m3_record_registry.get(id);\r\n    if (registration === undefined) {\r\n        registration = { type: Symbol.for(\u0022copeland.ts.record.\u0022 \u002B id), instances: new WeakSet(), fields: new Map() };\r\n        __cope_m3_record_registry.set(id, registration);\r\n    }\r\n    return registration;\r\n}\r\nfunction __cope_m3_record_field(registration, id) {\r\n    let field = registration.fields.get(id);\r\n    if (field === undefined) {\r\n        field = Symbol(id);\r\n        registration.fields.set(id, field);\r\n    }\r\n    return field;\r\n}\r\n\r\nconst __cope_m3_record_registration_r221387001 = __cope_m3_record_registration(\u0022r221387001\u0022);\r\nconst __cope_m3_record_type_r221387001_1 = __cope_m3_record_registration_r221387001.type;\r\nconst __cope_m3_record_instances_r221387001_2 = __cope_m3_record_registration_r221387001.instances;\r\nconst __cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_5 = __cope_m3_record_field(__cope_m3_record_registration_r221387001, \u0022r221387001.f0\u0022);\r\n\r\nfunction __cope_m3_record_make_r221387001_3(field0) {\r\n    const value = Object.create(null);\r\n    Object.defineProperties(value, {\r\n        [__cope_m3_record_type_r221387001_1]: { value: __cope_m3_record_type_r221387001_1, writable: false, enumerable: false, configurable: false },\r\n        [__cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_5]: { value: field0, writable: false, enumerable: false, configurable: false },\r\n    });\r\n    Object.freeze(value);\r\n    __cope_m3_record_instances_r221387001_2.add(value);\r\n    return value;\r\n}\r\n\r\nfunction __cope_m3_record_require_r221387001_4(value) {\r\n    if (typeof value !== \u0022object\u0022 || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_record_instances_r221387001_2.has(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_type_r221387001_1) || value[__cope_m3_record_type_r221387001_1] !== __cope_m3_record_type_r221387001_1 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_5)) {\r\n        __cope_m3_panic_0();\r\n    }\r\n}\r\n\r\nfunction __cope_record_0072003200320031003300380037003000300031(field0) {\r\n    return __cope_m3_record_make_r221387001_3(field0);\r\n}\r\n\r\nfunction Counter() {\r\n    const __cope_m3_record_init_6 = 0;\r\n    const state = __cope_record_0072003200320031003300380037003000300031(__cope_m3_record_init_6);\r\n    const __cope_m3_record_receiver_7 = state;\r\n    __cope_m3_record_require_r221387001_4(__cope_m3_record_receiver_7);\r\n    return createElement(\u0022span\u0022, null, __cope_m3_record_receiver_7[__cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_5]);\r\n}\r\nexport { Counter };\r\n"
+      },
+      "css": null
+    },
+    {
+      "name": "proposed-state-colon-shorthand",
+      "accepted": false,
+      "expectationMatched": true,
+      "sourceHashes": {
+        "Main.tsx": "c90038fdad7b76a0384e74f79e236757e9c149d3724c0b44f6fcc815e2dc52f4"
+      },
+      "diagnostics": [
+        {
+          "code": "COPE-PARSE-0004",
+          "message": "Expected token \u0027;\u0027.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        },
+        {
+          "code": "COPE-PARSE-0002",
+          "message": "Expected expression.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        },
+        {
+          "code": "COPE-PARSE-0004",
+          "message": "Expected token \u0027;\u0027.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        },
+        {
+          "code": "COPE-PARSE-0001",
+          "message": "Unexpected token \u0027ColonToken\u0027.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        }
+      ],
+      "javascript": null,
+      "css": null
+    },
+    {
+      "name": "on-is-not-an-endpoint-namespace-yet",
+      "accepted": false,
+      "expectationMatched": true,
+      "sourceHashes": {
+        "Main.tsx": "e4b126087aec4d69c8eaf2cfa45c59261a29024dbdfb655847c1e1d89e19824a"
+      },
+      "diagnostics": [
+        {
+          "code": "COPE-BIND-0001",
+          "message": "Undefined name \u0027on\u0027.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        }
+      ],
+      "javascript": null,
+      "css": null
+    },
+    {
+      "name": "handler-name-is-not-an-ordinary-callable",
+      "accepted": false,
+      "expectationMatched": true,
+      "sourceHashes": {
+        "Main.tsx": "ddb9c257c8d4c7cc70cec08adb2a04947fde8c166ffb0e7450a01135e9b0331c"
+      },
+      "diagnostics": [
+        {
+          "code": "COPE-BIND-0001",
+          "message": "Undefined name \u0027Increment\u0027.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        }
+      ],
+      "javascript": null,
+      "css": null
+    },
+    {
+      "name": "component-state-remains-readonly",
+      "accepted": false,
+      "expectationMatched": true,
+      "sourceHashes": {
+        "Main.tsx": "6d1e6b4d82f43f2740a36ea28acbc4e35df75c22c49e740c104cf6b5d3d1334d"
+      },
+      "diagnostics": [
+        {
+          "code": "COPE-BIND-0003",
+          "message": "Cannot assign to const variable \u0027current\u0027.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        }
+      ],
+      "javascript": null,
+      "css": null
+    },
+    {
+      "name": "one-state-value-per-component",
+      "accepted": false,
+      "expectationMatched": true,
+      "sourceHashes": {
+        "Main.tsx": "31ae02cad8a7b3523e50c204c9f148da9402322af47d832537ff754dc0f17c7c"
+      },
+      "diagnostics": [
+        {
+          "code": "COPE-COMPONENT-STATE-0002",
+          "message": "A component may declare exactly one local state value in M0.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        }
+      ],
+      "javascript": null,
+      "css": null
+    },
+    {
+      "name": "typed-domain-event-reducer-is-admitted",
+      "accepted": true,
+      "expectationMatched": true,
+      "sourceHashes": {
+        "Main.tsx": "9f87cca9ce5cad2cf71381376a77dd1787f8d3fd6c40455848ce52096670a7a1"
+      },
+      "diagnostics": [],
+      "javascript": {
+        "Main.js": "import { createElement } from \u0022react\u0022;\r\n\u0022use strict\u0022;\r\n\r\nfunction __cope_m3_panic_0() {\r\n    throw new Error(\u0022Copeland JavaScript backend invariant failure.\u0022);\r\n}\r\n\r\nfunction __cope_m3_make_1(type, tag, payload) {\r\n    const value = Object.freeze(Object.assign(Object.create(null), { $type: type, $tag: tag, $payload: Object.freeze(payload) }));\r\n    if (type === __cope_m3_type_7) __cope_m3_instances_8.add(value);\r\n    return value;\r\n}\r\n\r\nconst __cope_m3_record_registry_key = Symbol.for(\u0022copeland.ts.record-registry.v1\u0022);\r\nlet __cope_m3_record_registry = globalThis[__cope_m3_record_registry_key];\r\nif (__cope_m3_record_registry === undefined) {\r\n    __cope_m3_record_registry = new Map();\r\n    Object.defineProperty(globalThis, __cope_m3_record_registry_key, { value: __cope_m3_record_registry, writable: false, enumerable: false, configurable: false });\r\n}\r\nfunction __cope_m3_record_registration(id) {\r\n    let registration = __cope_m3_record_registry.get(id);\r\n    if (registration === undefined) {\r\n        registration = { type: Symbol.for(\u0022copeland.ts.record.\u0022 \u002B id), instances: new WeakSet(), fields: new Map() };\r\n        __cope_m3_record_registry.set(id, registration);\r\n    }\r\n    return registration;\r\n}\r\nfunction __cope_m3_record_field(registration, id) {\r\n    let field = registration.fields.get(id);\r\n    if (field === undefined) {\r\n        field = Symbol(id);\r\n        registration.fields.set(id, field);\r\n    }\r\n    return field;\r\n}\r\n\r\nconst __cope_m3_record_registration_r221387001 = __cope_m3_record_registration(\u0022r221387001\u0022);\r\nconst __cope_m3_record_type_r221387001_2 = __cope_m3_record_registration_r221387001.type;\r\nconst __cope_m3_record_instances_r221387001_3 = __cope_m3_record_registration_r221387001.instances;\r\nconst __cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_6 = __cope_m3_record_field(__cope_m3_record_registration_r221387001, \u0022r221387001.f0\u0022);\r\n\r\nfunction __cope_m3_record_make_r221387001_4(field0) {\r\n    const value = Object.create(null);\r\n    Object.defineProperties(value, {\r\n        [__cope_m3_record_type_r221387001_2]: { value: __cope_m3_record_type_r221387001_2, writable: false, enumerable: false, configurable: false },\r\n        [__cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_6]: { value: field0, writable: false, enumerable: false, configurable: false },\r\n    });\r\n    Object.freeze(value);\r\n    __cope_m3_record_instances_r221387001_3.add(value);\r\n    return value;\r\n}\r\n\r\nfunction __cope_m3_record_require_r221387001_5(value) {\r\n    if (typeof value !== \u0022object\u0022 || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_record_instances_r221387001_3.has(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_type_r221387001_2) || value[__cope_m3_record_type_r221387001_2] !== __cope_m3_record_type_r221387001_2 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_6)) {\r\n        __cope_m3_panic_0();\r\n    }\r\n}\r\n\r\nfunction __cope_record_0072003200320031003300380037003000300031(field0) {\r\n    return __cope_m3_record_make_r221387001_4(field0);\r\n}\r\n\r\nconst __cope_m3_type_7_registration = __cope_m3_record_registration(\u0022enum:Event\u0022);\r\nconst __cope_m3_type_7 = __cope_m3_type_7_registration.type;\r\nconst __cope_m3_instances_8 = __cope_m3_type_7_registration.instances;\r\n\r\nfunction __cope_enum_004500760065006e0074_004100640064(payload0) {\r\n    return __cope_m3_make_1(__cope_m3_type_7, \u0022Add\u0022, [payload0]);\r\n}\r\n\r\nfunction __cope_enum_004500760065006e0074_00520065007300650074() {\r\n    return __cope_m3_make_1(__cope_m3_type_7, \u0022Reset\u0022, []);\r\n}\r\n\r\nfunction __cope_m3_validate_9(value) {\r\n    if (typeof value !== \u0022object\u0022 || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_instances_8.has(value) || !Object.prototype.hasOwnProperty.call(value, \u0022$type\u0022) || !Object.prototype.hasOwnProperty.call(value, \u0022$tag\u0022) || !Object.prototype.hasOwnProperty.call(value, \u0022$payload\u0022) || value.$type !== __cope_m3_type_7 || typeof value.$tag !== \u0022string\u0022 || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload)) {\r\n        __cope_m3_panic_0();\r\n    }\r\n    switch (value.$tag) {\r\n        case \u0022Add\u0022:\r\n            if (value.$payload.length !== 1) {\r\n                __cope_m3_panic_0();\r\n            }\r\n            if (!Object.prototype.hasOwnProperty.call(value.$payload, 0) || !(typeof value.$payload[0] === \u0022number\u0022)) {\r\n                __cope_m3_panic_0();\r\n            }\r\n            return;\r\n        case \u0022Reset\u0022:\r\n            if (value.$payload.length !== 0) {\r\n                __cope_m3_panic_0();\r\n            }\r\n            return;\r\n        default:\r\n            __cope_m3_panic_0();\r\n    }\r\n}\r\n\r\nfunction Reduce(current, event) {\r\n    const __cope_m3_match_10 = event;\r\n    __cope_m3_validate_9(__cope_m3_match_10);\r\n    let __cope_m3_match_value_11;\r\n    switch (__cope_m3_match_10.$tag) {\r\n        case \u0022Add\u0022:\r\n        {\r\n            const value = __cope_m3_match_10.$payload[0];\r\n            const __cope_m3_record_source_12 = current;\r\n            __cope_m3_record_require_r221387001_5(__cope_m3_record_source_12);\r\n            const __cope_m3_record_receiver_13 = current;\r\n            __cope_m3_record_require_r221387001_5(__cope_m3_record_receiver_13);\r\n            const __cope_m3_record_replacement_14 = ((__cope_m3_record_receiver_13[__cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_6] \u002B value) | 0);\r\n            __cope_m3_match_value_11 = __cope_record_0072003200320031003300380037003000300031(__cope_m3_record_replacement_14);\r\n            break;\r\n        }\r\n        case \u0022Reset\u0022:\r\n        {\r\n            const __cope_m3_record_source_15 = current;\r\n            __cope_m3_record_require_r221387001_5(__cope_m3_record_source_15);\r\n            const __cope_m3_record_replacement_16 = 0;\r\n            __cope_m3_match_value_11 = __cope_record_0072003200320031003300380037003000300031(__cope_m3_record_replacement_16);\r\n            break;\r\n        }\r\n        default:\r\n            __cope_m3_panic_0();\r\n    }\r\n    return __cope_m3_match_value_11;\r\n}\r\n\r\nfunction Counter() {\r\n    const __cope_m3_record_init_17 = 0;\r\n    const current = __cope_record_0072003200320031003300380037003000300031(__cope_m3_record_init_17);\r\n    const __cope_m3_record_receiver_18 = current;\r\n    __cope_m3_record_require_r221387001_5(__cope_m3_record_receiver_18);\r\n    return createElement(\u0022span\u0022, null, __cope_m3_record_receiver_18[__cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_6]);\r\n}\r\nexport { Counter };\r\n"
+      },
+      "css": null
+    },
+    {
+      "name": "reaction-flow-source-session-api-is-not-admitted",
+      "accepted": false,
+      "expectationMatched": true,
+      "sourceHashes": {
+        "Main.ts": "aa3499796ae26df2722304139300aa781d512dc1bd3a86e656e8de0f6083daa6"
+      },
+      "diagnostics": [
+        {
+          "code": "COPE-BIND-0001",
+          "message": "Undefined name \u0027Door\u0027.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        },
+        {
+          "code": "COPE-BIND-0001",
+          "message": "Undefined name \u0027Door\u0027.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        }
+      ],
+      "javascript": null,
+      "css": null
+    },
+    {
+      "name": "execution-flow-source-frame-api-is-admitted",
+      "accepted": true,
+      "expectationMatched": true,
+      "sourceHashes": {
+        "Main.ts": "10313cf2d8903b186b268b5f52aedd6dd8eb1694495070815f857ff82385e2ba"
+      },
+      "diagnostics": [],
+      "javascript": {
+        "Main.js": "\u0022use strict\u0022;\r\n\r\nfunction __cope_m3_panic_0() {\r\n    throw new Error(\u0022Copeland JavaScript backend invariant failure.\u0022);\r\n}\r\n\r\nfunction __cope_m3_make_1(type, tag, payload) {\r\n    const value = Object.freeze(Object.assign(Object.create(null), { $type: type, $tag: tag, $payload: Object.freeze(payload) }));\r\n    if (type === __cope_m3_type_15) __cope_m3_instances_16.add(value);\r\n    if (type === __cope_m3_type_18) __cope_m3_instances_19.add(value);\r\n    return value;\r\n}\r\n\r\nconst __cope_m3_record_registry_key = Symbol.for(\u0022copeland.ts.record-registry.v1\u0022);\r\nlet __cope_m3_record_registry = globalThis[__cope_m3_record_registry_key];\r\nif (__cope_m3_record_registry === undefined) {\r\n    __cope_m3_record_registry = new Map();\r\n    Object.defineProperty(globalThis, __cope_m3_record_registry_key, { value: __cope_m3_record_registry, writable: false, enumerable: false, configurable: false });\r\n}\r\nfunction __cope_m3_record_registration(id) {\r\n    let registration = __cope_m3_record_registry.get(id);\r\n    if (registration === undefined) {\r\n        registration = { type: Symbol.for(\u0022copeland.ts.record.\u0022 \u002B id), instances: new WeakSet(), fields: new Map() };\r\n        __cope_m3_record_registry.set(id, registration);\r\n    }\r\n    return registration;\r\n}\r\nfunction __cope_m3_record_field(registration, id) {\r\n    let field = registration.fields.get(id);\r\n    if (field === undefined) {\r\n        field = Symbol(id);\r\n        registration.fields.set(id, field);\r\n    }\r\n    return field;\r\n}\r\n\r\nconst __cope_m3_record_registration_r169457001 = __cope_m3_record_registration(\u0022r169457001\u0022);\r\nconst __cope_m3_record_type_r169457001_2 = __cope_m3_record_registration_r169457001.type;\r\nconst __cope_m3_record_instances_r169457001_3 = __cope_m3_record_registration_r169457001.instances;\r\nconst __cope_m3_record_field___cope_0072003100360039003400350037003000300031002e00660030_6 = __cope_m3_record_field(__cope_m3_record_registration_r169457001, \u0022r169457001.f0\u0022);\r\n\r\nfunction __cope_m3_record_make_r169457001_4(field0) {\r\n    const value = Object.create(null);\r\n    Object.defineProperties(value, {\r\n        [__cope_m3_record_type_r169457001_2]: { value: __cope_m3_record_type_r169457001_2, writable: false, enumerable: false, configurable: false },\r\n        [__cope_m3_record_field___cope_0072003100360039003400350037003000300031002e00660030_6]: { value: field0, writable: false, enumerable: false, configurable: false },\r\n    });\r\n    Object.freeze(value);\r\n    __cope_m3_record_instances_r169457001_3.add(value);\r\n    return value;\r\n}\r\n\r\nfunction __cope_record_0072003100360039003400350037003000300031(field0) {\r\n    return __cope_m3_record_make_r169457001_4(field0);\r\n}\r\n\r\nconst __cope_m3_record_registration_r169457002 = __cope_m3_record_registration(\u0022r169457002\u0022);\r\nconst __cope_m3_record_type_r169457002_7 = __cope_m3_record_registration_r169457002.type;\r\nconst __cope_m3_record_instances_r169457002_8 = __cope_m3_record_registration_r169457002.instances;\r\nconst __cope_m3_record_field___cope_0072003100360039003400350037003000300032002e00660030_11 = __cope_m3_record_field(__cope_m3_record_registration_r169457002, \u0022r169457002.f0\u0022);\r\nconst __cope_m3_record_field___cope_0072003100360039003400350037003000300032002e00660031_12 = __cope_m3_record_field(__cope_m3_record_registration_r169457002, \u0022r169457002.f1\u0022);\r\nconst __cope_m3_record_field___cope_0072003100360039003400350037003000300032002e00660032_13 = __cope_m3_record_field(__cope_m3_record_registration_r169457002, \u0022r169457002.f2\u0022);\r\nconst __cope_m3_record_field___cope_0072003100360039003400350037003000300032002e00660033_14 = __cope_m3_record_field(__cope_m3_record_registration_r169457002, \u0022r169457002.f3\u0022);\r\n\r\nfunction __cope_m3_record_make_r169457002_9(field0, field1, field2, field3) {\r\n    const value = Object.create(null);\r\n    Object.defineProperties(value, {\r\n        [__cope_m3_record_type_r169457002_7]: { value: __cope_m3_record_type_r169457002_7, writable: false, enumerable: false, configurable: false },\r\n        [__cope_m3_record_field___cope_0072003100360039003400350037003000300032002e00660030_11]: { value: field0, writable: false, enumerable: false, configurable: false },\r\n        [__cope_m3_record_field___cope_0072003100360039003400350037003000300032002e00660031_12]: { value: field1, writable: false, enumerable: false, configurable: false },\r\n        [__cope_m3_record_field___cope_0072003100360039003400350037003000300032002e00660032_13]: { value: field2, writable: false, enumerable: false, configurable: false },\r\n        [__cope_m3_record_field___cope_0072003100360039003400350037003000300032002e00660033_14]: { value: field3, writable: false, enumerable: false, configurable: false },\r\n    });\r\n    Object.freeze(value);\r\n    __cope_m3_record_instances_r169457002_8.add(value);\r\n    return value;\r\n}\r\n\r\nfunction __cope_m3_record_require_r169457002_10(value) {\r\n    if (typeof value !== \u0022object\u0022 || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_record_instances_r169457002_8.has(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_type_r169457002_7) || value[__cope_m3_record_type_r169457002_7] !== __cope_m3_record_type_r169457002_7 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_0072003100360039003400350037003000300032002e00660030_11) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_0072003100360039003400350037003000300032002e00660031_12) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_0072003100360039003400350037003000300032002e00660032_13) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_0072003100360039003400350037003000300032002e00660033_14)) {\r\n        __cope_m3_panic_0();\r\n    }\r\n}\r\n\r\nfunction __cope_record_0072003100360039003400350037003000300032(field0, field1, field2, field3) {\r\n    return __cope_m3_record_make_r169457002_9(field0, field1, field2, field3);\r\n}\r\n\r\nconst __cope_m3_type_15_registration = __cope_m3_record_registration(\u0022enum:OnceState\u0022);\r\nconst __cope_m3_type_15 = __cope_m3_type_15_registration.type;\r\nconst __cope_m3_instances_16 = __cope_m3_type_15_registration.instances;\r\n\r\nconst __cope_m3_type_18_registration = __cope_m3_record_registration(\u0022enum:OnceOutcome\u0022);\r\nconst __cope_m3_type_18 = __cope_m3_type_18_registration.type;\r\nconst __cope_m3_instances_19 = __cope_m3_type_18_registration.instances;\r\n\r\nfunction __cope_enum_004f006e0063006500530074006100740065_0042006500670069006e() {\r\n    return __cope_m3_make_1(__cope_m3_type_15, \u0022Begin\u0022, []);\r\n}\r\n\r\nfunction __cope_enum_004f006e00630065004f007500740063006f006d0065_004100630074006900760065() {\r\n    return __cope_m3_make_1(__cope_m3_type_18, \u0022Active\u0022, []);\r\n}\r\n\r\nfunction __cope_enum_004f006e00630065004f007500740063006f006d0065_005900690065006c006400650064() {\r\n    return __cope_m3_make_1(__cope_m3_type_18, \u0022Yielded\u0022, []);\r\n}\r\n\r\nfunction __cope_enum_004f006e00630065004f007500740063006f006d0065_0043006f006d0070006c0065007400650064(payload0) {\r\n    return __cope_m3_make_1(__cope_m3_type_18, \u0022Completed\u0022, [payload0]);\r\n}\r\n\r\nfunction __cope_m3_validate_17(value) {\r\n    if (typeof value !== \u0022object\u0022 || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_instances_16.has(value) || !Object.prototype.hasOwnProperty.call(value, \u0022$type\u0022) || !Object.prototype.hasOwnProperty.call(value, \u0022$tag\u0022) || !Object.prototype.hasOwnProperty.call(value, \u0022$payload\u0022) || value.$type !== __cope_m3_type_15 || typeof value.$tag !== \u0022string\u0022 || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload)) {\r\n        __cope_m3_panic_0();\r\n    }\r\n    switch (value.$tag) {\r\n        case \u0022Begin\u0022:\r\n            if (value.$payload.length !== 0) {\r\n                __cope_m3_panic_0();\r\n            }\r\n            return;\r\n        default:\r\n            __cope_m3_panic_0();\r\n    }\r\n}\r\n\r\nfunction __cope_m3_validate_20(value) {\r\n    if (typeof value !== \u0022object\u0022 || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_instances_19.has(value) || !Object.prototype.hasOwnProperty.call(value, \u0022$type\u0022) || !Object.prototype.hasOwnProperty.call(value, \u0022$tag\u0022) || !Object.prototype.hasOwnProperty.call(value, \u0022$payload\u0022) || value.$type !== __cope_m3_type_18 || typeof value.$tag !== \u0022string\u0022 || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload)) {\r\n        __cope_m3_panic_0();\r\n    }\r\n    switch (value.$tag) {\r\n        case \u0022Active\u0022:\r\n            if (value.$payload.length !== 0) {\r\n                __cope_m3_panic_0();\r\n            }\r\n            return;\r\n        case \u0022Yielded\u0022:\r\n            if (value.$payload.length !== 0) {\r\n                __cope_m3_panic_0();\r\n            }\r\n            return;\r\n        case \u0022Completed\u0022:\r\n            if (value.$payload.length !== 1) {\r\n                __cope_m3_panic_0();\r\n            }\r\n            if (!Object.prototype.hasOwnProperty.call(value.$payload, 0) || !(typeof value.$payload[0] === \u0022number\u0022)) {\r\n                __cope_m3_panic_0();\r\n            }\r\n            return;\r\n        default:\r\n            __cope_m3_panic_0();\r\n    }\r\n}\r\n\r\nfunction Main() {\r\n    const frame = __flow_Once_Step(__flow_Once_Start(42));\r\n    const __cope_m3_record_receiver_21 = frame;\r\n    __cope_m3_record_require_r169457002_10(__cope_m3_record_receiver_21);\r\n    const __cope_m3_match_22 = __cope_m3_record_receiver_21[__cope_m3_record_field___cope_0072003100360039003400350037003000300032002e00660032_13];\r\n    __cope_m3_validate_20(__cope_m3_match_22);\r\n    let __cope_m3_match_value_23;\r\n    switch (__cope_m3_match_22.$tag) {\r\n        case \u0022Active\u0022:\r\n        {\r\n            __cope_m3_match_value_23 = 0;\r\n            break;\r\n        }\r\n        case \u0022Yielded\u0022:\r\n        {\r\n            __cope_m3_match_value_23 = 0;\r\n            break;\r\n        }\r\n        case \u0022Completed\u0022:\r\n        {\r\n            const value = __cope_m3_match_22.$payload[0];\r\n            __cope_m3_match_value_23 = value;\r\n            break;\r\n        }\r\n        default:\r\n            __cope_m3_panic_0();\r\n    }\r\n    return __cope_m3_match_value_23;\r\n}\r\n\r\nfunction __flow_Once_Start(value) {\r\n    const __cope_m3_record_init_24 = __cope_enum_004f006e0063006500530074006100740065_0042006500670069006e();\r\n    const __cope_m3_record_init_25 = false;\r\n    const __cope_m3_record_init_26 = __cope_record_0072003100360039003400350037003000300031(__cope_m3_record_init_25);\r\n    const __cope_m3_record_init_27 = __cope_enum_004f006e00630065004f007500740063006f006d0065_004100630074006900760065();\r\n    const __cope_m3_record_init_28 = value;\r\n    return __cope_record_0072003100360039003400350037003000300032(__cope_m3_record_init_24, __cope_m3_record_init_26, __cope_m3_record_init_27, __cope_m3_record_init_28);\r\n}\r\n\r\nfunction __flow_Once_State_Begin(__frame) {\r\n    const __cope_m3_record_receiver_29 = __frame;\r\n    __cope_m3_record_require_r169457002_10(__cope_m3_record_receiver_29);\r\n    let board = __cope_m3_record_receiver_29[__cope_m3_record_field___cope_0072003100360039003400350037003000300032002e00660031_12];\r\n    const __cope_m3_record_receiver_30 = __frame;\r\n    __cope_m3_record_require_r169457002_10(__cope_m3_record_receiver_30);\r\n    const value = __cope_m3_record_receiver_30[__cope_m3_record_field___cope_0072003100360039003400350037003000300032002e00660033_14];\r\n    const __cope_m3_record_source_31 = __frame;\r\n    __cope_m3_record_require_r169457002_10(__cope_m3_record_source_31);\r\n    const __cope_m3_record_replacement_32 = board;\r\n    const __cope_m3_record_replacement_33 = __cope_enum_004f006e00630065004f007500740063006f006d0065_0043006f006d0070006c0065007400650064(value);\r\n    return __cope_record_0072003100360039003400350037003000300032(__cope_m3_record_source_31[__cope_m3_record_field___cope_0072003100360039003400350037003000300032002e00660030_11], __cope_m3_record_replacement_32, __cope_m3_record_replacement_33, __cope_m3_record_source_31[__cope_m3_record_field___cope_0072003100360039003400350037003000300032002e00660033_14]);\r\n}\r\n\r\nfunction __flow_Once_Step(__frame) {\r\n    const __cope_m3_record_receiver_34 = __frame;\r\n    __cope_m3_record_require_r169457002_10(__cope_m3_record_receiver_34);\r\n    const __cope_m3_match_35 = __cope_m3_record_receiver_34[__cope_m3_record_field___cope_0072003100360039003400350037003000300032002e00660032_13];\r\n    __cope_m3_validate_20(__cope_m3_match_35);\r\n    let __cope_m3_match_value_36;\r\n    switch (__cope_m3_match_35.$tag) {\r\n        case \u0022Active\u0022:\r\n        {\r\n            __cope_m3_match_value_36 = false;\r\n            break;\r\n        }\r\n        case \u0022Yielded\u0022:\r\n        {\r\n            __cope_m3_match_value_36 = false;\r\n            break;\r\n        }\r\n        case \u0022Completed\u0022:\r\n        {\r\n            const __ignored = __cope_m3_match_35.$payload[0];\r\n            __cope_m3_match_value_36 = true;\r\n            break;\r\n        }\r\n        default:\r\n            __cope_m3_panic_0();\r\n    }\r\n    if (__cope_m3_match_value_36) {\r\n        return __frame;\r\n    }\r\n    const __cope_m3_record_receiver_37 = __frame;\r\n    __cope_m3_record_require_r169457002_10(__cope_m3_record_receiver_37);\r\n    const __cope_m3_match_38 = __cope_m3_record_receiver_37[__cope_m3_record_field___cope_0072003100360039003400350037003000300032002e00660030_11];\r\n    __cope_m3_validate_17(__cope_m3_match_38);\r\n    let __cope_m3_match_value_39;\r\n    switch (__cope_m3_match_38.$tag) {\r\n        case \u0022Begin\u0022:\r\n        {\r\n            __cope_m3_match_value_39 = __flow_Once_State_Begin(__frame);\r\n            break;\r\n        }\r\n        default:\r\n            __cope_m3_panic_0();\r\n    }\r\n    return __cope_m3_match_value_39;\r\n}\r\n\r\nconst Once = Object.freeze({\r\n    start: __flow_Once_Start,\r\n    step: __flow_Once_Step,\r\n});\r\nexport { Main };\r\n"
+      },
+      "css": null
+    },
+    {
+      "name": "reaction-and-execution-siblings-need-an-adapter",
+      "accepted": false,
+      "expectationMatched": true,
+      "sourceHashes": {
+        "Main.ts": "0771fef0f4b7bec390e30091f0fb9b260aab696fe03b60b0fd542604aac9bdf8"
+      },
+      "diagnostics": [
+        {
+          "code": "COPE-FLOW-EXEC-0001",
+          "message": "Reaction/execution mixing requires the event-to-frame adapter; keep this execution flow event-free.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        }
+      ],
+      "javascript": null,
+      "css": null
+    },
+    {
+      "name": "direct-flow-calls-in-component-nodes-are-not-rewritten",
+      "accepted": false,
+      "expectationMatched": true,
+      "sourceHashes": {
+        "Main.tsx": "92459d53020d806cdbcea42e9cdb7fca8362290ac39b981cb66e5d2e2fbf906c"
+      },
+      "diagnostics": [
+        {
+          "code": "COPE-BIND-0001",
+          "message": "Undefined name \u0027CounterFlow\u0027.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        },
+        {
+          "code": "COPE-BIND-0001",
+          "message": "Undefined name \u0027CounterFlow\u0027.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        },
+        {
+          "code": "COPE-BIND-0001",
+          "message": "Undefined name \u0027CounterFlow\u0027.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        },
+        {
+          "code": "COPE-BIND-0001",
+          "message": "Undefined name \u0027CounterFlow\u0027.",
+          "repairKind": null,
+          "suggestedReplacement": null
+        }
+      ],
+      "javascript": null,
+      "css": null
+    },
+    {
+      "name": "flow-frame-storage-and-stepping-via-ordinary-helpers-is-admitted",
+      "accepted": true,
+      "expectationMatched": true,
+      "sourceHashes": {
+        "Main.tsx": "9760545b9e4260489be9914c3618dbdf64746240e309f0bd862e76c5452eb1a0"
+      },
+      "diagnostics": [],
+      "javascript": {
+        "Main.js": "import { createElement } from \u0022react\u0022;\r\n\u0022use strict\u0022;\r\n\r\nfunction __cope_m3_panic_0() {\r\n    throw new Error(\u0022Copeland JavaScript backend invariant failure.\u0022);\r\n}\r\n\r\nfunction __cope_m3_make_1(type, tag, payload) {\r\n    const value = Object.freeze(Object.assign(Object.create(null), { $type: type, $tag: tag, $payload: Object.freeze(payload) }));\r\n    if (type === __cope_m3_type_15) __cope_m3_instances_16.add(value);\r\n    if (type === __cope_m3_type_18) __cope_m3_instances_19.add(value);\r\n    return value;\r\n}\r\n\r\nconst __cope_m3_record_registry_key = Symbol.for(\u0022copeland.ts.record-registry.v1\u0022);\r\nlet __cope_m3_record_registry = globalThis[__cope_m3_record_registry_key];\r\nif (__cope_m3_record_registry === undefined) {\r\n    __cope_m3_record_registry = new Map();\r\n    Object.defineProperty(globalThis, __cope_m3_record_registry_key, { value: __cope_m3_record_registry, writable: false, enumerable: false, configurable: false });\r\n}\r\nfunction __cope_m3_record_registration(id) {\r\n    let registration = __cope_m3_record_registry.get(id);\r\n    if (registration === undefined) {\r\n        registration = { type: Symbol.for(\u0022copeland.ts.record.\u0022 \u002B id), instances: new WeakSet(), fields: new Map() };\r\n        __cope_m3_record_registry.set(id, registration);\r\n    }\r\n    return registration;\r\n}\r\nfunction __cope_m3_record_field(registration, id) {\r\n    let field = registration.fields.get(id);\r\n    if (field === undefined) {\r\n        field = Symbol(id);\r\n        registration.fields.set(id, field);\r\n    }\r\n    return field;\r\n}\r\n\r\nconst __cope_m3_record_registration_r221387001 = __cope_m3_record_registration(\u0022r221387001\u0022);\r\nconst __cope_m3_record_type_r221387001_2 = __cope_m3_record_registration_r221387001.type;\r\nconst __cope_m3_record_instances_r221387001_3 = __cope_m3_record_registration_r221387001.instances;\r\nconst __cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_6 = __cope_m3_record_field(__cope_m3_record_registration_r221387001, \u0022r221387001.f0\u0022);\r\n\r\nfunction __cope_m3_record_make_r221387001_4(field0) {\r\n    const value = Object.create(null);\r\n    Object.defineProperties(value, {\r\n        [__cope_m3_record_type_r221387001_2]: { value: __cope_m3_record_type_r221387001_2, writable: false, enumerable: false, configurable: false },\r\n        [__cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_6]: { value: field0, writable: false, enumerable: false, configurable: false },\r\n    });\r\n    Object.freeze(value);\r\n    __cope_m3_record_instances_r221387001_3.add(value);\r\n    return value;\r\n}\r\n\r\nfunction __cope_m3_record_require_r221387001_5(value) {\r\n    if (typeof value !== \u0022object\u0022 || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_record_instances_r221387001_3.has(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_type_r221387001_2) || value[__cope_m3_record_type_r221387001_2] !== __cope_m3_record_type_r221387001_2 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_6)) {\r\n        __cope_m3_panic_0();\r\n    }\r\n}\r\n\r\nfunction __cope_record_0072003200320031003300380037003000300031(field0) {\r\n    return __cope_m3_record_make_r221387001_4(field0);\r\n}\r\n\r\nconst __cope_m3_record_registration_r221387002 = __cope_m3_record_registration(\u0022r221387002\u0022);\r\nconst __cope_m3_record_type_r221387002_7 = __cope_m3_record_registration_r221387002.type;\r\nconst __cope_m3_record_instances_r221387002_8 = __cope_m3_record_registration_r221387002.instances;\r\nconst __cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660030_11 = __cope_m3_record_field(__cope_m3_record_registration_r221387002, \u0022r221387002.f0\u0022);\r\nconst __cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660031_12 = __cope_m3_record_field(__cope_m3_record_registration_r221387002, \u0022r221387002.f1\u0022);\r\nconst __cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660032_13 = __cope_m3_record_field(__cope_m3_record_registration_r221387002, \u0022r221387002.f2\u0022);\r\nconst __cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660033_14 = __cope_m3_record_field(__cope_m3_record_registration_r221387002, \u0022r221387002.f3\u0022);\r\n\r\nfunction __cope_m3_record_make_r221387002_9(field0, field1, field2, field3) {\r\n    const value = Object.create(null);\r\n    Object.defineProperties(value, {\r\n        [__cope_m3_record_type_r221387002_7]: { value: __cope_m3_record_type_r221387002_7, writable: false, enumerable: false, configurable: false },\r\n        [__cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660030_11]: { value: field0, writable: false, enumerable: false, configurable: false },\r\n        [__cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660031_12]: { value: field1, writable: false, enumerable: false, configurable: false },\r\n        [__cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660032_13]: { value: field2, writable: false, enumerable: false, configurable: false },\r\n        [__cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660033_14]: { value: field3, writable: false, enumerable: false, configurable: false },\r\n    });\r\n    Object.freeze(value);\r\n    __cope_m3_record_instances_r221387002_8.add(value);\r\n    return value;\r\n}\r\n\r\nfunction __cope_m3_record_require_r221387002_10(value) {\r\n    if (typeof value !== \u0022object\u0022 || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_record_instances_r221387002_8.has(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_type_r221387002_7) || value[__cope_m3_record_type_r221387002_7] !== __cope_m3_record_type_r221387002_7 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660030_11) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660031_12) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660032_13) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660033_14)) {\r\n        __cope_m3_panic_0();\r\n    }\r\n}\r\n\r\nfunction __cope_record_0072003200320031003300380037003000300032(field0, field1, field2, field3) {\r\n    return __cope_m3_record_make_r221387002_9(field0, field1, field2, field3);\r\n}\r\n\r\nconst __cope_m3_type_15_registration = __cope_m3_record_registration(\u0022enum:CounterFlowState\u0022);\r\nconst __cope_m3_type_15 = __cope_m3_type_15_registration.type;\r\nconst __cope_m3_instances_16 = __cope_m3_type_15_registration.instances;\r\n\r\nconst __cope_m3_type_18_registration = __cope_m3_record_registration(\u0022enum:CounterFlowOutcome\u0022);\r\nconst __cope_m3_type_18 = __cope_m3_type_18_registration.type;\r\nconst __cope_m3_instances_19 = __cope_m3_type_18_registration.instances;\r\n\r\nfunction __cope_enum_0043006f0075006e0074006500720046006c006f007700530074006100740065_0043006f0075006e00740069006e0067() {\r\n    return __cope_m3_make_1(__cope_m3_type_15, \u0022Counting\u0022, []);\r\n}\r\n\r\nfunction __cope_enum_0043006f0075006e0074006500720046006c006f0077004f007500740063006f006d0065_004100630074006900760065() {\r\n    return __cope_m3_make_1(__cope_m3_type_18, \u0022Active\u0022, []);\r\n}\r\n\r\nfunction __cope_enum_0043006f0075006e0074006500720046006c006f0077004f007500740063006f006d0065_005900690065006c006400650064() {\r\n    return __cope_m3_make_1(__cope_m3_type_18, \u0022Yielded\u0022, []);\r\n}\r\n\r\nfunction __cope_enum_0043006f0075006e0074006500720046006c006f0077004f007500740063006f006d0065_0043006f006d0070006c0065007400650064(payload0) {\r\n    return __cope_m3_make_1(__cope_m3_type_18, \u0022Completed\u0022, [payload0]);\r\n}\r\n\r\nfunction __cope_m3_validate_17(value) {\r\n    if (typeof value !== \u0022object\u0022 || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_instances_16.has(value) || !Object.prototype.hasOwnProperty.call(value, \u0022$type\u0022) || !Object.prototype.hasOwnProperty.call(value, \u0022$tag\u0022) || !Object.prototype.hasOwnProperty.call(value, \u0022$payload\u0022) || value.$type !== __cope_m3_type_15 || typeof value.$tag !== \u0022string\u0022 || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload)) {\r\n        __cope_m3_panic_0();\r\n    }\r\n    switch (value.$tag) {\r\n        case \u0022Counting\u0022:\r\n            if (value.$payload.length !== 0) {\r\n                __cope_m3_panic_0();\r\n            }\r\n            return;\r\n        default:\r\n            __cope_m3_panic_0();\r\n    }\r\n}\r\n\r\nfunction __cope_m3_validate_20(value) {\r\n    if (typeof value !== \u0022object\u0022 || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_instances_19.has(value) || !Object.prototype.hasOwnProperty.call(value, \u0022$type\u0022) || !Object.prototype.hasOwnProperty.call(value, \u0022$tag\u0022) || !Object.prototype.hasOwnProperty.call(value, \u0022$payload\u0022) || value.$type !== __cope_m3_type_18 || typeof value.$tag !== \u0022string\u0022 || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload)) {\r\n        __cope_m3_panic_0();\r\n    }\r\n    switch (value.$tag) {\r\n        case \u0022Active\u0022:\r\n            if (value.$payload.length !== 0) {\r\n                __cope_m3_panic_0();\r\n            }\r\n            return;\r\n        case \u0022Yielded\u0022:\r\n            if (value.$payload.length !== 0) {\r\n                __cope_m3_panic_0();\r\n            }\r\n            return;\r\n        case \u0022Completed\u0022:\r\n            if (value.$payload.length !== 1) {\r\n                __cope_m3_panic_0();\r\n            }\r\n            if (!Object.prototype.hasOwnProperty.call(value.$payload, 0) || !(typeof value.$payload[0] === \u0022number\u0022)) {\r\n                __cope_m3_panic_0();\r\n            }\r\n            return;\r\n        default:\r\n            __cope_m3_panic_0();\r\n    }\r\n}\r\n\r\nfunction StartFrame() {\r\n    return __flow_CounterFlow_Start(2);\r\n}\r\n\r\nfunction StepFrame(frame) {\r\n    return __flow_CounterFlow_Step(frame);\r\n}\r\n\r\nfunction Counter() {\r\n    const frame = StartFrame();\r\n    const __cope_m3_record_receiver_21 = frame;\r\n    __cope_m3_record_require_r221387002_10(__cope_m3_record_receiver_21);\r\n    const __cope_m3_record_receiver_22 = __cope_m3_record_receiver_21[__cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660031_12];\r\n    __cope_m3_record_require_r221387001_5(__cope_m3_record_receiver_22);\r\n    return createElement(\u0022span\u0022, null, __cope_m3_record_receiver_22[__cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_6]);\r\n}\r\n\r\nfunction __flow_CounterFlow_Start(limit) {\r\n    const __cope_m3_record_init_23 = __cope_enum_0043006f0075006e0074006500720046006c006f007700530074006100740065_0043006f0075006e00740069006e0067();\r\n    const __cope_m3_record_init_24 = 0;\r\n    const __cope_m3_record_init_25 = __cope_record_0072003200320031003300380037003000300031(__cope_m3_record_init_24);\r\n    const __cope_m3_record_init_26 = __cope_enum_0043006f0075006e0074006500720046006c006f0077004f007500740063006f006d0065_004100630074006900760065();\r\n    const __cope_m3_record_init_27 = limit;\r\n    return __cope_record_0072003200320031003300380037003000300032(__cope_m3_record_init_23, __cope_m3_record_init_25, __cope_m3_record_init_26, __cope_m3_record_init_27);\r\n}\r\n\r\nfunction __flow_CounterFlow_State_Counting(__frame) {\r\n    const __cope_m3_record_receiver_28 = __frame;\r\n    __cope_m3_record_require_r221387002_10(__cope_m3_record_receiver_28);\r\n    let board = __cope_m3_record_receiver_28[__cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660031_12];\r\n    const __cope_m3_record_receiver_29 = __frame;\r\n    __cope_m3_record_require_r221387002_10(__cope_m3_record_receiver_29);\r\n    const limit = __cope_m3_record_receiver_29[__cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660033_14];\r\n    const __cope_m3_record_receiver_30 = board;\r\n    __cope_m3_record_require_r221387001_5(__cope_m3_record_receiver_30);\r\n    if ((__cope_m3_record_receiver_30[__cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_6] === limit)) {\r\n        const __cope_m3_record_source_31 = __frame;\r\n        __cope_m3_record_require_r221387002_10(__cope_m3_record_source_31);\r\n        const __cope_m3_record_replacement_32 = board;\r\n        const __cope_m3_record_receiver_33 = board;\r\n        __cope_m3_record_require_r221387001_5(__cope_m3_record_receiver_33);\r\n        const __cope_m3_record_replacement_34 = __cope_enum_0043006f0075006e0074006500720046006c006f0077004f007500740063006f006d0065_0043006f006d0070006c0065007400650064(__cope_m3_record_receiver_33[__cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_6]);\r\n        return __cope_record_0072003200320031003300380037003000300032(__cope_m3_record_source_31[__cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660030_11], __cope_m3_record_replacement_32, __cope_m3_record_replacement_34, __cope_m3_record_source_31[__cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660033_14]);\r\n    }\r\n    const __cope_m3_record_source_35 = board;\r\n    __cope_m3_record_require_r221387001_5(__cope_m3_record_source_35);\r\n    const __cope_m3_record_receiver_36 = board;\r\n    __cope_m3_record_require_r221387001_5(__cope_m3_record_receiver_36);\r\n    const __cope_m3_record_replacement_37 = ((__cope_m3_record_receiver_36[__cope_m3_record_field___cope_0072003200320031003300380037003000300031002e00660030_6] \u002B 1) | 0);\r\n    (board = __cope_record_0072003200320031003300380037003000300031(__cope_m3_record_replacement_37));\r\n    const __cope_m3_record_source_38 = __frame;\r\n    __cope_m3_record_require_r221387002_10(__cope_m3_record_source_38);\r\n    const __cope_m3_record_replacement_39 = board;\r\n    const __cope_m3_record_replacement_40 = __cope_enum_0043006f0075006e0074006500720046006c006f0077004f007500740063006f006d0065_005900690065006c006400650064();\r\n    return __cope_record_0072003200320031003300380037003000300032(__cope_m3_record_source_38[__cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660030_11], __cope_m3_record_replacement_39, __cope_m3_record_replacement_40, __cope_m3_record_source_38[__cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660033_14]);\r\n}\r\n\r\nfunction __flow_CounterFlow_Step(__frame) {\r\n    const __cope_m3_record_receiver_41 = __frame;\r\n    __cope_m3_record_require_r221387002_10(__cope_m3_record_receiver_41);\r\n    const __cope_m3_match_42 = __cope_m3_record_receiver_41[__cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660032_13];\r\n    __cope_m3_validate_20(__cope_m3_match_42);\r\n    let __cope_m3_match_value_43;\r\n    switch (__cope_m3_match_42.$tag) {\r\n        case \u0022Active\u0022:\r\n        {\r\n            __cope_m3_match_value_43 = false;\r\n            break;\r\n        }\r\n        case \u0022Yielded\u0022:\r\n        {\r\n            __cope_m3_match_value_43 = false;\r\n            break;\r\n        }\r\n        case \u0022Completed\u0022:\r\n        {\r\n            const __ignored = __cope_m3_match_42.$payload[0];\r\n            __cope_m3_match_value_43 = true;\r\n            break;\r\n        }\r\n        default:\r\n            __cope_m3_panic_0();\r\n    }\r\n    if (__cope_m3_match_value_43) {\r\n        return __frame;\r\n    }\r\n    const __cope_m3_record_receiver_44 = __frame;\r\n    __cope_m3_record_require_r221387002_10(__cope_m3_record_receiver_44);\r\n    const __cope_m3_match_45 = __cope_m3_record_receiver_44[__cope_m3_record_field___cope_0072003200320031003300380037003000300032002e00660030_11];\r\n    __cope_m3_validate_17(__cope_m3_match_45);\r\n    let __cope_m3_match_value_46;\r\n    switch (__cope_m3_match_45.$tag) {\r\n        case \u0022Counting\u0022:\r\n        {\r\n            __cope_m3_match_value_46 = __flow_CounterFlow_State_Counting(__frame);\r\n            break;\r\n        }\r\n        default:\r\n            __cope_m3_panic_0();\r\n    }\r\n    return __cope_m3_match_value_46;\r\n}\r\n\r\nconst CounterFlow = Object.freeze({\r\n    start: __flow_CounterFlow_Start,\r\n    step: __flow_CounterFlow_Step,\r\n});\r\nexport { Counter };\r\n"
+      },
+      "css": null
+    },
+    {
+      "name": "component-transition-can-currently-call-a-mutating-helper",
+      "accepted": true,
+      "expectationMatched": true,
+      "sourceHashes": {
+        "Main.tsx": "3b10a52b8e27a43b7f6c40f7fb73475ec2456c3863df6684c51b5728d1505a00"
+      },
+      "diagnostics": [],
+      "javascript": {
+        "Main.js": "import { createElement } from \u0022react\u0022;\r\n\u0022use strict\u0022;\r\n\r\nfunction Next(storage) {\r\n    (() =\u003E { const __cope_m3_mutable_array_3 = storage; const __cope_m3_array_index_4 = 0; if (__cope_m3_array_index_4 \u003C 0 || __cope_m3_array_index_4 \u003E= __cope_m3_mutable_array_3.length) throw new RangeError(\u0022Copeland array index is out of bounds.\u0022); const __cope_m3_array_value_5 = (((() =\u003E { const __cope_m3_mutable_array_1 = storage; const __cope_m3_array_index_2 = 0; if (__cope_m3_array_index_2 \u003C 0 || __cope_m3_array_index_2 \u003E= __cope_m3_mutable_array_1.length) throw new RangeError(\u0022Copeland array index is out of bounds.\u0022); return __cope_m3_mutable_array_1[__cope_m3_array_index_2]; })() \u002B 1) | 0); __cope_m3_mutable_array_3[__cope_m3_array_index_4] = __cope_m3_array_value_5; return __cope_m3_array_value_5; })();\r\n    return (() =\u003E { const __cope_m3_mutable_array_6 = storage; const __cope_m3_array_index_7 = 0; if (__cope_m3_array_index_7 \u003C 0 || __cope_m3_array_index_7 \u003E= __cope_m3_mutable_array_6.length) throw new RangeError(\u0022Copeland array index is out of bounds.\u0022); return __cope_m3_mutable_array_6[__cope_m3_array_index_7]; })();\r\n}\r\n\r\nfunction Counter(storage) {\r\n    const current = 0;\r\n    return createElement(\u0022span\u0022, null, current);\r\n}\r\nexport { Counter };\r\n"
+      },
+      "css": null
+    }
+  ]
+}

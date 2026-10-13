@@ -1769,8 +1769,9 @@ public sealed class Parser
 
     private bool IsComponentStateDeclarationStart()
         => IsWord(Current, "state")
-            && Peek(1).Kind == SyntaxKind.IdentifierToken
-            && Peek(2).Kind is SyntaxKind.ColonToken or SyntaxKind.EqualsToken;
+            && (Peek(1).Kind == SyntaxKind.ColonToken
+                || (Peek(1).Kind == SyntaxKind.IdentifierToken
+                    && Peek(2).Kind is SyntaxKind.ColonToken or SyntaxKind.EqualsToken));
 
     private bool IsComponentEventHandlerStart()
         => IsWord(Current, "on")
@@ -1780,7 +1781,9 @@ public sealed class Parser
     private ComponentStateDeclarationStatementSyntax ParseComponentStateDeclaration()
     {
         SyntaxToken stateKeyword = NextToken();
-        SyntaxToken identifier = Match(SyntaxKind.IdentifierToken);
+        SyntaxToken identifier = Current.Kind == SyntaxKind.ColonToken
+            ? stateKeyword
+            : Match(SyntaxKind.IdentifierToken);
         SyntaxToken? colon = Current.Kind == SyntaxKind.ColonToken ? NextToken() : null;
         TypeSyntax? type = colon is null ? null : ParseTypeSyntax();
         SyntaxToken equals = Match(SyntaxKind.EqualsToken);

@@ -1,0 +1,107 @@
+{
+  "milestone": "CTS-REACT-STATE-ON-AUDIT",
+  "scope": "Audit and proposed design only. New specimens, emission observation tooling, and review evidence; no production source changes in this audit.",
+  "environment": {
+    "dotnet": "10.0.401",
+    "node": "v26.2.0",
+    "go": "go version go1.27.0 windows/amd64",
+    "gcc": "gcc.exe (Rev13, Built by MSYS2 project) 15.2.0",
+    "react": "19.2.7"
+  },
+  "compiler": {
+    "cases": 14,
+    "allExpectationsMatched": true,
+    "assemblySha256": "74eb8b4c9132b6c360d703b799c45cc426a5d63a714e86705f4c0dd939a15c08",
+    "sameAssemblyAsM5": true
+  },
+  "dotnetTests": [
+    {
+      "lane": "frontend",
+      "total": 40,
+      "passed": 40,
+      "failed": 0,
+      "trxPath": "artifacts/validation/react-state-on-audit/frontend/yuech_DESKTOP-AKFI9N2_2026-10-12_15_22_45_net10.0.trx",
+      "sha256": "0ea9b9c6e5c05b39a70c9fc01d18aeadaa460717ff6a9e3e177a33225fd209d5"
+    },
+    {
+      "lane": "javascript",
+      "total": 8,
+      "passed": 8,
+      "failed": 0,
+      "trxPath": "artifacts/validation/react-state-on-audit/javascript/yuech_DESKTOP-AKFI9N2_2026-10-12_15_23_02_net10.0.trx",
+      "sha256": "c821ff561b0a0488aa0fd9bfb73d12b5b472cee208e89119b6f610aa8d8aba7e"
+    }
+  ],
+  "concept": {
+    "selectedTopLevelTestGroups": 10,
+    "exitCode": 0,
+    "packageElapsedSeconds": 5.86,
+    "includesC11Execution": true,
+    "includesNormalAndVerifyReactions": true,
+    "workingTreeCleanAfterTests": true,
+    "logRetention": "Go JSON output was observed through the execution tool; no standalone log was retained."
+  },
+  "commands": [
+    {
+      "workingDirectory": "C:\\Users\\yuech\\source\\repos\\Copeland",
+      "command": "dotnet run --project samples/copeland-ts/react-friction-m0/tooling/compiler-probes/CompilerProbes.csproj -- samples/copeland-ts/react-friction-m0/inputs/state-on-audit-corpus.json docs/Copeland/reviews/evidence/react-state-on-audit/compiler-report.json",
+      "exitCode": 0
+    },
+    {
+      "workingDirectory": "C:\\Users\\yuech\\source\\repos\\Copeland",
+      "command": "node samples/copeland-ts/react-friction-m0/baseline/node_modules/typescript/bin/tsc --project samples/copeland-ts/react-friction-m0/tooling/tsconfig.json",
+      "exitCode": 0
+    },
+    {
+      "workingDirectory": "C:\\Users\\yuech\\source\\repos\\Copeland",
+      "command": "node samples/copeland-ts/react-friction-m0/tooling/state-on-audit.ts",
+      "exitCode": 0
+    },
+    {
+      "workingDirectory": "C:\\Users\\yuech\\source\\repos\\Copeland",
+      "command": "dotnet test tests/Copeland/Copeland.TS.Tests/Copeland.TS.Tests.csproj --no-build --filter \"FullyQualifiedName~ComponentStateM0Tests|FullyQualifiedName~FlowM1Tests|FullyQualifiedName~FlowM2Tests|FullyQualifiedName~FlowExecutionTests\" --logger trx --results-directory artifacts/validation/react-state-on-audit/frontend",
+      "exitCode": 0
+    },
+    {
+      "workingDirectory": "C:\\Users\\yuech\\source\\repos\\Copeland",
+      "command": "dotnet test tests/Copeland/Copeland.TS.Backend.JavaScript.Tests/Copeland.TS.Backend.JavaScript.Tests.csproj --no-build --filter \"FullyQualifiedName~FlowM1RuntimeTests|FullyQualifiedName~FlowExecutionRuntimeTests\" --logger trx --results-directory artifacts/validation/react-state-on-audit/javascript",
+      "exitCode": 0
+    },
+    {
+      "workingDirectory": "C:/Users/yuech/source/repos/Concept",
+      "command": "go test ./internal/concept -run \"^(TestAutomataStateConformance|TestAutomataStateMIRAndPlanner|TestAutomataStateNativeC11|TestMachineStackConformance|TestMachineStackNativeC11|TestMachineStackMIRAndPlanner|TestReactionsConformance|TestReactionsNativeC11|TestReactionsMIRAndPlan|TestReactionsNormalAndVerify)$\" -count=1 -json",
+      "exitCode": 0
+    }
+  ],
+  "sourceSha256": {
+    "Copeland": {
+      "src/Copeland/Copeland.TS/Syntax/Parser.cs": "f5fd21b8388e28cc04fdd26ec890fa6bfaaa6309f7fb56b9dadae9c9991601ab",
+      "src/Copeland/Copeland.TS/Syntax/FlowExecutionProjection.cs": "c094cb03652bed06ffdaaf2b21f5bab30cf2666f93bdf7884d0c871b58e57f1f",
+      "src/Copeland/Copeland.TS/Semantics/Binder.cs": "cc7e41e8ebd3e5a86b16ff9aa36ef1a095553370c522f40a017e93627f846686",
+      "src/Copeland/Copeland.TS/Semantics/Binder.FlowExecution.cs": "2ff21cd728b9ecbb1ce0b212f1945ab7fc3bdf04826fd89ed05cb497db1aeccb",
+      "src/Copeland/Copeland.TS/Semantics/FunctionEffects.cs": "55dfc98d4603f56ca15b1d145304a6c9dc7ed48926d20dfe0b312aa2803719b9",
+      "src/Copeland/Copeland.TS/Semantics/Bound/ComponentStateRuntime.cs": "c951b814a4743a7b6829766839e53459d525bdf8fef35337ec1bf8fa3a380310",
+      "src/Copeland/Copeland.TS/Lowering/MirLowerer.cs": "ee3bbca5c804b1b32afb26eb720e5c0d5c74eeb6ed9332a3e13f9ef75e50b747",
+      "src/Copeland/Copeland.Cli/ComponentFrameArtifactEmitter.cs": "c7d1d63cf326455badd0b8d874fd2629dea687c86f6838842df47016808f6613",
+      "samples/copeland-ts/react-friction-m0/src/Main.ts": "d0967c19b78a648abc007c0f0ff9844d3eea18e473ada17277a2ead49c718247",
+      "samples/copeland-ts/react-friction-m0/src/State.ts": "e917de5f822dd56b1c25395e94afbb08633021583e21f9b9e6c5d6176eb0d342",
+      "samples/copeland-ts/react-friction-m0/tooling/state-on-audit.ts": "2e8b396ca87960c6a3bd5ccae2e007b7c37267f30d3546e26bde440eaf9fed7f"
+    },
+    "Concept": {
+      "docs/spec/CONCEPT_EVT1_LANGUAGE_SPEC.md": "c5308a56e1bafcf48355d537f1e53377d6bf22b57a0de16e47fe09f351a60deb",
+      "internal/concept/automata.go": "24d61f801d12a498ffa4e30c7c02fd72284e856bb55b7b6e6cd73709b6472898",
+      "internal/concept/reactions.go": "725a9b996aebea182166471634ce22ae30b8080e68a710b4064ba84fa6ac62bb",
+      "internal/concept/machine_stack.go": "a42e23c73ab356dfd6c8c7d403464d37d820d955a9a97628e9d78f6c35f8afa9",
+      "internal/concept/automata_state_test.go": "de387b2f01107257ffa738d9272722bf59a0c61d8742583b89ce9137a72f4a4e",
+      "internal/concept/reactions_test.go": "d738c1e67a1a1256a668e27e6664ec2f63d6362912cab76ea47c9322a67654a4",
+      "internal/concept/machine_stack_test.go": "4ecd5023b35e3a8423960141be0daac44949d7047d727554587a6171d583fff4",
+      "internal/concept/lir_machine_test.go": "80b7abfbab62c4c1517dddcfe2ee211ae47749bdae0a44295838690bdedd3a76"
+    }
+  },
+  "limits": [
+    "No mounted React state lifecycle qualified.",
+    "Full Copeland build/test suite not rerun for this audit; production compiler sources were not changed by the audit.",
+    "Concept native EVT2 input reactions remain unsupported.",
+    "Frozen Zig suites skipped: neither legacy Zig compiler nor its build/test infrastructure changed."
+  ]
+}

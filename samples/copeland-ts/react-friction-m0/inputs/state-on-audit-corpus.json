@@ -1,0 +1,83 @@
+{
+  "milestone": "CTS-REACT-STATE-ON-AUDIT",
+  "cases": [
+    {
+      "name": "existing-component-state-and-on",
+      "expected": "accept",
+      "sources": [{ "path": "Main.tsx", "text": "import { createElement } from \"react\"; export function Counter(): ReactNode { state current: int = 0; on Increment() => current + 1; return <span>{current}</span>; }" }]
+    },
+    {
+      "name": "state-binding-can-be-named-state",
+      "expected": "accept",
+      "sources": [{ "path": "Main.tsx", "text": "import { createElement } from \"react\"; record Model { count: int; } export function Counter(): ReactNode { state state: Model = { count: 0 }; on Increment() => state with { count: state.count + 1 }; return <span>{state.count}</span>; }" }]
+    },
+    {
+      "name": "proposed-state-colon-shorthand",
+      "expected": "reject",
+      "diagnostic": "COPE-PARSE-0004",
+      "sources": [{ "path": "Main.tsx", "text": "import { createElement } from \"react\"; record Model { count: int; } export function Counter(): ReactNode { state: Model = { count: 0 }; on Increment() => state with { count: state.count + 1 }; return <span>{state.count}</span>; }" }]
+    },
+    {
+      "name": "on-is-not-an-endpoint-namespace-yet",
+      "expected": "reject",
+      "diagnostic": "COPE-BIND-0001",
+      "sources": [{ "path": "Main.tsx", "text": "import { createElement } from \"react\"; export function Counter(): ReactNode { state current: int = 0; on Increment() => current + 1; return <button onClick={on.Increment}>Increment</button>; }" }]
+    },
+    {
+      "name": "handler-name-is-not-an-ordinary-callable",
+      "expected": "reject",
+      "diagnostic": "COPE-BIND-0001",
+      "sources": [{ "path": "Main.tsx", "text": "import { createElement } from \"react\"; export function Counter(): ReactNode { state current: int = 0; on Increment() => current + 1; return <button onClick={Increment}>Increment</button>; }" }]
+    },
+    {
+      "name": "component-state-remains-readonly",
+      "expected": "reject",
+      "diagnostic": "COPE-BIND-0003",
+      "sources": [{ "path": "Main.tsx", "text": "import { createElement } from \"react\"; export function Counter(): ReactNode { state current: int = 0; on Increment() => current + 1; current = 10; return <span>{current}</span>; }" }]
+    },
+    {
+      "name": "one-state-value-per-component",
+      "expected": "reject",
+      "diagnostic": "COPE-COMPONENT-STATE-0002",
+      "sources": [{ "path": "Main.tsx", "text": "import { createElement } from \"react\"; export function Counter(): ReactNode { state current: int = 0; state other: int = 0; return <span>{current}</span>; }" }]
+    },
+    {
+      "name": "typed-domain-event-reducer-is-admitted",
+      "expected": "accept",
+      "sources": [{ "path": "Main.tsx", "text": "import { createElement } from \"react\"; enum Event { Add(value: int), Reset } record Model { count: int; } function Reduce(current: Model, event: Event): Model { return match event { Add(value) => current with { count: current.count + value }, Reset => current with { count: 0 } }; } export function Counter(): ReactNode { state current: Model = { count: 0 }; on Apply(event: Event) => Reduce(current, event); return <span>{current.count}</span>; }" }]
+    },
+    {
+      "name": "reaction-flow-source-session-api-is-not-admitted",
+      "expected": "reject",
+      "diagnostic": "COPE-BIND-0001",
+      "sources": [{ "path": "Main.ts", "text": "flow Door { board { opens: int = 0; } event Open(); state Closed initial { on Open() -> Opened { board.opens = board.opens + 1; }; } state Opened { } } export function Main(): int { const session = Door.start(); return 0; }" }]
+    },
+    {
+      "name": "execution-flow-source-frame-api-is-admitted",
+      "expected": "accept",
+      "sources": [{ "path": "Main.ts", "text": "flow Once(value: int) -> int { state Begin initial { finish value; } } export function Main(): int { const frame = Once.step(Once.start(42)); return match frame.outcome { Active => 0, Yielded => 0, Completed(value) => value }; }" }]
+    },
+    {
+      "name": "reaction-and-execution-siblings-need-an-adapter",
+      "expected": "reject",
+      "diagnostic": "COPE-FLOW-EXEC-0001",
+      "sources": [{ "path": "Main.ts", "text": "flow Mixed() -> int { board { value: int = 0; } event Go(); state Waiting initial { on Go() -> Running; } state Running { finish 42; } }" }]
+    },
+    {
+      "name": "direct-flow-calls-in-component-nodes-are-not-rewritten",
+      "expected": "reject",
+      "diagnostic": "COPE-BIND-0001",
+      "sources": [{ "path": "Main.tsx", "text": "import { createElement } from \"react\"; flow CounterFlow(limit: int) -> int { board { count: int = 0; } state Counting initial { if (board.count == limit) { finish board.count; } board.count = board.count + 1; yield; } } export function Counter(): ReactNode { state frame: CounterFlowFrame = CounterFlow.start(2); on Tick() => CounterFlow.step(frame); return <span>{frame.board.count}</span>; }" }]
+    },
+    {
+      "name": "flow-frame-storage-and-stepping-via-ordinary-helpers-is-admitted",
+      "expected": "accept",
+      "sources": [{ "path": "Main.tsx", "text": "import { createElement } from \"react\"; flow CounterFlow(limit: int) -> int { board { count: int = 0; } state Counting initial { if (board.count == limit) { finish board.count; } board.count = board.count + 1; yield; } } function StartFrame(): CounterFlowFrame { return CounterFlow.start(2); } function StepFrame(frame: CounterFlowFrame): CounterFlowFrame { return CounterFlow.step(frame); } export function Counter(): ReactNode { state frame: CounterFlowFrame = StartFrame(); on Tick() => StepFrame(frame); return <span>{frame.board.count}</span>; }" }]
+    },
+    {
+      "name": "component-transition-can-currently-call-a-mutating-helper",
+      "expected": "accept",
+      "sources": [{ "path": "Main.tsx", "text": "import { createElement } from \"react\"; function Next(storage: MutableArray<int>): int { storage[0] = storage[0] + 1; return storage[0]; } export function Counter(storage: MutableArray<int>): ReactNode { state current: int = 0; on Increment() => Next(storage); return <span>{current}</span>; }" }]
+    }
+  ]
+}

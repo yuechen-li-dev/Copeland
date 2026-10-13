@@ -1,0 +1,280 @@
+{
+  "milestone": "CTS-REACT-STATE-ON-M6",
+  "status": "success-qualified-bounded-react-root-slice",
+  "environment": {
+    "dotnet": "10.0.401",
+    "node": "26.2.0",
+    "browser": {
+      "channel": "msedge",
+      "version": "153.0.4234.48"
+    },
+    "platform": "Windows x64"
+  },
+  "validation": {
+    "build": {
+      "command": "dotnet build Copeland.slnx -m:1 -v:minimal",
+      "warnings": 0,
+      "errors": 0,
+      "log": "artifacts/validation/react-state-on-m6-final-build.log",
+      "sha256": "805d5e3a1af37be24c9150bf7f3eff05fedb71082c1dec89f53e314cfe797f2b"
+    },
+    "tests": {
+      "command": "dotnet test Copeland.slnx --no-build -m:1 --logger trx --results-directory artifacts/validation/react-state-on-m6-closeout",
+      "passed": 2209,
+      "failed": 0,
+      "suites": [
+        {
+          "assembly": "Copeland.Authoring.Food.Tests.dll",
+          "counters": {
+            "total": 3,
+            "executed": 3,
+            "passed": 3,
+            "failed": 0,
+            "error": 0,
+            "timeout": 0,
+            "aborted": 0,
+            "inconclusive": 0,
+            "passedButRunAborted": 0,
+            "notRunnable": 0,
+            "notExecuted": 0,
+            "disconnected": 0,
+            "warning": 0,
+            "completed": 0,
+            "inProgress": 0,
+            "pending": 0
+          },
+          "artifact": "artifacts/validation/react-state-on-m6-closeout/yuech_DESKTOP-AKFI9N2_2026-10-12_16_32_34_net10.0.trx",
+          "sha256": "1b8a520c932199b049c94163f64a1fc3a48ba9ed9e39d9dac4d64630e561dd04"
+        },
+        {
+          "assembly": "Copeland.Cli.Tests.dll",
+          "counters": {
+            "total": 80,
+            "executed": 80,
+            "passed": 80,
+            "failed": 0,
+            "error": 0,
+            "timeout": 0,
+            "aborted": 0,
+            "inconclusive": 0,
+            "passedButRunAborted": 0,
+            "notRunnable": 0,
+            "notExecuted": 0,
+            "disconnected": 0,
+            "warning": 0,
+            "completed": 0,
+            "inProgress": 0,
+            "pending": 0
+          },
+          "artifact": "artifacts/validation/react-state-on-m6-closeout/yuech_DESKTOP-AKFI9N2_2026-10-12_16_32_36_net10.0.trx",
+          "sha256": "10b72c00e67e0d77bf8e3eed4eef555dbc3160cd2ebde67b8a1ce42cc1776427"
+        },
+        {
+          "assembly": "Copeland.Markdown.Tests.dll",
+          "counters": {
+            "total": 35,
+            "executed": 35,
+            "passed": 35,
+            "failed": 0,
+            "error": 0,
+            "timeout": 0,
+            "aborted": 0,
+            "inconclusive": 0,
+            "passedButRunAborted": 0,
+            "notRunnable": 0,
+            "notExecuted": 0,
+            "disconnected": 0,
+            "warning": 0,
+            "completed": 0,
+            "inProgress": 0,
+            "pending": 0
+          },
+          "artifact": "artifacts/validation/react-state-on-m6-closeout/yuech_DESKTOP-AKFI9N2_2026-10-12_16_33_40_net10.0.trx",
+          "sha256": "98fb74b9dbcaae133d8910bd3abb518d36ea94b6a1d37d54c209e89bd3e3e1b9"
+        },
+        {
+          "assembly": "Copeland.TS.Backend.CSharp.Tests.dll",
+          "counters": {
+            "total": 273,
+            "executed": 273,
+            "passed": 273,
+            "failed": 0,
+            "error": 0,
+            "timeout": 0,
+            "aborted": 0,
+            "inconclusive": 0,
+            "passedButRunAborted": 0,
+            "notRunnable": 0,
+            "notExecuted": 0,
+            "disconnected": 0,
+            "warning": 0,
+            "completed": 0,
+            "inProgress": 0,
+            "pending": 0
+          },
+          "artifact": "artifacts/validation/react-state-on-m6-closeout/yuech_DESKTOP-AKFI9N2_2026-10-12_16_33_41_net10.0.trx",
+          "sha256": "8966ed759bf90ba01787848808c4a5dc2808675eab9146dbbfcd82b8b0bb49df"
+        },
+        {
+          "assembly": "Copeland.TS.Backend.JavaScript.Tests.dll",
+          "counters": {
+            "total": 241,
+            "executed": 241,
+            "passed": 241,
+            "failed": 0,
+            "error": 0,
+            "timeout": 0,
+            "aborted": 0,
+            "inconclusive": 0,
+            "passedButRunAborted": 0,
+            "notRunnable": 0,
+            "notExecuted": 0,
+            "disconnected": 0,
+            "warning": 0,
+            "completed": 0,
+            "inProgress": 0,
+            "pending": 0
+          },
+          "artifact": "artifacts/validation/react-state-on-m6-closeout/yuech_DESKTOP-AKFI9N2_2026-10-12_16_33_51_net10.0.trx",
+          "sha256": "c7f15ccf15213d1aead9b82705ce5b9bb5a5361bf626880b5f27be2847c8c8a6"
+        },
+        {
+          "assembly": "Copeland.TS.Database.Tests.dll",
+          "counters": {
+            "total": 11,
+            "executed": 11,
+            "passed": 11,
+            "failed": 0,
+            "error": 0,
+            "timeout": 0,
+            "aborted": 0,
+            "inconclusive": 0,
+            "passedButRunAborted": 0,
+            "notRunnable": 0,
+            "notExecuted": 0,
+            "disconnected": 0,
+            "warning": 0,
+            "completed": 0,
+            "inProgress": 0,
+            "pending": 0
+          },
+          "artifact": "artifacts/validation/react-state-on-m6-closeout/yuech_DESKTOP-AKFI9N2_2026-10-12_16_33_56_net10.0.trx",
+          "sha256": "472c9b0ec04d3b56555e486fa39c93ed06376ccd502c3b422d0f7b3affa61bfd"
+        },
+        {
+          "assembly": "Copeland.TS.MSBuild.Tests.dll",
+          "counters": {
+            "total": 13,
+            "executed": 13,
+            "passed": 13,
+            "failed": 0,
+            "error": 0,
+            "timeout": 0,
+            "aborted": 0,
+            "inconclusive": 0,
+            "passedButRunAborted": 0,
+            "notRunnable": 0,
+            "notExecuted": 0,
+            "disconnected": 0,
+            "warning": 0,
+            "completed": 0,
+            "inProgress": 0,
+            "pending": 0
+          },
+          "artifact": "artifacts/validation/react-state-on-m6-closeout/yuech_DESKTOP-AKFI9N2_2026-10-12_16_34_02_net10.0.trx",
+          "sha256": "69f03c8a3e8987c2f00347aee512f15a4d3aeeb6af44385c0671d797b85f3d26"
+        },
+        {
+          "assembly": "Copeland.TS.Tests.dll",
+          "counters": {
+            "total": 1553,
+            "executed": 1553,
+            "passed": 1553,
+            "failed": 0,
+            "error": 0,
+            "timeout": 0,
+            "aborted": 0,
+            "inconclusive": 0,
+            "passedButRunAborted": 0,
+            "notRunnable": 0,
+            "notExecuted": 0,
+            "disconnected": 0,
+            "warning": 0,
+            "completed": 0,
+            "inProgress": 0,
+            "pending": 0
+          },
+          "artifact": "artifacts/validation/react-state-on-m6-closeout/yuech_DESKTOP-AKFI9N2_2026-10-12_16_34_51_net10.0.trx",
+          "sha256": "c3c4d3de87a58c4cbaebd16bd063f02a7c71dd3559bcb7a18647ce883bdcd633"
+        }
+      ]
+    },
+    "fixture": {
+      "command": "./samples/copeland-ts/react-friction-m0/run.ps1",
+      "exitCode": 0,
+      "log": "samples/copeland-ts/react-friction-m0/artifacts/state-on-final-run.log",
+      "sha256": "0033487820416cb92d9fdeab6d97af25519f6ef633fd874a5b4e0bd5bfeb6025"
+    },
+    "finalProbeRefresh": {
+      "commands": [],
+      "exitCodes": 0,
+      "note": "The final complete fixture runner reran all compiler, browser, profile, website, baseline, and tooling checks after the immutable-array boundary guard was added."
+    },
+    "compilerExpectations": 50,
+    "applicationObservations": 74,
+    "lifecycleAndFlowScenariosPerProfile": 7,
+    "emissionProfiles": [
+      "Diagnostic",
+      "Symbolic",
+      "Production"
+    ],
+    "semanticLibraryScenarios": 4,
+    "originalWebsiteViewports": [
+      1440,
+      768,
+      390
+    ]
+  },
+  "ownership": {
+    "state": "existing canonical browser component-frame registry",
+    "react": "presentation snapshots, subscriptions, lifetime and actual commit acknowledgement",
+    "transitionQualification": "existing bound effect inspector with closed call contexts"
+  },
+  "limits": [
+    "Declared React effects and completion/attachment phases are unsupported",
+    "Dynamic stateful child ownership and concurrent/Suspense/SSR behavior are not qualified",
+    "Reaction/execution FLOW mixing remains unsupported",
+    "CustomElement v1 wire envelope unchanged",
+    "Legacy named state without endpoint references retains M0 realization",
+    "No remote CI or other platform/browser certification"
+  ],
+  "skipped": {
+    "legacyZig": "Frozen compiler/build/test infrastructure unchanged"
+  },
+  "compilerAssemblySha256": "4f578050e534892f9d568e8d498bad37d76dc4963dbfde368ca92197fa91ff45",
+  "evidenceHashes": {
+    "compiler-report.json": "676decd0f6a99fc964f3d05ad1464a765289a557cdbd93a18c640521794e8c19",
+    "browser-report.json": "830a0f14e31997be6b82ba24a6c26a3559bb9126ad14b8079df1fbb056ab58f4",
+    "state-on-browser-report.json": "b327ed821f6c759da4ae2cf383b80f146276b792da0b797f3be89356726dd6a5",
+    "state-on-symbolic-browser-report.json": "e49d28d341c1cbcb7183a800f3d36efd4cd39876f69eae8f9a3c128197619a8d",
+    "state-on-production-browser-report.json": "bfb5e888891407fee2e9f78afbd465d9e08268a0089a3141ea0e729e0026bec7",
+    "semantic-library-report.json": "eb9453a37fd7be0b314400f28ac5ab7e81d7f51c85812dbe6ea5480f2381b4e8",
+    "website-regression.json": "aa45fa3b3054cc1f0c83d79b3128a5ce36ea077490c221ab10f5a6f942983afa",
+    "authoring-accounting.json": "add4bb16d033eee0bc2fd7990fcab0199b52c300582dace36c3d61d86c911765"
+  },
+  "sourceHashes": {
+    "src/Copeland/Copeland.TS/Semantics/ComponentEndpointValidation.cs": "40e92de39f83d0a050172527b001515a593464d33bedb0cd8cb507b6eb11f473",
+    "src/Copeland/Copeland.TS/Semantics/FunctionEffects.cs": "09403c48c2a59560cf48245a710b0a700c7a75e694186404eac267a4ffce45fe",
+    "src/Copeland/Copeland.TS/Semantics/Binder.cs": "ebd6827867c5ecb31af75a511a9c2eba2079af39dc8cab91a3c974b496591b60",
+    "src/Copeland/Copeland.TS/Lowering/MirLowerer.cs": "5ddce7c2465e1617733a500017c01188e31e4fd2457dced2b0150a178f4afd46",
+    "src/Copeland/Copeland.TS.Backend.JavaScript/ComponentStateRuntime.cs": "fd73a946f3a9d746119667b257452ccf7ca59a307cbf52fae36a5ed9640a19ef",
+    "src/Copeland/Copeland.TS.Backend.JavaScript/JavaScriptBackend.cs": "08e09ba76d9b4ef30e35c3d6b259c2756f77a83586719ec9a89a01551bb4c557",
+    "src/Copeland/Copeland.TS.Mir/MirValidator.cs": "cdff2586645fe3d7286ae32d61c0d74415da06560864cc02a612e3d5a47ddc18",
+    "src/Copeland/Copeland.Cli/TsclBuildContract.cs": "f6b0b5d0379912b92407d58ab65191e90faceb37ed64a218ca6e8c56279f7690",
+    "samples/copeland-ts/react-friction-m0/inputs/state-on-probe.tsx": "550855c486664c1c2515a9aa1632dc8c64e925256809dc5d9a9287123731a0d8",
+    "samples/copeland-ts/react-friction-m0/src/Application.tsx": "86790d20eec4609295c765bdfdde0449d9e1d71b51ef31a888a9a8ed5cb849d9",
+    "samples/copeland-ts/react-friction-m0/src/Main.ts": "3d31406212b537575c011365b183a5fae8013a902cace4486a651826f3dcc34d",
+    "samples/copeland-ts/react-friction-m0/tooling/state-on.ts": "b857e23c608b69c31552234f756507d8a2aa3ad354f77414ada1c5f543a4a763",
+    "samples/copeland-ts/react-friction-m0/state-on-corpus.json": "52adda3e9d362e3124d3d5e5a07e65c98bf90c44a5a3960e10d6b8716b1e5ba0"
+  }
+}

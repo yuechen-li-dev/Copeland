@@ -8,11 +8,25 @@ const app = await readFile(`${root}/src/App.tsx`, "utf8");
 const layouts = await readFile(`${root}/src/Layouts.ts`, "utf8");
 const state = await readFile(`${root}/src/State.ts`, "utf8");
 const main = await readFile(`${root}/src/Main.ts`, "utf8");
+const owner = await readFile(`${root}/src/Application.tsx`, "utf8");
 const baseline = await readFile(`${root}/baseline/App.tsx`, "utf8");
 const manifest = await readFile(`${root}/manifest.tsx`, "utf8");
+const issuesPage = await readFile(`${root}/src/IssuesPage.ts`, "utf8");
+const issues = await readFile(`${root}/src/Issues.ts`, "utf8");
+const semanticUi = await readFile(`${root}/src/UI.tsx`, "utf8");
+const collections = await readFile(`${root}/src/Collections.ts`, "utf8");
+const applicationSource = [app, issuesPage, issues, state, owner, main, layouts].join("\n");
+const librarySource = [semanticUi, collections].join("\n");
 
 function sourceLines(source: string) {
     return source.split(/\r?\n/).filter(line => line.trim() !== "" && !line.trim().startsWith("//")).length;
+}
+
+function intrinsicHtmlTags(source: string) {
+    // Paired closing tags distinguish XML from annotations such as Option<string>.
+    const candidates = source.matchAll(/<([a-z][A-Za-z0-9-]*)(?:\s[^<>]*?)?(\/?)>/g);
+    return [...candidates].filter(candidate => candidate[2] === "/"
+        || source.includes(`</${candidate[1]}>`)).length;
 }
 
 const report = {
@@ -23,19 +37,29 @@ const report = {
         reusableLayoutLines: sourceLines(layouts),
         stateLines: sourceLines(state),
         mainLines: sourceLines(main),
-        totalApplicationLines: sourceLines(app) + sourceLines(state) + sourceLines(main) + sourceLines(layouts),
-        explicitCaptures: (app.match(/capture \{/g) ?? []).length + (main.match(/capture \{/g) ?? []).length,
+        stateOwnerLines: sourceLines(owner),
+        languageStateDeclarations: (owner.match(/state:/g) ?? []).length,
+        languageInputHandlers: (owner.match(/^\s*on\s+\w+\(/gm) ?? []).length,
+        issuePageLines: sourceLines(issuesPage),
+        issueDomainLines: sourceLines(issues),
+        semanticUiLibraryLines: sourceLines(semanticUi),
+        collectionLibraryLines: sourceLines(collections),
+        totalApplicationLines: sourceLines(applicationSource),
+        totalIncludingReusableLibraries: sourceLines(applicationSource) + sourceLines(librarySource),
+        explicitCaptures: (applicationSource.match(/capture \{/g) ?? []).length,
+        reusableLibraryCaptures: (librarySource.match(/capture \{/g) ?? []).length,
+        issuePageIntrinsicHtmlTags: intrinsicHtmlTags(issuesPage),
         eventAdapterFunctions: (app.match(/function Send\w+\(/g) ?? []).length,
         localStreams: (app.match(/stream \w+</g) ?? []).length,
-        contributionStreams: (app.match(/stream \w+ \{/g) ?? []).length,
-        expressionBindings: (app.match(/bind \w+ using /g) ?? []).length,
-        layoutSpecializations: (app.match(/instantiate /g) ?? []).length,
-        layoutVariants: (app.match(/with \{ root\./g) ?? []).length,
+        contributionStreams: (applicationSource.match(/stream \w+ \{/g) ?? []).length,
+        expressionBindings: (applicationSource.match(/bind \w+ using /g) ?? []).length,
+        layoutSpecializations: (applicationSource.match(/instantiate /g) ?? []).length,
+        layoutVariants: (applicationSource.match(/with \{ root\./g) ?? []).length,
         manifestLines: sourceLines(manifest),
         distinctIssueArrangements: 2,
-        issueListBindingSites: (app.match(/list: IssueList/g) ?? []).length,
-        issueDetailBindingSites: (app.match(/detail: IssueDetail/g) ?? []).length,
-        insertedCollection: "Bounded fourth row selected by state; no general dynamic collection capability"
+        issueListBindingSites: (issuesPage.match(/list: IssueList/g) ?? []).length,
+        issueDetailBindingSites: (issuesPage.match(/detail: IssueDetail/g) ?? []).length,
+        insertedCollection: "Runtime immutable row snapshots; keyed React children within one static layout channel"
     },
     typescript: {
         totalApplicationLines: sourceLines(baseline),

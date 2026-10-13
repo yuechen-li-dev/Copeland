@@ -41,6 +41,12 @@ public static class JavaScriptProjectEmitter
             var lines = new List<string>();
             var importedHelpers = new HashSet<string>(StringComparer.Ordinal);
             AddExternalImports(lines, module.NpmImports, module.JavaScriptHostImports);
+            if (module.Functions.Any(function => function.ComponentState is not null)
+                || module.JavaScriptHostImports.Any(ComponentStateRuntime.IsProjectionImport))
+            {
+                lines.Add(ComponentStateRuntime.ReactImport);
+                lines.Add(ComponentStateRuntime.FrameImport);
+            }
             if (module.Functions.Any(function => function.IsRemote))
             {
                 string configSpecifier = GetRelativeSpecifier(outputPath, "bridge-config.js");
@@ -87,6 +93,9 @@ public static class JavaScriptProjectEmitter
             string source = StripFunctions(aggregate.SourceText!, graph.AggregateProgram.Functions
                 .Select(function => function.Name)
                 .Except(module.Functions.Select(function => function.Name), StringComparer.Ordinal));
+            source = StripFunctions(source, graph.AggregateProgram.Functions
+                .Where(function => function.ComponentState is not null && !module.Functions.Contains(function))
+                .Select(function => function.ComponentState!.HostFunction));
             source = StripFunctions(source, importedHelpers);
             source = StripExternalImports(source);
             lines.Add(source.TrimEnd());
@@ -196,6 +205,7 @@ public static class JavaScriptProjectEmitter
 
         foreach (MirJavaScriptHostImport host in javaScriptHostImports.OrderBy(import => import.ModuleSpecifier, StringComparer.Ordinal).ThenBy(import => import.ExportName, StringComparer.Ordinal).ThenBy(import => import.LocalBinding, StringComparer.Ordinal))
         {
+            if (ComponentStateRuntime.IsProjectionImport(host)) continue;
             AddExternalImport(lines, host.ModuleSpecifier, host.ExportName, host.LocalBinding);
         }
     }

@@ -341,7 +341,8 @@ internal static class TsclBuildContract
                 stagingDirectory,
                 entryOutput,
                 target.Runtime == CopelandExecutionRuntime.Browser
-                    ? CreateBrowserEntryLauncher(entryModuleOutput, request.Entry.Export, emission.Files.ContainsKey("generated/layouts.css"))
+                    ? CreateBrowserEntryLauncher(entryModuleOutput, request.Entry.Export, emission.Files.ContainsKey("generated/layouts.css"),
+                        compilation.MirProjectGraph!.AggregateProgram.Functions.Any(function => function.ComponentState is not null))
                     : CreateNodeEntryLauncher(entryModuleOutput, request.Entry.Export));
             if (target.Runtime == CopelandExecutionRuntime.Node)
             {
@@ -580,7 +581,7 @@ internal static class TsclBuildContract
             "if (__cope_result !== undefined) {\n    console.log(__cope_result);\n}\n";
     }
 
-    private static string CreateBrowserEntryLauncher(string entryModuleOutput, string entryExport, bool hasLayouts)
+    private static string CreateBrowserEntryLauncher(string entryModuleOutput, string entryExport, bool hasLayouts, bool hasReactState)
     {
         string specifier = "./" + entryModuleOutput.Replace('\\', '/');
         string cssLoader = hasLayouts
@@ -599,7 +600,10 @@ internal static class TsclBuildContract
                 }
                 """
             : string.Empty;
-        return cssLoader + $"import {{ {entryExport} }} from {JsonSerializer.Serialize(specifier)};\n" +
+        // Complete the frame artifact loader before dynamic React instances register
+        // executable typed transitions in the same canonical host registry.
+        string frameLoader = hasReactState ? "await import(\"./component-frame-loader.js\");\n" : string.Empty;
+        return cssLoader + frameLoader + $"import {{ {entryExport} }} from {JsonSerializer.Serialize(specifier)};\n" +
             $"await {entryExport}();\n";
     }
 

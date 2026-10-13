@@ -81,6 +81,7 @@ public static class CopelandCompiler
             if (diagnostics.Count == 0)
             {
                 mirCompilation = MirLowerer.Lower(boundCompilation!);
+                diagnostics.AddRange(mirCompilation.Diagnostics);
                 if (mirCompilation.Program is not null)
                     mirText = MirTextWriter.Write(mirCompilation.Program);
             }

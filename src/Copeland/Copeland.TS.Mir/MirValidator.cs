@@ -29,6 +29,7 @@ public static class MirValidator
         ValidateTsonEncodingModel(program, diagnostics);
         ValidateGeneratorModel(program, diagnostics);
         ValidateExecutionFlowModel(program, diagnostics);
+        ValidateComponentStateModel(program, diagnostics);
         foreach (var function in program.Functions)
         {
             var handlerIds = new HashSet<MirHandlerId>();
@@ -39,6 +40,65 @@ public static class MirValidator
         MirSuspensionAutomatonValidator.Validate(program, diagnostics);
 
         return diagnostics;
+    }
+
+    private static void ValidateComponentStateModel(MirProgram program, List<MirValidationDiagnostic> diagnostics)
+    {
+        var functions = program.Functions.GroupBy(function => function.Name, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+        var generatedHosts = new HashSet<string>(StringComparer.Ordinal);
+        foreach (MirFunction owner in program.Functions.Where(function => function.ComponentState is not null))
+        {
+            MirComponentStateModel model = owner.ComponentState!;
+            if (string.IsNullOrWhiteSpace(model.StableIdentity)
+                || string.IsNullOrWhiteSpace(model.HostFunction)
+                || functions.ContainsKey(model.HostFunction)
+                || !generatedHosts.Add(model.HostFunction)
+                || owner.IsAsync || owner.IsGenerator || owner.IsRemote
+                || owner.ReturnType.Name != "ReactNode")
+            {
+                diagnostics.Add(new($"component '{owner.Name}' has an invalid React owner identity or interface."));
+            }
+            if (!functions.TryGetValue(model.InitializerFunction, out MirFunction? initial)
+                || !functions.TryGetValue(model.PresentationFunction, out MirFunction? present))
+            {
+                diagnostics.Add(new($"component '{owner.Name}' references an absent initializer or presentation function."));
+                continue;
+            }
+            MirType[] inputs = owner.Parameters.Select(parameter => parameter.Type).ToArray();
+            MirType[] presentationInputs = inputs.Append(initial.ReturnType)
+                .Concat(model.Endpoints.Select(endpoint => (MirType)endpoint.CallableType)).ToArray();
+            if (!Matches(initial, inputs, initial.ReturnType)
+                || !Matches(present, presentationInputs, owner.ReturnType))
+            {
+                diagnostics.Add(new($"component '{owner.Name}' has an incompatible initializer or presentation interface."));
+            }
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            var locals = new HashSet<string>(StringComparer.Ordinal);
+            foreach (MirComponentEventEndpoint endpoint in model.Endpoints)
+            {
+                MirType[] transitionInputs = new[] { initial.ReturnType }
+                    .Concat(endpoint.CallableType.Parameters.Select(parameter => parameter.Type)).ToArray();
+                if (string.IsNullOrWhiteSpace(endpoint.Name) || !names.Add(endpoint.Name)
+                    || string.IsNullOrWhiteSpace(endpoint.LocalName) || !locals.Add(endpoint.LocalName)
+                    || endpoint.CallableType.ReturnType.Name != "void"
+                    || !functions.TryGetValue(endpoint.TransitionFunction, out MirFunction? transition)
+                    || !Matches(transition, transitionInputs, initial.ReturnType))
+                {
+                    diagnostics.Add(new($"component '{owner.Name}' endpoint '{endpoint.Name}' has an invalid typed transition interface."));
+                }
+            }
+        }
+
+        static bool Matches(MirFunction function, IReadOnlyList<MirType> parameters, MirType result)
+        {
+            return !function.IsAsync && !function.IsGenerator && !function.IsRemote
+                && function.ComponentState is null
+                && MirTypeFacts.AreEquivalent(function.ReturnType, result)
+                && function.Parameters.Count == parameters.Count
+                && function.Parameters.Select(parameter => parameter.Type)
+                    .Zip(parameters, MirTypeFacts.AreEquivalent).All(equal => equal);
+        }
     }
 
     private static void ValidateExecutionFlowModel(MirProgram program, List<MirValidationDiagnostic> diagnostics)

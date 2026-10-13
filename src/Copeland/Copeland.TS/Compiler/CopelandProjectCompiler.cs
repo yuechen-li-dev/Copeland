@@ -91,9 +91,23 @@ public static class CopelandProjectCompiler
         if (diagnostics.Count > 0) return new CopelandProjectCompilation(null, diagnostics, modules: CreateModuleCompilations(modules));
 
         ClassifyProjectFunctionEffects(ordered);
+        BoundFunctionDeclaration[] componentFunctions = ordered.SelectMany(module => module.Bound!.Program.Functions).ToArray();
+        BoundLayoutBinding[] componentLayouts = ordered.SelectMany(module => module.Bound!.Program.LayoutBindings).ToArray();
+        IReadOnlySet<string> immutablePresentationBindings = ordered.SelectMany(module => module.Bound!.Program.ModuleStreams)
+            .Select(stream => stream.Storage.Name).ToHashSet(StringComparer.Ordinal);
+        foreach (ProjectModule module in ordered)
+        {
+            diagnostics.AddRange(ComponentEndpointValidation.Validate(module.Bound!.Program, componentFunctions, componentLayouts, immutablePresentationBindings)
+                .Select(diagnostic => diagnostic with { SourcePath = module.Source.SourcePath }));
+        }
+        if (diagnostics.Count > 0) return new CopelandProjectCompilation(null, diagnostics, modules: CreateModuleCompilations(modules));
         BoundCompilation[] boundCompilations = ordered
             .Select(module => module.Bound!)
             .ToArray();
+        foreach (BoundCompilation compilation in boundCompilations)
+        {
+            compilation.Program.ComponentEndpointsQualified = true;
+        }
         var staticSourcePaths = ordered.ToDictionary(
             module => module.Bound!,
             module => (string?)module.Source.SourcePath);
@@ -332,7 +346,9 @@ public static class CopelandProjectCompiler
                 .ToHashSet(StringComparer.Ordinal);
             string visibleSource = EmbeddedSourceBlockScanner.MaskBodies(module.Source.SourceText);
             SyntaxToken[] tokens = SyntaxTree.ParseTokens(visibleSource).Tokens.ToArray();
-            IReadOnlySet<int> enumPatternIdentifiers = EnumPatternIdentifierPositions(SyntaxTree.Parse(visibleSource).Root);
+            CompilationUnitSyntax syntax = SyntaxTree.Parse(visibleSource).Root;
+            IReadOnlySet<int> enumPatternIdentifiers = EnumPatternIdentifierPositions(syntax);
+            IReadOnlySet<int> genericParameterIdentifiers = GenericParameterIdentifierPositions(syntax);
             foreach (var pair in functions)
             {
                 ProjectModule[] foreignOwners = pair.Value
@@ -391,6 +407,7 @@ public static class CopelandProjectCompiler
                     bool appearsAsEnumReceiver = index + 1 < tokens.Length && tokens[index + 1].Kind == SyntaxKind.DotToken;
                     if (token.Kind != SyntaxKind.IdentifierToken
                         || token.Text != pair.Key
+                        || genericParameterIdentifiers.Contains(token.Position)
                         || !appearsInTypePosition && !appearsAsEnumReceiver)
                     {
                         continue;
@@ -402,6 +419,43 @@ public static class CopelandProjectCompiler
                         token.Position,
                         token.Text.Length,
                         module.Source.SourcePath));
+                }
+            }
+        }
+    }
+
+    private static IReadOnlySet<int> GenericParameterIdentifierPositions(SyntaxNode root)
+    {
+        var positions = new HashSet<int>();
+        Visit(root, new HashSet<string>(StringComparer.Ordinal));
+        return positions;
+
+        void Visit(SyntaxNode node, IReadOnlySet<string> inherited)
+        {
+            GenericParameterListSyntax? parameters = node switch
+            {
+                FunctionDeclarationSyntax function => function.GenericParameters,
+                RecordDeclarationSyntax record => record.GenericParameters,
+                InterfaceDeclarationSyntax @interface => @interface.GenericParameters,
+                TypeAliasDeclarationSyntax alias => alias.GenericParameters,
+                _ => null,
+            };
+            IEnumerable<string> names = parameters?.Types.Select(parameter => parameter.Identifier.Text) ?? [];
+            if (node is FunctionDeclarationSyntax functionDeclaration)
+            {
+                names = names.Concat(functionDeclaration.TypeParameters.Select(parameter => parameter.Identifier.Text));
+            }
+            var owned = new HashSet<string>(inherited, StringComparer.Ordinal);
+            owned.UnionWith(names);
+            foreach (object child in node.GetChildren())
+            {
+                if (child is SyntaxToken token && owned.Contains(token.Text))
+                {
+                    positions.Add(token.Position);
+                }
+                else if (child is SyntaxNode syntax)
+                {
+                    Visit(syntax, owned);
                 }
             }
         }
@@ -713,7 +767,7 @@ public static class CopelandProjectCompiler
         {
             FunctionSymbol function => function.EmissionName,
             ContributionStreamSymbol stream => stream.Accessor.EmissionName,
-            VariableSymbol { Type: RecordTypeSymbol record } => record.Id.ToString(),
+            VariableSymbol { Type: RecordTypeSymbol record } when record.TypeParameters.Count == 0 => record.Id.ToString(),
             VariableSymbol { Type: EnumTypeSymbol @enum } => @enum.EmissionName,
             _ => null,
         };

@@ -17,6 +17,9 @@ if (evidenceName === "react-ui-grammar-m3") {
 if (evidenceName === "react-ui-layout-templates-m4") {
     milestone = "CTS-REACT-UI-LAYOUT-TEMPLATES-M4";
 }
+if (evidenceName === "react-ui-semantic-api-m5") {
+    milestone = "CTS-REACT-UI-SEMANTIC-API-M5";
+}
 const outputRoot = fileURLToPath(new URL(stabilization ? "../artifacts/stabilization/screenshots/" : "../artifacts/screenshots/", import.meta.url));
 const reportRoot = fileURLToPath(new URL(`../../../../docs/Copeland/reviews/evidence/${evidenceName}/`, import.meta.url));
 const server = await startServer(0, `${websiteRoot}/dist/browser`, {

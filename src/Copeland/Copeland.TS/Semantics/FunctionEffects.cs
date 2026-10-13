@@ -37,6 +37,122 @@ public sealed record FunctionEffectSummary(
 /// </summary>
 public static class FunctionEffectClassifier
 {
+    /// <summary>
+    /// Qualifies one closed transition, resolving higher-order helper arguments
+    /// at their actual call sites. Unresolved callbacks remain runtime-only.
+    /// This uses the same bound-tree inspector as ordinary effect classification.
+    /// </summary>
+    public static string? QualifyTransition(
+        BoundFunctionDeclaration transition,
+        IReadOnlyList<BoundFunctionDeclaration> functions,
+        bool presentation = false,
+        IReadOnlyDictionary<string, BoundExpression>? initialCallbacks = null,
+        IReadOnlySet<string>? immutablePresentationBindings = null)
+    {
+        var declarations = functions.Append(transition).ToDictionary(function => function.Symbol);
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        return Qualify(transition, initialCallbacks ?? new Dictionary<string, BoundExpression>(StringComparer.Ordinal));
+
+        string? Qualify(BoundFunctionDeclaration declaration, IReadOnlyDictionary<string, BoundExpression> callbacks)
+        {
+            string key = declaration.Symbol.StableIdentity + "|" + string.Join("|", callbacks.OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .Select(pair => pair.Key + "=" + CallbackIdentity(pair.Value)));
+            if (!visited.Add(key))
+            {
+                return null;
+            }
+            if (visited.Count > 512)
+            {
+                return "transition helper qualification exceeded 512 closed call contexts";
+            }
+            DirectEffectInfo info = new BoundEffectInspector(declaration, declarations, callbacks, presentation, immutablePresentationBindings).Inspect();
+            if (info.RuntimeEffect is not null)
+            {
+                return declaration.Symbol.Name + ": " + info.Reason;
+            }
+            foreach (BoundCallExpression call in info.CallSites)
+            {
+                if (!declarations.TryGetValue(call.Function, out BoundFunctionDeclaration? callee))
+                {
+                    return "unclassified helper '" + call.Function.Name + "'";
+                }
+                var arguments = new Dictionary<string, BoundExpression>(StringComparer.Ordinal);
+                for (int index = 0; index < callee.Symbol.Parameters.Count; index += 1)
+                {
+                    BoundExpression argument = ResolveCallback(call.Arguments[index], callbacks);
+                    if (callee.Symbol.Parameters[index].Type is CallableTypeSymbol)
+                    {
+                        if (argument is not BoundFunctionReferenceExpression and not BoundCallableConstructionExpression)
+                        {
+                            return "helper '" + callee.Symbol.Name + "' needs a known pure callable for '" + callee.Symbol.Parameters[index].Name + "'";
+                        }
+                    }
+                    arguments.Add(callee.Symbol.Parameters[index].Name, argument);
+                }
+                string? failure = Qualify(callee, arguments);
+                if (failure is not null)
+                {
+                    return declaration.Symbol.Name + " -> " + failure;
+                }
+            }
+            return null;
+        }
+    }
+
+    private static string CallbackIdentity(BoundExpression expression)
+        => expression switch
+        {
+            BoundFunctionReferenceExpression reference => reference.Function.StableIdentity,
+            BoundCallableConstructionExpression closure => closure.Code.StableIdentity + "(" + string.Join(",", closure.Captures.Select(CallbackIdentity)) + ")",
+            BoundVariableExpression variable => variable.Variable.Name,
+            BoundRecordConstructionExpression record => record.RecordType.Name + "{" + string.Join(",", record.Initializers.Select(field => field.Field.Name + "=" + CallbackIdentity(field.Value))) + "}",
+            BoundRecordFieldAccessExpression field => CallbackIdentity(field.Receiver) + "." + field.Field.Name,
+            BoundRecordWithExpression update => CallbackIdentity(update.Source) + " with {" + string.Join(",", update.Replacements.Select(field => field.Field.Name + "=" + CallbackIdentity(field.Value))) + "}",
+            _ => expression.Type.Name,
+        };
+
+    private static BoundExpression ResolveCallback(
+        BoundExpression expression,
+        IReadOnlyDictionary<string, BoundExpression> callbacks,
+        IReadOnlyDictionary<VariableSymbol, BoundExpression>? locals = null)
+    {
+        if (expression is BoundVariableExpression variable)
+        {
+            if (locals is not null && locals.TryGetValue(variable.Variable, out BoundExpression? local))
+            {
+                return local;
+            }
+            if (callbacks.TryGetValue(variable.Variable.Name, out BoundExpression? bound))
+            {
+                return bound;
+            }
+        }
+        if (expression is BoundCallableConstructionExpression closure)
+        {
+            return new BoundCallableConstructionExpression(closure.Code,
+                closure.Captures.Select(capture => ResolveCallback(capture, callbacks, locals)).ToArray(), closure.CallableType);
+        }
+        if (expression is BoundRecordConstructionExpression record)
+        {
+            return new BoundRecordConstructionExpression(record.RecordType,
+                record.Initializers.Select(field => new BoundRecordFieldInitializer(field.Field, ResolveCallback(field.Value, callbacks, locals))).ToArray());
+        }
+        if (expression is BoundRecordFieldAccessExpression access)
+        {
+            BoundExpression receiver = ResolveCallback(access.Receiver, callbacks, locals);
+            if (receiver is BoundRecordConstructionExpression construction)
+            {
+                BoundRecordFieldInitializer? field = construction.Initializers.FirstOrDefault(field => field.Field.Id == access.Field.Id);
+                if (field is not null)
+                {
+                    return field.Value;
+                }
+            }
+            return new BoundRecordFieldAccessExpression(receiver, access.RecordType, access.Field);
+        }
+        return expression;
+    }
+
     public static IReadOnlyDictionary<FunctionSymbol, FunctionEffectSummary> Classify(IReadOnlyList<BoundFunctionDeclaration> functions)
     {
         var declarations = functions.ToDictionary(function => function.Symbol);
@@ -154,14 +270,29 @@ public static class FunctionEffectClassifier
         private readonly BoundFunctionDeclaration _declaration;
         private readonly IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> _declarations;
         private readonly HashSet<string> _locals;
+        private readonly HashSet<VariableSymbol> _freshArrays = [];
+        private readonly IReadOnlyDictionary<string, BoundExpression> _callbacks;
+        private readonly Dictionary<VariableSymbol, BoundExpression> _localBindings = [];
+        private readonly bool _presentation;
+        private readonly bool _closedCalls;
+        private readonly IReadOnlySet<string> _immutablePresentationBindings;
         private readonly DirectEffectInfo _info = new();
 
         public BoundEffectInspector(
             BoundFunctionDeclaration declaration,
-            IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> declarations)
+            IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> declarations,
+            IReadOnlyDictionary<string, BoundExpression>? callbacks = null,
+            bool presentation = false,
+            IReadOnlySet<string>? immutablePresentationBindings = null)
         {
             _declaration = declaration;
             _declarations = declarations;
+            _callbacks = callbacks is null
+                ? new Dictionary<string, BoundExpression>(StringComparer.Ordinal)
+                : new Dictionary<string, BoundExpression>(callbacks, StringComparer.Ordinal);
+            _presentation = presentation;
+            _closedCalls = callbacks is not null;
+            _immutablePresentationBindings = immutablePresentationBindings ?? new HashSet<string>(StringComparer.Ordinal);
             _locals = new HashSet<string>(declaration.Symbol.Parameters.Select(parameter => parameter.Name), StringComparer.Ordinal);
         }
 
@@ -185,6 +316,16 @@ public static class FunctionEffectClassifier
                     break;
                 case BoundVariableDeclaration variable:
                     _locals.Add(variable.Variable.Name);
+                    if (variable.Variable.IsReadOnly)
+                    {
+                        _localBindings[variable.Variable] = ResolveCallback(variable.Initializer, _callbacks, _localBindings);
+                    }
+                    if (variable.Variable.IsReadOnly
+                        && (variable.Initializer is BoundMutableArrayConstructionExpression
+                            || variable.Initializer is BoundCallExpression { Function.NativeOperation: Copeland.TS.Mir.MirNativeOperation.MutableArrayFilled }))
+                    {
+                        _freshArrays.Add(variable.Variable);
+                    }
                     CollectExpressionLocals(variable.Initializer);
                     break;
                 case BoundComponentStateDeclaration state:
@@ -280,7 +421,7 @@ public static class FunctionEffectClassifier
                     _info.SetRuntime(FunctionEffect.WritesRuntimeState, "component event handling is runtime-owned");
                     return;
                 case BoundLocalPresentationDeclaration:
-                    _info.SetRuntime(FunctionEffect.WritesRuntimeState, "component presentation is runtime-owned");
+                    if (!_presentation) _info.SetRuntime(FunctionEffect.WritesRuntimeState, "component presentation is runtime-owned");
                     return;
                 case BoundResourceUsingDeclaration resource:
                     _info.SetRuntime(FunctionEffect.HostInterop, "resource lifetime depends on host state");
@@ -337,10 +478,11 @@ public static class FunctionEffectClassifier
                     // Its own eligibility is checked by the post-static pass.
                     return;
                 case BoundNpmComponentValueExpression or BoundNpmComponentMemberExpression:
-                    _info.SetRuntime(FunctionEffect.WritesRuntimeState, "renderer operation observes or changes runtime state");
+                    if (!_presentation) _info.SetRuntime(FunctionEffect.WritesRuntimeState, "renderer operation observes or changes runtime state");
                     return;
                 case BoundVariableExpression variable:
-                    if (!_locals.Contains(variable.Variable.Name))
+                    if (!_locals.Contains(variable.Variable.Name)
+                        && !(_presentation && variable.Variable.IsReadOnly && _immutablePresentationBindings.Contains(variable.Variable.Name)))
                     {
                         _info.SetRuntime(FunctionEffect.ReadsRuntimeState, $"reads runtime binding '{variable.Variable.Name}'");
                     }
@@ -365,8 +507,14 @@ public static class FunctionEffectClassifier
                     VisitExpression(conversion.Operand);
                     return;
                 case BoundCallExpression call:
+                    if (call.Function.NativeOperation is not null)
+                    {
+                        VisitExpressions(call.Arguments);
+                        return;
+                    }
                     if (_declarations.ContainsKey(call.Function)) _info.Calls.Add(call.Function);
                     else _info.SetRuntime(FunctionEffect.UnknownCall, $"call to unclassified function '{call.Function.Name}'");
+                    _info.CallSites.Add(new BoundCallExpression(call.Function, call.Arguments.Select(argument => ResolveCallback(argument, _callbacks, _localBindings)).ToArray()));
                     VisitExpressions(call.Arguments);
                     return;
                 case BoundNpmCallExpression npm:
@@ -378,7 +526,7 @@ public static class FunctionEffectClassifier
                     VisitExpressions(npm.Arguments);
                     return;
                 case BoundReactElementExpression react:
-                    _info.SetRuntime(FunctionEffect.WritesRuntimeState, "renderer operation observes or changes runtime state");
+                    if (!_presentation) _info.SetRuntime(FunctionEffect.WritesRuntimeState, "renderer operation observes or changes runtime state");
                     VisitExpression(react.ElementType);
                     foreach (BoundReactProperty property in react.Properties) VisitExpression(property.Value);
                     VisitExpressions(react.Children);
@@ -387,7 +535,7 @@ public static class FunctionEffectClassifier
                     foreach (BoundTextValueSlot slot in document.Slots) VisitExpression(slot.Expression);
                     return;
                 case BoundForeignComponentExpression foreign:
-                    _info.SetRuntime(FunctionEffect.WritesRuntimeState, "renderer operation observes or changes runtime state");
+                    if (!_presentation) _info.SetRuntime(FunctionEffect.WritesRuntimeState, "renderer operation observes or changes runtime state");
                     VisitExpression(foreign.Payload);
                     return;
                 case BoundReactRootRenderExpression render:
@@ -400,7 +548,10 @@ public static class FunctionEffectClassifier
                     VisitExpression(unmount.Root);
                     return;
                 case BoundJavaScriptHostCallExpression host:
-                    _info.SetRuntime(FunctionEffect.HostInterop, "JavaScript host call crosses the language boundary");
+                    bool viewportProjection = _presentation
+                        && host.Function.ModuleSpecifier == "@copeland/browser-v1"
+                        && host.Function.ExportName == "presentViewport";
+                    if (!viewportProjection) _info.SetRuntime(FunctionEffect.HostInterop, "JavaScript host call crosses the language boundary");
                     VisitExpressions(host.Arguments);
                     return;
                 case BoundClrInvocationExpression clr:
@@ -418,7 +569,30 @@ public static class FunctionEffectClassifier
                     VisitExpressions(callable.Captures);
                     return;
                 case BoundInvokeExpression invoke:
-                    _info.SetRuntime(FunctionEffect.UnknownCall, "indirect callable invocation cannot be classified");
+                    if (!_closedCalls)
+                    {
+                        _info.SetRuntime(FunctionEffect.UnknownCall, "indirect callable invocation cannot be classified without a closed call context");
+                        VisitExpression(invoke.Callee);
+                        VisitExpressions(invoke.Arguments);
+                        return;
+                    }
+                    BoundExpression callee = ResolveCallback(invoke.Callee, _callbacks, _localBindings);
+                    if (callee is BoundFunctionReferenceExpression reference)
+                    {
+                        if (_declarations.ContainsKey(reference.Function)) _info.Calls.Add(reference.Function);
+                        else _info.SetRuntime(FunctionEffect.UnknownCall, "call to unclassified callable code");
+                        _info.CallSites.Add(new BoundCallExpression(reference.Function, invoke.Arguments.Select(argument => ResolveCallback(argument, _callbacks, _localBindings)).ToArray()));
+                    }
+                    else if (callee is BoundCallableConstructionExpression closure)
+                    {
+                        if (_declarations.ContainsKey(closure.Code)) _info.Calls.Add(closure.Code);
+                        else _info.SetRuntime(FunctionEffect.UnknownCall, "call to unclassified closure code");
+                        _info.CallSites.Add(new BoundCallExpression(closure.Code, closure.Captures.Concat(invoke.Arguments).Select(argument => ResolveCallback(argument, _callbacks, _localBindings)).ToArray()));
+                    }
+                    else
+                    {
+                        _info.SetRuntime(FunctionEffect.UnknownCall, "indirect callable invocation cannot be classified");
+                    }
                     VisitExpression(invoke.Callee);
                     VisitExpressions(invoke.Arguments);
                     return;
@@ -433,9 +607,11 @@ public static class FunctionEffectClassifier
                     return;
                 case BoundBatchExpression batch:
                     VisitExpression(batch.Input);
+                    _locals.Add(batch.Item.Name);
                     VisitValueBlock(batch.Body);
                     return;
                 case BoundTryExceptExpression attempt:
+                    _locals.Add(attempt.HandlerBinding.Name);
                     VisitValueBlock(attempt.Protected);
                     VisitValueBlock(attempt.Handler);
                     return;
@@ -460,10 +636,19 @@ public static class FunctionEffectClassifier
                     return;
                 case BoundMatchExpression match:
                     VisitExpression(match.Scrutinee);
-                    foreach (BoundMatchArm arm in match.Arms) VisitExpression(arm.Expression);
+                    foreach (BoundMatchArm arm in match.Arms)
+                    {
+                        foreach (VariableSymbol variable in arm.PayloadVariables)
+                        {
+                            _locals.Add(variable.Name);
+                        }
+                        VisitExpression(arm.Expression);
+                    }
                     return;
                 case BoundResultMatchExpression match:
                     VisitExpression(match.Scrutinee);
+                    _locals.Add(match.OkVariable.Name);
+                    _locals.Add(match.ErrVariable.Name);
                     VisitExpression(match.OkExpression);
                     VisitExpression(match.ErrExpression);
                     return;
@@ -491,7 +676,14 @@ public static class FunctionEffectClassifier
                     VisitExpression(access.Index);
                     return;
                 case BoundMutableArrayElementAssignmentExpression assignment:
-                    _info.SafeEffects.Add(FunctionEffect.LocalMutation);
+                    if (assignment.Receiver is BoundVariableExpression receiver && _freshArrays.Contains(receiver.Variable))
+                    {
+                        _info.SafeEffects.Add(FunctionEffect.LocalMutation);
+                    }
+                    else
+                    {
+                        _info.SetRuntime(FunctionEffect.WritesRuntimeState, "mutable-array write through input or alias; build a fresh local array and return its frozen value");
+                    }
                     VisitExpression(assignment.Receiver);
                     VisitExpression(assignment.Index);
                     VisitExpression(assignment.Value);
@@ -568,6 +760,7 @@ public static class FunctionEffectClassifier
     private sealed class DirectEffectInfo
     {
         public HashSet<FunctionSymbol> Calls { get; } = [];
+        public List<BoundCallExpression> CallSites { get; } = [];
         public HashSet<FunctionEffect> SafeEffects { get; } = [];
         public FunctionEffect? RuntimeEffect { get; private set; }
         public string? Reason { get; private set; }

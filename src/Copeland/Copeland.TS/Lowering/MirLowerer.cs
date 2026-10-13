@@ -20,6 +20,17 @@ public static class MirLowerer
         if (bound.Diagnostics.Any(d => d.Id.StartsWith("COPE-", StringComparison.Ordinal)))
             return new MirCompilation(null, bound.Diagnostics);
 
+        if (!bound.Program.ComponentEndpointsQualified)
+        {
+            IReadOnlyList<Copeland.TS.Diagnostics.Diagnostic> endpointDiagnostics =
+                ComponentEndpointValidation.Validate(bound.Program, bound.Program.Functions);
+            if (endpointDiagnostics.Count > 0)
+            {
+                return new MirCompilation(null, bound.Diagnostics.Concat(endpointDiagnostics).ToArray());
+            }
+            bound.Program.ComponentEndpointsQualified = true;
+        }
+
         IReadOnlyList<Copeland.TS.Diagnostics.Diagnostic> staticDiagnostics = StaticEvaluationPass.Evaluate([bound]);
         if (staticDiagnostics.Count > 0)
         {
@@ -63,6 +74,7 @@ public static class MirLowerer
         var tables = program.Tables.Select(LowerTable).ToArray();
         var tsonEncodingPlans = program.TsonEncodingPlans.Select(LowerTsonEncodingPlan).ToArray();
         var functions = program.Functions.Select(LowerFunction)
+            .Concat(program.Functions.Where(function => function.Symbol.UsesComponentEndpoints).SelectMany(LowerComponentFunctions))
             .Concat(program.LayoutBindings.Select(LowerLayoutBinding))
             .ToArray();
         MirNpmImport[] npmImports = program.NpmImports.Select(import => new MirNpmImport(
@@ -317,6 +329,13 @@ public static class MirLowerer
         MirSuspensionAutomaton? automaton = function.Symbol.IsAsync
             ? BuildSuspensionAutomaton(function.Symbol.Name, function.Symbol.Parameters, locals.Values, body, ToMirType(function.Symbol.ReturnType))
             : null;
+        if (function.Symbol.UsesComponentEndpoints)
+        {
+            foreach (BoundComponentEventHandler handler in function.Body.Statements.OfType<BoundComponentEventHandler>())
+            {
+                locals.Add(handler.Endpoint!.Name, new MirLocal(handler.Endpoint.Name, ToMirType(handler.Endpoint.Type), true));
+            }
+        }
         return new MirFunction(
             function.Symbol.EmissionName,
             function.Symbol.Parameters.Select(p => new MirParameter(p.Name, ToMirType(p.Type))).ToArray(),
@@ -326,7 +345,50 @@ public static class MirLowerer
             function.Symbol.IsAsync,
             function.Symbol.IsGenerator,
             automaton,
-            isRemote: function.Symbol.IsRemote);
+            isRemote: function.Symbol.IsRemote)
+        {
+            ComponentState = function.Symbol.UsesComponentEndpoints ? LowerComponentModel(function) : null,
+        };
+    }
+
+    private static MirComponentStateModel LowerComponentModel(BoundFunctionDeclaration function)
+    {
+        string prefix = function.Symbol.EmissionName + "__component";
+        return new MirComponentStateModel(
+            function.Symbol.StableIdentity,
+            prefix + "_initial",
+            prefix + "_present",
+            prefix + "_host",
+            function.Body.Statements.OfType<BoundComponentEventHandler>().Select(handler => new MirComponentEventEndpoint(
+                handler.Name,
+                handler.Endpoint!.Name,
+                prefix + "_on_" + handler.Name,
+                (MirCallableType)ToMirType(handler.Endpoint.Type))).ToArray());
+    }
+
+    private static IEnumerable<MirFunction> LowerComponentFunctions(BoundFunctionDeclaration function)
+    {
+        MirComponentStateModel model = LowerComponentModel(function);
+        BoundComponentStateDeclaration state = function.Body.Statements.OfType<BoundComponentStateDeclaration>().Single();
+        MirParameter[] inputs = function.Symbol.Parameters.Select(parameter => new MirParameter(parameter.Name, ToMirType(parameter.Type))).ToArray();
+        var stateParameter = new MirParameter(state.State.Name, ToMirType(state.State.Type));
+        yield return new MirFunction(model.InitializerFunction, inputs, stateParameter.Type, [],
+            [new MirReturnStatement(LowerExpression(state.Initializer))]);
+
+        var locals = new Dictionary<string, MirLocal>(StringComparer.Ordinal);
+        IReadOnlyList<MirStatement> presentation = LowerStatements(function.Body.Statements
+            .Where(statement => statement is not BoundComponentStateDeclaration and not BoundComponentEventHandler).ToArray(), locals);
+        yield return new MirFunction(model.PresentationFunction,
+            inputs.Concat([stateParameter]).Concat(model.Endpoints.Select(endpoint => new MirParameter(endpoint.LocalName, endpoint.CallableType))).ToArray(),
+            ToMirType(ReactNodeTypeSymbol.Instance), locals.Values.ToArray(), presentation);
+
+        foreach (BoundComponentEventHandler handler in function.Body.Statements.OfType<BoundComponentEventHandler>())
+        {
+            MirComponentEventEndpoint endpoint = model.Endpoints.Single(endpoint => endpoint.Name == handler.Name);
+            yield return new MirFunction(endpoint.TransitionFunction,
+                new[] { stateParameter }.Concat(handler.Parameters.Select(parameter => new MirParameter(parameter.Name, ToMirType(parameter.Type)))).ToArray(),
+                stateParameter.Type, [], [new MirReturnStatement(LowerExpression(handler.NextState))]);
+        }
     }
 
     private static MirFunction LowerLayoutBinding(BoundLayoutBinding binding)

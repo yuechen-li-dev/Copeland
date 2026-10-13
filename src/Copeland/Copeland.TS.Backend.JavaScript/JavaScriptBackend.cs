@@ -139,6 +139,10 @@ public static class JavaScriptBackend
         {
             diagnostics.Add(new JavaScriptDiagnostic("COPE-JS-BROWSER-0001", "Browser host contracts require the Browser JavaScript runtime target."));
         }
+        if (effectiveOptions.RuntimeTarget != JavaScriptRuntimeTarget.Browser && ComponentStateRuntime.IsRequired(program))
+        {
+            diagnostics.Add(new JavaScriptDiagnostic("COPE-JS-COMPONENT-ON-0001", "React endpoints require the Browser JavaScript target and its canonical component-frame registry."));
+        }
         if (diagnostics.Count > 0)
         {
             return new JavaScriptCompilation(null, diagnostics);
@@ -160,7 +164,7 @@ public static class JavaScriptBackend
         bool usesCallables = ProgramUsesCallables(program);
         bool usesCapturedCallables = ProgramUsesCapturedCallables(program);
         bool usesSharedBrowserInteropRuntime = program.JavaScriptHostImports.Count > 0
-            || effectiveOptions.EmitModuleFactories && program.ModuleValues.Count > 0;
+            || effectiveOptions.EmitModuleFactories;
         bool usesAsync = program.Functions.Any(function => function.IsAsync || function.IsRemote);
         bool previousNativeStrings = UsesNativeStrings.Value;
         UsesNativeStrings.Value = false;
@@ -176,6 +180,11 @@ public static class JavaScriptBackend
             names.GeneratedDefinitions,
             effectiveOptions.EnableGeneratedDefinitionReachability,
             effectiveOptions.Profile);
+        if (ComponentStateRuntime.IsRequired(program))
+        {
+            writer.WriteLine(ComponentStateRuntime.ReactImport);
+            writer.WriteLine(ComponentStateRuntime.FrameImport);
+        }
         foreach (MirNpmImport npm in program.NpmImports.OrderBy(import => import.PackageName, StringComparer.Ordinal).ThenBy(import => import.ExportName, StringComparer.Ordinal).ThenBy(import => import.LocalBinding, StringComparer.Ordinal))
         {
             string exportName = JavaScriptIdentifierEncoder.Encode(npm.ExportName);
@@ -187,6 +196,7 @@ public static class JavaScriptBackend
         }
         foreach (MirJavaScriptHostImport host in program.JavaScriptHostImports.OrderBy(import => import.ModuleSpecifier, StringComparer.Ordinal).ThenBy(import => import.ExportName, StringComparer.Ordinal).ThenBy(import => import.LocalBinding, StringComparer.Ordinal))
         {
+            if (ComponentStateRuntime.IsProjectionImport(host)) continue;
             string exportName = JavaScriptIdentifierEncoder.Encode(host.ExportName);
             string localBinding = JavaScriptIdentifierEncoder.Encode(host.LocalBinding);
             string specifier = string.Equals(exportName, localBinding, StringComparison.Ordinal)
@@ -195,6 +205,10 @@ public static class JavaScriptBackend
             writer.WriteLine($"import {{ {specifier} }} from {JavaScriptLiteralWriter.WriteString(host.ModuleSpecifier)};");
         }
         writer.WriteLine("\"use strict\";");
+        if (ComponentStateRuntime.IsRequired(program))
+        {
+            ComponentStateRuntime.Emit(writer);
+        }
 
         if (usesAsync)
         {
@@ -239,7 +253,8 @@ public static class JavaScriptBackend
             }
             else
             {
-                EmitFunction(writer, function, catalog, results, names, effectiveOptions.BoundaryFunctionNames.Contains(function.Name));
+                bool isTransition = program.Functions.Any(owner => owner.ComponentState?.Endpoints.Any(endpoint => endpoint.TransitionFunction == function.Name) == true);
+                EmitFunction(writer, function, catalog, results, names, effectiveOptions.BoundaryFunctionNames.Contains(function.Name) || isTransition, isTransition);
             }
         }
 
@@ -1524,7 +1539,7 @@ public static class JavaScriptBackend
             EmitFlowRuntime(writer, names);
         }
 
-        if (usesSharedBrowserInteropRuntime && catalog.Records.Count > 0)
+        if (usesSharedBrowserInteropRuntime && (catalog.Records.Count > 0 || catalog.Enums.Count > 0))
         {
             writer.WriteLine();
             EmitRecordRegistryRuntime(writer);
@@ -1548,9 +1563,18 @@ public static class JavaScriptBackend
         foreach (EnumInfo enumInfo in catalog.Enums)
         {
             writer.WriteLine();
+            string? registration = null;
+            if (usesSharedBrowserInteropRuntime)
+            {
+                registration = names.TypeToken(enumInfo) + "_registration";
+                writer.WriteLine($"const {registration} = __cope_m3_record_registration({JavaScriptLiteralWriter.WriteString("enum:" + enumInfo.Definition.Name)});");
+            }
             if (IsProduction(names))
             {
-                writer.WriteLine($"const {names.TypeToken(enumInfo)} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.TypeToken(enumInfo), enumInfo.Definition.Name))});");
+                string token = registration is null
+                    ? $"Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.TypeToken(enumInfo), enumInfo.Definition.Name))})"
+                    : registration + ".type";
+                writer.WriteLine($"const {names.TypeToken(enumInfo)} = {token};");
                 foreach (MirEnumCase enumCase in enumInfo.Definition.Cases.Where(candidate => candidate.PayloadFields.Count == 0))
                 {
                     writer.WriteLine($"const {ProductionEnumSingletonName(names, enumInfo, enumCase)} = Object.freeze({{ $type: {names.TypeToken(enumInfo)}, $tag: {JavaScriptLiteralWriter.WriteString(enumCase.Name)} }});");
@@ -1558,8 +1582,15 @@ public static class JavaScriptBackend
             }
             else
             {
-                writer.WriteLine($"const {names.TypeToken(enumInfo)} = Object.freeze(Object.create(null));");
-                writer.WriteLine($"const {names.EnumInstances(enumInfo)} = new WeakSet();");
+                string token = "Object.freeze(Object.create(null))";
+                string instances = "new WeakSet()";
+                if (registration is not null)
+                {
+                    token = registration + ".type";
+                    instances = registration + ".instances";
+                }
+                writer.WriteLine($"const {names.TypeToken(enumInfo)} = {token};");
+                writer.WriteLine($"const {names.EnumInstances(enumInfo)} = {instances};");
             }
         }
 
@@ -2460,7 +2491,7 @@ public static class JavaScriptBackend
     /// their local functions. Records may nevertheless cross a module boundary,
     /// so their nominal token, field slots, and provenance set must be shared by
     /// every generated module in one JavaScript realm. This tiny registry shares
-    /// only compiler-private record metadata; application state remains owned by
+    /// only compiler-private nominal metadata; application state remains owned by
     /// the calling host or ordinary Copeland code.
     /// </summary>
     private static void EmitRecordRegistryRuntime(JavaScriptTextWriter writer)
@@ -2715,9 +2746,10 @@ public static class JavaScriptBackend
         EnumCatalog catalog,
         ResultCatalog results,
         GeneratedNames names,
-        bool isBoundaryFunction)
+        bool isBoundaryFunction,
+        bool isComponentTransition = false)
     {
-        if (!IsProduction(names) || !isBoundaryFunction)
+        if ((!IsProduction(names) && !isComponentTransition) || !isBoundaryFunction)
         {
             return;
         }
@@ -2725,18 +2757,55 @@ public static class JavaScriptBackend
         foreach (MirParameter parameter in function.Parameters)
         {
             string parameterName = JavaScriptIdentifierEncoder.Encode(parameter.Name);
-            string condition = PayloadTypeCondition(parameterName, parameter.Type, catalog, results, names);
+            string condition = isComponentTransition
+                ? ComponentPayloadCondition(parameterName, parameter.Type, catalog, results, names)
+                : PayloadTypeCondition(parameterName, parameter.Type, catalog, results, names);
             if (condition == "false")
             {
                 continue;
             }
 
-            writer.WriteLine($"if (!({condition})) {{ {names.Panic}(); }}");
+            if (isComponentTransition)
+            {
+                string message = JavaScriptLiteralWriter.WriteString("Component input '" + parameter.Name + "' must have type '" + parameter.Type.Name + "'.");
+                writer.WriteLine($"if (!({condition})) {{ throw new TypeError({message}); }}");
+            }
+            else
+            {
+                writer.WriteLine($"if (!({condition})) {{ {names.Panic}(); }}");
+            }
         }
     }
 
-    private static void EmitFunction(JavaScriptTextWriter writer, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool isBoundaryFunction)
+    private static string ComponentPayloadCondition(string value, MirType type, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
     {
+        if (type.Identifier == "int")
+        {
+            return $"Number.isInteger({value}) && {value} >= -2147483648 && {value} <= 2147483647";
+        }
+        MirType? element = type switch
+        {
+            MirArrayType array => array.ElementType,
+            MirMutableArrayType array => array.ElementType,
+            _ => null,
+        };
+        if (element is not null)
+        {
+            string item = names.NextTemporary("component_item");
+            string elementCondition = ComponentPayloadCondition(item, element, catalog, results, names);
+            string immutableCondition = type is MirArrayType ? $" && Object.isFrozen({value})" : string.Empty;
+            return $"Array.isArray({value}){immutableCondition} && Array.from({value}).every(({item}) => ({elementCondition}))";
+        }
+        return PayloadTypeCondition(value, type, catalog, results, names);
+    }
+
+    private static void EmitFunction(JavaScriptTextWriter writer, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool isBoundaryFunction, bool isComponentTransition = false)
+    {
+        if (function.ComponentState is not null)
+        {
+            EmitStatefulComponent(writer, function, catalog, results, names, isBoundaryFunction);
+            return;
+        }
         if (function.IsAsync)
         {
             EmitAsyncFunction(writer, function, catalog, results, names, isBoundaryFunction);
@@ -2748,7 +2817,7 @@ public static class JavaScriptBackend
         string generatorMarker = function.IsGenerator ? "*" : string.Empty;
         writer.WriteLine($"function{generatorMarker} {JavaScriptIdentifierEncoder.Encode(function.Name)}({parameters}) {{");
         writer.Indent();
-        EmitBoundaryParameterValidation(writer, function, catalog, results, names, isBoundaryFunction);
+        EmitBoundaryParameterValidation(writer, function, catalog, results, names, isBoundaryFunction, isComponentTransition);
 
         bool usesTryExcept = FunctionUsesTryExcept(function);
         if (usesTryExcept)
@@ -2794,6 +2863,54 @@ public static class JavaScriptBackend
             EmitStatement(writer, statement, function, catalog, results, names, flowEnabled: false);
         }
 
+        writer.Unindent();
+        writer.WriteLine("}");
+        names.LeaveFunction();
+        writer.EnterScope(names.Document.ProgramScope);
+    }
+
+    private static void EmitStatefulComponent(JavaScriptTextWriter writer, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool isBoundaryFunction)
+    {
+        MirComponentStateModel model = function.ComponentState!;
+        writer.EnterScope(names.EnterFunction(function));
+        string parameters = string.Join(", ", function.Parameters.Select(parameter => JavaScriptIdentifierEncoder.Encode(parameter.Name)));
+        writer.WriteLine($"function {JavaScriptIdentifierEncoder.Encode(function.Name)}({parameters}) {{");
+        writer.Indent();
+        EmitBoundaryParameterValidation(writer, function, catalog, results, names, isBoundaryFunction);
+        writer.WriteLine($"return __cope_component_element({JavaScriptIdentifierEncoder.Encode(model.HostFunction)}, {{ inputs: [{parameters}] }});");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine($"function {JavaScriptIdentifierEncoder.Encode(model.HostFunction)}(props) {{");
+        writer.Indent();
+        string inputs = string.Join(", ", function.Parameters.Select((_, index) => $"props.inputs[{index}]"));
+        string presentationArguments = string.Join(", ", function.Parameters.Select((_, index) => $"props.inputs[{index}]")
+            .Concat(["state"]).Concat(model.Endpoints.Select(endpoint => "endpoints[" + JavaScriptLiteralWriter.WriteString(endpoint.Name) + "]")));
+        writer.WriteLine($"return __cope_component_project({JavaScriptLiteralWriter.WriteString(model.StableIdentity)},");
+        writer.Indent();
+        writer.WriteLine($"() => {JavaScriptIdentifierEncoder.Encode(model.InitializerFunction)}({inputs}),");
+        writer.WriteLine($"(state, endpoints) => {JavaScriptIdentifierEncoder.Encode(model.PresentationFunction)}({presentationArguments}),");
+        writer.WriteLine("frame => ({");
+        writer.Indent();
+        foreach (MirComponentEventEndpoint endpoint in model.Endpoints)
+        {
+            string arguments = string.Join(", ", endpoint.CallableType.Parameters.Select((_, index) => "event" + index));
+            string eventName = JavaScriptLiteralWriter.WriteString(endpoint.Name);
+            writer.WriteLine($"{eventName}: __cope_callable_host({JavaScriptLiteralWriter.WriteString(CallableTypeIdentity(endpoint.CallableType))}, ({arguments}) => {{");
+            writer.Indent();
+            writer.WriteLine($"frame.dispatch({eventName}, Object.freeze([{arguments}]));");
+            writer.Unindent();
+            writer.WriteLine("}),");
+        }
+        writer.Unindent();
+        writer.WriteLine("}), {");
+        writer.Indent();
+        foreach (MirComponentEventEndpoint endpoint in model.Endpoints)
+        {
+            writer.WriteLine($"{JavaScriptLiteralWriter.WriteString(endpoint.Name)}: {JavaScriptIdentifierEncoder.Encode(endpoint.TransitionFunction)},");
+        }
+        writer.Unindent();
+        writer.WriteLine("});");
+        writer.Unindent();
         writer.Unindent();
         writer.WriteLine("}");
         names.LeaveFunction();
@@ -3733,6 +3850,10 @@ public static class JavaScriptBackend
                 ? EmitJavaScriptHostCallbackAdapter(values[index], callable)
                 : values[index]).ToArray();
             string invocation = $"{JavaScriptIdentifierEncoder.Encode(host.LocalBinding)}({string.Join(", ", hostArguments)})";
+            if (host.ModuleSpecifier == "@copeland/browser-v1" && host.ExportName == "presentViewport")
+            {
+                invocation = $"__cope_component_viewport({string.Join(", ", hostArguments)})";
+            }
             return host.Type is MirCallableType callable
                 ? $"__cope_callable_host({JavaScriptLiteralWriter.WriteString(CallableTypeIdentity(callable))}, {invocation})"
                 : invocation;
@@ -4571,9 +4692,12 @@ public static class JavaScriptBackend
         if (value is not null) prelude.AddRange(value.Prelude);
         string arrayTemporary = names.NextTemporary("mutable_array");
         string indexTemporary = names.NextTemporary("array_index");
-        string operation = value is null
-            ? $"return {arrayTemporary}[{indexTemporary}]"
-            : $"{arrayTemporary}[{indexTemporary}] = {value.Value}; return {value.Value}";
+        string operation = $"return {arrayTemporary}[{indexTemporary}]";
+        if (value is not null)
+        {
+            string valueTemporary = names.NextTemporary("array_value");
+            operation = $"const {valueTemporary} = {value.Value}; {arrayTemporary}[{indexTemporary}] = {valueTemporary}; return {valueTemporary}";
+        }
         string expression = $"(() => {{ const {arrayTemporary} = {receiver.Value}; const {indexTemporary} = {index.Value}; if ({indexTemporary} < 0 || {indexTemporary} >= {arrayTemporary}.length) throw new RangeError(\"Copeland array index is out of bounds.\"); {operation}; }})()";
         return new EmittedExpression(prelude, expression);
     }

@@ -15,6 +15,12 @@ let milestone = stabilization ? "CTS-REACT-UI-STABILIZATION-M1" : "CTS-REACT-FRI
 if (evidenceName === "react-ui-grammar-m3") {
     milestone = "CTS-REACT-UI-GRAMMAR-M3";
 }
+if (evidenceName === "react-ui-semantic-api-m5") {
+    milestone = "CTS-REACT-UI-SEMANTIC-API-M5";
+}
+if (evidenceName === "react-state-on-m6") {
+    milestone = "CTS-REACT-STATE-ON-M6";
+}
 if (evidenceName === "react-ui-layout-templates-m4") {
     milestone = "CTS-REACT-UI-LAYOUT-TEMPLATES-M4";
 }
@@ -118,7 +124,7 @@ try {
                     diagnostics.push(`${implementation}: ${message.type()}: ${message.text()}`);
                 }
             });
-            page.on("pageerror", error => diagnostics.push(`${implementation}: ${error.message}`));
+            page.on("pageerror", error => diagnostics.push(`${implementation}: ${error.stack ?? error.message}`));
             page.on("requestfailed", request => diagnostics.push(`${implementation}: ${request.url()}: ${request.failure()?.errorText}`));
             page.on("response", response => {
                 if (response.status() >= 400) { diagnostics.push(`${implementation}: HTTP ${response.status()}: ${response.url()}`); }
@@ -148,9 +154,9 @@ try {
             await page.evaluate(() => { document.body.style.fontFamily = ""; });
 
             await page.getByRole("button", { name: "Issues", exact: true }).click();
-            await page.locator('[data-issue="2"]').click();
+            await page.locator('[data-choice="2"]').click();
             await page.getByRole("button", { name: "Insert issue", exact: true }).click();
-            assert.equal(await page.locator("[data-issue]").count(), 4);
+            assert.equal(await page.locator("[data-choice]").count(), 4);
             assert.match(await page.locator("#issue-detail").innerText(), /SELECTED ISSUE\s*2/);
             const wide = await record(page, implementation, "issues-wide", width);
             if (stabilization && implementation === "copeland" && width >= 600) {
@@ -180,8 +186,8 @@ try {
             await record(page, implementation, "issues-changed-arrangement", width);
             await page.getByLabel("Search issue titles").fill("Keyboard");
             await page.getByRole("button", { name: "Search", exact: true }).click();
-            assert.equal(await page.locator("[data-issue]").count(), 1);
-            assert.equal(await page.locator('[data-issue="2"]').count(), 1);
+            assert.equal(await page.locator("[data-choice]").count(), 1);
+            assert.equal(await page.locator('[data-choice="2"]').count(), 1);
             await page.getByLabel("Search issue titles").fill("missing");
             await page.getByRole("button", { name: "Search", exact: true }).click();
             await page.getByText("No matching issues.", { exact: true }).waitFor();
@@ -192,8 +198,53 @@ try {
             await page.getByText("No matching issues.", { exact: true }).waitFor();
             await page.getByLabel("Search issue titles").fill("");
             await page.getByRole("button", { name: "Search", exact: true }).click();
-            assert.equal(await page.locator("[data-issue]").count(), 4);
+            assert.equal(await page.locator("[data-choice]").count(), 4);
             observations.push({ implementation, scenario: "issue-interactions", width, search: true, empty: true, loading: true, retry: true, selectionRetained: true, insertion: true });
+
+            if (evidenceName === "react-ui-semantic-api-m5") {
+                const currentRow = await page.locator('[data-choice="2"]').elementHandle();
+                await page.getByRole("button", { name: "Reverse issues", exact: true }).click();
+                assert.deepEqual(await page.locator("[data-choice]").evaluateAll(elements =>
+                    elements.map(element => element.getAttribute("data-choice"))), ["4", "3", "2", "1"]);
+                assert.equal(await currentRow!.evaluate(element =>
+                    element === document.querySelector('[data-choice="2"]')), true,
+                    "Reordering must retain the keyed row DOM node");
+                await page.getByRole("button", { name: "Insert issue", exact: true }).click();
+                await page.getByRole("button", { name: "Insert issue", exact: true }).click();
+                assert.equal(await page.locator("[data-choice]").count(), 6);
+                await page.locator('[data-choice="5"]').focus();
+                await page.keyboard.press("Enter");
+                assert.match(await page.locator("#issue-detail").innerText(), /SELECTED ISSUE\s*5/);
+                assert.equal(await page.locator('[data-choice="5"]').getAttribute("aria-pressed"), "true");
+                await page.getByRole("button", { name: "Remove selected issue", exact: true }).click();
+                assert.equal(await page.locator('[data-choice="5"]').count(), 0);
+                await page.getByText("Select an issue to read its details.", { exact: true }).waitFor();
+                await page.getByRole("button", { name: "Insert issue", exact: true }).click();
+                assert.equal(await page.locator('[data-choice="7"]').count(), 1);
+                assert.equal(await page.locator('[data-choice="5"]').count(), 0);
+                await page.getByLabel("Search issue titles").fill("/ 6");
+                await page.getByRole("button", { name: "Search", exact: true }).click();
+                assert.equal(await page.locator("[data-choice]").count(), 1);
+                await page.locator('[data-choice="6"]').click();
+                assert.match(await page.locator("#issue-detail").innerText(), /SELECTED ISSUE\s*6/);
+                await page.getByLabel("Search issue titles").fill("");
+                await page.getByRole("button", { name: "Search", exact: true }).click();
+                assert.equal(await page.locator("[data-choice]").count(), 6);
+                observations.push({ implementation, scenario: "dynamic-keyed-collection", width,
+                    repeatedInsertion: true, removal: true, reorder: true, nodeRetained: true,
+                    keyboardSelection: true, selectedRemovalClearsDetail: true, identityNotReused: true,
+                    filterNewRow: true });
+                while (await page.locator("[data-choice]").count() > 0) {
+                    await page.locator("[data-choice]").first().click();
+                    await page.getByRole("button", { name: "Remove selected issue", exact: true }).click();
+                }
+                await page.getByText("No matching issues.", { exact: true }).waitFor();
+                await page.getByRole("button", { name: "Insert issue", exact: true }).click();
+                assert.equal(await page.locator("[data-choice]").count(), 1);
+                await page.locator('[data-choice="8"]').click();
+                assert.match(await page.locator("#issue-detail").innerText(), /SELECTED ISSUE\s*8/);
+                await record(page, implementation, "collection-empty-and-refilled", width);
+            }
 
             await page.getByRole("button", { name: "Settings", exact: true }).click();
             await page.getByRole("button", { name: "Save workspace", exact: true }).click();
@@ -224,12 +275,15 @@ try {
     assert.equal(parity["copeland-long"], parity["typescript-long"]);
     assert.deepEqual(diagnostics, []);
     const sourceHashes: Record<string, string> = {};
-    for (const path of ["src/App.tsx", "src/Layouts.ts", "src/State.ts", "src/Main.ts", "src/Content.ts", "baseline/App.tsx", "styles.css", "manifest.tsx", "tsconfig.tsx", "ts-lock.toml", "dist/browser/main.js", "dist/browser/generated/layouts.css", "dist/baseline/app.js"]) {
+    for (const path of ["src/Application.tsx", "dist/browser/src/Application.js", "dist/browser/src/Main.js", "dist/browser/packages/copeland-browser-v1/index.js"]) {
+        sourceHashes[path] = createHash("sha256").update(await readFile(`${root}/${path}`)).digest("hex");
+    }
+    for (const path of ["src/App.tsx", "src/IssuesPage.ts", "src/Issues.ts", "src/UI.tsx", "src/Collections.ts", "src/Layouts.ts", "src/State.ts", "src/Main.ts", "src/Content.ts", "baseline/App.tsx", "styles.css", "manifest.tsx", "tsconfig.tsx", "ts-lock.toml", "dist/browser/main.js", "dist/browser/src/App.js", "dist/browser/src/IssuesPage.js", "dist/browser/src/Issues.js", "dist/browser/src/UI.js", "dist/browser/src/Collections.js", "dist/browser/src/State.js", "dist/browser/generated/layouts.css", "dist/baseline/app.js"]) {
         sourceHashes[path] = createHash("sha256").update(await readFile(`${root}/${path}`)).digest("hex");
     }
     const report = {
         milestone,
-        status: "qualified-corpus-with-known-failures",
+        status: stabilization ? "qualified-bounded-corpus" : "qualified-corpus-with-known-failures",
         browser: { channel: process.env.FRICTION_BROWSER_CHANNEL ?? "chromium", version: browser.version() },
         diagnostics, sourceHashes, parity, observations
     };

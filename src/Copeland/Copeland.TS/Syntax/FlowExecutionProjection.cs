@@ -373,6 +373,19 @@ internal sealed partial class FlowExecutionProjection
         {
             BlockStatementSyntax block => block with { Statements = block.Statements.Select(RewriteStatement).ToArray() },
             VariableDeclarationStatementSyntax local => local with { Initializer = RewriteExpression(local.Initializer) },
+            ComponentStateDeclarationStatementSyntax state => state with
+            {
+                Initializer = RewriteExpression(state.Initializer),
+            },
+            ComponentEventHandlerStatementSyntax handler => handler with
+            {
+                NextState = RewriteExpression(handler.NextState),
+                Effects = handler.Effects.Select(effect => effect with
+                {
+                    Invocation = RewriteExpression(effect.Invocation),
+                    CompletionArguments = effect.CompletionArguments.Select(RewriteExpression).ToArray(),
+                }).ToArray(),
+            },
             ExpressionStatementSyntax expression => expression with { Expression = RewriteExpression(expression.Expression) },
             ReturnStatementSyntax returned => returned with { Expression = returned.Expression is null ? null : RewriteExpression(returned.Expression) },
             IfStatementSyntax conditional => conditional with

@@ -55,6 +55,7 @@ public sealed class BoundProgram
         SemanticCallSites = semanticCallSites ?? [];
     }
     public IReadOnlyList<BoundFunctionDeclaration> Functions { get; }
+    internal bool ComponentEndpointsQualified { get; set; }
     public IReadOnlyDictionary<FunctionSymbol, FunctionEffectSummary> FunctionEffects { get; internal set; }
     public IReadOnlyList<BoundEnumDeclaration> Enums { get; }
     public IReadOnlyList<BoundRecordDeclaration> Records { get; }
@@ -1522,6 +1523,7 @@ public sealed class BoundComponentEventHandler(
     public IReadOnlyList<ParameterSymbol> Parameters { get; } = parameters;
     public BoundExpression NextState { get; } = nextState;
     public IReadOnlyList<BoundComponentEffect> Effects { get; } = effects;
+    public VariableSymbol? Endpoint { get; internal set; }
 }
 public sealed class BoundLocalPresentationDeclaration(BoundLayoutBinding binding) : BoundStatement
 {

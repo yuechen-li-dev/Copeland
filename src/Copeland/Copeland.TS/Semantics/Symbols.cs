@@ -49,8 +49,15 @@ public sealed class FunctionSymbol(
     public bool IsAsync { get; } = isAsync;
     public bool IsGenerator { get; } = isGenerator;
     public bool IsRemote { get; } = isRemote;
+    /// <summary>Source takes a typed endpoint from this component's on namespace.</summary>
+    public bool UsesComponentEndpoints { get; internal set; }
     public IReadOnlyList<TypeParameterSymbol> TypeParameters { get; internal set; } = [];
     public bool IsGeneric => TypeParameters.Count > 0;
+    /// <summary>Owner-bound template body, including private/transitive calls.</summary>
+    public Bound.BoundFunctionDeclaration? GenericBody { get; internal set; }
+    public IReadOnlyList<Bound.BoundNpmImport>? GenericNpmImports { get; internal set; }
+    public IReadOnlyList<Bound.BoundNpmComponentImport> GenericNpmComponentImports { get; internal set; } = [];
+    public IReadOnlyList<Bound.BoundJavaScriptHostImport> GenericHostImports { get; internal set; } = [];
     public ClassTypeSymbol? ClassOwner { get; internal set; }
     public string? MemberName { get; internal set; }
     public bool IsClassConstructor { get; internal set; }

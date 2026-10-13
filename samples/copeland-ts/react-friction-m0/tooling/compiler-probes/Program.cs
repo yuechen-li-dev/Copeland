@@ -21,17 +21,45 @@ foreach (JsonElement specimen in corpus.RootElement.GetProperty("cases").Enumera
     foreach (JsonElement source in specimen.GetProperty("sources").EnumerateArray())
     {
         string path = source.GetProperty("path").GetString()!;
-        sources.Add(new CopelandProjectSource(path, path, source.GetProperty("text").GetString()!));
+        string sourceText = source.TryGetProperty("file", out JsonElement file)
+            ? File.ReadAllText(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(args[0]))!, file.GetString()!))
+            : source.GetProperty("text").GetString()!;
+        sources.Add(new CopelandProjectSource(path, path, sourceText));
     }
 
     var options = new CopelandCompilationOptions
     {
         SourcePath = "Main.tsx",
         TsXmlProfile = CopelandTsXmlProfile.ReactM0,
+        JavaScriptHostModules = [CopelandProjectHostContracts.Browser()],
         NpmPackages =
         [
             new CopelandNpmPackageContract("react", "19.2.7",
-                [new CopelandNpmFunctionContract("createElement", [], "ReactNode")])
+                [new CopelandNpmFunctionContract("createElement", [], "ReactNode")]),
+            new CopelandNpmPackageContract("@base-ui-components/react/dialog", "1.0.0-rc.0", [],
+                Components: [new CopelandNpmComponentContract("Dialog", Members: [
+                    new CopelandNpmComponentMemberContract("Root", Properties: [
+                        new CopelandNpmComponentPropertyContract("open", "boolean"),
+                        new CopelandNpmComponentPropertyContract("onOpenChange", "(boolean)=>void"),
+                        new CopelandNpmComponentPropertyContract("children", "ReactNode"),
+                    ]),
+                    new CopelandNpmComponentMemberContract("Portal", Properties: [new CopelandNpmComponentPropertyContract("children", "ReactNode")]),
+                    new CopelandNpmComponentMemberContract("Backdrop", Properties: [new CopelandNpmComponentPropertyContract("className", "string")]),
+                    new CopelandNpmComponentMemberContract("Popup", Properties: [
+                        new CopelandNpmComponentPropertyContract("className", "string"),
+                        new CopelandNpmComponentPropertyContract("children", "ReactNode"),
+                    ]),
+                    new CopelandNpmComponentMemberContract("Title", Properties: [new CopelandNpmComponentPropertyContract("children", "ReactNode")]),
+                    new CopelandNpmComponentMemberContract("Description", Properties: [new CopelandNpmComponentPropertyContract("children", "ReactNode")]),
+                    new CopelandNpmComponentMemberContract("Close", Properties: [new CopelandNpmComponentPropertyContract("children", "ReactNode")]),
+                ])]),
+            new CopelandNpmPackageContract("@base-ui-components/react/input", "1.0.0-rc.0", [],
+                Components: [new CopelandNpmComponentContract("Input", Properties: [
+                    new CopelandNpmComponentPropertyContract("id", "string"),
+                    new CopelandNpmComponentPropertyContract("type", "string"),
+                    new CopelandNpmComponentPropertyContract("value", "string"),
+                    new CopelandNpmComponentPropertyContract("onValueChange", "(string)=>void"),
+                ])])
         ]
     };
     CopelandProjectCompilation compilation = CopelandProjectCompiler.CompileToMir(sources, options);
@@ -45,7 +73,14 @@ foreach (JsonElement specimen in corpus.RootElement.GetProperty("cases").Enumera
     IReadOnlyDictionary<string, string>? emittedFiles = null;
     if (diagnostics.Count == 0 && compilation.MirProjectGraph is not null)
     {
-        JavaScriptProjectCompilation emission = JavaScriptProjectEmitter.Emit(compilation.MirProjectGraph);
+        JavaScriptProjectCompilation emission = JavaScriptProjectEmitter.Emit(compilation.MirProjectGraph,
+            new JavaScriptEmissionOptions
+            {
+                RuntimeTarget = JavaScriptRuntimeTarget.Browser,
+                Profile = specimen.TryGetProperty("profile", out JsonElement profile)
+                    ? Enum.Parse<JavaScriptEmissionProfile>(profile.GetString()!, ignoreCase: true)
+                    : JavaScriptEmissionProfile.Diagnostic,
+            });
         emission = LayoutJavaScriptProjectEmitter.AddLayouts(emission, compilation.Modules);
         diagnostics.AddRange(emission.Diagnostics.Select(diagnostic => new
         {
@@ -70,6 +105,8 @@ foreach (JsonElement specimen in corpus.RootElement.GetProperty("cases").Enumera
         name,
         accepted,
         expectationMatched = matches,
+        sourceHashes = sources.ToDictionary(source => source.LogicalPath,
+            source => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(source.SourceText)))),
         diagnostics,
         javascript = emittedFiles?.Where(file => file.Key.EndsWith(".js", StringComparison.Ordinal))
             .ToDictionary(file => file.Key, file => file.Value),

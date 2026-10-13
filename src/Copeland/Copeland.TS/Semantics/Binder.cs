@@ -195,6 +195,8 @@ public static partial class Binder
         private int _nextOptionBindingId;
         private VariableSymbol? _activeComponentState;
         private HashSet<string>? _activeComponentEventNames;
+        private Dictionary<string, VariableSymbol>? _activeComponentEndpoints;
+        private FunctionSymbol? _componentEndpointOwner;
 
         private sealed record PendingFlowUpdateValidation(BoundExpression Expression, SyntaxToken Anchor);
 
@@ -255,11 +257,16 @@ public static partial class Binder
             ValidateRecordCycles();
             foreach (var generic in _tree.Root.Members.OfType<FunctionDeclarationSyntax>().Where(function => function.TypeParameters.Count > 0 || function.GenericParameters?.Values.Count > 0))
             {
-                _genericBodies[(FunctionSymbol)_globalLookup(generic.Identifier.Text)!] = BindFunction(generic);
+                FunctionSymbol symbol = (FunctionSymbol)_globalLookup(generic.Identifier.Text)!;
+                BoundFunctionDeclaration body = BindFunction(generic);
+                symbol.GenericBody = body;
+                _genericBodies[symbol] = body;
             }
             foreach (var pair in _classFunctionDeclarations.Where(pair => pair.Key.IsGeneric))
             {
-                _genericBodies[pair.Key] = BindClassFunction(pair.Key, pair.Value);
+                BoundFunctionDeclaration body = BindClassFunction(pair.Key, pair.Value);
+                pair.Key.GenericBody = body;
+                _genericBodies[pair.Key] = body;
             }
             foreach (var pair in _classConstructorDeclarations)
             {
@@ -298,7 +305,13 @@ public static partial class Binder
                 _enums.Insert(0, new BoundEnumDeclaration(_tsonEncodeErrorType));
             }
             BindComponentCapsules();
-            foreach (OptionTypeSymbol optionType in _optionTypes.Values.OrderBy(type => type.EmissionName, StringComparer.Ordinal))
+            foreach (FunctionSymbol generic in _genericBodies.Keys.Where(function => function.GenericNpmImports is null))
+            {
+                generic.GenericNpmImports = _npmImports.ToArray();
+                generic.GenericNpmComponentImports = _npmComponentImports.ToArray();
+                generic.GenericHostImports = _javaScriptHostImports.ToArray();
+            }
+            foreach (OptionTypeSymbol optionType in _optionTypes.Values.Where(option => !IsOpenOrIllegalTypeArgument(option.ValueType)).OrderBy(type => type.EmissionName, StringComparer.Ordinal))
             {
                 _enums.Insert(0, new BoundEnumDeclaration(optionType));
             }
@@ -4616,8 +4629,12 @@ public static partial class Binder
             var prevFn = _currentFunction; _currentFunction = fn;
             VariableSymbol? previousComponentState = _activeComponentState;
             HashSet<string>? previousComponentEventNames = _activeComponentEventNames;
+            Dictionary<string, VariableSymbol>? previousEndpoints = _activeComponentEndpoints;
+            FunctionSymbol? previousEndpointOwner = _componentEndpointOwner;
             _activeComponentState = null;
             _activeComponentEventNames = new HashSet<string>(StringComparer.Ordinal);
+            _activeComponentEndpoints = new Dictionary<string, VariableSymbol>(StringComparer.Ordinal);
+            _componentEndpointOwner = fn;
             var previousTypeParameters = _activeTypeParameters;
             _activeTypeParameters = CreateTypeParameterScope(fn.TypeParameters);
             var prev = _scope; _scope = new Scope(_global);
@@ -4627,6 +4644,8 @@ public static partial class Binder
             }
             var body = (BoundBlockStatement)BindStatement(s.Body);
             _scope = prev; _currentFunction = prevFn; _activeTypeParameters = previousTypeParameters; _activeComponentState = previousComponentState; _activeComponentEventNames = previousComponentEventNames;
+            _activeComponentEndpoints = previousEndpoints;
+            _componentEndpointOwner = previousEndpointOwner;
             return new BoundFunctionDeclaration(fn, body);
         }
 
@@ -5605,6 +5624,10 @@ public static partial class Binder
             }
 
             _activeComponentState = state;
+            if (declaration.Identifier.Position == declaration.StateKeyword.Position)
+            {
+                _currentFunction.UsesComponentEndpoints = true;
+            }
             return new BoundComponentStateDeclaration(state, initializer);
         }
 
@@ -5699,7 +5722,19 @@ public static partial class Binder
                         effectSyntax.EffectKeyword));
                 }
 
-                return new BoundComponentEventHandler(handler.EventIdentifier.Text, parameters, nextState, effects);
+                var endpointType = new CallableTypeSymbol(
+                    parameters.Select(parameter => new CallableParameterTypeSymbol(parameter.Name, parameter.Type)).ToArray(),
+                    PrimitiveTypeSymbol.Void);
+                var endpoint = new VariableSymbol("__cope_component_on_" + handler.EventIdentifier.Text, endpointType, true);
+                _activeComponentEndpoints?.Add(handler.EventIdentifier.Text, endpoint);
+                if (!previousScope.TryDeclare(endpoint))
+                {
+                    Report("COPE-COMPONENT-ON-0003", "Rename the local binding that conflicts with the compiler-owned event endpoint '" + handler.EventIdentifier.Text + "'.", handler.EventIdentifier);
+                }
+                return new BoundComponentEventHandler(handler.EventIdentifier.Text, parameters, nextState, effects)
+                {
+                    Endpoint = endpoint,
+                };
             }
             finally
             {
@@ -6457,7 +6492,8 @@ public static partial class Binder
         {
             if (contextualType is OptionTypeSymbol optionContext
                 && s is not NameExpressionSyntax { IdentifierToken.Text: "None" }
-                && s is not CallExpressionSyntax { Target: NameExpressionSyntax { IdentifierToken.Text: "Some" } })
+                && s is not CallExpressionSyntax { Target: NameExpressionSyntax { IdentifierToken.Text: "Some" } }
+                && s is not MatchExpressionSyntax and not IfExpressionSyntax and not ParenthesizedExpressionSyntax)
             {
                 BoundExpression inner = BindExpression(s, optionContext.ValueType);
                 return InjectOptionLift(inner, optionContext);
@@ -6968,7 +7004,7 @@ public static partial class Binder
                         BoundExpression value = BindExpression(expression.Expression);
                         if (!IsReactChild(value.Type))
                         {
-                            Report("COPE-REACT-0007", $"React TS-XML child expressions must be string, numeric, or ReactNode values; got '{value.Type.Name}'.", expression.OpenBraceToken);
+                            Report("COPE-REACT-0007", $"React TS-XML child expressions must be string, numeric, ReactNode, or ReactNode[] values; got '{value.Type.Name}'.", expression.OpenBraceToken);
                         }
                         result.Add(value);
                         break;
@@ -7173,7 +7209,10 @@ public static partial class Binder
             };
 
         private static bool IsReactChild(TypeSymbol type)
-            => type == PrimitiveTypeSymbol.String || TypeFacts.IsNumeric(type) || type == ReactNodeTypeSymbol.Instance;
+            => type == PrimitiveTypeSymbol.String
+                || TypeFacts.IsNumeric(type)
+                || type == ReactNodeTypeSymbol.Instance
+                || type is ArrayTypeSymbol { ElementType: ReactNodeTypeSymbol };
 
         private BoundExpression BindAwait(AwaitExpressionSyntax awaitExpression)
         {
@@ -7741,9 +7780,11 @@ public static partial class Binder
                 var captureParameters = captures.Select((capture, index) =>
                     new ParameterSymbol(captureNames?[index] ?? GetCaptureName(capture, index), capture.Type, isCaptured: true)).ToArray();
                 var codeParameters = captureParameters.Concat(parameters).ToArray();
-                var bindingFunction = new FunctionSymbol(name, codeParameters, returnType, stableIdentity: "callable-arrow:" + name);
+                string identity = (_currentFunction?.StableIdentity ?? _moduleIdentity ?? "callable") + "::" + name;
+                var bindingFunction = new FunctionSymbol(name, codeParameters, returnType, stableIdentity: identity);
                 var previousScope = _scope;
                 var previousFunction = _currentFunction;
+                bindingFunction.TypeParameters = previousFunction?.TypeParameters ?? [];
                 _scope = new Scope(_global);
                 _currentFunction = bindingFunction;
                 foreach (ParameterSymbol parameter in codeParameters)
@@ -7781,8 +7822,18 @@ public static partial class Binder
                 {
                     ReportTypeMismatch("COPE-CALL-0006", expectedCallable.ReturnType, returnType, arrow.ArrowToken);
                 }
-                var function = new FunctionSymbol(name, codeParameters, returnType, stableIdentity: "callable-arrow:" + name);
-                _functions.Add(new BoundFunctionDeclaration(function, body));
+                var function = new FunctionSymbol(name, codeParameters, returnType, stableIdentity: identity);
+                function.TypeParameters = previousFunction?.TypeParameters ?? [];
+                var declaration = new BoundFunctionDeclaration(function, body);
+                if (function.IsGeneric)
+                {
+                    function.GenericBody = declaration;
+                    _genericBodies[function] = declaration;
+                }
+                else
+                {
+                    _functions.Add(declaration);
+                }
                 var callableType = new CallableTypeSymbol(
                     parameters.Select(parameter => new CallableParameterTypeSymbol(parameter.Name, parameter.Type)).ToArray(),
                     returnType);
@@ -8121,6 +8172,11 @@ public static partial class Binder
 
         private BoundExpression BindCall(CallExpressionSyntax c, TypeSymbol? contextualType)
         {
+            if (c.Target is MemberAccessExpressionSyntax { Target: NameExpressionSyntax { IdentifierToken.Text: "on" } } endpoint
+                && !_scope.TryLookup("on", out _))
+            {
+                return BindInvoke(c, BindMember(endpoint));
+            }
             if (c.Target is NameExpressionSyntax { IdentifierToken.Text: "$number" } canonicalNumber)
             {
                 if (c.Arguments.Count != 1
@@ -9652,6 +9708,7 @@ public static partial class Binder
                 CopelandJavaScriptHostType.Primitive { Name: "string" } => PrimitiveTypeSymbol.String,
                 CopelandJavaScriptHostType.Primitive { Name: "void" } => PrimitiveTypeSymbol.Void,
                 CopelandJavaScriptHostType.Named { Name: "ReactMountElement" } when _projectTypes == CopelandProjectTypeSet.ReactComponents => ReactMountElementTypeSymbol.Instance,
+                CopelandJavaScriptHostType.Named { Name: "ReactNode" } when _projectTypes == CopelandProjectTypeSet.ReactComponents => ReactNodeTypeSymbol.Instance,
                 CopelandJavaScriptHostType.Callable callable => new CallableTypeSymbol(
                     callable.Parameters.Select((parameter, index) => new CallableParameterTypeSymbol("arg" + index, ResolveJavaScriptHostType(parameter, anchor, typeParameters))).ToArray(),
                     ResolveJavaScriptHostType(callable.ReturnType, anchor, typeParameters)),
@@ -10290,9 +10347,11 @@ public static partial class Binder
                 var arrayType = new MutableArrayTypeSymbol(elementType);
                 if (call.Arguments.Count == 2)
                 {
-                    if (!IsBatchPortableType(elementType) || elementType is ArrayTypeSymbol)
+                    bool isReactValue = elementType == ReactNodeTypeSymbol.Instance;
+                    bool isDeferred = _currentFunction?.IsGeneric == true && ContainsOpenTypeParameter(elementType);
+                    if ((!IsBatchPortableType(elementType) || elementType is ArrayTypeSymbol) && !isReactValue && !isDeferred)
                     {
-                        Report("COPE-ARRAY-0008", "MutableArray initializer elements must be primitive values, strings, or immutable records. Use columnar arrays for computational storage.", call.LessToken);
+                        Report("COPE-ARRAY-0008", "MutableArray initializer elements must be primitive values, strings, immutable records, or opaque ReactNode values. Use columnar arrays for computational storage.", call.LessToken);
                         return new BoundErrorExpression();
                     }
                     BoundExpression initializer = BindExpression(call.Arguments[1], elementType);
@@ -10721,6 +10780,7 @@ public static partial class Binder
             {
                 TypeParameterTypeSymbol => true,
                 StaticExpressionArgumentTypeSymbol => true,
+                OptionTypeSymbol option => IsOpenOrIllegalTypeArgument(option.ValueType),
                 RecordTypeSymbol record => record.GenericArguments.Any(IsOpenOrIllegalTypeArgument),
                 ArrayTypeSymbol array => IsOpenOrIllegalTypeArgument(array.ElementType),
                 MutableArrayTypeSymbol array => IsOpenOrIllegalTypeArgument(array.ElementType),
@@ -10754,10 +10814,52 @@ public static partial class Binder
                 Report("COPE-GENERIC-0009", $"The compilation exceeded the {MaxClosedInstantiationsPerCompilation} closed generic instantiation limit.", anchor);
                 return new BoundFunctionDeclaration(new FunctionSymbol("<error>", [], PrimitiveTypeSymbol.Error), new BoundBlockStatement([]));
             }
-            if (!_genericBodies.TryGetValue(generic, out var openBody))
+            if (!_genericBodies.TryGetValue(generic, out var openBody) && generic.GenericBody is null)
             {
                 Report("COPE-GENERIC-0010", $"Generic function '{generic.Name}' is not available for closed instantiation.", anchor);
                 return new BoundFunctionDeclaration(new FunctionSymbol("<error>", [], PrimitiveTypeSymbol.Error), new BoundBlockStatement([]));
+            }
+            openBody ??= generic.GenericBody!;
+            foreach (BoundNpmImport import in generic.GenericNpmImports ?? [])
+            {
+                BoundNpmImport? existingBinding = _npmImports.FirstOrDefault(candidate => candidate.Function.Name == import.Function.Name);
+                if (existingBinding is null)
+                {
+                    _npmImports.Add(import);
+                }
+                else if (existingBinding.Function.PackageName != import.Function.PackageName
+                    || existingBinding.Function.PackageVersion != import.Function.PackageVersion
+                    || existingBinding.Function.ExportName != import.Function.ExportName)
+                {
+                    Report("COPE-GENERIC-0010", $"Generic function '{generic.Name}' requires external binding '{import.Function.Name}' from '{import.Function.PackageName}'. Rename the conflicting external import in the calling module.", anchor);
+                }
+            }
+            foreach (BoundNpmComponentImport import in generic.GenericNpmComponentImports)
+            {
+                BoundNpmComponentImport? existingBinding = _npmComponentImports.FirstOrDefault(candidate => candidate.Component.Name == import.Component.Name);
+                if (existingBinding is null)
+                {
+                    _npmComponentImports.Add(import);
+                }
+                else if (existingBinding.Component.PackageName != import.Component.PackageName
+                    || existingBinding.Component.PackageVersion != import.Component.PackageVersion
+                    || existingBinding.Component.ExportName != import.Component.ExportName)
+                {
+                    Report("COPE-GENERIC-0010", $"Generic function '{generic.Name}' requires external component '{import.Component.Name}' from '{import.Component.PackageName}'. Rename the conflicting external import in the calling module.", anchor);
+                }
+            }
+            foreach (BoundJavaScriptHostImport import in generic.GenericHostImports)
+            {
+                BoundJavaScriptHostImport? existingBinding = _javaScriptHostImports.FirstOrDefault(candidate => candidate.Function.Name == import.Function.Name);
+                if (existingBinding is null)
+                {
+                    _javaScriptHostImports.Add(import);
+                }
+                else if (existingBinding.Function.ModuleSpecifier != import.Function.ModuleSpecifier
+                    || existingBinding.Function.ExportName != import.Function.ExportName)
+                {
+                    Report("COPE-GENERIC-0010", $"Generic function '{generic.Name}' requires host binding '{import.Function.Name}' from '{import.Function.ModuleSpecifier}'. Rename the conflicting host import in the calling module.", anchor);
+                }
             }
             if (!_activeGenericSpecializations.Add(generic))
             {
@@ -10825,6 +10927,7 @@ public static partial class Binder
                 TypeParameterTypeSymbol parameter => "parameter:" + parameter.StableIdentity,
                 PrimitiveTypeSymbol primitive => "primitive:" + primitive.Name,
                 ErrorNominalTypeSymbol error => "error:" + error.Name,
+                OptionTypeSymbol option => "option(" + ClosedTypeIdentity(option.ValueType, depthRemaining - 1) + ")",
                 EnumTypeSymbol @enum => "enum:" + (@enum.StableIdentity ?? @enum.Name),
                 RecordTypeSymbol record => "record:" + (record.StableIdentity ?? record.Name),
                 TableTypeSymbol table => "table:" + table.StableIdentity,
@@ -11089,6 +11192,7 @@ public static partial class Binder
             return type switch
             {
                 StaticExpressionArgumentTypeSymbol plan => CloseHostStaticArgument(plan, substitutions),
+                OptionTypeSymbol option => GetOrCreateOptionType(SubstituteType(option.ValueType, substitutions)),
                 RecordTypeSymbol { GenericDefinition: not null } record => CloseHostRecord(record.GenericDefinition, record.GenericArguments.Select(argument => SubstituteType(argument, substitutions)).ToArray()),
                 ArrayTypeSymbol array => new ArrayTypeSymbol(SubstituteType(array.ElementType, substitutions)),
                 MutableArrayTypeSymbol array => new MutableArrayTypeSymbol(SubstituteType(array.ElementType, substitutions)),
@@ -11103,6 +11207,7 @@ public static partial class Binder
 
         private sealed class ClosedInstantiationRewriter(BinderImpl owner, IReadOnlyDictionary<TypeSymbol, TypeSymbol> substitutions)
         {
+            private readonly Dictionary<VariableSymbol, VariableSymbol> _variables = [];
             private TypeSymbol SubstituteType(TypeSymbol type, IReadOnlyDictionary<TypeSymbol, TypeSymbol> map) => owner.SubstituteType(type, map);
             public BoundBlockStatement RewriteBlock(BoundBlockStatement block)
                 => new(block.Statements.Select(RewriteStatement).ToArray());
@@ -11133,14 +11238,14 @@ public static partial class Binder
                 BoundAssignmentExpression assignment => new BoundAssignmentExpression(RewriteVariable(assignment.Variable), RewriteExpression(assignment.Expression)) { ReturnsPreviousValue = assignment.ReturnsPreviousValue },
                 BoundUnaryExpression unary => new BoundUnaryExpression(unary.OperatorKind, RewriteExpression(unary.Operand), SubstituteType(unary.Type, substitutions)),
                 BoundBinaryExpression binary => new BoundBinaryExpression(RewriteExpression(binary.Left), binary.OperatorKind, RewriteExpression(binary.Right), SubstituteType(binary.Type, substitutions)),
-                BoundCallExpression call => new BoundCallExpression(call.Function, call.Arguments.Select(RewriteExpression).ToArray()),
-                BoundFunctionReferenceExpression reference => new BoundFunctionReferenceExpression(reference.Function),
+                BoundCallExpression call => RewriteCall(call),
+                BoundFunctionReferenceExpression reference => new BoundFunctionReferenceExpression(RewriteFunction(reference.Function)),
                 BoundCallableConstructionExpression construction => new BoundCallableConstructionExpression(
-                    construction.Code,
+                    RewriteFunction(construction.Code),
                     construction.Captures.Select(RewriteExpression).ToArray(),
                     (CallableTypeSymbol)SubstituteType(construction.CallableType, substitutions)),
                 BoundInvokeExpression invoke => new BoundInvokeExpression(RewriteExpression(invoke.Callee), invoke.Arguments.Select(RewriteExpression).ToArray(), (CallableTypeSymbol)SubstituteType(invoke.CallableType, substitutions)),
-                BoundEnumValueExpression value => new BoundEnumValueExpression(value.Case, value.Arguments.Select(RewriteExpression).ToArray()),
+                BoundEnumValueExpression value => new BoundEnumValueExpression(RewriteCase(value.Case), value.Arguments.Select(RewriteExpression).ToArray()),
                 BoundForeignComponentExpression foreign => new BoundForeignComponentExpression(
                     foreign.Adapter,
                     RewriteExpression(foreign.Payload),
@@ -11153,6 +11258,25 @@ public static partial class Binder
                 BoundArrayLengthExpression length => new BoundArrayLengthExpression(RewriteExpression(length.Receiver)),
                 BoundArrayElementAccessExpression access => new BoundArrayElementAccessExpression(RewriteExpression(access.Receiver), RewriteExpression(access.Index), (ArrayTypeSymbol)SubstituteType(access.ArrayType, substitutions)),
                 BoundArrayIterableExpression iterable => new BoundArrayIterableExpression(RewriteExpression(iterable.Receiver), (IterableTypeSymbol)SubstituteType(iterable.Type, substitutions)),
+                BoundMutableArrayConstructionExpression array => new BoundMutableArrayConstructionExpression(
+                    RewriteExpression(array.Length),
+                    (MutableArrayTypeSymbol)SubstituteType(array.Type, substitutions)),
+                BoundMutableArrayLengthExpression length => new BoundMutableArrayLengthExpression(RewriteExpression(length.Receiver)),
+                BoundMutableArrayElementAccessExpression access => new BoundMutableArrayElementAccessExpression(
+                    RewriteExpression(access.Receiver),
+                    RewriteExpression(access.Index),
+                    (MutableArrayTypeSymbol)SubstituteType(access.ArrayType, substitutions)),
+                BoundMutableArrayElementAssignmentExpression assignment => new BoundMutableArrayElementAssignmentExpression(
+                    RewriteExpression(assignment.Receiver),
+                    RewriteExpression(assignment.Index),
+                    RewriteExpression(assignment.Value),
+                    (MutableArrayTypeSymbol)SubstituteType(assignment.ArrayType, substitutions)),
+                BoundMutableArrayIterableExpression iterable => new BoundMutableArrayIterableExpression(
+                    RewriteExpression(iterable.Receiver),
+                    (IterableTypeSymbol)SubstituteType(iterable.Type, substitutions)),
+                BoundMutableArrayFreezeExpression freeze => new BoundMutableArrayFreezeExpression(
+                    RewriteExpression(freeze.Receiver),
+                    (ArrayTypeSymbol)SubstituteType(freeze.Type, substitutions)),
                 BoundRequirementFieldAccessExpression requirement => RewriteRequirementAccess(requirement),
                 BoundRecordFieldAccessExpression access => owner.CloseRecordAccess(access, RewriteExpression(access.Receiver), substitutions),
                 BoundTableRowFieldAccessExpression access => new BoundTableRowFieldAccessExpression(RewriteExpression(access.Receiver), access.RowType, access.Field),
@@ -11171,12 +11295,83 @@ public static partial class Binder
                 BoundRecordConstructionExpression construction => owner.CloseRecordConstruction(construction.RecordType, construction.Initializers.Select(field => new BoundRecordFieldInitializer(field.Field, RewriteExpression(field.Value))).ToArray(), substitutions),
                 BoundRecordWithExpression withExpression => owner.CloseRecordWith(RewriteExpression(withExpression.Source), withExpression.RecordType, withExpression.Replacements.Select(field => new BoundRecordFieldInitializer(field.Field, RewriteExpression(field.Value))).ToArray(), substitutions),
                 BoundIfExpression conditional => new BoundIfExpression(RewriteExpression(conditional.Condition), RewriteExpression(conditional.ThenExpression), RewriteExpression(conditional.ElseExpression), SubstituteType(conditional.Type, substitutions)),
-                BoundMatchExpression match => new BoundMatchExpression(RewriteExpression(match.Scrutinee), match.EnumType, match.Arms.Select(arm => new BoundMatchArm(arm.Case, arm.PayloadVariables.Select(RewriteVariable).ToArray(), RewriteExpression(arm.Expression))).ToArray(), SubstituteType(match.Type, substitutions)),
+                BoundMatchExpression match => RewriteMatch(match),
+                BoundReactElementExpression element => RewriteReactElement(element),
                 BoundResultMatchExpression match => new BoundResultMatchExpression(RewriteExpression(match.Scrutinee), RewriteVariable(match.OkVariable), RewriteExpression(match.OkExpression), RewriteVariable(match.ErrVariable), RewriteExpression(match.ErrExpression), SubstituteType(match.Type, substitutions)),
                 BoundTsonEncodeExpression encode => new BoundTsonEncodeExpression(RewriteExpression(encode.Operand), encode.Plan, (ResultTypeSymbol)SubstituteType(encode.ResultType, substitutions)),
                 BoundTryExceptExpression attempt => new BoundTryExceptExpression(attempt.HandlerId, RewriteValueBlock(attempt.Protected), RewriteVariable(attempt.HandlerBinding), SubstituteType(attempt.HandledErrorType, substitutions), RewriteValueBlock(attempt.Handler), SubstituteType(attempt.Type, substitutions)),
                 _ => expression
             };
+
+            private BoundMatchExpression RewriteMatch(BoundMatchExpression match)
+            {
+                BoundExpression scrutinee = RewriteExpression(match.Scrutinee);
+                var enumType = (EnumTypeSymbol)SubstituteType(match.EnumType, substitutions);
+                BoundMatchArm[] arms = match.Arms.Select(arm => new BoundMatchArm(
+                    RewriteCase(arm.Case),
+                    arm.PayloadVariables.Select(RewriteVariable).ToArray(),
+                    RewriteExpression(arm.Expression))).ToArray();
+                return new BoundMatchExpression(
+                    scrutinee,
+                    enumType,
+                    arms,
+                    SubstituteType(match.Type, substitutions));
+            }
+
+            private BoundReactElementExpression RewriteReactElement(BoundReactElementExpression element)
+            {
+                BoundReactProperty[] properties = element.Properties.Select(property =>
+                    new BoundReactProperty(property.Name, RewriteExpression(property.Value))).ToArray();
+                return new BoundReactElementExpression(
+                    element.CreateElementBinding,
+                    RewriteExpression(element.ElementType),
+                    element.IsIntrinsic,
+                    properties,
+                    element.Children.Select(RewriteExpression).ToArray());
+            }
+
+            private EnumCaseSymbol RewriteCase(EnumCaseSymbol value)
+            {
+                var type = (EnumTypeSymbol)SubstituteType(value.EnumType, substitutions);
+                return type.Cases.Single(item => item.Name == value.Name);
+            }
+
+            private FunctionSymbol RewriteFunction(FunctionSymbol function)
+            {
+                if (!function.IsGeneric)
+                {
+                    return function;
+                }
+                TypeSymbol[] arguments = function.TypeParameters
+                    .Select(parameter => SubstituteType(parameter.Type, substitutions))
+                    .ToArray();
+                return owner.GetOrCreateClosedInstantiation(function, arguments, new SyntaxToken(SyntaxKind.IdentifierToken, 0, function.Name, null)).Symbol;
+            }
+
+            private BoundExpression RewriteCall(BoundCallExpression call)
+            {
+                BoundExpression[] arguments = call.Arguments.Select(RewriteExpression).ToArray();
+                if (call.Function.NativeOperation is not { } operation)
+                {
+                    return new BoundCallExpression(RewriteFunction(call.Function), arguments);
+                }
+                TypeSymbol resultType = SubstituteType(call.Function.ReturnType, substitutions);
+                if (operation == Copeland.TS.Mir.MirNativeOperation.MutableArrayFilled
+                    && resultType is MutableArrayTypeSymbol array
+                    && ((!IsBatchPortableType(array.ElementType) || array.ElementType is ArrayTypeSymbol)
+                        && array.ElementType != ReactNodeTypeSymbol.Instance))
+                {
+                    owner.Report("COPE-ARRAY-0008", $"MutableArray initializer type '{array.ElementType.Name}' is not supported after specialization.", new SyntaxToken(SyntaxKind.IdentifierToken, 0, call.Function.Name, null));
+                    return new BoundErrorExpression();
+                }
+                ParameterSymbol[] parameters = call.Function.Parameters.Select(parameter =>
+                    new ParameterSymbol(parameter.Name, SubstituteType(parameter.Type, substitutions))).ToArray();
+                var function = new FunctionSymbol(call.Function.Name, parameters, resultType)
+                {
+                    NativeOperation = operation,
+                };
+                return new BoundCallExpression(function, arguments);
+            }
 
             private BoundExpression RewriteRequirementAccess(BoundRequirementFieldAccessExpression access)
             {
@@ -11194,7 +11389,14 @@ public static partial class Binder
                 => new(block.PrefixStatements.Select(RewriteStatement).ToArray(), RewriteExpression(block.ValueExpression));
 
             private VariableSymbol RewriteVariable(VariableSymbol variable)
-                => new(variable.Name, SubstituteType(variable.Type, substitutions), variable.IsReadOnly, variable.AuthoredAliasName);
+            {
+                if (!_variables.TryGetValue(variable, out VariableSymbol? rewritten))
+                {
+                    rewritten = new VariableSymbol(variable.Name, SubstituteType(variable.Type, substitutions), variable.IsReadOnly, variable.AuthoredAliasName);
+                    _variables.Add(variable, rewritten);
+                }
+                return rewritten;
+            }
         }
 
         private BoundExpression BindTsonEncode(CallExpressionSyntax call, NameExpressionSyntax intrinsicName)
@@ -12414,6 +12616,25 @@ public static partial class Binder
 
         private BoundExpression BindMember(MemberAccessExpressionSyntax m)
         {
+            if (m.Target is NameExpressionSyntax { IdentifierToken.Text: "on" }
+                && !_scope.TryLookup("on", out _))
+            {
+                if (_activeComponentEndpoints is null
+                    || !_activeComponentEndpoints.TryGetValue(m.NameToken.Text, out VariableSymbol? endpoint))
+                {
+                    Report("COPE-COMPONENT-ON-0001", "Declare 'on " + m.NameToken.Text + "(...) => nextState' before taking its endpoint inside the owning component.", m.NameToken);
+                    return new BoundErrorExpression();
+                }
+                if (_arrowBodyDepth > 0)
+                {
+                    Report("COPE-COMPONENT-ON-0002", "Capture the endpoint explicitly before using it in an arrow: capture { send: on." + m.NameToken.Text + " } (...) => send(...).", m.NameToken);
+                    return new BoundErrorExpression();
+                }
+                _componentEndpointOwner!.UsesComponentEndpoints = true;
+                RecordBatchCapture(endpoint);
+                RecordComponentPresentationCapture(endpoint);
+                return new BoundVariableExpression(endpoint);
+            }
             if (m.Target is NameExpressionSyntax componentName
                 && TryFindPrivatePresentation(componentName.IdentifierToken.Text, m.NameToken.Text, out string? owner))
             {
@@ -13156,7 +13377,9 @@ public static partial class Binder
 
         private OptionTypeSymbol GetOrCreateOptionType(TypeSymbol valueType)
         {
-            string key = valueType.Name;
+            string key = ContainsOpenTypeParameter(valueType)
+                ? ClosedTypeIdentity(valueType, MaxClosedTypeDepth)
+                : valueType.Name;
             if (_optionTypes.TryGetValue(key, out OptionTypeSymbol? existing))
             {
                 return existing;

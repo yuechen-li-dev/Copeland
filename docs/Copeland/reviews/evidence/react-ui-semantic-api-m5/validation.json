@@ -1,0 +1,125 @@
+{
+  "milestone": "CTS-REACT-UI-SEMANTIC-API-M5",
+  "endState": "Success",
+  "observedUtc": "2026-10-12T22:00:54.0332201Z",
+  "checkoutHead": "d358b328c5116802da0d0a30a83838c7e01c5e33",
+  "workingTreeChanges": "Uncommitted milestone changes; historical M0-M4 evidence unchanged.",
+  "dotnetSdk": "10.0.401",
+  "node": "v26.2.0",
+  "commands": [
+    "./samples/copeland-ts/react-friction-m0/run.ps1",
+    "dotnet build Copeland.slnx -m:1 -v:minimal",
+    "dotnet test Copeland.slnx --no-build -m:1 --logger trx --results-directory artifacts/validation/semantic-ui-m5-final"
+  ],
+  "build": {
+    "warnings": 0,
+    "exitCode": 0,
+    "errors": 0
+  },
+  "tests": {
+    "failed": 0,
+    "total": 2188,
+    "passed": 2188,
+    "exitCode": 0,
+    "assemblies": [
+      {
+        "assembly": "Copeland.Authoring.Food.Tests.dll",
+        "total": 3,
+        "passed": 3,
+        "failed": 0,
+        "notExecuted": 0,
+        "outcome": "Completed",
+        "reportSha256": "bcaabb13d091cfdbb0903576d3820b724b379745d2571fd8294b67f1fff52a41"
+      },
+      {
+        "assembly": "Copeland.Cli.Tests.dll",
+        "total": 80,
+        "passed": 80,
+        "failed": 0,
+        "notExecuted": 0,
+        "outcome": "Completed",
+        "reportSha256": "3cf62a6ddb5752a6b3c33181b67ee0b4d66f93b6b347b1ece1f7d9026226e8ea"
+      },
+      {
+        "assembly": "Copeland.Markdown.Tests.dll",
+        "total": 35,
+        "passed": 35,
+        "failed": 0,
+        "notExecuted": 0,
+        "outcome": "Completed",
+        "reportSha256": "7778707e89d8a4cad577e98441ebfc2e87520d66406408381e81dd1f87a97065"
+      },
+      {
+        "assembly": "Copeland.TS.Backend.CSharp.Tests.dll",
+        "total": 273,
+        "passed": 273,
+        "failed": 0,
+        "notExecuted": 0,
+        "outcome": "Completed",
+        "reportSha256": "09b6766d66147d344429feb0ca3c6049338d86f780d3daa8f9b91378a403554d"
+      },
+      {
+        "assembly": "Copeland.TS.Backend.JavaScript.Tests.dll",
+        "total": 237,
+        "passed": 237,
+        "failed": 0,
+        "notExecuted": 0,
+        "outcome": "Completed",
+        "reportSha256": "71e0ca90fd03a7572f043e73857f465736ca2e51c0ff5da071d5167479f1dc20"
+      },
+      {
+        "assembly": "Copeland.TS.Database.Tests.dll",
+        "total": 11,
+        "passed": 11,
+        "failed": 0,
+        "notExecuted": 0,
+        "outcome": "Completed",
+        "reportSha256": "7238c72def140cc4685c43cbaaf99eba4251a74d34e9a780c168410bf494beac"
+      },
+      {
+        "assembly": "Copeland.TS.MSBuild.Tests.dll",
+        "total": 13,
+        "passed": 13,
+        "failed": 0,
+        "notExecuted": 0,
+        "outcome": "Completed",
+        "reportSha256": "5f9e11272743a4123df274c33ad7e8a314f9efff881dda694ea560314d5d78d6"
+      },
+      {
+        "assembly": "Copeland.TS.Tests.dll",
+        "total": 1536,
+        "passed": 1536,
+        "failed": 0,
+        "notExecuted": 0,
+        "outcome": "Completed",
+        "reportSha256": "3c8f53e3d7c3c73329b5fe426ea34fc342e7631cead88d79b8e0937c2c6f8981"
+      }
+    ]
+  },
+  "fixture": {
+    "semanticLibraryObservations": 4,
+    "browser": {
+      "channel": "msedge",
+      "version": "153.0.4234.48"
+    },
+    "browserDiagnostics": [],
+    "compilerCases": 35,
+    "expectationsMatched": true,
+    "exitCode": 0,
+    "websiteCardObservations": 12,
+    "websiteDiagnostics": [],
+    "semanticLibraryDiagnostics": [],
+    "browserObservations": 86,
+    "compilerAssemblySha256": "74eb8b4c9132b6c360d703b799c45cc426a5d63a714e86705f4c0dd939a15c08"
+  },
+  "validationSourceHashes": {
+    "src/Copeland/Copeland.TS/Semantics/Binder.cs": "cc7e41e8ebd3e5a86b16ff9aa36ef1a095553370c522f40a017e93627f846686",
+    "src/Copeland/Copeland.TS/Semantics/Symbols.cs": "e1d0140cdffbcdbe068b316d7dfb68af62d1c8fda10b2db23ae4ab262b3326b3",
+    "src/Copeland/Copeland.TS/Compiler/CopelandProjectCompiler.cs": "28b94714002e96a50d1d6131346dd0c6630fc5dbd0055f6b3a0ede442b7679a2",
+    "src/Copeland/Copeland.TS.Backend.JavaScript/JavaScriptBackend.cs": "b00785b892275889ce44c3d0a6f5e06d5716450accf0cd3de886c0c013f27bdf",
+    "tests/Copeland/Copeland.TS.Backend.JavaScript.Tests/ContributionStreamTests.cs": "eeb3e3e720e3a30378e75931feff2a652edc9e784892571480498de778722b42",
+    "artifacts/validation/semantic-ui-m5-final/build.log": "f3769663e2b0c62447f00c9c99f70f3ed93025ff3236effe0c1f53b788b3135a",
+    "artifacts/validation/semantic-ui-m5-final/test.log": "a211047f0faf5005b1b1b78c7a547ce90068a64b08e8bf205176c06c748c8dc3"
+  },
+  "qualification": "Real TSPack browser artifact and paired ordinary TypeScript baseline, headless Edge. No general UI SDK or productivity certification."
+}
