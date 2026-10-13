@@ -11,6 +11,48 @@ namespace Copeland.TS.Backend.CSharp.Tests.Runtime;
 public sealed class GenericBackendParityTests
 {
     [Fact]
+    public async Task Structural_alias_constraints_and_captured_callable_fields_execute_on_both_backends()
+    {
+        const string source = """
+            type Operation<T> = (value: T) => T;
+            type HasOperation<T> = { operation: Operation<T>; };
+            template<type T>
+            record Editor { operation: Operation<T>; }
+            type IntegerEditor = Editor<int>;
+
+            function Make(count: MutableArray<int>): IntegerEditor {
+                count[0] = count[0] + 1;
+                return { operation: capture { base: count[0] } (value: int) => base + value };
+            }
+            function Apply<T extends HasOperation<int>>(editor: T, value: int): int {
+                return editor.operation(value);
+            }
+            function Forward<T extends HasOperation<int>>(editor: T, value: int): int {
+                return Apply<T>(editor, value);
+            }
+            function main(): int {
+                const count: MutableArray<int> = MutableArray<int>(1, 0);
+                const first: int = Make(count).operation(40);
+                const editor: IntegerEditor = { operation: (value: int) => value + 1 };
+                const updated: IntegerEditor = editor with { operation: capture {} (value: int) => value + 2 };
+                return first + Forward(updated, 0) + count[0] * 100;
+            }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptCompilation javascript = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+        CSharpCompilation csharp = CSharpBackend.Emit(compilation.MirCompilation.Program!);
+        Assert.True(javascript.Success, string.Join(Environment.NewLine, javascript.Diagnostics));
+        Assert.Empty(csharp.Diagnostics);
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(csharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+        Assert.Equal(143, GeneratedModuleInvoker.Invoke(generated.Assembly!, "main"));
+        ProcessResult node = await RunNodeAsync(javascript.SourceText + "\nconsole.log(main());\n");
+        Assert.Equal("143\n", node.StdOut);
+    }
+
+    [Fact]
     public async Task Template_syntax_and_static_arguments_execute_through_host_backends()
     {
         const string source = """

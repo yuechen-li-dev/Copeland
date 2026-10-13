@@ -1,5 +1,8 @@
 // Ordinary immutable collection operations. MutableArray is local construction
 // storage; each result is a frozen snapshot and never aliases that storage.
+export type Predicate<T> = (item: T) => boolean;
+export type Projection<T, U> = (item: T) => U;
+
 export function Append<T>(items: T[], item: T): T[] {
     const result: MutableArray<T> = MutableArray<T>(items.length + 1, item);
     for (let index: int = 0; index < items.length; index = index + 1) {
@@ -8,7 +11,7 @@ export function Append<T>(items: T[], item: T): T[] {
     return result.freeze();
 }
 
-export function Filter<T>(items: T[], predicate: (item: T) => boolean): T[] {
+export function Filter<T>(items: T[], predicate: Predicate<T>): T[] {
     if (items.length == 0) {
         return [];
     }
@@ -31,7 +34,7 @@ export function Filter<T>(items: T[], predicate: (item: T) => boolean): T[] {
     return result.freeze();
 }
 
-export function Map<T, U>(items: T[], project: (item: T) => U): U[] {
+export function Map<T, U>(items: T[], project: Projection<T, U>): U[] {
     if (items.length == 0) {
         return [];
     }

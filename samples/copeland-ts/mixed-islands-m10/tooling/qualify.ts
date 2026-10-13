@@ -4,9 +4,10 @@ import { fileURLToPath } from "node:url";
 import { chromium, type Page } from "playwright";
 import { startServer } from "./server.ts";
 
+const evidenceName = process.env.FRICTION_MIXED_EVIDENCE_NAME ?? "mixed-islands-m10";
 const evidence = fileURLToPath(
     new URL(
-        "../../../../docs/Copeland/reviews/evidence/mixed-islands-m10/",
+        `../../../../docs/Copeland/reviews/evidence/${evidenceName}/`,
         import.meta.url,
     ),
 );

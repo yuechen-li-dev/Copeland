@@ -4,6 +4,9 @@ import { focus, saveDraft } from "@copeland/lifecycle-host";
 
 const $schema: string = "copeland://mixed-islands/demo/v1";
 
+type SaveResponse = string ! string;
+type ChildViews = View[];
+
 enum Framework { React, Vue }
 record AppState { reversed: boolean; visible: boolean; heading: string; }
 record EditorState { draft: string; status: string; }
@@ -20,13 +23,13 @@ layout Surface<0px, 0px> {
     }
 }
 
-async function Persist(id: string, draft: string): string ! string {
+async function Persist(id: string, draft: string): SaveResponse {
     return await saveDraft(id, draft);
 }
 
 function Focus(id: string): void { focus(id); }
 
-function SaveStatus(response: string ! string): string {
+function SaveStatus(response: SaveResponse): string {
     return match response {
         ok(draft) => "Saved: " + draft,
         err(message) => "Failed: " + message,
@@ -36,7 +39,7 @@ function SaveStatus(response: string ! string): string {
 function Editor(id: string, framework: Framework, heading: string): View {
     state: EditorState = { draft: id + " draft", status: "Ready" };
     on Edit(draft: string) => state with { draft };
-    on Saved(response: string ! string) => state with { status: SaveStatus(response) };
+    on Saved(response: SaveResponse) => state with { status: SaveStatus(response) };
     on Save(id: string) => state with { status: "Saving" }
         effect Persist(id, state.draft) => Saved(result);
     on Reveal(id: string) => state with { draft: "Presented " + id }
@@ -58,7 +61,7 @@ function Editor(id: string, framework: Framework, heading: string): View {
     return bind Surface using Content;
 }
 
-function Editors(state: AppState): View[] {
+function Editors(state: AppState): ChildViews {
     const react: View = ownChild("editors", "react", Editor("react", Framework.React, state.heading));
     if (!state.visible) { return [react]; }
     const vue: View = ownChild("editors", "vue", Editor("vue", Framework.Vue, state.heading));

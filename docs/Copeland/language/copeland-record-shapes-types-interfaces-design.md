@@ -94,6 +94,11 @@ metadata stays in the static/template subsystem.
 This milestone deliberately does not make structural aliases legal runtime
 storage carriers. Public runtime parameters and returns should use named records.
 
+The type ergonomics M11 pass also accepts structural aliases in ordinary host
+generic constraints, including closed generic aliases such as `HasValue<int>`.
+They normalize to the same exact readable-field requirements as interfaces and
+artifact templates. This does not change their runtime storage boundary.
+
 ### `interface`
 
 An interface is an erased field capability used by generic and template
@@ -103,7 +108,8 @@ required readable fields; extra fields are allowed. There is no `implements`,
 runtime interface value, method dispatch, conversion wrapper, brand, or emitted
 C#/JavaScript interface.
 
-Field-only interfaces are retained as the established compatibility law. For
+Field-only interfaces are retained as the established compatibility law; a
+finite structural `type` is also a supported constraint source. For
 ordinary data, use an inferred value or named record. Use an interface when a
 generic computation needs a capability. A later method-capability milestone may
 extend this role; this milestone does not change interface grammar.

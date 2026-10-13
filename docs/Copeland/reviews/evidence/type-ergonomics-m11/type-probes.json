@@ -1,0 +1,154 @@
+[
+  {
+    "name": "primitive-alias-is-transparent",
+    "boundAndLowered": true,
+    "emitted": true,
+    "diagnostics": []
+  },
+  {
+    "name": "collection-option-alias",
+    "boundAndLowered": true,
+    "emitted": true,
+    "diagnostics": []
+  },
+  {
+    "name": "result-alias",
+    "boundAndLowered": true,
+    "emitted": true,
+    "diagnostics": []
+  },
+  {
+    "name": "callback-alias",
+    "boundAndLowered": true,
+    "emitted": true,
+    "diagnostics": []
+  },
+  {
+    "name": "generic-ui-callback-alias",
+    "boundAndLowered": true,
+    "emitted": true,
+    "diagnostics": []
+  },
+  {
+    "name": "generic-ui-callback-alias-extracted",
+    "boundAndLowered": true,
+    "emitted": true,
+    "diagnostics": []
+  },
+  {
+    "name": "inline-ui-callback-field",
+    "boundAndLowered": true,
+    "emitted": true,
+    "diagnostics": []
+  },
+  {
+    "name": "interface-generic-requirement",
+    "boundAndLowered": true,
+    "emitted": true,
+    "diagnostics": []
+  },
+  {
+    "name": "generic-alias",
+    "boundAndLowered": true,
+    "emitted": true,
+    "diagnostics": []
+  },
+  {
+    "name": "generic-record-specialization-alias",
+    "boundAndLowered": true,
+    "emitted": true,
+    "diagnostics": []
+  },
+  {
+    "name": "nominal-record-union",
+    "boundAndLowered": true,
+    "emitted": true,
+    "diagnostics": []
+  },
+  {
+    "name": "primitive-union",
+    "boundAndLowered": false,
+    "emitted": false,
+    "diagnostics": [
+      "COPE-UNION-0001: Copeland 'type A = B | C' accepts named record alternatives only. Use an enum with typed payload cases and match."
+    ]
+  },
+  {
+    "name": "literal-union",
+    "boundAndLowered": false,
+    "emitted": false,
+    "diagnostics": [
+      "COPE-UNION-0001: Copeland 'type A = B | C' accepts named record alternatives only. Use 'enum Phase { First, Second }' with named cases and match."
+    ]
+  },
+  {
+    "name": "structural-runtime-parameter",
+    "boundAndLowered": false,
+    "emitted": false,
+    "diagnostics": [
+      "COPE-REC-0010: Field access requires a record receiver, got '{ value: string }'."
+    ]
+  },
+  {
+    "name": "structural-runtime-construction",
+    "boundAndLowered": false,
+    "emitted": false,
+    "diagnostics": [
+      "COPE-REC-0005: A record literal requires one expected nominal record type."
+    ]
+  },
+  {
+    "name": "structural-generic-requirement",
+    "boundAndLowered": true,
+    "emitted": true,
+    "diagnostics": []
+  },
+  {
+    "name": "conditional-type",
+    "boundAndLowered": false,
+    "emitted": false,
+    "diagnostics": [
+      "COPE-TYPE-UNIMPLEMENTED: Conditional types are recognized but not implemented by Copeland TS. Use a finite structural type alias or explicit runtime branch instead."
+    ]
+  },
+  {
+    "name": "keyof-type",
+    "boundAndLowered": false,
+    "emitted": false,
+    "diagnostics": [
+      "COPE-ALIAS-0001: 'keyof' is not implemented by Copeland TS. Use 'reflect fieldsOf<T>()' in an explicit template to inspect a finite shape's fields."
+    ]
+  },
+  {
+    "name": "local-alias",
+    "boundAndLowered": false,
+    "emitted": false,
+    "diagnostics": [
+      "COPE-ALIAS-0001: Local type aliases are not supported. Move the 'type' declaration to module scope."
+    ]
+  },
+  {
+    "name": "view-alias-state-owner",
+    "boundAndLowered": true,
+    "emitted": true,
+    "diagnostics": []
+  },
+  {
+    "name": "layout-type-contract",
+    "boundAndLowered": true,
+    "emitted": true,
+    "diagnostics": []
+  },
+  {
+    "name": "import-alias",
+    "boundAndLowered": true,
+    "emitted": true,
+    "diagnostics": []
+  },
+  {
+    "name": "import type-alias",
+    "boundAndLowered": true,
+    "emitted": true,
+    "diagnostics": []
+  }
+]

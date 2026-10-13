@@ -1,0 +1,55 @@
+{
+  "milestone": "CTS-REACT-EFFECTS-CHILDREN-M7",
+  "profile": "Diagnostic",
+  "browser": "153.0.4234.48",
+  "observations": [
+    "StrictMode mount/replay performs no search, save, or focus commands.",
+    "Reordering keyed editors preserves draft state, canonical frames, and endpoint identity.",
+    "Batched focus requests cancel the superseded revision and focus only the committed control.",
+    "Every accepted search launches despite batching; explicit request matching rejects an older result.",
+    "Reinserting a removed key creates fresh state while surviving siblings retain theirs.",
+    "Two accepted saves launch twice, and StrictMode replay never duplicates either command.",
+    "A service failure returns through a typed result and explicit status matching.",
+    "Removed owner cancellation and retained endpoint rejection prevent late work entering a replacement with the same key.",
+    "A synchronous completion waits until the transition's presentation effect launches; completion reduction never nests inside a phase.",
+    "Invalid presentation and duplicate child keys roll back state, ownership, and effect launch together.",
+    "Root teardown retires its subtree; adapter cleanup replay does not resurrect an owner.",
+    "The standalone demonstration searches and saves through actual HTTP responses from its foreground sample service, without request interception."
+  ],
+  "diagnostics": [
+    {
+      "id": "COPE-COMPONENT-STATE-0103",
+      "componentInstanceId": "function:copeland://react/lifecycle-demo/v1#Directory::react::_r_0_::1::child::[\"editors\",\"blue\"]::function:copeland://react/lifecycle-demo/v1#Editor::4",
+      "stateIdentity": "function:copeland://react/lifecycle-demo/v1#Directory::react::_r_0_::1::child::[\"editors\",\"blue\"]::function:copeland://react/lifecycle-demo/v1#Editor::4::state",
+      "eventName": "Edit",
+      "message": "Event delivered to a retired or detached component owner."
+    },
+    {
+      "id": "COPE-COMPONENT-STATE-0102",
+      "componentInstanceId": "function:module:Probe.tsx#Duplicate::react::_r_b_::7",
+      "stateIdentity": "function:module:Probe.tsx#Duplicate::react::_r_b_::7::state",
+      "eventName": "Change",
+      "message": "Error: COPE-COMPONENT-STATE-BROWSER-1007 component=function:module:Probe.tsx#Duplicate::react::_r_b_::7 state=function:module:Probe.tsx#Duplicate::react::_r_b_::7::state event=Change transition failed: COPE-COMPONENT-STATE-0102 Error: COPE-COMPONENT-CHILD-0003 Duplicate child key in slot [\"rows\",\"a\"]"
+    },
+    {
+      "id": "COPE-COMPONENT-STATE-0102",
+      "componentInstanceId": "function:module:Probe.tsx#Broken::react::_r_a_::6",
+      "stateIdentity": "function:module:Probe.tsx#Broken::react::_r_a_::6::state",
+      "eventName": "Change",
+      "message": "Error: COPE-COMPONENT-STATE-BROWSER-1007 component=function:module:Probe.tsx#Broken::react::_r_a_::6 state=function:module:Probe.tsx#Broken::react::_r_a_::6::state event=Change transition failed: COPE-COMPONENT-STATE-0102 RangeError: Copeland array index is out of bounds."
+    },
+    {
+      "id": "COPE-COMPONENT-STATE-0103",
+      "componentInstanceId": "function:copeland://react/lifecycle-demo/v1#Directory::react::_r_0_::1::child::[\"editors\",\"amber\"]::function:copeland://react/lifecycle-demo/v1#Editor::2",
+      "stateIdentity": "function:copeland://react/lifecycle-demo/v1#Directory::react::_r_0_::1::child::[\"editors\",\"amber\"]::function:copeland://react/lifecycle-demo/v1#Editor::2::state",
+      "eventName": "Edit",
+      "message": "Event delivered to a retired or detached component owner."
+    }
+  ],
+  "errors": [],
+  "emittedHashes": {
+    "Collections.js": "2e73321e85fc438c1ec1b6eeda0b16e9fb1ec5467094e0c4b724c2d485991025",
+    "Demo.js": "44b755e2356d93d8bc5de9344ec1ffb277cc9433ee708926e35c12f47f8a7656",
+    "Probe.js": "f73850b8e456cd2be294e6785dafbba8e88772ed8381d6c3bb51d58a41b1a031"
+  }
+}

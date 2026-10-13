@@ -6262,26 +6262,66 @@ public static partial class Binder
             }
         }
 
-        private RequirementSet BindRequirements(TypeParameterSyntax syntax)
+        private RequirementSet BindRequirements(TypeParameterSyntax syntax, bool allowRecordSource = false)
         {
-            if (syntax.ExtendsKeyword is null) return new RequirementSet([], []);
+            if (syntax.ExtendsKeyword is null)
+            {
+                return new RequirementSet([], []);
+            }
             var interfaces = new List<InterfaceSymbol>();
             var fields = new List<RequirementFieldSymbol>();
             var names = new HashSet<string>(StringComparer.Ordinal);
             if (syntax.RequirementNames.Count > MaxRequirementInterfacesPerTypeParameter)
             {
-                Report("COPE-REQUIREMENT-0009", $"Type parameter '{syntax.Identifier.Text}' exceeds the {MaxRequirementInterfacesPerTypeParameter} requirement-interface limit.", syntax.Identifier);
+                Report("COPE-REQUIREMENT-0009", $"Type parameter '{syntax.Identifier.Text}' exceeds the {MaxRequirementInterfacesPerTypeParameter} requirement-source limit.", syntax.Identifier);
             }
             foreach (var operand in syntax.RequirementNames)
             {
                 if (!_interfaces.TryGetValue(operand.Text, out var @interface))
                 {
+                    TypeSyntax requirementType = syntax.RequirementTypes?.FirstOrDefault(type =>
+                        type is GenericTypeSyntax generic && generic.Identifier.Text == operand.Text)
+                        ?? new IdentifierTypeSyntax(operand);
+                    if (_aliases.ContainsKey(operand.Text))
+                    {
+                        TypeSymbol target = BindType(requirementType, operand, "COPE-REQUIREMENT-0008", "field requirement");
+                        if (target is StructuralObjectTypeSymbol structural)
+                        {
+                            if (!names.Add(operand.Text))
+                            {
+                                Report("COPE-REQUIREMENT-0002", $"Requirement '{operand.Text}' is repeated.", operand);
+                                continue;
+                            }
+                            AddRequirementFields(fields, structural.Fields.Select(field =>
+                                new RequirementFieldSymbol(field.Name, field.Type, field.Ordinal)), operand);
+                            continue;
+                        }
+                        if (target == PrimitiveTypeSymbol.Error)
+                        {
+                            continue;
+                        }
+                    }
+                    if (allowRecordSource && _recordTypes.ContainsKey(operand.Text))
+                    {
+                        TypeSymbol target = BindType(requirementType, operand, "COPE-REQUIREMENT-0008", "field requirement");
+                        if (target is RecordTypeSymbol record)
+                        {
+                            if (!names.Add(operand.Text))
+                            {
+                                Report("COPE-REQUIREMENT-0002", $"Requirement '{operand.Text}' is repeated.", operand);
+                                continue;
+                            }
+                            AddRequirementFields(fields, record.Fields.Select(field =>
+                                new RequirementFieldSymbol(field.Name, field.Type, field.Id.Ordinal)), operand);
+                            continue;
+                        }
+                    }
                     if (_aliases.ContainsKey(operand.Text)
                         || _recordTypes.ContainsKey(operand.Text)
                         || _enumTypes.ContainsKey(operand.Text)
                         || _tableTypes.ContainsKey(operand.Text))
                     {
-                        Report("COPE-REQUIREMENT-0008", $"Constraint operand '{operand.Text}' is not an interface.", operand);
+                        Report("COPE-REQUIREMENT-0008", $"Constraint operand '{operand.Text}' must be an interface or a structural type alias. For nominal data, declare 'type {operand.Text}Shape = {{ ... }}' with the required fields and constrain against that shape.", operand);
                     }
                     else
                     {
@@ -6304,18 +6344,7 @@ public static partial class Binder
                     requiredFields = @interface.Fields.Select(field => new RequirementFieldSymbol(field.Name, SubstituteType(field.Type, substitutions), field.Ordinal)).ToArray();
                 }
                 interfaces.Add(@interface);
-                foreach (var field in requiredFields)
-                {
-                    var existing = fields.FirstOrDefault(candidate => candidate.Name == field.Name);
-                    if (existing is null)
-                    {
-                        fields.Add(field);
-                    }
-                    else if (!TypeFacts.AreEquivalent(existing.Type, field.Type))
-                    {
-                        Report("COPE-REQUIREMENT-0003", $"Requirements conflict on field '{field.Name}': '{existing.Type.Name}' versus '{field.Type.Name}'.", operand);
-                    }
-                }
+                AddRequirementFields(fields, requiredFields, operand);
             }
             if (fields.Count > MaxNormalizedRequirementFields)
             {
@@ -6325,67 +6354,15 @@ public static partial class Binder
         }
 
         /// <summary>
-        /// Templates reuse the normal requirement algebra, with one additional
-        /// structural source: a declared immutable record may provide the same
-        /// finite field requirements as an interface. Runtime generic functions
-        /// retain their existing interface-only syntax law.
+        /// Templates and host generics share field normalization and satisfaction.
+        /// Artifact templates also retain their existing nominal-record source syntax.
         /// </summary>
         private RequirementSet BindTemplateRequirements(TypeParameterSyntax syntax)
         {
-            if (syntax.ExtendsKeyword is null) return new RequirementSet([], []);
-            var interfaces = new List<InterfaceSymbol>();
-            var fields = new List<RequirementFieldSymbol>();
-            var names = new HashSet<string>(StringComparer.Ordinal);
-            foreach (SyntaxToken operand in syntax.RequirementNames)
-            {
-                if (_interfaces.TryGetValue(operand.Text, out InterfaceSymbol? @interface))
-                {
-                    if (!names.Add(@interface.Name))
-                    {
-                        Report("COPE-REQUIREMENT-0002", $"Requirement '{@interface.Name}' is repeated.", operand);
-                        continue;
-                    }
-                    interfaces.Add(@interface);
-                    AddTemplateRequirementFields(fields, @interface.Fields, operand);
-                    continue;
-                }
-                if (_recordTypes.TryGetValue(operand.Text, out RecordTypeSymbol? record))
-                {
-                    if (!names.Add(record.Name))
-                    {
-                        Report("COPE-REQUIREMENT-0002", $"Requirement '{record.Name}' is repeated.", operand);
-                        continue;
-                    }
-                    AddTemplateRequirementFields(
-                        fields,
-                        record.Fields.Select(field => new RequirementFieldSymbol(field.Name, field.Type, field.Id.Ordinal)),
-                        operand);
-                    continue;
-                }
-                if (_aliases.TryGetValue(operand.Text, out TypeAliasSymbol? alias)
-                    && alias.CanonicalType is StructuralObjectTypeSymbol structural)
-                {
-                    if (!names.Add(alias.Name))
-                    {
-                        Report("COPE-REQUIREMENT-0002", $"Requirement '{alias.Name}' is repeated.", operand);
-                        continue;
-                    }
-                    AddTemplateRequirementFields(
-                        fields,
-                        structural.Fields.Select(field => new RequirementFieldSymbol(field.Name, field.Type, field.Ordinal)),
-                        operand);
-                    continue;
-                }
-                Report("COPE-REQUIREMENT-0001", $"Unknown template constraint '{operand.Text}'.", operand);
-            }
-            if (fields.Count > MaxNormalizedRequirementFields)
-            {
-                Report("COPE-REQUIREMENT-0010", $"Type parameter '{syntax.Identifier.Text}' exceeds the {MaxNormalizedRequirementFields} normalized requirement-field limit.", syntax.Identifier);
-            }
-            return new RequirementSet(interfaces, fields);
+            return BindRequirements(syntax, allowRecordSource: true);
         }
 
-        private void AddTemplateRequirementFields(
+        private void AddRequirementFields(
             List<RequirementFieldSymbol> normalizedFields,
             IEnumerable<RequirementFieldSymbol> additionalFields,
             SyntaxToken operand)
@@ -8402,6 +8379,15 @@ public static partial class Binder
                 if (tableReceiver.Type is ClrTypeSymbol clrReceiver)
                 {
                     return BindClrMethodCall(c, clrReceiver.RuntimeType, tableReceiver, tableMember.NameToken);
+                }
+                if (HasDeclaredDataField(tableReceiver.Type, tableMember.NameToken.Text))
+                {
+                    BoundExpression field = BindMember(tableMember, tableReceiver);
+                    if (field.Type == PrimitiveTypeSymbol.Error)
+                    {
+                        return field;
+                    }
+                    return BindInvoke(c, field);
                 }
                 ReportReceiverCall(c, tableMember, tableReceiver.Type);
                 return new BoundErrorExpression();
@@ -11276,8 +11262,26 @@ public static partial class Binder
                 ResultTypeSymbol result => new ResultTypeSymbol(SubstituteType(result.SuccessType, substitutions), SubstituteType(result.ErrorType, substitutions)),
                 ColumnTypeSymbol column => new ColumnTypeSymbol(SubstituteType(column.ElementType, substitutions)),
                 CallableTypeSymbol callable => new CallableTypeSymbol(callable.Parameters.Select(parameter => new CallableParameterTypeSymbol(parameter.Name, SubstituteType(parameter.Type, substitutions))).ToArray(), SubstituteType(callable.ReturnType, substitutions)),
+                StructuralProjectionTypeSymbol projection => new StructuralProjectionTypeSymbol(
+                    projection.Operation,
+                    SubstituteType(projection.Source, substitutions),
+                    SubstituteStructuralFields(projection.Fields, substitutions)),
+                StructuralObjectTypeSymbol structural => new StructuralObjectTypeSymbol(
+                    SubstituteStructuralFields(structural.Fields, substitutions)),
                 _ => type
             };
+        }
+
+        private IReadOnlyList<StructuralFieldSymbol> SubstituteStructuralFields(
+            IReadOnlyList<StructuralFieldSymbol> fields,
+            IReadOnlyDictionary<TypeSymbol, TypeSymbol> substitutions)
+        {
+            return fields.Select(field => new StructuralFieldSymbol(
+                field.Name,
+                SubstituteType(field.Type, substitutions),
+                field.Ordinal,
+                field.IsOptional,
+                field.IsReadOnly)).ToArray();
         }
 
         private sealed class ClosedInstantiationRewriter(BinderImpl owner, IReadOnlyDictionary<TypeSymbol, TypeSymbol> substitutions)
@@ -12690,7 +12694,26 @@ public static partial class Binder
                 armType ?? contextualType ?? PrimitiveTypeSymbol.Error);
         }
 
-        private BoundExpression BindMember(MemberAccessExpressionSyntax m)
+        private bool HasDeclaredDataField(TypeSymbol receiverType, string name)
+        {
+            if (receiverType is RecordTypeSymbol record)
+            {
+                return record.Fields.Any(field => field.Name == name);
+            }
+            if (receiverType is TableRowTypeSymbol row)
+            {
+                return row.Fields.Any(field => field.Name == name);
+            }
+            if (receiverType is TypeParameterTypeSymbol typeParameter)
+            {
+                TypeParameterSymbol? parameter = _currentFunction?.TypeParameters.FirstOrDefault(candidate =>
+                    ReferenceEquals(candidate.Type, typeParameter));
+                return parameter?.Requirements.Fields.Any(field => field.Name == name) == true;
+            }
+            return false;
+        }
+
+        private BoundExpression BindMember(MemberAccessExpressionSyntax m, BoundExpression? boundReceiver = null)
         {
             if (m.Target is NameExpressionSyntax { IdentifierToken.Text: "on" }
                 && !_scope.TryLookup("on", out _))
@@ -12729,7 +12752,7 @@ public static partial class Binder
             BoundExpression? clrReceiver = null;
             if (m.Target is not NameExpressionSyntax name || !_classTypes.ContainsKey(name.IdentifierToken.Text))
             {
-                clrReceiver = BindExpression(m.Target);
+                clrReceiver = boundReceiver ?? BindExpression(m.Target);
                 if (clrReceiver.Type is ClrTypeSymbol clrType)
                 {
                     return BindClrProperty(m, clrType.RuntimeType, clrReceiver);

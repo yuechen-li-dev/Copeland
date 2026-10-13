@@ -5,8 +5,15 @@ using Copeland.TS.Backend.JavaScript;
 using Copeland.TS.Compiler;
 using Copeland.TS.Mir;
 
-string root = Path.GetFullPath(args.Single());
-string evidence = Path.GetFullPath(Path.Combine(root, "../../../docs/Copeland/reviews/evidence/mixed-islands-m10"));
+if (args.Length is < 1 or > 2)
+{
+    Console.Error.WriteLine("Usage: Compiler <fixture-root> [evidence-directory]");
+    return 1;
+}
+string root = Path.GetFullPath(args[0]);
+string evidence = args.Length == 2
+    ? Path.GetFullPath(args[1])
+    : Path.GetFullPath(Path.Combine(root, "../../../docs/Copeland/reviews/evidence/mixed-islands-m10"));
 Directory.CreateDirectory(evidence);
 var results = new List<object>();
 foreach (MirPresentationAdapter adapter in new[] { MirPresentationAdapter.React, MirPresentationAdapter.Vue })

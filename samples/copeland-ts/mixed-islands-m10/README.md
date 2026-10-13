@@ -46,3 +46,11 @@ do not need their renderer values. Only the React/Vue light DOM combination is
 qualified here. Named/scoped slots, shadow DOM style reach, managed bridges,
 SSR/hydration, HMR, portals/Teleport, and `AttachmentsSettled` remain outside
 this milestone. HTTP behavior is bounded demonstration behavior.
+
+The subsequent type ergonomics pass uses `SaveResponse` and `ChildViews` aliases
+in this source and named event/projection aliases in the shared-source fixture.
+Run its evidence separately from the historical M10 snapshot:
+
+```powershell
+pwsh -NoProfile -File samples/copeland-ts/mixed-islands-m10/run.ps1 -FullValidation -EvidenceName type-ergonomics-m11
+```

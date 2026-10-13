@@ -1,6 +1,9 @@
 import { IssueOne, IssueTwo, IssueThree, IssueExtra } from "./Content";
 import { Append, Filter, Reverse } from "./Collections";
 
+export type IssueSelection = Option<int>;
+export type Titled = { title: string; };
+
 export record Issue {
     id: int;
     title: string;
@@ -33,7 +36,7 @@ export function VisibleIssues(rows: Issue[], query: string): Issue[] {
         capture { query } (issue: Issue) => String.IndexOf(issue.title, query) >= 0);
 }
 
-export function RemoveIssue(rows: Issue[], selected: Option<int>): Issue[] {
+export function RemoveIssue(rows: Issue[], selected: IssueSelection): Issue[] {
     return match selected {
         Some(id) => Filter<Issue>(rows, capture { id } (issue: Issue) => issue.id != id),
         None => rows,
@@ -44,7 +47,7 @@ export function ReverseIssues(rows: Issue[]): Issue[] {
     return Reverse<Issue>(rows);
 }
 
-export function SelectedIssue(rows: Issue[], selected: Option<int>): Option<Issue> {
+export function SelectedIssue(rows: Issue[], selected: IssueSelection): Option<Issue> {
     const matches: Issue[] = match selected {
         Some(id) => Filter<Issue>(rows, capture { id } (issue: Issue) => issue.id == id),
         None => [],
@@ -59,6 +62,6 @@ export function IssueIdentity(issue: Issue): string {
     return String.From(issue.id);
 }
 
-export function IssueLabel(issue: Issue): string {
+export function IssueLabel<T extends Titled>(issue: T): string {
     return issue.title;
 }

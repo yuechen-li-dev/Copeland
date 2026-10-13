@@ -4,7 +4,8 @@ import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 const repository = fileURLToPath(new URL("../../../../", import.meta.url));
-const evidence = "docs/Copeland/reviews/evidence/mixed-islands-m10/";
+const evidenceName = process.env.FRICTION_MIXED_EVIDENCE_NAME ?? "mixed-islands-m10";
+const evidence = `docs/Copeland/reviews/evidence/${evidenceName}/`;
 
 async function hash(path: string): Promise<string> {
     return createHash("sha256")
@@ -12,8 +13,8 @@ async function hash(path: string): Promise<string> {
         .digest("hex");
 }
 
-const buildPath = "artifacts/validation/mixed-islands-m10-build.log";
-const testsPath = "artifacts/validation/mixed-islands-m10-tests.log";
+const buildPath = `artifacts/validation/${evidenceName}-build.log`;
+const testsPath = `artifacts/validation/${evidenceName}-tests.log`;
 const build = await readFile(repository + buildPath, "utf8");
 const tests = await readFile(repository + testsPath, "utf8");
 assert.match(build, /Build succeeded\./);
@@ -65,6 +66,7 @@ await writeFile(
     JSON.stringify(
         {
             milestone: "CTS-MIXED-ISLANDS-M10",
+            evidenceName,
             build: { warnings: 0, errors: 0 },
             tests: {
                 passed: suites.reduce(

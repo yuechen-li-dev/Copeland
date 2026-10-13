@@ -1,0 +1,1411 @@
+{
+  "milestone": "CTS-MIXED-ISLANDS-M10",
+  "browser": "153.0.4234.48",
+  "errors": [],
+  "observations": [
+    {
+      "target": "react/diagnostic",
+      "width": 1280,
+      "name": "both-genuine-framework-roots-mounted"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 1280,
+      "name": "both-frameworks-edit-one-canonical-state"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 1280,
+      "name": "shared-owner-effect-waits-for-both-framework-commits"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 1280,
+      "name": "typed-events-update-canonical-drafts"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 1280,
+      "name": "reorder-preserves-host-root-draft-and-foreign-local-state"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 1280,
+      "name": "typed-props-update-existing-island-roots"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 1280,
+      "name": "superseded-revision-callbacks-cannot-write-state"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 1280,
+      "name": "presentation-effect-waits-for-foreign-commit"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 1280,
+      "name": "only-exact-revision-commit-releases-focus-effect"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 1280,
+      "name": "removal-releases-island-exactly-once"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 1280,
+      "name": "reinsertion-has-fresh-owner-and-foreign-local-state"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 1280,
+      "name": "retired-callback-and-http-completion-cannot-reach-new-owner"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 1280,
+      "name": "retired-generation-acknowledgements-are-ignored"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 1280,
+      "name": "copeland-style-reaches-light-dom-hosts-without-overflow"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 1280,
+      "name": "root-teardown-retires-all-frames-and-attachments"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 768,
+      "name": "both-genuine-framework-roots-mounted"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 768,
+      "name": "both-frameworks-edit-one-canonical-state"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 768,
+      "name": "shared-owner-effect-waits-for-both-framework-commits"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 768,
+      "name": "typed-events-update-canonical-drafts"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 768,
+      "name": "reorder-preserves-host-root-draft-and-foreign-local-state"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 768,
+      "name": "typed-props-update-existing-island-roots"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 768,
+      "name": "superseded-revision-callbacks-cannot-write-state"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 768,
+      "name": "presentation-effect-waits-for-foreign-commit"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 768,
+      "name": "only-exact-revision-commit-releases-focus-effect"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 768,
+      "name": "removal-releases-island-exactly-once"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 768,
+      "name": "reinsertion-has-fresh-owner-and-foreign-local-state"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 768,
+      "name": "retired-callback-and-http-completion-cannot-reach-new-owner"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 768,
+      "name": "retired-generation-acknowledgements-are-ignored"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 768,
+      "name": "copeland-style-reaches-light-dom-hosts-without-overflow"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 768,
+      "name": "root-teardown-retires-all-frames-and-attachments"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 390,
+      "name": "both-genuine-framework-roots-mounted"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 390,
+      "name": "both-frameworks-edit-one-canonical-state"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 390,
+      "name": "shared-owner-effect-waits-for-both-framework-commits"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 390,
+      "name": "typed-events-update-canonical-drafts"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 390,
+      "name": "reorder-preserves-host-root-draft-and-foreign-local-state"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 390,
+      "name": "typed-props-update-existing-island-roots"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 390,
+      "name": "superseded-revision-callbacks-cannot-write-state"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 390,
+      "name": "presentation-effect-waits-for-foreign-commit"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 390,
+      "name": "only-exact-revision-commit-releases-focus-effect"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 390,
+      "name": "removal-releases-island-exactly-once"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 390,
+      "name": "reinsertion-has-fresh-owner-and-foreign-local-state"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 390,
+      "name": "retired-callback-and-http-completion-cannot-reach-new-owner"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 390,
+      "name": "retired-generation-acknowledgements-are-ignored"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 390,
+      "name": "copeland-style-reaches-light-dom-hosts-without-overflow"
+    },
+    {
+      "target": "react/diagnostic",
+      "width": 390,
+      "name": "root-teardown-retires-all-frames-and-attachments"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 1280,
+      "name": "both-genuine-framework-roots-mounted"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 1280,
+      "name": "both-frameworks-edit-one-canonical-state"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 1280,
+      "name": "shared-owner-effect-waits-for-both-framework-commits"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 1280,
+      "name": "typed-events-update-canonical-drafts"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 1280,
+      "name": "reorder-preserves-host-root-draft-and-foreign-local-state"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 1280,
+      "name": "typed-props-update-existing-island-roots"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 1280,
+      "name": "superseded-revision-callbacks-cannot-write-state"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 1280,
+      "name": "presentation-effect-waits-for-foreign-commit"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 1280,
+      "name": "only-exact-revision-commit-releases-focus-effect"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 1280,
+      "name": "removal-releases-island-exactly-once"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 1280,
+      "name": "reinsertion-has-fresh-owner-and-foreign-local-state"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 1280,
+      "name": "retired-callback-and-http-completion-cannot-reach-new-owner"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 1280,
+      "name": "retired-generation-acknowledgements-are-ignored"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 1280,
+      "name": "copeland-style-reaches-light-dom-hosts-without-overflow"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 1280,
+      "name": "root-teardown-retires-all-frames-and-attachments"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 768,
+      "name": "both-genuine-framework-roots-mounted"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 768,
+      "name": "both-frameworks-edit-one-canonical-state"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 768,
+      "name": "shared-owner-effect-waits-for-both-framework-commits"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 768,
+      "name": "typed-events-update-canonical-drafts"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 768,
+      "name": "reorder-preserves-host-root-draft-and-foreign-local-state"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 768,
+      "name": "typed-props-update-existing-island-roots"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 768,
+      "name": "superseded-revision-callbacks-cannot-write-state"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 768,
+      "name": "presentation-effect-waits-for-foreign-commit"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 768,
+      "name": "only-exact-revision-commit-releases-focus-effect"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 768,
+      "name": "removal-releases-island-exactly-once"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 768,
+      "name": "reinsertion-has-fresh-owner-and-foreign-local-state"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 768,
+      "name": "retired-callback-and-http-completion-cannot-reach-new-owner"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 768,
+      "name": "retired-generation-acknowledgements-are-ignored"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 768,
+      "name": "copeland-style-reaches-light-dom-hosts-without-overflow"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 768,
+      "name": "root-teardown-retires-all-frames-and-attachments"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 390,
+      "name": "both-genuine-framework-roots-mounted"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 390,
+      "name": "both-frameworks-edit-one-canonical-state"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 390,
+      "name": "shared-owner-effect-waits-for-both-framework-commits"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 390,
+      "name": "typed-events-update-canonical-drafts"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 390,
+      "name": "reorder-preserves-host-root-draft-and-foreign-local-state"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 390,
+      "name": "typed-props-update-existing-island-roots"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 390,
+      "name": "superseded-revision-callbacks-cannot-write-state"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 390,
+      "name": "presentation-effect-waits-for-foreign-commit"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 390,
+      "name": "only-exact-revision-commit-releases-focus-effect"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 390,
+      "name": "removal-releases-island-exactly-once"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 390,
+      "name": "reinsertion-has-fresh-owner-and-foreign-local-state"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 390,
+      "name": "retired-callback-and-http-completion-cannot-reach-new-owner"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 390,
+      "name": "retired-generation-acknowledgements-are-ignored"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 390,
+      "name": "copeland-style-reaches-light-dom-hosts-without-overflow"
+    },
+    {
+      "target": "react/symbolic",
+      "width": 390,
+      "name": "root-teardown-retires-all-frames-and-attachments"
+    },
+    {
+      "target": "react/production",
+      "width": 1280,
+      "name": "both-genuine-framework-roots-mounted"
+    },
+    {
+      "target": "react/production",
+      "width": 1280,
+      "name": "both-frameworks-edit-one-canonical-state"
+    },
+    {
+      "target": "react/production",
+      "width": 1280,
+      "name": "shared-owner-effect-waits-for-both-framework-commits"
+    },
+    {
+      "target": "react/production",
+      "width": 1280,
+      "name": "typed-events-update-canonical-drafts"
+    },
+    {
+      "target": "react/production",
+      "width": 1280,
+      "name": "reorder-preserves-host-root-draft-and-foreign-local-state"
+    },
+    {
+      "target": "react/production",
+      "width": 1280,
+      "name": "typed-props-update-existing-island-roots"
+    },
+    {
+      "target": "react/production",
+      "width": 1280,
+      "name": "superseded-revision-callbacks-cannot-write-state"
+    },
+    {
+      "target": "react/production",
+      "width": 1280,
+      "name": "presentation-effect-waits-for-foreign-commit"
+    },
+    {
+      "target": "react/production",
+      "width": 1280,
+      "name": "only-exact-revision-commit-releases-focus-effect"
+    },
+    {
+      "target": "react/production",
+      "width": 1280,
+      "name": "removal-releases-island-exactly-once"
+    },
+    {
+      "target": "react/production",
+      "width": 1280,
+      "name": "reinsertion-has-fresh-owner-and-foreign-local-state"
+    },
+    {
+      "target": "react/production",
+      "width": 1280,
+      "name": "retired-callback-and-http-completion-cannot-reach-new-owner"
+    },
+    {
+      "target": "react/production",
+      "width": 1280,
+      "name": "retired-generation-acknowledgements-are-ignored"
+    },
+    {
+      "target": "react/production",
+      "width": 1280,
+      "name": "copeland-style-reaches-light-dom-hosts-without-overflow"
+    },
+    {
+      "target": "react/production",
+      "width": 1280,
+      "name": "root-teardown-retires-all-frames-and-attachments"
+    },
+    {
+      "target": "react/production",
+      "width": 768,
+      "name": "both-genuine-framework-roots-mounted"
+    },
+    {
+      "target": "react/production",
+      "width": 768,
+      "name": "both-frameworks-edit-one-canonical-state"
+    },
+    {
+      "target": "react/production",
+      "width": 768,
+      "name": "shared-owner-effect-waits-for-both-framework-commits"
+    },
+    {
+      "target": "react/production",
+      "width": 768,
+      "name": "typed-events-update-canonical-drafts"
+    },
+    {
+      "target": "react/production",
+      "width": 768,
+      "name": "reorder-preserves-host-root-draft-and-foreign-local-state"
+    },
+    {
+      "target": "react/production",
+      "width": 768,
+      "name": "typed-props-update-existing-island-roots"
+    },
+    {
+      "target": "react/production",
+      "width": 768,
+      "name": "superseded-revision-callbacks-cannot-write-state"
+    },
+    {
+      "target": "react/production",
+      "width": 768,
+      "name": "presentation-effect-waits-for-foreign-commit"
+    },
+    {
+      "target": "react/production",
+      "width": 768,
+      "name": "only-exact-revision-commit-releases-focus-effect"
+    },
+    {
+      "target": "react/production",
+      "width": 768,
+      "name": "removal-releases-island-exactly-once"
+    },
+    {
+      "target": "react/production",
+      "width": 768,
+      "name": "reinsertion-has-fresh-owner-and-foreign-local-state"
+    },
+    {
+      "target": "react/production",
+      "width": 768,
+      "name": "retired-callback-and-http-completion-cannot-reach-new-owner"
+    },
+    {
+      "target": "react/production",
+      "width": 768,
+      "name": "retired-generation-acknowledgements-are-ignored"
+    },
+    {
+      "target": "react/production",
+      "width": 768,
+      "name": "copeland-style-reaches-light-dom-hosts-without-overflow"
+    },
+    {
+      "target": "react/production",
+      "width": 768,
+      "name": "root-teardown-retires-all-frames-and-attachments"
+    },
+    {
+      "target": "react/production",
+      "width": 390,
+      "name": "both-genuine-framework-roots-mounted"
+    },
+    {
+      "target": "react/production",
+      "width": 390,
+      "name": "both-frameworks-edit-one-canonical-state"
+    },
+    {
+      "target": "react/production",
+      "width": 390,
+      "name": "shared-owner-effect-waits-for-both-framework-commits"
+    },
+    {
+      "target": "react/production",
+      "width": 390,
+      "name": "typed-events-update-canonical-drafts"
+    },
+    {
+      "target": "react/production",
+      "width": 390,
+      "name": "reorder-preserves-host-root-draft-and-foreign-local-state"
+    },
+    {
+      "target": "react/production",
+      "width": 390,
+      "name": "typed-props-update-existing-island-roots"
+    },
+    {
+      "target": "react/production",
+      "width": 390,
+      "name": "superseded-revision-callbacks-cannot-write-state"
+    },
+    {
+      "target": "react/production",
+      "width": 390,
+      "name": "presentation-effect-waits-for-foreign-commit"
+    },
+    {
+      "target": "react/production",
+      "width": 390,
+      "name": "only-exact-revision-commit-releases-focus-effect"
+    },
+    {
+      "target": "react/production",
+      "width": 390,
+      "name": "removal-releases-island-exactly-once"
+    },
+    {
+      "target": "react/production",
+      "width": 390,
+      "name": "reinsertion-has-fresh-owner-and-foreign-local-state"
+    },
+    {
+      "target": "react/production",
+      "width": 390,
+      "name": "retired-callback-and-http-completion-cannot-reach-new-owner"
+    },
+    {
+      "target": "react/production",
+      "width": 390,
+      "name": "retired-generation-acknowledgements-are-ignored"
+    },
+    {
+      "target": "react/production",
+      "width": 390,
+      "name": "copeland-style-reaches-light-dom-hosts-without-overflow"
+    },
+    {
+      "target": "react/production",
+      "width": 390,
+      "name": "root-teardown-retires-all-frames-and-attachments"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 1280,
+      "name": "both-genuine-framework-roots-mounted"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 1280,
+      "name": "both-frameworks-edit-one-canonical-state"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 1280,
+      "name": "shared-owner-effect-waits-for-both-framework-commits"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 1280,
+      "name": "typed-events-update-canonical-drafts"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 1280,
+      "name": "reorder-preserves-host-root-draft-and-foreign-local-state"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 1280,
+      "name": "typed-props-update-existing-island-roots"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 1280,
+      "name": "superseded-revision-callbacks-cannot-write-state"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 1280,
+      "name": "presentation-effect-waits-for-foreign-commit"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 1280,
+      "name": "only-exact-revision-commit-releases-focus-effect"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 1280,
+      "name": "removal-releases-island-exactly-once"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 1280,
+      "name": "reinsertion-has-fresh-owner-and-foreign-local-state"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 1280,
+      "name": "retired-callback-and-http-completion-cannot-reach-new-owner"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 1280,
+      "name": "retired-generation-acknowledgements-are-ignored"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 1280,
+      "name": "copeland-style-reaches-light-dom-hosts-without-overflow"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 1280,
+      "name": "root-teardown-retires-all-frames-and-attachments"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 768,
+      "name": "both-genuine-framework-roots-mounted"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 768,
+      "name": "both-frameworks-edit-one-canonical-state"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 768,
+      "name": "shared-owner-effect-waits-for-both-framework-commits"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 768,
+      "name": "typed-events-update-canonical-drafts"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 768,
+      "name": "reorder-preserves-host-root-draft-and-foreign-local-state"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 768,
+      "name": "typed-props-update-existing-island-roots"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 768,
+      "name": "superseded-revision-callbacks-cannot-write-state"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 768,
+      "name": "presentation-effect-waits-for-foreign-commit"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 768,
+      "name": "only-exact-revision-commit-releases-focus-effect"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 768,
+      "name": "removal-releases-island-exactly-once"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 768,
+      "name": "reinsertion-has-fresh-owner-and-foreign-local-state"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 768,
+      "name": "retired-callback-and-http-completion-cannot-reach-new-owner"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 768,
+      "name": "retired-generation-acknowledgements-are-ignored"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 768,
+      "name": "copeland-style-reaches-light-dom-hosts-without-overflow"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 768,
+      "name": "root-teardown-retires-all-frames-and-attachments"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 390,
+      "name": "both-genuine-framework-roots-mounted"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 390,
+      "name": "both-frameworks-edit-one-canonical-state"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 390,
+      "name": "shared-owner-effect-waits-for-both-framework-commits"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 390,
+      "name": "typed-events-update-canonical-drafts"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 390,
+      "name": "reorder-preserves-host-root-draft-and-foreign-local-state"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 390,
+      "name": "typed-props-update-existing-island-roots"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 390,
+      "name": "superseded-revision-callbacks-cannot-write-state"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 390,
+      "name": "presentation-effect-waits-for-foreign-commit"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 390,
+      "name": "only-exact-revision-commit-releases-focus-effect"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 390,
+      "name": "removal-releases-island-exactly-once"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 390,
+      "name": "reinsertion-has-fresh-owner-and-foreign-local-state"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 390,
+      "name": "retired-callback-and-http-completion-cannot-reach-new-owner"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 390,
+      "name": "retired-generation-acknowledgements-are-ignored"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 390,
+      "name": "copeland-style-reaches-light-dom-hosts-without-overflow"
+    },
+    {
+      "target": "vue/diagnostic",
+      "width": 390,
+      "name": "root-teardown-retires-all-frames-and-attachments"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 1280,
+      "name": "both-genuine-framework-roots-mounted"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 1280,
+      "name": "both-frameworks-edit-one-canonical-state"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 1280,
+      "name": "shared-owner-effect-waits-for-both-framework-commits"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 1280,
+      "name": "typed-events-update-canonical-drafts"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 1280,
+      "name": "reorder-preserves-host-root-draft-and-foreign-local-state"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 1280,
+      "name": "typed-props-update-existing-island-roots"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 1280,
+      "name": "superseded-revision-callbacks-cannot-write-state"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 1280,
+      "name": "presentation-effect-waits-for-foreign-commit"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 1280,
+      "name": "only-exact-revision-commit-releases-focus-effect"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 1280,
+      "name": "removal-releases-island-exactly-once"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 1280,
+      "name": "reinsertion-has-fresh-owner-and-foreign-local-state"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 1280,
+      "name": "retired-callback-and-http-completion-cannot-reach-new-owner"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 1280,
+      "name": "retired-generation-acknowledgements-are-ignored"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 1280,
+      "name": "copeland-style-reaches-light-dom-hosts-without-overflow"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 1280,
+      "name": "root-teardown-retires-all-frames-and-attachments"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 768,
+      "name": "both-genuine-framework-roots-mounted"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 768,
+      "name": "both-frameworks-edit-one-canonical-state"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 768,
+      "name": "shared-owner-effect-waits-for-both-framework-commits"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 768,
+      "name": "typed-events-update-canonical-drafts"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 768,
+      "name": "reorder-preserves-host-root-draft-and-foreign-local-state"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 768,
+      "name": "typed-props-update-existing-island-roots"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 768,
+      "name": "superseded-revision-callbacks-cannot-write-state"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 768,
+      "name": "presentation-effect-waits-for-foreign-commit"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 768,
+      "name": "only-exact-revision-commit-releases-focus-effect"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 768,
+      "name": "removal-releases-island-exactly-once"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 768,
+      "name": "reinsertion-has-fresh-owner-and-foreign-local-state"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 768,
+      "name": "retired-callback-and-http-completion-cannot-reach-new-owner"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 768,
+      "name": "retired-generation-acknowledgements-are-ignored"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 768,
+      "name": "copeland-style-reaches-light-dom-hosts-without-overflow"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 768,
+      "name": "root-teardown-retires-all-frames-and-attachments"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 390,
+      "name": "both-genuine-framework-roots-mounted"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 390,
+      "name": "both-frameworks-edit-one-canonical-state"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 390,
+      "name": "shared-owner-effect-waits-for-both-framework-commits"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 390,
+      "name": "typed-events-update-canonical-drafts"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 390,
+      "name": "reorder-preserves-host-root-draft-and-foreign-local-state"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 390,
+      "name": "typed-props-update-existing-island-roots"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 390,
+      "name": "superseded-revision-callbacks-cannot-write-state"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 390,
+      "name": "presentation-effect-waits-for-foreign-commit"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 390,
+      "name": "only-exact-revision-commit-releases-focus-effect"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 390,
+      "name": "removal-releases-island-exactly-once"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 390,
+      "name": "reinsertion-has-fresh-owner-and-foreign-local-state"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 390,
+      "name": "retired-callback-and-http-completion-cannot-reach-new-owner"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 390,
+      "name": "retired-generation-acknowledgements-are-ignored"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 390,
+      "name": "copeland-style-reaches-light-dom-hosts-without-overflow"
+    },
+    {
+      "target": "vue/symbolic",
+      "width": 390,
+      "name": "root-teardown-retires-all-frames-and-attachments"
+    },
+    {
+      "target": "vue/production",
+      "width": 1280,
+      "name": "both-genuine-framework-roots-mounted"
+    },
+    {
+      "target": "vue/production",
+      "width": 1280,
+      "name": "both-frameworks-edit-one-canonical-state"
+    },
+    {
+      "target": "vue/production",
+      "width": 1280,
+      "name": "shared-owner-effect-waits-for-both-framework-commits"
+    },
+    {
+      "target": "vue/production",
+      "width": 1280,
+      "name": "typed-events-update-canonical-drafts"
+    },
+    {
+      "target": "vue/production",
+      "width": 1280,
+      "name": "reorder-preserves-host-root-draft-and-foreign-local-state"
+    },
+    {
+      "target": "vue/production",
+      "width": 1280,
+      "name": "typed-props-update-existing-island-roots"
+    },
+    {
+      "target": "vue/production",
+      "width": 1280,
+      "name": "superseded-revision-callbacks-cannot-write-state"
+    },
+    {
+      "target": "vue/production",
+      "width": 1280,
+      "name": "presentation-effect-waits-for-foreign-commit"
+    },
+    {
+      "target": "vue/production",
+      "width": 1280,
+      "name": "only-exact-revision-commit-releases-focus-effect"
+    },
+    {
+      "target": "vue/production",
+      "width": 1280,
+      "name": "removal-releases-island-exactly-once"
+    },
+    {
+      "target": "vue/production",
+      "width": 1280,
+      "name": "reinsertion-has-fresh-owner-and-foreign-local-state"
+    },
+    {
+      "target": "vue/production",
+      "width": 1280,
+      "name": "retired-callback-and-http-completion-cannot-reach-new-owner"
+    },
+    {
+      "target": "vue/production",
+      "width": 1280,
+      "name": "retired-generation-acknowledgements-are-ignored"
+    },
+    {
+      "target": "vue/production",
+      "width": 1280,
+      "name": "copeland-style-reaches-light-dom-hosts-without-overflow"
+    },
+    {
+      "target": "vue/production",
+      "width": 1280,
+      "name": "root-teardown-retires-all-frames-and-attachments"
+    },
+    {
+      "target": "vue/production",
+      "width": 768,
+      "name": "both-genuine-framework-roots-mounted"
+    },
+    {
+      "target": "vue/production",
+      "width": 768,
+      "name": "both-frameworks-edit-one-canonical-state"
+    },
+    {
+      "target": "vue/production",
+      "width": 768,
+      "name": "shared-owner-effect-waits-for-both-framework-commits"
+    },
+    {
+      "target": "vue/production",
+      "width": 768,
+      "name": "typed-events-update-canonical-drafts"
+    },
+    {
+      "target": "vue/production",
+      "width": 768,
+      "name": "reorder-preserves-host-root-draft-and-foreign-local-state"
+    },
+    {
+      "target": "vue/production",
+      "width": 768,
+      "name": "typed-props-update-existing-island-roots"
+    },
+    {
+      "target": "vue/production",
+      "width": 768,
+      "name": "superseded-revision-callbacks-cannot-write-state"
+    },
+    {
+      "target": "vue/production",
+      "width": 768,
+      "name": "presentation-effect-waits-for-foreign-commit"
+    },
+    {
+      "target": "vue/production",
+      "width": 768,
+      "name": "only-exact-revision-commit-releases-focus-effect"
+    },
+    {
+      "target": "vue/production",
+      "width": 768,
+      "name": "removal-releases-island-exactly-once"
+    },
+    {
+      "target": "vue/production",
+      "width": 768,
+      "name": "reinsertion-has-fresh-owner-and-foreign-local-state"
+    },
+    {
+      "target": "vue/production",
+      "width": 768,
+      "name": "retired-callback-and-http-completion-cannot-reach-new-owner"
+    },
+    {
+      "target": "vue/production",
+      "width": 768,
+      "name": "retired-generation-acknowledgements-are-ignored"
+    },
+    {
+      "target": "vue/production",
+      "width": 768,
+      "name": "copeland-style-reaches-light-dom-hosts-without-overflow"
+    },
+    {
+      "target": "vue/production",
+      "width": 768,
+      "name": "root-teardown-retires-all-frames-and-attachments"
+    },
+    {
+      "target": "vue/production",
+      "width": 390,
+      "name": "both-genuine-framework-roots-mounted"
+    },
+    {
+      "target": "vue/production",
+      "width": 390,
+      "name": "both-frameworks-edit-one-canonical-state"
+    },
+    {
+      "target": "vue/production",
+      "width": 390,
+      "name": "shared-owner-effect-waits-for-both-framework-commits"
+    },
+    {
+      "target": "vue/production",
+      "width": 390,
+      "name": "typed-events-update-canonical-drafts"
+    },
+    {
+      "target": "vue/production",
+      "width": 390,
+      "name": "reorder-preserves-host-root-draft-and-foreign-local-state"
+    },
+    {
+      "target": "vue/production",
+      "width": 390,
+      "name": "typed-props-update-existing-island-roots"
+    },
+    {
+      "target": "vue/production",
+      "width": 390,
+      "name": "superseded-revision-callbacks-cannot-write-state"
+    },
+    {
+      "target": "vue/production",
+      "width": 390,
+      "name": "presentation-effect-waits-for-foreign-commit"
+    },
+    {
+      "target": "vue/production",
+      "width": 390,
+      "name": "only-exact-revision-commit-releases-focus-effect"
+    },
+    {
+      "target": "vue/production",
+      "width": 390,
+      "name": "removal-releases-island-exactly-once"
+    },
+    {
+      "target": "vue/production",
+      "width": 390,
+      "name": "reinsertion-has-fresh-owner-and-foreign-local-state"
+    },
+    {
+      "target": "vue/production",
+      "width": 390,
+      "name": "retired-callback-and-http-completion-cannot-reach-new-owner"
+    },
+    {
+      "target": "vue/production",
+      "width": 390,
+      "name": "retired-generation-acknowledgements-are-ignored"
+    },
+    {
+      "target": "vue/production",
+      "width": 390,
+      "name": "copeland-style-reaches-light-dom-hosts-without-overflow"
+    },
+    {
+      "target": "vue/production",
+      "width": 390,
+      "name": "root-teardown-retires-all-frames-and-attachments"
+    }
+  ],
+  "compiler": {
+    "milestone": "CTS-MIXED-ISLANDS-M10",
+    "sourceHash": "e2daf96f1f7c54fa421e32181aed92b83bb6d8090caa13b5b7a67473697473b8",
+    "results": [
+      {
+        "adapter": "react",
+        "profile": "Diagnostic",
+        "hashes": {
+          "src/Application.js": "dda1642a540477a3615df28969ae3df58298ce389beb27602c9da2ee062028e5",
+          "generated/layouts.css": "5f6676a905153de2033b0b772ad5cb923fcc3804404477e2383f4771c7d8e35c"
+        }
+      },
+      {
+        "adapter": "react",
+        "profile": "Symbolic",
+        "hashes": {
+          "src/Application.js": "a7a2f61efab8aae510609b330107ac3cf4088bbdcb2335bc34424ca4218cf128",
+          "generated/layouts.css": "5f6676a905153de2033b0b772ad5cb923fcc3804404477e2383f4771c7d8e35c"
+        }
+      },
+      {
+        "adapter": "react",
+        "profile": "Production",
+        "hashes": {
+          "src/Application.js": "b9948872ce53e8c8e35ef7d4ef8f0cf588e1bbead321ace75324b009834affef",
+          "generated/layouts.css": "5f6676a905153de2033b0b772ad5cb923fcc3804404477e2383f4771c7d8e35c"
+        }
+      },
+      {
+        "adapter": "vue",
+        "profile": "Diagnostic",
+        "hashes": {
+          "src/Application.js": "96c91ca2284dfe741b9c84161a32fbdc13c0d94d35bdc6102292762f9e7d278c",
+          "generated/layouts.css": "5f6676a905153de2033b0b772ad5cb923fcc3804404477e2383f4771c7d8e35c"
+        }
+      },
+      {
+        "adapter": "vue",
+        "profile": "Symbolic",
+        "hashes": {
+          "src/Application.js": "f7963df0fdb59f182c6240e8e9d5e18965a2cfb4d13b62d0d400251bda7f802c",
+          "generated/layouts.css": "5f6676a905153de2033b0b772ad5cb923fcc3804404477e2383f4771c7d8e35c"
+        }
+      },
+      {
+        "adapter": "vue",
+        "profile": "Production",
+        "hashes": {
+          "src/Application.js": "a32aa26f79d66f4943fa17d54690c68078859e5d714ca2aad0e3ff221d52c3c3",
+          "generated/layouts.css": "5f6676a905153de2033b0b772ad5cb923fcc3804404477e2383f4771c7d8e35c"
+        }
+      }
+    ]
+  }
+}

@@ -3,6 +3,7 @@ import { Issue, IssueStatus, VisibleIssues, SelectedIssue, IssueIdentity, IssueL
 import { ShortCopy, LongCopy, IssueDescription } from "./Content";
 import { Arrangement, TwoPane } from "./Layouts";
 import { Action, NoticeKind, PresentNotice, PresentChoices, PresentReading, PresentHeader, PresentArrangement, PageSurface } from "./UI";
+import type { EventSink } from "./UI";
 
 layout IssueWideBase = instantiate TwoPane<sidebarWidth: 300px>;
 layout IssueStackedBase = instantiate TwoPane<arrangement: Arrangement.Vertical>;
@@ -39,7 +40,7 @@ function EditSearch(value: string): AppEvent {
     return AppEvent.SetQueryDraft(value);
 }
 
-function IssueChoices(state: AppState, send: (event: AppEvent) => void): View {
+function IssueChoices(state: AppState, send: EventSink<AppEvent>): View {
     const selected: Option<string> = match state.selected {
         Some(id) => Some(String.From(id)),
         None => None,
@@ -49,14 +50,14 @@ function IssueChoices(state: AppState, send: (event: AppEvent) => void): View {
         heading: "Incoming issues",
         items: VisibleIssues(state.rows, state.query),
         identity: IssueIdentity,
-        text: IssueLabel,
+        text: IssueLabel<Issue>,
         select: SelectIssue,
         selected,
         emptyMessage: "No matching issues.",
     }, send);
 }
 
-function IssueList(state: AppState, send: (event: AppEvent) => void): View {
+function IssueList(state: AppState, send: EventSink<AppEvent>): View {
     return match state.status {
         Loading => PresentNotice<AppEvent>({
             kind: NoticeKind.Pending,
@@ -72,7 +73,7 @@ function IssueList(state: AppState, send: (event: AppEvent) => void): View {
     };
 }
 
-function IssueDetail(state: AppState, send: (event: AppEvent) => void): View {
+function IssueDetail(state: AppState, send: EventSink<AppEvent>): View {
     const issue: Option<Issue> = SelectedIssue(state.rows, state.selected);
     return match issue {
         None => PresentNotice<AppEvent>({
@@ -93,7 +94,7 @@ function IssueDetail(state: AppState, send: (event: AppEvent) => void): View {
     };
 }
 
-function IssueBody(state: AppState, send: (event: AppEvent) => void): View {
+function IssueBody(state: AppState, send: EventSink<AppEvent>): View {
     stream IssueContent {
         list: IssueList(state, send);
         detail: IssueDetail(state, send);
@@ -104,7 +105,7 @@ function IssueBody(state: AppState, send: (event: AppEvent) => void): View {
     return bind IssueWideLayout using IssueContent;
 }
 
-export function IssuesPage(state: AppState, send: (event: AppEvent) => void): View {
+export function IssuesPage(state: AppState, send: EventSink<AppEvent>): View {
     const header: View = PresentHeader<AppEvent>({
         title: "Issue triage",
         search: { id: "search", label: "Search issue titles", value: state.queryDraft, edit: EditSearch },

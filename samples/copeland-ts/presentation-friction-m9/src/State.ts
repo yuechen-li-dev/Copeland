@@ -1,4 +1,5 @@
 import { Issue, IssueStatus, InitialIssues, InsertIssue, RemoveIssue, ReverseIssues } from "./Issues";
+import type { IssueSelection } from "./Issues";
 
 export record AppState {
     longCopy: boolean;
@@ -8,7 +9,7 @@ export record AppState {
     narrow: boolean;
     query: string;
     queryDraft: string;
-    selected: Option<int>;
+    selected: IssueSelection;
     status: IssueStatus;
 }
 

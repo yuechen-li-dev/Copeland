@@ -602,6 +602,7 @@ public sealed class Parser
             return ParseNominalUnionDeclaration(typeKeyword, identifier, equalsToken);
         }
 
+        bool keyQuery = IsWord(Current, "keyof");
         TypeSyntax targetType;
         if (Current.Kind is SyntaxKind.SemicolonToken or SyntaxKind.EndOfFileToken)
         {
@@ -629,7 +630,10 @@ public sealed class Parser
         }
         else if (unsupportedTokens.Count > 0)
         {
-            ReportAliasSyntax("Unsupported type-level syntax in type alias declaration.", unsupportedTokens[0]);
+            string message = keyQuery
+                ? "'keyof' is not implemented by Copeland TS. Use 'reflect fieldsOf<T>()' in an explicit template to inspect a finite shape's fields."
+                : "Unsupported type-level syntax in type alias declaration. Use a finite alias or an explicit template for type computation.";
+            ReportAliasSyntax(message, unsupportedTokens[0]);
         }
 
         SyntaxToken semicolonToken;
@@ -668,11 +672,30 @@ public sealed class Parser
         var alternatives = new List<SyntaxToken>();
         var pipes = new List<SyntaxToken>();
         bool expectingAlternative = true;
+        bool unsupportedAlternative = false;
 
         while (Current.Kind is not SyntaxKind.SemicolonToken and not SyntaxKind.EndOfFileToken)
         {
             if (expectingAlternative)
             {
+                if (Current.Kind is SyntaxKind.StringToken or SyntaxKind.NumberToken
+                    or SyntaxKind.NumberKeyword or SyntaxKind.IntKeyword or SyntaxKind.FloatKeyword
+                    or SyntaxKind.StringKeyword or SyntaxKind.BooleanKeyword or SyntaxKind.VoidKeyword
+                    or SyntaxKind.NullKeyword or SyntaxKind.TrueKeyword or SyntaxKind.FalseKeyword)
+                {
+                    bool literal = Current.Kind is SyntaxKind.StringToken or SyntaxKind.NumberToken
+                        or SyntaxKind.TrueKeyword or SyntaxKind.FalseKeyword;
+                    string repair = literal
+                        ? $"Use 'enum {identifier.Text} {{ First, Second }}' with named cases and match."
+                        : "Use an enum with typed payload cases and match.";
+                    ReportUnionSyntax("Copeland 'type A = B | C' accepts named record alternatives only. " + repair, Current);
+                    while (Current.Kind is not SyntaxKind.SemicolonToken and not SyntaxKind.EndOfFileToken)
+                    {
+                        NextToken();
+                    }
+                    unsupportedAlternative = true;
+                    break;
+                }
                 if (Current.Kind != SyntaxKind.IdentifierToken)
                 {
                     ReportUnionSyntax("Expected a nominal record alternative after '|'.", Current);
@@ -704,12 +727,12 @@ public sealed class Parser
             NextToken();
         }
 
-        if (expectingAlternative)
+        if (expectingAlternative && !unsupportedAlternative)
         {
             ReportUnionSyntax("Expected a nominal record alternative after '|'.", Current);
         }
 
-        if (alternatives.Count < 2)
+        if (alternatives.Count < 2 && !unsupportedAlternative)
         {
             ReportUnionSyntax("A nominal union declaration requires at least two alternatives.", identifier);
         }
@@ -1747,6 +1770,9 @@ public sealed class Parser
             SyntaxKind.LayoutKeyword => new LocalPresentationDeclarationStatementSyntax(ParseLayoutDeclaration(), null),
             SyntaxKind.IdentifierToken when IsContributionStreamAhead() => new LocalContributionStreamStatementSyntax(ParseContributionStreamDeclaration()),
             SyntaxKind.IdentifierToken when IsWord(Current, "stream") => new LocalPresentationDeclarationStatementSyntax(null, ParseStreamDeclaration()),
+            SyntaxKind.IdentifierToken when IsWord(Current, "type")
+                && Peek(1).Kind == SyntaxKind.IdentifierToken
+                && Peek(2).Kind is SyntaxKind.EqualsToken or SyntaxKind.LessToken => ParseLocalTypeAliasRecovery(),
             SyntaxKind.IdentifierToken when IsComponentStateDeclarationStart() => ParseComponentStateDeclaration(),
             SyntaxKind.IdentifierToken when IsComponentEventHandlerStart() => ParseComponentEventHandler(),
             SyntaxKind.ConstKeyword or SyntaxKind.LetKeyword or SyntaxKind.VarKeyword => ParseVariableDeclarationStatement(requireSemicolon: true),
@@ -1766,6 +1792,20 @@ public sealed class Parser
             SyntaxKind.AwaitKeyword when IsWord(Peek(1), "using") => ParseResourceUsingDeclaration(NextToken()),
             _ => ParseExpressionStatementOrRecovery(),
         };
+
+    private StatementSyntax ParseLocalTypeAliasRecovery()
+    {
+        SyntaxToken keyword = Current;
+        MemberSyntax declaration = ParseTypeDeclaration();
+        ReportAliasSyntax("Local type aliases are not supported. Move the 'type' declaration to module scope.", keyword);
+        SyntaxToken semicolon = declaration switch
+        {
+            TypeAliasDeclarationSyntax alias => alias.SemicolonToken,
+            NominalUnionDeclarationSyntax union => union.SemicolonToken,
+            _ => MissingToken(SyntaxKind.SemicolonToken, Current.Position),
+        };
+        return new ExpressionStatementSyntax(new MissingExpressionSyntax(keyword), semicolon);
+    }
 
     private bool IsComponentStateDeclarationStart()
         => IsWord(Current, "state")
