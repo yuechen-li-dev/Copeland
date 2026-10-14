@@ -31,6 +31,14 @@ public interface IGame : IDisposable
     {
     }
 
+    /// <summary>
+    /// Once per presented frame on every screen, menus included, after the shell has handled input. Use it for things
+    /// that continue behind menus, such as choosing music for the current screen. Do not change simulation state here.
+    /// </summary>
+    void OnFrame(GameFrame frame)
+    {
+    }
+
     /// <summary>Deterministic simulation step at <see cref="GameManifest.TickRate"/> while playing.</summary>
     void FixedUpdate(GameTick tick);
 
@@ -49,6 +57,12 @@ public interface IGame : IDisposable
     void Observe(GameFacts facts)
     {
     }
+
+    /// <summary>
+    /// Game-specific playtest/debug commands (for example "teleport 2" or "autopilot on"). Return false for unknown
+    /// commands; the playtest target then reports them as errors.
+    /// </summary>
+    bool Command(string command) => false;
 
     /// <summary>Native only: called after the Vulkan graphics exist (load lighting, environments, GPU presenters).</summary>
     void AttachGraphics(NativeGameGraphics graphics)
@@ -161,6 +175,12 @@ internal static class GameTones
         string hash = string.Create(CultureInfo.InvariantCulture, $"tone-{frequency}-{seconds}-{gain}");
         return new AudioClipResource(new AudioAssetId(asset), hash, Rate, 1, samples.Length, samples);
     }
+}
+
+/// <summary>One presented frame on any screen ("title", "playing", "pause", settings pages...).</summary>
+public readonly record struct GameFrame(TimeSpan Elapsed, string Screen)
+{
+    public bool Playing => Screen == "playing";
 }
 
 /// <summary>Per-frame update while playing.</summary>

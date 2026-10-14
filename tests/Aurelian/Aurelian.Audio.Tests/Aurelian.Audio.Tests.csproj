@@ -12,4 +12,7 @@
     <ProjectReference Include="../../../src/Integrations/Aurelian.Audio.NAudio/Aurelian.Audio.NAudio.csproj" />
     <ProjectReference Include="../../../src/Integrations/Dominatus.Audio.Aurelian/Dominatus.Audio.Aurelian.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Fixtures/*.mp3" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

@@ -172,10 +172,11 @@ public sealed class GamePlaytestTarget : IPlaytestTarget<SortedDictionary<string
                 throw new InvalidOperationException($"Expected {words[1]}={expected}, observed {actual}.");
             }
         }
-        else
+        else if (!session.Game.Command(command))
         {
             throw new ArgumentException("Unknown game command: " + command
-                + ". Commands: inspect, save S, load S, activate ID, adjust ID +1|-1, mark M, assert-mark M, assert FACT VALUE.");
+                + ". Commands: inspect, save S, load S, activate ID, adjust ID +1|-1, mark M, assert-mark M, assert FACT VALUE,"
+                + " plus any the game defines.");
         }
     }
 

@@ -3,4 +3,8 @@
     <AssemblyName>Aurelian.Audio</AssemblyName>
     <RootNamespace>Aurelian.Audio</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- Managed MPEG-1/2 Layer III decoder (MIT); no native dependency. -->
+    <PackageReference Include="NLayer" />
+  </ItemGroup>
 </Project>

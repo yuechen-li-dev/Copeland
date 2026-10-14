@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "steps": [
+    {
+      "kind": "click-action",
+      "text": "start"
+    },
+    {
+      "kind": "command",
+      "command": "assert screen playing"
+    },
+    {
+      "kind": "command",
+      "command": "autopilot on"
+    },
+    {
+      "kind": "wait",
+      "seconds": 0.8
+    },
+    {
+      "kind": "wait",
+      "seconds": 1.6
+    },
+    {
+      "kind": "wait",
+      "seconds": 1.2
+    },
+    {
+      "kind": "wait",
+      "seconds": 3.0
+    },
+    {
+      "kind": "wait",
+      "seconds": 4.5
+    },
+    {
+      "kind": "command",
+      "command": "assert checkpoint 1"
+    },
+    {
+      "kind": "wait",
+      "seconds": 2.0
+    },
+    {
+      "kind": "wait",
+      "seconds": 4.0
+    },
+    {
+      "kind": "wait",
+      "seconds": 4.0
+    },
+    {
+      "kind": "command",
+      "command": "assert checkpoint 2"
+    },
+    {
+      "kind": "wait",
+      "seconds": 3.0
+    },
+    {
+      "kind": "wait",
+      "seconds": 7.0
+    },
+    {
+      "kind": "wait",
+      "seconds": 1.6
+    },
+    {
+      "kind": "wait",
+      "seconds": 2.0
+    },
+    {
+      "kind": "command",
+      "command": "assert finished true"
+    },
+    {
+      "kind": "command",
+      "command": "assert falls 0"
+    },
+    {
+      "kind": "tap",
+      "keys": [
+        "Escape"
+      ],
+      "seconds": 0
+    },
+    {
+      "kind": "command",
+      "command": "assert screen pause"
+    }
+  ]
+}

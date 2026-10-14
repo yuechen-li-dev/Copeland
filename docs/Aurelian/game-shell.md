@@ -47,6 +47,8 @@ public sealed class MyGame : IGame
 | `FixedUpdate(GameTick)` | yes | Deterministic simulation at `Manifest.TickRate` (60 by default) while playing |
 | `Start(GameContext)` | no | Register sounds; keep the context for `PlaySound` |
 | `Update(GameUpdate)` | no | Once per presented frame while playing, for immediate camera look |
+| `OnFrame(GameFrame)` | no | Once per frame on every screen, menus included (for example, music for the current screen). It must not change simulation state |
+| `Command(string)` | no | Game-specific playtest commands (Cloudstep: `autopilot on`, `checkpoint 2`); return false for unknown commands |
 | `View(GameViewRequest)` | no | Scene, camera and eye to draw. It is also drawn behind menus, so return a valid backdrop before `NewGame` too |
 | `BuildHud(GameHud)` | no | Panels and text in logical units, drawn while playing |
 | `Saves` | no | A `GameSaveSchema` for typed world saves; without one the menus hide save/load |
@@ -69,7 +71,7 @@ public sealed class MyGame : IGame
 | Graphics quality | High is the game's authored `Graphics3DSettings`. Medium removes ambient occlusion and limits local shadows. Low also removes temporal AA, shadows and bloom while keeping the authored lighting model |
 | Persistence | Preferences live in a Deliverance `preferences` slot under `saves/config`, independent of world saves. Bindings saved for an older layout are rejected as a whole and reported; other preferences are kept |
 | World saves | `GameShellSave` holds the game's typed snapshot, the cadence phase, and latched input for a tick that has not run yet. Identity, schema and cadence are validated before any live state is replaced |
-| Audio | One `AurelianAudioRuntime`. Master/Music/Sfx/Ambient/UI bus volumes follow settings. `GameContext.PlaySound` issues unique event ids; the NAudio device is used interactively and a null device for playtests |
+| Audio | One `AurelianAudioRuntime`. Clips load from 16-bit PCM WAV (`AudioResources.LoadPcmWav`) or MP3 (`LoadMp3`, or `Mp3Decoder.Decode` on a worker thread for long music). Master/Music/Sfx/Ambient/UI bus volumes follow settings. `GameContext.PlaySound` issues unique event ids; the NAudio device is used interactively and a null device for playtests |
 | Playtesting | `GamePlaytestTarget` drives any session headless or native (see below) |
 
 Every menu is a `GameMenuPage` built from the same template. Rows can carry a value and be adjustable (left/right, or click to step forward). Pages hold up to nine rows.

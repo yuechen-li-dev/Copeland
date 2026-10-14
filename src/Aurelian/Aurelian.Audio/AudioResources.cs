@@ -21,6 +21,17 @@ public sealed class AudioResourceScope : IDisposable
         return resource;
     }
 
+    /// <summary>Decode an MP3 file synchronously. Prefer <see cref="Mp3Decoder"/> on a worker for long music.</summary>
+    public AudioClipResource LoadMp3(AudioAssetId id, string path, bool loopByDefault = false)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        ValidateId(id);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        AudioClipResource resource = Mp3Decoder.Decode(id, File.ReadAllBytes(path), loopByDefault);
+        resources[id] = resource;
+        return resource;
+    }
+
     public AudioClipResource Add(AudioClipResource resource)
     {
         ObjectDisposedException.ThrowIf(disposed, this);

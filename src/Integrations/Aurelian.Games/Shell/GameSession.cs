@@ -188,6 +188,7 @@ public sealed class GameSession : IDisposable
         {
             UiSound("aurelian.ui.move");
         }
+        game.OnFrame(new GameFrame(elapsed, Screen));
         Audio.Update(elapsed);
     }
 
