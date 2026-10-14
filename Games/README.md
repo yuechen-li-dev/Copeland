@@ -2,6 +2,8 @@
 
 Games own their rules, authored agents, content, save schemas and proof scenarios. Aurelian owns reusable runtime services under `src/Aurelian` and platform integrations under `src/Integrations`.
 
+New games implement `IGame` and call `GameApp.Run(game, args)`. The [game shell](../docs/Aurelian/game-shell.md) supplies the window and resolution, title/pause/settings menus, key rebinding, audio volume, pause on focus loss, saves and headless/native playtesting. The starter runs on it; the older games below still have their own bootstraps.
+
 | Game | Application | Launch |
 | --- | --- | --- |
 | Sunkill | `Sunkill/Aurelian.Ariadne.VnDemo` | `Play-Sunkill.cmd` |

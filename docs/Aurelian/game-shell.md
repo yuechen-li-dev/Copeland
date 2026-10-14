@@ -1,0 +1,109 @@
+# Game shell
+
+Most of what makes a program feel like a finished game has nothing to do with the game's rules: a window you can resize or make fullscreen, a title screen, a pause menu, settings that stick, rebindable keys, volume sliders, focus handling, saves. Aurelian's game shell provides all of that. A game supplies an `IGame`, and its project contains only game logic.
+
+```csharp
+using Aurelian.Games;
+
+GameApp.Run(new MyGame(), args);
+```
+
+## What a game writes
+
+```csharp
+public sealed class MyGame : IGame
+{
+    public GameManifest Manifest { get; } = new("my-game", "MY GAME", new GameInputLayout(
+    [
+        new("move.left", "Move left", GameControl.Key(KeyboardKey.A), Secondary: GameControl.Key(KeyboardKey.ArrowLeft)),
+        new("move.right", "Move right", GameControl.Key(KeyboardKey.D), Secondary: GameControl.Key(KeyboardKey.ArrowRight)),
+        new("jump", "Jump", GameControl.Key(KeyboardKey.Space)),
+    ]))
+    {
+        Tagline = "A SHORT SUBTITLE",
+        ControlsHint = "A / D MOVE   SPACE JUMP",
+    };
+
+    public void Start(GameContext context) => context.AddTone("jump", 520, 0.08f); // or AudioResources.LoadPcmWav
+    public void NewGame() { /* reset the world */ }
+
+    public void FixedUpdate(GameTick tick)
+    {
+        float move = tick.Input.Axis("move.left", "move.right");
+        if (tick.Input.WasPressed("jump")) { /* ... */ }
+    }
+
+    public GameView? View(GameViewRequest request) => new(scene, camera(request.Aspect), eye);
+    public void BuildHud(GameHud hud) => hud.StatusBar($"SCORE {score}");
+    public void Observe(GameFacts facts) => facts.Set("score", score);
+    public void Dispose() { }
+}
+```
+
+| Member | Required | Purpose |
+| --- | --- | --- |
+| `Manifest` | yes | Id (save directory), title, input layout, tagline, controls hint, authored `Graphics3DSettings`, default display, tick rate |
+| `NewGame()` | yes | Reset the world when the player picks **New game** |
+| `FixedUpdate(GameTick)` | yes | Deterministic simulation at `Manifest.TickRate` (60 by default) while playing |
+| `Start(GameContext)` | no | Register sounds; keep the context for `PlaySound` |
+| `Update(GameUpdate)` | no | Once per presented frame while playing, for immediate camera look |
+| `View(GameViewRequest)` | no | Scene, camera and eye to draw. It is also drawn behind menus, so return a valid backdrop before `NewGame` too |
+| `BuildHud(GameHud)` | no | Panels and text in logical units, drawn while playing |
+| `Saves` | no | A `GameSaveSchema` for typed world saves; without one the menus hide save/load |
+| `Observe(GameFacts)` | no | String facts that playtest scripts can `assert` |
+| `AttachGraphics` / `PrepareGpuGeometry` / `DetachGraphics` | no | Native-only hooks for lighting assets, environments and GPU-generated geometry |
+
+`GameTick.Input` is shell-latched. A tap that starts and ends between two simulation ticks still reports `WasPressed` on the next tick, exactly once. `IsDown` is the current state. `Update` sees per-frame edges and the mouse-look delta. A game should consume look in one place: `Update` for responsiveness, or `FixedUpdate` for determinism.
+
+## What the shell owns
+
+| Concern | Behaviour |
+| --- | --- |
+| Window | Resizable Silk/Vulkan window: windowed, borderless (monitor-sized) or exclusive fullscreen; vsync on or off |
+| Resolution changes | `NativeGameGraphics.Reconfigure` rebuilds the swapchain, frame target, renderer and overlay presenter. The plant, compiled shaders, font atlas, particle pool, prepared models and published lighting are kept |
+| UI scale | Menus and HUD lay out on a logical surface of at least 960x600 and are scaled to the framebuffer, so text stays the same relative size at 1080p and 4K |
+| Title screen | New game, Load game (when the game has saves and a slot exists), Settings, Quit |
+| Pause | Escape (reserved) or focus loss. Resume, Save game, Load game, Settings, Quit to title. Gameplay sound buses pause with the world; music and menu sounds continue |
+| Settings | Display (resolution, window mode, vsync, graphics quality), applied with an explicit **Apply**. Audio (master, music, effects), applied immediately. Controls (mouse sensitivity, invert Y, key bindings) |
+| Key bindings | Pick an action, press a key. A conflicting action receives the old key. Escape cancels; capture times out after 10 seconds; **Reset to defaults** restores the layout. `Secondary` controls are fixed alternatives; `Rebindable: false` actions (for example arrow-key turning) are not offered for rebinding |
+| Graphics quality | High is the game's authored `Graphics3DSettings`. Medium removes ambient occlusion and limits local shadows. Low also removes temporal AA, shadows and bloom while keeping the authored lighting model |
+| Persistence | Preferences live in a Deliverance `preferences` slot under `saves/config`, independent of world saves. Bindings saved for an older layout are rejected as a whole and reported; other preferences are kept |
+| World saves | `GameShellSave` holds the game's typed snapshot, the cadence phase, and latched input for a tick that has not run yet. Identity, schema and cadence are validated before any live state is replaced |
+| Audio | One `AurelianAudioRuntime`. Master/Music/Sfx/Ambient/UI bus volumes follow settings. `GameContext.PlaySound` issues unique event ids; the NAudio device is used interactively and a null device for playtests |
+| Playtesting | `GamePlaytestTarget` drives any session headless or native (see below) |
+
+Every menu is a `GameMenuPage` built from the same template. Rows can carry a value and be adjustable (left/right, or click to step forward). Pages hold up to nine rows.
+
+## Launch options
+
+```
+--headless --playtest-script PATH | --playtest-stdio   deterministic run without a window
+--playtest-script PATH                                 the same script against the native Vulkan window
+--launch-smoke                                         four interactive host frames, then exit
+--visible  --output DIR  --save-root DIR
+--resolution 1920x1080  --windowed | --borderless | --fullscreen  --quality low|medium|high  --basic-graphics
+--gpu-rays                                             request VK_KHR_ray_query on the plant
+```
+
+Display overrides apply to this run only. Changes made in the Display menu are persisted.
+
+## Playtest commands
+
+`GamePlaytestTarget` supports the shared runner's steps (keys, mouse, `click-action`, `focus`, `resize`, `capture`, `checkpoint`/`rewind`) and these commands:
+
+| Command | Effect |
+| --- | --- |
+| `assert FACT VALUE` | Compare any fact: shell facts (`screen`, `tick`, `time`, `display.resolution`, `display.mode`, `display.quality`, `audio.master`, `controls.sensitivity`, `binding.<action>`, `menu.selected`, `rebind`) or the game's own |
+| `activate ID` / `adjust ID +1\|-1` | Press or step a menu row by id |
+| `save S` / `load S` | World save slots |
+| `mark M` / `assert-mark M` | Compare the full save envelope (or all facts, for games without saves) |
+
+A rewind also restores the preferences the recorded inputs ran under, in memory only. Persisted save files are not rolled back.
+
+`Games/Starter/Playtests/shell-proof.json` exercises the shell natively: resolution change, borderless, fullscreen, quality, key capture and cancel, window resize during play, and pause on focus loss. Its captures are written at the actual surface size.
+
+## Current bounds
+
+- On a real display, exclusive fullscreen at a non-native resolution asks GLFW for the closest video mode. The headless Xvfb proof cannot change modes and reports the monitor's size.
+- Gamepad controls can be declared (`GameControl.Gamepad`), but capture-rebinding only offers keyboard keys and mouse buttons.
+- Beacon, TinyFarm, Mossward, Sunkill and CharacterLab still use their own bootstraps. The FPS starter runs on the shell (`GameStarter.Run` builds a `StarterGame : IGame`), and so will new games.

@@ -10,20 +10,25 @@ using Aurelian.GameSaves;
 using Aurelian.Graphics.Vulkan.Native3D;
 using Aurelian.NativeComposition;
 using Aurelian.Runtime;
-using Aurelian.Simulation;
 using Aurelian.Spatial3D;
+using Aurelian.Spatial3D.Vulkan;
 using Aurelian.World.Agents;
 using Aurelian.World.Scenes;
-using Deliverance.Core.Storage;
 using Aetheris.Humanoid;
 using Aurelian.Humanoid;
 using Aurelian.Runtime.Dominatus.Inspection;
+using InputMan.Aurelian;
+using InputMan.Core;
 
 namespace Aurelian.Games;
 
-/// <summary>A small customizable geometric starter. Domain snapshots are explicit; the host does no discovery.</summary>
-public sealed class StarterGame : IDisposable
+/// <summary>
+/// The composable FPS/TPS training range. Only range rules live here: the window, menus, settings,
+/// input devices, audio buses, cadence, pause and save slots belong to the shell (<see cref="Session"/>).
+/// </summary>
+public sealed class StarterGame : IGame
 {
+    private const string ShotSound = "starter.shot";
     private readonly StarterOptions options;
     private readonly StarterObject[] objects;
     private readonly SpatialWorld3D spatialWorld;
@@ -33,15 +38,16 @@ public sealed class StarterGame : IDisposable
     private readonly SceneGroup document;
     private readonly HumanoidPlayerOptions? humanoid;
     private readonly HumanoidLocomotion? locomotion;
+    private readonly GameSession session;
+    private GameContext context = null!;
     private AurelianAgentRuntime? policies;
     private HumanoidCharacterDefinition? humanoidDefinition;
     private SceneAgent<HumanoidCharacterState>? humanoidPlayer;
     private SceneInstance scene = null!;
-    private readonly GameMenuNavigation navigation = new();
-    private readonly AudioResourceScope audioResources = new();
-    private CadenceScheduler scheduler = NewScheduler();
     private IReadOnlyList<SceneAgent<int>> agents = [];
     private SceneAgent<Vector3> player = null!;
+    private HumanoidGamePresenter? characterPresenter;
+    private VulkanSpatialRayQueries3D? gpuRays;
     private Vector3 position
     {
         get => humanoidPlayer?.State.Position ?? player.State;
@@ -61,14 +67,9 @@ public sealed class StarterGame : IDisposable
     private float pitch;
     private float verticalVelocity;
     private double time;
-    private string returnScreen = "title";
     private readonly ReloadableGun gun;
-    private readonly GameSaveSlots<GameSettings> settings;
+    private readonly GameSaveSchema saveSchema;
     private bool disposed;
-    private bool pendingJump;
-    private bool pendingReload;
-    private bool pendingFire;
-    private ulong audioEventSequence;
 
     public StarterGame(string id, GameDefinition definition, StarterOptions? options = null,
         string? saveDirectory = null, IAudioOutputBackend? audioBackend = null, SceneGroup? sceneDocument = null,
@@ -119,47 +120,78 @@ public sealed class StarterGame : IDisposable
         string identity = definition.Identity + scenePlan.ContentIdentity + humanoid?.Identity
             + JsonSerializer.Serialize(normalized, StarterJsonContext.Default.StarterOptions);
         Identity = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity)));
-        Controls = new();
-        Audio = new AurelianAudioRuntime(audioResources, audioBackend ?? new NullAudioOutputBackend());
-        float[] samples = new float[2400];
-        for (int index = 0; index < samples.Length; index++)
+        Manifest = new GameManifest(id, this.options.Title, StarterInput.Layout)
         {
-            samples[index] = MathF.Sin(index * MathF.Tau * 440 / 48000) * 0.2f * (1 - (float)index / samples.Length);
-        }
-        audioResources.Add(new(new("shot"), "starter-shot-v1", 48000, 1, samples.Length, samples));
-        string savesRoot = saveDirectory ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), id, "saves");
-        Saves = new GameSaveSlots<StarterSnapshot>(id, Identity, new FileSaveStore(savesRoot),
-            StarterJsonContext.Default.StarterSnapshot, ValidateSnapshot);
-        settings = new GameSaveSlots<GameSettings>(id, "aurelian.settings.v1", new FileSaveStore(Path.Combine(savesRoot, "config")),
-            StarterJsonContext.Default.GameSettings, ValidateSettings);
+            Tagline = "A TRAINING RANGE FOR YOUR NEXT GAME",
+            ControlsHint = "WASD MOVE / MOUSE LOOK / LMB FIRE / R RELOAD / V VIEW",
+            Graphics = this.options.Graphics,
+            DefaultDisplay = new GameDisplaySettings(960, 600),
+        };
+        saveSchema = GameSaveSchema.Create(StarterJsonContext.Default.StarterSnapshot, Identity, Capture, ValidateSnapshot, RestoreValidated);
         ResetWorld();
-        if (settings.ExistsAsync("preferences").GetAwaiter().GetResult())
-        {
-            Persist(LoadSettingsAsync);
-        }
+        session = new GameSession(this, saveDirectory, audioBackend);
+        Controls = new StarterControls(session);
     }
+
+    // ---- Shell facade: the same session any IGame gets from GameApp. ----
+
+    /// <summary>The shell running this game: menus, settings, input, audio, cadence and saves.</summary>
+    public GameSession Session => session;
+    public StarterControls Controls { get; }
+    public AurelianAudioRuntime Audio => session.Audio;
+    /// <summary>The Deliverance slots holding this range's world saves (with the shell's cadence phase).</summary>
+    public GameSaveSlots<GameShellSave> Saves => session.Saves;
+    public string Screen => session.Screen;
+    public bool Playing => session.Playing;
+    public bool Quit => session.Quit;
+    public int SelectedIndex => session.SelectedIndex;
+    public GameMenuPage? Menu => session.Menu;
+    public float Volume => session.Settings.Audio.Master;
+    public string? PersistenceError => session.PersistenceError;
+    public void Advance(TimeSpan elapsed) => session.Advance(elapsed);
+    public void Activate(string action) => session.Activate(action);
+    public void Pause() => session.Pause();
+    public void ReturnToTitle() => session.ReturnToTitle();
+    public Task SaveAsync(string slot, CancellationToken cancellation = default) => session.SaveAsync(slot, cancellation);
+    public Task LoadAsync(string slot, CancellationToken cancellation = default) => session.LoadAsync(slot, cancellation);
+
+    /// <summary>Change the FPS bindings and mouse sensitivity through the shell's persisted control settings.</summary>
+    public void Rebind(GameKeyBindings keys) => Controls.Apply(keys);
+
+    public void SetVolume(float volume)
+    {
+        if (!float.IsFinite(volume) || volume < 0 || volume > 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(volume));
+        }
+        session.ApplySettings(session.Settings with { Audio = session.Settings.Audio with { Master = volume } });
+    }
+
+    public Task SaveSettingsAsync()
+    {
+        session.SaveSettings();
+        return session.PersistenceError is null ? Task.CompletedTask
+            : Task.FromException(new IOException(session.PersistenceError));
+    }
+
+    // ---- Range state ----
 
     public string Id { get; }
     public GameDefinition Definition { get; }
     public string Identity { get; }
+    public GameManifest Manifest { get; }
+    GameSaveSchema? IGame.Saves => saveSchema;
     public SpatialWorld3D SpatialWorld => spatialWorld;
     public CharacterMove3D? LastMovement { get; private set; }
+
     /// <summary>Borrow a backend for this immutable world; its caller owns disposal before the Vulkan plant.</summary>
     public void UseRayQueries(IRayQueryWorld3D backend)
     {
         ArgumentNullException.ThrowIfNull(backend);
         rayQueries = backend;
     }
-    public GameControls Controls { get; private set; }
-    public AurelianAudioRuntime Audio { get; }
-    public GameSaveSlots<StarterSnapshot> Saves { get; }
-    public string Screen { get; private set; } = "title";
-    public bool Playing => Screen == "playing";
-    public bool Quit { get; private set; }
-    public int SelectedIndex => navigation.SelectedIndex;
+
     public CameraView View { get; private set; }
-    public float Volume { get; private set; } = 1;
-    public string? PersistenceError { get; private set; }
     public IReadOnlyList<GameAgent<int>> Agents => agents.Select(agent => agent.Agent).ToArray();
     public GameAgent<Vector3> Player => humanoidPlayer is null ? player.Agent
         : throw new InvalidOperationException("This player uses HumanoidPlayer's typed state.");
@@ -168,212 +200,24 @@ public sealed class StarterGame : IDisposable
     public AurelianAgentRuntime? PresentationPolicies => policies;
     public SolvedHumanoidPose? CharacterPose => humanoidPlayer is null ? null : humanoidDefinition!.Pose(humanoidPlayer);
     public SceneInstance Scene => scene;
+    public int CharacterDispatches => characterPresenter?.DispatchCount ?? 0;
+    public long RayQueryDispatches => gpuRays?.DispatchCount ?? 0;
     public event Action<StarterGame>? ShotFired;
 
-    public GameMenuPage? Menu => Screen switch
-    {
-        "title" => new("starter.title", options.Title, PersistenceError is null ? "A TRAINING RANGE FOR YOUR NEXT GAME" : "SAVED DATA COULD NOT BE LOADED",
-            [new("start", "Start"), new("load", "Load slot 1"), new("settings", "Settings / controls"), new("quit", "Quit")]),
-        "pause" => new("starter.pause", "PAUSED", PersistenceError is null ? "Your progress waits while this menu is open." : "Save / load failed. Your current game is still here.",
-            [new("resume", "Resume"), new("save", "Save slot 1"), new("load", "Load slot 1"), new("settings", "Settings / controls")]),
-        "settings" => new("starter.settings", "SETTINGS", $"WASD MOVE / MOUSE LOOK / LMB FIRE / R RELOAD / V VIEW",
-            [new("sensitivity", $"Mouse sensitivity: {Controls.Keys.MouseSensitivity:F4}"),
-             new("volume", $"Volume: {Volume:F1}"), new("title", "Main menu"), new("back", "Back")]),
-        _ => null,
-    };
-
-    public void Advance(TimeSpan elapsed)
-    {
-        ObjectDisposedException.ThrowIf(disposed, this);
-        if (elapsed < TimeSpan.Zero)
-        {
-            throw new ArgumentOutOfRangeException(nameof(elapsed));
-        }
-        GameCommands commands = Controls.Tick((float)elapsed.TotalSeconds, !Playing);
-        if (Playing && commands.Pause)
-        {
-            ChangeScreen("pause");
-        }
-        else if (!Playing)
-        {
-            if (commands.Menu.Back)
-            {
-                if (Screen == "title")
-                {
-                    Quit = true;
-                }
-                else
-                {
-                    ChangeScreen(Screen == "settings" ? returnScreen : "playing");
-                }
-            }
-            else if (Menu is { } menu && navigation.Update(menu.Entries, commands.Menu) is { } action)
-            {
-                Activate(action);
-            }
-        }
-        if (Playing)
-        {
-            pendingJump |= commands.Jump;
-            pendingReload |= commands.Reload;
-            pendingFire |= commands.Fire;
-            yaw = MathF.IEEERemainder(yaw + commands.MouseYaw, MathF.Tau);
-            pitch = Math.Clamp(pitch + commands.MousePitch, -1.3f, 1.3f);
-            if (commands.SwitchView && Definition.Has(GameConcept.FirstPersonCamera) && Definition.Has(GameConcept.ThirdPersonCamera))
-            {
-                View = View == CameraView.FirstPerson ? CameraView.ThirdPerson : CameraView.FirstPerson;
-            }
-            CadenceAdvanceResult advance = scheduler.Advance(elapsed, SimulationExecutionRate.Normal);
-            foreach (DueWorkFact tick in advance.DueWork)
-            {
-                Step(commands with { Jump = pendingJump, Reload = pendingReload, Fire = pendingFire || commands.Fire }, 1f / 60);
-                pendingJump = pendingReload = pendingFire = false;
-            }
-        }
-        Audio.Update(elapsed);
-    }
-
-    public void Activate(string action)
-    {
-        if (Menu is not { } menu || !menu.Entries.Any(entry => entry.Id == action && !entry.Disabled))
-        {
-            return;
-        }
-        switch (action)
-        {
-            case "start":
-                ResetWorld();
-                ChangeScreen("playing");
-                break;
-            case "resume":
-                ChangeScreen("playing");
-                break;
-            case "settings":
-                returnScreen = Screen;
-                ChangeScreen("settings");
-                break;
-            case "back":
-                ChangeScreen(returnScreen);
-                break;
-            case "title":
-                ChangeScreen("title");
-                break;
-            case "quit":
-                Quit = true;
-                break;
-            case "sensitivity":
-                Rebind(Controls.Keys with { MouseSensitivity = Controls.Keys.MouseSensitivity < 0.005f ? 0.005f : 0.0025f });
-                Persist(SaveSettingsAsync);
-                break;
-            case "volume":
-                SetVolume(Volume > 0 ? 0 : 1);
-                Persist(SaveSettingsAsync);
-                break;
-            case "save":
-                Persist(() => SaveAsync("slot-1"));
-                break;
-            case "load":
-                Persist(LoadDefaultSlotAsync);
-                break;
-        }
-    }
-
-    public void Pause()
-    {
-        if (Playing)
-        {
-            ChangeScreen("pause");
-        }
-        Controls.Adapter.OnFocusChanged(false);
-    }
-
-    public void Rebind(GameKeyBindings keys)
-    {
-        Controls.Rebind(keys);
-    }
-
-    public void SetVolume(float volume)
-    {
-        if (!float.IsFinite(volume) || volume < 0 || volume > 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(volume));
-        }
-        Volume = volume;
-        Audio.SetBusVolume(AudioBusId.Master, volume);
-    }
-
     public StarterSnapshot Capture() => new(Point3.From(position), yaw, pitch, verticalVelocity, time, View,
-        gun.State, agents.Select(agent => agent.State).ToArray(), Controls.Keys, Volume,
-        scheduler.InspectAccumulators(), pendingJump, pendingReload, pendingFire,
+        gun.State, agents.Select(agent => agent.State).ToArray(),
         humanoidPlayer is null ? null : new(humanoidPlayer.State.Animation, policies!.CapturePolicyCheckpoint()));
 
-    public Task SaveAsync(string slot, CancellationToken cancellation = default) => Saves.SaveAsync(slot, Capture(), cancellation);
-
-    public Task SaveSettingsAsync() => settings.SaveAsync("preferences", new(Controls.Keys, Volume));
-
-    public async Task LoadSettingsAsync()
-    {
-        GameSettings candidate = await settings.LoadAsync("preferences");
-        Rebind(candidate.Keys);
-        SetVolume(candidate.Volume);
-    }
-
-    private async Task LoadDefaultSlotAsync()
-    {
-        await LoadAsync("slot-1");
-        ChangeScreen("playing");
-    }
-
-    public async Task LoadAsync(string slot, CancellationToken cancellation = default)
-    {
-        StarterSnapshot snapshot = await Saves.LoadAsync(slot, cancellation);
-        Restore(snapshot);
-    }
-
+    /// <summary>Validate the whole candidate, then replace live range state. Shell state (cadence, settings) is untouched.</summary>
     public void Restore(StarterSnapshot snapshot)
     {
         ValidateSnapshot(snapshot);
-        if (humanoid is not null)
-        {
-            ReplaceHumanoidWorld(snapshot.Humanoid);
-        }
-        // The whole candidate has already passed validation before any live state is replaced.
-        Rebind(snapshot.Keys);
-        position = snapshot.Position.ToVector();
-        yaw = snapshot.Yaw;
-        if (humanoidPlayer is not null)
-        {
-            humanoidPlayer.State = humanoidPlayer.State with { Heading = -yaw, Animation = snapshot.Humanoid!.Animation };
-        }
-        pitch = snapshot.Pitch;
-        verticalVelocity = snapshot.VerticalVelocity;
-        time = snapshot.Time;
-        View = snapshot.View;
-        gun.Restore(snapshot.Gun);
-        for (int index = 0; index < agents.Count; index++)
-        {
-            agents[index].State = snapshot.ObjectHealth[index];
-        }
-        SetVolume(snapshot.Volume);
-        scheduler = NewScheduler();
-        scheduler.RestoreAccumulators(snapshot.Cadence);
-        pendingJump = snapshot.PendingJump;
-        pendingReload = snapshot.PendingReload;
-        pendingFire = snapshot.PendingFire;
-        LastMovement = null;
-        PersistenceError = null;
+        RestoreValidated(snapshot);
     }
 
-    public void ReturnToTitle()
-    {
-        Quit = false;
-        returnScreen = "title";
-        ChangeScreen("title");
-    }
-
-    public StarterObservation Observe() => new(Screen, Point3.From(position), yaw, pitch, View,
+    public StarterObservation Observe() => new(session.Screen, Point3.From(position), yaw, pitch, View,
         gun.State.Ammo, gun.State.ReloadRemaining > 0, gun.State.Shots,
-        objects.Select((item, index) => item.Health - agents[index].State).Sum(), time, Identity, PersistenceError,
+        objects.Select((item, index) => item.Health - agents[index].State).Sum(), time, Identity, session.PersistenceError,
         humanoidPlayer?.State.Animation.Motion.ToString(), humanoidPlayer?.State.Animation.ClipSeconds,
         humanoidPlayer?.State.Animation.Locomotion?.Gait);
 
@@ -382,6 +226,92 @@ public sealed class StarterGame : IDisposable
     public Vector3 CameraEye => Camera3D.Eye(position, yaw, pitch, View);
     public Native3DVertex[] BuildScene() => SceneGeometry3D.Build(BuildSceneFrame());
     public Native3DScene BuildRenderScene() => SceneGeometry3D.BuildScene(BuildSceneFrame());
+
+    // ---- IGame ----
+
+    void IGame.Start(GameContext context)
+    {
+        this.context = context;
+        context.AddTone(ShotSound, 440, 0.05f);
+    }
+
+    void IGame.NewGame() => ResetWorld();
+
+    void IGame.Update(GameUpdate update)
+    {
+        yaw = MathF.IEEERemainder(yaw + update.Input.Look.X, MathF.Tau);
+        pitch = Math.Clamp(pitch + update.Input.Look.Y, -1.3f, 1.3f);
+        if (update.Input.WasPressed(StarterInput.View) && Definition.Has(GameConcept.FirstPersonCamera)
+            && Definition.Has(GameConcept.ThirdPersonCamera))
+        {
+            View = View == CameraView.FirstPerson ? CameraView.ThirdPerson : CameraView.FirstPerson;
+        }
+    }
+
+    void IGame.FixedUpdate(GameTick tick) => Step(tick.Input, tick.Seconds);
+
+    GameView? IGame.View(GameViewRequest request) => new(BuildRenderScene(), Camera(request.Aspect), CameraEye);
+
+    void IGame.BuildHud(GameHud hud)
+    {
+        StarterObservation state = Observe();
+        hud.StatusBar($"{state.View}   AMMO {state.Ammo}   SHOTS {state.Shots}   HITS {state.Hits}   " +
+            (state.Reloading ? "RELOADING" : "LMB FIRE / R RELOAD / V VIEW / ESC MENU"));
+        hud.Crosshair();
+    }
+
+    void IGame.Observe(GameFacts facts)
+    {
+        StarterObservation state = Observe();
+        facts.Set("view", state.View.ToString());
+        facts.Set("ammo", state.Ammo);
+        facts.Set("reloading", state.Reloading);
+        facts.Set("shots", state.Shots);
+        facts.Set("hits", state.Hits);
+        facts.Set("position", state.Position.ToVector());
+        facts.Set("motion", state.Motion ?? "None");
+        facts.Set("gait", state.Gait?.ToString() ?? "None");
+    }
+
+    void IGame.AttachGraphics(NativeGameGraphics graphics)
+    {
+        if (options.EnvironmentAsset is not null)
+        {
+            graphics.Environment = new GameAssets().LoadEnvironment(options.EnvironmentAsset);
+        }
+        graphics.ReflectionProbe = options.ReflectionProbe;
+        graphics.LocalLights = options.LocalLights;
+        if (humanoid is not null)
+        {
+            characterPresenter = new HumanoidGamePresenter(graphics.Plant, humanoid);
+        }
+        if (graphics.Plant.Facts.EnabledDeviceExtensions.Contains("VK_KHR_ray_query", StringComparer.Ordinal))
+        {
+            gpuRays = GameRayQueries.Create(graphics.Plant, spatialWorld);
+            UseRayQueries(gpuRays);
+        }
+        Console.WriteLine($"AURELIAN_STARTER_RAYS backend={(gpuRays is null ? "CPU" : "Vulkan")}");
+    }
+
+    NativeGpuGeometry3D? IGame.PrepareGpuGeometry(NativeGameGraphics graphics)
+    {
+        if (humanoidPlayer is null || characterPresenter is null)
+        {
+            return null;
+        }
+        return characterPresenter.Present(CharacterPose!, humanoidPlayer.WorldTransform, View == CameraView.ThirdPerson);
+    }
+
+    void IGame.DetachGraphics()
+    {
+        Console.WriteLine($"AURELIAN_RAY_QUERY_DISPATCHES count={RayQueryDispatches}");
+        Console.WriteLine($"AURELIAN_HUMANOID_GPU_DISPATCHES count={CharacterDispatches}");
+        rayQueries = spatialWorld;
+        gpuRays?.Dispose();
+        gpuRays = null;
+        characterPresenter?.Dispose();
+        characterPresenter = null;
+    }
 
     private SceneFrame BuildSceneFrame()
     {
@@ -410,24 +340,28 @@ public sealed class StarterGame : IDisposable
         return frame;
     }
 
-    private void Step(GameCommands commands, float seconds)
+    private void Step(GameInputState input, float seconds)
     {
         time += seconds;
-        yaw = MathF.IEEERemainder(yaw + commands.Turn * seconds * 1.8f, MathF.Tau);
-        pitch = Math.Clamp(pitch + commands.Look * seconds * 1.2f, -1.3f, 1.3f);
+        yaw = MathF.IEEERemainder(yaw + input.Axis(StarterInput.TurnLeft, StarterInput.TurnRight) * seconds * 1.8f, MathF.Tau);
+        pitch = Math.Clamp(pitch + input.Axis(StarterInput.LookDown, StarterInput.LookUp) * seconds * 1.2f, -1.3f, 1.3f);
         bool control = Definition.Has(View == CameraView.FirstPerson ? GameConcept.FirstPersonControl : GameConcept.ThirdPersonControl);
+        bool fire = input.WasPressed(StarterInput.Fire) || input.IsDown(StarterInput.Fire);
         Vector3 movement = Vector3.Zero;
         if (control)
         {
-            movement = new Vector3(MathF.Sin(yaw), 0, -MathF.Cos(yaw)) * commands.Forward +
-                new Vector3(MathF.Cos(yaw), 0, MathF.Sin(yaw)) * commands.Strafe;
+            float forward = input.Axis(StarterInput.Backward, StarterInput.Forward);
+            float strafe = input.Axis(StarterInput.Left, StarterInput.Right);
+            movement = new Vector3(MathF.Sin(yaw), 0, -MathF.Cos(yaw)) * forward +
+                new Vector3(MathF.Cos(yaw), 0, MathF.Sin(yaw)) * strafe;
             if (movement.LengthSquared() > 1)
             {
                 movement = Vector3.Normalize(movement);
             }
         }
         Vector3 previousPosition = position;
-        float requestedSpeed = humanoid?.Locomotion is null || commands.Sprint ? options.MovementSpeed : options.MovementSpeed * .4f;
+        bool sprint = input.IsDown(StarterInput.Sprint);
+        float requestedSpeed = humanoid?.Locomotion is null || sprint ? options.MovementSpeed : options.MovementSpeed * .4f;
         Vector3 velocity = movement * requestedSpeed;
         HumanoidRootMotionRequest? root = null;
         if (humanoid?.Locomotion is { } bank)
@@ -436,7 +370,7 @@ public sealed class StarterGame : IDisposable
             velocity = root.Displacement / seconds;
         }
         LastMovement = motor.Step(spatialWorld, new(position, verticalVelocity), velocity,
-            control && commands.Jump, seconds);
+            control && input.WasPressed(StarterInput.Jump), seconds);
         position = LastMovement.State.Feet;
         verticalVelocity = LastMovement.State.VerticalVelocity;
         if (humanoidPlayer is not null)
@@ -444,7 +378,7 @@ public sealed class StarterGame : IDisposable
             Vector3 acceptedVelocity = (position - previousPosition) / seconds;
             float speed = new Vector2(acceptedVelocity.X, acceptedVelocity.Z).Length();
             humanoidPlayer.State = humanoidPlayer.State with { Heading = -yaw };
-            humanoidDefinition!.Observe(humanoidPlayer, new(speed, commands.Fire, LastMovement.Grounded));
+            humanoidDefinition!.Observe(humanoidPlayer, new(speed, fire, LastMovement.Grounded));
             policies!.Tick(TimeSpan.FromSeconds(seconds));
             humanoidDefinition.Advance(humanoidPlayer, seconds);
             if (root is not null)
@@ -452,12 +386,12 @@ public sealed class StarterGame : IDisposable
                 var animation = humanoidPlayer.State.Animation;
                 var aimPose = humanoid!.Body.Solve("aim-layer", humanoid.Animations.Sample(animation)).Pose!;
                 var next = locomotion!.Advance(animation.Locomotion!, root, position - previousPosition, LastMovement.Grounded,
-                    humanoidPlayer.WorldTransform, rayQueries, commands.Fire, aimPose, seconds);
+                    humanoidPlayer.WorldTransform, rayQueries, fire, aimPose, seconds);
                 humanoidPlayer.State = humanoidPlayer.State with { Animation = animation with { Locomotion = next } };
                 humanoidDefinition.ObserveLocomotion(humanoidPlayer.Id, next);
             }
         }
-        if (Definition.Has(GameConcept.ReloadableGuns) && gun.Step(commands.Fire, commands.Reload, seconds))
+        if (Definition.Has(GameConcept.ReloadableGuns) && gun.Step(fire, input.WasPressed(StarterInput.Reload), seconds))
         {
             Vector3 origin = position + Vector3.UnitY * 1.6f;
             Vector3 direction = Camera3D.Direction(yaw, pitch);
@@ -467,8 +401,7 @@ public sealed class StarterGame : IDisposable
             {
                 agents[hit].State--;
             }
-            // Presentation event identity stays unique when a save restores an earlier game tick.
-            Audio.Play(new(new($"shot-{++audioEventSequence}"), new("shot"), AudioBusId.Sfx));
+            context.PlaySound(ShotSound);
             ShotFired?.Invoke(this);
         }
     }
@@ -494,8 +427,30 @@ public sealed class StarterGame : IDisposable
         time = 0;
         View = Definition.Has(GameConcept.FirstPersonCamera) ? CameraView.FirstPerson : CameraView.ThirdPerson;
         gun.Restore(new(gun.Configuration.Capacity, 0, 0, 0));
-        scheduler = NewScheduler();
-        pendingJump = pendingReload = pendingFire = false;
+        LastMovement = null;
+    }
+
+    private void RestoreValidated(StarterSnapshot snapshot)
+    {
+        if (humanoid is not null)
+        {
+            ReplaceHumanoidWorld(snapshot.Humanoid);
+        }
+        position = snapshot.Position.ToVector();
+        yaw = snapshot.Yaw;
+        if (humanoidPlayer is not null)
+        {
+            humanoidPlayer.State = humanoidPlayer.State with { Heading = -yaw, Animation = snapshot.Humanoid!.Animation };
+        }
+        pitch = snapshot.Pitch;
+        verticalVelocity = snapshot.VerticalVelocity;
+        time = snapshot.Time;
+        View = snapshot.View;
+        gun.Restore(snapshot.Gun);
+        for (int index = 0; index < agents.Count; index++)
+        {
+            agents[index].State = snapshot.ObjectHealth[index];
+        }
         LastMovement = null;
     }
 
@@ -603,14 +558,14 @@ public sealed class StarterGame : IDisposable
 
     private void ValidateSnapshot(StarterSnapshot snapshot)
     {
-        if (snapshot.Position is null || !snapshot.Position.IsFinite || !CanStand(snapshot.Position.ToVector()) ||
+        if (snapshot is null || snapshot.Position is null || !snapshot.Position.IsFinite || !CanStand(snapshot.Position.ToVector()) ||
             !float.IsFinite(snapshot.Yaw) || !float.IsFinite(snapshot.Pitch) || MathF.Abs(snapshot.Pitch) > 1.3f ||
             !float.IsFinite(snapshot.VerticalVelocity) ||
             !double.IsFinite(snapshot.Time) || snapshot.Time < 0 || !Enum.IsDefined(snapshot.View) ||
             !Definition.Has(snapshot.View == CameraView.FirstPerson ? GameConcept.FirstPersonCamera : GameConcept.ThirdPersonCamera) ||
             snapshot.ObjectHealth is null || snapshot.ObjectHealth.Count != objects.Length ||
             snapshot.ObjectHealth.Where((health, index) => health < 0 || health > objects[index].Health).Any() ||
-            snapshot.Gun is null || snapshot.Keys is null || !float.IsFinite(snapshot.Volume) || snapshot.Volume < 0 || snapshot.Volume > 1)
+            snapshot.Gun is null)
         {
             throw new InvalidDataException("Invalid starter state; the live game has not been changed.");
         }
@@ -640,53 +595,113 @@ public sealed class StarterGame : IDisposable
                 throw new InvalidDataException("Snapshot contains an invalid humanoid pose or policy.");
             }
         }
-        GameControls.Validate(snapshot.Keys);
-        NewScheduler().RestoreAccumulators(snapshot.Cadence);
     }
-
-    private static void ValidateSettings(GameSettings candidate)
-    {
-        if (candidate.Keys is null || !float.IsFinite(candidate.Volume) || candidate.Volume < 0 || candidate.Volume > 1)
-        {
-            throw new InvalidDataException("Invalid game preferences.");
-        }
-        GameControls.Validate(candidate.Keys);
-    }
-
-    private void ChangeScreen(string next)
-    {
-        Screen = next;
-        navigation.Reset();
-        pendingJump = pendingReload = pendingFire = false;
-        LastMovement = null;
-        Controls.Adapter.OnFocusChanged(false);
-        Controls.Adapter.OnFocusChanged(true);
-    }
-
-    private void Persist(Func<Task> operation)
-    {
-        try
-        {
-            operation().GetAwaiter().GetResult();
-            PersistenceError = null;
-        }
-        catch (Exception exception) when (exception is IOException or Deliverance.Core.DeliveranceException or JsonException or ArgumentException)
-        {
-            PersistenceError = exception.Message;
-            Console.Error.WriteLine("Game persistence failed: " + exception.Message);
-        }
-    }
-
-    private static CadenceScheduler NewScheduler() => new([new(new("gameplay"), RationalRate.PerSecond(60), 0)], TimeSpan.FromSeconds(0.1));
 
     public void Dispose()
     {
-        if (disposed) return;
+        if (disposed)
+        {
+            return;
+        }
         disposed = true;
-        scene.Dispose();
-        Controls.Dispose();
-        Audio.Dispose();
-        audioResources.Dispose();
+        // The session disposes its game; this guard makes that re-entrant call a no-op.
+        session?.Dispose();
+        gpuRays?.Dispose();
+        characterPresenter?.Dispose();
+        scene?.Dispose();
     }
 }
 
+/// <summary>The range's input actions. Arrow keys are fixed turn/look alternatives; the rest are rebindable.</summary>
+public static class StarterInput
+{
+    public const string Forward = "move.forward";
+    public const string Backward = "move.backward";
+    public const string Left = "move.left";
+    public const string Right = "move.right";
+    public const string Jump = "jump";
+    public const string Fire = "fire";
+    public const string Reload = "reload";
+    public const string View = "view";
+    public const string Sprint = "sprint";
+    public const string TurnLeft = "turn.left";
+    public const string TurnRight = "turn.right";
+    public const string LookUp = "look.up";
+    public const string LookDown = "look.down";
+
+    public static GameInputLayout Layout { get; } = new(
+    [
+        new(Forward, "Move forward", GameControl.Key(KeyboardKey.W)),
+        new(Backward, "Move back", GameControl.Key(KeyboardKey.S)),
+        new(Left, "Strafe left", GameControl.Key(KeyboardKey.A)),
+        new(Right, "Strafe right", GameControl.Key(KeyboardKey.D)),
+        new(Jump, "Jump", GameControl.Key(KeyboardKey.Space)),
+        new(Fire, "Fire", GameControl.Mouse(MouseButton.Primary)),
+        new(Reload, "Reload", GameControl.Key(KeyboardKey.R)),
+        new(View, "Switch view", GameControl.Key(KeyboardKey.V)),
+        new(Sprint, "Sprint", GameControl.Key(KeyboardKey.LeftShift)),
+        new(TurnLeft, "Turn left", GameControl.Key(KeyboardKey.ArrowLeft), Rebindable: false),
+        new(TurnRight, "Turn right", GameControl.Key(KeyboardKey.ArrowRight), Rebindable: false),
+        new(LookUp, "Look up", GameControl.Key(KeyboardKey.ArrowUp), Rebindable: false),
+        new(LookDown, "Look down", GameControl.Key(KeyboardKey.ArrowDown), Rebindable: false),
+    ], GameLookMode.CapturedMouse);
+}
+
+/// <summary>Typed FPS view of the shell's input bindings, kept for code written against <see cref="GameKeyBindings"/>.</summary>
+public sealed class StarterControls
+{
+    private readonly GameSession session;
+
+    internal StarterControls(GameSession session)
+    {
+        this.session = session;
+    }
+
+    /// <summary>The native input adapter. It survives rebinding; only its profile changes.</summary>
+    public AurelianInputAdapter Adapter => session.Input.Adapter;
+
+    public GameKeyBindings Keys => new(
+        Key(StarterInput.Forward), Key(StarterInput.Backward), Key(StarterInput.Left), Key(StarterInput.Right),
+        Key(StarterInput.Jump), Key(StarterInput.Reload), Key(StarterInput.View),
+        session.Input.Settings.MouseSensitivity, Key(StarterInput.Sprint));
+
+    internal void Apply(GameKeyBindings keys)
+    {
+        ArgumentNullException.ThrowIfNull(keys);
+        GameControls.Validate(keys);
+        if (keys.MouseSensitivity < GameControlSettings.MinimumSensitivity || keys.MouseSensitivity > GameControlSettings.MaximumSensitivity)
+        {
+            throw new ArgumentException("Mouse sensitivity is outside the shell's supported range.");
+        }
+        var wanted = new Dictionary<string, GameControl>(StringComparer.Ordinal)
+        {
+            [StarterInput.Forward] = GameControl.Key(keys.Forward),
+            [StarterInput.Backward] = GameControl.Key(keys.Backward),
+            [StarterInput.Left] = GameControl.Key(keys.Left),
+            [StarterInput.Right] = GameControl.Key(keys.Right),
+            [StarterInput.Jump] = GameControl.Key(keys.Jump),
+            [StarterInput.Reload] = GameControl.Key(keys.Reload),
+            [StarterInput.View] = GameControl.Key(keys.SwitchView),
+            [StarterInput.Sprint] = GameControl.Key(keys.Sprint),
+        };
+        var overrides = new List<GameBindingOverride>();
+        foreach (GameInputAction action in StarterInput.Layout.Actions)
+        {
+            GameControl control = wanted.TryGetValue(action.Id, out GameControl? key) ? key : session.Input.Binding(action.Id);
+            if (control != action.Primary)
+            {
+                overrides.Add(new GameBindingOverride(action.Id, control));
+            }
+        }
+        session.ApplySettings(session.Settings with
+        {
+            Controls = session.Input.Settings with { MouseSensitivity = keys.MouseSensitivity, Bindings = overrides },
+        });
+    }
+
+    private KeyboardKey Key(string action)
+    {
+        GameControl control = session.Input.Binding(action);
+        return control.Device == DeviceKind.Keyboard ? (KeyboardKey)control.Code : KeyboardKey.Unknown;
+    }
+}

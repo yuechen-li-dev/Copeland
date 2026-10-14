@@ -56,6 +56,11 @@ public sealed class NativeGameGraphics : IDisposable
 
     public ParticleBudget3D? ParticleBudget => Renderer.ParticleSystem?.Inspection;
     private readonly Stack<IDisposable> owned = new();
+    private readonly Stack<IDisposable> surfaceOwned = new();
+    private readonly IWindow window;
+    private readonly string title;
+    private readonly bool visible;
+    private readonly List<StaticModel> preparedModels = [];
     private readonly GameAssets assets;
     private readonly LightingCompilationController lighting;
     private readonly List<LightingBakeCompletion> lightingCompletions = [];
@@ -63,14 +68,20 @@ public sealed class NativeGameGraphics : IDisposable
     private readonly string lightingShaderKey;
     private readonly string lightingCompletionDomain = "compiled-diffuse-upload-" + Guid.NewGuid().ToString("N");
     private bool hasLightingTarget;
+    private bool lightingPublished;
     public string? LightingDiagnostic { get; private set; } = "NoLightingAsset";
     public LightingCompilationStatus? LightingStatus => hasLightingTarget ? lighting.Observe("scene.diffuse") : null;
     public Aurelian.Runtime.Dominatus.Inspection.DominatusInspector LightingInspector => lighting.Inspector;
 
-    public NativeGameGraphics(IWindow window, string title, bool visible, GameAssets? assets = null, bool enableRayQueries = false)
+    public NativeGameGraphics(IWindow window, string title, bool visible, GameAssets? assets = null, bool enableRayQueries = false,
+        bool vSync = true)
     {
         assets ??= new();
         this.assets = assets;
+        this.window = window ?? throw new ArgumentNullException(nameof(window));
+        this.title = title;
+        this.visible = visible;
+        VSync = vSync;
         lightingShaderKey = LightingProgramIdentity.Compute(assets.Shader("SurfaceSolid3D.v.ts"));
         lighting = new LightingCompilationController(request =>
         {
@@ -100,48 +111,8 @@ public sealed class NativeGameGraphics : IDisposable
                 throw new InvalidOperationException(string.Join("; ", initialized.Diagnostics.Select(item => item.Message)));
             }
             Plant = Own(initialized.Plant!);
-            var created = VulkanSwapchainFactory.Create(Plant, window,
-                new VulkanSwapchainCreateOptions((uint)window.Size.X, (uint)window.Size.Y, VSync: true, title, Visible: visible));
-            if (!created.Success)
-            {
-                created.Surface?.Dispose();
-                throw new InvalidOperationException(string.Join("; ", created.Diagnostics.Select(item => item.Message)));
-            }
-            Own(created.Surface!);
-            Swapchain = Own(created.Swapchain!);
-            VulkanTextureFormat format = Swapchain.Facts.SelectedFormat switch
-            {
-                "R8G8B8A8Unorm" => VulkanTextureFormat.Rgba8Unorm,
-                "B8G8R8A8Unorm" => VulkanTextureFormat.Bgra8Unorm,
-                "R8G8B8A8Srgb" => VulkanTextureFormat.Rgba8Srgb,
-                "B8G8R8A8Srgb" => VulkanTextureFormat.Bgra8Srgb,
-                _ => throw new NotSupportedException("Unsupported swapchain format: " + Swapchain.Facts.SelectedFormat),
-            };
-            Target = Own(new VulkanNativeFrameTarget(Plant, Swapchain.Facts.Width, Swapchain.Facts.Height, format));
-            Renderer = Own(new VulkanSolid3DRenderer(Plant, assets.Shader("SurfaceSolid3D.v.ts"), Target,
-                modelProgram: assets.Shader("SurfaceModel3D.v.ts"), shadowProgram: assets.Shader("Shadow3D.v.ts"),
-                outputProgram: assets.Shader("ToneMap3D.v.ts"), temporalProgram: assets.Shader("TemporalResolve3D.v.ts"),
-                bloomProgram: assets.Shader("Bloom3D.v.ts"),
-                surfacePrograms: new(assets.Shader("SurfaceResolve3D.v.ts"), assets.Shader("AmbientOcclusion3D.v.ts"),
-                    assets.Shader("AmbientDenoise3D.v.ts"), assets.Shader("LightTiles3D.v.ts"))
-                {
-                    HeightFog = assets.Shader("HeightFog3D.v.ts"),
-                    VolumeInject = assets.Shader("VolumeInject3D.v.ts"),
-                    VolumeIntegrate = assets.Shader("VolumeIntegrate3D.v.ts"),
-                    VolumeResolve = assets.Shader("VolumeResolve3D.v.ts"),
-                    RefractiveModel = assets.Shader("RefractiveModel3D.v.ts"),
-                    RefractionResolve = assets.Shader("RefractionResolve3D.v.ts"),
-                    WaterTemporal = assets.Shader("TemporalResolve3D.v.ts"),
-                    SubsurfaceDiffuse = assets.Shader("SubsurfaceDiffuse3D.v.ts"),
-                    SubsurfaceMerge = assets.Shader("SubsurfaceMerge3D.v.ts"),
-                    TransparentModel = assets.Shader("TransparentModel3D.v.ts"),
-                    TransparencyResolve = assets.Shader("TransparencyResolve3D.v.ts"),
-                    ParticleBillboards = assets.Shader("ParticleBillboard3D.v.ts"),
-                }));
-            Presenter = Own(new VulkanNativeSwapchainPresenter(Plant, Target, Swapchain));
             Font = AurelianNativeUiFont.Create(assets.FontDirectory());
-            Menus = Own(new GameMenuNativePresenter(Plant, Target,
-                assets.Shader("AnalyticShape2D.v.ts"), assets.Shader("MsdfText.v.ts"), Font));
+            CreateSurfaceResources(ReadFramebufferExtent());
         }
         catch
         {
@@ -151,12 +122,80 @@ public sealed class NativeGameGraphics : IDisposable
     }
 
     public AurelianVulkanPlant Plant { get; }
-    public AurelianVulkanSwapchain Swapchain { get; }
-    public VulkanNativeFrameTarget Target { get; }
-    public VulkanSolid3DRenderer Renderer { get; }
-    public VulkanNativeSwapchainPresenter Presenter { get; }
+
+    // Surface-lifetime resources. Resize and Reconfigure replace these instances; callers must not retain them across either call.
+    public AurelianVulkanSwapchain Swapchain { get; private set; } = null!;
+    public VulkanNativeFrameTarget Target { get; private set; } = null!;
+    public VulkanSolid3DRenderer Renderer { get; private set; } = null!;
+    public VulkanNativeSwapchainPresenter Presenter { get; private set; } = null!;
+    public GameMenuNativePresenter Menus { get; private set; } = null!;
     public AurelianNativeUiFont Font { get; }
-    public GameMenuNativePresenter Menus { get; }
+    public bool VSync { get; private set; }
+    public int Width => (int)Target.Width;
+    public int Height => (int)Target.Height;
+
+    /// <summary>Number of times surface-lifetime resources were rebuilt after construction.</summary>
+    public int SurfaceRebuilds { get; private set; }
+
+    /// <summary>
+    /// Rebuild the swapchain, frame target, renderer and overlay presenter for a new framebuffer extent or present mode.
+    /// The Vulkan plant, compiled programs, font atlas, particle pool and published lighting are retained.
+    /// Returns false when nothing changed or the extent is empty (for example, a minimized window).
+    /// </summary>
+    public bool Reconfigure(int width, int height, bool vSync)
+    {
+        if (width <= 0 || height <= 0)
+        {
+            return false;
+        }
+        if (width == Width && height == Height && vSync == VSync && !SurfaceOutOfDate)
+        {
+            return false;
+        }
+        SurfaceOutOfDate = false;
+        VSync = vSync;
+        RenderState state = CaptureRenderState();
+        DisposeSurfaceResources();
+        CreateSurfaceResources((width, height));
+        RestoreRenderState(state);
+        SurfaceRebuilds++;
+        return true;
+    }
+
+    public bool Resize(int width, int height) => Reconfigure(width, height, VSync);
+
+    /// <summary>True after a present found the swapchain out of date; the next <see cref="Reconfigure"/> rebuilds even at the same size.</summary>
+    public bool SurfaceOutOfDate { get; private set; }
+
+    /// <summary>Present the frame target. Returns false (and marks the surface for rebuild) if the swapchain went out of date.</summary>
+    public bool Present(ulong frameId)
+    {
+        if (Presenter.TryPresent(frameId))
+        {
+            return true;
+        }
+        SurfaceOutOfDate = true;
+        return false;
+    }
+
+    /// <summary>Follow the window's current framebuffer extent.</summary>
+    public bool ResizeToWindow()
+    {
+        (int width, int height) = ReadFramebufferExtent();
+        return Resize(width, height);
+    }
+
+    /// <summary>Prepare a model on the current renderer and on any renderer created by a later resize.</summary>
+    public void Prepare(StaticModel model)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+        Renderer.Prepare(model);
+        if (!preparedModels.Contains(model))
+        {
+            preparedModels.Add(model);
+        }
+    }
+
     public Aurelian.Rendering.Contracts.Models.Graphics3DSettings Settings
     {
         get => Renderer.Settings;
@@ -176,6 +215,7 @@ public sealed class NativeGameGraphics : IDisposable
     public bool LoadLighting(string path, string expectedSceneKey)
     {
         Renderer.PublishStaticDiffuseLighting(false);
+        lightingPublished = false;
         try
         {
             pendingLighting = assets.Lighting(path, expectedSceneKey);
@@ -195,6 +235,7 @@ public sealed class NativeGameGraphics : IDisposable
                 if (status.Published is not null)
                 {
                     Renderer.PublishStaticDiffuseLighting(true);
+                    lightingPublished = true;
                     LightingDiagnostic = null;
                     return true;
                 }
@@ -215,6 +256,7 @@ public sealed class NativeGameGraphics : IDisposable
     public void InvalidateLighting(string reason)
     {
         Renderer.PublishStaticDiffuseLighting(false);
+        lightingPublished = false;
         pendingLighting = null;
         LightingDiagnostic = reason;
         if (hasLightingTarget) lighting.Invalidate("scene.diffuse", reason);
@@ -240,10 +282,130 @@ public sealed class NativeGameGraphics : IDisposable
 
     public void Dispose()
     {
+        DisposeSurfaceResources();
         while (owned.TryPop(out IDisposable? item))
         {
             item.Dispose();
         }
+    }
+
+    private sealed record RenderState(
+        Aurelian.Rendering.Contracts.Models.Graphics3DSettings Settings,
+        EnvironmentLighting? Environment,
+        ReflectionProbe3D? ReflectionProbe,
+        IReadOnlyList<LocalLight3D> LocalLights,
+        VulkanParticles3D? ParticleSystem,
+        IReadOnlyList<ParticleEmitter3D> ParticleEmitters,
+        float StaticEmissionIntensity);
+
+    private RenderState CaptureRenderState()
+    {
+        return new RenderState(Renderer.Settings, Renderer.Environment, Renderer.ReflectionProbe, Renderer.LocalLights,
+            Renderer.ParticleSystem, Renderer.ParticleEmitters, Renderer.StaticEmissionIntensity);
+    }
+
+    private void RestoreRenderState(RenderState state)
+    {
+        Renderer.Settings = state.Settings;
+        Renderer.Environment = state.Environment;
+        Renderer.ReflectionProbe = state.ReflectionProbe;
+        Renderer.LocalLights = state.LocalLights;
+        Renderer.ParticleSystem = state.ParticleSystem;
+        Renderer.ParticleEmitters = state.ParticleEmitters;
+        Renderer.StaticEmissionIntensity = state.StaticEmissionIntensity;
+        foreach (StaticModel model in preparedModels)
+        {
+            Renderer.Prepare(model);
+        }
+        if (pendingLighting is not null)
+        {
+            // The lighting asset was already validated and published; only its GPU copy belonged to the old renderer.
+            Renderer.UploadStaticDiffuseLighting(pendingLighting);
+            Renderer.PublishStaticDiffuseLighting(lightingPublished);
+        }
+    }
+
+    private void CreateSurfaceResources((int Width, int Height) extent)
+    {
+        try
+        {
+            var created = VulkanSwapchainFactory.Create(Plant, window,
+                new VulkanSwapchainCreateOptions((uint)extent.Width, (uint)extent.Height, VSync, title, Visible: visible));
+            if (!created.Success)
+            {
+                created.Surface?.Dispose();
+                throw new InvalidOperationException(string.Join("; ", created.Diagnostics.Select(item => item.Message)));
+            }
+            OwnSurface(created.Surface!);
+            Swapchain = OwnSurface(created.Swapchain!);
+            VulkanTextureFormat format = Swapchain.Facts.SelectedFormat switch
+            {
+                "R8G8B8A8Unorm" => VulkanTextureFormat.Rgba8Unorm,
+                "B8G8R8A8Unorm" => VulkanTextureFormat.Bgra8Unorm,
+                "R8G8B8A8Srgb" => VulkanTextureFormat.Rgba8Srgb,
+                "B8G8R8A8Srgb" => VulkanTextureFormat.Bgra8Srgb,
+                _ => throw new NotSupportedException("Unsupported swapchain format: " + Swapchain.Facts.SelectedFormat),
+            };
+            Target = OwnSurface(new VulkanNativeFrameTarget(Plant, Swapchain.Facts.Width, Swapchain.Facts.Height, format));
+            Renderer = OwnSurface(new VulkanSolid3DRenderer(Plant, assets.Shader("SurfaceSolid3D.v.ts"), Target,
+                modelProgram: assets.Shader("SurfaceModel3D.v.ts"), shadowProgram: assets.Shader("Shadow3D.v.ts"),
+                outputProgram: assets.Shader("ToneMap3D.v.ts"), temporalProgram: assets.Shader("TemporalResolve3D.v.ts"),
+                bloomProgram: assets.Shader("Bloom3D.v.ts"),
+                surfacePrograms: new(assets.Shader("SurfaceResolve3D.v.ts"), assets.Shader("AmbientOcclusion3D.v.ts"),
+                    assets.Shader("AmbientDenoise3D.v.ts"), assets.Shader("LightTiles3D.v.ts"))
+                {
+                    HeightFog = assets.Shader("HeightFog3D.v.ts"),
+                    VolumeInject = assets.Shader("VolumeInject3D.v.ts"),
+                    VolumeIntegrate = assets.Shader("VolumeIntegrate3D.v.ts"),
+                    VolumeResolve = assets.Shader("VolumeResolve3D.v.ts"),
+                    RefractiveModel = assets.Shader("RefractiveModel3D.v.ts"),
+                    RefractionResolve = assets.Shader("RefractionResolve3D.v.ts"),
+                    WaterTemporal = assets.Shader("TemporalResolve3D.v.ts"),
+                    SubsurfaceDiffuse = assets.Shader("SubsurfaceDiffuse3D.v.ts"),
+                    SubsurfaceMerge = assets.Shader("SubsurfaceMerge3D.v.ts"),
+                    TransparentModel = assets.Shader("TransparentModel3D.v.ts"),
+                    TransparencyResolve = assets.Shader("TransparencyResolve3D.v.ts"),
+                    ParticleBillboards = assets.Shader("ParticleBillboard3D.v.ts"),
+                }));
+            Presenter = OwnSurface(new VulkanNativeSwapchainPresenter(Plant, Target, Swapchain));
+            Menus = OwnSurface(new GameMenuNativePresenter(Plant, Target,
+                assets.Shader("AnalyticShape2D.v.ts"), assets.Shader("MsdfText.v.ts"), Font));
+        }
+        catch
+        {
+            DisposeSurfaceResources();
+            throw;
+        }
+    }
+
+    private void DisposeSurfaceResources()
+    {
+        if (surfaceOwned.Count == 0)
+        {
+            return;
+        }
+        // Presentation may still reference swapchain images; drain the device before releasing them.
+        _ = Plant.Vk.DeviceWaitIdle(Plant.Device);
+        while (surfaceOwned.TryPop(out IDisposable? item))
+        {
+            item.Dispose();
+        }
+    }
+
+    private T OwnSurface<T>(T resource) where T : IDisposable
+    {
+        surfaceOwned.Push(resource);
+        return resource;
+    }
+
+    private (int Width, int Height) ReadFramebufferExtent()
+    {
+        var size = window.FramebufferSize;
+        if (size.X <= 0 || size.Y <= 0)
+        {
+            size = window.Size;
+        }
+        return (size.X, size.Y);
     }
 
     private T Own<T>(T resource) where T : IDisposable

@@ -24,6 +24,8 @@ GameStarter.Run("my-game",
     args);
 ```
 
+The starter is an ordinary `IGame` running on the [game shell](game-shell.md). The shell supplies the resizable window, display/audio/controls settings, key rebinding, pause, saves and playtesting. This file covers only the training range's rules.
+
 This starts a geometric training range with a title menu, pause menu, settings, a character agent, object targets, collision, mouse look, jump, hitscan gun, magazine/reload state and switchable first/third-person views. `V` switches views without replacing the actor or gun. `WASD` moves, mouse looks, left click fires, `R` reloads, Space jumps, Escape pauses. Menus support InputMan keyboard navigation and actual rendered-button hit testing.
 
 Run the checked-in example with `starter.cmd`. Its short entry point selects either the geometric range or the baked Aetheris room. `TrainingRange.cs` shows [document scene composition](scene-composition.md): one checkpoint fragment instantiated twice and a target customized with `with`. Engine shaders, fonts and their licenses ship transitively; the published starter resolves its own built-in assets without finding the checkout.
@@ -66,7 +68,7 @@ GameStarter.Run("my-range", GamePresets.ThirdPersonShooter, args,
     });
 ```
 
-`GameStarter.Create` creates the same application without a window, for tests or application-owned hosting. `StarterGame` exposes typed commands, snapshots, authored agents, camera matrices, scene geometry, settings and events. Snapshot validation checks geometry, fragment compatibility, weapon state, keybindings and cadence phase before replacing live state. Target identities are deterministic regardless of declaration order.
+`GameStarter.Create` creates the same application without a window, for tests or application-owned hosting. `StarterGame` exposes typed range snapshots, authored agents, camera matrices, scene geometry and events. `StarterGame.Session` is its shell (`GameSession`): menus, preferences, input, audio, cadence and world-save slots. `Activate`, `Advance`, `Rebind`, `SetVolume`, `SaveAsync` and `LoadAsync` forward to it. Snapshot validation checks geometry, fragment compatibility, weapon state, keybindings and cadence phase before replacing live state. Target identities are deterministic regardless of declaration order.
 
 The training range is a small starter world. Custom game domain state needs its own explicitly captured snapshot and validation. `GameSaveSlots<TSnapshot>` accepts a game's source-generated `JsonTypeInfo<TSnapshot>` and validator; it does not discover fields or silently include state added by event handlers.
 
@@ -78,9 +80,10 @@ The starter and Beacon use `Aurelian.Spatial3D` for rays, capsule sweeps, ground
 
 | Capability | Owner / reuse |
 | --- | --- |
-| Native lifecycle, focus and frame ordering | Existing `AurelianGameHost` |
-| Fixed 60 Hz simulation | Existing `CadenceScheduler`, including validated phase restore |
-| Physical input, contexts, action edges, rebinding | InputMan through `GameControls` and `AurelianInputAdapter` |
+| Window, resolution, window mode, vsync, UI scale | `GameApp` on `AurelianGameHost`; see [game shell](game-shell.md) |
+| Title, pause and settings menus | `GameSession` pages on the shared `GameMenuTemplate` |
+| Fixed 60 Hz simulation | `GameSession`'s `CadenceScheduler`, including validated phase restore and latched presses |
+| Physical input, contexts, action edges, rebinding | `GameInputSystem` (InputMan) from the range's `StarterInput.Layout`; `StarterGame.Controls.Keys` is a typed view |
 | Native subscriptions and captured mouse | `CapturedGameInput`, extracted from Beacon |
 | Cameras | `Aurelian.Runtime.Camera3D` |
 | Magazine/reload state | `Aurelian.Combat.ReloadableGun`, also consumed by Beacon |
@@ -88,15 +91,15 @@ The starter and Beacon use `Aurelian.Spatial3D` for rays, capsule sweeps, ground
 | Raycasts, overlaps, sweeps and character movement | Pure `Aurelian.Spatial3D`, projected from document collision by `SceneSpatial3D` |
 | Optional hardware rays | `Aurelian.Spatial3D.Vulkan` on the existing Vulkan plant; compiler-owned `RayQuery.v.ts` |
 | Aetheris room assets | Build-time `Aurelian.AetherisBake`; source-generated `Aurelian.Aetheris` runtime loader |
-| Vulkan device, target, renderer and presenter lifetime | `NativeGameGraphics`, extracted from Beacon |
-| Menus and retained native text | Existing `Aurelian.GameMenus` and Machina |
+| Vulkan device, target, renderer and presenter lifetime | `NativeGameGraphics`; surface resources rebuild on resize |
+| Menus, HUD and retained native text | `Aurelian.GameMenus`, `GameHud` and Machina |
 | Built-in shader/font resources | `GameAssets`; default fonts now live in `Aurelian.Assets/Defaults/Fonts` |
 | Audio | Existing `AurelianAudioRuntime`, NAudio on Windows, null backend for deterministic playtesting |
-| Save slots and preferences | `GameSaveSlots<T>`, backed by Deliverance's real containers, integrity and atomic store |
+| Save slots and preferences | `GameSession` over `GameSaveSlots<T>`, backed by Deliverance's real containers, integrity and atomic store |
 | Scripts, stdin, observations, replay | Existing `Aurelian.Playtesting` |
 | Autonomous policy and AI inspection | Existing `Aurelian.Runtime` Dominatus integration; game-owned controllers opt in explicitly |
 
-Game saves default to `%LOCALAPPDATA%/<game-id>/saves`. Settings use a separate Deliverance preferences slot under `saves/config`. Menu sensitivity/volume changes persist without taking a world save. Slot 1 is exposed in the basic menu; the typed API supports arbitrary named slots, listing, existence checks and deletion. The starter saves the active view, actor position/orientation, weapon timers, target health, input configuration, volume and cadence phase.
+Game saves default to `%LOCALAPPDATA%/<game-id>/saves`. Preferences (display, audio, sensitivity, bindings) use a separate Deliverance preferences slot under `saves/config` and persist without taking a world save. Loading a world save never changes them. Slot 1 is exposed in the basic menu; the typed API supports arbitrary named slots, listing, existence checks and deletion. A range save holds the active view, actor position/orientation, weapon timers, target health and humanoid policy state. The shell's envelope adds the cadence phase and any press latched for the next tick.
 
 Dominatus kernel checkpoints remain policy/kernel tools. They are not the default game save system. Existing games' historical Deliverance modules and migrations remain intact.
 
@@ -112,7 +115,7 @@ Dominatus kernel checkpoints remain policy/kernel tools. They are not the defaul
 .\starter.cmd --headless --playtest-stdio --save-root artifacts/my-game-shell/saves
 ```
 
-Native scripts use Vulkan and can capture pixels; both modes advance the same `StarterGame`. Stdin commands include `click-action start`, `hold w 0.3`, `tap v`, `save slot-name`, `load slot-name`, `mark name`, and `assert-mark name`. Assertions support screen, view, ammo, shots and hits. `checkpoint`/`rewind` use the shared runner's input-prefix replay. External save-file writes are not rolled back by replay; use isolated test save roots and avoid treating replay as a transactional filesystem rewind.
+Native scripts use Vulkan and can capture pixels; both modes advance the same `StarterGame`. Stdin commands include `click-action start`, `hold w 0.3`, `tap v`, `save slot-name`, `load slot-name`, `mark name`, and `assert-mark name`. `assert` accepts any shell fact (screen, display, audio, bindings) and the range's facts: view, ammo, reloading, shots, hits, position, motion and gait. `shell-proof.json` covers display modes, rebinding and resize. `checkpoint`/`rewind` use the shared runner's input-prefix replay. External save-file writes are not rolled back by replay; use isolated test save roots and avoid treating replay as a transactional filesystem rewind.
 
 `--launch-smoke` exercises four frames through the interactive `AurelianGameHost` path and exits. `--visible` shows script/smoke windows. `--output` controls evidence output and `--save-root` isolates persistence.
 
@@ -163,6 +166,6 @@ The GPU reports hardware-admitted triangle provenance. At a shared triangle edge
 
 The qualification record is [aurelian-game-starter-m0/manifest.json](../../artifacts/aurelian-game-starter-m0/manifest.json). The published starter was run from `C:\Windows\Temp`; native/headless final observations agree. Native proof covers gun hits/reload, both views, movement, mouse deltas, Deliverance save/load, menu settings and replay. Beacon's existing full FPS/win proof and the moved TinyFarm/Sunkill native paths are also checked.
 
-The starter currently has a fixed 960x600 Vulkan window, authored 3D collision and a follow camera. It does not supply general rigid-body/vehicle physics, step climbing, camera obstruction avoidance, Blender/FBX import, rigs, shadows or a generic texture streaming system. Initially embedded capsules fail closed with an explicit overlap rather than teleporting out of geometry. Iteration-limited sweeps stop conservatively and expose the status. Built-in text uses the existing bounded ASCII font atlas. Audio uses the existing platform backend and reports fallback to null output if no device is available; scripted proof qualifies audio state, not audible output quality. This is a framework-dependent .NET 10 published build, not a qualified standalone installer.
+The starter opens at 960x600 in a resizable window; resolution and window mode follow the player's display settings. It has authored 3D collision and a follow camera. It does not supply general rigid-body/vehicle physics, step climbing, camera obstruction avoidance, Blender/FBX import, rigs, shadows or a generic texture streaming system. Initially embedded capsules fail closed with an explicit overlap rather than teleporting out of geometry. Iteration-limited sweeps stop conservatively and expose the status. Built-in text uses the existing bounded ASCII font atlas. Audio uses the existing platform backend and reports fallback to null output if no device is available; scripted proof qualifies audio state, not audible output quality. This is a framework-dependent .NET 10 published build, not a qualified standalone installer.
 
 The existing dependency-boundary checker still reports seven pre-existing violations. Their references were verified against the original Git HEAD in [boundary-baseline.json](../../artifacts/aurelian-game-starter-m0/boundary-baseline.json); this change adds a production-to-`Games` prohibition without suppressing those findings.

@@ -100,11 +100,35 @@
     },
     {
       "kind": "click-action",
-      "text": "sensitivity"
+      "text": "controls"
     },
     {
       "kind": "click-action",
-      "text": "volume"
+      "text": "controls.sensitivity"
+    },
+    {
+      "kind": "command",
+      "command": "assert controls.sensitivity 3.13"
+    },
+    {
+      "kind": "click-action",
+      "text": "back"
+    },
+    {
+      "kind": "click-action",
+      "text": "audio"
+    },
+    {
+      "kind": "command",
+      "command": "adjust audio.master -1"
+    },
+    {
+      "kind": "command",
+      "command": "assert audio.master 0.9"
+    },
+    {
+      "kind": "click-action",
+      "text": "back"
     },
     {
       "kind": "click-action",

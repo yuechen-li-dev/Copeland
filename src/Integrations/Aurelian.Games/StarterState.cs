@@ -33,19 +33,17 @@ public sealed record StarterOptions(
     [JsonIgnore]
     public IReadOnlyList<LocalLight3D> LocalLights { get; init; } = [];
 }
+/// <summary>The range's world state. Cadence phase and player preferences belong to the shell, not to this snapshot.</summary>
 public sealed record StarterSnapshot(Point3 Position, float Yaw, float Pitch, float VerticalVelocity,
-    double Time, CameraView View, GunSnapshot Gun, IReadOnlyList<int> ObjectHealth, GameKeyBindings Keys, float Volume,
-    IReadOnlyList<CadenceAccumulatorFact> Cadence, bool PendingJump, bool PendingReload, bool PendingFire,
+    double Time, CameraView View, GunSnapshot Gun, IReadOnlyList<int> ObjectHealth,
     StarterHumanoidSnapshot? Humanoid = null);
 public sealed record StarterHumanoidSnapshot(CharacterAnimationState Animation, AurelianPolicyCheckpoint Policy);
 public sealed record StarterObservation(string Screen, Point3 Position, float Yaw, float Pitch, CameraView View,
     int Ammo, bool Reloading, int Shots, int Hits, double Time, string DefinitionIdentity, string? PersistenceError,
     string? Motion = null, double? ClipSeconds = null, HumanoidGait? Gait = null);
-public sealed record GameSettings(GameKeyBindings Keys, float Volume);
 
 [JsonSourceGenerationOptions(WriteIndented = true, IncludeFields = true)]
 [JsonSerializable(typeof(StarterSnapshot))]
 [JsonSerializable(typeof(StarterObservation))]
 [JsonSerializable(typeof(StarterOptions))]
-[JsonSerializable(typeof(GameSettings))]
 public partial class StarterJsonContext : JsonSerializerContext;

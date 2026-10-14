@@ -61,9 +61,26 @@ public sealed class VulkanNativeSwapchainPresenter : IDisposable
 
     public void Present(ulong frameId)
     {
+        if (!TryPresent(frameId))
+        {
+            throw new InvalidOperationException(
+                $"{VulkanPresentationDiagnosticCodes.SwapchainOutOfDate}: the swapchain is out of date; recreate it for the current surface extent.");
+        }
+    }
+
+    /// <summary>
+    /// Present like <see cref="Present"/>, but report an out-of-date swapchain (for example after a window resize
+    /// raced the frame) as false instead of throwing, so the owner can rebuild surface resources and continue.
+    /// </summary>
+    public bool TryPresent(ulong frameId)
+    {
         ObjectDisposedException.ThrowIf(disposed, this);
 
         VulkanSwapchainAcquireResult acquire = swapchain.AcquireNextImage();
+        if (acquire.Status == VulkanSwapchainAcquireStatus.OutOfDate)
+        {
+            return false;
+        }
         if (acquire.ImageIndex is null
             || acquire.Status is not (VulkanSwapchainAcquireStatus.Acquired or VulkanSwapchainAcquireStatus.Suboptimal))
         {
@@ -96,10 +113,15 @@ public sealed class VulkanNativeSwapchainPresenter : IDisposable
         }
 
         VulkanSwapchainPresentResult present = swapchain.Present(acquire.ImageIndex.Value);
+        if (present.Status == VulkanSwapchainPresentStatus.OutOfDate)
+        {
+            return false;
+        }
         if (present.Status is not (VulkanSwapchainPresentStatus.Presented or VulkanSwapchainPresentStatus.Suboptimal))
         {
             throw new InvalidOperationException(Format("Swapchain presentation failed", present.Diagnostics));
         }
+        return true;
     }
 
     public void Dispose()
