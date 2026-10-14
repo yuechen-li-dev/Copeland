@@ -8,7 +8,15 @@ using Machina.Standard.Theme;
 
 namespace Aurelian.GameMenus;
 
-public sealed record GameMenuEntry(string Id, string Label, bool Disabled = false);
+/// <summary>
+/// A menu row. <paramref name="Value"/> renders after the label; adjustable rows step their value with left/right.
+/// </summary>
+public sealed record GameMenuEntry(string Id, string Label, bool Disabled = false, string? Value = null, bool Adjustable = false)
+{
+    public string DisplayText => Value is null
+        ? Label
+        : Adjustable ? $"{Label}:  < {Value} >" : $"{Label}:  {Value}";
+}
 
 public sealed record GameMenuPage(
     string Id,
@@ -46,15 +54,21 @@ public sealed record GameMenuButtonLayout(
 /// </summary>
 public static class GameMenuTemplate
 {
+    public const int MaximumEntries = 9;
+
     public static UiNode Build(GameMenuPage page, int selectedIndex, int width = 960, int height = 600)
     {
         ValidateEntries(page.Entries);
-        if (page.Entries.Count > 4 || width < 640 || height < 600)
+        if (page.Entries.Count > MaximumEntries || width < 640 || height < 600)
         {
-            throw new ArgumentException("The basic menu page supports up to four entries on a surface at least 640x600.");
+            throw new ArgumentException($"The basic menu page supports up to {MaximumEntries} entries on a surface at least 640x600.");
         }
         double panelWidth = Math.Min(600, width - 64);
         double left = (width - panelWidth) / 2;
+        // Four rows keep the original spacious layout; longer pages compress rows to fit above the footer.
+        double available = height - 106 - 16 - 190;
+        double rowSpacing = Math.Min(72, Math.Floor(available / Math.Max(1, page.Entries.Count)));
+        double rowHeight = Math.Min(56, Math.Floor(rowSpacing * 0.8));
         var nodes = new List<UiNode>
         {
             UI.Anchor(UI.Rect(id: page.Id + ".shade", style: new UiStyle(Background: ColorToken.Hex(0x06131DA0))),
@@ -64,7 +78,8 @@ public static class GameMenuTemplate
             Label(page.Id + ".title", page.Title, new Rect(left + 36, 72, panelWidth - 72, 50), TextSize.H1, 0xF5DDB5FF),
             Label(page.Id + ".subtitle", page.Subtitle, new Rect(left + 36, 128, panelWidth - 72, 34), TextSize.Sm, 0xD7E0E7FF),
         };
-        AddButtons(nodes, page.Entries, selectedIndex, new GameMenuButtonLayout(left + 36, 190, panelWidth - 72), new());
+        AddButtons(nodes, page.Entries, selectedIndex,
+            new GameMenuButtonLayout(left + 36, 190, panelWidth - 72, rowHeight, rowSpacing), new());
         nodes.Add(Label(page.Id + ".footer", page.Footer, new Rect(left + 36, height - 106, panelWidth - 72, 28), TextSize.Sm, 0xD7E0E7FF));
         return UI.Surface(id: page.Id, width: width, height: height, children: nodes);
     }
@@ -81,7 +96,7 @@ public static class GameMenuTemplate
         {
             GameMenuEntry entry = entries[index];
             bool selected = index == selectedIndex && !entry.Disabled;
-            string label = entry.Label;
+            string label = entry.DisplayText;
             if (style.MarkSelection)
             {
                 label = (selected ? "*" : " ") + " " + label;

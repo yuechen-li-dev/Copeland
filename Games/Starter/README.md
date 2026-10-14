@@ -6,8 +6,9 @@ humanoid player and local Mixamo locomotion bank. The latter uses the corrected 
 pass `--humanoid <path> --locomotion <matching-bank>` to select another compatible profile explicitly.
 
 WASD moves, Left Shift sprints with the locomotion bank, mouse movement turns, Space jumps, V switches camera, left mouse
-aims/fires and R reloads. Escape pauses. The title and pause menus expose the
-shared Deliverance save/load slots.
+aims/fires and R reloads. Escape pauses. Window, resolution, menus, settings, rebinding,
+audio and save slots come from the [game shell](../../docs/Aurelian/game-shell.md);
+`shell-proof.json` exercises them natively.
 
 ```powershell
 .\humanoid-starter.cmd --playtest-script Games/Starter/Playtests/humanoid-proof.json --output artifacts/local/playable-humanoid-starter --save-root artifacts/local/playable-humanoid-starter/saves

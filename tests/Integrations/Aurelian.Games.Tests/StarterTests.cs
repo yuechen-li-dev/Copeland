@@ -106,7 +106,7 @@ public sealed class StarterTests
     public void FocusLossPausesReleasesHeldInputAndCancelsMousePress()
     {
         using var game = Create();
-        var target = new StarterPlaytestTarget(game);
+        var target = new GamePlaytestTarget(game.Session);
         game.Activate("start");
         target.Key(KeyboardKey.W, true);
         target.Focus(false);
@@ -166,15 +166,19 @@ public sealed class StarterTests
         Key(first, KeyboardKey.R, true);
         first.Advance(TimeSpan.FromTicks(123456));
         StarterSnapshot saved = first.Capture();
+        GameShellSave envelope = first.Session.CaptureSave();
         await first.SaveAsync("roundtrip");
         using var second = Create(directory);
         await second.LoadAsync("roundtrip");
         Assert.Equal(Json(saved), Json(second.Capture()));
+        // Preferences are player settings, not world state: they persist separately and survive into the fresh game.
+        Assert.Equal(KeyboardKey.I, second.Controls.Keys.Forward);
+        Assert.Equal(0.25f, second.Volume);
         Assert.Equal(new[] { "roundtrip" }, await second.Saves.ListAsync());
         // State restoration preserves the phase of a partially accumulated simulation frame.
         first.Advance(Tick);
         second.Activate("start");
-        second.Restore(saved);
+        second.Session.RestoreSave(envelope);
         second.Advance(Tick);
         Assert.Equal(Json(first.Capture()), Json(second.Capture()));
         await second.Saves.DeleteAsync("roundtrip");
@@ -231,10 +235,13 @@ public sealed class StarterTests
     {
         using var game = Create();
         StarterSnapshot before = game.Capture();
+        GameKeyBindings keys = game.Controls.Keys;
+        GameShellSave envelope = game.Session.CaptureSave();
         Assert.Throws<InvalidDataException>(() => game.Restore(before with { Gun = before.Gun with { Ammo = 100 } }));
-        Assert.Throws<ArgumentException>(() => game.Restore(before with { Keys = before.Keys with { Forward = before.Keys.Backward } }));
-        Assert.Throws<InvalidDataException>(() => game.Restore(before with { Cadence = [] }));
+        Assert.Throws<ArgumentException>(() => game.Rebind(keys with { Forward = keys.Backward }));
+        Assert.Throws<InvalidDataException>(() => game.Session.RestoreSave(envelope with { Cadence = [] }));
         Assert.Equal(Json(before), Json(game.Capture()));
+        Assert.Equal(keys, game.Controls.Keys);
     }
 
     [Fact]
@@ -254,8 +261,9 @@ public sealed class StarterTests
     public void TypedScriptRewindsThroughTheSharedPlaytestingRunner()
     {
         using var game = Create();
-        var target = new StarterPlaytestTarget(game);
-        using var runner = new PlaytestRunner<StarterObservation>(target, TemporaryDirectory(), StarterJsonContext.Default.StarterObservation);
+        var target = new GamePlaytestTarget(game.Session);
+        using var runner = new PlaytestRunner<SortedDictionary<string, string>>(target, TemporaryDirectory(),
+            GameShellJsonContext.Default.SortedDictionaryStringString);
         runner.Run(new(1,
         [new("click-action", Text: "start"), new("hold", Keys: ["W"], Seconds: 0.2), new("checkpoint", Text: "walked"),
          new("hold", Keys: ["D"], Seconds: 0.2), new("rewind", Text: "walked")]));
