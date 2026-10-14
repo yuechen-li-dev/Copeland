@@ -1,0 +1,16 @@
+{
+  "success": true,
+  "checks": 149,
+  "consumerAssertions": 22,
+  "originalCents": 31210,
+  "previewCents": 12710,
+  "previewUnits": 47,
+  "previewLines": 2,
+  "allRowsAndSupplierFieldsAgree": true,
+  "globalWorkbookUnchanged": true,
+  "repeatedPreviewIdentical": true,
+  "runtimeSourceUnchanged": true,
+  "sourceSha256": "4A25AAB396C7F037647F356A1D159B6E4705CF36F14E3172898F8E8696D1B2C3",
+  "canonicalExecutor": "csharp-relation-plan",
+  "javascript": "unsupported: COPE-JS-DERIVE-0001"
+}

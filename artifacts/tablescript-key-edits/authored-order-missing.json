@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "success": false,
+  "command": "table.set",
+  "diagnostics": [
+    {
+      "code": "COPE-TABLE-TOOL-0023",
+      "severity": "error",
+      "message": "No row in \u0027Stock\u0027 has key \u0027productId\u0027 equal to 999.",
+      "file": null,
+      "line": null,
+      "column": null
+    }
+  ]
+}

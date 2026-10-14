@@ -219,8 +219,8 @@ public static class CSharpTableQueryMaterializer
         string value = aggregate.InputIndex < 0 ? "default" : "__q" + aggregate.InputIndex;
         switch (aggregate.Kind)
         {
-            case MirTableQueryAggregateKind.Count: writer.Line("group." + field + "++;"); break;
-            case MirTableQueryAggregateKind.Sum: writer.Line("group." + field + " += " + value + ";"); break;
+            case MirTableQueryAggregateKind.Count: writer.Line(CSharpTableAccumulator.AddCount("group." + field)); break;
+            case MirTableQueryAggregateKind.Sum: writer.Line(CSharpTableAccumulator.AddSum("group." + field, value)); break;
             case MirTableQueryAggregateKind.Average: writer.Line("group." + field + "Total += " + value + ";"); writer.Line("group." + field + "Count++;"); break;
             case MirTableQueryAggregateKind.Min: writer.Line("if (!group." + field + "HasValue || global::System.Collections.Generic.Comparer<" + MapType(aggregate.Type) + ">.Default.Compare(" + value + ", group." + field + ") < 0) { group." + field + " = " + value + "; group." + field + "HasValue = true; }"); break;
             case MirTableQueryAggregateKind.Max: writer.Line("if (!group." + field + "HasValue || global::System.Collections.Generic.Comparer<" + MapType(aggregate.Type) + ">.Default.Compare(" + value + ", group." + field + ") > 0) { group." + field + " = " + value + "; group." + field + "HasValue = true; }"); break;

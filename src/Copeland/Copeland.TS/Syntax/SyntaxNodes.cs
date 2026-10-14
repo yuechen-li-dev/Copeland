@@ -1947,6 +1947,24 @@ public sealed record MemberAccessExpressionSyntax(
     }
 }
 
+public sealed record RepeatedInitializerSyntax(
+    ExpressionSyntax Value,
+    SyntaxToken EllipsisToken,
+    ExpressionSyntax? Count) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.RepeatedInitializer;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Value;
+        yield return EllipsisToken;
+        if (Count is not null)
+        {
+            yield return Count;
+        }
+    }
+}
+
 public sealed record ArrayLiteralExpressionSyntax(
     SyntaxToken OpenBracketToken,
     IReadOnlyList<ExpressionSyntax> Elements,
@@ -2394,7 +2412,8 @@ public sealed record TableColumnSyntax(
         if (ReferencedTableIdentifier is not null) yield return ReferencedTableIdentifier;
         if (ReferencedColumnIdentifier is not null) yield return ReferencedColumnIdentifier;
         if (EqualsToken is not null) yield return EqualsToken;
-        yield return Cells; yield return SemicolonToken;
+        if (HasInlineData) yield return Cells;
+        yield return SemicolonToken;
     }
 }
 
@@ -2452,6 +2471,7 @@ public sealed record DerivedTableClauseSyntax(
     IReadOnlyList<DerivedTableColumnSyntax> Columns,
     SyntaxToken CloseBraceToken) : SyntaxNode
 {
+    public IReadOnlyList<VariableDeclarationStatementSyntax> Locals { get; init; } = [];
     public override SyntaxKind Kind => SyntaxKind.TableDeclaration;
     public override IEnumerable<object> GetChildren()
     {
@@ -2459,6 +2479,7 @@ public sealed record DerivedTableClauseSyntax(
         yield return AsKeyword; yield return AliasIdentifier;
         foreach (var join in Joins) yield return join;
         yield return OpenBraceToken;
+        foreach (var local in Locals) yield return local;
         foreach (var column in Columns) yield return column;
         yield return CloseBraceToken;
     }
@@ -2475,6 +2496,9 @@ public sealed record TableDeclarationSyntax(
     bool IsExported,
     DerivedTableClauseSyntax? DerivedClause = null) : MemberSyntax
 {
+    public SyntaxToken? RowsEqualsToken { get; init; }
+    public ArrayLiteralExpressionSyntax? RowsInitializer { get; init; }
+    public SyntaxToken? RowsSemicolonToken { get; init; }
     public override SyntaxKind Kind => SyntaxKind.TableDeclaration;
     public override IEnumerable<object> GetChildren()
     {
@@ -2487,6 +2511,12 @@ public sealed record TableDeclarationSyntax(
         }
         if (DerivedClause is not null) yield return DerivedClause;
         else { yield return OpenBraceToken; foreach (var column in Columns) yield return column; yield return CloseBraceToken; }
+        if (RowsInitializer is not null)
+        {
+            yield return RowsEqualsToken!;
+            yield return RowsInitializer;
+            yield return RowsSemicolonToken!;
+        }
     }
 }
 

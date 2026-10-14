@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "checks": 66,
+  "baselineCents": 31210,
+  "editedCents": 12710,
+  "stockSelector": {
+    "keyColumn": "productId",
+    "value": 100
+  },
+  "sourceSha256": "B996633C956BA4ED6961B8DB3D4AE3DFA0F61091FE17B98E2672ED1F0903FCF2",
+  "executor": "csharp-relation-plan",
+  "nativeExcel": "not exercised"
+}

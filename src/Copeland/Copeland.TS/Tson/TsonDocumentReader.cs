@@ -313,6 +313,11 @@ public static class TsonDocumentReader
             }
 
             var declaration = declarations[0];
+            if (declaration.RowsInitializer is not null)
+            {
+                Report("COPE-TSON-TABLE-0001", "TSON table documents require column data; host table row initializers are unsupported.", declaration.RowsInitializer);
+                return null;
+            }
             if (declaration.AssetClause is not null)
             {
                 Report(
@@ -699,6 +704,11 @@ public static class TsonDocumentReader
             TableDeclarationSyntax declaration,
             IReadOnlyDictionary<string, TsonTypeKind> declaredKinds)
         {
+            if (declaration.RowsInitializer is not null)
+            {
+                Report("COPE-TSON-TABLE-0001", "TSON table documents require column data; host table row initializers are unsupported.", declaration.RowsInitializer);
+                return;
+            }
             var diagnosticCountBefore = _diagnostics.Count;
             if (declaration.Columns.Count == 0)
             {

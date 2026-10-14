@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "success": true,
+  "command": "table.query",
+  "source": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\copeland-ts\\tablescript-friction-m12\\Workbook\\Workbook.ts",
+  "table": "Products",
+  "executor": "csharp-relation-plan",
+  "backend": "roslyn-incremental-generator",
+  "queryArtifactId": "188A6E2E315ACCC4",
+  "schema": {
+    "columns": [
+      {
+        "name": "id",
+        "type": "int",
+        "provenance": {
+          "kind": "authored",
+          "sourceTable": "Products",
+          "inputs": [
+            "id"
+          ],
+          "relationships": [],
+          "aggregate": null,
+          "filter": null
+        }
+      },
+      {
+        "name": "supplierId",
+        "type": "int",
+        "provenance": {
+          "kind": "authored",
+          "sourceTable": "Products",
+          "inputs": [
+            "supplierId"
+          ],
+          "relationships": [],
+          "aggregate": null,
+          "filter": null
+        }
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "provenance": {
+          "kind": "authored",
+          "sourceTable": "Products",
+          "inputs": [
+            "name"
+          ],
+          "relationships": [],
+          "aggregate": null,
+          "filter": null
+        }
+      },
+      {
+        "name": "costCents",
+        "type": "int",
+        "provenance": {
+          "kind": "authored",
+          "sourceTable": "Products",
+          "inputs": [
+            "costCents"
+          ],
+          "relationships": [],
+          "aggregate": null,
+          "filter": null
+        }
+      },
+      {
+        "name": "reorderPoint",
+        "type": "int",
+        "provenance": {
+          "kind": "authored",
+          "sourceTable": "Products",
+          "inputs": [
+            "reorderPoint"
+          ],
+          "relationships": [],
+          "aggregate": null,
+          "filter": null
+        }
+      },
+      {
+        "name": "targetStock",
+        "type": "int",
+        "provenance": {
+          "kind": "authored",
+          "sourceTable": "Products",
+          "inputs": [
+            "targetStock"
+          ],
+          "relationships": [],
+          "aggregate": null,
+          "filter": null
+        }
+      },
+      {
+        "name": "purchasing",
+        "type": "Purchasing",
+        "provenance": {
+          "kind": "authored",
+          "sourceTable": "Products",
+          "inputs": [
+            "purchasing"
+          ],
+          "relationships": [],
+          "aggregate": null,
+          "filter": null
+        }
+      }
+    ]
+  },
+  "query": {
+    "where": null,
+    "select": [
+      "id",
+      "supplierId",
+      "name",
+      "costCents",
+      "reorderPoint",
+      "targetStock",
+      "purchasing"
+    ],
+    "groupBy": [],
+    "aggregates": [],
+    "orderBy": [],
+    "skip": 0,
+    "take": 6
+  },
+  "rows": [
+    {
+      "id": 100,
+      "supplierId": 10,
+      "name": "Espresso beans",
+      "costCents": 925,
+      "reorderPoint": 8,
+      "targetStock": 24,
+      "purchasing": "Active"
+    },
+    {
+      "id": 101,
+      "supplierId": 10,
+      "name": "Filter beans",
+      "costCents": 750,
+      "reorderPoint": 8,
+      "targetStock": 24,
+      "purchasing": "Active"
+    },
+    {
+      "id": 102,
+      "supplierId": 20,
+      "name": "Earl Grey",
+      "costCents": 310,
+      "reorderPoint": 6,
+      "targetStock": 18,
+      "purchasing": "Active"
+    },
+    {
+      "id": 103,
+      "supplierId": 30,
+      "name": "Oat milk",
+      "costCents": 250,
+      "reorderPoint": 12,
+      "targetStock": 36,
+      "purchasing": "Active"
+    },
+    {
+      "id": 104,
+      "supplierId": 30,
+      "name": "Cocoa",
+      "costCents": 480,
+      "reorderPoint": 8,
+      "targetStock": 20,
+      "purchasing": "Active"
+    },
+    {
+      "id": 105,
+      "supplierId": 10,
+      "name": "Decaf beans",
+      "costCents": 1100,
+      "reorderPoint": 8,
+      "targetStock": 24,
+      "purchasing": "Paused"
+    }
+  ],
+  "rowCount": 6,
+  "diagnostics": []
+}

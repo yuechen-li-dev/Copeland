@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "success": false,
+  "command": "table.set",
+  "diagnostics": [
+    {
+      "code": "COPE-TABLE-TOOL-0020",
+      "severity": "error",
+      "message": "table.set is unavailable for derived table \u0027PurchasePlan\u0027; derived tables are read-only.",
+      "file": null,
+      "line": null,
+      "column": null
+    }
+  ]
+}

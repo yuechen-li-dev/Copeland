@@ -1,0 +1,17 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Copeland.SpanAllocation -> C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.SpanAllocation\bin\Debug\net10.0\Copeland.SpanAllocation.dll
+  Copeland.Markdown -> C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.Markdown\bin\Debug\net10.0\Copeland.Markdown.dll
+  Copeland.Profile -> C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.Profile\bin\Debug\net10.0\Copeland.Profile.dll
+  Copeland.TS.Mir -> C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.TS.Mir\bin\Debug\net10.0\Copeland.TS.Mir.dll
+  Copeland.TS.Workspace -> C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.TS.Workspace\bin\Debug\net10.0\Copeland.TS.Workspace.dll
+  Copeland.TS -> C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.TS\bin\Debug\net10.0\Copeland.TS.dll
+  Copeland.TS.Backend.CSharp -> C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.TS.Backend.CSharp\bin\Debug\net10.0\Copeland.TS.Backend.CSharp.dll
+  Copeland.TS.Backend.JavaScript -> C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.TS.Backend.JavaScript\bin\Debug\net10.0\Copeland.TS.Backend.JavaScript.dll
+  Copeland.TS.Backend.Wgsl -> C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.TS.Backend.Wgsl\bin\Debug\net10.0\Copeland.TS.Backend.Wgsl.dll
+  Copeland.TS.Backend.AspNetCore -> C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.TS.Backend.AspNetCore\bin\Debug\net10.0\Copeland.TS.Backend.AspNetCore.dll
+  Copeland.TS.Tests -> C:\Users\yuech\source\repos\Copeland\tests\Copeland\Copeland.TS.Tests\bin\Debug\net10.0\Copeland.TS.Tests.dll
+Test run for C:\Users\yuech\source\repos\Copeland\tests\Copeland\Copeland.TS.Tests\bin\Debug\net10.0\Copeland.TS.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    19, Skipped:     0, Total:    19, Duration: 1 s - Copeland.TS.Tests.dll (net10.0)

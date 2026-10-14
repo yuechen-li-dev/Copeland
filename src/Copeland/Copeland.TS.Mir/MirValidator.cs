@@ -2,7 +2,7 @@ namespace Copeland.TS.Mir;
 
 public sealed record MirValidationDiagnostic(string Message);
 
-public static class MirValidator
+public static partial class MirValidator
 {
     public static IReadOnlyList<MirValidationDiagnostic> Validate(MirProgram program)
     {
@@ -704,6 +704,12 @@ public static class MirValidator
                 foreach (var argument in call.Arguments) ValidateCallableExpression(argument, functions, diagnostics);
                 return;
             case MirArrayExpression array:
+                if (array.Counts is not null && (array.Counts.Count != array.Elements.Count
+                    || array.Counts.Any(count => count < 0)
+                    || array.Counts.Sum(count => (long)count) > 65_536))
+                {
+                    diagnostics.Add(new MirValidationDiagnostic("Array initializer counts must align with elements and remain within the nonnegative 65536-element extent."));
+                }
                 foreach (var element in array.Elements) ValidateCallableExpression(element, functions, diagnostics);
                 return;
             case MirRecordConstructionExpression construction:
@@ -718,6 +724,22 @@ public static class MirValidator
                 {
                     ValidateCallableExpression(replacement.Value, functions, diagnostics);
                 }
+                return;
+            case MirTableSummaryExpression summary:
+                ValidateCallableExpression(summary.Source, functions, diagnostics);
+                return;
+            case MirTableRecalculationExpression recalculation:
+                foreach (MirTableRecalculationInput input in recalculation.Inputs)
+                {
+                    ValidateCallableExpression(input.Value, functions, diagnostics);
+                }
+                return;
+            case MirTableRowsExpression rows:
+                ValidateCallableExpression(rows.Table, functions, diagnostics);
+                return;
+            case MirTableWhereExpression where:
+                ValidateCallableExpression(where.Source, functions, diagnostics);
+                foreach (MirExpression predicate in where.Predicates) ValidateCallableExpression(predicate, functions, diagnostics);
                 return;
             case MirRecordWithExpression update:
                 ValidateCallableExpression(update.Source, functions, diagnostics);
@@ -1441,6 +1463,11 @@ public static class MirValidator
     private static IEnumerable<MirExpression> EnumerateTsonExpressionChildren(MirExpression expression)
         => expression switch
         {
+            MirTableSummaryExpression summary => [summary.Source],
+            MirTableRecalculationExpression recalculation => recalculation.Inputs.Select(input => input.Value),
+            MirTableRowsExpression rows => [rows.Table],
+            MirTableWhereExpression where => where.Predicates.Prepend(where.Source),
+            MirTableSelectExpression select => [select.Source, select.Projector],
             MirTsonEncodeExpression encode => [encode.Operand],
             MirTsonTransportExpression transport => [transport.Operation, transport.Request],
             MirNpmCallExpression npm => npm.Arguments.Append(npm.ArgumentTuple),
@@ -1508,7 +1535,10 @@ public static class MirValidator
                     diagnostics.Add(new MirValidationDiagnostic($"Table column '{table.Name}.{column.Name}' contains a class value, which is not a table cell type."));
                 if (table.DerivedPlan is null && column.Constants.Count != table.RowCount)
                     diagnostics.Add(new MirValidationDiagnostic($"Table column '{table.Name}.{column.Name}' has {column.Constants.Count} constants but row count is {table.RowCount}."));
-                foreach (var constant in column.Constants)
+                IReadOnlyList<MirTableConstant> initializers = column.Constants is InitializerSequence<MirTableConstant> sequence
+                    ? sequence.Values
+                    : column.Constants;
+                foreach (var constant in initializers)
                 {
                     if (!MirTypeFacts.AreEquivalent(constant.Type, column.ElementType))
                         diagnostics.Add(new MirValidationDiagnostic($"Table constant in '{table.Name}.{column.Name}' does not match the column element type."));
@@ -1570,6 +1600,21 @@ public static class MirValidator
                         diagnostics.Add(new MirValidationDiagnostic($"Derived table '{table.Name}' join '{join.Alias}' has invalid key lookup metadata."));
                     if (!availableAliases.TryAdd(join.Alias, joined))
                         diagnostics.Add(new MirValidationDiagnostic($"Derived table '{table.Name}' repeats relation alias '{join.Alias}'."));
+                }
+                var localNames = new HashSet<string>(StringComparer.Ordinal);
+                var runtimeNames = availableAliases.Keys.ToHashSet(StringComparer.Ordinal);
+                foreach (MirDerivedTableLocal local in derived.Locals)
+                {
+                    if (string.IsNullOrWhiteSpace(local.Name) || !localNames.Add(local.Name)
+                        || string.IsNullOrWhiteSpace(local.RuntimeName) || !runtimeNames.Add(local.RuntimeName))
+                    {
+                        diagnostics.Add(new MirValidationDiagnostic($"Derived table '{table.Name}' has duplicate or blank local names."));
+                    }
+                    if (!MirTypeFacts.AreEquivalent(local.Type, local.Expression.Type))
+                    {
+                        diagnostics.Add(new MirValidationDiagnostic($"Derived local '{table.Name}.{local.Name}' does not match its declared type."));
+                    }
+                    ValidateTableExpression(local.Expression, tables, rowTypeIds, columns, diagnostics);
                 }
                 foreach (MirDerivedTableColumnPlan projection in derived.Columns)
                 {
@@ -1745,7 +1790,10 @@ public static class MirValidator
                     diagnostics.Add(new MirValidationDiagnostic($"Table array constant in '{context}' exceeds the array-length limit."));
                     return;
                 }
-                foreach (MirTableConstant element in array.Elements)
+                IReadOnlyList<MirTableConstant> elements = array.Elements is InitializerSequence<MirTableConstant> sequence
+                    ? sequence.Values
+                    : array.Elements;
+                foreach (MirTableConstant element in elements)
                 {
                     if (!MirTypeFacts.AreEquivalent(element.Type, array.ArrayType.ElementType))
                     {
@@ -1925,6 +1973,17 @@ public static class MirValidator
                         diagnostics.Add(new MirValidationDiagnostic($"Table row field access type does not match field '{access.FieldId}'."));
                 }
                 break;
+            case MirTableSummaryExpression summary:
+                ValidateTableExpression(summary.Source, tables, rowTypeIds, columns, diagnostics);
+                ValidateTableSummary(summary, tables, diagnostics);
+                break;
+            case MirTableRecalculationExpression recalculation:
+                foreach (MirTableRecalculationInput input in recalculation.Inputs)
+                {
+                    ValidateTableExpression(input.Value, tables, rowTypeIds, columns, diagnostics);
+                }
+                ValidateTableRecalculation(recalculation, tables, diagnostics);
+                break;
             case MirTableWithExpression update:
                 ValidateTableExpression(update.Source, tables, rowTypeIds, columns, diagnostics);
                 if (!tables.TryGetValue(update.TableId, out MirTableDefinition? updatedTable)
@@ -1965,7 +2024,7 @@ public static class MirValidator
                         diagnostics.Add(new MirValidationDiagnostic(
                             $"Table 'with' replacement '{replacement.ColumnId}' has an incompatible element type."));
                     }
-                    if (replacement.Value.Elements.Count != updatedTable.RowCount)
+                    if (replacement.Value.Length != updatedTable.RowCount)
                     {
                         diagnostics.Add(new MirValidationDiagnostic(
                             $"Table 'with' replacement '{replacement.ColumnId}' does not preserve row count {updatedTable.RowCount}."));
@@ -1981,7 +2040,15 @@ public static class MirValidator
     private static IEnumerable<MirExpression> EnumerateTableExpressionChildren(MirExpression expression)
         => expression switch
         {
+            MirArrayLengthExpression length => [length.Receiver],
+            MirArrayElementAccessExpression access => [access.Receiver, access.Index],
+            MirTableRecalculationExpression recalculation => recalculation.Inputs.Select(input => input.Value),
+            MirTableSummaryExpression summary => [summary.Source],
+            MirTableRowsExpression rows => [rows.Table],
+            MirTableWhereExpression where => where.Predicates.Prepend(where.Source),
+            MirTableSelectExpression select => [select.Source, select.Projector],
             MirUnaryExpression unary => [unary.Operand],
+            MirNumericConversionExpression conversion => [conversion.Operand],
             MirBinaryExpression binary => [binary.Left, binary.Right],
             MirAssignmentExpression assignment => [assignment.Expression],
             MirCallExpression call => call.Arguments,
@@ -2230,6 +2297,14 @@ public static class MirValidator
         IReadOnlyDictionary<string, MirEnum> enumsByName,
         List<MirValidationDiagnostic> diagnostics)
     {
+        if (expression is MirTableSummaryExpression or MirTableRowsExpression or MirTableWhereExpression or MirTableRecalculationExpression)
+        {
+            foreach (MirExpression child in EnumerateTableExpressionChildren(expression))
+            {
+                ValidateEnumExpression(child, enumsByName, diagnostics);
+            }
+            return;
+        }
         switch (expression)
         {
             case MirAssignmentExpression assignment:
@@ -2443,6 +2518,16 @@ public static class MirValidator
         ValidateRecordTypeReference(expression.Type, records, diagnostics, "expression");
         switch (expression)
         {
+            case MirTableSummaryExpression summary:
+                ValidateRecordExpression(summary.Source, records, diagnostics);
+                ValidateSummaryRecord(summary, records, diagnostics);
+                return;
+            case MirTableRecalculationExpression recalculation:
+                foreach (MirTableRecalculationInput input in recalculation.Inputs)
+                {
+                    ValidateRecordExpression(input.Value, records, diagnostics);
+                }
+                return;
             case MirRecordConstructionExpression construction:
                 ValidateRecordFieldValues(construction.RecordTypeId, construction.Initializers, records, diagnostics, requireComplete: true, allowEmpty: true);
                 if (construction.Type is not MirRecordType constructionType || constructionType.RecordTypeId != construction.RecordTypeId) diagnostics.Add(new MirValidationDiagnostic("Record construction result type does not match its record identity."));
@@ -2583,6 +2668,14 @@ public static class MirValidator
 
     private static void ValidateExpression(MirExpression expression, List<HandlerScope> activeHandlers, HashSet<MirHandlerId> handlerIds, List<MirValidationDiagnostic> diagnostics)
     {
+        if (expression is MirTableSummaryExpression or MirTableRowsExpression or MirTableWhereExpression or MirTableRecalculationExpression)
+        {
+            foreach (MirExpression child in EnumerateTableExpressionChildren(expression))
+            {
+                ValidateExpression(child, activeHandlers, handlerIds, diagnostics);
+            }
+            return;
+        }
         switch (expression)
         {
             case MirTryExpression tryExpression:

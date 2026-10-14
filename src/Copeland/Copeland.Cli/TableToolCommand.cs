@@ -365,17 +365,19 @@ internal static class TableToolCommand
 
     private static int RunSet(string[] args)
     {
-        ParsedArguments parsed = ParseOptions(args, 2, positionalCount: 2, allowed: ["--row", "--column", "--value", "--dry-run", "--format"]);
+        ParsedArguments parsed = ParseOptions(args, 2, positionalCount: 2, allowed: ["--row", "--key", "--column", "--value", "--dry-run", "--format"]);
         TableDocument document = LoadDocument(parsed.Positionals[0]);
         TableModel table = document.RequireTable(parsed.Positionals[1], parsed.Format == "json");
         EnsureAuthored(table, "table.set", parsed.Format == "json");
-        int row = ParseRequiredNonNegative(parsed, "--row");
+        RowSelection selection = ResolveRowSelection(table, parsed);
+        int row = selection.Row;
         string columnName = parsed.Required("--column");
         TableColumnModel column = table.RequireColumn(columnName, parsed.Format == "json");
-        EnsureRow(table, row, parsed.Format == "json");
         string replacement = ParseCommandValue(parsed.Required("--value"), column.Bound.Column.Type, parsed.Format == "json");
-        string oldSource = Slice(document.SourceText, SpanOf(column.Syntax.Cells.Elements[row]));
-        TextEdit edit = new(SpanOf(column.Syntax.Cells.Elements[row]), replacement);
+        TextEdit edit = table.Syntax.RowsInitializer is null
+            ? SetInitializerCell(document.SourceText, column, row, replacement)
+            : SetRowField(document.SourceText, table, column, row, replacement);
+        string oldSource = Slice(document.SourceText, edit.Span);
         string candidate = ApplyEdits(document.SourceText, [edit]);
         ValidateCandidate(document.SourcePath, candidate, parsed.Format == "json");
         object? oldValue = SerializeConstant(column.Bound.Cells[row]);
@@ -385,6 +387,7 @@ internal static class TableToolCommand
             schemaVersion = SchemaVersion,
             success = true,
             command = "table.set",
+            selection,
             changed = new { table = table.Name, row, column = column.Name, oldValue, newValue, source = Location(document.SourcePath, document.SourceText, column.Syntax.Identifier.Position) },
             dryRun = parsed.Has("--dry-run"),
         };
@@ -400,9 +403,16 @@ internal static class TableToolCommand
         EnsureAuthored(table, "table.add-row", parsed.Format == "json");
         Dictionary<string, string> values = ParseRowJson(parsed.Required("--json"), table, parsed.Format == "json");
         var edits = new List<TextEdit>();
-        foreach (TableColumnModel column in table.Columns)
+        if (table.Syntax.RowsInitializer is ArrayLiteralExpressionSyntax rows)
         {
-            edits.Add(AppendEdit(document.SourceText, column.Syntax.Cells, values[column.Name]));
+            edits.Add(AppendEdit(document.SourceText, rows, FormatRowInitializer(table, values)));
+        }
+        else
+        {
+            foreach (TableColumnModel column in table.Columns)
+            {
+                edits.Add(AppendInitializerCell(document.SourceText, column, values[column.Name]));
+            }
         }
 
         string candidate = ApplyEdits(document.SourceText, edits);
@@ -432,20 +442,24 @@ internal static class TableToolCommand
 
     private static int RunDeleteRow(string[] args)
     {
-        ParsedArguments parsed = ParseOptions(args, 2, positionalCount: 2, allowed: ["--row", "--dry-run", "--format"]);
+        ParsedArguments parsed = ParseOptions(args, 2, positionalCount: 2, allowed: ["--row", "--key", "--dry-run", "--format"]);
         TableDocument document = LoadDocument(parsed.Positionals[0]);
         TableModel table = document.RequireTable(parsed.Positionals[1], parsed.Format == "json");
         EnsureAuthored(table, "table.delete-row", parsed.Format == "json");
-        int row = ParseRequiredNonNegative(parsed, "--row");
-        EnsureRow(table, row, parsed.Format == "json");
+        RowSelection selection = ResolveRowSelection(table, parsed);
+        int row = selection.Row;
         Dictionary<string, object?> deleted = table.Columns.ToDictionary(column => column.Name, column => SerializeConstant(column.Bound.Cells[row]), StringComparer.Ordinal);
-        string candidate = ApplyEdits(document.SourceText, table.Columns.Select(column => DeleteEdit(column.Syntax.Cells, row)));
+        IEnumerable<TextEdit> edits = table.Syntax.RowsInitializer is ArrayLiteralExpressionSyntax rows
+            ? [DeleteInitializerElement(document.SourceText, rows, table.Columns[0].Bound.Cells, row)]
+            : table.Columns.Select(column => DeleteInitializerCell(document.SourceText, column, row));
+        string candidate = ApplyEdits(document.SourceText, edits);
         ValidateCandidate(document.SourcePath, candidate, parsed.Format == "json");
         var result = new
         {
             schemaVersion = SchemaVersion,
             success = true,
             command = "table.delete-row",
+            selection,
             deleted = new { table = table.Name, row, values = deleted },
             dryRun = parsed.Has("--dry-run"),
         };
@@ -546,7 +560,22 @@ internal static class TableToolCommand
             }
         }
 
-        string candidate = ApplyEdits(document.SourceText, table.Columns.Select(column => ReplaceArrayEdit(document.SourceText, column.Syntax.Cells, cells[column.Name])));
+        IEnumerable<TextEdit> edits;
+        if (table.Syntax.RowsInitializer is ArrayLiteralExpressionSyntax rows)
+        {
+            var rowValues = new List<string>();
+            for (int row = 0; row < csv.Rows.Count; row += 1)
+            {
+                var values = table.Columns.ToDictionary(column => column.Name, column => cells[column.Name][row], StringComparer.Ordinal);
+                rowValues.Add(FormatRowInitializer(table, values));
+            }
+            edits = [ReplaceArrayEdit(document.SourceText, rows, rowValues)];
+        }
+        else
+        {
+            edits = table.Columns.Select(column => ReplaceArrayEdit(document.SourceText, column.Initializer, cells[column.Name]));
+        }
+        string candidate = ApplyEdits(document.SourceText, edits);
         ValidateCandidate(document.SourcePath, candidate, resultJson);
         var result = new { schemaVersion = SchemaVersion, success = true, command = "table.import", imported = new { table = table.Name, format = "csv", rowCount = csv.Rows.Count, replace = true }, dryRun = parsed.Has("--dry-run") };
         PublishMutation(document, candidate, parsed with { Format = resultJson ? "json" : "text" }, "Imported:\n" + table.Name + "\n" + csv.Rows.Count + " rows replaced", result);
@@ -640,7 +669,7 @@ internal static class TableToolCommand
             && sourceGeneratedRows.Zip(legacyRows).All(pair => sourceGeneratedPlan.ResultColumns.All(column =>
             {
                 QueryResultColumn legacyColumn = legacyPlan.ResultColumns.Single(candidate => candidate.Name == column.Name);
-                return QueryValuesEquivalent(pair.First.Values[column.ValueIndex], pair.Second.Values[legacyColumn.ValueIndex]);
+                return QueryValuesEquivalent(pair.First.Values[column.ValueIndex], pair.Second.Values[legacyColumn.ValueIndex], column.Type);
             }));
         if (!sameSchema || !sameRows)
         {
@@ -648,13 +677,17 @@ internal static class TableToolCommand
         }
     }
 
-    private static bool QueryValuesEquivalent(object? left, object? right)
+    private static bool QueryValuesEquivalent(object? left, object? right, TypeSymbol type)
     {
         if (Equals(left, right)) return true;
         if (left is IConvertible leftNumber && right is IConvertible rightNumber
             && left is not string && right is not string && left is not bool && right is not bool)
         {
             return leftNumber.ToDouble(CultureInfo.InvariantCulture) == rightNumber.ToDouble(CultureInfo.InvariantCulture);
+        }
+        if (type is EnumTypeSymbol)
+        {
+            return JsonSerializer.Serialize(left) == JsonSerializer.Serialize(right);
         }
         return false;
     }
@@ -686,7 +719,7 @@ internal static class TableToolCommand
             for (int rowIndex = 0; rowIndex < result.RowCount; rowIndex += 1)
             {
                 object?[] values = Enumerable.Range(0, plan.ResultColumns.Count)
-                    .Select(columnIndex => NormalizeRuntimeValue(result.GetValue(rowIndex, columnIndex)))
+                    .Select(columnIndex => NormalizeRuntimeValue(result.GetValue(rowIndex, columnIndex), plan.ResultColumns[columnIndex].Type, json))
                     .ToArray();
                 rows.Add(new QueryMaterializedRow(rowIndex, values));
             }
@@ -1338,7 +1371,7 @@ internal static class TableToolCommand
                     throw Error("COPE-TABLE-QUERY-0016", $"The C# query executor did not expose column '{column.Name}'.", json);
                 }
 
-                values.Add(NormalizeRuntimeValue(property.GetValue(row)));
+                values.Add(NormalizeRuntimeValue(property.GetValue(row), column.Type, json));
             }
 
             materialized.Add(new QueryMaterializedRow(index, values));
@@ -1438,8 +1471,42 @@ internal static class TableToolCommand
         }
     }
 
-    private static object? NormalizeRuntimeValue(object? value)
-        => value is Enum @enum ? @enum.ToString() : value;
+    private static object? NormalizeRuntimeValue(object? value, TypeSymbol type, bool json)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+        if (type is EnumTypeSymbol enumType)
+        {
+            // Copeland enums are generated nested records, not System.Enum.
+            // Resolve the case and payload order from compiler-owned metadata.
+            EnumCaseSymbol? enumCase = enumType.Cases.SingleOrDefault(candidate => candidate.Name == value.GetType().Name);
+            if (enumCase is null)
+            {
+                throw Error("COPE-TABLE-QUERY-0016", $"The C# query executor returned an unknown case for '{enumType.Name}'.", json);
+            }
+            if (!enumCase.HasPayload)
+            {
+                return enumCase.Name;
+            }
+            object?[] payloads = enumCase.PayloadFields
+                .Select(field => NormalizeRuntimeValue(ReadRuntimeField(value, field.Name, json), field.Type, json))
+                .ToArray();
+            return new Dictionary<string, object?> { ["case"] = enumCase.Name, ["values"] = payloads };
+        }
+        return value;
+    }
+
+    private static object? ReadRuntimeField(object value, string fieldName, bool json)
+    {
+        PropertyInfo? property = value.GetType().GetProperty(fieldName);
+        if (property is not null)
+        {
+            return property.GetValue(value);
+        }
+        throw Error("COPE-TABLE-QUERY-0016", $"The C# query executor did not expose field '{fieldName}'.", json);
+    }
 
     private static void WriteQueryExplain(TableDocument document, TableQueryPlan plan, string format, MirTableQueryArtifact? artifact = null)
     {
@@ -1538,6 +1605,7 @@ internal static class TableToolCommand
             null => string.Empty,
             double number => number.ToString("R", CultureInfo.InvariantCulture),
             float number => number.ToString("R", CultureInfo.InvariantCulture),
+            IReadOnlyDictionary<string, object?> structured => JsonSerializer.Serialize(structured),
             IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture) ?? string.Empty,
             _ => value.ToString() ?? string.Empty,
         };
@@ -1574,7 +1642,7 @@ internal static class TableToolCommand
             var columns = new List<TableColumnModel>();
             for (int index = 0; index < declaration.Columns.Count; index += 1)
             {
-                columns.Add(new TableColumnModel(declaration.Columns[index], bound.Columns[index]));
+                columns.Add(new TableColumnModel(declaration.Columns[index], bound.Columns[index], TableRowInitializers.Column(declaration, declaration.Columns[index])));
             }
 
             tables.Add(new TableModel(declaration, bound, columns));
@@ -1768,7 +1836,7 @@ internal static class TableToolCommand
             return parsedValue;
         }
 
-        int? precision = ExistingDecimalPrecision(source, column.Syntax.Cells);
+        int? precision = ExistingDecimalPrecision(source, column.Initializer);
         int? incomingPrecision = DecimalPrecision(csvValue);
         if (precision is null || incomingPrecision is null || incomingPrecision > precision)
         {
@@ -1788,7 +1856,7 @@ internal static class TableToolCommand
         int precision = 0;
         foreach (ExpressionSyntax cell in cells.Elements)
         {
-            int? cellPrecision = DecimalPrecision(Slice(source, SpanOf(cell)));
+            int? cellPrecision = DecimalPrecision(InitializerValueSource(source, cell));
             if (cellPrecision is null)
             {
                 return null;
@@ -1955,6 +2023,107 @@ internal static class TableToolCommand
                 : @case.Name).ToArray()
             : null;
 
+    private static string InitializerValueSource(string source, ExpressionSyntax syntax)
+    {
+        return Slice(source, SpanOf(syntax is RepeatedInitializerSyntax repeated ? repeated.Value : syntax));
+    }
+
+    private static string CountedInitializer(string value, int count, bool fill = false)
+    {
+        if (fill)
+        {
+            return value + " ...";
+        }
+        return count == 1 ? value : value + " ... " + count.ToString(CultureInfo.InvariantCulture);
+    }
+
+    private static TextEdit SetInitializerCell(string source, TableColumnModel column, int row, string value)
+    {
+        return SetInitializerElement(source, column.Initializer, column.Bound.Cells, row, value);
+    }
+
+    private static TextEdit SetRowField(string source, TableModel table, TableColumnModel column, int row, string value)
+    {
+        ArrayLiteralExpressionSyntax rows = table.Syntax.RowsInitializer!;
+        IReadOnlyList<BoundTableConstant> cells = table.Columns[0].Bound.Cells;
+        int segment = cells is InitializerSequence<BoundTableConstant> sequence ? sequence.SegmentAt(row) : row;
+        ObjectLiteralExpressionSyntax record = TableRowInitializers.RowValue(rows.Elements[segment]);
+        ObjectPropertySyntax property = record.Properties.Single(property => TableRowInitializers.PropertyName(property) == column.Name);
+        TextSpan recordSpan = SpanOf(record);
+        TextSpan valueSpan = SpanOf(property.ValueExpression);
+        string updated = ApplyEdits(Slice(source, recordSpan), [new TextEdit(new TextSpan(valueSpan.Start - recordSpan.Start, valueSpan.Length), value)]);
+        return SetInitializerElement(source, rows, cells, row, updated);
+    }
+
+    private static string FormatRowInitializer(TableModel table, IReadOnlyDictionary<string, string> values)
+    {
+        return "{ " + string.Join(", ", table.Columns.Select(column => column.Name + ": " + values[column.Name])) + " }";
+    }
+
+    private static TextEdit SetInitializerElement(string source, ArrayLiteralExpressionSyntax array, IReadOnlyList<BoundTableConstant> cells, int row, string value)
+    {
+        if (cells is not InitializerSequence<BoundTableConstant> sequence)
+        {
+            return new TextEdit(SpanOf(array.Elements[row]), value);
+        }
+        int segment = sequence.SegmentAt(row);
+        int firstRow = sequence.Counts.Take(segment).Sum();
+        int before = row - firstRow;
+        int after = sequence.Counts[segment] - before - 1;
+        ExpressionSyntax syntax = array.Elements[segment];
+        string original = InitializerValueSource(source, syntax);
+        var parts = new List<string>();
+        if (before > 0)
+        {
+            parts.Add(CountedInitializer(original, before));
+        }
+        parts.Add(value);
+        if (after > 0)
+        {
+            parts.Add(CountedInitializer(original, after, syntax is RepeatedInitializerSyntax { Count: null }));
+        }
+        return new TextEdit(SpanOf(syntax), string.Join(", ", parts));
+    }
+
+    private static TextEdit AppendInitializerCell(string source, TableColumnModel column, string value)
+    {
+        ArrayLiteralExpressionSyntax array = column.Initializer;
+        if (column.Bound.Cells is not InitializerSequence<BoundTableConstant> sequence
+            || array.Elements.LastOrDefault() is not RepeatedInitializerSyntax { Count: null } fill)
+        {
+            return AppendEdit(source, array, value);
+        }
+        int count = sequence.Counts[^1];
+        string prefix = count == 0 ? string.Empty : CountedInitializer(InitializerValueSource(source, fill), count) + ", ";
+        return new TextEdit(SpanOf(fill), prefix + value);
+    }
+
+    private static TextEdit DeleteInitializerCell(string source, TableColumnModel column, int row)
+    {
+        return DeleteInitializerElement(source, column.Initializer, column.Bound.Cells, row);
+    }
+
+    private static TextEdit DeleteInitializerElement(string source, ArrayLiteralExpressionSyntax array, IReadOnlyList<BoundTableConstant> cells, int row)
+    {
+        if (cells is not InitializerSequence<BoundTableConstant> sequence)
+        {
+            return DeleteEdit(array, row);
+        }
+        int segment = sequence.SegmentAt(row);
+        ExpressionSyntax syntax = array.Elements[segment];
+        if (syntax is RepeatedInitializerSyntax { Count: null })
+        {
+            // The other columns reduce the shared extent by one; the fill follows it.
+            return new TextEdit(SpanOf(syntax), Slice(source, SpanOf(syntax)));
+        }
+        int remaining = sequence.Counts[segment] - 1;
+        if (remaining == 0)
+        {
+            return DeleteEdit(array, segment);
+        }
+        return new TextEdit(SpanOf(syntax), CountedInitializer(InitializerValueSource(source, syntax), remaining));
+    }
+
     private static TextEdit AppendEdit(string source, ArrayLiteralExpressionSyntax array, string value)
     {
         if (array.Elements.Count == 0)
@@ -1963,10 +2132,28 @@ internal static class TableToolCommand
         }
 
         string inner = Slice(source, new TextSpan(array.OpenBracketToken.Position + 1, array.CloseBracketToken.Position - array.OpenBracketToken.Position - 1));
-        string separator = inner.Contains('\n') || inner.Contains('\r')
-            ? "," + DetectNewline(source) + ElementIndent(source, array) + value
-            : ", " + value;
-        return new TextEdit(new TextSpan(array.CloseBracketToken.Position, 0), separator);
+        bool trailingComma = array.CommaTokens.Count == array.Elements.Count;
+        bool multiline = inner.Contains('\n') || inner.Contains('\r');
+        string separator = multiline
+            ? (trailingComma ? string.Empty : ",") + DetectNewline(source) + ElementIndent(source, array) + value
+            : (trailingComma ? " " : ", ") + value;
+        if (trailingComma)
+        {
+            separator += ",";
+        }
+        int insertion = array.CloseBracketToken.Position;
+        if (multiline)
+        {
+            int lastElementEnd = trailingComma
+                ? array.CommaTokens[^1].Position + 1
+                : SpanOf(array.Elements[^1]).End;
+            string closingWhitespace = Slice(source, new TextSpan(lastElementEnd, array.CloseBracketToken.Position - lastElementEnd));
+            if (string.IsNullOrWhiteSpace(closingWhitespace))
+            {
+                insertion = lastElementEnd;
+            }
+        }
+        return new TextEdit(new TextSpan(insertion, 0), separator);
     }
 
     private static TextEdit DeleteEdit(ArrayLiteralExpressionSyntax array, int row)
@@ -1975,6 +2162,10 @@ internal static class TableToolCommand
         if (count == 1)
         {
             TextSpan span = SpanOf(array.Elements[0]);
+            if (array.CommaTokens.Count == 1)
+            {
+                span = new TextSpan(span.Start, array.CommaTokens[0].Position + 1 - span.Start);
+            }
             return new TextEdit(span, string.Empty);
         }
 
@@ -2085,8 +2276,54 @@ internal static class TableToolCommand
         }
     }
 
-    private static int ParseRequiredNonNegative(ParsedArguments parsed, string option)
-        => ParseNonNegative(parsed.Required(option), option, parsed.Format == "json");
+    private static RowSelection ResolveRowSelection(TableModel table, ParsedArguments parsed)
+    {
+        bool json = parsed.Format == "json";
+        if (parsed.Has("--row") == parsed.Has("--key"))
+        {
+            throw Error("COPE-TABLE-TOOL-0021", "Choose exactly one row selector: '--row <index>' or '--key <value>'.", json);
+        }
+        if (parsed.Has("--row"))
+        {
+            int row = ParseNonNegative(parsed.Required("--row"), "--row", json);
+            EnsureRow(table, row, json);
+            return new RowSelection(row, "row", null, row);
+        }
+
+        TableColumnSymbol? key = table.Bound.TableType.KeyColumn;
+        if (key is null)
+        {
+            throw Error("COPE-TABLE-TOOL-0022", $"Table '{table.Name}' has no declared key. Use '--row <index>' or declare one key column.", json);
+        }
+        TableColumnModel column = table.RequireColumn(key.Name, json);
+        string rawValue = parsed.Required("--key");
+        string literal = ParseCommandValue(rawValue, key.Type, json);
+        object value;
+        if (key.Type == PrimitiveTypeSymbol.String)
+        {
+            value = rawValue;
+        }
+        else if (key.Type == PrimitiveTypeSymbol.Boolean)
+        {
+            value = literal == "true";
+        }
+        else if (key.Type == PrimitiveTypeSymbol.Int)
+        {
+            value = int.Parse(literal, CultureInfo.InvariantCulture);
+        }
+        else
+        {
+            throw Error("COPE-TABLE-TOOL-0010", $"Key type '{key.Type.Name}' is unsupported by command literals.", json);
+        }
+        for (int row = 0; row < table.Bound.RowCount; row++)
+        {
+            if (column.Bound.Cells[row] is BoundTableLiteralConstant cell && Equals(cell.Value, value))
+            {
+                return new RowSelection(row, "key", key.Name, value);
+            }
+        }
+        throw Error("COPE-TABLE-TOOL-0023", $"No row in '{table.Name}' has key '{key.Name}' equal to {JsonSerializer.Serialize(value)}.", json);
+    }
 
     private static int ParseNonNegative(string value, string option, bool json)
     {
@@ -2266,12 +2503,16 @@ internal static class TableToolCommand
         Console.Error.WriteLine("Usage: tscl table list <source> [--format text|json]");
         Console.Error.WriteLine("       tscl table schema|rows <source> <table> [options]");
         Console.Error.WriteLine("       tscl table query <source> <table> [--where <expression>] [--select <columns>] [--group-by <columns>] [--aggregate <calls>] [--order-by <terms>] [--skip n] [--take n] [--format text|json|csv]");
-        Console.Error.WriteLine("       tscl table set|add-row|delete-row <source> <table> [options]");
+        Console.Error.WriteLine("       tscl table set <source> <table> (--row <index> | --key <value>) --column <name> --value <value> [--dry-run] [--format text|json]");
+        Console.Error.WriteLine("       tscl table delete-row <source> <table> (--row <index> | --key <value>) [--dry-run] [--format text|json]");
+        Console.Error.WriteLine("       tscl table add-row <source> <table> --json <row> [--dry-run] [--format text|json]");
         Console.Error.WriteLine("       tscl table validate <source> [--format text|json]");
         Console.Error.WriteLine("       tscl table export|import <source> <table> --format csv [options]");
         Console.Error.WriteLine(code + " error: " + message);
         return UsageExitCode;
     }
+
+    private sealed record RowSelection(int Row, string Kind, string? KeyColumn, object Value);
 
     private sealed record TableDocument(string SourcePath, string SourceText, IReadOnlyList<TableModel> Tables)
     {
@@ -2288,7 +2529,7 @@ internal static class TableToolCommand
                 ?? throw Error("COPE-TABLE-TOOL-0005", $"Column '{name}' was not found in table '{Name}'.", json);
     }
 
-    private sealed record TableColumnModel(TableColumnSyntax Syntax, BoundTableColumnDefinition Bound)
+    private sealed record TableColumnModel(TableColumnSyntax Syntax, BoundTableColumnDefinition Bound, ArrayLiteralExpressionSyntax Initializer)
     {
         public string Name => Syntax.Identifier.Text;
     }

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "success": false,
+  "command": "table.delete-row",
+  "diagnostics": [
+    {
+      "code": "COPE-TABLE-0008",
+      "severity": "error",
+      "message": "Replacement column \u0027Stock.onHand\u0027 has 6 cells; expected 5.",
+      "file": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-row-authoring\\key-edits\\reversed-order.ts",
+      "line": 107,
+      "column": 25
+    }
+  ]
+}

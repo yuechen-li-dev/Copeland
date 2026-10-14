@@ -1348,14 +1348,18 @@ public sealed class BoundDerivedTableDefinition(
     IReadOnlyList<BoundDerivedTableJoin> joins,
     IReadOnlyList<BoundDerivedTableColumnDefinition> projections,
     int rowCount,
-    bool isExported = false) : BoundTableDefinition(tableType, [], rowCount, isExported)
+    bool isExported = false,
+    IReadOnlyList<BoundDerivedTableLocal>? locals = null) : BoundTableDefinition(tableType, [], rowCount, isExported)
 {
     public TableTypeSymbol SourceTable { get; } = sourceTable;
     public string SourceAlias { get; } = sourceAlias;
     public IReadOnlyList<BoundDerivedTableJoin> Joins { get; } = joins;
     public IReadOnlyList<BoundDerivedTableColumnDefinition> Projections { get; } = projections;
+    public IReadOnlyList<BoundDerivedTableLocal> Locals { get; } = locals ?? [];
     public override BoundTableDefinitionKind Kind => BoundTableDefinitionKind.Derived;
 }
+
+public sealed record BoundDerivedTableLocal(string Name, VariableSymbol Variable, BoundExpression Expression, int AuthoredPosition);
 
 public sealed class BoundDerivedTableJoin(
     TableTypeSymbol joinedTable,
@@ -1970,7 +1974,26 @@ public sealed class BoundResultMatchExpression : BoundExpression
     private TypeSymbol TypeImpl { get; }
     public override TypeSymbol Type => TypeImpl;
 }
-public sealed class BoundArrayExpression : BoundExpression { public BoundArrayExpression(IReadOnlyList<BoundExpression> elements, TypeSymbol type) { Elements = elements; TypeImpl = type; } public IReadOnlyList<BoundExpression> Elements { get; } private TypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }
+public sealed class BoundArrayExpression(
+    IReadOnlyList<BoundExpression> elements,
+    TypeSymbol type,
+    IReadOnlyList<int>? counts = null,
+    IReadOnlyDictionary<int, BoundExpression>? deferredCounts = null,
+    ArrayLiteralExpressionSyntax? syntax = null) : BoundExpression
+{
+    public IReadOnlyList<BoundExpression> Elements { get; } = elements;
+    public IReadOnlyList<int>? Counts { get; } = counts;
+    public IReadOnlyDictionary<int, BoundExpression>? DeferredCounts { get; } = deferredCounts;
+    public ArrayLiteralExpressionSyntax? Syntax { get; } = syntax;
+    public int Length => Counts?.Sum() ?? Elements.Count;
+    public override TypeSymbol Type { get; } = type;
+
+    public IReadOnlyList<T> MapLogicalElements<T>(Func<BoundExpression, T> transform)
+    {
+        T[] values = Elements.Select(transform).ToArray();
+        return Counts is null ? values : new Copeland.TS.Mir.InitializerSequence<T>(values, Counts);
+    }
+}
 public sealed class BoundArrayLengthExpression(BoundExpression receiver) : BoundExpression
 {
     public BoundExpression Receiver { get; } = receiver;
@@ -2059,6 +2082,20 @@ public sealed class BoundTableRowsExpression(BoundExpression table, TableTypeSym
     public TableTypeSymbol TableType { get; } = tableType;
     public override TypeSymbol Type => new TableRowsTypeSymbol(TableType);
 }
+
+public sealed class BoundTableRecalculationExpression(
+    TableTypeSymbol tableType,
+    IReadOnlyList<BoundTableRecalculationInput> inputs,
+    IReadOnlyList<BoundTableRecalculationStep> steps) : BoundExpression
+{
+    public TableTypeSymbol TableType { get; } = tableType;
+    public IReadOnlyList<BoundTableRecalculationInput> Inputs { get; } = inputs;
+    public IReadOnlyList<BoundTableRecalculationStep> Steps { get; } = steps;
+    public override TypeSymbol Type => TableType;
+}
+
+public sealed record BoundTableRecalculationInput(TableTypeSymbol TableType, BoundExpression Value);
+public sealed record BoundTableRecalculationStep(TableTypeSymbol TableType, IReadOnlyList<TableTypeSymbol> Inputs);
 public sealed class BoundTableWhereExpression(BoundExpression source, TableTypeSymbol tableType, IReadOnlyList<BoundExpression> predicates) : BoundExpression
 {
     public BoundExpression Source { get; } = source;
@@ -2074,6 +2111,29 @@ public sealed class BoundTableSelectExpression(BoundExpression source, TableType
     private ArrayTypeSymbol TypeImpl { get; } = type;
     public override TypeSymbol Type => TypeImpl;
 }
+
+public sealed class BoundTableSummaryExpression(
+    BoundExpression source,
+    TableTypeSymbol tableType,
+    RecordTypeSymbol recordType,
+    IReadOnlyList<TableColumnSymbol> groupKeys,
+    IReadOnlyList<BoundTableSummaryField> fields,
+    bool isGrouped) : BoundExpression
+{
+    public BoundExpression Source { get; } = source;
+    public TableTypeSymbol TableType { get; } = tableType;
+    public RecordTypeSymbol RecordType { get; } = recordType;
+    public IReadOnlyList<TableColumnSymbol> GroupKeys { get; } = groupKeys;
+    public IReadOnlyList<BoundTableSummaryField> Fields { get; } = fields;
+    public bool IsGrouped { get; } = isGrouped;
+    public override TypeSymbol Type => IsGrouped ? new ArrayTypeSymbol(RecordType) : RecordType;
+}
+
+public sealed record BoundTableSummaryField(
+    RecordFieldSymbol Field,
+    TableColumnSymbol? Input,
+    TableAggregateKind? Aggregate,
+    Copeland.TS.Compiler.TableQueryColumnProvenance Provenance);
 public enum TableAggregateKind { Sum, Average, Min, Max, Count }
 public sealed class BoundTableAggregateExpression(BoundExpression receiver, TableTypeSymbol tableType, TableColumnSymbol column, TableAggregateKind kind, TypeSymbol type) : BoundExpression
 {

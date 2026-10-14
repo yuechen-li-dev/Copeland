@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "success": true,
+  "command": "table.set",
+  "selection": {
+    "row": 4,
+    "kind": "key",
+    "keyColumn": "productId",
+    "value": 100
+  },
+  "changed": {
+    "table": "Stock",
+    "row": 4,
+    "column": "onHand",
+    "oldValue": 4,
+    "newValue": 12,
+    "source": {
+      "file": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-key-edits\\reversed-order.ts",
+      "line": 33,
+      "column": 5
+    }
+  },
+  "dryRun": true
+}

@@ -13,6 +13,39 @@ namespace Copeland.TS.Tests;
 
 public sealed class TableFeatureTests
 {
+    [Fact]
+    public void Derived_match_tracks_scrutinee_branches_and_joined_dependencies()
+    {
+        const string source = """
+            enum Policy { Active, Paused, }
+            record table Products {
+                key id: int = [100, 101];
+                policy: Policy = [Policy.Active, Policy.Paused];
+                reorderPoint: int = [8, 8];
+                targetStock: int = [24, 24];
+            }
+            record table Stock {
+                key reference productId: int -> Products.id = [101, 100];
+                onHand: int = [0, 4];
+            }
+            record table Restock = derive Products as product
+                join Stock as stock through stock.productId {
+                units: int = match product.policy {
+                    Active => if stock.onHand < product.reorderPoint {
+                        product.targetStock - stock.onHand
+                    } else { 0 },
+                    Paused => 0,
+                };
+            }
+            """;
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        BoundDerivedTableDefinition restock = Assert.Single(compilation.BoundCompilation!.Program.Tables.OfType<BoundDerivedTableDefinition>());
+        BoundDerivedTableColumnDefinition projection = Assert.Single(restock.Projections);
+        Assert.Equal(["policy", "reorderPoint", "stock.onHand", "targetStock"], projection.SourceColumns);
+        Assert.Equal("stock", Assert.Single(projection.Relationships).Alias);
+    }
+
     private const string Program = """
         record table Samples {
             x: number = [1, 2];

@@ -87,7 +87,7 @@ public static class MirTextWriter
             sb.AppendLine();
             sb.Append("table ").Append(table.Name).Append(" [").Append(table.Id).Append("] row [").Append(table.RowTypeId).Append("] count ").AppendLine(table.RowCount.ToString(System.Globalization.CultureInfo.InvariantCulture));
             foreach (var column in table.Columns)
-                sb.Append("  column ").Append(column.Name).Append(" [").Append(column.Id).Append("]: ").Append(column.ElementType.Name).Append(" = [").Append(string.Join(", ", column.Constants.Select(FormatTableConstant))).AppendLine("]");
+                sb.Append("  column ").Append(column.Name).Append(" [").Append(column.Id).Append("]: ").Append(column.ElementType.Name).Append(" = [").Append(FormatInitializer(column.Constants, FormatTableConstant)).AppendLine("]");
             if (table.DerivedPlan is MirDerivedTablePlan derived)
             {
                 sb.Append("  derived source [").Append(derived.SourceTableId).Append("] alias ").Append(derived.SourceAlias).Append(" plan ").AppendLine(derived.PlanIdentity);
@@ -99,6 +99,12 @@ public static class MirTextWriter
                         .Append(join.IsOneToOne ? " one-to-one" : " many-to-one")
                         .Append(" lookup ").Append(join.LookupAlias).Append('.').Append(join.LookupColumnId)
                         .AppendLine();
+                }
+                foreach (MirDerivedTableLocal local in derived.Locals)
+                {
+                    sb.Append("    const ").Append(local.Name).Append(" [").Append(local.RuntimeName).Append("]: ")
+                        .Append(local.Type.Identifier).Append(" = ").Append(FormatExpression(local.Expression))
+                        .Append(" at ").Append(local.AuthoredPosition).AppendLine();
                 }
                 foreach (MirDerivedTableColumnPlan projection in derived.Columns)
                 {
@@ -299,11 +305,15 @@ public static class MirTextWriter
         MirFunctionReferenceExpression reference => $"function-ref {reference.FunctionName} : {reference.CallableType.Name}",
         MirCallableConstructionExpression construction => $"callable-new {construction.CodeFunctionName} env({string.Join(", ", construction.Captures.Select(FormatExpression))}) : {construction.CallableType.Name}",
         MirInvokeExpression invoke => $"invoke {FormatExpression(invoke.Callee)}({string.Join(", ", invoke.Arguments.Select(FormatExpression))})",
-        MirArrayExpression a => $"[{string.Join(", ", a.Elements.Select(FormatExpression))}]",
+        MirArrayExpression a => $"[{FormatInitializer(a.Counts is null ? a.Elements : new InitializerSequence<MirExpression>(a.Elements, a.Counts), FormatExpression)}]",
         MirBatchExpression batch => $"batch {FormatExpression(batch.Input)} as {batch.Item.Name}: {batch.ArrayType.Name} {{ {FormatValueBlock(batch.Body)} }}",
         MirRecordConstructionExpression construction => $"record-new [{construction.RecordTypeId}] {{ {string.Join(", ", construction.Initializers.Select(FormatRecordFieldValue))} }}",
         MirRecordFieldAccessExpression access => $"record-get [{access.RecordTypeId}] {FormatExpression(access.Receiver)}.[{access.FieldId}]",
         MirTableReferenceExpression table => $"table-ref [{table.TableId}]",
+        MirTableSummaryExpression summary => FormatTableSummary(summary),
+        MirTableRecalculationExpression recalculation => FormatTableRecalculation(recalculation),
+        MirTableRowsExpression rows => $"rows({FormatExpression(rows.Table)})",
+        MirTableWhereExpression where => $"where({FormatExpression(where.Source)}, {string.Join(", ", where.Predicates.Select(FormatExpression))})",
         MirTableColumnAccessExpression access => $"table-column [{access.TableId}] {FormatExpression(access.Receiver)}.[{access.ColumnId}]",
         MirTableRowAccessExpression access => $"table-row [{access.TableId}] {FormatExpression(access.Receiver)}[{FormatExpression(access.Index)}]",
         MirColumnElementAccessExpression access => $"column-element {FormatExpression(access.Receiver)}[{FormatExpression(access.Index)}]",
@@ -366,10 +376,19 @@ public static class MirTextWriter
     private static bool TsonPlanContainsArray(MirTsonValuePlan plan)
         => plan is MirTsonArrayPlan;
 
+    private static string FormatInitializer<T>(IReadOnlyList<T> values, Func<T, string> format)
+    {
+        if (values is InitializerSequence<T> sequence)
+        {
+            return string.Join(", ", sequence.Values.Select((value, index) => format(value) + " ... " + sequence.Counts[index]));
+        }
+        return string.Join(", ", values.Select(format));
+    }
+
     private static string FormatTableConstant(MirTableConstant constant) => constant switch
     {
         MirTableLiteralConstant literal => literal.Value switch { string text => $"\"{text}\"", bool boolean => boolean ? "true" : "false", _ => Convert.ToString(literal.Value, System.Globalization.CultureInfo.InvariantCulture) ?? "null" },
-        MirTableArrayConstant array => $"[{string.Join(", ", array.Elements.Select(FormatTableConstant))}]: {array.ArrayType.Name}",
+        MirTableArrayConstant array => $"[{FormatInitializer(array.Elements, FormatTableConstant)}]: {array.ArrayType.Name}",
         MirTableRecordConstant record => $"record [{record.RecordTypeId}] {{ {string.Join(", ", record.Fields.Select(field => $"[{field.FieldId}]: {FormatTableConstant(field.Value)}"))} }}",
         MirTableEnumConstant value => $"enum {value.EnumName}.{value.CaseName}{(value.Payloads.Count == 0 ? string.Empty : $"({string.Join(", ", value.Payloads.Select(FormatTableConstant))})")}",
         MirTableResultConstant result => (result.IsOk ? "ok " : "err ") + FormatTableConstant(result.Payload),
@@ -378,6 +397,29 @@ public static class MirTextWriter
 
     private static string FormatRecordFieldValue(MirRecordFieldValue fieldValue)
         => $"[{fieldValue.FieldId}]: {FormatExpression(fieldValue.Value)}";
+
+    private static string FormatTableSummary(MirTableSummaryExpression summary)
+    {
+        var fields = new List<string>();
+        foreach (MirTableSummaryField field in summary.Fields)
+        {
+            string operation = field.Aggregate?.ToString() ?? "key";
+            string inputs = string.Join(",", field.Inputs);
+            string relationships = string.Join(",", field.Relationships);
+            fields.Add($"{field.FieldId}={operation}({field.Input}) inputs({inputs}) relationships({relationships})");
+        }
+        string kind = summary.IsGrouped ? "groups" : "total";
+        string keys = string.Join(",", summary.GroupKeys.Select(key => key.ColumnId));
+        return $"table-summary [{summary.TableId}] {FormatExpression(summary.Source)} "
+            + $"into [{summary.RecordTypeId}] {kind} by({keys}) {{ {string.Join(", ", fields)} }}";
+    }
+
+    private static string FormatTableRecalculation(MirTableRecalculationExpression recalculation)
+    {
+        string inputs = string.Join(", ", recalculation.Inputs.Select(input => $"[{input.TableId}]={FormatExpression(input.Value)}"));
+        string steps = string.Join("; ", recalculation.Steps.Select(step => $"[{step.TableId}]({string.Join(",", step.Inputs)})"));
+        return $"table-recalculate [{recalculation.TableId}] inputs({inputs}) steps({steps})";
+    }
 
     private static string FormatPropagationTarget(MirPropagationTarget target)
         => target switch

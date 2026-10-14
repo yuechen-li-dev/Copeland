@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "sdk": "10.0.401",
+  "testProjects": 8,
+  "tests": 2357,
+  "failed": 0,
+  "skipped": 0,
+  "newCompilerCases": 29,
+  "newCliCases": 3,
+  "rowChecks": 46,
+  "cafeChecks": 66,
+  "keyChecks": 96,
+  "compiledConsumerAssertions": 13,
+  "buildWarnings": 0,
+  "buildErrors": 0,
+  "sourceSha256": "B9F526AA4928A6E3773AEF81CCDBD8F6F25B393BFD84E3127BD731DC20D1B10C"
+}

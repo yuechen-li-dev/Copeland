@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "success": false,
+  "command": "table.set",
+  "diagnostics": [
+    {
+      "code": "COPE-TABLE-0038",
+      "severity": "error",
+      "message": "Reference \u0027Products.supplierId\u0027 contains unresolved authored value 999; no \u0027Suppliers.id\u0027 key matches it.",
+      "file": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-friction-m12\\Scenario.ts",
+      "line": 22,
+      "column": 15
+    }
+  ]
+}

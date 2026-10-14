@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "success": true,
+  "command": "table.add-row",
+  "added": {
+    "table": "Suppliers",
+    "row": 3,
+    "values": {
+      "id": 40,
+      "name": "Trial Supplier",
+      "leadDays": 1
+    }
+  },
+  "dryRun": false
+}

@@ -2540,8 +2540,19 @@ public sealed class Parser
             }
             var derivedOpenBrace = Match(SyntaxKind.OpenBraceToken);
             var derivedColumns = new List<DerivedTableColumnSyntax>();
+            var derivedLocals = new List<VariableDeclarationStatementSyntax>();
             while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
             {
+                int columnStart = _position;
+                if (Current.Kind is SyntaxKind.ConstKeyword or SyntaxKind.LetKeyword or SyntaxKind.VarKeyword)
+                {
+                    if (derivedColumns.Count > 0)
+                    {
+                        _diagnostics.Report("COPE-DERIVE-0011", "Declare per-row const locals before output columns.", Current.Position, Current.Text.Length);
+                    }
+                    derivedLocals.Add(ParseVariableDeclarationStatement(requireSemicolon: true));
+                    continue;
+                }
                 var name = Match(SyntaxKind.IdentifierToken);
                 var colon = Match(SyntaxKind.ColonToken);
                 TypeSyntax? type = null;
@@ -2552,11 +2563,16 @@ public sealed class Parser
                 SyntaxToken? columnEquals = Current.Kind == SyntaxKind.EqualsToken ? NextToken() : null;
                 var expression = ParseExpression();
                 derivedColumns.Add(new DerivedTableColumnSyntax(name, colon, type, columnEquals, expression, Match(SyntaxKind.SemicolonToken)));
+                if (_position == columnStart)
+                {
+                    ReportUnexpectedToken(Current);
+                    NextToken();
+                }
             }
             var derivedCloseBrace = Match(SyntaxKind.CloseBraceToken);
             return new TableDeclarationSyntax(recordKeyword, tableKeyword, identifier, null,
                 derivedOpenBrace, [], derivedCloseBrace, isExported,
-                new DerivedTableClauseSyntax(equals, derive, source, asKeyword, alias, joins, derivedOpenBrace, derivedColumns, derivedCloseBrace));
+                new DerivedTableClauseSyntax(equals, derive, source, asKeyword, alias, joins, derivedOpenBrace, derivedColumns, derivedCloseBrace) { Locals = derivedLocals });
         }
         TableAssetClauseSyntax? assetClause = null;
         if (Current.Kind == SyntaxKind.IdentifierToken
@@ -2570,6 +2586,7 @@ public sealed class Parser
         var columns = new List<TableColumnSyntax>();
         while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
         {
+            int columnStart = _position;
             SyntaxToken? keyKeyword = IsWord(Current, "key") ? NextToken() : null;
             SyntaxToken? referenceKeyword = IsWord(Current, "reference") ? NextToken() : null;
             var name = Match(SyntaxKind.IdentifierToken);
@@ -2623,8 +2640,9 @@ public sealed class Parser
                         Match(SyntaxKind.DotToken);
                         referencedColumn = Match(SyntaxKind.IdentifierToken);
                     }
-                    equals = Match(SyntaxKind.EqualsToken);
+                    equals = Current.Kind == SyntaxKind.SemicolonToken ? null : Match(SyntaxKind.EqualsToken);
                 }
+                hasInlineData = Current.Kind == SyntaxKind.OpenBracketToken || equals is not null;
                 cells = Current.Kind == SyntaxKind.OpenBracketToken
                     ? ParseArrayLiteralExpression()
                     : new ArrayLiteralExpressionSyntax(
@@ -2632,7 +2650,6 @@ public sealed class Parser
                         [],
                         [],
                         MissingToken(SyntaxKind.CloseBracketToken, Current.Position));
-                hasInlineData = true;
             }
             columns.Add(new TableColumnSyntax(
                 name,
@@ -2647,6 +2664,21 @@ public sealed class Parser
                 referenceArrow,
                 referencedTable,
                 referencedColumn));
+            if (_position == columnStart)
+            {
+                ReportUnexpectedToken(Current);
+                NextToken();
+            }
+        }
+        var closeBrace = Match(SyntaxKind.CloseBraceToken);
+        SyntaxToken? rowsEquals = null;
+        ArrayLiteralExpressionSyntax? rows = null;
+        SyntaxToken? rowsSemicolon = null;
+        if (Current.Kind == SyntaxKind.EqualsToken)
+        {
+            rowsEquals = NextToken();
+            rows = ParseArrayLiteralExpression();
+            rowsSemicolon = Match(SyntaxKind.SemicolonToken);
         }
         return new TableDeclarationSyntax(
             recordKeyword,
@@ -2655,8 +2687,13 @@ public sealed class Parser
             assetClause,
             openBrace,
             columns,
-            Match(SyntaxKind.CloseBraceToken),
-            isExported);
+            closeBrace,
+            isExported)
+        {
+            RowsEqualsToken = rowsEquals,
+            RowsInitializer = rows,
+            RowsSemicolonToken = rowsSemicolon,
+        };
     }
 
     private TypeSyntax ParsePostfixTypeSyntax()
@@ -3071,6 +3108,8 @@ public sealed class Parser
                 }
 
                 if (Current.Kind != SyntaxKind.SemicolonToken
+                    && Current.Kind != SyntaxKind.EllipsisToken
+                    && Current.Kind != SyntaxKind.CloseBracketToken
                     && Current.Kind != SyntaxKind.CloseParenToken
                     && Current.Kind != SyntaxKind.CommaToken
                     && Current.Kind != SyntaxKind.CloseBraceToken
@@ -3758,7 +3797,16 @@ public sealed class Parser
 
         while (Current.Kind != SyntaxKind.CloseBracketToken && Current.Kind != SyntaxKind.EndOfFileToken)
         {
-            elements.Add(ParseExpression());
+            ExpressionSyntax element = ParseExpression();
+            if (Current.Kind == SyntaxKind.EllipsisToken)
+            {
+                SyntaxToken ellipsis = NextToken();
+                ExpressionSyntax? count = Current.Kind is SyntaxKind.CommaToken or SyntaxKind.CloseBracketToken
+                    ? null
+                    : ParseExpression();
+                element = new RepeatedInitializerSyntax(element, ellipsis, count);
+            }
+            elements.Add(element);
             if (Current.Kind != SyntaxKind.CommaToken)
             {
                 break;
@@ -4228,6 +4276,12 @@ public sealed class Parser
 
     private MissingExpressionSyntax ParseMissingExpression()
     {
+        if (Current.Kind == SyntaxKind.EllipsisToken)
+        {
+            SyntaxToken token = NextToken();
+            _diagnostics.Report("COPE-INIT-0008", "Ellipsis is postfix initializer repetition inside an array literal; spread and rest syntax are unsupported.", token.Position, token.Text.Length);
+            return new MissingExpressionSyntax(MissingToken(SyntaxKind.IdentifierToken, token.Position));
+        }
         _diagnostics.Report("COPE-PARSE-0002", "Expected expression.", Current.Position, 0);
         return new MissingExpressionSyntax(MissingToken(SyntaxKind.IdentifierToken, Current.Position));
     }
@@ -4239,6 +4293,12 @@ public sealed class Parser
             return NextToken();
         }
 
+        if (Current.Kind == SyntaxKind.EllipsisToken)
+        {
+            SyntaxToken token = NextToken();
+            _diagnostics.Report("COPE-INIT-0008", "Ellipsis is postfix initializer repetition inside an array literal; spread and rest syntax are unsupported.", token.Position, token.Text.Length);
+            return MissingToken(kind, token.Position);
+        }
         _diagnostics.Report("COPE-PARSE-0004", $"Expected token '{SyntaxFacts.GetText(kind) ?? kind.ToString()}'.", Current.Position, 0);
         return MissingToken(kind, Current.Position);
     }

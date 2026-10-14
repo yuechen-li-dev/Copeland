@@ -1,0 +1,84 @@
+{
+  "success": true,
+  "revision": "375704880252069a4a60558403053d4dc26474ce",
+  "workingTree": "Includes previous uncommitted M12 and repetition work",
+  "dotnet": "10.0.401",
+  "buildWarnings": 0,
+  "buildErrors": 0,
+  "tests": {
+    "passed": 2325,
+    "failed": 0,
+    "skipped": 0,
+    "projects": 8
+  },
+  "newKeyEditCases": 21,
+  "keyQualification": {
+    "success": true,
+    "checks": 96,
+    "baselineCents": 31210.0,
+    "scenarios": [
+      {
+        "name": "authored-order",
+        "selectedKey": 100,
+        "resolvedRow": 1,
+        "editedCents": 12710.0,
+        "editedUnits": 47.0,
+        "editedOrders": 2
+      },
+      {
+        "name": "reversed-order",
+        "selectedKey": 100,
+        "resolvedRow": 4,
+        "editedCents": 12710.0,
+        "editedUnits": 47.0,
+        "editedOrders": 2
+      }
+    ],
+    "sourceSha256": "B996633C956BA4ED6961B8DB3D4AE3DFA0F61091FE17B98E2672ED1F0903FCF2",
+    "executor": "csharp-relation-plan"
+  },
+  "workbookQualification": {
+    "success": true,
+    "checks": 66,
+    "baselineCents": 31210,
+    "editedCents": 12710,
+    "stockSelector": {
+      "keyColumn": "productId",
+      "value": 100
+    },
+    "sourceSha256": "B996633C956BA4ED6961B8DB3D4AE3DFA0F61091FE17B98E2672ED1F0903FCF2",
+    "executor": "csharp-relation-plan",
+    "nativeExcel": "not exercised"
+  },
+  "deferred": [
+    "Existing escaped strings retain raw literal interiors",
+    "Row deletion rejects incompatible fixed-length snapshots",
+    "No JavaScript derived-table/browser qualification"
+  ],
+  "sourceHashes": [
+    {
+      "path": "src/Copeland/Copeland.Cli/TableToolCommand.cs",
+      "sha256": "97AA8BD538DEE39383A27F9FD4A3FB54A30D97ED5309903263A87FE96D2DBD1C"
+    },
+    {
+      "path": "tests/Copeland/Copeland.Cli.Tests/CliIntegrationTests.cs",
+      "sha256": "A70431AABC15AC01A805EE62EFA25253AC310C992C3601C75715E9EF8C28DDC3"
+    },
+    {
+      "path": "tests/Copeland/Copeland.Cli.Tests/CliIntegrationTests.TableKeys.cs",
+      "sha256": "606D0E083655EDB1B9C843DF3BE82ED5D2A3647B5D39F73C367A4C8EACB5BC2C"
+    },
+    {
+      "path": "tools/copeland-tablescript-key-edits/qualify.ps1",
+      "sha256": "1A517408CE13D04D02BC59CA1F866D9118A6D7005227868BE734446CAC738191"
+    },
+    {
+      "path": "samples/copeland-ts/tablescript-friction-m12/qualify.ps1",
+      "sha256": "CD1EF673CEA5BDCE827D8FBA80A36B31AD82661347FFEDFD5CED00A877ADEC7D"
+    },
+    {
+      "path": "samples/copeland-ts/tablescript-friction-m12/Workbook/Workbook.ts",
+      "sha256": "B996633C956BA4ED6961B8DB3D4AE3DFA0F61091FE17B98E2672ED1F0903FCF2"
+    }
+  ]
+}

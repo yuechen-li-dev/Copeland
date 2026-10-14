@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "success": true,
+  "command": "table.query",
+  "source": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-typed-summaries\\Scenario.ts",
+  "table": "PurchasePlan",
+  "executor": "csharp-relation-plan",
+  "backend": "roslyn-incremental-generator",
+  "queryArtifactId": "EDF1F54FFB31EBAF",
+  "schema": {
+    "columns": [
+      {
+        "name": "totalCents",
+        "type": "int",
+        "provenance": {
+          "kind": "aggregate",
+          "sourceTable": "PurchasePlan",
+          "inputs": [
+            "orderCents"
+          ],
+          "relationships": [
+            "Stock.productId -\u003E Products.id"
+          ],
+          "aggregate": "sum",
+          "filter": "__q6 \u003E 0"
+        }
+      },
+      {
+        "name": "units",
+        "type": "int",
+        "provenance": {
+          "kind": "aggregate",
+          "sourceTable": "PurchasePlan",
+          "inputs": [
+            "orderUnits"
+          ],
+          "relationships": [
+            "Stock.productId -\u003E Products.id"
+          ],
+          "aggregate": "sum",
+          "filter": "__q6 \u003E 0"
+        }
+      },
+      {
+        "name": "lines",
+        "type": "int",
+        "provenance": {
+          "kind": "aggregate",
+          "sourceTable": "PurchasePlan",
+          "inputs": [],
+          "relationships": [],
+          "aggregate": "count",
+          "filter": "__q6 \u003E 0"
+        }
+      }
+    ]
+  },
+  "query": {
+    "where": "__q6 \u003E 0",
+    "select": [],
+    "groupBy": [],
+    "aggregates": [
+      {
+        "function": "sum",
+        "input": "orderCents",
+        "as": "totalCents"
+      },
+      {
+        "function": "sum",
+        "input": "orderUnits",
+        "as": "units"
+      },
+      {
+        "function": "count",
+        "input": null,
+        "as": "lines"
+      }
+    ],
+    "orderBy": [],
+    "skip": 0,
+    "take": 6
+  },
+  "rows": [
+    {
+      "totalCents": 31210,
+      "units": 67,
+      "lines": 3
+    }
+  ],
+  "rowCount": 1,
+  "diagnostics": []
+}

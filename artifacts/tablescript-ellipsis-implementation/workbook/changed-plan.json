@@ -1,0 +1,214 @@
+{
+  "schemaVersion": 1,
+  "success": true,
+  "command": "table.query",
+  "source": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-ellipsis-implementation\\workbook\\Scenario.ts",
+  "table": "PurchasePlan",
+  "executor": "csharp-relation-plan",
+  "backend": "roslyn-incremental-generator",
+  "queryArtifactId": "9A1C04CBAD5FCDA6",
+  "schema": {
+    "columns": [
+      {
+        "name": "productId",
+        "type": "int",
+        "provenance": {
+          "kind": "copied",
+          "sourceTable": "Restock",
+          "inputs": [
+            "productId"
+          ],
+          "relationships": [],
+          "aggregate": null,
+          "filter": null
+        }
+      },
+      {
+        "name": "productName",
+        "type": "string",
+        "provenance": {
+          "kind": "copied",
+          "sourceTable": "Restock",
+          "inputs": [
+            "productName"
+          ],
+          "relationships": [],
+          "aggregate": null,
+          "filter": null
+        }
+      },
+      {
+        "name": "supplierId",
+        "type": "int",
+        "provenance": {
+          "kind": "copied",
+          "sourceTable": "Restock",
+          "inputs": [
+            "supplierId"
+          ],
+          "relationships": [],
+          "aggregate": null,
+          "filter": null
+        }
+      },
+      {
+        "name": "supplierName",
+        "type": "string",
+        "provenance": {
+          "kind": "copied",
+          "sourceTable": "Restock",
+          "inputs": [
+            "supplierName"
+          ],
+          "relationships": [],
+          "aggregate": null,
+          "filter": null
+        }
+      },
+      {
+        "name": "leadDays",
+        "type": "int",
+        "provenance": {
+          "kind": "copied",
+          "sourceTable": "Restock",
+          "inputs": [
+            "leadDays"
+          ],
+          "relationships": [],
+          "aggregate": null,
+          "filter": null
+        }
+      },
+      {
+        "name": "onHand",
+        "type": "int",
+        "provenance": {
+          "kind": "copied",
+          "sourceTable": "Restock",
+          "inputs": [
+            "onHand"
+          ],
+          "relationships": [],
+          "aggregate": null,
+          "filter": null
+        }
+      },
+      {
+        "name": "orderUnits",
+        "type": "int",
+        "provenance": {
+          "kind": "copied",
+          "sourceTable": "Restock",
+          "inputs": [
+            "orderUnits"
+          ],
+          "relationships": [],
+          "aggregate": null,
+          "filter": null
+        }
+      },
+      {
+        "name": "orderCents",
+        "type": "int",
+        "provenance": {
+          "kind": "computed",
+          "sourceTable": "Restock",
+          "inputs": [
+            "costCents",
+            "orderUnits"
+          ],
+          "relationships": [],
+          "aggregate": null,
+          "filter": null
+        }
+      }
+    ]
+  },
+  "query": {
+    "where": null,
+    "select": [
+      "productId",
+      "productName",
+      "supplierId",
+      "supplierName",
+      "leadDays",
+      "onHand",
+      "orderUnits",
+      "orderCents"
+    ],
+    "groupBy": [],
+    "aggregates": [],
+    "orderBy": [
+      {
+        "column": "productId",
+        "direction": "ascending"
+      }
+    ],
+    "skip": 0,
+    "take": 6
+  },
+  "rows": [
+    {
+      "productId": 100,
+      "productName": "Espresso beans",
+      "supplierId": 10,
+      "supplierName": "North Roastery",
+      "leadDays": 3,
+      "onHand": 12,
+      "orderUnits": 0,
+      "orderCents": 0
+    },
+    {
+      "productId": 101,
+      "productName": "Filter beans",
+      "supplierId": 10,
+      "supplierName": "North Roastery",
+      "leadDays": 3,
+      "onHand": 10,
+      "orderUnits": 0,
+      "orderCents": 0
+    },
+    {
+      "productId": 102,
+      "productName": "Earl Grey",
+      "supplierId": 20,
+      "supplierName": "Leaf House",
+      "leadDays": 5,
+      "onHand": 2,
+      "orderUnits": 16,
+      "orderCents": 4960
+    },
+    {
+      "productId": 103,
+      "productName": "Oat milk",
+      "supplierId": 30,
+      "supplierName": "Pantry Co",
+      "leadDays": 2,
+      "onHand": 5,
+      "orderUnits": 31,
+      "orderCents": 7750
+    },
+    {
+      "productId": 104,
+      "productName": "Cocoa",
+      "supplierId": 30,
+      "supplierName": "Pantry Co",
+      "leadDays": 2,
+      "onHand": 8,
+      "orderUnits": 0,
+      "orderCents": 0
+    },
+    {
+      "productId": 105,
+      "productName": "Decaf beans",
+      "supplierId": 10,
+      "supplierName": "North Roastery",
+      "leadDays": 3,
+      "onHand": 0,
+      "orderUnits": 0,
+      "orderCents": 0
+    }
+  ],
+  "rowCount": 6,
+  "diagnostics": []
+}

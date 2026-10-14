@@ -8,6 +8,12 @@ semantic owner. Stable IDs are not renumbered by this consolidation.
 | `COPE-PARSE-*` | lexer/parser | malformed syntax and recovery |
 | `COPE-BIND-*` | binder | declarations, symbols, names, scopes |
 | `COPE-TYPE-*` | binder/type rules | assignments, calls, conditions, Result handling |
+| `COPE-INIT-*` | parser/initializer binding | postfix repetition counts, remainder extent, admission limit, unsupported spread |
+| `COPE-ROWS-*` | table authoring binder | missing row initializer, mixed authoring forms, non-object rows, unknown/duplicate/missing fields |
+| `COPE-DERIVE-*` | relation binder/parser | derived relation types and purity; mutable locals (`0010`), locals after output columns (`0011`), local name conflicts (`0012`) |
+| `COPE-SUMMARY-*` | typed summary binder | missing source metadata (`0001`), record type (`0002`), descriptor shape (`0003`), fields (`0004`), types (`0005`), group keys (`0006`), unsupported aggregate (`0007`), direct input/key copy (`0008`), missing aggregate (`0009`), stored views/standalone grouping (`0010`), direct async/generator lowering (`0011`) |
+| `COPE-JS-SUMMARY-0001` | JavaScript backend | typed summary execution requires the C# backend |
+| `COPE-RECALC-*` | snapshot-relative relation binder | derived declaration receiver (`0001`), nonempty input literal (`0002`), unknown/derived/unrelated/duplicate input (`0003`), nominal snapshot type (`0004`), direct async/generator lowering (`0005`) |
 | `COPE-PROFILE-*` | binder profile checks | unsupported TypeScript-shaped syntax (`var`, `null`, ternary, optional chain) |
 | `COPE-REC-*`, `COPE-ENUM-*`, `COPE-MATCH-*` | record/enum/match binding | nominal data construction and exhaustiveness |
 | `COPE-TRY-*` | fallibility binder | `try` / `except` shape and targeted propagation |

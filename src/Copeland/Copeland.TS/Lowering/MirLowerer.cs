@@ -241,7 +241,7 @@ public static class MirLowerer
                 new MirTableColumnId(column.Id.ToString()),
                 column.Name,
                 ToMirType(column.Type),
-                definition is BoundDerivedTableDefinition ? [] : definition.Columns.Single(candidate => candidate.Column == column).Cells.Select(LowerTableConstant).ToArray(),
+                definition is BoundDerivedTableDefinition ? [] : LowerTableCells(definition.Columns.Single(candidate => candidate.Column == column).Cells),
                 column.Reference is null
                     ? null
                     : new MirTableReferenceDefinition(
@@ -275,8 +275,17 @@ public static class MirLowerer
                         projection.CopiedSourceColumn,
                         projection.SourceColumns,
                         projection.Relationships.Select(join => join.Relationship.SourceTable.StableIdentity + "." + join.Relationship.SourceColumn.Name + "->" + join.Relationship.TargetTable.StableIdentity + "." + join.Relationship.TargetKey.Name).ToArray(),
-                        projection.ExpressionPosition)).ToArray())
+                        projection.ExpressionPosition)).ToArray(),
+                    derivedDefinition.Locals.Select(local => new MirDerivedTableLocal(
+                        local.Name, local.Variable.Name, ToMirType(local.Variable.Type), LowerExpression(local.Expression), local.AuthoredPosition)).ToArray())
                 : null);
+
+    private static IReadOnlyList<MirTableConstant> LowerTableCells(IReadOnlyList<BoundTableConstant> cells)
+    {
+        return cells is InitializerSequence<BoundTableConstant> sequence
+            ? sequence.Map(LowerTableConstant)
+            : cells.Select(LowerTableConstant).ToArray();
+    }
 
     private static MirTableConstant LowerTableConstant(BoundTableConstant constant)
         => constant switch
@@ -284,7 +293,7 @@ public static class MirLowerer
             BoundTableLiteralConstant literal => new MirTableLiteralConstant(literal.Value, ToMirType(literal.Type)),
             BoundTableArrayConstant array => new MirTableArrayConstant(
                 (MirArrayType)ToMirType(array.ArrayType),
-                array.Elements.Select(LowerTableConstant).ToArray()),
+                LowerTableCells(array.Elements)),
             BoundTableRecordConstant record => new MirTableRecordConstant(
                 ToMirRecordTypeId(record.RecordType.Id),
                 record.Fields.Select(field => new MirTableRecordFieldConstant(ToMirRecordFieldId(field.Field.Id), LowerTableConstant(field.Value))).ToArray(),
@@ -743,6 +752,40 @@ public static class MirLowerer
             });
         }
 
+        MirAsyncExecutionStateId LowerRepeatedArray(
+            MirArrayExpression array,
+            Func<MirExpression, MirAsyncExecutionStateId> continuation)
+        {
+            var arrayType = (MirArrayType)array.Type;
+            var storageType = new MirMutableArrayType(arrayType.ElementType);
+            var intType = new MirNamedType("int");
+            MirFrameSlotId storageSlot = NewTemporarySlot(storageType);
+            MirFrameSlotId indexSlot = NewTemporarySlot(intType);
+            var storage = new MirAsyncFrameSlotExpression(storageSlot, storageType);
+            var indexValue = new MirAsyncFrameSlotExpression(indexSlot, intType);
+            MirAsyncExecutionStateId nextState = continuation(new MirMutableArrayFreezeExpression(storage, arrayType));
+            int end = array.Length;
+            for (int segment = array.Elements.Count - 1; segment >= 0; segment--)
+            {
+                int count = array.Counts![segment];
+                if (count > 0)
+                {
+                    MirAsyncExecutionStateId head = NewId();
+                    MirAsyncExecutionStateId increment = AddFrameEvaluation(indexSlot,
+                        new MirBinaryExpression("+", indexValue, new MirLiteralExpression(1, intType), intType), head);
+                    MirAsyncExecutionStateId body = LowerExpression(array.Elements[segment], value =>
+                        AddStatement(new MirExpressionStatement(new MirMutableArrayElementAssignmentExpression(storage, indexValue, value, arrayType.ElementType)), increment));
+                    Add(new MirAsyncBranchExecutionState(head,
+                        new MirBinaryExpression("<", indexValue, new MirLiteralExpression(end, intType), new MirNamedType("boolean")), body, nextState));
+                    nextState = head;
+                }
+                end -= count;
+            }
+            MirAsyncExecutionStateId initializeIndex = AddFrameEvaluation(indexSlot, new MirLiteralExpression(0, intType), nextState);
+            return AddFrameEvaluation(storageSlot,
+                new MirMutableArrayConstructionExpression(new MirLiteralExpression(array.Length, intType), storageType), initializeIndex);
+        }
+
         MirAsyncExecutionStateId LowerExpression(
             MirExpression expression,
             Func<MirExpression, MirAsyncExecutionStateId> continuation)
@@ -793,6 +836,7 @@ public static class MirLowerer
                     continuation(new MirRecordFieldAccessExpression(receiver, access.RecordTypeId, access.FieldId, access.Type))),
                 MirEnumValueExpression value => LowerArguments(value.Arguments, 0, [], arguments =>
                     continuation(new MirEnumValueExpression(value.EnumName, value.CaseName, arguments, value.Type))),
+                MirArrayExpression { Counts: not null } array => LowerRepeatedArray(array, continuation),
                 MirArrayExpression array => LowerArguments(array.Elements, 0, [], elements =>
                     continuation(new MirArrayExpression(elements, array.Type))),
                 MirArrayLengthExpression length => LowerExpression(length.Receiver, receiver =>
@@ -1401,7 +1445,7 @@ public static class MirLowerer
             BoundOkExpression ok => new MirOkExpression(LowerExpression(ok.Payload), (MirResultType)ToMirType(ok.Type)),
             BoundErrExpression err => new MirErrExpression(LowerExpression(err.Payload), (MirResultType)ToMirType(err.Type)),
             BoundUnitExpression => new MirUnitExpression(),
-            BoundArrayExpression a => new MirArrayExpression(a.Elements.Select(LowerExpression).ToArray(), ToMirType(a.Type)),
+            BoundArrayExpression a => new MirArrayExpression(a.Elements.Select(LowerExpression).ToArray(), ToMirType(a.Type), a.Counts),
             BoundArrayLengthExpression length => new MirArrayLengthExpression(LowerExpression(length.Receiver)),
             BoundArrayElementAccessExpression access => new MirArrayElementAccessExpression(LowerExpression(access.Receiver), LowerExpression(access.Index), ToMirType(access.Type)),
             BoundArrayIterableExpression iterable => new MirArrayIterableExpression(LowerExpression(iterable.Receiver), (MirIterableType)ToMirType(iterable.Type)),
@@ -1434,6 +1478,14 @@ public static class MirLowerer
                 LowerExpression(rows.Table),
                 new MirTableId(rows.TableType.Id.ToString()),
                 new MirIterableType(ToMirType(rows.TableType.RowType))),
+            BoundTableRecalculationExpression recalculation => new MirTableRecalculationExpression(
+                new MirTableId(recalculation.TableType.Id.ToString()),
+                recalculation.Inputs.Select(input => new MirTableRecalculationInput(
+                    new MirTableId(input.TableType.Id.ToString()), LowerExpression(input.Value))).ToArray(),
+                recalculation.Steps.Select(step => new MirTableRecalculationStep(
+                    new MirTableId(step.TableType.Id.ToString()),
+                    step.Inputs.Select(input => new MirTableId(input.Id.ToString())).ToArray())).ToArray(),
+                (MirTableType)ToMirType(recalculation.Type)),
             BoundTableWhereExpression where => new MirTableWhereExpression(
                 LowerExpression(where.Source),
                 new MirTableId(where.TableType.Id.ToString()),
@@ -1444,6 +1496,21 @@ public static class MirLowerer
                 new MirTableId(select.TableType.Id.ToString()),
                 LowerExpression(select.Projector),
                 (MirArrayType)ToMirType(select.Type)),
+            BoundTableSummaryExpression summary => new MirTableSummaryExpression(
+                LowerExpression(summary.Source),
+                new MirTableId(summary.TableType.Id.ToString()),
+                new MirRecordTypeId(summary.RecordType.Id.ToString()),
+                ToMirType(summary.RecordType),
+                summary.GroupKeys.Select(key => new MirTableSummaryKey(new MirTableColumnId(key.Id.ToString()), ToMirType(key.Type))).ToArray(),
+                summary.Fields.Select(field => new MirTableSummaryField(
+                    new MirRecordFieldId(field.Field.Id.ToString()),
+                    field.Input is null ? null : new MirTableColumnId(field.Input.Id.ToString()),
+                    field.Aggregate is null ? null : (MirTableAggregateKind)field.Aggregate,
+                    ToMirType(field.Field.Type),
+                    field.Provenance.Inputs,
+                    field.Provenance.Relationships)).ToArray(),
+                summary.IsGrouped,
+                ToMirType(summary.Type)),
             BoundTableAggregateExpression aggregate => new MirTableAggregateExpression(
                 LowerExpression(aggregate.Receiver),
                 new MirTableId(aggregate.TableType.Id.ToString()),

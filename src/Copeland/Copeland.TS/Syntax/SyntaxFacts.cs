@@ -83,6 +83,7 @@ public static class SyntaxFacts
             SyntaxKind.CloseBracketToken => "]",
             SyntaxKind.CommaToken => ",",
             SyntaxKind.DotToken => ".",
+            SyntaxKind.EllipsisToken => "...",
             SyntaxKind.ColonToken => ":",
             SyntaxKind.SemicolonToken => ";",
             SyntaxKind.QuestionToken => "?",

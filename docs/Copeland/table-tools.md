@@ -17,8 +17,20 @@ commands are read-only, report a deterministic `graphFingerprint` in JSON, and
 never install packages or start a browser. A source without a manifest remains
 the intentionally limited source-only mode.
 
-Record tables remain typed, immutable, columnar Copeland source. A row is only
-a projected view and an editing intent.
+Record tables remain typed, immutable, columnar Copeland data. Source may author
+either columns or rows. Both forms bind into the same columns, keys, and references;
+CLI edits preserve the chosen form. See [row authoring and calculation locals](language/copeland-ts-table-authoring.md).
+
+Functions can materialize [typed summaries](language/copeland-ts-table-summaries.md)
+with `rows().summarize<Record>(...)` or
+`rows().groupBy(...).summarize<Record>(...)`. These return a declared record or
+record array through C#; the ad-hoc CLI query interface below remains available.
+
+For in-memory scenario functions, use
+[snapshot-relative recalculation](language/copeland-ts-table-scenarios.md):
+`PurchasePlan.recalculate({ Stock: revisedStock })`. It returns a fresh plan through
+C# while preserving global tables and authored source. CLI source-copy queries
+remain available as an independent calculation comparison.
 
 ```console
 tscl table list Workbook.ts --format json
@@ -26,8 +38,10 @@ tscl table schema Workbook.ts Scores --format json
 tscl table rows Workbook.ts Scores --offset 0 --limit 20 --format json
 tscl table query Workbook.ts Scores --where 'score >= 90.0' --select 'name, score' --order-by 'score desc' --take 20
 tscl table set Workbook.ts Scores --row 1 --column score --value 84.0
+tscl table set Workbook.ts Stock --key 100 --column onHand --value 12 --dry-run
 tscl table add-row Workbook.ts Employees --json '{"id":4,"name":"Dana","department":"Engineering"}'
 tscl table delete-row Workbook.ts Employees --row 2
+tscl table delete-row Workbook.ts Employees --key 4
 tscl table validate Workbook.ts --format json
 tscl table export Workbook.ts Scores --format csv --output Scores.csv --result-format json
 tscl table import Workbook.ts Scores --format csv --input Scores.csv --replace --result-format json
@@ -149,6 +163,13 @@ generator materializer). `--format csv` writes selected headers
 and rows to stdout with invariant scalar formatting and CSV escaping. `--explain`
 and `--dry-run` bind and describe the plan without materializing rows.
 
+Query enum cells preserve the authored `table rows` representation: a zero-payload
+case is its name, and a case with scalar or nested-enum payloads is
+`{ "case": "CaseName", "values": [...] }` in declared payload order. CSV uses
+the case name or a CSV-escaped JSON cell. See the
+[café restocking comparison](reviews/tablescript-friction-m12.md) for a complete
+workbook, guarded-edit qualification, and the current structured-cell boundaries.
+
 For tools, `--query-json` reads a bounded JSON request with `where`, `select`,
 `groupBy`, `aggregates`, `orderBy`, `skip`, and `take`. `where` is a tree of
 `{ column }`, `{ number }`, `{ string }`, `{ boolean }`, `{ enum }`, or binary
@@ -170,10 +191,42 @@ compiler, compare the source hash, then atomically replace the file. A failed
 operation does not write the source. `--dry-run` performs every parse, bind, and
 candidate validation step but does not write.
 
-`set` replaces only the selected cell expression. `add-row` appends one parsed
-value to every declared column. `delete-row` removes the same positional index
+`set` replaces only the selected logical cell. `add-row` appends one parsed
+value to every declared column. `delete-row` removes the same logical row index
 from every column. These commands preserve equal column lengths by construction
 and report a compact semantic summary.
+
+`set` and `delete-row` require exactly one selector: `--row <index>` or
+`--key <value>`. Key selection uses the compiler-declared key column, including
+a column declared as both `key` and `reference`. Its supported scalar types are
+`int`, `string`, and `boolean`; the column name is discovered from the bound
+schema. For example, `Stock --key 100` selects `productId = 100` after stock rows
+move. Integers accept signed literals, booleans require `true`/`false`, and strings
+are exact command argument values with ordinal matching. Shell quoting groups a
+string argument; do not include extra TypeScript quotes in the argument value.
+
+JSON mutation results add `selection: { row, kind, keyColumn, value }` alongside
+the existing changed/deleted payload. `kind` is `key` or `row`; `keyColumn` is
+null for positional selection. The selection describes the original identity,
+including when the edit changes the key itself. Dry-run reports the same
+resolved selector while retaining the source. A missing selector or both kinds
+report `COPE-TABLE-TOOL-0021`, an unkeyed table reports `0022`, and an unmatched
+key reports `0023`. Invalid literals retain `COPE-TABLE-TOOL-0010`.
+
+Key selection is a single-row editing intent. Candidate binding still rejects
+duplicate keys, broken references, derived-table writes, and dependent
+fixed-length initializers made invalid by a row-count change. It does not repair
+those other declarations automatically. See the
+[key-addressed edit qualification](reviews/tablescript-key-addressed-edits.md)
+for the café comparison and current string-literal escape boundary.
+
+Postfix initializers such as `[4 ... 6]` and `[true ...]` use logical row positions
+for reads and edits. Setting one occurrence splits only its authored segment;
+deleting a row shrinks its segment or the shared fill extent. Appending after a
+remainder fill fixes the old fill count before adding the new cell. Neighboring
+cells and source outside the affected segment are preserved. Dry-run, candidate
+validation, and source-hash guards apply to these edits as usual. See
+[initializer repetition](reviews/tablescript-ellipsis-implementation.md).
 
 Command values are deliberately bounded: `int`, `number`/`float`, `string`,
 `boolean`, and zero-payload enum cases are accepted. Strings in `add-row` are

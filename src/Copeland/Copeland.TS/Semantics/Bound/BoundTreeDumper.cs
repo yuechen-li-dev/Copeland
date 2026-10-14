@@ -161,6 +161,15 @@ public static class BoundTreeDumper
                 sb.Append("RequirementFieldAccess ").Append(access.TypeParameter.Name).Append('.').Append(access.Field.Name).Append(" : ").Append(access.Type.Name).AppendLine();
                 AppendExpression(sb, access.Receiver, i + 1);
                 break;
+            case BoundTableRecalculationExpression recalculation:
+                sb.Append("TableRecalculate ").Append(recalculation.TableType.Name).AppendLine();
+                foreach (BoundTableRecalculationInput input in recalculation.Inputs)
+                {
+                    I(sb, i + 1);
+                    sb.Append("Input ").Append(input.TableType.Name).AppendLine();
+                    AppendExpression(sb, input.Value, i + 2);
+                }
+                break;
             case BoundTableWithExpression withExpression:
                 sb.Append("TableWith ").Append(withExpression.TableType.Name).Append(" [").Append(withExpression.TableType.Id).AppendLine("]");
                 AppendExpression(sb, withExpression.Source, i + 1);

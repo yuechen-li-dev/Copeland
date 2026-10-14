@@ -1,0 +1,41 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Copeland.Markdown -> C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.Markdown\bin\Debug\net10.0\Copeland.Markdown.dll
+  Copeland.TS.Workspace -> C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.TS.Workspace\bin\Debug\net10.0\Copeland.TS.Workspace.dll
+  Copeland.SpanAllocation -> C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.SpanAllocation\bin\Debug\net10.0\Copeland.SpanAllocation.dll
+  Copeland.Profile -> C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.Profile\bin\Debug\net10.0\Copeland.Profile.dll
+  Copeland.TS.Mir -> C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.TS.Mir\bin\Debug\net10.0\Copeland.TS.Mir.dll
+  Copeland.TS -> C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.TS\bin\Debug\net10.0\Copeland.TS.dll
+  Copeland.TS.Database -> C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.TS.Database\bin\Debug\net10.0\Copeland.TS.Database.dll
+  Copeland.TS.Backend.CSharp -> C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.TS.Backend.CSharp\bin\Debug\net10.0\Copeland.TS.Backend.CSharp.dll
+  Copeland.TS.Backend.JavaScript -> C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.TS.Backend.JavaScript\bin\Debug\net10.0\Copeland.TS.Backend.JavaScript.dll
+  Copeland.TS.MSBuild -> C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.TS.MSBuild\bin\Debug\net10.0\Copeland.TS.MSBuild.dll
+  Copeland.TS.LanguageServer -> C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.TS.LanguageServer\bin\Debug\net10.0\Copeland.TS.LanguageServer.dll
+  Copeland.Cli -> C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.Cli\bin\Debug\net10.0\Copeland.Cli.dll
+  CtsJitM0 -> C:\Users\yuech\source\repos\Copeland\tools\CtsJitM0\bin\Debug\net10.0\CtsJitM0.dll
+  Copeland.Cli.Tests -> C:\Users\yuech\source\repos\Copeland\tests\Copeland\Copeland.Cli.Tests\bin\Debug\net10.0\Copeland.Cli.Tests.dll
+Test run for C:\Users\yuech\source\repos\Copeland\tests\Copeland\Copeland.Cli.Tests\bin\Debug\net10.0\Copeland.Cli.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+  Failed Copeland.Cli.Tests.CliIntegrationTests.Table_key_edits_use_exact_declared_scalar_values(type: "string", cells: "[\"caf\\\"é\\\\leaf, x\", \"other\"]", key: "caf\"é\\leaf, x", expectedJson: "\"caf\\\"é\\\\leaf, x\"", target: 0) [178 ms]
+  Error Message:
+   {
+  "schemaVersion": 1,
+  "success": false,
+  "command": "table.set",
+  "diagnostics": [
+    {
+      "code": "COPE-TABLE-TOOL-0023",
+      "severity": "error",
+      "message": "No row in \u0027Values\u0027 has key \u0027code\u0027 equal to \u0022caf\\u0022\\u00E9\\\\leaf, x\u0022.",
+      "file": null,
+      "line": null,
+      "column": null
+    }
+  ]
+}
+
+  Stack Trace:
+     at Copeland.Cli.Tests.CliIntegrationTests.Table_key_edits_use_exact_declared_scalar_values(String type, String cells, String key, String expectedJson, Int32 target) in /_/tests/Copeland/Copeland.Cli.Tests/CliIntegrationTests.TableKeys.cs:line 90
+--- End of stack trace from previous location ---
+
+Failed!  - Failed:     1, Passed:     6, Skipped:     0, Total:     7, Duration: 4 s - Copeland.Cli.Tests.dll (net10.0)

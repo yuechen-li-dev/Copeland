@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "success": false,
+  "command": "table.validate",
+  "diagnostics": [
+    {
+      "code": "COPE-PARSE-0004",
+      "severity": "error",
+      "message": "Expected token \u0027IdentifierToken\u0027.",
+      "file": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-ellipsis-reconciliation\\counted-repetition.ts",
+      "line": 3,
+      "column": 29
+    },
+    {
+      "code": "COPE-PARSE-0004",
+      "severity": "error",
+      "message": "Expected token \u0027IdentifierToken\u0027.",
+      "file": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-ellipsis-reconciliation\\counted-repetition.ts",
+      "line": 3,
+      "column": 30
+    },
+    {
+      "code": "COPE-PARSE-0004",
+      "severity": "error",
+      "message": "Expected token \u0027IdentifierToken\u0027.",
+      "file": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-ellipsis-reconciliation\\counted-repetition.ts",
+      "line": 3,
+      "column": 32
+    },
+    {
+      "code": "COPE-PARSE-0004",
+      "severity": "error",
+      "message": "Expected token \u0027]\u0027.",
+      "file": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-ellipsis-reconciliation\\counted-repetition.ts",
+      "line": 3,
+      "column": 32
+    },
+    {
+      "code": "COPE-PARSE-0004",
+      "severity": "error",
+      "message": "Expected token \u0027;\u0027.",
+      "file": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-ellipsis-reconciliation\\counted-repetition.ts",
+      "line": 3,
+      "column": 32
+    },
+    {
+      "code": "COPE-PARSE-0004",
+      "severity": "error",
+      "message": "Expected token \u0027IdentifierToken\u0027.",
+      "file": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-ellipsis-reconciliation\\counted-repetition.ts",
+      "line": 3,
+      "column": 32
+    },
+    {
+      "code": "COPE-PARSE-0004",
+      "severity": "error",
+      "message": "Expected token \u0027:\u0027.",
+      "file": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-ellipsis-reconciliation\\counted-repetition.ts",
+      "line": 3,
+      "column": 32
+    },
+    {
+      "code": "COPE-PARSE-0004",
+      "severity": "error",
+      "message": "Expected token \u0027=\u0027.",
+      "file": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-ellipsis-reconciliation\\counted-repetition.ts",
+      "line": 3,
+      "column": 33
+    },
+    {
+      "code": "COPE-PARSE-0004",
+      "severity": "error",
+      "message": "Expected token \u0027;\u0027.",
+      "file": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-ellipsis-reconciliation\\counted-repetition.ts",
+      "line": 3,
+      "column": 33
+    },
+    {
+      "code": "COPE-PARSE-0004",
+      "severity": "error",
+      "message": "Expected token \u0027IdentifierToken\u0027.",
+      "file": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-ellipsis-reconciliation\\counted-repetition.ts",
+      "line": 3,
+      "column": 33
+    },
+    {
+      "code": "COPE-PARSE-0004",
+      "severity": "error",
+      "message": "Expected token \u0027:\u0027.",
+      "file": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-ellipsis-reconciliation\\counted-repetition.ts",
+      "line": 3,
+      "column": 33
+    },
+    {
+      "code": "COPE-PARSE-0006",
+      "severity": "error",
+      "message": "Expected type.",
+      "file": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-ellipsis-reconciliation\\counted-repetition.ts",
+      "line": 3,
+      "column": 33
+    },
+    {
+      "code": "COPE-PARSE-0004",
+      "severity": "error",
+      "message": "Expected token \u0027=\u0027.",
+      "file": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-ellipsis-reconciliation\\counted-repetition.ts",
+      "line": 3,
+      "column": 33
+    },
+    {
+      "code": "COPE-PARSE-0004",
+      "severity": "error",
+      "message": "Expected token \u0027;\u0027.",
+      "file": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-ellipsis-reconciliation\\counted-repetition.ts",
+      "line": 3,
+      "column": 33
+    },
+    {
+      "code": "COPE-PARSE-0001",
+      "severity": "error",
+      "message": "Unexpected token \u0027CloseBracketToken\u0027.",
+      "file": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-ellipsis-reconciliation\\counted-repetition.ts",
+      "line": 3,
+      "column": 33
+    },
+    {
+      "code": "COPE-PARSE-0004",
+      "severity": "error",
+      "message": "Expected token \u0027IdentifierToken\u0027.",
+      "file": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-ellipsis-reconciliation\\counted-repetition.ts",
+      "line": 3,
+      "column": 34
+    },
+    {
+      "code": "COPE-PARSE-0004",
+      "severity": "error",
+      "message": "Expected token \u0027:\u0027.",
+      "file": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-ellipsis-reconciliation\\counted-repetition.ts",
+      "line": 3,
+      "column": 34
+    },
+    {
+      "code": "COPE-PARSE-0006",
+      "severity": "error",
+      "message": "Expected type.",
+      "file": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-ellipsis-reconciliation\\counted-repetition.ts",
+      "line": 3,
+      "column": 34
+    },
+    {
+      "code": "COPE-PARSE-0004",
+      "severity": "error",
+      "message": "Expected token \u0027=\u0027.",
+      "file": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-ellipsis-reconciliation\\counted-repetition.ts",
+      "line": 3,
+      "column": 34
+    }
+  ]
+}

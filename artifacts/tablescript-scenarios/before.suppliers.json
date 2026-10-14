@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "success": true,
+  "command": "table.query",
+  "source": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\copeland-ts\\tablescript-friction-m12\\Workbook\\Workbook.ts",
+  "table": "PurchasePlan",
+  "executor": "csharp-relation-plan",
+  "backend": "roslyn-incremental-generator",
+  "queryArtifactId": "50113F53AAA577AA",
+  "schema": {
+    "columns": [
+      {
+        "name": "supplierId",
+        "type": "int",
+        "provenance": {
+          "kind": "copied",
+          "sourceTable": "Products",
+          "inputs": [
+            "supplierId"
+          ],
+          "relationships": [],
+          "aggregate": null,
+          "filter": null
+        }
+      },
+      {
+        "name": "supplierName",
+        "type": "string",
+        "provenance": {
+          "kind": "copied",
+          "sourceTable": "Products",
+          "inputs": [
+            "supplier.name"
+          ],
+          "relationships": [
+            "Products.supplierId -\u003E Suppliers.id"
+          ],
+          "aggregate": null,
+          "filter": null
+        }
+      },
+      {
+        "name": "totalCents",
+        "type": "int",
+        "provenance": {
+          "kind": "aggregate",
+          "sourceTable": "PurchasePlan",
+          "inputs": [
+            "orderCents"
+          ],
+          "relationships": [
+            "Stock.productId -\u003E Products.id"
+          ],
+          "aggregate": "sum",
+          "filter": "__q6 \u003E 0"
+        }
+      },
+      {
+        "name": "units",
+        "type": "int",
+        "provenance": {
+          "kind": "aggregate",
+          "sourceTable": "PurchasePlan",
+          "inputs": [
+            "orderUnits"
+          ],
+          "relationships": [
+            "Stock.productId -\u003E Products.id"
+          ],
+          "aggregate": "sum",
+          "filter": "__q6 \u003E 0"
+        }
+      },
+      {
+        "name": "lines",
+        "type": "int",
+        "provenance": {
+          "kind": "aggregate",
+          "sourceTable": "PurchasePlan",
+          "inputs": [],
+          "relationships": [],
+          "aggregate": "count",
+          "filter": "__q6 \u003E 0"
+        }
+      }
+    ]
+  },
+  "query": {
+    "where": "__q6 \u003E 0",
+    "select": [],
+    "groupBy": [
+      "supplierId",
+      "supplierName"
+    ],
+    "aggregates": [
+      {
+        "function": "sum",
+        "input": "orderCents",
+        "as": "totalCents"
+      },
+      {
+        "function": "sum",
+        "input": "orderUnits",
+        "as": "units"
+      },
+      {
+        "function": "count",
+        "input": null,
+        "as": "lines"
+      }
+    ],
+    "orderBy": [],
+    "skip": 0,
+    "take": 6
+  },
+  "rows": [
+    {
+      "supplierId": 10,
+      "supplierName": "North Roastery",
+      "totalCents": 18500,
+      "units": 20,
+      "lines": 1
+    },
+    {
+      "supplierId": 20,
+      "supplierName": "Leaf House",
+      "totalCents": 4960,
+      "units": 16,
+      "lines": 1
+    },
+    {
+      "supplierId": 30,
+      "supplierName": "Pantry Co",
+      "totalCents": 7750,
+      "units": 31,
+      "lines": 1
+    }
+  ],
+  "rowCount": 3,
+  "diagnostics": []
+}

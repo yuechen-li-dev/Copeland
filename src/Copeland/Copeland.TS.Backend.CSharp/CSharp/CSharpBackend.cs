@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Copeland.TS.Backend.CSharp;
 
-public static class CSharpBackend
+public static partial class CSharpBackend
 {
     public static string GeneratedRecordTypeName(MirRecordTypeId id) => RecordTypeName(id);
 
@@ -1014,14 +1014,47 @@ public static class CSharpBackend
         writer.Indent();
         if (table.DerivedPlan is null)
         {
+            for (int index = 0; index < table.Columns.Count; index++)
+            {
+                MirTableColumnDefinition column = table.Columns[index];
+                if (column.Constants is not InitializerSequence<MirTableConstant> sequence)
+                {
+                    continue;
+                }
+                writer.WriteLine($"var values{index} = {ArrayAllocation(column.ElementType, sequence.Count)};");
+                if (sequence.Count > 0)
+                {
+                    writer.WriteLine($"int offset{index} = 0;");
+                }
+                for (int segment = 0; segment < sequence.Values.Count; segment++)
+                {
+                    if (sequence.Counts[segment] == 0)
+                    {
+                        continue;
+                    }
+                    writer.WriteLine($"for (int turn = 0; turn < {sequence.Counts[segment]}; turn++)");
+                    writer.WriteLine("{");
+                    writer.Indent();
+                    writer.WriteLine($"values{index}[offset{index}++] = {EmitTableConstant(sequence.Values[segment], records)};");
+                    writer.Unindent();
+                    writer.WriteLine("}");
+                }
+            }
             writer.WriteLine($"return new {tableType}(");
             writer.Indent();
             for (int index = 0; index < table.Columns.Count; index++)
             {
                 MirTableColumnDefinition column = table.Columns[index];
-                string values = string.Join(", ", column.Constants.Select(constant => EmitTableConstant(constant, records)));
                 string comma = index == table.Columns.Count - 1 ? string.Empty : ",";
-                writer.WriteLine($"new {MapType(column.ElementType)}[] {{ {values} }}{comma}");
+                if (column.Constants is InitializerSequence<MirTableConstant>)
+                {
+                    writer.WriteLine($"values{index}{comma}");
+                }
+                else
+                {
+                    string values = string.Join(", ", column.Constants.Select(constant => EmitTableConstant(constant, records)));
+                    writer.WriteLine($"new {MapType(column.ElementType)}[] {{ {values} }}{comma}");
+                }
             }
             writer.Unindent();
             writer.WriteLine(");");
@@ -1066,6 +1099,11 @@ public static class CSharpBackend
             }
             var executionContext = new MirFunction("__derived_table", [], new MirNamedType("void"), [], []);
             int temporaryIndex = 0;
+            foreach (MirDerivedTableLocal local in plan.Locals)
+            {
+                string expression = EmitExpression(writer, local.Expression, executionContext, enumNames, ref temporaryIndex, diagnostics: []);
+                writer.WriteLine($"{MapType(local.Type)} {CSharpNameMangler.Mangle(local.RuntimeName)} = {expression};");
+            }
             foreach (MirDerivedTableColumnPlan projection in plan.Columns)
             {
                 int outputIndex = table.Columns.ToList().FindIndex(column => column.Id == projection.ColumnId);
@@ -1181,6 +1219,17 @@ public static class CSharpBackend
         writer.WriteLine($"return CopeResult<{elementTypeName}, TableBoundsError>.Ok({storage}[(int)index]);");
         writer.Unindent();
         writer.WriteLine("}");
+    }
+
+    private static string ArrayAllocation(MirType elementType, int length)
+    {
+        string nestedRanks = string.Empty;
+        while (elementType is MirArrayType nested)
+        {
+            nestedRanks += "[]";
+            elementType = nested.ElementType;
+        }
+        return $"new {MapType(elementType)}[{length}]{nestedRanks}";
     }
 
     private static string EmitTableConstant(MirTableConstant constant, IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records)
@@ -1535,6 +1584,9 @@ public static class CSharpBackend
             MirUnitExpression => "CopeUnit.Value",
             MirVariableExpression variable => "frame." + CSharpNameMangler.Mangle(variable.Name),
             MirAsyncFrameSlotExpression slot => "frame.__" + slot.SlotId.Value,
+            MirMutableArrayConstructionExpression construction => $"CopeArray.Create<{MapType(construction.MutableArrayType.ElementType)}>({EmitAsyncExpression(construction.Length, function)})",
+            MirMutableArrayElementAssignmentExpression assignment => $"CopeArray.Set({EmitAsyncExpression(assignment.Receiver, function)}, {EmitAsyncExpression(assignment.Index, function)}, {EmitAsyncExpression(assignment.Value, function)})",
+            MirMutableArrayFreezeExpression freeze => $"({MapType(freeze.ArrayType)}){EmitAsyncExpression(freeze.Receiver, function)}.Clone()",
             MirAssignmentExpression assignment => AssignmentText(assignment, "frame." + CSharpNameMangler.Mangle(assignment.Name), EmitAsyncExpression(assignment.Expression, function)),
             MirBinaryExpression binary => BinaryText(binary, EmitAsyncExpression(binary.Left, function), EmitAsyncExpression(binary.Right, function)),
             MirUnaryExpression unary => UnaryText(unary, EmitAsyncExpression(unary.Operand, function)),
@@ -1874,7 +1926,7 @@ public static class CSharpBackend
             MirFunctionReferenceExpression reference => $"({MapType(reference.CallableType)}){CSharpNameMangler.Mangle(reference.FunctionName)}",
             MirCallableConstructionExpression construction => EmitCallableConstruction(writer, construction, function, enumNames, ref tempIndex, diagnostics),
             MirInvokeExpression invoke => EmitInvokeExpression(writer, invoke, function, enumNames, ref tempIndex, diagnostics),
-            MirArrayExpression array => $"new {MapType(array.Type)} {{ {string.Join(", ", EmitArguments(array.Elements, writer, function, enumNames, ref tempIndex, diagnostics))} }}",
+            MirArrayExpression array => EmitArrayInitializer(writer, array, function, enumNames, ref tempIndex, diagnostics),
             MirArrayLengthExpression length => $"{ParenthesizeAssignmentOperand(length.Receiver, EmitExpression(writer, length.Receiver, function, enumNames, ref tempIndex, diagnostics))}.Length",
             MirArrayElementAccessExpression access => $"CopeArray.Get({EmitExpression(writer, access.Receiver, function, enumNames, ref tempIndex, diagnostics)}, {EmitExpression(writer, access.Index, function, enumNames, ref tempIndex, diagnostics)})",
             MirArrayIterableExpression iterable => EmitExpression(writer, iterable.Receiver, function, enumNames, ref tempIndex, diagnostics),
@@ -1897,6 +1949,8 @@ public static class CSharpBackend
             MirTableRowsExpression rows => EmitExpression(writer, rows.Table, function, enumNames, ref tempIndex, diagnostics),
             MirTableWhereExpression where => EmitExpression(writer, where.Source, function, enumNames, ref tempIndex, diagnostics),
             MirTableSelectExpression select => EmitTableSelect(writer, select, function, enumNames, ref tempIndex, diagnostics),
+            MirTableSummaryExpression summary => EmitTableSummary(writer, summary, function, enumNames, ref tempIndex, diagnostics),
+            MirTableRecalculationExpression recalculation => EmitTableRecalculation(writer, recalculation, function, enumNames, ref tempIndex, diagnostics),
             MirTableAggregateExpression aggregate => EmitTableAggregate(writer, aggregate, function, enumNames, ref tempIndex, diagnostics),
             MirEnumValueExpression value => value.Arguments.Count == 0
                 ? $"{CSharpNameMangler.Mangle(value.EnumName)}.{CSharpNameMangler.Mangle(value.CaseName)}.__Singleton"
@@ -1977,7 +2031,7 @@ public static class CSharpBackend
     {
         string callee = EmitExpression(writer, invoke.Callee, function, enumNames, ref tempIndex, diagnostics);
         string arguments = string.Join(", ", EmitArguments(invoke.Arguments, writer, function, enumNames, ref tempIndex, diagnostics));
-        return invoke.Callee is MirFunctionReferenceExpression
+        return invoke.Callee is MirFunctionReferenceExpression or MirCallableConstructionExpression
             ? $"({callee})({arguments})"
             : $"{ParenthesizeAssignmentOperand(invoke.Callee, callee)}({arguments})";
     }
@@ -2143,6 +2197,45 @@ public static class CSharpBackend
         };
     }
 
+    private static string EmitArrayInitializer(
+        CSharpTextWriter writer,
+        MirArrayExpression array,
+        MirFunction function,
+        IReadOnlySet<string> enumNames,
+        ref int tempIndex,
+        List<CSharpDiagnostic> diagnostics)
+    {
+        if (array.Counts is null)
+        {
+            return $"new {MapType(array.Type)} {{ {string.Join(", ", EmitArguments(array.Elements, writer, function, enumNames, ref tempIndex, diagnostics))} }}";
+        }
+        string output = "__cope_initializer_" + tempIndex++;
+        string offset = output + "_offset";
+        writer.WriteLine($"var {output} = {ArrayAllocation(((MirArrayType)array.Type).ElementType, array.Length)};");
+        if (array.Length == 0)
+        {
+            return output;
+        }
+        writer.WriteLine($"int {offset} = 0;");
+        for (int segment = 0; segment < array.Elements.Count; segment++)
+        {
+            int count = array.Counts[segment];
+            if (count == 0)
+            {
+                continue;
+            }
+            string turn = "__cope_initializer_turn_" + tempIndex++;
+            writer.WriteLine($"for (int {turn} = 0; {turn} < {count}; {turn}++)");
+            writer.WriteLine("{");
+            writer.Indent();
+            string value = EmitExpression(writer, array.Elements[segment], function, enumNames, ref tempIndex, diagnostics);
+            writer.WriteLine($"{output}[{offset}++] = {value};");
+            writer.Unindent();
+            writer.WriteLine("}");
+        }
+        return output;
+    }
+
     private static string EmitBatchExpression(
         CSharpTextWriter writer,
         MirBatchExpression batch,
@@ -2231,6 +2324,10 @@ public static class CSharpBackend
 
         return expression switch
         {
+            MirTableSummaryExpression summary => EnumerateCallableConstructions(summary.Source),
+            MirTableRecalculationExpression recalculation => Children(recalculation.Inputs.Select(input => input.Value)),
+            MirTableRowsExpression rows => EnumerateCallableConstructions(rows.Table),
+            MirTableWhereExpression where => Children(where.Predicates.Prepend(where.Source)),
             MirCallableConstructionExpression construction => [construction, .. Children(construction.Captures)],
             MirInvokeExpression invoke => Children([invoke.Callee, .. invoke.Arguments]),
             MirAssignmentExpression assignment => EnumerateCallableConstructions(assignment.Expression),
@@ -2238,6 +2335,9 @@ public static class CSharpBackend
             MirBinaryExpression binary => Children([binary.Left, binary.Right]),
             MirCallExpression call => Children(call.Arguments),
             MirArrayExpression array => Children(array.Elements),
+            MirArrayLengthExpression length => EnumerateCallableConstructions(length.Receiver),
+            MirArrayElementAccessExpression access => Children([access.Receiver, access.Index]),
+            MirTableSelectExpression select => Children([select.Source, select.Projector]),
             MirRecordConstructionExpression record => Children(record.Initializers.Select(initializer => initializer.Value)),
             MirRecordFieldAccessExpression access => EnumerateCallableConstructions(access.Receiver),
             MirTableWithExpression update => Children([update.Source, .. update.Replacements.Select(replacement => (MirExpression)replacement.Value)]),
@@ -3478,6 +3578,11 @@ public static class CSharpBackend
     private static bool ExpressionUsesArrayElementAccess(MirExpression expression)
         => expression switch
         {
+            MirTableRecalculationExpression recalculation => recalculation.Inputs.Any(input => ExpressionUsesArrayElementAccess(input.Value)),
+            MirTableSummaryExpression summary => ExpressionUsesArrayElementAccess(summary.Source),
+            MirTableRowsExpression rows => ExpressionUsesArrayElementAccess(rows.Table),
+            MirTableWhereExpression where => ExpressionUsesArrayElementAccess(where.Source) || where.Predicates.Any(ExpressionUsesArrayElementAccess),
+            MirTableSelectExpression select => ExpressionUsesArrayElementAccess(select.Source) || ExpressionUsesArrayElementAccess(select.Projector),
             MirArrayElementAccessExpression => true,
             MirMutableArrayElementAccessExpression => true,
             MirMutableArrayElementAssignmentExpression => true,
@@ -3492,7 +3597,7 @@ public static class CSharpBackend
             MirBinaryExpression binary => ExpressionUsesArrayElementAccess(binary.Left) || ExpressionUsesArrayElementAccess(binary.Right),
             MirCallExpression call => call.Arguments.Any(ExpressionUsesArrayElementAccess),
             MirInvokeExpression invoke => ExpressionUsesArrayElementAccess(invoke.Callee) || invoke.Arguments.Any(ExpressionUsesArrayElementAccess),
-            MirArrayExpression array => array.Elements.Any(ExpressionUsesArrayElementAccess),
+            MirArrayExpression array => array.Counts is not null || array.Elements.Any(ExpressionUsesArrayElementAccess),
             MirBatchExpression batch => ExpressionUsesArrayElementAccess(batch.Input)
                 || batch.Body.PrefixStatements.Any(StatementUsesArrayElementAccess)
                 || ExpressionUsesArrayElementAccess(batch.Body.ValueExpression),
@@ -3547,6 +3652,18 @@ public static class CSharpBackend
     private static bool ExpressionUsesTableWith(MirExpression expression)
         => expression switch
         {
+            MirTableRecalculationExpression recalculation => recalculation.Inputs.Any(input => ExpressionUsesTableWith(input.Value)),
+            MirTableSummaryExpression summary => ExpressionUsesTableWith(summary.Source),
+            MirTableRowsExpression rows => ExpressionUsesTableWith(rows.Table),
+            MirTableWhereExpression where => ExpressionUsesTableWith(where.Source) || where.Predicates.Any(ExpressionUsesTableWith),
+            MirTableSelectExpression select => ExpressionUsesTableWith(select.Source) || ExpressionUsesTableWith(select.Projector),
+            MirArrayLengthExpression length => ExpressionUsesTableWith(length.Receiver),
+            MirArrayElementAccessExpression access => ExpressionUsesTableWith(access.Receiver) || ExpressionUsesTableWith(access.Index),
+            MirTableAggregateExpression aggregate => ExpressionUsesTableWith(aggregate.Receiver),
+            MirTableColumnAccessExpression access => ExpressionUsesTableWith(access.Receiver),
+            MirTableRowAccessExpression access => ExpressionUsesTableWith(access.Receiver) || ExpressionUsesTableWith(access.Index),
+            MirColumnElementAccessExpression access => ExpressionUsesTableWith(access.Receiver) || ExpressionUsesTableWith(access.Index),
+            MirTableRowFieldAccessExpression access => ExpressionUsesTableWith(access.Receiver),
             MirTableWithExpression => true,
             MirAssignmentExpression assignment => ExpressionUsesTableWith(assignment.Expression),
             MirUnaryExpression unary => ExpressionUsesTableWith(unary.Operand),
@@ -3581,6 +3698,13 @@ public static class CSharpBackend
     private static bool ExpressionUsesBatch(MirExpression expression)
         => expression switch
         {
+            MirTableRecalculationExpression recalculation => recalculation.Inputs.Any(input => ExpressionUsesBatch(input.Value)),
+            MirTableSummaryExpression summary => ExpressionUsesBatch(summary.Source),
+            MirTableRowsExpression rows => ExpressionUsesBatch(rows.Table),
+            MirTableWhereExpression where => ExpressionUsesBatch(where.Source) || where.Predicates.Any(ExpressionUsesBatch),
+            MirTableSelectExpression select => ExpressionUsesBatch(select.Source) || ExpressionUsesBatch(select.Projector),
+            MirArrayLengthExpression length => ExpressionUsesBatch(length.Receiver),
+            MirArrayElementAccessExpression access => ExpressionUsesBatch(access.Receiver) || ExpressionUsesBatch(access.Index),
             MirBatchExpression => true,
             MirAssignmentExpression assignment => ExpressionUsesBatch(assignment.Expression),
             MirUnaryExpression unary => ExpressionUsesBatch(unary.Operand),
@@ -3630,6 +3754,13 @@ public static class CSharpBackend
     private static bool ExpressionUsesSystemTextJson(MirExpression expression)
         => expression switch
         {
+            MirTableRecalculationExpression recalculation => recalculation.Inputs.Any(input => ExpressionUsesSystemTextJson(input.Value)),
+            MirTableSummaryExpression summary => ExpressionUsesSystemTextJson(summary.Source),
+            MirTableRowsExpression rows => ExpressionUsesSystemTextJson(rows.Table),
+            MirTableWhereExpression where => ExpressionUsesSystemTextJson(where.Source) || where.Predicates.Any(ExpressionUsesSystemTextJson),
+            MirTableSelectExpression select => ExpressionUsesSystemTextJson(select.Source) || ExpressionUsesSystemTextJson(select.Projector),
+            MirArrayLengthExpression length => ExpressionUsesSystemTextJson(length.Receiver),
+            MirArrayElementAccessExpression access => ExpressionUsesSystemTextJson(access.Receiver) || ExpressionUsesSystemTextJson(access.Index),
             MirClrInvocationExpression { Member.DeclaringType: "System.Text.Json.JsonSerializer" } => true,
             MirClrInvocationExpression invocation => invocation.Arguments.Any(ExpressionUsesSystemTextJson) || (invocation.Receiver is not null && ExpressionUsesSystemTextJson(invocation.Receiver)),
             MirClrPropertyAccessExpression property => property.Receiver is not null && ExpressionUsesSystemTextJson(property.Receiver),
@@ -3662,6 +3793,13 @@ public static class CSharpBackend
     private static bool ExpressionUsesTsonTransport(MirExpression expression)
         => expression switch
         {
+            MirTableRecalculationExpression recalculation => recalculation.Inputs.Any(input => ExpressionUsesTsonTransport(input.Value)),
+            MirTableSummaryExpression summary => ExpressionUsesTsonTransport(summary.Source),
+            MirTableRowsExpression rows => ExpressionUsesTsonTransport(rows.Table),
+            MirTableWhereExpression where => ExpressionUsesTsonTransport(where.Source) || where.Predicates.Any(ExpressionUsesTsonTransport),
+            MirTableSelectExpression select => ExpressionUsesTsonTransport(select.Source) || ExpressionUsesTsonTransport(select.Projector),
+            MirArrayLengthExpression length => ExpressionUsesTsonTransport(length.Receiver),
+            MirArrayElementAccessExpression access => ExpressionUsesTsonTransport(access.Receiver) || ExpressionUsesTsonTransport(access.Index),
             MirTsonTransportExpression or MirNpmCallExpression => true,
             MirAwaitExpression awaited => ExpressionUsesTsonTransport(awaited.Operand),
             MirAssignmentExpression assignment => ExpressionUsesTsonTransport(assignment.Expression),
@@ -3701,6 +3839,13 @@ public static class CSharpBackend
     {
         return expression switch
         {
+            MirTableRecalculationExpression recalculation => recalculation.Inputs.Any(input => ExpressionUsesUnwrap(input.Value)),
+            MirTableSummaryExpression summary => ExpressionUsesUnwrap(summary.Source),
+            MirTableRowsExpression rows => ExpressionUsesUnwrap(rows.Table),
+            MirTableWhereExpression where => ExpressionUsesUnwrap(where.Source) || where.Predicates.Any(ExpressionUsesUnwrap),
+            MirTableSelectExpression select => ExpressionUsesUnwrap(select.Source) || ExpressionUsesUnwrap(select.Projector),
+            MirArrayLengthExpression length => ExpressionUsesUnwrap(length.Receiver),
+            MirArrayElementAccessExpression access => ExpressionUsesUnwrap(access.Receiver) || ExpressionUsesUnwrap(access.Index),
             MirUnwrapExpression => true,
             MirAssignmentExpression assignment => ExpressionUsesUnwrap(assignment.Expression),
             MirUnaryExpression unary => ExpressionUsesUnwrap(unary.Operand),
@@ -3783,6 +3928,11 @@ public static class CSharpBackend
     {
         return expression switch
         {
+            MirArrayLengthExpression length => EnumerateTableQueryTypes(length.Receiver),
+            MirArrayElementAccessExpression access => EnumerateTableQueryTypes(access.Receiver).Concat(EnumerateTableQueryTypes(access.Index)),
+            MirNumericConversionExpression conversion => EnumerateTableQueryTypes(conversion.Operand),
+            MirTableSummaryExpression summary => EnumerateTableQueryTypes(summary.Source),
+            MirTableRecalculationExpression recalculation => recalculation.Inputs.SelectMany(input => EnumerateTableQueryTypes(input.Value)),
             MirTableRowsExpression rows => EnumerateTableQueryTypes(rows.Table),
             MirTableWhereExpression where => EnumerateTableQueryTypes(where.Source)
                 .Concat(where.Predicates.SelectMany(predicate => new[] { predicate.Type }.Concat(EnumerateTableQueryTypes(predicate)))),
@@ -3811,6 +3961,9 @@ public static class CSharpBackend
         return expression switch
         {
             MirRecordConstructionExpression => true,
+            MirTableSummaryExpression => true,
+            MirTableRecalculationExpression => true,
+            MirTableSelectExpression => true,
             MirTableWithExpression => true,
             MirRecordWithExpression => true,
             MirResultMatchExpression => true,
@@ -3822,9 +3975,13 @@ public static class CSharpBackend
             MirBinaryExpression binary => ExpressionRequiresStatements(binary.Left) || ExpressionRequiresStatements(binary.Right),
             MirCallExpression call => call.Arguments.Any(ExpressionRequiresStatements),
             MirInvokeExpression invoke => ExpressionRequiresStatements(invoke.Callee) || invoke.Arguments.Any(ExpressionRequiresStatements),
-            MirArrayExpression array => array.Elements.Any(ExpressionRequiresStatements),
+            MirArrayExpression array => array.Counts is not null || array.Elements.Any(ExpressionRequiresStatements),
+            MirArrayLengthExpression length => ExpressionRequiresStatements(length.Receiver),
+            MirArrayElementAccessExpression access => ExpressionRequiresStatements(access.Receiver) || ExpressionRequiresStatements(access.Index),
+            MirNumericConversionExpression conversion => ExpressionRequiresStatements(conversion.Operand),
             MirRecordFieldAccessExpression access => ExpressionRequiresStatements(access.Receiver),
             MirTableColumnAccessExpression access => ExpressionRequiresStatements(access.Receiver),
+            MirTableAggregateExpression aggregate => ExpressionRequiresStatements(aggregate.Receiver),
             MirTableRowAccessExpression access => ExpressionRequiresStatements(access.Receiver) || ExpressionRequiresStatements(access.Index),
             MirColumnElementAccessExpression access => ExpressionRequiresStatements(access.Receiver) || ExpressionRequiresStatements(access.Index),
             MirTableRowFieldAccessExpression access => ExpressionRequiresStatements(access.Receiver),

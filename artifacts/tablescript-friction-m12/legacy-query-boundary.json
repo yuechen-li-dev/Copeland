@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "success": false,
+  "command": "table.query",
+  "diagnostics": [
+    {
+      "code": "COPE-TABLE-QUERY-0016",
+      "severity": "error",
+      "message": "The C# query executor did not expose column \u0027value\u0027.",
+      "file": null,
+      "line": null,
+      "column": null
+    }
+  ]
+}

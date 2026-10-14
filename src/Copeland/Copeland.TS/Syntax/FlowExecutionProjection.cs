@@ -443,6 +443,12 @@ internal sealed partial class FlowExecutionProjection
                 return reference with { Target = RewriteExpression(reference.Target) };
             case ArrayLiteralExpressionSyntax array:
                 return array with { Elements = array.Elements.Select(RewriteExpression).ToArray() };
+            case RepeatedInitializerSyntax repeated:
+                return repeated with
+                {
+                    Value = RewriteExpression(repeated.Value),
+                    Count = repeated.Count is null ? null : RewriteExpression(repeated.Count),
+                };
             case IndexExpressionSyntax index:
                 return index with { Target = RewriteExpression(index.Target), Index = RewriteExpression(index.Index) };
             case IfExpressionSyntax conditional:

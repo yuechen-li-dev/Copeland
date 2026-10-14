@@ -102,6 +102,17 @@ public static class StaticEvaluationPass
     {
         public void Visit(BoundProgram program)
         {
+            foreach (BoundDerivedTableDefinition table in program.Tables.OfType<BoundDerivedTableDefinition>())
+            {
+                foreach (BoundDerivedTableLocal local in table.Locals)
+                {
+                    VisitExpression(local.Expression);
+                }
+                foreach (BoundDerivedTableColumnDefinition projection in table.Projections)
+                {
+                    VisitExpression(projection.Expression);
+                }
+            }
             foreach (BoundFunctionDeclaration function in program.Functions)
             {
                 VisitStatement(function.Body);
@@ -320,6 +331,19 @@ public static class StaticEvaluationPass
                     break;
                 case BoundRecordConstructionExpression record:
                     foreach (BoundRecordFieldInitializer field in record.Initializers) VisitExpression(field.Value);
+                    break;
+                case BoundTableSummaryExpression summary:
+                    VisitExpression(summary.Source);
+                    break;
+                case BoundTableRecalculationExpression recalculation:
+                    VisitExpressions(recalculation.Inputs.Select(input => input.Value));
+                    break;
+                case BoundTableRowsExpression rows:
+                    VisitExpression(rows.Table);
+                    break;
+                case BoundTableWhereExpression where:
+                    VisitExpression(where.Source);
+                    VisitExpressions(where.Predicates);
                     break;
                 case BoundRecordFieldAccessExpression access:
                     VisitExpression(access.Receiver);
@@ -907,14 +931,21 @@ internal sealed class StaticEvaluator
 
     private StaticValue EvaluateArray(BoundArrayExpression array, StaticEnvironment environment)
     {
-        if (array.Elements.Count > _limits.MaximumArrayLength)
+        if (array.Length > _limits.MaximumArrayLength)
         {
             throw StaticEvaluationException.Budget(
                 $"Static array length exceeds the M1 limit of {_limits.MaximumArrayLength}.");
         }
-        return Allocate(new StaticArrayValue(
-            array.Elements.Select(element => EvaluateExpression(element, environment)).ToArray(),
-            (ArrayTypeSymbol)array.Type));
+        var elements = new List<StaticValue>(array.Length);
+        for (int segment = 0; segment < array.Elements.Count; segment++)
+        {
+            int count = array.Counts?[segment] ?? 1;
+            for (int occurrence = 0; occurrence < count; occurrence++)
+            {
+                elements.Add(EvaluateExpression(array.Elements[segment], environment));
+            }
+        }
+        return Allocate(new StaticArrayValue(elements, (ArrayTypeSymbol)array.Type));
     }
 
     private StaticValue EvaluateLength(BoundArrayLengthExpression length, StaticEnvironment environment)

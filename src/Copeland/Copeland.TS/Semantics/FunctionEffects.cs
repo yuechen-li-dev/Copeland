@@ -736,6 +736,12 @@ public static class FunctionEffectClassifier
                     VisitExpression(select.Source);
                     VisitExpression(select.Projector);
                     return;
+                case BoundTableSummaryExpression summary:
+                    VisitExpression(summary.Source);
+                    return;
+                case BoundTableRecalculationExpression recalculation:
+                    VisitExpressions(recalculation.Inputs.Select(input => input.Value));
+                    return;
                 case BoundTableAggregateExpression aggregate:
                     VisitExpression(aggregate.Receiver);
                     return;

@@ -264,7 +264,7 @@ public static class TableQueryBinder
     {
         if (kind == TableQueryAggregateKind.Count) return;
         if (input is null) throw new TableQueryBindingException("COPE-TABLE-QUERY-0024", $"Aggregate '{request.Function}' requires a direct column input.");
-        if (kind is TableQueryAggregateKind.Sum or TableQueryAggregateKind.Average && !TypeFacts.IsNumeric(input.Symbol.Type))
+        if (kind is TableQueryAggregateKind.Sum or TableQueryAggregateKind.Average && !TableAggregateRules.SupportsSum(input.Symbol.Type))
             throw new TableQueryBindingException("COPE-TABLE-QUERY-0025", $"Aggregate '{request.Function}' requires a numeric column, got '{input.Symbol.Type.Name}'.");
         if (kind == TableQueryAggregateKind.Average && input.Symbol.Type == PrimitiveTypeSymbol.Int)
             throw new TableQueryBindingException("COPE-TABLE-QUERY-0025", "Aggregate 'average' is supported only for number columns; convert int values before aggregation.");
@@ -272,15 +272,15 @@ public static class TableQueryBinder
             throw new TableQueryBindingException("COPE-TABLE-QUERY-0025", $"Aggregate '{request.Function}' requires an orderable column, got '{input.Symbol.Type.Name}'.");
     }
 
-    private static TableQueryColumnProvenance Provenance(BoundTableDefinition table, TableColumnSymbol column)
+    internal static TableQueryColumnProvenance Provenance(BoundTableDefinition table, TableColumnSymbol column)
     {
         if (table is not BoundDerivedTableDefinition derived) return new("authored", table.TableType.Name, [column.Name], []);
         BoundDerivedTableColumnDefinition projection = derived.Projections.Single(item => item.Column == column);
         return new(projection.CopiedSourceColumn is null ? "computed" : "copied", derived.SourceTable.Name, projection.SourceColumns, projection.Relationships.Select(join => join.Relationship.SourceTable.Name + "." + join.Relationship.SourceColumn.Name + " -> " + join.Relationship.TargetTable.Name + "." + join.Relationship.TargetKey.Name).ToArray());
     }
 
-    private static bool IsOrderable(TypeSymbol type) => type == PrimitiveTypeSymbol.Int || type == PrimitiveTypeSymbol.Float || type == PrimitiveTypeSymbol.Number || type == PrimitiveTypeSymbol.String;
-    private static bool IsGroupable(TypeSymbol type) => IsOrderable(type) || type is EnumTypeSymbol || type == PrimitiveTypeSymbol.Boolean;
+    private static bool IsOrderable(TypeSymbol type) => TableAggregateRules.IsOrderable(type);
+    private static bool IsGroupable(TypeSymbol type) => TableAggregateRules.IsGroupable(type);
 
     private static string RewriteSemanticEnumValues(
         ExpressionSyntax expression,

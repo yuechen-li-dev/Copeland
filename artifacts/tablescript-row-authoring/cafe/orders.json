@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 1,
+  "success": true,
+  "command": "table.query",
+  "source": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\copeland-ts\\tablescript-friction-m12\\Workbook\\Workbook.ts",
+  "table": "PurchasePlan",
+  "executor": "csharp-relation-plan",
+  "backend": "roslyn-incremental-generator",
+  "queryArtifactId": "8339C3C5F9B926F0",
+  "schema": {
+    "columns": [
+      {
+        "name": "productId",
+        "type": "int",
+        "provenance": {
+          "kind": "copied",
+          "sourceTable": "Products",
+          "inputs": [
+            "id"
+          ],
+          "relationships": [],
+          "aggregate": null,
+          "filter": null
+        }
+      },
+      {
+        "name": "productName",
+        "type": "string",
+        "provenance": {
+          "kind": "copied",
+          "sourceTable": "Products",
+          "inputs": [
+            "name"
+          ],
+          "relationships": [],
+          "aggregate": null,
+          "filter": null
+        }
+      },
+      {
+        "name": "supplierId",
+        "type": "int",
+        "provenance": {
+          "kind": "copied",
+          "sourceTable": "Products",
+          "inputs": [
+            "supplierId"
+          ],
+          "relationships": [],
+          "aggregate": null,
+          "filter": null
+        }
+      },
+      {
+        "name": "supplierName",
+        "type": "string",
+        "provenance": {
+          "kind": "copied",
+          "sourceTable": "Products",
+          "inputs": [
+            "supplier.name"
+          ],
+          "relationships": [
+            "Products.supplierId -\u003E Suppliers.id"
+          ],
+          "aggregate": null,
+          "filter": null
+        }
+      },
+      {
+        "name": "leadDays",
+        "type": "int",
+        "provenance": {
+          "kind": "copied",
+          "sourceTable": "Products",
+          "inputs": [
+            "supplier.leadDays"
+          ],
+          "relationships": [
+            "Products.supplierId -\u003E Suppliers.id"
+          ],
+          "aggregate": null,
+          "filter": null
+        }
+      },
+      {
+        "name": "onHand",
+        "type": "int",
+        "provenance": {
+          "kind": "copied",
+          "sourceTable": "Products",
+          "inputs": [
+            "stock.onHand"
+          ],
+          "relationships": [
+            "Stock.productId -\u003E Products.id"
+          ],
+          "aggregate": null,
+          "filter": null
+        }
+      },
+      {
+        "name": "orderUnits",
+        "type": "int",
+        "provenance": {
+          "kind": "computed",
+          "sourceTable": "Products",
+          "inputs": [
+            "purchasing",
+            "reorderPoint",
+            "stock.onHand",
+            "targetStock"
+          ],
+          "relationships": [
+            "Stock.productId -\u003E Products.id"
+          ],
+          "aggregate": null,
+          "filter": null
+        }
+      },
+      {
+        "name": "orderCents",
+        "type": "int",
+        "provenance": {
+          "kind": "computed",
+          "sourceTable": "Products",
+          "inputs": [
+            "costCents",
+            "purchasing",
+            "reorderPoint",
+            "stock.onHand",
+            "targetStock"
+          ],
+          "relationships": [
+            "Stock.productId -\u003E Products.id"
+          ],
+          "aggregate": null,
+          "filter": null
+        }
+      }
+    ]
+  },
+  "query": {
+    "where": "__q6 \u003E 0",
+    "select": [
+      "productId",
+      "productName",
+      "supplierId",
+      "supplierName",
+      "leadDays",
+      "onHand",
+      "orderUnits",
+      "orderCents"
+    ],
+    "groupBy": [],
+    "aggregates": [],
+    "orderBy": [
+      {
+        "column": "orderCents",
+        "direction": "descending"
+      }
+    ],
+    "skip": 0,
+    "take": 6
+  },
+  "rows": [
+    {
+      "productId": 100,
+      "productName": "Espresso beans",
+      "supplierId": 10,
+      "supplierName": "North Roastery",
+      "leadDays": 3,
+      "onHand": 4,
+      "orderUnits": 20,
+      "orderCents": 18500
+    },
+    {
+      "productId": 103,
+      "productName": "Oat milk",
+      "supplierId": 30,
+      "supplierName": "Pantry Co",
+      "leadDays": 2,
+      "onHand": 5,
+      "orderUnits": 31,
+      "orderCents": 7750
+    },
+    {
+      "productId": 102,
+      "productName": "Earl Grey",
+      "supplierId": 20,
+      "supplierName": "Leaf House",
+      "leadDays": 5,
+      "onHand": 2,
+      "orderUnits": 16,
+      "orderCents": 4960
+    }
+  ],
+  "rowCount": 3,
+  "diagnostics": []
+}

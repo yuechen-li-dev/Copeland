@@ -7,8 +7,84 @@ using Copeland.TS.Tson;
 
 namespace Copeland.Cli.Tests;
 
-public sealed class CliIntegrationTests
+public sealed partial class CliIntegrationTests
 {
+    [Fact]
+    public async Task Table_edits_use_logical_cells_across_counted_and_remainder_segments()
+    {
+        using var temp = new TempDir();
+        const string original = """
+            record table Marks {
+                valid: boolean = [true ...];
+                key id: int = [10, 20, 30, 40, 50];
+                weight: int = [4 ... 2, 8, 4 ... 2];
+            }
+            """;
+        string source = temp.WriteFile("Marks.ts", original);
+        foreach (int target in new[] { 0, 2, 4 })
+        {
+            File.WriteAllText(source, original);
+            CliResult dryRun = await RunCliAsync(temp.Path, "table", "set", source, "Marks", "--row", target.ToString(), "--column", "valid", "--value", "false", "--dry-run", "--format", "json");
+            Assert.Equal(0, dryRun.ExitCode);
+            Assert.Equal(original, File.ReadAllText(source));
+            CliResult edit = await RunCliAsync(temp.Path, "table", "set", source, "Marks", "--row", target.ToString(), "--column", "valid", "--value", "false", "--format", "json");
+            Assert.Equal(0, edit.ExitCode);
+            CliResult rows = await RunCliAsync(temp.Path, "table", "rows", source, "Marks", "--format", "json");
+            Assert.Equal(0, rows.ExitCode);
+            using JsonDocument json = JsonDocument.Parse(rows.StdOut);
+            JsonElement[] values = json.RootElement.GetProperty("rows").EnumerateArray().ToArray();
+            Assert.Equal(5, values.Length);
+            for (int row = 0; row < values.Length; row++)
+            {
+                Assert.Equal(row != target, values[row].GetProperty("values").GetProperty("valid").GetBoolean());
+            }
+        }
+        foreach (int target in new[] { 0, 1, 3, 4 })
+        {
+            File.WriteAllText(source, original);
+            CliResult edit = await RunCliAsync(temp.Path, "table", "set", source, "Marks", "--row", target.ToString(), "--column", "weight", "--value", "9", "--format", "json");
+            Assert.Equal(0, edit.ExitCode);
+            CliResult rows = await RunCliAsync(temp.Path, "table", "rows", source, "Marks", "--format", "json");
+            using JsonDocument json = JsonDocument.Parse(rows.StdOut);
+            int[] weights = json.RootElement.GetProperty("rows").EnumerateArray().Select(row => row.GetProperty("values").GetProperty("weight").GetInt32()).ToArray();
+            int[] expected = [4, 4, 8, 4, 4];
+            expected[target] = 9;
+            Assert.Equal(expected, weights);
+        }
+        File.WriteAllText(source, original);
+        foreach (int target in new[] { 0, 1, 3, 4 })
+        {
+            File.WriteAllText(source, original);
+            CliResult delete = await RunCliAsync(temp.Path, "table", "delete-row", source, "Marks", "--row", target.ToString(), "--format", "json");
+            Assert.Equal(0, delete.ExitCode);
+            CliResult rows = await RunCliAsync(temp.Path, "table", "rows", source, "Marks", "--format", "json");
+            Assert.Equal(0, rows.ExitCode);
+            using JsonDocument json = JsonDocument.Parse(rows.StdOut);
+            JsonElement[] values = json.RootElement.GetProperty("rows").EnumerateArray().ToArray();
+            int[] originalIds = [10, 20, 30, 40, 50];
+            int[] originalWeights = [4, 4, 8, 4, 4];
+            Assert.Equal(originalIds.Where((_, index) => index != target), values.Select(row => row.GetProperty("values").GetProperty("id").GetInt32()));
+            Assert.Equal(originalWeights.Where((_, index) => index != target), values.Select(row => row.GetProperty("values").GetProperty("weight").GetInt32()));
+            Assert.All(values, row => Assert.True(row.GetProperty("values").GetProperty("valid").GetBoolean()));
+        }
+        File.WriteAllText(source, original);
+        CliResult appended = await RunCliAsync(temp.Path, "table", "add-row", source, "Marks", "--json", "{\"id\":60,\"valid\":false,\"weight\":9}", "--format", "json");
+        Assert.Equal(0, appended.ExitCode);
+        Assert.Contains("true ... 5, false", File.ReadAllText(source), StringComparison.Ordinal);
+        CliResult deleted = await RunCliAsync(temp.Path, "table", "delete-row", source, "Marks", "--row", "2", "--format", "json");
+        Assert.Equal(0, deleted.ExitCode);
+        string beforeRejection = File.ReadAllText(source);
+        CliResult rejected = await RunCliAsync(temp.Path, "table", "set", source, "Marks", "--row", "1", "--column", "id", "--value", "10", "--format", "json");
+        Assert.Equal(1, rejected.ExitCode);
+        Assert.Equal(beforeRejection, File.ReadAllText(source));
+        CliResult finalRows = await RunCliAsync(temp.Path, "table", "rows", source, "Marks", "--format", "json");
+        using JsonDocument finalJson = JsonDocument.Parse(finalRows.StdOut);
+        JsonElement[] finalValues = finalJson.RootElement.GetProperty("rows").EnumerateArray().ToArray();
+        Assert.Equal([10, 20, 40, 50, 60], finalValues.Select(row => row.GetProperty("values").GetProperty("id").GetInt32()));
+        Assert.Equal([4, 4, 4, 4, 9], finalValues.Select(row => row.GetProperty("values").GetProperty("weight").GetInt32()));
+        Assert.Equal([true, true, true, true, false], finalValues.Select(row => row.GetProperty("values").GetProperty("valid").GetBoolean()));
+    }
+
     [Fact]
     public async Task Asset_build_compiles_manifest_and_obj_ts_into_deterministic_classified_projections()
     {
@@ -2188,6 +2264,70 @@ function value(flag: boolean): number {
         Assert.Contains("\"rowCount\": 2", qualified.StdOut, StringComparison.Ordinal);
         Assert.Equal(1, wrongArity.ExitCode);
         Assert.Contains("COPE-TABLE-QUERY-0032", wrongArity.StdOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Table_query_preserves_enum_cases_and_payloads_like_authored_rows()
+    {
+        using var temp = new TempDir();
+        string sourcePath = temp.WriteFile("Workbook.ts", """
+            enum Flag { On, Off, }
+            enum Policy {
+                Active,
+                Paused,
+                Cap(value: int),
+                Window(start: int, end: int),
+                Wrapped(flag: Flag),
+            }
+            record table Orders {
+                id: int = [1, 2, 3, 4, 5];
+                policy: Policy = [
+                    Policy.Active,
+                    Policy.Paused,
+                    Policy.Cap(925),
+                    Policy.Window(2, 7),
+                    Policy.Wrapped(Flag.Off)
+                ];
+            }
+            record table Derived = derive Orders as row {
+                id: int = row.id;
+                policy: Policy = row.policy;
+            }
+            """);
+        byte[] before = await File.ReadAllBytesAsync(sourcePath);
+        CliResult authored = await RunCliAsync(temp.Path, "table", "rows", sourcePath, "Orders", "--format", "json");
+        CliResult query = await RunCliAsync(temp.Path, "table", "query", sourcePath, "Derived", "--format", "json");
+        CliResult csv = await RunCliAsync(temp.Path, "table", "query", sourcePath, "Derived", "--select", "policy", "--format", "csv");
+
+        Assert.True(authored.ExitCode == 0, authored.StdOut + authored.StdErr);
+        Assert.True(query.ExitCode == 0, query.StdOut + query.StdErr);
+        Assert.True(csv.ExitCode == 0, csv.StdOut + csv.StdErr);
+        const string expectedCsv = """
+            policy
+            Active
+            Paused
+            "{""case"":""Cap"",""values"":[925]}"
+            "{""case"":""Window"",""values"":[2,7]}"
+            "{""case"":""Wrapped"",""values"":[""Off""]}"
+            """;
+        Assert.Equal(expectedCsv.ReplaceLineEndings("\n") + "\n", csv.StdOut);
+        using JsonDocument authoredJson = JsonDocument.Parse(authored.StdOut);
+        using JsonDocument queryJson = JsonDocument.Parse(query.StdOut);
+        JsonElement expectedRows = authoredJson.RootElement.GetProperty("rows");
+        JsonElement actualRows = queryJson.RootElement.GetProperty("rows");
+        Assert.Equal(5, actualRows.GetArrayLength());
+        for (int index = 0; index < 5; index++)
+        {
+            JsonElement expected = expectedRows[index].GetProperty("values");
+            foreach (string column in new[] { "id", "policy" })
+            {
+                Assert.True(JsonElement.DeepEquals(expected.GetProperty(column), actualRows[index].GetProperty(column)), column);
+            }
+        }
+        Assert.Equal("Paused", actualRows[1].GetProperty("policy").GetString());
+        Assert.Equal("Cap", actualRows[2].GetProperty("policy").GetProperty("case").GetString());
+        Assert.Equal(925, actualRows[2].GetProperty("policy").GetProperty("values")[0].GetInt32());
+        Assert.Equal(before, await File.ReadAllBytesAsync(sourcePath));
     }
 
     [Fact]

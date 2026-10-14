@@ -2,6 +2,11 @@
 
 **Status:** accepted design, ratified through CTS-TABLE-M3. CTS-TABLE-M0a was documentation only; M0b–M2 implemented the source/MIR/C#/JavaScript core and M3 closed adversarial parity. See [the M3 closeout](../architecture/copeland-ts-record-tables-closeout-cts-table-m3.md).
 
+**Authoring extension:** [row authoring and per-row calculation locals](copeland-ts-table-authoring.md)
+adds a row-shaped source initializer over the same immutable columnar storage,
+and `const` bindings within derived plans. It supersedes column-only authoring
+restrictions in this historical design without changing runtime table identity.
+
 > **TSON-table authority:** [CTS-TSON-TABLE-M0a](copeland-ts-tson-tables-design-cts-tson-table-m0a.md) supersedes every future direct JSON construction, codec, `TableJsonError`, and CTS-TABLE-JSON recommendation in this historical design. The accepted route is `record table -> dedicated nominal TSON table -> policy-directed columnar JSON`. This document remains authoritative for the implemented table language and private runtime semantics, not for interchange.
 
 ## Decision

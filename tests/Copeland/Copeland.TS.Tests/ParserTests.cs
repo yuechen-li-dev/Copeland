@@ -5,6 +5,31 @@ namespace Copeland.TS.Tests;
 
 public sealed class ParserTests
 {
+    [Theory]
+    [InlineData("record table Marks { valid: boolean = [true ... 3; id: int = [10, 20, 30]; }")]
+    [InlineData("record table Marks { valid: boolean = [true ... ; id: int = [10, 20, 30]; }")]
+    [InlineData("record table Marks { ] id: int = [10, 20, 30]; }")]
+    [InlineData("record table Marks = derive Source as row { ] id: int = row.id; }")]
+    public void Malformed_Table_Columns_Report_Diagnostics_And_Recover_Later_Declarations(string declaration)
+    {
+        const string followingFunction = "function after(): int { return 1; }";
+        SyntaxTree tree = SyntaxTree.Parse(declaration + followingFunction);
+
+        Assert.Contains(tree.Diagnostics, diagnostic =>
+            diagnostic.Id.StartsWith("COPE-PARSE-", StringComparison.Ordinal));
+        TableDeclarationSyntax table = Assert.IsType<TableDeclarationSyntax>(tree.Root.Members[0]);
+        if (table.DerivedClause is not null)
+        {
+            Assert.Contains(table.DerivedClause.Columns, column => column.Identifier.Text == "id");
+        }
+        else
+        {
+            Assert.Contains(table.Columns, column => column.Identifier.Text == "id");
+        }
+        Assert.Contains(tree.Root.Members.OfType<FunctionDeclarationSyntax>(), function =>
+            function.Identifier.Text == "after");
+    }
+
     [Fact]
     public void Parses_Function_With_Parameters_And_ReturnType()
     {

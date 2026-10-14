@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "success": false,
+  "command": "table.set",
+  "diagnostics": [
+    {
+      "code": "COPE-TABLE-0037",
+      "severity": "error",
+      "message": "Table key \u0027Products.id\u0027 contains duplicate authored value 100.",
+      "file": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-row-authoring\\key-edits\\authored-order.ts",
+      "line": 21,
+      "column": 9
+    }
+  ]
+}

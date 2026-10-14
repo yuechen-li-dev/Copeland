@@ -130,6 +130,8 @@ public static class MirModuleValueValidator
             MirTableRowsExpression value => [value.Table],
             MirTableWhereExpression value => value.Predicates.Prepend(value.Source),
             MirTableSelectExpression value => [value.Source, value.Projector],
+            MirTableSummaryExpression value => [value.Source],
+            MirTableRecalculationExpression value => value.Inputs.Select(input => input.Value),
             MirTableAggregateExpression value => [value.Receiver],
             MirEnumValueExpression value => value.Arguments,
             MirMatchExpression value => value.Arms.Select(arm => arm.Expression).Prepend(value.Scrutinee),

@@ -90,6 +90,10 @@ public sealed class Lexer
                 case ',':
                     return SingleCharToken(SyntaxKind.CommaToken);
                 case '.':
+                    if (Peek(1) == '.' && Peek(2) == '.')
+                    {
+                        return TripleCharToken(SyntaxKind.EllipsisToken);
+                    }
                     return SingleCharToken(SyntaxKind.DotToken);
                 case ':':
                     return SingleCharToken(SyntaxKind.ColonToken);

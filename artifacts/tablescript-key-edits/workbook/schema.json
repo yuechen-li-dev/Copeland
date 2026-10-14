@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "success": true,
+  "command": "table.schema",
+  "table": "Restock",
+  "kind": "derived",
+  "readOnly": true,
+  "source": "Products",
+  "joins": [
+    {
+      "relation": "Stock",
+      "alias": "stock",
+      "through": "Stock.productId -\u003E Products.id",
+      "cardinality": "one-to-one"
+    },
+    {
+      "relation": "Suppliers",
+      "alias": "supplier",
+      "through": "Products.supplierId -\u003E Suppliers.id",
+      "cardinality": "many-to-one"
+    }
+  ],
+  "rowCount": 6,
+  "columns": [
+    {
+      "name": "productId",
+      "type": "int",
+      "provenance": {
+        "kind": "copied",
+        "sourceTable": "Products",
+        "inputs": [
+          "id"
+        ],
+        "relationships": [],
+        "authoredPosition": 1300
+      }
+    },
+    {
+      "name": "productName",
+      "type": "string",
+      "provenance": {
+        "kind": "copied",
+        "sourceTable": "Products",
+        "inputs": [
+          "name"
+        ],
+        "relationships": [],
+        "authoredPosition": 1333
+      }
+    },
+    {
+      "name": "supplierId",
+      "type": "int",
+      "provenance": {
+        "kind": "copied",
+        "sourceTable": "Products",
+        "inputs": [
+          "supplierId"
+        ],
+        "relationships": [],
+        "authoredPosition": 1373
+      }
+    },
+    {
+      "name": "supplierName",
+      "type": "string",
+      "provenance": {
+        "kind": "copied",
+        "sourceTable": "Products",
+        "inputs": [
+          "supplier.name"
+        ],
+        "relationships": [
+          "Products.supplierId -\u003E Suppliers.id"
+        ],
+        "authoredPosition": 1415
+      }
+    },
+    {
+      "name": "leadDays",
+      "type": "int",
+      "provenance": {
+        "kind": "copied",
+        "sourceTable": "Products",
+        "inputs": [
+          "supplier.leadDays"
+        ],
+        "relationships": [
+          "Products.supplierId -\u003E Suppliers.id"
+        ],
+        "authoredPosition": 1457
+      }
+    },
+    {
+      "name": "costCents",
+      "type": "int",
+      "provenance": {
+        "kind": "copied",
+        "sourceTable": "Products",
+        "inputs": [
+          "costCents"
+        ],
+        "relationships": [],
+        "authoredPosition": 1496
+      }
+    },
+    {
+      "name": "onHand",
+      "type": "int",
+      "provenance": {
+        "kind": "copied",
+        "sourceTable": "Products",
+        "inputs": [
+          "stock.onHand"
+        ],
+        "relationships": [
+          "Stock.productId -\u003E Products.id"
+        ],
+        "authoredPosition": 1538
+      }
+    },
+    {
+      "name": "purchasing",
+      "type": "Purchasing",
+      "provenance": {
+        "kind": "copied",
+        "sourceTable": "Products",
+        "inputs": [
+          "purchasing"
+        ],
+        "relationships": [],
+        "authoredPosition": 1572
+      }
+    },
+    {
+      "name": "orderUnits",
+      "type": "int",
+      "provenance": {
+        "kind": "computed",
+        "sourceTable": "Products",
+        "inputs": [
+          "purchasing",
+          "reorderPoint",
+          "stock.onHand",
+          "targetStock"
+        ],
+        "relationships": [
+          "Stock.productId -\u003E Products.id"
+        ],
+        "authoredPosition": 1621
+      }
+    }
+  ]
+}

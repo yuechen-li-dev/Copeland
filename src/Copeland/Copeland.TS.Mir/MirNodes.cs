@@ -360,14 +360,18 @@ public sealed class MirDerivedTablePlan(
     string sourceAlias,
     string planIdentity,
     IReadOnlyList<MirRelationJoin> joins,
-    IReadOnlyList<MirDerivedTableColumnPlan> columns)
+    IReadOnlyList<MirDerivedTableColumnPlan> columns,
+    IReadOnlyList<MirDerivedTableLocal>? locals = null)
 {
     public MirTableId SourceTableId { get; } = sourceTableId;
     public string SourceAlias { get; } = sourceAlias;
     public string PlanIdentity { get; } = planIdentity;
     public IReadOnlyList<MirRelationJoin> Joins { get; } = joins;
     public IReadOnlyList<MirDerivedTableColumnPlan> Columns { get; } = columns;
+    public IReadOnlyList<MirDerivedTableLocal> Locals { get; } = locals ?? [];
 }
+
+public sealed record MirDerivedTableLocal(string Name, string RuntimeName, MirType Type, MirExpression Expression, int AuthoredPosition);
 
 /// <summary>Resolved relationship lookup. The backend receives facts, not a predicate.</summary>
 public sealed class MirRelationJoin(
@@ -702,7 +706,13 @@ public sealed record MirCallExpression(string FunctionName, IReadOnlyList<MirExp
 public sealed record MirFunctionReferenceExpression(string FunctionName, MirCallableType CallableType) : MirExpression(CallableType);
 public sealed record MirCallableConstructionExpression(string CodeFunctionName, IReadOnlyList<MirExpression> Captures, MirCallableType CallableType) : MirExpression(CallableType);
 public sealed record MirInvokeExpression(MirExpression Callee, IReadOnlyList<MirExpression> Arguments, MirType Type) : MirExpression(Type);
-public sealed record MirArrayExpression(IReadOnlyList<MirExpression> Elements, MirType Type) : MirExpression(Type);
+public sealed record MirArrayExpression(
+    IReadOnlyList<MirExpression> Elements,
+    MirType Type,
+    IReadOnlyList<int>? Counts = null) : MirExpression(Type)
+{
+    public int Length => Counts?.Sum() ?? Elements.Count;
+}
 public sealed record MirArrayLengthExpression(MirExpression Receiver) : MirExpression(new MirNamedType("int"));
 public sealed record MirArrayElementAccessExpression(MirExpression Receiver, MirExpression Index, MirType Type) : MirExpression(Type);
 public sealed record MirArrayIterableExpression(MirExpression Receiver, MirIterableType IterableType) : MirExpression(IterableType);
@@ -730,8 +740,34 @@ public sealed record MirTableRowAccessExpression(MirExpression Receiver, MirExpr
 public sealed record MirColumnElementAccessExpression(MirExpression Receiver, MirExpression Index, MirType Type) : MirExpression(Type);
 public sealed record MirTableRowFieldAccessExpression(MirExpression Receiver, string RowTypeId, string FieldId, MirType Type) : MirExpression(Type);
 public sealed record MirTableRowsExpression(MirExpression Table, MirTableId TableId, MirIterableType IterableType) : MirExpression(IterableType);
+public sealed record MirTableRecalculationExpression(
+    MirTableId TableId,
+    IReadOnlyList<MirTableRecalculationInput> Inputs,
+    IReadOnlyList<MirTableRecalculationStep> Steps,
+    MirTableType TableType) : MirExpression(TableType);
+public sealed record MirTableRecalculationInput(MirTableId TableId, MirExpression Value);
+public sealed record MirTableRecalculationStep(MirTableId TableId, IReadOnlyList<MirTableId> Inputs);
 public sealed record MirTableWhereExpression(MirExpression Source, MirTableId TableId, IReadOnlyList<MirExpression> Predicates, MirIterableType IterableType) : MirExpression(IterableType);
 public sealed record MirTableSelectExpression(MirExpression Source, MirTableId TableId, MirExpression Projector, MirArrayType ArrayType) : MirExpression(ArrayType);
+public sealed record MirTableSummaryExpression(
+    MirExpression Source,
+    MirTableId TableId,
+    MirRecordTypeId RecordTypeId,
+    MirType RecordType,
+    IReadOnlyList<MirTableSummaryKey> GroupKeys,
+    IReadOnlyList<MirTableSummaryField> Fields,
+    bool IsGrouped,
+    MirType ResultType) : MirExpression(ResultType);
+
+public sealed record MirTableSummaryKey(MirTableColumnId ColumnId, MirType Type);
+
+public sealed record MirTableSummaryField(
+    MirRecordFieldId FieldId,
+    MirTableColumnId? Input,
+    MirTableAggregateKind? Aggregate,
+    MirType Type,
+    IReadOnlyList<string> Inputs,
+    IReadOnlyList<string> Relationships);
 public enum MirTableAggregateKind { Sum, Average, Min, Max, Count }
 public sealed record MirTableAggregateExpression(MirExpression Receiver, MirTableId TableId, MirTableColumnId ColumnId, MirTableAggregateKind Kind, MirType Type) : MirExpression(Type);
 public sealed class MirTableColumnReplacement(MirTableColumnId columnId, MirArrayExpression value)

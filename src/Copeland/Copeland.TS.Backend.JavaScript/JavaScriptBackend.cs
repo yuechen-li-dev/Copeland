@@ -997,6 +997,17 @@ public static class JavaScriptBackend
                     ValidateExpression(predicate, functionReturnType, context, functions, catalog, diagnostics);
                 }
                 break;
+            case MirTableSummaryExpression summary:
+                diagnostics.Add(new JavaScriptDiagnostic("COPE-JS-SUMMARY-0001", "Typed table summary materialization is currently supported by the C# backend; JavaScript summary execution is unsupported."));
+                ValidateExpression(summary.Source, functionReturnType, context, functions, catalog, diagnostics);
+                break;
+            case MirTableRecalculationExpression recalculation:
+                diagnostics.Add(new JavaScriptDiagnostic("COPE-JS-DERIVE-0001", "Snapshot-relative derivation currently requires the C# backend; JavaScript relation recalculation is unsupported."));
+                foreach (MirTableRecalculationInput input in recalculation.Inputs)
+                {
+                    ValidateExpression(input.Value, functionReturnType, context, functions, catalog, diagnostics);
+                }
+                break;
             case MirTableSelectExpression select:
                 ValidateExpression(select.Source, functionReturnType, context, functions, catalog, diagnostics);
                 ValidateExpression(select.Projector, functionReturnType, context, functions, catalog, diagnostics);
@@ -2186,19 +2197,19 @@ public static class JavaScriptBackend
         for (int columnIndex = 0; columnIndex < table.Columns.Count; columnIndex++)
         {
             MirTableColumnDefinition column = table.Columns[columnIndex];
-            string values = string.Join(", ", column.Constants.Select(constant => EmitTableConstant(constant, catalog, results, names)));
+            string values = EmitTableInitializer(column.Constants, catalog, results, names);
             if (usesTableWith)
             {
                 string sourceValues = $"Array.from({{ length: {table.RowCount} }}, (_, index) => source[{names.TableColumnSlot(column)}][{names.ColumnReadSlot}](index).$payload[0])";
                 writer.WriteLine(IsProduction(names)
-                    ? $"const {names.TableStorage(column)} = replacements[{columnIndex}] ?? (source === null ? [{values}] : {sourceValues});"
-                    : $"const {names.TableStorage(column)} = Object.freeze(replacements[{columnIndex}] ?? (source === null ? [{values}] : {sourceValues}));");
+                    ? $"const {names.TableStorage(column)} = replacements[{columnIndex}] ?? (source === null ? {values} : {sourceValues});"
+                    : $"const {names.TableStorage(column)} = Object.freeze(replacements[{columnIndex}] ?? (source === null ? {values} : {sourceValues}));");
             }
             else
             {
                 writer.WriteLine(IsProduction(names)
-                    ? $"const {names.TableStorage(column)} = [{values}];"
-                    : $"const {names.TableStorage(column)} = Object.freeze([{values}]);");
+                    ? $"const {names.TableStorage(column)} = {values};"
+                    : $"const {names.TableStorage(column)} = Object.freeze({values});");
             }
             if (IsProduction(names))
             {
@@ -2343,6 +2354,30 @@ public static class JavaScriptBackend
         writer.WriteLine($"return {names.MakeValue}({resultToken}, \"ok\", [{successValue}]);");
     }
 
+    private static string EmitTableInitializer(IReadOnlyList<MirTableConstant> constants, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    {
+        if (constants is not InitializerSequence<MirTableConstant> sequence)
+        {
+            return "[" + string.Join(", ", constants.Select(constant => EmitTableConstant(constant, catalog, results, names))) + "]";
+        }
+        var source = new System.Text.StringBuilder();
+        source.AppendLine("(() => {");
+        source.AppendLine("    const values = [];");
+        for (int segment = 0; segment < sequence.Values.Count; segment++)
+        {
+            if (sequence.Counts[segment] == 0)
+            {
+                continue;
+            }
+            source.AppendLine($"    for (let turn = 0; turn < {sequence.Counts[segment]}; turn++) {{");
+            source.AppendLine($"        values.push({EmitTableConstant(sequence.Values[segment], catalog, results, names)});");
+            source.AppendLine("    }");
+        }
+        source.AppendLine("    return values;");
+        source.Append("})()");
+        return source.ToString();
+    }
+
     private static string EmitTableConstant(MirTableConstant constant, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
     {
         return constant switch
@@ -2350,7 +2385,7 @@ public static class JavaScriptBackend
             MirTableLiteralConstant { Value: bool value } => value ? "true" : "false",
             MirTableLiteralConstant { Value: string value } => JavaScriptLiteralWriter.WriteString(value),
             MirTableLiteralConstant literal => JavaScriptLiteralWriter.WriteNumber(literal.Value),
-            MirTableArrayConstant array => $"Object.freeze([{string.Join(", ", array.Elements.Select(element => EmitTableConstant(element, catalog, results, names))) }])",
+            MirTableArrayConstant array => $"Object.freeze({EmitTableInitializer(array.Elements, catalog, results, names)})",
             MirTableRecordConstant record => EmitTableRecordConstant(record, catalog, results, names),
             MirTableEnumConstant value => EmitTableEnumConstant(value, catalog, results, names),
             MirTableResultConstant result => $"{names.MakeValue}({names.TypeToken(results.Get(result.Type))}, \"{(result.IsOk ? "ok" : "err")}\", [{EmitTableConstant(result.Payload, catalog, results, names)}])",
@@ -3255,6 +3290,20 @@ public static class JavaScriptBackend
             ? AsyncFrameSlotReference(new MirFrameSlotId(slot))
             : "frame." + JavaScriptIdentifierEncoder.Encode(name);
 
+    private static string EmitAsyncArrayAssignment(MirMutableArrayElementAssignmentExpression assignment, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    {
+        string receiver = EmitAsyncExpression(assignment.Receiver, catalog, results, names);
+        string index = EmitAsyncExpression(assignment.Index, catalog, results, names);
+        string value = EmitAsyncExpression(assignment.Value, catalog, results, names);
+        return "((array, index, value) => {\n"
+            + "    if (index < 0 || index >= array.length) {\n"
+            + "        throw new RangeError(\"Copeland array index is out of bounds.\");\n"
+            + "    }\n"
+            + "    array[index] = value;\n"
+            + "    return value;\n"
+            + $"}})({receiver}, {index}, {value})";
+    }
+
     private static string EmitAsyncExpression(MirExpression expression, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
     {
         return expression switch
@@ -3265,6 +3314,9 @@ public static class JavaScriptBackend
             MirUnitExpression => "null",
             MirVariableExpression variable => AsyncFrameVariableReference(variable.Name, names),
             MirAsyncFrameSlotExpression slot => AsyncFrameSlotReference(slot.SlotId),
+            MirMutableArrayConstructionExpression construction => $"Array({EmitAsyncExpression(construction.Length, catalog, results, names)}).fill({DefaultJavaScriptValue(construction.MutableArrayType.ElementType)})",
+            MirMutableArrayElementAssignmentExpression assignment => EmitAsyncArrayAssignment(assignment, catalog, results, names),
+            MirMutableArrayFreezeExpression freeze => $"{EmitAsyncExpression(freeze.Receiver, catalog, results, names)}.slice()",
             MirAssignmentExpression assignment => AsyncAssignmentText(assignment, AsyncFrameVariableReference(assignment.Name, names), EmitAsyncExpression(assignment.Expression, catalog, results, names)),
             MirBinaryExpression binary => BinaryText(binary, EmitAsyncExpression(binary.Left, catalog, results, names), EmitAsyncExpression(binary.Right, catalog, results, names)),
             MirUnaryExpression unary => UnaryText(unary, EmitAsyncExpression(unary.Operand, catalog, results, names)),
@@ -4744,6 +4796,26 @@ public static class JavaScriptBackend
         GeneratedNames names,
         bool flowEnabled)
     {
+        if (array.Counts is not null)
+        {
+            string output = names.NextTemporary("initializer");
+            var prelude = new List<EmittedLine> { new($"const {output} = [];", 0) };
+            for (int segment = 0; segment < array.Elements.Count; segment++)
+            {
+                int count = array.Counts[segment];
+                if (count == 0)
+                {
+                    continue;
+                }
+                string turn = names.NextTemporary("initializer_turn");
+                prelude.Add(new EmittedLine($"for (let {turn} = 0; {turn} < {count}; {turn}++) {{", 0));
+                EmittedExpression value = EmitExpression(array.Elements[segment], function, catalog, results, names, flowEnabled);
+                prelude.AddRange(value.Prelude.Select(line => new EmittedLine(line.Text, line.Indent + 1)));
+                prelude.Add(new EmittedLine($"{output}.push({value.Value});", 1));
+                prelude.Add(new EmittedLine("}", 0));
+            }
+            return new EmittedExpression(prelude, output);
+        }
         var elements = new List<EmittedExpression>(array.Elements.Count);
         for (int index = 0; index < array.Elements.Count; index++)
         {

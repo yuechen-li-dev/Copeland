@@ -1412,21 +1412,47 @@ public static partial class Binder
                 if (declaration.Columns.Count == 0) Report("COPE-TABLE-0003", "A table requires at least one column.", declaration.Identifier);
                 if (declaration.AssetClause is not null)
                 {
+                    if (declaration.RowsInitializer is not null)
+                    {
+                        Report("COPE-ROWS-0002", "Row initializers cannot be combined with asset data.", declaration.Identifier);
+                        continue;
+                    }
                     BindAssetTableBody(declaration, table);
+                    continue;
+                }
+                if (!ValidateRowInitializers(declaration))
+                {
                     continue;
                 }
                 var names = new HashSet<string>(StringComparer.Ordinal);
                 var columns = new List<BoundTableColumnDefinition>();
                 int? rowCount = null;
+                foreach (TableColumnSyntax columnSyntax in declaration.Columns)
+                {
+                    int? statedLength = StatedInitializerLength(TableRowInitializers.Column(declaration, columnSyntax));
+                    if (statedLength is not null)
+                    {
+                        if (rowCount is not null && rowCount != statedLength)
+                        {
+                            Report("COPE-TABLE-0008", "Table columns must have equal lengths.", columnSyntax.Identifier);
+                        }
+                        rowCount ??= statedLength;
+                    }
+                }
                 foreach (var columnSyntax in declaration.Columns)
                 {
                     if (!names.Add(columnSyntax.Identifier.Text)) { Report("COPE-TABLE-0004", $"Duplicate column '{columnSyntax.Identifier.Text}'.", columnSyntax.Identifier); continue; }
                     TypeSymbol? explicitType = columnSyntax.ExplicitType is null ? null : BindType(columnSyntax.ExplicitType, columnSyntax.Identifier, "COPE-TABLE-0019", "table column");
-                    if (columnSyntax.ExplicitType is null && columnSyntax.Cells.Elements.Count == 0)
+                    ArrayLiteralExpressionSyntax cellSyntax = TableRowInitializers.Column(declaration, columnSyntax);
+                    if (columnSyntax.ExplicitType is null && cellSyntax.Elements.Count == 0)
                     {
                         Report("COPE-TABLE-0005", "An empty table column requires an explicit element type.", columnSyntax.Identifier);
                     }
-                    var boundCells = columnSyntax.Cells.Elements.Select(cell => BindExpression(cell, explicitType)).ToArray();
+                    var initializer = (BoundArrayExpression)BindArrayInitializer(
+                        cellSyntax,
+                        explicitType is null ? null : new ArrayTypeSymbol(explicitType),
+                        rowCount);
+                    var boundCells = initializer.Elements;
                     var elementType = explicitType ?? boundCells.FirstOrDefault()?.Type ?? PrimitiveTypeSymbol.Error;
                     if (ContainsCallable(elementType))
                     {
@@ -1448,12 +1474,14 @@ public static partial class Binder
                         else cells.Add(constant);
                         if (!TypeFacts.AreEquivalent(elementType, cell.Type)) Report(explicitType is null ? "COPE-TABLE-0006" : "COPE-TABLE-0007", $"Table column '{columnSyntax.Identifier.Text}' has an incompatible cell type.", columnSyntax.Identifier);
                     }
-                    if (rowCount is null) rowCount = boundCells.Length;
-                    else if (rowCount != boundCells.Length) Report("COPE-TABLE-0008", "Table columns must have equal lengths.", columnSyntax.Identifier);
+                    if (rowCount is not null && rowCount != initializer.Length) Report("COPE-TABLE-0008", "Table columns must have equal lengths.", columnSyntax.Identifier);
                     var column = new TableColumnSymbol(columnSyntax.Identifier.Text, new TableColumnId(table.Id, table.Columns.Count), elementType);
                     table.AddColumn(column);
                     DeclareTableColumnIdentity(table, column, columnSyntax);
-                    columns.Add(new BoundTableColumnDefinition(column, cells));
+                    IReadOnlyList<BoundTableConstant> logicalCells = initializer.Counts is null || cells.Count != boundCells.Count
+                        ? cells
+                        : new Copeland.TS.Mir.InitializerSequence<BoundTableConstant>(cells, initializer.Counts);
+                    columns.Add(new BoundTableColumnDefinition(column, logicalCells));
                 }
                 table.RowCount = rowCount ?? 0;
                 _tables.Add(new BoundTableDefinition(table, columns, table.RowCount, declaration.IsExported));
@@ -1521,6 +1549,7 @@ public static partial class Binder
 
             var names = new HashSet<string>(StringComparer.Ordinal);
             var projections = new List<BoundDerivedTableColumnDefinition>();
+            IReadOnlyList<BoundDerivedTableLocal> locals = [];
             var joins = BindDerivedTableJoins(clause, source);
             var relationAliases = joins.ToDictionary(join => join.Alias, join => join.JoinedTable, StringComparer.Ordinal);
             relationAliases.Add(clause.AliasIdentifier.Text, source);
@@ -1533,6 +1562,8 @@ public static partial class Binder
                 {
                     _scope.TryDeclare(new VariableSymbol(join.Alias, join.JoinedTable.RowType, true));
                 }
+                locals = BindDerivedLocals(clause, relationAliases);
+                var localValues = locals.ToDictionary(local => local.Variable, local => local.Expression);
                 foreach (DerivedTableColumnSyntax projection in clause.Columns)
                 {
                     if (!names.Add(projection.Identifier.Text))
@@ -1561,7 +1592,7 @@ public static partial class Binder
 
                     var column = new TableColumnSymbol(projection.Identifier.Text, new TableColumnId(table.Id, table.Columns.Count), resultType);
                     table.AddColumn(column);
-                    (string? copiedSourceColumn, TableColumnSymbol? copiedColumn, string? copiedAlias) = GetCopiedDerivedColumn(expression, relationAliases, clause.AliasIdentifier.Text);
+                    (string? copiedSourceColumn, TableColumnSymbol? copiedColumn, string? copiedAlias) = GetCopiedDerivedColumn(expression, relationAliases, clause.AliasIdentifier.Text, localValues);
                     if (copiedColumn is not null)
                     {
                         if (copiedAlias == clause.AliasIdentifier.Text && copiedColumn == source.KeyColumn)
@@ -1577,8 +1608,8 @@ public static partial class Binder
                         column,
                         expression,
                         copiedSourceColumn,
-                        CollectDerivedSourceColumns(expression, clause.AliasIdentifier.Text, joins),
-                        CollectDerivedRelationships(expression, joins),
+                        CollectDerivedSourceColumns(expression, clause.AliasIdentifier.Text, localValues),
+                        CollectDerivedRelationships(expression, joins, localValues),
                         projection.Identifier.Position));
                 }
             }
@@ -1592,7 +1623,7 @@ public static partial class Binder
                 Report("COPE-DERIVE-0002", "A derived table requires at least one output column.", declaration.Identifier);
             }
             table.RowCount = source.RowCount;
-            _tables.Add(new BoundDerivedTableDefinition(table, source, clause.AliasIdentifier.Text, joins, projections, table.RowCount, declaration.IsExported));
+            _tables.Add(new BoundDerivedTableDefinition(table, source, clause.AliasIdentifier.Text, joins, projections, table.RowCount, declaration.IsExported, locals));
         }
 
         private IReadOnlyList<BoundDerivedTableJoin> BindDerivedTableJoins(DerivedTableClauseSyntax clause, TableTypeSymbol source)
@@ -1669,13 +1700,39 @@ public static partial class Binder
         private static bool IsDerivedExpressionPure(BoundExpression expression)
             => expression switch
             {
-                BoundAssignmentExpression or BoundAwaitExpression or BoundCallExpression or BoundInvokeExpression or BoundClrInvocationExpression or BoundClrPropertyAccessExpression
-                    or BoundNpmCallExpression or BoundNpmDirectCallExpression or BoundJavaScriptHostCallExpression => false,
-                _ => true,
+                BoundLiteralExpression or BoundVariableExpression or BoundErrorExpression or BoundStaticExpression => true,
+                BoundUnaryExpression unary => IsDerivedExpressionPure(unary.Operand),
+                BoundBinaryExpression binary => IsDerivedExpressionPure(binary.Left) && IsDerivedExpressionPure(binary.Right),
+                BoundNumericConversionExpression conversion => IsDerivedExpressionPure(conversion.Operand),
+                BoundIfExpression conditional => IsDerivedExpressionPure(conditional.Condition)
+                    && IsDerivedExpressionPure(conditional.ThenExpression) && IsDerivedExpressionPure(conditional.ElseExpression),
+                BoundMatchExpression match => IsDerivedExpressionPure(match.Scrutinee)
+                    && match.Arms.All(arm => IsDerivedExpressionPure(arm.Expression)),
+                BoundResultMatchExpression match => IsDerivedExpressionPure(match.Scrutinee)
+                    && IsDerivedExpressionPure(match.OkExpression) && IsDerivedExpressionPure(match.ErrExpression),
+                BoundTableRowFieldAccessExpression access => IsDerivedExpressionPure(access.Receiver),
+                BoundRecordFieldAccessExpression access => IsDerivedExpressionPure(access.Receiver),
+                BoundRecordConstructionExpression record => record.Initializers.All(field => IsDerivedExpressionPure(field.Value)),
+                BoundRecordWithExpression record => IsDerivedExpressionPure(record.Source)
+                    && record.Replacements.All(field => IsDerivedExpressionPure(field.Value)),
+                BoundEnumValueExpression value => value.Arguments.All(IsDerivedExpressionPure),
+                BoundArrayExpression array => array.Elements.All(IsDerivedExpressionPure),
+                BoundOkExpression ok => IsDerivedExpressionPure(ok.Payload),
+                BoundErrExpression err => IsDerivedExpressionPure(err.Payload),
+                BoundUnitExpression => true,
+                _ => false,
             };
 
-        private static (string? Name, TableColumnSymbol? Column, string? Alias) GetCopiedDerivedColumn(BoundExpression expression, IReadOnlyDictionary<string, TableTypeSymbol> aliases, string sourceAlias)
+        private static (string? Name, TableColumnSymbol? Column, string? Alias) GetCopiedDerivedColumn(
+            BoundExpression expression,
+            IReadOnlyDictionary<string, TableTypeSymbol> aliases,
+            string sourceAlias,
+            IReadOnlyDictionary<VariableSymbol, BoundExpression> locals)
         {
+            while (expression is BoundVariableExpression local && locals.TryGetValue(local.Variable, out BoundExpression? value))
+            {
+                expression = value;
+            }
             if (expression is BoundTableRowFieldAccessExpression access
                 && access.Receiver is BoundVariableExpression variable)
             {
@@ -1688,18 +1745,50 @@ public static partial class Binder
             return (null, null, null);
         }
 
-        private static IReadOnlyList<string> CollectDerivedSourceColumns(BoundExpression expression, string sourceAlias, IReadOnlyList<BoundDerivedTableJoin> joins)
+        private static IReadOnlyList<string> CollectDerivedSourceColumns(BoundExpression expression, string sourceAlias, IReadOnlyDictionary<VariableSymbol, BoundExpression> locals)
         {
             var columns = new HashSet<string>(StringComparer.Ordinal);
-            Visit(expression);
+            VisitDerivedInputs(expression, locals, access =>
+            {
+                if (access.Receiver is BoundVariableExpression variable)
+                {
+                    columns.Add(variable.Variable.Name == sourceAlias ? access.Field.Name : variable.Variable.Name + "." + access.Field.Name);
+                }
+            });
             return columns.OrderBy(name => name, StringComparer.Ordinal).ToArray();
+        }
+
+        private static IReadOnlyList<BoundDerivedTableJoin> CollectDerivedRelationships(BoundExpression expression, IReadOnlyList<BoundDerivedTableJoin> joins, IReadOnlyDictionary<VariableSymbol, BoundExpression> locals)
+        {
+            var aliases = new HashSet<string>(StringComparer.Ordinal);
+            VisitDerivedInputs(expression, locals, access =>
+            {
+                if (access.Receiver is BoundVariableExpression variable)
+                {
+                    aliases.Add(variable.Variable.Name);
+                }
+            });
+            return joins.Where(join => aliases.Contains(join.Alias)).ToArray();
+        }
+
+        private static void VisitDerivedInputs(
+            BoundExpression expression,
+            IReadOnlyDictionary<VariableSymbol, BoundExpression> locals,
+            Action<BoundTableRowFieldAccessExpression> visitField)
+        {
+            var visited = new HashSet<VariableSymbol>();
+            Visit(expression);
 
             void Visit(BoundExpression candidate)
             {
                 switch (candidate)
                 {
-                    case BoundTableRowFieldAccessExpression access when access.Receiver is BoundVariableExpression variable:
-                        columns.Add(variable.Variable.Name == sourceAlias ? access.Field.Name : variable.Variable.Name + "." + access.Field.Name);
+                    case BoundVariableExpression variable when locals.TryGetValue(variable.Variable, out BoundExpression? value):
+                        if (visited.Add(variable.Variable)) Visit(value);
+                        break;
+                    case BoundTableRowFieldAccessExpression access:
+                        visitField(access);
+                        Visit(access.Receiver);
                         break;
                     case BoundBinaryExpression binary:
                         Visit(binary.Left);
@@ -1716,42 +1805,38 @@ public static partial class Binder
                         Visit(conditional.ThenExpression);
                         Visit(conditional.ElseExpression);
                         break;
-                    case BoundTableRowFieldAccessExpression access:
-                        Visit(access.Receiver);
+                    case BoundMatchExpression match:
+                        Visit(match.Scrutinee);
+                        foreach (BoundMatchArm arm in match.Arms) Visit(arm.Expression);
+                        break;
+                    case BoundResultMatchExpression match:
+                        Visit(match.Scrutinee);
+                        Visit(match.OkExpression);
+                        Visit(match.ErrExpression);
                         break;
                     case BoundRecordFieldAccessExpression access:
                         Visit(access.Receiver);
                         break;
+                    case BoundRecordConstructionExpression record:
+                        foreach (BoundRecordFieldInitializer field in record.Initializers) Visit(field.Value);
+                        break;
+                    case BoundRecordWithExpression record:
+                        Visit(record.Source);
+                        foreach (BoundRecordFieldInitializer field in record.Replacements) Visit(field.Value);
+                        break;
+                    case BoundEnumValueExpression value:
+                        foreach (BoundExpression argument in value.Arguments) Visit(argument);
+                        break;
+                    case BoundArrayExpression array:
+                        foreach (BoundExpression element in array.Elements) Visit(element);
+                        break;
+                    case BoundOkExpression ok:
+                        Visit(ok.Payload);
+                        break;
+                    case BoundErrExpression err:
+                        Visit(err.Payload);
+                        break;
                 }
-            }
-        }
-
-        private static IReadOnlyList<BoundDerivedTableJoin> CollectDerivedRelationships(BoundExpression expression, IReadOnlyList<BoundDerivedTableJoin> joins)
-        {
-            var aliases = new HashSet<string>(StringComparer.Ordinal);
-            CollectAliases(expression, aliases);
-            return joins.Where(join => aliases.Contains(join.Alias)).ToArray();
-        }
-
-        private static void CollectAliases(BoundExpression expression, ISet<string> aliases)
-        {
-            switch (expression)
-            {
-                case BoundTableRowFieldAccessExpression access when access.Receiver is BoundVariableExpression variable:
-                    aliases.Add(variable.Variable.Name);
-                    break;
-                case BoundBinaryExpression binary:
-                    CollectAliases(binary.Left, aliases); CollectAliases(binary.Right, aliases); break;
-                case BoundUnaryExpression unary:
-                    CollectAliases(unary.Operand, aliases); break;
-                case BoundNumericConversionExpression conversion:
-                    CollectAliases(conversion.Operand, aliases); break;
-                case BoundIfExpression conditional:
-                    CollectAliases(conditional.Condition, aliases); CollectAliases(conditional.ThenExpression, aliases); CollectAliases(conditional.ElseExpression, aliases); break;
-                case BoundTableRowFieldAccessExpression access:
-                    CollectAliases(access.Receiver, aliases); break;
-                case BoundRecordFieldAccessExpression access:
-                    CollectAliases(access.Receiver, aliases); break;
             }
         }
 
@@ -2201,12 +2286,14 @@ public static partial class Binder
                 return null;
             }
 
-            var elements = array.Elements.Select(BindTableConstant).ToArray();
+            var elements = array.MapLogicalElements(BindTableConstant);
             return elements.Any(element => element is null)
                 ? null
                 : new BoundTableArrayConstant(
                     arrayType,
-                    elements.Select(element => element!).ToArray());
+                    elements is Copeland.TS.Mir.InitializerSequence<BoundTableConstant?> sequence
+                        ? sequence.Map(element => element!)
+                        : elements.Select(element => element!).ToArray());
         }
 
         private static BoundTableConstant? BindTableEnumConstant(BoundEnumValueExpression value)
@@ -8206,6 +8293,14 @@ public static partial class Binder
 
         private BoundExpression BindCall(CallExpressionSyntax c, TypeSymbol? contextualType)
         {
+            if (c.Target is MemberAccessExpressionSyntax { NameToken.Text: "summarize" } summary)
+            {
+                BoundExpression? result = BindTableSummary(summary, c.Arguments, [], contextualType);
+                if (result is not null)
+                {
+                    return result;
+                }
+            }
             if (c.Target is MemberAccessExpressionSyntax { Target: NameExpressionSyntax { IdentifierToken.Text: "on" } } endpoint
                 && !_scope.TryLookup("on", out _))
             {
@@ -8341,6 +8436,11 @@ public static partial class Binder
                         && !_enumTypes.ContainsKey(tableTargetName.IdentifierToken.Text))))
             {
                 BoundExpression tableReceiver = BindExpression(tableMember.Target);
+                if (tableReceiver.Type is TableTypeSymbol recalculatedType
+                    && tableMember.NameToken.Text == "recalculate")
+                {
+                    return BindTableRecalculation(c, tableMember, tableReceiver, recalculatedType);
+                }
                 if (tableReceiver.Type is TableTypeSymbol tableType
                     && tableMember.NameToken.Text == "rows")
                 {
@@ -8633,7 +8733,12 @@ public static partial class Binder
                     new ArrayTypeSymbol(projectorType.ReturnType));
             }
 
-            Report("COPE-TABLE-0025", $"Table row views support only 'where' and 'select'; '{member.NameToken.Text}' is not available.", member.NameToken);
+            if (member.NameToken.Text == "groupBy")
+            {
+                Report("COPE-SUMMARY-0010", "groupBy must be followed immediately by summarize<Record>(...).", member.NameToken);
+                return new BoundErrorExpression();
+            }
+            Report("COPE-TABLE-0025", $"Table row views support 'where', 'select', and terminal 'summarize'; '{member.NameToken.Text}' is not available.", member.NameToken);
             return new BoundErrorExpression();
         }
 
@@ -10372,6 +10477,14 @@ public static partial class Binder
 
         private BoundExpression BindGenericCall(GenericCallExpressionSyntax call, TypeSymbol? contextualType)
         {
+            if (call.Target is MemberAccessExpressionSyntax { NameToken.Text: "summarize" } summary)
+            {
+                BoundExpression? result = BindTableSummary(summary, call.Arguments, call.TypeArguments, contextualType);
+                if (result is not null)
+                {
+                    return result;
+                }
+            }
             if (call.Target is NameExpressionSyntax clrName && IsImportedGenericClrName(clrName.IdentifierToken.Text))
             {
                 Type? closed = CloseGenericClrType(clrName.IdentifierToken, call.TypeArguments);
@@ -11287,6 +11400,31 @@ public static partial class Binder
         private sealed class ClosedInstantiationRewriter(BinderImpl owner, IReadOnlyDictionary<TypeSymbol, TypeSymbol> substitutions)
         {
             private readonly Dictionary<VariableSymbol, VariableSymbol> _variables = [];
+            private BoundArrayExpression RewriteInitializer(BoundArrayExpression array)
+            {
+                int[]? counts = array.Counts?.ToArray();
+                var deferred = new Dictionary<int, BoundExpression>();
+                foreach (var pair in array.DeferredCounts ?? new Dictionary<int, BoundExpression>())
+                {
+                    BoundExpression count = RewriteExpression(pair.Value);
+                    if (OpenStaticIdentity(count) is not null)
+                    {
+                        deferred.Add(pair.Key, count);
+                    }
+                    else
+                    {
+                        SyntaxToken anchor = (array.Syntax?.Elements[pair.Key] as RepeatedInitializerSyntax)?.EllipsisToken
+                            ?? new SyntaxToken(SyntaxKind.EllipsisToken, 0, "...", null);
+                        counts![pair.Key] = owner.ResolveInitializerCount(count, anchor);
+                    }
+                }
+                if (counts is not null && counts.Sum(count => (long)count) > StaticEvaluationLimits.M1.MaximumArrayLength)
+                {
+                    owner.Report("COPE-INIT-0004", "Combined repetition exceeds the 65536-element initializer limit.", array.Syntax?.OpenBracketToken ?? new SyntaxToken(SyntaxKind.EllipsisToken, 0, "...", null));
+                    Array.Fill(counts, 0);
+                }
+                return new BoundArrayExpression(array.Elements.Select(RewriteExpression).ToArray(), SubstituteType(array.Type, substitutions), counts, deferred.Count == 0 ? null : deferred, array.Syntax);
+            }
             private TypeSymbol SubstituteType(TypeSymbol type, IReadOnlyDictionary<TypeSymbol, TypeSymbol> map) => owner.SubstituteType(type, map);
             public BoundBlockStatement RewriteBlock(BoundBlockStatement block)
                 => new(block.Statements.Select(RewriteStatement).ToArray());
@@ -11333,7 +11471,7 @@ public static partial class Binder
                 BoundUnwrapExpression unwrap => new BoundUnwrapExpression(RewriteExpression(unwrap.Operand), (ResultTypeSymbol)SubstituteType(unwrap.ResultType, substitutions)),
                 BoundOkExpression ok => new BoundOkExpression(RewriteExpression(ok.Payload), (ResultTypeSymbol)SubstituteType(ok.Type, substitutions)),
                 BoundErrExpression err => new BoundErrExpression(RewriteExpression(err.Payload), (ResultTypeSymbol)SubstituteType(err.Type, substitutions)),
-                BoundArrayExpression array => new BoundArrayExpression(array.Elements.Select(RewriteExpression).ToArray(), SubstituteType(array.Type, substitutions)),
+                BoundArrayExpression array => RewriteInitializer(array),
                 BoundArrayLengthExpression length => new BoundArrayLengthExpression(RewriteExpression(length.Receiver)),
                 BoundArrayElementAccessExpression access => new BoundArrayElementAccessExpression(RewriteExpression(access.Receiver), RewriteExpression(access.Index), (ArrayTypeSymbol)SubstituteType(access.ArrayType, substitutions)),
                 BoundArrayIterableExpression iterable => new BoundArrayIterableExpression(RewriteExpression(iterable.Receiver), (IterableTypeSymbol)SubstituteType(iterable.Type, substitutions)),
@@ -11360,6 +11498,10 @@ public static partial class Binder
                 BoundRecordFieldAccessExpression access => owner.CloseRecordAccess(access, RewriteExpression(access.Receiver), substitutions),
                 BoundTableRowFieldAccessExpression access => new BoundTableRowFieldAccessExpression(RewriteExpression(access.Receiver), access.RowType, access.Field),
                 BoundTableReferenceExpression table => table,
+                BoundTableRecalculationExpression recalculation => new BoundTableRecalculationExpression(
+                    recalculation.TableType,
+                    recalculation.Inputs.Select(input => new BoundTableRecalculationInput(input.TableType, RewriteExpression(input.Value))).ToArray(),
+                    recalculation.Steps),
                 BoundTableColumnAccessExpression access => new BoundTableColumnAccessExpression(RewriteExpression(access.Receiver), access.TableType, access.Column),
                 BoundTableRowAccessExpression access => new BoundTableRowAccessExpression(RewriteExpression(access.Receiver), RewriteExpression(access.Index), access.TableType, (ResultTypeSymbol)SubstituteType(access.Type, substitutions)),
                 BoundColumnElementAccessExpression access => new BoundColumnElementAccessExpression(RewriteExpression(access.Receiver), RewriteExpression(access.Index), (ResultTypeSymbol)SubstituteType(access.Type, substitutions)),
@@ -12341,16 +12483,7 @@ public static partial class Binder
 
         private BoundExpression BindArray(ArrayLiteralExpressionSyntax a, TypeSymbol? contextual)
         {
-            var elems = a.Elements.Select(e => BindExpression(e, contextual is ArrayTypeSymbol context ? context.ElementType : null)).ToArray();
-            if (contextual is ArrayTypeSymbol ctx)
-            {
-                foreach (var e in elems) if (!IsAssignable(ctx.ElementType, e.Type)) Report("COPE-TYPE-0009", $"Type mismatch: expected '{ctx.ElementType.Name}', got '{e.Type.Name}'.", a.OpenBracketToken);
-                return new BoundArrayExpression(elems, contextual);
-            }
-            if (elems.Length == 0) { Report("COPE-TYPE-0010", "Empty array requires contextual type.", a.OpenBracketToken); return new BoundErrorExpression(); }
-            var first = elems[0].Type;
-            if (elems.Any(x => !TypeFacts.AreEquivalent(x.Type, first))) { Report("COPE-TYPE-0009", "Array element type mismatch.", a.OpenBracketToken); return new BoundErrorExpression(); }
-            return new BoundArrayExpression(elems, new ArrayTypeSymbol(first));
+            return BindArrayInitializer(a, contextual);
         }
 
         private BoundExpression BindObject(ObjectLiteralExpressionSyntax literal, TypeSymbol? contextualType)
@@ -13260,9 +13393,9 @@ public static partial class Binder
                     Report("COPE-TABLE-0021", $"Column '{column.Name}' is replaced more than once.", property.NameToken);
                 }
 
-                BoundExpression value = BindExpression(
-                    property.ValueExpression,
-                    new ArrayTypeSymbol(column.Type));
+                BoundExpression value = property.ValueExpression is ArrayLiteralExpressionSyntax literal
+                    ? BindArrayInitializer(literal, new ArrayTypeSymbol(column.Type), definition?.RowCount)
+                    : BindExpression(property.ValueExpression, new ArrayTypeSymbol(column.Type));
                 if (value is not BoundArrayExpression array)
                 {
                     Report(
@@ -13271,11 +13404,11 @@ public static partial class Binder
                         property.NameToken);
                     continue;
                 }
-                if (definition is not null && array.Elements.Count != definition.RowCount)
+                if (definition is not null && array.Length != definition.RowCount)
                 {
                     Report(
                         "COPE-TABLE-0008",
-                        $"Replacement column '{tableType.Name}.{column.Name}' has {array.Elements.Count} cells; expected {definition.RowCount}.",
+                        $"Replacement column '{tableType.Name}.{column.Name}' has {array.Length} cells; expected {definition.RowCount}.",
                         property.NameToken);
                 }
                 foreach (BoundExpression element in array.Elements)
@@ -13294,8 +13427,7 @@ public static partial class Binder
 
             foreach (BoundTableColumnReplacement replacement in replacements)
             {
-                BoundTableConstant?[] values = replacement.Value.Elements
-                    .Select(BindTableConstant)
+                BoundTableConstant?[] values = replacement.Value.MapLogicalElements(BindTableConstant)
                     .ToArray();
                 if (values.Any(value => value is null))
                 {

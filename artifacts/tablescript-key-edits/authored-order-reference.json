@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "success": false,
+  "command": "table.delete-row",
+  "diagnostics": [
+    {
+      "code": "COPE-TABLE-0038",
+      "severity": "error",
+      "message": "Reference \u0027Stock.productId\u0027 contains unresolved authored value 100; no \u0027Products.id\u0027 key matches it.",
+      "file": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-key-edits\\authored-order.ts",
+      "line": 32,
+      "column": 19
+    }
+  ]
+}

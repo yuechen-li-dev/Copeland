@@ -1,0 +1,110 @@
+{
+  "purpose": "Audit current support; failing ellipsis probes are expected before implementation",
+  "buildExitCode": 0,
+  "maximumProbeSeconds": 15,
+  "probes": [
+    {
+      "name": "baseline",
+      "success": true,
+      "exitCode": 0,
+      "diagnostics": []
+    },
+    {
+      "name": "counted-repetition",
+      "success": false,
+      "exitCode": 1,
+      "diagnostics": [
+        "COPE-PARSE-0004",
+        "COPE-PARSE-0004",
+        "COPE-PARSE-0004",
+        "COPE-PARSE-0004",
+        "COPE-PARSE-0004",
+        "COPE-PARSE-0004",
+        "COPE-PARSE-0004",
+        "COPE-PARSE-0004",
+        "COPE-PARSE-0004",
+        "COPE-PARSE-0004",
+        "COPE-PARSE-0004",
+        "COPE-PARSE-0006",
+        "COPE-PARSE-0004",
+        "COPE-PARSE-0004",
+        "COPE-PARSE-0001",
+        "COPE-PARSE-0004",
+        "COPE-PARSE-0004",
+        "COPE-PARSE-0006",
+        "COPE-PARSE-0004"
+      ]
+    },
+    {
+      "name": "filled-column-first",
+      "success": false,
+      "exitCode": 1,
+      "diagnostics": [
+        "COPE-PARSE-0004",
+        "COPE-PARSE-0004",
+        "COPE-PARSE-0004"
+      ]
+    },
+    {
+      "name": "table-with-fill",
+      "success": false,
+      "exitCode": 1,
+      "diagnostics": [
+        "COPE-PARSE-0004",
+        "COPE-PARSE-0004",
+        "COPE-PARSE-0004"
+      ]
+    }
+  ],
+  "auditedSources": [
+    {
+      "repository": "Concept",
+      "path": "docs/language/INITIALIZERS.md",
+      "commit": "68de20d19f76d336487a47e2d36d1b996ca00a07",
+      "sha256": "093FC89C75004DA8E7DFAC649B7E3E7B1F2831D326D128E683728F79A98388F8"
+    },
+    {
+      "repository": "Concept",
+      "path": "internal/concept/table_repetition_test.go",
+      "commit": "68de20d19f76d336487a47e2d36d1b996ca00a07",
+      "sha256": "A015881F0147B12122B35152EEDAF6838F3662EA9A085756A0E31DFE1C62B2C8"
+    },
+    {
+      "repository": "oct",
+      "path": "Language/reference/language/07-arrays.md",
+      "commit": "62b02c79e4519ea8066a4b7d6cecfdb3149ca1f0",
+      "sha256": "086A96FC1DF637199C7BA3089ADA8B422DD9F97A74454BB53E67610CD556D5A1"
+    },
+    {
+      "repository": "oct",
+      "path": "Language/reference/language/11-records.md",
+      "commit": "62b02c79e4519ea8066a4b7d6cecfdb3149ca1f0",
+      "sha256": "4EB77C714B1FF0135CD88ED2009B4C49E9584CB31BA18A17A9D2517F3746520B"
+    },
+    {
+      "repository": "oct",
+      "path": "internal/build/lower_expr.go",
+      "commit": "62b02c79e4519ea8066a4b7d6cecfdb3149ca1f0",
+      "sha256": "7D13B519202719AF92C73757A6DFCF57B328ECED49C69A043E64ED21D23F66CF"
+    },
+    {
+      "repository": "Copeland",
+      "path": "src/Copeland/Copeland.TS/Syntax/Parser.cs",
+      "commit": "375704880252069a4a60558403053d4dc26474ce",
+      "sha256": "285D545312189EA770C0AC61C5A0CDCAB23A32339F526336F10E585DF38C95C3"
+    },
+    {
+      "repository": "Copeland",
+      "path": "src/Copeland/Copeland.TS/Semantics/Binder.cs",
+      "commit": "375704880252069a4a60558403053d4dc26474ce",
+      "sha256": "7976C1CC0A1BA65B0499B5578DEFDD48DD0330B3AD069598662E0ED84236B829"
+    },
+    {
+      "repository": "Copeland",
+      "path": "src/Copeland/Copeland.Cli/TableToolCommand.cs",
+      "commit": "375704880252069a4a60558403053d4dc26474ce",
+      "sha256": "CD6C8A3B39A5C15D53483FFE0E8F2892F5DC5205388203E9BA8061A46763EB9A"
+    }
+  ],
+  "externalExecution": "Concept and Oct source inspected; their suites were not run"
+}
