@@ -143,7 +143,8 @@ public sealed class CloudstepWorld
         {
             events.Add(CourseEvent.Jump);
         }
-        if (step.Landed)
+        // Tiny drops (stair edges, ledge corners) land silently; only real falls thump and squash.
+        if (step.Landed && step.LandingSpeed > 2.5f)
         {
             events.Add(CourseEvent.Land);
         }

@@ -18,14 +18,20 @@ public sealed record PlayerTuning
     public float JumpCut { get; init; } = 0.45f;
 
     /// <summary>Seconds after leaving a ledge during which a jump still counts.</summary>
-    public float CoyoteTime { get; init; } = 0.1f;
+    public float CoyoteTime { get; init; } = 0.12f;
 
     /// <summary>Seconds a jump pressed before landing is remembered.</summary>
-    public float JumpBuffer { get; init; } = 0.12f;
+    public float JumpBuffer { get; init; } = 0.15f;
     public float TurnRate { get; init; } = 14;
 
+    /// <summary>
+    /// How fast the hero slips off a ledge corner it is perched on with its centre over a drop (metres per second).
+    /// Pushing back toward the ledge cancels the slip. Coyote time still allows a jump after slipping off.
+    /// </summary>
+    public float EdgeSlipSpeed { get; init; } = 2.5f;
+
     public CharacterMotorOptions3D Motor => new(Radius: 0.35f, Height: 1.4f, Gravity: Gravity, JumpSpeed: JumpSpeed,
-        MaximumSlopeDegrees: 50, GroundSnap: 0.12f, StepHeight: 0.4f);
+        MaximumSlopeDegrees: 50, GroundSnap: 0.12f, StepHeight: 0.4f, StepDownHeight: 0.35f, LedgeAssistHeight: 0.45f);
 }
 
 /// <summary>The hero's simulation state: everything a save needs to reproduce the next tick exactly.</summary>
@@ -176,22 +182,45 @@ public sealed class CloudstepPlayer
         grounded = result.Grounded;
         support = result.GroundColliderId;
 
-        // Walls absorb the velocity pushed into them, so speed does not build up against a wall.
-        foreach (SpatialHit3D contact in result.Movement.Contacts)
+        // Walls absorb the velocity pushed into them, so speed does not build up against a wall. A ledge the motor
+        // stepped or vaulted over is not a wall: keeping that speed is what makes stairs feel smooth.
+        if (result.SteppedUp <= 0 && !result.LedgeAssisted)
         {
-            var normal = new Vector2(contact.Normal.X, contact.Normal.Z);
-            if (contact.Normal.Y < 0.5f && normal.LengthSquared() > 1e-6f)
+            foreach (SpatialHit3D contact in result.Movement.Contacts)
             {
-                normal = Vector2.Normalize(normal);
-                float into = Vector2.Dot(velocity, normal);
-                if (into < 0)
+                var normal = new Vector2(contact.Normal.X, contact.Normal.Z);
+                if (contact.Normal.Y < 0.5f && normal.LengthSquared() > 1e-6f)
                 {
-                    velocity -= normal * into;
+                    normal = Vector2.Normalize(normal);
+                    float into = Vector2.Dot(velocity, normal);
+                    if (into < 0)
+                    {
+                        velocity -= normal * into;
+                    }
                 }
             }
         }
-        bool crushed = result.Embedded || !world.Overlap(Capsule).IsEmpty;
-        return new PlayerStepResult(jumped, grounded && !wasGrounded, fallSpeed, crushed, result.SteppedUp);
+
+        // Perched on a corner with the centre over a drop: slip off rather than hover there, unless walking back on.
+        if (grounded && !result.CentreSupported)
+        {
+            var outward = new Vector2(result.GroundNormal.X, result.GroundNormal.Z);
+            if (outward.LengthSquared() > 1e-6f)
+            {
+                outward = Vector2.Normalize(outward);
+                if (Vector2.Dot(move, -outward) < 0.3f && Vector2.Dot(velocity, outward) < Tuning.EdgeSlipSpeed)
+                {
+                    velocity += outward * (Tuning.EdgeSlipSpeed - MathF.Max(0, Vector2.Dot(velocity, outward)));
+                }
+            }
+        }
+
+        // Shallow overlaps are tidied by the motor next step; only real embedding (for example a platform pressing the
+        // hero into a wall) counts as being crushed.
+        bool crushed = result.Embedded || !world.Overlap(Capsule3D.AtFeet(motor.Depenetrate(world, feet),
+            motor.Options.Radius, motor.Options.Height)).IsEmpty;
+        bool landed = grounded && !wasGrounded && !result.LedgeAssisted;
+        return new PlayerStepResult(jumped, landed, fallSpeed, crushed, result.SteppedUp);
     }
 
     private static Vector2 MoveTowards(Vector2 current, Vector2 target, float maximumDelta)

@@ -64,7 +64,7 @@ public sealed class CourseTests(ITestOutputHelper output)
         }
         Assert.False(world.Dead);
         Assert.Contains(CourseEvent.Respawn, events);
-        Assert.Equal(world.Course.Checkpoints[0].Position, world.Player.Feet);
+        Assert.True(Vector3.Distance(world.Course.Checkpoints[0].Position, world.Player.Feet) < 0.001f);
     }
 
     [Fact]

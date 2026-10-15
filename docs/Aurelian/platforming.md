@@ -18,7 +18,19 @@ CharacterMove3D move = motor.Step(world, state, horizontalVelocity, jump: false,
 
 The step goes up, then forward, then down. It succeeds only if the landing is walkable, no higher than `StepHeight` above the feet, and the character still fits when standing on the ledge top. A low ceiling therefore prevents stepping rather than wedging the character on the corner.
 
-At slow speeds the forward probe advances at least `Radius · (1 − sin(MaximumSlope)) + 5 mm`, which is about 9 cm for a 0.3 m capsule at 45°. Below that distance the ledge corner would present a non-walkable normal. Faster movement advances by its own displacement. Stairs, kerbs and ledges up to `StepHeight` are covered by `PlatformingTests`.
+The step starts from where the ordinary move stopped against the ledge. It continues along the requested direction, plus just enough straight into the ledge, measured along the wall normal, for the corner to become walkable: `Radius · (1 − sin(MaximumSlope)) + 5 mm`, about 9 cm for a 0.35 m capsule at 50°. Slow and glancing approaches therefore climb instead of stalling or sliding along the first tread, without popping sideways. `EdgeHandlingTests` covers stairs at 0–80° and 2–7 m/s.
+
+## Edge handling and platformer assists
+
+| Option or fact | Effect |
+| --- | --- |
+| Steep contacts | A surface too steep to stand on blocks upward climbing like a wall, but still lets the character slide down and off it. Falling onto a ledge corner never leaves it hovering. |
+| Shallow overlaps | At the start of each step, `Depenetrate` pushes the capsule out of overlaps up to `MaximumCorrection` (5 cm) left by float error at seams and corners. Deeper overlaps stay `Embedded`, so crushes are still reported. An overlap first seen partway through a slide is treated as float error, not embedding. |
+| `StepDownHeight` | Sticky ground. A walking character follows stairs and small drops down (it stays `Grounded`, with no hop and no landing) while its axis is above a walkable tread within that height. |
+| `LedgeAssistHeight` | Forgiveness for short jumps. An airborne character at or past its apex (upward speed ≤ `LedgeAssistMaximumRise`) that pushes into a ledge whose top is within this height is lifted onto it. Reported as `LedgeAssisted`. |
+| `CentreSupported` | When grounded: is there ground directly under the capsule's axis? False means it is perched on a corner with its centre over a drop. Games decide what to do; Cloudstep slips the hero off unless the player walks back onto the ledge. |
+
+Coyote time, jump buffering and variable jump height are game rules built on these facts (see `CloudstepPlayer`).
 
 ## Kinematic bodies (moving platforms)
 
