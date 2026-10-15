@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "steps": [
+    { "kind": "click-action", "text": "start" },
+    { "kind": "command", "command": "assert screen playing" },
+    { "kind": "wait", "seconds": 3.0 },
+    { "kind": "capture", "path": "01-wide.png" },
+    { "kind": "command", "command": "shot campfire" },
+    { "kind": "wait", "seconds": 0.5 },
+    { "kind": "capture", "path": "02-campfire.png" },
+    { "kind": "wait", "seconds": 0.25 },
+    { "kind": "capture", "path": "03-campfire-later.png" },
+    { "kind": "command", "command": "shot torch" },
+    { "kind": "wait", "seconds": 0.3 },
+    { "kind": "capture", "path": "04-torch.png" },
+    { "kind": "command", "command": "shot brazier" },
+    { "kind": "wait", "seconds": 0.3 },
+    { "kind": "capture", "path": "05-brazier.png" },
+    { "kind": "command", "command": "shot smoke" },
+    { "kind": "wait", "seconds": 0.3 },
+    { "kind": "capture", "path": "06-smoke.png" }
+  ]
+}

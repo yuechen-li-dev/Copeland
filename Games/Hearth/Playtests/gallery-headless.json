@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "steps": [
+    {
+      "kind": "click-action",
+      "text": "start"
+    },
+    {
+      "kind": "command",
+      "command": "assert screen playing"
+    },
+    {
+      "kind": "command",
+      "command": "assert shot wide"
+    },
+    {
+      "kind": "wait",
+      "seconds": 3.0
+    },
+    {
+      "kind": "command",
+      "command": "shot campfire"
+    },
+    {
+      "kind": "wait",
+      "seconds": 0.5
+    },
+    {
+      "kind": "wait",
+      "seconds": 0.25
+    },
+    {
+      "kind": "command",
+      "command": "shot torch"
+    },
+    {
+      "kind": "wait",
+      "seconds": 0.3
+    },
+    {
+      "kind": "command",
+      "command": "shot brazier"
+    },
+    {
+      "kind": "wait",
+      "seconds": 0.3
+    },
+    {
+      "kind": "command",
+      "command": "shot smoke"
+    },
+    {
+      "kind": "wait",
+      "seconds": 0.3
+    },
+    {
+      "kind": "command",
+      "command": "assert shot smoke"
+    }
+  ]
+}

@@ -1,18 +1,31 @@
 # GPU VFX foundation
 
-Fire, smoke and sparks now use engine-owned Visual TypeScript compute and
+Fire, smoke, sparks and embers use engine-owned Visual TypeScript compute and
 billboard shaders. The CPU sends immutable emitter commands; Vulkan generates
 particle positions, lifetimes, seeded variation and six billboard vertices per
 slot. The renderer records that compute dispatch and its draw in the existing
 scene submission. Normal particle buffers are GPU-only, with no particle
 readback or CPU mesh rebuilding.
 
-This is an analytic particle foundation. Fire rises and fades, smoke drifts and
-expands, and sparks follow ballistic trajectories. It does not simulate fluid
-combustion, smoke self-shadowing, scene collisions, ribbons or mesh particles.
-Smoke uses procedural billboard lobes; no texture downloads or flipbook assets
-are required. Particle emission does not automatically create gameplay lights.
-Use the existing authored local-light API when a fire should illuminate a room.
+Particles stay analytic: each slot's state is a pure function of the command and
+the clock, so replay and rewind need no retained simulation. It does not
+simulate fluid combustion, scene collisions, ribbons or mesh particles. Smoke
+and flames are procedural; no texture downloads or flipbook assets are required.
+Particle emission does not automatically create gameplay lights. Use the
+existing authored local-light API when a fire should illuminate a room (the
+[Hearth](../../Games/Hearth/README.md) showcase drives flickering fire lights
+from the same clock).
+
+## How it looks the way it does
+
+| Technique | Where | Reference |
+| --- | --- | --- |
+| Curl-noise turbulence: the curl of a four-octave spectral vector potential, so the flow is divergence-free and smoke swirls instead of collapsing. Octave amplitudes fall by 2^(-1/3) (Kolmogorov scaling). The field is integrated over each particle's age in eight fixed steps, which keeps motion stateless. | `Particles3D.v.ts` | Bridson, Hourihan and Nordenstam, [Curl-noise for procedural fluid flow](https://www.dneg.com/wp-content/uploads/2022/11/2007.pdf), SIGGRAPH 2007; Stam and Fiume, [Turbulent wind fields for gaseous phenomena](https://history.siggraph.org/?p=118629), SIGGRAPH 1993 |
+| Blackbody flame colour. Each pixel has a temperature from the flame's noise-eroded core, the particle's age and its height in the tongue. Hue comes from Planck's law at 610, 550 and 465 nm (Wien regime); brightness follows Stefan-Boltzmann (T/1800 K)^4. Sparks and embers cool the same way. | `ParticleBillboard3D.v.ts` | Nguyen, Fedkiw and Jensen, [Physically based modeling and animation of fire](https://graphics.stanford.edu/papers/fire-sg02/), SIGGRAPH 2002 |
+| Additive emission. Emitted radiance accumulates in the transparency pass's spare `optical.yzw` channels instead of the weighted average. Order-independent transparency keeps no order, so the resolve treats emitters and absorbers as uniformly mixed: emission leaves a homogeneous slab of optical depth tau scaled by (1 - e^-tau)/tau. | `TransparencyResolve3D.v.ts` | Max, [Optical models for direct volume rendering](https://courses.cs.duke.edu/cps296.8/spring03/papers/max95opticalModelsForDirectVolumeRendering.pdf), 1995 |
+| Spherical billboards for smoke. Each pixel integrates the density (1 - r^2/R^2) along the view ray's chord through the particle's sphere, in closed form, clipped at the opaque depth. Puffs have real thickness and meet geometry without flat-card seams. | `ParticleBillboard3D.v.ts` | Umenhoffer, Szirmay-Kalos and Szijarto, [Spherical billboards and their application to rendering explosions](https://graphicsinterface.org/proceedings/gi2006/gi2006-8), GI 2006 |
+| Smoke lighting. Sunlight uses Beer-Lambert transmittance toward the sun through the rest of the sphere, a Henyey-Greenstein phase (g = 0.35) and a "powder" term that darkens thin edges facing the light. Hemisphere ambient is dimmed by the puff's thickness. Fire `Glow` lights the plume's underside and falls off with height. | `ParticleBillboard3D.v.ts` | Schneider, [The real-time volumetric cloudscapes of Horizon Zero Dawn](https://www.guerrilla-games.com/read/the-real-time-volumetric-cloudscapes-of-horizon-zero-dawn), SIGGRAPH 2015 Advances |
+| Velocity-aligned streaks for sparks and embers. They stretch over the distance travelled in a 1/60 s shutter, and intensity is divided by the stretch so motion blur conserves energy. Flames lean along their screen-space velocity. | `Particles3D.v.ts` | |
 
 ## Game authoring
 
@@ -23,18 +36,33 @@ live capacity, over-budget demand and the bytes uploaded for the command.
 
 ```csharp
 var fire = ParticleEmitter3D.Fire("campfire", new Vector3(0, .3f, 0), seed: 17);
-var smoke = ParticleEmitter3D.Smoke("campfire-smoke", new Vector3(0, 1, 0), seed: 99);
+var smoke = ParticleEmitter3D.Smoke("campfire-smoke", new Vector3(0, 1, 0), seed: 99) with
+{
+    Glow = new Vector3(1, .42f, .12f) * 2.6f, // fire light on the plume's underside
+};
+var embers = ParticleEmitter3D.Embers("campfire-embers", new Vector3(0, .4f, 0), seed: 5);
+// Every preset takes an optional scale: Fire(id, position, seed, scale: .4f) is a torch.
 
 // The application/agent clock supplies absolute elapsed time, not the renderer.
 graphics.ParticleEmitters = [
     fire with { ElapsedSeconds = elapsed },
     smoke with { ElapsedSeconds = elapsed },
+    embers with { ElapsedSeconds = elapsed },
 ];
 
 // End emission, then let the existing particles age out.
 fire = fire with { EmitUntilSeconds = elapsed };
 // Replaying earlier time and the original command reproduces the earlier state.
 ```
+
+Emitter parameters beyond placement and timing:
+
+| Parameter | Meaning |
+| --- | --- |
+| `Turbulence` | Peak speed of the curl-noise flow in m/s; zero gives smooth trajectories |
+| `Temperature` | Birth temperature in kelvin for fire, sparks and embers: about 1000 K is dull red, 1500 K orange, 2000 K yellow-white |
+| `Color` | Tint and scale of emission (fire, sparks, embers) or smoke albedo; `W` is opacity |
+| `Glow`, `GlowHeight` | Smoke only: fire light reaching the underside of the plume, and the height over which it fades |
 
 For a scene-owned emitter, `ParticleEmitterDefinition` uses the ordinary typed
 scene agent API. Its state is the command itself: identity, placement, seed,
@@ -87,8 +115,11 @@ parameters use `001`. Pool/SPIR-V, camera, plant, readback and draw-contract err
 use `002`, `004`, `005`, `006`, `007` and `008`. Empty command lists also clear
 the budget inspection.
 
-The packed compute emitter is 96 bytes (five float4 values and four u32 values),
-the billboard vertex is 44 bytes, and the draw uniform is 224 bytes. Seeds retain
+The packed compute emitter is 112 bytes (six float4 values and four u32 values).
+The billboard vertex is 92 bytes: position, then uv/kind/softness, colour, sphere
+centre and radius, detail (seed, age, temperature, phase) and glow. The draw
+uniform is 288 bytes and adds the sun direction and intensity, sun colour, and
+sky and ground ambient for smoke lighting. Seeds retain
 all 32 bits. The catalog owns both `.v.ts` sources. The existing compiler seam
 now admits `Floor(f32)` and unsigned remainder, bitwise and shift operations;
 operand rejection and actual DXC/SPIR-V tests cover these additions.
@@ -117,8 +148,9 @@ the existing `transparency` timing. These exclude CPU submission and readback.
 Captures and measured results are written to `artifacts/local/gpu-vfx`.
 `enableQualificationReadback` is explicit and disabled by default. The proof
 scene is a bounded local RTX 3070 qualification, not a large-effects stress
-test or a claim of production smoke quality. Next useful work is authored
-flipbooks, velocity-aligned spark streaks and detached world-space motion.
+test or a claim of production smoke quality. Next useful work is detached
+world-space motion, heat-haze refraction, and lighting smoke from local lights
+rather than only the authored `Glow`.
 
 Local qualification on 2026-10-11: the Release Aurelian solution build passed
 with no warnings or errors. All 1,276 Aurelian tests and 1,504 Copeland TS tests
@@ -137,3 +169,12 @@ generation averaged 0.040 ms and the transparency draw/resolve averaged
 0.294 ms. These are small-scene GPU measurements on this device, not frame-time
 or scalability guarantees. Native surface and transmission regression proofs
 also passed with no particles configured.
+
+The 2026-10-14 look upgrade (turbulence, blackbody emission, spherical-billboard
+smoke, streaks, embers) postdates those RTX 3070 measurements, and its GPU
+timings have not been re-measured on that device. It was checked on Mesa
+lavapipe (software Vulkan) through the Hearth gallery playtests: shader catalog
+compilation and SPIR-V validation, ABI checks at pipeline creation, and visual
+inspection of the captures. Particle cost now includes per-pixel noise
+(about four lattice-noise evaluations per flame or smoke fragment), so measure
+fill-heavy scenes before relying on the earlier numbers.

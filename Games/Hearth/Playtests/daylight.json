@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "steps": [
+    { "kind": "click-action", "text": "start" },
+    { "kind": "command", "command": "daylight on" },
+    { "kind": "wait", "seconds": 3.0 },
+    { "kind": "capture", "path": "01-day-wide.png" },
+    { "kind": "command", "command": "shot campfire" },
+    { "kind": "wait", "seconds": 0.3 },
+    { "kind": "capture", "path": "02-day-campfire.png" },
+    { "kind": "command", "command": "shot smoke" },
+    { "kind": "command", "command": "orbit 75" },
+    { "kind": "wait", "seconds": 0.3 },
+    { "kind": "capture", "path": "03-day-smoke-side.png" }
+  ]
+}

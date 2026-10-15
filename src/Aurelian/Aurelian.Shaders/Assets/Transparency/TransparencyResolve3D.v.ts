@@ -37,6 +37,14 @@ function PixelMain(input: Varyings, resources: Resources): Output {
     const optical: float4 = Sample(resources.optical, resources.opticalSampler, input.uv);
     const transmission: f32 = Exp(-optical.x);
     const scale: f32 = (1.0 - transmission) / Max(sum.w, 0.000001);
-    return { color: float4(scene.x * transmission + sum.x * scale,
-        scene.y * transmission + sum.y * scale, scene.z * transmission + sum.z * scale, scene.w * transmission) };
+    // optical.yzw sums emitted radiance (fire, sparks). Weighted OIT keeps no order, so treat emitters and absorbers as
+    // uniformly mixed: emission inside a homogeneous slab of optical depth tau leaves it scaled by (1 - e^-tau) / tau
+    // (the emission-absorption model in Max 1995). That limit is 1 for a clear pixel.
+    var mixed: f32 = 1.0 - optical.x * 0.5;
+    if (optical.x > 0.001) {
+        mixed = (1.0 - transmission) / optical.x;
+    }
+    return { color: float4(scene.x * transmission + sum.x * scale + optical.y * mixed,
+        scene.y * transmission + sum.y * scale + optical.z * mixed,
+        scene.z * transmission + sum.z * scale + optical.w * mixed, scene.w * transmission) };
 }

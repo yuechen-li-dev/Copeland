@@ -14,7 +14,12 @@ public sealed record ParticleBudget3D(int Emitters, int ReservedParticles, int R
     int OverBudgetParticles, int UploadedBytes);
 
 [StructLayout(LayoutKind.Sequential)]
-public readonly record struct NativeParticleVertex3D(Vector3 Position, Vector4 UvKindSoftness, Vector4 Color);
+public readonly record struct NativeParticleVertex3D(Vector3 Position, Vector4 UvKindSoftness, Vector4 Color,
+    Vector4 CentreRadius, Vector4 Detail, Vector4 Glow)
+{
+    /// <summary>Bytes per vertex in the GPU buffer: one float3 and five float4 values, tightly packed.</summary>
+    public const int Stride = 92;
+}
 
 /// <summary>Bounded analytic particle motion and GPU billboard expansion. The scene command
 /// records dispatch and draw; normal rendering has no particle readback or separate submission.</summary>
@@ -41,11 +46,15 @@ public sealed unsafe class VulkanParticles3D : IDisposable
         public Vector4 Shape;
         public Vector4 Color;
         public Vector4 Emission;
+        public Vector4 Glow;
         public uint Seed;
         public uint Kind;
         public uint Slots;
         public uint Reserved;
     }
+
+    /// <summary>Bytes per packed emitter command: six float4 values and four u32 values.</summary>
+    public const int EmitterBytes = 112;
 
     public int MaximumEmitters { get; }
     public int ParticlesPerEmitter { get; }
@@ -69,9 +78,9 @@ public sealed unsafe class VulkanParticles3D : IDisposable
         allocator = new(plant);
         try
         {
-            emitters = Buffer((ulong)maximumEmitters * 96, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
+            emitters = Buffer((ulong)maximumEmitters * EmitterBytes, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
             view = Buffer(32, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu);
-            Vertices = Buffer((ulong)maximumEmitters * (ulong)particlesPerEmitter * 6 * 44,
+            Vertices = Buffer((ulong)maximumEmitters * (ulong)particlesPerEmitter * 6 * NativeParticleVertex3D.Stride,
                 VulkanBufferUsage.Storage | VulkanBufferUsage.Vertex,
                 readback ? VulkanMemoryUsage.GpuToCpu : VulkanMemoryUsage.GpuOnly);
             CreatePipeline(spirv, [emitters, view, Vertices]);
@@ -113,13 +122,14 @@ public sealed unsafe class VulkanParticles3D : IDisposable
                 DirectionLifetime = new(Vector3.Normalize(emitter.Direction), emitter.Lifetime),
                 Shape = new(Math.Min(emitter.Rate, slots / emitter.Lifetime), emitter.Speed, emitter.Radius, emitter.Size),
                 Color = emitter.Color,
-                Emission = new(emitter.EmitUntilSeconds, emitter.SoftIntersectionDistance, 0, 0),
+                Emission = new(emitter.EmitUntilSeconds, emitter.SoftIntersectionDistance, emitter.Turbulence, emitter.Temperature),
+                Glow = new(emitter.Glow, emitter.GlowHeight),
                 Seed = emitter.Seed, Kind = (uint)emitter.Kind, Slots = (uint)slots,
             };
         }
         VertexCount = (uint)(source.Count * ParticlesPerEmitter * 6);
         Inspection = new(source.Count, source.Count * ParticlesPerEmitter, requested, overflow,
-            source.Count == 0 ? 0 : source.Count * 96 + 32);
+            source.Count == 0 ? 0 : source.Count * EmitterBytes + 32);
         if (source.Count == 0) { return; }
         Write(emitters, MemoryMarshal.AsBytes(words.AsSpan()));
         Vector4[] camera = [new(right, source.Count * ParticlesPerEmitter), new(up, ParticlesPerEmitter)];
@@ -157,7 +167,7 @@ public sealed unsafe class VulkanParticles3D : IDisposable
         ObjectDisposedException.ThrowIf(disposed, this);
         if (!readback) { throw new InvalidOperationException("AUR-VFX-006: Normal particle pools are GPU-only."); }
         if (VertexCount == 0) { return []; }
-        return MemoryMarshal.Cast<byte, NativeParticleVertex3D>(Vertices.ReadBytes(checked((int)VertexCount * 44))).ToArray();
+        return MemoryMarshal.Cast<byte, NativeParticleVertex3D>(Vertices.ReadBytes(checked((int)VertexCount * NativeParticleVertex3D.Stride))).ToArray();
     }
 
     private void CreatePipeline(byte[] spirv, AurelianVulkanBuffer[] resources)

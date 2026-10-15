@@ -16,6 +16,10 @@ public sealed class ParticleEmitterTests
             emitter with { ElapsedSeconds = -1 }, emitter with { Color = new(1, 1, 1, 2) },
             emitter with { Kind = (ParticleEffectKind3D)99 }, emitter with { Id = "" },
             emitter with { Direction = new(float.MaxValue) }, emitter with { Position = new(float.MaxValue) },
+            emitter with { Turbulence = -1 }, emitter with { Turbulence = float.NaN },
+            emitter with { Temperature = 100 }, emitter with { Temperature = 1e6f },
+            emitter with { Glow = new(-1, 0, 0) }, emitter with { Glow = new(float.PositiveInfinity) },
+            emitter with { GlowHeight = 0 },
         ];
         foreach (var command in invalid)
         {
@@ -27,7 +31,8 @@ public sealed class ParticleEmitterTests
     public void PresetsPreserveFullUnsignedSeedsAndCanBeStoppedAndRewound()
     {
         ParticleEmitter3D[] emitters = [ParticleEmitter3D.Fire("fire", default, uint.MaxValue),
-            ParticleEmitter3D.Smoke("smoke", default, uint.MaxValue), ParticleEmitter3D.Sparks("sparks", default, uint.MaxValue)];
+            ParticleEmitter3D.Smoke("smoke", default, uint.MaxValue), ParticleEmitter3D.Sparks("sparks", default, uint.MaxValue),
+            ParticleEmitter3D.Embers("embers", default, uint.MaxValue)];
         foreach (var emitter in emitters)
         {
             emitter.Validate();
@@ -35,5 +40,34 @@ public sealed class ParticleEmitterTests
             (emitter with { ElapsedSeconds = 0 }).Validate();
             Assert.Equal(uint.MaxValue, emitter.Seed);
         }
+    }
+
+    [Theory]
+    [InlineData(0.2f)]
+    [InlineData(1f)]
+    [InlineData(4f)]
+    public void ScaledPresetsStayValidAndGrowWithScale(float scale)
+    {
+        ParticleEmitter3D[] small = Presets(1);
+        ParticleEmitter3D[] scaled = Presets(scale);
+        for (int index = 0; index < scaled.Length; index++)
+        {
+            scaled[index].Validate();
+            Assert.Equal(small[index].Kind, scaled[index].Kind);
+            Assert.Equal(scale >= 1, scaled[index].Radius >= small[index].Radius);
+        }
+
+        static ParticleEmitter3D[] Presets(float scale) => [ParticleEmitter3D.Fire("fire", default, 1, scale),
+            ParticleEmitter3D.Smoke("smoke", default, 1, scale), ParticleEmitter3D.Sparks("sparks", default, 1, scale),
+            ParticleEmitter3D.Embers("embers", default, 1, scale)];
+    }
+
+    [Fact]
+    public void EmittingPresetsBurnAtBlackbodyTemperaturesAndSmokeCarriesNoGlowByDefault()
+    {
+        Assert.InRange(ParticleEmitter3D.Fire("fire", default).Temperature, 1500, 2200);
+        Assert.InRange(ParticleEmitter3D.Embers("embers", default).Temperature, 1200, 2000);
+        Assert.Equal(Vector3.Zero, ParticleEmitter3D.Smoke("smoke", default).Glow);
+        Assert.True(ParticleEmitter3D.Smoke("smoke", default).Turbulence > 0);
     }
 }

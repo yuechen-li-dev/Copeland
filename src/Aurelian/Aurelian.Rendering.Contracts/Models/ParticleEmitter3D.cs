@@ -7,6 +7,9 @@ public enum ParticleEffectKind3D
     Fire,
     Smoke,
     Sparks,
+
+    /// <summary>Light glowing flakes carried up and around by the plume, cooling as they go.</summary>
+    Embers,
 }
 
 /// <summary>Immutable visual command. An owning agent supplies time, seed and activation;
@@ -26,6 +29,19 @@ public sealed record ParticleEmitter3D(string Id, ParticleEffectKind3D Kind)
     public Vector4 Color { get; init; } = Vector4.One;
     public float SoftIntersectionDistance { get; init; } = .15f;
 
+    /// <summary>Peak speed of the swirling curl-noise flow, in metres per second. Zero gives smooth trajectories.</summary>
+    public float Turbulence { get; init; }
+
+    /// <summary>Birth temperature in kelvin for emitting kinds (fire, sparks, embers). Colour follows blackbody radiation:
+    /// about 1000 K is dull red, 1500 K orange and 2000 K yellow-white. <see cref="Color"/> tints and scales the result.</summary>
+    public float Temperature { get; init; } = 1800;
+
+    /// <summary>Smoke only: linear radiance of fire light reaching the underside of the plume at the emitter.</summary>
+    public Vector3 Glow { get; init; }
+
+    /// <summary>Smoke only: height above the emitter, in metres, over which <see cref="Glow"/> fades.</summary>
+    public float GlowHeight { get; init; } = 1;
+
     public void Validate()
     {
         if (string.IsNullOrWhiteSpace(Id) || !Enum.IsDefined(Kind)
@@ -36,46 +52,74 @@ public sealed record ParticleEmitter3D(string Id, ParticleEffectKind3D Kind)
             || !Range(Rate, .01f, 100000) || !Range(Lifetime, .01f, 30)
             || !Range(Speed, 0, 100) || !Range(Radius, 0, 100) || !Range(Size, .001f, 100)
             || !Range(Color.X, 0, 100) || !Range(Color.Y, 0, 100) || !Range(Color.Z, 0, 100)
-            || !Range(Color.W, 0, 1) || !Range(SoftIntersectionDistance, .001f, 10))
+            || !Range(Color.W, 0, 1) || !Range(SoftIntersectionDistance, .001f, 10)
+            || !Range(Turbulence, 0, 50) || !Range(Temperature, 500, 6000)
+            || !Finite(Glow) || !Range(Glow.X, 0, 100) || !Range(Glow.Y, 0, 100) || !Range(Glow.Z, 0, 100)
+            || !Range(GlowHeight, .01f, 100))
         {
             throw new ArgumentException("AUR-VFX-001: Emitter identity, finite parameters and bounded lifetime are required.");
         }
     }
 
-    public static ParticleEmitter3D Fire(string id, Vector3 position, uint seed = 1) => new(id, ParticleEffectKind3D.Fire)
+    /// <summary>A campfire-sized flame: about a metre tall at <paramref name="scale"/> 1.</summary>
+    public static ParticleEmitter3D Fire(string id, Vector3 position, uint seed = 1, float scale = 1) => new(id, ParticleEffectKind3D.Fire)
     {
         Position = position,
         Seed = seed,
-        Color = new(12, 2.4f, .25f, .65f),
-        Rate = 140,
-        Lifetime = 1.1f,
-        Speed = 1.2f,
-        Size = .22f,
-        Radius = .18f,
+        Color = new(1.8f, 1.8f, 1.8f, .9f),
+        Temperature = 1900,
+        Rate = 95 * MathF.Sqrt(scale),
+        Lifetime = .9f * MathF.Sqrt(scale),
+        Speed = 1.3f * MathF.Sqrt(scale),
+        Size = .28f * scale,
+        Radius = .24f * scale,
+        Turbulence = .9f * MathF.Sqrt(scale),
+        SoftIntersectionDistance = .08f * scale + .02f,
     };
 
-    public static ParticleEmitter3D Smoke(string id, Vector3 position, uint seed = 1) => new(id, ParticleEffectKind3D.Smoke)
+    /// <summary>A plume of grey smoke rising from <paramref name="position"/>.</summary>
+    public static ParticleEmitter3D Smoke(string id, Vector3 position, uint seed = 1, float scale = 1) => new(id, ParticleEffectKind3D.Smoke)
     {
         Position = position,
         Seed = seed,
-        Color = new(.16f, .18f, .21f, .25f),
-        Rate = 35,
-        Lifetime = 3.5f,
-        Speed = .7f,
-        Size = .35f,
-        Radius = .18f,
+        Color = new(.36f, .355f, .35f, .8f),
+        Rate = 16 * MathF.Sqrt(scale),
+        Lifetime = 6.5f * MathF.Sqrt(scale),
+        Speed = .75f * MathF.Sqrt(scale),
+        Size = .24f * scale,
+        Radius = .18f * scale,
+        Turbulence = .45f * MathF.Sqrt(scale),
+        GlowHeight = 1.2f * scale,
     };
 
-    public static ParticleEmitter3D Sparks(string id, Vector3 position, uint seed = 1) => new(id, ParticleEffectKind3D.Sparks)
+    /// <summary>Hot sparks thrown out ballistically, streaking as they fly.</summary>
+    public static ParticleEmitter3D Sparks(string id, Vector3 position, uint seed = 1, float scale = 1) => new(id, ParticleEffectKind3D.Sparks)
     {
         Position = position,
         Seed = seed,
-        Color = new(20, 7, .7f, .9f),
-        Rate = 35,
-        Lifetime = 1.5f,
-        Speed = 3.5f,
-        Size = .025f,
-        Radius = .1f,
+        Color = new(1.5f, 1.5f, 1.5f, 1),
+        Temperature = 2100,
+        Rate = 35 * scale,
+        Lifetime = 1.2f,
+        Speed = 3.5f * MathF.Sqrt(scale),
+        Size = .012f,
+        Radius = .1f * scale,
+        Turbulence = .3f,
+    };
+
+    /// <summary>Glowing embers that drift up and swirl in the plume above a fire.</summary>
+    public static ParticleEmitter3D Embers(string id, Vector3 position, uint seed = 1, float scale = 1) => new(id, ParticleEffectKind3D.Embers)
+    {
+        Position = position,
+        Seed = seed,
+        Color = new(2.5f, 2.5f, 2.5f, 1),
+        Temperature = 1750,
+        Rate = 24 * scale,
+        Lifetime = 2.6f * MathF.Sqrt(scale),
+        Speed = 1.1f * MathF.Sqrt(scale),
+        Size = .011f,
+        Radius = .3f * scale,
+        Turbulence = 1.1f * MathF.Sqrt(scale),
     };
 
     private static bool Finite(Vector3 value) => float.IsFinite(value.X) && float.IsFinite(value.Y) && float.IsFinite(value.Z);

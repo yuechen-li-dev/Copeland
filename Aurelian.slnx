@@ -62,6 +62,8 @@
     <Project Path="Games/Sunkill/Sunkill.Tests/Sunkill.Tests.csproj" />
     <Project Path="Games/Cloudstep/Cloudstep/Cloudstep.csproj" />
     <Project Path="Games/Cloudstep/Cloudstep.Tests/Cloudstep.Tests.csproj" />
+    <Project Path="Games/Hearth/Hearth/Hearth.csproj" />
+    <Project Path="Games/Hearth/Hearth.Tests/Hearth.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/Aurelian.InferenceProof/Aurelian.InferenceProof.csproj" />

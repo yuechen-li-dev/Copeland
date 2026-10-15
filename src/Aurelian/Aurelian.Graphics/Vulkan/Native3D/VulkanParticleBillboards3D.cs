@@ -29,21 +29,25 @@ internal sealed unsafe class VulkanParticleBillboards3D : IDisposable
     private readonly AurelianVulkanGraphicsPipeline pipeline;
     private bool disposed;
 
+    /// <summary>Draw uniform: eighteen float4 rows (camera, fog, volume and the sun and sky that light smoke).</summary>
+    public const int UniformBytes = 288;
+
     public VulkanParticleBillboards3D(AurelianVulkanPlant plant, RawVulkanMemoryAllocator allocator,
         AurelianVulkanRenderPass pass, CompiledGraphicsProgram program)
     {
         this.plant = plant;
         string[] fields = ["clipX", "clipY", "clipZ", "clipW", "inverseX", "inverseY", "inverseZ", "inverseW",
-            "eye", "texels", "fogParameters", "fogColor", "volumeGrid", "volumeDepth"];
-        if (program.Material is not { Size: 224, Set: 0, Binding: 0 } material
+            "eye", "texels", "fogParameters", "fogColor", "volumeGrid", "volumeDepth",
+            "sunDirection", "sunColor", "sky", "ground"];
+        if (program.Material is not { Size: UniformBytes, Set: 0, Binding: 0 } material
             || !material.Fields.Select(field => field.Name).SequenceEqual(fields)
-            || !material.Fields.Select(field => field.Offset).SequenceEqual(Enumerable.Range(0, 14).Select(index => index * 16))
+            || !material.Fields.Select(field => field.Offset).SequenceEqual(Enumerable.Range(0, fields.Length).Select(index => index * 16))
             || material.Fields.Any(field => field.PhysicalType != "float4")
             || program.Resources.Count != 5 || program.PixelTargets.Count != 2
             || !program.Resources.Select(resource => resource.Binding).Order().SequenceEqual([0, 1, 2, 3, 4])
             || program.Resources.Any(resource => resource.Set != 0)
-            || !program.VertexInputs.Select(input => input.Location).SequenceEqual([0, 1, 2])
-            || !program.VertexInputs.Select(input => input.PhysicalType).SequenceEqual(["float3", "float4", "float4"]))
+            || !program.VertexInputs.Select(input => input.Location).SequenceEqual([0, 1, 2, 3, 4, 5])
+            || !program.VertexInputs.Select(input => input.PhysicalType).SequenceEqual(["float3", "float4", "float4", "float4", "float4", "float4"]))
         {
             throw new ArgumentException("AUR-VFX-007: Billboard shader does not match its uniform, vertex and OIT ABI.");
         }
@@ -51,14 +55,16 @@ internal sealed unsafe class VulkanParticleBillboards3D : IDisposable
         {
             layout = VulkanNativeForwardTexturedRenderer.CreateDescriptorSetLayout(plant, program);
             var descriptor = VulkanCompiledGraphicsPipelineDescriptorFactory.CreateDescriptor(program.Shaders,
-                [new(0, 44)], [new(0, 0, VulkanVertexAttributeFormat.Float3, 0),
-                    new(1, 0, VulkanVertexAttributeFormat.Float4, 12), new(2, 0, VulkanVertexAttributeFormat.Float4, 28)]);
+                [new(0, NativeParticleVertex3D.Stride)], [new(0, 0, VulkanVertexAttributeFormat.Float3, 0),
+                    new(1, 0, VulkanVertexAttributeFormat.Float4, 12), new(2, 0, VulkanVertexAttributeFormat.Float4, 28),
+                    new(3, 0, VulkanVertexAttributeFormat.Float4, 44), new(4, 0, VulkanVertexAttributeFormat.Float4, 60),
+                    new(5, 0, VulkanVertexAttributeFormat.Float4, 76)]);
             Require(descriptor.Success, "Particle vertex descriptor failed.");
             var result = VulkanGraphicsPipelineFactory.Create(plant, pass,
                 descriptor.Descriptor! with { EnableAdditiveBlend = true }, [layout]);
             Require(result.Success, string.Join("; ", result.Diagnostics.Select(item => item.Message)));
             pipeline = result.Pipeline!;
-            uniform = VulkanNativeForwardTexturedRenderer.CreateMappedBuffer(plant, allocator, 224,
+            uniform = VulkanNativeForwardTexturedRenderer.CreateMappedBuffer(plant, allocator, UniformBytes,
                 VulkanBufferUsage.Uniform, VulkanMemoryUsage.CpuToGpu, "particles3d.draw");
             (pool, set) = Vulkan3DPass.AllocateSet(plant, layout, uniform, 2);
             sampler = Vulkan3DPass.CreateSampler(plant, Filter.Nearest);
@@ -81,7 +87,8 @@ internal sealed unsafe class VulkanParticleBillboards3D : IDisposable
         float[] data = [.. Lighting3DUniforms.Rows(clip), .. Lighting3DUniforms.Rows(inverse),
             eye.X, eye.Y, eye.Z, 0, 1f / width, 1f / height, 0, 0,
             fog.Density, fog.HeightFalloff, fog.BaseHeight, fog.StartDistance,
-            fog.Color.X, fog.Color.Y, fog.Color.Z, fog.MaximumDistance, .. volumeParameters];
+            fog.Color.X, fog.Color.Y, fog.Color.Z, fog.MaximumDistance, .. volumeParameters,
+            .. Light(settings)];
         Require(uniform.Write(MemoryMarshal.AsBytes(data.AsSpan())).Success, "Particle draw uniform upload failed.");
         Vulkan3DPass.WriteImage(plant, set, 1, motion, sampler);
         Vulkan3DPass.WriteImage(plant, set, 3, volume, sampler);
@@ -97,6 +104,18 @@ internal sealed unsafe class VulkanParticleBillboards3D : IDisposable
         var draw = new VulkanDrawCommandEncoder().DrawVertices(plant, command, scope,
             new(pipeline, particles.Vertices, particles.VertexCount, 0, VulkanViewportScissor.FromFramebuffer(framebuffer)));
         Require(draw.Success, string.Join("; ", draw.Diagnostics.Select(item => item.Message)));
+    }
+
+    private static float[] Light(Graphics3DSettings settings)
+    {
+        Vector3 sun = Vector3.Normalize(settings.SunDirection);
+        return
+        [
+            sun.X, sun.Y, sun.Z, settings.SunIntensity,
+            settings.SunColor.X, settings.SunColor.Y, settings.SunColor.Z, 0,
+            settings.SkyAmbient.X, settings.SkyAmbient.Y, settings.SkyAmbient.Z, 0,
+            settings.GroundAmbient.X, settings.GroundAmbient.Y, settings.GroundAmbient.Z, 0,
+        ];
     }
 
     private static void Require(bool success, string message)

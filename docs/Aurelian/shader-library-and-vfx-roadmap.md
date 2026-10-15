@@ -77,8 +77,9 @@ renderer paths. Those are foundations with bounded tests, not a claim of parity
 with production engines across arbitrary scenes or hardware.
 
 The initial audit found reusable emitters and particles in **Effects2D**. The
-[GPU VFX foundation](gpu-vfx-foundation.md) now supplies 3D billboard particles
-for fire, smoke and sparks. Ribbons, mesh particles and decals remain future
+[GPU VFX foundation](gpu-vfx-foundation.md) now supplies 3D particles for fire,
+smoke, sparks and embers: curl-noise motion, blackbody flames with additive
+emission, and spherical-billboard smoke lit by the sun and the fire. Ribbons, mesh particles and decals remain future
 work. `Graphics3DSettings` exposes manual
 exposure and Shaded/AmbientOcclusion debug views; automatic exposure is another
 gap. `ModelMaterial` has no authored clearcoat, anisotropy or fabric sheen.

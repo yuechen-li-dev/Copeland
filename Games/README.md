@@ -13,6 +13,7 @@ New games implement `IGame` and call `GameApp.Run(game, args)`. The [game shell]
 | Composable starter | `Starter/Aurelian.Starter` | `starter.cmd` |
 | Character animation lab | `CharacterLab/Aurelian.CharacterLab` | `characterlab.cmd` |
 | Cloudstep (3D platformer) | `Cloudstep/Cloudstep` | `cloudstep.cmd` |
+| Hearth (fire and smoke showcase) | `Hearth/Hearth` | `hearth.cmd` |
 
 Use `humanoid-starter.cmd` for the playable humanoid variant of the starter.
 The [character guide](../docs/Aurelian/humanoid-animation.md) covers replaceable
