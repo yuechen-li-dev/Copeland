@@ -530,17 +530,17 @@ function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources:
 function NearVisibility(resources: Resources, uniforms: MaterialResources, p: float3, normal: float3): f32 {
     const projected: float3 = float3(Row(uniforms.material.shadowX, p), Row(uniforms.material.shadowY, p), Row(uniforms.material.shadowZ, p));
     return PlaneShadowVisibility(resources.shadow, resources.shadowSampler, projected,
-        float4(uniforms.material.shadowParameters.x, uniforms.material.cascadeBias.x, 1.0 / 1024.0, 0.0), normal, uniforms.material.shadowX, uniforms.material.shadowY, uniforms.material.shadowZ);
+        float4(uniforms.material.shadowParameters.x, uniforms.material.cascadeBias.x, uniforms.material.shadowParameters.z, 0.0), normal, uniforms.material.shadowX, uniforms.material.shadowY, uniforms.material.shadowZ);
 }
 function MidVisibility(resources: Resources, uniforms: MaterialResources, p: float3, normal: float3): f32 {
     const projected: float3 = float3(Row(uniforms.material.cascadeMidX, p), Row(uniforms.material.cascadeMidY, p), Row(uniforms.material.cascadeMidZ, p));
     return PlaneShadowVisibility(resources.cascadeMid, resources.cascadeMidSampler, projected,
-        float4(uniforms.material.shadowParameters.x, uniforms.material.cascadeBias.y, 1.0 / 1024.0, 0.0), normal, uniforms.material.cascadeMidX, uniforms.material.cascadeMidY, uniforms.material.cascadeMidZ);
+        float4(uniforms.material.shadowParameters.x, uniforms.material.cascadeBias.y, uniforms.material.shadowParameters.z, 0.0), normal, uniforms.material.cascadeMidX, uniforms.material.cascadeMidY, uniforms.material.cascadeMidZ);
 }
 function FarVisibility(resources: Resources, uniforms: MaterialResources, p: float3, normal: float3): f32 {
     const projected: float3 = float3(Row(uniforms.material.cascadeFarX, p), Row(uniforms.material.cascadeFarY, p), Row(uniforms.material.cascadeFarZ, p));
     return PlaneShadowVisibility(resources.cascadeFar, resources.cascadeFarSampler, projected,
-        float4(uniforms.material.shadowParameters.x, uniforms.material.cascadeBias.z, 1.0 / 1024.0, 0.0), normal, uniforms.material.cascadeFarX, uniforms.material.cascadeFarY, uniforms.material.cascadeFarZ);
+        float4(uniforms.material.shadowParameters.x, uniforms.material.cascadeBias.z, uniforms.material.shadowParameters.z, 0.0), normal, uniforms.material.cascadeFarX, uniforms.material.cascadeFarY, uniforms.material.cascadeFarZ);
 }
 function DirectionalVisibility(resources: Resources, uniforms: MaterialResources, p: float3, normal: float3): f32 {
     const forward: float4 = uniforms.material.cascadeForward;

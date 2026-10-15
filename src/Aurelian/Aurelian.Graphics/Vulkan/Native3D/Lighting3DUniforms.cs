@@ -5,7 +5,7 @@ namespace Aurelian.Graphics.Vulkan.Native3D;
 
 internal static class Lighting3DUniforms
 {
-    public const uint ShadowSize = 1024;
+    public const uint ShadowSize = 2048;
 
     public static float[] Rows(Matrix4x4 matrix) =>
     [

@@ -14,8 +14,8 @@ This is a bounded first graphics pass. It adds:
 - Procedural sky/ground ambient lighting with a roughness-dependent specular
   approximation. This is not textured, prefiltered image-based lighting or dynamic
   global illumination.
-- A 1024-square directional shadow map, with nine depth-comparison taps and a
-  configurable bias and coverage radius. The light-space placement snaps to texels
+- A 2048-square directional shadow map, with bilinear-weighted 3x3 percentage-closer
+  filtering (16 depth comparisons) and a configurable bias and coverage radius. The light-space placement snaps to texels
   as the camera moves. The renderer uses the actual GPU-skinned vertex buffer for
   animated shadow casters; it does not download or CPU-skin those vertices.
 - HDR exposure and a fitted filmic tone curve. This curve is not a complete ACES

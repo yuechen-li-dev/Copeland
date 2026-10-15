@@ -92,24 +92,36 @@ export function ShadowTap(map: Texture2D<float4>, sampler: Sampler, uv: float2, 
     }
     return 0.0;
 }
+// One row of the bilinear-weighted 3x3 PCF footprint: four texel centres with weights (1 - f, 1, 1, f).
+function ShadowRow(map: Texture2D<float4>, sampler: Sampler, row: f32, across: f32, fraction: f32,
+    texel: f32, depth: f32): f32 {
+    const v: f32 = (row + 0.5) * texel;
+    return ShadowTap(map, sampler, float2((across - 0.5) * texel, v), depth) * (1.0 - fraction)
+        + ShadowTap(map, sampler, float2((across + 0.5) * texel, v), depth)
+        + ShadowTap(map, sampler, float2((across + 1.5) * texel, v), depth)
+        + ShadowTap(map, sampler, float2((across + 2.5) * texel, v), depth) * fraction;
+}
+// Bilinear-weighted 3x3 percentage-closer filtering. A plain 3x3 box of nearest texels moves in whole-texel steps,
+// which draws stair-stepped rings around every shadow edge. Blending the box filters at the four texels around the
+// sample point by its sub-texel position gives the same footprint with weights that change continuously:
+// 16 comparisons with separable weights (1 - f, 1, 1, f) / 3 per axis.
 export function ShadowVisibility(map: Texture2D<float4>, sampler: Sampler, projected: float3, parameters: float4, nl: f32): f32 {
     if (parameters.x < 0.5 || projected.x < -1.0 || projected.x > 1.0 || projected.y < -1.0 || projected.y > 1.0
         || projected.z < 0.0 || projected.z > 1.0) {
         return 1.0;
     }
-    const u: f32 = projected.x * 0.5 + 0.5;
-    const v: f32 = projected.y * 0.5 + 0.5;
     const t: f32 = parameters.z;
     const z: f32 = projected.z - parameters.y * (1.0 + 2.0 * (1.0 - nl));
-    return (ShadowTap(map, sampler, float2(u - t, v - t), z)
-        + ShadowTap(map, sampler, float2(u, v - t), z)
-        + ShadowTap(map, sampler, float2(u + t, v - t), z)
-        + ShadowTap(map, sampler, float2(u - t, v), z)
-        + ShadowTap(map, sampler, float2(u, v), z)
-        + ShadowTap(map, sampler, float2(u + t, v), z)
-        + ShadowTap(map, sampler, float2(u - t, v + t), z)
-        + ShadowTap(map, sampler, float2(u, v + t), z)
-        + ShadowTap(map, sampler, float2(u + t, v + t), z)) / 9.0;
+    const sx: f32 = (projected.x * 0.5 + 0.5) / t - 0.5;
+    const sy: f32 = (projected.y * 0.5 + 0.5) / t - 0.5;
+    const across: f32 = Floor(sx);
+    const row: f32 = Floor(sy);
+    const fx: f32 = sx - across;
+    const fy: f32 = sy - row;
+    return (ShadowRow(map, sampler, row - 1.0, across, fx, t, z) * (1.0 - fy)
+        + ShadowRow(map, sampler, row, across, fx, t, z)
+        + ShadowRow(map, sampler, row + 1.0, across, fx, t, z)
+        + ShadowRow(map, sampler, row + 2.0, across, fx, t, z) * fy) / 9.0;
 }
 
 function PlaneShadowTap(map: Texture2D<float4>, sampler: Sampler, uv: float2,
@@ -144,15 +156,26 @@ export function PlaneShadowVisibility(map: Texture2D<float4>, sampler: Sampler,
     const origin: float2 = float2(projected.x * 0.5 + 0.5, projected.y * 0.5 + 0.5);
     const t: f32 = parameters.z;
     const depth: f32 = projected.z - parameters.y;
-    return (PlaneShadowTap(map, sampler, float2(origin.x - t, origin.y - t), origin, gradient, depth, t)
-        + PlaneShadowTap(map, sampler, float2(origin.x, origin.y - t), origin, gradient, depth, t)
-        + PlaneShadowTap(map, sampler, float2(origin.x + t, origin.y - t), origin, gradient, depth, t)
-        + PlaneShadowTap(map, sampler, float2(origin.x - t, origin.y), origin, gradient, depth, t)
-        + PlaneShadowTap(map, sampler, origin, origin, gradient, depth, t)
-        + PlaneShadowTap(map, sampler, float2(origin.x + t, origin.y), origin, gradient, depth, t)
-        + PlaneShadowTap(map, sampler, float2(origin.x - t, origin.y + t), origin, gradient, depth, t)
-        + PlaneShadowTap(map, sampler, float2(origin.x, origin.y + t), origin, gradient, depth, t)
-        + PlaneShadowTap(map, sampler, float2(origin.x + t, origin.y + t), origin, gradient, depth, t)) / 9.0;
+    // Same bilinear-weighted 3x3 footprint as ShadowVisibility, comparing against the receiver plane at each texel.
+    const sx: f32 = origin.x / t - 0.5;
+    const sy: f32 = origin.y / t - 0.5;
+    const across: f32 = Floor(sx);
+    const row: f32 = Floor(sy);
+    const fx: f32 = sx - across;
+    const fy: f32 = sy - row;
+    return (PlaneShadowRow(map, sampler, row - 1.0, across, fx, origin, gradient, depth, t) * (1.0 - fy)
+        + PlaneShadowRow(map, sampler, row, across, fx, origin, gradient, depth, t)
+        + PlaneShadowRow(map, sampler, row + 1.0, across, fx, origin, gradient, depth, t)
+        + PlaneShadowRow(map, sampler, row + 2.0, across, fx, origin, gradient, depth, t) * fy) / 9.0;
+}
+
+function PlaneShadowRow(map: Texture2D<float4>, sampler: Sampler, row: f32, across: f32, fraction: f32,
+    origin: float2, gradient: float2, depth: f32, texel: f32): f32 {
+    const v: f32 = (row + 0.5) * texel;
+    return PlaneShadowTap(map, sampler, float2((across - 0.5) * texel, v), origin, gradient, depth, texel) * (1.0 - fraction)
+        + PlaneShadowTap(map, sampler, float2((across + 0.5) * texel, v), origin, gradient, depth, texel)
+        + PlaneShadowTap(map, sampler, float2((across + 1.5) * texel, v), origin, gradient, depth, texel)
+        + PlaneShadowTap(map, sampler, float2((across + 2.5) * texel, v), origin, gradient, depth, texel) * fraction;
 }
 
 // Keep the linear FP16 attachment finite even with very bright authored lights.

@@ -86,7 +86,6 @@ public sealed class CloudstepGame : IGame
             SunIntensity = 3.6f,
             Exposure = 0.85f,
             SunDirection = Vector3.Normalize(new Vector3(0.45f, 0.8f, 0.35f)),
-            ShadowRadius = 30,
             Fog = new HeightFog3D { Density = 0.0015f, HeightFalloff = 0.08f, BaseHeight = -14, StartDistance = 35, Color = new(0.62f, 0.76f, 0.95f) },
             AmbientOcclusionStrength = 0.6f,
         },

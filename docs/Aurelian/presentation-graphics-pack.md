@@ -52,13 +52,25 @@ prepares opaque and translucent resources before replacement is published.
 
 ## GPU implementation and supported bounds
 
-Directional shadows use three 1024-square maps, split at 16%, 45% and 100% of the
-admitted camera-forward distance. Fits include the complete view slices, preserve
+Directional shadows use three 2048-square maps. The splits follow the practical split
+scheme of parallel-split shadow maps ([Zhang et al. 2006](https://faculty.digipen.edu/~gherron/references/References/ShadowAlgorithms/ParallelSplitShadowMaps.pdf); see also [GPU Gems 3, chapter 10](https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html)):
+a 75/25 blend of logarithmic and uniform splits between the near plane and the admitted
+camera-forward distance. With the default 100 m distance the first slice ends near 9 m,
+not the earlier fixed 16%, so the area around a third-person character gets about three
+times the texel density. Fits include the complete view slices, preserve
 camera height, quantize a conservative sphere and snap light-space translation to
 texels. Neighboring slices overlap for the last 10%; the final slice fades out.
 The compiler uses the unjittered camera, so TAA jitter does not move shadow fits.
-Nine-tap PCF extrapolates the receiver plane to each sampled texel center, preventing
-grazing-surface self-shadow bands without a large slope bias. A small world/texel
+Filtering is bilinear-weighted 3x3 PCF. A box of nine nearest texels moves in
+whole-texel steps and draws stair-stepped rings around shadow edges. Instead, the
+box results at the four texels around the sample point are blended by its sub-texel
+position, with 16 comparisons and separable weights (1 - f, 1, 1, f) / 3, so
+visibility changes continuously. Each comparison extrapolates the receiver plane to its
+texel center, preventing grazing-surface self-shadow bands without a large slope bias.
+The texel size comes from the lighting uniforms (`1 / ShadowSize`), not a shader
+constant. Each map is R32F with a D32 depth attachment, 32 MiB at 2048 squared, so
+the three maps take 96 MiB of GPU memory.
+A small world/texel
 margin handles quantization. `ShadowRadius` and normalized `ShadowBias` remain the
 low-level legacy forward renderer's controls. Point-light shadows, alpha-tested
 casters, translucent shadow transmission and unbounded off-screen caster searches

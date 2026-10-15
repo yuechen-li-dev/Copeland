@@ -90,17 +90,17 @@ function SunVisibility(resources: Resources, p: float3): f32 {
     const delta: float3 = Sub3(p, float3(m.eye.x, m.eye.y, m.eye.z));
     const distance: f32 = Dot3(delta, float3(m.cascadeForward.x, m.cascadeForward.y, m.cascadeForward.z));
     const near: f32 = Visibility(resources.shadow, resources.shadowSampler, p,
-        m.shadowX, m.shadowY, m.shadowZ, m.shadowW, m.shadowParameters.x, m.cascadeBias.x, 1.0 / 1024.0);
+        m.shadowX, m.shadowY, m.shadowZ, m.shadowW, m.shadowParameters.x, m.cascadeBias.x, m.shadowParameters.z);
     if (distance < m.cascadeEnds.x * 0.9) { return near; }
     const middle: f32 = Visibility(resources.cascadeMid, resources.cascadeMidSampler, p,
-        m.cascadeMidX, m.cascadeMidY, m.cascadeMidZ, m.cascadeMidW, m.shadowParameters.x, m.cascadeBias.y, 1.0 / 1024.0);
+        m.cascadeMidX, m.cascadeMidY, m.cascadeMidZ, m.cascadeMidW, m.shadowParameters.x, m.cascadeBias.y, m.shadowParameters.z);
     if (distance < m.cascadeEnds.x) {
         const blend: f32 = (distance - m.cascadeEnds.x * 0.9) / (m.cascadeEnds.x * 0.1);
         return near * (1.0 - blend) + middle * blend;
     }
     if (distance < m.cascadeEnds.y * 0.9) { return middle; }
     const far: f32 = Visibility(resources.cascadeFar, resources.cascadeFarSampler, p,
-        m.cascadeFarX, m.cascadeFarY, m.cascadeFarZ, m.cascadeFarW, m.shadowParameters.x, m.cascadeBias.z, 1.0 / 1024.0);
+        m.cascadeFarX, m.cascadeFarY, m.cascadeFarZ, m.cascadeFarW, m.shadowParameters.x, m.cascadeBias.z, m.shadowParameters.z);
     if (distance < m.cascadeEnds.y) {
         const blend: f32 = (distance - m.cascadeEnds.y * 0.9) / (m.cascadeEnds.y * 0.1);
         return middle * (1.0 - blend) + far * blend;

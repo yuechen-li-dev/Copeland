@@ -269,17 +269,17 @@ function LocalShadow(resources: Resources, index: f32, p: float3, nl: f32): f32 
 function NearVisibility(resources: Resources, p: float3, normal: float3): f32 {
     const projected: float3 = float3(Row(resources.material.shadowX, p), Row(resources.material.shadowY, p), Row(resources.material.shadowZ, p));
     return PlaneShadowVisibility(resources.shadow, resources.shadowSampler, projected,
-        float4(resources.material.shadowParameters.x, resources.material.cascadeBias.x, 1.0 / 1024.0, 0.0), normal, resources.material.shadowX, resources.material.shadowY, resources.material.shadowZ);
+        float4(resources.material.shadowParameters.x, resources.material.cascadeBias.x, resources.material.shadowParameters.z, 0.0), normal, resources.material.shadowX, resources.material.shadowY, resources.material.shadowZ);
 }
 function MidVisibility(resources: Resources, p: float3, normal: float3): f32 {
     const projected: float3 = float3(Row(resources.material.cascadeMidX, p), Row(resources.material.cascadeMidY, p), Row(resources.material.cascadeMidZ, p));
     return PlaneShadowVisibility(resources.cascadeMid, resources.cascadeMidSampler, projected,
-        float4(resources.material.shadowParameters.x, resources.material.cascadeBias.y, 1.0 / 1024.0, 0.0), normal, resources.material.cascadeMidX, resources.material.cascadeMidY, resources.material.cascadeMidZ);
+        float4(resources.material.shadowParameters.x, resources.material.cascadeBias.y, resources.material.shadowParameters.z, 0.0), normal, resources.material.cascadeMidX, resources.material.cascadeMidY, resources.material.cascadeMidZ);
 }
 function FarVisibility(resources: Resources, p: float3, normal: float3): f32 {
     const projected: float3 = float3(Row(resources.material.cascadeFarX, p), Row(resources.material.cascadeFarY, p), Row(resources.material.cascadeFarZ, p));
     return PlaneShadowVisibility(resources.cascadeFar, resources.cascadeFarSampler, projected,
-        float4(resources.material.shadowParameters.x, resources.material.cascadeBias.z, 1.0 / 1024.0, 0.0), normal, resources.material.cascadeFarX, resources.material.cascadeFarY, resources.material.cascadeFarZ);
+        float4(resources.material.shadowParameters.x, resources.material.cascadeBias.z, resources.material.shadowParameters.z, 0.0), normal, resources.material.cascadeFarX, resources.material.cascadeFarY, resources.material.cascadeFarZ);
 }
 function DirectionalVisibility(resources: Resources, p: float3, normal: float3): f32 {
     const forward: float4 = resources.material.cascadeForward;
