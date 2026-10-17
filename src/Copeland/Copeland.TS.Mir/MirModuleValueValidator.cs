@@ -122,6 +122,7 @@ public static class MirModuleValueValidator
             MirRecordConstructionExpression value => value.Initializers.Select(field => field.Value),
             MirRecordFieldAccessExpression value => [value.Receiver],
             MirRecordWithExpression value => value.Replacements.Select(field => field.Value).Prepend(value.Source),
+            MirTableWithRowExpression value => value.Children,
             MirTableWithExpression value => value.Replacements.Select(field => (MirExpression)field.Value).Prepend(value.Source),
             MirTableColumnAccessExpression value => [value.Receiver],
             MirTableRowAccessExpression value => [value.Receiver, value.Index],

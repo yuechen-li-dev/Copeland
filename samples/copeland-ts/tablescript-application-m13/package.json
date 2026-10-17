@@ -1,0 +1,15 @@
+{
+  "name": "copeland-tablescript-application-m13",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "build": "node tooling/build.ts",
+    "qualify": "node tooling/qualify.ts"
+  },
+  "dependencies": { "react": "19.2.7", "react-dom": "19.2.7" },
+  "devDependencies": {
+    "@types/react": "19.2.2", "@types/react-dom": "19.2.2", "@types/node": "24.10.0",
+    "typescript": "5.9.3", "esbuild": "0.25.10", "playwright": "1.56.1"
+  }
+}

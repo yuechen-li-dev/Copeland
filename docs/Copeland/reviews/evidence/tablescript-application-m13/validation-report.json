@@ -1,0 +1,70 @@
+{
+  "milestone": "CTS-TABLESCRIPT-APPLICATION-M13",
+  "outcome": "success",
+  "dotnet": {
+    "command": "dotnet build Copeland.slnx -m:1 --nologo; dotnet test Copeland.slnx -m:1 --no-build --nologo",
+    "total": 2442,
+    "passed": 2442,
+    "failed": 0,
+    "skipped": 0,
+    "projectTotals": [
+      3,
+      114,
+      35,
+      274,
+      284,
+      11,
+      13,
+      1708
+    ],
+    "warnings": 0,
+    "errors": 0,
+    "buildLogSha256": "b958f1a2c822a158c03ff2094ee01810defda0010827e613c6a6c852d6c825b8",
+    "testLogSha256": "b746aa60e2941952f3f63a001d16aecc1bda9da5e50d2b907ed58998dac8c7d9"
+  },
+  "applicationProbe": [
+    31210,
+    12710,
+    47,
+    2,
+    6,
+    12,
+    5,
+    2,
+    20,
+    30,
+    1,
+    1,
+    31210
+  ],
+  "browser": {
+    "profiles": [
+      "Diagnostic",
+      "Symbolic",
+      "Production"
+    ],
+    "widths": [
+      1280,
+      390
+    ],
+    "runs": 6,
+    "errors": [],
+    "nodeVersion": "v26.2.0",
+    "browserVersion": "155.0.4283.45"
+  },
+  "sampleCommand": "samples/copeland-ts/tablescript-application-m13/run.ps1",
+  "cafeRegression": {
+    "success": true,
+    "checks": 66,
+    "baselineCents": 31210,
+    "editedCents": 12710,
+    "stockSelector": {
+      "value": 100,
+      "keyColumn": "productId"
+    },
+    "sourceSha256": "550E5AB92EC0ADB0BF1F885BBBAD3FDC6A5A3539CCD238E514A28A63D460B9DA",
+    "executor": "csharp-relation-plan",
+    "nativeExcel": "not exercised"
+  },
+  "scope": "Local scenario preview; application source owns validation/calculation; no server persistence or remote commit protocol."
+}

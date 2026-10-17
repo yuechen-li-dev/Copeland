@@ -49,18 +49,20 @@ steps. MIR validation checks input identities, graph coverage, dependency order,
 single realization of each node, and exact source/join arguments. Backends receive
 the resolved schedule rather than deriving an alternative relationship graph.
 
-This slice executes through C#. JavaScript derived tables, including scenario
-calculation, remain blocked at `COPE-JS-DERIVE-0001`. Direct use in async or
+C# and JavaScript execute this operation, including all JavaScript emission
+profiles. See the [application and frontend qualification](../reviews/tablescript-application-m13.md).
+Direct use in async or
 generator bodies stops at `COPE-RECALC-0005`; a synchronous helper is the repair.
 `COPE-RECALC-0001` through `0004` diagnose an invalid receiver, argument shape,
 input name, or nominal input type.
 
 Existing `with` rules still apply: column replacements are static, deeply
 immutable authored arrays that preserve the declared row count. Recalculation
-accepts those snapshots through ordinary function parameters; it does not add
-dynamic cell edits or variable table cardinality. Keys and references keep their
+accepts those snapshots through ordinary function parameters. The separate
+[`withRow` operation](copeland-ts-table-application.md) adds runtime edits of
+ordinary fields by declared key; neither operation changes table cardinality. Keys and references keep their
 existing checks. If selected snapshots are incompatible at a declared join, the
-existing C# join guard fails with its relation name instead of substituting zero
+existing compiled join guard fails with its relation name instead of substituting zero
 or dropping rows. A failed calculation also preserves the global workbook.
 Coordinated key rewrites and a typed Result for cross-snapshot join failures are
 not implemented in this slice.

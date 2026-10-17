@@ -775,6 +775,17 @@ public sealed class MirTableColumnReplacement(MirTableColumnId columnId, MirArra
     public MirTableColumnId ColumnId { get; } = columnId;
     public MirArrayExpression Value { get; } = value;
 }
+public sealed record MirTableCellReplacement(MirTableColumnId ColumnId, MirExpression Value);
+public sealed record MirTableWithRowExpression(
+    MirExpression Source,
+    MirTableId TableId,
+    MirTableColumnId KeyColumnId,
+    MirExpression Key,
+    IReadOnlyList<MirTableCellReplacement> Replacements,
+    MirResultType ResultType) : MirExpression(ResultType)
+{
+    public IEnumerable<MirExpression> Children => new[] { Source, Key }.Concat(Replacements.Select(replacement => replacement.Value));
+}
 public sealed record MirTableWithExpression(
     MirExpression Source,
     MirTableId TableId,

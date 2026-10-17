@@ -170,6 +170,10 @@ public static class BoundTreeDumper
                     AppendExpression(sb, input.Value, i + 2);
                 }
                 break;
+            case BoundTableWithRowExpression update:
+                sb.Append("TableWithRow ").Append(update.TableType.Name).AppendLine();
+                foreach (BoundExpression child in update.Children) AppendExpression(sb, child, i + 1);
+                break;
             case BoundTableWithExpression withExpression:
                 sb.Append("TableWith ").Append(withExpression.TableType.Name).Append(" [").Append(withExpression.TableType.Id).AppendLine("]");
                 AppendExpression(sb, withExpression.Source, i + 1);

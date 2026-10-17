@@ -1,0 +1,60 @@
+{
+  "milestone": "CTS-TABLESCRIPT-APPLICATION-M13",
+  "sourceHashes": {
+    "src/Workbook.ts": "550e5ab92ec0adb0bf1f885bbbad3fdc6a5a3539ccd238e514a28a63d460b9da",
+    "src/Application.ts": "fd941b0cdd8b410ff29867abbeeeaa937bb9f8155c8dfa569c881f5dfeae0ab2",
+    "src/Editor.ts": "e0c424310ce5cfafb15ae435c5f2ee5e63b4749e73cd6a2761a649bba686b3d5",
+    "src/Cafe.tsx": "a86a4bcac8291d27d0494c376ae5936b08718ac33b561ce2cda74fb7c66ea843",
+    "src/Collections.ts": "925d33c506e50f1f4863223e2d4e760c6f133d22f559392cbea08d9f9cca1e08"
+  },
+  "csharpApplicationProbe": [
+    31210,
+    12710,
+    47,
+    2,
+    6,
+    12,
+    5,
+    2,
+    20,
+    30,
+    1,
+    1,
+    31210
+  ],
+  "outputs": [
+    {
+      "profile": "Diagnostic",
+      "files": {
+        "src/Application.js": "6b0a5a43bb869398b6fded7e439fa3c1ed447fbd28f50f9bbc2ea0b0c1bb8932",
+        "src/Cafe.js": "ac268e61af6deaf231fba341a1bc0e8204b6627b829dbc6eb336228255955b18",
+        "src/Collections.js": "de7f808659249a357cb10ebb7733b22a30a3e0a1c26c8c7f2d14d3b0b09293dc",
+        "src/Editor.js": "1a35ac1882778b135e6210e89dfcea3cd3a37c662d549aafd91b6d46e738c471",
+        "src/Workbook.js": "3cca4b69529f414253764c930bb032e69e476053998b684a5247b27a90b2df5a",
+        "generated/layouts.css": "dcdaa09705a22cc06c4ebe5fa6f02170ff19491d2f9f57398757a4bdbb13dc62"
+      }
+    },
+    {
+      "profile": "Symbolic",
+      "files": {
+        "src/Application.js": "94c1cb2aadd100fcf8379d9d48f72df4d25e0356e9ccd268e90b8d6eea315485",
+        "src/Cafe.js": "90c2e2d427df7d077401fe2820933682ccee98f2ab2c3bdca70a52e2dde0eeb7",
+        "src/Collections.js": "4bf44c0d601f63796fc528d4163b354f5fedbfe960b31d66061023775b0bc877",
+        "src/Editor.js": "a989ffb74636a89a0cf0b8f9edb62b32e2462473853b60383ac8c0663fb83754",
+        "src/Workbook.js": "b2dce7848cd38e99c9974038e3e5e61f3e0f9faa39b26cc2cdc065e01bc394ea",
+        "generated/layouts.css": "dcdaa09705a22cc06c4ebe5fa6f02170ff19491d2f9f57398757a4bdbb13dc62"
+      }
+    },
+    {
+      "profile": "Production",
+      "files": {
+        "src/Application.js": "739880f2bd8531dc7ad9609cfffe4e75ee0c031c28f19901f358433afca179c7",
+        "src/Cafe.js": "9366b92741bcecd16a2662894e9fdcf2cd6f1e8ec69ff606e8bc3a6a170c2b32",
+        "src/Collections.js": "86bf8eb52c2e6d49b0d46077930f80c57a4b74f77f1aff012a1c3d595098f059",
+        "src/Editor.js": "146aa8664bd9f33b815ee41e3304bcda8acb5ee2f307713c119fa1e985cde2b0",
+        "src/Workbook.js": "3ab9ae215b9eb1d8e6abb2087fde765189347e74f5b31f6006071bf166ca0048",
+        "generated/layouts.css": "dcdaa09705a22cc06c4ebe5fa6f02170ff19491d2f9f57398757a4bdbb13dc62"
+      }
+    }
+  ]
+}

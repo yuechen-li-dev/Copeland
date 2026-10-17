@@ -327,7 +327,7 @@ public sealed class TableFeatureTests
     }
 
     [Fact]
-    public void JavaScript_reports_the_explicit_derived_table_materializer_boundary()
+    public void JavaScript_accepts_the_compiler_derived_table_plan()
     {
         CopelandCompilation compilation = CopelandCompiler.CompileToMir("""
             record table Source { value: int = [1]; }
@@ -336,7 +336,7 @@ public sealed class TableFeatureTests
 
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
         JavaScriptCompilation javascript = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
-        Assert.Contains(javascript.Diagnostics, diagnostic => diagnostic.Id == "COPE-JS-DERIVE-0001");
+        Assert.Empty(javascript.Diagnostics);
     }
 
     [Fact]

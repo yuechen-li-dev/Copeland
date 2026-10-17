@@ -3,7 +3,7 @@
 `summarize<Record>` materializes a table row view into declared immutable records.
 The result has named fields and ordinary record types, so functions can return
 purchase totals or supplier summaries without passing query strings or indexing
-anonymous cells. This slice executes through the C# backend.
+anonymous cells. C# and JavaScript execute the same typed summary MIR.
 
 ```ts
 record PurchaseTotals {
@@ -86,8 +86,8 @@ generator bodies stops at `COPE-SUMMARY-0011`: put it in a synchronous helper an
 call the helper instead. That avoids emitting an unsupported suspension state.
 
 `average`, `min`, and `max` are deferred at `COPE-SUMMARY-0007` until their empty
-input and Option behavior is designed. JavaScript profiles reject typed summary
-execution with `COPE-JS-SUMMARY-0001`. Summaries do not rebind a global derived
+input and Option behavior is designed. All JavaScript emission profiles execute
+typed sum/count summaries. Summaries do not rebind a global derived
 relation when a different input snapshot is passed elsewhere. Ordinary generated
 record carriers retain their existing internal C# field names; typed fields are
 usable directly inside Copeland TS, while external host projections remain an

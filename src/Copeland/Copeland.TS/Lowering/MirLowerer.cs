@@ -1517,6 +1517,11 @@ public static class MirLowerer
                 new MirTableColumnId(aggregate.Column.Id.ToString()),
                 (MirTableAggregateKind)aggregate.Kind,
                 ToMirType(aggregate.Type)),
+            BoundTableWithRowExpression update => new MirTableWithRowExpression(
+                LowerExpression(update.Source), new MirTableId(update.TableType.Id.ToString()),
+                new MirTableColumnId(update.KeyColumn.Id.ToString()), LowerExpression(update.Key),
+                update.Replacements.Select(field => new MirTableCellReplacement(new MirTableColumnId(field.Column.Id.ToString()), LowerExpression(field.Value))).ToArray(),
+                (MirResultType)ToMirType(update.Type)),
             BoundTableWithExpression withExpression => new MirTableWithExpression(
                 LowerExpression(withExpression.Source),
                 new MirTableId(withExpression.TableType.Id.ToString()),

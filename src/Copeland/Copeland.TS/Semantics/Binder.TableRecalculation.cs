@@ -13,7 +13,7 @@ public static partial class Binder
             BoundExpression receiver,
             TableTypeSymbol tableType)
         {
-            BoundTableDefinition? definition = _tables.FirstOrDefault(table => table.TableType.Id == tableType.Id);
+            BoundTableDefinition? definition = AvailableTableDefinitions.FirstOrDefault(table => table.TableType.Id == tableType.Id);
             if (receiver is not BoundTableReferenceExpression || definition is not BoundDerivedTableDefinition)
             {
                 Report("COPE-RECALC-0001", "Call recalculate on a declared derived table, for example Plan.recalculate({ Stock: revisedStock }).", member.NameToken);
@@ -70,7 +70,7 @@ public static partial class Binder
                 {
                     return;
                 }
-                BoundTableDefinition? current = _tables.FirstOrDefault(candidate => candidate.TableType.Id == table.Id);
+                BoundTableDefinition? current = AvailableTableDefinitions.FirstOrDefault(candidate => candidate.TableType.Id == table.Id);
                 if (current is not BoundDerivedTableDefinition derived)
                 {
                     leaves.Add(table);

@@ -146,7 +146,7 @@ public sealed class TableRecalculationTests
     }
 
     [Fact]
-    public void Direct_async_materialization_and_all_javascript_profiles_have_named_boundaries()
+    public void Direct_async_materialization_has_a_named_boundary_and_javascript_profiles_accept_sync_helpers()
     {
         CopelandCompilation asynchronous = CopelandCompiler.CompileToMir(Relations + """
             async function run(): Plan { return Plan.recalculate({ Stock: Stock }); }
@@ -158,7 +158,7 @@ public sealed class TableRecalculationTests
         foreach (JavaScriptEmissionProfile profile in Enum.GetValues<JavaScriptEmissionProfile>())
         {
             var result = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!, new JavaScriptEmissionOptions { Profile = profile });
-            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == "COPE-JS-DERIVE-0001");
+            Assert.Empty(result.Diagnostics);
         }
     }
 
@@ -218,6 +218,8 @@ public sealed class TableRecalculationTests
         var emitted = CSharpBackend.Emit(compilation.MirCompilation!.Program!);
         Assert.Empty(emitted.Diagnostics);
         Type module = CorpusRunner.CompileCSharp(emitted.SourceText).GetType("Copeland.Generated.CopelandModule", true)!;
-        return (int[])module.GetMethod("run")!.Invoke(null, null)!;
+        int[] expected = (int[])module.GetMethod("run")!.Invoke(null, null)!;
+        TableJavaScriptParity.AssertRun(compilation, expected);
+        return expected;
     }
 }

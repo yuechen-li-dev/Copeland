@@ -112,7 +112,10 @@ public static partial class CSharpBackend
             }
             else if (field.Aggregate == MirTableAggregateKind.Sum)
             {
-                writer.WriteLine(CSharpTableAccumulator.AddSum(target, ReadColumn(field.Input!.Value, field.Type)));
+                string value = ReadColumn(field.Input!.Value, field.Type);
+                writer.WriteLine(field.Type.Name == "int"
+                    ? $"{target} = unchecked({target} + {value});"
+                    : CSharpTableAccumulator.AddSum(target, value));
             }
         }
         writer.Unindent();

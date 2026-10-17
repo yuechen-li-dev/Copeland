@@ -54,6 +54,7 @@ public sealed class TableSummaryTests
         Assert.Empty(emitted.Diagnostics);
         Type module = CorpusRunner.CompileCSharp(emitted.SourceText).GetType("Copeland.Generated.CopelandModule", true)!;
         Assert.Equal([4, 12, 41, 2, 2, 7, 21, 2, 3, 5, 20, 1, 0, 0, 0, 0], (int[])module.GetMethod("run")!.Invoke(null, null)!);
+        TableJavaScriptParity.AssertRun(compilation, (int[])module.GetMethod("run")!.Invoke(null, null)!);
         Assert.Contains("table-summary", compilation.MirText);
     }
 
@@ -78,6 +79,7 @@ public sealed class TableSummaryTests
         Assert.Empty(emitted.Diagnostics);
         Type module = CorpusRunner.CompileCSharp(emitted.SourceText).GetType("Copeland.Generated.CopelandModule", true)!;
         Assert.Equal([11, 2, 7], (int[])module.GetMethod("run")!.Invoke(null, null)!);
+        TableJavaScriptParity.AssertRun(compilation, [11, 2, 7]);
     }
 
     [Theory]
@@ -200,7 +202,7 @@ public sealed class TableSummaryTests
     }
 
     [Fact]
-    public void JavaScript_profiles_report_the_named_summary_execution_boundary()
+    public void JavaScript_profiles_accept_typed_summaries()
     {
         CopelandCompilation compilation = Compile("""
             record Total { units: int; }
@@ -212,7 +214,7 @@ public sealed class TableSummaryTests
         foreach (JavaScriptEmissionProfile profile in Enum.GetValues<JavaScriptEmissionProfile>())
         {
             var result = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!, new JavaScriptEmissionOptions { Profile = profile });
-            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == "COPE-JS-SUMMARY-0001");
+            Assert.Empty(result.Diagnostics);
         }
     }
 
@@ -241,7 +243,9 @@ public sealed class TableSummaryTests
         var emitted = CSharpBackend.Emit(compilation.MirCompilation!.Program!);
         Assert.Empty(emitted.Diagnostics);
         Type module = CorpusRunner.CompileCSharp(emitted.SourceText).GetType("Copeland.Generated.CopelandModule", true)!;
-        return (int[])module.GetMethod("run")!.Invoke(null, null)!;
+        int[] expected = (int[])module.GetMethod("run")!.Invoke(null, null)!;
+        TableJavaScriptParity.AssertRun(compilation, expected);
+        return expected;
     }
 
     [Fact]

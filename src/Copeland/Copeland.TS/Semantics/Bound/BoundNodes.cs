@@ -1301,13 +1301,15 @@ public sealed class BoundModuleScope(
     IReadOnlyDictionary<string, Symbol> declarations,
     IReadOnlyDictionary<string, TypeAliasSymbol> aliases,
     IReadOnlyDictionary<string, InterfaceSymbol> interfaces,
-    IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> genericBodies)
+    IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> genericBodies,
+    IReadOnlyList<BoundTableDefinition>? tables = null)
 {
     public string ModuleIdentity { get; } = moduleIdentity;
     public IReadOnlyDictionary<string, Symbol> Declarations { get; } = declarations;
     public IReadOnlyDictionary<string, TypeAliasSymbol> Aliases { get; } = aliases;
     public IReadOnlyDictionary<string, InterfaceSymbol> Interfaces { get; } = interfaces;
     public IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> GenericBodies { get; } = genericBodies;
+    public IReadOnlyList<BoundTableDefinition> Tables { get; } = tables ?? [];
 }
 
 /// <summary>Names introduced into one module by resolved local imports.</summary>
@@ -1315,12 +1317,14 @@ public sealed class BoundModuleImports(
     IReadOnlyDictionary<string, Symbol> declarations,
     IReadOnlyDictionary<string, TypeAliasSymbol> aliases,
     IReadOnlyDictionary<string, InterfaceSymbol> interfaces,
-    IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> genericBodies)
+    IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> genericBodies,
+    IReadOnlyList<BoundTableDefinition>? tables = null)
 {
     public IReadOnlyDictionary<string, Symbol> Declarations { get; } = declarations;
     public IReadOnlyDictionary<string, TypeAliasSymbol> Aliases { get; } = aliases;
     public IReadOnlyDictionary<string, InterfaceSymbol> Interfaces { get; } = interfaces;
     public IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> GenericBodies { get; } = genericBodies;
+    public IReadOnlyList<BoundTableDefinition> Tables { get; } = tables ?? [];
 }
 
 public sealed class BoundFunctionDeclaration : BoundNode { public BoundFunctionDeclaration(FunctionSymbol symbol, BoundBlockStatement body) { Symbol = symbol; Body = body; } public FunctionSymbol Symbol { get; } public BoundBlockStatement Body { get; } }
@@ -2148,6 +2152,23 @@ public sealed class BoundTableColumnReplacement(TableColumnSymbol column, BoundA
 {
     public TableColumnSymbol Column { get; } = column;
     public BoundArrayExpression Value { get; } = value;
+}
+public sealed record BoundTableCellReplacement(TableColumnSymbol Column, BoundExpression Value);
+public sealed class BoundTableWithRowExpression(
+    BoundExpression source,
+    TableTypeSymbol tableType,
+    TableColumnSymbol keyColumn,
+    BoundExpression key,
+    IReadOnlyList<BoundTableCellReplacement> replacements,
+    ResultTypeSymbol resultType) : BoundExpression
+{
+    public BoundExpression Source { get; } = source;
+    public TableTypeSymbol TableType { get; } = tableType;
+    public TableColumnSymbol KeyColumn { get; } = keyColumn;
+    public BoundExpression Key { get; } = key;
+    public IReadOnlyList<BoundTableCellReplacement> Replacements { get; } = replacements;
+    public IEnumerable<BoundExpression> Children => new[] { Source, Key }.Concat(Replacements.Select(replacement => replacement.Value));
+    public override TypeSymbol Type => resultType;
 }
 public sealed class BoundTableWithExpression(
     BoundExpression source,

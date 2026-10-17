@@ -180,6 +180,8 @@ public static partial class Binder
         private readonly HashSet<MemberSyntax> _rejectedTypeDeclarations = [];
         private readonly HashSet<VariableSymbol> _tableSingletonVariables = [];
         private EnumTypeSymbol? _tableBoundsErrorType;
+        private EnumTypeSymbol? _tableKeyErrorType;
+        private bool _usesTableKeyError;
         private EnumTypeSymbol? _tsonEncodeErrorType;
         private readonly Dictionary<TypeSymbol, BoundTsonEncodingPlan> _tsonEncodingPlans = [];
         private bool _usesTsonEncode;
@@ -226,6 +228,7 @@ public static partial class Binder
             ImportModuleSymbols();
             BindSchemaMetadata(_tree.Root);
             PredeclareTableBoundsError();
+            PredeclareTableKeyError();
             PredeclareTsonEncodeError();
             AnalyzeAliasTypeNameCollisions(_tree.Root);
             PredeclareInterfaces(_tree.Root);
@@ -287,7 +290,7 @@ public static partial class Binder
             {
                 if (m is FunctionDeclarationSyntax f && f.TypeParameters.Count == 0 && (f.GenericParameters?.Values.Count ?? 0) == 0
                     && !_functions.Any(function => ReferenceEquals(function.Symbol, _globalLookup(f.Identifier.Text)))) _functions.Add(BindFunction(f));
-                else if (m is EnumDeclarationSyntax e && e.Identifier.Text != "TableBoundsError" && _enumTypes.TryGetValue(e.Identifier.Text, out var enumType)) _enums.Add(new BoundEnumDeclaration(enumType));
+                else if (m is EnumDeclarationSyntax e && e.Identifier.Text is not ("TableBoundsError" or "TableKeyError") && _enumTypes.TryGetValue(e.Identifier.Text, out var enumType)) _enums.Add(new BoundEnumDeclaration(enumType));
                 else if (m is NominalUnionDeclarationSyntax union && _enumTypes.TryGetValue(union.Identifier.Text, out var unionType)) _enums.Add(new BoundEnumDeclaration(unionType));
                 else if (m is RecordDeclarationSyntax r && r.GenericParameters is null && _recordTypes.TryGetValue(r.Identifier.Text, out var recordType)) _records.Add(new BoundRecordDeclaration(recordType));
                 else if (m is ClassDeclarationSyntax c && _classTypes.TryGetValue(c.Identifier.Text, out var classType)) _records.Add(new BoundRecordDeclaration(classType));
@@ -306,6 +309,11 @@ public static partial class Binder
             if (_tables.Count > 0 && _tableBoundsErrorType is not null)
             {
                 _enums.Insert(0, new BoundEnumDeclaration(_tableBoundsErrorType));
+
+            }
+            if (_usesTableKeyError)
+            {
+                _enums.Insert(0, new BoundEnumDeclaration(_tableKeyErrorType!));
             }
             if (_usesTsonEncode && _tsonEncodeErrorType is not null)
             {
@@ -880,6 +888,8 @@ public static partial class Binder
             };
         }
 
+        private IEnumerable<BoundTableDefinition> AvailableTableDefinitions => _tables.Concat(_imports?.Tables ?? []);
+
         private void ImportModuleSymbols()
         {
             if (_imports is null) return;
@@ -892,7 +902,10 @@ public static partial class Binder
                     {
                         case RecordTypeSymbol record: _recordTypes[pair.Key] = record; break;
                         case EnumTypeSymbol @enum: _enumTypes[pair.Key] = @enum; break;
-                        case TableTypeSymbol table: _tableTypes[pair.Key] = table; break;
+                        case TableTypeSymbol table:
+                            _tableTypes[pair.Key] = table;
+                            _tableSingletonVariables.Add(variable);
+                            break;
                     }
                 }
             }
@@ -923,7 +936,8 @@ public static partial class Binder
                 .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
             var interfaces = _interfaces.Where(pair => _imports is null || !_imports.Interfaces.ContainsKey(pair.Key))
                 .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
-            return new BoundModuleScope(_moduleIdentity ?? _sourcePath ?? "<standalone>", declarations, aliases, interfaces, new Dictionary<FunctionSymbol, BoundFunctionDeclaration>(_genericBodies));
+            return new BoundModuleScope(_moduleIdentity ?? _sourcePath ?? "<standalone>", declarations, aliases, interfaces, new Dictionary<FunctionSymbol, BoundFunctionDeclaration>(_genericBodies),
+                _tables.Concat(_imports?.Tables ?? []).DistinctBy(table => table.TableType.Id).ToArray());
         }
 
         public IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> GetOpenGenericBodiesForTesting()
@@ -1347,6 +1361,24 @@ public static partial class Binder
             errorType.AddCase(new EnumCaseSymbol("InvalidUnicode", errorType, []));
             errorType.AddCase(new EnumCaseSymbol("OutputLimitExceeded", errorType, []));
             _tsonEncodeErrorType = errorType;
+            _enumTypes.Add(errorType.Name, errorType);
+            _global.TryDeclare(new VariableSymbol(errorType.Name, errorType, true));
+        }
+
+        private EnumTypeSymbol UseEnumType(EnumTypeSymbol enumType)
+        {
+            if (enumType == _tableKeyErrorType)
+            {
+                _usesTableKeyError = true;
+            }
+            return enumType;
+        }
+
+        private void PredeclareTableKeyError()
+        {
+            var errorType = new EnumTypeSymbol("TableKeyError", "intrinsic:TableKeyError");
+            errorType.AddCase(new EnumCaseSymbol("NotFound", errorType, []));
+            _tableKeyErrorType = errorType;
             _enumTypes.Add(errorType.Name, errorType);
             _global.TryDeclare(new VariableSymbol(errorType.Name, errorType, true));
         }
@@ -3476,9 +3508,9 @@ public static partial class Binder
                     Report(name == "tsonEncode" ? "COPE-TSON-ENCODE-0001" : "COPE-TSON-ASSET-0001", $"'{name}' is a compiler intrinsic and cannot be redefined.", m.Identifier);
                     continue;
                 }
-                if (m.Identifier.Text == "TableBoundsError")
+                if (m.Identifier.Text is "TableBoundsError" or "TableKeyError")
                 {
-                    Report("COPE-TABLE-0002", "'TableBoundsError' is a compiler-owned table bounds enum.", m.Identifier);
+                    Report("COPE-TABLE-0002", $"'{m.Identifier.Text}' is a compiler-owned table error enum.", m.Identifier);
                     continue;
                 }
                 if (m.Identifier.Text == "TsonEncodeError")
@@ -3506,7 +3538,7 @@ public static partial class Binder
         {
             foreach (var decl in root.Members.OfType<EnumDeclarationSyntax>())
             {
-                if (decl.Identifier.Text == "TableBoundsError")
+                if (decl.Identifier.Text is "TableBoundsError" or "TableKeyError")
                 {
                     continue;
                 }
@@ -7312,6 +7344,14 @@ public static partial class Binder
                 or "small"
                 or "span"
                 or "strong"
+                or "table"
+                or "thead"
+                or "tbody"
+                or "tfoot"
+                or "tr"
+                or "th"
+                or "td"
+                or "caption"
                 || IsCustomElementName(name);
 
         private static bool IsCustomElementName(string name)
@@ -7744,6 +7784,9 @@ public static partial class Binder
                     return;
                 case BoundRecordFieldAccessExpression access:
                     ValidateBatchBodyEffects(access.Receiver, anchor);
+                    return;
+                case BoundTableWithRowExpression rowUpdate:
+                    foreach (BoundExpression child in rowUpdate.Children) ValidateBatchBodyEffects(child, anchor);
                     return;
                 case BoundTableWithExpression update:
                     ValidateBatchBodyEffects(update.Source, anchor);
@@ -8436,6 +8479,11 @@ public static partial class Binder
                         && !_enumTypes.ContainsKey(tableTargetName.IdentifierToken.Text))))
             {
                 BoundExpression tableReceiver = BindExpression(tableMember.Target);
+                if (tableReceiver.Type is TableTypeSymbol editedType
+                    && tableMember.NameToken.Text == "withRow")
+                {
+                    return BindTableWithRow(c, tableMember, tableReceiver, editedType);
+                }
                 if (tableReceiver.Type is TableTypeSymbol recalculatedType
                     && tableMember.NameToken.Text == "recalculate")
                 {
@@ -9936,6 +9984,8 @@ public static partial class Binder
 
                 return new ArrayTypeSymbol(ResolveNpmType(elementName, anchor));
             }
+            if (name is "int") return PrimitiveTypeSymbol.Int;
+            if (name is "float") return PrimitiveTypeSymbol.Float;
             if (name is "number") return PrimitiveTypeSymbol.Number;
             if (name is "string") return PrimitiveTypeSymbol.String;
             if (name is "boolean") return PrimitiveTypeSymbol.Boolean;
@@ -11505,6 +11555,10 @@ public static partial class Binder
                 BoundTableColumnAccessExpression access => new BoundTableColumnAccessExpression(RewriteExpression(access.Receiver), access.TableType, access.Column),
                 BoundTableRowAccessExpression access => new BoundTableRowAccessExpression(RewriteExpression(access.Receiver), RewriteExpression(access.Index), access.TableType, (ResultTypeSymbol)SubstituteType(access.Type, substitutions)),
                 BoundColumnElementAccessExpression access => new BoundColumnElementAccessExpression(RewriteExpression(access.Receiver), RewriteExpression(access.Index), (ResultTypeSymbol)SubstituteType(access.Type, substitutions)),
+                BoundTableWithRowExpression update => new BoundTableWithRowExpression(
+                    RewriteExpression(update.Source), update.TableType, update.KeyColumn, RewriteExpression(update.Key),
+                    update.Replacements.Select(field => new BoundTableCellReplacement(field.Column, RewriteExpression(field.Value))).ToArray(),
+                    (ResultTypeSymbol)SubstituteType(update.Type, substitutions)),
                 BoundTableWithExpression withExpression => new BoundTableWithExpression(
                     RewriteExpression(withExpression.Source),
                     withExpression.TableType,
@@ -12685,7 +12739,8 @@ public static partial class Binder
             foreach (var arm in match.Arms)
             {
                 if (arm.Pattern.EnumQualifier is { } qualifier
-                    && (!_enumTypes.TryGetValue(qualifier.Text, out var qualifiedType) || qualifiedType != enumType))
+                    && (!_enumTypes.TryGetValue(qualifier.Text, out var qualifiedType) || (qualifiedType != enumType
+                        && (enumType.StableIdentity is null || qualifiedType.StableIdentity != enumType.StableIdentity))))
                 {
                     Report("COPE-MATCH-0002", "Qualified match case must belong to the subject enum.", qualifier);
                 }
@@ -12924,6 +12979,7 @@ public static partial class Binder
             }
             if (m.Target is NameExpressionSyntax n && _enumTypes.TryGetValue(n.IdentifierToken.Text, out var enumType))
             {
+                UseEnumType(enumType);
                 var @case = enumType.Cases.FirstOrDefault(c => c.Name == m.NameToken.Text);
                 if (@case is null)
                 {
@@ -13853,7 +13909,7 @@ public static partial class Binder
             {
                 IdentifierTypeSyntax i when _activeTypeParameters is not null && _activeTypeParameters.TryGetValue(i.Identifier.Text, out var typeParameter) => HostParameterType(typeParameter, i.Identifier),
                 IdentifierTypeSyntax i when _aliases.TryGetValue(i.Identifier.Text, out var alias) => alias.CanonicalType,
-                IdentifierTypeSyntax i when _enumTypes.TryGetValue(i.Identifier.Text, out var enumType) => enumType,
+                IdentifierTypeSyntax i when _enumTypes.TryGetValue(i.Identifier.Text, out var enumType) => UseEnumType(enumType),
                 IdentifierTypeSyntax i when _recordTypes.TryGetValue(i.Identifier.Text, out var recordType) => recordType,
                 IdentifierTypeSyntax i => new ErrorNominalTypeSymbol(i.Identifier.Text),
                 PredefinedTypeSyntax p when p.Keyword.Kind == SyntaxKind.NullKeyword => ReportedNullType(p.Keyword),
@@ -13937,7 +13993,7 @@ public static partial class Binder
                 return PrimitiveTypeSymbol.Error;
             }
             if (_enumTypes.TryGetValue(i.Identifier.Text, out var enumType))
-                return enumType;
+                return UseEnumType(enumType);
             if (_recordTypes.TryGetValue(i.Identifier.Text, out var recordType))
                 return recordType;
             if (_tableTypes.TryGetValue(i.Identifier.Text, out var tableType))

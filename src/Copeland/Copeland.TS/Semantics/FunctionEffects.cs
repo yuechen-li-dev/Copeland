@@ -745,6 +745,9 @@ public static class FunctionEffectClassifier
                 case BoundTableAggregateExpression aggregate:
                     VisitExpression(aggregate.Receiver);
                     return;
+                case BoundTableWithRowExpression rowUpdate:
+                    foreach (BoundExpression child in rowUpdate.Children) VisitExpression(child);
+                    return;
                 case BoundTableWithExpression update:
                     VisitExpression(update.Source);
                     foreach (BoundTableColumnReplacement replacement in update.Replacements) VisitExpression(replacement.Value);

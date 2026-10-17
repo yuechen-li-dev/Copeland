@@ -61,13 +61,13 @@ record PurchaseLine {
     costCents: Cents;
 }
 
-record PurchaseTotals {
+export record PurchaseTotals {
     totalCents: Cents;
     units: Units;
     lines: int;
 }
 
-record SupplierSummary {
+export record SupplierSummary {
     supplierId: int;
     supplierName: string;
     totalCents: Cents;
@@ -117,7 +117,7 @@ function purchaseTotals(): PurchaseTotals {
     return purchaseTotalsFor(PurchasePlan);
 }
 
-function purchaseTotalsFor(plan: PurchasePlan): PurchaseTotals {
+export function purchaseTotalsFor(plan: PurchasePlan): PurchaseTotals {
     return plan.rows()
         .where(line => line.orderUnits > 0)
         .summarize<PurchaseTotals>(line => ({
@@ -131,7 +131,7 @@ function supplierSummaries(): SupplierSummary[] {
     return supplierSummariesFor(PurchasePlan);
 }
 
-function supplierSummariesFor(plan: PurchasePlan): SupplierSummary[] {
+export function supplierSummariesFor(plan: PurchasePlan): SupplierSummary[] {
     return plan.rows()
         .where(line => line.orderUnits > 0)
         .groupBy(line => line.supplierId, line => line.supplierName)

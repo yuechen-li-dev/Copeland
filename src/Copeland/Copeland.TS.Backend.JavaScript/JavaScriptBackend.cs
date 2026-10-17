@@ -2,7 +2,7 @@ using Copeland.TS.Mir;
 
 namespace Copeland.TS.Backend.JavaScript;
 
-public static class JavaScriptBackend
+public static partial class JavaScriptBackend
 {
     private enum AsyncStateKind
     {
@@ -130,11 +130,6 @@ public static class JavaScriptBackend
         if (program.Functions.Any(function => ContainsInlineCSharp(function.Body)))
         {
             diagnostics.Add(new JavaScriptDiagnostic("COPE-JS-CSHARP-0001", "Inline C# is available only on the CLR backend."));
-            return new JavaScriptCompilation(null, diagnostics);
-        }
-        if (program.Tables.Any(table => table.DerivedPlan is not null))
-        {
-            diagnostics.Add(new JavaScriptDiagnostic("COPE-JS-DERIVE-0001", "Derived record tables are currently materialized only by the C# backend."));
             return new JavaScriptCompilation(null, diagnostics);
         }
         foreach (MirNpmImport import in program.NpmImports.Where(import => !import.IsAvailableToJavaScript))
@@ -617,6 +612,14 @@ public static class JavaScriptBackend
             }
         }
 
+        foreach (MirTableDefinition table in program.Tables.Where(table => table.DerivedPlan is not null))
+        {
+            MirDerivedTablePlan plan = table.DerivedPlan!;
+            foreach (MirExpression expression in plan.Locals.Select(local => local.Expression).Concat(plan.Columns.Select(column => column.Expression)))
+            {
+                ValidateExpression(expression, new MirNamedType("void"), $"derived table '{table.Name}'", functions, catalog, diagnostics);
+            }
+        }
         return catalog;
     }
 
@@ -998,11 +1001,9 @@ public static class JavaScriptBackend
                 }
                 break;
             case MirTableSummaryExpression summary:
-                diagnostics.Add(new JavaScriptDiagnostic("COPE-JS-SUMMARY-0001", "Typed table summary materialization is currently supported by the C# backend; JavaScript summary execution is unsupported."));
                 ValidateExpression(summary.Source, functionReturnType, context, functions, catalog, diagnostics);
                 break;
             case MirTableRecalculationExpression recalculation:
-                diagnostics.Add(new JavaScriptDiagnostic("COPE-JS-DERIVE-0001", "Snapshot-relative derivation currently requires the C# backend; JavaScript relation recalculation is unsupported."));
                 foreach (MirTableRecalculationInput input in recalculation.Inputs)
                 {
                     ValidateExpression(input.Value, functionReturnType, context, functions, catalog, diagnostics);
@@ -1014,6 +1015,12 @@ public static class JavaScriptBackend
                 break;
             case MirTableAggregateExpression aggregate:
                 ValidateExpression(aggregate.Receiver, functionReturnType, context, functions, catalog, diagnostics);
+                break;
+            case MirTableWithRowExpression update:
+                foreach (MirExpression child in update.Children)
+                {
+                    ValidateExpression(child, functionReturnType, context, functions, catalog, diagnostics);
+                }
                 break;
             case MirTableWithExpression withExpression:
                 ValidateExpression(withExpression.Source, functionReturnType, context, functions, catalog, diagnostics);
@@ -1565,7 +1572,7 @@ public static class JavaScriptBackend
             EmitFlowRuntime(writer, names);
         }
 
-        if (usesSharedBrowserInteropRuntime && (catalog.Records.Count > 0 || catalog.Enums.Count > 0))
+        if (usesSharedBrowserInteropRuntime && (catalog.Records.Count > 0 || catalog.Enums.Count > 0 || catalog.Tables.Count > 0 || results.Types.Count > 0))
         {
             writer.WriteLine();
             EmitRecordRegistryRuntime(writer);
@@ -1645,7 +1652,10 @@ public static class JavaScriptBackend
         foreach (ResultInfo result in results.Types)
         {
             writer.WriteLine();
-            writer.WriteLine($"const {names.TypeToken(result)} = Object.freeze(Object.create(null));");
+            string token = usesSharedBrowserInteropRuntime
+                ? $"__cope_m3_record_registration({JavaScriptLiteralWriter.WriteString("result:" + MirTypeIdentity(result.Type))}).type"
+                : "Object.freeze(Object.create(null))";
+            writer.WriteLine($"const {names.TypeToken(result)} = {token};");
         }
 
         foreach (ResultInfo result in results.Types)
@@ -1916,6 +1926,15 @@ public static class JavaScriptBackend
 
     private static bool ExpressionUsesTableWith(MirExpression expression) => expression switch
     {
+        MirArrayLengthExpression length => ExpressionUsesTableWith(length.Receiver),
+        MirArrayElementAccessExpression access => ExpressionUsesTableWith(access.Receiver) || ExpressionUsesTableWith(access.Index),
+        MirTableWithRowExpression update => true,
+        MirTableRecalculationExpression recalculation => recalculation.Inputs.Any(input => ExpressionUsesTableWith(input.Value)),
+        MirTableSummaryExpression summary => ExpressionUsesTableWith(summary.Source),
+        MirTableAggregateExpression aggregate => ExpressionUsesTableWith(aggregate.Receiver),
+        MirTableRowsExpression rows => ExpressionUsesTableWith(rows.Table),
+        MirTableWhereExpression where => ExpressionUsesTableWith(where.Source) || where.Predicates.Any(ExpressionUsesTableWith),
+        MirTableSelectExpression select => ExpressionUsesTableWith(select.Source) || ExpressionUsesTableWith(select.Projector),
         MirTableWithExpression => true,
         MirAssignmentExpression assignment => ExpressionUsesTableWith(assignment.Expression),
         MirUnaryExpression unary => ExpressionUsesTableWith(unary.Operand),
@@ -1949,6 +1968,15 @@ public static class JavaScriptBackend
 
     private static bool ExpressionUsesCapturedCallables(MirExpression expression) => expression switch
     {
+        MirArrayLengthExpression length => ExpressionUsesCapturedCallables(length.Receiver),
+        MirArrayElementAccessExpression access => ExpressionUsesCapturedCallables(access.Receiver) || ExpressionUsesCapturedCallables(access.Index),
+        MirTableWithRowExpression update => update.Children.Any(ExpressionUsesCapturedCallables),
+        MirTableRecalculationExpression recalculation => recalculation.Inputs.Any(input => ExpressionUsesCapturedCallables(input.Value)),
+        MirTableSummaryExpression summary => ExpressionUsesCapturedCallables(summary.Source),
+        MirTableAggregateExpression aggregate => ExpressionUsesCapturedCallables(aggregate.Receiver),
+        MirTableRowsExpression rows => ExpressionUsesCapturedCallables(rows.Table),
+        MirTableWhereExpression where => ExpressionUsesCapturedCallables(where.Source) || where.Predicates.Any(ExpressionUsesCapturedCallables),
+        MirTableSelectExpression select => ExpressionUsesCapturedCallables(select.Source) || ExpressionUsesCapturedCallables(select.Projector),
         MirCallableConstructionExpression => true,
         MirAssignmentExpression assignment => ExpressionUsesCapturedCallables(assignment.Expression),
         MirUnaryExpression unary => ExpressionUsesCapturedCallables(unary.Operand),
@@ -1989,6 +2017,11 @@ public static class JavaScriptBackend
 
     private static bool ExpressionUsesCallables(MirExpression expression) => expression switch
     {
+        MirArrayLengthExpression length => ExpressionUsesCallables(length.Receiver),
+        MirArrayElementAccessExpression access => ExpressionUsesCallables(access.Receiver) || ExpressionUsesCallables(access.Index),
+        MirTableWithRowExpression update => update.Children.Any(ExpressionUsesCallables),
+        MirTableRecalculationExpression recalculation => recalculation.Inputs.Any(input => ExpressionUsesCallables(input.Value)),
+        MirTableSummaryExpression summary => ExpressionUsesCallables(summary.Source),
         MirFunctionReferenceExpression or MirInvokeExpression => true,
         MirCallableConstructionExpression => true,
         MirAssignmentExpression assignment => ExpressionUsesCallables(assignment.Expression),
@@ -2045,15 +2078,15 @@ public static class JavaScriptBackend
 
     private static void EmitColumnRuntime(JavaScriptTextWriter writer, GeneratedNames names)
     {
-        writer.WriteLine($"const {names.ColumnCarrierToken} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.ColumnCarrierToken, "cope.column"))});");
-        writer.WriteLine($"const {names.ColumnReadSlot} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.ColumnReadSlot, "cope.column.read"))});");
+        writer.WriteLine($"const {names.ColumnCarrierToken} = {TableRuntimeSymbol(names, names.ColumnCarrierToken, "cope.column")};");
+        writer.WriteLine($"const {names.ColumnReadSlot} = {TableRuntimeSymbol(names, names.ColumnReadSlot, "cope.column.read")};");
         if (names.UsesTsonTableEncoding)
         {
-            writer.WriteLine($"const {names.ColumnInstances} = new WeakSet();");
-            writer.WriteLine($"const {names.ColumnValuesSlot} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.ColumnValuesSlot, "cope.column.values"))});");
+            writer.WriteLine($"const {names.ColumnInstances} = {SharedTableInstances("table-columns")};");
+            writer.WriteLine($"const {names.ColumnValuesSlot} = {TableRuntimeSymbol(names, names.ColumnValuesSlot, "cope.column.values")};");
         }
-        writer.WriteLine($"const {names.TableRowTableSlot} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.TableRowTableSlot, "cope.table.row.table"))});");
-        writer.WriteLine($"const {names.TableRowIndexSlot} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.TableRowIndexSlot, "cope.table.row.index"))});");
+        writer.WriteLine($"const {names.TableRowTableSlot} = {TableRuntimeSymbol(names, names.TableRowTableSlot, "cope.table.row.table")};");
+        writer.WriteLine($"const {names.TableRowIndexSlot} = {TableRuntimeSymbol(names, names.TableRowIndexSlot, "cope.table.row.index")};");
         writer.WriteLine();
         writer.WriteLine($"function {names.ColumnValidator}(value) {{");
         writer.Indent();
@@ -2150,17 +2183,17 @@ public static class JavaScriptBackend
     {
         EnumInfo boundsError = catalog.GetEnum("TableBoundsError");
         var boundsErrorToken = names.TypeToken(boundsError);
-        writer.WriteLine($"const {names.TableTypeToken(table)} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.TableTypeToken(table), table.Id.Value))});");
+        writer.WriteLine($"const {names.TableTypeToken(table)} = {TableRuntimeSymbol(names, names.TableTypeToken(table), table.Id.Value)};");
         if (names.UsesTsonTableEncoding)
         {
-            writer.WriteLine($"const {names.TableInstances(table)} = new WeakSet();");
+            writer.WriteLine($"const {names.TableInstances(table)} = {SharedTableInstances("table:" + table.Id.Value)};");
         }
-        writer.WriteLine($"const {names.TableRowTypeToken(table)} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.TableRowTypeToken(table), table.RowTypeId))});");
-        writer.WriteLine($"const {names.TableRowReadSlot(table)} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.TableRowReadSlot(table), table.Id.Value + ".rows"))});");
+        writer.WriteLine($"const {names.TableRowTypeToken(table)} = {TableRuntimeSymbol(names, names.TableRowTypeToken(table), table.RowTypeId)};");
+        writer.WriteLine($"const {names.TableRowReadSlot(table)} = {TableRuntimeSymbol(names, names.TableRowReadSlot(table), table.Id.Value + ".rows")};");
         foreach (MirTableColumnDefinition column in table.Columns)
         {
-            writer.WriteLine($"const {names.TableColumnSlot(column)} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.TableColumnSlot(column), column.Id.Value))});");
-            writer.WriteLine($"const {names.TableColumnToken(column)} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.TableColumnToken(column), column.Id.Value + ".column"))});");
+            writer.WriteLine($"const {names.TableColumnSlot(column)} = {TableRuntimeSymbol(names, names.TableColumnSlot(column), column.Id.Value)};");
+            writer.WriteLine($"const {names.TableColumnToken(column)} = {TableRuntimeSymbol(names, names.TableColumnToken(column), column.Id.Value + ".column")};");
         }
 
         writer.WriteLine();
@@ -2190,15 +2223,30 @@ public static class JavaScriptBackend
         }
 
         writer.WriteLine();
-        writer.WriteLine(usesTableWith
-            ? $"function {names.TableCreate(table)}(source = null, replacements = []) {{"
-            : $"function {names.TableCreate(table)}() {{");
+        string[] derivedInputs = table.DerivedPlan is { } plan
+            ? Enumerable.Range(0, plan.Joins.Count + 1).Select(_ => names.NextTemporary("derived_input").ToString()).ToArray()
+            : [];
+        string parameters;
+        if (table.DerivedPlan is not null)
+        {
+            parameters = string.Join(", ", derivedInputs);
+        }
+        else
+        {
+            parameters = usesTableWith ? "source = null, replacements = []" : string.Empty;
+        }
+        writer.WriteLine($"function {names.TableCreate(table)}({parameters}) {{");
         writer.Indent();
+        IReadOnlyList<string> derivedColumns = table.DerivedPlan is not null
+            ? EmitDerivedColumns(writer, table, derivedInputs, catalog, results, names)
+            : [];
         for (int columnIndex = 0; columnIndex < table.Columns.Count; columnIndex++)
         {
             MirTableColumnDefinition column = table.Columns[columnIndex];
-            string values = EmitTableInitializer(column.Constants, catalog, results, names);
-            if (usesTableWith)
+            string values = table.DerivedPlan is null
+                ? EmitTableInitializer(column.Constants, catalog, results, names)
+                : derivedColumns[columnIndex];
+            if (usesTableWith && table.DerivedPlan is null)
             {
                 string sourceValues = $"Array.from({{ length: {table.RowCount} }}, (_, index) => source[{names.TableColumnSlot(column)}][{names.ColumnReadSlot}](index).$payload[0])";
                 writer.WriteLine(IsProduction(names)
@@ -2276,7 +2324,11 @@ public static class JavaScriptBackend
         writer.Unindent();
         writer.WriteLine("}");
         writer.WriteLine();
-        writer.WriteLine($"const {names.TableSingleton(table)} = {names.TableCreate(table)}();");
+        string dependencies = table.DerivedPlan is null
+            ? string.Empty
+            : string.Join(", ", new[] { names.TableSingleton(catalog.GetTable(table.DerivedPlan.SourceTableId)).ToString() }
+                .Concat(table.DerivedPlan.Joins.Select(join => names.TableSingleton(catalog.GetTable(join.JoinedTableId)).ToString())));
+        writer.WriteLine($"const {names.TableSingleton(table)} = {names.TableCreate(table)}({dependencies});");
     }
 
     private static void EmitTableValidator(JavaScriptTextWriter writer, MirTableDefinition table, GeneratedNames names)
@@ -3628,6 +3680,9 @@ public static class JavaScriptBackend
             MirRecordConstructionExpression construction => EmitRecordConstruction(construction, function, catalog, results, names, flowEnabled),
             MirRecordFieldAccessExpression access => EmitRecordFieldAccess(access, function, catalog, results, names, flowEnabled),
             MirTableReferenceExpression reference => EmittedExpression.ValueOnly(names.TableSingleton(catalog.GetTable(reference.TableId))),
+            MirTableWithRowExpression update => EmitTableWithRow(update, function, catalog, results, names, flowEnabled),
+            MirTableRecalculationExpression recalculation => EmitTableRecalculation(recalculation, function, catalog, results, names, flowEnabled),
+            MirTableSummaryExpression summary => EmitTableSummary(summary, function, catalog, results, names, flowEnabled),
             MirTableWithExpression withExpression => EmitTableWith(withExpression, function, catalog, results, names, flowEnabled),
             MirTableColumnAccessExpression access => EmitTableColumnAccess(access, function, catalog, results, names, flowEnabled),
             MirTableRowAccessExpression access => EmitTableRowAccess(access, function, catalog, results, names, flowEnabled),
@@ -3684,21 +3739,15 @@ public static class JavaScriptBackend
         };
         foreach (MirExpression predicate in predicates)
         {
-            var invoke = new MirInvokeExpression(
-                predicate,
-                [new MirVariableExpression(rowName, new MirTableRowType(select.TableId.Value + ".row", string.Empty))],
-                new MirNamedType("boolean"));
-            EmittedExpression condition = EmitExpression(invoke, function, catalog, results, names, flowEnabled);
-            lines.AddRange(condition.Prelude.Select(line => line.Text));
-            lines.Add($"if (!{condition.Value}) continue;");
+            EmittedExpression callable = EmitExpression(predicate, function, catalog, results, names, flowEnabled);
+            lines.AddRange(callable.Prelude.Select(line => line.Text));
+            string identity = CallableTypeIdentity((MirCallableType)predicate.Type);
+            lines.Add($"if (!__cope_callable_invoke({callable.Value}, {JavaScriptLiteralWriter.WriteString(identity)}, [{rowName}])) continue;");
         }
-        var project = new MirInvokeExpression(
-            select.Projector,
-            [new MirVariableExpression(rowName, new MirTableRowType(select.TableId.Value + ".row", string.Empty))],
-            select.ArrayType.ElementType);
-        EmittedExpression value = EmitExpression(project, function, catalog, results, names, flowEnabled);
-        lines.AddRange(value.Prelude.Select(line => line.Text));
-        lines.Add($"{outputName}.push({value.Value});");
+        EmittedExpression projector = EmitExpression(select.Projector, function, catalog, results, names, flowEnabled);
+        lines.AddRange(projector.Prelude.Select(line => line.Text));
+        string projectorIdentity = CallableTypeIdentity((MirCallableType)select.Projector.Type);
+        lines.Add($"{outputName}.push(__cope_callable_invoke({projector.Value}, {JavaScriptLiteralWriter.WriteString(projectorIdentity)}, [{rowName}]));");
         lines.Add("}");
         lines.Add($"return {outputName};");
         return new EmittedExpression(input.Prelude, "(() => { " + string.Join(" ", lines) + " })()");
@@ -3911,7 +3960,8 @@ public static class JavaScriptBackend
         {
             "boolean" => "if (typeof " + value + " !== \"boolean\") throw new TypeError(\"COPE-PANIC-CALLABLE: expected boolean callback argument\");",
             "string" => "if (typeof " + value + " !== \"string\") throw new TypeError(\"COPE-PANIC-CALLABLE: expected string callback argument\");",
-            "number" or "float" or "int" => "if (typeof " + value + " !== \"number\") throw new TypeError(\"COPE-PANIC-CALLABLE: expected numeric callback argument\");",
+            "int" => "if (!Number.isInteger(" + value + ") || " + value + " < -2147483648 || " + value + " > 2147483647) throw new TypeError(\"COPE-PANIC-CALLABLE: expected int callback argument\");",
+            "number" or "float" => "if (typeof " + value + " !== \"number\") throw new TypeError(\"COPE-PANIC-CALLABLE: expected numeric callback argument\");",
             _ => string.Empty,
         };
         return (value, validation);
@@ -5508,7 +5558,8 @@ public static class JavaScriptBackend
     {
         return expression switch
         {
-            MirPropagateExpression or MirUnwrapExpression or MirResultMatchExpression or MirTryExpression => true,
+            MirPropagateExpression or MirUnwrapExpression or MirResultMatchExpression or MirTryExpression
+                or MirTableWithRowExpression or MirTableRecalculationExpression or MirTableSummaryExpression => true,
             MirUnaryExpression unary => ContainsControlFlow(unary.Operand),
             MirRecordConstructionExpression or MirRecordFieldAccessExpression or MirRecordWithExpression or MirTableWithExpression => true,
             MirReactElementExpression element => ContainsControlFlow(element.ElementType)
@@ -5549,6 +5600,15 @@ public static class JavaScriptBackend
     private static bool ExpressionUsesTryExcept(MirExpression expression)
         => expression switch
         {
+        MirArrayLengthExpression length => ExpressionUsesTryExcept(length.Receiver),
+        MirArrayElementAccessExpression access => ExpressionUsesTryExcept(access.Receiver) || ExpressionUsesTryExcept(access.Index),
+        MirTableWithRowExpression update => update.Children.Any(ExpressionUsesTryExcept),
+        MirTableRecalculationExpression recalculation => recalculation.Inputs.Any(input => ExpressionUsesTryExcept(input.Value)),
+        MirTableSummaryExpression summary => ExpressionUsesTryExcept(summary.Source),
+        MirTableAggregateExpression aggregate => ExpressionUsesTryExcept(aggregate.Receiver),
+        MirTableRowsExpression rows => ExpressionUsesTryExcept(rows.Table),
+        MirTableWhereExpression where => ExpressionUsesTryExcept(where.Source) || where.Predicates.Any(ExpressionUsesTryExcept),
+        MirTableSelectExpression select => ExpressionUsesTryExcept(select.Source) || ExpressionUsesTryExcept(select.Projector),
             MirTryExpression => true,
             MirBinaryExpression binary => ExpressionUsesTryExcept(binary.Left) || ExpressionUsesTryExcept(binary.Right),
             MirCallExpression call => call.Arguments.Any(ExpressionUsesTryExcept),
@@ -5624,6 +5684,15 @@ public static class JavaScriptBackend
     private static bool ExpressionUsesUnwrap(MirExpression expression)
         => expression switch
         {
+        MirArrayLengthExpression length => ExpressionUsesUnwrap(length.Receiver),
+        MirArrayElementAccessExpression access => ExpressionUsesUnwrap(access.Receiver) || ExpressionUsesUnwrap(access.Index),
+        MirTableWithRowExpression update => update.Children.Any(ExpressionUsesUnwrap),
+        MirTableRecalculationExpression recalculation => recalculation.Inputs.Any(input => ExpressionUsesUnwrap(input.Value)),
+        MirTableSummaryExpression summary => ExpressionUsesUnwrap(summary.Source),
+        MirTableAggregateExpression aggregate => ExpressionUsesUnwrap(aggregate.Receiver),
+        MirTableRowsExpression rows => ExpressionUsesUnwrap(rows.Table),
+        MirTableWhereExpression where => ExpressionUsesUnwrap(where.Source) || where.Predicates.Any(ExpressionUsesUnwrap),
+        MirTableSelectExpression select => ExpressionUsesUnwrap(select.Source) || ExpressionUsesUnwrap(select.Projector),
             MirUnwrapExpression => true,
             MirBinaryExpression binary => ExpressionUsesUnwrap(binary.Left) || ExpressionUsesUnwrap(binary.Right),
             MirCallExpression call => call.Arguments.Any(ExpressionUsesUnwrap),
@@ -5923,6 +5992,13 @@ public static class JavaScriptBackend
                 }
 
                 catalog.Add(new MirResultType(new MirTableRowType(table.RowTypeId, table.Name + ".Row"), new MirNamedType("TableBoundsError")));
+                if (table.DerivedPlan is { } plan)
+                {
+                    foreach (MirExpression expression in plan.Locals.Select(local => local.Expression).Concat(plan.Columns.Select(column => column.Expression)))
+                    {
+                        catalog.Add(expression);
+                    }
+                }
             }
 
             foreach (MirFunction function in program.Functions)
@@ -6061,6 +6137,15 @@ public static class JavaScriptBackend
                     break;
                 case MirTableAggregateExpression aggregate:
                     Add(aggregate.Receiver);
+                    break;
+                case MirTableWithRowExpression update:
+                    foreach (MirExpression child in update.Children) Add(child);
+                    break;
+                case MirTableRecalculationExpression recalculation:
+                    foreach (MirTableRecalculationInput input in recalculation.Inputs) Add(input.Value);
+                    break;
+                case MirTableSummaryExpression summary:
+                    Add(summary.Source);
                     break;
                 case MirTableWithExpression withExpression:
                     Add(withExpression.Source);

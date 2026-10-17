@@ -135,6 +135,7 @@ public static class ComponentEndpointValidation
         {
             PrimitiveTypeSymbol primitive => primitive != PrimitiveTypeSymbol.Void && primitive != PrimitiveTypeSymbol.Error,
             ArrayTypeSymbol array => IsImmutableState(array.ElementType, visiting),
+            TableTypeSymbol table => table.Columns.All(column => IsImmutableState(column.Type, visiting)),
             RecordTypeSymbol record => record.Fields.All(field => IsImmutableState(field.Type, visiting)),
             EnumTypeSymbol enumeration => enumeration.Cases.All(@case => @case.PayloadFields.All(field => IsImmutableState(field.Type, visiting))),
             ResultTypeSymbol result => IsImmutableState(result.SuccessType, visiting) && IsImmutableState(result.ErrorType, visiting),

@@ -401,7 +401,7 @@ public static class CopelandProjectCompiler
 
             var types = modules
                 .SelectMany(owner => owner.Declarations
-                    .Where(declaration => declaration.Kind is "record" or "enum" or "type" or "interface" or "class")
+                    .Where(declaration => declaration.Kind is "record" or "enum" or "type" or "interface" or "class" or "table")
                     .Select(declaration => (declaration.Name, Owner: owner)))
                 .GroupBy(item => item.Name, StringComparer.Ordinal)
                 .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
@@ -571,6 +571,7 @@ public static class CopelandProjectCompiler
         var aliases = new Dictionary<string, TypeAliasSymbol>(StringComparer.Ordinal);
         var interfaces = new Dictionary<string, InterfaceSymbol>(StringComparer.Ordinal);
         var genericBodies = new Dictionary<FunctionSymbol, BoundFunctionDeclaration>();
+        var tables = new Dictionary<TableTypeId, BoundTableDefinition>();
         foreach (ProjectImport import in module.Imports.Where(import => import.Target is not null))
         {
             if (import.Target!.Bound?.ModuleScope is not BoundModuleScope scope)
@@ -582,6 +583,10 @@ public static class CopelandProjectCompiler
                     import.End - import.Start,
                     module.Source.SourcePath));
                 continue;
+            }
+            foreach (BoundTableDefinition table in scope.Tables)
+            {
+                tables.TryAdd(table.TableType.Id, table);
             }
             foreach (ProjectImportBinding binding in import.Bindings)
             {
@@ -614,7 +619,7 @@ public static class CopelandProjectCompiler
                 diagnostics.Add(new Diagnostic("COPE-MODULE-0004", $"Module '{import.Target.LogicalPath}' does not expose semantic declaration '{binding.ExportedName}'.", binding.Position, binding.Length, module.Source.SourcePath));
             }
         }
-        return new BoundModuleImports(declarations, aliases, interfaces, genericBodies);
+        return new BoundModuleImports(declarations, aliases, interfaces, genericBodies, tables.Values.ToArray());
     }
 
     private static IReadOnlyList<MirRecordDefinition> CombineRecords(IReadOnlyList<MirProgram> programs)
@@ -656,7 +661,8 @@ public static class CopelandProjectCompiler
             .SelectMany(program => program.Enums)
             .GroupBy(@enum => @enum.Name, StringComparer.Ordinal))
         {
-            if (group.Key.StartsWith("__CopeOption_", StringComparison.Ordinal)
+            if ((group.Key.StartsWith("__CopeOption_", StringComparison.Ordinal)
+                    || group.Key is "TableBoundsError" or "TableKeyError")
                 && group.Skip(1).All(candidate => OptionEnumShapeEquals(group.First(), candidate)))
             {
                 result.Add(group.First());
@@ -855,6 +861,7 @@ public static class CopelandProjectCompiler
                 _ when tokens[index + 1].Kind == SyntaxKind.TemplateKeyword => TemplateNameIndex(tokens, index + 2),
                 _ when tokens[index + 1].Kind == SyntaxKind.LayoutKeyword => LayoutNameIndex(tokens, index + 2),
                 "layers" when index + 2 < tokens.Length => index + 2,
+                _ when tokens[index + 1].Kind == SyntaxKind.RecordKeyword && tokens[index + 2].Kind == SyntaxKind.TableKeyword => index + 3,
                 _ when tokens[index + 1].Kind is SyntaxKind.EnumKeyword or SyntaxKind.RecordKeyword => index + 2,
                 "const" when index + 3 < tokens.Length && tokens[index + 2].Kind == SyntaxKind.RecordKeyword => index + 3,
                 "const" or "stream" when index + 2 < tokens.Length => index + 2,
@@ -879,6 +886,7 @@ public static class CopelandProjectCompiler
                 SyntaxKind.FunctionKeyword => "function",
                 SyntaxKind.TemplateKeyword => "template",
                 SyntaxKind.EnumKeyword => "enum",
+                SyntaxKind.RecordKeyword when tokens[index + 1].Kind == SyntaxKind.TableKeyword => "table",
                 SyntaxKind.RecordKeyword => "record",
                 SyntaxKind.LayoutKeyword => "layout",
                 _ when tokens[index].Kind == SyntaxKind.IdentifierToken && tokens[index].Text == "layers" => "layers",
@@ -888,7 +896,9 @@ public static class CopelandProjectCompiler
                 _ when tokens[index].Kind == SyntaxKind.IdentifierToken && tokens[index].Text == "class" => "class",
                 _ => null,
             };
-            int nameIndex = kind == "layout"
+            int nameIndex = kind == "table"
+                ? index + 2
+                : kind == "layout"
                 ? LayoutNameIndex(tokens, index + 1)
                 : kind == "template"
                 ? TemplateNameIndex(tokens, index + 1)

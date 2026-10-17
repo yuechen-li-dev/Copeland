@@ -127,7 +127,7 @@ public sealed class TableAuthoringTests
         }
         Type module = CorpusRunner.CompileCSharp(csharp.SourceText).GetType("Copeland.Generated.CopelandModule", true)!;
         Assert.Equal([20, 21, 40], (int[])module.GetMethod("read")!.Invoke(null, null)!);
-        Assert.Contains(JavaScriptBackend.Emit(compilation.MirCompilation.Program!).Diagnostics, diagnostic => diagnostic.Id == "COPE-JS-DERIVE-0001");
+        Assert.Empty(JavaScriptBackend.Emit(compilation.MirCompilation.Program!).Diagnostics);
     }
 
     [Fact]

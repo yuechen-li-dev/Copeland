@@ -77,7 +77,8 @@ the C# row loop, rather than expanded into every use.
 
 Authored row tables execute in C# and all three JavaScript emission profiles.
 Derived tables, including locals, execute through C# and the canonical CLI relation
-query host. JavaScript derived tables still stop at `COPE-JS-DERIVE-0001`.
+query host. JavaScript derived tables and explicit snapshot recalculation now
+execute through the same MIR plans; see the [application contract](copeland-ts-table-application.md).
 Row authoring is host language syntax; TSON table documents retain column syntax
 and reject host row initializers with `COPE-TSON-TABLE-0001`.
 

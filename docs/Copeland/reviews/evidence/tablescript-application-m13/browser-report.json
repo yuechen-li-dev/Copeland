@@ -1,0 +1,1898 @@
+{
+  "milestone": "CTS-TABLESCRIPT-APPLICATION-M13",
+  "nodeVersion": "v26.2.0",
+  "browserVersion": "155.0.4283.45",
+  "errors": [],
+  "observations": [
+    {
+      "profile": "diagnostic",
+      "width": 1280,
+      "probe": [
+        31210,
+        12710,
+        47,
+        2,
+        6,
+        12,
+        5,
+        2,
+        20,
+        30,
+        1,
+        1,
+        31210
+      ],
+      "baseline": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "4",
+            "orderUnits": "20",
+            "orderCents": "18500"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "10",
+          "20",
+          "30"
+        ],
+        "error": null,
+        "horizontalOverflow": false
+      },
+      "revised": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "20",
+          "30"
+        ],
+        "error": null,
+        "horizontalOverflow": false
+      },
+      "negative": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "20",
+          "30"
+        ],
+        "error": "On hand for product 100 cannot be negative (received -1).",
+        "horizontalOverflow": false
+      },
+      "missing": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "20",
+          "30"
+        ],
+        "error": "Product 999 does not exist in this stock snapshot.",
+        "horizontalOverflow": false
+      },
+      "chained": {
+        "cents": "4960",
+        "units": "16",
+        "lines": "1",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "20",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "20"
+        ],
+        "error": null,
+        "horizontalOverflow": false
+      },
+      "reset": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "4",
+            "orderUnits": "20",
+            "orderCents": "18500"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "10",
+          "20",
+          "30"
+        ],
+        "error": null,
+        "horizontalOverflow": false
+      },
+      "globalCents": 31210
+    },
+    {
+      "profile": "diagnostic",
+      "width": 390,
+      "probe": [
+        31210,
+        12710,
+        47,
+        2,
+        6,
+        12,
+        5,
+        2,
+        20,
+        30,
+        1,
+        1,
+        31210
+      ],
+      "baseline": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "4",
+            "orderUnits": "20",
+            "orderCents": "18500"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "10",
+          "20",
+          "30"
+        ],
+        "error": null,
+        "horizontalOverflow": false
+      },
+      "revised": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "20",
+          "30"
+        ],
+        "error": null,
+        "horizontalOverflow": false
+      },
+      "negative": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "20",
+          "30"
+        ],
+        "error": "On hand for product 100 cannot be negative (received -1).",
+        "horizontalOverflow": false
+      },
+      "missing": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "20",
+          "30"
+        ],
+        "error": "Product 999 does not exist in this stock snapshot.",
+        "horizontalOverflow": false
+      },
+      "chained": {
+        "cents": "4960",
+        "units": "16",
+        "lines": "1",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "20",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "20"
+        ],
+        "error": null,
+        "horizontalOverflow": false
+      },
+      "reset": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "4",
+            "orderUnits": "20",
+            "orderCents": "18500"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "10",
+          "20",
+          "30"
+        ],
+        "error": null,
+        "horizontalOverflow": false
+      },
+      "globalCents": 31210
+    },
+    {
+      "profile": "symbolic",
+      "width": 1280,
+      "probe": [
+        31210,
+        12710,
+        47,
+        2,
+        6,
+        12,
+        5,
+        2,
+        20,
+        30,
+        1,
+        1,
+        31210
+      ],
+      "baseline": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "4",
+            "orderUnits": "20",
+            "orderCents": "18500"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "10",
+          "20",
+          "30"
+        ],
+        "error": null,
+        "horizontalOverflow": false
+      },
+      "revised": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "20",
+          "30"
+        ],
+        "error": null,
+        "horizontalOverflow": false
+      },
+      "negative": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "20",
+          "30"
+        ],
+        "error": "On hand for product 100 cannot be negative (received -1).",
+        "horizontalOverflow": false
+      },
+      "missing": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "20",
+          "30"
+        ],
+        "error": "Product 999 does not exist in this stock snapshot.",
+        "horizontalOverflow": false
+      },
+      "chained": {
+        "cents": "4960",
+        "units": "16",
+        "lines": "1",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "20",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "20"
+        ],
+        "error": null,
+        "horizontalOverflow": false
+      },
+      "reset": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "4",
+            "orderUnits": "20",
+            "orderCents": "18500"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "10",
+          "20",
+          "30"
+        ],
+        "error": null,
+        "horizontalOverflow": false
+      },
+      "globalCents": 31210
+    },
+    {
+      "profile": "symbolic",
+      "width": 390,
+      "probe": [
+        31210,
+        12710,
+        47,
+        2,
+        6,
+        12,
+        5,
+        2,
+        20,
+        30,
+        1,
+        1,
+        31210
+      ],
+      "baseline": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "4",
+            "orderUnits": "20",
+            "orderCents": "18500"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "10",
+          "20",
+          "30"
+        ],
+        "error": null,
+        "horizontalOverflow": false
+      },
+      "revised": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "20",
+          "30"
+        ],
+        "error": null,
+        "horizontalOverflow": false
+      },
+      "negative": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "20",
+          "30"
+        ],
+        "error": "On hand for product 100 cannot be negative (received -1).",
+        "horizontalOverflow": false
+      },
+      "missing": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "20",
+          "30"
+        ],
+        "error": "Product 999 does not exist in this stock snapshot.",
+        "horizontalOverflow": false
+      },
+      "chained": {
+        "cents": "4960",
+        "units": "16",
+        "lines": "1",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "20",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "20"
+        ],
+        "error": null,
+        "horizontalOverflow": false
+      },
+      "reset": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "4",
+            "orderUnits": "20",
+            "orderCents": "18500"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "10",
+          "20",
+          "30"
+        ],
+        "error": null,
+        "horizontalOverflow": false
+      },
+      "globalCents": 31210
+    },
+    {
+      "profile": "production",
+      "width": 1280,
+      "probe": [
+        31210,
+        12710,
+        47,
+        2,
+        6,
+        12,
+        5,
+        2,
+        20,
+        30,
+        1,
+        1,
+        31210
+      ],
+      "baseline": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "4",
+            "orderUnits": "20",
+            "orderCents": "18500"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "10",
+          "20",
+          "30"
+        ],
+        "error": null,
+        "horizontalOverflow": false
+      },
+      "revised": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "20",
+          "30"
+        ],
+        "error": null,
+        "horizontalOverflow": false
+      },
+      "negative": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "20",
+          "30"
+        ],
+        "error": "On hand for product 100 cannot be negative (received -1).",
+        "horizontalOverflow": false
+      },
+      "missing": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "20",
+          "30"
+        ],
+        "error": "Product 999 does not exist in this stock snapshot.",
+        "horizontalOverflow": false
+      },
+      "chained": {
+        "cents": "4960",
+        "units": "16",
+        "lines": "1",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "20",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "20"
+        ],
+        "error": null,
+        "horizontalOverflow": false
+      },
+      "reset": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "4",
+            "orderUnits": "20",
+            "orderCents": "18500"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "10",
+          "20",
+          "30"
+        ],
+        "error": null,
+        "horizontalOverflow": false
+      },
+      "globalCents": 31210
+    },
+    {
+      "profile": "production",
+      "width": 390,
+      "probe": [
+        31210,
+        12710,
+        47,
+        2,
+        6,
+        12,
+        5,
+        2,
+        20,
+        30,
+        1,
+        1,
+        31210
+      ],
+      "baseline": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "4",
+            "orderUnits": "20",
+            "orderCents": "18500"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "10",
+          "20",
+          "30"
+        ],
+        "error": null,
+        "horizontalOverflow": false
+      },
+      "revised": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "20",
+          "30"
+        ],
+        "error": null,
+        "horizontalOverflow": false
+      },
+      "negative": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "20",
+          "30"
+        ],
+        "error": "On hand for product 100 cannot be negative (received -1).",
+        "horizontalOverflow": false
+      },
+      "missing": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "20",
+          "30"
+        ],
+        "error": "Product 999 does not exist in this stock snapshot.",
+        "horizontalOverflow": false
+      },
+      "chained": {
+        "cents": "4960",
+        "units": "16",
+        "lines": "1",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "20",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "20"
+        ],
+        "error": null,
+        "horizontalOverflow": false
+      },
+      "reset": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "4",
+            "orderUnits": "20",
+            "orderCents": "18500"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "suppliers": [
+          "10",
+          "20",
+          "30"
+        ],
+        "error": null,
+        "horizontalOverflow": false
+      },
+      "globalCents": 31210
+    }
+  ]
+}

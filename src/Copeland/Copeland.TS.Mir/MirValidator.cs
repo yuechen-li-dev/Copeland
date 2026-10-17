@@ -718,6 +718,12 @@ public static partial class MirValidator
             case MirRecordFieldAccessExpression access:
                 ValidateCallableExpression(access.Receiver, functions, diagnostics);
                 return;
+            case MirTableWithRowExpression rowUpdate:
+                foreach (MirExpression child in rowUpdate.Children)
+                {
+                    ValidateCallableExpression(child, functions, diagnostics);
+                }
+                return;
             case MirTableWithExpression update:
                 ValidateCallableExpression(update.Source, functions, diagnostics);
                 foreach (var replacement in update.Replacements)
@@ -1484,6 +1490,7 @@ public static partial class MirValidator
             MirArrayExpression array => array.Elements,
             MirRecordConstructionExpression record => record.Initializers.Select(value => value.Value),
             MirRecordFieldAccessExpression access => [access.Receiver],
+            MirTableWithRowExpression update => update.Children,
             MirTableWithExpression update => update.Replacements.Select(value => (MirExpression)value.Value).Prepend(update.Source),
             MirRecordWithExpression update => update.Replacements.Select(value => value.Value).Prepend(update.Source),
             MirEnumValueExpression value => value.Arguments,
@@ -1503,6 +1510,12 @@ public static partial class MirValidator
         if (program.Tables.Count > 0)
         {
             ValidateTableBoundsErrorDefinition(program.Enums, diagnostics);
+        }
+        MirEnum? keyError = program.Enums.FirstOrDefault(enumeration => enumeration.Name == "TableKeyError");
+        if (keyError is not null && (keyError.Cases.Count != 1
+            || keyError.Cases[0].Name != "NotFound" || keyError.Cases[0].PayloadFields.Count != 0))
+        {
+            diagnostics.Add(new MirValidationDiagnostic("TableKeyError must declare exactly the payload-free NotFound case."));
         }
         var tables = new Dictionary<MirTableId, MirTableDefinition>();
         var tableNames = new HashSet<string>(StringComparer.Ordinal);
@@ -1984,6 +1997,13 @@ public static partial class MirValidator
                 }
                 ValidateTableRecalculation(recalculation, tables, diagnostics);
                 break;
+            case MirTableWithRowExpression rowUpdate:
+                foreach (MirExpression child in rowUpdate.Children)
+                {
+                    ValidateTableExpression(child, tables, rowTypeIds, columns, diagnostics);
+                }
+                ValidateTableWithRow(rowUpdate, tables, diagnostics);
+                break;
             case MirTableWithExpression update:
                 ValidateTableExpression(update.Source, tables, rowTypeIds, columns, diagnostics);
                 if (!tables.TryGetValue(update.TableId, out MirTableDefinition? updatedTable)
@@ -2055,6 +2075,7 @@ public static partial class MirValidator
             MirArrayExpression array => array.Elements,
             MirRecordConstructionExpression record => record.Initializers.Select(value => value.Value),
             MirRecordFieldAccessExpression access => [access.Receiver],
+            MirTableWithRowExpression update => update.Children,
             MirTableWithExpression update => update.Replacements.Select(value => (MirExpression)value.Value).Prepend(update.Source),
             MirRecordWithExpression update => update.Replacements.Select(value => value.Value).Prepend(update.Source),
             MirEnumValueExpression value => value.Arguments,
@@ -2338,6 +2359,16 @@ public static partial class MirValidator
             case MirRecordFieldAccessExpression access:
                 ValidateEnumExpression(access.Receiver, enumsByName, diagnostics);
                 return;
+            case MirTableWithRowExpression rowUpdate:
+                if (!enumsByName.ContainsKey("TableKeyError"))
+                {
+                    diagnostics.Add(new MirValidationDiagnostic("Table withRow requires the compiler-owned TableKeyError enum."));
+                }
+                foreach (MirExpression child in rowUpdate.Children)
+                {
+                    ValidateEnumExpression(child, enumsByName, diagnostics);
+                }
+                return;
             case MirTableWithExpression update:
                 ValidateEnumExpression(update.Source, enumsByName, diagnostics);
                 foreach (MirTableColumnReplacement replacement in update.Replacements)
@@ -2552,6 +2583,12 @@ public static partial class MirValidator
                 ValidateRecordFieldValues(withExpression.RecordTypeId, withExpression.Replacements, records, diagnostics, requireComplete: false, allowEmpty: false);
                 foreach (var value in withExpression.Replacements) ValidateRecordExpression(value.Value, records, diagnostics);
                 return;
+            case MirTableWithRowExpression rowUpdate:
+                foreach (MirExpression child in rowUpdate.Children)
+                {
+                    ValidateRecordExpression(child, records, diagnostics);
+                }
+                return;
             case MirTableWithExpression withExpression:
                 ValidateRecordExpression(withExpression.Source, records, diagnostics);
                 foreach (MirTableColumnReplacement replacement in withExpression.Replacements)
@@ -2668,7 +2705,7 @@ public static partial class MirValidator
 
     private static void ValidateExpression(MirExpression expression, List<HandlerScope> activeHandlers, HashSet<MirHandlerId> handlerIds, List<MirValidationDiagnostic> diagnostics)
     {
-        if (expression is MirTableSummaryExpression or MirTableRowsExpression or MirTableWhereExpression or MirTableRecalculationExpression)
+        if (expression is MirTableSummaryExpression or MirTableRowsExpression or MirTableWhereExpression or MirTableRecalculationExpression or MirTableWithRowExpression)
         {
             foreach (MirExpression child in EnumerateTableExpressionChildren(expression))
             {
@@ -2945,6 +2982,12 @@ public static partial class MirValidator
                 return;
             case MirRecordFieldAccessExpression access:
                 ValidateFunctionPropagationTarget(access.Receiver, functionReturnType, diagnostics);
+                return;
+            case MirTableWithRowExpression rowUpdate:
+                foreach (MirExpression child in rowUpdate.Children)
+                {
+                    ValidateFunctionPropagationTarget(child, functionReturnType, diagnostics);
+                }
                 return;
             case MirTableWithExpression withExpression:
                 ValidateFunctionPropagationTarget(withExpression.Source, functionReturnType, diagnostics);
