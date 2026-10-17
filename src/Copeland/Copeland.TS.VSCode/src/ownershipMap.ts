@@ -5,6 +5,7 @@ export interface OwnershipFileEntry {
     owner: CopelandOwner;
     project: string;
     matchedRule: string;
+    profile?: string | null;
 }
 
 export interface EditorOwnershipMetadata {

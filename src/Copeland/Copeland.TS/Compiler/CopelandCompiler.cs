@@ -17,6 +17,7 @@ public static class CopelandCompiler
 
         var syntaxTree = SyntaxTree.Parse(sourceText, effectiveOptions.SourcePath);
         diagnostics.AddRange(syntaxTree.Diagnostics);
+        diagnostics.AddRange(SourceProfileChecks.Validate(sourceText, effectiveOptions.SourcePath, effectiveOptions.BackendTarget));
 
         BoundCompilation? boundCompilation = null;
         MirCompilation? mirCompilation = null;
@@ -107,6 +108,7 @@ public static class CopelandCompiler
             ModuleName = effectiveOptions.ModuleName,
             SourcePath = effectiveOptions.SourcePath,
             ProjectRoot = effectiveOptions.ProjectRoot,
+            BackendTarget = effectiveOptions.BackendTarget,
             ProjectTypes = effectiveOptions.ProjectTypes,
             AssetSource = effectiveOptions.AssetSource,
             NpmDependencies = effectiveOptions.NpmDependencies,
@@ -128,6 +130,7 @@ public static class CopelandCompiler
             ModuleName = effectiveOptions.ModuleName,
             SourcePath = effectiveOptions.SourcePath,
             ProjectRoot = effectiveOptions.ProjectRoot,
+            BackendTarget = effectiveOptions.BackendTarget,
             ProjectTypes = effectiveOptions.ProjectTypes,
             AssetSource = effectiveOptions.AssetSource,
             NpmDependencies = effectiveOptions.NpmDependencies,

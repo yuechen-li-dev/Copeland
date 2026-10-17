@@ -14,6 +14,7 @@ semantic owner. Stable IDs are not renumbered by this consolidation.
 | `COPE-SUMMARY-*` | typed summary binder | missing source metadata (`0001`), record type (`0002`), descriptor shape (`0003`), fields (`0004`), types (`0005`), group keys (`0006`), unsupported aggregate (`0007`), direct input/key copy (`0008`), missing aggregate (`0009`), stored views/standalone grouping (`0010`), direct async/generator lowering (`0011`) |
 | `COPE-JS-SUMMARY-0001` | JavaScript backend | typed summary execution requires the C# backend |
 | `COPE-RECALC-*` | snapshot-relative relation binder | derived declaration receiver (`0001`), nonempty input literal (`0002`), unknown/derived/unrelated/duplicate input (`0003`), nominal snapshot type (`0004`), direct async/generator lowering (`0005`) |
+| `COPE-PROFILE-*` | source profiles and compiler dispatch | literal header/name (`0001`), duplicate header (`0002`), compiler ownership (`0003`), backend/runtime compatibility (`0004`), local TypeScript/Node/configuration availability (`0005`) |
 | `COPE-PROFILE-*` | binder profile checks | unsupported TypeScript-shaped syntax (`var`, `null`, ternary, optional chain) |
 | `COPE-REC-*`, `COPE-ENUM-*`, `COPE-MATCH-*` | record/enum/match binding | nominal data construction and exhaustiveness |
 | `COPE-TRY-*` | fallibility binder | `try` / `except` shape and targeted propagation |

@@ -1,0 +1,16 @@
+{
+  "outputDirectory": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\file-profiles\\javascript",
+  "sources": [
+    {
+      "path": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\file-profiles\\Main.ts",
+      "logicalPath": "Main.ts"
+    }
+  ],
+  "javascriptRuntime": "node",
+  "projectRoot": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\file-profiles",
+  "entry": {
+    "export": "answer",
+    "module": "Main.ts"
+  },
+  "entryOutputPath": "run.js"
+}

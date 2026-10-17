@@ -1,4 +1,5 @@
 using Copeland.TS.Diagnostics;
+using Copeland.TS.Workspace;
 
 namespace Copeland.TS.Syntax;
 
@@ -35,9 +36,17 @@ public sealed class SyntaxTree
 
     public static SyntaxTree Parse(string text, SourceFileKind fileKind)
     {
-        var parser = new Parser(text, fileKind == SourceFileKind.TypeScriptXml, fileKind == SourceFileKind.TypeScriptModule);
+        SourceFileProfile profile = SourceFileProfiles.Read(text);
+        var profileDiagnostics = profile.Diagnostics.ToList();
+        if (profile.CheckOwner("tscl") is SourceProfileDiagnostic ownerDiagnostic)
+        {
+            profileDiagnostics.Add(ownerDiagnostic);
+        }
+        string parserText = profileDiagnostics.Count == 0 ? profile.Mask(text) : string.Empty;
+        var parser = new Parser(parserText, fileKind == SourceFileKind.TypeScriptXml, fileKind == SourceFileKind.TypeScriptModule);
         var root = parser.ParseCompilationUnit();
-        var diagnostics = parser.Diagnostics.ToArray();
+        var diagnostics = parser.Diagnostics.Concat(profileDiagnostics.Select(diagnostic => new Diagnostic(
+            diagnostic.Code, diagnostic.Message, diagnostic.Position, diagnostic.Length))).ToArray();
         var tokens = CollectTokens(root).ToArray();
         return new SyntaxTree(text, root, tokens, diagnostics);
     }
@@ -66,7 +75,7 @@ public sealed class SyntaxTree
 
     public static SyntaxTree ParseTokens(string text)
     {
-        var lexer = new Lexer(text);
+        var lexer = new Lexer(SourceFileProfiles.Read(text).Mask(text));
         var tokens = new List<SyntaxToken>();
 
         while (true)

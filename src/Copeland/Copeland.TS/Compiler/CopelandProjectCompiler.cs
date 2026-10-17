@@ -6,6 +6,7 @@ using Copeland.TS.Semantics;
 using Copeland.TS.Semantics.Bound;
 using Copeland.TS.Syntax;
 using Copeland.TS.Templates;
+using Copeland.TS.Workspace;
 
 namespace Copeland.TS.Compiler;
 
@@ -53,6 +54,22 @@ public static class CopelandProjectCompiler
         IReadOnlyList<CopelandProjectSource> sources = snapshot.Sources;
         CopelandCompilationOptions options = snapshot.Options;
         var diagnostics = new List<Diagnostic>();
+        foreach (CopelandProjectSource source in sources)
+        {
+            SourceFileProfile profile = SourceFileProfiles.Read(source.SourceText);
+            diagnostics.AddRange(profile.Diagnostics.Select(diagnostic => new Diagnostic(
+                diagnostic.Code, diagnostic.Message, diagnostic.Position, diagnostic.Length, source.SourcePath)));
+            if (profile.CheckOwner("tscl") is SourceProfileDiagnostic ownerDiagnostic)
+            {
+                diagnostics.Add(new Diagnostic(ownerDiagnostic.Code, ownerDiagnostic.Message,
+                    ownerDiagnostic.Position, ownerDiagnostic.Length, source.SourcePath));
+            }
+            diagnostics.AddRange(SourceProfileChecks.Validate(source.SourceText, source.SourcePath, options.BackendTarget));
+        }
+        if (diagnostics.Count > 0)
+        {
+            return new CopelandProjectCompilation(null, diagnostics);
+        }
         IReadOnlyList<ProjectModule> modules = CreateModules(sources, diagnostics);
         var byPath = modules.ToDictionary(module => module.LogicalPath, StringComparer.OrdinalIgnoreCase);
 

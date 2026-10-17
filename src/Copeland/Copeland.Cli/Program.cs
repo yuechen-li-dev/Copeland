@@ -3,6 +3,7 @@ using Copeland.TS.Backend.CSharp;
 using Copeland.TS.Backend.JavaScript;
 using Copeland.TS.Compiler;
 using Copeland.TS.LanguageServer;
+using Copeland.TS.Workspace;
 
 namespace Copeland.Cli;
 
@@ -23,12 +24,13 @@ internal static class Program
 
         if (args.Length == 0)
         {
-            return UsageError("COPE-CLI-0004", "Missing command. Supported commands: 'compile', 'build', 'asset', 'workspace', 'database', 'markdown', 'template', 'flow', 'language-server'.");
+            return UsageError("COPE-CLI-0004", "Missing command. Supported commands: 'compile', 'profile', 'build', 'asset', 'workspace', 'database', 'markdown', 'template', 'flow', 'language-server'.");
         }
 
         return args[0] switch
         {
-            "compile" => RunCompile(args),
+            "compile" => FileProfileCommand.Compile(args, RunCompile),
+            "profile" => FileProfileCommand.Run(args),
             "build" => TsclBuildContract.Run(args),
             "asset" => AssetCommand.Run(args),
             "workspace" => WorkspaceCommand.Run(args),
@@ -41,7 +43,7 @@ internal static class Program
             "language-server" or "lsp" => RunLanguageServer(args),
             "doctor" => DistributionCommand.RunDoctor(args[1..]),
             "install-info" => DistributionCommand.RunInstallInfo(args[1..]),
-            _ => UsageError("COPE-CLI-0004", $"Unknown command '{args[0]}'. Supported commands: 'compile', 'build', 'asset', 'workspace', 'database', 'markdown', 'table', 'template', 'flow', 'language-server'."),
+            _ => UsageError("COPE-CLI-0004", $"Unknown command '{args[0]}'. Supported commands: 'compile', 'profile', 'build', 'asset', 'workspace', 'database', 'markdown', 'table', 'template', 'flow', 'language-server'."),
         };
     }
 
@@ -61,6 +63,9 @@ internal static class Program
         string? emitTarget = null;
         string? outPath = null;
         string? javaScriptProfile = null;
+        SourceFileProfile? fileProfile = File.Exists(sourcePath)
+            ? SourceFileProfiles.Read(File.ReadAllText(sourcePath))
+            : null;
 
         for (int index = 2; index < args.Length; index += 1)
         {
@@ -111,7 +116,16 @@ internal static class Program
 
         if (emitTarget is null)
         {
-            return UsageError("COPE-CLI-0001", "Missing required option '--emit'. Use '--emit mir', '--emit csharp', or '--emit javascript'.");
+            emitTarget = fileProfile?.Name switch
+            {
+                "JavaScript" => "javascript",
+                "Dotnet" or "Dotnet-NativeAOT" => "csharp",
+                _ => null,
+            };
+            if (emitTarget is null)
+            {
+                return UsageError("COPE-CLI-0001", "Missing required option '--emit'. Use '--emit mir', '--emit csharp', or '--emit javascript'.");
+            }
         }
 
         if (!string.Equals(emitTarget, "mir", StringComparison.Ordinal) &&
@@ -149,6 +163,12 @@ internal static class Program
         }
 
         string fullSourcePath = Path.GetFullPath(sourcePath);
+        string? backend = emitTarget == "mir" ? null : emitTarget;
+        if (fileProfile?.CheckTarget(backend) is SourceProfileDiagnostic targetDiagnostic)
+        {
+            Console.Error.WriteLine($"{targetDiagnostic.Code} error: {targetDiagnostic.Message}");
+            return CompileFailureExitCode;
+        }
         CopelandCompilation compilation = CopelandCompiler.CompileToMir(
             sourceText!,
             new CopelandCompilationOptions

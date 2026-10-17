@@ -19,6 +19,41 @@ export interface ToolInvocation {
     source: string;
 }
 
+export interface SourceProfileResult {
+    success: boolean;
+    profile: string | null;
+    owner: "tsc" | "tscl" | null;
+    diagnostics: Array<{ code: string; message: string; position: number; length: number }>;
+}
+
+export async function querySourceProfile(
+    tool: ToolInvocation,
+    sourcePath: string,
+    sourceText: string,
+    cwd: string,
+    owner?: string
+): Promise<SourceProfileResult> {
+    const args = [...tool.arguments, "profile", sourcePath, "--stdin", "--format", "json"];
+    if (owner) {
+        args.push("--owner", owner);
+    }
+    return new Promise<SourceProfileResult>((resolve, reject) => {
+        const child = execFile(tool.command, args, { cwd, windowsHide: true, timeout: 15000 }, (error, stdout, stderr) => {
+            try {
+                const result = JSON.parse(stdout) as SourceProfileResult;
+                if (typeof result.success !== "boolean" || !Array.isArray(result.diagnostics)) {
+                    throw new Error("Invalid tscl profile response.");
+                }
+                resolve(result);
+            } catch {
+                reject(new Error(stderr.trim() || error?.message || "Invalid tscl profile response."));
+            }
+        });
+        child.stdin?.on("error", () => { /* Process failure is reported by execFile. */ });
+        child.stdin?.end(sourceText);
+    });
+}
+
 export async function resolveTscl(workspaceRoot: string): Promise<ToolInvocation> {
     const configured = vscode.workspace.getConfiguration("copeland").get<string>("tsclPath", "").trim();
     if (configured) {

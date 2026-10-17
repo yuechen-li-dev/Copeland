@@ -1,0 +1,41 @@
+{
+  "success": true,
+  "target": "node",
+  "compilerVersion": "0.1.0-preview.1",
+  "diagnostics": [],
+  "outputs": [
+    {
+      "path": "Main.js",
+      "sha256": "4806469abb043f58b58c921a19a9b9b8d8dbba6d098ee7fd016f5e8d49bd8e83"
+    },
+    {
+      "path": "attachments.json",
+      "sha256": "cacd111df85093393c9000dfd613e980c58d5f388d62b10d0a5f41bd8030b87c"
+    },
+    {
+      "path": "package.json",
+      "sha256": "3ca9d4afd21425087cf31893b8f9f63c81b0b8408db5e343ca76e5f8aa26ab9a"
+    },
+    {
+      "path": "run.js",
+      "sha256": "6fcfd8cc62d5b9d03f3df8a9a477e6c0bde324278492fbb5f73152a2caf91f4c"
+    }
+  ],
+  "entryOutputPath": "run.js",
+  "buildFingerprint": null,
+  "graphFingerprint": "c27cd235c017832b73e3f117e61301479a53780df9e7a3a5690f33bdee11eee9",
+  "backend": "javascript",
+  "runtime": "node",
+  "artifactKind": "javaScript",
+  "targetFramework": null,
+  "runtimeIdentifier": null,
+  "launchExecutable": "node",
+  "launchArguments": [
+    "run.js"
+  ],
+  "capabilities": [
+    "emitJavaScript",
+    "runNode"
+  ],
+  "toolVersions": {}
+}

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "success": true,
+  "command": "workspace.sync",
+  "changed": false,
+  "diagnostics": [],
+  "artifacts": [
+    "obj/copeland/workspace/editor-ownership.generated.json",
+    "obj/copeland/workspace/tscl-files.generated.props",
+    "obj/copeland/workspace/tsconfig.generated.json"
+  ]
+}

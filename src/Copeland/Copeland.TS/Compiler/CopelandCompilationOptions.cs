@@ -10,6 +10,9 @@ public sealed class CopelandCompilationOptions
 
     public string? ProjectRoot { get; init; }
 
+    /// <summary>The selected realization, when the caller is building a concrete target.</summary>
+    public CopelandBackendTarget? BackendTarget { get; init; }
+
     /// <summary>
     /// The project types available to TS-XML binding. A <c>.tsx</c> extension
     /// alone never selects a type or a renderer.

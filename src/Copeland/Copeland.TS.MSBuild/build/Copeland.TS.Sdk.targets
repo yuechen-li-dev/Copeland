@@ -33,6 +33,8 @@
           DependsOnTargets="ResolveReferences;CopelandResolveWorkspaceOwnership"
           Condition="'@(CopelandCompile)' != '' or Exists('$(MSBuildProjectDirectory)\tsconfig.tsx')">
     <Copeland.TS.MSBuild.CopelandCompile
+        PublishAot="$(PublishAot)"
+        RuntimeIdentifier="$(RuntimeIdentifier)"
         Sources="@(CopelandCompile)"
         CSharpSources="@(Compile)"
         ClrReferencePaths="@(ReferencePath);@(ReferencePathWithRefAssemblies)"

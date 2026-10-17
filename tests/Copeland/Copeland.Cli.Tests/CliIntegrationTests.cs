@@ -337,6 +337,7 @@ public sealed partial class CliIntegrationTests
         string mainPath = temp.WriteFile(
             "src/Main.ts",
             """
+            export type CopelandProfile = "Dotnet-NativeAOT";
             function Build(): Option<string> {
                 const values: MutableArray<int> = MutableArray<int>(5);
                 let index: int = 0;

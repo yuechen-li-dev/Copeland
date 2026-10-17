@@ -35,6 +35,10 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
 
     public string Nullable { get; set; } = string.Empty;
 
+    public bool PublishAot { get; set; }
+
+    public string RuntimeIdentifier { get; set; } = string.Empty;
+
     [Required]
     public string IntermediateOutputPath { get; set; } = string.Empty;
 
@@ -227,6 +231,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
                 new CopelandCompilationOptions
                 {
                     SourcePath = sources[0].SourcePath,
+                    BackendTarget = CopelandBackendTarget.Create("csharp", PublishAot ? "nativeaot" : "ryujit", runtimeIdentifier: RuntimeIdentifier),
                     ProjectRoot = projectDirectory,
                     AssetSource = FileSystemAssetSource.Instance,
                     ClrReferences = references,
@@ -309,6 +314,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
             new CopelandCompilationOptions
             {
                 SourcePath = sourcePath,
+                BackendTarget = CopelandBackendTarget.Create("csharp", PublishAot ? "nativeaot" : "ryujit", runtimeIdentifier: RuntimeIdentifier),
                 ProjectRoot = projectDirectory,
                 AssetSource = FileSystemAssetSource.Instance,
                 ClrReferences = references,
@@ -457,7 +463,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         }
     }
 
-    private static string CreateFingerprint(
+    private string CreateFingerprint(
         string sourcePath,
         IReadOnlyList<CopelandClrReference> references,
         IReadOnlyList<CopelandPackageContract> packageContracts,
@@ -474,6 +480,8 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         Append(hash, langVersion);
         Append(hash, defineConstants);
         Append(hash, nullable);
+        Append(hash, PublishAot.ToString());
+        Append(hash, RuntimeIdentifier);
         Append(hash, File.ReadAllText(sourcePath));
         Append(hash, rootNamespace);
         Append(hash, moduleName);
@@ -505,7 +513,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         return Convert.ToHexString(hash.GetHashAndReset());
     }
 
-    private static string CreateProjectFingerprint(
+    private string CreateProjectFingerprint(
         IReadOnlyList<CopelandProjectSource> sources,
         IReadOnlyList<CopelandClrReference> references,
         IReadOnlyList<CopelandPackageContract> packageContracts,
@@ -522,6 +530,8 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         Append(hash, langVersion);
         Append(hash, defineConstants);
         Append(hash, nullable);
+        Append(hash, PublishAot.ToString());
+        Append(hash, RuntimeIdentifier);
         foreach (CopelandProjectSource source in sources.OrderBy(source => source.LogicalPath, StringComparer.OrdinalIgnoreCase))
         {
             Append(hash, source.LogicalPath);

@@ -7,6 +7,7 @@ using Copeland.TS.Backend.CSharp;
 using Copeland.TS.Compiler;
 using Copeland.TS.Diagnostics;
 using Copeland.TS.Manifest;
+using Copeland.TS.Workspace;
 
 namespace Copeland.Cli;
 
@@ -268,17 +269,26 @@ internal static class TsclBuildContract
             throw new TsclContractException("COPE-TSCL-0010", $"Entry module '{request.Entry!.Module}' is not a project source.");
         }
 
+        CopelandBackendTarget target = CopelandBackendTarget.Create(
+            request.Backend,
+            request.ExecutionRuntime ?? request.JavaScriptRuntime,
+            request.TargetFramework,
+            request.RuntimeIdentifier);
+        foreach (CopelandProjectSource source in sources)
+        {
+            SourceFileProfile profile = SourceFileProfiles.Read(source.SourceText);
+            if (profile.CheckTarget(target.BackendId, target.RuntimeId) is SourceProfileDiagnostic diagnostic)
+            {
+                return TsclBuildResult.FromDiagnostics(
+                    [new Diagnostic(diagnostic.Code, diagnostic.Message, diagnostic.Position, diagnostic.Length, source.SourcePath)], sources);
+            }
+        }
         CopelandProjectCompilation compilation = CopelandProjectCompiler.CompileToMir(sources, context.Options);
         if (!compilation.Success)
         {
             return TsclBuildResult.FromDiagnostics(compilation.Diagnostics, sources);
         }
 
-        CopelandBackendTarget target = CopelandBackendTarget.Create(
-            request.Backend,
-            request.ExecutionRuntime ?? request.JavaScriptRuntime,
-            request.TargetFramework,
-            request.RuntimeIdentifier);
         if (target.Backend == CopelandBackend.JavaScript)
         {
             return BuildJavaScript(request, context, compilation, sources, projectRoot, outputDirectory, target);

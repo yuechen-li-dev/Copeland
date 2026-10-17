@@ -3,7 +3,7 @@ import { ChildProcess } from "child_process";
 import * as vscode from "vscode";
 import { LanguageClient, LanguageClientOptions, ServerOptions, StreamInfo, Trace } from "vscode-languageclient/node";
 import { CopelandOwner, OwnershipFileEntry, OwnershipMap } from "./ownershipMap";
-import { isCompatibleVersion, projectPath, queryServerVersion, readProjectVersion, resolveTscl, runTool, spawnLanguageServer, terminateOwnedProcessTree } from "./toolchain";
+import { isCompatibleVersion, projectPath, queryServerVersion, querySourceProfile, SourceProfileResult, readProjectVersion, resolveTscl, runTool, spawnLanguageServer, terminateOwnedProcessTree } from "./toolchain";
 
 const ownershipRelativePath = "obj/copeland/workspace/editor-ownership.generated.json";
 const manifestFileName = "tsconfig.tsx";
@@ -24,6 +24,9 @@ export class WorkspaceController implements vscode.Disposable {
     private versionIssueShown = false;
     private reloadTimer: NodeJS.Timeout | undefined;
     private ownershipReload: Promise<void> = Promise.resolve();
+    private readonly profiles = new Map<string, { version: number; owner?: string; result: SourceProfileResult }>();
+    private readonly profileDiagnostics = vscode.languages.createDiagnosticCollection("copeland-profile");
+    private readonly profileTimers = new Map<string, NodeJS.Timeout>();
     private serverVersion: string | undefined;
     private toolDescription: string | undefined;
 
@@ -90,6 +93,31 @@ export class WorkspaceController implements vscode.Disposable {
         this.disposables.push(ownershipWatcher);
 
         this.disposables.push(vscode.workspace.onDidOpenTextDocument((document) => void this.routeDocument(document)));
+        this.disposables.push(this.profileDiagnostics);
+        this.disposables.push(vscode.workspace.onDidChangeTextDocument((event) => {
+            if (!this.belongsToWorkspace(event.document.uri) || !isTypeScriptDocument(event.document)) {
+                return;
+            }
+            const key = event.document.uri.toString();
+            const previous = this.profileTimers.get(key);
+            if (previous) {
+                clearTimeout(previous);
+            }
+            this.profileTimers.set(key, setTimeout(() => {
+                this.profileTimers.delete(key);
+                void this.routeDocument(event.document);
+            }, 250));
+        }));
+        this.disposables.push(vscode.workspace.onDidCloseTextDocument((document) => {
+            this.profiles.delete(document.uri.toString());
+            this.profileDiagnostics.delete(document.uri);
+        }));
+        this.disposables.push(vscode.workspace.onDidSaveTextDocument((document) => {
+            if (this.belongsToWorkspace(document.uri) && isTypeScriptDocument(document)
+                && (document.getText().includes("CopelandProfile") || this.ownerFor(document)?.profile)) {
+                void this.handleManifestChange();
+            }
+        }));
         await this.ensureOwnership();
         await this.reloadOwnership();
     }
@@ -143,7 +171,12 @@ export class WorkspaceController implements vscode.Disposable {
 
         const isManifest = path.basename(document.uri.fsPath).toLocaleLowerCase() === manifestFileName;
         const owner = this.ownerFor(document);
-        const needsCopelandLanguage = isManifest || owner?.owner === "tscl";
+        const profile = isManifest ? undefined : await this.readProfile(document, owner?.owner);
+        if (document.isClosed) {
+            return;
+        }
+        const effectiveOwner = owner?.owner ?? (profile?.success ? profile.owner : undefined);
+        const needsCopelandLanguage = isManifest || effectiveOwner === "tscl";
         const targetLanguage = copelandLanguageId(document.uri);
 
         if (needsCopelandLanguage) {
@@ -151,7 +184,7 @@ export class WorkspaceController implements vscode.Disposable {
                 this.originalLanguageIds.set(document.uri.toString(), document.languageId);
                 await vscode.languages.setTextDocumentLanguage(document, targetLanguage);
             }
-
+            this.onDidChange();
             return;
         }
 
@@ -159,6 +192,42 @@ export class WorkspaceController implements vscode.Disposable {
             const original = this.originalLanguageIds.get(document.uri.toString()) ?? builtInTypeScriptLanguageId(document.uri);
             this.originalLanguageIds.delete(document.uri.toString());
             await vscode.languages.setTextDocumentLanguage(document, original);
+        }
+        this.onDidChange();
+    }
+
+    private async readProfile(document: vscode.TextDocument, owner?: string): Promise<SourceProfileResult | undefined> {
+        const key = document.uri.toString();
+        const text = document.getText();
+        if (!text.includes("CopelandProfile")) {
+            this.profiles.delete(key);
+            this.profileDiagnostics.delete(document.uri);
+            return undefined;
+        }
+        const cached = this.profiles.get(key);
+        if (cached?.version === document.version && cached.owner === owner) {
+            return cached.result;
+        }
+        const version = document.version;
+        try {
+            const result = await querySourceProfile(await resolveTscl(this.rootPath), document.uri.fsPath, text, this.rootPath, owner);
+            if (document.isClosed || document.version !== version) {
+                return undefined;
+            }
+            this.profiles.set(key, { version, owner, result });
+            // The Copeland LSP already publishes these errors for its owned files.
+            const visibleDiagnostics = owner === "tscl" && this.state === "ready" ? [] : result.diagnostics;
+            this.profileDiagnostics.set(document.uri, visibleDiagnostics.map((item) => {
+                const range = new vscode.Range(document.positionAt(item.position), document.positionAt(item.position + item.length));
+                const diagnostic = new vscode.Diagnostic(range, item.message, vscode.DiagnosticSeverity.Error);
+                diagnostic.code = item.code;
+                diagnostic.source = "tscl-profile";
+                return diagnostic;
+            }));
+            return result;
+        } catch (error) {
+            this.output.appendLine(`[profile] ${error instanceof Error ? error.message : String(error)}`);
+            return undefined;
         }
     }
 
@@ -172,18 +241,23 @@ export class WorkspaceController implements vscode.Disposable {
         }
 
         const owner = this.ownerFor(document);
+        const profile = this.profiles.get(document.uri.toString())?.result.profile ?? owner?.profile;
+        const profileLabel = profile ? ` (${profile})` : "";
         if (owner?.owner === "tscl") {
-            return this.state === "ready" ? "Copeland TS: tscl" : `Copeland TS: ${this.state.replace(/-/g, " ")}`;
+            return this.state === "ready" ? `Copeland TS: tscl${profileLabel}` : `Copeland TS: ${this.state.replace(/-/g, " ")}${profileLabel}`;
         }
 
         if (owner?.owner === "tsc") {
-            return "TypeScript: tsc";
+            return `TypeScript: tsc${profileLabel}`;
         }
 
         return undefined;
     }
 
     public async dispose(): Promise<void> {
+        for (const timer of this.profileTimers.values()) {
+            clearTimeout(timer);
+        }
         if (this.reloadTimer) {
             clearTimeout(this.reloadTimer);
         }
@@ -276,6 +350,11 @@ export class WorkspaceController implements vscode.Disposable {
             await client.start();
             this.client = client;
             this.state = "ready";
+            for (const document of vscode.workspace.textDocuments) {
+                if (this.ownerFor(document)?.owner === "tscl") {
+                    this.profileDiagnostics.delete(document.uri);
+                }
+            }
             this.output.appendLine(`[language server] ready (${serverVersion})`);
         } catch (error) {
             await this.stopOwnedLanguageServerProcess();

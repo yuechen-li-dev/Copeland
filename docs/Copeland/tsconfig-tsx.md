@@ -24,6 +24,9 @@ randomness, or execute application logic.
 ## Ownership law
 
 Each discovered `.ts` or `.tsx` source has exactly one owner: `tsc` or `tscl`.
+An explicit [file profile](language/copeland-ts-file-profiles.md) must agree with
+configured ownership. A header can also select an already-configured compiler
+for a file outside the include folders; exclusions and overlap checks still apply.
 The default `ownership: "strict"` rejects unowned sources. Set
 `ownership: "partial"` to report, rather than reject, sources outside the
 declared migration boundary.

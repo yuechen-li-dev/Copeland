@@ -74,6 +74,20 @@ export async function run(): Promise<void> {
                 new vscode.Position(0, 0));
             assert.ok(completions.items.some((item) => item.label === "function"));
 
+            // The development runner uses workspace-m0; installed-package tests
+            // use CopelandHello and retain the CLR/npm assertions below.
+            if (!document.getText().includes("CopelandHello")) {
+                const offset = document.getText().lastIndexOf("Greetings");
+                assert.ok(offset >= 0, "The basic fixture must reference its authored Greetings table.");
+                const position = document.positionAt(offset + 1);
+                const hovers = await vscode.commands.executeCommand<vscode.Hover[]>("vscode.executeHoverProvider", domainUri, position);
+                assert.ok(hovers && hovers.length > 0);
+                const definitions = await vscode.commands.executeCommand<Array<vscode.Location | vscode.LocationLink>>(
+                    "vscode.executeDefinitionProvider", domainUri, position);
+                assert.ok(definitions && definitions.length > 0);
+                return;
+            }
+
             let hoverFound = false;
             for (const candidate of ["NpmError", "String", "Helper", "camelCase"]) {
                 const candidateOffset = document.getText().lastIndexOf(candidate);
@@ -141,6 +155,41 @@ export async function run(): Promise<void> {
             }
         });
 
+        test("checks unsaved profile conflicts with the compiler's profile reader", async () => {
+            const document = await vscode.workspace.openTextDocument(domainUri);
+            const original = document.getText();
+            try {
+                await replaceText(document, `export type CopelandProfile = "Copeland";\n${original}`);
+                await waitFor(() => vscode.languages.getDiagnostics(domainUri).length === 0);
+                await replaceText(document, `export type CopelandProfile = "Legacy";\n${original}`);
+                await waitFor(() => vscode.languages.getDiagnostics(domainUri).some((item) => item.code === "COPE-PROFILE-0003"));
+                assert.equal(activeDocument(domainUri)?.languageId, "copeland-typescript");
+            } finally {
+                await replaceText(activeDocument(domainUri) ?? document, original);
+                await waitFor(() => vscode.languages.getDiagnostics(domainUri).length === 0);
+            }
+        });
+
+        test("routes a header-owned file between Copeland and TypeScript after synchronization", async () => {
+            const uri = vscode.Uri.file(path.join(root, "src/ProfileRoutingProbe.ts"));
+            try {
+                await fs.writeFile(uri.fsPath, 'export type CopelandProfile = "Dotnet";\nexport function answer(): int { return 42; }\n', "utf8");
+                await vscode.commands.executeCommand("copeland.workspaceSync", workspace!.uri);
+                const document = await vscode.workspace.openTextDocument(uri);
+                await vscode.window.showTextDocument(document);
+                await waitFor(() => activeDocument(uri)?.languageId === "copeland-typescript");
+                await waitFor(() => vscode.languages.getDiagnostics(uri).length === 0);
+                await replaceText(activeDocument(uri)!, 'export type CopelandProfile = "Legacy";\nexport const answer: number = 42;\n');
+                await activeDocument(uri)!.save();
+                await vscode.commands.executeCommand("copeland.workspaceSync", workspace!.uri);
+                await waitFor(() => activeDocument(uri)?.languageId === "typescript");
+                await waitFor(() => vscode.languages.getDiagnostics(uri).every((item) => item.source !== "tscl" && item.source !== "tscl-profile"));
+            } finally {
+                await fs.unlink(uri.fsPath).catch(() => undefined);
+                await vscode.commands.executeCommand("copeland.workspaceSync", workspace!.uri);
+            }
+        });
+
         test("switches an open buffer when generated ownership transfers", async () => {
             const legacy = await vscode.workspace.openTextDocument(legacyUri);
             const transferred = JSON.parse(originalOwnership) as { files: Array<{ path: string; owner: string }> };
@@ -163,6 +212,12 @@ export async function run(): Promise<void> {
 
 function activeDocument(uri: vscode.Uri): vscode.TextDocument | undefined {
     return vscode.workspace.textDocuments.find((document) => document.uri.toString() === uri.toString());
+}
+
+async function replaceText(document: vscode.TextDocument, text: string): Promise<void> {
+    const edit = new vscode.WorkspaceEdit();
+    edit.replace(document.uri, new vscode.Range(document.positionAt(0), document.positionAt(document.getText().length)), text);
+    assert.ok(await vscode.workspace.applyEdit(edit));
 }
 
 async function replaceDocument(document: vscode.TextDocument, text: string): Promise<void> {

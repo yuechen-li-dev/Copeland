@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Security;
 using System.Xml;
+using Copeland.TS.Workspace;
 
 namespace Copeland.Cli;
 
@@ -226,6 +227,7 @@ internal static class WorkspaceCommand
                 owner = file.Owner,
                 project = file.Project,
                 matchedRule = file.Rule.Include,
+                profile = file.Profile,
             }, JsonOptions));
             return;
         }
@@ -298,7 +300,7 @@ internal sealed record WorkspaceCompiler(
     JsonElement? CompilerOptions,
     IReadOnlyDictionary<string, CopelandWorkspaceTarget> Targets);
 internal sealed record WorkspaceRule(string Owner, string Include, IReadOnlyList<string> Exclude, string Project);
-internal sealed record WorkspaceOwnedFile(string Path, string Owner, string Project, WorkspaceRule Rule);
+internal sealed record WorkspaceOwnedFile(string Path, string Owner, string Project, WorkspaceRule Rule, string? Profile = null);
 internal sealed record WorkspaceOwnership(IReadOnlyList<WorkspaceOwnedFile> Files, int UnownedCount, int OverlappingCount);
 internal sealed record WorkspaceDiagnostic(string Code, string Severity, string Message, string File, int? Line = null, int? Column = null)
 {
@@ -700,6 +702,7 @@ internal sealed class WorkspaceParser
         HashSet<string> supported = [
             "target", "module", "moduleResolution", "strict", "jsx", "jsxImportSource", "lib", "types", "baseUrl", "paths", "rootDir", "outDir",
             "declaration", "sourceMap", "esModuleInterop", "skipLibCheck", "allowJs", "checkJs", "resolveJsonModule",
+            "noUnusedLocals",
         ];
         foreach (string key in options.Properties.Keys)
         {
@@ -729,7 +732,7 @@ internal sealed class WorkspaceParser
 
     private static bool IsValidCompilerOptionValue(string name, WorkspaceValue value)
     {
-        if (name is "strict" or "declaration" or "sourceMap" or "esModuleInterop" or "skipLibCheck" or "allowJs" or "checkJs" or "resolveJsonModule")
+        if (name is "strict" or "declaration" or "sourceMap" or "esModuleInterop" or "skipLibCheck" or "allowJs" or "checkJs" or "resolveJsonModule" or "noUnusedLocals")
         {
             return value is WorkspaceBoolean;
         }
@@ -1111,6 +1114,12 @@ internal sealed class WorkspaceResolver
         int overlapping = 0;
         foreach (string path in EnumerateSources())
         {
+            string fullPath = Path.GetFullPath(path, _workspace.RootDirectory);
+            SourceFileProfile profile = SourceFileProfiles.Read(File.ReadAllText(fullPath));
+            foreach (SourceProfileDiagnostic diagnostic in profile.Diagnostics)
+            {
+                _diagnostics.Add(WorkspaceDiagnostic.Error(diagnostic.Code, diagnostic.Message, fullPath));
+            }
             WorkspaceRule[] matches = _workspace.Rules.Where(rule => WorkspaceGlob.IsMatch(path, rule.Include)).ToArray();
             WorkspaceRule[] includedAndExcluded = matches.Where(rule => rule.Exclude.Any(exclude => WorkspaceGlob.IsMatch(path, exclude))).ToArray();
             foreach (WorkspaceRule contradiction in includedAndExcluded)
@@ -1129,6 +1138,15 @@ internal sealed class WorkspaceResolver
 
             if (owners.Length == 0)
             {
+                WorkspaceCompiler? compiler = profile.Owner == "tsc" ? _workspace.Tsc : _workspace.Tscl;
+                if (profile.Owner is not null && compiler is not null
+                    && !compiler.Exclude.Any(exclude => WorkspaceGlob.IsMatch(path, exclude)))
+                {
+                    string project = compiler.Project ?? "obj/copeland/workspace/tsconfig.generated.json";
+                    var headerRule = new WorkspaceRule(profile.Owner, "CopelandProfile", [], project);
+                    owned.Add(new WorkspaceOwnedFile(path, profile.Owner, project, headerRule, profile.Name));
+                    continue;
+                }
                 unowned += 1;
                 if (_workspace.StrictOwnership)
                 {
@@ -1139,7 +1157,11 @@ internal sealed class WorkspaceResolver
             }
 
             WorkspaceRule rule = matches.Single();
-            owned.Add(new WorkspaceOwnedFile(path, rule.Owner, rule.Project, rule));
+            if (profile.CheckOwner(rule.Owner) is SourceProfileDiagnostic conflict)
+            {
+                _diagnostics.Add(WorkspaceDiagnostic.Error(conflict.Code, conflict.Message, fullPath));
+            }
+            owned.Add(new WorkspaceOwnedFile(path, rule.Owner, rule.Project, rule, profile.Name));
         }
 
         WorkspaceOwnedFile[] ordered = owned.OrderBy(file => file.Path, StringComparer.Ordinal).ToArray();
@@ -1472,7 +1494,7 @@ internal sealed class WorkspaceArtifacts
         {
             schemaVersion = 1,
             workspaceRoot = ".",
-            files = _ownership.Files.Select(file => new { path = file.Path, owner = file.Owner, project = file.Project, matchedRule = file.Rule.Include }),
+            files = _ownership.Files.Select(file => new { path = file.Path, owner = file.Owner, project = file.Project, matchedRule = file.Rule.Include, profile = file.Profile }),
             rules = _workspace.Rules.Select(rule => new { owner = rule.Owner, include = rule.Include, exclude = rule.Exclude, project = rule.Project }),
         };
         return JsonSerializer.Serialize(document, new JsonSerializerOptions { WriteIndented = true }) + Environment.NewLine;

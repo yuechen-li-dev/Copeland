@@ -1,0 +1,7 @@
+{
+  "success": true,
+  "checks": 16,
+  "typescript": "Version 5.9.3",
+  "directExit": 2,
+  "delegatedExit": 2
+}
