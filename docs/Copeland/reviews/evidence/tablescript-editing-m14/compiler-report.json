@@ -1,0 +1,68 @@
+{
+  "milestone": "CTS-TABLESCRIPT-EDITING-M14",
+  "sourceHashes": {
+    "src/Workbook.ts": "550e5ab92ec0adb0bf1f885bbbad3fdc6a5a3539ccd238e514a28a63d460b9da",
+    "src/Application.ts": "fd941b0cdd8b410ff29867abbeeeaa937bb9f8155c8dfa569c881f5dfeae0ab2",
+    "src/Editing.ts": "e002f5d878097d6206e220f9ff026b1c660c5d5a072f7e4f31b364c33f18fc0a",
+    "src/PriceApplication.ts": "097cc42ee6aaa8c48f98213d71b40f480f99e270be0d0424fb1926da10cf5f55",
+    "src/Editor.ts": "e3e5d4da5fb49a1f6d1861c244125c2a4a97e00cd2a62241f9a0686a04edd98a",
+    "src/Cafe.tsx": "975cb7e293dc31cdccaf133444101a8b31efa2164d6b59a120114fa5818f2343",
+    "src/Collections.ts": "925d33c506e50f1f4863223e2d4e760c6f133d22f559392cbea08d9f9cca1e08"
+  },
+  "csharpApplicationProbe": [
+    31210,
+    31210,
+    12710,
+    2,
+    310,
+    15750,
+    15750,
+    1,
+    500,
+    15750,
+    1,
+    1,
+    31210
+  ],
+  "outputs": [
+    {
+      "profile": "Diagnostic",
+      "files": {
+        "src/Application.js": "5b0ff6cb69c690c368385c937f888930300609390fb0ee5b3da695a78f048bde",
+        "src/Cafe.js": "d30c38c70222273c5bb08c2a7b2113407c0c8a18fa5dd9283b45dd14fe57bb9d",
+        "src/Collections.js": "36814340ee92e43e75ccbcc3e35c647520732c2742b10c9b2544eb8b470c3c1c",
+        "src/Editing.js": "2725ed7bef61b16e83ff547e37ad7ad78734cc468db3c4b4e9b92edbb444f575",
+        "src/Editor.js": "84442c5edec5416088f80e80c58fd458007107c93cd2a5e5d202d6aecbcd2d8e",
+        "src/PriceApplication.js": "1749b8912dabef363d5d35a2e62ac31a790afbe0bee1ada661bd2c042261b07c",
+        "src/Workbook.js": "c2b35e2b72f634ac950fbb3a492d9c21388ae61cc63bfa91b62fd02cf7b6cd3e",
+        "generated/layouts.css": "b26757fab921b407857c766abb76e4e82a01f4d34d6208e7dce58436f26d4e54"
+      }
+    },
+    {
+      "profile": "Symbolic",
+      "files": {
+        "src/Application.js": "1f98a7605767437201737809facee71220c9b0db5f3fbcefb3094a87676f1ba0",
+        "src/Cafe.js": "f88b72665c65a5f7f35d81c3d07e231ca0a9c07f96383f1f49f1c5a07ee40b9d",
+        "src/Collections.js": "6ab994e4e2309a984567901a61a620fe7452fef2db9bec51a1243b40e8dbe929",
+        "src/Editing.js": "a9c9b23bde8c9392623223b7c5fa5cf80e0e11310af28ab7648b141b37a42f89",
+        "src/Editor.js": "7ee0f73be2d2bdf4a8873c3ace6c6b9d807b43485a951041767e917fde7a64b6",
+        "src/PriceApplication.js": "18a82b5d0ed66c82f30834af967572c247e97e5455f479a44112acf57e563547",
+        "src/Workbook.js": "a916debd1a037c0f3bf12bbafca230c3760d2cd7c1aadca68bdf07fe69ba1610",
+        "generated/layouts.css": "b26757fab921b407857c766abb76e4e82a01f4d34d6208e7dce58436f26d4e54"
+      }
+    },
+    {
+      "profile": "Production",
+      "files": {
+        "src/Application.js": "e07571e26a867078ad03c0c22c473a9835eeec937e70d56f2af2eb6d898608ff",
+        "src/Cafe.js": "2272c9b020f050c83ab5bfb2504f9409c498de03515cf165a903407c4e22fd60",
+        "src/Collections.js": "fa27d05be70d733cc89bbce004e8184eeb6f7ba56905fe3af0276762dfe5f24d",
+        "src/Editing.js": "e9e5918132098878a7c49c9eb32db2724e042ce56f53504da5785c304669ee83",
+        "src/Editor.js": "fcedacdcf3376188a7a5cbb20dee89de7fcf6a5ca5c639104ff36fd9e85c3472",
+        "src/PriceApplication.js": "d72c3e6e415d897841e8015a2d185349f90538573c1561125372687f6d3dc6ac",
+        "src/Workbook.js": "4d98b052e84b026e7449ee41d6bf1de7a302de44073d69433d74c5fdfaac7b15",
+        "generated/layouts.css": "b26757fab921b407857c766abb76e4e82a01f4d34d6208e7dce58436f26d4e54"
+      }
+    }
+  ]
+}

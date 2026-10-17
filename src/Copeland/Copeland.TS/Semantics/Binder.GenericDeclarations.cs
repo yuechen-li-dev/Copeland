@@ -381,6 +381,13 @@ public static partial class Binder
                 return existing;
             }
 
+            bool isClosed = !arguments.Any(IsOpenOrIllegalTypeArgument);
+            if (isClosed && definition.ClosedSpecializations.TryGetValue(identity, out existing))
+            {
+                _genericRecords[identity] = existing;
+                return existing;
+            }
+
             if (_genericRecords.Count >= 128 ||
                 _genericRecords.Values.Count(record => record.GenericDefinition == definition) >= 16)
             {
@@ -400,6 +407,10 @@ public static partial class Binder
 
             };
             _genericRecords[identity] = result;
+            if (isClosed)
+            {
+                definition.ClosedSpecializations[identity] = result;
+            }
             PopulateHostRecord(result);
             return result;
         }

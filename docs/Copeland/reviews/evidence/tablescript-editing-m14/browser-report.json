@@ -1,0 +1,1910 @@
+{
+  "milestone": "CTS-TABLESCRIPT-EDITING-M14",
+  "nodeVersion": "v26.2.0",
+  "browserVersion": "155.0.4283.45",
+  "errors": [],
+  "observations": [
+    {
+      "profile": "diagnostic",
+      "width": 1280,
+      "probe": [
+        31210,
+        31210,
+        12710,
+        2,
+        310,
+        15750,
+        15750,
+        1,
+        500,
+        15750,
+        1,
+        1,
+        31210
+      ],
+      "baseline": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "selected": "Espresso beans · 100",
+        "stock": "4",
+        "price": "9.25",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "4",
+            "price": "9.25",
+            "orderUnits": "20",
+            "orderCents": "18500"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "3.10",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "stock": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "selected": "Espresso beans · 100",
+        "stock": "12",
+        "price": "1.",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "price": "9.25",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "3.10",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "incomplete": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "selected": "Earl Grey · 102",
+        "stock": "2",
+        "price": "21474836.48",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "price": "9.25",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "3.10",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [
+          {
+            "id": "price-parse-error",
+            "text": "This value is outside the signed 32-bit range."
+          }
+        ],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "price": {
+        "cents": "15750",
+        "units": "47",
+        "lines": "2",
+        "selected": "Earl Grey · 102",
+        "stock": "-",
+        "price": "5.00",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "price": "9.25",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "5.00",
+            "orderUnits": "16",
+            "orderCents": "8000"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "acceptedPrices": [
+        {
+          "text": "0",
+          "normalized": "0.00",
+          "totalCents": "7750"
+        },
+        {
+          "text": "10000.00",
+          "normalized": "10000.00",
+          "totalCents": "16007750"
+        },
+        {
+          "text": "+0005.0",
+          "normalized": "5.00",
+          "totalCents": "15750"
+        }
+      ],
+      "reset": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "selected": "Espresso beans · 100",
+        "stock": "4",
+        "price": "9.25",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "4",
+            "price": "9.25",
+            "orderUnits": "20",
+            "orderCents": "18500"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "3.10",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "globalCents": 31210
+    },
+    {
+      "profile": "diagnostic",
+      "width": 390,
+      "probe": [
+        31210,
+        31210,
+        12710,
+        2,
+        310,
+        15750,
+        15750,
+        1,
+        500,
+        15750,
+        1,
+        1,
+        31210
+      ],
+      "baseline": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "selected": "Espresso beans · 100",
+        "stock": "4",
+        "price": "9.25",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "4",
+            "price": "9.25",
+            "orderUnits": "20",
+            "orderCents": "18500"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "3.10",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "stock": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "selected": "Espresso beans · 100",
+        "stock": "12",
+        "price": "1.",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "price": "9.25",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "3.10",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "incomplete": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "selected": "Earl Grey · 102",
+        "stock": "2",
+        "price": "21474836.48",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "price": "9.25",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "3.10",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [
+          {
+            "id": "price-parse-error",
+            "text": "This value is outside the signed 32-bit range."
+          }
+        ],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "price": {
+        "cents": "15750",
+        "units": "47",
+        "lines": "2",
+        "selected": "Earl Grey · 102",
+        "stock": "-",
+        "price": "5.00",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "price": "9.25",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "5.00",
+            "orderUnits": "16",
+            "orderCents": "8000"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "acceptedPrices": [
+        {
+          "text": "0",
+          "normalized": "0.00",
+          "totalCents": "7750"
+        },
+        {
+          "text": "10000.00",
+          "normalized": "10000.00",
+          "totalCents": "16007750"
+        },
+        {
+          "text": "+0005.0",
+          "normalized": "5.00",
+          "totalCents": "15750"
+        }
+      ],
+      "reset": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "selected": "Espresso beans · 100",
+        "stock": "4",
+        "price": "9.25",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "4",
+            "price": "9.25",
+            "orderUnits": "20",
+            "orderCents": "18500"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "3.10",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "globalCents": 31210
+    },
+    {
+      "profile": "symbolic",
+      "width": 1280,
+      "probe": [
+        31210,
+        31210,
+        12710,
+        2,
+        310,
+        15750,
+        15750,
+        1,
+        500,
+        15750,
+        1,
+        1,
+        31210
+      ],
+      "baseline": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "selected": "Espresso beans · 100",
+        "stock": "4",
+        "price": "9.25",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "4",
+            "price": "9.25",
+            "orderUnits": "20",
+            "orderCents": "18500"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "3.10",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "stock": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "selected": "Espresso beans · 100",
+        "stock": "12",
+        "price": "1.",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "price": "9.25",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "3.10",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "incomplete": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "selected": "Earl Grey · 102",
+        "stock": "2",
+        "price": "21474836.48",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "price": "9.25",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "3.10",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [
+          {
+            "id": "price-parse-error",
+            "text": "This value is outside the signed 32-bit range."
+          }
+        ],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "price": {
+        "cents": "15750",
+        "units": "47",
+        "lines": "2",
+        "selected": "Earl Grey · 102",
+        "stock": "-",
+        "price": "5.00",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "price": "9.25",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "5.00",
+            "orderUnits": "16",
+            "orderCents": "8000"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "acceptedPrices": [
+        {
+          "text": "0",
+          "normalized": "0.00",
+          "totalCents": "7750"
+        },
+        {
+          "text": "10000.00",
+          "normalized": "10000.00",
+          "totalCents": "16007750"
+        },
+        {
+          "text": "+0005.0",
+          "normalized": "5.00",
+          "totalCents": "15750"
+        }
+      ],
+      "reset": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "selected": "Espresso beans · 100",
+        "stock": "4",
+        "price": "9.25",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "4",
+            "price": "9.25",
+            "orderUnits": "20",
+            "orderCents": "18500"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "3.10",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "globalCents": 31210
+    },
+    {
+      "profile": "symbolic",
+      "width": 390,
+      "probe": [
+        31210,
+        31210,
+        12710,
+        2,
+        310,
+        15750,
+        15750,
+        1,
+        500,
+        15750,
+        1,
+        1,
+        31210
+      ],
+      "baseline": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "selected": "Espresso beans · 100",
+        "stock": "4",
+        "price": "9.25",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "4",
+            "price": "9.25",
+            "orderUnits": "20",
+            "orderCents": "18500"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "3.10",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "stock": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "selected": "Espresso beans · 100",
+        "stock": "12",
+        "price": "1.",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "price": "9.25",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "3.10",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "incomplete": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "selected": "Earl Grey · 102",
+        "stock": "2",
+        "price": "21474836.48",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "price": "9.25",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "3.10",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [
+          {
+            "id": "price-parse-error",
+            "text": "This value is outside the signed 32-bit range."
+          }
+        ],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "price": {
+        "cents": "15750",
+        "units": "47",
+        "lines": "2",
+        "selected": "Earl Grey · 102",
+        "stock": "-",
+        "price": "5.00",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "price": "9.25",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "5.00",
+            "orderUnits": "16",
+            "orderCents": "8000"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "acceptedPrices": [
+        {
+          "text": "0",
+          "normalized": "0.00",
+          "totalCents": "7750"
+        },
+        {
+          "text": "10000.00",
+          "normalized": "10000.00",
+          "totalCents": "16007750"
+        },
+        {
+          "text": "+0005.0",
+          "normalized": "5.00",
+          "totalCents": "15750"
+        }
+      ],
+      "reset": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "selected": "Espresso beans · 100",
+        "stock": "4",
+        "price": "9.25",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "4",
+            "price": "9.25",
+            "orderUnits": "20",
+            "orderCents": "18500"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "3.10",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "globalCents": 31210
+    },
+    {
+      "profile": "production",
+      "width": 1280,
+      "probe": [
+        31210,
+        31210,
+        12710,
+        2,
+        310,
+        15750,
+        15750,
+        1,
+        500,
+        15750,
+        1,
+        1,
+        31210
+      ],
+      "baseline": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "selected": "Espresso beans · 100",
+        "stock": "4",
+        "price": "9.25",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "4",
+            "price": "9.25",
+            "orderUnits": "20",
+            "orderCents": "18500"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "3.10",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "stock": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "selected": "Espresso beans · 100",
+        "stock": "12",
+        "price": "1.",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "price": "9.25",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "3.10",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "incomplete": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "selected": "Earl Grey · 102",
+        "stock": "2",
+        "price": "21474836.48",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "price": "9.25",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "3.10",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [
+          {
+            "id": "price-parse-error",
+            "text": "This value is outside the signed 32-bit range."
+          }
+        ],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "price": {
+        "cents": "15750",
+        "units": "47",
+        "lines": "2",
+        "selected": "Earl Grey · 102",
+        "stock": "-",
+        "price": "5.00",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "price": "9.25",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "5.00",
+            "orderUnits": "16",
+            "orderCents": "8000"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "acceptedPrices": [
+        {
+          "text": "0",
+          "normalized": "0.00",
+          "totalCents": "7750"
+        },
+        {
+          "text": "10000.00",
+          "normalized": "10000.00",
+          "totalCents": "16007750"
+        },
+        {
+          "text": "+0005.0",
+          "normalized": "5.00",
+          "totalCents": "15750"
+        }
+      ],
+      "reset": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "selected": "Espresso beans · 100",
+        "stock": "4",
+        "price": "9.25",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "4",
+            "price": "9.25",
+            "orderUnits": "20",
+            "orderCents": "18500"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "3.10",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "globalCents": 31210
+    },
+    {
+      "profile": "production",
+      "width": 390,
+      "probe": [
+        31210,
+        31210,
+        12710,
+        2,
+        310,
+        15750,
+        15750,
+        1,
+        500,
+        15750,
+        1,
+        1,
+        31210
+      ],
+      "baseline": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "selected": "Espresso beans · 100",
+        "stock": "4",
+        "price": "9.25",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "4",
+            "price": "9.25",
+            "orderUnits": "20",
+            "orderCents": "18500"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "3.10",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "stock": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "selected": "Espresso beans · 100",
+        "stock": "12",
+        "price": "1.",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "price": "9.25",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "3.10",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "incomplete": {
+        "cents": "12710",
+        "units": "47",
+        "lines": "2",
+        "selected": "Earl Grey · 102",
+        "stock": "2",
+        "price": "21474836.48",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "price": "9.25",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "3.10",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [
+          {
+            "id": "price-parse-error",
+            "text": "This value is outside the signed 32-bit range."
+          }
+        ],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "price": {
+        "cents": "15750",
+        "units": "47",
+        "lines": "2",
+        "selected": "Earl Grey · 102",
+        "stock": "-",
+        "price": "5.00",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "12",
+            "price": "9.25",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "5.00",
+            "orderUnits": "16",
+            "orderCents": "8000"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "acceptedPrices": [
+        {
+          "text": "0",
+          "normalized": "0.00",
+          "totalCents": "7750"
+        },
+        {
+          "text": "10000.00",
+          "normalized": "10000.00",
+          "totalCents": "16007750"
+        },
+        {
+          "text": "+0005.0",
+          "normalized": "5.00",
+          "totalCents": "15750"
+        }
+      ],
+      "reset": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "selected": "Espresso beans · 100",
+        "stock": "4",
+        "price": "9.25",
+        "rows": [
+          {
+            "id": "100",
+            "onHand": "4",
+            "price": "9.25",
+            "orderUnits": "20",
+            "orderCents": "18500"
+          },
+          {
+            "id": "101",
+            "onHand": "10",
+            "price": "7.50",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "102",
+            "onHand": "2",
+            "price": "3.10",
+            "orderUnits": "16",
+            "orderCents": "4960"
+          },
+          {
+            "id": "103",
+            "onHand": "5",
+            "price": "2.50",
+            "orderUnits": "31",
+            "orderCents": "7750"
+          },
+          {
+            "id": "104",
+            "onHand": "8",
+            "price": "4.80",
+            "orderUnits": "0",
+            "orderCents": "0"
+          },
+          {
+            "id": "105",
+            "onHand": "0",
+            "price": "11.00",
+            "orderUnits": "0",
+            "orderCents": "0"
+          }
+        ],
+        "errors": [],
+        "horizontalOverflow": false,
+        "missingDescriptions": []
+      },
+      "globalCents": 31210
+    }
+  ]
+}

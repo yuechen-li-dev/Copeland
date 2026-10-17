@@ -1,0 +1,78 @@
+{
+  "milestone": "CTS-TABLESCRIPT-EDITING-M14",
+  "outcome": "success",
+  "dotnet": {
+    "sdk": "10.0.401",
+    "buildCommand": "dotnet build Copeland.slnx -m:1 --nologo",
+    "testCommand": "dotnet test Copeland.slnx --no-build -m:1 --nologo",
+    "buildWarnings": 0,
+    "buildErrors": 0,
+    "passed": 2446,
+    "failed": 0,
+    "skipped": 0,
+    "projectTotals": [
+      3,
+      114,
+      35,
+      274,
+      284,
+      11,
+      13,
+      1712
+    ],
+    "newTests": 4,
+    "managedLibraryReference": "Copeland.TS.Tests references libraries/Copeland.Editing/Copeland.Editing.csproj and invokes its generated API"
+  },
+  "numericVectors": 36,
+  "draftAndFormatObservations": 16,
+  "csharpReducerProbe": [
+    31210,
+    31210,
+    12710,
+    2,
+    310,
+    15750,
+    15750,
+    1,
+    500,
+    15750,
+    1,
+    1,
+    31210
+  ],
+  "browser": {
+    "runs": 6,
+    "profiles": [
+      "Diagnostic",
+      "Symbolic",
+      "Production"
+    ],
+    "widths": [
+      1280,
+      390
+    ],
+    "errors": [],
+    "nodeVersion": "v26.2.0",
+    "browserVersion": "155.0.4283.45",
+    "screenshotsInspected": [
+      "production-390-parse-error.png",
+      "production-1280-revised.png"
+    ]
+  },
+  "sampleCommand": "./samples/copeland-ts/tablescript-editing-m14/run.ps1",
+  "cafeRegression": {
+    "success": true,
+    "checks": 66,
+    "baselineCents": 31210,
+    "editedCents": 12710,
+    "stockSelector": {
+      "value": 100,
+      "keyColumn": "productId"
+    },
+    "sourceSha256": "550E5AB92EC0ADB0BF1F885BBBAD3FDC6A5A3539CCD238E514A28A63D460B9DA",
+    "executor": "csharp-relation-plan",
+    "nativeExcel": "not exercised"
+  },
+  "frozenZig": "Skipped; no legacy Zig code or test infrastructure changed",
+  "scope": "Local stock and currency editing preview; ordinary source library, exact integer/cents codecs, application-owned validation, generic import correctness. No remote persistence, variable cardinality, IME, locale-aware currency input, or Native AOT performance claim."
+}

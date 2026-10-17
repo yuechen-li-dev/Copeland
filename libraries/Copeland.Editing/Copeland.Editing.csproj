@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Copeland.Libraries</RootNamespace>
+    <CopelandTaskAssembly>$(MSBuildProjectDirectory)\..\..\src\Copeland\Copeland.TS.MSBuild\bin\$(Configuration)\net10.0\Copeland.TS.MSBuild.dll</CopelandTaskAssembly>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Copeland/Copeland.TS.MSBuild/Copeland.TS.MSBuild.csproj" ReferenceOutputAssembly="false" />
+    <CopelandCompile Include="Editing.ts" />
+  </ItemGroup>
+  <Import Project="..\..\src\Copeland\Copeland.TS.MSBuild\build\Copeland.TS.Sdk.targets" />
+</Project>

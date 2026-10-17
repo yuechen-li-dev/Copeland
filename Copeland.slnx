@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/libraries/">
+    <Project Path="libraries/Copeland.Editing/Copeland.Editing.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Copeland/Copeland.SpanAllocation/Copeland.SpanAllocation.csproj" />
     <Project Path="src/Copeland/Copeland.Cli/Copeland.Cli.csproj" />

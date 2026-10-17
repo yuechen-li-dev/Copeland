@@ -92,3 +92,9 @@ coordinated key rewrites, and typed cross-snapshot join failures remain separate
 work. A declared join that cannot resolve its input snapshot still raises the
 existing invariant failure; neither backend silently drops rows or substitutes
 zeroes.
+
+The [typed editing follow-up](../reviews/tablescript-editing-m14.md) demonstrates
+reusable ordinary-library `Draft<T, Error>` values, exact integer/cents parsing,
+and application-owned price validation. Raw text stays in frontend records;
+foreign controls forward text unchanged. Parse errors and domain errors remain
+separate, and Apply/Cancel/Select/Reset operate on explicit immutable values.

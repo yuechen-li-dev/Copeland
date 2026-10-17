@@ -11096,7 +11096,11 @@ public static partial class Binder
             var specializedParameters = generic.Parameters
                 .Select(parameter => new ParameterSymbol(parameter.Name, SubstituteType(parameter.Type, substitutions), parameter.AuthoredAliasName))
                 .ToArray();
-            var specializedName = CreateSpecializationName(generic, identity, typeArguments);
+            // Function bodies specialize in the consuming module. Distinguish
+            // those emitted copies while their nominal record carriers remain
+            // shared by the generic definition across the project.
+            string emissionIdentity = _moduleIdentity is null ? identity : identity + "|owner:" + _moduleIdentity;
+            var specializedName = CreateSpecializationName(generic, emissionIdentity, typeArguments);
             var specializedSymbol = new FunctionSymbol(
                 specializedName,
                 specializedParameters,

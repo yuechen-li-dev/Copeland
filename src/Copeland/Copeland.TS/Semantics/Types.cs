@@ -278,6 +278,10 @@ public class RecordTypeSymbol(string name, RecordTypeId id, string? stableIdenti
     public RecordTypeSymbol? GenericDefinition { get; internal set; }
     public IReadOnlyList<TypeSymbol> GenericArguments { get; internal set; } = [];
 
+    // Imported declarations share their closed nominal carriers across binders
+    // in one project. A specialization belongs to its definition, not its caller.
+    internal Dictionary<string, RecordTypeSymbol> ClosedSpecializations { get; } = new(StringComparer.Ordinal);
+
     private readonly List<RecordFieldSymbol> _fields = [];
 
     public override string Name { get; } = name;
