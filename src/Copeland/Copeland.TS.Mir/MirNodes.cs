@@ -744,7 +744,7 @@ public sealed record MirTableRecalculationExpression(
     MirTableId TableId,
     IReadOnlyList<MirTableRecalculationInput> Inputs,
     IReadOnlyList<MirTableRecalculationStep> Steps,
-    MirTableType TableType) : MirExpression(TableType);
+    MirTableType TableType, MirResultType? CheckedResult = null) : MirExpression((MirType?)CheckedResult ?? TableType);
 public sealed record MirTableRecalculationInput(MirTableId TableId, MirExpression Value);
 public sealed record MirTableRecalculationStep(MirTableId TableId, IReadOnlyList<MirTableId> Inputs);
 public sealed record MirTableWhereExpression(MirExpression Source, MirTableId TableId, IReadOnlyList<MirExpression> Predicates, MirIterableType IterableType) : MirExpression(IterableType);
@@ -776,6 +776,19 @@ public sealed class MirTableColumnReplacement(MirTableColumnId columnId, MirArra
     public MirArrayExpression Value { get; } = value;
 }
 public sealed record MirTableCellReplacement(MirTableColumnId ColumnId, MirExpression Value);
+public sealed record MirTableChangeField(MirRecordFieldId FieldId, MirTableId TableId);
+public sealed record MirTableChangeOperation(MirRecordFieldId FieldId, MirTableId TableId, bool Insert,
+    MirExpression? Row, IReadOnlyList<MirTableCellReplacement> Values)
+{
+    public IEnumerable<MirExpression> Children => Row is null ? Values.Select(value => value.Value) : [Row];
+}
+public sealed record MirTableChangesExpression(MirExpression Source, MirRecordTypeId RecordId,
+    IReadOnlyList<MirTableChangeField> Fields, IReadOnlyList<MirTableChangeOperation> Operations,
+    MirResultType ResultType) : MirExpression(ResultType)
+{
+    public const int MaximumRows = 100_000;
+    public IEnumerable<MirExpression> Children => new[] { Source }.Concat(Operations.SelectMany(operation => operation.Children));
+}
 public sealed record MirTableWithRowExpression(
     MirExpression Source,
     MirTableId TableId,

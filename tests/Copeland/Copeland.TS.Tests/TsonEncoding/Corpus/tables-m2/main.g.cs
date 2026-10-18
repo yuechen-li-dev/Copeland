@@ -77,6 +77,11 @@ public abstract record State
 
 }
 
+internal sealed class __CopeRelationException(string relation, bool duplicate, string message) : global::System.InvalidOperationException(message)
+{
+    internal string Relation { get; } = relation;
+    internal bool Duplicate { get; } = duplicate;
+}
 public abstract class CopeColumn<T>
 {
     internal abstract int Count { get; }
@@ -99,9 +104,9 @@ public sealed class __CopeTableColumn_t1_002Ec0 : CopeColumn<bool>
         {
             return CopeResult<bool, TableBoundsError>.Err(new TableBoundsError.InvalidIndex(index));
         }
-        if (index < 0 || index >= 0)
+        if (index < 0 || index >= _values.Length)
         {
-            return CopeResult<bool, TableBoundsError>.Err(new TableBoundsError.OutOfBounds(index, 0.0));
+            return CopeResult<bool, TableBoundsError>.Err(new TableBoundsError.OutOfBounds(index, _values.Length));
         }
         return CopeResult<bool, TableBoundsError>.Ok(_values[(int)index]);
     }
@@ -123,9 +128,9 @@ public sealed class __CopeTableColumn_t1_002Ec1 : CopeColumn<string>
         {
             return CopeResult<string, TableBoundsError>.Err(new TableBoundsError.InvalidIndex(index));
         }
-        if (index < 0 || index >= 0)
+        if (index < 0 || index >= _values.Length)
         {
-            return CopeResult<string, TableBoundsError>.Err(new TableBoundsError.OutOfBounds(index, 0.0));
+            return CopeResult<string, TableBoundsError>.Err(new TableBoundsError.OutOfBounds(index, _values.Length));
         }
         return CopeResult<string, TableBoundsError>.Ok(_values[(int)index]);
     }
@@ -149,7 +154,7 @@ public sealed class __CopeTableRow_t1_002Erow
 
 public sealed class __CopeTable_t1
 {
-    internal int Count => 0;
+    internal int Count => _column_t1_002Ec0.Length;
 
     private readonly bool[] _column_t1_002Ec0;
     private readonly string[] _column_t1_002Ec1;
@@ -186,9 +191,9 @@ public sealed class __CopeTable_t1
         {
             return CopeResult<__CopeTableRow_t1_002Erow, TableBoundsError>.Err(new TableBoundsError.InvalidIndex(index));
         }
-        if (index < 0 || index >= 0)
+        if (index < 0 || index >= Count)
         {
-            return CopeResult<__CopeTableRow_t1_002Erow, TableBoundsError>.Err(new TableBoundsError.OutOfBounds(index, 0.0));
+            return CopeResult<__CopeTableRow_t1_002Erow, TableBoundsError>.Err(new TableBoundsError.OutOfBounds(index, Count));
         }
         return CopeResult<__CopeTableRow_t1_002Erow, TableBoundsError>.Ok(new __CopeTableRow_t1_002Erow(this, (int)index));
     }
@@ -210,9 +215,9 @@ public sealed class __CopeTableColumn_t2_002Ec0 : CopeColumn<bool>
         {
             return CopeResult<bool, TableBoundsError>.Err(new TableBoundsError.InvalidIndex(index));
         }
-        if (index < 0 || index >= 5)
+        if (index < 0 || index >= _values.Length)
         {
-            return CopeResult<bool, TableBoundsError>.Err(new TableBoundsError.OutOfBounds(index, 5.0));
+            return CopeResult<bool, TableBoundsError>.Err(new TableBoundsError.OutOfBounds(index, _values.Length));
         }
         return CopeResult<bool, TableBoundsError>.Ok(_values[(int)index]);
     }
@@ -234,9 +239,9 @@ public sealed class __CopeTableColumn_t2_002Ec1 : CopeColumn<double>
         {
             return CopeResult<double, TableBoundsError>.Err(new TableBoundsError.InvalidIndex(index));
         }
-        if (index < 0 || index >= 5)
+        if (index < 0 || index >= _values.Length)
         {
-            return CopeResult<double, TableBoundsError>.Err(new TableBoundsError.OutOfBounds(index, 5.0));
+            return CopeResult<double, TableBoundsError>.Err(new TableBoundsError.OutOfBounds(index, _values.Length));
         }
         return CopeResult<double, TableBoundsError>.Ok(_values[(int)index]);
     }
@@ -258,9 +263,9 @@ public sealed class __CopeTableColumn_t2_002Ec2 : CopeColumn<__CopeRecord_r1>
         {
             return CopeResult<__CopeRecord_r1, TableBoundsError>.Err(new TableBoundsError.InvalidIndex(index));
         }
-        if (index < 0 || index >= 5)
+        if (index < 0 || index >= _values.Length)
         {
-            return CopeResult<__CopeRecord_r1, TableBoundsError>.Err(new TableBoundsError.OutOfBounds(index, 5.0));
+            return CopeResult<__CopeRecord_r1, TableBoundsError>.Err(new TableBoundsError.OutOfBounds(index, _values.Length));
         }
         return CopeResult<__CopeRecord_r1, TableBoundsError>.Ok(_values[(int)index]);
     }
@@ -282,9 +287,9 @@ public sealed class __CopeTableColumn_t2_002Ec3 : CopeColumn<State>
         {
             return CopeResult<State, TableBoundsError>.Err(new TableBoundsError.InvalidIndex(index));
         }
-        if (index < 0 || index >= 5)
+        if (index < 0 || index >= _values.Length)
         {
-            return CopeResult<State, TableBoundsError>.Err(new TableBoundsError.OutOfBounds(index, 5.0));
+            return CopeResult<State, TableBoundsError>.Err(new TableBoundsError.OutOfBounds(index, _values.Length));
         }
         return CopeResult<State, TableBoundsError>.Ok(_values[(int)index]);
     }
@@ -306,9 +311,9 @@ public sealed class __CopeTableColumn_t2_002Ec4 : CopeColumn<double[][]>
         {
             return CopeResult<double[][], TableBoundsError>.Err(new TableBoundsError.InvalidIndex(index));
         }
-        if (index < 0 || index >= 5)
+        if (index < 0 || index >= _values.Length)
         {
-            return CopeResult<double[][], TableBoundsError>.Err(new TableBoundsError.OutOfBounds(index, 5.0));
+            return CopeResult<double[][], TableBoundsError>.Err(new TableBoundsError.OutOfBounds(index, _values.Length));
         }
         return CopeResult<double[][], TableBoundsError>.Ok(_values[(int)index]);
     }
@@ -338,7 +343,7 @@ public sealed class __CopeTableRow_t2_002Erow
 
 public sealed class __CopeTable_t2
 {
-    internal int Count => 5;
+    internal int Count => _column_t2_002Ec0.Length;
 
     private readonly bool[] _column_t2_002Ec0;
     private readonly double[] _column_t2_002Ec1;
@@ -402,9 +407,9 @@ public sealed class __CopeTable_t2
         {
             return CopeResult<__CopeTableRow_t2_002Erow, TableBoundsError>.Err(new TableBoundsError.InvalidIndex(index));
         }
-        if (index < 0 || index >= 5)
+        if (index < 0 || index >= Count)
         {
-            return CopeResult<__CopeTableRow_t2_002Erow, TableBoundsError>.Err(new TableBoundsError.OutOfBounds(index, 5.0));
+            return CopeResult<__CopeTableRow_t2_002Erow, TableBoundsError>.Err(new TableBoundsError.OutOfBounds(index, Count));
         }
         return CopeResult<__CopeTableRow_t2_002Erow, TableBoundsError>.Ok(new __CopeTableRow_t2_002Erow(this, (int)index));
     }

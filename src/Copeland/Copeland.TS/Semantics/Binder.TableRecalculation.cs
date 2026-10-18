@@ -54,6 +54,11 @@ public static partial class Binder
                 }
                 inputs.Add(new BoundTableRecalculationInput(input, value));
             }
+            bool isChecked = member.NameToken.Text == "tryRecalculate";
+            if (isChecked && replaced.Count != leaves.Count)
+            {
+                Report("COPE-RECALC-0006", "tryRecalculate requires every authored dependency explicitly; global fallbacks are not used.", member.NameToken);
+            }
             // Written replacements evaluate first, once each, in literal order.
             foreach (TableTypeSymbol leaf in leaves)
             {
@@ -62,7 +67,12 @@ public static partial class Binder
                     inputs.Add(new BoundTableRecalculationInput(leaf, new BoundTableReferenceExpression(leaf)));
                 }
             }
-            return new BoundTableRecalculationExpression(tableType, inputs, steps);
+            if (isChecked)
+            {
+                _usesTableRelationError = true;
+            }
+            return new BoundTableRecalculationExpression(tableType, inputs, steps,
+                isChecked ? new ResultTypeSymbol(tableType, _tableRelationErrorType!) : null);
 
             void Visit(TableTypeSymbol table)
             {

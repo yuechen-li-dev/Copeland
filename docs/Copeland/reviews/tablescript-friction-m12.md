@@ -80,7 +80,7 @@ the Excel builder. The CLI only projects already-calculated typed results.
 | Edit by identity | [Key-addressed edits](tablescript-key-addressed-edits.md) support `--key` for `set` and `delete-row`, independently of stock order. Runtime [`withRow`](../language/copeland-ts-table-application.md) adds immutable application edits. |
 | Preview scenarios | [Snapshot-relative recalculation](tablescript-snapshot-scenarios.md) runs `PurchasePlan.recalculate({ Stock: revised })` through C# and JavaScript, including transitive derived dependencies. It preserves globals and source; source-copy queries serve as an independent oracle. |
 | Validate domain rules | Keys, references, types, and column lengths are checked. Aliases do not impose nonnegative stock, a valid target range, or currency units. The [application pass](tablescript-application-m13.md) now owns nonnegative-stock validation with typed Results; aliases remain transparent. |
-| Use the frontend | The [application pass](tablescript-application-m13.md) qualifies real React previews, typed refusals, and JavaScript derived-table/summary execution across all profiles. The [editing pass](tablescript-editing-m14.md) adds reusable typed drafts, exact integer/cents codecs, and Apply/Cancel/Select/Reset. Remote persistence remains separate. |
+| Use the frontend | The [application pass](tablescript-application-m13.md) qualifies React execution. The [editing pass](tablescript-editing-m14.md) adds typed drafts and Apply/Cancel/Select/Reset. The [variable-row pass](tablescript-rows-m15.md) adds atomic create/delete, key/reference checks, empty states and checked recalculation. Remote persistence remains separate. |
 
 Two broader probes are retained under the sample's `inputs/` and in qualification
 JSON. Array-valued TSON query columns fail with `COPE-TABLE-QUERY-0016` because
@@ -92,8 +92,9 @@ used here works. No legacy or arbitrary structured-cell parity claim is made.
 The authoring, calculation reuse, summary, identity-edit, and scenario passes now
 have qualified implementations. The [application and frontend pass](tablescript-application-m13.md) now qualifies
 ordinary application-owned validation and JavaScript derived-table execution in a
-real React preview. Remaining work includes broader domain policies, variable
-cardinality, and authoritative remote commits. Transparent aliases still do not
+real React preview. The [variable-row pass](tablescript-rows-m15.md) now qualifies
+changing cardinality and typed relationship failures. Remaining work includes
+broader domain policies and authoritative remote commits. Transparent aliases still do not
 become money or range proofs.
 
 The follow-up [ellipsis reconciliation](tablescript-ellipsis-reconciliation.md)

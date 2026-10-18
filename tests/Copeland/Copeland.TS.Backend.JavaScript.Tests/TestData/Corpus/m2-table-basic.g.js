@@ -93,8 +93,15 @@ const __cope_m3_column_read_15 = Symbol("cope.column.read");
 const __cope_m3_table_row_table_17 = Symbol("cope.table.row.table");
 const __cope_m3_table_row_index_18 = Symbol("cope.table.row.index");
 
+class __CopeRelationError extends Error {
+    constructor(relation, duplicate, message) {
+        super(message);
+        this.relation = relation;
+        this.duplicate = duplicate;
+    }
+}
 function __cope_m3_column_require_16(value) {
-    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_column_type_14) || value[__cope_m3_column_type_14] !== __cope_m3_column_type_14 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_column_read_15) || typeof value[__cope_m3_column_read_15] !== "function" || Object.getOwnPropertySymbols(value).length !== 3) {
+    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_column_type_14) || value[__cope_m3_column_type_14] !== __cope_m3_column_type_14 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_column_read_15) || typeof value[__cope_m3_column_read_15] !== "function" || Object.getOwnPropertySymbols(value).length !== 4) {
         __cope_m3_panic_0();
     }
 }
@@ -106,7 +113,7 @@ const __cope_m3_table_column___cope_00740031002e00630030_27 = Symbol("t1.c0");
 const __cope_m3_column_type___cope_00740031002e00630030_28 = Symbol("t1.c0.column");
 
 function __cope_m3_table_require_t1_21(value) {
-    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_table_type_t1_19) || value[__cope_m3_table_type_t1_19] !== __cope_m3_table_type_t1_19 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_table_rows_t1_26) || typeof value[__cope_m3_table_rows_t1_26] !== "function" || Object.getOwnPropertySymbols(value).length !== 3) {
+    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_table_type_t1_19) || value[__cope_m3_table_type_t1_19] !== __cope_m3_table_type_t1_19 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_table_rows_t1_26) || typeof value[__cope_m3_table_rows_t1_26] !== "function" || Object.getOwnPropertySymbols(value).length !== 4) {
         __cope_m3_panic_0();
     }
     if (!Object.prototype.hasOwnProperty.call(value, __cope_m3_table_column___cope_00740031002e00630030_27)) { __cope_m3_panic_0(); }
@@ -135,12 +142,13 @@ function __cope_m3_table_create_t1_23() {
     Object.defineProperties(__cope_m3_table_column_value___cope_00740031002e00630030_30, {
         [__cope_m3_column_type_14]: { value: __cope_m3_column_type_14, writable: false, enumerable: false, configurable: false },
         [__cope_m3_column_type___cope_00740031002e00630030_28]: { value: __cope_m3_column_type___cope_00740031002e00630030_28, writable: false, enumerable: false, configurable: false },
+        [Symbol.for("copeland.ts.table-runtime.v1:count")]: { value: __cope_m3_table_storage___cope_00740031002e00630030_29.length },
         [__cope_m3_column_read_15]: { value: (index) => {
             if (!Number.isFinite(index) || !Number.isInteger(index)) {
                 return __cope_m3_make_2(__cope_m3_result_type_6, "err", [__cope_m3_make_2(__cope_m3_type_3, "InvalidIndex", [index])]);
             }
-            if (index < 0 || index >= 0) {
-                return __cope_m3_make_2(__cope_m3_result_type_6, "err", [__cope_m3_make_2(__cope_m3_type_3, "OutOfBounds", [index, 0])]);
+            if (index < 0 || index >= __cope_m3_table_storage___cope_00740031002e00630030_29.length) {
+                return __cope_m3_make_2(__cope_m3_result_type_6, "err", [__cope_m3_make_2(__cope_m3_type_3, "OutOfBounds", [index, __cope_m3_table_storage___cope_00740031002e00630030_29.length])]);
             }
             return __cope_m3_make_2(__cope_m3_result_type_6, "ok", [__cope_m3_table_storage___cope_00740031002e00630030_29[index]]);
         }, writable: false, enumerable: false, configurable: false },
@@ -149,12 +157,13 @@ function __cope_m3_table_create_t1_23() {
     const value = Object.create(null);
     Object.defineProperties(value, {
         [__cope_m3_table_type_t1_19]: { value: __cope_m3_table_type_t1_19, writable: false, enumerable: false, configurable: false },
+        [Symbol.for("copeland.ts.table-runtime.v1:count")]: { value: __cope_m3_table_storage___cope_00740031002e00630030_29.length },
         [__cope_m3_table_rows_t1_26]: { value: (index) => {
             if (!Number.isFinite(index) || !Number.isInteger(index)) {
                 return __cope_m3_make_2(__cope_m3_result_type_8, "err", [__cope_m3_make_2(__cope_m3_type_3, "InvalidIndex", [index])]);
             }
-            if (index < 0 || index >= 0) {
-                return __cope_m3_make_2(__cope_m3_result_type_8, "err", [__cope_m3_make_2(__cope_m3_type_3, "OutOfBounds", [index, 0])]);
+            if (index < 0 || index >= __cope_m3_table_storage___cope_00740031002e00630030_29.length) {
+                return __cope_m3_make_2(__cope_m3_result_type_8, "err", [__cope_m3_make_2(__cope_m3_type_3, "OutOfBounds", [index, __cope_m3_table_storage___cope_00740031002e00630030_29.length])]);
             }
             return __cope_m3_make_2(__cope_m3_result_type_8, "ok", [__cope_m3_table_row_create_t1_24(value, index)]);
         }, writable: false, enumerable: false, configurable: false },
@@ -174,7 +183,7 @@ const __cope_m3_table_column___cope_00740032002e00630031_43 = Symbol("t2.c1");
 const __cope_m3_column_type___cope_00740032002e00630031_44 = Symbol("t2.c1.column");
 
 function __cope_m3_table_require_t2_33(value) {
-    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_table_type_t2_31) || value[__cope_m3_table_type_t2_31] !== __cope_m3_table_type_t2_31 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_table_rows_t2_38) || typeof value[__cope_m3_table_rows_t2_38] !== "function" || Object.getOwnPropertySymbols(value).length !== 4) {
+    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_table_type_t2_31) || value[__cope_m3_table_type_t2_31] !== __cope_m3_table_type_t2_31 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_table_rows_t2_38) || typeof value[__cope_m3_table_rows_t2_38] !== "function" || Object.getOwnPropertySymbols(value).length !== 5) {
         __cope_m3_panic_0();
     }
     if (!Object.prototype.hasOwnProperty.call(value, __cope_m3_table_column___cope_00740032002e00630030_39)) { __cope_m3_panic_0(); }
@@ -204,12 +213,13 @@ function __cope_m3_table_create_t2_35() {
     Object.defineProperties(__cope_m3_table_column_value___cope_00740032002e00630030_42, {
         [__cope_m3_column_type_14]: { value: __cope_m3_column_type_14, writable: false, enumerable: false, configurable: false },
         [__cope_m3_column_type___cope_00740032002e00630030_40]: { value: __cope_m3_column_type___cope_00740032002e00630030_40, writable: false, enumerable: false, configurable: false },
+        [Symbol.for("copeland.ts.table-runtime.v1:count")]: { value: __cope_m3_table_storage___cope_00740032002e00630030_41.length },
         [__cope_m3_column_read_15]: { value: (index) => {
             if (!Number.isFinite(index) || !Number.isInteger(index)) {
                 return __cope_m3_make_2(__cope_m3_result_type_6, "err", [__cope_m3_make_2(__cope_m3_type_3, "InvalidIndex", [index])]);
             }
-            if (index < 0 || index >= 2) {
-                return __cope_m3_make_2(__cope_m3_result_type_6, "err", [__cope_m3_make_2(__cope_m3_type_3, "OutOfBounds", [index, 2])]);
+            if (index < 0 || index >= __cope_m3_table_storage___cope_00740032002e00630030_41.length) {
+                return __cope_m3_make_2(__cope_m3_result_type_6, "err", [__cope_m3_make_2(__cope_m3_type_3, "OutOfBounds", [index, __cope_m3_table_storage___cope_00740032002e00630030_41.length])]);
             }
             return __cope_m3_make_2(__cope_m3_result_type_6, "ok", [__cope_m3_table_storage___cope_00740032002e00630030_41[index]]);
         }, writable: false, enumerable: false, configurable: false },
@@ -220,26 +230,29 @@ function __cope_m3_table_create_t2_35() {
     Object.defineProperties(__cope_m3_table_column_value___cope_00740032002e00630031_46, {
         [__cope_m3_column_type_14]: { value: __cope_m3_column_type_14, writable: false, enumerable: false, configurable: false },
         [__cope_m3_column_type___cope_00740032002e00630031_44]: { value: __cope_m3_column_type___cope_00740032002e00630031_44, writable: false, enumerable: false, configurable: false },
+        [Symbol.for("copeland.ts.table-runtime.v1:count")]: { value: __cope_m3_table_storage___cope_00740032002e00630031_45.length },
         [__cope_m3_column_read_15]: { value: (index) => {
             if (!Number.isFinite(index) || !Number.isInteger(index)) {
                 return __cope_m3_make_2(__cope_m3_result_type_10, "err", [__cope_m3_make_2(__cope_m3_type_3, "InvalidIndex", [index])]);
             }
-            if (index < 0 || index >= 2) {
-                return __cope_m3_make_2(__cope_m3_result_type_10, "err", [__cope_m3_make_2(__cope_m3_type_3, "OutOfBounds", [index, 2])]);
+            if (index < 0 || index >= __cope_m3_table_storage___cope_00740032002e00630031_45.length) {
+                return __cope_m3_make_2(__cope_m3_result_type_10, "err", [__cope_m3_make_2(__cope_m3_type_3, "OutOfBounds", [index, __cope_m3_table_storage___cope_00740032002e00630031_45.length])]);
             }
             return __cope_m3_make_2(__cope_m3_result_type_10, "ok", [__cope_m3_table_storage___cope_00740032002e00630031_45[index]]);
         }, writable: false, enumerable: false, configurable: false },
     });
     Object.freeze(__cope_m3_table_column_value___cope_00740032002e00630031_46);
+    if (__cope_m3_table_storage___cope_00740032002e00630031_45.length !== __cope_m3_table_storage___cope_00740032002e00630030_41.length) throw new Error("Table snapshot has misaligned columns.");
     const value = Object.create(null);
     Object.defineProperties(value, {
         [__cope_m3_table_type_t2_31]: { value: __cope_m3_table_type_t2_31, writable: false, enumerable: false, configurable: false },
+        [Symbol.for("copeland.ts.table-runtime.v1:count")]: { value: __cope_m3_table_storage___cope_00740032002e00630030_41.length },
         [__cope_m3_table_rows_t2_38]: { value: (index) => {
             if (!Number.isFinite(index) || !Number.isInteger(index)) {
                 return __cope_m3_make_2(__cope_m3_result_type_12, "err", [__cope_m3_make_2(__cope_m3_type_3, "InvalidIndex", [index])]);
             }
-            if (index < 0 || index >= 2) {
-                return __cope_m3_make_2(__cope_m3_result_type_12, "err", [__cope_m3_make_2(__cope_m3_type_3, "OutOfBounds", [index, 2])]);
+            if (index < 0 || index >= __cope_m3_table_storage___cope_00740032002e00630030_41.length) {
+                return __cope_m3_make_2(__cope_m3_result_type_12, "err", [__cope_m3_make_2(__cope_m3_type_3, "OutOfBounds", [index, __cope_m3_table_storage___cope_00740032002e00630030_41.length])]);
             }
             return __cope_m3_make_2(__cope_m3_result_type_12, "ok", [__cope_m3_table_row_create_t2_36(value, index)]);
         }, writable: false, enumerable: false, configurable: false },

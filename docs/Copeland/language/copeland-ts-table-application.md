@@ -87,9 +87,9 @@ stored in component state; mutable storage and host handles remain disallowed.
 The [React café sample](../../../samples/copeland-ts/tablescript-application-m13/README.md)
 qualifies this boundary through a local preview. Browser execution does not confer
 server authority: a future persistence endpoint must validate commands against
-server-owned inputs. Network commit, concurrency resolution, variable row count,
-coordinated key rewrites, and typed cross-snapshot join failures remain separate
-work. A declared join that cannot resolve its input snapshot still raises the
+server-owned inputs. Network commit, concurrency resolution and coordinated key
+rewrites remain separate work. With ordinary `recalculate`, a declared join that
+cannot resolve its input snapshot still raises the
 existing invariant failure; neither backend silently drops rows or substitutes
 zeroes.
 
@@ -98,3 +98,8 @@ reusable ordinary-library `Draft<T, Error>` values, exact integer/cents parsing,
 and application-owned price validation. Raw text stays in frontend records;
 foreign controls forward text unchanged. Parse errors and domain errors remain
 separate, and Apply/Cancel/Select/Reset operate on explicit immutable values.
+
+The [variable-row API](copeland-ts-table-changes.md) adds atomic insert/delete
+batches on explicit input records. It checks final key/reference integrity and
+offers checked recalculation for expected join failures. `withRow` itself remains
+count-preserving; its result can now be a snapshot resized by an earlier batch.

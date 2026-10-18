@@ -1485,7 +1485,8 @@ public static class MirLowerer
                 recalculation.Steps.Select(step => new MirTableRecalculationStep(
                     new MirTableId(step.TableType.Id.ToString()),
                     step.Inputs.Select(input => new MirTableId(input.Id.ToString())).ToArray())).ToArray(),
-                (MirTableType)ToMirType(recalculation.Type)),
+                (MirTableType)ToMirType(recalculation.TableType),
+                recalculation.CheckedResult is null ? null : (MirResultType)ToMirType(recalculation.CheckedResult)),
             BoundTableWhereExpression where => new MirTableWhereExpression(
                 LowerExpression(where.Source),
                 new MirTableId(where.TableType.Id.ToString()),
@@ -1517,6 +1518,14 @@ public static class MirLowerer
                 new MirTableColumnId(aggregate.Column.Id.ToString()),
                 (MirTableAggregateKind)aggregate.Kind,
                 ToMirType(aggregate.Type)),
+            BoundTableChangesExpression changes => new MirTableChangesExpression(
+                LowerExpression(changes.Source), new MirRecordTypeId(changes.Record.Id.ToString()),
+                changes.Fields.Select(field => new MirTableChangeField(new MirRecordFieldId(field.Id.ToString()), new MirTableId(((TableTypeSymbol)field.Type).Id.ToString()))).ToArray(),
+                changes.Operations.Select(operation => new MirTableChangeOperation(
+                    new MirRecordFieldId(operation.Field.Id.ToString()), new MirTableId(operation.Table.Id.ToString()), operation.Insert,
+                    operation.Row is null ? null : LowerExpression(operation.Row),
+                    operation.Values.Select(value => new MirTableCellReplacement(new MirTableColumnId(value.Column.Id.ToString()), LowerExpression(value.Value))).ToArray())).ToArray(),
+                (MirResultType)ToMirType(changes.Type)),
             BoundTableWithRowExpression update => new MirTableWithRowExpression(
                 LowerExpression(update.Source), new MirTableId(update.TableType.Id.ToString()),
                 new MirTableColumnId(update.KeyColumn.Id.ToString()), LowerExpression(update.Key),

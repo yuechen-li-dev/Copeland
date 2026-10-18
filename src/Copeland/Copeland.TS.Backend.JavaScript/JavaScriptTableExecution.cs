@@ -64,7 +64,7 @@ public static partial class JavaScriptBackend
         string cursor = names.NextTemporary("edit_cursor");
         string result = names.NextTemporary("edit_result");
         prelude.Add(new EmittedLine($"let {index} = -1;", 0));
-        prelude.Add(new EmittedLine($"for (let {cursor} = 0; {cursor} < {table.RowCount}; {cursor} += 1) {{", 0));
+        prelude.Add(new EmittedLine($"for (let {cursor} = 0; {cursor} < {SnapshotCount(source)}; {cursor} += 1) {{", 0));
         prelude.Add(new EmittedLine($"if ({source}[{names.TableColumnSlot(keyColumn)}][{names.ColumnReadSlot}]({cursor}).$payload[0] === {key}) {{", 1));
         prelude.Add(new EmittedLine($"{index} = {cursor};", 2));
         prelude.Add(new EmittedLine("break;", 2));
@@ -87,7 +87,7 @@ public static partial class JavaScriptBackend
                 continue;
             }
             string values = names.NextTemporary("edit_column");
-            prelude.Add(new EmittedLine($"const {values} = Array.from({{ length: {table.RowCount} }}, (_, position) => {source}[{names.TableColumnSlot(column)}][{names.ColumnReadSlot}](position).$payload[0]);", 1));
+            prelude.Add(new EmittedLine($"const {values} = Array.from({{ length: {SnapshotCount(source)} }}, (_, position) => {source}[{names.TableColumnSlot(column)}][{names.ColumnReadSlot}](position).$payload[0]);", 1));
             prelude.Add(new EmittedLine($"{values}[{index}] = {replacement};", 1));
             arrays.Add(values);
         }
@@ -110,20 +110,47 @@ public static partial class JavaScriptBackend
         {
             values.Add(input.TableId, MaterializeTableOperand(input.Value, "recalculate_input", prelude, function, catalog, results, names, flowEnabled));
         }
+        string result = names.NextTemporary("recalculate_result");
+        if (recalculation.CheckedResult is not null)
+        {
+            prelude.Add(new($"const {result} = (() => {{", 0));
+            prelude.Add(new("try {", 1));
+        }
         foreach (MirTableRecalculationStep step in recalculation.Steps)
         {
             string value = names.NextTemporary("recalculate_step");
             string arguments = string.Join(", ", step.Inputs.Select(id => values[id]));
-            prelude.Add(new EmittedLine($"const {value} = {names.TableCreate(catalog.GetTable(step.TableId))}({arguments});", 0));
+            if (recalculation.CheckedResult is not null) arguments += ", true";
+            prelude.Add(new EmittedLine($"const {value} = {names.TableCreate(catalog.GetTable(step.TableId))}({arguments});", recalculation.CheckedResult is null ? 0 : 2));
             values.Add(step.TableId, value);
         }
-        return new EmittedExpression(prelude, values[recalculation.TableId]);
+        if (recalculation.CheckedResult is null)
+        {
+            return new EmittedExpression(prelude, values[recalculation.TableId]);
+        }
+        string token = names.TypeToken(results.Get(recalculation.CheckedResult));
+        prelude.Add(new($"return {names.MakeValue}({token}, \"ok\", [{values[recalculation.TableId]}]);", 2));
+        prelude.Add(new("} catch (error) {", 1));
+        prelude.Add(new("if (!(error instanceof __CopeRelationError)) throw error;", 2));
+        foreach (string name in new[] { "NonUnique", "Unresolved" })
+        {
+            var error = catalog.GetEnum("TableRelationError");
+            string value = IsProduction(names)
+                ? EmitProductionEnumConstruction(error, error.Definition.Cases.Single(item => item.Name == name), names, ["error.relation"])
+                : $"{names.MakeValue}({names.TypeToken(error)}, \"{name}\", [error.relation])";
+            string guard = name == "NonUnique" ? "if (error.duplicate) " : "";
+            prelude.Add(new($"{guard}return {names.MakeValue}({token}, \"err\", [{value}]);", 2));
+        }
+        prelude.Add(new("}", 1));
+        prelude.Add(new("})();", 0));
+        return new(prelude, result);
     }
 
     private static IReadOnlyList<string> EmitDerivedColumns(
         JavaScriptTextWriter writer,
         MirTableDefinition table,
         IReadOnlyList<string> inputs,
+        string checkedRelations,
         EnumCatalog catalog,
         ResultCatalog results,
         GeneratedNames names)
@@ -135,7 +162,7 @@ public static partial class JavaScriptBackend
         string indexName = names.NextTemporary("derived_index");
         for (int index = 0; index < columns.Length; index++)
         {
-            writer.WriteLine($"const {columns[index]} = new Array({table.RowCount});");
+            writer.WriteLine($"const {columns[index]} = new Array({SnapshotCount(inputs[0])});");
         }
         for (int joinIndex = 0; joinIndex < plan.Joins.Count; joinIndex++)
         {
@@ -145,11 +172,12 @@ public static partial class JavaScriptBackend
             string position = names.NextTemporary("lookup_position");
             string lookupKey = names.NextTemporary("lookup_key");
             writer.WriteLine($"const {lookups[joinIndex]} = new Map();");
-            writer.WriteLine($"for (let {position} = 0; {position} < {joined.RowCount}; {position} += 1) {{");
+            writer.WriteLine($"for (let {position} = 0; {position} < {SnapshotCount(inputs[joinIndex + 1])}; {position} += 1) {{");
             writer.Indent();
             writer.WriteLine($"const {lookupKey} = {inputs[joinIndex + 1]}[{names.TableColumnSlot(lookup)}][{names.ColumnReadSlot}]({position}).$payload[0];");
             writer.WriteLine($"if ({lookups[joinIndex]}.has({lookupKey})) {{");
             writer.Indent();
+            writer.WriteLine($"if ({checkedRelations}) throw new __CopeRelationError({JavaScriptLiteralWriter.WriteString(join.Alias)}, true, {JavaScriptLiteralWriter.WriteString($"Derived join '{join.Alias}' requires unique lookup values.")});");
             writer.WriteLine($"throw new Error({JavaScriptLiteralWriter.WriteString($"Derived join '{join.Alias}' requires unique lookup values.")});");
             writer.Unindent();
             writer.WriteLine("}");
@@ -157,7 +185,7 @@ public static partial class JavaScriptBackend
             writer.Unindent();
             writer.WriteLine("}");
         }
-        writer.WriteLine($"for (let {indexName} = 0; {indexName} < {table.RowCount}; {indexName} += 1) {{");
+        writer.WriteLine($"for (let {indexName} = 0; {indexName} < {SnapshotCount(inputs[0])}; {indexName} += 1) {{");
         writer.Indent();
         MirTableDefinition source = catalog.GetTable(plan.SourceTableId);
         writer.WriteLine($"const {JavaScriptIdentifierEncoder.Encode(plan.SourceAlias)} = {names.TableCreateRow(source)}({inputs[0]}, {indexName});");
@@ -177,6 +205,7 @@ public static partial class JavaScriptBackend
             writer.WriteLine($"const {rowIndex} = {lookups[joinIndex]}.get({key.Value});");
             writer.WriteLine($"if ({rowIndex} === undefined) {{");
             writer.Indent();
+            writer.WriteLine($"if ({checkedRelations}) throw new __CopeRelationError({JavaScriptLiteralWriter.WriteString(join.Alias)}, false, {JavaScriptLiteralWriter.WriteString($"Derived join '{join.Alias}' could not resolve its declared reference.")});");
             writer.WriteLine($"throw new Error({JavaScriptLiteralWriter.WriteString($"Derived join '{join.Alias}' could not resolve its declared reference.")});");
             writer.Unindent();
             writer.WriteLine("}");
@@ -234,7 +263,7 @@ public static partial class JavaScriptBackend
         {
             prelude.Add(new EmittedLine($"{groups}.push([{string.Join(", ", summary.Fields.Select(_ => "0"))}]);", 0));
         }
-        prelude.Add(new EmittedLine($"for (let {index} = 0; {index} < {table.RowCount}; {index} += 1) {{", 0));
+        prelude.Add(new EmittedLine($"for (let {index} = 0; {index} < {SnapshotCount(source)}; {index} += 1) {{", 0));
         prelude.Add(new EmittedLine($"const {row} = {names.TableCreateRow(table)}({source}, {index});", 1));
         foreach (string predicate in predicates)
         {

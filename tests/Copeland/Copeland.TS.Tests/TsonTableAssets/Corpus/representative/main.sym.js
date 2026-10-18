@@ -154,8 +154,15 @@ const $列型甲 = Symbol("$列型甲");
 const $列取甲 = Symbol("$列取甲");
 const $表行表甲 = Symbol("$表行表甲");
 const $表行序甲 = Symbol("$表行序甲");
+class __CopeRelationError extends Error {
+    constructor(relation, duplicate, message) {
+        super(message);
+        this.relation = relation;
+        this.duplicate = duplicate;
+    }
+}
 function $列验甲(value) {
-  if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, $列型甲) || value[$列型甲] !== $列型甲 || !Object.prototype.hasOwnProperty.call(value, $列取甲) || typeof value[$列取甲] !== "function" || Object.getOwnPropertySymbols(value).length !== 3) {
+  if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, $列型甲) || value[$列型甲] !== $列型甲 || !Object.prototype.hasOwnProperty.call(value, $列取甲) || typeof value[$列取甲] !== "function" || Object.getOwnPropertySymbols(value).length !== 4) {
     $终甲();
   }
 }
@@ -175,7 +182,7 @@ const $表列符戊 = Symbol("$表列符戊");
 const $表列槽己 = Symbol("$表列槽己");
 const $表列符己 = Symbol("$表列符己");
 function $表验甲(value) {
-  if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, $表型甲) || value[$表型甲] !== $表型甲 || !Object.prototype.hasOwnProperty.call(value, $表行槽甲) || typeof value[$表行槽甲] !== "function" || Object.getOwnPropertySymbols(value).length !== 8) {
+  if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, $表型甲) || value[$表型甲] !== $表型甲 || !Object.prototype.hasOwnProperty.call(value, $表行槽甲) || typeof value[$表行槽甲] !== "function" || Object.getOwnPropertySymbols(value).length !== 9) {
     $终甲();
   }
   if (!Object.prototype.hasOwnProperty.call(value, $表列槽甲)) { $终甲(); }
@@ -206,12 +213,13 @@ function $表造甲() {
   Object.defineProperties($表列值甲, {
     [$列型甲]: { value: $列型甲, writable: false, enumerable: false, configurable: false },
     [$表列符甲]: { value: $表列符甲, writable: false, enumerable: false, configurable: false },
+    [Symbol.for("copeland.ts.table-runtime.v1:count")]: { value: $表列存甲.length },
     [$列取甲]: { value: (index) => {
       if (!Number.isFinite(index) || !Number.isInteger(index)) {
         return $值造甲($果型甲, "err", [$值造甲($枚型甲, "InvalidIndex", [index])]);
       }
-      if (index < 0 || index >= 2) {
-        return $值造甲($果型甲, "err", [$值造甲($枚型甲, "OutOfBounds", [index, 2])]);
+      if (index < 0 || index >= $表列存甲.length) {
+        return $值造甲($果型甲, "err", [$值造甲($枚型甲, "OutOfBounds", [index, $表列存甲.length])]);
       }
       return $值造甲($果型甲, "ok", [$表列存甲[index]]);
     }, writable: false, enumerable: false, configurable: false },
@@ -222,12 +230,13 @@ function $表造甲() {
   Object.defineProperties($表列值乙, {
     [$列型甲]: { value: $列型甲, writable: false, enumerable: false, configurable: false },
     [$表列符乙]: { value: $表列符乙, writable: false, enumerable: false, configurable: false },
+    [Symbol.for("copeland.ts.table-runtime.v1:count")]: { value: $表列存乙.length },
     [$列取甲]: { value: (index) => {
       if (!Number.isFinite(index) || !Number.isInteger(index)) {
         return $值造甲($果型乙, "err", [$值造甲($枚型甲, "InvalidIndex", [index])]);
       }
-      if (index < 0 || index >= 2) {
-        return $值造甲($果型乙, "err", [$值造甲($枚型甲, "OutOfBounds", [index, 2])]);
+      if (index < 0 || index >= $表列存乙.length) {
+        return $值造甲($果型乙, "err", [$值造甲($枚型甲, "OutOfBounds", [index, $表列存乙.length])]);
       }
       return $值造甲($果型乙, "ok", [$表列存乙[index]]);
     }, writable: false, enumerable: false, configurable: false },
@@ -238,12 +247,13 @@ function $表造甲() {
   Object.defineProperties($表列值丙, {
     [$列型甲]: { value: $列型甲, writable: false, enumerable: false, configurable: false },
     [$表列符丙]: { value: $表列符丙, writable: false, enumerable: false, configurable: false },
+    [Symbol.for("copeland.ts.table-runtime.v1:count")]: { value: $表列存丙.length },
     [$列取甲]: { value: (index) => {
       if (!Number.isFinite(index) || !Number.isInteger(index)) {
         return $值造甲($果型丙, "err", [$值造甲($枚型甲, "InvalidIndex", [index])]);
       }
-      if (index < 0 || index >= 2) {
-        return $值造甲($果型丙, "err", [$值造甲($枚型甲, "OutOfBounds", [index, 2])]);
+      if (index < 0 || index >= $表列存丙.length) {
+        return $值造甲($果型丙, "err", [$值造甲($枚型甲, "OutOfBounds", [index, $表列存丙.length])]);
       }
       return $值造甲($果型丙, "ok", [$表列存丙[index]]);
     }, writable: false, enumerable: false, configurable: false },
@@ -254,12 +264,13 @@ function $表造甲() {
   Object.defineProperties($表列值丁, {
     [$列型甲]: { value: $列型甲, writable: false, enumerable: false, configurable: false },
     [$表列符丁]: { value: $表列符丁, writable: false, enumerable: false, configurable: false },
+    [Symbol.for("copeland.ts.table-runtime.v1:count")]: { value: $表列存丁.length },
     [$列取甲]: { value: (index) => {
       if (!Number.isFinite(index) || !Number.isInteger(index)) {
         return $值造甲($果型丁, "err", [$值造甲($枚型甲, "InvalidIndex", [index])]);
       }
-      if (index < 0 || index >= 2) {
-        return $值造甲($果型丁, "err", [$值造甲($枚型甲, "OutOfBounds", [index, 2])]);
+      if (index < 0 || index >= $表列存丁.length) {
+        return $值造甲($果型丁, "err", [$值造甲($枚型甲, "OutOfBounds", [index, $表列存丁.length])]);
       }
       return $值造甲($果型丁, "ok", [$表列存丁[index]]);
     }, writable: false, enumerable: false, configurable: false },
@@ -270,12 +281,13 @@ function $表造甲() {
   Object.defineProperties($表列值戊, {
     [$列型甲]: { value: $列型甲, writable: false, enumerable: false, configurable: false },
     [$表列符戊]: { value: $表列符戊, writable: false, enumerable: false, configurable: false },
+    [Symbol.for("copeland.ts.table-runtime.v1:count")]: { value: $表列存戊.length },
     [$列取甲]: { value: (index) => {
       if (!Number.isFinite(index) || !Number.isInteger(index)) {
         return $值造甲($果型戊, "err", [$值造甲($枚型甲, "InvalidIndex", [index])]);
       }
-      if (index < 0 || index >= 2) {
-        return $值造甲($果型戊, "err", [$值造甲($枚型甲, "OutOfBounds", [index, 2])]);
+      if (index < 0 || index >= $表列存戊.length) {
+        return $值造甲($果型戊, "err", [$值造甲($枚型甲, "OutOfBounds", [index, $表列存戊.length])]);
       }
       return $值造甲($果型戊, "ok", [$表列存戊[index]]);
     }, writable: false, enumerable: false, configurable: false },
@@ -286,26 +298,33 @@ function $表造甲() {
   Object.defineProperties($表列值己, {
     [$列型甲]: { value: $列型甲, writable: false, enumerable: false, configurable: false },
     [$表列符己]: { value: $表列符己, writable: false, enumerable: false, configurable: false },
+    [Symbol.for("copeland.ts.table-runtime.v1:count")]: { value: $表列存己.length },
     [$列取甲]: { value: (index) => {
       if (!Number.isFinite(index) || !Number.isInteger(index)) {
         return $值造甲($果型己, "err", [$值造甲($枚型甲, "InvalidIndex", [index])]);
       }
-      if (index < 0 || index >= 2) {
-        return $值造甲($果型己, "err", [$值造甲($枚型甲, "OutOfBounds", [index, 2])]);
+      if (index < 0 || index >= $表列存己.length) {
+        return $值造甲($果型己, "err", [$值造甲($枚型甲, "OutOfBounds", [index, $表列存己.length])]);
       }
       return $值造甲($果型己, "ok", [$表列存己[index]]);
     }, writable: false, enumerable: false, configurable: false },
   });
   Object.freeze($表列值己);
+  if ($表列存乙.length !== $表列存甲.length) throw new Error("Table snapshot has misaligned columns.");
+  if ($表列存丙.length !== $表列存甲.length) throw new Error("Table snapshot has misaligned columns.");
+  if ($表列存丁.length !== $表列存甲.length) throw new Error("Table snapshot has misaligned columns.");
+  if ($表列存戊.length !== $表列存甲.length) throw new Error("Table snapshot has misaligned columns.");
+  if ($表列存己.length !== $表列存甲.length) throw new Error("Table snapshot has misaligned columns.");
   const value = Object.create(null);
   Object.defineProperties(value, {
     [$表型甲]: { value: $表型甲, writable: false, enumerable: false, configurable: false },
+    [Symbol.for("copeland.ts.table-runtime.v1:count")]: { value: $表列存甲.length },
     [$表行槽甲]: { value: (index) => {
       if (!Number.isFinite(index) || !Number.isInteger(index)) {
         return $值造甲($果型庚, "err", [$值造甲($枚型甲, "InvalidIndex", [index])]);
       }
-      if (index < 0 || index >= 2) {
-        return $值造甲($果型庚, "err", [$值造甲($枚型甲, "OutOfBounds", [index, 2])]);
+      if (index < 0 || index >= $表列存甲.length) {
+        return $值造甲($果型庚, "err", [$值造甲($枚型甲, "OutOfBounds", [index, $表列存甲.length])]);
       }
       return $值造甲($果型庚, "ok", [$表行造甲(value, index)]);
     }, writable: false, enumerable: false, configurable: false },
@@ -325,7 +344,7 @@ const $表行槽乙 = Symbol("$表行槽乙");
 const $表列槽庚 = Symbol("$表列槽庚");
 const $表列符庚 = Symbol("$表列符庚");
 function $表验乙(value) {
-  if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, $表型乙) || value[$表型乙] !== $表型乙 || !Object.prototype.hasOwnProperty.call(value, $表行槽乙) || typeof value[$表行槽乙] !== "function" || Object.getOwnPropertySymbols(value).length !== 3) {
+  if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, $表型乙) || value[$表型乙] !== $表型乙 || !Object.prototype.hasOwnProperty.call(value, $表行槽乙) || typeof value[$表行槽乙] !== "function" || Object.getOwnPropertySymbols(value).length !== 4) {
     $终甲();
   }
   if (!Object.prototype.hasOwnProperty.call(value, $表列槽庚)) { $终甲(); }
@@ -351,12 +370,13 @@ function $表造乙() {
   Object.defineProperties($表列值庚, {
     [$列型甲]: { value: $列型甲, writable: false, enumerable: false, configurable: false },
     [$表列符庚]: { value: $表列符庚, writable: false, enumerable: false, configurable: false },
+    [Symbol.for("copeland.ts.table-runtime.v1:count")]: { value: $表列存庚.length },
     [$列取甲]: { value: (index) => {
       if (!Number.isFinite(index) || !Number.isInteger(index)) {
         return $值造甲($果型乙, "err", [$值造甲($枚型甲, "InvalidIndex", [index])]);
       }
-      if (index < 0 || index >= 0) {
-        return $值造甲($果型乙, "err", [$值造甲($枚型甲, "OutOfBounds", [index, 0])]);
+      if (index < 0 || index >= $表列存庚.length) {
+        return $值造甲($果型乙, "err", [$值造甲($枚型甲, "OutOfBounds", [index, $表列存庚.length])]);
       }
       return $值造甲($果型乙, "ok", [$表列存庚[index]]);
     }, writable: false, enumerable: false, configurable: false },
@@ -365,12 +385,13 @@ function $表造乙() {
   const value = Object.create(null);
   Object.defineProperties(value, {
     [$表型乙]: { value: $表型乙, writable: false, enumerable: false, configurable: false },
+    [Symbol.for("copeland.ts.table-runtime.v1:count")]: { value: $表列存庚.length },
     [$表行槽乙]: { value: (index) => {
       if (!Number.isFinite(index) || !Number.isInteger(index)) {
         return $值造甲($果型辛, "err", [$值造甲($枚型甲, "InvalidIndex", [index])]);
       }
-      if (index < 0 || index >= 0) {
-        return $值造甲($果型辛, "err", [$值造甲($枚型甲, "OutOfBounds", [index, 0])]);
+      if (index < 0 || index >= $表列存庚.length) {
+        return $值造甲($果型辛, "err", [$值造甲($枚型甲, "OutOfBounds", [index, $表列存庚.length])]);
       }
       return $值造甲($果型辛, "ok", [$表行造乙(value, index)]);
     }, writable: false, enumerable: false, configurable: false },

@@ -335,6 +335,9 @@ public static class StaticEvaluationPass
                 case BoundTableSummaryExpression summary:
                     VisitExpression(summary.Source);
                     break;
+                case BoundTableChangesExpression update:
+                    VisitExpressions(update.Children);
+                    break;
                 case BoundTableWithRowExpression update:
                     VisitExpressions(update.Children);
                     break;

@@ -1,0 +1,161 @@
+{
+  "milestone": "CTS-TABLESCRIPT-ROWS-M15",
+  "qualifiedAtUtc": "2026-10-17T19:57:56.8922939Z",
+  "result": "success",
+  "dotnetSdk": "10.0.401",
+  "build": {
+    "command": "dotnet build Copeland.slnx -m:1 --nologo",
+    "exitCode": 0,
+    "warnings": 0,
+    "errors": 0,
+    "log": "artifacts/validation/tablescript-rows-m15-build.log",
+    "logSha256": "8B72399531A9D2896ABD88471F04456D5021CE349CAEB7CB9B6BA1668AB6893F"
+  },
+  "tests": {
+    "command": "dotnet test Copeland.slnx --no-build -m:1 --nologo",
+    "exitCode": 0,
+    "passed": 2463.0,
+    "failed": 0,
+    "skipped": 0,
+    "newCardinalityCases": 17,
+    "assemblies": [
+      {
+        "assembly": "Copeland.Authoring.Food.Tests.dll",
+        "failed": 0,
+        "passed": 3,
+        "skipped": 0,
+        "total": 3
+      },
+      {
+        "assembly": "Copeland.Cli.Tests.dll",
+        "failed": 0,
+        "passed": 114,
+        "skipped": 0,
+        "total": 114
+      },
+      {
+        "assembly": "Copeland.Markdown.Tests.dll",
+        "failed": 0,
+        "passed": 35,
+        "skipped": 0,
+        "total": 35
+      },
+      {
+        "assembly": "Copeland.TS.Backend.CSharp.Tests.dll",
+        "failed": 0,
+        "passed": 274,
+        "skipped": 0,
+        "total": 274
+      },
+      {
+        "assembly": "Copeland.TS.Backend.JavaScript.Tests.dll",
+        "failed": 0,
+        "passed": 284,
+        "skipped": 0,
+        "total": 284
+      },
+      {
+        "assembly": "Copeland.TS.Database.Tests.dll",
+        "failed": 0,
+        "passed": 11,
+        "skipped": 0,
+        "total": 11
+      },
+      {
+        "assembly": "Copeland.TS.MSBuild.Tests.dll",
+        "failed": 0,
+        "passed": 13,
+        "skipped": 0,
+        "total": 13
+      },
+      {
+        "assembly": "Copeland.TS.Tests.dll",
+        "failed": 0,
+        "passed": 1729,
+        "skipped": 0,
+        "total": 1729
+      }
+    ],
+    "log": "artifacts/validation/tablescript-rows-m15-test.log",
+    "logSha256": "41B5908F7B176E713A1E150ACCB341BBA8208A9427E6DEC8E010153CB1791EC4"
+  },
+  "sample": {
+    "command": "./samples/copeland-ts/tablescript-rows-m15/run.ps1",
+    "result": "passed",
+    "csharpApplicationProbe": [
+      6,
+      7,
+      42210,
+      1,
+      1,
+      1,
+      6,
+      31210,
+      0,
+      0,
+      0,
+      1,
+      11000,
+      31210
+    ],
+    "csharpTotalLimitProbe": [
+      95,
+      2136031210,
+      1
+    ],
+    "csharpEditLimitProbe": [
+      2136031210,
+      1,
+      925
+    ],
+    "strictTypeScriptCheck": "passed",
+    "browserWorkflows": 6,
+    "profiles": [
+      "Diagnostic",
+      "Symbolic",
+      "Production"
+    ],
+    "widths": [
+      1280,
+      390
+    ],
+    "reactStrictMode": true,
+    "nodeVersion": "v26.2.0",
+    "browserVersion": "155.0.4283.45",
+    "browserErrors": [],
+    "inspectedScreenshots": [
+      "production-1280-added.png",
+      "production-390-empty.png"
+    ],
+    "compilerEvidenceSha256": "082614A4DFFE6C9CCBE593A9AA6F37A270A7DEB3AF859FFC9F83457D794E5B66",
+    "browserEvidenceSha256": "981D41B689DE16C0ADA3641E257233DC16ACC4F684364778893F376CB6542A85"
+  },
+  "cafeRegression": {
+    "command": "./samples/copeland-ts/tablescript-friction-m12/qualify.ps1 -OutputDirectory artifacts/local/tablescript-rows-m15/cafe-regression",
+    "result": {
+      "success": true,
+      "checks": 66,
+      "baselineCents": 31210,
+      "editedCents": 12710,
+      "stockSelector": {
+        "keyColumn": "productId",
+        "value": 100
+      },
+      "sourceSha256": "798A52EF50E7E06F78E80DB5E8FDDB7E375A2BC0190D392D13C34A7BE8946CE9",
+      "executor": "csharp-relation-plan",
+      "nativeExcel": "not exercised"
+    }
+  },
+  "goldenArtifacts": {
+    "refreshedEmissionFiles": 8,
+    "method": "Real CLI compile; exact bytes, lengths, hashes and executable TSON checks retained.",
+    "serializedTsonAndMirInputFixtures": "unchanged"
+  },
+  "frozenZig": "Skipped: no legacy Zig compiler or build/test infrastructure changed.",
+  "qualificationLimits": [
+    "Local preview; no remote commit or persistence authority.",
+    "Integrity covers the explicitly owned snapshot record.",
+    "Stored/computed change arrays, async/generator batch expressions, cascades and rekeying remain unsupported.",
+    "Dynamic table TSON encoding, Native AOT performance and large-table performance are unqualified."
+  ]
+}

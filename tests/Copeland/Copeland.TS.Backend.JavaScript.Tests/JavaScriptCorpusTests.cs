@@ -96,8 +96,8 @@ public sealed class JavaScriptCorpusTests
     }
 
     [Theory]
-    [InlineData("m2-table-basic.g.js", "7C030C63FE26A48E442DF2C5D0DA5FF9D1BE1D38A83BDD6DC2BC36E99A00DF31")]
-    [InlineData("m2-table-nested.g.js", "41CC563928AE6118E3801041A180A43693FEEBD2F4532B16F9708E5A6B90F97C")]
+    [InlineData("m2-table-basic.g.js", "2265D17F318247C97E32B2DFF03645C85A22D0D8B2083C9C16539BC52FC03A6B")]
+    [InlineData("m2-table-nested.g.js", "7BC531341C558A4C7B0A29F80828B71649B07519477794B10148FC830DD1C4DA")]
     public void Table_Artifacts_Have_Stable_Hashes(string fileName, string expectedHash)
     {
         string artifactPath = Path.Combine(GetCorpusRoot(), fileName);

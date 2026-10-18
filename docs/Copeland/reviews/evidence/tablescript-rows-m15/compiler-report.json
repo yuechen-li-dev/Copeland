@@ -1,0 +1,87 @@
+{
+  "milestone": "CTS-TABLESCRIPT-ROWS-M15",
+  "sourceHashes": {
+    "src/Workbook.ts": "798a52ef50e7e06f78e80db5e8fddb7e375a2bc0190d392d13c34a7be8946ce9",
+    "src/Application.ts": "1577f3f18399aea66488f322978381c07aa235bb9ba43cca96950d2a5aedd312",
+    "src/Editing.ts": "e002f5d878097d6206e220f9ff026b1c660c5d5a072f7e4f31b364c33f18fc0a",
+    "src/PriceApplication.ts": "f73760f36ec9ab8a40bc36aeb971580ed1c3726f4a0c95006ba8bd88a7e19631",
+    "src/ExistingEditor.ts": "e3e5d4da5fb49a1f6d1861c244125c2a4a97e00cd2a62241f9a0686a04edd98a",
+    "src/Rows.ts": "bebfa7950246ea95e4068ddae9fcd39a833d64a23617c73d4aa7bdfa529d8bcb",
+    "src/RowEditor.ts": "b93d57d781d087a4c415d0d500ea44ee432a7062127a32bd1c126ebe024a928e",
+    "src/Cafe.tsx": "f6ef2c009fa34c9ac7fdf999828bc5fea8ca697c03026dbcc5dd6daf208a51f9",
+    "src/Collections.ts": "925d33c506e50f1f4863223e2d4e760c6f133d22f559392cbea08d9f9cca1e08"
+  },
+  "csharpApplicationProbe": [
+    6,
+    7,
+    42210,
+    1,
+    1,
+    1,
+    6,
+    31210,
+    0,
+    0,
+    0,
+    1,
+    11000,
+    31210
+  ],
+  "csharpTotalLimitProbe": [
+    95,
+    2136031210,
+    1
+  ],
+  "csharpEditLimitProbe": [
+    2136031210,
+    1,
+    925
+  ],
+  "outputs": [
+    {
+      "profile": "Diagnostic",
+      "files": {
+        "src/Application.js": "422cd0ea3328128b4ec9f5d2d6b214f62c8b11b6dc0d456834fbf24398431f1c",
+        "src/Cafe.js": "4bd2e67859114a7d99e7700341f9de9fb0262e68820d6ed6c599572c7bc77b6d",
+        "src/Collections.js": "5d2be3520df274412ba4c84f1cf449fbd583b0d2afe7775123431b06a2b5da6c",
+        "src/Editing.js": "d9f6cf62b77c641cc69d35614dafe3e0a9d13bc97d6e1254c2320d609008e52c",
+        "src/ExistingEditor.js": "a21a80fe6c11417596776b84e873c1abf0a83b77c363d0693e6d8fb15ad5a137",
+        "src/PriceApplication.js": "5633aee93085b952fbe68f86a418b3440a3118b300acb14e14f1d9939248d98e",
+        "src/RowEditor.js": "73dbc5c6d7ce03393e7d0f9abb33a011873bf2a86fa4b14c61ca519a63246bb9",
+        "src/Rows.js": "23fcd55ba7fc3f80c6885413dee295d6986e0848c31a624f8f7163792a2181d7",
+        "src/Workbook.js": "8dff6dabfa6be04eadd7a5f6bf90c39f3fb2a51de4b5eca8dcae9cf832d7f920",
+        "generated/layouts.css": "96824fa1d27d9a374cd5bd6534cf5bfd6fea0ecba8ff37a02f8c6d7b2de06381"
+      }
+    },
+    {
+      "profile": "Symbolic",
+      "files": {
+        "src/Application.js": "9837b3b141323c8f3b809c71181828c5819108a3b0642e1eaf26ea772c6d26c3",
+        "src/Cafe.js": "c20510e6b651300b42937d302e9320a2dcd0ede6c7e1faa46f2662005475d687",
+        "src/Collections.js": "6ddbb4da643bfd74df19d2b8a22bea8937a7804c65c5b392e07004ad939f355d",
+        "src/Editing.js": "41e2abd0c651c8d88df71cb126ecc601793baceb5b83f1b01cd52ed390555af5",
+        "src/ExistingEditor.js": "e61d2c9ce272991f949745baacd926a5ece63de3ac488725e8948be54649e9ea",
+        "src/PriceApplication.js": "aeb12313180647dc8bb981eb329803b711890d9803fd3c8023ce02b31d610b2b",
+        "src/RowEditor.js": "fa97ced5b815166a2cf9366b7a22f95ec7056106283f2e04b8f76cd70d58bf8e",
+        "src/Rows.js": "413fa688c9ccf35adcbadde73d4e9af9c14f0076d86e533b1e12a496ca310fe3",
+        "src/Workbook.js": "e7a51c00e1fc4c2d373d297fef9a93292c8bcdfbfbec3428f45cb9d671001f00",
+        "generated/layouts.css": "96824fa1d27d9a374cd5bd6534cf5bfd6fea0ecba8ff37a02f8c6d7b2de06381"
+      }
+    },
+    {
+      "profile": "Production",
+      "files": {
+        "src/Application.js": "bfb5116b3f2724df58788ebed1caf7806fdbc984b5e5e9c5467041bdeaf2db9d",
+        "src/Cafe.js": "09e36452e3b4d6f7667f4b4edd0a2f31f065add3036b3e53d607518b68b01879",
+        "src/Collections.js": "ddebc3537340ce9c2775c82eb7d85edd91f2bd5f45bbdf07cc760443e159af7a",
+        "src/Editing.js": "52f2e1f214714507112cf4de8c35a18d949d3edc453f2895c8fa1f27908fe48c",
+        "src/ExistingEditor.js": "6a4b769f818b06b1d7d7cbc08963cb1e191e69648c906ec9cdbf150a5831c823",
+        "src/PriceApplication.js": "2d30e451f10388d2b10676fc11b3316133e030d5c11120e14b4f3d133e70bbca",
+        "src/RowEditor.js": "93aa64d7ba5e60b99440e9f83ff7bef27e72d52691320f4444045587be67f264",
+        "src/Rows.js": "fc213af1fd79f17e1c4543f7ad4771ae2c00ddb1e1514f4021ef26663d756e9d",
+        "src/Workbook.js": "e139e34f825dd9dc6b60b4a7b5ca89859bd33de925e0d366125e5b0ecdb838d5",
+        "generated/layouts.css": "96824fa1d27d9a374cd5bd6534cf5bfd6fea0ecba8ff37a02f8c6d7b2de06381"
+      }
+    }
+  ]
+}

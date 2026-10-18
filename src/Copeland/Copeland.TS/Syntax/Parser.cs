@@ -3530,9 +3530,18 @@ public sealed class Parser
         CallExpressionSyntax call;
         if (Current.Kind == SyntaxKind.LessToken)
         {
-            var generic = (GenericCallExpressionSyntax)ParseGenericFunctionExpression(target);
-            typeArguments = generic.TypeArguments;
-            call = new CallExpressionSyntax(target, generic.OpenParenToken, generic.Arguments, generic.CommaTokens, generic.CloseParenToken);
+            ExpressionSyntax expression = ParseGenericFunctionExpression(target);
+            if (expression is GenericCallExpressionSyntax generic)
+            {
+                typeArguments = generic.TypeArguments;
+                call = new CallExpressionSyntax(target, generic.OpenParenToken, generic.Arguments, generic.CommaTokens, generic.CloseParenToken);
+            }
+            else
+            {
+                var reference = (GenericFunctionReferenceExpressionSyntax)expression;
+                typeArguments = reference.TypeArguments;
+                call = ParseCallExpression(target);
+            }
         }
         else
         {

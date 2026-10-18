@@ -4,6 +4,9 @@ namespace Copeland.TS.Backend.JavaScript;
 
 public static partial class JavaScriptBackend
 {
+    private const string TableCountSlot = "Symbol.for(\"copeland.ts.table-runtime.v1:count\")";
+    private static string SnapshotCount(string value) => $"{value}[{TableCountSlot}]";
+
     private enum AsyncStateKind
     {
         Statement,
@@ -1016,6 +1019,12 @@ public static partial class JavaScriptBackend
             case MirTableAggregateExpression aggregate:
                 ValidateExpression(aggregate.Receiver, functionReturnType, context, functions, catalog, diagnostics);
                 break;
+            case MirTableChangesExpression update:
+                foreach (MirExpression child in update.Children)
+                {
+                    ValidateExpression(child, functionReturnType, context, functions, catalog, diagnostics);
+                }
+                break;
             case MirTableWithRowExpression update:
                 foreach (MirExpression child in update.Children)
                 {
@@ -1928,6 +1937,7 @@ public static partial class JavaScriptBackend
     {
         MirArrayLengthExpression length => ExpressionUsesTableWith(length.Receiver),
         MirArrayElementAccessExpression access => ExpressionUsesTableWith(access.Receiver) || ExpressionUsesTableWith(access.Index),
+        MirTableChangesExpression update => true,
         MirTableWithRowExpression update => true,
         MirTableRecalculationExpression recalculation => recalculation.Inputs.Any(input => ExpressionUsesTableWith(input.Value)),
         MirTableSummaryExpression summary => ExpressionUsesTableWith(summary.Source),
@@ -1970,6 +1980,7 @@ public static partial class JavaScriptBackend
     {
         MirArrayLengthExpression length => ExpressionUsesCapturedCallables(length.Receiver),
         MirArrayElementAccessExpression access => ExpressionUsesCapturedCallables(access.Receiver) || ExpressionUsesCapturedCallables(access.Index),
+        MirTableChangesExpression update => update.Children.Any(ExpressionUsesCapturedCallables),
         MirTableWithRowExpression update => update.Children.Any(ExpressionUsesCapturedCallables),
         MirTableRecalculationExpression recalculation => recalculation.Inputs.Any(input => ExpressionUsesCapturedCallables(input.Value)),
         MirTableSummaryExpression summary => ExpressionUsesCapturedCallables(summary.Source),
@@ -2019,6 +2030,7 @@ public static partial class JavaScriptBackend
     {
         MirArrayLengthExpression length => ExpressionUsesCallables(length.Receiver),
         MirArrayElementAccessExpression access => ExpressionUsesCallables(access.Receiver) || ExpressionUsesCallables(access.Index),
+        MirTableChangesExpression update => update.Children.Any(ExpressionUsesCallables),
         MirTableWithRowExpression update => update.Children.Any(ExpressionUsesCallables),
         MirTableRecalculationExpression recalculation => recalculation.Inputs.Any(input => ExpressionUsesCallables(input.Value)),
         MirTableSummaryExpression summary => ExpressionUsesCallables(summary.Source),
@@ -2088,11 +2100,18 @@ public static partial class JavaScriptBackend
         writer.WriteLine($"const {names.TableRowTableSlot} = {TableRuntimeSymbol(names, names.TableRowTableSlot, "cope.table.row.table")};");
         writer.WriteLine($"const {names.TableRowIndexSlot} = {TableRuntimeSymbol(names, names.TableRowIndexSlot, "cope.table.row.index")};");
         writer.WriteLine();
+        writer.WriteLine("class __CopeRelationError extends Error {");
+        writer.WriteLine("    constructor(relation, duplicate, message) {");
+        writer.WriteLine("        super(message);");
+        writer.WriteLine("        this.relation = relation;");
+        writer.WriteLine("        this.duplicate = duplicate;");
+        writer.WriteLine("    }");
+        writer.WriteLine("}");
         writer.WriteLine($"function {names.ColumnValidator}(value) {{");
         writer.Indent();
         string tsonValidation = names.UsesTsonTableEncoding
             ? $" || !{names.ColumnInstances}.has(value) || !Object.prototype.hasOwnProperty.call(value, {names.ColumnValuesSlot}) || !Array.isArray(value[{names.ColumnValuesSlot}]) || !Object.isFrozen(value[{names.ColumnValuesSlot}])"
-            : " || Object.getOwnPropertySymbols(value).length !== 3";
+            : " || Object.getOwnPropertySymbols(value).length !== 4";
         writer.WriteLine($"if (typeof value !== \"object\" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, {names.ColumnCarrierToken}) || value[{names.ColumnCarrierToken}] !== {names.ColumnCarrierToken} || !Object.prototype.hasOwnProperty.call(value, {names.ColumnReadSlot}) || typeof value[{names.ColumnReadSlot}] !== \"function\"{tsonValidation}) {{");
         writer.Indent();
         writer.WriteLine($"{names.Panic}();");
@@ -2156,6 +2175,7 @@ public static partial class JavaScriptBackend
         writer.Indent();
         writer.WriteLine($"[{names.ColumnCarrierToken}]: {{ value: {names.ColumnCarrierToken}, writable: false, enumerable: false, configurable: false }},");
         writer.WriteLine("[columnToken]: { value: columnToken, writable: false, enumerable: false, configurable: false },");
+        writer.WriteLine($"[{TableCountSlot}]: {{ value: storage.length }},");
         if (names.UsesTsonTableEncoding)
         {
             writer.WriteLine($"[{names.ColumnValuesSlot}]: {{ value: storage, writable: false, enumerable: false, configurable: false }},");
@@ -2227,9 +2247,10 @@ public static partial class JavaScriptBackend
             ? Enumerable.Range(0, plan.Joins.Count + 1).Select(_ => names.NextTemporary("derived_input").ToString()).ToArray()
             : [];
         string parameters;
+        string checkedRelations = table.DerivedPlan is null ? string.Empty : names.NextTemporary("checked_relations");
         if (table.DerivedPlan is not null)
         {
-            parameters = string.Join(", ", derivedInputs);
+            parameters = string.Join(", ", derivedInputs) + ", " + checkedRelations + " = false";
         }
         else
         {
@@ -2238,7 +2259,7 @@ public static partial class JavaScriptBackend
         writer.WriteLine($"function {names.TableCreate(table)}({parameters}) {{");
         writer.Indent();
         IReadOnlyList<string> derivedColumns = table.DerivedPlan is not null
-            ? EmitDerivedColumns(writer, table, derivedInputs, catalog, results, names)
+            ? EmitDerivedColumns(writer, table, derivedInputs, checkedRelations, catalog, results, names)
             : [];
         for (int columnIndex = 0; columnIndex < table.Columns.Count; columnIndex++)
         {
@@ -2248,7 +2269,7 @@ public static partial class JavaScriptBackend
                 : derivedColumns[columnIndex];
             if (usesTableWith && table.DerivedPlan is null)
             {
-                string sourceValues = $"Array.from({{ length: {table.RowCount} }}, (_, index) => source[{names.TableColumnSlot(column)}][{names.ColumnReadSlot}](index).$payload[0])";
+                string sourceValues = $"Array.from({{ length: {SnapshotCount("source")} }}, (_, index) => source[{names.TableColumnSlot(column)}][{names.ColumnReadSlot}](index).$payload[0])";
                 writer.WriteLine(IsProduction(names)
                     ? $"const {names.TableStorage(column)} = replacements[{columnIndex}] ?? (source === null ? {values} : {sourceValues});"
                     : $"const {names.TableStorage(column)} = Object.freeze(replacements[{columnIndex}] ?? (source === null ? {values} : {sourceValues}));");
@@ -2262,7 +2283,7 @@ public static partial class JavaScriptBackend
             if (IsProduction(names))
             {
                 MirResultType columnResult = new(column.ElementType, new MirNamedType("TableBoundsError"));
-                writer.WriteLine($"const {names.TableColumnValue(column)} = __cope_table_trusted_column({names.TableColumnToken(column)}, {names.TableStorage(column)}, {table.RowCount}, {names.TypeToken(results.Get(columnResult))});");
+                writer.WriteLine($"const {names.TableColumnValue(column)} = __cope_table_trusted_column({names.TableColumnToken(column)}, {names.TableStorage(column)}, {names.TableStorage(column)}.length, {names.TypeToken(results.Get(columnResult))});");
                 continue;
             }
             writer.WriteLine($"const {names.TableColumnValue(column)} = Object.create(null);");
@@ -2270,13 +2291,14 @@ public static partial class JavaScriptBackend
             writer.Indent();
             writer.WriteLine($"[{names.ColumnCarrierToken}]: {{ value: {names.ColumnCarrierToken}, writable: false, enumerable: false, configurable: false }},");
             writer.WriteLine($"[{names.TableColumnToken(column)}]: {{ value: {names.TableColumnToken(column)}, writable: false, enumerable: false, configurable: false }},");
+            writer.WriteLine($"[{TableCountSlot}]: {{ value: {names.TableStorage(column)}.length }},");
             if (names.UsesTsonTableEncoding)
             {
                 writer.WriteLine($"[{names.ColumnValuesSlot}]: {{ value: {names.TableStorage(column)}, writable: false, enumerable: false, configurable: false }},");
             }
             writer.WriteLine($"[{names.ColumnReadSlot}]: {{ value: (index) => {{");
             writer.Indent();
-            EmitBoundsCheckedResult(writer, "index", table.RowCount, column.ElementType, results, names, boundsError, boundsErrorToken, $"{names.TableStorage(column)}[index]");
+            EmitBoundsCheckedResult(writer, "index", names.TableStorage(column) + ".length", column.ElementType, results, names, boundsError, boundsErrorToken, $"{names.TableStorage(column)}[index]");
             writer.Unindent();
             writer.WriteLine("}, writable: false, enumerable: false, configurable: false },");
             writer.Unindent();
@@ -2288,20 +2310,29 @@ public static partial class JavaScriptBackend
             }
         }
 
+        foreach (MirTableColumnDefinition column in table.Columns.Skip(1))
+        {
+            writer.WriteLine($"if ({names.TableStorage(column)}.length !== {names.TableStorage(table.Columns[0])}.length) throw new Error(\"Table snapshot has misaligned columns.\");");
+        }
+        if (usesTableWith && table.DerivedPlan is null)
+        {
+            writer.WriteLine($"if (source !== null && {names.TableStorage(table.Columns[0])}.length !== {SnapshotCount("source")}) throw new Error(\"Table replacement must preserve snapshot row count.\");");
+        }
         writer.WriteLine("const value = Object.create(null);");
         writer.WriteLine("Object.defineProperties(value, {");
         writer.Indent();
         writer.WriteLine($"[{names.TableTypeToken(table)}]: {{ value: {names.TableTypeToken(table)}, writable: false, enumerable: false, configurable: false }},");
+        writer.WriteLine($"[{TableCountSlot}]: {{ value: {names.TableStorage(table.Columns[0])}.length }},");
         writer.WriteLine($"[{names.TableRowReadSlot(table)}]: {{ value: (index) => {{");
         writer.Indent();
         MirResultType rowResult = new(new MirTableRowType(table.RowTypeId, table.Name + ".Row"), new MirNamedType("TableBoundsError"));
         if (IsProduction(names))
         {
-            writer.WriteLine($"return __cope_table_trusted_read(index, {table.RowCount}, {names.TypeToken(results.Get(rowResult))}, null, {names.TableRowTypeToken(table)}, value);");
+            writer.WriteLine($"return __cope_table_trusted_read(index, {names.TableStorage(table.Columns[0])}.length, {names.TypeToken(results.Get(rowResult))}, null, {names.TableRowTypeToken(table)}, value);");
         }
         else
         {
-            EmitBoundsCheckedResult(writer, "index", table.RowCount, rowResult.SuccessType, results, names, boundsError, boundsErrorToken, $"{names.TableCreateRow(table)}(value, index)");
+            EmitBoundsCheckedResult(writer, "index", names.TableStorage(table.Columns[0]) + ".length", rowResult.SuccessType, results, names, boundsError, boundsErrorToken, $"{names.TableCreateRow(table)}(value, index)");
         }
         writer.Unindent();
         writer.WriteLine("}, writable: false, enumerable: false, configurable: false },");
@@ -2337,7 +2368,7 @@ public static partial class JavaScriptBackend
         writer.Indent();
         string tableValidation = names.UsesTsonTableEncoding
             ? $"if (typeof value !== \"object\" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !{names.TableInstances(table)}.has(value) || !Object.prototype.hasOwnProperty.call(value, {names.TableTypeToken(table)}) || value[{names.TableTypeToken(table)}] !== {names.TableTypeToken(table)} || !Object.prototype.hasOwnProperty.call(value, {names.TableRowReadSlot(table)}) || typeof value[{names.TableRowReadSlot(table)}] !== \"function\") {{"
-            : $"if (typeof value !== \"object\" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, {names.TableTypeToken(table)}) || value[{names.TableTypeToken(table)}] !== {names.TableTypeToken(table)} || !Object.prototype.hasOwnProperty.call(value, {names.TableRowReadSlot(table)}) || typeof value[{names.TableRowReadSlot(table)}] !== \"function\" || Object.getOwnPropertySymbols(value).length !== {table.Columns.Count + 2}) {{";
+            : $"if (typeof value !== \"object\" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, {names.TableTypeToken(table)}) || value[{names.TableTypeToken(table)}] !== {names.TableTypeToken(table)} || !Object.prototype.hasOwnProperty.call(value, {names.TableRowReadSlot(table)}) || typeof value[{names.TableRowReadSlot(table)}] !== \"function\" || Object.getOwnPropertySymbols(value).length !== {table.Columns.Count + 3}) {{";
         writer.WriteLine(tableValidation);
         writer.Indent();
         writer.WriteLine($"{names.Panic}();");
@@ -2369,7 +2400,7 @@ public static partial class JavaScriptBackend
     private static void EmitBoundsCheckedResult(
         JavaScriptTextWriter writer,
         string index,
-        int rowCount,
+        string rowCount,
         MirType successType,
         ResultCatalog results,
         GeneratedNames names,
@@ -2391,7 +2422,7 @@ public static partial class JavaScriptBackend
                 boundsError,
                 boundsError.Definition.Cases.Single(candidate => string.Equals(candidate.Name, "OutOfBounds", StringComparison.Ordinal)),
                 names,
-                [index, rowCount.ToString(System.Globalization.CultureInfo.InvariantCulture)])
+                [index, rowCount])
             : $"{names.MakeValue}({boundsErrorToken}, \"OutOfBounds\", [{index}, {rowCount}])";
         writer.WriteLine($"if (!Number.isFinite({index}) || !Number.isInteger({index})) {{");
         writer.Indent();
@@ -3680,6 +3711,7 @@ public static partial class JavaScriptBackend
             MirRecordConstructionExpression construction => EmitRecordConstruction(construction, function, catalog, results, names, flowEnabled),
             MirRecordFieldAccessExpression access => EmitRecordFieldAccess(access, function, catalog, results, names, flowEnabled),
             MirTableReferenceExpression reference => EmittedExpression.ValueOnly(names.TableSingleton(catalog.GetTable(reference.TableId))),
+            MirTableChangesExpression changes => EmitTableChanges(changes, function, catalog, results, names, flowEnabled),
             MirTableWithRowExpression update => EmitTableWithRow(update, function, catalog, results, names, flowEnabled),
             MirTableRecalculationExpression recalculation => EmitTableRecalculation(recalculation, function, catalog, results, names, flowEnabled),
             MirTableSummaryExpression summary => EmitTableSummary(summary, function, catalog, results, names, flowEnabled),
@@ -3734,7 +3766,7 @@ public static partial class JavaScriptBackend
         {
             $"const {inputName} = {input.Value};",
             $"const {outputName} = [];",
-            $"for (let {indexName} = 0; {indexName} < {tableDefinition.RowCount}; {indexName} += 1) {{",
+            $"for (let {indexName} = 0; {indexName} < {SnapshotCount(inputName)}; {indexName} += 1) {{",
             $"const {rowName} = {names.TableCreateRow(tableDefinition)}({inputName}, {indexName});",
         };
         foreach (MirExpression predicate in predicates)
@@ -3776,7 +3808,7 @@ public static partial class JavaScriptBackend
         string indexName = names.NextTemporary("table_index");
         string rowName = JavaScriptIdentifierEncoder.Encode(loop.Local.Name);
         writer.WriteLine($"const {inputName} = {input.Value};");
-        writer.WriteLine($"for (let {indexName} = 0; {indexName} < {tableDefinition.RowCount}; {indexName} += 1) {{");
+        writer.WriteLine($"for (let {indexName} = 0; {indexName} < {SnapshotCount(inputName)}; {indexName} += 1) {{");
         writer.Indent();
         writer.WriteLine($"const {rowName} = {names.TableCreateRow(tableDefinition)}({inputName}, {indexName});");
         foreach (MirExpression predicate in predicates)
@@ -3811,7 +3843,7 @@ public static partial class JavaScriptBackend
         string read = $"{inputName}[{names.ColumnReadSlot}]({indexName}).$payload[0]";
         if (aggregate.Kind == MirTableAggregateKind.Count)
         {
-            return new EmittedExpression(receiver.Prelude, table.RowCount.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            return new EmittedExpression(receiver.Prelude, SnapshotCount(receiver.Value));
         }
 
         string initial = aggregate.Kind switch
@@ -3824,8 +3856,12 @@ public static partial class JavaScriptBackend
         {
             $"const {inputName} = {receiver.Value};",
             $"let {resultName} = {initial};",
-            $"for (let {indexName} = {start}; {indexName} < {table.RowCount}; {indexName} += 1) {{",
+            $"for (let {indexName} = {start}; {indexName} < {SnapshotCount(inputName)}; {indexName} += 1) {{",
         };
+        if (aggregate.Kind is MirTableAggregateKind.Min or MirTableAggregateKind.Max or MirTableAggregateKind.Average)
+        {
+            lines.Insert(1, $"if ({SnapshotCount(inputName)} === 0) throw new Error(\"Aggregate requires a nonempty column; guard with count().\");");
+        }
         switch (aggregate.Kind)
         {
             case MirTableAggregateKind.Sum:
@@ -3841,7 +3877,7 @@ public static partial class JavaScriptBackend
         }
         lines.Add("}");
         lines.Add(aggregate.Kind == MirTableAggregateKind.Average
-            ? $"return {resultName} / {table.RowCount};"
+            ? $"return {resultName} / {SnapshotCount(inputName)};"
             : $"return {resultName};");
         return new EmittedExpression(receiver.Prelude, "(() => { " + string.Join(" ", lines) + " })()");
     }
@@ -5559,7 +5595,7 @@ public static partial class JavaScriptBackend
         return expression switch
         {
             MirPropagateExpression or MirUnwrapExpression or MirResultMatchExpression or MirTryExpression
-                or MirTableWithRowExpression or MirTableRecalculationExpression or MirTableSummaryExpression => true,
+                or MirTableWithRowExpression or MirTableChangesExpression or MirTableRecalculationExpression or MirTableSummaryExpression => true,
             MirUnaryExpression unary => ContainsControlFlow(unary.Operand),
             MirRecordConstructionExpression or MirRecordFieldAccessExpression or MirRecordWithExpression or MirTableWithExpression => true,
             MirReactElementExpression element => ContainsControlFlow(element.ElementType)
@@ -5602,6 +5638,7 @@ public static partial class JavaScriptBackend
         {
         MirArrayLengthExpression length => ExpressionUsesTryExcept(length.Receiver),
         MirArrayElementAccessExpression access => ExpressionUsesTryExcept(access.Receiver) || ExpressionUsesTryExcept(access.Index),
+        MirTableChangesExpression update => update.Children.Any(ExpressionUsesTryExcept),
         MirTableWithRowExpression update => update.Children.Any(ExpressionUsesTryExcept),
         MirTableRecalculationExpression recalculation => recalculation.Inputs.Any(input => ExpressionUsesTryExcept(input.Value)),
         MirTableSummaryExpression summary => ExpressionUsesTryExcept(summary.Source),
@@ -5686,6 +5723,7 @@ public static partial class JavaScriptBackend
         {
         MirArrayLengthExpression length => ExpressionUsesUnwrap(length.Receiver),
         MirArrayElementAccessExpression access => ExpressionUsesUnwrap(access.Receiver) || ExpressionUsesUnwrap(access.Index),
+        MirTableChangesExpression update => update.Children.Any(ExpressionUsesUnwrap),
         MirTableWithRowExpression update => update.Children.Any(ExpressionUsesUnwrap),
         MirTableRecalculationExpression recalculation => recalculation.Inputs.Any(input => ExpressionUsesUnwrap(input.Value)),
         MirTableSummaryExpression summary => ExpressionUsesUnwrap(summary.Source),
@@ -6137,6 +6175,9 @@ public static partial class JavaScriptBackend
                     break;
                 case MirTableAggregateExpression aggregate:
                     Add(aggregate.Receiver);
+                    break;
+                case MirTableChangesExpression update:
+                    foreach (MirExpression child in update.Children) Add(child);
                     break;
                 case MirTableWithRowExpression update:
                     foreach (MirExpression child in update.Children) Add(child);

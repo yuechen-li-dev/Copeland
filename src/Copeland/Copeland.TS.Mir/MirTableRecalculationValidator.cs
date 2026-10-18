@@ -9,8 +9,11 @@ public static partial class MirValidator
     {
         if (!tables.TryGetValue(recalculation.TableId, out MirTableDefinition? target)
             || target.DerivedPlan is null
-            || recalculation.Type is not MirTableType resultType
-            || resultType.TableId != target.Id)
+            || recalculation.TableType.TableId != target.Id
+            || !MirTypeFacts.AreEquivalent(recalculation.Type, (MirType?)recalculation.CheckedResult ?? recalculation.TableType)
+            || (recalculation.CheckedResult is { } checkedResult
+                && (checkedResult.SuccessType is not MirTableType success || success.TableId != target.Id
+                    || checkedResult.ErrorType is not MirNamedType { Identifier: "TableRelationError" })))
         {
             diagnostics.Add(new MirValidationDiagnostic("Recalculation requires a declared derived table and its exact result type."));
             return;

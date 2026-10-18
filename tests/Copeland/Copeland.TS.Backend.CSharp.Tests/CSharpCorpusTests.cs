@@ -43,7 +43,7 @@ public sealed class CSharpCorpusTests
 
         Assert.Contains("internal abstract int Count { get; }", source, StringComparison.Ordinal);
         Assert.Contains("internal override int Count => _values.Length;", source, StringComparison.Ordinal);
-        Assert.Equal("D9C8291EC48B7440A69E8F3BED37C4A7EA285384188F976DD310FEE26496369D", hash);
+        Assert.Equal("0886F3233C83434B495FB6B5E67DBB61D9C54A35E817BA24F0F7F97F561C2FF5", hash);
     }
 
     [Fact]

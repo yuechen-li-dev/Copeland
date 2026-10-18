@@ -30,14 +30,19 @@ export function editableProduct(view: WorkbookView, productId: int): EditablePro
 }
 
 // This café's price policy belongs to the application, never the text parser.
-export function setPrice(products: Products, productId: int, cents: int): Products ! PriceError {
+export function validatePrice(productId: int, cents: int): int ! PriceError {
     if (cents < 0) {
         return err(PriceError.NegativePrice(productId, cents));
     }
     if (cents > 1000000) {
         return err(PriceError.PriceTooLarge(productId, cents));
     }
-    return match products.withRow({ id: productId }, { costCents: cents }) {
+    return ok(cents);
+}
+
+export function setPrice(products: Products, productId: int, cents: int): Products ! PriceError {
+    const validated: int = validatePrice(productId, cents)?;
+    return match products.withRow({ id: productId }, { costCents: validated }) {
         ok(updated) => ok(updated),
         err(error) => err(PriceError.UnknownProduct(productId)),
     };

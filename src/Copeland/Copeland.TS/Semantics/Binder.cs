@@ -229,6 +229,7 @@ public static partial class Binder
             BindSchemaMetadata(_tree.Root);
             PredeclareTableBoundsError();
             PredeclareTableKeyError();
+            PredeclareTableChangeErrors();
             PredeclareTsonEncodeError();
             AnalyzeAliasTypeNameCollisions(_tree.Root);
             PredeclareInterfaces(_tree.Root);
@@ -290,7 +291,7 @@ public static partial class Binder
             {
                 if (m is FunctionDeclarationSyntax f && f.TypeParameters.Count == 0 && (f.GenericParameters?.Values.Count ?? 0) == 0
                     && !_functions.Any(function => ReferenceEquals(function.Symbol, _globalLookup(f.Identifier.Text)))) _functions.Add(BindFunction(f));
-                else if (m is EnumDeclarationSyntax e && e.Identifier.Text is not ("TableBoundsError" or "TableKeyError") && _enumTypes.TryGetValue(e.Identifier.Text, out var enumType)) _enums.Add(new BoundEnumDeclaration(enumType));
+                else if (m is EnumDeclarationSyntax e && e.Identifier.Text is not ("TableBoundsError" or "TableKeyError" or "TableEditError" or "TableRelationError") && _enumTypes.TryGetValue(e.Identifier.Text, out var enumType)) _enums.Add(new BoundEnumDeclaration(enumType));
                 else if (m is NominalUnionDeclarationSyntax union && _enumTypes.TryGetValue(union.Identifier.Text, out var unionType)) _enums.Add(new BoundEnumDeclaration(unionType));
                 else if (m is RecordDeclarationSyntax r && r.GenericParameters is null && _recordTypes.TryGetValue(r.Identifier.Text, out var recordType)) _records.Add(new BoundRecordDeclaration(recordType));
                 else if (m is ClassDeclarationSyntax c && _classTypes.TryGetValue(c.Identifier.Text, out var classType)) _records.Add(new BoundRecordDeclaration(classType));
@@ -311,6 +312,8 @@ public static partial class Binder
                 _enums.Insert(0, new BoundEnumDeclaration(_tableBoundsErrorType));
 
             }
+            if (_usesTableEditError) _enums.Insert(0, new BoundEnumDeclaration(_tableEditErrorType!));
+            if (_usesTableRelationError) _enums.Insert(0, new BoundEnumDeclaration(_tableRelationErrorType!));
             if (_usesTableKeyError)
             {
                 _enums.Insert(0, new BoundEnumDeclaration(_tableKeyErrorType!));
@@ -1367,6 +1370,8 @@ public static partial class Binder
 
         private EnumTypeSymbol UseEnumType(EnumTypeSymbol enumType)
         {
+            if (enumType == _tableEditErrorType) _usesTableEditError = true;
+            if (enumType == _tableRelationErrorType) _usesTableRelationError = true;
             if (enumType == _tableKeyErrorType)
             {
                 _usesTableKeyError = true;
@@ -3508,7 +3513,7 @@ public static partial class Binder
                     Report(name == "tsonEncode" ? "COPE-TSON-ENCODE-0001" : "COPE-TSON-ASSET-0001", $"'{name}' is a compiler intrinsic and cannot be redefined.", m.Identifier);
                     continue;
                 }
-                if (m.Identifier.Text is "TableBoundsError" or "TableKeyError")
+                if (m.Identifier.Text is "TableBoundsError" or "TableKeyError" or "TableEditError" or "TableRelationError")
                 {
                     Report("COPE-TABLE-0002", $"'{m.Identifier.Text}' is a compiler-owned table error enum.", m.Identifier);
                     continue;
@@ -3538,7 +3543,7 @@ public static partial class Binder
         {
             foreach (var decl in root.Members.OfType<EnumDeclarationSyntax>())
             {
-                if (decl.Identifier.Text is "TableBoundsError" or "TableKeyError")
+                if (decl.Identifier.Text is "TableBoundsError" or "TableKeyError" or "TableEditError" or "TableRelationError")
                 {
                     continue;
                 }
@@ -7785,6 +7790,9 @@ public static partial class Binder
                 case BoundRecordFieldAccessExpression access:
                     ValidateBatchBodyEffects(access.Receiver, anchor);
                     return;
+                case BoundTableChangesExpression rowUpdate:
+                    foreach (BoundExpression child in rowUpdate.Children) ValidateBatchBodyEffects(child, anchor);
+                    return;
                 case BoundTableWithRowExpression rowUpdate:
                     foreach (BoundExpression child in rowUpdate.Children) ValidateBatchBodyEffects(child, anchor);
                     return;
@@ -8473,19 +8481,29 @@ public static partial class Binder
                 }
             }
 
+            if (c.Target is MemberAccessExpressionSyntax { Target: NameExpressionSyntax tablesName, NameToken.Text: "apply" } apply
+                && tablesName.IdentifierToken.Text == "Tables" && _globalLookup("Tables") is null)
+            {
+                return BindTableChanges(c, apply.NameToken);
+            }
+
             if (c.Target is MemberAccessExpressionSyntax tableMember
                 && (tableMember.Target is not NameExpressionSyntax tableTargetName
                     || (!_classTypes.ContainsKey(tableTargetName.IdentifierToken.Text)
                         && !_enumTypes.ContainsKey(tableTargetName.IdentifierToken.Text))))
             {
                 BoundExpression tableReceiver = BindExpression(tableMember.Target);
+                if (tableReceiver.Type is TableTypeSymbol && tableMember.NameToken.Text is "insertRow" or "deleteRow")
+                {
+                    return Fail("COPE-CHANGE-0003", "Use row change descriptions directly inside Tables.apply(inputRecord, { field: [changes] }).", tableMember.NameToken);
+                }
                 if (tableReceiver.Type is TableTypeSymbol editedType
                     && tableMember.NameToken.Text == "withRow")
                 {
                     return BindTableWithRow(c, tableMember, tableReceiver, editedType);
                 }
                 if (tableReceiver.Type is TableTypeSymbol recalculatedType
-                    && tableMember.NameToken.Text == "recalculate")
+                    && tableMember.NameToken.Text is "recalculate" or "tryRecalculate")
                 {
                     return BindTableRecalculation(c, tableMember, tableReceiver, recalculatedType);
                 }
@@ -8830,7 +8848,8 @@ public static partial class Binder
                 Report("COPE-TABLE-0029", "average is supported only for number columns; convert int values explicitly before averaging.", member.NameToken);
                 return new BoundErrorExpression();
             }
-            if (column.TableType.RowCount == 0)
+            if (kind != TableAggregateKind.Sum && column.TableType.RowCount == 0
+                && column.Receiver is BoundTableReferenceExpression)
             {
                 Report(
                     "COPE-TABLE-0030",
@@ -11453,6 +11472,20 @@ public static partial class Binder
 
         private sealed class ClosedInstantiationRewriter(BinderImpl owner, IReadOnlyDictionary<TypeSymbol, TypeSymbol> substitutions)
         {
+            private BoundTableChangesExpression RewriteTableChanges(BoundTableChangesExpression changes)
+            {
+                var record = (RecordTypeSymbol)owner.SubstituteType(changes.Record, substitutions);
+                var fields = record.Fields.ToDictionary(field => field.Name, StringComparer.Ordinal);
+                return new BoundTableChangesExpression(RewriteExpression(changes.Source), record,
+                    changes.Fields.Select(field => fields[field.Name]).ToArray(),
+                    changes.Operations.Select(operation => operation with
+                    {
+                        Field = fields[operation.Field.Name],
+                        Row = operation.Row is null ? null : RewriteExpression(operation.Row),
+                        Values = operation.Values.Select(value => new BoundTableCellReplacement(value.Column, RewriteExpression(value.Value))).ToArray(),
+                    }).ToArray(), (ResultTypeSymbol)owner.SubstituteType(changes.Type, substitutions));
+            }
+
             private readonly Dictionary<VariableSymbol, VariableSymbol> _variables = [];
             private BoundArrayExpression RewriteInitializer(BoundArrayExpression array)
             {
@@ -11555,10 +11588,11 @@ public static partial class Binder
                 BoundTableRecalculationExpression recalculation => new BoundTableRecalculationExpression(
                     recalculation.TableType,
                     recalculation.Inputs.Select(input => new BoundTableRecalculationInput(input.TableType, RewriteExpression(input.Value))).ToArray(),
-                    recalculation.Steps),
+                    recalculation.Steps, recalculation.CheckedResult),
                 BoundTableColumnAccessExpression access => new BoundTableColumnAccessExpression(RewriteExpression(access.Receiver), access.TableType, access.Column),
                 BoundTableRowAccessExpression access => new BoundTableRowAccessExpression(RewriteExpression(access.Receiver), RewriteExpression(access.Index), access.TableType, (ResultTypeSymbol)SubstituteType(access.Type, substitutions)),
                 BoundColumnElementAccessExpression access => new BoundColumnElementAccessExpression(RewriteExpression(access.Receiver), RewriteExpression(access.Index), (ResultTypeSymbol)SubstituteType(access.Type, substitutions)),
+                BoundTableChangesExpression changes => RewriteTableChanges(changes),
                 BoundTableWithRowExpression update => new BoundTableWithRowExpression(
                     RewriteExpression(update.Source), update.TableType, update.KeyColumn, RewriteExpression(update.Key),
                     update.Replacements.Select(field => new BoundTableCellReplacement(field.Column, RewriteExpression(field.Value))).ToArray(),

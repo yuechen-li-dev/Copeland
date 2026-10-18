@@ -64,8 +64,9 @@ ordinary fields by declared key; neither operation changes table cardinality. Ke
 existing checks. If selected snapshots are incompatible at a declared join, the
 existing compiled join guard fails with its relation name instead of substituting zero
 or dropping rows. A failed calculation also preserves the global workbook.
-Coordinated key rewrites and a typed Result for cross-snapshot join failures are
-not implemented in this slice.
+Coordinated key rewrites remain separate. The later
+[variable-row pass](copeland-ts-table-changes.md) adds runtime-sized input
+snapshots and `tryRecalculate` with typed join failures and explicit dependencies.
 
 The [café workbook](../../../samples/copeland-ts/tablescript-friction-m12/Workbook/Workbook.ts)
 has preview functions for the plan, totals, and supplier summaries. The

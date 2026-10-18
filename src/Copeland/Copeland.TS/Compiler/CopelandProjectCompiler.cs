@@ -363,7 +363,7 @@ public static class CopelandProjectCompiler
                 .ToHashSet(StringComparer.Ordinal);
             string visibleSource = EmbeddedSourceBlockScanner.MaskBodies(module.Source.SourceText);
             SyntaxToken[] tokens = SyntaxTree.ParseTokens(visibleSource).Tokens.ToArray();
-            CompilationUnitSyntax syntax = SyntaxTree.Parse(visibleSource).Root;
+            CompilationUnitSyntax syntax = SyntaxTree.Parse(visibleSource, module.Source.SourcePath).Root;
             IReadOnlySet<int> nonCallIdentifiers = NonCallIdentifierPositions(syntax);
             IReadOnlySet<int> genericParameterIdentifiers = GenericParameterIdentifierPositions(syntax);
             foreach (var pair in functions)
@@ -662,7 +662,7 @@ public static class CopelandProjectCompiler
             .GroupBy(@enum => @enum.Name, StringComparer.Ordinal))
         {
             if ((group.Key.StartsWith("__CopeOption_", StringComparison.Ordinal)
-                    || group.Key is "TableBoundsError" or "TableKeyError")
+                    || group.Key is "TableBoundsError" or "TableKeyError" or "TableEditError" or "TableRelationError")
                 && group.Skip(1).All(candidate => OptionEnumShapeEquals(group.First(), candidate)))
             {
                 result.Add(group.First());

@@ -67,6 +67,7 @@ public static partial class CSharpBackend
         public int TryIndex { get; set; }
     }
 
+    private static readonly AsyncLocal<IReadOnlyDictionary<MirTableId, MirTableDefinition>?> CurrentTables = new();
     private static readonly AsyncLocal<CSharpEmissionState?> CurrentEmissionState = new();
     private static readonly AsyncLocal<string?> CurrentSourcePath = new();
     private static readonly AsyncLocal<CSharpEmissionOptions?> CurrentOptions = new();
@@ -183,6 +184,8 @@ public static partial class CSharpBackend
         CurrentSourcePath.Value = program.CSharpSourcePath;
         CSharpEmissionOptions? previousOptions = CurrentOptions.Value;
         CurrentOptions.Value = options;
+        var previousTables = CurrentTables.Value;
+        CurrentTables.Value = program.Tables.ToDictionary(table => table.Id);
         bool previousNativeStrings = UsesNativeStrings.Value;
         UsesNativeStrings.Value = false;
         bool previousIntegerRuntime = UsesIntegerRuntime.Value;
@@ -300,6 +303,7 @@ public static partial class CSharpBackend
         }
         finally
         {
+            CurrentTables.Value = previousTables;
             CurrentSourcePath.Value = previousSourcePath;
             CurrentOptions.Value = previousOptions;
             UsesNativeStrings.Value = previousNativeStrings;
@@ -905,6 +909,11 @@ public static partial class CSharpBackend
 
     private static void EmitColumnSupport(CSharpTextWriter writer)
     {
+        writer.WriteLine("internal sealed class __CopeRelationException(string relation, bool duplicate, string message) : global::System.InvalidOperationException(message)");
+        writer.WriteLine("{");
+        writer.WriteLine("    internal string Relation { get; } = relation;");
+        writer.WriteLine("    internal bool Duplicate { get; } = duplicate;");
+        writer.WriteLine("}");
         writer.WriteLine("public abstract class CopeColumn<T>");
         writer.WriteLine("{");
         writer.Indent();
@@ -942,7 +951,7 @@ public static partial class CSharpBackend
             writer.Unindent();
             writer.WriteLine("}");
             writer.WriteLine();
-            EmitBoundsCheckedElementAccess(writer, column.ElementType, "_values", table.RowCount);
+            EmitBoundsCheckedElementAccess(writer, column.ElementType, "_values", "_values.Length");
             if (table.IsExported)
             {
                 writer.WriteLine();
@@ -986,7 +995,7 @@ public static partial class CSharpBackend
         writer.WriteLine($"public sealed class {tableType}");
         writer.WriteLine("{");
         writer.Indent();
-        writer.WriteLine($"internal int Count => {table.RowCount};");
+        writer.WriteLine($"internal int Count => {TableStorageName(table.Columns[0].Id)}.Length;");
         writer.WriteLine();
         foreach (var column in table.Columns)
         {
@@ -1009,6 +1018,10 @@ public static partial class CSharpBackend
             ? string.Empty
             : string.Join(", ", new[] { TableTypeName(table.DerivedPlan.SourceTableId) + " source" }
                 .Concat(table.DerivedPlan.Joins.Select(join => TableTypeName(join.JoinedTableId) + " " + DerivedJoinParameterName(join))));
+        if (table.DerivedPlan is not null)
+        {
+            createParameters += ", bool " + DerivedCheckParameterName(table) + " = false";
+        }
         writer.WriteLine($"internal static {tableType} Create({createParameters})");
         writer.WriteLine("{");
         writer.Indent();
@@ -1078,8 +1091,8 @@ public static partial class CSharpBackend
                 writer.WriteLine($"for (int {rowIndexName} = 0; {rowIndexName} < {parameter}.Count; {rowIndexName}++)");
                 writer.WriteLine("{");
                 writer.Indent();
-                writer.WriteLine($"if (!{indexName}.TryAdd({parameter}.{TableReadMethodName(join.JoinedLookupColumnId)}({rowIndexName}), {rowIndexName}))");
-                writer.WriteLine($"throw new global::System.InvalidOperationException(\"Derived join '{join.Alias}' requires unique lookup values.\");");
+                EmitRelationGuard(writer, $"!{indexName}.TryAdd({parameter}.{TableReadMethodName(join.JoinedLookupColumnId)}({rowIndexName}), {rowIndexName})",
+                    DerivedCheckParameterName(table), join.Alias, true, $"Derived join '{join.Alias}' requires unique lookup values.");
                 writer.Unindent();
                 writer.WriteLine("}");
             }
@@ -1093,8 +1106,8 @@ public static partial class CSharpBackend
                 string indexName = CSharpNameMangler.Mangle(join.Alias) + "Index";
                 string joinedRowIndex = CSharpNameMangler.Mangle(join.Alias) + "RowIndex";
                 string lookupAlias = CSharpNameMangler.Mangle(join.LookupAlias);
-                writer.WriteLine($"if (!{indexName}.TryGetValue({lookupAlias}.{TableRowFieldName(join.LookupColumnId)}, out int {joinedRowIndex}))");
-                writer.WriteLine($"throw new global::System.InvalidOperationException(\"Derived join '{join.Alias}' could not resolve its declared reference.\");");
+                EmitRelationGuard(writer, $"!{indexName}.TryGetValue({lookupAlias}.{TableRowFieldName(join.LookupColumnId)}, out int {joinedRowIndex})",
+                    DerivedCheckParameterName(table), join.Alias, false, $"Derived join '{join.Alias}' could not resolve its declared reference.");
                 writer.WriteLine($"var {CSharpNameMangler.Mangle(join.Alias)} = {parameter}.GetRow({joinedRowIndex}).Value;");
             }
             var executionContext = new MirFunction("__derived_table", [], new MirNamedType("void"), [], []);
@@ -1127,6 +1140,7 @@ public static partial class CSharpBackend
                 writer.WriteLine($"internal {tableType} {TableWithColumnMethodName(replacementColumn.Id)}({MapType(replacementColumn.ElementType)}[] values)");
                 writer.WriteLine("{");
                 writer.Indent();
+                writer.WriteLine("if (values.Length != Count) throw new global::System.InvalidOperationException(\"Table replacement must preserve snapshot row count.\");");
                 writer.WriteLine($"return new {tableType}(");
                 writer.Indent();
                 for (int index = 0; index < table.Columns.Count; index++)
@@ -1166,9 +1180,13 @@ public static partial class CSharpBackend
                 writer.WriteLine("}");
             }
         }
+        if (supportsTableWith && table.DerivedPlan is null && table.KeyColumnId is not null)
+        {
+            EmitTableCardinalityMethods(writer, table);
+        }
         if (table.IsExported)
         {
-            writer.WriteLine($"public int RowCount => {table.RowCount};");
+            writer.WriteLine("public int RowCount => Count;");
         }
         foreach (var column in table.Columns)
         {
@@ -1195,10 +1213,10 @@ public static partial class CSharpBackend
         writer.WriteLine("return CopeResult<" + rowType + ", TableBoundsError>.Err(new TableBoundsError.InvalidIndex(index));");
         writer.Unindent();
         writer.WriteLine("}");
-        writer.WriteLine($"if (index < 0 || index >= {table.RowCount.ToString(global::System.Globalization.CultureInfo.InvariantCulture)})");
+        writer.WriteLine($"if (index < 0 || index >= Count)");
         writer.WriteLine("{");
         writer.Indent();
-        writer.WriteLine("return CopeResult<" + rowType + ", TableBoundsError>.Err(new TableBoundsError.OutOfBounds(index, " + table.RowCount.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".0));");
+        writer.WriteLine("return CopeResult<" + rowType + ", TableBoundsError>.Err(new TableBoundsError.OutOfBounds(index, " + "Count" + "));");
         writer.Unindent();
         writer.WriteLine("}");
         writer.WriteLine("return CopeResult<" + rowType + ", TableBoundsError>.Ok(new " + rowType + "(this, (int)index));");
@@ -1218,7 +1236,7 @@ public static partial class CSharpBackend
         CSharpTextWriter writer,
         MirType elementType,
         string storage,
-        int rowCount,
+        string rowCount,
         string accessibility = "internal override")
     {
         string elementTypeName = MapType(elementType);
@@ -1231,10 +1249,10 @@ public static partial class CSharpBackend
         writer.WriteLine($"return CopeResult<{elementTypeName}, TableBoundsError>.Err(new TableBoundsError.InvalidIndex(index));");
         writer.Unindent();
         writer.WriteLine("}");
-        writer.WriteLine($"if (index < 0 || index >= {rowCount.ToString(global::System.Globalization.CultureInfo.InvariantCulture)})");
+        writer.WriteLine($"if (index < 0 || index >= {rowCount})");
         writer.WriteLine("{");
         writer.Indent();
-        writer.WriteLine($"return CopeResult<{elementTypeName}, TableBoundsError>.Err(new TableBoundsError.OutOfBounds(index, {rowCount.ToString(global::System.Globalization.CultureInfo.InvariantCulture)}.0));");
+        writer.WriteLine($"return CopeResult<{elementTypeName}, TableBoundsError>.Err(new TableBoundsError.OutOfBounds(index, {rowCount}));");
         writer.Unindent();
         writer.WriteLine("}");
         writer.WriteLine($"return CopeResult<{elementTypeName}, TableBoundsError>.Ok({storage}[(int)index]);");
@@ -1960,6 +1978,7 @@ public static partial class CSharpBackend
             MirBatchExpression batch => EmitBatchExpression(writer, batch, function, enumNames, ref tempIndex, diagnostics),
             MirRecordConstructionExpression construction => EmitRecordConstruction(writer, construction, function, enumNames, ref tempIndex, diagnostics),
             MirRecordFieldAccessExpression access => EmitRecordFieldAccess(writer, access, function, enumNames, ref tempIndex, diagnostics),
+            MirTableChangesExpression changes => EmitTableChanges(writer, changes, function, enumNames, ref tempIndex, diagnostics),
             MirTableWithRowExpression update => EmitTableWithRow(writer, update, function, enumNames, ref tempIndex, diagnostics),
             MirTableWithExpression withExpression => EmitTableWith(writer, withExpression, function, enumNames, ref tempIndex, diagnostics),
             MirRecordWithExpression withExpression => EmitRecordWith(writer, withExpression, function, enumNames, ref tempIndex, diagnostics),
@@ -2152,6 +2171,10 @@ public static partial class CSharpBackend
         }
 
         string valueType = MapType(aggregate.Type);
+        if (aggregate.Kind is MirTableAggregateKind.Min or MirTableAggregateKind.Max or MirTableAggregateKind.Average)
+        {
+            writer.WriteLine($"if ({column}.Count == 0) throw new global::System.InvalidOperationException(\"Aggregate requires a nonempty column; guard with count().\");");
+        }
         string value = "__cope_column_value_" + id;
         string result = "__cope_column_result_" + id;
         string initializer = aggregate.Kind is MirTableAggregateKind.Sum or MirTableAggregateKind.Average
@@ -2362,6 +2385,7 @@ public static partial class CSharpBackend
             MirTableSelectExpression select => Children([select.Source, select.Projector]),
             MirRecordConstructionExpression record => Children(record.Initializers.Select(initializer => initializer.Value)),
             MirRecordFieldAccessExpression access => EnumerateCallableConstructions(access.Receiver),
+            MirTableChangesExpression update => Children(update.Children),
             MirTableWithRowExpression update => Children(update.Children),
             MirTableWithExpression update => Children([update.Source, .. update.Replacements.Select(replacement => (MirExpression)replacement.Value)]),
             MirRecordWithExpression update => Children([update.Source, .. update.Replacements.Select(replacement => replacement.Value)]),
@@ -3626,6 +3650,7 @@ public static partial class CSharpBackend
                 || ExpressionUsesArrayElementAccess(batch.Body.ValueExpression),
             MirRecordConstructionExpression record => record.Initializers.Any(initializer => ExpressionUsesArrayElementAccess(initializer.Value)),
             MirRecordFieldAccessExpression access => ExpressionUsesArrayElementAccess(access.Receiver),
+            MirTableChangesExpression update => update.Children.Any(ExpressionUsesArrayElementAccess),
             MirTableWithRowExpression update => update.Children.Any(ExpressionUsesArrayElementAccess),
             MirTableWithExpression update => ExpressionUsesArrayElementAccess(update.Source) || update.Replacements.Any(replacement => ExpressionUsesArrayElementAccess(replacement.Value)),
             MirRecordWithExpression update => ExpressionUsesArrayElementAccess(update.Source) || update.Replacements.Any(replacement => ExpressionUsesArrayElementAccess(replacement.Value)),
@@ -3688,6 +3713,7 @@ public static partial class CSharpBackend
             MirTableRowAccessExpression access => ExpressionUsesTableWith(access.Receiver) || ExpressionUsesTableWith(access.Index),
             MirColumnElementAccessExpression access => ExpressionUsesTableWith(access.Receiver) || ExpressionUsesTableWith(access.Index),
             MirTableRowFieldAccessExpression access => ExpressionUsesTableWith(access.Receiver),
+            MirTableChangesExpression => true,
             MirTableWithRowExpression => true,
             MirTableWithExpression => true,
             MirAssignmentExpression assignment => ExpressionUsesTableWith(assignment.Expression),
@@ -3739,6 +3765,7 @@ public static partial class CSharpBackend
             MirArrayExpression array => array.Elements.Any(ExpressionUsesBatch),
             MirRecordConstructionExpression construction => construction.Initializers.Any(initializer => ExpressionUsesBatch(initializer.Value)),
             MirRecordFieldAccessExpression access => ExpressionUsesBatch(access.Receiver),
+            MirTableChangesExpression update => update.Children.Any(ExpressionUsesBatch),
             MirTableWithRowExpression update => update.Children.Any(ExpressionUsesBatch),
             MirTableWithExpression update => ExpressionUsesBatch(update.Source) || update.Replacements.Any(replacement => ExpressionUsesBatch(replacement.Value)),
             MirRecordWithExpression update => ExpressionUsesBatch(update.Source) || update.Replacements.Any(replacement => ExpressionUsesBatch(replacement.Value)),
@@ -3780,6 +3807,7 @@ public static partial class CSharpBackend
     private static bool ExpressionUsesSystemTextJson(MirExpression expression)
         => expression switch
         {
+            MirTableChangesExpression update => update.Children.Any(ExpressionUsesSystemTextJson),
             MirTableWithRowExpression update => update.Children.Any(ExpressionUsesSystemTextJson),
             MirTableRecalculationExpression recalculation => recalculation.Inputs.Any(input => ExpressionUsesSystemTextJson(input.Value)),
             MirTableSummaryExpression summary => ExpressionUsesSystemTextJson(summary.Source),
@@ -3820,6 +3848,7 @@ public static partial class CSharpBackend
     private static bool ExpressionUsesTsonTransport(MirExpression expression)
         => expression switch
         {
+            MirTableChangesExpression update => update.Children.Any(ExpressionUsesTsonTransport),
             MirTableWithRowExpression update => update.Children.Any(ExpressionUsesTsonTransport),
             MirTableRecalculationExpression recalculation => recalculation.Inputs.Any(input => ExpressionUsesTsonTransport(input.Value)),
             MirTableSummaryExpression summary => ExpressionUsesTsonTransport(summary.Source),
@@ -3884,6 +3913,7 @@ public static partial class CSharpBackend
             MirArrayExpression array => array.Elements.Any(ExpressionUsesUnwrap),
             MirRecordConstructionExpression construction => construction.Initializers.Any(initializer => ExpressionUsesUnwrap(initializer.Value)),
             MirRecordFieldAccessExpression access => ExpressionUsesUnwrap(access.Receiver),
+            MirTableChangesExpression update => update.Children.Any(ExpressionUsesUnwrap),
             MirTableWithRowExpression update => update.Children.Any(ExpressionUsesUnwrap),
             MirTableWithExpression withExpression => ExpressionUsesUnwrap(withExpression.Source) || withExpression.Replacements.Any(replacement => ExpressionUsesUnwrap(replacement.Value)),
             MirRecordWithExpression withExpression => ExpressionUsesUnwrap(withExpression.Source) || withExpression.Replacements.Any(replacement => ExpressionUsesUnwrap(replacement.Value)),
@@ -3961,6 +3991,7 @@ public static partial class CSharpBackend
             MirArrayLengthExpression length => EnumerateTableQueryTypes(length.Receiver),
             MirArrayElementAccessExpression access => EnumerateTableQueryTypes(access.Receiver).Concat(EnumerateTableQueryTypes(access.Index)),
             MirNumericConversionExpression conversion => EnumerateTableQueryTypes(conversion.Operand),
+            MirTableChangesExpression update => update.Children.SelectMany(EnumerateTableQueryTypes),
             MirTableWithRowExpression update => update.Children.SelectMany(EnumerateTableQueryTypes),
             MirTableSummaryExpression summary => EnumerateTableQueryTypes(summary.Source),
             MirTableRecalculationExpression recalculation => recalculation.Inputs.SelectMany(input => EnumerateTableQueryTypes(input.Value)),
@@ -3995,6 +4026,7 @@ public static partial class CSharpBackend
             MirTableSummaryExpression => true,
             MirTableRecalculationExpression => true,
             MirTableSelectExpression => true,
+            MirTableChangesExpression => true,
             MirTableWithRowExpression => true,
             MirTableWithExpression => true,
             MirRecordWithExpression => true,

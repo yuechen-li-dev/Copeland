@@ -2,7 +2,7 @@
 type Cents = int;
 type Units = int;
 
-enum Purchasing {
+export enum Purchasing {
     Active,
     Paused,
 }

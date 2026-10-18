@@ -49,6 +49,10 @@ export function calculate(inputs: WorkbookInputs): WorkbookView {
         Stock: inputs.stock,
         Suppliers: inputs.suppliers,
     });
+    return viewFromPlan(inputs, plan);
+}
+
+export function viewFromPlan(inputs: WorkbookInputs, plan: PurchasePlan): WorkbookView {
     return {
         inputs,
         plan,

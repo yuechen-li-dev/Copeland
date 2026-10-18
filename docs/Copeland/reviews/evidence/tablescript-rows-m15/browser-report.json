@@ -1,0 +1,2480 @@
+{
+  "milestone": "CTS-TABLESCRIPT-ROWS-M15",
+  "nodeVersion": "v26.2.0",
+  "browserVersion": "155.0.4283.45",
+  "errors": [],
+  "observations": [
+    {
+      "profile": "diagnostic",
+      "width": 1280,
+      "probe": [
+        6,
+        7,
+        42210,
+        1,
+        1,
+        1,
+        6,
+        31210,
+        0,
+        0,
+        0,
+        1,
+        11000,
+        31210
+      ],
+      "limits": {
+        "creation": [
+          95,
+          2136031210,
+          1
+        ],
+        "editing": [
+          2136031210,
+          1,
+          925
+        ]
+      },
+      "baseline": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "count": "6",
+        "selected": "Espresso beans · 100",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "added": {
+        "cents": "42210",
+        "units": "89",
+        "lines": "4",
+        "count": "7",
+        "selected": "House chocolate · 106",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          },
+          {
+            "id": "106",
+            "stock": "2",
+            "price": "5.00",
+            "cents": "11000"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "duplicate": {
+        "cents": "42210",
+        "units": "89",
+        "lines": "4",
+        "count": "7",
+        "selected": "House chocolate · 106",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          },
+          {
+            "id": "106",
+            "stock": "2",
+            "price": "5.00",
+            "cents": "11000"
+          }
+        ],
+        "errors": [
+          "Products already contains key 106."
+        ],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "edited": {
+        "cents": "43810",
+        "units": "88",
+        "lines": "4",
+        "count": "7",
+        "selected": "House chocolate · 106",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          },
+          {
+            "id": "106",
+            "stock": "3",
+            "price": "6.00",
+            "cents": "12600"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "removed": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "count": "6",
+        "selected": null,
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "unrelated": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "count": "5",
+        "selected": "Earl Grey · 102",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "empty": {
+        "cents": "0",
+        "units": "0",
+        "lines": "0",
+        "count": "0",
+        "selected": null,
+        "rows": [],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "restored": {
+        "cents": "11000",
+        "units": "22",
+        "lines": "1",
+        "count": "1",
+        "selected": "House chocolate · 107",
+        "rows": [
+          {
+            "id": "107",
+            "stock": "2",
+            "price": "5.00",
+            "cents": "11000"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "reset": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "count": "6",
+        "selected": "Espresso beans · 100",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "globalCents": 31210
+    },
+    {
+      "profile": "diagnostic",
+      "width": 390,
+      "probe": [
+        6,
+        7,
+        42210,
+        1,
+        1,
+        1,
+        6,
+        31210,
+        0,
+        0,
+        0,
+        1,
+        11000,
+        31210
+      ],
+      "limits": {
+        "creation": [
+          95,
+          2136031210,
+          1
+        ],
+        "editing": [
+          2136031210,
+          1,
+          925
+        ]
+      },
+      "baseline": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "count": "6",
+        "selected": "Espresso beans · 100",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "added": {
+        "cents": "42210",
+        "units": "89",
+        "lines": "4",
+        "count": "7",
+        "selected": "House chocolate · 106",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          },
+          {
+            "id": "106",
+            "stock": "2",
+            "price": "5.00",
+            "cents": "11000"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "duplicate": {
+        "cents": "42210",
+        "units": "89",
+        "lines": "4",
+        "count": "7",
+        "selected": "House chocolate · 106",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          },
+          {
+            "id": "106",
+            "stock": "2",
+            "price": "5.00",
+            "cents": "11000"
+          }
+        ],
+        "errors": [
+          "Products already contains key 106."
+        ],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "edited": {
+        "cents": "43810",
+        "units": "88",
+        "lines": "4",
+        "count": "7",
+        "selected": "House chocolate · 106",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          },
+          {
+            "id": "106",
+            "stock": "3",
+            "price": "6.00",
+            "cents": "12600"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "removed": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "count": "6",
+        "selected": null,
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "unrelated": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "count": "5",
+        "selected": "Earl Grey · 102",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "empty": {
+        "cents": "0",
+        "units": "0",
+        "lines": "0",
+        "count": "0",
+        "selected": null,
+        "rows": [],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "restored": {
+        "cents": "11000",
+        "units": "22",
+        "lines": "1",
+        "count": "1",
+        "selected": "House chocolate · 107",
+        "rows": [
+          {
+            "id": "107",
+            "stock": "2",
+            "price": "5.00",
+            "cents": "11000"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "reset": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "count": "6",
+        "selected": "Espresso beans · 100",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "globalCents": 31210
+    },
+    {
+      "profile": "symbolic",
+      "width": 1280,
+      "probe": [
+        6,
+        7,
+        42210,
+        1,
+        1,
+        1,
+        6,
+        31210,
+        0,
+        0,
+        0,
+        1,
+        11000,
+        31210
+      ],
+      "limits": {
+        "creation": [
+          95,
+          2136031210,
+          1
+        ],
+        "editing": [
+          2136031210,
+          1,
+          925
+        ]
+      },
+      "baseline": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "count": "6",
+        "selected": "Espresso beans · 100",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "added": {
+        "cents": "42210",
+        "units": "89",
+        "lines": "4",
+        "count": "7",
+        "selected": "House chocolate · 106",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          },
+          {
+            "id": "106",
+            "stock": "2",
+            "price": "5.00",
+            "cents": "11000"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "duplicate": {
+        "cents": "42210",
+        "units": "89",
+        "lines": "4",
+        "count": "7",
+        "selected": "House chocolate · 106",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          },
+          {
+            "id": "106",
+            "stock": "2",
+            "price": "5.00",
+            "cents": "11000"
+          }
+        ],
+        "errors": [
+          "Products already contains key 106."
+        ],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "edited": {
+        "cents": "43810",
+        "units": "88",
+        "lines": "4",
+        "count": "7",
+        "selected": "House chocolate · 106",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          },
+          {
+            "id": "106",
+            "stock": "3",
+            "price": "6.00",
+            "cents": "12600"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "removed": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "count": "6",
+        "selected": null,
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "unrelated": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "count": "5",
+        "selected": "Earl Grey · 102",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "empty": {
+        "cents": "0",
+        "units": "0",
+        "lines": "0",
+        "count": "0",
+        "selected": null,
+        "rows": [],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "restored": {
+        "cents": "11000",
+        "units": "22",
+        "lines": "1",
+        "count": "1",
+        "selected": "House chocolate · 107",
+        "rows": [
+          {
+            "id": "107",
+            "stock": "2",
+            "price": "5.00",
+            "cents": "11000"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "reset": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "count": "6",
+        "selected": "Espresso beans · 100",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "globalCents": 31210
+    },
+    {
+      "profile": "symbolic",
+      "width": 390,
+      "probe": [
+        6,
+        7,
+        42210,
+        1,
+        1,
+        1,
+        6,
+        31210,
+        0,
+        0,
+        0,
+        1,
+        11000,
+        31210
+      ],
+      "limits": {
+        "creation": [
+          95,
+          2136031210,
+          1
+        ],
+        "editing": [
+          2136031210,
+          1,
+          925
+        ]
+      },
+      "baseline": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "count": "6",
+        "selected": "Espresso beans · 100",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "added": {
+        "cents": "42210",
+        "units": "89",
+        "lines": "4",
+        "count": "7",
+        "selected": "House chocolate · 106",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          },
+          {
+            "id": "106",
+            "stock": "2",
+            "price": "5.00",
+            "cents": "11000"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "duplicate": {
+        "cents": "42210",
+        "units": "89",
+        "lines": "4",
+        "count": "7",
+        "selected": "House chocolate · 106",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          },
+          {
+            "id": "106",
+            "stock": "2",
+            "price": "5.00",
+            "cents": "11000"
+          }
+        ],
+        "errors": [
+          "Products already contains key 106."
+        ],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "edited": {
+        "cents": "43810",
+        "units": "88",
+        "lines": "4",
+        "count": "7",
+        "selected": "House chocolate · 106",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          },
+          {
+            "id": "106",
+            "stock": "3",
+            "price": "6.00",
+            "cents": "12600"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "removed": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "count": "6",
+        "selected": null,
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "unrelated": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "count": "5",
+        "selected": "Earl Grey · 102",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "empty": {
+        "cents": "0",
+        "units": "0",
+        "lines": "0",
+        "count": "0",
+        "selected": null,
+        "rows": [],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "restored": {
+        "cents": "11000",
+        "units": "22",
+        "lines": "1",
+        "count": "1",
+        "selected": "House chocolate · 107",
+        "rows": [
+          {
+            "id": "107",
+            "stock": "2",
+            "price": "5.00",
+            "cents": "11000"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "reset": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "count": "6",
+        "selected": "Espresso beans · 100",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "globalCents": 31210
+    },
+    {
+      "profile": "production",
+      "width": 1280,
+      "probe": [
+        6,
+        7,
+        42210,
+        1,
+        1,
+        1,
+        6,
+        31210,
+        0,
+        0,
+        0,
+        1,
+        11000,
+        31210
+      ],
+      "limits": {
+        "creation": [
+          95,
+          2136031210,
+          1
+        ],
+        "editing": [
+          2136031210,
+          1,
+          925
+        ]
+      },
+      "baseline": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "count": "6",
+        "selected": "Espresso beans · 100",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "added": {
+        "cents": "42210",
+        "units": "89",
+        "lines": "4",
+        "count": "7",
+        "selected": "House chocolate · 106",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          },
+          {
+            "id": "106",
+            "stock": "2",
+            "price": "5.00",
+            "cents": "11000"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "duplicate": {
+        "cents": "42210",
+        "units": "89",
+        "lines": "4",
+        "count": "7",
+        "selected": "House chocolate · 106",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          },
+          {
+            "id": "106",
+            "stock": "2",
+            "price": "5.00",
+            "cents": "11000"
+          }
+        ],
+        "errors": [
+          "Products already contains key 106."
+        ],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "edited": {
+        "cents": "43810",
+        "units": "88",
+        "lines": "4",
+        "count": "7",
+        "selected": "House chocolate · 106",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          },
+          {
+            "id": "106",
+            "stock": "3",
+            "price": "6.00",
+            "cents": "12600"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "removed": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "count": "6",
+        "selected": null,
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "unrelated": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "count": "5",
+        "selected": "Earl Grey · 102",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "empty": {
+        "cents": "0",
+        "units": "0",
+        "lines": "0",
+        "count": "0",
+        "selected": null,
+        "rows": [],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "restored": {
+        "cents": "11000",
+        "units": "22",
+        "lines": "1",
+        "count": "1",
+        "selected": "House chocolate · 107",
+        "rows": [
+          {
+            "id": "107",
+            "stock": "2",
+            "price": "5.00",
+            "cents": "11000"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "reset": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "count": "6",
+        "selected": "Espresso beans · 100",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "globalCents": 31210
+    },
+    {
+      "profile": "production",
+      "width": 390,
+      "probe": [
+        6,
+        7,
+        42210,
+        1,
+        1,
+        1,
+        6,
+        31210,
+        0,
+        0,
+        0,
+        1,
+        11000,
+        31210
+      ],
+      "limits": {
+        "creation": [
+          95,
+          2136031210,
+          1
+        ],
+        "editing": [
+          2136031210,
+          1,
+          925
+        ]
+      },
+      "baseline": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "count": "6",
+        "selected": "Espresso beans · 100",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "added": {
+        "cents": "42210",
+        "units": "89",
+        "lines": "4",
+        "count": "7",
+        "selected": "House chocolate · 106",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          },
+          {
+            "id": "106",
+            "stock": "2",
+            "price": "5.00",
+            "cents": "11000"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "duplicate": {
+        "cents": "42210",
+        "units": "89",
+        "lines": "4",
+        "count": "7",
+        "selected": "House chocolate · 106",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          },
+          {
+            "id": "106",
+            "stock": "2",
+            "price": "5.00",
+            "cents": "11000"
+          }
+        ],
+        "errors": [
+          "Products already contains key 106."
+        ],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "edited": {
+        "cents": "43810",
+        "units": "88",
+        "lines": "4",
+        "count": "7",
+        "selected": "House chocolate · 106",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          },
+          {
+            "id": "106",
+            "stock": "3",
+            "price": "6.00",
+            "cents": "12600"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "removed": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "count": "6",
+        "selected": null,
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "unrelated": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "count": "5",
+        "selected": "Earl Grey · 102",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "empty": {
+        "cents": "0",
+        "units": "0",
+        "lines": "0",
+        "count": "0",
+        "selected": null,
+        "rows": [],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "restored": {
+        "cents": "11000",
+        "units": "22",
+        "lines": "1",
+        "count": "1",
+        "selected": "House chocolate · 107",
+        "rows": [
+          {
+            "id": "107",
+            "stock": "2",
+            "price": "5.00",
+            "cents": "11000"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "reset": {
+        "cents": "31210",
+        "units": "67",
+        "lines": "3",
+        "count": "6",
+        "selected": "Espresso beans · 100",
+        "rows": [
+          {
+            "id": "100",
+            "stock": "4",
+            "price": "9.25",
+            "cents": "18500"
+          },
+          {
+            "id": "101",
+            "stock": "10",
+            "price": "7.50",
+            "cents": "0"
+          },
+          {
+            "id": "102",
+            "stock": "2",
+            "price": "3.10",
+            "cents": "4960"
+          },
+          {
+            "id": "103",
+            "stock": "5",
+            "price": "2.50",
+            "cents": "7750"
+          },
+          {
+            "id": "104",
+            "stock": "8",
+            "price": "4.80",
+            "cents": "0"
+          },
+          {
+            "id": "105",
+            "stock": "0",
+            "price": "11.00",
+            "cents": "0"
+          }
+        ],
+        "errors": [],
+        "overflow": false,
+        "missingDescriptions": []
+      },
+      "globalCents": 31210
+    }
+  ]
+}

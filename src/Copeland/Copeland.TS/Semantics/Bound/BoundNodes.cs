@@ -2090,12 +2090,13 @@ public sealed class BoundTableRowsExpression(BoundExpression table, TableTypeSym
 public sealed class BoundTableRecalculationExpression(
     TableTypeSymbol tableType,
     IReadOnlyList<BoundTableRecalculationInput> inputs,
-    IReadOnlyList<BoundTableRecalculationStep> steps) : BoundExpression
+    IReadOnlyList<BoundTableRecalculationStep> steps, ResultTypeSymbol? checkedResult = null) : BoundExpression
 {
     public TableTypeSymbol TableType { get; } = tableType;
     public IReadOnlyList<BoundTableRecalculationInput> Inputs { get; } = inputs;
     public IReadOnlyList<BoundTableRecalculationStep> Steps { get; } = steps;
-    public override TypeSymbol Type => TableType;
+    public ResultTypeSymbol? CheckedResult { get; } = checkedResult;
+    public override TypeSymbol Type => (TypeSymbol?)CheckedResult ?? TableType;
 }
 
 public sealed record BoundTableRecalculationInput(TableTypeSymbol TableType, BoundExpression Value);
@@ -2154,6 +2155,22 @@ public sealed class BoundTableColumnReplacement(TableColumnSymbol column, BoundA
     public BoundArrayExpression Value { get; } = value;
 }
 public sealed record BoundTableCellReplacement(TableColumnSymbol Column, BoundExpression Value);
+public sealed record BoundTableChangeOperation(RecordFieldSymbol Field, TableTypeSymbol Table, bool Insert,
+    BoundExpression? Row, IReadOnlyList<BoundTableCellReplacement> Values)
+{
+    public IEnumerable<BoundExpression> Children => Row is null ? Values.Select(value => value.Value) : [Row];
+}
+public sealed class BoundTableChangesExpression(BoundExpression source, RecordTypeSymbol record,
+    IReadOnlyList<RecordFieldSymbol> fields, IReadOnlyList<BoundTableChangeOperation> operations,
+    ResultTypeSymbol resultType) : BoundExpression
+{
+    public BoundExpression Source { get; } = source;
+    public RecordTypeSymbol Record { get; } = record;
+    public IReadOnlyList<RecordFieldSymbol> Fields { get; } = fields;
+    public IReadOnlyList<BoundTableChangeOperation> Operations { get; } = operations;
+    public IEnumerable<BoundExpression> Children => new[] { Source }.Concat(Operations.SelectMany(operation => operation.Children));
+    public override TypeSymbol Type => resultType;
+}
 public sealed class BoundTableWithRowExpression(
     BoundExpression source,
     TableTypeSymbol tableType,
