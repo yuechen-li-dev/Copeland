@@ -16,6 +16,7 @@ canonical bound/MIR fact; it does not imply every runtime ecosystem is present.
 | Enums, payload enums, `match` / accepted `switch` forms | Bounded | Yes | Yes | Yes | diagnostics/compile |
 | Transparent aliases, erased interfaces, bounded generics | Bounded | Yes | erased | erased | diagnostics/compile |
 | `Result`, `?`, `!`, `try` / `except` | Bounded | Yes | Yes | Yes | diagnostics/compile |
+| `Option<T>`, optional record fields, `?.`, `??` | Bounded | Yes | Yes | Yes | diagnostics/compile |
 | Arrays, TSON values/assets, record tables | Bounded | Yes | Yes | Yes | TSON/table tools |
 | Templates and static evaluation | Bounded | Yes | C# generation | generated artifacts | template tooling |
 | Typed source artifacts | Preview M0 supported | `CopelandTS`, `CopelandTest`, `CSharp`; explicit identifier imports | Roslyn syntax validation | Copeland module/test parsing; nested TS-XML | outer-template diagnostics; rich embedded LSP deferred |
@@ -41,8 +42,9 @@ canonical bound/MIR fact; it does not imply every runtime ecosystem is present.
 - Vue, Svelte, Lit, Blazor, native renderer integration, SSR, hydration,
   portals, and public deployment.
 - General TypeScript/JavaScript compatibility, dynamic objects, `any`, host
-  globals, decorators, structural unions, optional properties, tuple types,
-  optional chaining, `null`, and normal `undefined` values.
+  globals, decorators, structural unions, tuple types, `null`, and normal
+  `undefined` values. Optional fields, `?.`, and `??` apply only to typed
+  `Option` values; they do not add JavaScript nullish semantics.
 - Browser effect execution and broader flow push/pop/goto semantics.
 - General table mutation/query/iteration, JSON as a language model, database
   or dataframe semantics, and renderer-owned component subtrees.

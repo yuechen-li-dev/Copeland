@@ -1,26 +1,32 @@
 # Games
 
-Games own their rules, authored agents, content, save schemas and proof scenarios. Aurelian owns reusable runtime services under `src/Aurelian` and platform integrations under `src/Integrations`.
+This directory contains playable applications and game-owned domain code. Games own their rules, authored agents, content, save schemas, and proof scenarios. Aurelian owns reusable runtime services under `src/Aurelian` and platform integrations under `src/Integrations`.
 
-New games implement `IGame` and call `GameApp.Run(game, args)`. The [game shell](../docs/Aurelian/game-shell.md) supplies the window and resolution, title/pause/settings menus, key rebinding, audio volume, pause on focus loss, saves and headless/native playtesting. The starter runs on it; the older games below still have their own bootstraps.
+## Start a new game
+
+For a new C# game, begin with the [composable game starter](../docs/Aurelian/game-starter.md). It references `src/Integrations/Aurelian.Games/Aurelian.Games.csproj`, selects concepts with `GameStarter.Run`, and uses the shared [game shell](../docs/Aurelian/game-shell.md). The shell's `IGame`/`GameApp.Run` path supplies menus, settings, save integration, audio, input, and native or headless playtesting. The checked-in [starter application](Starter/Aurelian.Starter/Program.cs) is the runnable example; use `starter.cmd` to launch it.
+
+The concepts currently cover a first/third-person 3D shooter foundation. The starter guide lists supported fragments and their bounds. Existing Sunkill, TinyFarm, Mossward, Beacon Run, and CharacterLab applications keep their specialized bootstraps and game-owned behavior; their presence here does not mean they have all migrated to `IGame` or become reusable engine modules.
+
+## Run an existing application
+
+Run launchers from the repository root. The table identifies the project entry point and the checked-in launcher where one exists.
 
 | Game | Application | Launch |
 | --- | --- | --- |
-| Sunkill | `Sunkill/Aurelian.Ariadne.VnDemo` | `Play-Sunkill.cmd` |
+| Sunkill visual novel | `Sunkill/Aurelian.Ariadne.VnDemo` | `Play-Sunkill.cmd` |
 | Beacon Run | `Beacon3D/Aurelian.Beacon3D` | `beacon3d.cmd` |
 | Mossward strategy | `Strategy/Aurelian.StrategyDemo` | `dotnet run --project Games/Strategy/Aurelian.StrategyDemo -c Release` |
 | TinyFarm | `TinyFarm/TinyFarm.Native` | `Play-TinyFarm.cmd` |
 | Composable starter | `Starter/Aurelian.Starter` | `starter.cmd` |
 | Character animation lab | `CharacterLab/Aurelian.CharacterLab` | `characterlab.cmd` |
-| Cloudstep (3D platformer) | `Cloudstep/Cloudstep` | `cloudstep.cmd` |
-| Hearth (fire and smoke showcase) | `Hearth/Hearth` | `hearth.cmd` |
+| Cloudstep 3D platformer | `Cloudstep/Cloudstep` | `cloudstep.cmd` |
+| Hearth fire and smoke showcase | `Hearth/Hearth` | `hearth.cmd` |
 
-Use `humanoid-starter.cmd` for the playable humanoid variant of the starter.
-The [character guide](../docs/Aurelian/humanoid-animation.md) covers replaceable
-clips, named joint attachments, GPU presentation and full starter save/replay.
+Use `humanoid-starter.cmd` for the starter's playable humanoid variant. The [character guide](../docs/Aurelian/humanoid-animation.md) covers replaceable clips, named joint attachments, GPU presentation, and starter save/replay. Use `starter.cmd --asset-demo` for the textured GLB example; the [static asset guide](../docs/Aurelian/static-assets.md) covers Blender authoring, materials, instances, delivery, and explicit replacement.
 
-Each game's tests live alongside its application. TinyFarm's CLI, playtesting adapter, Oblivion adapter and example scripts also live under its game directory. Project names and public namespaces are preserved.
+## Graphics and playtesting
 
-See the [starter API guide](../docs/Aurelian/game-starter.md) for a small C# entry point, concept composition, customization and automated playtesting.
+The [3D graphics starter guide](../docs/Aurelian/graphics-starter.md) documents the shared host's lighting, shadow, HDR, gallery, and proof paths. Run `graphics-gallery.cmd` from the repository root to compare the basic and modern rendering presets. The gallery and proof qualify specific local Vulkan paths; their presence does not imply support or performance on every device.
 
-Use `starter.cmd --asset-demo` for the textured GLB example. The [static asset guide](../docs/Aurelian/static-assets.md) covers Blender authoring, materials, instances, delivery and explicit replacement.
+Each game's tests live alongside its application. TinyFarm's CLI, playtesting adapter, Oblivion adapter, and example scripts also live under its game directory. For shared shell playtests, see the [game shell contract](../docs/Aurelian/game-shell.md); for other engine-owned playtest APIs, start with the [Aurelian documentation index](../docs/Aurelian/README.md). Project names and public namespaces are preserved.

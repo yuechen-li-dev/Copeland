@@ -1,5 +1,7 @@
 # Oblivion CLI baseline (M19j)
 
+> Historical command snapshot: later milestones expanded the CLI command tree. For current commands and a first workflow, use [the current architecture and run guide](architecture.md) and verify details in `src/Oblivion/Oblivion.Cli/OblivionCli.cs`.
+
 ## Ownership and topology
 
 `src/Oblivion/Oblivion.Cli` is the first-class `oblivion` executable. It references

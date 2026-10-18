@@ -1,11 +1,15 @@
 # Copeland documentation
 
-## Current authoring truth
+## Start authoring
+
+[Authoring entry point](authoring/README.md) routes new authors to a maintained
+project template, explains the .NET and TSPack workspace lanes, and identifies
+which references define current status and accepted syntax.
 
 [Copeland TypeScript authoring guide](authoring/copeland-typescript-guide.md)
-is the **canonical current user-facing language guide**. Start there to write
-Copeland TS. It supersedes older language-profile summaries for authoring
-guidance.
+is the detailed syntax and semantics guide. Use it together with the current
+[feature status](reference/feature-status.md); the guide contains examples and
+milestone-scoped notes, so it is not by itself a release/status matrix.
 
 [Language overview](language/overview.md),
 [feature status](reference/feature-status.md), and the
@@ -52,7 +56,8 @@ provide current qualification commands, output lifetimes, and CI checks.
 
 ## Historical and design records
 
-`architecture/`, `language/`, `history/`, `docs/decisions/`, and
-`docs/migrations/` preserve design decisions and milestone evidence. They may
-describe an earlier implementation boundary. They are not a second current
-authoring specification; the canonical guide above owns that role.
+`history/`, `reviews/`, milestone-suffixed documents, `docs/decisions/`, and
+`docs/migrations/` preserve design decisions and evidence. Some documents in
+`language/` and `architecture/` are current focused references; others are
+design or milestone records. Prefer the current pages linked above and check
+their status labels before treating older records as implementation claims.

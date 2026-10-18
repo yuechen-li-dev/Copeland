@@ -18,6 +18,7 @@ fixture directories are the tested syntax authority. Status follows the
 | Pattern matching | `match`, accepted switch-alias forms | binder exhaustiveness/type rules; `BoundMatchExpression` | C#/JS | match fixtures; no general structural patterns | Bounded |
 | Structured control | `if`, `while`, `for`, `break`, `continue`, `return` | parser/binder/MIR | C#/JS | control-flow fixtures; boolean conditions only | Stable |
 | Fallibility | `Result`, `?`, `!`, `try` / `except`, `ok`/`err` | binder and Result MIR | C#/JS | fallibility fixtures; runtime boundary differs by backend | Bounded |
+| Optional values | `Option<T>`, `Some`, `None`, optional record fields, `?.`, `??` | binder and Option value model | C#/JS | option reference and `Language/Valid/absence` fixtures; no ambient `null`/`undefined` | Bounded |
 | Arrays / TSON | array values, typed TSON/assets | `Tson/*`; canonical reader/printer/schema | C#/JS | TSON corpus; no general JSON language API | Bounded |
 | Record tables | `record table`, table `with`, rows/columns | binder/table MIR + TSON canonical model | C#/JS | table fixtures and `tables.md`; immutable, no query/mutation API | Bounded |
 | Templates/static | templates and static project assets | `Templates/*`, manifest compiler | generated C#/artifacts | template docs; not dynamic browser templates | Bounded |
@@ -60,7 +61,8 @@ specific normalized domain phase and has a named owner in the
 
 The parser/diagnostics intentionally recognize several familiar spellings so
 they can be rejected clearly: `var`, `eval`, `null`, `===`, `!==`, ternary
-`?:`, optional chaining, tuple types, optional fields, `try`/`catch`, inline
-structural unions, readonly arrays, default parameters, general objects, and
-dynamic types. Recognition is not implementation. See
+`?:`, tuple types, `try`/`catch`, inline structural unions, readonly arrays,
+default parameters, general objects, and dynamic types. Recognition is not
+implementation. Optional fields, `?.`, and `??` are bounded to `Option<T>`;
+they do not enable ambient `null` or `undefined`. See
 [diagnostics](reference/diagnostics.md) and the invalid language fixtures.

@@ -1,13 +1,35 @@
 # Copeland TypeScript authoring guide
 
-> **Canonical current guide.** This is the user-facing source of truth for
-> Copeland TS in M1. Milestone records and architecture decisions are historical
-> context; they do not override this guide.
+> **Language reference.** This guide collects Copeland TS authoring rules and
+> examples. Some sections retain the milestone label under which they were
+> established; those labels are evidence lineage, not a claim that the entire
+> current language is at that milestone. Check the [current feature status](../reference/feature-status.md)
+> for support boundaries and the [language fixture corpus](#canonical-language-fixture-corpus)
+> for accepted and rejected syntax specimens. The
+> [authoring entry point](README.md) explains the supported project routes.
 
 Copeland is for authors who already know TypeScript. Keep its readable
 declarations, functions, generics, modules, `async`/`await`, object-literal
 notation, and `for...of`. Replace JavaScript's open-ended runtime assumptions
 with explicit, portable language rules.
+
+## Navigate this guide
+
+- [First SDK project and runnable example](#quick-start-in-an-sdk-project)
+- [xUnit and .tsxtest](#xunit-tests)
+- [Numbers and explicit conversion](#numeric-types-and-conversion)
+- [Records and immutable updates](#records-and-object-shape)
+- [Option values](#optional-values-use-optiont)
+- [Interfaces and generics](#interfaces-are-constraints-not-storage-types)
+- [Module and host boundaries](#modules-local-npm-and-clr-are-different-domains)
+- [Async](#async), [arrays](#arrays), and [generators](#generators)
+- [Flow/state](#flowstate)
+- [Deliberate incompatibilities](#intentional-incompatibilities)
+- [Compiler rejection and repair](#when-the-compiler-rejects-ordinary-typescript)
+
+For UI layout, TableScript and newer framework ownership features, use the
+[focused reference map](../README.md#focused-current-references) after the core
+language rules below. Return to [Start authoring](README.md) to choose a project.
 
 ## Copeland in one page
 
@@ -39,6 +61,7 @@ package and item names below are current; substitute a published version.
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Copeland.Console</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Copeland.TS.Sdk" Version="&lt;published-version&gt;" PrivateAssets="all" />
@@ -50,6 +73,32 @@ package and item names below are current; substitute a published version.
 
 `CopelandCompile` is opt-in. The package emits C# below `obj` before Roslyn's
 `CoreCompile`; `dotnet build`, `run`, `test`, and `publish` stay the workflow.
+
+Here is the console-template path end to end. The Copeland function is a whole
+module, the host calls its generated C# API, and the normal project commands
+compile and run it:
+
+`Copeland/Greeter.ts`:
+
+```ts
+export function Greeting(name: string): string {
+    return `Hello, ${name}. Copeland is running.`;
+}
+```
+
+`Program.cs`:
+
+```csharp
+using Copeland.Console.Copeland;
+
+Console.WriteLine(Greeter.Greeting("new Copeland user"));
+```
+
+From the generated project directory, run `dotnet restore`, `dotnet build`,
+and `dotnet run`. The expected output is
+`Hello, new Copeland user. Copeland is running.` The maintained
+[console template](../../../src/Copeland/Copeland.TS.Templates/templates/copeland-console)
+contains this source, host, and project setup together.
 
 ## xUnit tests
 
@@ -330,6 +379,34 @@ data-oriented table helper, but CTS-DISPATCH provides the general reducer only.
 
 Do not replace dispatch with a mutable captured local. Callback captures remain
 immutable; durable browser state belongs at the explicit dispatch boundary.
+
+### Optional values use `Option<T>`
+
+Copeland has no ambient `null` or `undefined`. `Option<T>` is an explicit
+two-case value, `Some(value)` or `None`. Optional record-field syntax is
+shorthand for a field that always exists and has an Option value:
+
+```ts
+record User {
+    nickname?: string;
+}
+
+function Label(user: User): string {
+    return user.nickname ?? "Anonymous";
+}
+
+function NicknameLength(user: User): int {
+    return user.nickname?.length ?? 0;
+}
+```
+
+Omitting `nickname` during construction supplies `None`; supplying a string
+supplies `Some(string)`. `??` selects its fallback only for `None`, and `?.`
+projects through a typed Option receiver. These operators do not add
+JavaScript's ambient nullish behavior. Postfix `?` remains Result error
+propagation. See the full [optional value reference](../language/copeland-ts-option.md)
+and the accepted and rejected fixtures in `Language/Valid/absence` and
+`Language/Invalid/absence`.
 
 ### Nominal unions are not inline TypeScript unions
 
@@ -687,6 +764,11 @@ records, and passed through supported local, CLR, and npm contracts.
 `map`, `filter`, `reduce`, `find`, sorting, slicing, mutable array methods,
 and iterator-helper APIs remain intentionally deferred.
 
+For bounded construction and indexed writes, use the explicit
+`MutableArray<T>(length, initializer)` builder and `freeze()`; ordinary `T[]`
+values remain the read-focused array form. See the current
+[M26 collection policy](../language/typescript-instinct-m26.md#collections-and-clr-interop).
+
 ### Generators
 
 ```ts
@@ -783,7 +865,7 @@ and async suspension are deferred.
 | Traditional instinct | Copeland replacement |
 | --- | --- |
 | `any`, `unknown`, dynamic host values | Closed records/enums/arrays or typed npm/CLR contracts. |
-| `null` / `undefined` sentinels | A payload enum or typed Result; M1 has no built-in `Option` name. |
+| `null` / `undefined` sentinels | Use `Option<T>`, `Some`, `None`, and `match`; `null` and ordinary `undefined` are not values. |
 | `if (value)` truthiness | An actual boolean, e.g. `if (count != 0)`. |
 | String/numeric `+` | Interpolation, `String.From`, or `String`. |
 | Stored `int` with float arithmetic | `Float.From(integerValue)` first. |
@@ -793,15 +875,17 @@ and async suspension are deferred.
 | C-style `switch`/fallthrough | Exhaustive `switch` or `match` with `pattern => body` arms. |
 | Untyped npm import / inline JavaScript | Declared npm contract. |
 | Effects in a flow guard | Pure condition; perform effects outside the flow. |
-| Optional field `name?: string` | A nominal payload enum that makes absence explicit. |
-| `value ?? fallback` | Typed Result handling or a nominal payload enum; no JS null semantics. |
-| `readonly T[]` | `T[]`; arrays expose no mutable array API. |
+| Optional field `name?: string` | A field with type `Option<string>`; omission supplies `None`. |
+| `value ?? fallback` | Use it only when `value` has type `Option<T>`; it selects the fallback for `None`. |
+| `readonly T[]` | Use immutable `T[]` values; bounded indexed mutation uses explicit `MutableArray<T>`. |
 | `[int, string]` tuple type | A nominal record with named fields. |
 | `try/catch` | `try { value? } except (error) { fallback }`. |
 | Default parameter | Pass the value explicitly or define a small helper. |
 
-`var`, `eval`, optional chaining, ternary `?:`, general structural object
-literals, implicit globals, and ambient nullability are outside the profile.
+`var`, `eval`, ternary `?:`, general structural object literals, implicit
+globals, and ambient nullability are outside the profile. Optional chaining
+`?.` is supported only for typed Option receivers; it is not JavaScript's
+general nullish chaining.
 
 ## Familiar syntax with different meaning
 
@@ -852,9 +936,13 @@ diagnostic defect; do not invent an undocumented fourth rule.
 | Named async functions | Async arrows/generators, source cancellation, full suspension coverage |
 | `batch` map | Async/nested batch, reduction/filter/flatten, scheduling controls |
 | Synchronous generators and `yield*` | `next(value)`, consumer `throw()`, final return values |
+| `Option<T>`, optional fields, `?.`, `??` | Ambient `null`/`undefined` and general JavaScript nullish behavior |
+| `MutableArray<T>(length, initializer)`, indexed writes, `freeze()` | General mutable array methods and iterator helpers |
 | Typed flows | Source session API, uniform events, persistence/replay/hierarchy/stacks/utility |
 | Typed inline C# | Inline JavaScript, C# expressions/declarations, await in blocks |
-| `.csproj` integration | React, Blazor, Machina UI language integration, IDE/LSP |
+| .NET SDK integration with `CopelandCompile`, generated C#, and `.tsxtest` | General TypeScript compatibility and unrestricted host interop |
+| Project-aware VS Code/LSP workspace ownership, diagnostics, and hover | Formatting, refactoring, debugging, test explorer, and remote/web LSP |
+| React and Custom Element proof paths | General framework compatibility, SSR, and hydration |
 
 ## LLM authoring checklist
 

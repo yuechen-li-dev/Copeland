@@ -93,16 +93,18 @@ function Rename(settings: Settings): Settings {
 Payload enums and `match` are the bounded tagged-data surface; `switch` is a
 frontend alias where accepted, not a second runtime model. Fallible calls use
 `Result`, postfix propagation `?`, `try`/`except`, and postfix unwrap `!`.
-See the linked fixture-backed pages in the feature inventory for the exact
-currently accepted forms.
+Optional record fields use `Option<T>`; `?.` and `??` work on typed Option
+values. Neither feature admits ambient `null` or `undefined`. See
+[optional values](copeland-ts-option.md) and the linked fixture-backed pages
+in the feature inventory for the exact accepted forms.
 
 ## Non-goals that are easy to assume incorrectly
 
 Copeland TS is not general TypeScript. `any`, `var`, `null`, ordinary
-`undefined`, ternary expressions, JavaScript nullish chaining,
-general object literals, prototype behavior, arbitrary JavaScript execution,
-and TypeScript structural typing are not product semantics. React and Custom
-Elements are demonstrated renderer boundaries; Vue, Svelte, Lit, Blazor, SSR,
-hydration, and browser effect execution are not implemented features.
+`undefined`, ternary expressions, general object literals, prototype behavior,
+arbitrary JavaScript execution, and TypeScript structural typing are not
+product semantics. React and Custom Elements are demonstrated renderer
+boundaries; Vue, Svelte, Lit, Blazor, SSR, hydration, and browser effect
+execution are not implemented features.
 
 M26 accepts typed strict-equality aliases, named increment/compound assignment, native string associated functions, and bounded batch branches. See [TypeScript instincts](typescript-instinct-m26.md) for precise numeric, collection, and repair policies.

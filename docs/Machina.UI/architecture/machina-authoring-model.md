@@ -1,5 +1,7 @@
 # Machina Authoring Model (M2a reset)
 
+> This file preserves successive authoring decisions from multiple milestones. For concise current guidance, start at the [Machina.UI authoring guide](../authoring-guide.md); verify API details against source and tests.
+
 ## Canonical model
 
 Machina layout remains canonical as flat `LayoutRow[]` with explicit parent ids, explicit frames, and optional arrangers.

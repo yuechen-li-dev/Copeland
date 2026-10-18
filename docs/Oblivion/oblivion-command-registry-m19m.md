@@ -1,5 +1,7 @@
 # Oblivion command registry — M19m
 
+> Historical registry snapshot: later milestones added App command identities and behaviors. For current source and the CLI/App boundary, use [the current architecture and run guide](architecture.md) and inspect `src/Oblivion/Oblivion.App/Application/OblivionCommandRegistry.cs`.
+
 ## Descriptor and identity model
 
 `OblivionCommandRegistry` is an App-owned registry, not the `System.CommandLine` tree and not a generic command bus. Each `OblivionCommandDescriptor` has a typed `OblivionCommandId` plus stable external `id`, `title`, `description`, `scope`, and `available` fields. Registry order is stable.

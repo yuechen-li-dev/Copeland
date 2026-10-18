@@ -128,3 +128,30 @@ an Edge probe returned empty DOM on this machine and is not claimed qualified.
 All 122 local Markdown targets in changed/new documents resolve, and whitespace
 checks pass. No native/GPU execution, model inference, release publication or other
 framework/browser qualification is inferred from these build and exporter results.
+
+Subsequent documentation pass: the user authorized the small Deliverance package
+fix. Its MessagePack reference was upgraded to 3.1.9; Deliverance tests and the
+full Aurelian build/tests then passed. The restore failure above remains the
+historical observation from this pass, rather than a current blocker. See
+[current maintenance](../repo/maintenance.md#local-persistence-dependency).
+
+## Documentation navigation follow-up
+
+The published reading route is docs home → Start here → the owning author guide.
+All 363 local targets and 21 heading fragments in the changed/new documents
+resolve. The Copeland Greeter/Program and Machina screen examples were extracted
+from these guides and run against current source under ignored
+`artifacts/local/docs-navigation-pass/`; both produced the documented output.
+The TS check used the source MSBuild integration, not a newly published SDK.
+Ten Option reference tests pass. The five documented Oblivion CLI commands were
+executed against the structured notebook fixture; the older App sample is now
+labeled separately. Those checks corrected a nonexistent `Row.Absolute` argument
+and a stale workspace-format choice before the examples became the new route.
+
+The authorized Deliverance patch updates MessagePack 3.1.8 to 3.1.9 at its owner.
+Deliverance builds/tests pass (30 passed, one intentionally skipped golden-file
+generator). The full Aurelian build succeeds and all 1458 tests pass, zero skips;
+14 build warnings remain in unchanged third-party OpenFont code. This verifies
+restoration of the formerly blocked lane, not a new native/GPU or model proof.
+Logs remain local. No historical reports were deleted or relabeled as current
+acceptance evidence, and no parser/runtime behavior changed in this docs pass.

@@ -95,3 +95,12 @@ The [repo-wide 5S record](../audits/repository-5s-pass3.md) records the current 
 older [Copeland cleanup history](../Copeland/reviews/copeland-ts-repository-5s-audit.md)
 and [Oblivion artifact history](repository-hygiene-current-proof-policy.md) remain
 historical evidence, not current tree-size or qualification claims.
+
+## Local persistence dependency
+
+`Aurelian.GameSaves` consumes the sibling Deliverance source project. Its
+MessagePack dependency is owned there. Deliverance now pins **3.1.9**, the patched
+version for [GHSA-qhrr-8q5h-9q3h](https://github.com/advisories/GHSA-qhrr-8q5h-9q3h).
+This replaces the earlier 3.1.8 restore blocker without a Copeland-side package
+override or audit suppression. Keep the authorized Deliverance change with that
+repository; committing Copeland documentation alone does not update the sibling.
