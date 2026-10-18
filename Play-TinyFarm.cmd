@@ -1,4 +1,3 @@
 @echo off
 cd /d "%~dp0"
-dotnet run --project "%~dp0Games\TinyFarm\TinyFarm.Native\TinyFarm.Native.csproj" -c Release -- %*
-if errorlevel 1 pause
+dotnet run --project Games/TinyFarm/TinyFarm/TinyFarm.csproj -c Release -- %*

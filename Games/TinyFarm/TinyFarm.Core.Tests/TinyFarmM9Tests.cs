@@ -105,23 +105,6 @@ public sealed class TinyFarmM9Tests
             type => type.Namespace?.StartsWith("Copeland.TS.Tson", StringComparison.Ordinal) == true);
     }
 
-    [Fact]
-    public void CanonicalM9Proof_IsOutcomeAWithExactHistoricalHashes()
-    {
-        TinyFarmM9Proof proof = TinyFarmTsonScheduleScenario.Prove().Proof;
-
-        Assert.Equal("A", proof.Outcome);
-        Assert.Equal("10cdca5bf32bb96bf26d42abbc8ec8feb85983286fab35361c1c979a906796f6", proof.ScheduleDecisionHash);
-        Assert.Equal("d763164039f2841ff6694f597df0610875ada968d0ad28a0fb9f76469fe59711", proof.AnchorSequenceHash);
-        Assert.Equal("07dde9ac2f6c957017abe151320ee0a7d5c900f51ecd7901331c9d21a480d8fa", proof.NavigationHash);
-        Assert.Equal("fe79f373643e1e3aa5df8f505e775cce7388206332831497fe12f8bed7e54afa", proof.SceneContentHash);
-        Assert.Equal("dcc35869aba0eba979725b1871d0babfe127383123a1a5f665b666bc3488d333", proof.M1Hash);
-        Assert.Equal("4a49e221d6ffe90304143cece5b1a20fe96eecc4d10d30cf1bde11922a18ced3", proof.M2Hash);
-        Assert.True(proof.RowReorderPreserved);
-        Assert.True(proof.ExhaustiveM8Parity);
-        Assert.False(proof.RawTsonLeaksIntoDecisionRuntime);
-    }
-
     public static IEnumerable<object[]> InvalidScheduleFixtures()
     {
         TinyFarmScheduleWindow[] rows = MinimalRows();

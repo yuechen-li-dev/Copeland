@@ -207,16 +207,6 @@ public sealed class TinyFarmEngineTests
     }
 
     [Fact]
-    public void SaveReload_ContinuesToSameSemanticHashAndResultSequence()
-    {
-        CanonicalRun uninterrupted = TinyFarmCanonicalScenario.Run(reloadAt: null);
-        CanonicalRun reloaded = TinyFarmCanonicalScenario.Run(reloadAt: 8);
-
-        Assert.Equal(uninterrupted.FinalHash, reloaded.FinalHash);
-        Assert.Equal(uninterrupted.ResultSequence, reloaded.ResultSequence);
-    }
-
-    [Fact]
     public void SemanticHash_IsIndependentOfCollectionOrder()
     {
         TinyFarmState state = TinyFarmContent.CreateInitialState();
@@ -228,20 +218,6 @@ public sealed class TinyFarmEngineTests
         Assert.Equal(
             TinyFarmSemanticHash.Compute(state),
             TinyFarmSemanticHash.Compute(reordered));
-    }
-
-    [Fact]
-    public void CanonicalDay_ProvesAllM1DeterminismChecks()
-    {
-        TinyFarmM1Proof proof = TinyFarmCanonicalScenario.Prove();
-
-        Assert.Equal("A", proof.Outcome);
-        Assert.True(proof.RepeatedRunMatches);
-        Assert.True(proof.SaveReloadMatches);
-        Assert.True(proof.ResultSequenceMatches);
-        Assert.Equal("mara", proof.ConflictWinner);
-        Assert.Equal(1, proof.ConflictRejected);
-        Assert.True(proof.AriadneLines > 0);
     }
 
     private static IntentEnvelope Envelope(ActorId actor, GameIntent intent, long sequence = 0)

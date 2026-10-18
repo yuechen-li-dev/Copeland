@@ -6,7 +6,7 @@ This directory contains playable applications and game-owned domain code. Games 
 
 For a new C# game, begin with the [composable game starter](../docs/Aurelian/game-starter.md). It references `src/Integrations/Aurelian.Games/Aurelian.Games.csproj`, selects concepts with `GameStarter.Run`, and uses the shared [game shell](../docs/Aurelian/game-shell.md). The shell's `IGame`/`GameApp.Run` path supplies menus, settings, save integration, audio, input, and native or headless playtesting. The checked-in [starter application](Starter/Aurelian.Starter/Program.cs) is the runnable example; use `starter.cmd` to launch it.
 
-The concepts currently cover a first/third-person 3D shooter foundation. The starter guide lists supported fragments and their bounds. Existing Sunkill, TinyFarm, Mossward, Beacon Run, and CharacterLab applications keep their specialized bootstraps and game-owned behavior; their presence here does not mean they have all migrated to `IGame` or become reusable engine modules.
+The concepts currently cover a first/third-person 3D shooter foundation. The starter guide lists supported fragments and their bounds. Sunkill, Mossward, Beacon Run and CharacterLab keep their specialized bootstraps. TinyFarm, Cloudstep and Hearth run on `IGame` and the shell.
 
 ## Run an existing application
 
@@ -17,7 +17,7 @@ Run launchers from the repository root. The table identifies the project entry p
 | Sunkill visual novel | `Sunkill/Aurelian.Ariadne.VnDemo` | `Play-Sunkill.cmd` |
 | Beacon Run | `Beacon3D/Aurelian.Beacon3D` | `beacon3d.cmd` |
 | Mossward strategy | `Strategy/Aurelian.StrategyDemo` | `dotnet run --project Games/Strategy/Aurelian.StrategyDemo -c Release` |
-| TinyFarm | `TinyFarm/TinyFarm.Native` | `Play-TinyFarm.cmd` |
+| TinyFarm | `TinyFarm/TinyFarm` | `Play-TinyFarm.cmd` |
 | Composable starter | `Starter/Aurelian.Starter` | `starter.cmd` |
 | Character animation lab | `CharacterLab/Aurelian.CharacterLab` | `characterlab.cmd` |
 | Cloudstep 3D platformer | `Cloudstep/Cloudstep` | `cloudstep.cmd` |
@@ -29,4 +29,4 @@ Use `humanoid-starter.cmd` for the starter's playable humanoid variant. The [cha
 
 The [3D graphics starter guide](../docs/Aurelian/graphics-starter.md) documents the shared host's lighting, shadow, HDR, gallery, and proof paths. Run `graphics-gallery.cmd` from the repository root to compare the basic and modern rendering presets. The gallery and proof qualify specific local Vulkan paths; their presence does not imply support or performance on every device.
 
-Each game's tests live alongside its application. TinyFarm's CLI, playtesting adapter, Oblivion adapter, and example scripts also live under its game directory. For shared shell playtests, see the [game shell contract](../docs/Aurelian/game-shell.md); for other engine-owned playtest APIs, start with the [Aurelian documentation index](../docs/Aurelian/README.md). Project names and public namespaces are preserved.
+Each game's tests live alongside its application. TinyFarm's Oblivion adapter and shell playtest scripts also live under its game directory. For shared shell playtests, see the [game shell contract](../docs/Aurelian/game-shell.md); for other engine-owned playtest APIs, start with the [Aurelian documentation index](../docs/Aurelian/README.md). Project names and public namespaces are preserved.

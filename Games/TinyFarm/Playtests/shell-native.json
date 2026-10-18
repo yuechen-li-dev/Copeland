@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "steps": [
+    { "kind": "capture", "path": "00-title.png" },
+    { "kind": "click-action", "text": "start" },
+    { "kind": "wait", "seconds": 0.5 },
+    { "kind": "capture", "path": "01-garden.png" },
+    { "kind": "hold", "keys": ["D"], "seconds": 1.2 },
+    { "kind": "capture", "path": "02-walked.png" },
+    { "kind": "tap", "keys": ["I"], "seconds": 0 },
+    { "kind": "wait", "seconds": 0.2 },
+    { "kind": "command", "command": "assert tinyfarm.screen inventory" },
+    { "kind": "capture", "path": "03-pockets.png" },
+    { "kind": "tap", "keys": ["Escape"], "seconds": 0 },
+    { "kind": "wait", "seconds": 0.1 },
+    { "kind": "tap", "keys": ["Escape"], "seconds": 0 },
+    { "kind": "wait", "seconds": 0.1 },
+    { "kind": "command", "command": "assert screen pause" },
+    { "kind": "capture", "path": "04-pause.png" }
+  ]
+}

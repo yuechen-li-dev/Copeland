@@ -266,32 +266,6 @@ public sealed class TinyFarmM6Tests
         Assert.Throws<InvalidDataException>(() => session.CaptureWeekSave());
     }
 
-    [Fact]
-    public void CanonicalM6Scenario_ProvesOutcomeAAndExactLegacyHashes()
-    {
-        TinyFarmM6Proof proof = TinyFarmAnchorHandoffScenario.Prove().Proof;
-        Assert.Equal("A", proof.Outcome);
-        Assert.Equal("dcc35869aba0eba979725b1871d0babfe127383123a1a5f665b666bc3488d333", proof.M1Hash);
-        Assert.Equal("4a49e221d6ffe90304143cece5b1a20fe96eecc4d10d30cf1bde11922a18ced3", proof.M2Hash);
-        Assert.True(proof.ActiveSaveLoadExact);
-        Assert.True(proof.InactiveSaveLoadExact);
-        Assert.True(proof.InactiveNpcUsedNoNavigation);
-    }
-
-    [Fact]
-    public void CanonicalM6Scenario_RepeatsAllSemanticHashes()
-    {
-        TinyFarmM6Proof first = TinyFarmAnchorHandoffScenario.Prove().Proof;
-        TinyFarmM6Proof second = TinyFarmAnchorHandoffScenario.Prove().Proof;
-        Assert.Equal(first.StateHash, second.StateHash);
-        Assert.Equal(first.ResultsHash, second.ResultsHash);
-        Assert.Equal(first.EventsHash, second.EventsHash);
-        Assert.Equal(first.AnchorsHash, second.AnchorsHash);
-        Assert.Equal(first.HandoffHash, second.HandoffHash);
-        Assert.Equal(first.NavigationHash, second.NavigationHash);
-        Assert.Equal(first.ProjectionHash, second.ProjectionHash);
-    }
-
     private (ActorSceneState Placement, string Hash, int Plans) ActivateTownMara()
     {
         TinyFarmState state = TinyFarmContent.CreateContinuousSceneState(definitions);

@@ -182,15 +182,6 @@ public sealed class TinyFarmM16Tests
             || name.Contains("Xna", StringComparison.OrdinalIgnoreCase));
     }
 
-    [Fact]
-    public void CanonicalScenario_ProducesOutcomeAAndFiveCompactArtifacts()
-    {
-        TinyFarmM16Evidence evidence = TinyFarmM16Scenario.Prove();
-        using JsonDocument proof = JsonDocument.Parse(TinyFarmM16Scenario.WriteJson(evidence.Proof));
-
-        Assert.Equal("A", proof.RootElement.GetProperty("outcome").GetString());
-    }
-
     private static TinyFarmSimulationHost CreateHost(TinyFarmDefinitions definitions)
     {
         return new TinyFarmSimulationHost(

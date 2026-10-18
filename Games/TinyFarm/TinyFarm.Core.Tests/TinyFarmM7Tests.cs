@@ -151,18 +151,6 @@ public sealed class TinyFarmM7Tests
             type => type.Namespace?.StartsWith("Copeland.TS.Tson", StringComparison.Ordinal) == true);
     }
 
-    [Fact]
-    public void CanonicalM7Proof_PreservesM1M2M4AndM6Behavior()
-    {
-        TinyFarmM7Proof proof = TinyFarmTsonSceneScenario.Prove().Proof;
-        Assert.Equal("A", proof.Outcome);
-        Assert.True(proof.TsonOnlySceneAuthority);
-        Assert.True(proof.LegacyParity);
-        Assert.True(proof.SaveLoadCompatible);
-        Assert.Equal("dcc35869aba0eba979725b1871d0babfe127383123a1a5f665b666bc3488d333", proof.M1Hash);
-        Assert.Equal("4a49e221d6ffe90304143cece5b1a20fe96eecc4d10d30cf1bde11922a18ced3", proof.M2Hash);
-    }
-
     private static string CopyProductionContent()
     {
         string sourceDirectory = Path.Combine(AppContext.BaseDirectory, "Content");

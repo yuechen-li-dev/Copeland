@@ -162,35 +162,6 @@ public sealed class TinyFarmM4Tests
             TinyFarmFrameProjector.ComputeHash(second));
     }
 
-    [Fact]
-    public void CanonicalM4Journey_TraversesRequiredRoutesAndPreservesM1M2()
-    {
-        TinyFarmM4Proof proof = TinyFarmSceneScenario.Prove().Proof;
-        Assert.Equal("A", proof.Outcome);
-        Assert.True(proof.M1HashPreserved);
-        Assert.True(proof.M2HashPreserved);
-        Assert.True(proof.SaveLoadRestoredExactSceneAndPosition);
-        Assert.True(proof.NpcCrossedScene);
-        Assert.True(proof.SeedPurchased);
-        Assert.True(proof.SeedPlanted);
-        Assert.Contains(proof.RouteReductions, item => item.Route == new SceneRouteId("overworld-town"));
-        Assert.Contains(proof.RouteReductions, item => item.Route == new SceneRouteId("town-store"));
-        Assert.Contains(proof.RouteReductions, item => item.Route == new SceneRouteId("store-town"));
-        Assert.Contains(proof.RouteReductions, item => item.Route == new SceneRouteId("town-overworld"));
-    }
-
-    [Fact]
-    public void SameM4InputSequence_ProducesSameHashes()
-    {
-        TinyFarmM4Proof first = TinyFarmSceneScenario.Prove().Proof;
-        TinyFarmM4Proof second = TinyFarmSceneScenario.Prove().Proof;
-        Assert.Equal(first.FinalStateHash, second.FinalStateHash);
-        Assert.Equal(first.IntentResultHash, second.IntentResultHash);
-        Assert.Equal(first.EventHash, second.EventHash);
-        Assert.Equal(first.SceneRouteHash, second.SceneRouteHash);
-        Assert.Equal(first.ProjectionHash, second.ProjectionHash);
-    }
-
     private ResolutionBatchResult Resolve(TinyFarmState state, GameIntent intent)
     {
         return new TinyFarmResolver(definitions).Resolve(

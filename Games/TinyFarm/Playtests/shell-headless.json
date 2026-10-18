@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "steps": [
+    { "kind": "command", "command": "assert screen title" },
+    { "kind": "click-action", "text": "start" },
+    { "kind": "command", "command": "assert screen playing" },
+    { "kind": "command", "command": "assert tinyfarm.screen playing" },
+    { "kind": "hold", "keys": ["D"], "seconds": 0.5 },
+    { "kind": "wait", "seconds": 0.2 },
+    { "kind": "tap", "keys": ["I"], "seconds": 0 },
+    { "kind": "wait", "seconds": 0.1 },
+    { "kind": "command", "command": "assert tinyfarm.screen inventory" },
+    { "kind": "command", "command": "assert screen playing" },
+    { "kind": "tap", "keys": ["Escape"], "seconds": 0 },
+    { "kind": "wait", "seconds": 0.1 },
+    { "kind": "command", "command": "assert tinyfarm.screen playing" },
+    { "kind": "command", "command": "assert screen playing" },
+    { "kind": "tap", "keys": ["Escape"], "seconds": 0 },
+    { "kind": "wait", "seconds": 0.1 },
+    { "kind": "command", "command": "assert screen pause" },
+    { "kind": "command", "command": "save slot-1" },
+    { "kind": "command", "command": "mark saved" },
+    { "kind": "command", "command": "load slot-1" },
+    { "kind": "command", "command": "assert-mark saved" }
+  ]
+}

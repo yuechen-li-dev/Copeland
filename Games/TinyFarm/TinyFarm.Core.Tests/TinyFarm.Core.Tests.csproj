@@ -5,7 +5,7 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../TinyFarm.Playtesting/TinyFarm.Playtesting.csproj" />
+    <ProjectReference Include="../TinyFarm/TinyFarm.csproj" />
     <ProjectReference Include="../TinyFarm.UI/TinyFarm.UI.csproj" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Combat/Aurelian.Combat.csproj" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Field2D/Aurelian.Field2D.csproj" />
@@ -23,7 +23,6 @@
     <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="../TinyFarm.Native/TinyFarmBankMask.cs" Link="Presentation/TinyFarmBankMask.cs" />
     <Content Include="Fixtures/M7/Valid/*.obj.ts" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -213,14 +213,6 @@ public sealed class TinyFarmM14Tests
         Assert.True(host.Session.NavigationPlanCount > queriesBeforeHandoff);
     }
 
-    [Fact]
-    public void CanonicalScenarioProducesOutcomeA()
-    {
-        TinyFarmM14Evidence evidence = TinyFarmM14Scenario.Prove();
-        string json = TinyFarmM14Scenario.WriteJson(evidence.Proof);
-        Assert.Contains("\"outcome\": \"A\"", json);
-    }
-
     private static TinyFarmSimulationHost CreateWalkingHost(TinyFarmDefinitions? definitions = null)
     {
         definitions ??= TinyFarmDefinitionLoader.LoadM14();

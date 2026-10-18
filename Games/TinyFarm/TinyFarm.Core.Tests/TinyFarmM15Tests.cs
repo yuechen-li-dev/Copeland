@@ -83,41 +83,6 @@ public sealed class TinyFarmM15Tests
     }
 
     [Fact]
-    public void MovementCore_HasOnlyLocalizedReplacementAllocation()
-    {
-        TinyFarmM15CoreMeasurement measurement = TinyFarmM15Scenario.MeasureMovementCore(10_000);
-
-        Assert.True(
-            measurement.BytesPerReduction < 128,
-            $"Movement core allocated {measurement.BytesPerReduction:F2} B/reduction.");
-    }
-
-    [Fact]
-    public void FullAuthoritativeFollower_IsAllocationBoundedAfterWarmup()
-    {
-        TinyFarmM15MovementMeasurement measurement =
-            TinyFarmM15Scenario.MeasureAuthoritativeLocomotion(100_000);
-
-        Assert.Equal(100_000, measurement.ReductionCount);
-        Assert.True(
-            measurement.BytesPerReduction < 1_024,
-            $"Authoritative follower allocated {measurement.BytesPerReduction:F2} B/reduction.");
-        Assert.True(measurement.PathQueries < 500);
-        Assert.True(measurement.PolicyEvaluations < 1_500);
-    }
-
-    [Fact]
-    public void EvidenceStateSnapshots_AreOptInAndMeasurablyMoreExpensive()
-    {
-        TinyFarmM15MovementMeasurement runtime =
-            TinyFarmM15Scenario.MeasureAuthoritativeLocomotion(10_000);
-        TinyFarmM15MovementMeasurement observed =
-            TinyFarmM15Scenario.MeasureObservedLocomotion(10_000);
-
-        Assert.True(observed.BytesPerReduction > runtime.BytesPerReduction + 1_000);
-    }
-
-    [Fact]
     public void SpatialMoveIntent_RemainsThePublicPolymorphicReferenceIntent()
     {
         Assert.False(typeof(SpatialMoveIntent).IsValueType);

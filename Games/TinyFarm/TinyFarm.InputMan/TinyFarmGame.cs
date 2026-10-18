@@ -97,11 +97,23 @@ public sealed partial class TinyFarmGame
     {
         if (Screen == TinyFarmScreen.Title)
         {
-            Status = State.Slice is not null
-                ? "A turnip is ready. Harvest it, make broth at home, then follow the path to Old Burrow."
-                : "Plant a seed by the house. Mara is in town until noon, then by the river.";
+            ShowOpeningStatus();
         }
         Screen = TinyFarmScreen.Playing;
+    }
+
+    /// <summary>The first hint of a fresh game.</summary>
+    public void ShowOpeningStatus()
+    {
+        Status = State.Slice is not null
+            ? "A turnip is ready. Harvest it, make broth at home, then follow the path to Old Burrow."
+            : "Plant a seed by the house. Mara is in town until noon, then by the river.";
+    }
+
+    /// <summary>Show the title backdrop again (for example after the host returns to its title menu).</summary>
+    public void ShowTitle()
+    {
+        Screen = TinyFarmScreen.Title;
     }
 
     public void Handle(InputFrame input)
@@ -336,12 +348,22 @@ public sealed partial class TinyFarmGame
         return "Home again. Watered crops grow after a night's rest.";
     }
 
+    /// <summary>
+    /// When hosted by the game shell, checkpoint saves (sleeping, being brought home at night) are handed to the shell
+    /// instead of TinyFarm's own save slots. Return true when the checkpoint was accepted.
+    /// </summary>
+    public Func<bool>? CheckpointHost { get; set; }
+
     public bool Save(string? slot = null)
     {
         if (Host.Session.HasActiveCombat)
         {
             Status = "Finish the swing before saving.";
             return false;
+        }
+        if (CheckpointHost is not null && slot is null)
+        {
+            return CheckpointHost();
         }
         try
         {
@@ -402,15 +424,7 @@ public sealed partial class TinyFarmGame
             LoadedSaveCandidate candidate = Persistence.Deliverance.LoadAsync(targetSlot,
                 Persistence.GetLoadDefinitions(targetSlot), Persistence.GetLoadCompatibility(targetSlot)).GetAwaiter().GetResult();
             Persistence.CommitLoadedCandidate(targetSlot, candidate);
-            Screen = TinyFarmScreen.Playing;
-            completionShown = TinyFarmSupper.IsComplete(State);
-            effectsScene = null;
-            FeedbackEpoch++;
-            Effects = NewEffects();
-            PendingAudio.Clear();
-            Status = "Welcome back. Everything is just where you left it.";
-            SynchronizeScene();
-            RestoreContainerPresentation();
+            AfterRestore();
             return true;
         }
         catch (Exception error) when (error is not OutOfMemoryException)
@@ -466,15 +480,7 @@ public sealed partial class TinyFarmGame
             {
                 LoadedSaveCandidate candidate = pendingLoad.GetAwaiter().GetResult();
                 Persistence.CommitLoadedCandidate(SaveSlot, candidate);
-                Screen = TinyFarmScreen.Playing;
-                completionShown = TinyFarmSupper.IsComplete(State);
-                effectsScene = null;
-                FeedbackEpoch++;
-                Effects = NewEffects();
-                PendingAudio.Clear();
-                Status = "Welcome back. Everything is just where you left it.";
-                SynchronizeScene();
-                RestoreContainerPresentation();
+                AfterRestore();
             }
             catch (Exception error) when (error is not OutOfMemoryException)
             {
@@ -482,6 +488,20 @@ public sealed partial class TinyFarmGame
             }
             pendingLoad = null;
         }
+    }
+
+    /// <summary>Reset presentation after the world was replaced by a save (TinyFarm's own or the shell's).</summary>
+    public void AfterRestore()
+    {
+        Screen = TinyFarmScreen.Playing;
+        completionShown = TinyFarmSupper.IsComplete(State);
+        effectsScene = null;
+        FeedbackEpoch++;
+        Effects = NewEffects();
+        PendingAudio.Clear();
+        Status = "Welcome back. Everything is just where you left it.";
+        SynchronizeScene();
+        RestoreContainerPresentation();
     }
 
     public string[] Objectives()

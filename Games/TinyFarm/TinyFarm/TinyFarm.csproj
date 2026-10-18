@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>TinyFarm</RootNamespace>
+    <AssemblyName>TinyFarm</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Games/Aurelian.Games.csproj" />
+    <ProjectReference Include="../TinyFarm.UI/TinyFarm.UI.csproj" />
+    <ProjectReference Include="../TinyFarm.InputMan/TinyFarm.InputMan.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Profile.Graphics/Aurelian.Profile.Graphics.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.GameWorld2D/Aurelian.GameWorld2D.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Machina/Aurelian.Machina.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Machina.Graphics/Aurelian.Machina.Graphics.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Effects2D.Graphics/Aurelian.Effects2D.Graphics.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Fonts/Machina.Fonts.csproj" />
+    <ProjectReference Include="../../../src/Copeland/Copeland.TS/Copeland.TS.csproj" />
+    <PackageReference Include="SkiaSharp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Assets/GateA/*.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets/M11/tinyfarm-sprite-atlas-source.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets/M19/*.profile.tsx" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets/m24/*.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets/m25/farmhouse-three-quarter.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets/Shaders/*.v.ts" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../src/Aurelian/Aurelian.Assets/Defaults/Fonts/SpaceMono-Regular.ttf" Link="Assets/SpaceMono-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="TinyFarm.Core.Tests" />
+  </ItemGroup>
+</Project>

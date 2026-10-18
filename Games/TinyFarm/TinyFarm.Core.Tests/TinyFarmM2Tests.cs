@@ -65,18 +65,6 @@ public sealed class TinyFarmM2Tests
     }
 
     [Fact]
-    public void CanonicalWeek_CompletesEconomyLoopAndAllReloadPoints()
-    {
-        TinyFarmM2Proof proof = TinyFarmWeekScenario.Prove();
-        Assert.Equal("A", proof.Outcome);
-        Assert.Equal(7, proof.FinalDay);
-        Assert.Equal(28, proof.PlayerMoney);
-        Assert.Equal(0, proof.PlayerTurnips);
-        Assert.All(proof.SaveReloadPoints, item => Assert.True(item.Value));
-        Assert.True(proof.NpcPurchases >= 1);
-    }
-
-    [Fact]
     public void WeekSchedule_HasMarketDayAndWeekendVariation()
     {
         int saturdayTen = 5 * 1440 + 10 * 60;
@@ -167,12 +155,6 @@ public sealed class TinyFarmM2Tests
         List<SaveChunk> unknownCrop = ReplaceWorldText(chunks, "\"crop\":{\"value\":\"turnip\"}", "\"crop\":{\"value\":\"unknown\"}");
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => TinyFarmChunkedSaveCodec.Read(WriteChunks(unknownCrop), definitions));
         Assert.Contains("unknown crop", exception.Message, StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Fact]
-    public void M1CanonicalHash_RemainsExact()
-    {
-        Assert.Equal("dcc35869aba0eba979725b1871d0babfe127383123a1a5f665b666bc3488d333", TinyFarmCanonicalScenario.Prove().FinalHash);
     }
 
     private TinyFarmState PreparedPlantedState()

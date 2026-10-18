@@ -8,15 +8,7 @@
     <ProjectReference Include="../../../src/Machina.UI/Machina.Standard/Machina.Standard.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="../TinyFarm.Native/TinyFarmNativeUi.cs" Link="TinyFarmNativeUi.cs" />
-    <Compile Include="../TinyFarm.Native/TinyFarmMenuPresentation.cs" Link="TinyFarmMenuPresentation.cs" />
-    <Compile Include="../TinyFarm.Native/TinyFarmTitlePresentation.cs" Link="TinyFarmTitlePresentation.cs" />
-    <Compile Include="../TinyFarm.Native/TinyFarmContainerPresentation.cs" Link="TinyFarmContainerPresentation.cs" />
-    <Compile Include="../TinyFarm.Native/TinyFarmCraftingPresentation.cs" Link="TinyFarmCraftingPresentation.cs" />
-    <Compile Include="../TinyFarm.Native/TinyFarmStatsScrollbar.cs" Link="TinyFarmStatsScrollbar.cs" />
-    <Compile Include="../TinyFarm.Native/TinyFarmPresentationLayout.cs" Link="TinyFarmPresentationLayout.cs" />
-    <InternalsVisibleTo Include="TinyFarm.Native" />
-    <InternalsVisibleTo Include="TinyFarm.Playtesting" />
+    <InternalsVisibleTo Include="TinyFarm" />
     <InternalsVisibleTo Include="TinyFarm.Core.Tests" />
   </ItemGroup>
 </Project>

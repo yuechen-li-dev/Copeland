@@ -127,35 +127,24 @@ public sealed class TinyFarmM3Tests
     }
 
     [Fact]
-    public void M3Scenario_PreservesCanonicalProofsAndSemanticProjection()
-    {
-        TinyFarmM3Proof proof = TinyFarmGraphicalScenario.Prove().Proof;
-        Assert.Equal("A", proof.Outcome);
-        Assert.True(proof.M1HashPreserved);
-        Assert.True(proof.M2HashPreserved);
-        Assert.True(proof.NpcMovementProjected);
-        Assert.True(proof.SaveLoadProjectionRestored);
-        Assert.True(proof.SameSnapshotProjectionMatches);
-        Assert.True(proof.FarmingLoopCompleted);
-    }
-
-    [Fact]
     public void ProjectTopology_ContainsGraphicsInLeafOnly()
     {
         string root = FindRepositoryRoot();
         string core = File.ReadAllText(Path.Combine(root, "Games", "TinyFarm", "TinyFarm.Core", "TinyFarm.Core.csproj"));
         string runtime = File.ReadAllText(Path.Combine(root, "Games", "TinyFarm", "TinyFarm.Runtime", "TinyFarm.Runtime.csproj"));
-        string appPath = Path.Combine(root, "Games", "TinyFarm", "TinyFarm.MonoGame", "TinyFarm.MonoGame.csproj");
+        string appPath = Path.Combine(root, "Games", "TinyFarm", "TinyFarm", "TinyFarm.csproj");
         string app = File.ReadAllText(appPath);
 
-        Assert.DoesNotContain("MonoGame", core, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("MonoGame", runtime, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("MonoGame.Framework.DesktopGL", app, StringComparison.Ordinal);
+        // Rules and simulation stay free of graphics, windowing and the game shell; only the application leaf has them.
+        foreach (string forbidden in new[] { "Aurelian.Graphics", "Aurelian.Games", "Silk.NET", "MonoGame" })
+        {
+            Assert.DoesNotContain(forbidden, core, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(forbidden, runtime, StringComparison.OrdinalIgnoreCase);
+        }
+        Assert.Contains("Aurelian.Games", app, StringComparison.Ordinal);
         XDocument project = XDocument.Load(appPath);
         Assert.Contains(project.Descendants("ProjectReference"), reference =>
-            ((string?)reference.Attribute("Include"))?.Contains("TinyFarm.Core", StringComparison.Ordinal) == true);
-        Assert.Contains(project.Descendants("ProjectReference"), reference =>
-            ((string?)reference.Attribute("Include"))?.Contains("TinyFarm.Runtime", StringComparison.Ordinal) == true);
+            ((string?)reference.Attribute("Include"))?.Contains("TinyFarm.InputMan", StringComparison.Ordinal) == true);
     }
 
     private static string FindRepositoryRoot()

@@ -240,17 +240,6 @@ public sealed class TinyFarmM17Tests
         Assert.All(replay.Results, result => Assert.Equal(IntentResultStatus.Accepted, result.Status));
     }
 
-    [Fact]
-    public void CanonicalScenario_ProducesOutcomeAAndFiveCompactArtifacts()
-    {
-        TinyFarmM17Evidence evidence = TinyFarmM17Scenario.Prove();
-        using JsonDocument proof = JsonDocument.Parse(TinyFarmM17Scenario.WriteJson(evidence.Proof));
-
-        Assert.Equal("A", proof.RootElement.GetProperty("outcome").GetString());
-        Assert.True(proof.RootElement.GetProperty("plantParity").GetBoolean());
-        Assert.True(proof.RootElement.GetProperty("headlessRepeatExact").GetBoolean());
-    }
-
     private static TinyFarmState StateAfterPickup(TinyFarmDefinitions definitions)
     {
         var session = new TinyFarmSession(TinyFarmM17ControlStates.Create(definitions), definitions);

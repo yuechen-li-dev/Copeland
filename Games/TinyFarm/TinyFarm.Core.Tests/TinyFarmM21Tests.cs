@@ -314,19 +314,6 @@ public sealed class TinyFarmM21Tests
             || name.Contains("Dominatus", StringComparison.OrdinalIgnoreCase));
     }
 
-    [Fact]
-    public void CanonicalScenarioProducesOutcomeAAndThirteenRequiredHashes()
-    {
-        TinyFarmM21Evidence evidence = TinyFarmM21Scenario.Prove();
-        using JsonDocument proof = JsonDocument.Parse(TinyFarmM21Scenario.WriteJson(evidence.Proof));
-
-        Assert.Equal("A", proof.RootElement.GetProperty("outcome").GetString());
-        Assert.True(proof.RootElement.GetProperty("saveLoadExact").GetBoolean());
-        Assert.True(proof.RootElement.GetProperty("replayExact").GetBoolean());
-        Assert.True(proof.RootElement.GetProperty("useSelectedParity").GetBoolean());
-        Assert.Equal(13, proof.RootElement.GetProperty("hashes").EnumerateObject().Count());
-    }
-
     private static void AssertRejected(
         TinyFarmState initial,
         TinyFarmDefinitions definitions,

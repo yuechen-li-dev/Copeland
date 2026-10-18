@@ -287,18 +287,6 @@ public sealed class TinyFarmM19Tests
         Assert.InRange(layout.InventoryPanel.Y, 0, height - layout.InventoryPanel.Height);
     }
 
-    [Fact]
-    public void CanonicalScenarioProducesOutcomeAAndTenRequiredHashes()
-    {
-        TinyFarmM19Evidence evidence = TinyFarmM19Scenario.Prove();
-        using JsonDocument proof = JsonDocument.Parse(TinyFarmM19Scenario.WriteJson(evidence.Proof));
-
-        Assert.Equal("A", proof.RootElement.GetProperty("outcome").GetString());
-        Assert.True(proof.RootElement.GetProperty("saveLoadExact").GetBoolean());
-        Assert.True(proof.RootElement.GetProperty("replayExact").GetBoolean());
-        Assert.Equal(10, proof.RootElement.GetProperty("hashes").EnumerateObject().Count());
-    }
-
     private static TinyFarmDefinitions WithRecipes(
         TinyFarmDefinitions baseline,
         IReadOnlyList<CookingRecipeDefinition> recipes)

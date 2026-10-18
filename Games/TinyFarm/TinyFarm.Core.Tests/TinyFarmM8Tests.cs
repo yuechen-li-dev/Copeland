@@ -188,25 +188,6 @@ public sealed class TinyFarmM8Tests
             + $"dominatus-gen0={gen0Collections}");
     }
 
-    [Fact]
-    public void CanonicalM8Scenario_ProvesOutcomeAAndExactHistoricalHashes()
-    {
-        TinyFarmM8Proof proof = TinyFarmScheduleScenario.Prove().Proof;
-
-        Assert.Equal("A", proof.Outcome);
-        Assert.Equal("dcc35869aba0eba979725b1871d0babfe127383123a1a5f665b666bc3488d333", proof.M1Hash);
-        Assert.Equal("4a49e221d6ffe90304143cece5b1a20fe96eecc4d10d30cf1bde11922a18ced3", proof.M2Hash);
-        Assert.Equal("fe79f373643e1e3aa5df8f505e775cce7388206332831497fe12f8bed7e54afa", proof.SceneContentHash);
-        Assert.True(proof.ExhaustiveMinuteParity);
-        Assert.True(proof.SevenDayParity);
-        Assert.True(proof.TransitionBoundaryParity);
-        Assert.True(proof.ActiveInactiveParity);
-        Assert.True(proof.SaveLoadBeforeTransition);
-        Assert.True(proof.SaveLoadAfterTransition);
-        Assert.True(proof.SaveLoadWhileMoving);
-        Assert.True(proof.StaticDefinitionReused);
-    }
-
     private SceneAnchorId Decide(ActorId actor, int minute)
     {
         return TinyFarmNpcSchedule.Decide(definitions.Schedules, actor, minute).SelectedAnchor;

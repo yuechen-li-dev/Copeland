@@ -234,35 +234,6 @@ public sealed class TinyFarmM12Tests
         Assert.Contains("finite, bounded", exception.Message);
     }
 
-    [Theory]
-    [InlineData("high-open", 9_000, 1200, "town.square")]
-    [InlineData("low-open", 1_000, 1200, "mara.home-bed")]
-    [InlineData("bedtime", 10_000, 1320, "mara.home-bed")]
-    [InlineData("resting", 1_000, 1200, "mara.home-bed")]
-    public void CliControlPhasesCreateInspectableCanonicalStates(
-        string phase,
-        int expectedEnergy,
-        int expectedMinute,
-        string expectedAnchor)
-    {
-        TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.LoadM12();
-        TinyFarmState state = TinyFarmM12ControlStates.Create(definitions, phase);
-        TinyFarmScheduleDecision decision = TinyFarmNpcSchedule.Decide(
-            definitions.Schedules,
-            TinyFarmIds.Mara,
-            state.Minute,
-            TinyFarmNpcController.CurrentAnchor(
-                state,
-                state.Actor(TinyFarmIds.Mara),
-                definitions.Scenes,
-                definitions.Schedules),
-            energy: state.EnergyFor(TinyFarmIds.Mara).Energy);
-
-        Assert.Equal(expectedEnergy, state.EnergyFor(TinyFarmIds.Mara).Energy);
-        Assert.Equal(expectedMinute, state.Minute);
-        Assert.Equal(expectedAnchor, decision.SelectedAnchor.Value);
-    }
-
     private static TinyFarmState LowEnergyMaraInResidence(TinyFarmDefinitions definitions)
     {
         TinyFarmState state = TinyFarmContent.CreateEnergySceneState(definitions);

@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization.Metadata;
 using System.Text.Json;
 using Deliverance.Core;
 using Deliverance.Core.Codecs;
@@ -119,7 +120,17 @@ public sealed class TinyFarmDeliverancePersistence : IPersistenceApplicationBrid
 
     public void CommitLoadedCandidate(string slotId, LoadedSaveCandidate candidate)
     {
-        TinyFarmSemanticSaveSnapshot snapshot = DecodeAndValidate(candidate.GetModule(ModuleId).Payload);
+        Restore(DecodeAndValidate(candidate.GetModule(ModuleId).Payload));
+    }
+
+    /// <summary>JSON metadata for the semantic snapshot, for hosts (such as the game shell) that store it themselves.</summary>
+    public static JsonTypeInfo<TinyFarmSemanticSaveSnapshot> SnapshotJson =>
+        (JsonTypeInfo<TinyFarmSemanticSaveSnapshot>)TinyFarmChunkedSaveCodec.ChunkOptions.GetTypeInfo(typeof(TinyFarmSemanticSaveSnapshot));
+
+    /// <summary>Replace the live session (and dialogue) with a validated snapshot.</summary>
+    public void Restore(TinyFarmSemanticSaveSnapshot snapshot)
+    {
+        Validate(snapshot);
         var session = new TinyFarmSession(
             snapshot.World,
             definitions,
@@ -162,7 +173,14 @@ public sealed class TinyFarmDeliverancePersistence : IPersistenceApplicationBrid
         {
             throw new InvalidDataException("TinyFarm semantic save module contains malformed JSON.", exception);
         }
+        Validate(snapshot);
+        return snapshot;
+    }
 
+    /// <summary>Check a snapshot against this build's runtime and definitions before it may replace live state.</summary>
+    public void Validate(TinyFarmSemanticSaveSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
         if (snapshot.ApplicationSaveVersion != 1)
         {
             throw new InvalidDataException($"Unsupported TinyFarm application save version '{snapshot.ApplicationSaveVersion}'.");
@@ -182,7 +200,6 @@ public sealed class TinyFarmDeliverancePersistence : IPersistenceApplicationBrid
             throw new InvalidDataException("TinyFarm semantic save module is missing its field snapshot.");
         }
         _ = TinyFarmFieldRuntime.Restore(snapshot.Field);
-        return snapshot;
     }
 
     private static ReadOnlyMemory<byte> MigrateV1ToV2(ReadOnlyMemory<byte> bytes)

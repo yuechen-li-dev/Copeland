@@ -1,67 +1,69 @@
 # TinyFarm: The Sleeping Spring
 
-The first playable MVP slice: a garden, a home stove and bed, a woodland crossing, and one attacking slime in Old Burrow. Harvest a starter turnip, cook healing broth, plant and water, explore, fight or retreat, and come home to your own harvest after sleeping.
+The opening slice: a garden, a home stove and bed, a shipping chest, a woodland crossing, and one attacking slime in
+Old Burrow. Harvest a starter turnip, cook healing broth, plant and water, explore, fight or retreat, and come home to
+your own harvest after sleeping.
 
-This is a review build of Gate A. The campaign, additional rooms, village shops and progression are unfinished. Roads outside the opening route are closed. Fresh-player comprehension and combat feel still need human review.
+This is a review build of Gate A. The campaign, additional rooms, village shops and progression are unfinished, and
+roads outside the opening route are closed.
 
 ## Play
 
-On Windows with .NET 10 and a Vulkan-capable graphics driver, double-click **Play-TinyFarm.cmd** in the repository root, or run:
+TinyFarm runs on the Aurelian [game shell](../../docs/Aurelian/game-shell.md), on Windows and Linux with .NET 10 and a
+Vulkan driver. From the repository root:
 
 ```powershell
-dotnet run --project Games/TinyFarm/TinyFarm.Native -c Release
+.\Play-TinyFarm.cmd
+dotnet run --project Games/TinyFarm/TinyFarm -c Release
 ```
 
-Press **Enter** to begin. **N** continues your save. Normal launch opens the opening slice at 1920×1080; no proof flag is needed.
-
-## Controls
+The shell supplies the window, resolution and fullscreen, title and pause menus, settings, key rebinding, audio
+volume and save slots. Escape pauses, or closes TinyFarm's own screens and conversations first.
 
 | Control | Action |
 | --- | --- |
-| WASD | Move, including normalized diagonal movement; face a nearby target |
-| E | Talk, harvest, water, cook, sleep at your bed, or enter a doorway |
-| J | Swing the sword; no target selection required |
-| Space | Dodge in your movement direction, or forward while standing |
-| 1 then K | Plant a turnip in an empty plot |
-| 3 then K | Use the axe beside a tree |
-| R | Eat broth; restores up to four health, consumes nothing at full health |
-| I | Pockets and opening objectives; I, Escape or Enter closes them |
-| Escape | Pause / return |
-| Enter | Begin, resume, or advance dialogue |
-| F / N | Save / load |
-| F9 / F10 | Toggle HUD / inspector independently |
-| F11 | Capture a clean gameplay PNG |
-| Q | Quit from the title, pause or pockets screen |
+| WASD / arrows | Move; face a nearby target |
+| E | Talk, harvest, water, cook, open the chest, or enter a doorway |
+| J | Swing the sword |
+| Space | Dodge in your movement direction |
+| 1–4, then K | Select a tool, then use it (1 seeds, 3 axe) |
+| R | Eat broth |
+| B | Sleep (beside your bed) |
+| I / C | Pockets and equipment / character |
+| Arrows, Enter, Escape | Navigate, confirm and close TinyFarm's menus |
+| Space, E, Escape | Advance, choose and leave conversations |
+| F9 / F10 | Toggle HUD / inspector |
 
-Stand nearby and face an object. The local prompt shows the available action. Follow the east path across the wooden bridge, then north into Old Burrow. Amber dots show the slime's committed jump direction; dodge sideways and strike during recovery. Two connected swings defeat it. Defeat returns you to the entrance with half health and preserves inventory.
+Play keys are rebindable in Settings → Controls. Watered turnips grow after one night's sleep. Sleeping, and being
+brought home at 22:00, checkpoint the game into the shell's save slot.
 
-Watered turnips grow after one night's sleep. The starter harvest does not count as a crop you grew. Sleep restores health and saves the new morning. At 22:00 outdoors, the game brings you home for rest without a fee. Dungeon time, menus, dialogue, pause and focus loss freeze the calendar.
+## Structure
 
-## Save and presentation
+| Project | Role |
+| --- | --- |
+| `TinyFarm.Core` | Rules, state, intents, inventory, crafting, combat moves |
+| `TinyFarm.Runtime` | Simulation host and cadence, content, dialogue, schedules, navigation, semantic persistence |
+| `TinyFarm.InputMan` | Application policy: TinyFarm's screens (pockets, character, stove, chest), dialogue, feedback |
+| `TinyFarm.UI` | Machina UI presentation of the HUD and menus |
+| `TinyFarm` | The `IGame` (`TinyFarmApp`): shell input contexts, saves and checkpoints, world and HUD native layers, assets |
+| `TinyFarm.Oblivion` | Live inspection surfaces |
 
-The opening save is separate from the earlier supper prototype: `%LOCALAPPDATA%\TinyFarm\saves\sleeping-spring-gate-a.dlv`. Loading replaces changes since that save. Manual save happens in the background; sleeping serializes its checkpoint after any earlier pending save. Failures are shown in the status message.
+`TinyFarmApp` translates shell actions into the InputMan frames TinyFarm's game logic reads, so the rules are unchanged.
+The world and HUD are two `INativeLayerPresenter`s on the shell's layer stack. Saves store TinyFarm's semantic
+snapshot (validated against this build's definitions) inside the shell's save envelope.
 
-```powershell
-Play-TinyFarm.cmd --width 2560 --height 1440
-Play-TinyFarm.cmd --world-only --width 2560 --height 1440
-```
-
-The world has a uniform fixed projection and owns its camera viewport. The HUD overlays it. Resize uses framebuffer dimensions; painterly cutouts, floors and brushes use linear sampling. F9 hides normal chrome but retains the local prompt. F11 temporarily hides HUD and inspector, writes `artifacts/tinyfarm-captures/tinyfarm-<UTC timestamp>.png`, then restores their prior settings. It does not pause play or change semantic state. Modal screens remain usable.
-
-Keyboard play is qualified. Controller bindings are declared, but physical gamepad play is not qualified. Existing tone-based audio remains provisional; the recorded proof video is silent.
-
-## Developer verification
+## Proof
 
 ```powershell
-dotnet build TinyFarm.slnx -c Release -m:1
-dotnet test TinyFarm.slnx -c Release -m:1
-dotnet run --project Games/TinyFarm/TinyFarm.Native -c Release -- --slice-proof
-dotnet run --project Games/TinyFarm/TinyFarm.Native -c Release -- --slice-proof --width 2560 --height 1440
-dotnet run --project Games/TinyFarm/TinyFarm.Native -c Release -- --window-smoke
+dotnet test Games/TinyFarm/TinyFarm.Core.Tests
+.\Play-TinyFarm.cmd --headless --playtest-script Games/TinyFarm/Playtests/shell-headless.json --output artifacts/local/tinyfarm-headless --save-root artifacts/local/tinyfarm-headless/saves
+.\Play-TinyFarm.cmd --playtest-script Games/TinyFarm/Playtests/shell-native.json --output artifacts/local/tinyfarm-native --save-root artifacts/local/tinyfarm-native/saves
 ```
 
-`--slice-proof` needs `ffmpeg` on PATH to record a continuous native walkthrough. It injects keyboard events through the normal Silk/InputMan bridge, uses resolver-owned movement and interactions, demonstrates damage/dodge/healing, completes the home loop, and checks save/load equality. It never loads fixtures or writes player coordinates during play. The optimized 34-second script is not a human ten-minute playtest.
+The shell tests drive TinyFarm through the shell's input path: new game and movement, Escape closing pockets before it
+pauses, a save round trip that matches the semantic hash, and sleep checkpoints. Facts under `tinyfarm.*` (screen,
+scene, minute, status, slice objectives, semantic hash) can be asserted from playtest scripts.
 
-Evidence is in `artifacts/tinyfarm-gate-a/`; the report is [Gate A report](../../docs/milestones/tinyfarm-mvp-gate-a-report.md).
-
-The earlier supper scenario remains accessible with `--legacy-supper`. Existing `--proof`, `--m24-proof` and `--m25-proof` retain their historical content and presentation paths. Those modes use their original controls and separate `supper` save slot.
+Earlier proof modes, milestone scenarios (M1–M25), the supper prototype's native bootstrap, the MonoGame frontend and
+the TinyFarm playtest CLI were removed when TinyFarm moved onto the shell; git history keeps them. Gate A evidence is
+in `artifacts/tinyfarm-gate-a/` and the [Gate A report](../../docs/milestones/tinyfarm-mvp-gate-a-report.md).

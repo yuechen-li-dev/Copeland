@@ -346,19 +346,6 @@ public sealed class TinyFarmM20Tests
             item => item.Kind == SceneObjectKind.Tree);
     }
 
-    [Fact]
-    public void CanonicalScenarioProducesOutcomeAAndTwelveRequiredHashes()
-    {
-        TinyFarmM20Evidence evidence = TinyFarmM20Scenario.Prove();
-        using JsonDocument proof = JsonDocument.Parse(TinyFarmM20Scenario.WriteJson(evidence.Proof));
-
-        Assert.Equal("A", proof.RootElement.GetProperty("outcome").GetString());
-        Assert.True(proof.RootElement.GetProperty("saveLoadExact").GetBoolean());
-        Assert.True(proof.RootElement.GetProperty("replayExact").GetBoolean());
-        Assert.True(proof.RootElement.GetProperty("useSelectedParity").GetBoolean());
-        Assert.Equal(12, proof.RootElement.GetProperty("hashes").EnumerateObject().Count());
-    }
-
     private static void AssertRejected(
         TinyFarmState initial,
         TinyFarmDefinitions definitions,

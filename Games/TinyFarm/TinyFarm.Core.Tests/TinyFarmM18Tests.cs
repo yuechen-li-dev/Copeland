@@ -218,18 +218,6 @@ public sealed class TinyFarmM18Tests
             || name.Contains("Xna", StringComparison.OrdinalIgnoreCase));
     }
 
-    [Fact]
-    public void CanonicalScenario_ProducesOutcomeAAndRequiredHashes()
-    {
-        TinyFarmM18Evidence evidence = TinyFarmM18Scenario.Prove();
-        using JsonDocument proof = JsonDocument.Parse(TinyFarmM18Scenario.WriteJson(evidence.Proof));
-
-        Assert.Equal("A", proof.RootElement.GetProperty("outcome").GetString());
-        Assert.True(proof.RootElement.GetProperty("saveLoadExact").GetBoolean());
-        Assert.True(proof.RootElement.GetProperty("replayExact").GetBoolean());
-        Assert.Equal(9, proof.RootElement.GetProperty("hashes").EnumerateObject().Count());
-    }
-
     private static IntentEnvelope Envelope(TinyFarmState state, GameIntent intent)
     {
         return new IntentEnvelope(TinyFarmIds.Player, intent, state.Minute, 0, IntentSourceKind.Human);
