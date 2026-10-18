@@ -14,78 +14,137 @@ public sealed class TinyFarmWalkthrough(TinyFarmGame game)
     public IReadOnlyList<string> Outcomes => outcomes;
     public int RecordedIntents => tape.Count;
 
+    /// <summary>
+    /// The Sleeping Spring through Mara's supper: the opening advice, Old Burrow, the supper request, a seed for
+    /// tomorrow, mushrooms and mint at Riverside, the stove, and supper with Mara.
+    /// </summary>
     public void Run()
-    {
-        RunToRiverside();
-        Approach(game.Definitions.ForageNode(TinyFarmIds.RiversideHenOfTheWoods).Position);
-        Act(new InteractIntent());
-        // Noon gives the live schedule a real location change during this session.
-        Act(new WaitIntent(35));
-        Portal("riverside-exit");
-        Portal("dungeon-entrance");
-        Checkpoint?.Invoke("06-secondary-scene");
-        Walk(new GridPosition(7, 5));
-        Face(1, 0);
-        Act(new SelectHotbarSlotIntent(new HotbarSlotId(4)));
-        Act(new UseSelectedIntent());
-        Checkpoint?.Invoke("05-combat");
-        FinishActiveCombat();
-        Portal("dungeon-exit");
-        Walk(new GridPosition(18, 8));
-        Portal("farm-entrance");
-        Walk(new GridPosition(16, 8));
-        Walk(new GridPosition(6, 8));
-        Portal("residence-entrance");
-        Walk(new GridPosition(5, 4));
-        Face(1, 0);
-        Act(new InteractIntent());
-        Checkpoint?.Invoke("mid-objective-save");
-        FinishFromKitchen();
-    }
-
-    public void RunToRiverside()
     {
         game.Start();
         Checkpoint?.Invoke("02-farm-gameplay");
         Act(new CompleteSupperIntent(), expectAccepted: false);
-        Walk(new GridPosition(6, 5));
-        Face(1, 0);
-        Act(new InteractIntent());
-        if (game.State.Item(TinyFarmIds.WildMint).Owner != TinyFarmIds.Player)
-        {
-            throw new InvalidOperationException("The player-facing E interaction did not pick up the mint.");
-        }
-        Act(new SelectHotbarSlotIntent(new HotbarSlotId(1)));
-        Act(new UseSelectedIntent());
-        Checkpoint?.Invoke("04-farming-or-pickup");
-        Portal("farm-exit");
-        Portal("town-entrance");
         TalkToMara();
-        Checkpoint?.Invoke("03-dialogue");
+        Checkpoint?.Invoke("03-opening-dialogue");
         FinishDialogue();
-        Portal("town-exit");
-        Portal("riverside-entrance");
-        Checkpoint?.Invoke("m21-riverside-pond");
+        ClearOldBurrow();
+        TalkToMara();
+        Checkpoint?.Invoke("03-supper-request");
+        FinishDialogue();
+        if (!TinyFarmSupper.IsRequested(game.State))
+        {
+            throw new InvalidOperationException("Mara did not ask for supper after Old Burrow.");
+        }
+        PlantForTomorrow();
+        Checkpoint?.Invoke("04-farming-or-pickup");
+        GatherAtRiverside();
+        Checkpoint?.Invoke("06-riverside");
+        CookAtHome();
+        Checkpoint?.Invoke("mid-objective-save");
+        FinishWithMara();
     }
 
-    public void FinishFromKitchen()
+    public void ClearOldBurrow()
+    {
+        Portal("farm-exit");
+        CrossBridge(eastward: true);
+        Portal("dungeon-entrance");
+        Checkpoint?.Invoke("05-old-burrow");
+        Walk(new GridPosition(7, 5));
+        Face(1, 0);
+        int guard = 0;
+        while (!TinyFarmSupper.BurrowCleared(game.State) && guard++ < 4)
+        {
+            Act(new SwordIntent());
+            for (int tick = 0; tick < 18; tick++)
+            {
+                Act(new SliceTickIntent());
+            }
+        }
+        if (!TinyFarmSupper.BurrowCleared(game.State))
+        {
+            throw new InvalidOperationException("The slime survived the walkthrough's swings.");
+        }
+        Portal("dungeon-exit");
+        CrossBridge(eastward: false);
+        Portal("farm-entrance");
+    }
+
+    /// <summary>The river splits the approach; the planner's point agent would hug the bridge rail, so walk its middle.</summary>
+    private void CrossBridge(bool eastward)
+    {
+        var west = new ScenePosition(13 * ScenePosition.UnitsPerTile, 8 * ScenePosition.UnitsPerTile);
+        var east = new ScenePosition(16 * ScenePosition.UnitsPerTile + ScenePosition.UnitsPerTile / 2, 8 * ScenePosition.UnitsPerTile);
+        Walk(eastward ? west : east);
+        Walk(eastward ? east : west);
+    }
+
+    public void PlantForTomorrow()
+    {
+        SceneDefinition farm = game.Definitions.Scenes.Get(TinyFarmSceneIds.Farm);
+        SceneLayoutRow plot = farm.Layout.First(row =>
+        {
+            SceneObjectDefinition definition = farm.Object(row.ObjectId);
+            return definition.Kind == SceneObjectKind.Plot
+                && game.State.FarmPlots.Any(state => state.Id.Value == definition.SemanticReference && state.Crop is null);
+        });
+        Act(new SelectHotbarSlotIntent(new HotbarSlotId(1)));
+        Approach(Center(plot));
+        Act(new UseSelectedIntent());
+    }
+
+    public void GatherAtRiverside()
+    {
+        GoToRiverside();
+        GatherAndReturnHome();
+    }
+
+    public void GoToRiverside()
+    {
+        Portal("farm-exit");
+        CrossBridge(eastward: true);
+        Portal("riverside-entrance");
+    }
+
+    public void GatherAndReturnHome()
+    {
+        ItemState mint = game.State.Item(TinyFarmIds.WildMint);
+        Approach(mint.GroundPosition ?? throw new InvalidOperationException("The wild mint is not on the riverbank."));
+        Act(new InteractIntent());
+        Approach(game.Definitions.ForageNode(TinyFarmIds.RiversideHenOfTheWoods).Position);
+        Act(new InteractIntent());
+        Portal("riverside-exit");
+        CrossBridge(eastward: false);
+        Portal("farm-entrance");
+    }
+
+    public void CookAtHome()
+    {
+        Portal("residence-entrance");
+        SceneDefinition house = game.Definitions.Scenes.Get(TinyFarmSceneIds.Residence);
+        SceneLayoutRow stove = house.Layout.First(row => house.Object(row.ObjectId).Kind == SceneObjectKind.CookingStation);
+        Approach(Center(stove));
+        Act(new InteractIntent());
+        Act(new CraftIntent(stove.ObjectId, [new CookingRecipeInput(TinyFarmIds.HenOfTheWoods, 1)],
+            TinyFarmIds.SauteedHenOfTheWoodsRecipe));
+        game.DispatchMenu("close");
+        Portal("residence-exit");
+    }
+
+    public void FinishWithMara()
     {
         game.Start();
-        Walk(new GridPosition(5, 6));
-        Walk(new GridPosition(9, 6));
-        Portal("residence-exit");
-        Walk(new GridPosition(6, 8));
-        Walk(new GridPosition(16, 8));
-        Portal("farm-exit");
-        Portal("riverside-entrance");
         TalkToMara();
         FinishDialogue();
-        if (!TinyFarmSupper.IsComplete(game.State) || game.Screen != TinyFarmScreen.Complete)
+        if (!TinyFarmSupper.IsComplete(game.State))
         {
             throw new InvalidOperationException("The supper walkthrough did not complete.");
         }
         Checkpoint?.Invoke("07-completion");
     }
+
+    private static ScenePosition Center(SceneLayoutRow row) => new(
+        row.X * ScenePosition.UnitsPerTile + row.Width * ScenePosition.UnitsPerTile / 2,
+        row.Y * ScenePosition.UnitsPerTile + row.Height * ScenePosition.UnitsPerTile / 2);
 
     public TinyFarmReplayResult Replay()
     {
@@ -103,7 +162,7 @@ public sealed class TinyFarmWalkthrough(TinyFarmGame game)
         Act(new InteractIntent(new SceneObjectId(id)));
     }
 
-    private void TalkToMara()
+    public void TalkToMara()
     {
         ActorSceneState mara = game.State.ActorScene(TinyFarmIds.Mara);
         Approach(mara.WorldPosition);
@@ -114,7 +173,7 @@ public sealed class TinyFarmWalkthrough(TinyFarmGame game)
         }
     }
 
-    private void FinishDialogue()
+    public void FinishDialogue()
     {
         int guard = 0;
         int emitted = game.Dialogue.ConsequenceEmissionCount;

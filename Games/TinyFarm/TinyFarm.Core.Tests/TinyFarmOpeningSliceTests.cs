@@ -265,7 +265,7 @@ public sealed class TinyFarmOpeningSliceTests
     public void OpeningMaraConversationDoesNotStartTheClosedPrototypeLetterQuest()
     {
         var store = new FileSaveStore(Path.Combine(AppContext.BaseDirectory, "save-tests", Guid.NewGuid().ToString("N")));
-        var game = new TinyFarmGame(store, slice: true);
+        var game = new TinyFarmGame(store, TinyFarmChapter.Opening);
         TinyFarmState initial = At(TinyFarmSceneIds.Farm, 6, 6, ActorFacing.Up);
         game.Host.ReplaceSession(new TinyFarmSession(initial, game.Definitions));
         game.Start();
@@ -281,7 +281,7 @@ public sealed class TinyFarmOpeningSliceTests
     public void SleepAutosaveFollowsAnEarlierBackgroundSave()
     {
         var store = new FileSaveStore(Path.Combine(AppContext.BaseDirectory, "save-tests", Guid.NewGuid().ToString("N")));
-        var game = new TinyFarmGame(store, slice: true);
+        var game = new TinyFarmGame(store, TinyFarmChapter.Opening);
         TinyFarmState initial = At(TinyFarmSceneIds.Residence, 3, 6, ActorFacing.Up);
         game.Host.ReplaceSession(new TinyFarmSession(initial, game.Definitions));
         game.Start();
@@ -289,7 +289,7 @@ public sealed class TinyFarmOpeningSliceTests
         Assert.Equal(IntentResultStatus.Accepted, game.Execute(new SleepIntent()).Results.First().Status);
         Assert.True(game.HasSave);
         string morningHash = TinyFarmSemanticHash.Compute(game.State);
-        var restored = new TinyFarmGame(store, slice: true);
+        var restored = new TinyFarmGame(store, TinyFarmChapter.Opening);
         Assert.True(restored.Load());
         Assert.Equal(2, restored.State.Day);
         Assert.Equal(morningHash, TinyFarmSemanticHash.Compute(restored.State));

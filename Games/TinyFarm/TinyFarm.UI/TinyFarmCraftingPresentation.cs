@@ -18,9 +18,16 @@ internal static partial class TinyFarmMenuPresentation
         Label(nodes, "stove-title", "HOME / COOKING", 66, 78, 900, TextSize.H1, Gold);
         Label(nodes, "stove-summary", $"SP {profile.SpiritCurrent}/{profile.SpiritMaximum}   Cooking {TinyFarmCrafting.Rank(profile, TinyFarmSkill.Cooking)}   /   world paused", 68, 120, 960);
         Button(nodes, "close", "Close / ESC", 1022, 80, 190);
-        Button(nodes, "recipe", "Learned: Turnip Soup", 66, 162, 310,
-            disabled: !profile.Crafting!.Knows(TinyFarmCraftingContent.Recipe), selected: game.SelectedCraftRecipe is not null);
-        Button(nodes, "experiment", "Experiment / clear inputs", 390, 162, 330, selected: game.SelectedCraftRecipe is null);
+        // One button per stove recipe; unknown recipes stay visible but disabled until read, taught or discovered.
+        int left = 66;
+        foreach (CookingRecipeDefinition recipe in game.Definitions.CookingRecipes.Where(recipe => recipe.Crafting is not null))
+        {
+            string name = game.Definitions.Items.Single(item => item.Id == recipe.OutputProduct).Name;
+            Button(nodes, "recipe:" + recipe.Id.Value, "Learned: " + name, left, 162, 300,
+                disabled: !profile.Crafting!.Knows(recipe.Id), selected: game.SelectedCraftRecipe == recipe.Id);
+            left += 312;
+        }
+        Button(nodes, "experiment", "Experiment / clear", left, 162, 250, selected: game.SelectedCraftRecipe is null);
         Label(nodes, "supplies", "Water is supplied here. Other ingredients come from your bag.", 66, 210, 1100);
 
         ItemDefinition[] ingredients = game.Definitions.Items.Where(item => item.Food is null

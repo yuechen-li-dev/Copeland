@@ -21,10 +21,13 @@ public sealed partial class TinyFarmGame
             SelectedCraftRecipe = null;
             craftInputs.Clear();
         }
-        else if (action == "recipe")
+        else if (action == "recipe" || action.StartsWith("recipe:", StringComparison.Ordinal))
         {
+            // "recipe" picks the first learned recipe (keyboard); "recipe:<id>" picks one by name (its button).
+            string? wanted = action == "recipe" ? null : action["recipe:".Length..];
             CookingRecipeDefinition? recipe = Definitions.CookingRecipes.FirstOrDefault(candidate =>
-                State.Actor(TinyFarmIds.Player).Rpg?.Crafting?.Knows(candidate.Id) == true);
+                (wanted is null || candidate.Id.Value == wanted)
+                && State.Actor(TinyFarmIds.Player).Rpg?.Crafting?.Knows(candidate.Id) == true);
             if (recipe is not null)
             {
                 SelectedCraftRecipe = recipe.Id;
@@ -83,11 +86,21 @@ public sealed partial class TinyFarmGame
         else if (result.Events.Any(item => item.Kind == GameEventKind.ItemTaken))
         {
             GameEvent taken = result.Events.First(item => item.Kind == GameEventKind.ItemTaken);
-            Status = taken.Item is ItemId item ? "Picked up " + State.Item(item).Name + ". Open I to read or use it." : "Item collected.";
+            if (taken.Item == TinyFarmIds.WildMint)
+            {
+                Status = "Wild mint, tucked away for Mara's supper.";
+            }
+            else
+            {
+                Status = taken.Item is ItemId item ? "Picked up " + State.Item(item).Name + ". Open I to read or use it." : "Item collected.";
+            }
         }
         else if (result.Events.Any(item => item.Kind == GameEventKind.ForageGathered))
         {
-            Status = "Ingredients gathered. Bring them to the stove.";
+            bool mushrooms = result.Events.Any(item => item.Kind == GameEventKind.ForageGathered && item.Product == TinyFarmIds.HenOfTheWoods);
+            Status = mushrooms
+                ? "Hen-of-the-woods gathered. Saute it at your stove for Mara's supper."
+                : "Ingredients gathered. Bring them to the stove.";
         }
         else if (intent is CraftIntent)
         {

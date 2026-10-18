@@ -15,7 +15,7 @@ public sealed class TinyFarmInventoryMenuTests
     [Fact]
     public void MenuFoodUsesTheExistingHealingRuleAndReconcilesTheConsumedRow()
     {
-        var game = new TinyFarmGame(NewStore(), slice: true);
+        var game = new TinyFarmGame(NewStore(), TinyFarmChapter.Opening);
         var broth = new ProductId("turnip-broth");
         game.State.Slice = game.State.Slice! with { Health = 8 };
         game.State.MutableInventoryStacks.Add(new InventoryStack(TinyFarmIds.Player, broth, 1));
@@ -127,7 +127,7 @@ public sealed class TinyFarmInventoryMenuTests
     [Fact]
     public void FilterSortSelectionAndEmptyResultsAreTransient()
     {
-        var game = new TinyFarmGame(NewStore(), slice: true);
+        var game = new TinyFarmGame(NewStore(), TinyFarmChapter.Opening);
         game.Start();
         game.OpenInventory(false);
         string hash = TinyFarmSemanticHash.Compute(game.State);
@@ -149,10 +149,10 @@ public sealed class TinyFarmInventoryMenuTests
     [Fact]
     public void ModalFreezesWorldAndKeyboardNavigatesInsteadOfAttacking()
     {
-        var game = new TinyFarmGame(NewStore(), slice: true);
+        var game = new TinyFarmGame(NewStore(), TinyFarmChapter.Opening);
         game.Start();
         game.OpenInventory(false);
-        var engine = new InputManEngine(GameControls.CreateProfile(slice: true));
+        var engine = new InputManEngine(GameControls.CreateProfile());
         engine.SetMaps(game.Contexts);
         engine.Tick(InputSnapshot.Empty, 0, 0);
         string hash = TinyFarmSemanticHash.Compute(game.State);
@@ -178,7 +178,7 @@ public sealed class TinyFarmInventoryMenuTests
     [Fact]
     public void RealMachinaPreparedMenuHitTestsAndRejectsReleaseElsewhere()
     {
-        var game = new TinyFarmGame(NewStore(), slice: true);
+        var game = new TinyFarmGame(NewStore(), TinyFarmChapter.Opening);
         game.Start();
         game.OpenInventory(false);
         var ui = new TinyFarmNativeUi(game);
@@ -202,9 +202,9 @@ public sealed class TinyFarmInventoryMenuTests
     [Fact]
     public void MenuReturnsToItsParentAndMissingLoadIsDisabled()
     {
-        var game = new TinyFarmGame(NewStore(), slice: true);
+        var game = new TinyFarmGame(NewStore(), TinyFarmChapter.Opening);
         game.Start();
-        var engine = new InputManEngine(GameControls.CreateProfile(slice: true));
+        var engine = new InputManEngine(GameControls.CreateProfile());
         Press(game, engine, KeyboardKey.Escape);
         Assert.Equal(TinyFarmScreen.Paused, game.Screen);
         game.DispatchMenu("load");

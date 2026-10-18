@@ -32,6 +32,7 @@ public sealed class TinyFarmApp : IGame
     private NativeGameGraphics? graphics;
     private TinyFarmWorldPresenter? world;
     private TinyFarmNativeOverlay? overlay;
+    private TinyFarmPortrait? portrait;
     private TinyFarmFrame frame;
     private TinyFarmPresentationLayout layout = new(1920, 1080, Legacy: false, Opening: true);
     private Vector2 lastPointer = new(-1, -1);
@@ -41,8 +42,8 @@ public sealed class TinyFarmApp : IGame
     public TinyFarmApp(string? assetDirectory = null)
     {
         this.assetDirectory = assetDirectory ?? Path.Combine(AppContext.BaseDirectory, "Assets");
-        // The full opening: garden, home, stove crafting and the shipping chest.
-        game = new TinyFarmGame(new TinyFarmMemorySaveStore(), slice: true, crafting: true, shipping: true)
+        // The full game: the opening, the stove, the shipping chest and supper with Mara.
+        game = new TinyFarmGame(new TinyFarmMemorySaveStore(), TinyFarmChapter.Supper)
         {
             CheckpointHost = RequestCheckpoint,
         };
@@ -149,6 +150,54 @@ public sealed class TinyFarmApp : IGame
         return null;
     }
 
+    /// <summary>
+    /// "walk STAGE" plays one stage of the supper chapter through ordinary resolver intents (the qualification
+    /// walkthrough), so playtests can reach later scenes: burrow, request, riverside, gather, cook, mara (leaves Mara's
+    /// conversation open) and finish.
+    /// </summary>
+    public bool Command(string command)
+    {
+        string[] words = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (words.Length != 2 || words[0] != "walk")
+        {
+            return false;
+        }
+        var walkthrough = new TinyFarmWalkthrough(game);
+        switch (words[1])
+        {
+            case "burrow":
+                game.Start();
+                walkthrough.TalkToMara();
+                walkthrough.FinishDialogue();
+                walkthrough.ClearOldBurrow();
+                break;
+            case "request":
+                walkthrough.TalkToMara();
+                walkthrough.FinishDialogue();
+                break;
+            case "riverside":
+                walkthrough.PlantForTomorrow();
+                walkthrough.GoToRiverside();
+                break;
+            case "gather":
+                walkthrough.GatherAndReturnHome();
+                break;
+            case "cook":
+                walkthrough.CookAtHome();
+                break;
+            case "mara":
+                walkthrough.TalkToMara();
+                break;
+            case "finish":
+                walkthrough.FinishDialogue();
+                break;
+            default:
+                return false;
+        }
+        frame = TinyFarmFrameProjector.Project(game.State, game.Definitions);
+        return true;
+    }
+
     public (double X, double Y)? ActionPoint(string action, GameViewRequest surface)
     {
         if (!game.IsModalMenu || !ui.ActionNames(frame).Contains(action, StringComparer.Ordinal))
@@ -184,6 +233,8 @@ public sealed class TinyFarmApp : IGame
             facts.Set("tinyfarm.slept", slice.Slept);
             facts.Set("tinyfarm.own-harvest", slice.OwnHarvest);
         }
+        facts.Set("tinyfarm.supper", TinyFarmSupper.IsComplete(state) ? "complete" : TinyFarmSupper.IsRequested(state) ? "requested" : "not-started");
+        facts.Set("tinyfarm.journal", game.JournalTitle);
     }
 
     public void AttachGraphics(NativeGameGraphics graphics)
@@ -214,7 +265,11 @@ public sealed class TinyFarmApp : IGame
         overlay = new TinyFarmNativeOverlay(new LayerId("tinyfarm-hud"), graphics.Plant,
             assets.Shader("AnalyticShape2D.v.ts"), assets.Shader("MsdfText.v.ts"), assets.Shader("ProfileMsdf.v.ts"),
             font, profileNative.Resource!, () => ui.Resources(frame), game, () => layout, () => world.LastCamera);
+        portrait = new TinyFarmPortrait(new LayerId("tinyfarm-portrait"), graphics.Plant,
+            TinyFarmShaders.Compile(Path.Combine(assetDirectory, "Shaders", "ForwardTextured.v.ts")), game,
+            Path.Combine(assetDirectory, "mara-dialogue.png"), () => layout);
         graphics.Layers.Add(world, 0);
+        graphics.Layers.Add(portrait, 50);
         graphics.Layers.Add(overlay, 100);
     }
 
@@ -226,12 +281,17 @@ public sealed class TinyFarmApp : IGame
             {
                 graphics.Layers.Remove(overlay.Layer);
             }
+            if (portrait is not null)
+            {
+                graphics.Layers.Remove(portrait.Layer);
+            }
             if (world is not null)
             {
                 graphics.Layers.Remove(world.Layer);
             }
         }
         overlay = null;
+        portrait = null;
         world = null;
         graphics = null;
     }

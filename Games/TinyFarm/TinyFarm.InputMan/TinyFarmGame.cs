@@ -17,8 +17,26 @@ public enum TinyFarmScreen
     Inventory,
     Stats,
     Crafting,
-    Container,
-    Complete
+    Container
+}
+
+/// <summary>
+/// The Sleeping Spring grows in authored chapters. Each adds content to the one before and keeps its own definition
+/// identity, so older chapters stay reproducible for their tests.
+/// </summary>
+public enum TinyFarmChapter
+{
+    /// <summary>Gate A: garden, broth, Old Burrow, sleep and your own harvest.</summary>
+    Opening,
+
+    /// <summary>A2: the stove, recipes, experiments and rock salt.</summary>
+    Crafting,
+
+    /// <summary>A3: the shipping chest.</summary>
+    Shipping,
+
+    /// <summary>A4: Mara's supper, the river road, mushrooms and mint. The full game.</summary>
+    Supper,
 }
 
 /// <summary>Small-game application policy; all world changes go through the simulation host.</summary>
@@ -30,22 +48,26 @@ public sealed partial class TinyFarmGame
     private readonly ISaveStore store;
     private SceneId? effectsScene;
     private bool completionShown;
+    private bool supperShown;
     private Task? pendingSave;
     private Task<LoadedSaveCandidate>? pendingLoad;
 
-    public TinyFarmGame(ISaveStore store, bool slice = false, TinyFarmAuthoredWorld? authored = null, bool crafting = false, bool shipping = false)
+    /// <param name="authored">A specific world instead of the chapter's start (tests and tools).</param>
+    public TinyFarmGame(ISaveStore store, TinyFarmChapter chapter = TinyFarmChapter.Supper, TinyFarmAuthoredWorld? authored = null)
     {
         this.store = store;
-        Definitions = authored?.Definitions ?? (shipping ? TinyFarmShippingContent.Load() : crafting ? TinyFarmCraftingContent.Load() : slice ? TinyFarmSliceContent.Load() : TinyFarmDefinitionLoader.LoadM21());
-        TinyFarmState initial = authored?.State ?? (shipping ? TinyFarmShippingContent.Start(Definitions) : crafting ? TinyFarmCraftingContent.Start(Definitions) : slice ? TinyFarmSliceContent.Start(Definitions) : TinyFarmSupperStart.Create(Definitions));
+        Chapter = chapter;
+        Definitions = authored?.Definitions ?? LoadDefinitions(chapter);
+        TinyFarmState initial = authored?.State ?? StartState(chapter, Definitions);
         Host = new TinyFarmSimulationHost(new TinyFarmSession(initial, Definitions), Definitions,
-            rates: slice ? new TinyFarmSimulationRates(NormalRealSecondsPerGameMinute: 1) : null);
+            rates: new TinyFarmSimulationRates(NormalRealSecondsPerGameMinute: 1));
         Dialogue = new TinyFarmDialogueCoordinator(Host);
         Persistence = new TinyFarmDeliverancePersistence(Host, Definitions, store, dialogue: Dialogue);
         LiveInspection = new TinyFarmOblivionLiveSurfaces(Host);
         MenuSaveAvailable = HasSave;
     }
 
+    public TinyFarmChapter Chapter { get; }
     public TinyFarmDefinitions Definitions { get; }
     public TinyFarmSimulationHost Host { get; }
     public TinyFarmDialogueCoordinator Dialogue { get; }
@@ -65,7 +87,13 @@ public sealed partial class TinyFarmGame
     public int EffectEvents { get; private set; }
     public int AudioEvents { get; private set; }
     public int FeedbackEpoch { get; private set; }
-    private string SaveSlot => State.Version >= TinyFarmState.ContainerSaveVersion ? "sleeping-spring-a3" : State.Version >= TinyFarmState.CraftingSaveVersion ? "sleeping-spring-a2" : State.Slice is not null ? "sleeping-spring-gate-a" : "supper";
+    private string SaveSlot => Chapter switch
+    {
+        TinyFarmChapter.Supper => "sleeping-spring-a4",
+        TinyFarmChapter.Shipping => "sleeping-spring-a3",
+        TinyFarmChapter.Crafting => "sleeping-spring-a2",
+        _ => "sleeping-spring-gate-a",
+    };
     public bool HasSave => store.ExistsAsync(SaveSlot).GetAwaiter().GetResult();
     public bool SaveInProgress => pendingSave is not null;
     public bool LoadInProgress => pendingLoad is not null;
@@ -105,9 +133,7 @@ public sealed partial class TinyFarmGame
     /// <summary>The first hint of a fresh game.</summary>
     public void ShowOpeningStatus()
     {
-        Status = State.Slice is not null
-            ? "A turnip is ready. Harvest it, make broth at home, then follow the path to Old Burrow."
-            : "Plant a seed by the house. Mara is in town until noon, then by the river.";
+        Status = "A turnip is ready. Harvest it, make broth at home, then follow the path to Old Burrow.";
     }
 
     /// <summary>Show the title backdrop again (for example after the host returns to its title menu).</summary>
@@ -190,7 +216,7 @@ public sealed partial class TinyFarmGame
                 break;
             }
         }
-        if (State.Slice is not null && !CapturesGameplay)
+        if (!CapturesGameplay)
         {
             var direction = input.GetAxis2(GameControls.Move);
             if (input.WasPressed(GameControls.Sword))
@@ -219,7 +245,7 @@ public sealed partial class TinyFarmGame
         Host.Execute(new SetSimulationModeCommand(playing ? TinyFarmSimulationMode.Playing : TinyFarmSimulationMode.Paused));
         var move = input.GetAxis2(GameControls.Move);
         int x = playing ? Math.Sign(move.X) : 0;
-        int y = playing && (State.Slice is not null || x == 0) ? -Math.Sign(move.Y) : 0;
+        int y = playing ? -Math.Sign(move.Y) : 0;
         Host.SetPlayerMovement(x, y);
         TinyFarmHostAdvanceResult advanced = Host.AdvanceHostTime(elapsed);
         SynchronizeScene();
@@ -256,59 +282,13 @@ public sealed partial class TinyFarmGame
         if (result.Status == IntentResultStatus.Rejected)
         {
             RejectedActions++;
-            Status = result.Reason switch
-            {
-                IntentReason.NoInteractionTarget => "Face something nearby, then press E. The prompt tells you what will happen.",
-                IntentReason.WrongWeapon => "Select the sword with 4, then press SPACE beside the slime.",
-                IntentReason.MissingIngredient => "The stove needs mushrooms. Gather them beside the river first.",
-                IntentReason.SupperNotReady => "A few supper jobs remain. Your journal shows what is missing.",
-                _ => "That did not work: " + result.Reason + ". Try moving closer or changing tools."
-            };
         }
         else
         {
             AcceptedActions++;
-            Status = result.Events.LastOrDefault()?.Kind switch
-            {
-                GameEventKind.CropPlanted => "A seed for tomorrow. No waiting needed: planting counts!",
-                GameEventKind.ItemTaken => "Wild mint tucked safely away for Mara.",
-                GameEventKind.ForageGathered => "Mushrooms gathered. The stove in Hearth House is ready.",
-                GameEventKind.RecipeCooked => "Supper smells excellent. Try not to eat the evidence.",
-                GameEventKind.EnemyDefeated => "Old Burrow is quiet again. One fewer uninvited dinner guest.",
-                GameEventKind.TreeChopped => "A little firewood. A very satisfying thump.",
-                GameEventKind.SceneEntered => "A new corner of home. Follow the doorway signs to return.",
-                _ => Status
-            };
         }
         Dialogue.TryBeginFrom(step);
-        if (State.Slice is not null)
-        {
-            Status = result.Status == IntentResultStatus.Rejected ? result.Reason switch
-            {
-                IntentReason.MissingIngredient => "Broth needs one turnip. Harvest the cream bulb in your garden.",
-                IntentReason.WrongWeapon or IntentReason.MissingSword => "Equip your sword in I / Equipment before striking. Finish an active dodge first.",
-                IntentReason.MissingAxe => "Equip your axe in I / Equipment, then use tool 3 beside a tree.",
-                IntentReason.WrongLocation => intent is SleepIntent ? "Rest beside your bed at home."
-                    : "This road is closed for now. Follow the woodland path east.",
-                _ => "Move closer and face the object. E interacts; K uses your selected tool."
-            } : intent switch
-            {
-                SleepIntent => "Morning. Watered crops have grown. Your garden is waiting.",
-                EatIntent when result.Status == IntentResultStatus.Accepted => "Warm broth restores health. Ready for another try.",
-                _ => result.Events.LastOrDefault()?.Kind switch
-                {
-                    GameEventKind.DayStarted => "Morning. Watered crops have grown. Your garden is waiting.",
-                    GameEventKind.PlotWatered => "Watered. Rest in your bed tonight, then return to your garden.",
-                    GameEventKind.SceneEntered => OpeningSceneStatus(),
-                    GameEventKind.CropPlanted => "Your seed is planted. E waters it; sleep at home to grow it.",
-                    GameEventKind.CropHarvested => State.Slice.OwnHarvest
-                        ? "A turnip of your own. The stove turns it into healing broth."
-                        : "Starter turnip harvested. Bring it to the house stove for broth.",
-                    GameEventKind.RecipeCooked => "One turnip, one broth. R eats it when you need health.",
-                    _ => Status
-                }
-            };
-        }
+        Status = DescribeResult(intent, result);
         if (State.Slice is not null && result.Status == IntentResultStatus.Accepted
             && result.Events.Any(item => item.Kind == GameEventKind.DayStarted))
         {
@@ -329,6 +309,47 @@ public sealed partial class TinyFarmGame
         CheckCompletion();
     }
 
+    private string DescribeResult(GameIntent intent, IntentResult result)
+    {
+        if (result.Status == IntentResultStatus.Rejected)
+        {
+            return result.Reason switch
+            {
+                IntentReason.MissingIngredient => "Broth needs one turnip. Harvest the cream bulb in your garden.",
+                IntentReason.WrongWeapon or IntentReason.MissingSword => "Equip your sword in I / Equipment before striking. Finish an active dodge first.",
+                IntentReason.MissingAxe => "Equip your axe in I / Equipment, then use tool 3 beside a tree.",
+                IntentReason.WrongLocation when intent is SleepIntent => "Rest beside your bed at home.",
+                IntentReason.WrongLocation => "This road is closed for now. Follow the woodland path east.",
+                IntentReason.SupperNotReady => "A few supper jobs remain. Your journal shows what is missing.",
+                _ => "Move closer and face the object. E interacts; K uses your selected tool.",
+            };
+        }
+        if (intent is SleepIntent)
+        {
+            return "Morning. Watered crops have grown. Your garden is waiting.";
+        }
+        if (intent is EatIntent && result.Status == IntentResultStatus.Accepted)
+        {
+            return "Warm broth restores health. Ready for another try.";
+        }
+        if (result.Events.Any(item => item.Kind == GameEventKind.RecipeLearned && item.Recipe == TinyFarmIds.SauteedHenOfTheWoodsRecipe))
+        {
+            return "Supper with Mara: the river road is open. Mushrooms, mint and a seed for tomorrow.";
+        }
+        return result.Events.LastOrDefault()?.Kind switch
+        {
+            GameEventKind.DayStarted => "Morning. Watered crops have grown. Your garden is waiting.",
+            GameEventKind.PlotWatered => "Watered. Rest in your bed tonight, then return to your garden.",
+            GameEventKind.SceneEntered => OpeningSceneStatus(),
+            GameEventKind.CropPlanted => "Your seed is planted. E waters it; sleep at home to grow it.",
+            GameEventKind.CropHarvested when State.Slice?.OwnHarvest == true => "A turnip of your own. The stove turns it into healing broth.",
+            GameEventKind.CropHarvested => "Starter turnip harvested. Bring it to the house stove for broth.",
+            GameEventKind.RecipeCooked => "One turnip, one broth. R eats it when you need health.",
+            GameEventKind.EnemyDefeated => "Old Burrow is quiet again. One fewer uninvited dinner guest.",
+            _ => Status,
+        };
+    }
+
     private string OpeningSceneStatus()
     {
         if (State.CurrentScene == TinyFarmSceneIds.DungeonEntrance)
@@ -337,7 +358,13 @@ public sealed partial class TinyFarmGame
         }
         if (State.CurrentScene == TinyFarmSceneIds.Overworld)
         {
-            return "Follow the path across the bridge, then north to Old Burrow.";
+            return TinyFarmSupper.IsRequested(State) && !TinyFarmSupper.IsComplete(State)
+                ? "The river road is open: Riverside lies along the water."
+                : "Follow the path across the bridge, then north to Old Burrow.";
+        }
+        if (State.CurrentScene == TinyFarmSceneIds.Riverside)
+        {
+            return "Hen-of-the-woods grows by the water; wild mint on the bank. E gathers.";
         }
         if (State.CurrentScene == TinyFarmSceneIds.Residence)
         {
@@ -374,9 +401,7 @@ public sealed partial class TinyFarmGame
             string targetSlot = slot ?? SaveSlot;
             Persistence.Deliverance.SaveAsync(targetSlot, Persistence.CaptureSave(targetSlot)).GetAwaiter().GetResult();
             MenuSaveAvailable = HasSave;
-            Status = State.Slice is not null
-                ? "Saved. N continues your garden and adventure from here."
-                : "Saved. Your supper, world, and conversation are safe. N continues from here.";
+            Status = "Saved. N continues your garden and adventure from here.";
             return true;
         }
         catch (Exception error) when (error is not OutOfMemoryException)
@@ -465,7 +490,7 @@ public sealed partial class TinyFarmGame
             {
                 pendingSave.GetAwaiter().GetResult();
                 MenuSaveAvailable = true;
-                Status = "Saved. Your supper, world, and conversation are safe. N continues from here.";
+                Status = "Saved. Your garden, world and conversation are safe. N continues from here.";
             }
             catch (Exception error) when (error is not OutOfMemoryException)
             {
@@ -494,7 +519,8 @@ public sealed partial class TinyFarmGame
     public void AfterRestore()
     {
         Screen = TinyFarmScreen.Playing;
-        completionShown = TinyFarmSupper.IsComplete(State);
+        completionShown = State.Slice?.LoopComplete == true;
+        supperShown = TinyFarmSupper.IsComplete(State);
         effectsScene = null;
         FeedbackEpoch++;
         Effects = NewEffects();
@@ -504,48 +530,98 @@ public sealed partial class TinyFarmGame
         RestoreContainerPresentation();
     }
 
+    /// <summary>The journal heading for <see cref="Objectives"/>.</summary>
+    public string JournalTitle => SupperInProgress ? "SUPPER WITH MARA" : "THE SLEEPING SPRING";
+
+    private bool SupperInProgress => TinyFarmSupper.IsRequested(State) && !TinyFarmSupper.IsComplete(State);
+
+    /// <summary>A cheap change key for the journal (which list, and which entries are done).</summary>
+    public int JournalProgress
+    {
+        get
+        {
+            if (SupperInProgress)
+            {
+                return 32
+                    | (TinyFarmSupper.SeedPlanted(State) ? 1 : 0)
+                    | (TinyFarmSupper.HasCookedMushrooms(State) ? 2 : 0)
+                    | (TinyFarmSupper.HasMint(State) ? 4 : 0)
+                    | (TinyFarmSupper.BurrowCleared(State) ? 8 : 0);
+            }
+            if (State.Slice is not TinyFarmSliceState slice)
+            {
+                return 0;
+            }
+            return 64
+                | (slice.CookedBroth ? 1 : 0)
+                | (slice.Defeats > 0 ? 2 : 0)
+                | (slice.ReturnedHome ? 4 : 0)
+                | (slice.Slept ? 8 : 0)
+                | (slice.OwnHarvest ? 16 : 0);
+        }
+    }
+
+    /// <summary>The current journal: the opening loop, or Mara's supper while it is under way.</summary>
     public string[] Objectives()
     {
         string Mark(bool done, string text) => (done ? "[done] " : "[  ] ") + text;
-        if (State.Slice is TinyFarmSliceState slice)
+        if (SupperInProgress)
         {
             return
             [
-                Mark(slice.CookedBroth, State.Version >= TinyFarmState.CraftingSaveVersion ? "Harvest a turnip; E opens your stove to cook soup" : "Harvest the starter turnip; E cooks broth at home"),
-                Mark(slice.Defeats > 0, "Follow the east path; clear Old Burrow"),
-                Mark(slice.ReturnedHome, "Return home from your adventure"),
-                Mark(slice.Slept, "Plant with 1 + K, water with E, sleep in your bed"),
-                Mark(slice.OwnHarvest, "Return in the morning and harvest your own turnip")
+                Mark(TinyFarmSupper.SeedPlanted(State), "Plant a turnip for tomorrow / 1 + K"),
+                Mark(TinyFarmSupper.HasCookedMushrooms(State), "Riverside mushrooms, sauteed at your stove"),
+                Mark(TinyFarmSupper.HasMint(State), "Wild mint from the riverbank / E"),
+                Mark(TinyFarmSupper.BurrowCleared(State), "One fewer slime in Old Burrow"),
+                Mark(false, "Bring supper to Mara / E"),
             ];
+        }
+        if (State.Slice is not TinyFarmSliceState slice)
+        {
+            return [];
         }
         return
         [
-            Mark(State.Facts.Contains(WorldFact.SupperSeedPlanted), "Plant a turnip / 1 + SPACE"),
-            Mark(State.ProductCount(TinyFarmIds.Player, TinyFarmIds.SauteedHenOfTheWoods) > 0, "River mushrooms to home stove / E"),
-            Mark(State.Enemy(TinyFarmIds.DungeonSlime).Lifecycle == EnemyLifecycle.Defeated, "Clear Old Burrow / 4 + SPACE"),
-            Mark(State.Item(TinyFarmIds.WildMint).Owner is not null, "Mint by the farm plots / E"),
-            Mark(TinyFarmSupper.IsComplete(State), "Return to Mara with supper / E")
+            Mark(slice.CookedBroth, State.Version >= TinyFarmState.CraftingSaveVersion ? "Harvest a turnip; E opens your stove to cook soup" : "Harvest the starter turnip; E cooks broth at home"),
+            Mark(slice.Defeats > 0, "Follow the east path; clear Old Burrow"),
+            Mark(slice.ReturnedHome, "Return home from your adventure"),
+            Mark(slice.Slept, "Plant with 1 + K, water with E, sleep in your bed"),
+            Mark(slice.OwnHarvest, "Return in the morning and harvest your own turnip"),
         ];
     }
 
     private void CheckCompletion()
     {
-        if (State.Slice is TinyFarmSliceState slice)
+        if (TinyFarmSupper.IsComplete(State) && !Dialogue.IsActive && !supperShown)
         {
-            if (slice.LoopComplete && !completionShown)
-            {
-                completionShown = true;
-                Status = "Home, garden, adventure. Opening loop complete. Stay a little longer.";
-            }
+            supperShown = true;
+            Status = "Supper with Mara. The stove is warm and you are rested. Tomorrow can wait.";
             return;
         }
-        if (TinyFarmSupper.IsComplete(State) && !Dialogue.IsActive && !completionShown)
+        if (State.Slice is { LoopComplete: true } && !completionShown)
         {
             completionShown = true;
-            Screen = TinyFarmScreen.Complete;
-            Status = "Supper is ready. Tomorrow can wait.";
+            Status = "Home, garden, adventure. Opening loop complete. Stay a little longer.";
         }
     }
+
+    private static TinyFarmDefinitions LoadDefinitions(TinyFarmChapter chapter) => chapter switch
+    {
+        TinyFarmChapter.Opening => TinyFarmSliceContent.Load(),
+        TinyFarmChapter.Crafting => TinyFarmCraftingContent.Load(),
+        TinyFarmChapter.Shipping => TinyFarmShippingContent.Load(),
+        TinyFarmChapter.Supper => TinyFarmSupperContent.Load(),
+        _ => throw new ArgumentOutOfRangeException(nameof(chapter)),
+    };
+
+    private static TinyFarmState StartState(TinyFarmChapter chapter, TinyFarmDefinitions definitions) => chapter switch
+    {
+        TinyFarmChapter.Opening => TinyFarmSliceContent.Start(definitions),
+        TinyFarmChapter.Crafting => TinyFarmCraftingContent.Start(definitions),
+        TinyFarmChapter.Shipping => TinyFarmShippingContent.Start(definitions),
+        TinyFarmChapter.Supper => TinyFarmSupperContent.Start(definitions),
+        _ => throw new ArgumentOutOfRangeException(nameof(chapter)),
+    };
 
     private void SynchronizeScene()
     {

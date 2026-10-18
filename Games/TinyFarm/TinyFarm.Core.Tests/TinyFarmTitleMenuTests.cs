@@ -10,7 +10,7 @@ namespace TinyFarm.Core.Tests;
 public sealed class TinyFarmTitleMenuTests
 {
     private static TinyFarmGame Game() => new(new FileSaveStore(Path.Combine(Path.GetTempPath(),
-        "tinyfarm-title-tests", Guid.NewGuid().ToString("N"))), slice: true, crafting: true);
+        "tinyfarm-title-tests", Guid.NewGuid().ToString("N"))), TinyFarmChapter.Crafting);
 
     [Fact]
     public void ActualMachinaButtonsStartAndQuitWhileMissingLoadIsDisabled()
@@ -43,7 +43,7 @@ public sealed class TinyFarmTitleMenuTests
     public void InputManTitleContextBlocksWorldAndEnterStartsWithoutChangingState()
     {
         TinyFarmGame game = Game();
-        var engine = new InputManEngine(GameControls.CreateProfile(true));
+        var engine = new InputManEngine(GameControls.CreateProfile());
         engine.SetMaps(game.Contexts);
         Assert.DoesNotContain(GameControls.Gameplay, game.Contexts);
         engine.Tick(new InputSnapshot(new Dictionary<ControlKey, bool>
@@ -69,17 +69,17 @@ public sealed class TinyFarmTitleMenuTests
     public async Task BootDetectsCheckpointAndTitleLoadRestoresTheExistingSave()
     {
         string path = Path.Combine(Path.GetTempPath(), "tinyfarm-title-tests", Guid.NewGuid().ToString("N"));
-        var first = new TinyFarmGame(new FileSaveStore(path), slice: true, crafting: true);
+        var first = new TinyFarmGame(new FileSaveStore(path), TinyFarmChapter.Crafting);
         first.Start();
         first.State.Slice = first.State.Slice! with { Health = 7 };
         Assert.True(first.Save());
-        var second = new TinyFarmGame(new FileSaveStore(path), slice: true, crafting: true);
+        var second = new TinyFarmGame(new FileSaveStore(path), TinyFarmChapter.Crafting);
         Assert.True(second.MenuSaveAvailable);
         var ui = new TinyFarmNativeUi(second);
         TinyFarmFrame frame = TinyFarmFrameProjector.Project(second.State, second.Definitions);
         ui.Pointer(frame, new PointerPoint(200, 400), true);
         ui.Pointer(frame, new PointerPoint(200, 400), false);
-        var engine = new InputManEngine(GameControls.CreateProfile(true));
+        var engine = new InputManEngine(GameControls.CreateProfile());
         engine.Tick(InputSnapshot.Empty, .016f, 0);
         for (int index = 0; index < 5000 && second.LoadInProgress; index++)
         {

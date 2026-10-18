@@ -179,7 +179,7 @@ public sealed class TinyFarmCraftingA2Tests
     {
         TinyFarmDefinitions definitions = TinyFarmCraftingContent.Load();
         var game = new TinyFarmGame(new FileSaveStore(Path.Combine(Path.GetTempPath(), "tinyfarm-a2-tests", Guid.NewGuid().ToString("N"))),
-            slice: true, authored: new TinyFarmAuthoredWorld(definitions, Ready(definitions)));
+            TinyFarmChapter.Opening, authored: new TinyFarmAuthoredWorld(definitions, Ready(definitions)));
         game.Start();
         string hash = TinyFarmSemanticHash.Compute(game.State);
         game.Execute(new InteractIntent());
@@ -187,7 +187,7 @@ public sealed class TinyFarmCraftingA2Tests
         Assert.DoesNotContain(GameControls.Gameplay, game.Contexts);
         game.DispatchMenu("add:turnip");
         game.DispatchMenu("add:water");
-        var engine = new InputManEngine(GameControls.CreateProfile(true));
+        var engine = new InputManEngine(GameControls.CreateProfile());
         engine.SetMaps(game.Contexts);
         engine.Tick(new InputSnapshot(new Dictionary<ControlKey, bool> { [Controls.Key(KeyboardKey.W)] = true }, new Dictionary<ControlKey, float>()), .016f, 0);
         game.Handle(engine.CurrentFrame);

@@ -48,16 +48,17 @@ public static class GameControls
     public static readonly AxisId MoveY = new("MoveY");
     public static readonly Axis2Id Move = new("Move");
 
-    public static InputProfile CreateProfile(bool slice = false)
+    /// <summary>The Sleeping Spring's own InputMan profile (the game shell translates its actions into these).</summary>
+    public static InputProfile CreateProfile()
     {
         List<Binding> gameplayBindings =
         [
-            Bind.Action(Controls.Gamepad(GamepadButton.West), slice ? Sword : UseSelected),
+            Bind.Action(Controls.Gamepad(GamepadButton.West), Sword),
             Bind.Action(Controls.Gamepad(GamepadButton.DpadUp), Hotbar1),
             Bind.Action(Controls.Gamepad(GamepadButton.DpadDown), Hotbar2),
             Bind.Action(Controls.Gamepad(GamepadButton.DpadLeft), Hotbar3),
             Bind.Action(Controls.Gamepad(GamepadButton.DpadRight), Hotbar4),
-            Bind.Action(Controls.Gamepad(GamepadButton.North), slice ? UseSelected : ToggleInventory),
+            Bind.Action(Controls.Gamepad(GamepadButton.North), UseSelected),
             .. Input.Wasd(MoveX, MoveY),
             .. Input.GamepadLeftStick(MoveX, MoveY, deadzone: 0.15f),
             Bind.Action(Controls.Key(KeyboardKey.E), Interact, name: "Interact.Keyboard"),
@@ -70,24 +71,21 @@ public static class GameControls
             Bind.Action(Controls.Key(KeyboardKey.Number2), Hotbar2, name: "Hotbar2.Keyboard"),
             Bind.Action(Controls.Key(KeyboardKey.Number3), Hotbar3, name: "Hotbar3.Keyboard"),
             Bind.Action(Controls.Key(KeyboardKey.Number4), Hotbar4, name: "Hotbar4.Keyboard"),
-            Bind.Action(Controls.Key(slice ? KeyboardKey.K : KeyboardKey.Space), UseSelected, name: "UseSelected.Keyboard"),
+            Bind.Action(Controls.Key(KeyboardKey.K), UseSelected, name: "UseSelected.Keyboard"),
             Bind.ActionChord(
                 Controls.Key(KeyboardKey.F),
                 Interact,
                 ButtonEdge.Pressed,
                 name: "Interact.AlternateChord",
                 modifiers: Controls.Key(KeyboardKey.LeftShift)),
+            Bind.Action(Controls.Key(KeyboardKey.J), Sword),
+            Bind.Action(Controls.Key(KeyboardKey.Space), Dodge),
+            Bind.Action(Controls.Key(KeyboardKey.R), Eat),
+            Bind.Action(Controls.Key(KeyboardKey.B), Sleep),
+            Bind.Action(Controls.Gamepad(GamepadButton.East), Dodge),
+            Bind.Action(Controls.Gamepad(GamepadButton.RightShoulder), Eat),
+            Bind.Action(Controls.Gamepad(GamepadButton.Back), ToggleInventory),
         ];
-        if (slice)
-        {
-            gameplayBindings.Add(Bind.Action(Controls.Key(KeyboardKey.J), Sword));
-            gameplayBindings.Add(Bind.Action(Controls.Key(KeyboardKey.Space), Dodge));
-            gameplayBindings.Add(Bind.Action(Controls.Key(KeyboardKey.R), Eat));
-            gameplayBindings.Add(Bind.Action(Controls.Key(KeyboardKey.B), Sleep));
-            gameplayBindings.Add(Bind.Action(Controls.Gamepad(GamepadButton.East), Dodge));
-            gameplayBindings.Add(Bind.Action(Controls.Gamepad(GamepadButton.RightShoulder), Eat));
-            gameplayBindings.Add(Bind.Action(Controls.Gamepad(GamepadButton.Back), ToggleInventory));
-        }
 
         return Input.Profile(
             [

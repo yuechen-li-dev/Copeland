@@ -247,7 +247,7 @@ public sealed class TinyFarmContainerTests
         TinyFarmDefinitions definitions = TinyFarmShippingContent.Load();
         var authored = new TinyFarmAuthoredWorld(definitions, Ready(definitions));
         var store = new FileSaveStore(Path.Combine(Path.GetTempPath(), "tinyfarm-containers", Guid.NewGuid().ToString("N")));
-        var game = new TinyFarmGame(store, slice: true, authored: authored);
+        var game = new TinyFarmGame(store, TinyFarmChapter.Opening, authored: authored);
         game.Start();
         game.Execute(new InteractIntent());
         Assert.Equal(TinyFarmScreen.Container, game.Screen);
@@ -322,8 +322,8 @@ public sealed class TinyFarmContainerTests
         TinyFarmState state = Ready(definitions, 539);
         state.MutableInventoryStacks.Add(new InventoryStack(Chest, TinyFarmIds.Turnip, 2));
         var store = new FileSaveStore(Path.Combine(Path.GetTempPath(), "tinyfarm-shipping-clock", Guid.NewGuid().ToString("N")));
-        var game = new TinyFarmGame(store, slice: true, authored: new TinyFarmAuthoredWorld(definitions, state));
-        var input = new InputManEngine(GameControls.CreateProfile(true));
+        var game = new TinyFarmGame(store, TinyFarmChapter.Opening, authored: new TinyFarmAuthoredWorld(definitions, state));
+        var input = new InputManEngine(GameControls.CreateProfile());
         game.Start();
         input.SetMaps(game.Contexts);
         input.Tick(new InputSnapshot(new Dictionary<ControlKey, bool>(), new Dictionary<ControlKey, float>()), 1, 0);

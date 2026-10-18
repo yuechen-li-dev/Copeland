@@ -676,9 +676,7 @@ public sealed partial class TinyFarmResolver
         SceneDefinition scene,
         SceneRoute route)
     {
-        if (state.Slice is not null && actor.IsPlayer && route.TargetScene != TinyFarmSceneIds.Farm
-            && route.TargetScene != TinyFarmSceneIds.Residence && route.TargetScene != TinyFarmSceneIds.Overworld
-            && route.TargetScene != TinyFarmSceneIds.DungeonEntrance)
+        if (actor.IsPlayer && !TinyFarmOpeningRoutes.IsOpen(state, route.TargetScene))
         {
             return Rejected(envelope, IntentReason.WrongLocation);
         }
@@ -721,7 +719,7 @@ public sealed partial class TinyFarmResolver
         return deltaY < 0 ? ActorFacing.Up : ActorFacing.Down;
     }
 
-    private static IntentResult ResolveTalk(
+    private IntentResult ResolveTalk(
         TinyFarmState state,
         ActorState actor,
         IntentEnvelope envelope,
@@ -745,8 +743,7 @@ public sealed partial class TinyFarmResolver
 
         if (state.Slice is not null && intent.Target == TinyFarmIds.Mara)
         {
-            return Accepted(envelope, new GameEvent(GameEventKind.Conversation,
-                actor.Id, target.Id, Dialogue: DialogueTopic.Greeting));
+            return ResolveOpeningMaraTalk(state, actor, envelope, target);
         }
 
         var events = new List<GameEvent>();
@@ -833,6 +830,26 @@ public sealed partial class TinyFarmResolver
         return Accepted(envelope, new GameEvent(GameEventKind.ItemTaken, actor.Id, Item: item.Id));
     }
 
+    /// <summary>In the Sleeping Spring, Mara chats; after Old Burrow she asks for supper and teaches the mushroom recipe.</summary>
+    private IntentResult ResolveOpeningMaraTalk(TinyFarmState state, ActorState actor, IntentEnvelope envelope, ActorState mara)
+    {
+        var events = new List<GameEvent>
+        {
+            new(GameEventKind.Conversation, actor.Id, mara.Id, Dialogue: DialogueTopic.Greeting),
+        };
+        if (actor.IsPlayer && TinyFarmSupper.CanRequest(state, definitions))
+        {
+            AddFact(state, WorldFact.SupperRequested);
+            if (actor.Rpg is { Crafting: not null } profile && !profile.Crafting.Knows(TinyFarmIds.SauteedHenOfTheWoodsRecipe))
+            {
+                ReplaceActor(state, actor with { Rpg = LearnRecipe(profile, TinyFarmIds.SauteedHenOfTheWoodsRecipe, "Mara's supper") });
+                events.Add(new GameEvent(GameEventKind.RecipeLearned, actor.Id, mara.Id,
+                    Recipe: TinyFarmIds.SauteedHenOfTheWoodsRecipe));
+            }
+        }
+        return Accepted(envelope, events);
+    }
+
     private static IntentResult ResolveSupper(TinyFarmState state, ActorState actor, IntentEnvelope envelope)
     {
         if (state.Facts.Contains(WorldFact.SupperCompleted))
@@ -844,11 +861,23 @@ public sealed partial class TinyFarmResolver
             return Rejected(envelope, IntentReason.SupperNotReady);
         }
         IntentResult transfer = ResolveGive(state, actor, envelope, new GiveIntent(TinyFarmIds.WildMint, TinyFarmIds.Mara));
-        if (transfer.Status == IntentResultStatus.Accepted)
+        if (transfer.Status != IntentResultStatus.Accepted)
         {
-            AddFact(state, WorldFact.SupperCompleted);
+            return transfer;
         }
-        return transfer;
+        AddFact(state, WorldFact.SupperCompleted);
+        if (state.Slice is not TinyFarmSliceState slice)
+        {
+            return transfer;
+        }
+        // In the Sleeping Spring the dish goes on Mara's table, and sharing it restores you.
+        int dishes = state.ProductCount(actor.Id, TinyFarmIds.SauteedHenOfTheWoods);
+        SetProductCount(state, actor.Id, TinyFarmIds.SauteedHenOfTheWoods, dishes - 1);
+        int healed = 12 - slice.Health;
+        state.Slice = slice with { Health = 12 };
+        var events = transfer.Events.ToList();
+        events.Add(new GameEvent(GameEventKind.PlayerHealed, actor.Id, Amount: healed));
+        return transfer with { Events = events };
     }
 
     private static IntentResult ResolveGive(

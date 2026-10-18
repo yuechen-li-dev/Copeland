@@ -70,6 +70,7 @@ public static class TinyFarmMaraDialogue
     public static readonly BbKey<bool> OpeningSlice = new("mara-dialogue.opening-slice");
     public static readonly BbKey<bool> SupperSlice = new("mara-dialogue.supper-slice");
     public static readonly BbKey<bool> SupperDone = new("mara-dialogue.supper-done");
+    public static readonly BbKey<bool> SupperJustRequested = new("mara-dialogue.supper-just-requested");
     public static readonly BbKey<bool> HasWildMint = new("mara-dialogue.has-wild-mint");
     public static readonly BbKey<string> Choice = new("mara-dialogue.choice");
     public static readonly BbKey<bool> ConsequenceAccepted = new("mara-dialogue.consequence-accepted");
@@ -79,6 +80,8 @@ public static class TinyFarmMaraDialogue
     public static IReadOnlyList<DialoguePresentationOperation> Operations { get; } =
     [
         Line("mara.opening", "Mara", "That ripe turnip is yours. Cook broth at the house stove before visiting Old Burrow. The slime crouches before jumping: step aside, then strike. Plant and water a seed before bed; tomorrow belongs to your garden."),
+        Line("mara.supper-invite", "Mara", "You came home from Old Burrow in one piece. That deserves a proper supper, and I have been planning one."),
+        Line("mara.supper-river", "Mara", "The river road is open now. Gather hen-of-the-woods by the water and saute it at your stove; I wrote the recipe down for you. Pick wild mint on the bank, plant a turnip for tomorrow, and come find me."),
         Line("mara.supper-opening", "Mara", "A proper supper needs mushrooms, mint, and one fewer slime. Very traditional."),
         Line("mara.supper-help", "Mara", "Plant a turnip for tomorrow. Gather river mushrooms, cook them at home, and clear Old Burrow. Bring me the mint when you are ready."),
         Line("mara.supper-ready", "Mara", "The stove smells wonderful. The burrow is quiet. Is that the mint for our supper?"),
@@ -109,6 +112,7 @@ public static class TinyFarmMaraDialogue
     {
         var graph = new HfsmGraph { Root = "greeting" };
         graph.Add("greeting", Node(Greeting));
+        graph.Add("opening", Node(Opening));
         graph.Add("weather", Node(Weather));
         graph.Add("branch", Node(Branch));
         graph.Add("mint-choice", Node(MintChoice));
@@ -123,21 +127,47 @@ public static class TinyFarmMaraDialogue
 
     private static IEnumerator<AiStep> Greeting(AiCtx context)
     {
-        if (context.Bb.GetOrDefault(OpeningSlice, false))
-        {
-            yield return Show("mara.opening");
-            yield return Ai.Goto("complete");
-            yield break;
-        }
         if (context.Bb.GetOrDefault(SupperDone, false))
         {
             yield return Show("mara.supper-after");
             yield return Ai.Goto("complete");
             yield break;
         }
+        if (context.Bb.GetOrDefault(OpeningSlice, false))
+        {
+            yield return Ai.Goto("opening");
+            yield break;
+        }
         yield return Show(context.Bb.GetOrDefault(SupperSlice, false) ? "mara.supper-opening" : "mara.greeting");
         yield return Ai.Push("weather");
         yield return Ai.Goto("branch");
+    }
+
+    /// <summary>The Sleeping Spring: the opening advice, then Mara's supper once she has asked for it.</summary>
+    private static IEnumerator<AiStep> Opening(AiCtx context)
+    {
+        if (context.Bb.GetOrDefault(SupperJustRequested, false))
+        {
+            yield return Show("mara.supper-invite");
+            yield return Show("mara.supper-opening");
+            yield return Show("mara.supper-river");
+            yield return Ai.Goto("complete");
+            yield break;
+        }
+        if (context.Bb.GetOrDefault(SupperSlice, false))
+        {
+            if (context.Bb.GetOrDefault(HasWildMint, false))
+            {
+                yield return Show("mara.supper-ready");
+                yield return Ai.Goto("mint-choice");
+                yield break;
+            }
+            yield return Show("mara.supper-river");
+            yield return Ai.Goto("complete");
+            yield break;
+        }
+        yield return Show("mara.opening");
+        yield return Ai.Goto("complete");
     }
 
     private static IEnumerator<AiStep> Weather(AiCtx context)
@@ -298,7 +328,9 @@ public sealed class TinyFarmDialogueCoordinator
             return false;
         }
 
-        Begin();
+        bool supperRequested = step.Results.Any(result => result.Events.Any(item =>
+            item.Kind == GameEventKind.RecipeLearned && item.Recipe == TinyFarmIds.SauteedHenOfTheWoodsRecipe));
+        Begin(supperRequested);
         return true;
     }
 
@@ -396,7 +428,7 @@ public sealed class TinyFarmDialogueCoordinator
         RecordPresentation();
     }
 
-    private void Begin()
+    private void Begin(bool supperJustRequested)
     {
         BuildWorld();
         bool hasWildMint = host.Session.State.Actors
@@ -406,6 +438,7 @@ public sealed class TinyFarmDialogueCoordinator
         agent.Bb.Set(TinyFarmMaraDialogue.OpeningSlice, host.Session.State.Slice is not null);
         agent.Bb.Set(TinyFarmMaraDialogue.SupperSlice, supper);
         agent.Bb.Set(TinyFarmMaraDialogue.SupperDone, TinyFarmSupper.IsComplete(host.Session.State));
+        agent.Bb.Set(TinyFarmMaraDialogue.SupperJustRequested, supperJustRequested);
         agent.Bb.Set(TinyFarmMaraDialogue.HasWildMint, supper ? TinyFarmSupper.IsReady(host.Session.State) : hasWildMint);
         IsActive = true;
         IsCancelled = false;
