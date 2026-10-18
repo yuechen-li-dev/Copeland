@@ -379,6 +379,10 @@ public static class GameApp
                         session.Activate(action);
                     }
                 }
+                else if (session.Playing && session.Manifest.Input.Pointer)
+                {
+                    RouteTyping(input);
+                }
             }
             UpdateCapture();
         }
@@ -453,6 +457,28 @@ public static class GameApp
         private void UpdateScale()
         {
             graphics.Menus.Scale = Math.Min(graphics.Width / ReferenceWidth, graphics.Height / ReferenceHeight);
+            session.Input.SetPointerSurface(new System.Numerics.Vector2(window.Size.X, window.Size.Y),
+                new System.Numerics.Vector2(graphics.Width, graphics.Height));
+        }
+
+        /// <summary>Characters and editing keys only arrive as window events; the game reads them with its next tick.</summary>
+        private void RouteTyping(LayerInputEvent input)
+        {
+            switch (input)
+            {
+                case LayerTextEntered text:
+                    session.Input.EnterText(text.Text);
+                    break;
+                case LayerKeyChanged { IsPressed: true, Key: LayerKey.Backspace }:
+                    session.Input.EditText(GameTextEdit.Backspace);
+                    break;
+                case LayerKeyChanged { IsPressed: true, Key: LayerKey.Delete }:
+                    session.Input.EditText(GameTextEdit.Delete);
+                    break;
+                case LayerKeyChanged { IsPressed: true, Key: LayerKey.Tab }:
+                    session.Input.EditText(GameTextEdit.Tab);
+                    break;
+            }
         }
 
         private (double X, double Y) ToLogical(double windowX, double windowY)

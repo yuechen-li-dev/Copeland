@@ -70,6 +70,88 @@ public sealed class TinyFarmShellTests
         Assert.Equal(1, session.Checkpoints);
     }
 
+    [Fact]
+    public void ClickingPocketsFiltersAndClosesThroughTheShellPointer()
+    {
+        using GameSession session = Start(out TinyFarmApp app);
+        var target = new GamePlaytestTarget(session);
+        Tap(session, KeyboardKey.I);
+        Assert.Equal(TinyFarmScreen.Inventory, app.Game.Screen);
+
+        Click(session, target, "equipment");
+        Assert.True(app.Game.Menus.EquipmentOnly);
+        Click(session, target, "bag");
+        Assert.False(app.Game.Menus.EquipmentOnly);
+
+        Click(session, target, "close");
+        Assert.Equal(TinyFarmScreen.Playing, app.Game.Screen);
+        Assert.Equal("playing", session.Screen);
+    }
+
+    [Fact]
+    public void TheSearchBoxTakesTypingUntilEnterAndLettersDoNotLeakIntoPlay()
+    {
+        using GameSession session = Start(out TinyFarmApp app);
+        var target = new GamePlaytestTarget(session);
+        Tap(session, KeyboardKey.I);
+        Click(session, target, "search");
+        Assert.True(app.Game.Menus.SearchFocused);
+        Assert.Equal([TinyFarmShellInput.Text], app.InputContexts);
+
+        // I would close the pockets and E would interact; while searching they are just letters.
+        session.Input.EnterText("swie");
+        session.Input.EditText(GameTextEdit.Backspace);
+        Tap(session, KeyboardKey.I);
+        Tap(session, KeyboardKey.E);
+        Assert.Equal("swi", app.Game.Menus.Search);
+        Assert.Equal(TinyFarmScreen.Inventory, app.Game.Screen);
+
+        Tap(session, KeyboardKey.Enter);
+        Assert.False(app.Game.Menus.SearchFocused);
+        Assert.Equal([TinyFarmShellInput.Menu], app.InputContexts);
+        Assert.Equal("swi", app.Game.Menus.Search);
+    }
+
+    [Fact]
+    public void TheWheelStepsToolsAndAClickAdvancesDialogue()
+    {
+        using GameSession session = Start(out TinyFarmApp app);
+        int before = app.Game.State.SelectedHotbarSlot;
+        session.Input.Adapter.RecordPointerPosition(new System.Numerics.Vector2(480, 300));
+        session.Input.Adapter.RecordAxis(Controls.Mouse(MouseAxis.WheelY), -1);
+        session.Advance(Tick);
+        Assert.Equal(before % 4 + 1, app.Game.State.SelectedHotbarSlot);
+
+        // Mara stands beside the garden at the start; walk next to her and right-click to talk.
+        app.Game.Execute(new SpatialMoveIntent(0, 0, 0));
+        var walkthrough = new TinyFarm.InputMan.TinyFarmWalkthrough(app.Game);
+        walkthrough.Approach(app.Game.State.ActorScene(TinyFarmIds.Mara).WorldPosition);
+        MouseClick(session, MouseButton.Secondary);
+        Assert.True(app.Game.Dialogue.IsActive);
+        string? line = app.Game.Dialogue.Presentation?.OperationId;
+        MouseClick(session, MouseButton.Primary);
+        Assert.NotEqual(line, app.Game.Dialogue.Presentation?.OperationId);
+    }
+
+    private static void Click(GameSession session, GamePlaytestTarget target, string action)
+    {
+        (double x, double y) = target.ActionPoint(action);
+        target.Pointer(x, y, true);
+        target.Frame(TimeSpan.Zero);
+        target.Pointer(x, y, false);
+        target.Frame(Tick);
+        session.Advance(Tick);
+    }
+
+    private static void MouseClick(GameSession session, MouseButton button)
+    {
+        session.Input.Adapter.RecordButton(Controls.Mouse(button), true);
+        session.Advance(TimeSpan.Zero);
+        session.Input.Adapter.RecordButton(Controls.Mouse(button), false);
+        session.Advance(Tick);
+        session.Advance(Tick);
+    }
+
     private static GameSession Start(out TinyFarmApp app, string? directory = null)
     {
         app = new TinyFarmApp(Path.Combine(AppContext.BaseDirectory, "Assets"));

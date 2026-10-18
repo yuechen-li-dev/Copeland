@@ -70,6 +70,12 @@ public interface IGame : IDisposable
     /// </summary>
     bool Command(string command) => false;
 
+    /// <summary>
+    /// Where a clickable element of the game's own UI is on a surface of the given size, as a fraction of it (0..1), so
+    /// playtest scripts can click it by name ("click-action") instead of by coordinates. Null when there is no such element.
+    /// </summary>
+    (double X, double Y)? ActionPoint(string action, GameViewRequest surface) => null;
+
     /// <summary>Native only: called after the Vulkan graphics exist (load lighting, environments, GPU presenters).</summary>
     void AttachGraphics(NativeGameGraphics graphics)
     {

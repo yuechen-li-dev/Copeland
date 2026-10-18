@@ -4,11 +4,15 @@ using Aurelian.Games;
 using Aurelian.Profile.Graphics;
 using Aurelian.Rendering.Contracts.Shaders;
 using Copeland.Profile;
+using System.Numerics;
 using Copeland.TS.Profiles;
+using InputMan.Core;
+using Machina.Runtime.Input;
 using TinyFarm.Core;
 using TinyFarm.InputMan;
 using TinyFarm.Native;
 using TinyFarm.Runtime;
+using Controls = TinyFarm.InputMan.GameControls;
 
 namespace TinyFarm;
 
@@ -30,6 +34,7 @@ public sealed class TinyFarmApp : IGame
     private TinyFarmNativeOverlay? overlay;
     private TinyFarmFrame frame;
     private TinyFarmPresentationLayout layout = new(1920, 1080, Legacy: false, Opening: true);
+    private Vector2 lastPointer = new(-1, -1);
     private bool musicStarted;
     private long uiSounds;
 
@@ -55,7 +60,7 @@ public sealed class TinyFarmApp : IGame
     public GameManifest Manifest { get; } = new("tinyfarm", "TINYFARM", TinyFarmShellInput.Layout)
     {
         Tagline = "THE SLEEPING SPRING",
-        ControlsHint = "WASD MOVE   E USE   J SWORD   SPACE DODGE   I POCKETS   ESC PAUSE",
+        ControlsHint = "WASD MOVE   E / RIGHT CLICK USE   K / LEFT CLICK TOOL   J SWORD   SPACE DODGE   I POCKETS",
         DefaultDisplay = new GameDisplaySettings(1920, 1080),
     };
 
@@ -64,9 +69,25 @@ public sealed class TinyFarmApp : IGame
     /// <summary>TinyFarm's game logic, for tests and inspection.</summary>
     public TinyFarmGame Game => game;
 
-    public IReadOnlyCollection<string> InputContexts => game.Dialogue.IsActive
-        ? [TinyFarmShellInput.Dialogue]
-        : game.CapturesGameplay ? [TinyFarmShellInput.Menu] : [GameInputContext.Play];
+    public IReadOnlyCollection<string> InputContexts
+    {
+        get
+        {
+            if (game.IsAgentMenu && game.Menus.SearchFocused)
+            {
+                return [TinyFarmShellInput.Text];
+            }
+            if (game.Dialogue.IsActive)
+            {
+                return [TinyFarmShellInput.Dialogue];
+            }
+            if (game.CapturesGameplay)
+            {
+                return [TinyFarmShellInput.Menu];
+            }
+            return [GameInputContext.Play];
+        }
+    }
 
     public void Start(GameContext context)
     {
@@ -96,7 +117,10 @@ public sealed class TinyFarmApp : IGame
 
     public void FixedUpdate(GameTick tick)
     {
-        var input = TinyFarmShellInput.Frame(tick.Input, tick.Index, tick.Seconds);
+        // The cursor and typing act on TinyFarm's screens directly; keys become TinyFarm's InputMan frame.
+        ApplyPointer(tick.Input.Pointer);
+        ApplyTyping(tick.Input.Typing);
+        var input = TinyFarmShellInput.Frame(tick.Input, tick.Index, tick.Seconds, WheelHotbar(tick.Input.Pointer));
         string? dialogueBefore = game.Dialogue.Presentation?.OperationId;
         TinyFarmScreen screenBefore = game.Screen;
         int feedbackEpoch = game.FeedbackEpoch;
@@ -119,13 +143,23 @@ public sealed class TinyFarmApp : IGame
 
     public GameView? View(GameViewRequest request)
     {
-        if (request.Width != layout.Width || request.Height != layout.Height)
-        {
-            layout = layout with { Width = request.Width, Height = request.Height };
-        }
+        Resize(request.Width, request.Height);
         frame = TinyFarmFrameProjector.Project(game.State, game.Definitions);
         // 2D: the world and HUD are native layers.
         return null;
+    }
+
+    public (double X, double Y)? ActionPoint(string action, GameViewRequest surface)
+    {
+        if (!game.IsModalMenu || !ui.ActionNames(frame).Contains(action, StringComparer.Ordinal))
+        {
+            return null;
+        }
+        var target = layout with { Width = surface.Width, Height = surface.Height };
+        PointerPoint point = ui.ActionCenter(frame, action);
+        double x = target.UiLeft + point.X * target.UiScale;
+        double y = target.UiTop + point.Y * target.UiScale;
+        return (x / surface.Width, y / surface.Height);
     }
 
     public void Observe(GameFacts facts)
@@ -139,6 +173,9 @@ public sealed class TinyFarmApp : IGame
         facts.Set("tinyfarm.accepted", game.AcceptedActions);
         facts.Set("tinyfarm.rejected", game.RejectedActions);
         facts.Set("tinyfarm.semantic-hash", TinyFarmSemanticHash.Compute(state));
+        facts.Set("tinyfarm.search", game.Menus.Search);
+        facts.Set("tinyfarm.search-focused", game.Menus.SearchFocused);
+        facts.Set("tinyfarm.hotbar", state.SelectedHotbarSlot);
         if (state.Slice is TinyFarmSliceState slice)
         {
             facts.Set("tinyfarm.broth-cooked", slice.CookedBroth);
@@ -201,6 +238,71 @@ public sealed class TinyFarmApp : IGame
 
     public void Dispose()
     {
+    }
+
+    private void Resize(int width, int height)
+    {
+        if (width > 0 && height > 0 && (width != layout.Width || height != layout.Height))
+        {
+            layout = layout with { Width = width, Height = height };
+        }
+    }
+
+    /// <summary>Hand the cursor to TinyFarm's menu hit-testing, in its 1280x720 menu space.</summary>
+    private void ApplyPointer(GamePointer pointer)
+    {
+        if (!pointer.Present)
+        {
+            return;
+        }
+        // Headless sessions never call View; the pointer still says which surface its pixels belong to.
+        Resize((int)pointer.Surface.X, (int)pointer.Surface.Y);
+        var point = new PointerPoint((pointer.Position.X - layout.UiLeft) / layout.UiScale,
+            (pointer.Position.Y - layout.UiTop) / layout.UiScale);
+        bool moved = lastPointer != pointer.Position;
+        lastPointer = pointer.Position;
+        bool pressed = pointer.WasPressed(GamePointerButton.Primary);
+        bool released = pointer.WasReleased(GamePointerButton.Primary);
+        TinyFarmMenuInputRouter.Pointer(game, ui, new TinyFarmPointerInput(point, moved, pressed, released,
+            pointer.Wheel.X, pointer.Wheel.Y));
+    }
+
+    private void ApplyTyping(IReadOnlyList<GameTyping> typing)
+    {
+        foreach (GameTyping item in typing)
+        {
+            switch (item.Edit)
+            {
+                case GameTextEdit.Backspace:
+                    game.EditMenuSearch(false);
+                    break;
+                case GameTextEdit.Delete:
+                    game.EditMenuSearch(true);
+                    break;
+                case GameTextEdit.Tab:
+                    if (game.IsAgentMenu)
+                    {
+                        game.Menus.SearchFocused = !game.Menus.SearchFocused;
+                    }
+                    break;
+                default:
+                    game.EnterMenuText(item.Text);
+                    break;
+            }
+        }
+    }
+
+    /// <summary>In free play the wheel steps through the four tool slots.</summary>
+    private ActionId[] WheelHotbar(GamePointer pointer)
+    {
+        if (game.CapturesGameplay || pointer.Wheel.Y == 0)
+        {
+            return [];
+        }
+        int step = pointer.Wheel.Y > 0 ? -1 : 1;
+        int slot = (game.State.SelectedHotbarSlot - 1 + step + 4) % 4 + 1;
+        ActionId[] slots = [Controls.Hotbar1, Controls.Hotbar2, Controls.Hotbar3, Controls.Hotbar4];
+        return [slots[slot - 1]];
     }
 
     private void Restore(TinyFarmSemanticSaveSnapshot snapshot)

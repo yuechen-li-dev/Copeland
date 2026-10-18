@@ -7,14 +7,16 @@ using Controls = TinyFarm.InputMan.GameControls;
 namespace TinyFarm;
 
 /// <summary>
-/// TinyFarm's controls as shell actions. The shell owns devices, rebinding and the pause menu; three contexts mirror
-/// TinyFarm's InputMan maps: free play, its own menus (inventory, stats, stove, chest) and dialogue. The two modal
-/// contexts claim Escape, so it closes TinyFarm's screen instead of pausing.
+/// TinyFarm's controls as shell actions. The shell owns devices, rebinding and the pause menu; four contexts mirror
+/// TinyFarm's InputMan maps: free play, its own menus (inventory, stats, stove, chest), dialogue and the pockets search
+/// box. The modal contexts claim Escape, so it closes TinyFarm's screen instead of pausing. The layout reads the
+/// pointer: menus are clickable, left click uses the selected tool, right click interacts and a click advances dialogue.
 /// </summary>
 public static class TinyFarmShellInput
 {
     public const string Menu = "menu";
     public const string Dialogue = "dialogue";
+    public const string Text = "text";
 
     public static GameInputLayout Layout { get; } = new(
     [
@@ -22,8 +24,8 @@ public static class TinyFarmShellInput
         new("move.down", "Move down", GameControl.Key(KeyboardKey.S), GameControl.Key(KeyboardKey.ArrowDown)),
         new("move.left", "Move left", GameControl.Key(KeyboardKey.A), GameControl.Key(KeyboardKey.ArrowLeft)),
         new("move.right", "Move right", GameControl.Key(KeyboardKey.D), GameControl.Key(KeyboardKey.ArrowRight)),
-        new("interact", "Talk / use / enter", GameControl.Key(KeyboardKey.E)),
-        new("use-tool", "Use selected tool", GameControl.Key(KeyboardKey.K)),
+        new("interact", "Talk / use / enter", GameControl.Key(KeyboardKey.E), GameControl.Mouse(MouseButton.Secondary)),
+        new("use-tool", "Use selected tool", GameControl.Key(KeyboardKey.K), GameControl.Mouse(MouseButton.Primary)),
         new("sword", "Swing sword", GameControl.Key(KeyboardKey.J)),
         new("dodge", "Dodge", GameControl.Key(KeyboardKey.Space)),
         new("eat", "Eat broth", GameControl.Key(KeyboardKey.R)),
@@ -45,18 +47,27 @@ public static class TinyFarmShellInput
         new("menu.close", "Close menu", GameControl.Key(KeyboardKey.Escape), GameControl.Key(KeyboardKey.I), Rebindable: false) { Context = Menu },
         new("menu.close-stats", "Close character", GameControl.Key(KeyboardKey.C), Rebindable: false) { Context = Menu },
 
-        new("dialogue.advance", "Next line", GameControl.Key(KeyboardKey.Space), Rebindable: false) { Context = Dialogue },
+        new("dialogue.advance", "Next line", GameControl.Key(KeyboardKey.Space), GameControl.Mouse(MouseButton.Primary),
+            Rebindable: false) { Context = Dialogue },
         new("dialogue.up", "Previous choice", GameControl.Key(KeyboardKey.ArrowUp), GameControl.Key(KeyboardKey.W), Rebindable: false) { Context = Dialogue },
         new("dialogue.down", "Next choice", GameControl.Key(KeyboardKey.ArrowDown), GameControl.Key(KeyboardKey.S), Rebindable: false) { Context = Dialogue },
         new("dialogue.confirm", "Choose", GameControl.Key(KeyboardKey.E), GameControl.Key(KeyboardKey.Enter), Rebindable: false) { Context = Dialogue },
         new("dialogue.cancel", "Leave conversation", GameControl.Key(KeyboardKey.Escape), Rebindable: false) { Context = Dialogue },
+
+        // While the search box has focus, letters are text; only Enter and Escape leave it.
+        new("text.finish", "Finish search", GameControl.Key(KeyboardKey.Enter), GameControl.Key(KeyboardKey.Escape), Rebindable: false)
+        {
+            Context = Text,
+        },
     ])
     {
+        Pointer = true,
         Contexts =
         [
             new GameInputContext(GameInputContext.Play),
             new GameInputContext(Menu, Priority: 1, Modal: true),
             new GameInputContext(Dialogue, Priority: 2, Modal: true),
+            new GameInputContext(Text, Priority: 3, Modal: true),
         ],
     };
 
@@ -89,15 +100,23 @@ public static class TinyFarmShellInput
         ("dialogue.down", Controls.DialogueChoiceDown),
         ("dialogue.confirm", Controls.DialogueConfirm),
         ("dialogue.cancel", Controls.DialogueCancel),
+        ("text.finish", Controls.UiSearchFinish),
     ];
 
     /// <summary>
     /// Translate one shell tick into the InputMan frame TinyFarm's game logic reads. The shell has already latched taps
     /// between ticks, so a press reaches exactly one frame.
     /// </summary>
-    public static InputFrame Frame(GameInputState input, long sequence, float seconds)
+    /// <param name="extraPresses">TinyFarm actions the app raises itself this tick (for example a hotbar slot picked
+    /// with the mouse wheel).</param>
+    public static InputFrame Frame(GameInputState input, long sequence, float seconds,
+        IReadOnlyCollection<ActionId>? extraPresses = null)
     {
         var actions = new Dictionary<ActionId, ActionValue>();
+        foreach (ActionId extra in extraPresses ?? [])
+        {
+            actions[extra] = ActionValue.Pressed;
+        }
         foreach ((string shell, ActionId tinyFarm) in Actions)
         {
             ActionValue value = input.WasPressed(shell) ? ActionValue.Pressed
