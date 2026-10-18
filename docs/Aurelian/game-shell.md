@@ -201,4 +201,4 @@ A rewind also restores the preferences the recorded inputs ran under, in memory 
 - On a real display, exclusive fullscreen at a non-native resolution asks GLFW for the closest video mode. The headless Xvfb proof cannot change modes and reports the monitor's size.
 - The pointer map only knows the primary, secondary and middle buttons. Back and forward can still be bound to actions.
 - Gamepad controls can be declared (`GameControl.Gamepad`), but capture-rebinding only offers keyboard keys and mouse buttons.
-- Beacon, Mossward, Sunkill and CharacterLab still use their own bootstraps. TinyFarm (2D, with input contexts, game-owned screens and checkpoints) runs on the shell. The FPS starter runs on the shell (`GameStarter.Run` builds a `StarterGame : IGame`), and so will new games.
+- Beacon, Mossward, Sunkill and CharacterLab still use their own bootstraps. TinyFarm (2D, with input contexts, game-owned screens and checkpoints) runs on the shell. The FPS starter runs on the shell (`GameStarter.Run` in `Aurelian.Games.Humanoid` builds a `StarterGame : IGame`), and so will new games.

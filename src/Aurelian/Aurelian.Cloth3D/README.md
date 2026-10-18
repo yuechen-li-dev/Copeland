@@ -2,8 +2,10 @@
 
 The cloth definition, compiler, CPU solver, contact operators and GPU data layout
 now live in the sibling Aetheris repository's `Aetheris.Cloth3D` project. This
-project remains as a dependency compatibility wrapper. Import
-`Aetheris.Cloth3D`; Aurelian owns the Vulkan backend and game agent integration.
+project is the [Aetheris bridge](../../../docs/Aurelian/aetheris-boundary.md) for
+cloth: it references `Aetheris.Cloth3D` and owns the scene agent
+(`ClothAgentDefinition3D`, namespace `Aurelian.Cloth3D`). Aurelian owns the Vulkan
+backend (`Aurelian.Cloth3D.Vulkan`).
 
 Firmament's `schema Garment` produces `aetheris.garment.v1` artifacts. Load them
 with `ClothGarmentArtifact3D.Load`, then `CreateSolver` to use a retained drape.

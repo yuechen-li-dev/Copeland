@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Compatibility project dependency; solver authority is now Aetheris.Cloth3D. -->
+  <!--
+    Aetheris bridge: cloth. Solver authority is Aetheris.Cloth3D. Only bridges reference Aetheris; the rest of Aurelian
+    must not (see docs/Aurelian/aetheris-boundary.md).
+  -->
   <ItemGroup>
     <ProjectReference Include="../../../../Aetheris/Aetheris.Cloth3D/Aetheris.Cloth3D.csproj" />
+    <ProjectReference Include="../Aurelian.World/Aurelian.World.csproj" />
   </ItemGroup>
 </Project>

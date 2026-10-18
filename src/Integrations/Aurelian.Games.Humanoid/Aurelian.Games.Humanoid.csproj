@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Aetheris bridge: the starter template with humanoid characters (Aurelian.Humanoid brings in Aetheris.Humanoid).
+    The shell (Aurelian.Games) stays free of Aetheris; see docs/Aurelian/aetheris-boundary.md.
+  -->
+  <PropertyGroup>
+    <RootNamespace>Aurelian.Games</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Aurelian.Games/Aurelian.Games.csproj" />
+    <ProjectReference Include="../Aurelian.Humanoid/Aurelian.Humanoid.csproj" />
+  </ItemGroup>
+</Project>

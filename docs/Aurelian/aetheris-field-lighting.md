@@ -27,7 +27,9 @@ flowchart LR
     Firmament --> Backend[Pinned Copeland WGSL package family]
 ```
 
-The adapter uses packages, with no sibling Aetheris `ProjectReference` and no
+The adapter now references the sibling `Aetheris.Fields` project like the other
+[Aetheris bridges](aetheris-boundary.md) (it used NuGet packages while the AGPL
+boundary mattered; see the relicensing note in its NOTICE). It has no
 Firmament/Continuum dependency. Fields depends only on Core; it owns the existing
 primitive/Boolean expressions, evaluation tape, capability analysis and VTS
 lowerer. Continuum references Fields and forwards the moved public types; their
@@ -72,7 +74,7 @@ Until the new package is published, produce the two packages from Aetheris:
 ```powershell
 dotnet pack ../Aetheris/Aetheris.Kernel.Core -c Release -m:1 --output ../Aetheris/artifacts/local/fields/packages
 dotnet pack ../Aetheris/Aetheris.Fields -c Release -m:1 --output ../Aetheris/artifacts/local/fields/packages
-dotnet build Aurelian.slnx -c Release -m:1 -p:AetherisPackageFeed=C:/Users/yuech/source/repos/Aetheris/artifacts/local/fields/packages
+dotnet build Aurelian.slnx -c Release -m:1
 dotnet run --project tools/Aurelian.GraphicsProof -c Release --no-build -- --field-lighting --output artifacts/local/aetheris-field-lighting
 ```
 

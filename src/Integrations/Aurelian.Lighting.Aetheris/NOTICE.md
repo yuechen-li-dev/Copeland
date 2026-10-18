@@ -1,5 +1,9 @@
 # Optional Aetheris lighting integration
 
+Relicensing note (2026-10): the author of Aetheris and Copeland relicenses Aetheris's AGPL-3.0 code to GPL-3.0 for use
+in Copeland projects. The AGPL text and provenance markers below are kept for the record; Aetheris is now referenced as
+sibling source like the other Aetheris bridges (docs/Aurelian/aetheris-boundary.md), not as NuGet packages.
+
 The adapter and authored tracing/presentation shaders in this directory are
 Copeland code under GPL-3.0-only. Aetheris.Fields and Aetheris.Kernel.Core are
 separate Aetheris code under AGPL-3.0-only. They are consumed as NuGet packages;

@@ -3,6 +3,6 @@
     <OutputType>Exe</OutputType>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/Integrations/Aurelian.Games/Aurelian.Games.csproj" />
+    <ProjectReference Include="../../src/Integrations/Aurelian.Games.Humanoid/Aurelian.Games.Humanoid.csproj" />
   </ItemGroup>
 </Project>

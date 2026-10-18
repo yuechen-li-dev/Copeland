@@ -37,6 +37,7 @@
     <Project Path="src/Aurelian/Aurelian.Spatial3D/Aurelian.Spatial3D.csproj" />
     <Project Path="src/Aurelian/Aurelian.World/Aurelian.World.csproj" />
     <Project Path="src/Integrations/Aurelian.Games/Aurelian.Games.csproj" />
+    <Project Path="src/Integrations/Aurelian.Games.Humanoid/Aurelian.Games.Humanoid.csproj" />
     <Project Path="src/Integrations/Aurelian.Aetheris/Aurelian.Aetheris.csproj" />
     <Project Path="src/Integrations/Aurelian.Spatial3D.Vulkan/Aurelian.Spatial3D.Vulkan.csproj" />
     <Project Path="src/Integrations/Aurelian.GameSaves/Aurelian.GameSaves.csproj" />
