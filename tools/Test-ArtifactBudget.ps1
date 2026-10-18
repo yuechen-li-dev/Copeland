@@ -2,17 +2,24 @@
 param(
     [string] $BaseRef,
     [string[]] $Paths,
+    [string] $RepositoryRoot = (Join-Path $PSScriptRoot ".."),
     [string] $AllowlistPath = ".github/artifact-budget-allowlist.txt",
     [int64] $MaximumFileBytes = 262144,
     [int] $MaximumFilesPerArtifactRoot = 16
 )
 
 $ErrorActionPreference = "Stop"
+$repositoryRoot = (Resolve-Path -LiteralPath $RepositoryRoot).Path
 
 function Normalize-RepositoryPath {
     param([string] $Path)
 
-    return $Path.Replace("\", "/").TrimStart("./")
+    $absolutePath = [IO.Path]::GetFullPath((Join-Path $repositoryRoot $Path))
+    $relativePath = [IO.Path]::GetRelativePath($repositoryRoot, $absolutePath).Replace("\", "/")
+    if ($relativePath -eq ".." -or $relativePath.StartsWith("../") -or [IO.Path]::IsPathRooted($relativePath)) {
+        throw "Artifact path escapes the repository: $Path"
+    }
+    return $relativePath
 }
 
 function Read-AllowlistPatterns {
@@ -50,7 +57,7 @@ function Get-CandidatePaths {
     }
 
     if ($BaseRef) {
-        $diffPaths = & git diff --diff-filter=A --name-only "$BaseRef...HEAD"
+        $diffPaths = & git -C $repositoryRoot -c core.quotepath=false diff --diff-filter=ACMR --name-only "$BaseRef...HEAD"
         if ($LASTEXITCODE -ne 0) {
             throw "Unable to list files added since '$BaseRef'."
         }
@@ -58,7 +65,7 @@ function Get-CandidatePaths {
         return @($diffPaths | ForEach-Object { Normalize-RepositoryPath $_ })
     }
 
-    $indexPaths = & git diff --cached --diff-filter=A --name-only
+    $indexPaths = & git -C $repositoryRoot -c core.quotepath=false diff --cached --diff-filter=ACMR --name-only
     if ($LASTEXITCODE -ne 0) {
         throw "Unable to list files added to the index."
     }
@@ -75,13 +82,34 @@ $allowedCompactExtensions = @(
     ".txt"
 )
 
-$allowlistPatterns = Read-AllowlistPatterns -Path $AllowlistPath
+$allowlistPatterns = Read-AllowlistPatterns -Path (Join-Path $repositoryRoot $AllowlistPath)
 $candidatePaths = @(Get-CandidatePaths | Sort-Object -Unique)
-$artifactPaths = @($candidatePaths | Where-Object { $_ -like "artifacts/*" })
+$artifactPaths = @($candidatePaths | Where-Object {
+    $_ -like "artifacts/*" -or $_ -like "docs/Copeland/reviews/evidence/*"
+})
 $violations = [System.Collections.Generic.List[string]]::new()
+
+foreach ($path in $candidatePaths) {
+    if (Test-Allowlisted -Path $path -Patterns $allowlistPatterns) {
+        continue
+    }
+    if ($path -match '^(\.tmp|tmp|\.work)/' -or $path -eq 'copeland-bench-fixes.patch') {
+        $violations.Add("$path is repository-local scratch material, not maintained source.")
+    }
+    elseif ($path -match '(^|/)(bin|obj|node_modules|\.vscode-test|\.tspack)(/|$)' -or $path -like 'artifacts/local/*') {
+        $violations.Add("$path is generated local/cache output and must not be tracked.")
+    }
+    elseif ($path -match '^(src/Copeland/|docs/Copeland/|samples/copeland-ts/)' -and
+        ($path -match '/publish/' -or $path -match '\.(nupkg|snupkg|vsix|tgz|zip|dll|exe|pdb|wasm|br|gz)$')) {
+        $violations.Add("$path is a Copeland delivery payload. Keep source and compact provenance in Git; publish payloads outside source/docs.")
+    }
+}
 
 $artifactGroups = $artifactPaths | Group-Object {
     $parts = $_.Split("/")
+    if ($_ -like "docs/Copeland/reviews/evidence/*") {
+        return ($parts[0..4] -join "/")
+    }
     if ($parts.Length -ge 2) {
         return "artifacts/$($parts[1])"
     }
@@ -112,12 +140,13 @@ foreach ($path in $artifactPaths) {
         continue
     }
 
-    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+    $absolutePath = Join-Path $repositoryRoot $path
+    if (-not (Test-Path -LiteralPath $absolutePath -PathType Leaf)) {
         $violations.Add("$path is listed as an added artifact but is not a file in the checkout.")
         continue
     }
 
-    $file = Get-Item -LiteralPath $path
+    $file = Get-Item -LiteralPath $absolutePath
     if ($file.Length -gt $MaximumFileBytes) {
         $violations.Add(
             "$path is $($file.Length) bytes; the compact-artifact limit is $MaximumFileBytes bytes."
@@ -142,6 +171,6 @@ if ($violations.Count -gt 0) {
 }
 
 Write-Host (
-    "Artifact budget check passed for $($artifactPaths.Count) added artifact file(s). " +
+    "Artifact budget check passed: $($candidatePaths.Count) changed paths, $($artifactPaths.Count) compact artifact/evidence files. " +
     "Compact manifests and golden fixtures remain eligible; exceptions require the reviewed allowlist."
 )

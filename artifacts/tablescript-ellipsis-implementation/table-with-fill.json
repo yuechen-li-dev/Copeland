@@ -1,8 +1,0 @@
-{
-  "schemaVersion": 1,
-  "success": true,
-  "command": "table.validate",
-  "tableCount": 1,
-  "totalRows": 3,
-  "diagnostics": []
-}

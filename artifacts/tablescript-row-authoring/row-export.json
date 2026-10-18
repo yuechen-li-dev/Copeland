@@ -1,9 +1,0 @@
-{
-  "schemaVersion": 1,
-  "success": true,
-  "command": "table.export",
-  "table": "Suppliers",
-  "format": "csv",
-  "output": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\tablescript-row-authoring\\Suppliers.csv",
-  "rowCount": 3
-}

@@ -292,3 +292,83 @@ Additional temporary API/release-failure probes were also rejected by automatic
 approval review with "blocked by policy" before execution. They were not retried
 or counted as verification. The four completed graph probes and ordinary
 compiler/runtime tests above are the actual evidence.
+
+## Tools and artifact cleanup
+
+The user removed both obsolete ignored build-cache trees after the first pass;
+this pass verified `tools/CtsJitM0` and `.tmp/m26-baseline` absent. The untracked
+user-created `cleanup.ps1` was preserved.
+
+The five TableScript tools are now one maintained
+[qualification suite](../../../tools/Copeland.Qualification.TableScript/README.md).
+Shared CLI invocation, timeout, result/error assertions, source-preserving
+rejection checks, and probe-project setup have one owner. Five independently
+selectable cases retain authoring/CSV, keyed edits, initializer forms, typed
+summaries, and snapshot-relative calculation checks. The sibling-repository
+ellipsis source inspection was retired as historical research; bounded invalid
+initializer cases remain in the compiler tests. Stale unexecuted JavaScript
+"unsupported" fields were removed from new result generation, while original
+historical summaries retain their exact observations.
+
+`Copeland.CtsOptM2.Measure` is now the maintained
+[emission benchmark](../../../tools/Copeland.Benchmarks.Emission/README.md).
+It compares current compiler output with reachability off/on, writes local
+measurements, and uses a unique generated workspace. The two earlier
+`cts-opt-m1-*.ps1` characterization scripts were retired: one measured frozen
+JavaScript, and the other used synthetic table shapes/source-literal payload
+estimates. Their original protocols remain historical, not a claim that the new
+tool repeats the same dimension sweep. The
+[tool index](../../../tools/README.md) distinguishes maintained entry points from
+historical/domain evidence producers.
+
+Seven raw TableScript bundles, **223 files / 657391 bytes**, were removed after
+retaining original summaries and per-file paths, byte lengths, hashes and recovery
+commit in [compact provenance](evidence/tablescript-retired-artifacts/provenance.json).
+The café and optional Excel builder now default to ignored local output instead
+of overwriting tracked historical runs. The original Excel comparison and native
+or browser captures were preserved. Historical reviews link the current runner
+and retention record instead of pretending their old output paths are current.
+
+The same-version npm conflict is also resolved locally. The existing release
+manifest/checksums pin the release-folder archive. The unreferenced docs archive
+has a different hash and 12 differing members, so that **7685016-byte** misplaced
+copy was removed. [Package provenance](evidence/package-provenance/npm-preview-conflict.json)
+retains both identities, the manifest hash, and recovery commit. Release payloads
+and their original unpublished/not-publicly-verified status were preserved; no
+new publication or package qualification is claimed.
+
+The existing artifact guard now covers changed files (including modifications
+and renames), preserves leading dots when normalizing paths, rejects traversal,
+and checks prohibited scratch/cache/local-output and misplaced Copeland delivery
+paths. Compact budgets also cover Copeland review evidence. Fourteen maintained
+policy cases are wired into the existing artifact-budget CI workflow. This
+replaces the earlier zero-file blind spot without adding a second policy engine.
+
+Current instructions and remaining work are in
+[repository maintenance](../repository-maintenance.md) and
+[artifact retention](../reference/artifact-retention.md). Validation logs are
+ignored under `artifacts/local/copeland-tools-cleanup/`; final results follow.
+
+Tools/artifacts validation:
+
+- Full `Copeland.slnx` build: zero warnings/errors; **2463 tests pass**, with
+  zero failures/skips. Compiler/language semantics and golden expectations were
+  not changed.
+- Consolidated TableScript suite: **372 checks** across five suites. The canonical
+  café runner also passes its **66 checks** with default local output, preserving
+  the 31210/12710-cent baseline/edit results and authored workbook hash.
+- Emission benchmark: all four current fixtures have identical Node output with
+  reachability disabled/enabled. This run emits 96244 versus 86091 total bytes,
+  removing 16 generated definitions. These are local observations, not universal
+  performance claims or C# execution evidence.
+- Artifact policy: **14 cases pass**, including rejection cases; both retained
+  provenance records and the complete changed/new path set pass the guard.
+  Topology and preview release closure also pass. Remote CI was wired but not run.
+- All **98 local link targets** in the 15 changed/new Markdown documents resolve;
+  `git diff --check` passes. The Excel builder's path-only edit passes Node syntax
+  checking; workbook generation, browser/native execution, package publication,
+  and the unchanged legacy Zig lane were not rerun.
+
+The remaining ownership violations and other subsystems' evidence/tools were not
+silently reclassified or deleted. This completes the TableScript/tooling artifact
+slice, not every later cleanup pass in the initial audit.

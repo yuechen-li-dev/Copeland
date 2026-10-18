@@ -1,5 +1,11 @@
 # TableScript friction M12: café restocking
 
+> Historical qualification paths/results. Use the maintained
+> [TableScript suite](../../../tools/Copeland.Qualification.TableScript/README.md)
+> for current commands. Retired raw bundles are represented by
+> [summaries and recovery hashes](evidence/tablescript-retired-artifacts/provenance.json);
+> old capability statements below describe their original run.
+
 ## Result
 
 The motivating scalar workbook works through the real Copeland TS compiler,

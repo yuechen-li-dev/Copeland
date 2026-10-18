@@ -14,6 +14,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Verify artifact policy
+        shell: pwsh
+        run: ./tests/Repository/Test-ArtifactBudget.ps1
+
       - name: Enforce compact tracked artifacts
         shell: pwsh
         env:

@@ -1,5 +1,5 @@
 param(
-    [string] $OutputDirectory = "artifacts/tablescript-friction-m12"
+    [string] $OutputDirectory = "artifacts/local/tablescript-cafe"
 )
 
 $ErrorActionPreference = "Stop"

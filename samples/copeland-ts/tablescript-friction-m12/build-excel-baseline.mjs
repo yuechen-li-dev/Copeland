@@ -6,8 +6,8 @@ import { SpreadsheetFile, Workbook } from "@oai/artifact-tool";
 
 const sampleDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repository = path.resolve(sampleDirectory, "../../..");
-const evidence = path.resolve(repository, process.argv[2] ?? "artifacts/tablescript-friction-m12");
-const outputDirectory = path.resolve(repository, process.argv[3] ?? "outputs/01a13138-9d72-7263-9b47-e77a5a9da6ce");
+const evidence = path.resolve(repository, process.argv[2] ?? "artifacts/local/tablescript-cafe");
+const outputDirectory = path.resolve(repository, process.argv[3] ?? "artifacts/local/tablescript-cafe/excel");
 await fs.mkdir(outputDirectory, { recursive: true });
 
 async function readRows(name) {

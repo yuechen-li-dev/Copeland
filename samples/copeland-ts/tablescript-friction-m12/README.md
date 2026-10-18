@@ -41,13 +41,13 @@ pwsh -NoProfile -File samples/copeland-ts/tablescript-friction-m12/qualify.ps1
 
 The script builds the current CLI and workbook, executes 22 generated-code consumer
 assertions and 66 qualification checks, and saves canonical query, schema, edit, and diagnostic evidence under
-`artifacts/tablescript-friction-m12/`. It edits an isolated source copy. The checked-in
+`artifacts/local/tablescript-cafe/`. It edits an isolated source copy. The checked-in
 workbook remains unchanged.
 
 Typed summaries have a separate qualification:
 
 ```powershell
-pwsh -NoProfile -File tools/copeland-tablescript-typed-summaries/qualify.ps1
+./tools/Copeland.Qualification.TableScript/run.ps1 -Suite summaries
 ```
 
 It compares every typed total and supplier field, including first-seen group order,
@@ -58,10 +58,10 @@ host code recalculates aggregates. See [typed summary semantics](../../../docs/C
 For runtime scenario qualification:
 
 ```powershell
-pwsh -NoProfile -File tools/copeland-tablescript-scenarios/qualify.ps1
+./tools/Copeland.Qualification.TableScript/run.ps1 -Suite snapshots
 ```
 
-Its 149 checks compare all six preview rows and every typed summary field with an
+The suite compares all six preview rows and every typed summary field with an
 independent source-copy CLI calculation. The runtime preview uses only immutable
 snapshots and preserves source and globals. Repeated previews are identical. See
 [snapshot-relative calculation](../../../docs/Copeland/language/copeland-ts-table-scenarios.md).
@@ -89,10 +89,10 @@ edit; it does not execute a recalculated scenario. Apply the edit to a copy, the
 query the derived relation to calculate that scenario through the CLI. Copeland
 functions can instead call `PurchasePlan.recalculate` with an input snapshot.
 
-`tools/copeland-tablescript-key-edits/qualify.ps1` separately checks the same edit
+`./tools/Copeland.Qualification.TableScript/run.ps1 -Suite keyed-edits` checks the same edit
 in the authored and reversed stock orders (espresso at rows 1 and 4), comparing
 canonical plans and preserving all other product results. Its evidence goes to
-`artifacts/tablescript-key-edits/`. See the
+`artifacts/local/tablescript-qualification/keyed-edits/`. See the
 [key-addressed edit report](../../../docs/Copeland/reviews/tablescript-key-addressed-edits.md).
 
 ## Excel baseline
@@ -108,7 +108,9 @@ After qualification, run the builder with the bundled Node executable and make
 `@oai/artifact-tool` available through a local `node_modules` junction to the bundle
 returned by `load_workspace_dependencies`. Do not install a competing sheet library
 into this sample. Optional builder arguments override the evidence and output
-directories. The default workbook goes under `outputs/01a13138-9d72-7263-9b47-e77a5a9da6ce/`.
+directories. The default workbook goes under `artifacts/local/tablescript-cafe/excel/`.
+The original comparison workbook and previews under `outputs/` remain historical
+evidence; reruns do not overwrite them.
 
 Calculation and rendered previews were verified with artifact-tool. Native Excel
 was not operated. The baseline is bounded to six product rows; table growth and

@@ -1,0 +1,1779 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Historical provenance for retired TableScript qualification output; not current capability or runtime claims.",
+  "sourceCommit": "8c022725dce3b2ff807a3ffef97c0a58c3085753",
+  "recovery": "git show <sourceCommit>:<originalRoot>/<files.path>",
+  "currentRunner": "tools/Copeland.Qualification.TableScript/run.ps1",
+  "currentOutput": "artifacts/local/tablescript-qualification",
+  "bundles": [
+    {
+      "originalRoot": "artifacts/tablescript-ellipsis-reconciliation",
+      "files": [
+        {
+          "path": "baseline.json",
+          "bytes": 142,
+          "sha256": "00a38f4e0acd1c4aae93e3266a8115c8233f914c2bfe0c4951834eb69d0633c4"
+        },
+        {
+          "path": "baseline.ts",
+          "bytes": 3895,
+          "sha256": "55da5c4d825d4ed0713ecdf963619e0e3a58fe3a878c05adfbbcf49c88be5753"
+        },
+        {
+          "path": "counted-repetition.json",
+          "bytes": 5821,
+          "sha256": "7ec39be22b8752fba9550784a7dc8f2765e056ef196e976ff7f015dfdc803285"
+        },
+        {
+          "path": "counted-repetition.ts",
+          "bytes": 89,
+          "sha256": "922cd471bedd4e46158c4e672e8d2a716c80dfb9dfd3087c3e538e8203d5ee65"
+        },
+        {
+          "path": "dotnet-build.txt",
+          "bytes": 5525,
+          "sha256": "eae09ad44af6be75a945fc9cafd9b97386e6e08f37c4db4cf8ab1bbaa45ca3fb"
+        },
+        {
+          "path": "dotnet-cli-build.txt",
+          "bytes": 1844,
+          "sha256": "8b7249096831af75e3e23636c45e31d09920518c696cf01e9afedfd7dc906f12"
+        },
+        {
+          "path": "dotnet-summary.json",
+          "bytes": 75,
+          "sha256": "4405fdf945544a3a3ed00cccd69b5b6ed1f600cdef5dac7133f6cd2deece4000"
+        },
+        {
+          "path": "dotnet-test.txt",
+          "bytes": 2881,
+          "sha256": "cb70cd48f81b668e3abeff1b8b189ba24d4d9c82e6abc4ed9cc50560bf5a6b90"
+        },
+        {
+          "path": "edit-tests.txt",
+          "bytes": 2330,
+          "sha256": "c46c904aa298eeb728e34961f88f09c95a766fd27dae151f9025b35f99cf32fe"
+        },
+        {
+          "path": "filled-column-first.json",
+          "bytes": 1042,
+          "sha256": "925ebfa4dd6cb98fdb4d6a36da6a9d947425562f3a1886a65c03a555957addec"
+        },
+        {
+          "path": "filled-column-first.ts",
+          "bytes": 87,
+          "sha256": "3b233e49a73317d1674b2707c0439f30ed30b04adfad27a850733fbed897beeb"
+        },
+        {
+          "path": "implementation-build.txt",
+          "bytes": 5525,
+          "sha256": "096a7f45b66169d090961d717dea7cb9ccf0aac7d30cc9981d2d87f7bc896cc0"
+        },
+        {
+          "path": "implementation-tests.txt",
+          "bytes": 2881,
+          "sha256": "0898bf08fb792b6f0ced0bc9fe9a1959996b282e88e0863a4c2b1e66dcd17001"
+        },
+        {
+          "path": "initial-tests.txt",
+          "bytes": 3925,
+          "sha256": "2fb37a0e6c5fe34e5d9160641d253d6a3060894506437db613e4eea92e0c1368"
+        },
+        {
+          "path": "repetition-tests.txt",
+          "bytes": 1995,
+          "sha256": "10c74153871b14980e3fd96b8165290884bcfc873e29e580cf78a371e61b4628"
+        },
+        {
+          "path": "summary.json",
+          "bytes": 3484,
+          "sha256": "20e7448eef8698f44e1e7c04c6a36bdcf7d4cdb6a20f212de5cdbbd7675b0def"
+        },
+        {
+          "path": "table-with-fill.json",
+          "bytes": 1030,
+          "sha256": "c21e0af62c6cfd49d2bab2efac42e21b4698f1dafdc47c74eaa9eb5e7a4f4ea8"
+        },
+        {
+          "path": "table-with-fill.ts",
+          "bytes": 171,
+          "sha256": "71c2a6bed0d1f0d7e7d59d3816255a0ea11b7f4cb332325c2782c44a45b320d1"
+        },
+        {
+          "path": "workbook-check.txt",
+          "bytes": 3463,
+          "sha256": "01b0a2332cd8735762fbe62cfb0b3f064a0a3b79e7a8be71dccf78dad0c3cd89"
+        }
+      ],
+      "historicalSummaries": {
+        "summary.json": {
+          "purpose": "Audit current support; failing ellipsis probes are expected before implementation",
+          "buildExitCode": 0,
+          "maximumProbeSeconds": 15,
+          "probes": [
+            {
+              "name": "baseline",
+              "success": true,
+              "exitCode": 0,
+              "diagnostics": []
+            },
+            {
+              "name": "counted-repetition",
+              "success": false,
+              "exitCode": 1,
+              "diagnostics": [
+                "COPE-PARSE-0004",
+                "COPE-PARSE-0004",
+                "COPE-PARSE-0004",
+                "COPE-PARSE-0004",
+                "COPE-PARSE-0004",
+                "COPE-PARSE-0004",
+                "COPE-PARSE-0004",
+                "COPE-PARSE-0004",
+                "COPE-PARSE-0004",
+                "COPE-PARSE-0004",
+                "COPE-PARSE-0004",
+                "COPE-PARSE-0006",
+                "COPE-PARSE-0004",
+                "COPE-PARSE-0004",
+                "COPE-PARSE-0001",
+                "COPE-PARSE-0004",
+                "COPE-PARSE-0004",
+                "COPE-PARSE-0006",
+                "COPE-PARSE-0004"
+              ]
+            },
+            {
+              "name": "filled-column-first",
+              "success": false,
+              "exitCode": 1,
+              "diagnostics": [
+                "COPE-PARSE-0004",
+                "COPE-PARSE-0004",
+                "COPE-PARSE-0004"
+              ]
+            },
+            {
+              "name": "table-with-fill",
+              "success": false,
+              "exitCode": 1,
+              "diagnostics": [
+                "COPE-PARSE-0004",
+                "COPE-PARSE-0004",
+                "COPE-PARSE-0004"
+              ]
+            }
+          ],
+          "auditedSources": [
+            {
+              "repository": "Concept",
+              "path": "docs/language/INITIALIZERS.md",
+              "commit": "68de20d19f76d336487a47e2d36d1b996ca00a07",
+              "sha256": "093FC89C75004DA8E7DFAC649B7E3E7B1F2831D326D128E683728F79A98388F8"
+            },
+            {
+              "repository": "Concept",
+              "path": "internal/concept/table_repetition_test.go",
+              "commit": "68de20d19f76d336487a47e2d36d1b996ca00a07",
+              "sha256": "A015881F0147B12122B35152EEDAF6838F3662EA9A085756A0E31DFE1C62B2C8"
+            },
+            {
+              "repository": "oct",
+              "path": "Language/reference/language/07-arrays.md",
+              "commit": "62b02c79e4519ea8066a4b7d6cecfdb3149ca1f0",
+              "sha256": "086A96FC1DF637199C7BA3089ADA8B422DD9F97A74454BB53E67610CD556D5A1"
+            },
+            {
+              "repository": "oct",
+              "path": "Language/reference/language/11-records.md",
+              "commit": "62b02c79e4519ea8066a4b7d6cecfdb3149ca1f0",
+              "sha256": "4EB77C714B1FF0135CD88ED2009B4C49E9584CB31BA18A17A9D2517F3746520B"
+            },
+            {
+              "repository": "oct",
+              "path": "internal/build/lower_expr.go",
+              "commit": "62b02c79e4519ea8066a4b7d6cecfdb3149ca1f0",
+              "sha256": "7D13B519202719AF92C73757A6DFCF57B328ECED49C69A043E64ED21D23F66CF"
+            },
+            {
+              "repository": "Copeland",
+              "path": "src/Copeland/Copeland.TS/Syntax/Parser.cs",
+              "commit": "375704880252069a4a60558403053d4dc26474ce",
+              "sha256": "285D545312189EA770C0AC61C5A0CDCAB23A32339F526336F10E585DF38C95C3"
+            },
+            {
+              "repository": "Copeland",
+              "path": "src/Copeland/Copeland.TS/Semantics/Binder.cs",
+              "commit": "375704880252069a4a60558403053d4dc26474ce",
+              "sha256": "7976C1CC0A1BA65B0499B5578DEFDD48DD0330B3AD069598662E0ED84236B829"
+            },
+            {
+              "repository": "Copeland",
+              "path": "src/Copeland/Copeland.Cli/TableToolCommand.cs",
+              "commit": "375704880252069a4a60558403053d4dc26474ce",
+              "sha256": "CD6C8A3B39A5C15D53483FFE0E8F2892F5DC5205388203E9BA8061A46763EB9A"
+            }
+          ],
+          "externalExecution": "Concept and Oct source inspected; their suites were not run"
+        }
+      }
+    },
+    {
+      "originalRoot": "artifacts/tablescript-ellipsis-implementation",
+      "files": [
+        {
+          "path": "baseline.json",
+          "bytes": 142,
+          "sha256": "00a38f4e0acd1c4aae93e3266a8115c8233f914c2bfe0c4951834eb69d0633c4"
+        },
+        {
+          "path": "baseline.ts",
+          "bytes": 3809,
+          "sha256": "b996633c956ba4ed6961b8db3d4ae3dfa0f61091fe17b98e2672ed1f0903fcf2"
+        },
+        {
+          "path": "cli-probes.txt",
+          "bytes": 67,
+          "sha256": "53cb0e862577a5798e06ab2fa2c0f951712cffdf9ca999e4c791ac88337dcc85"
+        },
+        {
+          "path": "counted-repetition.json",
+          "bytes": 141,
+          "sha256": "5c539a20521217a097b689ab5ceab36c64a1331ee9a3a7cd723c2c7aaacf0706"
+        },
+        {
+          "path": "counted-repetition.ts",
+          "bytes": 89,
+          "sha256": "922cd471bedd4e46158c4e672e8d2a716c80dfb9dfd3087c3e538e8203d5ee65"
+        },
+        {
+          "path": "dotnet-build.txt",
+          "bytes": 5525,
+          "sha256": "eb7c57725c6a0146a5fe243e0e29286cb52f2ab4fc29283f842852eb4735c67f"
+        },
+        {
+          "path": "dotnet-cli-build.txt",
+          "bytes": 1844,
+          "sha256": "db6940bf8bd67d4154b7054b51927a2e73c0d537e0304bd2f14daf748336a26a"
+        },
+        {
+          "path": "dotnet-tests.txt",
+          "bytes": 2882,
+          "sha256": "9c4a1a47f0b7a1357097d123b6681a6ea89b46cda8602edff4e9cd90a3176967"
+        },
+        {
+          "path": "edit-tests.txt",
+          "bytes": 2330,
+          "sha256": "3040661f66cec1d9be14e7e4354f14069ad2cd52685ea3bbdafb740845add477"
+        },
+        {
+          "path": "filled-column-first.json",
+          "bytes": 141,
+          "sha256": "5c539a20521217a097b689ab5ceab36c64a1331ee9a3a7cd723c2c7aaacf0706"
+        },
+        {
+          "path": "filled-column-first.ts",
+          "bytes": 87,
+          "sha256": "3b233e49a73317d1674b2707c0439f30ed30b04adfad27a850733fbed897beeb"
+        },
+        {
+          "path": "repetition-tests.txt",
+          "bytes": 1995,
+          "sha256": "70adabd11f1962a277e363880b2e2cceb8b084681fa4983e1a837a3918482ff1"
+        },
+        {
+          "path": "summary.json",
+          "bytes": 2877,
+          "sha256": "73455f36a7bfe53450523d385106688fed0ab2f60a12554c6fb85b211c25b2d5"
+        },
+        {
+          "path": "table-with-fill.json",
+          "bytes": 141,
+          "sha256": "5c539a20521217a097b689ab5ceab36c64a1331ee9a3a7cd723c2c7aaacf0706"
+        },
+        {
+          "path": "table-with-fill.ts",
+          "bytes": 171,
+          "sha256": "71c2a6bed0d1f0d7e7d59d3816255a0ea11b7f4cb332325c2782c44a45b320d1"
+        },
+        {
+          "path": "validation.json",
+          "bytes": 7490,
+          "sha256": "cc59336e7f64a2c3671d3a38883910fab2928ed69743569c7b8ed1a971718d4f"
+        },
+        {
+          "path": "workbook-check.txt",
+          "bytes": 3463,
+          "sha256": "55296cf29a4a0b1a551e3c686da6e6422ce916c40258ac05cb623ad8326026d4"
+        },
+        {
+          "path": "workbook/Scenario.ts",
+          "bytes": 3810,
+          "sha256": "5ccf6ca3af85b63e24dad67ef52c12b34f1afb40c564e66a5c4d2ad455711796"
+        },
+        {
+          "path": "workbook/array-query-boundary.json",
+          "bytes": 444,
+          "sha256": "f6d57cd17610dab37f740871a4feff3c843b140729aa2528e22d6b97293e9def"
+        },
+        {
+          "path": "workbook/changed-plan.json",
+          "bytes": 4899,
+          "sha256": "ea4636ca23b008eba9f0ec31424ac53487ebc219102f642a6d5900b1bc45e867"
+        },
+        {
+          "path": "workbook/consumer.txt",
+          "bytes": 60,
+          "sha256": "7554431bff3ecf6e04c5229f2d8b39fe9ef4a631e059efbc60d96a9b6e080d4c"
+        },
+        {
+          "path": "workbook/derived-write.json",
+          "bytes": 367,
+          "sha256": "da4b87eebfa4cc186ecb02cba251a74835e4ae847659217d951b15128798661c"
+        },
+        {
+          "path": "workbook/duplicate-key.json",
+          "bytes": 441,
+          "sha256": "41d1391d60f0f88fac3b0ae743741d9f75149fbd1b48e16ca2952fb905dd2237"
+        },
+        {
+          "path": "workbook/edit.json",
+          "bytes": 414,
+          "sha256": "dad5868680eed7f93e44267c440e23ac756f454ec8a0f75772415623f5228cae"
+        },
+        {
+          "path": "workbook/invalid-number.json",
+          "bytes": 308,
+          "sha256": "a7b4bda9e1219fba3d554b9877da059a88a47557a2d6e7bffb70c12869925e4b"
+        },
+        {
+          "path": "workbook/legacy-query-boundary.json",
+          "bytes": 334,
+          "sha256": "db2ccf56ea60332d9e6c9798ecc12116313ff72ae70fdc06cb3e038c896f8fa3"
+        },
+        {
+          "path": "workbook/missing-supplier.json",
+          "bytes": 495,
+          "sha256": "171d0e8206ae413d34255e9c8e37465605a9fd047a79f5017235d1b2016ebdfd"
+        },
+        {
+          "path": "workbook/orders.json",
+          "bytes": 4229,
+          "sha256": "2424d1f96a16f402e8ade60ad856052412796e75507262ebc860655296968f08"
+        },
+        {
+          "path": "workbook/plan.json",
+          "bytes": 4903,
+          "sha256": "94b2cd149c79f0691527bd019528a88cd6736fcfe2342d61d18063cd8bc2d809"
+        },
+        {
+          "path": "workbook/preview.json",
+          "bytes": 413,
+          "sha256": "b9db6c992b8304b7292711ff4e9a9197a63bf0911143d62c7b3677a03bf8d3ea"
+        },
+        {
+          "path": "workbook/products.json",
+          "bytes": 4214,
+          "sha256": "acde8a1999a4003c0257b07b6962e2f700e771146116c130d98fc4eba150e771"
+        },
+        {
+          "path": "workbook/schema.json",
+          "bytes": 3431,
+          "sha256": "9db9f7d1693e6b69aa8dced760e2456916e9f60c20a1d37daf41d413b32310dc"
+        },
+        {
+          "path": "workbook/source-suppliers.json",
+          "bytes": 1879,
+          "sha256": "71b4429aa29691f62c6fe68d1ad7eef8cfaeee9804690a67b0087833043022e1"
+        },
+        {
+          "path": "workbook/stock.json",
+          "bytes": 1651,
+          "sha256": "3468707bc032852bfea0db37f96631774b691204c68b760e1a535afdfe035663"
+        },
+        {
+          "path": "workbook/summary.json",
+          "bytes": 255,
+          "sha256": "9ce3dec09baf80261b8ba353611869e2c4e2e517ab5138d033a0877b31f87f24"
+        },
+        {
+          "path": "workbook/suppliers.json",
+          "bytes": 3164,
+          "sha256": "193dbeb4dbbad82e43e1cbf3c75509a2bf1956e6b1ce873f2774cfaf912bc5d3"
+        },
+        {
+          "path": "workbook/validate.json",
+          "bytes": 142,
+          "sha256": "00a38f4e0acd1c4aae93e3266a8115c8233f914c2bfe0c4951834eb69d0633c4"
+        }
+      ],
+      "historicalSummaries": {
+        "summary.json": {
+          "purpose": "Qualify implemented postfix repetition and table remainder fills through the real CLI",
+          "success": true,
+          "buildExitCode": 0,
+          "maximumProbeSeconds": 15,
+          "probes": [
+            {
+              "name": "baseline",
+              "success": true,
+              "exitCode": 0,
+              "totalRows": 27,
+              "diagnostics": []
+            },
+            {
+              "name": "counted-repetition",
+              "success": true,
+              "exitCode": 0,
+              "totalRows": 3,
+              "diagnostics": []
+            },
+            {
+              "name": "filled-column-first",
+              "success": true,
+              "exitCode": 0,
+              "totalRows": 3,
+              "diagnostics": []
+            },
+            {
+              "name": "table-with-fill",
+              "success": true,
+              "exitCode": 0,
+              "totalRows": 3,
+              "diagnostics": []
+            }
+          ],
+          "auditedSources": [
+            {
+              "repository": "Concept",
+              "path": "docs/language/INITIALIZERS.md",
+              "commit": "68de20d19f76d336487a47e2d36d1b996ca00a07",
+              "sha256": "093FC89C75004DA8E7DFAC649B7E3E7B1F2831D326D128E683728F79A98388F8"
+            },
+            {
+              "repository": "Concept",
+              "path": "internal/concept/table_repetition_test.go",
+              "commit": "68de20d19f76d336487a47e2d36d1b996ca00a07",
+              "sha256": "A015881F0147B12122B35152EEDAF6838F3662EA9A085756A0E31DFE1C62B2C8"
+            },
+            {
+              "repository": "oct",
+              "path": "Language/reference/language/07-arrays.md",
+              "commit": "62b02c79e4519ea8066a4b7d6cecfdb3149ca1f0",
+              "sha256": "086A96FC1DF637199C7BA3089ADA8B422DD9F97A74454BB53E67610CD556D5A1"
+            },
+            {
+              "repository": "oct",
+              "path": "Language/reference/language/11-records.md",
+              "commit": "62b02c79e4519ea8066a4b7d6cecfdb3149ca1f0",
+              "sha256": "4EB77C714B1FF0135CD88ED2009B4C49E9584CB31BA18A17A9D2517F3746520B"
+            },
+            {
+              "repository": "oct",
+              "path": "internal/build/lower_expr.go",
+              "commit": "62b02c79e4519ea8066a4b7d6cecfdb3149ca1f0",
+              "sha256": "7D13B519202719AF92C73757A6DFCF57B328ECED49C69A043E64ED21D23F66CF"
+            },
+            {
+              "repository": "Copeland",
+              "path": "src/Copeland/Copeland.TS/Syntax/Parser.cs",
+              "commit": "375704880252069a4a60558403053d4dc26474ce",
+              "sha256": "F6CFE9C9A03BAC4A1F5FC5A7DAFD00CDF41FC2A3FA52CD066112D5FA14EA7EB2"
+            },
+            {
+              "repository": "Copeland",
+              "path": "src/Copeland/Copeland.TS/Semantics/Binder.cs",
+              "commit": "375704880252069a4a60558403053d4dc26474ce",
+              "sha256": "4200E2BC552CB0FDDD227AE38AC15227A07EEB62E418A75A5ADC9141C2CF26EA"
+            },
+            {
+              "repository": "Copeland",
+              "path": "src/Copeland/Copeland.Cli/TableToolCommand.cs",
+              "commit": "375704880252069a4a60558403053d4dc26474ce",
+              "sha256": "064ACCF1A531D4E31E38D9EB83BBFC8E09DEF2DFE10951F995E9CB335B425D4F"
+            }
+          ],
+          "externalExecution": "Concept and Oct source inspected; their suites were not run"
+        },
+        "validation.json": {
+          "success": true,
+          "revision": "375704880252069a4a60558403053d4dc26474ce",
+          "workingTree": "Includes existing uncommitted M12 and initializer implementation changes",
+          "dotnet": "10.0.401",
+          "buildWarnings": 0,
+          "buildErrors": 0,
+          "tests": {
+            "passed": 2304,
+            "failed": 0,
+            "skipped": 0,
+            "projects": 8
+          },
+          "focusedInitializerCases": 20,
+          "logicalEditIntegrationCases": 1,
+          "cliProbes": {
+            "purpose": "Qualify implemented postfix repetition and table remainder fills through the real CLI",
+            "success": true,
+            "buildExitCode": 0,
+            "maximumProbeSeconds": 15,
+            "probes": [
+              {
+                "name": "baseline",
+                "success": true,
+                "exitCode": 0,
+                "totalRows": 27,
+                "diagnostics": []
+              },
+              {
+                "name": "counted-repetition",
+                "success": true,
+                "exitCode": 0,
+                "totalRows": 3,
+                "diagnostics": []
+              },
+              {
+                "name": "filled-column-first",
+                "success": true,
+                "exitCode": 0,
+                "totalRows": 3,
+                "diagnostics": []
+              },
+              {
+                "name": "table-with-fill",
+                "success": true,
+                "exitCode": 0,
+                "totalRows": 3,
+                "diagnostics": []
+              }
+            ],
+            "auditedSources": [
+              {
+                "repository": "Concept",
+                "path": "docs/language/INITIALIZERS.md",
+                "commit": "68de20d19f76d336487a47e2d36d1b996ca00a07",
+                "sha256": "093FC89C75004DA8E7DFAC649B7E3E7B1F2831D326D128E683728F79A98388F8"
+              },
+              {
+                "repository": "Concept",
+                "path": "internal/concept/table_repetition_test.go",
+                "commit": "68de20d19f76d336487a47e2d36d1b996ca00a07",
+                "sha256": "A015881F0147B12122B35152EEDAF6838F3662EA9A085756A0E31DFE1C62B2C8"
+              },
+              {
+                "repository": "oct",
+                "path": "Language/reference/language/07-arrays.md",
+                "commit": "62b02c79e4519ea8066a4b7d6cecfdb3149ca1f0",
+                "sha256": "086A96FC1DF637199C7BA3089ADA8B422DD9F97A74454BB53E67610CD556D5A1"
+              },
+              {
+                "repository": "oct",
+                "path": "Language/reference/language/11-records.md",
+                "commit": "62b02c79e4519ea8066a4b7d6cecfdb3149ca1f0",
+                "sha256": "4EB77C714B1FF0135CD88ED2009B4C49E9584CB31BA18A17A9D2517F3746520B"
+              },
+              {
+                "repository": "oct",
+                "path": "internal/build/lower_expr.go",
+                "commit": "62b02c79e4519ea8066a4b7d6cecfdb3149ca1f0",
+                "sha256": "7D13B519202719AF92C73757A6DFCF57B328ECED49C69A043E64ED21D23F66CF"
+              },
+              {
+                "repository": "Copeland",
+                "path": "src/Copeland/Copeland.TS/Syntax/Parser.cs",
+                "commit": "375704880252069a4a60558403053d4dc26474ce",
+                "sha256": "F6CFE9C9A03BAC4A1F5FC5A7DAFD00CDF41FC2A3FA52CD066112D5FA14EA7EB2"
+              },
+              {
+                "repository": "Copeland",
+                "path": "src/Copeland/Copeland.TS/Semantics/Binder.cs",
+                "commit": "375704880252069a4a60558403053d4dc26474ce",
+                "sha256": "4200E2BC552CB0FDDD227AE38AC15227A07EEB62E418A75A5ADC9141C2CF26EA"
+              },
+              {
+                "repository": "Copeland",
+                "path": "src/Copeland/Copeland.Cli/TableToolCommand.cs",
+                "commit": "375704880252069a4a60558403053d4dc26474ce",
+                "sha256": "064ACCF1A531D4E31E38D9EB83BBFC8E09DEF2DFE10951F995E9CB335B425D4F"
+              }
+            ],
+            "externalExecution": "Concept and Oct source inspected; their suites were not run"
+          },
+          "workbook": {
+            "success": true,
+            "checks": 66,
+            "baselineCents": 31210,
+            "editedCents": 12710,
+            "sourceSha256": "B996633C956BA4ED6961B8DB3D4AE3DFA0F61091FE17B98E2672ED1F0903FCF2",
+            "executor": "csharp-relation-plan",
+            "nativeExcel": "not exercised"
+          },
+          "sourceHashes": [
+            {
+              "path": "src/Copeland/Copeland.Cli/TableToolCommand.cs",
+              "sha256": "064ACCF1A531D4E31E38D9EB83BBFC8E09DEF2DFE10951F995E9CB335B425D4F"
+            },
+            {
+              "path": "src/Copeland/Copeland.TS.Backend.CSharp/CSharp/CSharpBackend.cs",
+              "sha256": "05649F075F20440FB29CB8142E24EF86077223939B1925011BF7298D9671445E"
+            },
+            {
+              "path": "src/Copeland/Copeland.TS.Backend.JavaScript/JavaScriptBackend.cs",
+              "sha256": "F61A43308B8D10BB9053118D7AAC56C20239D775C042C06A4C17601D076DDBE4"
+            },
+            {
+              "path": "src/Copeland/Copeland.TS.Mir/MirNodes.cs",
+              "sha256": "75AB503FB6C28F532EAE815941B49443D6D0A991984519EC2369E696DC6F3ECA"
+            },
+            {
+              "path": "src/Copeland/Copeland.TS.Mir/MirTextWriter.cs",
+              "sha256": "224C3BFCEE1141B037C45408342D330162F8E892BBC80C385D0D85D7876792EB"
+            },
+            {
+              "path": "src/Copeland/Copeland.TS.Mir/MirValidator.cs",
+              "sha256": "CCB6BCCBCB980D30EB7657B2691240579A97C7E8EB00F404C78297F46D914BB7"
+            },
+            {
+              "path": "src/Copeland/Copeland.TS/Lowering/MirLowerer.cs",
+              "sha256": "4C2D6FD31B12FB16154A04438BF435F2028E58D3278F24C6880699000C19933C"
+            },
+            {
+              "path": "src/Copeland/Copeland.TS/Semantics/Binder.cs",
+              "sha256": "4200E2BC552CB0FDDD227AE38AC15227A07EEB62E418A75A5ADC9141C2CF26EA"
+            },
+            {
+              "path": "src/Copeland/Copeland.TS/Semantics/Bound/BoundNodes.cs",
+              "sha256": "5205446801D489B01EF844FCBBF4EDEA7E18DD2C32020C19C9B8CFBD842DEA35"
+            },
+            {
+              "path": "src/Copeland/Copeland.TS/Semantics/StaticEvaluation.cs",
+              "sha256": "90D9FB551345C1947CD96B5E35EE1308A696E1E37929C408F845EEE4493B23E4"
+            },
+            {
+              "path": "src/Copeland/Copeland.TS/Syntax/FlowExecutionProjection.cs",
+              "sha256": "72739C65190E35F8E544006F5628C8AF5D51762220D5237DF6F7E746D6B8FC7C"
+            },
+            {
+              "path": "src/Copeland/Copeland.TS/Syntax/Lexer.cs",
+              "sha256": "9BB8F5E54D900E68485616E7FA5D7C4B9E82CE4CF25A21F5145045ED9AC979D8"
+            },
+            {
+              "path": "src/Copeland/Copeland.TS/Syntax/Parser.cs",
+              "sha256": "F6CFE9C9A03BAC4A1F5FC5A7DAFD00CDF41FC2A3FA52CD066112D5FA14EA7EB2"
+            },
+            {
+              "path": "src/Copeland/Copeland.TS/Syntax/SyntaxFacts.cs",
+              "sha256": "A0FD0BB71AA0316599CDCF8D11A916E0AF35D7E991229D38CB90B0E64C199DB2"
+            },
+            {
+              "path": "src/Copeland/Copeland.TS/Syntax/SyntaxKind.cs",
+              "sha256": "6DAB5444F1502A781A7399D979FDFAADADD0D956A1D81EA2F7E20CE099283FC2"
+            },
+            {
+              "path": "src/Copeland/Copeland.TS/Syntax/SyntaxNodes.cs",
+              "sha256": "B26B0A1AFD36996B6D3DF18862EF7D9AD6504AE64D448398B2BEEBF908AC5CF3"
+            },
+            {
+              "path": "tests/Copeland/Copeland.Cli.Tests/CliIntegrationTests.cs",
+              "sha256": "BBE5F95822A96C0FE8F0A95BF12F6F8D977D9F7D52F42631F2D1FCFE42BA57DB"
+            },
+            {
+              "path": "tests/Copeland/Copeland.TS.Tests/ParserTests.cs",
+              "sha256": "15EE29326C257560907524C0899BE77BBB548639865021FA3DD83EA89E60EBAD"
+            },
+            {
+              "path": "tests/Copeland/Copeland.TS.Tests/TableFeatureTests.cs",
+              "sha256": "558DCD3E6129B41B19ABD70BC955AB25888F7721C60D712CD2B3B3DC7B253953"
+            },
+            {
+              "path": "src/Copeland/Copeland.TS.Mir/InitializerSequence.cs",
+              "sha256": "2892362913D69B4E0CCDCAA9F7D43B360270BBD5431AC2FA166CAF9240659975"
+            },
+            {
+              "path": "src/Copeland/Copeland.TS/Semantics/Binder.Initializers.cs",
+              "sha256": "08405CC579920B4A9B23972E511E62D663DD473567B6A54CA36B016B46F41B5A"
+            },
+            {
+              "path": "tests/Copeland/Copeland.TS.Tests/InitializerRepetitionTests.cs",
+              "sha256": "F089D6F81632D931D3502D0E98BA8F2F27D97D7D178C87F5C22E23630841B104"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "originalRoot": "artifacts/tablescript-row-authoring",
+      "files": [
+        {
+          "path": "Scenario.ts",
+          "bytes": 5040,
+          "sha256": "14270375a00c8346d188ca3d27bae3f46dede520be02a51f519aabc769c6a086"
+        },
+        {
+          "path": "Suppliers.csv",
+          "bytes": 68,
+          "sha256": "4a30ea0e11556ea7c5573c562db09964b019119a14b89642c831504a3fc4e2e4"
+        },
+        {
+          "path": "Workbook.before.ts",
+          "bytes": 3809,
+          "sha256": "b996633c956ba4ed6961b8db3d4ae3dfa0f61091fe17b98e2672ed1f0903fcf2"
+        },
+        {
+          "path": "Workbook.csharp",
+          "bytes": 54492,
+          "sha256": "e50e793ae9ef90331704e62f1190e475e6ac710ddd0affbbca8fc1f82f5d6846"
+        },
+        {
+          "path": "Workbook.mir",
+          "bytes": 11905,
+          "sha256": "f1d984649160ff74270b91bf91a99ff45f9f67d799bf209438a5931de2d6f28d"
+        },
+        {
+          "path": "cafe/Scenario.ts",
+          "bytes": 3524,
+          "sha256": "381c9b0bbf78cb8cef80b73f90bfe2d46e9f6f11c8a3cbf14675b5a0759f7cea"
+        },
+        {
+          "path": "cafe/array-query-boundary.json",
+          "bytes": 444,
+          "sha256": "f6d57cd17610dab37f740871a4feff3c843b140729aa2528e22d6b97293e9def"
+        },
+        {
+          "path": "cafe/changed-plan.json",
+          "bytes": 5394,
+          "sha256": "2dcd7da4766869c0d6f8cd805c5f8b10d6182a5ff03a1b15292691d0b0a81045"
+        },
+        {
+          "path": "cafe/consumer.txt",
+          "bytes": 60,
+          "sha256": "7554431bff3ecf6e04c5229f2d8b39fe9ef4a631e059efbc60d96a9b6e080d4c"
+        },
+        {
+          "path": "cafe/derived-write.json",
+          "bytes": 367,
+          "sha256": "da4b87eebfa4cc186ecb02cba251a74835e4ae847659217d951b15128798661c"
+        },
+        {
+          "path": "cafe/duplicate-key.json",
+          "bytes": 427,
+          "sha256": "8191db30377a9457422baf4012d7caffeaf77d98fb6061d9d027952a5cb36d4b"
+        },
+        {
+          "path": "cafe/edit.json",
+          "bytes": 508,
+          "sha256": "28310961a0e9dc308dd8ed2d597f906f9575ff5bc125e3e26e2dc814859e9ef9"
+        },
+        {
+          "path": "cafe/invalid-number.json",
+          "bytes": 308,
+          "sha256": "a7b4bda9e1219fba3d554b9877da059a88a47557a2d6e7bffb70c12869925e4b"
+        },
+        {
+          "path": "cafe/legacy-query-boundary.json",
+          "bytes": 334,
+          "sha256": "db2ccf56ea60332d9e6c9798ecc12116313ff72ae70fdc06cb3e038c896f8fa3"
+        },
+        {
+          "path": "cafe/missing-supplier.json",
+          "bytes": 481,
+          "sha256": "d3375df8e0cace2894fd2dec5bfe1ff78cbd114e1cd978d2fe5fe738275d1ce8"
+        },
+        {
+          "path": "cafe/orders.json",
+          "bytes": 4738,
+          "sha256": "7b76c89cf0137023e621db3d7bf00e1febdad1514aae00c2302dcc71cf6b0122"
+        },
+        {
+          "path": "cafe/plan.json",
+          "bytes": 5412,
+          "sha256": "8f7de991f83d9c2e79a7d21f8df39db437bac2d6a6f4aec6b00247ca14d98409"
+        },
+        {
+          "path": "cafe/preview.json",
+          "bytes": 507,
+          "sha256": "7efe066426e3642e684fa9f6c13bee9f1584c5561eb097b3bd3d8d0232b2541a"
+        },
+        {
+          "path": "cafe/products.json",
+          "bytes": 4214,
+          "sha256": "acde8a1999a4003c0257b07b6962e2f700e771146116c130d98fc4eba150e771"
+        },
+        {
+          "path": "cafe/schema.json",
+          "bytes": 3314,
+          "sha256": "8f762638d4c3b957298746dc42657a42e66b4f5a13a2828c7b6c49b134fdd282"
+        },
+        {
+          "path": "cafe/source-suppliers.json",
+          "bytes": 1879,
+          "sha256": "71b4429aa29691f62c6fe68d1ad7eef8cfaeee9804690a67b0087833043022e1"
+        },
+        {
+          "path": "cafe/stock.json",
+          "bytes": 1651,
+          "sha256": "3468707bc032852bfea0db37f96631774b691204c68b760e1a535afdfe035663"
+        },
+        {
+          "path": "cafe/summary.json",
+          "bytes": 332,
+          "sha256": "d307d560d711ff6e2037fcaa66594056f0b487296c1bc9d2c2f29acdb1db2652"
+        },
+        {
+          "path": "cafe/suppliers.json",
+          "bytes": 3361,
+          "sha256": "d62384b626f505d701646f452f890fac788e820842655e2badf52a1c9a917b55"
+        },
+        {
+          "path": "cafe/validate.json",
+          "bytes": 142,
+          "sha256": "456ce4c7f4b1f838e5b51065fbee7b74f7953714fbbb2e4f1ce1dfadddf3be29"
+        },
+        {
+          "path": "key-edits/authored-order-baseline.json",
+          "bytes": 5409,
+          "sha256": "8fd4a7e80bbcff7f18a2db1aa1039c105f1c2c12422df8cd5cfa9da36697545e"
+        },
+        {
+          "path": "key-edits/authored-order-changed.json",
+          "bytes": 5405,
+          "sha256": "77ac9e1076756cd8446581bd790e304affa18477e9b5fbabbfdeca83cd0ffbd9"
+        },
+        {
+          "path": "key-edits/authored-order-conflict.json",
+          "bytes": 384,
+          "sha256": "d047cc64d2984ecc28abb1ef638333743ae2c1c2596f61818ff1ff6cedda81e5"
+        },
+        {
+          "path": "key-edits/authored-order-duplicate.json",
+          "bytes": 438,
+          "sha256": "a41220da7d4c1a88eb7837c77f05f83f4a083a9adaf7247733fbf6e400e2198c"
+        },
+        {
+          "path": "key-edits/authored-order-edit.json",
+          "bytes": 519,
+          "sha256": "5cafae226a7c26a1fc8eb00814d83e3f954df96a1656a9016161a64a788db9c5"
+        },
+        {
+          "path": "key-edits/authored-order-fixed-snapshot.json",
+          "bytes": 443,
+          "sha256": "e9c60b5dcd1c4914dd84103a909d7ed6ca3983950ea0c663124b30624649aa3b"
+        },
+        {
+          "path": "key-edits/authored-order-missing.json",
+          "bytes": 340,
+          "sha256": "203859687ea72124fbc32a9386d5c634c616441b27420503a4288df2b6f1337c"
+        },
+        {
+          "path": "key-edits/authored-order-preview.json",
+          "bytes": 518,
+          "sha256": "d1506d0014554203c351bfe22e738983ea326e50e8dee8cfdb952826be57fcd9"
+        },
+        {
+          "path": "key-edits/authored-order-reference.json",
+          "bytes": 494,
+          "sha256": "87f83b704ff405539734f3a57ad3d27bce75ebe2b1d0c5fe0edbdc8409877bd4"
+        },
+        {
+          "path": "key-edits/authored-order-survivors.json",
+          "bytes": 781,
+          "sha256": "200e952453958faf405c3e59c13a6e493ec850f828a824af1c0d8be4d3b23ea0"
+        },
+        {
+          "path": "key-edits/authored-order.ts",
+          "bytes": 3524,
+          "sha256": "381c9b0bbf78cb8cef80b73f90bfe2d46e9f6f11c8a3cbf14675b5a0759f7cea"
+        },
+        {
+          "path": "key-edits/canonical-plan.json",
+          "bytes": 5412,
+          "sha256": "8f7de991f83d9c2e79a7d21f8df39db437bac2d6a6f4aec6b00247ca14d98409"
+        },
+        {
+          "path": "key-edits/reversed-order-baseline.json",
+          "bytes": 5409,
+          "sha256": "eb00ea26992991c861a8a2a75896a83868bcf3291af50ffed32bc2326899b5d3"
+        },
+        {
+          "path": "key-edits/reversed-order-changed.json",
+          "bytes": 5405,
+          "sha256": "25d01ddb61424b644310f1c3e069e1b08341d53e2a215ceb15d36cb2c709dbed"
+        },
+        {
+          "path": "key-edits/reversed-order-conflict.json",
+          "bytes": 384,
+          "sha256": "d047cc64d2984ecc28abb1ef638333743ae2c1c2596f61818ff1ff6cedda81e5"
+        },
+        {
+          "path": "key-edits/reversed-order-duplicate.json",
+          "bytes": 438,
+          "sha256": "7ccbce5ac25d9af0d5dec8b9df76c139fe181e399d0dea941610cd7301d645ac"
+        },
+        {
+          "path": "key-edits/reversed-order-edit.json",
+          "bytes": 519,
+          "sha256": "f9528a5d921074a45326462402a281501cae3827420fa399e4fd71fdf4cc6bcf"
+        },
+        {
+          "path": "key-edits/reversed-order-fixed-snapshot.json",
+          "bytes": 443,
+          "sha256": "240b040ce86784f29cd9fb27054873ae1980cd9cf1411e97d473138d1f38c042"
+        },
+        {
+          "path": "key-edits/reversed-order-missing.json",
+          "bytes": 340,
+          "sha256": "203859687ea72124fbc32a9386d5c634c616441b27420503a4288df2b6f1337c"
+        },
+        {
+          "path": "key-edits/reversed-order-preview.json",
+          "bytes": 518,
+          "sha256": "e14149cde94380683307145f50a7297aafe6df81aa184994f4cabfb321d74e06"
+        },
+        {
+          "path": "key-edits/reversed-order-reference.json",
+          "bytes": 494,
+          "sha256": "09ad5b6577236629ab0294c9fea7fa75de0d8f0bf805695e4029613698807558"
+        },
+        {
+          "path": "key-edits/reversed-order-survivors.json",
+          "bytes": 781,
+          "sha256": "ce1d8b76dd10471cc0afaa35e735287de62cf72069a46730d8e00fea8efee9c0"
+        },
+        {
+          "path": "key-edits/reversed-order.ts",
+          "bytes": 3524,
+          "sha256": "0d9c961f5acf31cdbebde666a91c32e7bce1f1bf867c69869fd52b915847f5ff"
+        },
+        {
+          "path": "key-edits/summary.json",
+          "bytes": 588,
+          "sha256": "3b7de41958681baf97bea6ba931b2222f7d4b000eaad3d5c37879f7654b8051d"
+        },
+        {
+          "path": "plan.after.json",
+          "bytes": 5412,
+          "sha256": "8f7de991f83d9c2e79a7d21f8df39db437bac2d6a6f4aec6b00247ca14d98409"
+        },
+        {
+          "path": "plan.before.json",
+          "bytes": 4904,
+          "sha256": "c8666e5575dedbb97c98fa2fe1856c650d1df12bdbdc6a18432fbf52ec01c19d"
+        },
+        {
+          "path": "referenced-row-rejection.json",
+          "bytes": 481,
+          "sha256": "4cf023f86c870b910bc6284d08214ae606a4557472460e993bd2b498c868ba90"
+        },
+        {
+          "path": "round-trip-plan.json",
+          "bytes": 5392,
+          "sha256": "7be30ae3e804825eff23317691d5628dd5f2f8b2e6f9b51e949d468110f9c273"
+        },
+        {
+          "path": "row-added.json",
+          "bytes": 256,
+          "sha256": "dd5170d6c0e6560eb1a1340587a549bc9eb8342fded0f584d445539794985192"
+        },
+        {
+          "path": "row-changed-plan.json",
+          "bytes": 5392,
+          "sha256": "7be30ae3e804825eff23317691d5628dd5f2f8b2e6f9b51e949d468110f9c273"
+        },
+        {
+          "path": "row-deleted.json",
+          "bytes": 361,
+          "sha256": "4b701471d3e650107c6f6a46b6da70103c93bd66e34dde071ca45c1697b7040a"
+        },
+        {
+          "path": "row-edit.json",
+          "bytes": 499,
+          "sha256": "0b492dcb9b078f070937aceb87a00190e5d09e387e18252b097def57423903c7"
+        },
+        {
+          "path": "row-export.json",
+          "bytes": 252,
+          "sha256": "19ade011db6eeb049121f73a90c9e70b0b4198bb7cad2ff165c8bcf320d94fd8"
+        },
+        {
+          "path": "row-import.json",
+          "bytes": 211,
+          "sha256": "c372a09eaf25cd3c0a7943c81b51a980b5321714dba1880fd25899bdd5c266d6"
+        },
+        {
+          "path": "row-preview.json",
+          "bytes": 498,
+          "sha256": "131bf1f0bb972668ec74f7fa87b96e8717c3f55e8be0982f8e17601e80da73ce"
+        },
+        {
+          "path": "schema.json",
+          "bytes": 3314,
+          "sha256": "8f762638d4c3b957298746dc42657a42e66b4f5a13a2828c7b6c49b134fdd282"
+        },
+        {
+          "path": "summary.json",
+          "bytes": 412,
+          "sha256": "218b42246d9a1fddc734f7f4f4548b0d6a2ec0c8fbb4fb9cd75a8df6b80eb6c0"
+        },
+        {
+          "path": "tables.json",
+          "bytes": 1471,
+          "sha256": "bbb583fac015ae39721d90f6652938ed1290b93135221a9938e7bc9e1b6c8878"
+        },
+        {
+          "path": "validation.json",
+          "bytes": 397,
+          "sha256": "166966d4ce7bc216dbe8ffc5f03e698fc50f0b3a4c49673f4206a7c123392977"
+        }
+      ],
+      "historicalSummaries": {
+        "summary.json": {
+          "success": true,
+          "checks": 46,
+          "baselineCents": 31210,
+          "identicalPurchaseRows": true,
+          "derivedTablesBefore": 2,
+          "derivedTablesAfter": 1,
+          "executor": "csharp-relation-plan",
+          "sourceSha256": "4A25AAB396C7F037647F356A1D159B6E4705CF36F14E3172898F8E8696D1B2C3",
+          "javascriptDerivedTables": "unsupported: COPE-JS-DERIVE-0001",
+          "tsonRowAuthoring": "unsupported: COPE-TSON-TABLE-0001"
+        },
+        "validation.json": {
+          "success": true,
+          "sdk": "10.0.401",
+          "testProjects": 8,
+          "tests": 2357,
+          "failed": 0,
+          "skipped": 0,
+          "newCompilerCases": 29,
+          "newCliCases": 3,
+          "rowChecks": 46,
+          "cafeChecks": 66,
+          "keyChecks": 96,
+          "compiledConsumerAssertions": 13,
+          "buildWarnings": 0,
+          "buildErrors": 0,
+          "sourceSha256": "B9F526AA4928A6E3773AEF81CCDBD8F6F25B393BFD84E3127BD731DC20D1B10C"
+        }
+      }
+    },
+    {
+      "originalRoot": "artifacts/tablescript-key-edits",
+      "files": [
+        {
+          "path": "authored-order-baseline.json",
+          "bytes": 5394,
+          "sha256": "09e4630a882ea8826547d7050f994e5c1f410467d2e10c9a6a8a6b6753b267fd"
+        },
+        {
+          "path": "authored-order-changed.json",
+          "bytes": 5390,
+          "sha256": "6f325e747c2c5dfbac5a70677e1ab7b7511570713f767f67de59167ae0dcb994"
+        },
+        {
+          "path": "authored-order-conflict.json",
+          "bytes": 384,
+          "sha256": "d047cc64d2984ecc28abb1ef638333743ae2c1c2596f61818ff1ff6cedda81e5"
+        },
+        {
+          "path": "authored-order-delete.json",
+          "bytes": 428,
+          "sha256": "b217a9c7ba36f1541124927b140b9fc9ee94cbf9961c5b2ce72b3f746c1f4f91"
+        },
+        {
+          "path": "authored-order-duplicate.json",
+          "bytes": 423,
+          "sha256": "6f7d32d02ef65c24622207a12a0b55c4831e68b4889d8088d67b15683435d4ea"
+        },
+        {
+          "path": "authored-order-edit.json",
+          "bytes": 504,
+          "sha256": "0e9b5a8f7795312b91f2528a533a6c3a64f3a85a22fd0533ec1d6c34ccf14c3b"
+        },
+        {
+          "path": "authored-order-fixed-snapshot.json",
+          "bytes": 428,
+          "sha256": "cc591af473eff22ed9e43dc603c1107957b4e2ce05e4c032761336d9ff56bb04"
+        },
+        {
+          "path": "authored-order-missing.json",
+          "bytes": 340,
+          "sha256": "203859687ea72124fbc32a9386d5c634c616441b27420503a4288df2b6f1337c"
+        },
+        {
+          "path": "authored-order-preview.json",
+          "bytes": 503,
+          "sha256": "163ef51ea4a6662e25004ffaba420442e096ee566fd94073ac485f27cff6a50f"
+        },
+        {
+          "path": "authored-order-reference.json",
+          "bytes": 479,
+          "sha256": "63cad1e9f3379922e430cdb3940fcb150836d89365655b89878e9cefaa9a6ce7"
+        },
+        {
+          "path": "authored-order-survivors.json",
+          "bytes": 781,
+          "sha256": "200e952453958faf405c3e59c13a6e493ec850f828a824af1c0d8be4d3b23ea0"
+        },
+        {
+          "path": "authored-order.ts",
+          "bytes": 5042,
+          "sha256": "1097e1b0dd851eb5327351d2ec76b568e2bd1f24241c415338efff9a9dd14679"
+        },
+        {
+          "path": "canonical-plan.json",
+          "bytes": 5412,
+          "sha256": "8f7de991f83d9c2e79a7d21f8df39db437bac2d6a6f4aec6b00247ca14d98409"
+        },
+        {
+          "path": "dotnet-build.txt",
+          "bytes": 5525,
+          "sha256": "beb7e5bca4df29ac388264a6ae27912ae7acb1c77f3dbf7fba48a9c7463cadd9"
+        },
+        {
+          "path": "dotnet-tests.txt",
+          "bytes": 2882,
+          "sha256": "47fd8609c633a1b4c8a35395528b760e0cf170fddeefab07c960f328dc9b9951"
+        },
+        {
+          "path": "exact-key-tests.txt",
+          "bytes": 3279,
+          "sha256": "fc3474827ca495c5687a57638371979c0c646d22fcb9df97957982f03feee23c"
+        },
+        {
+          "path": "focused-tests.txt",
+          "bytes": 2331,
+          "sha256": "5822e023abd8342e1f3086ba4cede4acedfd6f1485b269215a38502722c9a008"
+        },
+        {
+          "path": "key-workbook-check.txt",
+          "bytes": 1914,
+          "sha256": "c8772b781a849306aa9bd67eae5e97b63df7215d451e8f59bf0e14c9c695a634"
+        },
+        {
+          "path": "reversed-order-baseline.json",
+          "bytes": 5394,
+          "sha256": "19cc14290e49c20f9216fb7523ff652b6af99a24a22364e9370618722a573f49"
+        },
+        {
+          "path": "reversed-order-changed.json",
+          "bytes": 5390,
+          "sha256": "6494d1beec484a65808c7e5563391e06e60ff35edd1999e324f49d9aeab9062e"
+        },
+        {
+          "path": "reversed-order-conflict.json",
+          "bytes": 384,
+          "sha256": "d047cc64d2984ecc28abb1ef638333743ae2c1c2596f61818ff1ff6cedda81e5"
+        },
+        {
+          "path": "reversed-order-duplicate.json",
+          "bytes": 423,
+          "sha256": "828d08a2549f6bd3c5b0b73b7d53ce74cbdc6dc8d06702d6897b1b39ba063c23"
+        },
+        {
+          "path": "reversed-order-edit.json",
+          "bytes": 504,
+          "sha256": "d01ee99cdcc10071411e9032d43504497e5352cae41228ea924ffc5277672420"
+        },
+        {
+          "path": "reversed-order-fixed-snapshot.json",
+          "bytes": 428,
+          "sha256": "6481cc36b14400f66b5567ba3f5aa7dca2a350539b0f6ddb1913a85bc26578d1"
+        },
+        {
+          "path": "reversed-order-missing.json",
+          "bytes": 340,
+          "sha256": "203859687ea72124fbc32a9386d5c634c616441b27420503a4288df2b6f1337c"
+        },
+        {
+          "path": "reversed-order-preview.json",
+          "bytes": 503,
+          "sha256": "cc0fd5d1134abe2527fa5faa6697ce95aff6920b586ae376b0c693f2de7ae187"
+        },
+        {
+          "path": "reversed-order-reference.json",
+          "bytes": 479,
+          "sha256": "b5b13b004feeec1112721b62d59b8342f5dd9a23f845a2e9006e357f779f9f4c"
+        },
+        {
+          "path": "reversed-order-survivors.json",
+          "bytes": 781,
+          "sha256": "ce1d8b76dd10471cc0afaa35e735287de62cf72069a46730d8e00fea8efee9c0"
+        },
+        {
+          "path": "reversed-order.ts",
+          "bytes": 5042,
+          "sha256": "e61feed20aa747350c9617e6f95218f853288f639f2c40f183ef8022530407fb"
+        },
+        {
+          "path": "summary.json",
+          "bytes": 588,
+          "sha256": "668bc6203515324d8160bbd53249217b9df64efd09b703e7a27d453cfffb7d1a"
+        },
+        {
+          "path": "validation.json",
+          "bytes": 2671,
+          "sha256": "9e6997db23a0f72183c2a6e20fa69eb2cfbd3fcd908e2b0dd86f3b71628979e4"
+        },
+        {
+          "path": "workbook-check.txt",
+          "bytes": 3463,
+          "sha256": "50978de540a7c8bd814dfff4b6564c8cafc17d58901a4bf066982f96543079bf"
+        },
+        {
+          "path": "workbook/Scenario.ts",
+          "bytes": 3810,
+          "sha256": "5ccf6ca3af85b63e24dad67ef52c12b34f1afb40c564e66a5c4d2ad455711796"
+        },
+        {
+          "path": "workbook/array-query-boundary.json",
+          "bytes": 444,
+          "sha256": "f6d57cd17610dab37f740871a4feff3c843b140729aa2528e22d6b97293e9def"
+        },
+        {
+          "path": "workbook/changed-plan.json",
+          "bytes": 4885,
+          "sha256": "98a9aa6f75ae438dae87f5fe75a6e98df9b95e1b864adfc91bfa93534ed9e0b5"
+        },
+        {
+          "path": "workbook/consumer.txt",
+          "bytes": 60,
+          "sha256": "7554431bff3ecf6e04c5229f2d8b39fe9ef4a631e059efbc60d96a9b6e080d4c"
+        },
+        {
+          "path": "workbook/derived-write.json",
+          "bytes": 367,
+          "sha256": "da4b87eebfa4cc186ecb02cba251a74835e4ae847659217d951b15128798661c"
+        },
+        {
+          "path": "workbook/duplicate-key.json",
+          "bytes": 427,
+          "sha256": "0c2e259318474f4ef172b2ddf9344a3dfdbd57f2cb2981235745827dbbef6dbe"
+        },
+        {
+          "path": "workbook/edit.json",
+          "bytes": 508,
+          "sha256": "b886bd964ff9bfe0717af74ed3a02c9d0aec175281b4c734fbf8dec3527471bc"
+        },
+        {
+          "path": "workbook/invalid-number.json",
+          "bytes": 308,
+          "sha256": "a7b4bda9e1219fba3d554b9877da059a88a47557a2d6e7bffb70c12869925e4b"
+        },
+        {
+          "path": "workbook/legacy-query-boundary.json",
+          "bytes": 334,
+          "sha256": "db2ccf56ea60332d9e6c9798ecc12116313ff72ae70fdc06cb3e038c896f8fa3"
+        },
+        {
+          "path": "workbook/missing-supplier.json",
+          "bytes": 481,
+          "sha256": "dae2434179aa86930ddac037eecc75720f133c25ccdc7698d75ab34d0760a096"
+        },
+        {
+          "path": "workbook/orders.json",
+          "bytes": 4229,
+          "sha256": "2424d1f96a16f402e8ade60ad856052412796e75507262ebc860655296968f08"
+        },
+        {
+          "path": "workbook/plan.json",
+          "bytes": 4903,
+          "sha256": "94b2cd149c79f0691527bd019528a88cd6736fcfe2342d61d18063cd8bc2d809"
+        },
+        {
+          "path": "workbook/preview.json",
+          "bytes": 507,
+          "sha256": "d679ed1e90c431ab92dcbcf20180b81800dc16edffe47a756989dccef581da5b"
+        },
+        {
+          "path": "workbook/products.json",
+          "bytes": 4214,
+          "sha256": "acde8a1999a4003c0257b07b6962e2f700e771146116c130d98fc4eba150e771"
+        },
+        {
+          "path": "workbook/schema.json",
+          "bytes": 3431,
+          "sha256": "9db9f7d1693e6b69aa8dced760e2456916e9f60c20a1d37daf41d413b32310dc"
+        },
+        {
+          "path": "workbook/source-suppliers.json",
+          "bytes": 1879,
+          "sha256": "71b4429aa29691f62c6fe68d1ad7eef8cfaeee9804690a67b0087833043022e1"
+        },
+        {
+          "path": "workbook/stock.json",
+          "bytes": 1651,
+          "sha256": "3468707bc032852bfea0db37f96631774b691204c68b760e1a535afdfe035663"
+        },
+        {
+          "path": "workbook/summary.json",
+          "bytes": 332,
+          "sha256": "ca54e0f3106439171cac4ea57b42d60b67c2004962699537001bc473e8c13d93"
+        },
+        {
+          "path": "workbook/suppliers.json",
+          "bytes": 3164,
+          "sha256": "193dbeb4dbbad82e43e1cbf3c75509a2bf1956e6b1ce873f2774cfaf912bc5d3"
+        },
+        {
+          "path": "workbook/validate.json",
+          "bytes": 142,
+          "sha256": "00a38f4e0acd1c4aae93e3266a8115c8233f914c2bfe0c4951834eb69d0633c4"
+        }
+      ],
+      "historicalSummaries": {
+        "summary.json": {
+          "success": true,
+          "checks": 96,
+          "baselineCents": 31210.0,
+          "scenarios": [
+            {
+              "name": "authored-order",
+              "selectedKey": 100,
+              "resolvedRow": 1,
+              "editedCents": 12710.0,
+              "editedUnits": 47.0,
+              "editedOrders": 2
+            },
+            {
+              "name": "reversed-order",
+              "selectedKey": 100,
+              "resolvedRow": 4,
+              "editedCents": 12710.0,
+              "editedUnits": 47.0,
+              "editedOrders": 2
+            }
+          ],
+          "sourceSha256": "4A25AAB396C7F037647F356A1D159B6E4705CF36F14E3172898F8E8696D1B2C3",
+          "executor": "csharp-relation-plan"
+        },
+        "validation.json": {
+          "success": true,
+          "revision": "375704880252069a4a60558403053d4dc26474ce",
+          "workingTree": "Includes previous uncommitted M12 and repetition work",
+          "dotnet": "10.0.401",
+          "buildWarnings": 0,
+          "buildErrors": 0,
+          "tests": {
+            "passed": 2325,
+            "failed": 0,
+            "skipped": 0,
+            "projects": 8
+          },
+          "newKeyEditCases": 21,
+          "keyQualification": {
+            "success": true,
+            "checks": 96,
+            "baselineCents": 31210.0,
+            "scenarios": [
+              {
+                "name": "authored-order",
+                "selectedKey": 100,
+                "resolvedRow": 1,
+                "editedCents": 12710.0,
+                "editedUnits": 47.0,
+                "editedOrders": 2
+              },
+              {
+                "name": "reversed-order",
+                "selectedKey": 100,
+                "resolvedRow": 4,
+                "editedCents": 12710.0,
+                "editedUnits": 47.0,
+                "editedOrders": 2
+              }
+            ],
+            "sourceSha256": "B996633C956BA4ED6961B8DB3D4AE3DFA0F61091FE17B98E2672ED1F0903FCF2",
+            "executor": "csharp-relation-plan"
+          },
+          "workbookQualification": {
+            "success": true,
+            "checks": 66,
+            "baselineCents": 31210,
+            "editedCents": 12710,
+            "stockSelector": {
+              "keyColumn": "productId",
+              "value": 100
+            },
+            "sourceSha256": "B996633C956BA4ED6961B8DB3D4AE3DFA0F61091FE17B98E2672ED1F0903FCF2",
+            "executor": "csharp-relation-plan",
+            "nativeExcel": "not exercised"
+          },
+          "deferred": [
+            "Existing escaped strings retain raw literal interiors",
+            "Row deletion rejects incompatible fixed-length snapshots",
+            "No JavaScript derived-table/browser qualification"
+          ],
+          "sourceHashes": [
+            {
+              "path": "src/Copeland/Copeland.Cli/TableToolCommand.cs",
+              "sha256": "97AA8BD538DEE39383A27F9FD4A3FB54A30D97ED5309903263A87FE96D2DBD1C"
+            },
+            {
+              "path": "tests/Copeland/Copeland.Cli.Tests/CliIntegrationTests.cs",
+              "sha256": "A70431AABC15AC01A805EE62EFA25253AC310C992C3601C75715E9EF8C28DDC3"
+            },
+            {
+              "path": "tests/Copeland/Copeland.Cli.Tests/CliIntegrationTests.TableKeys.cs",
+              "sha256": "606D0E083655EDB1B9C843DF3BE82ED5D2A3647B5D39F73C367A4C8EACB5BC2C"
+            },
+            {
+              "path": "tools/copeland-tablescript-key-edits/qualify.ps1",
+              "sha256": "1A517408CE13D04D02BC59CA1F866D9118A6D7005227868BE734446CAC738191"
+            },
+            {
+              "path": "samples/copeland-ts/tablescript-friction-m12/qualify.ps1",
+              "sha256": "CD1EF673CEA5BDCE827D8FBA80A36B31AD82661347FFEDFD5CED00A877ADEC7D"
+            },
+            {
+              "path": "samples/copeland-ts/tablescript-friction-m12/Workbook/Workbook.ts",
+              "sha256": "B996633C956BA4ED6961B8DB3D4AE3DFA0F61091FE17B98E2672ED1F0903FCF2"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "originalRoot": "artifacts/tablescript-scenarios",
+      "files": [
+        {
+          "path": "EditedWorkbook.ts",
+          "bytes": 5042,
+          "sha256": "1097e1b0dd851eb5327351d2ec76b568e2bd1f24241c415338efff9a9dd14679"
+        },
+        {
+          "path": "Probe.ts",
+          "bytes": 7673,
+          "sha256": "23d380bb565b1153058b31b9d622232259b5f13e608f4f00790d6ecf7c3d8c68"
+        },
+        {
+          "path": "Workbook.mir",
+          "bytes": 11905,
+          "sha256": "f1d984649160ff74270b91bf91a99ff45f9f67d799bf209438a5931de2d6f28d"
+        },
+        {
+          "path": "before.plan.json",
+          "bytes": 5322,
+          "sha256": "dca78cda59dea4d8aeec70aa9dc98426f4ade9be54ca48d225dadafd8bb8c183"
+        },
+        {
+          "path": "before.suppliers.json",
+          "bytes": 3270,
+          "sha256": "901d0c9c35b26154d74eb9d4d2dda4de55d103a5263d4bef535e9483cfadd0b6"
+        },
+        {
+          "path": "consumer.txt",
+          "bytes": 60,
+          "sha256": "7554431bff3ecf6e04c5229f2d8b39fe9ef4a631e059efbc60d96a9b6e080d4c"
+        },
+        {
+          "path": "oracle.stock-edit.json",
+          "bytes": 504,
+          "sha256": "60d55c5f3f66f6299ea4f8d9faa7d8640fa92d9876c8e415c4bac4a688f3cf33"
+        },
+        {
+          "path": "preview.plan.json",
+          "bytes": 5300,
+          "sha256": "f2363f5ebecae537ccc4e8fc0c9b3c3cc625af6dfcca27c6dee23ded27ed34f1"
+        },
+        {
+          "path": "preview.suppliers.json",
+          "bytes": 3105,
+          "sha256": "5811f63d47c44828db3a70faa7f4dd79c1ee5f16a8c9e45cde0768cbb903433d"
+        },
+        {
+          "path": "probe/Probe.csproj",
+          "bytes": 239,
+          "sha256": "cf5f1b6fe8eb60521733339536d1510a613526861c66c737fc27e11e10bd8d4a"
+        },
+        {
+          "path": "probe/Program.cs",
+          "bytes": 2573,
+          "sha256": "47357c4b9269377324200ab2df2d75f663aed3455f1122932bb35c1cf26545d3"
+        },
+        {
+          "path": "probe/Workbook.g.cs",
+          "bytes": 62713,
+          "sha256": "dacc83c05a816f7cdb5d1f0803028f4b98d7e86c1b2a5a49a6f3f478664a6c8b"
+        },
+        {
+          "path": "runtime.json",
+          "bytes": 4717,
+          "sha256": "e11b7543ddcec955b197a3b47740540bea09d33d621a5299e8a3645d28ddf467"
+        },
+        {
+          "path": "summary.json",
+          "bytes": 508,
+          "sha256": "138dd76cdf4d539d19af48d7060d1d8ed05f65db07f54273ee2efafd8e1447e3"
+        }
+      ],
+      "historicalSummaries": {
+        "summary.json": {
+          "success": true,
+          "checks": 149,
+          "consumerAssertions": 22,
+          "originalCents": 31210,
+          "previewCents": 12710,
+          "previewUnits": 47,
+          "previewLines": 2,
+          "allRowsAndSupplierFieldsAgree": true,
+          "globalWorkbookUnchanged": true,
+          "repeatedPreviewIdentical": true,
+          "runtimeSourceUnchanged": true,
+          "sourceSha256": "4A25AAB396C7F037647F356A1D159B6E4705CF36F14E3172898F8E8696D1B2C3",
+          "canonicalExecutor": "csharp-relation-plan",
+          "javascript": "unsupported: COPE-JS-DERIVE-0001"
+        }
+      }
+    },
+    {
+      "originalRoot": "artifacts/tablescript-typed-summaries",
+      "files": [
+        {
+          "path": "Scenario.mir",
+          "bytes": 21502,
+          "sha256": "6fbbe24bd1e2fcab799b72cbd28918f33b40562ad9fe266c134c7945330f1b66"
+        },
+        {
+          "path": "Scenario.ts",
+          "bytes": 6432,
+          "sha256": "cef504d1417f1323cf510edda37b1a98ba313a71530e28fc9ed8fdaed7d32ee7"
+        },
+        {
+          "path": "after.suppliers.json",
+          "bytes": 3105,
+          "sha256": "594e1fa697125068d90e271b74a1abca2b56d43534f8b0e7541c2adacd95f242"
+        },
+        {
+          "path": "after.totals.json",
+          "bytes": 2122,
+          "sha256": "23df0401db59ac19375cf4c5d0d187e2d43dc906b52fcae53677f78c558d3a7e"
+        },
+        {
+          "path": "after.typed.json",
+          "bytes": 237,
+          "sha256": "6d043a30bd55a13dcd6914e5e3bca6c55489d47681423ece9d42564a357a9533"
+        },
+        {
+          "path": "before.suppliers.json",
+          "bytes": 3252,
+          "sha256": "7ee8c1201339f6237294be36b78322ae68204b7ad2bdcfabf2424ad89b1ed668"
+        },
+        {
+          "path": "before.totals.json",
+          "bytes": 2122,
+          "sha256": "8751aadd66ab88b6ac50eba763aae2be87c0029344a9162f5cf2bd81895e83a9"
+        },
+        {
+          "path": "before.typed.json",
+          "bytes": 327,
+          "sha256": "71c53951f8d065b0cf5bdf6e4fe09b52487b188ae3ef55da2ef65739ba2d366b"
+        },
+        {
+          "path": "consumer.txt",
+          "bytes": 60,
+          "sha256": "7554431bff3ecf6e04c5229f2d8b39fe9ef4a631e059efbc60d96a9b6e080d4c"
+        },
+        {
+          "path": "probe/Probe.csproj",
+          "bytes": 239,
+          "sha256": "cf5f1b6fe8eb60521733339536d1510a613526861c66c737fc27e11e10bd8d4a"
+        },
+        {
+          "path": "probe/Program.cs",
+          "bytes": 618,
+          "sha256": "ad83e1ea91307221405c353a520b5d2db80dda3bcf634805b054309a47c3d027"
+        },
+        {
+          "path": "probe/Workbook.g.cs",
+          "bytes": 59135,
+          "sha256": "138e9fb31d0ed3c47107ce03415d7d719bf0d13fb2b84daf4501e72cdae64b6e"
+        },
+        {
+          "path": "stock-edit.json",
+          "bytes": 504,
+          "sha256": "c4063c1684e5611379197cfef5dcd88a747763b6c0d7e9e88b37c90205fa321e"
+        },
+        {
+          "path": "summary.json",
+          "bytes": 513,
+          "sha256": "9b982a8810a17f8036010f8481ab9bcbb436c4776420d5d2f9768283d7b0999c"
+        }
+      ],
+      "historicalSummaries": {
+        "summary.json": {
+          "success": true,
+          "checks": 57,
+          "before": {
+            "units": 67,
+            "totalCents": 31210,
+            "lines": 3
+          },
+          "after": {
+            "units": 47,
+            "totalCents": 12710,
+            "lines": 2
+          },
+          "canonicalExecutor": "csharp-relation-plan",
+          "allSupplierFieldsAndOrderAgree": true,
+          "sourceSha256": "4A25AAB396C7F037647F356A1D159B6E4705CF36F14E3172898F8E8696D1B2C3",
+          "javascript": "unsupported: COPE-JS-SUMMARY-0001",
+          "asyncDirect": "unsupported: COPE-SUMMARY-0011; use a synchronous helper"
+        }
+      }
+    },
+    {
+      "originalRoot": "artifacts/tablescript-friction-m12",
+      "files": [
+        {
+          "path": "Scenario.ts",
+          "bytes": 5042,
+          "sha256": "1097e1b0dd851eb5327351d2ec76b568e2bd1f24241c415338efff9a9dd14679"
+        },
+        {
+          "path": "array-query-boundary.json",
+          "bytes": 444,
+          "sha256": "f6d57cd17610dab37f740871a4feff3c843b140729aa2528e22d6b97293e9def"
+        },
+        {
+          "path": "changed-plan.json",
+          "bytes": 5387,
+          "sha256": "843f499e471bd6396512f40814fa7b4c70ed3d7c1815bb1ffae551b598927a8f"
+        },
+        {
+          "path": "consumer.txt",
+          "bytes": 60,
+          "sha256": "7554431bff3ecf6e04c5229f2d8b39fe9ef4a631e059efbc60d96a9b6e080d4c"
+        },
+        {
+          "path": "derived-write.json",
+          "bytes": 367,
+          "sha256": "da4b87eebfa4cc186ecb02cba251a74835e4ae847659217d951b15128798661c"
+        },
+        {
+          "path": "dotnet-validation.json",
+          "bytes": 955,
+          "sha256": "681577d10d7893f47dc52bd4ba925f5abc5983f3b0c6e64ef1310f7894381692"
+        },
+        {
+          "path": "duplicate-key.json",
+          "bytes": 420,
+          "sha256": "4ecb10040584747b457044e9893d0f94f807942829e352e06e0bf1b6d2fc6419"
+        },
+        {
+          "path": "edit.json",
+          "bytes": 501,
+          "sha256": "f454e434c3bda7a78a8c7fdb70ee32ed88ef730918f926d237b8d6f92a013e63"
+        },
+        {
+          "path": "excel-inspection.json",
+          "bytes": 382,
+          "sha256": "34118501980b51a18d30fe311375070962a736a0f628c1f67eb3e4eef4c285c5"
+        },
+        {
+          "path": "excel-validation.json",
+          "bytes": 445,
+          "sha256": "c76f11d180af02711e2af6beace911f8b6d77d5f92a7b9e8167f51a68c704f6f"
+        },
+        {
+          "path": "invalid-number.json",
+          "bytes": 308,
+          "sha256": "a7b4bda9e1219fba3d554b9877da059a88a47557a2d6e7bffb70c12869925e4b"
+        },
+        {
+          "path": "legacy-query-boundary.json",
+          "bytes": 334,
+          "sha256": "db2ccf56ea60332d9e6c9798ecc12116313ff72ae70fdc06cb3e038c896f8fa3"
+        },
+        {
+          "path": "missing-supplier.json",
+          "bytes": 474,
+          "sha256": "6ac9656aa37d6e83c1d897c3089a8d009e5761e76d8c9f35af8ef83cd75189f4"
+        },
+        {
+          "path": "orders.json",
+          "bytes": 4738,
+          "sha256": "7b76c89cf0137023e621db3d7bf00e1febdad1514aae00c2302dcc71cf6b0122"
+        },
+        {
+          "path": "plan.json",
+          "bytes": 5412,
+          "sha256": "8f7de991f83d9c2e79a7d21f8df39db437bac2d6a6f4aec6b00247ca14d98409"
+        },
+        {
+          "path": "preview.json",
+          "bytes": 500,
+          "sha256": "2bf38f571c77dc6d78f8402f2b3482b9d35fb8eeb532ef043fb7ad2b44786ea0"
+        },
+        {
+          "path": "products.json",
+          "bytes": 4214,
+          "sha256": "acde8a1999a4003c0257b07b6962e2f700e771146116c130d98fc4eba150e771"
+        },
+        {
+          "path": "schema.json",
+          "bytes": 3314,
+          "sha256": "8f762638d4c3b957298746dc42657a42e66b4f5a13a2828c7b6c49b134fdd282"
+        },
+        {
+          "path": "source-suppliers.json",
+          "bytes": 1879,
+          "sha256": "71b4429aa29691f62c6fe68d1ad7eef8cfaeee9804690a67b0087833043022e1"
+        },
+        {
+          "path": "stock.json",
+          "bytes": 1651,
+          "sha256": "3468707bc032852bfea0db37f96631774b691204c68b760e1a535afdfe035663"
+        },
+        {
+          "path": "summary.json",
+          "bytes": 332,
+          "sha256": "6d177ab8a11dfd4f6d6b3258cb6408998402d85237dad47f6aba2b4dbc043f92"
+        },
+        {
+          "path": "suppliers.json",
+          "bytes": 3361,
+          "sha256": "d62384b626f505d701646f452f890fac788e820842655e2badf52a1c9a917b55"
+        },
+        {
+          "path": "validate.json",
+          "bytes": 142,
+          "sha256": "456ce4c7f4b1f838e5b51065fbee7b74f7953714fbbb2e4f1ce1dfadddf3be29"
+        }
+      ],
+      "historicalSummaries": {
+        "summary.json": {
+          "success": true,
+          "checks": 66,
+          "baselineCents": 31210,
+          "editedCents": 12710,
+          "stockSelector": {
+            "value": 100,
+            "keyColumn": "productId"
+          },
+          "sourceSha256": "4A25AAB396C7F037647F356A1D159B6E4705CF36F14E3172898F8E8696D1B2C3",
+          "executor": "csharp-relation-plan",
+          "nativeExcel": "not exercised"
+        }
+      }
+    }
+  ],
+  "retiredTools": [
+    {
+      "path": "tools/copeland-tablescript-ellipsis-audit/qualify.ps1",
+      "bytes": 5591,
+      "sha256": "ed78ce44239337ec984d826d6e3f6438942ec857868a51714065d6d643ef1649",
+      "reason": "Historical sibling-repository inspection; local CLI coverage is retained by the consolidated suite and compiler tests."
+    },
+    {
+      "path": "tools/cts-opt-m1-benchmark.ps1",
+      "bytes": 4633,
+      "sha256": "aea4a1061f48add17d1479c4965009ebac0046027ce3e885b7605a461f2688b5",
+      "reason": "Historical runtime measurement of frozen earlier JavaScript artifacts."
+    },
+    {
+      "path": "tools/cts-opt-m1-measure.ps1",
+      "bytes": 3538,
+      "sha256": "9e3319faf0f739f8fac071be9bd15f3f204d7568ceb3bd55bb4096711b37c4bf",
+      "reason": "Historical earlier emission-size sweep; fresh current emission measurements use Copeland.Benchmarks.Emission."
+    }
+  ]
+}

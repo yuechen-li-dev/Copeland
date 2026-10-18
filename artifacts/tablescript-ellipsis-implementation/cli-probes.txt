@@ -1,1 +1,0 @@
-TABLESCRIPT_ELLIPSIS_PASSED baseline=valid ellipsis=3_valid_forms

@@ -1,5 +1,11 @@
 # TableScript row authoring and calculation locals
 
+> Historical qualification paths/results. Use the maintained
+> [TableScript suite](../../../tools/Copeland.Qualification.TableScript/README.md)
+> for current commands. Retired raw bundles are represented by
+> [summaries and recovery hashes](evidence/tablescript-retired-artifacts/provenance.json);
+> old capability statements below describe their original run.
+
 Date: 2026-10-13. Scope: schema-directed row initializers and per-row `const`
 bindings in derived relations. Both capabilities work through the existing compiler
 and the café workbook's real C# and CLI execution paths.

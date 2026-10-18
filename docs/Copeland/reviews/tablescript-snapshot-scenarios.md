@@ -1,5 +1,11 @@
 # TableScript snapshot scenarios
 
+> Historical qualification paths/results. Use the maintained
+> [TableScript suite](../../../tools/Copeland.Qualification.TableScript/README.md)
+> for current commands. Retired raw bundles are represented by
+> [summaries and recovery hashes](evidence/tablescript-retired-artifacts/provenance.json);
+> old capability statements below describe their original run.
+
 Status: **success for bounded C# snapshot-relative recalculation**.
 
 The café workbook can now preview a changed stock snapshot without editing its

@@ -1,5 +1,11 @@
 # TableScript typed summaries
 
+> Historical qualification paths/results. Use the maintained
+> [TableScript suite](../../../tools/Copeland.Qualification.TableScript/README.md)
+> for current commands. Retired raw bundles are represented by
+> [summaries and recovery hashes](evidence/tablescript-retired-artifacts/provenance.json);
+> old capability statements below describe their original run.
+
 Status: **success for the bounded C# sum/count milestone**.
 
 The café workbook now declares `PurchaseTotals` and `SupplierSummary`, returns

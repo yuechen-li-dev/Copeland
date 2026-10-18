@@ -46,6 +46,8 @@ and [projected tables](tooling/projected-tables.md).
 fixtures, tools and temporary output belong, and gives the normal verification
 commands. The [5S audit](reviews/copeland-ts-repository-5s-audit.md) preserves the
 initial inventory and records the completed first pass and remaining cleanup.
+The [tool index](../../tools/README.md) and [artifact retention policy](reference/artifact-retention.md)
+provide current qualification commands, output lifetimes, and CI checks.
 
 ## Historical and design records
 

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Resolve local same-version npm artifact ownership without claiming a new release/publication qualification.",
+  "sourceCommit": "8c022725dce3b2ff807a3ffef97c0a58c3085753",
+  "releaseManifest": "artifacts/releases/0.1.0-preview.1/MANIFEST.json",
+  "releaseManifestSha256": "d069e3a9db1e27529df55c3408b699e9a685218f3a8eeb347c2ca2a549b7ea9b",
+  "manifestPublished": false,
+  "manifestPubliclyVerified": false,
+  "retained": {
+    "path": "artifacts/releases/0.1.0-preview.1/npm/copeland-tscl-0.1.0-preview.1.tgz",
+    "bytes": 7685226,
+    "sha256": "3570392a8a6b7386a5e9873a851eb6eec3b498dba0e118c6b1e6427fafbe1ac7",
+    "package": "@copeland/tscl",
+    "version": "0.1.0-preview.1",
+    "files": 76
+  },
+  "retired": {
+    "path": "docs/Copeland/copeland-tscl-0.1.0-preview.1.tgz",
+    "bytes": 7685016,
+    "sha256": "1b8862b2eda3b3dee1eda240cd3e3bccf61d2161643684425a5ec60f8b9a830f",
+    "package": "@copeland/tscl",
+    "version": "0.1.0-preview.1",
+    "files": 76
+  },
+  "differingMembers": [
+    "package/LICENSE",
+    "package/bin/tscl.js",
+    "package/payload/Copeland.Cli.dll",
+    "package/payload/Copeland.Markdown.dll",
+    "package/payload/Copeland.TS.Backend.CSharp.dll",
+    "package/payload/Copeland.TS.Backend.JavaScript.dll",
+    "package/payload/Copeland.TS.Database.dll",
+    "package/payload/Copeland.TS.LanguageServer.dll",
+    "package/payload/Copeland.TS.MSBuild.dll",
+    "package/payload/Copeland.TS.Mir.dll",
+    "package/payload/Copeland.TS.Workspace.dll",
+    "package/payload/Copeland.TS.dll"
+  ],
+  "decision": "Retain the archive pinned by the existing release manifest and checksums. Retire the unreferenced, mismatching delivery archive from documentation.",
+  "recovery": "git show <sourceCommit>:<retired.path>"
+}

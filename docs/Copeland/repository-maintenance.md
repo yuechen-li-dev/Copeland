@@ -30,6 +30,10 @@ changes live in source/tests; Git history retains the old patch and scratch file
 The original M26 baseline's revision and reconstruction procedure remain in the
 [instinct proof documentation](../../tools/copeland-typescript-instinct-m26/README.md).
 
+Use the [maintained tool index](../../tools/README.md) for executable qualification
+and benchmark entry points. [Artifact retention](reference/artifact-retention.md)
+defines what remains in Git and what belongs in local output.
+
 ## Validate a change
 
 ```powershell
@@ -37,6 +41,7 @@ dotnet build Copeland.slnx -m:1
 dotnet test Copeland.slnx --no-build -m:1
 pwsh -NoProfile -File tools/Validate-CopelandTsTopology.ps1
 pwsh -NoProfile -File tools/Test-CopelandReleaseClosure.ps1
+pwsh -NoProfile -File tests/Repository/Test-ArtifactBudget.ps1
 git diff --check
 ```
 
@@ -57,10 +62,17 @@ from expensive inputs or unique evidence. Use a dry run first. Repository-wide
 `git clean -fdx` is unsuitable: ignored directories also contain ML model inputs,
 toolchains, browser evidence, and unrelated subsystem work.
 
-The first pass removes tracked Copeland scratch files, repairs topology/release
-closure checks, and normalizes active benchmark/default names. Published WASM
-payloads, conflicting same-version npm archives, verbose historical evidence,
-sample-runner consolidation, and old extension caches remain separate bounded
-passes. Remaining milestone wording in user-facing diagnostics also needs a
+The first pass removed tracked Copeland scratch files, repaired topology/release
+closure checks, and normalized active benchmark/default names. The tools/artifacts
+pass consolidates TableScript qualification, normalizes the current emission
+benchmark, retires earlier characterization scripts, and replaces raw TableScript bundles
+with compact recovery provenance. It also resolves the same-version npm conflict
+against the release manifest and removes the mismatching delivery copy from docs.
+Both obsolete ignored build directories from
+the first pass have since been removed by the user and verified absent.
+
+Published WASM payloads, remaining release delivery payloads, other verbose
+historical evidence, browser-runner consolidation, and old extension caches remain
+separate bounded passes. Remaining milestone wording in user-facing diagnostics needs a
 separate pass that preserves diagnostic codes, useful repair text, and asserted
 behavior. Cross-system ownership findings remain with the architecture lane.

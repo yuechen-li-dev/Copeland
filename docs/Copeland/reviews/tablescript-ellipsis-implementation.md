@@ -1,5 +1,11 @@
 # TableScript initializer repetition: first implementation step
 
+> Historical qualification paths/results. Use the maintained
+> [TableScript suite](../../../tools/Copeland.Qualification.TableScript/README.md)
+> for current commands. Retired raw bundles are represented by
+> [summaries and recovery hashes](evidence/tablescript-retired-artifacts/provenance.json);
+> old capability statements below describe their original run.
+
 The first step of the reconciled language improvement sequence is implemented.
 Postfix ellipsis expresses repeated fixed data in ordinary host arrays, authored
 table columns, and table `with` replacements. Existing immutable array and
