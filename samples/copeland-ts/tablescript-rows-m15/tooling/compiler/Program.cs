@@ -8,7 +8,7 @@ using Copeland.TS.InstinctCorpus;
 using Copeland.TS.Mir;
 
 string root = Path.GetFullPath(args.Single());
-string evidence = Path.GetFullPath(Path.Combine(root, "../../../docs/Copeland/reviews/evidence/tablescript-rows-m15"));
+string evidence = Path.GetFullPath(Path.Combine(root, "artifacts/qualification"));
 Directory.CreateDirectory(evidence);
 string workbook = Path.GetFullPath(Path.Combine(root, "../tablescript-friction-m12/Workbook/Workbook.ts"));
 CopelandProjectSource Source(string logical, string path) => new(logical, path, File.ReadAllText(path));
@@ -45,23 +45,12 @@ int[] Probe(string moduleId, string name, int[] expectedValues)
 int[] totalLimit = Probe("src/Rows.ts", "totalLimitProbe", [95, 2136031210, 1]);
 int[] editLimit = Probe("src/RowEditor.ts", "editLimitProbe", [2136031210, 1, 925]);
 
+string controlsContractPath = Path.GetFullPath(Path.Combine(root, "../../../libraries/Copeland.Browser.React/copeland.contract.json"));
+Require(CopelandNpmContractReader.TryRead(controlsContractPath, out var controlsContract, out var contractError), contractError ?? "Missing controls contract.");
 var packages = new CopelandNpmPackageContract[]
 {
     new("react", "19.2.7", [new("createElement", [], "ReactNode")]),
-    new("@copeland/cafe-controls", "0.1.0", [], Components:
-    [
-        new("PreviewForm", Properties:
-        [
-            new("onCommit", "()=>void", true), new("children", "View[]"),
-        ], Renderer: "react", DefaultSlot: true),
-        new("TextField", Properties:
-        [
-            new("id", "string", true), new("label", "string", true),
-            new("value", "string", true), new("invalid", "boolean", true),
-            new("describedBy", "string", true), new("inputMode", "string", true),
-            new("onValueChange", "(string)=>void", true),
-        ], Renderer: "react"),
-    ]),
+    controlsContract!,
 };
 CopelandProjectSource[] frontendSources = domainSources.Concat(new[]
 {
@@ -96,6 +85,8 @@ foreach (JavaScriptEmissionProfile profile in Enum.GetValues<JavaScriptEmissionP
 File.WriteAllText(Path.Combine(evidence, "compiler-report.json"), JsonSerializer.Serialize(new
 {
     milestone = "CTS-TABLESCRIPT-ROWS-M15",
+    controlsContractHash = Hash(File.ReadAllBytes(controlsContractPath)),
+    controlsSourceHash = Hash(File.ReadAllBytes(Path.Combine(root, "../../../libraries/Copeland.Browser.React/src/index.ts"))),
     sourceHashes = frontendSources.ToDictionary(source => source.LogicalPath, source => Hash(File.ReadAllBytes(source.SourcePath))),
     csharpApplicationProbe = observed,
     csharpTotalLimitProbe = totalLimit,

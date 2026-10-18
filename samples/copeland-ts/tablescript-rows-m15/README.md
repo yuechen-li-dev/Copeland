@@ -37,10 +37,27 @@ All three JavaScript profiles run at 1280 and 390 pixels. No page overflow,
 missing feedback descriptions, console warnings, page errors or failed responses
 are accepted. Table scrolling is checked using the keyboard.
 
-Evidence is under `docs/Copeland/reviews/evidence/tablescript-rows-m15/`.
+Evidence is under `artifacts/qualification/`.
 Generated C#, ESM, browser bundles and screenshots are in ignored `artifacts/`
 and `dist/` directories. The ephemeral qualification server closes on completion.
 
 This is a local preview. Remote commits, conflict resolution, first-class stored
 change descriptions, rekey/cascade policy, dynamic table TSON encoding, Native AOT
 performance and large-table performance are separate work.
+
+Browser setup, profile bundling, the loopback server and error collection use the
+[shared browser qualification tool](../../../tools/Copeland.Qualification.Browser/README.md).
+New compiler/browser reports go to this sample's ignored `artifacts/qualification/`;
+committed review evidence remains the historical run. After qualification, inspect
+the page with a foreground server (stop with Ctrl+C):
+
+```powershell
+npm run serve --prefix samples/copeland-ts/tablescript-rows-m15
+```
+
+Open <http://127.0.0.1:4191/diagnostic/index.html>; `symbolic` and `production`
+use the same URL shape. See the [sample index](../README.md) for the current entry points.
+
+The raw-text controls and their Copeland component contract come from
+[`@copeland/react-controls`](../../../libraries/Copeland.Browser.React/README.md).
+`Copeland.Editing` and the application still own parsing, drafts and validation.

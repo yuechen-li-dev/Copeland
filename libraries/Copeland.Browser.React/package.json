@@ -1,0 +1,17 @@
+{
+  "name": "@copeland/react-controls",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./copeland.contract.json": "./copeland.contract.json"
+  },
+  "files": [
+    "src",
+    "copeland.contract.json"
+  ],
+  "peerDependencies": {
+    "react": "^19.2.0"
+  }
+}

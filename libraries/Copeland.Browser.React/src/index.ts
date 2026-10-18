@@ -1,7 +1,6 @@
-import { createElement, type FormEvent, type ReactNode } from "react";
+import { createElement, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 
-// The host forwards text unchanged. Copeland owns drafts, parsing and policy.
-export function TextField(props: {
+export interface TextFieldProps {
     id: string;
     label: string;
     value: string;
@@ -9,7 +8,15 @@ export function TextField(props: {
     describedBy: string;
     inputMode: string;
     onValueChange(value: string): void;
-}): ReactNode {
+}
+
+export interface PreviewFormProps {
+    children?: ReactNode;
+    onCommit(): void;
+}
+
+// The host forwards text unchanged. Copeland owns drafts, parsing and policy.
+export function TextField(props: TextFieldProps): ReactNode {
     let inputMode: "text" | "numeric" | "decimal" = "numeric";
     if (props.inputMode === "text") {
         inputMode = "text";
@@ -25,11 +32,13 @@ export function TextField(props: {
             value: props.value,
             "aria-invalid": props.invalid,
             "aria-describedby": props.describedBy,
-            onChange: (event: React.ChangeEvent<HTMLInputElement>) => props.onValueChange(event.currentTarget.value),
+            onChange: (event: ChangeEvent<HTMLInputElement>) => {
+                props.onValueChange(event.currentTarget.value);
+            },
         }));
 }
 
-export function PreviewForm(props: { children?: ReactNode; onCommit(): void }): ReactNode {
+export function PreviewForm(props: PreviewFormProps): ReactNode {
     function submit(event: FormEvent<HTMLFormElement>): void {
         event.preventDefault();
         props.onCommit();

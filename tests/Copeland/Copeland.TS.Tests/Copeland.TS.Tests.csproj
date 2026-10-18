@@ -33,6 +33,7 @@
     <Compile Remove="TsonEncoding/**/*.cs" />
     <Compile Remove="TsonAssets/**/*.cs" />
     <Compile Remove="TsonTableAssets/**/*.cs" />
+    <None Include="TestData/Tables/**/*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="TestData/Corpus/**/*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="TestData/FlowTsxM0/**/*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Language/**/*" CopyToOutputDirectory="PreserveNewest" />

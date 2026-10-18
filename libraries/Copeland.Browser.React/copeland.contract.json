@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "package": "@copeland/react-controls",
+  "version": "0.1.0",
+  "exports": [],
+  "components": [
+    {
+      "name": "PreviewForm",
+      "renderer": "react",
+      "defaultSlot": true,
+      "properties": [
+        {
+          "name": "onCommit",
+          "type": "()=>void",
+          "required": true
+        },
+        {
+          "name": "children",
+          "type": "View[]"
+        }
+      ]
+    },
+    {
+      "name": "TextField",
+      "renderer": "react",
+      "properties": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "invalid",
+          "type": "boolean",
+          "required": true
+        },
+        {
+          "name": "describedBy",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "inputMode",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "onValueChange",
+          "type": "(string)=>void",
+          "required": true
+        }
+      ]
+    }
+  ]
+}

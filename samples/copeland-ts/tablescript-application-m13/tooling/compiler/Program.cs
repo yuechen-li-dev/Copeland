@@ -8,7 +8,7 @@ using Copeland.TS.InstinctCorpus;
 using Copeland.TS.Mir;
 
 string root = Path.GetFullPath(args.Single());
-string evidence = Path.GetFullPath(Path.Combine(root, "../../../docs/Copeland/reviews/evidence/tablescript-application-m13"));
+string evidence = Path.GetFullPath(Path.Combine(root, "artifacts/qualification"));
 Directory.CreateDirectory(evidence);
 string workbook = Path.GetFullPath(Path.Combine(root, "../tablescript-friction-m12/Workbook/Workbook.ts"));
 CopelandProjectSource Source(string logical, string path) => new(logical, path, File.ReadAllText(path));

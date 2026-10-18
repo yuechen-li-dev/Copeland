@@ -41,9 +41,22 @@ and layout artifacts for all three JavaScript profiles. The browser harness moun
 React under StrictMode at 1280 and 390 pixels, edits shuffled stock by identity,
 checks refused edits and unchanged accepted data, chains another edit, rejects
 malformed numeric text, and resets. Evidence is written to
-`docs/Copeland/reviews/evidence/tablescript-application-m13/`; screenshots and
+`artifacts/qualification/`; screenshots and
 bundles remain in this sample's ignored `artifacts/` and `dist/` directories.
 
 The small-screen table scrolls horizontally inside its assigned region. It has a
 keyboard focus target and a visible scroll instruction; the page itself does not
 overflow horizontally.
+
+Browser setup, profile bundling, the loopback server and error collection use the
+[shared browser qualification tool](../../../tools/Copeland.Qualification.Browser/README.md).
+New compiler/browser reports go to this sample's ignored `artifacts/qualification/`;
+committed review evidence remains the historical run. After qualification, inspect
+the page with a foreground server (stop with Ctrl+C):
+
+```powershell
+npm run serve --prefix samples/copeland-ts/tablescript-application-m13
+```
+
+Open <http://127.0.0.1:4191/diagnostic/index.html>; `symbolic` and `production`
+use the same URL shape. See the [sample index](../README.md) for the current entry points.

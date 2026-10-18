@@ -372,3 +372,76 @@ Tools/artifacts validation:
 The remaining ownership violations and other subsystems' evidence/tools were not
 silently reclassified or deleted. This completes the TableScript/tooling artifact
 slice, not every later cleanup pass in the initial audit.
+
+## Samples and shared browser infrastructure
+
+The [current sample index](../../../samples/copeland-ts/README.md) now distinguishes
+starting examples from supporting source and historical regression specimens.
+Both main README entry points link it. The current café has a foreground preview
+command, and the compact catalog consumer now asserts its results rather than
+only printing them.
+
+The three table browser demos delegate dependency/bootstrap setup, profile
+bundling, the loopback server and browser/error lifetime to
+[one maintained tool](../../../tools/Copeland.Qualification.Browser/README.md).
+Their scenario actions and expected results remain explicit in the owning sample.
+Esbuild/Playwright dependencies now have one shared lock rather than three sample
+locks. New compiler/browser reports go to ignored sample `artifacts/qualification/`;
+tracked historical evidence is preserved. An ephemeral asset server also supports
+foreground inspection without another sample-specific server implementation.
+
+Repeated raw-text React controls became
+[`Copeland.Browser.React`](../../../libraries/Copeland.Browser.React/README.md), a
+private source package with a React peer dependency. The editing and variable-row
+samples consume its implementation and one versioned component contract through
+the existing compiler contract reader. Copeland application source and
+`Copeland.Editing` still own drafts, parsing, domain policy and accepted snapshots.
+No browser state executor or table calculation engine was added to the samples.
+The earlier numeric/native-validity bridge is intentionally preserved as a
+separate regression behavior.
+
+The seven tracked files in the UUID-suffixed catalog copy were removed after its
+original workbook became a byte-equivalent, source-shaped compiler fixture.
+`ManualCatalogTests` now asserts summaries, filtered rows, nested manual lookup,
+all enum cases, missing-item fallbacks and immutable prices in C# and all three
+JavaScript profiles. The original project is recoverable from Git revision
+`1cef76c565b5cfaca5d8aa2c1d1526d625460223`. The maintained keyed/derived catalog
+retains its real SDK/C# consumer and now checks counts, summaries, joins and prices.
+
+The M12 workbook, M13 application/projection and M14 reducer remain live inputs.
+The React fixture's locked TSPack materialization remains the browser runtime
+input; generated runtime files are projections of that existing owner. Other
+framework comparison runners retain different lifecycle routes, baseline mounts
+and scenario coverage. They were not deleted or mechanically substituted for the
+table runner.
+
+Samples-pass validation:
+
+- Full `Copeland.slnx` build: zero warnings/errors; **2464 tests pass**, zero
+  failures/skips. This includes the new preserved-catalog regression.
+- All **18** table browser workflows pass: three samples, three emission profiles,
+  1280/390-pixel widths, Edge **155.0.4283.45**, React StrictMode. Existing domain,
+  draft, refusal, cancellation/reset, keyed-row and empty-table assertions remain.
+  New assertions verify text/numeric/decimal input hints and explicit submit
+  behavior. No browser errors, console warnings or failed responses were accepted.
+- Both raw-text consumers' compiler reports pin the shared control source and
+  contract hashes. All three C# application probes pass. The maintained catalog
+  runs through MSBuild and passes its new assertions.
+- Shared TypeScript checking and server regression pass, including artifact MIME,
+  missing files, favicon, traversal refusal and listener closure. The documented
+  foreground preview serves all three profiles and was stopped after inspection.
+  Mobile captures for both raw-text editors were visually checked.
+- Topology and preview release closure pass. All **14** artifact-policy cases and
+  the changed/new source paths pass. All **122** local Markdown targets in
+  changed/new documents resolve; whitespace checks pass. No publication, remote CI, other framework/native runtime
+  qualification, or unchanged legacy Zig validation is claimed.
+
+Full build/test logs are ignored under `artifacts/local/copeland-samples-cleanup/`;
+per-sample compiler/browser reports and captures remain local as described above.
+
+An additional command to remove empty retirement directories was rejected by
+automatic approval review with "blocked by policy" before execution. A subsequent
+read-only inventory found **69 ignored generated bin/obj files** beneath that
+retired catalog path. Those caches and directories remain; no workaround deletion
+or disk-space reclamation is claimed. All seven tracked duplicate source/project
+files are removed in the working diff.

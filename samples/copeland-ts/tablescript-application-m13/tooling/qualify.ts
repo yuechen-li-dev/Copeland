@@ -1,16 +1,14 @@
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { chromium, type Page } from "playwright";
-import { startServer } from "./server.ts";
+import { createBrowserSession, type Page } from "../../../../tools/Copeland.Qualification.Browser/src/session.ts";
 
-const evidence = fileURLToPath(new URL("../../../../docs/Copeland/reviews/evidence/tablescript-application-m13/", import.meta.url));
+const evidence = fileURLToPath(new URL("../artifacts/qualification/", import.meta.url));
 const screenshots = fileURLToPath(new URL("../artifacts/screenshots/", import.meta.url));
 await mkdir(evidence, { recursive: true });
 await mkdir(screenshots, { recursive: true });
-const server = await startServer();
-const browser = await chromium.launch({ channel: process.env.FRICTION_BROWSER_CHANNEL ?? "msedge" });
-const errors: string[] = [];
+const session = await createBrowserSession(new URL("../dist/", import.meta.url));
+const { browser, errors } = session;
 const observations: Record<string, unknown>[] = [];
 
 async function snapshot(page: Page) {
@@ -44,15 +42,7 @@ async function expectTotals(page: Page, cents: number, units: number, lines: num
 try {
     for (const profile of ["diagnostic", "symbolic", "production"]) {
         for (const width of [1280, 390]) {
-            const page = await browser.newPage({ viewport: { width, height: 960 } });
-            page.on("pageerror", error => errors.push(`${profile}/${width}: ${error.stack ?? error.message}`));
-            page.on("console", message => {
-                if (message.type() === "error" || message.type() === "warning") errors.push(`${profile}/${width}: ${message.text()}`);
-            });
-            page.on("response", response => {
-                if (response.status() >= 400) errors.push(`${profile}/${width}: HTTP ${response.status()} ${response.url()}`);
-            });
-            await page.goto(`${server.url}/${profile}/index.html`);
+            const page = await session.openPage(profile, width);
             const baseline = await expectTotals(page, 31210, 67, 3);
             assert.equal(baseline.rows[0].onHand, "4");
             assert.equal(baseline.rows[3].onHand, "5");
@@ -126,6 +116,5 @@ try {
     assert.deepEqual(errors, []);
     await writeFile(`${evidence}/browser-report.json`, JSON.stringify({ milestone: "CTS-TABLESCRIPT-APPLICATION-M13", nodeVersion: process.version, browserVersion: browser.version(), errors, observations }, null, 2) + "\n");
 } finally {
-    await browser.close();
-    await server.close();
+    await session.close();
 }

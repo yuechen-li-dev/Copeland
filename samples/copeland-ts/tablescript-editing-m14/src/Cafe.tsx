@@ -1,7 +1,7 @@
 export type CopelandProfile = "JavaScript";
 
 import { createElement } from "react";
-import { TextField, PreviewForm } from "@copeland/cafe-controls";
+import { TextField, PreviewForm } from "@copeland/react-controls";
 import { ProductLine, StockError } from "./Application";
 import { EditableProduct, PriceError, editableProduct } from "./PriceApplication";
 import { SupplierSummary } from "./Workbook";

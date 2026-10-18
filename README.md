@@ -29,6 +29,7 @@ layout, streams, state/events, and explicit framework component boundaries.
 - [SDK projects and templates](src/Copeland/Copeland.TS.Templates/README.md)
 - [Preview release scope and validation boundary](docs/Copeland/releases/0.1.0-preview.1-scope.md)
 - [CLI](src/Copeland/Copeland.Cli/README.md) and [VS Code extension](src/Copeland/Copeland.TS.VSCode/README.md)
+- [Current examples and sample entry points](samples/copeland-ts/README.md)
 - [TableScript café: editing, creation, deletion, and empty tables](samples/copeland-ts/tablescript-rows-m15/README.md)
 
 Language capabilities and release qualification are separate: a development
@@ -40,8 +41,8 @@ sample does not establish that a feature ships in a particular package.
 | --- | --- |
 | [`src/Copeland`](src/Copeland) | Compiler, MIR, backends, CLI, workspace, SDK, editor tooling |
 | [`tests/Copeland`](tests/Copeland) | Compiler, backend, CLI, and SDK regressions |
-| [`samples/copeland-ts`](samples/copeland-ts) | Applications, integration fixtures, and milestone specimens |
-| [`libraries/Copeland.Editing`](libraries/Copeland.Editing) | Reusable typed editing source |
+| [`samples/copeland-ts`](samples/copeland-ts/README.md) | Applications, integration fixtures, and milestone specimens |
+| [`libraries`](libraries/README.md) | Shared typed editing and framework adapters |
 | [`docs/Copeland`](docs/Copeland/README.md) | Language references, architecture, and review evidence |
 
 From the repository root, with .NET 10:

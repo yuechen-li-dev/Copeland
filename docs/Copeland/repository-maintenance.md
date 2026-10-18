@@ -72,7 +72,21 @@ Both obsolete ignored build directories from
 the first pass have since been removed by the user and verified absent.
 
 Published WASM payloads, remaining release delivery payloads, other verbose
-historical evidence, browser-runner consolidation, and old extension caches remain
+historical evidence and old extension caches remain
 separate bounded passes. Remaining milestone wording in user-facing diagnostics needs a
 separate pass that preserves diagnostic codes, useful repair text, and asserted
 behavior. Cross-system ownership findings remain with the architecture lane.
+
+## Samples and shared browser code
+
+Use the [sample index](../../samples/copeland-ts/README.md) for current examples.
+The table applications share browser qualification tooling under
+`tools/Copeland.Qualification.Browser` and raw-text React controls under
+`libraries/Copeland.Browser.React`. Promote repeated application behavior with its
+component contract; preserve each scenario's unique assertions. A test runner is
+not a runtime owner. TSPack continues to own the canonical browser executor.
+
+The earlier workbook/application/editor directories remain live dependencies and
+regression cases. The UUID catalog duplicate was replaced by compiler regression
+coverage before removal. Do not remove the React fixture's locked materialization
+input merely because the current table runner depends on its generated runtime.

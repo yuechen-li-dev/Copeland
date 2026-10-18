@@ -26,6 +26,7 @@ and [projected tables](tooling/projected-tables.md).
 - [Source file profiles and Legacy/JavaScript/.NET ownership](language/copeland-ts-file-profiles.md)
 - [TableScript application boundaries](language/copeland-ts-table-application.md)
 - [Atomic row changes and checked recalculation](language/copeland-ts-table-changes.md)
+- [Current examples and shared sample infrastructure](../../samples/copeland-ts/README.md)
 - [Latest café application and browser qualification](../../samples/copeland-ts/tablescript-rows-m15/README.md)
 - [Numeric conversion and canonical formatting](authoring/numeric-conversion-m1.md)
 - [Local modules](authoring/local-modules-m1.md)

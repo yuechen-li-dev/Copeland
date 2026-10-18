@@ -5,11 +5,18 @@
   "scripts": {
     "check": "tsc --noEmit",
     "build": "node tooling/build.ts",
-    "qualify": "node tooling/qualify.ts"
+    "qualify": "node tooling/qualify.ts",
+    "serve": "node ../../../tools/Copeland.Qualification.Browser/src/serve.ts --root dist"
   },
-  "dependencies": { "react": "19.2.7", "react-dom": "19.2.7" },
+  "dependencies": {
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "@copeland/react-controls": "file:../../../libraries/Copeland.Browser.React"
+  },
   "devDependencies": {
-    "@types/react": "19.2.2", "@types/react-dom": "19.2.2", "@types/node": "24.10.0",
-    "typescript": "5.9.3", "esbuild": "0.25.10", "playwright": "1.56.1"
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "@types/node": "24.10.0",
+    "typescript": "5.9.3"
   }
 }

@@ -11,9 +11,16 @@ deferred.
 Build and run from this directory:
 
 ```console
-dotnet build TableDogfoodM0.slnx --no-restore
+dotnet build TableDogfoodM0.slnx -m:1
 dotnet run --project Consumer/Consumer.csproj --no-build
 ```
 
 The detailed workflow and findings are in
 `docs/Copeland/reviews/cts-table-dogfood-m0.md`.
+
+The consumer asserts query counts, summaries, declared-reference/chained joins,
+enum projection, and preservation of the original price snapshot. A failed result
+exits with an error. The earlier unkeyed/manual-lookup variant is preserved in
+[`ManualCatalogTests`](../../../tests/Copeland/Copeland.TS.Tests/ManualCatalogTests.cs),
+including C# and all three JavaScript profiles; it no longer needs a copied sample
+project. See the [current example index](../README.md) for the full café editor.

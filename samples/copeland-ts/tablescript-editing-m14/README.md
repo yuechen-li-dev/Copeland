@@ -41,10 +41,28 @@ field application, Enter submission, cancellation, switching, and reset under
 React StrictMode in all three profiles at 1280 and 390 pixels. It checks no page
 overflow, keyboard table scrolling, valid description references, and no browser
 warnings/errors. Compiler hashes and browser observations are under
-`docs/Copeland/reviews/evidence/tablescript-editing-m14/`; emitted C#, bundles and
+`artifacts/qualification/`; emitted C#, bundles and
 screenshots stay in ignored `artifacts/` and `dist/` directories.
 
 This is local preview only. Authoritative persistence would receive typed
-commands and revalidate against server-owned inputs. Variable row cardinality,
-remote conflicts, locale-specific money entry, IME qualification and large-table
-performance remain separate work.
+commands and revalidate against server-owned inputs. This fixture focuses on
+fixed-size editing; the [current café](../tablescript-rows-m15/README.md) adds
+variable row counts. Remote conflicts, locale-specific money entry, IME
+qualification and large-table performance remain separate work.
+
+Browser setup, profile bundling, the loopback server and error collection use the
+[shared browser qualification tool](../../../tools/Copeland.Qualification.Browser/README.md).
+New compiler/browser reports go to this sample's ignored `artifacts/qualification/`;
+committed review evidence remains the historical run. After qualification, inspect
+the page with a foreground server (stop with Ctrl+C):
+
+```powershell
+npm run serve --prefix samples/copeland-ts/tablescript-editing-m14
+```
+
+Open <http://127.0.0.1:4191/diagnostic/index.html>; `symbolic` and `production`
+use the same URL shape. See the [sample index](../README.md) for the current entry points.
+
+The raw-text controls and their Copeland component contract come from
+[`@copeland/react-controls`](../../../libraries/Copeland.Browser.React/README.md).
+`Copeland.Editing` and the application still own parsing, drafts and validation.

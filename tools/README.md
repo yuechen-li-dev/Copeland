@@ -9,6 +9,7 @@ lifetime. Generated hosts and verbose output belong under ignored `artifacts/loc
 
 | Purpose | Entry point | Output/qualification boundary |
 | --- | --- | --- |
+| TableScript browser qualification | [Browser runner](Copeland.Qualification.Browser/README.md) | Shared bootstrap/build/server/session; sample-owned scenario assertions, local reports |
 | TableScript integration qualification | [TableScript runner](Copeland.Qualification.TableScript/README.md) | Canonical CLI/C# calculations, guarded edits and immutable previews; local output |
 | C#/JavaScript JIT workload measurements | [JIT benchmarks](Copeland.Benchmarks.Jit/README.md) | Five shared authored workloads, checksum agreement and measured host behavior |
 | Current JavaScript emission measurements | [Emission benchmark](Copeland.Benchmarks.Emission/README.md) | Fresh Production output with reachability off/on; Node output agreement |
