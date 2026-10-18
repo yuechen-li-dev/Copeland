@@ -470,82 +470,82 @@ public static class TinyFarmSimulationSnapshotProjector
             : snapshot.GroundItems is not null
             ? "v3"
             : snapshot.PlayerUi is null ? "v1" : "v2";
-        text.AppendLine($"const $schema: string = \"copeland://tiny-farm/simulation-snapshot/{schemaVersion}\";");
-        text.AppendLine();
-        text.AppendLine("record ActorId { value: string; }");
-        text.AppendLine("record SceneId { value: string; }");
-        text.AppendLine("record SceneAnchorId { value: string; }");
-        text.AppendLine("enum SimulationMode { Paused, Playing, FastForward, }");
-        text.AppendLine("enum ScheduleRegime { Required, Open, }");
-        text.AppendLine();
-        text.AppendLine("record ActorSnapshot {");
-        text.AppendLine("    id: ActorId;");
-        text.AppendLine("    scene: SceneId;");
-        text.AppendLine("    xUnits: number;");
-        text.AppendLine("    yUnits: number;");
-        text.AppendLine("    energy: number;");
-        text.AppendLine("    isResting: boolean;");
-        text.AppendLine("    regime: ScheduleRegime;");
-        text.AppendLine("    goal: SceneAnchorId;");
-        text.AppendLine("}");
-        text.AppendLine();
-        text.AppendLine("record SimulationSnapshot {");
-        text.AppendLine("    version: string;");
-        text.AppendLine("    simulationMode: SimulationMode;");
-        text.AppendLine("    day: number;");
-        text.AppendLine("    minute: number;");
-        text.AppendLine("    activeScene: string;");
-        text.AppendLine("    actors: ActorSnapshot[];");
-        text.AppendLine("    stateHash: string;");
+        text.Append($"const $schema: string = \"copeland://tiny-farm/simulation-snapshot/{schemaVersion}\";").Append(TinyFarmCanonicalText.NewLine);
+        text.Append(TinyFarmCanonicalText.NewLine);
+        text.Append("record ActorId { value: string; }").Append(TinyFarmCanonicalText.NewLine);
+        text.Append("record SceneId { value: string; }").Append(TinyFarmCanonicalText.NewLine);
+        text.Append("record SceneAnchorId { value: string; }").Append(TinyFarmCanonicalText.NewLine);
+        text.Append("enum SimulationMode { Paused, Playing, FastForward, }").Append(TinyFarmCanonicalText.NewLine);
+        text.Append("enum ScheduleRegime { Required, Open, }").Append(TinyFarmCanonicalText.NewLine);
+        text.Append(TinyFarmCanonicalText.NewLine);
+        text.Append("record ActorSnapshot {").Append(TinyFarmCanonicalText.NewLine);
+        text.Append("    id: ActorId;").Append(TinyFarmCanonicalText.NewLine);
+        text.Append("    scene: SceneId;").Append(TinyFarmCanonicalText.NewLine);
+        text.Append("    xUnits: number;").Append(TinyFarmCanonicalText.NewLine);
+        text.Append("    yUnits: number;").Append(TinyFarmCanonicalText.NewLine);
+        text.Append("    energy: number;").Append(TinyFarmCanonicalText.NewLine);
+        text.Append("    isResting: boolean;").Append(TinyFarmCanonicalText.NewLine);
+        text.Append("    regime: ScheduleRegime;").Append(TinyFarmCanonicalText.NewLine);
+        text.Append("    goal: SceneAnchorId;").Append(TinyFarmCanonicalText.NewLine);
+        text.Append("}").Append(TinyFarmCanonicalText.NewLine);
+        text.Append(TinyFarmCanonicalText.NewLine);
+        text.Append("record SimulationSnapshot {").Append(TinyFarmCanonicalText.NewLine);
+        text.Append("    version: string;").Append(TinyFarmCanonicalText.NewLine);
+        text.Append("    simulationMode: SimulationMode;").Append(TinyFarmCanonicalText.NewLine);
+        text.Append("    day: number;").Append(TinyFarmCanonicalText.NewLine);
+        text.Append("    minute: number;").Append(TinyFarmCanonicalText.NewLine);
+        text.Append("    activeScene: string;").Append(TinyFarmCanonicalText.NewLine);
+        text.Append("    actors: ActorSnapshot[];").Append(TinyFarmCanonicalText.NewLine);
+        text.Append("    stateHash: string;").Append(TinyFarmCanonicalText.NewLine);
         if (snapshot.PlayerUi is not null)
         {
-            text.AppendLine("    money: number;");
-            text.AppendLine("    selectedHotbarSlot: number;");
-            text.AppendLine("    selectedSemanticId: string;");
-            text.AppendLine("    inventorySummary: string[];");
-            text.AppendLine("    hotbarSummary: string[];");
+            text.Append("    money: number;").Append(TinyFarmCanonicalText.NewLine);
+            text.Append("    selectedHotbarSlot: number;").Append(TinyFarmCanonicalText.NewLine);
+            text.Append("    selectedSemanticId: string;").Append(TinyFarmCanonicalText.NewLine);
+            text.Append("    inventorySummary: string[];").Append(TinyFarmCanonicalText.NewLine);
+            text.Append("    hotbarSummary: string[];").Append(TinyFarmCanonicalText.NewLine);
             if (snapshot.GroundItems is not null)
             {
-                text.AppendLine("    groundItemSummary: string[];");
-                text.AppendLine("    interactionTarget: string;");
-                text.AppendLine("    plotSummary: string[];");
+                text.Append("    groundItemSummary: string[];").Append(TinyFarmCanonicalText.NewLine);
+                text.Append("    interactionTarget: string;").Append(TinyFarmCanonicalText.NewLine);
+                text.Append("    plotSummary: string[];").Append(TinyFarmCanonicalText.NewLine);
                 if (snapshot.ForageNodes is not null)
                 {
-                    text.AppendLine("    forageSummary: string[];");
+                    text.Append("    forageSummary: string[];").Append(TinyFarmCanonicalText.NewLine);
                     if (snapshot.Trees is not null)
                     {
-                        text.AppendLine("    treeSummary: string[];");
+                        text.Append("    treeSummary: string[];").Append(TinyFarmCanonicalText.NewLine);
                         if (snapshot.Enemies is not null)
                         {
-                            text.AppendLine("    enemySummary: string[];");
+                            text.Append("    enemySummary: string[];").Append(TinyFarmCanonicalText.NewLine);
                         }
                     }
                 }
             }
         }
-        text.AppendLine("}");
-        text.AppendLine();
-        text.AppendLine("const $value = $record.SimulationSnapshot({");
+        text.Append("}").Append(TinyFarmCanonicalText.NewLine);
+        text.Append(TinyFarmCanonicalText.NewLine);
+        text.Append("const $value = $record.SimulationSnapshot({").Append(TinyFarmCanonicalText.NewLine);
         AppendString(text, "version", snapshot.Version, 1);
-        text.AppendLine($"    \"simulationMode\": SimulationMode.{snapshot.SimulationMode},");
+        text.Append($"    \"simulationMode\": SimulationMode.{snapshot.SimulationMode},").Append(TinyFarmCanonicalText.NewLine);
         AppendNumber(text, "day", snapshot.Day, 1);
         AppendNumber(text, "minute", snapshot.Minute, 1);
         AppendString(text, "activeScene", snapshot.ActiveScene?.Value ?? string.Empty, 1);
-        text.AppendLine("    \"actors\": [");
+        text.Append("    \"actors\": [").Append(TinyFarmCanonicalText.NewLine);
         foreach (TinyFarmSimulationActorSnapshot actor in snapshot.Actors)
         {
-            text.AppendLine("        $record.ActorSnapshot({");
+            text.Append("        $record.ActorSnapshot({").Append(TinyFarmCanonicalText.NewLine);
             AppendIdentity(text, "id", "ActorId", actor.Id.Value, 3);
             AppendIdentity(text, "scene", "SceneId", actor.Scene.Value, 3);
             AppendNumber(text, "xUnits", actor.Position.XUnits, 3);
             AppendNumber(text, "yUnits", actor.Position.YUnits, 3);
             AppendNumber(text, "energy", actor.Energy, 3);
-            text.AppendLine($"            \"isResting\": {actor.IsResting.ToString().ToLowerInvariant()},");
-            text.AppendLine($"            \"regime\": ScheduleRegime.{actor.Regime},");
+            text.Append($"            \"isResting\": {actor.IsResting.ToString().ToLowerInvariant()},").Append(TinyFarmCanonicalText.NewLine);
+            text.Append($"            \"regime\": ScheduleRegime.{actor.Regime},").Append(TinyFarmCanonicalText.NewLine);
             AppendIdentity(text, "goal", "SceneAnchorId", actor.Goal.Value, 3);
-            text.AppendLine("        }),");
+            text.Append("        }),").Append(TinyFarmCanonicalText.NewLine);
         }
-        text.AppendLine("    ],");
+        text.Append("    ],").Append(TinyFarmCanonicalText.NewLine);
         AppendString(text, "stateHash", snapshot.StateHash, 1);
         if (snapshot.PlayerUi is TinyFarmPlayerUiView playerUi)
         {
@@ -581,7 +581,7 @@ public static class TinyFarmSimulationSnapshotProjector
                 }
             }
         }
-        text.AppendLine("});");
+        text.Append("});").Append(TinyFarmCanonicalText.NewLine);
         string authored = text.ToString().Replace("\r\n", "\n", StringComparison.Ordinal);
         TsonReadResult read = TsonDocumentReader.ReadSelfDescribed(
             authored,
@@ -605,13 +605,13 @@ public static class TinyFarmSimulationSnapshotProjector
     private static void AppendString(StringBuilder text, string name, string value, int indentation)
     {
         string escaped = value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
-        text.Append(' ', indentation * 4).Append('"').Append(name).Append("\": \"").Append(escaped).AppendLine("\",");
+        text.Append(' ', indentation * 4).Append('"').Append(name).Append("\": \"").Append(escaped).Append("\",").Append(TinyFarmCanonicalText.NewLine);
     }
 
     private static void AppendNumber(StringBuilder text, string name, int value, int indentation)
     {
         string bits = BitConverter.DoubleToInt64Bits(value).ToString("X16", CultureInfo.InvariantCulture);
-        text.Append(' ', indentation * 4).Append('"').Append(name).Append("\": $number(\"").Append(bits).AppendLine("\"),");
+        text.Append(' ', indentation * 4).Append('"').Append(name).Append("\": $number(\"").Append(bits).Append("\"),").Append(TinyFarmCanonicalText.NewLine);
     }
 
     private static void AppendStringArray(
@@ -620,14 +620,14 @@ public static class TinyFarmSimulationSnapshotProjector
         IEnumerable<string> values,
         int indentation)
     {
-        text.Append(' ', indentation * 4).Append('"').Append(name).AppendLine("\": [");
+        text.Append(' ', indentation * 4).Append('"').Append(name).Append("\": [").Append(TinyFarmCanonicalText.NewLine);
         foreach (string value in values)
         {
             string escaped = value.Replace("\\", "\\\\", StringComparison.Ordinal)
                 .Replace("\"", "\\\"", StringComparison.Ordinal);
-            text.Append(' ', (indentation + 1) * 4).Append('"').Append(escaped).AppendLine("\",");
+            text.Append(' ', (indentation + 1) * 4).Append('"').Append(escaped).Append("\",").Append(TinyFarmCanonicalText.NewLine);
         }
-        text.Append(' ', indentation * 4).AppendLine("],");
+        text.Append(' ', indentation * 4).Append("],").Append(TinyFarmCanonicalText.NewLine);
     }
 
     private static void AppendIdentity(
@@ -638,9 +638,9 @@ public static class TinyFarmSimulationSnapshotProjector
         int indentation)
     {
         string escaped = value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
-        text.Append(' ', indentation * 4).Append('"').Append(name).Append("\": $record.").Append(type).AppendLine("({");
-        text.Append(' ', (indentation + 1) * 4).Append("\"value\": \"").Append(escaped).AppendLine("\",");
-        text.Append(' ', indentation * 4).AppendLine("}),");
+        text.Append(' ', indentation * 4).Append('"').Append(name).Append("\": $record.").Append(type).Append("({").Append(TinyFarmCanonicalText.NewLine);
+        text.Append(' ', (indentation + 1) * 4).Append("\"value\": \"").Append(escaped).Append("\",").Append(TinyFarmCanonicalText.NewLine);
+        text.Append(' ', indentation * 4).Append("}),").Append(TinyFarmCanonicalText.NewLine);
     }
 }
 

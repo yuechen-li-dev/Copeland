@@ -12,11 +12,11 @@ public static class TinyFarmSemanticHash
         if (state.Equipment is TinyFarmEquipment equipment)
         {
             canonical.Append("equipment|").Append(equipment.Weapon?.Value ?? "-")
-                .Append('|').Append(equipment.Tool?.Value ?? "-").AppendLine();
+                .Append('|').Append(equipment.Tool?.Value ?? "-").Append(TinyFarmCanonicalText.NewLine);
         }
         canonical.Append("v=").Append(state.Version)
             .Append(";minute=").Append(state.Minute)
-            .Append(";favor=").Append(state.Favor).AppendLine();
+            .Append(";favor=").Append(state.Favor).Append(TinyFarmCanonicalText.NewLine);
 
         foreach (ActorState actor in state.Actors.OrderBy(actor => actor.Id.Value, StringComparer.Ordinal))
         {
@@ -25,7 +25,7 @@ public static class TinyFarmSemanticHash
                 string profile = System.Text.Json.JsonSerializer.Serialize(rpg.Canonical(),
                     TinyFarmRpgJsonContext.Default.TinyFarmRpgProfile);
                 canonical.Append("rpg|").Append(actor.Id.Value).Append('|').Append(profile.Length)
-                    .Append('|').Append(profile).AppendLine();
+                    .Append('|').Append(profile).Append(TinyFarmCanonicalText.NewLine);
             }
             if (actor.Agent is TinyFarmAgentState agent)
             {
@@ -37,7 +37,7 @@ public static class TinyFarmSemanticHash
                 };
                 string json = System.Text.Json.JsonSerializer.Serialize(semantic, TinyFarmAgentJsonContext.Default.TinyFarmAgentState);
                 canonical.Append("agent|").Append(actor.Id.Value).Append('|').Append(json.Length)
-                    .Append('|').Append(json).AppendLine();
+                    .Append('|').Append(json).Append(TinyFarmCanonicalText.NewLine);
             }
             canonical.Append("actor|").Append(actor.Id.Value)
                 .Append('|').Append(actor.Name)
@@ -47,7 +47,7 @@ public static class TinyFarmSemanticHash
                 .Append('|').AppendJoin(',', actor.Inventory
                     .OrderBy(item => item.Value, StringComparer.Ordinal)
                     .Select(item => item.Value))
-                .AppendLine();
+                .Append(TinyFarmCanonicalText.NewLine);
         }
 
         foreach (ItemState item in state.Items.OrderBy(item => item.Id.Value, StringComparer.Ordinal))
@@ -75,12 +75,12 @@ public static class TinyFarmSemanticHash
                     .Append('|').Append(item.GroundPosition?.XUnits.ToString() ?? "-")
                     .Append('|').Append(item.GroundPosition?.YUnits.ToString() ?? "-");
             }
-            canonical.AppendLine();
+            canonical.Append(TinyFarmCanonicalText.NewLine);
         }
 
         if (state.Version >= TinyFarmState.SaveVersion)
         {
-            canonical.Append("definitions|").Append(state.DefinitionSetId).AppendLine();
+            canonical.Append("definitions|").Append(state.DefinitionSetId).Append(TinyFarmCanonicalText.NewLine);
             IEnumerable<InventoryStack> orderedStacks = state.InventoryStacks
                 .OrderBy(stack => stack.Actor.Value, StringComparer.Ordinal)
                 .ThenBy(stack => stack.Product.Value, StringComparer.Ordinal);
@@ -89,7 +89,7 @@ public static class TinyFarmSemanticHash
                 canonical.Append("stack|").Append(stack.Actor.Value)
                     .Append('|').Append(stack.Product.Value)
                     .Append('|').Append(stack.Count)
-                    .AppendLine();
+                    .Append(TinyFarmCanonicalText.NewLine);
             }
 
             foreach (ShopStock stock in state.ShopStock.OrderBy(stock => stock.Product.Value, StringComparer.Ordinal))
@@ -97,7 +97,7 @@ public static class TinyFarmSemanticHash
                 canonical.Append("stock|").Append(stock.Product.Value)
                     .Append('|').Append(stock.Count)
                     .Append('|').Append(stock.DailyRestockCount)
-                    .AppendLine();
+                    .Append(TinyFarmCanonicalText.NewLine);
             }
 
             foreach (FarmPlotState plot in state.FarmPlots.OrderBy(plot => plot.Id.Value, StringComparer.Ordinal))
@@ -109,7 +109,7 @@ public static class TinyFarmSemanticHash
                 {
                     canonical.Append('|').Append(plot.PlantedByPlayer ? '1' : '0');
                 }
-                canonical.AppendLine();
+                canonical.Append(TinyFarmCanonicalText.NewLine);
             }
         }
 
@@ -130,7 +130,7 @@ public static class TinyFarmSemanticHash
                     canonical.Append('|').Append(placement.Position.X)
                         .Append('|').Append(placement.Position.Y);
                 }
-                canonical.AppendLine();
+                canonical.Append(TinyFarmCanonicalText.NewLine);
             }
         }
 
@@ -141,7 +141,7 @@ public static class TinyFarmSemanticHash
                 canonical.Append("energy|").Append(energy.Actor.Value)
                     .Append('|').Append(energy.Energy)
                     .Append('|').Append(energy.IsResting ? '1' : '0')
-                    .AppendLine();
+                    .Append(TinyFarmCanonicalText.NewLine);
             }
         }
 
@@ -149,7 +149,7 @@ public static class TinyFarmSemanticHash
         {
             canonical.Append("selected-hotbar-slot|")
                 .Append(state.SelectedHotbarSlot)
-                .AppendLine();
+                .Append(TinyFarmCanonicalText.NewLine);
         }
 
         if (state.Version >= TinyFarmState.ForageSaveVersion)
@@ -158,7 +158,7 @@ public static class TinyFarmSemanticHash
             {
                 canonical.Append("forage|").Append(node.Id.Value)
                     .Append('|').Append(node.Availability)
-                    .AppendLine();
+                    .Append(TinyFarmCanonicalText.NewLine);
             }
         }
 
@@ -168,7 +168,7 @@ public static class TinyFarmSemanticHash
             {
                 canonical.Append("tree|").Append(tree.Id.Value)
                     .Append('|').Append(tree.Availability)
-                    .AppendLine();
+                    .Append(TinyFarmCanonicalText.NewLine);
             }
         }
         if (state.Version >= TinyFarmState.DungeonCombatSaveVersion)
@@ -177,7 +177,7 @@ public static class TinyFarmSemanticHash
             {
                 canonical.Append("enemy|").Append(enemy.Id.Value)
                     .Append('|').Append(enemy.CurrentHealth)
-                    .AppendLine();
+                    .Append(TinyFarmCanonicalText.NewLine);
             }
         }
 

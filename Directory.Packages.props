@@ -1,10 +1,15 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Pin transitive dependencies to the versions below, so a security fix applies even to packages that come in
+         through sibling repositories (for example MessagePack via Deliverance.Core). -->
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="BepuPhysics" Version="2.4.0" />
     <PackageVersion Include="NLayer" Version="1.16.0" />
+    <!-- Deliverance.Core references 3.1.8, which has advisory GHSA-qhrr-8q5h-9q3h. -->
+    <PackageVersion Include="MessagePack" Version="3.1.12" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="MonoGame.Framework.DesktopGL" Version="3.8.4" />
