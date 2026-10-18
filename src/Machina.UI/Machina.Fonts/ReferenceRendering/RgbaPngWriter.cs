@@ -1,8 +1,10 @@
 using System.IO.Compression;
-using Machina.Fonts.ReferenceRendering;
 
-namespace Machina.Fonts.Tests.Rendering;
+namespace Machina.Fonts.ReferenceRendering;
 
+/// <summary>
+/// Writes RGBA images as non-interlaced PNG files using unfiltered rows.
+/// </summary>
 internal static class RgbaPngWriter
 {
     private static readonly byte[] PngSignature = [137, 80, 78, 71, 13, 10, 26, 10];
@@ -10,6 +12,9 @@ internal static class RgbaPngWriter
     private static readonly byte[] IdatType = "IDAT"u8.ToArray();
     private static readonly byte[] IendType = "IEND"u8.ToArray();
 
+    /// <summary>
+    /// Writes the supplied image to <paramref name="outputPath"/>.
+    /// </summary>
     public static void Write(string outputPath, RgbaImage image)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
@@ -35,26 +40,28 @@ internal static class RgbaPngWriter
         WriteInt32BigEndian(header, 4, height);
         header[8] = 8;
         header[9] = 6;
-        header[10] = 0;
-        header[11] = 0;
-        header[12] = 0;
         return header;
     }
 
     private static byte[] CompressImageData(RgbaImage image)
     {
-        byte[] rgbaBytes = ToRgbaBytes(image);
-        int rowLength = (image.Width * 4) + 1;
-        byte[] rawImageData = new byte[rowLength * image.Height];
-        int sourceIndex = 0;
+        int rowLength = checked((image.Width * 4) + 1);
+        byte[] rawImageData = new byte[checked(rowLength * image.Height)];
         int targetIndex = 0;
+        int sourceIndex = 0;
 
         for (int y = 0; y < image.Height; y++)
         {
             rawImageData[targetIndex++] = 0;
-            Buffer.BlockCopy(rgbaBytes, sourceIndex, rawImageData, targetIndex, image.Width * 4);
-            sourceIndex += image.Width * 4;
-            targetIndex += image.Width * 4;
+
+            for (int x = 0; x < image.Width; x++)
+            {
+                Rgba32 pixel = image.Pixels[sourceIndex++];
+                rawImageData[targetIndex++] = pixel.R;
+                rawImageData[targetIndex++] = pixel.G;
+                rawImageData[targetIndex++] = pixel.B;
+                rawImageData[targetIndex++] = pixel.A;
+            }
         }
 
         using MemoryStream compressed = new();
@@ -64,26 +71,6 @@ internal static class RgbaPngWriter
         }
 
         return compressed.ToArray();
-    }
-
-    private static byte[] ToRgbaBytes(RgbaImage image)
-    {
-        byte[] bytes = new byte[image.Width * image.Height * 4];
-        int index = 0;
-
-        for (int y = 0; y < image.Height; y++)
-        {
-            for (int x = 0; x < image.Width; x++)
-            {
-                Rgba32 pixel = image.GetPixel(x, y);
-                bytes[index++] = pixel.R;
-                bytes[index++] = pixel.G;
-                bytes[index++] = pixel.B;
-                bytes[index++] = pixel.A;
-            }
-        }
-
-        return bytes;
     }
 
     private static void WriteChunk(Stream stream, byte[] chunkType, byte[] data)
@@ -140,6 +127,7 @@ internal static class RgbaPngWriter
             for (uint index = 0; index < table.Length; index++)
             {
                 uint value = index;
+
                 for (int bit = 0; bit < 8; bit++)
                 {
                     if ((value & 1) != 0)

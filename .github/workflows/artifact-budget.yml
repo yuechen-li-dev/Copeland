@@ -18,6 +18,10 @@ jobs:
         shell: pwsh
         run: ./tests/Repository/Test-ArtifactBudget.ps1
 
+      - name: Verify shared font exporter infrastructure
+        shell: pwsh
+        run: ./tests/Repository/Test-FontReferenceTools.ps1
+
       - name: Enforce compact tracked artifacts
         shell: pwsh
         env:

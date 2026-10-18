@@ -1,4 +1,9 @@
-# Current proof and artifact retention policy
+# Oblivion proof and artifact cleanup history
+
+This records an earlier Oblivion-specific cleanup and its measured footprint.
+For current repository-wide organization and output lifetime, use
+[repository maintenance](maintenance.md) and [artifact retention](artifact-retention.md).
+The historical counts below do not describe the current checkout.
 
 Canonical playback is a small, stable behavioral regression suite for the current supported product surface. It is not a request to regenerate every screenshot produced by an earlier proof of concept.
 

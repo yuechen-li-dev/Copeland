@@ -17,7 +17,7 @@ The fast solutions are:
 - `Copeland.slnx`
 - `Machina.UI.slnx`
 - `Aurelian.slnx`
-- `JointTaskForce.slnx`, which is the union of the fast subsystem contracts plus repository production/sample builds
+- `JointTaskForce.slnx`, a selected cross-system contract/build lane. It is not the union of every project in the subsystem solutions; run affected subsystem lanes as well
 
 ### Integration
 
@@ -91,7 +91,7 @@ Reviewers should reject a test that generates inspection artifacts in a fast pro
 
 ## Runtime budgets and workflow
 
-On the JTF-M1b Windows development machine, warm `--no-build` budgets are:
+The following are historical JTF-M1b Windows warm `--no-build` targets, not current measured totals or enforced acceptance limits. Current solution membership has grown; report the actual current command and result:
 
 - individual fast projects: generally a few seconds; renderer/font projects may take up to 15 seconds;
 - `Copeland.slnx`: 30 seconds;

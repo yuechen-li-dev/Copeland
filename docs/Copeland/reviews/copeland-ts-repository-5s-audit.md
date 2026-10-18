@@ -445,3 +445,9 @@ read-only inventory found **69 ignored generated bin/obj files** beneath that
 retired catalog path. Those caches and directories remain; no workaround deletion
 or disk-space reclamation is claimed. All seven tracked duplicate source/project
 files are removed in the working diff.
+
+The subsequent [repo-wide pass](../../audits/repository-5s-pass3.md) retired the
+spent `.work/consolidate-games.ps1` migration after checking its completed moves.
+The earlier inventory above records its then-tracked status; it is no longer a
+maintained tool. Repository-wide maintenance and retention now have one owner
+under `docs/repo`.

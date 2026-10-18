@@ -212,12 +212,19 @@ public sealed class FontReferenceDiffWorkflowTests
     public async Task ReferenceDiffWorkflow_ScriptWorkflowExportsArtifacts()
     {
         string directory = FontReferenceOracleWorkflow.GetRequestedOutputDirectoryOrCreateTemp();
-        string capturePath = Path.Combine(directory, FontReferenceOracleWorkflow.BrowserTextMetricsFileName);
-
-        Directory.CreateDirectory(directory);
-        File.WriteAllText(capturePath, CreateBrowserCaptureJson());
-
         string? previous = Environment.GetEnvironmentVariable(FontReferenceOracleWorkflow.BrowserMetricsPathEnvironmentVariable);
+        string capturePath;
+        if (string.IsNullOrWhiteSpace(previous))
+        {
+            Directory.CreateDirectory(directory);
+            capturePath = WriteBrowserCaptureJson(directory);
+        }
+        else
+        {
+            capturePath = Path.GetFullPath(previous);
+            Assert.True(File.Exists(capturePath), $"Supplied browser capture is missing: {capturePath}");
+        }
+        byte[] originalCapture = File.ReadAllBytes(capturePath);
 
         try
         {
@@ -230,6 +237,7 @@ public sealed class FontReferenceDiffWorkflowTests
             Assert.True(File.Exists(Path.Combine(directory, "overlay-machina.png")));
             Assert.True(File.Exists(Path.Combine(directory, "diff-machina.png")));
             Assert.True(File.Exists(Path.Combine(directory, "wireframe-machina.png")));
+            Assert.Equal(originalCapture, File.ReadAllBytes(capturePath));
         }
         finally
         {

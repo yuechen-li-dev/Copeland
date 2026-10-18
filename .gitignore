@@ -8,6 +8,7 @@ TestResults/
 
 # Repository-local scratch work is never a maintained source or fixture tree.
 /.tmp/
+/.work/
 /tmp/
 /copeland-bench-fixes.patch
 
@@ -176,3 +177,6 @@ artifacts/aurelian-shadow-distance/*-dark.png
 artifacts/aurelian-shadow-distance/lit-*.png
 artifacts/aurelian-shadow-distance/dark-*.png
 artifacts/aurelian-shadow-distance/msdf64-repeat.png
+
+# VN authoring buffers are reconstructed from the retained original/final PNG assets.
+artifacts/aurelian-ariadne-machina-dialogue-m7b/alpha-work/

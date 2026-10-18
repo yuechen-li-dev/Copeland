@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "18fcca82c6cffd4cc5766a453816daf392295c67",
+  "purpose": "Retire unreferenced authoring intermediates exactly reconstructible from retained VN assets. Preserve all native captures, save witnesses, original asset provenance and runtime source.",
+  "files": [
+    {
+      "retiredPath": "artifacts/aurelian-ariadne-machina-dialogue-m7b/alpha-work/soft.rgba",
+      "bytes": 6291456,
+      "sha256": "3bf6f5cee3ba766137b517cb357bd7a5efefa52e0fee3f0bce69404112db3017",
+      "retainedSource": "Games/Sunkill/Aurelian.Ariadne.VnDemo/Assets/rei-soft.png",
+      "retainedSourceSha256": "eae00aa825756977854d0308c63286fa0b602eda17dc47138895ded18e1230bd",
+      "width": 1024,
+      "height": 1536,
+      "reconstruction": "Decode retained PNG to 8-bit RGBA; emit RGBA bytes in top-to-bottom row-major order."
+    },
+    {
+      "retiredPath": "artifacts/aurelian-ariadne-machina-dialogue-m7b/alpha-work/soft.alpha",
+      "bytes": 1572864,
+      "sha256": "c0260019514165ecd5c488696d9f0cf7123f6c3a8a92d97aec4ecb3784868827",
+      "retainedSource": "Games/Sunkill/Aurelian.Ariadne.VnDemo/Assets/rei-soft-cutout.png",
+      "retainedSourceSha256": "0423cad8188242175b6705f534c885924d28160b6f9f8df3a612c0c51524a578",
+      "width": 1024,
+      "height": 1536,
+      "reconstruction": "Decode retained PNG to 8-bit RGBA; emit alpha bytes in top-to-bottom row-major order."
+    }
+  ],
+  "totalBytes": 7864320,
+  "recovery": "git show <sourceCommit>:<retiredPath> or reconstruct pixels from the retained source PNG as described per file."
+}

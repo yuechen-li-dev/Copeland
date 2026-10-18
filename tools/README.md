@@ -21,6 +21,10 @@ lifetime. Generated hosts and verbose output belong under ignored `artifacts/loc
 | Instinct corpus and historical measurements | [Instinct proof](copeland-typescript-instinct-m26/README.md) | Shares maintained compiler corpus; historical evidence replay has separate prerequisites |
 | Compiler burn-in | `Copeland.TS.BurnIn` | Maintained compiler consumer; see its project entry point |
 
+The separate Machina font-reference comparison and diff workflows share their
+browser capture helpers in [font-reference](font-reference/README.md). Keep
+their named diagnostics tests and evidence outputs distinct.
+
 Profile evidence projects remain explicit historical/domain qualification tools;
 they are not production dependencies. Their consolidation requires checking
 unique geometry/typography assertions and is separate from the TableScript pass.
@@ -28,5 +32,5 @@ Machina, Aurelian, games, font-reference, and ML research tools keep their ownin
 subsystem's scope; this index does not retire them by age or milestone name.
 
 See [repository maintenance](../docs/Copeland/repository-maintenance.md) for the
-normal build/check sequence and [artifact retention](../docs/Copeland/reference/artifact-retention.md)
+normal build/check sequence and [repository artifact retention](../docs/repo/artifact-retention.md)
 for what belongs in Git versus local output.

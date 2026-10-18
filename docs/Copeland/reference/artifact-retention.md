@@ -6,21 +6,9 @@ payloads and repeatable diagnostic output need a different lifetime. The
 entry points; [repository maintenance](../repository-maintenance.md) explains
 source ownership and the normal verification sequence.
 
-## Retention rules
-
-| Material | Retention |
-| --- | --- |
-| Authored source and executable golden fixtures | Keep in the owning source/test tree with meaningful assertions |
-| Qualification result needed to explain a historical claim | Keep a compact summary, compiler/source identity, command/protocol, and relevant versions |
-| Verbose CLI JSON, copied scenarios, generated C#/JS/MIR, build logs, probe projects | Regenerate under ignored `artifacts/local/<purpose>`; preserve a failed run locally when useful |
-| Release packages and published application trees | Use release/artifact storage; Git retains source and reviewed hashes/manifests |
-| A screenshot or workbook necessary to substantiate a claim | Keep an explicitly owned evidence artifact; do not confuse it with a disposable assembly or log |
-| Model weights, toolchains, and unrelated subsystem inputs | Preserve their owner and acquisition cost; a local cleanup cannot classify them as temporary by directory name |
-
-Historical evidence is not current capability. For example, old TableScript
-summaries reported JavaScript as unsupported; current compiler/browser
-qualification has a different boundary. Retain old observations as historical
-data rather than silently editing them into new claims.
+General retention and enforcement rules have one repository-wide owner in
+[repository artifact retention](../../repo/artifact-retention.md). This page
+retains the Copeland-specific output and recovery details.
 
 ## TableScript output
 
@@ -50,31 +38,9 @@ not. Its hash and differing members remain recoverable from Git. This establishe
 local artifact ownership only. It does not change the manifest's unpublished and
 not-publicly-verified status or requalify those older compiler binaries.
 
-## Enforced policy
+## Check a change
 
-`tools/Test-ArtifactBudget.ps1` checks added, copied, modified, and renamed paths
-against a base commit or the index. `-Paths` accepts repository-relative paths
-for an explicit review. It rejects path traversal, scratch trees, build/package
-caches, tracked `artifacts/local` output, and misplaced Copeland delivery
-payloads under source, docs, and samples.
-
-Compact budgets apply to `artifacts/<purpose>` and
-`docs/Copeland/reviews/evidence/<purpose>`: normally at most 16 changed files per
-purpose and 256 KiB per file, using the allowed compact text formats. Intentional
-golden fixtures retain their existing extension exception. Necessary exceptions
-must be narrow, reviewed entries in `.github/artifact-budget-allowlist.txt`.
-Unchanged historical bundles are not automatically deleted or certified by this
-change-oriented check.
-
-From the repository root:
-
-```powershell
-./tests/Repository/Test-ArtifactBudget.ps1
-./tools/Test-ArtifactBudget.ps1 -BaseRef <review-base>
-```
-
-The policy tests run in the artifact-budget CI workflow. They cover compact
-evidence, explicit goldens, rejected generated source/payload/cache/scratch paths,
-path traversal, missing artifacts, size/count limits, and ordinary source/binary
-test-fixture eligibility. This extends the existing guard rather than adding a
-second artifact-policy implementation.
+The existing guard and policy cases described in
+[repository artifact retention](../../repo/artifact-retention.md#enforced-boundary)
+run in artifact-budget CI. Copeland output paths above remain local; the compact
+historical provenance records remain tracked.

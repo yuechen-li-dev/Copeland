@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$OutputDir = "artifacts\\m8o",
+    [string]$OutputDir = "artifacts\\local\\font-reference\\comparison",
     [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Debug",
     [string]$BrowserPath
@@ -8,176 +8,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-function Resolve-FullPath {
-    param([string]$PathValue)
-
-    if ([System.IO.Path]::IsPathRooted($PathValue)) {
-        return [System.IO.Path]::GetFullPath($PathValue)
-    }
-
-    return [System.IO.Path]::GetFullPath((Join-Path $repoRoot $PathValue))
-}
-
-function Find-BrowserPath {
-    param([string]$PreferredPath)
-
-    if (-not [string]::IsNullOrWhiteSpace($PreferredPath)) {
-        if (-not (Test-Path -LiteralPath $PreferredPath)) {
-            throw "BrowserPath does not exist: $PreferredPath"
-        }
-
-        return [System.IO.Path]::GetFullPath($PreferredPath)
-    }
-
-    $candidates = @(
-        "C:\Program Files\Google\Chrome\Application\chrome.exe",
-        "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
-    )
-
-    foreach ($candidate in $candidates) {
-        if (Test-Path -LiteralPath $candidate) {
-            return $candidate
-        }
-    }
-
-    return $null
-}
-
-function Convert-ToFileUri {
-    param([string]$PathValue)
-    return ([System.Uri]([System.IO.Path]::GetFullPath($PathValue))).AbsoluteUri
-}
-
-function Invoke-BrowserScreenshot {
-    param(
-        [string]$BrowserExe,
-        [string]$Url,
-        [string]$ScreenshotPath,
-        [int]$Width,
-        [int]$Height
-    )
-
-    $args = @(
-        "--headless=new",
-        "--disable-gpu",
-        "--hide-scrollbars",
-        "--force-device-scale-factor=1",
-        "--allow-file-access-from-files",
-        "--virtual-time-budget=3000",
-        "--window-size=$Width,$Height",
-        "--screenshot=$ScreenshotPath",
-        $Url
-    )
-
-    & $BrowserExe @args
-
-    if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) {
-        throw "Browser screenshot failed for $ScreenshotPath"
-    }
-
-    $attempt = 0
-    while ($attempt -lt 20 -and -not (Test-Path -LiteralPath $ScreenshotPath)) {
-        Start-Sleep -Milliseconds 250
-        $attempt++
-    }
-
-    if (-not (Test-Path -LiteralPath $ScreenshotPath)) {
-        throw "Expected screenshot was not created: $ScreenshotPath"
-    }
-}
-
-function Invoke-BrowserDumpDom {
-    param(
-        [string]$BrowserExe,
-        [string]$Url
-    )
-
-    $args = @(
-        "--headless=new",
-        "--disable-gpu",
-        "--hide-scrollbars",
-        "--force-device-scale-factor=1",
-        "--allow-file-access-from-files",
-        "--virtual-time-budget=3000",
-        "--dump-dom",
-        $Url
-    )
-
-    $stdoutPath = Join-Path ([System.IO.Path]::GetTempPath()) ("machina-font-reference-dom-" + [Guid]::NewGuid().ToString("N") + ".txt")
-    $stderrPath = Join-Path ([System.IO.Path]::GetTempPath()) ("machina-font-reference-dom-" + [Guid]::NewGuid().ToString("N") + ".err.txt")
-
-    try {
-        $process = Start-Process `
-            -FilePath $BrowserExe `
-            -ArgumentList $args `
-            -NoNewWindow `
-            -PassThru `
-            -Wait `
-            -RedirectStandardOutput $stdoutPath `
-            -RedirectStandardError $stderrPath
-
-        if ($process.ExitCode -ne 0) {
-            $stderr = if (Test-Path -LiteralPath $stderrPath) {
-                Get-Content -LiteralPath $stderrPath -Raw
-            }
-            else {
-                ""
-            }
-
-            throw "Browser DOM dump failed for $Url`n$stderr"
-        }
-
-        return Get-Content -LiteralPath $stdoutPath -Raw
-    }
-    finally {
-        Remove-Item -LiteralPath $stdoutPath -ErrorAction SilentlyContinue
-        Remove-Item -LiteralPath $stderrPath -ErrorAction SilentlyContinue
-    }
-}
-
-function Get-MetricsJsonFromDom {
-    param([object]$DomLines)
-
-    if ($null -eq $DomLines) {
-        throw "Browser DOM dump did not return any content."
-    }
-
-    $dom = if ($DomLines -is [System.Array]) {
-        [string]::Join([Environment]::NewLine, [string[]]$DomLines)
-    }
-    else {
-        [string]$DomLines
-    }
-
-    $match = [System.Text.RegularExpressions.Regex]::Match(
-        $dom,
-        '<pre[^>]*id="metrics-output"[^>]*>(?<json>\{.*\})</pre>',
-        [System.Text.RegularExpressions.RegexOptions]::Singleline)
-
-    if (-not $match.Success) {
-        throw "Metrics JSON payload was not found in browser DOM output."
-    }
-
-    return $match.Groups["json"].Value
-}
-
-function Build-QueryString {
-    param([hashtable]$Values)
-
-    $pairs = foreach ($key in $Values.Keys) {
-        $encodedKey = [System.Uri]::EscapeDataString([string]$key)
-        $encodedValue = [System.Uri]::EscapeDataString([string]$Values[$key])
-        "$encodedKey=$encodedValue"
-    }
-
-    return [string]::Join("&", $pairs)
-}
-
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
+. (Join-Path $PSScriptRoot "font-reference\FontReference.Common.ps1")
 $projectPath = Join-Path $repoRoot "tests\\Machina.UI\\Machina.Fonts.Diagnostics.Tests\\Machina.Fonts.Diagnostics.Tests.csproj"
 $filter = "FullyQualifiedName~Machina.Fonts.Tests.Rendering.FontReferenceOracleWorkflowTests.FontReferenceOracleWorkflow_ScriptWorkflowExportsArtifacts"
 $fixtureHtmlPath = Join-Path $repoRoot "tools\\font-reference\\reference-render.html"
-$fontPath = Join-Path $repoRoot "tests\\Machina.UI\\Machina.Fonts.Tests\\Fixtures\\Fonts\\CrimsonText-Regular.ttf"
+$fontPath = Get-CanonicalReferenceFontPath -RepositoryRoot $repoRoot
 $definitions = @(
     @{ Id = "machina"; Text = "Machina" },
     @{ Id = "hello-machina"; Text = "Hello Machina" },
@@ -186,7 +22,7 @@ $definitions = @(
     @{ Id = "a-space-a"; Text = "A A" }
 )
 
-$resolvedOutputDir = Resolve-FullPath $OutputDir
+$resolvedOutputDir = Resolve-FullPath -RepositoryRoot $repoRoot -PathValue $OutputDir
 New-Item -ItemType Directory -Path $resolvedOutputDir -Force | Out-Null
 $browserExe = Find-BrowserPath $BrowserPath
 $browserMetricsPath = Join-Path $resolvedOutputDir "browser-text-metrics.json"
@@ -214,9 +50,12 @@ foreach ($definition in $definitions) {
             text = $definition.Text
         }
 
-        $metricsJson = Get-MetricsJsonFromDom (Invoke-BrowserDumpDom `
-            -BrowserExe $browserExe `
-            -Url ($fixtureHtmlUri + "?" + $metricsParams))
+        $metricsJson = Get-JsonFromDom `
+            -DomLines (Invoke-BrowserDumpDom `
+                -BrowserExe $browserExe `
+                -Url ($fixtureHtmlUri + "?" + $metricsParams) `
+                -ExpectedOutputId "metrics-output") `
+            -ElementId "metrics-output"
 
         $fixtureMetrics = $metricsJson | ConvertFrom-Json -AsHashtable
         $fixtureMetrics["id"] = $definition.Id

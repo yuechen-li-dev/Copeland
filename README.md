@@ -3,7 +3,9 @@
 This repository brings together three projects in the Visionary stack:
 the Copeland compiler, Machina.UI, and Aurelian. Each has its own source,
 tests, documentation, and solution lanes. Cross-system adapters live under
-[`src/Integrations`](src/Integrations).
+[`src/Integrations`](src/Integrations). The
+[documentation index](docs/INDEX.md), [repository maintenance guide](docs/repo/maintenance.md)
+and [artifact retention policy](docs/repo/artifact-retention.md) cover the whole tree.
 
 ## Copeland compiler
 
