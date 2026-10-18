@@ -16,10 +16,23 @@ public sealed class GameSaveSlots<TSnapshot> where TSnapshot : class
     private readonly JsonTypeInfo<TSnapshot> metadata;
     private readonly Action<TSnapshot> validate;
     private readonly SaveApplicationMetadata identity;
+    private readonly int version;
+    private readonly IReadOnlyList<ModuleMigration> migrations;
 
+    /// <param name="version">Schema version written into new saves.</param>
+    /// <param name="migrations">Byte-level steps that bring an older save forward, one version at a time. Loading runs
+    /// them before validation; a save that is newer than <paramref name="version"/>, or that has no path forward, is
+    /// rejected without touching live state.</param>
     public GameSaveSlots(string applicationId, string definitionIdentity, ISaveStore store,
-        JsonTypeInfo<TSnapshot> metadata, Action<TSnapshot> validate)
+        JsonTypeInfo<TSnapshot> metadata, Action<TSnapshot> validate, int version = 1,
+        IReadOnlyList<ModuleMigration>? migrations = null)
     {
+        if (version < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(version), "Save schema versions start at 1.");
+        }
+        this.version = version;
+        this.migrations = migrations ?? [];
         ArgumentException.ThrowIfNullOrWhiteSpace(applicationId);
         ArgumentException.ThrowIfNullOrWhiteSpace(definitionIdentity);
         this.metadata = metadata ?? throw new ArgumentNullException(nameof(metadata));
@@ -35,14 +48,14 @@ public sealed class GameSaveSlots<TSnapshot> where TSnapshot : class
     public Task SaveAsync(string slot, TSnapshot snapshot, CancellationToken cancellation = default)
     {
         validate(snapshot);
-        var payload = new SaveModulePayload(ModuleId, 1, ModuleCriticality.Required, 0, 0,
+        var payload = new SaveModulePayload(ModuleId, version, ModuleCriticality.Required, 0, 0,
             JsonSerializer.SerializeToUtf8Bytes(snapshot, metadata));
         return service.SaveAsync(slot, new SaveRequest(identity, [payload]), cancellation);
     }
 
     public async Task<TSnapshot> LoadAsync(string slot, CancellationToken cancellation = default)
     {
-        var definition = new SaveModuleDefinition(ModuleId, 1, ModuleCriticality.Required,
+        var definition = new SaveModuleDefinition(ModuleId, version, ModuleCriticality.Required, migrations: migrations,
             validateCurrentPayload: bytes => _ = Decode(bytes));
         var compatibility = new LoadCompatibility(identity.ApplicationId, identity.DefinitionHash,
             RequireCadenceMatch: false, ApplicationSaveVersion: 1);

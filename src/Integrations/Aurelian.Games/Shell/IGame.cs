@@ -130,6 +130,8 @@ public sealed class GameContext
 {
     private ulong soundSequence;
 
+    internal Action<string>? SaveRequested { get; set; }
+
     internal GameContext(GameManifest manifest, AurelianAudioRuntime audio, AudioResourceScope audioResources, GameAssets assets)
     {
         Manifest = manifest;
@@ -154,6 +156,18 @@ public sealed class GameContext
     {
         var id = new AudioEventId($"{asset}#{++soundSequence}");
         return Audio.Play(new AudioCue(id, new AudioAssetId(asset), bus ?? AudioBusId.Sfx, volume, Position: position));
+    }
+
+    /// <summary>
+    /// Ask the shell for a checkpoint save, for example when the player sleeps. Call it from <see cref="IGame.FixedUpdate"/>:
+    /// the shell captures the state right after the current tick, so the save matches the simulation clock exactly, and
+    /// writes it in the background. The slot defaults to the one the menus load. Failures appear like menu save failures.
+    /// Games without <see cref="IGame.Saves"/> cannot request saves.
+    /// </summary>
+    public void RequestSave(string slot = GameSession.QuickSlot)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(slot);
+        (SaveRequested ?? throw new NotSupportedException("This game does not define a save schema."))(slot);
     }
 
     /// <summary>Register a short synthesized tone, handy for prototypes before real sound assets exist.</summary>
@@ -246,6 +260,32 @@ public abstract class GameSaveSchema
     /// <summary>Content identity: saves made under a different identity are rejected before touching live state.</summary>
     public string Identity { get; }
 
+    /// <summary>
+    /// Schema version of the captured state. Raise it when the snapshot's shape changes and add a migration from the
+    /// previous version, so existing saves keep loading.
+    /// </summary>
+    public int Version { get; init; } = 1;
+
+    /// <summary>Steps that rewrite an older snapshot's JSON one version forward. Loading applies them in order.</summary>
+    public IReadOnlyList<GameSaveMigration> Migrations { get; init; } = [];
+
+    internal void ValidateVersioning()
+    {
+        if (Version < 1)
+        {
+            throw new ArgumentException("Save schema versions start at 1.");
+        }
+        var seen = new HashSet<int>();
+        foreach (GameSaveMigration migration in Migrations ?? throw new ArgumentNullException(nameof(Migrations)))
+        {
+            if (migration is null || migration.Migrate is null || migration.FromVersion < 1 || migration.FromVersion >= Version
+                || !seen.Add(migration.FromVersion))
+            {
+                throw new ArgumentException("Save migrations must each start at a distinct version below the schema version.");
+            }
+        }
+    }
+
     internal abstract JsonElement Capture();
     internal abstract object Decode(JsonElement state);
     internal abstract void Restore(object decoded);
@@ -253,6 +293,9 @@ public abstract class GameSaveSchema
     public static GameSaveSchema<T> Create<T>(JsonTypeInfo<T> type, string identity, Func<T> capture, Action<T> validate,
         Action<T> restore) where T : class => new(type, identity, capture, validate, restore);
 }
+
+/// <summary>Rewrites a saved game state from <paramref name="FromVersion"/> to the next version.</summary>
+public sealed record GameSaveMigration(int FromVersion, Func<System.Text.Json.Nodes.JsonNode, System.Text.Json.Nodes.JsonNode> Migrate);
 
 public sealed class GameSaveSchema<T> : GameSaveSchema where T : class
 {

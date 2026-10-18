@@ -83,6 +83,28 @@ public IReadOnlyCollection<string> InputContexts => talking ? ["dialogue"] : [Ga
 - A modal context may bind Escape. While it is active, Escape goes to the game, closing its screen, instead of opening the pause menu. Outside modal contexts Escape stays reserved.
 - Duplicate keys and rebinding swaps are resolved per context, so the same key can mean different things in different contexts.
 
+## Save versions and checkpoints
+
+```csharp
+public GameSaveSchema Saves { get; } = new GameSaveSchema<FarmV2>(FarmJson.Default.FarmV2, "farm", Capture, Validate, Restore)
+{
+    Version = 2,
+    Migrations = [new GameSaveMigration(1, state => RenameCountToTotal(state))], // JsonNode in, JsonNode out
+};
+
+public void FixedUpdate(GameTick tick)
+{
+    if (playerSlept) context.RequestSave();   // checkpoint into the slot the menus load
+}
+```
+
+- `Version` is written into every save. Loading an older save runs the migrations one step at a time (on the game's
+  state JSON; the shell carries the clock and latched input across unchanged), then validates the result. A save
+  from a newer version, or one with no path forward, is rejected before live state is touched.
+- `GameContext.RequestSave(slot)` from `FixedUpdate` captures the state right after that tick, so a checkpoint matches
+  the simulation clock exactly. Serialization happens then; the file write continues in the background, and
+  checkpoints to a slot land in order. Failures appear as `persistence.error`, and `save.checkpoints` counts them.
+
 ## 2D layers
 
 `View` draws an optional 3D scene. A 2D game, or a 3D game with its own 2D presentation, adds native layers

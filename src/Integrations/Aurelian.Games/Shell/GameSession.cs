@@ -1,3 +1,5 @@
+using Deliverance.Core.Modules;
+using System.Text.Json.Nodes;
 using System.Globalization;
 using System.Numerics;
 using System.Text.Json;
@@ -44,6 +46,8 @@ public sealed class GameSession : IDisposable
     public const string SettingsSlot = "preferences";
     public const string QuickSlot = "slot-1";
     private const int BindingsPerPage = 6;
+    private string? requestedSave;
+    private Task? checkpoint;
     private readonly IGame game;
     private readonly AudioResourceScope audioResources = new();
     private readonly GameMenuNavigation navigation = new();
@@ -83,8 +87,11 @@ public sealed class GameSession : IDisposable
         GameSaveSchema? saves = game.Saves;
         if (saves is not null)
         {
+            saves.ValidateVersioning();
             worldStore = new GameSaveSlots<GameShellSave>(Manifest.Id, saves.Identity, new FileSaveStore(SaveDirectory),
-                GameShellJsonContext.Default.GameShellSave, ValidateSave);
+                GameShellJsonContext.Default.GameShellSave, ValidateSave, saves.Version,
+                saves.Migrations.Select(EnvelopeMigration).ToArray());
+            Context.SaveRequested = slot => requestedSave = slot;
             Persist(async () => slotExists = await worldStore.ExistsAsync(QuickSlot));
         }
         // Loaded last so that a rejected preferences file remains the visible persistence error.
@@ -115,6 +122,22 @@ public sealed class GameSession : IDisposable
     public double Time { get; private set; }
     public int SelectedIndex => navigation.SelectedIndex;
     public string? PersistenceError { get; private set; }
+
+    /// <summary>Checkpoint saves written so far (requested by the game through <see cref="GameContext.RequestSave"/>).</summary>
+    public int Checkpoints { get; private set; }
+
+    /// <summary>True while a checkpoint is still being written in the background.</summary>
+    public bool CheckpointPending => checkpoint is { IsCompleted: false };
+
+    /// <summary>Wait for any background checkpoint write and report its outcome.</summary>
+    public void FlushCheckpoint()
+    {
+        if (checkpoint is { } pending)
+        {
+            checkpoint = null;
+            Persist(() => pending);
+        }
+    }
     public string? Notice { get; private set; }
     public bool SupportsSaves => worldStore is not null;
     public GameDisplaySettings PendingDisplay => pendingDisplay;
@@ -390,6 +413,10 @@ public sealed class GameSession : IDisposable
         {
             facts.Set("persistence.error", PersistenceError);
         }
+        if (game.Saves is not null)
+        {
+            facts.Set("save.checkpoints", Checkpoints);
+        }
         return facts;
     }
 
@@ -400,6 +427,7 @@ public sealed class GameSession : IDisposable
             return;
         }
         disposed = true;
+        FlushCheckpoint();
         game.Dispose();
         Input.Dispose();
         Audio.Dispose();
@@ -434,6 +462,11 @@ public sealed class GameSession : IDisposable
             Tick++;
             Time += seconds;
             game.FixedUpdate(new GameTick(Tick, seconds, Time, tickInput));
+            if (requestedSave is { } slot)
+            {
+                requestedSave = null;
+                WriteCheckpoint(slot);
+            }
             if (!Playing)
             {
                 break;
@@ -841,6 +874,36 @@ public sealed class GameSession : IDisposable
             return false;
         }
     }
+
+    private void WriteCheckpoint(string slot)
+    {
+        // Saves to one slot must land in order: finish (and report) the previous checkpoint first.
+        FlushCheckpoint();
+        try
+        {
+            // Capture and serialization happen now, between ticks; only the file write continues in the background.
+            Task write = SaveAsync(slot);
+            checkpoint = write;
+            Checkpoints++;
+        }
+        catch (Exception exception) when (exception is IOException or Deliverance.Core.DeliveranceException or JsonException
+            or ArgumentException or InvalidDataException or UnauthorizedAccessException or NotSupportedException)
+        {
+            PersistenceError = exception.Message;
+            Console.Error.WriteLine("Checkpoint save failed: " + exception.Message);
+        }
+    }
+
+    /// <summary>Lift a game-state migration to the saved envelope, which also carries the clock and latched input.</summary>
+    private static ModuleMigration EnvelopeMigration(GameSaveMigration migration) => new(migration.FromVersion, bytes =>
+    {
+        JsonNode envelope = JsonNode.Parse(bytes.Span) ?? throw new InvalidDataException("The save envelope is empty.");
+        JsonNode state = envelope[nameof(GameShellSave.State)]?.DeepClone()
+            ?? throw new InvalidDataException("The save envelope has no game state.");
+        envelope[nameof(GameShellSave.State)] = migration.Migrate(state)
+            ?? throw new InvalidDataException($"Save migration from version {migration.FromVersion} returned no state.");
+        return JsonSerializer.SerializeToUtf8Bytes(envelope);
+    });
 
     private CadenceScheduler NewScheduler() => new([new(new("gameplay"), RationalRate.PerSecond(Manifest.TickRate), 0)],
         TimeSpan.FromSeconds(0.1));
