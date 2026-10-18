@@ -647,7 +647,7 @@ public static partial class TemplateCompiler
                     .DistinctBy(function => function.Symbol).ToArray();
                 summaries = FunctionEffectClassifier.Classify(functions);
             }
-            _ordinaryEvaluator = new StaticEvaluator(functions, summaries, StaticEvaluationLimits.M1);
+            _ordinaryEvaluator = new StaticEvaluator(functions, summaries, StaticEvaluationLimits.Default);
             _callSitesByCaller = boundCompilations
                 .SelectMany(compilation => compilation.Program.SemanticCallSites)
                 .GroupBy(call => call.Caller.Id, StringComparer.Ordinal)

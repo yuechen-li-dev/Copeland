@@ -1,6 +1,9 @@
 # Copeland TS compiler topology (JTF-M6c)
 
-## Current topology
+> Historical topology snapshot. For the maintained dependency graph, build
+> commands, and validation boundaries, use [current compiler topology](compiler-topology.md).
+
+## Topology at this milestone
 
 ```text
 Copeland.TS

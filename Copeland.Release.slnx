@@ -1,5 +1,7 @@
 <Solution>
   <Folder Name="/product/">
+    <Project Path="src/Copeland/Copeland.Profile/Copeland.Profile.csproj" />
+    <Project Path="src/Copeland/Copeland.SpanAllocation/Copeland.SpanAllocation.csproj" />
     <Project Path="src/Copeland/Copeland.Cli/Copeland.Cli.csproj" />
     <Project Path="src/Copeland/Copeland.Markdown/Copeland.Markdown.csproj" />
     <Project Path="src/Copeland/Copeland.TS.Mir/Copeland.TS.Mir.csproj" />
@@ -12,7 +14,9 @@
     <Project Path="src/Copeland/Copeland.TS.MSBuild/Copeland.TS.MSBuild.csproj" />
     <Project Path="src/Copeland/Copeland.TS.Workspace/Copeland.TS.Workspace.csproj" />
     <Project Path="src/Copeland/Copeland.TS.Templates/Copeland.TS.Templates.csproj" />
-    <Project Path="tools/CtsJitM0/CtsJitM0.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Copeland.Benchmarks.Jit/Copeland.Benchmarks.Jit.csproj" />
   </Folder>
   <Folder Name="/release-tests/">
     <Project Path="tests/Copeland/Copeland.Cli.Tests/Copeland.Cli.Tests.csproj" />

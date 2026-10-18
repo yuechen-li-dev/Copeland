@@ -33,7 +33,7 @@ internal sealed class GpuStaticEvaluation
         var adapter = new GpuStaticEvaluation(functions, valueTypes);
         BoundExpression bound = adapter.Expression(expression, new(StringComparer.Ordinal));
         BoundFunctionDeclaration[] declarations = adapter.functions.Values.ToArray();
-        var evaluator = new StaticEvaluator(declarations, FunctionEffectClassifier.Classify(declarations), StaticEvaluationLimits.M1);
+        var evaluator = new StaticEvaluator(declarations, FunctionEffectClassifier.Classify(declarations), StaticEvaluationLimits.Default);
         StaticValue result = evaluator.Evaluate(bound);
         return adapter.Embed(result, expression.Source, embedAggregate);
     }

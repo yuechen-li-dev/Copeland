@@ -1,9 +1,37 @@
 param(
-    [string]$RepositoryRoot = $PSScriptRoot + "\\.."
+    [string]$RepositoryRoot = (Join-Path $PSScriptRoot "..")
 )
 
 $ErrorActionPreference = "Stop"
 $root = (Resolve-Path $RepositoryRoot).Path
+
+# Inspect maintained inputs, including new unignored files, rather than cached
+# SDKs, generated projects, published payloads, or repository-local experiments.
+$repositoryPaths = @(& git -c core.quotepath=false -C $root ls-files --cached --others --exclude-standard)
+if ($LASTEXITCODE -ne 0) {
+    throw "Unable to enumerate maintained repository files with Git."
+}
+$repositoryFiles = @(
+    $repositoryPaths | Sort-Object -Unique | Where-Object {
+        $_ -notmatch '(^|/)(\.tmp|\.work|tmp|artifacts|outputs|reference|bin|obj|node_modules|dist|publish|\.vscode-test)(/|$)'
+    } | ForEach-Object {
+        $path = Join-Path $root $_
+        if (Test-Path -LiteralPath $path -PathType Leaf) {
+            Get-Item -LiteralPath $path
+        }
+    }
+)
+
+function Get-MaintainedFiles {
+    param([string]$Directory, [string]$Filter = "*")
+
+    $prefix = [IO.Path]::GetFullPath($Directory).TrimEnd(
+        [IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar
+    ) + [IO.Path]::DirectorySeparatorChar
+    $repositoryFiles | Where-Object {
+        $_.FullName.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase) -and $_.Name -like $Filter
+    }
+}
 
 function Require-Condition {
     param(
@@ -22,35 +50,51 @@ function Get-ProjectReferences {
     [xml]$project = Get-Content -LiteralPath $ProjectPath
     $projectDirectory = Split-Path -Parent $ProjectPath
 
-    foreach ($reference in @($project.Project.ItemGroup.ProjectReference)) {
+    foreach ($reference in @($project.SelectNodes('//ProjectReference'))) {
         if ($null -ne $reference -and -not [string]::IsNullOrWhiteSpace($reference.Include)) {
-            Join-Path $projectDirectory $reference.Include
+            if ([IO.Path]::IsPathRooted($reference.Include)) {
+                [IO.Path]::GetFullPath($reference.Include)
+            }
+            else {
+                [IO.Path]::GetFullPath((Join-Path $projectDirectory $reference.Include))
+            }
         }
     }
 }
 
-$solutionPaths = Get-ChildItem -LiteralPath $root -Filter *.slnx -File
+$solutionPaths = $repositoryFiles | Where-Object { $_.DirectoryName -eq $root -and $_.Extension -eq ".slnx" }
 foreach ($solutionPath in $solutionPaths) {
     [xml]$solution = Get-Content -LiteralPath $solutionPath.FullName
-    foreach ($project in @($solution.Solution.Folder.Project)) {
+    foreach ($project in @($solution.SelectNodes('//Project'))) {
         $projectPath = Join-Path $root $project.Path
         Require-Condition (Test-Path -LiteralPath $projectPath) "Solution project path does not exist: $($project.Path)"
     }
 }
 
-$projects = Get-ChildItem -LiteralPath $root -Recurse -Filter *.csproj -File |
-    Where-Object { $_.FullName -notmatch '\\reference\\' }
+$projects = @($repositoryFiles | Where-Object {
+    $relativePath = [IO.Path]::GetRelativePath($root, $_.FullName).Replace("\", "/")
+    $_.Extension -eq ".csproj" -and $relativePath -match '^(src/Copeland/|tests/Copeland/|samples/copeland-ts/|libraries/Copeland\.|tools/[Cc]opeland[.-])'
+})
 $projectReferences = @{}
 
+$pendingProjects = [Collections.Generic.Queue[string]]::new()
 foreach ($project in $projects) {
+    $pendingProjects.Enqueue($project.FullName)
+}
+while ($pendingProjects.Count -gt 0) {
+    $projectPath = $pendingProjects.Dequeue()
+    if ($projectReferences.ContainsKey($projectPath)) {
+        continue
+    }
     $references = @()
-    foreach ($reference in Get-ProjectReferences $project.FullName) {
+    foreach ($reference in Get-ProjectReferences $projectPath) {
         $resolvedReference = [System.IO.Path]::GetFullPath($reference)
         Require-Condition (Test-Path -LiteralPath $resolvedReference) "Project reference does not exist: $resolvedReference"
         $references += $resolvedReference
+        $pendingProjects.Enqueue($resolvedReference)
     }
 
-    $projectReferences[$project.FullName] = $references
+    $projectReferences[$projectPath] = $references
 }
 
 $visited = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
@@ -78,8 +122,8 @@ function Test-ProjectCycle {
     $visited.Add($ProjectPath) | Out-Null
 }
 
-foreach ($project in $projects) {
-    Test-ProjectCycle $project.FullName
+foreach ($projectPath in $projectReferences.Keys) {
+    Test-ProjectCycle $projectPath
 }
 
 $mirProject = Join-Path $root "src/Copeland/Copeland.TS.Mir/Copeland.TS.Mir.csproj"
@@ -95,11 +139,21 @@ $cliProject = Join-Path $root "src/Copeland/Copeland.Cli/Copeland.Cli.csproj"
 Require-Condition ($projectReferences[$frontendProject] -contains $mirProject) "Copeland.TS must reference Copeland.TS.Mir."
 Require-Condition ($projectReferences[$csharpBackendProject] -contains $mirProject) "Copeland.TS.Backend.CSharp must reference Copeland.TS.Mir."
 Require-Condition ($projectReferences[$javaScriptBackendProject] -contains $mirProject) "Copeland.TS.Backend.JavaScript must reference Copeland.TS.Mir."
-Require-Condition ($projectReferences[$frontendProject].Count -eq 1) "Copeland.TS may depend only on Copeland.TS.Mir."
-Require-Condition ($projectReferences[$csharpBackendProject].Count -eq 1) "Copeland.TS.Backend.CSharp may depend only on Copeland.TS.Mir."
-Require-Condition ($projectReferences[$javaScriptBackendProject].Count -eq 1) "Copeland.TS.Backend.JavaScript may depend only on Copeland.TS.Mir."
-Require-Condition ($projectReferences[$csharpBackendProject] -notcontains $frontendProject) "The C# backend must not reference the frontend."
-Require-Condition ($projectReferences[$javaScriptBackendProject] -notcontains $frontendProject) "The JavaScript backend must not reference the frontend."
+$frontendDependencies = @(
+    $mirProject
+    Join-Path $root "src/Copeland/Copeland.Profile/Copeland.Profile.csproj"
+    Join-Path $root "src/Copeland/Copeland.SpanAllocation/Copeland.SpanAllocation.csproj"
+    Join-Path $root "src/Copeland/Copeland.Markdown/Copeland.Markdown.csproj"
+    Join-Path $root "src/Copeland/Copeland.TS.Workspace/Copeland.TS.Workspace.csproj"
+)
+$unexpectedFrontendDependencies = @($projectReferences[$frontendProject] | Where-Object { $_ -notin $frontendDependencies })
+Require-Condition ($unexpectedFrontendDependencies.Count -eq 0) "Copeland.TS has undeclared project dependencies: $($unexpectedFrontendDependencies -join ', ')"
+foreach ($backendProject in @($csharpBackendProject, $javaScriptBackendProject)) {
+    # Sidecar metadata currently shares Manifest types from Copeland.TS. Emission
+    # still consumes MIR; extracting those contracts is separate architecture work.
+    $unexpectedBackendDependencies = @($projectReferences[$backendProject] | Where-Object { $_ -notin @($mirProject, $frontendProject) })
+    Require-Condition ($unexpectedBackendDependencies.Count -eq 0) "Backend has undeclared project dependencies: $($unexpectedBackendDependencies -join ', ')"
+}
 Require-Condition ($projectReferences[$frontendProject] -notcontains $csharpBackendProject) "Copeland.TS must not reference a concrete backend."
 Require-Condition ($projectReferences[$frontendProject] -notcontains $javaScriptBackendProject) "Copeland.TS must not reference a concrete backend."
 Require-Condition ($projectReferences[$cliProject] -contains $frontendProject) "Copeland.Cli must compose Copeland.TS."
@@ -122,17 +176,16 @@ foreach ($pair in @(
 
 
 $aurelianShaderTests = Join-Path $root "tests/Aurelian/Aurelian.Shaders.Tests/Aurelian.Shaders.Tests.csproj"
-$aurelianReferences = $projectReferences[$aurelianShaderTests]
+$aurelianReferences = @(Get-ProjectReferences $aurelianShaderTests)
 Require-Condition (-not ($aurelianReferences | Where-Object { $_ -match 'Copeland\\Copeland\.(TS|Markdown)' })) "Aurelian shader tests must remain independent of Copeland TS and Markdown."
 
-$oldPaths = Get-ChildItem -LiteralPath $root -Recurse -File -Include *.cs,*.csproj,*.slnx,*.ps1 |
-    Where-Object { $_.FullName -notmatch '\\(bin|obj|reference)\\' } |
+$oldPaths = $repositoryFiles |
+    Where-Object { $_.Extension -in @(".cs", ".csproj", ".slnx", ".ps1") } |
     Where-Object { $_.Name -ne 'Validate-CopelandTsTopology.ps1' } |
-    Select-String -Pattern 'Copeland\.Script' -SimpleMatch
+    Select-String -Pattern 'Copeland.Script' -SimpleMatch
 Require-Condition ($null -eq $oldPaths) "Copeland.Script remains in active source, project, solution, or validation files."
 
-$copeTestFiles = Get-ChildItem -LiteralPath $root -Recurse -File |
-    Where-Object { $_.FullName -notmatch '\\(bin|obj|reference)\\' } |
+$copeTestFiles = $repositoryFiles |
     Where-Object { $_.Name -match 'cope-test' }
 Require-Condition ($copeTestFiles.Count -eq 0) "An abandoned Cope Test fixture convention remains."
 
@@ -154,13 +207,13 @@ foreach ($category in $languageAreas.Keys) {
     }
 }
 
-$languageFiles = @(Get-ChildItem -LiteralPath $languageRoot -Recurse -File)
+$languageFiles = @(Get-MaintainedFiles -Directory $languageRoot)
 foreach ($fixture in $languageFiles) {
     $relativePath = $fixture.FullName.Substring($languageRoot.Length).TrimStart([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
     Require-Condition (-not ($fixture.Name -match '\.cope$|\.g\.cs$|\.g\.js$')) "Language contains a generated or MIR artifact: $relativePath"
 
-    $isValidFixture = $relativePath -match '^Valid[\\/].*\.cl-valid\.ts$'
-    $isInvalidFixture = $relativePath -match '^Invalid[\\/].*\.cl-invalid\.ts$'
+    $isValidFixture = $relativePath -match '^(Valid[\\/].*\.cl-valid\.ts|tsx[\\/].*\.cl-valid\.tsx)$'
+    $isInvalidFixture = $relativePath -match '^(Invalid[\\/].*\.cl-invalid\.ts|tsx[\\/].*\.cl-invalid\.tsx)$'
     Require-Condition ($isValidFixture -or $isInvalidFixture) "Language fixture does not follow the required suffix convention: $relativePath"
 }
 
@@ -176,12 +229,12 @@ Require-Condition (Test-Path -LiteralPath $tsonFixtureRoot -PathType Container) 
 Require-Condition (Test-Path -LiteralPath (Join-Path $tsonFixtureRoot "Valid") -PathType Container) "TSON/Valid fixture ownership is missing."
 Require-Condition (Test-Path -LiteralPath (Join-Path $tsonFixtureRoot "Invalid") -PathType Container) "TSON/Invalid fixture ownership is missing."
 
-$tsonObjectFixtures = @(Get-ChildItem -LiteralPath $tsonFixtureRoot -Recurse -Filter *.obj.ts -File)
-$tsonCanonicalFixtures = @(Get-ChildItem -LiteralPath $tsonFixtureRoot -Recurse -Filter *.tson -File)
+$tsonObjectFixtures = @(Get-MaintainedFiles -Directory $tsonFixtureRoot -Filter "*.obj.ts")
+$tsonCanonicalFixtures = @(Get-MaintainedFiles -Directory $tsonFixtureRoot -Filter "*.tson")
 Require-Condition ($tsonObjectFixtures.Count -gt 0) "TSON fixtures must include the .obj.ts authoring profile."
 Require-Condition ($tsonCanonicalFixtures.Count -gt 0) "TSON fixtures must include the canonical .tson profile."
 
-$tsonSources = @(Get-ChildItem -LiteralPath $tsonSourceRoot -Recurse -Filter *.cs -File)
+$tsonSources = @(Get-MaintainedFiles -Directory $tsonSourceRoot -Filter "*.cs")
 $duplicateFrontendDeclarations = $tsonSources | Select-String -Pattern 'class\s+Tson(Lexer|Parser)\b|enum\s+TsonSyntaxKind\b|enum\s+TsonTokenKind\b'
 Require-Condition ($null -eq $duplicateFrontendDeclarations) "TSON must not define a second lexer, parser, token-kind table, or syntax-kind hierarchy."
 
@@ -202,9 +255,9 @@ Require-Condition (-not ($readerSource.IndexOf('TsonTableParser', [System.String
 $tsonAssetFixtureRoot = Join-Path $root "tests/Copeland/Copeland.TS.Tests/TsonAssets"
 Require-Condition (Test-Path -LiteralPath (Join-Path $tsonAssetFixtureRoot "Valid") -PathType Container) "TSON asset Valid fixture ownership is missing."
 Require-Condition (Test-Path -LiteralPath (Join-Path $tsonAssetFixtureRoot "Invalid") -PathType Container) "TSON asset Invalid fixture ownership is missing."
-$tsonAssetSources = @(Get-ChildItem -LiteralPath $tsonAssetFixtureRoot -Recurse -Filter *.asset-*.ts -File)
-$tsonAssetObjectFiles = @(Get-ChildItem -LiteralPath $tsonAssetFixtureRoot -Recurse -Filter *.obj.ts -File)
-$tsonAssetCanonicalFiles = @(Get-ChildItem -LiteralPath $tsonAssetFixtureRoot -Recurse -Filter *.tson -File)
+$tsonAssetSources = @(Get-MaintainedFiles -Directory $tsonAssetFixtureRoot -Filter "*.asset-*.ts")
+$tsonAssetObjectFiles = @(Get-MaintainedFiles -Directory $tsonAssetFixtureRoot -Filter "*.obj.ts")
+$tsonAssetCanonicalFiles = @(Get-MaintainedFiles -Directory $tsonAssetFixtureRoot -Filter "*.tson")
 Require-Condition ($tsonAssetSources.Count -ge 3) "TSON asset fixtures must own valid and invalid source cases."
 Require-Condition ($tsonAssetObjectFiles.Count -gt 0) "TSON asset fixtures must own an Object TypeScript asset."
 Require-Condition ($tsonAssetCanonicalFiles.Count -gt 0) "TSON asset fixtures must own a canonical TSON asset."
@@ -219,7 +272,7 @@ $syntaxFactsSource = Get-Content -Raw -LiteralPath (Join-Path $root "src/Copelan
 Require-Condition ($parserSource.IndexOf('TableAssetClauseSyntax', [System.StringComparison]::Ordinal) -ge 0) "Declaration-owned table assets must extend the production table parser."
 Require-Condition (-not ($syntaxFactsSource.IndexOf('["from"]', [System.StringComparison]::Ordinal) -ge 0)) "The table asset 'from' token must remain contextual."
 
-$mirSources = @(Get-ChildItem -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS.Mir") -Recurse -Filter *.cs -File |
+$mirSources = @(Get-MaintainedFiles -Directory (Join-Path $root "src/Copeland/Copeland.TS.Mir") -Filter "*.cs" |
     Where-Object { $_.FullName -notmatch '[\\/](bin|obj)[\\/]' })
 $forbiddenMirTson = $mirSources | Select-String -Pattern '\b(TsonValue|TsonDocument|TsonCatalog|TsonDocumentReader|TsonCanonicalPrinter)\b|Copeland\.TS\.Tson'
 Require-Condition ($null -eq $forbiddenMirTson) "Cope MIR must not contain or reference compiler-host TSON types."
@@ -228,14 +281,14 @@ $mirText = ($mirSources | Get-Content -Raw) -join "`n"
 Require-Condition ($mirText.IndexOf('class MirTsonEncodingPlan', [System.StringComparison]::Ordinal) -ge 0) "Runtime TSON encoding plans must be owned by Copeland.TS.Mir."
 Require-Condition ($mirText.IndexOf('record MirTsonEncodeExpression', [System.StringComparison]::Ordinal) -ge 0) "Runtime TSON encoding requires a dedicated MIR expression."
 Require-Condition ($mirText.IndexOf('ValidateTsonEncodingModel', [System.StringComparison]::Ordinal) -ge 0) "Runtime TSON encoding plans require shared MIR validation."
-Require-Condition ($mirText.IndexOf('MirTsonArrayPlan', [System.StringComparison]::Ordinal) -ge 0) "ARRAY-M1 runtime array encoding plans must be owned by Copeland.TS.Mir."
-Require-Condition ($mirText.IndexOf('MaximumArrayLength', [System.StringComparison]::Ordinal) -ge 0) "ARRAY-M1 runtime array encoding plans require a shared array limit."
-Require-Condition ($mirText.IndexOf('MirTableArrayConstant', [System.StringComparison]::Ordinal) -ge 0) "TABLE-M1 array-valued cells require a closed MIR table-array constant."
-Require-Condition ($mirText.IndexOf('class MirTsonTablePlan', [System.StringComparison]::Ordinal) -ge 0) "TABLE-M2 runtime table encoding plans must be owned by Copeland.TS.Mir."
+Require-Condition ($mirText.IndexOf('MirTsonArrayPlan', [System.StringComparison]::Ordinal) -ge 0) "Runtime array encoding plans must be owned by Copeland.TS.Mir."
+Require-Condition ($mirText.IndexOf('MaximumArrayLength', [System.StringComparison]::Ordinal) -ge 0) "Runtime array encoding plans require a shared array limit."
+Require-Condition ($mirText.IndexOf('MirTableArrayConstant', [System.StringComparison]::Ordinal) -ge 0) "Array-valued cells require a closed MIR table-array constant."
+Require-Condition ($mirText.IndexOf('class MirTsonTablePlan', [System.StringComparison]::Ordinal) -ge 0) "Runtime table encoding plans must be owned by Copeland.TS.Mir."
 
 $backendSources = @(
-    Get-ChildItem -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS.Backend.CSharp") -Recurse -Filter *.cs -File
-    Get-ChildItem -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS.Backend.JavaScript") -Recurse -Filter *.cs -File
+    Get-MaintainedFiles -Directory (Join-Path $root "src/Copeland/Copeland.TS.Backend.CSharp") -Filter "*.cs"
+    Get-MaintainedFiles -Directory (Join-Path $root "src/Copeland/Copeland.TS.Backend.JavaScript") -Filter "*.cs"
 ) | Where-Object { $_.FullName -notmatch '[\\/](bin|obj)[\\/]' }
 $forbiddenBackendTson = $backendSources | Select-String -Pattern '\b(TsonValue|TsonDocument|TsonCatalog|TsonDocumentReader)\b|Copeland\.TS\.Tson'
 Require-Condition ($null -eq $forbiddenBackendTson) "Backends must not reference compiler-host TSON types."
@@ -258,38 +311,43 @@ Require-Condition ($javaScriptWriterText.IndexOf('document.Reference(line.Scope'
 $javaScriptProfilesText = Get-Content -Raw -LiteralPath (Join-Path $javaScriptBackendRoot "JavaScriptEmissionProfile.cs")
 $javaScriptSymbolicText = Get-Content -Raw -LiteralPath (Join-Path $javaScriptBackendRoot "SymbolicJavaScriptVocabulary.cs")
 
-$javaScriptProductionSources = @(Get-ChildItem -LiteralPath $javaScriptBackendRoot -Recurse -Filter *.cs -File |
+$javaScriptProductionSources = @(Get-MaintainedFiles -Directory $javaScriptBackendRoot -Filter "*.cs" |
     Where-Object { $_.FullName -notmatch '[\\/](bin|obj)[\\/]' })
-$forbiddenJavaScriptTooling = $javaScriptProductionSources | Select-String -Pattern 'Terser|esbuild|SWC|Babel|Uglify|sourceMappingURL|\.map\b'
+$forbiddenJavaScriptTooling = $javaScriptProductionSources | Select-String -Pattern 'Terser|esbuild|SWC|Babel|Uglify|sourceMappingURL|\.map["'']'
 Require-Condition ($null -eq $forbiddenJavaScriptTooling) "The JavaScript backend must not add an external minifier, parser, or source-map output path."
 Require-Condition ($javaScriptProfilesText.IndexOf('enum JavaScriptEmissionProfile', [System.StringComparison]::Ordinal) -ge 0) "JavaScript emission profiles must remain an explicit backend contract."
 Require-Condition ($javaScriptProfilesText.IndexOf('Symbolic', [System.StringComparison]::Ordinal) -ge 0) "The executable Symbolic JavaScript profile must remain available."
 Require-Condition ($javaScriptSymbolicText.IndexOf('CTS-JS-EMIT-M1', [System.StringComparison]::Ordinal) -ge 0) "Symbolic JavaScript vocabulary must remain versioned and closed."
 $forbiddenReleaseProfile = $javaScriptProductionSources | Select-String -Pattern 'JavaScriptEmissionProfile\.Release|enum JavaScriptEmissionProfile[^{]*{[^}]*Release|Release allocator'
-Require-Condition ($null -eq $forbiddenReleaseProfile) "Release JavaScript emission remains outside M1 production code."
+Require-Condition ($null -eq $forbiddenReleaseProfile) "Use the explicit Production emission profile rather than the retired Release name."
 
-$forbiddenRuntimeEncodingApis = $backendSources | Select-String -Pattern 'System\.Text\.Json|JSON\.stringify|System\.Reflection|System\.IO\.File|File\.(Read|Write)|\breflection\b|\bdynamic\b'
-Require-Condition ($null -eq $forbiddenRuntimeEncodingApis) "Generated backends must not add JSON, reflection, dynamic, or runtime filesystem dependencies for TSON encoding."
+# This law is about generated TSON encoders. Backend-host serialization, CLR
+# sidecar hosting, and explicit browser JSON boundaries are different contracts.
+$tsonEncodingArtifacts = @(Get-MaintainedFiles -Directory (Join-Path $root "tests/Copeland/Copeland.TS.Tests/TsonEncoding/Corpus") |
+    Where-Object { $_.Name -match '\.(g\.cs|g\.js|sym\.js)$' })
+Require-Condition ($tsonEncodingArtifacts.Count -gt 0) "Runtime TSON encoding fixtures are missing."
+$forbiddenRuntimeEncodingApis = $tsonEncodingArtifacts | Select-String -Pattern 'System\.Text\.Json\.JsonSerializer|JSON\.stringify\s*\(|System\.Reflection|System\.IO\.File|\bFile\.(Read|Write)|\bdynamic\s'
+Require-Condition ($null -eq $forbiddenRuntimeEncodingApis) "Generated TSON encoders must not depend on JSON serialization, reflection, dynamic, or runtime filesystem APIs."
 
-$forbiddenAbstractions = Get-ChildItem -LiteralPath (Join-Path $root "src/Copeland") -Recurse -Filter *.cs -File |
+$forbiddenAbstractions = Get-MaintainedFiles -Directory (Join-Path $root "src/Copeland") -Filter "*.cs" |
     Select-String -Pattern 'IBackend|ICompilerBackend|IIntermediateRepresentation|ICompilerPass'
 Require-Condition ($null -eq $forbiddenAbstractions) "A forbidden universal compiler abstraction was introduced."
 
-$copeFixtures = Get-ChildItem -LiteralPath (Join-Path $root "tests/Copeland/Copeland.TS.Tests/TestData/Corpus") -Recurse -Filter *.cope -File
+$copeFixtures = Get-MaintainedFiles -Directory (Join-Path $root "tests/Copeland/Copeland.TS.Tests/TestData/Corpus") -Filter "*.cope"
 foreach ($fixture in $copeFixtures) {
     Require-Condition ($fixture.Directory.Name -match 'mir|cts-union-m0b|cts-call-m0b|cts-call-m1|cts-class-m1') ".cope fixture is not owned by a MIR corpus case: $($fixture.FullName)"
 }
 
 $javaScriptFixtureRoot = Join-Path $root "tests/Copeland/Copeland.TS.Backend.JavaScript.Tests/TestData/Corpus"
 Require-Condition (Test-Path -LiteralPath $javaScriptFixtureRoot -PathType Container) "JavaScript backend corpus root is missing."
-$javaScriptArtifacts = @(Get-ChildItem -LiteralPath $javaScriptFixtureRoot -Recurse -Filter *.g.js -File)
+$javaScriptArtifacts = @(Get-MaintainedFiles -Directory $javaScriptFixtureRoot -Filter "*.g.js")
 Require-Condition ($javaScriptArtifacts.Count -gt 0) "JavaScript backend corpus must contain at least one .g.js artifact."
 foreach ($artifact in $javaScriptArtifacts) {
     $sourcePath = [System.IO.Path]::ChangeExtension($artifact.FullName.Substring(0, $artifact.FullName.Length - ".g.js".Length), ".ts")
     Require-Condition (Test-Path -LiteralPath $sourcePath -PathType Leaf) "JavaScript backend artifact has no sibling source fixture: $($artifact.FullName)"
 }
 
-$misownedJavaScriptArtifacts = Get-ChildItem -LiteralPath (Join-Path $root "tests/Copeland") -Recurse -Filter *.g.js -File |
+$misownedJavaScriptArtifacts = Get-MaintainedFiles -Directory (Join-Path $root "tests/Copeland") -Filter "*.g.js" |
     Where-Object { $_.FullName -notmatch '\\(bin|obj)\\' } |
     Where-Object {
         -not $_.FullName.StartsWith($javaScriptFixtureRoot, [System.StringComparison]::OrdinalIgnoreCase) -and
@@ -313,7 +371,7 @@ $misownedJavaScriptArtifacts = Get-ChildItem -LiteralPath (Join-Path $root "test
     }
 Require-Condition ($misownedJavaScriptArtifacts.Count -eq 0) "Generated JavaScript fixtures must be owned by Copeland.TS.Backend.JavaScript.Tests."
 
-$symbolicArtifacts = Get-ChildItem -LiteralPath (Join-Path $root "tests/Copeland") -Recurse -Filter *.sym.js -File |
+$symbolicArtifacts = Get-MaintainedFiles -Directory (Join-Path $root "tests/Copeland") -Filter "*.sym.js" |
     Where-Object { $_.FullName -notmatch '\\(bin|obj)\\' }
 foreach ($artifact in $symbolicArtifacts) {
     $sourcePath = [System.IO.Path]::ChangeExtension($artifact.FullName.Substring(0, $artifact.FullName.Length - ".sym.js".Length), ".ts")

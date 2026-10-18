@@ -18,7 +18,7 @@ public sealed record StaticEvaluationLimits(
     int MaximumArrayLength,
     int MaximumEmbeddedValues)
 {
-    public static StaticEvaluationLimits M1 { get; } = new(
+    public static StaticEvaluationLimits Default { get; } = new(
         MaximumSteps: 100_000,
         MaximumCallDepth: 128,
         MaximumLoopIterations: 100_000,
@@ -82,7 +82,7 @@ public static class StaticEvaluationPass
             }
         }
 
-        var evaluator = new StaticEvaluator(functions, summaries, limits ?? StaticEvaluationLimits.M1);
+        var evaluator = new StaticEvaluator(functions, summaries, limits ?? StaticEvaluationLimits.Default);
         var diagnostics = new List<Diagnostic>();
         foreach (BoundCompilation compilation in compilations)
         {

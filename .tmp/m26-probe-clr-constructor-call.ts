@@ -1,1 +1,0 @@
-using System.Collections.Generic; function run(): int { const values = List<int>(); return values.Count; }

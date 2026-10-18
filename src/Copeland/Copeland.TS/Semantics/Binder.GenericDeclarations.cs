@@ -325,7 +325,7 @@ public static partial class Binder
 
             try
             {
-                var evaluator = new StaticEvaluator(_functions, FunctionEffectClassifier.Classify(_functions), StaticEvaluationLimits.M1);
+                var evaluator = new StaticEvaluator(_functions, FunctionEffectClassifier.Classify(_functions), StaticEvaluationLimits.Default);
                 if (evaluator.Evaluate(expression) is StaticPrimitiveValue value)
                 {
                     return new StaticArgumentTypeSymbol(expected, value.Value!);

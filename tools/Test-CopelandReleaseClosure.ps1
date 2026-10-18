@@ -31,7 +31,12 @@ function Get-ProjectReferences {
     $projectDirectory = Split-Path -Parent $ProjectPath
     foreach ($reference in @($project.SelectNodes('//ProjectReference'))) {
         if (-not [string]::IsNullOrWhiteSpace($reference.Include)) {
-            Get-NormalizedPath (Join-Path $projectDirectory $reference.Include)
+            if ([IO.Path]::IsPathRooted($reference.Include)) {
+                Get-NormalizedPath $reference.Include
+            }
+            else {
+                Get-NormalizedPath (Join-Path $projectDirectory $reference.Include)
+            }
         }
     }
 }

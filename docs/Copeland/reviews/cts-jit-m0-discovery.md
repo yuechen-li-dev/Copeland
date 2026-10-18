@@ -1,5 +1,10 @@
 # CTS-JIT-M0 — RyuJIT vs V8 backend characterization
 
+> Historical measurements and paths. The maintained harness is now
+> [Copeland JIT benchmarks](../../../tools/Copeland.Benchmarks.Jit/README.md);
+> use its current commands to run the workloads. A new smoke run does not
+> reproduce the measurement protocol recorded here.
+
 ## Executive conclusion
 
 On this Windows x64 workstation, the current generated Copeland C# backend is faster than the current generated Copeland JavaScript backend for every warm, typed workload measured. The advantage is modest for the numeric kernel (32.123 ms versus 34.155 ms median), material for strings (14.928 ms versus 45.691 ms), and overwhelming for the current immutable-record, enum, and Machina-subset workloads.

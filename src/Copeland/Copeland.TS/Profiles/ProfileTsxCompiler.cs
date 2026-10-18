@@ -1046,7 +1046,7 @@ public static partial class ProfileTsxCompiler
             IReadOnlyDictionary<FunctionSymbol, FunctionEffectSummary> summaries = boundCompilations
                 .SelectMany(bound => bound.Program.FunctionEffects)
                 .ToDictionary(pair => pair.Key, pair => pair.Value);
-            var evaluator = new StaticEvaluator(functions, summaries, StaticEvaluationLimits.M1);
+            var evaluator = new StaticEvaluator(functions, summaries, StaticEvaluationLimits.Default);
             var environment = new Dictionary<VariableSymbol, StaticValue>();
             var values = new Dictionary<string, StaticValue>(StringComparer.Ordinal);
             BoundCompilation? authoring = compilation.Modules

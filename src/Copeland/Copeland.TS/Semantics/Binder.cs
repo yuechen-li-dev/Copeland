@@ -11505,7 +11505,7 @@ public static partial class Binder
                         counts![pair.Key] = owner.ResolveInitializerCount(count, anchor);
                     }
                 }
-                if (counts is not null && counts.Sum(count => (long)count) > StaticEvaluationLimits.M1.MaximumArrayLength)
+                if (counts is not null && counts.Sum(count => (long)count) > StaticEvaluationLimits.Default.MaximumArrayLength)
                 {
                     owner.Report("COPE-INIT-0004", "Combined repetition exceeds the 65536-element initializer limit.", array.Syntax?.OpenBracketToken ?? new SyntaxToken(SyntaxKind.EllipsisToken, 0, "...", null));
                     Array.Fill(counts, 0);

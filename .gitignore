@@ -5,6 +5,12 @@ TestResults/
 *.user
 *.rsuser
 *.suo
+
+# Repository-local scratch work is never a maintained source or fixture tree.
+/.tmp/
+/tmp/
+/copeland-bench-fixes.patch
+
 artifacts/m7b/
 artifacts/m7e/
 artifacts/m8m/

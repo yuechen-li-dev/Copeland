@@ -1,5 +1,9 @@
 # CTS-JS-PERF-M1 — Production JavaScript representation
 
+> Historical measurements and paths. The maintained harness is now
+> [Copeland JIT benchmarks](../../../tools/Copeland.Benchmarks.Jit/README.md).
+> Historical tool names, timings, and protocol details below remain unchanged.
+
 ## Executive conclusion
 
 CTS-JS-PERF-M1 gives Copeland JavaScript a fair production representation. The M0 record/enum losses were overwhelmingly backend-emission cost, not a V8 limitation. On the same machine, runtime versions, authored sources, iteration counts, warm-up, and 30-round protocol, production V8 changes the typed reducer from 3312.712 ms to 8.077 ms median and record/array transformation from 2225.735 ms to 11.336 ms. All C#/validated-JS/production-JS checksums match exactly.

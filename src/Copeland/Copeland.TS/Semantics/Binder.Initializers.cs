@@ -35,7 +35,7 @@ public static partial class Binder
             }
             try
             {
-                var evaluator = new StaticEvaluator([], new Dictionary<FunctionSymbol, FunctionEffectSummary>(), StaticEvaluationLimits.M1);
+                var evaluator = new StaticEvaluator([], new Dictionary<FunctionSymbol, FunctionEffectSummary>(), StaticEvaluationLimits.Default);
                 if (evaluator.Evaluate(expression) is StaticPrimitiveValue { Value: int count })
                 {
                     if (count < 0)
@@ -43,7 +43,7 @@ public static partial class Binder
                         Report("COPE-INIT-0003", "Repetition count must be nonnegative; zero is valid.", anchor);
                         return 0;
                     }
-                    if (count > StaticEvaluationLimits.M1.MaximumArrayLength)
+                    if (count > StaticEvaluationLimits.Default.MaximumArrayLength)
                     {
                         Report("COPE-INIT-0004", "Repetition exceeds the 65536-element initializer limit.", anchor);
                         return 0;
@@ -80,7 +80,7 @@ public static partial class Binder
             {
                 length += element is RepeatedInitializerSyntax repeated ? BindInitializerCount(repeated) : 1;
             }
-            if (length > StaticEvaluationLimits.M1.MaximumArrayLength && syntax.Elements.Any(element => element is RepeatedInitializerSyntax))
+            if (length > StaticEvaluationLimits.Default.MaximumArrayLength && syntax.Elements.Any(element => element is RepeatedInitializerSyntax))
             {
                 Report("COPE-INIT-0004", "Combined repetition exceeds the 65536-element initializer limit.", syntax.OpenBracketToken);
                 return 0;
@@ -157,7 +157,7 @@ public static partial class Binder
                 counts.Add(count);
                 length += count;
             }
-            if (repeated && length > StaticEvaluationLimits.M1.MaximumArrayLength)
+            if (repeated && length > StaticEvaluationLimits.Default.MaximumArrayLength)
             {
                 Report("COPE-INIT-0004", "Combined repetition exceeds the 65536-element initializer limit.", syntax.OpenBracketToken);
                 for (int index = 0; index < counts.Count; index++)
