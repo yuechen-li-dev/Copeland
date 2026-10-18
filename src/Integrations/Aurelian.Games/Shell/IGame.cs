@@ -39,6 +39,12 @@ public interface IGame : IDisposable
     {
     }
 
+    /// <summary>
+    /// Input contexts active this frame, from <see cref="GameInputLayout.Contexts"/>. Games with one context keep the
+    /// default. Switch to a modal context while the game's own screen (dialogue, inventory) has focus.
+    /// </summary>
+    IReadOnlyCollection<string> InputContexts => [GameInputContext.Play];
+
     /// <summary>Deterministic simulation step at <see cref="GameManifest.TickRate"/> while playing.</summary>
     void FixedUpdate(GameTick tick);
 

@@ -9,6 +9,7 @@ using Aurelian.Graphics.Vulkan.Native3D;
 using Aurelian.Graphics.Vulkan.Presentation;
 using Aurelian.Graphics.Vulkan.Resources.Textures;
 using Aurelian.Machina;
+using Aurelian.NativeComposition;
 using Silk.NET.Core.Native;
 using Silk.NET.Windowing;
 using SkiaSharp;
@@ -55,6 +56,14 @@ public sealed class NativeGameGraphics : IDisposable
     }
 
     public ParticleBudget3D? ParticleBudget => Renderer.ParticleSystem?.Inspection;
+
+    /// <summary>
+    /// Game-owned native 2D layers (sprites, tiles, game UI), drawn after the optional 3D view and before the shell's HUD
+    /// and menus. Add them in <see cref="IGame.AttachGraphics"/> and remove them in <see cref="IGame.DetachGraphics"/>.
+    /// They are retargeted automatically when the surface is rebuilt. A purely 2D game returns no 3D view; the first
+    /// layer pass then clears to <see cref="Clear"/>.
+    /// </summary>
+    public NativeLayerStack Layers { get; } = new();
     private readonly Stack<IDisposable> owned = new();
     private readonly Stack<IDisposable> surfaceOwned = new();
     private readonly IWindow window;
@@ -282,6 +291,9 @@ public sealed class NativeGameGraphics : IDisposable
 
     public void Dispose()
     {
+        // Layers hold GPU resources created against the plant; release them while the device is still alive.
+        _ = Plant?.Vk.DeviceWaitIdle(Plant.Device);
+        Layers.Dispose();
         DisposeSurfaceResources();
         while (owned.TryPop(out IDisposable? item))
         {
@@ -370,6 +382,7 @@ public sealed class NativeGameGraphics : IDisposable
             Presenter = OwnSurface(new VulkanNativeSwapchainPresenter(Plant, Target, Swapchain));
             Menus = OwnSurface(new GameMenuNativePresenter(Plant, Target,
                 assets.Shader("AnalyticShape2D.v.ts"), assets.Shader("MsdfText.v.ts"), Font));
+            Layers.Retarget(Target);
         }
         catch
         {

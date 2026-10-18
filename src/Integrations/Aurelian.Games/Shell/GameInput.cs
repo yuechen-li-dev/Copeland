@@ -62,7 +62,24 @@ public sealed record GameControl(DeviceKind Device, int Code)
 /// the optional secondary control is a fixed alternative (for example arrow keys beside WASD).
 /// </summary>
 public sealed record GameInputAction(string Id, string Label, GameControl Primary, GameControl? Secondary = null,
-    bool Rebindable = true);
+    bool Rebindable = true)
+{
+    /// <summary>The input context the action belongs to (see <see cref="GameInputLayout.Contexts"/>).</summary>
+    public string Context { get; init; } = GameInputContext.Play;
+}
+
+/// <summary>
+/// A set of actions that is active together, such as free play, a dialogue box or an inventory screen. The game picks
+/// the active contexts every frame (<see cref="IGame.InputContexts"/>). Higher priority contexts see a key first.
+/// A modal context consumes the keys it binds, so a lower context never sees them (Space advances dialogue instead
+/// of dodging), and it may bind Escape: while it is active, Escape goes to the game (closing its screen) instead of
+/// opening the pause menu.
+/// </summary>
+public sealed record GameInputContext(string Id, int Priority = 0, bool Modal = false)
+{
+    /// <summary>The default context for free play.</summary>
+    public const string Play = "play";
+}
 
 public enum GameLookMode
 {
@@ -76,6 +93,21 @@ public enum GameLookMode
 /// <summary>Everything a game declares about its input. The shell owns devices, menus, pause, rebinding and persistence.</summary>
 public sealed record GameInputLayout(IReadOnlyList<GameInputAction> Actions, GameLookMode Look = GameLookMode.None)
 {
+    /// <summary>Declared contexts. Games with a single context can leave the default.</summary>
+    public IReadOnlyList<GameInputContext> Contexts { get; init; } = [new GameInputContext(GameInputContext.Play)];
+
+    public GameInputContext Context(string id)
+    {
+        foreach (GameInputContext context in Contexts)
+        {
+            if (context.Id == id)
+            {
+                return context;
+            }
+        }
+        throw new KeyNotFoundException($"The game input layout has no context '{id}'.");
+    }
+
     private static readonly Regex IdPattern = new("^[a-z][a-z0-9]*([.-][a-z0-9]+)*$", RegexOptions.CultureInvariant);
 
     /// <summary>Escape always opens the pause menu and cannot be bound to a game action.</summary>
@@ -96,9 +128,22 @@ public sealed record GameInputLayout(IReadOnlyList<GameInputAction> Actions, Gam
     public void Validate()
     {
         ArgumentNullException.ThrowIfNull(Actions);
+        ArgumentNullException.ThrowIfNull(Contexts);
         if (!Enum.IsDefined(Look))
         {
             throw new ArgumentException("Unknown look mode.");
+        }
+        var contextIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (GameInputContext context in Contexts)
+        {
+            if (context is null || context.Id is null || !IdPattern.IsMatch(context.Id) || !contextIds.Add(context.Id))
+            {
+                throw new ArgumentException("Input context ids must be unique lowercase names such as 'play' or 'dialogue'.");
+            }
+            if (context.Priority is < 0 or > 50)
+            {
+                throw new ArgumentException($"Input context '{context.Id}' priority must be between 0 and 50.");
+            }
         }
         var ids = new HashSet<string>(StringComparer.Ordinal);
         foreach (GameInputAction action in Actions)
@@ -111,23 +156,28 @@ public sealed record GameInputLayout(IReadOnlyList<GameInputAction> Actions, Gam
             {
                 throw new ArgumentException($"Game action '{action.Id}' needs a menu label.");
             }
-            ValidateControl(action.Id, action.Primary);
+            if (action.Context is null || !contextIds.Contains(action.Context))
+            {
+                throw new ArgumentException($"Game action '{action.Id}' names unknown input context '{action.Context}'.");
+            }
+            bool modal = Context(action.Context).Modal;
+            ValidateControl(action.Id, action.Primary, modal);
             if (action.Secondary is not null)
             {
-                ValidateControl(action.Id, action.Secondary);
+                ValidateControl(action.Id, action.Secondary, modal);
             }
         }
     }
 
-    private static void ValidateControl(string id, GameControl control)
+    private static void ValidateControl(string id, GameControl control, bool modal)
     {
         if (control is null || !control.IsValid)
         {
             throw new ArgumentException($"Game action '{id}' uses an unsupported control.");
         }
-        if (control == PauseControl)
+        if (control == PauseControl && !modal)
         {
-            throw new ArgumentException($"Game action '{id}' cannot use Escape; it is reserved for the pause menu.");
+            throw new ArgumentException($"Game action '{id}' cannot use Escape; outside modal contexts it opens the pause menu.");
         }
     }
 }
@@ -211,7 +261,7 @@ public enum GameRebindStatus
 /// </summary>
 public sealed class GameInputSystem : IDisposable
 {
-    private static readonly ActionMapId GameplayMap = new("Aurelian.Game");
+    private static readonly ActionMapId PauseMap = new("Aurelian.Shell.Pause");
     private static readonly ActionId PauseAction = new("Aurelian.Shell.Pause");
     private static readonly AxisId LookX = new("Aurelian.Shell.LookX");
     private static readonly AxisId LookY = new("Aurelian.Shell.LookY");
@@ -300,7 +350,8 @@ public sealed class GameInputSystem : IDisposable
         GameControl old = primary[action];
         foreach (GameInputAction other in Layout.Actions)
         {
-            if (other.Id != action && primary[other.Id] == control)
+            // The same key may mean different things in different contexts; conflicts are per context.
+            if (other.Id != action && other.Context == declared.Context && primary[other.Id] == control)
             {
                 if (!other.Rebindable)
                 {
@@ -343,10 +394,10 @@ public sealed class GameInputSystem : IDisposable
         candidates.Add(Controls.Mouse(MouseButton.Middle));
         // Escape stays a candidate so that pressing it ends capture; completion treats it as cancel.
         // Capture runs against the gameplay map, so the menu keys that started it are seeded as already held.
-        Adapter.SetContexts(GameplayMap);
+        Adapter.SetContexts(MapFor(declared.Context));
         capture = engine.StartRebind(new RebindRequest
         {
-            Map = GameplayMap,
+            Map = MapFor(declared.Context),
             BindingNameOrSlot = BindingName(action),
             CandidateButtons = candidates,
             DisallowConflictsInSameMap = false,
@@ -376,12 +427,24 @@ public sealed class GameInputSystem : IDisposable
     }
 
     /// <summary>Advance InputMan for one host frame and read the logical result.</summary>
-    internal GameInputFrame Frame(TimeSpan elapsed, bool gameplay)
+    internal GameInputFrame Frame(TimeSpan elapsed, bool gameplay, IReadOnlyCollection<string>? contexts = null)
     {
         total += elapsed;
         if (capture is null)
         {
-            Adapter.SetContexts(gameplay ? GameplayMap : GameMenuBindings.Map);
+            if (gameplay)
+            {
+                var maps = new List<ActionMapId> { PauseMap };
+                foreach (string context in contexts ?? [GameInputContext.Play])
+                {
+                    maps.Add(MapFor(Layout.Context(context).Id));
+                }
+                Adapter.SetContexts([.. maps]);
+            }
+            else
+            {
+                Adapter.SetContexts(GameMenuBindings.Map);
+            }
         }
         Adapter.BeginFrame(new AurelianHostFrame(++sequence, elapsed, total));
         InputFrame frame = Adapter.CurrentFrame;
@@ -501,10 +564,10 @@ public sealed class GameInputSystem : IDisposable
             }
             candidate[action.Id] = item.Control;
         }
-        var used = new HashSet<GameControl>();
+        var used = new HashSet<(string Context, GameControl Control)>();
         foreach (GameInputAction action in Layout.Actions)
         {
-            if (!used.Add(candidate[action.Id]))
+            if (!used.Add((action.Context, candidate[action.Id])))
             {
                 throw new ArgumentException($"{candidate[action.Id].DisplayName} is bound to more than one action.");
             }
@@ -526,27 +589,41 @@ public sealed class GameInputSystem : IDisposable
 
     private InputProfile BuildProfile()
     {
-        var bindings = new List<Binding>
+        var maps = new List<ActionMapDefinition>
         {
-            Bind.Action(GameInputLayout.PauseControl.ToControlKey(), PauseAction),
+            // Escape opens the pause menu unless an active modal context consumed it first.
+            Input.Map(PauseMap, 5, [Bind.Action(GameInputLayout.PauseControl.ToControlKey(), PauseAction)], canConsume: false),
+            Input.Map(GameMenuBindings.Map, 100, GameMenuBindings.CreateBindings()),
         };
-        foreach (GameInputAction action in Layout.Actions)
+        foreach (GameInputContext context in Layout.Contexts)
         {
-            var id = new ActionId(ActionName(action.Id));
-            bindings.Add(Bind.Action(primary[action.Id].ToControlKey(), id, ButtonEdge.Down, name: BindingName(action.Id)));
-            if (action.Secondary is not null && action.Secondary != primary[action.Id])
+            var bindings = new List<Binding>();
+            ConsumeMode consume = context.Modal ? ConsumeMode.ControlOnly : ConsumeMode.None;
+            foreach (GameInputAction action in Layout.Actions.Where(item => item.Context == context.Id))
             {
-                bindings.Add(Bind.Action(action.Secondary.ToControlKey(), id, ButtonEdge.Down, name: BindingName(action.Id) + ".secondary"));
+                var id = new ActionId(ActionName(action.Id));
+                bindings.Add(Bind.Action(primary[action.Id].ToControlKey(), id, ButtonEdge.Down, consume: consume,
+                    name: BindingName(action.Id)));
+                if (action.Secondary is not null && action.Secondary != primary[action.Id])
+                {
+                    bindings.Add(Bind.Action(action.Secondary.ToControlKey(), id, ButtonEdge.Down, consume: consume,
+                        name: BindingName(action.Id) + ".secondary"));
+                }
             }
+            if (context.Id == GameInputContext.Play && Layout.Look == GameLookMode.CapturedMouse)
+            {
+                float pitch = Settings.InvertY ? Settings.MouseSensitivity : -Settings.MouseSensitivity;
+                bindings.Add(Bind.DeltaAxis(Controls.Mouse(MouseAxis.DeltaX), LookX, Settings.MouseSensitivity));
+                bindings.Add(Bind.DeltaAxis(Controls.Mouse(MouseAxis.DeltaY), LookY, pitch));
+            }
+            // Modal contexts sit above the pause map so they can claim Escape.
+            int priority = context.Modal ? 10 + context.Priority : context.Priority;
+            maps.Add(Input.Map(MapFor(context.Id), priority, bindings, canConsume: context.Modal));
         }
-        if (Layout.Look == GameLookMode.CapturedMouse)
-        {
-            float pitch = Settings.InvertY ? Settings.MouseSensitivity : -Settings.MouseSensitivity;
-            bindings.Add(Bind.DeltaAxis(Controls.Mouse(MouseAxis.DeltaX), LookX, Settings.MouseSensitivity));
-            bindings.Add(Bind.DeltaAxis(Controls.Mouse(MouseAxis.DeltaY), LookY, pitch));
-        }
-        return Input.Profile([Input.Map(GameplayMap, 0, bindings), Input.Map(GameMenuBindings.Map, 100, GameMenuBindings.CreateBindings())]);
+        return Input.Profile([.. maps]);
     }
+
+    private static ActionMapId MapFor(string context) => new("Aurelian.Game." + context);
 
     private static string ActionName(string action) => "Game." + action;
     private static string BindingName(string action) => "Game." + action + ".primary";

@@ -53,9 +53,45 @@ public sealed class MyGame : IGame
 | `BuildHud(GameHud)` | no | Panels and text in logical units, drawn while playing |
 | `Saves` | no | A `GameSaveSchema` for typed world saves; without one the menus hide save/load |
 | `Observe(GameFacts)` | no | String facts that playtest scripts can `assert` |
-| `AttachGraphics` / `PrepareGpuGeometry` / `DetachGraphics` | no | Native-only hooks for lighting assets, environments and GPU-generated geometry |
+| `InputContexts` | no | Input contexts active this frame (default: `play`); see [Input contexts](#input-contexts) |
+| `AttachGraphics` / `PrepareGpuGeometry` / `DetachGraphics` | no | Native-only hooks for lighting assets, environments, GPU-generated geometry and 2D layers |
 
 `GameTick.Input` is shell-latched. A tap that starts and ends between two simulation ticks still reports `WasPressed` on the next tick, exactly once. `IsDown` is the current state. `Update` sees per-frame edges and the mouse-look delta. A game should consume look in one place: `Update` for responsiveness, or `FixedUpdate` for determinism.
+
+## Input contexts
+
+A layout can group actions into contexts, such as free play, a dialogue box or an inventory screen. Every frame the
+game returns the active ones from `InputContexts`.
+
+```csharp
+new GameInputLayout(
+[
+    new("dodge", "Dodge", GameControl.Key(KeyboardKey.Space)),
+    new("talk", "Talk", GameControl.Key(KeyboardKey.E)),
+    new("advance", "Next line", GameControl.Key(KeyboardKey.Space)) { Context = "dialogue" },
+    new("close", "Close", GameControl.Key(KeyboardKey.Escape), Rebindable: false) { Context = "dialogue" },
+])
+{
+    Contexts = [new GameInputContext(GameInputContext.Play), new GameInputContext("dialogue", Modal: true)],
+};
+
+public IReadOnlyCollection<string> InputContexts => talking ? ["dialogue"] : [GameInputContext.Play];
+```
+
+- Each context is its own InputMan map, and contexts with higher `Priority` see a key first.
+- A modal context consumes the keys it binds, so a lower context never sees them. Above, Space advances dialogue and does not also dodge.
+- A modal context may bind Escape. While it is active, Escape goes to the game, closing its screen, instead of opening the pause menu. Outside modal contexts Escape stays reserved.
+- Duplicate keys and rebinding swaps are resolved per context, so the same key can mean different things in different contexts.
+
+## 2D layers
+
+`View` draws an optional 3D scene. A 2D game, or a 3D game with its own 2D presentation, adds native layers
+(`INativeLayerPresenter`: ordered sprite, tile or UI passes) to `NativeGameGraphics.Layers` in `AttachGraphics` and
+removes them in `DetachGraphics`.
+
+- Layers draw in ascending order after the 3D view and before the shell's HUD and menus.
+- When `View` returns null, the first layer pass clears to `NativeGameGraphics.Clear`.
+- The shell retargets layers whenever it rebuilds the surface (resize, resolution or vsync change).
 
 ## What the shell owns
 
@@ -108,4 +144,4 @@ A rewind also restores the preferences the recorded inputs ran under, in memory 
 
 - On a real display, exclusive fullscreen at a non-native resolution asks GLFW for the closest video mode. The headless Xvfb proof cannot change modes and reports the monitor's size.
 - Gamepad controls can be declared (`GameControl.Gamepad`), but capture-rebinding only offers keyboard keys and mouse buttons.
-- Beacon, TinyFarm, Mossward, Sunkill and CharacterLab still use their own bootstraps. The FPS starter runs on the shell (`GameStarter.Run` builds a `StarterGame : IGame`), and so will new games.
+- Beacon, Mossward, Sunkill and CharacterLab still use their own bootstraps. TinyFarm is being moved onto the shell. The FPS starter runs on the shell (`GameStarter.Run` builds a `StarterGame : IGame`), and so will new games.

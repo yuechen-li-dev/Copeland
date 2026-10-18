@@ -152,7 +152,7 @@ public sealed class GameSession : IDisposable
         {
             throw new ArgumentOutOfRangeException(nameof(elapsed));
         }
-        GameInputFrame frame = Input.Frame(elapsed, Playing);
+        GameInputFrame frame = Input.Frame(elapsed, Playing, Game.InputContexts);
         if (Screen == "rebind")
         {
             if (!Input.Capturing)

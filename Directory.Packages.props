@@ -8,7 +8,7 @@
   <ItemGroup>
     <PackageVersion Include="BepuPhysics" Version="2.4.0" />
     <PackageVersion Include="NLayer" Version="1.16.0" />
-    <!-- Deliverance.Core references 3.1.8, which has advisory GHSA-qhrr-8q5h-9q3h. -->
+    <!-- Keeps every project at or above the fix for GHSA-qhrr-8q5h-9q3h (first seen through Deliverance.Core 3.1.8). -->
     <PackageVersion Include="MessagePack" Version="3.1.12" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />

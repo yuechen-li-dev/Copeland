@@ -476,8 +476,13 @@ public static class GameApp
             }
             else
             {
-                // No 3D view: the overlay pass clears the target itself.
+                // No 3D view: the first pass that draws clears the target itself.
                 clear = graphics.Clear;
+            }
+            if (graphics.Layers.Count > 0)
+            {
+                graphics.Layers.Present(sequence + 1, clear);
+                clear = null;
             }
             var overlay = session.Menu is { } menu
                 ? graphics.Menus.Render(menus, menu, session.SelectedIndex, capture, clear)
