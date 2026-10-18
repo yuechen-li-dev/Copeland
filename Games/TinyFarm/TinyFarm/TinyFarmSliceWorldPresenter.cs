@@ -28,7 +28,7 @@ internal sealed partial class TinyFarmWorldPresenter
                 };
                 double feetY = item.Position.Y + item.Height;
                 worldSpriteScratch.Add(new WorldSprite(new WorldPresentationId("opening-prop-" + item.Id.Value),
-                    new WorldPoint2(item.Position.X + item.Width / 2.0, feetY), sliceArt!.Props.Id,
+                    new WorldPoint2(item.Position.X + item.Width / 2.0, feetY), sliceArt.Props.Id,
                     pose.ToString(), null, elapsed, false, 1, Native2DTint.White,
                     item.Kind == SceneObjectKind.Plot ? WorldSpriteLayer.Ground : WorldSpriteLayer.Actors, feetY, false));
             }
@@ -47,7 +47,7 @@ internal sealed partial class TinyFarmWorldPresenter
                     double x = item.Position.X + .75 + section * 1.5;
                     double feetY = item.Position.Y + 1;
                     worldSpriteScratch.Add(new WorldSprite(new WorldPresentationId("opening-fence-" + section),
-                        new WorldPoint2(x, feetY), sliceArt!.Props.Id, "3", null, elapsed, false, 1,
+                        new WorldPoint2(x, feetY), sliceArt.Props.Id, "3", null, elapsed, false, 1,
                         Native2DTint.White, WorldSpriteLayer.Actors, feetY, false));
                 }
             }
@@ -55,9 +55,25 @@ internal sealed partial class TinyFarmWorldPresenter
             {
                 AddTree("opening-" + item.Id.Value, item.Position.X + .5, item.Position.Y + 1, elapsed, .72);
             }
+            else if (SlotFor(item) is string slot)
+            {
+                AddSlot("object-" + item.Id.Value, slot, item.Position.X + item.Width / 2.0, item.Position.Y + item.Height, elapsed);
+            }
+        }
+        foreach (TinyFarmItemView item in frame.GroundItems)
+        {
+            AddSlot("ground-item-" + item.Id.Value, "item." + item.Id.Value, item.Position.X / 1024.0,
+                item.Position.Y / 1024.0 + .3, elapsed);
+        }
+        if (frame.ActiveScene == TinyFarmSceneIds.Riverside)
+        {
+            // Presentation-only: the bench Elias sits on. It stands just behind the anchor so he sits in front of it.
+            ScenePosition bench = game.Definitions.Scenes.GetAnchor(TinyFarmAnchorIds.EliasRiversideBench).Position;
+            AddSlot("riverside-bench", "prop.riverside-bench", bench.XUnits / 1024.0, bench.YUnits / 1024.0 - .05, elapsed);
         }
         // Canopies outside the walking area frame the scene. They do not invent trunk collision.
-        if (frame.ActiveScene == TinyFarmSceneIds.Farm || frame.ActiveScene == TinyFarmSceneIds.Overworld)
+        if (frame.ActiveScene == TinyFarmSceneIds.Farm || frame.ActiveScene == TinyFarmSceneIds.Overworld
+            || frame.ActiveScene == TinyFarmSceneIds.Riverside)
         {
             for (int x = 0; x <= frame.SceneWidth; x += 3)
             {
@@ -65,6 +81,25 @@ internal sealed partial class TinyFarmWorldPresenter
                 AddTree("opening-south-" + x, x, frame.SceneHeight + 2.4, elapsed, .74);
             }
         }
+    }
+
+    /// <summary>The art slot that dresses a scene object, if any (see TinyFarmArtSlots for the naming).</summary>
+    private string? SlotFor(TinyFarmSceneObjectView item)
+    {
+        string id = item.Kind == SceneObjectKind.Forage
+            ? "forage." + item.Id.Value + (item.Depleted ? ".depleted" : "")
+            : "object." + item.Id.Value;
+        return artSlots.TryGet(id, out _) ? id : null;
+    }
+
+    private void AddSlot(string stableId, string slot, double x, double feetY, TimeSpan elapsed)
+    {
+        if (!artSlots.TryGet(slot, out SpriteAtlasResource resource))
+        {
+            return;
+        }
+        worldSpriteScratch.Add(new WorldSprite(new WorldPresentationId(stableId), new WorldPoint2(x, feetY), resource.Id,
+            "0", null, elapsed, false, 1, Native2DTint.White, WorldSpriteLayer.Actors, feetY, false));
     }
 
     private void PresentSliceGround(NativeLayerFrameContext context, TinyFarmFrame frame, bool cave, bool house)
@@ -81,11 +116,11 @@ internal sealed partial class TinyFarmWorldPresenter
             context.Present(painterly, pass => pass.SubmitQuad(new NativeQuadSubmission(
                 new Native2DRect(left, top, frame.SceneWidth * scale, frame.SceneHeight * scale),
                 cave ? new Native2DUvRect(.5f, 0, 1, 1) : new Native2DUvRect(0, 0, .5f, 1),
-                painterlyResources.Get(sliceArt!.Floors.Id), Native2DTint.White)));
+                painterlyResources.Get(sliceArt.Floors.Id), Native2DTint.White)));
         }
         if (frame.ActiveScene == TinyFarmSceneIds.Overworld)
         {
-            foreach (SpriteAtlasResource patch in new[] { sliceArt!.Bank, sliceArt.River })
+            foreach (SpriteAtlasResource patch in new[] { sliceArt.Bank, sliceArt.River })
             {
                 context.Present(painterly, pass => pass.SubmitQuad(new NativeQuadSubmission(
                     new Native2DRect(left, top, frame.SceneWidth * scale, frame.SceneHeight * scale),
@@ -94,7 +129,7 @@ internal sealed partial class TinyFarmWorldPresenter
         }
         if (frame.ActiveScene == TinyFarmSceneIds.Farm || frame.ActiveScene == TinyFarmSceneIds.Overworld)
         {
-            SpriteAtlasResource path = frame.ActiveScene == TinyFarmSceneIds.Farm ? sliceArt!.FarmPath : sliceArt!.WoodPath;
+            SpriteAtlasResource path = frame.ActiveScene == TinyFarmSceneIds.Farm ? sliceArt.FarmPath : sliceArt.WoodPath;
             context.Present(painterly, pass => pass.SubmitQuad(new NativeQuadSubmission(
                 new Native2DRect(left, top, frame.SceneWidth * scale, frame.SceneHeight * scale),
                 Native2DUvRect.Full, painterlyResources.Get(path.Id), Native2DTint.White)));
@@ -104,7 +139,7 @@ internal sealed partial class TinyFarmWorldPresenter
             // Painted wooden deck lies above the bank and water, within the semantic dry crossing.
             context.Present(painterly, pass => pass.SubmitQuad(new NativeQuadSubmission(
                 new Native2DRect(left + 13.8f * scale, top + 7.15f * scale, 2.4f * scale, 1.7f * scale),
-                new Native2DUvRect(0, 0, .5f, 1), painterlyResources.Get(sliceArt!.Floors.Id),
+                new Native2DUvRect(0, 0, .5f, 1), painterlyResources.Get(sliceArt.Floors.Id),
                 new Native2DTint(.85f, .9f, .8f, 1))));
         }
         context.Present(shapes, pass =>
@@ -123,6 +158,11 @@ internal sealed partial class TinyFarmWorldPresenter
                     continue;
                 }
                 if (item.Id.Value.StartsWith("opening-river-", StringComparison.Ordinal) || item.Id.Value == "hill")
+                {
+                    continue;
+                }
+                // Riverside water is the field; dressed objects are sprites.
+                if (item.Id.Value == "river" || SlotFor(item) is not null)
                 {
                     continue;
                 }
@@ -165,7 +205,7 @@ internal sealed partial class TinyFarmWorldPresenter
                 float y = plot.Position.Y + .85f;
                 FarmPlotState truth = game.State.FarmPlots.Single(candidate => candidate.Id == plot.Id);
                 bool ripe = truth.GrowthStage >= game.Definitions.Crop(truth.Crop!.Value).GrowthDays;
-                SpriteFrameMetadata pose = sliceArt!.TurnipPose;
+                SpriteFrameMetadata pose = sliceArt.TurnipPose;
                 float sourceFraction = ripe ? 1 : .58f;
                 float size = (float)pose.Scale * scale / 48 * (ripe ? 1 : .6f);
                 float width = pose.Width * size;
@@ -180,30 +220,6 @@ internal sealed partial class TinyFarmWorldPresenter
         });
         context.Present(shapes, pass =>
         {
-            foreach (TinyFarmItemView item in frame.GroundItems)
-            {
-                float x = item.Position.X / 1024.0f;
-                float y = item.Position.Y / 1024.0f;
-                bool card = game.State.Item(item.Id).TeachesRecipe is not null;
-                Tile(pass, x - .22f, y - .25f, .44f, .5f, card ? 0xF4DEAEFF : 0x82BB77FF, 2);
-                if (card)
-                {
-                    Tile(pass, x - .14f, y - .12f, .28f, .04f, 0x74624AFF, 1);
-                    Tile(pass, x - .14f, y + .02f, .2f, .04f, 0x74624AFF, 1);
-                }
-            }
-            foreach (TinyFarmSceneObjectView item in frame.SceneObjects ?? [])
-            {
-                if (item.Id.Value == TinyFarmCraftingContent.SaltOutcrop.Value)
-                {
-                    Tile(pass, item.Position.X + .08f, item.Position.Y + .3f, .82f, .55f, 0x899488FF, 8);
-                    if (!item.Depleted)
-                    {
-                        Tile(pass, item.Position.X + .2f, item.Position.Y + .18f, .32f, .3f, 0xE1DCCBFF, 3);
-                        Tile(pass, item.Position.X + .55f, item.Position.Y + .38f, .23f, .24f, 0xF0E8D6FF, 3);
-                    }
-                }
-            }
             foreach (TinyFarmPlotView plot in frame.Plots)
             {
                 FarmPlotState truth = game.State.FarmPlots.Single(candidate => candidate.Id == plot.Id);

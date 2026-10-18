@@ -10,6 +10,7 @@
     <PackageReference Include="Tomlyn" />
     <PackageReference Include="SharpGLTF.Core" />
     <PackageReference Include="SkiaSharp" />
+    <PackageReference Include="Svg.Skia" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />

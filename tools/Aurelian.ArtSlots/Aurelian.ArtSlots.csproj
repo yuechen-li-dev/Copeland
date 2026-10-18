@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Description>Exports art slot placeholders, a contact sheet and the pending worklist for whoever paints final art.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Aurelian/Aurelian.Assets/Aurelian.Assets.csproj" />
+  </ItemGroup>
+</Project>

@@ -6,6 +6,7 @@ Aurelian owns engine lifecycle, world and game-object models, actuation, frame c
 
 - [Compose a C# game with the starter](game-starter.md): project reference, `GameStarter` entry point, concepts, options, and headless construction.
 - [Aetheris boundary](aetheris-boundary.md): which bridge projects may use Aetheris, and why the core, the shell and 2D games never do.
+- [Art slots](art-slots.md): SVG placeholders with briefs that painted art replaces without code changes, and the exporter for the art pass.
 - [Build a game on the shared shell](game-shell.md): `IGame`, `GameApp.Run`, input, menus, saves, audio, settings, and playtesting.
 - [Choose the runtime execution mode](runtime-execution-modes.md): native host, context-free frame loop, finite harness, and caller-owned diagnostic sinks.
 - [Compose document scenes and reusable fragments](scene-composition.md).

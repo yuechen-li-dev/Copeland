@@ -34,7 +34,7 @@ public sealed class TinyFarmApp : IGame
     private TinyFarmNativeOverlay? overlay;
     private TinyFarmPortrait? portrait;
     private TinyFarmFrame frame;
-    private TinyFarmPresentationLayout layout = new(1920, 1080, Legacy: false, Opening: true);
+    private TinyFarmPresentationLayout layout = new(1920, 1080);
     private Vector2 lastPointer = new(-1, -1);
     private bool musicStarted;
     private long uiSounds;
@@ -243,28 +243,17 @@ public sealed class TinyFarmApp : IGame
         graphics.Clear = new(0.11f, 0.16f, 0.12f, 1);
         GameAssets assets = context?.Assets ?? new GameAssets();
         TinyFarmSpriteAtlas atlas = TinyFarmSpriteAtlas.Load(Path.Combine(assetDirectory, "M11", "tinyfarm-sprite-atlas-source.png"));
-        TinyFarmM24Assets painterly = TinyFarmM24Assets.Load(Path.Combine(assetDirectory, "m24"), legacy: false);
+        TinyFarmM24Assets painterly = TinyFarmM24Assets.Load(Path.Combine(assetDirectory, "m24"));
+        var artSlots = new TinyFarmArtSlots(Path.Combine(assetDirectory, "art", "art-slots.json"));
         world = new TinyFarmWorldPresenter(new LayerId("tinyfarm-world"), graphics.Plant,
             assets.Shader("AnalyticShape2D.v.ts"), assets.Shader("SoftShockwave.v.ts"),
             TinyFarmShaders.Compile(Path.Combine(assetDirectory, "Shaders", "ForwardTextured.v.ts")),
             TinyFarmShaders.Compile(Path.Combine(assetDirectory, "Shaders", "PainterlyWater.v.ts")),
-            atlas, painterly, game, () => frame, () => layout);
-
-        string profilePath = Path.Combine(assetDirectory, "M19", "mossward-tree.profile.tsx");
-        ProfileCompositionCompilationResult profile = ProfileTsxCompiler.CompileComposition(File.ReadAllText(profilePath), profilePath);
-        if (!profile.Success)
-        {
-            throw new InvalidOperationException(string.Join("; ", profile.Diagnostics.Select(item => item.Message)));
-        }
-        ProfileNativeCompileResult profileNative = ProfileNativeCompiler.Compile(profile.Composition!, profilePath);
-        if (!profileNative.Success)
-        {
-            throw new InvalidOperationException(string.Join("; ", profileNative.Diagnostics.Select(item => item.Message)));
-        }
+            atlas, painterly, artSlots, game, () => frame, () => layout);
         TinyFarmNativeUiFont font = TinyFarmNativeUiFont.Create(Path.Combine(assetDirectory, "SpaceMono-Regular.ttf"));
         overlay = new TinyFarmNativeOverlay(new LayerId("tinyfarm-hud"), graphics.Plant,
-            assets.Shader("AnalyticShape2D.v.ts"), assets.Shader("MsdfText.v.ts"), assets.Shader("ProfileMsdf.v.ts"),
-            font, profileNative.Resource!, () => ui.Resources(frame), game, () => layout, () => world.LastCamera);
+            assets.Shader("AnalyticShape2D.v.ts"), assets.Shader("MsdfText.v.ts"),
+            font, () => ui.Resources(frame), game, () => layout, () => world.LastCamera);
         portrait = new TinyFarmPortrait(new LayerId("tinyfarm-portrait"), graphics.Plant,
             TinyFarmShaders.Compile(Path.Combine(assetDirectory, "Shaders", "ForwardTextured.v.ts")), game,
             Path.Combine(assetDirectory, "mara-dialogue.png"), () => layout);
