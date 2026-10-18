@@ -10,7 +10,8 @@ namespace TinyFarm;
 /// TinyFarm's controls as shell actions. The shell owns devices, rebinding and the pause menu; four contexts mirror
 /// TinyFarm's InputMan maps: free play, its own menus (inventory, stats, stove, chest), dialogue and the pockets search
 /// box. The modal contexts claim Escape, so it closes TinyFarm's screen instead of pausing. The layout reads the
-/// pointer: menus are clickable, left click uses the selected tool, right click interacts and a click advances dialogue.
+/// pointer: menus are clickable, left click uses the selected tool, right click walks to a spot (and uses what is there),
+/// and a click advances dialogue.
 /// </summary>
 public static class TinyFarmShellInput
 {
@@ -24,7 +25,7 @@ public static class TinyFarmShellInput
         new("move.down", "Move down", GameControl.Key(KeyboardKey.S), GameControl.Key(KeyboardKey.ArrowDown)),
         new("move.left", "Move left", GameControl.Key(KeyboardKey.A), GameControl.Key(KeyboardKey.ArrowLeft)),
         new("move.right", "Move right", GameControl.Key(KeyboardKey.D), GameControl.Key(KeyboardKey.ArrowRight)),
-        new("interact", "Talk / use / enter", GameControl.Key(KeyboardKey.E), GameControl.Mouse(MouseButton.Secondary)) { Gamepad = GameControl.Gamepad(GamepadButton.South) },
+        new("interact", "Talk / use / enter", GameControl.Key(KeyboardKey.E)) { Gamepad = GameControl.Gamepad(GamepadButton.South) },
         new("use-tool", "Use selected tool", GameControl.Key(KeyboardKey.K), GameControl.Mouse(MouseButton.Primary)) { Gamepad = GameControl.Gamepad(GamepadButton.North) },
         new("sword", "Swing sword", GameControl.Key(KeyboardKey.J)) { Gamepad = GameControl.Gamepad(GamepadButton.West) },
         new("dodge", "Dodge", GameControl.Key(KeyboardKey.Space)) { Gamepad = GameControl.Gamepad(GamepadButton.East) },
@@ -110,8 +111,9 @@ public static class TinyFarmShellInput
     /// </summary>
     /// <param name="extraPresses">TinyFarm actions the app raises itself this tick (for example a hotbar slot picked
     /// with the mouse wheel).</param>
+    /// <param name="walk">Movement chosen by click-to-go, replacing the keys and stick while it lasts.</param>
     public static InputFrame Frame(GameInputState input, long sequence, float seconds,
-        IReadOnlyCollection<ActionId>? extraPresses = null)
+        IReadOnlyCollection<ActionId>? extraPresses = null, Vector2? walk = null)
     {
         var actions = new Dictionary<ActionId, ActionValue>();
         foreach (ActionId extra in extraPresses ?? [])
@@ -136,6 +138,10 @@ public static class TinyFarmShellInput
         }
         // TinyFarm's move axis is +X right and +Y up (WASD), like InputMan's Wasd helper.
         var move = new Vector2(input.Axis("move.left", "move.right"), input.Axis("move.down", "move.up")) + input.LeftStick;
+        if (walk is { } steered)
+        {
+            move = steered;
+        }
         if (move.LengthSquared() > 1)
         {
             move = Vector2.Normalize(move);

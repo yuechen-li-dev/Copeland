@@ -117,6 +117,14 @@ public void FixedUpdate(GameTick tick)
 - Anything typed over a shell menu is dropped. A screen change releases held buttons but keeps the cursor position.
 - `IGame.ActionPoint(action, surface)` places the game's own clickable elements, so playtest scripts can `click-action` them by name. While playing, the `pointer`, `click`, `scroll` and `text` steps go to the game.
 
+## Importing pre-shell saves
+
+A game that had its own save format before moving to the shell can set `Legacy` on its `GameSaveSchema<T>`: a
+function that reads the old save and returns it as the current snapshot type, or null. When the menu slot (`slot-1`)
+is empty at startup, the shell calls it once, validates the result and writes it there with a fresh clock, so Load
+Game offers it. `GameSession.ImportedLegacySave` reports that this happened. TinyFarm imports its last pre-shell
+slot this way.
+
 ## Gamepad
 
 The first connected gamepad works everywhere without game code:

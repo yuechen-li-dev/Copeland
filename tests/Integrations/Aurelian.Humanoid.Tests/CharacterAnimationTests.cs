@@ -25,7 +25,15 @@ public sealed class CharacterAnimationTests
         var state = definition.CreateState(placement);
         Assert.InRange(MathF.Abs(state.Heading - .7f), 0, .00001f);
         Assert.Equal(new Vector3(2, 0, -3), state.Position);
-        Assert.Equal(world, definition.WorldTransform(state, placement));
+        // Heading round-trips through atan2 and sin/cos, so allow a last-bit difference (libm varies by platform).
+        Matrix4x4 rebuilt = definition.WorldTransform(state, placement);
+        for (int row = 0; row < 4; row++)
+        {
+            for (int column = 0; column < 4; column++)
+            {
+                Assert.Equal(world[row, column], rebuilt[row, column], 5);
+            }
+        }
         Assert.Throws<InvalidDataException>(() => definition.ValidatePlacement(
             placement with { WorldTransform = Matrix4x4.CreateScale(2) }));
         Assert.Throws<InvalidDataException>(() => definition.ValidatePlacement(

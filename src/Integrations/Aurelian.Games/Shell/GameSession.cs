@@ -97,7 +97,17 @@ public sealed class GameSession : IDisposable
                 GameShellJsonContext.Default.GameShellSave, ValidateSave, saves.Version,
                 saves.Migrations.Select(EnvelopeMigration).ToArray());
             Context.SaveRequested = slot => requestedSave = slot;
-            Persist(async () => slotExists = await worldStore.ExistsAsync(QuickSlot));
+            Persist(async () =>
+            {
+                slotExists = await worldStore.ExistsAsync(QuickSlot);
+                if (!slotExists && saves.CaptureLegacy() is { } legacy)
+                {
+                    // A fresh clock: the old save format had no shell cadence.
+                    await worldStore.SaveAsync(QuickSlot, new GameShellSave(legacy, NewScheduler().InspectAccumulators(), 0, 0));
+                    slotExists = true;
+                    ImportedLegacySave = true;
+                }
+            });
         }
         // Loaded last so that a rejected preferences file remains the visible persistence error.
         LoadSettings();
@@ -107,6 +117,9 @@ public sealed class GameSession : IDisposable
     }
 
     public GameManifest Manifest { get; }
+
+    /// <summary>True when startup imported the game's pre-shell save into the empty menu slot.</summary>
+    public bool ImportedLegacySave { get; private set; }
     public IGame Game => game;
     public GameContext Context { get; }
     public GameInputSystem Input { get; }

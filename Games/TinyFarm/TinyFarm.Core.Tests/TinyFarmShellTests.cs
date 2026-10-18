@@ -50,7 +50,7 @@ public sealed class TinyFarmShellTests
             Hold(session, KeyboardKey.S, 30);
             Assert.NotEqual(saved, TinyFarmSemanticHash.Compute(app.Game.State));
         }
-        using var reopened = new GameSession(new TinyFarmApp(), directory);
+        using var reopened = new GameSession(new TinyFarmApp(legacySaveDirectory: NoLegacySaves), directory);
         await reopened.LoadAsync(GameSession.QuickSlot);
         var restored = (TinyFarmApp)reopened.Game;
         Assert.Equal(saved, TinyFarmSemanticHash.Compute(restored.Game.State));
@@ -122,15 +122,37 @@ public sealed class TinyFarmShellTests
         session.Advance(Tick);
         Assert.Equal(before % 4 + 1, app.Game.State.SelectedHotbarSlot);
 
-        // Mara stands beside the garden at the start; walk next to her and right-click to talk.
-        app.Game.Execute(new SpatialMoveIntent(0, 0, 0));
-        var walkthrough = new TinyFarm.InputMan.TinyFarmWalkthrough(app.Game);
-        walkthrough.Approach(app.Game.State.ActorScene(TinyFarmIds.Mara).WorldPosition);
-        MouseClick(session, MouseButton.Secondary);
+        // Clicking Mara walks over to her (through ordinary movement ticks) and talks.
+        Assert.True(app.WalkTo(app.Game.State.ActorScene(TinyFarmIds.Mara).WorldPosition));
+        for (int tick = 0; tick < 600 && !app.Game.Dialogue.IsActive; tick++)
+        {
+            session.Advance(Tick);
+        }
         Assert.True(app.Game.Dialogue.IsActive);
+        Assert.False(app.Walking);
         string? line = app.Game.Dialogue.Presentation?.OperationId;
         MouseClick(session, MouseButton.Primary);
         Assert.NotEqual(line, app.Game.Dialogue.Presentation?.OperationId);
+    }
+
+    [Fact]
+    public void ClickToGoWalksToAPointAndKeysCancelIt()
+    {
+        using GameSession session = Start(out TinyFarmApp app);
+        var goal = ScenePosition.FromGrid(new GridPosition(14, 9));
+        Assert.True(app.WalkTo(goal));
+        for (int tick = 0; tick < 900 && app.Walking; tick++)
+        {
+            session.Advance(Tick);
+        }
+        ScenePosition reached = app.Game.State.ActorScene(TinyFarmIds.Player).WorldPosition;
+        Assert.False(app.Walking);
+        Assert.InRange(Math.Abs(reached.XUnits - goal.XUnits) + Math.Abs(reached.YUnits - goal.YUnits), 0, 512);
+
+        Assert.True(app.WalkTo(ScenePosition.FromGrid(new GridPosition(3, 9))));
+        session.Advance(Tick);
+        Hold(session, KeyboardKey.W, 2);
+        Assert.False(app.Walking);
     }
 
     [Fact]
@@ -157,6 +179,44 @@ public sealed class TinyFarmShellTests
         Pad(session, GamepadButton.South);
         Assert.True(app.Game.Dialogue.IsActive);
     }
+
+    [Fact]
+    public async Task ThePreShellSaveIsImportedIntoTheEmptyMenuSlotOnce()
+    {
+        string legacy = Path.Combine(Path.GetTempPath(), "tinyfarm-legacy", Guid.NewGuid().ToString("N"));
+        var old = new TinyFarmGame(new Deliverance.Core.Storage.FileSaveStore(legacy), TinyFarmChapter.Shipping);
+        old.Start();
+        old.Execute(new SpatialMoveIntent(1, 0, 512));
+        Assert.True(old.Save("sleeping-spring-a3"));
+        ScenePosition oldPosition = old.State.ActorScene(TinyFarmIds.Player).WorldPosition;
+
+        string shell = Path.Combine(Path.GetTempPath(), "tinyfarm-shell-tests", Guid.NewGuid().ToString("N"));
+        using (var session = new GameSession(new TinyFarmApp(Path.Combine(AppContext.BaseDirectory, "Assets"), legacy), shell))
+        {
+            Assert.True(session.ImportedLegacySave);
+            Assert.Null(session.PersistenceError);
+            await session.LoadAsync(GameSession.QuickSlot);
+            var app = (TinyFarmApp)session.Game;
+            Assert.Equal(oldPosition, app.Game.State.ActorScene(TinyFarmIds.Player).WorldPosition);
+            Assert.Equal(TinyFarmChapter.Supper, app.Game.Chapter);
+        }
+        // Once the slot exists, the old save is left alone.
+        using var again = new GameSession(new TinyFarmApp(Path.Combine(AppContext.BaseDirectory, "Assets"), legacy), shell);
+        Assert.False(again.ImportedLegacySave);
+    }
+
+    [Fact]
+    public void ChapterUpgradesOnlyMoveForward()
+    {
+        var shipping = new TinyFarmGame(new Deliverance.Core.Storage.FileSaveStore(NoLegacySaves), TinyFarmChapter.Shipping);
+        TinyFarmDefinitions supper = TinyFarmSupperContent.Load();
+        TinyFarmSemanticSaveSnapshot upgraded = TinyFarmChapterUpgrade.Upgrade(shipping.Persistence.CaptureSnapshot(),
+            shipping.Definitions.Identity, supper.Identity);
+        Assert.Equal(supper.Identity, upgraded.DefinitionHash);
+        Assert.Throws<InvalidDataException>(() => TinyFarmChapterUpgrade.Upgrade(upgraded, supper.Identity, shipping.Definitions.Identity));
+    }
+
+    private static string NoLegacySaves => Path.Combine(Path.GetTempPath(), "tinyfarm-no-legacy", Guid.NewGuid().ToString("N"));
 
     private static void Pad(GameSession session, GamepadButton button)
     {
@@ -188,7 +248,7 @@ public sealed class TinyFarmShellTests
 
     private static GameSession Start(out TinyFarmApp app, string? directory = null)
     {
-        app = new TinyFarmApp(Path.Combine(AppContext.BaseDirectory, "Assets"));
+        app = new TinyFarmApp(Path.Combine(AppContext.BaseDirectory, "Assets"), NoLegacySaves);
         var session = new GameSession(app, directory ?? Path.Combine(Path.GetTempPath(), "tinyfarm-shell-tests", Guid.NewGuid().ToString("N")));
         session.Activate("start");
         return session;

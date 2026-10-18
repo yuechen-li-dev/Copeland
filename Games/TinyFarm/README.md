@@ -28,7 +28,8 @@ volume and save slots. Escape pauses, or closes TinyFarm's own screens and conve
 | Control | Action |
 | --- | --- |
 | WASD / arrows | Move; face a nearby target |
-| E / right click | Talk, harvest, water, cook, open the chest, or enter a doorway |
+| E | Talk, harvest, water, cook, open the chest, or enter a doorway |
+| Right click | Walk there; on a person, door, plot, forage, stove or item, walk over and use it |
 | J | Swing the sword |
 | Space | Dodge in your movement direction |
 | 1–4 or mouse wheel, then K / left click | Select a tool, then use it (1 seeds, 3 axe) |
@@ -39,6 +40,9 @@ volume and save slots. Escape pauses, or closes TinyFarm's own screens and conve
 | Click the search box (or Tab) | Type to filter pockets; Enter or Escape finishes |
 | Click, Space, E, Escape | Advance, choose and leave conversations |
 | F9 / F10 | Toggle HUD / inspector |
+
+A gamepad works too: the left stick moves, South uses, North uses the tool, West swings, East dodges (and backs out of
+menus), the d-pad picks tools, Back opens pockets and Start pauses.
 
 Play keys are rebindable in Settings → Controls. Watered turnips grow after one night's sleep. Sleeping, and being
 brought home at 22:00, checkpoint the game into the shell's save slot.
@@ -77,23 +81,19 @@ The supper chapter has its own scripts, `supper-headless.json` and `supper-nativ
 the `walk STAGE` command (`burrow`, `request`, `riverside`, `gather`, `cook`, `mara`, `finish`), which plays the
 qualification walkthrough through ordinary resolver intents.
 
-## Deferred to the next milestone
+## Art
 
-- **Riverside art.** The scene works and renders, but the Sleeping Spring presenter has no painterly treatment for it.
-  The river is a flat blue field, reeds and mint are placeholder rectangles, and Elias's bench sits off-camera. The
-  M21 painterly water exists in `TinyFarmLayers` behind the old `Legacy`/non-slice paths, which still need folding in
-  or deleting.
-- **The presenter's `Legacy` layout and non-slice branches** in `TinyFarmLayers`. Only the slice path is reachable
-  now.
-- **`TinyFarm.Presentation`**, the MonoGame-era Machina layer. Only its own tests use it.
-- **Mouse in play beyond tools.** Click-to-walk and clicking the world (plots, Mara) are not wired. Left click uses
-  the selected tool and right click interacts with what you face. Menus, search, the stats scrollbar and dialogue are
-  clickable.
-- **Gamepad through the shell.** TinyFarm's own profile has gamepad bindings, but the shell layout only declares
-  keys and mouse.
-- **Old TinyFarm saves** (`%LOCALAPPDATA%\TinyFarm\saves`) are not imported into the shell's slots.
-- **Chapter save identity.** Each chapter changes the definition identity, so a shell save from an earlier build is
-  rejected rather than migrated. A `GameSaveSchema` migration is the place for that once saves need to survive.
+New and unpainted art is declared as [art slots](../../docs/Aurelian/art-slots.md) in
+`TinyFarm/Assets/art/art-slots.json`: SVG placeholders with a usage and a brief each. Right now those are Riverside's
+reeds and mushrooms, rock salt, wild mint, the recipe card, Elias's bench, and Elias's and Sela's walk sheets. To
+paint them, run `dotnet run --project tools/Aurelian.ArtSlots -- Games/TinyFarm/TinyFarm/Assets/art/art-slots.json`
+for the worklist and placeholder images to paint over, then add each final PNG and its hash to the manifest.
+
+## Saves
+
+Shell saves are identified as `tinyfarm.sleeping-spring` across chapters. On first start, the last pre-shell
+save (`sleeping-spring-a3` in `%LOCALAPPDATA%\TinyFarm\saves`) is imported into the empty menu slot and moved
+forward to the current chapter. Older pre-shell slots (Gate A, A2, the supper prototype) are not imported.
 
 Earlier proof modes, milestone scenarios (M1–M25), the MonoGame frontend and the TinyFarm playtest CLI were removed when
 TinyFarm moved onto the shell; git history keeps them. Gate A evidence is

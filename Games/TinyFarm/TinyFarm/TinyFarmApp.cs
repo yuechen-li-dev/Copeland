@@ -37,9 +37,11 @@ public sealed class TinyFarmApp : IGame
     private TinyFarmPresentationLayout layout = new(1920, 1080);
     private Vector2 lastPointer = new(-1, -1);
     private bool musicStarted;
+    private readonly TinyFarmAutopilot autopilot;
     private long uiSounds;
 
-    public TinyFarmApp(string? assetDirectory = null)
+    /// <param name="legacySaveDirectory">Where the pre-shell build kept its saves (default %LOCALAPPDATA%\TinyFarm\saves).</param>
+    public TinyFarmApp(string? assetDirectory = null, string? legacySaveDirectory = null)
     {
         this.assetDirectory = assetDirectory ?? Path.Combine(AppContext.BaseDirectory, "Assets");
         // The full game: the opening, the stove, the shipping chest and supper with Mara.
@@ -50,12 +52,19 @@ public sealed class TinyFarmApp : IGame
         game.Presentation.HostMenus = true;
         initial = game.Persistence.CaptureSnapshot();
         ui = new TinyFarmNativeUi(game);
+        autopilot = new TinyFarmAutopilot(game);
         frame = TinyFarmFrameProjector.Project(game.State, game.Definitions);
+        // The identity stays the same across chapters. When a chapter changes the definitions, raise Version and add a
+        // migration that runs TinyFarmChapterUpgrade, so saves from the previous chapter keep loading.
+        string legacy = legacySaveDirectory ?? TinyFarmLegacySaves.DefaultDirectory;
         Saves = new GameSaveSchema<TinyFarmSemanticSaveSnapshot>(TinyFarmDeliverancePersistence.SnapshotJson,
-            "tinyfarm.sleeping-spring|" + game.Definitions.Identity,
+            "tinyfarm.sleeping-spring",
             game.Persistence.CaptureSnapshot,
             game.Persistence.Validate,
-            Restore);
+            Restore)
+        {
+            Legacy = () => TinyFarmLegacySaves.Import(legacy, game.Definitions),
+        };
     }
 
     public GameManifest Manifest { get; } = new("tinyfarm", "TINYFARM", TinyFarmShellInput.Layout)
@@ -121,7 +130,12 @@ public sealed class TinyFarmApp : IGame
         // The cursor and typing act on TinyFarm's screens directly; keys become TinyFarm's InputMan frame.
         ApplyPointer(tick.Input.Pointer);
         ApplyTyping(tick.Input.Typing);
-        var input = TinyFarmShellInput.Frame(tick.Input, tick.Index, tick.Seconds, WheelHotbar(tick.Input.Pointer));
+        ClickToGo(tick.Input.Pointer);
+        bool moving = tick.Input.Axis("move.left", "move.right") != 0 || tick.Input.Axis("move.down", "move.up") != 0
+            || tick.Input.LeftStick != Vector2.Zero;
+        (int X, int Y)? steer = autopilot.Steer(moving);
+        Vector2? walk = steer is { } direction ? new Vector2(direction.X, direction.Y) : null;
+        var input = TinyFarmShellInput.Frame(tick.Input, tick.Index, tick.Seconds, WheelHotbar(tick.Input.Pointer), walk);
         string? dialogueBefore = game.Dialogue.Presentation?.OperationId;
         TinyFarmScreen screenBefore = game.Screen;
         int feedbackEpoch = game.FeedbackEpoch;
@@ -339,6 +353,25 @@ public sealed class TinyFarmApp : IGame
                     break;
             }
         }
+    }
+
+    /// <summary>Walk to a point in the current scene (or to what is there, and use it), as a right click does.</summary>
+    public bool WalkTo(ScenePosition point) => autopilot.Go(point);
+
+    public bool Walking => autopilot.Active;
+
+    /// <summary>In free play a right click on the world walks there through the camera the world was last drawn with.</summary>
+    private void ClickToGo(GamePointer pointer)
+    {
+        if (game.CapturesGameplay || !pointer.Present || !pointer.WasPressed(GamePointerButton.Secondary)
+            || world?.LastCamera is not { } camera)
+        {
+            return;
+        }
+        double tileX = (pointer.Position.X - camera.Viewport.X) / layout.WorldScale + camera.Position.X;
+        double tileY = (pointer.Position.Y - camera.Viewport.Y) / layout.WorldScale + camera.Position.Y;
+        autopilot.Go(new ScenePosition((int)Math.Round(tileX * ScenePosition.UnitsPerTile),
+            (int)Math.Round(tileY * ScenePosition.UnitsPerTile)));
     }
 
     /// <summary>In free play the wheel steps through the four tool slots.</summary>
