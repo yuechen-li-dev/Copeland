@@ -24,40 +24,41 @@ public static class TinyFarmShellInput
         new("move.down", "Move down", GameControl.Key(KeyboardKey.S), GameControl.Key(KeyboardKey.ArrowDown)),
         new("move.left", "Move left", GameControl.Key(KeyboardKey.A), GameControl.Key(KeyboardKey.ArrowLeft)),
         new("move.right", "Move right", GameControl.Key(KeyboardKey.D), GameControl.Key(KeyboardKey.ArrowRight)),
-        new("interact", "Talk / use / enter", GameControl.Key(KeyboardKey.E), GameControl.Mouse(MouseButton.Secondary)),
-        new("use-tool", "Use selected tool", GameControl.Key(KeyboardKey.K), GameControl.Mouse(MouseButton.Primary)),
-        new("sword", "Swing sword", GameControl.Key(KeyboardKey.J)),
-        new("dodge", "Dodge", GameControl.Key(KeyboardKey.Space)),
-        new("eat", "Eat broth", GameControl.Key(KeyboardKey.R)),
+        new("interact", "Talk / use / enter", GameControl.Key(KeyboardKey.E), GameControl.Mouse(MouseButton.Secondary)) { Gamepad = GameControl.Gamepad(GamepadButton.South) },
+        new("use-tool", "Use selected tool", GameControl.Key(KeyboardKey.K), GameControl.Mouse(MouseButton.Primary)) { Gamepad = GameControl.Gamepad(GamepadButton.North) },
+        new("sword", "Swing sword", GameControl.Key(KeyboardKey.J)) { Gamepad = GameControl.Gamepad(GamepadButton.West) },
+        new("dodge", "Dodge", GameControl.Key(KeyboardKey.Space)) { Gamepad = GameControl.Gamepad(GamepadButton.East) },
+        new("eat", "Eat broth", GameControl.Key(KeyboardKey.R)) { Gamepad = GameControl.Gamepad(GamepadButton.RightShoulder) },
         new("sleep", "Sleep", GameControl.Key(KeyboardKey.B)),
-        new("inventory", "Pockets", GameControl.Key(KeyboardKey.I)),
-        new("stats", "Character", GameControl.Key(KeyboardKey.C)),
-        new("hotbar.1", "Tool 1", GameControl.Key(KeyboardKey.Number1)),
-        new("hotbar.2", "Tool 2", GameControl.Key(KeyboardKey.Number2)),
-        new("hotbar.3", "Tool 3", GameControl.Key(KeyboardKey.Number3)),
-        new("hotbar.4", "Tool 4", GameControl.Key(KeyboardKey.Number4)),
+        new("inventory", "Pockets", GameControl.Key(KeyboardKey.I)) { Gamepad = GameControl.Gamepad(GamepadButton.Back) },
+        new("stats", "Character", GameControl.Key(KeyboardKey.C)) { Gamepad = GameControl.Gamepad(GamepadButton.LeftShoulder) },
+        new("hotbar.1", "Tool 1", GameControl.Key(KeyboardKey.Number1)) { Gamepad = GameControl.Gamepad(GamepadButton.DpadUp) },
+        new("hotbar.2", "Tool 2", GameControl.Key(KeyboardKey.Number2)) { Gamepad = GameControl.Gamepad(GamepadButton.DpadRight) },
+        new("hotbar.3", "Tool 3", GameControl.Key(KeyboardKey.Number3)) { Gamepad = GameControl.Gamepad(GamepadButton.DpadDown) },
+        new("hotbar.4", "Tool 4", GameControl.Key(KeyboardKey.Number4)) { Gamepad = GameControl.Gamepad(GamepadButton.DpadLeft) },
         new("toggle-hud", "Show / hide HUD", GameControl.Key(KeyboardKey.F9), Rebindable: false),
         new("toggle-inspector", "Show / hide inspector", GameControl.Key(KeyboardKey.F10), Rebindable: false),
 
-        new("menu.up", "Menu up", GameControl.Key(KeyboardKey.ArrowUp), GameControl.Key(KeyboardKey.W), Rebindable: false) { Context = Menu },
-        new("menu.down", "Menu down", GameControl.Key(KeyboardKey.ArrowDown), GameControl.Key(KeyboardKey.S), Rebindable: false) { Context = Menu },
-        new("menu.left", "Menu left", GameControl.Key(KeyboardKey.ArrowLeft), GameControl.Key(KeyboardKey.A), Rebindable: false) { Context = Menu },
-        new("menu.right", "Menu right", GameControl.Key(KeyboardKey.ArrowRight), GameControl.Key(KeyboardKey.D), Rebindable: false) { Context = Menu },
-        new("menu.confirm", "Menu confirm", GameControl.Key(KeyboardKey.Enter), GameControl.Key(KeyboardKey.E), Rebindable: false) { Context = Menu },
-        new("menu.close", "Close menu", GameControl.Key(KeyboardKey.Escape), GameControl.Key(KeyboardKey.I), Rebindable: false) { Context = Menu },
+        new("menu.up", "Menu up", GameControl.Key(KeyboardKey.ArrowUp), GameControl.Key(KeyboardKey.W), Rebindable: false) { Gamepad = GameControl.Gamepad(GamepadButton.DpadUp), Context = Menu },
+        new("menu.down", "Menu down", GameControl.Key(KeyboardKey.ArrowDown), GameControl.Key(KeyboardKey.S), Rebindable: false) { Gamepad = GameControl.Gamepad(GamepadButton.DpadDown), Context = Menu },
+        new("menu.left", "Menu left", GameControl.Key(KeyboardKey.ArrowLeft), GameControl.Key(KeyboardKey.A), Rebindable: false) { Gamepad = GameControl.Gamepad(GamepadButton.DpadLeft), Context = Menu },
+        new("menu.right", "Menu right", GameControl.Key(KeyboardKey.ArrowRight), GameControl.Key(KeyboardKey.D), Rebindable: false) { Gamepad = GameControl.Gamepad(GamepadButton.DpadRight), Context = Menu },
+        new("menu.confirm", "Menu confirm", GameControl.Key(KeyboardKey.Enter), GameControl.Key(KeyboardKey.E), Rebindable: false) { Gamepad = GameControl.Gamepad(GamepadButton.South), Context = Menu },
+        new("menu.close", "Close menu", GameControl.Key(KeyboardKey.Escape), GameControl.Key(KeyboardKey.I), Rebindable: false) { Gamepad = GameControl.Gamepad(GamepadButton.East), Context = Menu },
         new("menu.close-stats", "Close character", GameControl.Key(KeyboardKey.C), Rebindable: false) { Context = Menu },
 
         new("dialogue.advance", "Next line", GameControl.Key(KeyboardKey.Space), GameControl.Mouse(MouseButton.Primary),
-            Rebindable: false) { Context = Dialogue },
-        new("dialogue.up", "Previous choice", GameControl.Key(KeyboardKey.ArrowUp), GameControl.Key(KeyboardKey.W), Rebindable: false) { Context = Dialogue },
-        new("dialogue.down", "Next choice", GameControl.Key(KeyboardKey.ArrowDown), GameControl.Key(KeyboardKey.S), Rebindable: false) { Context = Dialogue },
+            Rebindable: false) { Gamepad = GameControl.Gamepad(GamepadButton.South), Context = Dialogue },
+        new("dialogue.up", "Previous choice", GameControl.Key(KeyboardKey.ArrowUp), GameControl.Key(KeyboardKey.W), Rebindable: false) { Gamepad = GameControl.Gamepad(GamepadButton.DpadUp), Context = Dialogue },
+        new("dialogue.down", "Next choice", GameControl.Key(KeyboardKey.ArrowDown), GameControl.Key(KeyboardKey.S), Rebindable: false) { Gamepad = GameControl.Gamepad(GamepadButton.DpadDown), Context = Dialogue },
         new("dialogue.confirm", "Choose", GameControl.Key(KeyboardKey.E), GameControl.Key(KeyboardKey.Enter), Rebindable: false) { Context = Dialogue },
-        new("dialogue.cancel", "Leave conversation", GameControl.Key(KeyboardKey.Escape), Rebindable: false) { Context = Dialogue },
+        new("dialogue.cancel", "Leave conversation", GameControl.Key(KeyboardKey.Escape), Rebindable: false) { Gamepad = GameControl.Gamepad(GamepadButton.East), Context = Dialogue },
 
         // While the search box has focus, letters are text; only Enter and Escape leave it.
         new("text.finish", "Finish search", GameControl.Key(KeyboardKey.Enter), GameControl.Key(KeyboardKey.Escape), Rebindable: false)
         {
             Context = Text,
+            Gamepad = GameControl.Gamepad(GamepadButton.East),
         },
     ])
     {
@@ -134,7 +135,11 @@ public static class TinyFarmShellInput
             }
         }
         // TinyFarm's move axis is +X right and +Y up (WASD), like InputMan's Wasd helper.
-        var move = new Vector2(input.Axis("move.left", "move.right"), input.Axis("move.down", "move.up"));
+        var move = new Vector2(input.Axis("move.left", "move.right"), input.Axis("move.down", "move.up")) + input.LeftStick;
+        if (move.LengthSquared() > 1)
+        {
+            move = Vector2.Normalize(move);
+        }
         var axes = new Dictionary<AxisId, float> { [Controls.MoveX] = move.X, [Controls.MoveY] = move.Y };
         var axes2 = new Dictionary<Axis2Id, Vector2> { [Controls.Move] = move };
         return new InputFrame(sequence, seconds, actions, axes, axes2, lastActiveDevice: null);

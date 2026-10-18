@@ -464,7 +464,7 @@ public sealed class GameSession : IDisposable
             }
             var tickInput = new GameInputState(Manifest.Input, down, new HashSet<string>(pendingPressed, StringComparer.Ordinal),
                 new HashSet<string>(pendingReleased, StringComparer.Ordinal), pendingLook, TickPointer(frameInput.Pointer),
-                [.. pendingTyping]);
+                [.. pendingTyping], frameInput.LeftStick, frameInput.RightStick);
             ClearLatchedInput();
             Tick++;
             Time += seconds;

@@ -133,6 +133,40 @@ public sealed class TinyFarmShellTests
         Assert.NotEqual(line, app.Game.Dialogue.Presentation?.OperationId);
     }
 
+    [Fact]
+    public void AGamepadWalksTalksAndOpensPockets()
+    {
+        using GameSession session = Start(out TinyFarmApp app);
+        session.Input.Adapter.ConnectGamepad(0);
+        ScenePosition before = app.Game.State.ActorScene(TinyFarmIds.Player).WorldPosition;
+        session.Input.Adapter.RecordAxis(Controls.Gamepad(GamepadAxis.LeftX), 1);
+        for (int tick = 0; tick < 30; tick++)
+        {
+            session.Advance(Tick);
+        }
+        session.Input.Adapter.RecordAxis(Controls.Gamepad(GamepadAxis.LeftX), 0);
+        Assert.True(app.Game.State.ActorScene(TinyFarmIds.Player).WorldPosition.XUnits > before.XUnits);
+
+        Pad(session, GamepadButton.Back);
+        Assert.Equal(TinyFarmScreen.Inventory, app.Game.Screen);
+        Pad(session, GamepadButton.East);
+        Assert.Equal(TinyFarmScreen.Playing, app.Game.Screen);
+
+        var walkthrough = new TinyFarm.InputMan.TinyFarmWalkthrough(app.Game);
+        walkthrough.Approach(app.Game.State.ActorScene(TinyFarmIds.Mara).WorldPosition);
+        Pad(session, GamepadButton.South);
+        Assert.True(app.Game.Dialogue.IsActive);
+    }
+
+    private static void Pad(GameSession session, GamepadButton button)
+    {
+        session.Input.Adapter.RecordButton(Controls.Gamepad(button), true);
+        session.Advance(TimeSpan.Zero);
+        session.Input.Adapter.RecordButton(Controls.Gamepad(button), false);
+        session.Advance(Tick);
+        session.Advance(Tick);
+    }
+
     private static void Click(GameSession session, GamePlaytestTarget target, string action)
     {
         (double x, double y) = target.ActionPoint(action);

@@ -117,6 +117,20 @@ public void FixedUpdate(GameTick tick)
 - Anything typed over a shell menu is dropped. A screen change releases held buttons but keeps the cursor position.
 - `IGame.ActionPoint(action, surface)` places the game's own clickable elements, so playtest scripts can `click-action` them by name. While playing, the `pointer`, `click`, `scroll` and `text` steps go to the game.
 
+## Gamepad
+
+The first connected gamepad works everywhere without game code:
+- The shell menus use the d-pad, South to confirm, and East or Start to go back.
+- Start opens the pause menu.
+- A game action can take a fixed pad button beside its keys:
+  `new("jump", "Jump", GameControl.Key(KeyboardKey.Space)) { Gamepad = GameControl.Gamepad(GamepadButton.South) }`.
+  Within a context, each pad button may mean only one action.
+- `GameInputState.LeftStick` and `RightStick` read both sticks through InputMan. X points right and Y up, a radial
+  dead zone of 0.2 is applied, and the range outside it is rescaled to 0..1. TinyFarm adds the left stick to its WASD
+  movement.
+
+Pad buttons are not rebindable yet; capture-rebinding offers keys and mouse buttons.
+
 ## Save versions and checkpoints
 
 ```csharp
@@ -200,5 +214,5 @@ A rewind also restores the preferences the recorded inputs ran under, in memory 
 
 - On a real display, exclusive fullscreen at a non-native resolution asks GLFW for the closest video mode. The headless Xvfb proof cannot change modes and reports the monitor's size.
 - The pointer map only knows the primary, secondary and middle buttons. Back and forward can still be bound to actions.
-- Gamepad controls can be declared (`GameControl.Gamepad`), but capture-rebinding only offers keyboard keys and mouse buttons.
+- Gamepad buttons and sticks work (see Gamepad above), but capture-rebinding only offers keyboard keys and mouse buttons, and only the first pad is read.
 - Beacon, Mossward, Sunkill and CharacterLab still use their own bootstraps. TinyFarm (2D, with input contexts, game-owned screens and checkpoints) runs on the shell. The FPS starter runs on the shell (`GameStarter.Run` in `Aurelian.Games.Humanoid` builds a `StarterGame : IGame`), and so will new games.

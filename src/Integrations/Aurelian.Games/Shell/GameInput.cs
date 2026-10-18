@@ -66,6 +66,9 @@ public sealed record GameInputAction(string Id, string Label, GameControl Primar
 {
     /// <summary>The input context the action belongs to (see <see cref="GameInputLayout.Contexts"/>).</summary>
     public string Context { get; init; } = GameInputContext.Play;
+
+    /// <summary>A fixed gamepad button for the action (the first connected pad), beside the keyboard and mouse controls.</summary>
+    public GameControl? Gamepad { get; init; }
 }
 
 /// <summary>
@@ -156,6 +159,14 @@ public sealed record GameInputLayout(IReadOnlyList<GameInputAction> Actions, Gam
                 throw new ArgumentException($"Input context '{context.Id}' priority must be between 0 and 50.");
             }
         }
+        var gamepadButtons = new HashSet<(string Context, GameControl Control)>();
+        foreach (GameInputAction action in Actions)
+        {
+            if (action?.Gamepad is not null && !gamepadButtons.Add((action.Context, action.Gamepad)))
+            {
+                throw new ArgumentException($"{action.Gamepad.DisplayName} is bound to more than one action in '{action.Context}'.");
+            }
+        }
         var ids = new HashSet<string>(StringComparer.Ordinal);
         foreach (GameInputAction action in Actions)
         {
@@ -176,6 +187,10 @@ public sealed record GameInputLayout(IReadOnlyList<GameInputAction> Actions, Gam
             if (action.Secondary is not null)
             {
                 ValidateControl(action.Id, action.Secondary, modal);
+            }
+            if (action.Gamepad is not null && (action.Gamepad.Device != DeviceKind.Gamepad || !action.Gamepad.IsValid))
+            {
+                throw new ArgumentException($"Game action '{action.Id}' gamepad control must be a gamepad button.");
             }
         }
     }
@@ -264,7 +279,8 @@ public sealed class GameInputState
     private readonly IReadOnlySet<string> released;
 
     internal GameInputState(GameInputLayout layout, IReadOnlySet<string> down, IReadOnlySet<string> pressed,
-        IReadOnlySet<string> released, Vector2 look, GamePointer? pointer = null, IReadOnlyList<GameTyping>? typing = null)
+        IReadOnlySet<string> released, Vector2 look, GamePointer? pointer = null, IReadOnlyList<GameTyping>? typing = null,
+        Vector2 leftStick = default, Vector2 rightStick = default)
     {
         this.layout = layout;
         this.down = down;
@@ -273,6 +289,8 @@ public sealed class GameInputState
         Look = look;
         Pointer = pointer ?? GamePointer.None;
         Typing = typing ?? [];
+        LeftStick = leftStick;
+        RightStick = rightStick;
     }
 
     internal static GameInputState Empty(GameInputLayout layout) =>
@@ -280,6 +298,12 @@ public sealed class GameInputState
 
     /// <summary>Mouse-look delta in radians (X = yaw, Y = pitch, positive up). Zero unless the layout uses mouse look.</summary>
     public Vector2 Look { get; }
+
+    /// <summary>The first gamepad's left stick, X right and Y up, each in [-1, 1], with a radial dead zone applied.</summary>
+    public Vector2 LeftStick { get; }
+
+    /// <summary>The first gamepad's right stick, X right and Y up.</summary>
+    public Vector2 RightStick { get; }
 
     /// <summary>The free cursor. Never null; not <see cref="GamePointer.Present"/> unless the layout reads the pointer.</summary>
     public GamePointer Pointer { get; }
@@ -347,6 +371,15 @@ public sealed class GameInputSystem : IDisposable
     private static readonly AxisId LookX = new("Aurelian.Shell.LookX");
     private static readonly AxisId LookY = new("Aurelian.Shell.LookY");
     private static readonly ActionMapId PointerMap = new("Aurelian.Game.Pointer");
+    private static readonly ActionMapId SticksMap = new("Aurelian.Game.Sticks");
+    private static readonly (GamepadAxis Axis, AxisId Id)[] StickAxes =
+    [
+        (GamepadAxis.LeftX, new AxisId("Aurelian.Stick.LeftX")),
+        (GamepadAxis.LeftY, new AxisId("Aurelian.Stick.LeftY")),
+        (GamepadAxis.RightX, new AxisId("Aurelian.Stick.RightX")),
+        (GamepadAxis.RightY, new AxisId("Aurelian.Stick.RightY")),
+    ];
+    private const float StickDeadZone = .2f;
     private static readonly AxisId PointerX = new("Aurelian.Pointer.X");
     private static readonly AxisId PointerY = new("Aurelian.Pointer.Y");
     private static readonly AxisId WheelX = new("Aurelian.Pointer.WheelX");
@@ -577,6 +610,7 @@ public sealed class GameInputSystem : IDisposable
                 {
                     maps.Add(PointerMap);
                 }
+                maps.Add(SticksMap);
                 Adapter.SetContexts([.. maps]);
             }
             else
@@ -624,8 +658,24 @@ public sealed class GameInputSystem : IDisposable
             ? new Vector2(frame.GetAxis(LookX), frame.GetAxis(LookY))
             : Vector2.Zero;
         GamePointer? pointer = Layout.Pointer ? ReadPointer(frame) : null;
-        var state = new GameInputState(Layout, down, pressed, released, look, pointer, Layout.Pointer ? typed : null);
+        Vector2 leftStick = Stick(frame, StickAxes[0].Id, StickAxes[1].Id);
+        Vector2 rightStick = Stick(frame, StickAxes[2].Id, StickAxes[3].Id);
+        var state = new GameInputState(Layout, down, pressed, released, look, pointer, Layout.Pointer ? typed : null,
+            leftStick, rightStick);
         return new GameInputFrame(state, default, frame.WasPressed(PauseAction));
+    }
+
+    /// <summary>Pads report Y down; games get Y up. Inside the dead zone the stick is centred, and outside it the range is rescaled.</summary>
+    private static Vector2 Stick(InputFrame frame, AxisId x, AxisId y)
+    {
+        var raw = new Vector2(frame.GetAxis(x), -frame.GetAxis(y));
+        float length = raw.Length();
+        if (length <= StickDeadZone)
+        {
+            return Vector2.Zero;
+        }
+        float scaled = Math.Min(1, (length - StickDeadZone) / (1 - StickDeadZone));
+        return raw / length * scaled;
     }
 
     private GamePointer ReadPointer(InputFrame frame)
@@ -768,7 +818,11 @@ public sealed class GameInputSystem : IDisposable
         var maps = new List<ActionMapDefinition>
         {
             // Escape opens the pause menu unless an active modal context consumed it first.
-            Input.Map(PauseMap, 5, [Bind.Action(GameInputLayout.PauseControl.ToControlKey(), PauseAction)], canConsume: false),
+            Input.Map(PauseMap, 5,
+            [
+                Bind.Action(GameInputLayout.PauseControl.ToControlKey(), PauseAction),
+                Bind.Action(Controls.Gamepad(GamepadButton.Start), PauseAction, name: "Aurelian.Shell.Pause.Gamepad"),
+            ], canConsume: false),
             Input.Map(GameMenuBindings.Map, 100, GameMenuBindings.CreateBindings()),
         };
         foreach (GameInputContext context in Layout.Contexts)
@@ -780,6 +834,11 @@ public sealed class GameInputSystem : IDisposable
                 var id = new ActionId(ActionName(action.Id));
                 bindings.Add(Bind.Action(primary[action.Id].ToControlKey(), id, ButtonEdge.Down, consume: consume,
                     name: BindingName(action.Id)));
+                if (action.Gamepad is not null)
+                {
+                    bindings.Add(Bind.Action(action.Gamepad.ToControlKey(), id, ButtonEdge.Down, consume: consume,
+                        name: BindingName(action.Id) + ".gamepad"));
+                }
                 if (action.Secondary is not null && action.Secondary != primary[action.Id])
                 {
                     bindings.Add(Bind.Action(action.Secondary.ToControlKey(), id, ButtonEdge.Down, consume: consume,
@@ -796,6 +855,12 @@ public sealed class GameInputSystem : IDisposable
             int priority = context.Modal ? 10 + context.Priority : context.Priority;
             maps.Add(Input.Map(MapFor(context.Id), priority, bindings, canConsume: context.Modal));
         }
+        var sticks = new List<Binding>();
+        foreach ((GamepadAxis axis, AxisId id) in StickAxes)
+        {
+            sticks.Add(Bind.Axis(Controls.Gamepad(axis), id, name: id.Name));
+        }
+        maps.Add(Input.Map(SticksMap, 2, sticks, canConsume: false));
         if (Layout.Pointer)
         {
             // Never consumes: a mouse button bound to an action still reaches the pointer, unless a modal context took it.
