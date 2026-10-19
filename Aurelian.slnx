@@ -37,6 +37,7 @@
     <Project Path="src/Aurelian/Aurelian.Spatial3D/Aurelian.Spatial3D.csproj" />
     <Project Path="src/Aurelian/Aurelian.World/Aurelian.World.csproj" />
     <Project Path="src/Integrations/Aurelian.Games/Aurelian.Games.csproj" />
+    <Project Path="src/Integrations/Aurelian.Games.Humanoid/Aurelian.Games.Humanoid.csproj" />
     <Project Path="src/Integrations/Aurelian.Aetheris/Aurelian.Aetheris.csproj" />
     <Project Path="src/Integrations/Aurelian.Spatial3D.Vulkan/Aurelian.Spatial3D.Vulkan.csproj" />
     <Project Path="src/Integrations/Aurelian.GameSaves/Aurelian.GameSaves.csproj" />
@@ -67,6 +68,7 @@
     <Project Path="Games/TinyFarm/TinyFarm/TinyFarm.csproj" />
   </Folder>
   <Folder Name="/tools/">
+    <Project Path="tools/Aurelian.ArtSlots/Aurelian.ArtSlots.csproj" />
     <Project Path="tools/Aurelian.KernelComparison/Aurelian.KernelComparison.csproj" />
     <Project Path="tools/Aurelian.InferenceProof/Aurelian.InferenceProof.csproj" />
     <Project Path="tools/Aurelian.GraphicsProof/Aurelian.GraphicsProof.csproj" />

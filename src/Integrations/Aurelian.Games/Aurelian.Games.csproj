@@ -4,7 +4,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../Aurelian/Aurelian.Shaders.Builtins/Aurelian.Shaders.Builtins.csproj" />
-    <ProjectReference Include="../Aurelian.Humanoid/Aurelian.Humanoid.csproj" />
     <ProjectReference Include="../Aurelian.NativeComposition/Aurelian.NativeComposition.csproj" />
     <ProjectReference Include="../Aurelian.Spatial3D.Vulkan/Aurelian.Spatial3D.Vulkan.csproj" />
     <ProjectReference Include="../Aurelian.GameSaves/Aurelian.GameSaves.csproj" />

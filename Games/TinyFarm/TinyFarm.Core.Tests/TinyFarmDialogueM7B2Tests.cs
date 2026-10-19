@@ -9,7 +9,6 @@ using InputMan.Aurelian;
 using InputMan.Core;
 using Machina.Presentation;
 using TinyFarm.InputMan;
-using TinyFarm.Presentation;
 using Xunit;
 
 namespace TinyFarm.Core.Tests;
@@ -86,35 +85,6 @@ public sealed class TinyFarmDialogueM7B2Tests
 
         Assert.Equal(TinyFarmDialogueAction.Confirm, controller.MapDialogue(adapter.CurrentFrame));
         Assert.Empty(controller.Map(adapter.CurrentFrame));
-    }
-
-    [Fact]
-    public void MachinaDialogueOverlay_IsOpaqueAndStableFramesReusePreparedProjection()
-    {
-        (_, TinyFarmDialogueCoordinator dialogue) = CreateConversation(hasWildMint: true);
-        TinyFarmPresentationSnapshot snapshot = PresentationSnapshot(dialogue.Presentation!);
-        var sink = new RecordingSink();
-        var surface = new LayerSurfaceDescriptor(1280, 720);
-        var layer = new TinyFarmMachinaUiLayer(sink, surface);
-
-        layer.Receive(new LayerMessage<TinyFarmPresentationSnapshot>(
-            TinyFarmMachinaUiLayer.ApplicationId,
-            TinyFarmMachinaUiLayer.Id,
-            snapshot));
-        for (int frame = 0; frame < 120; frame++)
-        {
-            layer.Receive(new LayerMessage<TinyFarmPresentationSnapshot>(
-                TinyFarmMachinaUiLayer.ApplicationId,
-                TinyFarmMachinaUiLayer.Id,
-                snapshot));
-        }
-
-        Assert.Equal(LayerInputPolicy.Opaque, layer.Describe().InputPolicy);
-        Assert.Contains(layer.Prepared.PresentationFrame.Operations, operation =>
-            operation is FillRectangleOperation fill
-            && fill.SourceId == "tiny-farm.dialogue.panel");
-        Assert.Equal(1, layer.CacheMetrics.TopologyBuildCount);
-        Assert.Equal(0, layer.CacheMetrics.DynamicUpdateCount);
     }
 
     [Fact]
@@ -195,13 +165,6 @@ public sealed class TinyFarmDialogueM7B2Tests
         Assert.Equal(0, restored.ConsequenceEmissionCount);
         restored.Apply(TinyFarmDialogueAction.Advance);
         Assert.False(restored.IsActive);
-
-        var layer = new TinyFarmMachinaUiLayer(new RecordingSink(), new LayerSurfaceDescriptor(1280, 720));
-        layer.Receive(new LayerMessage<TinyFarmPresentationSnapshot>(
-            TinyFarmMachinaUiLayer.ApplicationId,
-            TinyFarmMachinaUiLayer.Id,
-            PresentationSnapshot(dialogue: null)));
-        Assert.Equal(LayerInputPolicy.HitTest, layer.Describe().InputPolicy);
     }
 
     [Fact]
@@ -330,32 +293,7 @@ public sealed class TinyFarmDialogueM7B2Tests
         };
     }
 
-    private static TinyFarmPresentationSnapshot PresentationSnapshot(DialoguePresentationSnapshot? dialogue)
-    {
-        TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.LoadM21();
-        TinyFarmState state = TinyFarmM21ControlStates.Create(definitions);
-        TinyFarmFrame frame = TinyFarmFrameProjector.Project(state, definitions);
-        return new TinyFarmPresentationSnapshot(
-            TinyFarmPlayerUiProjector.Project(state, definitions),
-            frame.Day,
-            frame.Time,
-            frame.CurrentLocationName,
-            TinyFarmSimulationMode.Playing,
-            false,
-            "Talking",
-            frame.InteractionHints,
-            [],
-            dialogue);
-    }
-
     private static TinyFarmDefinitions LoadDefinitions() => TinyFarmDefinitionLoader.Load();
-
-    private sealed class RecordingSink : ILayerApplicationMessageSink
-    {
-        public void Publish<TPayload>(LayerMessage<TPayload> message)
-        {
-        }
-    }
 
     private sealed class MemoryStore : ISaveStore
     {

@@ -5,7 +5,7 @@ using Aurelian.Rendering.Contracts.Models;
 using Aurelian.World.Agents;
 using Aurelian.World.Scenes;
 
-namespace Aurelian.NativeComposition;
+namespace Aurelian.Cloth3D;
 
 /// <summary>The typed agent snapshot owns cloth state. Commands and stepping are explicit;
 /// rendering never advances simulation. GPU callers may publish Capture() into the same state.</summary>
@@ -58,7 +58,7 @@ public sealed record ClothAgentDefinition3D(CompiledCloth3D Cloth)
 
     public override void ValidatePlacement(ScenePlacement placement)
     {
-        PhysicsRigidPlacement3D.From(placement.WorldTransform);
+        ValidateRigid(placement.WorldTransform);
         if (Presentation is not null && Presentation.SourceContentKey != Cloth.ContentKey)
         {
             throw new ArgumentException("Cloth presentation belongs to another simulation topology.");
@@ -115,6 +115,23 @@ public sealed record ClothAgentDefinition3D(CompiledCloth3D Cloth)
     {
         return Scene.Group("cloth-body", [ClothPresentation3D.Mesh(Cloth, state, Material, Presentation)]);
     }
+
+    /// <summary>Cloth is simulated in world space, so its placement may move and rotate it but not scale or shear it.</summary>
+    private static void ValidateRigid(Matrix4x4 matrix)
+    {
+        SceneTransform.ValidateMatrix(matrix);
+        Vector3 x = new(matrix.M11, matrix.M12, matrix.M13);
+        Vector3 y = new(matrix.M21, matrix.M22, matrix.M23);
+        Vector3 z = new(matrix.M31, matrix.M32, matrix.M33);
+        bool unitAxes = MathF.Abs(x.LengthSquared() - 1) <= .0001f && MathF.Abs(y.LengthSquared() - 1) <= .0001f
+            && MathF.Abs(z.LengthSquared() - 1) <= .0001f;
+        bool orthogonal = MathF.Abs(Vector3.Dot(x, y)) <= .0001f && MathF.Abs(Vector3.Dot(x, z)) <= .0001f
+            && MathF.Abs(Vector3.Dot(y, z)) <= .0001f;
+        if (!unitAxes || !orthogonal)
+        {
+            throw new NotSupportedException("AUR-PHYSICS-002: Physics agents require rigid placement; author dimensions in the shape and visual.");
+        }
+    }
 }
 
 public static class ClothPresentation3D
@@ -166,4 +183,5 @@ public static class ClothPresentation3D
             Material = material,
         };
     }
+
 }

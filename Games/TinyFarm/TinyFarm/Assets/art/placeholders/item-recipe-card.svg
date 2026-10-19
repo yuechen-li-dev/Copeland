@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- Placeholder art slot. A handwritten recipe card on the floor (teaches a stove recipe when read). Replace by adding final art in art-slots.json; keep the silhouette and pivot. -->
+  <ellipse cx="32" cy="58" rx="22" ry="4" fill="#1f3326" opacity="0.3"/>
+  <path d="M10 22 L50 14 L56 50 L16 58 Z" fill="#f4deae" stroke="#2c3527" stroke-width="2.5"/>
+  <g stroke="#74624a" stroke-width="3" stroke-linecap="round">
+    <path d="M18 30 L44 25"/><path d="M19 38 L46 33"/><path d="M21 46 L38 43"/>
+  </g>
+  <circle cx="47" cy="44" r="5" fill="#c86a4a" stroke="#2c3527" stroke-width="1.5"/>
+</svg>

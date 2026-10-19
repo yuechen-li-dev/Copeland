@@ -44,7 +44,8 @@ public sealed class TinyFarmPresentationM25Tests
     {
         var layout = new TinyFarm.Native.TinyFarmPresentationLayout(width, height);
         Assert.Equal(16 * layout.WorldScale, layout.WorldViewport.Width, 3);
-        Assert.Equal(13 * layout.WorldScale, layout.WorldViewport.Height, 3);
+        // A 16 x 10 scene plus a metre of canopy.
+        Assert.Equal(11 * layout.WorldScale, layout.WorldViewport.Height, 3);
         Assert.True(layout.WorldViewport.X >= 0);
         Assert.True(layout.WorldViewport.Y >= 0);
         var square = layout.UiRect(new Aurelian.Graphics.Vulkan.Native2D.Native2DRect(20, 20, 100, 100));

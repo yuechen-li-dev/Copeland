@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace Aurelian.Spatial3D;
 
-/// <summary>Adapted from Aetheris BrepPicker and Reconstruction/TriangleBvh; metre tolerances,
+/// <summary>Ray, point and segment queries against triangles; metre tolerances,
 /// geometric contact normals and segment proximity are explicit runtime policies.</summary>
 internal static class TriangleQueries3D
 {
@@ -31,7 +31,7 @@ internal static class TriangleQueries3D
 
     internal static Vector3 ClosestPoint(Vector3 point, Vector3 a, Vector3 b, Vector3 c)
     {
-        return Aetheris.Kernel.Core.Math.TriangleSurface3D.ClosestPoint(point, a, b, c).Point;
+        return TriangleSurface3D.ClosestPoint(point, a, b, c).Point;
     }
 
     internal static (Vector3 OnSegment, Vector3 OnTriangle) ClosestSegment(

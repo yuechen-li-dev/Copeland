@@ -1,0 +1,103 @@
+{
+  // TinyFarm art slots. Placeholders are flat SVGs that fix silhouette, scale and pivot; finals are painted PNGs.
+  // House style for every final: the Gate A painterly cutouts (Assets/GateA/mara.png, gardener.png, props.png):
+  // soft top-left daylight, gentle hand-painted texture, warm greens and browns, a thin dark outline, transparent
+  // background, top-down three-quarter view. See docs/Aurelian/art-slots.md.
+  "schemaVersion": 1,
+  "slots": [
+    {
+      "id": "object.reeds",
+      "placeholder": "placeholders/riverside-reeds.svg",
+      "width": 96,
+      "height": 320,
+      "worldHeight": 2.4,
+      "usage": "Riverside scene object 'reeds' (blocks a 1 x 3 tile strip by the water). Drawn standing, bottom-centre on the strip's lower edge.",
+      "brief": "A tall clump of riverbank reeds and cattails, a few brown seed heads, two or three arching leaves; reads as a natural fence beside the water."
+    },
+    {
+      "id": "forage.riverside-hen-of-the-woods",
+      "placeholder": "placeholders/riverside-hen-of-the-woods.svg",
+      "width": 128,
+      "height": 112,
+      "worldHeight": 0.95,
+      "usage": "Riverside forage node for hen-of-the-woods mushrooms (1 tile), while it can be gathered. Bottom-centre on the tile's lower edge.",
+      "brief": "A short mossy stump with a frilly cluster of hen-of-the-woods (maitake) mushrooms, grey-brown fronds with cream edges; inviting, clearly edible."
+    },
+    {
+      "id": "forage.riverside-hen-of-the-woods.depleted",
+      "placeholder": "placeholders/riverside-stump.svg",
+      "width": 128,
+      "height": 80,
+      "worldHeight": 0.65,
+      "usage": "The same node after gathering, until it regrows. Must line up with forage.riverside-hen-of-the-woods (same stump, same pivot).",
+      "brief": "The same mossy stump with the mushrooms gone, a little moss and a sprout."
+    },
+    {
+      "id": "forage.farm-rock-salt",
+      "placeholder": "placeholders/farm-rock-salt.svg",
+      "width": 112,
+      "height": 96,
+      "worldHeight": 0.8,
+      "usage": "Farm forage node for rock salt (1 tile, east of the garden), while it can be gathered.",
+      "brief": "A low grey-green rock outcrop with white salt crystals growing from its top; slightly sparkly."
+    },
+    {
+      "id": "forage.farm-rock-salt.depleted",
+      "placeholder": "placeholders/farm-rock-salt-depleted.svg",
+      "width": 112,
+      "height": 64,
+      "worldHeight": 0.55,
+      "usage": "The rock salt outcrop after gathering. Same rock and pivot as forage.farm-rock-salt.",
+      "brief": "The same outcrop with the crystals chipped away, a few pale scars."
+    },
+    {
+      "id": "item.wild-mint",
+      "placeholder": "placeholders/item-wild-mint.svg",
+      "width": 64,
+      "height": 64,
+      "worldHeight": 0.45,
+      "usage": "Ground item: the wild mint Mara wants for supper, lying on the Riverside bank until picked up.",
+      "brief": "A fresh sprig of wild mint, bright serrated leaves on a single stem, lying in the grass."
+    },
+    {
+      "id": "item.turnip-soup-recipe-card",
+      "placeholder": "placeholders/item-recipe-card.svg",
+      "width": 64,
+      "height": 64,
+      "worldHeight": 0.4,
+      "usage": "Ground item: the turnip soup recipe card beside the bed at home.",
+      "brief": "A small cream recipe card with handwriting and a red wax seal, lying slightly askew."
+    },
+    {
+      "id": "prop.riverside-bench",
+      "placeholder": "placeholders/riverside-bench.svg",
+      "width": 192,
+      "height": 112,
+      "worldHeight": 0.95,
+      "usage": "Presentation-only prop at the riverside.elias-bench anchor, drawn behind whoever sits there. About 2 tiles wide.",
+      "brief": "A weathered wooden park bench with a slatted back, a little moss on the legs; quiet and inviting."
+    },
+    {
+      "id": "actor.elias",
+      "placeholder": "placeholders/actor-elias.svg",
+      "width": 256,
+      "height": 256,
+      "columns": 4,
+      "rows": 4,
+      "worldHeight": 1.333,
+      "usage": "Elias's walk sheet, same layout as Assets/GateA/gardener.png: rows face down, up, left, right; four walk frames per row; feet at the bottom of each 64 px cell.",
+      "brief": "Elias, an older riverside scholar: grey-blond hair, blue-grey coat, a satchel of books; gentle and absent-minded. Match the gardener sheet's proportions and style."
+    },
+    {
+      "id": "actor.sela",
+      "placeholder": "placeholders/actor-sela.svg",
+      "width": 256,
+      "height": 256,
+      "columns": 4,
+      "rows": 4,
+      "worldHeight": 1.333,
+      "usage": "Sela's walk sheet, same layout as Assets/GateA/gardener.png (rows down, up, left, right; four frames each).",
+      "brief": "Sela, the village shopkeeper: dark hair in a bun, brick-red dress with a cream apron; brisk and friendly. Match the gardener sheet's proportions and style."
+    }
+  ]
+}

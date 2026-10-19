@@ -1,3 +1,4 @@
+using Aurelian.Cloth3D;
 using Aetheris.Cloth3D;
 using System.Collections.Immutable;
 using System.Numerics;

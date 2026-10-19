@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- Placeholder art slot. A sprig of wild mint lying in the grass (a ground item you pick up), feet at the bottom. Replace by adding final art in art-slots.json; keep the silhouette and pivot. -->
+  <ellipse cx="32" cy="58" rx="20" ry="4" fill="#1f3326" opacity="0.35"/>
+  <path d="M32 58 L32 18" stroke="#4f7a3a" stroke-width="3"/>
+  <g fill="#7cc27a" stroke="#2c3527" stroke-width="2">
+    <path d="M32 46 C18 46 12 36 14 30 C24 30 30 36 32 46 Z"/>
+    <path d="M32 46 C46 46 52 36 50 30 C40 30 34 36 32 46 Z"/>
+    <path d="M32 32 C20 30 16 20 18 14 C28 16 32 24 32 32 Z"/>
+    <path d="M32 32 C44 30 48 20 46 14 C36 16 32 24 32 32 Z"/>
+    <path d="M32 20 C26 16 26 8 32 4 C38 8 38 16 32 20 Z"/>
+  </g>
+</svg>

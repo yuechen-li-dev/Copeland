@@ -35,6 +35,13 @@ public static class GameMenuBindings
             Bind.Action(Controls.Key(KeyboardKey.Escape), Back, consume: ConsumeMode.ControlOnly),
             Bind.Action(Controls.Key(KeyboardKey.ArrowLeft), Left, consume: ConsumeMode.ControlOnly),
             Bind.Action(Controls.Key(KeyboardKey.ArrowRight), Right, consume: ConsumeMode.ControlOnly),
+            Bind.Action(Controls.Gamepad(GamepadButton.DpadUp), Up, consume: ConsumeMode.ControlOnly),
+            Bind.Action(Controls.Gamepad(GamepadButton.DpadDown), Down, consume: ConsumeMode.ControlOnly),
+            Bind.Action(Controls.Gamepad(GamepadButton.DpadLeft), Left, consume: ConsumeMode.ControlOnly),
+            Bind.Action(Controls.Gamepad(GamepadButton.DpadRight), Right, consume: ConsumeMode.ControlOnly),
+            Bind.Action(Controls.Gamepad(GamepadButton.South), Confirm, consume: ConsumeMode.ControlOnly),
+            Bind.Action(Controls.Gamepad(GamepadButton.East), Back, consume: ConsumeMode.ControlOnly),
+            Bind.Action(Controls.Gamepad(GamepadButton.Start), Back, consume: ConsumeMode.ControlOnly),
         ];
     }
 

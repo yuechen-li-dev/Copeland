@@ -6,22 +6,25 @@ using Xunit;
 
 namespace TinyFarm.Core.Tests;
 
-public sealed class TinyFarmFullGameM9Tests
+/// <summary>The supper prototype, reconciled as the Sleeping Spring's fourth chapter.</summary>
+public sealed class TinyFarmSupperChapterTests
 {
     [Fact]
-    public void StartHasObjectiveToolsAndNoCompletedJobs()
+    public void TheChapterStartsQuietAndTheRiverRoadIsClosedUntilMaraAsks()
     {
         TinyFarmGame game = Create();
+        Assert.Equal(TinyFarmChapter.Supper, game.Chapter);
         Assert.Equal(TinyFarmScreen.Title, game.Screen);
         Assert.True(game.CapturesGameplay);
         Assert.Equal(TinyFarmSceneIds.Farm, game.State.CurrentScene);
-        Assert.Contains(WorldFact.SupperRequested, game.State.Facts);
+        Assert.DoesNotContain(WorldFact.SupperRequested, game.State.Facts);
         Assert.False(TinyFarmSupper.IsReady(game.State));
-        Assert.False(TinyFarmSupper.IsComplete(game.State));
-        Assert.All(game.State.FarmPlots, plot => Assert.Null(plot.Crop));
-        Assert.Contains(TinyFarmIds.Sword, game.State.Actor(TinyFarmIds.Player).Inventory);
-        Assert.Contains(TinyFarmIds.Axe, game.State.Actor(TinyFarmIds.Player).Inventory);
+        Assert.True(TinyFarmSupper.IsAuthored(game.Definitions));
+        Assert.False(TinyFarmOpeningRoutes.IsOpen(game.State, TinyFarmSceneIds.Riverside));
+        Assert.Equal("THE SLEEPING SPRING", game.JournalTitle);
         Assert.Equal(5, game.Objectives().Length);
+        // The earlier chapters do not offer supper at all.
+        Assert.False(TinyFarmSupper.IsAuthored(TinyFarmShippingContent.Load()));
     }
 
     [Fact]
@@ -37,16 +40,30 @@ public sealed class TinyFarmFullGameM9Tests
     }
 
     [Fact]
-    public void RealSessionCompletesWithDialogueScenesSaveRestoreAndReplayParity()
+    public void RealSessionCompletesSupperWithDialogueScenesSaveRestoreAndReplayParity()
     {
         FileSaveStore store = NewStore();
         var game = new TinyFarmGame(store);
         var walkthrough = new TinyFarmWalkthrough(game);
+        bool requestChecked = false;
         bool midSave = false;
         walkthrough.Checkpoint = name =>
         {
-            if (name == "03-dialogue")
+            if (name == "03-opening-dialogue")
             {
+                // Before Old Burrow, Mara gives the opening advice and does not ask yet.
+                Assert.Equal("mara.opening", game.Dialogue.Presentation!.OperationId);
+                Assert.False(TinyFarmSupper.IsRequested(game.State));
+            }
+            if (name == "03-supper-request")
+            {
+                Assert.Equal("mara.supper-invite", game.Dialogue.Presentation!.OperationId);
+                Assert.True(TinyFarmSupper.IsRequested(game.State));
+                Assert.True(TinyFarmOpeningRoutes.IsOpen(game.State, TinyFarmSceneIds.Riverside));
+                Assert.True(game.State.Actor(TinyFarmIds.Player).Rpg!.Crafting!.Knows(TinyFarmIds.SauteedHenOfTheWoodsRecipe));
+                Assert.Equal("SUPPER WITH MARA", game.JournalTitle);
+
+                // Saved mid-conversation, the request and the dialogue come back together.
                 var engine = new InputManEngine(GameControls.CreateProfile());
                 engine.SetMaps(game.Contexts);
                 engine.Tick(new InputSnapshot(new Dictionary<ControlKey, bool>
@@ -65,6 +82,7 @@ public sealed class TinyFarmFullGameM9Tests
                 Assert.Equal(game.Dialogue.Presentation!.OperationId, restoredDialogue.Dialogue.Presentation!.OperationId);
                 restoredDialogue.ApplyDialogue(TinyFarmDialogueAction.Advance);
                 Assert.Equal(before, TinyFarmSemanticHash.Compute(restoredDialogue.State));
+                requestChecked = true;
             }
             if (name != "mid-objective-save")
             {
@@ -72,30 +90,37 @@ public sealed class TinyFarmFullGameM9Tests
             }
             Assert.False(TinyFarmSupper.IsComplete(game.State));
             Assert.True(TinyFarmSupper.IsReady(game.State));
+            Assert.All(game.Objectives().Take(4), objective => Assert.StartsWith("[done]", objective));
             Assert.True(game.Save());
             TinyFarmGame restored = new(store);
             Assert.True(restored.Load());
             Assert.Equal(TinyFarmSemanticHash.Compute(game.State), TinyFarmSemanticHash.Compute(restored.State));
             Assert.Equal(game.Host.Session.NextSequence, restored.Host.Session.NextSequence);
-            Assert.Equal(game.State.SelectedHotbarSlot, restored.State.SelectedHotbarSlot);
             Assert.Equal(game.State.ActorScenes, restored.State.ActorScenes);
-            Assert.Equal(game.State.Minute, restored.State.Minute);
             Assert.Equal(game.State.InventoryStacks, restored.State.InventoryStacks);
-            new TinyFarmWalkthrough(restored).FinishFromKitchen();
+            new TinyFarmWalkthrough(restored).FinishWithMara();
             Assert.True(TinyFarmSupper.IsComplete(restored.State));
             midSave = true;
         };
         walkthrough.Run();
+        Assert.True(requestChecked);
         Assert.True(midSave);
         Assert.Equal(TinyFarmSemanticHash.Compute(game.State), walkthrough.Replay().FinalHash);
-        Assert.Contains("mara.supper-help", game.Dialogue.Trace);
         Assert.Contains("mara.supper-ready", game.Dialogue.Trace);
         Assert.Contains("mara.supper-thanks", game.Dialogue.Trace);
         Assert.Equal(TinyFarmIds.Mara, game.State.Item(TinyFarmIds.WildMint).Owner);
-        Assert.Equal(TinyFarmScreen.Complete, game.Screen);
+        // The dish went on Mara's table, supper restored you, and play simply continues.
+        Assert.Equal(0, game.State.ProductCount(TinyFarmIds.Player, TinyFarmIds.SauteedHenOfTheWoods));
+        Assert.Equal(12, game.State.Slice!.Health);
+        Assert.Equal(TinyFarmScreen.Playing, game.Screen);
+        Assert.StartsWith("Supper with Mara", game.Status);
         Assert.True(game.EffectEvents > 0);
         Assert.True(game.AudioEvents > 0);
         Assert.Equal(IntentReason.SupperAlreadyCompleted, game.Execute(new CompleteSupperIntent()).Results.First().Reason);
+
+        // Afterwards Mara remembers it.
+        Assert.Equal(IntentResultStatus.Accepted, game.Execute(new InteractIntent()).Results.First().Status);
+        Assert.Equal("mara.supper-after", game.Dialogue.Presentation!.OperationId);
     }
 
     [Fact]
@@ -158,7 +183,7 @@ public sealed class TinyFarmFullGameM9Tests
 
     private static FileSaveStore NewStore()
     {
-        return new FileSaveStore(Path.Combine(Path.GetTempPath(), "tinyfarm-m9-tests", Guid.NewGuid().ToString("N")));
+        return new FileSaveStore(Path.Combine(Path.GetTempPath(), "tinyfarm-supper-tests", Guid.NewGuid().ToString("N")));
     }
 
     private sealed class GatedSaveStore : ISaveStore

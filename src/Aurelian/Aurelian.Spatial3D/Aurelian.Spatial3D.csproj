@@ -2,7 +2,4 @@
   <PropertyGroup>
     <Description>Explicit world-unit 3D queries and kinematic character movement.</Description>
   </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="../../../../Aetheris/Aetheris.Kernel.Core/Aetheris.Kernel.Core.csproj" />
-  </ItemGroup>
 </Project>

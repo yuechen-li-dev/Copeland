@@ -10,35 +10,35 @@ internal sealed class TinyFarmSliceArt
         Title = TinyFarmM24Assets.LoadResource("tinyfarm-title-sleeping-spring",
             Path.Combine(AppContext.BaseDirectory, "Assets/GateA/title-sleeping-spring.png"),
             "78b1ae5809dd2873d96eb0e34fa7dccd01b5ec7c9b1a88e8abb6d44c8a63bf34",
-            false, SpriteSampling.Linear);
+            SpriteSampling.Linear);
         Gardener = TinyFarmM24Assets.LoadResource("tinyfarm-gardener-gate-a",
             Path.Combine(AppContext.BaseDirectory, "Assets/GateA/gardener.png"),
             "e37877db50de173e9287527fcd0ae055b52bb4122aa8745ab7a48f62e6165b0d",
-            false, SpriteSampling.Linear);
+            SpriteSampling.Linear);
         Poses = GridSpriteSheet.Import(Gardener, 4, 4, 64);
         Slime = TinyFarmM24Assets.LoadResource("tinyfarm-slime-gate-a",
             Path.Combine(AppContext.BaseDirectory, "Assets/GateA/slime.png"),
             "4186270097e953cabe582ffe3f2bb5ed041d746382f2e0c071dd986580100138",
-            false, SpriteSampling.Linear);
+            SpriteSampling.Linear);
         SlimePoses = GridSpriteSheet.Import(Slime, 4, 1, 50);
         Mara = TinyFarmM24Assets.LoadResource("tinyfarm-mara-gate-a",
             Path.Combine(AppContext.BaseDirectory, "Assets/GateA/mara.png"),
             "e7ccf26813f70bef7fe8a967ccb8840d6a5e3576d02512383887199ee977de3a",
-            false, SpriteSampling.Linear);
+            SpriteSampling.Linear);
         MaraPose = GridSpriteSheet.Import(Mara, 1, 1, 64)[0];
         Turnip = TinyFarmM24Assets.LoadResource("tinyfarm-turnip-gate-a",
             Path.Combine(AppContext.BaseDirectory, "Assets/GateA/turnip.png"),
             "93cd63902d684125c3b77979b2d35b8a29482a0687263c94ecb713915c775b2e",
-            false, SpriteSampling.Linear);
+            SpriteSampling.Linear);
         TurnipPose = GridSpriteSheet.Import(Turnip, 1, 1, 32)[0];
         Floors = TinyFarmM24Assets.LoadResource("tinyfarm-floors-gate-a",
             Path.Combine(AppContext.BaseDirectory, "Assets/GateA/floors.png"),
             "2b03eeb10682918c1cd67f1560b9290881c1f178adae40f2f2ca1ad5cafbbd0c",
-            false, SpriteSampling.Linear);
+            SpriteSampling.Linear);
         Props = TinyFarmM24Assets.LoadResource("tinyfarm-props-gate-a",
             Path.Combine(AppContext.BaseDirectory, "Assets/GateA/props.png"),
             "1b0bcb6fc6cd8ac422ec199c392e5c77fe78fcb0c20ad6332edb985189ff682d",
-            false, SpriteSampling.Linear);
+            SpriteSampling.Linear);
         IReadOnlyList<SpriteFrameMetadata> imported = GridSpriteSheet.Import(Props, 4, 1, 48);
         double[] heights = [72, 52, 48, 44];
         PropPoses = imported.Select((pose, index) => pose with { Scale = heights[index] / pose.Height }).ToArray();

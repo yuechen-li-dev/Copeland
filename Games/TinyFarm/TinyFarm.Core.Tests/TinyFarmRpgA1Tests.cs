@@ -27,7 +27,7 @@ public sealed class TinyFarmRpgA1Tests
         }
         game.DispatchMenu("search");
         Assert.Equal([GameControls.System, GameControls.TextEntry], game.Contexts);
-        var engine = new InputManEngine(GameControls.CreateProfile(slice: true));
+        var engine = new InputManEngine(GameControls.CreateProfile());
         engine.SetMaps(game.Contexts);
         string hash = TinyFarmSemanticHash.Compute(game.State);
         string field = game.Host.Session.Field.SemanticHash;
@@ -56,7 +56,7 @@ public sealed class TinyFarmRpgA1Tests
     {
         var game = NewGame();
         game.Start();
-        var engine = new InputManEngine(GameControls.CreateProfile(slice: true));
+        var engine = new InputManEngine(GameControls.CreateProfile());
         Press(game, engine, KeyboardKey.C);
         Assert.Equal(TinyFarmScreen.Stats, game.Screen);
         engine.SetMaps(game.Contexts);
@@ -78,7 +78,7 @@ public sealed class TinyFarmRpgA1Tests
         game.Start();
         game.OpenStats(false);
         game.DispatchMenu("search");
-        var engine = new InputManEngine(GameControls.CreateProfile(slice: true));
+        var engine = new InputManEngine(GameControls.CreateProfile());
         engine.SetMaps(game.Contexts);
         engine.Tick(Snapshot(KeyboardKey.J), .016f, 0);
         game.Handle(engine.CurrentFrame);
@@ -104,7 +104,7 @@ public sealed class TinyFarmRpgA1Tests
         game.Start();
         game.OpenStats(false);
         game.DispatchMenu("search");
-        var engine = new InputManEngine(GameControls.CreateProfile(slice: true));
+        var engine = new InputManEngine(GameControls.CreateProfile());
         Press(game, engine, KeyboardKey.F9);
         Assert.False(game.Presentation.HudVisible);
         Assert.True(game.Menus.SearchFocused);
@@ -214,7 +214,7 @@ public sealed class TinyFarmRpgA1Tests
     }
 
     private static TinyFarmGame NewGame() => new(new FileSaveStore(
-        Path.Combine(AppContext.BaseDirectory, "rpg-a1-tests", Guid.NewGuid().ToString("N"))), slice: true);
+        Path.Combine(AppContext.BaseDirectory, "rpg-a1-tests", Guid.NewGuid().ToString("N"))), TinyFarmChapter.Opening);
 
     private static InputSnapshot Snapshot(params KeyboardKey[] keys) => new(
         keys.ToDictionary(key => Controls.Key(key), _ => true), new Dictionary<ControlKey, float>());

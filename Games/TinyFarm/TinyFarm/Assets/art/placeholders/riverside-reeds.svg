@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="320" viewBox="0 0 96 320">
+  <!-- Placeholder art slot. Riverside reed clump, 1 x 3 tiles, feet at the bottom edge. Replace by adding final art in art-slots.json; keep the silhouette and pivot. -->
+  <ellipse cx="48" cy="306" rx="40" ry="10" fill="#1f3326" opacity="0.35"/>
+  <g stroke="#2c3527" stroke-width="3" stroke-linecap="round" fill="none">
+    <path d="M20 304 C18 220 10 150 6 70" stroke="#6f8f4a"/>
+    <path d="M34 306 C34 210 30 120 26 30" stroke="#7fa356"/>
+    <path d="M48 306 C50 200 52 110 50 12" stroke="#8cb15f"/>
+    <path d="M62 306 C64 220 70 140 78 56" stroke="#7fa356"/>
+    <path d="M76 304 C80 240 88 180 92 120" stroke="#6f8f4a"/>
+  </g>
+  <g fill="#7a5233" stroke="#2c3527" stroke-width="2">
+    <rect x="22" y="22" width="9" height="40" rx="4"/>
+    <rect x="46" y="6" width="9" height="44" rx="4"/>
+    <rect x="72" y="50" width="9" height="38" rx="4"/>
+  </g>
+  <g fill="#9cc06a" stroke="#2c3527" stroke-width="2">
+    <path d="M30 300 C10 250 4 230 2 200 C18 230 28 255 36 300 Z"/>
+    <path d="M66 300 C84 255 90 236 94 210 C80 240 70 262 60 300 Z"/>
+  </g>
+</svg>

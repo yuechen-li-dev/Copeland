@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Text.Json;
 using Aurelian.GameMenus;
 using Aurelian.Playtesting;
@@ -30,6 +31,10 @@ public sealed class GamePlaytestTarget : IPlaytestTarget<SortedDictionary<string
         this.surface = surface;
         initial = session.SupportsSaves ? session.CaptureSave() : null;
         initialSettings = session.Settings;
+        if (surface is null)
+        {
+            session.Input.SetPointerSurface(new Vector2(headlessWidth, headlessHeight), new Vector2(headlessWidth, headlessHeight));
+        }
     }
 
     public bool Quit => session.Quit;
@@ -58,7 +63,17 @@ public sealed class GamePlaytestTarget : IPlaytestTarget<SortedDictionary<string
 
     public void Pointer(double x, double y, bool? down = null)
     {
-        if (down is not { } pressed || !focused)
+        if (!focused)
+        {
+            return;
+        }
+        if (session.Menu is null && session.Manifest.Input.Pointer)
+        {
+            // Script coordinates are fractions of the surface; the device reports window units.
+            Vector2 window = session.Input.PointerWindow;
+            session.Input.Adapter.RecordPointerPosition(new Vector2((float)(x * window.X), (float)(y * window.Y)));
+        }
+        if (down is not { } pressed)
         {
             return;
         }
@@ -79,7 +94,13 @@ public sealed class GamePlaytestTarget : IPlaytestTarget<SortedDictionary<string
 
     public (double X, double Y) ActionPoint(string action)
     {
-        GameMenuPage menu = session.Menu ?? throw new InvalidOperationException("No game menu is open.");
+        if (session.Menu is null)
+        {
+            Vector2 pixels = session.Input.PointerSurface;
+            return session.Game.ActionPoint(action, new GameViewRequest((int)pixels.X, (int)pixels.Y))
+                ?? throw new InvalidOperationException($"No shell menu is open and the game has no clickable '{action}'.");
+        }
+        GameMenuPage menu = session.Menu;
         PointerPoint point = menus.ActionCenter(menu, session.SelectedIndex, action, LogicalWidth, LogicalHeight);
         return (point.X / LogicalWidth, point.Y / LogicalHeight);
     }
@@ -105,6 +126,7 @@ public sealed class GamePlaytestTarget : IPlaytestTarget<SortedDictionary<string
         }
         headlessWidth = Math.Max(960, width);
         headlessHeight = Math.Max(600, height);
+        session.Input.SetPointerSurface(new Vector2(headlessWidth, headlessHeight), new Vector2(headlessWidth, headlessHeight));
     }
 
     public void ReleaseMouse()
@@ -182,9 +204,24 @@ public sealed class GamePlaytestTarget : IPlaytestTarget<SortedDictionary<string
 
     public SortedDictionary<string, string> Observe() => new(session.Observe().Values.ToDictionary(), StringComparer.Ordinal);
 
-    public void Text(string text) => throw new NotSupportedException("Games have no text field.");
+    public void Text(string text)
+    {
+        if (session.Menu is not null || !session.Manifest.Input.Pointer)
+        {
+            throw new NotSupportedException("Text goes to games that read the pointer and keyboard typing, while playing.");
+        }
+        session.Input.EnterText(text);
+    }
 
-    public void Scroll(double x, double y, float delta) => throw new NotSupportedException("Games have no scroll action.");
+    public void Scroll(double x, double y, float delta)
+    {
+        if (session.Menu is not null || !session.Manifest.Input.Pointer)
+        {
+            throw new NotSupportedException("The wheel goes to games that read the pointer, while playing.");
+        }
+        Pointer(x, y);
+        session.Input.Adapter.RecordAxis(Controls.Mouse(MouseAxis.WheelY), delta);
+    }
 
     public void SettlePersistence()
     {

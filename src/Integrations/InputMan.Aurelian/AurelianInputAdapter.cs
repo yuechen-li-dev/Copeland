@@ -22,6 +22,29 @@ public sealed class AurelianInputAdapter : IAurelianHostInput
     public InputFrame CurrentFrame => engine.CurrentFrame;
     public IReadOnlySet<byte> ConnectedGamepads => connectedGamepads;
 
+    /// <summary>True once an absolute cursor position has been recorded (and not cleared by a focus loss).</summary>
+    public bool HasPointerPosition => axes.ContainsKey(Controls.Mouse(MouseAxis.PositionX));
+
+    /// <summary>The last recorded cursor position, in the window units the host reported.</summary>
+    public bool TryGetPointerPosition(out System.Numerics.Vector2 position)
+    {
+        if (axes.TryGetValue(Controls.Mouse(MouseAxis.PositionX), out float x)
+            && axes.TryGetValue(Controls.Mouse(MouseAxis.PositionY), out float y))
+        {
+            position = new System.Numerics.Vector2(x, y);
+            return true;
+        }
+        position = default;
+        return false;
+    }
+
+    /// <summary>Record an absolute cursor position without a movement delta (playtests, held-state resets).</summary>
+    public void RecordPointerPosition(System.Numerics.Vector2 position)
+    {
+        RecordAxis(Controls.Mouse(MouseAxis.PositionX), position.X);
+        RecordAxis(Controls.Mouse(MouseAxis.PositionY), position.Y);
+    }
+
     public void SetContexts(params ActionMapId[] activeMaps)
     {
         ThrowIfDisposed();

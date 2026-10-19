@@ -1,6 +1,6 @@
 # Composable C# game starter
 
-Create an executable project with a reference to `src/Integrations/Aurelian.Games/Aurelian.Games.csproj`. Inside `Games/MyGame/MyGame`, this is the entire project:
+Create an executable project with a reference to `src/Integrations/Aurelian.Games.Humanoid/Aurelian.Games.Humanoid.csproj` (the starter template and its humanoid characters, an [Aetheris bridge](aetheris-boundary.md) over the shell in `Aurelian.Games`). Inside `Games/MyGame/MyGame`, this is the entire project:
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
@@ -8,7 +8,7 @@ Create an executable project with a reference to `src/Integrations/Aurelian.Game
     <OutputType>Exe</OutputType>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../../src/Integrations/Aurelian.Games/Aurelian.Games.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Games.Humanoid/Aurelian.Games.Humanoid.csproj" />
   </ItemGroup>
 </Project>
 ```

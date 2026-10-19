@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="112" height="64" viewBox="0 0 112 64">
+  <!-- Placeholder art slot. The outcrop once its salt is gathered (until it regrows). Replace by adding final art in art-slots.json; keep the silhouette and pivot. -->
+  <ellipse cx="56" cy="56" rx="48" ry="7" fill="#1f3326" opacity="0.35"/>
+  <path d="M10 56 L18 24 L44 12 L76 16 L100 30 L104 56 Z" fill="#899488" stroke="#2c3527" stroke-width="3"/>
+  <path d="M40 30 L52 26 L60 34" fill="none" stroke="#6d776c" stroke-width="3"/>
+</svg>

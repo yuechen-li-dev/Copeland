@@ -83,6 +83,62 @@ public IReadOnlyCollection<string> InputContexts => talking ? ["dialogue"] : [Ga
 - A modal context may bind Escape. While it is active, Escape goes to the game, closing its screen, instead of opening the pause menu. Outside modal contexts Escape stays reserved.
 - Duplicate keys and rebinding swaps are resolved per context, so the same key can mean different things in different contexts.
 
+## Pointer and typing
+
+A layout with `Pointer = true` reads the free cursor while playing. It cannot also use captured mouse look.
+
+```csharp
+new GameInputLayout(
+[
+    new("use", "Use", GameControl.Key(KeyboardKey.K), GameControl.Mouse(MouseButton.Primary)),
+])
+{
+    Pointer = true,
+};
+
+public void FixedUpdate(GameTick tick)
+{
+    GamePointer cursor = tick.Input.Pointer;
+    if (cursor.Present && cursor.WasReleased(GamePointerButton.Primary))
+    {
+        Click(cursor.Position, cursor.Surface);
+    }
+    foreach (GameTyping typing in tick.Input.Typing)
+    {
+        // Printable text, or an editing key (Backspace, Delete, Tab).
+    }
+}
+```
+
+- The pointer is read through InputMan, from its own map below every modal context. It never consumes anything. A mouse button bound to an action still reaches the pointer, unless a modal context binds that button.
+- `Position` is in surface pixels, the same space as `GameViewRequest`. `Surface` is that surface's size, so headless games also know what the coordinates mean. The host maps HiDPI window units to pixels (`SetPointerSurface`).
+- Clicks, wheel notches and typing that happen between ticks are latched for the next tick, like action presses. Unlike action presses they are not saved.
+- Typing is window text, not key bindings, so letters still arrive as actions too. A game that edits text switches to a modal context that binds only the keys that leave the text box.
+- Anything typed over a shell menu is dropped. A screen change releases held buttons but keeps the cursor position.
+- `IGame.ActionPoint(action, surface)` places the game's own clickable elements, so playtest scripts can `click-action` them by name. While playing, the `pointer`, `click`, `scroll` and `text` steps go to the game.
+
+## Importing pre-shell saves
+
+A game that had its own save format before moving to the shell can set `Legacy` on its `GameSaveSchema<T>`: a
+function that reads the old save and returns it as the current snapshot type, or null. When the menu slot (`slot-1`)
+is empty at startup, the shell calls it once, validates the result and writes it there with a fresh clock, so Load
+Game offers it. `GameSession.ImportedLegacySave` reports that this happened. TinyFarm imports its last pre-shell
+slot this way.
+
+## Gamepad
+
+The first connected gamepad works everywhere without game code:
+- The shell menus use the d-pad, South to confirm, and East or Start to go back.
+- Start opens the pause menu.
+- A game action can take a fixed pad button beside its keys:
+  `new("jump", "Jump", GameControl.Key(KeyboardKey.Space)) { Gamepad = GameControl.Gamepad(GamepadButton.South) }`.
+  Within a context, each pad button may mean only one action.
+- `GameInputState.LeftStick` and `RightStick` read both sticks through InputMan. X points right and Y up, a radial
+  dead zone of 0.2 is applied, and the range outside it is rescaled to 0..1. TinyFarm adds the left stick to its WASD
+  movement.
+
+Pad buttons are not rebindable yet; capture-rebinding offers keys and mouse buttons.
+
 ## Save versions and checkpoints
 
 ```csharp
@@ -165,5 +221,6 @@ A rewind also restores the preferences the recorded inputs ran under, in memory 
 ## Current bounds
 
 - On a real display, exclusive fullscreen at a non-native resolution asks GLFW for the closest video mode. The headless Xvfb proof cannot change modes and reports the monitor's size.
-- Gamepad controls can be declared (`GameControl.Gamepad`), but capture-rebinding only offers keyboard keys and mouse buttons.
-- Beacon, Mossward, Sunkill and CharacterLab still use their own bootstraps. TinyFarm (2D, with input contexts, game-owned screens and checkpoints) runs on the shell. The FPS starter runs on the shell (`GameStarter.Run` builds a `StarterGame : IGame`), and so will new games.
+- The pointer map only knows the primary, secondary and middle buttons. Back and forward can still be bound to actions.
+- Gamepad buttons and sticks work (see Gamepad above), but capture-rebinding only offers keyboard keys and mouse buttons, and only the first pad is read.
+- Beacon, Mossward, Sunkill and CharacterLab still use their own bootstraps. TinyFarm (2D, with input contexts, game-owned screens and checkpoints) runs on the shell. The FPS starter runs on the shell (`GameStarter.Run` in `Aurelian.Games.Humanoid` builds a `StarterGame : IGame`), and so will new games.

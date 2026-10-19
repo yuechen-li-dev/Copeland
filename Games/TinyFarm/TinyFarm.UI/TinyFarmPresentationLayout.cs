@@ -4,18 +4,16 @@ using Aurelian.Graphics.Vulkan.Native2D;
 namespace TinyFarm.Native;
 
 /// <summary>One scalable UI canvas over a world-owned fixed projection.</summary>
-internal sealed record TinyFarmPresentationLayout(int Width, int Height, bool Legacy = false, bool Opening = false)
+internal sealed record TinyFarmPresentationLayout(int Width, int Height)
 {
     public float UiScale => Math.Min(Width / 1280f, Height / 720f);
     public float UiLeft => (Width - 1280 * UiScale) / 2;
     public float UiTop => (Height - 720 * UiScale) / 2;
-    // Fit 16 x 10 metres plus three metres of canopy headroom. The slab extends into aspect space visually.
-    private float WorldHeight => Opening ? 11 : 13;
-    public float WorldScale => Legacy ? 48 : Math.Min(Width / 16f, Height / WorldHeight);
-    public PixelRect WorldViewport => Legacy
-        ? new PixelRect(22, 24, 904, 648)
-        : new PixelRect(Math.Max(0, (Width - 16 * WorldScale) / 2), Math.Max(0, (Height - WorldHeight * WorldScale) / 2),
-            16 * WorldScale, WorldHeight * WorldScale);
+    // Fit 16 x 11 metres: a 16 x 10 scene plus a metre of canopy. The meadow extends into aspect space visually.
+    private const float WorldHeight = 11;
+    public float WorldScale => Math.Min(Width / 16f, Height / WorldHeight);
+    public PixelRect WorldViewport => new(Math.Max(0, (Width - 16 * WorldScale) / 2), Math.Max(0, (Height - WorldHeight * WorldScale) / 2),
+        16 * WorldScale, WorldHeight * WorldScale);
 
     public Native2DUvRect CoverUv(int imageWidth, int imageHeight)
     {

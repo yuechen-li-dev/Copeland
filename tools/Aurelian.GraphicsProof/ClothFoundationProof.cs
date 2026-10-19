@@ -1,3 +1,4 @@
+using Aurelian.Cloth3D;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Numerics;

@@ -170,7 +170,10 @@ public sealed class TinyFarmProductionFieldM21Tests
     [Fact]
     public void ActiveHostedCombatIsAnExplicitSaveBoundary()
     {
-        var game = new TinyFarmGame(new MemorySaveStore());
+        // Hosted combat belongs to the M21 world, so the game policy is given that world directly.
+        TinyFarmDefinitions definitions = TinyFarmDefinitionLoader.LoadM21();
+        var game = new TinyFarmGame(new MemorySaveStore(),
+            authored: new TinyFarmAuthoredWorld(definitions, TinyFarmSupperStart.Create(definitions)));
         game.Start();
         PlacePlayer(game.State, TinyFarmSceneIds.Riverside, WaterPosition());
         game.Host.ExecuteIntent(new SelectHotbarSlotIntent(new HotbarSlotId(4)));

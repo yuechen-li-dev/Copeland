@@ -70,6 +70,12 @@ public interface IGame : IDisposable
     /// </summary>
     bool Command(string command) => false;
 
+    /// <summary>
+    /// Where a clickable element of the game's own UI is on a surface of the given size, as a fraction of it (0..1), so
+    /// playtest scripts can click it by name ("click-action") instead of by coordinates. Null when there is no such element.
+    /// </summary>
+    (double X, double Y)? ActionPoint(string action, GameViewRequest surface) => null;
+
     /// <summary>Native only: called after the Vulkan graphics exist (load lighting, environments, GPU presenters).</summary>
     void AttachGraphics(NativeGameGraphics graphics)
     {
@@ -287,6 +293,9 @@ public abstract class GameSaveSchema
     }
 
     internal abstract JsonElement Capture();
+
+    /// <summary>A save from before the game moved to the shell, as the current snapshot type (validated), or null.</summary>
+    internal abstract JsonElement? CaptureLegacy();
     internal abstract object Decode(JsonElement state);
     internal abstract void Restore(object decoded);
 
@@ -313,9 +322,26 @@ public sealed class GameSaveSchema<T> : GameSaveSchema where T : class
         this.restore = restore ?? throw new ArgumentNullException(nameof(restore));
     }
 
+    /// <summary>
+    /// Imports a save the game made before it ran on the shell (its own old slot format), already converted to the
+    /// current snapshot type. When the menu's save slot is empty at startup, the shell calls this once and writes the
+    /// result there, so "Load game" offers it. Return null when there is nothing to import.
+    /// </summary>
+    public Func<T?>? Legacy { get; init; }
+
     internal override JsonElement Capture()
     {
         T snapshot = capture();
+        validate(snapshot);
+        return JsonSerializer.SerializeToElement(snapshot, type);
+    }
+
+    internal override JsonElement? CaptureLegacy()
+    {
+        if (Legacy?.Invoke() is not { } snapshot)
+        {
+            return null;
+        }
         validate(snapshot);
         return JsonSerializer.SerializeToElement(snapshot, type);
     }

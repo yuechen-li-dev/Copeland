@@ -4,7 +4,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../../src/Integrations/Aurelian.Games/Aurelian.Games.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Games.Humanoid/Aurelian.Games.Humanoid.csproj" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Runtime/Aurelian.Runtime.csproj" />
     <ProjectReference Include="../../../src/Integrations/Aurelian.Playtesting/Aurelian.Playtesting.csproj" />
     <ProjectReference Include="../../../../Dominatus/src/Dominatus.OptFlow/Dominatus.OptFlow.csproj" />

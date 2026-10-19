@@ -39,21 +39,20 @@ internal sealed partial class TinyFarmWorldPresenter(
     CompiledGraphicsProgram fieldProgram,
     TinyFarmSpriteAtlas spriteAtlas,
     TinyFarmM24Assets m24Assets,
+    TinyFarmArtSlots artSlots,
     TinyFarmGame game,
     Func<TinyFarmFrame> getFrame,
     Func<TinyFarmPresentationLayout> getLayout) : INativeLayerPresenter
 {
     private VulkanOrderedQuadRenderer shapes = null!;
-    private TinyFarmSliceArt? sliceArt;
+    private TinyFarmSliceArt sliceArt = null!;
     private readonly Dictionary<ActorId, TinyFarmPoint> lastActorPositions = [];
     private VulkanOrderedQuadRenderer waves = null!;
     private VulkanOrderedQuadRenderer sprites = null!;
     private VulkanOrderedQuadRenderer painterly = null!;
     private NativeSpriteResourceScope painterlyResources = null!;
     private readonly HashSet<Native2DTextureHandle> linearTextures = [];
-    public uint? BackdropOverride { get; set; }
     public double TreeScale { get; set; } = TinyFarmPainterlyPolicy.TreeVisualScale;
-    public double FarmhouseScale { get; set; } = TinyFarmPainterlyPolicy.FarmhouseVisualScale;
     private VulkanOrderedQuadRenderer field = null!;
     private Native2DTextureHandle fieldTexture;
     private long projectedFieldGeneration = -1;
@@ -71,12 +70,7 @@ internal sealed partial class TinyFarmWorldPresenter(
     private readonly List<PreparedWorldSprite> orderedSpriteScratch = new(512);
     private readonly List<WorldSprite> playerSpriteScratch = new(1);
     private readonly List<PreparedWorldSprite> playerProjectionScratch = new(1);
-    private readonly List<WorldSprite> staticTileSprites = new(512);
     private readonly SemanticWorldScene m24Scene = TinyFarmSemanticSpatialScene.Create();
-    private int staticTileWidth = -1;
-    private int staticTileHeight = -1;
-    private bool staticTileCave;
-    private bool staticTileHouse;
     private long fieldProjectionTicks;
     public double FieldProjectionMilliseconds => Stopwatch.GetElapsedTime(0, fieldProjectionTicks).TotalMilliseconds;
     private long snapshotAllocatedBytes;
@@ -88,7 +82,7 @@ internal sealed partial class TinyFarmWorldPresenter(
     public int LastSpriteCount { get; private set; }
     public Camera2DSnapshot? LastCamera { get; private set; }
     public string SamplerDescription => $"Meadow {m24Assets.Meadow.Sampling}; house {m24Assets.Farmhouse.Sampling}; tree {m24Assets.Tree.Sampling}; pixel atlas {spriteAtlas.Resource.Sampling}; text MSDF"
-        + (sliceArt is not null ? "; opening cutouts/floors/brushes Linear" : "");
+        + "; opening cutouts/floors/brushes/art slots Linear";
     public object TextureFacts => new
     {
         painterly = m24Assets.Resources.Select(resource => new
@@ -169,7 +163,6 @@ internal sealed partial class TinyFarmWorldPresenter(
                 linearTextures.Add(texture);
             }
         }
-        if (game.State.Slice is not null)
         {
             sliceArt = new TinyFarmSliceArt();
             linearTextures.Add(painterlyResources.Resolve(sliceArt.Title));
@@ -184,6 +177,10 @@ internal sealed partial class TinyFarmWorldPresenter(
             linearTextures.Add(painterlyResources.Resolve(sliceArt.Props));
             linearTextures.Add(painterlyResources.Resolve(sliceArt.Floors));
             linearTextures.Add(painterlyResources.Resolve(sliceArt.Turnip));
+        }
+        foreach (SpriteAtlasResource slot in artSlots.Resources)
+        {
+            linearTextures.Add(painterlyResources.Resolve(slot));
         }
         byte[] pixels = ProjectFieldPixels(game.Host.Session.Field);
         TinyFarmFieldDefinition definition = game.Host.Session.Field.Definition;
@@ -206,7 +203,7 @@ internal sealed partial class TinyFarmWorldPresenter(
     {
         long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
         TinyFarmFrame frame = getFrame();
-        if (game.Screen == TinyFarmScreen.Title && sliceArt is not null)
+        if (game.Screen == TinyFarmScreen.Title)
         {
             context.Present(painterly, pass => pass.SubmitQuad(new NativeQuadSubmission(
                 new Native2DRect(0, 0, context.TargetWidth, context.TargetHeight),
@@ -244,32 +241,18 @@ internal sealed partial class TinyFarmWorldPresenter(
         LastCamera = camera.Snapshot();
         LastSpriteCount = ordered.Count;
         bool showField = frame.ActiveScene == game.Host.Session.Field.Definition.Scene;
-        if (sliceArt is not null)
+        PresentSliceGround(context, frame, cave, house);
+        if (showField)
         {
-            PresentSliceGround(context, frame, cave, house);
-            PresentOrdered(context, ordered, ground: true);
-            PresentSliceCrops(context, frame);
-            PresentSliceTelegraph(context, frame);
-            PresentOrdered(context, ordered, ground: false);
-            PresentSliceSword(context, frame);
-        }
-        else if (showField)
-        {
-            PresentM24Ground(context);
-            PresentOrdered(context, ordered, ground: true);
+            // Riverside's water is the simulated field (wading, ripples, charged water), painted by its own shader.
             PresentField(context, frame);
-            PresentM24Bridge(context);
-            PresentOrdered(context, ordered, ground: false);
         }
-        else
-        {
-            PresentOrdered(context, ordered, ground: null);
-        }
-
-        if (!getLayout().Legacy)
-        {
-            PresentOccludedPlayer(context, snapshot, camera.Snapshot());
-        }
+        PresentOrdered(context, ordered, ground: true);
+        PresentSliceCrops(context, frame);
+        PresentSliceTelegraph(context, frame);
+        PresentOrdered(context, ordered, ground: false);
+        PresentSliceSword(context, frame);
+        PresentOccludedPlayer(context, snapshot, camera.Snapshot());
         var effectCamera = new EffectCameraTransform(Vector2.Zero, new Vector2(left, top), scale / 1024, 1);
         game.Effects.CopyParticleDrawData(particleSnapshots);
         if (particleSnapshots.Count > 0)
@@ -343,7 +326,8 @@ internal sealed partial class TinyFarmWorldPresenter(
 
     private Native2DTextureHandle ResolveTexture(SpriteAssetId id)
     {
-        if (sliceArt is not null && (id == sliceArt.Gardener.Id || id == sliceArt.Slime.Id || id == sliceArt.Mara.Id || id == sliceArt.Props.Id || id == sliceArt.Chest.Id))
+        if (id == sliceArt.Gardener.Id || id == sliceArt.Slime.Id || id == sliceArt.Mara.Id || id == sliceArt.Props.Id
+            || id == sliceArt.Chest.Id || artSlots.Owns(id))
         {
             return painterlyResources.Get(id);
         }
@@ -398,44 +382,33 @@ internal sealed partial class TinyFarmWorldPresenter(
             getLayout().WorldViewport,
             getLayout().WorldScale / 48.0,
             new WorldRect(0, 0, Math.Max(frame.SceneWidth, 1), Math.Max(frame.SceneHeight, 1)));
-        if (game.State.Slice is not null)
+        double boundsX = Math.Min(0, (frame.SceneWidth - 16) / 2.0);
+        double boundsY = Math.Min(0, (frame.SceneHeight - 11) / 2.0);
+        double boundsHeight = Math.Max(11, frame.SceneHeight);
+        if (frame.ActiveScene == TinyFarmSceneIds.Farm)
         {
-            double boundsX = Math.Min(0, (frame.SceneWidth - 16) / 2.0);
-            double boundsY = Math.Min(0, (frame.SceneHeight - 11) / 2.0);
-            double boundsHeight = Math.Max(11, frame.SceneHeight);
-            if (frame.ActiveScene == TinyFarmSceneIds.Farm)
-            {
-                boundsY = -2;
-                boundsHeight += 2;
-            }
-            camera.SetBounds(new WorldRect(boundsX, boundsY, Math.Max(16, frame.SceneWidth),
-                boundsHeight), worldScale);
+            boundsY = -2;
+            boundsHeight += 2;
         }
+        camera.SetBounds(new WorldRect(boundsX, boundsY, Math.Max(16, frame.SceneWidth), boundsHeight), worldScale);
         TinyFarmActorView? player = frame.Actors.FirstOrDefault(actor => actor.IsPlayer);
         if (player is not null)
         {
             camera.Follow(
-                new WorldPoint2(player.Position.X / 1024.0, player.Position.Y / 1024.0 - (game.State.Slice is not null && frame.ActiveScene == TinyFarmSceneIds.Farm ? 2 : 0)),
+                new WorldPoint2(player.Position.X / 1024.0, player.Position.Y / 1024.0 - (frame.ActiveScene == TinyFarmSceneIds.Farm ? 2 : 0)),
                 worldScale);
-        }
-        if (!getLayout().Legacy && frame.ActiveScene == TinyFarmSceneIds.Riverside)
-        {
-            // Presentation bounds include canopy height; semantic ground remains [0,16] x [0,10].
-            camera.SetBounds(new WorldRect(0, -3, 16, 13), worldScale);
-            camera.SnapTo(new WorldPoint2(0, -3), worldScale);
         }
         return camera;
     }
 
-    private int FieldPadding => getLayout().Legacy ? 0 : 1;
+    // One dry cell around the field feathers the bank into the meadow.
+    private const int FieldPadding = 1;
 
     private byte[] ProjectFieldPixels(TinyFarmFieldRuntime runtime)
     {
         long started = Stopwatch.GetTimestamp();
         byte[] source = runtime.ProjectRgba8();
-        byte[] pixels = FieldPadding == 0
-            ? source
-            : TinyFarmBankMask.Pad(source, runtime.Definition.Width, runtime.Definition.Height);
+        byte[] pixels = TinyFarmBankMask.Pad(source, runtime.Definition.Width, runtime.Definition.Height);
         fieldProjectionTicks += Stopwatch.GetTimestamp() - started;
         return pixels;
     }
@@ -485,55 +458,7 @@ internal sealed partial class TinyFarmWorldPresenter(
     {
         TimeSpan elapsed = TimeSpan.FromSeconds(frameId / 60.0);
         worldSpriteScratch.Clear();
-        bool semanticRiverside = frame.ActiveScene == TinyFarmSceneIds.Riverside;
-        if (sliceArt is not null)
-        {
-            AddSliceObjects(frame, elapsed);
-        }
-        else if (semanticRiverside)
-        {
-            AddM24WorldObjects(elapsed);
-        }
-        else
-        {
-            EnsureStaticTileSprites(frame.SceneWidth, frame.SceneHeight, cave, house);
-            worldSpriteScratch.AddRange(staticTileSprites);
-        }
-
-        foreach (TinyFarmSceneObjectView item in frame.SceneObjects ?? [])
-        {
-            if (sliceArt is not null) continue;
-            if (item.Id.Value == "river" || semanticRiverside && item.Id.Value == "reeds")
-            {
-                continue;
-            }
-            string spriteId = item.Depleted && item.Kind == SceneObjectKind.Tree
-                ? "grass-d"
-                : SpriteFor(item);
-            worldSpriteScratch.Add(Sprite(
-                "object-" + item.Id.Value,
-                spriteId,
-                new WorldPoint2(item.Position.X + item.Width / 2.0, item.Position.Y + item.Height),
-                elapsed,
-                WorldSpriteLayer.World,
-                item.Position.Y + item.Height,
-                Native2DTint.White));
-        }
-
-        foreach (TinyFarmPlotView plot in frame.Plots.Where(plot => sliceArt is null && plot.Crop is not null))
-        {
-            double x = plot.Position.X / 1024.0;
-            double y = plot.Position.Y / 1024.0;
-            worldSpriteScratch.Add(Sprite("crop-" + plot.Id.Value, "mint", new WorldPoint2(x, y), elapsed, WorldSpriteLayer.World, y, Native2DTint.White));
-        }
-
-        foreach (TinyFarmItemView item in frame.GroundItems)
-        {
-            if (sliceArt is not null) continue;
-            double x = item.Position.X / 1024.0;
-            double y = item.Position.Y / 1024.0;
-            worldSpriteScratch.Add(Sprite("ground-item-" + item.Id.Value, "mint", new WorldPoint2(x, y), elapsed, WorldSpriteLayer.World, y, Native2DTint.White));
-        }
+        AddSliceObjects(frame, elapsed);
 
         foreach (TinyFarmActorView actor in frame.Actors)
         {
@@ -543,7 +468,7 @@ internal sealed partial class TinyFarmWorldPresenter(
             TinyFarmAgentSprite appearance = actor.Appearance?.OverworldSprite
                 ?? (actor.Id == TinyFarmIds.Mara ? TinyFarmAgentSprite.Mara : TinyFarmAgentSprite.Gardener);
             double visualScale = (actor.Appearance?.ScalePercent ?? 100) / 100.0;
-            if (sliceArt is not null && appearance == TinyFarmAgentSprite.Chest)
+            if (appearance == TinyFarmAgentSprite.Chest)
             {
                 int pose = game.State.Actor(actor.Id).Agent?.ObjectPose == TinyFarmObjectPose.Open ? 1 : 0;
                 worldSpriteScratch.Add(new WorldSprite(new WorldPresentationId("actor-" + actor.Id.Value),
@@ -558,28 +483,25 @@ internal sealed partial class TinyFarmWorldPresenter(
                 worldSpriteScratch.Add(marker with { Scale = visualScale });
                 continue;
             }
-            if (sliceArt is not null && appearance == TinyFarmAgentSprite.Gardener)
+            if (appearance == TinyFarmAgentSprite.Gardener && artSlots.TryGet("actor." + actor.Id.Value, out SpriteAtlasResource sheet))
             {
-                int row = actor.Facing switch
-                {
-                    ActorFacing.Up => 1,
-                    ActorFacing.Left => 2,
-                    ActorFacing.Right => 3,
-                    _ => 0
-                };
-                bool moving = lastActorPositions.TryGetValue(actor.Id, out TinyFarmPoint previous) && previous != actor.Position;
-                lastActorPositions[actor.Id] = actor.Position;
+                worldSpriteScratch.Add(new WorldSprite(new WorldPresentationId("actor-" + actor.Id.Value),
+                    new WorldPoint2(x, y), sheet.Id, WalkFrame(actor).ToString(), null,
+                    elapsed, false, visualScale, Native2DTint.White, WorldSpriteLayer.Actors, y, false));
+                continue;
+            }
+            if (appearance == TinyFarmAgentSprite.Gardener)
+            {
                 if (actor.IsPlayer && game.State.Slice!.HurtTicks > 0 && game.State.Slice.Tick % 8 < 4)
                 {
                     tint = new Native2DTint(1, .62f, .48f, .85f);
                 }
-                int column = moving && actor.Appearance?.WalkingAnimation != false ? (int)(game.State.Slice!.Tick / 8 % 4) : 0;
                 worldSpriteScratch.Add(new WorldSprite(new WorldPresentationId("actor-" + actor.Id.Value),
-                    new WorldPoint2(x, y), sliceArt.Gardener.Id, (row * 4 + column).ToString(), null,
+                    new WorldPoint2(x, y), sliceArt.Gardener.Id, WalkFrame(actor).ToString(), null,
                     elapsed, false, visualScale, tint, WorldSpriteLayer.Actors, y, false));
                 continue;
             }
-            if (sliceArt is not null && appearance == TinyFarmAgentSprite.Mara)
+            if (appearance == TinyFarmAgentSprite.Mara)
             {
                 worldSpriteScratch.Add(new WorldSprite(new WorldPresentationId("actor-" + actor.Id.Value),
                     new WorldPoint2(x, y), sliceArt.Mara.Id, "full", null, elapsed, false, visualScale,
@@ -597,7 +519,6 @@ internal sealed partial class TinyFarmWorldPresenter(
             }
             double x = enemy.Position.X / 1024.0;
             double y = enemy.Position.Y / 1024.0;
-            if (sliceArt is not null)
             {
                 int pose = game.State.Slice!.SlimePhase switch
                 {
@@ -609,46 +530,26 @@ internal sealed partial class TinyFarmWorldPresenter(
                 worldSpriteScratch.Add(new WorldSprite(new WorldPresentationId("enemy-" + enemy.Id.Value),
                     new WorldPoint2(x, y), sliceArt.Slime.Id, pose.ToString(), null, elapsed, false, 1,
                     Native2DTint.White, WorldSpriteLayer.Actors, y, false));
-                continue;
             }
-            worldSpriteScratch.Add(Sprite("enemy-" + enemy.Id.Value, "mint", new WorldPoint2(x, y), elapsed, WorldSpriteLayer.Actors, y, new Native2DTint(0.65f, 1, 0.72f, 1)));
         }
         return new WorldPresentationSnapshot(worldSpriteScratch);
     }
 
-    private void AddM24WorldObjects(TimeSpan elapsed)
+    /// <summary>A cell of a 4 x 4 walk sheet: rows face down, up, left, right; columns step while the actor moves.</summary>
+    private int WalkFrame(TinyFarmActorView actor)
     {
-        worldSpriteScratch.Add(M24Sprite(
-            "m24-farmhouse",
-            m24Assets.Farmhouse.Id,
-            new WorldPoint2(3.2, 3.3),
-            elapsed,
-            feetY: 3.3,
-            spriteScale: FarmhouseScale));
-        AddTree("m24-tree-west", 1.3, 5.25, elapsed, 1.0);
-        AddTree("m24-tree-path", 7.0, 3.1, elapsed, 1.08);
-        AddTree("m24-tree-bank", 8.35, 1.25, elapsed, 1.02);
-        AddTree("m24-tree-south", 6.4, 8.75, elapsed, 0.94);
-        worldSpriteScratch.Add(Sprite(
-            "m24-well",
-            "well",
-            new WorldPoint2(6.25, 5.65),
-            elapsed,
-            WorldSpriteLayer.Actors,
-            5.65,
-            Native2DTint.White));
-        for (int index = 0; index < 5; index++)
+        int row = actor.Facing switch
         {
-            double x = 1.0 + index;
-            worldSpriteScratch.Add(Sprite(
-                "m24-fence-" + index,
-                "fence",
-                new WorldPoint2(x, 0.85),
-                elapsed,
-                WorldSpriteLayer.Actors,
-                0.85,
-                Native2DTint.White));
-        }
+            ActorFacing.Up => 1,
+            ActorFacing.Left => 2,
+            ActorFacing.Right => 3,
+            _ => 0
+        };
+        bool moving = lastActorPositions.TryGetValue(actor.Id, out TinyFarmPoint previous) && previous != actor.Position;
+        lastActorPositions[actor.Id] = actor.Position;
+        bool animates = actor.Appearance?.WalkingAnimation != false;
+        int column = moving && animates ? (int)(game.State.Slice!.Tick / 8 % 4) : 0;
+        return row * 4 + column;
     }
 
     private void AddTree(string stableId, double x, double y, TimeSpan elapsed, double spriteScale)
@@ -686,138 +587,33 @@ internal sealed partial class TinyFarmWorldPresenter(
 
     private SpriteFrameMetadata ResolveFrame(WorldSprite sprite)
     {
-        if (sliceArt is not null && sprite.AssetId == sliceArt.Gardener.Id)
+        if (artSlots.Owns(sprite.AssetId))
+        {
+            return artSlots.Frame(sprite.AssetId, sprite.SpriteId);
+        }
+        if (sprite.AssetId == sliceArt.Gardener.Id)
         {
             return sliceArt.Poses[int.Parse(sprite.SpriteId, System.Globalization.CultureInfo.InvariantCulture)];
         }
-        if (sliceArt is not null && sprite.AssetId == sliceArt.Slime.Id)
+        if (sprite.AssetId == sliceArt.Slime.Id)
         {
             return sliceArt.SlimePoses[int.Parse(sprite.SpriteId, System.Globalization.CultureInfo.InvariantCulture)];
         }
-        if (sliceArt is not null && sprite.AssetId == sliceArt.Mara.Id)
+        if (sprite.AssetId == sliceArt.Mara.Id)
         {
             return sliceArt.MaraPose;
         }
-        if (sliceArt is not null && sprite.AssetId == sliceArt.Chest.Id)
+        if (sprite.AssetId == sliceArt.Chest.Id)
         {
             return sliceArt.ChestPoses[int.Parse(sprite.SpriteId, System.Globalization.CultureInfo.InvariantCulture)];
         }
-        if (sliceArt is not null && sprite.AssetId == sliceArt.Props.Id)
+        if (sprite.AssetId == sliceArt.Props.Id)
         {
             return sliceArt.PropPoses[int.Parse(sprite.SpriteId, System.Globalization.CultureInfo.InvariantCulture)];
         }
         return sprite.AssetId == spriteAtlas.Resource.Id
             ? playback.Resolve(sprite, spriteAtlas.Metadata, spriteResolver)
             : m24Assets.Frame(sprite.AssetId);
-    }
-
-    private void PresentM24Ground(NativeLayerFrameContext context)
-    {
-        if (BackdropOverride is { } color)
-        {
-            context.Present(shapes, pass => Rect(pass, 0, 0, context.TargetWidth, context.TargetHeight, color, 0));
-            return;
-        }
-        context.Present(RendererFor(ResolveTexture(m24Assets.Meadow.Id)), pass => pass.SubmitQuad(new NativeQuadSubmission(
-            getLayout().Legacy
-                ? new Native2DRect(left, top, 16 * scale, 10 * scale)
-                : new Native2DRect(0, 0, context.TargetWidth, context.TargetHeight),
-            Native2DUvRect.Full,
-            ResolveTexture(m24Assets.Meadow.Id),
-            Native2DTint.White)));
-        context.Present(shapes, pass =>
-        {
-            if (getLayout().Legacy)
-            {
-                Tile(pass, 9.12f, 0, 0.76f, 10, 0xA98A61FF, 12);
-            }
-            else
-            {
-                // Translucent soil feather under the semantic wet-alpha field.
-                for (int band = 8; band >= 1; band--)
-                {
-                    float width = 0.10f + band * 0.075f;
-                    Tile(pass, 9.5f - width, 0, width * 2, 10, 0xA98A6120, 0);
-                }
-            }
-            DrawPath(pass);
-            Tile(pass, 2.2f, 6.4f, 3.4f, 2.2f, 0x795A3DE6, 12);
-            for (int row = 0; row < 4; row++)
-            {
-                Tile(pass, 2.45f, 6.7f + row * 0.42f, 2.9f, 0.08f, 0xB68A59FF, 3);
-            }
-            for (int index = 0; index < 15; index++)
-            {
-                float x = 5.55f + ((index * 37) % 20) / 10f;
-                float y = 2.35f + ((index * 19) % 11) / 10f;
-                Tile(pass, x, y, 0.11f, 0.11f, index % 3 == 0 ? 0xF3D38BFF : 0xF4E7C2FF, 6);
-            }
-        });
-    }
-
-    private void DrawPath(VulkanOrderedQuadRenderer pass)
-    {
-        SpatialPoint3D[] points = m24Scene.Paths.Single().Centerline.ToArray();
-        for (int segment = 0; segment < points.Length - 1; segment++)
-        {
-            for (int step = 0; step <= 10; step++)
-            {
-                float amount = step / 10f;
-                float x = (float)(points[segment].X + ((points[segment + 1].X - points[segment].X) * amount));
-                float y = (float)(points[segment].Y + ((points[segment + 1].Y - points[segment].Y) * amount));
-                float irregular = ((segment * 11 + step * 7) % 5 - 2) * 0.025f;
-                Tile(pass, x - 0.58f - irregular, y - 0.58f, 1.16f + irregular * 2, 1.16f, 0xB88D58F2, 28);
-            }
-        }
-    }
-
-    private void PresentM24Bridge(NativeLayerFrameContext context)
-    {
-        context.Present(shapes, pass =>
-        {
-            if (getLayout().Legacy)
-            {
-                Tile(pass, 9.22f, 0, 0.20f, 10, 0x78904CFF, 7);
-                Tile(pass, 9.40f, 0, 0.24f, 10, 0xA98A61E8, 8);
-            }
-            Tile(pass, 9.2f, 4.25f, 2.4f, 1.5f, 0x8A623FFF, 5);
-            for (int plank = 0; plank < 6; plank++)
-            {
-                Tile(pass, 9.28f + plank * 0.38f, 4.34f, 0.28f, 1.32f, 0xC99A61FF, 3);
-            }
-        });
-    }
-
-    private void EnsureStaticTileSprites(int width, int height, bool cave, bool house)
-    {
-        if (staticTileWidth == width
-            && staticTileHeight == height
-            && staticTileCave == cave
-            && staticTileHouse == house)
-        {
-            return;
-        }
-
-        staticTileSprites.Clear();
-        for (int y = 0; y < height; y++)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                staticTileSprites.Add(Sprite(
-                    $"tile-{x:D2}-{y:D2}",
-                    TinyFarmAuthoredTileMap.TileAt(x, y, house, cave),
-                    new WorldPoint2(x + 0.5, y + 0.5),
-                    TimeSpan.Zero,
-                    WorldSpriteLayer.Ground,
-                    y,
-                    Native2DTint.White));
-            }
-        }
-
-        staticTileWidth = width;
-        staticTileHeight = height;
-        staticTileCave = cave;
-        staticTileHouse = house;
     }
 
     private WorldSprite Sprite(
@@ -842,23 +638,6 @@ internal sealed partial class TinyFarmWorldPresenter(
             tint,
             layer,
             feetY);
-    }
-
-    private static string SpriteFor(TinyFarmSceneObjectView item)
-    {
-        return item.Kind switch
-        {
-            SceneObjectKind.Tree => "tree",
-            SceneObjectKind.Forage => "mint",
-            SceneObjectKind.CookingStation => "hearth",
-            SceneObjectKind.Portal => "lantern",
-            SceneObjectKind.Plot => "mint",
-            SceneObjectKind.Bed => "hearth",
-            _ when item.Id.Value == "well" => "well",
-            _ when item.Id.Value == "market-stall" => "market",
-            _ when item.Id.Value == "fence" => "fence",
-            _ => "wall",
-        };
     }
 
     private void DrawObject(VulkanOrderedQuadRenderer pass, TinyFarmSceneObjectView item, bool cave)
@@ -961,25 +740,6 @@ internal sealed partial class TinyFarmWorldPresenter(
         }
     }
 
-    private void DrawActor(VulkanOrderedQuadRenderer pass, TinyFarmActorView actor)
-    {
-        float x = actor.Position.X / 1024f;
-        float y = actor.Position.Y / 1024f;
-        Tile(pass, x - .35f, y - .1f, .7f, .24f, 0x243D3470, 8);
-        Tile(pass, x - .23f, y - .6f, .46f, .55f, actor.IsPlayer ? 0x426B80FF : 0xB76D54FF, 5);
-        Tile(pass, x - .23f, y - 1.03f, .46f, .48f, 0xEDD0A0FF, 6);
-        Tile(pass, x - .32f, y - 1.12f, .64f, .22f, actor.IsPlayer ? 0xD9B46FFF : 0x63513DFF, 5);
-        float eye = actor.Facing == ActorFacing.Left ? -.16f : .09f;
-        Tile(pass, x + eye, y - .87f, .08f, .1f, 0x243D34FF, 1);
-        Tile(pass, x - .2f, y - .08f, .15f, .15f, 0x384039FF, 2);
-        Tile(pass, x + .07f, y - .08f, .15f, .15f, 0x384039FF, 2);
-        if (actor.IsPlayer && game.State.SelectedHotbarSlot == 4)
-        {
-            Tile(pass, x + .3f, y - .76f, .1f, .63f, 0xDDE9D8FF, 1);
-            Tile(pass, x + .2f, y - .27f, .3f, .1f, 0xDBB971FF, 1);
-        }
-    }
-
     private void Tile(VulkanOrderedQuadRenderer pass, float x, float y, float width, float height, uint color, float radius)
     {
         Rect(pass, left + x * scale, top + y * scale, width * scale, height * scale, color, radius);
@@ -1010,9 +770,7 @@ internal sealed class TinyFarmNativeOverlay(
     AurelianVulkanPlant plant,
     CompiledGraphicsProgram analyticProgram,
     CompiledGraphicsProgram msdfProgram,
-    CompiledGraphicsProgram profileMsdfProgram,
     TinyFarmNativeUiFont font,
-    ProfileNativeCompositionResource profileTree,
     Func<TinyFarmUiResources> presentation,
     TinyFarmGame game,
     Func<TinyFarmPresentationLayout> getLayout,
@@ -1020,9 +778,7 @@ internal sealed class TinyFarmNativeOverlay(
 {
     private VulkanOrderedQuadRenderer shapes = null!;
     private VulkanOrderedQuadRenderer text = null!;
-    private VulkanOrderedQuadRenderer profiles = null!;
     private AurelianMsdfAtlasCache atlasCache = null!;
-    private ProfileNativeRealizationCache profileCache = null!;
     private string? inspectorKey;
     private TinyFarmNativeUiSegments inspectorSegments = TinyFarmNativeUiSegments.Empty;
     private MachinaPresentationFrame? baseSource;
@@ -1051,16 +807,10 @@ internal sealed class TinyFarmNativeOverlay(
     {
         shapes = new VulkanOrderedQuadRenderer(plant, analyticProgram, target, Native2DPipelineOptions.AnalyticShape2D);
         text = new VulkanOrderedQuadRenderer(plant, msdfProgram, target, Native2DPipelineOptions.MsdfText);
-        profiles = new VulkanOrderedQuadRenderer(plant, profileMsdfProgram, target, Native2DPipelineOptions.ProfileMsdf);
         atlasCache = new AurelianMsdfAtlasCache(text);
-        profileCache = new ProfileNativeRealizationCache(profiles, capacity: 4);
         foreach (AurelianMsdfAtlasResource resource in font.Resources)
         {
             atlasCache.Resolve(resource);
-        }
-        if (getLayout().Legacy)
-        {
-            profileCache.Warm(profileTree);
         }
         WarmCurrentPresentation();
     }
@@ -1069,7 +819,6 @@ internal sealed class TinyFarmNativeOverlay(
     {
         shapes.Retarget(target);
         text.Retarget(target);
-        profiles.Retarget(target);
         baseSource = null;
         clockSource = null;
         promptSource = null;
@@ -1096,18 +845,14 @@ internal sealed class TinyFarmNativeOverlay(
         }
         if (game.Presentation.HudVisible || game.Screen is TinyFarmScreen.Inventory or TinyFarmScreen.Stats or TinyFarmScreen.Crafting or TinyFarmScreen.Container or TinyFarmScreen.Paused or TinyFarmScreen.Title)
         {
-            PresentSegment(context, baseSegments.Base, includeProfile: getLayout().Legacy);
+            PresentSegment(context, baseSegments.Base);
         }
         if (game.Presentation.HudVisible && game.Screen != TinyFarmScreen.Title)
         {
             PresentSegment(context, clockSegments.Base);
         }
         PresentSegment(context, baseSegments.Overlay);
-        if (getLayout().Legacy)
-        {
-            PresentSegment(context, promptSegments.Base, offsetX: 125, offsetY: 528);
-        }
-        else if (getCamera() is { } camera)
+        if (getCamera() is { } camera)
         {
             ScenePosition player = game.State.ActorScene(TinyFarmIds.Player).WorldPosition;
             TinyFarmPresentationLayout layout = getLayout();
@@ -1253,7 +998,7 @@ internal sealed class TinyFarmNativeOverlay(
     private void PresentSegment(
         NativeLayerFrameContext context,
         TinyFarmNativeUiSegment segment,
-        bool includeProfile = false, float offsetX = 0, float offsetY = 0)
+        float offsetX = 0, float offsetY = 0)
     {
         if (segment.Shapes.Length > 0)
         {
@@ -1285,13 +1030,6 @@ internal sealed class TinyFarmNativeOverlay(
                         Msdf = submission.Msdf with { FieldScale = submission.Msdf.FieldScale * layout.UiScale },
                     });
                 }
-            });
-        }
-        if (includeProfile)
-        {
-            context.Present(profiles, pass =>
-            {
-                profileCache.Submit(profileTree, new ProfileNativeInstance(550, 430, 0.68f));
             });
         }
     }
@@ -1355,9 +1093,7 @@ internal sealed class TinyFarmNativeOverlay(
 
     public void Detach()
     {
-        profileCache?.Dispose();
         atlasCache?.Dispose();
-        profiles?.Dispose();
         text?.Dispose();
         shapes?.Dispose();
     }

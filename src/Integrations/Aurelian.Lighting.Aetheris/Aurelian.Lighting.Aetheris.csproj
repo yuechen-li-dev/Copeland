@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <!-- Aetheris bridge: analytic field lighting. See docs/Aurelian/aetheris-boundary.md. -->
   <PropertyGroup>
     <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
-    <Description>Optional Aurelian lighting adapter for AGPL Aetheris fields. See NOTICE.md for combined-build terms.</Description>
-    <RestoreAdditionalProjectSources Condition="'$(AetherisPackageFeed)' != ''">$(RestoreAdditionalProjectSources);$(AetherisPackageFeed)</RestoreAdditionalProjectSources>
+    <Description>Optional Aurelian lighting adapter for Aetheris fields.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Aetheris.Fields" VersionOverride="2.0.0-preview.3" />
+    <ProjectReference Include="../../../../Aetheris/Aetheris.Fields/Aetheris.Fields.csproj" />
     <ProjectReference Include="../../Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj" />
     <EmbeddedResource Include="Assets/*.v.ts" />
     <EmbeddedResource Include="licenses/AGPL-3.0.txt" LogicalName="Aurelian.Lighting.Aetheris.AGPL-3.0.txt" />

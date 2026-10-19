@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="112" viewBox="0 0 128 112">
+  <!-- Placeholder art slot. Hen-of-the-woods mushrooms on a mossy stump, a forage node 1 x 1 tile, feet at the bottom. Replace by adding final art in art-slots.json; keep the silhouette and pivot. -->
+  <ellipse cx="64" cy="104" rx="56" ry="8" fill="#1f3326" opacity="0.35"/>
+  <path d="M30 104 L34 66 Q64 54 94 66 L98 104 Z" fill="#7b5a3c" stroke="#2c3527" stroke-width="3"/>
+  <ellipse cx="64" cy="66" rx="30" ry="8" fill="#b59167" stroke="#2c3527" stroke-width="3"/>
+  <g fill="#a0866a" stroke="#2c3527" stroke-width="2.5">
+    <path d="M18 76 C14 52 34 40 48 54 C40 58 32 66 30 80 Z"/>
+    <path d="M40 58 C36 30 62 18 74 38 C64 40 56 48 52 60 Z"/>
+    <path d="M70 52 C74 26 104 26 106 50 C94 50 84 54 78 64 Z"/>
+    <path d="M92 74 C98 52 122 58 118 80 C110 76 102 76 96 82 Z"/>
+  </g>
+  <g fill="#c9b08d" stroke="none">
+    <path d="M24 70 C24 58 34 52 42 56 C36 60 30 64 28 72 Z"/>
+    <path d="M46 50 C46 36 60 30 68 38 C60 40 54 44 50 52 Z"/>
+    <path d="M78 46 C82 34 96 32 100 44 C92 44 86 46 82 52 Z"/>
+  </g>
+</svg>

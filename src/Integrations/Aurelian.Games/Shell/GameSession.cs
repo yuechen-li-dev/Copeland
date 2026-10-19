@@ -56,6 +56,11 @@ public sealed class GameSession : IDisposable
     private readonly Stack<string> history = new();
     private readonly HashSet<string> pendingPressed = new(StringComparer.Ordinal);
     private readonly HashSet<string> pendingReleased = new(StringComparer.Ordinal);
+    // Pointer clicks, wheel and typing latch like action presses, but are not saved: a save never lands mid-click.
+    private readonly HashSet<GamePointerButton> pendingPointerPressed = [];
+    private readonly HashSet<GamePointerButton> pendingPointerReleased = [];
+    private readonly List<GameTyping> pendingTyping = [];
+    private Vector2 pendingWheel;
     private Vector2 pendingLook;
     private CadenceScheduler scheduler;
     private GameDisplaySettings pendingDisplay;
@@ -92,7 +97,17 @@ public sealed class GameSession : IDisposable
                 GameShellJsonContext.Default.GameShellSave, ValidateSave, saves.Version,
                 saves.Migrations.Select(EnvelopeMigration).ToArray());
             Context.SaveRequested = slot => requestedSave = slot;
-            Persist(async () => slotExists = await worldStore.ExistsAsync(QuickSlot));
+            Persist(async () =>
+            {
+                slotExists = await worldStore.ExistsAsync(QuickSlot);
+                if (!slotExists && saves.CaptureLegacy() is { } legacy)
+                {
+                    // A fresh clock: the old save format had no shell cadence.
+                    await worldStore.SaveAsync(QuickSlot, new GameShellSave(legacy, NewScheduler().InspectAccumulators(), 0, 0));
+                    slotExists = true;
+                    ImportedLegacySave = true;
+                }
+            });
         }
         // Loaded last so that a rejected preferences file remains the visible persistence error.
         LoadSettings();
@@ -102,6 +117,9 @@ public sealed class GameSession : IDisposable
     }
 
     public GameManifest Manifest { get; }
+
+    /// <summary>True when startup imported the game's pre-shell save into the empty menu slot.</summary>
+    public bool ImportedLegacySave { get; private set; }
     public IGame Game => game;
     public GameContext Context { get; }
     public GameInputSystem Input { get; }
@@ -439,6 +457,7 @@ public sealed class GameSession : IDisposable
         pendingPressed.UnionWith(Manifest.Input.Actions.Where(action => frameInput.WasPressed(action.Id)).Select(action => action.Id));
         pendingReleased.UnionWith(Manifest.Input.Actions.Where(action => frameInput.WasReleased(action.Id)).Select(action => action.Id));
         pendingLook += frameInput.Look;
+        LatchPointer(frameInput);
         game.Update(new GameUpdate(elapsed, frameInput));
         if (!Playing)
         {
@@ -457,7 +476,8 @@ public sealed class GameSession : IDisposable
                 }
             }
             var tickInput = new GameInputState(Manifest.Input, down, new HashSet<string>(pendingPressed, StringComparer.Ordinal),
-                new HashSet<string>(pendingReleased, StringComparer.Ordinal), pendingLook);
+                new HashSet<string>(pendingReleased, StringComparer.Ordinal), pendingLook, TickPointer(frameInput.Pointer),
+                [.. pendingTyping], frameInput.LeftStick, frameInput.RightStick);
             ClearLatchedInput();
             Tick++;
             Time += seconds;
@@ -627,6 +647,47 @@ public sealed class GameSession : IDisposable
         pendingPressed.Clear();
         pendingReleased.Clear();
         pendingLook = Vector2.Zero;
+        pendingPointerPressed.Clear();
+        pendingPointerReleased.Clear();
+        pendingTyping.Clear();
+        pendingWheel = Vector2.Zero;
+    }
+
+    private void LatchPointer(GameInputState frameInput)
+    {
+        GamePointer pointer = frameInput.Pointer;
+        foreach (GamePointerButton button in Enum.GetValues<GamePointerButton>())
+        {
+            if (pointer.WasPressed(button))
+            {
+                pendingPointerPressed.Add(button);
+            }
+            if (pointer.WasReleased(button))
+            {
+                pendingPointerReleased.Add(button);
+            }
+        }
+        pendingWheel += pointer.Wheel;
+        pendingTyping.AddRange(frameInput.Typing);
+    }
+
+    /// <summary>The latest cursor position and held buttons, with every click and wheel notch since the last tick.</summary>
+    private GamePointer TickPointer(GamePointer latest)
+    {
+        if (!Manifest.Input.Pointer)
+        {
+            return GamePointer.None;
+        }
+        var down = new HashSet<GamePointerButton>();
+        foreach (GamePointerButton button in Enum.GetValues<GamePointerButton>())
+        {
+            if (latest.IsDown(button))
+            {
+                down.Add(button);
+            }
+        }
+        return new GamePointer(latest.Present, latest.Position, latest.Surface, pendingWheel, down,
+            new HashSet<GamePointerButton>(pendingPointerPressed), new HashSet<GamePointerButton>(pendingPointerReleased));
     }
 
     private GameMenuPage TitlePage()

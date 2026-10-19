@@ -21,10 +21,11 @@
   <ItemGroup>
     <Content Include="Assets/GateA/*.png" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets/M11/tinyfarm-sprite-atlas-source.png" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="Assets/M19/*.profile.tsx" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets/art/**/*.json;Assets/art/**/*.svg;Assets/art/**/*.png" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets/m24/*.png" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets/m25/farmhouse-three-quarter.png" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets/Shaders/*.v.ts" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets/mara-dialogue.png" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../src/Aurelian/Aurelian.Assets/Defaults/Fonts/SpaceMono-Regular.ttf" Link="Assets/SpaceMono-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
