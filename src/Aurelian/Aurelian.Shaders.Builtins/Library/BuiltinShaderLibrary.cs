@@ -116,6 +116,8 @@ public static class BuiltinShaderLibrary
         new("TensorMap.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
         new("HeadNormalize.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
         new("Sgemm.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
+        new("ResidentSgemm.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
+        new("BiasSilu.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
         new("StreamingLinear.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
         new("CooperativeSgemm.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),
         new("PackMatrixHalf.v.ts", ShaderFamily.ComputeMath, ShaderSourceKind.Compute),

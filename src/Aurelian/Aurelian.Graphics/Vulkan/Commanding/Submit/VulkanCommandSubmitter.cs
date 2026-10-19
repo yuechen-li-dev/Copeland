@@ -88,7 +88,8 @@ public sealed unsafe class VulkanCommandSubmitter : IDisposable
 
         if (validRequest.WaitForCompletion)
         {
-            VulkanFenceOperationResult waitResult = fences.CommandListFence.WaitForValue(signalValue, validRequest.TimeoutNanoseconds);
+            VulkanFenceOperationResult waitResult = fences.CommandListFence.WaitForValue(signalValue,
+                validRequest.TimeoutNanoseconds, validRequest.SpinWaitNanoseconds);
             if (!waitResult.Success)
             {
                 diagnostics.Add(Diagnostic(
@@ -100,7 +101,8 @@ public sealed unsafe class VulkanCommandSubmitter : IDisposable
             }
         }
 
-        if (!RetireSubmittedCommandBuffer(validRequest.CommandBuffer, signalValue, validRequest.DebugName, diagnostics))
+        if (!validRequest.RetainForReplay
+            && !RetireSubmittedCommandBuffer(validRequest.CommandBuffer, signalValue, validRequest.DebugName, diagnostics))
         {
             return new VulkanCommandSubmitResult(VulkanCommandSubmitStatus.Failed, signalValue, diagnostics);
         }
@@ -160,6 +162,13 @@ public sealed unsafe class VulkanCommandSubmitter : IDisposable
             diagnostics.Add(Diagnostic(
                 VulkanCommandSubmitDiagnosticCodes.CommandBufferNotExecutable,
                 "Cannot submit a Vulkan command buffer lease while it has an active render pass scope.",
+                request.DebugName));
+        }
+        if (request.RetainForReplay && (!request.WaitForCompletion || !commandBuffer.IsReusable))
+        {
+            diagnostics.Add(Diagnostic(
+                VulkanCommandSubmitDiagnosticCodes.InvalidReplaySubmission,
+                "Retained replay requires reusable recording and synchronous completion.",
                 request.DebugName));
         }
     }

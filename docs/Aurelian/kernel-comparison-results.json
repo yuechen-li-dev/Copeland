@@ -1,0 +1,1772 @@
+{
+  "schema": "aurelian.kernel-comparison.report.v1",
+  "date": "2026-10-19",
+  "accepted": true,
+  "officialKernelBench": false,
+  "precision": "FP32, TF32 disabled; no FP16/cooperative performance claim",
+  "hardware": {
+    "gpu": "NVIDIA GeForce RTX 3070",
+    "vramGiB": 8,
+    "cpu": "AMD Ryzen 7 7700X",
+    "driver": "610.88",
+    "os": "Windows build 26200"
+  },
+  "software": {
+    "dotnetSdk": "10.0.401",
+    "python": "3.10.10",
+    "torch": "2.11.0+cu128",
+    "tritonWindows": "3.6.0.post26",
+    "baselineNumpy": "2.2.6"
+  },
+  "gitHead": "153fd644d0708144fc73aa58144949d631a9f841",
+  "uncommittedSourceQualifiedByHashes": true,
+  "sourceSha256": {
+    "Aurelian.Inference.slnx": "b8658ea6f3950cf33fa9771c9289f90d6bad8755da48ad0de0a6f3c229c4741c",
+    "Aurelian.slnx": "f2488524d38c9a14fba76be4f03b35cf82a7b2eca9d2781edf6a5e34d5a2aab8",
+    "src/Aurelian/Aurelian.Graphics/Vulkan/Commanding/Submit/VulkanCommandSubmitDiagnosticCodes.cs": "032e74a2149ae87529a43c06c822609a3fd1054873eb24d97fcc85d847887c8e",
+    "src/Aurelian/Aurelian.Graphics/Vulkan/Commanding/Submit/VulkanCommandSubmitRequest.cs": "d74798ceec36ca37e082c65e66562f4f9c24cf85a31e54c5ee2a27cb60c27a15",
+    "src/Aurelian/Aurelian.Graphics/Vulkan/Commanding/Submit/VulkanCommandSubmitter.cs": "ab7cbb2a486af6fc2476a21a242092e7767e6524cba382faa850bb81739f6208",
+    "src/Aurelian/Aurelian.Graphics/Vulkan/Commanding/VulkanCommandBufferLease.cs": "423215507f732ca99d55653bf414a1df05e423c8161c8eb9d97e07730406685d",
+    "src/Aurelian/Aurelian.Graphics/Vulkan/ComputeMath/ComputeMathBatch.cs": "d85c7963ba6b4df3d013a1bfe10b122869da33fc1987a9bf26967fed94580928",
+    "src/Aurelian/Aurelian.Graphics/Vulkan/ComputeMath/VulkanComputeMath.cs": "48940dd4215fc61e4d80bf47c12fa72accca39d82a03b6b1d4a2c9b3e791c16a",
+    "src/Aurelian/Aurelian.Graphics/Vulkan/ComputeMath/VulkanComputeMath.Pipelines.cs": "161d135b1517ca29229e22fc3ed3aa29c2f8a2fe79badcfafaaab3684626edc9",
+    "src/Aurelian/Aurelian.Graphics/Vulkan/ComputeMath/VulkanComputeMath.Prepared.cs": "d1680362e975789bc320392da95bd64cbe2e9d53918700768300188824941f6f",
+    "src/Aurelian/Aurelian.Graphics/Vulkan/Sync/VulkanTimelineFence.cs": "c9d470504c11d8dd6a5f4203b8979d7f6311c8310409b25915d45b5f74c2482e",
+    "src/Aurelian/Aurelian.Shaders.Builtins/Library/BuiltinShaderLibrary.cs": "7cca998f0beda24e157d4b447cb75a36b0daa76dc9f96bae0a17bc26b67a64b0",
+    "src/Aurelian/Aurelian.Shaders/Assets/ComputeMath/BiasSilu.v.ts": "3baeb37145b7f198ef3238557ec50c470435a20d7ef1d4210856134da00d56cf",
+    "src/Aurelian/Aurelian.Shaders/Assets/ComputeMath/ResidentSgemm.v.ts": "455a10e03aef3caaa8c2e2d804105f743419eedad42146275a2a967245c095ea",
+    "src/Aurelian/Aurelian.Shaders/Assets/ComputeMath/Sgemm.v.ts": "dde3607681056289983ba07c31823f0ce94e65fe77e1b91f05be78720263d647",
+    "src/Aurelian/Aurelian.Shaders/Compute/VdMirComputeHlslEmitter.cs": "efe6fb8845e3d79a23b58bc8f0ad91e04d165880dd589f6b3fa6ca662df397e8",
+    "src/Copeland/Copeland.TS/Gpu/GpuComputeBinder.Cooperative.cs": "b13ba84635e5daeb6bd81547078cd1c56a9694fdda5f6bf8d99478f970c03b10",
+    "src/Copeland/Copeland.TS/Gpu/GpuComputeBinder.cs": "630e233e77982341f4c17ca97bea618ca6de1b788812ff7a3d089dd9bc2da9a7",
+    "src/Copeland/Copeland.TS/Gpu/GpuComputeBinder.Loops.cs": "524614248a7e9fd43fb38d914a510912802d19df3d436cff6b012d964bc59704",
+    "src/Copeland/Copeland.TS/Gpu/GpuComputeBinder.Workgroups.cs": "0404f64dfc66441cee88ce1eedbf938528cbc12fe39ab7536e1d73006be6e69c",
+    "src/Copeland/Copeland.TS/Gpu/VdMir/VdMirComputeModel.cs": "018be62380535dd10d4e6f0812a9a1bbe772d7a9b5fc8820fbf761aed85ca3fc",
+    "tests/Aurelian/Aurelian.Graphics.Tests/VulkanCommandSubmitterM0Tests.cs": "ef0ebf43e7dd01be51f8353d14dd99bf2a94cf19519663fff8f3e26cc67ee9dc",
+    "tests/Aurelian/Aurelian.Shaders.Tests/ComputeBoundedLoopTests.cs": "60a666e62c2908d85f7c2a018cfcc6ea2d451cd6c60022b5dab74c8319e145b4",
+    "tools/Aurelian.GraphicsProof/Assets/BoundedLoopProof.v.ts": "b21605044d419347caf6e2a8f9f2c880cdb17a8f420217135ed0cf9fd8cf6a5b",
+    "tools/Aurelian.GraphicsProof/ComputeMathProof.cs": "29762690147d3489bf4a8d1010757a98cce2f514799255e7c708e37a6f0f446f",
+    "tools/Aurelian.KernelComparison/Assets/SgemmOriginal.v.ts": "4c95ac44957b9ee2e7d4b504a0ebb759897ab9c28816369a06dbea6cf32cb01e",
+    "tools/Aurelian.KernelComparison/Aurelian.KernelComparison.csproj": "c54bb988dd9e07f4ef6985fe873e8f57dbb47fe0f792184403d6a5a059fc117f",
+    "tools/Aurelian.KernelComparison/Program.cs": "b342087c2139b19062fa4fad2b23455f6f9d92b8cd5246d5f82e57cf257b70de",
+    "tools/kernel-comparison/baselines.py": "4f72070e7e1a1f90730bb3bf34333f830bfb2575a7235dcbb2445b1f3cefd8ac",
+    "tools/kernel-comparison/fixtures.py": "f8e8af99b0d566fc651c59212062e415a1ff9d6d58137d672bdfb41f5c434898",
+    "tools/kernel-comparison/Run-Comparison.ps1": "803a8bb1f42bfae93ecae90f28b7dbfea6d9ce50c2c9916cb17b2c0244c5a448",
+    "tools/kernel-comparison/summarize.py": "b9c8c7484fd66e8cfad7590697daedac6d14ed052560ee20bcf5b8b7d2dd36a4",
+    "tools/kernel-comparison/test_summary.py": "6614f749e424a7aa5ef339fe7b341b61afb25f77773abb21c0daf5c49764f4e7",
+    "tools/kernel-comparison/triton_kernels.py": "bf1af099ec724b0b81ffa9ff3b4816fa58f7bc285566cad74f635f214c40dc11",
+    "tools/kernel-comparison/replay_latency.py": "13de2e27b83985cab63796af7ee73fd59055b1e543f9f0b43c5a44017f1a553c"
+  },
+  "manifestSha256": "fb98f97578c65c5f3e201ce47e37500a58f22379fd9424e61078505079485865",
+  "artifactSha256": {
+    "summary.json": "3a22ba132e405c9f8a6bde9378a16a6d712074551052b0d1038fe69f06e926e8",
+    "protocol.json": "1a04c5d18c2372446c958ff57e6cf0e8d294adfc67f84e49561f2f3a35915bb8",
+    "replay-latency/summary.json": "3da18ffd9243fd2fd5ee51eae5c53990e3ca1b51f76f5e448fb27664002c7695",
+    "replay-latency/protocol.json": "e0e0899d9db714751ad0e7d4226eda805be6156b154a9e2508b73307d18df774",
+    "fixtures/manifest.json": "fb98f97578c65c5f3e201ce47e37500a58f22379fd9424e61078505079485865",
+    "native-final-qualified/evidence.json": "838df4c153fba4f20d46fb55c8c4a7fd3b02b54b5c53dd09a21b75cc3cc574c8"
+  },
+  "primary": {
+    "rounds": 3,
+    "timedSamples": 16200,
+    "correctnessChecks": 4560,
+    "effects": [
+      {
+        "metric": "wallMicroseconds",
+        "candidate": "sol-prepared",
+        "baseline": "existing-unfused",
+        "geometricMeanSpeedup": 1.790405399143747,
+        "fasterByFivePercent": 15,
+        "slowerByFivePercent": 0,
+        "cases": 15
+      },
+      {
+        "metric": "wallMicroseconds",
+        "candidate": "sol-prepared",
+        "baseline": "torch-eager",
+        "geometricMeanSpeedup": 0.7833225248761433,
+        "fasterByFivePercent": 4,
+        "slowerByFivePercent": 11,
+        "cases": 15
+      },
+      {
+        "metric": "wallMicroseconds",
+        "candidate": "sol-prepared",
+        "baseline": "torch-native",
+        "geometricMeanSpeedup": 0.6851391743986361,
+        "fasterByFivePercent": 1,
+        "slowerByFivePercent": 13,
+        "cases": 15
+      },
+      {
+        "metric": "wallMicroseconds",
+        "candidate": "sol-prepared",
+        "baseline": "torch-compile-default",
+        "geometricMeanSpeedup": 0.994811724765274,
+        "fasterByFivePercent": 8,
+        "slowerByFivePercent": 7,
+        "cases": 15
+      },
+      {
+        "metric": "wallMicroseconds",
+        "candidate": "sol-prepared",
+        "baseline": "torch-compile-max-autotune",
+        "geometricMeanSpeedup": 0.9588168902711536,
+        "fasterByFivePercent": 7,
+        "slowerByFivePercent": 7,
+        "cases": 15
+      },
+      {
+        "metric": "wallMicroseconds",
+        "candidate": "sol-prepared",
+        "baseline": "sol-triton",
+        "geometricMeanSpeedup": 0.6908529209148114,
+        "fasterByFivePercent": 0,
+        "slowerByFivePercent": 15,
+        "cases": 15
+      },
+      {
+        "metric": "wallMicroseconds",
+        "candidate": "torch-compile-default",
+        "baseline": "torch-eager",
+        "geometricMeanSpeedup": 0.7874078133336923,
+        "fasterByFivePercent": 4,
+        "slowerByFivePercent": 11,
+        "cases": 15
+      },
+      {
+        "metric": "wallMicroseconds",
+        "candidate": "torch-compile-max-autotune",
+        "baseline": "torch-eager",
+        "geometricMeanSpeedup": 0.8169677994039295,
+        "fasterByFivePercent": 4,
+        "slowerByFivePercent": 11,
+        "cases": 15
+      },
+      {
+        "metric": "wallMicroseconds",
+        "candidate": "sol-prepared",
+        "baseline": "sol-prepared-blocking",
+        "geometricMeanSpeedup": 1.0367105784150104,
+        "fasterByFivePercent": 8,
+        "slowerByFivePercent": 0,
+        "cases": 15
+      },
+      {
+        "metric": "repeatedGpuMicroseconds",
+        "candidate": "sol-prepared",
+        "baseline": "existing-unfused",
+        "geometricMeanSpeedup": 2.976563722570737,
+        "fasterByFivePercent": 15,
+        "slowerByFivePercent": 0,
+        "cases": 15
+      },
+      {
+        "metric": "repeatedGpuMicroseconds",
+        "candidate": "sol-prepared",
+        "baseline": "torch-eager",
+        "geometricMeanSpeedup": 0.9354758444340975,
+        "fasterByFivePercent": 6,
+        "slowerByFivePercent": 8,
+        "cases": 15
+      },
+      {
+        "metric": "repeatedGpuMicroseconds",
+        "candidate": "sol-prepared",
+        "baseline": "torch-native",
+        "geometricMeanSpeedup": 0.7297202050537133,
+        "fasterByFivePercent": 3,
+        "slowerByFivePercent": 11,
+        "cases": 15
+      },
+      {
+        "metric": "repeatedGpuMicroseconds",
+        "candidate": "sol-prepared",
+        "baseline": "torch-compile-default",
+        "geometricMeanSpeedup": 0.5171512325257408,
+        "fasterByFivePercent": 0,
+        "slowerByFivePercent": 15,
+        "cases": 15
+      },
+      {
+        "metric": "repeatedGpuMicroseconds",
+        "candidate": "sol-prepared",
+        "baseline": "torch-compile-max-autotune",
+        "geometricMeanSpeedup": 0.5122783348724151,
+        "fasterByFivePercent": 0,
+        "slowerByFivePercent": 15,
+        "cases": 15
+      },
+      {
+        "metric": "repeatedGpuMicroseconds",
+        "candidate": "sol-prepared",
+        "baseline": "sol-triton",
+        "geometricMeanSpeedup": 0.5197255163485778,
+        "fasterByFivePercent": 0,
+        "slowerByFivePercent": 15,
+        "cases": 15
+      },
+      {
+        "metric": "repeatedGpuMicroseconds",
+        "candidate": "torch-compile-default",
+        "baseline": "torch-eager",
+        "geometricMeanSpeedup": 1.808901894838924,
+        "fasterByFivePercent": 12,
+        "slowerByFivePercent": 0,
+        "cases": 15
+      },
+      {
+        "metric": "repeatedGpuMicroseconds",
+        "candidate": "torch-compile-max-autotune",
+        "baseline": "torch-eager",
+        "geometricMeanSpeedup": 1.8261085444245486,
+        "fasterByFivePercent": 12,
+        "slowerByFivePercent": 0,
+        "cases": 15
+      },
+      {
+        "metric": "repeatedGpuMicroseconds",
+        "candidate": "sol-prepared",
+        "baseline": "sol-prepared-blocking",
+        "geometricMeanSpeedup": 1.000729904307451,
+        "fasterByFivePercent": 0,
+        "slowerByFivePercent": 0,
+        "cases": 15
+      }
+    ],
+    "cases": [
+      {
+        "case": "bias_silu-4x128x0",
+        "family": "bias_silu",
+        "wallMicroseconds": {
+          "existing-unfused": 75.7,
+          "sol-fused-specialized": 71.05,
+          "sol-prepared-blocking": 64.95,
+          "sol-prepared": 60.5,
+          "torch-eager": 33.69999467395246,
+          "torch-native": 29.54999217763543,
+          "torch-compile-default": 68.04999429732561,
+          "torch-compile-max-autotune": 62.80001252889633,
+          "sol-triton": 37.999998312443495
+        },
+        "repeatedGpuMicroseconds": {
+          "existing-unfused": 6.713,
+          "sol-fused-specialized": 3.628,
+          "sol-prepared-blocking": 3.6519999999999997,
+          "sol-prepared": 3.6750000000000003,
+          "torch-eager": 3.1250000465661287,
+          "torch-native": 3.135999897494912,
+          "torch-compile-default": 1.1520000407472253,
+          "torch-compile-max-autotune": 1.2149999965913594,
+          "sol-triton": 1.1520000407472253
+        }
+      },
+      {
+        "case": "bias_silu-128x1024x0",
+        "family": "bias_silu",
+        "wallMicroseconds": {
+          "existing-unfused": 83.6,
+          "sol-fused-specialized": 73.4,
+          "sol-prepared-blocking": 66.8,
+          "sol-prepared": 63.2,
+          "torch-eager": 39.75001163780689,
+          "torch-native": 35.649980418384075,
+          "torch-compile-default": 75.15004836022854,
+          "torch-compile-max-autotune": 70.25001104921103,
+          "sol-triton": 42.49997437000275
+        },
+        "repeatedGpuMicroseconds": {
+          "existing-unfused": 14.336,
+          "sol-fused-specialized": 5.731,
+          "sol-prepared-blocking": 5.717,
+          "sol-prepared": 5.726,
+          "torch-eager": 3.971999976783991,
+          "torch-native": 3.9679999463260174,
+          "torch-compile-default": 2.1899999119341373,
+          "torch-compile-max-autotune": 1.9910000264644623,
+          "sol-triton": 1.7729999963194132
+        }
+      },
+      {
+        "case": "bias_silu-1024x4096x0",
+        "family": "bias_silu",
+        "wallMicroseconds": {
+          "existing-unfused": 500.65,
+          "sol-fused-specialized": 196.2,
+          "sol-prepared-blocking": 180.7,
+          "sol-prepared": 181.15,
+          "torch-eager": 200.24998229928315,
+          "torch-native": 197.45001918636262,
+          "torch-compile-default": 160.94997408799827,
+          "torch-compile-max-autotune": 156.60002827644348,
+          "sol-triton": 128.1999866478145
+        },
+        "repeatedGpuMicroseconds": {
+          "existing-unfused": 422.384,
+          "sol-fused-specialized": 117.196,
+          "sol-prepared-blocking": 115.963,
+          "sol-prepared": 116.87,
+          "torch-eager": 164.88900035619736,
+          "torch-native": 164.57899659872055,
+          "torch-compile-default": 82.10499957203865,
+          "torch-compile-max-autotune": 81.89800009131432,
+          "sol-triton": 82.63999968767166
+        }
+      },
+      {
+        "case": "softmax-4x128x0",
+        "family": "softmax",
+        "wallMicroseconds": {
+          "existing-unfused": 82.5,
+          "sol-fused-specialized": 63.55,
+          "sol-prepared-blocking": 58.849999999999994,
+          "sol-prepared": 54.85,
+          "torch-eager": 35.15000571496785,
+          "torch-native": 32.549985917285085,
+          "torch-compile-default": 71.79999374784529,
+          "torch-compile-max-autotune": 68.5499981045723,
+          "sol-triton": 45.69999873638153
+        },
+        "repeatedGpuMicroseconds": {
+          "existing-unfused": 24.022000000000002,
+          "sol-fused-specialized": 3.22,
+          "sol-prepared-blocking": 3.226,
+          "sol-prepared": 3.223,
+          "torch-eager": 3.8159999530762434,
+          "torch-native": 3.81499994546175,
+          "torch-compile-default": 2.873999997973442,
+          "torch-compile-max-autotune": 2.6360000483691692,
+          "sol-triton": 2.79600010253489
+        }
+      },
+      {
+        "case": "softmax-128x1024x0",
+        "family": "softmax",
+        "wallMicroseconds": {
+          "existing-unfused": 92.7,
+          "sol-fused-specialized": 72.9,
+          "sol-prepared-blocking": 66.60000000000001,
+          "sol-prepared": 62.849999999999994,
+          "torch-eager": 42.49997437000275,
+          "torch-native": 40.50001734867692,
+          "torch-compile-default": 74.35001316480339,
+          "torch-compile-max-autotune": 71.9499948900193,
+          "sol-triton": 49.799971748143435
+        },
+        "repeatedGpuMicroseconds": {
+          "existing-unfused": 27.467,
+          "sol-fused-specialized": 5.216,
+          "sol-prepared-blocking": 5.31,
+          "sol-prepared": 5.1850000000000005,
+          "torch-eager": 9.391000028699636,
+          "torch-native": 9.601000230759382,
+          "torch-compile-default": 4.922000225633383,
+          "torch-compile-max-autotune": 4.925999790430069,
+          "sol-triton": 4.416000097990036
+        }
+      },
+      {
+        "case": "softmax-1024x4096x0",
+        "family": "softmax",
+        "wallMicroseconds": {
+          "existing-unfused": 273.6,
+          "sol-fused-specialized": 220.85,
+          "sol-prepared-blocking": 209.0,
+          "sol-prepared": 207.8,
+          "torch-eager": 173.90004359185696,
+          "torch-native": 173.74998424202204,
+          "torch-compile-default": 196.3000395335257,
+          "torch-compile-max-autotune": 191.30000146105886,
+          "sol-triton": 163.2999919820577
+        },
+        "repeatedGpuMicroseconds": {
+          "existing-unfused": 200.046,
+          "sol-fused-specialized": 143.356,
+          "sol-prepared-blocking": 144.04500000000002,
+          "sol-prepared": 143.247,
+          "torch-eager": 138.6529952287674,
+          "torch-native": 138.82100582122803,
+          "torch-compile-default": 120.65999954938889,
+          "torch-compile-max-autotune": 120.45500054955482,
+          "sol-triton": 114.08299952745438
+        }
+      },
+      {
+        "case": "rmsnorm-4x128x0",
+        "family": "rmsnorm",
+        "wallMicroseconds": {
+          "existing-unfused": 93.85,
+          "sol-fused-specialized": 70.55,
+          "sol-prepared-blocking": 65.9,
+          "sol-prepared": 61.5,
+          "torch-eager": 86.20001608505845,
+          "torch-native": 48.44999057240784,
+          "torch-compile-default": 76.75000233575702,
+          "torch-compile-max-autotune": 69.79997851885855,
+          "sol-triton": 47.200010158121586
+        },
+        "repeatedGpuMicroseconds": {
+          "existing-unfused": 29.738,
+          "sol-fused-specialized": 4.917999999999999,
+          "sol-prepared-blocking": 4.9399999999999995,
+          "sol-prepared": 4.933999999999999,
+          "torch-eager": 15.622999984771013,
+          "torch-native": 3.7380000576376915,
+          "torch-compile-default": 2.2780001163482666,
+          "torch-compile-max-autotune": 2.268000040203333,
+          "sol-triton": 2.469999948516488
+        }
+      },
+      {
+        "case": "rmsnorm-128x1024x0",
+        "family": "rmsnorm",
+        "wallMicroseconds": {
+          "existing-unfused": 106.85,
+          "sol-fused-specialized": 82.35,
+          "sol-prepared-blocking": 73.65,
+          "sol-prepared": 67.7,
+          "torch-eager": 86.25001646578312,
+          "torch-native": 52.25001950748265,
+          "torch-compile-default": 78.44998617656529,
+          "torch-compile-max-autotune": 72.49999907799065,
+          "sol-triton": 51.050010370090604
+        },
+        "repeatedGpuMicroseconds": {
+          "existing-unfused": 35.653,
+          "sol-fused-specialized": 10.378,
+          "sol-prepared-blocking": 10.344000000000001,
+          "sol-prepared": 10.393,
+          "torch-eager": 22.733000107109547,
+          "torch-native": 5.797999911010265,
+          "torch-compile-default": 3.9140000008046627,
+          "torch-compile-max-autotune": 3.8159999530762434,
+          "sol-triton": 4.18600020930171
+        }
+      },
+      {
+        "case": "rmsnorm-1024x4096x0",
+        "family": "rmsnorm",
+        "wallMicroseconds": {
+          "existing-unfused": 348.35,
+          "sol-fused-specialized": 266.45000000000005,
+          "sol-prepared-blocking": 251.1,
+          "sol-prepared": 250.14999999999998,
+          "torch-eager": 459.9000094458461,
+          "torch-native": 222.05000277608633,
+          "torch-compile-default": 203.50003615021706,
+          "torch-compile-max-autotune": 200.1000102609396,
+          "sol-triton": 165.89998267591
+        },
+        "repeatedGpuMicroseconds": {
+          "existing-unfused": 270.668,
+          "sol-fused-specialized": 183.87900000000002,
+          "sol-prepared-blocking": 184.267,
+          "sol-prepared": 184.47899999999998,
+          "torch-eager": 401.2809991836548,
+          "torch-native": 169.5379987359047,
+          "torch-compile-default": 120.19599974155426,
+          "torch-compile-max-autotune": 121.34300172328949,
+          "sol-triton": 113.72699961066246
+        }
+      },
+      {
+        "case": "gemm-16x64x128",
+        "family": "gemm",
+        "wallMicroseconds": {
+          "existing-unfused": 80.8,
+          "sol-fused-specialized": 75.35,
+          "sol-prepared-blocking": 70.45,
+          "sol-prepared": 66.3,
+          "torch-eager": 47.00000863522291,
+          "torch-native": 43.49998198449612,
+          "torch-compile-default": 80.35000064410269,
+          "torch-compile-max-autotune": 80.60003165155649,
+          "sol-triton": 53.099996875971556
+        },
+        "repeatedGpuMicroseconds": {
+          "existing-unfused": 17.195999999999998,
+          "sol-fused-specialized": 10.682,
+          "sol-prepared-blocking": 10.696000000000002,
+          "sol-prepared": 10.681000000000001,
+          "torch-eager": 5.909999832510948,
+          "torch-native": 6.053999997675419,
+          "torch-compile-default": 5.893000168725848,
+          "torch-compile-max-autotune": 5.911999847739935,
+          "sol-triton": 7.6859998516738415
+        }
+      },
+      {
+        "case": "gemm-128x256x512",
+        "family": "gemm",
+        "wallMicroseconds": {
+          "existing-unfused": 229.45,
+          "sol-fused-specialized": 150.1,
+          "sol-prepared-blocking": 133.8,
+          "sol-prepared": 138.35000000000002,
+          "torch-eager": 70.29998232610524,
+          "torch-native": 67.2000169288367,
+          "torch-compile-default": 104.70001143403351,
+          "torch-compile-max-autotune": 104.20000762678683,
+          "sol-triton": 67.79999239370227
+        },
+        "repeatedGpuMicroseconds": {
+          "existing-unfused": 156.56,
+          "sol-fused-specialized": 74.056,
+          "sol-prepared-blocking": 74.05499999999999,
+          "sol-prepared": 73.981,
+          "torch-eager": 24.150000885128975,
+          "torch-native": 24.105999618768692,
+          "torch-compile-default": 24.1519995033741,
+          "torch-compile-max-autotune": 24.167999625205994,
+          "sol-triton": 20.380999892950058
+        }
+      },
+      {
+        "case": "gemm-512x512x1024",
+        "family": "gemm",
+        "wallMicroseconds": {
+          "existing-unfused": 1908.3,
+          "sol-fused-specialized": 382.05,
+          "sol-prepared-blocking": 355.54999999999995,
+          "sol-prepared": 357.3,
+          "torch-eager": 178.39999054558575,
+          "torch-native": 176.15000251680613,
+          "torch-compile-default": 215.54998238570988,
+          "torch-compile-max-autotune": 215.25000920519233,
+          "sol-triton": 221.5999993495643
+        },
+        "repeatedGpuMicroseconds": {
+          "existing-unfused": 1800.923,
+          "sol-fused-specialized": 282.64300000000003,
+          "sol-prepared-blocking": 282.36800000000005,
+          "sol-prepared": 282.66200000000003,
+          "torch-eager": 131.30199909210205,
+          "torch-native": 131.10200315713882,
+          "torch-compile-default": 131.24000281095505,
+          "torch-compile-max-autotune": 131.31000101566315,
+          "sol-triton": 168.2180017232895
+        }
+      },
+      {
+        "case": "gemm_bias_silu-16x64x128",
+        "family": "gemm_bias_silu",
+        "wallMicroseconds": {
+          "existing-unfused": 100.1,
+          "sol-fused-specialized": 88.0,
+          "sol-prepared-blocking": 82.35,
+          "sol-prepared": 73.7,
+          "torch-eager": 64.79996955022216,
+          "torch-native": 74.15001164190471,
+          "torch-compile-default": 104.39998004585505,
+          "torch-compile-max-autotune": 99.85000360757113,
+          "sol-triton": 57.65000241808593
+        },
+        "repeatedGpuMicroseconds": {
+          "existing-unfused": 23.933,
+          "sol-fused-specialized": 15.323,
+          "sol-prepared-blocking": 15.302,
+          "sol-prepared": 15.318,
+          "torch-eager": 12.660999782383442,
+          "torch-native": 11.935999616980553,
+          "torch-compile-default": 8.182000368833542,
+          "torch-compile-max-autotune": 8.24799994006753,
+          "sol-triton": 8.545000106096268
+        }
+      },
+      {
+        "case": "gemm_bias_silu-128x256x512",
+        "family": "gemm_bias_silu",
+        "wallMicroseconds": {
+          "existing-unfused": 244.2,
+          "sol-fused-specialized": 156.95,
+          "sol-prepared-blocking": 139.55,
+          "sol-prepared": 141.1,
+          "torch-eager": 86.29998774267733,
+          "torch-native": 93.4000127017498,
+          "torch-compile-default": 120.2999847009778,
+          "torch-compile-max-autotune": 117.44999210350215,
+          "sol-triton": 73.35003465414047
+        },
+        "repeatedGpuMicroseconds": {
+          "existing-unfused": 165.137,
+          "sol-fused-specialized": 79.065,
+          "sol-prepared-blocking": 79.113,
+          "sol-prepared": 79.033,
+          "torch-eager": 31.000000424683094,
+          "torch-native": 27.375000528991222,
+          "torch-compile-default": 26.91399957984686,
+          "torch-compile-max-autotune": 26.72800049185753,
+          "sol-triton": 21.28800004720688
+        }
+      },
+      {
+        "case": "gemm_bias_silu-512x512x1024",
+        "family": "gemm_bias_silu",
+        "wallMicroseconds": {
+          "existing-unfused": 1858.8,
+          "sol-fused-specialized": 374.25,
+          "sol-prepared-blocking": 340.6,
+          "sol-prepared": 339.45,
+          "torch-eager": 195.24997333064675,
+          "torch-native": 215.40001034736633,
+          "torch-compile-default": 229.75000320002437,
+          "torch-compile-max-autotune": 227.34998492524028,
+          "sol-triton": 224.5499927084893
+        },
+        "repeatedGpuMicroseconds": {
+          "existing-unfused": 1771.478,
+          "sol-fused-specialized": 271.95000000000005,
+          "sol-prepared-blocking": 271.974,
+          "sol-prepared": 272.08000000000004,
+          "torch-eager": 141.3230001926422,
+          "torch-native": 151.73400193452835,
+          "torch-compile-default": 133.05999338626862,
+          "torch-compile-max-autotune": 133.6750015616417,
+          "sol-triton": 166.71200096607208
+        }
+      }
+    ]
+  },
+  "singleOperationReplay": {
+    "rounds": 3,
+    "timedSamples": 16200,
+    "correctnessChecks": 2160,
+    "effects": [
+      {
+        "candidate": "sol-prepared",
+        "baseline": "torch-eager",
+        "geometricMeanSpeedup": 0.40915404316807646,
+        "fasterByFivePercent": 1,
+        "slowerByFivePercent": 13
+      },
+      {
+        "candidate": "sol-prepared",
+        "baseline": "torch-native",
+        "geometricMeanSpeedup": 0.36991496629590714,
+        "fasterByFivePercent": 0,
+        "slowerByFivePercent": 14
+      },
+      {
+        "candidate": "sol-prepared",
+        "baseline": "torch-compile-default",
+        "geometricMeanSpeedup": 0.3318192882809619,
+        "fasterByFivePercent": 0,
+        "slowerByFivePercent": 15
+      },
+      {
+        "candidate": "sol-prepared",
+        "baseline": "torch-compile-max-autotune",
+        "geometricMeanSpeedup": 0.33119833990190095,
+        "fasterByFivePercent": 0,
+        "slowerByFivePercent": 15
+      },
+      {
+        "candidate": "sol-prepared",
+        "baseline": "sol-triton",
+        "geometricMeanSpeedup": 0.33528570968674215,
+        "fasterByFivePercent": 0,
+        "slowerByFivePercent": 15
+      }
+    ],
+    "rows": [
+      {
+        "case": "bias_silu-4x128x0",
+        "variant": "existing-unfused",
+        "medianMicroseconds": 76.25,
+        "p10Microseconds": 75.1,
+        "p90Microseconds": 87.3,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-4x128x0",
+        "variant": "sol-fused-specialized",
+        "medianMicroseconds": 71.55,
+        "p10Microseconds": 68.9,
+        "p90Microseconds": 81.69999999999999,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-4x128x0",
+        "variant": "sol-prepared-blocking",
+        "medianMicroseconds": 64.35,
+        "p10Microseconds": 62.5,
+        "p90Microseconds": 73.80000000000001,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-4x128x0",
+        "variant": "sol-prepared",
+        "medianMicroseconds": 60.15,
+        "p10Microseconds": 58.4,
+        "p90Microseconds": 66.0,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-128x1024x0",
+        "variant": "existing-unfused",
+        "medianMicroseconds": 80.5,
+        "p10Microseconds": 78.0,
+        "p90Microseconds": 86.7,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-128x1024x0",
+        "variant": "sol-fused-specialized",
+        "medianMicroseconds": 71.3,
+        "p10Microseconds": 69.0,
+        "p90Microseconds": 78.8,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-128x1024x0",
+        "variant": "sol-prepared-blocking",
+        "medianMicroseconds": 66.10000000000001,
+        "p10Microseconds": 64.60000000000001,
+        "p90Microseconds": 69.8,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-128x1024x0",
+        "variant": "sol-prepared",
+        "medianMicroseconds": 63.1,
+        "p10Microseconds": 61.9,
+        "p90Microseconds": 66.8,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-1024x4096x0",
+        "variant": "existing-unfused",
+        "medianMicroseconds": 497.5,
+        "p10Microseconds": 477.3,
+        "p90Microseconds": 523.2,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-1024x4096x0",
+        "variant": "sol-fused-specialized",
+        "medianMicroseconds": 196.70000000000002,
+        "p10Microseconds": 185.4,
+        "p90Microseconds": 212.9,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-1024x4096x0",
+        "variant": "sol-prepared-blocking",
+        "medianMicroseconds": 180.29999999999998,
+        "p10Microseconds": 173.1,
+        "p90Microseconds": 189.9,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-1024x4096x0",
+        "variant": "sol-prepared",
+        "medianMicroseconds": 179.60000000000002,
+        "p10Microseconds": 172.3,
+        "p90Microseconds": 205.6,
+        "samples": 120
+      },
+      {
+        "case": "softmax-4x128x0",
+        "variant": "existing-unfused",
+        "medianMicroseconds": 82.4,
+        "p10Microseconds": 81.3,
+        "p90Microseconds": 85.1,
+        "samples": 120
+      },
+      {
+        "case": "softmax-4x128x0",
+        "variant": "sol-fused-specialized",
+        "medianMicroseconds": 63.150000000000006,
+        "p10Microseconds": 61.699999999999996,
+        "p90Microseconds": 73.7,
+        "samples": 120
+      },
+      {
+        "case": "softmax-4x128x0",
+        "variant": "sol-prepared-blocking",
+        "medianMicroseconds": 58.9,
+        "p10Microseconds": 57.1,
+        "p90Microseconds": 61.800000000000004,
+        "samples": 120
+      },
+      {
+        "case": "softmax-4x128x0",
+        "variant": "sol-prepared",
+        "medianMicroseconds": 55.1,
+        "p10Microseconds": 53.3,
+        "p90Microseconds": 56.2,
+        "samples": 120
+      },
+      {
+        "case": "softmax-128x1024x0",
+        "variant": "existing-unfused",
+        "medianMicroseconds": 91.6,
+        "p10Microseconds": 89.7,
+        "p90Microseconds": 106.6,
+        "samples": 120
+      },
+      {
+        "case": "softmax-128x1024x0",
+        "variant": "sol-fused-specialized",
+        "medianMicroseconds": 71.0,
+        "p10Microseconds": 68.7,
+        "p90Microseconds": 80.3,
+        "samples": 120
+      },
+      {
+        "case": "softmax-128x1024x0",
+        "variant": "sol-prepared-blocking",
+        "medianMicroseconds": 64.8,
+        "p10Microseconds": 63.2,
+        "p90Microseconds": 67.6,
+        "samples": 120
+      },
+      {
+        "case": "softmax-128x1024x0",
+        "variant": "sol-prepared",
+        "medianMicroseconds": 61.75,
+        "p10Microseconds": 59.1,
+        "p90Microseconds": 65.10000000000001,
+        "samples": 120
+      },
+      {
+        "case": "softmax-1024x4096x0",
+        "variant": "existing-unfused",
+        "medianMicroseconds": 273.0,
+        "p10Microseconds": 261.5,
+        "p90Microseconds": 299.8,
+        "samples": 120
+      },
+      {
+        "case": "softmax-1024x4096x0",
+        "variant": "sol-fused-specialized",
+        "medianMicroseconds": 222.3,
+        "p10Microseconds": 211.4,
+        "p90Microseconds": 250.0,
+        "samples": 120
+      },
+      {
+        "case": "softmax-1024x4096x0",
+        "variant": "sol-prepared-blocking",
+        "medianMicroseconds": 208.5,
+        "p10Microseconds": 202.8,
+        "p90Microseconds": 226.89999999999998,
+        "samples": 120
+      },
+      {
+        "case": "softmax-1024x4096x0",
+        "variant": "sol-prepared",
+        "medianMicroseconds": 209.2,
+        "p10Microseconds": 202.6,
+        "p90Microseconds": 224.1,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-4x128x0",
+        "variant": "existing-unfused",
+        "medianMicroseconds": 116.2,
+        "p10Microseconds": 92.7,
+        "p90Microseconds": 157.9,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-4x128x0",
+        "variant": "sol-fused-specialized",
+        "medianMicroseconds": 81.9,
+        "p10Microseconds": 68.6,
+        "p90Microseconds": 95.9,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-4x128x0",
+        "variant": "sol-prepared-blocking",
+        "medianMicroseconds": 68.85,
+        "p10Microseconds": 63.2,
+        "p90Microseconds": 82.4,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-4x128x0",
+        "variant": "sol-prepared",
+        "medianMicroseconds": 64.4,
+        "p10Microseconds": 60.699999999999996,
+        "p90Microseconds": 72.7,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-128x1024x0",
+        "variant": "existing-unfused",
+        "medianMicroseconds": 102.1,
+        "p10Microseconds": 99.5,
+        "p90Microseconds": 136.3,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-128x1024x0",
+        "variant": "sol-fused-specialized",
+        "medianMicroseconds": 75.75,
+        "p10Microseconds": 72.9,
+        "p90Microseconds": 90.80000000000001,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-128x1024x0",
+        "variant": "sol-prepared-blocking",
+        "medianMicroseconds": 70.4,
+        "p10Microseconds": 69.2,
+        "p90Microseconds": 86.5,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-128x1024x0",
+        "variant": "sol-prepared",
+        "medianMicroseconds": 68.6,
+        "p10Microseconds": 65.19999999999999,
+        "p90Microseconds": 86.7,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-1024x4096x0",
+        "variant": "existing-unfused",
+        "medianMicroseconds": 351.20000000000005,
+        "p10Microseconds": 339.0,
+        "p90Microseconds": 369.2,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-1024x4096x0",
+        "variant": "sol-fused-specialized",
+        "medianMicroseconds": 264.6,
+        "p10Microseconds": 253.1,
+        "p90Microseconds": 291.8,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-1024x4096x0",
+        "variant": "sol-prepared-blocking",
+        "medianMicroseconds": 250.6,
+        "p10Microseconds": 243.79999999999998,
+        "p90Microseconds": 264.6,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-1024x4096x0",
+        "variant": "sol-prepared",
+        "medianMicroseconds": 250.45,
+        "p10Microseconds": 243.2,
+        "p90Microseconds": 273.1,
+        "samples": 120
+      },
+      {
+        "case": "gemm-16x64x128",
+        "variant": "existing-unfused",
+        "medianMicroseconds": 99.75,
+        "p10Microseconds": 79.8,
+        "p90Microseconds": 114.2,
+        "samples": 120
+      },
+      {
+        "case": "gemm-16x64x128",
+        "variant": "sol-fused-specialized",
+        "medianMicroseconds": 94.1,
+        "p10Microseconds": 73.6,
+        "p90Microseconds": 102.6,
+        "samples": 120
+      },
+      {
+        "case": "gemm-16x64x128",
+        "variant": "sol-prepared-blocking",
+        "medianMicroseconds": 90.3,
+        "p10Microseconds": 69.8,
+        "p90Microseconds": 97.9,
+        "samples": 120
+      },
+      {
+        "case": "gemm-16x64x128",
+        "variant": "sol-prepared",
+        "medianMicroseconds": 86.65,
+        "p10Microseconds": 66.0,
+        "p90Microseconds": 115.0,
+        "samples": 120
+      },
+      {
+        "case": "gemm-128x256x512",
+        "variant": "existing-unfused",
+        "medianMicroseconds": 231.64999999999998,
+        "p10Microseconds": 224.0,
+        "p90Microseconds": 257.1,
+        "samples": 120
+      },
+      {
+        "case": "gemm-128x256x512",
+        "variant": "sol-fused-specialized",
+        "medianMicroseconds": 152.75,
+        "p10Microseconds": 144.2,
+        "p90Microseconds": 187.70000000000002,
+        "samples": 120
+      },
+      {
+        "case": "gemm-128x256x512",
+        "variant": "sol-prepared-blocking",
+        "medianMicroseconds": 135.3,
+        "p10Microseconds": 132.39999999999998,
+        "p90Microseconds": 151.5,
+        "samples": 120
+      },
+      {
+        "case": "gemm-128x256x512",
+        "variant": "sol-prepared",
+        "medianMicroseconds": 139.14999999999998,
+        "p10Microseconds": 134.6,
+        "p90Microseconds": 152.2,
+        "samples": 120
+      },
+      {
+        "case": "gemm-512x512x1024",
+        "variant": "existing-unfused",
+        "medianMicroseconds": 1831.0,
+        "p10Microseconds": 1571.8000000000002,
+        "p90Microseconds": 2149.3,
+        "samples": 120
+      },
+      {
+        "case": "gemm-512x512x1024",
+        "variant": "sol-fused-specialized",
+        "medianMicroseconds": 366.1,
+        "p10Microseconds": 313.8,
+        "p90Microseconds": 420.5,
+        "samples": 120
+      },
+      {
+        "case": "gemm-512x512x1024",
+        "variant": "sol-prepared-blocking",
+        "medianMicroseconds": 329.05,
+        "p10Microseconds": 295.70000000000005,
+        "p90Microseconds": 383.29999999999995,
+        "samples": 120
+      },
+      {
+        "case": "gemm-512x512x1024",
+        "variant": "sol-prepared",
+        "medianMicroseconds": 330.9,
+        "p10Microseconds": 292.2,
+        "p90Microseconds": 383.6,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-16x64x128",
+        "variant": "existing-unfused",
+        "medianMicroseconds": 91.55,
+        "p10Microseconds": 90.6,
+        "p90Microseconds": 101.9,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-16x64x128",
+        "variant": "sol-fused-specialized",
+        "medianMicroseconds": 80.55000000000001,
+        "p10Microseconds": 79.0,
+        "p90Microseconds": 97.3,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-16x64x128",
+        "variant": "sol-prepared-blocking",
+        "medianMicroseconds": 74.80000000000001,
+        "p10Microseconds": 73.89999999999999,
+        "p90Microseconds": 91.0,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-16x64x128",
+        "variant": "sol-prepared",
+        "medianMicroseconds": 70.85,
+        "p10Microseconds": 69.7,
+        "p90Microseconds": 86.7,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-128x256x512",
+        "variant": "existing-unfused",
+        "medianMicroseconds": 245.25,
+        "p10Microseconds": 236.4,
+        "p90Microseconds": 262.40000000000003,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-128x256x512",
+        "variant": "sol-fused-specialized",
+        "medianMicroseconds": 158.5,
+        "p10Microseconds": 148.5,
+        "p90Microseconds": 177.6,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-128x256x512",
+        "variant": "sol-prepared-blocking",
+        "medianMicroseconds": 141.2,
+        "p10Microseconds": 137.5,
+        "p90Microseconds": 150.2,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-128x256x512",
+        "variant": "sol-prepared",
+        "medianMicroseconds": 141.75,
+        "p10Microseconds": 139.6,
+        "p90Microseconds": 153.0,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-512x512x1024",
+        "variant": "existing-unfused",
+        "medianMicroseconds": 1862.8000000000002,
+        "p10Microseconds": 1603.6999999999998,
+        "p90Microseconds": 2186.7999999999997,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-512x512x1024",
+        "variant": "sol-fused-specialized",
+        "medianMicroseconds": 384.75,
+        "p10Microseconds": 327.79999999999995,
+        "p90Microseconds": 441.8,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-512x512x1024",
+        "variant": "sol-prepared-blocking",
+        "medianMicroseconds": 345.20000000000005,
+        "p10Microseconds": 304.20000000000005,
+        "p90Microseconds": 392.7,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-512x512x1024",
+        "variant": "sol-prepared",
+        "medianMicroseconds": 350.6,
+        "p10Microseconds": 298.20000000000005,
+        "p90Microseconds": 390.6,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-4x128x0",
+        "variant": "torch-eager",
+        "medianMicroseconds": 19.300030544400215,
+        "p10Microseconds": 19.099970813840628,
+        "p90Microseconds": 19.599974621087313,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-4x128x0",
+        "variant": "torch-native",
+        "medianMicroseconds": 19.30000144056976,
+        "p10Microseconds": 19.10002902150154,
+        "p90Microseconds": 19.600032828748226,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-4x128x0",
+        "variant": "torch-compile-default",
+        "medianMicroseconds": 17.29995710775256,
+        "p10Microseconds": 17.1000137925148,
+        "p90Microseconds": 17.50001683831215,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-4x128x0",
+        "variant": "torch-compile-max-autotune",
+        "medianMicroseconds": 17.29995710775256,
+        "p10Microseconds": 17.1000137925148,
+        "p90Microseconds": 17.50001683831215,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-4x128x0",
+        "variant": "sol-triton",
+        "medianMicroseconds": 17.200014553964138,
+        "p10Microseconds": 17.1000137925148,
+        "p90Microseconds": 17.499958630651236,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-128x1024x0",
+        "variant": "torch-eager",
+        "medianMicroseconds": 21.60001895390451,
+        "p10Microseconds": 20.400038920342922,
+        "p90Microseconds": 22.799998987466097,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-128x1024x0",
+        "variant": "torch-native",
+        "medianMicroseconds": 21.450017811730504,
+        "p10Microseconds": 20.10003663599491,
+        "p90Microseconds": 22.199994418770075,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-128x1024x0",
+        "variant": "torch-compile-default",
+        "medianMicroseconds": 19.350030925124884,
+        "p10Microseconds": 18.300022929906845,
+        "p90Microseconds": 20.200037397444248,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-128x1024x0",
+        "variant": "torch-compile-max-autotune",
+        "medianMicroseconds": 19.60000372491777,
+        "p10Microseconds": 18.200022168457508,
+        "p90Microseconds": 20.39998071268201,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-128x1024x0",
+        "variant": "sol-triton",
+        "medianMicroseconds": 19.499973859637976,
+        "p10Microseconds": 18.000020645558834,
+        "p90Microseconds": 20.29997995123267,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-1024x4096x0",
+        "variant": "torch-eager",
+        "medianMicroseconds": 181.04998162016273,
+        "p10Microseconds": 179.80003030970693,
+        "p90Microseconds": 186.0000193119049,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-1024x4096x0",
+        "variant": "torch-native",
+        "medianMicroseconds": 181.55001453123987,
+        "p10Microseconds": 180.39997667074203,
+        "p90Microseconds": 184.1000048443675,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-1024x4096x0",
+        "variant": "torch-compile-default",
+        "medianMicroseconds": 98.09999028220773,
+        "p10Microseconds": 96.99998190626502,
+        "p90Microseconds": 99.80000322684646,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-1024x4096x0",
+        "variant": "torch-compile-max-autotune",
+        "medianMicroseconds": 98.35002128966153,
+        "p10Microseconds": 97.1999834291637,
+        "p90Microseconds": 100.10000551119447,
+        "samples": 120
+      },
+      {
+        "case": "bias_silu-1024x4096x0",
+        "variant": "sol-triton",
+        "medianMicroseconds": 99.19999865815043,
+        "p10Microseconds": 98.10004848986864,
+        "p90Microseconds": 100.99995415657759,
+        "samples": 120
+      },
+      {
+        "case": "softmax-4x128x0",
+        "variant": "torch-eager",
+        "medianMicroseconds": 18.000020645558834,
+        "p10Microseconds": 17.799960914999247,
+        "p90Microseconds": 18.29996472224593,
+        "samples": 120
+      },
+      {
+        "case": "softmax-4x128x0",
+        "variant": "torch-native",
+        "medianMicroseconds": 18.049991922453046,
+        "p10Microseconds": 17.80001912266016,
+        "p90Microseconds": 18.29996472224593,
+        "samples": 120
+      },
+      {
+        "case": "softmax-4x128x0",
+        "variant": "torch-compile-default",
+        "medianMicroseconds": 17.69996015354991,
+        "p10Microseconds": 17.50001683831215,
+        "p90Microseconds": 18.000020645558834,
+        "samples": 120
+      },
+      {
+        "case": "softmax-4x128x0",
+        "variant": "torch-compile-max-autotune",
+        "medianMicroseconds": 17.600017599761486,
+        "p10Microseconds": 17.400016076862812,
+        "p90Microseconds": 17.900019884109497,
+        "samples": 120
+      },
+      {
+        "case": "softmax-4x128x0",
+        "variant": "sol-triton",
+        "medianMicroseconds": 17.600017599761486,
+        "p10Microseconds": 17.400016076862812,
+        "p90Microseconds": 17.99996243789792,
+        "samples": 120
+      },
+      {
+        "case": "softmax-128x1024x0",
+        "variant": "torch-eager",
+        "medianMicroseconds": 21.39998832717538,
+        "p10Microseconds": 20.499981474131346,
+        "p90Microseconds": 22.799998987466097,
+        "samples": 120
+      },
+      {
+        "case": "softmax-128x1024x0",
+        "variant": "torch-native",
+        "medianMicroseconds": 21.350017050281167,
+        "p10Microseconds": 20.39998071268201,
+        "p90Microseconds": 22.199994418770075,
+        "samples": 120
+      },
+      {
+        "case": "softmax-128x1024x0",
+        "variant": "torch-compile-default",
+        "medianMicroseconds": 19.39997309818864,
+        "p10Microseconds": 18.600025214254856,
+        "p90Microseconds": 20.29997995123267,
+        "samples": 120
+      },
+      {
+        "case": "softmax-128x1024x0",
+        "variant": "torch-compile-max-autotune",
+        "medianMicroseconds": 19.400031305849552,
+        "p10Microseconds": 18.600025214254856,
+        "p90Microseconds": 20.50003968179226,
+        "samples": 120
+      },
+      {
+        "case": "softmax-128x1024x0",
+        "variant": "sol-triton",
+        "medianMicroseconds": 19.200029782950878,
+        "p10Microseconds": 18.39996548369527,
+        "p90Microseconds": 19.99997766688466,
+        "samples": 120
+      },
+      {
+        "case": "softmax-1024x4096x0",
+        "variant": "torch-eager",
+        "medianMicroseconds": 98.99999713525176,
+        "p10Microseconds": 97.69998723641038,
+        "p90Microseconds": 102.20002150163054,
+        "samples": 120
+      },
+      {
+        "case": "softmax-1024x4096x0",
+        "variant": "torch-native",
+        "medianMicroseconds": 98.70005305856466,
+        "p10Microseconds": 97.69998723641038,
+        "p90Microseconds": 101.70001769438386,
+        "samples": 120
+      },
+      {
+        "case": "softmax-1024x4096x0",
+        "variant": "torch-compile-default",
+        "medianMicroseconds": 101.10001312568784,
+        "p10Microseconds": 99.40000018104911,
+        "p90Microseconds": 104.19997852295637,
+        "samples": 120
+      },
+      {
+        "case": "softmax-1024x4096x0",
+        "variant": "torch-compile-max-autotune",
+        "medianMicroseconds": 100.34997831098735,
+        "p10Microseconds": 98.79999561235309,
+        "p90Microseconds": 103.90003444626927,
+        "samples": 120
+      },
+      {
+        "case": "softmax-1024x4096x0",
+        "variant": "sol-triton",
+        "medianMicroseconds": 96.79998038336635,
+        "p10Microseconds": 95.60002945363522,
+        "p90Microseconds": 98.49999332800508,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-4x128x0",
+        "variant": "torch-eager",
+        "medianMicroseconds": 24.40001117065549,
+        "p10Microseconds": 24.29995220154524,
+        "p90Microseconds": 24.7000134550035,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-4x128x0",
+        "variant": "torch-native",
+        "medianMicroseconds": 18.099963199347258,
+        "p10Microseconds": 17.899961676448584,
+        "p90Microseconds": 18.50002445280552,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-4x128x0",
+        "variant": "torch-compile-default",
+        "medianMicroseconds": 17.400016076862812,
+        "p10Microseconds": 17.200014553964138,
+        "p90Microseconds": 17.69996015354991,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-4x128x0",
+        "variant": "torch-compile-max-autotune",
+        "medianMicroseconds": 17.499987734481692,
+        "p10Microseconds": 17.29995710775256,
+        "p90Microseconds": 17.899961676448584,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-4x128x0",
+        "variant": "sol-triton",
+        "medianMicroseconds": 17.600017599761486,
+        "p10Microseconds": 17.400016076862812,
+        "p90Microseconds": 18.000020645558834,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-128x1024x0",
+        "variant": "torch-eager",
+        "medianMicroseconds": 28.750015189871192,
+        "p10Microseconds": 22.599997464567423,
+        "p90Microseconds": 32.70001616328955,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-128x1024x0",
+        "variant": "torch-native",
+        "medianMicroseconds": 19.69997538253665,
+        "p10Microseconds": 12.09997572004795,
+        "p90Microseconds": 21.199986804276705,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-128x1024x0",
+        "variant": "torch-compile-default",
+        "medianMicroseconds": 19.499973859637976,
+        "p10Microseconds": 10.899966582655907,
+        "p90Microseconds": 20.69998299703002,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-128x1024x0",
+        "variant": "torch-compile-max-autotune",
+        "medianMicroseconds": 18.8500271178782,
+        "p10Microseconds": 11.09996810555458,
+        "p90Microseconds": 20.99998528137803,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-128x1024x0",
+        "variant": "sol-triton",
+        "medianMicroseconds": 19.10002902150154,
+        "p10Microseconds": 11.000025551766157,
+        "p90Microseconds": 20.80004196614027,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-1024x4096x0",
+        "variant": "torch-eager",
+        "medianMicroseconds": 413.5499766562134,
+        "p10Microseconds": 411.2999886274338,
+        "p90Microseconds": 452.4000105448067,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-1024x4096x0",
+        "variant": "torch-native",
+        "medianMicroseconds": 181.80004553869367,
+        "p10Microseconds": 180.2999759092927,
+        "p90Microseconds": 195.09997218847275,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-1024x4096x0",
+        "variant": "torch-compile-default",
+        "medianMicroseconds": 131.84998533688486,
+        "p10Microseconds": 129.4999965466559,
+        "p90Microseconds": 135.89998707175255,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-1024x4096x0",
+        "variant": "torch-compile-max-autotune",
+        "medianMicroseconds": 129.39999578520656,
+        "p10Microseconds": 127.69998284056783,
+        "p90Microseconds": 134.6999779343605,
+        "samples": 120
+      },
+      {
+        "case": "rmsnorm-1024x4096x0",
+        "variant": "sol-triton",
+        "medianMicroseconds": 125.9999698959291,
+        "p10Microseconds": 124.6000174432993,
+        "p90Microseconds": 137.49999925494194,
+        "samples": 120
+      },
+      {
+        "case": "gemm-16x64x128",
+        "variant": "torch-eager",
+        "medianMicroseconds": 17.200014553964138,
+        "p10Microseconds": 16.499951016157866,
+        "p90Microseconds": 18.499966245144606,
+        "samples": 120
+      },
+      {
+        "case": "gemm-16x64x128",
+        "variant": "torch-native",
+        "medianMicroseconds": 17.200014553964138,
+        "p10Microseconds": 16.600009985268116,
+        "p90Microseconds": 27.799978852272034,
+        "samples": 120
+      },
+      {
+        "case": "gemm-16x64x128",
+        "variant": "torch-compile-default",
+        "medianMicroseconds": 17.000013031065464,
+        "p10Microseconds": 16.29994949325919,
+        "p90Microseconds": 34.100026823580265,
+        "samples": 120
+      },
+      {
+        "case": "gemm-16x64x128",
+        "variant": "torch-compile-max-autotune",
+        "medianMicroseconds": 17.049984307959676,
+        "p10Microseconds": 16.400008462369442,
+        "p90Microseconds": 27.00003096833825,
+        "samples": 120
+      },
+      {
+        "case": "gemm-16x64x128",
+        "variant": "sol-triton",
+        "medianMicroseconds": 18.80002673715353,
+        "p10Microseconds": 18.29996472224593,
+        "p90Microseconds": 34.00002606213093,
+        "samples": 120
+      },
+      {
+        "case": "gemm-128x256x512",
+        "variant": "torch-eager",
+        "medianMicroseconds": 35.999983083456755,
+        "p10Microseconds": 35.39997851476073,
+        "p90Microseconds": 36.49998689070344,
+        "samples": 120
+      },
+      {
+        "case": "gemm-128x256x512",
+        "variant": "torch-native",
+        "medianMicroseconds": 35.70003900676966,
+        "p10Microseconds": 35.19997699186206,
+        "p90Microseconds": 36.3999861292541,
+        "samples": 120
+      },
+      {
+        "case": "gemm-128x256x512",
+        "variant": "torch-compile-default",
+        "medianMicroseconds": 35.699980799108744,
+        "p10Microseconds": 34.800032153725624,
+        "p90Microseconds": 36.299985367804766,
+        "samples": 120
+      },
+      {
+        "case": "gemm-128x256x512",
+        "variant": "torch-compile-max-autotune",
+        "medianMicroseconds": 35.70003900676966,
+        "p10Microseconds": 35.100034438073635,
+        "p90Microseconds": 36.3999861292541,
+        "samples": 120
+      },
+      {
+        "case": "gemm-128x256x512",
+        "variant": "sol-triton",
+        "medianMicroseconds": 31.800009310245514,
+        "p10Microseconds": 31.100003980100155,
+        "p90Microseconds": 32.49995643272996,
+        "samples": 120
+      },
+      {
+        "case": "gemm-512x512x1024",
+        "variant": "torch-eager",
+        "medianMicroseconds": 144.59999511018395,
+        "p10Microseconds": 143.9000479876995,
+        "p90Microseconds": 145.40000120177865,
+        "samples": 120
+      },
+      {
+        "case": "gemm-512x512x1024",
+        "variant": "torch-native",
+        "medianMicroseconds": 144.29999282583594,
+        "p10Microseconds": 143.70004646480083,
+        "p90Microseconds": 144.9999981559813,
+        "samples": 120
+      },
+      {
+        "case": "gemm-512x512x1024",
+        "variant": "torch-compile-default",
+        "medianMicroseconds": 143.99999054148793,
+        "p10Microseconds": 143.3000434190035,
+        "p90Microseconds": 144.6999958716333,
+        "samples": 120
+      },
+      {
+        "case": "gemm-512x512x1024",
+        "variant": "torch-compile-max-autotune",
+        "medianMicroseconds": 143.99999054148793,
+        "p10Microseconds": 143.49998673424125,
+        "p90Microseconds": 144.49999434873462,
+        "samples": 120
+      },
+      {
+        "case": "gemm-512x512x1024",
+        "variant": "sol-triton",
+        "medianMicroseconds": 181.69998656958342,
+        "p10Microseconds": 180.99998123943806,
+        "p90Microseconds": 182.4999926611781,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-16x64x128",
+        "variant": "torch-eager",
+        "medianMicroseconds": 22.899999748915434,
+        "p10Microseconds": 22.299995180219412,
+        "p90Microseconds": 23.300002794712782,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-16x64x128",
+        "variant": "torch-native",
+        "medianMicroseconds": 22.599997464567423,
+        "p10Microseconds": 22.20005262643099,
+        "p90Microseconds": 23.200002033263445,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-16x64x128",
+        "variant": "torch-compile-default",
+        "medianMicroseconds": 19.000028260052204,
+        "p10Microseconds": 18.499966245144606,
+        "p90Microseconds": 19.50003206729889,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-16x64x128",
+        "variant": "torch-compile-max-autotune",
+        "medianMicroseconds": 19.099970813840628,
+        "p10Microseconds": 18.599967006593943,
+        "p90Microseconds": 19.599974621087313,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-16x64x128",
+        "variant": "sol-triton",
+        "medianMicroseconds": 18.600025214254856,
+        "p10Microseconds": 18.099963199347258,
+        "p90Microseconds": 19.199971575289965,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-128x256x512",
+        "variant": "torch-eager",
+        "medianMicroseconds": 42.599975131452084,
+        "p10Microseconds": 41.20002267882228,
+        "p90Microseconds": 43.20003790780902,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-128x256x512",
+        "variant": "torch-native",
+        "medianMicroseconds": 40.50001734867692,
+        "p10Microseconds": 39.40000897273421,
+        "p90Microseconds": 41.50002496317029,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-128x256x512",
+        "variant": "torch-compile-default",
+        "medianMicroseconds": 38.80000440403819,
+        "p10Microseconds": 37.79999678954482,
+        "p90Microseconds": 39.69995304942131,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-128x256x512",
+        "variant": "torch-compile-max-autotune",
+        "medianMicroseconds": 39.1000066883862,
+        "p10Microseconds": 37.999998312443495,
+        "p90Microseconds": 40.000013541430235,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-128x256x512",
+        "variant": "sol-triton",
+        "medianMicroseconds": 33.549993531778455,
+        "p10Microseconds": 32.100011594593525,
+        "p90Microseconds": 34.39997090026736,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-512x512x1024",
+        "variant": "torch-eager",
+        "medianMicroseconds": 155.8999647386372,
+        "p10Microseconds": 151.69999096542597,
+        "p90Microseconds": 156.6999708302319,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-512x512x1024",
+        "variant": "torch-native",
+        "medianMicroseconds": 166.74998914822936,
+        "p10Microseconds": 162.59995754808187,
+        "p90Microseconds": 168.80000475794077,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-512x512x1024",
+        "variant": "torch-compile-default",
+        "medianMicroseconds": 149.40000255592167,
+        "p10Microseconds": 146.30000805482268,
+        "p90Microseconds": 150.3999810665846,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-512x512x1024",
+        "variant": "torch-compile-max-autotune",
+        "medianMicroseconds": 149.49997421354055,
+        "p10Microseconds": 145.500001963228,
+        "p90Microseconds": 150.6999833509326,
+        "samples": 120
+      },
+      {
+        "case": "gemm_bias_silu-512x512x1024",
+        "variant": "sol-triton",
+        "medianMicroseconds": 183.60000103712082,
+        "p10Microseconds": 178.30001888796687,
+        "p90Microseconds": 184.3999489210546,
+        "samples": 120
+      }
+    ],
+    "tunedInductorVsEagerGeometricMeanSpeedup": 1.235374679985611
+  },
+  "validation": {
+    "aurelianTests": 1483,
+    "aurelianAssemblies": 33,
+    "compilerTests": 1730,
+    "integrityTests": 7,
+    "nativeChecks": 77,
+    "skipped": 0
+  },
+  "limits": [
+    "unmanaged clocks and live desktop",
+    "community Windows Triton",
+    "custom diagnostic cases, not official KernelBench",
+    "no matched LLM search budgets",
+    "cold timings have different boundaries",
+    "Windows GPU profiler coverage unqualified"
+  ],
+  "conclusion": "Aurelian improved substantially; optimized PyTorch remains faster in GPU execution and matched single-operation replay. This suite does not support the motivating replacement claim."
+}

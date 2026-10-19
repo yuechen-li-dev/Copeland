@@ -32,6 +32,7 @@ public sealed class VulkanCommandBufferLease
     public ulong LeaseId { get; }
 
     public CommandBuffer CommandBuffer { get; }
+    public bool IsReusable { get; private set; }
 
     public bool IsReady
     {
@@ -136,6 +137,7 @@ public sealed class VulkanCommandBufferLease
             if (lifecycle != VulkanCommandBufferLifecycle.Disposed)
             {
                 lifecycle = VulkanCommandBufferLifecycle.Ready;
+                IsReusable = false;
                 activeRenderPassScope = null;
             }
         }
@@ -143,7 +145,9 @@ public sealed class VulkanCommandBufferLease
         return VulkanCommandBufferOperationResult.Succeeded();
     }
 
-    public unsafe VulkanCommandBufferOperationResult Begin()
+    public VulkanCommandBufferOperationResult Begin() => Begin(reusable: false);
+
+    public unsafe VulkanCommandBufferOperationResult Begin(bool reusable)
     {
         lock (gate)
         {
@@ -165,7 +169,7 @@ public sealed class VulkanCommandBufferLease
         CommandBufferBeginInfo beginInfo = new()
         {
             SType = StructureType.CommandBufferBeginInfo,
-            Flags = CommandBufferUsageFlags.OneTimeSubmitBit,
+            Flags = reusable ? CommandBufferUsageFlags.None : CommandBufferUsageFlags.OneTimeSubmitBit,
         };
 
         Result result = vk.BeginCommandBuffer(CommandBuffer, &beginInfo);
@@ -181,6 +185,7 @@ public sealed class VulkanCommandBufferLease
             if (lifecycle != VulkanCommandBufferLifecycle.Disposed)
             {
                 lifecycle = VulkanCommandBufferLifecycle.Recording;
+                IsReusable = reusable;
                 activeRenderPassScope = null;
             }
         }

@@ -141,6 +141,11 @@ public sealed unsafe class VulkanTimelineFence : IDisposable
     }
 
     public VulkanFenceOperationResult WaitForValue(ulong value, ulong timeoutNanoseconds)
+        => WaitForValue(value, timeoutNanoseconds, 0);
+
+    /// <summary>Optionally polls before blocking. The polling budget is capped
+    /// at one millisecond and counts against the total timeout.</summary>
+    public VulkanFenceOperationResult WaitForValue(ulong value, ulong timeoutNanoseconds, uint spinWaitNanoseconds)
     {
         if (value == 0)
         {
@@ -168,6 +173,25 @@ public sealed unsafe class VulkanTimelineFence : IDisposable
             }
 
             localSemaphore = semaphore;
+        }
+
+        ulong spinBudget = Math.Min(timeoutNanoseconds, Math.Min(spinWaitNanoseconds, 1_000_000u));
+        if (spinBudget > 0)
+        {
+            long start = System.Diagnostics.Stopwatch.GetTimestamp();
+            double elapsed;
+            do
+            {
+                var completed = QueryCompletedValue();
+                if (!completed.Success || completed.Value.GetValueOrDefault() >= value)
+                {
+                    return completed;
+                }
+                Thread.SpinWait(32);
+                elapsed = System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalNanoseconds;
+            }
+            while (elapsed < spinBudget);
+            timeoutNanoseconds -= Math.Min(timeoutNanoseconds, (ulong)elapsed);
         }
 
         SemaphoreWaitInfo waitInfo = new()

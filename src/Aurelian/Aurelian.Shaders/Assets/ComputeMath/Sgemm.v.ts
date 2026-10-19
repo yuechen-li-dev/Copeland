@@ -13,12 +13,12 @@ function SgemmMain(@builtin(groupId) group: uint3,
     @binding(2) readwrite Output: StorageBuffer<f32>,
     @binding(3) readonly Parameters: StorageBuffer<KernelParameters>): void {
     let p = Parameters[0];
-    let row = group.x * 16 + local.x;
-    let columnIndex = group.y * 16 + local.y;
+    let row = group.x * 16 + local.y;
+    let columnIndex = group.y * 16 + local.x;
     var sum: f32 = 0.0;
     static for (let tile of Indices<8>()) {
-        let aColumn = p.offset + tile * 16 + local.y;
-        let bRow = p.offset + tile * 16 + local.x;
+        let aColumn = p.offset + tile * 16 + local.x;
+        let bRow = p.offset + tile * 16 + local.y;
         var a: f32 = 0.0;
         var b: f32 = 0.0;
         if (row < p.rows && aColumn < p.inner) {
@@ -31,11 +31,11 @@ function SgemmMain(@builtin(groupId) group: uint3,
                 b = B[bRow * p.columns + columnIndex];
             }
         }
-        TileA[local.x * 16 + local.y] = a;
-        TileB[local.x * 16 + local.y] = b;
+        TileA[local.y * 16 + local.x] = a;
+        TileB[local.y * 16 + local.x] = b;
         WorkgroupBarrier();
         static for (let k of Indices<16>()) {
-            sum = sum + TileA[local.x * 16 + k] * TileB[k * 16 + local.y];
+            sum = sum + TileA[local.y * 16 + k] * TileB[k * 16 + local.x];
         }
         WorkgroupBarrier();
     }

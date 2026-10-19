@@ -31,8 +31,20 @@ public static partial class GpuComputeBinder
 
         private void ValidateCooperativeUniformity(VdMirStatement command, IEnumerable<VdMirStatement> preceding)
         {
-            var locals = preceding.Where(statement => statement.Kind == "local" && !statement.Mutable)
+            if (!(command.Expression!.Operands ?? []).Skip(5).All(expression => IsWorkgroupUniform(expression, preceding)))
+            {
+                AddDiagnostic("COPE-GPU-COOPERATIVE-0002", "SDSL-V4401", "cooperative-matrix",
+                    "M/N/K must come from immutable workgroup-uniform literals or readonly parameters; invocation-dependent dimensions cannot synchronize safely.", command.Source);
+            }
+        }
+
+        private bool IsWorkgroupUniform(VdMirExpression value, IEnumerable<VdMirStatement> preceding)
+        {
+            // A spelling is insufficient authority when distinct lexical bindings
+            // share it. Reject that ambiguity instead of selecting an initializer.
+            var locals = preceding.Where(statement => statement.Kind == "local")
                 .GroupBy(statement => statement.Name!, StringComparer.Ordinal)
+                .Where(group => group.Count() == 1 && !group.First().Mutable)
                 .ToDictionary(group => group.Key, group => group.First().Expression!, StringComparer.Ordinal);
             var active = new HashSet<string>(StringComparer.Ordinal);
             bool Uniform(VdMirExpression expression)
@@ -60,11 +72,7 @@ public static partial class GpuComputeBinder
                 return expression.Kind is "field" or "binary" or "unary"
                     && (expression.Operands ?? []).All(Uniform);
             }
-            if (!(command.Expression!.Operands ?? []).Skip(5).All(Uniform))
-            {
-                AddDiagnostic("COPE-GPU-COOPERATIVE-0002", "SDSL-V4401", "cooperative-matrix",
-                    "M/N/K must come from immutable workgroup-uniform literals or readonly parameters; invocation-dependent dimensions cannot synchronize safely.", command.Source);
-            }
+            return Uniform(value);
         }
     }
 }

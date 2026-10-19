@@ -349,6 +349,10 @@ public sealed unsafe partial class VulkanComputeMath : IDisposable
         queuedScope?.Dispose();
         disposed = true;
         _ = plant.Vk.DeviceWaitIdle(plant.Device);
+        foreach (var prepared in preparedBatches.ToArray())
+        {
+            prepared.Dispose();
+        }
         timings.Dispose();
         foreach (var pipeline in pipelines.Values)
         {

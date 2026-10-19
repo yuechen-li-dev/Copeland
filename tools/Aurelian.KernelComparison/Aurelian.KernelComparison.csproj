@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Aurelian/Aurelian.Inference/Aurelian.Inference.csproj" />
+    <Content Include="Assets/*.v.ts" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

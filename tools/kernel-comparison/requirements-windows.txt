@@ -1,0 +1,4 @@
+# Native Windows CUDA baseline. The Triton distribution is the community port.
+# Install torch separately from https://download.pytorch.org/whl/cu128.
+numpy==2.2.6
+triton-windows==3.6.0.post26

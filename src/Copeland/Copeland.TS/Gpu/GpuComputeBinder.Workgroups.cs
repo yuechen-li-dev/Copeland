@@ -49,7 +49,7 @@ public static partial class GpuComputeBinder
         private void ValidateWorkgroupSynchronization()
         {
             // Conservative portable profile: waits occur on the entry's straight-line
-            // spine, including statically expanded blocks. No helper or branch can wait,
+            // spine, including static blocks and certified uniform bounded loops. No helper or branch can wait,
             // and an invocation cannot return before the last wait. This deliberately
             // does not guess whether a data-dependent condition is workgroup-uniform.
             foreach (var function in _boundFunctions)
@@ -81,7 +81,7 @@ public static partial class GpuComputeBinder
         {
             foreach (var statement in statements)
             {
-                if (statement.Kind == "block")
+                if (statement.Kind is "block" or "bounded-loop")
                 {
                     foreach (var child in FlattenBlocks(statement.Body ?? []))
                     {

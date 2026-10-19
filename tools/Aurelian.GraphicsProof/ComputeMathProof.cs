@@ -4,6 +4,10 @@ using Aurelian.Games;
 using Aurelian.Graphics.Plants;
 using Aurelian.Graphics.Vulkan.ComputeMath;
 using Aurelian.Graphics.Vulkan.Device;
+using Aurelian.Graphics.Vulkan.Qualification;
+using Aurelian.Shaders.Compute;
+using Copeland.TS.Gpu;
+using Copeland.TS.Gpu.VdMir;
 
 internal static class ComputeMathProof
 {
@@ -20,6 +24,22 @@ internal static class ComputeMathProof
         var assets = new GameAssets();
         using var math = new VulkanComputeMath(plant, assets.ComputeShader);
         var measurements = new List<Measurement>();
+        string loopPath = Path.Combine(AppContext.BaseDirectory, "Assets", "BoundedLoopProof.v.ts");
+        var loopModule = GpuComputeBinder.Compile(new([new GpuSourceFile("BoundedLoopProof.v.ts", File.ReadAllText(loopPath))]));
+        Require(loopModule.Success, string.Join("; ", loopModule.Diagnostics.Select(item => item.Message)));
+        var loopBackend = VdMirComputeBackend.Compile(loopModule);
+        Require(loopBackend.SpirvValidated, loopBackend.DxcOutput + loopBackend.SpirvValidationOutput);
+        File.WriteAllText(Path.Combine(output, "bounded-loop.hlsl"), loopBackend.Hlsl);
+        File.WriteAllBytes(Path.Combine(output, "bounded-loop.spv"), loopBackend.Spirv);
+        foreach (uint count in new[] { 0u, 1u, 3u, 512u, 513u, uint.MaxValue })
+        {
+            float[] words = Enumerable.Repeat(BitConverter.UInt32BitsToSingle(count), 64).ToArray();
+            using var probe = new VulkanScalarComputeProbe(plant, loopBackend.Spirv, loopModule.EntryPoint!.EmittedName, words);
+            uint iterations = Math.Min(count, 512u);
+            float sum = iterations * (iterations - 1f) / 2;
+            Require(probe.Execute().All(value => value == sum), "Bounded loop count/clamp/synchronization failed: " + count);
+            measurements.Add(new("bounded-loop-count-" + count, 64, 0, 1, null));
+        }
 
         GpuTensor Tensor(int rows, int columns, float[]? values = null, GpuTensorFormat format = GpuTensorFormat.Float32)
         {
@@ -63,6 +83,70 @@ internal static class ComputeMathProof
             expected[index] = expected[index] * .7f - prior[index] * .2f;
         }
         Check("sgemm-tail-alpha-beta", batch, c, expected);
+        foreach (bool transpose in new[] { false, true })
+        {
+            float[] registerA = Values(65 * 131, 71);
+            float[] registerB = Values(131 * 67, 73);
+            float[] registerPrior = Values(65 * 67, 79);
+            float[] storedB = transpose
+                ? Enumerable.Range(0, 67).SelectMany(column => Enumerable.Range(0, 131)
+                    .Select(inner => registerB[inner * 67 + column])).ToArray()
+                : registerB;
+            var left = Tensor(65, 131, registerA);
+            var right = Tensor(transpose ? 67 : 131, transpose ? 131 : 67, storedB);
+            var product = Tensor(65, 67, registerPrior);
+            batch = math.CreateBatch();
+            batch.Multiply(left, right, product, MatrixKernel.Resident64, .7f, -.2f, transpose);
+            float[] reference = Multiply(registerA, registerB, 65, 67, 131);
+            for (int index = 0; index < reference.Length; index++)
+            {
+                reference[index] = reference[index] * .7f - registerPrior[index] * .2f;
+            }
+            Check("resident-tail-alpha-beta-transpose-" + transpose, batch, product, reference);
+        }
+
+        float[] maximumKLeft = Values(8192, 83);
+        float[] maximumKRight = Values(8192, 89);
+        var maximumA = Tensor(1, 8192, maximumKLeft);
+        var maximumB = Tensor(8192, 1, maximumKRight);
+        var maximumProduct = Tensor(1, 1);
+        batch = math.CreateBatch();
+        batch.Multiply(maximumA, maximumB, maximumProduct, kernel: MatrixKernel.Resident64);
+        Check("resident-maximum-K-8192", batch, maximumProduct,
+            Multiply(maximumKLeft, maximumKRight, 1, 1, 8192), .002);
+
+        var replayInput = Tensor(1, 3, [-2f, 0f, 2f]);
+        var replayBias = Tensor(1, 3, [.1f, -.2f, .3f]);
+        var replayOutput = Tensor(1, 3);
+        var replayBatch = math.CreateBatch();
+        replayBatch.Activate(replayInput, replayOutput, TensorActivation.BiasSilu, replayBias);
+        using (var prepared = math.Prepare(replayBatch))
+        {
+            // Appending to the source plan must not mutate the recorded snapshot.
+            replayBatch.Activate(replayOutput, replayOutput, TensorActivation.Silu);
+            foreach (float[] changed in new[] { new[] { -2f, 0f, 2f }, new[] { -3f, 1f, 4f } })
+            {
+                math.Upload(replayInput, changed);
+                var execution = prepared.Execute();
+                Require(execution.Dispatches == 1, "Prepared dispatch snapshot changed.");
+                float[] actual = math.Read(replayOutput);
+                float[] reference = changed.Select((value, index) => Silu(value + new[] { .1f, -.2f, .3f }[index])).ToArray();
+                Require(actual.Zip(reference, (value, target) => Math.Abs(value - target)).Max() < 2e-6,
+                    "Prepared replay ignored changed resident inputs or source-plan mutation.");
+            }
+            replayOutput.Dispose();
+            bool rejected = false;
+            try
+            {
+                prepared.Execute();
+            }
+            catch (ArgumentException error) when (error.Message.Contains("AUR-COMPUTE-MATH-001", StringComparison.Ordinal))
+            {
+                rejected = true;
+            }
+            Require(rejected, "Prepared replay submitted a disposed tensor.");
+            measurements.Add(new("prepared-replay-lifecycle", 3, 0, 1, null));
+        }
 
         foreach (int width in new[] { 1, 63, 64, 65, 127, 1024 })
         {
@@ -113,7 +197,8 @@ internal static class ComputeMathProof
         {
             var result = Tensor(3, 5);
             batch = math.CreateBatch();
-            batch.Activate(activationInput, result, operation, operation == TensorActivation.Bias ? bias : auxiliary);
+            batch.Activate(activationInput, result, operation,
+                operation is TensorActivation.Bias or TensorActivation.BiasSilu ? bias : auxiliary);
             expected = activationValues.Select((value, index) => operation switch
             {
                 TensorActivation.Silu => Silu(value),
@@ -121,7 +206,11 @@ internal static class ComputeMathProof
                 TensorActivation.SiluGate => Silu(value) * auxiliaryValues[index],
                 TensorActivation.Residual => value + auxiliaryValues[index],
                 TensorActivation.Bias => value + auxiliaryValues[index % 5],
+                TensorActivation.BiasSilu => Silu(value + auxiliaryValues[index % 5]),
                 TensorActivation.GeluErf => Trellis2KernelProof.GeluErfReference(value),
+                TensorActivation.GeluGate => Trellis2BlockReference.Round(Trellis2BlockReference.Round(
+                    (float)(.5 * value * (1 + Math.Tanh(.7978845608 * (value + .044715 * value * value * value)))))
+                    * auxiliaryValues[index]),
                 _ => throw new ArgumentOutOfRangeException(nameof(operation)),
             }).ToArray();
             Check("activation-" + operation, batch, result, expected);

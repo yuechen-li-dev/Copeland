@@ -188,6 +188,20 @@ public static partial class VdMirComputeHlslEmitter
                 }
                 builder.AppendLine($"{prefix}}}");
                 break;
+            case "bounded-loop":
+                builder.AppendLine($"{prefix}{{");
+                string indexName = LocalName(statement.Name!);
+                string boundName = "__vts_bound_" + statement.Name;
+                builder.AppendLine($"{prefix}    uint {boundName} = min({EmitExpression(statement.Expression!)}, {statement.MaximumIterations}u);");
+                builder.AppendLine($"{prefix}    [loop] for (uint {indexName} = 0u; {indexName} < {boundName}; ++{indexName})");
+                builder.AppendLine($"{prefix}    {{");
+                foreach (var child in statement.Body ?? [])
+                {
+                    EmitStatement(builder, child, indentation + 2, module);
+                }
+                builder.AppendLine($"{prefix}    }}");
+                builder.AppendLine($"{prefix}}}");
+                break;
             default:
                 throw new InvalidOperationException($"Unsupported compute statement '{statement.Kind}'.");
         }

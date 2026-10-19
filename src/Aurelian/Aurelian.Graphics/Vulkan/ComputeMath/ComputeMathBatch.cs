@@ -3,8 +3,9 @@ using System.Runtime.InteropServices;
 namespace Aurelian.Graphics.Vulkan.ComputeMath;
 
 public enum RowReduction { Sum, Maximum, Softmax }
+public enum MatrixKernel { Portable16, Resident64 }
 public enum Normalization { RmsNorm, LayerNorm }
-public enum TensorActivation { Silu, Gelu, SiluGate, Residual, Bias, GeluErf, GeluGate }
+public enum TensorActivation { Silu, Gelu, SiluGate, Residual, Bias, GeluErf, GeluGate, BiasSilu }
 public enum RopeLayout { HalfSplit, Interleaved }
 
 [StructLayout(LayoutKind.Sequential)]
@@ -33,7 +34,13 @@ public sealed partial class ComputeMathBatch
     public void Multiply(GpuTensor a, GpuTensor b, GpuTensor output,
         float alpha = 1, float beta = 0, bool transposeB = false)
     {
-        Add(MatrixDispatches(a, b, output, alpha, beta, transposeB));
+        Multiply(a, b, output, MatrixKernel.Portable16, alpha, beta, transposeB);
+    }
+
+    public void Multiply(GpuTensor a, GpuTensor b, GpuTensor output, MatrixKernel kernel,
+        float alpha = 1, float beta = 0, bool transposeB = false)
+    {
+        Add(MatrixDispatches(a, b, output, alpha, beta, transposeB, kernel));
     }
 
     public void MultiplyCooperative(GpuTensor packedA, GpuTensor packedB, GpuTensor output)
@@ -53,23 +60,31 @@ public sealed partial class ComputeMathBatch
     }
 
     private ComputeMathDispatch[] MatrixDispatches(GpuTensor a, GpuTensor b, GpuTensor output,
-        float alpha, float beta, bool transposeB)
+        float alpha, float beta, bool transposeB, MatrixKernel kernel = MatrixKernel.Portable16)
     {
         Check(a, b, output);
         int columns = transposeB ? b.Rows : b.Columns;
         int inner = transposeB ? b.Columns : b.Rows;
-        Require(a.Columns == inner && output.Rows == a.Rows && output.Columns == columns
+        Require(Enum.IsDefined(kernel) && a.Columns == inner && output.Rows == a.Rows && output.Columns == columns
             && a.Columns <= 8192 && float.IsFinite(alpha) && float.IsFinite(beta),
             "SGEMM requires A[M,K], B[K,N] (or transposed B[N,K]), C[M,N], K <= 8192 and finite scales.");
         Require(!ReferenceEquals(output, a) && !ReferenceEquals(output, b), "SGEMM output cannot alias either input.");
         var steps = new List<ComputeMathDispatch>();
-        for (int offset = 0; offset < inner; offset += MatrixKChunk)
+        int tileRows = kernel == MatrixKernel.Resident64 ? 64 : 16;
+        int tileColumns = kernel == MatrixKernel.Portable16 ? 16 : 64;
+        string shader = kernel switch
         {
-            steps.Add(new("Sgemm.v.ts", a, b, output, new()
+            MatrixKernel.Resident64 => "ResidentSgemm.v.ts",
+            _ => "Sgemm.v.ts",
+        };
+        int chunk = kernel == MatrixKernel.Portable16 ? MatrixKChunk : inner;
+        for (int offset = 0; offset < inner; offset += chunk)
+        {
+            steps.Add(new(shader, a, b, output, new()
             {
                 Rows = (uint)a.Rows, Columns = (uint)columns, Inner = (uint)inner,
                 Offset = (uint)offset, Mode = transposeB ? 1u : 0u, Alpha = alpha, Beta = beta,
-            }, Groups(a.Rows, 16), Groups(columns, 16)));
+            }, Groups(a.Rows, tileRows), Groups(columns, tileColumns)));
         }
         return steps.ToArray();
     }
@@ -113,9 +128,19 @@ public sealed partial class ComputeMathBatch
         {
             Require(SameShape(input, auxiliary), "Gated/residual activation requires a same-shaped auxiliary tensor.");
         }
-        if (operation == TensorActivation.Bias)
+        if (operation is TensorActivation.Bias or TensorActivation.BiasSilu)
         {
             Require(auxiliary.Elements == input.Columns && !ReferenceEquals(auxiliary, output), "Bias requires one independent row of channel weights.");
+        }
+        if (operation == TensorActivation.BiasSilu)
+        {
+            uint groups = Groups(input.Elements, 1024);
+            uint groupsX = Math.Min(groups, 65535);
+            Add([new("BiasSilu.v.ts", input, auxiliary, output, new()
+            {
+                Rows = (uint)input.Rows, Columns = (uint)input.Columns, Height = groupsX,
+            }, groupsX, (groups + groupsX - 1) / groupsX)]);
+            return;
         }
         Add([new("Activation.v.ts", input, auxiliary, output, new()
         {

@@ -17,6 +17,8 @@ public sealed unsafe partial class VulkanComputeMath
         ["DecoderScale.v.ts"] = "DecoderScaleMain",
         ["GroupedAttention.v.ts"] = "GroupedAttentionMain",
         ["Sgemm.v.ts"] = "SgemmMain",
+        ["ResidentSgemm.v.ts"] = "ResidentSgemmMain",
+        ["BiasSilu.v.ts"] = "BiasSiluMain",
         ["TensorMap.v.ts"] = "TensorMapMain",
         ["VolumeMap.v.ts"] = "VolumeMapMain",
         ["CoordinateRope.v.ts"] = "CoordinateRopeMain",

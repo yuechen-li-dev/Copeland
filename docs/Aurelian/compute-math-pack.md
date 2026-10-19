@@ -12,11 +12,12 @@ input precision. No model weights or external inference runtime are embedded.
 
 | Operation | Contract |
 | --- | --- |
-| `Multiply` | Row-major A[M,K] × B[K,N], optional transposed B[N,K], alpha/beta, masked tails; K ≤ 4096 |
+| `Multiply` | Row-major A[M,K] × B[K,N], optional transposed B[N,K], alpha/beta, masked tails; K ≤ 8192. Explicit `MatrixKernel.Resident64` selects a 64×64 register tile and one full-K dispatch. |
 | `MultiplyCooperative` | KHR subgroup 16×16×16 tuple; packed FP16 A/B, FP32 C; M/N/K multiples of 16; K ≤ 4096 |
 | `ReduceRows` | FP32 sum, maximum and max-subtracted stable softmax; width ≤ 8192 |
 | `Normalize` | RMSNorm or two-pass centered LayerNorm, gamma/beta and positive epsilon; width ≤ 8192 |
 | `Activate` | Stable SiLU, tanh-approximate GELU, SiLU gate, residual addition and channel bias |
+| `Activate(..., TensorActivation.BiasSilu, bias)` | One dispatch for channel bias and stable SiLU; 256 lanes process four contiguous passes, including masked tails. |
 | `RotatePositions` | Half-split or interleaved RoPE with explicit position offset and theta |
 | `Fft` | Batched complex32 radix-2; power-of-two lengths 1–65536; forward unnormalized, inverse normalized once |
 | `Convolve` | Single-image NHWC cross-correlation, symmetric zero padding and stride; explicit im2col scratch then SGEMM |
@@ -81,6 +82,26 @@ invalid shapes, ownership, disposed tensors and budget overflow with
 `AUR-COMPUTE-MATH-001`. Failed operation admission does not append partial
 dispatches. Vulkan/resource failures use `002`.
 
+## Prepared resident replay
+
+`using var prepared = math.Prepare(batch)` snapshots the dispatch plan, owns
+independent descriptors/parameters and records one reusable command buffer.
+`prepared.Execute()` submits through the existing timeline-fence owner and
+waits for completion. Input contents may change between replays; all referenced
+tensors and their buffers must remain live. Appending to the original batch
+does not change the snapshot. Disposing the math owner disposes its prepared
+batches before pipelines or layouts. Replay rejects disposed resources and
+overlap with a queued scope.
+
+The default wait blocks. `prepared.Execute(spinWaitNanoseconds: 100_000)` opts
+into up to 100 microseconds of polling before blocking, trading CPU work for
+wait latency. Polling is capped at 1 ms and counts against the total timeout.
+Retained command submission requires reusable recording and synchronous
+completion; ordinary one-time command retirement keeps its existing behavior.
+
+The [kernel comparison](../../tools/kernel-comparison/README.md) measures
+immediate recording, prepared blocking replay and explicit polling separately.
+
 ## Hardware cooperative path
 
 Request negotiation when creating the plant:
@@ -130,12 +151,22 @@ It admits f32/u32 words, fixed extents and a portable 16 KiB total budget.
 Builtins now include groupId/groupThreadId:uint3 and groupIndex:u32.
 `WorkgroupBarrier()` is statement-only. The conservative synchronization
 profile admits waits on the entry's straight-line spine, including statically
-expanded blocks. A wait inside a helper, runtime branch/match/flow, or after an
+expanded blocks and certified uniform bounded loops. A wait inside a helper, runtime branch/match/flow, or after an
 earlier conditional return is rejected. Mask tail work around unconditional
 waits; the compiler does not guess uniformity for arbitrary control flow.
 Dynamic shared indices remain the author's responsibility; literal bounds are
 checked. `Exp`, `Sin`, `Cos` and `Pow` now have typed compute intrinsic lowering.
 No while loops or dynamic nested flows were added.
+
+`for (let tile of BoundedIndices<512>(count))` emits a runtime loop whose
+iteration count is `min(count, 512)`. The literal maximum must be 1..512;
+count must be an immutable workgroup-uniform u32 literal or readonly parameter.
+The loop index is immutable. Returning from the invocation, breaking/continuing,
+and cooperative-matrix commands inside these loops remain rejected. Barriers
+must still be unconditional on the entry's certified spine. The maximum is a
+typed VD-MIR fact, not an emitter inference. Resident GEMM host admission proves
+K <= 8192, so its 16-wide K tiles never truncate at the 512-iteration ceiling.
+General `for`/`while` loops remain deferred.
 
 ## Provenance and reproduction
 

@@ -10,4 +10,5 @@ public static class VulkanCommandSubmitDiagnosticCodes
     public const string FenceWaitFailed = "AGCS1006";
     public const string SubmitterDisposed = "AGCS1007";
     public const string CommandBufferRetireFailed = "AGCS1008";
+    public const string InvalidReplaySubmission = "AGCS1009";
 }

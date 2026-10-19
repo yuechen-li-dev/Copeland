@@ -85,7 +85,11 @@ public sealed record VdMirStatement(
     IReadOnlyList<VdMirStatement>? Body = null,
     IReadOnlyList<VdMirStatement>? ElseBody = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] VdMirStatement? Initializer = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] VdMirStatement? Increment = null);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] VdMirStatement? Increment = null)
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? MaximumIterations { get; init; }
+}
 
 public sealed record VdMirFunction(
     string Name,

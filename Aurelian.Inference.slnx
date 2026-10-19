@@ -6,6 +6,7 @@
     <Project Path="src/Integrations/Aurelian.Inference.Trellis2/Aurelian.Inference.Trellis2.csproj" />
   </Folder>
   <Folder Name="/tools/">
+    <Project Path="tools/Aurelian.KernelComparison/Aurelian.KernelComparison.csproj" />
     <Project Path="tools/Aurelian.GemmaProof/Aurelian.GemmaProof.csproj" />
     <Project Path="tools/Aurelian.InferenceProof/Aurelian.InferenceProof.csproj" />
   </Folder>

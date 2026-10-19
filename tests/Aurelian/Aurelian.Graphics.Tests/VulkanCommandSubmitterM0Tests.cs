@@ -173,6 +173,43 @@ public sealed class VulkanCommandSubmitterM0Tests
             Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == VulkanCommandSubmitDiagnosticCodes.SubmitterDisposed);
         });
 
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void RetainedReplayRejectsOneTimeOrAsynchronousSubmission(bool reusable, bool waitForCompletion)
+        => WithSubmitResources((_, pool, _, submitter) =>
+        {
+            var command = pool.Rent(0);
+            Assert.True(command.Begin(reusable).Success);
+            Assert.True(command.End().Success);
+            var result = submitter.Submit(new(command, WaitForCompletion: waitForCompletion) { RetainForReplay = true });
+            Assert.False(result.Success);
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == VulkanCommandSubmitDiagnosticCodes.InvalidReplaySubmission);
+        });
+
+    [Fact]
+    public void ReusableCommandCanReplayAndReturnsToOrdinaryPoolLifecycle()
+        => WithSubmitResources((_, pool, fences, submitter) =>
+        {
+            var command = pool.Rent(0);
+            Assert.True(command.Begin(reusable: true).Success);
+            Assert.True(command.End().Success);
+            var first = submitter.Submit(new(command) { RetainForReplay = true });
+            var second = submitter.Submit(new(command) { RetainForReplay = true });
+            Assert.True(first.Success);
+            Assert.True(second.Success);
+            Assert.True(second.SignalFenceValue > first.SignalFenceValue);
+            Assert.True(command.IsExecutable);
+            pool.Retire(command, second.SignalFenceValue!.Value);
+            var reused = pool.Rent(fences.CommandListFence.LastKnownCompletedValue);
+            Assert.Same(command, reused);
+            Assert.False(reused.IsReusable);
+            Assert.True(reused.Begin().Success);
+            Assert.True(reused.End().Success);
+            Assert.True(submitter.Submit(new(reused)).Success);
+            Assert.True(reused.IsRetired);
+        });
+
     private static void WithSubmitResources(Action<AurelianVulkanPlant, VulkanCommandBufferPool, VulkanFenceBundle, VulkanCommandSubmitter> action)
     {
         VulkanInitResult init = VulkanPlantInitializer.CreatePlant(PlantId.Zero, new VulkanPlantOptions(EnableValidation: false));

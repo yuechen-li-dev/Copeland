@@ -108,7 +108,7 @@ public static partial class GpuComputeBinder
             {
                 foreach (FunctionDeclarationSyntax function in tree.Root.Members.OfType<FunctionDeclarationSyntax>())
                 {
-                    if (function.Identifier.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp" or "Log" or "Atan2" or "Floor" or "Exp" or "Sin" or "Cos" or "Pow" or "Bitcast" or "WorkgroupBarrier" or "CooperativeMatMul")
+                    if (function.Identifier.Text is "Sqrt" or "U32" or "Abs" or "Min" or "Max" or "Clamp" or "Log" or "Atan2" or "Floor" or "Exp" or "Sin" or "Cos" or "Pow" or "Bitcast" or "WorkgroupBarrier" or "CooperativeMatMul" or "BoundedIndices")
                     {
                         AddDiagnostic("COPE-GPU-SYMBOL-0001", "SDSL-V1509", "symbol",
                             $"{function.Identifier.Text} is a compiler-owned intrinsic and cannot be redefined.",
@@ -339,6 +339,10 @@ public static partial class GpuComputeBinder
                             () => BindNestedStatement(path, loop.Body, scope, returnType),
                             (code, message, span) => AddDiagnostic(code, "SDSL-V4200", "static-control", message, span)));
                         break;
+                    case ForOfStatementSyntax loop when loop.Iterable is GenericCallExpressionSyntax
+                        { Target: NameExpressionSyntax { IdentifierToken.Text: "BoundedIndices" } }:
+                        result.Add(BindBoundedLoop(path, loop, scope, returnType, result));
+                        break;
                     case VariableDeclarationStatementSyntax local:
                     {
                         string? explicitType = local.Type is null ? null : BindType(path, local.Type, local.Identifier);
@@ -534,7 +538,7 @@ public static partial class GpuComputeBinder
                             "COPE-GPU-CONTROL-0001",
                             "SDSL-V4202",
                             "control-flow",
-                            "Loops are deferred in compute M1.",
+                            "General loops are deferred in compute M1; use static for or a uniform BoundedIndices<Max>(count) loop.",
                             Span(path, statement));
                         break;
                     default:
