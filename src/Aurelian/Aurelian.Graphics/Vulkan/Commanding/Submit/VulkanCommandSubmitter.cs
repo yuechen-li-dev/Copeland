@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Aurelian.Graphics.Plants;
 using Aurelian.Graphics.Vulkan.Device;
 using Aurelian.Graphics.Vulkan.Sync;
@@ -40,6 +41,8 @@ public sealed unsafe class VulkanCommandSubmitter : IDisposable
 
     public VulkanCommandSubmitResult Submit(VulkanCommandSubmitRequest request)
     {
+        bool measure = request?.MeasureCpuTime == true;
+        long started = measure ? Stopwatch.GetTimestamp() : 0;
         List<VulkanCommandSubmitDiagnostic> diagnostics = [];
         string? debugName = request?.DebugName;
 
@@ -73,10 +76,12 @@ public sealed unsafe class VulkanCommandSubmitter : IDisposable
             return new VulkanCommandSubmitResult(VulkanCommandSubmitStatus.Failed, null, diagnostics);
         }
 
+        long prepared = measure ? Stopwatch.GetTimestamp() : 0;
         Result submitResult = SubmitAndSignal(
             validRequest.CommandBuffer.CommandBuffer,
             fences.CommandListFence.Semaphore,
             signalValue);
+        long queued = measure ? Stopwatch.GetTimestamp() : 0;
         if (submitResult != Result.Success)
         {
             diagnostics.Add(Diagnostic(
@@ -101,13 +106,21 @@ public sealed unsafe class VulkanCommandSubmitter : IDisposable
             }
         }
 
+        long completed = measure ? Stopwatch.GetTimestamp() : 0;
         if (!validRequest.RetainForReplay
             && !RetireSubmittedCommandBuffer(validRequest.CommandBuffer, signalValue, validRequest.DebugName, diagnostics))
         {
             return new VulkanCommandSubmitResult(VulkanCommandSubmitStatus.Failed, signalValue, diagnostics);
         }
 
-        return new VulkanCommandSubmitResult(VulkanCommandSubmitStatus.Submitted, signalValue, diagnostics);
+        return new VulkanCommandSubmitResult(VulkanCommandSubmitStatus.Submitted, signalValue, diagnostics)
+        {
+            CpuTimings = measure ? new(
+                Stopwatch.GetElapsedTime(started, prepared).TotalMicroseconds,
+                Stopwatch.GetElapsedTime(prepared, queued).TotalMicroseconds,
+                Stopwatch.GetElapsedTime(queued, completed).TotalMicroseconds,
+                Stopwatch.GetElapsedTime(completed).TotalMicroseconds) : null,
+        };
     }
 
     public void Dispose()

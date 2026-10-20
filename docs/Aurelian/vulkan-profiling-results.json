@@ -1,0 +1,4304 @@
+{
+  "Schema": "aurelian.vulkan-profiling.v1",
+  "Accepted": true,
+  "OfficialKernelBench": false,
+  "Device": "NVIDIA GeForce RTX 3070",
+  "Precision": "FP32 with frozen per-case numerical tolerances; no reduced-precision matrices",
+  "Rounds": 3,
+  "PrimaryTimingSamples": 132300,
+  "PrimaryCorrectnessChecks": 4272,
+  "AdditionalCppFloorSamples": 4500,
+  "SummarySha256": "8431a3245b05c5cf62cccebdf5af326e8fbea0d79d5bfe856b4c59ac59745985",
+  "ProtocolSha256": "7fae3c9ce995785f73ddc50b39c11f5e58f78fe5b7b46d8b7bf9c35c77657684",
+  "NativeCppProtocolSha256": "f0b6126a96a51a02095f9f7d5d70eb048459a16e3a70b9d737005e61f6ba37e7",
+  "SourceCommit": "536e5ec5f97155343ec65d9bee4324b7dfc4e679",
+  "ClockControl": "Native Vulkan alone versus native Vulkan with a completed one-thread CUDA no-op before each compiler sample group, outside native timing regions; no clock settings changed.",
+  "GpuRows": [
+    {
+      "Mode": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Compiler": "dxc",
+      "GpuMicroseconds": 3.157,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 107.4,
+          "GpuMicroseconds": 3.157
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 107.3,
+          "GpuMicroseconds": 3.156
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 107.55,
+          "GpuMicroseconds": 3.157
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Compiler": "dxc-spirv-opt",
+      "GpuMicroseconds": 3.145,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 107.3,
+          "GpuMicroseconds": 3.145
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 107.1,
+          "GpuMicroseconds": 3.143
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 107.3,
+          "GpuMicroseconds": 3.15
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Compiler": "glslang",
+      "GpuMicroseconds": 3.149,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 107.25,
+          "GpuMicroseconds": 3.1470000000000002
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 107.2,
+          "GpuMicroseconds": 3.156
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 107.2,
+          "GpuMicroseconds": 3.149
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Compiler": "dxc-O0",
+      "GpuMicroseconds": 3.148,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 107.15,
+          "GpuMicroseconds": 3.151
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 107.25,
+          "GpuMicroseconds": 3.136
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 107.2,
+          "GpuMicroseconds": 3.148
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Compiler": "dxc-static-params",
+      "GpuMicroseconds": 2.786,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 101.6,
+          "GpuMicroseconds": 2.785
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 101.5,
+          "GpuMicroseconds": 2.796
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 101.7,
+          "GpuMicroseconds": 2.786
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Compiler": "dxc-hoisted-exp",
+      "GpuMicroseconds": 3.0700000000000003,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 105.9,
+          "GpuMicroseconds": 3.0700000000000003
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 105.95,
+          "GpuMicroseconds": 3.0700000000000003
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 105.8,
+          "GpuMicroseconds": 3.07
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Compiler": "dxc",
+      "GpuMicroseconds": 116.435,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1922.3,
+          "GpuMicroseconds": 116.47200000000001
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1922.25,
+          "GpuMicroseconds": 116.435
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1919.6999999999998,
+          "GpuMicroseconds": 116.411
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Compiler": "dxc-spirv-opt",
+      "GpuMicroseconds": 115.757,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1911.9,
+          "GpuMicroseconds": 115.797
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1910.1,
+          "GpuMicroseconds": 115.757
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1909.5,
+          "GpuMicroseconds": 115.70599999999999
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Compiler": "glslang",
+      "GpuMicroseconds": 116.827,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1928.2,
+          "GpuMicroseconds": 116.86099999999999
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1926.05,
+          "GpuMicroseconds": 116.804
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1927.3,
+          "GpuMicroseconds": 116.827
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Compiler": "dxc-O0",
+      "GpuMicroseconds": 116.57799999999999,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1922.6,
+          "GpuMicroseconds": 116.59299999999999
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1923.05,
+          "GpuMicroseconds": 116.57799999999999
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1921.25,
+          "GpuMicroseconds": 116.493
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Compiler": "dxc-static-params",
+      "GpuMicroseconds": 115.809,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1911.45,
+          "GpuMicroseconds": 115.793
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1911.95,
+          "GpuMicroseconds": 115.857
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1911.4,
+          "GpuMicroseconds": 115.809
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Compiler": "dxc-hoisted-exp",
+      "GpuMicroseconds": 116.566,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1923.55,
+          "GpuMicroseconds": 116.63
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1922.0,
+          "GpuMicroseconds": 116.553
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1923.15,
+          "GpuMicroseconds": 116.566
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "softmax-1024x4096x0",
+      "Compiler": "dxc",
+      "GpuMicroseconds": 100.678,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1669.1,
+          "GpuMicroseconds": 100.642
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1668.35,
+          "GpuMicroseconds": 100.678
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1669.5,
+          "GpuMicroseconds": 100.69200000000001
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "softmax-1024x4096x0",
+      "Compiler": "dxc-spirv-opt",
+      "GpuMicroseconds": 100.57400000000001,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1674.0,
+          "GpuMicroseconds": 100.648
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1665.1,
+          "GpuMicroseconds": 100.57400000000001
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1666.35,
+          "GpuMicroseconds": 100.478
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "softmax-1024x4096x0",
+      "Compiler": "glslang",
+      "GpuMicroseconds": 100.66199999999999,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1670.7,
+          "GpuMicroseconds": 100.752
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1667.75,
+          "GpuMicroseconds": 100.65299999999999
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1668.85,
+          "GpuMicroseconds": 100.66199999999999
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "softmax-1024x4096x0",
+      "Compiler": "dxc-O0",
+      "GpuMicroseconds": 100.64399999999999,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1669.65,
+          "GpuMicroseconds": 100.759
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1671.6,
+          "GpuMicroseconds": 100.64399999999999
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1667.4499999999998,
+          "GpuMicroseconds": 100.62899999999999
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "softmax-1024x4096x0",
+      "Compiler": "dxc-static-params",
+      "GpuMicroseconds": 100.67099999999999,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1668.15,
+          "GpuMicroseconds": 100.69
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1667.25,
+          "GpuMicroseconds": 100.66999999999999
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1668.85,
+          "GpuMicroseconds": 100.67099999999999
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "rmsnorm-128x1024x0",
+      "Compiler": "dxc",
+      "GpuMicroseconds": 9.49,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 207.25,
+          "GpuMicroseconds": 9.49
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 211.14999999999998,
+          "GpuMicroseconds": 9.658
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 206.9,
+          "GpuMicroseconds": 9.482000000000001
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "rmsnorm-128x1024x0",
+      "Compiler": "dxc-spirv-opt",
+      "GpuMicroseconds": 9.6,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 208.95,
+          "GpuMicroseconds": 9.6
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 212.5,
+          "GpuMicroseconds": 9.743
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 208.1,
+          "GpuMicroseconds": 9.575
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "rmsnorm-128x1024x0",
+      "Compiler": "glslang",
+      "GpuMicroseconds": 9.471,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 206.45,
+          "GpuMicroseconds": 9.451999999999998
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 211.3,
+          "GpuMicroseconds": 9.607
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 206.85000000000002,
+          "GpuMicroseconds": 9.471
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "rmsnorm-128x1024x0",
+      "Compiler": "dxc-O0",
+      "GpuMicroseconds": 9.498999999999999,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 207.55,
+          "GpuMicroseconds": 9.498999999999999
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 211.4,
+          "GpuMicroseconds": 9.672
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 206.55,
+          "GpuMicroseconds": 9.492999999999999
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "rmsnorm-128x1024x0",
+      "Compiler": "dxc-static-params",
+      "GpuMicroseconds": 8.886,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 197.64999999999998,
+          "GpuMicroseconds": 8.886
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 200.35000000000002,
+          "GpuMicroseconds": 8.974
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 196.3,
+          "GpuMicroseconds": 8.835
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "gemm-512x512x1024",
+      "Compiler": "dxc",
+      "GpuMicroseconds": 175.952,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 2849.45,
+          "GpuMicroseconds": 174.496
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 2869.5,
+          "GpuMicroseconds": 175.952
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 2876.6000000000004,
+          "GpuMicroseconds": 175.964
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "gemm-512x512x1024",
+      "Compiler": "dxc-spirv-opt",
+      "GpuMicroseconds": 175.985,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 2839.85,
+          "GpuMicroseconds": 174.283
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 2870.95,
+          "GpuMicroseconds": 176.231
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 2868.45,
+          "GpuMicroseconds": 175.985
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "gemm-512x512x1024",
+      "Compiler": "glslang",
+      "GpuMicroseconds": 177.755,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 2950.05,
+          "GpuMicroseconds": 180.91299999999998
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 2894.35,
+          "GpuMicroseconds": 177.579
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 2935.75,
+          "GpuMicroseconds": 177.755
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "gemm-512x512x1024",
+      "Compiler": "dxc-O0",
+      "GpuMicroseconds": 177.723,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 2899.05,
+          "GpuMicroseconds": 177.81599999999997
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 2873.0,
+          "GpuMicroseconds": 174.42399999999998
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 2898.95,
+          "GpuMicroseconds": 177.723
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "gemm-512x512x1024",
+      "Compiler": "dxc-static-params",
+      "GpuMicroseconds": 159.736,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 2633.65,
+          "GpuMicroseconds": 161.212
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 2563.7,
+          "GpuMicroseconds": 157.051
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 2610.7,
+          "GpuMicroseconds": 159.736
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "gemm-17x67x131",
+      "Compiler": "dxc",
+      "GpuMicroseconds": 18.000999999999998,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 348.1,
+          "GpuMicroseconds": 18.000999999999998
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 348.65,
+          "GpuMicroseconds": 18.0
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 348.65,
+          "GpuMicroseconds": 18.000999999999998
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "gemm-17x67x131",
+      "Compiler": "dxc-spirv-opt",
+      "GpuMicroseconds": 18.000999999999998,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 346.45,
+          "GpuMicroseconds": 17.999000000000002
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 350.95,
+          "GpuMicroseconds": 18.35
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 346.85,
+          "GpuMicroseconds": 18.000999999999998
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "gemm-17x67x131",
+      "Compiler": "glslang",
+      "GpuMicroseconds": 17.939,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 346.15,
+          "GpuMicroseconds": 17.938
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 346.70000000000005,
+          "GpuMicroseconds": 17.953
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 345.15,
+          "GpuMicroseconds": 17.939
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "gemm-17x67x131",
+      "Compiler": "dxc-O0",
+      "GpuMicroseconds": 17.943,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 346.8,
+          "GpuMicroseconds": 17.928
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 348.95000000000005,
+          "GpuMicroseconds": 18.288
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 347.1,
+          "GpuMicroseconds": 17.943
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "gemm-17x67x131",
+      "Compiler": "dxc-static-params",
+      "GpuMicroseconds": 16.582,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 323.95000000000005,
+          "GpuMicroseconds": 16.582
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 327.75,
+          "GpuMicroseconds": 16.759
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 322.15,
+          "GpuMicroseconds": 16.573
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "bias_silu-4x128x0",
+      "Compiler": "dxc",
+      "GpuMicroseconds": 1.661,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 72.55,
+          "GpuMicroseconds": 1.642
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 72.8,
+          "GpuMicroseconds": 1.661
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 72.9,
+          "GpuMicroseconds": 1.666
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "bias_silu-4x128x0",
+      "Compiler": "dxc-spirv-opt",
+      "GpuMicroseconds": 1.6720000000000002,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 72.5,
+          "GpuMicroseconds": 1.6469999999999998
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 72.85,
+          "GpuMicroseconds": 1.6720000000000002
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 72.9,
+          "GpuMicroseconds": 1.674
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "bias_silu-4x128x0",
+      "Compiler": "glslang",
+      "GpuMicroseconds": 1.6700000000000002,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 72.5,
+          "GpuMicroseconds": 1.664
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 72.75,
+          "GpuMicroseconds": 1.6700000000000002
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 73.0,
+          "GpuMicroseconds": 1.6700000000000002
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "bias_silu-4x128x0",
+      "Compiler": "dxc-O0",
+      "GpuMicroseconds": 1.668,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 72.4,
+          "GpuMicroseconds": 1.66
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 72.75,
+          "GpuMicroseconds": 1.668
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 72.8,
+          "GpuMicroseconds": 1.6710000000000003
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "bias_silu-4x128x0",
+      "Compiler": "dxc-static-params",
+      "GpuMicroseconds": 1.496,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 69.8,
+          "GpuMicroseconds": 1.492
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 70.1,
+          "GpuMicroseconds": 1.496
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 70.1,
+          "GpuMicroseconds": 1.496
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "bias_silu-4x128x0",
+      "Compiler": "dxc-hoisted-exp",
+      "GpuMicroseconds": 1.638,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 72.1,
+          "GpuMicroseconds": 1.632
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 72.35,
+          "GpuMicroseconds": 1.638
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 72.3,
+          "GpuMicroseconds": 1.638
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "bias_silu-1024x4096x0",
+      "Compiler": "dxc",
+      "GpuMicroseconds": 116.055,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1915.25,
+          "GpuMicroseconds": 116.051
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1916.85,
+          "GpuMicroseconds": 116.055
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1916.55,
+          "GpuMicroseconds": 116.107
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "bias_silu-1024x4096x0",
+      "Compiler": "dxc-spirv-opt",
+      "GpuMicroseconds": 116.385,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1922.0,
+          "GpuMicroseconds": 116.385
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1920.65,
+          "GpuMicroseconds": 116.43
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1920.5,
+          "GpuMicroseconds": 116.38499999999999
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "bias_silu-1024x4096x0",
+      "Compiler": "glslang",
+      "GpuMicroseconds": 115.483,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1906.9,
+          "GpuMicroseconds": 115.55600000000001
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1906.85,
+          "GpuMicroseconds": 115.483
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1906.0,
+          "GpuMicroseconds": 115.472
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "bias_silu-1024x4096x0",
+      "Compiler": "dxc-O0",
+      "GpuMicroseconds": 116.472,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1921.9,
+          "GpuMicroseconds": 116.39699999999999
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1922.15,
+          "GpuMicroseconds": 116.505
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1922.4499999999998,
+          "GpuMicroseconds": 116.472
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "bias_silu-1024x4096x0",
+      "Compiler": "dxc-static-params",
+      "GpuMicroseconds": 115.097,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1899.9,
+          "GpuMicroseconds": 115.12700000000001
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1899.9,
+          "GpuMicroseconds": 115.07
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1899.7,
+          "GpuMicroseconds": 115.097
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "bias_silu-1024x4096x0",
+      "Compiler": "dxc-hoisted-exp",
+      "GpuMicroseconds": 116.59700000000001,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1923.6,
+          "GpuMicroseconds": 116.581
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1923.15,
+          "GpuMicroseconds": 116.59700000000001
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1923.8,
+          "GpuMicroseconds": 116.634
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "softmax-1024x4096x0",
+      "Compiler": "dxc",
+      "GpuMicroseconds": 103.714,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1721.75,
+          "GpuMicroseconds": 103.734
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1719.5,
+          "GpuMicroseconds": 103.714
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1716.0,
+          "GpuMicroseconds": 103.684
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "softmax-1024x4096x0",
+      "Compiler": "dxc-spirv-opt",
+      "GpuMicroseconds": 103.61099999999999,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1718.3000000000002,
+          "GpuMicroseconds": 103.708
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1715.35,
+          "GpuMicroseconds": 103.61099999999999
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1716.8,
+          "GpuMicroseconds": 103.599
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "softmax-1024x4096x0",
+      "Compiler": "glslang",
+      "GpuMicroseconds": 104.213,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1729.65,
+          "GpuMicroseconds": 104.225
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1727.6,
+          "GpuMicroseconds": 104.167
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1724.25,
+          "GpuMicroseconds": 104.213
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "softmax-1024x4096x0",
+      "Compiler": "dxc-O0",
+      "GpuMicroseconds": 105.164,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1739.45,
+          "GpuMicroseconds": 105.13
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1740.5,
+          "GpuMicroseconds": 105.164
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1740.1,
+          "GpuMicroseconds": 105.17699999999999
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "softmax-1024x4096x0",
+      "Compiler": "dxc-static-params",
+      "GpuMicroseconds": 104.201,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1728.6,
+          "GpuMicroseconds": 104.172
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1729.85,
+          "GpuMicroseconds": 104.201
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1728.55,
+          "GpuMicroseconds": 104.218
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "rmsnorm-128x1024x0",
+      "Compiler": "dxc",
+      "GpuMicroseconds": 9.666999999999998,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 208.85000000000002,
+          "GpuMicroseconds": 9.545000000000002
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 211.6,
+          "GpuMicroseconds": 9.676
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 211.45,
+          "GpuMicroseconds": 9.666999999999998
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "rmsnorm-128x1024x0",
+      "Compiler": "dxc-spirv-opt",
+      "GpuMicroseconds": 9.747,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 210.0,
+          "GpuMicroseconds": 9.620000000000001
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 213.1,
+          "GpuMicroseconds": 9.75
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 212.75,
+          "GpuMicroseconds": 9.747
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "rmsnorm-128x1024x0",
+      "Compiler": "glslang",
+      "GpuMicroseconds": 9.691999999999998,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 209.45,
+          "GpuMicroseconds": 9.58
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 212.14999999999998,
+          "GpuMicroseconds": 9.697
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 211.8,
+          "GpuMicroseconds": 9.691999999999998
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "rmsnorm-128x1024x0",
+      "Compiler": "dxc-O0",
+      "GpuMicroseconds": 9.733,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 209.8,
+          "GpuMicroseconds": 9.616
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 212.6,
+          "GpuMicroseconds": 9.733
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 212.5,
+          "GpuMicroseconds": 9.736
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "rmsnorm-128x1024x0",
+      "Compiler": "dxc-static-params",
+      "GpuMicroseconds": 9.04,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 198.85000000000002,
+          "GpuMicroseconds": 8.921
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 201.8,
+          "GpuMicroseconds": 9.04
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 201.8,
+          "GpuMicroseconds": 9.044
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "gemm-512x512x1024",
+      "Compiler": "dxc",
+      "GpuMicroseconds": 178.10000000000002,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 2953.75,
+          "GpuMicroseconds": 181.30700000000002
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 2906.5,
+          "GpuMicroseconds": 178.10000000000002
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 2853.5,
+          "GpuMicroseconds": 174.829
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "gemm-512x512x1024",
+      "Compiler": "dxc-spirv-opt",
+      "GpuMicroseconds": 178.125,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 2899.0,
+          "GpuMicroseconds": 177.94299999999998
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 2954.7,
+          "GpuMicroseconds": 181.339
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 2903.4,
+          "GpuMicroseconds": 178.125
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "gemm-512x512x1024",
+      "Compiler": "glslang",
+      "GpuMicroseconds": 179.338,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 2922.0,
+          "GpuMicroseconds": 179.338
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 2934.2,
+          "GpuMicroseconds": 179.606
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 2900.05,
+          "GpuMicroseconds": 178.007
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "gemm-512x512x1024",
+      "Compiler": "dxc-O0",
+      "GpuMicroseconds": 177.767,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 2899.2,
+          "GpuMicroseconds": 177.767
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 3015.55,
+          "GpuMicroseconds": 185.115
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 2876.0,
+          "GpuMicroseconds": 176.523
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "gemm-512x512x1024",
+      "Compiler": "dxc-static-params",
+      "GpuMicroseconds": 161.262,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 2611.75,
+          "GpuMicroseconds": 159.95499999999998
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 2637.6000000000004,
+          "GpuMicroseconds": 161.551
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 2631.35,
+          "GpuMicroseconds": 161.262
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "gemm-17x67x131",
+      "Compiler": "dxc",
+      "GpuMicroseconds": 18.011,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 350.7,
+          "GpuMicroseconds": 18.011
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 350.6,
+          "GpuMicroseconds": 18.343
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 350.5,
+          "GpuMicroseconds": 18.002
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "gemm-17x67x131",
+      "Compiler": "dxc-spirv-opt",
+      "GpuMicroseconds": 18.169,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 350.8,
+          "GpuMicroseconds": 18.011000000000003
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 350.54999999999995,
+          "GpuMicroseconds": 18.337
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 350.7,
+          "GpuMicroseconds": 18.169
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "gemm-17x67x131",
+      "Compiler": "glslang",
+      "GpuMicroseconds": 17.95,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 349.25,
+          "GpuMicroseconds": 18.117
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 348.65,
+          "GpuMicroseconds": 17.95
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 348.8,
+          "GpuMicroseconds": 17.939
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "gemm-17x67x131",
+      "Compiler": "dxc-O0",
+      "GpuMicroseconds": 17.941000000000003,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 349.4,
+          "GpuMicroseconds": 17.943
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 346.4,
+          "GpuMicroseconds": 17.933
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 349.4,
+          "GpuMicroseconds": 17.941000000000003
+        }
+      ]
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "gemm-17x67x131",
+      "Compiler": "dxc-static-params",
+      "GpuMicroseconds": 16.596,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 328.05,
+          "GpuMicroseconds": 16.591
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 327.45,
+          "GpuMicroseconds": 16.596
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 328.20000000000005,
+          "GpuMicroseconds": 16.596
+        }
+      ]
+    }
+  ],
+  "RuntimeRows": [
+    {
+      "Mode": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Compiler": "dxc",
+      "Plan": "timestamped",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 63.45,
+      "GpuMicroseconds": 5.6,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 63.45,
+          "GpuMicroseconds": 5.5200000000000005
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 63.45,
+          "GpuMicroseconds": 5.616
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 63.5,
+          "GpuMicroseconds": 5.6
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.1,
+        "Preparation": 0.2,
+        "QueueSubmit": 6.8,
+        "CompletionWait": 57.0,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Compiler": "dxc",
+      "Plan": "untimestamped",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 59.349999999999994,
+      "GpuMicroseconds": null,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 59.45,
+          "GpuMicroseconds": null
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 59.349999999999994,
+          "GpuMicroseconds": null
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 58.95,
+          "GpuMicroseconds": null
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.1,
+        "Preparation": 0.2,
+        "QueueSubmit": 6.9,
+        "CompletionWait": 53.3,
+        "QueryRead": 0.1
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Compiler": "dxc",
+      "Plan": "batch16",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 107.4,
+      "GpuMicroseconds": 3.157,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 107.4,
+          "GpuMicroseconds": 3.157
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 107.3,
+          "GpuMicroseconds": 3.156
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 107.55,
+          "GpuMicroseconds": 3.157
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.1,
+        "Preparation": 0.2,
+        "QueueSubmit": 7.1,
+        "CompletionWait": 101.4,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Compiler": "dxc",
+      "Plan": "host-parameters",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 63.650000000000006,
+      "GpuMicroseconds": 5.936,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 63.650000000000006,
+          "GpuMicroseconds": 5.936
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 64.3,
+          "GpuMicroseconds": 5.936
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 63.599999999999994,
+          "GpuMicroseconds": 5.92
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.1,
+        "Preparation": 0.2,
+        "QueueSubmit": 6.8,
+        "CompletionWait": 58.3,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Compiler": "dxc",
+      "Plan": "host-batch16",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 115.6,
+      "GpuMicroseconds": 3.674,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 115.55,
+          "GpuMicroseconds": 3.674
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 115.7,
+          "GpuMicroseconds": 3.6740000000000004
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 115.6,
+          "GpuMicroseconds": 3.666
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.1,
+        "Preparation": 0.2,
+        "QueueSubmit": 7.1,
+        "CompletionWait": 109.6,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Compiler": "dxc",
+      "Plan": "timestamped",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 176.25,
+      "GpuMicroseconds": 117.80799999999999,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 176.25,
+          "GpuMicroseconds": 117.936
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 176.3,
+          "GpuMicroseconds": 117.80799999999999
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 175.39999999999998,
+          "GpuMicroseconds": 117.45599999999999
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 9.4,
+        "CompletionWait": 166.9,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Compiler": "dxc",
+      "Plan": "untimestamped",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 170.9,
+      "GpuMicroseconds": null,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 171.35000000000002,
+          "GpuMicroseconds": null
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 170.9,
+          "GpuMicroseconds": null
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 170.3,
+          "GpuMicroseconds": null
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 8.2,
+        "CompletionWait": 163.0,
+        "QueryRead": 0.1
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Compiler": "dxc",
+      "Plan": "batch16",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 1922.25,
+      "GpuMicroseconds": 116.435,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1922.3,
+          "GpuMicroseconds": 116.47200000000001
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1922.25,
+          "GpuMicroseconds": 116.435
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1919.6999999999998,
+          "GpuMicroseconds": 116.411
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 10.0,
+        "CompletionWait": 1913.0,
+        "QueryRead": 0.4
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Compiler": "dxc",
+      "Plan": "host-parameters",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 176.0,
+      "GpuMicroseconds": 118.22399999999999,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 177.25,
+          "GpuMicroseconds": 118.304
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 176.0,
+          "GpuMicroseconds": 118.22399999999999
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 175.4,
+          "GpuMicroseconds": 118.19200000000001
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 9.3,
+        "CompletionWait": 166.8,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Compiler": "dxc",
+      "Plan": "host-batch16",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 1926.65,
+      "GpuMicroseconds": 116.75800000000001,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1928.9,
+          "GpuMicroseconds": 116.83699999999999
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1926.65,
+          "GpuMicroseconds": 116.75800000000001
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1925.25,
+          "GpuMicroseconds": 116.72200000000001
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.1,
+        "Preparation": 0.1,
+        "QueueSubmit": 10.0,
+        "CompletionWait": 1917.4,
+        "QueryRead": 0.4
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "softmax-1024x4096x0",
+      "Compiler": "dxc",
+      "Plan": "timestamped",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 163.8,
+      "GpuMicroseconds": 103.21600000000001,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 166.14999999999998,
+          "GpuMicroseconds": 103.472
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 163.8,
+          "GpuMicroseconds": 103.21600000000001
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 162.10000000000002,
+          "GpuMicroseconds": 103.19999999999999
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 8.7,
+        "CompletionWait": 151.55,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "softmax-1024x4096x0",
+      "Compiler": "dxc",
+      "Plan": "untimestamped",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 155.75,
+      "GpuMicroseconds": null,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 158.14999999999998,
+          "GpuMicroseconds": null
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 155.3,
+          "GpuMicroseconds": null
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 155.75,
+          "GpuMicroseconds": null
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 8.3,
+        "CompletionWait": 147.85000000000002,
+        "QueryRead": 0.1
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "softmax-1024x4096x0",
+      "Compiler": "dxc",
+      "Plan": "batch16",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 1669.1,
+      "GpuMicroseconds": 100.678,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1669.1,
+          "GpuMicroseconds": 100.642
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1668.35,
+          "GpuMicroseconds": 100.678
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1669.5,
+          "GpuMicroseconds": 100.69200000000001
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 10.1,
+        "CompletionWait": 1660.3,
+        "QueryRead": 0.4
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "softmax-1024x4096x0",
+      "Compiler": "dxc",
+      "Plan": "host-parameters",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 161.95,
+      "GpuMicroseconds": 103.392,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 161.95,
+          "GpuMicroseconds": 103.6
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 164.85000000000002,
+          "GpuMicroseconds": 103.152
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 160.5,
+          "GpuMicroseconds": 103.392
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 8.8,
+        "CompletionWait": 151.9,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "softmax-1024x4096x0",
+      "Compiler": "dxc",
+      "Plan": "host-batch16",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 1668.6,
+      "GpuMicroseconds": 100.723,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1674.15,
+          "GpuMicroseconds": 100.78999999999999
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1668.6,
+          "GpuMicroseconds": 100.723
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1667.4,
+          "GpuMicroseconds": 100.636
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 10.2,
+        "CompletionWait": 1662.05,
+        "QueryRead": 0.4
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "rmsnorm-128x1024x0",
+      "Compiler": "dxc",
+      "Plan": "timestamped",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 71.2,
+      "GpuMicroseconds": 15.712,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 71.2,
+          "GpuMicroseconds": 15.664
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 72.85,
+          "GpuMicroseconds": 16.0
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 70.9,
+          "GpuMicroseconds": 15.712
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 6.7,
+        "CompletionWait": 62.05,
+        "QueryRead": 0.2
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "rmsnorm-128x1024x0",
+      "Compiler": "dxc",
+      "Plan": "untimestamped",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 65.1,
+      "GpuMicroseconds": null,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 65.0,
+          "GpuMicroseconds": null
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 65.9,
+          "GpuMicroseconds": null
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 65.1,
+          "GpuMicroseconds": null
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 6.7,
+        "CompletionWait": 59.2,
+        "QueryRead": 0.0
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "rmsnorm-128x1024x0",
+      "Compiler": "dxc",
+      "Plan": "batch16",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 207.25,
+      "GpuMicroseconds": 9.49,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 207.25,
+          "GpuMicroseconds": 9.49
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 211.14999999999998,
+          "GpuMicroseconds": 9.658
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 206.9,
+          "GpuMicroseconds": 9.482000000000001
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 6.9,
+        "CompletionWait": 200.05,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "rmsnorm-128x1024x0",
+      "Compiler": "dxc",
+      "Plan": "host-parameters",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 67.5,
+      "GpuMicroseconds": 12.56,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 67.5,
+          "GpuMicroseconds": 12.272
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 69.3,
+          "GpuMicroseconds": 12.736
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 67.3,
+          "GpuMicroseconds": 12.56
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.0,
+        "QueueSubmit": 6.6,
+        "CompletionWait": 62.85,
+        "QueryRead": 0.2
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "rmsnorm-128x1024x0",
+      "Compiler": "dxc",
+      "Plan": "host-batch16",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 216.45,
+      "GpuMicroseconds": 10.064,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 216.45,
+          "GpuMicroseconds": 10.064
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 223.05,
+          "GpuMicroseconds": 10.289000000000001
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 216.25,
+          "GpuMicroseconds": 10.062999999999999
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.0,
+        "QueueSubmit": 7.0,
+        "CompletionWait": 212.60000000000002,
+        "QueryRead": 0.2
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "gemm-512x512x1024",
+      "Compiler": "dxc",
+      "Plan": "timestamped",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 234.2,
+      "GpuMicroseconds": 177.232,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 228.45,
+          "GpuMicroseconds": 175.968
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 237.55,
+          "GpuMicroseconds": 177.76
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 234.2,
+          "GpuMicroseconds": 177.232
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 9.8,
+        "CompletionWait": 219.55,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "gemm-512x512x1024",
+      "Compiler": "dxc",
+      "Plan": "untimestamped",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 229.25,
+      "GpuMicroseconds": null,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 222.95,
+          "GpuMicroseconds": null
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 230.75,
+          "GpuMicroseconds": null
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 229.25,
+          "GpuMicroseconds": null
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 8.3,
+        "CompletionWait": 216.35,
+        "QueryRead": 0.1
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "gemm-512x512x1024",
+      "Compiler": "dxc",
+      "Plan": "batch16",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 2869.5,
+      "GpuMicroseconds": 175.952,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 2849.45,
+          "GpuMicroseconds": 174.496
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 2869.5,
+          "GpuMicroseconds": 175.952
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 2876.6000000000004,
+          "GpuMicroseconds": 175.964
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 11.05,
+        "CompletionWait": 2897.35,
+        "QueryRead": 0.6
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "gemm-512x512x1024",
+      "Compiler": "dxc",
+      "Plan": "host-parameters",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 233.8,
+      "GpuMicroseconds": 177.96800000000002,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 233.8,
+          "GpuMicroseconds": 175.984
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 234.85,
+          "GpuMicroseconds": 177.96800000000002
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 230.95,
+          "GpuMicroseconds": 178.0
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 9.8,
+        "CompletionWait": 219.95,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "gemm-512x512x1024",
+      "Compiler": "dxc",
+      "Plan": "host-batch16",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 2876.3,
+      "GpuMicroseconds": 176.252,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 2871.8,
+          "GpuMicroseconds": 174.76999999999998
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 2876.3,
+          "GpuMicroseconds": 176.252
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 2895.1,
+          "GpuMicroseconds": 177.619
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 11.3,
+        "CompletionWait": 2915.1,
+        "QueryRead": 0.6499999999999999
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "gemm-17x67x131",
+      "Compiler": "dxc",
+      "Plan": "timestamped",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 78.15,
+      "GpuMicroseconds": 20.512,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 77.75,
+          "GpuMicroseconds": 20.512
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 78.7,
+          "GpuMicroseconds": 20.608
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 78.15,
+          "GpuMicroseconds": 20.432000000000002
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.0,
+        "QueueSubmit": 6.7,
+        "CompletionWait": 71.1,
+        "QueryRead": 0.2
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "gemm-17x67x131",
+      "Compiler": "dxc",
+      "Plan": "untimestamped",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 73.5,
+      "GpuMicroseconds": null,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 73.5,
+          "GpuMicroseconds": null
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 73.6,
+          "GpuMicroseconds": null
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 73.3,
+          "GpuMicroseconds": null
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 6.75,
+        "CompletionWait": 67.9,
+        "QueryRead": 0.0
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "gemm-17x67x131",
+      "Compiler": "dxc",
+      "Plan": "batch16",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 348.65,
+      "GpuMicroseconds": 18.000999999999998,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 348.1,
+          "GpuMicroseconds": 18.000999999999998
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 348.65,
+          "GpuMicroseconds": 18.0
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 348.65,
+          "GpuMicroseconds": 18.000999999999998
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 7.3,
+        "CompletionWait": 338.6,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "gemm-17x67x131",
+      "Compiler": "dxc",
+      "Plan": "host-parameters",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 79.25,
+      "GpuMicroseconds": 21.696,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 78.8,
+          "GpuMicroseconds": 21.68
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 79.3,
+          "GpuMicroseconds": 21.696
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 79.25,
+          "GpuMicroseconds": 21.808
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.0,
+        "QueueSubmit": 6.7,
+        "CompletionWait": 72.75,
+        "QueryRead": 0.2
+      }
+    },
+    {
+      "Mode": "vulkan",
+      "Case": "gemm-17x67x131",
+      "Compiler": "dxc",
+      "Plan": "host-batch16",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 367.4,
+      "GpuMicroseconds": 19.36,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 367.4,
+          "GpuMicroseconds": 19.348
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 367.4,
+          "GpuMicroseconds": 19.36
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 369.15,
+          "GpuMicroseconds": 19.401
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.0,
+        "QueueSubmit": 7.3,
+        "CompletionWait": 360.95,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "bias_silu-4x128x0",
+      "Compiler": "dxc",
+      "Plan": "timestamped",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 135.2,
+      "GpuMicroseconds": 3.4880000000000004,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 134.1,
+          "GpuMicroseconds": 3.456
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 135.2,
+          "GpuMicroseconds": 3.4880000000000004
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 135.3,
+          "GpuMicroseconds": 3.4880000000000004
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.1,
+        "Preparation": 0.2,
+        "QueueSubmit": 8.1,
+        "CompletionWait": 42.2,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "bias_silu-4x128x0",
+      "Compiler": "dxc",
+      "Plan": "untimestamped",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 47.9,
+      "GpuMicroseconds": null,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 47.8,
+          "GpuMicroseconds": null
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 47.9,
+          "GpuMicroseconds": null
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 47.9,
+          "GpuMicroseconds": null
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.1,
+        "Preparation": 0.1,
+        "QueueSubmit": 6.8,
+        "CompletionWait": 41.3,
+        "QueryRead": 0.1
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "bias_silu-4x128x0",
+      "Compiler": "dxc",
+      "Plan": "batch16",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 72.8,
+      "GpuMicroseconds": 1.661,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 72.55,
+          "GpuMicroseconds": 1.642
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 72.8,
+          "GpuMicroseconds": 1.661
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 72.9,
+          "GpuMicroseconds": 1.666
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.1,
+        "Preparation": 0.1,
+        "QueueSubmit": 7.1,
+        "CompletionWait": 66.2,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "bias_silu-4x128x0",
+      "Compiler": "dxc",
+      "Plan": "host-parameters",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 49.4,
+      "GpuMicroseconds": 3.616,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 49.1,
+          "GpuMicroseconds": 3.44
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 49.5,
+          "GpuMicroseconds": 3.616
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 49.4,
+          "GpuMicroseconds": 3.696
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.1,
+        "Preparation": 0.1,
+        "QueueSubmit": 6.8,
+        "CompletionWait": 43.3,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "bias_silu-4x128x0",
+      "Compiler": "dxc",
+      "Plan": "host-batch16",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 80.3,
+      "GpuMicroseconds": 2.14,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 79.95,
+          "GpuMicroseconds": 2.13
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 81.1,
+          "GpuMicroseconds": 2.1590000000000003
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 80.3,
+          "GpuMicroseconds": 2.14
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.1,
+        "Preparation": 0.1,
+        "QueueSubmit": 7.0,
+        "CompletionWait": 73.8,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "bias_silu-1024x4096x0",
+      "Compiler": "dxc",
+      "Plan": "timestamped",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 286.75,
+      "GpuMicroseconds": 116.608,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 288.7,
+          "GpuMicroseconds": 116.608
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 286.75,
+          "GpuMicroseconds": 116.608
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 284.6,
+          "GpuMicroseconds": 116.544
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 10.3,
+        "CompletionWait": 165.8,
+        "QueryRead": 0.4
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "bias_silu-1024x4096x0",
+      "Compiler": "dxc",
+      "Plan": "untimestamped",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 170.14999999999998,
+      "GpuMicroseconds": null,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 171.2,
+          "GpuMicroseconds": null
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 170.1,
+          "GpuMicroseconds": null
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 170.14999999999998,
+          "GpuMicroseconds": null
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 8.2,
+        "CompletionWait": 163.1,
+        "QueryRead": 0.1
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "bias_silu-1024x4096x0",
+      "Compiler": "dxc",
+      "Plan": "batch16",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 1916.55,
+      "GpuMicroseconds": 116.055,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1915.25,
+          "GpuMicroseconds": 116.051
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1916.85,
+          "GpuMicroseconds": 116.055
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1916.55,
+          "GpuMicroseconds": 116.107
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 10.05,
+        "CompletionWait": 1907.35,
+        "QueryRead": 0.5
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "bias_silu-1024x4096x0",
+      "Compiler": "dxc",
+      "Plan": "host-parameters",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 176.0,
+      "GpuMicroseconds": 117.80799999999999,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 176.45,
+          "GpuMicroseconds": 117.80799999999999
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 176.0,
+          "GpuMicroseconds": 117.904
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 175.95,
+          "GpuMicroseconds": 117.77600000000001
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 9.149999999999999,
+        "CompletionWait": 166.8,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "bias_silu-1024x4096x0",
+      "Compiler": "dxc",
+      "Plan": "host-batch16",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 1920.35,
+      "GpuMicroseconds": 116.402,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1920.35,
+          "GpuMicroseconds": 116.402
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1919.9,
+          "GpuMicroseconds": 116.412
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1921.4,
+          "GpuMicroseconds": 116.39599999999999
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 10.1,
+        "CompletionWait": 1912.6,
+        "QueryRead": 0.4
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "softmax-1024x4096x0",
+      "Compiler": "dxc",
+      "Plan": "timestamped",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 273.85,
+      "GpuMicroseconds": 106.048,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 274.8,
+          "GpuMicroseconds": 106.544
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 273.85,
+          "GpuMicroseconds": 105.76
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 272.54999999999995,
+          "GpuMicroseconds": 106.048
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 10.6,
+        "CompletionWait": 155.1,
+        "QueryRead": 0.4
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "softmax-1024x4096x0",
+      "Compiler": "dxc",
+      "Plan": "untimestamped",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 161.2,
+      "GpuMicroseconds": null,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 161.85000000000002,
+          "GpuMicroseconds": null
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 161.2,
+          "GpuMicroseconds": null
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 158.05,
+          "GpuMicroseconds": null
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 8.3,
+        "CompletionWait": 151.25,
+        "QueryRead": 0.1
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "softmax-1024x4096x0",
+      "Compiler": "dxc",
+      "Plan": "batch16",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 1719.5,
+      "GpuMicroseconds": 103.714,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1721.75,
+          "GpuMicroseconds": 103.734
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1719.5,
+          "GpuMicroseconds": 103.714
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1716.0,
+          "GpuMicroseconds": 103.684
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 10.3,
+        "CompletionWait": 1711.0,
+        "QueryRead": 0.5
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "softmax-1024x4096x0",
+      "Compiler": "dxc",
+      "Plan": "host-parameters",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 167.14999999999998,
+      "GpuMicroseconds": 106.112,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 169.2,
+          "GpuMicroseconds": 106.19200000000001
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 167.14999999999998,
+          "GpuMicroseconds": 106.112
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 165.15,
+          "GpuMicroseconds": 106.112
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 9.25,
+        "CompletionWait": 155.25,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "softmax-1024x4096x0",
+      "Compiler": "dxc",
+      "Plan": "host-batch16",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 1724.5,
+      "GpuMicroseconds": 103.709,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 1727.6999999999998,
+          "GpuMicroseconds": 103.80000000000001
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 1718.2,
+          "GpuMicroseconds": 103.63499999999999
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 1724.5,
+          "GpuMicroseconds": 103.709
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 10.3,
+        "CompletionWait": 1708.05,
+        "QueryRead": 0.5
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "rmsnorm-128x1024x0",
+      "Compiler": "dxc",
+      "Plan": "timestamped",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 210.1,
+      "GpuMicroseconds": 15.984,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 206.2,
+          "GpuMicroseconds": 15.712
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 210.8,
+          "GpuMicroseconds": 15.984
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 210.1,
+          "GpuMicroseconds": 16.0
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 8.1,
+        "CompletionWait": 62.6,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "rmsnorm-128x1024x0",
+      "Compiler": "dxc",
+      "Plan": "untimestamped",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 66.0,
+      "GpuMicroseconds": null,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 65.5,
+          "GpuMicroseconds": null
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 66.1,
+          "GpuMicroseconds": null
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 66.0,
+          "GpuMicroseconds": null
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.0,
+        "QueueSubmit": 6.7,
+        "CompletionWait": 59.9,
+        "QueryRead": 0.0
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "rmsnorm-128x1024x0",
+      "Compiler": "dxc",
+      "Plan": "batch16",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 211.45,
+      "GpuMicroseconds": 9.666999999999998,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 208.85000000000002,
+          "GpuMicroseconds": 9.545000000000002
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 211.6,
+          "GpuMicroseconds": 9.676
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 211.45,
+          "GpuMicroseconds": 9.666999999999998
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 7.0,
+        "CompletionWait": 202.6,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "rmsnorm-128x1024x0",
+      "Compiler": "dxc",
+      "Plan": "host-parameters",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 69.7,
+      "GpuMicroseconds": 12.784,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 68.45,
+          "GpuMicroseconds": 12.383999999999999
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 69.7,
+          "GpuMicroseconds": 12.832
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 69.8,
+          "GpuMicroseconds": 12.784
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 6.7,
+        "CompletionWait": 63.7,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "rmsnorm-128x1024x0",
+      "Compiler": "dxc",
+      "Plan": "host-batch16",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 223.35000000000002,
+      "GpuMicroseconds": 10.3,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 218.55,
+          "GpuMicroseconds": 10.17
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 223.35000000000002,
+          "GpuMicroseconds": 10.3
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 223.6,
+          "GpuMicroseconds": 10.306999999999999
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.0,
+        "QueueSubmit": 7.0,
+        "CompletionWait": 217.2,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "gemm-512x512x1024",
+      "Compiler": "dxc",
+      "Plan": "timestamped",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 317.8,
+      "GpuMicroseconds": 176.544,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 322.5,
+          "GpuMicroseconds": 176.544
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 317.8,
+          "GpuMicroseconds": 179.584
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 312.65,
+          "GpuMicroseconds": 176.352
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.1,
+        "Preparation": 0.1,
+        "QueueSubmit": 10.5,
+        "CompletionWait": 219.95,
+        "QueryRead": 0.4
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "gemm-512x512x1024",
+      "Compiler": "dxc",
+      "Plan": "untimestamped",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 225.75,
+      "GpuMicroseconds": null,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 225.75,
+          "GpuMicroseconds": null
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 232.6,
+          "GpuMicroseconds": null
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 224.39999999999998,
+          "GpuMicroseconds": null
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 8.3,
+        "CompletionWait": 218.89999999999998,
+        "QueryRead": 0.1
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "gemm-512x512x1024",
+      "Compiler": "dxc",
+      "Plan": "batch16",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 2906.5,
+      "GpuMicroseconds": 178.10000000000002,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 2953.75,
+          "GpuMicroseconds": 181.30700000000002
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 2906.5,
+          "GpuMicroseconds": 178.10000000000002
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 2853.5,
+          "GpuMicroseconds": 174.829
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 11.45,
+        "CompletionWait": 2898.9,
+        "QueryRead": 0.6
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "gemm-512x512x1024",
+      "Compiler": "dxc",
+      "Plan": "host-parameters",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 231.85,
+      "GpuMicroseconds": 177.856,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 231.85,
+          "GpuMicroseconds": 176.38400000000001
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 239.5,
+          "GpuMicroseconds": 180.256
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 231.8,
+          "GpuMicroseconds": 177.856
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 9.8,
+        "CompletionWait": 224.5,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "gemm-512x512x1024",
+      "Compiler": "dxc",
+      "Plan": "host-batch16",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 2908.6,
+      "GpuMicroseconds": 178.422,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 2910.9,
+          "GpuMicroseconds": 178.56699999999998
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 2908.6,
+          "GpuMicroseconds": 178.422
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 2854.6000000000004,
+          "GpuMicroseconds": 175.218
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 11.3,
+        "CompletionWait": 2901.95,
+        "QueryRead": 0.6
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "gemm-17x67x131",
+      "Compiler": "dxc",
+      "Plan": "timestamped",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 215.10000000000002,
+      "GpuMicroseconds": 20.560000000000002,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 214.55,
+          "GpuMicroseconds": 20.560000000000002
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 216.14999999999998,
+          "GpuMicroseconds": 21.232
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 215.10000000000002,
+          "GpuMicroseconds": 20.448
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 7.5,
+        "CompletionWait": 71.1,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "gemm-17x67x131",
+      "Compiler": "dxc",
+      "Plan": "untimestamped",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 73.65,
+      "GpuMicroseconds": null,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 73.65,
+          "GpuMicroseconds": null
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 73.7,
+          "GpuMicroseconds": null
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 73.6,
+          "GpuMicroseconds": null
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 6.8,
+        "CompletionWait": 68.2,
+        "QueryRead": 0.0
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "gemm-17x67x131",
+      "Compiler": "dxc",
+      "Plan": "batch16",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 350.6,
+      "GpuMicroseconds": 18.011,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 350.7,
+          "GpuMicroseconds": 18.011
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 350.6,
+          "GpuMicroseconds": 18.343
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 350.5,
+          "GpuMicroseconds": 18.002
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 7.3,
+        "CompletionWait": 339.0,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "gemm-17x67x131",
+      "Compiler": "dxc",
+      "Plan": "host-parameters",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 79.3,
+      "GpuMicroseconds": 21.68,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 79.3,
+          "GpuMicroseconds": 21.712000000000003
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 79.3,
+          "GpuMicroseconds": 21.68
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 79.25,
+          "GpuMicroseconds": 21.536
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.0,
+        "QueueSubmit": 6.8,
+        "CompletionWait": 73.1,
+        "QueryRead": 0.3
+      }
+    },
+    {
+      "Mode": "vulkan-cuda-context",
+      "Case": "gemm-17x67x131",
+      "Compiler": "dxc",
+      "Plan": "host-batch16",
+      "SpinNanoseconds": 0,
+      "WallMicroseconds": 367.75,
+      "GpuMicroseconds": 19.369,
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 367.5,
+          "GpuMicroseconds": 19.369
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 367.75,
+          "GpuMicroseconds": 19.371
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 368.0,
+          "GpuMicroseconds": 19.355
+        }
+      ],
+      "CpuPhaseMedians": {
+        "Validation": 0.0,
+        "Preparation": 0.1,
+        "QueueSubmit": 7.3,
+        "CompletionWait": 361.2,
+        "QueryRead": 0.3
+      }
+    }
+  ],
+  "Cuda": [
+    {
+      "Case": "bias_silu-4x128x0",
+      "Variant": "stable-expf",
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 10.45,
+          "GpuMicroseconds": 1.7819999484345317
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 10.4,
+          "GpuMicroseconds": 1.7920000245794654
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 10.6,
+          "GpuMicroseconds": 1.7900000093504786
+        }
+      ],
+      "WallMicroseconds": 10.45,
+      "GpuMicroseconds": 1.7900000093504786
+    },
+    {
+      "Case": "bias_silu-4x128x0",
+      "Variant": "stable-fast-exp",
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 10.5,
+          "GpuMicroseconds": 1.728000002913177
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 10.5,
+          "GpuMicroseconds": 1.7729999963194132
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 10.7,
+          "GpuMicroseconds": 1.7709999810904264
+        }
+      ],
+      "WallMicroseconds": 10.5,
+      "GpuMicroseconds": 1.7709999810904264
+    },
+    {
+      "Case": "bias_silu-4x128x0",
+      "Variant": "hoisted-fast-exp",
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 10.1,
+          "GpuMicroseconds": 1.598999951966107
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 10.1,
+          "GpuMicroseconds": 1.5920000150799751
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 10.350000000000001,
+          "GpuMicroseconds": 1.5979999443516135
+        }
+      ],
+      "WallMicroseconds": 10.1,
+      "GpuMicroseconds": 1.5979999443516135
+    },
+    {
+      "Case": "bias_silu-128x1024x0",
+      "Variant": "stable-expf",
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 12.0,
+          "GpuMicroseconds": 3.3919999841600657
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 12.1,
+          "GpuMicroseconds": 3.3919999841600657
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 12.2,
+          "GpuMicroseconds": 3.3919999841600657
+        }
+      ],
+      "WallMicroseconds": 12.1,
+      "GpuMicroseconds": 3.3919999841600657
+    },
+    {
+      "Case": "bias_silu-128x1024x0",
+      "Variant": "stable-fast-exp",
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 12.1,
+          "GpuMicroseconds": 3.3919999841600657
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 12.2,
+          "GpuMicroseconds": 3.3919999841600657
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 12.3,
+          "GpuMicroseconds": 3.3919999841600657
+        }
+      ],
+      "WallMicroseconds": 12.2,
+      "GpuMicroseconds": 3.3919999841600657
+    },
+    {
+      "Case": "bias_silu-128x1024x0",
+      "Variant": "hoisted-fast-exp",
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 11.4,
+          "GpuMicroseconds": 2.993999980390072
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 11.6,
+          "GpuMicroseconds": 2.9980000108480453
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 11.6,
+          "GpuMicroseconds": 2.9980000108480453
+        }
+      ],
+      "WallMicroseconds": 11.6,
+      "GpuMicroseconds": 2.9980000108480453
+    },
+    {
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "stable-expf",
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 96.9,
+          "GpuMicroseconds": 81.15199953317642
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 90.4,
+          "GpuMicroseconds": 81.216000020504
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 90.7,
+          "GpuMicroseconds": 81.216000020504
+        }
+      ],
+      "WallMicroseconds": 90.7,
+      "GpuMicroseconds": 81.216000020504
+    },
+    {
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "stable-fast-exp",
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 91.1,
+          "GpuMicroseconds": 81.216000020504
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 90.7,
+          "GpuMicroseconds": 81.28000050783157
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 90.8,
+          "GpuMicroseconds": 81.28000050783157
+        }
+      ],
+      "WallMicroseconds": 90.8,
+      "GpuMicroseconds": 81.28000050783157
+    },
+    {
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "hoisted-fast-exp",
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 92.55,
+          "GpuMicroseconds": 83.13599973917007
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 91.9,
+          "GpuMicroseconds": 83.20000022649765
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 92.0,
+          "GpuMicroseconds": 83.20000022649765
+        }
+      ],
+      "WallMicroseconds": 92.0,
+      "GpuMicroseconds": 83.20000022649765
+    },
+    {
+      "Case": "bias_silu-7x193x0",
+      "Variant": "stable-expf",
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 11.3,
+          "GpuMicroseconds": 2.495999913662672
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 9.8,
+          "GpuMicroseconds": 2.3479999508708715
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 9.7,
+          "GpuMicroseconds": 2.3040000814944506
+        }
+      ],
+      "WallMicroseconds": 9.8,
+      "GpuMicroseconds": 2.3479999508708715
+    },
+    {
+      "Case": "bias_silu-7x193x0",
+      "Variant": "stable-fast-exp",
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 11.3,
+          "GpuMicroseconds": 2.489000093191862
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 9.8,
+          "GpuMicroseconds": 2.3040000814944506
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 9.7,
+          "GpuMicroseconds": 2.3040000814944506
+        }
+      ],
+      "WallMicroseconds": 9.8,
+      "GpuMicroseconds": 2.3040000814944506
+    },
+    {
+      "Case": "bias_silu-7x193x0",
+      "Variant": "hoisted-fast-exp",
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 10.8,
+          "GpuMicroseconds": 2.1120000164955854
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 9.3,
+          "GpuMicroseconds": 1.9730000058189034
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 9.3,
+          "GpuMicroseconds": 1.9839999731630087
+        }
+      ],
+      "WallMicroseconds": 9.3,
+      "GpuMicroseconds": 1.9839999731630087
+    }
+  ],
+  "Empty": [
+    {
+      "Context": "vulkan",
+      "Mode": "owner-blocking",
+      "WallMicroseconds": 50.0,
+      "PerRun": [
+        50.2,
+        50.0,
+        49.849999999999994
+      ]
+    },
+    {
+      "Context": "vulkan",
+      "Mode": "owner-spin",
+      "WallMicroseconds": 46.45,
+      "PerRun": [
+        46.7,
+        46.45,
+        46.4
+      ]
+    },
+    {
+      "Context": "vulkan",
+      "Mode": "raw-fence",
+      "WallMicroseconds": 49.2,
+      "PerRun": [
+        49.3,
+        49.2,
+        49.0
+      ]
+    },
+    {
+      "Context": "vulkan",
+      "Mode": "raw-idle",
+      "WallMicroseconds": 56.9,
+      "PerRun": [
+        57.2,
+        56.9,
+        56.9
+      ]
+    },
+    {
+      "Context": "vulkan-cuda-context",
+      "Mode": "owner-blocking",
+      "WallMicroseconds": 41.1,
+      "PerRun": [
+        41.0,
+        41.1,
+        41.3
+      ]
+    },
+    {
+      "Context": "vulkan-cuda-context",
+      "Mode": "owner-spin",
+      "WallMicroseconds": 37.3,
+      "PerRun": [
+        37.1,
+        37.3,
+        37.3
+      ]
+    },
+    {
+      "Context": "vulkan-cuda-context",
+      "Mode": "raw-fence",
+      "WallMicroseconds": 40.3,
+      "PerRun": [
+        40.1,
+        40.3,
+        40.4
+      ]
+    },
+    {
+      "Context": "vulkan-cuda-context",
+      "Mode": "raw-idle",
+      "WallMicroseconds": 48.1,
+      "PerRun": [
+        48.0,
+        48.1,
+        48.3
+      ]
+    }
+  ],
+  "CudaEmptyMicroseconds": 11.8,
+  "NativeCpp": [
+    {
+      "Mode": "timeline",
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 52.9,
+          "QueueSubmitMicroseconds": 7.7,
+          "CompletionWaitMicroseconds": 45.1
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 52.8,
+          "QueueSubmitMicroseconds": 7.7,
+          "CompletionWaitMicroseconds": 45.0
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 52.9,
+          "QueueSubmitMicroseconds": 7.7,
+          "CompletionWaitMicroseconds": 45.1
+        }
+      ],
+      "WallMicroseconds": 52.9,
+      "QueueSubmitMicroseconds": 7.7,
+      "CompletionWaitMicroseconds": 45.1
+    },
+    {
+      "Mode": "fence",
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 52.8,
+          "QueueSubmitMicroseconds": 7.9,
+          "CompletionWaitMicroseconds": 44.4
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 52.7,
+          "QueueSubmitMicroseconds": 7.8,
+          "CompletionWaitMicroseconds": 44.4
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 52.9,
+          "QueueSubmitMicroseconds": 7.9,
+          "CompletionWaitMicroseconds": 44.5
+        }
+      ],
+      "WallMicroseconds": 52.8,
+      "QueueSubmitMicroseconds": 7.9,
+      "CompletionWaitMicroseconds": 44.4
+    },
+    {
+      "Mode": "idle",
+      "PerRun": [
+        {
+          "Run": 1,
+          "WallMicroseconds": 61.7,
+          "QueueSubmitMicroseconds": 6.3,
+          "CompletionWaitMicroseconds": 55.4
+        },
+        {
+          "Run": 2,
+          "WallMicroseconds": 61.6,
+          "QueueSubmitMicroseconds": 6.3,
+          "CompletionWaitMicroseconds": 55.2
+        },
+        {
+          "Run": 3,
+          "WallMicroseconds": 61.9,
+          "QueueSubmitMicroseconds": 6.3,
+          "CompletionWaitMicroseconds": 55.5
+        }
+      ],
+      "WallMicroseconds": 61.7,
+      "QueueSubmitMicroseconds": 6.3,
+      "CompletionWaitMicroseconds": 55.4
+    }
+  ],
+  "Provenance": [
+    {
+      "Path": "run1\\vulkan\\profile.json",
+      "Sha256": "3381aea219310156f5ade2c87183389d2431638052e8320e467c2f774e5a0a72",
+      "Clocks": [
+        {
+          "Phase": "before-empty",
+          "Utc": "2026-10-20T00:08:15.5230984+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P8, 210 MHz, 405 MHz, 16.65 W, 41\r\n"
+        },
+        {
+          "Phase": "after-empty",
+          "Utc": "2026-10-20T00:08:15.6983025+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P8, 210 MHz, 405 MHz, 16.65 W, 41\r\n"
+        },
+        {
+          "Phase": "bias_silu-4x128x0",
+          "Utc": "2026-10-20T00:08:17.6750156+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P3, 780 MHz, 5001 MHz, 34.65 W, 41\r\n"
+        },
+        {
+          "Phase": "bias_silu-1024x4096x0",
+          "Utc": "2026-10-20T00:09:20.0939212+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P0, 960 MHz, 7201 MHz, 86.00 W, 45\r\n"
+        },
+        {
+          "Phase": "softmax-1024x4096x0",
+          "Utc": "2026-10-20T00:10:24.807907+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P0, 960 MHz, 7201 MHz, 96.03 W, 46\r\n"
+        },
+        {
+          "Phase": "rmsnorm-128x1024x0",
+          "Utc": "2026-10-20T00:10:28.7710316+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P3, 780 MHz, 5001 MHz, 35.71 W, 44\r\n"
+        },
+        {
+          "Phase": "gemm-512x512x1024",
+          "Utc": "2026-10-20T00:10:44.679242+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P0, 1995 MHz, 7201 MHz, 169.56 W, 54\r\n"
+        },
+        {
+          "Phase": "gemm-17x67x131",
+          "Utc": "2026-10-20T00:10:47.9460789+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P3, 780 MHz, 5001 MHz, 33.97 W, 47\r\n"
+        }
+      ],
+      "Checks": 640
+    },
+    {
+      "Path": "run1\\vulkan-cuda-context\\profile.json",
+      "Sha256": "0e1f185eb758c1d6c5efcc362fb2dd10867647d47f130e3660fb9ced9e16c43f",
+      "Clocks": [
+        {
+          "Phase": "before-empty",
+          "Utc": "2026-10-20T00:10:49.1635886+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 1755 MHz, 7001 MHz, 39.82 W, 47\r\n"
+        },
+        {
+          "Phase": "after-empty",
+          "Utc": "2026-10-20T00:10:49.3285737+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 1755 MHz, 7001 MHz, 39.82 W, 47\r\n"
+        },
+        {
+          "Phase": "bias_silu-4x128x0",
+          "Utc": "2026-10-20T00:10:51.112507+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 1755 MHz, 7001 MHz, 48.34 W, 48\r\n"
+        },
+        {
+          "Phase": "bias_silu-1024x4096x0",
+          "Utc": "2026-10-20T00:11:51.2863049+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 960 MHz, 7001 MHz, 84.50 W, 49\r\n"
+        },
+        {
+          "Phase": "softmax-1024x4096x0",
+          "Utc": "2026-10-20T00:12:53.5343851+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 960 MHz, 7001 MHz, 94.40 W, 49\r\n"
+        },
+        {
+          "Phase": "rmsnorm-128x1024x0",
+          "Utc": "2026-10-20T00:12:57.4273444+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P3, 780 MHz, 5001 MHz, 35.37 W, 47\r\n"
+        },
+        {
+          "Phase": "gemm-512x512x1024",
+          "Utc": "2026-10-20T00:13:13.2585322+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 1965 MHz, 7001 MHz, 168.16 W, 57\r\n"
+        },
+        {
+          "Phase": "gemm-17x67x131",
+          "Utc": "2026-10-20T00:13:16.5924982+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P3, 780 MHz, 5001 MHz, 36.29 W, 50\r\n"
+        }
+      ],
+      "Checks": 640
+    },
+    {
+      "Path": "run1\\cuda\\cuda-profile.json",
+      "Sha256": "b27f556c987314881b811d452a0b9052f796dd934c18d3a946508e21a06878f7",
+      "Clocks": [
+        {
+          "Phase": "before-empty",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P8, 210 MHz, 405 MHz, 17.89 W, 49\n"
+        },
+        {
+          "Phase": "bias_silu-4x128x0",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P8, 210 MHz, 405 MHz, 17.89 W, 49\n"
+        },
+        {
+          "Phase": "bias_silu-128x1024x0",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 1755 MHz, 7001 MHz, 22.03 W, 50\n"
+        },
+        {
+          "Phase": "bias_silu-1024x4096x0",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 1755 MHz, 7001 MHz, 55.17 W, 53\n"
+        },
+        {
+          "Phase": "bias_silu-7x193x0",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 1755 MHz, 7001 MHz, 55.17 W, 53\n"
+        }
+      ],
+      "Checks": 144
+    },
+    {
+      "Path": "run2\\vulkan\\profile.json",
+      "Sha256": "0076d563c11fcb054b7832a3fe1f39458f9c00fe95fc2476e394a8c518f578f1",
+      "Clocks": [
+        {
+          "Phase": "before-empty",
+          "Utc": "2026-10-20T00:16:18.195746+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P8, 210 MHz, 405 MHz, 17.00 W, 49\r\n"
+        },
+        {
+          "Phase": "after-empty",
+          "Utc": "2026-10-20T00:16:18.3756696+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P8, 210 MHz, 405 MHz, 17.00 W, 49\r\n"
+        },
+        {
+          "Phase": "bias_silu-4x128x0",
+          "Utc": "2026-10-20T00:16:20.3031658+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P3, 780 MHz, 5001 MHz, 35.53 W, 50\r\n"
+        },
+        {
+          "Phase": "bias_silu-1024x4096x0",
+          "Utc": "2026-10-20T00:17:20.4551431+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P0, 960 MHz, 7201 MHz, 86.54 W, 52\r\n"
+        },
+        {
+          "Phase": "softmax-1024x4096x0",
+          "Utc": "2026-10-20T00:18:22.9987727+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P0, 960 MHz, 7201 MHz, 96.24 W, 52\r\n"
+        },
+        {
+          "Phase": "rmsnorm-128x1024x0",
+          "Utc": "2026-10-20T00:18:27.0124378+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P3, 780 MHz, 5001 MHz, 24.89 W, 49\r\n"
+        },
+        {
+          "Phase": "gemm-512x512x1024",
+          "Utc": "2026-10-20T00:18:42.6340955+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P0, 1995 MHz, 7201 MHz, 172.00 W, 59\r\n"
+        },
+        {
+          "Phase": "gemm-17x67x131",
+          "Utc": "2026-10-20T00:18:45.9053188+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P3, 780 MHz, 5001 MHz, 32.29 W, 52\r\n"
+        }
+      ],
+      "Checks": 640
+    },
+    {
+      "Path": "run2\\vulkan-cuda-context\\profile.json",
+      "Sha256": "c222b751b4e9ac08dfbfede54db2c1dac269b0ee3666560384faba7bf6daad83",
+      "Clocks": [
+        {
+          "Phase": "before-empty",
+          "Utc": "2026-10-20T00:13:27.7352295+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 1755 MHz, 7001 MHz, 44.26 W, 51\r\n"
+        },
+        {
+          "Phase": "after-empty",
+          "Utc": "2026-10-20T00:13:27.8960642+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 1755 MHz, 7001 MHz, 44.26 W, 51\r\n"
+        },
+        {
+          "Phase": "bias_silu-4x128x0",
+          "Utc": "2026-10-20T00:13:29.6931228+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 1755 MHz, 7001 MHz, 47.81 W, 51\r\n"
+        },
+        {
+          "Phase": "bias_silu-1024x4096x0",
+          "Utc": "2026-10-20T00:14:30.2200141+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 960 MHz, 7001 MHz, 88.24 W, 52\r\n"
+        },
+        {
+          "Phase": "softmax-1024x4096x0",
+          "Utc": "2026-10-20T00:15:33.4183246+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 960 MHz, 7001 MHz, 94.62 W, 51\r\n"
+        },
+        {
+          "Phase": "rmsnorm-128x1024x0",
+          "Utc": "2026-10-20T00:15:37.5356692+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P3, 780 MHz, 5001 MHz, 32.55 W, 49\r\n"
+        },
+        {
+          "Phase": "gemm-512x512x1024",
+          "Utc": "2026-10-20T00:15:53.5268933+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 1980 MHz, 7001 MHz, 170.58 W, 59\r\n"
+        },
+        {
+          "Phase": "gemm-17x67x131",
+          "Utc": "2026-10-20T00:15:56.8936681+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P3, 780 MHz, 5001 MHz, 32.54 W, 52\r\n"
+        }
+      ],
+      "Checks": 640
+    },
+    {
+      "Path": "run2\\cuda\\cuda-profile.json",
+      "Sha256": "da948d0246f5e830abda15ee8d52a4c9686ce1b2b61a1534151ebdc7989540a1",
+      "Clocks": [
+        {
+          "Phase": "before-empty",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P3, 270 MHz, 5001 MHz, 35.66 W, 50\n"
+        },
+        {
+          "Phase": "bias_silu-4x128x0",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P3, 270 MHz, 5001 MHz, 35.66 W, 50\n"
+        },
+        {
+          "Phase": "bias_silu-128x1024x0",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P3, 270 MHz, 5001 MHz, 35.66 W, 50\n"
+        },
+        {
+          "Phase": "bias_silu-1024x4096x0",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 1755 MHz, 7001 MHz, 57.83 W, 53\n"
+        },
+        {
+          "Phase": "bias_silu-7x193x0",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 1755 MHz, 7001 MHz, 57.83 W, 53\n"
+        }
+      ],
+      "Checks": 144
+    },
+    {
+      "Path": "run3\\vulkan\\profile.json",
+      "Sha256": "2077132d746c4802204c378f1257fae9a47ed6aa11a192c93f685fb548782595",
+      "Clocks": [
+        {
+          "Phase": "before-empty",
+          "Utc": "2026-10-20T00:19:07.1597626+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P8, 210 MHz, 405 MHz, 16.88 W, 50\r\n"
+        },
+        {
+          "Phase": "after-empty",
+          "Utc": "2026-10-20T00:19:07.3431458+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P8, 210 MHz, 405 MHz, 16.88 W, 50\r\n"
+        },
+        {
+          "Phase": "bias_silu-4x128x0",
+          "Utc": "2026-10-20T00:19:09.2624991+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P3, 780 MHz, 5001 MHz, 35.32 W, 50\r\n"
+        },
+        {
+          "Phase": "bias_silu-1024x4096x0",
+          "Utc": "2026-10-20T00:20:10.8688381+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P3, 945 MHz, 5001 MHz, 87.77 W, 52\r\n"
+        },
+        {
+          "Phase": "softmax-1024x4096x0",
+          "Utc": "2026-10-20T00:21:14.9478957+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P0, 960 MHz, 7201 MHz, 96.31 W, 52\r\n"
+        },
+        {
+          "Phase": "rmsnorm-128x1024x0",
+          "Utc": "2026-10-20T00:21:18.8157406+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P3, 780 MHz, 5001 MHz, 36.21 W, 49\r\n"
+        },
+        {
+          "Phase": "gemm-512x512x1024",
+          "Utc": "2026-10-20T00:21:34.6806566+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P0, 1995 MHz, 7201 MHz, 172.61 W, 59\r\n"
+        },
+        {
+          "Phase": "gemm-17x67x131",
+          "Utc": "2026-10-20T00:21:37.9348397+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P3, 780 MHz, 5001 MHz, 31.85 W, 52\r\n"
+        }
+      ],
+      "Checks": 640
+    },
+    {
+      "Path": "run3\\vulkan-cuda-context\\profile.json",
+      "Sha256": "53696d151a5539d37ede3598e1be973fb79a37d32edbb1d01d843d15cb5e66d5",
+      "Clocks": [
+        {
+          "Phase": "before-empty",
+          "Utc": "2026-10-20T00:21:39.1544326+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 1755 MHz, 7001 MHz, 40.83 W, 52\r\n"
+        },
+        {
+          "Phase": "after-empty",
+          "Utc": "2026-10-20T00:21:39.3084785+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 1755 MHz, 7001 MHz, 40.83 W, 52\r\n"
+        },
+        {
+          "Phase": "bias_silu-4x128x0",
+          "Utc": "2026-10-20T00:21:41.0942314+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 1755 MHz, 7001 MHz, 48.40 W, 53\r\n"
+        },
+        {
+          "Phase": "bias_silu-1024x4096x0",
+          "Utc": "2026-10-20T00:22:41.530591+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 960 MHz, 7001 MHz, 85.98 W, 53\r\n"
+        },
+        {
+          "Phase": "softmax-1024x4096x0",
+          "Utc": "2026-10-20T00:23:44.4704737+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 960 MHz, 7001 MHz, 94.75 W, 53\r\n"
+        },
+        {
+          "Phase": "rmsnorm-128x1024x0",
+          "Utc": "2026-10-20T00:23:48.5812506+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P3, 780 MHz, 5001 MHz, 32.53 W, 50\r\n"
+        },
+        {
+          "Phase": "gemm-512x512x1024",
+          "Utc": "2026-10-20T00:24:04.456699+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 1950 MHz, 7001 MHz, 168.05 W, 59\r\n"
+        },
+        {
+          "Phase": "gemm-17x67x131",
+          "Utc": "2026-10-20T00:24:07.7898757+00:00",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P3, 780 MHz, 5001 MHz, 35.04 W, 53\r\n"
+        }
+      ],
+      "Checks": 640
+    },
+    {
+      "Path": "run3\\cuda\\cuda-profile.json",
+      "Sha256": "11ef2a9d0df68640c4c49ef722a43be2abc9d84e5f455e85b5e7bb8070fe04e2",
+      "Clocks": [
+        {
+          "Phase": "before-empty",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P5, 780 MHz, 810 MHz, 17.97 W, 52\n"
+        },
+        {
+          "Phase": "bias_silu-4x128x0",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 1755 MHz, 7001 MHz, 21.05 W, 53\n"
+        },
+        {
+          "Phase": "bias_silu-128x1024x0",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 1755 MHz, 7001 MHz, 21.05 W, 53\n"
+        },
+        {
+          "Phase": "bias_silu-1024x4096x0",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 1755 MHz, 7001 MHz, 46.90 W, 53\n"
+        },
+        {
+          "Phase": "bias_silu-7x193x0",
+          "NvidiaSmi": "name, pci.bus_id, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, 00000000:01:00.0, P2, 1830 MHz, 7001 MHz, 92.78 W, 56\n"
+        }
+      ],
+      "Checks": 144
+    }
+  ],
+  "SummaryScriptSha256": "18d4c710c6e3c9b22e5af7c28cc4476ae04394ed64d711a502daabf78832c7ec",
+  "Validation": {
+    "Accepted": true,
+    "DotnetAssemblies": 33,
+    "DotnetPassed": 1497,
+    "NativeProofChecks": 78,
+    "EnabledValidationLayers": [
+      "VK_LAYER_KHRONOS_validation"
+    ],
+    "SummaryScriptSha256": "18d4c710c6e3c9b22e5af7c28cc4476ae04394ed64d711a502daabf78832c7ec",
+    "OriginalSummaryScriptSha256": "f88e3be3143b55b2d06d42564f72e411680723907fa26b756293619c3c2a1b28",
+    "SummarySha256": "8431a3245b05c5cf62cccebdf5af326e8fbea0d79d5bfe856b4c59ac59745985",
+    "PrimaryProtocolSha256": "7fae3c9ce995785f73ddc50b39c11f5e58f78fe5b7b46d8b7bf9c35c77657684",
+    "LogHashes": {
+      "build-full.log": "04fd098505aa1879338be6cfc68defc4205fc7eaf6ba8c727142df0d43a4b377",
+      "build-final.log": "14051ad8a1dad3c2373ac9556a8908f16f8b88d69d19acb24bb7ef0aae8431f8",
+      "build-harness-final.log": "b7f721351dcc9233e8e41c04e9107e558fb9933d06d936763d25de5a12193b6f",
+      "tests-full.log": "1d9a489b1739d90caf5a10ea2686a8c614d42eb1c87b8dcf359575028943e0a2",
+      "tests-final.log": "87d8c08b78a7a0d4d1eb1cd3045ecc49ac1ae46bb881a081157b531b3487dad7",
+      "input-fixture-recheck.log": "359fcb98961846c4afeb5b6449507f81bca4ed0360baddf0494e8726e1c0863c",
+      "native-proof.log": "71bf22db866f831a305c67c5e9163c8da1b975c54fd668ab1b914391d1365ca1",
+      "python-tests.log": "5b5408523dd757f7877929e09c74d2c1cbbcfbb3c2b55fde66322ea4b6f937e1"
+    },
+    "Note": "Final postprocessing adds explicit finite floor-time checks. Original postprocessor is archived with the measurement protocol hash. All measured source and DLL hashes match after rebuilding the harness directly in Release.",
+    "PythonIntegrityPassed": 16
+  }
+}

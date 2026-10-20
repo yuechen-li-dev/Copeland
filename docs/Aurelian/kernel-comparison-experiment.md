@@ -133,6 +133,11 @@ loop and concrete remaining GPU and submission-latency gaps.
 
 ## Reproduce and inspect
 
+The follow-up [Vulkan profiling experiment](vulkan-profiling-experiment.md)
+adds compiler, parameter-storage, empty-submission and power-state controls.
+This report and its original artifacts remain measurements of their frozen
+source revision; they do not measure the later device-local parameter path.
+
 See the [protocol and runner](../../tools/kernel-comparison/README.md) and
 [small checked-in result ledger](kernel-comparison-results.json). Raw local
 evidence and all-case tables are available after running:

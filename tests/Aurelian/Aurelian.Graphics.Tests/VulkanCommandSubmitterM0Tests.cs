@@ -188,6 +188,25 @@ public sealed class VulkanCommandSubmitterM0Tests
         });
 
     [Fact]
+    public void CpuProfilingIsOptInAndDoesNotChangeReplayCompletion()
+        => WithSubmitResources((_, pool, fences, submitter) =>
+        {
+            var command = pool.Rent(0);
+            Assert.True(command.Begin(reusable: true).Success);
+            Assert.True(command.End().Success);
+            var ordinary = submitter.Submit(new(command) { RetainForReplay = true });
+            var profiled = submitter.Submit(new(command) { RetainForReplay = true, MeasureCpuTime = true });
+            Assert.True(ordinary.Success);
+            Assert.Null(ordinary.CpuTimings);
+            Assert.True(profiled.Success);
+            Assert.NotNull(profiled.CpuTimings);
+            Assert.True(profiled.CpuTimings.QueueSubmitMicroseconds >= 0);
+            Assert.True(profiled.CpuTimings.CompletionWaitMicroseconds >= 0);
+            Assert.True(fences.CommandListFence.LastKnownCompletedValue >= profiled.SignalFenceValue);
+            pool.Retire(command, profiled.SignalFenceValue!.Value);
+        });
+
+    [Fact]
     public void ReusableCommandCanReplayAndReturnsToOrdinaryPoolLifecycle()
         => WithSubmitResources((_, pool, fences, submitter) =>
         {

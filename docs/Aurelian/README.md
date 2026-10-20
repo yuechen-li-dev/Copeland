@@ -35,6 +35,7 @@ Graphics pack pages define supported behavior and link to their qualification co
 - [Inference foundation](inference-runtime.md): current reusable C# graph, tensor, checkpoint, scheduling, and resource-lifetime APIs. The foundation is built by `Aurelian.Inference.slnx`.
 - [Kernel comparison protocol](../../tools/kernel-comparison/README.md): frozen FP32 workloads, PyTorch/Inductor/Triton controls, and measured shader/runtime improvements.
 - [Kernel comparison results](kernel-comparison-experiment.md): qualified local results, remaining gaps, and the matched single-operation replay control.
+- [Vulkan profiling](vulkan-profiling-experiment.md): CPU phase measurements, compiler controls, device-local parameters and explicit CUDA power-state controls.
 - [Gemma 4 text inference](gemma4-text-inference.md): a pinned model adapter and a measured local execution path; model files and generated quantized weights are local assets and are not included in the repository.
 - [TRELLIS.2 Vulkan experiment](trellis2-vulkan-experiment.md), [throughput experiment](trellis2-throughput-experiment.md), and the linked shape, occupancy, image-encoder, and attention experiments.
 

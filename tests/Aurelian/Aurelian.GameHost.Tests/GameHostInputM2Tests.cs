@@ -66,7 +66,7 @@ public sealed class GameHostInputM2Tests
         var engine = new InputManEngine(GameControls.CreateProfile());
         using var adapter = new AurelianInputAdapter(engine);
         adapter.SetContexts(GameControls.Gameplay);
-        adapter.RecordButton(Controls.Key(KeyboardKey.Space), true);
+        adapter.RecordButton(Controls.Key(KeyboardKey.K), true);
         adapter.BeginFrame(Frame(1));
         SubmitGameIntent command = Assert.IsType<SubmitGameIntent>(
             Assert.Single(new TinyFarmInputController().Map(adapter.CurrentFrame)));

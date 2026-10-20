@@ -8,4 +8,6 @@ public sealed record VulkanCommandSubmitRequest(
 {
     public bool RetainForReplay { get; init; }
     public uint SpinWaitNanoseconds { get; init; }
+    /// <summary>Collects CPU phase durations. Disabled for ordinary submissions.</summary>
+    public bool MeasureCpuTime { get; init; }
 }

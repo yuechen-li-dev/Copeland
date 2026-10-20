@@ -93,6 +93,20 @@ does not change the snapshot. Disposing the math owner disposes its prepared
 batches before pipelines or layouts. Replay rejects disposed resources and
 overlap with a queued scope.
 
+Prepared parameters default to device-local storage. The immutable 64-byte
+blocks are uploaded once during preparation through the existing uploader;
+replay performs no parameter transfer. `new PreparedComputeOptions(
+DeviceLocalParameters: false)` retains host-visible parameter blocks for
+profiling controls. Preparation therefore has additional upload work, outside
+the replay timing boundary.
+
+`math.Prepare(batch, enableGpuTimings: false)` omits timestamp reset/write/read
+operations; its execution result has a null `GpuMilliseconds`. For CPU phase
+diagnostics, `prepared.ExecuteProfiled()` reports tensor validation, submission
+preparation, `vkQueueSubmit`, completion wait, and timestamp read durations.
+This instrumentation is opt-in and includes its own measurement overhead.
+Use ordinary `Execute()` when measuring wall latency.
+
 The default wait blocks. `prepared.Execute(spinWaitNanoseconds: 100_000)` opts
 into up to 100 microseconds of polling before blocking, trading CPU work for
 wait latency. Polling is capped at 1 ms and counts against the total timeout.
@@ -101,6 +115,9 @@ completion; ordinary one-time command retirement keeps its existing behavior.
 
 The [kernel comparison](../../tools/kernel-comparison/README.md) measures
 immediate recording, prepared blocking replay and explicit polling separately.
+The [Vulkan profiling controls](../../tools/kernel-comparison/PROFILING.md)
+separate compiler choice, parameter placement, instrumentation, power state
+and submission/completion costs.
 
 ## Hardware cooperative path
 

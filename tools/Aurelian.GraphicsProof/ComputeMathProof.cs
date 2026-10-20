@@ -120,6 +120,22 @@ internal static class ComputeMathProof
         var replayOutput = Tensor(1, 3);
         var replayBatch = math.CreateBatch();
         replayBatch.Activate(replayInput, replayOutput, TensorActivation.BiasSilu, replayBias);
+        using (var untimed = math.Prepare(replayBatch, enableGpuTimings: false))
+        {
+            Require(!untimed.HasGpuTimings, "Untimed replay allocated timestamp instrumentation.");
+            foreach (float[] changed in new[] { new[] { -2f, 0f, 2f }, new[] { -3f, 1f, 4f } })
+            {
+                math.Upload(replayInput, changed);
+                var profile = untimed.ExecuteProfiled();
+                Require(profile.Result.GpuMilliseconds is null && profile.Submission is not null,
+                    "Untimed replay must preserve CPU profiling without reporting GPU time.");
+                float[] actual = math.Read(replayOutput);
+                float[] reference = changed.Select((value, index) => Silu(value + new[] { .1f, -.2f, .3f }[index])).ToArray();
+                Require(actual.Zip(reference, (value, target) => Math.Abs(value - target)).Max() < 2e-6,
+                    "Untimed replay ignored changed resident input.");
+            }
+            measurements.Add(new("prepared-untimestamped-replay", 3, 0, 1, null));
+        }
         using (var prepared = math.Prepare(replayBatch))
         {
             // Appending to the source plan must not mutate the recorded snapshot.

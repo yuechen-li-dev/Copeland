@@ -75,7 +75,7 @@ public sealed unsafe partial class VulkanComputeMath
         }
     }
 
-    private DispatchSlot CreateSlot(DescriptorPool? pool = null)
+    private DispatchSlot CreateSlot(DescriptorPool? pool = null, bool deviceLocalParameters = false)
     {
         var descriptorLayout = setLayout;
         var allocation = new DescriptorSetAllocateInfo
@@ -85,13 +85,25 @@ public sealed unsafe partial class VulkanComputeMath
         };
         DescriptorSet set;
         Check(plant.Vk.AllocateDescriptorSets(plant.Device, &allocation, &set));
-        return new(set, Buffer(64, VulkanBufferUsage.Storage, VulkanMemoryUsage.CpuToGpu));
+        return new(set, Buffer(64,
+            deviceLocalParameters ? VulkanBufferUsage.Storage | VulkanBufferUsage.TransferDestination : VulkanBufferUsage.Storage,
+            deviceLocalParameters ? VulkanMemoryUsage.GpuOnly : VulkanMemoryUsage.CpuToGpu));
     }
 
     private void Configure(DispatchSlot slot, ComputeMathDispatch dispatch)
     {
         KernelParameters[] parameters = [dispatch.Parameters];
-        Require(slot.Parameters.Write(MemoryMarshal.AsBytes(parameters.AsSpan())).Success, "Kernel parameter upload failed.");
+        var parameterBytes = MemoryMarshal.AsBytes(parameters.AsSpan());
+        if (slot.Parameters.MemoryUsage == VulkanMemoryUsage.GpuOnly)
+        {
+            var upload = uploader.Upload(new(slot.Parameters, parameterBytes.ToArray(), DebugName: "compute-math.prepared-parameters"));
+            Require(upload.Success, "Device-local kernel parameter upload failed: "
+                + string.Join("; ", upload.Diagnostics.Select(item => item.Message)));
+        }
+        else
+        {
+            Require(slot.Parameters.Write(parameterBytes).Success, "Kernel parameter upload failed.");
+        }
         AurelianVulkanBuffer[] resources = [dispatch.Input.Buffer, dispatch.Auxiliary.Buffer, dispatch.Output.Buffer, slot.Parameters];
         DescriptorBufferInfo* infos = stackalloc DescriptorBufferInfo[4];
         WriteDescriptorSet* writes = stackalloc WriteDescriptorSet[4];
