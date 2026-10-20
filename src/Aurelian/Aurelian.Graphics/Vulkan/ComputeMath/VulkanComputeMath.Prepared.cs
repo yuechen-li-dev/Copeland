@@ -50,6 +50,23 @@ public sealed unsafe partial class VulkanComputeMath
         internal PreparedComputeBatch(VulkanComputeMath owner, ComputeMathDispatch[] dispatches, PreparedComputeOptions options)
         {
             this.owner = owner;
+            if (options.ElideIndependentBarriers)
+            {
+                for (int first = 0; first < dispatches.Length; first++)
+                {
+                    for (int second = first + 1; second < dispatches.Length; second++)
+                    {
+                        var a = dispatches[first];
+                        var b = dispatches[second];
+                        ComputeMathBatch.Require(!ReferenceEquals(a.Output.Buffer, b.Input.Buffer)
+                            && !ReferenceEquals(a.Output.Buffer, b.Auxiliary.Buffer)
+                            && !ReferenceEquals(a.Output.Buffer, b.Output.Buffer)
+                            && !ReferenceEquals(b.Output.Buffer, a.Input.Buffer)
+                            && !ReferenceEquals(b.Output.Buffer, a.Auxiliary.Buffer),
+                            "Barrier elision requires independent dispatch allocations; read/write and write/write hazards are rejected.");
+                    }
+                }
+            }
             DispatchCount = dispatches.Length;
             HasDeviceLocalParameters = options.DeviceLocalParameters;
             tensors = dispatches.SelectMany(dispatch => new[]
@@ -97,9 +114,12 @@ public sealed unsafe partial class VulkanComputeMath
                     owner.plant.Vk.CmdBindDescriptorSets(command.CommandBuffer, PipelineBindPoint.Compute,
                         owner.pipelineLayout, 0, 1, &set, 0, null);
                     owner.plant.Vk.CmdDispatch(command.CommandBuffer, dispatch.GroupsX, dispatch.GroupsY, 1);
-                    owner.Barrier(command, AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
-                        AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
-                        PipelineStageFlags.ComputeShaderBit, PipelineStageFlags.ComputeShaderBit);
+                    if (!options.ElideIndependentBarriers || index == dispatches.Length - 1)
+                    {
+                        owner.Barrier(command, AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
+                            AccessFlags.ShaderReadBit | AccessFlags.ShaderWriteBit,
+                            PipelineStageFlags.ComputeShaderBit, PipelineStageFlags.ComputeShaderBit);
+                    }
                 }
                 timings?.Mark(command, 1);
                 Require(command.End().Success, "Prepared compute command end failed.");
@@ -193,5 +213,8 @@ public sealed record PreparedComputeProfile(
 
 /// <summary>Prepared parameters are immutable and uploaded once. Device-local storage
 /// avoids shader reads from host memory on discrete GPUs. Host-visible storage remains
-/// available as a diagnostic control; transfers happen only during preparation.</summary>
-public sealed record PreparedComputeOptions(bool EnableGpuTimings = true, bool DeviceLocalParameters = true);
+/// available as a diagnostic control; transfers happen only during preparation.
+/// Independent barrier elision rejects inter-dispatch allocation hazards and
+/// retains the initial and final dependencies, including across replays.</summary>
+public sealed record PreparedComputeOptions(bool EnableGpuTimings = true, bool DeviceLocalParameters = true,
+    bool ElideIndependentBarriers = false);

@@ -15,4 +15,8 @@ public interface IComputeStreamController
 {
     int Plan(ComputeStreamForecast forecast);
     void Observe(ComputeStreamObservation observation);
+
+    /// <summary>May reduce admission within the ring's fixed physical capacity.
+    /// The owner harvests real fences before admitting more work.</summary>
+    int AdmissionLimit(int capacity) => capacity;
 }

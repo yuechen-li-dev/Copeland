@@ -1,5 +1,10 @@
 # Vulkan profiling controls
 
+For the follow-up queue admission, subgroup, independent-barrier and operating-state
+experiments, see [the research report](../../docs/Aurelian/scheduling-and-subgroup-experiment.md).
+`Run-Research.ps1` and `Run-ClockResearch.ps1` retain separate protocols and fresh
+output roots; the latter reuses the former's exact compiled shaders.
+
 Run the native Windows diagnostic after installing the original comparison's
 Python dependencies. It requires the Vulkan SDK tools on PATH (`glslangValidator`,
 `spirv-opt`, `spirv-val`, `spirv-dis`), the repo's resolved DXC, .NET 10, NVIDIA's

@@ -80,6 +80,13 @@ Scopes cannot nest. The controller chooses one to four slots; Dominatus currentl
 chooses two when its authored transfer budget permits, otherwise one. Its default
 limit remains 4 MiB; the measured Gemma workload explicitly supplies 64 MiB.
 
+`Plan` selects physical capacity once. A controller can override
+`AdmissionLimit(capacity)` to reduce admission dynamically within that capacity;
+the default returns the full selected capacity. The ring harvests real Vulkan
+fences before reuse and rejects limits outside `1..capacity`. The initial
+[adaptive admission experiment](scheduling-and-subgroup-experiment.md#queue-admission-and-the-control-theory-hypothesis)
+does not justify changing Dominatus's existing production policy.
+
 ```csharp
 using var controller = new DominatusComputeFeedforward(64 * 1024 * 1024);
 using var queue = session.Compute.BeginQueuedScope(controller,

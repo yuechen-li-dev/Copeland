@@ -70,6 +70,7 @@
   <Folder Name="/tools/">
     <Project Path="tools/Aurelian.ArtSlots/Aurelian.ArtSlots.csproj" />
     <Project Path="tools/Aurelian.KernelComparison/Aurelian.KernelComparison.csproj" />
+    <Project Path="tools/Aurelian.ClockResearch/Aurelian.ClockResearch.csproj" />
     <Project Path="tools/Aurelian.InferenceProof/Aurelian.InferenceProof.csproj" />
     <Project Path="tools/Aurelian.GraphicsProof/Aurelian.GraphicsProof.csproj" />
     <Project Path="tools/Aurelian.RuntimeSoakM22/Aurelian.RuntimeSoakM22.csproj" />

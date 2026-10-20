@@ -1,0 +1,1233 @@
+{
+  "Accepted": true,
+  "ProtocolSha256": "07d383cfdef6927bba7d2ecbe5d83a04282729f79e1e5a64d6f255d41d202ae7",
+  "IdenticalMainExperimentSpirvVerified": true,
+  "Reports": [
+    {
+      "Process": 1,
+      "Path": "artifacts/local/scheduling-clock/qualified5/run1/clock.json",
+      "Sha256": "471204aff6de10f949f2c9ae0b80d905c453e75830e5980c51e0049575a3d910",
+      "SourceSha256": "f13bc3c10b85dd887fad8a3838f85498835de9b2397b97655f99b047ebc8b568",
+      "ShaderHashes": {
+        "copy-256": "b17c2d37cbbd5fdcb47ce91c9ff6b0089aa373868f1f9c3a1d584aba660c5324",
+        "bias_silu-256": "f18d599cc70bc70447f88dc63911ed482a29789fe833091d065ab4a4fa74ec81"
+      },
+      "Samples": 720,
+      "Checks": 24
+    },
+    {
+      "Process": 2,
+      "Path": "artifacts/local/scheduling-clock/qualified5/run2/clock.json",
+      "Sha256": "6f4bd8abf1ec659af76020b1ce58e86b3135290545bc9ae383e05dc504fb799d",
+      "SourceSha256": "f13bc3c10b85dd887fad8a3838f85498835de9b2397b97655f99b047ebc8b568",
+      "ShaderHashes": {
+        "copy-256": "b17c2d37cbbd5fdcb47ce91c9ff6b0089aa373868f1f9c3a1d584aba660c5324",
+        "bias_silu-256": "f18d599cc70bc70447f88dc63911ed482a29789fe833091d065ab4a4fa74ec81"
+      },
+      "Samples": 720,
+      "Checks": 24
+    },
+    {
+      "Process": 3,
+      "Path": "artifacts/local/scheduling-clock/qualified5/run3/clock.json",
+      "Sha256": "b86faa820f3096805f500de2f2a3a999d2a38a223451e35fa060a3316d74f6f3",
+      "SourceSha256": "f13bc3c10b85dd887fad8a3838f85498835de9b2397b97655f99b047ebc8b568",
+      "ShaderHashes": {
+        "copy-256": "b17c2d37cbbd5fdcb47ce91c9ff6b0089aa373868f1f9c3a1d584aba660c5324",
+        "bias_silu-256": "f18d599cc70bc70447f88dc63911ed482a29789fe833091d065ab4a4fa74ec81"
+      },
+      "Samples": 720,
+      "Checks": 24
+    }
+  ],
+  "Windows": [
+    {
+      "Process": 1,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "idle",
+        "Round": 0,
+        "GpuMicroseconds": 662.89,
+        "FirstFiveMedian": 968.132,
+        "LastFiveMedian": 116.554,
+        "SmClockRange": [
+          270,
+          315
+        ],
+        "MemoryClockRange": [
+          810,
+          5001
+        ],
+        "MemoryClockMedian": 5001.0,
+        "TelemetrySamples": 12,
+        "MinimumTrafficGigabytesPerSecond": 50.61840124304183
+      }
+    },
+    {
+      "Process": 1,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "soak16",
+        "Round": 0,
+        "GpuMicroseconds": 80.97400000000002,
+        "FirstFiveMedian": 81.03399999999999,
+        "LastFiveMedian": 81.16199999999999,
+        "SmClockRange": [
+          945,
+          945
+        ],
+        "MemoryClockRange": [
+          5001,
+          5001
+        ],
+        "MemoryClockMedian": 5001.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 414.38525946600134
+      }
+    },
+    {
+      "Process": 1,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "soak512",
+        "Round": 0,
+        "GpuMicroseconds": 81.108,
+        "FirstFiveMedian": 81.084,
+        "LastFiveMedian": 81.004,
+        "SmClockRange": [
+          1200,
+          1200
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 413.7006460521773
+      }
+    },
+    {
+      "Process": 1,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "soak512",
+        "Round": 1,
+        "GpuMicroseconds": 80.90899999999999,
+        "FirstFiveMedian": 80.842,
+        "LastFiveMedian": 80.91,
+        "SmClockRange": [
+          1545,
+          1545
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 414.71816485187065
+      }
+    },
+    {
+      "Process": 1,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "soak16",
+        "Round": 1,
+        "GpuMicroseconds": 80.872,
+        "FirstFiveMedian": 80.77199999999999,
+        "LastFiveMedian": 81.024,
+        "SmClockRange": [
+          1830,
+          1830
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 414.9079038480562
+      }
+    },
+    {
+      "Process": 1,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "idle",
+        "Round": 1,
+        "GpuMicroseconds": 291.836,
+        "FirstFiveMedian": 967.87,
+        "LastFiveMedian": 116.538,
+        "SmClockRange": [
+          210,
+          210
+        ],
+        "MemoryClockRange": [
+          810,
+          810
+        ],
+        "MemoryClockMedian": 810.0,
+        "TelemetrySamples": 12,
+        "MinimumTrafficGigabytesPerSecond": 114.9770144875889
+      }
+    },
+    {
+      "Process": 1,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "idle",
+        "Round": 2,
+        "GpuMicroseconds": 963.303,
+        "FirstFiveMedian": 968.7620000000001,
+        "LastFiveMedian": 116.412,
+        "SmClockRange": [
+          210,
+          375
+        ],
+        "MemoryClockRange": [
+          810,
+          810
+        ],
+        "MemoryClockMedian": 810.0,
+        "TelemetrySamples": 12,
+        "MinimumTrafficGigabytesPerSecond": 34.832687119213794
+      }
+    },
+    {
+      "Process": 1,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "soak16",
+        "Round": 2,
+        "GpuMicroseconds": 81.064,
+        "FirstFiveMedian": 81.018,
+        "LastFiveMedian": 81.05,
+        "SmClockRange": [
+          945,
+          945
+        ],
+        "MemoryClockRange": [
+          5001,
+          5001
+        ],
+        "MemoryClockMedian": 5001.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 413.92519490772725
+      }
+    },
+    {
+      "Process": 1,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "soak512",
+        "Round": 2,
+        "GpuMicroseconds": 81.08099999999999,
+        "FirstFiveMedian": 81.086,
+        "LastFiveMedian": 81.17399999999999,
+        "SmClockRange": [
+          1200,
+          1200
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201,
+        "TelemetrySamples": 1,
+        "MinimumTrafficGigabytesPerSecond": 413.8384085050752
+      }
+    },
+    {
+      "Process": 1,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "idle",
+        "Round": 0,
+        "GpuMicroseconds": 133.125,
+        "FirstFiveMedian": 968.684,
+        "LastFiveMedian": 116.328,
+        "SmClockRange": [
+          255,
+          270
+        ],
+        "MemoryClockRange": [
+          810,
+          5001
+        ],
+        "MemoryClockMedian": 5001,
+        "TelemetrySamples": 11,
+        "MinimumTrafficGigabytesPerSecond": 252.05207136150233
+      }
+    },
+    {
+      "Process": 1,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "soak16",
+        "Round": 0,
+        "GpuMicroseconds": 80.71000000000001,
+        "FirstFiveMedian": 80.746,
+        "LastFiveMedian": 80.76,
+        "SmClockRange": [
+          945,
+          945
+        ],
+        "MemoryClockRange": [
+          5001,
+          5001
+        ],
+        "MemoryClockMedian": 5001.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 415.7407012761739
+      }
+    },
+    {
+      "Process": 1,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "soak512",
+        "Round": 0,
+        "GpuMicroseconds": 81.023,
+        "FirstFiveMedian": 80.996,
+        "LastFiveMedian": 81.16199999999999,
+        "SmClockRange": [
+          1185,
+          1185
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 414.13465312318726
+      }
+    },
+    {
+      "Process": 1,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "soak512",
+        "Round": 1,
+        "GpuMicroseconds": 80.983,
+        "FirstFiveMedian": 81.018,
+        "LastFiveMedian": 80.996,
+        "SmClockRange": [
+          1530,
+          1530
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201,
+        "TelemetrySamples": 1,
+        "MinimumTrafficGigabytesPerSecond": 414.3392069940605
+      }
+    },
+    {
+      "Process": 1,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "soak16",
+        "Round": 1,
+        "GpuMicroseconds": 80.878,
+        "FirstFiveMedian": 80.944,
+        "LastFiveMedian": 80.922,
+        "SmClockRange": [
+          1800,
+          1800
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 414.8771235688321
+      }
+    },
+    {
+      "Process": 1,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "idle",
+        "Round": 1,
+        "GpuMicroseconds": 116.507,
+        "FirstFiveMedian": 2429.824,
+        "LastFiveMedian": 116.426,
+        "SmClockRange": [
+          210,
+          300
+        ],
+        "MemoryClockRange": [
+          405,
+          405
+        ],
+        "MemoryClockMedian": 405,
+        "TelemetrySamples": 13,
+        "MinimumTrafficGigabytesPerSecond": 288.00357060090806
+      }
+    },
+    {
+      "Process": 1,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "idle",
+        "Round": 2,
+        "GpuMicroseconds": 563.855,
+        "FirstFiveMedian": 971.1419999999999,
+        "LastFiveMedian": 116.366,
+        "SmClockRange": [
+          210,
+          300
+        ],
+        "MemoryClockRange": [
+          810,
+          810
+        ],
+        "MemoryClockMedian": 810.0,
+        "TelemetrySamples": 12,
+        "MinimumTrafficGigabytesPerSecond": 59.5089730515824
+      }
+    },
+    {
+      "Process": 1,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "soak16",
+        "Round": 2,
+        "GpuMicroseconds": 80.606,
+        "FirstFiveMedian": 80.626,
+        "LastFiveMedian": 80.666,
+        "SmClockRange": [
+          930,
+          930
+        ],
+        "MemoryClockRange": [
+          5001,
+          5001
+        ],
+        "MemoryClockMedian": 5001.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 416.27710096022633
+      }
+    },
+    {
+      "Process": 1,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "soak512",
+        "Round": 2,
+        "GpuMicroseconds": 80.92,
+        "FirstFiveMedian": 80.88,
+        "LastFiveMedian": 80.956,
+        "SmClockRange": [
+          1185,
+          1185
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201,
+        "TelemetrySamples": 1,
+        "MinimumTrafficGigabytesPerSecond": 414.661789421651
+      }
+    },
+    {
+      "Process": 2,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "idle",
+        "Round": 0,
+        "GpuMicroseconds": 116.578,
+        "FirstFiveMedian": 967.308,
+        "LastFiveMedian": 116.49600000000001,
+        "SmClockRange": [
+          210,
+          210
+        ],
+        "MemoryClockRange": [
+          810,
+          810
+        ],
+        "MemoryClockMedian": 810,
+        "TelemetrySamples": 9,
+        "MinimumTrafficGigabytesPerSecond": 287.8281665494347
+      }
+    },
+    {
+      "Process": 2,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "soak16",
+        "Round": 0,
+        "GpuMicroseconds": 80.994,
+        "FirstFiveMedian": 81.068,
+        "LastFiveMedian": 80.944,
+        "SmClockRange": [
+          885,
+          885
+        ],
+        "MemoryClockRange": [
+          5001,
+          5001
+        ],
+        "MemoryClockMedian": 5001,
+        "TelemetrySamples": 1,
+        "MinimumTrafficGigabytesPerSecond": 414.28293453836085
+      }
+    },
+    {
+      "Process": 2,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "soak512",
+        "Round": 0,
+        "GpuMicroseconds": 81.095,
+        "FirstFiveMedian": 81.096,
+        "LastFiveMedian": 81.05,
+        "SmClockRange": [
+          1245,
+          1245
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201,
+        "TelemetrySamples": 1,
+        "MinimumTrafficGigabytesPerSecond": 413.7669646710648
+      }
+    },
+    {
+      "Process": 2,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "soak512",
+        "Round": 1,
+        "GpuMicroseconds": 80.87899999999999,
+        "FirstFiveMedian": 80.946,
+        "LastFiveMedian": 80.812,
+        "SmClockRange": [
+          1605,
+          1605
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201,
+        "TelemetrySamples": 1,
+        "MinimumTrafficGigabytesPerSecond": 414.8719939662954
+      }
+    },
+    {
+      "Process": 2,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "soak16",
+        "Round": 1,
+        "GpuMicroseconds": 80.868,
+        "FirstFiveMedian": 80.856,
+        "LastFiveMedian": 80.922,
+        "SmClockRange": [
+          1830,
+          1830
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 414.9284265716971
+      }
+    },
+    {
+      "Process": 2,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "idle",
+        "Round": 1,
+        "GpuMicroseconds": 133.19799999999998,
+        "FirstFiveMedian": 971.434,
+        "LastFiveMedian": 116.574,
+        "SmClockRange": [
+          210,
+          255
+        ],
+        "MemoryClockRange": [
+          810,
+          810
+        ],
+        "MemoryClockMedian": 810,
+        "TelemetrySamples": 11,
+        "MinimumTrafficGigabytesPerSecond": 251.91393264163128
+      }
+    },
+    {
+      "Process": 2,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "idle",
+        "Round": 2,
+        "GpuMicroseconds": 962.944,
+        "FirstFiveMedian": 971.212,
+        "LastFiveMedian": 116.51400000000001,
+        "SmClockRange": [
+          210,
+          210
+        ],
+        "MemoryClockRange": [
+          810,
+          810
+        ],
+        "MemoryClockMedian": 810.0,
+        "TelemetrySamples": 12,
+        "MinimumTrafficGigabytesPerSecond": 34.84567326864283
+      }
+    },
+    {
+      "Process": 2,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "soak16",
+        "Round": 2,
+        "GpuMicroseconds": 81.021,
+        "FirstFiveMedian": 80.94800000000001,
+        "LastFiveMedian": 81.05999999999999,
+        "SmClockRange": [
+          915,
+          915
+        ],
+        "MemoryClockRange": [
+          5001,
+          5001
+        ],
+        "MemoryClockMedian": 5001.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 414.1448760197973
+      }
+    },
+    {
+      "Process": 2,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "soak512",
+        "Round": 2,
+        "GpuMicroseconds": 81.07300000000001,
+        "FirstFiveMedian": 80.838,
+        "LastFiveMedian": 81.176,
+        "SmClockRange": [
+          1260,
+          1260
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 413.87924463138154
+      }
+    },
+    {
+      "Process": 2,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "idle",
+        "Round": 0,
+        "GpuMicroseconds": 116.63300000000001,
+        "FirstFiveMedian": 972.46,
+        "LastFiveMedian": 116.684,
+        "SmClockRange": [
+          210,
+          210
+        ],
+        "MemoryClockRange": [
+          810,
+          810
+        ],
+        "MemoryClockMedian": 810,
+        "TelemetrySamples": 9,
+        "MinimumTrafficGigabytesPerSecond": 287.69243696037995
+      }
+    },
+    {
+      "Process": 2,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "soak16",
+        "Round": 0,
+        "GpuMicroseconds": 80.71199999999999,
+        "FirstFiveMedian": 80.744,
+        "LastFiveMedian": 80.69,
+        "SmClockRange": [
+          915,
+          915
+        ],
+        "MemoryClockRange": [
+          5001,
+          5001
+        ],
+        "MemoryClockMedian": 5001.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 415.7303994449401
+      }
+    },
+    {
+      "Process": 2,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "soak512",
+        "Round": 0,
+        "GpuMicroseconds": 80.989,
+        "FirstFiveMedian": 81.072,
+        "LastFiveMedian": 80.89200000000001,
+        "SmClockRange": [
+          1140,
+          1140
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 414.3085110323624
+      }
+    },
+    {
+      "Process": 2,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "soak512",
+        "Round": 1,
+        "GpuMicroseconds": 80.96600000000001,
+        "FirstFiveMedian": 81.03200000000001,
+        "LastFiveMedian": 80.796,
+        "SmClockRange": [
+          1470,
+          1620
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 414.426203591631
+      }
+    },
+    {
+      "Process": 2,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "soak16",
+        "Round": 1,
+        "GpuMicroseconds": 80.846,
+        "FirstFiveMedian": 80.75,
+        "LastFiveMedian": 80.836,
+        "SmClockRange": [
+          1875,
+          1875
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201,
+        "TelemetrySamples": 1,
+        "MinimumTrafficGigabytesPerSecond": 415.04133785221285
+      }
+    },
+    {
+      "Process": 2,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "idle",
+        "Round": 1,
+        "GpuMicroseconds": 116.524,
+        "FirstFiveMedian": 2426.506,
+        "LastFiveMedian": 116.428,
+        "SmClockRange": [
+          210,
+          210
+        ],
+        "MemoryClockRange": [
+          405,
+          405
+        ],
+        "MemoryClockMedian": 405.0,
+        "TelemetrySamples": 12,
+        "MinimumTrafficGigabytesPerSecond": 287.96155298479283
+      }
+    },
+    {
+      "Process": 2,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "idle",
+        "Round": 2,
+        "GpuMicroseconds": 431.937,
+        "FirstFiveMedian": 972.132,
+        "LastFiveMedian": 116.476,
+        "SmClockRange": [
+          210,
+          210
+        ],
+        "MemoryClockRange": [
+          810,
+          810
+        ],
+        "MemoryClockMedian": 810.0,
+        "TelemetrySamples": 12,
+        "MinimumTrafficGigabytesPerSecond": 77.68362515829854
+      }
+    },
+    {
+      "Process": 2,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "soak16",
+        "Round": 2,
+        "GpuMicroseconds": 80.732,
+        "FirstFiveMedian": 80.72999999999999,
+        "LastFiveMedian": 80.798,
+        "SmClockRange": [
+          915,
+          915
+        ],
+        "MemoryClockRange": [
+          5001,
+          5001
+        ],
+        "MemoryClockMedian": 5001.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 415.6274092057672
+      }
+    },
+    {
+      "Process": 2,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "soak512",
+        "Round": 2,
+        "GpuMicroseconds": 80.95,
+        "FirstFiveMedian": 80.978,
+        "LastFiveMedian": 81.03,
+        "SmClockRange": [
+          1140,
+          1140
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 414.50811612106236
+      }
+    },
+    {
+      "Process": 3,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "idle",
+        "Round": 0,
+        "GpuMicroseconds": 116.947,
+        "FirstFiveMedian": 971.784,
+        "LastFiveMedian": 116.812,
+        "SmClockRange": [
+          210,
+          210
+        ],
+        "MemoryClockRange": [
+          810,
+          810
+        ],
+        "MemoryClockMedian": 810,
+        "TelemetrySamples": 11,
+        "MinimumTrafficGigabytesPerSecond": 286.91998939690626
+      }
+    },
+    {
+      "Process": 3,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "soak16",
+        "Round": 0,
+        "GpuMicroseconds": 81.06099999999999,
+        "FirstFiveMedian": 81.188,
+        "LastFiveMedian": 81.19,
+        "SmClockRange": [
+          915,
+          915
+        ],
+        "MemoryClockRange": [
+          5001,
+          5001
+        ],
+        "MemoryClockMedian": 5001.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 413.940513933951
+      }
+    },
+    {
+      "Process": 3,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "soak512",
+        "Round": 0,
+        "GpuMicroseconds": 81.07300000000001,
+        "FirstFiveMedian": 80.978,
+        "LastFiveMedian": 80.958,
+        "SmClockRange": [
+          1245,
+          1245
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 413.87924463138154
+      }
+    },
+    {
+      "Process": 3,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "soak512",
+        "Round": 1,
+        "GpuMicroseconds": 80.92599999999999,
+        "FirstFiveMedian": 80.92399999999999,
+        "LastFiveMedian": 80.902,
+        "SmClockRange": [
+          1590,
+          1590
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 414.6310456466402
+      }
+    },
+    {
+      "Process": 3,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "soak16",
+        "Round": 1,
+        "GpuMicroseconds": 80.87700000000001,
+        "FirstFiveMedian": 80.764,
+        "LastFiveMedian": 80.822,
+        "SmClockRange": [
+          1845,
+          1845
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201,
+        "TelemetrySamples": 1,
+        "MinimumTrafficGigabytesPerSecond": 414.88225329821825
+      }
+    },
+    {
+      "Process": 3,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "idle",
+        "Round": 1,
+        "GpuMicroseconds": 123.773,
+        "FirstFiveMedian": 123.796,
+        "LastFiveMedian": 123.75999999999999,
+        "SmClockRange": [
+          270,
+          270
+        ],
+        "MemoryClockRange": [
+          5001,
+          5001
+        ],
+        "MemoryClockMedian": 5001,
+        "TelemetrySamples": 3,
+        "MinimumTrafficGigabytesPerSecond": 271.09653963303793
+      }
+    },
+    {
+      "Process": 3,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "idle",
+        "Round": 2,
+        "GpuMicroseconds": 116.52700000000002,
+        "FirstFiveMedian": 969.756,
+        "LastFiveMedian": 116.226,
+        "SmClockRange": [
+          210,
+          825
+        ],
+        "MemoryClockRange": [
+          810,
+          5001
+        ],
+        "MemoryClockMedian": 810,
+        "TelemetrySamples": 9,
+        "MinimumTrafficGigabytesPerSecond": 287.9541393840054
+      }
+    },
+    {
+      "Process": 3,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "soak16",
+        "Round": 2,
+        "GpuMicroseconds": 81.059,
+        "FirstFiveMedian": 81.108,
+        "LastFiveMedian": 80.93599999999999,
+        "SmClockRange": [
+          975,
+          975
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 413.9507272480539
+      }
+    },
+    {
+      "Process": 3,
+      "Window": {
+        "Variant": "copy-256",
+        "Mode": "soak512",
+        "Round": 2,
+        "GpuMicroseconds": 81.07900000000001,
+        "FirstFiveMedian": 81.18400000000001,
+        "LastFiveMedian": 81.386,
+        "SmClockRange": [
+          1245,
+          1245
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 413.848616781164
+      }
+    },
+    {
+      "Process": 3,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "idle",
+        "Round": 0,
+        "GpuMicroseconds": 116.77799999999999,
+        "FirstFiveMedian": 975.822,
+        "LastFiveMedian": 116.36399999999999,
+        "SmClockRange": [
+          210,
+          210
+        ],
+        "MemoryClockRange": [
+          810,
+          810
+        ],
+        "MemoryClockMedian": 810,
+        "TelemetrySamples": 11,
+        "MinimumTrafficGigabytesPerSecond": 287.3352172498245
+      }
+    },
+    {
+      "Process": 3,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "soak16",
+        "Round": 0,
+        "GpuMicroseconds": 80.694,
+        "FirstFiveMedian": 80.676,
+        "LastFiveMedian": 80.82000000000001,
+        "SmClockRange": [
+          915,
+          915
+        ],
+        "MemoryClockRange": [
+          5001,
+          5001
+        ],
+        "MemoryClockMedian": 5001.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 415.8231343098619
+      }
+    },
+    {
+      "Process": 3,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "soak512",
+        "Round": 0,
+        "GpuMicroseconds": 81.013,
+        "FirstFiveMedian": 81.04,
+        "LastFiveMedian": 81.04400000000001,
+        "SmClockRange": [
+          1140,
+          1260
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 414.18577265377155
+      }
+    },
+    {
+      "Process": 3,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "soak512",
+        "Round": 1,
+        "GpuMicroseconds": 80.906,
+        "FirstFiveMedian": 80.85000000000001,
+        "LastFiveMedian": 80.982,
+        "SmClockRange": [
+          1605,
+          1605
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 414.73354262971844
+      }
+    },
+    {
+      "Process": 3,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "soak16",
+        "Round": 1,
+        "GpuMicroseconds": 80.914,
+        "FirstFiveMedian": 80.94800000000001,
+        "LastFiveMedian": 80.898,
+        "SmClockRange": [
+          1845,
+          1845
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201.0,
+        "TelemetrySamples": 2,
+        "MinimumTrafficGigabytesPerSecond": 414.6925377561362
+      }
+    },
+    {
+      "Process": 3,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "idle",
+        "Round": 1,
+        "GpuMicroseconds": 131.776,
+        "FirstFiveMedian": 131.70999999999998,
+        "LastFiveMedian": 131.746,
+        "SmClockRange": [
+          270,
+          270
+        ],
+        "MemoryClockRange": [
+          5001,
+          5001
+        ],
+        "MemoryClockMedian": 5001,
+        "TelemetrySamples": 3,
+        "MinimumTrafficGigabytesPerSecond": 254.63234579893148
+      }
+    },
+    {
+      "Process": 3,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "idle",
+        "Round": 2,
+        "GpuMicroseconds": 116.59100000000001,
+        "FirstFiveMedian": 1139.97,
+        "LastFiveMedian": 116.292,
+        "SmClockRange": [
+          210,
+          825
+        ],
+        "MemoryClockRange": [
+          810,
+          5001
+        ],
+        "MemoryClockMedian": 810,
+        "TelemetrySamples": 9,
+        "MinimumTrafficGigabytesPerSecond": 287.796073453354
+      }
+    },
+    {
+      "Process": 3,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "soak16",
+        "Round": 2,
+        "GpuMicroseconds": 80.668,
+        "FirstFiveMedian": 80.69999999999999,
+        "LastFiveMedian": 80.622,
+        "SmClockRange": [
+          975,
+          975
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201,
+        "TelemetrySamples": 1,
+        "MinimumTrafficGigabytesPerSecond": 415.95715773293
+      }
+    },
+    {
+      "Process": 3,
+      "Window": {
+        "Variant": "bias_silu-256",
+        "Mode": "soak512",
+        "Round": 2,
+        "GpuMicroseconds": 81.02,
+        "FirstFiveMedian": 81.02199999999999,
+        "LastFiveMedian": 81.018,
+        "SmClockRange": [
+          1245,
+          1245
+        ],
+        "MemoryClockRange": [
+          7201,
+          7201
+        ],
+        "MemoryClockMedian": 7201,
+        "TelemetrySamples": 1,
+        "MinimumTrafficGigabytesPerSecond": 414.14998765736857
+      }
+    }
+  ]
+}

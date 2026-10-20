@@ -100,6 +100,14 @@ DeviceLocalParameters: false)` retains host-visible parameter blocks for
 profiling controls. Preparation therefore has additional upload work, outside
 the replay timing boundary.
 
+`new PreparedComputeOptions(ElideIndependentBarriers: true)` omits interior
+compute barriers only for a batch whose dispatch allocations are independent.
+Preparation rejects read/write and write/write hazards between dispatches;
+initial and final dependencies remain. This is explicit admission, with the
+previous conservative policy as the default. See the
+[independent-dispatch experiment](scheduling-and-subgroup-experiment.md#independent-dispatch-barriers)
+for the measured throughput boundary.
+
 `math.Prepare(batch, enableGpuTimings: false)` omits timestamp reset/write/read
 operations; its execution result has a null `GpuMilliseconds`. For CPU phase
 diagnostics, `prepared.ExecuteProfiled()` reports tensor validation, submission

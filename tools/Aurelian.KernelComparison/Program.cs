@@ -10,6 +10,12 @@ using Aurelian.Shaders.Library;
 using Copeland.TS.Gpu;
 using Copeland.TS.Gpu.VdMir;
 
+if (args.Length > 0 && args[0] == "--research")
+{
+    SchedulingResearch.Run(args[1..]);
+    return;
+}
+
 if (args.Length > 0 && args[0] == "--profile")
 {
     ProfilingExperiment.Run(args[1..]);

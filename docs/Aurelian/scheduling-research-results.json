@@ -1,0 +1,3177 @@
+{
+  "Accepted": true,
+  "Reports": [
+    {
+      "Path": "run1\\vulkan\\research.json",
+      "Sha256": "3757c06e3a7e81dd58efbde75dffdd1f01e933c40b75c8db57966975afc15e08",
+      "Checks": 656,
+      "Samples": 4160,
+      "Clocks": [
+        {
+          "Case": "bias_silu-4x128x0",
+          "Snapshot": "name, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, P5, 780 MHz, 810 MHz, 32.83 W, 46\r\n"
+        },
+        {
+          "Case": "bias_silu-1024x4096x0",
+          "Snapshot": "name, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, P3, 270 MHz, 5001 MHz, 40.97 W, 47\r\n"
+        },
+        {
+          "Case": "rmsnorm-128x1024x0",
+          "Snapshot": "name, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, P3, 270 MHz, 5001 MHz, 38.61 W, 47\r\n"
+        },
+        {
+          "Case": "softmax-1024x4096x0",
+          "Snapshot": "name, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, P3, 795 MHz, 5001 MHz, 37.38 W, 48\r\n"
+        }
+      ]
+    },
+    {
+      "Path": "run1\\cuda\\research.json",
+      "Sha256": "28e86acc03903c627b815793807db123e0f4a985f7f94b45cef90e876f7631f2",
+      "Checks": 624,
+      "Samples": 5040,
+      "Clocks": [
+        {
+          "Case": "bias_silu-4x128x0",
+          "Snapshot": "name, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, P2, 1755 MHz, 7001 MHz, 34.98 W, 48\n"
+        },
+        {
+          "Case": "bias_silu-1024x4096x0",
+          "Snapshot": "name, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, P2, 1230 MHz, 7001 MHz, 96.23 W, 51\n"
+        },
+        {
+          "Case": "softmax-1024x4096x0",
+          "Snapshot": "name, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, P3, 780 MHz, 5001 MHz, 48.12 W, 50\n"
+        },
+        {
+          "Case": "rmsnorm-128x1024x0",
+          "Snapshot": "name, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, P3, 885 MHz, 5001 MHz, 62.59 W, 50\n"
+        }
+      ]
+    },
+    {
+      "Path": "run2\\vulkan\\research.json",
+      "Sha256": "202f2f61ea87aaea3773acfbef0aa1a937c155df6fc5380cb14d4d2c70ed91ed",
+      "Checks": 656,
+      "Samples": 4160,
+      "Clocks": [
+        {
+          "Case": "bias_silu-4x128x0",
+          "Snapshot": "name, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, P5, 780 MHz, 810 MHz, 28.09 W, 49\r\n"
+        },
+        {
+          "Case": "bias_silu-1024x4096x0",
+          "Snapshot": "name, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, P3, 270 MHz, 5001 MHz, 41.32 W, 50\r\n"
+        },
+        {
+          "Case": "rmsnorm-128x1024x0",
+          "Snapshot": "name, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, P3, 270 MHz, 5001 MHz, 37.70 W, 50\r\n"
+        },
+        {
+          "Case": "softmax-1024x4096x0",
+          "Snapshot": "name, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, P3, 825 MHz, 5001 MHz, 42.20 W, 51\r\n"
+        }
+      ]
+    },
+    {
+      "Path": "run2\\cuda\\research.json",
+      "Sha256": "abffd9f60d670c0d6f9507124c281782c12b002886ec76debd5dc4cfe1009bca",
+      "Checks": 624,
+      "Samples": 5040,
+      "Clocks": [
+        {
+          "Case": "bias_silu-4x128x0",
+          "Snapshot": "name, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, P2, 1755 MHz, 7001 MHz, 21.00 W, 48\n"
+        },
+        {
+          "Case": "bias_silu-1024x4096x0",
+          "Snapshot": "name, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, P2, 1185 MHz, 7001 MHz, 95.59 W, 52\n"
+        },
+        {
+          "Case": "softmax-1024x4096x0",
+          "Snapshot": "name, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, P3, 870 MHz, 5001 MHz, 60.38 W, 51\n"
+        },
+        {
+          "Case": "rmsnorm-128x1024x0",
+          "Snapshot": "name, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, P3, 870 MHz, 5001 MHz, 60.38 W, 51\n"
+        }
+      ]
+    },
+    {
+      "Path": "run3\\vulkan\\research.json",
+      "Sha256": "7ca5d19c543772d8c0ccb2ec08fd8ba5d108ccd56e6f1a91e9a8affa6fe7564b",
+      "Checks": 656,
+      "Samples": 4160,
+      "Clocks": [
+        {
+          "Case": "bias_silu-4x128x0",
+          "Snapshot": "name, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, P5, 780 MHz, 810 MHz, 28.34 W, 49\r\n"
+        },
+        {
+          "Case": "bias_silu-1024x4096x0",
+          "Snapshot": "name, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, P3, 270 MHz, 5001 MHz, 40.20 W, 50\r\n"
+        },
+        {
+          "Case": "rmsnorm-128x1024x0",
+          "Snapshot": "name, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, P3, 270 MHz, 5001 MHz, 35.90 W, 49\r\n"
+        },
+        {
+          "Case": "softmax-1024x4096x0",
+          "Snapshot": "name, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\r\nNVIDIA GeForce RTX 3070, P3, 780 MHz, 5001 MHz, 34.62 W, 51\r\n"
+        }
+      ]
+    },
+    {
+      "Path": "run3\\cuda\\research.json",
+      "Sha256": "05b38809a6efff56a0178ab119e8d57705f0eeed658e0cd298595e7a20bb9722",
+      "Checks": 624,
+      "Samples": 5040,
+      "Clocks": [
+        {
+          "Case": "bias_silu-4x128x0",
+          "Snapshot": "name, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, P2, 1755 MHz, 7001 MHz, 19.81 W, 49\n"
+        },
+        {
+          "Case": "bias_silu-1024x4096x0",
+          "Snapshot": "name, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, P2, 1215 MHz, 7001 MHz, 96.69 W, 53\n"
+        },
+        {
+          "Case": "softmax-1024x4096x0",
+          "Snapshot": "name, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, P3, 780 MHz, 5001 MHz, 52.21 W, 52\n"
+        },
+        {
+          "Case": "rmsnorm-128x1024x0",
+          "Snapshot": "name, pstate, clocks.current.sm [MHz], clocks.current.memory [MHz], power.draw [W], temperature.gpu\nNVIDIA GeForce RTX 3070, P3, 780 MHz, 5001 MHz, 52.21 W, 52\n"
+        }
+      ]
+    }
+  ],
+  "Gpu": [
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias-128",
+      "Name": "batch16",
+      "MedianMicroseconds": 87.52000331878662,
+      "ProcessMedians": [
+        87.64799684286118,
+        87.52000331878662,
+        87.10400015115738
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias-128",
+      "Name": "single",
+      "MedianMicroseconds": 97.79200330376625,
+      "ProcessMedians": [
+        97.79200330376625,
+        98.68800267577171,
+        90.11200070381165
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias-256",
+      "Name": "batch16",
+      "MedianMicroseconds": 84.12399888038635,
+      "ProcessMedians": [
+        84.12399888038635,
+        84.16000008583069,
+        83.96799862384796
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias-256",
+      "Name": "single",
+      "MedianMicroseconds": 87.99999952316284,
+      "ProcessMedians": [
+        97.28000313043594,
+        87.99999952316284,
+        87.0399996638298
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias-32",
+      "Name": "batch16",
+      "MedianMicroseconds": 99.80800002813339,
+      "ProcessMedians": [
+        99.13600236177444,
+        100.41600093245506,
+        99.80800002813339
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias-32",
+      "Name": "single",
+      "MedianMicroseconds": 108.99199917912483,
+      "ProcessMedians": [
+        108.99199917912483,
+        112.12800070643425,
+        105.47199845314026
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias-64",
+      "Name": "batch16",
+      "MedianMicroseconds": 85.1840004324913,
+      "ProcessMedians": [
+        85.1840004324913,
+        85.1840004324913,
+        84.99199897050858
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias-64",
+      "Name": "single",
+      "MedianMicroseconds": 98.30400347709656,
+      "ProcessMedians": [
+        89.58400040864944,
+        98.30400347709656,
+        98.70400279760361
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias-vector4",
+      "Name": "batch16",
+      "MedianMicroseconds": 83.00799876451492,
+      "ProcessMedians": [
+        82.87999778985977,
+        83.06699991226196,
+        83.00799876451492
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias-vector4",
+      "Name": "single",
+      "MedianMicroseconds": 91.61600098013878,
+      "ProcessMedians": [
+        91.61600098013878,
+        92.16000139713287,
+        86.44799888134003
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias_silu-128",
+      "Name": "batch16",
+      "MedianMicroseconds": 85.53000167012215,
+      "ProcessMedians": [
+        85.82399785518646,
+        85.53000167012215,
+        85.24800091981888
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias_silu-128",
+      "Name": "single",
+      "MedianMicroseconds": 94.2080020904541,
+      "ProcessMedians": [
+        94.2080020904541,
+        98.30400347709656,
+        88.57600018382072
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias_silu-256",
+      "Name": "batch16",
+      "MedianMicroseconds": 83.39200168848038,
+      "ProcessMedians": [
+        83.73599871993065,
+        83.39200168848038,
+        83.0719992518425
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias_silu-256",
+      "Name": "independent",
+      "MedianMicroseconds": 83.32100138068199,
+      "ProcessMedians": [
+        83.45500007271767,
+        83.32100138068199,
+        82.61999860405922
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias_silu-256",
+      "Name": "single",
+      "MedianMicroseconds": 97.15200215578079,
+      "ProcessMedians": [
+        97.15200215578079,
+        97.28000313043594,
+        87.02399954199791
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias_silu-32",
+      "Name": "batch16",
+      "MedianMicroseconds": 123.58400225639343,
+      "ProcessMedians": [
+        121.21199816465378,
+        123.58400225639343,
+        125.7920041680336
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias_silu-32",
+      "Name": "single",
+      "MedianMicroseconds": 132.09599256515503,
+      "ProcessMedians": [
+        126.97599828243256,
+        133.59999656677246,
+        132.09599256515503
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias_silu-64",
+      "Name": "batch16",
+      "MedianMicroseconds": 88.16000074148178,
+      "ProcessMedians": [
+        88.08699995279312,
+        88.8959988951683,
+        88.16000074148178
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias_silu-64",
+      "Name": "single",
+      "MedianMicroseconds": 92.04800054430962,
+      "ProcessMedians": [
+        92.00000017881393,
+        100.8639968931675,
+        92.04800054430962
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias_silu-vector4",
+      "Name": "batch16",
+      "MedianMicroseconds": 83.39200168848038,
+      "ProcessMedians": [
+        83.39200168848038,
+        83.39200168848038,
+        83.29600095748901
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias_silu-vector4",
+      "Name": "single",
+      "MedianMicroseconds": 86.5279994904995,
+      "ProcessMedians": [
+        87.0399996638298,
+        86.5279994904995,
+        86.5279994904995
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "copy-128",
+      "Name": "batch16",
+      "MedianMicroseconds": 87.29499951004982,
+      "ProcessMedians": [
+        87.29499951004982,
+        87.38700300455093,
+        86.94399893283844
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "copy-128",
+      "Name": "single",
+      "MedianMicroseconds": 91.13600105047226,
+      "ProcessMedians": [
+        90.11200070381165,
+        99.32799637317657,
+        91.13600105047226
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "copy-256",
+      "Name": "batch16",
+      "MedianMicroseconds": 84.03199911117554,
+      "ProcessMedians": [
+        84.03199911117554,
+        84.12300050258636,
+        83.61100032925606
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "copy-256",
+      "Name": "single",
+      "MedianMicroseconds": 97.21600264310837,
+      "ProcessMedians": [
+        97.21600264310837,
+        97.28000313043594,
+        87.0399996638298
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "copy-32",
+      "Name": "batch16",
+      "MedianMicroseconds": 98.65599870681763,
+      "ProcessMedians": [
+        97.98400104045868,
+        98.94400089979172,
+        98.65599870681763
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "copy-32",
+      "Name": "single",
+      "MedianMicroseconds": 111.03999987244606,
+      "ProcessMedians": [
+        109.56799983978271,
+        111.03999987244606,
+        111.61600053310394
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "copy-64",
+      "Name": "batch16",
+      "MedianMicroseconds": 84.79799702763557,
+      "ProcessMedians": [
+        84.79799702763557,
+        84.86399799585342,
+        84.60800349712372
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "copy-64",
+      "Name": "single",
+      "MedianMicroseconds": 88.06400001049042,
+      "ProcessMedians": [
+        97.28000313043594,
+        88.06400001049042,
+        88.06400001049042
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "copy-vector4",
+      "Name": "batch16",
+      "MedianMicroseconds": 82.9709991812706,
+      "ProcessMedians": [
+        82.9709991812706,
+        83.1339992582798,
+        82.5590007007122
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "copy-vector4",
+      "Name": "single",
+      "MedianMicroseconds": 88.52799981832504,
+      "ProcessMedians": [
+        88.52799981832504,
+        91.64800122380257,
+        86.01599931716919
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-128",
+      "Name": "batch16",
+      "MedianMicroseconds": 87.16800063848495,
+      "ProcessMedians": [
+        87.16800063848495,
+        87.21699938178062,
+        86.65599673986435
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-128",
+      "Name": "single",
+      "MedianMicroseconds": 90.62400087714195,
+      "ProcessMedians": [
+        98.30400347709656,
+        89.08800035715103,
+        90.62400087714195
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-256",
+      "Name": "batch16",
+      "MedianMicroseconds": 83.99999886751175,
+      "ProcessMedians": [
+        84.09599959850311,
+        83.99999886751175,
+        83.52000266313553
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-256",
+      "Name": "single",
+      "MedianMicroseconds": 88.06400001049042,
+      "ProcessMedians": [
+        88.06400001049042,
+        98.30400347709656,
+        88.06400001049042
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-32",
+      "Name": "batch16",
+      "MedianMicroseconds": 107.2000004351139,
+      "ProcessMedians": [
+        105.34399747848511,
+        107.2000004351139,
+        107.2320006787777
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-32",
+      "Name": "single",
+      "MedianMicroseconds": 115.48800021409988,
+      "ProcessMedians": [
+        115.7120019197464,
+        115.48800021409988,
+        112.09600046277046
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-64",
+      "Name": "batch16",
+      "MedianMicroseconds": 85.87699756026268,
+      "ProcessMedians": [
+        85.82399785518646,
+        86.33600175380707,
+        85.87699756026268
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-64",
+      "Name": "single",
+      "MedianMicroseconds": 99.32799637317657,
+      "ProcessMedians": [
+        94.2080020904541,
+        99.32799637317657,
+        99.75999966263771
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-expf-128",
+      "Name": "batch16",
+      "MedianMicroseconds": 86.6210013628006,
+      "ProcessMedians": [
+        86.81399747729301,
+        86.6210013628006,
+        86.27200126647949
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-expf-128",
+      "Name": "single",
+      "MedianMicroseconds": 93.6960019171238,
+      "ProcessMedians": [
+        92.67200157046318,
+        97.680002450943,
+        93.6960019171238
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-expf-256",
+      "Name": "batch16",
+      "MedianMicroseconds": 84.11400020122528,
+      "ProcessMedians": [
+        84.11400020122528,
+        84.25600081682205,
+        83.52000266313553
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-expf-256",
+      "Name": "single",
+      "MedianMicroseconds": 97.28000313043594,
+      "ProcessMedians": [
+        97.28000313043594,
+        98.09600189328194,
+        88.06400001049042
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-expf-32",
+      "Name": "batch16",
+      "MedianMicroseconds": 110.20800098776817,
+      "ProcessMedians": [
+        108.95499959588051,
+        110.20800098776817,
+        112.28599771857262
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-expf-32",
+      "Name": "single",
+      "MedianMicroseconds": 116.54400080442429,
+      "ProcessMedians": [
+        116.54400080442429,
+        121.85599654912949,
+        116.2240020930767
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-expf-64",
+      "Name": "batch16",
+      "MedianMicroseconds": 86.29900217056274,
+      "ProcessMedians": [
+        86.1390009522438,
+        86.46400272846222,
+        86.29900217056274
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-expf-64",
+      "Name": "single",
+      "MedianMicroseconds": 99.72799941897392,
+      "ProcessMedians": [
+        99.80800002813339,
+        99.72799941897392,
+        90.11200070381165
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-vector4",
+      "Name": "batch16",
+      "MedianMicroseconds": 82.96699821949005,
+      "ProcessMedians": [
+        82.96699821949005,
+        84.89599823951721,
+        82.84799754619598
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-vector4",
+      "Name": "single",
+      "MedianMicroseconds": 86.01599931716919,
+      "ProcessMedians": [
+        87.0399996638298,
+        86.01599931716919,
+        86.01599931716919
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "silu-expf-128",
+      "Name": "batch16",
+      "MedianMicroseconds": 85.21600067615509,
+      "ProcessMedians": [
+        85.50400286912918,
+        85.21600067615509,
+        85.11999994516373
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "silu-expf-128",
+      "Name": "single",
+      "MedianMicroseconds": 97.71200269460678,
+      "ProcessMedians": [
+        97.71200269460678,
+        98.30400347709656,
+        90.11200070381165
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "silu-expf-256",
+      "Name": "batch16",
+      "MedianMicroseconds": 83.26400071382523,
+      "ProcessMedians": [
+        83.26400071382523,
+        83.45299959182739,
+        82.74399861693382
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "silu-expf-256",
+      "Name": "single",
+      "MedianMicroseconds": 96.25600278377533,
+      "ProcessMedians": [
+        96.25600278377533,
+        97.120001912117,
+        87.55199983716011
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "silu-expf-32",
+      "Name": "batch16",
+      "MedianMicroseconds": 124.35200065374374,
+      "ProcessMedians": [
+        120.95999717712402,
+        124.35200065374374,
+        125.11200085282326
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "silu-expf-32",
+      "Name": "single",
+      "MedianMicroseconds": 133.63199681043625,
+      "ProcessMedians": [
+        128.9760023355484,
+        133.63199681043625,
+        135.67999750375748
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "silu-expf-64",
+      "Name": "batch16",
+      "MedianMicroseconds": 88.3840024471283,
+      "ProcessMedians": [
+        88.0960002541542,
+        88.92799913883209,
+        88.3840024471283
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "silu-expf-64",
+      "Name": "single",
+      "MedianMicroseconds": 101.3759970664978,
+      "ProcessMedians": [
+        101.3759970664978,
+        101.3759970664978,
+        92.16000139713287
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias-128",
+      "Name": "batch16",
+      "MedianMicroseconds": 2.176000038161874,
+      "ProcessMedians": [
+        2.176000038161874,
+        2.1639999467879534,
+        2.176000038161874
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias-128",
+      "Name": "single",
+      "MedianMicroseconds": 13.311999849975109,
+      "ProcessMedians": [
+        13.311999849975109,
+        13.311999849975109,
+        14.031999744474888
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias-256",
+      "Name": "batch16",
+      "MedianMicroseconds": 1.8560000462457538,
+      "ProcessMedians": [
+        1.8439999548718333,
+        1.8560000462457538,
+        1.8560000462457538
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias-256",
+      "Name": "single",
+      "MedianMicroseconds": 13.21600005030632,
+      "ProcessMedians": [
+        13.21600005030632,
+        13.199999928474426,
+        13.311999849975109
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias-32",
+      "Name": "batch16",
+      "MedianMicroseconds": 4.095999989658594,
+      "ProcessMedians": [
+        4.095999989658594,
+        4.095999989658594,
+        4.1600000113248825
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias-32",
+      "Name": "single",
+      "MedianMicroseconds": 15.32800029963255,
+      "ProcessMedians": [
+        15.32800029963255,
+        15.311999712139368,
+        15.359999611973763
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias-64",
+      "Name": "batch16",
+      "MedianMicroseconds": 2.8750000055879354,
+      "ProcessMedians": [
+        2.8750000055879354,
+        2.816000021994114,
+        2.8800000436604023
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias-64",
+      "Name": "single",
+      "MedianMicroseconds": 14.22400027513504,
+      "ProcessMedians": [
+        14.08000010997057,
+        14.272000174969435,
+        14.22400027513504
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias-vector4",
+      "Name": "batch16",
+      "MedianMicroseconds": 1.728000002913177,
+      "ProcessMedians": [
+        1.7170000355690718,
+        1.728000002913177,
+        1.728000002913177
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias-vector4",
+      "Name": "single",
+      "MedianMicroseconds": 13.088000006973743,
+      "ProcessMedians": [
+        13.088000006973743,
+        12.28800043463707,
+        13.088000006973743
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias_silu-128",
+      "Name": "batch16",
+      "MedianMicroseconds": 2.543000038713217,
+      "ProcessMedians": [
+        2.543000038713217,
+        2.543000038713217,
+        2.5599999353289604
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias_silu-128",
+      "Name": "single",
+      "MedianMicroseconds": 14.208000153303146,
+      "ProcessMedians": [
+        14.208000153303146,
+        13.311999849975109,
+        14.336000196635723
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias_silu-256",
+      "Name": "batch16",
+      "MedianMicroseconds": 2.047999994829297,
+      "ProcessMedians": [
+        2.0359999034553766,
+        2.047999994829297,
+        2.047999994829297
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias_silu-256",
+      "Name": "independent",
+      "MedianMicroseconds": 2.047999994829297,
+      "ProcessMedians": [
+        2.0340000046417117,
+        2.047999994829297,
+        2.047999994829297
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias_silu-256",
+      "Name": "single",
+      "MedianMicroseconds": 13.311999849975109,
+      "ProcessMedians": [
+        13.279999606311321,
+        13.311999849975109,
+        13.311999849975109
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias_silu-32",
+      "Name": "batch16",
+      "MedianMicroseconds": 5.632000043988228,
+      "ProcessMedians": [
+        5.632000043988228,
+        5.632000043988228,
+        5.696000065654516
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias_silu-32",
+      "Name": "single",
+      "MedianMicroseconds": 17.152000218629837,
+      "ProcessMedians": [
+        16.383999958634377,
+        17.152000218629837,
+        17.40800030529499
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias_silu-64",
+      "Name": "batch16",
+      "MedianMicroseconds": 3.584000049158931,
+      "ProcessMedians": [
+        3.584000049158931,
+        3.5719999577850103,
+        3.584000049158931
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias_silu-64",
+      "Name": "single",
+      "MedianMicroseconds": 15.12000011280179,
+      "ProcessMedians": [
+        15.152000356465578,
+        15.039999969303608,
+        15.12000011280179
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias_silu-vector4",
+      "Name": "batch16",
+      "MedianMicroseconds": 1.8770000315271318,
+      "ProcessMedians": [
+        1.8560000462457538,
+        1.8770000315271318,
+        1.9109999993816018
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias_silu-vector4",
+      "Name": "single",
+      "MedianMicroseconds": 12.640000320971012,
+      "ProcessMedians": [
+        12.640000320971012,
+        12.28800043463707,
+        13.183999806642532
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "copy-128",
+      "Name": "batch16",
+      "MedianMicroseconds": 2.1120000164955854,
+      "ProcessMedians": [
+        2.1120000164955854,
+        2.1120000164955854,
+        2.1669999696314335
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "copy-128",
+      "Name": "single",
+      "MedianMicroseconds": 13.311999849975109,
+      "ProcessMedians": [
+        13.311999849975109,
+        13.311999849975109,
+        13.311999849975109
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "copy-256",
+      "Name": "batch16",
+      "MedianMicroseconds": 1.8140000174753368,
+      "ProcessMedians": [
+        1.7920000245794654,
+        1.8140000174753368,
+        1.8530000234022737
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "copy-256",
+      "Name": "single",
+      "MedianMicroseconds": 13.151999562978745,
+      "ProcessMedians": [
+        13.151999562978745,
+        13.040000107139349,
+        13.183999806642532
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "copy-32",
+      "Name": "batch16",
+      "MedianMicroseconds": 3.9569998625665903,
+      "ProcessMedians": [
+        3.9569998625665903,
+        3.9259998593479395,
+        3.9679999463260174
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "copy-32",
+      "Name": "single",
+      "MedianMicroseconds": 15.32800029963255,
+      "ProcessMedians": [
+        15.32800029963255,
+        15.12000011280179,
+        15.359999611973763
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "copy-64",
+      "Name": "batch16",
+      "MedianMicroseconds": 2.7520000003278255,
+      "ProcessMedians": [
+        2.7520000003278255,
+        2.7520000003278255,
+        2.8029999230057
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "copy-64",
+      "Name": "single",
+      "MedianMicroseconds": 13.98400031030178,
+      "ProcessMedians": [
+        13.311999849975109,
+        13.98400031030178,
+        14.160000253468752
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "copy-vector4",
+      "Name": "batch16",
+      "MedianMicroseconds": 1.7189999925903976,
+      "ProcessMedians": [
+        1.7219999572262168,
+        1.715000020340085,
+        1.7189999925903976
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "copy-vector4",
+      "Name": "single",
+      "MedianMicroseconds": 12.28800043463707,
+      "ProcessMedians": [
+        12.28800043463707,
+        12.28800043463707,
+        12.304000090807676
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-128",
+      "Name": "batch16",
+      "MedianMicroseconds": 2.3040000814944506,
+      "ProcessMedians": [
+        2.3040000814944506,
+        2.3040000814944506,
+        2.3529999889433384
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-128",
+      "Name": "single",
+      "MedianMicroseconds": 13.311999849975109,
+      "ProcessMedians": [
+        13.311999849975109,
+        13.311999849975109,
+        14.303999952971935
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-256",
+      "Name": "batch16",
+      "MedianMicroseconds": 1.9109999993816018,
+      "ProcessMedians": [
+        1.8990000244230032,
+        1.9109999993816018,
+        1.9199999514967203
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-256",
+      "Name": "single",
+      "MedianMicroseconds": 13.279999606311321,
+      "ProcessMedians": [
+        13.088000006973743,
+        13.279999606311321,
+        13.311999849975109
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-32",
+      "Name": "batch16",
+      "MedianMicroseconds": 4.912000149488449,
+      "ProcessMedians": [
+        4.8859999515116215,
+        4.912000149488449,
+        4.977000178769231
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-32",
+      "Name": "single",
+      "MedianMicroseconds": 16.335999593138695,
+      "ProcessMedians": [
+        16.208000481128693,
+        16.335999593138695,
+        16.383999958634377
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-64",
+      "Name": "batch16",
+      "MedianMicroseconds": 3.221999970264733,
+      "ProcessMedians": [
+        3.1999999191612005,
+        3.221999970264733,
+        3.263999940827489
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-64",
+      "Name": "single",
+      "MedianMicroseconds": 14.336000196635723,
+      "ProcessMedians": [
+        14.336000196635723,
+        14.336000196635723,
+        14.336000196635723
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-expf-128",
+      "Name": "batch16",
+      "MedianMicroseconds": 2.3040000814944506,
+      "ProcessMedians": [
+        2.303000073879957,
+        2.3040000814944506,
+        2.3040000814944506
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-expf-128",
+      "Name": "single",
+      "MedianMicroseconds": 13.311999849975109,
+      "ProcessMedians": [
+        13.311999849975109,
+        13.311999849975109,
+        13.311999849975109
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-expf-256",
+      "Name": "batch16",
+      "MedianMicroseconds": 1.9049999536946416,
+      "ProcessMedians": [
+        1.8560000462457538,
+        1.9049999536946416,
+        1.9180000526830554
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-expf-256",
+      "Name": "single",
+      "MedianMicroseconds": 13.295999728143215,
+      "ProcessMedians": [
+        13.120000250637531,
+        13.311999849975109,
+        13.295999728143215
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-expf-32",
+      "Name": "batch16",
+      "MedianMicroseconds": 4.863999783992767,
+      "ProcessMedians": [
+        4.863999783992767,
+        4.860999993979931,
+        4.910000134259462
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-expf-32",
+      "Name": "single",
+      "MedianMicroseconds": 16.272000037133694,
+      "ProcessMedians": [
+        16.11199975013733,
+        16.272000037133694,
+        16.383999958634377
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-expf-64",
+      "Name": "batch16",
+      "MedianMicroseconds": 3.198999911546707,
+      "ProcessMedians": [
+        3.198999911546707,
+        3.198999911546707,
+        3.1999999191612005
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-expf-64",
+      "Name": "single",
+      "MedianMicroseconds": 14.336000196635723,
+      "ProcessMedians": [
+        14.336000196635723,
+        14.336000196635723,
+        14.336000196635723
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-vector4",
+      "Name": "batch16",
+      "MedianMicroseconds": 1.728000002913177,
+      "ProcessMedians": [
+        1.728000002913177,
+        1.7719999887049198,
+        1.728000002913177
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-vector4",
+      "Name": "single",
+      "MedianMicroseconds": 13.056000228971243,
+      "ProcessMedians": [
+        13.056000228971243,
+        13.10399966314435,
+        13.040000107139349
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "silu-expf-128",
+      "Name": "batch16",
+      "MedianMicroseconds": 2.5420000310987234,
+      "ProcessMedians": [
+        2.5420000310987234,
+        2.495999913662672,
+        2.5510000996291637
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "silu-expf-128",
+      "Name": "single",
+      "MedianMicroseconds": 13.98400031030178,
+      "ProcessMedians": [
+        13.98400031030178,
+        13.311999849975109,
+        14.096000231802464
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "silu-expf-256",
+      "Name": "batch16",
+      "MedianMicroseconds": 2.0409999415278435,
+      "ProcessMedians": [
+        2.0409999415278435,
+        2.041999949142337,
+        2.0389999262988567
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "silu-expf-256",
+      "Name": "single",
+      "MedianMicroseconds": 13.248000293970108,
+      "ProcessMedians": [
+        13.311999849975109,
+        13.21600005030632,
+        13.248000293970108
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "silu-expf-32",
+      "Name": "batch16",
+      "MedianMicroseconds": 5.6149999145418406,
+      "ProcessMedians": [
+        5.6149999145418406,
+        5.588999949395657,
+        5.632000043988228
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "silu-expf-32",
+      "Name": "single",
+      "MedianMicroseconds": 16.383999958634377,
+      "ProcessMedians": [
+        16.383999958634377,
+        16.383999958634377,
+        17.27999933063984
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "silu-expf-64",
+      "Name": "batch16",
+      "MedianMicroseconds": 3.5200000274926424,
+      "ProcessMedians": [
+        3.5200000274926424,
+        3.5200000274926424,
+        3.584000049158931
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "silu-expf-64",
+      "Name": "single",
+      "MedianMicroseconds": 14.336000196635723,
+      "ProcessMedians": [
+        14.336000196635723,
+        14.336000196635723,
+        15.21599991247058
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "rmsnorm-128x1024x0",
+      "Variant": "wave128",
+      "Name": "batch16",
+      "MedianMicroseconds": 5.632000043988228,
+      "ProcessMedians": [
+        5.632000043988228,
+        6.016000173985958,
+        5.632000043988228
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "rmsnorm-128x1024x0",
+      "Variant": "wave128",
+      "Name": "single",
+      "MedianMicroseconds": 9.200000204145908,
+      "ProcessMedians": [
+        9.200000204145908,
+        9.216000325977802,
+        9.200000204145908
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "rmsnorm-128x1024x0",
+      "Variant": "wave256",
+      "Name": "batch16",
+      "MedianMicroseconds": 4.608000162988901,
+      "ProcessMedians": [
+        4.543000133708119,
+        4.925999790430069,
+        4.608000162988901
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "rmsnorm-128x1024x0",
+      "Variant": "wave256",
+      "Name": "single",
+      "MedianMicroseconds": 7.168000098317862,
+      "ProcessMedians": [
+        7.168000098317862,
+        8.191999979317188,
+        7.168000098317862
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "rmsnorm-128x1024x0",
+      "Variant": "wave32",
+      "Name": "batch16",
+      "MedianMicroseconds": 11.58399973064661,
+      "ProcessMedians": [
+        11.514999903738499,
+        12.28800043463707,
+        11.58399973064661
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "rmsnorm-128x1024x0",
+      "Variant": "wave32",
+      "Name": "single",
+      "MedianMicroseconds": 14.336000196635723,
+      "ProcessMedians": [
+        14.336000196635723,
+        15.359999611973763,
+        14.336000196635723
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "softmax-1024x4096x0",
+      "Variant": "wave128",
+      "Name": "batch16",
+      "MedianMicroseconds": 207.93599635362625,
+      "ProcessMedians": [
+        208.25600624084473,
+        207.93599635362625,
+        206.91199600696564
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "softmax-1024x4096x0",
+      "Variant": "wave128",
+      "Name": "single",
+      "MedianMicroseconds": 210.4320004582405,
+      "ProcessMedians": [
+        210.79999953508377,
+        210.4320004582405,
+        209.9040001630783
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "softmax-1024x4096x0",
+      "Variant": "wave256",
+      "Name": "batch16",
+      "MedianMicroseconds": 178.52800339460373,
+      "ProcessMedians": [
+        178.52800339460373,
+        180.86399883031845,
+        176.41600221395493
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "softmax-1024x4096x0",
+      "Variant": "wave256",
+      "Name": "single",
+      "MedianMicroseconds": 184.32000279426575,
+      "ProcessMedians": [
+        184.83199924230576,
+        184.32000279426575,
+        184.32000279426575
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "softmax-1024x4096x0",
+      "Variant": "wave32",
+      "Name": "batch16",
+      "MedianMicroseconds": 299.2960065603256,
+      "ProcessMedians": [
+        299.80799555778503,
+        299.2960065603256,
+        298.2719987630844
+      ]
+    },
+    {
+      "Backend": "cuda",
+      "Case": "softmax-1024x4096x0",
+      "Variant": "wave32",
+      "Name": "single",
+      "MedianMicroseconds": 302.0800054073334,
+      "ProcessMedians": [
+        301.05599761009216,
+        302.0800054073334,
+        303.1040132045746
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias-128",
+      "Name": "batch16",
+      "MedianMicroseconds": 118.727,
+      "ProcessMedians": [
+        118.833,
+        118.727,
+        118.51599999999999
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias-128",
+      "Name": "single",
+      "MedianMicroseconds": 120.416,
+      "ProcessMedians": [
+        120.416,
+        120.47999999999999,
+        119.616
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias-256",
+      "Name": "batch16",
+      "MedianMicroseconds": 116.49100000000001,
+      "ProcessMedians": [
+        116.632,
+        116.49100000000001,
+        116.417
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias-256",
+      "Name": "single",
+      "MedianMicroseconds": 118.128,
+      "ProcessMedians": [
+        117.952,
+        118.144,
+        118.128
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias-32",
+      "Name": "batch16",
+      "MedianMicroseconds": 132.678,
+      "ProcessMedians": [
+        133.38299999999998,
+        132.678,
+        131.603
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias-32",
+      "Name": "single",
+      "MedianMicroseconds": 133.15200000000002,
+      "ProcessMedians": [
+        134.144,
+        133.088,
+        133.15200000000002
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias-64",
+      "Name": "batch16",
+      "MedianMicroseconds": 117.313,
+      "ProcessMedians": [
+        117.313,
+        117.43599999999999,
+        117.244
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias-64",
+      "Name": "single",
+      "MedianMicroseconds": 118.928,
+      "ProcessMedians": [
+        118.96,
+        118.896,
+        118.928
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias-vector4",
+      "Name": "batch16",
+      "MedianMicroseconds": 115.439,
+      "ProcessMedians": [
+        115.439,
+        115.507,
+        115.31
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias-vector4",
+      "Name": "single",
+      "MedianMicroseconds": 117.088,
+      "ProcessMedians": [
+        117.12,
+        117.088,
+        116.70400000000001
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias_silu-128",
+      "Name": "batch16",
+      "MedianMicroseconds": 118.84100000000001,
+      "ProcessMedians": [
+        118.906,
+        118.84100000000001,
+        118.619
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias_silu-128",
+      "Name": "single",
+      "MedianMicroseconds": 120.24,
+      "ProcessMedians": [
+        120.4,
+        120.14399999999999,
+        120.24
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias_silu-256",
+      "Name": "batch16",
+      "MedianMicroseconds": 116.465,
+      "ProcessMedians": [
+        116.465,
+        116.48599999999999,
+        116.359
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias_silu-256",
+      "Name": "independent-elided",
+      "MedianMicroseconds": 112.27,
+      "ProcessMedians": [
+        112.27,
+        112.33099999999999,
+        112.226
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias_silu-256",
+      "Name": "independent-full",
+      "MedianMicroseconds": 116.208,
+      "ProcessMedians": [
+        116.208,
+        116.344,
+        116.149
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias_silu-256",
+      "Name": "single",
+      "MedianMicroseconds": 118.16,
+      "ProcessMedians": [
+        118.208,
+        118.0,
+        118.16
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias_silu-32",
+      "Name": "batch16",
+      "MedianMicroseconds": 139.738,
+      "ProcessMedians": [
+        139.175,
+        139.892,
+        139.738
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias_silu-32",
+      "Name": "single",
+      "MedianMicroseconds": 140.896,
+      "ProcessMedians": [
+        140.896,
+        140.07999999999998,
+        140.89600000000002
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias_silu-64",
+      "Name": "batch16",
+      "MedianMicroseconds": 118.17099999999999,
+      "ProcessMedians": [
+        118.269,
+        118.17099999999999,
+        117.893
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias_silu-64",
+      "Name": "single",
+      "MedianMicroseconds": 119.6,
+      "ProcessMedians": [
+        119.616,
+        119.328,
+        119.6
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias_silu-vector4",
+      "Name": "batch16",
+      "MedianMicroseconds": 115.447,
+      "ProcessMedians": [
+        115.477,
+        115.447,
+        115.394
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "bias_silu-vector4",
+      "Name": "single",
+      "MedianMicroseconds": 117.088,
+      "ProcessMedians": [
+        117.392,
+        117.088,
+        117.00800000000001
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "copy-128",
+      "Name": "batch16",
+      "MedianMicroseconds": 120.615,
+      "ProcessMedians": [
+        120.615,
+        120.768,
+        120.35
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "copy-128",
+      "Name": "single",
+      "MedianMicroseconds": 119.344,
+      "ProcessMedians": [
+        119.344,
+        119.392,
+        119.312
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "copy-256",
+      "Name": "batch16",
+      "MedianMicroseconds": 116.286,
+      "ProcessMedians": [
+        116.286,
+        116.30000000000001,
+        116.12
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "copy-256",
+      "Name": "single",
+      "MedianMicroseconds": 117.98400000000001,
+      "ProcessMedians": [
+        117.98400000000001,
+        117.872,
+        118.032
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "copy-32",
+      "Name": "batch16",
+      "MedianMicroseconds": 131.264,
+      "ProcessMedians": [
+        131.344,
+        131.264,
+        130.361
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "copy-32",
+      "Name": "single",
+      "MedianMicroseconds": 132.24,
+      "ProcessMedians": [
+        132.24,
+        132.176,
+        132.256
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "copy-64",
+      "Name": "batch16",
+      "MedianMicroseconds": 116.83,
+      "ProcessMedians": [
+        116.94900000000001,
+        116.83,
+        116.78299999999999
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "copy-64",
+      "Name": "single",
+      "MedianMicroseconds": 118.65599999999999,
+      "ProcessMedians": [
+        118.704,
+        118.384,
+        118.65599999999999
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "copy-vector4",
+      "Name": "batch16",
+      "MedianMicroseconds": 115.28300000000002,
+      "ProcessMedians": [
+        115.299,
+        115.28300000000002,
+        115.066
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "copy-vector4",
+      "Name": "single",
+      "MedianMicroseconds": 116.912,
+      "ProcessMedians": [
+        116.912,
+        116.78399999999999,
+        116.928
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-128",
+      "Name": "batch16",
+      "MedianMicroseconds": 118.2,
+      "ProcessMedians": [
+        118.2,
+        118.50800000000001,
+        118.027
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-128",
+      "Name": "single",
+      "MedianMicroseconds": 119.47200000000001,
+      "ProcessMedians": [
+        119.68,
+        119.47200000000001,
+        119.21600000000001
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-256",
+      "Name": "batch16",
+      "MedianMicroseconds": 116.283,
+      "ProcessMedians": [
+        116.283,
+        116.369,
+        116.15
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-256",
+      "Name": "single",
+      "MedianMicroseconds": 117.92,
+      "ProcessMedians": [
+        118.016,
+        117.68,
+        117.92
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-32",
+      "Name": "batch16",
+      "MedianMicroseconds": 134.46,
+      "ProcessMedians": [
+        134.46,
+        134.62599999999998,
+        133.531
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-32",
+      "Name": "single",
+      "MedianMicroseconds": 135.136,
+      "ProcessMedians": [
+        135.31199999999998,
+        135.024,
+        135.136
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-64",
+      "Name": "batch16",
+      "MedianMicroseconds": 118.142,
+      "ProcessMedians": [
+        118.259,
+        118.142,
+        117.949
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-64",
+      "Name": "single",
+      "MedianMicroseconds": 119.63199999999999,
+      "ProcessMedians": [
+        119.792,
+        119.63199999999999,
+        119.19999999999999
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-vector4",
+      "Name": "batch16",
+      "MedianMicroseconds": 115.499,
+      "ProcessMedians": [
+        115.549,
+        115.499,
+        115.287
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "exp-vector4",
+      "Name": "single",
+      "MedianMicroseconds": 117.216,
+      "ProcessMedians": [
+        117.26400000000001,
+        116.89599999999999,
+        117.216
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "ts-baseline",
+      "Name": "batch16",
+      "MedianMicroseconds": 116.655,
+      "ProcessMedians": [
+        116.655,
+        116.858,
+        116.49
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-1024x4096x0",
+      "Variant": "ts-baseline",
+      "Name": "single",
+      "MedianMicroseconds": 117.84,
+      "ProcessMedians": [
+        118.16,
+        117.71199999999999,
+        117.84
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias-128",
+      "Name": "batch16",
+      "MedianMicroseconds": 3.237,
+      "ProcessMedians": [
+        3.237,
+        7.429,
+        3.229
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias-128",
+      "Name": "single",
+      "MedianMicroseconds": 5.616,
+      "ProcessMedians": [
+        5.616,
+        10.48,
+        5.3919999999999995
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias-256",
+      "Name": "batch16",
+      "MedianMicroseconds": 2.6020000000000003,
+      "ProcessMedians": [
+        2.583,
+        5.8149999999999995,
+        2.6020000000000003
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias-256",
+      "Name": "single",
+      "MedianMicroseconds": 4.896,
+      "ProcessMedians": [
+        4.656,
+        8.8,
+        4.896
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias-32",
+      "Name": "batch16",
+      "MedianMicroseconds": 7.734,
+      "ProcessMedians": [
+        7.734,
+        19.136,
+        7.7330000000000005
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias-32",
+      "Name": "single",
+      "MedianMicroseconds": 10.128,
+      "ProcessMedians": [
+        10.08,
+        22.704,
+        10.128
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias-64",
+      "Name": "batch16",
+      "MedianMicroseconds": 4.693,
+      "ProcessMedians": [
+        4.692,
+        11.257000000000001,
+        4.693
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias-64",
+      "Name": "single",
+      "MedianMicroseconds": 7.152,
+      "ProcessMedians": [
+        7.104,
+        14.336,
+        7.152
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias-vector4",
+      "Name": "batch16",
+      "MedianMicroseconds": 2.459,
+      "ProcessMedians": [
+        2.445,
+        5.462,
+        2.459
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias-vector4",
+      "Name": "single",
+      "MedianMicroseconds": 4.752,
+      "ProcessMedians": [
+        4.672,
+        8.528,
+        4.752
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias_silu-128",
+      "Name": "batch16",
+      "MedianMicroseconds": 3.476,
+      "ProcessMedians": [
+        3.476,
+        8.139,
+        3.46
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias_silu-128",
+      "Name": "single",
+      "MedianMicroseconds": 5.952,
+      "ProcessMedians": [
+        5.952,
+        11.488,
+        5.728
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias_silu-256",
+      "Name": "batch16",
+      "MedianMicroseconds": 2.7359999999999998,
+      "ProcessMedians": [
+        2.7089999999999996,
+        6.216,
+        2.7359999999999998
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias_silu-256",
+      "Name": "independent-elided",
+      "MedianMicroseconds": 0.518,
+      "ProcessMedians": [
+        0.499,
+        1.024,
+        0.518
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias_silu-256",
+      "Name": "independent-full",
+      "MedianMicroseconds": 2.734,
+      "ProcessMedians": [
+        2.72,
+        6.1850000000000005,
+        2.734
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias_silu-256",
+      "Name": "single",
+      "MedianMicroseconds": 5.312,
+      "ProcessMedians": [
+        5.04,
+        9.024000000000001,
+        5.312
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias_silu-32",
+      "Name": "batch16",
+      "MedianMicroseconds": 8.746,
+      "ProcessMedians": [
+        8.746,
+        22.253,
+        8.687000000000001
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias_silu-32",
+      "Name": "single",
+      "MedianMicroseconds": 11.36,
+      "ProcessMedians": [
+        11.36,
+        26.672,
+        11.312000000000001
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias_silu-64",
+      "Name": "batch16",
+      "MedianMicroseconds": 5.234999999999999,
+      "ProcessMedians": [
+        5.234999999999999,
+        12.975999999999999,
+        5.233
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias_silu-64",
+      "Name": "single",
+      "MedianMicroseconds": 7.776,
+      "ProcessMedians": [
+        7.4719999999999995,
+        16.208,
+        7.776
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias_silu-vector4",
+      "Name": "batch16",
+      "MedianMicroseconds": 2.568,
+      "ProcessMedians": [
+        2.568,
+        5.869,
+        2.5629999999999997
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "bias_silu-vector4",
+      "Name": "single",
+      "MedianMicroseconds": 4.816000000000001,
+      "ProcessMedians": [
+        4.704,
+        8.72,
+        4.816000000000001
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "copy-128",
+      "Name": "batch16",
+      "MedianMicroseconds": 3.093,
+      "ProcessMedians": [
+        3.093,
+        6.96,
+        3.068
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "copy-128",
+      "Name": "single",
+      "MedianMicroseconds": 5.3759999999999994,
+      "ProcessMedians": [
+        5.3759999999999994,
+        10.032,
+        5.248
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "copy-256",
+      "Name": "batch16",
+      "MedianMicroseconds": 2.448,
+      "ProcessMedians": [
+        2.448,
+        5.374,
+        2.4459999999999997
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "copy-256",
+      "Name": "single",
+      "MedianMicroseconds": 5.072,
+      "ProcessMedians": [
+        4.912,
+        8.384,
+        5.072
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "copy-32",
+      "Name": "batch16",
+      "MedianMicroseconds": 7.324,
+      "ProcessMedians": [
+        7.324,
+        17.96,
+        7.241
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "copy-32",
+      "Name": "single",
+      "MedianMicroseconds": 9.664,
+      "ProcessMedians": [
+        9.664,
+        20.96,
+        9.616
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "copy-64",
+      "Name": "batch16",
+      "MedianMicroseconds": 4.457,
+      "ProcessMedians": [
+        4.457,
+        10.504999999999999,
+        4.445
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "copy-64",
+      "Name": "single",
+      "MedianMicroseconds": 6.848,
+      "ProcessMedians": [
+        6.720000000000001,
+        13.536,
+        6.848
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "copy-vector4",
+      "Name": "batch16",
+      "MedianMicroseconds": 2.298,
+      "ProcessMedians": [
+        2.287,
+        5.01,
+        2.298
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "copy-vector4",
+      "Name": "single",
+      "MedianMicroseconds": 4.6240000000000006,
+      "ProcessMedians": [
+        4.5760000000000005,
+        8.144,
+        4.6240000000000006
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-128",
+      "Name": "batch16",
+      "MedianMicroseconds": 3.326,
+      "ProcessMedians": [
+        3.326,
+        7.707999999999999,
+        3.298
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-128",
+      "Name": "single",
+      "MedianMicroseconds": 5.728,
+      "ProcessMedians": [
+        5.728,
+        10.751999999999999,
+        5.632
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-256",
+      "Name": "batch16",
+      "MedianMicroseconds": 2.656,
+      "ProcessMedians": [
+        2.6519999999999997,
+        5.926,
+        2.656
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-256",
+      "Name": "single",
+      "MedianMicroseconds": 5.248,
+      "ProcessMedians": [
+        4.896,
+        9.248,
+        5.248
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-32",
+      "Name": "batch16",
+      "MedianMicroseconds": 8.073,
+      "ProcessMedians": [
+        8.073,
+        20.168,
+        7.9750000000000005
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-32",
+      "Name": "single",
+      "MedianMicroseconds": 10.624,
+      "ProcessMedians": [
+        10.624,
+        24.112000000000002,
+        10.527999999999999
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-64",
+      "Name": "batch16",
+      "MedianMicroseconds": 4.889,
+      "ProcessMedians": [
+        4.8740000000000006,
+        11.845,
+        4.889
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-64",
+      "Name": "single",
+      "MedianMicroseconds": 7.168,
+      "ProcessMedians": [
+        7.168,
+        14.944,
+        7.072
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-vector4",
+      "Name": "batch16",
+      "MedianMicroseconds": 2.508,
+      "ProcessMedians": [
+        2.496,
+        5.612,
+        2.508
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "exp-vector4",
+      "Name": "single",
+      "MedianMicroseconds": 4.864,
+      "ProcessMedians": [
+        4.864,
+        8.639999999999999,
+        4.800000000000001
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "ts-baseline",
+      "Name": "batch16",
+      "MedianMicroseconds": 3.131,
+      "ProcessMedians": [
+        3.131,
+        7.252000000000001,
+        3.129
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "bias_silu-4x128x0",
+      "Variant": "ts-baseline",
+      "Name": "single",
+      "MedianMicroseconds": 5.3919999999999995,
+      "ProcessMedians": [
+        5.3919999999999995,
+        10.352,
+        5.248
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "rmsnorm-128x1024x0",
+      "Variant": "ts-baseline",
+      "Name": "batch16",
+      "MedianMicroseconds": 22.572,
+      "ProcessMedians": [
+        22.572,
+        22.674999999999997,
+        22.467
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "rmsnorm-128x1024x0",
+      "Variant": "ts-baseline",
+      "Name": "single",
+      "MedianMicroseconds": 25.216,
+      "ProcessMedians": [
+        26.080000000000002,
+        25.216,
+        24.848
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "rmsnorm-128x1024x0",
+      "Variant": "wave128",
+      "Name": "batch16",
+      "MedianMicroseconds": 16.109,
+      "ProcessMedians": [
+        16.141,
+        16.021,
+        16.109
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "rmsnorm-128x1024x0",
+      "Variant": "wave128",
+      "Name": "single",
+      "MedianMicroseconds": 18.768,
+      "ProcessMedians": [
+        18.72,
+        18.768,
+        18.8
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "rmsnorm-128x1024x0",
+      "Variant": "wave256",
+      "Name": "batch16",
+      "MedianMicroseconds": 13.08,
+      "ProcessMedians": [
+        13.255,
+        13.08,
+        13.048000000000002
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "rmsnorm-128x1024x0",
+      "Variant": "wave256",
+      "Name": "single",
+      "MedianMicroseconds": 15.632000000000001,
+      "ProcessMedians": [
+        15.76,
+        15.408,
+        15.632000000000001
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "rmsnorm-128x1024x0",
+      "Variant": "wave32",
+      "Name": "batch16",
+      "MedianMicroseconds": 38.998999999999995,
+      "ProcessMedians": [
+        38.959,
+        38.998999999999995,
+        39.018
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "rmsnorm-128x1024x0",
+      "Variant": "wave32",
+      "Name": "single",
+      "MedianMicroseconds": 41.744,
+      "ProcessMedians": [
+        41.808,
+        41.664,
+        41.744
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "softmax-1024x4096x0",
+      "Variant": "ts-baseline",
+      "Name": "batch16",
+      "MedianMicroseconds": 143.098,
+      "ProcessMedians": [
+        143.37400000000002,
+        143.098,
+        142.93099999999998
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "softmax-1024x4096x0",
+      "Variant": "ts-baseline",
+      "Name": "single",
+      "MedianMicroseconds": 145.44,
+      "ProcessMedians": [
+        145.50400000000002,
+        144.99200000000002,
+        145.44
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "softmax-1024x4096x0",
+      "Variant": "wave128",
+      "Name": "batch16",
+      "MedianMicroseconds": 222.617,
+      "ProcessMedians": [
+        223.676,
+        222.617,
+        218.97500000000002
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "softmax-1024x4096x0",
+      "Variant": "wave128",
+      "Name": "single",
+      "MedianMicroseconds": 220.68800000000002,
+      "ProcessMedians": [
+        220.68800000000002,
+        221.536,
+        220.64
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "softmax-1024x4096x0",
+      "Variant": "wave256",
+      "Name": "batch16",
+      "MedianMicroseconds": 167.142,
+      "ProcessMedians": [
+        170.46,
+        167.142,
+        165.428
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "softmax-1024x4096x0",
+      "Variant": "wave256",
+      "Name": "single",
+      "MedianMicroseconds": 166.416,
+      "ProcessMedians": [
+        168.01600000000002,
+        166.416,
+        166.288
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "softmax-1024x4096x0",
+      "Variant": "wave32",
+      "Name": "batch16",
+      "MedianMicroseconds": 295.07,
+      "ProcessMedians": [
+        295.951,
+        295.07,
+        292.538
+      ]
+    },
+    {
+      "Backend": "vulkan",
+      "Case": "softmax-1024x4096x0",
+      "Variant": "wave32",
+      "Name": "single",
+      "MedianMicroseconds": 294.64,
+      "ProcessMedians": [
+        291.024,
+        296.91200000000003,
+        294.64
+      ]
+    }
+  ],
+  "Queue": [
+    {
+      "Case": "bias_silu-1024x4096x0",
+      "Mode": "adaptive",
+      "PreparationMicroseconds": 0,
+      "MedianPerSubmissionMicroseconds": 163.45937500000002,
+      "ProcessMedians": [
+        163.45937500000002,
+        170.691796875,
+        159.371875
+      ]
+    },
+    {
+      "Case": "bias_silu-1024x4096x0",
+      "Mode": "adaptive",
+      "PreparationMicroseconds": 25,
+      "MedianPerSubmissionMicroseconds": 173.47265625,
+      "ProcessMedians": [
+        188.90859375,
+        173.47265625,
+        172.18515624999998
+      ]
+    },
+    {
+      "Case": "bias_silu-1024x4096x0",
+      "Mode": "adaptive",
+      "PreparationMicroseconds": 100,
+      "MedianPerSubmissionMicroseconds": 184.587109375,
+      "ProcessMedians": [
+        184.587109375,
+        197.858984375,
+        172.69296875
+      ]
+    },
+    {
+      "Case": "bias_silu-1024x4096x0",
+      "Mode": "fixed1",
+      "PreparationMicroseconds": 0,
+      "MedianPerSubmissionMicroseconds": 204.44375,
+      "ProcessMedians": [
+        204.010546875,
+        213.7828125,
+        204.44375
+      ]
+    },
+    {
+      "Case": "bias_silu-1024x4096x0",
+      "Mode": "fixed1",
+      "PreparationMicroseconds": 25,
+      "MedianPerSubmissionMicroseconds": 242.5984375,
+      "ProcessMedians": [
+        243.423046875,
+        242.5984375,
+        230.97578125
+      ]
+    },
+    {
+      "Case": "bias_silu-1024x4096x0",
+      "Mode": "fixed1",
+      "PreparationMicroseconds": 100,
+      "MedianPerSubmissionMicroseconds": 231.3390625,
+      "ProcessMedians": [
+        231.3390625,
+        243.33046875000002,
+        225.509765625
+      ]
+    },
+    {
+      "Case": "bias_silu-1024x4096x0",
+      "Mode": "fixed2",
+      "PreparationMicroseconds": 0,
+      "MedianPerSubmissionMicroseconds": 168.380078125,
+      "ProcessMedians": [
+        168.380078125,
+        170.830078125,
+        164.73398437499998
+      ]
+    },
+    {
+      "Case": "bias_silu-1024x4096x0",
+      "Mode": "fixed2",
+      "PreparationMicroseconds": 25,
+      "MedianPerSubmissionMicroseconds": 177.837890625,
+      "ProcessMedians": [
+        196.1828125,
+        176.909375,
+        177.837890625
+      ]
+    },
+    {
+      "Case": "bias_silu-1024x4096x0",
+      "Mode": "fixed2",
+      "PreparationMicroseconds": 100,
+      "MedianPerSubmissionMicroseconds": 171.756640625,
+      "ProcessMedians": [
+        191.849609375,
+        171.59140625,
+        171.756640625
+      ]
+    },
+    {
+      "Case": "bias_silu-1024x4096x0",
+      "Mode": "fixed4",
+      "PreparationMicroseconds": 0,
+      "MedianPerSubmissionMicroseconds": 163.17812500000002,
+      "ProcessMedians": [
+        167.008203125,
+        163.17812500000002,
+        159.23789062499998
+      ]
+    },
+    {
+      "Case": "bias_silu-1024x4096x0",
+      "Mode": "fixed4",
+      "PreparationMicroseconds": 25,
+      "MedianPerSubmissionMicroseconds": 185.52109375,
+      "ProcessMedians": [
+        185.52109375,
+        196.80703125,
+        185.07656250000002
+      ]
+    },
+    {
+      "Case": "bias_silu-1024x4096x0",
+      "Mode": "fixed4",
+      "PreparationMicroseconds": 100,
+      "MedianPerSubmissionMicroseconds": 184.834765625,
+      "ProcessMedians": [
+        190.68828125,
+        184.834765625,
+        183.92109375
+      ]
+    },
+    {
+      "Case": "bias_silu-4x128x0",
+      "Mode": "adaptive",
+      "PreparationMicroseconds": 0,
+      "MedianPerSubmissionMicroseconds": 30.97890625,
+      "ProcessMedians": [
+        26.342968749999997,
+        31.23046875,
+        30.97890625
+      ]
+    },
+    {
+      "Case": "bias_silu-4x128x0",
+      "Mode": "adaptive",
+      "PreparationMicroseconds": 25,
+      "MedianPerSubmissionMicroseconds": 46.776953125,
+      "ProcessMedians": [
+        46.046484375000006,
+        47.448828125000006,
+        46.776953125
+      ]
+    },
+    {
+      "Case": "bias_silu-4x128x0",
+      "Mode": "adaptive",
+      "PreparationMicroseconds": 100,
+      "MedianPerSubmissionMicroseconds": 76.80078125,
+      "ProcessMedians": [
+        76.18984375,
+        76.80078125,
+        79.13164062499999
+      ]
+    },
+    {
+      "Case": "bias_silu-4x128x0",
+      "Mode": "fixed1",
+      "PreparationMicroseconds": 0,
+      "MedianPerSubmissionMicroseconds": 87.087109375,
+      "ProcessMedians": [
+        82.8359375,
+        87.087109375,
+        89.6265625
+      ]
+    },
+    {
+      "Case": "bias_silu-4x128x0",
+      "Mode": "fixed1",
+      "PreparationMicroseconds": 25,
+      "MedianPerSubmissionMicroseconds": 80.835546875,
+      "ProcessMedians": [
+        80.835546875,
+        80.52734375,
+        81.132421875
+      ]
+    },
+    {
+      "Case": "bias_silu-4x128x0",
+      "Mode": "fixed1",
+      "PreparationMicroseconds": 100,
+      "MedianPerSubmissionMicroseconds": 108.650390625,
+      "ProcessMedians": [
+        111.66875,
+        108.650390625,
+        105.908984375
+      ]
+    },
+    {
+      "Case": "bias_silu-4x128x0",
+      "Mode": "fixed2",
+      "PreparationMicroseconds": 0,
+      "MedianPerSubmissionMicroseconds": 38.59921875,
+      "ProcessMedians": [
+        36.983984375,
+        40.254296875,
+        38.59921875
+      ]
+    },
+    {
+      "Case": "bias_silu-4x128x0",
+      "Mode": "fixed2",
+      "PreparationMicroseconds": 25,
+      "MedianPerSubmissionMicroseconds": 39.288671875,
+      "ProcessMedians": [
+        38.28125,
+        40.31640625,
+        39.288671875
+      ]
+    },
+    {
+      "Case": "bias_silu-4x128x0",
+      "Mode": "fixed2",
+      "PreparationMicroseconds": 100,
+      "MedianPerSubmissionMicroseconds": 78.37890625,
+      "ProcessMedians": [
+        79.083984375,
+        78.37890625,
+        77.1203125
+      ]
+    },
+    {
+      "Case": "bias_silu-4x128x0",
+      "Mode": "fixed4",
+      "PreparationMicroseconds": 0,
+      "MedianPerSubmissionMicroseconds": 30.95390625,
+      "ProcessMedians": [
+        26.585546875,
+        32.194140625,
+        30.95390625
+      ]
+    },
+    {
+      "Case": "bias_silu-4x128x0",
+      "Mode": "fixed4",
+      "PreparationMicroseconds": 25,
+      "MedianPerSubmissionMicroseconds": 34.6875,
+      "ProcessMedians": [
+        34.7046875,
+        34.262109374999994,
+        34.6875
+      ]
+    },
+    {
+      "Case": "bias_silu-4x128x0",
+      "Mode": "fixed4",
+      "PreparationMicroseconds": 100,
+      "MedianPerSubmissionMicroseconds": 76.4578125,
+      "ProcessMedians": [
+        76.4625,
+        76.4578125,
+        76.118359375
+      ]
+    }
+  ]
+}

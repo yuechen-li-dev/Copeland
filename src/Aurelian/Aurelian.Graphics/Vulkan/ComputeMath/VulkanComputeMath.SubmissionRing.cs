@@ -97,6 +97,16 @@ public sealed unsafe partial class VulkanComputeMath
 
         public Slot Acquire()
         {
+            int admissionLimit = controller.AdmissionLimit(Depth);
+            Require(admissionLimit >= 1 && admissionLimit <= Depth,
+                "Stream admission must remain within physical ring capacity.");
+            while (outstanding >= admissionLimit)
+            {
+                int oldest = Enumerable.Range(0, Depth)
+                    .Where(index => slots[index].FenceValue != 0)
+                    .MinBy(index => slots[index].Sequence);
+                Harvest(oldest);
+            }
             Harvest(next);
             return slots[next];
         }
