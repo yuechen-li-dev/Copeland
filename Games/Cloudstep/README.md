@@ -6,6 +6,8 @@ The course: stairs, a gap, a ramp to a bonus ledge, a shuttle platform, a lift, 
 
 Controls: WASD or arrows to move, Space to jump (hold for height), mouse or Q/E to turn the camera, Escape to pause. Everything is rebindable in Settings → Controls.
 
+The opt-in [image guided look pilot](../../docs/Aurelian/image-guided-look-pilot.md) compares this game's rendering policies against frozen generated appearance targets. Run `cloudstep.cmd --look-policy PATH_TO_SELECTED_SETTINGS.json` to try an exported policy; ordinary launches retain the authored look.
+
 Movement feel (`PlayerTuning`): acceleration with separate air control, 0.1 s coyote time, 0.12 s jump buffer, variable jump height, platform momentum on jump, and 0.4 m step-up.
 
 | File | Role |

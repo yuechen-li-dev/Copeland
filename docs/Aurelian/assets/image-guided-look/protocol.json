@@ -1,0 +1,108 @@
+{
+  "Version": 1,
+  "Game": "Cloudstep",
+  "Width": 960,
+  "Height": 540,
+  "TrainingView": "checkpoint 0, initial game camera, simulation time 0",
+  "HeldOutView": "checkpoint 1, initial checkpoint camera, simulation time 0",
+  "Fixed": "Geometry, authored vertex colors, exposure, sun, ambient, fog, AO and bloom. AA disabled for deterministic single-frame comparison.",
+  "Candidates": [
+    {
+      "Id": 0,
+      "Name": "Lambert-retain-0.00",
+      "Diffuse": 0,
+      "Retention": 0
+    },
+    {
+      "Id": 1,
+      "Name": "Burley-retain-0.00",
+      "Diffuse": 1,
+      "Retention": 0
+    },
+    {
+      "Id": 2,
+      "Name": "Frostbite-retain-0.00",
+      "Diffuse": 2,
+      "Retention": 0
+    },
+    {
+      "Id": 3,
+      "Name": "Eon-retain-0.00",
+      "Diffuse": 3,
+      "Retention": 0
+    },
+    {
+      "Id": 4,
+      "Name": "PathDiffuse-retain-0.00",
+      "Diffuse": 4,
+      "Retention": 0
+    },
+    {
+      "Id": 5,
+      "Name": "Lambert-retain-0.35",
+      "Diffuse": 0,
+      "Retention": 0.35
+    },
+    {
+      "Id": 6,
+      "Name": "Burley-retain-0.35",
+      "Diffuse": 1,
+      "Retention": 0.35
+    },
+    {
+      "Id": 7,
+      "Name": "Frostbite-retain-0.35",
+      "Diffuse": 2,
+      "Retention": 0.35
+    },
+    {
+      "Id": 8,
+      "Name": "Eon-retain-0.35",
+      "Diffuse": 3,
+      "Retention": 0.35
+    },
+    {
+      "Id": 9,
+      "Name": "PathDiffuse-retain-0.35",
+      "Diffuse": 4,
+      "Retention": 0.35
+    },
+    {
+      "Id": 10,
+      "Name": "Lambert-retain-0.70",
+      "Diffuse": 0,
+      "Retention": 0.7
+    },
+    {
+      "Id": 11,
+      "Name": "Burley-retain-0.70",
+      "Diffuse": 1,
+      "Retention": 0.7
+    },
+    {
+      "Id": 12,
+      "Name": "Frostbite-retain-0.70",
+      "Diffuse": 2,
+      "Retention": 0.7
+    },
+    {
+      "Id": 13,
+      "Name": "Eon-retain-0.70",
+      "Diffuse": 3,
+      "Retention": 0.7
+    },
+    {
+      "Id": 14,
+      "Name": "PathDiffuse-retain-0.70",
+      "Diffuse": 4,
+      "Retention": 0.7
+    }
+  ],
+  "Metric": "Course/hero-only 24x14 patch mean CIELAB RMSE. Silhouette eroded by 4 pixels; clear sky, cloud-colored geometry and emissive model pickups excluded. Proxy for broad color/tone, not a perceptual realism score.",
+  "FitCriterion": "At least 10% training-loss reduction versus Lambert / retention 0.",
+  "TransferCriterion": "At least 5% held-out-loss reduction; held-out target is never consulted for selection.",
+  "CostGate": "Median full GPU frame \u003C= baseline * 1.25 \u002B 0.15 ms; 20 rotating samples after 5 warmup cycles.",
+  "ClipGate": "At most baseline foreground clipped-channel fraction \u002B 0.005 (8-bit channels \u003E= 254).",
+  "ReferenceAdmission": "Visual review of camera, objects and silhouettes; record geometry drift. Generated images supply an aesthetic target, not transport truth.",
+  "Utility": "Quantize 1000000/(1\u002Btraining RMSE) to u32; greatest eligible score; source-order ties; native VTS verification."
+}

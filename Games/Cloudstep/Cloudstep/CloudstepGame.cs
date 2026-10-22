@@ -63,8 +63,13 @@ public sealed class CloudstepGame : IGame
     private double presentationTime;
     private float bestTime = float.NaN;
 
-    public CloudstepGame(string? assetDirectory = null)
+    public CloudstepGame(string? assetDirectory = null, Graphics3DSettings? researchLook = null)
     {
+        if (researchLook is not null)
+        {
+            researchLook.Validate();
+            Manifest = Manifest with { Graphics = researchLook };
+        }
         world = new CloudstepWorld();
         this.assetDirectory = assetDirectory ?? Path.Combine(AppContext.BaseDirectory, "Assets");
         foreach (CourseBlock block in world.Course.Blocks)
@@ -256,6 +261,8 @@ public sealed class CloudstepGame : IGame
         facts.Set("course.time", world.Time);
         facts.Set("dead", world.Dead);
         facts.Set("autopilot", autopilot is null ? "off" : autopilot.Leg);
+        facts.Set("look.diffuse", Manifest.Graphics.DirectDiffuseModel.ToString());
+        facts.Set("look.retention", Manifest.Graphics.ToneMapColorRetention);
     }
 
     /// <summary>Playtest commands: "autopilot on|off" tours the course; "checkpoint N" moves the hero to a checkpoint.</summary>

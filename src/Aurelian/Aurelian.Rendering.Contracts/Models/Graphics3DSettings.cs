@@ -46,6 +46,8 @@ public sealed record Graphics3DSettings
     public bool SolidPbr { get; init; } = true;
     public bool Shadows { get; init; } = true;
     public bool ToneMapping { get; init; } = true;
+    /// <summary>Experimental blend toward luminance-based filmic mapping. Zero retains the existing curve.</summary>
+    public float ToneMapColorRetention { get; init; }
     public Vector3 SunDirection { get; init; } = Vector3.Normalize(new Vector3(.65f, .75f, -.45f));
     public Vector3 SunColor { get; init; } = new(1, .91f, .78f);
     public float SunIntensity { get; init; } = 3.5f;
@@ -79,6 +81,7 @@ public sealed record Graphics3DSettings
             || !Finite(SunDirection) || !float.IsFinite(SunDirection.LengthSquared()) || SunDirection.LengthSquared() < .000001f
             || !Color(SunColor) || !Color(SkyAmbient) || !Color(GroundAmbient)
             || !Range(SunIntensity, 0, 100_000) || !Range(Exposure, .001f, 1_000)
+            || !Range(ToneMapColorRetention, 0, 1)
             || !Range(SolidRoughness, .045f, 1) || !Range(SolidMetallic, 0, 1)
             || !Range(ShadowDistance, 1, 10000) || !Range(ShadowCasterPadding, 1, 1000)
             || !Range(ShadowWorldBias, 0, 1) || !Range(ShadowRadius, 1, 1_000) || !Range(ShadowBias, 0, .05f))

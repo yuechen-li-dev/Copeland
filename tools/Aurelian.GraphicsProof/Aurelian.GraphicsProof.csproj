@@ -3,6 +3,7 @@
     <OutputType>Exe</OutputType>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../Games/Cloudstep/Cloudstep/Cloudstep.csproj" />
     <ProjectReference Include="../../src/Integrations/Aurelian.Inference.Dominatus/Aurelian.Inference.Dominatus.csproj" />
     <ProjectReference Include="../../src/Integrations/Aurelian.Inference.Trellis2/Aurelian.Inference.Trellis2.csproj" />
     <ProjectReference Include="../../src/Integrations/Aurelian.Cloth3D.Vulkan/Aurelian.Cloth3D.Vulkan.csproj" />

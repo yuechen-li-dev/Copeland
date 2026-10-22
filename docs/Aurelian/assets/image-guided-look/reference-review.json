@@ -1,0 +1,10 @@
+{
+  "Admitted": true,
+  "AdmissionScope": "Broad foreground color and tone only; exact image correspondence and physical lighting are not admitted.",
+  "Reviewer": "Codex visual review, before policy fitting; no independent human review",
+  "Train": "Main camera, platform boundaries, stair layout, capsule and pickup positions remain close to the capture. The image adds fine green/earth surface variation and changes shadow softness and capsule highlight shape.",
+  "Heldout": "Checkpoint flag, hero, right wooden platform and distant course retain the second capture layout. The first generated image is a style reference only. Fine material variation, pole/leaf details and shadow softness differ.",
+  "Background": "The generator changed sky and cloud-plane gradients despite the prompt. The metric excludes those regions, emissive pickups and a four-pixel boundary around foreground geometry.",
+  "Limits": "This is an admitted coarse appearance target with documented drift, not a pixel-accurate relighting or a physically calibrated reference. Generated microdetail and shadow improvements cannot be credited to the shader sweep.",
+  "Generation": "Two built-in imagegen edit calls; exact prompts retained beside each image. Fixed saved targets are the reproducible input; regenerating the prompts is not deterministic."
+}

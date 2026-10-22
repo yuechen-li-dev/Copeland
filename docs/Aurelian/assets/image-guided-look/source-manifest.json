@@ -1,0 +1,46 @@
+{
+  "BaseCommit": "38390e3ea41fc2c7f66add4a5eb4fc487bdfb1ad",
+  "State": "Local uncommitted source changes, retained as reviewable working tree",
+  "Sources": [
+    {
+      "Path": "Games/Cloudstep/Cloudstep/CloudstepGame.cs",
+      "Sha256": "BEAE0A04248C150086AD6EEA632F48885F5597504EF1970E5C11D3F01AD10E82"
+    },
+    {
+      "Path": "Games/Cloudstep/Cloudstep/Program.cs",
+      "Sha256": "0B8A89CA741C6F914AEF00EAD8CA7C737B46FFA845CB5D77F907F5D05A6F644C"
+    },
+    {
+      "Path": "Games/Cloudstep/Cloudstep/CloudstepVisuals.cs",
+      "Sha256": "324FE9D168AB7B0921D018C598233FF7F4ADD48266074913C07A9D9980A6B5FF"
+    },
+    {
+      "Path": "Games/Cloudstep/Cloudstep/CloudstepCourse.cs",
+      "Sha256": "1CD4A7786B8DAE5E1CED032CF2ACD551EC3A43908A367771AC0AC3BC93D9E876"
+    },
+    {
+      "Path": "src/Aurelian/Aurelian.Rendering.Contracts/Models/Graphics3DSettings.cs",
+      "Sha256": "E8972A98D276A0F55AF6D634568F18E73AC224A847FB1F6075B80CFE9C09A825"
+    },
+    {
+      "Path": "src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/VulkanSolid3DRenderer.cs",
+      "Sha256": "50BD640AE1DFEE459B5493D698A43DCAD417528C428A36E8376F1E468B8DC099"
+    },
+    {
+      "Path": "src/Aurelian/Aurelian.Shaders/Assets/PostProcessing/ToneMap3D.v.ts",
+      "Sha256": "4DC7EB9786C075F6BCD49CBA27104EAFA693E9E01F238B5FE15AD005FE0ED7B9"
+    },
+    {
+      "Path": "src/Aurelian/Aurelian.Shaders/Assets/Lighting/Lighting3D.v.ts",
+      "Sha256": "BB7BFB71E6DA23C37A9F2DDBA77B6E04981336BA8DC1EBD8F0E7B1EB1D473BA4"
+    },
+    {
+      "Path": "tools/Aurelian.GraphicsProof/ImageGuidedLookResearch.cs",
+      "Sha256": "9B54138E2FC9722E0758DE4D706AB5064ADAD9AACAE63901171D124445801CBC"
+    },
+    {
+      "Path": "tools/Aurelian.GraphicsProof/LookImageMetrics.cs",
+      "Sha256": "3EAB51012AE9068FACCEBBC14BD823083083C92186ABBA0E0DC26D95F8F4F66C"
+    }
+  ]
+}

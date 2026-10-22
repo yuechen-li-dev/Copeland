@@ -1,0 +1,599 @@
+{
+  "Completed": true,
+  "MethodologyCriterionPassed": true,
+  "Device": "NVIDIA GeForce RTX 3070",
+  "EnabledValidationLayers": [
+    "VK_LAYER_KHRONOS_validation"
+  ],
+  "TrainingGain": 0.16213996038994194,
+  "TransferGain": 0.053088652148963966,
+  "BaselineHeldoutLoss": 29.950015230849473,
+  "SelectedHeldoutLoss": 28.360009290402733,
+  "HeldoutClipping": {
+    "Baseline": 0,
+    "Selected": 0.004051219594708887,
+    "Passed": true
+  },
+  "Selected": {
+    "Id": 14,
+    "Name": "PathDiffuse-retain-0.70",
+    "Diffuse": 4,
+    "Retention": 0.7
+  },
+  "Observations": [
+    {
+      "Policy": {
+        "Id": 0,
+        "Name": "Lambert-retain-0.00",
+        "Diffuse": 0,
+        "Retention": 0
+      },
+      "TrainingLoss": 29.5068421428317,
+      "ClippedChannelFraction": 0,
+      "GpuMilliseconds": [
+        4.228128000000001,
+        4.19632,
+        3.9708160000000006,
+        1.1422400000000001,
+        1.14768,
+        1.144448,
+        1.14912,
+        1.149856,
+        1.1395199999999999,
+        1.1377599999999999,
+        1.142432,
+        1.13984,
+        1.742432,
+        1.1423679999999998,
+        1.138304,
+        1.136224,
+        1.535968,
+        1.139232,
+        1.1423039999999998,
+        1.7785599999999997
+      ],
+      "MedianGpuMilliseconds": 1.144448,
+      "Eligible": true,
+      "Utility": 32780
+    },
+    {
+      "Policy": {
+        "Id": 1,
+        "Name": "Burley-retain-0.00",
+        "Diffuse": 1,
+        "Retention": 0
+      },
+      "TrainingLoss": 29.981256609546655,
+      "ClippedChannelFraction": 0,
+      "GpuMilliseconds": [
+        4.194048,
+        3.7967040000000005,
+        4.162400000000001,
+        1.168096,
+        1.1581759999999999,
+        1.1449599999999998,
+        1.1455359999999999,
+        1.151808,
+        1.1474879999999998,
+        1.1662720000000002,
+        1.1463999999999999,
+        1.139808,
+        1.1596799999999998,
+        1.167616,
+        1.16656,
+        1.140672,
+        1.1400000000000001,
+        1.14112,
+        1.144736,
+        1.1471679999999997
+      ],
+      "MedianGpuMilliseconds": 1.151808,
+      "Eligible": true,
+      "Utility": 32278
+    },
+    {
+      "Policy": {
+        "Id": 2,
+        "Name": "Frostbite-retain-0.00",
+        "Diffuse": 2,
+        "Retention": 0
+      },
+      "TrainingLoss": 27.958189800217017,
+      "ClippedChannelFraction": 0,
+      "GpuMilliseconds": [
+        4.936416,
+        3.818528,
+        4.2664,
+        1.1533759999999997,
+        1.145632,
+        1.143072,
+        1.147936,
+        1.1479359999999998,
+        1.1412799999999999,
+        1.737376,
+        1.1453440000000001,
+        1.144128,
+        1.145248,
+        1.1418239999999997,
+        1.1375999999999997,
+        1.140288,
+        1.142944,
+        1.144832,
+        1.1437439999999999,
+        1.1418240000000002
+      ],
+      "MedianGpuMilliseconds": 1.145248,
+      "Eligible": true,
+      "Utility": 34533
+    },
+    {
+      "Policy": {
+        "Id": 3,
+        "Name": "Eon-retain-0.00",
+        "Diffuse": 3,
+        "Retention": 0
+      },
+      "TrainingLoss": 31.48261259023319,
+      "ClippedChannelFraction": 0,
+      "GpuMilliseconds": [
+        5.729439999999999,
+        3.942656000000001,
+        4.098016,
+        1.147008,
+        1.1471679999999997,
+        1.144736,
+        1.1460479999999997,
+        1.1513920000000002,
+        1.1441279999999998,
+        1.974368,
+        1.1475199999999999,
+        1.1385279999999998,
+        1.1472639999999998,
+        1.142944,
+        1.147168,
+        1.1439039999999998,
+        1.14384,
+        1.148288,
+        1.1461119999999998,
+        1.1401919999999999
+      ],
+      "MedianGpuMilliseconds": 1.1471679999999997,
+      "Eligible": true,
+      "Utility": 30786
+    },
+    {
+      "Policy": {
+        "Id": 4,
+        "Name": "PathDiffuse-retain-0.00",
+        "Diffuse": 4,
+        "Retention": 0
+      },
+      "TrainingLoss": 27.28846942145203,
+      "ClippedChannelFraction": 0,
+      "GpuMilliseconds": [
+        3.755008,
+        8.433695999999998,
+        3.7980480000000005,
+        1.1419839999999999,
+        1.1667199999999998,
+        1.149408,
+        1.1482240000000001,
+        1.1653440000000002,
+        1.13904,
+        1.142336,
+        1.1419199999999998,
+        1.1448960000000001,
+        1.1441599999999998,
+        1.13792,
+        1.142912,
+        1.13696,
+        1.1406079999999998,
+        1.142752,
+        1.1423679999999998,
+        1.1408319999999998
+      ],
+      "MedianGpuMilliseconds": 1.142912,
+      "Eligible": true,
+      "Utility": 35350
+    },
+    {
+      "Policy": {
+        "Id": 5,
+        "Name": "Lambert-retain-0.35",
+        "Diffuse": 0,
+        "Retention": 0.35
+      },
+      "TrainingLoss": 27.503790283136194,
+      "ClippedChannelFraction": 0.0033001259154241637,
+      "GpuMilliseconds": [
+        1.770464,
+        3.7907200000000003,
+        1.1409600000000002,
+        1.1525439999999998,
+        1.144896,
+        1.14256,
+        1.1437439999999999,
+        1.148672,
+        1.145888,
+        1.13376,
+        1.140704,
+        1.145696,
+        1.169664,
+        1.147008,
+        1.764096,
+        1.1546880000000002,
+        1.147488,
+        1.14608,
+        1.151136,
+        1.141152
+      ],
+      "MedianGpuMilliseconds": 1.147008,
+      "Eligible": true,
+      "Utility": 35083
+    },
+    {
+      "Policy": {
+        "Id": 6,
+        "Name": "Burley-retain-0.35",
+        "Diffuse": 1,
+        "Retention": 0.35
+      },
+      "TrainingLoss": 27.813332456837045,
+      "ClippedChannelFraction": 0.0033223276274933315,
+      "GpuMilliseconds": [
+        1.152544,
+        3.8013120000000002,
+        1.15104,
+        1.15296,
+        1.150528,
+        1.144864,
+        1.157568,
+        1.149888,
+        1.144384,
+        1.14768,
+        1.7711999999999999,
+        1.141568,
+        1.1467200000000002,
+        1.1439679999999999,
+        1.7758719999999995,
+        1.140576,
+        1.14656,
+        1.140896,
+        1.147232,
+        1.1459840000000001
+      ],
+      "MedianGpuMilliseconds": 1.14768,
+      "Eligible": true,
+      "Utility": 34706
+    },
+    {
+      "Policy": {
+        "Id": 7,
+        "Name": "Frostbite-retain-0.35",
+        "Diffuse": 2,
+        "Retention": 0.35
+      },
+      "TrainingLoss": 26.417755226940365,
+      "ClippedChannelFraction": 0.0029369693394356326,
+      "GpuMilliseconds": [
+        1.152352,
+        4.208224,
+        3.798496,
+        1.1467840000000002,
+        1.1508159999999998,
+        1.167264,
+        1.171584,
+        1.1485439999999998,
+        1.1489280000000002,
+        1.154976,
+        1.779616,
+        1.146752,
+        1.1435520000000001,
+        1.142176,
+        1.148384,
+        1.1445439999999998,
+        1.146464,
+        1.1430399999999998,
+        1.1449919999999998,
+        1.14464
+      ],
+      "MedianGpuMilliseconds": 1.1485439999999998,
+      "Eligible": true,
+      "Utility": 36473
+    },
+    {
+      "Policy": {
+        "Id": 8,
+        "Name": "Eon-retain-0.35",
+        "Diffuse": 3,
+        "Retention": 0.35
+      },
+      "TrainingLoss": 29.074129370071052,
+      "ClippedChannelFraction": 0.0033017117520005327,
+      "GpuMilliseconds": [
+        1.152864,
+        4.0972159999999995,
+        4.216576,
+        1.149248,
+        1.1506880000000002,
+        1.151008,
+        1.147456,
+        1.1552,
+        1.146112,
+        1.1474559999999998,
+        1.1425919999999998,
+        1.142112,
+        1.148768,
+        1.1463680000000003,
+        1.14784,
+        1.1449599999999998,
+        1.1419199999999998,
+        1.164384,
+        1.1489280000000002,
+        1.149024
+      ],
+      "MedianGpuMilliseconds": 1.1489280000000002,
+      "Eligible": true,
+      "Utility": 33251
+    },
+    {
+      "Policy": {
+        "Id": 9,
+        "Name": "PathDiffuse-retain-0.35",
+        "Diffuse": 4,
+        "Retention": 0.35
+      },
+      "TrainingLoss": 25.715064620336605,
+      "ClippedChannelFraction": 0.003376246071089882,
+      "GpuMilliseconds": [
+        1.1670719999999999,
+        4.201184,
+        4.140448,
+        1.146368,
+        1.149088,
+        1.148384,
+        1.155648,
+        1.151936,
+        1.1454719999999998,
+        1.166496,
+        1.146656,
+        1.143104,
+        1.1542080000000001,
+        1.142336,
+        1.1381759999999999,
+        1.144512,
+        1.143904,
+        1.1415039999999999,
+        1.14368,
+        1.1450559999999999
+      ],
+      "MedianGpuMilliseconds": 1.146656,
+      "Eligible": true,
+      "Utility": 37432
+    },
+    {
+      "Policy": {
+        "Id": 10,
+        "Name": "Lambert-retain-0.70",
+        "Diffuse": 0,
+        "Retention": 0.7
+      },
+      "TrainingLoss": 26.029234548869074,
+      "ClippedChannelFraction": 0.004919265059897047,
+      "GpuMilliseconds": [
+        1.1448,
+        3.786272,
+        4.189472,
+        1.142368,
+        1.143872,
+        1.1461759999999999,
+        1.147296,
+        1.149216,
+        1.144576,
+        1.1404800000000002,
+        1.140128,
+        1.139808,
+        1.138336,
+        1.140064,
+        1.146848,
+        1.780352,
+        1.1446720000000001,
+        1.142176,
+        1.143552,
+        1.143008
+      ],
+      "MedianGpuMilliseconds": 1.144576,
+      "Eligible": true,
+      "Utility": 36997
+    },
+    {
+      "Policy": {
+        "Id": 11,
+        "Name": "Burley-retain-0.70",
+        "Diffuse": 1,
+        "Retention": 0.7
+      },
+      "TrainingLoss": 26.27954918380575,
+      "ClippedChannelFraction": 0.005017586927631934,
+      "GpuMilliseconds": [
+        1.145088,
+        4.981824,
+        4.19744,
+        1.165696,
+        1.148352,
+        1.151904,
+        1.1548159999999998,
+        1.7653759999999998,
+        1.141984,
+        1.152032,
+        1.1456640000000002,
+        1.786176,
+        1.146592,
+        1.1471360000000002,
+        1.1472000000000002,
+        1.1435840000000002,
+        1.1463039999999998,
+        1.166336,
+        1.142752,
+        1.146144
+      ],
+      "MedianGpuMilliseconds": 1.148352,
+      "Eligible": false,
+      "Utility": 36657
+    },
+    {
+      "Policy": {
+        "Id": 12,
+        "Name": "Frostbite-retain-0.70",
+        "Diffuse": 2,
+        "Retention": 0.7
+      },
+      "TrainingLoss": 25.358999694149837,
+      "ClippedChannelFraction": 0.004602097744623221,
+      "GpuMilliseconds": [
+        1.14656,
+        5.006080000000001,
+        5.196384000000001,
+        1.1484800000000002,
+        1.1479679999999997,
+        1.1490559999999999,
+        1.151456,
+        1.1490559999999999,
+        1.1659519999999999,
+        1.142176,
+        1.1446079999999998,
+        1.1469120000000002,
+        1.1440320000000002,
+        1.14432,
+        1.144416,
+        1.14112,
+        1.149536,
+        1.1448319999999998,
+        1.143136,
+        1.1485119999999998
+      ],
+      "MedianGpuMilliseconds": 1.1479679999999997,
+      "Eligible": true,
+      "Utility": 37938
+    },
+    {
+      "Policy": {
+        "Id": 13,
+        "Name": "Eon-retain-0.70",
+        "Diffuse": 3,
+        "Retention": 0.7
+      },
+      "TrainingLoss": 27.37079107794397,
+      "ClippedChannelFraction": 0.005605932297464882,
+      "GpuMilliseconds": [
+        1.35616,
+        4.166272,
+        4.689632,
+        1.154016,
+        1.154464,
+        1.146688,
+        1.147008,
+        1.1520000000000001,
+        1.175744,
+        1.143136,
+        1.14832,
+        1.140384,
+        1.142912,
+        1.153696,
+        1.147744,
+        1.167648,
+        1.1620480000000002,
+        1.149408,
+        1.1705919999999999,
+        1.147616
+      ],
+      "MedianGpuMilliseconds": 1.153696,
+      "Eligible": false,
+      "Utility": 35248
+    },
+    {
+      "Policy": {
+        "Id": 14,
+        "Name": "PathDiffuse-retain-0.70",
+        "Diffuse": 4,
+        "Retention": 0.7
+      },
+      "TrainingLoss": 24.722603926560698,
+      "ClippedChannelFraction": 0.004958910974306276,
+      "GpuMilliseconds": [
+        4.173312,
+        4.135136,
+        3.802112,
+        1.1517120000000003,
+        1.147328,
+        1.146048,
+        1.147872,
+        1.1507519999999998,
+        1.1512320000000003,
+        1.139296,
+        1.16496,
+        1.142368,
+        1.141152,
+        1.146336,
+        1.147712,
+        1.148736,
+        1.7426559999999998,
+        1.14464,
+        1.145504,
+        1.7535360000000002
+      ],
+      "MedianGpuMilliseconds": 1.148736,
+      "Eligible": true,
+      "Utility": 38876
+    }
+  ],
+  "Utility": {
+    "Selected": 14,
+    "Cases": [
+      {
+        "Name": "measured",
+        "Expected": 14,
+        "Actual": 14,
+        "VdMirSha256": "9852c7f8610ce05c24d8ace3cf15217194d1234da50b09d12893955d126afff8"
+      },
+      {
+        "Name": "none-eligible",
+        "Expected": 15,
+        "Actual": 15,
+        "VdMirSha256": "9cfd090314b1f3f4f8adb66467a709096c2aad92bcb20945bb5623a2b1383a76"
+      },
+      {
+        "Name": "tie",
+        "Expected": 0,
+        "Actual": 0,
+        "VdMirSha256": "6e83338f5f9e18d632271c792b28a459d13ee783b65a48b129a239e931a349de"
+      }
+    ],
+    "Scope": "Measured scores evaluated by compiled VTS on Vulkan. Native decision ID applied to ordinary game settings; no per-pixel model switching or runtime AI."
+  },
+  "OutputResponseOracle": {
+    "Cases": 120,
+    "MaximumLinearRgbError": 0.004634366,
+    "Scope": "Native output versus double-precision curve equations; black, neutral, HDR colored and white samples, four retention values, three exposures. Disabled tone mapping is byte-identical across retention values."
+  },
+  "MetricControls": {
+    "Training": {
+      "ForegroundPixels": 210194,
+      "AdmittedCells": 166,
+      "SelfLoss": 0,
+      "BackgroundPerturbationLoss": 0
+    },
+    "Heldout": {
+      "ForegroundPixels": 197060,
+      "AdmittedCells": 164,
+      "SelfLoss": 0,
+      "BackgroundPerturbationLoss": 0
+    }
+  },
+  "ProtocolSha256": "72E55D086E99CDF666C3D03DB768E2F873DDBCB4EAEE40888D2AC116AD7CAEB1",
+  "ReferenceHashes": {
+    "Train": "447243B8169B96D81B48F8F24DE1C8DDEF06B605C409B4189C2F60FE1AD83571",
+    "Heldout": "0256AFC280AFED8EFF02261B6EABF5C62E393F395ED80C7D9F14A6BB8668CED1"
+  },
+  "Limits": "One game, two still views, generated reference bias, foreground patch-color proxy, no independent human preference study. Cost gate measures a GPU frame locally. No claim of research novelty or universal realism."
+}

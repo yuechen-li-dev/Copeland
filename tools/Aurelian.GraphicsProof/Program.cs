@@ -21,6 +21,12 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 
 string defaultOutput = "artifacts/local/graphics-starter";
+if (args.Contains("--look-research", StringComparer.Ordinal))
+{
+    ImageGuidedLookResearch.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/image-guided-look"),
+        args.Contains("--fit", StringComparer.Ordinal));
+    return;
+}
 if (args.Contains("--diffuse-lab", StringComparer.Ordinal))
 {
     GameApp.Run(new DiffuseLabGame(), args);

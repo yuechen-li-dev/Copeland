@@ -1,0 +1,34 @@
+{
+  "Completed": true,
+  "ProxyCriterionPassed": true,
+  "PerceptualRealismQualified": false,
+  "Build": {
+    "Succeeded": true,
+    "ExistingOpenFontWarnings": 14
+  },
+  "Tests": {
+    "Skipped": 0,
+    "Passed": 1515,
+    "Assemblies": 33,
+    "Failed": 0
+  },
+  "NativeReplay": {
+    "Falls": "0",
+    "StateMismatches": 0,
+    "Errors": 0,
+    "BaselineSteps": 35,
+    "Finished": "true",
+    "SelectedSteps": 35
+  },
+  "NativeOutputOracle": {
+    "Cases": 120,
+    "MaximumLinearRgbError": 0.004634366,
+    "Scope": "Native output versus double-precision curve equations; black, neutral, HDR colored and white samples, four retention values, three exposures. Disabled tone mapping is byte-identical across retention values."
+  },
+  "ExistingDiffuseProof": {
+    "Accepted": true,
+    "Cases": 1500
+  },
+  "UtilityNativeCases": 3,
+  "SourceChanges": "Opt-in color-retention setting and Cloudstep settings import; defaults unchanged. Offline image-guided policy experiment and frozen reference fixtures."
+}

@@ -41,6 +41,16 @@ function OutputChannel(value: f32, parameters: float4): f32 {
     }
     return x;
 }
+function RetainedChannel(value: f32, luminance: f32, parameters: float4): f32 {
+    const x: f32 = Max(value * parameters.x, 0.0);
+    const retention: f32 = Clamp(parameters.y - 1.0, 0.0, 1.0);
+    const luminanceMapped: f32 = x * Filmic(luminance) / Max(luminance, 0.000001);
+    var mapped: f32 = Clamp(Filmic(x) * (1.0 - retention) + luminanceMapped * retention, 0.0, 1.0);
+    if (parameters.z > 0.5) {
+        mapped = EncodeSrgb(mapped);
+    }
+    return mapped;
+}
 @vertex
 function VertexMain(input: OutputInput): OutputVaryings {
     return { position: float4(input.position.x, input.position.y, 0.0, 1.0),
@@ -53,6 +63,13 @@ function PixelMain(input: OutputVaryings, resources: OutputResources): OutputCol
     const intensity: f32 = resources.output.parameters.w;
     const combined: float4 = float4(sampledColor.x + glow.x * intensity, sampledColor.y + glow.y * intensity,
         sampledColor.z + glow.z * intensity, 1.0);
+    if (resources.output.parameters.y > 1.0) {
+        const luminance: f32 = Max((0.2126 * combined.x + 0.7152 * combined.y + 0.0722 * combined.z)
+            * resources.output.parameters.x, 0.0);
+        return { color: float4(RetainedChannel(combined.x, luminance, resources.output.parameters),
+            RetainedChannel(combined.y, luminance, resources.output.parameters),
+            RetainedChannel(combined.z, luminance, resources.output.parameters), 1.0) };
+    }
     return { color: float4(OutputChannel(combined.x, resources.output.parameters), OutputChannel(combined.y, resources.output.parameters),
         OutputChannel(combined.z, resources.output.parameters), 1.0) };
 }
