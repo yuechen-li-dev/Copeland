@@ -1,0 +1,21 @@
+{
+  "Modes": [
+    "legacy",
+    "alpha",
+    "detail",
+    "multiscale"
+  ],
+  "Scenes": [
+    "farm",
+    "riverside"
+  ],
+  "Script": "Games/TinyFarm/Playtests/terrain-study.json",
+  "SourceMaterial": "Games/TinyFarm/TinyFarm/Assets/terrain-study/packed-earth.png",
+  "SourceSha256": "1090b984cc3de700b2d4d0c5348f63b4b31bd3d05bbd0bd926d3dccdacfd669f",
+  "Controls": "All nonlegacy modes use the same textures, palette, world density and water shader. Alpha uses a broad mask. Detail uses a narrow world-anchored noise-disrupted mask. Multiscale uses the Detail mask with a 3-level undecimated Gaussian/Laplacian material blend. Legacy is the existing flat brush and feathered field.",
+  "Execution": "Static material cache built on CPU at scene entry, displayed through ordinary Vulkan sprite rendering. Dynamic water fields remain live. No runtime neural inference.",
+  "Authority": "Path strokes shared with the existing authored path. Bank distance comes from liquid-mask boundary edges. No navigation, collision, wetness, pickups or simulation changes.",
+  "Gates": "Every matrix run succeeds. All playtest facts except the terrain selector agree with legacy at every step, including full state and field hashes. Gamma, reconstruction, deterministic output and source-mask preservation tests pass.",
+  "VisualSelection": "Codex compares native full-scene and close-up captures; no independent human preference or realism claim. Cost measured as cold cache time and retained bytes, not a portable per-frame GPU benchmark.",
+  "Scope": "Farm path and Riverside bank only. Overworld decorative river remains outside the study. The semantic rectangular river shape remains unchanged."
+}

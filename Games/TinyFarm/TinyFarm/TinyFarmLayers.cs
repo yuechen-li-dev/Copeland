@@ -42,10 +42,12 @@ internal sealed partial class TinyFarmWorldPresenter(
     TinyFarmArtSlots artSlots,
     TinyFarmGame game,
     Func<TinyFarmFrame> getFrame,
-    Func<TinyFarmPresentationLayout> getLayout) : INativeLayerPresenter
+    Func<TinyFarmPresentationLayout> getLayout,
+    TinyFarmTerrainMode terrainMode = TinyFarmTerrainMode.Legacy) : INativeLayerPresenter
 {
     private VulkanOrderedQuadRenderer shapes = null!;
     private TinyFarmSliceArt sliceArt = null!;
+    private TinyFarmTerrainStudy? terrainStudy;
     private readonly Dictionary<ActorId, TinyFarmPoint> lastActorPositions = [];
     private VulkanOrderedQuadRenderer waves = null!;
     private VulkanOrderedQuadRenderer sprites = null!;
@@ -177,6 +179,13 @@ internal sealed partial class TinyFarmWorldPresenter(
             linearTextures.Add(painterlyResources.Resolve(sliceArt.Props));
             linearTextures.Add(painterlyResources.Resolve(sliceArt.Floors));
             linearTextures.Add(painterlyResources.Resolve(sliceArt.Turnip));
+        }
+        if (terrainMode != TinyFarmTerrainMode.Legacy)
+        {
+            SpriteAtlasResource dirt = TinyFarmM24Assets.LoadResource("terrain-study-packed-earth",
+                Path.Combine(AppContext.BaseDirectory, "Assets", "terrain-study", "packed-earth.png"),
+                "1090b984cc3de700b2d4d0c5348f63b4b31bd3d05bbd0bd926d3dccdacfd669f", SpriteSampling.Linear);
+            terrainStudy = new TinyFarmTerrainStudy(terrainMode, m24Assets.Meadow, dirt);
         }
         foreach (SpriteAtlasResource slot in artSlots.Resources)
         {

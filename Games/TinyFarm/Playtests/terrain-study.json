@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "steps": [
+    { "kind": "click-action", "text": "start" },
+    { "kind": "tap", "keys": ["F9"], "seconds": 0 },
+    { "kind": "wait", "seconds": 0.2 },
+    { "kind": "capture", "path": "00-farm.png" },
+    { "kind": "command", "command": "walk burrow" },
+    { "kind": "command", "command": "walk mara" },
+    { "kind": "command", "command": "walk finish" },
+    { "kind": "command", "command": "walk riverside" },
+    { "kind": "wait", "seconds": 0.2 },
+    { "kind": "capture", "path": "01-riverside.png" },
+    { "kind": "hold", "keys": ["D"], "seconds": 0.3 },
+    { "kind": "capture", "path": "02-bank-moved.png" }
+  ]
+}

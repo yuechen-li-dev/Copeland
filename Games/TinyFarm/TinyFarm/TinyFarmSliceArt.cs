@@ -4,6 +4,12 @@ namespace TinyFarm.Native;
 
 internal sealed class TinyFarmSliceArt
 {
+    internal static IReadOnlyList<GroundBrushStroke> FarmPathStrokes { get; } =
+    [
+        new([new(4.5, 4.5), new(5.8, 6.8), new(10.5, 7), new(17.5, 6.5)], .58),
+        new([new(8.5, 6.8), new(8.5, 5.5)], .4),
+    ];
+
     public TinyFarmSliceArt()
     {
         ChestPoses = GridSpriteSheet.Import(Chest, 2, 1, 64);
@@ -43,8 +49,7 @@ internal sealed class TinyFarmSliceArt
         double[] heights = [72, 52, 48, 44];
         PropPoses = imported.Select((pose, index) => pose with { Scale = heights[index] / pose.Height }).ToArray();
         FarmPath = GroundBrushRasterizer.Realize(new SpriteAssetId("opening-farm-path"), 18, 12, 64,
-            [new GroundBrushStroke([new(4.5, 4.5), new(5.8, 6.8), new(10.5, 7), new(17.5, 6.5)], .58),
-             new GroundBrushStroke([new(8.5, 6.8), new(8.5, 5.5)], .4)], 0xB9A67BC8);
+            FarmPathStrokes, 0xB9A67BC8);
         Bank = GroundBrushRasterizer.Realize(new SpriteAssetId("opening-river-bank"), 22, 14, 64,
             [new GroundBrushStroke([new(15, 0), new(15, 14)], 1.12)], 0xA5996EEF);
         River = GroundBrushRasterizer.Realize(new SpriteAssetId("opening-river-water"), 22, 14, 64,

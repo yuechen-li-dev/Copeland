@@ -104,6 +104,7 @@ internal sealed partial class TinyFarmWorldPresenter
 
     private void PresentSliceGround(NativeLayerFrameContext context, TinyFarmFrame frame, bool cave, bool house)
     {
+        bool studiedGround = terrainStudy is not null && TinyFarmTerrainStudy.Supports(frame.ActiveScene);
         if (!cave && !house)
         {
             context.Present(painterly, pass => pass.SubmitQuad(new NativeQuadSubmission(
@@ -118,6 +119,17 @@ internal sealed partial class TinyFarmWorldPresenter
                 cave ? new Native2DUvRect(.5f, 0, 1, 1) : new Native2DUvRect(0, 0, .5f, 1),
                 painterlyResources.Get(sliceArt.Floors.Id), Native2DTint.White)));
         }
+        if (studiedGround)
+        {
+            SpriteAtlasResource terrain = terrainStudy!.Get(frame, game.Host.Session.Field);
+            var texture = painterlyResources.Resolve(terrain);
+            linearTextures.Add(texture);
+            context.Present(painterly, pass => pass.SubmitQuad(new NativeQuadSubmission(
+                new Native2DRect(left - TinyFarmTerrainStudy.Padding * scale, top - TinyFarmTerrainStudy.Padding * scale,
+                    (frame.SceneWidth + TinyFarmTerrainStudy.Padding * 2) * scale,
+                    (frame.SceneHeight + TinyFarmTerrainStudy.Padding * 2) * scale),
+                Native2DUvRect.Full, texture, Native2DTint.White)));
+        }
         if (frame.ActiveScene == TinyFarmSceneIds.Overworld)
         {
             foreach (SpriteAtlasResource patch in new[] { sliceArt.Bank, sliceArt.River })
@@ -127,7 +139,7 @@ internal sealed partial class TinyFarmWorldPresenter
                     Native2DUvRect.Full, painterlyResources.Get(patch.Id), Native2DTint.White)));
             }
         }
-        if (frame.ActiveScene == TinyFarmSceneIds.Farm || frame.ActiveScene == TinyFarmSceneIds.Overworld)
+        if (!studiedGround && (frame.ActiveScene == TinyFarmSceneIds.Farm || frame.ActiveScene == TinyFarmSceneIds.Overworld))
         {
             SpriteAtlasResource path = frame.ActiveScene == TinyFarmSceneIds.Farm ? sliceArt.FarmPath : sliceArt.WoodPath;
             context.Present(painterly, pass => pass.SubmitQuad(new NativeQuadSubmission(

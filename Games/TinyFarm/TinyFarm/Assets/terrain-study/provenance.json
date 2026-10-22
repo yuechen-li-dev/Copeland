@@ -1,0 +1,9 @@
+{
+  "ToolMode": "Built-in imagegen edit with meadow used only as style reference",
+  "Prompt": "prompt.txt",
+  "AssetSha256": "1090b984cc3de700b2d4d0c5348f63b4b31bd3d05bbd0bd926d3dccdacfd669f",
+  "StyleReference": "../m24/meadow-slab.png",
+  "StyleReferenceSha256": "c0222629a63f12067bbe4c78ce7cb864fa263702d875e6cbd4a7b84c6ce987ee",
+  "MaterialCoverageWorldUnits": 3.2,
+  "RuntimeHandling": "Linear-light prefiltering to at most 192 pixels per dimension; mirrored repeat handles imperfect generated tile seams. Derived ground textures contain no objects or gameplay authority."
+}

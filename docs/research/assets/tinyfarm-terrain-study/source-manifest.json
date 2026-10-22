@@ -1,0 +1,70 @@
+{
+  "Schema": 1,
+  "Date": "2026-10-22",
+  "Sources": [
+    {
+      "Path": "Games/TinyFarm/Playtests/terrain-study.json",
+      "Sha256": "8cb1ea225d8579e8b853ad88a6b1024684e20a528574f99d42bb3dcf9975a1a9"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm.Core.Tests/TinyFarmTerrainBlendTests.cs",
+      "Sha256": "79f04a83e9c78ec4b303cfdee0e06fd91aeed76058a08a27005fa602bf60dd23"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/TinyFarmTerrainStudy.cs",
+      "Sha256": "b609ca17e64b26b7fa7ffe17809ca25fa7fdf947ddddc86f3ca5309b7e9f5dd1"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/TinyFarmTerrainEvidence.cs",
+      "Sha256": "96763a4fb97138b623e480b449c89222d532d802e4ce71d4d950e3b38a85b701"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/Program.cs",
+      "Sha256": "a222ab8a67ecd02222ff8b28a61b46960056b6ec3ea2ed3ae68803e678c974fa"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/TinyFarmApp.cs",
+      "Sha256": "0965fe967adb57cf30ff17e1967ca799f2140d8ab208c0e68e198f14134a5f8a"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/TinyFarmLayers.cs",
+      "Sha256": "1f146589dd6df9fcb828f6d964e3769da473b18dfc9e89e63817a3fbb1024c07"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/TinyFarmSliceArt.cs",
+      "Sha256": "ad39d684451ba1fc4e2fb7d90ff01a3f93ed5704520c40e9da44851882e4d508"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/TinyFarmSliceWorldPresenter.cs",
+      "Sha256": "07bda6f5db44f708ca9dbb9ab84e5d2b499b0aff488300d6c91709fa65456820"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/Assets/Shaders/PainterlyTerrainWater.v.ts",
+      "Sha256": "d07acf3226c971393c9b9c38608047f312f3dec961b1dde0118f47495fcbb96c"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/Assets/terrain-study/packed-earth.png",
+      "Sha256": "1090b984cc3de700b2d4d0c5348f63b4b31bd3d05bbd0bd926d3dccdacfd669f"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/Assets/terrain-study/prompt.txt",
+      "Sha256": "336f01b067ddd76a7b23c628db0046b9dfe7e3ac670f1ebfebe04c25fe476909"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/Assets/terrain-study/provenance.json",
+      "Sha256": "7141c086342e6d4d1bbf96cb766805c4b3437f11214c5abc5acdc6db11c534ba"
+    },
+    {
+      "Path": "src/Integrations/Aurelian.GameWorld2D/GroundBrushRasterizer.cs",
+      "Sha256": "a99439e25bf0f1865f883d2202386f22b6a112454daf4c0ab47a3cf3332db547"
+    },
+    {
+      "Path": "src/Integrations/Aurelian.GameWorld2D/GroundTextureBlender.cs",
+      "Sha256": "2e66b61887873ba2b339876b19df1761f2a130232378fe878fece4ad2531618b"
+    },
+    {
+      "Path": "Games/TinyFarm/TinyFarm/TinyFarm.csproj",
+      "Sha256": "5125e331cebd1e3acb0f1aba98cb4d15e4bb4c2b7d22c319132d317c74e2df04"
+    }
+  ]
+}

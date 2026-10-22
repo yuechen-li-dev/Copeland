@@ -1,0 +1,144 @@
+{
+  "Outcome": "Success: bounded native terrain comparison",
+  "Date": "2026-10-22",
+  "Gpu": "NVIDIA GeForce RTX 3070",
+  "Extent": "1920x1080",
+  "NativeModes": 4,
+  "StepsPerMode": 12,
+  "FactComparisonsIncludingBaseline": 3072,
+  "StateAndFieldAgreement": true,
+  "NewTerrainTests": 9,
+  "TinyFarmSolution": {
+    "BuildExit": 0,
+    "Passed": 438,
+    "Failed": 0,
+    "Skipped": 0
+  },
+  "AurelianSolution": {
+    "BuildExit": 0,
+    "Passed": 1519,
+    "Suites": 33,
+    "Failed": 0,
+    "Skipped": 0,
+    "Naga": "artifacts/aurelian-beacon3d/toolchain/bin/naga.exe"
+  },
+  "Preferred": "multiscale, subjective visual choice for these scenes only",
+  "Default": "legacy",
+  "ColdMeasurements": [
+    {
+      "Mode": "alpha",
+      "Scene": "farm",
+      "Milliseconds": 283.47,
+      "RgbaBytes": 2580480,
+      "ContentHash": "d272347289aeee426d0e7d61c25a66016e02305f7338745027812b4f280cb83f"
+    },
+    {
+      "Mode": "alpha",
+      "Scene": "riverside",
+      "Milliseconds": 471.43,
+      "RgbaBytes": 1990656,
+      "ContentHash": "7aa143444c124eb76827c7d9bf70b99f9122a21d42b36cc5eefeadb9ece8a26c"
+    },
+    {
+      "Mode": "detail",
+      "Scene": "farm",
+      "Milliseconds": 296.03,
+      "RgbaBytes": 2580480,
+      "ContentHash": "1e93f88bc15bb6d8895d9d266850775e5cba503d434d2a9451f700936d9d6835"
+    },
+    {
+      "Mode": "detail",
+      "Scene": "riverside",
+      "Milliseconds": 466.19,
+      "RgbaBytes": 1990656,
+      "ContentHash": "b8ebacc196a67a0d7757138982051b7251187212fdef8428212f3fe43fe4fbf2"
+    },
+    {
+      "Mode": "multiscale",
+      "Scene": "farm",
+      "Milliseconds": 1365.14,
+      "RgbaBytes": 2580480,
+      "ContentHash": "cd230e9dbc5a38bebb2c085fa720f7c8ff45ae3eb86a30db5d1f9c95cd027229"
+    },
+    {
+      "Mode": "multiscale",
+      "Scene": "riverside",
+      "Milliseconds": 1227.79,
+      "RgbaBytes": 1990656,
+      "ContentHash": "72c3f7b05c6004f330451521b2b682a5ebe26a888dc3023b1997a6b65107ebb9"
+    }
+  ],
+  "MeasurementLimits": "Single cold entries from final solution build; no stable algorithm speed ratio or GPU frame-time claim. Bytes exclude source arrays, temporary pyramids and GPU copies.",
+  "CapturesAndTraces": [
+    {
+      "Path": "artifacts/local/tinyfarm-terrain-study/legacy/00-farm.png",
+      "Sha256": "d98653370223657ae1b85195036cbd9a04c04603bf40eb91abd1a5db256575fd"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-terrain-study/legacy/01-riverside.png",
+      "Sha256": "453aa6b9f34d8b9a21e07b9f4a168754d7540f33e4f50fea0562afd630322061"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-terrain-study/legacy/02-bank-moved.png",
+      "Sha256": "067fdc8ebae3a9428fc31220bf65d4b58beb7113daa71b331359e603e3aae5cc"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-terrain-study/legacy/trace.jsonl",
+      "Sha256": "dff038eab5f74a2520ba51f0dc11508af59c2845d30d5b36f73c261555296180"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-terrain-study/alpha/00-farm.png",
+      "Sha256": "da39fc64b3432550b4d039de38c823da43c021dd9ca8aa8c03e9fa02ce7b36ae"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-terrain-study/alpha/01-riverside.png",
+      "Sha256": "7aa72a6e7d62ae619eb90f0ca1555271373edcdbab5e883da2f22d7dac67d40d"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-terrain-study/alpha/02-bank-moved.png",
+      "Sha256": "511641c8e993930d50d9ce682b3718d00c33c2ff0a14272220088f03cff78026"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-terrain-study/alpha/trace.jsonl",
+      "Sha256": "1302392a596f6a72f085a0208e840eaf4f8072b30b2b43b8ff551f91f1594a66"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-terrain-study/detail/00-farm.png",
+      "Sha256": "f5c69d902320e75c7e418ea051ec4545536b28448b94c6b5adc241ddff64a7b3"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-terrain-study/detail/01-riverside.png",
+      "Sha256": "1e4fac20f89a60e29dba5f2891dc9bf286b12524bb9ae1517b89ebd90539b831"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-terrain-study/detail/02-bank-moved.png",
+      "Sha256": "d583a329a38f60effc6eddd0a0e098c2aa667d3ec88c400acd948e44f5704425"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-terrain-study/detail/trace.jsonl",
+      "Sha256": "e7b71b5c7ae6dc2e07ec04310cd732e354df3f3d8c5450a1e787b2da1d497766"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-terrain-study/multiscale/00-farm.png",
+      "Sha256": "9b76ce3c4581c9c5dcbae6ddadbd5d5794ccf1d458a077c9bd848825b9f82acb"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-terrain-study/multiscale/01-riverside.png",
+      "Sha256": "63c37f38e33b854cd0d76f2a9e09bf5cfc692fdc886e42678877781e8822bad5"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-terrain-study/multiscale/02-bank-moved.png",
+      "Sha256": "957973b735d4074545fc28139c940590a3ab4ca7cadb07ebb7aa2417e52b9cfa"
+    },
+    {
+      "Path": "artifacts/local/tinyfarm-terrain-study/multiscale/trace.jsonl",
+      "Sha256": "f81a250cd92712eaa0a4f383306fce8b4e397d605781dd2205145d43e1b19c23"
+    }
+  ],
+  "Remaining": [
+    "Synchronous cold composition; bake/prewarm before shipping",
+    "Rectangular semantic river shape",
+    "Placeholder objects and Overworld outside scope"
+  ],
+  "Logs": "artifacts/local/tinyfarm-terrain-study"
+}

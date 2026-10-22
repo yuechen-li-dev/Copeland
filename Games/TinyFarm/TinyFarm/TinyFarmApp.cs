@@ -39,10 +39,17 @@ public sealed class TinyFarmApp : IGame
     private bool musicStarted;
     private readonly TinyFarmAutopilot autopilot;
     private long uiSounds;
+    private readonly TinyFarmTerrainMode terrain;
 
     /// <param name="legacySaveDirectory">Where the pre-shell build kept its saves (default %LOCALAPPDATA%\TinyFarm\saves).</param>
-    public TinyFarmApp(string? assetDirectory = null, string? legacySaveDirectory = null)
+    public TinyFarmApp(string? assetDirectory = null, string? legacySaveDirectory = null,
+        TinyFarmTerrainMode terrain = TinyFarmTerrainMode.Legacy)
     {
+        if (!Enum.IsDefined(terrain))
+        {
+            throw new ArgumentOutOfRangeException(nameof(terrain));
+        }
+        this.terrain = terrain;
         this.assetDirectory = assetDirectory ?? Path.Combine(AppContext.BaseDirectory, "Assets");
         // The full game: the opening, the stove, the shipping chest and supper with Mara.
         game = new TinyFarmGame(new TinyFarmMemorySaveStore(), TinyFarmChapter.Supper)
@@ -230,12 +237,14 @@ public sealed class TinyFarmApp : IGame
         TinyFarmState state = game.State;
         facts.Set("tinyfarm.screen", game.Screen.ToString().ToLowerInvariant());
         facts.Set("tinyfarm.scene", state.ActorScene(TinyFarmIds.Player).Scene.Value);
+        facts.Set("tinyfarm.terrain", terrain.ToString().ToLowerInvariant());
         facts.Set("tinyfarm.minute", state.Minute);
         facts.Set("tinyfarm.dialogue", game.Dialogue.IsActive);
         facts.Set("tinyfarm.status", game.Status);
         facts.Set("tinyfarm.accepted", game.AcceptedActions);
         facts.Set("tinyfarm.rejected", game.RejectedActions);
         facts.Set("tinyfarm.semantic-hash", TinyFarmSemanticHash.Compute(state));
+        facts.Set("tinyfarm.field-hash", game.Host.Session.Field.SemanticHash);
         facts.Set("tinyfarm.search", game.Menus.Search);
         facts.Set("tinyfarm.search-focused", game.Menus.SearchFocused);
         facts.Set("tinyfarm.hotbar", state.SelectedHotbarSlot);
@@ -262,8 +271,9 @@ public sealed class TinyFarmApp : IGame
         world = new TinyFarmWorldPresenter(new LayerId("tinyfarm-world"), graphics.Plant,
             assets.Shader("AnalyticShape2D.v.ts"), assets.Shader("SoftShockwave.v.ts"),
             TinyFarmShaders.Compile(Path.Combine(assetDirectory, "Shaders", "ForwardTextured.v.ts")),
-            TinyFarmShaders.Compile(Path.Combine(assetDirectory, "Shaders", "PainterlyWater.v.ts")),
-            atlas, painterly, artSlots, game, () => frame, () => layout);
+            TinyFarmShaders.Compile(Path.Combine(assetDirectory, "Shaders",
+                terrain == TinyFarmTerrainMode.Legacy ? "PainterlyWater.v.ts" : "PainterlyTerrainWater.v.ts")),
+            atlas, painterly, artSlots, game, () => frame, () => layout, terrain);
         TinyFarmNativeUiFont font = TinyFarmNativeUiFont.Create(Path.Combine(assetDirectory, "SpaceMono-Regular.ttf"));
         overlay = new TinyFarmNativeOverlay(new LayerId("tinyfarm-hud"), graphics.Plant,
             assets.Shader("AnalyticShape2D.v.ts"), assets.Shader("MsdfText.v.ts"),

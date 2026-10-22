@@ -83,6 +83,10 @@ qualification walkthrough through ordinary resolver intents.
 
 ## Art
 
+An opt-in [terrain blending experiment](../../docs/research/tinyfarm-terrain-blending-experiment.md) compares the Farm path
+and Riverside bank through native rendering. Run `.\Play-TinyFarm.cmd --terrain multiscale` for the textured treatment;
+`legacy`, `alpha` and `detail` retain comparison controls. The ordinary launch keeps the existing art.
+
 New and unpainted art is declared as [art slots](../../docs/Aurelian/art-slots.md) in
 `TinyFarm/Assets/art/art-slots.json`: SVG placeholders with a usage and a brief each. Right now those are Riverside's
 reeds and mushrooms, rock salt, wild mint, the recipe card, Elias's bench, and Elias's and Sela's walk sheets. To

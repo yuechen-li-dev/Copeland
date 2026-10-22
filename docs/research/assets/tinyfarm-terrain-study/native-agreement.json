@@ -1,0 +1,14 @@
+{
+  "Passed": true,
+  "Modes": [
+    "legacy",
+    "alpha",
+    "detail",
+    "multiscale"
+  ],
+  "StepsEach": 12,
+  "ExactFactComparisons": 3072,
+  "Includes": "All observed facts except the selected terrain mode, including state and fluid hashes.",
+  "Disagreements": [],
+  "Scope": "Real Vulkan application captures and normal playtest commands. Contact sheets crop/resample captures only for comparison. No human perceptual qualification."
+}

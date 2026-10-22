@@ -7,6 +7,28 @@ public sealed record GroundBrushStroke(IReadOnlyList<WorldPoint2> Points, double
 /// <summary>Cold realization of soft painted path strokes. Coverage uses union rather than layered disk overlap.</summary>
 public static class GroundBrushRasterizer
 {
+    /// <summary>Signed distance to the union of authored path capsules; negative inside.</summary>
+    public static double SignedDistance(WorldPoint2 point, IReadOnlyList<GroundBrushStroke> strokes)
+    {
+        double nearest = double.PositiveInfinity;
+        foreach (GroundBrushStroke stroke in strokes)
+        {
+            for (int segment = 1; segment < stroke.Points.Count; segment++)
+            {
+                WorldPoint2 start = stroke.Points[segment - 1];
+                WorldPoint2 end = stroke.Points[segment];
+                double dx = end.X - start.X;
+                double dy = end.Y - start.Y;
+                double length = dx * dx + dy * dy;
+                double fraction = length == 0 ? 0 : Math.Clamp(((point.X - start.X) * dx + (point.Y - start.Y) * dy) / length, 0, 1);
+                double offsetX = point.X - start.X - dx * fraction;
+                double offsetY = point.Y - start.Y - dy * fraction;
+                nearest = Math.Min(nearest, Math.Sqrt(offsetX * offsetX + offsetY * offsetY) - stroke.Radius);
+            }
+        }
+        return nearest;
+    }
+
     public static SpriteAtlasResource Realize(SpriteAssetId id, double worldWidth, double worldHeight,
         int pixelsPerMetre, IReadOnlyList<GroundBrushStroke> strokes, uint rgba, uint seed = 1)
     {
