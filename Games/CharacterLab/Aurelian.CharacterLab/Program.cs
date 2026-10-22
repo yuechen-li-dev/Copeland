@@ -1,10 +1,9 @@
-using System.Diagnostics;
 using System.Numerics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Aetheris.Humanoid;
+using Aurelian.CharacterLab;
 using Aurelian.Games;
-using Aurelian.GameHost.Silk;
 using Aurelian.Graphics.Plants;
 using Aurelian.Graphics.Vulkan.Device;
 using Aurelian.Graphics.Vulkan.Native2D;
@@ -14,12 +13,14 @@ using Aurelian.Runtime.Dominatus.Inspection;
 using Aurelian.Shaders.Compute;
 using Aurelian.World.Scenes;
 using Copeland.TS.Gpu;
-using Silk.NET.Input;
-using Silk.NET.Maths;
-using Silk.NET.Windowing;
 
 string bodyPath = Option("--body") ?? throw new ArgumentException("Use --body <antonia.gameplay-body.json> [--proof] [--output <directory>].");
 string output = Path.GetFullPath(Option("--output") ?? "artifacts/local/character-animation");
+if (!args.Contains("--proof", StringComparer.Ordinal))
+{
+    GameApp.Run(new CharacterLabGame(bodyPath), args);
+    return;
+}
 Directory.CreateDirectory(output);
 bool proof = args.Contains("--proof", StringComparer.Ordinal);
 if (proof)
@@ -47,62 +48,6 @@ if (proof)
     using var gpu = new HumanoidGpuBody(plant, shader.Spirv, body);
     Prove(plant, target, renderer, gpu);
 }
-else
-{
-    var options = WindowOptions.DefaultVulkan;
-    options.Size = new Vector2D<int>(960, 720);
-    options.Title = "Aurelian Character Lab — WASD walk, hold click aim, arrows orbit, V auto-demo, Esc pause";
-    options.WindowBorder = WindowBorder.Fixed;
-    bool smoke = args.Contains("--launch-smoke", StringComparer.Ordinal);
-    options.IsVisible = !smoke;
-    using var window = Window.Create(options);
-    window.Initialize();
-    using var input = window.CreateInput();
-    using var controls = new GameControls();
-    using var captured = new CapturedGameInput(window, input, controls.Adapter, manageFocus: true);
-    using var graphics = new NativeGameGraphics(window, options.Title, !smoke);
-    using var gpu = new HumanoidGpuBody(graphics.Plant, shader.Spirv, body);
-    var clock = Stopwatch.StartNew();
-    double previous = clock.Elapsed.TotalSeconds;
-    double time = 0;
-    bool automatic = true;
-    bool paused = false;
-    float orbit = 0;
-    Console.WriteLine("AURELIAN_CHARACTER_READY gpu=" + graphics.Plant.Facts.PhysicalDeviceName);
-    while (!window.IsClosing)
-    {
-        window.DoEvents();
-        double now = clock.Elapsed.TotalSeconds;
-        float elapsed = (float)Math.Clamp(now - previous, 0, .05);
-        previous = now;
-        var commands = controls.Tick(elapsed);
-        if (commands.SwitchView) automatic = !automatic;
-        if (commands.Pause) paused = !paused;
-        orbit += commands.Turn * elapsed;
-        if (!paused)
-        {
-            time += elapsed;
-            float speed = Math.Min(1, new Vector2(commands.Strafe, commands.Forward).Length()) * .8f;
-            bool aiming = commands.Fire;
-            if (automatic)
-            {
-                speed = time % 8 is >= 1 and < 5 ? .8f : 0;
-                aiming = time % 8 is >= 5 and < 7;
-            }
-            Advance(speed, aiming, elapsed);
-        }
-        gpu.Present(definition.Pose(character), character.WorldTransform);
-        _ = graphics.Renderer.Render([], Camera(orbit, targetWidth: 960, targetHeight: 720),
-            new(.055f, .07f, .09f, 1), gpuGeometry: gpu.Geometry, lightDirection: new(.36f, .80f, -.48f));
-        graphics.Presenter.Present((ulong)gpu.DispatchCount);
-        if (smoke && gpu.DispatchCount == 4)
-        {
-            Console.WriteLine("AURELIAN_CHARACTER_NATIVE_SMOKE_PASSED frames=4");
-            break;
-        }
-    }
-}
-
 void Advance(float speed, bool aiming, double elapsed)
 {
     definition.Observe(character, new(speed, aiming));

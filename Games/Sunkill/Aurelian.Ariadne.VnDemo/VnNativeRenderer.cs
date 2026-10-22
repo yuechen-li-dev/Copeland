@@ -179,7 +179,7 @@ public sealed class VnNativeRenderer : IDisposable
         return Resource("machina-overlay", rgba);
     }
 
-    private static SpriteAtlasResource LoadImage(string file, string id, bool opaqueBackground)
+    internal static SpriteAtlasResource LoadImage(string file, string id, bool opaqueBackground)
     {
         string path = Path.Combine(AppContext.BaseDirectory, "Assets", file);
         using SKBitmap source = SKBitmap.Decode(path) ?? throw new InvalidDataException($"Could not decode '{path}'.");
@@ -194,7 +194,7 @@ public sealed class VnNativeRenderer : IDisposable
         return Resource(id, target.Bytes);
     }
 
-    private static SpriteAtlasResource LoadPortrait(string file, string id)
+    internal static SpriteAtlasResource LoadPortrait(string file, string id)
     {
         string path = Path.Combine(AppContext.BaseDirectory, "Assets", file);
         using SKBitmap source = SKBitmap.Decode(path) ?? throw new InvalidDataException($"Could not decode '{path}'.");
@@ -210,7 +210,7 @@ public sealed class VnNativeRenderer : IDisposable
         return Resource(id, target.Bytes);
     }
 
-    private static SpriteAtlasResource LoadRawImage(string path, string id, int width, int height)
+    internal static SpriteAtlasResource LoadRawImage(string path, string id, int width, int height)
     {
         using SKBitmap source = SKBitmap.Decode(path)
             ?? throw new InvalidDataException($"Could not decode '{path}'.");
@@ -229,12 +229,12 @@ public sealed class VnNativeRenderer : IDisposable
         return Resource(id, target.Bytes, width, height);
     }
 
-    private static SpriteAtlasResource Transparent(string id)
+    internal static SpriteAtlasResource Transparent(string id)
     {
         return Resource(id, new byte[Width * Height * 4]);
     }
 
-    private static SpriteAtlasResource CreateSeamFixture()
+    internal static SpriteAtlasResource CreateSeamFixture()
     {
         const int size = 16;
         var pixels = new byte[size * size * 4];
@@ -254,12 +254,12 @@ public sealed class VnNativeRenderer : IDisposable
         return Resource("sunkill.seam.fixture", pixels, size, size);
     }
 
-    private static SpriteAtlasResource Resource(string id, byte[] rgba)
+    internal static SpriteAtlasResource Resource(string id, byte[] rgba)
     {
         return Resource(id, rgba, Width, Height);
     }
 
-    private static SpriteAtlasResource Resource(string id, byte[] rgba, int width, int height)
+    internal static SpriteAtlasResource Resource(string id, byte[] rgba, int width, int height)
     {
         string hash = Convert.ToHexString(SHA256.HashData(rgba));
         return new SpriteAtlasResource(
@@ -271,7 +271,7 @@ public sealed class VnNativeRenderer : IDisposable
             SpriteSampling.Linear);
     }
 
-    private static CompiledGraphicsProgram CompileShader(
+    internal static CompiledGraphicsProgram CompileShader(
         string repositoryRoot,
         string sourceName,
         Action<string>? startupProgress)

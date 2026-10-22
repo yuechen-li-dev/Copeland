@@ -31,7 +31,8 @@ internal static class Program
 
         if (!args.Contains("--proof", StringComparer.OrdinalIgnoreCase))
         {
-            return VnPresenter.Run(args);
+            Aurelian.Games.GameApp.Run(new SunkillGame(), args);
+            return 0;
         }
 
         return RunProofAsync().GetAwaiter().GetResult();

@@ -5,7 +5,7 @@ drawn with Vulkan compute skinning. The idle/walk/aim demonstration repeats
 automatically; press V to switch to manual controls. WASD selects walking, hold
 the primary mouse button to aim, arrow keys orbit the camera, and Esc pauses.
 Walking is an in-place presentation clip; this lab does not run a movement motor.
-Input passes through the shared InputMan adapter and game controls.
+The `CharacterLabGame : IGame` adapter uses the shared shell for the title and pause menus, resizable Vulkan window, persisted settings, rebinding and InputMan devices. Choose Start before the demonstration advances. It has no world-save schema.
 
 From the Copeland root:
 
@@ -34,3 +34,5 @@ window smoke test independently verifies four swapchain presentations.
 The reusable implementation lives in `src/Integrations/Aurelian.Humanoid`;
 this application owns only controls, camera, the demonstration script and its
 qualification scenario. See [the runtime guide](../../../docs/Aurelian/humanoid-animation.md).
+
+The shell animation playtest is `Games/CharacterLab/Playtests/shell-animation.json`. Pass it with `--playtest-script` to check automatic/manual Idle, Walk and Aim transitions, frozen pause and native GPU captures through `GameApp`.

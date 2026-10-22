@@ -10,10 +10,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Games/Aurelian.Games.csproj" />
     <ProjectReference Include="../../../src/Integrations/Aurelian.GameMenus/Aurelian.GameMenus.csproj" />
     <PackageReference Include="SkiaSharp" />
-    <PackageReference Include="Avalonia" />
-    <PackageReference Include="Avalonia.Desktop" />
     <ProjectReference Include="../../../../Dominatus/src/Ariadne.OptFlow/Ariadne.OptFlow.csproj" />
     <ProjectReference Include="../../../../Dominatus/src/Dominatus.Core/Dominatus.Core.csproj" />
     <ProjectReference Include="../../../../Dominatus/src/Dominatus.OptFlow/Dominatus.OptFlow.csproj" />
@@ -40,6 +39,7 @@
 
   <ItemGroup>
     <Content Include="Assets/*.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../samples/Aurelian/ForwardTexturedM3.v.ts" Link="Assets/ForwardTexturedM3.v.ts" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets/*.toml" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets/*.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Assets/*.obj.ts" />

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "steps": [
+    { "kind": "click-action", "text": "start" },
+    { "kind": "wait", "seconds": 1.2 },
+    { "kind": "command", "command": "assert motion Walk" },
+    { "kind": "capture", "path": "automatic-walk.png" },
+    { "kind": "tap", "keys": ["Escape"], "seconds": 0 },
+    { "kind": "command", "command": "mark paused" },
+    { "kind": "wait", "seconds": 0.5 },
+    { "kind": "command", "command": "assert-mark paused" },
+    { "kind": "click-action", "text": "resume" },
+    { "kind": "tap", "keys": ["V"], "seconds": 0.05 },
+    { "kind": "wait", "seconds": 0.2 },
+    { "kind": "command", "command": "assert automatic false" },
+    { "kind": "command", "command": "assert motion Idle" },
+    { "kind": "hold", "keys": ["W"], "seconds": 0.2 },
+    { "kind": "command", "command": "assert motion Walk" },
+    { "kind": "capture", "path": "manual-walk.png" },
+    { "kind": "mouse-hold", "text": "Primary", "seconds": 0.2 },
+    { "kind": "command", "command": "assert motion Aim" },
+    { "kind": "capture", "path": "manual-aim.png" }
+  ]
+}

@@ -22,15 +22,9 @@ a Vulkan-capable GPU/driver, and the repository's existing DXC shader toolchain.
 | Enter / Space in menus | Confirm |
 | Mouse click in menus | Activate a button |
 
-The title bar displays the objective, collected count, and win message. The window is
-fixed at 960×600. InputMan owns action maps, held axes, action edges, and focus reset;
-the existing `SilkInputBridge` translates native events into `AurelianInputAdapter`.
+The normal application uses `BeaconShellGame : IGame` and the common `GameApp` shell: a resizable window, title/pause menus, persisted display/audio/controls settings and key rebinding. Focus loss pauses the run and clears input. The HUD displays the objective and the win/loss result; press Enter after a result to restart. Beacon does not yet define a world-save schema.
 
-The game starts at a title menu and provides pause, controls, and completion menus.
-These use the [Aurelian game menu template](../../../docs/Aurelian/games/game-menu-template.md).
-Menus freeze simulation and render native analytic shapes/MSDF text over the 3D scene.
-Escape releases the cursor. Losing focus pauses the game and clears pending input;
-returning to the window leaves the menu open. The pause menu provides Restart.
+Historical `--proof` and `--lighting-proof` retain the dedicated renderer qualification path below. Normal playtests use the shared sorted-fact observation/command format; `Games/Playtests/common-shell.json` checks the common application lifecycle.
 
 ## Optional humanoid player
 

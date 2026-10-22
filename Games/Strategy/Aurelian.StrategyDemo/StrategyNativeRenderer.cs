@@ -1,21 +1,14 @@
-using System.Diagnostics;
-using System.Runtime.InteropServices;
-using Aurelian.Graphics.Plants;
+using Aurelian.Games;
+using Aurelian.Composition;
+using Aurelian.NativeComposition;
 using Aurelian.Graphics.Vulkan.Device;
-using Aurelian.Graphics.Vulkan.Diagnostics;
 using Aurelian.Graphics.Vulkan.Native2D;
-using Aurelian.Graphics.Vulkan.Presentation;
-using Aurelian.Graphics.Vulkan.Resources.Textures;
 using Aurelian.Machina;
 using Aurelian.Machina.Graphics;
 using Aurelian.Profile.Graphics;
-using Aurelian.Rendering.Contracts.Shaders;
-using Aurelian.Shaders.Graphics;
 using Aurelian.Spatial2D;
 using Aurelian.Strategy;
 using Copeland.Profile;
-using Copeland.TS.Gpu;
-using Copeland.TS.Gpu.VdMir;
 using Copeland.TS.Profiles;
 using Machina.Core.Authoring;
 using Machina.Core.Lowering;
@@ -23,332 +16,17 @@ using Machina.Core.Nodes;
 using Machina.Core.Styling;
 using Machina.Pipeline;
 using Machina.Presentation;
-using Silk.NET.Core.Contexts;
-using Silk.NET.Core.Native;
-using Silk.NET.Input;
-using Silk.NET.Maths;
-using Silk.NET.Windowing;
-using SkiaSharp;
-using InputKey = InputMan.Core.KeyboardKey;
-using SilkKey = Silk.NET.Input.Key;
-using SilkMouseButton = Silk.NET.Input.MouseButton;
 
 namespace Aurelian.StrategyDemo;
 
-internal static class StrategyNativeRuntime
-{
-    public static int Run(bool smoke)
-    {
-        try
-        {
-            string root = ProofArtifacts.FindRoot();
-            using StrategyNativeWindow window = StrategyNativeWindow.Create(smoke);
-            var session = new StrategySession();
-            var view = new StrategyView();
-            view.Center(StrategySession.Home);
-            using var input = new StrategyInput(session, view);
-            window.Connect(input, view);
-            var host = new StrategyHost(session);
-            using var renderer = new StrategyNativeRenderer(root, window, session, view, validation: smoke);
-            Stopwatch clock = Stopwatch.StartNew();
-            TimeSpan previous = clock.Elapsed;
-            int frames = 0;
-            while (!window.ShouldClose)
-            {
-                TimeSpan now = clock.Elapsed;
-                TimeSpan elapsed = now - previous;
-                previous = now;
-                window.PumpEvents();
-                input.Update(elapsed, now);
-                host.Advance(elapsed, view.Paused);
-                if (smoke && frames == 3)
-                {
-                    StrategyNativeRenderer.ToggleInspectorRequested = true;
-                }
-                bool capture = smoke && frames is 2 or 3;
-                VulkanNativeFrameResult frame = renderer.Render((ulong)frames, capture);
-                renderer.Present((ulong)frames);
-                frames++;
-                if (smoke && frames == 3)
-                {
-                    SaveSmoke(frame, renderer, frames);
-                }
-                else if (smoke && frames == 4)
-                {
-                    SaveNativeImage(frame, "native-vulkan-inspector-overlay.png");
-                    ProofArtifacts.Write("native-vulkan-inspector-overlay.json", new
-                    {
-                        visible = true,
-                        toggle = "F10",
-                        authority = "development-only Machina overlay; no gameplay state mutation",
-                        frame.PixelSha256,
-                    });
-                    Console.WriteLine("MOSSWARD_NATIVE_VULKAN_READY frames=4 inspector=verified");
-                    break;
-                }
-            }
-            return 0;
-        }
-        catch (Exception error)
-        {
-            Console.Error.WriteLine(error);
-            return 1;
-        }
-    }
-
-    private static void SaveSmoke(VulkanNativeFrameResult frame, StrategyNativeRenderer renderer, int frames)
-    {
-        SaveNativeImage(frame, "native-vulkan-launch-frame.png");
-        SaveM19AcceptanceImage(frame);
-        ProofArtifacts.Write("native-vulkan-launch.json", new
-        {
-            windowOpened = true,
-            framesRendered = frames,
-            renderer = "Aurelian Vulkan Profile + native Machina + semantic fog",
-            renderer.Device,
-            renderer.ProfileUploads,
-            renderer.FontUploads,
-            inspectorToggle = "F10",
-            width = StrategyHudProfile.Width,
-            height = StrategyHudProfile.Height,
-            frame.PixelSha256,
-        });
-        ProofArtifacts.WriteM19("strategy-native-acceptance.json", new
-        {
-            image = "strategy-native-after.png",
-            source = "live Aurelian.StrategyDemo Vulkan presenter smoke capture",
-            perspective = "Mossward isometric",
-            semanticState = "AURELIAN-RTS-PEARL-MINING-M18 default session",
-            hud = "StrategyHudProfile.Build",
-            fonts = new[]
-            {
-                "CrimsonText-Regular.ttf / 22,30",
-                "SpaceMono-Regular.ttf / 12",
-            },
-            profileFieldQuality = ProfileNativeCompiler.DefaultQualitySize,
-            profileMinimumShortAxis = ProfileNativeCompiler.DefaultMinimumShortAxis,
-            profilePixelRange = ProfileNativeCompiler.DefaultPixelRange,
-            textMinimumFieldDimension = StrategyNativeUiFont.MinimumFieldDimension,
-            textPixelRange = StrategyNativeUiFont.FieldPixelRange,
-            width = StrategyHudProfile.Width,
-            height = StrategyHudProfile.Height,
-            frame.PixelSha256,
-        });
-    }
-
-    private static void SaveM19AcceptanceImage(VulkanNativeFrameResult frame)
-    {
-        byte[] pixels = frame.Pixels ?? throw new InvalidOperationException("Native launch smoke did not capture pixels.");
-        using var bitmap = new SKBitmap(new SKImageInfo(
-            StrategyHudProfile.Width,
-            StrategyHudProfile.Height,
-            SKColorType.Rgba8888,
-            SKAlphaType.Unpremul));
-        Marshal.Copy(pixels, 0, bitmap.GetPixels(), pixels.Length);
-        ProofArtifacts.SaveM19(bitmap, "strategy-native-after.png");
-    }
-
-    private static void SaveNativeImage(VulkanNativeFrameResult frame, string name)
-    {
-        byte[] pixels = frame.Pixels ?? throw new InvalidOperationException("Native launch smoke did not capture pixels.");
-        using var bitmap = new SKBitmap(new SKImageInfo(StrategyHudProfile.Width, StrategyHudProfile.Height,
-            SKColorType.Rgba8888, SKAlphaType.Unpremul));
-        Marshal.Copy(pixels, 0, bitmap.GetPixels(), pixels.Length);
-        ProofArtifacts.Save(bitmap, name);
-    }
-}
-
-internal sealed class StrategyNativeWindow : IDisposable
-{
-    private readonly IWindow window;
-    private readonly IInputContext inputContext;
-    private StrategyInput? input;
-    private StrategyView? view;
-    private bool disposed;
-
-    private StrategyNativeWindow(IWindow window, IInputContext inputContext, IReadOnlyList<string> extensions)
-    {
-        this.window = window;
-        this.inputContext = inputContext;
-        RequiredVulkanInstanceExtensions = extensions;
-    }
-
-    public IWindow NativeWindow => window;
-    public IReadOnlyList<string> RequiredVulkanInstanceExtensions { get; }
-    public bool ShouldClose => window.IsClosing;
-
-    public static StrategyNativeWindow Create(bool smoke)
-    {
-        WindowOptions options = WindowOptions.DefaultVulkan;
-        options.IsVisible = !smoke;
-        options.Size = new Vector2D<int>(StrategyHudProfile.Width, StrategyHudProfile.Height);
-        options.Title = "Mossward — Aurelian Vulkan";
-        options.VSync = true;
-        options.WindowBorder = WindowBorder.Fixed;
-        IWindow window = Silk.NET.Windowing.Window.Create(options);
-        window.Initialize();
-        return new StrategyNativeWindow(window, window.CreateInput(), ReadRequiredVulkanExtensions(window));
-    }
-
-    public void Connect(StrategyInput strategyInput, StrategyView strategyView)
-    {
-        input = strategyInput;
-        view = strategyView;
-        foreach (IKeyboard keyboard in inputContext.Keyboards)
-        {
-            keyboard.KeyDown += OnKeyDown;
-            keyboard.KeyUp += OnKeyUp;
-        }
-        foreach (IMouse mouse in inputContext.Mice)
-        {
-            mouse.MouseMove += OnMouseMove;
-            mouse.MouseDown += OnMouseDown;
-            mouse.MouseUp += OnMouseUp;
-            mouse.Scroll += OnScroll;
-        }
-        window.FocusChanged += OnFocusChanged;
-    }
-
-    public void PumpEvents() => window.DoEvents();
-
-    public void Dispose()
-    {
-        if (disposed)
-        {
-            return;
-        }
-        disposed = true;
-        window.FocusChanged -= OnFocusChanged;
-        foreach (IKeyboard keyboard in inputContext.Keyboards)
-        {
-            keyboard.KeyDown -= OnKeyDown;
-            keyboard.KeyUp -= OnKeyUp;
-        }
-        foreach (IMouse mouse in inputContext.Mice)
-        {
-            mouse.MouseMove -= OnMouseMove;
-            mouse.MouseDown -= OnMouseDown;
-            mouse.MouseUp -= OnMouseUp;
-            mouse.Scroll -= OnScroll;
-        }
-        inputContext.Dispose();
-        window.Dispose();
-    }
-
-    private void OnKeyDown(IKeyboard keyboard, SilkKey key, int scanCode)
-    {
-        if (key == SilkKey.F10)
-        {
-            StrategyNativeRenderer.ToggleInspectorRequested = true;
-        }
-        if (TryMapKey(key, out InputKey mapped))
-        {
-            input!.RecordButton(InputMan.Core.Controls.Key(mapped), true);
-        }
-    }
-
-    private void OnKeyUp(IKeyboard keyboard, SilkKey key, int scanCode)
-    {
-        if (TryMapKey(key, out InputKey mapped))
-        {
-            input!.RecordButton(InputMan.Core.Controls.Key(mapped), false);
-        }
-    }
-
-    private void OnMouseMove(IMouse mouse, System.Numerics.Vector2 position)
-    {
-        view!.ScreenPointer = (position.X, position.Y);
-    }
-
-    private void OnMouseDown(IMouse mouse, SilkMouseButton button)
-    {
-        RecordMouse(button, true);
-    }
-
-    private void OnMouseUp(IMouse mouse, SilkMouseButton button)
-    {
-        RecordMouse(button, false);
-    }
-
-    private void OnScroll(IMouse mouse, ScrollWheel wheel)
-    {
-        input!.RecordWheel(wheel.Y);
-    }
-
-    private void RecordMouse(SilkMouseButton button, bool down)
-    {
-        InputMan.Core.MouseButton? mapped = button switch
-        {
-            SilkMouseButton.Left => InputMan.Core.MouseButton.Primary,
-            SilkMouseButton.Right => InputMan.Core.MouseButton.Secondary,
-            _ => null,
-        };
-        if (mapped.HasValue)
-        {
-            input!.RecordButton(InputMan.Core.Controls.Mouse(mapped.Value), down);
-        }
-    }
-
-    private void OnFocusChanged(bool focused)
-    {
-        input?.Focus(focused);
-    }
-
-    private static bool TryMapKey(SilkKey key, out InputKey mapped)
-    {
-        mapped = key switch
-        {
-            SilkKey.B => InputKey.B,
-            SilkKey.F => InputKey.F,
-            SilkKey.I => InputKey.I,
-            SilkKey.N => InputKey.N,
-            SilkKey.S => InputKey.S,
-            SilkKey.Number1 => InputKey.Number1,
-            SilkKey.Number2 => InputKey.Number2,
-            SilkKey.Number3 => InputKey.Number3,
-            SilkKey.Space => InputKey.Space,
-            SilkKey.Escape => InputKey.Escape,
-            SilkKey.Left => InputKey.ArrowLeft,
-            SilkKey.Right => InputKey.ArrowRight,
-            SilkKey.Up => InputKey.ArrowUp,
-            SilkKey.Down => InputKey.ArrowDown,
-            SilkKey.ShiftLeft or SilkKey.ShiftRight => InputKey.LeftShift,
-            SilkKey.ControlLeft or SilkKey.ControlRight => InputKey.LeftControl,
-            _ => InputKey.Unknown,
-        };
-        return mapped != InputKey.Unknown;
-    }
-
-    private static unsafe IReadOnlyList<string> ReadRequiredVulkanExtensions(IWindow window)
-    {
-        IVkSurface surface = window.VkSurface
-            ?? throw new InvalidOperationException("Silk.NET did not expose a Vulkan surface source.");
-        uint count = 0;
-        byte** extensions = surface.GetRequiredExtensions(out count);
-        var names = new List<string>((int)count);
-        for (int index = 0; index < count; index++)
-        {
-            string? name = SilkMarshal.PtrToString((nint)extensions[index], NativeStringEncoding.UTF8);
-            if (!string.IsNullOrWhiteSpace(name) && !names.Contains(name, StringComparer.Ordinal))
-            {
-                names.Add(name);
-            }
-        }
-        return names;
-    }
-}
-
-internal sealed class StrategyNativeRenderer : IDisposable
+internal sealed class StrategyNativeRenderer : INativeLayerPresenter
 {
     private const int Width = StrategyHudProfile.Width;
     private const int Height = StrategyHudProfile.Height;
-    private readonly StrategySession session;
+    private readonly Func<StrategySession> getSession;
+    private StrategySession session => getSession();
     private readonly StrategyView view;
     private readonly AurelianVulkanPlant plant;
-    private readonly AurelianVulkanSurface surface;
-    private readonly AurelianVulkanSwapchain swapchain;
-    private readonly VulkanNativeFrameTarget target;
-    private readonly VulkanNativeSwapchainPresenter presenter;
     private readonly VulkanOrderedQuadRenderer shapes;
     private readonly VulkanOrderedQuadRenderer profiles;
     private readonly VulkanOrderedQuadRenderer text;
@@ -371,16 +49,14 @@ internal sealed class StrategyNativeRenderer : IDisposable
     private NativeMsdfQuadSubmission[] hudText = [];
     private bool inspectorVisible;
 
-    public static bool ToggleInspectorRequested { get; set; }
+    public bool ToggleInspectorRequested { get; set; }
 
     public StrategyNativeRenderer(
-        string root,
-        StrategyNativeWindow window,
-        StrategySession session,
-        StrategyView view,
-        bool validation)
+        NativeGameGraphics graphics,
+        Func<StrategySession> getSession,
+        StrategyView view)
     {
-        this.session = session;
+        this.getSession = getSession;
         this.view = view;
         string assetDirectory = Path.Combine(AppContext.BaseDirectory, "Assets");
         font = StrategyNativeUiFont.Create(assetDirectory);
@@ -388,48 +64,28 @@ internal sealed class StrategyNativeRenderer : IDisposable
         landTile = CompileTile("land", "#667f50");
         pathTile = CompileTile("path", "#959463");
         waterTile = CompileTile("water", "#43706e");
-        VulkanInitResult init = VulkanPlantInitializer.CreatePlant(
-            PlantId.Zero,
-            new VulkanPlantOptions(
-                EnableValidation: validation,
-                ApplicationName: "Mossward",
-                EnablePresentation: true,
-                RequiredPresentationInstanceExtensions: window.RequiredVulkanInstanceExtensions));
-        if (!init.Success || init.Plant is null)
-        {
-            throw new InvalidOperationException(string.Join("; ", init.Diagnostics.Select(item => item.Message)));
-        }
-        plant = init.Plant;
-        Device = init.Facts!.PhysicalDeviceName;
-        VulkanSwapchainCreateResult created = VulkanSwapchainFactory.Create(
-            plant,
-            window.NativeWindow,
-            new VulkanSwapchainCreateOptions(Width, Height, VSync: true, "Mossward", Visible: !validation));
-        if (!created.Success || created.Surface is null || created.Swapchain is null)
-        {
-            throw new InvalidOperationException(string.Join("; ", created.Diagnostics.Select(item => item.Message)));
-        }
-        surface = created.Surface;
-        swapchain = created.Swapchain;
-        target = new VulkanNativeFrameTarget(plant, Width, Height, ParseSwapchainFormat(swapchain.Facts.SelectedFormat));
+        plant = graphics.Plant;
+        var target = graphics.Target;
+        Device = plant.Facts.PhysicalDeviceName;
+        var shaderAssets = new GameAssets();
         shapes = new VulkanOrderedQuadRenderer(
             plant,
-            Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/AnalyticShape2D.v.ts"),
+            shaderAssets.Shader("AnalyticShape2D.v.ts"),
             target,
             Native2DPipelineOptions.AnalyticShape2D);
         profiles = new VulkanOrderedQuadRenderer(
             plant,
-            Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/ProfileMsdf.v.ts"),
+            shaderAssets.Shader("ProfileMsdf.v.ts"),
             target,
             Native2DPipelineOptions.ProfileMsdf);
         text = new VulkanOrderedQuadRenderer(
             plant,
-            Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/Ui2D/MsdfText.v.ts"),
+            shaderAssets.Shader("MsdfText.v.ts"),
             target,
             Native2DPipelineOptions.MsdfText);
         fog = new VulkanOrderedQuadRenderer(
             plant,
-            Compile(root, "src/Aurelian/Aurelian.Shaders/Assets/Effects2D/SemanticFog.v.ts"),
+            shaderAssets.Shader("SemanticFog.v.ts"),
             target,
             Native2DPipelineOptions.SemanticFog);
         profileCache = new ProfileNativeRealizationCache(profiles, 32);
@@ -442,14 +98,29 @@ internal sealed class StrategyNativeRenderer : IDisposable
         {
             fontCache.Resolve(resource);
         }
-        presenter = new VulkanNativeSwapchainPresenter(plant, target, swapchain);
+        foreach (var renderer in new[] { shapes, profiles, text, fog })
+        {
+            renderer.SetLogicalSize(Width, Height);
+        }
     }
 
     public string Device { get; }
     public int ProfileUploads => profileCache.UploadCount;
     public int FontUploads => fontCache.UploadCount;
 
-    public VulkanNativeFrameResult Render(ulong frameId, bool capture)
+    public LayerId Layer { get; } = new("mossward.world");
+
+    public void Attach(VulkanNativeFrameTarget target) => Resize(target);
+
+    public void Resize(VulkanNativeFrameTarget target)
+    {
+        foreach (var renderer in new[] { shapes, profiles, text, fog })
+        {
+            renderer.Retarget(target);
+        }
+    }
+
+    public void Present(NativeLayerFrameContext frame)
     {
         if (ToggleInspectorRequested)
         {
@@ -459,7 +130,6 @@ internal sealed class StrategyNativeRenderer : IDisposable
         }
         PrepareFog();
         PrepareHud();
-        using VulkanNativeFrameSession frame = target.BeginFrame(new NativeFrameClearColor(0.125f, 0.239f, 0.212f, 1));
         frame.Present(profiles, DrawTerrain);
         frame.Present(fog, pass => pass.SubmitSemanticFog(new NativeSemanticFogSubmission(
             new Native2DRect(0, 78, Width, 532),
@@ -470,7 +140,7 @@ internal sealed class StrategyNativeRenderer : IDisposable
             .48f,
             .72f,
             .015f,
-            (frameId % 240) / 240f)));
+            (frame.FrameId % 240) / 240f)));
         frame.Present(profiles, DrawWorldObjects);
         frame.Present(shapes, pass =>
         {
@@ -494,15 +164,9 @@ internal sealed class StrategyNativeRenderer : IDisposable
                 : StrategyRenderer.UnitAsset(session.Units.First(unit => session.Selection.Contains(unit.Id)).Kind);
             profileCache.Submit(assets[portrait], new ProfileNativeInstance(76, 740, .65f));
         });
-        return frame.EndFrame(capture);
     }
 
-    public void Present(ulong frameId)
-    {
-        presenter.Present(frameId);
-    }
-
-    public void Dispose()
+    public void Detach()
     {
         if (fogTexture.HasValue)
         {
@@ -514,11 +178,6 @@ internal sealed class StrategyNativeRenderer : IDisposable
         text.Dispose();
         profiles.Dispose();
         shapes.Dispose();
-        presenter.Dispose();
-        target.Dispose();
-        swapchain.Dispose();
-        surface.Dispose();
-        plant.Dispose();
     }
 
     private void DrawTerrain(VulkanOrderedQuadRenderer pass)
@@ -873,35 +532,6 @@ internal sealed class StrategyNativeRenderer : IDisposable
             throw new InvalidOperationException(string.Join("; ", native.Diagnostics.Select(item => item.Message)));
         }
         return native.Resource!;
-    }
-
-    private static CompiledGraphicsProgram Compile(string root, string relativePath)
-    {
-        string source = File.ReadAllText(Path.Combine(root, relativePath)).Replace("\r\n", "\n", StringComparison.Ordinal);
-        VdMirGraphicsModule module = GpuGraphicsBinder.Compile(
-            new GpuCompilationRequest([new GpuSourceFile(relativePath, source)]));
-        if (!module.Success)
-        {
-            throw new InvalidOperationException(string.Join("; ", module.Diagnostics.Select(item => item.Message)));
-        }
-        VdMirGraphicsBackendResult backend = VdMirGraphicsBackend.Compile(module);
-        if (!backend.Vertex.SpirvValidated || !backend.Pixel.SpirvValidated)
-        {
-            throw new InvalidOperationException(backend.Vertex.DxcOutput + backend.Pixel.DxcOutput);
-        }
-        return CompiledGraphicsProgramExporter.Export(module, backend);
-    }
-
-    private static VulkanTextureFormat ParseSwapchainFormat(string format)
-    {
-        return format switch
-        {
-            "R8G8B8A8Unorm" => VulkanTextureFormat.Rgba8Unorm,
-            "B8G8R8A8Unorm" => VulkanTextureFormat.Bgra8Unorm,
-            "R8G8B8A8Srgb" => VulkanTextureFormat.Rgba8Srgb,
-            "B8G8R8A8Srgb" => VulkanTextureFormat.Bgra8Srgb,
-            _ => throw new NotSupportedException($"Mossward does not support swapchain format {format}."),
-        };
     }
 
     private static void Rect(VulkanOrderedQuadRenderer pass, float x, float y, float width, float height, uint color)

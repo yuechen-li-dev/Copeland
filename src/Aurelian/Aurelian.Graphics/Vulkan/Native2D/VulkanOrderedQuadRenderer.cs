@@ -162,6 +162,20 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
         vertexBytes = new byte[checked(vertexCapacityQuads * VerticesPerQuad * vertexStride)];
     }
 
+    private float? logicalWidth;
+    private float? logicalHeight;
+
+    /// <summary>Use a fixed logical canvas while the physical target follows window resizing.</summary>
+    public void SetLogicalSize(float logicalWidth, float logicalHeight)
+    {
+        if (!float.IsFinite(logicalWidth) || !float.IsFinite(logicalHeight) || logicalWidth <= 0 || logicalHeight <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(logicalWidth), "Logical dimensions must be finite and positive.");
+        }
+        this.logicalWidth = logicalWidth;
+        this.logicalHeight = logicalHeight;
+    }
+
     public uint Width => width;
 
     public uint Height => height;
@@ -1153,10 +1167,10 @@ public sealed unsafe class VulkanOrderedQuadRenderer : IDisposable
     }
 
     private float ToNdcX(float pixelX)
-        => pixelX / width * 2 - 1;
+        => pixelX / (logicalWidth ?? width) * 2 - 1;
 
     private float ToNdcY(float pixelY)
-        => pixelY / height * 2 - 1;
+        => pixelY / (logicalHeight ?? height) * 2 - 1;
 
     private static void WriteFloat(byte[] destination, int offset, float value)
         => BinaryPrimitives.WriteInt32LittleEndian(destination.AsSpan(offset, 4), BitConverter.SingleToInt32Bits(value));

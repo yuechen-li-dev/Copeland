@@ -1,4 +1,5 @@
 using Aurelian.GameHost;
+using Aurelian.Games;
 using Aurelian.Spatial2D;
 using Aurelian.Strategy;
 using InputMan.Aurelian;
@@ -25,15 +26,19 @@ public sealed class StrategyInput : IDisposable
     ];
     private readonly StrategySession session;
     private readonly StrategyView view;
-    private readonly AurelianInputAdapter adapter;
+    private readonly AurelianInputAdapter? adapter;
     private long lastClickTicks = -TimeSpan.TicksPerSecond;
     private int? lastClickId;
     private bool focused = true;
 
-    public StrategyInput(StrategySession session, StrategyView view)
+    public StrategyInput(StrategySession session, StrategyView view, bool shellInput = false)
     {
         this.session = session;
         this.view = view;
+        if (shellInput)
+        {
+            return;
+        }
         List<Binding> bindings =
         [
             Bind.Action(Controls.Mouse(MouseButton.Primary), Select, ButtonEdge.Down),
@@ -51,24 +56,39 @@ public sealed class StrategyInput : IDisposable
         adapter.SetContexts(Map);
     }
 
-    public void RecordButton(ControlKey key, bool down) => adapter.RecordButton(key, down);
-    public void RecordWheel(float amount) => adapter.RecordAxis(Controls.Mouse(MouseAxis.WheelY), amount);
+    public void RecordButton(ControlKey key, bool down) => adapter!.RecordButton(key, down);
+    public void RecordWheel(float amount) => adapter!.RecordAxis(Controls.Mouse(MouseAxis.WheelY), amount);
 
     public void Focus(bool value)
     {
         focused = value;
-        adapter.OnFocusChanged(value);
+        adapter?.OnFocusChanged(value);
         view.DragStart = null;
     }
 
     public void Update(TimeSpan elapsed, TimeSpan total)
     {
-        adapter.BeginFrame(new((ulong)total.Ticks, elapsed, total));
-        InputFrame frame = adapter.CurrentFrame;
+        adapter!.BeginFrame(new((ulong)total.Ticks, elapsed, total));
+        InputFrame frame = adapter!.CurrentFrame;
         if (!focused)
         {
             return;
         }
+        Process(elapsed, total, action => frame.WasPressed(new(action)),
+            action => frame.IsDown(new(action)), frame.WasReleased(Select),
+            frame.GetAxis(Wheel), frame.GetAxis(PanX), frame.GetAxis(PanY));
+    }
+
+    public void Update(GameInputState input, TimeSpan elapsed, TimeSpan total)
+    {
+        Process(elapsed, total, action => input.WasPressed(action.ToLowerInvariant()),
+            action => input.IsDown(action.ToLowerInvariant()), input.WasReleased("select"),
+            input.Pointer.Wheel.Y, input.Axis("pan.left", "pan.right"), input.Axis("pan.up", "pan.down"));
+    }
+
+    private void Process(TimeSpan elapsed, TimeSpan total, Func<string, bool> pressed, Func<string, bool> down,
+        bool released, float wheel, float panX, float panY)
+    {
         float x = view.ScreenPointer.X;
         float y = view.ScreenPointer.Y;
         view.Pointer = view.World(x, y);
@@ -77,45 +97,45 @@ public sealed class StrategyInput : IDisposable
             view.Pointer = new(Math.Round(view.Pointer.X), Math.Round(view.Pointer.Y));
         }
         bool hud = y >= 570 || y < 78 || x < 304 && y is >= 102 and <= 292;
-        if (frame.WasPressed(Select) && !hud)
+        if (pressed("Select") && !hud)
         {
             view.DragStart = (x, y);
         }
-        if (frame.IsDown(Select) && StrategyView.OnMinimap(x, y))
+        if (down("Select") && StrategyView.OnMinimap(x, y))
         {
             view.MinimapJump(x, y);
             view.DragStart = null;
         }
-        if (frame.WasReleased(Select))
+        if (released)
         {
             if (y is >= 659 and <= 753 && x is >= 361 and < 965)
             {
                 string[] actions = ["Build", "Recruit", "Stop", "Idle"];
-                RunAction(actions[Math.Clamp((int)(x - 361) / 151, 0, 3)], frame);
+                RunAction(actions[Math.Clamp((int)(x - 361) / 151, 0, 3)], down("Store"));
             }
             else if (view.DragStart is { } start && !hud)
             {
-                SelectWorld(start, x, y, frame.IsDown(Additive), total);
+                SelectWorld(start, x, y, down("Additive"), total);
             }
             view.DragStart = null;
         }
-        if (frame.WasPressed(Command) && !hud)
+        if (pressed("Command") && !hud)
         {
             ContextOrder();
         }
         foreach ((KeyboardKey _, string action) in Keys)
         {
-            if (frame.WasPressed(new(action)))
+            if (pressed(action))
             {
-                RunAction(action, frame);
+                RunAction(action, down("Store"));
             }
         }
         if (!hud)
         {
-            view.Zoom(frame.GetAxis(Wheel) * .1);
+            view.Zoom(wheel * .1);
         }
-        double dx = frame.GetAxis(PanX);
-        double dy = frame.GetAxis(PanY);
+        double dx = panX;
+        double dy = panY;
         if (!hud && view.DragStart is null)
         {
             if (x < 12)
@@ -206,7 +226,7 @@ public sealed class StrategyInput : IDisposable
         session.Dispatch(new OrderIntent(ids, order));
     }
 
-    private void RunAction(string action, InputFrame frame)
+    private void RunAction(string action, bool store)
     {
         switch (action)
         {
@@ -241,11 +261,11 @@ public sealed class StrategyInput : IDisposable
             default:
                 if (action.StartsWith("Group", StringComparison.Ordinal))
                 {
-                    session.Dispatch(new ControlGroupIntent(int.Parse(action.AsSpan(5)), frame.IsDown(Store)));
+                    session.Dispatch(new ControlGroupIntent(int.Parse(action.AsSpan(5)), store));
                 }
                 break;
         }
     }
 
-    public void Dispose() => adapter.Dispose();
+    public void Dispose() => adapter?.Dispose();
 }

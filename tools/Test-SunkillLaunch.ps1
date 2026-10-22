@@ -1,5 +1,5 @@
 param(
-    [int]$TimeoutSeconds = 20
+    [int]$TimeoutSeconds = 90
 )
 
 $ErrorActionPreference = "Stop"
@@ -59,7 +59,7 @@ if ($process.ExitCode -ne 0) {
     throw "SUNKILL launch smoke failed with exit code $($process.ExitCode).`nSTDOUT:`n$stdout`nSTDERR:`n$stderr"
 }
 
-if (-not $stdout.Contains("SUNKILL_LAUNCH_READY", [StringComparison]::Ordinal)) {
+if (-not $stdout.Contains("AURELIAN_GAME_HOST_SMOKE_PASSED", [StringComparison]::Ordinal)) {
     throw "SUNKILL exited without reporting a rendered, opened window.`nSTDOUT:`n$stdout`nSTDERR:`n$stderr"
 }
 

@@ -223,4 +223,27 @@ A rewind also restores the preferences the recorded inputs ran under, in memory 
 - On a real display, exclusive fullscreen at a non-native resolution asks GLFW for the closest video mode. The headless Xvfb proof cannot change modes and reports the monitor's size.
 - The pointer map only knows the primary, secondary and middle buttons. Back and forward can still be bound to actions.
 - Gamepad buttons and sticks work (see Gamepad above), but capture-rebinding only offers keyboard keys and mouse buttons, and only the first pad is read.
-- Beacon, Mossward, Sunkill and CharacterLab still use their own bootstraps. TinyFarm (2D, with input contexts, game-owned screens and checkpoints) runs on the shell. The FPS starter runs on the shell (`GameStarter.Run` in `Aurelian.Games.Humanoid` builds a `StarterGame : IGame`), and so will new games.
+- All eight applications under `Games/` use this shell. Specialized proof modes may still construct offscreen renderers or historical proof applications.
+
+## Existing applications
+
+| Application | Shell adapter | Game-owned presentation / rules |
+| --- | --- | --- |
+| Beacon Run | `BeaconShellGame` | Existing arena, agent simulation, optional humanoid and GPU ray queries |
+| Mossward | `MosswardGame` | Native profiles, fog, HUD, selection and strategy intents at 10 Hz (input at 60 Hz) |
+| Sunkill | `SunkillGame` | Ariadne dialogue, original artwork and Machina dialogue UI |
+| CharacterLab | `CharacterLabGame` | Humanoid animation policies and GPU skinning |
+| Starter | `StarterGame` | Composed FPS/TPS fragments |
+| TinyFarm | `TinyFarmApp` | Farming world, game screens and checkpoint saves |
+| Cloudstep | `CloudstepGame` | Platforming course, camera and save schema |
+| Hearth | `HearthGame` | Fire/smoke showcase and camera |
+
+Normal launches and `--playtest-script` use `GameApp`; `--proof`, Sunkill's `--m14-proof` / `--m15-proof`, and Beacon's lighting authoring/qualification flags retain their specialized qualification paths. Game-specific launch arguments such as `--body`, `--humanoid`, `--locomotion` and `--lighting` still configure the game's adapter.
+
+Sunkill's dialogue buttons use the shell pointer input and the existing aspect-preserving Machina viewport transform. Escape opens the common pause/save menu. Old slot 1 at `%LOCALAPPDATA%/SUNKILL/Saves` is imported only when the new slot is empty; the old files remain intact. The new application id is `sunkill-vn`, so its `%LOCALAPPDATA%/sunkill-vn/saves` directory cannot collide with the legacy directory on case-insensitive Windows filesystems. Its old standalone menus and persistence classes remain for historical proofs. Slots 2 and 3 are not automatically imported.
+
+Mossward's native passes render a logical 1280x800 canvas into the shell target. `VulkanOrderedQuadRenderer.SetLogicalSize` keeps its geometry aligned through resize without replacing the plant or texture caches. Pointer positions use the inverse scale. C cancels selection/placement; Escape is the common pause action. Beacon's completion message stays in the HUD, with Enter to restart the run.
+
+Only games supplying `IGame.Saves` show save/load actions. This migration does not invent world checkpoints for Beacon, Mossward, CharacterLab or Hearth. All games persist their shell preferences separately from world saves.
+
+`Games/Playtests/common-shell.json` runs the same native menu, pause, settings, target recreation, resize and focus checks against all games. Its headless companion omits captures. The migration regression tests exercise real Beacon movement/rebinding, Sunkill legacy import/save restoration and odd-resolution dialogue clicking, and Mossward's cadence/actions/reset.

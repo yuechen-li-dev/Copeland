@@ -21,7 +21,10 @@ public sealed class VnMachinaLayer : IAurelianLayer
     public static readonly LayerId Id = new("machina-vn-ui");
     private const int Width = 1280;
     private const int Height = 720;
-    private readonly RenApp app;
+    private readonly Func<RenPresentationSnapshot> presentation;
+    private readonly Action<RenIntent> dispatch;
+    private readonly Action<string> activate;
+    private readonly bool shellMenus;
     private readonly VnUiSkin skin;
     private MachinaPreparedPresentation? prepared;
     private string? preparedKey;
@@ -30,13 +33,26 @@ public sealed class VnMachinaLayer : IAurelianLayer
 
     public VnMachinaLayer(RenApp app, VnUiSkin? skin = null)
     {
-        this.app = app;
+        presentation = () => app.Presentation;
+        dispatch = app.Dispatch;
+        activate = app.Activate;
         this.skin = skin ?? VnUiSkin.Load();
+    }
+
+    public VnMachinaLayer(Func<RenPresentationSnapshot> presentation, Action<RenIntent> dispatch)
+    {
+        this.presentation = presentation;
+        this.dispatch = dispatch;
+        activate = _ => throw new InvalidOperationException("Application menus belong to the game shell.");
+        shellMenus = true;
+        skin = VnUiSkin.Load();
     }
 
     public byte[] Rgba8 => RenderOverlay();
 
     public VnUiSkin Skin => skin;
+
+    public void CancelPointer() => pressedAction = null;
 
     public IReadOnlyList<global::Machina.Presentation.MachinaNineSlicePrimitive>? ProofNineSlices { get; set; }
 
@@ -106,7 +122,7 @@ public sealed class VnMachinaLayer : IAurelianLayer
             Describe().Viewport,
             true,
             context.Surface.Kind,
-            app.State.Screen.ToString());
+            presentation().Screen.ToString());
     }
 
     public LayerInputResult HandleInput(LayerInputEvent input)
@@ -115,16 +131,16 @@ public sealed class VnMachinaLayer : IAurelianLayer
         switch (input)
         {
             case LayerKeyChanged { IsPressed: true, Key: LayerKey.ArrowUp }:
-                app.Dispatch(new NavigateIntent(-1));
+                dispatch(new NavigateIntent(-1));
                 return new LayerInputResult(true, RequestFocus: true);
             case LayerKeyChanged { IsPressed: true, Key: LayerKey.ArrowDown }:
-                app.Dispatch(new NavigateIntent(1));
+                dispatch(new NavigateIntent(1));
                 return new LayerInputResult(true, RequestFocus: true);
             case LayerKeyChanged { IsPressed: true, Key: LayerKey.Enter or LayerKey.Space }:
-                app.Dispatch(new ConfirmIntent());
+                dispatch(new ConfirmIntent());
                 return new LayerInputResult(true, RequestFocus: true);
             case LayerKeyChanged { IsPressed: true, Key: LayerKey.Escape }:
-                app.Dispatch(new BackIntent());
+                dispatch(new BackIntent());
                 return new LayerInputResult(true, RequestFocus: true);
             case LayerPointerButtonChanged pointer when pointer.Button == LayerPointerButton.Primary:
                 return HandlePointer(pointer);
@@ -166,27 +182,27 @@ public sealed class VnMachinaLayer : IAurelianLayer
         string name = action.Name;
         if (name == "ren.advance")
         {
-            app.Dispatch(new AdvanceDialogueIntent());
+            dispatch(new AdvanceDialogueIntent());
         }
         else if (name == "ren.pause")
         {
-            app.Dispatch(new OpenPauseMenuIntent());
+            dispatch(new OpenPauseMenuIntent());
         }
         else if (name == "ren.save")
         {
-            app.Dispatch(new OpenSaveMenuIntent());
+            dispatch(new OpenSaveMenuIntent());
         }
         else if (name == "ren.load")
         {
-            app.Dispatch(new OpenLoadMenuIntent());
+            dispatch(new OpenLoadMenuIntent());
         }
         else if (name.StartsWith("ren.choice.", StringComparison.Ordinal))
         {
-            app.Dispatch(new ChooseDialogueOptionIntent(name[11..]));
+            dispatch(new ChooseDialogueOptionIntent(name[11..]));
         }
         else if (name.StartsWith("ren.entry.", StringComparison.Ordinal))
         {
-            app.Activate(name[10..]);
+            activate(name[10..]);
         }
     }
 
@@ -222,7 +238,7 @@ public sealed class VnMachinaLayer : IAurelianLayer
 
     private void EnsurePrepared()
     {
-        RenPresentationSnapshot presentation = app.Presentation;
+        RenPresentationSnapshot presentation = this.presentation();
         string dialogueKey = presentation.Dialogue is null
             ? "none"
             : $"{presentation.Dialogue.OperationId}:{presentation.Dialogue.SelectedChoiceIndex}";
@@ -234,7 +250,7 @@ public sealed class VnMachinaLayer : IAurelianLayer
         }
 
         UiNode document = presentation.Screen == RenScreen.Game
-            ? BuildGame(presentation)
+            ? BuildGame(presentation, shellMenus)
             : BuildMenu(presentation);
         prepared = new MachinaPresentationPipeline().Prepare(document, Width, Height);
         preparedKey = key;
@@ -244,7 +260,7 @@ public sealed class VnMachinaLayer : IAurelianLayer
     private IReadOnlyList<global::Machina.Presentation.MachinaNineSlicePrimitive> BuildNineSlices()
     {
         var result = new List<global::Machina.Presentation.MachinaNineSlicePrimitive>();
-        if (app.State.Screen == RenScreen.Game)
+        if (presentation().Screen == RenScreen.Game)
         {
             AddPanel(result, "dialogue-panel", "dialogue");
         }
@@ -259,7 +275,7 @@ public sealed class VnMachinaLayer : IAurelianLayer
     private IReadOnlyList<global::Machina.Presentation.MachinaProgrammablePanelPrimitive> BuildPanels()
     {
         var result = new List<global::Machina.Presentation.MachinaProgrammablePanelPrimitive>();
-        string nodeId = app.State.Screen == RenScreen.Game ? "dialogue-panel" : "menu-shadow";
+        string nodeId = presentation().Screen == RenScreen.Game ? "dialogue-panel" : "menu-shadow";
         var id = new global::Machina.Layout.Rows.NodeId(nodeId);
         if (prepared!.Resolved.Nodes.TryGetValue(id, out global::Machina.Layout.Documents.ResolvedLayoutNode? node))
         {
@@ -346,7 +362,7 @@ public sealed class VnMachinaLayer : IAurelianLayer
             children: children);
     }
 
-    private static UiNode BuildGame(RenPresentationSnapshot presentation)
+    private static UiNode BuildGame(RenPresentationSnapshot presentation, bool shellMenus)
     {
         DialoguePresentationSnapshot dialogue = presentation.Dialogue
             ?? throw new InvalidOperationException("The game screen requires dialogue presentation.");
@@ -422,7 +438,7 @@ public sealed class VnMachinaLayer : IAurelianLayer
             ("LOAD [I]", "ren.load"),
             ("MENU [ESC]", "ren.pause"),
         ];
-        for (int index = 0; index < controls.Length; index++)
+        for (int index = 0; !shellMenus && index < controls.Length; index++)
         {
             children.Add(UI.Anchor(
                 StandardUI.Button(

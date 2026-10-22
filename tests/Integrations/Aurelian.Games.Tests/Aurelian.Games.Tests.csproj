@@ -8,6 +8,9 @@
     <PackageReference Include="xunit.runner.visualstudio" />
     <ProjectReference Include="../../../src/Integrations/Aurelian.Games.Humanoid/Aurelian.Games.Humanoid.csproj" />
     <ProjectReference Include="../../../src/Integrations/Aurelian.Aetheris/Aurelian.Aetheris.csproj" />
+    <ProjectReference Include="../../../Games/Beacon3D/Aurelian.Beacon3D/Aurelian.Beacon3D.csproj" />
+    <ProjectReference Include="../../../Games/Sunkill/Aurelian.Ariadne.VnDemo/Aurelian.Ariadne.VnDemo.csproj" />
+    <ProjectReference Include="../../../Games/Strategy/Aurelian.StrategyDemo/Aurelian.StrategyDemo.csproj" />
     <Content Include="../../../Games/Starter/Aurelian.Starter/Assets/room.aurelian.json" Link="Assets/room.aurelian.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../Games/Starter/Aurelian.Starter/Assets/Models/*.glb" Link="Assets/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

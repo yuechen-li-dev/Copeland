@@ -6,9 +6,8 @@
     <NoWarn>$(NoWarn);NU1903</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Games/Aurelian.Games.csproj" />
     <PackageReference Include="SkiaSharp" />
-    <PackageReference Include="Avalonia" />
-    <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="Silk.NET.Input" />
     <PackageReference Include="Silk.NET.Windowing" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Strategy/Aurelian.Strategy.csproj" />

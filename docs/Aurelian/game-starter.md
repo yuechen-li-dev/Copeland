@@ -43,7 +43,7 @@ and camera fragments. Run `humanoid-starter.cmd` for the example. The
 attachments, GPU skinning and Deliverance snapshots. This variant exposes
 `StarterGame.HumanoidPlayer`; the geometric variant exposes `StarterGame.Player`.
 
-The currently executable fragment library covers this 3D FPS/TPS foundation. Driving, top-down controls, VN presentation and farming/strategy starter fragments are additional library work. The existing Sunkill, TinyFarm and Mossward games retain their specialized applications, rendering adapters and domain save schemas. Their folder consolidation does not turn their entire rule sets into engine modules.
+The currently executable fragment library covers this 3D FPS/TPS foundation. Driving, top-down controls, VN presentation and farming/strategy starter fragments are additional library work. Sunkill, TinyFarm and Mossward use the same `IGame` shell with their own rendering adapters and domain rules. They do not need FPS/TPS starter fragments.
 
 ## Customize through ordinary typed code
 

@@ -50,6 +50,11 @@ if (locomotionPath is not null)
     humanoid = humanoid with { Locomotion = HumanoidLocomotionBank.Load(locomotionPath, humanoid.Body) };
 }
 Directory.CreateDirectory(output);
+if (!proof && !args.Contains("--build-lighting", StringComparer.Ordinal))
+{
+    GameApp.Run(new BeaconShellGame(humanoid, GetOption(args, "--lighting")), args);
+    return;
+}
 if (args.Contains("--build-lighting", StringComparer.Ordinal))
 {
     string artifact = BeaconLighting.Build(output, GetOption(args, "--blender")
@@ -230,45 +235,6 @@ else if (proof)
     }, new JsonSerializerOptions { WriteIndented = true }) + Environment.NewLine);
     Console.WriteLine($"BEACON3D_PROOF_PASSED frames={frames} collected=3 won=true artifacts={output}");
 }
-else
-{
-    var stopwatch = Stopwatch.StartNew();
-    double previous = stopwatch.Elapsed.TotalSeconds;
-    double accumulator = 0;
-    while (!window.IsClosing)
-    {
-        window.DoEvents();
-        while (menuEvents.TryDequeue(out LayerInputEvent? menuEvent))
-        {
-            RouteMenuEvent(menuEvent);
-        }
-        nativeInput.SetGameplayCapture(app.Screen == BeaconScreen.Playing);
-        double now = stopwatch.Elapsed.TotalSeconds;
-        accumulator += Math.Min(now - previous, 0.1);
-        previous = now;
-        while (accumulator >= StepSeconds)
-        {
-            app.Update(controls.Tick(StepSeconds, menuActive: app.Menu is not null), StepSeconds);
-            if (app.ExitRequested)
-            {
-                window.Close();
-                break;
-            }
-            accumulator -= StepSeconds;
-        }
-        nativeInput.SetGameplayCapture(app.Screen == BeaconScreen.Playing);
-        if (window.IsClosing)
-        {
-            break;
-        }
-        RenderApplication();
-        presenter.Present(++frames);
-        window.Title = app.Menu is not null
-            ? $"BEACON RUN | {app.Screen} | Arrows + Enter or click; ESC back"
-            : $"BEACON RUN | Wave {app.Game.Wave}/3 | Health {app.Game.Health} | Mouse aim, LMB fire, R reload, ESC pause";
-    }
-}
-
 Native3DFrameResult RenderApplication(bool capture = false)
 {
     return RenderGame(app, capture);

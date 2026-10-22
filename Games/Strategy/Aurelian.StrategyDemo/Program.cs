@@ -1,4 +1,3 @@
-using Avalonia;
 namespace Aurelian.StrategyDemo;
 
 internal static class Program
@@ -9,12 +8,7 @@ internal static class Program
         {
             return StrategyProof.Run();
         }
-        if (!args.Contains("--compatibility-avalonia", StringComparer.Ordinal))
-        {
-            return StrategyNativeRuntime.Run(args.Contains("--launch-smoke", StringComparer.Ordinal));
-        }
-        StrategyApplication.Smoke = args.Contains("--launch-smoke", StringComparer.Ordinal);
-        Avalonia.AppBuilder.Configure<StrategyApplication>().UsePlatformDetect().StartWithClassicDesktopLifetime(args);
-        return StrategyApplication.ExitCode;
+        Aurelian.Games.GameApp.Run(new MosswardGame(), args);
+        return 0;
     }
 }
