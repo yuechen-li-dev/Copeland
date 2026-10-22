@@ -83,7 +83,9 @@ qualification walkthrough through ordinary resolver intents.
 
 ## Art
 
-Mara uses a painted walk sheet and portrait with one shared design. The
+Gardener, Mara, Elias and Sela have painted portraits in the agent panel; Mara, Elias and Sela have matching walk
+sheets. The [cast art pass](../../docs/research/tinyfarm-cast-art-pass.md) keeps identity art independent of controller
+role. The
 [character sprite workflow](../../docs/research/tinyfarm-character-sprite-workflow.md) includes a Gardener-derived
 blank pose template, exact imagegen prompts, import checks and an animation preview for generating the next character.
 
@@ -94,8 +96,8 @@ The [first blending experiment](../../docs/research/tinyfarm-terrain-blending-ex
 
 New and unpainted art is declared as [art slots](../../docs/Aurelian/art-slots.md) in
 `TinyFarm/Assets/art/art-slots.json`: SVG placeholders with a usage and a brief each. Right now those are Riverside's
-mushrooms, rock salt, wild mint, the recipe card, Elias's bench, and Elias's and Sela's walk sheets. Reeds and small
-bank rock/grass clusters now have concept-derived PNGs. To
+mushrooms, rock salt, wild mint, the recipe card and Elias's bench. Elias and Sela's sheets, reeds and small
+bank rock/grass clusters now have generated PNGs. To
 paint them, run `dotnet run --project tools/Aurelian.ArtSlots -- Games/TinyFarm/TinyFarm/Assets/art/art-slots.json`
 for the worklist and placeholder images to paint over, then add each final PNG and its hash to the manifest.
 

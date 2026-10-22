@@ -59,8 +59,9 @@ internal static partial class TinyFarmMenuPresentation
         IReadOnlyList<TinyFarmAgentProperty> rows = menu.PropertyRows(game.State, game.Definitions);
         ActorState agent = game.State.Actor(menu.StatsAgent);
         TinyFarmNativeUi.Panel(nodes, "stats-panel", 44, 56, 1192, 612, 0x19362BFC);
-        Label(nodes, "stats-title", "AGENT / " + agent.Name.ToUpperInvariant(), 66, 78, 900, TextSize.H1, Gold);
-        Label(nodes, "stats-summary", "Live properties + authored RPG foundation  /  world paused", 68, 120, 960);
+        // The native portrait occupies the square at (908, 60), before the Close button.
+        Label(nodes, "stats-title", "AGENT / " + agent.Name.ToUpperInvariant(), 66, 78, 820, TextSize.H1, Gold);
+        Label(nodes, "stats-summary", "Live properties + authored RPG foundation  /  world paused", 68, 120, 820);
         Button(nodes, "close", "Close / C or ESC", 1022, 80, 190);
         Button(nodes, "agent:previous", "< Agent", 66, 162, 110);
         Button(nodes, "agent:next", "Agent >", 184, 162, 110);

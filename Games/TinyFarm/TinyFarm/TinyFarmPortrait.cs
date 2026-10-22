@@ -5,23 +5,21 @@ using Aurelian.Graphics.Vulkan.Native2D;
 using Aurelian.NativeComposition;
 using Aurelian.Rendering.Contracts.Shaders;
 using TinyFarm.InputMan;
+using TinyFarm.Core;
 
 namespace TinyFarm.Native;
 
 /// <summary>
-/// Mara's painted portrait, matching her world sprite, drawn beside the dialogue panel while she is speaking. It sits
-/// between the world and the HUD so the panel text stays on top.
+/// Identity portraits for dialogue speakers and the selected agent's character panel.
 /// </summary>
 internal sealed class TinyFarmPortrait(
     LayerId layer,
     AurelianVulkanPlant plant,
     CompiledGraphicsProgram texturedProgram,
     TinyFarmGame game,
-    string path,
+    TinyFarmCharacterPortraits portraits,
     Func<TinyFarmPresentationLayout> getLayout) : INativeLayerPresenter
 {
-    private readonly SpriteAtlasResource resource = TinyFarmM24Assets.LoadResource("mara-portrait-v1", path,
-        "ac55e0807d72338c22491e35c19bce6e4db3ca7f74bc9ff96e6210a6a1b0e0e8", SpriteSampling.Linear);
     private VulkanOrderedQuadRenderer? renderer;
     private NativeSpriteResourceScope? resources;
 
@@ -40,14 +38,37 @@ internal sealed class TinyFarmPortrait(
 
     public void Present(NativeLayerFrameContext context)
     {
-        if (renderer is null || resources is null || !game.Dialogue.IsActive || !game.Presentation.HudVisible)
+        ActorId? selected = SelectedActor(game);
+        if (renderer is null || resources is null || selected is not ActorId actor
+            || !portraits.TryGet(game.State.Actor(actor), out SpriteAtlasResource resource))
         {
             return;
         }
         Native2DTextureHandle texture = resources.Resolve(resource);
-        // Left of the dialogue panel (which starts at x = 250 in the 1280x720 UI canvas), standing on its bottom edge.
-        Native2DRect rect = getLayout().UiRect(new Native2DRect(24, 398, 224, 224));
+        // The agent panel reserves a square beside the title; dialogue uses the larger bust left of the text panel.
+        Native2DRect bounds = game.Screen == TinyFarmScreen.Stats
+            ? new Native2DRect(908, 60, 96, 96)
+            : new Native2DRect(24, 398, 224, 224);
+        Native2DRect rect = getLayout().UiRect(bounds);
         context.Present(renderer, pass => pass.SubmitQuad(new NativeQuadSubmission(rect, Native2DUvRect.Full, texture, Native2DTint.White)));
+    }
+
+    internal static ActorId? SelectedActor(TinyFarmGame game)
+    {
+        ActorId? actor = null;
+        if (game.Screen == TinyFarmScreen.Stats)
+        {
+            actor = game.Menus.StatsAgent;
+        }
+        else if (game.Dialogue.IsActive && game.Presentation.HudVisible)
+        {
+            actor = game.Dialogue.SpeakingActor;
+        }
+        if (actor is not ActorId id || TinyFarmAgentPolicy.IsObject(game.State.Actor(id)))
+        {
+            return null;
+        }
+        return id;
     }
 
     public void Detach()

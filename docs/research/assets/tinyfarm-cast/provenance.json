@@ -1,0 +1,62 @@
+{
+  "date": "2026-10-22",
+  "generator": "Built-in image_gen; no API fallback",
+  "prompts": "prompts.json",
+  "template": "docs/research/assets/tinyfarm-characters/blank-walk-template-v2.png",
+  "selected": [
+    {
+      "path": "Games/TinyFarm/TinyFarm/Assets/characters/gardener-v1/portrait.png",
+      "sha256": "3ee1633f6a08225f7386b8ea7554c312a700cedd75317ced559dc6c6d320a812"
+    },
+    {
+      "path": "Games/TinyFarm/TinyFarm/Assets/characters/elias-v1/walk-sheet.png",
+      "sha256": "040fcf83eeb443af96303297b1f4990eaf0dc0187fc2d2876a24da464c50efad"
+    },
+    {
+      "path": "Games/TinyFarm/TinyFarm/Assets/characters/elias-v1/portrait.png",
+      "sha256": "d9fe84cbc6a863948054b3e3ff2e191290da1e22799c87e4a8d63ae8a6520490"
+    },
+    {
+      "path": "Games/TinyFarm/TinyFarm/Assets/characters/sela-v1/walk-sheet.png",
+      "sha256": "2c0d66d0b5eabe6e3278bb22f6f280382bb990552b620ecdfcf997481dcbedb5"
+    },
+    {
+      "path": "Games/TinyFarm/TinyFarm/Assets/characters/sela-v1/portrait.png",
+      "sha256": "b4ad07471e75fde9865ff7918e9ed2d6e86c8ded01b0c4882a4cb14a7e90c824"
+    }
+  ],
+  "operations": "Generated artwork retained byte-for-byte. No manual repainting. Skia renders shared-import QA previews; ffmpeg encodes looping previews.",
+  "qualification": {
+    "build": "Qualified build: 0 warnings, 0 errors; first build retained 14 existing OpenFont warnings",
+    "tests": 447,
+    "tinyFarmTests": 420,
+    "spatial2DTests": 27,
+    "nativeScript": "Games/TinyFarm/Playtests/cast-native.json",
+    "nativeSteps": 37,
+    "nativeErrors": 0,
+    "gpu": "NVIDIA GeForce RTX 3070",
+    "renderer": "Native Vulkan, 1920x1080",
+    "observedPortraitActors": [
+      "elias",
+      "mara",
+      "none",
+      "player",
+      "sela"
+    ],
+    "captures": [
+      "00-gardener.png",
+      "01-elias.png",
+      "02-mara.png",
+      "03-sela.png",
+      "04-object-no-face.png",
+      "05-mara-dialogue.png",
+      "06-riverside-elias.png"
+    ],
+    "geometryReports": [
+      "elias-sheet-review.json",
+      "sela-sheet-review.json"
+    ],
+    "rejectedGeometry": "sela-initial-review.json",
+    "limits": "Native proof covers all four portraits, object rejection, Mara dialogue and Elias world sprite. Sela walking is covered by import preview. No character-control transfer implemented or claimed; minor generated motion/detail variation remains."
+  }
+}

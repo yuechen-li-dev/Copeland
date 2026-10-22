@@ -1,0 +1,58 @@
+{
+  "mode": "built-in image_gen",
+  "pathBase": "Assets paths relative to Games/TinyFarm/TinyFarm; blank template under docs/research/assets/tinyfarm-characters; input IDs refer to prior entries",
+  "prompts": [
+    {
+      "id": "elias-sheet",
+      "inputs": [
+        "blank-walk-template-v2.png",
+        "Assets/GateA/gardener.png",
+        "Assets/characters/mara-v1/walk-sheet.png"
+      ],
+      "output": "Assets/characters/elias-v1/walk-sheet.png",
+      "prompt": "Use case: stylized-concept\nAsset type: transparent 4x4 walk sprite sheet for TinyFarm's Elias.\nInput1: blank mannequin pose template, PRIMARY layout/pose guide. Input2: Gardener sheet, painted gouache style and camera only. Input3: approved Mara sheet, final sprite scale/gutters and house palette only.\nReplace all 16 blank mannequins with Elias, an older male riverside scholar: softly swept grey-blond hair, expressive kind face with gentle age lines, short neat grey beard, round brass reading glasses, muted blue-grey knee-length work coat over cream shirt and moss-brown waistcoat, dark umber trousers, worn brown walking boots, one small closed leather book satchel at his side. Warm, thoughtful, absent-minded. No hat, weapons, walking stick or extra handheld objects. Same identity, clothing and compact proportions in every frame. Match Gardener and Mara soft painted gouache miniature game art, no pixel texture.\nSquare equal 4 COLUMN x 4 ROW grid. Rows DOWN/front, UP/back, LEFT/profile, RIGHT/profile. Columns idle, first step, passing, OPPOSITE step. Preserve colored template limb overlaps but replace guide blue/orange with clothes and natural skin. Col2 and col4 must alternate the forward leg and opposite arm; on side views the visible near hand must swing to opposite sides of the torso in these columns. No repeated stride.\nSTRICT GUTTERS: characters deliberately small like input3. Each entire figure INCLUDING hair, coat, satchel and boots occupies AT MOST 66% of its own square cell height, with at least 15% empty cell height above AND below. Center one complete figure in each cell, all feet within it, all rows evenly spaced. Do not enlarge characters to fill the image. This sheet is sliced into equal cells by a game engine.\nOutput only sixteen clean finished sprites on true transparent RGBA, no floor, shadow, checkerboard, grid, labels, text, template ivory/blue/orange remnants or scattered pixels. Consistent light direction and scale."
+    },
+    {
+      "id": "sela-sheet-initial",
+      "inputs": [
+        "blank-walk-template-v2.png",
+        "Assets/GateA/gardener.png",
+        "Assets/characters/mara-v1/walk-sheet.png"
+      ],
+      "output": null,
+      "prompt": "Use case: stylized-concept\nAsset type: transparent 4x4 game walk sprite atlas, TinyFarm's Sela.\nImage1: blank 16-pose template, layout and pose authority. Image2: Gardener sheet for painted gouache STYLE and elevated orthographic camera only. Image3: approved Mara sheet for palette, compact scale and EMPTY GUTTERS.\nReplace all mannequins by the SAME Sela: adult village shopkeeper woman, warm medium olive-brown skin, dark brown hair in a neat high bun, expressive brown eyes, brick-red practical calf-length dress with sleeves rolled to elbows, cream waist apron tied behind, brown ankle boots, small brass stud earrings. Friendly, brisk and capable. No hat, bag, handheld items, tools or weapons. Distinct from Mara. Match the Gardener's softly painted gouache miniature game art, large head and compact body, no pixel texture.\nSTRICT four equal columns and four equal rows. Rows DOWN/front, UP/back, LEFT/profile, RIGHT/profile; columns idle, first step, passing, OPPOSITE step. Col2 and col4 use opposite leading legs and opposite arm swing; side-view near hands alternate in front of and behind torso. Preserve template limb poses but replace all blue/orange with normal clothes/skin. Dress hem must reveal boots and moving feet.\nIMPORTANT: leave large TRANSPARENT SPACE around every figure. Figure height maximum 65% of EACH cell, about 16% of total image height. Heads and soles fit between 15% and 85% of cell height; centers at 12.5,37.5,62.5,87.5 percent across and down. All16same scale. Do not enlarge figures to use empty space; game import controls display scale.\nOnly sixteen finished fullbody cutouts on true transparent RGBA. No ivory guide background, shadows, floor, grid, text, labels, checkerboard, specks or extra figures. Same costume, face, light and body proportions throughout."
+    },
+    {
+      "id": "sela-gutters-selected",
+      "inputs": [
+        "sela-sheet-initial"
+      ],
+      "output": "Assets/characters/sela-v1/walk-sheet.png",
+      "prompt": "Use case: precise-object-edit\nEdit this Sela 4x4 walk sheet ONLY to make it safe for equal-cell slicing.\nKeep all sixteen painted poses, identity, outfit, facing, colors and row/column order. Shrink EVERY complete figure to 72% of its current size. Center one smaller figure inside each of sixteen EQUAL square cells in a regular 4 COLUMN by 4 ROW square image. Cell centers x=12.5,37.5,62.5,87.5 percent and y=12.5,37.5,62.5,87.5 percent. Feet near 82% of each individual cell height, whole figures INCLUDING bun and boots at most 66% of each cell height. Leave at least 15% clear transparent space above AND below EVERY figure. Do not fill the new empty space.\nPreserve rows front/down, back/up, left/profile, right/profile; columns idle, step1, passing, step2. No mirroring, no reordering, no new identity. The engine will enlarge the sprites at import. Output ONLY 16 smaller complete sprites on genuine transparent RGBA. No background, grid, specks, text, shadow, floor or checkerboard."
+    },
+    {
+      "id": "gardener-portrait",
+      "inputs": [
+        "Assets/GateA/gardener.png"
+      ],
+      "output": "Assets/characters/gardener-v1/portrait.png",
+      "prompt": "Use case: identity-preserve\nAsset type: transparent square dialogue/character portrait of TinyFarm's Gardener.\nThe reference is the existing Gardener walk sheet. Preserve this specific character: youthful adult with soft round friendly face, warm brown eyes, tousled chestnut hair, straw sunhat with navy hatband, blue work coat with brass buttons and turned cuffs, cream shirt, burnt-orange neck scarf, brown leather cross-body satchel strap. Keep the approachable androgynous look of the sprite, no beard. This is the SAME Gardener, not a new protagonist.\nPaint ONE chest-up portrait, slight three-quarter turn toward image RIGHT, friendly confident smile and attentive eyes. Soft gouache storybook style matching the sprite, more facial detail for dialogue UI, adult rather than toddler proportions. Warm natural light and gently textured fabric, no pixel art. Show full hat silhouette with ample top/side space, crop naturally at lower chest at bottom. Square RGBA, genuine transparent background, clean alpha edges.\nNo scenery, floor, shadows, labels, text, border, watermark, checkerboard or extra figures. Do not include a sprite sheet."
+    },
+    {
+      "id": "elias-portrait",
+      "inputs": [
+        "Assets/characters/elias-v1/walk-sheet.png"
+      ],
+      "output": "Assets/characters/elias-v1/portrait.png",
+      "prompt": "Use case: identity-preserve\nAsset type: transparent square portrait for TinyFarm character Elias.\nUse the attached selected Elias walk sheet as identity/clothing authority. Paint ONE chest-up portrait of this older male riverside scholar: swept silver-grey blond hair, round brass reading glasses, kind thoughtful brown eyes with age lines, neat short grey beard and moustache, blue-grey work coat over cream shirt and brown-olive waistcoat, small leather book satchel strap across chest. Recognizable older adult, friendly absent-minded half smile, slight three-quarter turn toward image RIGHT.\nSoft painted gouache storybook style, same warm palette and fabric texture as the selected sprites, more facial detail appropriate for dialogue, mature facial proportions rather than a child face. Square framing, full hair and glasses silhouette, ample clear top/side margin, crop naturally at lower chest. Genuine transparent RGBA, clean edges.\nNo sprite sheet, extra figures, text, labels, scenery, shadows, floor, border, checkerboard or watermark. Preserve his design and colors, not Gardener's identity."
+    },
+    {
+      "id": "sela-portrait",
+      "inputs": [
+        "Assets/characters/sela-v1/walk-sheet.png"
+      ],
+      "output": "Assets/characters/sela-v1/portrait.png",
+      "prompt": "Use case: identity-preserve\nAsset type: transparent square portrait for TinyFarm's Sela.\nUse the attached selected Sela sprite sheet as identity, palette and costume authority. Paint ONE chest-up portrait of this adult village shopkeeper: warm medium olive-brown skin, brown eyes, dark chestnut hair in a neat high bun with a few curved side wisps, brass stud earrings, practical brick-red dress with rolled sleeves, cream waist apron visible at lower edge, tiny simple brass pendant. Friendly, brisk, observant expression, slight three-quarter turn toward image RIGHT, subtle confident smile. Adult facial proportions.\nSoft gouache storybook game illustration matching the selected sheet, richer detail for dialogue while keeping the same colors and identity. Full bun silhouette with clear top and side margins, shoulders visible, natural lower-chest crop at image bottom. Square RGBA with genuine transparent background and clean edges.\nNo Mara kerchief or overalls, no extra person, sprite sheet, scenery, labels, text, border, floor, shadow, checkerboard or watermark."
+    }
+  ]
+}

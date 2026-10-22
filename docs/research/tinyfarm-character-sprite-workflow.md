@@ -1,5 +1,8 @@
 # TinyFarm: template-guided character sprites
 
+The follow-up [cast art pass](tinyfarm-cast-art-pass.md) applies this template to Elias and Sela and adds identity
+portraits for all four characters, including Gardener. The original Mara trial and its evidence are retained below.
+
 Mara now uses a painted 4 × 4 walk sheet and a matching dialogue portrait. Her earlier portrait supplies the identity:
 auburn loose bun, freckles, hazel eyes, red kerchief, olive shirt and brown bib overalls. The Gardener supplies the
 camera, compact proportions, painted style and row order. Both new runtime images are versioned under

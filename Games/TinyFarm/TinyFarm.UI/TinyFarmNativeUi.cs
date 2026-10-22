@@ -280,9 +280,10 @@ internal sealed class TinyFarmNativeUi(TinyFarmGame game)
         Text(nodes, "slice-status-text", game.Status, 36, 672, 890, TextSize.Md);
         if (game.Dialogue.Presentation is { } dialogue)
         {
-            // The portrait layer draws Mara at the panel's left.
+            // The portrait layer draws the speaking character at the panel's left.
             Panel(nodes, "dialogue", 250, 450, 850, 172, 0x19362BF5);
-            Text(nodes, "speaker", "MARA", 278, 466, 780, TextSize.Md, 0xF5DDB5FF);
+            string speaker = game.Dialogue.SpeakingActor is ActorId actor ? game.State.Actor(actor).Name : string.Empty;
+            Text(nodes, "speaker", speaker.ToUpperInvariant(), 278, 466, 780, TextSize.Md, 0xF5DDB5FF);
             Lines(nodes, "dialogue-body", dialogue.Text, 278, 498, 790, 76, TextSize.Md);
             for (int index = 0; index < dialogue.Choices.Count; index++)
             {

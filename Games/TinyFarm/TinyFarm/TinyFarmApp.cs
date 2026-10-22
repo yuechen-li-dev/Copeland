@@ -250,6 +250,8 @@ public sealed class TinyFarmApp : IGame
         facts.Set("tinyfarm.water-disturbed", game.Host.Session.Field.RecentEvents.Any(item => item.Kind == "movement-disturbance"));
         facts.Set("tinyfarm.search", game.Menus.Search);
         facts.Set("tinyfarm.search-focused", game.Menus.SearchFocused);
+        facts.Set("tinyfarm.stats-agent", game.Menus.StatsAgent.Value);
+        facts.Set("tinyfarm.portrait-actor", TinyFarmPortrait.SelectedActor(game)?.Value ?? "none");
         facts.Set("tinyfarm.hotbar", state.SelectedHotbarSlot);
         if (state.Slice is TinyFarmSliceState slice)
         {
@@ -282,10 +284,10 @@ public sealed class TinyFarmApp : IGame
             font, () => ui.Resources(frame), game, () => layout, () => world.LastCamera);
         portrait = new TinyFarmPortrait(new LayerId("tinyfarm-portrait"), graphics.Plant,
             TinyFarmShaders.Compile(Path.Combine(assetDirectory, "Shaders", "ForwardTextured.v.ts")), game,
-            Path.Combine(assetDirectory, "characters", "mara-v1", "portrait.png"), () => layout);
+            new TinyFarmCharacterPortraits(assetDirectory), () => layout);
         graphics.Layers.Add(world, 0);
-        graphics.Layers.Add(portrait, 50);
         graphics.Layers.Add(overlay, 100);
+        graphics.Layers.Add(portrait, 150);
     }
 
     public void DetachGraphics()

@@ -78,6 +78,8 @@
     {
       "id": "actor.elias",
       "placeholder": "placeholders/actor-elias.svg",
+      "final": "../characters/elias-v1/walk-sheet.png",
+      "finalSha256": "040fcf83eeb443af96303297b1f4990eaf0dc0187fc2d2876a24da464c50efad",
       "width": 256,
       "height": 256,
       "columns": 4,
@@ -89,6 +91,8 @@
     {
       "id": "actor.sela",
       "placeholder": "placeholders/actor-sela.svg",
+      "final": "../characters/sela-v1/walk-sheet.png",
+      "finalSha256": "2c0d66d0b5eabe6e3278bb22f6f280382bb990552b620ecdfcf997481dcbedb5",
       "width": 256,
       "height": 256,
       "columns": 4,
