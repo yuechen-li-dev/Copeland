@@ -1,0 +1,18 @@
+{
+  "Reason": "Held-out AI reference violates camera registration",
+  "SourceHeroBounds": [
+    459,
+    261,
+    501,
+    338
+  ],
+  "TargetOrangeBoundsAt960x540": [
+    464,
+    222,
+    506,
+    296
+  ],
+  "VerticalShiftPixelsApproximately": -39,
+  "OriginalCriterionPassed": false,
+  "Action": "Preserve original trial and its failure. Request one camera-corrected confirmation target after freezing selected parameters; no further fitting or reranking."
+}

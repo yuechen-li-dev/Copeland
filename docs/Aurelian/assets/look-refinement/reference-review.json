@@ -1,0 +1,9 @@
+{
+  "Admitted": true,
+  "Scope": "Material-balanced broad color and contrast, not exact geometry or physical transport.",
+  "Training": "The two targets from the previous trial are now explicitly training data; their original admission and generated drift remain applicable.",
+  "Heldout": "New checkpoint 2 camera retains main platform outlines, flag, capsule, bridge and foreground structure positions. It follows the approved rich grass/orange/earth appearance. Fine texture, shadow penumbra and leaf/beacon details differ.",
+  "Excluded": "Sky, cloud sea, emissive models and four-pixel semantic-region boundaries. Added grass/earth microdetail is not credited to this color-and-lighting fit.",
+  "Reviewer": "Codex visual admission before parameter search. This is not independent human preference evidence.",
+  "Generation": "One built-in imagegen edit; new actual game capture is the edit target and the prior fitting AI image is the appearance reference. Exact prompt retained."
+}

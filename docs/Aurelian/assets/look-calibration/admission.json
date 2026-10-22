@@ -1,0 +1,57 @@
+{
+  "Passed": true,
+  "Controls": [
+    {
+      "Identity": 0,
+      "BackgroundPerturbation": 0,
+      "ImageAndLabelsTranslatedEightPixels": 0,
+      "SourcePixels": [
+        2128,
+        104846,
+        79844,
+        8048
+      ],
+      "TargetSamples": [
+        312,
+        11700,
+        14264,
+        803
+      ]
+    },
+    {
+      "Identity": 0,
+      "BackgroundPerturbation": 0,
+      "ImageAndLabelsTranslatedEightPixels": 0,
+      "SourcePixels": [
+        2128,
+        89100,
+        80544,
+        13323
+      ],
+      "TargetSamples": [
+        286,
+        8566,
+        10359,
+        913
+      ]
+    },
+    {
+      "Identity": 0,
+      "BackgroundPerturbation": 0,
+      "ImageAndLabelsTranslatedEightPixels": 0,
+      "SourcePixels": [
+        2054,
+        121501,
+        16784,
+        26937
+      ],
+      "TargetSamples": [
+        318,
+        7012,
+        1411,
+        1930
+      ]
+    }
+  ],
+  "Scope": "Independent labelled material swatches, not pixel registration."
+}

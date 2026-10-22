@@ -1,0 +1,17 @@
+{
+  "Version": 2,
+  "Training": "Previous checkpoint 0 and 1 targets, both now explicitly training data.",
+  "Heldout": "New checkpoint 2 camera: yaw \u002B0.6 radians, pitch 0.45, simulation time zero. Never scored during selection.",
+  "Objective": "Equal weight for hero, grass, earth and structure. Each region averages 24x14 patch Lab RMSE (0.8) and its 10th/90th percentile L error (0.2).",
+  "Search": "216 coarse profiles: decode on/off, Lambert/Frostbite/PathDiffuse, ambient 0.12/0.35/0.65/1, exposure 0.55/0.85/1.2, retention 0/0.5/1. Soft gamut compression enabled. Then three coordinate passes on two finalists; palette multipliers 0.25..4. Hard budget 420 evaluations.",
+  "RefineBounds": "Ambient 0.05..1.25, exposure 0.3..1.8, retention 0..1, each material RGB multiplier 0.25..4. Best two distinct diffuse models seed refinement. Step sizes shrink each pass.",
+  "Gates": "Foreground clipped-channel fraction \u003C= 0.001 on both training views. Winner timing \u003C= original * 1.25 \u002B 0.15 ms, 30 rotating samples after warmup. Heldout checked only after selection.",
+  "Success": "At least 30% balanced-error improvement over the previous look on training and 20% on the new heldout; each heldout material must improve over the original. No human perceptual claim.",
+  "Stress": "Exposure 0.5x/1x/2x and sun 0.25x/1x/2x after selection; native complete-course replay must retain simulation observations.",
+  "Selection": "CPU derivative-free search through actual Vulkan captures. Stable softmax over distinct finalists at temperature 1 reports score ambiguity, not a learned neural model or stochastic gameplay selection.",
+  "ViewHashes": [
+    "902E2B6F765D1D93DFE09D036652838A3C0E1832A788DFAC39B0F5C9C06AF869",
+    "FCA4EE9439FB940E94D2333A27180D12BC4853A2344A168E0F9E4C4202601099",
+    "C97813B8D695884E18F57E9BD17D189F93A806178B9949D6BC2A1B931132D0E4"
+  ]
+}

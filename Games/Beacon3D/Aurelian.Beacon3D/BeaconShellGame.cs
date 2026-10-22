@@ -6,6 +6,7 @@ using Aurelian.Runtime.Inspection;
 using System.Security.Cryptography;
 using System.Text.Json;
 using InputMan.Core;
+using Aurelian.Rendering.Contracts.Models;
 
 namespace Aurelian.Beacon3D;
 
@@ -36,6 +37,11 @@ public sealed class BeaconShellGame(HumanoidPlayerOptions? humanoid = null, stri
     {
         Tagline = "SURVIVE THREE WAVES. COLLECT THREE BEACONS. ESCAPE.",
         ControlsHint = "WASD MOVE   MOUSE AIM   CLICK FIRE   R RELOAD   V VIEW   ESC PAUSE",
+        // Published transfer assets are compiled for Lambert; ordinary play uses PathDiffuse.
+        Graphics = Graphics3DSettings.Default with
+        {
+            DirectDiffuseModel = lighting is null ? DirectDiffuseModel3D.PathDiffuse : DirectDiffuseModel3D.Lambert,
+        },
     };
 
     public BeaconGame World => game;

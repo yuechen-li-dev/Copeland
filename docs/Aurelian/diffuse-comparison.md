@@ -1,6 +1,6 @@
 # Direct diffuse comparison
 
-Aurelian can switch the direct diffuse lobe between Lambert, Disney Burley, the published Frostbite adjustment, EON, and the experimental Aurelian PathDiffuse. Lambert remains the default. The experiment changes one part of the BRDF while preserving materials, normals, GGX specular, lights, camera, exposure and output processing.
+Aurelian can switch the direct diffuse lobe between Lambert, Disney Burley, the published Frostbite adjustment, EON, and Aurelian PathDiffuse. **PathDiffuse is the current shaded default**, following the [fixed-lobe calibration trial](semantic-look-calibration.md). The comparison lab deliberately starts from Lambert as its reference control. This historical lobe experiment changes one part of the BRDF while preserving materials, normals, GGX specular, lights, camera, exposure and output processing.
 
 ## Run and compare
 

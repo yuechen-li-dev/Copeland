@@ -2,6 +2,8 @@
 
 For the controlled Lambert/Burley/Frostbite/EON/PathDiffuse experiment, run `diffuse-lab.cmd` and see the [diffuse comparison guide](diffuse-comparison.md).
 
+New shaded settings use Aurelian PathDiffuse by default. Other diffuse models remain selectable. The [semantic calibration trial](semantic-look-calibration.md) demonstrates offline palette/lighting fitting with that lobe fixed; published Lambert-only lighting assets still require explicit Lambert settings.
+
 The shared native game host now renders 3D scenes into an `R16G16B16A16_SFLOAT`
 linear color attachment. A separate GPU output pass applies exposure, a filmic
 curve and output encoding before the existing menu/HUD compositor runs. UI colors

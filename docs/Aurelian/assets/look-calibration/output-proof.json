@@ -1,0 +1,35 @@
+{
+  "OutputResponseOracle": {
+    "Cases": 240,
+    "MaximumLinearRgbError": 0.005650515,
+    "Scope": "Native output versus independent curve equations, including soft gamut compression; black, neutral, HDR colored and white samples, four retention values, three exposures. Disabled tone mapping is byte-identical across both gamut modes and retention values."
+  },
+  "Utility": {
+    "Selected": 14,
+    "Cases": [
+      {
+        "Name": "measured",
+        "Expected": 14,
+        "Actual": 14,
+        "VdMirSha256": "9852c7f8610ce05c24d8ace3cf15217194d1234da50b09d12893955d126afff8"
+      },
+      {
+        "Name": "none-eligible",
+        "Expected": 15,
+        "Actual": 15,
+        "VdMirSha256": "9cfd090314b1f3f4f8adb66467a709096c2aad92bcb20945bb5623a2b1383a76"
+      },
+      {
+        "Name": "tie",
+        "Expected": 0,
+        "Actual": 0,
+        "VdMirSha256": "6e83338f5f9e18d632271c792b28a459d13ee783b65a48b129a239e931a349de"
+      }
+    ],
+    "Scope": "Measured scores evaluated by compiled VTS on Vulkan. Native decision ID applied to ordinary game settings; no per-pixel model switching or runtime AI."
+  },
+  "HistoricalPilotGain": {
+    "Training": 0.16213996038994194,
+    "Heldout": 0.053088652148963966
+  }
+}

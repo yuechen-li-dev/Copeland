@@ -710,7 +710,10 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
             Vulkan3DPass.SampleAfterRendering(plant, command, resolved!);
             if (outputHasBloom) outputPass.SetOutputTextures(resolved!, glow!);
             bool encodeSrgb = target.TextureFormat is not (VulkanTextureFormat.Rgba8Srgb or VulkanTextureFormat.Bgra8Srgb);
-            outputPass.Upload([settings.Exposure, settings.ToneMapping ? 1 + settings.ToneMapColorRetention : 0,
+            float toneControl = settings.ToneMapping
+                ? 1 + settings.ToneMapColorRetention + (settings.ToneMapGamutCompression ? 2 : 0)
+                : 0;
+            outputPass.Upload([settings.Exposure, toneControl,
                 encodeSrgb ? 1 : 0, settings.BloomIntensity]);
             var outputBegin = encoder.Begin(plant, command, new(outputPass.Pass, outputPass.Framebuffer, new(0, 0, 0, 1)));
             Require(outputBegin.Success, "Tone mapping pass begin failed.");

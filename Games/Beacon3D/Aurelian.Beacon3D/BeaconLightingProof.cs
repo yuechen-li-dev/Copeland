@@ -25,7 +25,9 @@ internal static class BeaconLightingProof
         var renderer = graphics.Renderer;
         Native3DVertex[] geometry = BeaconScene.Build(game);
         Matrix4x4 camera = game.Camera((float)graphics.Target.Width / graphics.Target.Height);
-        var settings = renderer.Settings;
+        // Byte-identical transport probes require a single-frame output, not evolving TAA history.
+        var settings = renderer.Settings with { AntiAliasing = AntiAliasing3D.None };
+        renderer.Settings = settings;
         Native3DFrameResult Capture(string name)
         {
             var result = renderer.Render(geometry, camera, graphics.Clear, capture: true);

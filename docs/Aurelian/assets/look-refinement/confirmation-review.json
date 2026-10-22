@@ -1,0 +1,19 @@
+{
+  "Admitted": false,
+  "SourceHeroBounds": [
+    459,
+    261,
+    500,
+    338
+  ],
+  "TargetHeroBounds": [
+    457,
+    221,
+    500,
+    295
+  ],
+  "ApproximateVerticalShiftPixels": -41,
+  "Reason": "The single correction attempt retained an approximately 41 pixel upward displacement at 960x540. Rejected before any scoring or parameter changes.",
+  "SelectedPolicyFrozen": true,
+  "Scope": "Original failed holdout remains unchanged. No confirmation score was computed."
+}

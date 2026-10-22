@@ -29,7 +29,15 @@ public enum DirectDiffuseModel3D
 public sealed record Graphics3DSettings
 {
     public static Graphics3DSettings Default { get; } = new();
-    public static Graphics3DSettings Basic { get; } = new() { SolidPbr = false, Shadows = false, ToneMapping = false, AntiAliasing = AntiAliasing3D.None, BloomIntensity = 0 };
+    public static Graphics3DSettings Basic { get; } = new()
+    {
+        SolidPbr = false,
+        Shadows = false,
+        ToneMapping = false,
+        AntiAliasing = AntiAliasing3D.None,
+        BloomIntensity = 0,
+        DirectDiffuseModel = DirectDiffuseModel3D.Lambert,
+    };
 
     public AntiAliasing3D AntiAliasing { get; init; } = AntiAliasing3D.Temporal;
     public float TemporalHistoryWeight { get; init; } = .875f;
@@ -39,7 +47,7 @@ public sealed record Graphics3DSettings
     public float AmbientOcclusionStrength { get; init; }
     public float AmbientOcclusionRadius { get; init; } = .8f;
     public SurfaceDebugView3D SurfaceDebugView { get; init; }
-    public DirectDiffuseModel3D DirectDiffuseModel { get; init; } = DirectDiffuseModel3D.Lambert;
+    public DirectDiffuseModel3D DirectDiffuseModel { get; init; } = DirectDiffuseModel3D.PathDiffuse;
     public float EnvironmentIntensity { get; init; } = 1;
     public bool LocalLightCulling { get; init; } = true;
     public int LocalShadowBudget { get; init; } = 2;
@@ -48,6 +56,8 @@ public sealed record Graphics3DSettings
     public bool ToneMapping { get; init; } = true;
     /// <summary>Experimental blend toward luminance-based filmic mapping. Zero retains the existing curve.</summary>
     public float ToneMapColorRetention { get; init; }
+    /// <summary>Opt-in soft compression toward neutral before display encoding, reducing hard channel clipping.</summary>
+    public bool ToneMapGamutCompression { get; init; }
     public Vector3 SunDirection { get; init; } = Vector3.Normalize(new Vector3(.65f, .75f, -.45f));
     public Vector3 SunColor { get; init; } = new(1, .91f, .78f);
     public float SunIntensity { get; init; } = 3.5f;

@@ -4,6 +4,8 @@ A bounded experiment completed the loop from an actual Cloudstep capture, throug
 
 The winner was **PathDiffuse with 0.70 tone-map color retention**. It is an opt-in research look. Cloudstep and the engine retain their existing defaults.
 
+The [second trial](image-guided-look-refinement.md) broadens fitting to palette, ambient light, exposure and soft gamut compression. It achieves a richer native look but exposes a fresh-reference registration failure. This page and its fixture preserve the original pilot's results.
+
 ![Baseline, generated reference and selected renderer in two views](assets/image-guided-look/comparison.png)
 
 ## Frozen experiment

@@ -1,0 +1,11 @@
+{
+  "AdmittedForSemanticSwatches": true,
+  "Mode": "Independent interior material patches at 960x540. Selected by visual inspection before any profile scoring. Four material groups, not dense segmentation.",
+  "Training": "Previously generated checkpoint 0 and 1 images; both explicitly reused training references.",
+  "Heldout": "Fresh built-in imagegen edit. Layout still drifts; no exact registration admission is granted or needed for marginal-distribution scoring.",
+  "LabelScope": "Orange hero body, foreground grass and earth, pale stone/wood/flag structure samples. Excludes emissive diamonds, leaf and sky. Patches are interior samples and do not establish identical illumination proportions.",
+  "Reviewer": "Codex, not an independent human panel",
+  "Limits": "Author-selected sample bias and spatial shading differences remain. No score can establish realism.",
+  "AdmissionRevision": 2,
+  "RevisionReason": "Before any fitting or score inspection, a patch-color inspection found grass/bridge contamination in the heldout earth polygon. Narrowed that polygon to the interior earth face. Re-admission runs all metric controls again."
+}

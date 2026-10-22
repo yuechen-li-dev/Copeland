@@ -33,7 +33,12 @@ internal static class ImageGuidedLookResearch
         using var target = new VulkanNativeFrameTarget(plant, Width, Height);
         using var renderer = CreateRenderer(plant, assets, target);
         using var game = new CloudstepGame();
-        Graphics3DSettings baseline = game.Manifest.Graphics with { AntiAliasing = AntiAliasing3D.None };
+        // Keep the historical pilot's baseline stable when the engine default changes.
+        Graphics3DSettings baseline = game.Manifest.Graphics with
+        {
+            AntiAliasing = AntiAliasing3D.None,
+            DirectDiffuseModel = DirectDiffuseModel3D.Lambert,
+        };
         GameView[] views = [View(0), View(1)];
         var policies = Policies();
         if (!fit)
@@ -98,7 +103,7 @@ internal static class ImageGuidedLookResearch
         return result.ToArray();
     }
 
-    private static VulkanSolid3DRenderer CreateRenderer(AurelianVulkanPlant plant, GameAssets assets, VulkanNativeFrameTarget target)
+    internal static VulkanSolid3DRenderer CreateRenderer(AurelianVulkanPlant plant, GameAssets assets, VulkanNativeFrameTarget target)
     {
         return new(plant, assets.Shader("SurfaceSolid3D.v.ts"), target,
             modelProgram: assets.Shader("SurfaceModel3D.v.ts"), shadowProgram: assets.Shader("Shadow3D.v.ts"),
@@ -229,7 +234,7 @@ internal static class ImageGuidedLookResearch
         Console.WriteLine($"AURELIAN_LOOK_RESEARCH_COMPLETED selected={winner.Policy.Name} trainGain={trainingGain:P2} heldoutGain={transferGain:P2}");
     }
 
-    private static object ProveOutput(AurelianVulkanPlant plant)
+    internal static object ProveOutput(AurelianVulkanPlant plant)
     {
         var assets = new GameAssets();
         using var target = new VulkanNativeFrameTarget(plant, 17, 17);
@@ -246,45 +251,66 @@ internal static class ImageGuidedLookResearch
                     byte[]? control = null;
                     foreach (float retention in new[] { 0f, .35f, .7f, 1f })
                     {
-                        renderer.Settings = Graphics3DSettings.Basic with
+                        foreach (bool compression in new[] { false, true })
                         {
-                            SunDirection = Vector3.UnitZ,
-                            Exposure = exposure,
-                            ToneMapping = toneMapping,
-                            ToneMapColorRetention = retention,
-                        };
-                        Native3DVertex Vertex(float x, float y) => new(new(x, y, .5f), Vector3.UnitZ, new(color, 1));
-                        Native3DVertex[] quad = [Vertex(-1, -1), Vertex(1, -1), Vertex(1, 1), Vertex(-1, -1), Vertex(1, 1), Vertex(-1, 1)];
-                        var frame = renderer.Render(quad, Matrix4x4.Identity, new(0, 0, 0, 1), capture: true, eye: new(0, 0, 6));
-                        byte[] pixels = frame.Pixels!;
-                        if (!toneMapping)
-                        {
-                            control ??= pixels;
-                            Require(control.SequenceEqual(pixels), "Retention changed disabled tone mapping.");
-                        }
-                        double y = (.2126 * color.X + .7152 * color.Y + .0722 * color.Z) * exposure;
-                        static double Film(double value) => Math.Clamp(value * (2.51 * value + .03) / (value * (2.43 * value + .59) + .14), 0, 1);
-                        float Expected(float channel)
-                        {
-                            double value = channel * exposure;
-                            if (toneMapping)
+                            renderer.Settings = Graphics3DSettings.Basic with
                             {
-                                value = Film(value) * (1 - retention) + value * Film(y) / Math.Max(y, .000001) * retention;
+                                SunDirection = Vector3.UnitZ,
+                                Exposure = exposure,
+                                ToneMapping = toneMapping,
+                                ToneMapColorRetention = retention,
+                                ToneMapGamutCompression = compression,
+                            };
+                            Native3DVertex Vertex(float x, float y) => new(new(x, y, .5f), Vector3.UnitZ, new(color, 1));
+                            Native3DVertex[] quad = [Vertex(-1, -1), Vertex(1, -1), Vertex(1, 1), Vertex(-1, -1), Vertex(1, 1), Vertex(-1, 1)];
+                            var frame = renderer.Render(quad, Matrix4x4.Identity, new(0, 0, 0, 1), capture: true, eye: new(0, 0, 6));
+                            byte[] pixels = frame.Pixels!;
+                            if (!toneMapping)
+                            {
+                                control ??= pixels;
+                                Require(control.SequenceEqual(pixels), "Retention changed disabled tone mapping.");
                             }
-                            return (float)Math.Clamp(value, 0, 1);
+                            double y = (.2126 * color.X + .7152 * color.Y + .0722 * color.Z) * exposure;
+                            static double Film(double value) => Math.Clamp(value * (2.51 * value + .03) / (value * (2.43 * value + .59) + .14), 0, 1);
+                            float Expected(float channel)
+                            {
+                                double value = channel * exposure;
+                                if (toneMapping)
+                                {
+                                    value = Film(value) * (1 - retention) + value * Film(y) / Math.Max(y, .000001) * retention;
+                                }
+                                return (float)value;
+                            }
+                            int offset = (8 * 17 + 8) * 4;
+                            Vector3 actual = new(NativeSrgbTransfer.Decode(pixels[offset] / 255f),
+                                NativeSrgbTransfer.Decode(pixels[offset + 1] / 255f), NativeSrgbTransfer.Decode(pixels[offset + 2] / 255f));
+                            Vector3 expected = new(Expected(color.X), Expected(color.Y), Expected(color.Z));
+                            if (toneMapping && compression)
+                            {
+                                double center = Math.Clamp(.2126 * expected.X + .7152 * expected.Y + .0722 * expected.Z, 0, 1);
+                                double Distance(float channel) => channel > center
+                                    ? (channel - center) / Math.Max(1 - center, .000001)
+                                    : (center - channel) / Math.Max(center, .000001);
+                                double distance = Math.Max(Distance(expected.X), Math.Max(Distance(expected.Y), Distance(expected.Z)));
+                                double scale = 1;
+                                if (distance > .8)
+                                {
+                                    double excess = distance - .8;
+                                    scale = (.8 + .2 * excess / (excess + .2)) / distance;
+                                }
+                                expected = new((float)(center + (expected.X - center) * scale),
+                                    (float)(center + (expected.Y - center) * scale), (float)(center + (expected.Z - center) * scale));
+                            }
+                            expected = Vector3.Clamp(expected, Vector3.Zero, Vector3.One);
+                            float error = Vector3.Distance(actual, expected);
+                            maximumError = Math.Max(maximumError, error);
+                            Require(error < .009, $"Output curve oracle mismatch r={retention} exposure={exposure} tone={toneMapping}: {actual} vs {expected}.");
+                            if (color.X == color.Y && color.Y == color.Z)
+                            {
+                                Require(pixels[offset] == pixels[offset + 1] && pixels[offset + 1] == pixels[offset + 2], "Neutral color shifted hue.");
+                            }
+                            cases++;
                         }
-                        int offset = (8 * 17 + 8) * 4;
-                        Vector3 actual = new(NativeSrgbTransfer.Decode(pixels[offset] / 255f),
-                            NativeSrgbTransfer.Decode(pixels[offset + 1] / 255f), NativeSrgbTransfer.Decode(pixels[offset + 2] / 255f));
-                        Vector3 expected = new(Expected(color.X), Expected(color.Y), Expected(color.Z));
-                        float error = Vector3.Distance(actual, expected);
-                        maximumError = Math.Max(maximumError, error);
-                        Require(error < .009, $"Output curve oracle mismatch r={retention} exposure={exposure} tone={toneMapping}: {actual} vs {expected}.");
-                        if (color.X == color.Y && color.Y == color.Z)
-                        {
-                            Require(pixels[offset] == pixels[offset + 1] && pixels[offset + 1] == pixels[offset + 2], "Neutral color shifted hue.");
-                        }
-                        cases++;
                     }
                 }
             }
@@ -293,7 +319,7 @@ internal static class ImageGuidedLookResearch
         {
             Cases = cases,
             MaximumLinearRgbError = maximumError,
-            Scope = "Native output versus double-precision curve equations; black, neutral, HDR colored and white samples, four retention values, three exposures. Disabled tone mapping is byte-identical across retention values."
+            Scope = "Native output versus independent curve equations, including soft gamut compression; black, neutral, HDR colored and white samples, four retention values, three exposures. Disabled tone mapping is byte-identical across both gamut modes and retention values."
         };
     }
 

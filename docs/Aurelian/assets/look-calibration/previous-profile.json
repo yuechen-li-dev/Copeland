@@ -1,0 +1,97 @@
+{
+  "Graphics": {
+    "AntiAliasing": 1,
+    "TemporalHistoryWeight": 0.875,
+    "BloomIntensity": 0.08,
+    "BloomThreshold": 1,
+    "BloomKnee": 0.5,
+    "AmbientOcclusionStrength": 0.6,
+    "AmbientOcclusionRadius": 0.8,
+    "SurfaceDebugView": 0,
+    "DirectDiffuseModel": 0,
+    "EnvironmentIntensity": 1,
+    "LocalLightCulling": true,
+    "LocalShadowBudget": 2,
+    "SolidPbr": true,
+    "Shadows": true,
+    "ToneMapping": true,
+    "ToneMapColorRetention": 0,
+    "ToneMapGamutCompression": true,
+    "SunDirection": {
+      "X": 0.45808792,
+      "Y": 0.81437856,
+      "Z": 0.3562906
+    },
+    "SunColor": {
+      "X": 1,
+      "Y": 0.91,
+      "Z": 0.78
+    },
+    "SunIntensity": 3.6,
+    "SkyAmbient": {
+      "X": 0.24561924,
+      "Y": 0.32749233,
+      "Z": 0.47486383
+    },
+    "GroundAmbient": {
+      "X": 0.09824769,
+      "Y": 0.08187308,
+      "Z": 0.065498464
+    },
+    "Exposure": 1.2,
+    "SolidRoughness": 0.65,
+    "SolidMetallic": 0,
+    "ShadowRadius": 24,
+    "ShadowBias": 0.0008,
+    "ShadowDistance": 100,
+    "ShadowCasterPadding": 30,
+    "ShadowWorldBias": 0.015,
+    "Fog": {
+      "Density": 0.0015,
+      "HeightFalloff": 0.08,
+      "BaseHeight": -14,
+      "StartDistance": 35,
+      "MaximumDistance": 1000,
+      "Color": {
+        "X": 0.62,
+        "Y": 0.76,
+        "Z": 0.95
+      }
+    },
+    "Volumetrics": {
+      "Enabled": false,
+      "PixelSize": 12,
+      "DepthSlices": 32,
+      "MaximumDistance": 60,
+      "ScatteringAlbedo": {
+        "X": 0.85,
+        "Y": 0.85,
+        "Z": 0.85
+      },
+      "AmbientRadiance": {
+        "X": 0.02,
+        "Y": 0.02,
+        "Z": 0.02
+      },
+      "Anisotropy": 0.35,
+      "Region": null
+    },
+    "RefractionTraceDistance": 64
+  },
+  "DecodePaletteSrgb": true,
+  "GrassTint": {
+    "X": 1.6487213,
+    "Y": 0.49658528,
+    "Z": 0.49658528
+  },
+  "EarthTint": {
+    "X": 1.2214028,
+    "Y": 1.3498589,
+    "Z": 0.74081826
+  },
+  "HeroTint": {
+    "X": 0.8187308,
+    "Y": 1.6487213,
+    "Z": 0.9048375
+  }
+}

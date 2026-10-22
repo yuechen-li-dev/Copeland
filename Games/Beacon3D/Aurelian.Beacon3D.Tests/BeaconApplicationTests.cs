@@ -1,10 +1,20 @@
 using InputMan.Core;
+using Aurelian.Rendering.Contracts.Models;
 using Xunit;
 
 namespace Aurelian.Beacon3D.Tests;
 
 public sealed class BeaconApplicationTests
 {
+    [Fact]
+    public void PublishedLambertLightingIsExplicitWhileOrdinaryPlayUsesPathDiffuse()
+    {
+        using var ordinary = new BeaconShellGame();
+        using var published = new BeaconShellGame(lighting: "fixture.alight");
+        Assert.Equal(DirectDiffuseModel3D.PathDiffuse, ordinary.Manifest.Graphics.DirectDiffuseModel);
+        Assert.Equal(DirectDiffuseModel3D.Lambert, published.Manifest.Graphics.DirectDiffuseModel);
+    }
+
     [Fact]
     public void PauseAndControlsFreezeGameAndReturnToOrigin()
     {

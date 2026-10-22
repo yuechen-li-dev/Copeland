@@ -10,6 +10,13 @@ public sealed class Graphics3DSettingsTests
     public void DefaultUsesTemporalAaAndHdrEmissionHasAnExplicitFiniteRange()
     {
         Assert.Equal(AntiAliasing3D.Temporal, Graphics3DSettings.Default.AntiAliasing);
+        Assert.Equal(DirectDiffuseModel3D.PathDiffuse, Graphics3DSettings.Default.DirectDiffuseModel);
+        Assert.Equal(DirectDiffuseModel3D.PathDiffuse, new Graphics3DSettings().DirectDiffuseModel);
+        Assert.Equal(DirectDiffuseModel3D.Lambert, Graphics3DSettings.Basic.DirectDiffuseModel);
+        foreach (DirectDiffuseModel3D model in Enum.GetValues<DirectDiffuseModel3D>())
+        {
+            (Graphics3DSettings.Default with { DirectDiffuseModel = model }).Validate();
+        }
         new ModelMaterial("lamp") { Emissive = new(20, 5, 1) }.Validate();
         Assert.Throws<InvalidDataException>(() => new ModelMaterial("lamp") { Emissive = new(float.NaN, 0, 0) }.Validate());
         Assert.Throws<InvalidDataException>(() => new ModelMaterial("lamp") { Emissive = new(-1, 0, 0) }.Validate());

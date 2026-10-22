@@ -62,9 +62,21 @@ public sealed class CloudstepGame : IGame
     private float toastTimer;
     private double presentationTime;
     private float bestTime = float.NaN;
+    private readonly CloudstepPalette? researchPalette;
+    private readonly CloudstepLookProfile? lookProfile;
 
-    public CloudstepGame(string? assetDirectory = null, Graphics3DSettings? researchLook = null)
+    public CloudstepGame(string? assetDirectory = null, Graphics3DSettings? researchLook = null, CloudstepLookProfile? researchProfile = null)
     {
+        if (researchProfile is not null)
+        {
+            if (researchLook is not null)
+            {
+                throw new ArgumentException("Choose one research look source.");
+            }
+            researchPalette = new CloudstepPalette(researchProfile);
+            lookProfile = researchProfile;
+            researchLook = researchProfile.Graphics;
+        }
         if (researchLook is not null)
         {
             researchLook.Validate();
@@ -263,6 +275,8 @@ public sealed class CloudstepGame : IGame
         facts.Set("autopilot", autopilot is null ? "off" : autopilot.Leg);
         facts.Set("look.diffuse", Manifest.Graphics.DirectDiffuseModel.ToString());
         facts.Set("look.retention", Manifest.Graphics.ToneMapColorRetention);
+        facts.Set("look.gamut", Manifest.Graphics.ToneMapGamutCompression);
+        facts.Set("look.palette", lookProfile?.DecodePaletteSrgb == true ? "srgb" : "legacy");
     }
 
     /// <summary>Playtest commands: "autopilot on|off" tours the course; "checkpoint N" moves the hero to a checkpoint.</summary>
@@ -289,7 +303,8 @@ public sealed class CloudstepGame : IGame
 
     public void AttachGraphics(NativeGameGraphics graphics)
     {
-        graphics.Clear = new(0.56f, 0.74f, 0.93f, 1);
+        // Clear-day sky in display sRGB; the HDR renderer decodes it before tone mapping.
+        graphics.Clear = new(0.30f, 0.55f, 0.95f, 1);
     }
 
     public void Dispose()
@@ -391,8 +406,12 @@ public sealed class CloudstepGame : IGame
         }
         float alpha = world.Dead ? 0 : 1;
         CloudstepVisuals.AddHero(boxes, meshes, world.Player.Feet, world.Player.Facing, Math.Clamp(squash, -0.3f, 0.35f), alpha);
-        return new SceneFrame([.. boxes], [.. meshes]);
+        var frame = new SceneFrame([.. boxes], [.. meshes]);
+        return researchPalette?.Apply(frame) ?? frame;
     }
+
+    /// <summary>Read-only presentation projection for material-region inspection and graphics experiments.</summary>
+    public SceneFrame InspectFrame() => BuildFrame();
 
     private static string Clock(double seconds)
     {

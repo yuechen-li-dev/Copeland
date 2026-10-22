@@ -8,6 +8,12 @@ Controls: WASD or arrows to move, Space to jump (hold for height), mouse or Q/E 
 
 The opt-in [image guided look pilot](../../docs/Aurelian/image-guided-look-pilot.md) compares this game's rendering policies against frozen generated appearance targets. Run `cloudstep.cmd --look-policy PATH_TO_SELECTED_SETTINGS.json` to try an exported policy; ordinary launches retain the authored look.
 
+The [second trial](../../docs/Aurelian/image-guided-look-refinement.md) adds a cached palette calibration and lighting profile. Try it with `cloudstep.cmd --look-profile docs/Aurelian/assets/look-refinement/selected-profile.json`. Its richer color is demonstrated in native captures; transfer against the newly generated reference remains unqualified because that reference displaced the scene.
+
+The [third trial](../../docs/Aurelian/semantic-look-calibration.md) keeps PathDiffuse fixed and fits independently labelled AI material swatches. Try `cloudstep.cmd --look-profile docs/Aurelian/assets/look-calibration/selected-profile.json` for the newest calibration. Ordinary launches now use the engine's PathDiffuse default with the original palette; the calibrated palette remains opt-in.
+
+The live sky now uses a [clearer blue backdrop](../../docs/Aurelian/assets/cloudstep-clear-blue-sky.png) in both ordinary and calibrated launches. Palette, lighting, fog and the cloud sea retain their existing settings; frozen calibration captures preserve the previous sky for reproducibility.
+
 Movement feel (`PlayerTuning`): acceleration with separate air control, 0.1 s coyote time, 0.12 s jump buffer, variable jump height, platform momentum on jump, and 0.4 m step-up.
 
 | File | Role |

@@ -51,6 +51,34 @@ function RetainedChannel(value: f32, luminance: f32, parameters: float4): f32 {
     }
     return mapped;
 }
+function UnboundedChannel(value: f32, luminance: f32, exposure: f32, retention: f32): f32 {
+    const x: f32 = Max(value * exposure, 0.0);
+    return Filmic(x) * (1.0 - retention) + x * Filmic(luminance) / Max(luminance, 0.000001) * retention;
+}
+function GamutDistance(value: f32, center: f32): f32 {
+    if (value > center) {
+        return (value - center) / Max(1.0 - center, 0.000001);
+    }
+    return (center - value) / Max(center, 0.000001);
+}
+function CompressedColor(color: float4, parameters: float4): float3 {
+    const luminance: f32 = Max((0.2126 * color.x + 0.7152 * color.y + 0.0722 * color.z) * parameters.x, 0.0);
+    const retention: f32 = Clamp(parameters.y - 3.0, 0.0, 1.0);
+    const raw: float3 = float3(UnboundedChannel(color.x, luminance, parameters.x, retention),
+        UnboundedChannel(color.y, luminance, parameters.x, retention),
+        UnboundedChannel(color.z, luminance, parameters.x, retention));
+    const center: f32 = Clamp(0.2126 * raw.x + 0.7152 * raw.y + 0.0722 * raw.z, 0.0, 1.0);
+    const distance: f32 = Max(GamutDistance(raw.x, center), Max(GamutDistance(raw.y, center), GamutDistance(raw.z, center)));
+    var scale: f32 = 1.0;
+    if (distance > 0.8) {
+        const excess: f32 = distance - 0.8;
+        const compressed: f32 = 0.8 + 0.2 * excess / (excess + 0.2);
+        scale = compressed / distance;
+    }
+    return float3(Clamp(center + (raw.x - center) * scale, 0.0, 1.0),
+        Clamp(center + (raw.y - center) * scale, 0.0, 1.0),
+        Clamp(center + (raw.z - center) * scale, 0.0, 1.0));
+}
 @vertex
 function VertexMain(input: OutputInput): OutputVaryings {
     return { position: float4(input.position.x, input.position.y, 0.0, 1.0),
@@ -63,6 +91,14 @@ function PixelMain(input: OutputVaryings, resources: OutputResources): OutputCol
     const intensity: f32 = resources.output.parameters.w;
     const combined: float4 = float4(sampledColor.x + glow.x * intensity, sampledColor.y + glow.y * intensity,
         sampledColor.z + glow.z * intensity, 1.0);
+    // Tone control: 0 disabled; 1..2 legacy blend; 3..4 soft gamut compression.
+    if (resources.output.parameters.y > 2.5) {
+        const mapped: float3 = CompressedColor(combined, resources.output.parameters);
+        if (resources.output.parameters.z > 0.5) {
+            return { color: float4(EncodeSrgb(mapped.x), EncodeSrgb(mapped.y), EncodeSrgb(mapped.z), 1.0) };
+        }
+        return { color: float4(mapped.x, mapped.y, mapped.z, 1.0) };
+    }
     if (resources.output.parameters.y > 1.0) {
         const luminance: f32 = Max((0.2126 * combined.x + 0.7152 * combined.y + 0.0722 * combined.z)
             * resources.output.parameters.x, 0.0);

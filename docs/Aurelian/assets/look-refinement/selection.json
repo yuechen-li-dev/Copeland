@@ -1,0 +1,256 @@
+{
+  "Parameters": {
+    "Decode": true,
+    "Diffuse": 0,
+    "Ambient": 0.8187308,
+    "Exposure": 1.2,
+    "Retention": 0,
+    "Compress": true,
+    "Grass": {
+      "X": 1.6487213,
+      "Y": 0.49658528,
+      "Z": 0.49658528
+    },
+    "Earth": {
+      "X": 1.2214028,
+      "Y": 1.3498589,
+      "Z": 0.74081826
+    },
+    "Hero": {
+      "X": 0.8187308,
+      "Y": 1.6487213,
+      "Z": 0.9048375
+    }
+  },
+  "Loss": 11.616235435706622,
+  "SoftmaxTemperature": 1,
+  "Probabilities": [
+    0.13168999787845195,
+    0.12834737766491633,
+    0.12567788617640305,
+    0.12391974693424643,
+    0.12372124079270616,
+    0.12351368127978463,
+    0.12171688231789689,
+    0.12141318695559448
+  ],
+  "Finalists": [
+    {
+      "Parameters": {
+        "Decode": true,
+        "Diffuse": 0,
+        "Ambient": 0.8187308,
+        "Exposure": 1.2,
+        "Retention": 0,
+        "Compress": true,
+        "Grass": {
+          "X": 1.6487213,
+          "Y": 0.49658528,
+          "Z": 0.49658528
+        },
+        "Earth": {
+          "X": 1.2214028,
+          "Y": 1.3498589,
+          "Z": 0.74081826
+        },
+        "Hero": {
+          "X": 0.8187308,
+          "Y": 1.6487213,
+          "Z": 0.9048375
+        }
+      },
+      "Loss": 11.616235435706622,
+      "MedianGpuMilliseconds": 1.151424
+    },
+    {
+      "Parameters": {
+        "Decode": true,
+        "Diffuse": 0,
+        "Ambient": 0.8187308,
+        "Exposure": 1.2,
+        "Retention": 0,
+        "Compress": true,
+        "Grass": {
+          "X": 1.6487213,
+          "Y": 0.49658528,
+          "Z": 0.49658528
+        },
+        "Earth": {
+          "X": 1.2214028,
+          "Y": 1.3498589,
+          "Z": 0.74081826
+        },
+        "Hero": {
+          "X": 0.8187308,
+          "Y": 1.6487213,
+          "Z": 0.8187308
+        }
+      },
+      "Loss": 11.641945619336632,
+      "MedianGpuMilliseconds": 1.153472
+    },
+    {
+      "Parameters": {
+        "Decode": true,
+        "Diffuse": 0,
+        "Ambient": 0.8187308,
+        "Exposure": 1.2,
+        "Retention": 0,
+        "Compress": true,
+        "Grass": {
+          "X": 1.6487213,
+          "Y": 0.49658528,
+          "Z": 0.49658528
+        },
+        "Earth": {
+          "X": 1.2214028,
+          "Y": 1.3498589,
+          "Z": 0.74081826
+        },
+        "Hero": {
+          "X": 0.8187308,
+          "Y": 1.4918247,
+          "Z": 0.8187308
+        }
+      },
+      "Loss": 11.66296392060557,
+      "MedianGpuMilliseconds": 1.15184
+    },
+    {
+      "Parameters": {
+        "Decode": true,
+        "Diffuse": 0,
+        "Ambient": 0.8187308,
+        "Exposure": 1.2,
+        "Retention": 0,
+        "Compress": true,
+        "Grass": {
+          "X": 1.6487213,
+          "Y": 0.49658528,
+          "Z": 0.49658528
+        },
+        "Earth": {
+          "X": 1.2214028,
+          "Y": 1.3498589,
+          "Z": 0.74081826
+        },
+        "Hero": {
+          "X": 0.8187308,
+          "Y": 1.6487213,
+          "Z": 0.74081826
+        }
+      },
+      "Loss": 11.677051941382436,
+      "MedianGpuMilliseconds": 1.152576
+    },
+    {
+      "Parameters": {
+        "Decode": true,
+        "Diffuse": 0,
+        "Ambient": 0.8187308,
+        "Exposure": 1.2,
+        "Retention": 0,
+        "Compress": true,
+        "Grass": {
+          "X": 1.6487213,
+          "Y": 0.49658528,
+          "Z": 0.49658528
+        },
+        "Earth": {
+          "X": 1.2214028,
+          "Y": 1.3498589,
+          "Z": 0.67032003
+        },
+        "Hero": {
+          "X": 0.8187308,
+          "Y": 1.4918247,
+          "Z": 0.8187308
+        }
+      },
+      "Loss": 11.678655118512996,
+      "MedianGpuMilliseconds": 1.1526399999999999
+    },
+    {
+      "Parameters": {
+        "Decode": true,
+        "Diffuse": 0,
+        "Ambient": 0.8187308,
+        "Exposure": 1.2,
+        "Retention": 0,
+        "Compress": true,
+        "Grass": {
+          "X": 1.6487213,
+          "Y": 0.49658528,
+          "Z": 0.49658528
+        },
+        "Earth": {
+          "X": 1.2214028,
+          "Y": 1.3498589,
+          "Z": 0.74081826
+        },
+        "Hero": {
+          "X": 0.9048375,
+          "Y": 1.4918247,
+          "Z": 0.8187308
+        }
+      },
+      "Loss": 11.68033416579276,
+      "MedianGpuMilliseconds": 1.152448
+    },
+    {
+      "Parameters": {
+        "Decode": true,
+        "Diffuse": 0,
+        "Ambient": 0.8187308,
+        "Exposure": 1.2,
+        "Retention": 0,
+        "Compress": true,
+        "Grass": {
+          "X": 1.6487213,
+          "Y": 0.49658528,
+          "Z": 0.49658528
+        },
+        "Earth": {
+          "X": 1.2214028,
+          "Y": 1.3498589,
+          "Z": 0.74081826
+        },
+        "Hero": {
+          "X": 0.74081826,
+          "Y": 1.4918247,
+          "Z": 0.8187308
+        }
+      },
+      "Loss": 11.694988384174394,
+      "MedianGpuMilliseconds": 1.15136
+    },
+    {
+      "Parameters": {
+        "Decode": true,
+        "Diffuse": 0,
+        "Ambient": 0.8187308,
+        "Exposure": 1.2,
+        "Retention": 0,
+        "Compress": true,
+        "Grass": {
+          "X": 1.6487213,
+          "Y": 0.49658528,
+          "Z": 0.49658528
+        },
+        "Earth": {
+          "X": 1.2214028,
+          "Y": 1.3498589,
+          "Z": 0.60653067
+        },
+        "Hero": {
+          "X": 0.8187308,
+          "Y": 1.4918247,
+          "Z": 0.8187308
+        }
+      },
+      "Loss": 11.697486598575917,
+      "MedianGpuMilliseconds": 1.15216
+    }
+  ],
+  "Meaning": "CPU score confidence among searched finalists, not a trained neural network or stochastic gameplay choice."
+}

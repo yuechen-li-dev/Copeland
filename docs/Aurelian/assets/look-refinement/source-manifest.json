@@ -1,0 +1,17 @@
+{
+  "BaseCommit": "ad9b63ad6accf15b830544996d5c5a0b2087331e",
+  "WorkingTreeSourceSha256": {
+    "Games/Cloudstep/Cloudstep.Tests/LookSettingsTests.cs": "2490c776a076d8e8f119e0e232974de6566573bfaec7252fbbb15db06b161d10",
+    "Games/Cloudstep/Cloudstep/CloudstepGame.cs": "454a9caba3b85fbb84b25358839033251addcb752ed284771d1341e4479b6237",
+    "Games/Cloudstep/Cloudstep/Program.cs": "3ed7b8282c1490a2806fb96c534affca938bd435913a5d281f0cd6ec7099adc7",
+    "src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/VulkanSolid3DRenderer.cs": "9a4fcf9f82e1cf4d95bf76b4f03e8452cd05a6cd469395296d9c048f97894a29",
+    "src/Aurelian/Aurelian.Rendering.Contracts/Models/Graphics3DSettings.cs": "d04f6e6536f4af7a2d5d5930f41f6aae6edebee96e2169b4ace6d4db9b2c41cc",
+    "src/Aurelian/Aurelian.Shaders/Assets/PostProcessing/ToneMap3D.v.ts": "96af5bdcf134ce6a4b27e5c425697ccd39af0fcb590f1d078690d3221a52b0b2",
+    "tools/Aurelian.GraphicsProof/ImageGuidedLookResearch.cs": "a06d0f982735967a16a8bc909719996bf801fe64efbf70c9af3db1e52833b017",
+    "tools/Aurelian.GraphicsProof/Program.cs": "685a0f0dfaa7da70a41ecaa581ac02915d6ae5148cc55a310b710703664d6904",
+    "Games/Cloudstep/Cloudstep/CloudstepLookProfile.cs": "02286a4aecb4de59e22a76af62fdc92a2dc4f1d536fa2f58c7493685bd8cc2af",
+    "tools/Aurelian.GraphicsProof/ImageGuidedLookRefinement.cs": "a7b3bcc714c086496ec8ae87bf01d038cbc69b652e55c63051de4640e42925b3",
+    "tools/Aurelian.GraphicsProof/MaterialLookMetric.cs": "b36c217e788d7cc637ed84f7d7e864a716e52ce77ef5025acdc8991993182763"
+  },
+  "Scope": "Source after full build/tests. Native shader proofs and tours retained in local artifacts. Documentation edits do not change runtime."
+}

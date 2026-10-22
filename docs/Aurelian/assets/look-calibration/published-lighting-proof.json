@@ -1,0 +1,418 @@
+{
+  "Outcome": "Success",
+  "SceneKey": "e4743030b4e3b597ff3772c98203f3b00feb9d8426cfc10b1925c0319ec8c77c",
+  "Gpu": "NVIDIA GeForce RTX 3070",
+  "DecoderVersion": "aurelian.static-diffuse.p2/1",
+  "NumericPayloadBytes": 3536,
+  "UploadedTextureBytes": 7680,
+  "AssetFileBytes": 36246,
+  "Quality": {
+    "ValidationRmse": 0.0015067254963252465,
+    "MaximumValidationRmse": 0.02,
+    "SamplingNoise": 0.00016435420548077673,
+    "NumericPayloadBytes": 3676,
+    "NumericBudgetBytes": 3772,
+    "ObservedRank": 106,
+    "CoefficientCount": 106,
+    "ValidationReceivers": 3963
+  },
+  "TriangleCount": 47,
+  "CoefficientCount": 106,
+  "MaximumCpuEdgeMismatch": 2.980232238769531E-08,
+  "CompiledHdrMilliseconds": {
+    "Median": 0.843776,
+    "P95": 3.366912
+  },
+  "BaselineHdrMilliseconds": {
+    "Median": 0.155648,
+    "P95": 0.156672
+  },
+  "StaleDiagnostic": "AUR-LIGHT-001: Stale scene or unsupported decoder/colour/basis identity.",
+  "ChecksumDiagnostic": "AUR-LIGHT-001: Lighting payload checksum mismatch.",
+  "LoadingStatus": {
+    "Id": "scene.diffuse",
+    "Phase": "Ready",
+    "Generation": 8,
+    "ContentKey": "6a938d2b786a1061a5066d11040d939fa5a06f8fa92c223e916407e1ce3585b7",
+    "Reason": "PublishCompletedGeneration",
+    "Published": {
+      "PlantId": 0,
+      "CompletionValue": 97,
+      "ContentKey": "6a938d2b786a1061a5066d11040d939fa5a06f8fa92c223e916407e1ce3585b7",
+      "Generation": 8,
+      "CompletionDomain": "compiled-diffuse-upload-3164b2ef31f84a64a56d46becdbbd6d6"
+    }
+  },
+  "Trace": [
+    {
+      "Sequence": 1,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.0166666,
+      "Kind": "enter",
+      "State": "aurelian.lighting.scene.diffuse.Dirty",
+      "Destination": null,
+      "Reason": "Init",
+      "Decision": null
+    },
+    {
+      "Sequence": 2,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.0166666,
+      "Kind": "yield",
+      "State": "aurelian.lighting.scene.diffuse.Dirty",
+      "Destination": null,
+      "Reason": "Dominatus.Core.Nodes.Steps.Goto",
+      "Decision": null
+    },
+    {
+      "Sequence": 3,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.0166666,
+      "Kind": "exit",
+      "State": "aurelian.lighting.scene.diffuse.Dirty",
+      "Destination": null,
+      "Reason": "DelegateCompilation",
+      "Decision": null
+    },
+    {
+      "Sequence": 4,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.0166666,
+      "Kind": "enter",
+      "State": "aurelian.lighting.scene.diffuse.Baking",
+      "Destination": null,
+      "Reason": "DelegateCompilation",
+      "Decision": null
+    },
+    {
+      "Sequence": 5,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.0166666,
+      "Kind": "transition",
+      "State": "aurelian.lighting.scene.diffuse.Dirty",
+      "Destination": "aurelian.lighting.scene.diffuse.Baking",
+      "Reason": "DelegateCompilation",
+      "Decision": null
+    },
+    {
+      "Sequence": 6,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.0333332,
+      "Kind": "yield",
+      "State": "aurelian.lighting.scene.diffuse.Baking",
+      "Destination": null,
+      "Reason": "Dominatus.Core.Nodes.Steps.Goto",
+      "Decision": null
+    },
+    {
+      "Sequence": 7,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.0333332,
+      "Kind": "exit",
+      "State": "aurelian.lighting.scene.diffuse.Baking",
+      "Destination": null,
+      "Reason": "PublishCompletedGeneration",
+      "Decision": null
+    },
+    {
+      "Sequence": 8,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.0333332,
+      "Kind": "enter",
+      "State": "aurelian.lighting.scene.diffuse.Ready",
+      "Destination": null,
+      "Reason": "PublishCompletedGeneration",
+      "Decision": null
+    },
+    {
+      "Sequence": 9,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.0333332,
+      "Kind": "transition",
+      "State": "aurelian.lighting.scene.diffuse.Baking",
+      "Destination": "aurelian.lighting.scene.diffuse.Ready",
+      "Reason": "PublishCompletedGeneration",
+      "Decision": null
+    },
+    {
+      "Sequence": 10,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.049999803,
+      "Kind": "yield",
+      "State": "aurelian.lighting.scene.diffuse.Ready",
+      "Destination": null,
+      "Reason": "Dominatus.Core.Nodes.Steps.Goto",
+      "Decision": null
+    },
+    {
+      "Sequence": 11,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.049999803,
+      "Kind": "exit",
+      "State": "aurelian.lighting.scene.diffuse.Ready",
+      "Destination": null,
+      "Reason": "BakedInputsChanged",
+      "Decision": null
+    },
+    {
+      "Sequence": 12,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.049999803,
+      "Kind": "enter",
+      "State": "aurelian.lighting.scene.diffuse.Dirty",
+      "Destination": null,
+      "Reason": "BakedInputsChanged",
+      "Decision": null
+    },
+    {
+      "Sequence": 13,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.049999803,
+      "Kind": "transition",
+      "State": "aurelian.lighting.scene.diffuse.Ready",
+      "Destination": "aurelian.lighting.scene.diffuse.Dirty",
+      "Reason": "BakedInputsChanged",
+      "Decision": null
+    },
+    {
+      "Sequence": 14,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.0666664,
+      "Kind": "yield",
+      "State": "aurelian.lighting.scene.diffuse.Dirty",
+      "Destination": null,
+      "Reason": "Dominatus.Core.Nodes.Steps.Goto",
+      "Decision": null
+    },
+    {
+      "Sequence": 15,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.0666664,
+      "Kind": "exit",
+      "State": "aurelian.lighting.scene.diffuse.Dirty",
+      "Destination": null,
+      "Reason": "DelegateCompilation",
+      "Decision": null
+    },
+    {
+      "Sequence": 16,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.0666664,
+      "Kind": "enter",
+      "State": "aurelian.lighting.scene.diffuse.Baking",
+      "Destination": null,
+      "Reason": "DelegateCompilation",
+      "Decision": null
+    },
+    {
+      "Sequence": 17,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.0666664,
+      "Kind": "transition",
+      "State": "aurelian.lighting.scene.diffuse.Dirty",
+      "Destination": "aurelian.lighting.scene.diffuse.Baking",
+      "Reason": "DelegateCompilation",
+      "Decision": null
+    },
+    {
+      "Sequence": 18,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.083333,
+      "Kind": "yield",
+      "State": "aurelian.lighting.scene.diffuse.Baking",
+      "Destination": null,
+      "Reason": "Dominatus.Core.Nodes.Steps.Goto",
+      "Decision": null
+    },
+    {
+      "Sequence": 19,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.083333,
+      "Kind": "exit",
+      "State": "aurelian.lighting.scene.diffuse.Baking",
+      "Destination": null,
+      "Reason": "PublishCompletedGeneration",
+      "Decision": null
+    },
+    {
+      "Sequence": 20,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.083333,
+      "Kind": "enter",
+      "State": "aurelian.lighting.scene.diffuse.Ready",
+      "Destination": null,
+      "Reason": "PublishCompletedGeneration",
+      "Decision": null
+    },
+    {
+      "Sequence": 21,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.083333,
+      "Kind": "transition",
+      "State": "aurelian.lighting.scene.diffuse.Baking",
+      "Destination": "aurelian.lighting.scene.diffuse.Ready",
+      "Reason": "PublishCompletedGeneration",
+      "Decision": null
+    },
+    {
+      "Sequence": 22,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.0999996,
+      "Kind": "yield",
+      "State": "aurelian.lighting.scene.diffuse.Ready",
+      "Destination": null,
+      "Reason": "Dominatus.Core.Nodes.Steps.Goto",
+      "Decision": null
+    },
+    {
+      "Sequence": 23,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.0999996,
+      "Kind": "exit",
+      "State": "aurelian.lighting.scene.diffuse.Ready",
+      "Destination": null,
+      "Reason": "BakedInputsChanged",
+      "Decision": null
+    },
+    {
+      "Sequence": 24,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.0999996,
+      "Kind": "enter",
+      "State": "aurelian.lighting.scene.diffuse.Dirty",
+      "Destination": null,
+      "Reason": "BakedInputsChanged",
+      "Decision": null
+    },
+    {
+      "Sequence": 25,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.0999996,
+      "Kind": "transition",
+      "State": "aurelian.lighting.scene.diffuse.Ready",
+      "Destination": "aurelian.lighting.scene.diffuse.Dirty",
+      "Reason": "BakedInputsChanged",
+      "Decision": null
+    },
+    {
+      "Sequence": 26,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.1166662,
+      "Kind": "yield",
+      "State": "aurelian.lighting.scene.diffuse.Dirty",
+      "Destination": null,
+      "Reason": "Dominatus.Core.Nodes.Steps.Goto",
+      "Decision": null
+    },
+    {
+      "Sequence": 27,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.1166662,
+      "Kind": "exit",
+      "State": "aurelian.lighting.scene.diffuse.Dirty",
+      "Destination": null,
+      "Reason": "DelegateCompilation",
+      "Decision": null
+    },
+    {
+      "Sequence": 28,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.1166662,
+      "Kind": "enter",
+      "State": "aurelian.lighting.scene.diffuse.Baking",
+      "Destination": null,
+      "Reason": "DelegateCompilation",
+      "Decision": null
+    },
+    {
+      "Sequence": 29,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.1166662,
+      "Kind": "transition",
+      "State": "aurelian.lighting.scene.diffuse.Dirty",
+      "Destination": "aurelian.lighting.scene.diffuse.Baking",
+      "Reason": "DelegateCompilation",
+      "Decision": null
+    },
+    {
+      "Sequence": 30,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.1333328,
+      "Kind": "yield",
+      "State": "aurelian.lighting.scene.diffuse.Baking",
+      "Destination": null,
+      "Reason": "Dominatus.Core.Nodes.Steps.Goto",
+      "Decision": null
+    },
+    {
+      "Sequence": 31,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.1333328,
+      "Kind": "exit",
+      "State": "aurelian.lighting.scene.diffuse.Baking",
+      "Destination": null,
+      "Reason": "PublishCompletedGeneration",
+      "Decision": null
+    },
+    {
+      "Sequence": 32,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.1333328,
+      "Kind": "enter",
+      "State": "aurelian.lighting.scene.diffuse.Ready",
+      "Destination": null,
+      "Reason": "PublishCompletedGeneration",
+      "Decision": null
+    },
+    {
+      "Sequence": 33,
+      "Agent": "lighting.scene.diffuse",
+      "Time": 0.1333328,
+      "Kind": "transition",
+      "State": "aurelian.lighting.scene.diffuse.Baking",
+      "Destination": "aurelian.lighting.scene.diffuse.Ready",
+      "Reason": "PublishCompletedGeneration",
+      "Decision": null
+    }
+  ],
+  "StableRuntimeShader": "One compiled Solid3D program for all loads and coefficient changes",
+  "Decoder": [
+    {
+      "Sun": 1,
+      "Emission": 0,
+      "Samples": 4096,
+      "MaximumEncodedError": 0.002190504208499311,
+      "MaximumLinearErrorBound": 0.00013950529262798188,
+      "QuantizationAllowance": 0.002352941176470588,
+      "Scale": 15.701943
+    },
+    {
+      "Sun": 0,
+      "Emission": 1,
+      "Samples": 4096,
+      "MaximumEncodedError": 0.0021892561632044227,
+      "MaximumLinearErrorBound": 0.001206787370606191,
+      "QuantizationAllowance": 0.002352941176470588,
+      "Scale": 1.8141192
+    },
+    {
+      "Sun": 1,
+      "Emission": 1,
+      "Samples": 4096,
+      "MaximumEncodedError": 0.002193776424974203,
+      "MaximumLinearErrorBound": 0.001230402592765611,
+      "QuantizationAllowance": 0.002352941176470588,
+      "Scale": 1.7829745
+    },
+    {
+      "Sun": 0.5,
+      "Emission": 2,
+      "Samples": 4096,
+      "MaximumEncodedError": 0.002193496096879244,
+      "MaximumLinearErrorBound": 0.002428809483652337,
+      "QuantizationAllowance": 0.002352941176470588,
+      "Scale": 0.90311575
+    }
+  ],
+  "Limits": "Static horizontal opaque Lambertian receiver; two light bases; no dynamic indirect transport, specular GI or reflection support"
+}

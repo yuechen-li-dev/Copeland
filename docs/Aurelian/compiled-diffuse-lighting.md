@@ -126,6 +126,8 @@ corrupt assets or failed publication use fallback lighting.
 
 ## Qualification and commands
 
+Current shaded defaults use PathDiffuse. These published transfer assets remain Lambert-only: select `DirectDiffuseModel3D.Lambert` explicitly before publishing them. Beacon's `--lighting` paths do this automatically. The finite byte-comparison proof explicitly disables temporal AA; ordinary live play retains its authored AA setting. The [semantic calibration trial](semantic-look-calibration.md) records this compatibility check and the default transition.
+
 ```powershell
 dotnet build Aurelian.slnx -c Release -m:1
 dotnet run --project Games/Beacon3D/Aurelian.Beacon3D -c Release --no-build -- --build-lighting --output artifacts/local/beacon-compiled-lighting

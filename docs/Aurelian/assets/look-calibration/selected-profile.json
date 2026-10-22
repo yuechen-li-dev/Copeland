@@ -1,0 +1,97 @@
+{
+  "Graphics": {
+    "AntiAliasing": 1,
+    "TemporalHistoryWeight": 0.875,
+    "BloomIntensity": 0.08,
+    "BloomThreshold": 1,
+    "BloomKnee": 0.5,
+    "AmbientOcclusionStrength": 0.6,
+    "AmbientOcclusionRadius": 0.8,
+    "SurfaceDebugView": 0,
+    "DirectDiffuseModel": 4,
+    "EnvironmentIntensity": 1,
+    "LocalLightCulling": true,
+    "LocalShadowBudget": 2,
+    "SolidPbr": true,
+    "Shadows": true,
+    "ToneMapping": true,
+    "ToneMapColorRetention": 0,
+    "ToneMapGamutCompression": true,
+    "SunDirection": {
+      "X": 0.45808792,
+      "Y": 0.81437856,
+      "Z": 0.3562906
+    },
+    "SunColor": {
+      "X": 1,
+      "Y": 0.91,
+      "Z": 0.78
+    },
+    "SunIntensity": 3.880383,
+    "SkyAmbient": {
+      "X": 0.22265846,
+      "Y": 0.29687795,
+      "Z": 0.430473
+    },
+    "GroundAmbient": {
+      "X": 0.17999999,
+      "Y": 0.15,
+      "Z": 0.12
+    },
+    "Exposure": 1.2,
+    "SolidRoughness": 0.65,
+    "SolidMetallic": 0,
+    "ShadowRadius": 24,
+    "ShadowBias": 0.0008,
+    "ShadowDistance": 100,
+    "ShadowCasterPadding": 30,
+    "ShadowWorldBias": 0.015,
+    "Fog": {
+      "Density": 0.0015,
+      "HeightFalloff": 0.08,
+      "BaseHeight": -14,
+      "StartDistance": 35,
+      "MaximumDistance": 1000,
+      "Color": {
+        "X": 0.62,
+        "Y": 0.76,
+        "Z": 0.95
+      }
+    },
+    "Volumetrics": {
+      "Enabled": false,
+      "PixelSize": 12,
+      "DepthSlices": 32,
+      "MaximumDistance": 60,
+      "ScatteringAlbedo": {
+        "X": 0.85,
+        "Y": 0.85,
+        "Z": 0.85
+      },
+      "AmbientRadiance": {
+        "X": 0.02,
+        "Y": 0.02,
+        "Z": 0.02
+      },
+      "Anisotropy": 0.35,
+      "Region": null
+    },
+    "RefractionTraceDistance": 64
+  },
+  "DecodePaletteSrgb": true,
+  "GrassTint": {
+    "X": 1.5295905,
+    "Y": 0.57694983,
+    "Z": 0.2937577
+  },
+  "EarthTint": {
+    "X": 1.3165307,
+    "Y": 1.3498589,
+    "Z": 0.6872893
+  },
+  "HeroTint": {
+    "X": 0.9512295,
+    "Y": 1.6487213,
+    "Z": 0.5769499
+  }
+}

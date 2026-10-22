@@ -1,0 +1,65 @@
+{
+  "EndState": "Success",
+  "Scope": "Bounded semantic material-distribution calibration, fixed PathDiffuse, actual Vulkan game presentation. No realism or registered-relighting claim.",
+  "FrozenCriterionPassed": true,
+  "OcclusionConfirmationCriterionPassed": true,
+  "TrainingGainOverPreviousPath": 0.22171508713564736,
+  "HeldoutGainOverPreviousPath": 0.27146046614420194,
+  "OcclusionConfirmation": {
+    "TrainingGain": 0.22703534407313652,
+    "HeldoutGain": 0.275844189839042,
+    "SearchOrReranking": false
+  },
+  "Build": {
+    "Command": "dotnet build Aurelian.slnx -c Release -m:1 -nr:false -p:UseSharedCompilation=false",
+    "ExitCode": 0,
+    "Warnings": 0,
+    "Log": "artifacts/local/look-calibration-full-build.log"
+  },
+  "Tests": {
+    "Command": "dotnet test Aurelian.slnx -c Release --no-build -m:1",
+    "Passed": 1519,
+    "Assemblies": 33,
+    "Failed": 0,
+    "Skipped": 0,
+    "Log": "artifacts/local/look-calibration-full-tests.log"
+  },
+  "DiffuseGpuReferenceCases": 1500,
+  "OutputGpuReferenceCases": 240,
+  "NativeVtsUtilityScenarios": 3,
+  "PublishedLightingCompatibility": {
+    "Passed": true,
+    "UsesLambertExplicitly": true,
+    "ProofAntiAliasing": "None",
+    "InitialFailure": "Repeat frame hash under evolving temporal AA. Probe now explicitly disables temporal AA; live gameplay retains it.",
+    "NativeDecoderPixels": 16384,
+    "AssetRebaked": false
+  },
+  "NativeTours": {
+    "Runs": 2,
+    "StepsEach": 35,
+    "ExactComparisons": 420,
+    "FallsEach": 0,
+    "GemsEach": 9,
+    "FinalTickEach": 2082,
+    "LiveTemporalAa": true
+  },
+  "DefaultDiffuse": "PathDiffuse",
+  "BasicDiagnosticDiffuse": "Lambert",
+  "PublishedTransferDiffuse": "Lambert",
+  "PaletteDefaultChanged": false,
+  "AllOtherDiffuseModelsSelectable": true,
+  "RuntimeInference": false,
+  "StressMaximumClippedChannelFraction": 0.0042114410244304635,
+  "PerceptualRealism": "unqualified",
+  "Committed": false,
+  "Replay": {
+    "Passed": true,
+    "ExactSelectedProfileSha256": "1bd68bf26dba57546a555765a84ffba59f27f5818640c5e9aeb9dec028cb99ed",
+    "PrimaryScoresExact": true,
+    "FreshCaptureMasksMatchCorrectedConfirmation": true,
+    "MutatedReferenceRejected": true,
+    "RefittingFrozenSelectionRejected": true,
+    "Scope": "Complete historical replay plus corrected-mask confirmation. No fitting inputs changed in the original experiment."
+  }
+}

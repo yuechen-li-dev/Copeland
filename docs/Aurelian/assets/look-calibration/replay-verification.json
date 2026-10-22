@@ -1,0 +1,9 @@
+{
+  "Passed": true,
+  "ExactSelectedProfileSha256": "1bd68bf26dba57546a555765a84ffba59f27f5818640c5e9aeb9dec028cb99ed",
+  "PrimaryScoresExact": true,
+  "FreshCaptureMasksMatchCorrectedConfirmation": true,
+  "MutatedReferenceRejected": true,
+  "RefittingFrozenSelectionRejected": true,
+  "Scope": "Complete historical replay plus corrected-mask confirmation. No fitting inputs changed in the original experiment."
+}

@@ -122,6 +122,8 @@ var renderer = graphics.Renderer;
 string? lightingPath = GetOption(args, "--lighting");
 if (lightingPath is not null)
 {
+    // The published static-lighting asset has an explicit Lambert-only contract.
+    graphics.Settings = graphics.Settings with { DirectDiffuseModel = Aurelian.Rendering.Contracts.Models.DirectDiffuseModel3D.Lambert };
     bool loaded = graphics.LoadLighting(lightingPath, BeaconLighting.Recipe().ContentKey);
     Console.WriteLine("BEACON_LIGHTING " + (loaded ? "Ready" : graphics.LightingDiagnostic));
 }

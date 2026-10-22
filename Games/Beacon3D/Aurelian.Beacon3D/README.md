@@ -26,6 +26,8 @@ The normal application uses `BeaconShellGame : IGame` and the common `GameApp` s
 
 Historical `--proof` and `--lighting-proof` retain the dedicated renderer qualification path below. Normal playtests use the shared sorted-fact observation/command format; `Games/Playtests/common-shell.json` checks the common application lifecycle.
 
+Ordinary shaded play uses Aurelian PathDiffuse. Supplying `--lighting` explicitly selects Lambert to match the published transfer asset's contract. The finite lighting proof disables temporal AA for byte-identical still comparisons.
+
 ## Optional humanoid player
 
 Pass `--humanoid <antonia.gameplay-body.json>` to use the shared playable character

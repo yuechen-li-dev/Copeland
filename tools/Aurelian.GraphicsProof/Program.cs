@@ -21,6 +21,19 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 
 string defaultOutput = "artifacts/local/graphics-starter";
+if (args.Contains("--look-calibration", StringComparer.Ordinal))
+{
+    SemanticLookCalibration.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/look-calibration"),
+        args.Contains("--fit", StringComparer.Ordinal), args.Contains("--admit", StringComparer.Ordinal),
+        args.Contains("--verify-occlusion", StringComparer.Ordinal));
+    return;
+}
+if (args.Contains("--look-refinement", StringComparer.Ordinal))
+{
+    ImageGuidedLookRefinement.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/look-refinement"),
+        args.Contains("--fit", StringComparer.Ordinal));
+    return;
+}
 if (args.Contains("--look-research", StringComparer.Ordinal))
 {
     ImageGuidedLookResearch.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/image-guided-look"),

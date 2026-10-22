@@ -1,0 +1,20 @@
+{
+  "Version": 3,
+  "Training": "Checkpoint 0 and 1, both previously used references and now explicitly training data.",
+  "Heldout": "Checkpoint 2 yaw \u002B0.6/pitch 0.45, fresh generated reference, independently labelled before search. Camera previously inspected but not used for fitting.",
+  "Diffuse": "PathDiffuse fixed for every searched profile. Lambert from the previous trial is a control only.",
+  "Admission": "Four independently labelled material swatches, at least 60 interior samples each, visual label review before fitting. No pixel-registration assumption. Joint image/label translation must leave the score unchanged.",
+  "Objective": "Equal mean over hero, grass, earth and structure. Each region: 50% mean Lab distance, 50% RMS of marginal Lab quantile distances at 0.1/0.25/0.5/0.75/0.9. Four-pixel erosion; Lab sampled every second pixel; clipping checks every interior pixel.",
+  "Search": "108 coarse profiles with prior palette: sky scale 0.4/0.8/1.2, ground scale 0.3/1, sun scale 0.75/1/1.25, exposure 0.85/1.2, retention 0/0.35/0.7. Three coordinate passes on the best two seeds over five lighting/tone variables and nine palette components. Decode and gamut compression enabled.",
+  "Bounds": "Sky/ground scale 0.05..1.5, sun 0.25..2, exposure 0.3..1.8, retention 0..1, palette 0.25..4. Coordinate multiplicative step exp(\u002B/-0.3*0.5^pass), retention additive \u002B/-0.2*0.5^pass.",
+  "Budget": 360,
+  "Gates": "Training foreground clipped channels \u003C= 0.001 in both views; 30-sample rotating GPU median \u003C= default*1.25\u002B0.15 ms after five warmups.",
+  "Success": "At least 10% training and 5% fresh-reference reduction versus the previous profile with PathDiffuse substituted. All heldout regions improve over the uncalibrated PathDiffuse default; heldout clipping \u003C= 0.001. No realism or exact-relighting claim.",
+  "Stress": "Post-selection exposure 0.5/1/2 by sun 0.25/1/2; report clipping rather than assume arbitrary-light robustness.",
+  "Selection": "Offline deterministic CPU search evaluating production Vulkan frames. No runtime inference or model selection.",
+  "ViewHashes": [
+    "902E2B6F765D1D93DFE09D036652838A3C0E1832A788DFAC39B0F5C9C06AF869",
+    "FCA4EE9439FB940E94D2333A27180D12BC4853A2344A168E0F9E4C4202601099",
+    "C97813B8D695884E18F57E9BD17D189F93A806178B9949D6BC2A1B931132D0E4"
+  ]
+}

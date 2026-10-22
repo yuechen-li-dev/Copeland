@@ -1,0 +1,166 @@
+{
+  "Completed": true,
+  "CriterionPassed": true,
+  "TrainingGainOverPreviousPath": 0.22703534407313652,
+  "HeldoutGainOverPreviousPath": 0.275844189839042,
+  "EveryHeldoutRegionImprovesOverDefault": true,
+  "ProfileSha256": "1BD68BF26DBA57546A555765A84FFBA59F27F5818640C5E9AEB9DEC028CB99ED",
+  "SearchOrReranking": false,
+  "SourceMaskHashes": [
+    "6395BB19DCC10DACEDC0342E847E9793A3B0A4EA7B06E4C1AE66760CF7714CA2",
+    "1D444FC07E8A90D87B26CC4D3680E9C0D0B23D1E8FED815319EA201176B9290E",
+    "4718DAA7805AB1745FED1030445AFFBCF1FCEF0BE1E59F7227BD555F7FD86770"
+  ],
+  "Scores": [
+    [
+      {
+        "Loss": 26.235169393274262,
+        "Regions": [
+          37.131122803099046,
+          32.46794547452293,
+          24.20120932653388,
+          11.1403999689412
+        ],
+        "ClippedChannelFraction": 0
+      },
+      {
+        "Loss": 8.587737616206248,
+        "Regions": [
+          11.75934209428889,
+          14.120656925016402,
+          1.7665239084878837,
+          6.704427537031813
+        ],
+        "ClippedChannelFraction": 0
+      },
+      {
+        "Loss": 6.2436315175052854,
+        "Regions": [
+          8.476165668048083,
+          7.606944930130441,
+          4.208956383167903,
+          4.682459088674717
+        ],
+        "ClippedChannelFraction": 0
+      }
+    ],
+    [
+      {
+        "Loss": 24.340546687857433,
+        "Regions": [
+          25.389493576298626,
+          31.12319622665887,
+          28.09592510635339,
+          12.753571842118838
+        ],
+        "ClippedChannelFraction": 0
+      },
+      {
+        "Loss": 11.499843692737308,
+        "Regions": [
+          5.307044728401936,
+          8.909584123687072,
+          19.886303378048762,
+          11.896442540811464
+        ],
+        "ClippedChannelFraction": 0
+      },
+      {
+        "Loss": 9.283358857365164,
+        "Regions": [
+          5.105086415838185,
+          5.475755579657587,
+          14.839326962266018,
+          11.713266471698866
+        ],
+        "ClippedChannelFraction": 0
+      }
+    ],
+    [
+      {
+        "Loss": 29.29010917211119,
+        "Regions": [
+          39.27704507744873,
+          34.35868644657272,
+          30.598639859647196,
+          12.926065304776122
+        ],
+        "ClippedChannelFraction": 0
+      },
+      {
+        "Loss": 15.508164860418585,
+        "Regions": [
+          15.882272780089162,
+          14.925809357540246,
+          20.269421356651073,
+          10.955155947393866
+        ],
+        "ClippedChannelFraction": 0
+      },
+      {
+        "Loss": 11.23032768860612,
+        "Regions": [
+          11.429878462106448,
+          8.034510401993234,
+          15.075254667604314,
+          10.381667222720484
+        ],
+        "ClippedChannelFraction": 0
+      }
+    ]
+  ],
+  "MetricControls": [
+    {
+      "Identity": 0,
+      "BackgroundPerturbation": 0,
+      "ImageAndLabelsTranslatedEightPixels": 0,
+      "SourcePixels": [
+        2128,
+        103039,
+        78994,
+        7418
+      ],
+      "TargetSamples": [
+        312,
+        11700,
+        14264,
+        803
+      ]
+    },
+    {
+      "Identity": 0,
+      "BackgroundPerturbation": 0,
+      "ImageAndLabelsTranslatedEightPixels": 0,
+      "SourcePixels": [
+        2128,
+        88552,
+        78750,
+        13323
+      ],
+      "TargetSamples": [
+        286,
+        8566,
+        10359,
+        913
+      ]
+    },
+    {
+      "Identity": 0,
+      "BackgroundPerturbation": 0,
+      "ImageAndLabelsTranslatedEightPixels": 0,
+      "SourcePixels": [
+        2054,
+        119157,
+        16784,
+        26832
+      ],
+      "TargetSamples": [
+        318,
+        7012,
+        1411,
+        1930
+      ]
+    }
+  ],
+  "Scope": "Post-selection fixed-policy confirmation after correcting source-mask occlusion. Original frozen search and evidence are preserved. Not an independent new trial."
+}

@@ -21,6 +21,8 @@ The docs above describe current code paths and contracts. For exact signatures a
 - [3D graphics starter](graphics-starter.md): `Graphics3DSettings`, authored lighting, shadows, HDR, and gallery/proof entry points.
 - [Diffuse comparison](diffuse-comparison.md): controlled Lambert, Burley, Frostbite, EON and Aurelian PathDiffuse experiments, live `IGame` lab, paper references and native numerical qualification.
 - [Image guided look pilot](image-guided-look-pilot.md): generated appearance targets, a frozen Cloudstep policy sweep, native VTS selection, transfer results and methodology limits.
+- [Image guided look refinement](image-guided-look-refinement.md): material-balanced CPU search, palette/lighting calibration, soft gamut compression, richer native captures and a rejected AI reference registration.
+- [Semantic look calibration](semantic-look-calibration.md): fixed PathDiffuse, independently labelled AI material swatches, passing palette/lighting transfer criteria and the shaded-default transition.
 - [Surface graphics pack](surface-graphics-pack.md): environment lighting, ambient occlusion, tiled local lights, and temporal AA.
 - [Presentation graphics pack](presentation-graphics-pack.md) and [temporal graphics pack](temporal-graphics-pack.md).
 - [Water graphics pack](water-graphics-pack.md) and [transmission graphics pack](transmission-graphics-pack.md): bounded water/refraction and glass/volumetric contracts.

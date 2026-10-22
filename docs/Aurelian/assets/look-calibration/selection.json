@@ -1,0 +1,29 @@
+{
+  "Parameters": {
+    "Sky": 0.74219483,
+    "Ground": 1.5,
+    "Sun": 1.0778842,
+    "Exposure": 1.2,
+    "Retention": 0,
+    "Grass": {
+      "X": 1.5295905,
+      "Y": 0.57694983,
+      "Z": 0.2937577
+    },
+    "Earth": {
+      "X": 1.3165307,
+      "Y": 1.3498589,
+      "Z": 0.6872893
+    },
+    "Hero": {
+      "X": 0.9512295,
+      "Y": 1.6487213,
+      "Z": 0.5769499
+    }
+  },
+  "Loss": 7.773550094154461,
+  "Median": 1.156736,
+  "Evaluations": 269,
+  "Diffuse": "PathDiffuse",
+  "Scope": "Frozen before heldout reference is loaded for scoring."
+}

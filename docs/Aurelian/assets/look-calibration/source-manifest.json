@@ -1,0 +1,25 @@
+{
+  "BaseCommit": "ad9b63ad6accf15b830544996d5c5a0b2087331e",
+  "Sources": {
+    "Games/Beacon3D/Aurelian.Beacon3D.Tests/BeaconApplicationTests.cs": "ae0904bc6787c87246034553bf9cf6392d0272b830427bee477f9f3480a1d4df",
+    "Games/Beacon3D/Aurelian.Beacon3D/BeaconLightingProof.cs": "50e73ae0d5277d6087175f7a2992de089b1011182009e6cfab3783d8cf46e568",
+    "Games/Beacon3D/Aurelian.Beacon3D/BeaconShellGame.cs": "ca42d7ae1036c8702bef28c99b57b071a74c1ef87d8f421627a2c9f8e5868c80",
+    "Games/Beacon3D/Aurelian.Beacon3D/Program.cs": "ab9590f7ac889bd3633216a45f064d4ce4246f7a23ddcf2c19e91f0492c287bc",
+    "Games/Cloudstep/Cloudstep.Tests/LookSettingsTests.cs": "4ee3fef244641392ee41cfc611e99cc8b0851d2a96cdab2ce3e869a0aa63412c",
+    "Games/Cloudstep/Cloudstep/CloudstepGame.cs": "454a9caba3b85fbb84b25358839033251addcb752ed284771d1341e4479b6237",
+    "Games/Cloudstep/Cloudstep/CloudstepLookProfile.cs": "02286a4aecb4de59e22a76af62fdc92a2dc4f1d536fa2f58c7493685bd8cc2af",
+    "Games/Cloudstep/Cloudstep/Program.cs": "3ed7b8282c1490a2806fb96c534affca938bd435913a5d281f0cd6ec7099adc7",
+    "src/Aurelian/Aurelian.Graphics/Vulkan/Native3D/VulkanSolid3DRenderer.cs": "9a4fcf9f82e1cf4d95bf76b4f03e8452cd05a6cd469395296d9c048f97894a29",
+    "src/Aurelian/Aurelian.Rendering.Contracts/Models/Graphics3DSettings.cs": "24736d5f40e6c25fd75267f35296396c0fc945db84d0645c0066210c70f9cb5f",
+    "src/Aurelian/Aurelian.Shaders/Assets/Lighting/Lighting3D.v.ts": "bb7bfb71e6da23c37a9f2ddba77b6e04981336ba8dc1ebd8f0e7b1eb1d473ba4",
+    "src/Aurelian/Aurelian.Shaders/Assets/PostProcessing/ToneMap3D.v.ts": "96af5bdcf134ce6a4b27e5c425697ccd39af0fcb590f1d078690d3221a52b0b2",
+    "tests/Aurelian/Aurelian.Rendering.Contracts.Tests/Graphics3DSettingsTests.cs": "8eadf5ffc2f039fd8a87e04d24debf7590fc2f7d65c6b1a916010b1c4f32a04b",
+    "tools/Aurelian.GraphicsProof/ImageGuidedLookRefinement.cs": "4b712e5a5fe777f9809c01c4ba1f4d9a1230f828396a873a2efff097ac534025",
+    "tools/Aurelian.GraphicsProof/ImageGuidedLookResearch.cs": "ecf1106a65b31bda7f4a738f01d7952809fec7c9f77846479793cf283b86476c",
+    "tools/Aurelian.GraphicsProof/MaterialLookMetric.cs": "b36c217e788d7cc637ed84f7d7e864a716e52ce77ef5025acdc8991993182763",
+    "tools/Aurelian.GraphicsProof/Program.cs": "9bea7b8545b1bd36b5d2fe5567c58ae8dfa01c23719d82cb80d41eb2d5794d7c",
+    "tools/Aurelian.GraphicsProof/SemanticLookCalibration.cs": "95ff1b00fa711f3de541cddfa245705e096edce7fd7258dac039df32ea7b1a0f",
+    "tools/Aurelian.GraphicsProof/SemanticLookMetric.cs": "cc9109a079c936dbcee0e3ce2ab15dcfb8687b41a5e2df48dce29a35597ebcb1"
+  },
+  "Scope": "Current source snapshot after Release build, library/game full tests and native calibration, compatibility and replay checks. Core PathDiffuse source is included even though unchanged."
+}

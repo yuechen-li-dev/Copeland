@@ -1,0 +1,58 @@
+{
+  "EndState": "Meaningful progression",
+  "NativeAppearanceAndProfileDemonstrated": true,
+  "MethodologyTransferQualified": false,
+  "FrozenCriterionPassed": false,
+  "TrainingGainOverPrevious": 0.4551029933023586,
+  "ReferenceBlocker": "New heldout generated scene shifted approximately 39 pixels upward; one corrective edit shifted it again and was rejected before scoring. No further parameter fitting or reranking.",
+  "Build": {
+    "Command": "dotnet build Aurelian.slnx -c Release -m:1 -nr:false -p:UseSharedCompilation=false",
+    "ExitCode": 0,
+    "LatestIncrementalWarnings": 0,
+    "EarlierFullBuildExistingOpenFontWarnings": 14,
+    "Log": "artifacts/local/look-refinement-full-build.log"
+  },
+  "Tests": {
+    "Command": "dotnet test Aurelian.slnx -c Release --no-build -m:1",
+    "Passed": 1518,
+    "Assemblies": 33,
+    "Failed": 0,
+    "Skipped": 0,
+    "Log": "artifacts/local/look-refinement-full-tests.log"
+  },
+  "OutputOracle": {
+    "Cases": 240,
+    "MaximumLinearRgbError": 0.005650515,
+    "Tolerance": 0.009
+  },
+  "DiffuseGpuReferenceCases": 1500,
+  "NativeVtsUtilityScenarios": 3,
+  "NativeTours": {
+    "Runs": 2,
+    "StepsEach": 35,
+    "ExactSimulationComparisons": 420,
+    "FallsEach": 0,
+    "GemsEach": 9,
+    "FinalTickEach": 2082,
+    "FinalSimulationSecondsEach": 34.7
+  },
+  "Stress": {
+    "ExposureMultipliers": [
+      0.5,
+      1,
+      2
+    ],
+    "SunMultipliers": [
+      0.25,
+      1,
+      2
+    ],
+    "Captures": 9,
+    "MaximumClippedChannelFraction": 0.003979,
+    "RobustAcrossStressRange": false
+  },
+  "PerceptualRealism": "unqualified",
+  "RuntimeAiInference": false,
+  "SourceChangesCommitted": false,
+  "DefaultLookChanged": false
+}
