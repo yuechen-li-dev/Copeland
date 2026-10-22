@@ -10,6 +10,9 @@ public enum ParticleEffectKind3D
 
     /// <summary>Light glowing flakes carried up and around by the plume, cooling as they go.</summary>
     Embers,
+
+    /// <summary>Non-emissive falling drops with shutter-length streaks and an authored horizontal floor.</summary>
+    Rain,
 }
 
 /// <summary>Immutable visual command. An owning agent supplies time, seed and activation;
@@ -29,7 +32,8 @@ public sealed record ParticleEmitter3D(string Id, ParticleEffectKind3D Kind)
     public Vector4 Color { get; init; } = Vector4.One;
     public float SoftIntersectionDistance { get; init; } = .15f;
 
-    /// <summary>Peak speed of the swirling curl-noise flow, in metres per second. Zero gives smooth trajectories.</summary>
+    /// <summary>Fire, smoke, sparks and embers: peak curl-noise speed in metres per second.
+    /// Rain uses terminal-speed motion and ignores this parameter. Zero gives smooth trajectories.</summary>
     public float Turbulence { get; init; }
 
     /// <summary>Birth temperature in kelvin for emitting kinds (fire, sparks, embers). Colour follows blackbody radiation:
@@ -41,6 +45,15 @@ public sealed record ParticleEmitter3D(string Id, ParticleEffectKind3D Kind)
 
     /// <summary>Smoke only: height above the emitter, in metres, over which <see cref="Glow"/> fades.</summary>
     public float GlowHeight { get; init; } = 1;
+
+    /// <summary>Rain only: camera integration interval in seconds. Motion spreads the drop's opacity over the streak.</summary>
+    public float RainShutterSeconds { get; init; } = 1f / 60;
+
+    /// <summary>Rain only: horizontal kill plane in world metres. This does not provide roof collision.</summary>
+    public float RainGroundHeight { get; init; }
+
+    /// <summary>Rain only: authored incident linear radiance, added to sun and sky illumination. Not self emission.</summary>
+    public Vector3 RainIncidentRadiance { get; init; }
 
     public void Validate()
     {
@@ -59,7 +72,30 @@ public sealed record ParticleEmitter3D(string Id, ParticleEffectKind3D Kind)
         {
             throw new ArgumentException("AUR-VFX-001: Emitter identity, finite parameters and bounded lifetime are required.");
         }
+        if (Kind == ParticleEffectKind3D.Rain
+            && (!Range(RainShutterSeconds, .0001f, .1f) || !Range(RainGroundHeight, -100000, 100000)
+                || RainGroundHeight >= Position.Y || Direction.Y >= -.001f || Speed <= 0
+                || !Range(RainIncidentRadiance.X, 0, 100) || !Range(RainIncidentRadiance.Y, 0, 100)
+                || !Range(RainIncidentRadiance.Z, 0, 100)))
+        {
+            throw new ArgumentException("AUR-VFX-009: Rain requires downward motion, a floor below its origin, bounded shutter and incident radiance.");
+        }
     }
+
+    /// <summary>Rain over a ten-metre disc. The caller owns position, presentation time and incident light.</summary>
+    public static ParticleEmitter3D Rain(string id, Vector3 position, uint seed = 1) => new(id, ParticleEffectKind3D.Rain)
+    {
+        Position = position,
+        Direction = new(.12f, -1, .04f),
+        Seed = seed,
+        Rate = 1600,
+        Lifetime = 2,
+        Speed = 9,
+        Radius = 10,
+        Size = .014f,
+        Color = new(.75f, .85f, 1, .7f),
+        SoftIntersectionDistance = .08f,
+    };
 
     /// <summary>A campfire-sized flame: about a metre tall at <paramref name="scale"/> 1.</summary>
     public static ParticleEmitter3D Fire(string id, Vector3 position, uint seed = 1, float scale = 1) => new(id, ParticleEffectKind3D.Fire)

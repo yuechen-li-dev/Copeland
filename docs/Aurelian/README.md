@@ -22,6 +22,9 @@ The docs above describe current code paths and contracts. For exact signatures a
 - [Surface graphics pack](surface-graphics-pack.md): environment lighting, ambient occlusion, tiled local lights, and temporal AA.
 - [Presentation graphics pack](presentation-graphics-pack.md) and [temporal graphics pack](temporal-graphics-pack.md).
 - [Water graphics pack](water-graphics-pack.md) and [transmission graphics pack](transmission-graphics-pack.md): bounded water/refraction and glass/volumetric contracts.
+- [Rain after dark](rain-night-research.md): native GPU rain/night/puddle demo, shader authoring, qualification and a paper survey.
+- [Rain art direction](rain-night-art-direction.md): generated 2D atmosphere target and the native scene's response.
+- [Procedural surfaces and primitives](procedural-surfaces-and-primitives.md): height-derived normal/PBR maps, textured local primitives and the Aetheris/Blender handoff.
 - [Shader library and VFX roadmap](shader-library-and-vfx-roadmap.md) and [GPU VFX foundation](gpu-vfx-foundation.md).
 - [GPU compute math pack](compute-math-pack.md).
 - [Lighting compilation](lighting-compilation.md), [compiled diffuse lighting](compiled-diffuse-lighting.md), and [lighting expert workflows](scene-lighting-experts.md).

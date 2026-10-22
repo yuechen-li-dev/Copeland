@@ -7,6 +7,30 @@ namespace Aurelian.Rendering.Contracts.Tests;
 public sealed class ParticleEmitterTests
 {
     [Fact]
+    public void RainRejectsInvalidMotionFloorShutterAndIncidentLight()
+    {
+        var rain = ParticleEmitter3D.Rain("rain", new(0, 12, 0), uint.MaxValue);
+        rain.Validate();
+        (rain with { ElapsedSeconds = 30, EmitUntilSeconds = 2 }).Validate();
+        Assert.Equal(uint.MaxValue, rain.Seed);
+        ParticleEmitter3D[] invalid =
+        [
+            rain with { Direction = Vector3.UnitY },
+            rain with { Speed = 0 },
+            rain with { RainGroundHeight = 12 },
+            rain with { RainGroundHeight = float.NaN },
+            rain with { RainShutterSeconds = 0 },
+            rain with { RainShutterSeconds = .11f },
+            rain with { RainIncidentRadiance = new(-1) },
+            rain with { RainIncidentRadiance = new(float.NaN) },
+        ];
+        foreach (var command in invalid)
+        {
+            Assert.StartsWith("AUR-VFX-009:", Assert.Throws<ArgumentException>(command.Validate).Message);
+        }
+    }
+
+    [Fact]
     public void NonfiniteOrUnsupportedEmitterCommandsAreRejected()
     {
         var emitter = ParticleEmitter3D.Fire("fire", default);

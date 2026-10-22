@@ -18,6 +18,12 @@ Everything else is Aetheris-free, including `Aurelian.Spatial3D`, `Aurelian.Worl
 `Aurelian.NativeComposition`, the game shell `Aurelian.Games`, and 2D games such as TinyFarm.
 `AetherisBoundaryTests` (in `Aurelian.Games.Tests`) enforces both rules by walking the project graph.
 
+Small mesh primitives and procedural surface maps remain Aetheris-free:
+`PrimitiveModels3D` in `Aurelian.World` produces ordinary `ModelSlot` geometry, and
+`SurfaceMapBaker` in `Aurelian.Assets` produces existing material channels. Complex
+assets can use Aetheris USDA/GLB, Blender finishing and the static GLB importer.
+See [procedural surfaces and primitives](procedural-surfaces-and-primitives.md).
+
 To use Aetheris in a new feature, add a bridge project that references the Aetheris project and keep the engine-facing
 types it exposes small. Do not add an Aetheris reference to an existing core project. Small, general algorithms are
 better written in Aurelian; `TriangleSurface3D.ClosestPoint` replaced Spatial3D's only use of `Aetheris.Kernel.Core`.

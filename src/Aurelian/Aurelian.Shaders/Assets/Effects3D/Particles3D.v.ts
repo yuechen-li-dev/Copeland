@@ -26,7 +26,7 @@ record ParticleVertex {
     detail: float4;
     glow: float4;
 }
-enum Effect { Fire, Smoke, Sparks, Embers }
+enum Effect { Fire, Smoke, Sparks, Embers, Rain }
 record Flight {
     position: float3;
     velocity: float3;
@@ -41,7 +41,10 @@ function EffectFor(kind: u32): Effect {
     if (kind == 2) {
         return Effect.Sparks;
     }
-    return Effect.Embers;
+    if (kind == 3) {
+        return Effect.Embers;
+    }
+    return Effect.Rain;
 }
 function Random(seed: u32): f32 {
     var bits = seed;
@@ -172,6 +175,19 @@ function ParticleMain(@builtin(dispatchThreadId) thread: uint3,
         opacity = emitter.color.w * Min(phase * 15.0, 1.0) * (1.0 - phase) * twinkle;
         stretch = 1.0;
     }
+    if (effect == Effect.Rain) {
+        // Terminal-speed drops: no fire integrator, gravity acceleration or blackbody colour.
+        // Seeded variation breaks up the curtain while preserving exact stateless replay.
+        let velocity = direction * (speed * (0.85 + 0.3 * d));
+        flight = { position: origin + velocity * age, velocity: velocity };
+        radius = size * (0.7 + 0.6 * b);
+        opacity = emitter.color.w * Min(phase * 40.0, 1.0);
+        glow = emitter.glow;
+        stretch = 1.0;
+        if (flight.position.y <= emitter.glow.w) {
+            opacity = 0.0;
+        }
+    }
 
     var centre = flight.position;
     if (age < 0.0 || age >= life || birth > emitter.emission.x || slot >= emitter.slots) {
@@ -209,7 +225,11 @@ function ParticleMain(@builtin(dispatchThreadId) thread: uint3,
         halfAcross = radius * 1.15;
     }
     if (stretch > 0.5 && screenSpeed > 0.01) {
-        let trail = screenSpeed * (1.0 / 60.0) * 1.5;
+        var shutter = (1.0 / 60.0) * 1.5;
+        if (effect == Effect.Rain) {
+            shutter = emitter.emission.w;
+        }
+        let trail = screenSpeed * shutter;
         axisAlong = right * (screen.x / screenSpeed) + up * (screen.y / screenSpeed);
         axisAcross = right * (screen.y / screenSpeed) - up * (screen.x / screenSpeed);
         halfAlong = radius + trail * 0.5;

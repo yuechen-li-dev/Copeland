@@ -122,8 +122,13 @@ public sealed unsafe class VulkanParticles3D : IDisposable
                 DirectionLifetime = new(Vector3.Normalize(emitter.Direction), emitter.Lifetime),
                 Shape = new(Math.Min(emitter.Rate, slots / emitter.Lifetime), emitter.Speed, emitter.Radius, emitter.Size),
                 Color = emitter.Color,
-                Emission = new(emitter.EmitUntilSeconds, emitter.SoftIntersectionDistance, emitter.Turbulence, emitter.Temperature),
-                Glow = new(emitter.Glow, emitter.GlowHeight),
+                // Rain uses the existing kind-specific rows for shutter, incident light and its floor;
+                // emitter/vertex strides and every pre-existing kind retain their ABI.
+                Emission = new(emitter.EmitUntilSeconds, emitter.SoftIntersectionDistance, emitter.Turbulence,
+                    emitter.Kind == ParticleEffectKind3D.Rain ? emitter.RainShutterSeconds : emitter.Temperature),
+                Glow = emitter.Kind == ParticleEffectKind3D.Rain
+                    ? new(emitter.RainIncidentRadiance, emitter.RainGroundHeight)
+                    : new(emitter.Glow, emitter.GlowHeight),
                 Seed = emitter.Seed, Kind = (uint)emitter.Kind, Slots = (uint)slots,
             };
         }

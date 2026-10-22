@@ -21,6 +21,17 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 
 string defaultOutput = "artifacts/local/graphics-starter";
+if (args.Contains("--surface-maps", StringComparer.Ordinal))
+{
+    RainNightDemo.BakeMaps(Path.GetFullPath(Option("--output") ?? "artifacts/local/surface-maps"));
+    return;
+}
+if (args.Contains("--rain-night", StringComparer.Ordinal))
+{
+    RainNightDemo.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/rain-night"),
+        args.Contains("--view", StringComparer.Ordinal), args.Contains("--launch-smoke", StringComparer.Ordinal));
+    return;
+}
 if (args.Contains("--water-graphics", StringComparer.Ordinal))
 {
     WaterGraphicsProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/water-graphics"));

@@ -195,6 +195,30 @@ public sealed class ScenePlan
         }
     }
 
+    internal static string ComputePrimitiveModelIdentity(ModelPrimitive primitive)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream);
+        writer.Write("Aurelian.PrimitiveModel.v1");
+        writer.Write(primitive.Vertices.Length);
+        foreach (ModelVertex vertex in primitive.Vertices)
+        {
+            WriteVector(writer, vertex.Position);
+            WriteVector(writer, vertex.Normal);
+            writer.Write(vertex.Uv.X);
+            writer.Write(vertex.Uv.Y);
+            WriteColor(writer, vertex.Tangent);
+            WriteColor(writer, vertex.Color);
+        }
+        writer.Write(primitive.Indices.Length);
+        foreach (int index in primitive.Indices)
+        {
+            writer.Write(index);
+        }
+        WriteOptionalMaterial(writer, primitive.Material);
+        return Convert.ToHexString(SHA256.HashData(stream.ToArray()));
+    }
+
     private static void WriteOptionalMaterial(BinaryWriter writer, ModelMaterial? material)
     {
         writer.Write(material is not null);

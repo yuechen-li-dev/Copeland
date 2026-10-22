@@ -17,6 +17,7 @@ public sealed class GraphicsStarterShaderTests
     [InlineData("SurfaceModel3D.v.ts", 352, 11)]
     [InlineData("SurfaceResolve3D.v.ts", 624, 31)]
     [InlineData("HeightFog3D.v.ts", 112, 5)]
+    [InlineData("ParticleBillboard3D.v.ts", 288, 5)]
     [InlineData("SubsurfaceDiffuse3D.v.ts", 80, 9)]
     [InlineData("SubsurfaceMerge3D.v.ts", 16, 9)]
     [InlineData("TransparencyResolve3D.v.ts", 16, 7)]

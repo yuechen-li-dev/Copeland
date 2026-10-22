@@ -1,0 +1,10 @@
+{
+  "Purpose": "Reference-only 2D art direction; never sampled by the renderer",
+  "Generator": "Built-in image_gen tool",
+  "Date": "2026-10-21",
+  "Image": "rain-night-target-v1.png",
+  "Prompt": "rain-night-target-v1.prompt.txt",
+  "Width": 1586,
+  "Height": 992,
+  "Sha256": "9C81E19AFC070CFD4D1AFA9F35C7ECDE34F6273551D618C7F7299FD15DBBF06F"
+}

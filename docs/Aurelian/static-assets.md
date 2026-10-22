@@ -1,5 +1,9 @@
 # Static 3D assets
 
+For local primitives and generated normal/PBR maps, see
+[procedural surfaces and primitives](procedural-surfaces-and-primitives.md),
+including the Aetheris USDA/GLB to Blender authoring handoff.
+
 The default workflow is **Blender source â†’ self-contained glTF 2.0 GLB â†’ `assets.toml` â†’ typed scene instance**. Keep `.blend` files and source textures editable. Export GLBs for the game; no Blender installation is required to load or play them. Aetheris STEP/BRep remains CAD authority, and the existing Aetheris scene adapter remains available. Neither GLB nor its triangles replace CAD topology or automatically become collision.
 
 The exchange conventions come from the [glTF 2.0 specification](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html). [SharpGLTF](https://github.com/vpenades/SharpGLTF) owns container/accessor decoding behind Aurelian's adapter; its object model never becomes the game's scene or agent API.

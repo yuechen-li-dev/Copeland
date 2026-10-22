@@ -223,6 +223,16 @@ function PixelMain(input: Varyings, uniforms: Uniforms, resources: Resources): O
         // Light from the fire beneath: brightest on the underside.
         let underglow: float3 = Scale3(input.glow.xyz, 0.55 - 0.45 * up);
         scattered = Mul3(tint, Add3(Add3(sunlight, ambient), underglow));
+    } else if (kind > 3.5) {
+        // Distant rain approximation, not the oscillating-drop database of Garg and Nayar.
+        // Rain scatters incident light through the OIT colour channel; it never emits blackbody light.
+        if (input.world.y <= input.glow.w) { Discard(); }
+        let across: f32 = Max(1.0 - input.uvKind.x * input.uvKind.x, 0.0);
+        let caps: f32 = Max(1.0 - Pow(Abs(input.uvKind.y), 6.0), 0.0);
+        alpha = input.color.w * soft * across * across * caps;
+        let forward: f32 = Phase(Dot3(Unit(delta), Unit(m.sunDirection.xyz)), 0.65) * 12.566370614;
+        let sunlight: float3 = Scale3(m.sunColor.xyz, m.sunDirection.w * forward);
+        scattered = Mul3(tint, Add3(Add3(m.sky.xyz, sunlight), input.glow.xyz));
     } else {
         // Sparks and embers: a streak along the motion with a bright head and a fading tail.
         let across: f32 = Max(1.0 - input.uvKind.x * input.uvKind.x, 0.0);
