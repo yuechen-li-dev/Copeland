@@ -32,6 +32,7 @@ public sealed class Graphics3DSettingsTests
             Graphics3DSettings.Default with { SolidRoughness = 0 },
             Graphics3DSettings.Default with { TemporalHistoryWeight = 1 },
             Graphics3DSettings.Default with { BloomIntensity = float.NaN },
+            Graphics3DSettings.Default with { DirectDiffuseModel = (DirectDiffuseModel3D)99 },
         ];
         foreach (var settings in invalid)
         {

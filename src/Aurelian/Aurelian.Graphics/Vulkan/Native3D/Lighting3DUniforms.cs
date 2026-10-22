@@ -40,7 +40,8 @@ internal static class Lighting3DUniforms
             light.X, light.Y, light.Z, .28f,
             settings.SunColor.X, settings.SunColor.Y, settings.SunColor.Z, settings.SunIntensity,
             settings.SkyAmbient.X, settings.SkyAmbient.Y, settings.SkyAmbient.Z, 0,
-            settings.GroundAmbient.X, settings.GroundAmbient.Y, settings.GroundAmbient.Z, 0,
+            // ground.w is the shared direct-diffuse selector in every surface shader ABI.
+            settings.GroundAmbient.X, settings.GroundAmbient.Y, settings.GroundAmbient.Z, (float)settings.DirectDiffuseModel,
             .. Rows(shadow),
             settings.Shadows && shadowsAvailable ? 1 : 0, settings.ShadowBias, 1f / ShadowSize, 0,
         ];

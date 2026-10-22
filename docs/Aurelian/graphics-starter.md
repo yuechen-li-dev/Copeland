@@ -1,5 +1,7 @@
 # 3D graphics starter: lighting, shadows and HDR
 
+For the controlled Lambert/Burley/Frostbite/EON/PathDiffuse experiment, run `diffuse-lab.cmd` and see the [diffuse comparison guide](diffuse-comparison.md).
+
 The shared native game host now renders 3D scenes into an `R16G16B16A16_SFLOAT`
 linear color attachment. A separate GPU output pass applies exposure, a filmic
 curve and output encoding before the existing menu/HUD compositor runs. UI colors

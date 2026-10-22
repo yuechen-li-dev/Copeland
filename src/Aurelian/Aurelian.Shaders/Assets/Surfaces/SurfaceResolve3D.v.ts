@@ -1,5 +1,5 @@
 import { WorldAt, EnvironmentResponse, EnvironmentDiffuse, MaskAllows, BoxReflection, ConeAttenuation } from "./SurfaceLighting";
-import { Unit, Sub3, Add3, Scale3, Mul3, Dot3, DirectLight, DirectDiffuse, HemisphereLight, ShadowVisibility, PlaneShadowVisibility, LimitRadiance } from "./Lighting3D";
+import { Unit, Sub3, Add3, Scale3, Mul3, Dot3, DirectLightModel, DirectDiffuseModel, HemisphereLight, ShadowVisibility, PlaneShadowVisibility, LimitRadiance } from "./Lighting3D";
 import { CompiledDiffuse } from "./CompiledDiffuseLighting";
 
 @space(clip.position)
@@ -162,12 +162,12 @@ function PixelMain(input: Varyings, resources: Resources): Output {
     const light: float3 = Unit(float3(resources.material.light.x, resources.material.light.y, resources.material.light.z));
     const sun: float3 = float3(resources.material.sun.x, resources.material.sun.y, resources.material.sun.z);
     const visibility: f32 = DirectionalVisibility(resources, p, normal);
-    var direct: float3 = Scale3(Mul3(DirectLight(base, normal, view, light, n.w, material.w), sun), resources.material.sun.w * visibility);
+    var direct: float3 = Scale3(Mul3(DirectLightModel(base, normal, view, light, n.w, material.w, resources.material.ground.w), sun), resources.material.sun.w * visibility);
     const profile: float4 = Sample(resources.subsurface, resources.subsurfaceSampler, input.uv);
     var diffuseDirect: float3 = float3(0.0, 0.0, 0.0);
     var diffuseAmbient: float3 = float3(0.0, 0.0, 0.0);
     if (profile.w > 0.0) {
-        diffuseDirect = Scale3(Mul3(DirectDiffuse(base, normal, view, light, n.w), sun), resources.material.sun.w * visibility);
+        diffuseDirect = Scale3(Mul3(DirectDiffuseModel(base, normal, view, light, n.w, material.w, resources.material.ground.w), sun), resources.material.sun.w * visibility);
         const blend: f32 = Clamp(normal.y * 0.5 + 0.5, 0.0, 1.0);
         diffuseAmbient = Mul3(base, Add3(Scale3(float3(resources.material.sky.x, resources.material.sky.y, resources.material.sky.z), blend),
             Scale3(float3(resources.material.ground.x, resources.material.ground.y, resources.material.ground.z), 1.0 - blend)));
@@ -214,10 +214,10 @@ function PixelMain(input: Varyings, resources: Resources): Output {
                     attenuation = attenuation * LocalShadow(resources, config.z, p, Max(Dot3(normal, direction), 0.0));
                 }
                 if (profile.w > 0.0) {
-                    diffuseDirect = Add3(diffuseDirect, Scale3(Mul3(DirectDiffuse(base, normal, view, direction, n.w),
+                    diffuseDirect = Add3(diffuseDirect, Scale3(Mul3(DirectDiffuseModel(base, normal, view, direction, n.w, material.w, resources.material.ground.w),
                         float3(color.x, color.y, color.z)), color.w * attenuation));
                 }
-                direct = Add3(direct, Scale3(Mul3(DirectLight(base, normal, view, direction, n.w, material.w),
+                direct = Add3(direct, Scale3(Mul3(DirectLightModel(base, normal, view, direction, n.w, material.w, resources.material.ground.w),
                     float3(color.x, color.y, color.z)), color.w * attenuation));
             }
         }

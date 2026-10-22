@@ -15,6 +15,17 @@ public enum SurfaceDebugView3D
     AmbientOcclusion,
 }
 
+/// <summary>Experimental direct-light diffuse lobes. Indirect irradiance retains its existing model.</summary>
+public enum DirectDiffuseModel3D
+{
+    Lambert,
+    Burley,
+    Frostbite,
+    Eon,
+    /// <summary>Experimental colored path closure; base color means single-bounce reflectance.</summary>
+    PathDiffuse,
+}
+
 public sealed record Graphics3DSettings
 {
     public static Graphics3DSettings Default { get; } = new();
@@ -28,6 +39,7 @@ public sealed record Graphics3DSettings
     public float AmbientOcclusionStrength { get; init; }
     public float AmbientOcclusionRadius { get; init; } = .8f;
     public SurfaceDebugView3D SurfaceDebugView { get; init; }
+    public DirectDiffuseModel3D DirectDiffuseModel { get; init; } = DirectDiffuseModel3D.Lambert;
     public float EnvironmentIntensity { get; init; } = 1;
     public bool LocalLightCulling { get; init; } = true;
     public int LocalShadowBudget { get; init; } = 2;
@@ -57,7 +69,7 @@ public sealed record Graphics3DSettings
         Fog.Validate();
         ArgumentNullException.ThrowIfNull(Volumetrics);
         Volumetrics.Validate();
-        if (!Enum.IsDefined(AntiAliasing) || !Enum.IsDefined(SurfaceDebugView)
+        if (!Enum.IsDefined(AntiAliasing) || !Enum.IsDefined(SurfaceDebugView) || !Enum.IsDefined(DirectDiffuseModel)
             || !Range(TemporalHistoryWeight, 0, .95f) || !Range(BloomIntensity, 0, 1)
             || !Range(AmbientOcclusionStrength, 0, 2) || !Range(AmbientOcclusionRadius, .01f, 10)
             || !Range(EnvironmentIntensity, 0, 100)

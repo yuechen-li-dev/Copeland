@@ -423,6 +423,10 @@ public sealed unsafe class VulkanSolid3DRenderer : IDisposable
             && Vector3.Distance(Vector3.Normalize(settings.SunDirection), diffuseAsset.SunDirection) < .00001f;
         if (useDiffuse)
         {
+            if (settings.DirectDiffuseModel != DirectDiffuseModel3D.Lambert)
+            {
+                throw new NotSupportedException("AUR-DIFFUSE-001: Published static diffuse lighting requires Lambert. Disable the compiled-lighting asset for direct-diffuse experiments.");
+            }
             StaticDiffuseFallbackReason = null;
         }
         else if (diffusePublished)

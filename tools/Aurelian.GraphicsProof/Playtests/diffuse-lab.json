@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "steps": [
+    { "kind": "click-action", "text": "start" },
+    { "kind": "command", "command": "assert model Lambert" },
+    { "kind": "capture", "path": "01-lambert.png" },
+    { "kind": "tap", "keys": ["Number2"], "seconds": 0.02 },
+    { "kind": "command", "command": "assert model Burley" },
+    { "kind": "capture", "path": "02-burley.png" },
+    { "kind": "tap", "keys": ["Number3"], "seconds": 0.02 },
+    { "kind": "command", "command": "assert model Frostbite" },
+    { "kind": "capture", "path": "03-frostbite.png" },
+    { "kind": "tap", "keys": ["Number4"], "seconds": 0.02 },
+    { "kind": "command", "command": "assert model Eon" },
+    { "kind": "capture", "path": "04-eon.png" },
+    { "kind": "tap", "keys": ["Number5"], "seconds": 0.02 },
+    { "kind": "command", "command": "assert model PathDiffuse" },
+    { "kind": "capture", "path": "05-path.png" },
+    { "kind": "tap", "keys": ["C"], "seconds": 0.02 },
+    { "kind": "tap", "keys": ["L"], "seconds": 0.02 },
+    { "kind": "command", "command": "assert shot 1" },
+    { "kind": "command", "command": "assert lighting 1" },
+    { "kind": "capture", "path": "06-ambient-fill.png" },
+    { "kind": "resize", "width": 1537, "height": 864 },
+    { "kind": "command", "command": "assert model PathDiffuse" },
+    { "kind": "capture", "path": "07-resized.png" },
+    { "kind": "tap", "keys": ["L"], "seconds": 0.02 },
+    { "kind": "command", "command": "assert lighting 2" },
+    { "kind": "capture", "path": "08-local-lights.png" }
+  ]
+}

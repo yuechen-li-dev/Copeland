@@ -8,6 +8,13 @@ license text are supplied in `licenses/Aetheris-Temporal-NOTICE.txt` and
 The ComputeMath family adapts Oct Prometheus algorithms; its source paths and
 license boundary are recorded in `licenses/Prometheus-NOTICE.txt`.
 
+The EON diffuse fit in `Lighting3D.v.ts` is adapted from Jamie Portsmouth's MIT-licensed `portsmouth/EON-diffuse` implementation. Attribution and the full license are supplied in `licenses/EON-LICENSE.txt`.
+
+The experimental PathDiffuse lobe uses an Aurelian separable first-bounce model
+with Frostbite-inspired attenuation and the colored multiple-scattering closure
+described by Portsmouth, Kutz and Hill in EON (JCGT 2025, section 3.1).
+Its derivation and scope are documented in `docs/Aurelian/diffuse-comparison.md`.
+
 The compiler assembly `Aurelian.Shaders` remains independent of this bundle;
 applications select the bundle by referencing `Aurelian.Shaders.Builtins`.
 The repository's GPL license and the optional Aetheris integration boundary are

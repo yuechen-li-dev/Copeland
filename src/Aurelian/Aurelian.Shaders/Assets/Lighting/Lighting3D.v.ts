@@ -39,7 +39,95 @@ export function ChannelResponse(base: f32, metallic: f32, vh: f32, specular: f32
 export function Channel(base: f32, metallic: f32, vh: f32, specular: f32): f32 {
     return ChannelResponse(base, metallic, vh, specular, 0.04);
 }
-export function DirectLightResponse(base: float3, normal: float3, view: float3, light: float3, metallic: f32, roughness: f32, dielectric: f32): float3 {
+// BRDF / (1 / pi), with both directions pointing away from the surface.
+// Burley 2012 section 5.3; Lagarde/de Rousiers 2014 listing 1.
+// EON: Portsmouth/Kutz/Hill 2025, unit-albedo lobe scaled by authored base color.
+// The EON fit is adapted from MIT-licensed EON-diffuse; see Assets/Licenses/EON-LICENSE.txt.
+function Pow5(x: f32): f32 {
+    return x * x * x * x * x;
+}
+function FonAlbedo(mu: f32, roughness: f32): f32 {
+    const x: f32 = 1.0 - mu;
+    const integral: f32 = x * (0.0571085289 + x * (0.491881867 + x * (-0.332181442 + x * 0.0714429953)));
+    return (1.0 + roughness * integral) / (1.0 + (0.5 - 2.0 / (3.0 * Pi)) * roughness);
+}
+// Engine experiment: separable first bounce plus an analytic colored path closure.
+// The cosine-weighted integral of (1 - mu)^5 is 1/21. No texture or angular fit is needed.
+// Returns single-bounce shape, unit-albedo multiple-bounce shape, and mean single-bounce energy.
+function PathWeights(nl: f32, nv: f32, roughness: f32): float3 {
+    const attenuation: f32 = 1.0 + (1.0 / 1.51 - 1.0) * roughness;
+    const edge: f32 = 0.5 * roughness;
+    const incident: f32 = 1.0 - edge * Pow5(1.0 - nl);
+    const outgoing: f32 = 1.0 - edge * Pow5(1.0 - nv);
+    const integral: f32 = 1.0 - edge / 21.0;
+    const average: f32 = attenuation * integral * integral;
+    const single: f32 = attenuation * incident * outgoing;
+    const missingIncident: f32 = 1.0 - attenuation * integral * incident;
+    const missingOutgoing: f32 = 1.0 - attenuation * integral * outgoing;
+    const multiple: f32 = missingIncident * missingOutgoing / Max(1.0 - average, 0.0000001);
+    return float3(single, multiple, average);
+}
+function PathColor(base: f32, weights: float3): f32 {
+    const albedo: f32 = Clamp(base, 0.0, 1.0);
+    const bounce: f32 = albedo * albedo * weights.z / (1.0 - albedo * (1.0 - weights.z));
+    return albedo * weights.x + bounce * weights.y;
+}
+export function DiffuseFactor(normal: float3, view: float3, light: float3, roughness: f32, model: f32): f32 {
+    if (model < 0.5) {
+        return 1.0;
+    }
+    const nl: f32 = Clamp(Dot3(normal, light), 0.0, 1.0);
+    const nv: f32 = Clamp(Dot3(normal, view), 0.0, 1.0);
+    const r: f32 = Clamp(roughness, 0.0, 1.0);
+    if (model > 3.5) {
+        const weights: float3 = PathWeights(nl, nv, r);
+        return weights.x + weights.y;
+    }
+    if (model > 2.5) {
+        if (r < 0.00001) {
+            return 1.0;
+        }
+        const tangentDot: f32 = Dot3(light, view) - nl * nv;
+        var projected: f32 = tangentDot;
+        if (tangentDot > 0.0) {
+            projected = tangentDot / Max(Max(nl, nv), 0.000001);
+        }
+        const normalization: f32 = 1.0 / (1.0 + (0.5 - 2.0 / (3.0 * Pi)) * r);
+        const single: f32 = normalization * (1.0 + r * projected);
+        const average: f32 = normalization * (1.0 + (2.0 / 3.0 - 28.0 / (15.0 * Pi)) * r);
+        const multiple: f32 = (1.0 - FonAlbedo(nl, r)) * (1.0 - FonAlbedo(nv, r)) / Max(1.0 - average, 0.0000001);
+        return single + multiple;
+    }
+    const half: float3 = Unit(Add3(light, view));
+    const lh: f32 = Clamp(Dot3(light, half), 0.0, 1.0);
+    var grazing: f32 = 0.5 + 2.0 * r * lh * lh;
+    var energy: f32 = 1.0;
+    if (model > 1.5) {
+        grazing = 0.5 * r + 2.0 * r * lh * lh;
+        energy = 1.0 + (1.0 / 1.51 - 1.0) * r;
+    }
+    return (1.0 + (grazing - 1.0) * Pow5(1.0 - nl))
+        * (1.0 + (grazing - 1.0) * Pow5(1.0 - nv)) * energy;
+}
+// Diffuse BRDF times pi, including color. PathDiffuse treats base as single-bounce
+// reflectance; legacy models retain their authored-albedo multiplier semantics.
+export function DiffuseResponse(base: float3, normal: float3, view: float3, light: float3, roughness: f32, model: f32): float3 {
+    if (model > 3.5) {
+        const weights: float3 = PathWeights(Clamp(Dot3(normal, light), 0.0, 1.0),
+            Clamp(Dot3(normal, view), 0.0, 1.0), Clamp(roughness, 0.0, 1.0));
+        return float3(PathColor(base.x, weights), PathColor(base.y, weights), PathColor(base.z, weights));
+    }
+    return Scale3(base, DiffuseFactor(normal, view, light, roughness, model));
+}
+function ChannelWithDiffuse(base: f32, metallic: f32, vh: f32, specular: f32, dielectric: f32, diffuse: f32): f32 {
+    if (dielectric == 0.0 && metallic == 0.0) {
+        return diffuse / Pi;
+    }
+    const f0: f32 = dielectric * (1.0 - metallic) + base * metallic;
+    const f: f32 = Fresnel(f0, vh);
+    return (1.0 - f) * (1.0 - metallic) * diffuse / Pi + f * specular;
+}
+export function DirectLightResponseModel(base: float3, normal: float3, view: float3, light: float3, metallic: f32, roughness: f32, dielectric: f32, model: f32): float3 {
     const half: float3 = Unit(Add3(light, view));
     const nl: f32 = Max(Dot3(normal, light), 0.0);
     const nv: f32 = Max(Dot3(normal, view), 0.0001);
@@ -51,8 +139,16 @@ export function DirectLightResponse(base: float3, normal: float3, view: float3, 
     const distribution: f32 = a2 / Max(Pi * denominator * denominator, 0.000001);
     const k: f32 = (roughness + 1.0) * (roughness + 1.0) / 8.0;
     const specular: f32 = distribution * Geometry(nv, k) * Geometry(nl, k) / Max(4.0 * nv * nl, 0.0001);
-    return Scale3(float3(ChannelResponse(base.x, metallic, vh, specular, dielectric), ChannelResponse(base.y, metallic, vh, specular, dielectric),
-        ChannelResponse(base.z, metallic, vh, specular, dielectric)), nl);
+    const diffuse: float3 = DiffuseResponse(base, normal, view, light, roughness, model);
+    return Scale3(float3(ChannelWithDiffuse(base.x, metallic, vh, specular, dielectric, diffuse.x),
+        ChannelWithDiffuse(base.y, metallic, vh, specular, dielectric, diffuse.y),
+        ChannelWithDiffuse(base.z, metallic, vh, specular, dielectric, diffuse.z)), nl);
+}
+export function DirectLightResponse(base: float3, normal: float3, view: float3, light: float3, metallic: f32, roughness: f32, dielectric: f32): float3 {
+    return DirectLightResponseModel(base, normal, view, light, metallic, roughness, dielectric, 0.0);
+}
+export function DirectLightModel(base: float3, normal: float3, view: float3, light: float3, metallic: f32, roughness: f32, model: f32): float3 {
+    return DirectLightResponseModel(base, normal, view, light, metallic, roughness, 0.04, model);
 }
 export function DirectLight(base: float3, normal: float3, view: float3, light: float3, metallic: f32, roughness: f32): float3 {
     return DirectLightResponse(base, normal, view, light, metallic, roughness, 0.04);
@@ -64,6 +160,15 @@ export function DirectDiffuse(base: float3, normal: float3, view: float3, light:
     const nl: f32 = Max(Dot3(normal, light), 0.0);
     return Scale3(float3(Channel(base.x, metallic, vh, 0.0), Channel(base.y, metallic, vh, 0.0),
         Channel(base.z, metallic, vh, 0.0)), nl);
+}
+export function DirectDiffuseModel(base: float3, normal: float3, view: float3, light: float3, metallic: f32, roughness: f32, model: f32): float3 {
+    const half: float3 = Unit(Add3(light, view));
+    const vh: f32 = Max(Dot3(view, half), 0.0);
+    const nl: f32 = Max(Dot3(normal, light), 0.0);
+    const diffuse: float3 = DiffuseResponse(base, normal, view, light, roughness, model);
+    return Scale3(float3(ChannelWithDiffuse(base.x, metallic, vh, 0.0, 0.04, diffuse.x),
+        ChannelWithDiffuse(base.y, metallic, vh, 0.0, 0.04, diffuse.y),
+        ChannelWithDiffuse(base.z, metallic, vh, 0.0, 0.04, diffuse.z)), nl);
 }
 export function HemisphereResponse(base: float3, normal: float3, view: float3, sky: float3, ground: float3, metallic: f32, roughness: f32, dielectric: f32): float3 {
     const blend: f32 = Clamp(normal.y * 0.5 + 0.5, 0.0, 1.0);

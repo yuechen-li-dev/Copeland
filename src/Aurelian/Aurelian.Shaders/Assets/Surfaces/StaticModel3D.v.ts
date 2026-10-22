@@ -1,5 +1,5 @@
 import { TemporalProjection } from "./TemporalGeometry";
-import { Unit, Sub3, ShadowVisibility, Dot3, Scale3, Mul3, DirectLight, HemisphereLight, Add3, Cross3, LimitRadiance } from "./Lighting3D";
+import { Unit, Sub3, ShadowVisibility, Dot3, Scale3, Mul3, DirectLightModel, HemisphereLight, Add3, Cross3, LimitRadiance } from "./Lighting3D";
 
 @space(world.position)
 type WorldPosition3 = float3;
@@ -122,7 +122,7 @@ function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources:
     const projected: float3 = float3(Row(uniforms.material.shadowX, p), Row(uniforms.material.shadowY, p), Row(uniforms.material.shadowZ, p));
     const visibility: f32 = ShadowVisibility(resources.shadowMap, resources.shadowSampler, projected,
         uniforms.material.shadowParameters, Max(Dot3(normal, light), 0.0));
-    const direct: float3 = Scale3(Mul3(DirectLight(float3(base.x, base.y, base.z), normal, view, light, metallic, roughness),
+    const direct: float3 = Scale3(Mul3(DirectLightModel(float3(base.x, base.y, base.z), normal, view, light, metallic, roughness, uniforms.material.ground.w),
         float3(uniforms.material.sun.x, uniforms.material.sun.y, uniforms.material.sun.z)), uniforms.material.sun.w * visibility);
     const ao: float4 = Sample(resources.occlusionMap, resources.occlusionSampler, input.uv);
     const occlusion: f32 = 1.0 - uniforms.material.factors.w + ao.x * uniforms.material.factors.w;

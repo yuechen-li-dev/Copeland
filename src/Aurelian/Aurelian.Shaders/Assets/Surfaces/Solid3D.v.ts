@@ -1,5 +1,5 @@
 import { TemporalProjection } from "./TemporalGeometry";
-import { Unit, Sub3, ShadowVisibility, Dot3, Scale3, Mul3, DirectLight, HemisphereLight, Add3, LimitRadiance } from "./Lighting3D";
+import { Unit, Sub3, ShadowVisibility, Dot3, Scale3, Mul3, DirectLightModel, HemisphereLight, Add3, LimitRadiance } from "./Lighting3D";
 import { CompiledDiffuse } from "./CompiledDiffuseLighting";
 
 @space(world.position)
@@ -109,7 +109,7 @@ function ShadeSolid(input: SolidVaryings, resources: CameraResources, shadows: S
             return float4(radiance.x, radiance.y, radiance.z, 1.0);
         }
     }
-    const direct: float3 = Scale3(Mul3(DirectLight(base, normal, view, light, resources.camera.surface.y, resources.camera.surface.x),
+    const direct: float3 = Scale3(Mul3(DirectLightModel(base, normal, view, light, resources.camera.surface.y, resources.camera.surface.x, resources.camera.ground.w),
         float3(resources.camera.sun.x, resources.camera.sun.y, resources.camera.sun.z)), resources.camera.sun.w * visibility);
     const ambient: float3 = HemisphereLight(base, normal, view, float3(resources.camera.sky.x, resources.camera.sky.y, resources.camera.sky.z),
         float3(resources.camera.ground.x, resources.camera.ground.y, resources.camera.ground.z), resources.camera.surface.y, resources.camera.surface.x);

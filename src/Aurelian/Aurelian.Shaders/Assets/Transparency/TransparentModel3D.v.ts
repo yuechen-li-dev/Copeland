@@ -1,7 +1,7 @@
 import { EnvironmentResponse, BoxReflection, ConeAttenuation } from "./SurfaceLighting";
 import { VolumeAt, ComposeVolume } from "./VolumeLighting";
 import { Fogged } from "./HeightFog";
-import { Unit, Sub3, ShadowVisibility, PlaneShadowVisibility, Dot3, Scale3, Mul3, DirectLight, HemisphereLight, Add3, Cross3, LimitRadiance } from "./Lighting3D";
+import { Unit, Sub3, ShadowVisibility, PlaneShadowVisibility, Dot3, Scale3, Mul3, DirectLightModel, HemisphereLight, Add3, Cross3, LimitRadiance } from "./Lighting3D";
 
 @space(world.position)
 type WorldPosition3 = float3;
@@ -177,7 +177,7 @@ function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources:
     var lit: float3 = Add3(rgb, emitted);
     if (uniforms.material.flags.x < 0.5) {
         const visibility: f32 = DirectionalVisibility(resources, uniforms, p, normal);
-        var direct: float3 = Scale3(Mul3(DirectLight(rgb, normal, view, light, metallic, roughness), sun),
+        var direct: float3 = Scale3(Mul3(DirectLightModel(rgb, normal, view, light, metallic, roughness, uniforms.material.ground.w), sun),
             uniforms.material.sun.w * visibility);
         var ambient: float3 = HemisphereLight(rgb, normal, view,
             float3(uniforms.material.sky.x, uniforms.material.sky.y, uniforms.material.sky.z),
@@ -205,7 +205,7 @@ function PixelMain(input: ModelVaryings, uniforms: MaterialResources, resources:
                     if (config.z > 0.5) {
                         attenuation = attenuation * LocalShadow(resources, uniforms, config.z, p, Max(Dot3(normal, direction), 0.0));
                     }
-                    direct = Add3(direct, Scale3(Mul3(DirectLight(rgb, normal, view, direction, metallic, roughness),
+                    direct = Add3(direct, Scale3(Mul3(DirectLightModel(rgb, normal, view, direction, metallic, roughness, uniforms.material.ground.w),
                         float3(color.x, color.y, color.z)), color.w * attenuation));
                 }
             }

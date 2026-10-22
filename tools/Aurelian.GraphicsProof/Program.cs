@@ -21,6 +21,16 @@ using Silk.NET.Input;
 using Silk.NET.Windowing;
 
 string defaultOutput = "artifacts/local/graphics-starter";
+if (args.Contains("--diffuse-lab", StringComparer.Ordinal))
+{
+    GameApp.Run(new DiffuseLabGame(), args);
+    return;
+}
+if (args.Contains("--diffuse-proof", StringComparer.Ordinal))
+{
+    DiffuseGraphicsProof.Run(Path.GetFullPath(Option("--output") ?? "artifacts/local/diffuse-comparison"));
+    return;
+}
 if (args.Contains("--surface-maps", StringComparer.Ordinal))
 {
     RainNightDemo.BakeMaps(Path.GetFullPath(Option("--output") ?? "artifacts/local/surface-maps"));
